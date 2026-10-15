@@ -1005,6 +1005,7 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
     for k in 0..sim.cat.starts.len() {
         let s = sim.cat.starts[k];
         sim.open_player(s.player, s.x, s.y);
+        sim.base_fields(s.x, s.y);
     }
     Ok(sim)
 }

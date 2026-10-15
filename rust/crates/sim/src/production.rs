@@ -30,6 +30,30 @@ impl Sim {
         }
     }
 
+    /// Places the base's mineral patches and geysers from ECON: `patches` patches in a row east
+    /// of the start and `geysers` geysers in a column south of it, one world unit apart. Each
+    /// holds the ECON amount and belongs to no player. A spot the catalog cannot place is skipped.
+    pub(crate) fn base_fields(&mut self, x: i32, y: i32) {
+        let econ = self.cat.econ;
+        const NEUTRAL: u8 = 0xFF;
+        if let Some(kind) = self.cat.units.iter().position(|u| u.resource_kind == 1) {
+            for k in 0..econ.patches.max(0) {
+                let at = (x + fixed::from_int(2 + k), y - fixed::from_int(2));
+                if let Some(i) = self.spawn_for(NEUTRAL, kind as u32, at.0, at.1) {
+                    self.amount[i] = econ.minerals_per_patch;
+                }
+            }
+        }
+        if let Some(kind) = self.cat.units.iter().position(|u| u.resource_kind == 2) {
+            for k in 0..econ.geysers.max(0) {
+                let at = (x - fixed::from_int(2), y + fixed::from_int(2 + k));
+                if let Some(i) = self.spawn_for(NEUTRAL, kind as u32, at.0, at.1) {
+                    self.amount[i] = econ.gas_per_geyser;
+                }
+            }
+        }
+    }
+
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
