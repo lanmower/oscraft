@@ -85,6 +85,19 @@ impl Sim {
         }
     }
 
+    /// Damage to the cast target unit alone, for a damage effect with radius 0. Only a living
+    /// enemy other than the caster takes it.
+    pub(crate) fn damage_target(&mut self, caster: i32, p: u8, dmg: i32, target: i32) {
+        if dmg <= 0 || target < 0 || target as usize >= self.n {
+            return;
+        }
+        let j = target as usize;
+        if target == caster || self.alive[j] == 0 || self.player[j] == p {
+            return;
+        }
+        self.hurt(j, dmg);
+    }
+
     /// Damages every living enemy unit within `rad` of a point. `caster` is the unit that
     /// cast it, or -1; the caster is spared.
     pub(crate) fn damage_area(&mut self, caster: i32, p: u8, dmg: i32, rad: i32, x: i32, y: i32) {

@@ -25,6 +25,19 @@ impl Sim {
         self.scratch = buf;
     }
 
+    /// Heals the cast target unit alone, for a heal effect with radius 0. Only a living unit
+    /// of the caster's player takes it, capped at its maximum.
+    pub(crate) fn heal_target(&mut self, p: u8, amt: i32, target: i32) {
+        if amt <= 0 || target < 0 || target as usize >= self.n {
+            return;
+        }
+        let j = target as usize;
+        if self.alive[j] == 0 || self.player[j] != p {
+            return;
+        }
+        self.hp[j] = self.hp[j].wrapping_add(amt).min(self.hp_max[j]);
+    }
+
     /// The first free healer slot, or None when all are running.
     pub(crate) fn free_healer(&self) -> Option<usize> {
         (0..HEALER_SLOTS).find(|&k| self.healer_left[k] <= 0)

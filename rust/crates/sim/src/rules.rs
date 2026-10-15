@@ -168,8 +168,20 @@ impl Sim {
         let p = self.player[caster];
         let c = caster as i32;
         match eff.kind {
-            EFFECT_DAMAGE => self.damage_area(c, p, eff.p0, eff.p1, tx, ty),
-            EFFECT_HEAL => self.heal_area(p, eff.p0, eff.p1, tx, ty),
+            EFFECT_DAMAGE => {
+                if eff.p1 == 0 {
+                    self.damage_target(c, p, eff.p0, target);
+                } else {
+                    self.damage_area(c, p, eff.p0, fixed::from_milli(eff.p1), tx, ty);
+                }
+            }
+            EFFECT_HEAL => {
+                if eff.p1 == 0 {
+                    self.heal_target(p, eff.p0, target);
+                } else {
+                    self.heal_area(p, eff.p0, fixed::from_milli(eff.p1), tx, ty);
+                }
+            }
             EFFECT_MOVE => {
                 if !self.teleport(caster, tx, ty) {
                     self.refuse(Refusal::NoTeleport);
