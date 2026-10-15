@@ -163,6 +163,25 @@ impl Sim {
         true
     }
 
+    /// Issues an ability's issue_order effect. The receiver is the cast target unit, or the
+    /// caster when the cast names no unit. Order 1 (attack_move) sends the receiver to the
+    /// point: the caster's own position when `point` is 0 (caster_relative), the cast point
+    /// when `point` is 1. Orders 0 (stop) and 2 (hold) set the receiver's destination to its
+    /// current position; this sim never chases, so hold and stop are the same here.
+    pub(crate) fn issue_order(&mut self, caster: usize, order: i32, point: i32, tx: i32, ty: i32, target: i32) {
+        let r = if target >= 0 && (target as usize) < self.n { target as usize } else { caster };
+        if self.alive[r] == 0 {
+            self.refuse(Refusal::NoTarget);
+            return;
+        }
+        let (x, y) = match order {
+            1 if point == 1 => (tx, ty),
+            1 => (self.pos_x[caster], self.pos_y[caster]),
+            _ => (self.pos_x[r], self.pos_y[r]),
+        };
+        self.move_fixed(r, x, y);
+    }
+
     /// Sets a movement destination without moving the unit.
     pub fn move_fixed(&mut self, i: usize, x: i32, y: i32) -> bool {
         if i >= self.n || self.alive[i] == 0 {

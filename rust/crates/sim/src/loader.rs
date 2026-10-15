@@ -8,7 +8,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 3;
+const VERSION: u16 = 4;
 const RESOURCE_KINDS: u8 = 3;
 const ABILITY_FILTER_BITS: u16 = 12;
 const CELL_BITS: u8 = 0b11;
@@ -17,7 +17,8 @@ const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 7] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"GRID"];
 const RECORD_SIZES: [usize; 7] = [1, 16, 32, 2, 80, 16, 1];
 
-const EFFECT_KINDS: u16 = 5;
+const EFFECT_KINDS: u16 = 11;
+const EFFECT_ISSUE_ORDER: u16 = 5;
 const TARGET_CODES: u8 = 3;
 const TRIGGER_CODES: u8 = 4;
 const ACTION_CODES: u8 = 3;
@@ -309,7 +310,11 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             return Err(LoadError::Range("effect kind"));
         }
         er.skip(2, "effect reserved")?;
-        effects.push(Effect { kind, p0: er.i32("p0")?, p1: er.i32("p1")?, p2: er.i32("p2")? });
+        let eff = Effect { kind, p0: er.i32("p0")?, p1: er.i32("p1")?, p2: er.i32("p2")? };
+        if kind == EFFECT_ISSUE_ORDER && (!(0..=2).contains(&eff.p0) || !(0..=1).contains(&eff.p1)) {
+            return Err(LoadError::Range("issue_order order or point code"));
+        }
+        effects.push(eff);
     }
 
     let (ao, ac) = body(2);

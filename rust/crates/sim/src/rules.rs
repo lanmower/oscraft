@@ -21,9 +21,10 @@ pub enum Refusal {
     NoSpawnSlot,
     NoTeleport,
     NoMissileSlot,
+    EffectUnsupported,
 }
 
-pub const REFUSAL_KINDS: usize = 10;
+pub const REFUSAL_KINDS: usize = 11;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -38,6 +39,7 @@ impl Refusal {
             Refusal::NoSpawnSlot => "no-spawn-slot",
             Refusal::NoTeleport => "no-teleport",
             Refusal::NoMissileSlot => "no-missile-slot",
+            Refusal::EffectUnsupported => "effect-unsupported",
         }
     }
 }
@@ -48,6 +50,7 @@ const EFFECT_HEAL: u16 = 1;
 const EFFECT_MOVE: u16 = 2;
 const EFFECT_SPAWN: u16 = 3;
 const EFFECT_BUFF: u16 = 4;
+const EFFECT_ISSUE_ORDER: u16 = 5;
 
 impl Sim {
     pub(crate) fn refuse(&mut self, r: Refusal) {
@@ -127,33 +130,37 @@ impl Sim {
     pub(crate) fn apply_effects(&mut self, caster: usize, ai: usize, tx: i32, ty: i32, target: i32) {
         let ability = self.cat.abilities[ai];
         let first = ability.effect_first as usize;
-        let p = self.player[caster];
-        let c = caster as i32;
         for k in 0..ability.effect_count as usize {
             let eff: Effect = self.cat.effects[first + k];
-            match eff.kind {
-                EFFECT_DAMAGE => self.damage_area(c, p, eff.p0, eff.p1, tx, ty),
-                EFFECT_HEAL => self.heal_area(p, eff.p0, eff.p1, tx, ty),
-                EFFECT_MOVE => {
-                    if !self.teleport(caster, tx, ty) {
-                        self.refuse(Refusal::NoTeleport);
-                    }
+            self.apply_effect(caster, ability.filter as u32, eff, tx, ty, target);
+        }
+    }
+
+    /// Applies one effect. `filter` is the target filter mask of the ability that owns it.
+    /// A kind with no implementation refuses as `EffectUnsupported` and changes nothing.
+    fn apply_effect(&mut self, caster: usize, filter: u32, eff: Effect, tx: i32, ty: i32, target: i32) {
+        let p = self.player[caster];
+        let c = caster as i32;
+        match eff.kind {
+            EFFECT_DAMAGE => self.damage_area(c, p, eff.p0, eff.p1, tx, ty),
+            EFFECT_HEAL => self.heal_area(p, eff.p0, eff.p1, tx, ty),
+            EFFECT_MOVE => {
+                if !self.teleport(caster, tx, ty) {
+                    self.refuse(Refusal::NoTeleport);
                 }
-                EFFECT_SPAWN => {
-                    if self.spawn_for(p, eff.p0 as u32, tx, ty).is_some() {
-                        self.stats.summoned += 1;
-                    }
-                }
-                EFFECT_BUFF => {
-                    if target >= 0
-                        && (target as usize) < self.n
-                        && self.meets_filter(target as usize, self.cat.abilities[ai].filter as u32)
-                    {
-                        self.buff_unit(c, p, target as usize, eff.p0, eff.p1, eff.p2, false);
-                    }
-                }
-                _ => {}
             }
+            EFFECT_SPAWN => {
+                if self.spawn_for(p, eff.p0 as u32, tx, ty).is_some() {
+                    self.stats.summoned += 1;
+                }
+            }
+            EFFECT_BUFF => {
+                if target >= 0 && (target as usize) < self.n && self.meets_filter(target as usize, filter) {
+                    self.buff_unit(c, p, target as usize, eff.p0, eff.p1, eff.p2, false);
+                }
+            }
+            EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),
+            _ => self.refuse(Refusal::EffectUnsupported),
         }
     }
 
