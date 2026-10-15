@@ -1,16 +1,17 @@
-# OSDT data file, format version 4
+# OSDT data file, format version 5
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 4 adds effect codes 5 to 10 to EFCT. Record
-sizes are unchanged from version 3. A reader of an older version must reject the file.
+reserved bytes listed below. Version 5 grows the EFCT record from 16 to 20 bytes to
+add a fourth parameter slot, and defines the parameter slots of every effect kind
+explicitly. A reader of an older version must reject the file.
 
 ## Header (16 bytes)
 
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `4`                                       |
+| 4      | 2    | version, `5`                                       |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `7`                                  |
 | 12     | 4    | total file length in bytes                          |
@@ -32,7 +33,7 @@ Sections appear in this order, and the reader requires all seven tags:
 | tag    | record size | count means        |
 |--------|-------------|--------------------|
 | `STRS` | 1           | byte length        |
-| `EFCT` | 16          | effect records     |
+| `EFCT` | 20          | effect records     |
 | `ABIL` | 32          | ability records    |
 | `UABL` | 2           | ability index refs |
 | `UNIT` | 80          | unit records       |
@@ -54,37 +55,47 @@ All offsets below are byte offsets within a record.
 ### STRS (record size 1)
 Concatenated name bytes. No terminator.
 
-### EFCT (16 bytes per record)
-| offset | size | field                        |
-|--------|------|------------------------------|
+### EFCT (20 bytes per record)
+| offset | size | field                                  |
+|--------|------|----------------------------------------|
 | 0      | 2    | effect kind code (`0..=10`, see below) |
-| 2      | 2    | reserved, write 0            |
-| 4      | 4    | param 0, i32                 |
-| 8      | 4    | param 1, i32                 |
-| 12     | 4    | param 2, i32                 |
+| 2      | 2    | reserved, write 0                      |
+| 4      | 4    | param 0, i32                           |
+| 8      | 4    | param 1, i32                           |
+| 12     | 4    | param 2, i32                           |
+| 16     | 4    | param 3, i32                           |
 
 Effects are stored per ability, contiguously, in ability order.
 
-Effect parameters by kind. Unused parameters are written 0.
+Parameters are plain `i32` integers. Fractions are Q16 (`65536` = 1.0). Radii and
+distances are milli-units. Durations, periods and lifetimes are game ticks and
+must be integers. Unused parameters are written 0 and not read.
 
-| code | kind             | p0                                        | p1                                 | p2                     |
-|------|------------------|-------------------------------------------|------------------------------------|------------------------|
-| 0    | `damage`         | amount                                    | –                                  | –                      |
-| 1    | `heal`           | amount                                    | –                                  | –                      |
-| 2    | `move`           | distance                                  | –                                  | –                      |
-| 3    | `spawn`          | unit index into `UNIT`                    | –                                  | –                      |
-| 4    | `buff`           | buff kind code (sim-defined, `>= 0`)      | duration, ticks                    | –                      |
-| 5    | `issue_order`    | order kind: `0 stop`, `1 attack_move`, `2 hold` | target: `0 caster_relative`, `1 point` | –                 |
-| 6    | `remove_behaviour` | buff kind code to remove (`>= 0`)       | radius, milli-units (`>= 0`)       | –                      |
-| 7    | `create_healer`  | heal amount per pulse (`>= 0`)            | radius, milli-units (`>= 0`)       | period, ticks (`>= 1`) |
-| 8    | `use_calldown`   | calldown ability index into `ABIL` (`>= 0`, `< ability count`) | –                  | –                      |
-| 9    | `vital_fraction` | vital: `0 life`, `1 shield`               | fraction, Q16 (`0..=65536`, 65536 = 1.0) | –               |
-| 10   | `shield_bonus`   | flat bonus amount (`>= 0`)                | –                                  | –                      |
+Effect parameters by kind:
 
-A `–` parameter is written 0 and not read. Effects listed here keep the
-same meaning in every later version unless the version is bumped.
+| code | kind               | p0                                                                 | p1                                     | p2                          | p3                               |
+|------|--------------------|--------------------------------------------------------------------|----------------------------------------|-----------------------------|----------------------------------|
+| 0    | `damage`           | amount, `>= 0`                                                     | radius, milli-units, `>= 0` (0 = target only) | –                    | –                                |
+| 1    | `heal`             | amount, `>= 0`                                                     | radius, milli-units, `>= 0` (0 = target only) | –                    | –                                |
+| 2    | `move`             | distance, milli-units                                              | –                                      | –                           | –                                |
+| 3    | `spawn`            | unit index into `UNIT`, `>= 0`                                     | –                                      | –                           | –                                |
+| 4    | `buff`             | buff kind code (sim-defined), `>= 0`                               | duration, ticks, `>= 0`                | –                           | –                                |
+| 5    | `issue_order`      | order kind: `0 stop`, `1 attack_move`, `2 hold`                    | target: `0 caster_relative`, `1 point` | –                           | –                                |
+| 6    | `remove_behaviour` | buff kind code to remove, `>= 0`                                   | radius, milli-units, `>= 0`            | –                           | –                                |
+| 7    | `create_healer`    | heal amount per pulse, `>= 0`                                      | radius, milli-units, `>= 0`            | period, ticks, `>= 1`       | lifetime, ticks, integer, `>= 1` |
+| 8    | `use_calldown`     | calldown ability index into `ABIL`, `>= 0`, `< ability count`     | –                                      | –                           | –                                |
+| 9    | `vital_fraction`   | vital: `0 life`, `1 shield`                                        | fraction, Q16, `0..=65536`             | mode: `0 drain`, `1 set`    | target: `0 current`, `1 max`     |
+| 10   | `shield_bonus`     | flat bonus amount, `>= 0`                                          | –                                      | –                           | –                                |
 
-### ABIL (32 bytes per record)
+Mode and target for `vital_fraction` are explicit: `drain` subtracts
+`fraction * target value` from the vital, `set` writes `fraction * target value`
+to it, where the target value is the current vital (`0 current`) or its maximum
+(`1 max`).
+
+`damage` and `heal` use p1 as a splash radius. A radius of 0 means the effect
+applies to its target only.
+
+## ABIL (32 bytes per record)
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | name offset                                        |
