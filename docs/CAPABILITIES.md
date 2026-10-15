@@ -139,7 +139,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-TIME-1 | Advance the sim at a fixed tick rate | implemented | sim/src/tick.rs (tick); server/src/room.rs (spawn_ticker) | gate:tick-rate |
 | CAP-TIME-2 | Per-unit cooldowns and timers | implemented | sim/src/tick.rs (tick_cooldowns); sim/src/arrays.rs (wtimer, healer_timer) | gate:cooldown-expires |
-| CAP-TIME-3 | Named delayed actions scheduled by mods | stub | none | gate:scheduled-action |
+| CAP-TIME-3 | Named delayed actions scheduled by mods | claimed | none | gate:scheduled-action |
 
 ## Script runtime (Lua)
 
