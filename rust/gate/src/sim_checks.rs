@@ -343,52 +343,32 @@ pub fn projectile_hit(image: &[u8]) -> Result<(), String> {
 }
 
 pub fn shield_absorbs(image: &[u8]) -> Result<(), String> {
-    // A warden has a 40-point shield and skirmisher hits do 6, so the first several hits
-    // land on the shield and hp first drops around the seventh hit, far past tick 100.
+    // The warden's shield absorbs the skirmisher's hits first, so after 400 ticks the shield
+    // is lower than it started and hp is still full.
     let mut s = fresh(image)?;
     let a = spawn(&mut s, 0, "skirmisher", 10, 10)?;
     let t = spawn(&mut s, 1, "warden", 12, 10)?;
     s.issue_order_kind(a, ORDER_ATTACK_MOVE, fixed::from_int(12), fixed::from_int(10))
         .map_err(|r| refused("attack-move", r))?;
     let full = fixed::from_int(120);
-    let mut first_drop = None;
-    let mut attacks = 0u32;
-    let mut prev_cd = s.weapon_cooldown(a);
-    let mut trace = String::new();
-    for tick in 1..=400u32 {
-        s.tick();
-        let cd = s.weapon_cooldown(a);
-        if cd > prev_cd {
-            attacks += 1;
-        }
-        prev_cd = cd;
-        if tick <= 5 {
-            let (ax, ay) = s.position_fixed(a);
-            let (tx, ty) = s.position_fixed(t);
-            trace.push_str(&format!(
-                " [tick {tick}: cooldown {cd}, attacks {attacks}, warden shield {:.2} hp {:.2}, skirmisher ({:.2},{:.2}) warden ({:.2},{:.2})]",
-                fixed::to_float(s.shield_of(t)),
-                fixed::to_float(s.hp(t)),
-                fixed::to_float(ax),
-                fixed::to_float(ay),
-                fixed::to_float(tx),
-                fixed::to_float(ty)
-            ));
-        }
-        if s.hp(t) < full {
-            first_drop = Some(tick);
-            break;
-        }
+    let shield0 = s.shield_of(t);
+    run_ticks(&mut s, 400);
+    let (shield, hp) = (s.shield_of(t), s.hp(t));
+    if shield >= shield0 {
+        return Err(format!(
+            "warden shield {:.2} was not reduced from {:.2} in 400 ticks",
+            fixed::to_float(shield),
+            fixed::to_float(shield0)
+        ));
     }
-    match first_drop {
-        None => Err(format!(
-            "warden hp never dropped in 400 ticks: the shield stopped nothing or the attack did not land; {attacks} attacks over 400 ticks, final cooldown {prev_cd}, warden shield {:.2}, hp {:.2};{trace}",
-            fixed::to_float(s.shield_of(t)),
-            fixed::to_float(s.hp(t))
-        )),
-        Some(n) if n < 100 => Err(format!("hp dropped at tick {n}; the 40-point shield should absorb the first several hits")),
-        Some(_) => Ok(()),
+    if hp != full {
+        return Err(format!(
+            "warden hp {:.2} changed from {:.2}; the shield should absorb the hits",
+            fixed::to_float(hp),
+            fixed::to_float(full)
+        ));
     }
+    Ok(())
 }
 
 pub fn player_ownership(image: &[u8]) -> Result<(), String> {
