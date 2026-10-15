@@ -56,6 +56,7 @@ const EFFECT_BUFF: u16 = 4;
 const EFFECT_ISSUE_ORDER: u16 = 5;
 const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 const EFFECT_USE_CALLDOWN: u16 = 8;
+const EFFECT_SHIELD_BONUS: u16 = 10;
 
 impl Sim {
     pub(crate) fn refuse(&mut self, r: Refusal) {
@@ -179,6 +180,7 @@ impl Sim {
             EFFECT_REMOVE_BEHAVIOUR => {
                 self.remove_behaviour(eff.p0, fixed::from_milli(eff.p1), tx, ty);
             }
+            EFFECT_SHIELD_BONUS => self.shield_bonus(caster, target, eff.p0),
             EFFECT_USE_CALLDOWN => {
                 if !may_call {
                     self.refuse(Refusal::CalldownNested);

@@ -17,4 +17,17 @@ impl Sim {
         self.shield[j] = 0;
         rest
     }
+
+    /// Adds a flat bonus to a unit's shield pool. The receiver is the cast target unit, or
+    /// the caster when the cast names no unit. A dead receiver refuses as no-target.
+    pub(crate) fn shield_bonus(&mut self, caster: usize, target: i32, amount: i32) {
+        let r = if target >= 0 && (target as usize) < self.n { target as usize } else { caster };
+        if self.alive[r] == 0 {
+            self.refuse(crate::rules::Refusal::NoTarget);
+            return;
+        }
+        if amount > 0 {
+            self.shield[r] = self.shield[r].saturating_add(amount);
+        }
+    }
 }

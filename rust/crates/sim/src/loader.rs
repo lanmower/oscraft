@@ -21,6 +21,7 @@ const EFFECT_KINDS: u16 = 11;
 const EFFECT_ISSUE_ORDER: u16 = 5;
 const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 const EFFECT_USE_CALLDOWN: u16 = 8;
+const EFFECT_SHIELD_BONUS: u16 = 10;
 const TARGET_CODES: u8 = 3;
 const TRIGGER_CODES: u8 = 4;
 const ACTION_CODES: u8 = 3;
@@ -266,6 +267,7 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
             Some("issue_order order or point code")
         }
         EFFECT_REMOVE_BEHAVIOUR if e.p0 < 0 || e.p1 < 0 => Some("remove_behaviour kind or radius"),
+        EFFECT_SHIELD_BONUS if e.p0 < 0 => Some("shield_bonus amount"),
         _ => None,
     }
 }
