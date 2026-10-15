@@ -236,6 +236,18 @@ impl Sim {
         self.supply_cap(p as usize)
     }
 
+    /// Supply the player's living units provide (UEXT supply provided), before the ECON base and
+    /// bound. Zero for an invalid player.
+    pub fn supply_providers(&self, p: u8) -> i32 {
+        if (p as usize) >= MAX_PLAYERS {
+            return 0;
+        }
+        (0..self.n)
+            .filter(|&j| self.alive[j] != 0 && self.player[j] == p)
+            .map(|j| self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.supply_provided as i32))
+            .sum()
+    }
+
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
