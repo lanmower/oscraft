@@ -88,6 +88,19 @@ impl Sim {
         GATHER_TICKS * crowd.max(sat) / sat
     }
 
+    /// Ticks a worker arriving at resource `t` now would spend gathering: the full rate up to the
+    /// saturation count, stretched beyond it. None for a unit that is not a mineral or geyser.
+    pub fn gather_time_at(&self, t: usize) -> Option<i32> {
+        if t >= self.n || self.alive[t] == 0 {
+            return None;
+        }
+        match self.kind[t] {
+            KIND_MINERAL => Some(self.gather_ticks_at(t, self.cat.econ.workers_per_mineral as i32)),
+            KIND_GEYSER => Some(self.gather_ticks_at(t, self.cat.econ.workers_per_extractor as i32)),
+            _ => None,
+        }
+    }
+
     pub(crate) fn harvest_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         match self.wstate[i] {
