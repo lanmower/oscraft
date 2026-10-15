@@ -95,6 +95,20 @@ fn fixed(v: i64) -> mlua::Result<i32> {
     i32::try_from(v).map_err(|_| mlua::Error::RuntimeError(format!("Q16.16 value {v} out of i32 range")))
 }
 
+fn invalid_unit(i: i64) -> mlua::Error {
+    mlua::Error::RuntimeError(format!("invalid_unit: {i}"))
+}
+
+// A unit index the sim has spawned, dead or alive.
+fn known_unit(sim: &Sim, i: i64) -> mlua::Result<usize> {
+    usize::try_from(i).ok().filter(|&u| u < sim.count()).ok_or_else(|| invalid_unit(i))
+}
+
+// A unit index the sim reports alive; the only units an order may address.
+fn live_unit(sim: &Sim, i: i64) -> mlua::Result<usize> {
+    usize::try_from(i).ok().filter(|&u| sim.alive(u)).ok_or_else(|| invalid_unit(i))
+}
+
 fn unknown_region(name: &str) -> mlua::Error {
     mlua::Error::RuntimeError(format!("unknown_region: {name}"))
 }
@@ -182,6 +196,64 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             let Some(i) = timers.iter().position(|x| x.name == name) else { return Ok(false) };
             timers.remove(i);
             Ok(true)
+        })?,
+    )?;
+    let w = world.clone();
+    env.set(
+        "order_unit",
+        lua.create_function(move |_, (i, x, y): (i64, i64, i64)| {
+            let (x, y) = (fixed(x)?, fixed(y)?);
+            let mut sim = w.borrow_mut();
+            let u = live_unit(&sim, i)?;
+            sim.order(u, x, y);
+            Ok(())
+        })?,
+    )?;
+    let w = world.clone();
+    env.set(
+        "order_player",
+        lua.create_function(move |_, (p, x, y): (i64, i64, i64)| {
+            let player = u8::try_from(p).map_err(|_| mlua::Error::RuntimeError(format!("invalid_player: {p}")))?;
+            let (x, y) = (fixed(x)?, fixed(y)?);
+            w.borrow_mut().order_all(player, x, y);
+            Ok(())
+        })?,
+    )?;
+    let w = world.clone();
+    env.set(
+        "unit_position",
+        lua.create_function(move |_, i: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, i)?;
+            let (x, y) = sim.position_fixed(u);
+            Ok((x as i64, y as i64))
+        })?,
+    )?;
+    let w = world.clone();
+    env.set(
+        "unit_hp",
+        lua.create_function(move |_, i: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, i)?;
+            Ok(sim.hp(u) as i64)
+        })?,
+    )?;
+    let w = world.clone();
+    env.set(
+        "unit_player",
+        lua.create_function(move |_, i: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, i)?;
+            Ok(sim.player(u) as i64)
+        })?,
+    )?;
+    let w = world.clone();
+    env.set(
+        "unit_alive",
+        lua.create_function(move |_, i: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, i)?;
+            Ok(sim.alive(u))
         })?,
     )?;
     Ok(())

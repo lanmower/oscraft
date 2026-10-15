@@ -113,7 +113,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-LUA-3 | Keep a state table across ticks | implemented | mod-host/src/lib.rs (state, tick) | gate:lua-state |
 | CAP-LUA-4 | Report script errors with path and line | implemented | mod-host/src/lib.rs (compile, error format) | gate:lua-error-location |
 | CAP-LUA-5 | Host functions spawn_unit and get_unit_count | implemented | mod-host/src/lib.rs (bind_host) | gate:lua-host-api |
-| CAP-LUA-6 | Host functions for orders, damage, buffs and queries | stub | none beyond spawn_unit and get_unit_count | gate:lua-host-api-full |
+| CAP-LUA-6 | Host functions for orders, damage, buffs and queries | partial | mod-host/src/lib.rs (order_unit, order_player, unit_position, unit_hp, unit_player, unit_alive); damage and buffs need a public sim API, Sim::damage_target and Sim::apply_buff are pub(crate) | gate:lua-host-api-full |
 | CAP-LUA-7 | Instruction and memory limits for mod scripts | stub | none | gate:lua-sandbox-limits |
 
 ## Server surface
