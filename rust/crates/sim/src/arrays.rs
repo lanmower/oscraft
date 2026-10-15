@@ -152,6 +152,8 @@ pub struct Sim {
     pub(crate) seen: Vec<u8>,
     pub(crate) seen_x: Vec<i32>,
     pub(crate) seen_y: Vec<i32>,
+    /// Completed research per (player, research record), index `p * research count + record`.
+    pub(crate) researched: Vec<u8>,
     pub(crate) has_seer: [bool; MAX_PLAYERS],
     pub(crate) team: [u8; MAX_PLAYERS],
     pub(crate) alliance: [u16; MAX_PLAYERS],
@@ -181,6 +183,7 @@ impl Sim {
         let vh = ((grid.h as i32 + VIS_SCALE - 1) / VIS_SCALE).max(1);
         let vcells = (vw * vh) as usize;
         let paths = Pool::new(grid.w, grid.h, DEFAULT_MAX_FIELDS);
+        let research_slots = cat.research.len() * MAX_PLAYERS;
         let mut s = Sim {
             grid,
             cat,
@@ -274,6 +277,7 @@ impl Sim {
             paths,
             cur_field: None,
             vis: vec![0; MAX_PLAYERS * vcells],
+            researched: vec![0; research_slots],
             seen: vec![0; MAX_PLAYERS * cap],
             seen_x: vec![0; MAX_PLAYERS * cap],
             seen_y: vec![0; MAX_PLAYERS * cap],

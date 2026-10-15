@@ -41,9 +41,10 @@ pub enum Refusal {
     UpgradeRefused,
     CellFull,
     SupplyBlocked,
+    Prerequisite,
 }
 
-pub const REFUSAL_KINDS: usize = 29;
+pub const REFUSAL_KINDS: usize = 30;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -77,6 +78,7 @@ impl Refusal {
             Refusal::UpgradeRefused => "upgrade-refused",
             Refusal::CellFull => "cell-full",
             Refusal::SupplyBlocked => "supply-blocked",
+            Refusal::Prerequisite => "prerequisite",
         }
     }
 }

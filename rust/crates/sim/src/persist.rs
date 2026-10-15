@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 7;
+const STATE_VERSION: u16 = 8;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -44,6 +44,7 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::UpgradeRefused,
     Refusal::CellFull,
     Refusal::SupplyBlocked,
+    Refusal::Prerequisite,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
@@ -369,6 +370,7 @@ impl Sim {
         w.extend_from_slice(&self.seen);
         put_i32s(&mut w, &self.seen_x);
         put_i32s(&mut w, &self.seen_y);
+        w.extend_from_slice(&self.researched);
 
         for &b in &self.has_seer {
             put_bool(&mut w, b);
@@ -532,6 +534,7 @@ impl Sim {
         r.bytes_into(&mut next.seen)?;
         r.i32s_into(&mut next.seen_x)?;
         r.i32s_into(&mut next.seen_y)?;
+        r.bytes_into(&mut next.researched)?;
 
         for k in 0..MAX_PLAYERS {
             next.has_seer[k] = r.bool()?;

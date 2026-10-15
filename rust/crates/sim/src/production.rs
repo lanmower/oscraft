@@ -55,6 +55,24 @@ impl Sim {
         (self.cat.econ.supply_base as i32 + provided).min(self.cat.econ.supply_max as i32)
     }
 
+    /// Whether player `p` holds every prerequisite of target `target` of kind `kind` (0 unit,
+    /// 1 research). A unit requirement needs a living unit of that type owned by `p`; a research
+    /// requirement needs that research completed by `p`.
+    pub(crate) fn prereqs_met(&self, kind: u8, target: usize, p: usize) -> bool {
+        let research_count = self.cat.research.len();
+        self.cat
+            .prereqs
+            .iter()
+            .filter(|q| q.target_kind == kind && q.target as usize == target)
+            .all(|q| {
+                if q.requirement_kind == 0 {
+                    (0..self.n).any(|j| self.alive[j] != 0 && self.player[j] as usize == p && self.type_of[j] == q.requirement as i32)
+                } else {
+                    self.researched.get(p * research_count + q.requirement as usize).map_or(false, |&v| v != 0)
+                }
+            })
+    }
+
     /// Places the base's mineral patches and geysers from ECON: `patches` patches in a row east
     /// of the start and `geysers` geysers in a column south of it, one world unit apart. Each
     /// holds the ECON amount and belongs to no player. A spot the catalog cannot place is skipped.
@@ -94,6 +112,11 @@ impl Sim {
             if self.train_left[i] == 0 {
                 self.finish_train(i, p, tr);
             }
+            return;
+        }
+        if !self.prereqs_met(0, tr, p) {
+            self.stats.trains_refused += 1;
+            self.stats.last_train_refusal = Refusal::Prerequisite;
             return;
         }
         if self.supply_used(p) + def.supply as i32 > self.supply_cap(p) {
