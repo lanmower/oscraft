@@ -1,17 +1,16 @@
-# OSDT data file, format version 3
+# OSDT data file, format version 4
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 3 changes the ABIL and UNIT records (new fields
-in previously reserved bytes, sizes unchanged) and redefines GRID cells as a
-walkability bitfield. A reader of an older version must reject the file.
+reserved bytes listed below. Version 4 adds effect codes 5 to 10 to EFCT. Record
+sizes are unchanged from version 3. A reader of an older version must reject the file.
 
 ## Header (16 bytes)
 
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `3`                                       |
+| 4      | 2    | version, `4`                                       |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `7`                                  |
 | 12     | 4    | total file length in bytes                          |
@@ -58,13 +57,32 @@ Concatenated name bytes. No terminator.
 ### EFCT (16 bytes per record)
 | offset | size | field                        |
 |--------|------|------------------------------|
-| 0      | 2    | effect kind code (see below) |
+| 0      | 2    | effect kind code (`0..=10`, see below) |
 | 2      | 2    | reserved, write 0            |
 | 4      | 4    | param 0, i32                 |
 | 8      | 4    | param 1, i32                 |
 | 12     | 4    | param 2, i32                 |
 
 Effects are stored per ability, contiguously, in ability order.
+
+Effect parameters by kind. Unused parameters are written 0.
+
+| code | kind             | p0                                        | p1                                 | p2                     |
+|------|------------------|-------------------------------------------|------------------------------------|------------------------|
+| 0    | `damage`         | amount                                    | –                                  | –                      |
+| 1    | `heal`           | amount                                    | –                                  | –                      |
+| 2    | `move`           | distance                                  | –                                  | –                      |
+| 3    | `spawn`          | unit index into `UNIT`                    | –                                  | –                      |
+| 4    | `buff`           | buff kind code (sim-defined, `>= 0`)      | duration, ticks                    | –                      |
+| 5    | `issue_order`    | order kind: `0 stop`, `1 attack_move`, `2 hold` | target: `0 caster_relative`, `1 point` | –                 |
+| 6    | `remove_behaviour` | buff kind code to remove (`>= 0`)       | radius, milli-units (`>= 0`)       | –                      |
+| 7    | `create_healer`  | heal amount per pulse (`>= 0`)            | radius, milli-units (`>= 0`)       | period, ticks (`>= 1`) |
+| 8    | `use_calldown`   | calldown ability index into `ABIL` (`>= 0`, `< ability count`) | –                  | –                      |
+| 9    | `vital_fraction` | vital: `0 life`, `1 shield`               | fraction, Q16 (`0..=65536`, 65536 = 1.0) | –               |
+| 10   | `shield_bonus`   | flat bonus amount (`>= 0`)                | –                                  | –                      |
+
+A `–` parameter is written 0 and not read. Effects listed here keep the
+same meaning in every later version unless the version is bumped.
 
 ### ABIL (32 bytes per record)
 | offset | size | field                                              |
@@ -145,7 +163,9 @@ A code is the zero-based index into the list. Adding an entry at the end is
 a compatible change only if the version is bumped; reordering is never allowed
 without a version bump.
 
-- Effect kinds (`EFCT.kind`): `0 damage`, `1 heal`, `2 move`, `3 spawn`, `4 buff`
+- Effect kinds (`EFCT.kind`): `0 damage`, `1 heal`, `2 move`, `3 spawn`, `4 buff`,
+  `5 issue_order`, `6 remove_behaviour`, `7 create_healer`, `8 use_calldown`,
+  `9 vital_fraction`, `10 shield_bonus`. Codes above `10` are rejected.
 - Targets (`ABIL.target`): `0 none`, `1 unit`, `2 point`
 - Triggers (`BHVR.trigger`): `0 idle`, `1 attacked`, `2 spawned`, `3 ability_ready`
 - Actions (`BHVR.action`): `0 attack_nearest`, `1 flee`, `2 use_ability`
@@ -164,5 +184,6 @@ without a version bump.
 
 - Read every field at its offset. Reserved bytes are written 0 and ignored on read.
 - Bounds-check every index (`EFCT`, `UABL`, `ABIL`, `UNIT`, `STRS`) against its section count.
+- Reject an effect kind code above `10`, and any effect whose parameters fall outside the table above.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
 - The tick path never parses names. It uses only numeric fields.
