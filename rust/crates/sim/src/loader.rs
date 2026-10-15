@@ -173,6 +173,43 @@ pub struct Behaviour {
     pub ability: u16,
 }
 
+/// What makes a behaviour fire, by BHVR.trigger code (FORMAT.md registries).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Trigger {
+    Idle,
+    Attacked,
+    Spawned,
+    AbilityReady,
+}
+
+impl Trigger {
+    pub fn from_code(code: u8) -> Option<Trigger> {
+        match code {
+            0 => Some(Trigger::Idle),
+            1 => Some(Trigger::Attacked),
+            2 => Some(Trigger::Spawned),
+            3 => Some(Trigger::AbilityReady),
+            _ => None,
+        }
+    }
+
+    /// The name a mod declares the trigger by.
+    pub fn name(self) -> &'static str {
+        match self {
+            Trigger::Idle => "idle",
+            Trigger::Attacked => "attacked",
+            Trigger::Spawned => "spawned",
+            Trigger::AbilityReady => "ability_ready",
+        }
+    }
+}
+
+impl Behaviour {
+    pub fn trigger_kind(&self) -> Option<Trigger> {
+        Trigger::from_code(self.trigger)
+    }
+}
+
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.
 #[derive(Clone, Debug, Default)]
 pub struct Catalog {

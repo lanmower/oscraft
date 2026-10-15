@@ -81,6 +81,10 @@ impl Sim {
         h.i32s(&self.abil_idx);
         h.i32s(&self.abil_cd);
         h.i32s(&self.energy);
+        h.bytes(&self.trig_hit);
+        h.bytes(&self.trig_spawn);
+        h.bytes(&self.trig_idle);
+        h.bytes(&self.trig_ready);
         h.i32s(&self.buff_kind);
         h.i32s(&self.buff_left);
         h.bytes(&self.healer_player);

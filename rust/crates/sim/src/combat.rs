@@ -78,6 +78,7 @@ impl Sim {
     /// then life, with death recorded when life runs out.
     fn inflict(&mut self, j: usize, mut dmg: i32) {
         if dmg > 0 {
+            self.trig_hit[j] = 1;
             match self.response[j] {
                 RESPONSE_IMMUNE => dmg = 0,
                 RESPONSE_REDUCED => dmg /= 2,

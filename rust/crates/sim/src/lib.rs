@@ -23,9 +23,10 @@ mod projectiles;
 mod rules;
 mod shields;
 mod tick;
+mod triggers;
 
 pub use arrays::{Sim, Stats};
-pub use loader::{load, load_file, Catalog, LoadError};
+pub use loader::{load, load_file, Catalog, LoadError, Trigger};
 pub use pathfinding::Grid;
 pub use rules::Refusal;
 
@@ -69,3 +70,9 @@ pub(crate) const ORDER_STOP: u8 = 1;
 pub(crate) const ORDER_ATTACK_MOVE: u8 = 2;
 pub(crate) const ORDER_PATROL: u8 = 3;
 pub(crate) const ORDER_HOLD: u8 = 4;
+
+pub(crate) const TRIGGER_IDLE: u8 = 0;
+pub(crate) const TRIGGER_ATTACKED: u8 = 1;
+pub(crate) const TRIGGER_SPAWNED: u8 = 2;
+pub(crate) const TRIGGER_ABILITY_READY: u8 = 3;
+pub(crate) const ACTION_USE_ABILITY: u8 = 2;

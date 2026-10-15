@@ -22,6 +22,10 @@ impl Sim {
             if self.abil_on {
                 self.tick_cooldowns(i);
             }
+            self.fire_triggers(i);
+            if self.alive[i] == 0 {
+                continue;
+            }
             if self.harvest && self.kind[i] == KIND_WORKER {
                 self.harvest_step(i);
             }
@@ -37,6 +41,7 @@ impl Sim {
                 self.integrate(i);
                 self.advance_patrol(i);
             }
+            self.note_idle(i);
             self.attack(i);
         }
         self.ticks = self.ticks.wrapping_add(1);
@@ -45,9 +50,12 @@ impl Sim {
     /// Counts down every ability cooldown on unit `i`.
     pub(crate) fn tick_cooldowns(&mut self, i: usize) {
         for slot in 0..ABILITY_SLOTS {
-            let c = &mut self.abil_cd[i * ABILITY_SLOTS + slot];
-            if *c > 0 {
-                *c -= 1;
+            let idx = i * ABILITY_SLOTS + slot;
+            if self.abil_cd[idx] > 0 {
+                self.abil_cd[idx] -= 1;
+                if self.abil_cd[idx] == 0 {
+                    self.trig_ready[idx] = 1;
+                }
             }
         }
     }

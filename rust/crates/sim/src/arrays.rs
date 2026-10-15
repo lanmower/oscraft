@@ -99,6 +99,11 @@ pub struct Sim {
     pub(crate) energy: Vec<i32>,
     pub(crate) abil_on: bool,
 
+    pub(crate) trig_hit: Vec<u8>,
+    pub(crate) trig_spawn: Vec<u8>,
+    pub(crate) trig_idle: Vec<u8>,
+    pub(crate) trig_ready: Vec<u8>,
+
     pub(crate) buff_kind: Vec<i32>,
     pub(crate) buff_left: Vec<i32>,
 
@@ -214,6 +219,10 @@ impl Sim {
             abil_cd: vec![0; cap * ABILITY_SLOTS],
             energy: vec![0; cap],
             abil_on: false,
+            trig_hit: vec![0; cap],
+            trig_spawn: vec![0; cap],
+            trig_idle: vec![0; cap],
+            trig_ready: vec![0; cap * ABILITY_SLOTS],
             buff_kind: vec![-1; cap * BUFF_SLOTS],
             buff_left: vec![0; cap * BUFF_SLOTS],
             healer_player: vec![0; HEALER_SLOTS],
@@ -457,6 +466,12 @@ impl Sim {
         self.trainee[i] = if self.kind[i] == KIND_PRODUCER { self.product[i] } else { -1 };
         self.train_left[i] = 0;
         self.train_hold[i] = 0;
+        self.trig_hit[i] = 0;
+        self.trig_spawn[i] = 1;
+        self.trig_idle[i] = 0;
+        for slot in 0..ABILITY_SLOTS {
+            self.trig_ready[i * ABILITY_SLOTS + slot] = 0;
+        }
         for k in 0..BUFF_SLOTS {
             self.buff_kind[i * BUFF_SLOTS + k] = -1;
         }

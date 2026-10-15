@@ -39,8 +39,8 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-BEH-1 | Apply a timed buff to a unit and count it down each tick | implemented | sim/src/buffs.rs (apply_buff, tick_buffs) | gate:apply-buff |
 | CAP-BEH-2 | Clear a buff from a unit | implemented | sim/src/buffs.rs (clear_buff) | gate:clear-buff |
 | CAP-BEH-3 | Remove a behaviour from a unit through an effect | implemented | sim/src/buffs.rs (remove_behaviour); sim/src/rules.rs | gate:remove-behaviour |
-| CAP-BEH-4 | Declare behaviours with a trigger (idle, attacked, spawned, ability_ready) in data | partial | data/src/model.rs (trigger), data/src/builtins.rs; no evaluator in sim | gate:behaviour-declared |
-| CAP-BEH-5 | Fire behaviour triggers during the tick | stub | none | gate:behaviour-trigger-fires |
+| CAP-BEH-4 | Declare behaviours with a trigger (idle, attacked, spawned, ability_ready) in data | implemented | sim/src/loader.rs (Trigger, trigger_kind; BHVR parse); data/src/model.rs | gate:behaviour-declared |
+| CAP-BEH-5 | Fire behaviour triggers during the tick | implemented | sim/src/triggers.rs (fire_triggers, note_idle, run_behaviours); sim/src/tick.rs | gate:behaviour-trigger-fires |
 
 ## Orders and pathing
 
