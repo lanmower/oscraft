@@ -34,11 +34,13 @@ pub struct Grid {
     pub heights: Vec<u8>,
     /// Milli-units per height level.
     pub height_step: i32,
+    /// Tile id per cell, same row-major indexing as flags. Author-defined; the sim maps ids to terrain.
+    pub tiles: Vec<u8>,
 }
 
 impl Grid {
     pub fn open(w: usize, h: usize) -> Grid {
-        Grid { w, h, flags: vec![0; w * h], heights: vec![0; w * h], height_step: 1000 }
+        Grid { w, h, flags: vec![0; w * h], heights: vec![0; w * h], height_step: 1000, tiles: vec![0; w * h] }
     }
 
     /// Elevation of cell (x, y) in milli-units: its height level times the height step.
@@ -74,6 +76,16 @@ impl Grid {
         } else {
             *cell &= !BLOCKED;
         }
+        true
+    }
+
+    /// Sets the tile id of cell (x, y). Returns false outside the grid.
+    pub fn set_tile(&mut self, x: i32, y: i32, tile: u8) -> bool {
+        let (w, h) = (self.w as i32, self.h as i32);
+        if x < 0 || y < 0 || x >= w || y >= h {
+            return false;
+        }
+        self.tiles[(y * w + x) as usize] = tile;
         true
     }
 

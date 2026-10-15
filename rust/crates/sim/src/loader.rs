@@ -9,7 +9,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 13;
+const VERSION: u16 = 14;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const LIMT_COUNT: usize = 1;
@@ -19,8 +19,8 @@ const ABILITY_FILTER_BITS: u16 = 12;
 const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 17] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"GRID"];
-const RECORD_SIZES: [usize; 17] = [1, 20, 32, 2, 80, 16, 16, 24, 12, 4, 32, 32, 8, 32, 8, 8, 1];
+const SECTION_TAGS: [&[u8; 4]; 18] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID"];
+const RECORD_SIZES: [usize; 18] = [1, 20, 32, 2, 80, 16, 16, 24, 12, 4, 32, 32, 8, 32, 8, 8, 20, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
@@ -327,6 +327,19 @@ pub struct DamageFactor {
     pub factor: i32,
 }
 
+/// A decorative object (DODA). Doodads do not block movement.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Doodad {
+    pub id: u32,
+    /// 0 rock, 1 tree, 2 crystal, 3 debris.
+    pub kind: u16,
+    /// Milli-units, on the map.
+    pub x: i32,
+    pub y: i32,
+    /// Milli-turns, 0..1000.
+    pub rotation: i32,
+}
+
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.
 #[derive(Clone, Debug, Default)]
 pub struct Catalog {
@@ -349,6 +362,7 @@ pub struct Catalog {
     pub research: Vec<Research>,
     pub prereqs: Vec<Prereq>,
     pub damage_factors: Vec<DamageFactor>,
+    pub doodads: Vec<Doodad>,
 }
 
 impl Catalog {
@@ -490,7 +504,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 17];
+    let mut sections = [(0usize, 0usize); 18];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -694,7 +708,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         behaviours.push(Behaviour { name, trigger, action, param, ability });
     }
 
-    let (go, gl) = body(16);
+    let (go, gl) = body(17);
     if gl < GRID_HEADER {
         return Err(LoadError::Truncated("GRID header"));
     }
@@ -713,15 +727,16 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::Range("cell size must be 1000 milli-units"));
     }
     let cells = w.checked_mul(h).ok_or(LoadError::Range("grid size"))?;
-    if cells.checked_mul(2).and_then(|n| n.checked_add(GRID_HEADER)) != Some(gl) {
-        return Err(LoadError::Range("GRID body length is not 16 + 2*w*h"));
+    if cells.checked_mul(3).and_then(|n| n.checked_add(GRID_HEADER)) != Some(gl) {
+        return Err(LoadError::Range("GRID body length is not 16 + 3*w*h"));
     }
     let flags = gr.take(w * h, "grid cells")?.to_vec();
     if flags.iter().any(|&c| c & !CELL_BITS != 0) {
         return Err(LoadError::Range("grid cell bits outside 0b11"));
     }
     let heights = gr.take(w * h, "grid heights")?.to_vec();
-    let grid = Grid { w, h, flags, heights, height_step };
+    let tiles = gr.take(w * h, "grid tiles")?.to_vec();
+    let grid = Grid { w, h, flags, heights, tiles, height_step };
 
     let diagonal2 = (w as i64 * CELL_MILLI as i64).pow(2) + (h as i64 * CELL_MILLI as i64).pow(2);
     if effects.iter().any(|e| e.kind == EFFECT_MOVE && (e.p0 <= 0 || (e.p0 as i64).pow(2) > diagonal2)) {
@@ -986,6 +1001,31 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         damage_factors.push(DamageFactor { damage_type, size, factor });
     }
 
+    let (dd, ddc) = body(16);
+    let mut ddr = Reader { buf: bytes, at: dd };
+    let mut doodads: Vec<Doodad> = Vec::with_capacity(ddc);
+    for _ in 0..ddc {
+        let id = ddr.u32("doodad id")?;
+        let kind = ddr.u16("doodad kind")?;
+        ddr.skip(2, "doodad reserved")?;
+        let x = ddr.i32("doodad x")?;
+        let y = ddr.i32("doodad y")?;
+        let rotation = ddr.i32("doodad rotation")?;
+        if kind > 3
+            || !(0..1000).contains(&rotation)
+            || x < 0
+            || y < 0
+            || x as i64 >= w as i64 * CELL_MILLI as i64
+            || y as i64 >= h as i64 * CELL_MILLI as i64
+        {
+            return Err(LoadError::Range("doodad outside its table"));
+        }
+        if doodads.iter().any(|d| d.id == id) {
+            return Err(LoadError::Range("doodad id repeats"));
+        }
+        doodads.push(Doodad { id, kind, x, y, rotation });
+    }
+
     Ok((
         Catalog {
             strs,
@@ -1005,6 +1045,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             research,
             prereqs,
             damage_factors,
+            doodads,
         },
         grid,
     ))

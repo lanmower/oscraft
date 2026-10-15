@@ -347,6 +347,14 @@ impl Sim {
         Ok(())
     }
 
+    /// Sets the tile id of cell (x, y). Tile ids are grid state: hashed and saved.
+    pub fn set_cell_tile(&mut self, x: i32, y: i32, tile: u8) -> Result<(), Refusal> {
+        if !self.grid.set_tile(x, y, tile) {
+            return Err(self.reject(Refusal::InvalidCell));
+        }
+        Ok(())
+    }
+
     /// Replaces the grid. Refused once any unit exists, because the fog and bucket
     /// planes are sized from it.
     pub fn set_grid(&mut self, grid: Grid) -> bool {

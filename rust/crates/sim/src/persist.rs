@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 12;
+const STATE_VERSION: u16 = 13;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -297,6 +297,7 @@ impl Sim {
         put_i32(&mut w, s.ability_damage);
 
         w.extend_from_slice(&self.grid.flags);
+        w.extend_from_slice(&self.grid.tiles);
 
         put_i32s(&mut w, &self.pos_x);
         put_i32s(&mut w, &self.pos_y);
@@ -469,6 +470,7 @@ impl Sim {
         next.stats = st;
 
         r.bytes_into(&mut next.grid.flags)?;
+        r.bytes_into(&mut next.grid.tiles)?;
         next.grid.heights = self.grid.heights.clone();
         next.grid.height_step = self.grid.height_step;
 
