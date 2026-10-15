@@ -18,6 +18,25 @@ pub fn armour_reduced(damage: i32, armour: i32) -> i32 {
 }
 
 impl Sim {
+    /// Final damage factor (Q16) for a weapon hit by unit `attacker` on unit `target`: the DMGF
+    /// record for the attacker's weapon damage type and the target's size category, or 1.0 when
+    /// no record applies.
+    pub(crate) fn final_factor(&self, attacker: usize, target: usize) -> i32 {
+        let dtype = self.cat.unit_ext.get(self.type_of[attacker] as usize).map_or(0, |e| e.damage_type);
+        let size = self.cat.unit_ext.get(self.type_of[target] as usize).map_or(0, |e| e.size);
+        self.cat
+            .damage_factors
+            .iter()
+            .find(|f| f.damage_type == dtype && f.size == size)
+            .map_or(fixed::ONE, |f| f.factor)
+    }
+
+    /// A weapon hit after armour, scaled by the final damage factor of the attacker's type and
+    /// the target's size category.
+    pub(crate) fn scale_hit(&self, dmg: i32, attacker: usize, target: usize) -> i32 {
+        ((dmg as i64 * self.final_factor(attacker, target) as i64) >> fixed::SHIFT) as i32
+    }
+
     /// Auto-attack: nearest visible enemy on a layer this weapon may hit, within range.
     pub(crate) fn attack(&mut self, i: usize) {
         if self.damage[i] <= 0 {
@@ -62,7 +81,7 @@ impl Sim {
             return;
         }
         let b = best as usize;
-        let dmg = armour_reduced(self.damage[i], self.armor[b]);
+        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[b]), i, b);
         self.cooldown[i] = self.period[i];
         self.inflict(b, dmg);
     }
@@ -89,7 +108,7 @@ impl Sim {
         if self.cooldown[i] > 0 {
             return Err(self.reject(Refusal::Cooldown));
         }
-        let dmg = armour_reduced(self.damage[i], self.armor[target]);
+        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[target]), i, target);
         self.cooldown[i] = self.period[i];
         self.inflict(target, dmg);
         Ok(())
