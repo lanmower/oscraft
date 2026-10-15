@@ -44,9 +44,10 @@ pub enum Refusal {
     Prerequisite,
     ResearchBusy,
     TransportFull,
+    Channelling,
 }
 
-pub const REFUSAL_KINDS: usize = 32;
+pub const REFUSAL_KINDS: usize = 33;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -83,6 +84,7 @@ impl Refusal {
             Refusal::Prerequisite => "prerequisite",
             Refusal::ResearchBusy => "research-busy",
             Refusal::TransportFull => "transport-full",
+            Refusal::Channelling => "channelling",
         }
     }
 }
@@ -126,6 +128,10 @@ impl Sim {
             return false;
         }
         let ability = self.cat.abilities[ai as usize];
+        if self.channel_left[i] > 0 {
+            self.refuse(Refusal::Channelling);
+            return false;
+        }
         if self.abil_cd[idx] > 0 {
             self.refuse(Refusal::Cooldown);
             return false;
@@ -179,6 +185,8 @@ impl Sim {
         self.abil_cd[idx] = ability.cooldown;
         if ability.is_projectile() {
             self.launch_missile(i, ai as usize, tx, ty, target);
+        } else if self.cat.channels.get(ai as usize).map_or(false, |c| c.channelled) {
+            self.start_channel(i, ai as usize, tx, ty, target);
         } else {
             self.apply_effects(i, ai as usize, tx, ty, target);
         }
@@ -317,6 +325,50 @@ impl Sim {
     /// Workers are the only units the harvester may gather with.
     pub(crate) fn is_worker(&self, j: usize) -> bool {
         j < self.n && self.filter[j] & FILTER_WORKER != 0
+    }
+
+    /// Starts channelling ability `ai` of unit `i` toward (x, y) and `target`: the caster holds
+    /// still for the channel duration, then the effects apply. Cost and cooldown are paid at the cast.
+    pub(crate) fn start_channel(&mut self, i: usize, ai: usize, tx: i32, ty: i32, target: i32) {
+        self.channel_left[i] = self.cat.channels.get(ai).map_or(0, |c| c.duration);
+        self.channel_ai[i] = ai as i32;
+        self.channel_x[i] = tx;
+        self.channel_y[i] = ty;
+        self.channel_target[i] = target;
+        self.tgt_x[i] = self.pos_x[i];
+        self.tgt_y[i] = self.pos_y[i];
+        self.vel_x[i] = 0;
+        self.vel_y[i] = 0;
+        self.touch(i);
+    }
+
+    /// Holds channelling unit `i` for one tick. When the channel runs out, the ability's effects
+    /// apply at the point it was cast toward.
+    pub(crate) fn tick_channel(&mut self, i: usize) {
+        self.vel_x[i] = 0;
+        self.vel_y[i] = 0;
+        self.tgt_x[i] = self.pos_x[i];
+        self.tgt_y[i] = self.pos_y[i];
+        self.channel_left[i] -= 1;
+        if self.channel_left[i] > 0 {
+            return;
+        }
+        let ai = self.channel_ai[i];
+        self.channel_ai[i] = -1;
+        if ai >= 0 && (ai as usize) < self.cat.abilities.len() {
+            let (x, y, t) = (self.channel_x[i], self.channel_y[i], self.channel_target[i]);
+            self.apply_effects(i, ai as usize, x, y, t);
+        }
+    }
+
+    /// Ends unit `i`'s channel early, applying no effects. Called when the unit takes a hit
+    /// or is given an order.
+    pub(crate) fn interrupt_channel(&mut self, i: usize) {
+        if self.channel_left[i] > 0 {
+            self.channel_left[i] = 0;
+            self.channel_ai[i] = -1;
+            self.touch(i);
+        }
     }
 
     /// Squared distance helper kept beside the rules that use it.

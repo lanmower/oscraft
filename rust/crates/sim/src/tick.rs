@@ -29,6 +29,10 @@ impl Sim {
             }
             self.regen_shield(i);
             self.regen_health(i);
+            if self.channel_left[i] > 0 {
+                self.tick_channel(i);
+                continue;
+            }
             self.research_step(i);
             if self.harvest && self.kind[i] == KIND_WORKER {
                 self.harvest_step(i);

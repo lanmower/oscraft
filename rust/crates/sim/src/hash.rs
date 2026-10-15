@@ -119,6 +119,11 @@ impl Sim {
         h.i32s(&self.research_left);
         h.i32s(&self.research_rec);
         h.i32s(&self.loaded_into);
+        h.i32s(&self.channel_left);
+        h.i32s(&self.channel_ai);
+        h.i32s(&self.channel_x);
+        h.i32s(&self.channel_y);
+        h.i32s(&self.channel_target);
         h.bytes(&self.seen);
         h.i32s(&self.seen_x);
         h.i32s(&self.seen_y);

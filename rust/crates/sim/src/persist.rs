@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 10;
+const STATE_VERSION: u16 = 11;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -47,6 +47,7 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::Prerequisite,
     Refusal::ResearchBusy,
     Refusal::TransportFull,
+    Refusal::Channelling,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
@@ -376,6 +377,11 @@ impl Sim {
         put_i32s(&mut w, &self.research_left);
         put_i32s(&mut w, &self.research_rec);
         put_i32s(&mut w, &self.loaded_into);
+        put_i32s(&mut w, &self.channel_left);
+        put_i32s(&mut w, &self.channel_ai);
+        put_i32s(&mut w, &self.channel_x);
+        put_i32s(&mut w, &self.channel_y);
+        put_i32s(&mut w, &self.channel_target);
 
         for &b in &self.has_seer {
             put_bool(&mut w, b);
@@ -543,6 +549,11 @@ impl Sim {
         r.i32s_into(&mut next.research_left)?;
         r.i32s_into(&mut next.research_rec)?;
         r.i32s_into(&mut next.loaded_into)?;
+        r.i32s_into(&mut next.channel_left)?;
+        r.i32s_into(&mut next.channel_ai)?;
+        r.i32s_into(&mut next.channel_x)?;
+        r.i32s_into(&mut next.channel_y)?;
+        r.i32s_into(&mut next.channel_target)?;
 
         for k in 0..MAX_PLAYERS {
             next.has_seer[k] = r.bool()?;

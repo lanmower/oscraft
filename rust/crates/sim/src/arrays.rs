@@ -160,6 +160,13 @@ pub struct Sim {
     pub(crate) research_rec: Vec<i32>,
     /// Transport index each unit is boarded in, -1 when not boarded. A boarded unit is not alive.
     pub(crate) loaded_into: Vec<i32>,
+    /// Channel state per unit: ticks left (0 when not channelling), the ability index (-1 when
+    /// none), the cast point and the cast target (-1 for none).
+    pub(crate) channel_left: Vec<i32>,
+    pub(crate) channel_ai: Vec<i32>,
+    pub(crate) channel_x: Vec<i32>,
+    pub(crate) channel_y: Vec<i32>,
+    pub(crate) channel_target: Vec<i32>,
     pub(crate) has_seer: [bool; MAX_PLAYERS],
     pub(crate) team: [u8; MAX_PLAYERS],
     pub(crate) alliance: [u16; MAX_PLAYERS],
@@ -287,6 +294,11 @@ impl Sim {
             research_left: vec![0; cap],
             research_rec: vec![-1; cap],
             loaded_into: vec![-1; cap],
+            channel_left: vec![0; cap],
+            channel_ai: vec![-1; cap],
+            channel_x: vec![0; cap],
+            channel_y: vec![0; cap],
+            channel_target: vec![-1; cap],
             seen: vec![0; MAX_PLAYERS * cap],
             seen_x: vec![0; MAX_PLAYERS * cap],
             seen_y: vec![0; MAX_PLAYERS * cap],
