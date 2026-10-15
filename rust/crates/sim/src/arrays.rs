@@ -257,6 +257,17 @@ impl Sim {
         s
     }
 
+    /// Edits one terrain cell at runtime: blocked (not walkable) or open. The walkability bit is
+    /// the one flow fields and placement read, so pathing agrees with it at once. Refusal:
+    /// InvalidCell for a cell outside the grid, which changes nothing.
+    pub fn set_cell_blocked(&mut self, x: i32, y: i32, blocked: bool) -> Result<(), Refusal> {
+        if !self.grid.set_blocked(x, y, blocked) {
+            return Err(self.reject(Refusal::InvalidCell));
+        }
+        self.paths.invalidate();
+        Ok(())
+    }
+
     /// Replaces the grid. Refused once any unit exists, because the fog and bucket
     /// planes are sized from it.
     pub fn set_grid(&mut self, grid: Grid) -> bool {

@@ -45,6 +45,23 @@ impl Grid {
         self.flags[(y * w + x) as usize] & BLOCKED == 0
     }
 
+    /// Sets or clears the blocked bit of one cell and leaves its other bits alone. Returns
+    /// false for a cell outside the grid, which is left unchanged. Callers that reshape pathing
+    /// must also invalidate the flow fields (Pool::invalidate).
+    pub fn set_blocked(&mut self, x: i32, y: i32, blocked: bool) -> bool {
+        let (w, h) = (self.w as i32, self.h as i32);
+        if x < 0 || y < 0 || x >= w || y >= h {
+            return false;
+        }
+        let cell = &mut self.flags[(y * w + x) as usize];
+        if blocked {
+            *cell |= BLOCKED;
+        } else {
+            *cell &= !BLOCKED;
+        }
+        true
+    }
+
     pub fn nearest_walkable(&self, x: i32, y: i32, max_r: i32) -> Option<(i32, i32)> {
         if self.walkable(x, y) {
             return Some((x, y));
@@ -395,6 +412,19 @@ impl Pool {
             return budget;
         }
         0
+    }
+
+    /// Drops every solved field so each destination is re-solved against the current grid.
+    /// Units routed on a dropped field steer straight until its rebuild lands.
+    pub fn invalidate(&mut self) {
+        for i in 0..self.owner.len() {
+            if self.owner[i] >= 0 {
+                self.dirty[i] = true;
+                if let Some(f) = self.fields[i].as_mut() {
+                    f.discard();
+                }
+            }
+        }
     }
 
     pub fn live(&self) -> usize {
