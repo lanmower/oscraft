@@ -78,6 +78,14 @@ impl Sim {
         h.i32s(&self.energy);
         h.i32s(&self.buff_kind);
         h.i32s(&self.buff_left);
+        h.bytes(&self.healer_player);
+        h.i32s(&self.healer_left);
+        h.i32s(&self.healer_timer);
+        h.i32s(&self.healer_period);
+        h.i32s(&self.healer_amt);
+        h.i32s(&self.healer_rad);
+        h.i32s(&self.healer_x);
+        h.i32s(&self.healer_y);
         h.bytes(&self.m_alive);
         h.i32s(&self.m_timer);
         h.i32s(&self.m_caster);

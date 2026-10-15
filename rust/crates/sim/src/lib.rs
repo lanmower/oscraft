@@ -37,6 +37,7 @@ pub(crate) const MAX_PLAYERS: usize = 16;
 pub(crate) const REVEAL_CAP: usize = 16;
 pub(crate) const MISSILE_CAP: usize = 128;
 pub(crate) const BUFF_SLOTS: usize = 4;
+pub(crate) const HEALER_SLOTS: usize = 16;
 pub(crate) const ABILITY_SLOTS: usize = 8;
 pub(crate) const AREA_BUF: usize = 289 * BUCKET_CAP;
 

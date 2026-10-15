@@ -24,9 +24,10 @@ pub enum Refusal {
     NoMissileSlot,
     EffectUnsupported,
     CalldownNested,
+    NoHealerSlot,
 }
 
-pub const REFUSAL_KINDS: usize = 12;
+pub const REFUSAL_KINDS: usize = 13;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -43,6 +44,7 @@ impl Refusal {
             Refusal::NoMissileSlot => "no-missile-slot",
             Refusal::EffectUnsupported => "effect-unsupported",
             Refusal::CalldownNested => "calldown-nested",
+            Refusal::NoHealerSlot => "no-healer-slot",
         }
     }
 }
@@ -55,6 +57,7 @@ const EFFECT_SPAWN: u16 = 3;
 const EFFECT_BUFF: u16 = 4;
 const EFFECT_ISSUE_ORDER: u16 = 5;
 const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
+const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
 
@@ -112,6 +115,11 @@ impl Sim {
         let spawns = self.cat.effects[first..first + count].iter().any(|e| e.kind == EFFECT_SPAWN);
         if spawns && self.head >= self.cap {
             self.refuse(Refusal::NoSpawnSlot);
+            return false;
+        }
+        let heals = self.cat.effects[first..first + count].iter().any(|e| e.kind == EFFECT_CREATE_HEALER);
+        if heals && self.free_healer().is_none() {
+            self.refuse(Refusal::NoHealerSlot);
             return false;
         }
         if ability.is_projectile() {
@@ -181,6 +189,12 @@ impl Sim {
                 self.remove_behaviour(eff.p0, fixed::from_milli(eff.p1), tx, ty);
             }
             EFFECT_SHIELD_BONUS => self.shield_bonus(caster, target, eff.p0),
+            EFFECT_CREATE_HEALER => {
+                let rad = fixed::from_milli(eff.p1);
+                if !self.create_healer(p, eff.p0, rad, eff.p2, eff.p3, tx, ty) {
+                    self.refuse(Refusal::NoHealerSlot);
+                }
+            }
             EFFECT_USE_CALLDOWN => {
                 if !may_call {
                     self.refuse(Refusal::CalldownNested);

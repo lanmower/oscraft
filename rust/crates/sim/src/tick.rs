@@ -13,6 +13,7 @@ impl Sim {
         }
         self.paths.tick(&self.grid);
         self.tick_buffs();
+        self.tick_healers();
         self.tick_projectiles();
         for i in 0..self.n {
             if self.alive[i] == 0 {

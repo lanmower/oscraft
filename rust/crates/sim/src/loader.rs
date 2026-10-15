@@ -8,14 +8,15 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 4;
+const VERSION: u16 = 5;
 const RESOURCE_KINDS: u8 = 3;
 const ABILITY_FILTER_BITS: u16 = 12;
 const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 7] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"GRID"];
-const RECORD_SIZES: [usize; 7] = [1, 16, 32, 2, 80, 16, 1];
+const RECORD_SIZES: [usize; 7] = [1, 20, 32, 2, 80, 16, 1];
+const EFFECT_CREATE_HEALER: u16 = 7;
 
 const EFFECT_KINDS: u16 = 11;
 const EFFECT_ISSUE_ORDER: u16 = 5;
@@ -48,8 +49,10 @@ pub struct Effect {
     pub p0: i32,
     /// Damage and heal: radius (Q16.16), until v5 defines one. Buff: duration, ticks.
     pub p1: i32,
-    /// Not read by any kind in format v4.
+    /// Create healer: period, ticks. Vital fraction: mode. Buff and others: unused.
     pub p2: i32,
+    /// Create healer: lifetime, ticks. Vital fraction: target. Others: unused.
+    pub p3: i32,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -269,7 +272,10 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         }
         EFFECT_REMOVE_BEHAVIOUR if e.p0 < 0 || e.p1 < 0 => Some("remove_behaviour kind or radius"),
         EFFECT_SHIELD_BONUS if e.p0 < 0 => Some("shield_bonus amount"),
-        EFFECT_BUFF if e.p0 < 0 => Some("buff kind"),
+        EFFECT_BUFF if e.p0 < 0 || e.p1 < 0 => Some("buff kind or duration"),
+        EFFECT_CREATE_HEALER if e.p0 < 0 || e.p1 < 0 || e.p2 < 1 || e.p3 < 1 => {
+            Some("create_healer amount, radius, period or lifetime")
+        }
         _ => None,
     }
 }
@@ -327,7 +333,13 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             return Err(LoadError::Range("effect kind"));
         }
         er.skip(2, "effect reserved")?;
-        let eff = Effect { kind, p0: er.i32("p0")?, p1: er.i32("p1")?, p2: er.i32("p2")? };
+        let eff = Effect {
+            kind,
+            p0: er.i32("p0")?,
+            p1: er.i32("p1")?,
+            p2: er.i32("p2")?,
+            p3: er.i32("p3")?,
+        };
         if let Some(why) = effect_param_error(&eff) {
             return Err(LoadError::Range(why));
         }
