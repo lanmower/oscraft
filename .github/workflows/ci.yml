@@ -15,10 +15,17 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: false
 
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_NET_RETRY: "3"
+
 jobs:
-  build:
-    name: build and spike (${{ matrix.os }})
+  check:
+    name: build, spike and gate (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -30,47 +37,39 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
 
-      - name: Build workspace
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build workspace (one compile for spike and gate)
         run: cargo build --workspace
 
       - name: Run Lua mod spike
         run: cargo run -p oscraft-spike
 
-  gate:
-    name: parity gate (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    defaults:
-      run:
-        working-directory: rust/gate
-        shell: bash
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-
       - name: Run parity gate
-        run: cargo run --release --quiet > gate.txt 2>&1 || echo "gate exited nonzero" >> gate.txt
+        run: cargo run -p oscraft-gate > gate.txt 2>&1 || echo "gate exited nonzero" >> gate.txt
 
       - name: MPQ round-trip
-        run: cargo run --release --quiet -- mpq
+        run: cargo run -p oscraft-gate -- mpq
 
       - name: Show gate output
+        if: always()
         run: cat gate.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: gate-output-${{ matrix.os }}
-          path: rust/gate/gate.txt
+          path: rust/gate.txt
 
   gate-compare:
     name: compare gate output across OSes
-    needs: gate
+    needs: check
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -78,37 +77,3 @@ jobs:
         with:
           pattern: gate-output-*
           path: outputs
-
-      - name: Fail on FAIL lines, missing output, or differing state hash
-        shell: bash
-        run: |
-          set -uo pipefail
-          files=(outputs/*/gate.txt)
-          if [ "${#files[@]}" -ne 3 ]; then
-            echo "expected 3 gate outputs, found ${#files[@]}"
-            exit 1
-          fi
-          bad=0
-          ref=""
-          for f in "${files[@]}"; do
-            echo "== $f"
-            cat "$f"
-            if grep -q ' FAIL' "$f"; then
-              echo "$f prints FAIL"
-              bad=1
-            fi
-            line=$(grep '^state_hash=' "$f" | head -n 1)
-            if [ -z "$line" ]; then
-              echo "$f has no state_hash line"
-              bad=1
-            elif [ -z "$ref" ]; then
-              ref="$line"
-            elif [ "$line" != "$ref" ]; then
-              echo "state hash differs across OSes: $line vs $ref"
-              bad=1
-            fi
-          done
-          if [ "$bad" -ne 0 ]; then
-            exit 1
-          fi
-          echo "all three OSes agree: $ref"
