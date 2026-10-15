@@ -114,6 +114,17 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("order-recording", claimed_checks::order_recording),
     ("mod-package-version", claimed_checks::mod_package_version),
     ("save-load-hash-equal", sim_checks::save_load_state),
+    // CAP rows still claimed, batch 2
+    ("transport-load", claimed_checks::transport_load),
+    ("transport-unload-point", claimed_checks::transport_unload_point),
+    ("buff-stacking-rule", claimed_checks::buff_stacking_rule),
+    ("shield-regen-delay", claimed_checks::shield_regen_delay),
+    ("upgrade-levels", claimed_checks::upgrade_levels),
+    ("upgrade-stacking", claimed_checks::upgrade_stacking),
+    ("upgrade-applies-existing", claimed_checks::upgrade_applies_existing),
+    ("ranged-miss-chance", claimed_checks::ranged_miss_chance),
+    ("replay-playback-controls", claimed_checks::replay_playback_controls),
+    ("lockstep-input-exchange", claimed_checks::lockstep_input_exchange),
 ];
 
 pub fn data_dir() -> PathBuf {

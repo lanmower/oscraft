@@ -151,3 +151,143 @@ pub fn mod_package_version(image: &[u8]) -> Result<(), String> {
         Ok(_) => Err("a wrong-version package was loaded".to_string()),
     }
 }
+
+fn missing_api(name: &str) -> Result<(), String> {
+    Err(format!("missing API: {name}"))
+}
+
+fn board_warden_and_skirmisher(s: &mut Sim) -> Result<(usize, usize), String> {
+    let t = spawn(s, 0, "warden", 10, 10)?;
+    let i = spawn(s, 0, "skirmisher", 11, 10)?;
+    s.load_unit(t, i).map_err(|r| format!("load_unit refused: {}; units.star declares no transport capacity", r.name()))?;
+    Ok((t, i))
+}
+
+pub fn transport_load(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    board_warden_and_skirmisher(&mut s).map(|_| ())
+}
+
+pub fn transport_unload_point(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let (t, _) = board_warden_and_skirmisher(&mut s)?;
+    match s.unload_transport_at(t, fixed::from_int(20), fixed::from_int(10)) {
+        Ok(1) => Ok(()),
+        Ok(n) => Err(format!("unloaded {n} units at the point, want 1")),
+        Err(r) => Err(format!("unload_transport_at refused: {}", r.name())),
+    }
+}
+
+pub fn buff_stacking_rule(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let u = spawn(&mut s, 0, "skirmisher", 10, 10)?;
+    if !s.apply_buff(u, 1, 40) {
+        return Err("first apply_buff refused".to_string());
+    }
+    if !s.apply_buff(u, 1, 80) {
+        return Err("a second buff of the same kind was refused instead of refreshing".to_string());
+    }
+    s.clear_buff(u, 1);
+    if !s.apply_buff(u, 1, 40) {
+        return Err("the buff slot was still held after clear_buff".to_string());
+    }
+    Ok(())
+}
+
+pub fn shield_regen_delay(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let t = spawn(&mut s, 1, "warden", 12, 10)?;
+    let full = s.shield_of(t);
+    s.hurt(t, 10);
+    let hit = s.shield_of(t);
+    if hit >= full {
+        return Err(format!("hurt left the shield at {hit}, want below {full}"));
+    }
+    run_ticks(&mut s, 100);
+    if s.shield_of(t) != hit {
+        return Err("the shield regenerated inside its delay".to_string());
+    }
+    run_ticks(&mut s, 1000);
+    if s.shield_of(t) <= hit {
+        return Err("the shield did not regenerate after its delay".to_string());
+    }
+    Ok(())
+}
+
+pub fn upgrade_levels(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    s.add_resources(0, 5000, 5000);
+    let m0 = s.minerals(0);
+    s.complete_upgrade(0, 0).map_err(|r| format!("complete_upgrade refused: {}", r.name()))?;
+    let m1 = s.minerals(0);
+    s.complete_upgrade(0, 0).map_err(|r| format!("second complete_upgrade refused: {}", r.name()))?;
+    let first = m0 - m1;
+    let second = m1 - s.minerals(0);
+    if first != 100 || second != 200 {
+        return Err(format!("upgrade levels cost {first} then {second}, want 100 then 200"));
+    }
+    Ok(())
+}
+
+pub fn upgrade_stacking(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    s.add_resources(0, 50000, 50000);
+    s.complete_upgrade(0, 0).map_err(|r| format!("add-stacking first level refused: {}", r.name()))?;
+    s.complete_upgrade(0, 0).map_err(|r| format!("add-stacking second level refused: {}", r.name()))?;
+    s.complete_upgrade(1, 0).map_err(|r| format!("refuse-stacking first level refused: {}", r.name()))?;
+    if s.complete_upgrade(1, 0).is_ok() {
+        return Err("a refuse-stacking upgrade was applied twice".to_string());
+    }
+    Ok(())
+}
+
+pub fn upgrade_applies_existing(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    s.add_resources(0, 5000, 5000);
+    let w = spawn(&mut s, 0, "warden", 10, 10)?;
+    let before = s.shield_of(w);
+    s.complete_upgrade(0, 0).map_err(|r| format!("complete_upgrade refused: {}", r.name()))?;
+    let after = s.shield_of(w);
+    if after <= before {
+        return Err(format!("existing warden shield {before} unchanged by an upgrade that applies to existing units"));
+    }
+    Ok(())
+}
+
+pub fn ranged_miss_chance(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim::misses (pub(crate)): the miss roll is private")
+}
+
+pub fn replay_playback_controls(image: &[u8]) -> Result<(), String> {
+    let mut source = fresh(image)?;
+    spawn(&mut source, 0, "skirmisher", 10, 10)?;
+    run_ticks(&mut source, 20);
+    let start = fresh(image)?;
+    let mut p = server::replay::Playback::new(&source, start, &[]).map_err(|e| format!("Playback::new: {e:?}"))?;
+    let end = p.end();
+    if end == 0 {
+        return Err("playback ends at tick 0 for a 20-tick source".to_string());
+    }
+    let mid = end / 2;
+    let got = p.seek(mid).map_err(|e| format!("seek({mid}): {e:?}"))?;
+    if got != mid {
+        return Err(format!("seek({mid}) landed on tick {got}"));
+    }
+    p.pause();
+    p.resume();
+    p.set_speed(2).map_err(|e| format!("set_speed(2): {e:?}"))?;
+    Ok(())
+}
+
+pub fn lockstep_input_exchange(_image: &[u8]) -> Result<(), String> {
+    use std::time::{Duration, Instant};
+    let mut ls = server::lockstep::Lockstep::new(&[0, 1], 0, Duration::from_secs(1));
+    ls.submit(0, 0, Vec::new()).map_err(|e| format!("submit player 0: {e:?}"))?;
+    ls.submit(0, 1, Vec::new()).map_err(|e| format!("submit player 1: {e:?}"))?;
+    match ls.poll(Instant::now()) {
+        Ok(Some(r)) if r.tick == 0 => Ok(()),
+        Ok(Some(r)) => Err(format!("released tick {}, want 0", r.tick)),
+        Ok(None) => Err("no tick released after both players submitted".to_string()),
+        Err(e) => Err(format!("poll: {e:?}")),
+    }
+}
