@@ -133,7 +133,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-DET-1 | Fixed-point (Q16.16) arithmetic for sim math | implemented | sim/src/fixed.rs | gate:fixed-math |
 | CAP-DET-2 | FNV-1a state hash over sim state | implemented | sim/src/hash.rs (state_hash); mod-host/src/lib.rs (state_hash) | gate:state-hash-stable |
-| CAP-DET-3 | Identical mod and state reproduce identical hashes across runs | partial | sim/src/hash.rs; no replay gate yet | gate:replay-hash-equal |
+| CAP-DET-3 | Identical mod and state reproduce identical hashes across runs | implemented | sim/src/hash.rs (state_hash covers reveals and counters); sim/src/tick.rs and fixed.rs (integer-only tick, no clock or float use in sim) | gate:replay-hash-equal |
 
 ## Persistence of map data
 

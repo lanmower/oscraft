@@ -107,6 +107,10 @@ impl Sim {
         h.bytes(&self.vis);
         h.bytes(&self.has_seer.map(|b| b as u8));
         h.bytes(&self.team);
+        for r in &self.reveals {
+            h.bytes(&[r.p, r.live as u8]);
+            h.i32s(&[r.x0, r.y0, r.x1, r.y1, r.until]);
+        }
         for a in self.alliance {
             h.bytes(&a.to_le_bytes());
         }
@@ -120,7 +124,16 @@ impl Sim {
             self.stats.casts_refused as u64,
             self.stats.missiles_lost as u64,
             self.stats.ability_damage as u32 as u64,
+            self.stats.retargets as u64,
+            self.stats.retargets_deferred as u64,
+            self.stats.buffs_dropped as u64,
+            self.stats.summoned as u64,
+            self.stats.reveals_dropped as u64,
         ]);
+        for c in self.stats.refused_by {
+            h.u64s(&[c as u64]);
+        }
+        h.bytes(&[self.stats.last_refusal as u8, self.stats.last_train_refusal as u8]);
         h.0
     }
 }
