@@ -248,6 +248,18 @@ impl Sim {
             .sum()
     }
 
+    /// Supply reserved by the player's trains in progress: each holds its trainee's supply until
+    /// the unit appears or the train is cancelled. Zero for an invalid player.
+    pub fn supply_reserved(&self, p: u8) -> i32 {
+        if (p as usize) >= MAX_PLAYERS {
+            return 0;
+        }
+        (0..self.n)
+            .filter(|&j| self.alive[j] != 0 && self.player[j] == p && self.train_left[j] > 0 && self.trainee[j] >= 0)
+            .map(|j| self.cat.units.get(self.trainee[j] as usize).map_or(0, |d| d.supply as i32))
+            .sum()
+    }
+
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
