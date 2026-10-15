@@ -1,8 +1,8 @@
-# OSDT data file, format version 11
+# OSDT data file, format version 13
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 12 changes the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
+reserved bytes listed below. Version 13 adds a per-level minerals and gas cost to UPGR, which grows from 16 to 24 bytes. Version 12 changed the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
 combat and cloak/burrow parameters as new sections. Every record size from version 10
 is unchanged. A reader of an older version must reject the file.
 
@@ -11,7 +11,7 @@ is unchanged. A reader of an older version must reject the file.
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `12`                                      |
+| 4      | 2    | version, `13`                                      |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `17`                                 |
 | 12     | 4    | total file length in bytes                          |
@@ -39,7 +39,7 @@ Sections appear in this order, and the reader requires all seventeen tags:
 | `UNIT` | 80          | unit records                                 |
 | `BHVR` | 16          | behaviour records                            |
 | `PLCE` | 16          | placement records                            |
-| `UPGR` | 16          | upgrade records                              |
+| `UPGR` | 24          | upgrade records                              |
 | `REGN` | 12          | one per unit; count = unit count             |
 | `LIMT` | 4           | always 1                                     |
 | `ECON` | 32          | always 1                                     |
@@ -297,7 +297,7 @@ matching unit when it completes.
 | 4      | 4    | delay after the last hit before regeneration starts, ticks, `>= 0` |
 | 8      | 4    | health regeneration per tick, `>= 0`                         |
 
-### UPGR (16 bytes per record)
+### UPGR (24 bytes per record)
 One record per upgrade. An upgrade applies one effect to a target unit or
 ability, at a level, to new units only or to existing units too, with a stacking rule.
 
@@ -311,6 +311,8 @@ ability, at a level, to new units only or to existing units too, with a stacking
 | 9      | 1    | stacking rule: `0 replace`, `1 add`, `2 refuse if present`        |
 | 10     | 2    | target index: `UNIT` index for kind 0, `ABIL` index for kind 1    |
 | 12     | 4    | effect index into `EFCT` (the upgrade's effect slot)              |
+| 16     | 4    | minerals cost per level, `>= 0`; the cost to reach level `n` is `n` times this |
+| 20     | 4    | gas cost per level, `>= 0`; the cost to reach level `n` is `n` times this      |
 
 ### LIMT (4 bytes, count 1)
 | offset | size | field                                                          |
