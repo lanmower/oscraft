@@ -1,0 +1,15 @@
+[package]
+name = "oscraft-gate"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "oscraft-gate"
+path = "src/main.rs"
+
+[dependencies]
+osdt-data = { path = "../crates/data" }
+sim = { path = "../crates/sim" }

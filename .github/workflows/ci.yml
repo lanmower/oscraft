@@ -36,3 +36,57 @@ jobs:
 
       - name: Run Lua mod spike
         run: cargo run -p oscraft-spike
+
+  gate:
+    name: parity gate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: rust/gate
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Run parity gate
+        run: cargo run --release --quiet | tee gate.txt
+
+      - name: Extract state hash line
+        run: grep '^state_hash=' gate.txt > state-hash.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-hash-${{ matrix.os }}
+          path: rust/gate/state-hash.txt
+
+  gate-compare:
+    name: compare state hashes across OSes
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gate-hash-*
+          path: hashes
+
+      - name: Fail unless all three OSes printed the same hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(hashes/*/state-hash.txt)
+          [ "${#files[@]}" -eq 3 ] || { echo "expected 3 hash files, found ${#files[@]}"; exit 1; }
+          ref=$(cat "${files[0]}")
+          for f in "${files[@]}"; do
+            line=$(cat "$f")
+            echo "$f: $line"
+            if [ "$line" != "$ref" ]; then
+              echo "state hash differs across OSes"
+              exit 1
+            fi
+          done
+          echo "all three OSes agree: $ref"
