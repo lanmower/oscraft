@@ -412,6 +412,41 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             Ok(out)
         })?,
     )?;
+    // set_tile(x, y, tile) sets the author-defined tile id (0..=255) of one cell. A cell outside
+    // the grid raises out_of_grid; a tile outside the byte range raises invalid_tile.
+    let w = world.clone();
+    env.set(
+        "set_tile",
+        lua.create_function(move |_, (x, y, tile): (i64, i64, i64)| {
+            let mut sim = w.borrow_mut();
+            let (grid_w, grid_h) = (sim.grid().w as i64, sim.grid().h as i64);
+            if x < 0 || y < 0 || x >= grid_w || y >= grid_h {
+                return Err(out_of_grid(x, y, x, y, grid_w, grid_h));
+            }
+            let tile = u8::try_from(tile).map_err(|_| mlua::Error::RuntimeError(format!("invalid_tile: {tile} is outside 0..=255")))?;
+            sim.set_cell_tile(x as i32, y as i32, tile)
+                .map_err(|_| mlua::Error::RuntimeError("tile_edit: sim refused an in-grid cell".into()))
+        })?,
+    )?;
+    // list_doodads() returns the map's doodad records (DODA) so an editor can read what it may place or remove.
+    let w = world.clone();
+    env.set(
+        "list_doodads",
+        lua.create_function(move |lua, ()| {
+            let sim = w.borrow();
+            let out = lua.create_table()?;
+            for (i, d) in sim.catalog().doodads.iter().enumerate() {
+                let row = lua.create_table()?;
+                row.set("id", d.id as i64)?;
+                row.set("kind", d.kind as i64)?;
+                row.set("x", d.x as i64)?;
+                row.set("y", d.y as i64)?;
+                row.set("rotation", d.rotation as i64)?;
+                out.raw_set((i + 1) as i64, row)?;
+            }
+            Ok(out)
+        })?,
+    )?;
     // buff_unit(unit, kind, ticks) gives a live unit a behaviour for `ticks` ticks. Returns
     // false when the unit has no free buff slot, and the sim counts that drop.
     let w = world.clone();
