@@ -28,6 +28,7 @@ impl Sim {
                 continue;
             }
             self.regen_shield(i);
+            self.regen_health(i);
             if self.harvest && self.kind[i] == KIND_WORKER {
                 self.harvest_step(i);
             }

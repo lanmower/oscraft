@@ -114,7 +114,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-SHLD-3 | Reduce incoming damage with armour | claimed | sim/src/combat.rs (armour_reduced, applied in attack and order_attack) | gate:armour-reduces |
 | CAP-SHLD-4 | Apply a vital-fraction effect | implemented | sim/src/shields.rs (vital_fraction) | gate:vital-fraction |
 | CAP-SHLD-5 | Regenerate shields after a delay in which the unit takes no damage | claimed | sim/src/shields.rs (regen_shield), sim/src/combat.rs (inflict stamps last_hit), sim/src/tick.rs | gate:shield-regen-delay |
-| CAP-SHLD-6 | Regenerate hit points over time for unit classes that declare it | stub | none | gate:hp-regen |
+| CAP-SHLD-6 | Regenerate hit points over time for unit classes that declare it | claimed | sim/src/shields.rs (regen_health), sim/src/tick.rs | gate:hp-regen |
 
 ## Players and alliances
 

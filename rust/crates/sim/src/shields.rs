@@ -92,6 +92,27 @@ impl Sim {
         self.touch(i);
     }
 
+    /// Regenerates life on unit `i` once the regeneration delay since its last hit has passed.
+    /// Life never exceeds its maximum, and a dead unit regenerates nothing.
+    pub(crate) fn regen_health(&mut self, i: usize) {
+        let k = self.type_of[i];
+        if k < 0 || self.alive[i] == 0 {
+            return;
+        }
+        let r = match self.cat.regen.get(k as usize) {
+            Some(r) => *r,
+            None => return,
+        };
+        if r.hp_per_tick <= 0 || self.hp[i] >= self.hp_max[i] {
+            return;
+        }
+        if self.ticks.wrapping_sub(self.last_hit[i]) < r.delay as u32 {
+            return;
+        }
+        self.hp[i] = self.hp[i].saturating_add(fixed::from_int(r.hp_per_tick)).min(self.hp_max[i]);
+        self.touch(i);
+    }
+
     /// Writes life clamped to [0, max]; a unit whose life reaches zero dies.
     fn set_life(&mut self, j: usize, value: i32) {
         self.hp[j] = value.clamp(0, self.hp_max[j]);
