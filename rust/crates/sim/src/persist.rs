@@ -43,6 +43,7 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::ChatUnsupported,
     Refusal::UpgradeRefused,
     Refusal::CellFull,
+    Refusal::SupplyBlocked,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.

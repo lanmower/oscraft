@@ -30,6 +30,19 @@ impl Sim {
         }
     }
 
+    /// Supply the player's living units take up, each unit at its UNIT supply cost.
+    pub(crate) fn supply_used(&self, p: usize) -> i32 {
+        (0..self.n)
+            .filter(|&j| self.alive[j] != 0 && self.player[j] as usize == p)
+            .map(|j| self.cat.units.get(self.type_of[j] as usize).map_or(0, |d| d.supply as i32))
+            .sum()
+    }
+
+    /// Supply the player may take up: the ECON base cap. Providers raise it (CAP-PROD-10).
+    pub(crate) fn supply_cap(&self, _p: usize) -> i32 {
+        self.cat.econ.supply_base
+    }
+
     /// Places the base's mineral patches and geysers from ECON: `patches` patches in a row east
     /// of the start and `geysers` geysers in a column south of it, one world unit apart. Each
     /// holds the ECON amount and belongs to no player. A spot the catalog cannot place is skipped.
@@ -69,6 +82,11 @@ impl Sim {
             if self.train_left[i] == 0 {
                 self.finish_train(i, p, tr);
             }
+            return;
+        }
+        if self.supply_used(p) + def.supply as i32 > self.supply_cap(p) {
+            self.stats.trains_refused += 1;
+            self.stats.last_train_refusal = Refusal::SupplyBlocked;
             return;
         }
         if self.minerals[p] < def.minerals || self.vespene[p] < def.gas {
