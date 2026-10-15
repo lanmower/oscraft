@@ -147,9 +147,15 @@ impl Sim {
     pub(crate) fn apply_effects(&mut self, caster: usize, ai: usize, tx: i32, ty: i32, target: i32) {
         let ability = self.cat.abilities[ai];
         let first = ability.effect_first as usize;
+        // Format v8 receiver: the named unit target when the ability takes one, else the caster.
+        let receiver = if ability.target != 0 && target >= 0 && (target as usize) < self.n {
+            target
+        } else {
+            caster as i32
+        };
         for k in 0..ability.effect_count as usize {
             let eff: Effect = self.cat.effects[first + k];
-            self.apply_effect(caster, ability.filter as u32, eff, tx, ty, target, true);
+            self.apply_effect(caster, ability.filter as u32, eff, tx, ty, receiver, true);
         }
     }
 
@@ -203,7 +209,7 @@ impl Sim {
             EFFECT_VITAL_FRACTION => self.vital_fraction(caster, target, eff.p0, eff.p1, eff.p2, eff.p3),
             EFFECT_CREATE_HEALER => {
                 let rad = fixed::from_milli(eff.p1);
-                if !self.create_healer(p, eff.p0, rad, eff.p2, eff.p3, tx, ty) {
+                if !self.create_healer(p, eff.p0, rad, eff.p2, eff.p3, tx, ty, target) {
                     self.refuse(Refusal::NoHealerSlot);
                 }
             }

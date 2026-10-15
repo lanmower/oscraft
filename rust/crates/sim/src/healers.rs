@@ -47,10 +47,21 @@ impl Sim {
     /// `period` ticks, the first pulse after one period, and ends after `life` ticks.
     /// Returns false when no slot is free.
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn create_healer(&mut self, p: u8, amt: i32, rad: i32, period: i32, life: i32, x: i32, y: i32) -> bool {
+    pub(crate) fn create_healer(
+        &mut self,
+        p: u8,
+        amt: i32,
+        rad: i32,
+        period: i32,
+        life: i32,
+        x: i32,
+        y: i32,
+        receiver: i32,
+    ) -> bool {
         let Some(k) = self.free_healer() else {
             return false;
         };
+        self.healer_target[k] = receiver;
         self.healer_player[k] = p;
         self.healer_amt[k] = amt;
         self.healer_rad[k] = rad;
@@ -72,7 +83,12 @@ impl Sim {
             if self.healer_timer[k] <= 0 {
                 let (p, amt, rad) = (self.healer_player[k], self.healer_amt[k], self.healer_rad[k]);
                 let (x, y) = (self.healer_x[k], self.healer_y[k]);
-                self.heal_area(p, amt, rad, x, y);
+                if rad == 0 {
+                    let receiver = self.healer_target[k];
+                    self.heal_target(p, amt, receiver);
+                } else {
+                    self.heal_area(p, amt, rad, x, y);
+                }
                 self.healer_timer[k] = self.healer_period[k];
             }
             self.healer_left[k] -= 1;

@@ -87,6 +87,7 @@ impl Sim {
         h.i32s(&self.healer_rad);
         h.i32s(&self.healer_x);
         h.i32s(&self.healer_y);
+        h.i32s(&self.healer_target);
         h.bytes(&self.m_alive);
         h.i32s(&self.m_timer);
         h.i32s(&self.m_caster);

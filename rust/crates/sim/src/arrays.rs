@@ -104,6 +104,7 @@ pub struct Sim {
     pub(crate) healer_rad: Vec<i32>,
     pub(crate) healer_x: Vec<i32>,
     pub(crate) healer_y: Vec<i32>,
+    pub(crate) healer_target: Vec<i32>,
 
     pub(crate) m_alive: Vec<u8>,
     pub(crate) m_timer: Vec<i32>,
@@ -211,6 +212,7 @@ impl Sim {
             healer_rad: vec![0; HEALER_SLOTS],
             healer_x: vec![0; HEALER_SLOTS],
             healer_y: vec![0; HEALER_SLOTS],
+            healer_target: vec![-1; HEALER_SLOTS],
             m_alive: vec![0; MISSILE_CAP],
             m_timer: vec![0; MISSILE_CAP],
             m_caster: vec![-1; MISSILE_CAP],
