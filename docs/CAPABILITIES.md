@@ -11,7 +11,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-MAP-1 | Load a map grid and its walkability from map data | implemented | sim/src/arrays.rs (set_grid, grid), sim/src/loader.rs (load_file) | gate:load-map |
 | CAP-MAP-2 | Report walkability of a cell and find the nearest walkable cell | implemented | sim/src/pathfinding.rs (walkable, nearest_walkable) | gate:walkable-cells |
-| CAP-MAP-3 | Edit terrain at runtime from a mod | stub | none | gate:edit-terrain |
+| CAP-MAP-3 | Edit terrain at runtime from a mod | claimed | none | gate:edit-terrain |
 | CAP-MAP-4 | Clamp positions to map bounds | implemented | sim/src/arrays.rs (clamp_to_grid) | gate:map-bounds |
 | CAP-MAP-5 | Define one start position per player in map data | claimed | rust/crates/data/src/builtins.rs (start), validate.rs | gate:player-start-positions |
 | CAP-MAP-6 | Place neutral objects that belong to no player | claimed | rust/crates/data/src/builtins.rs (spawn -1), validate.rs | gate:neutral-objects |
