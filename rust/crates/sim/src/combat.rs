@@ -11,10 +11,10 @@ const RESPONSE_IMMUNE: u8 = 2;
 /// The least a weapon hit can do after armour, so armour never zeroes a hit (Q16.16, one quarter).
 const ARMOUR_FLOOR: i32 = fixed::ONE / 4;
 
-/// Weapon damage after the target's armour, in Q16.16. Armour is a flat reduction per hit; the
-/// result never falls below ARMOUR_FLOOR.
+/// Weapon damage after a flat armour reduction, in the units both arguments share (whole units or
+/// Q16.16). Never below zero. A hit's floor (ARMOUR_FLOOR) is applied by the attack paths.
 pub fn armour_reduced(damage: i32, armour: i32) -> i32 {
-    damage.wrapping_sub(armour).max(ARMOUR_FLOOR)
+    damage.saturating_sub(armour).max(0)
 }
 
 impl Sim {
@@ -152,7 +152,7 @@ impl Sim {
             return;
         }
         let b = best as usize;
-        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[b]), i, b);
+        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[b]).max(ARMOUR_FLOOR), i, b);
         self.cooldown[i] = self.period[i];
         if self.misses(i) {
             return;
@@ -183,7 +183,7 @@ impl Sim {
         if self.cooldown[i] > 0 {
             return Err(self.reject(Refusal::Cooldown));
         }
-        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[target]), i, target);
+        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[target]).max(ARMOUR_FLOOR), i, target);
         self.cooldown[i] = self.period[i];
         if self.misses(i) {
             return Ok(());
