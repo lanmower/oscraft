@@ -499,11 +499,6 @@ impl Sim {
     /// Kind from the filter mask and product: a worker gathers, a structure that
     /// trains workers is a base, and any other product-holder is a producer.
     fn classify(&self, def: crate::loader::Unit) -> u8 {
-        match def.resource_kind {
-            1 => return KIND_MINERAL,
-            2 => return KIND_GEYSER,
-            _ => {}
-        }
         if def.filter & FILTER_WORKER != 0 {
             return KIND_WORKER;
         }
@@ -513,7 +508,11 @@ impl Sim {
             }
             return KIND_PRODUCER;
         }
-        KIND_ACTOR
+        match def.resource_kind {
+            1 => KIND_MINERAL,
+            2 => KIND_GEYSER,
+            _ => KIND_ACTOR,
+        }
     }
 
     pub fn position_fixed(&self, i: usize) -> (i32, i32) {
