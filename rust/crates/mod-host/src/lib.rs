@@ -297,6 +297,37 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             Ok(())
         })?,
     )?;
+    // damage_unit(caster, target, dmg): the caster's player is the attacker. Both units must
+    // be alive. The sim spares friendly and dead targets and the caster itself.
+    let w = world.clone();
+    env.set(
+        "damage_unit",
+        lua.create_function(move |_, (caster, target, dmg): (i64, i64, i64)| {
+            let dmg = i32::try_from(dmg).map_err(|_| mlua::Error::RuntimeError(format!("invalid_damage: {dmg} out of i32 range")))?;
+            let mut sim = w.borrow_mut();
+            let c = live_unit(&sim, caster)?;
+            let t = live_unit(&sim, target)?;
+            let player = sim.player(c);
+            sim.damage_target(c as i32, player, dmg, t as i32);
+            Ok(())
+        })?,
+    )?;
+    // buff_unit(unit, kind, ticks) gives a live unit a behaviour for `ticks` ticks. Returns
+    // false when the unit has no free buff slot, and the sim counts that drop.
+    let w = world.clone();
+    env.set(
+        "buff_unit",
+        lua.create_function(move |_, (unit, kind, ticks): (i64, i64, i64)| {
+            let mut sim = w.borrow_mut();
+            let u = live_unit(&sim, unit)?;
+            let kind = i32::try_from(kind).map_err(|_| mlua::Error::RuntimeError(format!("invalid_buff: kind {kind} out of i32 range")))?;
+            let ticks = i32::try_from(ticks)
+                .ok()
+                .filter(|&t| t > 0)
+                .ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_buff: ticks {ticks} must be a positive i32")))?;
+            Ok(sim.apply_buff(u, kind, ticks))
+        })?,
+    )?;
     Ok(())
 }
 
