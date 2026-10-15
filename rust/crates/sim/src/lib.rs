@@ -17,6 +17,7 @@ mod healers;
 mod hash;
 mod loader;
 mod movement;
+mod persist;
 mod pathfinding;
 mod production;
 mod projectiles;
@@ -28,6 +29,7 @@ mod triggers;
 pub use arrays::{Sim, Stats};
 pub use loader::{load, load_file, Catalog, LoadError, Trigger};
 pub use pathfinding::Grid;
+pub use persist::StateError;
 pub use rules::Refusal;
 
 pub(crate) const TICKS_PER_SECOND: i32 = 16;
