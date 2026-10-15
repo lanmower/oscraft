@@ -125,6 +125,17 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("ranged-miss-chance", claimed_checks::ranged_miss_chance),
     ("replay-playback-controls", claimed_checks::replay_playback_controls),
     ("lockstep-input-exchange", claimed_checks::lockstep_input_exchange),
+    // CAP rows still claimed, batch 3
+    ("player-start-positions", claimed_checks::player_start_positions),
+    ("neutral-objects", claimed_checks::neutral_objects),
+    ("map-author-placement", claimed_checks::map_author_placement),
+    ("elevation-sight", claimed_checks::elevation_sight),
+    ("hp-regen", claimed_checks::hp_regen),
+    ("editor-terrain-tiles", claimed_checks::editor_terrain_tiles),
+    ("editor-abilities", claimed_checks::editor_abilities),
+    ("editor-triggers", claimed_checks::editor_triggers),
+    ("channel-interrupt", claimed_checks::channel_interrupt),
+    ("worker-saturation", claimed_checks::worker_saturation),
 ];
 
 pub fn data_dir() -> PathBuf {

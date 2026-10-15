@@ -291,3 +291,85 @@ pub fn lockstep_input_exchange(_image: &[u8]) -> Result<(), String> {
         Err(e) => Err(format!("poll: {e:?}")),
     }
 }
+
+const NEUTRAL_OWNER: u8 = 0xFF;
+
+pub fn player_start_positions(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    let starts = &s.catalog().starts;
+    for p in 0..2u8 {
+        let count = starts.iter().filter(|st| st.player == p).count();
+        if count != 1 {
+            return Err(format!("player {p} has {count} start positions, want 1"));
+        }
+    }
+    Ok(())
+}
+
+pub fn neutral_objects(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    if !(0..s.count()).any(|i| s.alive(i) && s.player(i) == NEUTRAL_OWNER) {
+        return Err("no live unit belongs to no player after the map loads".to_string());
+    }
+    Ok(())
+}
+
+pub fn map_author_placement(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    let starts = &s.catalog().starts;
+    for p in 0..2u8 {
+        if !starts.iter().any(|st| st.player == p) {
+            return Err(format!("map data has no start for player {p}"));
+        }
+    }
+    if !s.catalog().placements.iter().any(|p| p.player == NEUTRAL_OWNER) {
+        return Err("map data places no neutral object".to_string());
+    }
+    Ok(())
+}
+
+pub fn elevation_sight(_image: &[u8]) -> Result<(), String> {
+    missing_api("elevation-aware vision: Sim::visible does not read elevation_milli")
+}
+
+pub fn hp_regen(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let k = {
+        let cat = s.catalog();
+        cat.regen
+            .iter()
+            .enumerate()
+            .position(|(k, r)| r.hp_per_tick > 0 && cat.units.get(k).map_or(false, |u| u.shield == 0))
+            .ok_or_else(|| "no shieldless unit kind declares hp regeneration".to_string())?
+    };
+    let u = s
+        .spawn_for(0, k as u32, fixed::from_int(10), fixed::from_int(10))
+        .ok_or_else(|| "regenerating unit refused at (10,10)".to_string())?;
+    s.hurt(u, 5);
+    let hp0 = s.hp(u);
+    run_ticks(&mut s, 200);
+    if s.hp(u) <= hp0 {
+        return Err(format!("hp stayed at {} after 200 ticks of regeneration", fixed::to_int(hp0)));
+    }
+    Ok(())
+}
+
+pub fn editor_terrain_tiles(_image: &[u8]) -> Result<(), String> {
+    missing_api("graphical terrain editor: no editor API on main")
+}
+
+pub fn editor_abilities(_image: &[u8]) -> Result<(), String> {
+    missing_api("graphical ability editor: no editor API on main")
+}
+
+pub fn editor_triggers(_image: &[u8]) -> Result<(), String> {
+    missing_api("graphical trigger editor: no editor API on main")
+}
+
+pub fn channel_interrupt(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim channel state: channel_left and channel_ai are pub(crate) with no public read")
+}
+
+pub fn worker_saturation(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim harvest income per patch: no public read of income per worker")
+}
