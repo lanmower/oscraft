@@ -181,7 +181,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
 | CAP-PERS-1 | Read a map data image and check its version | claimed | data/src/reader.rs (verify); rejects other versions, no full read path | gate:map-image-read |
-| CAP-PERS-2 | Write map data to a versioned image | partial | data/src/encode.rs, data/src/format.rs; round trip not gated | gate:map-image-roundtrip |
+| CAP-PERS-2 | Write map data to a versioned image | claimed | data/src/encode.rs, data/src/format.rs; round trip not gated | gate:map-image-roundtrip |
 | CAP-PERS-3 | Save and load live sim state | claimed | sim/src/persist.rs (save_state, load_state) | gate:save-load-state |
 | CAP-PERS-4 | Continue a loaded save with the same state hashes as uninterrupted play | claimed | sim/src/persist.rs (load_state restores hashed fields and flow-field pool) | gate:save-load-hash-equal |
 | CAP-PERS-5 | Ship mods as versioned packages that the host checks before loading | claimed | sim/src/loader.rs (version check, BadVersion) | gate:mod-package-version |
