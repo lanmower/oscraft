@@ -3,11 +3,19 @@
 //! damage goes through the same path, minus the armour.
 
 use crate::arrays::{dist2, cell_of, Sim};
-use crate::fixed::{self, ONE};
+use crate::fixed;
 use crate::*;
 
 const RESPONSE_REDUCED: u8 = 1;
 const RESPONSE_IMMUNE: u8 = 2;
+/// The least a weapon hit can do after armour, so armour never zeroes a hit (Q16.16, one quarter).
+const ARMOUR_FLOOR: i32 = fixed::ONE / 4;
+
+/// Weapon damage after the target's armour, in Q16.16. Armour is a flat reduction per hit; the
+/// result never falls below ARMOUR_FLOOR.
+pub(crate) fn armour_reduced(damage: i32, armour: i32) -> i32 {
+    damage.wrapping_sub(armour).max(ARMOUR_FLOOR)
+}
 
 impl Sim {
     /// Auto-attack: nearest visible enemy on a layer this weapon may hit, within range.
@@ -54,7 +62,7 @@ impl Sim {
             return;
         }
         let b = best as usize;
-        let dmg = self.damage[i].wrapping_sub(self.armor[b]).max(ONE / 4);
+        let dmg = armour_reduced(self.damage[i], self.armor[b]);
         self.cooldown[i] = self.period[i];
         self.inflict(b, dmg);
     }

@@ -77,7 +77,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-SHLD-1 | Absorb incoming damage with shields | implemented | sim/src/shields.rs (absorb_shield) | gate:shield-absorbs |
 | CAP-SHLD-2 | Grant a shield bonus through an effect | implemented | sim/src/shields.rs (shield_bonus) | gate:shield-bonus |
-| CAP-SHLD-3 | Reduce incoming damage with armour | stub | none in sim | gate:armour-reduces |
+| CAP-SHLD-3 | Reduce incoming damage with armour | implemented | sim/src/combat.rs (armour_reduced, used by attack; weapon hits only) | gate:armour-reduces |
 | CAP-SHLD-4 | Apply a vital-fraction effect | implemented | sim/src/shields.rs (vital_fraction) | gate:vital-fraction |
 
 ## Players and alliances
