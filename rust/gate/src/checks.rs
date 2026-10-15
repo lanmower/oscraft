@@ -13,7 +13,7 @@ use server::room::{Room, RoomConfig};
 use server::{serve_catalog, serve_delta, serve_order, serve_state, Server};
 use sim::{fixed, Refusal, Sim};
 
-use crate::{absent, mod_checks, sim_checks};
+use crate::{mod_checks, sim_checks};
 
 pub const MAX_UNITS: usize = 1024;
 pub const RUN_TICKS: u32 = 2000;
@@ -73,7 +73,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     // CAP-EVT
     ("region-define", mod_checks::region_define),
     ("trigger-zone", mod_checks::trigger_zone),
-    ("event-delivery", absent::event_delivery),
+    ("event-delivery", mod_checks::event_delivery),
     // CAP-TIME
     ("tick-rate", sim_checks::tick_rate),
     ("cooldown-expires", sim_checks::cooldown_expires),
@@ -109,9 +109,6 @@ pub fn data_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("data")
 }
 
-pub fn missing(api: &str) -> Result<(), String> {
-    Err(format!("missing API: {api}"))
-}
 
 /// A sim loaded from the generated image, with fog off so every unit is targetable.
 pub fn fresh(image: &[u8]) -> Result<Sim, String> {

@@ -49,6 +49,43 @@ fn read_bool(host: &ModHost, key: &str) -> Result<bool, String> {
         .ok_or_else(|| format!("mod never set state.{key}"))
 }
 
+pub fn event_delivery(image: &[u8]) -> Result<(), String> {
+    // Units 0 and 1 are the image's own player 0 and player 1 starts; the mod orders the
+    // player 0 unit to attack the player 1 unit every frame until it dies.
+    let src = r#"
+local attacker, target = nil, nil
+local hits, deaths = 0, 0
+function on_attacked(unit) hits = hits + 1 end
+function on_died(unit) deaths = deaths + 1 end
+function on_tick(state)
+  if attacker == nil then
+    for i = 0, get_unit_count() - 1 do
+      if attacker == nil and unit_player(i) == 0 then attacker = i end
+      if target == nil and unit_player(i) == 1 then target = i end
+    end
+  end
+  if attacker ~= nil and target ~= nil and unit_alive(attacker) and unit_alive(target) then
+    order_attack(attacker, target)
+  end
+  state.attacked = hits
+  state.died = deaths
+end
+"#;
+    const FRAMES: u32 = 4000;
+    let (mut host, _mod) = start(image, "event-delivery", src)?;
+    for _ in 0..FRAMES {
+        advance(&mut host, 1)?;
+        if read_int(&host, "attacked")? > 0 && read_int(&host, "died")? > 0 {
+            return Ok(());
+        }
+    }
+    Err(format!(
+        "after {FRAMES} frames: on_attacked fired {} times, on_died fired {} times",
+        read_int(&host, "attacked")?,
+        read_int(&host, "died")?
+    ))
+}
+
 pub fn lua_load(image: &[u8]) -> Result<(), String> {
     let (mut host, _mod) = start(image, "lua-load", "function on_tick(state)\n  state.loaded = 1\nend\n")?;
     advance(&mut host, 1)?;

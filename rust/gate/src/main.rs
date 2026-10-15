@@ -1,4 +1,3 @@
-mod absent;
 mod checks;
 mod mod_checks;
 mod mpq_roundtrip;
