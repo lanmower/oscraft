@@ -25,9 +25,10 @@ pub enum Refusal {
     EffectUnsupported,
     CalldownNested,
     NoHealerSlot,
+    MoveRange,
 }
 
-pub const REFUSAL_KINDS: usize = 13;
+pub const REFUSAL_KINDS: usize = 14;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -45,6 +46,7 @@ impl Refusal {
             Refusal::EffectUnsupported => "effect-unsupported",
             Refusal::CalldownNested => "calldown-nested",
             Refusal::NoHealerSlot => "no-healer-slot",
+            Refusal::MoveRange => "move-range",
         }
     }
 }
@@ -182,11 +184,7 @@ impl Sim {
                     self.heal_area(p, eff.p0, fixed::from_milli(eff.p1), tx, ty);
                 }
             }
-            EFFECT_MOVE => {
-                if !self.teleport(caster, tx, ty) {
-                    self.refuse(Refusal::NoTeleport);
-                }
-            }
+            EFFECT_MOVE => self.move_caster(caster, eff.p0, tx, ty),
             EFFECT_SPAWN => {
                 if self.spawn_for(p, eff.p0 as u32, tx, ty).is_some() {
                     self.stats.summoned += 1;

@@ -5,6 +5,26 @@ use crate::arrays::{cell_of, Sim};
 use crate::fixed::{self, ONE, SHIFT};
 use crate::*;
 
+/// Integer square root, rounded down. Integer only, so no float is read.
+fn isqrt(n: i64) -> i64 {
+    let mut x = n;
+    let mut r = 0i64;
+    let mut bit = 1i64 << 62;
+    while bit > x {
+        bit >>= 2;
+    }
+    while bit != 0 {
+        if x >= r + bit {
+            x -= r + bit;
+            r = (r >> 1) + bit;
+        } else {
+            r >>= 1;
+        }
+        bit >>= 2;
+    }
+    r
+}
+
 impl Sim {
     /// Keeps a unit on its flow field while it is blocked or routed, and drops the
     /// route once the unit is within one world unit of its order.
@@ -180,6 +200,31 @@ impl Sim {
             _ => (self.pos_x[r], self.pos_y[r]),
         };
         self.move_fixed(r, x, y);
+    }
+
+    /// Moves the caster toward a cast point by at most `cap_milli` milli-units (format v6).
+    /// A point within the cap is reached exactly; a farther point is clamped to the cap along
+    /// the same line from the caster. A cap of 0, or one whose square exceeds the grid
+    /// diagonal's square, refuses as move-range. Integer arithmetic only.
+    pub(crate) fn move_caster(&mut self, caster: usize, cap_milli: i32, tx: i32, ty: i32) {
+        let diagonal2 = (self.grid.w as i64 * 1000).pow(2) + (self.grid.h as i64 * 1000).pow(2);
+        if cap_milli <= 0 || (cap_milli as i64).pow(2) > diagonal2 {
+            self.refuse(Refusal::MoveRange);
+            return;
+        }
+        let cap = fixed::from_milli(cap_milli) as i64;
+        let (cx, cy) = (self.pos_x[caster] as i64, self.pos_y[caster] as i64);
+        let (dx, dy) = (tx as i64 - cx, ty as i64 - cy);
+        let d2 = dx * dx + dy * dy;
+        let (nx, ny) = if d2 <= cap * cap {
+            (tx, ty)
+        } else {
+            let d = isqrt(d2);
+            ((cx + dx * cap / d) as i32, (cy + dy * cap / d) as i32)
+        };
+        if !self.teleport(caster, nx, ny) {
+            self.refuse(Refusal::NoTeleport);
+        }
     }
 
     /// Sets a movement destination without moving the unit.

@@ -8,7 +8,8 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 5;
+const VERSION: u16 = 6;
+const EFFECT_MOVE: u16 = 2;
 const RESOURCE_KINDS: u8 = 3;
 const ABILITY_FILTER_BITS: u16 = 12;
 const CELL_BITS: u8 = 0b11;
@@ -538,6 +539,11 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::Range("grid cell bits outside 0b11"));
     }
     let grid = Grid { w, h, flags };
+
+    let diagonal2 = (w as i64 * CELL_MILLI as i64).pow(2) + (h as i64 * CELL_MILLI as i64).pow(2);
+    if effects.iter().any(|e| e.kind == EFFECT_MOVE && (e.p0 <= 0 || (e.p0 as i64).pow(2) > diagonal2)) {
+        return Err(LoadError::Range("move cap outside 1..=grid diagonal"));
+    }
 
     Ok((Catalog { strs, effects, abilities, uabl, units, behaviours }, grid))
 }
