@@ -1,8 +1,8 @@
-# OSDT data file, format version 13
+# OSDT data file, format version 14
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 13 adds a per-level minerals and gas cost to UPGR, which grows from 16 to 24 bytes. Version 12 changed the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
+reserved bytes listed below. Version 14 adds a per-cell tile id to GRID and the DODA section for doodads. Version 13 adds a per-level minerals and gas cost to UPGR, which grows from 16 to 24 bytes. Version 12 changed the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
 combat and cloak/burrow parameters as new sections. Every record size from version 10
 is unchanged. A reader of an older version must reject the file.
 
@@ -11,7 +11,7 @@ is unchanged. A reader of an older version must reject the file.
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `13`                                      |
+| 4      | 2    | version, `14`                                      |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `17`                                 |
 | 12     | 4    | total file length in bytes                          |
@@ -48,6 +48,7 @@ Sections appear in this order, and the reader requires all seventeen tags:
 | `RSCH` | 32          | research records                             |
 | `PREQ` | 8           | prerequisite records                         |
 | `DMGF` | 8           | damage factor records                        |
+| `DODA` | 20          | doodad records                               |
 | `GRID` | 1           | byte length                                  |
 
 Section bodies follow the table back to back. A section body occupies
@@ -343,6 +344,17 @@ past the supply cap. The cap is `supply_base` plus the `supply provided` of ever
 completed provider, bounded by `supply_max`. Queued production reserves its supply,
 released on cancel.
 
+## DODA (20 bytes per record, count = doodad count)
+Decorative objects on the map. Doodads do not block movement; walkability is in GRID.
+| offset | size | field                                                                  |
+|--------|------|------------------------------------------------------------------------|
+| 0      | 4    | doodad id, unique per map                                              |
+| 4      | 2    | kind code (registry below)                                             |
+| 6      | 2    | reserved, write 0                                                      |
+| 8      | 4    | x, milli-units, `0 <= x < width * cell_milli`                          |
+| 12     | 4    | y, milli-units, `0 <= y < height * cell_milli`                         |
+| 16     | 4    | rotation, milli-turns, `0 <= rotation < 1000` (1000 = a full turn)     |
+
 ## GRID (record size 1, count = byte length)
 | offset | size | field                                                                    |
 |--------|------|--------------------------------------------------------------------------|
@@ -353,10 +365,12 @@ released on cancel.
 | 16     | w*h  | walkability, row-major (`index = y * width + x`), one byte each          |
 | 16+w*h | w*h  | height level, same indexing, one byte each, `0..=255`                    |
 
-The body is exactly `16 + 2 * width * height` bytes. A map has exactly one grid.
+The body is exactly `16 + 3 * width * height` bytes. A map has exactly one grid.
 Each walkability byte is a bitfield (see below); bits 2 to 7 are written 0 and
 rejected by the generator. A cell's elevation in milli-units is `level * height step`.
-The record size stays 1; the count is the body length.
+A third array of `width * height` tile id bytes follows the height levels, at
+offset `16 + 2 * width * height`, indexed the same way. The record size stays 1;
+the count is the body length.
 
 ## Registries
 
@@ -377,6 +391,8 @@ without a version bump.
 - Resource kind (`UNIT.resource kind`): `0 none`, `1 minerals`, `2 gas`
 - Damage type (`UEXT.weapon damage type`, `DMGF.damage type`): `0 normal`, `1 concussive`, `2 explosive`
 - Size category (`UEXT.size category`, `DMGF.size category`): `0 small`, `1 medium`, `2 large`
+- Doodad kinds (`DODA.kind`): `0 rock`, `1 tree`, `2 crystal`, `3 debris`. Codes above `3` are rejected.
+- Tile ids (`GRID` tile array): `0..=255`, author-defined; the sim maps each id to terrain and art.
 - Cell walkability bits (`GRID` cell byte): `bit 0 = blocked` (value `1`),
   `bit 1 = cliff` (value `2`). A cell with neither bit is walkable. The bits are
   combinable, so the valid cell values are `0..=3`. Cell height (`GRID` height
@@ -399,7 +415,8 @@ without a version bump.
 - Reject a DMGF record with a damage type above `2`, a size above `2`, or a negative factor.
 - Reject an ACHN record with a channel flag and a duration of `0`.
 - Reject a section whose count does not match its rule: REGN and UEXT equal the UNIT count, ACHN equals the ABIL count, ECON and LIMT are 1.
-- Reject a GRID body whose length is not `16 + 2 * width * height`, or a height step of `0`.
+- Reject a GRID body whose length is not `16 + 3 * width * height`, or a height step of `0`.
+- Reject a DODA record with a kind above `3`, a rotation of `1000` or more, a position off the grid, or an id that repeats.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
 - Apply the receiver, radius, upgrade, research and supply rules above; they are not encoded in the record and must not be inferred from it.
 - The tick path never parses names. It uses only numeric fields.
