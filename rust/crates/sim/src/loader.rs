@@ -1002,6 +1002,10 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
             return Err(LoadError::Range("placement refused: no slot, unknown unit or blocked cell"));
         }
     }
+    for k in 0..sim.cat.starts.len() {
+        let s = sim.cat.starts[k];
+        sim.open_player(s.player, s.x, s.y);
+    }
     Ok(sim)
 }
 

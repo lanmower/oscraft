@@ -5,10 +5,31 @@
 
 use crate::arrays::Sim;
 use crate::fixed;
+use crate::loader::FILTER_WORKER;
 use crate::rules::Refusal;
 use crate::*;
 
 impl Sim {
+    /// Gives player `p` the opening resources and workers of its start at (x, y), from ECON.
+    /// The workers are the first catalog unit with the worker filter; with none, only the
+    /// resources are given. A worker the slots cannot hold is skipped.
+    pub(crate) fn open_player(&mut self, p: u8, x: i32, y: i32) {
+        let pi = p as usize;
+        if pi >= MAX_PLAYERS {
+            return;
+        }
+        let econ = self.cat.econ;
+        self.minerals[pi] += econ.open_minerals;
+        self.vespene[pi] += econ.open_gas;
+        if let Some(kind) = self.cat.units.iter().position(|u| u.filter & FILTER_WORKER != 0) {
+            for _ in 0..econ.open_workers {
+                if self.spawn_for(p, kind as u32, x, y).is_none() {
+                    break;
+                }
+            }
+        }
+    }
+
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
