@@ -1,19 +1,23 @@
-# OSDT data file, format version 9
+# OSDT data file, format version 10
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 9 defines the PLCE flags (start location),
-the neutral player value, and the start rule. Record sizes are unchanged from
-version 8. A reader of an older version must reject the file.
+reserved bytes listed below. Version 10 adds three sections: UPGR (upgrade records),
+REGN (regeneration per unit) and LIMT (per-cell unit limit). Every record size from
+version 9 is unchanged. A reader of an older version must reject the file.
+
+Version 9 was the previous published layout. The new fields do not fit in the
+reserved bytes of UNIT (4 bytes free, 12 needed), so they live in new sections
+instead of growing an existing record.
 
 ## Header (16 bytes)
 
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `9`                                       |
+| 4      | 2    | version, `10`                                      |
 | 6      | 2    | header length, `16`                                 |
-| 8      | 4    | section count, `8`                                  |
+| 8      | 4    | section count, `11`                                 |
 | 12     | 4    | total file length in bytes                          |
 
 A reader rejects the file on a magic mismatch, an unknown version, or a total
@@ -28,18 +32,21 @@ length that does not equal the file size.
 | 8      | 4    | record count                                       |
 | 12     | 4    | record size in bytes                               |
 
-Sections appear in this order, and the reader requires all eight tags:
+Sections appear in this order, and the reader requires all eleven tags:
 
-| tag    | record size | count means        |
-|--------|-------------|--------------------|
-| `STRS` | 1           | byte length        |
-| `EFCT` | 20          | effect records     |
-| `ABIL` | 32          | ability records    |
-| `UABL` | 2           | ability index refs |
-| `UNIT` | 80          | unit records       |
-| `BHVR` | 16          | behaviour records  |
-| `PLCE` | 16          | placement records  |
-| `GRID` | 1           | byte length        |
+| tag    | record size | count means                          |
+|--------|-------------|--------------------------------------|
+| `STRS` | 1           | byte length                          |
+| `EFCT` | 20          | effect records                       |
+| `ABIL` | 32          | ability records                      |
+| `UABL` | 2           | ability index refs                   |
+| `UNIT` | 80          | unit records                         |
+| `BHVR` | 16          | behaviour records                    |
+| `PLCE` | 16          | placement records                    |
+| `UPGR` | 16          | upgrade records                      |
+| `REGN` | 12          | one per unit; count = unit count     |
+| `LIMT` | 4           | always 1                             |
+| `GRID` | 1           | byte length                          |
 
 Section bodies follow the table back to back. A section body occupies
 `count * record size` bytes, and the next body starts at the end of the previous one.
@@ -66,7 +73,8 @@ Concatenated name bytes. No terminator.
 | 12     | 4    | param 2, i32                           |
 | 16     | 4    | param 3, i32                           |
 
-Effects are stored per ability, contiguously, in ability order.
+Effects are stored contiguously: first the effects of each ability in ability
+order, then one effect per upgrade in upgrade order (see UPGR).
 
 Parameters are plain `i32` integers. Fractions are Q16 (`65536` = 1.0). Radii and
 distances are milli-units. Durations, periods and lifetimes are game ticks and
@@ -178,6 +186,16 @@ A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 | 72     | 4    | harvest amount per trip, resource units (0 if none)   |
 | 76     | 4    | reserved, write 0                                     |
 
+### REGN (12 bytes per record, one per unit in `UNIT` order)
+| offset | size | field                                                        |
+|--------|------|--------------------------------------------------------------|
+| 0      | 4    | shield regeneration per tick, `>= 0`                         |
+| 4      | 4    | delay after the last hit before regeneration starts, ticks, `>= 0` |
+| 8      | 4    | health regeneration per tick, `>= 0`                         |
+
+REGN count equals the UNIT count. A unit with no regeneration has all three
+fields at 0.
+
 ### BHVR (16 bytes per record)
 | offset | size | field                                    |
 |--------|------|------------------------------------------|
@@ -211,6 +229,30 @@ Flags:
 Records are in declaration order. A position at the grid edge (`x` or `y` equal
 to the grid extent) is refused; positions are on the map, not past its border.
 
+### UPGR (16 bytes per record)
+One record per upgrade. An upgrade applies one effect to a target unit or
+ability, at a level, to new units only or to existing units too, with a stacking rule.
+
+| offset | size | field                                                             |
+|--------|------|-------------------------------------------------------------------|
+| 0      | 4    | name offset (upgrade id)                                          |
+| 4      | 2    | name length                                                       |
+| 6      | 1    | target kind: `0 unit`, `1 ability`                                |
+| 7      | 1    | level, `1..=255`                                                  |
+| 8      | 1    | applies to: `0 new units only`, `1 existing units too`            |
+| 9      | 1    | stacking rule: `0 replace`, `1 add`, `2 refuse if present`        |
+| 10     | 2    | target index: `UNIT` index for kind 0, `ABIL` index for kind 1    |
+| 12     | 4    | effect index into `EFCT` (the upgrade's effect slot)              |
+
+Upgrade effects follow the ability effects in `EFCT`. "Existing units too" applies
+the effect to every unit already built when the upgrade completes, as well as to
+units built afterwards.
+
+### LIMT (4 bytes, count 1)
+| offset | size | field                                                          |
+|--------|------|----------------------------------------------------------------|
+| 0      | 4    | per-cell unit limit: most units that may occupy one grid cell at once; `0` = no limit |
+
 ### GRID (record size 1, count = byte length)
 | offset | size | field                                                    |
 |--------|------|----------------------------------------------------------|
@@ -240,6 +282,7 @@ without a version bump.
   `8 massive`, `9 worker`, `10 army`, `11 building`
 - Damage response (`UNIT.damage response`): `0 normal`, `1 reduced`, `2 immune`
 - Resource kind (`UNIT.resource kind`): `0 none`, `1 minerals`, `2 gas`
+- Upgrade target kind, applies-to and stacking codes: as listed in UPGR.
 - Cell walkability bits (`GRID` cell byte): `bit 0 = blocked` (value `1`),
   `bit 1 = cliff` (value `2`). A cell with neither bit is walkable. The bits are
   combinable, so the valid cell values are `0..=3`.
@@ -249,11 +292,13 @@ without a version bump.
 ## Rules for readers
 
 - Read every field at its offset. Reserved bytes are written 0 and ignored on read.
-- Bounds-check every index (`EFCT`, `UABL`, `ABIL`, `UNIT`, `STRS`) against its section count.
+- Bounds-check every index (`EFCT`, `UABL`, `ABIL`, `UNIT`, `UPGR` targets, `STRS`) against its section count.
 - Reject an effect kind code above `10`, and any effect whose parameters fall outside the table above.
 - Reject a `move` cap of 0 or one whose square exceeds the grid diagonal squared, computed from the GRID header.
 - Reject a PLCE record whose unit index is past `UNIT` (unless it is a start, which carries `0xFFFF`), whose player is neither `0..=15` nor `0xFFFF`, whose position is outside the grid extent, or whose flags have bits other than bit 0 set.
-- Reject two start records for the same player.
+- Reject two start records for the same player, and a start record with player `0xFFFF`.
+- Reject an UPGR record with a target kind above `1`, a level of `0`, an applies-to above `1`, a stacking rule above `2`, or a target index past its section.
+- Reject a REGN section whose count differs from the UNIT count, and a LIMT section whose count is not 1.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
-- Apply the receiver and radius rules above; they are not encoded in the record and must not be inferred from it.
+- Apply the receiver, radius and upgrade rules above; they are not encoded in the record and must not be inferred from it.
 - The tick path never parses names. It uses only numeric fields.
