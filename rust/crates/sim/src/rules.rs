@@ -34,9 +34,13 @@ pub enum Refusal {
     InvalidTeam,
     InvalidCell,
     ActionUnsupported,
+    CameraUnsupported,
+    SoundUnsupported,
+    UiPanelUnsupported,
+    ChatUnsupported,
 }
 
-pub const REFUSAL_KINDS: usize = 22;
+pub const REFUSAL_KINDS: usize = 26;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -63,6 +67,10 @@ impl Refusal {
             Refusal::InvalidTeam => "invalid-team",
             Refusal::InvalidCell => "invalid-cell",
             Refusal::ActionUnsupported => "action-unsupported",
+            Refusal::CameraUnsupported => "camera-unsupported",
+            Refusal::SoundUnsupported => "sound-unsupported",
+            Refusal::UiPanelUnsupported => "ui-panel-unsupported",
+            Refusal::ChatUnsupported => "chat-unsupported",
         }
     }
 }

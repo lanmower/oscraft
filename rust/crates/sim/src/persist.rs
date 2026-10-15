@@ -37,6 +37,10 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::InvalidTeam,
     Refusal::InvalidCell,
     Refusal::ActionUnsupported,
+    Refusal::CameraUnsupported,
+    Refusal::SoundUnsupported,
+    Refusal::UiPanelUnsupported,
+    Refusal::ChatUnsupported,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
