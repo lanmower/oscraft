@@ -66,6 +66,20 @@ impl Sim {
         Some(self.research_rec[i] as usize)
     }
 
+    /// Whether research `r` applies to unit `unit`: its owner completed `r` and the unit's filter
+    /// mask holds the research's applies-to bits.
+    pub fn research_applied(&self, unit: usize, r: usize) -> bool {
+        if unit >= self.n || self.alive[unit] == 0 {
+            return false;
+        }
+        let p = self.player[unit] as usize;
+        let count = self.cat.research.len();
+        match self.cat.research.get(r) {
+            Some(rec) if p < MAX_PLAYERS => self.researched[p * count + r] != 0 && self.meets_filter(unit, rec.applies_mask),
+            _ => false,
+        }
+    }
+
     pub fn prereqs_met(&self, kind: u8, target: usize, p: usize) -> bool {
         let research_count = self.cat.research.len();
         self.cat
