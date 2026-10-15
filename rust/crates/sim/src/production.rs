@@ -159,41 +159,77 @@ impl Sim {
         }
     }
 
+    /// The refusal a train at building `i` meets now, or None when it can start. Records nothing.
+    /// No trainee is NoTrain; a train in progress or held after a cancel is TrainBusy; missing
+    /// prerequisites are Prerequisite; supply past the cap is SupplyBlocked; a short purse is CannotAfford.
+    fn train_block(&self, i: usize) -> Option<Refusal> {
+        if i >= self.n || self.alive[i] == 0 {
+            return Some(Refusal::NoTarget);
+        }
+        let p = self.player[i] as usize;
+        if p >= MAX_PLAYERS || self.trainee[i] < 0 {
+            return Some(Refusal::NoTrain);
+        }
+        if self.train_left[i] > 0 || self.train_hold[i] != 0 {
+            return Some(Refusal::TrainBusy);
+        }
+        let tr = self.trainee[i] as usize;
+        let def = match self.cat.units.get(tr) {
+            Some(d) => *d,
+            None => return Some(Refusal::NoTrain),
+        };
+        if !self.prereqs_met(0, tr, p) {
+            return Some(Refusal::Prerequisite);
+        }
+        if self.supply_used(p) + def.supply as i32 > self.supply_cap(p) {
+            return Some(Refusal::SupplyBlocked);
+        }
+        if self.minerals[p] < def.minerals || self.vespene[p] < def.gas {
+            return Some(Refusal::CannotAfford);
+        }
+        None
+    }
+
+    /// Starts the train of building `i`: the trainee's minerals and gas are deducted before the
+    /// unit starts, and it appears when its build time has run out. Every train path starts here.
+    /// A refused train changes nothing and is recorded as this call's refusal.
+    pub fn start_train(&mut self, i: usize) -> Result<(), Refusal> {
+        if let Some(r) = self.train_block(i) {
+            return Err(self.reject(r));
+        }
+        let p = self.player[i] as usize;
+        let def = self.cat.units.get(self.trainee[i] as usize).copied().unwrap_or_default();
+        self.minerals[p] -= def.minerals;
+        self.vespene[p] -= def.gas;
+        self.train_left[i] = def.build_ticks.max(1);
+        self.touch(i);
+        Ok(())
+    }
+
+    /// Automatic train step: counts down a train in progress, and starts the next one when it
+    /// can. A train that cannot start is counted in the stats under its refusal.
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
             return;
         }
-        let tr = self.trainee[i] as usize;
-        let def = match self.cat.units.get(tr) {
-            Some(d) => *d,
-            None => return,
-        };
         if self.train_left[i] > 0 {
             self.train_left[i] -= 1;
             if self.train_left[i] == 0 {
+                let tr = self.trainee[i] as usize;
                 self.finish_train(i, p, tr);
             }
             return;
         }
-        if !self.prereqs_met(0, tr, p) {
-            self.stats.trains_refused += 1;
-            self.stats.last_train_refusal = Refusal::Prerequisite;
-            return;
+        match self.train_block(i) {
+            None => {
+                let _ = self.start_train(i);
+            }
+            Some(r) => {
+                self.stats.trains_refused += 1;
+                self.stats.last_train_refusal = r;
+            }
         }
-        if self.supply_used(p) + def.supply as i32 > self.supply_cap(p) {
-            self.stats.trains_refused += 1;
-            self.stats.last_train_refusal = Refusal::SupplyBlocked;
-            return;
-        }
-        if self.minerals[p] < def.minerals || self.vespene[p] < def.gas {
-            self.stats.trains_refused += 1;
-            self.stats.last_train_refusal = Refusal::CannotAfford;
-            return;
-        }
-        self.minerals[p] -= def.minerals;
-        self.vespene[p] -= def.gas;
-        self.train_left[i] = def.build_ticks.max(1);
     }
 
     /// Sends a unit that finished at building `i` to the building's rally point: the UEXT offset

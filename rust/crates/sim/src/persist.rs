@@ -51,6 +51,7 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::OffGrid,
     Refusal::NoDoodad,
     Refusal::DuplicateDoodad,
+    Refusal::TrainBusy,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
