@@ -54,39 +54,58 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Run parity gate
-        run: cargo run --release --quiet | tee gate.txt
+        run: cargo run --release --quiet > gate.txt 2>&1 || echo "gate exited nonzero" >> gate.txt
 
-      - name: Extract state hash line
-        run: grep '^state_hash=' gate.txt > state-hash.txt
+      - name: Show gate output
+        run: cat gate.txt
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: gate-hash-${{ matrix.os }}
-          path: rust/gate/state-hash.txt
+          name: gate-output-${{ matrix.os }}
+          path: rust/gate/gate.txt
 
   gate-compare:
-    name: compare state hashes across OSes
+    name: compare gate output across OSes
     needs: gate
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: gate-hash-*
-          path: hashes
+          pattern: gate-output-*
+          path: outputs
 
-      - name: Fail unless all three OSes printed the same hash
+      - name: Fail on FAIL lines, missing output, or differing state hash
         shell: bash
         run: |
-          set -euo pipefail
-          files=(hashes/*/state-hash.txt)
-          [ "${#files[@]}" -eq 3 ] || { echo "expected 3 hash files, found ${#files[@]}"; exit 1; }
-          ref=$(cat "${files[0]}")
+          set -uo pipefail
+          files=(outputs/*/gate.txt)
+          if [ "${#files[@]}" -ne 3 ]; then
+            echo "expected 3 gate outputs, found ${#files[@]}"
+            exit 1
+          fi
+          bad=0
+          ref=""
           for f in "${files[@]}"; do
-            line=$(cat "$f")
-            echo "$f: $line"
-            if [ "$line" != "$ref" ]; then
-              echo "state hash differs across OSes"
-              exit 1
+            echo "== $f"
+            cat "$f"
+            if grep -q ' FAIL' "$f"; then
+              echo "$f prints FAIL"
+              bad=1
+            fi
+            line=$(grep '^state_hash=' "$f" | head -n 1)
+            if [ -z "$line" ]; then
+              echo "$f has no state_hash line"
+              bad=1
+            elif [ -z "$ref" ]; then
+              ref="$line"
+            elif [ "$line" != "$ref" ]; then
+              echo "state hash differs across OSes: $line vs $ref"
+              bad=1
             fi
           done
+          if [ "$bad" -ne 0 ]; then
+            exit 1
+          fi
           echo "all three OSes agree: $ref"

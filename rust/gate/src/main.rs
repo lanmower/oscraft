@@ -36,7 +36,7 @@ fn main() {
     }
     println!("check hash_stable_two_runs PASS hash={hash:016x}");
 
-    if units < spawns {
+    if units == 0 || units < spawns {
         fail("units_ge_map_spawns", &format!("units={units} spawns={spawns}"));
     }
     println!("check units_ge_map_spawns PASS units={units} spawns={spawns}");
