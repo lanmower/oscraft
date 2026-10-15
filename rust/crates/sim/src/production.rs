@@ -227,6 +227,15 @@ impl Sim {
         (self.cat.econ.patches_per_base as i32, self.cat.econ.extractors_per_base as i32)
     }
 
+    /// The supply cap of player `p`: the ECON base plus provided supply, bounded by the maximum.
+    /// Zero for an invalid player.
+    pub fn supply_cap_of(&self, p: u8) -> i32 {
+        if (p as usize) >= MAX_PLAYERS {
+            return 0;
+        }
+        self.supply_cap(p as usize)
+    }
+
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
