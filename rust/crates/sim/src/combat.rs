@@ -33,7 +33,7 @@ impl Sim {
 
     /// A weapon hit after armour, scaled by the final damage factor of the attacker's type and
     /// the target's size category.
-    pub(crate) fn scale_hit(&self, dmg: i32, attacker: usize, target: usize) -> i32 {
+    pub fn scale_hit(&self, dmg: i32, attacker: usize, target: usize) -> i32 {
         ((dmg as i64 * self.final_factor(attacker, target) as i64) >> fixed::SHIFT) as i32
     }
 
