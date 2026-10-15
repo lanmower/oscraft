@@ -58,7 +58,7 @@ impl Sim {
     }
 
     /// Whether one of player `p`'s own units with a detector radius reaches unit `j`.
-    fn detected(&self, p: u8, j: usize) -> bool {
+    pub fn detected(&self, p: u8, j: usize) -> bool {
         (0..self.n).any(|k| {
             if self.alive[k] == 0 || self.player[k] != p {
                 return false;
@@ -73,7 +73,7 @@ impl Sim {
     }
 
     /// Whether player `p` may target unit `j`: a hidden unit needs a detector covering it.
-    pub(crate) fn targetable(&self, p: u8, j: usize) -> bool {
+    pub fn targetable(&self, p: u8, j: usize) -> bool {
         !self.hidden(j) || self.detected(p, j)
     }
 
