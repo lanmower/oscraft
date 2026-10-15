@@ -67,6 +67,8 @@ pub struct Sim {
     pub(crate) shield_max: Vec<i32>,
     /// Tick of each unit's last damage taken (or its spawn tick), for the regeneration delay.
     pub(crate) last_hit: Vec<u32>,
+    /// Per upgrade record and player: 1 once the record has completed for that player.
+    pub(crate) upg_done: Vec<u8>,
     pub(crate) sight_cells: Vec<i32>,
     pub(crate) player: Vec<u8>,
     pub(crate) alive: Vec<u8>,
@@ -173,6 +175,7 @@ impl Sim {
 
     pub fn with_catalog(max_units: usize, grid: Grid, cat: Catalog) -> Sim {
         let cap = max_units;
+        let upg_len = cat.upgrades.len() * MAX_PLAYERS;
         let cells = (grid.w * grid.h).max(1);
         let vw = ((grid.w as i32 + VIS_SCALE - 1) / VIS_SCALE).max(1);
         let vh = ((grid.h as i32 + VIS_SCALE - 1) / VIS_SCALE).max(1);
@@ -203,6 +206,7 @@ impl Sim {
             shield: vec![0; cap],
             shield_max: vec![0; cap],
             last_hit: vec![0; cap],
+            upg_done: vec![0; upg_len],
             sight_cells: vec![0; cap],
             player: vec![0; cap],
             alive: vec![0; cap],
@@ -518,6 +522,7 @@ impl Sim {
         }
         self.touch(i);
         self.bucket_add(i);
+        self.apply_upgrades_to_new(i, player, ty as i32);
         Some(i)
     }
 

@@ -38,9 +38,10 @@ pub enum Refusal {
     SoundUnsupported,
     UiPanelUnsupported,
     ChatUnsupported,
+    UpgradeRefused,
 }
 
-pub const REFUSAL_KINDS: usize = 26;
+pub const REFUSAL_KINDS: usize = 27;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -71,6 +72,7 @@ impl Refusal {
             Refusal::SoundUnsupported => "sound-unsupported",
             Refusal::UiPanelUnsupported => "ui-panel-unsupported",
             Refusal::ChatUnsupported => "chat-unsupported",
+            Refusal::UpgradeRefused => "upgrade-refused",
         }
     }
 }
@@ -230,7 +232,7 @@ impl Sim {
     /// `may_call` is false inside a calldown, so a calldown never starts another one.
     /// A kind with no implementation refuses as `EffectUnsupported` and changes nothing.
     #[allow(clippy::too_many_arguments)]
-    fn apply_effect(
+    pub(crate) fn apply_effect(
         &mut self,
         caster: usize,
         filter: u32,

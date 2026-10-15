@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 5;
+const STATE_VERSION: u16 = 6;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -41,6 +41,7 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::SoundUnsupported,
     Refusal::UiPanelUnsupported,
     Refusal::ChatUnsupported,
+    Refusal::UpgradeRefused,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
@@ -386,6 +387,7 @@ impl Sim {
         for &t in &self.last_hit {
             put_u32(&mut w, t);
         }
+        w.extend_from_slice(&self.upg_done);
         put_u64(&mut w, self.log_len as u64);
         put_u64(&mut w, self.log_dropped);
         for k in 0..self.log_len {
@@ -547,6 +549,7 @@ impl Sim {
         }
 
         r.u32s_into(&mut next.last_hit)?;
+        r.bytes_into(&mut next.upg_done)?;
         let log_len = r.u64()? as usize;
         if log_len > ORDER_LOG_CAP {
             return Err(StateError::Length);

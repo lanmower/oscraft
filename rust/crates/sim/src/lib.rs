@@ -25,6 +25,7 @@ mod rules;
 mod shields;
 mod tick;
 mod triggers;
+mod upgrades;
 
 pub use arrays::{Sim, Stats};
 pub use loader::{load, load_file, Catalog, LoadError, Trigger};
