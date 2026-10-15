@@ -125,6 +125,13 @@ pub struct Sim {
     pub(crate) m_target: Vec<i32>,
     pub(crate) m_x: Vec<i32>,
     pub(crate) m_y: Vec<i32>,
+    pub(crate) log_tick: Vec<u32>,
+    pub(crate) log_unit: Vec<i32>,
+    pub(crate) log_kind: Vec<u8>,
+    pub(crate) log_x: Vec<i32>,
+    pub(crate) log_y: Vec<i32>,
+    pub(crate) log_len: usize,
+    pub(crate) log_dropped: u64,
 
     pub(crate) bucket_n: Vec<u8>,
     pub(crate) bucket_idx: Vec<u32>,
@@ -238,6 +245,13 @@ impl Sim {
             healer_target: vec![-1; HEALER_SLOTS],
             m_alive: vec![0; MISSILE_CAP],
             m_timer: vec![0; MISSILE_CAP],
+            log_tick: vec![0; ORDER_LOG_CAP],
+            log_unit: vec![0; ORDER_LOG_CAP],
+            log_kind: vec![0; ORDER_LOG_CAP],
+            log_x: vec![0; ORDER_LOG_CAP],
+            log_y: vec![0; ORDER_LOG_CAP],
+            log_len: 0,
+            log_dropped: 0,
             m_caster: vec![-1; MISSILE_CAP],
             m_ability: vec![-1; MISSILE_CAP],
             m_target: vec![-1; MISSILE_CAP],
@@ -538,6 +552,7 @@ impl Sim {
             self.tgt_y[i] = y;
             self.order_kind[i] = ORDER_MOVE;
             self.touch(i);
+            self.record_order(i);
         }
     }
 
@@ -570,6 +585,40 @@ impl Sim {
             }
         }
         k
+    }
+
+    /// Appends an accepted order of unit `i` (its kind and resulting destination, at the current
+    /// tick). A full log counts the order as dropped instead of storing it.
+    pub(crate) fn record_order(&mut self, i: usize) {
+        if self.log_len >= ORDER_LOG_CAP {
+            self.log_dropped += 1;
+            return;
+        }
+        let k = self.log_len;
+        self.log_tick[k] = self.ticks;
+        self.log_unit[k] = i as i32;
+        self.log_kind[k] = self.order_kind[i];
+        self.log_x[k] = self.tgt_x[i];
+        self.log_y[k] = self.tgt_y[i];
+        self.log_len += 1;
+    }
+
+    /// Number of accepted orders held in the record log.
+    pub fn order_log_len(&self) -> usize {
+        self.log_len
+    }
+
+    /// Orders accepted past the log capacity, which are counted but not stored.
+    pub fn order_log_dropped(&self) -> u64 {
+        self.log_dropped
+    }
+
+    /// Accepted order `k` as (tick, unit, kind, x, y), or None past the stored log.
+    pub fn order_record(&self, k: usize) -> Option<(u32, i32, u8, i32, i32)> {
+        if k >= self.log_len {
+            return None;
+        }
+        Some((self.log_tick[k], self.log_unit[k], self.log_kind[k], self.log_x[k], self.log_y[k]))
     }
 
     pub fn order_all(&mut self, player: u8, x: i32, y: i32) {

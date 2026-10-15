@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 2;
+const STATE_VERSION: u16 = 3;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -380,6 +380,15 @@ impl Sim {
             put_i32(&mut w, r.until);
             put_bool(&mut w, r.live);
         }
+        put_u64(&mut w, self.log_len as u64);
+        put_u64(&mut w, self.log_dropped);
+        for k in 0..self.log_len {
+            put_u32(&mut w, self.log_tick[k]);
+            put_i32(&mut w, self.log_unit[k]);
+            w.push(self.log_kind[k]);
+            put_i32(&mut w, self.log_x[k]);
+            put_i32(&mut w, self.log_y[k]);
+        }
         put_pool(&mut w, &self.paths);
         w
     }
@@ -528,6 +537,19 @@ impl Sim {
             };
         }
 
+        let log_len = r.u64()? as usize;
+        if log_len > ORDER_LOG_CAP {
+            return Err(StateError::Length);
+        }
+        next.log_len = log_len;
+        next.log_dropped = r.u64()?;
+        for k in 0..log_len {
+            next.log_tick[k] = r.u32()?;
+            next.log_unit[k] = r.i32()?;
+            next.log_kind[k] = r.u8()?;
+            next.log_x[k] = r.i32()?;
+            next.log_y[k] = r.i32()?;
+        }
         read_pool(&mut r, &mut next.paths)?;
         if r.at != bytes.len() {
             return Err(StateError::Length);

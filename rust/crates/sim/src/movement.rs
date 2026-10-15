@@ -293,6 +293,7 @@ impl Sim {
         self.order_kind[i] = kind;
         self.routed[i] = 0;
         self.touch(i);
+        self.record_order(i);
         Ok(())
     }
 

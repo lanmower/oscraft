@@ -32,6 +32,12 @@ impl Sim {
     pub fn state_hash(&self) -> u64 {
         let mut h = Fnv(0xcbf2_9ce4_8422_2325);
         h.u64s(&[self.n as u64, self.head as u64, self.ticks as u64, self.rng, self.scan_left as u64]);
+        h.u64s(&[self.log_len as u64, self.log_dropped]);
+        h.u32s(&self.log_tick[..self.log_len]);
+        h.i32s(&self.log_unit[..self.log_len]);
+        h.bytes(&self.log_kind[..self.log_len]);
+        h.i32s(&self.log_x[..self.log_len]);
+        h.i32s(&self.log_y[..self.log_len]);
         h.bytes(&self.grid.flags);
         h.i32s(&self.pos_x);
         h.i32s(&self.pos_y);

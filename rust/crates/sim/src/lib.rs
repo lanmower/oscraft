@@ -44,6 +44,7 @@ pub(crate) const BUFF_SLOTS: usize = 4;
 pub(crate) const HEALER_SLOTS: usize = 16;
 pub(crate) const ABILITY_SLOTS: usize = 8;
 pub(crate) const AREA_BUF: usize = 289 * BUCKET_CAP;
+pub(crate) const ORDER_LOG_CAP: usize = 4096;
 
 pub(crate) const KIND_ACTOR: u8 = 0;
 pub(crate) const KIND_MINERAL: u8 = 1;
