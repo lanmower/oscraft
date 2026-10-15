@@ -1,0 +1,415 @@
+//! Flow-field pathfinding: a Dijkstra distance field per destination, solved by a
+//! bucket queue of three rotating frontiers, with a pool that caps live fields
+//! and spends a fixed cell budget per tick. Port of internal/pathfind.
+
+use crate::fixed::ONE;
+
+pub const COST_STRAIGHT: i32 = ONE;
+pub const COST_DIAGONAL: i32 = 92682;
+pub const UNIT_DIAGONAL: i32 = 46341;
+pub const NO_DIR: u8 = 255;
+pub const DEFAULT_MAX_FIELDS: usize = 8;
+pub const DEFAULT_TICK_BUDGET: usize = 4096;
+pub const MOVE_THRESHOLD: i32 = 4;
+pub const REBUILD_CADENCE: u32 = 16;
+/// Cell bit set on cells that refuse pathing and placement (`bit 0 = blocked`).
+pub const BLOCKED: u8 = 1;
+
+const NB_DX: [i32; 8] = [1, 1, 0, -1, -1, -1, 0, 1];
+const NB_DY: [i32; 8] = [0, 1, 1, 1, 0, -1, -1, -1];
+const NB_COST: [i32; 8] = [
+    COST_STRAIGHT, COST_DIAGONAL, COST_STRAIGHT, COST_DIAGONAL,
+    COST_STRAIGHT, COST_DIAGONAL, COST_STRAIGHT, COST_DIAGONAL,
+];
+const NB_FX: [i32; 8] = [ONE, UNIT_DIAGONAL, 0, -UNIT_DIAGONAL, -ONE, -UNIT_DIAGONAL, 0, UNIT_DIAGONAL];
+const NB_FY: [i32; 8] = [0, UNIT_DIAGONAL, ONE, UNIT_DIAGONAL, 0, -UNIT_DIAGONAL, -ONE, -UNIT_DIAGONAL];
+
+/// Walkability: one byte per cell, nonzero is walkable, row-major, `w` wide.
+#[derive(Clone, Debug, Default)]
+pub struct Grid {
+    pub w: usize,
+    pub h: usize,
+    pub flags: Vec<u8>,
+}
+
+impl Grid {
+    pub fn open(w: usize, h: usize) -> Grid {
+        Grid { w, h, flags: vec![0; w * h] }
+    }
+
+    pub fn walkable(&self, x: i32, y: i32) -> bool {
+        let (w, h) = (self.w as i32, self.h as i32);
+        if x < 0 || y < 0 || x >= w || y >= h {
+            return false;
+        }
+        self.flags[(y * w + x) as usize] & BLOCKED == 0
+    }
+
+    pub fn nearest_walkable(&self, x: i32, y: i32, max_r: i32) -> Option<(i32, i32)> {
+        if self.walkable(x, y) {
+            return Some((x, y));
+        }
+        for r in 1..=max_r {
+            for dy in -r..=r {
+                for dx in -r..=r {
+                    if dx != -r && dx != r && dy != -r && dy != r {
+                        continue;
+                    }
+                    if self.walkable(x + dx, y + dy) {
+                        return Some((x + dx, y + dy));
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
+/// One destination's solved route. `dist` is the cost to the goal; `dir` is the
+/// index of the first step from each cell.
+pub struct Field {
+    w: i32,
+    h: i32,
+    cells: usize,
+    dist: Vec<i32>,
+    dir: Vec<u8>,
+    dir_next: Vec<u8>,
+    settled: Vec<u8>,
+    cur: Vec<u32>,
+    n1: Vec<u32>,
+    n2: Vec<u32>,
+    b: i32,
+    building: bool,
+    ready: bool,
+    goal_x: i32,
+    goal_y: i32,
+    want_x: i32,
+    want_y: i32,
+}
+
+impl Field {
+    pub fn new(w: usize, h: usize) -> Field {
+        let cells = (w * h).max(1);
+        Field {
+            w: w as i32,
+            h: h as i32,
+            cells,
+            dist: vec![-1; cells],
+            dir: vec![0; cells],
+            dir_next: vec![NO_DIR; cells],
+            settled: vec![0; cells],
+            cur: Vec::with_capacity(cells),
+            n1: Vec::with_capacity(cells),
+            n2: Vec::with_capacity(cells),
+            b: 0,
+            building: false,
+            ready: false,
+            goal_x: 0,
+            goal_y: 0,
+            want_x: 0,
+            want_y: 0,
+        }
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.ready
+    }
+
+    pub fn is_building(&self) -> bool {
+        self.building
+    }
+
+    pub fn goal(&self) -> (i32, i32) {
+        (self.goal_x, self.goal_y)
+    }
+
+    fn dir_index(&self, x: i32, y: i32) -> Option<usize> {
+        if x < 0 || y < 0 || x >= self.w || y >= self.h || !self.ready {
+            return None;
+        }
+        let k = self.dir[(y * self.w + x) as usize];
+        if k > 7 { None } else { Some(k as usize) }
+    }
+
+    /// Unit step (each component -1, 0 or 1) from a cell, when the route is served.
+    pub fn dir(&self, x: i32, y: i32) -> Option<(i32, i32)> {
+        let k = self.dir_index(x, y)?;
+        Some((NB_DX[k], NB_DY[k]))
+    }
+
+    /// The same step as a Q16.16 unit vector, so a speed multiplies it directly.
+    pub fn dir_fixed(&self, x: i32, y: i32) -> Option<(i32, i32)> {
+        let k = self.dir_index(x, y)?;
+        Some((NB_FX[k], NB_FY[k]))
+    }
+
+    pub fn discard(&mut self) {
+        self.building = false;
+        self.ready = false;
+    }
+
+    /// Solves the field in one call (load time and tests). A tick uses reset + step.
+    pub fn build(&mut self, g: &Grid, gx: i32, gy: i32) -> bool {
+        if !self.reset(g, gx, gy) {
+            return false;
+        }
+        let budget = self.cells;
+        while !self.step(g, budget) {}
+        true
+    }
+
+    pub fn reset(&mut self, g: &Grid, gx: i32, gy: i32) -> bool {
+        if g.w != self.w as usize || g.h != self.h as usize || g.flags.len() < self.cells {
+            return false;
+        }
+        let (mut gx, mut gy) = (gx, gy);
+        if !g.walkable(gx, gy) {
+            match g.nearest_walkable(gx, gy, 8) {
+                Some((nx, ny)) => {
+                    gx = nx;
+                    gy = ny;
+                }
+                None => return false,
+            }
+        }
+        self.dist.fill(-1);
+        self.settled.fill(0);
+        self.dir_next.fill(NO_DIR);
+        self.cur.clear();
+        self.n1.clear();
+        self.n2.clear();
+        self.b = 0;
+        let goal = (gy * self.w + gx) as usize;
+        self.dist[goal] = 0;
+        self.want_x = gx;
+        self.want_y = gy;
+        self.building = true;
+        self.cur.push(goal as u32);
+        true
+    }
+
+    /// Settles at most `budget` cells. Returns true when the build is complete.
+    pub fn step(&mut self, g: &Grid, budget: usize) -> bool {
+        if !self.building {
+            return true;
+        }
+        let (w, h) = (self.w, self.h);
+        let mut n = 0usize;
+        while n < budget {
+            while self.cur.is_empty() {
+                if self.n1.is_empty() && self.n2.is_empty() {
+                    self.finish();
+                    return true;
+                }
+                let spent = std::mem::take(&mut self.cur);
+                self.cur = std::mem::take(&mut self.n1);
+                self.n1 = std::mem::take(&mut self.n2);
+                self.n2 = spent;
+                self.b += 1;
+            }
+            let c = match self.cur.pop() {
+                Some(c) => c as usize,
+                None => break,
+            };
+            if self.settled[c] != 0 {
+                continue;
+            }
+            self.settled[c] = 1;
+            n += 1;
+            let cy = c as i32 / w;
+            let cx = c as i32 - cy * w;
+            let dc = self.dist[c];
+            let row = cy * w;
+            for k in 0..8usize {
+                let nx = cx + NB_DX[k];
+                let ny = cy + NB_DY[k];
+                if nx < 0 || ny < 0 || nx >= w || ny >= h {
+                    continue;
+                }
+                let nn = (ny * w + nx) as usize;
+                if g.flags[nn] & BLOCKED != 0 || self.settled[nn] != 0 {
+                    continue;
+                }
+                // No corner cutting: a diagonal needs both orthogonal neighbours walkable.
+                if NB_COST[k] == COST_DIAGONAL
+                    && (g.flags[(row + nx) as usize] & BLOCKED != 0 || g.flags[(ny * w + cx) as usize] & BLOCKED != 0)
+                {
+                    continue;
+                }
+                let nd = dc.wrapping_add(NB_COST[k]);
+                if self.dist[nn] < 0 || nd < self.dist[nn] {
+                    self.dist[nn] = nd;
+                    self.dir_next[nn] = (k as u8) ^ 4;
+                    match (nd >> 16) - self.b {
+                        0 => self.cur.push(nn as u32),
+                        1 => self.n1.push(nn as u32),
+                        _ => self.n2.push(nn as u32),
+                    }
+                }
+            }
+        }
+        if self.cur.is_empty() && self.n1.is_empty() && self.n2.is_empty() {
+            self.finish();
+            return true;
+        }
+        false
+    }
+
+    fn finish(&mut self) {
+        std::mem::swap(&mut self.dir, &mut self.dir_next);
+        self.goal_x = self.want_x;
+        self.goal_y = self.want_y;
+        self.building = false;
+        self.ready = true;
+    }
+}
+
+/// The destinations that hold a field at once. Past the cap, the least recently
+/// used slot is evicted and its units steer straight until a field is ready.
+pub struct Pool {
+    w: usize,
+    h: usize,
+    fields: Vec<Option<Field>>,
+    owner: Vec<i32>,
+    want_x: Vec<i32>,
+    want_y: Vec<i32>,
+    dirty: Vec<bool>,
+    age: Vec<u32>,
+    seen: Vec<u32>,
+    round: usize,
+    tick_no: u32,
+    pub budget: usize,
+}
+
+impl Pool {
+    pub fn new(w: usize, h: usize, max: usize) -> Pool {
+        let max = max.max(1);
+        Pool {
+            w,
+            h,
+            fields: (0..max).map(|_| None).collect(),
+            owner: vec![-1; max],
+            want_x: vec![0; max],
+            want_y: vec![0; max],
+            dirty: vec![false; max],
+            age: vec![0; max],
+            seen: vec![0; max],
+            round: 0,
+            tick_no: 0,
+            budget: DEFAULT_TICK_BUDGET,
+        }
+    }
+
+    /// Returns the slot routing destination `id` to (gx, gy), claiming one if needed.
+    pub fn request(&mut self, id: i32, gx: i32, gy: i32) -> usize {
+        if let Some(i) = self.owner.iter().position(|&o| o == id) {
+            self.want_x[i] = gx;
+            self.want_y[i] = gy;
+            self.seen[i] = self.tick_no;
+            let stale = match &self.fields[i] {
+                Some(f) => {
+                    !f.is_ready()
+                        || self.age[i] >= REBUILD_CADENCE
+                        || {
+                            let (fx, fy) = f.goal();
+                            drifted(fx, fy, gx, gy)
+                        }
+                }
+                None => true,
+            };
+            if stale {
+                self.dirty[i] = true;
+            }
+            return i;
+        }
+        let (i, evicted) = self.claim(id);
+        self.want_x[i] = gx;
+        self.want_y[i] = gy;
+        self.seen[i] = self.tick_no;
+        self.age[i] = 0;
+        self.dirty[i] = true;
+        if self.fields[i].is_none() {
+            self.fields[i] = Some(Field::new(self.w, self.h));
+        } else if evicted {
+            if let Some(f) = self.fields[i].as_mut() {
+                f.discard();
+            }
+        }
+        i
+    }
+
+    pub fn field(&self, slot: usize) -> &Field {
+        self.fields[slot].as_ref().expect("a claimed slot always holds a field")
+    }
+
+    fn claim(&mut self, id: i32) -> (usize, bool) {
+        if let Some(i) = self.owner.iter().position(|&o| o < 0) {
+            self.owner[i] = id;
+            return (i, false);
+        }
+        let mut oldest = 0;
+        for i in 1..self.seen.len() {
+            if self.seen[i] < self.seen[oldest] {
+                oldest = i;
+            }
+        }
+        self.owner[oldest] = id;
+        (oldest, true)
+    }
+
+    /// Ages every slot and advances one rebuild by `budget` cells. Call once per tick.
+    pub fn tick(&mut self, g: &Grid) -> usize {
+        self.tick_no = self.tick_no.wrapping_add(1);
+        let n = self.owner.len();
+        for i in 0..n {
+            if self.owner[i] < 0 {
+                continue;
+            }
+            self.age[i] = self.age[i].wrapping_add(1);
+            if self.age[i] >= REBUILD_CADENCE {
+                self.dirty[i] = true;
+            }
+        }
+        for k in 0..n {
+            let i = (self.round + k) % n;
+            if self.owner[i] < 0 || !self.dirty[i] {
+                continue;
+            }
+            self.round = i + 1;
+            let (wx, wy, budget) = (self.want_x[i], self.want_y[i], self.budget);
+            let f = match self.fields[i].as_mut() {
+                Some(f) => f,
+                None => {
+                    self.dirty[i] = false;
+                    return 0;
+                }
+            };
+            if !f.is_building() && !f.reset(g, wx, wy) {
+                self.dirty[i] = false;
+                return 0;
+            }
+            if f.step(g, budget) {
+                self.dirty[i] = false;
+                self.age[i] = 0;
+            }
+            return budget;
+        }
+        0
+    }
+
+    pub fn live(&self) -> usize {
+        self.owner.iter().filter(|&&o| o >= 0).count()
+    }
+
+    pub fn ready_count(&self) -> usize {
+        self.fields.iter().flatten().filter(|f| f.is_ready()).count()
+    }
+
+    pub fn cap(&self) -> usize {
+        self.owner.len()
+    }
+}
+
+fn drifted(ox: i32, oy: i32, nx: i32, ny: i32) -> bool {
+    (ox - nx).abs() > MOVE_THRESHOLD || (oy - ny).abs() > MOVE_THRESHOLD
+}

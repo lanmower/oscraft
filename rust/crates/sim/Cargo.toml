@@ -1,0 +1,7 @@
+[package]
+name = "sim"
+version = "0.1.0"
+edition = "2021"
+description = "Deterministic headless simulation: Q16.16, struct-of-arrays, port of internal/sim"
+
+[dependencies]

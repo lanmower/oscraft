@@ -1,0 +1,11 @@
+[package]
+name = "mpq"
+version = "0.1.0"
+edition = "2021"
+description = "MPQ (Mo'PaQ) archive reader: tables, HET/BET, and Storm sector codecs"
+publish = false
+
+[dependencies]
+flate2 = "=1.1.9"
+bzip2 = "=0.6.0"
+lzma-rs = "=0.3.0"

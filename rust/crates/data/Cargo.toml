@@ -1,0 +1,17 @@
+[package]
+name = "osdt-data"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "osdt_data"
+path = "src/lib.rs"
+
+[[bin]]
+name = "osdt-data"
+path = "src/main.rs"
+
+[dependencies]
+starlark = "=0.14.2"
+anyhow = "=1.0.104"

@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run per sha, and no run cancels another, so every sha gets a verdict.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build and spike (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build workspace
+        run: cargo build --workspace
+
+      - name: Run Lua mod spike
+        run: cargo run -p oscraft-spike
