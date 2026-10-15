@@ -165,6 +165,20 @@ impl Sim {
         true
     }
 
+    /// Grants `amount` energy to unit `i`. Refusals, each changing nothing: a dead or unknown
+    /// unit is NoTarget; a non-positive amount is Energy.
+    pub fn grant_energy(&mut self, i: usize, amount: i32) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        if amount <= 0 {
+            return Err(self.reject(Refusal::Energy));
+        }
+        self.energy[i] = self.energy[i].saturating_add(amount);
+        self.touch(i);
+        Ok(())
+    }
+
     /// Applies one ability's effects at a point, in record order. `caster` must be alive.
     pub(crate) fn apply_effects(&mut self, caster: usize, ai: usize, tx: i32, ty: i32, target: i32) {
         let ability = self.cat.abilities[ai];
