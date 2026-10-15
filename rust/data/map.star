@@ -24,3 +24,6 @@ spawn("warden", 0, 6000, 5000)
 spawn("skirmisher", 1, 26000, 19000)
 spawn("warden", 1, 28000, 20000)
 spawn("spore", -1, 16000, 12000)
+# Worker (worker filter, harvests minerals) and biological unit (no ground filter), placed for players.
+spawn("tender", 0, 19000, 17000)
+spawn("spore", 1, 25000, 16000)
