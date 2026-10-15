@@ -111,13 +111,26 @@ impl Sim {
         self.train_left[i] = def.build_ticks.max(1);
     }
 
+    /// Sends a unit that finished at building `i` to the building's rally point: the UEXT offset
+    /// from the building. A zero offset is no rally point, so the unit stays where it appeared.
+    fn rally(&mut self, i: usize, unit: usize) {
+        let ext = self.cat.unit_ext.get(self.type_of[i] as usize).copied().unwrap_or_default();
+        if ext.rally_x == 0 && ext.rally_y == 0 {
+            return;
+        }
+        let x = self.pos_x[i].wrapping_add(fixed::from_milli(ext.rally_x));
+        let y = self.pos_y[i].wrapping_add(fixed::from_milli(ext.rally_y));
+        self.move_fixed(unit, x, y);
+    }
+
     fn finish_train(&mut self, i: usize, p: usize, tr: usize) {
         let max_x = fixed::from_int(self.grid.w as i32 - 1);
         let beside = fixed::from_milli(self.cat.units[tr].radius);
         let x = self.pos_x[i].wrapping_add(beside).wrapping_add(self.radius[i]).min(max_x);
         let y = self.pos_y[i];
-        if self.spawn_for(p as u8, tr as u32, x, y).is_some() {
+        if let Some(unit) = self.spawn_for(p as u8, tr as u32, x, y) {
             self.stats.trained += 1;
+            self.rally(i, unit);
         }
     }
 }
