@@ -51,6 +51,63 @@ impl Sim {
         roll < chance
     }
 
+    /// Whether unit `j` is hidden from enemies: cloaked, or burrowed.
+    fn hidden(&self, j: usize) -> bool {
+        let cloaked = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(false, |e| e.cloak & 1 != 0);
+        cloaked || self.burrowed[j] != 0
+    }
+
+    /// Whether one of player `p`'s own units with a detector radius reaches unit `j`.
+    fn detected(&self, p: u8, j: usize) -> bool {
+        (0..self.n).any(|k| {
+            if self.alive[k] == 0 || self.player[k] != p {
+                return false;
+            }
+            let radius = self.cat.unit_ext.get(self.type_of[k] as usize).map_or(0, |e| e.detector_radius);
+            if radius <= 0 {
+                return false;
+            }
+            let reach = fixed::from_milli(radius) as i64;
+            dist2(self.pos_x[k], self.pos_y[k], self.pos_x[j], self.pos_y[j]) <= reach * reach
+        })
+    }
+
+    /// Whether player `p` may target unit `j`: a hidden unit needs a detector covering it.
+    pub(crate) fn targetable(&self, p: u8, j: usize) -> bool {
+        !self.hidden(j) || self.detected(p, j)
+    }
+
+    /// Starts unit `i` burrowing for its UEXT burrow time; a zero time burrows at once. Only a
+    /// unit with the can-burrow flag may burrow. Refusals change nothing: a dead or unknown unit
+    /// is NoTarget; a unit that cannot burrow, or is already burrowed or burrowing, is InvalidOrderTarget.
+    pub fn burrow_unit(&mut self, i: usize) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        let ext = self.cat.unit_ext.get(self.type_of[i] as usize).copied().unwrap_or_default();
+        if ext.cloak & 2 == 0 || self.burrowed[i] != 0 || self.burrow_left[i] > 0 {
+            return Err(self.reject(Refusal::InvalidOrderTarget));
+        }
+        if ext.burrow_ticks <= 0 {
+            self.burrowed[i] = 1;
+        } else {
+            self.burrow_left[i] = ext.burrow_ticks;
+        }
+        self.touch(i);
+        Ok(())
+    }
+
+    /// Counts down a burrow in progress on unit `i`; the unit is burrowed when it ends.
+    pub(crate) fn burrow_step(&mut self, i: usize) {
+        if self.burrow_left[i] > 0 {
+            self.burrow_left[i] -= 1;
+            if self.burrow_left[i] == 0 {
+                self.burrowed[i] = 1;
+                self.touch(i);
+            }
+        }
+    }
+
     /// Auto-attack: nearest visible enemy on a layer this weapon may hit, within range.
     pub(crate) fn attack(&mut self, i: usize) {
         if self.damage[i] <= 0 {
@@ -80,7 +137,7 @@ impl Sim {
                     if j == i || self.alive[j] == 0 || !self.hostile(self.player[i], self.player[j]) {
                         continue;
                     }
-                    if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) {
+                    if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) || !self.targetable(self.player[i], j) {
                         continue;
                     }
                     let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[j], self.pos_y[j]);
@@ -118,6 +175,7 @@ impl Sim {
             && self.hostile(self.player[i], self.player[target])
             && (self.targets[i] & self.layer_of(target)) != 0
             && self.visible(self.player[i], target)
+            && self.targetable(self.player[i], target)
             && dist2(self.pos_x[i], self.pos_y[i], self.pos_x[target], self.pos_y[target]) <= reach;
         if !in_reach {
             return Err(self.reject(Refusal::InvalidOrderTarget));

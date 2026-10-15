@@ -167,6 +167,9 @@ pub struct Sim {
     pub(crate) channel_x: Vec<i32>,
     pub(crate) channel_y: Vec<i32>,
     pub(crate) channel_target: Vec<i32>,
+    /// Burrow state per unit: 1 when burrowed, and the ticks left while burrowing.
+    pub(crate) burrowed: Vec<u8>,
+    pub(crate) burrow_left: Vec<i32>,
     pub(crate) has_seer: [bool; MAX_PLAYERS],
     pub(crate) team: [u8; MAX_PLAYERS],
     pub(crate) alliance: [u16; MAX_PLAYERS],
@@ -299,6 +302,8 @@ impl Sim {
             channel_x: vec![0; cap],
             channel_y: vec![0; cap],
             channel_target: vec![-1; cap],
+            burrowed: vec![0; cap],
+            burrow_left: vec![0; cap],
             seen: vec![0; MAX_PLAYERS * cap],
             seen_x: vec![0; MAX_PLAYERS * cap],
             seen_y: vec![0; MAX_PLAYERS * cap],

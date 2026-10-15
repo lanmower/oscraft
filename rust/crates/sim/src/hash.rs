@@ -124,6 +124,8 @@ impl Sim {
         h.i32s(&self.channel_x);
         h.i32s(&self.channel_y);
         h.i32s(&self.channel_target);
+        h.bytes(&self.burrowed);
+        h.i32s(&self.burrow_left);
         h.bytes(&self.seen);
         h.i32s(&self.seen_x);
         h.i32s(&self.seen_y);

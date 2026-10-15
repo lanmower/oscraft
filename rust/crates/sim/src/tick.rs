@@ -34,6 +34,7 @@ impl Sim {
                 continue;
             }
             self.research_step(i);
+            self.burrow_step(i);
             if self.harvest && self.kind[i] == KIND_WORKER {
                 self.harvest_step(i);
             }
