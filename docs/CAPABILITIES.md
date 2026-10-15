@@ -56,7 +56,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-BEH-5 | Fire behaviour triggers during the tick | claimed | sim/src/triggers.rs (fire_triggers), sim/src/tick.rs | gate:behaviour-trigger-fires |
 | CAP-BEH-6 | Raise a class-wide stat in levels, with each level costing more than the last | stub | none | gate:upgrade-levels |
 | CAP-BEH-7 | Stack upgrade levels separately for each unit class | claimed | sim/src/upgrades.rs (records stack per target kind and index; rule 1 adds, rule 2 refuses) | gate:upgrade-stacking |
-| CAP-BEH-8 | Apply upgrades to units already on the field, not only to new units | stub | none | gate:upgrade-applies-existing |
+| CAP-BEH-8 | Apply upgrades to units already on the field, not only to new units | claimed | sim/src/upgrades.rs (complete_upgrade applies to existing units when applies-to is 1; apply_upgrades_to_new for new units) | gate:upgrade-applies-existing |
 | CAP-BEH-9 | Apply a stated stacking rule to buffs of the same kind | claimed | sim/src/buffs.rs (apply_buff: same kind refreshes its duration) | gate:buff-stacking-rule |
 
 ## Orders and pathing
