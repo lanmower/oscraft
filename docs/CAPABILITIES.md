@@ -174,7 +174,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-DET-2 | FNV-1a state hash over sim state | implemented | sim/src/hash.rs (state_hash); mod-host/src/lib.rs (state_hash) | gate:state-hash-stable |
 | CAP-DET-3 | Identical mod and state reproduce identical hashes across runs | partial | sim/src/hash.rs; no replay gate yet | gate:replay-hash-equal |
 | CAP-DET-4 | Record every accepted order with its tick so a match can be replayed | claimed | sim/src/arrays.rs (record_order, order_record), sim/src/movement.rs (issue_order_kind), sim/src/persist.rs, sim/src/hash.rs | gate:order-recording |
-| CAP-DET-5 | Play a replay at a chosen speed, paused, or seeked | stub | none | gate:replay-playback-controls |
+| CAP-DET-5 | Play a replay at a chosen speed, paused, or seeked | claimed | server/src/replay.rs (play) | gate:replay-playback-controls |
 | CAP-DET-6 | Advance lockstep clients by exchanging per-tick inputs and comparing state hashes | stub | none | gate:lockstep-input-exchange |
 
 ## Persistence of map data

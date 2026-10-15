@@ -1,5 +1,6 @@
 pub mod http;
 pub mod order;
+pub mod replay;
 pub mod room;
 
 use std::collections::hash_map::RandomState;
