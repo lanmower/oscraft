@@ -58,7 +58,7 @@ impl Sim {
     /// Whether player `p` holds every prerequisite of target `target` of kind `kind` (0 unit,
     /// 1 research). A unit requirement needs a living unit of that type owned by `p`; a research
     /// requirement needs that research completed by `p`.
-    pub(crate) fn prereqs_met(&self, kind: u8, target: usize, p: usize) -> bool {
+    pub fn prereqs_met(&self, kind: u8, target: usize, p: usize) -> bool {
         let research_count = self.cat.research.len();
         self.cat
             .prereqs
@@ -162,7 +162,7 @@ impl Sim {
     /// The refusal a train at building `i` meets now, or None when it can start. Records nothing.
     /// No trainee is NoTrain; a train in progress or held after a cancel is TrainBusy; missing
     /// prerequisites are Prerequisite; supply past the cap is SupplyBlocked; a short purse is CannotAfford.
-    fn train_block(&self, i: usize) -> Option<Refusal> {
+    pub fn train_block(&self, i: usize) -> Option<Refusal> {
         if i >= self.n || self.alive[i] == 0 {
             return Some(Refusal::NoTarget);
         }
