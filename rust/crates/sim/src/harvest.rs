@@ -2,6 +2,7 @@
 //! unit is a worker or a resource yet and this runs only once a kind source exists.
 
 use crate::arrays::{dist2, Sim};
+use crate::loader::FILTER_STRUCTURE;
 use crate::*;
 
 impl Sim {
@@ -30,6 +31,9 @@ impl Sim {
             if self.kind[j] != KIND_MINERAL && self.kind[j] != KIND_GEYSER {
                 continue;
             }
+            if self.kind[j] == KIND_GEYSER && !self.has_extractor(i, j) {
+                continue;
+            }
             let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[j], self.pos_y[j]);
             if best < 0 || d2 < best_d2 {
                 best = j as i32;
@@ -55,6 +59,21 @@ impl Sim {
         best
     }
 
+    /// Whether a structure of worker `i`'s player stands on geyser `j`: the extractor. A geyser
+    /// yields gas only under one, and a structure stands on the geyser when their radii touch.
+    fn has_extractor(&self, i: usize, j: usize) -> bool {
+        let p = self.player[i];
+        (0..self.n).any(|k| {
+            self.alive[k] != 0
+                && self.player[k] == p
+                && self.filter[k] & FILTER_STRUCTURE != 0
+                && {
+                    let reach = self.radius[k].wrapping_add(self.radius[j]) as i64;
+                    dist2(self.pos_x[k], self.pos_y[k], self.pos_x[j], self.pos_y[j]) <= reach * reach
+                }
+        })
+    }
+
     /// Gather time for a worker arriving at resource `t` now. Up to `sat` workers gather at the
     /// full rate; past that the time stretches with the crowd, so the patch's income stops rising.
     /// The arriving worker counts as one; the others are the workers already gathering at `t`.
@@ -74,7 +93,10 @@ impl Sim {
         match self.wstate[i] {
             W_SEEK => {
                 let mut t = self.wtarget[i];
-                if !self.live_at(t) || self.amount[t as usize] <= 0 {
+                if !self.live_at(t)
+                    || self.amount[t as usize] <= 0
+                    || (self.kind[t as usize] == KIND_GEYSER && !self.has_extractor(i, t as usize))
+                {
                     if !self.retarget_scan() {
                         return;
                     }
@@ -89,10 +111,10 @@ impl Sim {
                 self.tgt_y[i] = self.pos_y[tu];
                 if self.arrived(i, tu) {
                     self.wstate[i] = W_GATHER;
-                    self.wtimer[i] = if self.kind[tu] == KIND_MINERAL {
-                        self.gather_ticks_at(tu, self.cat.econ.sat_mineral)
-                    } else {
-                        GATHER_TICKS
+                    self.wtimer[i] = match self.kind[tu] {
+                        KIND_MINERAL => self.gather_ticks_at(tu, self.cat.econ.sat_mineral),
+                        KIND_GEYSER => self.gather_ticks_at(tu, self.cat.econ.sat_gas),
+                        _ => GATHER_TICKS,
                     };
                     self.tgt_x[i] = self.pos_x[i];
                     self.tgt_y[i] = self.pos_y[i];
@@ -108,7 +130,12 @@ impl Sim {
                 let t = self.wtarget[i];
                 if self.live_at(t) && self.amount[t as usize] > 0 {
                     let tu = t as usize;
-                    self.carry[i] = self.harvest_amt[tu].min(self.amount[tu]);
+                    let per_trip = if self.kind[tu] == KIND_GEYSER {
+                        self.cat.econ.gas_per_trip
+                    } else {
+                        self.harvest_amt[tu]
+                    };
+                    self.carry[i] = per_trip.min(self.amount[tu]);
                     self.carry_kind[i] = self.kind[tu];
                     self.amount[tu] -= self.carry[i];
                     self.touch(tu);
