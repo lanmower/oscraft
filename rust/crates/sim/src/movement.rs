@@ -99,17 +99,20 @@ impl Sim {
                     }
                     let mut sx = self.pos_x[i].wrapping_sub(self.pos_x[j]);
                     let mut sy = self.pos_y[i].wrapping_sub(self.pos_y[j]);
+                    if sx == 0 && sy == 0 {
+                        // Units on one point split along x: the lower index moves left.
+                        sx = if i < j { -1 } else { 1 };
+                    }
                     let sd2 = sx as i64 * sx as i64 + sy as i64 * sy as i64;
                     let min_d = self.radius[i].wrapping_add(self.radius[j]) as i64;
                     let md2 = min_d * min_d;
-                    if sd2 > 0 && sd2 < md2 {
+                    if sd2 < md2 {
+                        // Push i away from j along the dominant axis of their offset, with the sign of the offset.
                         let push = ((md2 - sd2) >> (SHIFT + 6)) as i32;
-                        sx = sx.wrapping_abs();
-                        sy = sy.wrapping_abs();
-                        if sx > sy {
-                            vx = vx.wrapping_add(push);
+                        if sx.abs() > sy.abs() {
+                            vx = vx.wrapping_add(if sx > 0 { push } else { -push });
                         } else {
-                            vy = vy.wrapping_add(push);
+                            vy = vy.wrapping_add(if sy > 0 { push } else { -push });
                         }
                     }
                 }
