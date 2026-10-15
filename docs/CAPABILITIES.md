@@ -3,7 +3,6 @@
 Measure: a capability is at parity when its row is `implemented` and its gate check passes with placed units. Presentation rows count as parity when they are `unsupported-headless` with a named refusal.
 
 Status values: `implemented`, `partial`, `stub` (no code), `unsupported-headless`.
-
 `claimed` means the code is on main and the gate check has not yet passed; `implemented` means the gate passed on CI.
 Paths are relative to `rust/crates/` unless shown otherwise. Gate names are planned checks; no gate check exists yet (`rust/crates/gate/src/main.rs` is a placeholder).
 
@@ -20,7 +19,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-MAP-7 | Reveal cells within each unit's sight radius and hide cells outside friendly sight | claimed | none | gate:sight-reveal |
 | CAP-MAP-8 | Grant sight over elevated cells and deny sight from lower ground | stub | none | gate:elevation-sight |
 | CAP-MAP-9 | Remember a seen enemy unit at its last known position until it is seen again | claimed | none | gate:last-seen-memory |
-| CAP-MAP-10 | Author custom terrain tiles and doodads in an editor | claimed | none | gate:editor-terrain-tiles |
+| CAP-MAP-10 | Author custom terrain tiles and doodads in an editor | stub | none | gate:editor-terrain-tiles |
 | CAP-MAP-11 | Place neutral objects and start positions by a map author through map data | claimed | rust/data/map.star (start, spawn -1, limit) | gate:map-author-placement |
 
 ## Units and their stats
@@ -54,7 +53,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-BEH-1 | Apply a timed buff to a unit and count it down each tick | implemented | sim/src/buffs.rs (apply_buff, tick_buffs) | gate:apply-buff |
 | CAP-BEH-2 | Clear a buff from a unit | implemented | sim/src/buffs.rs (clear_buff) | gate:clear-buff |
 | CAP-BEH-3 | Remove a behaviour from a unit through an effect | implemented | sim/src/buffs.rs (remove_behaviour); sim/src/rules.rs | gate:remove-behaviour |
-| CAP-BEH-4 | Declare behaviours with a trigger (idle, attacked, spawned, ability_ready) in data | claimed | data/src/model.rs (trigger), data/src/builtins.rs; no evaluator in sim | gate:behaviour-declared |
+| CAP-BEH-4 | Declare behaviours with a trigger (idle, attacked, spawned, ability_ready) in data | partial | data/src/model.rs (trigger), data/src/builtins.rs; no evaluator in sim | gate:behaviour-declared |
 | CAP-BEH-5 | Fire behaviour triggers during the tick | claimed | sim/src/triggers.rs (fire_triggers), sim/src/tick.rs | gate:behaviour-trigger-fires |
 | CAP-BEH-6 | Raise a class-wide stat in levels, with each level costing more than the last | claimed | sim/src/upgrades.rs (complete_upgrade charges level x per-level cost), sim/src/loader.rs (UPGR v13 cost fields) | gate:upgrade-levels |
 | CAP-BEH-7 | Stack upgrade levels separately for each unit class | claimed | sim/src/upgrades.rs (records stack per target kind and index; rule 1 adds, rule 2 refuses) | gate:upgrade-stacking |
@@ -174,9 +173,8 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-DET-2 | FNV-1a state hash over sim state | implemented | sim/src/hash.rs (state_hash); mod-host/src/lib.rs (state_hash) | gate:state-hash-stable |
 | CAP-DET-3 | Identical mod and state reproduce identical hashes across runs | partial | sim/src/hash.rs; no replay gate yet | gate:replay-hash-equal |
 | CAP-DET-4 | Record every accepted order with its tick so a match can be replayed | claimed | sim/src/arrays.rs (record_order, order_record), sim/src/movement.rs (issue_order_kind), sim/src/persist.rs, sim/src/hash.rs | gate:order-recording |
-| CAP-DET-5 | Replay the recorded order log into a fresh sim, checking the state hash at each recorded tick | claimed | server/src/replay.rs (play) | gate:replay-playback-controls |
-| CAP-DET-6 | Advance lockstep clients by exchanging per-tick inputs and comparing state hashes | claimed | server/src/lockstep.rs (Lockstep) | gate:lockstep-input-exchange |
-| CAP-DET-7 | Play a replay at a chosen speed, paused, or seeked | claimed | server/src/replay.rs (Playback) | gate:replay-controls |
+| CAP-DET-5 | Play a replay at a chosen speed, paused, or seeked | stub | none | gate:replay-playback-controls |
+| CAP-DET-6 | Advance lockstep clients by exchanging per-tick inputs and comparing state hashes | stub | none | gate:lockstep-input-exchange |
 
 ## Persistence of map data
 
