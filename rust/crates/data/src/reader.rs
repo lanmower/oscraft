@@ -1,9 +1,47 @@
-//! Reference reader: checks an image against FORMAT.md v7 before it is written.
+//! Reference reader: checks an image against FORMAT.md v8 before it is written.
 //! The sim crate has its own loader; this one guards the generator's output.
 
 use anyhow::{anyhow, ensure, Result};
 
 use crate::format::*;
+
+/// Why an image is refused before any section is read. Reachable from an
+/// `anyhow::Error` with `downcast_ref::<ImageError>()`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImageError {
+    TooShort { len: usize },
+    BadMagic,
+    VersionMismatch { found: u16, expected: u16 },
+}
+
+impl std::fmt::Display for ImageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ImageError::TooShort { len } => write!(f, "image of {len} bytes is shorter than the header"),
+            ImageError::BadMagic => write!(f, "bad magic, expected OSDT"),
+            ImageError::VersionMismatch { found, expected } => {
+                write!(f, "map image version {found} is not the version {expected} the loader accepts")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ImageError {}
+
+/// Checks the header prefix of an image: its length, magic and version.
+pub fn check_version(image: &[u8]) -> Result<()> {
+    if image.len() < HEADER_LEN {
+        return Err(ImageError::TooShort { len: image.len() }.into());
+    }
+    if image[0..4] != MAGIC {
+        return Err(ImageError::BadMagic.into());
+    }
+    let found = u16_at(image, 4)?;
+    if found != VERSION {
+        return Err(ImageError::VersionMismatch { found, expected: VERSION }.into());
+    }
+    Ok(())
+}
 
 fn u16_at(image: &[u8], at: usize) -> Result<u16> {
     let b = image.get(at..at + 2).ok_or_else(|| anyhow!("truncated at byte {at}"))?;
@@ -25,10 +63,7 @@ struct Section {
 }
 
 pub fn verify(image: &[u8]) -> Result<()> {
-    ensure!(image.len() >= HEADER_LEN, "image shorter than the header");
-    ensure!(image[0..4] == MAGIC, "bad magic");
-    let version = u16_at(image, 4)?;
-    ensure!(version == VERSION, "unsupported version {version}, expected {VERSION}");
+    check_version(image)?;
     ensure!(u16_at(image, 6)? as usize == HEADER_LEN, "bad header length");
     ensure!(u32_at(image, 8)? as usize == SECTIONS.len(), "bad section count");
     ensure!(u32_at(image, 12)? as usize == image.len(), "file length does not match");
