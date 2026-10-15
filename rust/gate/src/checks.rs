@@ -13,7 +13,7 @@ use server::room::{Room, RoomConfig};
 use server::{serve_catalog, serve_delta, serve_order, serve_state, Server};
 use sim::{fixed, Refusal, Sim};
 
-use crate::{mod_checks, sim_checks};
+use crate::{claimed_checks, mod_checks, sim_checks};
 
 pub const MAX_UNITS: usize = 1024;
 pub const RUN_TICKS: u32 = 2000;
@@ -103,6 +103,17 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("save-load-state", sim_checks::save_load_state),
     // CAP-PRES
     ("presentation-refusal", presentation_refusals_named),
+    // CAP rows still claimed in docs/CAPABILITIES.md, batch 1
+    ("sight-reveal", claimed_checks::sight_reveal),
+    ("last-seen-memory", claimed_checks::last_seen_memory),
+    ("air-terrain-crossing", claimed_checks::air_terrain_crossing),
+    ("ground-only-air-refusal", claimed_checks::ground_only_air_refusal),
+    ("unit-collision", claimed_checks::unit_collision),
+    ("narrow-passage-limit", claimed_checks::narrow_passage_limit),
+    ("weapon-range", claimed_checks::weapon_range),
+    ("order-recording", claimed_checks::order_recording),
+    ("mod-package-version", claimed_checks::mod_package_version),
+    ("save-load-hash-equal", sim_checks::save_load_state),
 ];
 
 pub fn data_dir() -> PathBuf {

@@ -1,4 +1,5 @@
 mod checks;
+mod claimed_checks;
 mod mod_checks;
 mod mpq_roundtrip;
 mod sim_checks;
