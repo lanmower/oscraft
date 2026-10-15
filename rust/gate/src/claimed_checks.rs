@@ -382,10 +382,10 @@ const TERRAIN_MOD: &str = r#"
 function on_tick(state)
   state.edit_ok = pcall(edit_terrain, 1, 1, 2, 2, false) and 1 or 0
   local ok, err = pcall(edit_terrain, 0, 0, 100000, 0, false)
-  state.edit_oob = (not ok and string.find(tostring(err), "out_of_grid") ~= nil) and 1 or 0
+  state.edit_oob = (not ok and tostring(err):find("out_of_grid", 1, true) ~= nil) and 1 or 0
   state.tile_ok = pcall(set_tile, 1, 1, 7) and 1 or 0
   local tok, terr = pcall(set_tile, 1, 1, 300)
-  state.tile_bad = (not tok and string.find(tostring(terr), "invalid_tile") ~= nil) and 1 or 0
+  state.tile_bad = (not tok and tostring(terr):find("invalid_tile", 1, true) ~= nil) and 1 or 0
 end
 "#;
 
@@ -405,7 +405,7 @@ function on_tick(state)
   local info = ability_info("pulse_shot")
   state.named = (info.name == "pulse_shot") and 1 or 0
   local ok, err = pcall(ability_info, "no_such_ability")
-  state.unknown = (not ok and string.find(tostring(err), "unknown_ability") ~= nil) and 1 or 0
+  state.unknown = (not ok and tostring(err):find("unknown_ability", 1, true) ~= nil) and 1 or 0
 end
 "#;
 
