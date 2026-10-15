@@ -17,7 +17,7 @@ use std::time::Duration;
 
 use http::{json_string, read_request, ReadError, Request, Response};
 use order::{parse_order, DEFAULT_ORDER_RATE, MAX_ORDER_BODY};
-use room::{spawn_ticker, Room, RoomConfig, TICKS_PER_SECOND};
+use room::{spawn_ticker, DeltaError, Room, RoomConfig, TICKS_PER_SECOND};
 
 const DEFAULT_MAX_ROOMS: usize = 16;
 const DEFAULT_MAX_UNITS: usize = 4096;
@@ -276,11 +276,36 @@ fn serve_state(room: &Room, _req: &Request) -> Response {
     )
 }
 
-fn serve_delta(_room: &Room, _req: &Request) -> Response {
-    Response::json(
-        501,
-        "{\"error\":\"delta_unsupported\",\"detail\":\"sim exposes no change tracking; GET /delta needs a sim accessor for changes since a tick\"}".to_string(),
-    )
+fn serve_delta(room: &Room, req: &Request) -> Response {
+    let Some(raw) = req.param("since") else {
+        return Response::error(400, "since is required: GET /delta?since=<tick>");
+    };
+    let Ok(since) = raw.parse::<u32>() else {
+        return Response::error(400, "since must be a tick number");
+    };
+    match room.delta_since(since) {
+        Ok(delta) => {
+            let units: Vec<String> = delta.units.iter().map(u32::to_string).collect();
+            Response::json(
+                200,
+                format!(
+                    "{{\"map\":{},\"since\":{},\"tick\":{},\"changed\":{},\"units\":[{}]}}",
+                    json_string(&room.name),
+                    since,
+                    delta.tick,
+                    units.len(),
+                    units.join(",")
+                ),
+            )
+        }
+        Err(DeltaError::Future { since, tick }) => Response::json(
+            400,
+            format!(
+                "{{\"error\":\"since_in_future\",\"since\":{},\"tick\":{}}}",
+                since, tick
+            ),
+        ),
+    }
 }
 
 fn serve_catalog(room: &Room, _req: &Request) -> Response {

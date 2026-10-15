@@ -47,6 +47,15 @@ pub struct Snapshot {
     pub units: usize,
 }
 
+pub struct Delta {
+    pub tick: u32,
+    pub units: Vec<u32>,
+}
+
+pub enum DeltaError {
+    Future { since: u32, tick: u32 },
+}
+
 pub struct Stats {
     pub tick: u64,
     pub overruns: u64,
@@ -114,6 +123,18 @@ impl Room {
 
     pub fn with_catalog<R>(&self, read: impl FnOnce(&sim::Catalog) -> R) -> R {
         read(lock(&self.clock).sim.catalog())
+    }
+
+    pub fn delta_since(&self, since: u32) -> Result<Delta, DeltaError> {
+        let c = lock(&self.clock);
+        let tick = c.sim.ticks();
+        if since > tick {
+            return Err(DeltaError::Future { since, tick });
+        }
+        let mut units = vec![0u32; c.sim.changed_count_since(since)];
+        let written = c.sim.changed_since(since, &mut units);
+        units.truncate(written);
+        Ok(Delta { tick, units })
     }
 
     pub fn player_has_units(&self, player: u8) -> bool {
