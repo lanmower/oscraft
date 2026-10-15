@@ -101,7 +101,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-CMB-3 | Ranged damage through launched and ticked projectiles | implemented | sim/src/projectiles.rs (launch_missile, tick_projectiles, free_missile) | gate:projectile-hit |
 | CAP-CMB-4 | Heal units over time through healers | implemented | sim/src/healers.rs (heal_area, heal_target, tick_healers) | gate:heal-units |
 | CAP-CMB-5 | Scale final damage by weapon damage type and target size category | stub | none | gate:damage-type-size |
-| CAP-CMB-6 | Hold attacks to weapon range and move the unit into range first | stub | none | gate:weapon-range |
+| CAP-CMB-6 | Hold attacks to weapon range and move the unit into range first | claimed | none | gate:weapon-range |
 | CAP-CMB-7 | Apply a fixed miss chance to ranged attacks on high ground or under cover | stub | none | gate:ranged-miss-chance |
 | CAP-CMB-8 | Block enemy targeting of cloaked and burrowed units unless a detector covers them | stub | none | gate:cloak-detection |
 

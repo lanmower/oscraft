@@ -1,7 +1,7 @@
 //! Steering, integration, teleport and the route hand-off to the flow-field pool.
 //! Velocities are Q16.16 world units per tick.
 
-use crate::arrays::{cell_of, Sim};
+use crate::arrays::{cell_of, dist2, Sim};
 use crate::fixed::{self, ONE, SHIFT};
 use crate::*;
 
@@ -226,6 +226,38 @@ impl Sim {
         if !self.teleport(caster, nx, ny) {
             self.refuse(Refusal::NoTeleport);
         }
+    }
+
+    /// Attacks `target` with unit `i`'s weapon, holding to weapon reach. A target beyond reach
+    /// sends the unit to the point at weapon range from it and strikes nothing this call; the
+    /// caller re-issues the order each tick until the strike lands. Returns true when the strike
+    /// happened. Refusals as `order_attack`. Integer arithmetic only, no state added.
+    pub fn order_attack_or_approach(&mut self, i: usize, target: usize) -> Result<bool, Refusal> {
+        if i >= self.n || self.alive[i] == 0 || target >= self.n || self.alive[target] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        let legal = i != target
+            && self.damage[i] > 0
+            && self.hostile(self.player[i], self.player[target])
+            && (self.targets[i] & self.layer_of(target)) != 0
+            && self.visible(self.player[i], target);
+        if !legal {
+            return Err(self.reject(Refusal::InvalidOrderTarget));
+        }
+        let reach = (self.range_sq[i] as i64) << SHIFT;
+        let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[target], self.pos_y[target]);
+        if d2 <= reach {
+            self.order_attack(i, target)?;
+            return Ok(true);
+        }
+        let d = isqrt(d2);
+        let r = self.range_q[i] as i64;
+        let dx = self.pos_x[i] as i64 - self.pos_x[target] as i64;
+        let dy = self.pos_y[i] as i64 - self.pos_y[target] as i64;
+        let sx = self.pos_x[target] as i64 + dx * r / d;
+        let sy = self.pos_y[target] as i64 + dy * r / d;
+        self.move_fixed(i, sx as i32, sy as i32);
+        Ok(false)
     }
 
     /// Issues an order of kind `kind` (ORDER_*) to unit `i`. Move, attack-move and patrol
