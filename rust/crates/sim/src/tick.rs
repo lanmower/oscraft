@@ -19,6 +19,7 @@ impl Sim {
             if self.alive[i] == 0 {
                 continue;
             }
+            let before = (self.pos_x[i], self.pos_y[i], self.tgt_x[i], self.tgt_y[i]);
             if self.abil_on {
                 self.tick_cooldowns(i);
             }
@@ -40,6 +41,9 @@ impl Sim {
                 self.steer(i);
                 self.integrate(i);
                 self.advance_patrol(i);
+            }
+            if (self.pos_x[i], self.pos_y[i], self.tgt_x[i], self.tgt_y[i]) != before {
+                self.touch(i);
             }
             self.note_idle(i);
             self.attack(i);

@@ -28,6 +28,7 @@ impl Sim {
         }
         if amount > 0 {
             self.shield[r] = self.shield[r].saturating_add(amount);
+            self.touch(r);
         }
     }
 
@@ -57,12 +58,14 @@ impl Sim {
             self.set_life(r, next);
         } else {
             self.shield[r] = next.max(0);
+            self.touch(r);
         }
     }
 
     /// Writes life clamped to [0, max]; a unit whose life reaches zero dies.
     fn set_life(&mut self, j: usize, value: i32) {
         self.hp[j] = value.clamp(0, self.hp_max[j]);
+        self.touch(j);
         if self.hp[j] == 0 && self.alive[j] != 0 {
             self.alive[j] = 0;
             self.stats.deaths += 1;

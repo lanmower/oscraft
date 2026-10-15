@@ -180,6 +180,7 @@ impl Sim {
         self.vel_y[i] = 0;
         self.routed[i] = 0;
         self.blocked[i] = 0;
+        self.touch(i);
         true
     }
 
@@ -259,6 +260,7 @@ impl Sim {
         }
         self.order_kind[i] = kind;
         self.routed[i] = 0;
+        self.touch(i);
         Ok(())
     }
 
@@ -286,6 +288,7 @@ impl Sim {
         let (x, y) = self.clamp_to_grid(x, y);
         self.tgt_x[i] = x;
         self.tgt_y[i] = y;
+        self.touch(i);
         true
     }
 }

@@ -77,6 +77,7 @@ impl Sim {
     /// The damage path shared by weapons and abilities: damage response, then shield,
     /// then life, with death recorded when life runs out.
     fn inflict(&mut self, j: usize, mut dmg: i32) {
+        self.touch(j);
         if dmg > 0 {
             self.trig_hit[j] = 1;
             match self.response[j] {

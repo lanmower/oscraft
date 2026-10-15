@@ -21,6 +21,7 @@ impl Sim {
             if self.hp[j] > self.hp_max[j] {
                 self.hp[j] = self.hp_max[j];
             }
+            self.touch(j);
         }
         self.scratch = buf;
     }
@@ -36,6 +37,7 @@ impl Sim {
             return;
         }
         self.hp[j] = self.hp[j].wrapping_add(amt).min(self.hp_max[j]);
+        self.touch(j);
     }
 
     /// The first free healer slot, or None when all are running.

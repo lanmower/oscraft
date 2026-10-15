@@ -10,6 +10,7 @@ impl Sim {
     /// Gives unit `j` behaviour `kind` for `ticks` ticks. Returns false (and counts a drop)
     /// with no free slot.
     pub(crate) fn apply_buff(&mut self, j: usize, kind: i32, ticks: i32) -> bool {
+        self.touch(j);
         let base = j * BUFF_SLOTS;
         let mut free = None;
         for k in 0..BUFF_SLOTS {
@@ -36,6 +37,7 @@ impl Sim {
     }
 
     pub(crate) fn clear_buff(&mut self, j: usize, kind: i32) {
+        self.touch(j);
         for k in 0..BUFF_SLOTS {
             if self.buff_kind[j * BUFF_SLOTS + k] == kind {
                 self.buff_kind[j * BUFF_SLOTS + k] = -1;
@@ -88,6 +90,7 @@ impl Sim {
                 self.buff_left[slot] -= 1;
                 if self.buff_left[slot] <= 0 {
                     self.buff_kind[slot] = -1;
+                    self.touch(i);
                 }
             }
         }

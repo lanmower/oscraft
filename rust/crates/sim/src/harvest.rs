@@ -93,6 +93,7 @@ impl Sim {
                     self.carry[i] = self.harvest_amt[tu].min(self.amount[tu]);
                     self.carry_kind[i] = self.kind[tu];
                     self.amount[tu] -= self.carry[i];
+                    self.touch(tu);
                     if self.amount[tu] <= 0 {
                         self.amount[tu] = 0;
                         self.alive[tu] = 0;

@@ -81,6 +81,7 @@ impl Sim {
         h.i32s(&self.abil_idx);
         h.i32s(&self.abil_cd);
         h.i32s(&self.energy);
+        h.u32s(&self.changed_at);
         h.bytes(&self.trig_hit);
         h.bytes(&self.trig_spawn);
         h.bytes(&self.trig_idle);

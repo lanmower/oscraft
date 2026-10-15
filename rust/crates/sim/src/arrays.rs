@@ -99,6 +99,7 @@ pub struct Sim {
     pub(crate) energy: Vec<i32>,
     pub(crate) abil_on: bool,
 
+    pub(crate) changed_at: Vec<u32>,
     pub(crate) trig_hit: Vec<u8>,
     pub(crate) trig_spawn: Vec<u8>,
     pub(crate) trig_idle: Vec<u8>,
@@ -219,6 +220,7 @@ impl Sim {
             abil_cd: vec![0; cap * ABILITY_SLOTS],
             energy: vec![0; cap],
             abil_on: false,
+            changed_at: vec![0; cap],
             trig_hit: vec![0; cap],
             trig_spawn: vec![0; cap],
             trig_idle: vec![0; cap],
@@ -489,6 +491,7 @@ impl Sim {
         if (player as usize) < MAX_PLAYERS {
             self.has_seer[player as usize] = true;
         }
+        self.touch(i);
         self.bucket_add(i);
         Some(i)
     }
@@ -535,7 +538,39 @@ impl Sim {
             self.tgt_x[i] = x;
             self.tgt_y[i] = y;
             self.order_kind[i] = ORDER_MOVE;
+            self.touch(i);
         }
+    }
+
+    /// Marks unit `i` as changed in the current tick. The delta read (`changed_since`) reports
+    /// marks made after a tick. A mark stores the tick number plus one, so a poll that took
+    /// `ticks()` as its `since` sees every change made from that tick on.
+    pub(crate) fn touch(&mut self, i: usize) {
+        if let Some(c) = self.changed_at.get_mut(i) {
+            *c = self.ticks.wrapping_add(1);
+        }
+    }
+
+    /// How many live units changed after tick `since`. Size the buffer for `changed_since` with it.
+    pub fn changed_count_since(&self, since: u32) -> usize {
+        (0..self.n).filter(|&i| self.changed_at[i] > since).count()
+    }
+
+    /// Writes the indices of live units that changed after tick `since` into `out`, in index
+    /// order, and returns how many were written. Units past `out.len()` are dropped, so size
+    /// `out` with `changed_count_since` first. Poll with `ticks()` as the next `since`.
+    pub fn changed_since(&self, since: u32, out: &mut [u32]) -> usize {
+        let mut k = 0;
+        for i in 0..self.n {
+            if k == out.len() {
+                break;
+            }
+            if self.changed_at[i] > since {
+                out[k] = i as u32;
+                k += 1;
+            }
+        }
+        k
     }
 
     pub fn order_all(&mut self, player: u8, x: i32, y: i32) {
