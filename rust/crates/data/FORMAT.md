@@ -2,7 +2,7 @@
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 11 adds the production, transport, channelling,
+reserved bytes listed below. Version 12 changes the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
 combat and cloak/burrow parameters as new sections. Every record size from version 10
 is unchanged. A reader of an older version must reject the file.
 
@@ -11,7 +11,7 @@ is unchanged. A reader of an older version must reject the file.
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `11`                                      |
+| 4      | 2    | version, `12`                                      |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `17`                                 |
 | 12     | 4    | total file length in bytes                          |
@@ -342,16 +342,19 @@ completed provider, bounded by `supply_max`. Queued production reserves its supp
 released on cancel.
 
 ## GRID (record size 1, count = byte length)
-| offset | size | field                                                    |
-|--------|------|----------------------------------------------------------|
-| 0      | 4    | width in cells, `>= 1`                                   |
-| 4      | 4    | height in cells, `>= 1`                                  |
-| 8      | 4    | cell size, milli-units                                   |
-| 12     | w*h  | cells, row-major (`index = y * width + x`), one byte each |
+| offset | size | field                                                                    |
+|--------|------|--------------------------------------------------------------------------|
+| 0      | 4    | width in cells, `>= 1`                                                   |
+| 4      | 4    | height in cells, `>= 1`                                                  |
+| 8      | 4    | cell size, milli-units                                                   |
+| 12     | 4    | height step, milli-units per height level, `>= 1`                       |
+| 16     | w*h  | walkability, row-major (`index = y * width + x`), one byte each          |
+| 16+w*h | w*h  | height level, same indexing, one byte each, `0..=255`                    |
 
-The body is exactly `12 + width * height` bytes. A map has exactly one grid.
-Each cell byte is a walkability bitfield (see below); bits 2 to 7 are written 0
-and rejected by the generator.
+The body is exactly `16 + 2 * width * height` bytes. A map has exactly one grid.
+Each walkability byte is a bitfield (see below); bits 2 to 7 are written 0 and
+rejected by the generator. A cell's elevation in milli-units is `level * height step`.
+The record size stays 1; the count is the body length.
 
 ## Registries
 
@@ -374,7 +377,8 @@ without a version bump.
 - Size category (`UEXT.size category`, `DMGF.size category`): `0 small`, `1 medium`, `2 large`
 - Cell walkability bits (`GRID` cell byte): `bit 0 = blocked` (value `1`),
   `bit 1 = cliff` (value `2`). A cell with neither bit is walkable. The bits are
-  combinable, so the valid cell values are `0..=3`.
+  combinable, so the valid cell values are `0..=3`. Cell height (`GRID` height
+  array): level `0..=255`, elevation `level * height step`.
 
 `use_ability` requires a behaviour ability index other than `0xFFFF`.
 
@@ -393,6 +397,7 @@ without a version bump.
 - Reject a DMGF record with a damage type above `2`, a size above `2`, or a negative factor.
 - Reject an ACHN record with a channel flag and a duration of `0`.
 - Reject a section whose count does not match its rule: REGN and UEXT equal the UNIT count, ACHN equals the ABIL count, ECON and LIMT are 1.
+- Reject a GRID body whose length is not `16 + 2 * width * height`, or a height step of `0`.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
 - Apply the receiver, radius, upgrade, research and supply rules above; they are not encoded in the record and must not be inferred from it.
 - The tick path never parses names. It uses only numeric fields.
