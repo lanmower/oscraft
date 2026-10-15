@@ -499,35 +499,24 @@ pub fn replay_hash_equal(image: &[u8]) -> Result<(), String> {
 }
 
 pub fn map_image_read(image: &[u8]) -> Result<(), String> {
-    osdt_data::reader::check_version(image).map_err(|e| format!("check_version: {e:#}"))?;
+    osdt_data::persist::check_version(image).map_err(|e| format!("check_version: {e}"))?;
     osdt_data::reader::verify(image).map_err(|e| format!("verify: {e:#}"))?;
     let mut stale = image.to_vec();
     stale[4] ^= 0xff;
-    if osdt_data::reader::check_version(&stale).is_ok() {
+    if osdt_data::persist::check_version(&stale).is_ok() {
         return Err("an image with a wrong version was accepted".into());
     }
     Ok(())
 }
 
 pub fn map_image_roundtrip(image: &[u8]) -> Result<(), String> {
-    use osdt_data::encode::{assemble, Section};
-    use osdt_data::format::SECTIONS;
-    use osdt_data::reader::read_sections;
+    use osdt_data::persist::{assemble, split};
 
-    let views = read_sections(image).map_err(|e| format!("read_sections: {e:#}"))?;
-    let mut sections = Vec::with_capacity(views.len());
-    for v in &views {
-        let record = SECTIONS
-            .iter()
-            .find(|(tag, _)| *tag == v.tag)
-            .map(|(_, r)| *r)
-            .ok_or_else(|| format!("section {:?} is not in FORMAT.md", v.tag))?;
-        sections.push(Section { tag: v.tag, count: v.count, record, body: v.body.to_vec() });
-    }
+    let sections = split(image).map_err(|e| format!("split: {e}"))?;
     let rebuilt = assemble(&sections);
     if rebuilt != image {
         return Err(format!(
-            "assemble(read_sections(image)) is {} bytes, image is {} bytes, and they differ",
+            "assemble(split(image)) is {} bytes, image is {} bytes, and they differ",
             rebuilt.len(),
             image.len()
         ));
