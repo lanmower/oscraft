@@ -1,19 +1,19 @@
-# OSDT data file, format version 6
+# OSDT data file, format version 7
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 6 defines the distance parameter of the `move`
-effect as a cap and bounds it by the map grid. Record sizes are unchanged from
-version 5. A reader of an older version must reject the file.
+reserved bytes listed below. Version 7 adds the PLCE section, which places units
+on the map. Other record sizes are unchanged from version 6. A reader of an older
+version must reject the file.
 
 ## Header (16 bytes)
 
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `6`                                       |
+| 4      | 2    | version, `7`                                       |
 | 6      | 2    | header length, `16`                                 |
-| 8      | 4    | section count, `7`                                  |
+| 8      | 4    | section count, `8`                                  |
 | 12     | 4    | total file length in bytes                          |
 
 A reader rejects the file on a magic mismatch, an unknown version, or a total
@@ -28,7 +28,7 @@ length that does not equal the file size.
 | 8      | 4    | record count                                       |
 | 12     | 4    | record size in bytes                               |
 
-Sections appear in this order, and the reader requires all seven tags:
+Sections appear in this order, and the reader requires all eight tags:
 
 | tag    | record size | count means        |
 |--------|-------------|--------------------|
@@ -38,6 +38,7 @@ Sections appear in this order, and the reader requires all seven tags:
 | `UABL` | 2           | ability index refs |
 | `UNIT` | 80          | unit records       |
 | `BHVR` | 16          | behaviour records  |
+| `PLCE` | 16          | placement records  |
 | `GRID` | 1           | byte length        |
 
 Section bodies follow the table back to back. A section body occupies
@@ -164,6 +165,19 @@ A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 | 12     | 2    | ability index into `ABIL`, `0xFFFF` = none |
 | 14     | 2    | reserved, write 0                        |
 
+### PLCE (16 bytes per record)
+One record per starting unit placed on the map.
+| offset | size | field                                                  |
+|--------|------|--------------------------------------------------------|
+| 0      | 2    | unit index into `UNIT`                                 |
+| 2      | 2    | player index, `0..=15`                                 |
+| 4      | 4    | x, milli-units, `0 <= x < width * cell_milli`          |
+| 8      | 4    | y, milli-units, `0 <= y < height * cell_milli`         |
+| 12     | 4    | reserved, write 0                                      |
+
+Records are in declaration order. A position at the grid edge (`x` or `y` equal
+to the grid extent) is refused; positions are on the map, not past its border.
+
 ### GRID (record size 1, count = byte length)
 | offset | size | field                                                    |
 |--------|------|----------------------------------------------------------|
@@ -205,5 +219,6 @@ without a version bump.
 - Bounds-check every index (`EFCT`, `UABL`, `ABIL`, `UNIT`, `STRS`) against its section count.
 - Reject an effect kind code above `10`, and any effect whose parameters fall outside the table above.
 - Reject a `move` cap of 0 or one whose square exceeds the grid diagonal squared, computed from the GRID header.
+- Reject a PLCE record whose unit index is past `UNIT`, whose player is above `15`, or whose position is outside the grid extent.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
 - The tick path never parses names. It uses only numeric fields.
