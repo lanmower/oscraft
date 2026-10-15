@@ -1,17 +1,17 @@
-# OSDT data file, format version 5
+# OSDT data file, format version 6
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 5 grows the EFCT record from 16 to 20 bytes to
-add a fourth parameter slot, and defines the parameter slots of every effect kind
-explicitly. A reader of an older version must reject the file.
+reserved bytes listed below. Version 6 defines the distance parameter of the `move`
+effect as a cap and bounds it by the map grid. Record sizes are unchanged from
+version 5. A reader of an older version must reject the file.
 
 ## Header (16 bytes)
 
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `5`                                       |
+| 4      | 2    | version, `6`                                       |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `7`                                  |
 | 12     | 4    | total file length in bytes                          |
@@ -77,7 +77,7 @@ Effect parameters by kind:
 |------|--------------------|--------------------------------------------------------------------|----------------------------------------|-----------------------------|----------------------------------|
 | 0    | `damage`           | amount, `>= 0`                                                     | radius, milli-units, `>= 0` (0 = target only) | –                    | –                                |
 | 1    | `heal`             | amount, `>= 0`                                                     | radius, milli-units, `>= 0` (0 = target only) | –                    | –                                |
-| 2    | `move`             | distance, milli-units                                              | –                                      | –                           | –                                |
+| 2    | `move`             | distance cap, milli-units, `> 0` and `<=` the grid diagonal        | –                                      | –                           | –                                |
 | 3    | `spawn`            | unit index into `UNIT`, `>= 0`                                     | –                                      | –                           | –                                |
 | 4    | `buff`             | buff kind code (sim-defined), `>= 0`                               | duration, ticks, `>= 0`                | –                           | –                                |
 | 5    | `issue_order`      | order kind: `0 stop`, `1 attack_move`, `2 hold`                    | target: `0 caster_relative`, `1 point` | –                           | –                                |
@@ -94,6 +94,14 @@ to it, where the target value is the current vital (`0 current`) or its maximum
 
 `damage` and `heal` use p1 as a splash radius. A radius of 0 means the effect
 applies to its target only.
+
+`move` uses p0 as a cap on how far the caster moves toward the cast point, in
+milli-units. A cast point closer than the cap is reached exactly. A cast point
+beyond the cap is clamped to the cap, placed along the same line from the caster.
+The cap must be greater than 0, and it must not exceed the grid diagonal
+`sqrt((width * cell_milli)^2 + (height * cell_milli)^2)`, so that every point
+on the map is within reach of some legal cap. The generator refuses a cap that
+breaks either rule. The check compares squares in integers, so no float is read.
 
 ## ABIL (32 bytes per record)
 | offset | size | field                                              |
@@ -196,5 +204,6 @@ without a version bump.
 - Read every field at its offset. Reserved bytes are written 0 and ignored on read.
 - Bounds-check every index (`EFCT`, `UABL`, `ABIL`, `UNIT`, `STRS`) against its section count.
 - Reject an effect kind code above `10`, and any effect whose parameters fall outside the table above.
+- Reject a `move` cap of 0 or one whose square exceeds the grid diagonal squared, computed from the GRID header.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
 - The tick path never parses names. It uses only numeric fields.
