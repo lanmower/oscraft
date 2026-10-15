@@ -75,7 +75,7 @@ impl Refusal {
     }
 }
 
-const TARGET_UNIT: u8 = 1;
+pub(crate) const TARGET_UNIT: u8 = 1;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 const EFFECT_MOVE: u16 = 2;
