@@ -112,8 +112,8 @@ impl Sim {
                 if self.arrived(i, tu) {
                     self.wstate[i] = W_GATHER;
                     self.wtimer[i] = match self.kind[tu] {
-                        KIND_MINERAL => self.gather_ticks_at(tu, self.cat.econ.sat_mineral),
-                        KIND_GEYSER => self.gather_ticks_at(tu, self.cat.econ.sat_gas),
+                        KIND_MINERAL => self.gather_ticks_at(tu, self.cat.econ.workers_per_mineral as i32),
+                        KIND_GEYSER => self.gather_ticks_at(tu, self.cat.econ.workers_per_extractor as i32),
                         _ => GATHER_TICKS,
                     };
                     self.tgt_x[i] = self.pos_x[i];

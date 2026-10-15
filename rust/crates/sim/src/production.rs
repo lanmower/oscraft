@@ -19,10 +19,10 @@ impl Sim {
             return;
         }
         let econ = self.cat.econ;
-        self.minerals[pi] += econ.open_minerals;
-        self.vespene[pi] += econ.open_gas;
+        self.minerals[pi] += econ.opening_minerals;
+        self.vespene[pi] += econ.opening_gas;
         if let Some(kind) = self.cat.units.iter().position(|u| u.filter & FILTER_WORKER != 0) {
-            for _ in 0..econ.open_workers {
+            for _ in 0..econ.opening_workers {
                 if self.spawn_for(p, kind as u32, x, y).is_none() {
                     break;
                 }
@@ -50,9 +50,9 @@ impl Sim {
     pub(crate) fn supply_cap(&self, p: usize) -> i32 {
         let provided: i32 = (0..self.n)
             .filter(|&j| self.alive[j] != 0 && self.player[j] as usize == p)
-            .map(|j| self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.supply_provided))
+            .map(|j| self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.supply_provided as i32))
             .sum();
-        (self.cat.econ.supply_base + provided).min(self.cat.econ.supply_max)
+        (self.cat.econ.supply_base as i32 + provided).min(self.cat.econ.supply_max as i32)
     }
 
     /// Places the base's mineral patches and geysers from ECON: `patches` patches in a row east
@@ -62,7 +62,7 @@ impl Sim {
         let econ = self.cat.econ;
         const NEUTRAL: u8 = 0xFF;
         if let Some(kind) = self.cat.units.iter().position(|u| u.resource_kind == 1) {
-            for k in 0..econ.patches.max(0) {
+            for k in 0..econ.patches_per_base as i32 {
                 let at = (x + fixed::from_int(2 + k), y - fixed::from_int(2));
                 if let Some(i) = self.spawn_for(NEUTRAL, kind as u32, at.0, at.1) {
                     self.amount[i] = econ.minerals_per_patch;
@@ -70,7 +70,7 @@ impl Sim {
             }
         }
         if let Some(kind) = self.cat.units.iter().position(|u| u.resource_kind == 2) {
-            for k in 0..econ.geysers.max(0) {
+            for k in 0..econ.extractors_per_base as i32 {
                 let at = (x - fixed::from_int(2), y + fixed::from_int(2 + k));
                 if let Some(i) = self.spawn_for(NEUTRAL, kind as u32, at.0, at.1) {
                     self.amount[i] = econ.gas_per_geyser;
