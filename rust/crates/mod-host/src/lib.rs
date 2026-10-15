@@ -1,9 +1,9 @@
 //! Lua 5.4 mod host. A mod is a chunk that defines `on_tick(state)`. The host owns
 //! `state` and the sim; a mod reload never resets them.
 
-use mlua::{Function, Lua, Table};
+use mlua::{Function, Lua, RegistryKey, Table};
 use sim::{LoadError, Sim};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -11,9 +11,12 @@ use std::time::SystemTime;
 
 const MAX_UNITS: usize = 1024;
 const MAX_REGIONS: usize = 64;
+const MAX_TIMERS: usize = 256;
 
 type Shared = Rc<RefCell<Sim>>;
 type Regions = Rc<RefCell<Vec<Region>>>;
+type Timers = Rc<RefCell<Vec<Timer>>>;
+type Clock = Rc<Cell<u64>>;
 
 // Q16.16 corners, normalized so x0 <= x1 and y0 <= y1.
 struct Region {
@@ -28,6 +31,14 @@ impl Region {
     fn contains(&self, x: i32, y: i32) -> bool {
         x >= self.x0 && x <= self.x1 && y >= self.y0 && y <= self.y1
     }
+}
+
+// The action is a Lua function held in the registry. A timer is due when the host
+// clock reaches its due tick; the clock advances once per ModHost::advance.
+struct Timer {
+    name: String,
+    due: u64,
+    action: RegistryKey,
 }
 
 struct Hooks {
@@ -67,6 +78,8 @@ pub struct ModHost {
     world: Shared,
     state: Table,
     regions: Regions,
+    timers: Timers,
+    clock: Clock,
     inside: Vec<u64>,
     snap: Vec<UnitSnap>,
     prev: Vec<UnitSnap>,
@@ -90,7 +103,7 @@ fn unknown_region(name: &str) -> mlua::Error {
 // which is the unit's position in the OSDT UNIT section: `Sim::catalog().unit_index`
 // (sim/src/loader.rs) maps the STRS name to that position. A name the catalog does
 // not know spawns nothing.
-fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions) -> mlua::Result<()> {
+fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: &Timers, clock: &Clock) -> mlua::Result<()> {
     let w = world.clone();
     env.set(
         "spawn_unit",
@@ -141,15 +154,45 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions) -> mlua:
             Ok(region.contains(x, y))
         })?,
     )?;
+    let t = timers.clone();
+    let c = clock.clone();
+    env.set(
+        "schedule",
+        lua.create_function(move |lua, (name, after, action): (String, i64, Function)| {
+            let after = u64::try_from(after).map_err(|_| mlua::Error::RuntimeError(format!("schedule_delay: {after} is negative")))?;
+            let due = c.get() + after.max(1);
+            let action = lua.create_registry_value(action)?;
+            let mut timers = t.borrow_mut();
+            if let Some(slot) = timers.iter_mut().find(|x| x.name == name) {
+                *slot = Timer { name, due, action };
+                return Ok(());
+            }
+            if timers.len() >= MAX_TIMERS {
+                return Err(mlua::Error::RuntimeError(format!("timer_limit: at most {MAX_TIMERS} timers")));
+            }
+            timers.push(Timer { name, due, action });
+            Ok(())
+        })?,
+    )?;
+    let t = timers.clone();
+    env.set(
+        "cancel",
+        lua.create_function(move |_, name: String| {
+            let mut timers = t.borrow_mut();
+            let Some(i) = timers.iter().position(|x| x.name == name) else { return Ok(false) };
+            timers.remove(i);
+            Ok(true)
+        })?,
+    )?;
     Ok(())
 }
 
 // Builds a fresh environment, runs the chunk in it, and returns its on_tick.
 // Errors carry "<path>:<line>: <message>" because the chunk is named "@<path>".
-fn compile(lua: &Lua, world: &Shared, regions: &Regions, path: &Path) -> mlua::Result<Hooks> {
+fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock: &Clock, path: &Path) -> mlua::Result<Hooks> {
     let src = fs::read_to_string(path).map_err(io_err)?;
     let env = lua.create_table()?;
-    bind_host(lua, &env, world, regions)?;
+    bind_host(lua, &env, world, regions, timers, clock)?;
     lua.load(src.as_str())
         .set_name(format!("@{}", path.display()))
         .set_environment(env.clone())
@@ -185,6 +228,8 @@ impl ModHost {
             world,
             state,
             regions,
+            timers: Rc::new(RefCell::new(Vec::with_capacity(MAX_TIMERS))),
+            clock: Rc::new(Cell::new(0)),
             inside: vec![0; MAX_UNITS],
             snap: Vec::with_capacity(MAX_UNITS),
             prev: Vec::with_capacity(MAX_UNITS),
@@ -195,7 +240,7 @@ impl ModHost {
 
     /// Compiles the mod at `path` and makes it the active mod.
     pub fn load(&mut self, path: &Path) -> mlua::Result<()> {
-        let hooks = compile(&self.lua, &self.world, &self.regions, path)?;
+        let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, path)?;
         self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, hooks });
         Ok(())
     }
@@ -208,7 +253,7 @@ impl ModHost {
             return;
         }
         m.mtime = t;
-        match compile(&self.lua, &self.world, &self.regions, &m.path) {
+        match compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &m.path) {
             Ok(hooks) => {
                 m.hooks = hooks;
                 println!("reload: ok ({})", m.path.display());
@@ -228,10 +273,25 @@ impl ModHost {
     /// One sim tick, then trigger zone transitions for the new unit positions, then
     /// on_tick. Transitions are emitted in unit index order, then region index order.
     pub fn advance(&mut self, state: &Table) -> mlua::Result<()> {
+        self.clock.set(self.clock.get() + 1);
         self.world.borrow_mut().tick();
         self.collect();
         self.dispatch()?;
+        self.fire_timers()?;
         self.tick(state)
+    }
+
+    // Fires every due timer in insertion order. A timer is removed before its action
+    // runs, so an action that schedules again cannot fire twice in one advance.
+    fn fire_timers(&self) -> mlua::Result<()> {
+        let now = self.clock.get();
+        loop {
+            let due = self.timers.borrow().iter().position(|t| t.due <= now);
+            let Some(i) = due else { return Ok(()) };
+            let timer = self.timers.borrow_mut().remove(i);
+            let action: Function = self.lua.registry_value(&timer.action)?;
+            action.call::<()>(())?;
+        }
     }
 
     fn collect(&mut self) {
