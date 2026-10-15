@@ -56,6 +56,9 @@ jobs:
       - name: Run parity gate
         run: cargo run --release --quiet > gate.txt 2>&1 || echo "gate exited nonzero" >> gate.txt
 
+      - name: MPQ round-trip
+        run: cargo run --release --quiet -- mpq
+
       - name: Show gate output
         run: cat gate.txt
 

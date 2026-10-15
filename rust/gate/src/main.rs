@@ -1,5 +1,7 @@
 use std::path::Path;
 
+mod mpq_roundtrip;
+
 const TICKS: u32 = 2000;
 const MAX_UNITS: usize = 1024;
 
@@ -22,6 +24,13 @@ fn count_spawns(map: &Path) -> Result<usize, String> {
 }
 
 fn main() {
+    if std::env::args().nth(1).as_deref() == Some("mpq") {
+        if !mpq_roundtrip::run() {
+            std::process::exit(1);
+        }
+        return;
+    }
+
     let data_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("data");
 
     let image = osdt_data::generate(&data_dir).unwrap_or_else(|e| fail("image_build", &format!("{e:#}")));
