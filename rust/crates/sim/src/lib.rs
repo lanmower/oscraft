@@ -25,6 +25,7 @@ mod rules;
 mod shields;
 mod tick;
 mod triggers;
+mod limits;
 mod upgrades;
 
 pub use arrays::{Sim, Stats};

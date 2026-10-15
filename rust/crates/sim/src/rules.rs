@@ -39,9 +39,10 @@ pub enum Refusal {
     UiPanelUnsupported,
     ChatUnsupported,
     UpgradeRefused,
+    CellFull,
 }
 
-pub const REFUSAL_KINDS: usize = 27;
+pub const REFUSAL_KINDS: usize = 28;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -73,6 +74,7 @@ impl Refusal {
             Refusal::UiPanelUnsupported => "ui-panel-unsupported",
             Refusal::ChatUnsupported => "chat-unsupported",
             Refusal::UpgradeRefused => "upgrade-refused",
+            Refusal::CellFull => "cell-full",
         }
     }
 }

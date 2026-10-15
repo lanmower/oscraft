@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 6;
+const STATE_VERSION: u16 = 7;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -42,6 +42,7 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::UiPanelUnsupported,
     Refusal::ChatUnsupported,
     Refusal::UpgradeRefused,
+    Refusal::CellFull,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.

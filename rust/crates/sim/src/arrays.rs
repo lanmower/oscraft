@@ -435,6 +435,10 @@ impl Sim {
         if !def.is_air() && !self.grid.walkable(fixed::to_int(x), fixed::to_int(y)) {
             return None;
         }
+        if !self.cell_has_room(x, y) {
+            self.refuse(Refusal::CellFull);
+            return None;
+        }
         let i = self.head;
         self.head += 1;
         self.n = self.head;
