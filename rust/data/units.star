@@ -67,3 +67,16 @@ unit(
     filters=["air", "biological", "light"],
     sight_milli=9000,
 )
+# Flying unit without the ground filter: a second target for ability-target-filter.
+unit(
+    "gunship",
+    150,
+    2600,
+    600,
+    build_time=600,
+    minerals=150,
+    gas=100,
+    supply=3,
+    filters=["air", "armored", "massive"],
+    sight_milli=11000,
+)

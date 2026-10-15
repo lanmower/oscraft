@@ -27,3 +27,5 @@ spawn("spore", -1, 16000, 12000)
 # Worker (worker filter, harvests minerals) and biological unit (no ground filter), placed for players.
 spawn("tender", 0, 19000, 17000)
 spawn("spore", 1, 25000, 16000)
+# Flying unit without the ground filter, placed for player 1.
+spawn("gunship", 1, 24000, 14000)
