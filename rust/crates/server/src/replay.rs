@@ -15,6 +15,7 @@ pub enum ReplayError {
     OrderRefused { tick: u32, unit: i32, refusal: Refusal },
     HashMismatch { tick: u32, expected: u64, actual: u64 },
     TraceGap { tick: u32 },
+    TraceLength { want: u32, got: u32 },
     RecordBeyondTrace { tick: u32 },
     BadSpeed { speed: u32 },
     OutOfTrace { tick: u32, base: u32, end: u32 },
@@ -37,6 +38,20 @@ fn apply(sim: &mut Sim, record: Record) -> Result<(), ReplayError> {
     let (tick, unit, kind, x, y) = record;
     sim.issue_order_kind(unit as usize, kind, x, y)
         .map_err(|refusal| ReplayError::OrderRefused { tick, unit, refusal })
+}
+
+/// Applies the orders recorded at the sim's current tick, takes the state hash, then steps the
+/// sim one tick. The hash is taken after the orders and before the step.
+fn step_tick(sim: &mut Sim, records: &[Record]) -> Result<u64, ReplayError> {
+    let t = sim.ticks();
+    let mut k = records.partition_point(|r| r.0 < t);
+    while k < records.len() && records[k].0 == t {
+        apply(sim, records[k])?;
+        k += 1;
+    }
+    let hash = sim.state_hash();
+    sim.tick();
+    Ok(hash)
 }
 
 /// Replays the accepted-order log of `source` into `fresh`, which must start at or before the
@@ -79,9 +94,9 @@ pub fn play(source: &Sim, fresh: &mut Sim, checkpoints: &[(u32, u64)]) -> Result
     Ok(fresh.ticks())
 }
 
-/// Plays the order log back at a chosen speed, paused or running, and seeks to any tick in the
-/// trace. Seeking restores the nearest snapshot at or before the target and re-runs the orders
-/// from there; every tick stepped is checked against its traced state hash.
+/// Plays the order log back at a chosen speed, paused or running, and seeks to any tick up to
+/// the source's end. Seeking restores the nearest snapshot at or before the target and re-runs
+/// the orders from there; every stepped tick is checked against its state hash.
 pub struct Playback {
     sim: Sim,
     base: u32,
@@ -94,20 +109,16 @@ pub struct Playback {
 }
 
 impl Playback {
-    /// `fresh` must sit at the first traced tick. `trace` holds `(tick, state_hash)` for every
-    /// tick from there to the end, contiguous and sorted; each hash is taken after that tick's
-    /// orders are applied and before the tick steps.
-    pub fn new(source: &Sim, fresh: Sim, trace: &[(u32, u64)]) -> Result<Playback, ReplayError> {
+    /// Covers every tick from `fresh` up to the source's current tick. With `trace` empty, the
+    /// reference hashes come from one replay pass from `fresh` (a determinism check of the
+    /// replay itself); otherwise `trace` holds `(tick, state_hash)` for each of those ticks,
+    /// contiguous and sorted, as the live run recorded them.
+    pub fn new(source: &Sim, mut fresh: Sim, trace: &[(u32, u64)]) -> Result<Playback, ReplayError> {
         let base = fresh.ticks();
-        let mut hashes = Vec::with_capacity(trace.len());
-        for (i, &(tick, hash)) in trace.iter().enumerate() {
-            let want = base + i as u32;
-            if tick != want {
-                return Err(ReplayError::TraceGap { tick: want });
-            }
-            hashes.push(hash);
+        let end = source.ticks();
+        if base > end {
+            return Err(ReplayError::Ahead { tick: end, at: base });
         }
-        let end = base + hashes.len() as u32;
         let records = order_records(source)?;
         if let Some(first) = records.first() {
             if first.0 < base {
@@ -122,13 +133,37 @@ impl Playback {
                 return Err(ReplayError::RecordBeyondTrace { tick: last.0 });
             }
         }
-        let snapshots = vec![(base, fresh.save_state())];
+        let start = fresh.save_state();
+        let hashes = if trace.is_empty() {
+            let mut hashes = Vec::with_capacity((end - base) as usize);
+            while fresh.ticks() < end {
+                hashes.push(step_tick(&mut fresh, &records)?);
+            }
+            fresh
+                .load_state(&start)
+                .map_err(|cause| ReplayError::Restore { tick: base, cause })?;
+            hashes
+        } else {
+            for (i, &(tick, _)) in trace.iter().enumerate() {
+                let want = base + i as u32;
+                if tick != want {
+                    return Err(ReplayError::TraceGap { tick: want });
+                }
+            }
+            if base + trace.len() as u32 != end {
+                return Err(ReplayError::TraceLength {
+                    want: end - base,
+                    got: trace.len() as u32,
+                });
+            }
+            trace.iter().map(|&(_, h)| h).collect()
+        };
         Ok(Playback {
             sim: fresh,
             base,
             hashes,
             records,
-            snapshots,
+            snapshots: vec![(base, start)],
             speed: 1,
             paused: false,
             carry: 0.0,
@@ -214,13 +249,8 @@ impl Playback {
         if t - last_snapshot >= SNAP_EVERY {
             self.snapshots.push((t, self.sim.save_state()));
         }
-        let mut k = self.records.partition_point(|r| r.0 < t);
-        while k < self.records.len() && self.records[k].0 == t {
-            apply(&mut self.sim, self.records[k])?;
-            k += 1;
-        }
         let expected = self.hashes[(t - self.base) as usize];
-        let actual = self.sim.state_hash();
+        let actual = step_tick(&mut self.sim, &self.records)?;
         if actual != expected {
             return Err(ReplayError::HashMismatch {
                 tick: t,
@@ -228,7 +258,6 @@ impl Playback {
                 actual,
             });
         }
-        self.sim.tick();
         Ok(())
     }
 }
