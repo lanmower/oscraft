@@ -1,4 +1,4 @@
-//! Reference reader: checks an image against FORMAT.md v7 before it is written.
+//! Reference reader: checks an image against FORMAT.md v10 before it is written.
 //! The sim crate has its own loader; this one guards the generator's output.
 
 use anyhow::{anyhow, ensure, Result};
@@ -48,8 +48,17 @@ pub fn verify(image: &[u8]) -> Result<()> {
     }
     ensure!(expected == image.len(), "trailing bytes after the last section");
 
-    let (efct, abil, uabl, unit, plce, grid) =
-        (&sections[1], &sections[2], &sections[3], &sections[4], &sections[6], &sections[7]);
+    let (efct, abil, uabl, unit, plce, upgr, regn, limt, grid) = (
+        &sections[1],
+        &sections[2],
+        &sections[3],
+        &sections[4],
+        &sections[6],
+        &sections[7],
+        &sections[8],
+        &sections[9],
+        &sections[10],
+    );
 
     let width = u32_at(image, grid.offset)?;
     let height = u32_at(image, grid.offset + 4)?;
@@ -58,6 +67,8 @@ pub fn verify(image: &[u8]) -> Result<()> {
         width >= 1 && height >= 1 && GRID_HEADER_LEN + width as usize * height as usize == grid.count,
         "grid size does not match its header"
     );
+    ensure!(limt.count == 1, "LIMT count must be 1");
+    ensure!(regn.count == unit.count, "REGN count differs from UNIT count");
 
     for i in 0..efct.count {
         let at = efct.offset + i * EFCT_RECORD;
@@ -136,6 +147,23 @@ pub fn verify(image: &[u8]) -> Result<()> {
             position_on_grid(x, y, width, height, cell_milli),
             "placement {i} at ({x}, {y}) is off the grid"
         );
+    }
+
+    for i in 0..upgr.count {
+        let at = upgr.offset + i * UPGR_RECORD;
+        let target_kind = image[at + 6] as usize;
+        let level = image[at + 7];
+        let apply = image[at + 8] as usize;
+        let stacking = image[at + 9] as usize;
+        let target = u16_at(image, at + 10)? as usize;
+        let effect = u32_at(image, at + 12)? as usize;
+        ensure!(target_kind < UPGRADE_TARGET_KINDS.len(), "upgrade {i} target kind out of range");
+        ensure!(level >= 1, "upgrade {i} level is 0");
+        ensure!(apply < UPGRADE_APPLY.len(), "upgrade {i} applies-to out of range");
+        ensure!(stacking < UPGRADE_STACKING.len(), "upgrade {i} stacking rule out of range");
+        let target_count = if target_kind == 0 { unit.count } else { abil.count };
+        ensure!(target < target_count, "upgrade {i} target past its section");
+        ensure!(effect < efct.count, "upgrade {i} effect past EFCT");
     }
 
     for &cell in &image[grid.offset + GRID_HEADER_LEN..grid.offset + grid.count] {

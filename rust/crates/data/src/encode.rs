@@ -75,6 +75,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
     let mut uabl = Vec::new();
     let mut uabl_count: u32 = 0;
     let mut unit_bytes = Vec::new();
+    let mut regn = Vec::new();
     for unit in &catalog.units {
         let ability_first = uabl_count;
         for &id in &unit.ability_ids {
@@ -112,6 +113,12 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u32_le(&mut unit_bytes, unit.harvest);
         pad(&mut unit_bytes, 4);
         debug_assert_eq!(unit_bytes.len() - start, UNIT_RECORD);
+
+        let start = regn.len();
+        u32_le(&mut regn, unit.shield_regen);
+        u32_le(&mut regn, unit.regen_delay);
+        u32_le(&mut regn, unit.health_regen);
+        debug_assert_eq!(regn.len() - start, REGN_RECORD);
     }
 
     let mut bhvr = Vec::new();
@@ -139,6 +146,33 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         debug_assert_eq!(plce.len() - start, PLCE_RECORD);
     }
 
+    // Upgrade effects follow the ability effects in EFCT, one slot per upgrade.
+    let mut upgr = Vec::new();
+    for upgrade in &catalog.upgrades {
+        let effect_index = efct_count;
+        u16_le(&mut efct, upgrade.effect.kind);
+        pad(&mut efct, 2);
+        for param in upgrade.effect.params {
+            i32_le(&mut efct, param);
+        }
+        efct_count += 1;
+
+        let (name_off, name_len) = strings.intern(&upgrade.name);
+        let start = upgr.len();
+        u32_le(&mut upgr, name_off);
+        u16_le(&mut upgr, name_len);
+        upgr.push(upgrade.target_kind);
+        upgr.push(upgrade.level);
+        upgr.push(upgrade.apply);
+        upgr.push(upgrade.stacking);
+        u16_le(&mut upgr, upgrade.target);
+        u32_le(&mut upgr, effect_index);
+        debug_assert_eq!(upgr.len() - start, UPGR_RECORD);
+    }
+
+    let mut limt = Vec::new();
+    u32_le(&mut limt, catalog.cell_limit);
+
     let mut grid = Vec::with_capacity(GRID_HEADER_LEN + catalog.grid.cells.len());
     u32_le(&mut grid, catalog.grid.width);
     u32_le(&mut grid, catalog.grid.height);
@@ -155,6 +189,9 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_UNIT, catalog.units.len(), UNIT_RECORD, unit_bytes),
         (TAG_BHVR, catalog.behaviours.len(), BHVR_RECORD, bhvr),
         (TAG_PLCE, catalog.spawns.len(), PLCE_RECORD, plce),
+        (TAG_UPGR, catalog.upgrades.len(), UPGR_RECORD, upgr),
+        (TAG_REGN, catalog.units.len(), REGN_RECORD, regn),
+        (TAG_LIMT, 1, LIMT_RECORD, limt),
         (TAG_GRID, grid_len, GRID_RECORD, grid),
     ];
 

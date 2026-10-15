@@ -10,9 +10,10 @@ use starlark::values::{list::UnpackList, none::NoneType};
 
 use crate::format::{
     effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, DAMAGE_RESPONSES, EFFECT_KINDS,
-    FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, TARGETS, TRIGGERS,
+    FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING,
+    UPGRADE_TARGET_KINDS,
 };
-use crate::model::{AbilityRaw, BehaviourRaw, Collector, EffectRaw, Grid, SpawnRaw, UnitRaw, WeaponRaw};
+use crate::model::{AbilityRaw, BehaviourRaw, Collector, EffectRaw, Grid, SpawnRaw, UnitRaw, UpgradeRaw, WeaponRaw};
 
 pub fn globals() -> Globals {
     GlobalsBuilder::standard().with(osdt_builtins).build()
@@ -91,6 +92,9 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] damage_response: Option<&str>,
         #[starlark(require = named)] resource: Option<&str>,
         #[starlark(require = named)] harvest: Option<i32>,
+        #[starlark(require = named)] shield_regen: Option<i32>,
+        #[starlark(require = named)] regen_delay: Option<i32>,
+        #[starlark(require = named)] health_regen: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let abilities: Vec<String> = abilities.map(|list| list.items).unwrap_or_default();
@@ -125,6 +129,9 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             damage_response,
             resource_kind,
             harvest: harvest.unwrap_or(0),
+            shield_regen: shield_regen.unwrap_or(0),
+            regen_delay: regen_delay.unwrap_or(0),
+            health_regen: health_regen.unwrap_or(0),
         });
         Ok(NoneType)
     }
@@ -214,6 +221,45 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             y,
             start: true,
         });
+        Ok(NoneType)
+    }
+
+    fn upgrade(
+        name: &str,
+        kind: &str,
+        target: &str,
+        effect: i32,
+        #[starlark(require = named)] level: Option<i32>,
+        #[starlark(require = named)] apply: Option<&str>,
+        #[starlark(require = named)] stacking: Option<&str>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let target_kind = index_of(UPGRADE_TARGET_KINDS, kind, "upgrade target kind")?;
+        let apply = index_of(UPGRADE_APPLY, apply.unwrap_or("new_only"), "upgrade apply")?;
+        let stacking = index_of(UPGRADE_STACKING, stacking.unwrap_or("replace"), "upgrade stacking")?;
+        let effect = usize::try_from(effect).map_err(|_| anyhow!("upgrade {name:?} has an invalid effect handle"))?;
+        collector(eval)?.upgrades.borrow_mut().push(UpgradeRaw {
+            name: name.to_owned(),
+            target_kind,
+            target: target.to_owned(),
+            level: level.unwrap_or(1),
+            apply,
+            stacking,
+            effect,
+        });
+        Ok(NoneType)
+    }
+
+    fn limit(#[starlark(require = named)] per_cell: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.cell_limit.borrow_mut();
+        if slot.is_some() {
+            bail!("limit() may be called once per map");
+        }
+        if per_cell < 0 {
+            bail!("limit per_cell {per_cell} is negative");
+        }
+        *slot = Some(per_cell);
         Ok(NoneType)
     }
 

@@ -37,6 +37,8 @@ unit(
     damage_response="reduced",
     resource="gas",
     harvest=4,
+    shield_regen=2,
+    regen_delay=600,
 )
 # Worker with the worker filter: exercises harvest-resources.
 unit(

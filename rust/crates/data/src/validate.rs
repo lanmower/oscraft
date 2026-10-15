@@ -5,10 +5,10 @@ use std::collections::HashMap;
 use anyhow::{anyhow, bail, Result};
 
 use crate::format::{
-    move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, EFFECT_KINDS, MAX_PLAYERS, NO_ABILITY, NO_UNIT,
-    NEUTRAL_PLAYER, PLCE_FLAG_START,
+    move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, EFFECT_KINDS, MAX_PLAYERS, NEUTRAL_PLAYER, NO_ABILITY,
+    NO_UNIT, PLCE_FLAG_START,
 };
-use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Spawn, Unit, Weapon};
+use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Spawn, Unit, Upgrade, Weapon};
 
 fn valid_name(name: &str) -> Result<()> {
     let bytes = name.as_bytes();
@@ -43,6 +43,11 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let abilities_raw = collector.abilities.into_inner();
     let behaviours_raw = collector.behaviours.into_inner();
     let spawns_raw = collector.spawns.into_inner();
+    let upgrades_raw = collector.upgrades.into_inner();
+    let cell_limit = match collector.cell_limit.into_inner() {
+        Some(limit) => unsigned("limit per_cell", limit)?,
+        None => 0,
+    };
     let grid = collector
         .grid
         .into_inner()
@@ -57,6 +62,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let ability_index = name_index("ability", abilities_raw.iter().map(|a| a.name.as_str()))?;
     let unit_index = name_index("unit", units_raw.iter().map(|u| u.name.as_str()))?;
     name_index("behaviour", behaviours_raw.iter().map(|b| b.name.as_str()))?;
+    name_index("upgrade", upgrades_raw.iter().map(|u| u.name.as_str()))?;
 
     let mut abilities = Vec::with_capacity(abilities_raw.len());
     for raw in &abilities_raw {
@@ -162,6 +168,9 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             damage_response: raw.damage_response as u8,
             resource_kind: raw.resource_kind as u8,
             harvest,
+            shield_regen: unsigned("shield_regen", raw.shield_regen)?,
+            regen_delay: unsigned("regen_delay", raw.regen_delay)?,
+            health_regen: unsigned("health_regen", raw.health_regen)?,
         });
     }
 
@@ -231,11 +240,43 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         });
     }
 
+    let mut upgrades = Vec::with_capacity(upgrades_raw.len());
+    for raw in &upgrades_raw {
+        let effect = *effects
+            .get(raw.effect)
+            .ok_or_else(|| anyhow!("upgrade {:?} names an unknown effect handle", raw.name))?;
+        let target = match raw.target_kind {
+            0 => unit_index
+                .get(&raw.target)
+                .ok_or_else(|| anyhow!("upgrade {:?} targets unknown unit {:?}", raw.name, raw.target))?,
+            _ => ability_index
+                .get(&raw.target)
+                .ok_or_else(|| anyhow!("upgrade {:?} targets unknown ability {:?}", raw.name, raw.target))?,
+        };
+        if !(1..=255).contains(&raw.level) {
+            bail!("upgrade {:?} level {} is outside 1..=255", raw.name, raw.level);
+        }
+        upgrades.push(Upgrade {
+            name: raw.name.clone(),
+            target_kind: raw.target_kind as u8,
+            target: *target as u16,
+            level: raw.level as u8,
+            apply: raw.apply as u8,
+            stacking: raw.stacking as u8,
+            effect: Effect {
+                kind: effect.kind as u16,
+                params: effect.params,
+            },
+        });
+    }
+
     Ok(Catalog {
         units,
         abilities,
         behaviours,
         spawns,
+        upgrades,
+        cell_limit,
         grid,
     })
 }
