@@ -19,7 +19,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-MAP-7 | Reveal cells within each unit's sight radius and hide cells outside friendly sight | claimed | none | gate:sight-reveal |
 | CAP-MAP-8 | Grant sight over elevated cells and deny sight from lower ground | claimed | none | gate:elevation-sight |
 | CAP-MAP-9 | Remember a seen enemy unit at its last known position until it is seen again | claimed | none | gate:last-seen-memory |
-| CAP-MAP-10 | Author custom terrain tiles and doodads in an editor | stub | none | gate:editor-terrain-tiles |
+| CAP-MAP-10 | Author custom terrain tiles and doodads in an editor | claimed | none | gate:editor-terrain-tiles |
 | CAP-MAP-11 | Place neutral objects and start positions by a map author through map data | claimed | rust/data/map.star (start, spawn -1, limit) | gate:map-author-placement |
 
 ## Units and their stats
@@ -84,7 +84,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-PROD-5 | Scale patch income with workers up to a saturation count | claimed | none | gate:worker-saturation |
 | CAP-PROD-6 | Gate gas harvesting on an extractor building with a per-geyser saturation count | claimed | none | gate:geyser-extraction |
 | CAP-PROD-7 | Set a fixed opening resource amount and opening worker count per start | claimed | none | gate:opening-resources |
-| CAP-PROD-8 | Set a fixed mineral patch and geyser count per base from map data | stub | none | gate:base-resource-nodes |
+| CAP-PROD-8 | Set a fixed mineral patch and geyser count per base from map data | claimed | none | gate:base-resource-nodes |
 | CAP-PROD-9 | Charge a fixed supply per unit and refuse production past the supply cap | claimed | none | gate:supply-cap |
 | CAP-PROD-10 | Raise the supply cap with providers, bounded by a per-race maximum | claimed | none | gate:supply-providers |
 | CAP-PROD-11 | Reserve supply when production is queued and release it on cancel | claimed | none | gate:supply-reservation |
@@ -101,7 +101,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-CMB-2 | Area damage around a point | implemented | sim/src/combat.rs (damage_area) | gate:area-damage |
 | CAP-CMB-3 | Ranged damage through launched and ticked projectiles | implemented | sim/src/projectiles.rs (launch_missile, tick_projectiles, free_missile) | gate:projectile-hit |
 | CAP-CMB-4 | Heal units over time through healers | implemented | sim/src/healers.rs (heal_area, heal_target, tick_healers) | gate:heal-units |
-| CAP-CMB-5 | Scale final damage by weapon damage type and target size category | stub | none | gate:damage-type-size |
+| CAP-CMB-5 | Scale final damage by weapon damage type and target size category | claimed | none | gate:damage-type-size |
 | CAP-CMB-6 | Hold attacks to weapon range and move the unit into range first | claimed | none | gate:weapon-range |
 | CAP-CMB-7 | Apply a fixed miss chance to ranged attacks on high ground or under cover | claimed | none | gate:ranged-miss-chance |
 | CAP-CMB-8 | Block enemy targeting of cloaked and burrowed units unless a detector covers them | claimed | none | gate:cloak-detection |
@@ -173,8 +173,8 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-DET-2 | FNV-1a state hash over sim state | implemented | sim/src/hash.rs (state_hash); mod-host/src/lib.rs (state_hash) | gate:state-hash-stable |
 | CAP-DET-3 | Identical mod and state reproduce identical hashes across runs | claimed | sim/src/hash.rs (catalog digest, modes, flow-field pool, grid tiles, doodads), sim/src/arrays.rs (cat_digest fixed at load), sim/src/rules.rs (seeded RNG only) | gate:replay-hash-equal |
 | CAP-DET-4 | Record every accepted order with its tick so a match can be replayed | claimed | sim/src/arrays.rs (record_order, order_record), sim/src/movement.rs (issue_order_kind), sim/src/persist.rs, sim/src/hash.rs | gate:order-recording |
-| CAP-DET-5 | Play a replay at a chosen speed, paused, or seeked | stub | none | gate:replay-playback-controls |
-| CAP-DET-6 | Advance lockstep clients by exchanging per-tick inputs and comparing state hashes | stub | none | gate:lockstep-input-exchange |
+| CAP-DET-5 | Play a replay at a chosen speed, paused, or seeked | claimed | none | gate:replay-playback-controls |
+| CAP-DET-6 | Advance lockstep clients by exchanging per-tick inputs and comparing state hashes | claimed | none | gate:lockstep-input-exchange |
 
 ## Persistence of map data
 
