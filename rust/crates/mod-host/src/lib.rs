@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{Catalog, LoadError, Refusal, Sim};
+use sim::{Catalog, Doodad, LoadError, Refusal, Sim};
 use std::cell::{Cell, RefCell};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -466,6 +466,29 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             row.set("y", d.y as i64)?;
             row.set("rotation", d.rotation as i64)?;
             Ok(row)
+        })?,
+    )?;
+    // place_doodad(id, kind, x, y, rotation) places a doodad at map milli-units. Named refusals:
+    // off_grid (position outside the map, kind above 3, rotation outside 0..1000, or a value outside
+    // the record's range) and duplicate_doodad (id already placed).
+    let w = world.clone();
+    env.set(
+        "place_doodad",
+        lua.create_function(move |_, (id, kind, x, y, rotation): (i64, i64, i64, i64, i64)| {
+            let off = |v: i64| mlua::Error::RuntimeError(format!("off_grid: {v} is outside the doodad record's range"));
+            let d = Doodad {
+                id: u32::try_from(id).map_err(|_| mlua::Error::RuntimeError(format!("invalid_doodad: id {id} is outside u32")))?,
+                kind: u16::try_from(kind).map_err(|_| off(kind))?,
+                x: i32::try_from(x).map_err(|_| off(x))?,
+                y: i32::try_from(y).map_err(|_| off(y))?,
+                rotation: i32::try_from(rotation).map_err(|_| off(rotation))?,
+            };
+            let mut sim = w.borrow_mut();
+            sim.place_doodad(d).map_err(|r| match r {
+                Refusal::OffGrid => mlua::Error::RuntimeError(format!("off_grid: doodad {id} lies outside the map or has a bad kind or rotation")),
+                Refusal::DuplicateDoodad => mlua::Error::RuntimeError(format!("duplicate_doodad: {id} is already placed")),
+                other => mlua::Error::RuntimeError(format!("doodad_refused: {}", other.name())),
+            })
         })?,
     )?;
     // buff_unit(unit, kind, ticks) gives a live unit a behaviour for `ticks` ticks. Returns
