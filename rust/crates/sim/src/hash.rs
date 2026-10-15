@@ -116,6 +116,8 @@ impl Sim {
         h.i32s(&self.m_y);
         h.bytes(&self.vis);
         h.bytes(&self.researched);
+        h.i32s(&self.research_left);
+        h.i32s(&self.research_rec);
         h.bytes(&self.seen);
         h.i32s(&self.seen_x);
         h.i32s(&self.seen_y);

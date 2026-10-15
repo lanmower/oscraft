@@ -73,6 +73,60 @@ impl Sim {
             })
     }
 
+    /// Starts research `r` at building `i` for its owner. The building must be the research's
+    /// building and the research not yet complete (else InvalidOrderTarget); a building already
+    /// running one is ResearchBusy; missing prerequisites are Prerequisite; the cost is paid up
+    /// front, and a short purse is CannotAfford. A refused research changes nothing.
+    pub fn start_research(&mut self, i: usize, r: usize) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        let rec = match self.cat.research.get(r).copied() {
+            Some(rec) => rec,
+            None => return Err(self.reject(Refusal::InvalidOrderTarget)),
+        };
+        let p = self.player[i] as usize;
+        if p >= MAX_PLAYERS || rec.building as i32 != self.type_of[i] {
+            return Err(self.reject(Refusal::InvalidOrderTarget));
+        }
+        if self.researched[p * self.cat.research.len() + r] != 0 {
+            return Err(self.reject(Refusal::InvalidOrderTarget));
+        }
+        if self.research_left[i] > 0 {
+            return Err(self.reject(Refusal::ResearchBusy));
+        }
+        if !self.prereqs_met(1, r, p) {
+            return Err(self.reject(Refusal::Prerequisite));
+        }
+        if self.minerals[p] < rec.minerals || self.vespene[p] < rec.gas {
+            return Err(self.reject(Refusal::CannotAfford));
+        }
+        self.minerals[p] -= rec.minerals;
+        self.vespene[p] -= rec.gas;
+        self.research_rec[i] = r as i32;
+        self.research_left[i] = rec.time.max(1);
+        Ok(())
+    }
+
+    /// Counts down the research running at building `i`. On completion the research is
+    /// recorded as complete for the building's owner.
+    pub(crate) fn research_step(&mut self, i: usize) {
+        if self.research_left[i] <= 0 {
+            return;
+        }
+        self.research_left[i] -= 1;
+        if self.research_left[i] > 0 {
+            return;
+        }
+        let r = self.research_rec[i];
+        self.research_rec[i] = -1;
+        let p = self.player[i] as usize;
+        let rc = self.cat.research.len();
+        if r >= 0 && (r as usize) < rc && p < MAX_PLAYERS {
+            self.researched[p * rc + r as usize] = 1;
+        }
+    }
+
     /// Places the base's mineral patches and geysers from ECON: `patches` patches in a row east
     /// of the start and `geysers` geysers in a column south of it, one world unit apart. Each
     /// holds the ECON amount and belongs to no player. A spot the catalog cannot place is skipped.

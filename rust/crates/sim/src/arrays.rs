@@ -154,6 +154,10 @@ pub struct Sim {
     pub(crate) seen_y: Vec<i32>,
     /// Completed research per (player, research record), index `p * research count + record`.
     pub(crate) researched: Vec<u8>,
+    /// Ticks left on the research running at each building; 0 when idle.
+    pub(crate) research_left: Vec<i32>,
+    /// Research record index running at each building, -1 when none.
+    pub(crate) research_rec: Vec<i32>,
     pub(crate) has_seer: [bool; MAX_PLAYERS],
     pub(crate) team: [u8; MAX_PLAYERS],
     pub(crate) alliance: [u16; MAX_PLAYERS],
@@ -278,6 +282,8 @@ impl Sim {
             cur_field: None,
             vis: vec![0; MAX_PLAYERS * vcells],
             researched: vec![0; research_slots],
+            research_left: vec![0; cap],
+            research_rec: vec![-1; cap],
             seen: vec![0; MAX_PLAYERS * cap],
             seen_x: vec![0; MAX_PLAYERS * cap],
             seen_y: vec![0; MAX_PLAYERS * cap],
