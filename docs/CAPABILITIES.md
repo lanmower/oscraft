@@ -3,6 +3,8 @@
 Measure: a capability is at parity when its row is `implemented` and its gate check passes with placed units. Presentation rows count as parity when they are `unsupported-headless` with a named refusal.
 
 Status values: `implemented`, `partial`, `stub` (no code), `unsupported-headless`.
+
+`claimed` means the code is on main and the gate check has not yet passed; `implemented` means the gate passed on CI.
 Paths are relative to `rust/crates/` unless shown otherwise. Gate names are planned checks; no gate check exists yet (`rust/crates/gate/src/main.rs` is a placeholder).
 
 ## Map and terrain
@@ -31,8 +33,8 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-UNIT-4 | Classify units as worker, structure, air or projectile | implemented | sim/src/loader.rs (is_worker, is_structure, is_air, is_projectile) | gate:unit-classes |
 | CAP-UNIT-5 | Let air units cross terrain that ground units cannot cross | claimed | none | gate:air-terrain-crossing |
 | CAP-UNIT-6 | Refuse ground-only weapons against air targets | claimed | none | gate:ground-only-air-refusal |
-| CAP-UNIT-7 | Load ground units into a transport up to a size-based capacity and unload them | stub | none | gate:transport-load |
-| CAP-UNIT-8 | Unload loaded units at a chosen point, including behind enemy lines | stub | none | gate:transport-unload-point |
+| CAP-UNIT-7 | Load ground units into a transport up to a size-based capacity and unload them | claimed | none | gate:transport-load |
+| CAP-UNIT-8 | Unload loaded units at a chosen point, including behind enemy lines | claimed | none | gate:transport-unload-point |
 
 ## Abilities and effects
 
@@ -42,7 +44,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-ABIL-2 | Check target filter, range and move range on a cast | implemented | sim/src/rules.rs (meets_filter, within; refusals TargetFilter, MoveRange) | gate:ability-target-filter |
 | CAP-ABIL-3 | Apply an effect list: damage, heal, move, spawn, buff, order, remove behaviour, shield bonus, vital fraction, create healer, calldown | implemented | sim/src/rules.rs (apply_effect) | gate:ability-effects |
 | CAP-ABIL-4 | Refuse an effect kind with no implementation under a named refusal | implemented | sim/src/rules.rs (refuse, Refusal::EffectUnsupported) | gate:unsupported-effect-refuses |
-| CAP-ABIL-5 | Hold the caster through a channelled ability and end it early when interrupted | stub | none | gate:channel-interrupt |
+| CAP-ABIL-5 | Hold the caster through a channelled ability and end it early when interrupted | claimed | none | gate:channel-interrupt |
 | CAP-ABIL-6 | Author custom abilities in a graphical editor | claimed | none | gate:editor-abilities |
 
 ## Behaviours and buffs
@@ -80,17 +82,17 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-PROD-2 | Gather minerals and vespene through harvest steps | implemented | sim/src/harvest.rs (harvest_step, retarget_scan, arrived); sim/src/arrays.rs (add_resources, minerals, vespene) | gate:harvest-resources |
 | CAP-PROD-3 | Deduct production costs before starting a unit | partial | sim/src/arrays.rs (add_resources); deduction path not confirmed | gate:spend-resources |
 | CAP-PROD-4 | Cancel a queued unit with refund | claimed | none | gate:cancel-production |
-| CAP-PROD-5 | Scale patch income with workers up to a saturation count | stub | none | gate:worker-saturation |
-| CAP-PROD-6 | Gate gas harvesting on an extractor building with a per-geyser saturation count | stub | none | gate:geyser-extraction |
-| CAP-PROD-7 | Set a fixed opening resource amount and opening worker count per start | stub | none | gate:opening-resources |
+| CAP-PROD-5 | Scale patch income with workers up to a saturation count | claimed | none | gate:worker-saturation |
+| CAP-PROD-6 | Gate gas harvesting on an extractor building with a per-geyser saturation count | claimed | none | gate:geyser-extraction |
+| CAP-PROD-7 | Set a fixed opening resource amount and opening worker count per start | claimed | none | gate:opening-resources |
 | CAP-PROD-8 | Set a fixed mineral patch and geyser count per base from map data | stub | none | gate:base-resource-nodes |
-| CAP-PROD-9 | Charge a fixed supply per unit and refuse production past the supply cap | stub | none | gate:supply-cap |
-| CAP-PROD-10 | Raise the supply cap with providers, bounded by a per-race maximum | stub | none | gate:supply-providers |
-| CAP-PROD-11 | Reserve supply when production is queued and release it on cancel | stub | none | gate:supply-reservation |
-| CAP-PROD-12 | Move a newly finished unit to the building's rally point | stub | none | gate:rally-point |
-| CAP-PROD-13 | Require prerequisite buildings or research before a unit, building or upgrade can be made | stub | none | gate:tech-prerequisites |
-| CAP-PROD-14 | Run one research at a time per building for a fixed time at a resource cost | stub | none | gate:research-queue |
-| CAP-PROD-15 | Apply completed research to every matching unit at once | stub | none | gate:research-applies-all |
+| CAP-PROD-9 | Charge a fixed supply per unit and refuse production past the supply cap | claimed | none | gate:supply-cap |
+| CAP-PROD-10 | Raise the supply cap with providers, bounded by a per-race maximum | claimed | none | gate:supply-providers |
+| CAP-PROD-11 | Reserve supply when production is queued and release it on cancel | claimed | none | gate:supply-reservation |
+| CAP-PROD-12 | Move a newly finished unit to the building's rally point | claimed | none | gate:rally-point |
+| CAP-PROD-13 | Require prerequisite buildings or research before a unit, building or upgrade can be made | claimed | none | gate:tech-prerequisites |
+| CAP-PROD-14 | Run one research at a time per building for a fixed time at a resource cost | claimed | none | gate:research-queue |
+| CAP-PROD-15 | Apply completed research to every matching unit at once | claimed | none | gate:research-applies-all |
 
 ## Combat and damage
 
@@ -102,8 +104,8 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-CMB-4 | Heal units over time through healers | implemented | sim/src/healers.rs (heal_area, heal_target, tick_healers) | gate:heal-units |
 | CAP-CMB-5 | Scale final damage by weapon damage type and target size category | stub | none | gate:damage-type-size |
 | CAP-CMB-6 | Hold attacks to weapon range and move the unit into range first | claimed | none | gate:weapon-range |
-| CAP-CMB-7 | Apply a fixed miss chance to ranged attacks on high ground or under cover | stub | none | gate:ranged-miss-chance |
-| CAP-CMB-8 | Block enemy targeting of cloaked and burrowed units unless a detector covers them | stub | none | gate:cloak-detection |
+| CAP-CMB-7 | Apply a fixed miss chance to ranged attacks on high ground or under cover | claimed | none | gate:ranged-miss-chance |
+| CAP-CMB-8 | Block enemy targeting of cloaked and burrowed units unless a detector covers them | claimed | none | gate:cloak-detection |
 
 ## Shields and armour
 
