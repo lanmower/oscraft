@@ -1,4 +1,5 @@
 pub mod http;
+pub mod lockstep;
 pub mod order;
 pub mod replay;
 pub mod room;
