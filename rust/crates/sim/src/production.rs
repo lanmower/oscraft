@@ -66,20 +66,6 @@ impl Sim {
         Some(self.research_rec[i] as usize)
     }
 
-    /// Whether research `r` applies to unit `unit`: its owner completed `r` and the unit's filter
-    /// mask holds the research's applies-to bits.
-    pub fn research_applied(&self, unit: usize, r: usize) -> bool {
-        if unit >= self.n || self.alive[unit] == 0 {
-            return false;
-        }
-        let p = self.player[unit] as usize;
-        let count = self.cat.research.len();
-        match self.cat.research.get(r) {
-            Some(rec) if p < MAX_PLAYERS => self.researched[p * count + r] != 0 && self.meets_filter(unit, rec.applies_mask),
-            _ => false,
-        }
-    }
-
     pub fn prereqs_met(&self, kind: u8, target: usize, p: usize) -> bool {
         let research_count = self.cat.research.len();
         self.cat
@@ -230,6 +216,12 @@ impl Sim {
 
     /// Automatic train step: counts down a train in progress, and starts the next one when it
     /// can. A train that cannot start is counted in the stats under its refusal.
+    /// The opening resources every start gets (ECON): minerals, gas and worker count.
+    pub fn opening_resources(&self) -> (i32, i32, i32) {
+        let e = self.cat.econ;
+        (e.opening_minerals, e.opening_gas, e.opening_workers as i32)
+    }
+
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
