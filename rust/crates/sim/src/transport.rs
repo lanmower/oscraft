@@ -60,6 +60,22 @@ impl Sim {
             return Err(self.reject(Refusal::NoTarget));
         }
         let (x, y) = (self.pos_x[t], self.pos_y[t]);
+        self.unload_transport_at(t, x, y)
+    }
+
+    /// Unloads every unit boarded in transport `t` at the point (x, y), clamped to the grid,
+    /// wherever that is, so the point may lie behind enemy lines. Refusals, changing nothing: an
+    /// unknown or dead transport is NoTarget; a point a boarded ground unit cannot stand on is
+    /// InvalidOrderTarget. Returns the units unloaded.
+    pub fn unload_transport_at(&mut self, t: usize, x: i32, y: i32) -> Result<usize, Refusal> {
+        if t >= self.n || self.alive[t] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        let (x, y) = self.clamp_to_grid(x, y);
+        let ground_ok = self.grid.walkable(cell_of(x), cell_of(y));
+        if !ground_ok && (0..self.n).any(|j| self.loaded_into[j] == t as i32 && self.flying[j] == 0) {
+            return Err(self.reject(Refusal::InvalidOrderTarget));
+        }
         Ok(self.unload_at(t, x, y))
     }
 
