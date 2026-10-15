@@ -1,47 +1,9 @@
-//! Reference reader: checks an image against FORMAT.md v8 before it is written.
+//! Reference reader: checks an image against FORMAT.md v7 before it is written.
 //! The sim crate has its own loader; this one guards the generator's output.
 
 use anyhow::{anyhow, ensure, Result};
 
 use crate::format::*;
-
-/// Why an image is refused before any section is read. Reachable from an
-/// `anyhow::Error` with `downcast_ref::<ImageError>()`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ImageError {
-    TooShort { len: usize },
-    BadMagic,
-    VersionMismatch { found: u16, expected: u16 },
-}
-
-impl std::fmt::Display for ImageError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ImageError::TooShort { len } => write!(f, "image of {len} bytes is shorter than the header"),
-            ImageError::BadMagic => write!(f, "bad magic, expected OSDT"),
-            ImageError::VersionMismatch { found, expected } => {
-                write!(f, "map image version {found} is not the version {expected} the loader accepts")
-            }
-        }
-    }
-}
-
-impl std::error::Error for ImageError {}
-
-/// Checks the header prefix of an image: its length, magic and version.
-pub fn check_version(image: &[u8]) -> Result<()> {
-    if image.len() < HEADER_LEN {
-        return Err(ImageError::TooShort { len: image.len() }.into());
-    }
-    if image[0..4] != MAGIC {
-        return Err(ImageError::BadMagic.into());
-    }
-    let found = u16_at(image, 4)?;
-    if found != VERSION {
-        return Err(ImageError::VersionMismatch { found, expected: VERSION }.into());
-    }
-    Ok(())
-}
 
 fn u16_at(image: &[u8], at: usize) -> Result<u16> {
     let b = image.get(at..at + 2).ok_or_else(|| anyhow!("truncated at byte {at}"))?;
@@ -62,40 +24,11 @@ struct Section {
     count: usize,
 }
 
-/// One section body as the image declares it, in table order.
-pub struct SectionView<'a> {
-    pub tag: [u8; 4],
-    pub count: usize,
-    pub body: &'a [u8],
-}
-
-/// Reads the section table of an image that passes `check_version` and returns
-/// each body as a slice of `image`. The layout is checked by `verify`.
-pub fn read_sections(image: &[u8]) -> Result<Vec<SectionView<'_>>> {
-    check_version(image)?;
-    let count = u32_at(image, 8)? as usize;
-    ensure!(count == SECTIONS.len(), "bad section count");
-    let mut views = Vec::with_capacity(count);
-    for i in 0..count {
-        let entry = HEADER_LEN + i * SECTION_ENTRY_LEN;
-        let tag: [u8; 4] = image
-            .get(entry..entry + 4)
-            .ok_or_else(|| anyhow!("section {i} table entry is truncated"))?
-            .try_into()?;
-        let offset = u32_at(image, entry + 4)? as usize;
-        let records = u32_at(image, entry + 8)? as usize;
-        let record = u32_at(image, entry + 12)? as usize;
-        let len = records * record;
-        let body = image
-            .get(offset..offset + len)
-            .ok_or_else(|| anyhow!("section {i} runs past the end of the file"))?;
-        views.push(SectionView { tag, count: records, body });
-    }
-    Ok(views)
-}
-
 pub fn verify(image: &[u8]) -> Result<()> {
-    check_version(image)?;
+    ensure!(image.len() >= HEADER_LEN, "image shorter than the header");
+    ensure!(image[0..4] == MAGIC, "bad magic");
+    let version = u16_at(image, 4)?;
+    ensure!(version == VERSION, "unsupported version {version}, expected {VERSION}");
     ensure!(u16_at(image, 6)? as usize == HEADER_LEN, "bad header length");
     ensure!(u32_at(image, 8)? as usize == SECTIONS.len(), "bad section count");
     ensure!(u32_at(image, 12)? as usize == image.len(), "file length does not match");
@@ -179,14 +112,22 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!((image[at + 71] as usize) < RESOURCE_KINDS.len(), "unit {i} resource kind out of range");
     }
 
+    let mut starts = std::collections::HashSet::new();
     for i in 0..plce.count {
         let at = plce.offset + i * PLCE_RECORD;
-        let unit_index = u16_at(image, at)? as usize;
+        let unit_index = u16_at(image, at)?;
         let player = u16_at(image, at + 2)? as i32;
         let x = u32_at(image, at + 4)? as i64;
         let y = u32_at(image, at + 8)? as i64;
-        ensure!(unit_index < unit.count, "placement {i} names a unit past the end of UNIT");
+        let flags = u32_at(image, at + 12)?;
+        ensure!(flags & !PLCE_FLAG_START == 0, "placement {i} sets reserved flags");
         ensure!((0..MAX_PLAYERS).contains(&player), "placement {i} player {player} out of range");
+        if flags & PLCE_FLAG_START != 0 {
+            ensure!(unit_index == NO_UNIT, "start {i} names a unit");
+            ensure!(starts.insert(player), "player {player} has two start locations");
+        } else {
+            ensure!((unit_index as usize) < unit.count, "placement {i} names a unit past the end of UNIT");
+        }
         ensure!(
             position_on_grid(x, y, width, height, cell_milli),
             "placement {i} at ({x}, {y}) is off the grid"

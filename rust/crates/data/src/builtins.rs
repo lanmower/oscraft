@@ -194,10 +194,25 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             bail!("spawn({unit:?}) position ({x}, {y}) is negative");
         }
         collector(eval)?.spawns.borrow_mut().push(SpawnRaw {
-            unit: unit.to_owned(),
+            unit: Some(unit.to_owned()),
+            start: false,
             player,
             x,
             y,
+        });
+        Ok(NoneType)
+    }
+
+    fn start(player: i32, x: i32, y: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        if x < 0 || y < 0 {
+            bail!("start for player {player} at ({x}, {y}) is negative");
+        }
+        collector(eval)?.spawns.borrow_mut().push(SpawnRaw {
+            unit: None,
+            player,
+            x,
+            y,
+            start: true,
         });
         Ok(NoneType)
     }

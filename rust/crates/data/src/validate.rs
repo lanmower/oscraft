@@ -6,6 +6,7 @@ use anyhow::{anyhow, bail, Result};
 
 use crate::format::{
     move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, EFFECT_KINDS, MAX_PLAYERS, NO_ABILITY, NO_UNIT,
+    PLCE_FLAG_START,
 };
 use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Spawn, Unit, Weapon};
 
@@ -188,17 +189,14 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     }
 
     let mut spawns = Vec::with_capacity(spawns_raw.len());
+    let mut started = std::collections::HashSet::new();
     for raw in &spawns_raw {
-        let unit = unit_index
-            .get(&raw.unit)
-            .ok_or_else(|| anyhow!("spawn names unknown unit {:?}", raw.unit))?;
         if !(0..MAX_PLAYERS).contains(&raw.player) {
-            bail!("spawn({:?}) player {} is outside 0..{MAX_PLAYERS}", raw.unit, raw.player);
+            bail!("placement player {} is outside 0..{MAX_PLAYERS}", raw.player);
         }
         if !position_on_grid(raw.x as i64, raw.y as i64, grid.width, grid.height, grid.cell_milli) {
             bail!(
-                "spawn({:?}) at ({}, {}) is off the {}x{} grid at {} milli",
-                raw.unit,
+                "placement at ({}, {}) is off the {}x{} grid at {} milli",
                 raw.x,
                 raw.y,
                 grid.width,
@@ -206,11 +204,26 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
                 grid.cell_milli
             );
         }
+        let (unit, flags) = match &raw.unit {
+            Some(name) => {
+                let index = unit_index
+                    .get(name)
+                    .ok_or_else(|| anyhow!("spawn names unknown unit {name:?}"))?;
+                (*index as u16, 0)
+            }
+            None => {
+                if !started.insert(raw.player) {
+                    bail!("player {} has more than one start location", raw.player);
+                }
+                (NO_UNIT, PLCE_FLAG_START)
+            }
+        };
         spawns.push(Spawn {
-            unit: *unit as u16,
+            unit,
             player: raw.player as u16,
             x: raw.x as u32,
             y: raw.y as u32,
+            flags,
         });
     }
 

@@ -62,10 +62,11 @@ pub struct BehaviourRaw {
 
 #[derive(Debug)]
 pub struct SpawnRaw {
-    pub unit: String,
+    pub unit: Option<String>,
     pub player: i32,
     pub x: i32,
     pub y: i32,
+    pub start: bool,
 }
 
 /// Map grid, built by `grid()` and painted by `paint()`. Also the validated form.
@@ -151,6 +152,7 @@ pub struct Spawn {
     pub player: u16,
     pub x: u32,
     pub y: u32,
+    pub flags: u32,
 }
 
 #[derive(Debug, Default)]

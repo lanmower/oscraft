@@ -39,20 +39,7 @@ fn pad(out: &mut Vec<u8>, count: usize) {
     out.resize(out.len() + count, 0);
 }
 
-/// One section as the encoder wrote it: its tag, the record count and record
-/// size FORMAT.md declares, and the body bytes.
-pub struct Section {
-    pub tag: [u8; 4],
-    pub count: usize,
-    pub record: usize,
-    pub body: Vec<u8>,
-}
-
 pub fn encode(catalog: &Catalog) -> Vec<u8> {
-    assemble(&sections(catalog))
-}
-
-pub fn sections(catalog: &Catalog) -> Vec<Section> {
     let mut strings = Strings::default();
 
     let mut efct = Vec::new();
@@ -148,7 +135,7 @@ pub fn sections(catalog: &Catalog) -> Vec<Section> {
         u16_le(&mut plce, spawn.player);
         u32_le(&mut plce, spawn.x);
         u32_le(&mut plce, spawn.y);
-        pad(&mut plce, 4);
+        u32_le(&mut plce, spawn.flags);
         debug_assert_eq!(plce.len() - start, PLCE_RECORD);
     }
 
@@ -160,31 +147,28 @@ pub fn sections(catalog: &Catalog) -> Vec<Section> {
 
     let strs_len = strings.bytes.len();
     let grid_len = grid.len();
-    vec![
-        Section { tag: TAG_STRS, count: strs_len, record: STRS_RECORD, body: strings.bytes },
-        Section { tag: TAG_EFCT, count: efct_count as usize, record: EFCT_RECORD, body: efct },
-        Section { tag: TAG_ABIL, count: catalog.abilities.len(), record: ABIL_RECORD, body: abil },
-        Section { tag: TAG_UABL, count: uabl_count as usize, record: UABL_RECORD, body: uabl },
-        Section { tag: TAG_UNIT, count: catalog.units.len(), record: UNIT_RECORD, body: unit_bytes },
-        Section { tag: TAG_BHVR, count: catalog.behaviours.len(), record: BHVR_RECORD, body: bhvr },
-        Section { tag: TAG_PLCE, count: catalog.spawns.len(), record: PLCE_RECORD, body: plce },
-        Section { tag: TAG_GRID, count: grid_len, record: GRID_RECORD, body: grid },
-    ]
-}
+    let sections: Vec<([u8; 4], usize, usize, Vec<u8>)> = vec![
+        (TAG_STRS, strs_len, STRS_RECORD, strings.bytes),
+        (TAG_EFCT, efct_count as usize, EFCT_RECORD, efct),
+        (TAG_ABIL, catalog.abilities.len(), ABIL_RECORD, abil),
+        (TAG_UABL, uabl_count as usize, UABL_RECORD, uabl),
+        (TAG_UNIT, catalog.units.len(), UNIT_RECORD, unit_bytes),
+        (TAG_BHVR, catalog.behaviours.len(), BHVR_RECORD, bhvr),
+        (TAG_PLCE, catalog.spawns.len(), PLCE_RECORD, plce),
+        (TAG_GRID, grid_len, GRID_RECORD, grid),
+    ];
 
-/// Lays sections out as the header, the section table and the bodies, in order.
-pub fn assemble(sections: &[Section]) -> Vec<u8> {
     let body_start = HEADER_LEN + sections.len() * SECTION_ENTRY_LEN;
     let mut table = Vec::new();
     let mut body = Vec::new();
     let mut offset = body_start;
-    for section in sections {
-        table.extend_from_slice(&section.tag);
+    for (tag, count, record, bytes) in &sections {
+        table.extend_from_slice(tag);
         u32_le(&mut table, offset as u32);
-        u32_le(&mut table, section.count as u32);
-        u32_le(&mut table, section.record as u32);
-        offset += section.body.len();
-        body.extend_from_slice(&section.body);
+        u32_le(&mut table, *count as u32);
+        u32_le(&mut table, *record as u32);
+        offset += bytes.len();
+        body.extend_from_slice(bytes);
     }
 
     let mut out = Vec::with_capacity(offset);
