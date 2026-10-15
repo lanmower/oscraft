@@ -28,9 +28,15 @@ impl Sim {
             if self.produce && self.kind[i] == KIND_PRODUCER {
                 self.produce_step(i);
             }
-            self.route_for(i);
-            self.steer(i);
-            self.integrate(i);
+            if self.order_kind[i] == ORDER_HOLD {
+                self.vel_x[i] = 0;
+                self.vel_y[i] = 0;
+            } else {
+                self.route_for(i);
+                self.steer(i);
+                self.integrate(i);
+                self.advance_patrol(i);
+            }
             self.attack(i);
         }
         self.ticks = self.ticks.wrapping_add(1);

@@ -75,6 +75,9 @@ pub struct Sim {
     pub(crate) kind: Vec<u8>,
     pub(crate) blocked: Vec<u8>,
     pub(crate) routed: Vec<u8>,
+    pub(crate) order_kind: Vec<u8>,
+    pub(crate) patrol_x: Vec<i32>,
+    pub(crate) patrol_y: Vec<i32>,
 
     pub(crate) amount: Vec<i32>,
     pub(crate) wstate: Vec<u8>,
@@ -187,6 +190,9 @@ impl Sim {
             kind: vec![KIND_ACTOR; cap],
             blocked: vec![0; cap],
             routed: vec![0; cap],
+            order_kind: vec![ORDER_MOVE; cap],
+            patrol_x: vec![0; cap],
+            patrol_y: vec![0; cap],
             amount: vec![0; cap],
             wstate: vec![W_SEEK; cap],
             wtarget: vec![-1; cap],
@@ -365,6 +371,9 @@ impl Sim {
         self.kind[i] = self.classify(def);
         self.blocked[i] = 0;
         self.routed[i] = 0;
+        self.order_kind[i] = ORDER_MOVE;
+        self.patrol_x[i] = x;
+        self.patrol_y[i] = y;
         self.amount[i] = match self.kind[i] {
             KIND_MINERAL => FIELD_MINERAL,
             KIND_GEYSER => FIELD_GAS,
@@ -440,6 +449,7 @@ impl Sim {
             let (x, y) = self.clamp_to_grid(x, y);
             self.tgt_x[i] = x;
             self.tgt_y[i] = y;
+            self.order_kind[i] = ORDER_MOVE;
         }
     }
 

@@ -26,9 +26,11 @@ pub enum Refusal {
     CalldownNested,
     NoHealerSlot,
     MoveRange,
+    InvalidOrderKind,
+    InvalidOrderTarget,
 }
 
-pub const REFUSAL_KINDS: usize = 14;
+pub const REFUSAL_KINDS: usize = 16;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -47,6 +49,8 @@ impl Refusal {
             Refusal::CalldownNested => "calldown-nested",
             Refusal::NoHealerSlot => "no-healer-slot",
             Refusal::MoveRange => "move-range",
+            Refusal::InvalidOrderKind => "invalid-order-kind",
+            Refusal::InvalidOrderTarget => "invalid-order-target",
         }
     }
 }
@@ -69,6 +73,12 @@ impl Sim {
         self.stats.casts_refused += 1;
         self.stats.refused_by[r as usize] += 1;
         self.stats.last_refusal = r;
+    }
+
+    /// Records a refusal and hands it back, so a caller can return it in one expression.
+    pub(crate) fn reject(&mut self, r: Refusal) -> Refusal {
+        self.refuse(r);
+        r
     }
 
     /// Casts ability `slot` of unit `i` at `target` (a unit index, or -1 for the point (x, y)).

@@ -227,6 +227,57 @@ impl Sim {
         }
     }
 
+    /// Issues an order of kind `kind` (ORDER_*) to unit `i`. Move, attack-move and patrol
+    /// take the destination (x, y); stop and hold take the unit's own position and ignore it.
+    /// Patrol remembers the unit's current position as its return point. Refusals: an unknown
+    /// kind is InvalidOrderKind, a dead or unknown unit is NoTarget, and a ground unit's
+    /// destination on an unwalkable cell is InvalidOrderTarget. A refused order changes nothing.
+    pub fn issue_order_kind(&mut self, i: usize, kind: u8, x: i32, y: i32) -> Result<(), Refusal> {
+        if kind > ORDER_HOLD {
+            return Err(self.reject(Refusal::InvalidOrderKind));
+        }
+        if i >= self.n || self.alive[i] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        match kind {
+            ORDER_STOP | ORDER_HOLD => {
+                self.tgt_x[i] = self.pos_x[i];
+                self.tgt_y[i] = self.pos_y[i];
+            }
+            _ => {
+                let (x, y) = self.clamp_to_grid(x, y);
+                if self.flying[i] == 0 && !self.grid.walkable(cell_of(x), cell_of(y)) {
+                    return Err(self.reject(Refusal::InvalidOrderTarget));
+                }
+                if kind == ORDER_PATROL {
+                    self.patrol_x[i] = self.pos_x[i];
+                    self.patrol_y[i] = self.pos_y[i];
+                }
+                self.tgt_x[i] = x;
+                self.tgt_y[i] = y;
+            }
+        }
+        self.order_kind[i] = kind;
+        self.routed[i] = 0;
+        Ok(())
+    }
+
+    /// A patrolling unit that comes within one world unit of its far point turns back toward
+    /// its return point: the two points swap, and the route is dropped for the next tick.
+    pub(crate) fn advance_patrol(&mut self, i: usize) {
+        if self.order_kind[i] != ORDER_PATROL {
+            return;
+        }
+        let dx = self.tgt_x[i].wrapping_sub(self.pos_x[i]) as i64;
+        let dy = self.tgt_y[i].wrapping_sub(self.pos_y[i]) as i64;
+        if dx * dx + dy * dy >= (ONE as i64) * (ONE as i64) {
+            return;
+        }
+        std::mem::swap(&mut self.tgt_x[i], &mut self.patrol_x[i]);
+        std::mem::swap(&mut self.tgt_y[i], &mut self.patrol_y[i]);
+        self.routed[i] = 0;
+    }
+
     /// Sets a movement destination without moving the unit.
     pub fn move_fixed(&mut self, i: usize, x: i32, y: i32) -> bool {
         if i >= self.n || self.alive[i] == 0 {

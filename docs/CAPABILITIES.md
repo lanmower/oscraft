@@ -50,7 +50,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-ORD-2 | Issue a move order to a set of units | implemented | sim/src/arrays.rs (order, order_all); sim/src/movement.rs (issue_order) | gate:issue-move |
 | CAP-ORD-3 | Steer and integrate unit movement each tick | implemented | sim/src/movement.rs (steer, integrate) | gate:move-units-tick |
 | CAP-ORD-4 | Path to a goal with shared flow fields | implemented | sim/src/pathfinding.rs (request, field, step, ready_count, cap) | gate:path-to-goal |
-| CAP-ORD-5 | Stop, attack-move, patrol and hold orders | stub | none; order carries only player, x, y | gate:order-kinds |
+| CAP-ORD-5 | Stop, attack-move, patrol and hold orders | implemented | sim/src/movement.rs (issue_order_kind, advance_patrol); sim/src/tick.rs (hold skips movement) | gate:order-kinds |
 | CAP-ORD-6 | Rate-limit and authorize orders per player | implemented | server/src/order.rs (rate, authorized, take) | gate:order-rate-limit |
 
 ## Production and resources

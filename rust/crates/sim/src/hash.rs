@@ -63,6 +63,9 @@ impl Sim {
         h.bytes(&self.kind);
         h.bytes(&self.blocked);
         h.bytes(&self.routed);
+        h.bytes(&self.order_kind);
+        h.i32s(&self.patrol_x);
+        h.i32s(&self.patrol_y);
         h.i32s(&self.amount);
         h.bytes(&self.wstate);
         h.i32s(&self.wtarget);
