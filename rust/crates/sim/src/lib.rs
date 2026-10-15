@@ -70,7 +70,7 @@ pub(crate) const MELEE_RANGE: i32 = fixed::ONE / 2;
 
 pub(crate) const ORDER_MOVE: u8 = 0;
 pub(crate) const ORDER_STOP: u8 = 1;
-pub(crate) const ORDER_ATTACK_MOVE: u8 = 2;
+pub const ORDER_ATTACK_MOVE: u8 = 2;
 pub(crate) const ORDER_PATROL: u8 = 3;
 pub(crate) const ORDER_HOLD: u8 = 4;
 

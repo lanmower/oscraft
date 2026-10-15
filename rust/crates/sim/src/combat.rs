@@ -67,6 +67,34 @@ impl Sim {
         self.inflict(b, dmg);
     }
 
+    /// Orders unit `i` to strike unit `target` through the weapon path (cooldown, armour,
+    /// damage response, shield, then life). Refusals, each changing nothing: a dead or unknown
+    /// unit is NoTarget; a target that is not a living visible enemy in weapon reach, or an
+    /// attacker that cannot hit, is InvalidOrderTarget; a weapon on cooldown is Cooldown.
+    pub fn order_attack(&mut self, i: usize, target: usize) -> Result<(), crate::rules::Refusal> {
+        use crate::rules::Refusal;
+        if i >= self.n || self.alive[i] == 0 || target >= self.n || self.alive[target] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
+        let in_reach = i != target
+            && self.damage[i] > 0
+            && self.hostile(self.player[i], self.player[target])
+            && (self.targets[i] & self.layer_of(target)) != 0
+            && self.visible(self.player[i], target)
+            && dist2(self.pos_x[i], self.pos_y[i], self.pos_x[target], self.pos_y[target]) <= reach;
+        if !in_reach {
+            return Err(self.reject(Refusal::InvalidOrderTarget));
+        }
+        if self.cooldown[i] > 0 {
+            return Err(self.reject(Refusal::Cooldown));
+        }
+        let dmg = armour_reduced(self.damage[i], self.armor[target]);
+        self.cooldown[i] = self.period[i];
+        self.inflict(target, dmg);
+        Ok(())
+    }
+
     /// Ability damage: the response and shield apply, armour does not.
     /// Ability damage to unit `j`, through the shared damage path. An unknown unit is a no-op.
     pub fn hurt(&mut self, j: usize, dmg: i32) {
