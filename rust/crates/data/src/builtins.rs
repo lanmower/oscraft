@@ -9,8 +9,8 @@ use starlark::starlark_module;
 use starlark::values::{list::UnpackList, none::NoneType};
 
 use crate::format::{
-    index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, DAMAGE_RESPONSES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS,
-    RESOURCE_KINDS, TARGETS, TRIGGERS, WALK_FLAGS,
+    effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, DAMAGE_RESPONSES, EFFECT_KINDS,
+    FILTERS, MAX_GRID_CELLS, RESOURCE_KINDS, TARGETS, TRIGGERS,
 };
 use crate::model::{AbilityRaw, BehaviourRaw, Collector, EffectRaw, Grid, UnitRaw, WeaponRaw};
 
@@ -18,7 +18,7 @@ pub fn globals() -> Globals {
     GlobalsBuilder::standard().with(osdt_builtins).build()
 }
 
-fn collector<'a>(eval: &'a Evaluator<'_, 'a, '_>) -> Result<&'a Collector> {
+fn collector(eval: &Evaluator) -> Result<&Collector> {
     eval.extra
         .and_then(|extra| extra.downcast_ref::<Collector>())
         .ok_or_else(|| anyhow!("builtin called without a collector"))
@@ -55,12 +55,16 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] p2: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<i32> {
-        let kind = index_of(EFFECT_KINDS, kind, "effect kind")?;
+        let kind_code = index_of(EFFECT_KINDS, kind, "effect kind")?;
+        let params = [p0.unwrap_or(0), p1.unwrap_or(0), p2.unwrap_or(0)];
+        if !effect_params_valid(kind, params) {
+            bail!("effect {kind:?} has out-of-range parameters {params:?}; see FORMAT.md effect table");
+        }
         let pool = collector(eval)?;
         let mut effects = pool.effects.borrow_mut();
         effects.push(EffectRaw {
-            kind,
-            params: [p0.unwrap_or(0), p1.unwrap_or(0), p2.unwrap_or(0)],
+            kind: kind_code,
+            params,
         });
         Ok(effects.len() as i32 - 1)
     }
@@ -130,12 +134,12 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         energy: i32,
         target: &str,
         effects: Option<UnpackList<i32>>,
-        #[starlark(require = named)] filter: Option<UnpackList<String>>,
+        #[starlark(require = named)] target_filters: Option<UnpackList<String>>,
         #[starlark(require = named)] projectile_speed_milli: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let target = index_of(TARGETS, target, "target")?;
-        let target_filters = filter_mask(filter)?;
+        let target_filters = filter_mask(target_filters)?;
         let pool = collector(eval)?;
         let pool_len = pool.effects.borrow().len();
         let mut handles = Vec::new();
@@ -215,7 +219,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         y0: i32,
         x1: i32,
         y1: i32,
-        #[starlark(require = named)] walk: Option<UnpackList<String>>,
+        value: i32,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let pool = collector(eval)?;
@@ -225,10 +229,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         if !(0 <= x0 && x0 <= x1 && x1 <= width && 0 <= y0 && y0 <= y1 && y1 <= height) {
             bail!("paint({x0}, {y0}, {x1}, {y1}) is inverted or outside the {width}x{height} grid");
         }
-        let mut value = 0u8;
-        for name in walk.map(|list| list.items).unwrap_or_default() {
-            value |= 1u8 << index_of(WALK_FLAGS, &name, "walk flag")?;
-        }
+        let value = cell_value(value)?;
         for y in y0..y1 {
             let row = (y * width) as usize;
             grid.cells[row + x0 as usize..row + x1 as usize].fill(value);

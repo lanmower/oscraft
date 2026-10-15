@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::format::{ACTION_USE_ABILITY, FILTER_MASK_BITS, NO_ABILITY, NO_UNIT};
+use crate::format::{ACTION_USE_ABILITY, EFFECT_KINDS, NO_ABILITY, NO_UNIT};
 use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Unit, Weapon};
 
 fn valid_name(name: &str) -> Result<()> {
@@ -62,13 +62,25 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         let mut resolved = Vec::with_capacity(raw.effects.len());
         for &handle in &raw.effects {
             let effect = effects[handle];
+            let kind = EFFECT_KINDS
+                .get(effect.kind)
+                .ok_or_else(|| anyhow!("ability {:?} uses effect code {} above the registry", raw.name, effect.kind))?;
+            let target = effect.params[0] as usize;
+            match *kind {
+                "spawn" if target >= units_raw.len() => {
+                    bail!("ability {:?}: spawn names unit index {target}, only {} units exist", raw.name, units_raw.len())
+                }
+                "use_calldown" if target >= abilities_raw.len() => bail!(
+                    "ability {:?}: use_calldown names ability index {target}, only {} abilities exist",
+                    raw.name,
+                    abilities_raw.len()
+                ),
+                _ => {}
+            }
             resolved.push(Effect {
                 kind: effect.kind as u16,
                 params: effect.params,
             });
-        }
-        if raw.target_filters >> FILTER_MASK_BITS != 0 {
-            bail!("ability {:?} filter mask {:#x} sets bits past {FILTER_MASK_BITS}", raw.name, raw.target_filters);
         }
         abilities.push(Ability {
             name: raw.name.clone(),

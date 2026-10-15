@@ -6,6 +6,7 @@ pub mod builtins;
 pub mod encode;
 pub mod format;
 pub mod model;
+pub mod reader;
 pub mod validate;
 
 use std::path::{Path, PathBuf};
@@ -18,7 +19,8 @@ use starlark::syntax::{AstModule, Dialect};
 use crate::model::Collector;
 
 /// Evaluates every `*.star` file directly inside `src_dir` (sorted by name),
-/// then returns the encoded image. Subdirectories are not read.
+/// then returns the encoded image. Subdirectories are not read. The image is
+/// checked by `reader::verify` before it is returned.
 pub fn generate(src_dir: &Path) -> Result<Vec<u8>> {
     let mut files: Vec<PathBuf> = std::fs::read_dir(src_dir)
         .with_context(|| format!("reading {}", src_dir.display()))?
@@ -38,15 +40,16 @@ pub fn generate(src_dir: &Path) -> Result<Vec<u8>> {
     }
 
     let catalog = validate::validate(collector)?;
-    Ok(encode::encode(&catalog))
+    let image = encode::encode(&catalog);
+    reader::verify(&image)?;
+    Ok(image)
 }
 
 fn eval_file(collector: &Collector, globals: &Globals, name: &str, source: String) -> Result<()> {
     let ast = AstModule::parse(name, source, &Dialect::Standard).map_err(|e| anyhow!("{e}"))?;
-    Module::with_temp_heap(|module| -> Result<()> {
-        let mut eval = Evaluator::new(&module);
-        eval.extra = Some(collector);
-        eval.eval_module(ast, globals).map_err(|e| anyhow!("{e}"))?;
-        Ok(())
-    })
+    let module = Module::new();
+    let mut eval = Evaluator::new(&module);
+    eval.extra = Some(collector);
+    eval.eval_module(ast, globals).map_err(|e| anyhow!("{e}"))?;
+    Ok(())
 }
