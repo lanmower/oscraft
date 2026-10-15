@@ -121,9 +121,13 @@ pub fn verify(image: &[u8]) -> Result<()> {
         let y = u32_at(image, at + 8)? as i64;
         let flags = u32_at(image, at + 12)?;
         ensure!(flags & !PLCE_FLAG_START == 0, "placement {i} sets reserved flags");
-        ensure!((0..MAX_PLAYERS).contains(&player), "placement {i} player {player} out of range");
+        ensure!(
+            player == NEUTRAL_PLAYER as i32 || (0..MAX_PLAYERS).contains(&player),
+            "placement {i} player {player} out of range"
+        );
         if flags & PLCE_FLAG_START != 0 {
             ensure!(unit_index == NO_UNIT, "start {i} names a unit");
+            ensure!(player != NEUTRAL_PLAYER as i32, "start {i} is neutral");
             ensure!(starts.insert(player), "player {player} has two start locations");
         } else {
             ensure!((unit_index as usize) < unit.count, "placement {i} names a unit past the end of UNIT");

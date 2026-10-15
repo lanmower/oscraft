@@ -187,8 +187,8 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
     }
 
     fn spawn(unit: &str, player: i32, x: i32, y: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
-        if !(0..MAX_PLAYERS).contains(&player) {
-            bail!("spawn({unit:?}) player {player} is outside 0..{MAX_PLAYERS}");
+        if player != -1 && !(0..MAX_PLAYERS).contains(&player) {
+            bail!("spawn({unit:?}) player {player} is outside -1 (neutral) or 0..{MAX_PLAYERS}");
         }
         if x < 0 || y < 0 {
             bail!("spawn({unit:?}) position ({x}, {y}) is negative");

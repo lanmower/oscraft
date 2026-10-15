@@ -6,7 +6,7 @@ use anyhow::{anyhow, bail, Result};
 
 use crate::format::{
     move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, EFFECT_KINDS, MAX_PLAYERS, NO_ABILITY, NO_UNIT,
-    PLCE_FLAG_START,
+    NEUTRAL_PLAYER, PLCE_FLAG_START,
 };
 use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Spawn, Unit, Weapon};
 
@@ -191,8 +191,12 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let mut spawns = Vec::with_capacity(spawns_raw.len());
     let mut started = std::collections::HashSet::new();
     for raw in &spawns_raw {
-        if !(0..MAX_PLAYERS).contains(&raw.player) {
-            bail!("placement player {} is outside 0..{MAX_PLAYERS}", raw.player);
+        let neutral = raw.player == -1;
+        if !neutral && !(0..MAX_PLAYERS).contains(&raw.player) {
+            bail!("placement player {} is outside -1 (neutral) or 0..{MAX_PLAYERS}", raw.player);
+        }
+        if neutral && raw.unit.is_none() {
+            bail!("a start location cannot be neutral");
         }
         if !position_on_grid(raw.x as i64, raw.y as i64, grid.width, grid.height, grid.cell_milli) {
             bail!(
@@ -220,7 +224,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         };
         spawns.push(Spawn {
             unit,
-            player: raw.player as u16,
+            player: if neutral { NEUTRAL_PLAYER } else { raw.player as u16 },
             x: raw.x as u32,
             y: raw.y as u32,
             flags,
