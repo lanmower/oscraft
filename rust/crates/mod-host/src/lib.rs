@@ -1,7 +1,7 @@
 //! Lua 5.4 mod host. A mod is a chunk that defines `on_tick(state)`. The host owns
 //! `state` and the sim; a mod reload never resets them.
 
-use mlua::{Function, Lua, RegistryKey, Table};
+use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
 use sim::{LoadError, Sim};
 use std::cell::{Cell, RefCell};
 use std::fs;
@@ -12,6 +12,10 @@ use std::time::SystemTime;
 const MAX_UNITS: usize = 1024;
 const MAX_REGIONS: usize = 64;
 const MAX_TIMERS: usize = 256;
+// The instruction hook fires once per HOOK_STRIDE instructions; a budget is counted in hook firings.
+const HOOK_STRIDE: u32 = 1000;
+const DEFAULT_INSTRUCTIONS: u64 = 10_000_000;
+const DEFAULT_MEMORY: usize = 16 << 20;
 
 type Shared = Rc<RefCell<Sim>>;
 type Regions = Rc<RefCell<Vec<Region>>>;
@@ -80,6 +84,8 @@ pub struct ModHost {
     regions: Regions,
     timers: Timers,
     clock: Clock,
+    spent: Rc<Cell<u64>>,
+    budget: Rc<Cell<u64>>,
     inside: Vec<u64>,
     snap: Vec<UnitSnap>,
     prev: Vec<UnitSnap>,
@@ -107,6 +113,14 @@ fn known_unit(sim: &Sim, i: i64) -> mlua::Result<usize> {
 // A unit index the sim reports alive; the only units an order may address.
 fn live_unit(sim: &Sim, i: i64) -> mlua::Result<usize> {
     usize::try_from(i).ok().filter(|&u| sim.alive(u)).ok_or_else(|| invalid_unit(i))
+}
+
+// Maps a Lua heap overflow to the named limit error; other errors pass through.
+fn named(e: mlua::Error) -> mlua::Error {
+    match e {
+        mlua::Error::MemoryError(_) => mlua::Error::RuntimeError("memory_limit: the mod exceeded its Lua heap limit".into()),
+        other => other,
+    }
 }
 
 fn unknown_region(name: &str) -> mlua::Error {
@@ -291,6 +305,21 @@ impl ModHost {
     /// on the image's own map. `state.ticks` starts at 0.
     pub fn new(image: &[u8]) -> Result<Self, LoadError> {
         let lua = Lua::new();
+        let spent = Rc::new(Cell::new(0u64));
+        let budget = Rc::new(Cell::new(DEFAULT_INSTRUCTIONS / HOOK_STRIDE as u64));
+        let (s, b) = (spent.clone(), budget.clone());
+        lua.set_hook(HookTriggers::new().every_nth_instruction(HOOK_STRIDE), move |_, _| {
+            let n = s.get() + 1;
+            s.set(n);
+            if n > b.get() {
+                return Err(mlua::Error::RuntimeError(format!(
+                    "instruction_limit: over {} instructions in one call",
+                    b.get() * HOOK_STRIDE as u64
+                )));
+            }
+            Ok(VmState::Continue)
+        });
+        lua.set_memory_limit(DEFAULT_MEMORY).expect("set memory limit");
         let state = lua.create_table().expect("create state table");
         state.set("ticks", 0i64).expect("seed state.ticks");
         let world = Rc::new(RefCell::new(sim::load(image, MAX_UNITS)?));
@@ -302,6 +331,8 @@ impl ModHost {
             regions,
             timers: Rc::new(RefCell::new(Vec::with_capacity(MAX_TIMERS))),
             clock: Rc::new(Cell::new(0)),
+            spent,
+            budget,
             inside: vec![0; MAX_UNITS],
             snap: Vec::with_capacity(MAX_UNITS),
             prev: Vec::with_capacity(MAX_UNITS),
@@ -312,7 +343,8 @@ impl ModHost {
 
     /// Compiles the mod at `path` and makes it the active mod.
     pub fn load(&mut self, path: &Path) -> mlua::Result<()> {
-        let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, path)?;
+        self.spent.set(0);
+        let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, path).map_err(named)?;
         self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, hooks });
         Ok(())
     }
@@ -325,6 +357,7 @@ impl ModHost {
             return;
         }
         m.mtime = t;
+        self.spent.set(0);
         match compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &m.path) {
             Ok(hooks) => {
                 m.hooks = hooks;
@@ -336,21 +369,37 @@ impl ModHost {
 
     /// Runs the active mod's on_tick once. A runtime error is returned with file and line.
     pub fn tick(&self, state: &Table) -> mlua::Result<()> {
+        self.spent.set(0);
+        self.run_on_tick(state).map_err(named)
+    }
+
+    fn run_on_tick(&self, state: &Table) -> mlua::Result<()> {
         match &self.mod_file {
             Some(m) => m.hooks.on_tick.call::<()>(state.clone()),
             None => Ok(()),
         }
     }
 
+    /// Caps each step (one advance, or one load or reload) at `instructions` Lua
+    /// instructions and the Lua heap at `memory_bytes`. A step over either stops with a
+    /// named error; the next step starts with a fresh budget.
+    pub fn set_limits(&mut self, instructions: u64, memory_bytes: usize) -> mlua::Result<()> {
+        self.budget.set(instructions / HOOK_STRIDE as u64);
+        self.lua.set_memory_limit(memory_bytes)?;
+        Ok(())
+    }
+
     /// One sim tick, then trigger zone transitions for the new unit positions, then
     /// on_tick. Transitions are emitted in unit index order, then region index order.
     pub fn advance(&mut self, state: &Table) -> mlua::Result<()> {
+        self.spent.set(0);
         self.clock.set(self.clock.get() + 1);
         self.world.borrow_mut().tick();
         self.collect();
-        self.dispatch()?;
-        self.fire_timers()?;
-        self.tick(state)
+        self.dispatch()
+            .and_then(|_| self.fire_timers())
+            .and_then(|_| self.run_on_tick(state))
+            .map_err(named)
     }
 
     // Fires every due timer in insertion order. A timer is removed before its action
