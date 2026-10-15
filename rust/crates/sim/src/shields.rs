@@ -20,7 +20,11 @@ impl Sim {
 
     /// Adds a flat bonus to a unit's shield pool. The receiver is the cast target unit, or
     /// the caster when the cast names no unit. A dead receiver refuses as no-target.
-    pub(crate) fn shield_bonus(&mut self, caster: usize, target: i32, amount: i32) {
+    pub fn shield_bonus(&mut self, caster: usize, target: i32, amount: i32) {
+        if caster >= self.n {
+            self.refuse(crate::rules::Refusal::NoTarget);
+            return;
+        }
         let r = if target >= 0 && (target as usize) < self.n { target as usize } else { caster };
         if self.alive[r] == 0 {
             self.refuse(crate::rules::Refusal::NoTarget);
@@ -38,7 +42,11 @@ impl Sim {
     /// the amount is subtracted; 1 sets: the vital becomes the amount. Life reaching zero ends
     /// the unit; a shield is never negative.
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn vital_fraction(&mut self, caster: usize, target: i32, vital: i32, frac: i32, mode: i32, of_max: i32) {
+    pub fn vital_fraction(&mut self, caster: usize, target: i32, vital: i32, frac: i32, mode: i32, of_max: i32) {
+        if caster >= self.n {
+            self.refuse(crate::rules::Refusal::NoTarget);
+            return;
+        }
         let r = if target >= 0 && (target as usize) < self.n { target as usize } else { caster };
         if self.alive[r] == 0 {
             self.refuse(crate::rules::Refusal::NoTarget);

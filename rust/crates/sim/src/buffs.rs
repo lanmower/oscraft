@@ -36,7 +36,11 @@ impl Sim {
         }
     }
 
-    pub(crate) fn clear_buff(&mut self, j: usize, kind: i32) {
+    /// Removes behaviour `kind` from unit `j`. An unknown unit is a no-op.
+    pub fn clear_buff(&mut self, j: usize, kind: i32) {
+        if j >= self.n {
+            return;
+        }
         self.touch(j);
         for k in 0..BUFF_SLOTS {
             if self.buff_kind[j * BUFF_SLOTS + k] == kind {
@@ -47,7 +51,7 @@ impl Sim {
 
     /// Removes behaviour `kind` from every living unit within `rad` of a point, whichever
     /// player owns it. Uses the shared scratch buffer, so nothing is allocated.
-    pub(crate) fn remove_behaviour(&mut self, kind: i32, rad: i32, x: i32, y: i32) {
+    pub fn remove_behaviour(&mut self, kind: i32, rad: i32, x: i32, y: i32) {
         let mut buf = std::mem::take(&mut self.scratch);
         let n = self.gather(x, y, rad, &mut buf);
         for k in 0..n {

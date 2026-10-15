@@ -13,7 +13,7 @@ const ARMOUR_FLOOR: i32 = fixed::ONE / 4;
 
 /// Weapon damage after the target's armour, in Q16.16. Armour is a flat reduction per hit; the
 /// result never falls below ARMOUR_FLOOR.
-pub(crate) fn armour_reduced(damage: i32, armour: i32) -> i32 {
+pub fn armour_reduced(damage: i32, armour: i32) -> i32 {
     damage.wrapping_sub(armour).max(ARMOUR_FLOOR)
 }
 
@@ -68,7 +68,11 @@ impl Sim {
     }
 
     /// Ability damage: the response and shield apply, armour does not.
-    pub(crate) fn hurt(&mut self, j: usize, dmg: i32) {
+    /// Ability damage to unit `j`, through the shared damage path. An unknown unit is a no-op.
+    pub fn hurt(&mut self, j: usize, dmg: i32) {
+        if j >= self.n {
+            return;
+        }
         let before = self.hp[j];
         self.inflict(j, dmg);
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
@@ -110,7 +114,7 @@ impl Sim {
 
     /// Damages every living enemy unit within `rad` of a point. `caster` is the unit that
     /// cast it, or -1; the caster is spared.
-    pub(crate) fn damage_area(&mut self, caster: i32, p: u8, dmg: i32, rad: i32, x: i32, y: i32) {
+    pub fn damage_area(&mut self, caster: i32, p: u8, dmg: i32, rad: i32, x: i32, y: i32) {
         if dmg <= 0 {
             return;
         }
