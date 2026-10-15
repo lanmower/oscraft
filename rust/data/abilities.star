@@ -7,3 +7,5 @@ ability("rally", 120, 25, "point", [effect("issue_order", p0=1, p1=1), effect("c
 ability("purge", 150, 40, "unit", [effect("remove_behaviour", p0=1, p1=2000)], target_filters=["biological"])
 ability("recall_pulse", 300, 100, "none", [effect("use_calldown", p0=0)])
 ability("dash", 90, 10, "point", [effect("move", p0=6000)])
+# mend_field is channelled: the caster is held for 48 ticks.
+channel("mend_field", 48)

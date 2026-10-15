@@ -1,4 +1,4 @@
-//! Reference reader: checks an image against FORMAT.md v10 before it is written.
+//! Reference reader: checks an image against FORMAT.md v11 before it is written.
 //! The sim crate has its own loader; this one guards the generator's output.
 
 use anyhow::{anyhow, ensure, Result};
@@ -48,17 +48,21 @@ pub fn verify(image: &[u8]) -> Result<()> {
     }
     ensure!(expected == image.len(), "trailing bytes after the last section");
 
-    let (efct, abil, uabl, unit, plce, upgr, regn, limt, grid) = (
-        &sections[1],
-        &sections[2],
-        &sections[3],
-        &sections[4],
-        &sections[6],
-        &sections[7],
-        &sections[8],
-        &sections[9],
-        &sections[10],
-    );
+    let efct = &sections[1];
+    let abil = &sections[2];
+    let uabl = &sections[3];
+    let unit = &sections[4];
+    let plce = &sections[6];
+    let upgr = &sections[7];
+    let regn = &sections[8];
+    let limt = &sections[9];
+    let econ = &sections[10];
+    let uext = &sections[11];
+    let achn = &sections[12];
+    let rsch = &sections[13];
+    let preq = &sections[14];
+    let dmgf = &sections[15];
+    let grid = &sections[16];
 
     let width = u32_at(image, grid.offset)?;
     let height = u32_at(image, grid.offset + 4)?;
@@ -68,7 +72,10 @@ pub fn verify(image: &[u8]) -> Result<()> {
         "grid size does not match its header"
     );
     ensure!(limt.count == 1, "LIMT count must be 1");
+    ensure!(econ.count == 1, "ECON count must be 1");
     ensure!(regn.count == unit.count, "REGN count differs from UNIT count");
+    ensure!(uext.count == unit.count, "UEXT count differs from UNIT count");
+    ensure!(achn.count == abil.count, "ACHN count differs from ABIL count");
 
     for i in 0..efct.count {
         let at = efct.offset + i * EFCT_RECORD;
@@ -106,6 +113,18 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(u16_at(image, at + 18)? as u32 & !FILTER_ALL == 0, "ability {i} filter mask uses reserved bits");
     }
 
+    for i in 0..achn.count {
+        let at = achn.offset + i * ACHN_RECORD;
+        let flags = u16_at(image, at)?;
+        let duration = u32_at(image, at + 4)?;
+        ensure!(flags & !CHANNEL_FLAG == 0, "channel {i} sets reserved flags");
+        if flags & CHANNEL_FLAG != 0 {
+            ensure!(duration >= 1, "channel {i} has no duration");
+        } else {
+            ensure!(duration == 0, "ability {i} has a duration without the channel flag");
+        }
+    }
+
     for i in 0..uabl.count {
         let id = u16_at(image, uabl.offset + i * UABL_RECORD)? as usize;
         ensure!(id < abil.count, "UABL entry {i} names an ability past the end of ABIL");
@@ -121,6 +140,18 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(u32_at(image, at + 40)? & !FILTER_ALL == 0, "unit {i} filter mask uses reserved bits");
         ensure!((image[at + 70] as usize) < DAMAGE_RESPONSES.len(), "unit {i} damage response out of range");
         ensure!((image[at + 71] as usize) < RESOURCE_KINDS.len(), "unit {i} resource kind out of range");
+    }
+
+    for i in 0..uext.count {
+        let at = uext.offset + i * UEXT_RECORD;
+        let size = image[at + 4] as usize;
+        let damage_type = image[at + 5] as usize;
+        let cloak = image[at + 6];
+        let ranged_miss = u32_at(image, at + 12)?;
+        ensure!(size < SIZE_CATEGORIES.len(), "unit {i} size category out of range");
+        ensure!(damage_type < DAMAGE_TYPES.len(), "unit {i} damage type out of range");
+        ensure!(cloak & !CLOAK_MASK == 0, "unit {i} cloak flags exceed the registry");
+        ensure!(ranged_miss <= Q16_ONE as u32, "unit {i} miss chance above 1.0");
     }
 
     let mut starts = std::collections::HashSet::new();
@@ -164,6 +195,38 @@ pub fn verify(image: &[u8]) -> Result<()> {
         let target_count = if target_kind == 0 { unit.count } else { abil.count };
         ensure!(target < target_count, "upgrade {i} target past its section");
         ensure!(effect < efct.count, "upgrade {i} effect past EFCT");
+    }
+
+    for i in 0..rsch.count {
+        let at = rsch.offset + i * RSCH_RECORD;
+        let building = u16_at(image, at + 6)? as usize;
+        let effect = u32_at(image, at + 20)? as usize;
+        let applies = u32_at(image, at + 24)?;
+        ensure!(building < unit.count, "research {i} runs at a unit past UNIT");
+        ensure!(effect < efct.count, "research {i} effect past EFCT");
+        ensure!(applies & !FILTER_ALL == 0, "research {i} applies-to mask uses reserved bits");
+    }
+
+    for i in 0..preq.count {
+        let at = preq.offset + i * PREQ_RECORD;
+        let target_kind = image[at] as usize;
+        let requires_kind = image[at + 1] as usize;
+        let target = u16_at(image, at + 2)? as usize;
+        let requires = u16_at(image, at + 4)? as usize;
+        ensure!(target_kind < REQ_KINDS.len(), "prerequisite {i} target kind out of range");
+        ensure!(requires_kind < REQ_KINDS.len(), "prerequisite {i} requirement kind out of range");
+        let target_count = if target_kind == 0 { unit.count } else { rsch.count };
+        let requires_count = if requires_kind == 0 { unit.count } else { rsch.count };
+        ensure!(target < target_count, "prerequisite {i} target past its section");
+        ensure!(requires < requires_count, "prerequisite {i} requirement past its section");
+    }
+
+    for i in 0..dmgf.count {
+        let at = dmgf.offset + i * DMGF_RECORD;
+        let damage_type = image[at] as usize;
+        let size = image[at + 1] as usize;
+        ensure!(damage_type < DAMAGE_TYPES.len(), "damage factor {i} type out of range");
+        ensure!(size < SIZE_CATEGORIES.len(), "damage factor {i} size out of range");
     }
 
     for &cell in &image[grid.offset + GRID_HEADER_LEN..grid.offset + grid.count] {

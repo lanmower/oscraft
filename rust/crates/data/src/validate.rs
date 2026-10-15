@@ -1,14 +1,17 @@
 //! Cross-record checks and name resolution. Turns the collector into a `Catalog`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
 
 use crate::format::{
-    move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, EFFECT_KINDS, MAX_PLAYERS, NEUTRAL_PLAYER, NO_ABILITY,
-    NO_UNIT, PLCE_FLAG_START,
+    move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, CHANNEL_FLAG, CLOAK_MASK, EFFECT_KINDS, MAX_PLAYERS,
+    NEUTRAL_PLAYER, NO_ABILITY, NO_UNIT, PLCE_FLAG_START, Q16_ONE,
 };
-use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Spawn, Unit, Upgrade, Weapon};
+use crate::model::{
+    Ability, Behaviour, Catalog, Channel, Collector, DamageFactor, Econ, Effect, Prereq, Research, Spawn, Unit,
+    UnitExt, Upgrade, Weapon,
+};
 
 fn valid_name(name: &str) -> Result<()> {
     let bytes = name.as_bytes();
@@ -37,6 +40,24 @@ fn unsigned(what: &str, value: i32) -> Result<u32> {
     u32::try_from(value).map_err(|_| anyhow!("{what} must be >= 0, got {value}"))
 }
 
+fn bounded(what: &str, value: i32, max: u32) -> Result<u32> {
+    let v = unsigned(what, value)?;
+    if v > max {
+        bail!("{what} {value} exceeds {max}");
+    }
+    Ok(v)
+}
+
+fn required_index(kind: usize, name: &str, units: &HashMap<String, usize>, researches: &HashMap<String, usize>) -> Result<usize> {
+    let found = match kind {
+        0 => units.get(name),
+        _ => researches.get(name),
+    };
+    found
+        .copied()
+        .ok_or_else(|| anyhow!("prerequisite names unknown {} {name:?}", if kind == 0 { "unit" } else { "research" }))
+}
+
 pub fn validate(collector: Collector) -> Result<Catalog> {
     let effects = collector.effects.into_inner();
     let units_raw = collector.units.into_inner();
@@ -44,6 +65,12 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let behaviours_raw = collector.behaviours.into_inner();
     let spawns_raw = collector.spawns.into_inner();
     let upgrades_raw = collector.upgrades.into_inner();
+    let unit_ext_raw = collector.unit_ext.into_inner();
+    let channels_raw = collector.channels.into_inner();
+    let economy_raw = collector.economy.into_inner();
+    let researches_raw = collector.researches.into_inner();
+    let prereqs_raw = collector.prerequisites.into_inner();
+    let damage_factors_raw = collector.damage_factors.into_inner();
     let cell_limit = match collector.cell_limit.into_inner() {
         Some(limit) => unsigned("limit per_cell", limit)?,
         None => 0,
@@ -63,6 +90,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let unit_index = name_index("unit", units_raw.iter().map(|u| u.name.as_str()))?;
     name_index("behaviour", behaviours_raw.iter().map(|b| b.name.as_str()))?;
     name_index("upgrade", upgrades_raw.iter().map(|u| u.name.as_str()))?;
+    let research_index = name_index("research", researches_raw.iter().map(|r| r.name.as_str()))?;
 
     let mut abilities = Vec::with_capacity(abilities_raw.len());
     for raw in &abilities_raw {
@@ -112,6 +140,24 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
                 .map(|speed| unsigned("projectile_speed_milli", speed))
                 .transpose()?,
         });
+    }
+
+    let mut channels = vec![Channel::default(); abilities_raw.len()];
+    let mut channel_seen = HashSet::new();
+    for raw in &channels_raw {
+        let index = *ability_index
+            .get(&raw.ability)
+            .ok_or_else(|| anyhow!("channel names unknown ability {:?}", raw.ability))?;
+        if !channel_seen.insert(index) {
+            bail!("ability {:?} has more than one channel", raw.ability);
+        }
+        if raw.duration < 1 {
+            bail!("channel on {:?} needs a duration of at least 1 tick", raw.ability);
+        }
+        channels[index] = Channel {
+            flags: CHANNEL_FLAG,
+            duration: unsigned("channel duration", raw.duration)?,
+        };
     }
 
     let mut units = Vec::with_capacity(units_raw.len());
@@ -174,6 +220,107 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         });
     }
 
+    let mut unit_ext = vec![UnitExt::default(); units_raw.len()];
+    let mut ext_seen = HashSet::new();
+    for raw in &unit_ext_raw {
+        let index = *unit_index
+            .get(&raw.name)
+            .ok_or_else(|| anyhow!("unit_extra names unknown unit {:?}", raw.name))?;
+        if !ext_seen.insert(index) {
+            bail!("unit {:?} has more than one unit_extra", raw.name);
+        }
+        if raw.cloak as u8 & !CLOAK_MASK != 0 {
+            bail!("unit {:?} cloak flags exceed the cloak registry", raw.name);
+        }
+        unit_ext[index] = UnitExt {
+            supply_provided: u16::try_from(unsigned("supply_provided", raw.supply_provided)?)
+                .map_err(|_| anyhow!("unit {:?} supply_provided exceeds u16", raw.name))?,
+            transport_capacity: u16::try_from(unsigned("transport_capacity", raw.transport_capacity)?)
+                .map_err(|_| anyhow!("unit {:?} transport_capacity exceeds u16", raw.name))?,
+            size: raw.size as u8,
+            damage_type: raw.damage_type as u8,
+            cloak: raw.cloak,
+            detector_radius: unsigned("detector_radius", raw.detector_radius)?,
+            ranged_miss: bounded("ranged_miss", raw.ranged_miss, Q16_ONE as u32)?,
+            burrow_ticks: unsigned("burrow_ticks", raw.burrow_ticks)?,
+            rally_dx: raw.rally_dx,
+            rally_dy: raw.rally_dy,
+        };
+    }
+
+    let econ = match economy_raw {
+        None => Econ::default(),
+        Some(e) => {
+            if e.patch_saturation < 1 || e.gas_saturation < 1 {
+                bail!("economy saturation counts must be at least 1");
+            }
+            Econ {
+                patch_saturation: bounded("patch_saturation", e.patch_saturation, u8::MAX as u32)? as u8,
+                gas_saturation: bounded("gas_saturation", e.gas_saturation, u8::MAX as u32)? as u8,
+                patches_per_base: bounded("patches_per_base", e.patches_per_base, u8::MAX as u32)? as u8,
+                geysers_per_base: bounded("geysers_per_base", e.geysers_per_base, u8::MAX as u32)? as u8,
+                extractor_yield: unsigned("extractor_yield", e.extractor_yield)?,
+                opening_minerals: unsigned("opening_minerals", e.opening_minerals)?,
+                opening_gas: unsigned("opening_gas", e.opening_gas)?,
+                opening_workers: bounded("opening_workers", e.opening_workers, u16::MAX as u32)? as u16,
+                supply_base: bounded("supply_base", e.supply_base, u16::MAX as u32)? as u16,
+                supply_max: bounded("supply_max", e.supply_max, u16::MAX as u32)? as u16,
+                patch_yield: unsigned("patch_yield", e.patch_yield)?,
+                geyser_yield: unsigned("geyser_yield", e.geyser_yield)?,
+            }
+        }
+    };
+
+    let mut researches = Vec::with_capacity(researches_raw.len());
+    for raw in &researches_raw {
+        let building = *unit_index
+            .get(&raw.building)
+            .ok_or_else(|| anyhow!("research {:?} runs at unknown unit {:?}", raw.name, raw.building))?;
+        let effect = *effects
+            .get(raw.effect)
+            .ok_or_else(|| anyhow!("research {:?} names an unknown effect handle", raw.name))?;
+        researches.push(Research {
+            name: raw.name.clone(),
+            building: building as u16,
+            time: unsigned("research time", raw.time)?,
+            minerals: unsigned("research minerals", raw.minerals)?,
+            gas: unsigned("research gas", raw.gas)?,
+            effect: Effect {
+                kind: effect.kind as u16,
+                params: effect.params,
+            },
+            applies: raw.applies,
+        });
+    }
+
+    let mut prereqs = Vec::with_capacity(prereqs_raw.len());
+    for raw in &prereqs_raw {
+        let target = required_index(raw.target_kind, &raw.target, &unit_index, &research_index)?;
+        let requires = required_index(raw.requires_kind, &raw.requires, &unit_index, &research_index)?;
+        prereqs.push(Prereq {
+            target_kind: raw.target_kind as u8,
+            target: target as u16,
+            requires_kind: raw.requires_kind as u8,
+            requires: requires as u16,
+        });
+    }
+
+    let mut damage_factors = Vec::with_capacity(damage_factors_raw.len());
+    let mut factor_seen = HashSet::new();
+    for raw in &damage_factors_raw {
+        if !factor_seen.insert((raw.damage_type, raw.size)) {
+            bail!("more than one damage factor for type {} and size {}", raw.damage_type, raw.size);
+        }
+        if raw.factor < 0 {
+            bail!("damage factor {} is negative", raw.factor);
+        }
+        damage_factors.push(DamageFactor {
+            damage_type: raw.damage_type as u8,
+            size: raw.size as u8,
+            factor: raw.factor as u32,
+        });
+    }
+
     let mut behaviours = Vec::with_capacity(behaviours_raw.len());
     for raw in &behaviours_raw {
         let ability = match &raw.ability {
@@ -198,7 +345,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     }
 
     let mut spawns = Vec::with_capacity(spawns_raw.len());
-    let mut started = std::collections::HashSet::new();
+    let mut started = HashSet::new();
     for raw in &spawns_raw {
         let neutral = raw.player == -1;
         if !neutral && !(0..MAX_PLAYERS).contains(&raw.player) {
@@ -272,11 +419,17 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
 
     Ok(Catalog {
         units,
+        unit_ext,
         abilities,
+        channels,
         behaviours,
         spawns,
         upgrades,
         cell_limit,
+        econ,
+        researches,
+        prereqs,
+        damage_factors,
         grid,
     })
 }

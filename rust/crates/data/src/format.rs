@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 10;
+pub const VERSION: u16 = 11;
 pub const PLCE_FLAG_START: u32 = 1;
 pub const NEUTRAL_PLAYER: u16 = u16::MAX;
 pub const HEADER_LEN: usize = 16;
@@ -47,6 +47,12 @@ pub const RESOURCE_KINDS: &[&str] = &["none", "minerals", "gas"];
 pub const UPGRADE_TARGET_KINDS: &[&str] = &["unit", "ability"];
 pub const UPGRADE_APPLY: &[&str] = &["new_only", "existing"];
 pub const UPGRADE_STACKING: &[&str] = &["replace", "add", "refuse"];
+pub const DAMAGE_TYPES: &[&str] = &["normal", "concussive", "explosive"];
+pub const SIZE_CATEGORIES: &[&str] = &["small", "medium", "large"];
+pub const CLOAK_FLAGS: &[&str] = &["cloaked", "burrowable", "detector_required"];
+pub const CLOAK_MASK: u8 = 0b111;
+pub const REQ_KINDS: &[&str] = &["unit", "research"];
+pub const CHANNEL_FLAG: u16 = 1;
 
 pub const CELL_BLOCKED: u8 = 1;
 pub const CELL_CLIFF: u8 = 2;
@@ -62,6 +68,12 @@ pub const TAG_PLCE: [u8; 4] = *b"PLCE";
 pub const TAG_UPGR: [u8; 4] = *b"UPGR";
 pub const TAG_REGN: [u8; 4] = *b"REGN";
 pub const TAG_LIMT: [u8; 4] = *b"LIMT";
+pub const TAG_ECON: [u8; 4] = *b"ECON";
+pub const TAG_UEXT: [u8; 4] = *b"UEXT";
+pub const TAG_ACHN: [u8; 4] = *b"ACHN";
+pub const TAG_RSCH: [u8; 4] = *b"RSCH";
+pub const TAG_PREQ: [u8; 4] = *b"PREQ";
+pub const TAG_DMGF: [u8; 4] = *b"DMGF";
 pub const TAG_GRID: [u8; 4] = *b"GRID";
 
 pub const STRS_RECORD: usize = 1;
@@ -74,11 +86,17 @@ pub const PLCE_RECORD: usize = 16;
 pub const UPGR_RECORD: usize = 16;
 pub const REGN_RECORD: usize = 12;
 pub const LIMT_RECORD: usize = 4;
+pub const ECON_RECORD: usize = 32;
+pub const UEXT_RECORD: usize = 32;
+pub const ACHN_RECORD: usize = 8;
+pub const RSCH_RECORD: usize = 32;
+pub const PREQ_RECORD: usize = 8;
+pub const DMGF_RECORD: usize = 8;
 pub const GRID_RECORD: usize = 1;
 pub const GRID_HEADER_LEN: usize = 12;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
-pub const SECTIONS: [([u8; 4], usize); 11] = [
+pub const SECTIONS: [([u8; 4], usize); 17] = [
     (TAG_STRS, STRS_RECORD),
     (TAG_EFCT, EFCT_RECORD),
     (TAG_ABIL, ABIL_RECORD),
@@ -89,6 +107,12 @@ pub const SECTIONS: [([u8; 4], usize); 11] = [
     (TAG_UPGR, UPGR_RECORD),
     (TAG_REGN, REGN_RECORD),
     (TAG_LIMT, LIMT_RECORD),
+    (TAG_ECON, ECON_RECORD),
+    (TAG_UEXT, UEXT_RECORD),
+    (TAG_ACHN, ACHN_RECORD),
+    (TAG_RSCH, RSCH_RECORD),
+    (TAG_PREQ, PREQ_RECORD),
+    (TAG_DMGF, DMGF_RECORD),
     (TAG_GRID, GRID_RECORD),
 ];
 

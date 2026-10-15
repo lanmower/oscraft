@@ -1,6 +1,5 @@
-//! Starlark builtins: `effect`, `ability`, `unit`, `behaviour`, `spawn`, `grid`, `paint`.
-//! Each one validates its enum-like arguments at call time so errors carry the
-//! Starlark source location.
+//! Starlark builtins. Each one validates its enum-like arguments at call time so
+//! errors carry the Starlark source location.
 
 use anyhow::{anyhow, bail, Result};
 use starlark::environment::{Globals, GlobalsBuilder};
@@ -9,11 +8,14 @@ use starlark::starlark_module;
 use starlark::values::{list::UnpackList, none::NoneType};
 
 use crate::format::{
-    effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, DAMAGE_RESPONSES, EFFECT_KINDS,
-    FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING,
-    UPGRADE_TARGET_KINDS,
+    effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, CLOAK_FLAGS, DAMAGE_RESPONSES,
+    DAMAGE_TYPES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
+    TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
 };
-use crate::model::{AbilityRaw, BehaviourRaw, Collector, EffectRaw, Grid, SpawnRaw, UnitRaw, UpgradeRaw, WeaponRaw};
+use crate::model::{
+    AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw,
+    ResearchRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
+};
 
 pub fn globals() -> Globals {
     GlobalsBuilder::standard().with(osdt_builtins).build()
@@ -136,6 +138,42 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         Ok(NoneType)
     }
 
+    fn unit_extra(
+        name: &str,
+        #[starlark(require = named)] supply_provided: Option<i32>,
+        #[starlark(require = named)] transport_capacity: Option<i32>,
+        #[starlark(require = named)] size: Option<&str>,
+        #[starlark(require = named)] damage_type: Option<&str>,
+        #[starlark(require = named)] cloak: Option<UnpackList<String>>,
+        #[starlark(require = named)] detector_radius: Option<i32>,
+        #[starlark(require = named)] ranged_miss: Option<i32>,
+        #[starlark(require = named)] burrow_ticks: Option<i32>,
+        #[starlark(require = named)] rally_dx: Option<i32>,
+        #[starlark(require = named)] rally_dy: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let size = index_of(SIZE_CATEGORIES, size.unwrap_or("small"), "size category")?;
+        let damage_type = index_of(DAMAGE_TYPES, damage_type.unwrap_or("normal"), "damage type")?;
+        let mut cloak_bits = 0u8;
+        for flag in cloak.map(|list| list.items).unwrap_or_default() {
+            cloak_bits |= 1u8 << index_of(CLOAK_FLAGS, &flag, "cloak flag")?;
+        }
+        collector(eval)?.unit_ext.borrow_mut().push(UnitExtRaw {
+            name: name.to_owned(),
+            supply_provided: supply_provided.unwrap_or(0),
+            transport_capacity: transport_capacity.unwrap_or(0),
+            size,
+            damage_type,
+            cloak: cloak_bits,
+            detector_radius: detector_radius.unwrap_or(0),
+            ranged_miss: ranged_miss.unwrap_or(0),
+            burrow_ticks: burrow_ticks.unwrap_or(0),
+            rally_dx: rally_dx.unwrap_or(0),
+            rally_dy: rally_dy.unwrap_or(0),
+        });
+        Ok(NoneType)
+    }
+
     fn ability(
         name: &str,
         cooldown: i32,
@@ -166,6 +204,14 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             target_filters,
             effects: handles,
             projectile_speed: projectile_speed_milli,
+        });
+        Ok(NoneType)
+    }
+
+    fn channel(ability: &str, duration: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        collector(eval)?.channels.borrow_mut().push(ChannelRaw {
+            ability: ability.to_owned(),
+            duration,
         });
         Ok(NoneType)
     }
@@ -246,6 +292,99 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             apply,
             stacking,
             effect,
+        });
+        Ok(NoneType)
+    }
+
+    fn research(
+        name: &str,
+        building: &str,
+        time: i32,
+        minerals: i32,
+        gas: i32,
+        effect: i32,
+        #[starlark(require = named)] applies_to: Option<UnpackList<String>>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let effect = usize::try_from(effect).map_err(|_| anyhow!("research {name:?} has an invalid effect handle"))?;
+        let applies = filter_mask(applies_to)?;
+        collector(eval)?.researches.borrow_mut().push(ResearchRaw {
+            name: name.to_owned(),
+            building: building.to_owned(),
+            time,
+            minerals,
+            gas,
+            effect,
+            applies,
+        });
+        Ok(NoneType)
+    }
+
+    fn prerequisite(
+        target_kind: &str,
+        target: &str,
+        requires_kind: &str,
+        requires: &str,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let target_kind = index_of(REQ_KINDS, target_kind, "prerequisite target kind")?;
+        let requires_kind = index_of(REQ_KINDS, requires_kind, "prerequisite requirement kind")?;
+        collector(eval)?.prerequisites.borrow_mut().push(PrereqRaw {
+            target_kind,
+            target: target.to_owned(),
+            requires_kind,
+            requires: requires.to_owned(),
+        });
+        Ok(NoneType)
+    }
+
+    fn damage_factor(damage_type: &str, size: &str, factor: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let damage_type = index_of(DAMAGE_TYPES, damage_type, "damage type")?;
+        let size = index_of(SIZE_CATEGORIES, size, "size category")?;
+        if factor < 0 {
+            bail!("damage factor {factor} is negative");
+        }
+        collector(eval)?.damage_factors.borrow_mut().push(DamageFactorRaw {
+            damage_type,
+            size,
+            factor,
+        });
+        Ok(NoneType)
+    }
+
+    fn economy(
+        #[starlark(require = named)] patch_saturation: Option<i32>,
+        #[starlark(require = named)] gas_saturation: Option<i32>,
+        #[starlark(require = named)] patches_per_base: Option<i32>,
+        #[starlark(require = named)] geysers_per_base: Option<i32>,
+        #[starlark(require = named)] extractor_yield: Option<i32>,
+        #[starlark(require = named)] opening_minerals: Option<i32>,
+        #[starlark(require = named)] opening_gas: Option<i32>,
+        #[starlark(require = named)] opening_workers: Option<i32>,
+        #[starlark(require = named)] supply_base: Option<i32>,
+        #[starlark(require = named)] supply_max: Option<i32>,
+        #[starlark(require = named)] patch_yield: Option<i32>,
+        #[starlark(require = named)] geyser_yield: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.economy.borrow_mut();
+        if slot.is_some() {
+            bail!("economy() may be called once per map");
+        }
+        *slot = Some(EconRaw {
+            patch_saturation: patch_saturation.unwrap_or(0),
+            gas_saturation: gas_saturation.unwrap_or(0),
+            patches_per_base: patches_per_base.unwrap_or(0),
+            geysers_per_base: geysers_per_base.unwrap_or(0),
+            extractor_yield: extractor_yield.unwrap_or(0),
+            opening_minerals: opening_minerals.unwrap_or(0),
+            opening_gas: opening_gas.unwrap_or(0),
+            opening_workers: opening_workers.unwrap_or(0),
+            supply_base: supply_base.unwrap_or(0),
+            supply_max: supply_max.unwrap_or(0),
+            patch_yield: patch_yield.unwrap_or(0),
+            geyser_yield: geyser_yield.unwrap_or(0),
         });
         Ok(NoneType)
     }

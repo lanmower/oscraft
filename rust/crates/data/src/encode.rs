@@ -72,11 +72,19 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         debug_assert_eq!(abil.len() - start, ABIL_RECORD);
     }
 
+    let mut achn = Vec::new();
+    for channel in &catalog.channels {
+        u16_le(&mut achn, channel.flags);
+        pad(&mut achn, 2);
+        u32_le(&mut achn, channel.duration);
+    }
+
     let mut uabl = Vec::new();
     let mut uabl_count: u32 = 0;
     let mut unit_bytes = Vec::new();
     let mut regn = Vec::new();
-    for unit in &catalog.units {
+    let mut uext = Vec::new();
+    for (index, unit) in catalog.units.iter().enumerate() {
         let ability_first = uabl_count;
         for &id in &unit.ability_ids {
             u16_le(&mut uabl, id);
@@ -119,6 +127,22 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u32_le(&mut regn, unit.regen_delay);
         u32_le(&mut regn, unit.health_regen);
         debug_assert_eq!(regn.len() - start, REGN_RECORD);
+
+        let ext = catalog.unit_ext[index];
+        let start = uext.len();
+        u16_le(&mut uext, ext.supply_provided);
+        u16_le(&mut uext, ext.transport_capacity);
+        uext.push(ext.size);
+        uext.push(ext.damage_type);
+        uext.push(ext.cloak);
+        pad(&mut uext, 1);
+        u32_le(&mut uext, ext.detector_radius);
+        u32_le(&mut uext, ext.ranged_miss);
+        u32_le(&mut uext, ext.burrow_ticks);
+        i32_le(&mut uext, ext.rally_dx);
+        i32_le(&mut uext, ext.rally_dy);
+        pad(&mut uext, 4);
+        debug_assert_eq!(uext.len() - start, UEXT_RECORD);
     }
 
     let mut bhvr = Vec::new();
@@ -170,6 +194,65 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         debug_assert_eq!(upgr.len() - start, UPGR_RECORD);
     }
 
+    // Research effects follow the upgrade effects, one slot per research.
+    let mut rsch = Vec::new();
+    for research in &catalog.researches {
+        let effect_index = efct_count;
+        u16_le(&mut efct, research.effect.kind);
+        pad(&mut efct, 2);
+        for param in research.effect.params {
+            i32_le(&mut efct, param);
+        }
+        efct_count += 1;
+
+        let (name_off, name_len) = strings.intern(&research.name);
+        let start = rsch.len();
+        u32_le(&mut rsch, name_off);
+        u16_le(&mut rsch, name_len);
+        u16_le(&mut rsch, research.building);
+        u32_le(&mut rsch, research.time);
+        u32_le(&mut rsch, research.minerals);
+        u32_le(&mut rsch, research.gas);
+        u32_le(&mut rsch, effect_index);
+        u32_le(&mut rsch, research.applies);
+        pad(&mut rsch, 4);
+        debug_assert_eq!(rsch.len() - start, RSCH_RECORD);
+    }
+
+    let mut preq = Vec::new();
+    for prereq in &catalog.prereqs {
+        preq.push(prereq.target_kind);
+        preq.push(prereq.requires_kind);
+        u16_le(&mut preq, prereq.target);
+        u16_le(&mut preq, prereq.requires);
+        pad(&mut preq, 2);
+    }
+
+    let mut dmgf = Vec::new();
+    for factor in &catalog.damage_factors {
+        dmgf.push(factor.damage_type);
+        dmgf.push(factor.size);
+        pad(&mut dmgf, 2);
+        u32_le(&mut dmgf, factor.factor);
+    }
+
+    let econ = &catalog.econ;
+    let mut econ_bytes = Vec::with_capacity(ECON_RECORD);
+    econ_bytes.push(econ.patch_saturation);
+    econ_bytes.push(econ.gas_saturation);
+    econ_bytes.push(econ.patches_per_base);
+    econ_bytes.push(econ.geysers_per_base);
+    u32_le(&mut econ_bytes, econ.extractor_yield);
+    u32_le(&mut econ_bytes, econ.opening_minerals);
+    u32_le(&mut econ_bytes, econ.opening_gas);
+    u16_le(&mut econ_bytes, econ.opening_workers);
+    u16_le(&mut econ_bytes, econ.supply_base);
+    u16_le(&mut econ_bytes, econ.supply_max);
+    pad(&mut econ_bytes, 2);
+    u32_le(&mut econ_bytes, econ.patch_yield);
+    u32_le(&mut econ_bytes, econ.geyser_yield);
+    debug_assert_eq!(econ_bytes.len(), ECON_RECORD);
+
     let mut limt = Vec::new();
     u32_le(&mut limt, catalog.cell_limit);
 
@@ -192,6 +275,12 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_UPGR, catalog.upgrades.len(), UPGR_RECORD, upgr),
         (TAG_REGN, catalog.units.len(), REGN_RECORD, regn),
         (TAG_LIMT, 1, LIMT_RECORD, limt),
+        (TAG_ECON, 1, ECON_RECORD, econ_bytes),
+        (TAG_UEXT, catalog.units.len(), UEXT_RECORD, uext),
+        (TAG_ACHN, catalog.abilities.len(), ACHN_RECORD, achn),
+        (TAG_RSCH, catalog.researches.len(), RSCH_RECORD, rsch),
+        (TAG_PREQ, catalog.prereqs.len(), PREQ_RECORD, preq),
+        (TAG_DMGF, catalog.damage_factors.len(), DMGF_RECORD, dmgf),
         (TAG_GRID, grid_len, GRID_RECORD, grid),
     ];
 
