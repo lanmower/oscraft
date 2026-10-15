@@ -101,6 +101,23 @@ impl Sim {
         }
     }
 
+    /// Whether player `p` has an extractor on geyser `j`: a living structure of `p` whose radius
+    /// touches the geyser. False for a unit that is not a living geyser.
+    pub fn extractor_on(&self, p: u8, j: usize) -> bool {
+        if j >= self.n || self.alive[j] == 0 || self.kind[j] != KIND_GEYSER {
+            return false;
+        }
+        (0..self.n).any(|k| {
+            self.alive[k] != 0
+                && self.player[k] == p
+                && self.filter[k] & FILTER_STRUCTURE != 0
+                && {
+                    let reach = self.radius[k].wrapping_add(self.radius[j]) as i64;
+                    dist2(self.pos_x[k], self.pos_y[k], self.pos_x[j], self.pos_y[j]) <= reach * reach
+                }
+        })
+    }
+
     pub(crate) fn harvest_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         match self.wstate[i] {
