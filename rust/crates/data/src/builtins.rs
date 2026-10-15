@@ -427,7 +427,41 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             height,
             cell_milli,
             cells: vec![fill; cell_count],
+            height_step: 1000,
+            heights: vec![0; cell_count],
         });
+        Ok(NoneType)
+    }
+
+    fn height_step(milli: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let step = positive("height step", milli)?;
+        let pool = collector(eval)?;
+        let mut slot = pool.grid.borrow_mut();
+        let grid = slot.as_mut().ok_or_else(|| anyhow!("height_step() needs grid() first"))?;
+        grid.height_step = step;
+        Ok(NoneType)
+    }
+
+    fn paint_height(
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        level: i32,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.grid.borrow_mut();
+        let grid = slot.as_mut().ok_or_else(|| anyhow!("paint_height() needs grid() first"))?;
+        let (width, height) = (grid.width as i32, grid.height as i32);
+        if !(0 <= x0 && x0 <= x1 && x1 <= width && 0 <= y0 && y0 <= y1 && y1 <= height) {
+            bail!("paint_height({x0}, {y0}, {x1}, {y1}) is inverted or outside the {width}x{height} grid");
+        }
+        let level = u8::try_from(level).map_err(|_| anyhow!("height level {level} must be 0..=255"))?;
+        for y in y0..y1 {
+            let row = (y * width) as usize;
+            grid.heights[row + x0 as usize..row + x1 as usize].fill(level);
+        }
         Ok(NoneType)
     }
 

@@ -256,11 +256,13 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
     let mut limt = Vec::new();
     u32_le(&mut limt, catalog.cell_limit);
 
-    let mut grid = Vec::with_capacity(GRID_HEADER_LEN + catalog.grid.cells.len());
+    let mut grid = Vec::with_capacity(GRID_HEADER_LEN + 2 * catalog.grid.cells.len());
     u32_le(&mut grid, catalog.grid.width);
     u32_le(&mut grid, catalog.grid.height);
     u32_le(&mut grid, catalog.grid.cell_milli);
+    u32_le(&mut grid, catalog.grid.height_step);
     grid.extend_from_slice(&catalog.grid.cells);
+    grid.extend_from_slice(&catalog.grid.heights);
 
     let strs_len = strings.bytes.len();
     let grid_len = grid.len();

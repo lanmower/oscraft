@@ -153,7 +153,9 @@ pub struct Grid {
     pub width: u32,
     pub height: u32,
     pub cell_milli: u32,
+    pub height_step: u32,
     pub cells: Vec<u8>,
+    pub heights: Vec<u8>,
 }
 
 /// Lives in `Evaluator::extra`; builtins push into it while the .star files run.

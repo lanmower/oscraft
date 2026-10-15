@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 11;
+pub const VERSION: u16 = 12;
 pub const PLCE_FLAG_START: u32 = 1;
 pub const NEUTRAL_PLAYER: u16 = u16::MAX;
 pub const HEADER_LEN: usize = 16;
@@ -93,7 +93,7 @@ pub const RSCH_RECORD: usize = 32;
 pub const PREQ_RECORD: usize = 8;
 pub const DMGF_RECORD: usize = 8;
 pub const GRID_RECORD: usize = 1;
-pub const GRID_HEADER_LEN: usize = 12;
+pub const GRID_HEADER_LEN: usize = 16;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
 pub const SECTIONS: [([u8; 4], usize); 17] = [

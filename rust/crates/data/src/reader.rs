@@ -68,9 +68,10 @@ pub fn verify(image: &[u8]) -> Result<()> {
     let height = u32_at(image, grid.offset + 4)?;
     let cell_milli = u32_at(image, grid.offset + 8)?;
     ensure!(
-        width >= 1 && height >= 1 && GRID_HEADER_LEN + width as usize * height as usize == grid.count,
+        width >= 1 && height >= 1 && GRID_HEADER_LEN + 2 * width as usize * height as usize == grid.count,
         "grid size does not match its header"
     );
+    ensure!(u32_at(image, grid.offset + 12)? >= 1, "grid height step is 0");
     ensure!(limt.count == 1, "LIMT count must be 1");
     ensure!(econ.count == 1, "ECON count must be 1");
     ensure!(regn.count == unit.count, "REGN count differs from UNIT count");
@@ -229,7 +230,8 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(size < SIZE_CATEGORIES.len(), "damage factor {i} size out of range");
     }
 
-    for &cell in &image[grid.offset + GRID_HEADER_LEN..grid.offset + grid.count] {
+    let walkability_end = grid.offset + GRID_HEADER_LEN + width as usize * height as usize;
+    for &cell in &image[grid.offset + GRID_HEADER_LEN..walkability_end] {
         ensure!(cell & !CELL_MASK == 0, "grid cell {cell:#04x} has bits outside the walkability mask");
     }
     Ok(())
