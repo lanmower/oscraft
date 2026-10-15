@@ -1,17 +1,17 @@
-# OSDT data file, format version 7
+# OSDT data file, format version 8
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 7 adds the PLCE section, which places units
-on the map. Other record sizes are unchanged from version 6. A reader of an older
-version must reject the file.
+reserved bytes listed below. Version 8 defines the receiver of an effect and the
+radius rule for `create_healer`. Record sizes are unchanged from version 7. A
+reader of an older version must reject the file.
 
 ## Header (16 bytes)
 
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `7`                                       |
+| 4      | 2    | version, `8`                                       |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `8`                                  |
 | 12     | 4    | total file length in bytes                          |
@@ -83,18 +83,42 @@ Effect parameters by kind:
 | 4    | `buff`             | buff kind code (sim-defined), `>= 0`                               | duration, ticks, `>= 0`                | –                           | –                                |
 | 5    | `issue_order`      | order kind: `0 stop`, `1 attack_move`, `2 hold`                    | target: `0 caster_relative`, `1 point` | –                           | –                                |
 | 6    | `remove_behaviour` | buff kind code to remove, `>= 0`                                   | radius, milli-units, `>= 0`            | –                           | –                                |
-| 7    | `create_healer`    | heal amount per pulse, `>= 0`                                      | radius, milli-units, `>= 0`            | period, ticks, `>= 1`       | lifetime, ticks, integer, `>= 1` |
+| 7    | `create_healer`    | heal amount per pulse, `>= 0`                                      | radius, milli-units, `>= 0` (0 = target only) | period, ticks, `>= 1`       | lifetime, ticks, integer, `>= 1` |
 | 8    | `use_calldown`     | calldown ability index into `ABIL`, `>= 0`, `< ability count`     | –                                      | –                           | –                                |
 | 9    | `vital_fraction`   | vital: `0 life`, `1 shield`                                        | fraction, Q16, `0..=65536`             | mode: `0 drain`, `1 set`    | target: `0 current`, `1 max`     |
 | 10   | `shield_bonus`     | flat bonus amount, `>= 0`                                          | –                                      | –                           | –                                |
 
-Mode and target for `vital_fraction` are explicit: `drain` subtracts
+### Receiver
+
+Every effect acts on one receiver, chosen by the cast:
+
+- When the cast names a target (an ability whose `target` code is `1 unit` or
+  `2 point`, with a target supplied by the cast), the receiver is that target.
+- Otherwise the receiver is the caster. An ability with target `0 none` always
+  acts on the caster.
+
+The receiver rule applies to every effect kind. It is stated here because three
+effects are defined by the receiver: `issue_order`, `shield_bonus` and
+`vital_fraction` act on the receiver.
+
+- `issue_order`: the receiver is the unit that receives the order. Its `p1`
+  target (`caster_relative` or `point`) is resolved from the caster or the cast
+  point, and is independent of who receives the order.
+- `shield_bonus`: the receiver's shield gains the flat amount.
+- `vital_fraction`: the receiver's vital (life or shield) is changed by the
+  fraction of the target value, as set by mode and target below.
+
+`vital_fraction` mode and target are explicit: `drain` subtracts
 `fraction * target value` from the vital, `set` writes `fraction * target value`
 to it, where the target value is the current vital (`0 current`) or its maximum
 (`1 max`).
 
-`damage` and `heal` use p1 as a splash radius. A radius of 0 means the effect
-applies to its target only.
+### Radius rule
+
+`damage`, `heal`, `remove_behaviour` and `create_healer` use p1 as a radius in
+milli-units. A radius of 0 means the effect applies to the receiver only. A
+radius above 0 applies it to every unit within that radius of the receiver. This
+rule is the same for all four kinds.
 
 `move` uses p0 as a cap on how far the caster moves toward the cast point, in
 milli-units. A cast point closer than the cap is reached exactly. A cast point
@@ -221,4 +245,5 @@ without a version bump.
 - Reject a `move` cap of 0 or one whose square exceeds the grid diagonal squared, computed from the GRID header.
 - Reject a PLCE record whose unit index is past `UNIT`, whose player is above `15`, or whose position is outside the grid extent.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
+- Apply the receiver and radius rules above; they are not encoded in the record and must not be inferred from it.
 - The tick path never parses names. It uses only numeric fields.
