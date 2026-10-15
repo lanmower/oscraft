@@ -43,7 +43,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-ABIL-3 | Apply an effect list: damage, heal, move, spawn, buff, order, remove behaviour, shield bonus, vital fraction, create healer, calldown | implemented | sim/src/rules.rs (apply_effect) | gate:ability-effects |
 | CAP-ABIL-4 | Refuse an effect kind with no implementation under a named refusal | implemented | sim/src/rules.rs (refuse, Refusal::EffectUnsupported) | gate:unsupported-effect-refuses |
 | CAP-ABIL-5 | Hold the caster through a channelled ability and end it early when interrupted | stub | none | gate:channel-interrupt |
-| CAP-ABIL-6 | Author custom abilities in a graphical editor | stub | none | gate:editor-abilities |
+| CAP-ABIL-6 | Author custom abilities in a graphical editor | claimed | none | gate:editor-abilities |
 
 ## Behaviours and buffs
 

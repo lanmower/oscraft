@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{LoadError, Refusal, Sim};
+use sim::{Catalog, LoadError, Refusal, Sim};
 use std::cell::{Cell, RefCell};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -129,6 +129,33 @@ fn named(e: mlua::Error) -> mlua::Error {
 
 fn unknown_region(name: &str) -> mlua::Error {
     mlua::Error::RuntimeError(format!("unknown_region: {name}"))
+}
+
+// One ability as a Lua table: its catalog name, timing, target rules and effects.
+fn ability_row(lua: &Lua, cat: &Catalog, index: usize) -> mlua::Result<Table> {
+    let a = &cat.abilities[index];
+    let row = lua.create_table()?;
+    row.set("name", cat.name(a.name))?;
+    row.set("cooldown", a.cooldown as i64)?;
+    row.set("energy", a.energy as i64)?;
+    row.set("target", a.target as i64)?;
+    row.set("filter", a.filter as i64)?;
+    row.set("projectile", a.is_projectile())?;
+    row.set("projectile_speed", a.projectile_speed as i64)?;
+    let first = a.effect_first as usize;
+    let span = cat.effects.get(first..first + a.effect_count as usize).unwrap_or(&[]);
+    let effects = lua.create_table()?;
+    for (i, e) in span.iter().enumerate() {
+        let et = lua.create_table()?;
+        et.set("kind", e.kind as i64)?;
+        et.set("p0", e.p0 as i64)?;
+        et.set("p1", e.p1 as i64)?;
+        et.set("p2", e.p2 as i64)?;
+        et.set("p3", e.p3 as i64)?;
+        effects.raw_set((i + 1) as i64, et)?;
+    }
+    row.set("effects", effects)?;
+    Ok(row)
 }
 
 // `spawn_unit` takes the unit's catalog name. `Sim::spawn` takes the catalog index,
@@ -331,6 +358,35 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
                 }
                 other => mlua::Error::RuntimeError(format!("order_refused: {}", other.name())),
             })
+        })?,
+    )?;
+    // list_abilities() returns every catalog ability as a table; ability_info(name) returns one,
+    // or raises unknown_ability. Editors read these rows to author abilities.
+    let w = world.clone();
+    env.set(
+        "list_abilities",
+        lua.create_function(move |lua, ()| {
+            let sim = w.borrow();
+            let cat = sim.catalog();
+            let out = lua.create_table()?;
+            for i in 0..cat.abilities.len() {
+                out.raw_set((i + 1) as i64, ability_row(lua, cat, i)?)?;
+            }
+            Ok(out)
+        })?,
+    )?;
+    let w = world.clone();
+    env.set(
+        "ability_info",
+        lua.create_function(move |lua, name: String| {
+            let sim = w.borrow();
+            let cat = sim.catalog();
+            let index = cat
+                .abilities
+                .iter()
+                .position(|a| cat.name(a.name) == name)
+                .ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_ability: {name}")))?;
+            ability_row(lua, cat, index)
         })?,
     )?;
     // buff_unit(unit, kind, ticks) gives a live unit a behaviour for `ticks` ticks. Returns
