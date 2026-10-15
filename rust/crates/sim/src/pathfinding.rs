@@ -41,6 +41,17 @@ impl Grid {
         Grid { w, h, flags: vec![0; w * h], heights: vec![0; w * h], height_step: 1000 }
     }
 
+    /// Elevation of cell (x, y) in milli-units: its height level times the height step.
+    /// Zero outside the grid. Nothing in movement, vision or combat reads it yet.
+    pub fn elevation_milli(&self, x: i32, y: i32) -> i32 {
+        let (w, h) = (self.w as i32, self.h as i32);
+        if x < 0 || y < 0 || x >= w || y >= h {
+            return 0;
+        }
+        let level = self.heights.get((y * w + x) as usize).copied().unwrap_or(0) as i32;
+        level * self.height_step
+    }
+
     pub fn walkable(&self, x: i32, y: i32) -> bool {
         let (w, h) = (self.w as i32, self.h as i32);
         if x < 0 || y < 0 || x >= w || y >= h {

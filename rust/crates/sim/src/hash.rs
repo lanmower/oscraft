@@ -41,6 +41,8 @@ impl Sim {
         h.u32s(&self.last_hit);
         h.bytes(&self.upg_done);
         h.bytes(&self.grid.flags);
+        h.bytes(&self.grid.heights);
+        h.i32s(&[self.grid.height_step]);
         h.i32s(&self.pos_x);
         h.i32s(&self.pos_y);
         h.i32s(&self.vel_x);

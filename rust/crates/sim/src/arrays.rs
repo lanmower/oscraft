@@ -322,6 +322,11 @@ impl Sim {
         &self.grid
     }
 
+    /// Elevation of cell (x, y) in milli-units, from the map's height grid.
+    pub fn elevation_milli(&self, x: i32, y: i32) -> i32 {
+        self.grid.elevation_milli(x, y)
+    }
+
     pub fn catalog(&self) -> &Catalog {
         &self.cat
     }
