@@ -640,6 +640,16 @@ impl Sim {
         if i >= self.n { (0, 0) } else { (self.pos_x[i], self.pos_y[i]) }
     }
 
+    /// Ticks left before unit `i` can strike again (its weapon cooldown); -1 for an unknown index.
+    pub fn weapon_cooldown(&self, i: usize) -> i32 {
+        self.cooldown.get(i).copied().unwrap_or(-1)
+    }
+
+    /// Shield points left on unit `i` (Q16.16); zero for an unknown index.
+    pub fn shield_of(&self, i: usize) -> i32 {
+        self.shield.get(i).copied().unwrap_or(0)
+    }
+
     pub fn hp(&self, i: usize) -> i32 {
         if i >= self.n { 0 } else { self.hp[i] }
     }
