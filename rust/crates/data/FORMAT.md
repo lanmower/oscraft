@@ -241,6 +241,20 @@ without a record scales by 1.0.
 | 12     | 2    | ability index into `ABIL`, `0xFFFF` = none |
 | 14     | 2    | reserved, write 0                        |
 
+Trigger fields. Each trigger states when it fires, whether `param` is read, and
+whether `ability` is required. An action that reads `param` states its meaning.
+
+| trigger         | fires when                                                   | `param`                          | `ability`                       |
+|-----------------|--------------------------------------------------------------|----------------------------------|---------------------------------|
+| `idle` (0)      | the unit has no order                                        | not read                         | required only by `use_ability`  |
+| `attacked` (1)  | the unit takes damage                                        | not read                         | required only by `use_ability`  |
+| `spawned` (2)   | once, when the unit is created                               | not read                         | required only by `use_ability`  |
+| `ability_ready` (3) | the named ability's cooldown has ended and its energy is available | not read                  | required (names the ability)    |
+
+Action `param` meanings: `attack_nearest` reads a search radius in milli-units
+(`0` = the unit's sight); `flee` reads a distance in milli-units; `use_ability`
+does not read `param`.
+
 ### PLCE (16 bytes per record)
 One record per placed object: a unit placed for a player, a neutral unit, or a
 player start location.

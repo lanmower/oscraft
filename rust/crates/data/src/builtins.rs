@@ -229,6 +229,9 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         if action == ACTION_USE_ABILITY && ability.is_none() {
             bail!("behaviour {name:?} uses use_ability and needs ability=");
         }
+        if TRIGGERS[trigger] == "ability_ready" && ability.is_none() {
+            bail!("behaviour {name:?} fires on ability_ready and needs ability=");
+        }
         collector(eval)?.behaviours.borrow_mut().push(BehaviourRaw {
             name: name.to_owned(),
             trigger,
