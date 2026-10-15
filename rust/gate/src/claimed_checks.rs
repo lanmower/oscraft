@@ -3,6 +3,8 @@
 
 use sim::{fixed, Sim, ORDER_ATTACK_MOVE};
 
+use mod_host::ModHost;
+
 use crate::checks::{fresh, kind, run_ticks, spawn, MAX_UNITS};
 
 fn air_kind(s: &Sim) -> Result<u32, String> {
@@ -354,16 +356,96 @@ pub fn hp_regen(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn editor_terrain_tiles(_image: &[u8]) -> Result<(), String> {
-    missing_api("graphical terrain editor: no editor API on main")
+/// Loads a Lua mod built from `src`, advances it `frames` frames and returns the host.
+fn run_mod(image: &[u8], name: &str, src: &str, frames: u32) -> Result<ModHost, String> {
+    let path = std::env::temp_dir().join(format!("oscraft-gate-{name}.lua"));
+    std::fs::write(&path, src).map_err(|e| format!("write {}: {e}", path.display()))?;
+    let mut host = ModHost::new(image).map_err(|e| format!("ModHost::new: {e:?}"))?;
+    let loaded = host.load(&path);
+    let _ = std::fs::remove_file(&path);
+    loaded.map_err(|e| format!("mod load: {e}"))?;
+    for _ in 0..frames {
+        let state = host.state().clone();
+        host.advance(&state).map_err(|e| format!("advance: {e}"))?;
+    }
+    Ok(host)
 }
 
-pub fn editor_abilities(_image: &[u8]) -> Result<(), String> {
-    missing_api("graphical ability editor: no editor API on main")
+fn state_int(host: &ModHost, key: &str) -> Result<i64, String> {
+    host.state()
+        .get::<Option<i64>>(key)
+        .map_err(|e| format!("state.{key}: {e}"))?
+        .ok_or_else(|| format!("mod never set state.{key}"))
 }
 
-pub fn editor_triggers(_image: &[u8]) -> Result<(), String> {
-    missing_api("graphical trigger editor: no editor API on main")
+const TERRAIN_MOD: &str = r#"
+function on_tick(state)
+  state.edit_ok = pcall(edit_terrain, 1, 1, 2, 2, false) and 1 or 0
+  local ok, err = pcall(edit_terrain, 0, 0, 100000, 0, false)
+  state.edit_oob = (not ok and string.find(tostring(err), "out_of_grid") ~= nil) and 1 or 0
+  state.tile_ok = pcall(set_tile, 1, 1, 7) and 1 or 0
+  local tok, terr = pcall(set_tile, 1, 1, 300)
+  state.tile_bad = (not tok and string.find(tostring(terr), "invalid_tile") ~= nil) and 1 or 0
+end
+"#;
+
+pub fn editor_terrain_tiles(image: &[u8]) -> Result<(), String> {
+    let host = run_mod(image, "editor-terrain", TERRAIN_MOD, 1)?;
+    for key in ["edit_ok", "edit_oob", "tile_ok", "tile_bad"] {
+        if state_int(&host, key)? != 1 {
+            return Err(format!("host terrain API check {key} did not hold (edit_terrain or set_tile)"));
+        }
+    }
+    Ok(())
+}
+
+const ABILITY_MOD: &str = r#"
+function on_tick(state)
+  state.count = #list_abilities()
+  local info = ability_info("pulse_shot")
+  state.named = (info.name == "pulse_shot") and 1 or 0
+  local ok, err = pcall(ability_info, "no_such_ability")
+  state.unknown = (not ok and string.find(tostring(err), "unknown_ability") ~= nil) and 1 or 0
+end
+"#;
+
+pub fn editor_abilities(image: &[u8]) -> Result<(), String> {
+    let host = run_mod(image, "editor-abilities", ABILITY_MOD, 1)?;
+    if state_int(&host, "count")? < 1 {
+        return Err("list_abilities returned no abilities".to_string());
+    }
+    if state_int(&host, "named")? != 1 {
+        return Err("ability_info(pulse_shot) did not return the named ability".to_string());
+    }
+    if state_int(&host, "unknown")? != 1 {
+        return Err("ability_info accepted an unknown ability name".to_string());
+    }
+    Ok(())
+}
+
+const EVENT_MOD: &str = r#"
+function on_tick(state)
+  local bits = { on_spawned = 1, on_attacked = 2, on_died = 4, on_enter = 8, on_leave = 16 }
+  local want = { on_spawned = "unit", on_attacked = "unit", on_died = "unit", on_enter = "region, unit", on_leave = "region, unit" }
+  local events = list_events()
+  local mask = 0
+  for _, r in ipairs(events) do
+    if want[r.name] ~= nil and want[r.name] == r.args then mask = mask + bits[r.name] end
+  end
+  state.events = mask
+  state.count = #events
+end
+"#;
+
+pub fn editor_triggers(image: &[u8]) -> Result<(), String> {
+    let host = run_mod(image, "editor-triggers", EVENT_MOD, 1)?;
+    if state_int(&host, "events")? != 31 {
+        return Err(format!("list_events mask {} is missing a trigger event with its arguments", state_int(&host, "events")?));
+    }
+    if state_int(&host, "count")? != 5 {
+        return Err(format!("list_events returned {} events, want 5", state_int(&host, "count")?));
+    }
+    Ok(())
 }
 
 pub fn channel_interrupt(_image: &[u8]) -> Result<(), String> {
