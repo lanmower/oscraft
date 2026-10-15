@@ -9,3 +9,5 @@ unit("tender", 40, 2800, 350, build_time=300, minerals=50, supply=1, filters=["g
 unit("spore", 60, 3500, 400, build_time=420, minerals=75, gas=25, supply=2, filters=["air", "biological", "light"], sight_milli=9000)
 # Gunship: flying unit without the ground filter (a second target for ability-target-filter).
 unit("gunship", 150, 2600, 600, build_time=600, minerals=150, gas=100, supply=3, filters=["air", "armored", "massive"], sight_milli=11000)
+# Mender: shieldless ground unit that regenerates health (hp-regen check).
+unit("mender", 80, 2600, 375, build_time=400, minerals=75, supply=2, filters=["ground", "light", "biological"], sight_milli=9000, health_regen=2)
