@@ -60,6 +60,7 @@ const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
+const EFFECT_VITAL_FRACTION: u16 = 9;
 
 impl Sim {
     pub(crate) fn refuse(&mut self, r: Refusal) {
@@ -189,6 +190,7 @@ impl Sim {
                 self.remove_behaviour(eff.p0, fixed::from_milli(eff.p1), tx, ty);
             }
             EFFECT_SHIELD_BONUS => self.shield_bonus(caster, target, eff.p0),
+            EFFECT_VITAL_FRACTION => self.vital_fraction(caster, target, eff.p0, eff.p1, eff.p2, eff.p3),
             EFFECT_CREATE_HEALER => {
                 let rad = fixed::from_milli(eff.p1);
                 if !self.create_healer(p, eff.p0, rad, eff.p2, eff.p3, tx, ty) {

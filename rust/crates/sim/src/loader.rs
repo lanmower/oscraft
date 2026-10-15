@@ -17,6 +17,7 @@ const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 7] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"GRID"];
 const RECORD_SIZES: [usize; 7] = [1, 20, 32, 2, 80, 16, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
+const EFFECT_VITAL_FRACTION: u16 = 9;
 
 const EFFECT_KINDS: u16 = 11;
 const EFFECT_ISSUE_ORDER: u16 = 5;
@@ -272,6 +273,14 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         }
         EFFECT_REMOVE_BEHAVIOUR if e.p0 < 0 || e.p1 < 0 => Some("remove_behaviour kind or radius"),
         EFFECT_SHIELD_BONUS if e.p0 < 0 => Some("shield_bonus amount"),
+        EFFECT_VITAL_FRACTION
+            if !(0..=1).contains(&e.p0)
+                || !(0..=65536).contains(&e.p1)
+                || !(0..=1).contains(&e.p2)
+                || !(0..=1).contains(&e.p3) =>
+        {
+            Some("vital_fraction vital, fraction, mode or target")
+        }
         EFFECT_BUFF if e.p0 < 0 || e.p1 < 0 => Some("buff kind or duration"),
         EFFECT_CREATE_HEALER if e.p0 < 0 || e.p1 < 0 || e.p2 < 1 || e.p3 < 1 => {
             Some("create_healer amount, radius, period or lifetime")

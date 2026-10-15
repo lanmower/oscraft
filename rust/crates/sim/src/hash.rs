@@ -50,6 +50,7 @@ impl Sim {
         h.i32s(&self.period);
         h.i32s(&self.cooldown);
         h.i32s(&self.shield);
+        h.i32s(&self.shield_max);
         h.i32s(&self.sight_cells);
         h.bytes(&self.player);
         h.bytes(&self.alive);

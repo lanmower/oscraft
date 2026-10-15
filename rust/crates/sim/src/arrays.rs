@@ -62,6 +62,7 @@ pub struct Sim {
     pub(crate) period: Vec<i32>,
     pub(crate) cooldown: Vec<i32>,
     pub(crate) shield: Vec<i32>,
+    pub(crate) shield_max: Vec<i32>,
     pub(crate) sight_cells: Vec<i32>,
     pub(crate) player: Vec<u8>,
     pub(crate) alive: Vec<u8>,
@@ -172,6 +173,7 @@ impl Sim {
             period: vec![1; cap],
             cooldown: vec![0; cap],
             shield: vec![0; cap],
+            shield_max: vec![0; cap],
             sight_cells: vec![0; cap],
             player: vec![0; cap],
             alive: vec![0; cap],
@@ -330,6 +332,7 @@ impl Sim {
         self.hp[i] = fixed::from_int(def.health);
         self.hp_max[i] = self.hp[i];
         self.shield[i] = fixed::from_int(def.shield);
+        self.shield_max[i] = self.shield[i];
         self.radius[i] = fixed::from_milli(def.radius);
         self.speed[i] = fixed::from_milli(def.speed);
         self.armor[i] = fixed::from_int(def.armor);
