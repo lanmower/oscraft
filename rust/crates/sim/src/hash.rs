@@ -42,6 +42,12 @@ impl Sim {
         h.bytes(&self.upg_done);
         h.bytes(&self.grid.flags);
         h.bytes(&self.grid.tiles);
+        h.u64s(&[self.doodads.len() as u64]);
+        for d in &self.doodads {
+            h.u32s(&[d.id]);
+            h.bytes(&d.kind.to_le_bytes());
+            h.i32s(&[d.x, d.y, d.rotation]);
+        }
         h.bytes(&self.grid.heights);
         h.i32s(&[self.grid.height_step]);
         h.i32s(&self.pos_x);

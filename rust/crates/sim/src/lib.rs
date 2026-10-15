@@ -26,6 +26,7 @@ mod shields;
 mod tick;
 mod transport;
 mod triggers;
+mod doodads;
 mod limits;
 mod upgrades;
 

@@ -2,7 +2,7 @@
 //! in `tick` allocates.
 
 use crate::fixed;
-use crate::loader::{Catalog, FILTER_STRUCTURE, FILTER_WORKER};
+use crate::loader::{Catalog, Doodad, FILTER_STRUCTURE, FILTER_WORKER};
 use crate::pathfinding::{Grid, Pool, DEFAULT_MAX_FIELDS};
 use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
@@ -43,6 +43,8 @@ pub struct Stats {
 pub struct Sim {
     pub(crate) grid: Grid,
     pub(crate) cat: Catalog,
+    /// Doodads on the map: the DODA records at load, then placed and removed at run time.
+    pub(crate) doodads: Vec<Doodad>,
     pub(crate) n: usize,
     pub(crate) cap: usize,
     pub(crate) head: usize,
@@ -200,8 +202,10 @@ impl Sim {
         let vcells = (vw * vh) as usize;
         let paths = Pool::new(grid.w, grid.h, DEFAULT_MAX_FIELDS);
         let research_slots = cat.research.len() * MAX_PLAYERS;
+        let doodads_init = cat.doodads.clone();
         let mut s = Sim {
             grid,
+            doodads: doodads_init,
             cat,
             n: 0,
             cap,

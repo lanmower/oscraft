@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 13;
+const STATE_VERSION: u16 = 14;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -48,6 +48,9 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::ResearchBusy,
     Refusal::TransportFull,
     Refusal::Channelling,
+    Refusal::OffGrid,
+    Refusal::NoDoodad,
+    Refusal::DuplicateDoodad,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
@@ -406,6 +409,14 @@ impl Sim {
             put_u32(&mut w, t);
         }
         w.extend_from_slice(&self.upg_done);
+        put_u64(&mut w, self.doodads.len() as u64);
+        for d in &self.doodads {
+            put_u32(&mut w, d.id);
+            w.extend_from_slice(&d.kind.to_le_bytes());
+            put_i32(&mut w, d.x);
+            put_i32(&mut w, d.y);
+            put_i32(&mut w, d.rotation);
+        }
         put_u64(&mut w, self.log_len as u64);
         put_u64(&mut w, self.log_dropped);
         for k in 0..self.log_len {
@@ -582,6 +593,19 @@ impl Sim {
 
         r.u32s_into(&mut next.last_hit)?;
         r.bytes_into(&mut next.upg_done)?;
+        let doodad_count = r.u64()? as usize;
+        if doodad_count > bytes.len() / 18 {
+            return Err(StateError::Length);
+        }
+        next.doodads = Vec::with_capacity(doodad_count);
+        for _ in 0..doodad_count {
+            let id = r.u32()?;
+            let kind = r.u16()?;
+            let x = r.i32()?;
+            let y = r.i32()?;
+            let rotation = r.i32()?;
+            next.doodads.push(crate::loader::Doodad { id, kind, x, y, rotation });
+        }
         let log_len = r.u64()? as usize;
         if log_len > ORDER_LOG_CAP {
             return Err(StateError::Length);

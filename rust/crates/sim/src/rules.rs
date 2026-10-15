@@ -45,9 +45,12 @@ pub enum Refusal {
     ResearchBusy,
     TransportFull,
     Channelling,
+    OffGrid,
+    NoDoodad,
+    DuplicateDoodad,
 }
 
-pub const REFUSAL_KINDS: usize = 33;
+pub const REFUSAL_KINDS: usize = 36;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -85,6 +88,9 @@ impl Refusal {
             Refusal::ResearchBusy => "research-busy",
             Refusal::TransportFull => "transport-full",
             Refusal::Channelling => "channelling",
+            Refusal::OffGrid => "off-grid",
+            Refusal::NoDoodad => "no-doodad",
+            Refusal::DuplicateDoodad => "duplicate-doodad",
         }
     }
 }
