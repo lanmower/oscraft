@@ -47,9 +47,10 @@ pub fn generate(src_dir: &Path) -> Result<Vec<u8>> {
 
 fn eval_file(collector: &Collector, globals: &Globals, name: &str, source: String) -> Result<()> {
     let ast = AstModule::parse(name, source, &Dialect::Standard).map_err(|e| anyhow!("{e}"))?;
-    let module = Module::new();
-    let mut eval = Evaluator::new(&module);
-    eval.extra = Some(collector);
-    eval.eval_module(ast, globals).map_err(|e| anyhow!("{e}"))?;
-    Ok(())
+    Module::with_temp_heap(|module| -> Result<()> {
+        let mut eval = Evaluator::new(&module);
+        eval.extra = Some(collector);
+        eval.eval_module(ast, globals).map_err(|e| anyhow!("{e}"))?;
+        Ok(())
+    })
 }

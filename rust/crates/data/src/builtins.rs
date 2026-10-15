@@ -18,7 +18,7 @@ pub fn globals() -> Globals {
     GlobalsBuilder::standard().with(osdt_builtins).build()
 }
 
-fn collector(eval: &Evaluator) -> Result<&Collector> {
+fn collector<'a>(eval: &'a Evaluator<'_, 'a, '_>) -> Result<&'a Collector> {
     eval.extra
         .and_then(|extra| extra.downcast_ref::<Collector>())
         .ok_or_else(|| anyhow!("builtin called without a collector"))
