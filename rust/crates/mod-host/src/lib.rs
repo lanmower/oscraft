@@ -105,6 +105,10 @@ fn invalid_unit(i: i64) -> mlua::Error {
     mlua::Error::RuntimeError(format!("invalid_unit: {i}"))
 }
 
+fn out_of_grid(x0: i64, y0: i64, x1: i64, y1: i64, w: i64, h: i64) -> mlua::Error {
+    mlua::Error::RuntimeError(format!("out_of_grid: rect ({x0},{y0})-({x1},{y1}) exceeds grid {w}x{h}"))
+}
+
 // A unit index the sim has spawned, dead or alive.
 fn known_unit(sim: &Sim, i: i64) -> mlua::Result<usize> {
     usize::try_from(i).ok().filter(|&u| u < sim.count()).ok_or_else(|| invalid_unit(i))
@@ -268,6 +272,29 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             let sim = w.borrow();
             let u = known_unit(&sim, i)?;
             Ok(sim.alive(u))
+        })?,
+    )?;
+    // Edits the inclusive rectangle of cells between two corners. walkable=true opens the
+    // cells, false blocks them. The whole rectangle is checked before any cell changes, so
+    // an out-of-grid rectangle leaves the terrain as it was.
+    let w = world.clone();
+    env.set(
+        "edit_terrain",
+        lua.create_function(move |_, (x0, y0, x1, y1, walkable): (i64, i64, i64, i64, bool)| {
+            let mut sim = w.borrow_mut();
+            let (grid_w, grid_h) = (sim.grid().w as i64, sim.grid().h as i64);
+            let (lo_x, hi_x) = (x0.min(x1), x0.max(x1));
+            let (lo_y, hi_y) = (y0.min(y1), y0.max(y1));
+            if lo_x < 0 || lo_y < 0 || hi_x >= grid_w || hi_y >= grid_h {
+                return Err(out_of_grid(x0, y0, x1, y1, grid_w, grid_h));
+            }
+            for y in lo_y..=hi_y {
+                for x in lo_x..=hi_x {
+                    sim.set_cell_blocked(x as i32, y as i32, !walkable)
+                        .map_err(|_| mlua::Error::RuntimeError("terrain_edit: sim refused an in-grid cell".into()))?;
+                }
+            }
+            Ok(())
         })?,
     )?;
     Ok(())

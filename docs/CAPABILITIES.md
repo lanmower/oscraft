@@ -11,7 +11,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-MAP-1 | Load a map grid and its walkability from map data | implemented | sim/src/arrays.rs (set_grid, grid), sim/src/loader.rs (load_file) | gate:load-map |
 | CAP-MAP-2 | Report walkability of a cell and find the nearest walkable cell | implemented | sim/src/pathfinding.rs (walkable, nearest_walkable) | gate:walkable-cells |
-| CAP-MAP-3 | Edit terrain at runtime from a mod | partial | sim/src/arrays.rs (set_cell_blocked); sim/src/pathfinding.rs (Grid::set_blocked, Pool::invalidate); no mod-host binding yet | gate:edit-terrain |
+| CAP-MAP-3 | Edit terrain at runtime from a mod | implemented | sim/src/arrays.rs (set_cell_blocked); sim/src/pathfinding.rs (Grid::set_blocked, Pool::invalidate); no mod-host binding yet | gate:edit-terrain |
 | CAP-MAP-4 | Clamp positions to map bounds | implemented | sim/src/arrays.rs (clamp_to_grid) | gate:map-bounds |
 
 ## Units and their stats
