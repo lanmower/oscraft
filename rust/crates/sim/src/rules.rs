@@ -3,6 +3,7 @@
 //! fly and apply them on landing (see projectiles.rs).
 
 use crate::arrays::{dist2, Sim};
+use crate::fixed;
 use crate::loader::{Effect, FILTER_WORKER};
 use crate::*;
 
@@ -51,6 +52,7 @@ const EFFECT_MOVE: u16 = 2;
 const EFFECT_SPAWN: u16 = 3;
 const EFFECT_BUFF: u16 = 4;
 const EFFECT_ISSUE_ORDER: u16 = 5;
+const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 
 impl Sim {
     pub(crate) fn refuse(&mut self, r: Refusal) {
@@ -160,6 +162,9 @@ impl Sim {
                 }
             }
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),
+            EFFECT_REMOVE_BEHAVIOUR => {
+                self.remove_behaviour(eff.p0, fixed::from_milli(eff.p1), tx, ty);
+            }
             _ => self.refuse(Refusal::EffectUnsupported),
         }
     }

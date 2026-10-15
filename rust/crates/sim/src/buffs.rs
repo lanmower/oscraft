@@ -46,6 +46,20 @@ impl Sim {
         }
     }
 
+    /// Removes behaviour `kind` from every living unit within `rad` of a point, whichever
+    /// player owns it. Uses the shared scratch buffer, so nothing is allocated.
+    pub(crate) fn remove_behaviour(&mut self, kind: i32, rad: i32, x: i32, y: i32) {
+        let mut buf = std::mem::take(&mut self.scratch);
+        let n = self.gather(x, y, rad, &mut buf);
+        for k in 0..n {
+            let j = buf[k] as usize;
+            if self.alive[j] != 0 {
+                self.clear_buff(j, kind);
+            }
+        }
+        self.scratch = buf;
+    }
+
     /// Applies or removes a behaviour on one unit, from an ability's buff effect.
     pub(crate) fn buff_unit(&mut self, caster: i32, p: u8, j: usize, kind: i32, dmg: i32, period: i32, remove: bool) {
         if j >= self.n || self.alive[j] == 0 || kind < 0 {

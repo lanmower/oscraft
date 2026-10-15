@@ -19,6 +19,7 @@ const RECORD_SIZES: [usize; 7] = [1, 16, 32, 2, 80, 16, 1];
 
 const EFFECT_KINDS: u16 = 11;
 const EFFECT_ISSUE_ORDER: u16 = 5;
+const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 const TARGET_CODES: u8 = 3;
 const TRIGGER_CODES: u8 = 4;
 const ACTION_CODES: u8 = 3;
@@ -257,6 +258,17 @@ fn check_name(strs: &[u8], n: Name) -> Result<(), LoadError> {
     Ok(())
 }
 
+/// The parameter rule for one effect, from FORMAT.md v4. `None` when its parameters are valid.
+fn effect_param_error(e: &Effect) -> Option<&'static str> {
+    match e.kind {
+        EFFECT_ISSUE_ORDER if !(0..=2).contains(&e.p0) || !(0..=1).contains(&e.p1) => {
+            Some("issue_order order or point code")
+        }
+        EFFECT_REMOVE_BEHAVIOUR if e.p0 < 0 || e.p1 < 0 => Some("remove_behaviour kind or radius"),
+        _ => None,
+    }
+}
+
 /// Parses a version 2 OSDT image into its catalog and its grid.
 pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let mut r = Reader { buf: bytes, at: 0 };
@@ -311,8 +323,8 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         }
         er.skip(2, "effect reserved")?;
         let eff = Effect { kind, p0: er.i32("p0")?, p1: er.i32("p1")?, p2: er.i32("p2")? };
-        if kind == EFFECT_ISSUE_ORDER && (!(0..=2).contains(&eff.p0) || !(0..=1).contains(&eff.p1)) {
-            return Err(LoadError::Range("issue_order order or point code"));
+        if let Some(why) = effect_param_error(&eff) {
+            return Err(LoadError::Range(why));
         }
         effects.push(eff);
     }
