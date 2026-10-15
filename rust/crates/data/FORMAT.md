@@ -13,7 +13,7 @@ is unchanged. A reader of an older version must reject the file.
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
 | 4      | 2    | version, `14`                                      |
 | 6      | 2    | header length, `16`                                 |
-| 8      | 4    | section count, `17`                                 |
+| 8      | 4    | section count, `18`                                 |
 | 12     | 4    | total file length in bytes                          |
 
 A reader rejects the file on a magic mismatch, an unknown version, or a total
