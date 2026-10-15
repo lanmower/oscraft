@@ -53,11 +53,11 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-BEH-2 | Clear a buff from a unit | implemented | sim/src/buffs.rs (clear_buff) | gate:clear-buff |
 | CAP-BEH-3 | Remove a behaviour from a unit through an effect | implemented | sim/src/buffs.rs (remove_behaviour); sim/src/rules.rs | gate:remove-behaviour |
 | CAP-BEH-4 | Declare behaviours with a trigger (idle, attacked, spawned, ability_ready) in data | partial | data/src/model.rs (trigger), data/src/builtins.rs; no evaluator in sim | gate:behaviour-declared |
-| CAP-BEH-5 | Fire behaviour triggers during the tick | stub | none | gate:behaviour-trigger-fires |
+| CAP-BEH-5 | Fire behaviour triggers during the tick | claimed | sim/src/triggers.rs (fire_triggers), sim/src/tick.rs | gate:behaviour-trigger-fires |
 | CAP-BEH-6 | Raise a class-wide stat in levels, with each level costing more than the last | stub | none | gate:upgrade-levels |
 | CAP-BEH-7 | Stack upgrade levels separately for each unit class | stub | none | gate:upgrade-stacking |
 | CAP-BEH-8 | Apply upgrades to units already on the field, not only to new units | stub | none | gate:upgrade-applies-existing |
-| CAP-BEH-9 | Apply a stated stacking rule to buffs of the same kind | stub | none | gate:buff-stacking-rule |
+| CAP-BEH-9 | Apply a stated stacking rule to buffs of the same kind | claimed | sim/src/buffs.rs (apply_buff: same kind refreshes its duration) | gate:buff-stacking-rule |
 
 ## Orders and pathing
 
@@ -67,9 +67,9 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-ORD-2 | Issue a move order to a set of units | implemented | sim/src/arrays.rs (order, order_all); sim/src/movement.rs (issue_order) | gate:issue-move |
 | CAP-ORD-3 | Steer and integrate unit movement each tick | implemented | sim/src/movement.rs (steer, integrate) | gate:move-units-tick |
 | CAP-ORD-4 | Path to a goal with shared flow fields | implemented | sim/src/pathfinding.rs (request, field, step, ready_count, cap) | gate:path-to-goal |
-| CAP-ORD-5 | Stop, attack-move, patrol and hold orders | stub | none; order carries only player, x, y | gate:order-kinds |
+| CAP-ORD-5 | Stop, attack-move, patrol and hold orders | claimed | sim/src/movement.rs (issue_order_kind, advance_patrol), sim/src/tick.rs | gate:order-kinds |
 | CAP-ORD-6 | Rate-limit and authorize orders per player | implemented | server/src/order.rs (rate, authorized, take) | gate:order-rate-limit |
-| CAP-ORD-7 | Push colliding units apart instead of letting them overlap | stub | none | gate:unit-collision |
+| CAP-ORD-7 | Push colliding units apart instead of letting them overlap | claimed | sim/src/movement.rs (separation from neighbours within radius sum) | gate:unit-collision |
 | CAP-ORD-8 | Limit how many units pass narrow or blocked cells at once | stub | none | gate:narrow-passage-limit |
 
 ## Production and resources
@@ -111,7 +111,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-SHLD-1 | Absorb incoming damage with shields | implemented | sim/src/shields.rs (absorb_shield) | gate:shield-absorbs |
 | CAP-SHLD-2 | Grant a shield bonus through an effect | implemented | sim/src/shields.rs (shield_bonus) | gate:shield-bonus |
-| CAP-SHLD-3 | Reduce incoming damage with armour | stub | none in sim | gate:armour-reduces |
+| CAP-SHLD-3 | Reduce incoming damage with armour | claimed | sim/src/combat.rs (armour_reduced, applied in attack and order_attack) | gate:armour-reduces |
 | CAP-SHLD-4 | Apply a vital-fraction effect | implemented | sim/src/shields.rs (vital_fraction) | gate:vital-fraction |
 | CAP-SHLD-5 | Regenerate shields after a delay in which the unit takes no damage | stub | none | gate:shield-regen-delay |
 | CAP-SHLD-6 | Regenerate hit points over time for unit classes that declare it | stub | none | gate:hp-regen |
@@ -122,7 +122,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-PLR-1 | Own units by player index (16 players) | implemented | sim/src/arrays.rs (player); server/src/order.rs (ORDER_PLAYERS) | gate:player-ownership |
 | CAP-PLR-2 | Report per-player unit presence and resources | implemented | server/src/room.rs (player_has_units, stats); server/src/main.rs (resources) | gate:player-resources |
-| CAP-PLR-3 | Alliances and team-based target filtering | stub | none; alliance appears only in data/abilities.star | gate:alliance-filter |
+| CAP-PLR-3 | Alliances and team-based target filtering | claimed | sim/src/arrays.rs (set_alliance, set_team, hostile) | gate:alliance-filter |
 
 ## Regions, triggers and events
 
@@ -181,9 +181,9 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-PERS-1 | Read a map data image and check its version | partial | data/src/reader.rs (verify); rejects other versions, no full read path | gate:map-image-read |
 | CAP-PERS-2 | Write map data to a versioned image | partial | data/src/encode.rs, data/src/format.rs; round trip not gated | gate:map-image-roundtrip |
-| CAP-PERS-3 | Save and load live sim state | stub | none | gate:save-load-state |
-| CAP-PERS-4 | Continue a loaded save with the same state hashes as uninterrupted play | stub | none | gate:save-load-hash-equal |
-| CAP-PERS-5 | Ship mods as versioned packages that the host checks before loading | stub | none | gate:mod-package-version |
+| CAP-PERS-3 | Save and load live sim state | claimed | sim/src/persist.rs (save_state, load_state) | gate:save-load-state |
+| CAP-PERS-4 | Continue a loaded save with the same state hashes as uninterrupted play | claimed | sim/src/persist.rs (load_state restores hashed fields and flow-field pool) | gate:save-load-hash-equal |
+| CAP-PERS-5 | Ship mods as versioned packages that the host checks before loading | claimed | sim/src/loader.rs (version check, BadVersion) | gate:mod-package-version |
 
 ## Presentation (headless)
 
