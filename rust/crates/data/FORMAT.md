@@ -1,17 +1,17 @@
-# OSDT data file, format version 8
+# OSDT data file, format version 9
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 8 defines the receiver of an effect and the
-radius rule for `create_healer`. Record sizes are unchanged from version 7. A
-reader of an older version must reject the file.
+reserved bytes listed below. Version 9 defines the PLCE flags (start location),
+the neutral player value, and the start rule. Record sizes are unchanged from
+version 8. A reader of an older version must reject the file.
 
 ## Header (16 bytes)
 
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `8`                                       |
+| 4      | 2    | version, `9`                                       |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `8`                                  |
 | 12     | 4    | total file length in bytes                          |
@@ -190,14 +190,23 @@ A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 | 14     | 2    | reserved, write 0                        |
 
 ### PLCE (16 bytes per record)
-One record per starting unit placed on the map.
+One record per placed object: a unit placed for a player, a neutral unit, or a
+player start location.
+
 | offset | size | field                                                  |
 |--------|------|--------------------------------------------------------|
-| 0      | 2    | unit index into `UNIT`                                 |
-| 2      | 2    | player index, `0..=15`                                 |
+| 0      | 2    | unit index into `UNIT`, `0xFFFF` for a start location  |
+| 2      | 2    | player index `0..=15`, or `0xFFFF` = neutral           |
 | 4      | 4    | x, milli-units, `0 <= x < width * cell_milli`          |
 | 8      | 4    | y, milli-units, `0 <= y < height * cell_milli`         |
-| 12     | 4    | reserved, write 0                                      |
+| 12     | 4    | flags: bit 0 = start location; other bits write 0      |
+
+Flags:
+- bit 0 (`start`): the record is a player start location. A start record carries
+  unit `0xFFFF` and a player index `0..=15`. Each player has at most one start,
+  and a map has at most one start per player.
+- Neutral objects use player `0xFFFF`. A neutral object belongs to no player; it
+  is a unit record with a unit index and no owner.
 
 Records are in declaration order. A position at the grid edge (`x` or `y` equal
 to the grid extent) is refused; positions are on the map, not past its border.
@@ -243,7 +252,8 @@ without a version bump.
 - Bounds-check every index (`EFCT`, `UABL`, `ABIL`, `UNIT`, `STRS`) against its section count.
 - Reject an effect kind code above `10`, and any effect whose parameters fall outside the table above.
 - Reject a `move` cap of 0 or one whose square exceeds the grid diagonal squared, computed from the GRID header.
-- Reject a PLCE record whose unit index is past `UNIT`, whose player is above `15`, or whose position is outside the grid extent.
+- Reject a PLCE record whose unit index is past `UNIT` (unless it is a start, which carries `0xFFFF`), whose player is neither `0..=15` nor `0xFFFF`, whose position is outside the grid extent, or whose flags have bits other than bit 0 set.
+- Reject two start records for the same player.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
 - Apply the receiver and radius rules above; they are not encoded in the record and must not be inferred from it.
 - The tick path never parses names. It uses only numeric fields.
