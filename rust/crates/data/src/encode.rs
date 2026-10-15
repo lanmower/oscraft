@@ -128,6 +128,17 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         debug_assert_eq!(bhvr.len() - start, BHVR_RECORD);
     }
 
+    let mut plce = Vec::new();
+    for spawn in &catalog.spawns {
+        let start = plce.len();
+        u16_le(&mut plce, spawn.unit);
+        u16_le(&mut plce, spawn.player);
+        u32_le(&mut plce, spawn.x);
+        u32_le(&mut plce, spawn.y);
+        pad(&mut plce, 4);
+        debug_assert_eq!(plce.len() - start, PLCE_RECORD);
+    }
+
     let mut grid = Vec::with_capacity(GRID_HEADER_LEN + catalog.grid.cells.len());
     u32_le(&mut grid, catalog.grid.width);
     u32_le(&mut grid, catalog.grid.height);
@@ -143,6 +154,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_UABL, uabl_count as usize, UABL_RECORD, uabl),
         (TAG_UNIT, catalog.units.len(), UNIT_RECORD, unit_bytes),
         (TAG_BHVR, catalog.behaviours.len(), BHVR_RECORD, bhvr),
+        (TAG_PLCE, catalog.spawns.len(), PLCE_RECORD, plce),
         (TAG_GRID, grid_len, GRID_RECORD, grid),
     ];
 

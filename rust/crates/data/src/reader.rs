@@ -1,4 +1,4 @@
-//! Reference reader: checks an image against FORMAT.md v6 before it is written.
+//! Reference reader: checks an image against FORMAT.md v7 before it is written.
 //! The sim crate has its own loader; this one guards the generator's output.
 
 use anyhow::{anyhow, ensure, Result};
@@ -48,7 +48,8 @@ pub fn verify(image: &[u8]) -> Result<()> {
     }
     ensure!(expected == image.len(), "trailing bytes after the last section");
 
-    let (abil, uabl, unit, efct, grid) = (&sections[2], &sections[3], &sections[4], &sections[1], &sections[6]);
+    let (efct, abil, uabl, unit, plce, grid) =
+        (&sections[1], &sections[2], &sections[3], &sections[4], &sections[6], &sections[7]);
 
     let width = u32_at(image, grid.offset)?;
     let height = u32_at(image, grid.offset + 4)?;
@@ -109,6 +110,20 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(u32_at(image, at + 40)? & !FILTER_ALL == 0, "unit {i} filter mask uses reserved bits");
         ensure!((image[at + 70] as usize) < DAMAGE_RESPONSES.len(), "unit {i} damage response out of range");
         ensure!((image[at + 71] as usize) < RESOURCE_KINDS.len(), "unit {i} resource kind out of range");
+    }
+
+    for i in 0..plce.count {
+        let at = plce.offset + i * PLCE_RECORD;
+        let unit_index = u16_at(image, at)? as usize;
+        let player = u16_at(image, at + 2)? as i32;
+        let x = u32_at(image, at + 4)? as i64;
+        let y = u32_at(image, at + 8)? as i64;
+        ensure!(unit_index < unit.count, "placement {i} names a unit past the end of UNIT");
+        ensure!((0..MAX_PLAYERS).contains(&player), "placement {i} player {player} out of range");
+        ensure!(
+            position_on_grid(x, y, width, height, cell_milli),
+            "placement {i} at ({x}, {y}) is off the grid"
+        );
     }
 
     for &cell in &image[grid.offset + GRID_HEADER_LEN..grid.offset + grid.count] {

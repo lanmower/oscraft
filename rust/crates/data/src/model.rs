@@ -60,6 +60,14 @@ pub struct BehaviourRaw {
     pub ability: Option<String>,
 }
 
+#[derive(Debug)]
+pub struct SpawnRaw {
+    pub unit: String,
+    pub player: i32,
+    pub x: i32,
+    pub y: i32,
+}
+
 /// Map grid, built by `grid()` and painted by `paint()`. Also the validated form.
 /// Each cell byte is a walkability bitfield (see `format::CELL_*`).
 #[derive(Debug, Default)]
@@ -78,6 +86,7 @@ pub struct Collector {
     pub units: RefCell<Vec<UnitRaw>>,
     pub abilities: RefCell<Vec<AbilityRaw>>,
     pub behaviours: RefCell<Vec<BehaviourRaw>>,
+    pub spawns: RefCell<Vec<SpawnRaw>>,
     pub grid: RefCell<Option<Grid>>,
 }
 
@@ -136,10 +145,19 @@ pub struct Behaviour {
     pub ability: u16,
 }
 
+#[derive(Debug)]
+pub struct Spawn {
+    pub unit: u16,
+    pub player: u16,
+    pub x: u32,
+    pub y: u32,
+}
+
 #[derive(Debug, Default)]
 pub struct Catalog {
     pub units: Vec<Unit>,
     pub abilities: Vec<Ability>,
     pub behaviours: Vec<Behaviour>,
+    pub spawns: Vec<Spawn>,
     pub grid: Grid,
 }

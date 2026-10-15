@@ -4,8 +4,10 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::format::{move_cap_fits_grid, ACTION_USE_ABILITY, EFFECT_KINDS, NO_ABILITY, NO_UNIT};
-use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Unit, Weapon};
+use crate::format::{
+    move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, EFFECT_KINDS, MAX_PLAYERS, NO_ABILITY, NO_UNIT,
+};
+use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Spawn, Unit, Weapon};
 
 fn valid_name(name: &str) -> Result<()> {
     let bytes = name.as_bytes();
@@ -39,6 +41,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let units_raw = collector.units.into_inner();
     let abilities_raw = collector.abilities.into_inner();
     let behaviours_raw = collector.behaviours.into_inner();
+    let spawns_raw = collector.spawns.into_inner();
     let grid = collector
         .grid
         .into_inner()
@@ -184,10 +187,38 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         });
     }
 
+    let mut spawns = Vec::with_capacity(spawns_raw.len());
+    for raw in &spawns_raw {
+        let unit = unit_index
+            .get(&raw.unit)
+            .ok_or_else(|| anyhow!("spawn names unknown unit {:?}", raw.unit))?;
+        if !(0..MAX_PLAYERS).contains(&raw.player) {
+            bail!("spawn({:?}) player {} is outside 0..{MAX_PLAYERS}", raw.unit, raw.player);
+        }
+        if !position_on_grid(raw.x as i64, raw.y as i64, grid.width, grid.height, grid.cell_milli) {
+            bail!(
+                "spawn({:?}) at ({}, {}) is off the {}x{} grid at {} milli",
+                raw.unit,
+                raw.x,
+                raw.y,
+                grid.width,
+                grid.height,
+                grid.cell_milli
+            );
+        }
+        spawns.push(Spawn {
+            unit: *unit as u16,
+            player: raw.player as u16,
+            x: raw.x as u32,
+            y: raw.y as u32,
+        });
+    }
+
     Ok(Catalog {
         units,
         abilities,
         behaviours,
+        spawns,
         grid,
     })
 }

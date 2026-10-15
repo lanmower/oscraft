@@ -1,12 +1,13 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 6;
+pub const VERSION: u16 = 7;
 pub const HEADER_LEN: usize = 16;
 pub const SECTION_ENTRY_LEN: usize = 16;
 pub const NO_ABILITY: u16 = u16::MAX;
 pub const NO_UNIT: u16 = u16::MAX;
 pub const MAX_GRID_CELLS: usize = 1 << 24;
+pub const MAX_PLAYERS: i32 = 16;
 
 pub const EFFECT_KINDS: &[&str] = &[
     "damage",
@@ -52,6 +53,7 @@ pub const TAG_ABIL: [u8; 4] = *b"ABIL";
 pub const TAG_UABL: [u8; 4] = *b"UABL";
 pub const TAG_UNIT: [u8; 4] = *b"UNIT";
 pub const TAG_BHVR: [u8; 4] = *b"BHVR";
+pub const TAG_PLCE: [u8; 4] = *b"PLCE";
 pub const TAG_GRID: [u8; 4] = *b"GRID";
 
 pub const STRS_RECORD: usize = 1;
@@ -60,17 +62,19 @@ pub const ABIL_RECORD: usize = 32;
 pub const UABL_RECORD: usize = 2;
 pub const UNIT_RECORD: usize = 80;
 pub const BHVR_RECORD: usize = 16;
+pub const PLCE_RECORD: usize = 16;
 pub const GRID_RECORD: usize = 1;
 pub const GRID_HEADER_LEN: usize = 12;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
-pub const SECTIONS: [([u8; 4], usize); 7] = [
+pub const SECTIONS: [([u8; 4], usize); 8] = [
     (TAG_STRS, STRS_RECORD),
     (TAG_EFCT, EFCT_RECORD),
     (TAG_ABIL, ABIL_RECORD),
     (TAG_UABL, UABL_RECORD),
     (TAG_UNIT, UNIT_RECORD),
     (TAG_BHVR, BHVR_RECORD),
+    (TAG_PLCE, PLCE_RECORD),
     (TAG_GRID, GRID_RECORD),
 ];
 
@@ -116,4 +120,11 @@ pub fn move_cap_fits_grid(cap: i32, width: u32, height: u32, cell_milli: u32) ->
     let w = width as u128 * cell_milli as u128;
     let h = height as u128 * cell_milli as u128;
     cap * cap <= w * w + h * h
+}
+
+/// True when a placement lies on the map: `0 <= x < width * cell` and `0 <= y < height * cell`.
+pub fn position_on_grid(x: i64, y: i64, width: u32, height: u32, cell_milli: u32) -> bool {
+    let extent_x = width as i64 * cell_milli as i64;
+    let extent_y = height as i64 * cell_milli as i64;
+    (0..extent_x).contains(&x) && (0..extent_y).contains(&y)
 }

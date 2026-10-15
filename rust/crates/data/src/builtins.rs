@@ -1,4 +1,4 @@
-//! Starlark builtins: `effect`, `ability`, `unit`, `behaviour`, `grid`, `paint`.
+//! Starlark builtins: `effect`, `ability`, `unit`, `behaviour`, `spawn`, `grid`, `paint`.
 //! Each one validates its enum-like arguments at call time so errors carry the
 //! Starlark source location.
 
@@ -10,9 +10,9 @@ use starlark::values::{list::UnpackList, none::NoneType};
 
 use crate::format::{
     effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, DAMAGE_RESPONSES, EFFECT_KINDS,
-    FILTERS, MAX_GRID_CELLS, RESOURCE_KINDS, TARGETS, TRIGGERS,
+    FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, TARGETS, TRIGGERS,
 };
-use crate::model::{AbilityRaw, BehaviourRaw, Collector, EffectRaw, Grid, UnitRaw, WeaponRaw};
+use crate::model::{AbilityRaw, BehaviourRaw, Collector, EffectRaw, Grid, SpawnRaw, UnitRaw, WeaponRaw};
 
 pub fn globals() -> Globals {
     GlobalsBuilder::standard().with(osdt_builtins).build()
@@ -182,6 +182,22 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             action,
             param: param.unwrap_or(0),
             ability: ability.map(str::to_owned),
+        });
+        Ok(NoneType)
+    }
+
+    fn spawn(unit: &str, player: i32, x: i32, y: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        if !(0..MAX_PLAYERS).contains(&player) {
+            bail!("spawn({unit:?}) player {player} is outside 0..{MAX_PLAYERS}");
+        }
+        if x < 0 || y < 0 {
+            bail!("spawn({unit:?}) position ({x}, {y}) is negative");
+        }
+        collector(eval)?.spawns.borrow_mut().push(SpawnRaw {
+            unit: unit.to_owned(),
+            player,
+            x,
+            y,
         });
         Ok(NoneType)
     }
