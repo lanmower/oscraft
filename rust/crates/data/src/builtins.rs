@@ -53,10 +53,11 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] p0: Option<i32>,
         #[starlark(require = named)] p1: Option<i32>,
         #[starlark(require = named)] p2: Option<i32>,
+        #[starlark(require = named)] p3: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<i32> {
         let kind_code = index_of(EFFECT_KINDS, kind, "effect kind")?;
-        let params = [p0.unwrap_or(0), p1.unwrap_or(0), p2.unwrap_or(0)];
+        let params = [p0.unwrap_or(0), p1.unwrap_or(0), p2.unwrap_or(0), p3.unwrap_or(0)];
         if !effect_params_valid(kind, params) {
             bail!("effect {kind:?} has out-of-range parameters {params:?}; see FORMAT.md effect table");
         }

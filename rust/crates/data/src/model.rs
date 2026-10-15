@@ -8,7 +8,7 @@ use starlark::any::ProvidesStaticType;
 #[derive(Clone, Copy, Debug)]
 pub struct EffectRaw {
     pub kind: usize,
-    pub params: [i32; 3],
+    pub params: [i32; 4],
 }
 
 #[derive(Debug)]
@@ -84,7 +84,7 @@ pub struct Collector {
 #[derive(Clone, Copy, Debug)]
 pub struct Effect {
     pub kind: u16,
-    pub params: [i32; 3],
+    pub params: [i32; 4],
 }
 
 #[derive(Clone, Copy, Debug)]

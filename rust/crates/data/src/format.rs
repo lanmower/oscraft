@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 4;
+pub const VERSION: u16 = 5;
 pub const HEADER_LEN: usize = 16;
 pub const SECTION_ENTRY_LEN: usize = 16;
 pub const NO_ABILITY: u16 = u16::MAX;
@@ -25,6 +25,8 @@ pub const MAX_EFFECT_KIND: usize = 10;
 pub const ORDER_KINDS: &[&str] = &["stop", "attack_move", "hold"];
 pub const ORDER_TARGETS: &[&str] = &["caster_relative", "point"];
 pub const VITALS: &[&str] = &["life", "shield"];
+pub const VITAL_MODES: &[&str] = &["drain", "set"];
+pub const VITAL_TARGETS: &[&str] = &["current", "max"];
 pub const Q16_ONE: i32 = 65536;
 
 pub const TARGETS: &[&str] = &["none", "unit", "point"];
@@ -53,7 +55,7 @@ pub const TAG_BHVR: [u8; 4] = *b"BHVR";
 pub const TAG_GRID: [u8; 4] = *b"GRID";
 
 pub const STRS_RECORD: usize = 1;
-pub const EFCT_RECORD: usize = 16;
+pub const EFCT_RECORD: usize = 20;
 pub const ABIL_RECORD: usize = 32;
 pub const UABL_RECORD: usize = 2;
 pub const UNIT_RECORD: usize = 80;
@@ -80,16 +82,22 @@ pub fn index_of(list: &[&str], value: &str, what: &str) -> anyhow::Result<usize>
 
 /// Per-kind parameter ranges from FORMAT.md's effect table. Shared by the
 /// Starlark builtins and the reference reader.
-pub fn effect_params_valid(kind: &str, p: [i32; 3]) -> bool {
-    let [p0, p1, p2] = p;
+pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
+    let [p0, p1, p2, p3] = p;
     match kind {
+        "damage" | "heal" => p0 >= 0 && p1 >= 0,
         "buff" => p0 >= 0 && p1 >= 0,
         "spawn" => p0 >= 0,
         "issue_order" => (0..ORDER_KINDS.len() as i32).contains(&p0) && (0..ORDER_TARGETS.len() as i32).contains(&p1),
         "remove_behaviour" => p0 >= 0 && p1 >= 0,
-        "create_healer" => p0 >= 0 && p1 >= 0 && p2 >= 1,
+        "create_healer" => p0 >= 0 && p1 >= 0 && p2 >= 1 && p3 >= 1,
         "use_calldown" => p0 >= 0,
-        "vital_fraction" => (0..VITALS.len() as i32).contains(&p0) && (0..=Q16_ONE).contains(&p1),
+        "vital_fraction" => {
+            (0..VITALS.len() as i32).contains(&p0)
+                && (0..=Q16_ONE).contains(&p1)
+                && (0..VITAL_MODES.len() as i32).contains(&p2)
+                && (0..VITAL_TARGETS.len() as i32).contains(&p3)
+        }
         "shield_bonus" => p0 >= 0,
         _ => true,
     }

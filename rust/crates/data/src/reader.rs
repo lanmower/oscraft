@@ -1,4 +1,4 @@
-//! Reference reader: checks an image against FORMAT.md v4 before it is written.
+//! Reference reader: checks an image against FORMAT.md v5 before it is written.
 //! The sim crate has its own loader; this one guards the generator's output.
 
 use anyhow::{anyhow, ensure, Result};
@@ -55,7 +55,12 @@ pub fn verify(image: &[u8]) -> Result<()> {
         let kind = u16_at(image, at)? as usize;
         ensure!(kind <= MAX_EFFECT_KIND, "effect {i} code {kind} is above {MAX_EFFECT_KIND}");
         let name = EFFECT_KINDS[kind];
-        let params = [i32_at(image, at + 4)?, i32_at(image, at + 8)?, i32_at(image, at + 12)?];
+        let params = [
+            i32_at(image, at + 4)?,
+            i32_at(image, at + 8)?,
+            i32_at(image, at + 12)?,
+            i32_at(image, at + 16)?,
+        ];
         ensure!(effect_params_valid(name, params), "effect {i} ({name}) params {params:?} out of range");
         if name == "use_calldown" {
             ensure!((params[0] as usize) < abil.count, "effect {i} names an ability past the end of ABIL");
