@@ -222,6 +222,11 @@ impl Sim {
         (e.opening_minerals, e.opening_gas, e.opening_workers as i32)
     }
 
+    /// Mineral patches and geysers per base from the map's ECON record: (patches, geysers).
+    pub fn base_node_counts(&self) -> (i32, i32) {
+        (self.cat.econ.patches_per_base as i32, self.cat.econ.extractors_per_base as i32)
+    }
+
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
