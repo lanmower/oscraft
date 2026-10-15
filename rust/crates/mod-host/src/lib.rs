@@ -21,6 +21,52 @@ type Shared = Rc<RefCell<Sim>>;
 type Regions = Rc<RefCell<Vec<Region>>>;
 type Timers = Rc<RefCell<Vec<Timer>>>;
 type Clock = Rc<Cell<u64>>;
+type Cmds = Rc<RefCell<Vec<Cmd>>>;
+type SystemSink = Rc<RefCell<Vec<System>>>;
+
+// A component a system or each query can ask for. Units carry these; they are the only ones
+// a script can see.
+#[derive(Clone, Copy, PartialEq)]
+enum Comp {
+    Position,
+    Owner,
+    Hp,
+}
+
+impl Comp {
+    fn parse(name: &str) -> mlua::Result<Comp> {
+        match name {
+            "position" => Ok(Comp::Position),
+            "owner" => Ok(Comp::Owner),
+            "hp" => Ok(Comp::Hp),
+            other => Err(mlua::Error::RuntimeError(format!("unknown_component: {other} (known: position, owner, hp)"))),
+        }
+    }
+}
+
+// A living unit as it stood when a system or query began.
+struct Row {
+    id: usize,
+    x: i32,
+    y: i32,
+    owner: u8,
+    hp: i32,
+}
+
+// A named system: the components it asked for and the Lua function run per living unit.
+struct System {
+    name: String,
+    comps: Vec<Comp>,
+    func: Function,
+}
+
+// A command queued during a step; applied after every system, in queue order.
+enum Cmd {
+    Spawn { index: usize, x: i32, y: i32 },
+    Order { unit: usize, x: i32, y: i32 },
+    Damage { caster: usize, target: usize, dmg: i32 },
+    Buff { unit: usize, kind: i32, ticks: i32 },
+}
 
 // Q16.16 corners, normalized so x0 <= x1 and y0 <= y1.
 struct Region {
@@ -52,6 +98,7 @@ struct Hooks {
     on_died: Option<Function>,
     on_enter: Option<Function>,
     on_leave: Option<Function>,
+    systems: Vec<System>,
 }
 
 struct ModFile {
@@ -91,6 +138,7 @@ pub struct ModHost {
     prev: Vec<UnitSnap>,
     pending: Vec<Pending>,
     mod_file: Option<ModFile>,
+    cmds: Cmds,
 }
 
 // The events a mod handles, each with the Lua arguments it receives. Editors list them.
@@ -510,12 +558,129 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
     Ok(())
 }
 
-// Builds a fresh environment, runs the chunk in it, and returns its on_tick.
+fn parse_comps(list: Table) -> mlua::Result<Vec<Comp>> {
+    list.sequence_values::<String>().map(|name| Comp::parse(&name?)).collect()
+}
+
+// Every living unit, as a snapshot taken before any Lua runs against it.
+fn snapshot(world: &Shared) -> Vec<Row> {
+    let sim = world.borrow();
+    (0..sim.count())
+        .filter(|&i| sim.alive(i))
+        .map(|i| {
+            let (x, y) = sim.position_fixed(i);
+            Row { id: i, x, y, owner: sim.player(i), hp: sim.hp(i) }
+        })
+        .collect()
+}
+
+// The table a script sees for one unit: its id, plus only the components it asked for.
+fn view(lua: &Lua, row: &Row, comps: &[Comp]) -> mlua::Result<Table> {
+    let t = lua.create_table()?;
+    t.set("id", row.id as i64)?;
+    for c in comps {
+        match c {
+            Comp::Position => {
+                let p = lua.create_table()?;
+                p.set("x", row.x as i64)?;
+                p.set("y", row.y as i64)?;
+                t.set("position", p)?;
+            }
+            Comp::Owner => t.set("owner", row.owner as i64)?,
+            Comp::Hp => t.set("hp", row.hp as i64)?,
+        }
+    }
+    Ok(t)
+}
+
+// The game table: game.system registers a per-tick system, game.each runs a query now, and the
+// cmd_ functions queue commands for the command step. Unit arguments are validated when queued.
+fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &SystemSink) -> mlua::Result<()> {
+    let game = lua.create_table()?;
+    let sink = systems.clone();
+    game.set(
+        "system",
+        lua.create_function(move |_, (name, comps, func): (String, Table, Function)| {
+            let comps = parse_comps(comps)?;
+            let mut list = sink.borrow_mut();
+            if list.iter().any(|s| s.name == name) {
+                return Err(mlua::Error::RuntimeError(format!("duplicate_system: {name} is already registered")));
+            }
+            list.push(System { name, comps, func });
+            Ok(())
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "each",
+        lua.create_function(move |lua, (comps, func): (Table, Function)| {
+            let comps = parse_comps(comps)?;
+            for row in snapshot(&w) {
+                func.call::<()>(view(lua, &row, &comps)?)?;
+            }
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_spawn",
+        lua.create_function(move |_, (kind, x, y): (String, i64, i64)| {
+            let index = w
+                .borrow()
+                .catalog()
+                .unit_index(&kind)
+                .ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_unit: {kind}")))?;
+            buf.borrow_mut().push(Cmd::Spawn { index, x: fixed(x)?, y: fixed(y)? });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_order",
+        lua.create_function(move |_, (unit, x, y): (i64, i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            buf.borrow_mut().push(Cmd::Order { unit: u, x: fixed(x)?, y: fixed(y)? });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_damage",
+        lua.create_function(move |_, (caster, target, dmg): (i64, i64, i64)| {
+            let (c, t) = {
+                let sim = w.borrow();
+                (live_unit(&sim, caster)?, live_unit(&sim, target)?)
+            };
+            let dmg = i32::try_from(dmg).map_err(|_| mlua::Error::RuntimeError(format!("invalid_damage: {dmg} out of i32 range")))?;
+            buf.borrow_mut().push(Cmd::Damage { caster: c, target: t, dmg });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_buff",
+        lua.create_function(move |_, (unit, kind, ticks): (i64, i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let kind = i32::try_from(kind).map_err(|_| mlua::Error::RuntimeError(format!("invalid_buff: kind {kind} out of i32 range")))?;
+            let ticks = i32::try_from(ticks)
+                .ok()
+                .filter(|&t| t > 0)
+                .ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_buff: ticks {ticks} must be a positive i32")))?;
+            buf.borrow_mut().push(Cmd::Buff { unit: u, kind, ticks });
+            Ok(())
+        })?,
+    )?;
+    env.set("game", game)
+}
+
+// Builds a fresh environment, runs the chunk in it, and returns its on_tick and systems.
 // Errors carry "<path>:<line>: <message>" because the chunk is named "@<path>".
-fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock: &Clock, path: &Path) -> mlua::Result<Hooks> {
+fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock: &Clock, cmds: &Cmds, path: &Path) -> mlua::Result<Hooks> {
     let src = fs::read_to_string(path).map_err(io_err)?;
     let env = lua.create_table()?;
+    let systems: SystemSink = Rc::new(RefCell::new(Vec::new()));
     bind_host(lua, &env, world, regions, timers, clock)?;
+    bind_game(lua, &env, world, cmds, &systems)?;
     lua.load(src.as_str())
         .set_name(format!("@{}", path.display()))
         .set_environment(env.clone())
@@ -530,6 +695,7 @@ fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock:
         on_died: env.get("on_died")?,
         on_enter: env.get("on_enter")?,
         on_leave: env.get("on_leave")?,
+        systems: std::mem::take(&mut *systems.borrow_mut()),
     })
 }
 
@@ -575,13 +741,14 @@ impl ModHost {
             prev: Vec::with_capacity(MAX_UNITS),
             pending: Vec::with_capacity(MAX_UNITS * MAX_REGIONS),
             mod_file: None,
+            cmds: Rc::new(RefCell::new(Vec::new())),
         })
     }
 
     /// Compiles the mod at `path` and makes it the active mod.
     pub fn load(&mut self, path: &Path) -> mlua::Result<()> {
         self.spent.set(0);
-        let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, path).map_err(named)?;
+        let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, path).map_err(named)?;
         self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, hooks });
         Ok(())
     }
@@ -595,7 +762,7 @@ impl ModHost {
         }
         m.mtime = t;
         self.spent.set(0);
-        match compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &m.path) {
+        match compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, &m.path) {
             Ok(hooks) => {
                 m.hooks = hooks;
                 println!("reload: ok ({})", m.path.display());
@@ -630,13 +797,62 @@ impl ModHost {
     /// on_tick. Transitions are emitted in unit index order, then region index order.
     pub fn advance(&mut self, state: &Table) -> mlua::Result<()> {
         self.spent.set(0);
+        self.step(state).map_err(named)
+    }
+
+    // One step in fixed order: the sim tick, zone and unit events, every system in
+    // registration order, the queued commands, due timers, then on_tick. A command queued by
+    // on_tick or a timer waits for the command step of the next advance.
+    fn step(&mut self, state: &Table) -> mlua::Result<()> {
         self.clock.set(self.clock.get() + 1);
         self.world.borrow_mut().tick();
         self.collect();
-        self.dispatch()
-            .and_then(|_| self.fire_timers())
-            .and_then(|_| self.run_on_tick(state))
-            .map_err(named)
+        self.dispatch()?;
+        self.run_systems()?;
+        self.apply_commands();
+        self.fire_timers()?;
+        self.run_on_tick(state)
+    }
+
+    // Each system runs over every living unit, with the snapshot taken as it begins.
+    fn run_systems(&self) -> mlua::Result<()> {
+        let Some(m) = self.mod_file.as_ref() else { return Ok(()) };
+        for sys in m.hooks.systems.iter() {
+            for row in snapshot(&self.world) {
+                sys.func.call::<()>(view(&self.lua, &row, &sys.comps)?)?;
+            }
+        }
+        Ok(())
+    }
+
+    // Applies the queued commands in the order they were queued. A command aimed at a unit
+    // that died since it was queued does nothing.
+    fn apply_commands(&self) {
+        let list = std::mem::take(&mut *self.cmds.borrow_mut());
+        let mut sim = self.world.borrow_mut();
+        for cmd in list {
+            match cmd {
+                Cmd::Spawn { index, x, y } => {
+                    let _ = sim.spawn(index as u32, x, y);
+                }
+                Cmd::Order { unit, x, y } => {
+                    if sim.alive(unit) {
+                        sim.order(unit, x, y);
+                    }
+                }
+                Cmd::Damage { caster, target, dmg } => {
+                    if sim.alive(caster) {
+                        let player = sim.player(caster);
+                        sim.damage_target(caster as i32, player, dmg, target as i32);
+                    }
+                }
+                Cmd::Buff { unit, kind, ticks } => {
+                    if sim.alive(unit) {
+                        let _ = sim.apply_buff(unit, kind, ticks);
+                    }
+                }
+            }
+        }
     }
 
     // Fires every due timer in insertion order. A timer is removed before its action
