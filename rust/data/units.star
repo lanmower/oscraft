@@ -38,3 +38,30 @@ unit(
     resource="gas",
     harvest=4,
 )
+# Worker with the worker filter: exercises harvest-resources.
+unit(
+    "tender",
+    40,
+    2800,
+    350,
+    build_time=300,
+    minerals=50,
+    supply=1,
+    filters=["ground", "light", "worker"],
+    sight_milli=8000,
+    resource="minerals",
+    harvest=5,
+)
+# Biological air unit without the ground filter: exercises ability-target-filter.
+unit(
+    "spore",
+    60,
+    3500,
+    400,
+    build_time=420,
+    minerals=75,
+    gas=25,
+    supply=2,
+    filters=["air", "biological", "light"],
+    sight_milli=9000,
+)
