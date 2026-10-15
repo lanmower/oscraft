@@ -1,18 +1,17 @@
 //! Save and load of live sim state as bytes. A save holds every field the state hash covers,
 //! plus the fog reveals, the mode flags and the counters, so a load followed by state_hash
 //! gives the hash the save was taken at. Not saved: the catalog (the caller loads the same map
-//! first), the bucket planes and scratch (rebuilt by the tick), and the flow-field cache, which
-//! is derived from the grid. A loaded sim starts with an empty cache, so its routes re-solve over
-//! the next ticks and a loaded run can differ from an uninterrupted one until the cache fills.
+//! first) and the bucket planes and scratch (rebuilt by the tick). The flow-field pool is saved
+//! in full, solver frontiers included, so a loaded run continues exactly as an uninterrupted one.
 //! Layout is little-endian with fixed field order; this version is independent of the map format.
 
 use crate::arrays::{Reveal, Sim, Stats};
-use crate::pathfinding::Grid;
+use crate::pathfinding::{Field, Grid, Pool};
 use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 1;
+const STATE_VERSION: u16 = 2;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -152,6 +151,99 @@ impl<'a> Reader<'a> {
     }
 }
 
+fn put_list(w: &mut Vec<u8>, v: &[u32]) {
+    put_u64(w, v.len() as u64);
+    put_u32s(w, v);
+}
+
+fn put_field(w: &mut Vec<u8>, f: &Field) {
+    put_i32(w, f.goal_x);
+    put_i32(w, f.goal_y);
+    put_i32(w, f.want_x);
+    put_i32(w, f.want_y);
+    put_i32(w, f.b);
+    put_bool(w, f.building);
+    put_bool(w, f.ready);
+    put_i32s(w, &f.dist);
+    w.extend_from_slice(&f.dir);
+    w.extend_from_slice(&f.dir_next);
+    w.extend_from_slice(&f.settled);
+    put_list(w, &f.cur);
+    put_list(w, &f.n1);
+    put_list(w, &f.n2);
+}
+
+fn put_pool(w: &mut Vec<u8>, p: &Pool) {
+    put_u64(w, p.owner.len() as u64);
+    put_u64(w, p.round as u64);
+    put_u32(w, p.tick_no);
+    put_u64(w, p.budget as u64);
+    put_i32s(w, &p.owner);
+    put_i32s(w, &p.want_x);
+    put_i32s(w, &p.want_y);
+    for &d in &p.dirty {
+        put_bool(w, d);
+    }
+    put_u32s(w, &p.age);
+    put_u32s(w, &p.seen);
+    for f in &p.fields {
+        put_bool(w, f.is_some());
+        if let Some(f) = f {
+            put_field(w, f);
+        }
+    }
+}
+
+fn read_list(r: &mut Reader<'_>, v: &mut Vec<u32>) -> Result<(), StateError> {
+    let n = r.u64()? as usize;
+    let bytes = n.checked_mul(4).ok_or(StateError::Length)?;
+    let b = r.take(bytes)?;
+    v.clear();
+    v.extend(b.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])));
+    Ok(())
+}
+
+fn read_field(r: &mut Reader<'_>, w: usize, h: usize) -> Result<Field, StateError> {
+    let mut f = Field::new(w, h);
+    f.goal_x = r.i32()?;
+    f.goal_y = r.i32()?;
+    f.want_x = r.i32()?;
+    f.want_y = r.i32()?;
+    f.b = r.i32()?;
+    f.building = r.bool()?;
+    f.ready = r.bool()?;
+    r.i32s_into(&mut f.dist)?;
+    r.bytes_into(&mut f.dir)?;
+    r.bytes_into(&mut f.dir_next)?;
+    r.bytes_into(&mut f.settled)?;
+    read_list(r, &mut f.cur)?;
+    read_list(r, &mut f.n1)?;
+    read_list(r, &mut f.n2)?;
+    Ok(f)
+}
+
+fn read_pool(r: &mut Reader<'_>, p: &mut Pool) -> Result<(), StateError> {
+    let cap = r.u64()? as usize;
+    if cap != p.owner.len() {
+        return Err(StateError::Mismatch);
+    }
+    p.round = r.u64()? as usize;
+    p.tick_no = r.u32()?;
+    p.budget = r.u64()? as usize;
+    r.i32s_into(&mut p.owner)?;
+    r.i32s_into(&mut p.want_x)?;
+    r.i32s_into(&mut p.want_y)?;
+    for k in 0..cap {
+        p.dirty[k] = r.bool()?;
+    }
+    r.u32s_into(&mut p.age)?;
+    r.u32s_into(&mut p.seen)?;
+    for k in 0..cap {
+        p.fields[k] = if r.bool()? { Some(read_field(r, p.w, p.h)?) } else { None };
+    }
+    Ok(())
+}
+
 impl Sim {
     /// Serialises the live state. The sim is only read.
     pub fn save_state(&self) -> Vec<u8> {
@@ -284,6 +376,7 @@ impl Sim {
             put_i32(&mut w, r.until);
             put_bool(&mut w, r.live);
         }
+        put_pool(&mut w, &self.paths);
         w
     }
 
@@ -431,6 +524,7 @@ impl Sim {
             };
         }
 
+        read_pool(&mut r, &mut next.paths)?;
         if r.at != bytes.len() {
             return Err(StateError::Length);
         }
