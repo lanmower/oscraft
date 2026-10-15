@@ -9,7 +9,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 12;
+const VERSION: u16 = 13;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const LIMT_COUNT: usize = 1;
@@ -20,7 +20,7 @@ const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 17] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"GRID"];
-const RECORD_SIZES: [usize; 17] = [1, 20, 32, 2, 80, 16, 16, 16, 12, 4, 32, 32, 8, 32, 8, 8, 1];
+const RECORD_SIZES: [usize; 17] = [1, 20, 32, 2, 80, 16, 16, 24, 12, 4, 32, 32, 8, 32, 8, 8, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
@@ -229,6 +229,10 @@ pub struct Upgrade {
     pub target: u16,
     /// Index into EFCT.
     pub effect: u32,
+    /// Minerals charged per level: reaching level n costs n times this.
+    pub minerals_per_level: i32,
+    /// Gas charged per level: reaching level n costs n times this.
+    pub gas_per_level: i32,
     pub group: u32,
 }
 
@@ -769,6 +773,11 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let stacking = ur.u8("upgrade stacking")?;
         let target = ur.u16("upgrade target")?;
         let effect = ur.u32("upgrade effect")?;
+        let minerals_per_level = ur.i32("upgrade minerals per level")?;
+        let gas_per_level = ur.i32("upgrade gas per level")?;
+        if minerals_per_level < 0 || gas_per_level < 0 {
+            return Err(LoadError::Range("upgrade cost below zero"));
+        }
         if name.offset as usize + name.len as usize > strs.len() {
             return Err(LoadError::Range("upgrade name outside STRS"));
         }
@@ -779,7 +788,18 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if !target_ok || effect as usize >= effects.len() {
             return Err(LoadError::Range("upgrade target or effect index"));
         }
-        upgrades.push(Upgrade { name, target_kind, level, applies, stacking, target, effect, group: 0 });
+        upgrades.push(Upgrade {
+            name,
+            target_kind,
+            level,
+            applies,
+            stacking,
+            target,
+            effect,
+            minerals_per_level,
+            gas_per_level,
+            group: 0,
+        });
     }
     let groups: Vec<u32> = {
         let names: Vec<&[u8]> = upgrades

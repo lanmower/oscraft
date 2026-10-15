@@ -14,9 +14,11 @@ const EFFECT_SPAWN_CODE: u16 = 3;
 const EFFECT_USE_CALLDOWN_CODE: u16 = 8;
 
 impl Sim {
-    /// Completes upgrade record `rec` for `player`. Refusals: an unknown record or player, a
-    /// record already complete for that player, a stacking rule that refuses, an unsupported
-    /// target kind, and an effect that would spawn or call down units.
+    /// Completes upgrade record `rec` for `player`, charging the level's cost first: reaching
+    /// level n costs n times the record's per-level minerals and gas. Refusals: an unknown record
+    /// or player, a record already complete for that player, a stacking rule that refuses, an
+    /// unsupported target kind, an effect that would spawn or call down units, and a player who
+    /// cannot pay (CannotAfford, nothing charged).
     pub fn complete_upgrade(&mut self, rec: usize, player: u8) -> Result<(), Refusal> {
         if rec >= self.cat.upgrades.len() {
             return Err(self.reject(Refusal::NoTarget));
@@ -48,6 +50,15 @@ impl Sim {
             }
             _ => return Err(self.reject(Refusal::UpgradeRefused)),
         }
+        let p = player as usize;
+        let level = up.level as i32;
+        let mineral_cost = level.saturating_mul(up.minerals_per_level);
+        let gas_cost = level.saturating_mul(up.gas_per_level);
+        if self.minerals[p] < mineral_cost || self.vespene[p] < gas_cost {
+            return Err(self.reject(Refusal::CannotAfford));
+        }
+        self.minerals[p] -= mineral_cost;
+        self.vespene[p] -= gas_cost;
         self.upg_done[slot] = 1;
         if up.applies == 1 {
             for i in 0..self.n {
