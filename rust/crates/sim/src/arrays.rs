@@ -19,7 +19,7 @@ pub(crate) struct Reveal {
 }
 
 /// Counters the host reads. Refusals are kept apart from misses on purpose.
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Stats {
     pub deaths: usize,
     pub vision_refreshes: usize,
@@ -38,6 +38,32 @@ pub struct Stats {
     pub reveals_dropped: usize,
     pub missiles_lost: usize,
     pub ability_damage: i32,
+}
+
+// Written out by hand: Default is not implemented for arrays longer than 32, and refused_by
+// holds one counter per refusal kind.
+impl Default for Stats {
+    fn default() -> Stats {
+        Stats {
+            deaths: 0,
+            vision_refreshes: 0,
+            harvested: 0,
+            trained: 0,
+            trains_refused: 0,
+            last_train_refusal: Refusal::default(),
+            retargets: 0,
+            retargets_deferred: 0,
+            casts: 0,
+            casts_refused: 0,
+            refused_by: [0; REFUSAL_KINDS],
+            last_refusal: Refusal::default(),
+            buffs_dropped: 0,
+            summoned: 0,
+            reveals_dropped: 0,
+            missiles_lost: 0,
+            ability_damage: 0,
+        }
+    }
 }
 
 pub struct Sim {
