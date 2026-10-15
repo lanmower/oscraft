@@ -145,12 +145,13 @@ pub fn lua_error_location(image: &[u8]) -> Result<(), String> {
 }
 
 pub fn lua_host_api(image: &[u8]) -> Result<(), String> {
-    // Q16.16 coordinates: 262144 is 4 world units.
+    // Q16.16 coordinates: 1343488 is 20.5 world units, the centre of cell (20,20). Cell (4,4) is
+    // player 0's start cell: the map's placements and opening workers fill it to the per-cell limit.
     let src = r#"
 local spawned = false
 function on_tick(state)
   if not spawned then
-    spawn_unit("skirmisher", 262144, 262144)
+    spawn_unit("skirmisher", 1343488, 1343488)
     spawned = true
   end
   state.count = get_unit_count()
