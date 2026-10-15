@@ -447,6 +447,27 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             Ok(out)
         })?,
     )?;
+    // remove_doodad(id) removes a placed doodad and returns its record. An id that is not placed
+    // raises no_doodad; a sim refusal of any other kind is named by its refusal.
+    let w = world.clone();
+    env.set(
+        "remove_doodad",
+        lua.create_function(move |lua, id: i64| {
+            let id = u32::try_from(id).map_err(|_| mlua::Error::RuntimeError(format!("no_doodad: {id} is not a doodad id")))?;
+            let mut sim = w.borrow_mut();
+            let d = sim.remove_doodad(id).map_err(|r| match r {
+                Refusal::NoDoodad => mlua::Error::RuntimeError(format!("no_doodad: {id} is not placed")),
+                other => mlua::Error::RuntimeError(format!("doodad_refused: {}", other.name())),
+            })?;
+            let row = lua.create_table()?;
+            row.set("id", d.id as i64)?;
+            row.set("kind", d.kind as i64)?;
+            row.set("x", d.x as i64)?;
+            row.set("y", d.y as i64)?;
+            row.set("rotation", d.rotation as i64)?;
+            Ok(row)
+        })?,
+    )?;
     // buff_unit(unit, kind, ticks) gives a live unit a behaviour for `ticks` ticks. Returns
     // false when the unit has no free buff slot, and the sim counts that drop.
     let w = world.clone();
