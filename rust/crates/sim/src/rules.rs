@@ -179,8 +179,17 @@ impl Sim {
         Ok(())
     }
 
-    /// Applies one ability's effects at a point, in record order. `caster` must be alive.
-    pub(crate) fn apply_effects(&mut self, caster: usize, ai: usize, tx: i32, ty: i32, target: i32) {
+    /// Applies one ability's effects at a point, in record order. Refusals, each changing
+    /// nothing: a dead or unknown caster is NoTarget; an unknown ability index is NoSlot.
+    pub fn apply_effects(&mut self, caster: usize, ai: usize, tx: i32, ty: i32, target: i32) {
+        if caster >= self.n || self.alive[caster] == 0 {
+            self.refuse(Refusal::NoTarget);
+            return;
+        }
+        if ai >= self.cat.abilities.len() {
+            self.refuse(Refusal::NoSlot);
+            return;
+        }
         let ability = self.cat.abilities[ai];
         let first = ability.effect_first as usize;
         // Format v8 receiver: the named unit target when the ability takes one, else the caster.
