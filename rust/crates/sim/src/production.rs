@@ -38,9 +38,14 @@ impl Sim {
             .sum()
     }
 
-    /// Supply the player may take up: the ECON base cap. Providers raise it (CAP-PROD-10).
-    pub(crate) fn supply_cap(&self, _p: usize) -> i32 {
-        self.cat.econ.supply_base
+    /// Supply the player may take up: the ECON base plus the supply every living unit of the
+    /// player provides (UEXT), bounded by the ECON per-race maximum.
+    pub(crate) fn supply_cap(&self, p: usize) -> i32 {
+        let provided: i32 = (0..self.n)
+            .filter(|&j| self.alive[j] != 0 && self.player[j] as usize == p)
+            .map(|j| self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.supply_provided))
+            .sum();
+        (self.cat.econ.supply_base + provided).min(self.cat.econ.supply_max)
     }
 
     /// Places the base's mineral patches and geysers from ECON: `patches` patches in a row east
