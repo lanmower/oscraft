@@ -621,7 +621,8 @@ impl Sim {
         }
     }
 
-    pub(crate) fn clamp_to_grid(&self, x: i32, y: i32) -> (i32, i32) {
+    /// Clamps a world point onto the grid. Orders store the clamped point.
+    pub fn clamp_to_grid(&self, x: i32, y: i32) -> (i32, i32) {
         let max_x = fixed::from_int(self.grid.w as i32 - 1);
         let max_y = fixed::from_int(self.grid.h as i32 - 1);
         (x.clamp(0, max_x), y.clamp(0, max_y))

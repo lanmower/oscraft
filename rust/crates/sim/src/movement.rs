@@ -291,4 +291,12 @@ impl Sim {
         self.touch(i);
         true
     }
+
+    /// The destination unit `i` was last ordered to, after the grid clamp. None for an unknown index.
+    pub fn order_target(&self, i: usize) -> Option<(i32, i32)> {
+        if i >= self.n {
+            return None;
+        }
+        Some((self.tgt_x[i], self.tgt_y[i]))
+    }
 }
