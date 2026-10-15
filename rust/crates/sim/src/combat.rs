@@ -37,6 +37,20 @@ impl Sim {
         ((dmg as i64 * self.final_factor(attacker, target) as i64) >> fixed::SHIFT) as i32
     }
 
+    /// Whether a ranged shot by unit `i` misses. A shot is ranged when its weapon reaches past
+    /// melee range. The chance is the UEXT miss chance (Q16), rolled on the sim's RNG, which advances
+    /// once per ranged shot. The format has no high-ground or cover rule, so the chance applies to
+    /// every ranged shot.
+    fn misses(&mut self, i: usize) -> bool {
+        let chance = self.cat.unit_ext.get(self.type_of[i] as usize).map_or(0, |e| e.miss_chance);
+        if chance <= 0 || self.range_q[i] <= MELEE_RANGE {
+            return false;
+        }
+        self.rng = self.rng.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        let roll = ((self.rng >> 33) & 0xFFFF) as i32;
+        roll < chance
+    }
+
     /// Auto-attack: nearest visible enemy on a layer this weapon may hit, within range.
     pub(crate) fn attack(&mut self, i: usize) {
         if self.damage[i] <= 0 {
@@ -83,6 +97,9 @@ impl Sim {
         let b = best as usize;
         let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[b]), i, b);
         self.cooldown[i] = self.period[i];
+        if self.misses(i) {
+            return;
+        }
         self.inflict(b, dmg);
     }
 
@@ -110,6 +127,9 @@ impl Sim {
         }
         let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[target]), i, target);
         self.cooldown[i] = self.period[i];
+        if self.misses(i) {
+            return Ok(());
+        }
         self.inflict(target, dmg);
         Ok(())
     }
