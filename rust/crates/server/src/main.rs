@@ -8,6 +8,7 @@ use std::fs::File;
 use std::hash::{BuildHasher, Hasher};
 use std::io::Read;
 use std::net::{TcpListener, TcpStream};
+use std::path::PathBuf;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -31,6 +32,7 @@ struct Options {
     rate: u32,
     max_rooms: usize,
     tokens: Vec<(String, String)>,
+    data: Option<PathBuf>,
 }
 
 struct Server {
@@ -77,7 +79,8 @@ fn run() -> Result<(), String> {
             max_units: opts.max_units,
             token,
             rate: opts.rate,
-        }));
+            data: opts.data.clone(),
+        })?);
     }
 
     for room in &rooms {
@@ -119,6 +122,7 @@ fn parse_args() -> Result<Options, String> {
         rate: DEFAULT_ORDER_RATE,
         max_rooms: DEFAULT_MAX_ROOMS,
         tokens: Vec::new(),
+        data: None,
     };
     let mut args = env::args().skip(1);
     while let Some(flag) = args.next() {
@@ -136,6 +140,7 @@ fn parse_args() -> Result<Options, String> {
             "--max-units" => opts.max_units = parse_num(&value, &flag)?,
             "--order-rate" => opts.rate = parse_num(&value, &flag)?,
             "--max-rooms" => opts.max_rooms = parse_num(&value, &flag)?,
+            "--data" => opts.data = Some(PathBuf::from(value)),
             "--order-token" => {
                 let (name, token) = value.split_once('=').ok_or("--order-token is NAME=TOKEN")?;
                 opts.tokens.push((name.to_lowercase(), token.to_string()));
@@ -285,9 +290,16 @@ fn serve_catalog(room: &Room, _req: &Request) -> Response {
             .iter()
             .map(|u| json_string(cat.name(u.name)))
             .collect();
+        let note = if room.loaded {
+            "catalog loaded from --data"
+        } else {
+            "no --data given: the catalog is empty"
+        };
         format!(
-            "{{\"map\":{},\"units\":[{}],\"abilities\":{},\"behaviours\":{}}}",
+            "{{\"map\":{},\"loaded\":{},\"note\":{},\"units\":[{}],\"abilities\":{},\"behaviours\":{}}}",
             json_string(&room.name),
+            room.loaded,
+            json_string(note),
             units.join(","),
             cat.abilities.len(),
             cat.behaviours.len()

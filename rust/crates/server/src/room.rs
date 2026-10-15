@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
@@ -17,6 +18,7 @@ pub struct RoomConfig {
     pub max_units: usize,
     pub token: String,
     pub rate: u32,
+    pub data: Option<PathBuf>,
 }
 
 struct Clock {
@@ -33,6 +35,7 @@ pub struct Room {
     pub grid_w: i32,
     pub grid_h: i32,
     pub max_units: usize,
+    pub loaded: bool,
     pub gate: OrderGate,
     queue: Mutex<Sender<Order>>,
     clock: Mutex<Clock>,
@@ -56,15 +59,27 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl Room {
-    pub fn new(cfg: RoomConfig) -> Arc<Room> {
+    pub fn new(cfg: RoomConfig) -> Result<Arc<Room>, String> {
         let (tx, rx) = mpsc::channel();
-        let mut sim = Sim::new(cfg.max_units);
-        sim.set_grid(Grid::open(cfg.grid_w as usize, cfg.grid_h as usize));
-        Arc::new(Room {
+        let (sim, grid_w, grid_h, loaded) = match &cfg.data {
+            Some(path) => {
+                let sim = sim::load_file(path, cfg.max_units)
+                    .map_err(|e| format!("--data {}: {e:?}", path.display()))?;
+                let (w, h) = (sim.grid().w as i32, sim.grid().h as i32);
+                (sim, w, h, true)
+            }
+            None => {
+                let mut sim = Sim::new(cfg.max_units);
+                sim.set_grid(Grid::open(cfg.grid_w as usize, cfg.grid_h as usize));
+                (sim, cfg.grid_w, cfg.grid_h, false)
+            }
+        };
+        Ok(Arc::new(Room {
             name: cfg.name,
-            grid_w: cfg.grid_w,
-            grid_h: cfg.grid_h,
+            grid_w,
+            grid_h,
             max_units: cfg.max_units,
+            loaded,
             gate: OrderGate::new(cfg.token, cfg.rate),
             queue: Mutex::new(tx),
             clock: Mutex::new(Clock {
@@ -75,7 +90,7 @@ impl Room {
                 orders_drained: 0,
                 orders: rx,
             }),
-        })
+        }))
     }
 
     pub fn submit(&self, order: Order) -> Result<(), String> {
