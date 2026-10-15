@@ -136,6 +136,19 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("editor-triggers", claimed_checks::editor_triggers),
     ("channel-interrupt", claimed_checks::channel_interrupt),
     ("worker-saturation", claimed_checks::worker_saturation),
+    // CAP rows still claimed, batch 4
+    ("geyser-extraction", claimed_checks::geyser_extraction),
+    ("opening-resources", claimed_checks::opening_resources),
+    ("base-resource-nodes", claimed_checks::base_resource_nodes),
+    ("supply-cap", claimed_checks::supply_cap),
+    ("supply-providers", claimed_checks::supply_providers),
+    ("supply-reservation", claimed_checks::supply_reservation),
+    ("rally-point", claimed_checks::rally_point),
+    ("tech-prerequisites", claimed_checks::tech_prerequisites),
+    ("research-queue", claimed_checks::research_queue),
+    ("research-applies-all", claimed_checks::research_applies_all),
+    ("damage-type-size", claimed_checks::damage_type_size),
+    ("cloak-detection", claimed_checks::cloak_detection),
 ];
 
 pub fn data_dir() -> PathBuf {

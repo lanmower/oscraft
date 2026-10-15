@@ -373,3 +373,51 @@ pub fn channel_interrupt(_image: &[u8]) -> Result<(), String> {
 pub fn worker_saturation(_image: &[u8]) -> Result<(), String> {
     missing_api("Sim harvest income per patch: no public read of income per worker")
 }
+
+pub fn geyser_extraction(_image: &[u8]) -> Result<(), String> {
+    missing_api("extractor gating of gas harvest: no extractor API on main")
+}
+
+pub fn opening_resources(_image: &[u8]) -> Result<(), String> {
+    missing_api("map opening resources: no public read of start resources")
+}
+
+pub fn base_resource_nodes(_image: &[u8]) -> Result<(), String> {
+    missing_api("per-base resource node counts: catalog exposes no mineral patch or geyser count per base")
+}
+
+pub fn supply_cap(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim supply accounting: no public supply read or cap")
+}
+
+pub fn supply_providers(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim supply providers: no public supply cap read")
+}
+
+pub fn supply_reservation(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim supply reservation: no public reservation read")
+}
+
+pub fn rally_point(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim rally point: no rally API on main")
+}
+
+pub fn tech_prerequisites(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim prerequisite check: train_block is private and no public prerequisite read exists")
+}
+
+pub fn research_queue(_image: &[u8]) -> Result<(), String> {
+    missing_api("research building kinds: no public catalog read of which buildings research")
+}
+
+pub fn research_applies_all(_image: &[u8]) -> Result<(), String> {
+    missing_api("research application to matching units: no public read of unit research levels")
+}
+
+pub fn damage_type_size(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim::scale_hit (pub(crate)): no public damage-type or size scaling read")
+}
+
+pub fn cloak_detection(_image: &[u8]) -> Result<(), String> {
+    missing_api("Sim::targetable and Sim::detected (pub(crate)): no public detector coverage read")
+}
