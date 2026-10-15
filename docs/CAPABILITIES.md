@@ -94,7 +94,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-EVT-1 | Define rectangular regions on the map | implemented | mod-host/src/lib.rs (define_region, in_region) | gate:region-define |
 | CAP-EVT-2 | Fire trigger zones on unit enter and leave | implemented | mod-host/src/lib.rs (advance, collect, dispatch) | gate:trigger-zone |
-| CAP-EVT-3 | Deliver game events (spawned, attacked, died) to scripts | stub | none | gate:event-delivery |
+| CAP-EVT-3 | Deliver game events (spawned, attacked, died) to scripts | implemented | mod-host/src/lib.rs (collect, dispatch) | gate:event-delivery |
 
 ## Timers and scheduling
 

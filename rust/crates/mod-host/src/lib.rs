@@ -32,6 +32,9 @@ impl Region {
 
 struct Hooks {
     on_tick: Function,
+    on_spawned: Option<Function>,
+    on_attacked: Option<Function>,
+    on_died: Option<Function>,
     on_enter: Option<Function>,
     on_leave: Option<Function>,
 }
@@ -46,11 +49,15 @@ struct ModFile {
 struct UnitSnap {
     x: i32,
     y: i32,
+    hp: i32,
     alive: bool,
 }
 
 #[derive(Clone, Copy)]
 enum Pending {
+    Spawned { unit: usize },
+    Attacked { unit: usize },
+    Died { unit: usize },
     Enter { unit: usize, region: usize },
     Leave { unit: usize, region: usize },
 }
@@ -62,6 +69,7 @@ pub struct ModHost {
     regions: Regions,
     inside: Vec<u64>,
     snap: Vec<UnitSnap>,
+    prev: Vec<UnitSnap>,
     pending: Vec<Pending>,
     mod_file: Option<ModFile>,
 }
@@ -149,7 +157,14 @@ fn compile(lua: &Lua, world: &Shared, regions: &Regions, path: &Path) -> mlua::R
     let on_tick = env
         .get::<Option<Function>>("on_tick")?
         .ok_or_else(|| mlua::Error::RuntimeError(format!("{}: on_tick is not defined", path.display())))?;
-    Ok(Hooks { on_tick, on_enter: env.get("on_enter")?, on_leave: env.get("on_leave")? })
+    Ok(Hooks {
+        on_tick,
+        on_spawned: env.get("on_spawned")?,
+        on_attacked: env.get("on_attacked")?,
+        on_died: env.get("on_died")?,
+        on_enter: env.get("on_enter")?,
+        on_leave: env.get("on_leave")?,
+    })
 }
 
 fn mtime(path: &Path) -> std::io::Result<SystemTime> {
@@ -172,6 +187,7 @@ impl ModHost {
             regions,
             inside: vec![0; MAX_UNITS],
             snap: Vec::with_capacity(MAX_UNITS),
+            prev: Vec::with_capacity(MAX_UNITS),
             pending: Vec::with_capacity(MAX_UNITS * MAX_REGIONS),
             mod_file: None,
         })
@@ -225,11 +241,22 @@ impl ModHost {
             let sim = self.world.borrow();
             for i in 0..sim.count() {
                 let (x, y) = sim.position_fixed(i);
-                self.snap.push(UnitSnap { x, y, alive: sim.alive(i) });
+                self.snap.push(UnitSnap { x, y, hp: sim.hp(i), alive: sim.alive(i) });
             }
         }
         let regions = self.regions.borrow();
         for (unit, s) in self.snap.iter().enumerate() {
+            match self.prev.get(unit) {
+                None => self.pending.push(Pending::Spawned { unit }),
+                Some(p) => {
+                    if s.hp < p.hp {
+                        self.pending.push(Pending::Attacked { unit });
+                    }
+                    if p.alive && !s.alive {
+                        self.pending.push(Pending::Died { unit });
+                    }
+                }
+            }
             let mut after = 0u64;
             if s.alive {
                 for (r, g) in regions.iter().enumerate() {
@@ -249,22 +276,44 @@ impl ModHost {
             }
             self.inside[unit] = after;
         }
+        std::mem::swap(&mut self.prev, &mut self.snap);
     }
 
-    fn dispatch(&mut self) -> mlua::Result<()> {
+    fn region_name(&self, region: usize) -> Option<String> {
+        self.regions.borrow().get(region).map(|g| g.name.clone())
+    }
+
+    fn dispatch(&self) -> mlua::Result<()> {
         let Some(m) = self.mod_file.as_ref() else { return Ok(()) };
-        let (enter, leave) = (m.hooks.on_enter.clone(), m.hooks.on_leave.clone());
-        for k in 0..self.pending.len() {
-            let (hook, unit, region) = match self.pending[k] {
-                Pending::Enter { unit, region } => (enter.as_ref(), unit, region),
-                Pending::Leave { unit, region } => (leave.as_ref(), unit, region),
-            };
-            let Some(hook) = hook else { continue };
-            let name = match self.regions.borrow().get(region) {
-                Some(g) => g.name.clone(),
-                None => continue,
-            };
-            hook.call::<()>((name, unit as i64))?;
+        let hooks = &m.hooks;
+        for &event in self.pending.iter() {
+            match event {
+                Pending::Spawned { unit } => {
+                    if let Some(h) = &hooks.on_spawned {
+                        h.call::<()>(unit as i64)?;
+                    }
+                }
+                Pending::Attacked { unit } => {
+                    if let Some(h) = &hooks.on_attacked {
+                        h.call::<()>(unit as i64)?;
+                    }
+                }
+                Pending::Died { unit } => {
+                    if let Some(h) = &hooks.on_died {
+                        h.call::<()>(unit as i64)?;
+                    }
+                }
+                Pending::Enter { unit, region } => {
+                    if let (Some(h), Some(name)) = (&hooks.on_enter, self.region_name(region)) {
+                        h.call::<()>((name, unit as i64))?;
+                    }
+                }
+                Pending::Leave { unit, region } => {
+                    if let (Some(h), Some(name)) = (&hooks.on_leave, self.region_name(region)) {
+                        h.call::<()>((name, unit as i64))?;
+                    }
+                }
+            }
         }
         Ok(())
     }
