@@ -55,6 +55,20 @@ impl Sim {
         best
     }
 
+    /// Gather time for a worker arriving at resource `t` now. Up to `sat` workers gather at the
+    /// full rate; past that the time stretches with the crowd, so the patch's income stops rising.
+    /// The arriving worker counts as one; the others are the workers already gathering at `t`.
+    fn gather_ticks_at(&self, t: usize, sat: i32) -> i32 {
+        let sat = sat.max(1);
+        let mut crowd = 1i32;
+        for j in 0..self.n {
+            if self.alive[j] != 0 && self.wstate[j] == W_GATHER && self.wtarget[j] == t as i32 {
+                crowd += 1;
+            }
+        }
+        GATHER_TICKS * crowd.max(sat) / sat
+    }
+
     pub(crate) fn harvest_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         match self.wstate[i] {
@@ -75,7 +89,11 @@ impl Sim {
                 self.tgt_y[i] = self.pos_y[tu];
                 if self.arrived(i, tu) {
                     self.wstate[i] = W_GATHER;
-                    self.wtimer[i] = GATHER_TICKS;
+                    self.wtimer[i] = if self.kind[tu] == KIND_MINERAL {
+                        self.gather_ticks_at(tu, self.cat.econ.sat_mineral)
+                    } else {
+                        GATHER_TICKS
+                    };
                     self.tgt_x[i] = self.pos_x[i];
                     self.tgt_y[i] = self.pos_y[i];
                 }
