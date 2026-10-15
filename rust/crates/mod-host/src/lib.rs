@@ -688,6 +688,7 @@ fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock:
     let on_tick = env
         .get::<Option<Function>>("on_tick")?
         .ok_or_else(|| mlua::Error::RuntimeError(format!("{}: on_tick is not defined", path.display())))?;
+    let registered = std::mem::take(&mut *systems.borrow_mut());
     Ok(Hooks {
         on_tick,
         on_spawned: env.get("on_spawned")?,
@@ -695,7 +696,7 @@ fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock:
         on_died: env.get("on_died")?,
         on_enter: env.get("on_enter")?,
         on_leave: env.get("on_leave")?,
-        systems: std::mem::take(&mut *systems.borrow_mut()),
+        systems: registered,
     })
 }
 
