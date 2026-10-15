@@ -326,6 +326,16 @@ impl Sim {
 
     /// Whether a unit may take a spell or attack. `required` is a filter mask; every
     /// bit must be present on the unit. A zero mask is always met.
+    /// Ticks left in unit `i`'s channel, or 0 when it is not channelling.
+    pub fn channel_left(&self, i: usize) -> i32 {
+        self.channel_left.get(i).copied().unwrap_or(0)
+    }
+
+    /// The ability index unit `i` is channelling, or -1 when it is not channelling.
+    pub fn channel_ai(&self, i: usize) -> i32 {
+        self.channel_ai.get(i).copied().unwrap_or(-1)
+    }
+
     pub(crate) fn meets_filter(&self, j: usize, required: u32) -> bool {
         j < self.n && self.filter[j] & required == required
     }
