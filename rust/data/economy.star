@@ -8,7 +8,7 @@ economy(
     opening_minerals=0,
     opening_gas=0,
     opening_workers=4,
-    supply_base=10,
+    supply_base=20,
     supply_max=200,
     patch_yield=1500,
     geyser_yield=2500,
