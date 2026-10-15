@@ -673,11 +673,34 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     env.set("game", game)
 }
 
+// pcall and xpcall for mod scripts. They catch script errors, but a limit error (instruction,
+// memory) is rethrown, so a script cannot keep spinning past its budget by catching the limit.
+const PCALL_SRC: &str = r#"
+local native_pcall, native_xpcall = pcall, xpcall
+local function limit_error(e)
+  return type(e) == "string" and (string.find(e, "instruction_limit", 1, true) ~= nil
+    or string.find(e, "memory_limit", 1, true) ~= nil or string.find(e, "not enough memory", 1, true) ~= nil)
+end
+local function pass(ok, ...)
+  if not ok and limit_error((...)) then error((...), 0) end
+  return ok, ...
+end
+return function(f, ...) return pass(native_pcall(f, ...)) end,
+  function(f, handler) return pass(native_xpcall(f, handler)) end
+"#;
+
 // Builds a fresh environment, runs the chunk in it, and returns its on_tick and systems.
 // Errors carry "<path>:<line>: <message>" because the chunk is named "@<path>".
 fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock: &Clock, cmds: &Cmds, path: &Path) -> mlua::Result<Hooks> {
     let src = fs::read_to_string(path).map_err(io_err)?;
     let env = lua.create_table()?;
+    let (pcall, xpcall) = lua.load(PCALL_SRC).eval::<(Function, Function)>()?;
+    env.set("pcall", pcall)?;
+    env.set("xpcall", xpcall)?;
+    let globals = lua.globals();
+    for name in ["error", "assert", "type", "tostring", "tonumber", "select", "pairs", "ipairs", "next"] {
+        env.set(name, globals.get::<mlua::Value>(name)?)?;
+    }
     let systems: SystemSink = Rc::new(RefCell::new(Vec::new()));
     bind_host(lua, &env, world, regions, timers, clock)?;
     bind_game(lua, &env, world, cmds, &systems)?;
