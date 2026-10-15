@@ -109,7 +109,7 @@ impl Sim {
     }
 
     /// Counts down the research running at building `i`. On completion the research is
-    /// recorded as complete for the building's owner.
+    /// recorded as complete for the building's owner and its effect applied to every matching unit.
     pub(crate) fn research_step(&mut self, i: usize) {
         if self.research_left[i] <= 0 {
             return;
@@ -124,6 +124,14 @@ impl Sim {
         let rc = self.cat.research.len();
         if r >= 0 && (r as usize) < rc && p < MAX_PLAYERS {
             self.researched[p * rc + r as usize] = 1;
+            let rec = self.cat.research[r as usize];
+            if let Some(eff) = self.cat.effects.get(rec.effect as usize).copied() {
+                for j in 0..self.n {
+                    if self.alive[j] != 0 && self.player[j] as usize == p && self.meets_filter(j, rec.applies_mask) {
+                        self.apply_effect(i, 0, eff, self.pos_x[j], self.pos_y[j], j as i32, true);
+                    }
+                }
+            }
         }
     }
 
