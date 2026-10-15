@@ -3,20 +3,21 @@
 //! reserved bytes are skipped on read; every index is bounds-checked.
 
 use crate::arrays::Sim;
+use crate::fixed;
 use crate::pathfinding::Grid;
 use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 6;
+const VERSION: u16 = 8;
 const EFFECT_MOVE: u16 = 2;
 const RESOURCE_KINDS: u8 = 3;
 const ABILITY_FILTER_BITS: u16 = 12;
 const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 7] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"GRID"];
-const RECORD_SIZES: [usize; 7] = [1, 20, 32, 2, 80, 16, 1];
+const SECTION_TAGS: [&[u8; 4]; 8] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"GRID"];
+const RECORD_SIZES: [usize; 8] = [1, 20, 32, 2, 80, 16, 16, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
@@ -154,6 +155,15 @@ pub const FILTER_WORKER: u32 = 1 << 9;
 pub const FILTER_ARMY: u32 = 1 << 10;
 pub const FILTER_BUILDING: u32 = 1 << 11;
 
+/// A starting unit from the PLCE section. Position is Q16.16, already converted from milli-units.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Placement {
+    pub unit: usize,
+    pub player: u8,
+    pub x: i32,
+    pub y: i32,
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Behaviour {
     pub name: Name,
@@ -172,6 +182,7 @@ pub struct Catalog {
     pub uabl: Vec<u16>,
     pub units: Vec<Unit>,
     pub behaviours: Vec<Behaviour>,
+    pub placements: Vec<Placement>,
 }
 
 impl Catalog {
@@ -313,7 +324,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 7];
+    let mut sections = [(0usize, 0usize); 8];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -517,7 +528,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         behaviours.push(Behaviour { name, trigger, action, param, ability });
     }
 
-    let (go, gl) = body(6);
+    let (go, gl) = body(7);
     if gl < GRID_HEADER {
         return Err(LoadError::Truncated("GRID header"));
     }
@@ -545,13 +556,40 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::Range("move cap outside 1..=grid diagonal"));
     }
 
-    Ok((Catalog { strs, effects, abilities, uabl, units, behaviours }, grid))
+    let (po, pc) = body(6);
+    let mut pr = Reader { buf: bytes, at: po };
+    let mut placements = Vec::with_capacity(pc);
+    for _ in 0..pc {
+        let unit = pr.u16("placement unit")? as usize;
+        let player = pr.u16("placement player")?;
+        let x = pr.i32("placement x")?;
+        let y = pr.i32("placement y")?;
+        pr.skip(4, "placement reserved")?;
+        if unit >= units.len() || player > 15 {
+            return Err(LoadError::Range("placement unit or player"));
+        }
+        if x < 0 || y < 0 || x as i64 >= w as i64 * CELL_MILLI as i64 || y as i64 >= h as i64 * CELL_MILLI as i64 {
+            return Err(LoadError::Range("placement outside the grid"));
+        }
+        placements.push(Placement { unit, player: player as u8, x: fixed::from_milli(x), y: fixed::from_milli(y) });
+    }
+
+    Ok((Catalog { strs, effects, abilities, uabl, units, behaviours, placements }, grid))
 }
 
-/// Loads a version 2 image into a simulation on the map's own grid.
+/// Loads a version 8 image into a simulation on the map's own grid, and places its
+/// starting units. A placement the simulation refuses (no free slot, unknown unit, or a
+/// blocked cell for a ground unit) fails the load.
 pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
     let (cat, grid) = parse(bytes)?;
-    Ok(Sim::with_catalog(max_units, grid, cat))
+    let mut sim = Sim::with_catalog(max_units, grid, cat);
+    for k in 0..sim.cat.placements.len() {
+        let p = sim.cat.placements[k];
+        if sim.spawn_for(p.player, p.unit as u32, p.x, p.y).is_none() {
+            return Err(LoadError::Range("placement refused: no slot, unknown unit or blocked cell"));
+        }
+    }
+    Ok(sim)
 }
 
 pub fn load_file(path: &Path, max_units: usize) -> Result<Sim, LoadError> {
