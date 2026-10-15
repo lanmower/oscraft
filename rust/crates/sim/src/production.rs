@@ -30,12 +30,19 @@ impl Sim {
         }
     }
 
-    /// Supply the player's living units take up, each unit at its UNIT supply cost.
+    /// Supply the player's living units take up, each unit at its UNIT supply cost, plus the
+    /// supply reserved by each train in progress (queued production holds its supply until the
+    /// unit appears or the train is cancelled).
     pub(crate) fn supply_used(&self, p: usize) -> i32 {
-        (0..self.n)
+        let living: i32 = (0..self.n)
             .filter(|&j| self.alive[j] != 0 && self.player[j] as usize == p)
             .map(|j| self.cat.units.get(self.type_of[j] as usize).map_or(0, |d| d.supply as i32))
-            .sum()
+            .sum();
+        let reserved: i32 = (0..self.n)
+            .filter(|&j| self.alive[j] != 0 && self.player[j] as usize == p && self.train_left[j] > 0 && self.trainee[j] >= 0)
+            .map(|j| self.cat.units.get(self.trainee[j] as usize).map_or(0, |d| d.supply as i32))
+            .sum();
+        living + reserved
     }
 
     /// Supply the player may take up: the ECON base plus the supply every living unit of the
