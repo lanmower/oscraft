@@ -67,8 +67,6 @@ pub(crate) const W_DEPOSIT: u8 = 3;
 
 pub(crate) const GATHER_TICKS: i32 = 32;
 pub(crate) const DEPOSIT_TICKS: i32 = 8;
-pub(crate) const FIELD_MINERAL: i32 = 1500;
-pub(crate) const FIELD_GAS: i32 = 2500;
 pub(crate) const ARRIVE_SLACK: i32 = fixed::ONE / 2;
 pub(crate) const RETARGET_BUDGET: i32 = 64;
 pub(crate) const MELEE_RANGE: i32 = fixed::ONE / 2;

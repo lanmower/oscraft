@@ -574,8 +574,8 @@ impl Sim {
         self.patrol_x[i] = x;
         self.patrol_y[i] = y;
         self.amount[i] = match self.kind[i] {
-            KIND_MINERAL => FIELD_MINERAL,
-            KIND_GEYSER => FIELD_GAS,
+            KIND_MINERAL => self.cat.econ.minerals_per_patch,
+            KIND_GEYSER => self.cat.econ.gas_per_geyser,
             _ => 0,
         };
         self.wstate[i] = W_SEEK;
