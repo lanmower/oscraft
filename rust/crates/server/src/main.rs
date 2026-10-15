@@ -261,27 +261,39 @@ fn serve_state(room: &Room, _req: &Request) -> Response {
     Response::json(
         200,
         format!(
-            "{{\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{}}}",
+            "{{\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{}}}",
             json_string(&room.name),
             snap.tick,
             snap.state_hash,
-            room.max_units
+            room.max_units,
+            snap.units
         ),
     )
 }
 
 fn serve_delta(_room: &Room, _req: &Request) -> Response {
-    Response::error(501, "delta is not served: the sim exposes no delta export yet")
+    Response::json(
+        501,
+        "{\"error\":\"delta_unsupported\",\"detail\":\"sim exposes no change tracking; GET /delta needs a sim accessor for changes since a tick\"}".to_string(),
+    )
 }
 
 fn serve_catalog(room: &Room, _req: &Request) -> Response {
-    Response::json(
-        200,
+    let body = room.with_catalog(|cat| {
+        let units: Vec<String> = cat
+            .units
+            .iter()
+            .map(|u| json_string(cat.name(u.name)))
+            .collect();
         format!(
-            "{{\"map\":{},\"stub\":true,\"kinds\":[],\"note\":\"the sim exposes no unit catalog yet\"}}",
-            json_string(&room.name)
-        ),
-    )
+            "{{\"map\":{},\"units\":[{}],\"abilities\":{},\"behaviours\":{}}}",
+            json_string(&room.name),
+            units.join(","),
+            cat.abilities.len(),
+            cat.behaviours.len()
+        )
+    });
+    Response::json(200, body)
 }
 
 fn serve_order(room: &Room, req: &Request) -> Response {
@@ -302,6 +314,18 @@ fn serve_order(room: &Room, req: &Request) -> Response {
         Ok(o) => o,
         Err(msg) => return rejected(400, &msg),
     };
+    if !room.player_has_units(order.player as u8) {
+        return Response::json(
+            422,
+            format!(
+                "{{\"accepted\":false,\"code\":\"player_has_no_units\",\"error\":{}}}",
+                json_string(&format!(
+                    "player {} has no live units on {}: nothing to order",
+                    order.player, room.name
+                ))
+            ),
+        );
+    }
     let Some(left) = room.gate.take() else {
         return rejected(
             429,

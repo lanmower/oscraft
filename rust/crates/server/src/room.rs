@@ -7,7 +7,8 @@ use sim::{Grid, Sim};
 
 use crate::order::{Order, OrderGate};
 
-pub const TICKS_PER_SECOND: u32 = 20;
+// Matches sim/src/lib.rs `TICKS_PER_SECOND` (16). The sim keeps it pub(crate), so it is not re-exported and must be kept in step by hand.
+pub const TICKS_PER_SECOND: u32 = 16;
 
 pub struct RoomConfig {
     pub name: String,
@@ -40,6 +41,7 @@ pub struct Room {
 pub struct Snapshot {
     pub tick: u64,
     pub state_hash: u64,
+    pub units: usize,
 }
 
 pub struct Stats {
@@ -90,8 +92,18 @@ impl Room {
         let c = lock(&self.clock);
         Snapshot {
             tick: c.tick,
-            state_hash: c.sim.state_hash() as u64,
+            state_hash: c.sim.state_hash(),
+            units: c.sim.alive_count(),
         }
+    }
+
+    pub fn with_catalog<R>(&self, read: impl FnOnce(&sim::Catalog) -> R) -> R {
+        read(lock(&self.clock).sim.catalog())
+    }
+
+    pub fn player_has_units(&self, player: u8) -> bool {
+        let c = lock(&self.clock);
+        (0..c.sim.count()).any(|i| c.sim.alive(i) && c.sim.player(i) == player)
     }
 
     pub fn stats(&self) -> Stats {
