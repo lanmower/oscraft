@@ -9,15 +9,18 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 8;
+const VERSION: u16 = 10;
+const NEUTRAL_PLAYER: u8 = 0xFF;
+const PLACE_START: u32 = 1;
+const LIMT_COUNT: usize = 1;
 const EFFECT_MOVE: u16 = 2;
 const RESOURCE_KINDS: u8 = 3;
 const ABILITY_FILTER_BITS: u16 = 12;
 const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 8] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"GRID"];
-const RECORD_SIZES: [usize; 8] = [1, 20, 32, 2, 80, 16, 16, 1];
+const SECTION_TAGS: [&[u8; 4]; 11] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"GRID"];
+const RECORD_SIZES: [usize; 11] = [1, 20, 32, 2, 80, 16, 16, 16, 12, 4, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
@@ -210,6 +213,41 @@ impl Behaviour {
     }
 }
 
+/// An upgrade record: one level of an upgrade. Records with the same name share a group,
+/// which is the index of the first record of that name.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Upgrade {
+    pub name: Name,
+    /// 0 unit, 1 ability.
+    pub target_kind: u8,
+    pub level: u8,
+    /// 0 new units only, 1 existing units too.
+    pub applies: u8,
+    /// 0 replace, 1 add, 2 refuse if present.
+    pub stacking: u8,
+    /// UNIT index for kind 0, ABIL index for kind 1.
+    pub target: u16,
+    /// Index into EFCT.
+    pub effect: u32,
+    pub group: u32,
+}
+
+/// Regeneration of one unit kind, per tick: shield and health, and the ticks to wait after a hit.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Regen {
+    pub shield_per_tick: i32,
+    pub delay: i32,
+    pub hp_per_tick: i32,
+}
+
+/// The start location of one player (format v9 and later). Starts carry no unit.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Start {
+    pub player: u8,
+    pub x: i32,
+    pub y: i32,
+}
+
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.
 #[derive(Clone, Debug, Default)]
 pub struct Catalog {
@@ -220,6 +258,12 @@ pub struct Catalog {
     pub units: Vec<Unit>,
     pub behaviours: Vec<Behaviour>,
     pub placements: Vec<Placement>,
+    pub upgrades: Vec<Upgrade>,
+    /// One per unit kind, in UNIT order.
+    pub regen: Vec<Regen>,
+    /// Most units one grid cell may hold at once; 0 = no limit.
+    pub limit: u32,
+    pub starts: Vec<Start>,
 }
 
 impl Catalog {
@@ -361,7 +405,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 8];
+    let mut sections = [(0usize, 0usize); 11];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -565,7 +609,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         behaviours.push(Behaviour { name, trigger, action, param, ability });
     }
 
-    let (go, gl) = body(7);
+    let (go, gl) = body(10);
     if gl < GRID_HEADER {
         return Err(LoadError::Truncated("GRID header"));
     }
@@ -596,22 +640,94 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let (po, pc) = body(6);
     let mut pr = Reader { buf: bytes, at: po };
     let mut placements = Vec::with_capacity(pc);
+    let mut starts: Vec<Start> = Vec::new();
     for _ in 0..pc {
         let unit = pr.u16("placement unit")? as usize;
         let player = pr.u16("placement player")?;
         let x = pr.i32("placement x")?;
         let y = pr.i32("placement y")?;
-        pr.skip(4, "placement reserved")?;
-        if unit >= units.len() || player > 15 {
-            return Err(LoadError::Range("placement unit or player"));
+        let flags = pr.u32("placement flags")?;
+        if flags & !PLACE_START != 0 {
+            return Err(LoadError::Range("placement flags outside bit 0"));
         }
         if x < 0 || y < 0 || x as i64 >= w as i64 * CELL_MILLI as i64 || y as i64 >= h as i64 * CELL_MILLI as i64 {
             return Err(LoadError::Range("placement outside the grid"));
         }
-        placements.push(Placement { unit, player: player as u8, x: fixed::from_milli(x), y: fixed::from_milli(y) });
+        let (x, y) = (fixed::from_milli(x), fixed::from_milli(y));
+        if flags & PLACE_START != 0 {
+            if unit != NO_INDEX as usize || player > 15 {
+                return Err(LoadError::Range("start record needs unit 0xFFFF and player 0..=15"));
+            }
+            if starts.iter().any(|s| s.player == player as u8) {
+                return Err(LoadError::Range("two start records for one player"));
+            }
+            starts.push(Start { player: player as u8, x, y });
+            continue;
+        }
+        if unit >= units.len() || (player > 15 && player != NO_INDEX) {
+            return Err(LoadError::Range("placement unit or player"));
+        }
+        let owner = if player == NO_INDEX { NEUTRAL_PLAYER } else { player as u8 };
+        placements.push(Placement { unit, player: owner, x, y });
     }
 
-    Ok((Catalog { strs, effects, abilities, uabl, units, behaviours, placements }, grid))
+    let (uo, uc) = body(7);
+    let mut ur = Reader { buf: bytes, at: uo };
+    let mut upgrades: Vec<Upgrade> = Vec::with_capacity(uc);
+    for _ in 0..uc {
+        let name = ur.name("upgrade name")?;
+        let target_kind = ur.u8("upgrade target kind")?;
+        let level = ur.u8("upgrade level")?;
+        let applies = ur.u8("upgrade applies to")?;
+        let stacking = ur.u8("upgrade stacking")?;
+        let target = ur.u16("upgrade target")?;
+        let effect = ur.u32("upgrade effect")?;
+        if name.offset as usize + name.len as usize > strs.len() {
+            return Err(LoadError::Range("upgrade name outside STRS"));
+        }
+        if target_kind > 1 || level == 0 || applies > 1 || stacking > 2 {
+            return Err(LoadError::Range("upgrade code outside its table"));
+        }
+        let target_ok = if target_kind == 0 { (target as usize) < units.len() } else { (target as usize) < abilities.len() };
+        if !target_ok || effect as usize >= effects.len() {
+            return Err(LoadError::Range("upgrade target or effect index"));
+        }
+        upgrades.push(Upgrade { name, target_kind, level, applies, stacking, target, effect, group: 0 });
+    }
+    let groups: Vec<u32> = {
+        let names: Vec<&[u8]> = upgrades
+            .iter()
+            .map(|u| &strs[u.name.offset as usize..u.name.offset as usize + u.name.len as usize])
+            .collect();
+        (0..names.len()).map(|k| (0..=k).find(|&j| names[j] == names[k]).unwrap_or(k) as u32).collect()
+    };
+    for (u, g) in upgrades.iter_mut().zip(groups) {
+        u.group = g;
+    }
+
+    let (ro, rc) = body(8);
+    if rc != units.len() {
+        return Err(LoadError::Range("REGN count is not the UNIT count"));
+    }
+    let mut rr = Reader { buf: bytes, at: ro };
+    let mut regen = Vec::with_capacity(rc);
+    for _ in 0..rc {
+        let shield_per_tick = rr.i32("regen shield")?;
+        let delay = rr.i32("regen delay")?;
+        let hp_per_tick = rr.i32("regen health")?;
+        if shield_per_tick < 0 || delay < 0 || hp_per_tick < 0 {
+            return Err(LoadError::Range("regeneration below zero"));
+        }
+        regen.push(Regen { shield_per_tick, delay, hp_per_tick });
+    }
+
+    let (lo, lc) = body(9);
+    if lc != LIMT_COUNT {
+        return Err(LoadError::Range("LIMT count is not 1"));
+    }
+    let limit = Reader { buf: bytes, at: lo }.u32("cell unit limit")?;
+
+    Ok((Catalog { strs, effects, abilities, uabl, units, behaviours, placements, upgrades, regen, limit, starts }, grid))
 }
 
 /// Loads a version 8 image into a simulation on the map's own grid, and places its
