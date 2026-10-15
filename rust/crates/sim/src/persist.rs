@@ -187,6 +187,11 @@ fn put_field(w: &mut Vec<u8>, f: &Field) {
     put_list(w, &f.n2);
 }
 
+/// The flow-field pool's saved bytes, for the state hash.
+pub(crate) fn pool_bytes(p: &Pool, out: &mut Vec<u8>) {
+    put_pool(out, p);
+}
+
 fn put_pool(w: &mut Vec<u8>, p: &Pool) {
     put_u64(w, p.owner.len() as u64);
     put_u64(w, p.round as u64);
@@ -484,6 +489,7 @@ impl Sim {
         r.bytes_into(&mut next.grid.tiles)?;
         next.grid.heights = self.grid.heights.clone();
         next.grid.height_step = self.grid.height_step;
+        next.cat_digest = self.cat_digest;
 
         r.i32s_into(&mut next.pos_x)?;
         r.i32s_into(&mut next.pos_y)?;

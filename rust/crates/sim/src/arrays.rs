@@ -45,6 +45,8 @@ pub struct Sim {
     pub(crate) cat: Catalog,
     /// Doodads on the map: the DODA records at load, then placed and removed at run time.
     pub(crate) doodads: Vec<Doodad>,
+    /// Digest of the mod (catalog and height data), fixed at load; part of the state hash.
+    pub(crate) cat_digest: u64,
     pub(crate) n: usize,
     pub(crate) cap: usize,
     pub(crate) head: usize,
@@ -203,9 +205,11 @@ impl Sim {
         let paths = Pool::new(grid.w, grid.h, DEFAULT_MAX_FIELDS);
         let research_slots = cat.research.len() * MAX_PLAYERS;
         let doodads_init = cat.doodads.clone();
+        let cat_digest = crate::hash::catalog_digest(&cat, &grid);
         let mut s = Sim {
             grid,
             doodads: doodads_init,
+            cat_digest,
             cat,
             n: 0,
             cap,

@@ -2,6 +2,8 @@
 //! agree on this agree on every unit, resource, buff, projectile, fog plane and counter.
 
 use crate::arrays::Sim;
+use crate::loader::Catalog;
+use crate::pathfinding::Grid;
 
 struct Fnv(u64);
 
@@ -28,9 +30,24 @@ impl Fnv {
     }
 }
 
+/// Digest of the mod: every parsed catalog record (through its Debug form), the grid's height
+/// levels and step. Computed once per load, so a state hash changes when the mod does.
+pub(crate) fn catalog_digest(cat: &Catalog, grid: &Grid) -> u64 {
+    let mut h = Fnv(0xcbf2_9ce4_8422_2325);
+    h.bytes(format!("{:?}", cat).as_bytes());
+    h.bytes(&grid.heights);
+    h.i32s(&[grid.height_step]);
+    h.0
+}
+
 impl Sim {
     pub fn state_hash(&self) -> u64 {
         let mut h = Fnv(0xcbf2_9ce4_8422_2325);
+        h.u64s(&[self.cat_digest, self.cap as u64]);
+        h.bytes(&[self.abil_on as u8, self.fog as u8, self.harvest as u8, self.produce as u8]);
+        let mut pool = Vec::new();
+        crate::persist::pool_bytes(&self.paths, &mut pool);
+        h.bytes(&pool);
         h.u64s(&[self.n as u64, self.head as u64, self.ticks as u64, self.rng, self.scan_left as u64]);
         h.u64s(&[self.log_len as u64, self.log_dropped]);
         h.u32s(&self.log_tick[..self.log_len]);
