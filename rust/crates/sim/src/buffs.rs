@@ -54,6 +54,9 @@ impl Sim {
     /// spent from `caster` first; a caster that cannot pay refuses as Energy and nothing is removed.
     /// A zero cost spends nothing, which is how the cast path calls it (the cast already charged).
     pub fn remove_behaviour(&mut self, caster: usize, kind: i32, rad: i32, x: i32, y: i32, cost: i32) -> Result<(), Refusal> {
+        if caster >= self.n || self.alive[caster] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
         if cost > 0 {
             self.spend_energy(caster, cost)?;
         }
