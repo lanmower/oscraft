@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 3;
+const STATE_VERSION: u16 = 4;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -363,6 +363,9 @@ impl Sim {
         put_i32s(&mut w, &self.m_x);
         put_i32s(&mut w, &self.m_y);
         w.extend_from_slice(&self.vis);
+        w.extend_from_slice(&self.seen);
+        put_i32s(&mut w, &self.seen_x);
+        put_i32s(&mut w, &self.seen_y);
 
         for &b in &self.has_seer {
             put_bool(&mut w, b);
@@ -517,6 +520,9 @@ impl Sim {
         r.i32s_into(&mut next.m_x)?;
         r.i32s_into(&mut next.m_y)?;
         r.bytes_into(&mut next.vis)?;
+        r.bytes_into(&mut next.seen)?;
+        r.i32s_into(&mut next.seen_x)?;
+        r.i32s_into(&mut next.seen_y)?;
 
         for k in 0..MAX_PLAYERS {
             next.has_seer[k] = r.bool()?;

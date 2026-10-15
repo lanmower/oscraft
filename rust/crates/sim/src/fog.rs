@@ -64,6 +64,36 @@ impl Sim {
             }
         }
         self.stamp_reveals();
+        self.remember_seen();
+    }
+
+    /// Records, for each seeing player, the position of every enemy unit it can see now. A
+    /// remembered position stays until that unit is seen again. Fixed arrays, no allocation.
+    fn remember_seen(&mut self) {
+        let cap = self.cap;
+        for i in 0..self.n {
+            if self.alive[i] == 0 {
+                continue;
+            }
+            for p in 0..MAX_PLAYERS {
+                if !self.has_seer[p] || !self.hostile(p as u8, self.player[i]) || !self.sees(p as u8, i) {
+                    continue;
+                }
+                let k = p * cap + i;
+                self.seen[k] = 1;
+                self.seen_x[k] = self.pos_x[i];
+                self.seen_y[k] = self.pos_y[i];
+            }
+        }
+    }
+
+    /// The position player `p` last saw unit `i` at, or None if it never has.
+    pub fn last_seen(&self, p: u8, i: usize) -> Option<(i32, i32)> {
+        if (p as usize) >= MAX_PLAYERS || i >= self.cap {
+            return None;
+        }
+        let k = p as usize * self.cap + i;
+        (self.seen[k] != 0).then(|| (self.seen_x[k], self.seen_y[k]))
     }
 
     fn stamp_reveals(&mut self) {

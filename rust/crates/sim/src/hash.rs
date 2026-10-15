@@ -111,6 +111,9 @@ impl Sim {
         h.i32s(&self.m_x);
         h.i32s(&self.m_y);
         h.bytes(&self.vis);
+        h.bytes(&self.seen);
+        h.i32s(&self.seen_x);
+        h.i32s(&self.seen_y);
         h.bytes(&self.has_seer.map(|b| b as u8));
         h.bytes(&self.team);
         for r in &self.reveals {
