@@ -41,7 +41,7 @@ impl Sim {
     /// melee range. The chance is the UEXT miss chance (Q16), rolled on the sim's RNG, which advances
     /// once per ranged shot. The format has no high-ground or cover rule, so the chance applies to
     /// every ranged shot.
-    fn misses(&mut self, i: usize) -> bool {
+    pub fn misses(&mut self, i: usize) -> bool {
         let chance = self.cat.unit_ext.get(self.type_of[i] as usize).map_or(0, |e| e.miss_chance);
         if chance <= 0 || self.range_q[i] <= MELEE_RANGE {
             return false;
