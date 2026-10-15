@@ -75,6 +75,7 @@ impl Sim {
         h.i32s(&self.harvest_amt);
         h.i32s(&self.trainee);
         h.i32s(&self.train_left);
+        h.bytes(&self.train_hold);
         h.i32s(&self.minerals);
         h.i32s(&self.vespene);
         h.i32s(&self.abil_idx);

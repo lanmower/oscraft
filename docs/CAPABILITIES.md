@@ -60,7 +60,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-PROD-1 | Produce a unit from a building over time | implemented | sim/src/production.rs (produce_step) | gate:produce-unit |
 | CAP-PROD-2 | Gather minerals and vespene through harvest steps | implemented | sim/src/harvest.rs (harvest_step, retarget_scan, arrived); sim/src/arrays.rs (add_resources, minerals, vespene) | gate:harvest-resources |
 | CAP-PROD-3 | Deduct production costs before starting a unit | implemented | sim/src/production.rs (produce_step pays before the train starts; refuses cannot-afford); sim/src/arrays.rs (stats.trains_refused) | gate:spend-resources |
-| CAP-PROD-4 | Cancel a queued unit with refund | stub | none | gate:cancel-production |
+| CAP-PROD-4 | Cancel a queued unit with refund | implemented | sim/src/production.rs (cancel_train, resume_train; full refund) | gate:cancel-production |
 
 ## Combat and damage
 

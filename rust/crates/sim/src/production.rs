@@ -11,7 +11,7 @@ use crate::*;
 impl Sim {
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
-        if self.trainee[i] < 0 || p >= MAX_PLAYERS {
+        if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
             return;
         }
         let tr = self.trainee[i] as usize;
@@ -46,3 +46,39 @@ impl Sim {
         }
     }
 }
+
+impl Sim {
+    /// Cancels the train in progress at building `i` and refunds its full cost. The building
+    /// stays idle until `resume_train`, so the automatic restart does not pay again at once.
+    /// Refusals: an unknown or dead building is NoTarget, and a building with no train in
+    /// progress is NoTrain. A refused cancel changes nothing.
+    pub fn cancel_train(&mut self, i: usize) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        if self.train_left[i] <= 0 || self.trainee[i] < 0 {
+            return Err(self.reject(Refusal::NoTrain));
+        }
+        let p = self.player[i] as usize;
+        if let Some(def) = self.cat.units.get(self.trainee[i] as usize).copied() {
+            if p < MAX_PLAYERS {
+                self.minerals[p] += def.minerals;
+                self.vespene[p] += def.gas;
+            }
+        }
+        self.train_left[i] = 0;
+        self.train_hold[i] = 1;
+        Ok(())
+    }
+
+    /// Lets building `i` start its next train again after a cancel. Returns false for an
+    /// index past the live units.
+    pub fn resume_train(&mut self, i: usize) -> bool {
+        if i >= self.n {
+            return false;
+        }
+        self.train_hold[i] = 0;
+        true
+    }
+}
+

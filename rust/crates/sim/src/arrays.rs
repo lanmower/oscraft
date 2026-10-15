@@ -90,6 +90,7 @@ pub struct Sim {
     pub(crate) harvest_amt: Vec<i32>,
     pub(crate) trainee: Vec<i32>,
     pub(crate) train_left: Vec<i32>,
+    pub(crate) train_hold: Vec<u8>,
     pub(crate) minerals: Vec<i32>,
     pub(crate) vespene: Vec<i32>,
 
@@ -204,6 +205,7 @@ impl Sim {
             harvest_amt: vec![0; cap],
             trainee: vec![-1; cap],
             train_left: vec![0; cap],
+            train_hold: vec![0; cap],
             minerals: vec![0; MAX_PLAYERS],
             vespene: vec![0; MAX_PLAYERS],
             abil_idx: vec![-1; cap * ABILITY_SLOTS],
@@ -389,6 +391,7 @@ impl Sim {
         self.harvest_amt[i] = def.harvest_amount;
         self.trainee[i] = if self.kind[i] == KIND_PRODUCER { self.product[i] } else { -1 };
         self.train_left[i] = 0;
+        self.train_hold[i] = 0;
         for k in 0..BUFF_SLOTS {
             self.buff_kind[i * BUFF_SLOTS + k] = -1;
         }
