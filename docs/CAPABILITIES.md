@@ -19,7 +19,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-MAP-8 | Grant sight over elevated cells and deny sight from lower ground | stub | none | gate:elevation-sight |
 | CAP-MAP-9 | Remember a seen enemy unit at its last known position until it is seen again | stub | none | gate:last-seen-memory |
 | CAP-MAP-10 | Author custom terrain tiles and doodads in an editor | stub | none | gate:editor-terrain-tiles |
-| CAP-MAP-11 | Place neutral objects and start positions by a map author through map data | stub | none | gate:map-author-placement |
+| CAP-MAP-11 | Place neutral objects and start positions by a map author through map data | claimed | rust/data/map.star (start, spawn -1, limit) | gate:map-author-placement |
 
 ## Units and their stats
 
