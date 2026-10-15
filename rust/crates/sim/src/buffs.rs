@@ -9,7 +9,7 @@ use crate::*;
 impl Sim {
     /// Gives unit `j` behaviour `kind` for `ticks` ticks. Returns false (and counts a drop)
     /// with no free slot.
-    pub(crate) fn apply_buff(&mut self, j: usize, kind: i32, ticks: i32) -> bool {
+    pub fn apply_buff(&mut self, j: usize, kind: i32, ticks: i32) -> bool {
         self.touch(j);
         let base = j * BUFF_SLOTS;
         let mut free = None;

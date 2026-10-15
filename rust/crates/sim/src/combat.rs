@@ -97,7 +97,7 @@ impl Sim {
 
     /// Damage to the cast target unit alone, for a damage effect with radius 0. Only a living
     /// enemy other than the caster takes it.
-    pub(crate) fn damage_target(&mut self, caster: i32, p: u8, dmg: i32, target: i32) {
+    pub fn damage_target(&mut self, caster: i32, p: u8, dmg: i32, target: i32) {
         if dmg <= 0 || target < 0 || target as usize >= self.n {
             return;
         }
