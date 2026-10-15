@@ -77,6 +77,21 @@ impl Grid {
         true
     }
 
+    /// Sets or clears the cliff bit (bit 1) of cell (x, y). Returns false outside the grid.
+    pub fn set_cliff(&mut self, x: i32, y: i32, cliff: bool) -> bool {
+        let (w, h) = (self.w as i32, self.h as i32);
+        if x < 0 || y < 0 || x >= w || y >= h {
+            return false;
+        }
+        let cell = &mut self.flags[(y * w + x) as usize];
+        if cliff {
+            *cell |= 0b10;
+        } else {
+            *cell &= !0b10;
+        }
+        true
+    }
+
     pub fn nearest_walkable(&self, x: i32, y: i32, max_r: i32) -> Option<(i32, i32)> {
         if self.walkable(x, y) {
             return Some((x, y));

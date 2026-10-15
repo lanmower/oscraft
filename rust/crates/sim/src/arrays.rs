@@ -337,6 +337,16 @@ impl Sim {
         Ok(())
     }
 
+    /// Sets or clears the cliff bit of cell (x, y) and invalidates the cached routes. A cliff
+    /// bit is part of the grid flags, so the state hash and the save cover it.
+    pub fn set_cell_cliff(&mut self, x: i32, y: i32, cliff: bool) -> Result<(), Refusal> {
+        if !self.grid.set_cliff(x, y, cliff) {
+            return Err(self.reject(Refusal::InvalidCell));
+        }
+        self.paths.invalidate();
+        Ok(())
+    }
+
     /// Replaces the grid. Refused once any unit exists, because the fog and bucket
     /// planes are sized from it.
     pub fn set_grid(&mut self, grid: Grid) -> bool {
