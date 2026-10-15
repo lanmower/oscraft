@@ -148,6 +148,7 @@ impl Sim {
             return;
         }
         let mut refused = 0u8;
+        let (ox, oy) = (self.pos_x[i], self.pos_y[i]);
         if self.grid.walkable(cell_of(nx), cell_of(self.pos_y[i])) {
             self.pos_x[i] = nx;
         } else {
@@ -158,6 +159,16 @@ impl Sim {
             self.pos_y[i] = ny;
         } else {
             self.vel_y[i] = 0;
+            refused = 1;
+        }
+        let entered = (cell_of(self.pos_x[i]), cell_of(self.pos_y[i]));
+        if entered != (cell_of(ox), cell_of(oy)) && !self.cell_has_room(self.pos_x[i], self.pos_y[i]) {
+            // The cell is at the map's LIMT unit limit: the unit waits where it stands.
+            self.pos_x[i] = ox;
+            self.pos_y[i] = oy;
+            self.vel_x[i] = 0;
+            self.vel_y[i] = 0;
+            self.refuse(Refusal::CellFull);
             refused = 1;
         }
         self.blocked[i] = refused;

@@ -70,7 +70,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-ORD-5 | Stop, attack-move, patrol and hold orders | claimed | sim/src/movement.rs (issue_order_kind, advance_patrol), sim/src/tick.rs | gate:order-kinds |
 | CAP-ORD-6 | Rate-limit and authorize orders per player | implemented | server/src/order.rs (rate, authorized, take) | gate:order-rate-limit |
 | CAP-ORD-7 | Push colliding units apart instead of letting them overlap | claimed | sim/src/movement.rs (separation from neighbours within radius sum) | gate:unit-collision |
-| CAP-ORD-8 | Limit how many units pass narrow or blocked cells at once | stub | none | gate:narrow-passage-limit |
+| CAP-ORD-8 | Limit how many units pass narrow or blocked cells at once | claimed | sim/src/limits.rs (cell_has_room), sim/src/movement.rs (integrate waits on a full cell), sim/src/arrays.rs (spawn_for refuses CellFull) | gate:narrow-passage-limit |
 
 ## Production and resources
 
