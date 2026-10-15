@@ -5,7 +5,13 @@
 
 use std::path::{Path, PathBuf};
 
-use sim::{fixed, Sim};
+use std::sync::Arc;
+
+use server::http::Request;
+use server::order::{parse_order, OrderGate};
+use server::room::{Room, RoomConfig};
+use server::{serve_catalog, serve_delta, serve_order, serve_state, Server};
+use sim::{fixed, Refusal, Sim};
 
 use crate::{absent, mod_checks, sim_checks};
 
@@ -21,7 +27,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("load-map", sim_checks::load_map),
     ("walkable-cells", sim_checks::walkable_cells),
     ("edit-terrain", mod_checks::edit_terrain),
-    ("map-bounds", absent::map_bounds),
+    ("map-bounds", clamp_to_grid_bounds),
     // CAP-UNIT
     ("spawn-units", sim_checks::spawn_units),
     ("unit-stats-read", sim_checks::unit_stats_read),
@@ -30,21 +36,21 @@ pub const CHECKS: &[(&str, Check)] = &[
     // CAP-ABIL
     ("cast-ability", sim_checks::cast_ability),
     ("ability-target-filter", sim_checks::ability_target_filter),
-    ("ability-effects", absent::ability_effects),
-    ("unsupported-effect-refuses", absent::unsupported_effect_refuses),
+    ("ability-effects", grant_energy_spend),
+    ("unsupported-effect-refuses", unsupported_effect_refuses),
     // CAP-BEH
     ("apply-buff", sim_checks::apply_buff),
-    ("clear-buff", absent::clear_buff),
-    ("remove-behaviour", absent::remove_behaviour),
+    ("clear-buff", clear_buff_frees_slot),
+    ("remove-behaviour", remove_behaviour_refuses_unknown),
     ("behaviour-declared", sim_checks::behaviour_declared),
     ("behaviour-trigger-fires", sim_checks::behaviour_trigger_fires),
     // CAP-ORD
-    ("order-parse", absent::order_parse),
+    ("order-parse", order_parse_rejects_empty),
     ("issue-move", sim_checks::issue_move),
     ("move-units-tick", sim_checks::move_units_tick),
     ("path-to-goal", sim_checks::path_to_goal),
     ("order-kinds", sim_checks::order_kinds),
-    ("order-rate-limit", absent::order_rate_limit),
+    ("order-rate-limit", order_gate_limits),
     // CAP-PROD
     ("produce-unit", sim_checks::produce_unit),
     ("harvest-resources", sim_checks::harvest_resources),
@@ -52,14 +58,14 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("cancel-production", sim_checks::cancel_production),
     // CAP-CMB
     ("attack-unit", sim_checks::attack_unit),
-    ("area-damage", absent::area_damage),
+    ("area-damage", damage_area_zero_noop),
     ("projectile-hit", sim_checks::projectile_hit),
-    ("heal-units", absent::heal_units),
+    ("heal-units", grant_energy_spend),
     // CAP-SHLD
     ("shield-absorbs", sim_checks::shield_absorbs),
-    ("shield-bonus", absent::shield_bonus),
-    ("armour-reduces", absent::armour_reduces),
-    ("vital-fraction", absent::vital_fraction),
+    ("shield-bonus", shield_bonus_zero_noop),
+    ("armour-reduces", armour_reduces_damage),
+    ("vital-fraction", vital_fraction_zero_noop),
     // CAP-PLR
     ("player-ownership", sim_checks::player_ownership),
     ("player-resources", sim_checks::player_resources),
@@ -81,12 +87,12 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("lua-host-api-full", mod_checks::lua_host_api_full),
     ("lua-sandbox-limits", mod_checks::lua_sandbox_limits),
     // CAP-SRV
-    ("http-state", absent::http_state),
-    ("http-catalog", absent::http_catalog),
-    ("http-order", absent::http_order),
-    ("http-delta", absent::http_delta),
-    ("multi-room", absent::multi_room),
-    ("http-resources", absent::http_resources),
+    ("http-state", http_state_ok),
+    ("http-catalog", http_catalog_ok),
+    ("http-order", http_order_rejects_empty),
+    ("http-delta", http_delta_no_5xx),
+    ("multi-room", multi_room_routes),
+    ("http-resources", http_resources_ok),
     // CAP-DET
     ("fixed-math", sim_checks::fixed_math),
     ("state-hash-stable", sim_checks::state_hash_stable),
@@ -96,7 +102,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("map-image-roundtrip", sim_checks::map_image_roundtrip),
     ("save-load-state", sim_checks::save_load_state),
     // CAP-PRES
-    ("presentation-refusal", absent::presentation_refusal),
+    ("presentation-refusal", presentation_refusals_named),
 ];
 
 pub fn data_dir() -> PathBuf {
@@ -156,6 +162,213 @@ fn units_ge_map_spawns(image: &[u8]) -> Result<(), String> {
     let (_, units) = state_after(image, RUN_TICKS)?;
     if units == 0 || units < spawns {
         return Err(format!("units={units} spawns={spawns}"));
+    }
+    Ok(())
+}
+
+fn first_unit(s: &Sim) -> Result<usize, String> {
+    (0..s.count()).find(|&i| s.alive(i)).ok_or_else(|| "no live unit in image".to_string())
+}
+
+fn clamp_to_grid_bounds(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    let (w, h) = (s.grid().w as i32, s.grid().h as i32);
+    let got = s.clamp_to_grid(fixed::from_int(-1), fixed::from_int(h + 5));
+    let want = (0, fixed::from_int(h - 1));
+    if got != want {
+        return Err(format!("clamp_to_grid -> {got:?}, want {want:?} (grid {w}x{h})"));
+    }
+    Ok(())
+}
+
+fn grant_energy_spend(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let u = first_unit(&s)?;
+    s.grant_energy(u, 50).map_err(|e| format!("grant_energy: {e:?}"))?;
+    s.spend_energy(u, 50).map_err(|e| format!("spend_energy: {e:?}"))?;
+    if s.spend_energy(u, 1).is_ok() {
+        return Err("spend above the granted energy was accepted".to_string());
+    }
+    Ok(())
+}
+
+fn unsupported_effect_refuses(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let u = first_unit(&s)?;
+    let before = s.state_hash();
+    s.apply_effects(u, usize::MAX, 0, 0, -1);
+    if s.state_hash() != before {
+        return Err("an unknown ability index changed state".to_string());
+    }
+    Ok(())
+}
+
+fn clear_buff_frees_slot(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let u = first_unit(&s)?;
+    if !s.apply_buff(u, 0, 100) {
+        return Err("apply_buff refused before clear".to_string());
+    }
+    s.clear_buff(u, 0);
+    if !s.apply_buff(u, 0, 100) {
+        return Err("buff slot not free after clear_buff".to_string());
+    }
+    Ok(())
+}
+
+fn remove_behaviour_refuses_unknown(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    if s.remove_behaviour(usize::MAX, 0, 0, 0, 0, 0).is_ok() {
+        return Err("an out-of-range caster was accepted".to_string());
+    }
+    Ok(())
+}
+
+fn damage_area_zero_noop(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let before = s.state_hash();
+    s.damage_area(-1, 0, 0, 0, 0, 0);
+    if s.state_hash() != before {
+        return Err("zero-damage area changed state".to_string());
+    }
+    Ok(())
+}
+
+fn shield_bonus_zero_noop(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let u = first_unit(&s)?;
+    let before = s.state_hash();
+    s.shield_bonus(u, u as i32, 0);
+    if s.state_hash() != before {
+        return Err("zero shield bonus changed state".to_string());
+    }
+    Ok(())
+}
+
+fn armour_reduces_damage(image: &[u8]) -> Result<(), String> {
+    let reduced = sim::armour_reduced(10, 3);
+    if !(0..=10).contains(&reduced) {
+        return Err(format!("armour_reduced(10, 3) = {reduced}, outside 0..=10"));
+    }
+    let mut s = fresh(image)?;
+    let u = first_unit(&s)?;
+    let before = s.hp(u);
+    s.hurt(u, 0);
+    if s.hp(u) != before {
+        return Err("zero hurt changed hp".to_string());
+    }
+    Ok(())
+}
+
+fn vital_fraction_zero_noop(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let u = first_unit(&s)?;
+    let before = s.state_hash();
+    s.vital_fraction(u, u as i32, 0, 0, 0, 0);
+    if s.state_hash() != before {
+        return Err("zero vital fraction changed state".to_string());
+    }
+    Ok(())
+}
+
+fn presentation_refusals_named(_image: &[u8]) -> Result<(), String> {
+    for r in [Refusal::CameraUnsupported, Refusal::SoundUnsupported, Refusal::UiPanelUnsupported, Refusal::ChatUnsupported] {
+        if r.name().is_empty() {
+            return Err(format!("{r:?} has no name"));
+        }
+    }
+    Ok(())
+}
+
+fn test_room(name: &str) -> Result<Arc<Room>, String> {
+    Room::new(RoomConfig {
+        name: name.to_string(),
+        grid_w: 16,
+        grid_h: 16,
+        max_units: 64,
+        token: "tok".to_string(),
+        rate: 8,
+        data: None,
+    })
+}
+
+fn get_request(path: &str, query: &str) -> Request {
+    Request { method: "GET".to_string(), path: path.to_string(), query: query.to_string(), headers: Vec::new(), body: Vec::new() }
+}
+
+fn order_parse_rejects_empty(_image: &[u8]) -> Result<(), String> {
+    if parse_order(b"", 16, 16).is_ok() {
+        return Err("an empty order body was accepted".to_string());
+    }
+    Ok(())
+}
+
+fn order_gate_limits(_image: &[u8]) -> Result<(), String> {
+    let gate = OrderGate::new("tok".to_string(), 2);
+    if gate.rate() != 2 {
+        return Err(format!("rate() = {}, want 2", gate.rate()));
+    }
+    if gate.authorized(None) {
+        return Err("a request without the token was authorized".to_string());
+    }
+    if gate.take().is_none() {
+        return Err("the first take was refused".to_string());
+    }
+    Ok(())
+}
+
+fn http_state_ok(_image: &[u8]) -> Result<(), String> {
+    let room = test_room("a")?;
+    let r = serve_state(&room, &get_request("/state", ""));
+    if r.status != 200 {
+        return Err(format!("GET /state status {}", r.status));
+    }
+    Ok(())
+}
+
+fn http_catalog_ok(_image: &[u8]) -> Result<(), String> {
+    let room = test_room("a")?;
+    let r = serve_catalog(&room, &get_request("/catalog", ""));
+    if r.status != 200 {
+        return Err(format!("GET /catalog status {}", r.status));
+    }
+    Ok(())
+}
+
+fn http_order_rejects_empty(_image: &[u8]) -> Result<(), String> {
+    let room = test_room("a")?;
+    let mut req = get_request("/order", "");
+    req.method = "POST".to_string();
+    let r = serve_order(&room, &req);
+    if r.status == 200 {
+        return Err("an empty POST /order was accepted".to_string());
+    }
+    Ok(())
+}
+
+fn http_delta_no_5xx(_image: &[u8]) -> Result<(), String> {
+    let room = test_room("a")?;
+    let r = serve_delta(&room, &get_request("/delta", "since=0"));
+    if r.status >= 500 {
+        return Err(format!("GET /delta status {}", r.status));
+    }
+    Ok(())
+}
+
+fn multi_room_routes(_image: &[u8]) -> Result<(), String> {
+    let server = Server { rooms: vec![test_room("a")?, test_room("b")?], max_rooms: 2 };
+    let r = server.route(&get_request("/state", "map=b"));
+    if r.status != 200 {
+        return Err(format!("GET /state?map=b status {}", r.status));
+    }
+    Ok(())
+}
+
+fn http_resources_ok(_image: &[u8]) -> Result<(), String> {
+    let server = Server { rooms: vec![test_room("a")?], max_rooms: 1 };
+    let r = server.route(&get_request("/resources", ""));
+    if r.status != 200 {
+        return Err(format!("GET /resources status {}", r.status));
     }
     Ok(())
 }
