@@ -245,7 +245,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(position_on_grid(x, y, width, height, cell_milli), "doodad {i} is off the grid");
     }
 
-    let walkability_end = grid.offset + GRID_HEADER_LEN + 2 * width as usize * height as usize;
+    let walkability_end = grid.offset + GRID_HEADER_LEN + width as usize * height as usize;
     for &cell in &image[grid.offset + GRID_HEADER_LEN..walkability_end] {
         ensure!(cell & !CELL_MASK == 0, "grid cell {cell:#04x} has bits outside the walkability mask");
     }
