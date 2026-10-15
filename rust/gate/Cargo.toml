@@ -13,6 +13,7 @@ path = "src/main.rs"
 [dependencies]
 osdt-data = { path = "../crates/data" }
 sim = { path = "../crates/sim" }
+mod-host = { path = "../crates/mod-host" }
 mpq = { path = "../crates/mpq" }
 flate2 = "=1.1.9"
 bzip2 = "=0.6.0"
