@@ -176,7 +176,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-DET-4 | Record every accepted order with its tick so a match can be replayed | claimed | sim/src/arrays.rs (record_order, order_record), sim/src/movement.rs (issue_order_kind), sim/src/persist.rs, sim/src/hash.rs | gate:order-recording |
 | CAP-DET-5 | Replay the recorded order log into a fresh sim, checking the state hash at each recorded tick | claimed | server/src/replay.rs (play) | gate:replay-playback-controls |
 | CAP-DET-6 | Advance lockstep clients by exchanging per-tick inputs and comparing state hashes | claimed | server/src/lockstep.rs (Lockstep) | gate:lockstep-input-exchange |
-| CAP-DET-7 | Play a replay at a chosen speed, paused, or seeked | stub | none | gate:replay-controls |
+| CAP-DET-7 | Play a replay at a chosen speed, paused, or seeked | claimed | server/src/replay.rs (Playback) | gate:replay-controls |
 
 ## Persistence of map data
 
