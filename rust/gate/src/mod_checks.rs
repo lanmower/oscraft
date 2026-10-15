@@ -50,10 +50,12 @@ fn read_bool(host: &ModHost, key: &str) -> Result<bool, String> {
 }
 
 pub fn event_delivery(image: &[u8]) -> Result<(), String> {
-    // Units 0 and 1 are the image's own player 0 and player 1 starts; the mod orders the
-    // player 0 unit to attack the player 1 unit every frame until it dies.
+    // The attacker is the image's first player 0 unit and the target its first player 1 unit.
+    // The sim refuses an attack out of weapon reach, so the mod first walks the attacker to a
+    // point one world unit beside the target, then retries order_attack each frame (pcall)
+    // until it lands, and keeps attacking until the target dies.
     let src = r#"
-local attacker, target = nil, nil
+local attacker, target, moved = nil, nil, false
 local hits, deaths = 0, 0
 function on_attacked(unit) hits = hits + 1 end
 function on_died(unit) deaths = deaths + 1 end
@@ -65,7 +67,12 @@ function on_tick(state)
     end
   end
   if attacker ~= nil and target ~= nil and unit_alive(attacker) and unit_alive(target) then
-    order_attack(attacker, target)
+    if not moved then
+      local tx, ty = unit_position(target)
+      pcall(order_unit, attacker, tx - 65536, ty)
+      moved = true
+    end
+    pcall(order_attack, attacker, target)
   end
   state.attacked = hits
   state.died = deaths
