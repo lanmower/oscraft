@@ -260,6 +260,22 @@ impl Sim {
             .sum()
     }
 
+    /// The rally point of building `i` as a Q16.16 point: its position plus the UEXT rally offset.
+    /// None for a unit that is not living or whose type has no rally offset.
+    pub fn rally_point(&self, i: usize) -> Option<(i32, i32)> {
+        if i >= self.n || self.alive[i] == 0 {
+            return None;
+        }
+        let ext = self.cat.unit_ext.get(self.type_of[i] as usize).copied().unwrap_or_default();
+        if ext.rally_x == 0 && ext.rally_y == 0 {
+            return None;
+        }
+        Some((
+            self.pos_x[i].wrapping_add(fixed::from_milli(ext.rally_x)),
+            self.pos_y[i].wrapping_add(fixed::from_milli(ext.rally_y)),
+        ))
+    }
+
     pub(crate) fn produce_step(&mut self, i: usize) {
         let p = self.player[i] as usize;
         if self.trainee[i] < 0 || p >= MAX_PLAYERS || self.train_hold[i] != 0 {
