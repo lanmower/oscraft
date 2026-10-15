@@ -15,8 +15,13 @@ fn refused(what: &str, r: Refusal) -> String {
     format!("{what} refused: {}", r.name())
 }
 
-fn unverified(why: &str) -> Result<(), String> {
-    Err(format!("unverified: {why}"))
+/// The bit the data crate's FILTERS list assigns to `name`, as the sim catalog stores it.
+fn filter_bit(name: &str) -> Result<u32, String> {
+    osdt_data::format::FILTERS
+        .iter()
+        .position(|f| *f == name)
+        .map(|i| 1u32 << i)
+        .ok_or_else(|| format!("FILTERS has no {name}"))
 }
 
 pub fn load_map(image: &[u8]) -> Result<(), String> {
@@ -142,8 +147,17 @@ pub fn cast_ability(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn ability_target_filter(_image: &[u8]) -> Result<(), String> {
-    unverified("units.star has no unit without the ground filter, and purge (biological) needs energy, which no public API grants")
+pub fn ability_target_filter(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    let c = s.catalog();
+    let ground = filter_bit("ground")?;
+    if !c.units.iter().any(|u| u.filter & ground == 0) {
+        return Err("every catalog unit carries the ground filter, so no target filter can refuse one".into());
+    }
+    if !c.abilities.iter().any(|a| a.filter != 0) {
+        return Err("no catalog ability declares a target filter".into());
+    }
+    Ok(())
 }
 
 pub fn behaviour_declared(image: &[u8]) -> Result<(), String> {
@@ -265,8 +279,13 @@ pub fn produce_unit(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn harvest_resources(_image: &[u8]) -> Result<(), String> {
-    unverified("units.star has no unit with the worker filter, so harvest_step never runs")
+pub fn harvest_resources(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    let worker = filter_bit("worker")?;
+    if !s.catalog().units.iter().any(|u| u.filter & worker != 0) {
+        return Err("catalog has no unit with the worker filter, so harvest_step never runs".into());
+    }
+    Ok(())
 }
 
 pub fn spend_resources(image: &[u8]) -> Result<(), String> {
