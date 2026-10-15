@@ -1,8 +1,8 @@
 //! Lua 5.4 mod host. A mod is a chunk that defines `on_tick(state)`. The host owns
-//! `state`, the unit log and the sim; a mod reload never resets them.
+//! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, Lua, Table};
-use sim::Sim;
+use sim::{LoadError, Sim};
 use std::cell::RefCell;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -11,19 +11,7 @@ use std::time::SystemTime;
 
 const MAX_UNITS: usize = 1024;
 
-#[derive(Clone)]
-struct Unit {
-    kind: String,
-    x: i32,
-    y: i32,
-}
-
-struct World {
-    units: Vec<Unit>,
-    sim: Sim,
-}
-
-type Shared = Rc<RefCell<World>>;
+type Shared = Rc<RefCell<Sim>>;
 
 struct ModFile {
     path: PathBuf,
@@ -46,22 +34,26 @@ fn fixed(v: i64) -> mlua::Result<i32> {
     i32::try_from(v).map_err(|_| mlua::Error::RuntimeError(format!("Q16.16 value {v} out of i32 range")))
 }
 
+// `spawn_unit` takes the unit's catalog name. `Sim::spawn` takes the catalog index,
+// which is the unit's position in the OSDT UNIT section: `Sim::catalog().unit_index`
+// (sim/src/loader.rs) maps the STRS name to that position. A name the catalog does
+// not know spawns nothing.
 fn bind_host(lua: &Lua, env: &Table, world: &Shared) -> mlua::Result<()> {
     let w = world.clone();
     env.set(
         "spawn_unit",
         lua.create_function(move |_, (kind, x, y): (String, i64, i64)| {
             let (x, y) = (fixed(x)?, fixed(y)?);
-            let mut world = w.borrow_mut();
-            if let Some(index) = world.sim.catalog().unit_index(&kind) {
-                let _ = world.sim.spawn(index as u32, x, y);
+            let mut sim = w.borrow_mut();
+            let index = sim.catalog().unit_index(&kind);
+            if let Some(index) = index {
+                sim.spawn(index as u32, x, y);
             }
-            world.units.push(Unit { kind, x, y });
             Ok(())
         })?,
     )?;
     let w = world.clone();
-    env.set("get_unit_count", lua.create_function(move |_, ()| Ok(w.borrow().units.len() as i64))?)?;
+    env.set("get_unit_count", lua.create_function(move |_, ()| Ok(w.borrow().count() as i64))?)?;
     Ok(())
 }
 
@@ -83,20 +75,15 @@ fn mtime(path: &Path) -> std::io::Result<SystemTime> {
     fs::metadata(path)?.modified()
 }
 
-fn fnv1a(bytes: &[u8]) -> u64 {
-    bytes
-        .iter()
-        .fold(0xcbf2_9ce4_8422_2325u64, |h, b| (h ^ (*b as u64)).wrapping_mul(0x0100_0000_01b3))
-}
-
 impl ModHost {
-    /// An empty host: no mod loaded, `state.ticks` starts at 0.
-    pub fn new() -> Self {
+    /// A host over the sim loaded from `image`, an OSDT v3 image (rust/crates/data/FORMAT.md),
+    /// on the image's own map. `state.ticks` starts at 0.
+    pub fn new(image: &[u8]) -> Result<Self, LoadError> {
         let lua = Lua::new();
         let state = lua.create_table().expect("create state table");
         state.set("ticks", 0i64).expect("seed state.ticks");
-        let world = Rc::new(RefCell::new(World { units: Vec::new(), sim: Sim::new(MAX_UNITS) }));
-        ModHost { lua, world, state, mod_file: None }
+        let world = Rc::new(RefCell::new(sim::load(image, MAX_UNITS)?));
+        Ok(ModHost { lua, world, state, mod_file: None })
     }
 
     /// Compiles the mod at `path` and makes it the active mod.
@@ -139,32 +126,14 @@ impl ModHost {
         &self.state
     }
 
+    /// Units the sim has spawned, including dead ones (`Sim::count`).
     pub fn unit_count(&self) -> usize {
-        self.world.borrow().units.len()
+        self.world.borrow().count()
     }
 
-    pub fn count_kind(&self, kind: &str) -> usize {
-        self.world.borrow().units.iter().filter(|u| u.kind == kind).count()
-    }
-
-    /// FNV-1a over the unit log and `state.ticks`, in a fixed byte layout.
+    /// The sim's FNV-1a state hash (sim/src/hash.rs). Two runs of the same mod from
+    /// identical state agree on it.
     pub fn state_hash(&self) -> u64 {
-        let w = self.world.borrow();
-        let mut bytes: Vec<u8> = (w.units.len() as u64).to_le_bytes().to_vec();
-        for u in &w.units {
-            bytes.extend(u.kind.as_bytes());
-            bytes.push(0);
-            bytes.extend(u.x.to_le_bytes());
-            bytes.extend(u.y.to_le_bytes());
-        }
-        let ticks: i64 = self.state.get("ticks").unwrap_or(-1);
-        bytes.extend(ticks.to_le_bytes());
-        fnv1a(&bytes)
-    }
-}
-
-impl Default for ModHost {
-    fn default() -> Self {
-        Self::new()
+        self.world.borrow().state_hash()
     }
 }

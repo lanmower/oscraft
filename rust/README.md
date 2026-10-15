@@ -4,7 +4,7 @@ A contract proof for the Lua 5.4 mod runtime, not a port of the simulation. It e
 
 1. A host loads a mod chunk into a fresh environment and calls `on_tick(state)` once per tick.
 2. Hot reload: the mtime is polled between ticks. A reload replaces only the functions. The host-owned `state` table survives. A reload that fails to compile keeps the old functions and reports `<file>:<line>`.
-3. Host functions `spawn_unit(kind, x, y)` and `get_unit_count()` run against a Rust `Vec` state, with Q16.16 `i32` positions.
+3. Host functions `spawn_unit(kind, x, y)` and `get_unit_count()` run against the sim: `spawn_unit` resolves the unit name with the sim catalog and calls `Sim::spawn`, and `get_unit_count` reads `Sim::count`. The catalog is the OSDT image built from `rust/data` at startup. Positions are Q16.16 `i32`.
 4. Determinism: 2000 ticks run twice from identical state, and both FNV-1a hashes of the final state must match.
 5. A Lua line hook counts the lines executed in one `on_tick`.
 6. A runtime error in `on_tick` is reported with file and line, and the tick loop continues.
