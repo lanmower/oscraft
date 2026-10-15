@@ -187,6 +187,20 @@ impl Sim {
         Ok(())
     }
 
+    /// Spends `amount` energy from unit `i`. Refusals, each changing nothing: a dead or unknown
+    /// unit is NoTarget; an amount above the unit's energy is Energy. A zero amount costs nothing.
+    pub fn spend_energy(&mut self, i: usize, amount: i32) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        if amount > self.energy[i] {
+            return Err(self.reject(Refusal::Energy));
+        }
+        self.energy[i] -= amount.max(0);
+        self.touch(i);
+        Ok(())
+    }
+
     /// Applies one ability's effects at a point, in record order. Refusals, each changing
     /// nothing: a dead or unknown caster is NoTarget; an unknown ability index is NoSlot.
     pub fn apply_effects(&mut self, caster: usize, ai: usize, tx: i32, ty: i32, target: i32) {
@@ -256,7 +270,7 @@ impl Sim {
             }
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),
             EFFECT_REMOVE_BEHAVIOUR => {
-                self.remove_behaviour(eff.p0, fixed::from_milli(eff.p1), tx, ty);
+                let _ = self.remove_behaviour(caster, eff.p0, fixed::from_milli(eff.p1), tx, ty, 0);
             }
             EFFECT_SHIELD_BONUS => self.shield_bonus(caster, target, eff.p0),
             EFFECT_VITAL_FRACTION => self.vital_fraction(caster, target, eff.p0, eff.p1, eff.p2, eff.p3),

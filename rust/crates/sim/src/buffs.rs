@@ -50,8 +50,13 @@ impl Sim {
     }
 
     /// Removes behaviour `kind` from every living unit within `rad` of a point, whichever
-    /// player owns it. Uses the shared scratch buffer, so nothing is allocated.
-    pub fn remove_behaviour(&mut self, kind: i32, rad: i32, x: i32, y: i32) {
+    /// player owns it. Uses the shared scratch buffer, so nothing is allocated. `cost` energy is
+    /// spent from `caster` first; a caster that cannot pay refuses as Energy and nothing is removed.
+    /// A zero cost spends nothing, which is how the cast path calls it (the cast already charged).
+    pub fn remove_behaviour(&mut self, caster: usize, kind: i32, rad: i32, x: i32, y: i32, cost: i32) -> Result<(), Refusal> {
+        if cost > 0 {
+            self.spend_energy(caster, cost)?;
+        }
         let mut buf = std::mem::take(&mut self.scratch);
         let n = self.gather(x, y, rad, &mut buf);
         for k in 0..n {
@@ -61,6 +66,7 @@ impl Sim {
             }
         }
         self.scratch = buf;
+        Ok(())
     }
 
     /// Applies or removes a behaviour on one unit, from an ability's buff effect. `ticks`
