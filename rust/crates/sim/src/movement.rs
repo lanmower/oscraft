@@ -265,7 +265,9 @@ impl Sim {
             return Ok(true);
         }
         let d = isqrt(d2);
-        let r = self.range_q[i] as i64;
+        // Stop at three quarters of weapon range so the unit lands inside reach, and its own
+        // auto-attack strikes the target on arrival.
+        let r = self.range_q[i] as i64 * 3 / 4;
         let dx = self.pos_x[i] as i64 - self.pos_x[target] as i64;
         let dy = self.pos_y[i] as i64 - self.pos_y[target] as i64;
         let sx = self.pos_x[target] as i64 + dx * r / d;
