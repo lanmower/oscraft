@@ -23,9 +23,10 @@ pub enum Refusal {
     NoTeleport,
     NoMissileSlot,
     EffectUnsupported,
+    CalldownNested,
 }
 
-pub const REFUSAL_KINDS: usize = 11;
+pub const REFUSAL_KINDS: usize = 12;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -41,6 +42,7 @@ impl Refusal {
             Refusal::NoTeleport => "no-teleport",
             Refusal::NoMissileSlot => "no-missile-slot",
             Refusal::EffectUnsupported => "effect-unsupported",
+            Refusal::CalldownNested => "calldown-nested",
         }
     }
 }
@@ -53,6 +55,7 @@ const EFFECT_SPAWN: u16 = 3;
 const EFFECT_BUFF: u16 = 4;
 const EFFECT_ISSUE_ORDER: u16 = 5;
 const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
+const EFFECT_USE_CALLDOWN: u16 = 8;
 
 impl Sim {
     pub(crate) fn refuse(&mut self, r: Refusal) {
@@ -134,13 +137,24 @@ impl Sim {
         let first = ability.effect_first as usize;
         for k in 0..ability.effect_count as usize {
             let eff: Effect = self.cat.effects[first + k];
-            self.apply_effect(caster, ability.filter as u32, eff, tx, ty, target);
+            self.apply_effect(caster, ability.filter as u32, eff, tx, ty, target, true);
         }
     }
 
     /// Applies one effect. `filter` is the target filter mask of the ability that owns it.
+    /// `may_call` is false inside a calldown, so a calldown never starts another one.
     /// A kind with no implementation refuses as `EffectUnsupported` and changes nothing.
-    fn apply_effect(&mut self, caster: usize, filter: u32, eff: Effect, tx: i32, ty: i32, target: i32) {
+    #[allow(clippy::too_many_arguments)]
+    fn apply_effect(
+        &mut self,
+        caster: usize,
+        filter: u32,
+        eff: Effect,
+        tx: i32,
+        ty: i32,
+        target: i32,
+        may_call: bool,
+    ) {
         let p = self.player[caster];
         let c = caster as i32;
         match eff.kind {
@@ -164,6 +178,18 @@ impl Sim {
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),
             EFFECT_REMOVE_BEHAVIOUR => {
                 self.remove_behaviour(eff.p0, fixed::from_milli(eff.p1), tx, ty);
+            }
+            EFFECT_USE_CALLDOWN => {
+                if !may_call {
+                    self.refuse(Refusal::CalldownNested);
+                    return;
+                }
+                let called = self.cat.abilities[eff.p0 as usize];
+                let first = called.effect_first as usize;
+                for k in 0..called.effect_count as usize {
+                    let e: Effect = self.cat.effects[first + k];
+                    self.apply_effect(caster, called.filter as u32, e, tx, ty, target, false);
+                }
             }
             _ => self.refuse(Refusal::EffectUnsupported),
         }

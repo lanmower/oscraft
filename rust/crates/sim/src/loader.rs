@@ -20,6 +20,7 @@ const RECORD_SIZES: [usize; 7] = [1, 16, 32, 2, 80, 16, 1];
 const EFFECT_KINDS: u16 = 11;
 const EFFECT_ISSUE_ORDER: u16 = 5;
 const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
+const EFFECT_USE_CALLDOWN: u16 = 8;
 const TARGET_CODES: u8 = 3;
 const TRIGGER_CODES: u8 = 4;
 const ACTION_CODES: u8 = 3;
@@ -360,6 +361,10 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             return Err(LoadError::Range("effect run"));
         }
         abilities.push(Ability { name, flags, cooldown, energy, target, effect_count, effect_first, projectile_speed, filter });
+    }
+
+    if effects.iter().any(|e| e.kind == EFFECT_USE_CALLDOWN && (e.p0 < 0 || e.p0 as usize >= abilities.len())) {
+        return Err(LoadError::Range("use_calldown ability index"));
     }
 
     let (uo, uc) = body(3);
