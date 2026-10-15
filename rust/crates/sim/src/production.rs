@@ -58,6 +58,14 @@ impl Sim {
     /// Whether player `p` holds every prerequisite of target `target` of kind `kind` (0 unit,
     /// 1 research). A unit requirement needs a living unit of that type owned by `p`; a research
     /// requirement needs that research completed by `p`.
+    /// The research index building `i` is running now, or None when it is idle.
+    pub fn research_running(&self, i: usize) -> Option<usize> {
+        if i >= self.n || self.research_left[i] <= 0 || self.research_rec[i] < 0 {
+            return None;
+        }
+        Some(self.research_rec[i] as usize)
+    }
+
     pub fn prereqs_met(&self, kind: u8, target: usize, p: usize) -> bool {
         let research_count = self.cat.research.len();
         self.cat
