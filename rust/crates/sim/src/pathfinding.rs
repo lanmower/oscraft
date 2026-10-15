@@ -30,11 +30,15 @@ pub struct Grid {
     pub w: usize,
     pub h: usize,
     pub flags: Vec<u8>,
+    /// Height level per cell, same row-major indexing as flags.
+    pub heights: Vec<u8>,
+    /// Milli-units per height level.
+    pub height_step: i32,
 }
 
 impl Grid {
     pub fn open(w: usize, h: usize) -> Grid {
-        Grid { w, h, flags: vec![0; w * h] }
+        Grid { w, h, flags: vec![0; w * h], heights: vec![0; w * h], height_step: 1000 }
     }
 
     pub fn walkable(&self, x: i32, y: i32) -> bool {

@@ -9,7 +9,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 10;
+const VERSION: u16 = 12;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const LIMT_COUNT: usize = 1;
@@ -19,8 +19,8 @@ const ABILITY_FILTER_BITS: u16 = 12;
 const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 11] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"GRID"];
-const RECORD_SIZES: [usize; 11] = [1, 20, 32, 2, 80, 16, 16, 16, 12, 4, 1];
+const SECTION_TAGS: [&[u8; 4]; 17] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"GRID"];
+const RECORD_SIZES: [usize; 17] = [1, 20, 32, 2, 80, 16, 16, 16, 12, 4, 32, 32, 8, 32, 8, 8, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
@@ -38,7 +38,7 @@ const ACTION_CODES: u8 = 3;
 const RESPONSE_CODES: u8 = 3;
 const FILTER_BITS: u32 = 12;
 const NO_INDEX: u16 = 0xFFFF;
-const GRID_HEADER: usize = 12;
+const GRID_HEADER: usize = 16;
 /// The cell size the simulation runs on: one world unit per cell. Other sizes are
 /// refused, because every position-to-cell conversion assumes this.
 pub const CELL_MILLI: i32 = 1000;
@@ -248,6 +248,81 @@ pub struct Start {
     pub y: i32,
 }
 
+/// Production economy for the map (ECON, one record).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Econ {
+    pub workers_per_mineral: u8,
+    pub workers_per_extractor: u8,
+    pub patches_per_base: u8,
+    pub extractors_per_base: u8,
+    pub gas_per_trip: i32,
+    pub opening_minerals: i32,
+    pub opening_gas: i32,
+    pub opening_workers: u16,
+    pub supply_base: u16,
+    pub supply_max: u16,
+    pub minerals_per_patch: i32,
+    pub gas_per_geyser: i32,
+}
+
+/// Per-unit extension fields (UEXT), one per unit kind in UNIT order.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct UnitExt {
+    pub supply_provided: u16,
+    pub transport: u16,
+    /// 0 small, 1 medium, 2 large.
+    pub size: u8,
+    /// 0 normal, 1 concussive, 2 explosive.
+    pub damage_type: u8,
+    /// Bit 0 cloaked, bit 1 can burrow, bit 2 needs a detector to target.
+    pub cloak: u8,
+    pub detector_radius: i32,
+    /// Ranged miss chance, Q16.
+    pub miss_chance: i32,
+    pub burrow_ticks: i32,
+    pub rally_x: i32,
+    pub rally_y: i32,
+}
+
+/// Channelling of one ability (ACHN, one per ability).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Channel {
+    pub channelled: bool,
+    pub duration: i32,
+}
+
+/// A research record (RSCH). Its effect is the research's slot in EFCT.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Research {
+    pub name: Name,
+    pub building: u16,
+    pub time: i32,
+    pub minerals: i32,
+    pub gas: i32,
+    pub effect: u32,
+    pub applies_mask: u32,
+}
+
+/// A prerequisite (PREQ): the target needs the requirement complete.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Prereq {
+    /// 0 unit, 1 research.
+    pub target_kind: u8,
+    /// 0 unit (a building), 1 research.
+    pub requirement_kind: u8,
+    pub target: u16,
+    pub requirement: u16,
+}
+
+/// A damage factor (DMGF) for one damage type and size category; pairs without a record scale by 1.0.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DamageFactor {
+    pub damage_type: u8,
+    pub size: u8,
+    /// Q16, 65536 = 1.0.
+    pub factor: i32,
+}
+
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.
 #[derive(Clone, Debug, Default)]
 pub struct Catalog {
@@ -264,6 +339,12 @@ pub struct Catalog {
     /// Most units one grid cell may hold at once; 0 = no limit.
     pub limit: u32,
     pub starts: Vec<Start>,
+    pub econ: Econ,
+    pub unit_ext: Vec<UnitExt>,
+    pub channels: Vec<Channel>,
+    pub research: Vec<Research>,
+    pub prereqs: Vec<Prereq>,
+    pub damage_factors: Vec<DamageFactor>,
 }
 
 impl Catalog {
@@ -405,7 +486,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 11];
+    let mut sections = [(0usize, 0usize); 17];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -609,7 +690,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         behaviours.push(Behaviour { name, trigger, action, param, ability });
     }
 
-    let (go, gl) = body(10);
+    let (go, gl) = body(16);
     if gl < GRID_HEADER {
         return Err(LoadError::Truncated("GRID header"));
     }
@@ -617,20 +698,26 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let w = gr.u32("grid width")? as usize;
     let h = gr.u32("grid height")? as usize;
     let cell_milli = gr.i32("cell size")?;
+    let height_step = gr.i32("height step")?;
+    if height_step < 1 {
+        return Err(LoadError::Range("height step must be >= 1"));
+    }
     if w < 1 || h < 1 {
         return Err(LoadError::Range("grid size must be >= 1"));
     }
     if cell_milli != CELL_MILLI {
         return Err(LoadError::Range("cell size must be 1000 milli-units"));
     }
-    if GRID_HEADER.checked_add(w.checked_mul(h).ok_or(LoadError::Range("grid size"))?) != Some(gl) {
-        return Err(LoadError::Range("GRID body length is not 12 + w*h"));
+    let cells = w.checked_mul(h).ok_or(LoadError::Range("grid size"))?;
+    if cells.checked_mul(2).and_then(|n| n.checked_add(GRID_HEADER)) != Some(gl) {
+        return Err(LoadError::Range("GRID body length is not 16 + 2*w*h"));
     }
     let flags = gr.take(w * h, "grid cells")?.to_vec();
     if flags.iter().any(|&c| c & !CELL_BITS != 0) {
         return Err(LoadError::Range("grid cell bits outside 0b11"));
     }
-    let grid = Grid { w, h, flags };
+    let heights = gr.take(w * h, "grid heights")?.to_vec();
+    let grid = Grid { w, h, flags, heights, height_step };
 
     let diagonal2 = (w as i64 * CELL_MILLI as i64).pow(2) + (h as i64 * CELL_MILLI as i64).pow(2);
     if effects.iter().any(|e| e.kind == EFFECT_MOVE && (e.p0 <= 0 || (e.p0 as i64).pow(2) > diagonal2)) {
@@ -727,7 +814,180 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     }
     let limit = Reader { buf: bytes, at: lo }.u32("cell unit limit")?;
 
-    Ok((Catalog { strs, effects, abilities, uabl, units, behaviours, placements, upgrades, regen, limit, starts }, grid))
+    let (eco, ecn) = body(10);
+    if ecn != 1 {
+        return Err(LoadError::Range("ECON count is not 1"));
+    }
+    let econ = {
+        let mut er = Reader { buf: bytes, at: eco };
+        let workers_per_mineral = er.u8("econ mineral saturation")?;
+        let workers_per_extractor = er.u8("econ gas saturation")?;
+        let patches_per_base = er.u8("econ mineral patches")?;
+        let extractors_per_base = er.u8("econ extractors")?;
+        let gas_per_trip = er.i32("econ gas per trip")?;
+        let opening_minerals = er.i32("econ opening minerals")?;
+        let opening_gas = er.i32("econ opening gas")?;
+        let opening_workers = er.u16("econ opening workers")?;
+        let supply_base = er.u16("econ supply base")?;
+        let supply_max = er.u16("econ supply max")?;
+        er.skip(2, "econ reserved")?;
+        let minerals_per_patch = er.i32("econ minerals per patch")?;
+        let gas_per_geyser = er.i32("econ gas per geyser")?;
+        if workers_per_mineral < 1 || workers_per_extractor < 1 || gas_per_trip < 0 || opening_minerals < 0
+            || opening_gas < 0 || minerals_per_patch < 0 || gas_per_geyser < 0
+        {
+            return Err(LoadError::Range("economy value outside its table"));
+        }
+        Econ {
+            workers_per_mineral,
+            workers_per_extractor,
+            patches_per_base,
+            extractors_per_base,
+            gas_per_trip,
+            opening_minerals,
+            opening_gas,
+            opening_workers,
+            supply_base,
+            supply_max,
+            minerals_per_patch,
+            gas_per_geyser,
+        }
+    };
+
+    let (xo, xc) = body(11);
+    if xc != units.len() {
+        return Err(LoadError::Range("UEXT count is not the UNIT count"));
+    }
+    let mut xr = Reader { buf: bytes, at: xo };
+    let mut unit_ext = Vec::with_capacity(xc);
+    for _ in 0..xc {
+        let supply_provided = xr.u16("ext supply")?;
+        let transport = xr.u16("ext transport")?;
+        let size = xr.u8("ext size")?;
+        let damage_type = xr.u8("ext damage type")?;
+        let cloak = xr.u8("ext cloak")?;
+        xr.skip(1, "ext reserved")?;
+        let detector_radius = xr.i32("ext detector radius")?;
+        let miss_chance = xr.i32("ext miss chance")?;
+        let burrow_ticks = xr.i32("ext burrow time")?;
+        let rally_x = xr.i32("ext rally x")?;
+        let rally_y = xr.i32("ext rally y")?;
+        xr.skip(4, "ext reserved")?;
+        if size > 2 || damage_type > 2 || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 {
+            return Err(LoadError::Range("unit extension outside its table"));
+        }
+        unit_ext.push(UnitExt {
+            supply_provided,
+            transport,
+            size,
+            damage_type,
+            cloak,
+            detector_radius,
+            miss_chance,
+            burrow_ticks,
+            rally_x,
+            rally_y,
+        });
+    }
+
+    let (ach, achn) = body(12);
+    if achn != abilities.len() {
+        return Err(LoadError::Range("ACHN count is not the ABIL count"));
+    }
+    let mut cr = Reader { buf: bytes, at: ach };
+    let mut channels = Vec::with_capacity(achn);
+    for _ in 0..achn {
+        let flags = cr.u16("channel flags")?;
+        cr.skip(2, "channel reserved")?;
+        let duration = cr.i32("channel duration")?;
+        let channelled = flags & 1 == 1;
+        if flags & !1 != 0 || duration < 0 || (channelled && duration < 1) || (!channelled && duration != 0) {
+            return Err(LoadError::Range("channel record outside its table"));
+        }
+        channels.push(Channel { channelled, duration });
+    }
+
+    let (rso, rsc) = body(13);
+    let mut rsr = Reader { buf: bytes, at: rso };
+    let mut research = Vec::with_capacity(rsc);
+    for _ in 0..rsc {
+        let name = rsr.name("research name")?;
+        let building = rsr.u16("research building")?;
+        let time = rsr.i32("research time")?;
+        let minerals = rsr.i32("research minerals")?;
+        let gas = rsr.i32("research gas")?;
+        let effect = rsr.u32("research effect")?;
+        let applies_mask = rsr.u32("research applies-to")?;
+        rsr.skip(4, "research reserved")?;
+        if name.offset as usize + name.len as usize > strs.len()
+            || building as usize >= units.len()
+            || effect as usize >= effects.len()
+        {
+            return Err(LoadError::Range("research name, building or effect index"));
+        }
+        research.push(Research { name, building, time, minerals, gas, effect, applies_mask });
+    }
+
+    let (pqo, pqc) = body(14);
+    let mut pqr = Reader { buf: bytes, at: pqo };
+    let mut prereqs = Vec::with_capacity(pqc);
+    for _ in 0..pqc {
+        let target_kind = pqr.u8("prereq target kind")?;
+        let requirement_kind = pqr.u8("prereq requirement kind")?;
+        let target = pqr.u16("prereq target")?;
+        let requirement = pqr.u16("prereq requirement")?;
+        pqr.skip(2, "prereq reserved")?;
+        if target_kind > 1 || requirement_kind > 1 {
+            return Err(LoadError::Range("prerequisite kind above 1"));
+        }
+        let target_ok = if target_kind == 0 { (target as usize) < units.len() } else { (target as usize) < research.len() };
+        let req_ok = if requirement_kind == 0 {
+            (requirement as usize) < units.len()
+        } else {
+            (requirement as usize) < research.len()
+        };
+        if !target_ok || !req_ok {
+            return Err(LoadError::Range("prerequisite index past its section"));
+        }
+        prereqs.push(Prereq { target_kind, requirement_kind, target, requirement });
+    }
+
+    let (dmo, dmc) = body(15);
+    let mut dmr = Reader { buf: bytes, at: dmo };
+    let mut damage_factors = Vec::with_capacity(dmc);
+    for _ in 0..dmc {
+        let damage_type = dmr.u8("factor damage type")?;
+        let size = dmr.u8("factor size")?;
+        dmr.skip(2, "factor reserved")?;
+        let factor = dmr.i32("factor")?;
+        if damage_type > 2 || size > 2 || factor < 0 {
+            return Err(LoadError::Range("damage factor outside its table"));
+        }
+        damage_factors.push(DamageFactor { damage_type, size, factor });
+    }
+
+    Ok((
+        Catalog {
+            strs,
+            effects,
+            abilities,
+            uabl,
+            units,
+            behaviours,
+            placements,
+            upgrades,
+            regen,
+            limit,
+            starts,
+            econ,
+            unit_ext,
+            channels,
+            research,
+            prereqs,
+            damage_factors,
+        },
+        grid,
+    ))
 }
 
 /// Loads a version 8 image into a simulation on the map's own grid, and places its

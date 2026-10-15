@@ -453,6 +453,8 @@ impl Sim {
         next.stats = st;
 
         r.bytes_into(&mut next.grid.flags)?;
+        next.grid.heights = self.grid.heights.clone();
+        next.grid.height_step = self.grid.height_step;
 
         r.i32s_into(&mut next.pos_x)?;
         r.i32s_into(&mut next.pos_y)?;
