@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 5;
+pub const VERSION: u16 = 6;
 pub const HEADER_LEN: usize = 16;
 pub const SECTION_ENTRY_LEN: usize = 16;
 pub const NO_ABILITY: u16 = u16::MAX;
@@ -81,11 +81,13 @@ pub fn index_of(list: &[&str], value: &str, what: &str) -> anyhow::Result<usize>
 }
 
 /// Per-kind parameter ranges from FORMAT.md's effect table. Shared by the
-/// Starlark builtins and the reference reader.
+/// Starlark builtins and the reference reader. The `move` cap is bounded by
+/// the grid, so it is checked by `move_cap_fits_grid` instead.
 pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
     let [p0, p1, p2, p3] = p;
     match kind {
         "damage" | "heal" => p0 >= 0 && p1 >= 0,
+        "move" => p0 > 0,
         "buff" => p0 >= 0 && p1 >= 0,
         "spawn" => p0 >= 0,
         "issue_order" => (0..ORDER_KINDS.len() as i32).contains(&p0) && (0..ORDER_TARGETS.len() as i32).contains(&p1),
@@ -101,4 +103,17 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
         "shield_bonus" => p0 >= 0,
         _ => true,
     }
+}
+
+/// True when a `move` cap is in `1..=diagonal`, where the diagonal is
+/// `sqrt((width * cell)^2 + (height * cell)^2)` in milli-units. Compares squares
+/// in integers, so no float is read.
+pub fn move_cap_fits_grid(cap: i32, width: u32, height: u32, cell_milli: u32) -> bool {
+    if cap <= 0 {
+        return false;
+    }
+    let cap = cap as u128;
+    let w = width as u128 * cell_milli as u128;
+    let h = height as u128 * cell_milli as u128;
+    cap * cap <= w * w + h * h
 }

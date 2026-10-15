@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::format::{ACTION_USE_ABILITY, EFFECT_KINDS, NO_ABILITY, NO_UNIT};
+use crate::format::{move_cap_fits_grid, ACTION_USE_ABILITY, EFFECT_KINDS, NO_ABILITY, NO_UNIT};
 use crate::model::{Ability, Behaviour, Catalog, Collector, Effect, Unit, Weapon};
 
 fn valid_name(name: &str) -> Result<()> {
@@ -74,6 +74,14 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
                     "ability {:?}: use_calldown names ability index {target}, only {} abilities exist",
                     raw.name,
                     abilities_raw.len()
+                ),
+                "move" if !move_cap_fits_grid(effect.params[0], grid.width, grid.height, grid.cell_milli) => bail!(
+                    "ability {:?}: move cap {} is outside 1..=grid diagonal for a {}x{} grid at {} milli",
+                    raw.name,
+                    effect.params[0],
+                    grid.width,
+                    grid.height,
+                    grid.cell_milli
                 ),
                 _ => {}
             }

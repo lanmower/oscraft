@@ -1,4 +1,4 @@
-//! Reference reader: checks an image against FORMAT.md v5 before it is written.
+//! Reference reader: checks an image against FORMAT.md v6 before it is written.
 //! The sim crate has its own loader; this one guards the generator's output.
 
 use anyhow::{anyhow, ensure, Result};
@@ -50,6 +50,14 @@ pub fn verify(image: &[u8]) -> Result<()> {
 
     let (abil, uabl, unit, efct, grid) = (&sections[2], &sections[3], &sections[4], &sections[1], &sections[6]);
 
+    let width = u32_at(image, grid.offset)?;
+    let height = u32_at(image, grid.offset + 4)?;
+    let cell_milli = u32_at(image, grid.offset + 8)?;
+    ensure!(
+        width >= 1 && height >= 1 && GRID_HEADER_LEN + width as usize * height as usize == grid.count,
+        "grid size does not match its header"
+    );
+
     for i in 0..efct.count {
         let at = efct.offset + i * EFCT_RECORD;
         let kind = u16_at(image, at)? as usize;
@@ -62,6 +70,13 @@ pub fn verify(image: &[u8]) -> Result<()> {
             i32_at(image, at + 16)?,
         ];
         ensure!(effect_params_valid(name, params), "effect {i} ({name}) params {params:?} out of range");
+        if name == "move" {
+            ensure!(
+                move_cap_fits_grid(params[0], width, height, cell_milli),
+                "effect {i} move cap {} is outside 1..=grid diagonal",
+                params[0]
+            );
+        }
         if name == "use_calldown" {
             ensure!((params[0] as usize) < abil.count, "effect {i} names an ability past the end of ABIL");
         }
@@ -96,12 +111,6 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!((image[at + 71] as usize) < RESOURCE_KINDS.len(), "unit {i} resource kind out of range");
     }
 
-    let width = u32_at(image, grid.offset)? as usize;
-    let height = u32_at(image, grid.offset + 4)? as usize;
-    ensure!(
-        width >= 1 && height >= 1 && GRID_HEADER_LEN + width * height == grid.count,
-        "grid size does not match its header"
-    );
     for &cell in &image[grid.offset + GRID_HEADER_LEN..grid.offset + grid.count] {
         ensure!(cell & !CELL_MASK == 0, "grid cell {cell:#04x} has bits outside the walkability mask");
     }
