@@ -45,6 +45,9 @@ impl Sim {
             let rc = ((r + VIS_SCALE - 1) / VIS_SCALE).max(1);
             let ccx = cell_of(self.pos_x[i]) / VIS_SCALE;
             let ccy = cell_of(self.pos_y[i]) / VIS_SCALE;
+            // Elevation: a unit sees a cell only at or below its own height. Higher units see
+            // over elevated cells; a unit on lower ground is denied the cells above it.
+            let unit_elev = self.grid.elevation_milli(cell_of(self.pos_x[i]), cell_of(self.pos_y[i]));
             let base = p * vc;
             for dy in -rc..=rc {
                 let y = ccy + dy;
@@ -59,7 +62,9 @@ impl Sim {
                 }
                 let row = base + (y * self.vw) as usize;
                 for x in x0..=x1 {
-                    self.vis[row + x as usize] = 1;
+                    if self.grid.elevation_milli(x * VIS_SCALE, y * VIS_SCALE) <= unit_elev {
+                        self.vis[row + x as usize] = 1;
+                    }
                 }
             }
         }
