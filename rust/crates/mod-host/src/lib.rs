@@ -93,6 +93,15 @@ pub struct ModHost {
     mod_file: Option<ModFile>,
 }
 
+// The events a mod handles, each with the Lua arguments it receives. Editors list them.
+const EVENTS: [(&str, &str); 5] = [
+    ("on_spawned", "unit"),
+    ("on_attacked", "unit"),
+    ("on_died", "unit"),
+    ("on_enter", "region, unit"),
+    ("on_leave", "region, unit"),
+];
+
 fn io_err(e: std::io::Error) -> mlua::Error {
     mlua::Error::RuntimeError(e.to_string())
 }
@@ -387,6 +396,20 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
                 .position(|a| cat.name(a.name) == name)
                 .ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_ability: {name}")))?;
             ability_row(lua, cat, index)
+        })?,
+    )?;
+    // list_events() returns each event a mod can define, with its Lua arguments.
+    env.set(
+        "list_events",
+        lua.create_function(move |lua, ()| {
+            let out = lua.create_table()?;
+            for (i, (name, args)) in EVENTS.iter().enumerate() {
+                let row = lua.create_table()?;
+                row.set("name", *name)?;
+                row.set("args", *args)?;
+                out.raw_set((i + 1) as i64, row)?;
+            }
+            Ok(out)
         })?,
     )?;
     // buff_unit(unit, kind, ticks) gives a live unit a behaviour for `ticks` ticks. Returns
