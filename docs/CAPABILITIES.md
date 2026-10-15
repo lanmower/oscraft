@@ -30,7 +30,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-UNIT-3 | Load a unit catalog with per-kind stats | implemented | sim/src/loader.rs (load, unit_index) | gate:catalog-load |
 | CAP-UNIT-4 | Classify units as worker, structure, air or projectile | implemented | sim/src/loader.rs (is_worker, is_structure, is_air, is_projectile) | gate:unit-classes |
 | CAP-UNIT-5 | Let air units cross terrain that ground units cannot cross | claimed | none | gate:air-terrain-crossing |
-| CAP-UNIT-6 | Refuse ground-only weapons against air targets | stub | none | gate:ground-only-air-refusal |
+| CAP-UNIT-6 | Refuse ground-only weapons against air targets | claimed | none | gate:ground-only-air-refusal |
 | CAP-UNIT-7 | Load ground units into a transport up to a size-based capacity and unload them | stub | none | gate:transport-load |
 | CAP-UNIT-8 | Unload loaded units at a chosen point, including behind enemy lines | stub | none | gate:transport-unload-point |
 
