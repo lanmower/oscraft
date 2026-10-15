@@ -158,6 +158,8 @@ pub struct Sim {
     pub(crate) research_left: Vec<i32>,
     /// Research record index running at each building, -1 when none.
     pub(crate) research_rec: Vec<i32>,
+    /// Transport index each unit is boarded in, -1 when not boarded. A boarded unit is not alive.
+    pub(crate) loaded_into: Vec<i32>,
     pub(crate) has_seer: [bool; MAX_PLAYERS],
     pub(crate) team: [u8; MAX_PLAYERS],
     pub(crate) alliance: [u16; MAX_PLAYERS],
@@ -284,6 +286,7 @@ impl Sim {
             researched: vec![0; research_slots],
             research_left: vec![0; cap],
             research_rec: vec![-1; cap],
+            loaded_into: vec![-1; cap],
             seen: vec![0; MAX_PLAYERS * cap],
             seen_x: vec![0; MAX_PLAYERS * cap],
             seen_y: vec![0; MAX_PLAYERS * cap],
