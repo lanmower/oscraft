@@ -562,11 +562,9 @@ impl Sim {
         self.response[i] = def.response;
         self.product[i] = def.product_index().map_or(-1, |p| p as i32);
         self.flying[i] = u8::from(def.is_air());
-        self.targets[i] = if self.range_q[i] > 0 && self.range_q[i] <= MELEE_RANGE {
-            LAYER_GROUND
-        } else {
-            LAYER_GROUND | LAYER_AIR
-        };
+        // The v11 format names no anti-air weapon, so every weapon is a ground weapon and refuses
+        // air targets. A unit with no weapon targets nothing either way.
+        self.targets[i] = LAYER_GROUND;
         self.kind[i] = self.classify(def);
         self.blocked[i] = 0;
         self.routed[i] = 0;
