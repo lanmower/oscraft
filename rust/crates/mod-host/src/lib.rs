@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{LoadError, Sim};
+use sim::{LoadError, Refusal, Sim};
 use std::cell::{Cell, RefCell};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -310,6 +310,27 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             let player = sim.player(c);
             sim.damage_target(c as i32, player, dmg, t as i32);
             Ok(())
+        })?,
+    )?;
+    // order_attack(attacker, target) orders a live unit to attack a live target through the sim's
+    // attack path. Its damage fires on_attacked and, when lethal, on_died. A target that is not
+    // a live unit, or one the attacker cannot hit, raises invalid_target.
+    let w = world.clone();
+    env.set(
+        "order_attack",
+        lua.create_function(move |_, (attacker, target): (i64, i64)| {
+            let mut sim = w.borrow_mut();
+            let a = live_unit(&sim, attacker)?;
+            let t = usize::try_from(target)
+                .ok()
+                .filter(|&u| sim.alive(u))
+                .ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_target: {target} is not a live unit")))?;
+            sim.order_attack(a, t).map_err(|r| match r {
+                Refusal::InvalidOrderTarget | Refusal::NoTarget => {
+                    mlua::Error::RuntimeError(format!("invalid_target: {attacker} cannot attack {target}"))
+                }
+                other => mlua::Error::RuntimeError(format!("order_refused: {}", other.name())),
+            })
         })?,
     )?;
     // buff_unit(unit, kind, ticks) gives a live unit a behaviour for `ticks` ticks. Returns
