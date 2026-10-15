@@ -173,7 +173,7 @@ impl Sim {
             }
             EFFECT_BUFF => {
                 if target >= 0 && (target as usize) < self.n && self.meets_filter(target as usize, filter) {
-                    self.buff_unit(c, p, target as usize, eff.p0, eff.p1, eff.p2, false);
+                    self.buff_unit(c, p, target as usize, eff.p0, eff.p1, false);
                 }
             }
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),

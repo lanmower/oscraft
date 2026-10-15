@@ -94,9 +94,6 @@ pub struct Sim {
 
     pub(crate) buff_kind: Vec<i32>,
     pub(crate) buff_left: Vec<i32>,
-    pub(crate) buff_timer: Vec<i32>,
-    pub(crate) buff_period: Vec<i32>,
-    pub(crate) buff_dmg: Vec<i32>,
 
     pub(crate) m_alive: Vec<u8>,
     pub(crate) m_timer: Vec<i32>,
@@ -195,9 +192,6 @@ impl Sim {
             abil_on: false,
             buff_kind: vec![-1; cap * BUFF_SLOTS],
             buff_left: vec![0; cap * BUFF_SLOTS],
-            buff_timer: vec![0; cap * BUFF_SLOTS],
-            buff_period: vec![0; cap * BUFF_SLOTS],
-            buff_dmg: vec![0; cap * BUFF_SLOTS],
             m_alive: vec![0; MISSILE_CAP],
             m_timer: vec![0; MISSILE_CAP],
             m_caster: vec![-1; MISSILE_CAP],

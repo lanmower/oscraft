@@ -1,21 +1,21 @@
-//! Per-unit buff table: BUFF_SLOTS behaviours per unit, each dealing damage once
-//! per period until its applications run out. A behaviour already held is refreshed.
+//! Per-unit buff table: BUFF_SLOTS behaviour kinds per unit. Each held kind counts its
+//! remaining ticks down and is freed when they run out. Damage per application and its
+//! period have no field in format v4, so a buff carries only its kind and duration.
+//! A behaviour already held is refreshed to the new duration.
 
 use crate::arrays::Sim;
 use crate::*;
 
 impl Sim {
-    /// Gives unit `j` behaviour `kind`. Returns false (and counts a drop) with no free slot.
-    pub(crate) fn apply_buff(&mut self, j: usize, kind: i32, dmg: i32, period: i32, left: i32) -> bool {
+    /// Gives unit `j` behaviour `kind` for `ticks` ticks. Returns false (and counts a drop)
+    /// with no free slot.
+    pub(crate) fn apply_buff(&mut self, j: usize, kind: i32, ticks: i32) -> bool {
         let base = j * BUFF_SLOTS;
         let mut free = None;
         for k in 0..BUFF_SLOTS {
             let slot = base + k;
             if self.buff_kind[slot] == kind {
-                self.buff_left[slot] = left;
-                self.buff_timer[slot] = period;
-                self.buff_period[slot] = period;
-                self.buff_dmg[slot] = dmg;
+                self.buff_left[slot] = ticks;
                 return true;
             }
             if self.buff_kind[slot] < 0 && free.is_none() {
@@ -25,10 +25,7 @@ impl Sim {
         match free {
             Some(slot) => {
                 self.buff_kind[slot] = kind;
-                self.buff_left[slot] = left;
-                self.buff_timer[slot] = period;
-                self.buff_period[slot] = period;
-                self.buff_dmg[slot] = dmg;
+                self.buff_left[slot] = ticks;
                 true
             }
             None => {
@@ -60,8 +57,9 @@ impl Sim {
         self.scratch = buf;
     }
 
-    /// Applies or removes a behaviour on one unit, from an ability's buff effect.
-    pub(crate) fn buff_unit(&mut self, caster: i32, p: u8, j: usize, kind: i32, dmg: i32, period: i32, remove: bool) {
+    /// Applies or removes a behaviour on one unit, from an ability's buff effect. `ticks`
+    /// is the duration (format v4 buff p1).
+    pub(crate) fn buff_unit(&mut self, caster: i32, p: u8, j: usize, kind: i32, ticks: i32, remove: bool) {
         if j >= self.n || self.alive[j] == 0 || kind < 0 {
             return;
         }
@@ -72,10 +70,10 @@ impl Sim {
         if j as i32 == caster || self.player[j] == p {
             return;
         }
-        self.apply_buff(j, kind, dmg, period.max(1), 1);
+        self.apply_buff(j, kind, ticks);
     }
 
-    /// Ticks every held behaviour: damage on each period, slot freed after the last application.
+    /// Counts every held behaviour down one tick and frees the slot when its duration ends.
     pub(crate) fn tick_buffs(&mut self) {
         for i in 0..self.n {
             for k in 0..BUFF_SLOTS {
@@ -87,18 +85,10 @@ impl Sim {
                     self.buff_kind[slot] = -1;
                     continue;
                 }
-                self.buff_timer[slot] -= 1;
-                if self.buff_timer[slot] > 0 {
-                    continue;
-                }
-                let d = self.buff_dmg[slot];
-                self.hurt(i, d);
                 self.buff_left[slot] -= 1;
                 if self.buff_left[slot] <= 0 {
                     self.buff_kind[slot] = -1;
-                    continue;
                 }
-                self.buff_timer[slot] = self.buff_period[slot];
             }
         }
     }

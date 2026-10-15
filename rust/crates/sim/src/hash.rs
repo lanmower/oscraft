@@ -78,9 +78,6 @@ impl Sim {
         h.i32s(&self.energy);
         h.i32s(&self.buff_kind);
         h.i32s(&self.buff_left);
-        h.i32s(&self.buff_timer);
-        h.i32s(&self.buff_period);
-        h.i32s(&self.buff_dmg);
         h.bytes(&self.m_alive);
         h.i32s(&self.m_timer);
         h.i32s(&self.m_caster);

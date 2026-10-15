@@ -22,6 +22,7 @@ const EFFECT_ISSUE_ORDER: u16 = 5;
 const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
+const EFFECT_BUFF: u16 = 4;
 const TARGET_CODES: u8 = 3;
 const TRIGGER_CODES: u8 = 4;
 const ACTION_CODES: u8 = 3;
@@ -45,9 +46,9 @@ pub struct Effect {
     pub kind: u16,
     /// Damage and heal: amount (Q16.16). Spawn: unit index. Buff: behaviour kind.
     pub p0: i32,
-    /// Damage and heal: radius (Q16.16). Buff: damage per application (Q16.16).
+    /// Damage and heal: radius (Q16.16), until v5 defines one. Buff: duration, ticks.
     pub p1: i32,
-    /// Buff: ticks between applications.
+    /// Not read by any kind in format v4.
     pub p2: i32,
 }
 
@@ -268,6 +269,7 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         }
         EFFECT_REMOVE_BEHAVIOUR if e.p0 < 0 || e.p1 < 0 => Some("remove_behaviour kind or radius"),
         EFFECT_SHIELD_BONUS if e.p0 < 0 => Some("shield_bonus amount"),
+        EFFECT_BUFF if e.p0 < 0 => Some("buff kind"),
         _ => None,
     }
 }
