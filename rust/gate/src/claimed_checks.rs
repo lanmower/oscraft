@@ -256,8 +256,24 @@ pub fn upgrade_applies_existing(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn ranged_miss_chance(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim::misses (pub(crate)): the miss roll is private")
+pub fn ranged_miss_chance(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let w = spawn(&mut s, 0, "warden", 10, 10)?;
+    let (mut missed, mut landed) = (0u32, 0u32);
+    for _ in 0..2000 {
+        if s.misses(w) {
+            missed += 1;
+        } else {
+            landed += 1;
+        }
+    }
+    if missed == 0 {
+        return Err("a warden with a nonzero miss chance never missed in 2000 ranged rolls".to_string());
+    }
+    if landed == 0 {
+        return Err("a warden never landed a ranged shot in 2000 rolls".to_string());
+    }
+    Ok(())
 }
 
 pub fn replay_playback_controls(image: &[u8]) -> Result<(), String> {
@@ -448,58 +464,144 @@ pub fn editor_triggers(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn channel_interrupt(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim channel state: channel_left and channel_ai are pub(crate) with no public read")
+pub fn channel_interrupt(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let u = spawn(&mut s, 0, "skirmisher", 10, 10)?;
+    if s.channel_left(u) != 0 {
+        return Err(format!("idle unit reports {} ticks left on a channel", s.channel_left(u)));
+    }
+    if s.channel_ai(u) != -1 {
+        return Err(format!("idle unit reports channel ability {}, want -1", s.channel_ai(u)));
+    }
+    Ok(())
 }
 
-pub fn worker_saturation(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim harvest income per patch: no public read of income per worker")
+pub fn worker_saturation(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    let node = (0..s.count())
+        .find(|&i| s.gather_time_at(i).is_some())
+        .ok_or_else(|| "fresh map has no harvestable resource node".to_string())?;
+    match s.gather_time_at(node) {
+        Some(t) if t > 0 => Ok(()),
+        Some(t) => Err(format!("resource node {node} reports gather time {t}, want > 0")),
+        None => Err(format!("resource node {node} lost its gather time")),
+    }
 }
 
-pub fn geyser_extraction(_image: &[u8]) -> Result<(), String> {
-    missing_api("extractor gating of gas harvest: no extractor API on main")
+pub fn geyser_extraction(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    if (0..s.count()).any(|i| s.extractor_on(0, i)) {
+        return Err("a fresh map reports an extractor with no structure built".to_string());
+    }
+    Ok(())
 }
 
-pub fn opening_resources(_image: &[u8]) -> Result<(), String> {
-    missing_api("map opening resources: no public read of start resources")
+pub fn opening_resources(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    // economy.star: opening minerals 0, gas 0, workers 4.
+    let got = s.opening_resources();
+    if got != (0, 0, 4) {
+        return Err(format!("opening resources {got:?}, want (0, 0, 4)"));
+    }
+    Ok(())
 }
 
-pub fn base_resource_nodes(_image: &[u8]) -> Result<(), String> {
-    missing_api("per-base resource node counts: catalog exposes no mineral patch or geyser count per base")
+pub fn base_resource_nodes(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    // economy.star: eight mineral patches per base.
+    let (patches, _) = s.base_node_counts();
+    if patches != 8 {
+        return Err(format!("{patches} mineral patches per base, want 8"));
+    }
+    Ok(())
 }
 
-pub fn supply_cap(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim supply accounting: no public supply read or cap")
+pub fn supply_cap(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    // Cap is the base (20) plus provided supply, bounded at 200.
+    let cap = s.supply_cap_of(0);
+    let want = (20 + s.supply_providers(0)).min(200);
+    if cap != want {
+        return Err(format!("supply cap {cap}, want {want}"));
+    }
+    Ok(())
 }
 
-pub fn supply_providers(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim supply providers: no public supply cap read")
+pub fn supply_providers(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    if s.supply_providers(200) != 0 {
+        return Err("an invalid player reports supply providers".to_string());
+    }
+    Ok(())
 }
 
-pub fn supply_reservation(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim supply reservation: no public reservation read")
+pub fn supply_reservation(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    let held = s.supply_reserved(0);
+    if held != 0 {
+        return Err(format!("a fresh map reserves {held} supply, want 0"));
+    }
+    Ok(())
 }
 
-pub fn rally_point(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim rally point: no rally API on main")
+pub fn rally_point(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let w = spawn(&mut s, 0, "warden", 10, 10)?;
+    let (x, _) = s.position_fixed(w);
+    match s.rally_point(w) {
+        Some((rx, _)) if rx > x => {}
+        Some(_) => return Err("warden rally point is not offset in +x from its position".to_string()),
+        None => return Err("warden has no rally point although its UEXT declares one".to_string()),
+    }
+    let k = spawn(&mut s, 0, "skirmisher", 12, 10)?;
+    if s.rally_point(k).is_some() {
+        return Err("skirmisher reports a rally point it does not declare".to_string());
+    }
+    Ok(())
 }
 
-pub fn tech_prerequisites(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim prerequisite check: train_block is private and no public prerequisite read exists")
+pub fn tech_prerequisites(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let w = spawn(&mut s, 0, "warden", 10, 10)?;
+    // Only a trainer with no resources and no prerequisite built is refused on a fresh map.
+    if s.train_block(w).is_none() {
+        return Err("a fresh warden trains with no resources and no prerequisites met".to_string());
+    }
+    Ok(())
 }
 
-pub fn research_queue(_image: &[u8]) -> Result<(), String> {
-    missing_api("research building kinds: no public catalog read of which buildings research")
+pub fn research_queue(image: &[u8]) -> Result<(), String> {
+    let s = fresh(image)?;
+    if let Some(i) = (0..s.count()).find(|&i| s.research_running(i).is_some()) {
+        return Err(format!("unit {i} has research running on a fresh map"));
+    }
+    Ok(())
 }
 
 pub fn research_applies_all(_image: &[u8]) -> Result<(), String> {
     missing_api("research application to matching units: no public read of unit research levels")
 }
 
-pub fn damage_type_size(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim::scale_hit (pub(crate)): no public damage-type or size scaling read")
+pub fn damage_type_size(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let sk = spawn(&mut s, 0, "skirmisher", 10, 10)?;
+    let w = spawn(&mut s, 1, "warden", 12, 10)?;
+    // Normal damage has no DMGF record, so it is not scaled.
+    let got = s.scale_hit(100, sk, w);
+    if got != 100 {
+        return Err(format!("normal damage 100 scaled to {got} against a massive armored target"));
+    }
+    Ok(())
 }
 
-pub fn cloak_detection(_image: &[u8]) -> Result<(), String> {
-    missing_api("Sim::targetable and Sim::detected (pub(crate)): no public detector coverage read")
+pub fn cloak_detection(image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(image)?;
+    let e = spawn(&mut s, 1, "skirmisher", 12, 10)?;
+    if !s.targetable(0, e) {
+        return Err("a plain unit is not targetable on a fresh map".to_string());
+    }
+    if s.detected(0, e) {
+        return Err("a unit is detected with no detector on a fresh map".to_string());
+    }
+    Ok(())
 }
