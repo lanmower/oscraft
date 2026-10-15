@@ -11,7 +11,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 4;
+const STATE_VERSION: u16 = 5;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -383,6 +383,9 @@ impl Sim {
             put_i32(&mut w, r.until);
             put_bool(&mut w, r.live);
         }
+        for &t in &self.last_hit {
+            put_u32(&mut w, t);
+        }
         put_u64(&mut w, self.log_len as u64);
         put_u64(&mut w, self.log_dropped);
         for k in 0..self.log_len {
@@ -543,6 +546,7 @@ impl Sim {
             };
         }
 
+        r.u32s_into(&mut next.last_hit)?;
         let log_len = r.u64()? as usize;
         if log_len > ORDER_LOG_CAP {
             return Err(StateError::Length);

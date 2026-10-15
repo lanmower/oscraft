@@ -27,6 +27,7 @@ impl Sim {
             if self.alive[i] == 0 {
                 continue;
             }
+            self.regen_shield(i);
             if self.harvest && self.kind[i] == KIND_WORKER {
                 self.harvest_step(i);
             }

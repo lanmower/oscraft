@@ -65,6 +65,8 @@ pub struct Sim {
     pub(crate) cooldown: Vec<i32>,
     pub(crate) shield: Vec<i32>,
     pub(crate) shield_max: Vec<i32>,
+    /// Tick of each unit's last damage taken (or its spawn tick), for the regeneration delay.
+    pub(crate) last_hit: Vec<u32>,
     pub(crate) sight_cells: Vec<i32>,
     pub(crate) player: Vec<u8>,
     pub(crate) alive: Vec<u8>,
@@ -200,6 +202,7 @@ impl Sim {
             cooldown: vec![0; cap],
             shield: vec![0; cap],
             shield_max: vec![0; cap],
+            last_hit: vec![0; cap],
             sight_cells: vec![0; cap],
             player: vec![0; cap],
             alive: vec![0; cap],
@@ -491,6 +494,7 @@ impl Sim {
         self.train_hold[i] = 0;
         self.trig_hit[i] = 0;
         self.trig_spawn[i] = 1;
+        self.last_hit[i] = self.ticks;
         self.trig_idle[i] = 0;
         for slot in 0..ABILITY_SLOTS {
             self.trig_ready[i * ABILITY_SLOTS + slot] = 0;

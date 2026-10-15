@@ -112,6 +112,7 @@ impl Sim {
         self.touch(j);
         if dmg > 0 {
             self.trig_hit[j] = 1;
+            self.last_hit[j] = self.ticks;
             match self.response[j] {
                 RESPONSE_IMMUNE => dmg = 0,
                 RESPONSE_REDUCED => dmg /= 2,

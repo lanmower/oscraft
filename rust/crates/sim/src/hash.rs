@@ -38,6 +38,7 @@ impl Sim {
         h.bytes(&self.log_kind[..self.log_len]);
         h.i32s(&self.log_x[..self.log_len]);
         h.i32s(&self.log_y[..self.log_len]);
+        h.u32s(&self.last_hit);
         h.bytes(&self.grid.flags);
         h.i32s(&self.pos_x);
         h.i32s(&self.pos_y);

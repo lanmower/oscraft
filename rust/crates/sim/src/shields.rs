@@ -2,6 +2,7 @@
 //! at the unit's shield amount and is not regenerated here.
 
 use crate::arrays::Sim;
+use crate::fixed;
 
 impl Sim {
     /// Takes damage off unit `j`'s shield and returns what passes through to life.
@@ -68,6 +69,27 @@ impl Sim {
             self.shield[r] = next.max(0);
             self.touch(r);
         }
+    }
+
+    /// Regenerates shield on unit `i` once the regeneration delay since its last hit has passed.
+    /// The shield never exceeds its maximum. A unit kind with no shield regeneration is left alone.
+    pub(crate) fn regen_shield(&mut self, i: usize) {
+        let k = self.type_of[i];
+        if k < 0 || self.alive[i] == 0 {
+            return;
+        }
+        let r = match self.cat.regen.get(k as usize) {
+            Some(r) => *r,
+            None => return,
+        };
+        if r.shield_per_tick <= 0 || self.shield[i] >= self.shield_max[i] {
+            return;
+        }
+        if self.ticks.wrapping_sub(self.last_hit[i]) < r.delay as u32 {
+            return;
+        }
+        self.shield[i] = self.shield[i].saturating_add(fixed::from_int(r.shield_per_tick)).min(self.shield_max[i]);
+        self.touch(i);
     }
 
     /// Writes life clamped to [0, max]; a unit whose life reaches zero dies.
