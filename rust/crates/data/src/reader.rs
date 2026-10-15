@@ -62,6 +62,38 @@ struct Section {
     count: usize,
 }
 
+/// One section body as the image declares it, in table order.
+pub struct SectionView<'a> {
+    pub tag: [u8; 4],
+    pub count: usize,
+    pub body: &'a [u8],
+}
+
+/// Reads the section table of an image that passes `check_version` and returns
+/// each body as a slice of `image`. The layout is checked by `verify`.
+pub fn read_sections(image: &[u8]) -> Result<Vec<SectionView<'_>>> {
+    check_version(image)?;
+    let count = u32_at(image, 8)? as usize;
+    ensure!(count == SECTIONS.len(), "bad section count");
+    let mut views = Vec::with_capacity(count);
+    for i in 0..count {
+        let entry = HEADER_LEN + i * SECTION_ENTRY_LEN;
+        let tag: [u8; 4] = image
+            .get(entry..entry + 4)
+            .ok_or_else(|| anyhow!("section {i} table entry is truncated"))?
+            .try_into()?;
+        let offset = u32_at(image, entry + 4)? as usize;
+        let records = u32_at(image, entry + 8)? as usize;
+        let record = u32_at(image, entry + 12)? as usize;
+        let len = records * record;
+        let body = image
+            .get(offset..offset + len)
+            .ok_or_else(|| anyhow!("section {i} runs past the end of the file"))?;
+        views.push(SectionView { tag, count: records, body });
+    }
+    Ok(views)
+}
+
 pub fn verify(image: &[u8]) -> Result<()> {
     check_version(image)?;
     ensure!(u16_at(image, 6)? as usize == HEADER_LEN, "bad header length");

@@ -11,7 +11,7 @@ pub mod validate;
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, ensure, Context, Result};
 use starlark::environment::{Globals, Module};
 use starlark::eval::Evaluator;
 use starlark::syntax::{AstModule, Dialect};
@@ -20,7 +20,8 @@ use crate::model::Collector;
 
 /// Evaluates every `*.star` file directly inside `src_dir` (sorted by name),
 /// then returns the encoded image. Subdirectories are not read. The image is
-/// checked by `reader::verify` before it is returned.
+/// checked by `reader::verify`, and its sections must read back equal to the
+/// sections the encoder wrote, before it is returned.
 pub fn generate(src_dir: &Path) -> Result<Vec<u8>> {
     let mut files: Vec<PathBuf> = std::fs::read_dir(src_dir)
         .with_context(|| format!("reading {}", src_dir.display()))?
@@ -40,9 +41,31 @@ pub fn generate(src_dir: &Path) -> Result<Vec<u8>> {
     }
 
     let catalog = validate::validate(collector)?;
-    let image = encode::encode(&catalog);
+    let written = encode::sections(&catalog);
+    let image = encode::assemble(&written);
     reader::verify(&image)?;
+    check_round_trip(&written, &image)?;
     Ok(image)
+}
+
+/// Compares every section read back from the image with the section the
+/// encoder wrote: same order, tag, record count and body bytes.
+fn check_round_trip(written: &[encode::Section], image: &[u8]) -> Result<()> {
+    let read = reader::read_sections(image)?;
+    ensure!(
+        read.len() == written.len(),
+        "round trip: wrote {} sections, read {}",
+        written.len(),
+        read.len()
+    );
+    for (w, r) in written.iter().zip(&read) {
+        ensure!(
+            w.tag == r.tag && w.count == r.count && w.body == r.body,
+            "round trip: section {} differs after read-back",
+            String::from_utf8_lossy(&w.tag)
+        );
+    }
+    Ok(())
 }
 
 fn eval_file(collector: &Collector, globals: &Globals, name: &str, source: String) -> Result<()> {

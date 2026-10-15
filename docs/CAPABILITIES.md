@@ -140,7 +140,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
 | CAP-PERS-1 | Read a map data image and check its version | implemented | data/src/reader.rs (check_version, verify; ImageError::VersionMismatch) | gate:map-image-read |
-| CAP-PERS-2 | Write map data to a versioned image | partial | data/src/encode.rs, data/src/format.rs; round trip not gated | gate:map-image-roundtrip |
+| CAP-PERS-2 | Write map data to a versioned image | implemented | data/src/encode.rs (sections, assemble); data/src/reader.rs (read_sections); data/src/lib.rs (check_round_trip) | gate:map-image-roundtrip |
 | CAP-PERS-3 | Save and load live sim state | stub | none | gate:save-load-state |
 
 ## Presentation (headless)
