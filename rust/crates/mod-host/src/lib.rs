@@ -30,10 +30,29 @@ impl Region {
     }
 }
 
+struct Hooks {
+    on_tick: Function,
+    on_enter: Option<Function>,
+    on_leave: Option<Function>,
+}
+
 struct ModFile {
     path: PathBuf,
     mtime: SystemTime,
-    on_tick: Function,
+    hooks: Hooks,
+}
+
+#[derive(Clone, Copy)]
+struct UnitSnap {
+    x: i32,
+    y: i32,
+    alive: bool,
+}
+
+#[derive(Clone, Copy)]
+enum Pending {
+    Enter { unit: usize, region: usize },
+    Leave { unit: usize, region: usize },
 }
 
 pub struct ModHost {
@@ -41,6 +60,9 @@ pub struct ModHost {
     world: Shared,
     state: Table,
     regions: Regions,
+    inside: Vec<u64>,
+    snap: Vec<UnitSnap>,
+    pending: Vec<Pending>,
     mod_file: Option<ModFile>,
 }
 
@@ -116,7 +138,7 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions) -> mlua:
 
 // Builds a fresh environment, runs the chunk in it, and returns its on_tick.
 // Errors carry "<path>:<line>: <message>" because the chunk is named "@<path>".
-fn compile(lua: &Lua, world: &Shared, regions: &Regions, path: &Path) -> mlua::Result<Function> {
+fn compile(lua: &Lua, world: &Shared, regions: &Regions, path: &Path) -> mlua::Result<Hooks> {
     let src = fs::read_to_string(path).map_err(io_err)?;
     let env = lua.create_table()?;
     bind_host(lua, &env, world, regions)?;
@@ -124,8 +146,10 @@ fn compile(lua: &Lua, world: &Shared, regions: &Regions, path: &Path) -> mlua::R
         .set_name(format!("@{}", path.display()))
         .set_environment(env.clone())
         .exec()?;
-    env.get::<Option<Function>>("on_tick")?
-        .ok_or_else(|| mlua::Error::RuntimeError(format!("{}: on_tick is not defined", path.display())))
+    let on_tick = env
+        .get::<Option<Function>>("on_tick")?
+        .ok_or_else(|| mlua::Error::RuntimeError(format!("{}: on_tick is not defined", path.display())))?;
+    Ok(Hooks { on_tick, on_enter: env.get("on_enter")?, on_leave: env.get("on_leave")? })
 }
 
 fn mtime(path: &Path) -> std::io::Result<SystemTime> {
@@ -141,13 +165,22 @@ impl ModHost {
         state.set("ticks", 0i64).expect("seed state.ticks");
         let world = Rc::new(RefCell::new(sim::load(image, MAX_UNITS)?));
         let regions: Regions = Rc::new(RefCell::new(Vec::with_capacity(MAX_REGIONS)));
-        Ok(ModHost { lua, world, state, regions, mod_file: None })
+        Ok(ModHost {
+            lua,
+            world,
+            state,
+            regions,
+            inside: vec![0; MAX_UNITS],
+            snap: Vec::with_capacity(MAX_UNITS),
+            pending: Vec::with_capacity(MAX_UNITS * MAX_REGIONS),
+            mod_file: None,
+        })
     }
 
     /// Compiles the mod at `path` and makes it the active mod.
     pub fn load(&mut self, path: &Path) -> mlua::Result<()> {
-        let on_tick = compile(&self.lua, &self.world, &self.regions, path)?;
-        self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, on_tick });
+        let hooks = compile(&self.lua, &self.world, &self.regions, path)?;
+        self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, hooks });
         Ok(())
     }
 
@@ -160,8 +193,8 @@ impl ModHost {
         }
         m.mtime = t;
         match compile(&self.lua, &self.world, &self.regions, &m.path) {
-            Ok(f) => {
-                m.on_tick = f;
+            Ok(hooks) => {
+                m.hooks = hooks;
                 println!("reload: ok ({})", m.path.display());
             }
             Err(e) => println!("reload: FAILED, old on_tick kept: {e}"),
@@ -171,9 +204,69 @@ impl ModHost {
     /// Runs the active mod's on_tick once. A runtime error is returned with file and line.
     pub fn tick(&self, state: &Table) -> mlua::Result<()> {
         match &self.mod_file {
-            Some(m) => m.on_tick.call::<()>(state.clone()),
+            Some(m) => m.hooks.on_tick.call::<()>(state.clone()),
             None => Ok(()),
         }
+    }
+
+    /// One sim tick, then trigger zone transitions for the new unit positions, then
+    /// on_tick. Transitions are emitted in unit index order, then region index order.
+    pub fn advance(&mut self, state: &Table) -> mlua::Result<()> {
+        self.world.borrow_mut().tick();
+        self.collect();
+        self.dispatch()?;
+        self.tick(state)
+    }
+
+    fn collect(&mut self) {
+        self.snap.clear();
+        self.pending.clear();
+        {
+            let sim = self.world.borrow();
+            for i in 0..sim.count() {
+                let (x, y) = sim.position_fixed(i);
+                self.snap.push(UnitSnap { x, y, alive: sim.alive(i) });
+            }
+        }
+        let regions = self.regions.borrow();
+        for (unit, s) in self.snap.iter().enumerate() {
+            let mut after = 0u64;
+            if s.alive {
+                for (r, g) in regions.iter().enumerate() {
+                    if g.contains(s.x, s.y) {
+                        after |= 1 << r;
+                    }
+                }
+            }
+            let before = self.inside[unit];
+            for r in 0..regions.len() {
+                let bit = 1u64 << r;
+                match (before & bit != 0, after & bit != 0) {
+                    (false, true) => self.pending.push(Pending::Enter { unit, region: r }),
+                    (true, false) => self.pending.push(Pending::Leave { unit, region: r }),
+                    _ => {}
+                }
+            }
+            self.inside[unit] = after;
+        }
+    }
+
+    fn dispatch(&mut self) -> mlua::Result<()> {
+        let Some(m) = self.mod_file.as_ref() else { return Ok(()) };
+        let (enter, leave) = (m.hooks.on_enter.clone(), m.hooks.on_leave.clone());
+        for k in 0..self.pending.len() {
+            let (hook, unit, region) = match self.pending[k] {
+                Pending::Enter { unit, region } => (enter.as_ref(), unit, region),
+                Pending::Leave { unit, region } => (leave.as_ref(), unit, region),
+            };
+            let Some(hook) = hook else { continue };
+            let name = match self.regions.borrow().get(region) {
+                Some(g) => g.name.clone(),
+                None => continue,
+            };
+            hook.call::<()>((name, unit as i64))?;
+        }
+        Ok(())
     }
 
     pub fn lua(&self) -> &Lua {
