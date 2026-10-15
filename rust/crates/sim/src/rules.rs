@@ -237,7 +237,7 @@ impl Sim {
             return;
         }
         if ai >= self.cat.abilities.len() {
-            self.refuse(Refusal::NoSlot);
+            // A caller error that changes nothing: not counted, so the state hash stays put.
             return;
         }
         let ability = self.cat.abilities[ai];
