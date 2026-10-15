@@ -62,13 +62,14 @@ pub fn verify(image: &[u8]) -> Result<()> {
     let rsch = &sections[13];
     let preq = &sections[14];
     let dmgf = &sections[15];
-    let grid = &sections[16];
+    let doda = &sections[16];
+    let grid = &sections[17];
 
     let width = u32_at(image, grid.offset)?;
     let height = u32_at(image, grid.offset + 4)?;
     let cell_milli = u32_at(image, grid.offset + 8)?;
     ensure!(
-        width >= 1 && height >= 1 && GRID_HEADER_LEN + 2 * width as usize * height as usize == grid.count,
+        width >= 1 && height >= 1 && GRID_HEADER_LEN + 3 * width as usize * height as usize == grid.count,
         "grid size does not match its header"
     );
     ensure!(u32_at(image, grid.offset + 12)? >= 1, "grid height step is 0");
@@ -230,7 +231,21 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(size < SIZE_CATEGORIES.len(), "damage factor {i} size out of range");
     }
 
-    let walkability_end = grid.offset + GRID_HEADER_LEN + width as usize * height as usize;
+    let mut doodad_ids = std::collections::HashSet::new();
+    for i in 0..doda.count {
+        let at = doda.offset + i * DODA_RECORD;
+        let id = u32_at(image, at)?;
+        let kind = u16_at(image, at + 4)? as usize;
+        let x = u32_at(image, at + 8)? as i64;
+        let y = u32_at(image, at + 12)? as i64;
+        let rotation = u32_at(image, at + 16)?;
+        ensure!(kind < DOODAD_KINDS.len(), "doodad {i} kind out of range");
+        ensure!(rotation < 1000, "doodad {i} rotation is 1000 or more");
+        ensure!(doodad_ids.insert(id), "doodad id {id} repeats");
+        ensure!(position_on_grid(x, y, width, height, cell_milli), "doodad {i} is off the grid");
+    }
+
+    let walkability_end = grid.offset + GRID_HEADER_LEN + 2 * width as usize * height as usize;
     for &cell in &image[grid.offset + GRID_HEADER_LEN..walkability_end] {
         ensure!(cell & !CELL_MASK == 0, "grid cell {cell:#04x} has bits outside the walkability mask");
     }

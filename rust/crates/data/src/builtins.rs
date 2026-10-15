@@ -10,11 +10,11 @@ use starlark::values::{list::UnpackList, none::NoneType};
 use crate::format::{
     effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, CLOAK_FLAGS, DAMAGE_RESPONSES,
     DAMAGE_TYPES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
-    TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
+    DOODAD_KINDS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
 };
 use crate::model::{
     AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw,
-    ResearchRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
+    DoodadRaw, ResearchRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
 };
 
 pub fn globals() -> Globals {
@@ -278,6 +278,8 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] level: Option<i32>,
         #[starlark(require = named)] apply: Option<&str>,
         #[starlark(require = named)] stacking: Option<&str>,
+        #[starlark(require = named)] minerals_per_level: Option<i32>,
+        #[starlark(require = named)] gas_per_level: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let target_kind = index_of(UPGRADE_TARGET_KINDS, kind, "upgrade target kind")?;
@@ -292,6 +294,8 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             apply,
             stacking,
             effect,
+            minerals_per_level: minerals_per_level.unwrap_or(0),
+            gas_per_level: gas_per_level.unwrap_or(0),
         });
         Ok(NoneType)
     }
@@ -429,6 +433,52 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             cells: vec![fill; cell_count],
             height_step: 1000,
             heights: vec![0; cell_count],
+            tiles: vec![0; cell_count],
+        });
+        Ok(NoneType)
+    }
+
+    fn paint_tile(
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        id: i32,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.grid.borrow_mut();
+        let grid = slot.as_mut().ok_or_else(|| anyhow!("paint_tile() needs grid() first"))?;
+        let (width, height) = (grid.width as i32, grid.height as i32);
+        if !(0 <= x0 && x0 <= x1 && x1 <= width && 0 <= y0 && y0 <= y1 && y1 <= height) {
+            bail!("paint_tile({x0}, {y0}, {x1}, {y1}) is inverted or outside the {width}x{height} grid");
+        }
+        let id = u8::try_from(id).map_err(|_| anyhow!("tile id {id} must be 0..=255"))?;
+        for y in y0..y1 {
+            let row = (y * width) as usize;
+            grid.tiles[row + x0 as usize..row + x1 as usize].fill(id);
+        }
+        Ok(NoneType)
+    }
+
+    fn doodad(
+        id: i32,
+        kind: &str,
+        x: i32,
+        y: i32,
+        #[starlark(require = named)] rotation: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let kind = index_of(DOODAD_KINDS, kind, "doodad kind")?;
+        if id < 0 {
+            bail!("doodad id {id} is negative");
+        }
+        collector(eval)?.doodads.borrow_mut().push(DoodadRaw {
+            id,
+            kind,
+            x,
+            y,
+            rotation: rotation.unwrap_or(0),
         });
         Ok(NoneType)
     }

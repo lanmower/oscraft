@@ -191,6 +191,8 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         upgr.push(upgrade.stacking);
         u16_le(&mut upgr, upgrade.target);
         u32_le(&mut upgr, effect_index);
+        u32_le(&mut upgr, upgrade.minerals_per_level);
+        u32_le(&mut upgr, upgrade.gas_per_level);
         debug_assert_eq!(upgr.len() - start, UPGR_RECORD);
     }
 
@@ -256,13 +258,26 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
     let mut limt = Vec::new();
     u32_le(&mut limt, catalog.cell_limit);
 
-    let mut grid = Vec::with_capacity(GRID_HEADER_LEN + 2 * catalog.grid.cells.len());
+    let mut doda = Vec::new();
+    for doodad in &catalog.doodads {
+        let start = doda.len();
+        u32_le(&mut doda, doodad.id);
+        u16_le(&mut doda, doodad.kind);
+        pad(&mut doda, 2);
+        u32_le(&mut doda, doodad.x);
+        u32_le(&mut doda, doodad.y);
+        u32_le(&mut doda, doodad.rotation);
+        debug_assert_eq!(doda.len() - start, DODA_RECORD);
+    }
+
+    let mut grid = Vec::with_capacity(GRID_HEADER_LEN + 3 * catalog.grid.cells.len());
     u32_le(&mut grid, catalog.grid.width);
     u32_le(&mut grid, catalog.grid.height);
     u32_le(&mut grid, catalog.grid.cell_milli);
     u32_le(&mut grid, catalog.grid.height_step);
     grid.extend_from_slice(&catalog.grid.cells);
     grid.extend_from_slice(&catalog.grid.heights);
+    grid.extend_from_slice(&catalog.grid.tiles);
 
     let strs_len = strings.bytes.len();
     let grid_len = grid.len();
@@ -283,6 +298,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_RSCH, catalog.researches.len(), RSCH_RECORD, rsch),
         (TAG_PREQ, catalog.prereqs.len(), PREQ_RECORD, preq),
         (TAG_DMGF, catalog.damage_factors.len(), DMGF_RECORD, dmgf),
+        (TAG_DODA, catalog.doodads.len(), DODA_RECORD, doda),
         (TAG_GRID, grid_len, GRID_RECORD, grid),
     ];
 

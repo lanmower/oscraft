@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 12;
+pub const VERSION: u16 = 14;
 pub const PLCE_FLAG_START: u32 = 1;
 pub const NEUTRAL_PLAYER: u16 = u16::MAX;
 pub const HEADER_LEN: usize = 16;
@@ -74,6 +74,7 @@ pub const TAG_ACHN: [u8; 4] = *b"ACHN";
 pub const TAG_RSCH: [u8; 4] = *b"RSCH";
 pub const TAG_PREQ: [u8; 4] = *b"PREQ";
 pub const TAG_DMGF: [u8; 4] = *b"DMGF";
+pub const TAG_DODA: [u8; 4] = *b"DODA";
 pub const TAG_GRID: [u8; 4] = *b"GRID";
 
 pub const STRS_RECORD: usize = 1;
@@ -83,7 +84,7 @@ pub const UABL_RECORD: usize = 2;
 pub const UNIT_RECORD: usize = 80;
 pub const BHVR_RECORD: usize = 16;
 pub const PLCE_RECORD: usize = 16;
-pub const UPGR_RECORD: usize = 16;
+pub const UPGR_RECORD: usize = 24;
 pub const REGN_RECORD: usize = 12;
 pub const LIMT_RECORD: usize = 4;
 pub const ECON_RECORD: usize = 32;
@@ -92,11 +93,13 @@ pub const ACHN_RECORD: usize = 8;
 pub const RSCH_RECORD: usize = 32;
 pub const PREQ_RECORD: usize = 8;
 pub const DMGF_RECORD: usize = 8;
+pub const DODA_RECORD: usize = 20;
 pub const GRID_RECORD: usize = 1;
+pub const DOODAD_KINDS: &[&str] = &["rock", "tree", "crystal", "debris"];
 pub const GRID_HEADER_LEN: usize = 16;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
-pub const SECTIONS: [([u8; 4], usize); 17] = [
+pub const SECTIONS: [([u8; 4], usize); 18] = [
     (TAG_STRS, STRS_RECORD),
     (TAG_EFCT, EFCT_RECORD),
     (TAG_ABIL, ABIL_RECORD),
@@ -113,6 +116,7 @@ pub const SECTIONS: [([u8; 4], usize); 17] = [
     (TAG_RSCH, RSCH_RECORD),
     (TAG_PREQ, PREQ_RECORD),
     (TAG_DMGF, DMGF_RECORD),
+    (TAG_DODA, DODA_RECORD),
     (TAG_GRID, GRID_RECORD),
 ];
 

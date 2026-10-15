@@ -10,7 +10,7 @@ use crate::format::{
 };
 use crate::model::{
     Ability, Behaviour, Catalog, Channel, Collector, DamageFactor, Econ, Effect, Prereq, Research, Spawn, Unit,
-    UnitExt, Upgrade, Weapon,
+    Doodad, UnitExt, Upgrade, Weapon,
 };
 
 fn valid_name(name: &str) -> Result<()> {
@@ -65,6 +65,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let behaviours_raw = collector.behaviours.into_inner();
     let spawns_raw = collector.spawns.into_inner();
     let upgrades_raw = collector.upgrades.into_inner();
+    let doodads_raw = collector.doodads.into_inner();
     let unit_ext_raw = collector.unit_ext.into_inner();
     let channels_raw = collector.channels.into_inner();
     let economy_raw = collector.economy.into_inner();
@@ -410,6 +411,8 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             level: raw.level as u8,
             apply: raw.apply as u8,
             stacking: raw.stacking as u8,
+            minerals_per_level: unsigned("upgrade minerals per level", raw.minerals_per_level)?,
+            gas_per_level: unsigned("upgrade gas per level", raw.gas_per_level)?,
             effect: Effect {
                 kind: effect.kind as u16,
                 params: effect.params,
@@ -417,7 +420,29 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         });
     }
 
+    let mut doodads = Vec::with_capacity(doodads_raw.len());
+    let mut doodad_ids = HashSet::new();
+    for raw in &doodads_raw {
+        if raw.id < 0 || !doodad_ids.insert(raw.id) {
+            bail!("doodad id {} is negative or repeats", raw.id);
+        }
+        if !position_on_grid(raw.x as i64, raw.y as i64, grid.width, grid.height, grid.cell_milli) {
+            bail!("doodad {} at ({}, {}) is off the grid", raw.id, raw.x, raw.y);
+        }
+        if !(0..1000).contains(&raw.rotation) {
+            bail!("doodad {} rotation {} is outside 0..1000", raw.id, raw.rotation);
+        }
+        doodads.push(Doodad {
+            id: raw.id as u32,
+            kind: raw.kind as u16,
+            x: raw.x as u32,
+            y: raw.y as u32,
+            rotation: raw.rotation as u32,
+        });
+    }
+
     Ok(Catalog {
+        doodads,
         units,
         unit_ext,
         abilities,

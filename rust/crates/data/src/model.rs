@@ -107,6 +107,15 @@ pub struct DamageFactorRaw {
 }
 
 #[derive(Debug)]
+pub struct DoodadRaw {
+    pub id: i32,
+    pub kind: usize,
+    pub x: i32,
+    pub y: i32,
+    pub rotation: i32,
+}
+
+#[derive(Debug)]
 pub struct AbilityRaw {
     pub name: String,
     pub cooldown: i32,
@@ -144,6 +153,8 @@ pub struct UpgradeRaw {
     pub apply: usize,
     pub stacking: usize,
     pub effect: usize,
+    pub minerals_per_level: i32,
+    pub gas_per_level: i32,
 }
 
 /// Map grid, built by `grid()` and painted by `paint()`. Also the validated form.
@@ -156,6 +167,7 @@ pub struct Grid {
     pub height_step: u32,
     pub cells: Vec<u8>,
     pub heights: Vec<u8>,
+    pub tiles: Vec<u8>,
 }
 
 /// Lives in `Evaluator::extra`; builtins push into it while the .star files run.
@@ -175,6 +187,7 @@ pub struct Collector {
     pub researches: RefCell<Vec<ResearchRaw>>,
     pub prerequisites: RefCell<Vec<PrereqRaw>>,
     pub damage_factors: RefCell<Vec<DamageFactorRaw>>,
+    pub doodads: RefCell<Vec<DoodadRaw>>,
     pub grid: RefCell<Option<Grid>>,
 }
 
@@ -316,6 +329,17 @@ pub struct Upgrade {
     pub apply: u8,
     pub stacking: u8,
     pub effect: Effect,
+    pub minerals_per_level: u32,
+    pub gas_per_level: u32,
+}
+
+#[derive(Debug, Default)]
+pub struct Doodad {
+    pub id: u32,
+    pub kind: u16,
+    pub x: u32,
+    pub y: u32,
+    pub rotation: u32,
 }
 
 #[derive(Debug, Default)]
@@ -327,6 +351,7 @@ pub struct Catalog {
     pub behaviours: Vec<Behaviour>,
     pub spawns: Vec<Spawn>,
     pub upgrades: Vec<Upgrade>,
+    pub doodads: Vec<Doodad>,
     pub cell_limit: u32,
     pub econ: Econ,
     pub researches: Vec<Research>,
