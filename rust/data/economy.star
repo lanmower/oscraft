@@ -5,7 +5,7 @@ economy(
     patches_per_base=8,
     geysers_per_base=2,
     extractor_yield=4,
-    opening_minerals=50,
+    opening_minerals=0,
     opening_gas=0,
     opening_workers=4,
     supply_base=10,
