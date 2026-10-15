@@ -28,9 +28,10 @@ pub enum Refusal {
     MoveRange,
     InvalidOrderKind,
     InvalidOrderTarget,
+    CannotAfford,
 }
 
-pub const REFUSAL_KINDS: usize = 16;
+pub const REFUSAL_KINDS: usize = 17;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -51,6 +52,7 @@ impl Refusal {
             Refusal::MoveRange => "move-range",
             Refusal::InvalidOrderKind => "invalid-order-kind",
             Refusal::InvalidOrderTarget => "invalid-order-target",
+            Refusal::CannotAfford => "cannot-afford",
         }
     }
 }

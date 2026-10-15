@@ -25,6 +25,8 @@ pub struct Stats {
     pub vision_refreshes: usize,
     pub harvested: usize,
     pub trained: usize,
+    pub trains_refused: usize,
+    pub last_train_refusal: Refusal,
     pub retargets: usize,
     pub retargets_deferred: usize,
     pub casts: usize,

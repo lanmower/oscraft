@@ -1,9 +1,11 @@
 //! Production: a building trains its product. The train cost and build time are
-//! the product's own (its minerals, gas and build ticks), paid up front, and the
-//! finished unit appears beside the building.
+//! the product's own (its minerals, gas and build ticks), paid up front when the
+//! train starts, and the finished unit appears beside the building. A train the
+//! player cannot pay for does not start and counts as CannotAfford in the stats.
 
 use crate::arrays::Sim;
 use crate::fixed;
+use crate::rules::Refusal;
 use crate::*;
 
 impl Sim {
@@ -25,6 +27,8 @@ impl Sim {
             return;
         }
         if self.minerals[p] < def.minerals || self.vespene[p] < def.gas {
+            self.stats.trains_refused += 1;
+            self.stats.last_train_refusal = Refusal::CannotAfford;
             return;
         }
         self.minerals[p] -= def.minerals;

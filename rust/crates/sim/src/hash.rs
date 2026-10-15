@@ -105,6 +105,7 @@ impl Sim {
             self.stats.vision_refreshes as u64,
             self.stats.harvested as u64,
             self.stats.trained as u64,
+            self.stats.trains_refused as u64,
             self.stats.casts as u64,
             self.stats.casts_refused as u64,
             self.stats.missiles_lost as u64,
