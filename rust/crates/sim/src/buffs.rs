@@ -67,7 +67,7 @@ impl Sim {
             self.clear_buff(j, kind);
             return;
         }
-        if j as i32 == caster || self.player[j] == p {
+        if j as i32 == caster || !self.hostile(p, self.player[j]) {
             return;
         }
         self.apply_buff(j, kind, ticks);

@@ -14,7 +14,7 @@ impl Sim {
         let n = self.gather(x, y, rad, &mut buf);
         for k in 0..n {
             let j = buf[k] as usize;
-            if self.alive[j] == 0 || self.player[j] != p {
+            if self.alive[j] == 0 || self.hostile(p, self.player[j]) {
                 continue;
             }
             self.hp[j] = self.hp[j].wrapping_add(amt);
@@ -32,7 +32,7 @@ impl Sim {
             return;
         }
         let j = target as usize;
-        if self.alive[j] == 0 || self.player[j] != p {
+        if self.alive[j] == 0 || self.hostile(p, self.player[j]) {
             return;
         }
         self.hp[j] = self.hp[j].wrapping_add(amt).min(self.hp_max[j]);

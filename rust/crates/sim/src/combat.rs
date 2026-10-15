@@ -44,7 +44,7 @@ impl Sim {
                 let cnt = self.bucket_n[cell] as usize;
                 for k in 0..cnt {
                     let j = self.bucket_idx[cell * BUCKET_CAP + k] as usize;
-                    if j == i || self.alive[j] == 0 || self.player[j] == self.player[i] {
+                    if j == i || self.alive[j] == 0 || !self.hostile(self.player[i], self.player[j]) {
                         continue;
                     }
                     if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) {
@@ -100,7 +100,7 @@ impl Sim {
             return;
         }
         let j = target as usize;
-        if target == caster || self.alive[j] == 0 || self.player[j] == p {
+        if target == caster || self.alive[j] == 0 || !self.hostile(p, self.player[j]) {
             return;
         }
         self.hurt(j, dmg);
@@ -116,7 +116,7 @@ impl Sim {
         let n = self.gather(x, y, rad, &mut buf);
         for k in 0..n {
             let j = buf[k] as usize;
-            if j as i32 == caster || self.alive[j] == 0 || self.player[j] == p {
+            if j as i32 == caster || self.alive[j] == 0 || !self.hostile(p, self.player[j]) {
                 continue;
             }
             self.hurt(j, dmg);

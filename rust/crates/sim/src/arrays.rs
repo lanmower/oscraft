@@ -132,6 +132,8 @@ pub struct Sim {
     pub(crate) vh: i32,
     pub(crate) vcells: usize,
     pub(crate) has_seer: [bool; MAX_PLAYERS],
+    pub(crate) team: [u8; MAX_PLAYERS],
+    pub(crate) alliance: [u16; MAX_PLAYERS],
     pub(crate) reveals: [Reveal; REVEAL_CAP],
     pub(crate) fog: bool,
     pub(crate) harvest: bool,
@@ -240,6 +242,8 @@ impl Sim {
             vh,
             vcells,
             has_seer: [false; MAX_PLAYERS],
+            team: std::array::from_fn(|p| p as u8),
+            alliance: [0; MAX_PLAYERS],
             reveals: [Reveal::default(); REVEAL_CAP],
             fog: true,
             harvest: true,
@@ -305,6 +309,56 @@ impl Sim {
             self.minerals[p as usize] += minerals;
             self.vespene[p as usize] += vespene;
         }
+    }
+
+    /// Puts player `p` on team `team`. Players on one team are allied. Each player starts on
+    /// its own team, so every other player is hostile until a mod changes it.
+    /// Refusals: a player or team index at or past MAX_PLAYERS is InvalidPlayer or InvalidTeam.
+    pub fn set_team(&mut self, p: u8, team: u8) -> Result<(), Refusal> {
+        if (p as usize) >= MAX_PLAYERS {
+            return Err(self.reject(Refusal::InvalidPlayer));
+        }
+        if (team as usize) >= MAX_PLAYERS {
+            return Err(self.reject(Refusal::InvalidTeam));
+        }
+        self.team[p as usize] = team;
+        Ok(())
+    }
+
+    /// Makes players `a` and `b` allied (`on`) or not allied (`!on`), one way round, in both
+    /// directions. A player is always allied with itself. Refusal: InvalidPlayer for an index
+    /// at or past MAX_PLAYERS.
+    pub fn set_alliance(&mut self, a: u8, b: u8, on: bool) -> Result<(), Refusal> {
+        if (a as usize) >= MAX_PLAYERS || (b as usize) >= MAX_PLAYERS {
+            return Err(self.reject(Refusal::InvalidPlayer));
+        }
+        if a == b {
+            return Ok(());
+        }
+        let (ai, bi) = (a as usize, b as usize);
+        if on {
+            self.alliance[ai] |= 1 << bi;
+            self.alliance[bi] |= 1 << ai;
+        } else {
+            self.alliance[ai] &= !(1 << bi);
+            self.alliance[bi] &= !(1 << ai);
+        }
+        Ok(())
+    }
+
+    /// True when a unit of player `a` is an enemy of a unit of player `b`: different players
+    /// on different teams with no alliance between them. Indices past MAX_PLAYERS are enemies.
+    pub(crate) fn hostile(&self, a: u8, b: u8) -> bool {
+        if a == b {
+            return false;
+        }
+        let (ai, bi) = (a as usize, b as usize);
+        if ai >= MAX_PLAYERS || bi >= MAX_PLAYERS {
+            return true;
+        }
+        let same_team = self.team[ai] == self.team[bi];
+        let allied = self.alliance[ai] & (1 << bi) != 0;
+        !(same_team || allied)
     }
 
     pub fn minerals(&self, p: u8) -> i32 {

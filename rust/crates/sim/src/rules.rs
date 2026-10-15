@@ -30,9 +30,11 @@ pub enum Refusal {
     InvalidOrderTarget,
     CannotAfford,
     NoTrain,
+    InvalidPlayer,
+    InvalidTeam,
 }
 
-pub const REFUSAL_KINDS: usize = 18;
+pub const REFUSAL_KINDS: usize = 20;
 
 impl Refusal {
     pub fn name(self) -> &'static str {
@@ -55,6 +57,8 @@ impl Refusal {
             Refusal::InvalidOrderTarget => "invalid-order-target",
             Refusal::CannotAfford => "cannot-afford",
             Refusal::NoTrain => "no-train",
+            Refusal::InvalidPlayer => "invalid-player",
+            Refusal::InvalidTeam => "invalid-team",
         }
     }
 }

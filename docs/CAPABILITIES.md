@@ -86,7 +86,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 |---|---|---|---|---|
 | CAP-PLR-1 | Own units by player index (16 players) | implemented | sim/src/arrays.rs (player); server/src/order.rs (ORDER_PLAYERS) | gate:player-ownership |
 | CAP-PLR-2 | Report per-player unit presence and resources | implemented | server/src/room.rs (player_has_units, stats); server/src/main.rs (resources) | gate:player-resources |
-| CAP-PLR-3 | Alliances and team-based target filtering | stub | none; alliance appears only in data/abilities.star | gate:alliance-filter |
+| CAP-PLR-3 | Alliances and team-based target filtering | implemented | sim/src/arrays.rs (set_team, set_alliance, hostile); sim/src/combat.rs, healers.rs, buffs.rs (hostile test) | gate:alliance-filter |
 
 ## Regions, triggers and events
 

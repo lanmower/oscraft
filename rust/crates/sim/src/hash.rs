@@ -101,6 +101,10 @@ impl Sim {
         h.i32s(&self.m_y);
         h.bytes(&self.vis);
         h.bytes(&self.has_seer.map(|b| b as u8));
+        h.bytes(&self.team);
+        for a in self.alliance {
+            h.bytes(&a.to_le_bytes());
+        }
         h.u64s(&[
             self.stats.deaths as u64,
             self.stats.vision_refreshes as u64,
