@@ -160,7 +160,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-SRV-1 | Return the room snapshot with GET /state | implemented | server/src/main.rs (route, serve_state) | gate:http-state |
 | CAP-SRV-2 | Return the unit and ability catalog with GET /catalog | implemented | server/src/main.rs (serve_catalog) | gate:http-catalog |
 | CAP-SRV-3 | Accept player orders with POST /order under auth and rate limit | implemented | server/src/main.rs (serve_order); server/src/order.rs | gate:http-order |
-| CAP-SRV-4 | Return changes since a tick with GET /delta | stub | server/src/main.rs (serve_delta returns delta_unsupported) | gate:http-delta |
+| CAP-SRV-4 | Return changes since a tick with GET /delta | claimed | server/src/main.rs (serve_delta returns delta_unsupported) | gate:http-delta |
 | CAP-SRV-5 | Serve several rooms per process (--room, --max-rooms) | implemented | server/src/main.rs (parse_args, rooms) | gate:multi-room |
 | CAP-SRV-6 | Report process and room stats with GET /resources | implemented | server/src/main.rs (resources) | gate:http-resources |
 
