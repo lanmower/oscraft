@@ -1,0 +1,15 @@
+{
+  "name": "oscraft-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Node host: runs the oscraft wasip1 guest under node:wasi and bridges it to peers over wireweave DataSession",
+  "bin": { "oscraft-host": "server.js" },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "wireweave": "github:AnEntrypoint/wireweave#a71f179cc5352964bc014deea166969938705e61",
+    "nostr-tools": "2.25.2",
+    "xstate": "5.33.2",
+    "node-datachannel": "0.33.4"
+  }
+}
