@@ -1743,6 +1743,7 @@ jobs:
           LUA
           addr=127.0.0.1:18445
           log="$work/server.log"
+          trap 'echo "server log:"; tail -n 60 "$log" || true' ERR
           ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" --mod "$work/mod.lua" --tick-budget-us 250000 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
