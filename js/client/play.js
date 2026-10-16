@@ -282,6 +282,7 @@ if (params.get("ci") === "1") {
   window.__ciPeers = () => peers.size;
   window.__ciUnits = () => (netState ? netState.units : []);
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
+  window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 
 main().catch((err) => setStatus(`failed: ${err && err.message ? err.message : err}`));

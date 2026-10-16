@@ -71,7 +71,11 @@ async function main(opts) {
     },
   });
   session.addEventListener('peer-open', (e) => emit('peer_open', { peer: e.detail.peerPubkey }));
-  session.addEventListener('peer-close', (e) => emit('peer_close', { peer: e.detail.peerPubkey }));
+  session.addEventListener('peer-close', (e) => {
+    const peer = session.peers.get(e.detail.peerPubkey);
+    const sdp = peer?.pc?.remoteDescription?.sdp ?? '';
+    emit('peer_close', { peer: e.detail.peerPubkey, ice: peer?.pc?.iceConnectionState ?? 'gone', conn: peer?.pc?.connectionState ?? 'gone', remote_candidates: (sdp.match(/a=candidate/g) || []).length, remote_mdns: sdp.split('.local').length - 1 });
+  });
   session.addEventListener('data', (e) => {
     const f = decodeFrame(e.detail.data);
     if (f.type === FRAME.ORDER) {

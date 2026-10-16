@@ -2745,6 +2745,7 @@ jobs:
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           const diagnose = async (named) => {
             for (const [name, p] of named) {
+              console.log(`DIAG ${name} pcs: ${await p.evaluate(() => (window.__ciDebug ? JSON.stringify(window.__ciDebug()) : 'no debug hook')).catch((e) => 'evaluate failed: ' + e)}`);
               const status = await p.evaluate(() => document.getElementById("status")?.textContent ?? "").catch((e) => "evaluate failed: " + e);
               console.log(`DIAG ${name} status: ${JSON.stringify(status)}`);
               console.log(`DIAG ${name} peers: ${await p.evaluate(() => (window.__ciPeers ? window.__ciPeers() : "no hook")).catch((e) => "evaluate failed: " + e)}`);
