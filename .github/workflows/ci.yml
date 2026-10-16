@@ -3190,3 +3190,35 @@ jobs:
           console.log(`state bytes full=${full} delta_avg=${Math.round(deltaAvg)}`);
           process.exit(0);
           JS
+
+  web-artifacts:
+    name: page wasm-bindgen pkg and map image build as one artifact for committing
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Build the page wasm and the map image
+        run: |
+          set -euo pipefail
+          (cd rust && wasm-pack build crates/web --target web --out-dir ../../js/client/pkg --no-opt)
+          (cd rust && cargo run -q -p mapexport -- ../js/client/map.bin)
+          rm -f js/client/pkg/.gitignore
+          ls -la js/client/pkg js/client/map.bin
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-artifacts
+          path: |
+            js/client/pkg
+            js/client/map.bin
