@@ -1,48 +1,35 @@
 # Hosting a game with friends
 
-This guide takes you from the release archive to a game your friends can join from a browser.
+The game runs in the browser. You host a room from the game page, and friends join the same room from their own browsers. Nothing to install and no server process to run.
 
-## 1. Install the release archive
+## 1. Open the game page
 
-Download `oscraft-<version>.tar.gz` from the project's release page and unpack it into an empty directory:
-
-```
-mkdir oscraft && tar -C oscraft -xzf oscraft-<version>.tar.gz
-cd oscraft
-```
-
-The archive holds `bin/oscraftd` (the host), `bin/oscraft-lsp` (the language server), `data/` (the game data), `site/` (the browser page), `js/host/` and `js/wire/` (the Node host), `js/client/` (the peer client page) and `MANIFEST.sha256`, which lists every file with its checksum.
-
-## 2. Start the host with a room name
-
-Option A, the archive host serves the page itself:
+Open the project's GitHub Pages address in a browser:
 
 ```
-./bin/oscraftd --addr 0.0.0.0:8080 --room <name> --data data --site site
+https://<owner>.github.io/<repo>/play.html
 ```
 
-- `--room <name>`: the room friends join. Choose a short name. `--room` may be repeated to host several rooms.
-- `--data data`: the game data directory from the archive.
-- `--site site`: the browser page directory from the archive.
-- `--addr 0.0.0.0:8080`: listen on all interfaces so other machines can reach it. Use `127.0.0.1:8080` to keep it on your own machine.
+The room panel at the top right lists the rooms the page has seen announced. The room you are in is shown next to "room".
 
-Option B, the peer-to-peer host over a relay. It needs two files the archive does not ship: the wasip1 guest `oscraft_wasip1.wasm` and an OSDT image, both built from the source repository (`rust/crates/wasip1` and `rust/crates/data`). Install the host's dependencies once, then start it with the room name:
+## 2. Choose a room
+
+- Pick a room from the list, or type a short name (letters, digits, `-` or `_`, up to 64 characters) and press join.
+- The page reloads with that room in its address, for example `play.html#<room>`.
+
+## 3. Share the room link
+
+Send your friends the same address with the room name after `#`:
 
 ```
-(cd js/host && npm install)
-node js/host/server.js --wasm <oscraft_wasip1.wasm> --data <image.osdt or its directory> --room <name>
+https://<owner>.github.io/<repo>/play.html#<room>
 ```
 
-Its flags and environment variables are in `docs/HOST.md`.
-
-## 3. Open the page and share the room link
-
-- Option A: friends open `http://<host-address>:8080/site/`, where `<host-address>` is your LAN address or the public address you forwarded. Share that address and the room name from `--room`.
-- Option B: serve `js/client/` with any static server, for example `python3 -m http.server 8090 --directory js/client`, and share `http://<host-address>:8090/play.html#<room>`. The page takes the room from the part after `#`. Add `?relay=<wss-url>` to use one relay instead of the defaults.
+Each friend opens the link and joins the same room. The page connects peers directly through WebRTC. Nostr relays carry the signalling that sets each connection up.
 
 ## 4. When a peer does not connect
 
-- Check that the address and port are reachable from the friend's network. A friend on another network needs a port forward on your router, or a VPN both of you join.
-- Check that the host is still running. For Option A, a page that cannot load `/state` on the host address is a network problem, not a game problem.
-- Relay: the host and the page must use the same relay URL and namespace. `OSCRAFT_RELAYS` and `OSCRAFT_NAMESPACE` set them on the host; `?relay=` and `?ns=` set them on the page. A mismatch means the two never meet.
-- ICE (STUN/TURN): with no `?relay=`, the page lets the connection library choose its ICE servers. With `?relay=`, the page passes no ICE servers, so the two peers must reach each other directly. If a friend behind a strict NAT cannot connect, open the page without `?relay=`.
+- Relays: the page uses its default Nostr relays. To use specific relays, add `relay=<wss-url>` (comma-separated for several) to the address. Both players must use the same relays and the same namespace. The namespace is `ns=<name>` and defaults to `oscraft`.
+- ICE (STUN/TURN): with no `relay=` parameter, the connection library chooses its ICE servers, which covers most home and mobile networks. With `relay=`, the page passes no ICE servers, so the two browsers must reach each other directly. If a friend behind a strict NAT or a corporate network cannot connect, open the link without `relay=`.
+- Check that both players have the same room name in the address, and that neither has blocked WebRTC or pop-ups for the page.
+- Reload the page once; the page retries a dropped connection up to six times with backoff before it gives up.
