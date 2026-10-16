@@ -1857,3 +1857,36 @@ jobs:
           server = await stop(server);
           EOF
           node "$RUNNER_TEMP/pw/reconnect.mjs" "$PWD/target/debug/oscraftd" "$work/catalog.osdt" "$mod" "$work/server.log" 127.0.0.1:8006
+
+  package-install:
+    name: single archive builds and installs into an empty directory
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-package
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Build the archive (server, mod LSP, data directory, browser page)
+        run: bash scripts/package/build.sh "$RUNNER_TEMP/package"
+
+      - name: Install the archive into an empty directory and check it runs
+        run: |
+          set -euo pipefail
+          archive=$(ls "$RUNNER_TEMP"/package/oscraft-*.tar.gz)
+          bash scripts/package/install-check.sh "$archive" "$RUNNER_TEMP/installed" | tee "$RUNNER_TEMP/install.out"
+          grep -q '^package install ok members=[0-9]* sha256_checked=[0-9]*$' "$RUNNER_TEMP/install.out"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oscraft-package
+          path: ${{ runner.temp }}/package/oscraft-*.tar.gz

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Unpacks an archive into an empty directory, checks every member against MANIFEST.sha256,
+# then runs oscraftd from that directory and drives oscraft-lsp over stdio.
+# Usage: scripts/package/install-check.sh <archive.tar.gz> <empty-dir>
+set -euo pipefail
+archive=${1:?usage: install-check.sh <archive> <empty-dir>}
+dest=${2:?usage: install-check.sh <archive> <empty-dir>}
+addr=${OSCRAFT_CHECK_ADDR:-127.0.0.1:18477}
+fail() { echo "FAIL: $*" >&2; exit 1; }
+
+mkdir -p "$dest"
+[ -z "$(ls -A "$dest")" ] || fail "destination $dest is not empty"
+tar -C "$dest" -xzf "$archive"
+cd "$dest"
+[ -f MANIFEST.sha256 ] || fail "archive has no MANIFEST.sha256"
+
+members=0
+checked=0
+while read -r want path; do
+  members=$((members + 1))
+  [ -f "$path" ] || fail "manifest member missing from archive: $path"
+  if command -v sha256sum > /dev/null; then got=$(sha256sum "$path" | cut -d' ' -f1)
+  else got=$(shasum -a 256 "$path" | cut -d' ' -f1); fi
+  [ "$got" = "$want" ] || fail "sha256 mismatch for $path: manifest=$want actual=$got"
+  checked=$((checked + 1))
+done < MANIFEST.sha256
+extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
+[ "$extra" -eq "$members" ] || fail "archive holds $extra files but manifest lists $members"
+
+server_pid=
+cleanup() { [ -n "$server_pid" ] && kill "$server_pid" 2>/dev/null || true; }
+trap cleanup EXIT
+log="$dest/server.log"
+./bin/oscraftd --addr "$addr" --room ci --data "$dest/data" --site "$dest/site" > "$log" 2>&1 &
+server_pid=$!
+for _ in $(seq 1 120); do curl -sf "http://$addr/state" > /dev/null 2>&1 && break; sleep 0.5; done
+curl -sf "http://$addr/state" | jq -e '.units | numbers' > /dev/null || { cat "$log" >&2; fail "oscraftd did not serve /state from the unpacked archive"; }
+curl -sf "http://$addr/site/" > /dev/null || fail "oscraftd did not serve /site/ from the unpacked archive"
+
+frame() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
+lsp_out=$({
+  frame '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
+  frame '{"jsonrpc":"2.0","id":2,"method":"shutdown"}'
+  frame '{"jsonrpc":"2.0","method":"exit"}'
+} | timeout 30 ./bin/oscraft-lsp) || fail "oscraft-lsp did not start and exit cleanly"
+printf '%s' "$lsp_out" | grep -q '"capabilities"' || fail "oscraft-lsp initialize reply has no capabilities"
+
+echo "package install ok members=$members sha256_checked=$checked"
