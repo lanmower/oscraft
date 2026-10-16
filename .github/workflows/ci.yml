@@ -450,6 +450,35 @@ jobs:
           [ "$HAS_GRID" = true ] || { echo "FAIL: completion lacks engine builtin grid"; exit 1; }
           echo "ok: diagnostic matches engine validator, completion lists engine builtins"
 
+      - name: Hover on an engine builtin lists its parameters over stdio
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          MOD="$RUNNER_TEMP/hover-mod"
+          mkdir -p "$MOD"
+          printf 'x = 1\n' > "$MOD/mod.star"
+          URI="file://$MOD/hover.star"
+          frame() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
+          {
+            frame '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
+            frame '{"jsonrpc":"2.0","method":"initialized","params":{}}'
+            frame "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"$URI\",\"languageId\":\"starlark\",\"version\":1,\"text\":\"effect\\n\"}}}"
+            frame "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"textDocument/hover\",\"params\":{\"textDocument\":{\"uri\":\"$URI\"},\"position\":{\"line\":0,\"character\":2}}}"
+            frame '{"jsonrpc":"2.0","id":3,"method":"shutdown"}'
+            frame '{"jsonrpc":"2.0","method":"exit"}'
+          } | ./target/debug/oscraft-lsp > "$RUNNER_TEMP/hover.out"
+          sed 's/Content-Length: [0-9]*//g' "$RUNNER_TEMP/hover.out" | tr -d '\r' > "$RUNNER_TEMP/hover-msgs.jsonl"
+          HOVER=$(jq -r 'select(.id==2) | .result.contents.value // ""' "$RUNNER_TEMP/hover-msgs.jsonl")
+          SIG=$(printf '%s\n' "$HOVER" | head -1)
+          case "$SIG" in effect\(*\)) ;; *) echo "FAIL: hover for effect is [$SIG]"; exit 1 ;; esac
+          INNER=${SIG#effect(}
+          INNER=${INNER%)}
+          PARAMS=$(echo "$INNER" | awk -F', ' '{print NF}')
+          for p in kind p0 p1 p2 p3; do
+            case ", $INNER," in *", $p,"*) ;; *) echo "FAIL: hover lacks parameter $p in [$SIG]"; exit 1 ;; esac
+          done
+          echo "lsp hover ok name=effect params=$PARAMS"
+
       - name: Lua mods get a load diagnostic with a line, the clean mod gets none, host globals complete
         run: |
           set -euo pipefail

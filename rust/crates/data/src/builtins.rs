@@ -2,6 +2,7 @@
 //! errors carry the Starlark source location.
 
 use anyhow::{anyhow, bail, Result};
+use starlark::docs::{DocItem, DocMember, DocParams};
 use starlark::environment::{Globals, GlobalsBuilder};
 use starlark::eval::Evaluator;
 use starlark::starlark_module;
@@ -19,6 +20,35 @@ use crate::model::{
 
 pub fn globals() -> Globals {
     GlobalsBuilder::standard().with(osdt_builtins).build()
+}
+
+/// Each engine builtin as (name, signature such as `effect(kind, p0, ...)`), read from the
+/// same GlobalsBuilder the validator evaluates with.
+pub fn signatures() -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = globals()
+        .documentation()
+        .members
+        .iter()
+        .filter_map(|(name, item)| match item {
+            DocItem::Member(DocMember::Function(function)) => Some((name.clone(), signature(name, &function.params))),
+            _ => None,
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+fn signature(name: &str, params: &DocParams) -> String {
+    let names: Vec<String> = params
+        .pos_only
+        .iter()
+        .chain(&params.pos_or_named)
+        .chain(&params.named_only)
+        .map(|p| p.name.clone())
+        .chain(params.args.iter().map(|p| format!("*{}", p.name)))
+        .chain(params.kwargs.iter().map(|p| format!("**{}", p.name)))
+        .collect();
+    format!("{name}({})", names.join(", "))
 }
 
 fn collector<'a>(eval: &'a Evaluator<'_, 'a, '_>) -> Result<&'a Collector> {

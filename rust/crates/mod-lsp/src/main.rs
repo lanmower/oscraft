@@ -107,7 +107,10 @@ fn handle(message: &Value, docs: &mut HashMap<String, String>) -> Vec<Value> {
         }
         "textDocument/completion" => {
             let items: Vec<Value> = match kind_of(&uri) {
-                Some(Kind::Star) => builtin_names().into_iter().map(|name| json!({"label": name, "kind": 3})).collect(),
+                Some(Kind::Star) => osdt_data::builtins::signatures()
+                    .into_iter()
+                    .map(|(name, signature)| json!({"label": name, "kind": 3, "detail": signature}))
+                    .collect(),
                 Some(Kind::Lua) => host_entries()
                     .into_iter()
                     .map(|(name, signature, doc)| json!({"label": name, "kind": 3, "detail": signature, "documentation": doc}))
@@ -121,9 +124,12 @@ fn handle(message: &Value, docs: &mut HashMap<String, String>) -> Vec<Value> {
             let character = params["position"]["character"].as_u64().unwrap_or(0) as usize;
             let word = docs.get(&uri).and_then(|text| word_at(text, line, character));
             let result = match (kind_of(&uri), word) {
-                (Some(Kind::Star), Some(word)) if builtin_names().contains(&word) => json!({
-                    "contents": {"kind": "plaintext", "value": format!("{word}: engine builtin from the osdt-data schema")}
-                }),
+                (Some(Kind::Star), Some(word)) => match osdt_data::builtins::signatures().into_iter().find(|(name, _)| *name == word) {
+                    Some((_, signature)) => json!({
+                        "contents": {"kind": "plaintext", "value": format!("{signature}\nengine builtin from the osdt-data schema")}
+                    }),
+                    None => Value::Null,
+                },
                 (Some(Kind::Lua), Some(word)) => match host_entries().into_iter().find(|(name, _, _)| *name == word) {
                     Some((_, signature, doc)) => json!({"contents": {"kind": "plaintext", "value": format!("{signature}\n{doc}")}}),
                     None => Value::Null,
@@ -277,15 +283,6 @@ fn locate(name: &OsStr, text: &str) -> LuaFailure {
         }
     }
     LuaFailure { line: None, message: text.to_string() }
-}
-
-fn builtin_names() -> Vec<String> {
-    let mut names: Vec<String> = osdt_data::builtins::globals()
-        .names()
-        .map(|name| name.as_str().to_owned())
-        .collect();
-    names.sort();
-    names
 }
 
 fn word_at(text: &str, line: usize, character: usize) -> Option<String> {
