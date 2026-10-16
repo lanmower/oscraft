@@ -814,6 +814,39 @@ jobs:
           grep -E 'ev=mod_tick tick=[0-9]+ version=2 probe=v2' "$log"
           echo "check: GET /mod-version went 1 -> 2 after the edit; the next tick logged probe=v2"
 
+      - name: Measure one mod reload, from writing the changed mod file to the new version on /mod-version and its tick
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/reload-latency"
+          rm -rf "$work"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
+          addr=127.0.0.1:18461
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$mod" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          version() { curl -sf "http://$addr/mod-version" | jq -r .version; }
+          for i in $(seq 1 60); do version >/dev/null 2>&1 && break; sleep 0.5; done
+          test "$(version)" = 1
+          for i in $(seq 1 40); do grep -q 'ev=mod_tick tick=[0-9]* version=1 probe=v1' "$log" && break; sleep 0.25; done
+          grep -q 'ev=mod_tick tick=[0-9]* version=1 probe=v1' "$log"
+          sleep 2
+          start=$(date +%s%N)
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v2"' 'end' > "$mod"
+          for i in $(seq 1 2400); do
+            if [ "$(version)" = 2 ] && grep -q 'ev=mod_tick tick=[0-9]* version=2 probe=v2' "$log"; then break; fi
+            sleep 0.01
+          done
+          end=$(date +%s%N)
+          test "$(version)" = 2
+          grep -q 'ev=mod_tick tick=[0-9]* version=2 probe=v2' "$log"
+          echo "reload latency ms=$(( (end - start) / 1000000 ))"
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+
       - name: Arm one mod-thread panic; check one death, one restart, and a version bump after an edit
         shell: bash
         run: |
