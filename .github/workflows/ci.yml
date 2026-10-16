@@ -22,9 +22,43 @@ env:
   CARGO_NET_RETRY: "3"
 
 jobs:
+  changes:
+    name: decide which jobs a change needs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.decide.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: decide
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" != pull_request ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "decide: $EVENT runs every job"
+            exit 0
+          fi
+          code=false
+          files=$(git diff --name-only "$BASE" "$GITHUB_SHA")
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            case "$f" in docs/*|*.md) ;; *) code=true ;; esac
+          done <<< "$files"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "decide: pull_request code=$code changed=$(printf '%s\n' "$files" | grep -c .)"
+
   build:
     name: build once - workspace, test binaries, page wasm and map image
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 45
     defaults:
       run:
@@ -90,6 +124,8 @@ jobs:
   check:
     name: build, spike and gate (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -148,7 +184,8 @@ jobs:
   check-linux:
     name: build, spike and gate (ubuntu-latest)
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -199,7 +236,8 @@ jobs:
 
   gate-compare:
     name: compare gate output across OSes
-    needs: [check, check-linux]
+    needs: [changes, check, check-linux]
+    if: always() && needs.changes.outputs.code == 'true'
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -211,7 +249,8 @@ jobs:
   server-caps-and-ticks:
     name: "server caps, ticks, supervisor and client error probes"
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -619,7 +658,8 @@ jobs:
   server-mod-and-data:
     name: "server mod, data and order probes"
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 20
     defaults:
       run:
@@ -967,7 +1007,8 @@ jobs:
   server-kinds-and-protocol:
     name: "server unit kinds, carry, protocol and log schema probes"
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 20
     defaults:
       run:
@@ -1354,7 +1395,8 @@ jobs:
   browser-probes:
     name: "browser page probes - map, reconnect, self-reload and rejected edit"
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -1835,6 +1877,8 @@ jobs:
   static-probes:
     name: "static checks: client modules, host usage, protocol docs, names and ICE config"
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -1976,6 +2020,8 @@ jobs:
   wasip2:
     name: sim as wasip2 component and host
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 45
     defaults:
       run:
@@ -2009,7 +2055,8 @@ jobs:
   mod-lsp:
     name: language server matches the engine validator
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -2128,6 +2175,8 @@ jobs:
   hot-reload:
     name: hot reload swaps and rolls back (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -2160,7 +2209,8 @@ jobs:
   hot-reload-linux:
     name: hot reload swaps and rolls back (ubuntu-latest)
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -2191,6 +2241,8 @@ jobs:
   wasip1:
     name: sim as wasip1 guest driven over stdio
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -2221,6 +2273,8 @@ jobs:
   package-install:
     name: single archive builds and installs into an empty directory
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -2258,6 +2312,8 @@ jobs:
   wire:
     name: wire frame codec round-trip
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 5
     defaults:
       run:
@@ -2275,6 +2331,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -2341,7 +2399,8 @@ jobs:
   net-e2e-two-peers:
     name: "two headless peers join room ci through the relay; an order moves a unit"
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -2482,7 +2541,8 @@ jobs:
   duel-routes:
     name: duel-routes scenario loads and serves its counts
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -2547,7 +2607,8 @@ jobs:
   order-peer-ownership:
     name: order ownership refuses a peer's order on a foreign unit and leaves it in place
     runs-on: ubuntu-latest
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -2640,6 +2701,8 @@ jobs:
   lobby-room-select:
     name: lobby room panel lists two rooms announced on the relay, joins one, and drops a closed page after its TTL
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 15
     defaults:
       run:
@@ -2727,6 +2790,8 @@ jobs:
   wasip3:
     name: sim as wasip3 guest on nightly
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -2751,6 +2816,8 @@ jobs:
   browser-two-peers:
     name: "browser host and browser peer over wireweave: one order moves a unit on both pages"
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
