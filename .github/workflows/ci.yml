@@ -2959,45 +2959,66 @@ jobs:
           JS
 
   lobby-room-select:
-    name: lobby room panel lists two announced rooms and joins the chosen one
+    name: lobby room panel lists two rooms announced on the relay and joins the chosen one
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: js/client
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install headless Chromium
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Bundle the page script and install headless Chromium
         run: |
+          set -euo pipefail
+          npm install
+          npm run build
+          test -s dist/play.js
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
           npm install playwright@1.47.0
           npx playwright install --with-deps chromium
 
-      - name: Announce two rooms, join one from the panel, confirm the reload joined it
+      - name: Two pages announce their rooms on a relay; a third page lists them and joins one
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/lobby"
           mkdir -p "$work"
-          python3 -m http.server 8091 --bind 127.0.0.1 --directory js/client > "$work/static.log" 2>&1 &
+          node "$GITHUB_WORKSPACE/js/host/test-relay.js" 7447 > "$work/relay.log" 2>&1 &
+          relay=$!
+          python3 -m http.server 8091 --bind 127.0.0.1 --directory "$GITHUB_WORKSPACE/js/client" > "$work/static.log" 2>&1 &
           static=$!
-          trap 'kill $static 2>/dev/null || true' EXIT
+          trap 'kill $relay $static 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8091/play.html > /dev/null && break; sleep 1; done
           cat > "$RUNNER_TEMP/pw/lobby.mjs" <<'EOF'
           import { chromium } from "playwright";
-          const browser = await chromium.launch();
+          const relay = "ws://127.0.0.1:7447";
+          const base = `http://127.0.0.1:8091/play.html?relay=${relay}&ns=oscraft-ci`;
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
           const errors = [];
           try {
-            const page = await browser.newPage();
-            page.on("pageerror", (e) => errors.push(e.message));
-            await page.goto("http://127.0.0.1:8091/play.html#lobby");
-            await page.waitForSelector('#rooms[data-ready="1"]', { state: "attached", timeout: 60000 });
-            await page.evaluate(() => window.dispatchEvent(new CustomEvent("oscraft:rooms", { detail: { rooms: ["alpha", "beta"] } })));
-            const names = await page.$$eval("#room-list button", (bs) => bs.map((b) => b.dataset.room));
-            if (names.length !== 2 || !names.includes("alpha") || !names.includes("beta")) throw new Error(`panel lists ${JSON.stringify(names)}`);
-            await Promise.all([page.waitForEvent("load"), page.click('#room-list button[data-room="beta"]')]);
-            await page.waitForSelector('#rooms[data-ready="1"]', { state: "attached", timeout: 60000 });
-            const joined = await page.textContent("#room-current");
-            if (joined !== "beta") throw new Error(`joined ${joined}, want beta`);
+            const hostA = await (await browser.newContext()).newPage();
+            const hostB = await (await browser.newContext()).newPage();
+            for (const [page, hash] of [[hostA, "alpha"], [hostB, "beta"]]) {
+              page.on("pageerror", (e) => errors.push(e.message));
+              await page.goto(`${base}#${hash}`);
+            }
+            const viewer = await (await browser.newContext()).newPage();
+            viewer.on("pageerror", (e) => errors.push(e.message));
+            await viewer.goto(`${base}#lobby`);
+            await viewer.waitForSelector('#rooms[data-ready="1"]', { state: "attached", timeout: 60000 });
+            await viewer.waitForFunction(() => document.querySelectorAll("#room-list button").length === 2, null, { timeout: 120000 });
+            const names = await viewer.$$eval("#room-list button", (bs) => bs.map((b) => b.dataset.room).sort());
+            if (JSON.stringify(names) !== JSON.stringify(["alpha", "beta"])) throw new Error(`panel lists ${JSON.stringify(names)}`);
+            await Promise.all([viewer.waitForEvent("load"), viewer.click('#room-list button[data-room="alpha"]')]);
+            await viewer.waitForSelector('#rooms[data-ready="1"]', { state: "attached", timeout: 60000 });
+            const joined = await viewer.textContent("#room-current");
+            if (joined !== "alpha") throw new Error(`joined ${joined}, want alpha`);
             console.log(`lobby room select ok rooms=${names.length} joined=${joined}`);
           } catch (err) {
             console.error(`page errors: ${errors.join(" | ")}`);
@@ -3007,48 +3028,29 @@ jobs:
           }
           EOF
           node "$RUNNER_TEMP/pw/lobby.mjs" | tee "$work/lobby.txt"
-          grep -q '^lobby room select ok rooms=2 joined=beta$' "$work/lobby.txt"
+          grep -q '^lobby room select ok rooms=2 joined=alpha$' "$work/lobby.txt"
   friends-guide:
-    name: docs/FRIENDS.md names only archive members for every node or ./ command
+    name: docs/FRIENDS.md has no command lines and no CLI text
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: package-install
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: oscraft-package
-          path: ${{ runner.temp }}/package
-
-      - name: Check each command in docs/FRIENDS.md against the archive manifest
+      - name: Check docs/FRIENDS.md for command lines and CLI flags
         run: |
           set -euo pipefail
-          archive=$(ls "$RUNNER_TEMP"/package/oscraft-*.tar.gz)
-          unpacked="$RUNNER_TEMP/unpacked"
-          mkdir -p "$unpacked"
-          tar -C "$unpacked" -xzf "$archive"
-          manifest="$unpacked/MANIFEST.sha256"
-          test -s "$manifest"
-          n=0
-          while IFS= read -r line; do
-            cmd=$(printf '%s' "$line" | sed 's/^[[:space:]]*//')
-            case "$cmd" in
-              "node "*) path=$(printf '%s' "$cmd" | awk '{print $2}') ;;
-              "./"*) path=$(printf '%s' "$cmd" | awk '{print $1}'); path=${path#./} ;;
-              *) continue ;;
-            esac
-            n=$((n + 1))
-            awk -v p="$path" '$2 == p { found = 1 } END { exit !found }' "$manifest" \
-              || { echo "docs/FRIENDS.md names a file missing from the archive manifest: $path"; exit 1; }
-          done < docs/FRIENDS.md
-          [ "$n" -gt 0 ] || { echo "docs/FRIENDS.md names no commands"; exit 1; }
-          echo "friends guide ok commands=$n"
-
-      - name: Show the server log when the scenario check fails
-        if: failure()
-        run: tail -n 120 "$RUNNER_TEMP/duel-routes/server.log" || true
-
+          guide=docs/FRIENDS.md
+          test -s "$guide" || { echo "docs/FRIENDS.md is missing or empty"; exit 1; }
+          if grep -n -E '^[[:space:]]*(node|npm|npx|cargo|\./)[[:space:]]' "$guide"; then
+            echo "docs/FRIENDS.md has a command line; the page-hosted guide must not"; exit 1
+          fi
+          if grep -n -E '(^|[[:space:]])--[a-z][a-z-]*' "$guide"; then
+            echo "docs/FRIENDS.md has CLI flags"; exit 1
+          fi
+          if grep -n -i -E 'oscraftd|js/host|server\.js|\.wasm|archive' "$guide"; then
+            echo "docs/FRIENDS.md names a server process or archive"; exit 1
+          fi
+          echo "friends guide ok command_lines=0 cli_flags=0"
   resource-names:
     name: resource and capacity names are generic in rust and js
     runs-on: ubuntu-latest

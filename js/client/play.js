@@ -236,6 +236,33 @@ const relayPool = new RelayPool({
   ...(relayUrls ? { relays: relayUrls, fallbackRelays: [], autoRotate: false } : {}),
 });
 relayPool.connect();
+
+// Room announcements over the relay. Each page publishes its room as a parameterized replaceable
+// event (kind 30078, tag t=oscraft-room, ns and room tags) and lists the rooms other pages announce.
+// Lists feed the "oscraft:rooms" window event that rooms.js renders.
+const ROOM_KIND = 30078;
+const ROOM_TAG = "oscraft-room";
+const ROOM_ANNOUNCE_MS = 15000;
+const announcedRooms = new Map();
+
+function announceRoom() {
+  if (!auth.pubkey) return;
+  auth.sign({
+    kind: ROOM_KIND,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [["d", `oscraft-room:${namespace}:${room}`], ["t", ROOM_TAG], ["ns", namespace], ["room", room]],
+    content: "",
+  }).then((signed) => relayPool.publish(signed)).catch(() => {});
+}
+
+relayPool.subscribe("oscraft-rooms", [{ kinds: [ROOM_KIND], "#t": [ROOM_TAG] }], (event) => {
+  const tagValue = (name) => (event.tags.find((t) => t[0] === name) || [])[1];
+  if (tagValue("ns") !== namespace || typeof tagValue("room") !== "string") return;
+  announcedRooms.set(tagValue("room"), event.created_at);
+  window.dispatchEvent(new CustomEvent("oscraft:rooms", { detail: { rooms: [...announcedRooms.keys()] } }));
+});
+announceRoom();
+setInterval(announceRoom, ROOM_ANNOUNCE_MS);
 // ?ice=<JSON list> replaces the default STUN list. Relay test mode (?relay=) keeps no ICE servers unless ?ice is given.
 const iceConfig = (() => {
   try {
