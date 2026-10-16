@@ -1,5 +1,5 @@
 //! Production: a building trains its product. The train cost and build time are
-//! the product's own (its minerals, gas and build ticks), paid up front when the
+//! the product's own (its resource_a, gas and build ticks), paid up front when the
 //! train starts, and the finished unit appears beside the building. A train the
 //! player cannot pay for does not start and counts as CannotAfford in the stats.
 
@@ -19,8 +19,8 @@ impl Sim {
             return;
         }
         let econ = self.cat.econ;
-        self.minerals[pi] += econ.opening_minerals;
-        self.vespene[pi] += econ.opening_gas;
+        self.resource_a[pi] += econ.opening_resource_a;
+        self.resource_b[pi] += econ.opening_gas;
         if let Some(kind) = self.cat.units.iter().position(|u| u.filter & FILTER_WORKER != 0) {
             for _ in 0..econ.opening_workers {
                 if self.spawn_for(p, kind as u32, x, y).is_none() {
@@ -30,29 +30,29 @@ impl Sim {
         }
     }
 
-    /// Supply the player's living units take up, each unit at its UNIT supply cost, plus the
-    /// supply reserved by each train in progress (queued production holds its supply until the
+    /// Capacity the player's living units take up, each unit at its UNIT capacity cost, plus the
+    /// capacity reserved by each train in progress (queued production holds its capacity until the
     /// unit appears or the train is cancelled).
-    pub(crate) fn supply_used(&self, p: usize) -> i32 {
+    pub(crate) fn capacity_used(&self, p: usize) -> i32 {
         let living: i32 = (0..self.n)
             .filter(|&j| self.alive[j] != 0 && self.player[j] as usize == p)
-            .map(|j| self.cat.units.get(self.type_of[j] as usize).map_or(0, |d| d.supply as i32))
+            .map(|j| self.cat.units.get(self.type_of[j] as usize).map_or(0, |d| d.capacity as i32))
             .sum();
         let reserved: i32 = (0..self.n)
             .filter(|&j| self.alive[j] != 0 && self.player[j] as usize == p && self.train_left[j] > 0 && self.trainee[j] >= 0)
-            .map(|j| self.cat.units.get(self.trainee[j] as usize).map_or(0, |d| d.supply as i32))
+            .map(|j| self.cat.units.get(self.trainee[j] as usize).map_or(0, |d| d.capacity as i32))
             .sum();
         living + reserved
     }
 
-    /// Supply the player may take up: the ECON base plus the supply every living unit of the
+    /// Capacity the player may take up: the ECON base plus the capacity every living unit of the
     /// player provides (UEXT), bounded by the ECON per-race maximum.
-    pub(crate) fn supply_cap(&self, p: usize) -> i32 {
+    pub(crate) fn capacity_cap(&self, p: usize) -> i32 {
         let provided: i32 = (0..self.n)
             .filter(|&j| self.alive[j] != 0 && self.player[j] as usize == p)
-            .map(|j| self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.supply_provided as i32))
+            .map(|j| self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.capacity_provided as i32))
             .sum();
-        (self.cat.econ.supply_base as i32 + provided).min(self.cat.econ.supply_max as i32)
+        (self.cat.econ.capacity_base as i32 + provided).min(self.cat.econ.capacity_max as i32)
     }
 
     /// Whether player `p` holds every prerequisite of target `target` of kind `kind` (0 unit,
@@ -112,11 +112,11 @@ impl Sim {
         if !self.prereqs_met(1, r, p) {
             return Err(self.reject(Refusal::Prerequisite));
         }
-        if self.minerals[p] < rec.minerals || self.vespene[p] < rec.gas {
+        if self.resource_a[p] < rec.resource_a || self.resource_b[p] < rec.gas {
             return Err(self.reject(Refusal::CannotAfford));
         }
-        self.minerals[p] -= rec.minerals;
-        self.vespene[p] -= rec.gas;
+        self.resource_a[p] -= rec.resource_a;
+        self.resource_b[p] -= rec.gas;
         self.research_rec[i] = r as i32;
         self.research_left[i] = rec.time.max(1);
         Ok(())
@@ -159,7 +159,7 @@ impl Sim {
             for k in 0..econ.patches_per_base as i32 {
                 let at = (x + fixed::from_int(2 + k), y - fixed::from_int(2));
                 if let Some(i) = self.spawn_for(NEUTRAL, kind as u32, at.0, at.1) {
-                    self.amount[i] = econ.minerals_per_patch;
+                    self.amount[i] = econ.resource_a_per_patch;
                 }
             }
         }
@@ -175,7 +175,7 @@ impl Sim {
 
     /// The refusal a train at building `i` meets now, or None when it can start. Records nothing.
     /// No trainee is NoTrain; a train in progress or held after a cancel is TrainBusy; missing
-    /// prerequisites are Prerequisite; supply past the cap is SupplyBlocked; a short purse is CannotAfford.
+    /// prerequisites are Prerequisite; capacity past the cap is CapacityBlocked; a short purse is CannotAfford.
     pub fn train_block(&self, i: usize) -> Option<Refusal> {
         if i >= self.n || self.alive[i] == 0 {
             return Some(Refusal::NoTarget);
@@ -195,16 +195,16 @@ impl Sim {
         if !self.prereqs_met(0, tr, p) {
             return Some(Refusal::Prerequisite);
         }
-        if self.supply_used(p) + def.supply as i32 > self.supply_cap(p) {
-            return Some(Refusal::SupplyBlocked);
+        if self.capacity_used(p) + def.capacity as i32 > self.capacity_cap(p) {
+            return Some(Refusal::CapacityBlocked);
         }
-        if self.minerals[p] < def.minerals || self.vespene[p] < def.gas {
+        if self.resource_a[p] < def.resource_a || self.resource_b[p] < def.gas {
             return Some(Refusal::CannotAfford);
         }
         None
     }
 
-    /// Starts the train of building `i`: the trainee's minerals and gas are deducted before the
+    /// Starts the train of building `i`: the trainee's resource_a and gas are deducted before the
     /// unit starts, and it appears when its build time has run out. Every train path starts here.
     /// A refused train changes nothing and is recorded as this call's refusal.
     pub fn start_train(&mut self, i: usize) -> Result<(), Refusal> {
@@ -213,8 +213,8 @@ impl Sim {
         }
         let p = self.player[i] as usize;
         let def = self.cat.units.get(self.trainee[i] as usize).copied().unwrap_or_default();
-        self.minerals[p] -= def.minerals;
-        self.vespene[p] -= def.gas;
+        self.resource_a[p] -= def.resource_a;
+        self.resource_b[p] -= def.gas;
         self.train_left[i] = def.build_ticks.max(1);
         self.touch(i);
         Ok(())
@@ -222,10 +222,10 @@ impl Sim {
 
     /// Automatic train step: counts down a train in progress, and starts the next one when it
     /// can. A train that cannot start is counted in the stats under its refusal.
-    /// The opening resources every start gets (ECON): minerals, gas and worker count.
+    /// The opening resources every start gets (ECON): resource_a, gas and worker count.
     pub fn opening_resources(&self) -> (i32, i32, i32) {
         let e = self.cat.econ;
-        (e.opening_minerals, e.opening_gas, e.opening_workers as i32)
+        (e.opening_resource_a, e.opening_gas, e.opening_workers as i32)
     }
 
     /// Mineral patches and geysers per base from the map's ECON record: (patches, geysers).
@@ -233,36 +233,36 @@ impl Sim {
         (self.cat.econ.patches_per_base as i32, self.cat.econ.extractors_per_base as i32)
     }
 
-    /// The supply cap of player `p`: the ECON base plus provided supply, bounded by the maximum.
+    /// The capacity cap of player `p`: the ECON base plus provided capacity, bounded by the maximum.
     /// Zero for an invalid player.
-    pub fn supply_cap_of(&self, p: u8) -> i32 {
+    pub fn capacity_cap_of(&self, p: u8) -> i32 {
         if (p as usize) >= MAX_PLAYERS {
             return 0;
         }
-        self.supply_cap(p as usize)
+        self.capacity_cap(p as usize)
     }
 
-    /// Supply the player's living units provide (UEXT supply provided), before the ECON base and
+    /// Capacity the player's living units provide (UEXT capacity provided), before the ECON base and
     /// bound. Zero for an invalid player.
-    pub fn supply_providers(&self, p: u8) -> i32 {
+    pub fn capacity_providers(&self, p: u8) -> i32 {
         if (p as usize) >= MAX_PLAYERS {
             return 0;
         }
         (0..self.n)
             .filter(|&j| self.alive[j] != 0 && self.player[j] == p)
-            .map(|j| self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.supply_provided as i32))
+            .map(|j| self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.capacity_provided as i32))
             .sum()
     }
 
-    /// Supply reserved by the player's trains in progress: each holds its trainee's supply until
+    /// Capacity reserved by the player's trains in progress: each holds its trainee's capacity until
     /// the unit appears or the train is cancelled. Zero for an invalid player.
-    pub fn supply_reserved(&self, p: u8) -> i32 {
+    pub fn capacity_reserved(&self, p: u8) -> i32 {
         if (p as usize) >= MAX_PLAYERS {
             return 0;
         }
         (0..self.n)
             .filter(|&j| self.alive[j] != 0 && self.player[j] == p && self.train_left[j] > 0 && self.trainee[j] >= 0)
-            .map(|j| self.cat.units.get(self.trainee[j] as usize).map_or(0, |d| d.supply as i32))
+            .map(|j| self.cat.units.get(self.trainee[j] as usize).map_or(0, |d| d.capacity as i32))
             .sum()
     }
 
@@ -345,8 +345,8 @@ impl Sim {
         let p = self.player[i] as usize;
         if let Some(def) = self.cat.units.get(self.trainee[i] as usize).copied() {
             if p < MAX_PLAYERS {
-                self.minerals[p] += def.minerals;
-                self.vespene[p] += def.gas;
+                self.resource_a[p] += def.resource_a;
+                self.resource_b[p] += def.gas;
             }
         }
         self.train_left[i] = 0;

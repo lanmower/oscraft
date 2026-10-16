@@ -95,13 +95,13 @@ pub struct Unit {
     pub speed: i32,
     /// Milli-units.
     pub radius: i32,
-    pub minerals: i32,
+    pub resource_a: i32,
     pub gas: i32,
     /// Game ticks.
     pub build_ticks: i32,
     pub abil_first: u32,
     pub abil_count: u16,
-    pub supply: u16,
+    pub capacity: u16,
     /// Bit n set when the unit has the filter in FORMAT.md's FILTERS list.
     pub filter: u32,
     /// Shield pool, whole units.
@@ -120,7 +120,7 @@ pub struct Unit {
     pub product: u16,
     /// 0 normal, 1 reduced (half), 2 immune.
     pub response: u8,
-    /// 0 none, 1 minerals, 2 gas.
+    /// 0 none, 1 resource_a, 2 gas.
     pub resource_kind: u8,
     /// Resource units a worker takes per trip from this resource; 0 when not a resource.
     pub harvest_amount: i32,
@@ -229,8 +229,8 @@ pub struct Upgrade {
     pub target: u16,
     /// Index into EFCT.
     pub effect: u32,
-    /// Minerals charged per level: reaching level n costs n times this.
-    pub minerals_per_level: i32,
+    /// Resource A charged per level: reaching level n costs n times this.
+    pub resource_a_per_level: i32,
     /// Gas charged per level: reaching level n costs n times this.
     pub gas_per_level: i32,
     pub group: u32,
@@ -260,19 +260,19 @@ pub struct Econ {
     pub patches_per_base: u8,
     pub extractors_per_base: u8,
     pub gas_per_trip: i32,
-    pub opening_minerals: i32,
+    pub opening_resource_a: i32,
     pub opening_gas: i32,
     pub opening_workers: u16,
-    pub supply_base: u16,
-    pub supply_max: u16,
-    pub minerals_per_patch: i32,
+    pub capacity_base: u16,
+    pub capacity_max: u16,
+    pub resource_a_per_patch: i32,
     pub gas_per_geyser: i32,
 }
 
 /// Per-unit extension fields (UEXT), one per unit kind in UNIT order.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct UnitExt {
-    pub supply_provided: u16,
+    pub capacity_provided: u16,
     pub transport: u16,
     /// 0 small, 1 medium, 2 large.
     pub size: u8,
@@ -301,7 +301,7 @@ pub struct Research {
     pub name: Name,
     pub building: u16,
     pub time: i32,
-    pub minerals: i32,
+    pub resource_a: i32,
     pub gas: i32,
     pub effect: u32,
     pub applies_mask: u32,
@@ -607,12 +607,12 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let health = nr.i32("health")?;
         let speed = nr.i32("speed")?;
         let radius = nr.i32("radius")?;
-        let minerals = nr.i32("minerals")?;
+        let resource_a = nr.i32("resource_a")?;
         let gas = nr.i32("gas")?;
         let build_ticks = nr.i32("build time")?;
         let abil_first = nr.u32("first ability")?;
         let abil_count = nr.u16("ability count")?;
-        let supply = nr.u16("supply")?;
+        let capacity = nr.u16("capacity")?;
         let filter = nr.u32("filter mask")?;
         let shield = nr.i32("shield")?;
         let armor = nr.i32("armor")?;
@@ -665,12 +665,12 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             health,
             speed,
             radius,
-            minerals,
+            resource_a,
             gas,
             build_ticks,
             abil_first,
             abil_count,
-            supply,
+            capacity,
             filter,
             shield,
             armor,
@@ -788,9 +788,9 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let stacking = ur.u8("upgrade stacking")?;
         let target = ur.u16("upgrade target")?;
         let effect = ur.u32("upgrade effect")?;
-        let minerals_per_level = ur.i32("upgrade minerals per level")?;
+        let resource_a_per_level = ur.i32("upgrade resource_a per level")?;
         let gas_per_level = ur.i32("upgrade gas per level")?;
-        if minerals_per_level < 0 || gas_per_level < 0 {
+        if resource_a_per_level < 0 || gas_per_level < 0 {
             return Err(LoadError::Range("upgrade cost below zero"));
         }
         if name.offset as usize + name.len as usize > strs.len() {
@@ -811,7 +811,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             stacking,
             target,
             effect,
-            minerals_per_level,
+            resource_a_per_level,
             gas_per_level,
             group: 0,
         });
@@ -860,16 +860,16 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let patches_per_base = er.u8("econ mineral patches")?;
         let extractors_per_base = er.u8("econ extractors")?;
         let gas_per_trip = er.i32("econ gas per trip")?;
-        let opening_minerals = er.i32("econ opening minerals")?;
+        let opening_resource_a = er.i32("econ opening resource_a")?;
         let opening_gas = er.i32("econ opening gas")?;
         let opening_workers = er.u16("econ opening workers")?;
-        let supply_base = er.u16("econ supply base")?;
-        let supply_max = er.u16("econ supply max")?;
+        let capacity_base = er.u16("econ capacity base")?;
+        let capacity_max = er.u16("econ capacity max")?;
         er.skip(2, "econ reserved")?;
-        let minerals_per_patch = er.i32("econ minerals per patch")?;
+        let resource_a_per_patch = er.i32("econ resource_a per patch")?;
         let gas_per_geyser = er.i32("econ gas per geyser")?;
-        if workers_per_mineral < 1 || workers_per_extractor < 1 || gas_per_trip < 0 || opening_minerals < 0
-            || opening_gas < 0 || minerals_per_patch < 0 || gas_per_geyser < 0
+        if workers_per_mineral < 1 || workers_per_extractor < 1 || gas_per_trip < 0 || opening_resource_a < 0
+            || opening_gas < 0 || resource_a_per_patch < 0 || gas_per_geyser < 0
         {
             return Err(LoadError::Range("economy value outside its table"));
         }
@@ -879,12 +879,12 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             patches_per_base,
             extractors_per_base,
             gas_per_trip,
-            opening_minerals,
+            opening_resource_a,
             opening_gas,
             opening_workers,
-            supply_base,
-            supply_max,
-            minerals_per_patch,
+            capacity_base,
+            capacity_max,
+            resource_a_per_patch,
             gas_per_geyser,
         }
     };
@@ -896,7 +896,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let mut xr = Reader { buf: bytes, at: xo };
     let mut unit_ext = Vec::with_capacity(xc);
     for _ in 0..xc {
-        let supply_provided = xr.u16("ext supply")?;
+        let capacity_provided = xr.u16("ext capacity")?;
         let transport = xr.u16("ext transport")?;
         let size = xr.u8("ext size")?;
         let damage_type = xr.u8("ext damage type")?;
@@ -912,7 +912,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             return Err(LoadError::Range("unit extension outside its table"));
         }
         unit_ext.push(UnitExt {
-            supply_provided,
+            capacity_provided,
             transport,
             size,
             damage_type,
@@ -949,7 +949,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let name = rsr.name("research name")?;
         let building = rsr.u16("research building")?;
         let time = rsr.i32("research time")?;
-        let minerals = rsr.i32("research minerals")?;
+        let resource_a = rsr.i32("research resource_a")?;
         let gas = rsr.i32("research gas")?;
         let effect = rsr.u32("research effect")?;
         let applies_mask = rsr.u32("research applies-to")?;
@@ -960,7 +960,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         {
             return Err(LoadError::Range("research name, building or effect index"));
         }
-        research.push(Research { name, building, time, minerals, gas, effect, applies_mask });
+        research.push(Research { name, building, time, resource_a, gas, effect, applies_mask });
     }
 
     let (pqo, pqc) = body(14);

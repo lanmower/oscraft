@@ -114,8 +114,8 @@ impl Sim {
         h.i32s(&self.trainee);
         h.i32s(&self.train_left);
         h.bytes(&self.train_hold);
-        h.i32s(&self.minerals);
-        h.i32s(&self.vespene);
+        h.i32s(&self.resource_a);
+        h.i32s(&self.resource_b);
         h.i32s(&self.abil_idx);
         h.i32s(&self.abil_cd);
         h.i32s(&self.energy);

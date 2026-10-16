@@ -210,9 +210,9 @@ impl Sim {
                 }
                 if p < MAX_PLAYERS {
                     if self.carry_kind[i] == KIND_GEYSER {
-                        self.vespene[p] += self.carry[i];
+                        self.resource_b[p] += self.carry[i];
                     } else {
-                        self.minerals[p] += self.carry[i];
+                        self.resource_a[p] += self.carry[i];
                     }
                     self.stats.harvested += 1;
                 }

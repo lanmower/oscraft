@@ -1,6 +1,6 @@
 //! Upgrades. Completing an upgrade record starts the next level of its stacking group for a
 //! player: the first completion is level 1, the next level 2, and so on. A level costs its
-//! number times the record's per-level minerals and gas, and applies the record's effect to the
+//! number times the record's per-level resource_a and gas, and applies the record's effect to the
 //! player's units of its target kind, once per level: units existing at completion when the
 //! record applies to existing units, and every unit built afterwards.
 //! Records of the same upgrade name and target form a stacking group. Rule 1 adds levels,
@@ -50,13 +50,13 @@ impl Sim {
             _ => return Err(self.reject(Refusal::UpgradeRefused)),
         }
         let level = done.saturating_add(1);
-        let mineral_cost = level.saturating_mul(up.minerals_per_level);
+        let mineral_cost = level.saturating_mul(up.resource_a_per_level);
         let gas_cost = level.saturating_mul(up.gas_per_level);
-        if self.minerals[p] < mineral_cost || self.vespene[p] < gas_cost {
+        if self.resource_a[p] < mineral_cost || self.resource_b[p] < gas_cost {
             return Err(self.reject(Refusal::CannotAfford));
         }
-        self.minerals[p] -= mineral_cost;
-        self.vespene[p] -= gas_cost;
+        self.resource_a[p] -= mineral_cost;
+        self.resource_b[p] -= gas_cost;
         let slot = rec * MAX_PLAYERS + p;
         self.upg_done[slot] = self.upg_done[slot].saturating_add(1);
         if up.applies == 1 {

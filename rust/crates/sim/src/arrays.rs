@@ -125,8 +125,8 @@ pub struct Sim {
     pub(crate) trainee: Vec<i32>,
     pub(crate) train_left: Vec<i32>,
     pub(crate) train_hold: Vec<u8>,
-    pub(crate) minerals: Vec<i32>,
-    pub(crate) vespene: Vec<i32>,
+    pub(crate) resource_a: Vec<i32>,
+    pub(crate) resource_b: Vec<i32>,
 
     pub(crate) abil_idx: Vec<i32>,
     pub(crate) abil_cd: Vec<i32>,
@@ -292,8 +292,8 @@ impl Sim {
             trainee: vec![-1; cap],
             train_left: vec![0; cap],
             train_hold: vec![0; cap],
-            minerals: vec![0; MAX_PLAYERS],
-            vespene: vec![0; MAX_PLAYERS],
+            resource_a: vec![0; MAX_PLAYERS],
+            resource_b: vec![0; MAX_PLAYERS],
             abil_idx: vec![-1; cap * ABILITY_SLOTS],
             abil_cd: vec![0; cap * ABILITY_SLOTS],
             energy: vec![0; cap],
@@ -452,10 +452,10 @@ impl Sim {
         self.produce = on;
     }
 
-    pub fn add_resources(&mut self, p: u8, minerals: i32, vespene: i32) {
+    pub fn add_resources(&mut self, p: u8, resource_a: i32, resource_b: i32) {
         if (p as usize) < MAX_PLAYERS {
-            self.minerals[p as usize] += minerals;
-            self.vespene[p as usize] += vespene;
+            self.resource_a[p as usize] += resource_a;
+            self.resource_b[p as usize] += resource_b;
         }
     }
 
@@ -509,12 +509,12 @@ impl Sim {
         !(same_team || allied)
     }
 
-    pub fn minerals(&self, p: u8) -> i32 {
-        if (p as usize) < MAX_PLAYERS { self.minerals[p as usize] } else { 0 }
+    pub fn resource_a(&self, p: u8) -> i32 {
+        if (p as usize) < MAX_PLAYERS { self.resource_a[p as usize] } else { 0 }
     }
 
-    pub fn vespene(&self, p: u8) -> i32 {
-        if (p as usize) < MAX_PLAYERS { self.vespene[p as usize] } else { 0 }
+    pub fn resource_b(&self, p: u8) -> i32 {
+        if (p as usize) < MAX_PLAYERS { self.resource_b[p as usize] } else { 0 }
     }
 
     /// Spawns unit type `kind` (an index into the catalog) for player 0.
@@ -611,7 +611,7 @@ impl Sim {
         self.patrol_x[i] = x;
         self.patrol_y[i] = y;
         self.amount[i] = match self.kind[i] {
-            KIND_MINERAL => self.cat.econ.minerals_per_patch,
+            KIND_MINERAL => self.cat.econ.resource_a_per_patch,
             KIND_GEYSER => self.cat.econ.gas_per_geyser,
             _ => 0,
         };

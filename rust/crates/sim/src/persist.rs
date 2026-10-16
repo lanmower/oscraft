@@ -45,7 +45,7 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::ChatUnsupported,
     Refusal::UpgradeRefused,
     Refusal::CellFull,
-    Refusal::SupplyBlocked,
+    Refusal::CapacityBlocked,
     Refusal::Prerequisite,
     Refusal::ResearchBusy,
     Refusal::TransportFull,
@@ -353,8 +353,8 @@ impl Sim {
         put_i32s(&mut w, &self.trainee);
         put_i32s(&mut w, &self.train_left);
         w.extend_from_slice(&self.train_hold);
-        put_i32s(&mut w, &self.minerals);
-        put_i32s(&mut w, &self.vespene);
+        put_i32s(&mut w, &self.resource_a);
+        put_i32s(&mut w, &self.resource_b);
         put_i32s(&mut w, &self.abil_idx);
         put_i32s(&mut w, &self.abil_cd);
         put_i32s(&mut w, &self.energy);
@@ -541,8 +541,8 @@ impl Sim {
         r.i32s_into(&mut next.trainee)?;
         r.i32s_into(&mut next.train_left)?;
         r.bytes_into(&mut next.train_hold)?;
-        r.i32s_into(&mut next.minerals)?;
-        r.i32s_into(&mut next.vespene)?;
+        r.i32s_into(&mut next.resource_a)?;
+        r.i32s_into(&mut next.resource_b)?;
         r.i32s_into(&mut next.abil_idx)?;
         r.i32s_into(&mut next.abil_cd)?;
         r.i32s_into(&mut next.energy)?;
