@@ -12,6 +12,12 @@ const samples = [
       { id: 2, kind: 65535, player: 255, x: 1, y: -1, hp: 0 },
     ],
   },
+  { type: FRAME.DELTA, tick: 0, hash: 0, units: [], removed: [] },
+  {
+    type: FRAME.DELTA, tick: 41, hash: 0x12345678,
+    units: [{ id: 3, kind: 2, player: 1, x: 7, y: -7, hp: 50 }],
+    removed: [9, 0xffffffff],
+  },
   { type: FRAME.HELLO, room: '' },
   { type: FRAME.HELLO, room: 'lobby-ünïcode' },
   { type: FRAME.ERROR, code: 0, message: '' },
@@ -59,6 +65,7 @@ expectReject(Uint8Array.from([FRAME.ORDER]), 'TRUNCATED', 'one-byte frame');
 
 const overCount = Uint8Array.from([FRAME.STATE, WIRE_VERSION, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0x04]);
 expectReject(overCount, 'COUNT_OUT_OF_RANGE', 'state count above bound');
+expectReject(Uint8Array.from([FRAME.DELTA, WIRE_VERSION, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0x04]), 'COUNT_OUT_OF_RANGE', 'delta count above bound');
 
 assert.throws(() => encodeFrame({ type: FRAME.ORDER, unitId: -1, x: 0, y: 0 }), WireError);
 assert.throws(() => encodeFrame({ type: FRAME.HELLO, room: 'x'.repeat(65) }), WireError);

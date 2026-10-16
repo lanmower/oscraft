@@ -39,6 +39,10 @@ Peer frames use the wire codec in `js/wire/frame.js`, imported by `server.js`; t
 
 Each peer gets a player id when its channel opens (`assignPlayer` in `js/host/server.js`): the lowest id no other peer holds, up to 256. An order frame is applied by `applyOrder` only when the unit's owner, read with the guest command `unit-player <id>`, equals the sending peer's player. Otherwise the host prints `ev=order_refused reason=not_owner peer=<first 8 chars> unit=<id>` and sends nothing to the guest. The `order-peer-ownership` job in `.github/workflows/ci.yml` runs the gate against a real guest and prints `order ownership ok refused=1 moved=false`.
 
+## Deltas
+
+`js/wire/frame.js` has a delta frame (`FRAME.DELTA`): tick, hash, the units whose record changed since the previous frame, and the ids that left. `js/client/delta.js` builds the frames: `createStateEncoder` sends a full state frame every `FULL_EVERY` (20) ticks and a delta otherwise, and `applyFrame` rebuilds the unit map on the receiver. The browser client ignores deltas until one full state frame has arrived. The CI job `state-delta` runs 100 ticks of 30 units (three move per tick) and prints `state bytes full=<n> delta_avg=<n>`, failing unless delta_avg is under a quarter of full.
+
 ## CI
 
 The `net-host-persistent` job in `.github/workflows/ci.yml` runs on ubuntu-latest, ubuntu-24.04-arm, macos-latest and windows-latest. Each builds the wasip1 guest and the OSDT image, opens one guest through `js/host/guest.js`, sends one order, and runs 50 ticks with `readTick`. It asserts that the tick count advanced by 50 and that the last 10 tick times sum to at most 3 times the first 10. It prints `net host persistent ok ticks=50 ratio=<r>`.

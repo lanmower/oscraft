@@ -1,6 +1,6 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5 });
 
 export const MAX_UNITS = 1024;
 export const MAX_ROOM_BYTES = 64;
@@ -103,6 +103,40 @@ const CODECS = {
         units.push({ id: r.u32(), kind: r.u16(), player: r.u8(), x: r.i32(), y: r.i32(), hp: r.i32() });
       }
       return { tick, hash, units };
+    },
+  },
+  // A delta carries the units whose record changed since the previous frame and the ids that left.
+  [FRAME.DELTA]: {
+    size: (f) => 2 + 4 + 4 + 2 + f.units.length * (4 + 2 + 1 + 4 + 4 + 4) + 2 + f.removed.length * 4,
+    write(w, f) {
+      w.u32(f.tick, 'tick');
+      w.u32(f.hash, 'hash');
+      w.u16(f.units.length, 'count');
+      for (const u of f.units) {
+        w.u32(u.id, 'id');
+        w.u16(u.kind, 'kind');
+        w.u8(u.player, 'player');
+        w.i32(u.x, 'x');
+        w.i32(u.y, 'y');
+        w.i32(u.hp, 'hp');
+      }
+      w.u16(f.removed.length, 'removedCount');
+      for (const id of f.removed) w.u32(id, 'removed');
+    },
+    read(r) {
+      const tick = r.u32();
+      const hash = r.u32();
+      const count = r.u16();
+      if (count > MAX_UNITS) throw new WireError('COUNT_OUT_OF_RANGE', `count ${count} > ${MAX_UNITS}`);
+      const units = [];
+      for (let i = 0; i < count; i++) {
+        units.push({ id: r.u32(), kind: r.u16(), player: r.u8(), x: r.i32(), y: r.i32(), hp: r.i32() });
+      }
+      const removedCount = r.u16();
+      if (removedCount > MAX_UNITS) throw new WireError('COUNT_OUT_OF_RANGE', `removed ${removedCount} > ${MAX_UNITS}`);
+      const removed = [];
+      for (let i = 0; i < removedCount; i++) removed.push(r.u32());
+      return { tick, hash, units, removed };
     },
   },
   [FRAME.HELLO]: {

@@ -5,6 +5,7 @@ import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, FRAME } from "../wire/frame.js";
 import { iceServersFrom } from "./ice.js";
+import { applyFrame } from "./delta.js";
 
 // The map grid from data/map.osd: grid(32, 24), one tile per cell.
 const W = 32;
@@ -256,11 +257,15 @@ session.addEventListener("peer-close", (e) => {
   setStatus(`peer-close ${String(e.detail.peerPubkey).slice(0, 8)}`);
   if (peers.size === 0) scheduleReconnect();
 });
+const netUnits = new Map();
+let netBaseline = false;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
-  if (frame.type !== FRAME.STATE) return;
-  netState = { tick: frame.tick, units: frame.units.map((u) => ({ id: u.id, x: u.x, z: u.y, player: u.player, hp: u.hp })) };
+  if (frame.type === FRAME.STATE) netBaseline = true;
+  else if (frame.type !== FRAME.DELTA || !netBaseline) return;
+  applyFrame(netUnits, frame);
+  netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x, z: u.y, player: u.player, hp: u.hp })) };
 });
 
 async function main() {

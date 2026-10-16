@@ -3132,3 +3132,43 @@ jobs:
           grep -q '^ice config ok servers=2$' "$RUNNER_TEMP/ice-set.txt"
           env -u OSCRAFT_ICE node "$RUNNER_TEMP/ice-check.mjs" | tee "$RUNNER_TEMP/ice-unset.txt"
           grep -q '^ice config ok default=true$' "$RUNNER_TEMP/ice-unset.txt"
+
+  state-delta:
+    name: state frames send a delta between full frames, under a quarter of a full frame
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 100 ticks of 30 units, full and delta state bytes
+        env:
+          WIRE_JS: ${{ github.workspace }}/js/wire/frame.js
+          DELTA_JS: ${{ github.workspace }}/js/client/delta.js
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import { pathToFileURL } from 'node:url';
+          const { encodeFrame, decodeFrame, FRAME } = await import(pathToFileURL(process.env.WIRE_JS).href);
+          const { createStateEncoder, applyFrame } = await import(pathToFileURL(process.env.DELTA_JS).href);
+          const fail = (why) => { console.error(`state delta FAIL ${why}`); process.exit(1); };
+
+          const units = Array.from({ length: 30 }, (_, id) => ({ id, kind: id % 5, player: id % 2, x: id * 2, y: 3, hp: 100 }));
+          const encoder = createStateEncoder();
+          const receiver = new Map();
+          let full = null;
+          const deltaSizes = [];
+          for (let tick = 1; tick <= 100; tick++) {
+            // Three ordered units step each tick; the other 27 hold still.
+            for (const id of [tick % 30, (tick + 7) % 30, (tick + 13) % 30]) units[id] = { ...units[id], x: units[id].x + 1 };
+            const frame = encoder.encode(tick, (tick * 2654435761) >>> 0, units);
+            const bytes = encodeFrame(frame);
+            if (frame.type === FRAME.STATE) { if (full === null) full = bytes.length; } else deltaSizes.push(bytes.length);
+            applyFrame(receiver, decodeFrame(bytes));
+            const got = [...receiver.values()].sort((a, b) => a.id - b.id);
+            if (JSON.stringify(got) !== JSON.stringify(units)) fail(`receiver diverged at tick ${tick}`);
+          }
+          const deltaAvg = deltaSizes.reduce((a, b) => a + b, 0) / deltaSizes.length;
+          if (!(deltaAvg < full / 4)) fail(`delta_avg ${deltaAvg} is not under full/4 = ${full / 4}`);
+          console.log(`state bytes full=${full} delta_avg=${Math.round(deltaAvg)}`);
+          process.exit(0);
+          JS
