@@ -3222,3 +3222,74 @@ jobs:
           path: |
             js/client/pkg
             js/client/map.bin
+
+  browser-two-peers:
+    name: browser host and browser peer over wireweave: one order moves a unit on both pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install headless Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install playwright@1.47.0
+          npx playwright install --with-deps chromium
+
+      - name: Relay, browser host and browser peer: an order from the peer moves its unit on both pages
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/browser-two-peers"
+          mkdir -p "$work"
+          node js/host/test-relay.js 7447 > "$work/relay.log" 2>&1 &
+          relay=$!
+          python3 -m http.server 8092 --bind 127.0.0.1 --directory js/client > "$work/static.log" 2>&1 &
+          static=$!
+          trap 'kill $relay $static 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8092/play.html > /dev/null && break; sleep 1; done
+          cat > "$RUNNER_TEMP/pw/two-peers.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const base = "http://127.0.0.1:8092/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-features=WebRtcHideLocalIpsWithMdns"] });
+          const errors = [];
+          try {
+            const host = await (await browser.newContext()).newPage();
+            const peer = await (await browser.newContext()).newPage();
+            for (const p of [host, peer]) p.on("pageerror", (e) => errors.push(e.message));
+            await host.goto(`${base}&host=1#ci`);
+            await peer.goto(`${base}#ci`);
+            await host.waitForFunction(() => window.__ciPeers && window.__ciPeers() >= 1, null, { timeout: 120000 });
+            await peer.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 });
+            const start = await peer.evaluate(() => window.__ciUnits());
+            const unit = start.find((u) => u.player === 0);
+            if (!unit) throw new Error("no unit owned by the first peer's player 0");
+            const dist = (p) => Math.hypot(p.x - (unit.x + 4), p.z - unit.z);
+            const seen = async (page) => page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, unit.id);
+            const target = { x: Math.round(unit.x) + 4, z: Math.round(unit.z) };
+            const deadline = Date.now() + 90000;
+            let onPeer = null;
+            let onHost = null;
+            while (Date.now() < deadline) {
+              await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [unit.id, target.x, target.z]);
+              await new Promise((r) => setTimeout(r, 1500));
+              onPeer = await seen(peer);
+              onHost = await seen(host);
+              if (onPeer && onHost && Math.hypot(onPeer.x - target.x, onPeer.z - target.z) < Math.hypot(unit.x - target.x, unit.z - target.z) - 1
+                && Math.hypot(onHost.x - target.x, onHost.z - target.z) < Math.hypot(unit.x - target.x, unit.z - target.z) - 1) break;
+            }
+            const movedToward = (p) => !!p && Math.hypot(p.x - target.x, p.z - target.z) < Math.hypot(unit.x - target.x, unit.z - target.z) - 1;
+            if (!movedToward(onPeer) || !movedToward(onHost)) throw new Error(`no movement seen: start=${unit.x},${unit.z} peer=${JSON.stringify(onPeer)} host=${JSON.stringify(onHost)}`);
+            if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+            console.log(`browser two peers ok unit=${unit.id} host_moved=true peer_moved=true`);
+          } finally {
+            await browser.close();
+          }
+          EOF
+          node "$RUNNER_TEMP/pw/two-peers.mjs" | tee "$work/two-peers.txt"
+          grep -q '^browser two peers ok unit=[0-9]* host_moved=true peer_moved=true$' "$work/two-peers.txt"

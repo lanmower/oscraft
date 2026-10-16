@@ -43,6 +43,10 @@ Each peer gets a player id when its channel opens (`assignPlayer` in `js/host/se
 
 `js/wire/frame.js` has a delta frame (`FRAME.DELTA`): tick, hash, the units whose record changed since the previous frame, and the ids that left. `js/client/delta.js` builds the frames: `createStateEncoder` sends a full state frame every `FULL_EVERY` (20) ticks and a delta otherwise, and `applyFrame` rebuilds the unit map on the receiver. The browser client ignores deltas until one full state frame has arrived. The CI job `state-delta` runs 100 ticks of 30 units (three move per tick) and prints `state bytes full=<n> delta_avg=<n>`, failing unless delta_avg is under a quarter of full.
 
+## Browser host
+
+`js/client/play.html?host=1` runs the wasm-bindgen `Game` from `js/client/pkg` (committed build output, no build step on the page) and is the sim for its room. It assigns each peer a player id at channel open, applies a peer's order only when the unit's player is that peer's, and every 100 ms broadcasts a full state frame every 20 ticks and a delta otherwise. Positions on the wire are milli-tiles. The browser peer page reads the frames into its unit list. The CI job `browser-two-peers` runs a host page and a peer page over the relay and prints `browser two peers ok unit=<id> host_moved=true peer_moved=true`.
+
 ## CI
 
 The `net-host-persistent` job in `.github/workflows/ci.yml` runs on ubuntu-latest, ubuntu-24.04-arm, macos-latest and windows-latest. Each builds the wasip1 guest and the OSDT image, opens one guest through `js/host/guest.js`, sends one order, and runs 50 ticks with `readTick`. It asserts that the tick count advanced by 50 and that the last 10 tick times sum to at most 3 times the first 10. It prints `net host persistent ok ticks=50 ratio=<r>`.

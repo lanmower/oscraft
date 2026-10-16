@@ -5,7 +5,7 @@ import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, FRAME } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import { applyFrame } from "./delta.js";
+import { applyFrame, createStateEncoder } from "./delta.js";
 
 // The map grid from data/map.osd: grid(32, 24), one tile per cell.
 const W = 32;
@@ -24,6 +24,9 @@ const DRAG_SLOP_PX = 4;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_CAP_MS = 16000;
 const RECONNECT_MAX_ATTEMPTS = 6;
+const HOST_TICK_MS = 100;
+const WIRE_SCALE = 1000;
+const MAX_PLAYERS = 256;
 
 const params = new URLSearchParams(location.search);
 const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
@@ -42,6 +45,8 @@ let selectedId = -1;
 let reconnectAttempt = 0;
 let reconnectTimer = 0;
 let drag = null;
+let hosting = false;
+const hostPlayers = new Map();
 
 function setStatus(extra) {
   const mode = netState ? "net" : "local";
@@ -202,6 +207,46 @@ function bindInput() {
   window.addEventListener("resize", resize);
 }
 
+// Browser host: this page owns the sim (localGame). Each peer is assigned a player id when its channel opens
+// (the lowest id no other peer holds); an order is applied only when the unit's player is the sender's.
+// Every HOST_TICK_MS the host ticks the sim and broadcasts a full state frame every FULL_EVERY ticks, a delta otherwise.
+function assignPlayer(players, peerPubkey) {
+  if (players.has(peerPubkey)) return players.get(peerPubkey);
+  const taken = new Set(players.values());
+  for (let p = 0; p < MAX_PLAYERS; p++) {
+    if (!taken.has(p)) {
+      players.set(peerPubkey, p);
+      return p;
+    }
+  }
+  return null;
+}
+
+function applyPeerOrder(peerPubkey, order) {
+  const player = hostPlayers.get(peerPubkey);
+  const unit = currentUnits().find((u) => u.id === order.unitId);
+  if (player === undefined || !unit || unit.player !== player) {
+    setStatus(`order refused not_owner peer=${String(peerPubkey).slice(0, 8)} unit=${order.unitId}`);
+    return false;
+  }
+  localGame.order_move(order.unitId, order.x, order.y);
+  return true;
+}
+
+function startHost() {
+  hosting = true;
+  const encoder = createStateEncoder();
+  let hostTick = 0;
+  setInterval(() => {
+    localGame.tick();
+    hostTick += 1;
+    const hash = Number(localGame.state_hash() & 0xffffffffn) >>> 0;
+    const units = currentUnits().map((u) => ({ id: u.id, kind: 0, player: u.player, x: Math.round(u.x * WIRE_SCALE), y: Math.round(u.z * WIRE_SCALE), hp: 0 }));
+    session.broadcast(encodeFrame(encoder.encode(hostTick, hash, units)));
+  }, HOST_TICK_MS);
+  setStatus("hosting");
+}
+
 function scheduleReconnect() {
   if (reconnectAttempt >= RECONNECT_MAX_ATTEMPTS) {
     setStatus("reconnect gave up; reload to retry");
@@ -298,6 +343,7 @@ const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, ice
 
 session.addEventListener("peer-open", (e) => {
   peers.add(e.detail.peerPubkey);
+  if (hosting) assignPlayer(hostPlayers, e.detail.peerPubkey);
   reconnectAttempt = 0;
   setStatus(`peer-open ${String(e.detail.peerPubkey).slice(0, 8)}`);
 });
@@ -311,10 +357,15 @@ let netBaseline = false;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
+  if (frame.type === FRAME.ORDER) {
+    if (hosting) applyPeerOrder(e.detail.peerPubkey, frame);
+    return;
+  }
+  if (hosting) return;
   if (frame.type === FRAME.STATE) netBaseline = true;
   else if (frame.type !== FRAME.DELTA || !netBaseline) return;
   applyFrame(netUnits, frame);
-  netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x, z: u.y, player: u.player, hp: u.hp })) };
+  netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp })) };
 });
 
 async function main() {
@@ -323,12 +374,13 @@ async function main() {
   const renderer = createRenderer();
   const mapMeshes = buildMapMeshes();
   localGame = await loadSim();
+  if (params.get("host") === "1") startHost();
   joinRoom();
 
   const { gl } = renderer;
   gl.clearColor(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], 1);
   function frame() {
-    if (!netState && localGame) localGame.tick();
+    if (!netState && localGame && !hosting) localGame.tick();
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     const ppu = pxPerUnit();
@@ -344,7 +396,7 @@ async function main() {
 
 if (params.get("ci") === "1") {
   window.__ciPeers = () => peers.size;
-  window.__ciUnits = () => (netState ? netState.units : []);
+  window.__ciUnits = () => (hosting ? currentUnits() : netState ? netState.units : []).map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
