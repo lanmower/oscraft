@@ -350,4 +350,24 @@ function failPage(path, e) {
 
 window.addEventListener("error", (e) => failPage("window.error", e.error ?? e.message));
 window.addEventListener("unhandledrejection", (e) => failPage("unhandledrejection", e.reason));
+// Polls /site/version at the mod poll interval; a changed page stamp (main.js edited on the server) reloads the page once.
+let pageVersion = null;
+async function watchPage() {
+  for (;;) {
+    await sleep(MOD_POLL_MS);
+    try {
+      const { page } = await getJson("/site/version");
+      if (pageVersion === null) {
+        pageVersion = page;
+        document.body.dataset.pageVersion = page;
+      } else if (page !== pageVersion) {
+        location.reload();
+        return;
+      }
+    } catch (e) {
+      // a dropped poll is retried on the next tick
+    }
+  }
+}
+watchPage();
 main().catch((e) => failPage("main", e));

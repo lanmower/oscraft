@@ -285,6 +285,7 @@ impl Server {
             ("GET", "/mod-events") => self.mod_events(req),
             ("POST", "/order") => self.on_room(req, serve_order),
             ("POST", "/client-error") => self.on_room(req, relay::serve_client_error),
+            ("GET", "/site/version") => self.site.as_deref().map_or_else(|| Response::error(404, "no such endpoint"), static_files::version),
             ("GET", path) if path.starts_with(static_files::SITE_PREFIX) => match &self.site {
                 Some(root) => static_files::serve(root, path),
                 None => Response::error(404, "no such endpoint"),

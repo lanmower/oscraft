@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::sync::Mutex;
+use std::time::SystemTime;
 
-use crate::http::Response;
+use crate::http::{Response, PROTOCOL_VERSION};
 
 pub const SITE_PREFIX: &str = "/site/";
 
@@ -43,4 +45,37 @@ fn mime(path: &Path) -> &'static str {
         "glb" => "model/gltf-binary",
         _ => "application/octet-stream",
     }
+}
+
+const PAGE_SCRIPT: &str = "main.js";
+
+struct Stamp {
+    path: PathBuf,
+    mtime: Option<SystemTime>,
+    len: u64,
+    hash: u64,
+}
+
+static STAMP: Mutex<Option<Stamp>> = Mutex::new(None);
+
+pub fn version(root: &Path) -> Response {
+    let path = root.join(PAGE_SCRIPT);
+    let Ok(meta) = fs::metadata(&path) else {
+        return Response::error(404, "no page script");
+    };
+    let (mtime, len) = (meta.modified().ok(), meta.len());
+    let mut cached = STAMP.lock().unwrap_or_else(|e| e.into_inner());
+    let fresh = matches!(&*cached, Some(s) if s.path == path && s.mtime == mtime && s.len == len);
+    if !fresh {
+        let Ok(body) = fs::read(&path) else {
+            return Response::error(404, "no page script");
+        };
+        *cached = Some(Stamp { path, mtime, len, hash: fnv1a(&body) });
+    }
+    let hash = cached.as_ref().map_or(0, |s| s.hash);
+    Response::json(200, format!("{{\"proto\":{},\"page\":\"{hash:016x}\"}}", PROTOCOL_VERSION))
+}
+
+fn fnv1a(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, b| (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3))
 }
