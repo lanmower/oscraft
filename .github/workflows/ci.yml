@@ -3000,7 +3000,11 @@ jobs:
           mkdir -p "$work"
           node "$GITHUB_WORKSPACE/js/host/test-relay.js" 7447 > "$work/relay.log" 2>&1 &
           relay=$!
-          python3 -m http.server 8091 --bind 127.0.0.1 --directory "$GITHUB_WORKSPACE/js/client" > "$work/static.log" 2>&1 &
+          site="$work/site"
+          mkdir -p "$site"
+          cp -R "$GITHUB_WORKSPACE/js/client/." "$site/"
+          cp -R "$GITHUB_WORKSPACE/js/wire" "$site/wire"
+          python3 -m http.server 8091 --bind 127.0.0.1 --directory "$site" > "$work/static.log" 2>&1 &
           static=$!
           trap 'cat "$work/relay.log" | tail -40 >&2; kill $relay $static 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8091/play.html > /dev/null && break; sleep 1; done
