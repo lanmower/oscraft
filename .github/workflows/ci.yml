@@ -2978,3 +2978,40 @@ jobs:
           EOF
           node "$RUNNER_TEMP/pw/lobby.mjs" | tee "$work/lobby.txt"
           grep -q '^lobby room select ok rooms=2 joined=beta$' "$work/lobby.txt"
+
+  friends-guide:
+    name: docs/FRIENDS.md names only archive members for every node or ./ command
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: package-install
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: oscraft-package
+          path: ${{ runner.temp }}/package
+
+      - name: Check each command in docs/FRIENDS.md against the archive manifest
+        run: |
+          set -euo pipefail
+          archive=$(ls "$RUNNER_TEMP"/package/oscraft-*.tar.gz)
+          unpacked="$RUNNER_TEMP/unpacked"
+          mkdir -p "$unpacked"
+          tar -C "$unpacked" -xzf "$archive"
+          manifest="$unpacked/MANIFEST.sha256"
+          test -s "$manifest"
+          n=0
+          while IFS= read -r line; do
+            cmd=$(printf '%s' "$line" | sed 's/^[[:space:]]*//')
+            case "$cmd" in
+              "node "*) path=$(printf '%s' "$cmd" | awk '{print $2}') ;;
+              "./"*) path=$(printf '%s' "$cmd" | awk '{print $1}'); path=${path#./} ;;
+              *) continue ;;
+            esac
+            n=$((n + 1))
+            awk -v p="$path" '$2 == p { found = 1 } END { exit !found }' "$manifest" \
+              || { echo "docs/FRIENDS.md names a file missing from the archive manifest: $path"; exit 1; }
+          done < docs/FRIENDS.md
+          [ "$n" -gt 0 ] || { echo "docs/FRIENDS.md names no commands"; exit 1; }
+          echo "friends guide ok commands=$n"
