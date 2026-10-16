@@ -84,7 +84,7 @@ jobs:
       - name: Build the page wasm and export the map image
         run: |
           set -euo pipefail
-          wasm-pack build crates/web --target web --out-dir site/pkg --no-opt
+          wasm-pack build crates/web --target web --out-dir site/pkg
           target/debug/mapexport crates/web/site/map.bin
 
       - name: Stage the page for committing

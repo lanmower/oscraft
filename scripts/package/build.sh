@@ -18,13 +18,13 @@ cp target/release/oscraftd target/release/oscraft-lsp "$stage/bin/"
 cp data/*.osd "$stage/data/"
 cp -R crates/web/site/. "$stage/site/"
 cargo run -q -p mapexport -- "$stage/site/map.bin"
-wasm-pack build crates/web --target web --out-dir "$stage/site/pkg" --no-opt > /dev/null
+wasm-pack build crates/web --target web --out-dir "$stage/site/pkg" > /dev/null
 cd "$root"
 cp js/host/server.js js/host/guest.js js/host/test-relay.js js/host/package.json "$stage/js/host/"
 cp js/wire/frame.js "$stage/js/wire/"
 cp js/client/play.html js/client/play.js js/client/ice.js js/client/delta.js "$stage/js/client/"
 cp js/client/wire/frame.js "$stage/js/client/wire/"
-wasm-pack build rust/crates/web --target web --out-dir "$stage/js/client/pkg" --no-opt > /dev/null
+wasm-pack build rust/crates/web --target web --out-dir "$stage/js/client/pkg" > /dev/null
 cp "$stage/site/map.bin" "$stage/js/client/map.bin"
 
 printf '%s\n' "$version" > "$stage/VERSION"
