@@ -39,11 +39,26 @@ fn record(system: System, cost_us: u64) {
     COSTS[system as usize][bucket].fetch_add(1, Ordering::Relaxed);
 }
 
+/// Reads the clock. `Instant::now` traps on wasm32-unknown-unknown, so the browser build
+/// takes no reading and records nothing.
+#[cfg(not(target_arch = "wasm32"))]
+fn clock() -> Option<Instant> {
+    Some(Instant::now())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn clock() -> Option<Instant> {
+    None
+}
+
 /// Records the time since `since` against `system` and returns the instant it was recorded at.
-fn lap(system: System, since: Instant) -> Instant {
-    let now = Instant::now();
-    record(system, u64::try_from(now.duration_since(since).as_micros()).unwrap_or(u64::MAX));
-    now
+/// Returns `None` without recording when the target has no clock.
+fn lap(system: System, since: Option<Instant>) -> Option<Instant> {
+    let now = clock()?;
+    if let Some(since) = since {
+        record(system, u64::try_from(now.duration_since(since).as_micros()).unwrap_or(u64::MAX));
+    }
+    Some(now)
 }
 
 impl Sim {
@@ -69,7 +84,7 @@ impl Sim {
     }
 
     pub fn tick(&mut self) {
-        let mut mark = Instant::now();
+        let mut mark = clock();
         self.rebucket();
         mark = lap(System::Rebucket, mark);
         self.scan_left = RETARGET_BUDGET;
