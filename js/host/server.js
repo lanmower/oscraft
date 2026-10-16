@@ -3,6 +3,8 @@
 // Heavy deps load only after argument parsing, so --help works with no node_modules installed.
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { replyValue } from './guest.js';
 
 const USAGE = 'usage: node js/host/server.js --wasm <oscraft_wasip1.wasm> --data <image file or dir> --room <name> [--every <ticks>] [--tick-ms <ms>]';
 
@@ -30,6 +32,34 @@ function loadImage(dataPath) {
 function emit(ev, fields = {}) {
   const tail = Object.entries(fields).map(([k, v]) => `${k}=${v}`).join(' ');
   console.log(tail ? `ev=${ev} ${tail}` : `ev=${ev}`);
+}
+
+export const PLAYER_SLOTS = 256;
+
+// Assigns the lowest player id no other peer holds. Returns null when every slot is taken.
+export function assignPlayer(players, peerPubkey) {
+  if (players.has(peerPubkey)) return players.get(peerPubkey);
+  const taken = new Set(players.values());
+  for (let p = 0; p < PLAYER_SLOTS; p++) {
+    if (!taken.has(p)) {
+      players.set(peerPubkey, p);
+      return p;
+    }
+  }
+  return null;
+}
+
+// Applies a peer's order only when the unit's owner (guest unit-player) is the peer's player.
+// Resolves 'applied' or 'refused'; a refusal sends nothing to the guest.
+export async function applyOrder({ guest, players, peerPubkey, unitId, x, y }) {
+  const player = players.get(peerPubkey);
+  const owner = player === undefined ? null : Number(replyValue(await guest.command(`unit-player ${unitId}`), 'ok unit-player '));
+  if (player === undefined || owner !== player) {
+    emit('order_refused', { reason: 'not_owner', peer: peerPubkey.slice(0, 8), unit: unitId });
+    return 'refused';
+  }
+  await guest.command(`order ${unitId} ${x} ${y}`);
+  return 'applied';
 }
 
 async function main(opts) {
@@ -73,7 +103,8 @@ async function main(opts) {
       return new PolyfillRTCPeerConnection({ peerConnection: nativePc });
     },
   });
-  session.addEventListener('peer-open', (e) => emit('peer_open', { peer: e.detail.peerPubkey }));
+  const players = new Map();
+  session.addEventListener('peer-open', (e) => emit('peer_open', { peer: e.detail.peerPubkey, player: assignPlayer(players, e.detail.peerPubkey) }));
   session.addEventListener('peer-close', (e) => {
     const peer = session.peers.get(e.detail.peerPubkey);
     const sdp = peer?.pc?.remoteDescription?.sdp ?? '';
@@ -82,7 +113,8 @@ async function main(opts) {
   session.addEventListener('data', (e) => {
     const f = decodeFrame(e.detail.data);
     if (f.type === FRAME.ORDER) {
-      guest.command(`order ${f.unitId} ${f.x} ${f.y}`).catch((err) => emit('order_failed', { error: JSON.stringify(err.message) }));
+      applyOrder({ guest, players, peerPubkey: e.detail.peerPubkey, unitId: f.unitId, x: f.x, y: f.y })
+        .catch((err) => emit('order_failed', { error: JSON.stringify(err.message) }));
     }
   });
 
@@ -124,16 +156,20 @@ async function main(opts) {
   process.once('SIGTERM', stop);
 }
 
-const opts = parseArgs(process.argv.slice(2));
-if (opts.help) {
-  console.log(USAGE);
-  process.exit(0);
+// Runs the host only when this file is the entry point, so the CI job can import the gate.
+const isEntry = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntry) {
+  const opts = parseArgs(process.argv.slice(2));
+  if (opts.help) {
+    console.log(USAGE);
+    process.exit(0);
+  }
+  if (!opts.wasm || !opts.data) {
+    console.error(USAGE);
+    process.exit(2);
+  }
+  main(opts).catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 }
-if (!opts.wasm || !opts.data) {
-  console.error(USAGE);
-  process.exit(2);
-}
-main(opts).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});

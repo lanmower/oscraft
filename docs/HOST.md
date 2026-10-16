@@ -35,6 +35,10 @@ The guest protocol is unchanged (`rust/crates/wasip1/src/lib.rs`). The host runs
 
 Peer frames use the wire codec in `js/wire/frame.js`, imported by `server.js`; the local `js/host/frame.js` is gone. An order frame carries `unitId`, `x` and `y`, and the host turns it into an `order` command. A state frame carries `tick`, the low 32 bits of the guest state hash, and one unit record `{id, kind, player, x, y, hp}` per unit, read from the guest each tick. `kind` is the catalog unit type index from the guest command `unit-kind` (the id `catalog-unit-name` takes), or -1 when the unit has none.
 
+## Orders
+
+Each peer gets a player id when its channel opens (`assignPlayer` in `js/host/server.js`): the lowest id no other peer holds, up to 256. An order frame is applied by `applyOrder` only when the unit's owner, read with the guest command `unit-player <id>`, equals the sending peer's player. Otherwise the host prints `ev=order_refused reason=not_owner peer=<first 8 chars> unit=<id>` and sends nothing to the guest. The `order-peer-ownership` job in `.github/workflows/ci.yml` runs the gate against a real guest and prints `order ownership ok refused=1 moved=false`.
+
 ## CI
 
 The `net-host-persistent` job in `.github/workflows/ci.yml` runs on ubuntu-latest, ubuntu-24.04-arm, macos-latest and windows-latest. Each builds the wasip1 guest and the OSDT image, opens one guest through `js/host/guest.js`, sends one order, and runs 50 ticks with `readTick`. It asserts that the tick count advanced by 50 and that the last 10 tick times sum to at most 3 times the first 10. It prints `net host persistent ok ticks=50 ratio=<r>`.

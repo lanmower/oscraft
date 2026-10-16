@@ -2846,3 +2846,72 @@ jobs:
           test "$objectives" -ge 1
           test "$hp_changed" = true
           echo "scenario ok sides=$sides routes=$routes objectives=$objectives hp_changed=$hp_changed" | tee "$work/scenario.txt"
+
+  order-peer-ownership:
+    name: order ownership refuses a peer's order on a foreign unit and leaves it in place
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/crates/wasip1 -> target
+          shared-key: rust-wasip1
+
+      - name: Build the sim as a wasip1 guest
+        working-directory: rust/crates/wasip1
+        run: cargo build --release --target wasm32-wasip1 --bin oscraft_wasip1
+
+      - name: Write the OSDT image
+        working-directory: rust
+        run: cargo run -q -p osdt-data -- data "$RUNNER_TEMP/catalog.osdt"
+
+      - name: A peer's order on a unit it does not own is refused and the unit stays put
+        env:
+          HOST_JS: ${{ github.workspace }}/js/host/server.js
+          GUEST_JS: ${{ github.workspace }}/js/host/guest.js
+          GUEST_WASM: ${{ github.workspace }}/rust/crates/wasip1/target/wasm32-wasip1/release/oscraft_wasip1.wasm
+          GUEST_IMAGE: ${{ runner.temp }}/catalog.osdt
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          import { pathToFileURL } from 'node:url';
+
+          const { applyOrder, assignPlayer } = await import(pathToFileURL(process.env.HOST_JS).href);
+          const { openGuest, readTick, replyValue } = await import(pathToFileURL(process.env.GUEST_JS).href);
+          const fail = (why) => { console.error(`order ownership FAIL ${why}`); process.exit(1); };
+
+          const guest = await openGuest(process.env.GUEST_WASM, readFileSync(process.env.GUEST_IMAGE));
+          const players = new Map();
+          const owner = 'aa'.repeat(32);
+          const other = 'bb'.repeat(32);
+          const ownerPlayer = assignPlayer(players, owner);
+          const otherPlayer = assignPlayer(players, other);
+          if (ownerPlayer === null || otherPlayer === null || ownerPlayer === otherPlayer) fail('players not distinct');
+
+          const start = await readTick(guest);
+          const unit = start.units.find((u) => u.player === ownerPlayer) ?? fail(`no unit owned by player ${ownerPlayer}`);
+          const position = async () => replyValue(await guest.command(`unit-position ${unit.id}`), 'ok unit-position ');
+          const before = await position();
+
+          const refused = await applyOrder({ guest, players, peerPubkey: other, unitId: unit.id, x: unit.x + 4, y: unit.y });
+          for (let i = 0; i < 5; i++) await readTick(guest);
+          const afterRefused = await position();
+          if (refused !== 'refused') fail(`foreign order was ${refused}`);
+          if (afterRefused !== before) fail(`foreign order moved unit ${unit.id} from ${before} to ${afterRefused}`);
+
+          const applied = await applyOrder({ guest, players, peerPubkey: owner, unitId: unit.id, x: unit.x + 4, y: unit.y });
+          let afterOwn = afterRefused;
+          for (let i = 0; i < 60 && afterOwn === afterRefused; i++) { await readTick(guest); afterOwn = await position(); }
+          await guest.close();
+          if (applied !== 'applied') fail(`own order was ${applied}`);
+          if (afterOwn === afterRefused) fail(`own order did not move unit ${unit.id}`);
+          console.log('order ownership ok refused=1 moved=false');
+          process.exit(0);
+          JS
