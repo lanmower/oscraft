@@ -3015,11 +3015,13 @@ jobs:
             for (const [page, hash] of [[hostA, "alpha"], [hostB, "beta"]]) {
               page.on("pageerror", (e) => errors.push(e.message));
               page.on("console", (m) => errors.push(`${m.type()}: ${m.text()}`));
+              page.on("response", (r) => { if (r.status() >= 400) errors.push(`http ${r.status()} ${r.url()}`); });
               await page.goto(`${base}#${hash}`);
             }
             const viewer = await (await browser.newContext()).newPage();
             viewer.on("pageerror", (e) => errors.push(e.message));
             viewer.on("console", (m) => errors.push(`viewer ${m.type()}: ${m.text()}`));
+            viewer.on("response", (r) => { if (r.status() >= 400) errors.push(`viewer http ${r.status()} ${r.url()}`); });
             await viewer.goto(`${base}#lobby`);
             await viewer.waitForSelector('#rooms[data-ready="1"]', { state: "attached", timeout: 60000 });
             await viewer.waitForFunction(() => document.querySelectorAll("#room-list button").length === 2, null, { timeout: 120000 }).catch(async (err) => {
@@ -3040,6 +3042,7 @@ jobs:
             await browser.close();
           }
           EOF
+          ls -la "$GITHUB_WORKSPACE/js/client/dist" >&2 || true
           node "$RUNNER_TEMP/pw/lobby.mjs" | tee "$work/lobby.txt"
           grep -q '^lobby room select ok rooms=2 joined=alpha$' "$work/lobby.txt"
   friends-guide:
