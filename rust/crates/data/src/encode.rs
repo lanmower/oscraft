@@ -102,12 +102,12 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u32_le(&mut unit_bytes, unit.health);
         u32_le(&mut unit_bytes, unit.speed_milli);
         u32_le(&mut unit_bytes, unit.radius_milli);
-        u32_le(&mut unit_bytes, unit.minerals);
+        u32_le(&mut unit_bytes, unit.resource_a);
         u32_le(&mut unit_bytes, unit.gas);
         u32_le(&mut unit_bytes, unit.build_time);
         u32_le(&mut unit_bytes, ability_first);
         u16_le(&mut unit_bytes, unit.ability_ids.len() as u16);
-        u16_le(&mut unit_bytes, unit.supply);
+        u16_le(&mut unit_bytes, unit.capacity);
         u32_le(&mut unit_bytes, unit.filters);
         u32_le(&mut unit_bytes, unit.shield);
         i32_le(&mut unit_bytes, unit.armor);
@@ -130,7 +130,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
 
         let ext = catalog.unit_ext[index];
         let start = uext.len();
-        u16_le(&mut uext, ext.supply_provided);
+        u16_le(&mut uext, ext.capacity_provided);
         u16_le(&mut uext, ext.transport_capacity);
         uext.push(ext.size);
         uext.push(ext.damage_type);
@@ -191,7 +191,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         upgr.push(upgrade.stacking);
         u16_le(&mut upgr, upgrade.target);
         u32_le(&mut upgr, effect_index);
-        u32_le(&mut upgr, upgrade.minerals_per_level);
+        u32_le(&mut upgr, upgrade.resource_a_per_level);
         u32_le(&mut upgr, upgrade.gas_per_level);
         debug_assert_eq!(upgr.len() - start, UPGR_RECORD);
     }
@@ -213,7 +213,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u16_le(&mut rsch, name_len);
         u16_le(&mut rsch, research.building);
         u32_le(&mut rsch, research.time);
-        u32_le(&mut rsch, research.minerals);
+        u32_le(&mut rsch, research.resource_a);
         u32_le(&mut rsch, research.gas);
         u32_le(&mut rsch, effect_index);
         u32_le(&mut rsch, research.applies);
@@ -245,11 +245,11 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
     econ_bytes.push(econ.patches_per_base);
     econ_bytes.push(econ.geysers_per_base);
     u32_le(&mut econ_bytes, econ.extractor_yield);
-    u32_le(&mut econ_bytes, econ.opening_minerals);
+    u32_le(&mut econ_bytes, econ.opening_resource_a);
     u32_le(&mut econ_bytes, econ.opening_gas);
     u16_le(&mut econ_bytes, econ.opening_workers);
-    u16_le(&mut econ_bytes, econ.supply_base);
-    u16_le(&mut econ_bytes, econ.supply_max);
+    u16_le(&mut econ_bytes, econ.capacity_base);
+    u16_le(&mut econ_bytes, econ.capacity_max);
     pad(&mut econ_bytes, 2);
     u32_le(&mut econ_bytes, econ.patch_yield);
     u32_le(&mut econ_bytes, econ.geyser_yield);

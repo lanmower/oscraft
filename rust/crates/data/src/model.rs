@@ -25,9 +25,9 @@ pub struct UnitRaw {
     pub speed_milli: i32,
     pub radius_milli: i32,
     pub build_time: i32,
-    pub minerals: i32,
+    pub resource_a: i32,
     pub gas: i32,
-    pub supply: i32,
+    pub capacity: i32,
     pub abilities: Vec<String>,
     pub filters: u32,
     pub product: Option<String>,
@@ -46,7 +46,7 @@ pub struct UnitRaw {
 #[derive(Debug)]
 pub struct UnitExtRaw {
     pub name: String,
-    pub supply_provided: i32,
+    pub capacity_provided: i32,
     pub transport_capacity: i32,
     pub size: usize,
     pub damage_type: usize,
@@ -71,11 +71,11 @@ pub struct EconRaw {
     pub patches_per_base: i32,
     pub geysers_per_base: i32,
     pub extractor_yield: i32,
-    pub opening_minerals: i32,
+    pub opening_resource_a: i32,
     pub opening_gas: i32,
     pub opening_workers: i32,
-    pub supply_base: i32,
-    pub supply_max: i32,
+    pub capacity_base: i32,
+    pub capacity_max: i32,
     pub patch_yield: i32,
     pub geyser_yield: i32,
 }
@@ -85,7 +85,7 @@ pub struct ResearchRaw {
     pub name: String,
     pub building: String,
     pub time: i32,
-    pub minerals: i32,
+    pub resource_a: i32,
     pub gas: i32,
     pub effect: usize,
     pub applies: u32,
@@ -153,7 +153,7 @@ pub struct UpgradeRaw {
     pub apply: usize,
     pub stacking: usize,
     pub effect: usize,
-    pub minerals_per_level: i32,
+    pub resource_a_per_level: i32,
     pub gas_per_level: i32,
 }
 
@@ -211,9 +211,9 @@ pub struct Unit {
     pub speed_milli: u32,
     pub radius_milli: u32,
     pub build_time: u32,
-    pub minerals: u32,
+    pub resource_a: u32,
     pub gas: u32,
-    pub supply: u16,
+    pub capacity: u16,
     pub ability_ids: Vec<u16>,
     pub filters: u32,
     pub product: u16,
@@ -231,7 +231,7 @@ pub struct Unit {
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct UnitExt {
-    pub supply_provided: u16,
+    pub capacity_provided: u16,
     pub transport_capacity: u16,
     pub size: u8,
     pub damage_type: u8,
@@ -256,11 +256,11 @@ pub struct Econ {
     pub patches_per_base: u8,
     pub geysers_per_base: u8,
     pub extractor_yield: u32,
-    pub opening_minerals: u32,
+    pub opening_resource_a: u32,
     pub opening_gas: u32,
     pub opening_workers: u16,
-    pub supply_base: u16,
-    pub supply_max: u16,
+    pub capacity_base: u16,
+    pub capacity_max: u16,
     pub patch_yield: u32,
     pub geyser_yield: u32,
 }
@@ -270,7 +270,7 @@ pub struct Research {
     pub name: String,
     pub building: u16,
     pub time: u32,
-    pub minerals: u32,
+    pub resource_a: u32,
     pub gas: u32,
     pub effect: Effect,
     pub applies: u32,
@@ -329,7 +329,7 @@ pub struct Upgrade {
     pub apply: u8,
     pub stacking: u8,
     pub effect: Effect,
-    pub minerals_per_level: u32,
+    pub resource_a_per_level: u32,
     pub gas_per_level: u32,
 }
 

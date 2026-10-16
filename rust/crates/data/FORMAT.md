@@ -2,7 +2,7 @@
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
-reserved bytes listed below. Version 14 adds a per-cell tile id to GRID and the DODA section for doodads. Version 13 adds a per-level minerals and gas cost to UPGR, which grows from 16 to 24 bytes. Version 12 changed the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
+reserved bytes listed below. Version 14 adds a per-cell tile id to GRID and the DODA section for doodads. Version 13 adds a per-level resource_a and gas cost to UPGR, which grows from 16 to 24 bytes. Version 12 changed the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
 combat and cloak/burrow parameters as new sections. Every record size from version 10
 is unchanged. A reader of an older version must reject the file.
 
@@ -181,12 +181,12 @@ A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 | 8      | 4    | health, `> 0`                                         |
 | 12     | 4    | speed, milli-units per tick (integer, no float)       |
 | 16     | 4    | radius, milli-units                                   |
-| 20     | 4    | minerals cost                                         |
+| 20     | 4    | resource_a cost                                         |
 | 24     | 4    | gas cost                                              |
 | 28     | 4    | build time, game ticks                                |
 | 32     | 4    | first ability index into `UABL`                       |
 | 36     | 2    | ability count                                         |
-| 38     | 2    | supply cost                                           |
+| 38     | 2    | capacity cost                                           |
 | 40     | 4    | filter mask (bit per `FILTERS` entry)                 |
 | 44     | 4    | shield amount, `>= 0`                                 |
 | 48     | 4    | armor, i32, flat reduction per hit                    |
@@ -203,7 +203,7 @@ A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 ### UEXT (32 bytes per record, one per unit in `UNIT` order)
 | offset | size | field                                                              |
 |--------|------|--------------------------------------------------------------------|
-| 0      | 2    | supply provided by this unit (buildings), `>= 0`                   |
+| 0      | 2    | capacity provided by this unit (buildings), `>= 0`                   |
 | 2      | 2    | transport capacity in size units (`0` = not a transport)           |
 | 4      | 1    | size category: `0 small`, `1 medium`, `2 large`                    |
 | 5      | 1    | weapon damage type code (see below)                                |
@@ -296,7 +296,7 @@ requirement is complete.
 | 4      | 2    | name length                                                 |
 | 6      | 2    | building unit index into `UNIT` (the research is run there) |
 | 8      | 4    | research time, game ticks                                   |
-| 12     | 4    | minerals cost                                               |
+| 12     | 4    | resource_a cost                                               |
 | 16     | 4    | gas cost                                                     |
 | 20     | 4    | effect index into `EFCT` (the research's effect slot)       |
 | 24     | 4    | applies-to filter mask (bit per `FILTERS` entry); the effect applies to every unit whose mask contains these bits |
@@ -326,7 +326,7 @@ ability, at a level, to new units only or to existing units too, with a stacking
 | 9      | 1    | stacking rule: `0 replace`, `1 add`, `2 refuse if present`        |
 | 10     | 2    | target index: `UNIT` index for kind 0, `ABIL` index for kind 1    |
 | 12     | 4    | effect index into `EFCT` (the upgrade's effect slot)              |
-| 16     | 4    | minerals cost per level, `>= 0`; the cost to reach level `n` is `n` times this |
+| 16     | 4    | resource_a cost per level, `>= 0`; the cost to reach level `n` is `n` times this |
 | 20     | 4    | gas cost per level, `>= 0`; the cost to reach level `n` is `n` times this      |
 
 ### LIMT (4 bytes, count 1)
@@ -344,18 +344,18 @@ Production economy for the map. Every player starts from the same opening values
 | 2      | 1    | mineral patches per base                                           |
 | 3      | 1    | extractors (geysers) per base                                      |
 | 4      | 4    | gas per trip from one extractor, `>= 0`                            |
-| 8      | 4    | opening minerals per start, `>= 0`                                 |
+| 8      | 4    | opening resource_a per start, `>= 0`                                 |
 | 12     | 4    | opening gas per start, `>= 0`                                      |
 | 16     | 2    | opening workers per start                                          |
-| 18     | 2    | supply cap at the start (base), `>= 0`                             |
-| 20     | 2    | supply cap maximum per race (the ceiling providers can raise to)  |
+| 18     | 2    | capacity cap at the start (base), `>= 0`                             |
+| 20     | 2    | capacity cap maximum per race (the ceiling providers can raise to)  |
 | 22     | 2    | reserved, write 0                                                  |
-| 24     | 4    | minerals per mineral patch, `>= 0`                                 |
+| 24     | 4    | resource_a per mineral patch, `>= 0`                                 |
 | 28     | 4    | gas per geyser, `>= 0`                                             |
 
-Supply: a unit charges its `supply cost` (UNIT offset 38). Production is refused
-past the supply cap. The cap is `supply_base` plus the `supply provided` of every
-completed provider, bounded by `supply_max`. Queued production reserves its supply,
+Capacity: a unit charges its `capacity cost` (UNIT offset 38). Production is refused
+past the capacity cap. The cap is `capacity_base` plus the `capacity provided` of every
+completed provider, bounded by `capacity_max`. Queued production reserves its capacity,
 released on cancel.
 
 ## DODA (20 bytes per record, count = doodad count)
@@ -402,7 +402,7 @@ without a version bump.
   `2 armored`, `3 biological`, `4 mechanical`, `5 psionic`, `6 structure`, `7 light`,
   `8 massive`, `9 worker`, `10 army`, `11 building`
 - Damage response (`UNIT.damage response`): `0 normal`, `1 reduced`, `2 immune`
-- Resource kind (`UNIT.resource kind`): `0 none`, `1 minerals`, `2 gas`
+- Resource kind (`UNIT.resource kind`): `0 none`, `1 resource_a`, `2 gas`
 - Damage type (`UEXT.weapon damage type`, `DMGF.damage type`): `0 normal`, `1 concussive`, `2 explosive`
 - Size category (`UEXT.size category`, `DMGF.size category`): `0 small`, `1 medium`, `2 large`
 - Doodad kinds (`DODA.kind`): `0 rock`, `1 tree`, `2 crystal`, `3 debris`. Codes above `3` are rejected.
@@ -432,5 +432,5 @@ without a version bump.
 - Reject a GRID body whose length is not `16 + 3 * width * height`, or a height step of `0`.
 - Reject a DODA record with a kind above `3`, a rotation of `1000` or more, a position off the grid, or an id that repeats.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
-- Apply the receiver, radius, upgrade, research and supply rules above; they are not encoded in the record and must not be inferred from it.
+- Apply the receiver, radius, upgrade, research and capacity rules above; they are not encoded in the record and must not be inferred from it.
 - The tick path never parses names. It uses only numeric fields.

@@ -1,13 +1,13 @@
 # Unit definitions. One unit(...) call per line: unit(name, health, speed_milli, radius_milli, ...keywords).
 # Skirmisher: ground army unit with a mineral harvest.
-unit("skirmisher", 45, 3150, 375, build_time=480, minerals=50, supply=1, abilities=["pulse_shot"], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="minerals", harvest=5)
+unit("skirmisher", 45, 3150, 375, build_time=480, resource_a=50, capacity=1, abilities=["pulse_shot"], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="resource_a", harvest=5)
 # Warden: armored ground army unit with a gas harvest, regeneration and a product.
-unit("warden", 120, 2250, 500, build_time=720, minerals=100, gas=50, supply=3, abilities=["mend_field", "pulse_shot"], filters=["ground", "armored", "massive", "army"], product="skirmisher", weapon_damage=10, weapon_range_milli=6000, weapon_period=36, sight_milli=10000, shield=40, armor=1, damage_response="reduced", resource="gas", harvest=4, shield_regen=2, regen_delay=600)
-# Tender: worker filter, harvests minerals (exercises harvest-resources).
-unit("tender", 40, 2800, 350, build_time=300, minerals=50, supply=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="minerals", harvest=5)
+unit("warden", 120, 2250, 500, build_time=720, resource_a=100, gas=50, capacity=3, abilities=["mend_field", "pulse_shot"], filters=["ground", "armored", "massive", "army"], product="skirmisher", weapon_damage=10, weapon_range_milli=6000, weapon_period=36, sight_milli=10000, shield=40, armor=1, damage_response="reduced", resource="gas", harvest=4, shield_regen=2, regen_delay=600)
+# Tender: worker filter, harvests resource_a (exercises harvest-resources).
+unit("tender", 40, 2800, 350, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="resource_a", harvest=5)
 # Spore: biological flying unit without the ground filter (exercises ability-target-filter).
-unit("spore", 60, 3500, 400, build_time=420, minerals=75, gas=25, supply=2, filters=["air", "biological", "light"], sight_milli=9000)
+unit("spore", 60, 3500, 400, build_time=420, resource_a=75, gas=25, capacity=2, filters=["air", "biological", "light"], sight_milli=9000)
 # Gunship: flying unit without the ground filter (a second target for ability-target-filter).
-unit("gunship", 150, 2600, 600, build_time=600, minerals=150, gas=100, supply=3, filters=["air", "armored", "massive"], sight_milli=11000)
+unit("gunship", 150, 2600, 600, build_time=600, resource_a=150, gas=100, capacity=3, filters=["air", "armored", "massive"], sight_milli=11000)
 # Mender: shieldless ground unit that regenerates health (hp-regen check).
-unit("mender", 80, 2600, 375, build_time=400, minerals=75, supply=2, filters=["ground", "light", "biological"], sight_milli=9000, health_regen=2)
+unit("mender", 80, 2600, 375, build_time=400, resource_a=75, capacity=2, filters=["ground", "light", "biological"], sight_milli=9000, health_regen=2)

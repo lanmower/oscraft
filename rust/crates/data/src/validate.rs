@@ -201,10 +201,10 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             speed_milli: unsigned("speed_milli", raw.speed_milli)?,
             radius_milli: unsigned("radius_milli", raw.radius_milli)?,
             build_time: unsigned("build_time", raw.build_time)?,
-            minerals: unsigned("minerals", raw.minerals)?,
+            resource_a: unsigned("resource_a", raw.resource_a)?,
             gas: unsigned("gas", raw.gas)?,
-            supply: u16::try_from(unsigned("supply", raw.supply)?)
-                .map_err(|_| anyhow!("unit {:?} supply exceeds u16", raw.name))?,
+            capacity: u16::try_from(unsigned("capacity", raw.capacity)?)
+                .map_err(|_| anyhow!("unit {:?} capacity exceeds u16", raw.name))?,
             ability_ids,
             filters: raw.filters,
             product,
@@ -234,8 +234,8 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             bail!("unit {:?} cloak flags exceed the cloak registry", raw.name);
         }
         unit_ext[index] = UnitExt {
-            supply_provided: u16::try_from(unsigned("supply_provided", raw.supply_provided)?)
-                .map_err(|_| anyhow!("unit {:?} supply_provided exceeds u16", raw.name))?,
+            capacity_provided: u16::try_from(unsigned("capacity_provided", raw.capacity_provided)?)
+                .map_err(|_| anyhow!("unit {:?} capacity_provided exceeds u16", raw.name))?,
             transport_capacity: u16::try_from(unsigned("transport_capacity", raw.transport_capacity)?)
                 .map_err(|_| anyhow!("unit {:?} transport_capacity exceeds u16", raw.name))?,
             size: raw.size as u8,
@@ -261,11 +261,11 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
                 patches_per_base: bounded("patches_per_base", e.patches_per_base, u8::MAX as u32)? as u8,
                 geysers_per_base: bounded("geysers_per_base", e.geysers_per_base, u8::MAX as u32)? as u8,
                 extractor_yield: unsigned("extractor_yield", e.extractor_yield)?,
-                opening_minerals: unsigned("opening_minerals", e.opening_minerals)?,
+                opening_resource_a: unsigned("opening_resource_a", e.opening_resource_a)?,
                 opening_gas: unsigned("opening_gas", e.opening_gas)?,
                 opening_workers: bounded("opening_workers", e.opening_workers, u16::MAX as u32)? as u16,
-                supply_base: bounded("supply_base", e.supply_base, u16::MAX as u32)? as u16,
-                supply_max: bounded("supply_max", e.supply_max, u16::MAX as u32)? as u16,
+                capacity_base: bounded("capacity_base", e.capacity_base, u16::MAX as u32)? as u16,
+                capacity_max: bounded("capacity_max", e.capacity_max, u16::MAX as u32)? as u16,
                 patch_yield: unsigned("patch_yield", e.patch_yield)?,
                 geyser_yield: unsigned("geyser_yield", e.geyser_yield)?,
             }
@@ -284,7 +284,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             name: raw.name.clone(),
             building: building as u16,
             time: unsigned("research time", raw.time)?,
-            minerals: unsigned("research minerals", raw.minerals)?,
+            resource_a: unsigned("research resource_a", raw.resource_a)?,
             gas: unsigned("research gas", raw.gas)?,
             effect: Effect {
                 kind: effect.kind as u16,
@@ -411,7 +411,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             level: raw.level as u8,
             apply: raw.apply as u8,
             stacking: raw.stacking as u8,
-            minerals_per_level: unsigned("upgrade minerals per level", raw.minerals_per_level)?,
+            resource_a_per_level: unsigned("upgrade resource_a per level", raw.resource_a_per_level)?,
             gas_per_level: unsigned("upgrade gas per level", raw.gas_per_level)?,
             effect: Effect {
                 kind: effect.kind as u16,
