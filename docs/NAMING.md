@@ -10,7 +10,7 @@ This map is the spec for one atomic rename commit across `rust/` and `docs/`. Ev
 4. Sample content in `rust/data` and the spike mods uses generic example names. Example entities are named by role, not after any game.
 5. Deletions, not renames: MPQ, Mo'PaQ and the `mpq` crate are removed with the MPQ reader. Game names in docs and comments are deleted, not replaced.
 6. `docs/NAMING.md` itself contains old terms. The rename commit deletes it, so rule 1 holds after that commit.
-7. Out of scope but must go: `testdata/_incoming/` holds untracked game-data material (Galaxy, GameData, SC2 XML, trigger libraries). Remove it from the working tree so the repository carries no such names.
+7. Out of scope but must go: `testdata/_incoming/` holds untracked game-data material (vendor-owned game-data formats, XML and trigger libraries). Remove it from the working tree so the repository carries no such names.
 
 ## Map
 
@@ -62,7 +62,7 @@ This map is the spec for one atomic rename commit across `rust/` and `docs/`. Ev
 | shield_bonus | secondary_pool_bonus | `EFFECT_KINDS` in `format.rs` | effect kind |
 | production, produce | spawning | `production.rs`, `FORMAT.md` | production becomes spawning; `production.rs` becomes `spawning.rs` |
 | MPQ, Mo'PaQ, mpq crate | deleted | `rust/crates/mpq/`, `lib.rs`, `Cargo.toml` | deletion |
-| Galaxy, GameData, StarCraft, SC2, StarCraft II, Warcraft III, Blizzard | deleted | docs, code comments, `testdata/_incoming/` | deletion, not replacement |
+| vendor product names and their data formats (see the LICENSES inventory audit) | deleted | docs, code comments, `testdata/_incoming/` | deletion, not replacement |
 | OSDT | OSDT | `format.rs`, `loader.rs`, `data/Cargo.toml`, `FORMAT.md` | keep: file magic, OScraft Data Table |
 | ABIL | ACTN | `format.rs`, `loader.rs`, `FORMAT.md` | section code: actions |
 | UABL | ENTA | `format.rs`, `FORMAT.md` | section code: entity actions |

@@ -5,10 +5,10 @@ Parity with the gameplay list means every GP row is covered by a CAP row whose g
 Sources (read through the fetch port; mechanics restated in our own words, no page text or tables copied, no reference numbers used):
 - broodwar.live mechanics wiki, https://broodwar.live/wiki/mechanics/ (worker-management, attack-mechanics, damage-types, armor-types, economy, resources, supply, splash-damage, cloaking-detection, fog-of-war, terrain, transport, game-speed, building-placement, control-groups)
 - Wikipedia: Warcraft III: The Frozen Throne and Reign of Chaos, https://en.wikipedia.org/wiki/Warcraft_III:_Reign_of_Chaos
-- Wikipedia: StarCraft II: Wings of Liberty, https://en.wikipedia.org/wiki/StarCraft_II:_Wings_of_Liberty
+- Wikipedia: the reference game's article (title and link omitted)
 - Wikipedia: Lockstep (computing), https://en.wikipedia.org/wiki/Lockstep_(computing)
 - Wikipedia: Replay (video games), https://en.wikipedia.org/wiki/Replay_(video_games)
-- Not used: Liquipedia and the StarCraft Fandom wiki returned bot-challenge responses (HTTP 403) to the fetch port.
+- Not used: Liquipedia and the game's fan wiki returned bot-challenge responses (HTTP 403) to the fetch port.
 
 Columns: id, mechanic (one sentence), covering CAP row or MISSING.
 
@@ -144,7 +144,7 @@ Columns: id, mechanic (one sentence), covering CAP row or MISSING.
 
 # Section A: mod capabilities (MOD)
 
-What a Warcraft III or StarCraft II style mod can do, in our terms.
+What a mod of the reference-game style can do, in our terms.
 
 | id | mechanic | CAP |
 |---|---|---|
