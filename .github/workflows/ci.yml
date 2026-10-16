@@ -2485,8 +2485,11 @@ jobs:
             }
             const movedToward = (p) => !!p && Math.hypot(p.x - target.x, p.z - target.z) < Math.hypot(unit.x - target.x, unit.z - target.z) - 1;
             if (!movedToward(onPeer) || !movedToward(onHost)) throw new Error(`no movement seen: start=${unit.x},${unit.z} peer=${JSON.stringify(onPeer)} host=${JSON.stringify(onHost)}`);
-            const foreign = start.find((u) => u.player === 1);
-            if (!foreign) throw new Error("no unit owned by the second player");
+            // The gunship spawned at (24, 14) for player 1 in rust/data/map.osd. It flies, so the sim's
+            // same-layer separation never moves it, and no ground unit reaches it; a ground unit next to
+            // the moving unit would be pushed by separation and would not witness the refusal.
+            const foreign = start.find((u) => u.player === 1 && Math.hypot(u.x - 24, u.z - 14) < 0.5);
+            if (!foreign) throw new Error("no gunship owned by the second player at (24, 14)");
             const at = async (page) => page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, foreign.id);
             const foreignBefore = await at(host);
             await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [foreign.id, Math.round(foreign.x) + 4, Math.round(foreign.z)]);
