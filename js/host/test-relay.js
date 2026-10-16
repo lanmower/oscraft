@@ -85,9 +85,12 @@ export function startRelay({ port = 0, host = '127.0.0.1' } = {}) {
   const send = (sock, msg) => { if (!sock.destroyed) sock.write(textFrame(JSON.stringify(msg))); };
 
   const deliver = (ev) => {
+    let delivered = 0;
     for (const sub of subs) {
-      if (sub.filters.some((f) => matches(ev, f))) send(sub.sock, ['EVENT', sub.id, ev]);
+      if (sub.filters.some((f) => matches(ev, f))) { send(sub.sock, ['EVENT', sub.id, ev]); delivered++; }
     }
+    const to = ev.tags.find((t) => t[0] === 'p');
+    if (ev.kind === 30078 && to) console.log(`ev=relay_deliver to=${to[1].slice(0, 8)} delivered=${delivered} subs=${subs.size}`);
   };
 
   const onEvent = (sock, ev) => {
