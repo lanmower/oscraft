@@ -1,7 +1,7 @@
 # Packaging
 
 One archive holds everything a fresh install needs: the server, the mod language server, the data
-directory, the browser page, and the net host and client. `scripts/package/build.sh` builds it and `scripts/package/install-check.sh`
+directory, the browser page with its committed wasm and map. `scripts/package/build.sh` builds it and `scripts/package/install-check.sh`
 proves it installs. CI runs both in the `package-install` job of `.github/workflows/ci.yml`.
 
 ## Layout
@@ -14,10 +14,8 @@ The archive has these members at its root. Paths are relative and every file is 
 | `bin/oscraft-lsp` | the mod language server over stdio (crate `mod-lsp`, package `oscraft-lsp`) |
 | `data/*.osd` | the data directory; `oscraftd --data` builds the catalog image from it |
 | `site/` | the browser page: `index.html`, `main.js`, `assets/`, `map.bin` (from `mapexport`), `pkg/` (wasm-pack output) |
-| `js/host/` | the net host: `server.js`, `guest.js`, `test-relay.js`, `package.json` (pinned versions; `npm install` there before serving) |
-| `js/wire/frame.js` | the wire frame codec the host imports |
-| `js/client/play.html`, `js/client/dist/play.js` | the net client page and its esbuild bundle; built by `npm run build` in `js/client` when `dist/play.js` is absent |
-| `js/client/pkg/`, `js/client/map.bin` | the browser wasm package (`wasm-pack`, `--no-opt`) that the page loads through `data-pkg`, and the map image it loads through `data-map` |
+| `js/client/play.html`, `play.js`, `rooms.js`, `ice.js`, `delta.js`, `wire/frame.js` | the browser host page and its ES modules, loaded directly through the import map in `play.html` (no bundle) |
+| `js/client/pkg/`, `js/client/map.bin` | the browser wasm package (`wasm-pack`; wasm-opt is off in `crates/web/Cargo.toml`) that the page loads through `data-pkg`, and the map image it loads through `data-map` |
 | `VERSION` | the crate version the archive was built from |
 | `MANIFEST.sha256` | one `sha256  path` line per member, in `sha256sum` format; lists every file except itself |
 
@@ -27,7 +25,7 @@ The archive is `oscraft-<version>.tar.gz`, built as a gzip tar of the staging di
 
     bash scripts/package/build.sh <out-dir>
 
-Needs a Rust toolchain with the `wasm32-unknown-unknown` target, `wasm-pack`, and `sha256sum` or `shasum`. The client bundle needs `node` and `npm` when `js/client/dist/play.js` is not already built.
+Needs a Rust toolchain with the `wasm32-unknown-unknown` target, `wasm-pack`, and `sha256sum` or `shasum`. No node or npm is needed.
 The script finishes by printing `package built archive=<path> version=<v> members=<n>`.
 
 ## Install check
@@ -40,9 +38,9 @@ The destination must be an existing empty directory. The check:
 2. re-hashes every member and fails on any sha256 that differs from `MANIFEST.sha256`, or on a file the manifest does not list;
 3. starts `bin/oscraftd --room ci --data data --site site` from the unpacked directory and requires `GET /state` to return JSON with `units` and `GET /site/` to return 200;
 4. runs `bin/oscraft-lsp` over stdio with `initialize` and `shutdown`, and requires a reply that contains `capabilities`.
-5. runs `node js/host/server.js --help` from the unpacked directory (no npm install needed) and requires exit 0 and a `usage: node js/host/server.js --wasm` line; requires `js/client/play.html` to reference `dist/play.js` and `js/client/dist/play.js` to be non-empty; every relative import of the bundle and each `data-pkg` and `data-map` reference in `play.html` must resolve from the unpacked directory. It prints `client imports ok=<n>`.
+5. requires the page modules `play.html`, `play.js`, `rooms.js`, `ice.js`, `delta.js` and `wire/frame.js`, the wasm package `js/client/pkg/web.js` and `web_bg.wasm`, and `js/client/map.bin` to be non-empty; every relative import of `play.js` and `delta.js` and each `data-pkg` and `data-map` reference in `play.html` must resolve from the unpacked directory. It prints `client imports ok=<n>`.
 
-On success it prints `package install ok members=<n> sha256_checked=<n>` and then `package install ok members=<n> sha256_checked=<n> host_help=ok client=ok`, where `members` counts the manifest lines
+On success it prints `package install ok members=<n> sha256_checked=<n>` and then `package install ok members=<n> sha256_checked=<n> client=ok pkg=ok map=ok`, where `members` counts the manifest lines
 and `sha256_checked` counts the members whose hash matched. Any failure prints `FAIL: <reason>` and exits 1.
 
 ## Running an installed copy

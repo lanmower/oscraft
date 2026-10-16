@@ -26,13 +26,13 @@ while read -r want path; do
 done < MANIFEST.sha256
 extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
 [ "$extra" -eq "$members" ] || fail "archive holds $extra files but manifest lists $members"
-help=$(node js/host/server.js --help) || fail "node js/host/server.js --help exited nonzero in the unpacked archive"
-grep -q '^usage: node js/host/server.js --wasm' <<< "$help" || fail "node js/host/server.js --help printed no usage line"
 [ -s js/client/play.js ] || fail "js/client/play.js is missing or empty"
-[ -f js/client/play.html ] || fail "js/client/play.html is missing"
+for f in play.html play.js rooms.js ice.js delta.js wire/frame.js map.bin pkg/web.js pkg/web_bg.wasm; do
+  [ -s "js/client/$f" ] || fail "js/client/$f is missing or empty"
+done
 grep -q 'src="play.js"' js/client/play.html || fail "js/client/play.html does not load play.js"
-specs=$(for f in js/client/play.js js/client/delta.js; do node -e 'const s=require("fs").readFileSync(process.argv[1],"utf8");const re=/(?:from|import\()\s*["\x27](\.\.?\/[^"\x27]+)["\x27]/g;let m;while((m=re.exec(s)))console.log(m[1]);' "$f"; done | sort -u)
-refs=$(node -e 'const s=require("fs").readFileSync("js/client/play.html","utf8");const re=/data-(?:pkg|map)="([^"]+)"/g;const out=[];let m;while((m=re.exec(s)))out.push(m[1]);process.stdout.write(out.join("\n"))')
+specs=$(grep -ho -E "[\"'][.][.]?/[^\"']+[\"']" js/client/play.js js/client/delta.js | tr -d "\"'" | sort -u)
+refs=$(grep -ho -E 'data-(pkg|map)="[^"]+"' js/client/play.html | sed -E 's/.*="(.*)"/\1/')
 imports=0
 while IFS= read -r spec; do
   [ -n "$spec" ] || continue
@@ -66,4 +66,4 @@ printf '%s' "$lsp_out" | grep -q '"capabilities"' || fail "oscraft-lsp initializ
 
 echo "package install ok members=$members sha256_checked=$checked"
 echo "client imports ok=$imports"
-echo "package install ok members=$members sha256_checked=$checked host_help=ok client=ok"
+echo "package install ok members=$members sha256_checked=$checked client=ok pkg=ok map=ok"

@@ -1896,15 +1896,6 @@ jobs:
           cmp js/wire/frame.js js/client/wire/frame.js
           echo "client modules ok files=$count"
 
-      - name: node js/host/server.js --help
-        run: |
-          node js/host/server.js --help > /tmp/net-host-help.txt
-          code=$?
-          cat /tmp/net-host-help.txt
-          test "$code" = 0
-          grep -q '^usage: node js/host/server.js --wasm' /tmp/net-host-help.txt
-          echo "net host usage ok"
-
       - name: 100 ticks of 30 units, full and delta state bytes
         env:
           WIRE_JS: ${{ github.workspace }}/js/wire/frame.js
@@ -1991,68 +1982,12 @@ jobs:
           env -u OSCRAFT_ICE node "$RUNNER_TEMP/ice-check.mjs" | tee "$RUNNER_TEMP/ice-unset.txt"
           grep -q '^ice config ok default=true$' "$RUNNER_TEMP/ice-unset.txt"
 
-      - name: Compare the wasip1 command list with the WIT exports
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import re, sys
-          wit = open("rust/crates/wasip2/wit/sim-component.wit").read()
-          wit_ops = set(re.findall(r"^\s*export\s+([a-z][a-z0-9-]*)\s*:", wit, re.M))
-          src = open("rust/crates/wasip1/src/lib.rs").read()
-          block = re.search(r"pub const COMMANDS:[^=]*=\s*&\[(.*?)\];", src, re.S)
-          if not block:
-              sys.exit("host api: COMMANDS const not found in rust/crates/wasip1/src/lib.rs")
-          wasip1_ops = set(re.findall(r'"([a-z][a-z0-9-]*)"', block.group(1)))
-          only_wit = sorted(wit_ops - wasip1_ops)
-          only_wasip1 = sorted(wasip1_ops - wit_ops)
-          if only_wit or only_wasip1 or not wit_ops:
-              print(f"host api mismatch: missing from wasip1={only_wit} missing from wit={only_wasip1}")
-              sys.exit(1)
-          print(f"host api ok ops={len(wit_ops & wasip1_ops)} wasip1={len(wasip1_ops)} wit={len(wit_ops)}")
-          PY
-
       - name: count reference-game terms in the tree
         run: |
           count() { git grep -iE "$1" -- . ':!LICENSES-INVENTORY.md' | wc -l; }
           s=$(count 'st[a]rcraft'); c=$(count 'sc[2]'); b=$(count 'blizz[a]rd'); g=$(count 'gal[a]xy')
           if [ $((s+c+b+g)) -ne 0 ]; then echo naming comments FAIL st''arcraft=$s sc''2=$c bli''zzard=$b gal''axy=$g; exit 1; fi
           echo naming comments ok st''arcraft=$s sc''2=$c bli''zzard=$b
-
-  wasip2:
-    name: sim as wasip2 component and host
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: rust/crates/wasip2
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-wasip2
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust/crates/wasip2 -> target
-          shared-key: rust-wasip2
-
-      - name: Build the sim as a wasip2 component
-        run: cargo build --lib --release --target wasm32-wasip2
-
-      - name: Run the host, which instantiates the component and runs one tick
-        run: cargo run --release --bin oscraft-wasip2-host -- target/wasm32-wasip2/release/oscraft_wasip2.wasm
-
-      - name: Run the host with the mod feature; the native host drives the mod host
-        run: cargo run --release --features mod --bin oscraft-wasip2-host
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: oscraft-wasip2-component
-          path: rust/crates/wasip2/target/wasm32-wasip2/release/oscraft_wasip2.wasm
 
   mod-lsp:
     name: language server matches the engine validator
@@ -2240,38 +2175,6 @@ jobs:
           grep -Eq '^reload-check error-reported line=[0-9]+ ok$' reload.txt
           grep -Eq '^reload-check rollback ok ' reload.txt
 
-  wasip1:
-    name: sim as wasip1 guest driven over stdio
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: rust/crates/wasip1
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-wasip1
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust/crates/wasip1 -> target
-          shared-key: rust-wasip1
-
-      - name: Build the sim as a wasip1 guest
-        run: cargo build --release --target wasm32-wasip1 --bin oscraft_wasip1
-
-      - name: Run the host, which loads the image, ticks 10 and reads the unit count
-        run: cargo run --release --bin oscraft_wasip1 -- target/wasm32-wasip1/release/oscraft_wasip1.wasm
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: oscraft-wasip1-guest
-          path: rust/crates/wasip1/target/wasm32-wasip1/release/oscraft_wasip1.wasm
-
   package-install:
     name: single archive builds and installs into an empty directory
     runs-on: ubuntu-latest
@@ -2306,10 +2209,10 @@ jobs:
         with:
           name: oscraft-package
           path: ${{ runner.temp }}/package/oscraft-*.tar.gz
-      - name: Assert the install line reports the host help and client bundle
+      - name: Assert the install line reports the client, the wasm package and the map
         run: |
           set -euo pipefail
-          grep -q '^package install ok members=[0-9]* sha256_checked=[0-9]* host_help=ok client=ok$' "$RUNNER_TEMP/install.out"
+          grep -q '^package install ok members=[0-9]* sha256_checked=[0-9]* client=ok pkg=ok map=ok$' "$RUNNER_TEMP/install.out"
 
   wire:
     name: wire frame codec round-trip
@@ -2325,220 +2228,6 @@ jobs:
 
       - name: Round-trip and reject tests
         run: node test.js
-
-  net-host-persistent:
-    name: net host keeps one wasip1 guest across 50 ticks (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm]
-    runs-on: ${{ matrix.os }}
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    timeout-minutes: 30
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-wasip1
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust/crates/wasip1 -> target
-          shared-key: rust-wasip1
-
-      - name: Build the sim as a wasip1 guest
-        working-directory: rust/crates/wasip1
-        run: cargo build --release --target wasm32-wasip1 --bin oscraft_wasip1
-
-      - name: Write the OSDT image
-        working-directory: rust
-        run: cargo run -q -p osdt-data -- data "$RUNNER_TEMP/catalog.osdt"
-
-      - name: One persistent guest, 50 ticks and one order, tick count and tick cost asserted
-        env:
-          GUEST_JS: ${{ github.workspace }}/js/host/guest.js
-          GUEST_WASM: ${{ github.workspace }}/rust/crates/wasip1/target/wasm32-wasip1/release/oscraft_wasip1.wasm
-          GUEST_IMAGE: ${{ runner.temp }}/catalog.osdt
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'JS'
-          import { readFileSync } from 'node:fs';
-          import { pathToFileURL } from 'node:url';
-          import { performance } from 'node:perf_hooks';
-
-          const { openGuest, readTick, replyValue } = await import(pathToFileURL(process.env.GUEST_JS).href);
-          const fail = (why) => { console.error(`net host persistent FAIL ${why}`); process.exit(1); };
-          const expect = (reply, prefix) => (reply.startsWith(prefix) ? reply : fail(`reply "${reply}"`));
-
-          const guest = await openGuest(process.env.GUEST_WASM, readFileSync(process.env.GUEST_IMAGE));
-          const first = await readTick(guest);
-          const start = Number(replyValue(expect(await guest.command('ticks'), 'ok ticks '), 'ok ticks '));
-          if (!(first.count > 0)) fail(`unit-count ${first.count}`);
-          expect(await guest.command('order 0 0 0'), 'ok order');
-
-          const times = [];
-          for (let i = 0; i < 50; i++) {
-            const t0 = performance.now();
-            await readTick(guest);
-            times.push(performance.now() - t0);
-          }
-          const end = Number(replyValue(expect(await guest.command('ticks'), 'ok ticks '), 'ok ticks '));
-          await guest.close();
-
-          if (end - start !== 50) fail(`ticks advanced ${end - start}, want 50`);
-          const sum = (xs) => xs.reduce((a, b) => a + b, 0);
-          const ratio = sum(times.slice(40)) / sum(times.slice(0, 10));
-          if (!(ratio <= 3)) fail(`last-10 over first-10 ratio ${ratio.toFixed(2)} > 3`);
-          console.log(`net host persistent ok ticks=50 ratio=${ratio.toFixed(2)}`);
-          process.exit(0);
-          JS
-
-  net-e2e-two-peers:
-    name: "two headless peers join room ci through the relay; an order moves a unit"
-    runs-on: ubuntu-latest
-    needs: [changes, build]
-    if: needs.changes.outputs.code == 'true'
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: ci-build
-          path: rust
-
-      - name: Mark the prebuilt binaries executable
-        working-directory: ${{ github.workspace }}
-        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown,wasm32-wasip1
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "rust -> target"
-          shared-key: rust-net-e2e
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Build the wasip1 guest, the image, the map and the page wasm
-        run: |
-          set -euo pipefail
-          (cd rust/crates/wasip1 && cargo build --release --target wasm32-wasip1 --bin oscraft_wasip1)
-          (cd rust && ./target/debug/osdt-data data "$RUNNER_TEMP/catalog.osdt")
-          rm -rf js/client/pkg && cp -r rust/crates/web/site/pkg js/client/pkg && rm -f js/client/pkg/.gitignore
-          cp rust/crates/web/site/map.bin js/client/map.bin
-
-      - name: Bundle the client and install the host
-        run: |
-          set -euo pipefail
-          (cd js/host && npm install)
-          test -s js/client/pkg/web.js
-          test -s js/client/map.bin
-
-      - name: Install headless Chromium
-        run: |
-          mkdir -p "$RUNNER_TEMP/pw"
-          cd "$RUNNER_TEMP/pw"
-          npm init -y > /dev/null
-          npm install playwright@1.47.0
-          npx playwright install --with-deps chromium
-
-      - name: "Relay, host and two peers: an order from peer A moves the unit both peers see"
-        run: |
-          set -euo pipefail
-          work="$RUNNER_TEMP/net-e2e"
-          mkdir -p "$work"
-          node js/host/test-relay.js 7447 > "$work/relay.log" 2>&1 &
-          relay=$!
-          python3 -m http.server 8090 --bind 127.0.0.1 --directory js/client > "$work/static.log" 2>&1 &
-          static=$!
-          OSCRAFT_RELAYS=ws://127.0.0.1:7447 OSCRAFT_NAMESPACE=oscraft-ci node js/host/server.js --wasm rust/crates/wasip1/target/wasm32-wasip1/release/oscraft_wasip1.wasm --data "$RUNNER_TEMP/catalog.osdt" --room ci --tick-ms 100 > "$work/host.log" 2>&1 &
-          host=$!
-          trap 'kill $host $relay $static 2>/dev/null || true' EXIT
-          for i in $(seq 1 60); do grep -q '^ev=host_started ' "$work/host.log" && break; sleep 1; done
-          grep -q '^ev=host_started ' "$work/host.log"
-          cat > "$RUNNER_TEMP/pw/check.mjs" <<'EOF'
-          import { chromium } from "playwright";
-          import { readFileSync } from "fs";
-          const url = "http://127.0.0.1:8090/play.html?ci=1&relay=ws://127.0.0.1:7447&ns=oscraft-ci#ci";
-          const hostLog = process.env.NET_E2E_HOST_LOG;
-          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-features=WebRtcHideLocalIpsWithMdns"] });
-          const pageErrors = [];
-          const pages = [];
-          const openPeer = async (name) => {
-            const page = await (await browser.newContext()).newPage();
-            page.on("pageerror", (e) => pageErrors.push(`${name} pageerror: ${e}`));
-            page.on("console", (m) => { if (m.type() !== "debug") pages.push(`${name} console ${m.type()}: ${m.text()}`); });
-            await page.goto(url);
-            return page;
-          };
-          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-          const diagnose = async (named) => {
-            for (const [name, p] of named) {
-              console.log(`DIAG ${name} pcs: ${await p.evaluate(() => (window.__ciDebug ? JSON.stringify(window.__ciDebug()) : 'no debug hook')).catch((e) => 'evaluate failed: ' + e)}`);
-              const status = await p.evaluate(() => document.getElementById("status")?.textContent ?? "").catch((e) => "evaluate failed: " + e);
-              console.log(`DIAG ${name} status: ${JSON.stringify(status)}`);
-              console.log(`DIAG ${name} peers: ${await p.evaluate(() => (window.__ciPeers ? window.__ciPeers() : "no hook")).catch((e) => "evaluate failed: " + e)}`);
-            }
-            console.log("DIAG page logs:\n" + pages.slice(0, 80).join("\n"));
-            console.log("DIAG page errors: " + JSON.stringify(pageErrors));
-            console.log("DIAG host log tail:\n" + readFileSync(hostLog, "utf8").split("\n").filter((l) => !l.startsWith("ev=tick ")).slice(-40).join("\n"));
-          };
-          let a = null;
-          let b = null;
-          try {
-            a = await openPeer("A");
-            b = await openPeer("B");
-            for (const [name, p] of [["A", a], ["B", b]]) {
-              await p.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 }).catch(async (err) => {
-                await diagnose([["A", a], ["B", b]]);
-                throw new Error(`peer ${name} never received a state frame with units: ${err.message}`);
-              });
-            }
-            const before = await b.evaluate(() => window.__ciUnits()[0]);
-            const target = { x: Math.round(before.x) + 4, y: Math.round(before.z) };
-            const moved = (s) => !!s && (Math.abs(s.x - before.x) > 0.01 || Math.abs(s.z - before.z) > 0.01);
-            const deadline = Date.now() + 90000;
-            let sa = null;
-            let sb = null;
-            while (Date.now() < deadline) {
-              await a.evaluate(([id, x, y]) => window.__ciOrder(id, x, y), [before.id, target.x, target.y]);
-              await sleep(1500);
-              sa = await a.evaluate(() => window.__ciUnits().find((u) => u.id === 0) || null);
-              sb = await b.evaluate(() => window.__ciUnits().find((u) => u.id === 0) || null);
-              if (moved(sa) && moved(sb)) break;
-            }
-            if (!(moved(sa) && moved(sb))) {
-              await diagnose([["A", a], ["B", b]]);
-              throw new Error(`no state change seen: before=${before.x},${before.z} peerA=${JSON.stringify(sa)} peerB=${JSON.stringify(sb)}`);
-            }
-            if (pageErrors.length) throw new Error("page errors: " + pageErrors.join(" | "));
-            const peerOpens = new Set(readFileSync(hostLog, "utf8").split("\n").filter((l) => l.startsWith("ev=peer_open ")).map((l) => l.match(/peer=(\S+)/)?.[1])).size;
-            if (peerOpens < 2) throw new Error(`host logged ${peerOpens} peer_open events, need 2`);
-            console.log(`net e2e ok peers=${peerOpens} unit=${before.id} before=${before.x},${before.z} after=${sb.x},${sb.z}`);
-          } finally {
-            await browser.close();
-          }
-          EOF
-          NET_E2E_HOST_LOG="$work/host.log" node "$RUNNER_TEMP/pw/check.mjs" | tee "$work/e2e.txt"
-          grep -q '^net e2e ok peers=2 ' "$work/e2e.txt"
-
-      - name: Upload the relay, host and static logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: net-e2e-logs
-          path: ${{ runner.temp }}/net-e2e
-          if-no-files-found: ignore
 
   duel-routes:
     name: duel-routes scenario loads and serves its counts
@@ -2605,100 +2294,6 @@ jobs:
           test "$live_routes" -eq "$routes"
           test "$live_beacons" -eq "$beacons"
           echo "scenario ok sides=$sides routes=$routes objectives=$beacons units=$units"
-
-  order-peer-ownership:
-    name: order ownership refuses a peer's order on a foreign unit and leaves it in place
-    runs-on: ubuntu-latest
-    needs: [changes, build]
-    if: needs.changes.outputs.code == 'true'
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: ci-build
-          path: rust
-
-      - name: Mark the prebuilt binaries executable
-        working-directory: ${{ github.workspace }}
-        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-wasip1
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust/crates/wasip1 -> target
-          shared-key: rust-wasip1
-
-      - name: Build the sim as a wasip1 guest
-        working-directory: rust/crates/wasip1
-        run: cargo build --release --target wasm32-wasip1 --bin oscraft_wasip1
-
-      - name: Write the OSDT image
-        working-directory: rust
-        run: target/debug/osdt-data data "$RUNNER_TEMP/catalog.osdt"
-
-      - name: A peer's order on a unit it does not own is refused and leaves the state unchanged
-        env:
-          HOST_JS: ${{ github.workspace }}/js/host/server.js
-          GUEST_JS: ${{ github.workspace }}/js/host/guest.js
-          GUEST_WASM: ${{ github.workspace }}/rust/crates/wasip1/target/wasm32-wasip1/release/oscraft_wasip1.wasm
-          GUEST_IMAGE: ${{ runner.temp }}/catalog.osdt
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'JS'
-          import { readFileSync } from 'node:fs';
-          import { pathToFileURL } from 'node:url';
-
-          const { applyOrder, assignPlayer } = await import(pathToFileURL(process.env.HOST_JS).href);
-          const { openGuest, readTick } = await import(pathToFileURL(process.env.GUEST_JS).href);
-          const fail = (why) => { console.error(`order ownership FAIL ${why}`); process.exit(1); };
-
-          const image = readFileSync(process.env.GUEST_IMAGE);
-          const players = new Map();
-          const owner = 'aa'.repeat(32);
-          const other = 'bb'.repeat(32);
-          const ownerPlayer = assignPlayer(players, owner);
-          const otherPlayer = assignPlayer(players, other);
-          if (ownerPlayer === null || otherPlayer === null || ownerPlayer === otherPlayer) fail('players not distinct');
-
-          // Three guests run the same deterministic sim: a baseline with no order, one that gets a refused
-          // foreign order, and one that gets the owner's order (the control that proves the check can fail).
-          const baseline = await openGuest(process.env.GUEST_WASM, image);
-          const refusedGuest = await openGuest(process.env.GUEST_WASM, image);
-          const ownGuest = await openGuest(process.env.GUEST_WASM, image);
-          const first = await readTick(baseline);
-          await readTick(refusedGuest);
-          await readTick(ownGuest);
-          const unit = first.units.find((u) => u.player === ownerPlayer) ?? fail(`no unit owned by player ${ownerPlayer}`);
-          const position = (r) => {
-            const u = r.units.find((v) => v.id === unit.id);
-            return u ? `${u.x},${u.y}` : fail(`unit ${unit.id} missing`);
-          };
-
-          const refused = await applyOrder({ guest: refusedGuest, players, peerPubkey: other, unitId: unit.id, x: unit.x + 4, y: unit.y });
-          const applied = await applyOrder({ guest: ownGuest, players, peerPubkey: owner, unitId: unit.id, x: unit.x + 4, y: unit.y });
-          if (refused !== 'refused') fail(`foreign order was ${refused}`);
-          if (applied !== 'applied') fail(`own order was ${applied}`);
-
-          let changed = false;
-          for (let i = 0; i < 5; i++) {
-            const a = await readTick(refusedGuest);
-            const b = await readTick(baseline);
-            const c = await readTick(ownGuest);
-            if (a.hash !== b.hash || position(a) !== position(b)) fail(`refused order changed state at tick ${i + 2}: unit ${unit.id} ${position(a)} vs baseline ${position(b)}`);
-            changed = changed || c.hash !== b.hash;
-          }
-          await baseline.close();
-          await refusedGuest.close();
-          await ownGuest.close();
-          if (!changed) fail('owner order left no state change: the control cannot detect a move');
-          console.log('order ownership ok refused=1 moved=false');
-          process.exit(0);
-          JS
 
   lobby-room-select:
     name: lobby room panel lists two rooms announced on the relay, joins one, and drops a closed page after its TTL
