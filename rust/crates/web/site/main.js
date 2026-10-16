@@ -302,6 +302,7 @@ async function watchMod(apply) {
         document.body.dataset.modVersion = String(since);
       }
       const ev = await getJson(`/mod-events?since=${since}`);
+      if (failures > 0) reportClientError("reconnect", `resumed at version ${since} after ${failures} failed polls`);
       failures = 0;
       if (!ev.changed) continue;
       const r = await fetch(`map.bin?v=${ev.version}`, { cache: "no-store" });
@@ -323,10 +324,7 @@ async function watchMod(apply) {
       since = ev.version;
       document.body.dataset.modVersion = String(ev.version);
     } catch (e) {
-      if (failures === 0) {
-        console.error(`mod watch lost the server: ${e}`);
-        reportClientError("reconnect", e);
-      }
+      if (failures === 0) console.error(`mod watch lost the server: ${e}`);
       failures++;
       since = null;
     }
