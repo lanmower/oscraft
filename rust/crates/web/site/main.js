@@ -278,6 +278,8 @@ async function main() {
 // Polls the server's mod version once a second and reloads only the map image when the version moves on.
 const MOD_POLL_MS = 1000;
 const MOD_MAX_FAILURES = 5;
+const MOD_RETRY_BASE_MS = 1000;
+const MOD_RETRY_MAX_MS = 8000;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function getJson(url) {
@@ -287,12 +289,13 @@ async function getJson(url) {
 }
 
 // apply() builds the new sim before the page takes it, so a rejected image leaves the previous state in place.
+// A dropped poll (a server restart included) retries with bounded backoff and re-reads /mod-version on reconnect.
 async function watchMod(apply) {
   let since = null;
   let failures = 0;
   let rejected = 0;
   for (;;) {
-    await sleep(MOD_POLL_MS);
+    await sleep(failures === 0 ? MOD_POLL_MS : Math.min(MOD_RETRY_MAX_MS, MOD_RETRY_BASE_MS * 2 ** (failures - 1)));
     try {
       if (since === null) {
         since = (await getJson("/mod-version")).version;
@@ -320,13 +323,12 @@ async function watchMod(apply) {
       since = ev.version;
       document.body.dataset.modVersion = String(ev.version);
     } catch (e) {
-      failures++;
-      reportClientError("watch", e);
-      if (failures >= MOD_MAX_FAILURES) {
-        console.error(`mod watch stopped after ${failures} failed polls: ${e}`);
-        reportClientError("watch-stop", `after ${failures} failed polls: ${e}`);
-        return;
+      if (failures === 0) {
+        console.error(`mod watch lost the server: ${e}`);
+        reportClientError("reconnect", e);
       }
+      failures++;
+      since = null;
     }
   }
 }

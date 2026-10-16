@@ -1772,3 +1772,88 @@ jobs:
           test "$unmapped_after" -eq "$unmapped_before"
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           echo "mod handle survives reload ok handle=$h"
+
+  browser-reconnect:
+    name: browser watch resumes at the new version after a server restart
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Install headless Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install playwright@1.47.0
+          npx playwright install --with-deps chromium
+
+      - name: Restart oscraftd under an open page; the watch resumes at the new version
+        run: |
+          set -euo pipefail
+          cargo build -p osdt-data
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/reconnect"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' 'end' > "$mod"
+          cat > "$RUNNER_TEMP/pw/reconnect.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          import { spawn } from "child_process";
+          import { openSync, readFileSync, writeFileSync } from "fs";
+          const [bin, catalog, modPath, log, addr] = process.argv.slice(2);
+          const base = "http://" + addr;
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const start = () => spawn(bin, ["--addr", addr, "--room", "ci-reconnect", "--data", catalog, "--mod", modPath, "--site", "crates/web/site"], { stdio: ["ignore", openSync(log, "a"), openSync(log, "a")] });
+          const version = async () => (await (await fetch(base + "/mod-version", { cache: "no-store" })).json()).version;
+          async function waitFor(fn, what, ms) {
+            const end = Date.now() + ms;
+            for (;;) {
+              try { if (await fn()) return; } catch {}
+              if (Date.now() > end) throw new Error("timed out: " + what);
+              await sleep(250);
+            }
+          }
+          const stop = (p) => new Promise((r) => { p.once("exit", r); p.kill(); });
+          let server = start();
+          await waitFor(async () => (await version()) === 1, "server up at version 1", 60000);
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          await page.goto(base + "/site/");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const pageError = await page.getAttribute("body", "data-error");
+          if (pageError) throw new Error("page error: " + pageError);
+          await page.waitForSelector("body[data-mod-version='1']", { timeout: 15000 });
+          await page.evaluate(() => { window.__sameDocument = "yes"; });
+          writeFileSync(modPath, 'function on_tick(state)\n  state.ticks = state.ticks + 1\n  state.probe = "v2"\nend\n');
+          await page.waitForSelector("body[data-mod-version='2']", { timeout: 15000 });
+          server = await stop(server);
+          await sleep(3000);
+          server = start();
+          await waitFor(async () => (await version()) === 1, "restarted server at version 1", 60000);
+          await page.waitForSelector("body[data-mod-version='1']", { timeout: 30000 });
+          const versionAfter = await page.getAttribute("body", "data-mod-version");
+          if (await page.evaluate(() => window.__sameDocument) !== "yes") throw new Error("page reloaded instead of resuming");
+          writeFileSync(modPath, 'function on_tick(state)\n  state.ticks = state.ticks + 1\n  state.probe = "v3"\nend\n');
+          await page.waitForSelector("body[data-mod-version='2']", { timeout: 15000 });
+          if (errors.length) throw new Error("page errors: " + errors.join("\n"));
+          console.log("browser reconnect ok version_after=" + versionAfter);
+          const lines = readFileSync(log, "utf8").split("\n").filter((l) => l.startsWith("ev=client_error ") && l.includes('message="reconnect'));
+          if (lines.length !== 1) throw new Error("expected one reconnect log line, found " + lines.length);
+          await browser.close();
+          server = await stop(server);
+          EOF
+          node "$RUNNER_TEMP/pw/reconnect.mjs" "$PWD/target/debug/oscraftd" "$work/catalog.osdt" "$mod" "$work/server.log" 127.0.0.1:8006
