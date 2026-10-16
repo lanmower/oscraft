@@ -993,6 +993,52 @@ jobs:
           check_p99 "$p99" 0 >/dev/null && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
           check_p99 "$p99" "$ceiling"
 
+  tick-systems-regression:
+    name: each tick system p99 stays under its stored ceiling
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Run the fixed tick count and compare each system p99 with its ceiling
+        run: |
+          set -euo pipefail
+          check_p99() {
+            local n=$1 c=$2
+            [ "$n" -le "$c" ]
+          }
+          baseline="$GITHUB_WORKSPACE/.github/perf/tick-systems.txt"
+          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
+          test -n "$ticks"
+          cargo build -p server --bin oscraftd
+          target/debug/oscraftd --addr 127.0.0.1:8092 --room ci-systems --ticks "$ticks" --tick-budget-us 20000 > tick-systems.log 2>&1
+          cat tick-systems.log
+          first=""
+          fail=0
+          while read -r name ceiling; do
+            first=${first:-$name}
+            us=$(grep "^ev=tick_time system=$name " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
+            test -n "$us"
+            if check_p99 "$us" "$ceiling"; then
+              echo "tick system $name us=$us ceiling=$ceiling ok"
+            else
+              echo "tick system $name us=$us ceiling=$ceiling FAIL"
+              fail=1
+            fi
+          done < <(awk '/^system=/{split($1,a,"="); split($2,b,"="); print a[2], b[2]}' "$baseline")
+          check_p99 "$(grep "^ev=tick_time system=$first " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')" 0 && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
+          test "$fail" -eq 0
+
   order-state-change:
     name: a TCP order changes the served room state
     runs-on: ubuntu-latest

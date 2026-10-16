@@ -1,0 +1,10 @@
+# Per-system tick cost ceilings for the tick-systems-regression CI job.
+# Provisional: each ceiling is the total-tick ceiling (3000 us) until one measured CI run sets them.
+ticks=2000
+system=rebucket p99_ceiling_us=3000
+system=vision p99_ceiling_us=3000
+system=paths p99_ceiling_us=3000
+system=buffs p99_ceiling_us=3000
+system=healers p99_ceiling_us=3000
+system=projectiles p99_ceiling_us=3000
+system=units p99_ceiling_us=3000

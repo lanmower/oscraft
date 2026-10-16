@@ -2,6 +2,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+use sim::Sim;
+
 use crate::log::{line, Ev};
 use crate::room::Room;
 
@@ -82,21 +84,71 @@ pub fn report_line(t: &Timing) -> String {
     )
 }
 
-/// Prints a tick-time line every REPORT_EVERY_TICKS ticks. When `stop_after` is set, prints a
-/// final line once the room reaches that tick and exits the process with status 0.
+/// Upper edge in microseconds of the bucket holding the pct-th percentile of `counts`.
+fn percentile_from_counts(counts: &[u64], bucket_us: u64, pct: u64) -> u64 {
+    let total: u64 = counts.iter().sum();
+    if total == 0 {
+        return 0;
+    }
+    let rank = (total * pct).div_ceil(100).max(1);
+    let mut seen = 0;
+    for (i, n) in counts.iter().enumerate() {
+        seen += n;
+        if seen >= rank {
+            return (i as u64 + 1) * bucket_us;
+        }
+    }
+    0
+}
+
+/// One `ev=tick_time system=<name>` line per sim system, from the process-wide cost histograms.
+fn system_lines() -> Vec<String> {
+    Sim::TICK_SYSTEMS
+        .iter()
+        .enumerate()
+        .map(|(s, name)| {
+            let counts: Vec<u64> = (0..Sim::TICK_COST_BUCKETS)
+                .map(|b| u64::from(Sim::tick_cost_bucket(s, b)))
+                .collect();
+            let samples: u64 = counts.iter().sum();
+            let max_us = counts
+                .iter()
+                .rposition(|&n| n > 0)
+                .map_or(0, |i| (i as u64 + 1) * Sim::TICK_COST_BUCKET_US);
+            let bucket = Sim::TICK_COST_BUCKET_US;
+            line(
+                Ev::TickTime,
+                &[
+                    ("system", name.to_string()),
+                    ("samples", samples.to_string()),
+                    ("p50_us", percentile_from_counts(&counts, bucket, 50).to_string()),
+                    ("p99_us", percentile_from_counts(&counts, bucket, 99).to_string()),
+                    ("max_us", max_us.to_string()),
+                ],
+            )
+        })
+        .collect()
+}
+
+/// Prints a tick-time line every REPORT_EVERY_TICKS ticks. When `stop_after` is set, prints the
+/// per-system lines and then a final total line once the room reaches that tick, and exits the
+/// process with status 0. The total line is printed last so `tail -1` still selects it.
 pub fn spawn_reporter(room: Arc<Room>, stop_after: Option<u64>) {
     thread::spawn(move || {
         let mut last = 0u64;
         loop {
             thread::sleep(POLL);
             let t = room.timing();
-            let done = stop_after.is_some_and(|n| t.tick >= n);
-            if done || t.tick >= last + REPORT_EVERY_TICKS {
+            if stop_after.is_some_and(|n| t.tick >= n) {
+                for line in system_lines() {
+                    println!("{line}");
+                }
+                println!("{}", report_line(&t));
+                std::process::exit(0);
+            }
+            if t.tick >= last + REPORT_EVERY_TICKS {
                 println!("{}", report_line(&t));
                 last = t.tick;
-            }
-            if done {
-                std::process::exit(0);
             }
         }
     });
