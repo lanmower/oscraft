@@ -28,6 +28,7 @@ function renderRoomList() {
 
 window.addEventListener("oscraft:rooms", (e) => {
   const rooms = Array.isArray(e.detail && e.detail.rooms) ? e.detail.rooms : [];
+  roomNames.clear();
   for (const name of rooms) if (ROOM_NAME.test(name)) roomNames.add(name);
   renderRoomList();
 });

@@ -238,12 +238,16 @@ const relayPool = new RelayPool({
 relayPool.connect();
 
 // Room announcements over the relay. Each page publishes its room as a parameterized replaceable
-// event (kind 30078, tag t=oscraft-room, ns and room tags) and lists the rooms other pages announce.
-// Lists feed the "oscraft:rooms" window event that rooms.js renders.
+// event (kind 30078, tag t=oscraft-room, ns and room tags) every 15 s and lists the rooms other
+// pages announce. An announcement expires after three missed announcements (45 s), so a closed page
+// drops off the list. Lists feed the "oscraft:rooms" window event that rooms.js renders as a snapshot.
 const ROOM_KIND = 30078;
 const ROOM_TAG = "oscraft-room";
-const ROOM_ANNOUNCE_MS = 15000;
+const ROOM_ANNOUNCE_S = 15;
+const ROOM_TTL_S = 3 * ROOM_ANNOUNCE_S;
+const ROOM_PRUNE_MS = 5000;
 const announcedRooms = new Map();
+let shownRooms = "";
 
 function announceRoom() {
   if (!auth.pubkey) return;
@@ -255,14 +259,32 @@ function announceRoom() {
   }).then((signed) => relayPool.publish(signed)).catch(() => {});
 }
 
+function showRooms() {
+  const names = [...announcedRooms.keys()].sort();
+  const key = names.join(",");
+  if (key === shownRooms) return;
+  shownRooms = key;
+  window.dispatchEvent(new CustomEvent("oscraft:rooms", { detail: { rooms: names } }));
+}
+
+function pruneRooms() {
+  const nowS = Math.floor(Date.now() / 1000);
+  for (const [name, createdAt] of announcedRooms) {
+    if (nowS - createdAt > ROOM_TTL_S) announcedRooms.delete(name);
+  }
+  showRooms();
+}
+
 relayPool.subscribe("oscraft-rooms", [{ kinds: [ROOM_KIND], "#t": [ROOM_TAG] }], (event) => {
   const tagValue = (name) => (event.tags.find((t) => t[0] === name) || [])[1];
   if (tagValue("ns") !== namespace || typeof tagValue("room") !== "string") return;
+  if (Math.floor(Date.now() / 1000) - event.created_at > ROOM_TTL_S) return;
   announcedRooms.set(tagValue("room"), event.created_at);
-  window.dispatchEvent(new CustomEvent("oscraft:rooms", { detail: { rooms: [...announcedRooms.keys()] } }));
+  pruneRooms();
 });
 announceRoom();
-setInterval(announceRoom, ROOM_ANNOUNCE_MS);
+setInterval(announceRoom, ROOM_ANNOUNCE_S * 1000);
+setInterval(pruneRooms, ROOM_PRUNE_MS);
 // ?ice=<JSON list> replaces the default STUN list. Relay test mode (?relay=) keeps no ICE servers unless ?ice is given.
 const iceConfig = (() => {
   try {

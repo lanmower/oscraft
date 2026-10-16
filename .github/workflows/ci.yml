@@ -2968,7 +2968,7 @@ jobs:
           JS
 
   lobby-room-select:
-    name: lobby room panel lists two rooms announced on the relay and joins the chosen one
+    name: lobby room panel lists two rooms announced on the relay, joins one, and drops a closed page after its TTL
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -3039,6 +3039,9 @@ jobs:
             await viewer.waitForSelector('#rooms[data-ready="1"]', { state: "attached", timeout: 60000 });
             const joined = await viewer.textContent("#room-current");
             if (joined !== "beta") throw new Error(`joined ${joined}, want beta`);
+            await hostA.close();
+            await viewer.waitForFunction(() => [...document.querySelectorAll("#room-list button")].map((b) => b.dataset.room).join(",") === "beta", null, { timeout: 150000 });
+            console.log(`room expiry ok dropped=alpha remaining=beta ttl_s=45`);
             console.log(`lobby room select ok rooms=${names.length} joined=${joined}`);
           } catch (err) {
             console.error(`page errors: ${errors.slice(0, 40).join(" | ")}`);
@@ -3049,6 +3052,7 @@ jobs:
           EOF
           ls -la "$GITHUB_WORKSPACE/js/client/dist" >&2 || true
           node "$RUNNER_TEMP/pw/lobby.mjs" | tee "$work/lobby.txt"
+          grep -q '^room expiry ok dropped=alpha remaining=beta ttl_s=45$' "$work/lobby.txt"
           grep -q '^lobby room select ok rooms=2 joined=beta$' "$work/lobby.txt"
   friends-guide:
     name: docs/FRIENDS.md has no command lines and no CLI text
