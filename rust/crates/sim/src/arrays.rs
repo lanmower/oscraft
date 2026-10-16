@@ -674,6 +674,12 @@ impl Sim {
         self.kind.get(i).map_or(0, |&k| u32::from(k))
     }
 
+    /// The catalog name of unit `i`'s type, or None when the unit has no type.
+    pub fn kind_name(&self, i: usize) -> Option<&str> {
+        let ty = usize::try_from(*self.type_of.get(i)?).ok()?;
+        Some(self.cat.name(self.cat.units.get(ty)?.name))
+    }
+
     pub fn alive(&self, i: usize) -> bool {
         i < self.n && self.alive[i] != 0
     }

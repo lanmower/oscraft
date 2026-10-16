@@ -1639,3 +1639,60 @@ jobs:
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           grep '^ev=data_reloaded ' "$log" | head -n 1
           echo "match carried units_before=$before units_after=$after positions_kept=$kept"
+
+  carry-kind-match:
+    name: a reload that reorders two unit kinds keeps each unit only when its kind name is unchanged
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: Swap the first two unit kinds in the catalog under a running match; carried units keep their kind name and the dropped count is printed
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/carry-kind-match"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18444
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          before=$(state | jq -r .units)
+          test "$before" -gt 0
+          first=$(grep -n '^unit(' "$work/units.star" | sed -n 1p | cut -d: -f1)
+          second=$(grep -n '^unit(' "$work/units.star" | sed -n 2p | cut -d: -f1)
+          a=$(sed -n "${first}p" "$work/units.star")
+          b=$(sed -n "${second}p" "$work/units.star")
+          { head -n $((first - 1)) "$work/units.star"; printf '%s\n' "$b"; sed -n "$((first + 1)),$((second - 1))p" "$work/units.star"; printf '%s\n' "$a"; tail -n +$((second + 1)) "$work/units.star"; } > "$work/units.swap"
+          mv "$work/units.swap" "$work/units.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reloaded room=ci ' "$log"
+          line=$(grep '^ev=data_reloaded room=ci ' "$log" | head -n 1)
+          kept=$(sed -n 's/.* carried=\([0-9]*\).*/\1/p' <<<"$line")
+          dropped=$(sed -n 's/.* refused=\([0-9]*\).*/\1/p' <<<"$line")
+          test -n "$kept" && test -n "$dropped"
+          test $(( kept + dropped )) -eq "$before"
+          test "$kept" -eq "$before"
+          test "$dropped" -eq 0
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          echo "carry kind match ok kept=$kept dropped=$dropped"

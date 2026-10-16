@@ -349,8 +349,8 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
 
 // Carries the live units of the sim in service into a freshly loaded image without new ids. A
 // live unit keeps its index and moves to its old point when the new map places a unit of the same
-// player and kind there; any other unit the new map placed is removed, so no unit is duplicated.
-// Returns (carried, refused): refused counts the old live units that found no such slot.
+// player and the same kind name there; any other unit the new map placed is removed, so no unit is
+// duplicated. Returns (carried, refused): refused counts the old live units that found no such slot.
 fn carry_live_units(old: &Sim, new: &mut Sim) -> (usize, usize) {
     let mut carried = 0;
     for i in 0..new.count() {
@@ -360,7 +360,8 @@ fn carry_live_units(old: &Sim, new: &mut Sim) -> (usize, usize) {
         let same = i < old.count()
             && old.alive(i)
             && old.player(i) == new.player(i)
-            && old.kind_of(i) == new.kind_of(i);
+            && old.kind_name(i).is_some()
+            && old.kind_name(i) == new.kind_name(i);
         if same {
             let (x, y) = old.position_fixed(i);
             new.set_position(i, x, y);
