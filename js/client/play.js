@@ -3,7 +3,7 @@
 import { createDataSession, createFSM, NostrAuth, RelayPool } from "wireweave";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
-import { decodeState, encodeOrderMove } from "./frame.js";
+import { encodeFrame, decodeFrame, FRAME } from "../wire/frame.js";
 
 // The map grid from data/map.star: grid(32, 24), one tile per cell.
 const W = 32;
@@ -23,6 +23,9 @@ const RECONNECT_BASE_MS = 1000;
 const RECONNECT_CAP_MS = 16000;
 const RECONNECT_MAX_ATTEMPTS = 6;
 
+const params = new URLSearchParams(location.search);
+const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
+const namespace = params.get("ns") || "oscraft";
 const statusEl = document.getElementById("status");
 const canvas = document.getElementById("view");
 const room = location.hash.slice(1) || "lobby";
@@ -161,7 +164,7 @@ function onClick(e) {
   const world = screenToWorld(e.clientX, e.clientY);
   const selected = currentUnits().find((u) => u.id === selectedId);
   if (selected && !pick(world)) {
-    if (netState) session.broadcast(encodeOrderMove(selected.id, world.x, world.z));
+    if (netState) session.broadcast(sendOrder(selected.id, world.x, world.z));
     setStatus(`order move unit ${selected.id} to ${world.x.toFixed(2)},${world.z.toFixed(2)}${netState ? "" : " (local, not sent)"}`);
     return;
   }
@@ -219,12 +222,19 @@ async function joinRoom() {
   }
 }
 
+function sendOrder(unitId, x, z) {
+  return encodeFrame({ type: FRAME.ORDER, unitId, x: Math.round(x), y: Math.round(z) });
+}
+
 const fsm = createFSM(xstate);
 const auth = new NostrAuth({ nostrTools: NostrTools });
 auth.loadFromStorage() || auth.generateKey();
-const relayPool = new RelayPool({ verifyEvent: NostrTools.verifyEvent });
+const relayPool = new RelayPool({
+  verifyEvent: NostrTools.verifyEvent,
+  ...(relayUrls ? { relays: relayUrls, fallbackRelays: [], autoRotate: false } : {}),
+});
 relayPool.connect();
-const session = createDataSession({ fsm, xstate, relayPool, auth, namespace: "oscraft" });
+const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, iceServers: relayUrls ? [] : null });
 
 session.addEventListener("peer-open", (e) => {
   peers.add(e.detail.peerPubkey);
@@ -237,10 +247,10 @@ session.addEventListener("peer-close", (e) => {
   if (peers.size === 0) scheduleReconnect();
 });
 session.addEventListener("data", (e) => {
-  const raw = e.detail.data;
-  const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
-  const state = decodeState(bytes);
-  if (state) netState = state;
+  let frame = null;
+  try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
+  if (frame.type !== FRAME.STATE) return;
+  netState = { tick: frame.tick, units: frame.units.map((u) => ({ id: u.id, x: u.x, z: u.y, player: u.player, hp: u.hp })) };
 });
 
 async function main() {
@@ -266,6 +276,12 @@ async function main() {
   }
   requestAnimationFrame(frame);
   setStatus("local preview");
+}
+
+if (params.get("ci") === "1") {
+  window.__ciPeers = () => peers.size;
+  window.__ciUnits = () => (netState ? netState.units : []);
+  window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
 }
 
 main().catch((err) => setStatus(`failed: ${err && err.message ? err.message : err}`));
