@@ -2653,8 +2653,8 @@ jobs:
           const expect = (reply, prefix) => (reply.startsWith(prefix) ? reply : fail(`reply "${reply}"`));
 
           const guest = await openGuest(process.env.GUEST_WASM, readFileSync(process.env.GUEST_IMAGE));
-          const start = Number(replyValue(expect(await guest.command('ticks'), 'ok ticks '), 'ok ticks '));
           const first = await readTick(guest);
+          const start = Number(replyValue(expect(await guest.command('ticks'), 'ok ticks '), 'ok ticks '));
           if (!(first.count > 0)) fail(`unit-count ${first.count}`);
           expect(await guest.command('order 0 0 0'), 'ok order');
 
