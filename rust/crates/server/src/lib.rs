@@ -123,16 +123,26 @@ impl Drop for Slot {
     }
 }
 
+/// Test-only: a number in this env var replaces MAX_CONNECTIONS. The control CI job sets it past the connections
+/// it opens, so the open-socket assert must fail on a breach.
+const CONNECTION_CAP_OVERRIDE: &str = "OSCRAFT_CONNECTION_CAP_OVERRIDE";
+
+fn connection_cap() -> usize {
+    std::env::var(CONNECTION_CAP_OVERRIDE).ok().and_then(|v| v.parse().ok()).unwrap_or(MAX_CONNECTIONS)
+}
+
 fn admit(active: &Arc<AtomicUsize>) -> Option<Slot> {
+    let cap = connection_cap();
     active
-        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| (n < MAX_CONNECTIONS).then_some(n + 1))
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| (n < cap).then_some(n + 1))
         .ok()
         .map(|_| Slot(Arc::clone(active)))
 }
 
 fn refuse(stream: &mut TcpStream) {
     let _ = stream.set_write_timeout(Some(Duration::from_secs(1)));
-    crate::emit!(Ev::ConnRefused, limit = MAX_CONNECTIONS);
+    let limit = connection_cap();
+    crate::emit!(Ev::ConnRefused, limit = limit);
     let response = Response::error(503, "connection limit reached; retry shortly").with_header("Retry-After", "1");
     let _ = response.write_to(stream);
 }

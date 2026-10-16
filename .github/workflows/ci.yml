@@ -1412,3 +1412,68 @@ jobs:
               sys.exit(1)
           print(f"host api ok ops={len(wit_ops & wasip1_ops)} wasip1={len(wasip1_ops)} wit={len(wit_ops)}")
           PY
+
+  connection-cap-control:
+    name: the open-socket assert fails when the override raises the cap past the connections opened
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Raise the cap past the 1000 sockets opened; the open-socket assert must fail
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          ulimit -n 4096 || true
+          cap=$(sed -n 's/^pub const MAX_CONNECTIONS: usize = \([0-9]*\);/\1/p' crates/server/src/lib.rs)
+          test -n "$cap"
+          work="$RUNNER_TEMP/connection-cap-control"
+          mkdir -p "$work"
+          port=8098
+          OSCRAFT_CONNECTION_CAP_OVERRIDE=4096 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$work/cap.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          python3 -I - "$port" "$cap" <<'PY'
+          import selectors
+          import socket
+          import sys
+
+          port, cap = int(sys.argv[1]), int(sys.argv[2])
+          conns = 1000
+          socks = [socket.create_connection(("127.0.0.1", port), timeout=10) for _ in range(conns)]
+          sel = selectors.DefaultSelector()
+          for s in socks:
+              sel.register(s, selectors.EVENT_READ)
+          refused = eof = 0
+          while True:
+              events = sel.select(timeout=2.0)
+              if not events:
+                  break
+              for key, _ in events:
+                  sel.unregister(key.fileobj)
+                  data = key.fileobj.recv(256)
+                  if data.startswith(b"HTTP/1.1 503"):
+                      refused += 1
+                  elif not data:
+                      eof += 1
+          alive = len(sel.get_map())
+          assert refused + eof + alive == conns, f"unclassified sockets: {conns - refused - eof - alive}"
+          try:
+              assert alive <= cap, f"{alive} connections held open above cap {cap}"
+          except AssertionError:
+              print(f"connection cap control ok breached={alive} expected_cap={cap}")
+              sys.exit(0)
+          sys.exit(f"open-socket assert passed with {alive} held open above cap {cap}; the assert cannot fail")
+          PY
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
