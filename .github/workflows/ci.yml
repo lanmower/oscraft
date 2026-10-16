@@ -896,16 +896,22 @@ jobs:
           mkdir -p "$work"
           trap 'echo "server log:"; tail -n 40 "$work/server.log" || true' ERR
           ./target/debug/osdt-data data "$work/catalog.osdt"
-          printf '%s\n' 'function on_tick(state)' '  state.age = (state.age or 0) + 1' '  if state.age == 120 then' '    game.cmd_spawn("skirmisher", 688128, 1343488)' '  end' 'end' > "$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  if state.spawned == nil then' '    game.cmd_spawn("skirmisher", 688128, 1343488)' '    state.spawned = 1' '  end' 'end' > "$work/mod.lua"
+          units() { curl -sf "http://$1/state" | jq -r .units; }
+          base=127.0.0.1:18435
+          ./target/debug/oscraftd --addr "$base" --room test --data "$work/catalog.osdt" --tick-budget-us 250000 > "$work/baseline.log" 2>&1 &
+          bpid=$!
+          for i in $(seq 1 60); do units "$base" >/dev/null 2>&1 && break; sleep 0.5; done
+          before=$(units "$base")
+          kill $bpid 2>/dev/null || true
+          wait $bpid 2>/dev/null || true
           addr=127.0.0.1:18433
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --tick-budget-us 250000 > "$work/server.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
-          units() { curl -sf "http://$addr/state" | jq -r .units; }
-          for i in $(seq 1 60); do units >/dev/null 2>&1 && break; sleep 0.5; done
-          before=$(units)
-          for i in $(seq 1 40); do [ "$(units)" -gt "$before" ] && break; sleep 0.25; done
-          after=$(units)
+          for i in $(seq 1 60); do units "$addr" >/dev/null 2>&1 && break; sleep 0.5; done
+          for i in $(seq 1 40); do [ "$(units "$addr")" -gt "$before" ] && break; sleep 0.25; done
+          after=$(units "$addr")
           echo "mod-spawn units before=$before after=$after"
           test "$after" -gt "$before"
 
