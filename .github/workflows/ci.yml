@@ -1249,9 +1249,7 @@ jobs:
           assert threads is not None, "no Threads line in /proc/<pid>/status"
           
           sel = selectors.DefaultSelector()
-          seen = {}
           for s in socks:
-              seen[s] = b""
               sel.register(s, selectors.EVENT_READ)
           refused = eof = 0
           while True:
@@ -1259,15 +1257,12 @@ jobs:
               if not events:
                   break
               for key, _ in events:
-                  s = key.fileobj
-                  chunk = s.recv(256)
-                  seen[s] += chunk
-                  if len(seen[s]) >= 12 or not chunk:
-                      sel.unregister(s)
-                      if seen[s].startswith(b"HTTP/1.1 503"):
-                          refused += 1
-                      elif not seen[s]:
-                          eof += 1
+                  sel.unregister(key.fileobj)
+                  data = key.fileobj.recv(256)
+                  if data.startswith(b"HTTP/1.1 503"):
+                      refused += 1
+                  elif not data:
+                      eof += 1
           alive = len(sel.get_map())
           
           with open(log) as f:
