@@ -2593,30 +2593,22 @@ jobs:
       - name: Round-trip and reject tests
         run: node test.js
 
-  net-client-bundle:
-    name: net client bundle builds with esbuild and play.html references it
+  client-modules:
+    name: browser client is native ES modules with no dist bundle on the page
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: js/client
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install client dependencies and bundle play.js
+      - name: play.html loads committed modules through an import map
         run: |
-          npm install
-          npm run build
-
-      - name: Assert the bundle is produced and play.html references it
-        run: |
-          test -s dist/play.js || { echo "net client bundle missing: js/client/dist/play.js"; exit 1; }
-          grep -q 'dist/play.js' play.html || { echo "play.html does not reference dist/play.js"; exit 1; }
-          echo "net client bundle ok bytes=$(wc -c < dist/play.js)"
+          set -euo pipefail
+          grep -q 'type="module" src="play.js"' js/client/play.html
+          if grep -q 'dist/' js/client/play.html; then echo "play.html still references a dist bundle"; exit 1; fi
+          grep -q '"wireweave": "https://' js/client/play.html
+          count=0
+          for f in js/client/*.js js/wire/frame.js js/wire/test.js; do node --check "$f"; count=$((count + 1)); done
+          echo "client modules ok files=$count"
 
   net-host-usage:
     name: net host --help exits 0 and prints its usage line
@@ -2730,9 +2722,7 @@ jobs:
       - name: Bundle the client and install the host
         run: |
           set -euo pipefail
-          (cd js/client && npm install && npm run build)
           (cd js/host && npm install)
-          test -s js/client/dist/play.js
           test -s js/client/pkg/web.js
           test -s js/client/map.bin
       - name: Install headless Chromium

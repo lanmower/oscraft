@@ -4,6 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>oscraft net client</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "wireweave": "https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@a71f179cc5352964bc014deea166969938705e61/src/index.js",
+      "nostr-tools": "https://esm.sh/nostr-tools@2.10.0",
+      "xstate": "https://esm.sh/xstate@5.19.0"
+    }
+  }
+  </script>
   <style>
     html, body { margin: 0; height: 100%; background: #1d252c; color: #d8e0e6; font: 13px system-ui, sans-serif; overflow: hidden; }
     canvas { display: block; width: 100vw; height: 100vh; }
@@ -23,6 +32,6 @@
     <button id="room-join" type="submit">join</button>
   </form>
   <script type="module" src="rooms.js"></script>
-  <script type="module" src="dist/play.js"></script>
+  <script type="module" src="play.js"></script>
 </body>
 </html>
