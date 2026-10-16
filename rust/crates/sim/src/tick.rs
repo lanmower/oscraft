@@ -29,7 +29,8 @@ pub const COST_BUCKET_US: u64 = 2;
 pub const COST_BUCKETS: usize = 2048;
 
 const ZERO: AtomicU32 = AtomicU32::new(0);
-static COSTS: [[AtomicU32; COST_BUCKETS]; SYSTEM_COUNT] = [[ZERO; COST_BUCKETS]; SYSTEM_COUNT];
+const ROW: [AtomicU32; COST_BUCKETS] = [ZERO; COST_BUCKETS];
+static COSTS: [[AtomicU32; COST_BUCKETS]; SYSTEM_COUNT] = [ROW; SYSTEM_COUNT];
 
 fn record(system: System, cost_us: u64) {
     let bucket = usize::try_from(cost_us / COST_BUCKET_US)
