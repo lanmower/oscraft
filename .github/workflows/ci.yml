@@ -3224,7 +3224,7 @@ jobs:
             js/client/map.bin
 
   browser-two-peers:
-    name: browser host and browser peer over wireweave: one order moves a unit on both pages
+    name: "browser host and browser peer over wireweave: one order moves a unit on both pages"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
