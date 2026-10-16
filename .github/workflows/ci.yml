@@ -1584,3 +1584,62 @@ jobs:
           after=$(grep -o 'ev=mod_tick tick=[0-9]* version=[0-9]* probe=[0-9]*' "$log" | tail -1 | sed 's/.*probe=//')
           test "$after" = 31
           echo "mod image follows data reload ok value_before=$before value_after=$after"
+
+  data-reload-carry:
+    name: data edit keeps the running match's units
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: Edit a unit cost mid-match and check the existing units keep their positions
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/data-reload-carry"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18441
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          snap() { curl -sf "http://$addr/state?map=ci&unit=$1"; }
+          for i in $(seq 1 60); do snap 0 >/dev/null 2>&1 && break; sleep 0.5; done
+          max=$(snap 0 | jq -r '.max_units')
+          units_before=$(snap 0 | jq -r '.units')
+          declare -A before
+          for id in $(seq 0 $((max - 1))); do
+            pos=$(snap "$id" | jq -c '.unit')
+            if [ "$pos" != "null" ]; then before[$id]="$pos"; fi
+          done
+          sed -i '/^unit("tender"/,/)$/ s/minerals=50/minerals=55/' "$work/units.star"
+          grep -q 'unit("tender", 40, 2800, 350, build_time=300, minerals=55' "$work/units.star"
+          for i in $(seq 1 120); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
+          grep '^ev=data_reloaded room=ci ' "$log" | head -n 1
+          grep -q '^ev=data_reloaded room=ci .*carried=' "$log"
+          units_after=$(snap 0 | jq -r '.units')
+          kept=0
+          for id in "${!before[@]}"; do
+            pos=$(snap "$id" | jq -c '.unit')
+            if [ "$pos" = "${before[$id]}" ]; then kept=$((kept + 1)); fi
+          done
+          echo "match carried units_before=$units_before units_after=$units_after positions_kept=$kept"
+          test "$units_after" = "$units_before"
+          test "$kept" = "$units_before"

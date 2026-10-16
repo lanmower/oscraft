@@ -678,6 +678,20 @@ impl Sim {
         i < self.n && self.alive[i] != 0
     }
 
+    /// The catalog index of unit `i`, None when it is out of range or dead.
+    pub fn unit_type(&self, i: usize) -> Option<u32> {
+        (i < self.n && self.alive[i] != 0).then(|| self.type_of[i] as u32)
+    }
+
+    /// Sets unit `i`'s hit points, clamped to its maximum; false when it is out of range or dead.
+    pub fn set_hp(&mut self, i: usize, hp: i32) -> bool {
+        if i >= self.n || self.alive[i] == 0 {
+            return false;
+        }
+        self.hp[i] = hp.min(self.hp_max[i]);
+        true
+    }
+
     pub fn order(&mut self, i: usize, x: i32, y: i32) {
         if i < self.n {
             let (x, y) = self.clamp_to_grid(x, y);
