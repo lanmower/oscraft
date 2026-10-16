@@ -51,6 +51,7 @@ pub struct Options {
     pub ticks: Option<u64>,
     pub mod_path: Option<PathBuf>,
     pub test_panic_tick: Option<u64>,
+    pub test_panic_mod_tick: Option<u64>,
     pub site: Option<PathBuf>,
 }
 
@@ -69,6 +70,9 @@ pub fn run() -> Result<(), String> {
     if let Some(path) = &opts.mod_path {
         let image_path = opts.data.as_ref().ok_or("--mod needs --data: the mod host runs on the catalog image")?;
         let image = std::fs::read(image_path).map_err(|e| format!("--data {}: {e}", image_path.display()))?;
+        if let Some(tick) = opts.test_panic_mod_tick {
+            link.arm_test_panic(tick);
+        }
         mods::spawn(image, path.clone(), tick_budget, Arc::clone(&link))?;
         crate::emit!(Ev::ModLoaded, path = path.display(), version = link.version());
     }
@@ -185,6 +189,7 @@ pub fn parse_args() -> Result<Options, String> {
         ticks: None,
         mod_path: None,
         test_panic_tick: None,
+        test_panic_mod_tick: None,
         site: None,
     };
     let mut args = env::args().skip(1);
@@ -208,6 +213,7 @@ pub fn parse_args() -> Result<Options, String> {
             "--ticks" => opts.ticks = Some(parse_num(&value, &flag)?),
             "--mod" => opts.mod_path = Some(PathBuf::from(value)),
             "--test-panic-tick" => opts.test_panic_tick = Some(parse_num(&value, &flag)?),
+            "--test-panic-mod-tick" => opts.test_panic_mod_tick = Some(parse_num(&value, &flag)?),
             "--site" => opts.site = Some(PathBuf::from(value)),
             "--order-token" => {
                 let (name, token) = value.split_once('=').ok_or("--order-token is NAME=TOKEN")?;

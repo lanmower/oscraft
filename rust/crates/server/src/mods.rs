@@ -22,9 +22,22 @@ pub struct ModLink {
     version: AtomicU64,
     tick: AtomicU64,
     cmds: Mutex<Vec<Cmd>>,
+    test_panic_at: AtomicU64,
 }
 
 impl ModLink {
+    pub fn arm_test_panic(&self, tick: u64) {
+        self.test_panic_at.store(tick + 1, Ordering::Relaxed);
+    }
+
+    fn take_test_panic(&self, tick: u64) -> bool {
+        if self.test_panic_at.load(Ordering::Relaxed) != tick + 1 {
+            return false;
+        }
+        self.test_panic_at.store(0, Ordering::Relaxed);
+        true
+    }
+
     pub fn version(&self) -> u64 {
         self.version.load(Ordering::Acquire)
     }
@@ -100,6 +113,9 @@ fn drive(host: &mut ModHost, link: &ModLink, budget: Duration) {
         let now = Instant::now();
         if next > now {
             thread::sleep(next - now);
+        }
+        if link.take_test_panic(ticks) {
+            panic!("test-only panic armed by --test-panic-mod-tick fired at tick {}", ticks);
         }
         match host.reload() {
             Ok(true) => crate::emit!(Ev::ModReloadStaged),

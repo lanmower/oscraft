@@ -1250,3 +1250,57 @@ jobs:
           kill -0 "$pid"
           grep '^ev=data_reload_failed ' "$log" | head -n 1
           echo "check: the served catalog gained reloadprobe after the edit with no restart; the broken edit logged data_reload_failed and reloadprobe stayed served"
+  mod-thread-restart:
+    name: a panicking mod thread is logged, restarted, and a later edit bumps the version
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server and the catalog tool
+        run: cargo build -p server -p osdt-data
+
+      - name: Arm one mod-thread panic; check one death, one restart, and a version bump after an edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/mod-thread-restart"
+          rm -rf "$work"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$work/mod.lua"
+          addr=127.0.0.1:18441
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --test-panic-mod-tick 20 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
+          version() { curl -sf "http://$addr/mod-version" | jq -r .version; }
+          for i in $(seq 1 60); do version >/dev/null 2>&1 && break; sleep 0.5; done
+          for i in $(seq 1 60); do grep -q '^ev=mod_thread_restarted ' "$log" && break; sleep 0.5; done
+          died=$(grep -c '^ev=mod_thread_died ' "$log" || true)
+          restarted=$(grep -c '^ev=mod_thread_restarted ' "$log" || true)
+          test "$died" -eq 1
+          test "$restarted" -eq 1
+          before=$(version)
+          sleep 2
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v2"' 'end' > "$work/mod.lua"
+          for i in $(seq 1 40); do [ "$(version)" -gt "$before" ] && break; sleep 0.25; done
+          after=$(version)
+          test "$after" -gt "$before"
+          for i in $(seq 1 40); do grep -q 'ev=mod_tick tick=[0-9]* version='"$after"' probe=v2' "$log" && break; sleep 0.25; done
+          grep -q 'ev=mod_tick tick=[0-9]* version='"$after"' probe=v2' "$log"
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          grep '^ev=mod_thread_' "$log"
+          echo "mod thread panic ok died=$died restarted=$restarted version_after=$after"
