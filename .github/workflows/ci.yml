@@ -2734,17 +2734,36 @@ jobs:
           const hostLog = process.env.NET_E2E_HOST_LOG;
           const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-features=WebRtcHideLocalIpsWithMdns"] });
           const pageErrors = [];
-          const openPeer = async () => {
+          const pages = [];
+          const openPeer = async (name) => {
             const page = await (await browser.newContext()).newPage();
-            page.on("pageerror", (e) => pageErrors.push(String(e)));
+            page.on("pageerror", (e) => pageErrors.push(`${name} pageerror: ${e}`));
+            page.on("console", (m) => { if (m.type() !== "debug") pages.push(`${name} console ${m.type()}: ${m.text()}`); });
             await page.goto(url);
             return page;
           };
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const diagnose = async (named) => {
+            for (const [name, p] of named) {
+              const status = await p.evaluate(() => document.getElementById("status")?.textContent ?? "").catch((e) => "evaluate failed: " + e);
+              console.log(`DIAG ${name} status: ${JSON.stringify(status)}`);
+              console.log(`DIAG ${name} peers: ${await p.evaluate(() => (window.__ciPeers ? window.__ciPeers() : "no hook")).catch((e) => "evaluate failed: " + e)}`);
+            }
+            console.log("DIAG page logs:\n" + pages.slice(0, 80).join("\n"));
+            console.log("DIAG page errors: " + JSON.stringify(pageErrors));
+            console.log("DIAG host log tail:\n" + readFileSync(hostLog, "utf8").split("\n").filter((l) => !l.startsWith("ev=tick ")).slice(-40).join("\n"));
+          };
+          let a = null;
+          let b = null;
           try {
-            const a = await openPeer();
-            const b = await openPeer();
-            for (const p of [a, b]) await p.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 });
+            a = await openPeer("A");
+            b = await openPeer("B");
+            for (const [name, p] of [["A", a], ["B", b]]) {
+              await p.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 }).catch(async (err) => {
+                await diagnose([["A", a], ["B", b]]);
+                throw new Error(`peer ${name} never received a state frame with units: ${err.message}`);
+              });
+            }
             const before = await b.evaluate(() => window.__ciUnits()[0]);
             const target = { x: Math.round(before.x) + 4, y: Math.round(before.z) };
             const moved = (s) => !!s && (Math.abs(s.x - before.x) > 0.01 || Math.abs(s.z - before.z) > 0.01);
@@ -2758,7 +2777,10 @@ jobs:
               sb = await b.evaluate(() => window.__ciUnits().find((u) => u.id === 0) || null);
               if (moved(sa) && moved(sb)) break;
             }
-            if (!(moved(sa) && moved(sb))) throw new Error(`no state change seen: before=${before.x},${before.z} peerA=${JSON.stringify(sa)} peerB=${JSON.stringify(sb)}`);
+            if (!(moved(sa) && moved(sb))) {
+              await diagnose([["A", a], ["B", b]]);
+              throw new Error(`no state change seen: before=${before.x},${before.z} peerA=${JSON.stringify(sa)} peerB=${JSON.stringify(sb)}`);
+            }
             if (pageErrors.length) throw new Error("page errors: " + pageErrors.join(" | "));
             const peerOpens = readFileSync(hostLog, "utf8").split("\n").filter((l) => l.startsWith("ev=peer_open ")).length;
             if (peerOpens < 2) throw new Error(`host logged ${peerOpens} peer_open events, need 2`);

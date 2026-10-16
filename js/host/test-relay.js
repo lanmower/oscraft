@@ -128,6 +128,8 @@ export function startRelay({ port = 0, host = '127.0.0.1' } = {}) {
     let msg;
     try { msg = JSON.parse(text); } catch { return; }
     if (!Array.isArray(msg)) return;
+    if (msg[0] === 'REQ') console.log(`ev=relay_req sub=${msg[1]} filters=${msg.length - 2}`);
+    else if (msg[0] === 'EVENT' && msg[1]) console.log(`ev=relay_event kind=${msg[1].kind}`);
     if (msg[0] === 'EVENT') onEvent(sock, msg[1]);
     else if (msg[0] === 'REQ') onReq(sock, String(msg[1]), msg.slice(2));
     else if (msg[0] === 'CLOSE') {
@@ -144,6 +146,7 @@ export function startRelay({ port = 0, host = '127.0.0.1' } = {}) {
     const accept = createHash('sha1').update(req.headers['sec-websocket-key'] + GUID).digest('base64');
     sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
       `Sec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    console.log('ev=relay_connect');
     let pending = Buffer.alloc(0);
     sock.on('data', (chunk) => {
       pending = readFrames(Buffer.concat([pending, chunk]), (opcode, payload) => {
