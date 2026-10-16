@@ -1,10 +1,10 @@
 //! Language server for mod files over stdio with Content-Length framing.
-//! `.star` diagnostics are the engine validator's own error text, produced by
+//! `.osd` diagnostics are the engine validator's own error text, produced by
 //! `osdt_data::generate` on a staged copy of the document's directory.
 //! `.lua` diagnostics come from the mod host's load path (`ModHost::load`) on a
 //! staged copy of the buffer, so a syntax or load error carries its line.
 //! Completion and hover read the engine builtin table from `osdt_data::builtins`
-//! (`.star`) and the host globals table below (`.lua`).
+//! (`.osd`) and the host globals table below (`.lua`).
 //! No network port is opened.
 
 use std::collections::HashMap;
@@ -180,7 +180,7 @@ fn diagnostic(line: u64, message: String, source: &str) -> Value {
 }
 
 fn kind_of(uri: &str) -> Option<Kind> {
-    if uri.ends_with(".star") {
+    if uri.ends_with(".osd") {
         Some(Kind::Star)
     } else if uri.ends_with(".lua") {
         Some(Kind::Lua)
@@ -222,7 +222,7 @@ fn stage(doc: &Path, name: &OsStr, text: &str, scratch: &Path) -> io::Result<Str
         for entry in std::fs::read_dir(dir)? {
             let path = entry?.path();
             let sibling = path.file_name();
-            let is_star_file = path.extension().is_some_and(|ext| ext == "star");
+            let is_star_file = path.extension().is_some_and(|ext| ext == "osd");
             if let (true, Some(sibling)) = (is_star_file, sibling) {
                 if sibling != name {
                     std::fs::copy(&path, scratch.join(sibling))?;
@@ -263,7 +263,7 @@ fn lua_load(name: &OsStr, text: &str, scratch: &Path) -> std::result::Result<(),
     host.load(&staged).map_err(|e| locate(name, &e.to_string()))
 }
 
-/// The engine's `.star` sources: `OSCRAFT_DATA_DIR` when set, else the workspace's rust/data.
+/// The engine's `.osd` sources: `OSCRAFT_DATA_DIR` when set, else the workspace's rust/data.
 fn data_dir() -> PathBuf {
     std::env::var_os("OSCRAFT_DATA_DIR")
         .map(PathBuf::from)

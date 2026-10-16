@@ -1,5 +1,5 @@
 //! Writes the map image the browser loads. Run from rust/: `cargo run -p mapexport -- <out.bin>`.
-//! The image is built from the .star sources in data/, the same bytes the spike and gate load.
+//! The image is built from the .osd sources in data/, the same bytes the spike and gate load.
 
 use std::path::Path;
 

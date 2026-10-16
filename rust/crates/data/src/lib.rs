@@ -1,4 +1,4 @@
-//! Generator for OSDT game data. Evaluates the `.star` files of one directory
+//! Generator for OSDT game data. Evaluates the `.osd` files of one directory
 //! once, validates them, and returns the binary image FORMAT.md describes.
 //! The tick path never runs Starlark.
 
@@ -19,18 +19,25 @@ use starlark::syntax::{AstModule, Dialect};
 
 use crate::model::Collector;
 
-/// Evaluates every `*.star` file directly inside `src_dir` (sorted by name),
+/// Evaluates every `*.osd` file directly inside `src_dir` (sorted by name),
 /// then returns the encoded image. Subdirectories are not read. The image is
 /// checked by `reader::verify` before it is returned.
 pub fn generate(src_dir: &Path) -> Result<Vec<u8>> {
-    let mut files: Vec<PathBuf> = std::fs::read_dir(src_dir)
+    let mut entries: Vec<PathBuf> = std::fs::read_dir(src_dir)
         .with_context(|| format!("reading {}", src_dir.display()))?
         .map(|entry| entry.map(|e| e.path()))
-        .collect::<std::io::Result<Vec<_>>>()?
+        .collect::<std::io::Result<Vec<_>>>()?;
+    entries.sort();
+    if let Some(retired) = entries.iter().find(|path| path.extension().is_some_and(|ext| ext == "star")) {
+        return Err(anyhow!(
+            "{} has the retired extension star: definition files are .osd, rename it to .osd",
+            retired.display()
+        ));
+    }
+    let files: Vec<PathBuf> = entries
         .into_iter()
-        .filter(|path| path.extension().is_some_and(|ext| ext == "star"))
+        .filter(|path| path.extension().is_some_and(|ext| ext == "osd"))
         .collect();
-    files.sort();
 
     let globals = builtins::globals();
     let collector = Collector::default();

@@ -1,5 +1,5 @@
 //! Sim-side gate checks. Each runs against the sim's public API on the map that osdt_data
-//! generates from rust/data/*.star, and returns Err with the reason it fails.
+//! generates from rust/data/*.osd, and returns Err with the reason it fails.
 
 use crate::checks::{fresh, kind, run_ticks, spawn};
 use sim::{fixed, Refusal};
@@ -28,16 +28,16 @@ pub fn load_map(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
     let g = s.grid();
     if (g.w, g.h) != (32, 24) {
-        return Err(format!("grid is {}x{}, map.star paints 32x24", g.w, g.h));
+        return Err(format!("grid is {}x{}, map.osd paints 32x24", g.w, g.h));
     }
     if g.walkable(5, 0) {
-        return Err("row 0 reads walkable, map.star paints it blocked".into());
+        return Err("row 0 reads walkable, map.osd paints it blocked".into());
     }
     if !g.walkable(20, 15) {
         return Err("open cell (20,15) reads blocked".into());
     }
     if s.count() < 4 {
-        return Err(format!("{} units placed, map.star places 4", s.count()));
+        return Err(format!("{} units placed, map.osd places 4", s.count()));
     }
     Ok(())
 }
@@ -46,7 +46,7 @@ pub fn walkable_cells(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
     let g = s.grid();
     if g.walkable(5, 0) {
-        return Err("row 0 reads walkable, map.star paints it blocked".into());
+        return Err("row 0 reads walkable, map.osd paints it blocked".into());
     }
     match g.nearest_walkable(5, 0, 4) {
         Some((x, y)) if g.walkable(x, y) => Ok(()),
@@ -164,7 +164,7 @@ pub fn behaviour_declared(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
     let c = s.catalog();
     if c.behaviours.is_empty() {
-        return Err("catalog has no behaviours; behaviours.star declares guard_patrol".into());
+        return Err("catalog has no behaviours; behaviours.osd declares guard_patrol".into());
     }
     for b in &c.behaviours {
         if b.trigger_kind().is_none() {

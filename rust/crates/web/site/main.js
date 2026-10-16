@@ -3,7 +3,7 @@ import init, { Game } from "./pkg/web.js";
 import * as THREE from "three";
 import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-// The map grid from data/map.star: grid(32, 24), one tile per cell.
+// The map grid from data/map.osd: grid(32, 24), one tile per cell.
 const W = 32;
 const H = 24;
 const BACKGROUND = 0x1d252c;

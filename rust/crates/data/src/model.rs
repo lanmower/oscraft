@@ -170,7 +170,7 @@ pub struct Grid {
     pub tiles: Vec<u8>,
 }
 
-/// Lives in `Evaluator::extra`; builtins push into it while the .star files run.
+/// Lives in `Evaluator::extra`; builtins push into it while the .osd files run.
 /// Effect handles returned by `effect()` are indices into `effects`.
 #[derive(Default, ProvidesStaticType)]
 pub struct Collector {

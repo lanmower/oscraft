@@ -211,7 +211,7 @@ fn hash_stable_two_runs(image: &[u8]) -> Result<(), String> {
 }
 
 fn units_ge_map_spawns(image: &[u8]) -> Result<(), String> {
-    let text = std::fs::read_to_string(data_dir().join("map.star")).map_err(|e| format!("map.star: {e}"))?;
+    let text = std::fs::read_to_string(data_dir().join("map.osd")).map_err(|e| format!("map.osd: {e}"))?;
     let spawns = text.lines().filter(|l| l.trim_start().starts_with("spawn(")).count();
     let (_, units) = state_after(image, RUN_TICKS)?;
     if units == 0 || units < spawns {

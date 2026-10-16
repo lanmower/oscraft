@@ -160,7 +160,7 @@ fn drive(host: &mut ModHost, link: &ModLink, budget: Duration) {
     }
 }
 
-// A data directory is compiled from its .star files by the CLI's generate path; a file is read as
+// A data directory is compiled from its .osd files by the CLI's generate path; a file is read as
 // an image. The error is the bare reason; the caller names the flag.
 pub fn load_data(path: &Path, max_units: usize) -> Result<sim::Sim, String> {
     if !path.is_dir() {
@@ -172,7 +172,7 @@ pub fn load_data(path: &Path, max_units: usize) -> Result<sim::Sim, String> {
 
 const DATA_POLL: Duration = Duration::from_millis(500);
 
-// The image a --data path names: a directory is compiled from its .star files, a file is read as is.
+// The image a --data path names: a directory is compiled from its .osd files, a file is read as is.
 pub fn load_image(path: &Path) -> Result<Vec<u8>, String> {
     if path.is_dir() {
         return mod_host::build_image(path);
@@ -180,7 +180,7 @@ pub fn load_image(path: &Path) -> Result<Vec<u8>, String> {
     fs::read(path).map_err(|e| e.to_string())
 }
 
-// Polls the .star files of a data directory for the mod host. A change is rebuilt and staged on the
+// Polls the .osd files of a data directory for the mod host. A change is rebuilt and staged on the
 // link, and the mod thread swaps it in between ticks. A failed rebuild is logged and the image in
 // service stays. The thread ends when the link is dropped.
 pub fn watch_image(dir: PathBuf, link: Weak<ModLink>) {
@@ -202,7 +202,7 @@ pub fn watch_image(dir: PathBuf, link: Weak<ModLink>) {
     });
 }
 
-// Polls the .star files of a data directory. A change is rebuilt and validated off the tick path and
+// Polls the .osd files of a data directory. A change is rebuilt and validated off the tick path and
 // staged on the room, which swaps it in at its next tick. A failed rebuild is logged and the image in
 // service stays. The thread ends when the room is dropped.
 pub fn watch_data(room: Weak<Room>, dir: PathBuf, max_units: usize) {
@@ -230,7 +230,7 @@ fn star_files(dir: &Path) -> StarFiles {
     let Ok(entries) = fs::read_dir(dir) else { return Vec::new() };
     let mut files: StarFiles = entries
         .filter_map(|entry| entry.ok().map(|e| e.path()))
-        .filter(|path| path.extension().is_some_and(|ext| ext == "star"))
+        .filter(|path| path.extension().is_some_and(|ext| ext == "osd"))
         .filter_map(|path| {
             let meta = fs::metadata(&path).ok()?;
             Some((path, meta.modified().ok(), meta.len()))

@@ -5,7 +5,7 @@ import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, FRAME } from "../wire/frame.js";
 
-// The map grid from data/map.star: grid(32, 24), one tile per cell.
+// The map grid from data/map.osd: grid(32, 24), one tile per cell.
 const W = 32;
 const H = 24;
 const BACKGROUND = [0.114, 0.145, 0.173];

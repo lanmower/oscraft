@@ -157,7 +157,7 @@ pub fn mod_package_version(image: &[u8]) -> Result<(), String> {
 fn board_warden_and_skirmisher(s: &mut Sim) -> Result<(usize, usize), String> {
     let t = spawn(s, 0, "warden", 10, 10)?;
     let i = spawn(s, 0, "skirmisher", 11, 10)?;
-    s.load_unit(t, i).map_err(|r| format!("load_unit refused: {}; units.star declares no transport capacity", r.name()))?;
+    s.load_unit(t, i).map_err(|r| format!("load_unit refused: {}; units.osd declares no transport capacity", r.name()))?;
     Ok((t, i))
 }
 
@@ -361,7 +361,7 @@ fn spawn_air_on_plateau(s: &mut Sim, p: u8) -> Result<usize, String> {
 }
 
 pub fn elevation_sight(image: &[u8]) -> Result<(), String> {
-    // map.star raises cells 12..=13 x 8..=9 to level 6 (blocked); the rest of the map is level 1.
+    // map.osd raises cells 12..=13 x 8..=9 to level 6 (blocked); the rest of the map is level 1.
     // A unit sees a cell only at or below its own height.
     let mut low = fresh(image)?;
     low.set_fog(true);
@@ -530,7 +530,7 @@ pub fn geyser_extraction(image: &[u8]) -> Result<(), String> {
 
 pub fn opening_resources(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
-    // economy.star: opening minerals 0, gas 0, workers 4.
+    // economy.osd: opening minerals 0, gas 0, workers 4.
     let got = s.opening_resources();
     if got != (0, 0, 4) {
         return Err(format!("opening resources {got:?}, want (0, 0, 4)"));
@@ -540,7 +540,7 @@ pub fn opening_resources(image: &[u8]) -> Result<(), String> {
 
 pub fn base_resource_nodes(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
-    // economy.star: eight mineral patches per base.
+    // economy.osd: eight mineral patches per base.
     let (patches, _) = s.base_node_counts();
     if patches != 8 {
         return Err(format!("{patches} mineral patches per base, want 8"));

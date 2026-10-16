@@ -175,7 +175,7 @@ end
 }
 
 pub fn edit_terrain(image: &[u8]) -> Result<(), String> {
-    // Cell (10,20) is open in map.star. Spawn coordinates are Q16.16, so 688128 and 1343488
+    // Cell (10,20) is open in map.osd. Spawn coordinates are Q16.16, so 688128 and 1343488
     // are the centre (10.5, 20.5) of that cell.
     let src = r#"
 function on_tick(state)
@@ -204,7 +204,7 @@ end
 }
 
 pub fn lua_host_api_full(image: &[u8]) -> Result<(), String> {
-    // map.star spawns unit 0 as player 0's skirmisher and unit 2 as player 1's skirmisher.
+    // map.osd spawns unit 0 as player 0's skirmisher and unit 2 as player 1's skirmisher.
     // Damage and buff values are Q16.16, so 655360 is 10 world units of damage.
     let src = r#"
 function on_tick(state)
@@ -221,7 +221,7 @@ end
     advance(&mut host, 1)?;
     let owner = read_int(&host, "owner")?;
     if owner != 1 {
-        return Err(format!("unit 2 is owned by player {owner}, want 1: map.star placement order changed"));
+        return Err(format!("unit 2 is owned by player {owner}, want 1: map.osd placement order changed"));
     }
     let lost = read_int(&host, "hp0")? - read_int(&host, "hp1")?;
     if lost != 655360 {

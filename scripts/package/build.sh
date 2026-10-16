@@ -15,7 +15,7 @@ cd "$rust"
 cargo build --release -q -p server --bin oscraftd
 cargo build --release -q -p oscraft-lsp
 cp target/release/oscraftd target/release/oscraft-lsp "$stage/bin/"
-cp data/*.star "$stage/data/"
+cp data/*.osd "$stage/data/"
 cp -R crates/web/site/. "$stage/site/"
 cargo run -q -p mapexport -- "$stage/site/map.bin"
 wasm-pack build crates/web --target web --out-dir "$stage/site/pkg" > /dev/null

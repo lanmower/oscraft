@@ -48,6 +48,19 @@ jobs:
       - name: Build workspace (one compile for spike and gate)
         run: cargo build --workspace
 
+      - name: Definition extension and rejection
+        shell: bash
+        run: |
+          osd=$(git -C "$GITHUB_WORKSPACE" ls-files | awk -F. '$NF=="osd"' | wc -l | tr -d ' ')
+          star=$(git -C "$GITHUB_WORKSPACE" ls-files | awk -F. '$NF=="star"' | wc -l | tr -d ' ')
+          test "$star" = 0
+          d=$(mktemp -d)
+          ext=star
+          printf 'x = 1\n' > "$d/bad.$ext"
+          if cargo run -q -p osdt-data -- "$d" "$d/out.osdt" 2> "$d/err.txt"; then echo "loader accepted a retired definition file"; exit 1; fi
+          grep -q '\.osd' "$d/err.txt"
+          echo "definition extension ok osd=$osd star=$star"
+
       - name: Run Lua mod spike
         run: cargo run -p oscraft-spike
 
@@ -452,10 +465,10 @@ jobs:
           export LC_ALL=C
           MOD="$RUNNER_TEMP/mod"
           mkdir -p "$MOD"
-          printf 'x = 1\n' > "$MOD/mod.star"
+          printf 'x = 1\n' > "$MOD/mod.osd"
           cargo build -q -p oscraft-lsp -p osdt-data
           ENGINE=$(./target/debug/osdt-data "$MOD" "$RUNNER_TEMP/mod.bin" 2>&1 | sed -n 's/^Error: //p' || true)
-          URI="file://$MOD/mod.star"
+          URI="file://$MOD/mod.osd"
           frame() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
           {
             frame '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
@@ -481,8 +494,8 @@ jobs:
           export LC_ALL=C
           MOD="$RUNNER_TEMP/hover-mod"
           mkdir -p "$MOD"
-          printf 'x = 1\n' > "$MOD/mod.star"
-          URI="file://$MOD/hover.star"
+          printf 'x = 1\n' > "$MOD/mod.osd"
+          URI="file://$MOD/hover.osd"
           frame() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
           {
             frame '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
@@ -1351,14 +1364,14 @@ jobs:
       - name: Build the server
         run: cargo build -p server --bin oscraftd
 
-      - name: Serve a copy of the data directory, add a unit with a .star edit, then break the edit
+      - name: Serve a copy of the data directory, add a unit with a .osd edit, then break the edit
         shell: bash
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/data-reload"
           rm -rf "$work"
           mkdir -p "$work"
-          cp data/*.star "$work/"
+          cp data/*.osd "$work/"
           addr=127.0.0.1:18440
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
@@ -1368,13 +1381,13 @@ jobs:
           for i in $(seq 1 60); do catalog >/dev/null 2>&1 && break; sleep 0.5; done
           catalog | jq -e '.loaded == true' >/dev/null
           catalog | jq -e '.units | any(. == "reloadprobe") | not' >/dev/null
-          printf '%s\n' 'unit("reloadprobe", 50, 2000, 300, build_time=300, minerals=50, supply=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$work/reload_probe.star"
+          printf '%s\n' 'unit("reloadprobe", 50, 2000, 300, build_time=300, minerals=50, supply=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$work/reload_probe.osd"
           for i in $(seq 1 60); do grep -q '^ev=data_reloaded ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reloaded room=ci ' "$log"
           for i in $(seq 1 20); do catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null 2>&1 && break; sleep 0.25; done
           catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null
           grep '^ev=data_reloaded ' "$log" | head -n 1
-          printf '%s\n' 'unit("reloadprobe", 50,' > "$work/reload_probe.star"
+          printf '%s\n' 'unit("reloadprobe", 50,' > "$work/reload_probe.osd"
           for i in $(seq 1 60); do grep -q '^ev=data_reload_failed ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reload_failed room=ci ' "$log"
           catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null
@@ -1610,7 +1623,7 @@ jobs:
           workspaces: rust -> target
           shared-key: rust-workspace
 
-      - name: Start oscraftd with --mod and a directory --data, edit a .star file, read the probe
+      - name: Start oscraftd with --mod and a directory --data, edit a .osd file, read the probe
         shell: bash
         run: |
           set -euo pipefail
@@ -1628,8 +1641,8 @@ jobs:
           for i in $(seq 1 40); do grep -q 'ev=mod_tick tick=[0-9]* version=1 probe=24' "$log" && break; sleep 0.25; done
           before=$(grep -o 'ev=mod_tick tick=[0-9]* version=[0-9]* probe=[0-9]*' "$log" | tail -1 | sed 's/.*probe=//')
           test "$before" = 24
-          sed -i 's/ability("pulse_shot", 24, /ability("pulse_shot", 31, /' "$work/data/abilities.star"
-          grep -q 'ability("pulse_shot", 31, ' "$work/data/abilities.star"
+          sed -i 's/ability("pulse_shot", 24, /ability("pulse_shot", 31, /' "$work/data/abilities.osd"
+          grep -q 'ability("pulse_shot", 31, ' "$work/data/abilities.osd"
           for i in $(seq 1 120); do grep -q '^ev=mod_image_reloaded ' "$log" && break; sleep 0.25; done
           grep -q '^ev=mod_image_reloaded ' "$log"
           for i in $(seq 1 40); do grep -q 'probe=31' "$log" && break; sleep 0.25; done
@@ -1665,7 +1678,7 @@ jobs:
           work="$RUNNER_TEMP/match-carried"
           rm -rf "$work"
           mkdir -p "$work"
-          cp data/*.star "$work/"
+          cp data/*.osd "$work/"
           addr=127.0.0.1:18442
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
@@ -1678,8 +1691,8 @@ jobs:
           test "$before" -gt 0
           dump "$before" | sort > "$work/pre.txt"
           test "$(wc -l < "$work/pre.txt")" -eq "$before"
-          sed -i '/^unit("skirmisher"/s/minerals=50/minerals=75/' "$work/units.star"
-          grep -q '^unit("skirmisher".*minerals=75' "$work/units.star"
+          sed -i '/^unit("skirmisher"/s/minerals=50/minerals=75/' "$work/units.osd"
+          grep -q '^unit("skirmisher".*minerals=75' "$work/units.osd"
           for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reloaded room=ci ' "$log"
           after=$(state | jq -r .units)
@@ -1721,7 +1734,7 @@ jobs:
           work="$RUNNER_TEMP/carry-kind-match"
           rm -rf "$work"
           mkdir -p "$work"
-          cp data/*.star "$work/"
+          cp data/*.osd "$work/"
           addr=127.0.0.1:18444
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
@@ -1731,12 +1744,12 @@ jobs:
           for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
           before=$(state | jq -r .units)
           test "$before" -gt 0
-          first=$(grep -n '^unit(' "$work/units.star" | sed -n 1p | cut -d: -f1)
-          second=$(grep -n '^unit(' "$work/units.star" | sed -n 2p | cut -d: -f1)
-          a=$(sed -n "${first}p" "$work/units.star")
-          b=$(sed -n "${second}p" "$work/units.star")
-          { head -n $((first - 1)) "$work/units.star"; printf '%s\n' "$b"; sed -n "$((first + 1)),$((second - 1))p" "$work/units.star"; printf '%s\n' "$a"; tail -n +$((second + 1)) "$work/units.star"; } > "$work/units.swap"
-          mv "$work/units.swap" "$work/units.star"
+          first=$(grep -n '^unit(' "$work/units.osd" | sed -n 1p | cut -d: -f1)
+          second=$(grep -n '^unit(' "$work/units.osd" | sed -n 2p | cut -d: -f1)
+          a=$(sed -n "${first}p" "$work/units.osd")
+          b=$(sed -n "${second}p" "$work/units.osd")
+          { head -n $((first - 1)) "$work/units.osd"; printf '%s\n' "$b"; sed -n "$((first + 1)),$((second - 1))p" "$work/units.osd"; printf '%s\n' "$a"; tail -n +$((second + 1)) "$work/units.osd"; } > "$work/units.swap"
+          mv "$work/units.swap" "$work/units.osd"
           for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reloaded room=ci ' "$log"
           line=$(grep '^ev=data_reloaded room=ci ' "$log" | head -n 1)
@@ -2178,7 +2191,7 @@ jobs:
           unit=$(echo "$bound" | sed 's/.*unit=//')
           [[ -n "$handle" && -n "$unit" ]] || { echo "no mod unit bound"; cat "$log"; exit 1; }
           # The gunship is the last unit the map places; dropping it leaves the mod unit's index unplaced.
-          sed -i '/spawn("gunship"/d' "$work/data/map.star"
+          sed -i '/spawn("gunship"/d' "$work/data/map.osd"
           wait_for 'ev=data_reloaded'
           read -r x0 y0 <<<"$(unit_at)"
           num "$x0"; num "$y0"
@@ -2223,10 +2236,10 @@ jobs:
           mkdir -p "$work"
           cp -r data "$work/base"
           cp -r data "$work/data"
-          cat >> "$work/data/units.star" <<'STAR'
+          cat >> "$work/data/units.osd" <<'STAR'
           unit("zephyr", 45, 3150, 375, build_time=480, minerals=50, supply=1, abilities=[], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="minerals")
           STAR
-          echo 'spawn("zephyr", 0, 22000, 18000)' >> "$work/data/map.star"
+          echo 'spawn("zephyr", 0, 22000, 18000)' >> "$work/data/map.osd"
           base_addr=127.0.0.1:18442
           kind_addr=127.0.0.1:18443
           ./target/debug/oscraftd --addr "$base_addr" --room base --data "$work/base" > "$work/base.log" 2>&1 &
@@ -2318,7 +2331,7 @@ jobs:
           unit=$(echo "$bound" | sed 's/.*unit=//')
           [[ -n "$handle" && -n "$unit" ]] || { echo "no mod unit bound"; cat "$log"; exit 1; }
           # The map places units 0 to 7, so the mod's skirmisher holds index 8. Appending a tender places a different kind at that index.
-          printf '\nspawn("tender", 0, 2500, 21500)\n' >> "$work/data/map.star"
+          printf '\nspawn("tender", 0, 2500, 21500)\n' >> "$work/data/map.osd"
           wait_for 'ev=data_reloaded'
           expect="ev=mod_unit_refused handle=$handle unit=$unit reason=kind_changed"
           if [[ "$(grep -cF "$expect" "$log")" -ne 1 ]]; then
@@ -2455,7 +2468,7 @@ jobs:
           work="$RUNNER_TEMP/carry-drop"
           rm -rf "$work"
           mkdir -p "$work"
-          cp data/*.star "$work/"
+          cp data/*.osd "$work/"
           addr=127.0.0.1:18446
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room drop --data "$work" > "$log" 2>&1 &
@@ -2465,7 +2478,7 @@ jobs:
           for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
           before=$(state | jq -r .units)
           test "$before" -gt 0
-          sed -i 's/"gunship"/"gunship_renamed"/g' "$work"/*.star
+          sed -i 's/"gunship"/"gunship_renamed"/g' "$work"/*.osd
           for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=drop ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reloaded room=drop ' "$log"
           line=$(grep '^ev=data_reloaded room=drop ' "$log" | head -n 1)
@@ -2501,7 +2514,7 @@ jobs:
           work="$RUNNER_TEMP/late-join"
           rm -rf "$work"
           mkdir -p "$work"
-          cp data/*.star "$work/"
+          cp data/*.osd "$work/"
           addr=127.0.0.1:18447
           log="$work/server.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &

@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let spike_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let repo_mod = spike_dir.join("mods/unit_mod.lua");
 
-    // The unit catalog is the .star sources the data crate reads (rust/data). The
+    // The unit catalog is the .osd sources the data crate reads (rust/data). The
     // sim's catalog gives the spawn index space, so one image is built per run.
     let image = osdt_data::generate(&spike_dir.join("../../data")).map_err(|e| e.to_string())?;
 
