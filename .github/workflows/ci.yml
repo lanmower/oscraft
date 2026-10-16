@@ -58,6 +58,7 @@ jobs:
     name: build once - workspace, test binaries, page wasm and map image
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 45
     defaults:
       run:
@@ -124,6 +125,7 @@ jobs:
     name: build, spike and gate (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -183,6 +185,7 @@ jobs:
     name: build, spike and gate (ubuntu-latest)
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -234,6 +237,8 @@ jobs:
   gate-compare:
     name: compare gate output across OSes
     needs: [changes, check, check-linux]
+    if: ${{ always() && needs.changes.outputs.code == 'true' }}
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -245,6 +250,7 @@ jobs:
     name: "server caps, ticks, supervisor and client error probes"
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -653,6 +659,7 @@ jobs:
     name: "server mod, data and order probes"
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 20
     defaults:
       run:
@@ -1001,6 +1008,7 @@ jobs:
     name: "server unit kinds, carry, protocol and log schema probes"
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 20
     defaults:
       run:
@@ -1388,6 +1396,7 @@ jobs:
     name: "browser page probes - map, reconnect, self-reload and rejected edit"
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -1869,6 +1878,7 @@ jobs:
     name: "static checks: client modules, host usage, protocol docs, names and ICE config"
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -2011,6 +2021,7 @@ jobs:
     name: sim as wasip2 component and host
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 45
     defaults:
       run:
@@ -2045,6 +2056,7 @@ jobs:
     name: language server matches the engine validator
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2164,6 +2176,7 @@ jobs:
     name: hot reload swaps and rolls back (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -2197,6 +2210,7 @@ jobs:
     name: hot reload swaps and rolls back (ubuntu-latest)
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2228,6 +2242,7 @@ jobs:
     name: sim as wasip1 guest driven over stdio
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2259,6 +2274,7 @@ jobs:
     name: single archive builds and installs into an empty directory
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -2297,6 +2313,7 @@ jobs:
     name: wire frame codec round-trip
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 5
     defaults:
       run:
@@ -2315,6 +2332,7 @@ jobs:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2382,6 +2400,7 @@ jobs:
     name: "two headless peers join room ci through the relay; an order moves a unit"
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -2523,6 +2542,7 @@ jobs:
     name: duel-routes scenario loads and serves its counts
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -2588,6 +2608,7 @@ jobs:
     name: order ownership refuses a peer's order on a foreign unit and leaves it in place
     runs-on: ubuntu-latest
     needs: [changes, build]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -2681,6 +2702,7 @@ jobs:
     name: lobby room panel lists two rooms announced on the relay, joins one, and drops a closed page after its TTL
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 15
     defaults:
       run:
@@ -2769,6 +2791,7 @@ jobs:
     name: sim as wasip3 guest on nightly
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2794,6 +2817,7 @@ jobs:
     name: "browser host and browser peer over wireweave: one order moves a unit on both pages"
     runs-on: ubuntu-latest
     needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
