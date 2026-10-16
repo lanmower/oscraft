@@ -234,15 +234,10 @@ impl Room {
         if self.take_test_panic(c.tick) {
             panic!("test-only panic armed by --test-panic-tick fired at tick {}", c.tick);
         }
-        if let Some(mut sim) = lock(&self.staged).take() {
-            let (map, dropped) = carry_units(&c.sim, &mut sim);
-            let carried = map.iter().flatten().count();
-            c.handles = std::mem::take(&mut c.handles)
-                .into_iter()
-                .filter_map(|(handle, old)| map.get(old).copied().flatten().map(|new| (handle, new)))
-                .collect();
+        if let Some(sim) = lock(&self.staged).take() {
             c.sim = sim;
-            crate::emit!(Ev::DataReloaded, room = self.name, tick = c.tick, units = c.sim.catalog().units.len(), carried = carried, dropped = dropped);
+            c.handles.clear();
+            crate::emit!(Ev::DataReloaded, room = self.name, tick = c.tick, units = c.sim.catalog().units.len());
         }
         let shedding = c.streak >= SHED_AFTER_OVERRUNS;
         let first_shed_tick = c.streak == SHED_AFTER_OVERRUNS;
@@ -287,32 +282,6 @@ impl Room {
 }
 
 use crate::log::Ev;
-
-// Copies each live unit of the old image into the new one. A unit keeps its index when the new
-// image already holds the same unit there (map placements load first); otherwise it is spawned
-// where the new map allows it. Returns the new index per old index and how many units were dropped.
-fn carry_units(old: &Sim, new: &mut Sim) -> (Vec<Option<usize>>, usize) {
-    let mut map = vec![None; old.count()];
-    let mut dropped = 0;
-    for i in 0..old.count() {
-        let Some(kind) = old.unit_type(i) else { continue };
-        let (x, y) = old.position_fixed(i);
-        let owner = old.player(i);
-        let in_place = new.alive(i)
-            && new.unit_type(i) == Some(kind)
-            && new.player(i) == owner
-            && new.position_fixed(i) == (x, y);
-        let target = if in_place { Some(i) } else { new.spawn_for(owner, kind, x, y) };
-        match target {
-            Some(j) => {
-                new.set_hp(j, old.hp(i));
-                map[i] = Some(j);
-            }
-            None => dropped += 1,
-        }
-    }
-    (map, dropped)
-}
 
 // Applies the mod's queued commands to the room's sim at the tick boundary. A spawn binds its
 // handle to the room unit it got; handle commands resolve through that map, and a handle the map
