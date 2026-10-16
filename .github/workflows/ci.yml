@@ -1197,6 +1197,80 @@ jobs:
           grep '^ev=conn_refused ' "$log"
           echo "connection cap ok: cap=$cap, 503 on connection $((cap+1)), /state 200 on a held socket, one conn_refused"
 
+  connection-cap-threads:
+    name: 1000 idle connections stay bounded by the cap, refused ones get 503 and conn_refused, and threads stay within cap plus 80
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Open 1000 idle connections, count 503s and conn_refused lines, and check the server thread count against cap plus 80
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          ulimit -n 4096 || true
+          cap=$(sed -n 's/^pub const MAX_CONNECTIONS: usize = \([0-9]*\);/\1/p' crates/server/src/lib.rs)
+          test -n "$cap"
+          slack=80
+          work="$RUNNER_TEMP/connection-cap-threads"
+          mkdir -p "$work"
+          port=8097
+          log="$work/cap.log"
+          target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          python3 - "$pid" "$cap" "$slack" "$port" "$log" <<'PY'
+          import selectors
+          import socket
+          import sys
+          
+          pid, cap, slack, port, log = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
+          conns = 1000
+          ceiling = cap + slack
+          
+          socks = [socket.create_connection(("127.0.0.1", port), timeout=10) for _ in range(conns)]
+          
+          threads = None
+          with open(f"/proc/{pid}/status") as status:
+              for line in status:
+                  if line.startswith("Threads:"):
+                      threads = int(line.split()[1])
+          assert threads is not None, "no Threads line in /proc/<pid>/status"
+          
+          sel = selectors.DefaultSelector()
+          for s in socks:
+              sel.register(s, selectors.EVENT_READ)
+          refused = 0
+          while True:
+              events = sel.select(timeout=2.0)
+              if not events:
+                  break
+              for key, _ in events:
+                  sel.unregister(key.fileobj)
+                  if key.fileobj.recv(256).startswith(b"HTTP/1.1 503"):
+                      refused += 1
+          
+          with open(log) as f:
+              conn_lines = sum(1 for line in f if line.startswith("ev=conn_refused "))
+          
+          assert refused >= conns - cap, f"503 responses {refused} below {conns - cap}"
+          assert conn_lines >= refused, f"ev=conn_refused lines {conn_lines} below 503 responses {refused}"
+          assert threads <= ceiling, f"threads {threads} above ceiling {ceiling}"
+          print(f"connection cap threads ok conns={conns} refused={refused} threads={threads} ceiling={ceiling}")
+          PY
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+
   data-reload:
     name: data edit reaches the running server without a restart
     runs-on: ubuntu-latest
