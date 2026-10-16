@@ -12,7 +12,7 @@ All crates live in the `rust/` workspace (`rust/Cargo.toml`).
 | --- | --- | --- |
 | `sim` | `rust/crates/sim` | In progress. Q16.16 fixed-point, struct-of-arrays state, loader for the OSDT data image. Modules cover combat, movement, pathfinding, production, harvesting, buffs, fog, projectiles and shields. |
 | `mpq` | `rust/crates/mpq` | In progress. MPQ archive reader: header and table parsing, classic hash and block tables, HET/BET lookup, and the sector codecs (PKWARE, Huffman, inflate, bzip2, LZMA, sparse). |
-| `data` | `rust/crates/data` | In progress. Generator for the OSDT data image. Evaluates the `.star` files in a directory and writes the binary layout described in `rust/crates/data/FORMAT.md` (format version 2). |
+| `data` | `rust/crates/data` | In progress. Generator for the OSDT data image. Evaluates the `.osd` files in a directory and writes the binary layout described in `rust/crates/data/FORMAT.md` (format version 2). |
 | `server` | `rust/crates/server` | In progress. HTTP and room/order handling that calls the sim API. |
 | `spike` | `rust/crates/spike` | Contract proof for the Lua mod runtime, described below. Not yet verified by a CI run on this commit. |
 

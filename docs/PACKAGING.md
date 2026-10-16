@@ -12,7 +12,7 @@ The archive has these members at its root. Paths are relative and every file is 
 | --- | --- |
 | `bin/oscraftd` | the server binary (crate `server`, release build) |
 | `bin/oscraft-lsp` | the mod language server over stdio (crate `mod-lsp`, package `oscraft-lsp`) |
-| `data/*.star` | the data directory; `oscraftd --data` builds the catalog image from it |
+| `data/*.osd` | the data directory; `oscraftd --data` builds the catalog image from it |
 | `site/` | the browser page: `index.html`, `main.js`, `assets/`, `map.bin` (from `mapexport`), `pkg/` (wasm-pack output) |
 | `js/host/` | the net host: `server.js`, `guest.js`, `test-relay.js`, `package.json` (pinned versions; `npm install` there before serving) |
 | `js/wire/frame.js` | the wire frame codec the host imports |

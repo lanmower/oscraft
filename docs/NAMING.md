@@ -16,42 +16,42 @@ This map is the spec for one atomic rename commit across `rust/` and `docs/`. Ev
 
 | Old term | New term | Where it appears | Rule |
 |---|---|---|---|
-| Terran | faction-a | Rust source, `.star` data, `FORMAT.md` | race becomes faction |
-| Protoss | faction-b | Rust source, `.star` data, `FORMAT.md` | race becomes faction |
-| Zerg | faction-c | Rust source, `.star` data, `FORMAT.md` | race becomes faction |
-| race | faction | `FORMAT.md`, ECON per-race fields, `.star` | everywhere, including ECON per-race fields |
-| minerals | resource-a | `RESOURCE_KINDS` in `format.rs`, `FORMAT.md`, `.star` | resource type |
-| vespene, gas | resource-b | `RESOURCE_KINDS` in `format.rs`, `FORMAT.md`, `.star` | resource type |
+| Terran | faction-a | Rust source, `.osd` data, `FORMAT.md` | race becomes faction |
+| Protoss | faction-b | Rust source, `.osd` data, `FORMAT.md` | race becomes faction |
+| Zerg | faction-c | Rust source, `.osd` data, `FORMAT.md` | race becomes faction |
+| race | faction | `FORMAT.md`, ECON per-race fields, `.osd` | everywhere, including ECON per-race fields |
+| minerals | resource-a | `RESOURCE_KINDS` in `format.rs`, `FORMAT.md`, `.osd` | resource type |
+| vespene, gas | resource-b | `RESOURCE_KINDS` in `format.rs`, `FORMAT.md`, `.osd` | resource type |
 | mineral patch | resource node | `FORMAT.md`, Rust source | resource node |
 | geyser | resource site | `FORMAT.md`, `builtins.rs`, `encode.rs`, `model.rs`, `validate.rs`, `arrays.rs` | merged with extractor, one concept |
-| extractor | resource site | `FORMAT.md`, `builtins.rs`, `encode.rs`, `model.rs`, `validate.rs`, `economy.star` | merged with geyser, one concept |
+| extractor | resource site | `FORMAT.md`, `builtins.rs`, `encode.rs`, `model.rs`, `validate.rs`, `economy.osd` | merged with geyser, one concept |
 | worker | collector | `FILTERS` in `format.rs`, `FORMAT.md`, `builtins.rs`, `encode.rs`, `format.rs`, `model.rs`, `validate.rs` | role term |
 | supply | capacity | `FORMAT.md`, `builtins.rs`, `encode.rs`, `model.rs`, `validate.rs`, `loader.rs` | resource concept |
 | supply provider | capacity source | `FORMAT.md`, Rust source | capacity source |
 | overlord | capacity source entity | not present in repo, map kept for completeness | generic example entity |
-| marine | ranged-a | `.star` data, `unit_mod.lua`, `main.rs` | generic example entity |
-| marauder | ranged-b | `.star` data | generic example entity |
-| zergling | melee-a | `.star` data | generic example entity |
-| ghost | stealth-a | `.star` data | generic example entity |
-| barracks | producer-a | `.star` data | production structure |
-| nexus | core-a | `.star` data | core structure |
-| tender | hauler | `map.star`, `units.star`, `units_extra.star` | generic example entity |
-| spore | turret | `map.star`, `units.star`, `units_extra.star` | generic example entity |
-| skirmisher | raider | `unit_mod.lua`, `main.rs`, `map.star`, `tech.star`, `units.star`, `units_extra.star` | generic example entity |
-| warden | guardian | `unit_mod.lua`, `map.star`, `tech.star`, `units.star`, `units_extra.star`, `upgrades.star` | generic example entity |
-| raven | spotter | `.star` data | generic example entity |
-| infestor | disabler | `.star` data | generic example entity |
+| marine | ranged-a | `.osd` data, `unit_mod.lua`, `main.rs` | generic example entity |
+| marauder | ranged-b | `.osd` data | generic example entity |
+| zergling | melee-a | `.osd` data | generic example entity |
+| ghost | stealth-a | `.osd` data | generic example entity |
+| barracks | producer-a | `.osd` data | production structure |
+| nexus | core-a | `.osd` data | core structure |
+| tender | hauler | `map.osd`, `units.osd`, `units_extra.osd` | generic example entity |
+| spore | turret | `map.osd`, `units.osd`, `units_extra.osd` | generic example entity |
+| skirmisher | raider | `unit_mod.lua`, `main.rs`, `map.osd`, `tech.osd`, `units.osd`, `units_extra.osd` | generic example entity |
+| warden | guardian | `unit_mod.lua`, `map.osd`, `tech.osd`, `units.osd`, `units_extra.osd`, `upgrades.osd` | generic example entity |
+| raven | spotter | `.osd` data | generic example entity |
+| infestor | disabler | `.osd` data | generic example entity |
 | unit | entity | type and field names in `model.rs`, `builtins.rs`, `encode.rs`, `validate.rs`, `FORMAT.md` | type and field rename |
-| CalldownMULE | resource-drop deployment | `abilities.star`, `FORMAT.md` | calldown becomes deployment |
-| calldown | deployment | `format.rs`, `reader.rs`, `validate.rs`, `FORMAT.md`, `abilities.star` | deployment |
+| CalldownMULE | resource-drop deployment | `abilities.osd`, `FORMAT.md` | calldown becomes deployment |
+| calldown | deployment | `format.rs`, `reader.rs`, `validate.rs`, `FORMAT.md`, `abilities.osd` | deployment |
 | use_calldown | use_deployment | `EFFECT_KINDS` in `format.rs` | effect kind |
-| stimpack | haste | `.star` data | status effect |
+| stimpack | haste | `.osd` data | status effect |
 | buff, buffs | status effect, status_effects | `EFFECT_KINDS`, `format.rs`, `arrays.rs`, `buffs.rs`, `hash.rs`, `lib.rs`, `FORMAT.md` | buff becomes status effect; `buffs.rs` becomes `status_effects.rs` |
-| hallucination | decoy | `.star` data | action |
-| feedback | energy-burn | `.star` data | action; not `drain`, which names a vital mode |
-| snipe | pinpoint | `.star` data | action |
-| bulwark | bastion | `abilities.star` | action |
-| fungal growth | thornfield | `.star` data | action |
+| hallucination | decoy | `.osd` data | action |
+| feedback | energy-burn | `.osd` data | action; not `drain`, which names a vital mode |
+| snipe | pinpoint | `.osd` data | action |
+| bulwark | bastion | `abilities.osd` | action |
+| fungal growth | thornfield | `.osd` data | action |
 | blink | blink | all | keep, generic name |
 | mend field | mend field | all | keep, generic name |
 | behaviour, behavior | rule | `FORMAT.md`, `builtins.rs`, `encode.rs`, `format.rs`, `model.rs`, `validate.rs` | behaviour becomes rule |
