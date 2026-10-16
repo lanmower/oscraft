@@ -2550,3 +2550,16 @@ jobs:
           echo "late join ok ticks=$t units=$n"
           kill "$pid"; wait "$pid" 2>/dev/null || true
           trap - EXIT
+
+  wire:
+    name: wire frame codec round-trip
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: js/wire
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Round-trip and reject tests
+        run: node test.js
