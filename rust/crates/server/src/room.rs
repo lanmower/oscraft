@@ -12,7 +12,7 @@ use sim::{Grid, Sim};
 use crate::budget::{
     TickHistogram, Timing, NORMAL_ORDER_CAP, SHED_AFTER_OVERRUNS, SHED_LOG_EVERY_TICKS, SHED_ORDER_CAP,
 };
-use crate::mods::ModLink;
+use crate::mods::{self, ModLink};
 use crate::order::{Order, OrderGate};
 use crate::supervise::{supervise, Outcome};
 
@@ -54,6 +54,7 @@ pub struct Room {
     queue: Mutex<Sender<Order>>,
     queued: AtomicU64,
     feed: Mutex<Option<Arc<ModLink>>>,
+    staged: Mutex<Option<Sim>>,
     clock: Mutex<Clock>,
     test_panic_at: AtomicU64,
 }
@@ -87,10 +88,11 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 impl Room {
     pub fn new(cfg: RoomConfig) -> Result<Arc<Room>, String> {
         let (tx, rx) = mpsc::channel();
+        let watch = cfg.data.clone().filter(|path| path.is_dir());
         let (sim, grid_w, grid_h, loaded) = match &cfg.data {
             Some(path) => {
-                let sim = sim::load_file(path, cfg.max_units)
-                    .map_err(|e| format!("--data {}: {e:?}", path.display()))?;
+                let sim = mods::load_data(path, cfg.max_units)
+                    .map_err(|e| format!("--data {}: {e}", path.display()))?;
                 let (w, h) = (sim.grid().w as i32, sim.grid().h as i32);
                 (sim, w, h, true)
             }
@@ -100,7 +102,7 @@ impl Room {
                 (sim, cfg.grid_w, cfg.grid_h, false)
             }
         };
-        Ok(Arc::new(Room {
+        let room = Arc::new(Room {
             name: cfg.name,
             grid_w,
             grid_h,
@@ -111,6 +113,7 @@ impl Room {
             queued: AtomicU64::new(0),
             feed: Mutex::new(None),
             test_panic_at: AtomicU64::new(0),
+            staged: Mutex::new(None),
             clock: Mutex::new(Clock {
                 sim,
                 handles: HashMap::new(),
@@ -122,11 +125,28 @@ impl Room {
                 orders: rx,
                 hist: TickHistogram::new(),
             }),
-        }))
+        });
+        if let Some(dir) = watch {
+            mods::watch_data(Arc::downgrade(&room), dir, cfg.max_units);
+        }
+        Ok(room)
     }
 
     pub fn attach_mod_feed(&self, link: Arc<ModLink>) {
         *lock(&self.feed) = Some(link);
+    }
+
+    // A rebuilt image waits here until the next tick boundary swaps it in.
+    pub fn stage_data(&self, sim: Sim) -> Result<(), String> {
+        let (w, h) = (sim.grid().w as i32, sim.grid().h as i32);
+        if (w, h) != (self.grid_w, self.grid_h) {
+            return Err(format!(
+                "map is {}x{} in service and {w}x{h} in the new data; a map size change needs a restart",
+                self.grid_w, self.grid_h
+            ));
+        }
+        *lock(&self.staged) = Some(sim);
+        Ok(())
     }
 
     pub fn arm_test_panic(&self, tick: u64) {
@@ -213,6 +233,11 @@ impl Room {
         let mut c = lock(&self.clock);
         if self.take_test_panic(c.tick) {
             panic!("test-only panic armed by --test-panic-tick fired at tick {}", c.tick);
+        }
+        if let Some(sim) = lock(&self.staged).take() {
+            c.sim = sim;
+            c.handles.clear();
+            crate::emit!(Ev::DataReloaded, room = self.name, tick = c.tick, units = c.sim.catalog().units.len());
         }
         let shedding = c.streak >= SHED_AFTER_OVERRUNS;
         let first_shed_tick = c.streak == SHED_AFTER_OVERRUNS;

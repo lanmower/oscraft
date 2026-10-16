@@ -18,6 +18,11 @@ const HOOK_STRIDE: u32 = 1000;
 const DEFAULT_INSTRUCTIONS: u64 = 10_000_000;
 const DEFAULT_MEMORY: usize = 16 << 20;
 
+// The OSDT image for a directory of `.star` files, from the generate path `osdt-data <dir> <out>` runs.
+pub fn build_image(src_dir: &Path) -> Result<Vec<u8>, String> {
+    osdt_data::generate(src_dir).map_err(|e| format!("{e:#}"))
+}
+
 type Shared = Rc<RefCell<Sim>>;
 type Regions = Rc<RefCell<Vec<Region>>>;
 type Timers = Rc<RefCell<Vec<Timer>>>;

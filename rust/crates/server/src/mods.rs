@@ -1,15 +1,17 @@
 //! Hosts the active Lua mod beside the rooms. A ModHost holds Rc and Lua state, so it is
 //! built and driven on one thread; HTTP reads only the atomics in ModLink.
 
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex, Weak};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use mod_host::{Cmd, ModHost};
 use crate::log::Ev;
+use crate::room::Room;
 use crate::supervise::{supervise, Outcome};
 
 // Commands the room has not applied yet are kept up to this many; the excess is dropped and logged.
@@ -125,4 +127,54 @@ fn drive(host: &mut ModHost, link: &ModLink, budget: Duration) {
             next += budget;
         }
     }
+}
+
+// A data directory is compiled from its .star files by the CLI's generate path; a file is read as
+// an image. The error is the bare reason; the caller names the flag.
+pub fn load_data(path: &Path, max_units: usize) -> Result<sim::Sim, String> {
+    if !path.is_dir() {
+        return sim::load_file(path, max_units).map_err(|e| format!("{e:?}"));
+    }
+    let image = mod_host::build_image(path)?;
+    sim::load(&image, max_units).map_err(|e| format!("{e:?}"))
+}
+
+const DATA_POLL: Duration = Duration::from_millis(500);
+
+// Polls the .star files of a data directory. A change is rebuilt and validated off the tick path and
+// staged on the room, which swaps it in at its next tick. A failed rebuild is logged and the image in
+// service stays. The thread ends when the room is dropped.
+pub fn watch_data(room: Weak<Room>, dir: PathBuf, max_units: usize) {
+    thread::spawn(move || {
+        let mut seen = star_files(&dir);
+        loop {
+            thread::sleep(DATA_POLL);
+            let Some(live) = room.upgrade() else { return };
+            let now = star_files(&dir);
+            if now == seen {
+                continue;
+            }
+            seen = now;
+            let staged = load_data(&dir, max_units).and_then(|sim| live.stage_data(sim));
+            if let Err(error) = staged {
+                crate::emit!(Ev::DataReloadFailed, room = live.name, error = error);
+            }
+        }
+    });
+}
+
+type StarFiles = Vec<(PathBuf, Option<SystemTime>, u64)>;
+
+fn star_files(dir: &Path) -> StarFiles {
+    let Ok(entries) = fs::read_dir(dir) else { return Vec::new() };
+    let mut files: StarFiles = entries
+        .filter_map(|entry| entry.ok().map(|e| e.path()))
+        .filter(|path| path.extension().is_some_and(|ext| ext == "star"))
+        .filter_map(|path| {
+            let meta = fs::metadata(&path).ok()?;
+            Some((path, meta.modified().ok(), meta.len()))
+        })
+        .collect();
+    files.sort();
+    files
 }

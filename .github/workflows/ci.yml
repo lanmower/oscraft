@@ -1171,3 +1171,57 @@ jobs:
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           grep '^ev=conn_refused ' "$log"
           echo "connection cap ok: cap=$cap, 503 on connection $((cap+1)), /state 200 on a held socket, one conn_refused"
+
+  data-reload:
+    name: data edit reaches the running server without a restart
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: Serve a copy of the data directory, add a unit with a .star edit, then break the edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/data-reload"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18440
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          catalog() { curl -sf "http://$addr/catalog?map=ci"; }
+          for i in $(seq 1 60); do catalog >/dev/null 2>&1 && break; sleep 0.5; done
+          catalog | jq -e '.loaded == true' >/dev/null
+          catalog | jq -e '.units | any(. == "reloadprobe") | not' >/dev/null
+          printf '%s\n' 'unit("reloadprobe", 50, 2000, 300, build_time=300, minerals=50, supply=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$work/reload_probe.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reloaded ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reloaded room=ci ' "$log"
+          for i in $(seq 1 20); do catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null 2>&1 && break; sleep 0.25; done
+          catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null
+          grep '^ev=data_reloaded ' "$log" | head -n 1
+          printf '%s\n' 'unit("reloadprobe", 50,' > "$work/reload_probe.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reload_failed ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reload_failed room=ci ' "$log"
+          catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null
+          test "$(grep -c '^ev=data_reloaded ' "$log")" -eq 1
+          kill -0 "$pid"
+          grep '^ev=data_reload_failed ' "$log" | head -n 1
+          echo "check: the served catalog gained reloadprobe after the edit with no restart; the broken edit logged data_reload_failed and reloadprobe stayed served"
