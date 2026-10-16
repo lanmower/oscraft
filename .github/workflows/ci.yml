@@ -2140,3 +2140,66 @@ jobs:
             exit 1
           fi
           echo "mod handle survives reload ok handle=$handle moved=true"
+
+  data-only-new-unit-kind:
+    name: data-only new unit kind spawns
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Add a unit kind from data alone, spawn it on the map, and check the served room
+        run: |
+          set -euo pipefail
+          cargo build -q -p server --bin oscraftd
+          work="$RUNNER_TEMP/data-kind"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp -r data "$work/base"
+          cp -r data "$work/data"
+          cat >> "$work/data/units.star" <<'STAR'
+          unit("zephyr", 45, 3150, 375, build_time=480, minerals=50, supply=1, abilities=[], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="minerals")
+          STAR
+          echo 'spawn("zephyr", 0, 22000, 18000)' >> "$work/data/map.star"
+          base_addr=127.0.0.1:18442
+          kind_addr=127.0.0.1:18443
+          ./target/debug/oscraftd --addr "$base_addr" --room base --data "$work/base" > "$work/base.log" 2>&1 &
+          base_pid=$!
+          ./target/debug/oscraftd --addr "$kind_addr" --room kind --data "$work/data" > "$work/kind.log" 2>&1 &
+          kind_pid=$!
+          trap 'kill $base_pid $kind_pid 2>/dev/null || true' EXIT
+          up() {
+            for i in $(seq 1 120); do
+              curl -sf "http://$1/state" > /dev/null && return 0
+              sleep 0.25
+            done
+            echo "server $1 did not answer /state"
+            cat "$work/kind.log"
+            exit 1
+          }
+          up "$base_addr"
+          up "$kind_addr"
+          base_units=$(curl -sf "http://$base_addr/state" | jq -r '.units')
+          kind_units=$(curl -sf "http://$kind_addr/state" | jq -r '.units')
+          listed=$(curl -sf "http://$kind_addr/catalog" | jq -r '.units | index("zephyr") != null')
+          if [[ "$listed" != "true" ]]; then
+            echo "zephyr is not in /catalog"
+            cat "$work/kind.log"
+            exit 1
+          fi
+          if [[ $(( kind_units - base_units )) -ne 1 ]]; then
+            echo "units base=$base_units with-zephyr=$kind_units: the data-spawned zephyr was not counted"
+            cat "$work/kind.log"
+            exit 1
+          fi
+          echo "data-only kind ok kind=zephyr spawned=true"
