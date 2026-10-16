@@ -243,7 +243,10 @@ function startHost() {
     hostTick += 1;
     const hash = Number(localGame.state_hash() & 0xffffffffn) >>> 0;
     const units = currentUnits().map((u) => ({ id: u.id, kind: 0, player: u.player, x: Math.round(u.x * WIRE_SCALE), y: Math.round(u.z * WIRE_SCALE), hp: 0 }));
-    session.broadcast(encodeFrame(encoder.encode(hostTick, hash, units)));
+    const frame = encoder.encode(hostTick, hash, units);
+    const bytes = encodeFrame(frame);
+    if (window.__ciFrames && window.__ciFrames.length < 200) window.__ciFrames.push({ type: frame.type, bytes: bytes.byteLength });
+    session.broadcast(bytes);
   }, HOST_TICK_MS);
   setStatus("hosting");
 }
@@ -406,6 +409,7 @@ async function main() {
 
 if (params.get("ci") === "1") {
   window.__ciPeers = () => peers.size;
+  window.__ciFrames = [];
   window.__ciUnits = () => (hosting ? currentUnits() : netState ? netState.units : []).map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));

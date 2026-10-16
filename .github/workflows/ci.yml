@@ -2548,6 +2548,13 @@ jobs:
             if (errors.length) throw new Error("page errors: " + errors.join(" | "));
             console.log(`browser two peers ok unit=${unit.id} host_moved=true peer_moved=true`);
             console.log(`browser order refused not_owner ok unit=${foreign.id} owner=1 sender=0 stayed=true`);
+            await host.waitForFunction(() => window.__ciFrames && window.__ciFrames.length >= 200, null, { timeout: 120000 });
+            const frames = await host.evaluate(() => window.__ciFrames.slice(0, 200));
+            const full = frames.find((f) => f.type === 2);
+            const deltas = frames.filter((f) => f.type === 5);
+            if (!full || deltas.length === 0) throw new Error("no state or delta frame in the first 200 host ticks");
+            const deltaAvg = Math.round(deltas.reduce((sum, f) => sum + f.bytes, 0) / deltas.length);
+            console.log(`browser frame bytes full=${full.bytes} delta_avg=${deltaAvg}`);
           } finally {
             await browser.close();
           }
@@ -2555,3 +2562,4 @@ jobs:
           node "$RUNNER_TEMP/pw/two-peers.mjs" | tee "$work/two-peers.txt"
           grep -q '^browser two peers ok unit=[0-9]* host_moved=true peer_moved=true$' "$work/two-peers.txt"
           grep -q '^browser order refused not_owner ok unit=[0-9]* owner=1 sender=0 stayed=true$' "$work/two-peers.txt"
+          grep -q '^browser frame bytes full=[0-9]* delta_avg=[0-9]*$' "$work/two-peers.txt"
