@@ -3,7 +3,7 @@
 import { createDataSession, createFSM, NostrAuth, RelayPool } from "wireweave";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
-import { encodeFrame, decodeFrame, FRAME } from "../wire/frame.js";
+import { encodeFrame, decodeFrame, FRAME } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { applyFrame } from "./delta.js";
 

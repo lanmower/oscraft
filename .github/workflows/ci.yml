@@ -2608,6 +2608,7 @@ jobs:
           grep -q '"wireweave": "https://' js/client/play.html
           count=0
           for f in js/client/*.js js/wire/frame.js js/wire/test.js; do node --check "$f"; count=$((count + 1)); done
+          cmp js/wire/frame.js js/client/wire/frame.js
           echo "client modules ok files=$count"
 
   net-host-usage:

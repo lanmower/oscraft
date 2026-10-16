@@ -1,6 +1,6 @@
 // State frames for the browser client: a full state frame every FULL_EVERY ticks, a delta frame otherwise.
 // Pure: no DOM and no environment access, so Node CI can import it.
-import { FRAME } from '../wire/frame.js';
+import { FRAME } from './wire/frame.js';
 
 export const FULL_EVERY = 20;
 
