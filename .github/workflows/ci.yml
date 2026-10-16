@@ -2604,3 +2604,69 @@ jobs:
           test "$code" = 0
           grep -q '^usage: node js/host/server.js --wasm' /tmp/net-host-help.txt
           echo "net host usage ok"
+
+  net-host-persistent:
+    name: net host keeps one wasip1 guest across 50 ticks and tick cost stays flat
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/crates/wasip1 -> target
+          shared-key: rust-wasip1
+
+      - name: Build the sim as a wasip1 guest
+        working-directory: rust/crates/wasip1
+        run: cargo build --release --target wasm32-wasip1 --bin oscraft_wasip1
+
+      - name: Write the OSDT image
+        working-directory: rust
+        run: |
+          set -euo pipefail
+          cargo build -p osdt-data
+          ./target/debug/osdt-data data "$RUNNER_TEMP/catalog.osdt"
+
+      - name: One persistent guest, 50 ticks and one order, tick count and tick cost asserted
+        env:
+          GUEST_JS: ${{ github.workspace }}/js/host/guest.js
+          GUEST_WASM: ${{ github.workspace }}/rust/crates/wasip1/target/wasm32-wasip1/release/oscraft_wasip1.wasm
+          GUEST_IMAGE: ${{ runner.temp }}/catalog.osdt
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          import { pathToFileURL } from 'node:url';
+          import { performance } from 'node:perf_hooks';
+
+          const { openGuest, replyValue } = await import(pathToFileURL(process.env.GUEST_JS).href);
+          const fail = (why) => { console.error(`net host persistent FAIL ${why}`); process.exit(1); };
+          const expect = (reply, prefix) => (reply.startsWith(prefix) ? reply : fail(`reply "${reply}"`));
+
+          const guest = await openGuest(process.env.GUEST_WASM, readFileSync(process.env.GUEST_IMAGE));
+          const start = Number(replyValue(expect(await guest.command('ticks'), 'ok ticks '), 'ok ticks '));
+          const units = Number(replyValue(expect(await guest.command('unit-count'), 'ok unit-count '), 'ok unit-count '));
+          if (!(units > 0)) fail(`unit-count ${units}`);
+          expect(await guest.command('order 0 0 0'), 'ok order');
+
+          const times = [];
+          for (let i = 0; i < 50; i++) {
+            const t0 = performance.now();
+            expect(await guest.command('tick 1'), 'ok tick ');
+            times.push(performance.now() - t0);
+          }
+          const end = Number(replyValue(expect(await guest.command('ticks'), 'ok ticks '), 'ok ticks '));
+          await guest.close();
+
+          if (end - start !== 50) fail(`ticks advanced ${end - start}, want 50`);
+          const sum = (xs) => xs.reduce((a, b) => a + b, 0);
+          const ratio = sum(times.slice(40)) / sum(times.slice(0, 10));
+          if (!(ratio <= 3)) fail(`last-10 over first-10 ratio ${ratio.toFixed(2)} > 3`);
+          console.log(`net host persistent ok ticks=50 ratio=${ratio.toFixed(2)}`);
+          process.exit(0);
+          JS

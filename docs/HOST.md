@@ -18,15 +18,26 @@ Dependencies are pinned in `js/host/package.json` (wireweave by commit sha, the 
 
 ## Events
 
-One line per event on stdout: `ev=host_started`, `ev=peer_open peer=<pubkey>`, `ev=peer_close peer=<pubkey>`, `ev=tick n=<tick> units=<count>`. SIGINT or SIGTERM stops the tick loop and exits 0.
+One line per event on stdout: `ev=host_started`, `ev=peer_open peer=<pubkey>`, `ev=peer_close peer=<pubkey>`, `ev=tick n=<tick> units=<count>`, `ev=tick_failed n=<tick> error=<text>`, `ev=order_failed error=<text>`. SIGINT or SIGTERM stops the tick loop, closes the guest and exits 0.
 
-## Guest protocol
+## Persistence
 
-The guest protocol is unchanged. Each run gets stdin as a u32 LE image length, the image bytes, then text commands until EOF. The guest is one-shot per run, so the host keeps a command journal of player orders and `tick 1` entries and replays it into a fresh instance each tick. The replay cost grows with the journal; a snapshot-based guest run is the planned replacement.
+The host opens one guest instance at start and keeps it for the life of the process. The image is written once, then commands go in one line at a time:
+
+- Stdin is a POSIX FIFO created in a temp directory. The host writes the u32 LE image length, the image bytes, and then one command per line. The FIFO stays open, so the guest never sees EOF while the host runs.
+- Stdout is a second FIFO. The guest writes one reply line per command, and the host reads replies in command order.
+- The guest runs on a worker thread, because `node:wasi` `start()` blocks on its stdin read.
+- Each tick sends `tick 1`, `unit-count` and `state-hash`. A player order arriving on a peer channel is sent as `order <unit> <x> <y>` at once. Tick cost depends on the sim state, not on the number of past commands, so there is no journal and no replay.
+
+The guest protocol is unchanged (`rust/crates/wasip1/src/lib.rs`). Windows is not supported yet: the transport needs POSIX FIFOs, and `openGuest` throws on `win32`.
 
 ## Frames
 
-`js/host/frame.js` holds a local codec: an order frame is 13 bytes (kind 1, unit, x, y) and a state frame is kind 2 with tick, unit count and hash. The wire lane (`js/wire/`) will replace this file.
+Peer frames use the wire codec in `js/wire/frame.js`, imported by `server.js` (the local `js/host/frame.js` is gone). An order frame carries `unitId`, `x` and `y`; the host turns it into an `order` command. The state frame carries `tick` and the low 32 bits of the guest state hash. It sends `units: []`: the wire state frame lists full unit records, and the host does not yet query them each tick, so the unit count is reported on stdout only.
+
+## CI
+
+The `net-host-persistent` job in `.github/workflows/ci.yml` builds the wasip1 guest and the OSDT image, opens one guest through `js/host/guest.js`, sends 50 `tick 1` commands and one order, and asserts that the tick count advanced by 50 and that the mean of the last 10 tick times is at most 3 times the first 10. It prints `net host persistent ok ticks=50 ratio=<r>`.
 
 ## Signalling
 

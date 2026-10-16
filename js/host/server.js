@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Oscraft net host: runs the wasip1 guest and bridges it to peers over wireweave DataSession.
+// Oscraft net host: runs one persistent wasip1 guest and bridges it to peers over wireweave DataSession.
 // Heavy deps load only after argument parsing, so --help works with no node_modules installed.
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -37,12 +37,11 @@ async function main(opts) {
   const xstate = await import('xstate');
   const ndc = await import('node-datachannel');
   const { RTCPeerConnection: PolyfillRTCPeerConnection } = await import('node-datachannel/polyfill');
-  const { encodeState, decodeFrame } = await import('./frame.js');
-  const { loadGuest, runGuest, lastReply } = await import('./guest.js');
+  const { encodeFrame, decodeFrame, FRAME } = await import('../wire/frame.js');
+  const { openGuest, replyValue } = await import('./guest.js');
 
   const image = loadImage(opts.data);
-  const module = await loadGuest(opts.wasm);
-  const journal = [];
+  const guest = await openGuest(opts.wasm, image);
 
   const storage = new Map();
   const storageAdapter = {
@@ -70,28 +69,43 @@ async function main(opts) {
   session.addEventListener('peer-close', (e) => emit('peer_close', { peer: e.detail.peerPubkey }));
   session.addEventListener('data', (e) => {
     const f = decodeFrame(e.detail.data);
-    if (f && f.kind === 'order') journal.push(`order ${f.unit} ${f.x} ${f.y}`);
+    if (f.type === FRAME.ORDER) {
+      guest.command(`order ${f.unitId} ${f.x} ${f.y}`).catch((err) => emit('order_failed', { error: JSON.stringify(err.message) }));
+    }
   });
 
   let tick = 0;
-  const timer = setInterval(() => {
-    tick += 1;
-    journal.push('tick 1');
-    const lines = runGuest(module, image, [...journal, 'unit-count', 'state-hash']);
-    const units = Number(lastReply(lines, 'ok unit-count ') ?? 0);
-    const hash = lastReply(lines, 'ok state-hash ') ?? '';
-    if (tick % opts.every === 0) {
-      session.broadcast(encodeState({ tick, units, hash }));
+  let busy = false;
+  const timer = setInterval(async () => {
+    if (busy) return;
+    busy = true;
+    try {
+      tick += 1;
+      const [, unitsLine, hashLine] = await Promise.all([
+        guest.command('tick 1'),
+        guest.command('unit-count'),
+        guest.command('state-hash'),
+      ]);
+      const units = Number(replyValue(unitsLine, 'ok unit-count '));
+      const hash = replyValue(hashLine, 'ok state-hash ');
+      if (tick % opts.every === 0) {
+        session.broadcast(encodeFrame({ type: FRAME.STATE, tick, hash: Number.parseInt(hash.slice(-8), 16) >>> 0, units: [] }));
+      }
+      emit('tick', { n: tick, units });
+    } catch (err) {
+      emit('tick_failed', { n: tick, error: JSON.stringify(err.message) });
+    } finally {
+      busy = false;
     }
-    emit('tick', { n: tick, units });
   }, opts.tickMs);
 
   await session.connect(opts.room);
   emit('host_started', { room: opts.room, wasm: opts.wasm, image_bytes: image.length });
 
-  const stop = () => {
+  const stop = async () => {
     clearInterval(timer);
     try { session.disconnect?.(); } catch { /* best effort on shutdown */ }
+    await guest.close();
     process.exit(0);
   };
   process.once('SIGINT', stop);
