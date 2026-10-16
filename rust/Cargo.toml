@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
 members = ["crates/*", "gate"]
-exclude = ["crates/wasip2", "crates/wasip1"]
+exclude = ["crates/wasip2", "crates/wasip1", "crates/wasip3"]

@@ -3078,3 +3078,27 @@ jobs:
           m=$(count minerals); v=$(count vespene); s=$(count supply)
           test "$m$v$s" = 000 || { echo "resource names found minerals=$m vespene=$v supply=$s"; exit 1; }
           echo "resource names ok minerals=$m vespene=$v supply=$s"
+
+  wasip3:
+    name: sim as wasip3 guest on nightly
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust/crates/wasip3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the nightly toolchain with the wasm32-wasip3 target
+        run: rustup toolchain install nightly --profile minimal --target wasm32-wasip3 && rustup default nightly
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/crates/wasip3 -> target
+          shared-key: rust-wasip3
+
+      - name: Build the sim as a wasip3 guest
+        run: cargo build --target wasm32-wasip3 -p wasip3-guest --release
+
+      - name: Run the native host on the built guest
+        run: cargo run --release --bin oscraft_wasip3 -- target/wasm32-wasip3/release/oscraft_wasip3.wasm
