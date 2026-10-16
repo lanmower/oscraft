@@ -237,6 +237,7 @@ jobs:
   gate-compare:
     name: compare gate output across OSes
     needs: [changes, check, check-linux]
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
