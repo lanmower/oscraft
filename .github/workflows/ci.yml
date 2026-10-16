@@ -371,6 +371,31 @@ jobs:
           check_load "$load" 0 >/dev/null && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
           check_load "$load" "$ceiling"
 
+
+      - name: Over-ceiling witness; a test-only ceiling below the measured load must fail
+        env:
+          BROWSER_LOAD_CEILING_OVERRIDE_MS: "1"
+        run: |
+          set -uo pipefail
+          work="$RUNNER_TEMP/perf-probe"
+          load=$(sed -n 's/^browser load ms=\([0-9]*\) .*/\1/p' "$work/perf.txt")
+          test -n "$load"
+          ceiling="$BROWSER_LOAD_CEILING_OVERRIDE_MS"
+          check_load() {
+            local n=$1 c=$2
+            if [ "$n" -le "$c" ]; then
+              echo "browser load ms=$n ceiling=$c ok"
+            else
+              echo "browser load ms=$n ceiling=$c FAIL"
+              return 1
+            fi
+          }
+          out=$(check_load "$load" "$ceiling") && rc=0 || rc=$?
+          echo "$out"
+          test "$rc" -ne 0 || { echo "witness: the override ceiling did not fail the measured load"; exit 1; }
+          echo "$out" | tail -1 | grep -q ' FAIL$' || { echo "witness: FAIL line missing"; exit 1; }
+          echo "browser over-ceiling witnessed load=$load ceiling=$ceiling exit=$rc"
+
   wasip2:
     name: sim as wasip2 component and host
     runs-on: ubuntu-latest
