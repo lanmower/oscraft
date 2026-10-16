@@ -28,16 +28,16 @@ extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
 [ "$extra" -eq "$members" ] || fail "archive holds $extra files but manifest lists $members"
 help=$(node js/host/server.js --help) || fail "node js/host/server.js --help exited nonzero in the unpacked archive"
 grep -q '^usage: node js/host/server.js --wasm' <<< "$help" || fail "node js/host/server.js --help printed no usage line"
-[ -s js/client/dist/play.js ] || fail "js/client/dist/play.js is missing or empty"
+[ -s js/client/play.js ] || fail "js/client/play.js is missing or empty"
 [ -f js/client/play.html ] || fail "js/client/play.html is missing"
-grep -q 'dist/play.js' js/client/play.html || fail "js/client/play.html does not reference dist/play.js"
-specs=$(node -e 'const s=require("fs").readFileSync("js/client/dist/play.js","utf8");const re=/(?:from|import\()\s*["\x27](\.\.?\/[^"\x27]+)["\x27]/g;const out=new Set();let m;while((m=re.exec(s)))out.add(m[1]);process.stdout.write([...out].join("\n"))')
+grep -q 'src="play.js"' js/client/play.html || fail "js/client/play.html does not load play.js"
+specs=$(for f in js/client/play.js js/client/delta.js; do node -e 'const s=require("fs").readFileSync(process.argv[1],"utf8");const re=/(?:from|import\()\s*["\x27](\.\.?\/[^"\x27]+)["\x27]/g;let m;while((m=re.exec(s)))console.log(m[1]);' "$f"; done | sort -u)
 refs=$(node -e 'const s=require("fs").readFileSync("js/client/play.html","utf8");const re=/data-(?:pkg|map)="([^"]+)"/g;const out=[];let m;while((m=re.exec(s)))out.push(m[1]);process.stdout.write(out.join("\n"))')
 imports=0
 while IFS= read -r spec; do
   [ -n "$spec" ] || continue
   imports=$((imports + 1))
-  [ -f "js/client/dist/$spec" ] || fail "js/client/dist/play.js imports $spec, which is not in the archive"
+  [ -f "js/client/$spec" ] || fail "client module imports $spec, which is not in the archive"
 done <<< "$specs"
 while IFS= read -r ref; do
   [ -n "$ref" ] || continue
