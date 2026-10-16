@@ -1494,7 +1494,7 @@ jobs:
           port=8098
           OSCRAFT_CONNECTION_CAP_OVERRIDE=4096 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$work/cap.log" 2>&1 &
           pid=$!
-          trap 'kill $pid 2>/dev/null || true' EXIT
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$work/cap.log" || true' EXIT
           for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
           python3 -I - "$port" "$cap" <<'PY'
           import selectors
