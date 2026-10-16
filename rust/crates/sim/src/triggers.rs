@@ -49,6 +49,33 @@ impl Sim {
         }
     }
 
+    /// Fires every behaviour declared for the named trigger (idle, attacked, spawned or
+    /// ability_ready) on unit `i`, as if that trigger had just happened. Returns false for an
+    /// out-of-range unit or an unknown trigger name; true once the behaviours have run.
+    pub fn fire_trigger(&mut self, i: usize, name: &str) -> bool {
+        if i >= self.n {
+            return false;
+        }
+        let found = (0..=TRIGGER_ABILITY_READY).find(|&code| Trigger::from_code(code).map_or(false, |t| t.name() == name));
+        let code = match found {
+            Some(code) => code,
+            None => return false,
+        };
+        if code == TRIGGER_ABILITY_READY {
+            if self.abil_on {
+                for slot in 0..ABILITY_SLOTS {
+                    let ability = self.abil_idx[i * ABILITY_SLOTS + slot];
+                    if ability >= 0 {
+                        self.run_behaviours(i, code, ability);
+                    }
+                }
+            }
+        } else {
+            self.run_behaviours(i, code, -1);
+        }
+        true
+    }
+
     /// Runs every behaviour declared for `trigger` on unit `i`. For ability_ready only the
     /// behaviours naming `ability` (an ability index, or -1 for any) run.
     fn run_behaviours(&mut self, i: usize, trigger: u8, ability: i32) {

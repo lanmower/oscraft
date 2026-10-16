@@ -154,10 +154,6 @@ pub fn mod_package_version(image: &[u8]) -> Result<(), String> {
     }
 }
 
-fn missing_api(name: &str) -> Result<(), String> {
-    Err(format!("missing API: {name}"))
-}
-
 fn board_warden_and_skirmisher(s: &mut Sim) -> Result<(usize, usize), String> {
     let t = spawn(s, 0, "warden", 10, 10)?;
     let i = spawn(s, 0, "skirmisher", 11, 10)?;
@@ -236,8 +232,8 @@ pub fn upgrade_stacking(image: &[u8]) -> Result<(), String> {
     s.add_resources(0, 50000, 50000);
     s.complete_upgrade(0, 0).map_err(|r| format!("add-stacking first level refused: {}", r.name()))?;
     s.complete_upgrade(0, 0).map_err(|r| format!("add-stacking second level refused: {}", r.name()))?;
-    s.complete_upgrade(1, 0).map_err(|r| format!("refuse-stacking first level refused: {}", r.name()))?;
-    if s.complete_upgrade(1, 0).is_ok() {
+    s.complete_upgrade(2, 0).map_err(|r| format!("refuse-stacking first level refused: {}", r.name()))?;
+    if s.complete_upgrade(2, 0).is_ok() {
         return Err("a refuse-stacking upgrade was applied twice".to_string());
     }
     Ok(())
@@ -346,8 +342,44 @@ pub fn map_author_placement(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn elevation_sight(_image: &[u8]) -> Result<(), String> {
-    missing_api("elevation-aware vision: Sim::visible does not read elevation_milli")
+/// An air unit on the raised plateau (cells 12..=13 x 8..=9, blocked and above ground level) for
+/// `p`. Air units may stand on blocked cells, so they are the only units that can be elevated.
+fn spawn_air_on_plateau(s: &mut Sim, p: u8) -> Result<usize, String> {
+    let air = air_kind(s)?;
+    let ground = s.elevation_milli(10, 9);
+    for y in 8..=9 {
+        for x in 12..=13 {
+            if s.elevation_milli(x, y) <= ground {
+                continue;
+            }
+            if let Some(i) = s.spawn_for(p, air, fixed::from_int(x), fixed::from_int(y)) {
+                return Ok(i);
+            }
+        }
+    }
+    Err("no raised-plateau cell accepts an air unit".to_string())
+}
+
+pub fn elevation_sight(image: &[u8]) -> Result<(), String> {
+    // map.star raises cells 12..=13 x 8..=9 to level 6 (blocked); the rest of the map is level 1.
+    // A unit sees a cell only at or below its own height.
+    let mut low = fresh(image)?;
+    low.set_fog(true);
+    spawn(&mut low, 0, "skirmisher", 10, 9)?;
+    let elevated = spawn_air_on_plateau(&mut low, 1)?;
+    run_ticks(&mut low, 2);
+    if low.visible(0, elevated) {
+        return Err("a ground unit on lower ground sees an air unit over the raised plateau".to_string());
+    }
+    let mut high = fresh(image)?;
+    high.set_fog(true);
+    spawn_air_on_plateau(&mut high, 0)?;
+    let lower = spawn(&mut high, 1, "skirmisher", 10, 9)?;
+    run_ticks(&mut high, 2);
+    if !high.visible(0, lower) {
+        return Err("an air unit over the raised plateau cannot see a ground unit below".to_string());
+    }
+    Ok(())
 }
 
 pub fn hp_regen(image: &[u8]) -> Result<(), String> {
@@ -578,8 +610,43 @@ pub fn research_queue(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn research_applies_all(_image: &[u8]) -> Result<(), String> {
-    missing_api("research application to matching units: no public read of unit research levels")
+pub fn research_applies_all(image: &[u8]) -> Result<(), String> {
+    // concussive_rounds (research 0, warden) grants a shield bonus to every owned ground unit when
+    // it completes; an air unit is outside its ground filter and must gain nothing.
+    let mut s = fresh(image)?;
+    s.add_resources(0, 5000, 5000);
+    let w = spawn(&mut s, 0, "warden", 10, 10)?;
+    let a = spawn(&mut s, 0, "skirmisher", 12, 10)?;
+    let b = spawn(&mut s, 0, "skirmisher", 14, 10)?;
+    let air_k = air_kind(&s)?;
+    let air = s
+        .spawn_for(0, air_k, fixed::from_int(16), fixed::from_int(10))
+        .ok_or_else(|| "air unit refused at (16,10)".to_string())?;
+    let (sa, sb, sair) = (s.shield_of(a), s.shield_of(b), s.shield_of(air));
+    if s.research_done(0, 0) {
+        return Err("concussive_rounds reads as complete before it is started".to_string());
+    }
+    s.start_research(w, 0).map_err(|r| format!("start_research refused: {}", r.name()))?;
+    run_ticks(&mut s, 1300);
+    if s.research_running(w).is_some() {
+        return Err("concussive_rounds still running after 1300 ticks".to_string());
+    }
+    if !s.research_done(0, 0) {
+        return Err("concussive_rounds does not read as complete after it finishes".to_string());
+    }
+    if s.research_done(1, 0) || s.research_done(0, 999) {
+        return Err("research_done reads a player or research that was never completed".to_string());
+    }
+    if s.shield_of(a) <= sa {
+        return Err("ground skirmisher a gained no shield from the completed research".to_string());
+    }
+    if s.shield_of(b) <= sb {
+        return Err("ground skirmisher b gained no shield from the completed research".to_string());
+    }
+    if s.shield_of(air) != sair {
+        return Err("an air unit gained shield from a ground-only research".to_string());
+    }
+    Ok(())
 }
 
 pub fn damage_type_size(image: &[u8]) -> Result<(), String> {

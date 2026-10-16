@@ -29,6 +29,8 @@ mod triggers;
 mod doodads;
 mod limits;
 mod upgrades;
+mod inventory;
+mod xp;
 
 pub use arrays::{Sim, Stats};
 pub use loader::{load, load_file, Catalog, Doodad, LoadError, Trigger};

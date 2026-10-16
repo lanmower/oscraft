@@ -57,6 +57,10 @@ impl Sim {
         h.i32s(&self.log_y[..self.log_len]);
         h.u32s(&self.last_hit);
         h.bytes(&self.upg_done);
+        h.u32s(&self.inv_kind);
+        h.u32s(&self.inv_count);
+        h.u32s(&self.xp_total);
+        h.u32s(&self.xp_curve);
         h.bytes(&self.grid.flags);
         h.bytes(&self.grid.tiles);
         h.u64s(&[self.doodads.len() as u64]);

@@ -1,4 +1,4 @@
-//! LZMA sector codec (mask 0x12), delegated to lzma-rs. Storm writers disagree on
+//! LZMA sector codec (mask 0x12), delegated to lzma-rs. MPQ writers disagree on
 //! whether the 13-byte LZMA header is present, so the caller tries the variants
 //! in the order the original reader did.
 

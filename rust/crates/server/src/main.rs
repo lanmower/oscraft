@@ -1,6 +1,6 @@
 fn main() {
     if let Err(e) = server::run() {
-        eprintln!("oscraftd: {e}");
+        server::emit_err!(server::log::Ev::Fatal, error = e);
         std::process::exit(1);
     }
 }

@@ -1,0 +1,12 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2021"
+description = "Browser build of the deterministic sim: a wasm-bindgen Game over sim::load"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+sim = { path = "../sim" }
+wasm-bindgen = "0.2"

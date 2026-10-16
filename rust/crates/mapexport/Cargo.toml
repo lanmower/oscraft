@@ -1,0 +1,8 @@
+[package]
+name = "mapexport"
+version = "0.1.0"
+edition = "2021"
+description = "Native tool: writes the map image the browser client loads (native only, not built for wasm)"
+
+[dependencies]
+osdt-data = { path = "../data" }

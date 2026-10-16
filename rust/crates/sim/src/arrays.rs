@@ -141,6 +141,13 @@ pub struct Sim {
 
     pub(crate) buff_kind: Vec<i32>,
     pub(crate) buff_left: Vec<i32>,
+    /// Inventory slots, INV_SLOTS per unit: item kind (0 = empty) and count. See inventory.rs.
+    pub(crate) inv_kind: Vec<u32>,
+    pub(crate) inv_count: Vec<u32>,
+    /// Experience per unit; the level is derived from the curve. See xp.rs.
+    pub(crate) xp_total: Vec<u32>,
+    /// Cumulative xp thresholds for levels 1.. Set by the caller and not saved, like the catalog.
+    pub(crate) xp_curve: Vec<u32>,
 
     pub(crate) healer_player: Vec<u8>,
     pub(crate) healer_left: Vec<i32>,
@@ -298,6 +305,10 @@ impl Sim {
             trig_ready: vec![0; cap * ABILITY_SLOTS],
             buff_kind: vec![-1; cap * BUFF_SLOTS],
             buff_left: vec![0; cap * BUFF_SLOTS],
+            inv_kind: vec![0; cap * crate::inventory::INV_SLOTS],
+            inv_count: vec![0; cap * crate::inventory::INV_SLOTS],
+            xp_total: vec![0; cap],
+            xp_curve: crate::xp::DEFAULT_XP_CURVE.to_vec(),
             healer_player: vec![0; HEALER_SLOTS],
             healer_left: vec![0; HEALER_SLOTS],
             healer_timer: vec![0; HEALER_SLOTS],
@@ -557,6 +568,8 @@ impl Sim {
         self.sight_cells[i] = fixed::round(fixed::from_milli(def.sight)).max(0);
         self.player[i] = player;
         self.alive[i] = 1;
+        self.inventory_clear(i);
+        self.xp_total[i] = 0;
         self.type_of[i] = ty as i32;
         self.filter[i] = def.filter;
         self.response[i] = def.response;
@@ -654,6 +667,11 @@ impl Sim {
 
     pub fn player(&self, i: usize) -> u8 {
         if i >= self.n { 0 } else { self.player[i] }
+    }
+
+    /// The classification (a KIND_* value) of unit `i`, or 0 out of range.
+    pub fn kind_of(&self, i: usize) -> u32 {
+        self.kind.get(i).map_or(0, |&k| u32::from(k))
     }
 
     pub fn alive(&self, i: usize) -> bool {

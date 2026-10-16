@@ -1,5 +1,5 @@
 //! HET/BET tables (format 3 and later). Both open with a 12-byte clear prefix;
-//! Storm encrypts the rest with the classic hash-table key (HET) or the
+//! MPQ encrypts the rest with the classic hash-table key (HET) or the
 //! block-table key (BET). dwTableSize counts the bytes after that prefix.
 
 use crate::crypt::{decrypt_block, hash_string};
@@ -297,7 +297,7 @@ impl BetTable {
 }
 
 /// Bit-packed array, least significant bit first. Bits past the end read as one,
-/// matching Storm's saturating reader.
+/// matching the MPQ saturating reader.
 struct BitIndex<'a> {
     raw: &'a [u8],
     base: usize,

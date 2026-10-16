@@ -2,7 +2,7 @@
 name = "mpq"
 version = "0.1.0"
 edition = "2021"
-description = "MPQ (Mo'PaQ) archive reader: tables, HET/BET, and Storm sector codecs"
+description = "MPQ archive reader: tables, HET/BET, and sector codecs"
 publish = false
 
 [dependencies]

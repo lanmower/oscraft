@@ -1,0 +1,30 @@
+package oscraft:wasip2@0.1.0;
+
+/// The deterministic sim as a component. One instance holds one sim, run by a mod host.
+world sim-component {
+    /// Loads an OSDT v3 image (rust/crates/data/FORMAT.md). max-units is accepted for the
+    /// old contract; the mod host fixes its capacity.
+    export load: func(image: list<u8>, max-units: u32) -> result<_, string>;
+    /// Loads the mod source under a name; it becomes the active mod at the next tick.
+    export mod-load: func(name: string, src: string) -> result<_, string>;
+    /// The active mod version: 0 before any load, 1 after the first mod-load, +1 per load.
+    export mod-version: func() -> u64;
+    /// Advances the sim by one tick, then the active mod's on_tick.
+    export tick: func();
+    export ticks: func() -> u32;
+    export unit-count: func() -> u32;
+    export alive-count: func() -> u32;
+    export state-hash: func() -> u64;
+    /// Position in Q16.16 fixed point, as (x, y).
+    export unit-position: func(unit: u32) -> tuple<s32, s32>;
+    export unit-player: func(unit: u32) -> u8;
+    export unit-hp: func(unit: u32) -> s32;
+    /// Command input: moves one unit toward (x, y), clamped to the grid.
+    export order: func(unit: u32, x: s32, y: s32);
+    /// Command input: moves every living unit of a player toward (x, y).
+    export order-all: func(player: u8, x: s32, y: s32);
+    /// Fires the named behaviour trigger on one unit. False for an unknown unit or trigger name.
+    export fire-trigger: func(unit: u32, name: string) -> bool;
+    /// The name of catalog unit kind `kind` (its index in the UNIT section), or none.
+    export catalog-unit-name: func(kind: u32) -> option<string>;
+}

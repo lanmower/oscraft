@@ -20,6 +20,18 @@ const FLAG_COMPRESS: u32 = 0x0000_0200;
 const MASK_ZLIB: u8 = 0x02;
 const MASK_BZIP2: u8 = 0x10;
 const MASK_LZMA: u8 = 0x12;
+const MASK_PKWARE: u8 = 0x08;
+const MASK_HUFFMAN: u8 = 0x01;
+const MASK_SPARSE: u8 = 0x20;
+
+/// PKWARE implode stream of `payload()`, made by StormLib's PKLIB implode (the `implode.c` in
+/// pkware-wasm, binary mode, dictionary 4096) and checked by StormLib's explode before it was saved.
+/// The gate reads it back through the mpq reader, so an independent encoder is the reference.
+const IMPLODE_STREAM: &[u8] = include_bytes!("mpq_vectors/implode_stream.bin");
+/// Huffman and sparse streams of `payload()`, made by StormLib's own Huffman (`huff.cpp`) and sparse
+/// (`sparse.cpp`) codecs from its master branch, compiled natively and checked by their decoders.
+const HUFFMAN_STREAM: &[u8] = include_bytes!("mpq_vectors/huffman_stream.bin");
+const SPARSE_STREAM: &[u8] = include_bytes!("mpq_vectors/sparse_stream.bin");
 
 const FILE_NAME: &str = "data\\roundtrip.txt";
 
@@ -29,10 +41,21 @@ enum Codec {
     Zlib,
     Bzip2,
     Lzma,
+    Implode,
+    Huffman,
+    Sparse,
 }
 
 impl Codec {
-    const ALL: [Codec; 4] = [Codec::Stored, Codec::Zlib, Codec::Bzip2, Codec::Lzma];
+    const ALL: [Codec; 7] = [
+        Codec::Stored,
+        Codec::Zlib,
+        Codec::Bzip2,
+        Codec::Lzma,
+        Codec::Implode,
+        Codec::Huffman,
+        Codec::Sparse,
+    ];
 
     fn label(self) -> &'static str {
         match self {
@@ -40,6 +63,9 @@ impl Codec {
             Codec::Zlib => "zlib",
             Codec::Bzip2 => "bzip2",
             Codec::Lzma => "lzma",
+            Codec::Implode => "pkware",
+            Codec::Huffman => "huffman",
+            Codec::Sparse => "sparse",
         }
     }
 }
@@ -58,7 +84,7 @@ pub fn run() -> bool {
         }
     }
     println!(
-        "mpq unchecked: PKWARE implode, Huffman and sparse have no independent reference in this repo and are not checked"
+        "mpq unchecked: none; every codec the reader decodes has a reference stream in the gate"
     );
     ok
 }
@@ -122,6 +148,9 @@ fn encode(codec: Codec, data: &[u8]) -> Result<(Vec<u8>, u32), String> {
             lzma_rs::lzma_compress(&mut input, &mut out).map_err(|e| format!("lzma encode: {e}"))?;
             (MASK_LZMA, out)
         }
+        Codec::Implode => (MASK_PKWARE, IMPLODE_STREAM.to_vec()),
+        Codec::Huffman => (MASK_HUFFMAN, HUFFMAN_STREAM.to_vec()),
+        Codec::Sparse => (MASK_SPARSE, SPARSE_STREAM.to_vec()),
     };
     let mut body = Vec::with_capacity(stream.len() + 1);
     body.push(mask);

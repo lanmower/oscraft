@@ -11,7 +11,9 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 14;
+const STATE_VERSION: u16 = 15;
+/// The save version before inventory and xp were added. Such saves load with empty components.
+const STATE_VERSION_NO_COMPONENTS: u16 = 14;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -433,6 +435,9 @@ impl Sim {
             put_i32(&mut w, self.log_y[k]);
         }
         put_pool(&mut w, &self.paths);
+        put_u32s(&mut w, &self.inv_kind);
+        put_u32s(&mut w, &self.inv_count);
+        put_u32s(&mut w, &self.xp_total);
         w
     }
 
@@ -444,7 +449,7 @@ impl Sim {
             return Err(StateError::BadMagic);
         }
         let version = r.u16()?;
-        if version != STATE_VERSION {
+        if version != STATE_VERSION && version != STATE_VERSION_NO_COMPONENTS {
             return Err(StateError::BadVersion(version));
         }
         let cap = r.u32()? as usize;
@@ -454,6 +459,7 @@ impl Sim {
         }
 
         let mut next = Sim::with_catalog(self.cap, Grid::open(w, h), self.cat.clone());
+        next.xp_curve = self.xp_curve.clone();
         next.n = r.u64()? as usize;
         next.head = r.u64()? as usize;
         next.ticks = r.u32()?;
@@ -627,6 +633,11 @@ impl Sim {
             next.log_y[k] = r.i32()?;
         }
         read_pool(&mut r, &mut next.paths)?;
+        if version == STATE_VERSION {
+            r.u32s_into(&mut next.inv_kind)?;
+            r.u32s_into(&mut next.inv_count)?;
+            r.u32s_into(&mut next.xp_total)?;
+        }
         if r.at != bytes.len() {
             return Err(StateError::Length);
         }

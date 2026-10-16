@@ -10,3 +10,4 @@ path = "src/main.rs"
 
 [dependencies]
 sim = { path = "../sim" }
+mod-host = { path = "../mod-host" }

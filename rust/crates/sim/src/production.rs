@@ -81,6 +81,12 @@ impl Sim {
             })
     }
 
+    /// Whether player `p` has completed research `r`. An out-of-range player or research is not complete.
+    pub fn research_done(&self, p: u8, r: usize) -> bool {
+        let n = self.cat.research.len();
+        (p as usize) < MAX_PLAYERS && r < n && self.researched[p as usize * n + r] != 0
+    }
+
     /// Starts research `r` at building `i` for its owner. The building must be the research's
     /// building and the research not yet complete (else InvalidOrderTarget); a building already
     /// running one is ResearchBusy; missing prerequisites are Prerequisite; the cost is paid up

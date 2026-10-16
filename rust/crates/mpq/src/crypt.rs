@@ -1,4 +1,4 @@
-//! Storm's string hash and stream cipher.
+//! The MPQ string hash and stream cipher.
 
 const fn build_crypt_table() -> [u32; 0x500] {
     let mut t = [0u32; 0x500];
@@ -24,7 +24,7 @@ static CRYPT_TABLE: [u32; 0x500] = build_crypt_table();
 /// Index of the key block the stream cipher reads from.
 const KEY_BLOCK: usize = 0x400;
 
-/// Storm's HashString. It upper-cases as it goes; a lower-cased input decrypts
+/// The MPQ HashString. It upper-cases as it goes; a lower-cased input decrypts
 /// to noise.
 pub(crate) fn hash_string(s: &[u8], typ: u32) -> u32 {
     let mut seed1: u32 = 0x7fed_7fed;
@@ -45,7 +45,7 @@ pub(crate) fn hash_string(s: &[u8], typ: u32) -> u32 {
     seed1
 }
 
-/// Storm's stream cipher, in place, over whole dwords. The seed advances on the
+/// The MPQ stream cipher, in place, over whole dwords. The seed advances on the
 /// plaintext word, not the ciphertext.
 pub(crate) fn decrypt_block(p: &mut [u8], key: u32) {
     let mut key = key;

@@ -1,4 +1,4 @@
-//! Storm's adaptive Huffman (sector mask 0x01). The stream carries no tree: a
+//! The MPQ adaptive Huffman (sector mask 0x01). The stream carries no tree: a
 //! data-type byte selects a weight table, and every decoded symbol rebalances
 //! the tree (FGK-style). The rebalancing must match exactly or decoding
 //! desynchronises from the second symbol on.

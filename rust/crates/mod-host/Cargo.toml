@@ -4,6 +4,11 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
+[[bin]]
+name = "reload_harness"
+path = "src/bin/reload_harness.rs"
+
 [dependencies]
 mlua = { version = "0.10", features = ["lua54", "vendored"] }
 sim = { path = "../sim" }
+osdt-data = { path = "../data" }

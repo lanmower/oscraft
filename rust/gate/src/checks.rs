@@ -20,7 +20,18 @@ pub const RUN_TICKS: u32 = 2000;
 
 pub type Check = fn(&[u8]) -> Result<(), String>;
 
+#[path = "mechanic_checks.rs"]
+mod mechanic_checks;
+
 pub const CHECKS: &[(&str, Check)] = &[
+    ("mechanic-unit-spawn", mechanic_checks::unit_spawn),
+    ("mechanic-ability-use", mechanic_checks::ability_use),
+    ("mechanic-economy-transfer", mechanic_checks::economy_transfer),
+    ("mechanic-order-queue", mechanic_checks::order_queue),
+    ("mechanic-inventory-slots", mechanic_checks::inventory_slots),
+    ("mechanic-xp-level-up", mechanic_checks::xp_level_up),
+    ("mechanic-trigger-firing", mechanic_checks::trigger_firing),
+    ("mechanic-region-query", mechanic_checks::region_query),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP
@@ -399,7 +410,7 @@ fn http_delta_no_5xx(_image: &[u8]) -> Result<(), String> {
 }
 
 fn multi_room_routes(_image: &[u8]) -> Result<(), String> {
-    let server = Server { rooms: vec![test_room("a")?, test_room("b")?], max_rooms: 2 };
+    let server = Server { mods: Default::default(), rooms: vec![test_room("a")?, test_room("b")?], max_rooms: 2, site: None };
     let r = server.route(&get_request("/state", "map=b"));
     if r.status != 200 {
         return Err(format!("GET /state?map=b status {}", r.status));
@@ -408,7 +419,7 @@ fn multi_room_routes(_image: &[u8]) -> Result<(), String> {
 }
 
 fn http_resources_ok(_image: &[u8]) -> Result<(), String> {
-    let server = Server { rooms: vec![test_room("a")?], max_rooms: 1 };
+    let server = Server { mods: Default::default(), rooms: vec![test_room("a")?], max_rooms: 1, site: None };
     let r = server.route(&get_request("/resources", ""));
     if r.status != 200 {
         return Err(format!("GET /resources status {}", r.status));

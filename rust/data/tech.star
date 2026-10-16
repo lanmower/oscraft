@@ -1,6 +1,6 @@
 # Research, prerequisites and damage factors.
 # research(name, building, time, minerals, gas, effect_handle, applies_to=) runs at one building.
-research("concussive_rounds", "warden", 1200, 100, 100, effect("damage", p0=3), applies_to=["ground"])
+research("concussive_rounds", "warden", 1200, 100, 100, effect("shield_bonus", p0=3), applies_to=["ground"])
 # prerequisite(target_kind, target, requires_kind, requires): kinds are "unit" or "research".
 prerequisite("unit", "warden", "unit", "skirmisher")
 prerequisite("research", "concussive_rounds", "unit", "warden")

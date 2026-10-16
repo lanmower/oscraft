@@ -1,15 +1,26 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use mod_host::Cmd;
 use sim::{Grid, Sim};
 
+use crate::budget::{
+    TickHistogram, Timing, NORMAL_ORDER_CAP, SHED_AFTER_OVERRUNS, SHED_LOG_EVERY_TICKS, SHED_ORDER_CAP,
+};
+use crate::mods::ModLink;
 use crate::order::{Order, OrderGate};
+use crate::supervise::{supervise, Outcome};
 
 // Matches sim/src/lib.rs `TICKS_PER_SECOND` (16). The sim keeps it pub(crate), so it is not re-exported and must be kept in step by hand.
 pub const TICKS_PER_SECOND: u32 = 16;
+
+// Mod commands the room applies per tick; the rest wait in the link for later ticks.
+const MOD_CMDS_PER_TICK: usize = 64;
 
 pub struct RoomConfig {
     pub name: String,
@@ -23,11 +34,14 @@ pub struct RoomConfig {
 
 struct Clock {
     sim: Sim,
+    handles: HashMap<u32, usize>,
     tick: u64,
     overruns: u64,
+    streak: u64,
     worst: Duration,
     orders_drained: u64,
     orders: Receiver<Order>,
+    hist: TickHistogram,
 }
 
 pub struct Room {
@@ -38,7 +52,10 @@ pub struct Room {
     pub loaded: bool,
     pub gate: OrderGate,
     queue: Mutex<Sender<Order>>,
+    queued: AtomicU64,
+    feed: Mutex<Option<Arc<ModLink>>>,
     clock: Mutex<Clock>,
+    test_panic_at: AtomicU64,
 }
 
 pub struct Snapshot {
@@ -91,21 +108,45 @@ impl Room {
             loaded,
             gate: OrderGate::new(cfg.token, cfg.rate),
             queue: Mutex::new(tx),
+            queued: AtomicU64::new(0),
+            feed: Mutex::new(None),
+            test_panic_at: AtomicU64::new(0),
             clock: Mutex::new(Clock {
                 sim,
+                handles: HashMap::new(),
                 tick: 0,
                 overruns: 0,
+                streak: 0,
                 worst: Duration::ZERO,
                 orders_drained: 0,
                 orders: rx,
+                hist: TickHistogram::new(),
             }),
         }))
     }
 
+    pub fn attach_mod_feed(&self, link: Arc<ModLink>) {
+        *lock(&self.feed) = Some(link);
+    }
+
+    pub fn arm_test_panic(&self, tick: u64) {
+        self.test_panic_at.store(tick + 1, Ordering::Relaxed);
+    }
+
+    fn take_test_panic(&self, tick: u64) -> bool {
+        if self.test_panic_at.load(Ordering::Relaxed) != tick + 1 {
+            return false;
+        }
+        self.test_panic_at.store(0, Ordering::Relaxed);
+        true
+    }
+
     pub fn submit(&self, order: Order) -> Result<(), String> {
-        lock(&self.queue)
-            .send(order)
-            .map_err(|_| "room is closed".to_string())
+        self.queued.fetch_add(1, Ordering::Relaxed);
+        lock(&self.queue).send(order).map_err(|_| {
+            self.queued.fetch_sub(1, Ordering::Relaxed);
+            "room is closed".to_string()
+        })
     }
 
     pub fn tick_now(&self) -> u64 {
@@ -137,6 +178,11 @@ impl Room {
         Ok(Delta { tick, units })
     }
 
+    pub fn unit_position(&self, unit: usize) -> Option<(i32, i32)> {
+        let c = lock(&self.clock);
+        c.sim.alive(unit).then(|| c.sim.position_fixed(unit))
+    }
+
     pub fn player_has_units(&self, player: u8) -> bool {
         let c = lock(&self.clock);
         (0..c.sim.count()).any(|i| c.sim.alive(i) && c.sim.player(i) == player)
@@ -152,38 +198,149 @@ impl Room {
         }
     }
 
+    pub fn timing(&self) -> Timing {
+        let c = lock(&self.clock);
+        Timing {
+            tick: c.tick,
+            hist: c.hist.clone(),
+            queued: self.queued.load(Ordering::Relaxed),
+            overruns: c.overruns,
+        }
+    }
+
     fn step(&self, budget: Duration) {
         let started = Instant::now();
         let mut c = lock(&self.clock);
+        if self.take_test_panic(c.tick) {
+            panic!("test-only panic armed by --test-panic-tick fired at tick {}", c.tick);
+        }
+        let shedding = c.streak >= SHED_AFTER_OVERRUNS;
+        let first_shed_tick = c.streak == SHED_AFTER_OVERRUNS;
+        let cap = if shedding { SHED_ORDER_CAP } else { NORMAL_ORDER_CAP };
         let mut drained = 0u64;
-        while let Ok(order) = c.orders.try_recv() {
+        while (drained as usize) < cap {
+            let Ok(order) = c.orders.try_recv() else {
+                break;
+            };
             c.sim.order_all(order.player as u8, order.x, order.y);
             drained += 1;
         }
+        self.queued.fetch_sub(drained, Ordering::Relaxed);
         c.orders_drained += drained;
+        let feed = lock(&self.feed).clone();
+        if let Some(link) = feed {
+            let clock = &mut *c;
+            let applied = apply_mod_commands(&mut clock.sim, &mut clock.handles, link.take_commands(MOD_CMDS_PER_TICK));
+            if applied > 0 {
+                crate::emit!(Ev::ModCmds, room = self.name, tick = c.tick, applied = applied);
+            }
+        }
         c.sim.tick();
         c.tick += 1;
         let cost = started.elapsed();
         c.worst = c.worst.max(cost);
+        c.hist.record(cost);
+        if shedding {
+            let deferred = self.queued.load(Ordering::Relaxed);
+            if deferred > 0 && (first_shed_tick || c.tick % SHED_LOG_EVERY_TICKS == 0) {
+                crate::emit!(Ev::TickShed, room = self.name, tick = c.tick, shed = deferred, cap = SHED_ORDER_CAP);
+            }
+        }
         if cost > budget {
+            c.streak += 1;
             c.overruns += 1;
+            crate::emit!(Ev::TickOverrun, room = self.name, tick = c.tick, cost_us = cost.as_micros(), budget_us = budget.as_micros());
+        } else {
+            c.streak = 0;
         }
     }
 }
 
-pub fn spawn_ticker(room: Arc<Room>) -> JoinHandle<()> {
-    let budget = Duration::from_secs(1) / TICKS_PER_SECOND;
-    thread::spawn(move || {
-        let mut next = Instant::now() + budget;
-        loop {
-            let now = Instant::now();
-            if next > now {
-                thread::sleep(next - now);
+use crate::log::Ev;
+
+// Applies the mod's queued commands to the room's sim at the tick boundary. A spawn binds its
+// handle to the room unit it got; handle commands resolve through that map, and a handle the map
+// does not hold is refused and logged. Plain unit indices come from the mod's own world, so a
+// target the room does not hold alive is skipped.
+fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Vec<Cmd>) -> usize {
+    let applied = cmds.len();
+    for cmd in cmds {
+        match cmd {
+            Cmd::Spawn { handle, index, x, y } => match sim.spawn(index as u32, x, y) {
+                Some(unit) => {
+                    handles.insert(handle, unit);
+                    crate::emit!(Ev::ModUnitBound, handle = handle, unit = unit);
+                }
+                None => crate::emit!(Ev::ModUnitRefused, handle = handle, reason = "spawn_failed"),
+            },
+            Cmd::OrderHandle { handle, x, y } => match mapped(handles, sim, handle) {
+                Some(unit) => sim.order(unit, x, y),
+                None => refuse_unmapped(handle),
+            },
+            Cmd::DamageHandle { caster, target, dmg } => {
+                match (mapped(handles, sim, caster), mapped(handles, sim, target)) {
+                    (Some(c), Some(t)) => {
+                        let player = sim.player(c);
+                        sim.damage_target(c as i32, player, dmg, t as i32);
+                    }
+                    (None, _) => refuse_unmapped(caster),
+                    (_, None) => refuse_unmapped(target),
+                }
             }
-            room.step(budget);
-            while next <= Instant::now() {
-                next += budget;
+            Cmd::BuffHandle { handle, kind, ticks } => match mapped(handles, sim, handle) {
+                Some(unit) => {
+                    let _ = sim.apply_buff(unit, kind, ticks);
+                }
+                None => refuse_unmapped(handle),
+            },
+            Cmd::Order { unit, x, y } => {
+                if sim.alive(unit) {
+                    sim.order(unit, x, y);
+                }
+            }
+            Cmd::Damage { caster, target, dmg } => {
+                if sim.alive(caster) && sim.alive(target) {
+                    let player = sim.player(caster);
+                    sim.damage_target(caster as i32, player, dmg, target as i32);
+                }
+            }
+            Cmd::Buff { unit, kind, ticks } => {
+                if sim.alive(unit) {
+                    let _ = sim.apply_buff(unit, kind, ticks);
+                }
             }
         }
+    }
+    applied
+}
+
+fn mapped(handles: &HashMap<u32, usize>, sim: &Sim, handle: u32) -> Option<usize> {
+    handles.get(&handle).copied().filter(|&unit| sim.alive(unit))
+}
+
+fn refuse_unmapped(handle: u32) {
+    crate::emit!(Ev::ModUnitRefused, handle = handle, reason = "unmapped");
+}
+
+pub fn spawn_ticker(room: Arc<Room>, budget: Duration) -> JoinHandle<()> {
+    thread::spawn(move || {
+        supervise("ticker", Ev::TickerDied, Ev::TickerRestarted, || {
+            run_ticker(&room, budget);
+            Outcome::Retry
+        })
     })
+}
+
+fn run_ticker(room: &Room, budget: Duration) {
+    let mut next = Instant::now() + budget;
+    loop {
+        let now = Instant::now();
+        if next > now {
+            thread::sleep(next - now);
+        }
+        room.step(budget);
+        while next <= Instant::now() {
+            next += budget;
+        }
+    }
 }

@@ -3,7 +3,8 @@
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
 use sim::{Catalog, Doodad, LoadError, Refusal, Sim};
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, RefMut};
+use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -61,14 +62,19 @@ struct System {
 }
 
 // A command queued during a step; applied after every system, in queue order.
-enum Cmd {
-    Spawn { index: usize, x: i32, y: i32 },
+#[derive(Clone)]
+pub enum Cmd {
+    Spawn { handle: u32, index: usize, x: i32, y: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
+    OrderHandle { handle: u32, x: i32, y: i32 },
+    DamageHandle { caster: u32, target: u32, dmg: i32 },
+    BuffHandle { handle: u32, kind: i32, ticks: i32 },
 }
 
 // Q16.16 corners, normalized so x0 <= x1 and y0 <= y1.
+#[derive(Clone)]
 struct Region {
     name: String,
     x0: i32,
@@ -85,10 +91,20 @@ impl Region {
 
 // The action is a Lua function held in the registry. A timer is due when the host
 // clock reaches its due tick; the clock advances once per ModHost::advance.
+#[derive(Clone)]
 struct Timer {
     name: String,
     due: u64,
-    action: RegistryKey,
+    action: Rc<RegistryKey>,
+}
+
+// The live state a reload may touch before it is validated: the sim, regions, timers and
+// queued commands. A rejected reload puts all four back.
+struct Saved {
+    sim: Vec<u8>,
+    regions: Vec<Region>,
+    timers: Vec<Timer>,
+    cmds: Vec<Cmd>,
 }
 
 struct Hooks {
@@ -124,6 +140,41 @@ enum Pending {
     Leave { unit: usize, region: usize },
 }
 
+/// A failed reload: the mod file, the Lua line when one is known, and the message.
+#[derive(Debug)]
+pub struct ReloadError {
+    pub file: PathBuf,
+    pub line: Option<u32>,
+    pub message: String,
+}
+
+impl ReloadError {
+    fn locate(path: &Path, e: &mlua::Error) -> Self {
+        let text = e.to_string();
+        // mlua shortens long chunk names to "...<tail>", so match the file name, which survives.
+        let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let prefix = format!("{name}:");
+        if let Some(at) = text.find(&prefix) {
+            let rest = &text[at + prefix.len()..];
+            let digits = rest.chars().take_while(|c| c.is_ascii_digit()).count();
+            if let Ok(line) = rest[..digits].parse::<u32>() {
+                let message = rest[digits..].trim_start_matches(':').trim().to_string();
+                return ReloadError { file: path.to_path_buf(), line: Some(line), message };
+            }
+        }
+        ReloadError { file: path.to_path_buf(), line: None, message: text }
+    }
+}
+
+impl fmt::Display for ReloadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.line {
+            Some(line) => write!(f, "{}:{}: {}", self.file.display(), line, self.message),
+            None => write!(f, "{}: {}", self.file.display(), self.message),
+        }
+    }
+}
+
 pub struct ModHost {
     lua: Lua,
     world: Shared,
@@ -138,17 +189,52 @@ pub struct ModHost {
     prev: Vec<UnitSnap>,
     pending: Vec<Pending>,
     mod_file: Option<ModFile>,
+    staged: Option<Hooks>,
+    version: u64,
     cmds: Cmds,
 }
 
 // The events a mod handles, each with the Lua arguments it receives. Editors list them.
-const EVENTS: [(&str, &str); 5] = [
+pub const EVENTS: [(&str, &str); 5] = [
     ("on_spawned", "unit"),
     ("on_attacked", "unit"),
     ("on_died", "unit"),
     ("on_enter", "region, unit"),
     ("on_leave", "region, unit"),
 ];
+
+// Every global bind_host and bind_game register on a mod environment. compile_src checks this
+// list against the environment both ways (check_host_globals), so a global cannot be registered
+// without being listed, or listed without being registered. Editors read it for completion.
+pub const HOST_GLOBALS: &[&str] = &[
+    "spawn_unit",
+    "get_unit_count",
+    "define_region",
+    "in_region",
+    "schedule",
+    "cancel",
+    "order_unit",
+    "order_player",
+    "unit_position",
+    "unit_hp",
+    "unit_player",
+    "unit_alive",
+    "edit_terrain",
+    "damage_unit",
+    "order_attack",
+    "list_abilities",
+    "ability_info",
+    "list_events",
+    "set_tile",
+    "list_doodads",
+    "remove_doodad",
+    "place_doodad",
+    "buff_unit",
+    "game",
+];
+
+// The Lua base names compile_src copies into every mod environment; they are not host globals.
+const BASE_ENV: [&str; 11] = ["pcall", "xpcall", "error", "assert", "type", "tostring", "tonumber", "select", "pairs", "ipairs", "next"];
 
 fn io_err(e: std::io::Error) -> mlua::Error {
     mlua::Error::RuntimeError(e.to_string())
@@ -160,6 +246,11 @@ fn fixed(v: i64) -> mlua::Result<i32> {
 
 fn invalid_unit(i: i64) -> mlua::Error {
     mlua::Error::RuntimeError(format!("invalid_unit: {i}"))
+}
+
+// A handle cmd_spawn returned. The room maps it to the unit it spawned; the mod never names a room index.
+fn handle_arg(h: i64) -> mlua::Result<u32> {
+    u32::try_from(h).map_err(|_| mlua::Error::RuntimeError(format!("invalid_handle: {h}")))
 }
 
 fn out_of_grid(x0: i64, y0: i64, x1: i64, y1: i64, w: i64, h: i64) -> mlua::Error {
@@ -277,7 +368,7 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
         lua.create_function(move |lua, (name, after, action): (String, i64, Function)| {
             let after = u64::try_from(after).map_err(|_| mlua::Error::RuntimeError(format!("schedule_delay: {after} is negative")))?;
             let due = c.get() + after.max(1);
-            let action = lua.create_registry_value(action)?;
+            let action = Rc::new(lua.create_registry_value(action)?);
             let mut timers = t.borrow_mut();
             if let Some(slot) = timers.iter_mut().find(|x| x.name == name) {
                 *slot = Timer { name, due, action };
@@ -622,6 +713,7 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
         })?,
     )?;
     let (w, buf) = (world.clone(), cmds.clone());
+    let next_handle = Rc::new(std::cell::Cell::new(0u32));
     game.set(
         "cmd_spawn",
         lua.create_function(move |_, (kind, x, y): (String, i64, i64)| {
@@ -630,7 +722,39 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
                 .catalog()
                 .unit_index(&kind)
                 .ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_unit: {kind}")))?;
-            buf.borrow_mut().push(Cmd::Spawn { index, x: fixed(x)?, y: fixed(y)? });
+            let handle = next_handle.get() + 1;
+            next_handle.set(handle);
+            buf.borrow_mut().push(Cmd::Spawn { handle, index, x: fixed(x)?, y: fixed(y)? });
+            Ok(handle)
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "cmd_order_handle",
+        lua.create_function(move |_, (handle, x, y): (i64, i64, i64)| {
+            buf.borrow_mut().push(Cmd::OrderHandle { handle: handle_arg(handle)?, x: fixed(x)?, y: fixed(y)? });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "cmd_damage_handle",
+        lua.create_function(move |_, (caster, target, dmg): (i64, i64, i64)| {
+            let dmg = i32::try_from(dmg).map_err(|_| mlua::Error::RuntimeError(format!("invalid_damage: {dmg} out of i32 range")))?;
+            buf.borrow_mut().push(Cmd::DamageHandle { caster: handle_arg(caster)?, target: handle_arg(target)?, dmg });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "cmd_buff_handle",
+        lua.create_function(move |_, (handle, kind, ticks): (i64, i64, i64)| {
+            let kind = i32::try_from(kind).map_err(|_| mlua::Error::RuntimeError(format!("invalid_buff: kind {kind} out of i32 range")))?;
+            let ticks = i32::try_from(ticks)
+                .ok()
+                .filter(|&t| t > 0)
+                .ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_buff: ticks {ticks} must be a positive i32")))?;
+            buf.borrow_mut().push(Cmd::BuffHandle { handle: handle_arg(handle)?, kind, ticks });
             Ok(())
         })?,
     )?;
@@ -693,6 +817,10 @@ return function(f, ...) return pass(native_pcall(f, ...)) end,
 // Errors carry "<path>:<line>: <message>" because the chunk is named "@<path>".
 fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock: &Clock, cmds: &Cmds, path: &Path) -> mlua::Result<Hooks> {
     let src = fs::read_to_string(path).map_err(io_err)?;
+    compile_src(lua, world, regions, timers, clock, cmds, &path.display().to_string(), &src)
+}
+
+fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock: &Clock, cmds: &Cmds, name: &str, src: &str) -> mlua::Result<Hooks> {
     let env = lua.create_table()?;
     let (pcall, xpcall) = lua.load(PCALL_SRC).eval::<(Function, Function)>()?;
     env.set("pcall", pcall)?;
@@ -704,13 +832,14 @@ fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock:
     let systems: SystemSink = Rc::new(RefCell::new(Vec::new()));
     bind_host(lua, &env, world, regions, timers, clock)?;
     bind_game(lua, &env, world, cmds, &systems)?;
-    lua.load(src.as_str())
-        .set_name(format!("@{}", path.display()))
+    check_host_globals(&env)?;
+    lua.load(src)
+        .set_name(format!("@{name}"))
         .set_environment(env.clone())
         .exec()?;
     let on_tick = env
         .get::<Option<Function>>("on_tick")?
-        .ok_or_else(|| mlua::Error::RuntimeError(format!("{}: on_tick is not defined", path.display())))?;
+        .ok_or_else(|| mlua::Error::RuntimeError(format!("{name}: on_tick is not defined")))?;
     let registered = std::mem::take(&mut *systems.borrow_mut());
     Ok(Hooks {
         on_tick,
@@ -721,6 +850,22 @@ fn compile(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, clock:
         on_leave: env.get("on_leave")?,
         systems: registered,
     })
+}
+
+// Refuses a mod environment whose host globals and HOST_GLOBALS disagree, in either direction.
+fn check_host_globals(env: &Table) -> mlua::Result<()> {
+    for name in HOST_GLOBALS {
+        if !env.contains_key(*name)? {
+            return Err(mlua::Error::RuntimeError(format!("host_globals: {name} is listed but not registered")));
+        }
+    }
+    for pair in env.pairs::<String, mlua::Value>() {
+        let (name, _) = pair?;
+        if !HOST_GLOBALS.contains(&name.as_str()) && !BASE_ENV.contains(&name.as_str()) {
+            return Err(mlua::Error::RuntimeError(format!("host_globals: {name} is registered but not listed")));
+        }
+    }
+    Ok(())
 }
 
 fn mtime(path: &Path) -> std::io::Result<SystemTime> {
@@ -765,6 +910,8 @@ impl ModHost {
             prev: Vec::with_capacity(MAX_UNITS),
             pending: Vec::with_capacity(MAX_UNITS * MAX_REGIONS),
             mod_file: None,
+            staged: None,
+            version: 0,
             cmds: Rc::new(RefCell::new(Vec::new())),
         })
     }
@@ -774,28 +921,97 @@ impl ModHost {
         self.spent.set(0);
         let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, path).map_err(named)?;
         self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, hooks });
+        self.staged = None;
+        self.version += 1;
         Ok(())
     }
 
-    /// Recompiles when the mod file's mtime moved. A failed compile keeps the old on_tick.
-    pub fn reload_if_changed(&mut self) {
-        let Some(m) = self.mod_file.as_mut() else { return };
-        let Ok(t) = mtime(&m.path) else { return };
+    /// Compiles the mod in `src`, named `name` in error messages, and makes it the active mod.
+    /// The source has no file, so `reload` finds no file under `name` and reports it.
+    pub fn load_source(&mut self, name: &str, src: &str) -> mlua::Result<()> {
+        self.spent.set(0);
+        let hooks = compile_src(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, name, src).map_err(named)?;
+        self.mod_file = Some(ModFile { path: PathBuf::from(name), mtime: SystemTime::UNIX_EPOCH, hooks });
+        self.staged = None;
+        self.version += 1;
+        Ok(())
+    }
+
+    /// The sim this host advances. Mutable so a caller can command or trigger units.
+    pub fn sim(&self) -> RefMut<'_, Sim> {
+        self.world.borrow_mut()
+    }
+
+    /// The reload entry point. Compiles the mod file when its mtime moved, off the tick path.
+    /// A success is staged and goes live at the next advance; a failure clears any staged
+    /// version, keeps the live one in effect, and returns the error with file and line.
+    /// Returns Ok(true) when a new version was staged.
+    pub fn reload(&mut self) -> Result<bool, ReloadError> {
+        let Some(m) = self.mod_file.as_mut() else { return Ok(false) };
+        let t = match mtime(&m.path) {
+            Ok(t) => t,
+            Err(e) => return Err(ReloadError { file: m.path.clone(), line: None, message: e.to_string() }),
+        };
         if t == m.mtime {
-            return;
+            return Ok(false);
         }
         m.mtime = t;
+        let path = m.path.clone();
         self.spent.set(0);
-        match compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, &m.path) {
+        let saved = self.save_live();
+        match compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, &path) {
             Ok(hooks) => {
-                m.hooks = hooks;
-                println!("reload: ok ({})", m.path.display());
+                self.staged = Some(hooks);
+                Ok(true)
             }
-            Err(e) => println!("reload: FAILED, old on_tick kept: {e}"),
+            Err(e) => {
+                self.staged = None;
+                if let Err(r) = self.restore_live(saved) {
+                    return Err(ReloadError { file: path, line: None, message: format!("rollback failed: {r}") });
+                }
+                Err(ReloadError::locate(&path, &e))
+            }
+        }
+    }
+
+    // The top-level code of a new chunk runs against the live world, so a reload that fails
+    // after it ran must put these back. Taken only when a reload is attempted.
+    fn save_live(&self) -> Saved {
+        Saved {
+            sim: self.world.borrow().save_state(),
+            regions: self.regions.borrow().clone(),
+            timers: self.timers.borrow().clone(),
+            cmds: self.cmds.borrow().clone(),
+        }
+    }
+
+    fn restore_live(&self, saved: Saved) -> mlua::Result<()> {
+        self.world
+            .borrow_mut()
+            .load_state(&saved.sim)
+            .map_err(|_| mlua::Error::RuntimeError("the saved sim state did not load back".to_string()))?;
+        *self.regions.borrow_mut() = saved.regions;
+        *self.timers.borrow_mut() = saved.timers;
+        *self.cmds.borrow_mut() = saved.cmds;
+        Ok(())
+    }
+
+    /// The live mod version: 1 after the first load, +1 for each reload that went live.
+    pub fn version(&self) -> u64 {
+        self.version
+    }
+
+    /// Calls reload and prints the outcome.
+    pub fn reload_if_changed(&mut self) {
+        match self.reload() {
+            Ok(true) => println!("ev=mod_reload_staged path={:?}", self.mod_file.as_ref().map(|m| m.path.display().to_string()).unwrap_or_default()),
+            Ok(false) => {}
+            Err(e) => println!("ev=mod_reload_failed error={:?}", e.to_string()),
         }
     }
 
     /// Runs the active mod's on_tick once. A runtime error is returned with file and line.
+    /// A staged reload goes live in advance, not here.
     pub fn tick(&self, state: &Table) -> mlua::Result<()> {
         self.spent.set(0);
         self.run_on_tick(state).map_err(named)
@@ -827,7 +1043,18 @@ impl ModHost {
     // One step in fixed order: the sim tick, zone and unit events, every system in
     // registration order, the queued commands, due timers, then on_tick. A command queued by
     // on_tick or a timer waits for the command step of the next advance.
+    // Swaps a staged reload in at the tick boundary, before the step's sim tick.
+    fn apply_staged(&mut self) {
+        if let Some(hooks) = self.staged.take() {
+            if let Some(m) = self.mod_file.as_mut() {
+                m.hooks = hooks;
+                self.version += 1;
+            }
+        }
+    }
+
     fn step(&mut self, state: &Table) -> mlua::Result<()> {
+        self.apply_staged();
         self.clock.set(self.clock.get() + 1);
         self.world.borrow_mut().tick();
         self.collect();
@@ -856,9 +1083,11 @@ impl ModHost {
         let mut sim = self.world.borrow_mut();
         for cmd in list {
             match cmd {
-                Cmd::Spawn { index, x, y } => {
+                Cmd::Spawn { index, x, y, .. } => {
                     let _ = sim.spawn(index as u32, x, y);
                 }
+                // Handles resolve in the server room, which holds the handle map; this local world has none.
+                Cmd::OrderHandle { .. } | Cmd::DamageHandle { .. } | Cmd::BuffHandle { .. } => {}
                 Cmd::Order { unit, x, y } => {
                     if sim.alive(unit) {
                         sim.order(unit, x, y);
@@ -887,7 +1116,7 @@ impl ModHost {
             let due = self.timers.borrow().iter().position(|t| t.due <= now);
             let Some(i) = due else { return Ok(()) };
             let timer = self.timers.borrow_mut().remove(i);
-            let action: Function = self.lua.registry_value(&timer.action)?;
+            let action: Function = self.lua.registry_value(&*timer.action)?;
             action.call::<()>(())?;
         }
     }
@@ -980,6 +1209,12 @@ impl ModHost {
         &self.lua
     }
 
+    /// The commands queued since the last take, in queue order. `advance` applies its own queue;
+    /// a caller that forwards commands takes them here after advance.
+    pub fn take_commands(&mut self) -> Vec<Cmd> {
+        std::mem::take(&mut *self.cmds.borrow_mut())
+    }
+
     pub fn state(&self) -> &Table {
         &self.state
     }
@@ -987,6 +1222,16 @@ impl ModHost {
     /// Units the sim has spawned, including dead ones (`Sim::count`).
     pub fn unit_count(&self) -> usize {
         self.world.borrow().count()
+    }
+
+    /// The named regions the live mod has defined, in definition order.
+    pub fn region_names(&self) -> Vec<String> {
+        self.regions.borrow().iter().map(|g| g.name.clone()).collect()
+    }
+
+    /// The live timers the mod has scheduled and not yet fired or cancelled.
+    pub fn timer_count(&self) -> usize {
+        self.timers.borrow().len()
     }
 
     /// The sim's FNV-1a state hash (sim/src/hash.rs). Two runs of the same mod from

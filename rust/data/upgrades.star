@@ -3,3 +3,4 @@
 # kind: "unit" or "ability". apply: "new_only" or "existing". stacking: "replace", "add" or "refuse".
 upgrade("dense_plating", "unit", "warden", effect("shield_bonus", p0=20), apply="existing", stacking="add", minerals_per_level=100, gas_per_level=50)
 upgrade("sharper_pulse", "ability", "pulse_shot", effect("damage", p0=2), level=2, apply="new_only", stacking="refuse", minerals_per_level=150)
+upgrade("hardened_plating", "unit", "warden", effect("shield_bonus", p0=10), apply="new_only", stacking="refuse", minerals_per_level=100, gas_per_level=50)

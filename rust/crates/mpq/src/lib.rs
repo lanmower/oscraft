@@ -1,6 +1,6 @@
-//! Reader for MPQ (Mo'PaQ) archives: header and table parsing, the
+//! Reader for MPQ archives: header and table parsing, the
 //! classic hash and block tables, HET/BET lookup (format 3 and later), and the
-//! sector codecs Storm writes. Port of internal/mpq; standard library only.
+//! sector codecs MPQ writers use. Standard library only.
 
 #![forbid(unsafe_code)]
 
@@ -366,7 +366,7 @@ impl Archive {
         self.lookup(name).is_ok()
     }
 
-    /// Resolves a name to its entry. Names use backslashes as Storm does; forward
+    /// Resolves a name to its entry. Names use backslashes as the MPQ format does; forward
     /// slashes are accepted. Matching is ASCII-only case-insensitive.
     pub fn lookup(&self, name: &str) -> Result<Entry> {
         let key = norm_name(name);
@@ -617,7 +617,7 @@ fn pick_key(raw: &mut [u8], name: &str, score: impl Fn(&[u8]) -> usize) -> usize
     0
 }
 
-/// Storm's classic name form: ASCII upper-cased, slashes as backslashes. Non-ASCII
+/// The MPQ classic name form: ASCII upper-cased, slashes as backslashes. Non-ASCII
 /// bytes pass through unchanged.
 fn norm_name(name: &str) -> String {
     let bytes: Vec<u8> = name

@@ -1,8 +1,14 @@
+pub mod budget;
 pub mod http;
 pub mod lockstep;
+pub mod log;
+pub mod mods;
 pub mod order;
 pub mod replay;
+pub mod relay;
 pub mod room;
+pub mod supervise;
+pub mod static_files;
 
 use std::collections::hash_map::RandomState;
 use std::env;
@@ -12,17 +18,24 @@ use std::io::Read;
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
 use http::{json_string, read_request, ReadError, Request, Response};
 use order::{parse_order, DEFAULT_ORDER_RATE, MAX_ORDER_BODY};
+use budget::spawn_reporter;
+use log::Ev;
+use mods::ModLink;
 use room::{spawn_ticker, DeltaError, Room, RoomConfig, TICKS_PER_SECOND};
 
 const DEFAULT_MAX_ROOMS: usize = 16;
 const DEFAULT_MAX_UNITS: usize = 4096;
 const DEFAULT_ADDR: &str = "0.0.0.0:8080";
+
+/// Connections served at once. One more is answered 503 and logged as ev=conn_refused.
+pub const MAX_CONNECTIONS: usize = 64;
 
 pub struct Options {
     pub addr: String,
@@ -34,44 +47,90 @@ pub struct Options {
     pub max_rooms: usize,
     pub tokens: Vec<(String, String)>,
     pub data: Option<PathBuf>,
+    pub tick_budget_us: u64,
+    pub ticks: Option<u64>,
+    pub mod_path: Option<PathBuf>,
+    pub test_panic_tick: Option<u64>,
+    pub site: Option<PathBuf>,
 }
 
 pub struct Server {
+    pub mods: Arc<ModLink>,
     pub rooms: Vec<Arc<Room>>,
     pub max_rooms: usize,
+    pub site: Option<PathBuf>,
 }
 
 pub fn run() -> Result<(), String> {
     let opts = parse_args()?;
     let rooms = build_rooms(&opts)?;
+    let tick_budget = Duration::from_micros(opts.tick_budget_us);
+    let link = Arc::new(ModLink::default());
+    if let Some(path) = &opts.mod_path {
+        let image_path = opts.data.as_ref().ok_or("--mod needs --data: the mod host runs on the catalog image")?;
+        let image = std::fs::read(image_path).map_err(|e| format!("--data {}: {e}", image_path.display()))?;
+        mods::spawn(image, path.clone(), tick_budget, Arc::clone(&link))?;
+        crate::emit!(Ev::ModLoaded, path = path.display(), version = link.version());
+    }
 
+    rooms[0].attach_mod_feed(Arc::clone(&link));
     for room in &rooms {
-        spawn_ticker(Arc::clone(room));
-        println!("order-token {} {}", room.name, room.gate.token());
+        if let Some(tick) = opts.test_panic_tick {
+            room.arm_test_panic(tick);
+        }
+        spawn_ticker(Arc::clone(room), tick_budget);
+        spawn_reporter(Arc::clone(room), opts.ticks);
+        crate::emit!(Ev::OrderToken, room = room.name, token = room.gate.token());
     }
 
     let listener = TcpListener::bind(&opts.addr).map_err(|e| format!("bind {}: {e}", opts.addr))?;
-    println!(
-        "serving {} room(s) on {} (order: POST /order?map=<name>, {} per second per room)",
-        rooms.len(),
-        opts.addr,
-        opts.rate
-    );
+    crate::emit!(Ev::Serving, rooms = rooms.len(), addr = &opts.addr, rate = opts.rate);
 
     let server = Arc::new(Server {
+        mods: Arc::clone(&link),
         rooms,
         max_rooms: opts.max_rooms,
+        site: opts.site,
     });
+    let active = Arc::new(AtomicUsize::new(0));
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => {
-                let server = Arc::clone(&server);
-                thread::spawn(move || handle(stream, &server));
-            }
-            Err(e) => eprintln!("accept: {e}"),
+            Ok(mut stream) => match admit(&active) {
+                Some(slot) => {
+                    let server = Arc::clone(&server);
+                    thread::spawn(move || {
+                        let _slot = slot;
+                        handle(stream, &server)
+                    });
+                }
+                None => refuse(&mut stream),
+            },
+            Err(e) => crate::emit_err!(Ev::AcceptError, error = e),
         }
     }
     Ok(())
+}
+
+struct Slot(Arc<AtomicUsize>);
+
+impl Drop for Slot {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+fn admit(active: &Arc<AtomicUsize>) -> Option<Slot> {
+    active
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| (n < MAX_CONNECTIONS).then_some(n + 1))
+        .ok()
+        .map(|_| Slot(Arc::clone(active)))
+}
+
+fn refuse(stream: &mut TcpStream) {
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(1)));
+    crate::emit!(Ev::ConnRefused, limit = MAX_CONNECTIONS);
+    let response = Response::error(503, "connection limit reached; retry shortly").with_header("Retry-After", "1");
+    let _ = response.write_to(stream);
 }
 
 pub fn build_rooms(opts: &Options) -> Result<Vec<Arc<Room>>, String> {
@@ -122,6 +181,11 @@ pub fn parse_args() -> Result<Options, String> {
         max_rooms: DEFAULT_MAX_ROOMS,
         tokens: Vec::new(),
         data: None,
+        tick_budget_us: 1_000_000 / u64::from(TICKS_PER_SECOND),
+        ticks: None,
+        mod_path: None,
+        test_panic_tick: None,
+        site: None,
     };
     let mut args = env::args().skip(1);
     while let Some(flag) = args.next() {
@@ -140,6 +204,11 @@ pub fn parse_args() -> Result<Options, String> {
             "--order-rate" => opts.rate = parse_num(&value, &flag)?,
             "--max-rooms" => opts.max_rooms = parse_num(&value, &flag)?,
             "--data" => opts.data = Some(PathBuf::from(value)),
+            "--tick-budget-us" => opts.tick_budget_us = parse_num(&value, &flag)?,
+            "--ticks" => opts.ticks = Some(parse_num(&value, &flag)?),
+            "--mod" => opts.mod_path = Some(PathBuf::from(value)),
+            "--test-panic-tick" => opts.test_panic_tick = Some(parse_num(&value, &flag)?),
+            "--site" => opts.site = Some(PathBuf::from(value)),
             "--order-token" => {
                 let (name, token) = value.split_once('=').ok_or("--order-token is NAME=TOKEN")?;
                 opts.tokens.push((name.to_lowercase(), token.to_string()));
@@ -147,8 +216,8 @@ pub fn parse_args() -> Result<Options, String> {
             other => return Err(format!("unknown flag {other}")),
         }
     }
-    if opts.rate == 0 || opts.grid_w <= 0 || opts.grid_h <= 0 || opts.max_units == 0 {
-        return Err("--order-rate, --grid and --max-units must be positive".into());
+    if opts.rate == 0 || opts.grid_w <= 0 || opts.grid_h <= 0 || opts.max_units == 0 || opts.tick_budget_us == 0 {
+        return Err("--order-rate, --grid, --max-units and --tick-budget-us must be positive".into());
     }
     Ok(opts)
 }
@@ -193,7 +262,14 @@ impl Server {
             ("GET", "/state") => self.on_room(req, serve_state),
             ("GET", "/delta") => self.on_room(req, serve_delta),
             ("GET", "/catalog") => self.on_room(req, serve_catalog),
+            ("GET", "/mod-version") => self.mod_version(),
+            ("GET", "/mod-events") => self.mod_events(req),
             ("POST", "/order") => self.on_room(req, serve_order),
+            ("POST", "/client-error") => self.on_room(req, relay::serve_client_error),
+            ("GET", path) if path.starts_with(static_files::SITE_PREFIX) => match &self.site {
+                Some(root) => static_files::serve(root, path),
+                None => Response::error(404, "no such endpoint"),
+            },
             (_, "/order") => Response::error(405, "orders are POSTed").with_header("Allow", "POST"),
             _ => Response::error(404, "no such endpoint"),
         }
@@ -231,6 +307,16 @@ impl Server {
         Response::json(200, format!("{{\"maps\":[{}]}}", rows.join(",")))
     }
 
+    fn mod_version(&self) -> Response {
+        Response::json(200, format!(r#"{{"version":{},"tick":{}}}"#, self.mods.version(), self.mods.tick()))
+    }
+
+    fn mod_events(&self, req: &Request) -> Response {
+        let since = req.param("since").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let version = self.mods.version();
+        Response::json(200, format!(r#"{{"version":{version},"since":{since},"changed":{}}}"#, version > since))
+    }
+
     pub fn resources(&self) -> Response {
         let rows: Vec<String> = self
             .rooms
@@ -260,17 +346,25 @@ impl Server {
     }
 }
 
-pub fn serve_state(room: &Room, _req: &Request) -> Response {
+pub fn serve_state(room: &Room, req: &Request) -> Response {
     let snap = room.snapshot();
+    let unit = match req.param("unit").and_then(|raw| raw.parse::<usize>().ok()) {
+        Some(id) => match room.unit_position(id) {
+            Some((x, y)) => format!("{{\"id\":{id},\"x\":{x},\"y\":{y}}}"),
+            None => "null".to_string(),
+        },
+        None => "null".to_string(),
+    };
     Response::json(
         200,
         format!(
-            "{{\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{}}}",
+            "{{\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{},\"unit\":{}}}",
             json_string(&room.name),
             snap.tick,
             snap.state_hash,
             room.max_units,
-            snap.units
+            snap.units,
+            unit
         ),
     )
 }
