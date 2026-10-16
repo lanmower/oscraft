@@ -2563,3 +2563,28 @@ jobs:
 
       - name: Round-trip and reject tests
         run: node test.js
+
+  net-client-bundle:
+    name: net client bundle builds with esbuild and play.html references it
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: js/client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install client dependencies and bundle play.js
+        run: |
+          npm install
+          npm run build
+
+      - name: Assert the bundle is produced and play.html references it
+        run: |
+          test -s dist/play.js || { echo "net client bundle missing: js/client/dist/play.js"; exit 1; }
+          grep -q 'dist/play.js' play.html || { echo "play.html does not reference dist/play.js"; exit 1; }
+          echo "net client bundle ok bytes=$(wc -c < dist/play.js)"

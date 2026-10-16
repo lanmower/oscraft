@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>oscraft net client</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #1d252c; color: #d8e0e6; font: 13px system-ui, sans-serif; overflow: hidden; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #status { position: fixed; left: 8px; top: 8px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; white-space: pre; }
+  </style>
+</head>
+<body data-pkg="pkg/web.js" data-map="map.bin">
+  <canvas id="view"></canvas>
+  <div id="status">connecting</div>
+  <script type="module" src="dist/play.js"></script>
+</body>
+</html>
