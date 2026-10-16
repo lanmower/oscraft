@@ -2875,9 +2875,10 @@ jobs:
           done
           test "$tick" -ge 200
           sides=$(jq '[.records[].player | select(. >= 0)] | unique | length' "$work/s1.json")
-          routes=$(jq '[.records[] | select(.kind == 3) | .y] | unique | length' "$work/s1.json")
-          objectives=$(jq '[.records[] | select(.kind == 3)] | length' "$work/s1.json")
-          hp_changed=$(jq -n --slurpfile a "$work/s0.json" --slurpfile b "$work/s1.json" '[ $b[0].records[] | select(.kind == 3) as $r | ($a[0].records[] | select(.id == $r.id and .kind == 3)) as $o | select($o.hp != $r.hp) ] | length > 0')
+          routes=$(jq '[.records[] | select(.kind == 0) | .y] | unique | length' "$work/s1.json")
+          objectives=$(jq '[.records[] | select(.kind == 0)] | length' "$work/s1.json")
+          hp_changed=$(jq -n --slurpfile a "$work/s0.json" --slurpfile b "$work/s1.json" '[ $b[0].records[] | select(.kind == 0) as $r | ($a[0].records[] | select(.id == $r.id and .kind == 3)) as $o | select($o.hp != $r.hp) ] | length > 0')
+          echo "tick=$tick sides=$sides routes=$routes objectives=$objectives hp_changed=$hp_changed"
           test "$sides" -eq 2
           test "$routes" -eq 3
           test "$objectives" -ge 1
