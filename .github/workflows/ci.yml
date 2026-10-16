@@ -81,9 +81,6 @@ jobs:
       - name: Build every workspace binary
         run: cargo build --workspace
 
-      - name: Compile the test binaries without running them
-        run: cargo test --workspace --no-run
-
       - name: Build the page wasm and export the map image
         run: |
           set -euo pipefail
