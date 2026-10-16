@@ -18,6 +18,8 @@ world sim-component {
     /// Position in Q16.16 fixed point, as (x, y).
     export unit-position: func(unit: u32) -> tuple<s32, s32>;
     export unit-player: func(unit: u32) -> u8;
+    /// The catalog unit type index of unit `unit`, or -1 when it has none.
+    export unit-kind: func(unit: u32) -> s32;
     export unit-hp: func(unit: u32) -> s32;
     /// Command input: moves one unit toward (x, y), clamped to the grid.
     export order: func(unit: u32, x: s32, y: s32);

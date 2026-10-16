@@ -127,6 +127,10 @@ mod guest {
             with_host(0, |h| h.sim().player(unit as usize))
         }
 
+        fn unit_kind(unit: u32) -> i32 {
+            with_host(-1, |h| h.sim().unit_type(unit as usize))
+        }
+
         fn unit_hp(unit: u32) -> i32 {
             with_host(0, |h| h.sim().hp(unit as usize))
         }

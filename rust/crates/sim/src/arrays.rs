@@ -690,6 +690,11 @@ impl Sim {
         if i >= self.n { 0 } else { self.hp[i] }
     }
 
+    /// The catalog unit type index of unit `i` (the id catalog-unit-name takes), or -1 when unset.
+    pub fn unit_type(&self, i: usize) -> i32 {
+        self.type_of.get(i).copied().unwrap_or(-1)
+    }
+
     pub fn player(&self, i: usize) -> u8 {
         if i >= self.n { 0 } else { self.player[i] }
     }

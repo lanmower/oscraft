@@ -20,6 +20,7 @@ pub const COMMANDS: &[&str] = &[
     "state-hash",
     "unit-position",
     "unit-player",
+    "unit-kind",
     "unit-hp",
     "order",
     "order-all",
@@ -81,6 +82,10 @@ fn reply(sim: &mut Sim, line: &str) -> Result<String, String> {
             let unit = unit_of(sim, &mut words)?;
             let (x, y) = sim.position_fixed(unit);
             Ok(format!("ok unit-position {x} {y}"))
+        }
+        "unit-kind" => {
+            let unit = unit_of(sim, &mut words)?;
+            Ok(format!("ok unit-kind {}", sim.unit_type(unit)))
         }
         "unit-player" => {
             let unit = unit_of(sim, &mut words)?;

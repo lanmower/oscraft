@@ -76,8 +76,7 @@ const fields = (line, prefix, n) => {
 };
 
 // One tick: advance one tick, then read the state hash and every unit record in one pipelined batch.
-// A unit record is {id, kind, player, x, y, hp}. The guest has no per-unit kind command, so kind is 0
-// until the guest exposes one.
+// A unit record is {id, kind, player, x, y, hp}; kind is the catalog unit type index (unit-kind).
 export async function readTick(guest) {
   const [tickLine, hashLine, countLine] = await Promise.all([
     guest.command('tick 1'),
@@ -91,10 +90,11 @@ export async function readTick(guest) {
     guest.command(`unit-position ${id}`),
     guest.command(`unit-player ${id}`),
     guest.command(`unit-hp ${id}`),
+    guest.command(`unit-kind ${id}`),
   ])));
-  const units = replies.map(([pos, player, hp], id) => {
+  const units = replies.map(([pos, player, hp, kind], id) => {
     const [x, y] = fields(pos, 'ok unit-position ', 2);
-    return { id, kind: 0, player: fields(player, 'ok unit-player ', 1)[0], x, y, hp: fields(hp, 'ok unit-hp ', 1)[0] };
+    return { id, kind: fields(kind, 'ok unit-kind ', 1)[0], player: fields(player, 'ok unit-player ', 1)[0], x, y, hp: fields(hp, 'ok unit-hp ', 1)[0] };
   });
   return { hash, count, units };
 }
