@@ -3028,3 +3028,7 @@ jobs:
           done < docs/FRIENDS.md
           [ "$n" -gt 0 ] || { echo "docs/FRIENDS.md names no commands"; exit 1; }
           echo "friends guide ok commands=$n"
+
+      - name: Show the server log when the scenario check fails
+        if: failure()
+        run: tail -n 120 "$RUNNER_TEMP/duel-routes/server.log" || true
