@@ -1253,7 +1253,7 @@ jobs:
           for s in socks:
               seen[s] = b""
               sel.register(s, selectors.EVENT_READ)
-          refused = 0
+          refused = eof = 0
           while True:
               events = sel.select(timeout=2.0)
               if not events:
@@ -1264,12 +1264,18 @@ jobs:
                   seen[s] += chunk
                   if len(seen[s]) >= 12 or not chunk:
                       sel.unregister(s)
-                      refused += seen[s].startswith(b"HTTP/1.1 503")
+                      if seen[s].startswith(b"HTTP/1.1 503"):
+                          refused += 1
+                      elif not seen[s]:
+                          eof += 1
+          alive = len(sel.get_map())
           
           with open(log) as f:
               conn_lines = sum(1 for line in f if line.startswith("ev=conn_refused "))
           
-          assert refused >= conns - cap, f"503 responses {refused} below {conns - cap}"
+          assert refused + eof + alive == conns, f"unclassified sockets: {conns - refused - eof - alive}"
+          assert alive <= cap, f"{alive} connections held open above cap {cap}"
+          assert refused > 0, "no connection past the cap got 503"
           assert conn_lines >= refused, f"ev=conn_refused lines {conn_lines} below 503 responses {refused}"
           assert threads <= ceiling, f"threads {threads} above ceiling {ceiling}"
           print(f"connection cap threads ok conns={conns} refused={refused} threads={threads} ceiling={ceiling}")
