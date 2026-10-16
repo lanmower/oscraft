@@ -1393,7 +1393,7 @@ jobs:
           for i in $(seq 1 60); do catalog >/dev/null 2>&1 && break; sleep 0.5; done
           catalog | jq -e '.loaded == true' >/dev/null
           catalog | jq -e '.units | any(. == "reloadprobe") | not' >/dev/null
-          printf '%s\n' 'unit("reloadprobe", 50, 2000, 300, build_time=300, minerals=50, supply=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$work/reload_probe.osd"
+          printf '%s\n' 'unit("reloadprobe", 50, 2000, 300, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$work/reload_probe.osd"
           for i in $(seq 1 60); do grep -q '^ev=data_reloaded ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reloaded room=ci ' "$log"
           for i in $(seq 1 20); do catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null 2>&1 && break; sleep 0.25; done
@@ -1703,8 +1703,8 @@ jobs:
           test "$before" -gt 0
           dump "$before" | sort > "$work/pre.txt"
           test "$(wc -l < "$work/pre.txt")" -eq "$before"
-          sed -i '/^unit("skirmisher"/s/minerals=50/minerals=75/' "$work/units.osd"
-          grep -q '^unit("skirmisher".*minerals=75' "$work/units.osd"
+          sed -i '/^unit("skirmisher"/s/resource_a=50/resource_a=75/' "$work/units.osd"
+          grep -q '^unit("skirmisher".*resource_a=75' "$work/units.osd"
           for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reloaded room=ci ' "$log"
           after=$(state | jq -r .units)
@@ -2249,7 +2249,7 @@ jobs:
           cp -r data "$work/base"
           cp -r data "$work/data"
           cat >> "$work/data/units.osd" <<'STAR'
-          unit("zephyr", 45, 3150, 375, build_time=480, minerals=50, supply=1, abilities=[], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="minerals")
+          unit("zephyr", 45, 3150, 375, build_time=480, resource_a=50, capacity=1, abilities=[], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="resource_a")
           STAR
           echo 'spawn("zephyr", 0, 22000, 18000)' >> "$work/data/map.osd"
           base_addr=127.0.0.1:18442
@@ -3058,3 +3058,17 @@ jobs:
       - name: Show the server log when the scenario check fails
         if: failure()
         run: tail -n 120 "$RUNNER_TEMP/duel-routes/server.log" || true
+
+  resource-names:
+    name: resource and capacity names are generic in rust and js
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Count the retired resource names under rust and js
+        run: |
+          count() { grep -rhoi "$1" rust js | wc -l; }
+          m=$(count minerals); v=$(count vespene); s=$(count supply)
+          test "$m$v$s" = 000 || { echo "resource names found minerals=$m vespene=$v supply=$s"; exit 1; }
+          echo "resource names ok minerals=$m vespene=$v supply=$s"
