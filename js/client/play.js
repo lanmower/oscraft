@@ -368,6 +368,13 @@ session.addEventListener("data", (e) => {
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp })) };
 });
 
+// Page state for headless checks: the committed map is drawn by the same Game the sim ticks.
+function publishWitness() {
+  document.body.dataset.units = String(currentUnits().length);
+  document.body.dataset.ticks = String(localGame ? localGame.ticks() : netState ? netState.tick : 0);
+  document.body.dataset.center = `${camera.cx},${camera.cz}`;
+}
+
 async function main() {
   resize();
   bindInput();
@@ -388,10 +395,12 @@ async function main() {
     draw(renderer, gl.TRIANGLES, mapMeshes.tris);
     draw(renderer, gl.LINES, mapMeshes.lines);
     draw(renderer, gl.TRIANGLES, unitVerts(currentUnits()));
+    publishWitness();
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
   setStatus("local preview");
+  document.body.dataset.ready = "1";
 }
 
 if (params.get("ci") === "1") {
@@ -401,4 +410,8 @@ if (params.get("ci") === "1") {
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 
-main().catch((err) => setStatus(`failed: ${err && err.message ? err.message : err}`));
+main().catch((err) => {
+  const message = err && err.message ? err.message : String(err);
+  document.body.dataset.error = message;
+  setStatus(`failed: ${message}`);
+});

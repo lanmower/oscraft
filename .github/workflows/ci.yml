@@ -1418,10 +1418,13 @@ jobs:
           npm install playwright@1.47.0
           npx playwright install --with-deps chromium
 
-      - name: Serve the page and check the map renders
+      - name: Render the committed map through the browser Game and check the witness
         run: |
           target/debug/oscraftd --addr 127.0.0.1:8000 --room ci --site crates/web/site > "$RUNNER_TEMP/http.log" 2>&1 &
           for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8000/ && break; sleep 1; done
+          node "$GITHUB_WORKSPACE/js/host/test-relay.js" 7447 > "$RUNNER_TEMP/relay.log" 2>&1 &
+          python3 -m http.server 8093 --bind 127.0.0.1 --directory "$GITHUB_WORKSPACE/js/client" > "$RUNNER_TEMP/static.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8093/play.html > /dev/null && break; sleep 1; done
           cat > "$RUNNER_TEMP/pw/check.mjs" <<'EOF'
           import { chromium } from "playwright";
           import { createRequire } from "module";
@@ -1441,7 +1444,7 @@ jobs:
             console.log("requests: " + JSON.stringify(failed));
             console.log("http.log:\n" + require("fs").readFileSync(process.env.RUNNER_TEMP + "/http.log", "utf8"));
           };
-          await page.goto("http://127.0.0.1:8000/site/");
+          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci#map");
           try {
             await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
           } catch (e) {
@@ -1459,10 +1462,11 @@ jobs:
           if (!center || center === "0,0,0" || center === "29,37,44") throw new Error("the map centre is blank: " + center);
           if (errors.length) throw new Error("console errors: " + errors.join("\n") + " requests: " + JSON.stringify(failed));
           await page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/map.png" });
-          console.log("ticks=" + ticks + " units=" + units);
+          console.log(`map witness ok ticks=${ticks} units=${units} center=${center} source=js/client/map.bin`);
           await browser.close();
           EOF
-          node "$RUNNER_TEMP/pw/check.mjs"
+          node "$RUNNER_TEMP/pw/check.mjs" | tee "$RUNNER_TEMP/map-witness.txt"
+          grep -q '^map witness ok ticks=[1-9][0-9]* units=[1-9][0-9]* center=[0-9.]*,[0-9.]* source=js/client/map.bin$' "$RUNNER_TEMP/map-witness.txt"
           test "$(curl -s --path-as-is -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8000/site/../Cargo.toml')" = 404
           curl -sf -X POST "http://127.0.0.1:8000/client-error?session=ci-browser&message=ci%20browser%20probe"
           test "$(grep -c '^ev=client_error session=' "$RUNNER_TEMP/http.log")" -eq 1
