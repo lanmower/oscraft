@@ -215,12 +215,12 @@ pub fn shield_regen_delay(image: &[u8]) -> Result<(), String> {
 pub fn upgrade_levels(image: &[u8]) -> Result<(), String> {
     let mut s = fresh(image)?;
     s.add_resources(0, 5000, 5000);
-    let m0 = s.minerals(0);
+    let m0 = s.resource_a(0);
     s.complete_upgrade(0, 0).map_err(|r| format!("complete_upgrade refused: {}", r.name()))?;
-    let m1 = s.minerals(0);
+    let m1 = s.resource_a(0);
     s.complete_upgrade(0, 0).map_err(|r| format!("second complete_upgrade refused: {}", r.name()))?;
     let first = m0 - m1;
-    let second = m1 - s.minerals(0);
+    let second = m1 - s.resource_a(0);
     if first != 100 || second != 200 {
         return Err(format!("upgrade levels cost {first} then {second}, want 100 then 200"));
     }
@@ -530,7 +530,7 @@ pub fn geyser_extraction(image: &[u8]) -> Result<(), String> {
 
 pub fn opening_resources(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
-    // economy.osd: opening minerals 0, gas 0, workers 4.
+    // economy.osd: opening resource_a 0, gas 0, workers 4.
     let got = s.opening_resources();
     if got != (0, 0, 4) {
         return Err(format!("opening resources {got:?}, want (0, 0, 4)"));
@@ -548,30 +548,30 @@ pub fn base_resource_nodes(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn supply_cap(image: &[u8]) -> Result<(), String> {
+pub fn capacity_cap(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
-    // Cap is the base (20) plus provided supply, bounded at 200.
-    let cap = s.supply_cap_of(0);
-    let want = (20 + s.supply_providers(0)).min(200);
+    // Cap is the base (20) plus provided capacity, bounded at 200.
+    let cap = s.capacity_cap_of(0);
+    let want = (20 + s.capacity_providers(0)).min(200);
     if cap != want {
-        return Err(format!("supply cap {cap}, want {want}"));
+        return Err(format!("capacity cap {cap}, want {want}"));
     }
     Ok(())
 }
 
-pub fn supply_providers(image: &[u8]) -> Result<(), String> {
+pub fn capacity_providers(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
-    if s.supply_providers(200) != 0 {
-        return Err("an invalid player reports supply providers".to_string());
+    if s.capacity_providers(200) != 0 {
+        return Err("an invalid player reports capacity providers".to_string());
     }
     Ok(())
 }
 
-pub fn supply_reservation(image: &[u8]) -> Result<(), String> {
+pub fn capacity_reservation(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
-    let held = s.supply_reserved(0);
+    let held = s.capacity_reserved(0);
     if held != 0 {
-        return Err(format!("a fresh map reserves {held} supply, want 0"));
+        return Err(format!("a fresh map reserves {held} capacity, want 0"));
     }
     Ok(())
 }

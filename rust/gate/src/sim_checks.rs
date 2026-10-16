@@ -291,18 +291,18 @@ pub fn harvest_resources(image: &[u8]) -> Result<(), String> {
 pub fn spend_resources(image: &[u8]) -> Result<(), String> {
     let mut s = fresh(image)?;
     s.set_production(true);
-    if s.minerals(0) != 0 {
-        return Err(format!("player 0 starts with {} minerals, want 0", s.minerals(0)));
+    if s.resource_a(0) != 0 {
+        return Err(format!("player 0 starts with {} resource_a, want 0", s.resource_a(0)));
     }
     run_ticks(&mut s, 5);
     if s.stats.trains_refused == 0 {
-        return Err("no train was refused for cost with zero minerals".into());
+        return Err("no train was refused for cost with zero resource_a".into());
     }
     if s.stats.last_train_refusal != Refusal::CannotAfford {
         return Err(format!("last refusal {} want cannot-afford", s.stats.last_train_refusal.name()));
     }
-    if s.minerals(0) != 0 {
-        return Err(format!("refused trains changed minerals to {}", s.minerals(0)));
+    if s.resource_a(0) != 0 {
+        return Err(format!("refused trains changed resource_a to {}", s.resource_a(0)));
     }
     Ok(())
 }
@@ -312,18 +312,18 @@ pub fn cancel_production(image: &[u8]) -> Result<(), String> {
     s.add_resources(0, 1000, 1000);
     s.set_production(true);
     let k = kind(&s, "skirmisher")? as usize;
-    let cost = s.catalog().units[k].minerals;
+    let cost = s.catalog().units[k].resource_a;
     let w = spawn(&mut s, 0, "warden", 6, 5)?;
-    let before = s.minerals(0);
+    let before = s.resource_a(0);
     run_ticks(&mut s, 1);
-    let started = s.minerals(0);
+    let started = s.resource_a(0);
     if started >= before {
-        return Err("no train started: minerals unchanged after one tick".into());
+        return Err("no train started: resource_a unchanged after one tick".into());
     }
     s.cancel_train(w).map_err(|r| refused("cancel_train", r))?;
-    let after = s.minerals(0);
+    let after = s.resource_a(0);
     if after != started + cost {
-        return Err(format!("refund left minerals at {after}, want {}", started + cost));
+        return Err(format!("refund left resource_a at {after}, want {}", started + cost));
     }
     Ok(())
 }
@@ -404,11 +404,11 @@ pub fn player_ownership(image: &[u8]) -> Result<(), String> {
 pub fn player_resources(image: &[u8]) -> Result<(), String> {
     let mut s = fresh(image)?;
     s.add_resources(2, 300, 40);
-    if s.minerals(2) != 300 {
-        return Err(format!("minerals(2) {} want 300", s.minerals(2)));
+    if s.resource_a(2) != 300 {
+        return Err(format!("resource_a(2) {} want 300", s.resource_a(2)));
     }
-    if s.vespene(2) != 40 {
-        return Err(format!("vespene(2) {} want 40", s.vespene(2)));
+    if s.resource_b(2) != 40 {
+        return Err(format!("resource_b(2) {} want 40", s.resource_b(2)));
     }
     spawn(&mut s, 2, "skirmisher", 20, 20)?;
     let present = (0..s.count()).filter(|&j| s.player(j) == 2 && s.alive(j)).count();

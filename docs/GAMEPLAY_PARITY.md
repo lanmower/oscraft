@@ -24,13 +24,13 @@ Columns: id, mechanic (one sentence), covering CAP row or MISSING.
 | GP-ECO-6 | Each start has a fixed opening resource amount and a fixed opening worker count. | CAP-PROD-7 |
 | GP-ECO-7 | Each base has a fixed number of mineral patches and geysers defined by the map. | CAP-PROD-8 |
 
-## Supply and population (SUP)
+## Capacity and population (SUP)
 
 | id | mechanic | CAP |
 |---|---|---|
-| GP-SUP-1 | Each unit consumes a fixed supply amount, and production is refused when the owner would exceed the supply cap. | CAP-PROD-9 |
-| GP-SUP-2 | Supply providers raise the cap, and the cap is bounded by a per-race maximum. | CAP-PROD-10 |
-| GP-SUP-3 | Supply is reserved when production is queued and released when it is cancelled. | CAP-PROD-11 |
+| GP-SUP-1 | Each unit consumes a fixed capacity amount, and production is refused when the owner would exceed the capacity cap. | CAP-PROD-9 |
+| GP-SUP-2 | Capacity providers raise the cap, and the cap is bounded by a per-race maximum. | CAP-PROD-10 |
+| GP-SUP-3 | Capacity is reserved when production is queued and released when it is cancelled. | CAP-PROD-11 |
 
 ## Production queues and rally (PROD)
 

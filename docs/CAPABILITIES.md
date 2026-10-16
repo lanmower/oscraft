@@ -78,16 +78,16 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
 | CAP-PROD-1 | Produce a unit from a building over time | implemented | sim/src/production.rs (produce_step) | gate:produce-unit |
-| CAP-PROD-2 | Gather minerals and vespene through harvest steps | implemented | sim/src/harvest.rs (harvest_step, retarget_scan, arrived); sim/src/arrays.rs (add_resources, minerals, vespene) | gate:harvest-resources |
+| CAP-PROD-2 | Gather resource_a and resource_b through harvest steps | implemented | sim/src/harvest.rs (harvest_step, retarget_scan, arrived); sim/src/arrays.rs (add_resources, resource_a, resource_b) | gate:harvest-resources |
 | CAP-PROD-3 | Deduct production costs before starting a unit | implemented | sim/src/arrays.rs (add_resources); deduction path not confirmed | gate:spend-resources |
 | CAP-PROD-4 | Cancel a queued unit with refund | implemented | none | gate:cancel-production |
 | CAP-PROD-5 | Scale patch income with workers up to a saturation count | claimed | none | gate:worker-saturation |
 | CAP-PROD-6 | Gate gas harvesting on an extractor building with a per-geyser saturation count | claimed | none | gate:geyser-extraction |
 | CAP-PROD-7 | Set a fixed opening resource amount and opening worker count per start | claimed | none | gate:opening-resources |
 | CAP-PROD-8 | Set a fixed mineral patch and geyser count per base from map data | claimed | none | gate:base-resource-nodes |
-| CAP-PROD-9 | Charge a fixed supply per unit and refuse production past the supply cap | claimed | none | gate:supply-cap |
-| CAP-PROD-10 | Raise the supply cap with providers, bounded by a per-race maximum | claimed | none | gate:supply-providers |
-| CAP-PROD-11 | Reserve supply when production is queued and release it on cancel | claimed | none | gate:supply-reservation |
+| CAP-PROD-9 | Charge a fixed capacity per unit and refuse production past the capacity cap | claimed | none | gate:capacity-cap |
+| CAP-PROD-10 | Raise the capacity cap with providers, bounded by a per-race maximum | claimed | none | gate:capacity-providers |
+| CAP-PROD-11 | Reserve capacity when production is queued and release it on cancel | claimed | none | gate:capacity-reservation |
 | CAP-PROD-12 | Move a newly finished unit to the building's rally point | claimed | none | gate:rally-point |
 | CAP-PROD-13 | Require prerequisite buildings or research before a unit, building or upgrade can be made | claimed | none | gate:tech-prerequisites |
 | CAP-PROD-14 | Run one research at a time per building for a fixed time at a resource cost | claimed | none | gate:research-queue |

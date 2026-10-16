@@ -44,18 +44,18 @@ pub fn ability_use(image: &[u8]) -> Result<(), String> {
 
 pub fn economy_transfer(image: &[u8]) -> Result<(), String> {
     let mut s = fresh(image)?;
-    let (m0, v0, m1, v1) = (s.minerals(0), s.vespene(0), s.minerals(1), s.vespene(1));
+    let (m0, v0, m1, v1) = (s.resource_a(0), s.resource_b(0), s.resource_a(1), s.resource_b(1));
     s.add_resources(0, 75, 25);
-    if s.minerals(0) != m0 + 75 || s.vespene(0) != v0 + 25 {
+    if s.resource_a(0) != m0 + 75 || s.resource_b(0) != v0 + 25 {
         return Err(format!(
             "player 0 moved to {}/{} want {}/{}",
-            s.minerals(0),
-            s.vespene(0),
+            s.resource_a(0),
+            s.resource_b(0),
             m0 + 75,
             v0 + 25
         ));
     }
-    if s.minerals(1) != m1 || s.vespene(1) != v1 {
+    if s.resource_a(1) != m1 || s.resource_b(1) != v1 {
         return Err("crediting player 0 changed player 1's ledger".into());
     }
     Ok(())
