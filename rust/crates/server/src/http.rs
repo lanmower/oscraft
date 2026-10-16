@@ -154,16 +154,18 @@ impl Response {
     }
 
     pub fn write_to(&self, w: &mut impl Write) -> io::Result<()> {
-        write!(w, "HTTP/1.1 {} {}\r\n", self.status, reason(self.status))?;
+        let mut buf = Vec::with_capacity(128 + self.body.len());
+        write!(buf, "HTTP/1.1 {} {}\r\n", self.status, reason(self.status))?;
         for (k, v) in &self.headers {
-            write!(w, "{k}: {v}\r\n")?;
+            write!(buf, "{k}: {v}\r\n")?;
         }
         write!(
-            w,
+            buf,
             "Content-Length: {}\r\nConnection: close\r\n\r\n",
             self.body.len()
         )?;
-        w.write_all(&self.body)?;
+        buf.extend_from_slice(&self.body);
+        w.write_all(&buf)?;
         w.flush()
     }
 }
