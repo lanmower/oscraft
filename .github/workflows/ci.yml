@@ -2318,3 +2318,100 @@ jobs:
           fi
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           echo "mod handle dropped on kind change ok handle=$handle unit=$unit reason=kind_changed"
+
+  page-edit-rejected:
+    name: a broken main.js edit leaves the served page running with one client_error line, and a good edit reloads it
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Export the map image and build the wasm module into the page
+        run: |
+          cargo run -p mapexport -- crates/web/site/map.bin
+          wasm-pack build crates/web --target web --out-dir site/pkg
+
+      - name: Install headless Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install playwright@1.47.0
+          npx playwright install --with-deps chromium
+
+      - name: Serve a job-owned copy of the site, break its main.js, and check the page rejects the edit
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/edit-rejected"
+          mkdir -p "$work"
+          cp -r crates/web/site "$work/site"
+          cat > "$RUNNER_TEMP/pw/edit-rejected.mjs" <<'JS'
+          import { chromium } from "playwright";
+          import { spawn } from "child_process";
+          import { openSync, readFileSync, writeFileSync } from "fs";
+          const [bin, site, addr, log] = process.argv.slice(2);
+          const base = "http://" + addr;
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const server = spawn(bin, ["--addr", addr, "--room", "ci-edit-rejected", "--site", site], { stdio: ["ignore", openSync(log, "a"), openSync(log, "a")] });
+          const stamp = async () => (await (await fetch(base + "/site/version", { cache: "no-store" })).json()).page;
+          async function until(what, fn, ms) {
+            const end = Date.now() + ms;
+            for (;;) {
+              try { const v = await fn(); if (v) return v; } catch {}
+              if (Date.now() > end) throw new Error("timed out: " + what);
+              await sleep(250);
+            }
+          }
+          const rejectLines = () => readFileSync(log, "utf8").split("\n").filter((l) => l.startsWith("ev=client_error ") && l.includes('message="page edit rejected: '));
+          await until("server answers /site/version", stamp, 60000);
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          await page.goto(base + "/site/");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const pageError = await page.getAttribute("body", "data-error");
+          if (pageError) throw new Error("page error: " + pageError);
+          const before = await until("page stamp", () => page.getAttribute("body", "data-page-version"), 15000);
+          await page.evaluate(() => { window.__sameDocument = "yes"; });
+          const file = site + "/main.js";
+          const good = readFileSync(file, "utf8");
+          writeFileSync(file, good + "\nfunction ci_broken( {\n");
+          await until("server stamps the broken main.js", async () => (await stamp()) !== before, 15000);
+          await until("server relays the rejection to the log", async () => rejectLines().length >= 1, 30000);
+          await sleep(4000);
+          if (await page.getAttribute("body", "data-page-version") !== before) throw new Error("page moved to a new stamp on a broken main.js");
+          if (await page.evaluate(() => window.__sameDocument) !== "yes") throw new Error("page reloaded on a broken main.js");
+          if (rejectLines().length !== 1) throw new Error("expected one client_error line, got " + rejectLines().length + ": " + rejectLines().join("\n"));
+          if (server.exitCode !== null) throw new Error("server exited during the rejected edit");
+          writeFileSync(file, good + `\n// ci edit rejected restore ${Date.now()}\n`);
+          const after = await until("page reloads after the good edit", async () => {
+            const v = await page.getAttribute("body", "data-page-version");
+            return v && v !== before ? v : null;
+          }, 30000);
+          if (await page.evaluate(() => window.__sameDocument) !== undefined) throw new Error("page kept its document after the good edit; no reload happened");
+          await page.waitForSelector("body[data-ready='1']", { timeout: 60000 });
+          await sleep(3000);
+          if (await page.getAttribute("body", "data-page-version") !== after) throw new Error("page reloaded more than once");
+          if (rejectLines().length !== 1) throw new Error("client_error line count changed after the fix: " + rejectLines().length);
+          if (errors.length) throw new Error("page errors: " + errors.join("\n"));
+          console.log("browser broken edit rejected page_version=" + before + " reloaded_after_fix=true");
+          await browser.close();
+          server.kill();
+          JS
+          node "$RUNNER_TEMP/pw/edit-rejected.mjs" "$PWD/target/debug/oscraftd" "$work/site" 127.0.0.1:8009 "$work/server.log"

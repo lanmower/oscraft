@@ -350,8 +350,21 @@ function failPage(path, e) {
 
 window.addEventListener("error", (e) => failPage("window.error", e.error ?? e.message));
 window.addEventListener("unhandledrejection", (e) => failPage("unhandledrejection", e.reason));
-// Polls /site/version at the mod poll interval; a changed page stamp (main.js edited on the server) reloads the page once.
+// Polls /site/version at the mod poll interval. A changed page stamp (main.js edited on the server) reloads the page
+// once, and only when the new main.js compiles; a rejected edit keeps the running page and is reported once per stamp.
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+async function editRejection() {
+  const text = await (await fetch("main.js", { cache: "no-store" })).text();
+  const body = text.replace(/^\s*import\s[^;]*;\s*$/gm, "").replace(/^export\s+/gm, "");
+  try {
+    new AsyncFunction(body);
+    return null;
+  } catch (e) {
+    return String(e);
+  }
+}
 let pageVersion = null;
+let rejectedPageVersion = null;
 async function watchPage() {
   for (;;) {
     await sleep(MOD_POLL_MS);
@@ -361,8 +374,15 @@ async function watchPage() {
         pageVersion = page;
         document.body.dataset.pageVersion = page;
       } else if (page !== pageVersion) {
-        location.reload();
-        return;
+        const rejection = await editRejection();
+        if (rejection === null) {
+          location.reload();
+          return;
+        }
+        if (page !== rejectedPageVersion) {
+          rejectedPageVersion = page;
+          reportClientError("page edit rejected", rejection);
+        }
       }
     } catch (e) {
       // a dropped poll is retried on the next tick
