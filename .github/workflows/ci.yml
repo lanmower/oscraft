@@ -10,10 +10,11 @@ on:
 permissions:
   contents: read
 
-# One run per sha, and no run cancels another, so every sha gets a verdict.
+# One run per ref. A newer push cancels the older run of the same ref, so the tip
+# gets a full verdict and superseded shas do not.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.sha }}
-  cancel-in-progress: false
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
