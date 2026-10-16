@@ -896,7 +896,7 @@ jobs:
           mkdir -p "$work"
           trap 'echo "server log:"; tail -n 40 "$work/server.log" || true' ERR
           ./target/debug/osdt-data data "$work/catalog.osdt"
-          printf '%s\n' 'function on_tick(state)' '  if state.spawned == nil then' '    game.cmd_spawn("skirmisher", 688128, 1343488)' '    state.spawned = 1' '  end' 'end' > "$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.age = (state.age or 0) + 1' '  if state.age == 120 then' '    game.cmd_spawn("skirmisher", 688128, 1343488)' '  end' 'end' > "$work/mod.lua"
           addr=127.0.0.1:18433
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --tick-budget-us 250000 > "$work/server.log" 2>&1 &
           pid=$!
@@ -2343,7 +2343,7 @@ jobs:
       - name: Export the map image and build the wasm module into the page
         run: |
           cargo run -p mapexport -- crates/web/site/map.bin
-          wasm-pack build crates/web --target web --out-dir site/pkg
+          wasm-pack build crates/web --target web --out-dir site/pkg --no-opt
 
       - name: Install headless Chromium
         run: |
