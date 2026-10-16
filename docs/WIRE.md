@@ -1,6 +1,6 @@
 # Wire format
 
-Shared by the Node host and the browser client through `js/wire/frame.js`.
+Shared by the browser host and the browser client through `js/wire/frame.js`. The client keeps a copy at `js/client/wire/frame.js`, and CI compares the two.
 The codec is pure: it takes and returns `Uint8Array`, with no DOM or Node-only APIs.
 
 ## Header

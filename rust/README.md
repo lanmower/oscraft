@@ -15,6 +15,6 @@ A contract proof for the Lua 5.4 mod runtime, not a port of the simulation. It e
 cargo run -p oscraft-spike
 ```
 
-From `rust/`. CI runs the same command on ubuntu and windows (`rust` job in `.github/workflows/ci.yml`). The determinism hash is printed in the log.
+From `rust/`. CI runs the same command in the `check` jobs of `.github/workflows/ci.yml`, on Linux, Windows and macOS. The determinism hash is printed in the log.
 
 The reload demo writes its mod versions to the system temp directory. It does not touch `spike/mods/unit_mod.lua`, which is the file the determinism and hook runs load.

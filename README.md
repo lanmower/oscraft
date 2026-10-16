@@ -4,6 +4,10 @@ A deterministic simulation in the style of the reference game, being ported to R
 
 The goal is a headless simulation that gives the same state hash on every platform for the same inputs, with game data read from a binary file generated from Starlark sources, and mods written in Lua 5.4 that run against the host's state.
 
+## Browser game
+
+The playable build is a static page in `js/client/`, the GitHub Pages target. It loads committed ES modules through an import map and committed wasm, with no bundler or install step. See [docs/HOST.md](docs/HOST.md).
+
 ## Crates
 
 All crates live in the `rust/` workspace (`rust/Cargo.toml`).

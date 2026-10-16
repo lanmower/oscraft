@@ -209,7 +209,7 @@ function bindInput() {
 
 // Browser host: this page owns the sim (localGame). Each peer is assigned a player id when its channel opens
 // (the lowest id no other peer holds); an order is applied only when the unit's player is the sender's.
-// Every HOST_TICK_MS the host ticks the sim and broadcasts a full state frame every FULL_EVERY ticks, a delta otherwise.
+// Every HOST_TICK_MS the host ticks the sim and broadcasts that tick's state through the delta encoder (delta.js).
 function assignPlayer(players, peerPubkey) {
   if (players.has(peerPubkey)) return players.get(peerPubkey);
   const taken = new Set(players.values());
