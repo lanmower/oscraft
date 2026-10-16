@@ -2701,9 +2701,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: js/client
     steps:
       - uses: actions/checkout@v4
 
@@ -2711,12 +2708,9 @@ jobs:
         with:
           node-version: 20
 
-      - name: Bundle the page script and install headless Chromium
+      - name: Install headless Chromium
         run: |
           set -euo pipefail
-          npm install
-          npm run build
-          test -s dist/play.js
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
@@ -2780,7 +2774,6 @@ jobs:
             await browser.close();
           }
           EOF
-          ls -la "$GITHUB_WORKSPACE/js/client/dist" >&2 || true
           node "$RUNNER_TEMP/pw/lobby.mjs" | tee "$work/lobby.txt"
           grep -q '^room expiry ok dropped=alpha remaining=beta ttl_s=45$' "$work/lobby.txt"
           grep -q '^lobby room select ok rooms=2 joined=beta$' "$work/lobby.txt"
