@@ -2799,3 +2799,50 @@ jobs:
           name: net-e2e-logs
           path: ${{ runner.temp }}/net-e2e
           if-no-files-found: ignore
+
+  duel-routes:
+    name: duel-routes scenario loads and runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Compile the scenario, run 200 ticks, check sides, routes and an objective's hit points
+        run: |
+          set -euo pipefail
+          cd rust
+          cargo build -p server --bin oscraftd
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/duel-routes"
+          mkdir -p "$work"
+          ./target/debug/osdt-data ../scenarios/duel-routes "$work/catalog.osdt"
+          addr=127.0.0.1:8106
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 > "$work/server.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          curl -sf "http://$addr/state?map=ci" > "$work/s0.json"
+          tick=0
+          for i in $(seq 1 240); do
+            curl -sf "http://$addr/state?map=ci" > "$work/s1.json" || true
+            tick=$(jq -r '.tick // 0' "$work/s1.json" 2>/dev/null || echo 0)
+            test "$tick" -ge 200 && break
+            sleep 0.5
+          done
+          test "$tick" -ge 200
+          sides=$(jq '[.records[].player | select(. >= 0)] | unique | length' "$work/s1.json")
+          routes=$(jq '[.records[] | select(.kind == 3) | .y] | unique | length' "$work/s1.json")
+          objectives=$(jq '[.records[] | select(.kind == 3)] | length' "$work/s1.json")
+          hp_changed=$(jq -n --slurpfile a "$work/s0.json" --slurpfile b "$work/s1.json" '[ $b[0].records[] | select(.kind == 3) as $r | ($a[0].records[] | select(.id == $r.id and .kind == 3)) as $o | select($o.hp != $r.hp) ] | length > 0')
+          test "$sides" -eq 2
+          test "$routes" -eq 3
+          test "$objectives" -ge 1
+          test "$hp_changed" = true
+          echo "scenario ok sides=$sides routes=$routes objectives=$objectives hp_changed=$hp_changed" | tee "$work/scenario.txt"
