@@ -2783,7 +2783,7 @@ jobs:
               throw new Error(`no state change seen: before=${before.x},${before.z} peerA=${JSON.stringify(sa)} peerB=${JSON.stringify(sb)}`);
             }
             if (pageErrors.length) throw new Error("page errors: " + pageErrors.join(" | "));
-            const peerOpens = readFileSync(hostLog, "utf8").split("\n").filter((l) => l.startsWith("ev=peer_open ")).length;
+            const peerOpens = new Set(readFileSync(hostLog, "utf8").split("\n").filter((l) => l.startsWith("ev=peer_open ")).map((l) => l.match(/peer=(\S+)/)?.[1])).size;
             if (peerOpens < 2) throw new Error(`host logged ${peerOpens} peer_open events, need 2`);
             console.log(`net e2e ok peers=${peerOpens} unit=${before.id} before=${before.x},${before.z} after=${sb.x},${sb.z}`);
           } finally {
