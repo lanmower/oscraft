@@ -374,16 +374,28 @@ fn carry_live_units(old: &Sim, new: &mut Sim) -> (usize, usize) {
     (carried, old.alive_count().saturating_sub(carried))
 }
 
-// Keeps each handle whose unit was live before the swap. A unit the new map leaves out is respawned
-// at its old index, kind, owner and point, so the handle still names the unit it was bound to.
+// Keeps each handle whose unit was live before the swap and whose kind name is unchanged. A unit
+// the new map leaves out is respawned at its old index, kind, owner and point, so the handle still
+// names the unit it was bound to. Any other handle is dropped and logged as refused with its reason.
 fn keep_handles(old: &Sim, new: &mut Sim, handles: &HashMap<u32, usize>) -> HashMap<u32, usize> {
     let mut kept = HashMap::new();
     for (&handle, &unit) in handles {
         if !old.alive(unit) {
             continue;
         }
+        let refuse = |reason: &str| crate::emit!(Ev::ModUnitRefused, handle = handle, unit = unit, reason = reason);
+        let Some(name) = old.kind_name(unit) else {
+            refuse("kind_absent");
+            continue;
+        };
+        if new.kind_name(unit).is_some_and(|now| now != name) {
+            refuse("kind_changed");
+            continue;
+        }
         if new.alive(unit) || respawn(old, new, unit) {
             kept.insert(handle, unit);
+        } else {
+            refuse(if new.catalog().unit_index(name).is_some() { "respawn_failed" } else { "kind_absent" });
         }
     }
     kept
