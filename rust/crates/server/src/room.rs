@@ -63,11 +63,44 @@ pub struct Snapshot {
     pub tick: u64,
     pub state_hash: u64,
     pub units: usize,
+    pub records: Vec<String>,
 }
 
 pub struct Delta {
     pub tick: u32,
     pub units: Vec<u32>,
+    pub records: Vec<String>,
+}
+
+// Most unit records one /state or /delta reply carries. A reply cut short still reports its exact
+// unit or changed count, so a reader sees the gap as a count mismatch.
+pub const RECORD_CAP: usize = 512;
+
+fn unit_json(sim: &Sim, i: usize, with_alive: bool) -> String {
+    let (x, y) = sim.position_fixed(i);
+    let alive = if with_alive { "\"alive\":true," } else { "" };
+    format!(
+        "{{\"id\":{i},{alive}\"kind\":{},\"player\":{},\"x\":{x},\"y\":{y},\"hp\":{}}}",
+        sim.kind_of(i),
+        sim.player(i),
+        sim.hp(i)
+    )
+}
+
+fn live_records(sim: &Sim) -> Vec<String> {
+    (0..sim.count())
+        .filter(|&i| sim.alive(i))
+        .take(RECORD_CAP)
+        .map(|i| unit_json(sim, i, false))
+        .collect()
+}
+
+fn changed_record(sim: &Sim, i: usize) -> String {
+    if sim.alive(i) {
+        unit_json(sim, i, true)
+    } else {
+        format!("{{\"id\":{i},\"alive\":false}}")
+    }
 }
 
 pub enum DeltaError {
@@ -179,6 +212,7 @@ impl Room {
             tick: c.tick,
             state_hash: c.sim.state_hash(),
             units: c.sim.alive_count(),
+            records: live_records(&c.sim),
         }
     }
 
@@ -195,7 +229,8 @@ impl Room {
         let mut units = vec![0u32; c.sim.changed_count_since(since)];
         let written = c.sim.changed_since(since, &mut units);
         units.truncate(written);
-        Ok(Delta { tick, units })
+        let records = units.iter().take(RECORD_CAP).map(|&i| changed_record(&c.sim, i as usize)).collect::<Vec<String>>();
+        Ok(Delta { tick, units, records })
     }
 
     pub fn unit_position(&self, unit: usize) -> Option<(i32, i32)> {

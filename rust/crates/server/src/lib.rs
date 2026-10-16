@@ -381,14 +381,15 @@ pub fn serve_state(room: &Room, req: &Request) -> Response {
     Response::json(
         200,
         format!(
-            "{{\"proto\":{},\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{},\"unit\":{}}}",
+            "{{\"proto\":{},\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{},\"unit\":{},\"records\":[{}]}}",
             PROTOCOL_VERSION,
             json_string(&room.name),
             snap.tick,
             snap.state_hash,
             room.max_units,
             snap.units,
-            unit
+            unit,
+            snap.records.join(",")
         ),
     )
 }
@@ -409,13 +410,14 @@ pub fn serve_delta(room: &Room, req: &Request) -> Response {
             Response::json(
                 200,
                 format!(
-                    "{{\"proto\":{},\"map\":{},\"since\":{},\"tick\":{},\"changed\":{},\"units\":[{}]}}",
+                    "{{\"proto\":{},\"map\":{},\"since\":{},\"tick\":{},\"changed\":{},\"units\":[{}],\"records\":[{}]}}",
                     PROTOCOL_VERSION,
                     json_string(&room.name),
                     since,
                     delta.tick,
                     units.len(),
-                    units.join(",")
+                    units.join(","),
+                    delta.records.join(",")
                 ),
             )
         }

@@ -2466,3 +2466,81 @@ jobs:
           test "$after" -eq $(( before - dropped ))
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           echo "carry drop exercised dropped=$dropped before=$before after=$after"
+
+  late-join-snapshot:
+    name: a late joiner's /state snapshot plus /delta since its tick matches a fresh /state
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Snapshot at tick t, order, advance, then /delta since t applied to the snapshot matches a fresh /state at the same tick
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/late-join"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18447
+          log="$work/server.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          wait_tick() {
+            for i in $(seq 1 240); do
+              now=$(state | jq -r .tick)
+              test "$now" -ge "$1" && return 0
+              sleep 0.1
+            done
+            return 1
+          }
+          token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
+          test -n "$token"
+          wait_tick 8
+          snap=$(state)
+          t=$(jq -r .tick <<<"$snap")
+          test "$(jq -r '.records | length' <<<"$snap")" = "$(jq -r .units <<<"$snap")"
+          test "$(jq -r .units <<<"$snap")" -gt 0
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data '{"player":0,"x":5,"y":5}')
+          test "$code" = 200
+          wait_tick $((t + 8))
+          ok=""
+          for i in $(seq 1 50); do
+            delta=$(curl -sf "http://$addr/delta?since=$t")
+            D=$(jq -r .tick <<<"$delta")
+            fresh=$(state)
+            if [ "$(jq -r .tick <<<"$fresh")" = "$D" ]; then ok=1; break; fi
+            sleep 0.05
+          done
+          test -n "$ok"
+          test "$(jq -r '.records | length' <<<"$delta")" = "$(jq -r .changed <<<"$delta")"
+          test "$(jq -r '.records | length' <<<"$fresh")" = "$(jq -r .units <<<"$fresh")"
+          applied=$(jq -c -n --argjson s "$snap" --argjson d "$delta" '
+            ($d.records | map(select(.alive == false) | .id)) as $dead
+            | ([$s.records[] | select(.id as $i | $dead | contains([$i]) | not)]
+               + [$d.records[] | select(.alive == true) | del(.alive)])
+            | group_by(.id) | map(last) | map({id,x,y,hp}) | sort_by(.id)')
+          fresh_set=$(jq -c '[.records[] | {id,x,y,hp}] | sort_by(.id)' <<<"$fresh")
+          if [ "$applied" != "$fresh_set" ]; then
+            echo "late join mismatch tick=$D"
+            echo "applied=$applied"
+            echo "fresh=$fresh_set"
+            exit 1
+          fi
+          n=$(jq -r .units <<<"$fresh")
+          echo "late join ok ticks=$t units=$n"
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
