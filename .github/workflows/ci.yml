@@ -1,0 +1,2606 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run per sha, and no run cancels another, so every sha gets a verdict.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_NET_RETRY: "3"
+
+jobs:
+  check:
+    name: build, spike and gate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build workspace (one compile for spike and gate)
+        run: cargo build --workspace
+
+      - name: Run Lua mod spike
+        run: cargo run -p oscraft-spike
+
+      - name: Run parity gate
+        run: cargo run -p oscraft-gate > gate.txt 2>&1 || echo "gate exited nonzero" >> gate.txt
+
+      - name: MPQ round-trip
+        run: cargo run -p oscraft-gate -- mpq
+
+      - name: Show gate output
+        if: always()
+        run: cat gate.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-output-${{ matrix.os }}
+          path: rust/gate.txt
+
+  gate-compare:
+    name: compare gate output across OSes
+    needs: check
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gate-output-*
+          path: outputs
+
+  wasm:
+    name: sim builds for wasm32
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-wasm
+
+      - name: Build the browser crate (sim and wasm-bindgen wrapper) for wasm32
+        run: cargo build -p web --target wasm32-unknown-unknown
+
+  browser:
+    name: map renders in a headless browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-browser
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Export the map image for the page
+        run: cargo run -p mapexport -- crates/web/site/map.bin
+
+      - name: Build the wasm module into the page
+        run: wasm-pack build crates/web --target web --out-dir site/pkg --no-opt
+
+      - name: Install headless Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install playwright@1.47.0
+          npx playwright install --with-deps chromium
+
+      - name: Serve the page and check the map renders
+        run: |
+          cargo build -p server --bin oscraftd
+          target/debug/oscraftd --addr 127.0.0.1:8000 --room ci --site crates/web/site > "$RUNNER_TEMP/http.log" 2>&1 &
+          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8000/ && break; sleep 1; done
+          cat > "$RUNNER_TEMP/pw/check.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          import { createRequire } from "module";
+          const require = createRequire(import.meta.url);
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+          const failed = [];
+          page.on("requestfailed", (r) => failed.push("failed " + r.url() + " " + r.failure()?.errorText));
+          page.on("response", (r) => { if (r.status() >= 400) failed.push(r.status() + " " + r.url()); });
+          page.on("requestfinished", (r) => { if (r.url().includes("pkg/")) failed.push("ok " + r.url()); });
+          const diagnose = (why) => {
+            console.log("DIAGNOSTICS: " + why);
+            console.log("page errors: " + JSON.stringify(errors));
+            console.log("requests: " + JSON.stringify(failed));
+            console.log("http.log:\n" + require("fs").readFileSync(process.env.RUNNER_TEMP + "/http.log", "utf8"));
+          };
+          await page.goto("http://127.0.0.1:8000/site/");
+          try {
+            await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          } catch (e) {
+            diagnose("the page never reached ready or error");
+            throw e;
+          }
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          const units = Number(await page.getAttribute("body", "data-units"));
+          const ticks = Number(await page.getAttribute("body", "data-ticks"));
+          if (!(await page.$("canvas"))) throw new Error("no canvas on the page");
+          if (!(ticks > 0)) throw new Error("the sim did not tick: " + ticks);
+          if (!(units > 0)) throw new Error("no units were drawn");
+          const center = await page.getAttribute("body", "data-center");
+          if (!center || center === "0,0,0" || center === "29,37,44") throw new Error("the map centre is blank: " + center);
+          if (errors.length) throw new Error("console errors: " + errors.join("\n") + " requests: " + JSON.stringify(failed));
+          await page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/map.png" });
+          console.log("ticks=" + ticks + " units=" + units);
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/check.mjs"
+          test "$(curl -s --path-as-is -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8000/site/../Cargo.toml')" = 404
+          curl -sf -X POST "http://127.0.0.1:8000/client-error?session=ci-browser&message=ci%20browser%20probe"
+          test "$(grep -c '^ev=client_error session=' "$RUNNER_TEMP/http.log")" -eq 1
+          grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'session=ci-browser '
+          grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'message="ci browser probe"'
+
+      - name: Edit the mod under a running page; its data-mod-version follows
+        run: |
+          set -euo pipefail
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/mod-client"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
+          target/debug/oscraftd --addr 127.0.0.1:8001 --room ci-client --data "$work/catalog.osdt" --mod "$mod" --site crates/web/site > "$work/server.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8001/mod-version | grep -q '"version":1' && break; sleep 1; done
+          curl -sf http://127.0.0.1:8001/mod-version | grep -q '"version":1'
+          cat > "$RUNNER_TEMP/pw/mod.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          import { writeFileSync } from "fs";
+          const modPath = process.argv[2];
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          await page.goto("http://127.0.0.1:8001/site/");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          await page.waitForSelector("body[data-mod-version='1']", { timeout: 15000 });
+          const before = "1";
+          writeFileSync(modPath, 'function on_tick(state)\n  state.ticks = state.ticks + 1\n  state.probe = "v2"\nend\n');
+          let seen = before;
+          const deadline = Date.now() + 15000;
+          while (Date.now() < deadline) {
+            seen = await page.getAttribute("body", "data-mod-version");
+            if (seen === "2") break;
+            await page.waitForTimeout(250);
+          }
+          if (seen !== "2") throw new Error("data-mod-version stayed at " + seen + " after the mod edit");
+          writeFileSync(modPath, 'function on_tick(state\n  state.ticks = state.ticks + 1\nend\n');
+          const brokenUntil = Date.now() + 5000;
+          while (Date.now() < brokenUntil) {
+            const kept = await page.getAttribute("body", "data-mod-version");
+            if (kept !== "2") throw new Error("data-mod-version moved to " + kept + " after a broken mod edit");
+            await page.waitForTimeout(250);
+          }
+          if (!(await page.$("canvas"))) throw new Error("no canvas after a broken mod edit");
+          console.log("check: broken mod edit kept data-mod-version at 2 for 5 s and the canvas is still present");
+          if (errors.length) throw new Error("page errors: " + errors.join("\n"));
+          console.log("check: data-mod-version went " + before + " -> " + seen + " in the browser after the mod edit");
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/mod.mjs" "$mod"
+          for i in $(seq 1 10); do grep -q '^ev=mod_reload_failed ' "$work/server.log" && break; sleep 1; done
+          grep -q '^ev=mod_reload_failed ' "$work/server.log"
+          echo "check: server rejected the broken mod and kept the previous version"
+
+      - name: Reject five reloads in the browser; one stop line, data-mod-version holds
+        run: |
+          set -euo pipefail
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/mod-reject"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' 'end' > "$mod"
+          target/debug/oscraftd --addr 127.0.0.1:8002 --room ci-reject --data "$work/catalog.osdt" --mod "$mod" --site crates/web/site > "$work/server.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8002/mod-version | grep -q '"version":1' && break; sleep 1; done
+          curl -sf http://127.0.0.1:8002/mod-version | grep -q '"version":1'
+          cat > "$RUNNER_TEMP/pw/reject.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          import { writeFileSync } from "fs";
+          const modPath = process.argv[2];
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          const stops = [];
+          const applies = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          page.on("console", (m) => {
+            if (m.type() !== "error") return;
+            if (m.text().startsWith("mod watch stopped")) stops.push(m.text());
+            else errors.push(m.text());
+          });
+          page.on("request", (r) => { if (r.url().includes("map.bin?v=2")) applies.push(r.url()); });
+          await page.goto("http://127.0.0.1:8002/site/?rejectReloads=5");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          await page.waitForSelector("body[data-mod-version='1']", { timeout: 15000 });
+          writeFileSync(modPath, 'function on_tick(state)\n  state.ticks = state.ticks + 1\n  state.probe = "v2"\nend\n');
+          const deadline = Date.now() + 30000;
+          while (stops.length === 0 && Date.now() < deadline) await page.waitForTimeout(250);
+          await page.waitForTimeout(4000);
+          if (stops.length !== 1) throw new Error("expected one stop line, saw " + stops.length + ": " + JSON.stringify(stops));
+          if (!stops[0].includes("after 5 rejected reloads")) throw new Error("stop line names the wrong count: " + stops[0]);
+          if (applies.length !== 5) throw new Error("expected 5 applies of map.bin?v=2, saw " + applies.length);
+          const kept = await page.getAttribute("body", "data-mod-version");
+          if (kept !== "1") throw new Error("data-mod-version moved to " + kept + " after rejected reloads");
+          if (!(await page.$("canvas"))) throw new Error("no canvas after rejected reloads");
+          if (errors.length) throw new Error("page errors: " + errors.join("\n"));
+          console.log("check: five rejected reloads logged one stop line; data-mod-version held at " + kept + "; canvas present");
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/reject.mjs" "$mod"
+
+      - name: Upload the page screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-screenshot
+          path: ${{ runner.temp }}/pw/map.png
+          if-no-files-found: ignore
+
+      - name: Uncaught page error and rejected promise each reach the server log once
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/client-probe"
+          mkdir -p "$work"
+          target/debug/oscraftd --addr 127.0.0.1:8003 --room ci-probe --site crates/web/site > "$work/http.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8003/ && break; sleep 1; done
+          cat > "$RUNNER_TEMP/pw/probe.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          await page.goto("http://127.0.0.1:8003/site/?probeErrors=1");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          await page.waitForTimeout(3000);
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/probe.mjs"
+          for i in $(seq 1 20); do [ "$(grep -c '^ev=client_error ' "$work/http.log")" -ge 2 ] && break; sleep 0.5; done
+          test "$(grep -c '^ev=client_error ' "$work/http.log")" -eq 2
+          test "$(grep -c '^ev=client_error .*message="window.error: ' "$work/http.log")" -eq 1
+          test "$(grep -c '^ev=client_error .*message="unhandledrejection: ' "$work/http.log")" -eq 1
+          echo "check: one ev=client_error line for the uncaught page error and one for the rejected promise"
+
+      - name: Browser load and frame p99 against the stored ceiling
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/perf-probe"
+          mkdir -p "$work"
+          target/debug/oscraftd --addr 127.0.0.1:8004 --room ci-perf --site crates/web/site > "$work/http.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8004/ && break; sleep 1; done
+          cat > "$RUNNER_TEMP/pw/perf.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          await page.goto("http://127.0.0.1:8004/site/");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          await page.waitForTimeout(3000);
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          const load = await page.getAttribute("body", "data-load-ms");
+          const p99 = await page.getAttribute("body", "data-frame-p99-ms");
+          console.log(`browser load ms=${load} frame_p99_ms=${p99}`);
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/perf.mjs" | tee "$work/perf.txt"
+          baseline="$GITHUB_WORKSPACE/.github/perf/browser-baseline.txt"
+          ceiling=$(awk -F= '/^load_ms_ceiling=/{print $2}' "$baseline")
+          test -n "$ceiling"
+          if [ "$ceiling" = "unmeasured" ]; then
+            echo "SKIP browser load ceiling is unmeasured in $baseline: set load_ms_ceiling from one measured run"
+            exit 0
+          fi
+          check_load() {
+            local n=$1 c=$2
+            if [ "$n" -le "$c" ]; then
+              echo "browser load ms=$n ceiling=$c ok"
+            else
+              echo "browser load ms=$n ceiling=$c FAIL"
+              return 1
+            fi
+          }
+          load=$(sed -n 's/^browser load ms=\([0-9]*\) .*/\1/p' "$work/perf.txt")
+          test -n "$load"
+          check_load "$load" 0 >/dev/null && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
+          check_load "$load" "$ceiling"
+
+
+      - name: Over-ceiling witness; a test-only ceiling below the measured load must fail
+        env:
+          BROWSER_LOAD_CEILING_OVERRIDE_MS: "1"
+        run: |
+          set -uo pipefail
+          work="$RUNNER_TEMP/perf-probe"
+          load=$(sed -n 's/^browser load ms=\([0-9]*\) .*/\1/p' "$work/perf.txt")
+          test -n "$load"
+          ceiling="$BROWSER_LOAD_CEILING_OVERRIDE_MS"
+          check_load() {
+            local n=$1 c=$2
+            if [ "$n" -le "$c" ]; then
+              echo "browser load ms=$n ceiling=$c ok"
+            else
+              echo "browser load ms=$n ceiling=$c FAIL"
+              return 1
+            fi
+          }
+          out=$(check_load "$load" "$ceiling") && rc=0 || rc=$?
+          echo "$out"
+          test "$rc" -ne 0 || { echo "witness: the override ceiling did not fail the measured load"; exit 1; }
+          echo "$out" | tail -1 | grep -q ' FAIL$' || { echo "witness: FAIL line missing"; exit 1; }
+          echo "browser over-ceiling witnessed load=$load ceiling=$ceiling exit=$rc"
+
+  wasip2:
+    name: sim as wasip2 component and host
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust/crates/wasip2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/crates/wasip2 -> target
+          shared-key: rust-wasip2
+
+      - name: Build the sim as a wasip2 component
+        run: cargo build --lib --release --target wasm32-wasip2
+
+      - name: Run the host, which instantiates the component and runs one tick
+        run: cargo run --release --bin oscraft-wasip2-host -- target/wasm32-wasip2/release/oscraft_wasip2.wasm
+
+      - name: Run the host with the mod feature; the native host drives the mod host
+        run: cargo run --release --features mod --bin oscraft-wasip2-host
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oscraft-wasip2-component
+          path: rust/crates/wasip2/target/wasm32-wasip2/release/oscraft_wasip2.wasm
+
+  mod-lsp:
+    name: language server matches the engine validator
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Drive the server over stdio and compare its diagnostic with the engine
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          MOD="$RUNNER_TEMP/mod"
+          mkdir -p "$MOD"
+          printf 'x = 1\n' > "$MOD/mod.star"
+          cargo build -q -p oscraft-lsp -p osdt-data
+          ENGINE=$(./target/debug/osdt-data "$MOD" "$RUNNER_TEMP/mod.bin" 2>&1 | sed -n 's/^Error: //p' || true)
+          URI="file://$MOD/mod.star"
+          frame() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
+          {
+            frame '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
+            frame '{"jsonrpc":"2.0","method":"initialized","params":{}}'
+            frame "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"$URI\",\"languageId\":\"starlark\",\"version\":1,\"text\":\"x = 1\\n\"}}}"
+            frame "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"textDocument/completion\",\"params\":{\"textDocument\":{\"uri\":\"$URI\"},\"position\":{\"line\":0,\"character\":0}}}"
+            frame '{"jsonrpc":"2.0","id":3,"method":"shutdown"}'
+            frame '{"jsonrpc":"2.0","method":"exit"}'
+          } | ./target/debug/oscraft-lsp > "$RUNNER_TEMP/lsp.out"
+          sed 's/Content-Length: [0-9]*//g' "$RUNNER_TEMP/lsp.out" | tr -d '\r' > "$RUNNER_TEMP/msgs.jsonl"
+          DIAG=$(jq -r 'select(.method=="textDocument/publishDiagnostics") | .params.diagnostics[0].message // ""' "$RUNNER_TEMP/msgs.jsonl")
+          HAS_GRID=$(jq -r 'select(.id==2) | [.result.items[].label] | index("grid") != null' "$RUNNER_TEMP/msgs.jsonl")
+          echo "engine: [$ENGINE]"
+          echo "server: [$DIAG]"
+          [ -n "$ENGINE" ] || { echo "REFUSE: engine validator reported nothing for the fixture"; exit 1; }
+          [ "$DIAG" = "$ENGINE" ] || { echo "FAIL: server diagnostic differs from engine"; exit 1; }
+          [ "$HAS_GRID" = true ] || { echo "FAIL: completion lacks engine builtin grid"; exit 1; }
+          echo "ok: diagnostic matches engine validator, completion lists engine builtins"
+
+      - name: Hover on an engine builtin lists its parameters over stdio
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          MOD="$RUNNER_TEMP/hover-mod"
+          mkdir -p "$MOD"
+          printf 'x = 1\n' > "$MOD/mod.star"
+          URI="file://$MOD/hover.star"
+          frame() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
+          {
+            frame '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
+            frame '{"jsonrpc":"2.0","method":"initialized","params":{}}'
+            frame "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"$URI\",\"languageId\":\"starlark\",\"version\":1,\"text\":\"effect\\n\"}}}"
+            frame "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"textDocument/hover\",\"params\":{\"textDocument\":{\"uri\":\"$URI\"},\"position\":{\"line\":0,\"character\":2}}}"
+            frame '{"jsonrpc":"2.0","id":3,"method":"shutdown"}'
+            frame '{"jsonrpc":"2.0","method":"exit"}'
+          } | ./target/debug/oscraft-lsp > "$RUNNER_TEMP/hover.out"
+          sed 's/Content-Length: [0-9]*//g' "$RUNNER_TEMP/hover.out" | tr -d '\r' > "$RUNNER_TEMP/hover-msgs.jsonl"
+          HOVER=$(jq -r 'select(.id==2) | .result.contents.value // ""' "$RUNNER_TEMP/hover-msgs.jsonl")
+          SIG=$(printf '%s\n' "$HOVER" | head -1)
+          case "$SIG" in effect\(*\)) ;; *) echo "FAIL: hover for effect is [$SIG]"; exit 1 ;; esac
+          INNER=${SIG#effect(}
+          INNER=${INNER%)}
+          PARAMS=$(echo "$INNER" | awk -F', ' '{print NF}')
+          for p in kind p0 p1 p2 p3; do
+            case ", $INNER," in *", $p,"*) ;; *) echo "FAIL: hover lacks parameter $p in [$SIG]"; exit 1 ;; esac
+          done
+          echo "lsp hover ok name=effect params=$PARAMS"
+
+      - name: Lua mods get a load diagnostic with a line, the clean mod gets none, host globals complete
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          SRC=crates/spike/mods/unit_mod.lua
+          CLEAN="$RUNNER_TEMP/lua-clean/unit_mod.lua"
+          BROKEN="$RUNNER_TEMP/lua-broken/unit_mod.lua"
+          mkdir -p "$(dirname "$CLEAN")" "$(dirname "$BROKEN")"
+          cp "$SRC" "$CLEAN"
+          sed '8s/ = / = = /' "$SRC" > "$BROKEN"
+          cmp -s "$SRC" "$BROKEN" && { echo "REFUSE: broken copy equals the clean mod"; exit 1; }
+          frame() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
+          open_msg() { jq -cn --rawfile t "$1" --arg u "file://$1" '{jsonrpc:"2.0",method:"textDocument/didOpen",params:{textDocument:{uri:$u,languageId:"lua",version:1,text:$t}}}'; }
+          {
+            frame '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
+            frame '{"jsonrpc":"2.0","method":"initialized","params":{}}'
+            frame "$(open_msg "$CLEAN")"
+            frame "$(open_msg "$BROKEN")"
+            frame "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"textDocument/completion\",\"params\":{\"textDocument\":{\"uri\":\"file://$CLEAN\"},\"position\":{\"line\":0,\"character\":0}}}"
+            frame '{"jsonrpc":"2.0","id":3,"method":"shutdown"}'
+            frame '{"jsonrpc":"2.0","method":"exit"}'
+          } | ./target/debug/oscraft-lsp > "$RUNNER_TEMP/lua.out"
+          sed 's/Content-Length: [0-9]*//g' "$RUNNER_TEMP/lua.out" | tr -d '\r' > "$RUNNER_TEMP/lua-msgs.jsonl"
+          CLEAN_N=$(jq -r --arg u "file://$CLEAN" 'select(.method=="textDocument/publishDiagnostics" and .params.uri==$u) | .params.diagnostics | length' "$RUNNER_TEMP/lua-msgs.jsonl")
+          [ "$CLEAN_N" = 0 ] || { echo "FAIL: clean mod reported [$CLEAN_N] diagnostic group(s)"; exit 1; }
+          BROKEN_DIAG=$(jq -r --arg u "file://$BROKEN" 'select(.method=="textDocument/publishDiagnostics" and .params.uri==$u) | .params.diagnostics[0] | "\(.range.start.line)\t\(.message)"' "$RUNNER_TEMP/lua-msgs.jsonl")
+          BROKEN_LINE=${BROKEN_DIAG%%$'\t'*}
+          BROKEN_MSG=${BROKEN_DIAG#*$'\t'}
+          [[ "$BROKEN_LINE" =~ ^[0-9]+$ ]] || { echo "FAIL: broken copy has no diagnostic line: [$BROKEN_DIAG]"; exit 1; }
+          [ "$BROKEN_LINE" = 7 ] || { echo "FAIL: broken copy diagnostic at 0-based line $BROKEN_LINE, expected 7"; exit 1; }
+          echo "lua-diagnostic: $(basename "$BROKEN") line $((BROKEN_LINE + 1)): $BROKEN_MSG"
+          EXPORTED=$({ sed -n '/^pub const HOST_GLOBALS/,/^\];/p' crates/mod-host/src/lib.rs | grep -o '"[a-z_]*"' | tr -d '"'; sed -n '/^pub const EVENTS/,/^\];/p' crates/mod-host/src/lib.rs | grep -o '("[a-z_]*"' | tr -d '("'; } | sort)
+          COMPLETED=$(jq -r 'select(.id==2) | .result.items[].label' "$RUNNER_TEMP/lua-msgs.jsonl" | sort)
+          [ -n "$EXPORTED" ] || { echo "REFUSE: mod-host exports no host globals"; exit 1; }
+          [ "$COMPLETED" = "$EXPORTED" ] || { echo "FAIL: lua completion differs from mod-host exports"; diff <(echo "$EXPORTED") <(echo "$COMPLETED") || true; exit 1; }
+          echo "lsp host globals match mod-host ok count=$(echo "$EXPORTED" | wc -l)"
+          for name in define_region in_region on_tick; do
+            grep -q "\"$name\"" crates/mod-host/src/lib.rs || { echo "FAIL: mod-host no longer registers $name"; exit 1; }
+          done
+          grep -q 'on_tick(state)' crates/mod-host/src/lib.rs || { echo "FAIL: mod-host contract no longer takes state"; exit 1; }
+          echo "ok: clean mod has no diagnostic, broken mod reports line 8, host globals complete and registered"
+
+  tick-budget:
+    name: tick percentiles and budget overrun reach the log
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Run 200 ticks with a 1 us budget and check the percentile and overrun lines
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          target/debug/oscraftd --addr 127.0.0.1:8098 --room ci --ticks 200 --tick-budget-us 1 > tick.log 2>&1
+          cat tick.log
+          grep -Eq '^ev=tick_time ticks=[0-9]+ p50_us=[0-9]+ p90_us=[0-9]+ p99_us=[0-9]+ max_us=[0-9]+ queued=[0-9]+ overruns=[0-9]+$' tick.log
+          last=$(grep '^ev=tick_time ' tick.log | tail -1 | sed 's/^ev=tick_time ticks=\([0-9]*\) .*/\1/')
+          test "$last" -ge 200
+          grep -Eq '^ev=tick_overrun room=ci tick=[0-9]+ cost_us=[0-9]+ budget_us=1$' tick.log
+
+      - name: Shed queued work under a sustained 1 us overrun; a generous budget sheds nothing
+        run: |
+          set -euo pipefail
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/tick-shed"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          addr=127.0.0.1:8096
+          shed_log="$work/shed.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 1 > "$shed_log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          token=$(sed -n 's/^ev=order_token room=ci token=//p' "$shed_log")
+          test -n "$token"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data '{"player":0,"x":1,"y":1}')
+          test "$code" = 200
+          for i in $(seq 1 120); do grep -q '^ev=tick_shed ' "$shed_log" && break; sleep 0.25; done
+          grep -Eq '^ev=tick_shed room=ci tick=[0-9]+ shed=[0-9]+ cap=0$' "$shed_log"
+          grep '^ev=tick_shed ' "$shed_log" | head -1
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
+          target/debug/oscraftd --addr 127.0.0.1:8095 --room ci --ticks 200 --tick-budget-us 20000 > "$work/quiet.log" 2>&1
+          test "$(grep -c '^ev=tick_shed ' "$work/quiet.log")" -eq 0
+          grep -q '^ev=tick_time ' "$work/quiet.log"
+
+      - name: Drain posted orders under a generous budget; the drain logs no tick-shed
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/tick-drain"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          addr=127.0.0.1:8094
+          log="$work/drain.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
+          test -n "$token"
+          posted=5
+          for i in $(seq 1 $posted); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data '{"player":0,"x":1,"y":1}')
+            test "$code" = 200
+          done
+          drained=0
+          for i in $(seq 1 120); do
+            drained=$(curl -s "http://$addr/resources" | grep -o '"orders_drained":[0-9]*' | head -1 | cut -d: -f2 || true)
+            test "${drained:-0}" -ge "$posted" && break
+            sleep 0.25
+          done
+          test "${drained:-0}" -eq "$posted"
+          test "$(grep -c '^ev=tick_shed ' "$log")" -eq 0
+          grep '^ev=tick_time ' "$log" | tail -1 || true
+          echo "drain-check posted=$posted orders_drained=$drained tick_shed_lines=0"
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
+
+  client-error-relay:
+    name: client error reaches the server log
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Start the server, post one client error, check one structured log line
+        run: |
+          cargo build -p server --bin oscraftd
+          target/debug/oscraftd --addr 127.0.0.1:8099 --room ci > server.log 2>&1 &
+          pid=$!
+          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8099/ && break; sleep 1; done
+          curl -sf -X POST "http://127.0.0.1:8099/client-error?map=ci&session=ci-session&message=ci%20probe"
+          kill $pid
+          test "$(grep -c '^ev=client_error session=' server.log)" -eq 1
+          line=$(grep '^ev=client_error session=' server.log)
+          echo "$line" | grep -q 'session=ci-session '
+          echo "$line" | grep -Eq ' tick=[0-9]+ '
+          echo "$line" | grep -q 'message="ci probe"'
+          cat server.log
+
+  hot-reload:
+    name: hot reload swaps and rolls back (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Run the reload harness and check its three check lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run -p mod-host --bin reload_harness > reload.txt 2>&1 || { cat reload.txt; exit 1; }
+          cat reload.txt
+          grep -Eq '^reload-check reload ok ' reload.txt
+          grep -Eq '^reload-check value-changed ok ' reload.txt
+          grep -Eq '^reload-check error-reported line=[0-9]+ ok$' reload.txt
+          grep -Eq '^reload-check rollback ok ' reload.txt
+
+  client-error-rate-limit:
+    name: client error rate limit holds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Flood the relay with 25 errors and check the rate limit drops the rest
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          target/debug/oscraftd --addr 127.0.0.1:8100 --room ci > ratelimit.log 2>&1 &
+          pid=$!
+          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8100/ && break; sleep 1; done
+          for i in $(seq 1 25); do
+            curl -s -o /dev/null -X POST "http://127.0.0.1:8100/client-error?map=ci&session=flood&message=flood%20$i"
+          done
+          code=000
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8100/client-error?map=ci&session=flood&message=after%20flood")
+            [ "$code" = 202 ] && break
+            sleep 1
+          done
+          test "$code" = 202
+          kill $pid
+          cat ratelimit.log
+          count=$(grep -c '^ev=client_error session=.*message="flood ' ratelimit.log || true)
+          test "$count" -le 20
+          test "$count" -eq 20
+          grep -q '^ev=client_error session=.*message="after flood"' ratelimit.log
+          grep -Eq '^ev=client_error_dropped session=flood count=([5-9]|[1-9][0-9]+)$' ratelimit.log
+
+  client-error-log-durability:
+    name: client error log survives restart and keeps the rate-limit state
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Post, restart, post again; both lines in the log and the drained bucket stays drained
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          log="$RUNNER_TEMP/client-errors.log"
+          export OSCRAFT_CLIENT_ERROR_LOG="$log"
+          head -c 1100000 /dev/zero | tr '\0' 'x' > "$log"
+          start() {
+            target/debug/oscraftd --addr 127.0.0.1:8101 --room ci > "$RUNNER_TEMP/durable-$1.out" 2>&1 &
+            pid=$!
+            for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8101/ && break; sleep 1; done
+          }
+          post() {
+            curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8101/client-error?map=ci&session=durable&message=$1"
+          }
+          start first
+          test "$(post before%20restart)" = 202
+          for i in $(seq 1 24); do post "drain%20$i" > /dev/null; done
+          kill $pid; wait $pid || true
+          test "$(stat -c %s "$log.1")" -ge 1048576
+          start second
+          test "$(post after%20restart)" = 429
+          code=000
+          for i in $(seq 1 60); do code=$(post "after%20restart"); [ "$code" = 202 ] && break; sleep 1; done
+          test "$code" = 202
+          kill $pid; wait $pid || true
+          test "$(grep -c -E '^client-error session="durable" tick=[0-9]+ tokens=[0-9]+ message="before restart"$' "$log")" -eq 1
+          test "$(grep -c -E '^client-error session="durable" tick=[0-9]+ tokens=[0-9]+ message="after restart"$' "$log")" -eq 1
+          cat "$log"
+
+  mod-hot-reload:
+    name: mod hot reload reaches the server
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server and the catalog tool
+        run: cargo build -p server -p osdt-data
+
+      - name: Edit a mod; the version rises and the next tick logs the new value
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/mod-hot-reload"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$work/mod.lua"
+          addr=127.0.0.1:18431
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          version() { curl -sf "http://$addr/mod-version" | jq -r .version; }
+          for i in $(seq 1 60); do version >/dev/null 2>&1 && break; sleep 0.5; done
+          test "$(version)" = 1
+          for i in $(seq 1 40); do grep -q 'ev=mod_tick tick=[0-9]* version=1 probe=v1' "$log" && break; sleep 0.25; done
+          grep -q 'ev=mod_tick tick=[0-9]* version=1 probe=v1' "$log"
+          sleep 2
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v2"' 'end' > "$work/mod.lua"
+          for i in $(seq 1 40); do [ "$(version)" = 2 ] && break; sleep 0.25; done
+          test "$(version)" = 2
+          test "$(curl -sf "http://$addr/mod-events?since=1" | jq -r .changed)" = true
+          for i in $(seq 1 40); do grep -q 'ev=mod_tick tick=[0-9]* version=2 probe=v2' "$log" && break; sleep 0.25; done
+          grep -E 'ev=mod_tick tick=[0-9]+ version=2 probe=v2' "$log"
+          echo "check: GET /mod-version went 1 -> 2 after the edit; the next tick logged probe=v2"
+
+  wasip1:
+    name: sim as wasip1 guest driven over stdio
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust/crates/wasip1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/crates/wasip1 -> target
+          shared-key: rust-wasip1
+
+      - name: Build the sim as a wasip1 guest
+        run: cargo build --release --target wasm32-wasip1 --bin oscraft_wasip1
+
+      - name: Run the host, which loads the image, ticks 10 and reads the unit count
+        run: cargo run --release --bin oscraft_wasip1 -- target/wasm32-wasip1/release/oscraft_wasip1.wasm
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oscraft-wasip1-guest
+          path: rust/crates/wasip1/target/wasm32-wasip1/release/oscraft_wasip1.wasm
+
+  mod-spawn-reaches-room:
+    name: mod spawn reaches the served room
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server and the catalog tool
+        run: cargo build -p server -p osdt-data
+
+      - name: A mod spawns one unit on its first tick; the served room's unit count rises
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/mod-spawn"
+          mkdir -p "$work"
+          trap 'echo "server log:"; tail -n 40 "$work/server.log" || true' ERR
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          printf '%s\n' 'function on_tick(state)' '  if state.spawned == nil then' '    game.cmd_spawn("skirmisher", 688128, 1343488)' '    state.spawned = 1' '  end' 'end' > "$work/mod.lua"
+          units() { curl -sf "http://$1/state" | jq -r .units; }
+          base=127.0.0.1:18435
+          ./target/debug/oscraftd --addr "$base" --room test --data "$work/catalog.osdt" --tick-budget-us 250000 > "$work/baseline.log" 2>&1 &
+          bpid=$!
+          for i in $(seq 1 60); do units "$base" >/dev/null 2>&1 && break; sleep 0.5; done
+          before=$(units "$base")
+          kill $bpid 2>/dev/null || true
+          wait $bpid 2>/dev/null || true
+          addr=127.0.0.1:18433
+          ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --tick-budget-us 250000 > "$work/server.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do units "$addr" >/dev/null 2>&1 && break; sleep 0.5; done
+          for i in $(seq 1 40); do [ "$(units "$addr")" -gt "$before" ] && break; sleep 0.25; done
+          after=$(units "$addr")
+          echo "mod-spawn units before=$before after=$after"
+          test "$after" -gt "$before"
+
+      - name: A mod orders the handle it spawned; the room unit's x or y differs before and after the order, and an unmapped handle is refused
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/mod-unit-map"
+          mkdir -p "$work"
+          trap 'echo "server log:"; tail -n 60 "$work/server.log" || true' ERR
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          cat > "$work/mod.lua" <<'LUA'
+          function on_tick(state)
+            state.age = (state.age or 0) + 1
+            if state.h == nil then
+              state.h = game.cmd_spawn("skirmisher", 688128, 1343488)
+            elseif state.age == 20 then
+              game.cmd_order_handle(state.h, 720896, 1343488)
+              game.cmd_order_handle(999, 720896, 1343488)
+            end
+          end
+          LUA
+          addr=127.0.0.1:18434
+          ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --tick-budget-us 250000 > "$work/server.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          unit_at() { curl -sf "http://$addr/state?unit=$room" | jq -r '"\(.unit.x) \(.unit.y)"'; }
+          num() { [[ "$1" =~ ^-?[0-9]+$ ]]; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          for i in $(seq 1 80); do grep -q 'ev=mod_unit_bound ' "$work/server.log" && break; sleep 0.25; done
+          bound=$(grep -o 'ev=mod_unit_bound handle=[0-9]* unit=[0-9]*' "$work/server.log" | head -n 1)
+          h=$(echo "$bound" | sed 's/.*handle=\([0-9]*\).*/\1/')
+          room=$(echo "$bound" | sed 's/.*unit=//')
+          read -r from_x from_y <<<"$(unit_at)"
+          num "$from_x" && num "$from_y"
+          grep -q 'ev=mod_unit_refused handle=999 ' "$work/server.log" && { echo "from read landed after the order"; exit 1; }
+          for i in $(seq 1 120); do grep -q 'ev=mod_unit_refused handle=999 ' "$work/server.log" && break; sleep 0.25; done
+          refused=$(grep 'ev=mod_unit_refused handle=999 reason=unmapped' "$work/server.log" | head -n 1)
+          echo "$refused"
+          test -n "$refused"
+          for i in $(seq 1 120); do read -r to_x to_y <<<"$(unit_at)"; num "$to_x" && num "$to_y" && [ "$to_x,$to_y" != "$from_x,$from_y" ] && break; sleep 0.25; done
+          num "$to_x" && num "$to_y"
+          echo "mod-unit-map ok handle=$h room=$room from_x=$from_x from_y=$from_y to_x=$to_x to_y=$to_y"
+          test "$from_x,$from_y" != "$to_x,$to_y"
+
+  tick-latency-regression:
+    name: tick p99 stays under the stored baseline ceiling
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Run the fixed tick count and compare p99 with the stored ceiling
+        run: |
+          set -euo pipefail
+          check_p99() {
+            local n=$1 c=$2
+            if [ "$n" -le "$c" ]; then
+              echo "tick p99 us=$n ceiling=$c ok"
+            else
+              echo "tick p99 us=$n ceiling=$c FAIL"
+              return 1
+            fi
+          }
+          baseline="$GITHUB_WORKSPACE/.github/perf/tick-baseline.txt"
+          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
+          ceiling=$(awk -F= '/^p99_ceiling_us=/{print $2}' "$baseline")
+          test -n "$ticks" && test -n "$ceiling"
+          cargo build -p server --bin oscraftd
+          target/debug/oscraftd --addr 127.0.0.1:8091 --room ci --ticks "$ticks" --tick-budget-us 20000 > tick-latency.log 2>&1
+          cat tick-latency.log
+          p99=$(grep '^ev=tick_time ' tick-latency.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
+          test -n "$p99"
+          check_p99 "$p99" 0 >/dev/null && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
+          check_p99 "$p99" "$ceiling"
+
+  tick-systems-regression:
+    name: each tick system p99 stays under its stored ceiling
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Run the fixed tick count and compare each system p99 with its ceiling
+        run: |
+          set -euo pipefail
+          check_p99() {
+            local n=$1 c=$2
+            [ "$n" -le "$c" ]
+          }
+          baseline="$GITHUB_WORKSPACE/.github/perf/tick-systems.txt"
+          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
+          test -n "$ticks"
+          cargo build -p server --bin oscraftd
+          target/debug/oscraftd --addr 127.0.0.1:8092 --room ci-systems --ticks "$ticks" --tick-budget-us 20000 > tick-systems.log 2>&1
+          cat tick-systems.log
+          first=""
+          fail=0
+          while read -r name ceiling; do
+            first=${first:-$name}
+            us=$(grep "^ev=tick_time system=$name " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
+            test -n "$us"
+            if check_p99 "$us" "$ceiling"; then
+              echo "tick system $name us=$us ceiling=$ceiling ok"
+            else
+              echo "tick system $name us=$us ceiling=$ceiling FAIL"
+              fail=1
+            fi
+          done < <(awk '/^system=/{split($1,a,"="); split($2,b,"="); print a[2], b[2]}' "$baseline")
+          check_p99 "$(grep "^ev=tick_time system=$first " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')" 0 && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
+          test "$fail" -eq 0
+
+  order-state-change:
+    name: a TCP order changes the served room state
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Post one order over TCP and read the change back through /delta and /state
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/order-state"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          addr=127.0.0.1:8090
+          log="$work/order.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
+          test -n "$token"
+          before=$(curl -sf "http://$addr/state")
+          before_tick=$(jq -r .tick <<<"$before")
+          before_hash=$(jq -r .state_hash <<<"$before")
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data '{"player":0,"x":1,"y":1}')
+          test "$code" = 200
+          unit=""
+          for i in $(seq 1 120); do
+            unit=$(curl -sf "http://$addr/delta?since=$before_tick" | jq -r '.units[0] // empty')
+            test -n "$unit" && break
+            sleep 0.25
+          done
+          test -n "$unit"
+          after_hash=$(curl -sf "http://$addr/state" | jq -r .state_hash)
+          test "$before_hash" != "$after_hash"
+          echo "order-state ok unit=$unit before=$before_hash after=$after_hash"
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
+
+  server-log-grammar:
+    name: every server stdout line is ev=<name> followed by key=value fields
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Drive a mod edit cycle, a client error and an overrun; check every server line against the grammar
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/server-grammar"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
+          addr=127.0.0.1:8096
+          log="$work/mod.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --mod "$mod" --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -sf "http://$addr/mod-version" | grep -q '"version":1' && break; sleep 0.5; done
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v2"' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_tick tick=[0-9]* version=2 probe=v2' "$log" && break; sleep 0.25; done
+          printf '%s\n' 'function on_tick(state' '  state.ticks = state.ticks + 1' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_reload_failed ' "$log" && break; sleep 0.25; done
+          printf '%s\n' 'function on_tick(state)' '  local x = nil' '  state.probe = x.field' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_error ' "$log" && break; sleep 0.25; done
+          curl -sf -X POST "http://$addr/client-error?session=grammar&message=grammar%20probe" > /dev/null
+          for i in $(seq 1 40); do grep -q '^ev=client_error ' "$log" && break; sleep 0.25; done
+          for i in $(seq 1 40); do grep -q '^ev=tick_time ' "$log" && break; sleep 0.25; done
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          over="$work/overrun.log"
+          target/debug/oscraftd --addr 127.0.0.1:8095 --room ci --data "$work/catalog.osdt" --ticks 200 --tick-budget-us 1 > "$over" 2>&1
+          cat "$log" "$over" > "$work/all.log"
+          for ev in serving mod_loaded order_token mod_tick mod_reload_failed mod_error client_error tick_time tick_overrun; do
+            grep -q "^ev=$ev " "$work/all.log" || { echo "FAIL: no $ev line"; exit 1; }
+          done
+          events=$(sed -n 's/^ *Ev::[A-Za-z]* => "\([a-z_]*\)".*/\1/p' crates/server/src/log.rs | sort -u)
+          test -n "$events"
+          lines=0
+          unknown=0
+          while IFS= read -r line; do
+            [ -n "$line" ] || continue
+            lines=$((lines + 1))
+            name=$(printf '%s\n' "$line" | sed -n 's/^ev=\([a-z_]*\).*/\1/p')
+            if ! grep -qx -- "$name" <<<"$events" || ! grep -Eq '^ev=[a-z_]+( [a-z_0-9]+=([^" ]+|"([^"\\]|\\.)*"))*$' <<<"$line"; then
+              unknown=$((unknown + 1))
+              echo "unknown: $line"
+            fi
+          done < "$work/all.log"
+          test "$lines" -ge 20
+          test "$unknown" -eq 0
+          echo "log grammar ok lines=$lines unknown=$unknown"
+
+  supervisor-restart:
+    name: a panicking ticker is logged, restarted, and the tick count advances
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Arm one ticker panic, check one death and one restart, and a tick that advances
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/supervisor-restart"
+          mkdir -p "$work"
+          addr=127.0.0.1:8093
+          log="$work/panic.log"
+          target/debug/oscraftd --addr "$addr" --room ci --tick-budget-us 20000 --test-panic-tick 20 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 60); do grep -q '^ev=ticker_restarted ' "$log" && break; sleep 0.5; done
+          test "$(grep -c '^ev=ticker_died ' "$log")" -eq 1
+          test "$(grep -c '^ev=ticker_restarted ' "$log")" -eq 1
+          before=$(curl -sf "http://$addr/state" | jq -r .tick)
+          sleep 2
+          after=$(curl -sf "http://$addr/state" | jq -r .tick)
+          test "$after" -gt "$before"
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          grep '^ev=ticker_' "$log"
+          quiet="$work/quiet.log"
+          target/debug/oscraftd --addr 127.0.0.1:8092 --room ci --tick-budget-us 20000 --ticks 40 > "$quiet" 2>&1
+          test "$(grep -c '^ev=ticker_died ' "$quiet")" -eq 0
+          echo "supervisor ok died=1 restarted=1 tick $before -> $after; unarmed run died=0"
+
+  connection-cap:
+    name: connections over the cap get 503 and one conn_refused line, and /state still answers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Hold the cap in idle sockets, check one more gets 503 and one conn_refused line, and /state answers on a held socket
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          cap=$(sed -n 's/^pub const MAX_CONNECTIONS: usize = \([0-9]*\);/\1/p' crates/server/src/lib.rs)
+          test -n "$cap"
+          work="$RUNNER_TEMP/connection-cap"
+          mkdir -p "$work"
+          port=8094
+          log="$work/cap.log"
+          target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          for i in $(seq 1 $cap); do eval "exec $((i+9))<>/dev/tcp/127.0.0.1/$port"; done
+          exec 80<>/dev/tcp/127.0.0.1/$port
+          timeout 5 cat <&80 > "$work/refused.txt" || true
+          head -n1 "$work/refused.txt" | grep -q ' 503 '
+          printf 'GET /state HTTP/1.1\r\nHost: check\r\nConnection: close\r\n\r\n' >&10
+          timeout 5 cat <&10 > "$work/state.txt" || true
+          head -n1 "$work/state.txt" | grep -q ' 200 '
+          grep -q '"tick"' "$work/state.txt"
+          test "$(grep -c '^ev=conn_refused ' "$log")" -eq 1
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          grep '^ev=conn_refused ' "$log"
+          echo "connection cap ok: cap=$cap, 503 on connection $((cap+1)), /state 200 on a held socket, one conn_refused"
+
+  connection-cap-threads:
+    name: 1000 idle connections stay bounded by the cap, refused ones get 503 and conn_refused, and threads stay within cap plus 80
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Open 1000 idle connections, count 503s and conn_refused lines, and check the server thread count against cap plus 80
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          ulimit -n 4096 || true
+          cap=$(sed -n 's/^pub const MAX_CONNECTIONS: usize = \([0-9]*\);/\1/p' crates/server/src/lib.rs)
+          test -n "$cap"
+          slack=80
+          work="$RUNNER_TEMP/connection-cap-threads"
+          mkdir -p "$work"
+          port=8097
+          log="$work/cap.log"
+          target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          python3 - "$pid" "$cap" "$slack" "$port" "$log" <<'PY'
+          import selectors
+          import socket
+          import sys
+          
+          pid, cap, slack, port, log = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
+          conns = 1000
+          ceiling = cap + slack
+          
+          socks = [socket.create_connection(("127.0.0.1", port), timeout=10) for _ in range(conns)]
+          
+          threads = None
+          with open(f"/proc/{pid}/status") as status:
+              for line in status:
+                  if line.startswith("Threads:"):
+                      threads = int(line.split()[1])
+          assert threads is not None, "no Threads line in /proc/<pid>/status"
+          
+          sel = selectors.DefaultSelector()
+          for s in socks:
+              sel.register(s, selectors.EVENT_READ)
+          refused = eof = 0
+          while True:
+              events = sel.select(timeout=2.0)
+              if not events:
+                  break
+              for key, _ in events:
+                  sel.unregister(key.fileobj)
+                  data = key.fileobj.recv(256)
+                  if data.startswith(b"HTTP/1.1 503"):
+                      refused += 1
+                  elif not data:
+                      eof += 1
+          alive = len(sel.get_map())
+          
+          with open(log) as f:
+              conn_lines = sum(1 for line in f if line.startswith("ev=conn_refused "))
+          
+          assert refused + eof + alive == conns, f"unclassified sockets: {conns - refused - eof - alive}"
+          assert alive <= cap, f"{alive} connections held open above cap {cap}"
+          assert refused > 0, "no connection past the cap got 503"
+          assert conn_lines >= refused, f"ev=conn_refused lines {conn_lines} below 503 responses {refused}"
+          assert threads <= ceiling, f"threads {threads} above ceiling {ceiling}"
+          print(f"connection cap threads ok conns={conns} refused={refused} threads={threads} ceiling={ceiling}")
+          PY
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+
+  data-reload:
+    name: data edit reaches the running server without a restart
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: Serve a copy of the data directory, add a unit with a .star edit, then break the edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/data-reload"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18440
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          catalog() { curl -sf "http://$addr/catalog?map=ci"; }
+          for i in $(seq 1 60); do catalog >/dev/null 2>&1 && break; sleep 0.5; done
+          catalog | jq -e '.loaded == true' >/dev/null
+          catalog | jq -e '.units | any(. == "reloadprobe") | not' >/dev/null
+          printf '%s\n' 'unit("reloadprobe", 50, 2000, 300, build_time=300, minerals=50, supply=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$work/reload_probe.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reloaded ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reloaded room=ci ' "$log"
+          for i in $(seq 1 20); do catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null 2>&1 && break; sleep 0.25; done
+          catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null
+          grep '^ev=data_reloaded ' "$log" | head -n 1
+          printf '%s\n' 'unit("reloadprobe", 50,' > "$work/reload_probe.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reload_failed ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reload_failed room=ci ' "$log"
+          catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null
+          test "$(grep -c '^ev=data_reloaded ' "$log")" -eq 1
+          kill -0 "$pid"
+          grep '^ev=data_reload_failed ' "$log" | head -n 1
+          echo "check: the served catalog gained reloadprobe after the edit with no restart; the broken edit logged data_reload_failed and reloadprobe stayed served"
+  mod-thread-restart:
+    name: a panicking mod thread is logged, restarted, and a later edit bumps the version
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server and the catalog tool
+        run: cargo build -p server -p osdt-data
+
+      - name: Arm one mod-thread panic; check one death, one restart, and a version bump after an edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/mod-thread-restart"
+          rm -rf "$work"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$work/mod.lua"
+          addr=127.0.0.1:18441
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --test-panic-mod-tick 20 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
+          version() { curl -sf "http://$addr/mod-version" | jq -r .version; }
+          for i in $(seq 1 60); do version >/dev/null 2>&1 && break; sleep 0.5; done
+          for i in $(seq 1 60); do grep -q '^ev=mod_thread_restarted ' "$log" && break; sleep 0.5; done
+          died=$(grep -c '^ev=mod_thread_died ' "$log" || true)
+          restarted=$(grep -c '^ev=mod_thread_restarted ' "$log" || true)
+          test "$died" -eq 1
+          test "$restarted" -eq 1
+          before=$(version)
+          sleep 2
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v2"' 'end' > "$work/mod.lua"
+          for i in $(seq 1 40); do [ "$(version)" -gt "$before" ] && break; sleep 0.25; done
+          after=$(version)
+          test "$after" -gt "$before"
+          for i in $(seq 1 40); do grep -q 'ev=mod_tick tick=[0-9]* version='"$after"' probe=v2' "$log" && break; sleep 0.25; done
+          grep -q 'ev=mod_tick tick=[0-9]* version='"$after"' probe=v2' "$log"
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          grep '^ev=mod_thread_' "$log"
+          echo "mod thread panic ok died=$died restarted=$restarted version_after=$after"
+
+  host-api:
+    name: wasip1 commands and wasip2 WIT exports name the same operations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare the wasip1 command list with the WIT exports
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re, sys
+          wit = open("rust/crates/wasip2/wit/sim-component.wit").read()
+          wit_ops = set(re.findall(r"^\s*export\s+([a-z][a-z0-9-]*)\s*:", wit, re.M))
+          src = open("rust/crates/wasip1/src/lib.rs").read()
+          block = re.search(r"pub const COMMANDS:[^=]*=\s*&\[(.*?)\];", src, re.S)
+          if not block:
+              sys.exit("host api: COMMANDS const not found in rust/crates/wasip1/src/lib.rs")
+          wasip1_ops = set(re.findall(r'"([a-z][a-z0-9-]*)"', block.group(1)))
+          only_wit = sorted(wit_ops - wasip1_ops)
+          only_wasip1 = sorted(wasip1_ops - wit_ops)
+          if only_wit or only_wasip1 or not wit_ops:
+              print(f"host api mismatch: missing from wasip1={only_wit} missing from wit={only_wasip1}")
+              sys.exit(1)
+          print(f"host api ok ops={len(wit_ops & wasip1_ops)} wasip1={len(wasip1_ops)} wit={len(wit_ops)}")
+          PY
+
+  connection-cap-control:
+    name: the open-socket assert fails when the override raises the cap past the connections opened
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Raise the cap past the 1000 sockets opened; the open-socket assert must fail
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          ulimit -n 4096 || true
+          cap=$(sed -n 's/^pub const MAX_CONNECTIONS: usize = \([0-9]*\);/\1/p' crates/server/src/lib.rs)
+          test -n "$cap"
+          work="$RUNNER_TEMP/connection-cap-control"
+          mkdir -p "$work"
+          port=8098
+          OSCRAFT_CONNECTION_CAP_OVERRIDE=4096 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$work/cap.log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          python3 -I - "$port" "$cap" <<'PY'
+          import selectors
+          import socket
+          import sys
+
+          port, cap = int(sys.argv[1]), int(sys.argv[2])
+          conns = 1000
+          socks = [socket.create_connection(("127.0.0.1", port), timeout=10) for _ in range(conns)]
+          sel = selectors.DefaultSelector()
+          for s in socks:
+              sel.register(s, selectors.EVENT_READ)
+          refused = eof = 0
+          while True:
+              events = sel.select(timeout=2.0)
+              if not events:
+                  break
+              for key, _ in events:
+                  sel.unregister(key.fileobj)
+                  data = key.fileobj.recv(256)
+                  if data.startswith(b"HTTP/1.1 503"):
+                      refused += 1
+                  elif not data:
+                      eof += 1
+          alive = len(sel.get_map())
+          assert refused + eof + alive == conns, f"unclassified sockets: {conns - refused - eof - alive}"
+          try:
+              assert alive <= cap, f"{alive} connections held open above cap {cap}"
+          except AssertionError:
+              print(f"connection cap control ok breached={alive} expected_cap={cap}")
+              sys.exit(0)
+          sys.exit(f"open-socket assert passed with {alive} held open above cap {cap}; the assert cannot fail")
+          PY
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+
+  connection-cap-status-line:
+    name: refused responses past the cap carry the full HTTP/1.1 503 status line on one 12-byte read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Cap at 2 through the override, read each refused response with one recv of 12 bytes, assert the status line
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/connection-cap-status-line"
+          mkdir -p "$work"
+          port=8099
+          log="$work/cap.log"
+          OSCRAFT_CONNECTION_CAP_OVERRIDE=2 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          python3 -I - "$port" 2 <<'PY'
+          import socket
+          import sys
+          import time
+
+          port, cap, extra = int(sys.argv[1]), int(sys.argv[2]), 8
+          status = b"HTTP/1.1 503"
+          held = [socket.create_connection(("127.0.0.1", port), timeout=10) for _ in range(cap)]
+          time.sleep(0.5)
+          refused = complete = 0
+          bad = []
+          for _ in range(extra):
+              s = socket.create_connection(("127.0.0.1", port), timeout=10)
+              first = s.recv(12)
+              if first:
+                  refused += 1
+              if first == status:
+                  complete += 1
+              else:
+                  bad.append(first)
+              while s.recv(4096):
+                  pass
+              s.close()
+          for s in held:
+              s.close()
+          if bad or refused != extra:
+              sys.exit(f"status line not complete on a refused response: refused={refused} complete={complete} first_reads={bad}")
+          print(f"http status line ok refused={refused} complete={complete}")
+          PY
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          grep '^ev=conn_refused ' "$log"
+
+  mod-image-follows-data:
+    name: mod image follows a data reload without a restart
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Start oscraftd with --mod and a directory --data, edit a .star file, read the probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build -p server -p osdt-data
+          work="$RUNNER_TEMP/mod-image"
+          mkdir -p "$work/data"
+          cp -r data/. "$work/data/"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = tostring(ability_info("pulse_shot").cooldown)' 'end' > "$work/mod.lua"
+          addr=127.0.0.1:18432
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room test --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 120); do curl -sf "http://$addr/mod-version" >/dev/null 2>&1 && break; sleep 0.5; done
+          for i in $(seq 1 40); do grep -q 'ev=mod_tick tick=[0-9]* version=1 probe=24' "$log" && break; sleep 0.25; done
+          before=$(grep -o 'ev=mod_tick tick=[0-9]* version=[0-9]* probe=[0-9]*' "$log" | tail -1 | sed 's/.*probe=//')
+          test "$before" = 24
+          sed -i 's/ability("pulse_shot", 24, /ability("pulse_shot", 31, /' "$work/data/abilities.star"
+          grep -q 'ability("pulse_shot", 31, ' "$work/data/abilities.star"
+          for i in $(seq 1 120); do grep -q '^ev=mod_image_reloaded ' "$log" && break; sleep 0.25; done
+          grep -q '^ev=mod_image_reloaded ' "$log"
+          for i in $(seq 1 40); do grep -q 'probe=31' "$log" && break; sleep 0.25; done
+          after=$(grep -o 'ev=mod_tick tick=[0-9]* version=[0-9]* probe=[0-9]*' "$log" | tail -1 | sed 's/.*probe=//')
+          test "$after" = 31
+          echo "mod image follows data reload ok value_before=$before value_after=$after"
+  match-carried-units:
+    name: a cost edit keeps the live units' ids and positions with no duplicates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: Edit a unit's cost under a running match; the live units keep their ids and positions and none is duplicated
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/match-carried"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18442
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          dump() { for i in $(seq 0 $(( $1 - 1 ))); do curl -sf "http://$addr/state?unit=$i" | jq -r '"\(.id) \(.x) \(.y)"'; done; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          before=$(state | jq -r .units)
+          test "$before" -gt 0
+          dump "$before" | sort > "$work/pre.txt"
+          test "$(wc -l < "$work/pre.txt")" -eq "$before"
+          sed -i '/^unit("skirmisher"/s/minerals=50/minerals=75/' "$work/units.star"
+          grep -q '^unit("skirmisher".*minerals=75' "$work/units.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reloaded room=ci ' "$log"
+          after=$(state | jq -r .units)
+          dump "$before" | sort > "$work/post.txt"
+          kept=$(comm -12 "$work/pre.txt" "$work/post.txt" | wc -l)
+          test "$after" -le "$before" || { echo "units_after=$after exceeds units_before=$before"; exit 1; }
+          test "$after" -eq "$before"
+          test "$kept" -eq "$before"
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          grep '^ev=data_reloaded ' "$log" | head -n 1
+          echo "match carried units_before=$before units_after=$after positions_kept=$kept"
+
+  carry-kind-match:
+    name: a reload that reorders two unit kinds keeps each unit only when its kind name is unchanged
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: Swap the first two unit kinds in the catalog under a running match; carried units keep their kind name and the dropped count is printed
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/carry-kind-match"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18444
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          before=$(state | jq -r .units)
+          test "$before" -gt 0
+          first=$(grep -n '^unit(' "$work/units.star" | sed -n 1p | cut -d: -f1)
+          second=$(grep -n '^unit(' "$work/units.star" | sed -n 2p | cut -d: -f1)
+          a=$(sed -n "${first}p" "$work/units.star")
+          b=$(sed -n "${second}p" "$work/units.star")
+          { head -n $((first - 1)) "$work/units.star"; printf '%s\n' "$b"; sed -n "$((first + 1)),$((second - 1))p" "$work/units.star"; printf '%s\n' "$a"; tail -n +$((second + 1)) "$work/units.star"; } > "$work/units.swap"
+          mv "$work/units.swap" "$work/units.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reloaded room=ci ' "$log"
+          line=$(grep '^ev=data_reloaded room=ci ' "$log" | head -n 1)
+          kept=$(sed -n 's/.* carried=\([0-9]*\).*/\1/p' <<<"$line")
+          dropped=$(sed -n 's/.* refused=\([0-9]*\).*/\1/p' <<<"$line")
+          test -n "$kept" && test -n "$dropped"
+          test $(( kept + dropped )) -eq "$before"
+          test "$kept" -eq "$before"
+          test "$dropped" -eq 0
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          echo "carry kind match ok kept=$kept dropped=$dropped"
+
+  browser-reconnect:
+    name: browser watch resumes at the new version after a server restart
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Export the map image and build the wasm module into the page
+        run: |
+          cargo run -p mapexport -- crates/web/site/map.bin
+          wasm-pack build crates/web --target web --out-dir site/pkg --no-opt
+
+      - name: Install headless Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install playwright@1.47.0
+          npx playwright install --with-deps chromium
+
+      - name: Restart oscraftd under an open page; the watch resumes at the new version
+        run: |
+          set -euo pipefail
+          cargo build -p osdt-data
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/reconnect"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' 'end' > "$mod"
+          cat > "$RUNNER_TEMP/pw/reconnect.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          import { spawn } from "child_process";
+          import { openSync, readFileSync, writeFileSync } from "fs";
+          const [bin, catalog, modPath, log, addr] = process.argv.slice(2);
+          const base = "http://" + addr;
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const start = () => spawn(bin, ["--addr", addr, "--room", "ci-reconnect", "--data", catalog, "--mod", modPath, "--site", "crates/web/site"], { stdio: ["ignore", openSync(log, "a"), openSync(log, "a")] });
+          const version = async () => (await (await fetch(base + "/mod-version", { cache: "no-store" })).json()).version;
+          async function waitFor(fn, what, ms) {
+            const end = Date.now() + ms;
+            for (;;) {
+              try { if (await fn()) return; } catch {}
+              if (Date.now() > end) throw new Error("timed out: " + what);
+              await sleep(250);
+            }
+          }
+          const stop = (p) => new Promise((r) => { p.once("exit", r); p.kill(); });
+          let server = start();
+          await waitFor(async () => (await version()) === 1, "server up at version 1", 60000);
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          await page.goto(base + "/site/");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const pageError = await page.getAttribute("body", "data-error");
+          if (pageError) throw new Error("page error: " + pageError);
+          await page.waitForSelector("body[data-mod-version='1']", { timeout: 15000 });
+          await page.evaluate(() => { window.__sameDocument = "yes"; });
+          writeFileSync(modPath, 'function on_tick(state)\n  state.ticks = state.ticks + 1\n  state.probe = "v2"\nend\n');
+          await page.waitForSelector("body[data-mod-version='2']", { timeout: 15000 });
+          server = await stop(server);
+          await sleep(3000);
+          server = start();
+          await waitFor(async () => (await version()) === 1, "restarted server at version 1", 60000);
+          await page.waitForSelector("body[data-mod-version='1']", { timeout: 30000 });
+          const versionAfter = await page.getAttribute("body", "data-mod-version");
+          if (await page.evaluate(() => window.__sameDocument) !== "yes") throw new Error("page reloaded instead of resuming");
+          writeFileSync(modPath, 'function on_tick(state)\n  state.ticks = state.ticks + 1\n  state.probe = "v3"\nend\n');
+          await page.waitForSelector("body[data-mod-version='2']", { timeout: 15000 });
+          if (errors.length) throw new Error("page errors: " + errors.join("\n"));
+          console.log("browser reconnect ok version_after=" + versionAfter);
+          const lines = readFileSync(log, "utf8").split("\n").filter((l) => l.startsWith("ev=client_error ") && l.includes('message="reconnect'));
+          if (lines.length !== 1) throw new Error("expected one reconnect log line, found " + lines.length);
+          await browser.close();
+          server = await stop(server);
+          EOF
+          node "$RUNNER_TEMP/pw/reconnect.mjs" "$PWD/target/debug/oscraftd" "$work/catalog.osdt" "$mod" "$work/server.log" 127.0.0.1:8006
+
+  package-install:
+    name: single archive builds and installs into an empty directory
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-package
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Build the archive (server, mod LSP, data directory, browser page)
+        run: bash scripts/package/build.sh "$RUNNER_TEMP/package"
+
+      - name: Install the archive into an empty directory and check it runs
+        run: |
+          set -euo pipefail
+          archive=$(ls "$RUNNER_TEMP"/package/oscraft-*.tar.gz)
+          bash scripts/package/install-check.sh "$archive" "$RUNNER_TEMP/installed" | tee "$RUNNER_TEMP/install.out"
+          grep -q '^package install ok members=[0-9]* sha256_checked=[0-9]*$' "$RUNNER_TEMP/install.out"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oscraft-package
+          path: ${{ runner.temp }}/package/oscraft-*.tar.gz
+
+  protocol-version:
+    name: state, delta and order replies carry the protocol constant; a mismatched client is refused
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Read /state, /delta and order replies and check proto equals PROTOCOL_VERSION
+        run: |
+          set -euo pipefail
+          want=$(sed -n 's/^pub const PROTOCOL_VERSION: u32 = \([0-9]*\);$/\1/p' crates/server/src/http.rs)
+          test -n "$want"
+          cargo build -p server --bin oscraftd
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/protocol"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          addr=127.0.0.1:8091
+          log="$work/protocol.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
+          test -n "$token"
+          check() {
+            if ! jq -e --argjson want "$want" '.proto == $want' <<<"$2" >/dev/null; then
+              echo "proto mismatch in $1: $2"; exit 1
+            fi
+            echo "proto ok reply=$1 proto=$want"
+          }
+          state=$(curl -sf "http://$addr/state")
+          check state "$state"
+          tick=$(jq -r .tick <<<"$state")
+          delta=$(curl -sf "http://$addr/delta?since=$tick")
+          check delta "$delta"
+          code=$(curl -s -o "$work/order.json" -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data '{"player":0,"x":1,"y":1}')
+          test "$code" = 200
+          check order "$(cat "$work/order.json")"
+          code=$(curl -s -o "$work/refused.json" -w '%{http_code}' "http://$addr/state?proto=$((want + 1))")
+          test "$code" = 409
+          jq -e '.error == "protocol_mismatch"' "$work/refused.json" >/dev/null
+          echo "proto refusal reply=state status=$code error=protocol_mismatch"
+          code=$(curl -s -o "$work/refused-delta.json" -w '%{http_code}' "http://$addr/delta?since=$tick&proto=$((want + 1))")
+          test "$code" = 409
+          jq -e '.error == "protocol_mismatch"' "$work/refused-delta.json" >/dev/null
+          echo "protocol refusal ok reply=delta status=$code"
+          code=$(curl -s -o "$work/refused-order.json" -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci&proto=$((want + 1))" --data '{"player":0,"x":1,"y":1}')
+          test "$code" = 409
+          jq -e '.error == "protocol_mismatch"' "$work/refused-order.json" >/dev/null
+          echo "protocol refusal ok reply=order status=$code"
+          echo "protocol-version ok constant=$want replies=state,delta,order"
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
+
+  log-schema:
+    name: server log lines match the documented schema in docs/LOG_SCHEMA.md
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Drive the server, then check every log line against docs/LOG_SCHEMA.md
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/log-schema"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
+          addr=127.0.0.1:8103
+          log="$work/mod.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --mod "$mod" --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -sf "http://$addr/mod-version" | grep -q '"version":1' && break; sleep 0.5; done
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v2"' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_tick tick=[0-9]* version=2 probe=v2' "$log" && break; sleep 0.25; done
+          printf '%s\n' 'function on_tick(state' '  state.ticks = state.ticks + 1' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_reload_failed ' "$log" && break; sleep 0.25; done
+          printf '%s\n' 'function on_tick(state)' '  local x = nil' '  state.probe = x.field' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_error ' "$log" && break; sleep 0.25; done
+          curl -sf -X POST "http://$addr/client-error?session=schema&message=schema%20probe" > /dev/null
+          for i in $(seq 1 40); do grep -q '^ev=client_error ' "$log" && break; sleep 0.25; done
+          for i in $(seq 1 40); do grep -q '^ev=tick_time ' "$log" && break; sleep 0.25; done
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          over="$work/overrun.log"
+          target/debug/oscraftd --addr 127.0.0.1:8104 --room ci --data "$work/catalog.osdt" --ticks 200 --tick-budget-us 1 > "$over" 2>&1
+          cat "$log" "$over" > "$work/all.log"
+          python3 -I - "$work/all.log" ../docs/LOG_SCHEMA.md crates/server/src/log.rs <<'PY'
+          import re
+          import sys
+
+          log_path, doc_path, rust_path = sys.argv[1], sys.argv[2], sys.argv[3]
+          enum_names = re.findall(r'Ev::[A-Za-z]+ => "([a-z_]+)"', open(rust_path).read())
+          if len(enum_names) != len(set(enum_names)):
+              sys.exit("log.rs names an event twice")
+          rows = {}
+          row = re.compile(r'^\| `([a-z_]+)` \| [A-Za-z]+ \| [a-z_.]+ \| ([^|]*?) \| (required|optional) \|$')
+          for text in open(doc_path):
+              m = row.match(text.rstrip("\n"))
+              if m:
+                  name, fields, sample = m.groups()
+                  keys = [] if fields.strip() == "-" else [f.strip() for f in fields.split(",")]
+                  rows[name] = (set(keys), sample)
+          if set(enum_names) != set(rows):
+              sys.exit(f"documented and log.rs differ: only_in_log={sorted(set(enum_names) - set(rows))} only_in_doc={sorted(set(rows) - set(enum_names))}")
+          line_re = re.compile(r'^ev=([a-z_]+)((?: [a-z_0-9]+=(?:"(?:[^"\\]|\\.)*"|[^ "]+))*)$')
+          key_re = re.compile(r' ([a-z_0-9]+)=(?:"(?:[^"\\]|\\.)*"|[^ "]+)')
+          seen, lines = set(), 0
+          for text in open(log_path):
+              text = text.rstrip("\n")
+              if not text:
+                  continue
+              lines += 1
+              m = line_re.match(text)
+              if not m or m.group(1) not in rows:
+                  sys.exit(f"unparsed or undocumented line: {text}")
+              name = m.group(1)
+              keys = set(key_re.findall(m.group(2)))
+              if not keys <= rows[name][0]:
+                  sys.exit(f"undocumented field in {name}: {sorted(keys - rows[name][0])} in {text}")
+              seen.add(name)
+          missing = sorted(n for n, (_, s) in rows.items() if s == "required" and n not in seen)
+          if missing:
+              sys.exit(f"required events missing from the run: {missing}")
+          print(f"log schema ok events={len(set(enum_names))} documented={len(rows)} lines={lines} seen={len(seen)}")
+          PY
+
+  page-self-reload:
+    name: the served page reloads itself once when main.js changes and keeps the server session
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Export the map image and build the wasm module into the page
+        run: |
+          cargo run -p mapexport -- crates/web/site/map.bin
+          wasm-pack build crates/web --target web --out-dir site/pkg --no-opt
+
+      - name: Install headless Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install playwright@1.47.0
+          npx playwright install --with-deps chromium
+
+      - name: Serve a job-owned copy of the site, edit its main.js, and watch the page reload itself
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/self-reload"
+          mkdir -p "$work"
+          cp -r crates/web/site "$work/site"
+          cat > "$RUNNER_TEMP/pw/self-reload.mjs" <<'JS'
+          import { chromium } from "playwright";
+          import { spawn } from "child_process";
+          import { openSync, readFileSync, writeFileSync } from "fs";
+          const [bin, site, addr, log] = process.argv.slice(2);
+          const base = "http://" + addr;
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const server = spawn(bin, ["--addr", addr, "--room", "ci-self-reload", "--site", site], { stdio: ["ignore", openSync(log, "a"), openSync(log, "a")] });
+          const stamp = async () => (await (await fetch(base + "/site/version", { cache: "no-store" })).json()).page;
+          async function until(what, fn, ms) {
+            const end = Date.now() + ms;
+            for (;;) {
+              try { const v = await fn(); if (v) return v; } catch {}
+              if (Date.now() > end) throw new Error("timed out: " + what);
+              await sleep(250);
+            }
+          }
+          await until("server answers /site/version", stamp, 60000);
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          await page.goto(base + "/site/");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const pageError = await page.getAttribute("body", "data-error");
+          if (pageError) throw new Error("page error: " + pageError);
+          const before = await until("page stamp", () => page.getAttribute("body", "data-page-version"), 15000);
+          await page.evaluate(() => { window.__sameDocument = "yes"; });
+          const file = site + "/main.js";
+          writeFileSync(file, readFileSync(file, "utf8") + `\n// ci self-reload edit ${Date.now()}\n`);
+          const after = await until("page reloads with a new stamp", async () => {
+            const v = await page.getAttribute("body", "data-page-version");
+            return v && v !== before ? v : null;
+          }, 30000);
+          if (await page.evaluate(() => window.__sameDocument) !== undefined) throw new Error("page kept its document; no reload happened");
+          if (server.exitCode !== null) throw new Error("server exited during the reload");
+          await page.waitForSelector("body[data-ready='1']", { timeout: 60000 });
+          await sleep(3000);
+          if (await page.getAttribute("body", "data-page-version") !== after) throw new Error("page reloaded more than once");
+          if (errors.length) throw new Error("page errors: " + errors.join("\n"));
+          console.log("browser self-reload ok page_version=" + after);
+          await browser.close();
+          server.kill();
+          JS
+          node "$RUNNER_TEMP/pw/self-reload.mjs" "$PWD/target/debug/oscraftd" "$work/site" 127.0.0.1:8008 "$work/server.log"
+
+  mod-handle-reload:
+    name: mod handle survives a data reload
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Spawn a unit through a mod, reload the data without the map's last unit, and order the same handle
+        run: |
+          set -euo pipefail
+          cargo build -q -p server --bin oscraftd
+          work="$RUNNER_TEMP/handle-reload"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp -r data "$work/data"
+          cat > "$work/mod.lua" <<'LUA'
+          -- Spawns one skirmisher on tick 1, then orders its handle to one of two points every 40 ticks.
+          function on_tick(state)
+            state.ticks = (state.ticks or 0) + 1
+            if state.ticks == 1 then
+              state.handle = game.cmd_spawn("skirmisher", 3 * 65536, 3 * 65536)
+            elseif state.handle then
+              local x = ((state.ticks // 40) % 2 == 0) and 4 or 8
+              game.cmd_order_handle(state.handle, x * 65536, 4 * 65536)
+            end
+          end
+          LUA
+          addr=127.0.0.1:18441
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room handle --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          wait_for() {
+            for i in $(seq 1 $(( ${2:-60} * 4 ))); do
+              grep -q "$1" "$log" && return 0
+              kill -0 "$pid" 2>/dev/null || { cat "$log"; echo "server exited before: $1"; exit 1; }
+              sleep 0.25
+            done
+            cat "$log"
+            echo "timed out waiting for: $1"
+            exit 1
+          }
+          num() { [[ "$1" =~ ^-?[0-9]+$ ]] || { echo "unit state not numeric: $1"; cat "$log"; exit 1; }; }
+          unit_at() { curl -sf "http://$addr/state?unit=$unit" | jq -r '"\(.unit.x) \(.unit.y)"'; }
+          wait_for 'ev=mod_unit_bound'
+          bound=$(grep -o 'ev=mod_unit_bound handle=[0-9]* unit=[0-9]*' "$log" | head -n 1)
+          handle=$(echo "$bound" | sed 's/.*handle=\([0-9]*\).*/\1/')
+          unit=$(echo "$bound" | sed 's/.*unit=//')
+          [[ -n "$handle" && -n "$unit" ]] || { echo "no mod unit bound"; cat "$log"; exit 1; }
+          # The gunship is the last unit the map places; dropping it leaves the mod unit's index unplaced.
+          sed -i '/spawn("gunship"/d' "$work/data/map.star"
+          wait_for 'ev=data_reloaded'
+          read -r x0 y0 <<<"$(unit_at)"
+          num "$x0"; num "$y0"
+          sleep 6
+          read -r x1 y1 <<<"$(unit_at)"
+          num "$x1"; num "$y1"
+          if grep -q 'ev=mod_unit_refused.*reason=unmapped' "$log"; then
+            cat "$log"
+            echo "mod handle $handle was refused as unmapped after the reload"
+            exit 1
+          fi
+          if [[ "$x0 $y0" == "$x1 $y1" ]]; then
+            cat "$log"
+            echo "unit $unit did not move after the reload: $x1 $y1"
+            exit 1
+          fi
+          echo "mod handle survives reload ok handle=$handle moved=true"
+
+  data-only-new-unit-kind:
+    name: data-only new unit kind spawns
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Add a unit kind from data alone, spawn it on the map, and check the served room
+        run: |
+          set -euo pipefail
+          cargo build -q -p server --bin oscraftd
+          work="$RUNNER_TEMP/data-kind"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp -r data "$work/base"
+          cp -r data "$work/data"
+          cat >> "$work/data/units.star" <<'STAR'
+          unit("zephyr", 45, 3150, 375, build_time=480, minerals=50, supply=1, abilities=[], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="minerals")
+          STAR
+          echo 'spawn("zephyr", 0, 22000, 18000)' >> "$work/data/map.star"
+          base_addr=127.0.0.1:18442
+          kind_addr=127.0.0.1:18443
+          ./target/debug/oscraftd --addr "$base_addr" --room base --data "$work/base" > "$work/base.log" 2>&1 &
+          base_pid=$!
+          ./target/debug/oscraftd --addr "$kind_addr" --room kind --data "$work/data" > "$work/kind.log" 2>&1 &
+          kind_pid=$!
+          trap 'kill $base_pid $kind_pid 2>/dev/null || true' EXIT
+          up() {
+            for i in $(seq 1 120); do
+              curl -sf "http://$1/state" > /dev/null && return 0
+              sleep 0.25
+            done
+            echo "server $1 did not answer /state"
+            cat "$work/kind.log"
+            exit 1
+          }
+          up "$base_addr"
+          up "$kind_addr"
+          base_units=$(curl -sf "http://$base_addr/state" | jq -r '.units')
+          kind_units=$(curl -sf "http://$kind_addr/state" | jq -r '.units')
+          listed=$(curl -sf "http://$kind_addr/catalog" | jq -r '.units | index("zephyr") != null')
+          if [[ "$listed" != "true" ]]; then
+            echo "zephyr is not in /catalog"
+            cat "$work/kind.log"
+            exit 1
+          fi
+          if [[ $(( kind_units - base_units )) -ne 1 ]]; then
+            echo "units base=$base_units with-zephyr=$kind_units: the data-spawned zephyr was not counted"
+            cat "$work/kind.log"
+            exit 1
+          fi
+          echo "data-only kind ok kind=zephyr spawned=true"
+
+  mod-handle-kind-change:
+    name: a reload that changes the kind at a handled mod index drops the handle and logs kind_changed once
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Spawn a skirmisher through a mod, reload a map that puts a tender at the same index, and check the handle is dropped with one kind_changed line
+        run: |
+          set -euo pipefail
+          cargo build -q -p server --bin oscraftd
+          work="$RUNNER_TEMP/handle-kind-change"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp -r data "$work/data"
+          cat > "$work/mod.lua" <<'LUA'
+          -- Spawns one skirmisher on tick 1, then orders its handle to one of two points every 40 ticks.
+          function on_tick(state)
+            state.ticks = (state.ticks or 0) + 1
+            if state.ticks == 1 then
+              state.handle = game.cmd_spawn("skirmisher", 3 * 65536, 3 * 65536)
+            elseif state.handle then
+              local x = ((state.ticks // 40) % 2 == 0) and 4 or 8
+              game.cmd_order_handle(state.handle, x * 65536, 4 * 65536)
+            end
+          end
+          LUA
+          addr=127.0.0.1:18445
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room kindchange --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          wait_for() {
+            for i in $(seq 1 $(( ${2:-60} * 4 ))); do
+              grep -q "$1" "$log" && return 0
+              kill -0 "$pid" 2>/dev/null || { cat "$log"; echo "server exited before: $1"; exit 1; }
+              sleep 0.25
+            done
+            cat "$log"
+            echo "timed out waiting for: $1"
+            exit 1
+          }
+          wait_for 'ev=mod_unit_bound'
+          bound=$(grep -o 'ev=mod_unit_bound handle=[0-9]* unit=[0-9]*' "$log" | head -n 1)
+          handle=$(echo "$bound" | sed 's/.*handle=\([0-9]*\).*/\1/')
+          unit=$(echo "$bound" | sed 's/.*unit=//')
+          [[ -n "$handle" && -n "$unit" ]] || { echo "no mod unit bound"; cat "$log"; exit 1; }
+          # The map places units 0 to 7, so the mod's skirmisher holds index 8. Appending a tender places a different kind at that index.
+          printf '\nspawn("tender", 0, 2500, 21500)\n' >> "$work/data/map.star"
+          wait_for 'ev=data_reloaded'
+          expect="ev=mod_unit_refused handle=$handle unit=$unit reason=kind_changed"
+          if [[ "$(grep -cF "$expect" "$log")" -ne 1 ]]; then
+            cat "$log"
+            echo "expected exactly one line: $expect"
+            exit 1
+          fi
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          echo "mod handle dropped on kind change ok handle=$handle unit=$unit reason=kind_changed"
+
+  page-edit-rejected:
+    name: a broken main.js edit leaves the served page running with one client_error line, and a good edit reloads it
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Export the map image and build the wasm module into the page
+        run: |
+          cargo run -p mapexport -- crates/web/site/map.bin
+          wasm-pack build crates/web --target web --out-dir site/pkg --no-opt
+
+      - name: Install headless Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install playwright@1.47.0
+          npx playwright install --with-deps chromium
+
+      - name: Serve a job-owned copy of the site, break its main.js, and check the page rejects the edit
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/edit-rejected"
+          mkdir -p "$work"
+          cp -r crates/web/site "$work/site"
+          cat > "$RUNNER_TEMP/pw/edit-rejected.mjs" <<'JS'
+          import { chromium } from "playwright";
+          import { spawn } from "child_process";
+          import { openSync, readFileSync, writeFileSync } from "fs";
+          const [bin, site, addr, log] = process.argv.slice(2);
+          const base = "http://" + addr;
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const server = spawn(bin, ["--addr", addr, "--room", "ci-edit-rejected", "--site", site], { stdio: ["ignore", openSync(log, "a"), openSync(log, "a")] });
+          const stamp = async () => (await (await fetch(base + "/site/version", { cache: "no-store" })).json()).page;
+          async function until(what, fn, ms) {
+            const end = Date.now() + ms;
+            for (;;) {
+              try { const v = await fn(); if (v) return v; } catch {}
+              if (Date.now() > end) throw new Error("timed out: " + what);
+              await sleep(250);
+            }
+          }
+          const rejectLines = () => readFileSync(log, "utf8").split("\n").filter((l) => l.startsWith("ev=client_error ") && l.includes('message="page edit rejected: '));
+          await until("server answers /site/version", stamp, 60000);
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          await page.goto(base + "/site/");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const pageError = await page.getAttribute("body", "data-error");
+          if (pageError) throw new Error("page error: " + pageError);
+          const before = await until("page stamp", () => page.getAttribute("body", "data-page-version"), 15000);
+          await page.evaluate(() => { window.__sameDocument = "yes"; });
+          const file = site + "/main.js";
+          const good = readFileSync(file, "utf8");
+          writeFileSync(file, good + "\nfunction ci_broken( {\n");
+          await until("server stamps the broken main.js", async () => (await stamp()) !== before, 15000);
+          await until("server relays the rejection to the log", async () => rejectLines().length >= 1, 30000);
+          await sleep(4000);
+          if (await page.getAttribute("body", "data-page-version") !== before) throw new Error("page moved to a new stamp on a broken main.js");
+          if (await page.evaluate(() => window.__sameDocument) !== "yes") throw new Error("page reloaded on a broken main.js");
+          if (rejectLines().length !== 1) throw new Error("expected one client_error line, got " + rejectLines().length + ": " + rejectLines().join("\n"));
+          if (server.exitCode !== null) throw new Error("server exited during the rejected edit");
+          writeFileSync(file, good + `\n// ci edit rejected restore ${Date.now()}\n`);
+          const after = await until("page reloads after the good edit", async () => {
+            const v = await page.getAttribute("body", "data-page-version");
+            return v && v !== before ? v : null;
+          }, 30000);
+          if (await page.evaluate(() => window.__sameDocument) !== undefined) throw new Error("page kept its document after the good edit; no reload happened");
+          await page.waitForSelector("body[data-ready='1']", { timeout: 60000 });
+          await sleep(3000);
+          if (await page.getAttribute("body", "data-page-version") !== after) throw new Error("page reloaded more than once");
+          if (rejectLines().length !== 1) throw new Error("client_error line count changed after the fix: " + rejectLines().length);
+          if (errors.length) throw new Error("page errors: " + errors.join("\n"));
+          console.log("browser broken edit rejected page_version=" + before + " reloaded_after_fix=true");
+          await browser.close();
+          server.kill();
+          JS
+          node "$RUNNER_TEMP/pw/edit-rejected.mjs" "$PWD/target/debug/oscraftd" "$work/site" 127.0.0.1:8009 "$work/server.log"
+
+  carry-drop-branch-exercised:
+    name: a reload that renames a unit kind during a running match drops that unit and the drop is printed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: Rename the gunship kind in the catalog and map under a running match; the carry drop is printed and the unit count falls by exactly that many
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/carry-drop"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18446
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room drop --data "$work" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          before=$(state | jq -r .units)
+          test "$before" -gt 0
+          sed -i 's/"gunship"/"gunship_renamed"/g' "$work"/*.star
+          for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=drop ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reloaded room=drop ' "$log"
+          line=$(grep '^ev=data_reloaded room=drop ' "$log" | head -n 1)
+          dropped=$(sed -n 's/.* refused=\([0-9]*\).*/\1/p' <<<"$line")
+          test -n "$dropped"
+          test "$dropped" -ge 1
+          after=$(state | jq -r .units)
+          test "$after" -eq $(( before - dropped ))
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          echo "carry drop exercised dropped=$dropped before=$before after=$after"
+
+  late-join-snapshot:
+    name: a late joiner's /state snapshot plus /delta since its tick matches a fresh /state
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Snapshot at tick t, order, advance, then /delta since t applied to the snapshot matches a fresh /state at the same tick
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/late-join"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18447
+          log="$work/server.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          wait_tick() {
+            for i in $(seq 1 240); do
+              now=$(state | jq -r .tick)
+              test "$now" -ge "$1" && return 0
+              sleep 0.1
+            done
+            return 1
+          }
+          token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
+          test -n "$token"
+          wait_tick 8
+          snap=$(state)
+          t=$(jq -r .tick <<<"$snap")
+          test "$(jq -r '.records | length' <<<"$snap")" = "$(jq -r .units <<<"$snap")"
+          test "$(jq -r .units <<<"$snap")" -gt 0
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data '{"player":0,"x":5,"y":5}')
+          test "$code" = 200
+          wait_tick $((t + 8))
+          ok=""
+          for i in $(seq 1 50); do
+            delta=$(curl -sf "http://$addr/delta?since=$t")
+            D=$(jq -r .tick <<<"$delta")
+            fresh=$(state)
+            if [ "$(jq -r .tick <<<"$fresh")" = "$D" ]; then ok=1; break; fi
+            sleep 0.05
+          done
+          test -n "$ok"
+          test "$(jq -r '.records | length' <<<"$delta")" = "$(jq -r .changed <<<"$delta")"
+          test "$(jq -r '.records | length' <<<"$fresh")" = "$(jq -r .units <<<"$fresh")"
+          applied=$(jq -c -n --argjson s "$snap" --argjson d "$delta" '
+            ($d.records | map(select(.alive == false) | .id)) as $dead
+            | ([$s.records[] | select(.id as $i | $dead | contains([$i]) | not)]
+               + [$d.records[] | select(.alive == true) | del(.alive)])
+            | group_by(.id) | map(last) | map({id,x,y,hp}) | sort_by(.id)')
+          fresh_set=$(jq -c '[.records[] | {id,x,y,hp}] | sort_by(.id)' <<<"$fresh")
+          if [ "$applied" != "$fresh_set" ]; then
+            echo "late join mismatch tick=$D"
+            echo "applied=$applied"
+            echo "fresh=$fresh_set"
+            exit 1
+          fi
+          n=$(jq -r .units <<<"$fresh")
+          echo "late join ok ticks=$t units=$n"
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
+
+  wire:
+    name: wire frame codec round-trip
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: js/wire
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Round-trip and reject tests
+        run: node test.js
+
+  net-client-bundle:
+    name: net client bundle builds with esbuild and play.html references it
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: js/client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install client dependencies and bundle play.js
+        run: |
+          npm install
+          npm run build
+
+      - name: Assert the bundle is produced and play.html references it
+        run: |
+          test -s dist/play.js || { echo "net client bundle missing: js/client/dist/play.js"; exit 1; }
+          grep -q 'dist/play.js' play.html || { echo "play.html does not reference dist/play.js"; exit 1; }
+          echo "net client bundle ok bytes=$(wc -c < dist/play.js)"
+
+  net-host-usage:
+    name: net host --help exits 0 and prints its usage line
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: node js/host/server.js --help
+        run: |
+          node js/host/server.js --help > /tmp/net-host-help.txt
+          code=$?
+          cat /tmp/net-host-help.txt
+          test "$code" = 0
+          grep -q '^usage: node js/host/server.js --wasm' /tmp/net-host-help.txt
+          echo "net host usage ok"
