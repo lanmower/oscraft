@@ -31,6 +31,20 @@ grep -q '^usage: node js/host/server.js --wasm' <<< "$help" || fail "node js/hos
 [ -s js/client/dist/play.js ] || fail "js/client/dist/play.js is missing or empty"
 [ -f js/client/play.html ] || fail "js/client/play.html is missing"
 grep -q 'dist/play.js' js/client/play.html || fail "js/client/play.html does not reference dist/play.js"
+specs=$(node -e 'const s=require("fs").readFileSync("js/client/dist/play.js","utf8");const re=/(?:from|import\()\s*["\x27](\.\.?\/[^"\x27]+)["\x27]/g;const out=new Set();let m;while((m=re.exec(s)))out.add(m[1]);process.stdout.write([...out].join("\n"))')
+refs=$(node -e 'const s=require("fs").readFileSync("js/client/play.html","utf8");const re=/data-(?:pkg|map)="([^"]+)"/g;const out=[];let m;while((m=re.exec(s)))out.push(m[1]);process.stdout.write(out.join("\n"))')
+imports=0
+while IFS= read -r spec; do
+  [ -n "$spec" ] || continue
+  imports=$((imports + 1))
+  [ -f "js/client/dist/$spec" ] || fail "js/client/dist/play.js imports $spec, which is not in the archive"
+done <<< "$specs"
+while IFS= read -r ref; do
+  [ -n "$ref" ] || continue
+  imports=$((imports + 1))
+  [ -f "js/client/$ref" ] || fail "js/client/play.html references $ref, which is not in the archive"
+done <<< "$refs"
+[ "$imports" -ge 1 ] || fail "no relative import or page reference was found to check"
 
 server_pid=
 cleanup() { [ -n "$server_pid" ] && kill "$server_pid" 2>/dev/null || true; }
@@ -51,4 +65,5 @@ lsp_out=$({
 printf '%s' "$lsp_out" | grep -q '"capabilities"' || fail "oscraft-lsp initialize reply has no capabilities"
 
 echo "package install ok members=$members sha256_checked=$checked"
+echo "client imports ok=$imports"
 echo "package install ok members=$members sha256_checked=$checked host_help=ok client=ok"

@@ -25,6 +25,8 @@ cp js/wire/frame.js "$stage/js/wire/"
 if [ ! -s js/client/dist/play.js ]; then (cd js/client && npm install --no-audit --no-fund && npm run build); fi
 cp js/client/dist/play.js "$stage/js/client/dist/"
 cp js/client/play.html "$stage/js/client/"
+wasm-pack build rust/crates/web --target web --out-dir "$stage/js/client/pkg" --no-opt > /dev/null
+cp "$stage/site/map.bin" "$stage/js/client/map.bin"
 
 printf '%s\n' "$version" > "$stage/VERSION"
 (cd "$stage" && find . -type f ! -name MANIFEST.sha256 | sed 's|^\./||' | LC_ALL=C sort | while read -r f; do
