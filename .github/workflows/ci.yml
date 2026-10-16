@@ -1877,6 +1877,14 @@ jobs:
           test "$code" = 409
           jq -e '.error == "protocol_mismatch"' "$work/refused.json" >/dev/null
           echo "proto refusal reply=state status=$code error=protocol_mismatch"
+          code=$(curl -s -o "$work/refused-delta.json" -w '%{http_code}' "http://$addr/delta?since=$tick&proto=$((want + 1))")
+          test "$code" = 409
+          jq -e '.error == "protocol_mismatch"' "$work/refused-delta.json" >/dev/null
+          echo "protocol refusal ok reply=delta status=$code"
+          code=$(curl -s -o "$work/refused-order.json" -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci&proto=$((want + 1))" --data '{"player":0,"x":1,"y":1}')
+          test "$code" = 409
+          jq -e '.error == "protocol_mismatch"' "$work/refused-order.json" >/dev/null
+          echo "protocol refusal ok reply=order status=$code"
           echo "protocol-version ok constant=$want replies=state,delta,order"
           kill "$pid"; wait "$pid" 2>/dev/null || true
           trap - EXIT
