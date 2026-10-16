@@ -1,0 +1,49 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push waits for the running deploy and then supersedes it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: publish the committed page to GitHub Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # No build here: play.html loads the committed wasm pkg and map.bin from js/client.
+      # The site root maps to the repository root so /js/client/play.html is the page URL.
+      - name: Lay out the site
+        run: |
+          set -euo pipefail
+          rm -rf _site && mkdir -p _site/js
+          cp -r js/client _site/js/client
+          test -f _site/js/client/play.html
+          test -f _site/js/client/play.js
+          test -f _site/js/client/map.bin
+          test -f _site/js/client/pkg/web.js
+          test -f _site/js/client/pkg/web_bg.wasm
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
