@@ -43,6 +43,10 @@ Each peer gets a player id when its channel opens (`assignPlayer` in `js/host/se
 
 The `net-host-persistent` job in `.github/workflows/ci.yml` runs on ubuntu-latest, ubuntu-24.04-arm, macos-latest and windows-latest. Each builds the wasip1 guest and the OSDT image, opens one guest through `js/host/guest.js`, sends one order, and runs 50 ticks with `readTick`. It asserts that the tick count advanced by 50 and that the last 10 tick times sum to at most 3 times the first 10. It prints `net host persistent ok ticks=50 ratio=<r>`.
 
+## ICE
+
+`js/client/ice.js` (`iceServersFrom`) builds the ICE list for the data channel. With no value it returns the default STUN list. A JSON list of `{urls, username?, credential?}` replaces it, and any TURN entry must carry `username` and `credential`. Malformed input is refused, never replaced by the default. The browser client reads the list from `?ice=<JSON>`. The CI job `ice-config` imports the module, runs it with `OSCRAFT_ICE` set (prints `ice config ok servers=<n>`) and unset (prints `ice config ok default=true`), and checks that malformed input is refused.
+
 ## Signalling
 
 `createDataSession({ fsm, xstate, relayPool, auth, namespace: 'oscraft', createPeerConnection })` uses node-datachannel through the polyfill, following the wireweave README. Auth storage is in memory.

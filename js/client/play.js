@@ -4,6 +4,7 @@ import { createDataSession, createFSM, NostrAuth, RelayPool } from "wireweave";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, FRAME } from "../wire/frame.js";
+import { iceServersFrom } from "./ice.js";
 
 // The map grid from data/map.osd: grid(32, 24), one tile per cell.
 const W = 32;
@@ -272,7 +273,16 @@ const relayPool = new RelayPool({
   ...(relayUrls ? { relays: relayUrls, fallbackRelays: [], autoRotate: false } : {}),
 });
 relayPool.connect();
-const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, iceServers: relayUrls ? [] : null });
+// ?ice=<JSON list> replaces the default STUN list. Relay test mode (?relay=) keeps no ICE servers unless ?ice is given.
+const iceConfig = (() => {
+  try {
+    return iceServersFrom(params.get("ice"));
+  } catch (err) {
+    setStatus(`ice config refused: ${err.message}`);
+    return iceServersFrom(null);
+  }
+})();
+const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, iceServers: relayUrls && !params.has("ice") ? [] : iceConfig.servers });
 
 session.addEventListener("peer-open", (e) => {
   peers.add(e.detail.peerPubkey);
