@@ -1249,28 +1249,27 @@ jobs:
           assert threads is not None, "no Threads line in /proc/<pid>/status"
           
           sel = selectors.DefaultSelector()
+          seen = {}
           for s in socks:
+              seen[s] = b""
               sel.register(s, selectors.EVENT_READ)
-          refused = eof = 0
+          refused = 0
           while True:
               events = sel.select(timeout=2.0)
               if not events:
                   break
               for key, _ in events:
-                  sel.unregister(key.fileobj)
-                  data = key.fileobj.recv(256)
-                  if data.startswith(b"HTTP/1.1 503"):
-                      refused += 1
-                  elif not data:
-                      eof += 1
-          alive = len(sel.get_map())
+                  s = key.fileobj
+                  chunk = s.recv(256)
+                  seen[s] += chunk
+                  if len(seen[s]) >= 12 or not chunk:
+                      sel.unregister(s)
+                      refused += seen[s].startswith(b"HTTP/1.1 503")
           
           with open(log) as f:
               conn_lines = sum(1 for line in f if line.startswith("ev=conn_refused "))
           
-          assert refused + eof + alive == conns, f"unclassified sockets: {conns - refused - eof - alive}"
-          assert alive <= cap, f"{alive} connections held open above cap {cap}"
-          assert refused > 0, "no connection past the cap got 503"
+          assert refused >= conns - cap, f"503 responses {refused} below {conns - cap}"
           assert conn_lines >= refused, f"ev=conn_refused lines {conn_lines} below 503 responses {refused}"
           assert threads <= ceiling, f"threads {threads} above ceiling {ceiling}"
           print(f"connection cap threads ok conns={conns} refused={refused} threads={threads} ceiling={ceiling}")
