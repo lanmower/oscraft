@@ -107,6 +107,7 @@ jobs:
             rust/target/debug/oscraft-spike
             rust/target/debug/oscraft-gate
             rust/target/debug/mapexport
+            rust/target/debug/oscraft-relay
             rust/target/debug/reload_harness
             rust/crates/web/site/pkg
             rust/crates/web/site/map.bin
@@ -1422,7 +1423,7 @@ jobs:
         run: |
           target/debug/oscraftd --addr 127.0.0.1:8000 --room ci --site crates/web/site > "$RUNNER_TEMP/http.log" 2>&1 &
           for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8000/ && break; sleep 1; done
-          node "$GITHUB_WORKSPACE/js/host/test-relay.js" 7447 > "$RUNNER_TEMP/relay.log" 2>&1 &
+          "$GITHUB_WORKSPACE/rust/target/debug/oscraft-relay" 7447 > "$RUNNER_TEMP/relay.log" 2>&1 &
           python3 -m http.server 8093 --bind 127.0.0.1 --directory "$GITHUB_WORKSPACE/js/client" > "$RUNNER_TEMP/static.log" 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8093/play.html > /dev/null && break; sleep 1; done
           cat > "$RUNNER_TEMP/pw/check.mjs" <<'EOF'
@@ -2702,11 +2703,20 @@ jobs:
   lobby-room-select:
     name: lobby room panel lists two rooms announced on the relay, joins one, and drops a closed page after its TTL
     runs-on: ubuntu-latest
-    needs: changes
+    needs: [changes, build]
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-build
+          path: rust
+
+      - name: Mark the prebuilt binaries executable
+        working-directory: ${{ github.workspace }}
+        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
 
       - uses: actions/setup-node@v4
         with:
@@ -2726,7 +2736,7 @@ jobs:
           set -euo pipefail
           work="$RUNNER_TEMP/lobby"
           mkdir -p "$work"
-          node "$GITHUB_WORKSPACE/js/host/test-relay.js" 7447 > "$work/relay.log" 2>&1 &
+          "$GITHUB_WORKSPACE/rust/target/debug/oscraft-relay" 7447 > "$work/relay.log" 2>&1 &
           relay=$!
           site="$work/site"
           mkdir -p "$site"
@@ -2810,11 +2820,20 @@ jobs:
   browser-two-peers:
     name: "browser host and browser peer over wireweave: one order moves a unit on both pages"
     runs-on: ubuntu-latest
-    needs: changes
+    needs: [changes, build]
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-build
+          path: rust
+
+      - name: Mark the prebuilt binaries executable
+        working-directory: ${{ github.workspace }}
+        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
 
       - uses: actions/setup-node@v4
         with:
@@ -2833,7 +2852,7 @@ jobs:
           set -euo pipefail
           work="$RUNNER_TEMP/browser-two-peers"
           mkdir -p "$work"
-          node js/host/test-relay.js 7447 > "$work/relay.log" 2>&1 &
+          "$GITHUB_WORKSPACE/rust/target/debug/oscraft-relay" 7447 > "$work/relay.log" 2>&1 &
           relay=$!
           python3 -m http.server 8092 --bind 127.0.0.1 --directory js/client > "$work/static.log" 2>&1 &
           static=$!
