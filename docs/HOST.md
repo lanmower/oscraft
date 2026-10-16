@@ -22,22 +22,22 @@ One line per event on stdout: `ev=host_started`, `ev=peer_open peer=<pubkey>`, `
 
 ## Persistence
 
-The host opens one guest instance at start and keeps it for the life of the process. The image is written once, then commands go in one line at a time:
+The host opens one guest instance at start and keeps it for the life of the process:
 
-- Stdin is a POSIX FIFO created in a temp directory. The host writes the u32 LE image length, the image bytes, and then one command per line. The FIFO stays open, so the guest never sees EOF while the host runs.
-- Stdout is a second FIFO. The guest writes one reply line per command, and the host reads replies in command order.
-- The guest runs on a worker thread, because `node:wasi` `start()` blocks on its stdin read.
-- Each tick sends `tick 1`, `unit-count` and `state-hash`. A player order arriving on a peer channel is sent as `order <unit> <x> <y>` at once. Tick cost depends on the sim state, not on the number of past commands, so there is no journal and no replay.
+- The guest runs in a child node process (`process.execPath -e`) that calls `node:wasi` `start()`. Its stdin and stdout are anonymous pipes created by `spawn`, which behave the same on Linux, macOS and Windows, so no FIFO or named pipe is needed.
+- The host writes the u32 LE image length and the image bytes once, then one command per line. The child fd 0 blocks in read until the next line arrives, so the instance is never restarted.
+- Each command gets one reply line on stdout, in command order. The host pipelines a batch of commands and resolves them in order.
+- Each tick runs `tick 1`, `state-hash` and `unit-count`, then `unit-position`, `unit-player` and `unit-hp` for each unit, all in one pipelined batch (`readTick` in `js/host/guest.js`). A player order arriving on a peer channel is sent as `order <unit> <x> <y>`. Tick cost depends on the sim state, not on the number of past commands: there is no journal and no replay.
 
-The guest protocol is unchanged (`rust/crates/wasip1/src/lib.rs`). Windows is not supported yet: the transport needs POSIX FIFOs, and `openGuest` throws on `win32`.
+The guest protocol is unchanged (`rust/crates/wasip1/src/lib.rs`). The host runs on Linux, macOS and Windows.
 
 ## Frames
 
-Peer frames use the wire codec in `js/wire/frame.js`, imported by `server.js` (the local `js/host/frame.js` is gone). An order frame carries `unitId`, `x` and `y`; the host turns it into an `order` command. The state frame carries `tick` and the low 32 bits of the guest state hash. It sends `units: []`: the wire state frame lists full unit records, and the host does not yet query them each tick, so the unit count is reported on stdout only.
+Peer frames use the wire codec in `js/wire/frame.js`, imported by `server.js`; the local `js/host/frame.js` is gone. An order frame carries `unitId`, `x` and `y`, and the host turns it into an `order` command. A state frame carries `tick`, the low 32 bits of the guest state hash, and one unit record `{id, kind, player, x, y, hp}` per unit, read from the guest each tick. `kind` is 0 for now: the guest has no per-unit kind command (its command list is in `rust/crates/wasip1/src/lib.rs`), so a kind reader needs a guest change.
 
 ## CI
 
-The `net-host-persistent` job in `.github/workflows/ci.yml` builds the wasip1 guest and the OSDT image, opens one guest through `js/host/guest.js`, sends 50 `tick 1` commands and one order, and asserts that the tick count advanced by 50 and that the mean of the last 10 tick times is at most 3 times the first 10. It prints `net host persistent ok ticks=50 ratio=<r>`.
+The `net-host-persistent` job in `.github/workflows/ci.yml` runs on ubuntu-latest, macos-latest and windows-latest. Each builds the wasip1 guest and the OSDT image, opens one guest through `js/host/guest.js`, sends one order, and runs 50 ticks with `readTick`. It asserts that the tick count advanced by 50 and that the last 10 tick times sum to at most 3 times the first 10. It prints `net host persistent ok ticks=50 ratio=<r>`.
 
 ## Signalling
 

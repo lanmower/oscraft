@@ -27,11 +27,6 @@ function loadImage(dataPath) {
   return readFileSync(file);
 }
 
-// A probe reply is the guest's line for one unit command; null when the guest reports the unit out of range.
-function probeValue(line, prefix) {
-  return line && line.startsWith(prefix) ? line.slice(prefix.length).trim() : null;
-}
-
 function emit(ev, fields = {}) {
   const tail = Object.entries(fields).map(([k, v]) => `${k}=${v}`).join(' ');
   console.log(tail ? `ev=${ev} ${tail}` : `ev=${ev}`);
@@ -44,7 +39,7 @@ async function main(opts) {
   const ndc = await import('node-datachannel');
   const { RTCPeerConnection: PolyfillRTCPeerConnection } = await import('node-datachannel/polyfill');
   const { encodeFrame, decodeFrame, FRAME } = await import('../wire/frame.js');
-  const { openGuest, replyValue } = await import('./guest.js');
+  const { openGuest, readTick } = await import('./guest.js');
 
   const image = loadImage(opts.data);
   const guest = await openGuest(opts.wasm, image);
@@ -86,38 +81,16 @@ async function main(opts) {
 
   let tick = 0;
   let busy = false;
-  let knownUnits = 0;
   const timer = setInterval(async () => {
     if (busy) return;
     busy = true;
     try {
       tick += 1;
-      const probes = [];
-      for (let i = 0; i < knownUnits; i++) {
-        probes.push(guest.command(`unit-position ${i}`), guest.command(`unit-player ${i}`), guest.command(`unit-hp ${i}`));
-      }
-      const [, unitsLine, hashLine, ...probeLines] = await Promise.all([
-        guest.command('tick 1'),
-        guest.command('unit-count'),
-        guest.command('state-hash'),
-        ...probes,
-      ]);
-      const units = Number(replyValue(unitsLine, 'ok unit-count '));
-      const hash = replyValue(hashLine, 'ok state-hash ');
+      const { hash, count, units } = await readTick(guest);
       if (tick % opts.every === 0) {
-        const wireUnits = [];
-        for (let i = 0; i < knownUnits; i++) {
-          const pos = probeValue(probeLines[3 * i], 'ok unit-position ');
-          const player = probeValue(probeLines[3 * i + 1], 'ok unit-player ');
-          const hp = probeValue(probeLines[3 * i + 2], 'ok unit-hp ');
-          if (pos === null || player === null || hp === null) continue;
-          const [x, y] = pos.split(/\s+/).map(Number);
-          wireUnits.push({ id: i, kind: 0, player: Number(player), x: Math.round(x), y: Math.round(y), hp: Math.round(Number(hp)) });
-        }
-        session.broadcast(encodeFrame({ type: FRAME.STATE, tick, hash: Number.parseInt(hash.slice(-8), 16) >>> 0, units: wireUnits }));
+        session.broadcast(encodeFrame({ type: FRAME.STATE, tick, hash: Number.parseInt(hash.slice(-8), 16) >>> 0, units }));
       }
-      knownUnits = units;
-      emit('tick', { n: tick, units });
+      emit('tick', { n: tick, units: count });
     } catch (err) {
       emit('tick_failed', { n: tick, error: JSON.stringify(err.message) });
     } finally {

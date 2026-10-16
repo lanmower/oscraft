@@ -2606,9 +2606,16 @@ jobs:
           echo "net host usage ok"
 
   net-host-persistent:
-    name: net host keeps one wasip1 guest across 50 ticks and tick cost stays flat
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    name: net host keeps one wasip1 guest across 50 ticks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
@@ -2627,10 +2634,7 @@ jobs:
 
       - name: Write the OSDT image
         working-directory: rust
-        run: |
-          set -euo pipefail
-          cargo build -p osdt-data
-          ./target/debug/osdt-data data "$RUNNER_TEMP/catalog.osdt"
+        run: cargo run -q -p osdt-data -- data "$RUNNER_TEMP/catalog.osdt"
 
       - name: One persistent guest, 50 ticks and one order, tick count and tick cost asserted
         env:
@@ -2644,20 +2648,20 @@ jobs:
           import { pathToFileURL } from 'node:url';
           import { performance } from 'node:perf_hooks';
 
-          const { openGuest, replyValue } = await import(pathToFileURL(process.env.GUEST_JS).href);
+          const { openGuest, readTick, replyValue } = await import(pathToFileURL(process.env.GUEST_JS).href);
           const fail = (why) => { console.error(`net host persistent FAIL ${why}`); process.exit(1); };
           const expect = (reply, prefix) => (reply.startsWith(prefix) ? reply : fail(`reply "${reply}"`));
 
           const guest = await openGuest(process.env.GUEST_WASM, readFileSync(process.env.GUEST_IMAGE));
           const start = Number(replyValue(expect(await guest.command('ticks'), 'ok ticks '), 'ok ticks '));
-          const units = Number(replyValue(expect(await guest.command('unit-count'), 'ok unit-count '), 'ok unit-count '));
-          if (!(units > 0)) fail(`unit-count ${units}`);
+          const first = await readTick(guest);
+          if (!(first.count > 0)) fail(`unit-count ${first.count}`);
           expect(await guest.command('order 0 0 0'), 'ok order');
 
           const times = [];
           for (let i = 0; i < 50; i++) {
             const t0 = performance.now();
-            expect(await guest.command('tick 1'), 'ok tick ');
+            await readTick(guest);
             times.push(performance.now() - t0);
           }
           const end = Number(replyValue(expect(await guest.command('ticks'), 'ok ticks '), 'ok ticks '));
@@ -2670,6 +2674,7 @@ jobs:
           console.log(`net host persistent ok ticks=50 ratio=${ratio.toFixed(2)}`);
           process.exit(0);
           JS
+
   net-e2e-two-peers:
     name: "two headless peers join room ci through the relay; an order moves a unit"
     runs-on: ubuntu-latest
