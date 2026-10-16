@@ -237,7 +237,8 @@ impl Room {
         if let Some(mut sim) = lock(&self.staged).take() {
             let (carried, refused) = carry_live_units(&c.sim, &mut sim);
             c.sim = sim;
-            c.handles.clear();
+            let clock = &mut *c;
+            clock.handles.retain(|_, unit| clock.sim.alive(*unit));
             crate::emit!(
                 Ev::DataReloaded,
                 room = self.name,

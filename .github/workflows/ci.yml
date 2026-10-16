@@ -1696,3 +1696,79 @@ jobs:
           test "$dropped" -eq 0
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           echo "carry kind match ok kept=$kept dropped=$dropped"
+
+  mod-handle-reload:
+    name: a mod's handle still orders the same unit after a data reload
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: A mod spawns a unit and orders it through its handle; a data reload keeps the handle and the order still moves the same unit
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/mod-handle-reload"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          cat > "$work/mod.lua" <<'LUA'
+          function on_tick(state)
+            state.age = (state.age or 0) + 1
+            if state.h == nil then
+              state.h = game.cmd_spawn("skirmisher", 688128, 1343488)
+            elseif state.age % 20 == 0 then
+              if state.age % 40 == 0 then
+                game.cmd_order_handle(state.h, 720896, 1343488)
+              else
+                game.cmd_order_handle(state.h, 688128, 1343488)
+              end
+            end
+          end
+          LUA
+          addr=127.0.0.1:18445
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" --mod "$work/mod.lua" --tick-budget-us 250000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          unit_at() { curl -sf "http://$addr/state?unit=$room" | jq -r '"\(.unit.x) \(.unit.y)"'; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          for i in $(seq 1 80); do grep -q 'ev=mod_unit_bound ' "$log" && break; sleep 0.25; done
+          bound=$(grep -o 'ev=mod_unit_bound handle=[0-9]* unit=[0-9]*' "$log" | head -n 1)
+          h=$(echo "$bound" | sed 's/.*handle=\([0-9]*\).*/\1/')
+          room=$(echo "$bound" | sed 's/.*unit=//')
+          test -n "$h" && test -n "$room"
+          read -r start_x start_y <<<"$(unit_at)"
+          for i in $(seq 1 160); do read -r x y <<<"$(unit_at)"; [ "$x,$y" != "$start_x,$start_y" ] && break; sleep 0.25; done
+          read -r before_x before_y <<<"$(unit_at)"
+          test "$before_x,$before_y" != "$start_x,$start_y"
+          unmapped_before=$(grep -c "ev=mod_unit_refused handle=$h reason=unmapped" "$log" || true)
+          sed -i '/^unit("skirmisher"/s/minerals=50/minerals=75/' "$work/units.star"
+          grep -q '^unit("skirmisher".*minerals=75' "$work/units.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reloaded room=ci ' "$log"
+          test "$(grep -c '^ev=data_reload_failed ' "$log" || true)" -eq 0
+          read -r post_x post_y <<<"$(unit_at)"
+          for i in $(seq 1 160); do read -r x y <<<"$(unit_at)"; [ "$x,$y" != "$post_x,$post_y" ] && break; sleep 0.25; done
+          read -r after_x after_y <<<"$(unit_at)"
+          test "$after_x,$after_y" != "$post_x,$post_y"
+          unmapped_after=$(grep -c "ev=mod_unit_refused handle=$h reason=unmapped" "$log" || true)
+          test "$unmapped_after" -eq "$unmapped_before"
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          echo "mod handle survives reload ok handle=$h"
