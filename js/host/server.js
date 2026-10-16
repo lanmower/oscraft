@@ -95,6 +95,12 @@ async function main(opts) {
         session.broadcast(encodeFrame({ type: FRAME.STATE, tick, hash: Number.parseInt(hash.slice(-8), 16) >>> 0, units }));
       }
       emit('tick', { n: tick, units: count });
+      if (tick % 20 === 0) {
+        for (const [pk, peer] of session.peers) {
+          const pc = peer.pc;
+          emit('pc', { peer: pk.slice(0, 8), ice: pc?.iceConnectionState, conn: pc?.connectionState, local: pc?.localDescription?.type ?? 'none', remote: pc?.remoteDescription?.type ?? 'none', dc: peer.dc?.readyState ?? 'none' });
+        }
+      }
     } catch (err) {
       emit('tick_failed', { n: tick, error: JSON.stringify(err.message) });
     } finally {
