@@ -91,6 +91,18 @@ jobs:
           pattern: gate-output-*
           path: outputs
 
+  naming-comments:
+    name: naming comments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: count reference-game terms in the tree
+        run: |
+          count() { git grep -iE "$1" -- . ':!LICENSES-INVENTORY.md' | wc -l; }
+          s=$(count 'st[a]rcraft'); c=$(count 'sc[2]'); b=$(count 'blizz[a]rd'); g=$(count 'gal[a]xy')
+          if [ $((s+c+b+g)) -ne 0 ]; then echo naming comments FAIL st''arcraft=$s sc''2=$c bli''zzard=$b gal''axy=$g; exit 1; fi
+          echo naming comments ok st''arcraft=$s sc''2=$c bli''zzard=$b
+
   wasm:
     name: sim builds for wasm32
     runs-on: ubuntu-latest
