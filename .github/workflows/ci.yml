@@ -3001,7 +3001,7 @@ jobs:
           relay=$!
           python3 -m http.server 8091 --bind 127.0.0.1 --directory "$GITHUB_WORKSPACE/js/client" > "$work/static.log" 2>&1 &
           static=$!
-          trap 'kill $relay $static 2>/dev/null || true' EXIT
+          trap 'cat "$work/relay.log" | tail -40 >&2; kill $relay $static 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8091/play.html > /dev/null && break; sleep 1; done
           cat > "$RUNNER_TEMP/pw/lobby.mjs" <<'EOF'
           import { chromium } from "playwright";
@@ -3014,13 +3014,18 @@ jobs:
             const hostB = await (await browser.newContext()).newPage();
             for (const [page, hash] of [[hostA, "alpha"], [hostB, "beta"]]) {
               page.on("pageerror", (e) => errors.push(e.message));
+              page.on("console", (m) => errors.push(`${m.type()}: ${m.text()}`));
               await page.goto(`${base}#${hash}`);
             }
             const viewer = await (await browser.newContext()).newPage();
             viewer.on("pageerror", (e) => errors.push(e.message));
+            viewer.on("console", (m) => errors.push(`viewer ${m.type()}: ${m.text()}`));
             await viewer.goto(`${base}#lobby`);
             await viewer.waitForSelector('#rooms[data-ready="1"]', { state: "attached", timeout: 60000 });
-            await viewer.waitForFunction(() => document.querySelectorAll("#room-list button").length === 2, null, { timeout: 120000 });
+            await viewer.waitForFunction(() => document.querySelectorAll("#room-list button").length === 2, null, { timeout: 120000 }).catch(async (err) => {
+              console.error(`panel: ${await viewer.textContent("#room-list")}`);
+              throw err;
+            });
             const names = await viewer.$$eval("#room-list button", (bs) => bs.map((b) => b.dataset.room).sort());
             if (JSON.stringify(names) !== JSON.stringify(["alpha", "beta"])) throw new Error(`panel lists ${JSON.stringify(names)}`);
             await Promise.all([viewer.waitForEvent("load"), viewer.click('#room-list button[data-room="alpha"]')]);
@@ -3029,7 +3034,7 @@ jobs:
             if (joined !== "alpha") throw new Error(`joined ${joined}, want alpha`);
             console.log(`lobby room select ok rooms=${names.length} joined=${joined}`);
           } catch (err) {
-            console.error(`page errors: ${errors.join(" | ")}`);
+            console.error(`page errors: ${errors.slice(0, 40).join(" | ")}`);
             throw err;
           } finally {
             await browser.close();
