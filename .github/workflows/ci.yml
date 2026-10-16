@@ -3211,7 +3211,7 @@ jobs:
       - name: Build the page wasm and the map image
         run: |
           set -euo pipefail
-          (cd rust && wasm-pack build crates/web --target web --out-dir ../../js/client/pkg --no-opt)
+          (cd rust && wasm-pack build crates/web --target web --out-dir ../../../js/client/pkg --no-opt)
           (cd rust && cargo run -q -p mapexport -- ../js/client/map.bin)
           rm -f js/client/pkg/.gitignore
           ls -la js/client/pkg js/client/map.bin
