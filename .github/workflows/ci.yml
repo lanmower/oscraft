@@ -3242,7 +3242,7 @@ jobs:
           npm install playwright@1.47.0
           npx playwright install --with-deps chromium
 
-      - name: Relay, browser host and browser peer: an order from the peer moves its unit on both pages
+      - name: "Relay, browser host and browser peer: an order from the peer moves its unit on both pages"
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/browser-two-peers"
