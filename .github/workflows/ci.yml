@@ -844,8 +844,17 @@ jobs:
           end=$(date +%s%N)
           test "$(version)" = 2
           grep -q 'ev=mod_tick tick=[0-9]* version=2 probe=v2' "$log"
-          echo "reload latency ms=$(( (end - start) / 1000000 ))"
+          ms=$(( (end - start) / 1000000 ))
+          echo "reload latency ms=$ms"
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          ceiling=$(awk -F= '/^ceiling_ms=/{print $2}' "$GITHUB_WORKSPACE/.github/perf/reload-latency.txt")
+          test -n "$ceiling"
+          if [ "$ms" -le "$ceiling" ]; then
+            echo "reload latency ms=$ms ceiling_ms=$ceiling ok"
+          else
+            echo "reload latency ms=$ms ceiling_ms=$ceiling FAIL: the mod reload is slower than its ceiling" >&2
+            exit 1
+          fi
 
       - name: Arm one mod-thread panic; check one death, one restart, and a version bump after an edit
         shell: bash
