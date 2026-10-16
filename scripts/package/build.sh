@@ -9,7 +9,7 @@ rust="$root/rust"
 version=$(sed -n 's/^version = "\(.*\)"/\1/p' "$rust/crates/server/Cargo.toml" | head -n 1)
 stage="$out/stage"
 rm -rf "$out"
-mkdir -p "$stage/bin" "$stage/data" "$stage/site"
+mkdir -p "$stage/bin" "$stage/data" "$stage/site" "$stage/js/host" "$stage/js/wire" "$stage/js/client/dist"
 
 cd "$rust"
 cargo build --release -q -p server --bin oscraftd
@@ -20,6 +20,11 @@ cp -R crates/web/site/. "$stage/site/"
 cargo run -q -p mapexport -- "$stage/site/map.bin"
 wasm-pack build crates/web --target web --out-dir "$stage/site/pkg" > /dev/null
 cd "$root"
+cp js/host/server.js js/host/guest.js js/host/test-relay.js js/host/package.json "$stage/js/host/"
+cp js/wire/frame.js "$stage/js/wire/"
+if [ ! -s js/client/dist/play.js ]; then (cd js/client && npm install --no-audit --no-fund && npm run build); fi
+cp js/client/dist/play.js "$stage/js/client/dist/"
+cp js/client/play.html "$stage/js/client/"
 
 printf '%s\n' "$version" > "$stage/VERSION"
 (cd "$stage" && find . -type f ! -name MANIFEST.sha256 | sed 's|^\./||' | LC_ALL=C sort | while read -r f; do

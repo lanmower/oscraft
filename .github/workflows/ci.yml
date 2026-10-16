@@ -1875,6 +1875,10 @@ jobs:
         with:
           name: oscraft-package
           path: ${{ runner.temp }}/package/oscraft-*.tar.gz
+      - name: Assert the install line reports the host help and client bundle
+        run: |
+          set -euo pipefail
+          grep -q '^package install ok members=[0-9]* sha256_checked=[0-9]* host_help=ok client=ok$' "$RUNNER_TEMP/install.out"
 
   protocol-version:
     name: state, delta and order replies carry the protocol constant; a mismatched client is refused

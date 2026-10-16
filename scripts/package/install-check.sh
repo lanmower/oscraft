@@ -26,6 +26,11 @@ while read -r want path; do
 done < MANIFEST.sha256
 extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
 [ "$extra" -eq "$members" ] || fail "archive holds $extra files but manifest lists $members"
+help=$(node js/host/server.js --help) || fail "node js/host/server.js --help exited nonzero in the unpacked archive"
+grep -q '^usage: node js/host/server.js --wasm' <<< "$help" || fail "node js/host/server.js --help printed no usage line"
+[ -s js/client/dist/play.js ] || fail "js/client/dist/play.js is missing or empty"
+[ -f js/client/play.html ] || fail "js/client/play.html is missing"
+grep -q 'dist/play.js' js/client/play.html || fail "js/client/play.html does not reference dist/play.js"
 
 server_pid=
 cleanup() { [ -n "$server_pid" ] && kill "$server_pid" 2>/dev/null || true; }
@@ -46,3 +51,4 @@ lsp_out=$({
 printf '%s' "$lsp_out" | grep -q '"capabilities"' || fail "oscraft-lsp initialize reply has no capabilities"
 
 echo "package install ok members=$members sha256_checked=$checked"
+echo "package install ok members=$members sha256_checked=$checked host_help=ok client=ok"
