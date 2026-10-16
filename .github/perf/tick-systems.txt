@@ -1,11 +1,14 @@
 # Per-system tick cost ceilings for the tick-systems-regression CI job.
-# Measured on CI run 38925793623 (sha 050dd19911db4b2b8f929955d59233b3c9fc80e1), native timing: p99_us per system.
-# Ceiling is about 3x the measured p99, rounded up.
+# Measured over five CI runs of the tick-systems job (native timing, p99_us per system):
+# 050dd19911db4b2b8f929955d59233b3c9fc80e1 (run 38925793623), 6881175d568c164d288cfed56b1f4e1f1526ba0e (run 38931306443),
+# 7f32d350e1b036477ba59d97bded99138f01685e (run 38928919279), c0aa3ae634a7c8cd23e53e61ca57737ad750460d (run 38931172860),
+# 4a635fa791e4c8f3a11aa89bab3dad6456307088 (run 38931630489).
+# Ceiling is about 4x the maximum observed p99 per system, rounded up, with a floor of 20 us.
 ticks=2000
-system=rebucket p99_ceiling_us=12
-system=vision p99_ceiling_us=12
-system=paths p99_ceiling_us=6
-system=buffs p99_ceiling_us=6
-system=healers p99_ceiling_us=6
-system=projectiles p99_ceiling_us=18
-system=units p99_ceiling_us=6
+system=rebucket p99_ceiling_us=56
+system=vision p99_ceiling_us=72
+system=paths p99_ceiling_us=64
+system=buffs p99_ceiling_us=20
+system=healers p99_ceiling_us=56
+system=projectiles p99_ceiling_us=88
+system=units p99_ceiling_us=20
