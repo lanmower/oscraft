@@ -4,6 +4,8 @@ Every line the server prints, on stdout or stderr, is `ev=<name>` followed by `k
 
 This file is the schema. It has one row per event name in `log.rs`. The CI job `log-schema` reads this table and checks a server log against it: every line must parse, its name must be documented, its keys must be listed for that name, and every event marked `required` must appear in the run.
 
+The `tick_time` keys `system` and `samples` appear only on the optional per-system lines (one `ev=tick_time system=<name>` per sim system); the total line carries the other keys.
+
 Columns: `Event` is the `ev=` name, `Variant` the `Ev` variant, `Emitted from` the source file under `rust/crates/server/src`, `Fields` the keys in call-site order (`-` for none), `Sample` is `required` when the `server-log-grammar` driver always produces the event, `optional` otherwise.
 
 | Event | Variant | Emitted from | Fields | Sample |
@@ -13,7 +15,7 @@ Columns: `Event` is the `ev=` name, `Variant` the `Ev` variant, `Emitted from` t
 | `accept_error` | AcceptError | lib.rs | error | optional |
 | `mod_loaded` | ModLoaded | lib.rs | path, version | required |
 | `order_token` | OrderToken | lib.rs | room, token | required |
-| `tick_time` | TickTime | budget.rs | ticks, p50_us, p90_us, p99_us, max_us, queued, overruns | required |
+| `tick_time` | TickTime | budget.rs | ticks, p50_us, p90_us, p99_us, max_us, queued, overruns, system, samples | required |
 | `tick_overrun` | TickOverrun | room.rs | room, tick, cost_us, budget_us | required |
 | `tick_shed` | TickShed | room.rs | room, tick, shed, cap | optional |
 | `mod_cmds` | ModCmds | room.rs | room, tick, applied | optional |
