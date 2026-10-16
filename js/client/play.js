@@ -227,6 +227,7 @@ function applyPeerOrder(peerPubkey, order) {
   const unit = currentUnits().find((u) => u.id === order.unitId);
   if (player === undefined || !unit || unit.player !== player) {
     setStatus(`order refused not_owner peer=${String(peerPubkey).slice(0, 8)} unit=${order.unitId}`);
+    document.body.dataset.lastRefusal = `not_owner unit=${order.unitId}`;
     return false;
   }
   localGame.order_move(order.unitId, order.x, order.y);

@@ -2485,11 +2485,24 @@ jobs:
             }
             const movedToward = (p) => !!p && Math.hypot(p.x - target.x, p.z - target.z) < Math.hypot(unit.x - target.x, unit.z - target.z) - 1;
             if (!movedToward(onPeer) || !movedToward(onHost)) throw new Error(`no movement seen: start=${unit.x},${unit.z} peer=${JSON.stringify(onPeer)} host=${JSON.stringify(onHost)}`);
+            const foreign = start.find((u) => u.player === 1);
+            if (!foreign) throw new Error("no unit owned by the second player");
+            const at = async (page) => page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, foreign.id);
+            const foreignBefore = await at(host);
+            await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [foreign.id, Math.round(foreign.x) + 4, Math.round(foreign.z)]);
+            await host.waitForFunction((id) => document.body.dataset.lastRefusal === `not_owner unit=${id}`, foreign.id, { timeout: 60000 });
+            await new Promise((r) => setTimeout(r, 2000));
+            const same = (a, b) => !!a && !!b && Math.hypot(a.x - b.x, a.z - b.z) < 0.05;
+            const foreignHost = await at(host);
+            const foreignPeer = await at(peer);
+            if (!same(foreignBefore, foreignHost) || !same(foreignBefore, foreignPeer)) throw new Error(`refused order moved a foreign unit: before=${JSON.stringify(foreignBefore)} host=${JSON.stringify(foreignHost)} peer=${JSON.stringify(foreignPeer)}`);
             if (errors.length) throw new Error("page errors: " + errors.join(" | "));
             console.log(`browser two peers ok unit=${unit.id} host_moved=true peer_moved=true`);
+            console.log(`browser order refused not_owner ok unit=${foreign.id} owner=1 sender=0 stayed=true`);
           } finally {
             await browser.close();
           }
           EOF
           node "$RUNNER_TEMP/pw/two-peers.mjs" | tee "$work/two-peers.txt"
           grep -q '^browser two peers ok unit=[0-9]* host_moved=true peer_moved=true$' "$work/two-peers.txt"
+          grep -q '^browser order refused not_owner ok unit=[0-9]* owner=1 sender=0 stayed=true$' "$work/two-peers.txt"
