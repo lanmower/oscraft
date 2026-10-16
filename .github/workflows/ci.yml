@@ -1880,3 +1880,89 @@ jobs:
           echo "protocol-version ok constant=$want replies=state,delta,order"
           kill "$pid"; wait "$pid" 2>/dev/null || true
           trap - EXIT
+
+  log-schema:
+    name: server log lines match the documented schema in docs/LOG_SCHEMA.md
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Drive the server, then check every log line against docs/LOG_SCHEMA.md
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/log-schema"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
+          addr=127.0.0.1:8103
+          log="$work/mod.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --mod "$mod" --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -sf "http://$addr/mod-version" | grep -q '"version":1' && break; sleep 0.5; done
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v2"' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_tick tick=[0-9]* version=2 probe=v2' "$log" && break; sleep 0.25; done
+          printf '%s\n' 'function on_tick(state' '  state.ticks = state.ticks + 1' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_reload_failed ' "$log" && break; sleep 0.25; done
+          printf '%s\n' 'function on_tick(state)' '  local x = nil' '  state.probe = x.field' 'end' > "$mod"
+          for i in $(seq 1 40); do grep -q '^ev=mod_error ' "$log" && break; sleep 0.25; done
+          curl -sf -X POST "http://$addr/client-error?session=schema&message=schema%20probe" > /dev/null
+          for i in $(seq 1 40); do grep -q '^ev=client_error ' "$log" && break; sleep 0.25; done
+          for i in $(seq 1 40); do grep -q '^ev=tick_time ' "$log" && break; sleep 0.25; done
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          over="$work/overrun.log"
+          target/debug/oscraftd --addr 127.0.0.1:8104 --room ci --data "$work/catalog.osdt" --ticks 200 --tick-budget-us 1 > "$over" 2>&1
+          cat "$log" "$over" > "$work/all.log"
+          python3 -I - "$work/all.log" ../docs/LOG_SCHEMA.md crates/server/src/log.rs <<'PY'
+          import re
+          import sys
+
+          log_path, doc_path, rust_path = sys.argv[1], sys.argv[2], sys.argv[3]
+          enum_names = re.findall(r'Ev::[A-Za-z]+ => "([a-z_]+)"', open(rust_path).read())
+          if len(enum_names) != len(set(enum_names)):
+              sys.exit("log.rs names an event twice")
+          rows = {}
+          row = re.compile(r'^\| `([a-z_]+)` \| [A-Za-z]+ \| [a-z_.]+ \| ([^|]*?) \| (required|optional) \|$')
+          for text in open(doc_path):
+              m = row.match(text.rstrip("\n"))
+              if m:
+                  name, fields, sample = m.groups()
+                  keys = [] if fields.strip() == "-" else [f.strip() for f in fields.split(",")]
+                  rows[name] = (set(keys), sample)
+          if set(enum_names) != set(rows):
+              sys.exit(f"documented and log.rs differ: only_in_log={sorted(set(enum_names) - set(rows))} only_in_doc={sorted(set(rows) - set(enum_names))}")
+          line_re = re.compile(r'^ev=([a-z_]+)((?: [a-z_0-9]+=(?:"(?:[^"\\]|\\.)*"|[^ "]+))*)$')
+          key_re = re.compile(r' ([a-z_0-9]+)=(?:"(?:[^"\\]|\\.)*"|[^ "]+)')
+          seen, lines = set(), 0
+          for text in open(log_path):
+              text = text.rstrip("\n")
+              if not text:
+                  continue
+              lines += 1
+              m = line_re.match(text)
+              if not m or m.group(1) not in rows:
+                  sys.exit(f"unparsed or undocumented line: {text}")
+              name = m.group(1)
+              keys = set(key_re.findall(m.group(2)))
+              if not keys <= rows[name][0]:
+                  sys.exit(f"undocumented field in {name}: {sorted(keys - rows[name][0])} in {text}")
+              seen.add(name)
+          missing = sorted(n for n, (_, s) in rows.items() if s == "required" and n not in seen)
+          if missing:
+              sys.exit(f"required events missing from the run: {missing}")
+          print(f"log schema ok events={len(set(enum_names))} documented={len(rows)} lines={lines} seen={len(seen)}")
+          PY
