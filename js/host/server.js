@@ -37,7 +37,10 @@ async function main(opts) {
   const NostrTools = await import('nostr-tools');
   const xstate = await import('xstate');
   const ndc = await import('node-datachannel');
-  const { RTCPeerConnection: PolyfillRTCPeerConnection } = await import('node-datachannel/polyfill');
+  const { RTCPeerConnection: PolyfillRTCPeerConnection, RTCSessionDescription, RTCIceCandidate } = await import('node-datachannel/polyfill');
+  // wireweave reads the WebRTC constructors as globals when it applies signals; Node has none.
+  globalThis.RTCSessionDescription ??= RTCSessionDescription;
+  globalThis.RTCIceCandidate ??= RTCIceCandidate;
   const { encodeFrame, decodeFrame, FRAME } = await import('../wire/frame.js');
   const { openGuest, readTick } = await import('./guest.js');
 
