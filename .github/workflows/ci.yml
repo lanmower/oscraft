@@ -2846,18 +2846,26 @@ jobs:
       - name: Compile the scenario, run 200 ticks, check sides, routes and an objective's hit points
         run: |
           set -euo pipefail
+          work="$RUNNER_TEMP/duel-routes"
+          mkdir -p "$work"
+          addr=127.0.0.1:8106
+          pid=0
+          on_exit() {
+            rc=$?
+            [ "$pid" -ne 0 ] && kill "$pid" 2>/dev/null || true
+            if [ "$rc" -ne 0 ]; then echo "--- server log tail"; tail -n 120 "$work/server.log" 2>/dev/null || echo "(no server log)"; fi
+            exit "$rc"
+          }
+          trap on_exit EXIT
           cd rust
           cargo build -p server --bin oscraftd
           cargo build -p osdt-data
-          work="$RUNNER_TEMP/duel-routes"
-          mkdir -p "$work"
           ./target/debug/osdt-data ../scenarios/duel-routes "$work/catalog.osdt"
-          addr=127.0.0.1:8106
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 > "$work/server.log" 2>&1 &
           pid=$!
-          trap 'kill $pid 2>/dev/null || true' EXIT
           for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
-          curl -sf "http://$addr/state?map=ci" > "$work/s0.json"
+          echo "state http=$(curl -s -o "$work/s0.json" -w '%{http_code}' "http://$addr/state?map=ci")"
+          cat "$work/s0.json" | head -c 600; echo
           tick=0
           for i in $(seq 1 240); do
             curl -sf "http://$addr/state?map=ci" > "$work/s1.json" || true
@@ -2874,7 +2882,7 @@ jobs:
           test "$routes" -eq 3
           test "$objectives" -ge 1
           test "$hp_changed" = true
-          echo "scenario ok sides=$sides routes=$routes objectives=$objectives hp_changed=$hp_changed" | tee "$work/scenario.txt"
+          echo "scenario ok sides=$sides routes=$routes objectives=$objectives hp_changed=$hp_changed"
 
   order-peer-ownership:
     name: order ownership refuses a peer's order on a foreign unit and leaves it in place
