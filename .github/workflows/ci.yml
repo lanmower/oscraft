@@ -1890,3 +1890,60 @@ jobs:
         with:
           name: oscraft-package
           path: ${{ runner.temp }}/package/oscraft-*.tar.gz
+
+  protocol-version:
+    name: state, delta and order replies carry the protocol constant; a mismatched client is refused
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Read /state, /delta and order replies and check proto equals PROTOCOL_VERSION
+        run: |
+          set -euo pipefail
+          want=$(sed -n 's/^pub const PROTOCOL_VERSION: u32 = \([0-9]*\);$/\1/p' crates/server/src/http.rs)
+          test -n "$want"
+          cargo build -p server --bin oscraftd
+          cargo build -p osdt-data
+          work="$RUNNER_TEMP/protocol"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          addr=127.0.0.1:8091
+          log="$work/protocol.log"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
+          test -n "$token"
+          check() {
+            if ! jq -e --argjson want "$want" '.proto == $want' <<<"$2" >/dev/null; then
+              echo "proto mismatch in $1: $2"; exit 1
+            fi
+            echo "proto ok reply=$1 proto=$want"
+          }
+          state=$(curl -sf "http://$addr/state")
+          check state "$state"
+          tick=$(jq -r .tick <<<"$state")
+          delta=$(curl -sf "http://$addr/delta?since=$tick")
+          check delta "$delta"
+          code=$(curl -s -o "$work/order.json" -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data '{"player":0,"x":1,"y":1}')
+          test "$code" = 200
+          check order "$(cat "$work/order.json")"
+          code=$(curl -s -o "$work/refused.json" -w '%{http_code}' "http://$addr/state?proto=$((want + 1))")
+          test "$code" = 409
+          jq -e '.error == "protocol_mismatch"' "$work/refused.json" >/dev/null
+          echo "proto refusal reply=state status=$code error=protocol_mismatch"
+          echo "protocol-version ok constant=$want replies=state,delta,order"
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT

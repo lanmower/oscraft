@@ -23,7 +23,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use http::{json_string, read_request, ReadError, Request, Response};
+use http::{json_string, protocol_refusal, read_request, ReadError, Request, Response, PROTOCOL_VERSION};
 use order::{parse_order, DEFAULT_ORDER_RATE, MAX_ORDER_BODY};
 use budget::spawn_reporter;
 use log::Ev;
@@ -366,6 +366,9 @@ impl Server {
 }
 
 pub fn serve_state(room: &Room, req: &Request) -> Response {
+    if let Some(refused) = protocol_refusal(req) {
+        return refused;
+    }
     let snap = room.snapshot();
     let unit = match req.param("unit").and_then(|raw| raw.parse::<usize>().ok()) {
         Some(id) => match room.unit_position(id) {
@@ -377,7 +380,8 @@ pub fn serve_state(room: &Room, req: &Request) -> Response {
     Response::json(
         200,
         format!(
-            "{{\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{},\"unit\":{}}}",
+            "{{\"proto\":{},\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{},\"unit\":{}}}",
+            PROTOCOL_VERSION,
             json_string(&room.name),
             snap.tick,
             snap.state_hash,
@@ -389,6 +393,9 @@ pub fn serve_state(room: &Room, req: &Request) -> Response {
 }
 
 pub fn serve_delta(room: &Room, req: &Request) -> Response {
+    if let Some(refused) = protocol_refusal(req) {
+        return refused;
+    }
     let Some(raw) = req.param("since") else {
         return Response::error(400, "since is required: GET /delta?since=<tick>");
     };
@@ -401,7 +408,8 @@ pub fn serve_delta(room: &Room, req: &Request) -> Response {
             Response::json(
                 200,
                 format!(
-                    "{{\"map\":{},\"since\":{},\"tick\":{},\"changed\":{},\"units\":[{}]}}",
+                    "{{\"proto\":{},\"map\":{},\"since\":{},\"tick\":{},\"changed\":{},\"units\":[{}]}}",
+                    PROTOCOL_VERSION,
                     json_string(&room.name),
                     since,
                     delta.tick,
@@ -413,8 +421,8 @@ pub fn serve_delta(room: &Room, req: &Request) -> Response {
         Err(DeltaError::Future { since, tick }) => Response::json(
             400,
             format!(
-                "{{\"error\":\"since_in_future\",\"since\":{},\"tick\":{}}}",
-                since, tick
+                "{{\"proto\":{},\"error\":\"since_in_future\",\"since\":{},\"tick\":{}}}",
+                PROTOCOL_VERSION, since, tick
             ),
         ),
     }
@@ -446,10 +454,17 @@ pub fn serve_catalog(room: &Room, _req: &Request) -> Response {
 }
 
 pub fn serve_order(room: &Room, req: &Request) -> Response {
+    if let Some(refused) = protocol_refusal(req) {
+        return refused;
+    }
     let rejected = |status: u16, msg: &str| {
         Response::json(
             status,
-            format!("{{\"accepted\":false,\"error\":{}}}", json_string(msg)),
+            format!(
+                "{{\"proto\":{},\"accepted\":false,\"error\":{}}}",
+                PROTOCOL_VERSION,
+                json_string(msg)
+            ),
         )
     };
     if !room.gate.authorized(req.header("Authorization")) {
@@ -467,7 +482,8 @@ pub fn serve_order(room: &Room, req: &Request) -> Response {
         return Response::json(
             422,
             format!(
-                "{{\"accepted\":false,\"code\":\"player_has_no_units\",\"error\":{}}}",
+                "{{\"proto\":{},\"accepted\":false,\"code\":\"player_has_no_units\",\"error\":{}}}",
+                PROTOCOL_VERSION,
                 json_string(&format!(
                     "player {} has no live units on {}: nothing to order",
                     order.player, room.name
@@ -488,7 +504,8 @@ pub fn serve_order(room: &Room, req: &Request) -> Response {
     Response::json(
         200,
         format!(
-            "{{\"accepted\":true,\"player\":{},\"x\":{:.4},\"y\":{:.4},\"tick\":{},\"orders_left_this_second\":{},\"orders_per_second\":{}}}",
+            "{{\"proto\":{},\"accepted\":true,\"player\":{},\"x\":{:.4},\"y\":{:.4},\"tick\":{},\"orders_left_this_second\":{},\"orders_per_second\":{}}}",
+            PROTOCOL_VERSION,
             order.player,
             f64::from(order.x) / 65536.0,
             f64::from(order.y) / 65536.0,

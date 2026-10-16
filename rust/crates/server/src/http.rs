@@ -129,6 +129,23 @@ pub fn read_request(stream: &TcpStream, max_body: usize) -> Result<Request, Read
     Ok(req)
 }
 
+pub const PROTOCOL_VERSION: u32 = 1;
+
+pub fn protocol_refusal(req: &Request) -> Option<Response> {
+    let raw = req.param("proto")?;
+    if raw.parse::<u32>().ok() == Some(PROTOCOL_VERSION) {
+        return None;
+    }
+    Some(Response::json(
+        409,
+        format!(
+            "{{\"error\":\"protocol_mismatch\",\"proto\":{},\"client\":{}}}",
+            PROTOCOL_VERSION,
+            json_string(&raw)
+        ),
+    ))
+}
+
 pub struct Response {
     pub status: u16,
     pub headers: Vec<(&'static str, String)>,
