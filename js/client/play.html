@@ -8,11 +8,20 @@
     html, body { margin: 0; height: 100%; background: #1d252c; color: #d8e0e6; font: 13px system-ui, sans-serif; overflow: hidden; }
     canvas { display: block; width: 100vw; height: 100vh; }
     #status { position: fixed; left: 8px; top: 8px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; white-space: pre; }
+    #rooms { position: fixed; right: 8px; top: 8px; min-width: 160px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; }
+    #rooms ul { list-style: none; margin: 4px 0; padding: 0; }
+    #rooms button { width: 100%; text-align: left; margin: 2px 0; }
   </style>
 </head>
 <body data-pkg="pkg/web.js" data-map="map.bin">
   <canvas id="view"></canvas>
   <div id="status">connecting</div>
+  <form id="rooms" data-ready="0" autocomplete="off">
+    <div>room <span id="room-current"></span></div>
+    <ul id="room-list"></ul>
+    <input id="room-name" maxlength="64" placeholder="room name">
+    <button id="room-join" type="submit">join</button>
+  </form>
   <script type="module" src="dist/play.js"></script>
 </body>
 </html>
