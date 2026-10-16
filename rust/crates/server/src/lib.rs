@@ -69,11 +69,14 @@ pub fn run() -> Result<(), String> {
     let link = Arc::new(ModLink::default());
     if let Some(path) = &opts.mod_path {
         let image_path = opts.data.as_ref().ok_or("--mod needs --data: the mod host runs on the catalog image")?;
-        let image = std::fs::read(image_path).map_err(|e| format!("--data {}: {e}", image_path.display()))?;
+        let image = mods::load_image(image_path).map_err(|e| format!("--data {}: {e}", image_path.display()))?;
         if let Some(tick) = opts.test_panic_mod_tick {
             link.arm_test_panic(tick);
         }
         mods::spawn(image, path.clone(), tick_budget, Arc::clone(&link))?;
+        if image_path.is_dir() {
+            mods::watch_image(image_path.clone(), Arc::downgrade(&link));
+        }
         crate::emit!(Ev::ModLoaded, path = path.display(), version = link.version());
     }
 

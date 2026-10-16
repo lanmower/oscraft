@@ -942,6 +942,14 @@ impl ModHost {
         Ok(())
     }
 
+    /// Replaces the sim with one built from `image`, an OSDT image as `new` takes. The mod's next
+    /// read of the catalog sees the new values; the units of the old sim are gone.
+    pub fn replace_image(&mut self, image: &[u8]) -> Result<(), LoadError> {
+        let next = sim::load(image, MAX_UNITS)?;
+        *self.world.borrow_mut() = next;
+        Ok(())
+    }
+
     /// The sim this host advances. Mutable so a caller can command or trigger units.
     pub fn sim(&self) -> RefMut<'_, Sim> {
         self.world.borrow_mut()

@@ -1538,3 +1538,49 @@ jobs:
           PY
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           grep '^ev=conn_refused ' "$log"
+
+  mod-image-follows-data:
+    name: mod image follows a data reload without a restart
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Start oscraftd with --mod and a directory --data, edit a .star file, read the probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build -p server -p osdt-data
+          work="$RUNNER_TEMP/mod-image"
+          mkdir -p "$work/data"
+          cp -r data/. "$work/data/"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = tostring(ability_info("pulse_shot").cooldown)' 'end' > "$work/mod.lua"
+          addr=127.0.0.1:18432
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room test --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 120); do curl -sf "http://$addr/mod-version" >/dev/null 2>&1 && break; sleep 0.5; done
+          for i in $(seq 1 40); do grep -q 'ev=mod_tick tick=[0-9]* version=1 probe=24' "$log" && break; sleep 0.25; done
+          before=$(grep -o 'ev=mod_tick tick=[0-9]* version=[0-9]* probe=[0-9]*' "$log" | tail -1 | sed 's/.*probe=//')
+          test "$before" = 24
+          sed -i 's/ability("pulse_shot", 24, /ability("pulse_shot", 31, /' "$work/data/abilities.star"
+          grep -q 'ability("pulse_shot", 31, ' "$work/data/abilities.star"
+          for i in $(seq 1 120); do grep -q '^ev=mod_image_reloaded ' "$log" && break; sleep 0.25; done
+          grep -q '^ev=mod_image_reloaded ' "$log"
+          for i in $(seq 1 40); do grep -q 'probe=31' "$log" && break; sleep 0.25; done
+          after=$(grep -o 'ev=mod_tick tick=[0-9]* version=[0-9]* probe=[0-9]*' "$log" | tail -1 | sed 's/.*probe=//')
+          test "$after" = 31
+          echo "mod image follows data reload ok value_before=$before value_after=$after"

@@ -23,6 +23,7 @@ pub struct ModLink {
     tick: AtomicU64,
     cmds: Mutex<Vec<Cmd>>,
     test_panic_at: AtomicU64,
+    image: Mutex<Option<Vec<u8>>>,
 }
 
 impl ModLink {
@@ -53,6 +54,14 @@ impl ModLink {
             crate::emit!(Ev::ModCmdsDropped, count = cmds.len() - room);
         }
         queue.extend(cmds.into_iter().take(room));
+    }
+
+    pub fn stage_image(&self, image: Vec<u8>) {
+        *self.image.lock().unwrap_or_else(|p| p.into_inner()) = Some(image);
+    }
+
+    fn take_image(&self) -> Option<Vec<u8>> {
+        self.image.lock().unwrap_or_else(|p| p.into_inner()).take()
     }
 
     pub fn take_commands(&self, max: usize) -> Vec<Cmd> {
@@ -117,6 +126,12 @@ fn drive(host: &mut ModHost, link: &ModLink, budget: Duration) {
         if link.take_test_panic(ticks) {
             panic!("test-only panic armed by --test-panic-mod-tick fired at tick {}", ticks);
         }
+        if let Some(image) = link.take_image() {
+            match host.replace_image(&image) {
+                Ok(()) => crate::emit!(Ev::ModImageReloaded, bytes = image.len()),
+                Err(e) => crate::emit!(Ev::ModImageReloadFailed, error = format!("{e:?}")),
+            }
+        }
         match host.reload() {
             Ok(true) => crate::emit!(Ev::ModReloadStaged),
             Ok(false) => {}
@@ -156,6 +171,36 @@ pub fn load_data(path: &Path, max_units: usize) -> Result<sim::Sim, String> {
 }
 
 const DATA_POLL: Duration = Duration::from_millis(500);
+
+// The image a --data path names: a directory is compiled from its .star files, a file is read as is.
+pub fn load_image(path: &Path) -> Result<Vec<u8>, String> {
+    if path.is_dir() {
+        return mod_host::build_image(path);
+    }
+    fs::read(path).map_err(|e| e.to_string())
+}
+
+// Polls the .star files of a data directory for the mod host. A change is rebuilt and staged on the
+// link, and the mod thread swaps it in between ticks. A failed rebuild is logged and the image in
+// service stays. The thread ends when the link is dropped.
+pub fn watch_image(dir: PathBuf, link: Weak<ModLink>) {
+    thread::spawn(move || {
+        let mut seen = star_files(&dir);
+        loop {
+            thread::sleep(DATA_POLL);
+            let Some(live) = link.upgrade() else { return };
+            let now = star_files(&dir);
+            if now == seen {
+                continue;
+            }
+            seen = now;
+            match load_image(&dir) {
+                Ok(image) => live.stage_image(image),
+                Err(error) => crate::emit!(Ev::ModImageReloadFailed, error = error),
+            }
+        }
+    });
+}
 
 // Polls the .star files of a data directory. A change is rebuilt and validated off the tick path and
 // staged on the room, which swaps it in at its next tick. A failed rebuild is logged and the image in
