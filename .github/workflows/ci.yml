@@ -2053,3 +2053,82 @@ jobs:
           server.kill();
           JS
           node "$RUNNER_TEMP/pw/self-reload.mjs" "$PWD/target/debug/oscraftd" "$work/site" 127.0.0.1:8008 "$work/server.log"
+
+  mod-handle-reload:
+    name: mod handle survives a data reload
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Spawn a unit through a mod, reload the data without the map's last unit, and order the same handle
+        run: |
+          set -euo pipefail
+          cargo build -q -p server --bin oscraftd
+          work="$RUNNER_TEMP/handle-reload"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp -r data "$work/data"
+          cat > "$work/mod.lua" <<'LUA'
+          -- Spawns one skirmisher on tick 1, then orders its handle to one of two points every 40 ticks.
+          function on_tick(state)
+            state.ticks = (state.ticks or 0) + 1
+            if state.ticks == 1 then
+              state.handle = game.cmd_spawn("skirmisher", 3 * 65536, 3 * 65536)
+            elseif state.handle then
+              local x = ((state.ticks // 40) % 2 == 0) and 4 or 8
+              game.cmd_order_handle(state.handle, x * 65536, 4 * 65536)
+            end
+          end
+          LUA
+          addr=127.0.0.1:18441
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room handle --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          wait_for() {
+            for i in $(seq 1 $(( ${2:-60} * 4 ))); do
+              grep -q "$1" "$log" && return 0
+              kill -0 "$pid" 2>/dev/null || { cat "$log"; echo "server exited before: $1"; exit 1; }
+              sleep 0.25
+            done
+            cat "$log"
+            echo "timed out waiting for: $1"
+            exit 1
+          }
+          num() { [[ "$1" =~ ^-?[0-9]+$ ]] || { echo "unit state not numeric: $1"; cat "$log"; exit 1; }; }
+          unit_at() { curl -sf "http://$addr/state?unit=$unit" | jq -r '"\(.unit.x) \(.unit.y)"'; }
+          wait_for 'ev=mod_unit_bound'
+          bound=$(grep -o 'ev=mod_unit_bound handle=[0-9]* unit=[0-9]*' "$log" | head -n 1)
+          handle=$(echo "$bound" | sed 's/.*handle=\([0-9]*\).*/\1/')
+          unit=$(echo "$bound" | sed 's/.*unit=//')
+          [[ -n "$handle" && -n "$unit" ]] || { echo "no mod unit bound"; cat "$log"; exit 1; }
+          # The gunship is the last unit the map places; dropping it leaves the mod unit's index unplaced.
+          sed -i '/spawn("gunship"/d' "$work/data/map.star"
+          wait_for 'ev=data_reloaded'
+          read -r x0 y0 <<<"$(unit_at)"
+          num "$x0"; num "$y0"
+          sleep 6
+          read -r x1 y1 <<<"$(unit_at)"
+          num "$x1"; num "$y1"
+          if grep -q 'ev=mod_unit_refused.*reason=unmapped' "$log"; then
+            cat "$log"
+            echo "mod handle $handle was refused as unmapped after the reload"
+            exit 1
+          fi
+          if [[ "$x0 $y0" == "$x1 $y1" ]]; then
+            cat "$log"
+            echo "unit $unit did not move after the reload: $x1 $y1"
+            exit 1
+          fi
+          echo "mod handle survives reload ok handle=$handle moved=true"

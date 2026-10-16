@@ -236,8 +236,9 @@ impl Room {
         }
         if let Some(mut sim) = lock(&self.staged).take() {
             let (carried, refused) = carry_live_units(&c.sim, &mut sim);
+            let kept = keep_handles(&c.sim, &mut sim, &c.handles);
             c.sim = sim;
-            c.handles.clear();
+            c.handles = kept;
             crate::emit!(
                 Ev::DataReloaded,
                 room = self.name,
@@ -371,6 +372,32 @@ fn carry_live_units(old: &Sim, new: &mut Sim) -> (usize, usize) {
         }
     }
     (carried, old.alive_count().saturating_sub(carried))
+}
+
+// Keeps each handle whose unit was live before the swap. A unit the new map leaves out is respawned
+// at its old index, kind, owner and point, so the handle still names the unit it was bound to.
+fn keep_handles(old: &Sim, new: &mut Sim, handles: &HashMap<u32, usize>) -> HashMap<u32, usize> {
+    let mut kept = HashMap::new();
+    for (&handle, &unit) in handles {
+        if !old.alive(unit) {
+            continue;
+        }
+        if new.alive(unit) || respawn(old, new, unit) {
+            kept.insert(handle, unit);
+        }
+    }
+    kept
+}
+
+fn respawn(old: &Sim, new: &mut Sim, unit: usize) -> bool {
+    let Some(name) = old.kind_name(unit) else {
+        return false;
+    };
+    let Some(kind) = new.catalog().unit_index(name) else {
+        return false;
+    };
+    let (x, y) = old.position_fixed(unit);
+    new.spawn_at(unit, kind as u32, old.player(unit), x, y)
 }
 
 fn mapped(handles: &HashMap<u32, usize>, sim: &Sim, handle: u32) -> Option<usize> {

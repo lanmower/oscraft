@@ -525,22 +525,48 @@ impl Sim {
     /// Spawns unit type `kind` for `player` at a Q16.16 point. None when the catalog
     /// has no such type or no slot is free.
     pub fn spawn_for(&mut self, player: u8, kind: u32, x: i32, y: i32) -> Option<usize> {
-        if self.head >= self.cap {
-            return None;
-        }
-        let ty = kind as usize;
-        let def = *self.cat.units.get(ty)?;
-        if !def.is_air() && !self.grid.walkable(fixed::to_int(x), fixed::to_int(y)) {
-            return None;
-        }
-        if !self.cell_has_room(x, y) {
-            self.refuse(Refusal::CellFull);
+        if self.head >= self.cap || !self.fits(kind, x, y) {
             return None;
         }
         let i = self.head;
         self.head += 1;
         self.n = self.head;
+        self.init_slot(i, player, kind, x, y);
+        Some(i)
+    }
 
+    /// Spawns unit type `kind` for `player` at exactly slot `index`, which keeps the index a mod
+    /// holds. False when the slot is out of range or alive, the kind is unknown, or the point does
+    /// not fit; nothing changes then.
+    pub fn spawn_at(&mut self, index: usize, kind: u32, player: u8, x: i32, y: i32) -> bool {
+        if index >= self.cap || self.alive(index) || !self.fits(kind, x, y) {
+            return false;
+        }
+        if index >= self.head {
+            self.head = index + 1;
+            self.n = self.head;
+        }
+        self.init_slot(index, player, kind, x, y);
+        true
+    }
+
+    fn fits(&mut self, kind: u32, x: i32, y: i32) -> bool {
+        let Some(def) = self.cat.units.get(kind as usize) else {
+            return false;
+        };
+        if !def.is_air() && !self.grid.walkable(fixed::to_int(x), fixed::to_int(y)) {
+            return false;
+        }
+        if !self.cell_has_room(x, y) {
+            self.refuse(Refusal::CellFull);
+            return false;
+        }
+        true
+    }
+
+    fn init_slot(&mut self, i: usize, player: u8, kind: u32, x: i32, y: i32) {
+        let ty = kind as usize;
+        let def = self.cat.units[ty];
         self.pos_x[i] = x;
         self.pos_y[i] = y;
         self.tgt_x[i] = x;
@@ -625,7 +651,6 @@ impl Sim {
         self.touch(i);
         self.bucket_add(i);
         self.apply_upgrades_to_new(i, player, ty as i32);
-        Some(i)
     }
 
     /// Kind from the filter mask and product: a worker gathers, a structure that
