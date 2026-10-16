@@ -1584,3 +1584,58 @@ jobs:
           after=$(grep -o 'ev=mod_tick tick=[0-9]* version=[0-9]* probe=[0-9]*' "$log" | tail -1 | sed 's/.*probe=//')
           test "$after" = 31
           echo "mod image follows data reload ok value_before=$before value_after=$after"
+  match-carried-units:
+    name: a cost edit keeps the live units' ids and positions with no duplicates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: ""
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Build the server
+        run: cargo build -p server --bin oscraftd
+
+      - name: Edit a unit's cost under a running match; the live units keep their ids and positions and none is duplicated
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/match-carried"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cp data/*.star "$work/"
+          addr=127.0.0.1:18442
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          state() { curl -sf "http://$addr/state"; }
+          dump() { for i in $(seq 0 $(( $1 - 1 ))); do curl -sf "http://$addr/state?unit=$i" | jq -r '"\(.id) \(.x) \(.y)"'; done; }
+          for i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done
+          before=$(state | jq -r .units)
+          test "$before" -gt 0
+          dump "$before" | sort > "$work/pre.txt"
+          test "$(wc -l < "$work/pre.txt")" -eq "$before"
+          sed -i '/^unit("skirmisher"/s/minerals=50/minerals=75/' "$work/units.star"
+          grep -q '^unit("skirmisher".*minerals=75' "$work/units.star"
+          for i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=data_reloaded room=ci ' "$log"
+          after=$(state | jq -r .units)
+          dump "$before" | sort > "$work/post.txt"
+          kept=$(comm -12 "$work/pre.txt" "$work/post.txt" | wc -l)
+          test "$after" -le "$before" || { echo "units_after=$after exceeds units_before=$before"; exit 1; }
+          test "$after" -eq "$before"
+          test "$kept" -eq "$before"
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          grep '^ev=data_reloaded ' "$log" | head -n 1
+          echo "match carried units_before=$before units_after=$after positions_kept=$kept"

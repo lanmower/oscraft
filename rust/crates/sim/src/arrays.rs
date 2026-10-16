@@ -802,6 +802,32 @@ impl Sim {
         }
     }
 
+    /// Moves live unit `i` to the Q16.16 point (x, y), clamped to the grid, and re-buckets it.
+    /// Returns false for a dead or out-of-range unit, which changes nothing.
+    pub fn set_position(&mut self, i: usize, x: i32, y: i32) -> bool {
+        if !self.alive(i) {
+            return false;
+        }
+        let (x, y) = self.clamp_to_grid(x, y);
+        self.pos_x[i] = x;
+        self.pos_y[i] = y;
+        self.touch(i);
+        self.rebucket();
+        true
+    }
+
+    /// Kills live unit `i` and takes it off the buckets, so the slot no longer counts or is
+    /// found. Returns false for a dead or out-of-range unit, which changes nothing.
+    pub fn remove_unit(&mut self, i: usize) -> bool {
+        if !self.alive(i) {
+            return false;
+        }
+        self.alive[i] = 0;
+        self.touch(i);
+        self.rebucket();
+        true
+    }
+
     /// Clamps a world point onto the grid. Orders store the clamped point.
     pub fn clamp_to_grid(&self, x: i32, y: i32) -> (i32, i32) {
         let max_x = fixed::from_int(self.grid.w as i32 - 1);
