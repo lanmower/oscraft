@@ -29,7 +29,7 @@ mod host {
         let image = osdt_data::generate(Path::new(DATA_DIR)).context("build the OSDT image from rust/data")?;
         let mut input = (image.len() as u32).to_le_bytes().to_vec();
         input.extend_from_slice(&image);
-        input.extend_from_slice(format!("tick {TICKS}\nstate\n").as_bytes());
+        input.extend_from_slice(format!("tick {TICKS}\nunit-count\n").as_bytes());
 
         let engine = Engine::default();
         let module = Module::from_file(&engine, &path).with_context(|| format!("load guest {path}"))?;
@@ -48,18 +48,14 @@ mod host {
         if !text.lines().any(|line| line == ticked) {
             bail!("guest did not acknowledge tick {TICKS}: {text}");
         }
-        let state = text
+        let units_text = text
             .lines()
             .rev()
-            .find_map(|line| line.strip_prefix("state "))
-            .ok_or_else(|| anyhow!("no state reply: {text}"))?;
-        let units: u32 = state
-            .split_whitespace()
-            .find_map(|kv| kv.strip_prefix("units="))
-            .ok_or_else(|| anyhow!("no units in state reply: {state}"))?
-            .parse()?;
+            .find_map(|line| line.strip_prefix("ok unit-count "))
+            .ok_or_else(|| anyhow!("no unit-count reply: {text}"))?;
+        let units: u32 = units_text.trim().parse()?;
         if units == 0 {
-            bail!("state reply reports zero units: {state}");
+            bail!("unit-count reply reports zero units: {units_text}");
         }
         println!("wasip1 tick ok ticks={TICKS} units={units}");
         Ok(())

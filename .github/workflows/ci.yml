@@ -1304,3 +1304,31 @@ jobs:
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           grep '^ev=mod_thread_' "$log"
           echo "mod thread panic ok died=$died restarted=$restarted version_after=$after"
+
+  host-api:
+    name: wasip1 commands and wasip2 WIT exports name the same operations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare the wasip1 command list with the WIT exports
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re, sys
+          wit = open("rust/crates/wasip2/wit/sim-component.wit").read()
+          wit_ops = set(re.findall(r"^\s*export\s+([a-z][a-z0-9-]*)\s*:", wit, re.M))
+          src = open("rust/crates/wasip1/src/lib.rs").read()
+          block = re.search(r"pub const COMMANDS:[^=]*=\s*&\[(.*?)\];", src, re.S)
+          if not block:
+              sys.exit("host api: COMMANDS const not found in rust/crates/wasip1/src/lib.rs")
+          wasip1_ops = set(re.findall(r'"([a-z][a-z0-9-]*)"', block.group(1)))
+          only_wit = sorted(wit_ops - wasip1_ops)
+          only_wasip1 = sorted(wasip1_ops - wit_ops)
+          if only_wit or only_wasip1 or not wit_ops:
+              print(f"host api mismatch: missing from wasip1={only_wit} missing from wit={only_wasip1}")
+              sys.exit(1)
+          print(f"host api ok ops={len(wit_ops & wasip1_ops)} wasip1={len(wasip1_ops)} wit={len(wit_ops)}")
+          PY
