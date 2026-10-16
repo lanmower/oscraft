@@ -1477,3 +1477,64 @@ jobs:
           sys.exit(f"open-socket assert passed with {alive} held open above cap {cap}; the assert cannot fail")
           PY
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+
+  connection-cap-status-line:
+    name: refused responses past the cap carry the full HTTP/1.1 503 status line on one 12-byte read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - name: Cap at 2 through the override, read each refused response with one recv of 12 bytes, assert the status line
+        run: |
+          set -euo pipefail
+          cargo build -p server --bin oscraftd
+          work="$RUNNER_TEMP/connection-cap-status-line"
+          mkdir -p "$work"
+          port=8099
+          log="$work/cap.log"
+          OSCRAFT_CONNECTION_CAP_OVERRIDE=2 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$log" || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          python3 -I - "$port" 2 <<'PY'
+          import socket
+          import sys
+          import time
+
+          port, cap, extra = int(sys.argv[1]), int(sys.argv[2]), 8
+          status = b"HTTP/1.1 503"
+          held = [socket.create_connection(("127.0.0.1", port), timeout=10) for _ in range(cap)]
+          time.sleep(0.5)
+          refused = complete = 0
+          bad = []
+          for _ in range(extra):
+              s = socket.create_connection(("127.0.0.1", port), timeout=10)
+              first = s.recv(12)
+              if first:
+                  refused += 1
+              if first == status:
+                  complete += 1
+              else:
+                  bad.append(first)
+              while s.recv(4096):
+                  pass
+              s.close()
+          for s in held:
+              s.close()
+          if bad or refused != extra:
+              sys.exit(f"status line not complete on a refused response: refused={refused} complete={complete} first_reads={bad}")
+          print(f"http status line ok refused={refused} complete={complete}")
+          PY
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+          grep '^ev=conn_refused ' "$log"
