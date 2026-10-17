@@ -160,6 +160,24 @@ pub fn trigger_firing(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// A structure with hit points loses them when an enemy with an attack is in weapon range. The
+/// beacon and skirmisher come from the duel-routes scenario, not the default data.
+pub fn structure_damage(_image: &[u8]) -> Result<(), String> {
+    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("duel-routes");
+    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
+    let mut s = fresh(&image)?;
+    let beacon = spawn(&mut s, 1, "beacon", 20, 4)?;
+    spawn(&mut s, 0, "skirmisher", 18, 4)?;
+    let before = fixed::to_int(s.hp(beacon));
+    run_ticks(&mut s, 100);
+    let after = fixed::to_int(s.hp(beacon));
+    if after >= before {
+        return Err(format!("beacon hp {before} -> {after} with an enemy skirmisher in weapon range"));
+    }
+    println!("structure damage ok hp_before={before} hp_after={after}");
+    Ok(())
+}
+
 pub fn region_query(image: &[u8]) -> Result<(), String> {
     let src = r#"
 define_region("zone", 0, 0, 655360, 655360)

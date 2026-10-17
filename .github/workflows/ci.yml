@@ -2413,6 +2413,16 @@ jobs:
           test "$live_beacons" -eq "$beacons"
           echo "scenario ok sides=$sides routes=$routes objectives=$beacons units=$units"
 
+      - name: Gate witness - a beacon loses hit points while an enemy skirmisher is in range
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/gate-witness.txt"
+          cd "$GITHUB_WORKSPACE/rust"
+          # The gate exits nonzero when any other check fails; this step asserts only its own PASS line.
+          target/debug/oscraft-gate > "$out" 2>&1 || true
+          grep -q '^check mechanic-structure-damage PASS$' "$out"
+          grep -E '^structure damage ok hp_before=[0-9]+ hp_after=[0-9]+$' "$out"
+
   lobby-room-select:
     name: lobby room panel lists two rooms announced on the relay, joins one, and drops a closed page after its TTL
     runs-on: ubuntu-latest
