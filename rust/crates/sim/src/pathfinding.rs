@@ -15,9 +15,9 @@ pub const REBUILD_CADENCE: u32 = 16;
 /// Cell bit set on cells that refuse pathing and placement (`bit 0 = blocked`).
 pub const BLOCKED: u8 = 1;
 
-const NB_DX: [i32; 8] = [1, 1, 0, -1, -1, -1, 0, 1];
-const NB_DY: [i32; 8] = [0, 1, 1, 1, 0, -1, -1, -1];
-const NB_COST: [i32; 8] = [
+pub(crate) const NB_DX: [i32; 8] = [1, 1, 0, -1, -1, -1, 0, 1];
+pub(crate) const NB_DY: [i32; 8] = [0, 1, 1, 1, 0, -1, -1, -1];
+pub(crate) const NB_COST: [i32; 8] = [
     COST_STRAIGHT, COST_DIAGONAL, COST_STRAIGHT, COST_DIAGONAL,
     COST_STRAIGHT, COST_DIAGONAL, COST_STRAIGHT, COST_DIAGONAL,
 ];

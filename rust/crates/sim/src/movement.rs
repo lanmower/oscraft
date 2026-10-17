@@ -2,6 +2,7 @@
 //! Velocities are Q16.16 world units per tick.
 
 use crate::arrays::{cell_of, dist2, Sim};
+use crate::astar::{self, APPROACH_LOOKAHEAD};
 use crate::fixed::{self, ONE, SHIFT};
 use crate::*;
 
@@ -272,8 +273,33 @@ impl Sim {
         let dy = self.pos_y[i] as i64 - self.pos_y[target] as i64;
         let sx = self.pos_x[target] as i64 + dx * r / d;
         let sy = self.pos_y[target] as i64 + dy * r / d;
-        self.move_fixed(i, sx as i32, sy as i32);
+        self.approach_to(i, sx as i32, sy as i32);
         Ok(false)
+    }
+
+    /// Sets unit `i`'s destination toward a stop point along a walkable route. The point itself
+    /// when the straight segment is clear; else a waypoint `APPROACH_LOOKAHEAD` cells along an A*
+    /// route around the terrain, to the nearest walkable cell of the point. Flying units, and
+    /// points no route reaches, keep the straight move.
+    fn approach_to(&mut self, i: usize, x: i32, y: i32) {
+        let from = (cell_of(self.pos_x[i]), cell_of(self.pos_y[i]));
+        let to = (cell_of(x), cell_of(y));
+        if self.flying[i] != 0 || astar::line_clear(&self.grid, from, to) {
+            self.move_fixed(i, x, y);
+            return;
+        }
+        let goal = self.grid.nearest_walkable(to.0, to.1, 8);
+        let route = goal.and_then(|g| astar::route(&self.grid, from, g, astar::ASTAR_NODE_BUDGET));
+        let waypoint = route.and_then(|path| path.get(APPROACH_LOOKAHEAD.min(path.len()).max(1) - 1).copied());
+        match waypoint {
+            Some(c) => {
+                let (wx, wy) = astar::cell_centre(c);
+                self.move_fixed(i, wx, wy);
+            }
+            None => {
+                self.move_fixed(i, x, y);
+            }
+        }
     }
 
     /// Issues an order of kind `kind` (ORDER_*) to unit `i`. Move, attack-move and patrol

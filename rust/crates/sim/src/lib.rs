@@ -19,6 +19,7 @@ mod loader;
 mod movement;
 mod persist;
 mod pathfinding;
+mod astar;
 mod production;
 mod projectiles;
 mod rules;
