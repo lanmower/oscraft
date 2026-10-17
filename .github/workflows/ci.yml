@@ -2958,6 +2958,19 @@ jobs:
             if (errors.length) throw new Error("page errors: " + errors.join(" | "));
             console.log(`browser two peers ok unit=${unit.id} host_moved=true peer_moved=true`);
             console.log(`browser order refused not_owner ok unit=${foreign.id} owner=1 sender=0 stayed=true`);
+            // HUD: the peer selects its unit and right-clicks the canvas centre, a move order; the peer's HUD
+            // shows its gold and no winner. Then the host's side 1 is killed and the host HUD names side 0 the winner.
+            await peer.evaluate((id) => window.__ciSelect(id), unit.id);
+            const view = await peer.locator("#view").boundingBox();
+            await peer.mouse.click(view.x + view.width / 2, view.y + view.height / 2, { button: "right" });
+            await new Promise((r) => setTimeout(r, 1000));
+            const hudPeer = await peer.evaluate(() => ({ text: document.getElementById("hud").textContent, gold: document.body.dataset.gold, winHidden: document.getElementById("win").hidden }));
+            if (!hudPeer.text.includes(`gold ${hudPeer.gold}`) || hudPeer.winHidden !== true) throw new Error(`peer hud before the win: ${JSON.stringify(hudPeer)}`);
+            await host.evaluate(() => window.__ciKillSide(1));
+            await host.waitForFunction(() => document.body.dataset.winner === "0", null, { timeout: 60000 });
+            const winText = await host.textContent("#win");
+            if (winText !== "side 0 wins" || !(await host.isVisible("#win"))) throw new Error(`host winner text: ${JSON.stringify(winText)}`);
+            console.log(`browser hud ok gold=${hudPeer.gold} winner=0`);
             await host.waitForFunction(() => window.__ciFrames && window.__ciFrames.length >= 200, null, { timeout: 120000 });
             const frames = await host.evaluate(() => window.__ciFrames.slice(0, 200));
             const full = frames.find((f) => f.type === 2);
@@ -2973,6 +2986,7 @@ jobs:
           grep -q '^browser two peers ok unit=[0-9]* host_moved=true peer_moved=true$' "$work/two-peers.txt"
           grep -q '^browser remote model ok unit=[0-9]* type=[0-9]*$' "$work/two-peers.txt"
           grep -q '^browser order refused not_owner ok unit=[0-9]* owner=1 sender=0 stayed=true$' "$work/two-peers.txt"
+          grep -q '^browser hud ok gold=[0-9]* winner=0$' "$work/two-peers.txt"
           grep -q '^browser frame bytes full=[0-9]* delta_avg=[0-9]*$' "$work/two-peers.txt"
           frame_line=$(grep '^browser frame bytes full=' "$work/two-peers.txt")
           full=$(echo "$frame_line" | sed 's/.* full=\([0-9]*\) .*/\1/')

@@ -7,6 +7,7 @@ import { encodeFrame, decodeFrame, FRAME } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { applyFrame, createStateEncoder } from "./delta.js";
 import { parseGlb } from "./glb.js";
+import { createHud } from "./hud.js";
 
 // The map grid from data/map.osd: grid(32, 24), one tile per cell.
 const W = 32;
@@ -22,7 +23,6 @@ const BASE_PX_PER_UNIT = 20;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const DRAG_SLOP_PX = 4;
-const RIGHT_BUTTON = 2;
 const PAN_TILES_PER_S = 12;
 const EDGE_PX = 16;
 const RECONNECT_BASE_MS = 1000;
@@ -47,8 +47,8 @@ const peers = new Set();
 let netState = null;
 let casts = 0;
 let attacks = 0;
-let attackMode = false;
 let localGame = null;
+let hud = null;
 let models = [];
 let selectedId = -1;
 let reconnectAttempt = 0;
@@ -167,11 +167,12 @@ function currentUnits() {
   if (!localGame) return [];
   const flat = localGame.units();
   const ids = localGame.unit_ids();
-  // Older wasm builds have no unit_types export; their units draw as quads.
+  // Older wasm builds have no unit_types or unit_hps export; their units draw as quads without health bars.
   const types = typeof localGame.unit_types === "function" ? localGame.unit_types() : null;
+  const hps = typeof localGame.unit_hps === "function" ? localGame.unit_hps() : null;
   const out = [];
   for (let i = 0; i < ids.length; i++) {
-    out.push({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1 });
+    out.push({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1 });
   }
   return out;
 }
@@ -249,61 +250,32 @@ function pick(world) {
   return best;
 }
 
-// Left button selects the unit under the pointer. Right button orders the selected unit to walk to the
-// clicked point: a guest sends the order to the host; the host and the local preview apply it to the sim.
-function onClick(e) {
-  const world = screenToWorld(e.clientX, e.clientY);
-  if (e.button === RIGHT_BUTTON) {
-    issueMove(world);
-    return;
-  }
-  if (attackMode) {
-    attackMode = false;
-    const target = pick(world);
-    if (!target) return;
-    if (netState) {
-      session.broadcast(sendAttack(selectedId, target.id));
-      attacks += 1;
-    } else if (localGame && localGame.attack(selectedId, target.id)) {
-      attacks += 1;
-    }
-    return;
-  }
-  const hit = pick(world);
-  selectedId = hit ? hit.id : -1;
+// Maps a world (x, z) back to client pixels under the camera; the inverse of screenToWorld.
+function worldToScreen(x, z) {
+  const ppu = pxPerUnit();
+  return { x: window.innerWidth / 2 + (x - camera.cx) * ppu, y: window.innerHeight / 2 + (z - camera.cz) * ppu };
 }
 
-function issueMove(world) {
-  const selected = currentUnits().find((u) => u.id === selectedId);
-  if (!selected) return;
-  if (netState) {
-    session.broadcast(sendOrder(selected.id, world.x, world.z));
-    orders += 1;
-  } else if (localGame.order_move(selected.id, world.x, world.z)) {
-    orders += 1;
-  }
-  setStatus(`order move unit ${selected.id} to ${world.x.toFixed(2)},${world.z.toFixed(2)}${netState ? "" : " (local)"}`);
-}
-
-// Q, W and E cast the selected unit's ability in slot 0, 1 and 2 at the pointer, aimed at the unit under it.
-// A arms an attack: the next left click on an enemy unit orders the selected unit to attack it.
-const ABILITY_SLOTS = { q: 0, w: 1, e: 2 };
-function handleAbilityKey(key) {
-  if (!localGame || selectedId < 0) return;
-  if (key === "a") {
-    attackMode = true;
-    return;
-  }
-  if (!(key in ABILITY_SLOTS)) return;
-  const world = pointer ? screenToWorld(pointer.x, pointer.y) : { x: 0, z: 0 };
-  const target = pick(world);
-  if (netState) {
-    session.broadcast(sendCast(selectedId, ABILITY_SLOTS[key], target ? target.id : -1, world.x, world.z));
-    casts += 1;
-  } else if (localGame.cast(selectedId, ABILITY_SLOTS[key], target ? target.id : -1, world.x, world.z)) {
-    casts += 1;
-  }
-}
+// The commands createHud routes input through. Each runs on the host sim, or sends the frame to the host
+// when this page is a guest; each returns whether the sim (or the host's send) accepted it.
+const commands = {
+  order(unitId, x, z) {
+    const ok = netState ? (session.broadcast(sendOrder(unitId, x, z)), true) : localGame.order_move(unitId, x, z);
+    if (ok) orders += 1;
+    setStatus(`order move unit ${unitId} to ${x.toFixed(2)},${z.toFixed(2)}${netState ? "" : " (local)"}`);
+    return ok;
+  },
+  attack(unitId, targetId) {
+    const ok = netState ? (session.broadcast(sendAttack(unitId, targetId)), true) : localGame.attack(unitId, targetId);
+    if (ok) attacks += 1;
+    return ok;
+  },
+  cast(unitId, slot, target, x, z) {
+    const ok = netState ? (session.broadcast(sendCast(unitId, slot, target, x, z)), true) : localGame.cast(unitId, slot, target, x, z);
+    if (ok) casts += 1;
+    return ok;
+  },
+};
 
 function bindInput() {
   canvas.addEventListener("pointerdown", (e) => {
@@ -324,7 +296,7 @@ function bindInput() {
   canvas.addEventListener("pointerup", (e) => {
     const wasDrag = drag && drag.moved;
     drag = null;
-    if (!wasDrag) onClick(e);
+    if (!wasDrag && hud) hud.onPointerUp(e);
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   window.addEventListener("keydown", (e) => {
@@ -334,7 +306,7 @@ function bindInput() {
       e.preventDefault();
       return;
     }
-    handleAbilityKey(e.key.toLowerCase());
+    if (hud) hud.onKey(e.key, pointer);
   });
   window.addEventListener("keyup", (e) => keysDown.delete(e.key));
   window.addEventListener("blur", () => keysDown.clear());
@@ -441,7 +413,7 @@ function startHost() {
     hostTick += 1;
     if (hostTick % SNAPSHOT_EVERY_TICKS === 0) saveSnapshot(hostTick);
     const hash = Number(localGame.state_hash() & 0xffffffffn) >>> 0;
-    const units = currentUnits().map((u) => ({ id: u.id, kind: Math.max(0, u.type), player: u.player, x: Math.round(u.x * WIRE_SCALE), y: Math.round(u.z * WIRE_SCALE), hp: 0 }));
+    const units = currentUnits().map((u) => ({ id: u.id, kind: Math.max(0, u.type), player: u.player, x: Math.round(u.x * WIRE_SCALE), y: Math.round(u.z * WIRE_SCALE), hp: Math.max(0, u.hp) }));
     if (window.__ciSent) recordTick(window.__ciSent, hostTick, units);
     const frame = encoder.encode(hostTick, hash, units);
     const bytes = encodeFrame(frame);
@@ -597,23 +569,7 @@ function recordTick(log, tick, units) {
   if (log.size > CI_TICK_LOG) log.delete(log.keys().next().value);
 }
 
-// Page state for headless checks: the committed map is drawn by the same Game the sim ticks.
-// The minimap draws every unit as a dot at its tile position: the selected unit in white, others in their player colour.
-const minimap = document.getElementById("minimap");
-function drawMinimap() {
-  const ctx = minimap.getContext("2d");
-  ctx.fillStyle = "#2a343c";
-  ctx.fillRect(0, 0, minimap.width, minimap.height);
-  let dots = 0;
-  for (const u of currentUnits()) {
-    const c = PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
-    ctx.fillStyle = u.id === selectedId ? "#ffffff" : `rgb(${c.map((v) => Math.round(v * 255)).join(",")})`;
-    ctx.fillRect((u.x / W) * minimap.width - 2, (u.z / H) * minimap.height - 2, 4, 4);
-    dots += 1;
-  }
-  document.body.dataset.minimap = String(dots);
-}
-
+// Page state for headless checks. The HUD (gold, winner, health bars, minimap) refreshes from the same frame.
 function publishWitness() {
   document.body.dataset.units = String(currentUnits().length);
   document.body.dataset.ticks = String(localGame ? localGame.ticks() : netState ? netState.tick : 0);
@@ -622,19 +578,14 @@ function publishWitness() {
   document.body.dataset.orders = String(orders);
   document.body.dataset.casts = String(casts);
   document.body.dataset.attacks = String(attacks);
-  if (localGame) {
-    const hp = selectedId >= 0 ? localGame.unit_hp(selectedId) : -1;
-    const gold = localGame.gold(0);
-    const winner = localGame.winner();
-    document.body.dataset.hp = String(hp);
-    document.body.dataset.gold = String(gold);
-    document.body.dataset.winner = String(winner);
-    document.getElementById("hud").textContent = `hp ${hp >= 0 ? hp : "-"}   gold ${gold}`;
-    const win = document.getElementById("win");
-    win.hidden = winner < 0;
-    win.textContent = `side ${winner} wins`;
-  }
-  drawMinimap();
+  if (hud) hud.update();
+}
+
+function createBarCanvas() {
+  const bars = document.createElement("canvas");
+  bars.style.cssText = "position:fixed;left:0;top:0;pointer-events:none";
+  document.body.appendChild(bars);
+  return bars;
 }
 
 async function main() {
@@ -644,6 +595,23 @@ async function main() {
   const mapMeshes = buildMapMeshes();
   localGame = await loadSim();
   models = await loadModels(localGame);
+  hud = createHud({
+    game: localGame,
+    hudEl: document.getElementById("hud"),
+    winEl: document.getElementById("win"),
+    minimapEl: document.getElementById("minimap"),
+    barCanvas: createBarCanvas(),
+    mapSize: { w: W, h: H },
+    units: currentUnits,
+    selected: () => selectedId,
+    select: (unitId) => { selectedId = unitId; },
+    localPlayer: () => 0,
+    commands,
+    pick,
+    toWorld: screenToWorld,
+    toScreen: worldToScreen,
+    playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
+  });
   if (params.get("host") === "1") startHost();
   joinRoom();
 
