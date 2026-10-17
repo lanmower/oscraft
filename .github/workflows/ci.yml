@@ -2528,7 +2528,10 @@ jobs:
           test "$sides" -eq "$starts"
           test "$live_routes" -eq "$routes"
           test "$live_beacons" -eq "$beacons"
-          echo "scenario ok sides=$sides routes=$routes objectives=$beacons units=$units"
+          end_full=$(jq '[.records[] | select(.hp == 19660800)] | length' "$work/s1.json")
+          hp_changed=$([ "$end_full" -lt "$beacons" ] && echo true || echo false)
+          echo "scenario ok sides=$sides routes=$routes objectives=$beacons units=$units hp_changed=$hp_changed"
+          test "$hp_changed" = true
 
       - name: Gate witnesses - a beacon loses hit points in range; destroying a side's tagged structures names the winner
         run: |
