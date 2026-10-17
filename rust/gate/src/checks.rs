@@ -35,6 +35,9 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("mechanic-structure-damage", mechanic_checks::structure_damage),
     ("mechanic-win-trigger", mechanic_checks::win_trigger),
     ("mechanic-kill-bounty", mechanic_checks::kill_bounty),
+    ("moba-match-end", mechanic_checks::moba_match_end),
+    ("moba-creeps", mechanic_checks::moba_creeps),
+    ("moba-sync", mechanic_checks::moba_sync),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP
