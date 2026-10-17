@@ -1046,6 +1046,44 @@ jobs:
           fi
           echo "mod handle survives reload ok handle=$handle moved=true"
 
+      - name: Mod walkthrough - a data file defines a new unit kind through the data hot path, a mod spawns it through the mod hot path, and /state shows the kind name
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/mod-walkthrough"
+          rm -rf "$work"
+          mkdir -p "$work/data"
+          cp data/*.osd "$work/data/"
+          mod="$work/mod.lua"
+          printf '%s\n' 'function on_tick(state)' '  state.ticks = (state.ticks or 0) + 1' 'end' > "$mod"
+          addr=127.0.0.1:18471
+          log="$work/server.log"
+          ./target/debug/oscraftd --addr "$addr" --room walk --data "$work/data" --mod "$mod" > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          catalog() { curl -sf "http://$addr/catalog?map=walk"; }
+          state() { curl -sf "http://$addr/state"; }
+          version() { curl -sf "http://$addr/mod-version" | jq -r .version; }
+          for i in $(seq 1 60); do catalog >/dev/null 2>&1 && break; sleep 0.5; done
+          catalog | jq -e '.loaded == true' >/dev/null
+          catalog | jq -e '.units | any(. == "modprobe_unit") | not' >/dev/null
+          printf '%s\n' 'unit("modprobe_unit", 50, 2000, 300, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$RUNNER_TEMP/modprobe_unit.osd" && mv "$RUNNER_TEMP/modprobe_unit.osd" "$work/data/modprobe_unit.osd"
+          for i in $(seq 1 60); do grep -q '^ev=mod_image_reloaded ' "$log" && break; sleep 0.5; done
+          grep -q '^ev=mod_image_reloaded ' "$log"
+          for i in $(seq 1 20); do catalog | jq -e '.units | any(. == "modprobe_unit")' >/dev/null 2>&1 && break; sleep 0.25; done
+          catalog | jq -e '.units | any(. == "modprobe_unit")' >/dev/null
+          kind=$(catalog | jq -r '.units | index("modprobe_unit")')
+          before=$(version)
+          printf '%s\n' 'function on_tick(state)' '  if state.spawned == nil then' '    state.spawned = game.cmd_spawn("modprobe_unit", 688128, 1343488)' '  end' '  state.ticks = (state.ticks or 0) + 1' 'end' > "$mod"
+          for i in $(seq 1 60); do [ "$(version)" -gt "$before" ] && break; sleep 0.25; done
+          test "$(version)" -gt "$before"
+          for i in $(seq 1 60); do state | jq -e --argjson k "$kind" '[.records[] | select(.kind == $k)] | length >= 1' >/dev/null 2>&1 && break; sleep 0.25; done
+          state | jq -e --argjson k "$kind" '[.records[] | select(.kind == $k)] | length >= 1' >/dev/null
+          name=$(catalog | jq -r --argjson k "$kind" '.units[$k]')
+          test "$name" = modprobe_unit
+          echo "mod walkthrough ok kind=$name"
+          kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+
   server-kinds-and-protocol:
     name: "server unit kinds, carry, protocol and log schema probes"
     runs-on: ubuntu-latest
