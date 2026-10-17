@@ -454,6 +454,22 @@ session.addEventListener("data", (e) => {
 });
 
 // Page state for headless checks: the committed map is drawn by the same Game the sim ticks.
+// The minimap draws every unit as a dot at its tile position: the selected unit in white, others in their player colour.
+const minimap = document.getElementById("minimap");
+function drawMinimap() {
+  const ctx = minimap.getContext("2d");
+  ctx.fillStyle = "#2a343c";
+  ctx.fillRect(0, 0, minimap.width, minimap.height);
+  let dots = 0;
+  for (const u of currentUnits()) {
+    const c = PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
+    ctx.fillStyle = u.id === selectedId ? "#ffffff" : `rgb(${c.map((v) => Math.round(v * 255)).join(",")})`;
+    ctx.fillRect((u.x / W) * minimap.width - 2, (u.z / H) * minimap.height - 2, 4, 4);
+    dots += 1;
+  }
+  document.body.dataset.minimap = String(dots);
+}
+
 function publishWitness() {
   document.body.dataset.units = String(currentUnits().length);
   document.body.dataset.ticks = String(localGame ? localGame.ticks() : netState ? netState.tick : 0);
@@ -474,6 +490,7 @@ function publishWitness() {
     win.hidden = winner < 0;
     win.textContent = `side ${winner} wins`;
   }
+  drawMinimap();
 }
 
 async function main() {
