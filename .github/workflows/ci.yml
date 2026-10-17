@@ -1634,7 +1634,8 @@ jobs:
           for (const cand of ranked.reverse().slice(0, 60)) {
             const at = await screenAt(cand.x, cand.z);
             await page.mouse.click(at.x, at.y, { button: "left" });
-            if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
+            const selected = await page.evaluate(() => window.__ciSelected());
+            if (selected !== cand.id) { console.log(`probe skip cand=${cand.id} at=${at.x.toFixed(0)},${at.y.toFixed(0)} selected=${selected}`); continue; }
             const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
             if (!foe) continue;
             const fp = await screenAt(foe.x, foe.z);
@@ -1642,11 +1643,14 @@ jobs:
             await page.mouse.move(fp.x, fp.y);
             await page.keyboard.press("q");
             await page.waitForTimeout(150);
-            if (Number(await page.getAttribute("body", "data-casts")) < 1) continue;
+            const casts = Number(await page.getAttribute("body", "data-casts"));
+            if (casts < 1) { console.log(`probe cast cand=${cand.id} foe=${foe.id} casts=${casts} at=${fp.x.toFixed(0)},${fp.y.toFixed(0)}`); continue; }
             await page.keyboard.press("a");
             await page.mouse.click(fp.x, fp.y, { button: "left" });
             await page.waitForTimeout(150);
-            if (Number(await page.getAttribute("body", "data-attacks")) >= 1) { attacker = cand; break; }
+            const attacks = Number(await page.getAttribute("body", "data-attacks"));
+            console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
+            if (attacks >= 1) { attacker = cand; break; }
           }
           if (!attacker) throw new Error("no unit both cast and attacked");
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
