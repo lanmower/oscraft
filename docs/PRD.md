@@ -57,3 +57,15 @@ Status is as of main `62af78b0`. Each row names its acceptance witness: the line
 
 - **gm-gripes**: the gm gripes were filed in the `/workspace/gm` store as `gm-gripe-*` items. Status: filed, for the gm project.
 - **pool-rows**: the 40 pending rows in the other session's PRD store are unrelated to this work and are left alone. See D1.
+
+## Decisions taken
+
+The user delegated these to the agent. Each is the default a reviewer can overturn.
+
+- **D1.** Keep `docs/PRD.md` as the record. The other session's store is not touched.
+- **D2.** `/workspace/oscraft` is not reset. Its uncommitted work is left for the user to inspect.
+- **D3.** Node stays in CI for the wire tests and Playwright. Replacing it is not worth the churn while the rows above are open.
+- **D4.** Keep the per-ref cancel. The tip gets the verdict.
+- **D5.** The browser keeps running `rust/crates/web`. wasip3 stays native.
+
+Status: `d27b59f` restores the workspace build. The `ci` run on `main` at `60d881b` failed in the `build` job on the missing `UnitExtRaw.bounty` field, and every probe behind it was skipped. The branch has no CI trigger, because `ci.yml` runs on `main` and on pull requests into `main`. The next verdict needs `main` to carry `d27b59f`.
