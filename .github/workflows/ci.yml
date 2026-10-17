@@ -1632,10 +1632,8 @@ jobs:
           const ranked = [...units].sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
           let attacker = null;
           for (const cand of ranked.reverse().slice(0, 60)) {
-            const at = await screenAt(cand.x, cand.z);
-            await page.mouse.click(at.x, at.y, { button: "left" });
-            const selected = await page.evaluate(() => window.__ciSelected());
-            if (selected !== cand.id) { console.log(`probe skip cand=${cand.id} at=${at.x.toFixed(0)},${at.y.toFixed(0)} selected=${selected}`); continue; }
+            // Select through the CI hook: a click can land on another unit drawn over this one.
+            await page.evaluate((id) => window.__ciSelect(id), cand.id);
             const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
             if (!foe) continue;
             const fp = await screenAt(foe.x, foe.z);

@@ -510,6 +510,7 @@ if (params.get("ci") === "1") {
   window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciSelected = () => selectedId;
+  window.__ciSelect = (unitId) => { selectedId = unitId; };
   window.__ciKillSide = (player) => {
     for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 100000);
   };
