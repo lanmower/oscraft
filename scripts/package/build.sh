@@ -20,9 +20,9 @@ cp -R crates/web/site/. "$stage/site/"
 cargo run -q -p mapexport -- "$stage/site/map.bin"
 wasm-pack build crates/web --target web --out-dir "$stage/site/pkg" > /dev/null
 cd "$root"
-cp js/client/play.html js/client/play.js js/client/rooms.js js/client/ice.js js/client/delta.js "$stage/js/client/"
+cp js/client/play.html "$stage/js/client/"
+cp js/client/*.js "$stage/js/client/"
 cp js/client/wire/frame.js "$stage/js/client/wire/"
-cp js/client/glb.js "$stage/js/client/"
 cp -R js/client/models "$stage/js/client/"
 wasm-pack build rust/crates/web --target web --out-dir "$stage/js/client/pkg" > /dev/null
 cp "$stage/site/map.bin" "$stage/js/client/map.bin"
