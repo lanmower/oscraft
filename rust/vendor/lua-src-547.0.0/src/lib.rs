@@ -134,7 +134,10 @@ impl Build {
             }
             // WASI (wasm32-wasip3 guest): plain ANSI C, no platform defines; the
             // C sysroot comes from CC_<target>/CFLAGS_<target> in the environment.
-            _ if target.contains("wasi") => {}
+            // lstate.h names sig_atomic_t without including <signal.h> off POSIX.
+            _ if target.contains("wasi") => {
+                config.flag("-include").flag("signal.h");
+            }
             _ => panic!("don't know how to build Lua for {}", target),
         };
 
