@@ -18,6 +18,7 @@ Columns: `Event` is the `ev=` name, `Variant` the `Ev` variant, `Emitted from` t
 | `tick_time` | TickTime | budget.rs | ticks, p50_us, p90_us, p99_us, max_us, queued, overruns, system, samples | required |
 | `tick_overrun` | TickOverrun | room.rs | room, tick, cost_us, budget_us | required |
 | `tick_shed` | TickShed | room.rs | room, tick, shed, cap | optional |
+| `tick_shed_edge` | TickShedEdge | room.rs | room, tick, state | optional |
 | `mod_cmds` | ModCmds | room.rs | room, tick, applied | optional |
 | `mod_cmds_dropped` | ModCmdsDropped | mods.rs | count | optional |
 | `mod_unit_bound` | ModUnitBound | room.rs | handle, unit | optional |
