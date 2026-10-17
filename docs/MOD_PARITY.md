@@ -75,6 +75,6 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 ## Open items, in order
 
 1. Commanded attacks that keep a target engaged (a sim change with a save-format bump).
-3. Flee (needs a definition of its direction and distance in data).
+2. Flee (needs a definition of its direction and distance in data).
 4. Camera, sound, UI panels, chat and cinematics (presentation layer; each needs a design, since the sim is headless).
 5. A Lua test runner for running server scenarios from the command line.
