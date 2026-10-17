@@ -91,6 +91,7 @@ jobs:
           target/debug/mapexport crates/web/site/moba.bin ../scenarios/moba
 
       - name: Peer scaling of the per-tick guest cost
+        working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
           node js/host/guest.js --ticks=5000 --reps=5 --peers=1,8,32 | tee "$RUNNER_TEMP/peer-scaling.txt"
