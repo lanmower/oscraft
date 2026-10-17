@@ -42,8 +42,10 @@ Systems and queries see only the components they name. Every unit view also carr
 - `game.cmd_order(unit, x, y)` queues a move order.
 - `game.cmd_damage(caster, target, dmg)` queues damage from the caster's player.
 - `game.cmd_buff(unit, kind, ticks)` queues a buff.
+- `game.cmd_cast(unit, slot, target, x, y)` queues an ability cast from the unit's slot at Q16.16 point `x, y`. A `target` of `-1` casts at the point; any other target is a live unit. The sim refuses a cast it cannot make (cooldown, energy, range) and the command then does nothing.
+- `game.cmd_attack(attacker, target)` queues an attack order. The attacker moves toward the live target and strikes once when it is in weapon reach. The sim never chases, and each unit otherwise attacks the nearest enemy it can see, so a mod that keeps a target engaged queues the attack again each step.
 
-Queue-time errors (`invalid_unit`, `invalid_damage`, `invalid_buff`) are raised by the call. A
+Queue-time errors (`invalid_unit`, `invalid_damage`, `invalid_buff`, `invalid_slot`) are raised by the call. A
 command whose unit died before it applied does nothing.
 
 ## Example

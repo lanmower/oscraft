@@ -378,6 +378,17 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
                     let _ = sim.apply_buff(unit, kind, ticks);
                 }
             }
+            // The sim validates a cast or attack and refuses what it cannot do, so a refused one changes nothing.
+            Cmd::Cast { unit, slot, target, x, y } => {
+                if sim.alive(unit) {
+                    let _ = sim.cast_ability(unit, slot, target, x, y);
+                }
+            }
+            Cmd::Attack { unit, target } => {
+                if sim.alive(unit) && sim.alive(target) {
+                    let _ = sim.order_attack_or_approach(unit, target);
+                }
+            }
         }
     }
     applied

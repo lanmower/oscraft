@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{Catalog, Doodad, LoadError, Refusal, Sim};
+use sim::{Catalog, Doodad, LoadError, Refusal, Sim, ABILITY_SLOTS};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -76,6 +76,8 @@ pub enum Cmd {
     OrderHandle { handle: u32, x: i32, y: i32 },
     DamageHandle { caster: u32, target: u32, dmg: i32 },
     BuffHandle { handle: u32, kind: i32, ticks: i32 },
+    Cast { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
+    Attack { unit: usize, target: usize },
 }
 
 // Q16.16 corners, normalized so x0 <= x1 and y0 <= y1.
@@ -799,6 +801,32 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(())
         })?,
     )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_cast",
+        lua.create_function(move |_, (unit, slot, target, x, y): (i64, i64, i64, i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let slot = usize::try_from(slot).ok().filter(|&s| s < ABILITY_SLOTS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_slot: {slot} is outside 0..{ABILITY_SLOTS}"))
+            })?;
+            // A target of -1 casts at the point; any other target must be a live unit.
+            let target = if target == -1 { -1 } else { live_unit(&w.borrow(), target)? as i32 };
+            buf.borrow_mut().push(Cmd::Cast { unit: u, slot, target, x: fixed(x)?, y: fixed(y)? });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_attack",
+        lua.create_function(move |_, (attacker, target): (i64, i64)| {
+            let (a, t) = {
+                let sim = w.borrow();
+                (live_unit(&sim, attacker)?, live_unit(&sim, target)?)
+            };
+            buf.borrow_mut().push(Cmd::Attack { unit: a, target: t });
+            Ok(())
+        })?,
+    )?;
     env.set("game", game)
 }
 
@@ -1117,6 +1145,17 @@ impl ModHost {
                         let _ = sim.apply_buff(unit, kind, ticks);
                     }
                 }
+                // A refused cast or attack does nothing, as a refused order does.
+                Cmd::Cast { unit, slot, target, x, y } => {
+                    if sim.alive(unit) {
+                        let _ = sim.cast_ability(unit, slot, target, x, y);
+                    }
+                }
+                Cmd::Attack { unit, target } => {
+                    if sim.alive(unit) {
+                        let _ = sim.order_attack_or_approach(unit, target);
+                    }
+                }
             }
         }
     }
@@ -1251,5 +1290,116 @@ impl ModHost {
     /// identical state agree on it.
     pub fn state_hash(&self) -> u64 {
         self.world.borrow().state_hash()
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn moba_image() -> Vec<u8> {
+        let scenario = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
+        build_image(&scenario).expect("moba image")
+    }
+
+    // Two creeps in the middle lane, one per side and 22 tiles apart, past each other's sight, so only a command makes them fight.
+    fn host_with_creeps() -> ModHost {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        let (a, b) = {
+            let mut sim = host.sim();
+            let creep = sim.catalog().unit_index("creep").expect("moba has a creep") as u32;
+            let a = sim.spawn_for(0, creep, sim::fixed::from_int(8), sim::fixed::from_int(12)).expect("creep a");
+            let b = sim.spawn_for(1, creep, sim::fixed::from_int(30), sim::fixed::from_int(12)).expect("creep b");
+            (a, b)
+        };
+        host.state().set("attacker", a as i64).expect("state");
+        host.state().set("target", b as i64).expect("state");
+        host
+    }
+
+    // A command queued from on_tick applies in the next advance, so the tests advance once to queue and once more to apply.
+    // The sim never chases: a commanded attack moves the attacker toward its target until the target is in weapon reach.
+    #[test]
+    fn cmd_attack_moves_the_attacker_into_weapon_reach_of_the_target() {
+        let mut host = host_with_creeps();
+        host.sim().set_fog(false);
+        host.load_source("attack", r#"
+            local queued = false
+            function on_tick(state)
+              if not queued then
+                game.cmd_attack(state.attacker, state.target)
+                queued = true
+              end
+            end
+        "#).expect("mod loads");
+        let (a, b) = (host.state().get::<i64>("attacker").expect("attacker") as usize, host.state().get::<i64>("target").expect("target") as usize);
+        let gap = |sim: &Sim| {
+            let ((ax, ay), (bx, by)) = (sim.position_fixed(a), sim.position_fixed(b));
+            let (dx, dy) = (i64::from(ax) - i64::from(bx), i64::from(ay) - i64::from(by));
+            ((dx * dx + dy * dy) as f64).sqrt() / 65536.0
+        };
+        let before = gap(&host.sim());
+        for _ in 0..120 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        let after = gap(&host.sim());
+        assert!(before > 15.0 && after < 5.0, "the attacker did not close on the target: {before:.2} -> {after:.2} tiles");
+    }
+
+    // With fog on, the side 0 creep cannot see the side 1 creep 22 tiles away, so the sim refuses the attack.
+    #[test]
+    fn cmd_attack_on_an_unseen_target_is_refused_by_the_sim() {
+        let mut host = host_with_creeps();
+        host.load_source("attack", r#"
+            function on_tick(state)
+              game.cmd_attack(state.attacker, state.target)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        assert!(matches!(host.sim().stats.last_refusal, Refusal::InvalidOrderTarget), "wrong refusal: {:?}", host.sim().stats.last_refusal);
+    }
+
+    // The moba scenario's answer_attack behaviour runs when a unit is hit. The engine runs its attack_nearest action,
+    // so no behaviour is refused as unsupported.
+    #[test]
+    fn answer_attack_runs_and_is_not_refused_as_unsupported() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        {
+            let mut sim = host.sim();
+            sim.set_fog(false);
+            sim.hurt(a, 1);
+        }
+        host.load_source("idle", "function on_tick(state) end\n").expect("mod loads");
+        host.advance(&host.state().clone()).expect("step");
+        let unsupported = host.sim().stats.refused_by[sim::Refusal::ActionUnsupported as usize];
+        assert_eq!(unsupported, 0, "a behaviour was refused as unsupported");
+    }
+
+    #[test]
+    fn cmd_cast_refuses_a_slot_outside_the_ability_slots_by_name() {
+        let mut host = host_with_creeps();
+        host.load_source("bad_slot", r#"
+            function on_tick(state)
+              game.cmd_cast(state.attacker, 99, -1, 0, 0)
+            end
+        "#).expect("mod loads");
+        let err = host.advance(&host.state().clone()).expect_err("slot 99 must be refused");
+        assert!(err.to_string().contains("invalid_slot"), "wrong error: {err}");
+    }
+
+    // A creep has no ability in slot 0, so the sim refuses the cast. The refusal shows the queued command reached the sim.
+    #[test]
+    fn cmd_cast_reaches_the_sim_and_is_refused_when_the_unit_has_no_such_ability() {
+        let mut host = host_with_creeps();
+        host.load_source("cast", r#"
+            function on_tick(state)
+              game.cmd_cast(state.attacker, 0, -1, 11 * 65536, 12 * 65536)
+            end
+        "#).expect("mod loads");
+        let before = host.sim().stats.casts_refused;
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        assert_eq!(host.sim().stats.casts_refused, before + 1);
     }
 }

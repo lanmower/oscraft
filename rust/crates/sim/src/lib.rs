@@ -48,7 +48,7 @@ pub(crate) const REVEAL_CAP: usize = 16;
 pub(crate) const MISSILE_CAP: usize = 128;
 pub(crate) const BUFF_SLOTS: usize = 4;
 pub(crate) const HEALER_SLOTS: usize = 16;
-pub(crate) const ABILITY_SLOTS: usize = 8;
+pub const ABILITY_SLOTS: usize = 8;
 pub(crate) const AREA_BUF: usize = 289 * BUCKET_CAP;
 pub(crate) const ORDER_LOG_CAP: usize = 4096;
 
@@ -84,5 +84,7 @@ pub(crate) const TRIGGER_ATTACKED: u8 = 1;
 pub(crate) const TRIGGER_SPAWNED: u8 = 2;
 pub(crate) const TRIGGER_ABILITY_READY: u8 = 3;
 pub(crate) const TRIGGER_DESTROYED: u8 = 4;
+pub(crate) const ACTION_ATTACK_NEAREST: u8 = 0;
+pub(crate) const ACTION_FLEE: u8 = 1;
 pub(crate) const ACTION_USE_ABILITY: u8 = 2;
 pub(crate) const ACTION_DECLARE_WINNER: u8 = 3;

@@ -704,6 +704,10 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if trigger >= TRIGGER_CODES || action >= ACTION_CODES {
             return Err(LoadError::Range("trigger or action code"));
         }
+        // The engine does not run flee yet. Refusing it at load is louder than a refusal at every trigger.
+        if action == crate::ACTION_FLEE {
+            return Err(LoadError::Range("behaviour action flee is not implemented"));
+        }
         if action == 2 && ability == NO_INDEX {
             return Err(LoadError::Range("use_ability needs an ability"));
         }

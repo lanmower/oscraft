@@ -129,6 +129,13 @@ impl Sim {
             }
             match beh.action {
                 ACTION_DECLARE_WINNER => self.declare_winner(i, beh.param),
+                // Strikes the nearest enemy that unit i can strike in reach. With none in reach it does nothing.
+                ACTION_ATTACK_NEAREST => {
+                    let target = self.nearest_enemy(i);
+                    if target >= 0 {
+                        let _ = self.order_attack(i, target as usize);
+                    }
+                }
                 ACTION_USE_ABILITY => {
                     if let Some(slot) = self.slot_holding(i, beh.ability) {
                         let unit_target = self.cat.abilities.get(beh.ability as usize).map_or(false, |a| a.target == TARGET_UNIT);
