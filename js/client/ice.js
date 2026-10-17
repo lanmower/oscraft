@@ -1,5 +1,5 @@
 // ICE server list for the peer data channel. Pure: no DOM and no environment access, so Node CI can import it.
-export const DEFAULT_ICE_SERVERS = Object.freeze([
+const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({ urls: 'stun:stun.l.google.com:19302' }),
   Object.freeze({ urls: 'stun:stun1.l.google.com:19302' }),
 ]);
