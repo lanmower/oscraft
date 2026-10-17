@@ -48,6 +48,39 @@ impl Game {
         self.sim.issue_order_kind(unit as usize, ORDER_MOVE, fx, fy).is_ok()
     }
 
+    /// Hit points of unit `unit`, in whole points.
+    pub fn unit_hp(&self, unit: u32) -> i32 {
+        sim::fixed::to_int(self.sim.hp(unit as usize))
+    }
+
+    /// Gold (resource a) of player `player`, in whole units.
+    pub fn gold(&self, player: u8) -> i32 {
+        self.sim.resource_a(player)
+    }
+
+    /// The winning side, or -1 while the match runs.
+    pub fn winner(&self) -> i32 {
+        self.sim.winner().map_or(-1, |side| side as i32)
+    }
+
+    /// Casts ability slot `slot` of unit `unit` at tile (x, y), aimed at unit `target` or at the ground when
+    /// `target` is -1. Returns false when the sim refuses the cast.
+    pub fn cast(&mut self, unit: u32, slot: u32, target: i32, x: f32, y: f32) -> bool {
+        let fx = (x as f64 * 65536.0) as i32;
+        let fy = (y as f64 * 65536.0) as i32;
+        self.sim.cast_ability(unit as usize, slot as usize, target, fx, fy)
+    }
+
+    /// Orders unit `unit` to attack unit `target`. Returns false when the sim refuses the order.
+    pub fn attack(&mut self, unit: u32, target: u32) -> bool {
+        self.sim.order_attack(unit as usize, target as usize).is_ok()
+    }
+
+    /// Test hook for the page's CI probe: deals `damage` whole points to unit `unit`.
+    pub fn hurt(&mut self, unit: u32, damage: i32) {
+        self.sim.hurt(unit as usize, sim::fixed::from_int(damage));
+    }
+
     /// Living units as flat `[x, y, player]` triples, positions in tiles.
     pub fn units(&self) -> Vec<f32> {
         let mut out = Vec::new();

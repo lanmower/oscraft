@@ -88,6 +88,7 @@ jobs:
           set -euo pipefail
           wasm-pack build crates/web --target web --out-dir site/pkg
           target/debug/mapexport crates/web/site/map.bin
+          target/debug/mapexport crates/web/site/moba.bin scenarios/moba
 
       - name: Stage the page for committing
         working-directory: ${{ github.workspace }}
@@ -95,7 +96,8 @@ jobs:
           set -euo pipefail
           rm -rf js/client/pkg && cp -r rust/crates/web/site/pkg js/client/pkg && rm -f js/client/pkg/.gitignore
           cp rust/crates/web/site/map.bin js/client/map.bin
-          ls -la js/client/pkg js/client/map.bin
+          cp rust/crates/web/site/moba.bin js/client/moba.bin
+          ls -la js/client/pkg js/client/map.bin js/client/moba.bin
 
       - uses: actions/upload-artifact@v4
         with:
@@ -113,6 +115,7 @@ jobs:
             rust/target/debug/reload_harness
             rust/crates/web/site/pkg
             rust/crates/web/site/map.bin
+            rust/crates/web/site/moba.bin
 
       - uses: actions/upload-artifact@v4
         with:
@@ -121,6 +124,7 @@ jobs:
           path: |
             js/client/pkg
             js/client/map.bin
+            js/client/moba.bin
 
   check:
     name: build, spike and gate (${{ matrix.os }})
@@ -1586,7 +1590,6 @@ jobs:
           await page.waitForSelector("body[data-orders='1']", { timeout: 15000 });
           const orders = await page.getAttribute("body", "data-orders");
           if (errors.length) throw new Error("console errors: " + errors.join("\n"));
-          console.log(`moba input ok orders=${orders}`);
           const before = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];
           await page.keyboard.down("ArrowRight");
           await page.waitForTimeout(500);
@@ -1600,10 +1603,32 @@ jobs:
           await page.waitForFunction((z) => Number(document.body.dataset.zoom) > z, zoomBefore, { timeout: 5000 });
           const zoomAfter = Number(await page.getAttribute("body", "data-zoom"));
           console.log(`moba zoom ok zoom=${zoomBefore.toFixed(3)}->${zoomAfter.toFixed(3)}`);
+          const hp = Number(await page.getAttribute("body", "data-hp"));
+          const gold = Number(await page.getAttribute("body", "data-gold"));
+          if (!(hp > 0) || !(gold >= 0)) throw new Error("hud reads hp=" + hp + " gold=" + gold);
+          console.log(`moba hud ok hp=${hp} gold=${gold}`);
+          await page.mouse.move(512, 384);
+          await page.keyboard.press("q");
+          await page.waitForFunction(() => Number(document.body.dataset.casts) >= 1, null, { timeout: 5000 });
+          const enemy = (await page.evaluate(() => window.__ciUnits())).find((x) => x.player !== unit.player);
+          if (!enemy) throw new Error("no enemy unit to attack");
+          await page.keyboard.press("a");
+          const foe = toScreen(enemy.x, enemy.z);
+          await page.mouse.click(foe.x, foe.y, { button: "left" });
+          await page.waitForFunction(() => Number(document.body.dataset.attacks) >= 1, null, { timeout: 5000 });
+          const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
+          console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
+          await page.evaluate(() => window.__ciKillSide(1));
+          await page.waitForFunction(() => Number(document.body.dataset.winner) >= 0, null, { timeout: 15000 });
+          const shown = await page.evaluate(() => { const w = document.getElementById("win"); return !w.hidden && w.textContent; });
+          if (!shown || !shown.includes("side 0 wins")) throw new Error("win screen shows " + shown);
+          console.log(`moba win screen ok winner=0`);
           await browser.close();
           EOF
           node "$RUNNER_TEMP/pw/moba-input.mjs" | tee "$RUNNER_TEMP/moba-input.txt"
-          grep -q '^moba input ok orders=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba input ok orders=[1-9][0-9]* casts=[1-9][0-9]* attacks=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba hud ok hp=[1-9][0-9]* gold=[0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba win screen ok winner=0$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
 
