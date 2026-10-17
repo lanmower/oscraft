@@ -218,6 +218,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             shield_regen: unsigned("shield_regen", raw.shield_regen)?,
             regen_delay: unsigned("regen_delay", raw.regen_delay)?,
             health_regen: unsigned("health_regen", raw.health_regen)?,
+            model: raw.model.clone(),
         });
     }
 

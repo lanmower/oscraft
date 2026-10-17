@@ -9,7 +9,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 14;
+const VERSION: u16 = 15;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const LIMT_COUNT: usize = 1;
@@ -20,7 +20,7 @@ const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 18] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID"];
-const RECORD_SIZES: [usize; 18] = [1, 20, 32, 2, 80, 16, 16, 24, 12, 4, 32, 32, 8, 32, 8, 8, 20, 1];
+const RECORD_SIZES: [usize; 18] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 32, 8, 32, 8, 8, 20, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
@@ -88,6 +88,8 @@ impl Ability {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Unit {
     pub name: Name,
+    /// Model file the renderer draws the unit with. Empty for none.
+    pub model: Name,
     pub flags: u16,
     /// Hit points, whole units.
     pub health: i32,
@@ -455,6 +457,20 @@ fn valid_name(s: &[u8]) -> bool {
         && s.iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_')
 }
 
+/// A model is a file stem: lowercase letters, digits, hyphens and underscores. Empty means none.
+fn check_model(strs: &[u8], n: Name) -> Result<(), LoadError> {
+    if n.len == 0 {
+        return Ok(());
+    }
+    let a = n.offset as usize;
+    let b = a + n.len as usize;
+    let ok = b <= strs.len() && strs[a..b].iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-' || c == b'_');
+    if !ok {
+        return Err(LoadError::Range("model name"));
+    }
+    Ok(())
+}
+
 fn check_name(strs: &[u8], n: Name) -> Result<(), LoadError> {
     let a = n.offset as usize;
     let b = a + n.len as usize;
@@ -629,6 +645,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let response = nr.u8("damage response")?;
         let resource_kind = nr.u8("resource kind")?;
         let harvest_amount = nr.i32("harvest amount")?;
+        let model = nr.name("unit model")?;
         nr.skip(4, "unit reserved")?;
         if resource_kind >= RESOURCE_KINDS {
             return Err(LoadError::Range("resource kind code"));
@@ -637,6 +654,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             return Err(LoadError::Range("harvest amount must be >= 0"));
         }
         check_name(&strs, name)?;
+        check_model(&strs, model)?;
         if health <= 0 {
             return Err(LoadError::Range("health must be > 0"));
         }
@@ -666,6 +684,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         }
         units.push(Unit {
             name,
+            model,
             flags,
             health,
             speed,

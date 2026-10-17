@@ -127,6 +127,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] shield_regen: Option<i32>,
         #[starlark(require = named)] regen_delay: Option<i32>,
         #[starlark(require = named)] health_regen: Option<i32>,
+        #[starlark(require = named)] model: Option<&str>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let abilities: Vec<String> = abilities.map(|list| list.items).unwrap_or_default();
@@ -164,6 +165,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             shield_regen: shield_regen.unwrap_or(0),
             regen_delay: regen_delay.unwrap_or(0),
             health_regen: health_regen.unwrap_or(0),
+            model: model.unwrap_or("").to_owned(),
         });
         Ok(NoneType)
     }

@@ -17,9 +17,6 @@ const GRID_COLOR = [0.3, 0.38, 0.3];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const UNIT_HALF = 0.4;
-// The #moba page's unit models, by unit declaration order in scenarios/moba/units.osd:
-// hero, tower, base, creep, tender, objective. Files live in js/client/models.
-const MOBA_MODELS = ["character-male-a", "tower-square", "building-f", "character-skeleton", "character-female-a", "pillar-obelisk"];
 const PICK_RADIUS = 1.0;
 const BASE_PX_PER_UNIT = 20;
 const MIN_ZOOM = 0.5;
@@ -100,11 +97,18 @@ function groundTriangles({ positions, normals, indices }) {
   return new Float32Array(out);
 }
 
-async function loadModels() {
-  if (location.hash !== "#moba") return [];
-  return Promise.all(MOBA_MODELS.map(async (name) => {
-    const bytes = await (await fetch(new URL(`models/${name}.glb`, location.href))).arrayBuffer();
-    return groundTriangles(parseGlb(bytes));
+// One entry per unit type, indexed like the wasm unit_types export. A type with no model, or a model
+// that fails to load, is null and draws as a quad.
+async function loadModels(game) {
+  if (typeof game.unit_model_names !== "function") return [];
+  return Promise.all(game.unit_model_names().map(async (name) => {
+    if (!name) return null;
+    try {
+      const bytes = await (await fetch(new URL(`models/${name}.glb`, location.href))).arrayBuffer();
+      return groundTriangles(parseGlb(bytes));
+    } catch {
+      return null;
+    }
   }));
 }
 
@@ -598,7 +602,7 @@ async function main() {
   const renderer = createRenderer();
   const mapMeshes = buildMapMeshes();
   localGame = await loadSim();
-  models = await loadModels();
+  models = await loadModels(localGame);
   if (params.get("host") === "1") startHost();
   joinRoom();
 

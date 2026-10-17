@@ -1,4 +1,4 @@
-# OSDT data file, format version 14
+# OSDT data file, format version 15
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
@@ -11,7 +11,7 @@ is unchanged. A reader of an older version must reject the file.
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `14`                                      |
+| 4      | 2    | version, `15`                                      |
 | 6      | 2    | header length, `16`                                 |
 | 8      | 4    | section count, `18`                                 |
 | 12     | 4    | total file length in bytes                          |
@@ -172,7 +172,7 @@ is the data.
 ### UABL (2 bytes per record)
 A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 
-### UNIT (80 bytes per record)
+### UNIT (86 bytes per record)
 | offset | size | field                                                 |
 |--------|------|-------------------------------------------------------|
 | 0      | 4    | name offset                                           |
@@ -198,7 +198,12 @@ A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 | 70     | 1    | damage response code (see below)                      |
 | 71     | 1    | resource kind code (see below)                        |
 | 72     | 4    | harvest amount per trip, resource units (0 if none)   |
-| 76     | 4    | reserved, write 0                                     |
+| 76     | 4    | model name offset into `STRS` (see below)             |
+| 80     | 2    | model name length, `0` = no model                     |
+| 82     | 4    | reserved, write 0                                     |
+
+The model name is the file stem, without `.glb`, that a renderer draws the unit with.
+It uses lowercase letters, digits, hyphens and underscores.
 
 ### UEXT (32 bytes per record, one per unit in `UNIT` order)
 | offset | size | field                                                              |

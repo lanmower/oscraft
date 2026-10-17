@@ -41,6 +41,8 @@ pub struct UnitRaw {
     pub shield_regen: i32,
     pub regen_delay: i32,
     pub health_regen: i32,
+    /// Model file the renderer draws the unit with, without its .glb extension. Empty for none.
+    pub model: String,
 }
 
 #[derive(Debug)]
@@ -228,6 +230,7 @@ pub struct Unit {
     pub shield_regen: u32,
     pub regen_delay: u32,
     pub health_regen: u32,
+    pub model: String,
 }
 
 #[derive(Debug, Default, Clone, Copy)]

@@ -119,6 +119,9 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         unit_bytes.push(unit.damage_response);
         unit_bytes.push(unit.resource_kind);
         u32_le(&mut unit_bytes, unit.harvest);
+        let (model_off, model_len) = strings.intern(&unit.model);
+        u32_le(&mut unit_bytes, model_off);
+        u16_le(&mut unit_bytes, model_len);
         pad(&mut unit_bytes, 4);
         debug_assert_eq!(unit_bytes.len() - start, UNIT_RECORD);
 

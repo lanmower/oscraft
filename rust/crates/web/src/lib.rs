@@ -110,4 +110,10 @@ impl Game {
             .map(|i| self.sim.unit_type(i).max(0) as u32)
             .collect()
     }
+
+    /// The model file each catalog unit type draws with, indexed by type index. Empty when none.
+    pub fn unit_model_names(&self) -> Vec<String> {
+        let cat = self.sim.catalog();
+        cat.units.iter().map(|u| cat.name(u.model).to_owned()).collect()
+    }
 }
