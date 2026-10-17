@@ -22,3 +22,5 @@ The `duel-routes` CI job compiles `scenarios/duel-routes`, starts `oscraftd` on 
 ## The moba scenario
 
 `scenarios/moba` is a data-only match: two sides, three lanes, a tower per side per lane, one hero and one base per side, workers, and a `creep_wave` ability on each base that spawns creeps on its cooldown timer. The engine reads it with no scenario-specific code, like `duel-routes`. The `moba` CI job compiles it, serves it, advances 200 ticks, and derives every count it prints from the `.osd` files.
+
+The win trigger identifies a side's base by filter tag: `scenarios/moba/behaviours.osd` declares `win_on_base_loss` with `trigger="destroyed"`, `action="declare_winner"`, `tag="building"`. The `declare_winner` action requires `tag=` to name a FILTERS entry (`rust/crates/data/src/builtins.rs`), and the rival of the side whose last tagged unit dies wins.
