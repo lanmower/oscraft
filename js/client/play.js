@@ -68,7 +68,10 @@ async function loadSim() {
   const mod = await import(/* @vite-ignore */ pkgUrl);
   await mod.default();
   const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
-  return new mod.Game(image);
+  const game = new mod.Game(image);
+  // The moba preview runs without fog so every enemy is a valid target; other pages keep the sim's fog.
+  game.set_fog(location.hash !== "#moba");
+  return game;
 }
 
 function compile(gl, type, src) {

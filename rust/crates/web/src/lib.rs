@@ -16,9 +16,7 @@ impl Game {
     #[wasm_bindgen(constructor)]
     pub fn new(image: &[u8]) -> Result<Game, JsValue> {
         let sim = sim::load(image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
-        // The preview runs without fog, as the gate's checks do, so an enemy is a valid target from anywhere.
-        let mut sim = sim;
-        sim.set_fog(false);
+        let sim = sim;
         Ok(Game { sim })
     }
 
@@ -83,6 +81,11 @@ impl Game {
     /// Test hook for the page's CI probe: deals `damage` whole points to unit `unit`.
     pub fn hurt(&mut self, unit: u32, damage: i32) {
         self.sim.hurt(unit as usize, sim::fixed::from_int(damage));
+    }
+
+    /// Turns the fog of war on or off. The moba preview turns it off so every enemy is a valid target.
+    pub fn set_fog(&mut self, on: bool) {
+        self.sim.set_fog(on);
     }
 
     /// Living units as flat `[x, y, player]` triples, positions in tiles.
