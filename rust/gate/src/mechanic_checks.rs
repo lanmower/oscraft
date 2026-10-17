@@ -308,6 +308,41 @@ pub fn moba_creeps(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// A creep ordered from the side 0 base to a point in the north lane walks the connector column and stays on open
+/// cells. The straight line to that point crosses blocked terrain, so passing this check means the route followed the lanes.
+pub fn moba_lane(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
+    let (ox, oy) = s.position_fixed(own);
+    let k = kind(&s, "creep")?;
+    let creep = s.spawn_for(0, k, ox, oy).ok_or("spawn_for refused a creep at the side 0 base")?;
+    let (gx, gy) = (fixed::from_int(20), fixed::from_milli(4500));
+    s.order(creep, gx, gy);
+    let one_tile = i64::from(fixed::from_int(1));
+    let mut connector = false;
+    for t in 1..=600 {
+        s.tick();
+        if !s.alive(creep) {
+            return Err(format!("creep died on the lane walk at tick {t}"));
+        }
+        let (x, y) = s.position_fixed(creep);
+        let (cx, cy) = (x >> 16, y >> 16);
+        if !s.grid().walkable(cx, cy) {
+            return Err(format!("creep stands on a blocked cell ({cx}, {cy}) at tick {t}"));
+        }
+        connector |= (2..=4).contains(&cx) && cy < 11;
+        let (dx, dy) = (i64::from(gx) - i64::from(x), i64::from(gy) - i64::from(y));
+        if dx * dx + dy * dy <= one_tile * one_tile {
+            if !connector {
+                return Err("creep reached the north lane without walking the connector column".into());
+            }
+            println!("moba lane ok ticks={t} connector=true");
+            return Ok(());
+        }
+    }
+    Err("creep did not reach the north lane point within 600 ticks".into())
+}
+
 /// Two sims loaded from the same moba image, given the same orders at the same ticks, end in the same state.
 pub fn moba_sync(_image: &[u8]) -> Result<(), String> {
     let image = moba_image()?;

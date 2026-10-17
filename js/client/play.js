@@ -212,7 +212,13 @@ function onClick(e) {
   if (attackMode) {
     attackMode = false;
     const target = pick(world);
-    if (target && localGame && localGame.attack(selectedId, target.id)) attacks += 1;
+    if (!target) return;
+    if (netState) {
+      session.broadcast(sendAttack(selectedId, target.id));
+      attacks += 1;
+    } else if (localGame && localGame.attack(selectedId, target.id)) {
+      attacks += 1;
+    }
     return;
   }
   const hit = pick(world);
@@ -243,7 +249,12 @@ function handleAbilityKey(key) {
   if (!(key in ABILITY_SLOTS)) return;
   const world = pointer ? screenToWorld(pointer.x, pointer.y) : { x: 0, z: 0 };
   const target = pick(world);
-  if (localGame.cast(selectedId, ABILITY_SLOTS[key], target ? target.id : -1, world.x, world.z)) casts += 1;
+  if (netState) {
+    session.broadcast(sendCast(selectedId, ABILITY_SLOTS[key], target ? target.id : -1, world.x, world.z));
+    casts += 1;
+  } else if (localGame.cast(selectedId, ABILITY_SLOTS[key], target ? target.id : -1, world.x, world.z)) {
+    casts += 1;
+  }
 }
 
 function bindInput() {
@@ -303,16 +314,34 @@ function assignPlayer(players, peerPubkey) {
   return null;
 }
 
-function applyPeerOrder(peerPubkey, order) {
+// A peer's move, cast or attack runs on the host only for a unit the peer's player owns. Accepted casts and
+// attacks are counted on the host page (data-remote-casts, data-remote-attacks) for the CI witness.
+function applyPeerCommand(peerPubkey, command) {
   const player = hostPlayers.get(peerPubkey);
-  const unit = currentUnits().find((u) => u.id === order.unitId);
+  const unit = currentUnits().find((u) => u.id === command.unitId);
   if (player === undefined || !unit || unit.player !== player) {
-    setStatus(`order refused not_owner peer=${String(peerPubkey).slice(0, 8)} unit=${order.unitId}`);
-    document.body.dataset.lastRefusal = `not_owner unit=${order.unitId}`;
+    setStatus(`order refused not_owner peer=${String(peerPubkey).slice(0, 8)} unit=${command.unitId}`);
+    document.body.dataset.lastRefusal = `not_owner unit=${command.unitId}`;
     return false;
   }
-  localGame.order_move(order.unitId, order.x, order.y);
-  return true;
+  if (command.type === FRAME.ORDER) {
+    localGame.order_move(command.unitId, command.x, command.y);
+    return true;
+  }
+  if (command.type === FRAME.CAST) {
+    const ok = localGame.cast(command.unitId, command.slot, command.target, command.x, command.y);
+    if (!ok) document.body.dataset.lastRefusal = `cast_refused unit=${command.unitId}`;
+    if (ok) countRemote("remoteCasts");
+    return ok;
+  }
+  const ok = localGame.attack(command.unitId, command.targetId);
+  if (!ok) document.body.dataset.lastRefusal = `attack_refused unit=${command.unitId}`;
+  if (ok) countRemote("remoteAttacks");
+  return ok;
+}
+
+function countRemote(name) {
+  document.body.dataset[name] = String(Number(document.body.dataset[name] || 0) + 1);
 }
 
 function startHost() {
@@ -324,6 +353,7 @@ function startHost() {
     hostTick += 1;
     const hash = Number(localGame.state_hash() & 0xffffffffn) >>> 0;
     const units = currentUnits().map((u) => ({ id: u.id, kind: 0, player: u.player, x: Math.round(u.x * WIRE_SCALE), y: Math.round(u.z * WIRE_SCALE), hp: 0 }));
+    if (window.__ciSent) recordTick(window.__ciSent, hostTick, units);
     const frame = encoder.encode(hostTick, hash, units);
     const bytes = encodeFrame(frame);
     if (window.__ciFrames && window.__ciFrames.length < 200) window.__ciFrames.push({ type: frame.type, bytes: bytes.byteLength });
@@ -356,6 +386,14 @@ async function joinRoom() {
 
 function sendOrder(unitId, x, z) {
   return encodeFrame({ type: FRAME.ORDER, unitId, x: Math.round(x), y: Math.round(z) });
+}
+
+function sendCast(unitId, slot, target, x, z) {
+  return encodeFrame({ type: FRAME.CAST, unitId, slot, target, x: Math.round(x), y: Math.round(z) });
+}
+
+function sendAttack(unitId, targetId) {
+  return encodeFrame({ type: FRAME.ATTACK, unitId, targetId });
 }
 
 const fsm = createFSM(xstate);
@@ -424,7 +462,16 @@ const iceConfig = (() => {
     return iceServersFrom(null);
   }
 })();
-const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, iceServers: relayUrls && !params.has("ice") ? [] : iceConfig.servers });
+// ?ice_policy=relay forces every peer connection onto relay candidates (a TURN server from ?ice). CI counts the
+// candidate types to witness the TURN path; the default page keeps wireweave's own policy.
+const relayOnly = params.get("ice_policy") === "relay";
+const ciPeerConnections = [];
+const createPeerConnection = (config) => {
+  const pc = new RTCPeerConnection(relayOnly ? { ...config, iceTransportPolicy: "relay" } : config);
+  if (params.get("ci") === "1") ciPeerConnections.push(pc);
+  return pc;
+};
+const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, createPeerConnection, iceServers: relayUrls && !params.has("ice") ? [] : iceConfig.servers });
 
 session.addEventListener("peer-open", (e) => {
   peers.add(e.detail.peerPubkey);
@@ -442,8 +489,8 @@ let netBaseline = false;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
-  if (frame.type === FRAME.ORDER) {
-    if (hosting) applyPeerOrder(e.detail.peerPubkey, frame);
+  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK) {
+    if (hosting) applyPeerCommand(e.detail.peerPubkey, frame);
     return;
   }
   if (hosting) return;
@@ -451,7 +498,15 @@ session.addEventListener("data", (e) => {
   else if (frame.type !== FRAME.DELTA || !netBaseline) return;
   applyFrame(netUnits, frame);
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp })) };
+  if (window.__ciRecv) recordTick(window.__ciRecv, frame.tick, [...netUnits.values()]);
 });
+
+// CI witness of wireweave agreement: each side keeps the unit positions it sent or applied for the last host ticks.
+const CI_TICK_LOG = 300;
+function recordTick(log, tick, units) {
+  log.set(tick, units.map((u) => `${u.id}:${u.x}:${u.y}`).sort().join(","));
+  if (log.size > CI_TICK_LOG) log.delete(log.keys().next().value);
+}
 
 // Page state for headless checks: the committed map is drawn by the same Game the sim ticks.
 // The minimap draws every unit as a dot at its tile position: the selected unit in white, others in their player colour.
@@ -529,7 +584,30 @@ if (params.get("ci") === "1") {
   window.__ciFrames = [];
   window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
+  window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
+  window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
+  window.__ciSent = new Map();
+  window.__ciRecv = new Map();
+  window.__ciSentTicks = () => [...window.__ciSent];
+  window.__ciRecvTicks = () => [...window.__ciRecv];
   window.__ciSelected = () => selectedId;
+  // Candidate types of every local candidate and of each succeeded, selected pair, one entry per peer connection.
+  window.__ciCandidates = async () => {
+    const localTypes = new Set();
+    const pairs = [];
+    for (const pc of ciPeerConnections) {
+      const stats = await pc.getStats();
+      stats.forEach((s) => { if (s.type === "local-candidate") localTypes.add(s.candidateType); });
+      stats.forEach((s) => {
+        if (s.type !== "candidate-pair" || s.state !== "succeeded" || !(s.nominated || s.selected)) return;
+        pairs.push({
+          local: stats.get(s.localCandidateId)?.candidateType || "?",
+          remote: stats.get(s.remoteCandidateId)?.candidateType || "?",
+        });
+      });
+    }
+    return { localTypes: [...localTypes].sort(), pairs };
+  };
   window.__ciSelect = (unitId) => { selectedId = unitId; };
   window.__ciKillSide = (player) => {
     for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 10000);

@@ -1,6 +1,6 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7 });
 
 export const MAX_UNITS = 1024;
 export const MAX_ROOM_BYTES = 64;
@@ -77,6 +77,17 @@ const CODECS = {
     size: () => 2 + 4 + 4 + 4,
     write(w, f) { w.u32(f.unitId, 'unitId'); w.i32(f.x, 'x'); w.i32(f.y, 'y'); },
     read(r) { return { unitId: r.u32(), x: r.i32(), y: r.i32() }; },
+  },
+  // A cast names the caster's unit, the ability slot, the target unit (-1 for a point) and the point it aims at.
+  [FRAME.CAST]: {
+    size: () => 2 + 4 + 1 + 4 + 4 + 4,
+    write(w, f) { w.u32(f.unitId, 'unitId'); w.u8(f.slot, 'slot'); w.i32(f.target, 'target'); w.i32(f.x, 'x'); w.i32(f.y, 'y'); },
+    read(r) { return { unitId: r.u32(), slot: r.u8(), target: r.i32(), x: r.i32(), y: r.i32() }; },
+  },
+  [FRAME.ATTACK]: {
+    size: () => 2 + 4 + 4,
+    write(w, f) { w.u32(f.unitId, 'unitId'); w.i32(f.targetId, 'targetId'); },
+    read(r) { return { unitId: r.u32(), targetId: r.i32() }; },
   },
   [FRAME.STATE]: {
     size: (f) => 2 + 4 + 4 + 2 + f.units.length * (4 + 2 + 1 + 4 + 4 + 4),

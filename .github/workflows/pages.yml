@@ -16,34 +16,70 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The page is built from source here, so the published wasm and map always match main.
+  # Nothing is committed back to main: the built pkg and maps exist only in this run's site.
+  build:
+    name: build the page wasm and maps from main
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.15.0
+
+      - name: Build the page wasm and export the maps
+        run: |
+          set -euo pipefail
+          cargo build -p mapexport
+          wasm-pack build crates/web --target web --out-dir site/pkg
+          target/debug/mapexport crates/web/site/map.bin
+          target/debug/mapexport crates/web/site/moba.bin ../scenarios/moba
+
+      - name: Lay out the site
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          rm -rf _site && mkdir -p _site/js
+          cp -r js/client _site/js/client
+          rm -rf _site/js/client/pkg && cp -r rust/crates/web/site/pkg _site/js/client/pkg
+          rm -f _site/js/client/pkg/.gitignore
+          cp rust/crates/web/site/map.bin _site/js/client/map.bin
+          cp rust/crates/web/site/moba.bin _site/js/client/moba.bin
+          test -f _site/js/client/play.html
+          test -f _site/js/client/play.js
+          test -f _site/js/client/map.bin
+          test -f _site/js/client/moba.bin
+          test -f _site/js/client/pkg/web.js
+          test -f _site/js/client/pkg/web_bg.wasm
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
   deploy:
-    name: publish the committed page to GitHub Pages
+    name: publish the built page to GitHub Pages
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-
-      # No build here: play.html loads the committed wasm pkg and map.bin from js/client.
-      # The site root maps to the repository root so /js/client/play.html is the page URL.
-      - name: Lay out the site
-        run: |
-          set -euo pipefail
-          rm -rf _site && mkdir -p _site/js
-          cp -r js/client _site/js/client
-          test -f _site/js/client/play.html
-          test -f _site/js/client/play.js
-          test -f _site/js/client/map.bin
-          test -f _site/js/client/pkg/web.js
-          test -f _site/js/client/pkg/web_bg.wasm
-
       - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
 
       - id: deployment
         uses: actions/deploy-pages@v4

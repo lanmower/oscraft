@@ -2512,6 +2512,8 @@ jobs:
           grep -E '^moba match ok winner=[0-9]+ ticks=[0-9]+$' "$out"
           grep -q '^check moba-creeps PASS$' "$out"
           grep -E '^moba creeps ok lane_progress=[0-9]+$' "$out"
+          grep -q '^check moba-lane PASS$' "$out"
+          grep -E '^moba lane ok ticks=[0-9]+ connector=true$' "$out"
           grep -q '^check moba-sync PASS$' "$out"
           grep -E '^moba sync ok ticks=[0-9]+ diff=0$' "$out"
 
@@ -2854,3 +2856,145 @@ jobs:
             echo "browser frame bytes full=$full delta_avg=$delta exceeds full_ceiling=$full_ceiling delta_ceiling=$delta_ceiling" >&2
             exit 1
           fi
+
+
+  browser-turn-relay:
+    name: "browser peers forced onto TURN relay candidates: orders, a cast and an attack cross the relay and the peers agree"
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-build
+          path: rust
+
+      - name: Mark the prebuilt binaries executable
+        working-directory: ${{ github.workspace }}
+        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Stage the page wasm and maps this run built into js/client, which the static server serves
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          rm -rf js/client/pkg
+          cp -r rust/crates/web/site/pkg js/client/pkg
+          cp rust/crates/web/site/map.bin js/client/map.bin
+          cp rust/crates/web/site/moba.bin js/client/moba.bin
+
+      - name: Install headless Chromium and coturn
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y coturn
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install playwright@1.47.0
+          npx playwright install --with-deps chromium
+
+      - name: "Relay, TURN server and two browser peers forced to relay candidates: orders, a cast and an attack cross the relay"
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/browser-turn-relay"
+          mkdir -p "$work"
+          "$GITHUB_WORKSPACE/rust/target/debug/oscraft-relay" 7447 > "$work/relay.log" 2>&1 &
+          relay=$!
+          turnserver -n --listening-ip=127.0.0.1 --relay-ip=127.0.0.1 --listening-port=3478 --lt-cred-mech --user=oscraft:oscraft-ci --realm=oscraft --no-tls --no-dtls --no-cli --allow-loopback-peers --log-file=stdout > "$work/turn.log" 2>&1 &
+          turn=$!
+          python3 -m http.server 8092 --bind 127.0.0.1 --directory js/client > "$work/static.log" 2>&1 &
+          static=$!
+          trap 'kill $relay $turn $static 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8092/play.html > /dev/null && break; sleep 1; done
+          cat > "$RUNNER_TEMP/pw/turn-relay.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const ice = encodeURIComponent(JSON.stringify([{ urls: "turn:127.0.0.1:3478?transport=udp", username: "oscraft", credential: "oscraft-ci" }]));
+          const base = `http://127.0.0.1:8092/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1&ice_policy=relay&ice=${ice}`;
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-features=WebRtcHideLocalIpsWithMdns"] });
+          const errors = [];
+          const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+          try {
+            const host = await (await browser.newContext()).newPage();
+            const peer = await (await browser.newContext()).newPage();
+            for (const p of [host, peer]) p.on("pageerror", (e) => errors.push(e.message));
+            await host.goto(`${base}&host=1#moba`);
+            await peer.goto(`${base}#moba`);
+            await host.waitForFunction(() => window.__ciPeers && window.__ciPeers() >= 1, null, { timeout: 120000 });
+            await peer.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 });
+            const relayOnly = (c) => c.localTypes.length > 0 && c.localTypes.every((t) => t === "relay")
+              && c.pairs.length > 0 && c.pairs.every((x) => x.local === "relay" && x.remote === "relay");
+            let h = null;
+            let p = null;
+            const pairDeadline = Date.now() + 90000;
+            while (Date.now() < pairDeadline) {
+              h = await host.evaluate(() => window.__ciCandidates());
+              p = await peer.evaluate(() => window.__ciCandidates());
+              if (relayOnly(h) && relayOnly(p)) break;
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+            if (!relayOnly(h) || !relayOnly(p)) throw new Error(`not relay-only: host=${JSON.stringify(h)} peer=${JSON.stringify(p)}`);
+            const start = await peer.evaluate(() => window.__ciUnits());
+            const unit = start.find((u) => u.player === 0);
+            if (!unit) throw new Error("no unit owned by the first peer's player 0");
+            const target = { x: Math.round(unit.x) + 4, z: Math.round(unit.z) };
+            const movedToward = (u) => !!u && dist(u, target) < dist(unit, target) - 1;
+            const seen = async (page) => page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, unit.id);
+            let onHost = null;
+            const moveDeadline = Date.now() + 90000;
+            while (Date.now() < moveDeadline) {
+              await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [unit.id, target.x, target.z]);
+              await new Promise((r) => setTimeout(r, 1500));
+              onHost = await seen(host);
+              if (movedToward(onHost) && movedToward(await seen(peer))) break;
+            }
+            if (!movedToward(onHost) || !movedToward(await seen(peer))) throw new Error(`no movement over the relay: unit=${unit.id} host=${JSON.stringify(onHost)}`);
+            // Not every unit of a side can attack or cast, so each one is tried against its nearest enemies until the host accepts.
+            const foes = start.filter((u) => u.player === 1);
+            const mine = start.filter((u) => u.player === 0).sort((a, b) => dist(a, foes[0] || a) - dist(b, foes[0] || b));
+            const landed = async (attr, send) => {
+              for (const me of mine) {
+                for (const foe of foes.slice().sort((a, b) => dist(a, me) - dist(b, me)).slice(0, 3)) {
+                  await send(me, foe);
+                  const until = Date.now() + 3000;
+                  while (Date.now() < until) {
+                    if (await host.evaluate((a) => document.body.dataset[a] === "1", attr)) return { me, foe };
+                    await new Promise((r) => setTimeout(r, 250));
+                  }
+                }
+              }
+              throw new Error(`no ${attr} accepted by the host: refusal=${await host.evaluate(() => document.body.dataset.lastRefusal)}`);
+            };
+            await landed("remoteAttacks", (me, foe) => peer.evaluate(([id, targetId]) => window.__ciAttack(id, targetId), [me.id, foe.id]));
+            await landed("remoteCasts", (me, foe) => peer.evaluate(([id, targetId, x, z]) => window.__ciCast(id, 0, targetId, x, z), [me.id, foe.id, foe.x, foe.z]));
+            const attacks = await host.evaluate(() => document.body.dataset.remoteAttacks);
+            const casts = await host.evaluate(() => document.body.dataset.remoteCasts);
+            // Both sides must hold the same unit positions for the host ticks they both logged.
+            await new Promise((r) => setTimeout(r, 3000));
+            const sent = new Map(await host.evaluate(() => window.__ciSentTicks()));
+            const recv = await peer.evaluate(() => window.__ciRecvTicks());
+            let matched = 0;
+            let mismatched = 0;
+            for (const [tick, key] of recv) {
+              if (!sent.has(tick)) continue;
+              if (sent.get(tick) === key) matched += 1;
+              else mismatched += 1;
+            }
+            if (matched < 20 || mismatched > 0) throw new Error(`wireweave disagreement: matched=${matched} mismatched=${mismatched}`);
+            if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+            console.log(`browser turn relay ok local=${h.localTypes.join(",")} pairs=${h.pairs.length}/${p.pairs.length} unit=${unit.id} moved=true`);
+            console.log(`browser relay commands ok attacks=${attacks} casts=${casts}`);
+            console.log(`browser relay agreement ok ticks=${matched}`);
+          } finally {
+            await browser.close();
+          }
+          EOF
+          node "$RUNNER_TEMP/pw/turn-relay.mjs" | tee "$work/turn-relay.txt"
+          grep -qE '^browser turn relay ok local=relay pairs=[1-9][0-9]*/[1-9][0-9]* unit=[0-9]+ moved=true$' "$work/turn-relay.txt"
+          grep -qE '^browser relay commands ok attacks=1 casts=1$' "$work/turn-relay.txt"
+          grep -qE '^browser relay agreement ok ticks=[2-9][0-9]+$' "$work/turn-relay.txt"
