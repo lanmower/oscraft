@@ -426,6 +426,7 @@ function publishWitness() {
   document.body.dataset.units = String(currentUnits().length);
   document.body.dataset.ticks = String(localGame ? localGame.ticks() : netState ? netState.tick : 0);
   document.body.dataset.center = `${camera.cx},${camera.cz}`;
+  document.body.dataset.zoom = camera.zoom.toFixed(3);
   document.body.dataset.orders = String(orders);
 }
 

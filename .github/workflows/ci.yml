@@ -1594,11 +1594,18 @@ jobs:
           const after = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];
           if (!(after > before)) throw new Error("arrow right did not pan: " + before + " -> " + after);
           console.log(`moba camera ok pan=${(after - before).toFixed(2)}`);
+          const zoomBefore = Number(await page.getAttribute("body", "data-zoom"));
+          await page.mouse.move(512, 384);
+          await page.mouse.wheel(0, -300);
+          await page.waitForFunction((z) => Number(document.body.dataset.zoom) > z, zoomBefore, { timeout: 5000 });
+          const zoomAfter = Number(await page.getAttribute("body", "data-zoom"));
+          console.log(`moba zoom ok zoom=${zoomBefore.toFixed(3)}->${zoomAfter.toFixed(3)}`);
           await browser.close();
           EOF
           node "$RUNNER_TEMP/pw/moba-input.mjs" | tee "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba input ok orders=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
 
       - name: Edit the mod under a running page; its data-mod-version follows
         run: |
