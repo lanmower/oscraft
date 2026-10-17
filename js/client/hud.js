@@ -6,9 +6,9 @@ const TICK_S = 0.1;
 const ABILITY_SLOTS = { q: 0, w: 1, e: 2 };
 const ATTACK_KEY = "a";
 const RIGHT_BUTTON = 2;
-const BAR_WIDTH_PX = 28;
-const BAR_HEIGHT_PX = 4;
-const BAR_LIFT_PX = 26;
+const BAR_WIDTH_PX = 20;
+const BAR_HEIGHT_PX = 3;
+const BAR_LIFT_PX = 5;
 
 export function formatClock(ticks) {
   const total = Math.floor(ticks * TICK_S);
@@ -38,7 +38,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, u
       if (typeof u.hp !== "number" || u.hp < 0) continue;
       const max = trackedMaxHp(u.id, u.hp);
       if (max <= 0) continue;
-      const p = toScreen(u.x, u.z);
+      const p = toScreen(u.x, u.z, u.top || 0);
       const x = p.x - BAR_WIDTH_PX / 2;
       const y = p.y - BAR_LIFT_PX;
       barCtx.fillStyle = "rgba(0,0,0,0.6)";

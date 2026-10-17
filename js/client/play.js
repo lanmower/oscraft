@@ -19,9 +19,9 @@ const BACKGROUND = [0.114, 0.145, 0.173];
 const MAP_COLOR = [0.2, 0.28, 0.22];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
 const SELECT_COLOR = [0.95, 0.85, 0.3];
-const UNIT_HALF = 0.4;
+const UNIT_HALF = 0.9;
 const DOODAD_HALF = 0.5;
-const PICK_RADIUS = 1.0;
+const PICK_RADIUS = 1.2;
 const FLAT_PX_PER_UNIT = 20;
 const DRAG_SLOP_PX = 4;
 const PAN_PX_PER_S = 500;
@@ -53,6 +53,7 @@ const flatView = { cx: W / 2, cz: H / 2 };
 let renderer3d = null;
 let mapBytes = null;
 let terrainMesh = null;
+let terrainTiles = null;
 let unitMeshes = [];
 let doodadMeshes = [];
 const drawCounts = { terrain: 0, doodad: 0, unit: 0, quad: 0 };
@@ -153,7 +154,7 @@ async function loadDoodadModels() {
 // Uploads a fitted model as a drawable mesh. Its base colour texture is uploaded when the model has one.
 async function toMesh(gl, fitted, fallbackColor) {
   if (!fitted) return null;
-  const mesh = { positions: fitted.positions, normals: fitted.normals, uvs: fitted.uvs, indices: fitted.indices, color: fallbackColor };
+  const mesh = { positions: fitted.positions, normals: fitted.normals, uvs: fitted.uvs, indices: fitted.indices, color: fallbackColor, height: maxY(fitted.positions) };
   if (fitted.baseColorTexture) {
     try {
       const image = await loadBaseColorImage(fitted.baseColorTexture, fitted.glbUrl);
@@ -165,8 +166,25 @@ async function toMesh(gl, fitted, fallbackColor) {
   return mesh;
 }
 
+function maxY(positions) {
+  let top = 0;
+  for (let v = 1; v < positions.length; v += 3) top = Math.max(top, positions[v]);
+  return top;
+}
+
+// Ground height under a tile position; the terrain is flat at 0 until its mesh is built.
+function groundAt(x, z) {
+  return terrainTiles ? groundY(terrainTiles, x, z) : 0;
+}
+
+// Adds `top`, the world height of the unit's model top, so its health bar sits above the model.
+function anchored(u) {
+  const model = unitMeshes[u.type];
+  return { ...u, top: groundAt(u.x, u.z) + (model ? model.height : 0) };
+}
+
 function currentUnits() {
-  if (netState) return netState.units;
+  if (netState) return netState.units.map(anchored);
   if (!localGame) return [];
   const flat = localGame.units();
   const ids = localGame.unit_ids();
@@ -175,7 +193,7 @@ function currentUnits() {
   const hps = typeof localGame.unit_hps === "function" ? localGame.unit_hps() : null;
   const out = [];
   for (let i = 0; i < ids.length; i++) {
-    out.push({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1 });
+    out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1 }));
   }
   return out;
 }
@@ -204,7 +222,7 @@ function drawUnits3d(units) {
     const color = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
     const model = unitMeshes[u.type];
     const mesh = unitMeshFor(u.type, color);
-    countDraw(model ? "unit" : "quad", mesh, translation(u.x, 0, u.z));
+    countDraw(model ? "unit" : "quad", mesh, translation(u.x, groundAt(u.x, u.z), u.z));
   }
 }
 
@@ -277,8 +295,15 @@ function screenToWorld(clientX, clientY) {
   const ndcX = (2 * clientX) / window.innerWidth - 1;
   const ndcY = 1 - (2 * clientY) / window.innerHeight;
   const dir = [0, 1, 2].map((i) => fwd[i] + right[i] * ndcX * t * aspect + up[i] * ndcY * t);
-  const s = -eye[1] / dir[1];
-  return { x: eye[0] + dir[0] * s, z: eye[2] + dir[2] * s };
+  // Intersect the view ray with the terrain surface: start at y = 0 and re-intersect at the ground height found.
+  let y = 0;
+  let point = null;
+  for (let i = 0; i < 4; i++) {
+    const s = (y - eye[1]) / dir[1];
+    point = { x: eye[0] + dir[0] * s, z: eye[2] + dir[2] * s };
+    y = groundAt(point.x, point.z);
+  }
+  return point;
 }
 
 function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
@@ -295,13 +320,13 @@ function pick(world) {
   return best;
 }
 
-// Client pixel of the ground point (x, 0, z): the inverse of screenToWorld. Points behind the camera map far off screen.
-function worldToScreen(x, z) {
+// Client pixel of the world point (x, y, z), y defaulting to the ground: the inverse of screenToWorld. Points behind the camera map far off screen.
+function worldToScreen(x, z, y = 0) {
   if (!renderer3d) {
     return { x: window.innerWidth / 2 + (x - flatView.cx) * FLAT_PX_PER_UNIT, y: window.innerHeight / 2 + (z - flatView.cz) * FLAT_PX_PER_UNIT };
   }
   const vp = viewProjection(renderer3d.camera, window.innerWidth / Math.max(1, window.innerHeight));
-  const clip = [0, 1, 2, 3].map((r) => vp[r] * x + vp[8 + r] * z + vp[12 + r]);
+  const clip = [0, 1, 2, 3].map((r) => vp[r] * x + vp[4 + r] * y + vp[8 + r] * z + vp[12 + r]);
   if (clip[3] <= 0) return { x: -1e6, y: -1e6 };
   return {
     x: ((clip[0] / clip[3] + 1) / 2) * window.innerWidth,
@@ -669,7 +694,8 @@ const DOODAD_TINT = [0.55, 0.5, 0.42];
 // their GLB models, and unit models from the sim's model names. Each unit type keeps a model or null (quad).
 async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
-  terrainMesh = { positions: terrain.positions, normals: terrain.normals, indices: terrain.indices, color: MAP_COLOR };
+  terrainTiles = terrain;
+  terrainMesh ={ positions: terrain.positions, normals: terrain.normals, indices: terrain.indices, color: MAP_COLOR };
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
   const s = 1 / terrain.cellMilli;
   doodadMeshes = readDoodads(mapBytes).flatMap((p) => {
