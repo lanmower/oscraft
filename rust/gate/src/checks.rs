@@ -39,6 +39,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("moba-creeps", mechanic_checks::moba_creeps),
     ("moba-lane", mechanic_checks::moba_lane),
     ("moba-sync", mechanic_checks::moba_sync),
+    ("moba-objective", mechanic_checks::moba_objective),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP
@@ -383,6 +384,10 @@ fn http_state_ok(_image: &[u8]) -> Result<(), String> {
     let r = serve_state(&room, &get_request("/state", ""));
     if r.status != 200 {
         return Err(format!("GET /state status {}", r.status));
+    }
+    let body = String::from_utf8_lossy(&r.body);
+    if !body.contains("\"winner\":-1") {
+        return Err(format!("GET /state reports no winner field with no winner declared: {body}"));
     }
     Ok(())
 }

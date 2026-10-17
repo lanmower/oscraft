@@ -2533,6 +2533,8 @@ jobs:
           grep -E '^moba lane ok ticks=[0-9]+ connector=true$' "$out"
           grep -q '^check moba-sync PASS$' "$out"
           grep -E '^moba sync ok ticks=[0-9]+ diff=0$' "$out"
+          grep -q '^check moba-objective PASS$' "$out"
+          grep -E '^moba objective ok hp=[0-9]+->[0-9]+$' "$out"
 
   moba:
     name: moba scenario loads, serves its counts, spawns timed creep waves, and reads the win trigger

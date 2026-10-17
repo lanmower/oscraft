@@ -31,3 +31,6 @@ spawn("tower", 0, 12000, 20500)
 spawn("tower", 1, 28000, 20500)
 spawn("creep", 0, 10000, 20500)
 spawn("creep", 1, 30000, 20500)
+# One objective per side in the middle lane, appended last so earlier unit indices hold.
+spawn("objective", 0, 14000, 12500)
+spawn("objective", 1, 26000, 12500)

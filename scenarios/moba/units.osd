@@ -5,3 +5,4 @@ unit("tower", 400, 1000, 600, filters=["ground", "armored", "massive", "structur
 unit("base", 1500, 1000, 1000, filters=["ground", "armored", "massive", "structure", "building"], abilities=["creep_wave"], sight_milli=8000)
 unit("creep", 60, 2000, 350, build_time=240, filters=["ground", "light", "army"], weapon_damage=4, weapon_range_milli=4000, weapon_period=24, sight_milli=7000)
 unit("tender", 40, 2800, 350, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="resource_a", harvest=5)
+unit("objective", 800, 1000, 900, filters=["ground", "armored", "massive", "structure"], sight_milli=6000)

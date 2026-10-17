@@ -371,3 +371,30 @@ pub fn moba_sync(_image: &[u8]) -> Result<(), String> {
     println!("moba sync ok ticks={ticks} diff={diff}");
     Ok(())
 }
+
+/// Both sides start with a hero, a base and an objective. A side 0 creep ordered to the side 1 objective loses hit points.
+pub fn moba_objective(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    for side in 0..2 {
+        for name in ["hero", "base", "objective"] {
+            if !(0..MAX_UNITS).any(|i| s.alive(i) && s.player(i) == side && s.kind_name(i) == Some(name)) {
+                return Err(format!("side {side} has no {name} at match start"));
+            }
+        }
+    }
+    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
+    let target = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("objective")).ok_or("moba has no side 1 objective")?;
+    let (ox, oy) = s.position_fixed(own);
+    let (tx, ty) = s.position_fixed(target);
+    let k = kind(&s, "creep")?;
+    let creep = s.spawn_for(0, k, ox, oy).ok_or("spawn_for refused a creep at the side 0 base")?;
+    let before = fixed::to_int(s.hp(target));
+    s.order(creep, tx, ty);
+    run_ticks(&mut s, 300);
+    let after = fixed::to_int(s.hp(target));
+    if after >= before {
+        return Err(format!("side 0 creep did not hurt the side 1 objective: hp {before} -> {after}"));
+    }
+    println!("moba objective ok hp={before}->{after}");
+    Ok(())
+}
