@@ -2095,7 +2095,7 @@ jobs:
           cmp js/wire/frame.js js/client/wire/frame.js
           echo "client modules ok files=$count"
 
-      - name: 100 ticks of 30 units, full and delta state bytes
+      - name: 100 ticks of 200 units at 1 percent change, full and delta state bytes
         env:
           WIRE_JS: ${{ github.workspace }}/js/wire/frame.js
           DELTA_JS: ${{ github.workspace }}/js/client/delta.js
@@ -2107,14 +2107,14 @@ jobs:
           const { createStateEncoder, applyFrame } = await import(pathToFileURL(process.env.DELTA_JS).href);
           const fail = (why) => { console.error(`state delta FAIL ${why}`); process.exit(1); };
 
-          const units = Array.from({ length: 30 }, (_, id) => ({ id, kind: id % 5, player: id % 2, x: id * 2, y: 3, hp: 100 }));
+          const units = Array.from({ length: 200 }, (_, id) => ({ id, kind: id % 5, player: id % 2, x: id * 2, y: 3, hp: 100 }));
           const encoder = createStateEncoder();
           const receiver = new Map();
           let full = null;
           const deltaSizes = [];
           for (let tick = 1; tick <= 100; tick++) {
-            // Three ordered units step each tick; the other 27 hold still.
-            for (const id of [tick % 30, (tick + 7) % 30, (tick + 13) % 30]) units[id] = { ...units[id], x: units[id].x + 1 };
+            // Two of 200 units (1 percent) step each tick; the other 198 hold still.
+            for (const id of [tick % 200, (tick + 97) % 200]) units[id] = { ...units[id], x: units[id].x + 1 };
             const frame = encoder.encode(tick, (tick * 2654435761) >>> 0, units);
             const bytes = encodeFrame(frame);
             if (frame.type === FRAME.STATE) { if (full === null) full = bytes.length; } else deltaSizes.push(bytes.length);
@@ -2123,8 +2123,9 @@ jobs:
             if (JSON.stringify(got) !== JSON.stringify(units)) fail(`receiver diverged at tick ${tick}`);
           }
           const deltaAvg = deltaSizes.reduce((a, b) => a + b, 0) / deltaSizes.length;
-          if (!(deltaAvg < full / 4)) fail(`delta_avg ${deltaAvg} is not under full/4 = ${full / 4}`);
-          console.log(`state bytes full=${full} delta_avg=${Math.round(deltaAvg)}`);
+          const ratio = deltaAvg / full;
+          if (!(ratio <= 0.2)) fail(`delta_avg ${deltaAvg} is over 20 percent of full ${full}, ratio ${ratio.toFixed(4)}`);
+          console.log(`state bytes full=${full} delta_avg=${Math.round(deltaAvg)} ratio=${ratio.toFixed(4)}`);
           process.exit(0);
           JS
 
