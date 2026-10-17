@@ -242,6 +242,11 @@ impl Room {
         c.sim.alive(unit).then(|| c.sim.position_fixed(unit))
     }
 
+    pub fn unit_health(&self, unit: usize) -> Option<(i32, i32)> {
+        let c = lock(&self.clock);
+        c.sim.alive(unit).then(|| (c.sim.hp(unit), c.sim.hp_max(unit)))
+    }
+
     pub fn player_has_units(&self, player: u8) -> bool {
         let c = lock(&self.clock);
         (0..c.sim.count()).any(|i| c.sim.alive(i) && c.sim.player(i) == player)
@@ -405,7 +410,8 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
 // Carries the live units of the sim in service into a freshly loaded image without new ids. A
 // live unit keeps its index and moves to its old point when the new map places a unit of the same
 // player and the same kind name there; any other unit the new map placed is removed, so no unit is
-// duplicated. Returns (carried, refused): refused counts the old live units that found no such slot.
+// duplicated. A carried unit keeps its old health and maximum. Returns (carried, refused): refused
+// counts the old live units that found no such slot.
 fn carry_live_units(old: &Sim, new: &mut Sim) -> (usize, usize) {
     let mut carried = 0;
     for i in 0..new.count() {
@@ -420,6 +426,7 @@ fn carry_live_units(old: &Sim, new: &mut Sim) -> (usize, usize) {
         if same {
             let (x, y) = old.position_fixed(i);
             new.set_position(i, x, y);
+            new.set_health(i, old.hp(i), old.hp_max(i));
             carried += 1;
         } else {
             new.remove_unit(i);
@@ -494,5 +501,23 @@ fn run_ticker(room: &Room, budget: Duration) {
         while next <= Instant::now() {
             next += budget;
         }
+    }
+}
+
+#[cfg(test)]
+mod carry_tests {
+    use super::*;
+
+    #[test]
+    fn carry_keeps_old_health() {
+        let data = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data");
+        let mut old = mods::load_data(&data, 4096).expect("old image");
+        let i = (0..4096).find(|&i| old.alive(i)).expect("a live unit");
+        let max = old.hp_max(i);
+        old.set_health(i, 7, max);
+        let mut new = mods::load_data(&data, 4096).expect("new image");
+        let (carried, _) = carry_live_units(&old, &mut new);
+        assert!(carried > 0);
+        assert_eq!(new.hp(i), 7, "a carried unit keeps its pre-swap health");
     }
 }

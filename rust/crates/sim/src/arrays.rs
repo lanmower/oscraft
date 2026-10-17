@@ -715,6 +715,20 @@ impl Sim {
         if i >= self.n { 0 } else { self.hp[i] }
     }
 
+    pub fn hp_max(&self, i: usize) -> i32 {
+        if i >= self.n { 0 } else { self.hp_max[i] }
+    }
+
+    /// Sets live unit `i`'s health and maximum (raw fixed-point). Returns false for a dead or out-of-range unit.
+    pub fn set_health(&mut self, i: usize, hp: i32, hp_max: i32) -> bool {
+        if !self.alive(i) {
+            return false;
+        }
+        self.hp[i] = hp;
+        self.hp_max[i] = hp_max;
+        true
+    }
+
     /// The catalog unit type index of unit `i` (the id catalog-unit-name takes), or -1 when unset.
     pub fn unit_type(&self, i: usize) -> i32 {
         self.type_of.get(i).copied().unwrap_or(-1)
