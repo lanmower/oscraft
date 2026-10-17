@@ -1,5 +1,8 @@
 # Behaviour definitions for the moba scenario. behaviour(name, trigger, action, param=, ability=)
 behaviour("guard_patrol", trigger="idle", action="use_ability", param=0, ability="pulse_shot")
 behaviour("answer_attack", trigger="attacked", action="attack_nearest", param=0)
-# Spawn timer: a base casts creep_wave each time its cooldown runs out.
+# Spawn timer: a base casts creep_wave once when it is created, then each time its cooldown runs out.
+behaviour("wave_start", trigger="spawned", action="use_ability", param=0, ability="creep_wave")
 behaviour("wave_timer", trigger="ability_ready", action="use_ability", param=0, ability="creep_wave")
+# Win condition: a base is tagged building (filter bit 11). When the last living building of a side dies, the rival wins.
+behaviour("win_on_base_loss", trigger="destroyed", action="declare_winner", param=11)

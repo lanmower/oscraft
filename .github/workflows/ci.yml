@@ -2436,7 +2436,7 @@ jobs:
           grep -E '^kill bounty ok gold_before=[0-9]+ gold_after=[0-9]+$' "$out"
 
   moba:
-    name: moba scenario loads, serves its counts, and spawns a timed creep wave
+    name: moba scenario loads, serves its counts, spawns timed creep waves, and reads the win trigger
     runs-on: ubuntu-latest
     needs: [changes, build]
     if: needs.changes.outputs.code == 'true'
@@ -2470,13 +2470,21 @@ jobs:
           trap on_exit EXIT
           cooldown=$(grep -oE '^ability\("creep_wave", *[0-9]+' "$scen/abilities.osd" | grep -oE '[0-9]+$')
           bases=$(grep -cE '^spawn\("base"' "$scen/map.osd")
+          initial=$(grep -cE 'trigger="spawned".*ability="creep_wave"' "$scen/behaviours.osd")
           target=$((cooldown + 100))
           cd rust
           ./target/debug/osdt-data "$scen" "$work/catalog.osdt"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 > "$work/server.log" 2>&1 &
           pid=$!
           for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
-          curl -sf "http://$addr/state?map=ci" > "$work/s0.json"
+          tick=0
+          for i in $(seq 1 240); do
+            curl -sf "http://$addr/state?map=ci" > "$work/s0.json" || true
+            tick=$(jq -r '.tick // 0' "$work/s0.json" 2>/dev/null || echo 0)
+            test "$tick" -ge 3 && break
+            sleep 0.5
+          done
+          test "$tick" -ge 3
           units0=$(jq '.units' "$work/s0.json")
           at_tick=""
           tick=0
@@ -2498,11 +2506,11 @@ jobs:
           lanes=$(grep -E '^spawn\("tower"' map.osd | sed -E 's/.*, *[0-9]+ *, *([0-9]+) *\)$/\1/' | sort -u | wc -l)
           workers=$(grep -oE 'opening_workers *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           expected_units=$((spawns + starts * workers))
-          units=$units0
+          initial_units=$((expected_units + bases * initial))
           sides=$(jq '[.records[].player | select(. >= 0)] | unique | length' "$work/s0.json")
-          echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases cooldown=$cooldown expected_units=$expected_units"
-          echo "served at tick 0: units=$units sides=$sides tick_reached=$tick"
-          test "$units" -eq "$expected_units"
+          echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases initial_waves=$initial cooldown=$cooldown expected_units=$expected_units"
+          echo "served from tick 3: units=$units0 sides=$sides; expected with initial waves=$initial_units"
+          test "$units0" -eq "$initial_units"
           test "$sides" -eq "$starts"
           test "$lanes" -eq 3
           test "$heroes" -eq "$starts"
