@@ -29,8 +29,11 @@ function readChunks(buffer) {
   return { json, bin };
 }
 
-function readAccessor(gltf, bin, index) {
+const VERTEX_TYPE = 'VEC3';
+
+function readAccessor(gltf, bin, index, expectedType) {
   const accessor = gltf.accessors[index];
+  if (accessor.type !== expectedType) throw new Error(`glb: accessor ${index} is ${accessor.type}, expected ${expectedType}`);
   const view = gltf.bufferViews[accessor.bufferView];
   const Type = COMPONENT_TYPES[accessor.componentType];
   const width = COMPONENT_COUNTS[accessor.type];
@@ -68,10 +71,11 @@ export function parseGlb(buffer) {
   const primitive = gltf.meshes?.[0]?.primitives?.[0];
   if (!primitive || primitive.attributes?.POSITION === undefined) throw new Error('glb: no POSITION attribute');
   if (primitive.mode !== undefined && primitive.mode !== 4) throw new Error('glb: only triangle primitives');
-  const positions = readAccessor(gltf, bin, primitive.attributes.POSITION);
-  const normals = primitive.attributes.NORMAL === undefined ? null : readAccessor(gltf, bin, primitive.attributes.NORMAL);
+  const positions = readAccessor(gltf, bin, primitive.attributes.POSITION, VERTEX_TYPE);
+  const normals = primitive.attributes.NORMAL === undefined ? null : readAccessor(gltf, bin, primitive.attributes.NORMAL, VERTEX_TYPE);
+  const vertexCount = positions.length / COMPONENT_COUNTS[VERTEX_TYPE];
   const indices = primitive.indices === undefined
-    ? Uint32Array.from({ length: positions.length / 3 }, (_, i) => i)
-    : Uint32Array.from(readAccessor(gltf, bin, primitive.indices));
+    ? Uint32Array.from({ length: vertexCount }, (_, i) => i)
+    : Uint32Array.from(readAccessor(gltf, bin, primitive.indices, 'SCALAR'));
   return { positions: Float32Array.from(positions), normals: normals && Float32Array.from(normals), indices };
 }
