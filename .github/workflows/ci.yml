@@ -1649,6 +1649,34 @@ jobs:
           grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'session=ci-browser '
           grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'message="ci browser probe"'
 
+      - name: The page draws the 3D world: terrain, doodads and unit meshes per draw count
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/pw/draw3d.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci#map");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          await page.waitForFunction(() => Number(document.body.dataset.drawTerrain) > 0, null, { timeout: 30000 });
+          const read = () => page.evaluate(() => ({ mode: document.body.dataset.mode, terrain: document.body.dataset.drawTerrain, doodad: document.body.dataset.drawDoodad, unit: document.body.dataset.drawUnit, quad: document.body.dataset.drawQuad, assetError: document.body.dataset.assetError || "" }));
+          const probe = await read();
+          if (probe.mode !== "3d") throw new Error("page is not in 3d mode: " + probe.mode);
+          if (probe.assetError) throw new Error("asset error: " + probe.assetError);
+          if (!(Number(probe.unit) + Number(probe.quad) > 0)) throw new Error("no unit meshes drawn: " + JSON.stringify(probe));
+          if (errors.length) throw new Error("console errors: " + errors.join("\n"));
+          console.log(`draw3d ok mode=${probe.mode} terrain=${probe.terrain} doodad=${probe.doodad} unit=${probe.unit} quad=${probe.quad}`);
+          await page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/world3d.png" });
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/draw3d.mjs" | tee "$RUNNER_TEMP/draw3d.txt"
+          grep -q '^draw3d ok mode=3d terrain=[1-9][0-9]* doodad=[0-9]* unit=[0-9]* quad=[0-9]*$' "$RUNNER_TEMP/draw3d.txt"
+
       - name: Left click selects a unit, right click orders it to move; the sim accepts the order
         run: |
           set -euo pipefail
@@ -1665,24 +1693,18 @@ jobs:
           if (error) throw new Error("page error: " + error);
           const units = await page.evaluate(() => window.__ciUnits());
           if (!units.length) throw new Error("no units to order");
-          const [cx, cz] = (await page.getAttribute("body", "data-center")).split(",").map(Number);
-          const toScreen = (x, z) => ({ x: 512 + (x - cx) * 20, y: 384 + (z - cz) * 20 });
-          // The camera moves with the arrow keys and zoom changes the scale, so the mapping is read again for each click.
-          const screenAt = async (x, z) => {
-            const [ccx, ccz] = (await page.getAttribute("body", "data-center")).split(",").map(Number);
-            const ppu = 20 * Number(await page.getAttribute("body", "data-zoom"));
-            return { x: 512 + (x - ccx) * ppu, y: 384 + (z - ccz) * ppu };
-          };
+          // The 3D camera moves with the arrow keys and zoom, so the ground-to-pixel mapping is read from the page each time.
+          const screenAt = (x, z) => page.evaluate(([px, pz]) => window.__ciToScreen(px, pz), [x, z]);
           // Click the unit with the most room around it, so the pick cannot land on a neighbour.
           const unit = units.reduce((best, cand) => {
             const gap = Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));
             return gap > best.gap ? { unit: cand, gap } : best;
           }, { unit: units[0], gap: -1 }).unit;
-          const at = toScreen(unit.x, unit.z);
+          const at = await screenAt(unit.x, unit.z);
           await page.mouse.click(at.x, at.y, { button: "left" });
           const selected = await page.evaluate(() => window.__ciSelected());
           if (selected !== unit.id) throw new Error("left click selected " + selected + ", expected " + unit.id);
-          const target = toScreen(Math.min(29, unit.x + 3), unit.z);
+          const target = await screenAt(Math.min(29, unit.x + 3), unit.z);
           await page.mouse.click(target.x, target.y, { button: "right" });
           await page.waitForSelector("body[data-orders='1']", { timeout: 15000 });
           const orders = await page.getAttribute("body", "data-orders");
@@ -1694,11 +1716,12 @@ jobs:
           const after = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];
           if (!(after > before)) throw new Error("arrow right did not pan: " + before + " -> " + after);
           console.log(`moba camera ok pan=${(after - before).toFixed(2)}`);
-          const zoomBefore = Number(await page.getAttribute("body", "data-zoom"));
+          // Wheel up zooms in: the orbit distance shrinks.
+          const zoomBefore = Number(await page.getAttribute("body", "data-distance"));
           await page.mouse.move(512, 384);
           await page.mouse.wheel(0, -300);
-          await page.waitForFunction((z) => Number(document.body.dataset.zoom) > z, zoomBefore, { timeout: 5000 });
-          const zoomAfter = Number(await page.getAttribute("body", "data-zoom"));
+          await page.waitForFunction((d) => Number(document.body.dataset.distance) < d, zoomBefore, { timeout: 5000 });
+          const zoomAfter = Number(await page.getAttribute("body", "data-distance"));
           console.log(`moba zoom ok zoom=${zoomBefore.toFixed(3)}->${zoomAfter.toFixed(3)}`);
           const hp = Number(await page.getAttribute("body", "data-hp"));
           const gold = Number(await page.getAttribute("body", "data-gold"));
