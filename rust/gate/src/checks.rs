@@ -351,6 +351,7 @@ fn test_room(name: &str) -> Result<Arc<Room>, String> {
         token: "tok".to_string(),
         rate: 8,
         data: None,
+        shed: true,
     })
 }
 
