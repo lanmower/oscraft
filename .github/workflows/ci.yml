@@ -96,6 +96,24 @@ jobs:
           set -euo pipefail
           node js/host/guest.js --ticks=5000 --reps=5 --peers=1,8,32 | tee "$RUNNER_TEMP/peer-scaling.txt"
 
+      - name: Render3d imports under node and its camera math holds
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            const m = await import("./js/client/render3d.js");
+            const cam = m.createCamera({ target: [5, 0, 5], distance: 20, yaw: 0.3, pitch: 0.8 });
+            const vp = m.viewProjection(cam, 1.5);
+            const c = [0, 0, 0, 0];
+            for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) c[r] += vp[k * 4 + r] * [5, 0, 5, 1][k];
+            if (Math.abs(c[0] / c[3]) > 1e-5 || Math.abs(c[1] / c[3]) > 1e-5) throw new Error("target not centred");
+            const n = m.normalMatrix(m.rotationY(0.7));
+            if (Math.abs(n[0] - Math.cos(0.7)) > 1e-5) throw new Error("normal matrix");
+            m.orbitCamera(cam, 100, -50); m.panCamera(cam, 10, 10, 600); m.zoomCamera(cam, -300);
+            if (!(cam.pitch <= Math.PI / 2) || cam.distance <= 0) throw new Error("camera state");
+            console.log("render3d ok");
+          '
+
       - name: Snapshot restores with a matching state_hash
         working-directory: ${{ github.workspace }}
         run: |
@@ -129,6 +147,25 @@ jobs:
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
           ls -la js/client/pkg js/client/map.bin js/client/moba.bin
+
+      - name: Terrain mesh builds from the staged map under node
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const { buildTerrain, readDoodads } = await import("./js/client/terrain.js");
+            const bytes = new Uint8Array(fs.readFileSync("./js/client/map.bin"));
+            const mesh = buildTerrain(bytes);
+            const tris = mesh.indices.length / 3;
+            const vertices = mesh.positions.length / 3;
+            if (tris !== mesh.width * mesh.height * 2 || tris < 1) throw new Error("terrain triangle count " + tris);
+            if (vertices !== (mesh.width + 1) * (mesh.height + 1)) throw new Error("terrain vertex count " + vertices);
+            for (const i of mesh.indices) if (i >= vertices) throw new Error("terrain index out of range");
+            for (const p of mesh.positions) if (!Number.isFinite(p)) throw new Error("terrain position not finite");
+            readDoodads(bytes);
+            console.log(`terrain ok tris=${tris}`);
+          '
 
       - uses: actions/upload-artifact@v4
         with:
