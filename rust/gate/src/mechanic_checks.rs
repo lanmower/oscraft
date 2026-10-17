@@ -2,7 +2,7 @@
 //! asserts one postcondition through the public sim or mod-host API and names the mechanic,
 //! never a genre.
 
-use crate::checks::{fresh, run_ticks, spawn};
+use crate::checks::{fresh, run_ticks, spawn, MAX_UNITS};
 use sim::fixed;
 
 const ORDER_MOVE: u8 = 0;
@@ -175,6 +175,31 @@ pub fn structure_damage(_image: &[u8]) -> Result<(), String> {
         return Err(format!("beacon hp {before} -> {after} with an enemy skirmisher in weapon range"));
     }
     println!("structure damage ok hp_before={before} hp_after={after}");
+    Ok(())
+}
+
+/// Destroying every tagged structure of one side declares the other side the winner. The side-1
+/// beacons of the duel-routes scenario carry the structure tag; the last one standing decides it.
+pub fn win_trigger(_image: &[u8]) -> Result<(), String> {
+    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("duel-routes");
+    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
+    let mut s = fresh(&image)?;
+    let mut tagged: Vec<usize> = (0..MAX_UNITS).filter(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("beacon")).collect();
+    let last = tagged.pop().ok_or("scenario has no side 1 structure")?;
+    for &i in &tagged {
+        s.hurt(i, fixed::from_int(10000));
+    }
+    run_ticks(&mut s, 1);
+    if s.winner().is_some() {
+        return Err("a winner was declared while a tagged structure of side 1 still stands".into());
+    }
+    s.hurt(last, fixed::from_int(10000));
+    run_ticks(&mut s, 1);
+    let winner = s.winner().ok_or("no winner after every tagged structure of side 1 was destroyed")?;
+    if winner != 0 {
+        return Err(format!("winner {winner} want 0, the side that is not side 1"));
+    }
+    println!("win trigger ok winner={winner}");
     Ok(())
 }
 

@@ -33,8 +33,8 @@ const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
 const EFFECT_BUFF: u16 = 4;
 const TARGET_CODES: u8 = 3;
-const TRIGGER_CODES: u8 = 4;
-const ACTION_CODES: u8 = 3;
+const TRIGGER_CODES: u8 = 5;
+const ACTION_CODES: u8 = 4;
 const RESPONSE_CODES: u8 = 3;
 const FILTER_BITS: u32 = 12;
 const NO_INDEX: u16 = 0xFFFF;
@@ -183,6 +183,7 @@ pub enum Trigger {
     Attacked,
     Spawned,
     AbilityReady,
+    Destroyed,
 }
 
 impl Trigger {
@@ -192,6 +193,7 @@ impl Trigger {
             1 => Some(Trigger::Attacked),
             2 => Some(Trigger::Spawned),
             3 => Some(Trigger::AbilityReady),
+            4 => Some(Trigger::Destroyed),
             _ => None,
         }
     }
@@ -203,6 +205,7 @@ impl Trigger {
             Trigger::Attacked => "attacked",
             Trigger::Spawned => "spawned",
             Trigger::AbilityReady => "ability_ready",
+            Trigger::Destroyed => "destroyed",
         }
     }
 }

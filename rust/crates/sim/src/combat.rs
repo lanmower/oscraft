@@ -222,6 +222,7 @@ impl Sim {
         if self.hp[j] <= 0 {
             self.hp[j] = 0;
             self.alive[j] = 0;
+            self.trig_death[j] = 1;
             self.stats.deaths += 1;
         }
     }

@@ -2413,7 +2413,7 @@ jobs:
           test "$live_beacons" -eq "$beacons"
           echo "scenario ok sides=$sides routes=$routes objectives=$beacons units=$units"
 
-      - name: Gate witness - a beacon loses hit points while an enemy skirmisher is in range
+      - name: Gate witnesses - a beacon loses hit points in range; destroying a side's tagged structures names the winner
         run: |
           set -euo pipefail
           out="$RUNNER_TEMP/gate-witness.txt"
@@ -2422,6 +2422,8 @@ jobs:
           target/debug/oscraft-gate > "$out" 2>&1 || true
           grep -q '^check mechanic-structure-damage PASS$' "$out"
           grep -E '^structure damage ok hp_before=[0-9]+ hp_after=[0-9]+$' "$out"
+          grep -q '^check mechanic-win-trigger PASS$' "$out"
+          grep -E '^win trigger ok winner=[0-9]+$' "$out"
 
   moba:
     name: moba scenario loads and serves its counts

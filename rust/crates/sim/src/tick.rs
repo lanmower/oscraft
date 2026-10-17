@@ -141,6 +141,7 @@ impl Sim {
             self.note_idle(i);
             self.attack(i);
         }
+        self.fire_destroyed();
         lap(System::Units, mark);
         self.ticks = self.ticks.wrapping_add(1);
     }

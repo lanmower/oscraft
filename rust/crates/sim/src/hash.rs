@@ -123,7 +123,9 @@ impl Sim {
         h.bytes(&self.trig_hit);
         h.bytes(&self.trig_spawn);
         h.bytes(&self.trig_idle);
+        h.bytes(&self.trig_death);
         h.bytes(&self.trig_ready);
+        h.i32s(std::slice::from_ref(&self.winner));
         h.i32s(&self.buff_kind);
         h.i32s(&self.buff_left);
         h.bytes(&self.healer_player);

@@ -9,7 +9,7 @@ use starlark::starlark_module;
 use starlark::values::{list::UnpackList, none::NoneType};
 
 use crate::format::{
-    effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, CLOAK_FLAGS, DAMAGE_RESPONSES,
+    effect_params_valid, index_of, ACTIONS, ACTION_DECLARE_WINNER, ACTION_USE_ABILITY, CELL_MASK, CLOAK_FLAGS, DAMAGE_RESPONSES,
     DAMAGE_TYPES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
     DOODAD_KINDS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
 };
@@ -252,6 +252,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         action: &str,
         #[starlark(require = named)] param: Option<i32>,
         #[starlark(require = named)] ability: Option<&str>,
+        #[starlark(require = named)] tag: Option<&str>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let trigger = index_of(TRIGGERS, trigger, "trigger")?;
@@ -259,6 +260,16 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         if action == ACTION_USE_ABILITY && ability.is_none() {
             bail!("behaviour {name:?} uses use_ability and needs ability=");
         }
+        if action == ACTION_DECLARE_WINNER && tag.is_none() {
+            bail!("behaviour {name:?} uses declare_winner and needs tag= (a FILTERS name)");
+        }
+        if action != ACTION_DECLARE_WINNER && tag.is_some() {
+            bail!("behaviour {name:?}: tag= is only read by declare_winner");
+        }
+        let param = match tag {
+            Some(tag) => index_of(FILTERS, tag, "tag")? as i32,
+            None => param.unwrap_or(0),
+        };
         if TRIGGERS[trigger] == "ability_ready" && ability.is_none() {
             bail!("behaviour {name:?} fires on ability_ready and needs ability=");
         }
@@ -266,7 +277,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             name: name.to_owned(),
             trigger,
             action,
-            param: param.unwrap_or(0),
+            param,
             ability: ability.map(str::to_owned),
         });
         Ok(NoneType)

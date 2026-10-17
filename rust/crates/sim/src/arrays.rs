@@ -137,6 +137,8 @@ pub struct Sim {
     pub(crate) trig_hit: Vec<u8>,
     pub(crate) trig_spawn: Vec<u8>,
     pub(crate) trig_idle: Vec<u8>,
+    pub(crate) trig_death: Vec<u8>,
+    pub(crate) winner: i32,
     pub(crate) trig_ready: Vec<u8>,
 
     pub(crate) buff_kind: Vec<i32>,
@@ -302,6 +304,8 @@ impl Sim {
             trig_hit: vec![0; cap],
             trig_spawn: vec![0; cap],
             trig_idle: vec![0; cap],
+            trig_death: vec![0; cap],
+            winner: -1,
             trig_ready: vec![0; cap * ABILITY_SLOTS],
             buff_kind: vec![-1; cap * BUFF_SLOTS],
             buff_left: vec![0; cap * BUFF_SLOTS],

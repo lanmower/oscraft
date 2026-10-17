@@ -33,9 +33,10 @@ pub const VITAL_TARGETS: &[&str] = &["current", "max"];
 pub const Q16_ONE: i32 = 65536;
 
 pub const TARGETS: &[&str] = &["none", "unit", "point"];
-pub const TRIGGERS: &[&str] = &["idle", "attacked", "spawned", "ability_ready"];
-pub const ACTIONS: &[&str] = &["attack_nearest", "flee", "use_ability"];
+pub const TRIGGERS: &[&str] = &["idle", "attacked", "spawned", "ability_ready", "destroyed"];
+pub const ACTIONS: &[&str] = &["attack_nearest", "flee", "use_ability", "declare_winner"];
 pub const ACTION_USE_ABILITY: usize = 2;
+pub const ACTION_DECLARE_WINNER: usize = 3;
 pub const FILTERS: &[&str] = &[
     "ground", "air", "armored", "biological", "mechanical", "psionic", "structure", "light", "massive",
     "worker", "army", "building",

@@ -396,8 +396,8 @@ without a version bump.
   `5 issue_order`, `6 remove_behaviour`, `7 create_healer`, `8 use_calldown`,
   `9 vital_fraction`, `10 shield_bonus`. Codes above `10` are rejected.
 - Targets (`ABIL.target`): `0 none`, `1 unit`, `2 point`
-- Triggers (`BHVR.trigger`): `0 idle`, `1 attacked`, `2 spawned`, `3 ability_ready`
-- Actions (`BHVR.action`): `0 attack_nearest`, `1 flee`, `2 use_ability`
+- Triggers (`BHVR.trigger`): `0 idle`, `1 attacked`, `2 spawned`, `3 ability_ready`, `4 destroyed`
+- Actions (`BHVR.action`): `0 attack_nearest`, `1 flee`, `2 use_ability`, `3 declare_winner` (param = FILTERS index named by `tag=`; the rival side wins when the destroyed unit's side has no living unit carrying that tag)
 - Filters (`UNIT.filter mask`, `ABIL.target filter mask`, `RSCH` applies-to mask, bit n): `0 ground`, `1 air`,
   `2 armored`, `3 biological`, `4 mechanical`, `5 psionic`, `6 structure`, `7 light`,
   `8 massive`, `9 worker`, `10 army`, `11 building`

@@ -1,7 +1,7 @@
 //! Behaviour triggers: a behaviour declared in data fires during the tick when its trigger
 //! happens to a unit. Spawned fires once, on the unit's first tick. Attacked fires on the
 //! tick after a unit takes a hit. Idle fires on the edge where a unit comes to rest, not on
-//! every resting tick. Ability_ready fires when a slot's cooldown runs out. A fired behaviour
+//! every resting tick. Ability_ready fires when a slot's cooldown runs out. Destroyed fires once when a unit's life runs out. A fired behaviour
 //! runs its action: use_ability casts the named ability when the unit holds it (a unit that
 //! does not hold it is skipped, not refused); any other action refuses as action-unsupported.
 //! Behaviours carry no unit link, so every unit is offered each one. Nothing allocates: the
@@ -35,6 +35,41 @@ impl Sim {
         }
     }
 
+    /// Fires the destroyed trigger on every unit that lost its life since the last call.
+    pub(crate) fn fire_destroyed(&mut self) {
+        for i in 0..self.n {
+            if self.trig_death[i] != 0 {
+                self.trig_death[i] = 0;
+                self.run_behaviours(i, TRIGGER_DESTROYED, -1);
+            }
+        }
+    }
+
+    /// Declares the rival side the winner when dead unit `i` carried the tag (a filter bit index)
+    /// and no other living unit of its side carries it. The first winner stands.
+    fn declare_winner(&mut self, i: usize, tag: i32) {
+        if self.winner >= 0 || !(0..32).contains(&tag) {
+            return;
+        }
+        let bit = 1u32 << tag;
+        let side = self.player[i];
+        if self.filter[i] & bit == 0 {
+            return;
+        }
+        let standing = (0..self.n).any(|k| self.alive[k] != 0 && self.player[k] == side && self.filter[k] & bit != 0);
+        if standing {
+            return;
+        }
+        if let Some(rival) = (0..MAX_PLAYERS as u8).find(|&q| q != side && self.hostile(side, q)) {
+            self.winner = rival as i32;
+        }
+    }
+
+    /// The side declared winner by a declare_winner behaviour, or None while no side has won.
+    pub fn winner(&self) -> Option<u8> {
+        u8::try_from(self.winner).ok()
+    }
+
     /// Fires the idle trigger once when unit `i` comes to rest on its destination, and re-arms
     /// it when the unit moves off again.
     pub(crate) fn note_idle(&mut self, i: usize) {
@@ -56,7 +91,7 @@ impl Sim {
         if i >= self.n {
             return false;
         }
-        let found = (0..=TRIGGER_ABILITY_READY).find(|&code| Trigger::from_code(code).map_or(false, |t| t.name() == name));
+        let found = (0..=TRIGGER_DESTROYED).find(|&code| Trigger::from_code(code).map_or(false, |t| t.name() == name));
         let code = match found {
             Some(code) => code,
             None => return false,
@@ -88,6 +123,7 @@ impl Sim {
                 continue;
             }
             match beh.action {
+                ACTION_DECLARE_WINNER => self.declare_winner(i, beh.param),
                 ACTION_USE_ABILITY => {
                     if let Some(slot) = self.slot_holding(i, beh.ability) {
                         let unit_target = self.cat.abilities.get(beh.ability as usize).map_or(false, |a| a.target == TARGET_UNIT);

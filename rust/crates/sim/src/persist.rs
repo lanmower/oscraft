@@ -11,9 +11,8 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 15;
-/// The save version before inventory and xp were added. Such saves load with empty components.
-const STATE_VERSION_NO_COMPONENTS: u16 = 14;
+/// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
+const STATE_VERSION: u16 = 16;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -362,7 +361,9 @@ impl Sim {
         w.extend_from_slice(&self.trig_hit);
         w.extend_from_slice(&self.trig_spawn);
         w.extend_from_slice(&self.trig_idle);
+        w.extend_from_slice(&self.trig_death);
         w.extend_from_slice(&self.trig_ready);
+        put_u64(&mut w, self.winner as i64 as u64);
         put_i32s(&mut w, &self.buff_kind);
         put_i32s(&mut w, &self.buff_left);
         w.extend_from_slice(&self.healer_player);
@@ -449,7 +450,7 @@ impl Sim {
             return Err(StateError::BadMagic);
         }
         let version = r.u16()?;
-        if version != STATE_VERSION && version != STATE_VERSION_NO_COMPONENTS {
+        if version != STATE_VERSION {
             return Err(StateError::BadVersion(version));
         }
         let cap = r.u32()? as usize;
@@ -550,7 +551,9 @@ impl Sim {
         r.bytes_into(&mut next.trig_hit)?;
         r.bytes_into(&mut next.trig_spawn)?;
         r.bytes_into(&mut next.trig_idle)?;
+        r.bytes_into(&mut next.trig_death)?;
         r.bytes_into(&mut next.trig_ready)?;
+        next.winner = r.u64()? as i64 as i32;
         r.i32s_into(&mut next.buff_kind)?;
         r.i32s_into(&mut next.buff_left)?;
         r.bytes_into(&mut next.healer_player)?;
