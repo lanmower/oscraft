@@ -5,9 +5,13 @@
 
 use std::io::{self, BufRead, Read, Write};
 
+use mod_host::ModHost;
 use sim::Sim;
 
 pub const MAX_UNITS: usize = 1024;
+
+const TEST_MOD_NAME: &str = "wasip3-test";
+const TEST_MOD: &str = "-- a test mod loaded inside the wasip3 guest\nlocal loaded = true\n";
 
 pub const COMMANDS: &[&str] = &[
     "load",
@@ -45,10 +49,24 @@ pub fn run<R: BufRead, W: Write>(mut input: R, mut out: W) -> io::Result<()> {
         if line.trim().is_empty() {
             continue;
         }
-        let reply = reply(&mut sim, line.trim()).unwrap_or_else(|e| format!("err {e}"));
+        let reply = match line.trim() {
+            "mod-load" => mod_load(&image),
+            command => reply(&mut sim, command).unwrap_or_else(|e| format!("err {e}")),
+        };
         writeln!(out, "{reply}")?;
     }
     Ok(())
+}
+
+fn mod_load(image: &[u8]) -> String {
+    let mut host = match ModHost::new(image) {
+        Ok(host) => host,
+        Err(e) => return format!("err mod-load host {e:?}"),
+    };
+    match host.load_source(TEST_MOD_NAME, TEST_MOD) {
+        Ok(()) => format!("ok mod-load {TEST_MOD_NAME}"),
+        Err(e) => format!("err mod-load {e}"),
+    }
 }
 
 fn reply(sim: &mut Sim, line: &str) -> Result<String, String> {
@@ -62,7 +80,6 @@ fn reply(sim: &mut Sim, line: &str) -> Result<String, String> {
     }
     match name {
         "load" => Err("load is stdin-only: the image arrives before the first command".into()),
-        "mod-load" => Err("this guest is built without the mod runtime".into()),
         "mod-version" => Ok("ok mod-version 0".into()),
         "tick" => {
             let n: u32 = match words.next() {

@@ -29,8 +29,8 @@ mod host {
     use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
 
     /// The commands the native host sends after the image. Each reply is one stdout line.
-    const COMMANDS: &[&str] = &["tick 10", "ticks", "unit-count", "mod-load probe"];
-    const MOD_REFUSAL: &str = "this guest is built without the mod runtime";
+    const COMMANDS: &[&str] = &["tick 10", "ticks", "unit-count", "mod-load"];
+    const MOD_LOADED: &str = "ok mod-load wasip3-test";
 
     struct State {
         ctx: WasiCtx,
@@ -76,11 +76,10 @@ mod host {
         let ticks = replies[1].strip_prefix("ok ticks ").ok_or_else(|| format!("ticks reply {:?}", replies[1]))?;
         let units = replies[2].strip_prefix("ok unit-count ").ok_or_else(|| format!("unit-count reply {:?}", replies[2]))?;
         println!("wasip3 tick ok ticks={ticks} units={units}");
-        let refusal = replies[3].strip_prefix("err ").ok_or_else(|| format!("mod-load reply {:?}", replies[3]))?;
-        if refusal != MOD_REFUSAL {
-            return Err(format!("mod-load not refused: {refusal}"));
+        if replies[3] != MOD_LOADED {
+            return Err(format!("mod-load reply {:?}, want {MOD_LOADED:?}", replies[3]));
         }
-        println!("wasip3 mod-load refused reason=no mod runtime");
+        println!("wasip3 mod-load ok mod=wasip3-test");
         Ok(())
     }
 }

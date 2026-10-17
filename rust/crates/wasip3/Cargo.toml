@@ -18,6 +18,11 @@ path = "src/main.rs"
 
 [dependencies]
 sim = { path = "../sim" }
+mod-host = { path = "../mod-host" }
+
+# mlua-sys builds the vendored Lua; lua-src 547.0.0 has no wasi arm upstream, so the guest uses a vendored copy with one.
+[patch.crates-io]
+lua-src = { path = "../../vendor/lua-src-547.0.0" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wasmtime = { version = "=50.0.0-rc.1", features = ["component-model", "component-model-async"] }
