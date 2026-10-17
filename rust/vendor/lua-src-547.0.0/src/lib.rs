@@ -142,7 +142,9 @@ impl Build {
                     .define("_WASI_EMULATED_SIGNAL", None)
                     .define("L_tmpnam", "64")
                     .flag("-mllvm")
-                    .flag("-wasm-enable-sjlj");
+                    .flag("-wasm-enable-sjlj")
+                    .flag("-mthread-model")
+                    .flag("single");
             }
             _ => panic!("don't know how to build Lua for {}", target),
         };
