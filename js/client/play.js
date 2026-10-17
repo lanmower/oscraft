@@ -21,6 +21,7 @@ const BASE_PX_PER_UNIT = 20;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const DRAG_SLOP_PX = 4;
+const RIGHT_BUTTON = 2;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_CAP_MS = 16000;
 const RECONNECT_MAX_ATTEMPTS = 6;
@@ -46,6 +47,7 @@ let reconnectAttempt = 0;
 let reconnectTimer = 0;
 let drag = null;
 let hosting = false;
+let orders = 0;
 const hostPlayers = new Map();
 
 function setStatus(extra) {
@@ -167,16 +169,28 @@ function pick(world) {
   return best;
 }
 
+// Left button selects the unit under the pointer. Right button orders the selected unit to walk to the
+// clicked point: a guest sends the order to the host; the host and the local preview apply it to the sim.
 function onClick(e) {
   const world = screenToWorld(e.clientX, e.clientY);
-  const selected = currentUnits().find((u) => u.id === selectedId);
-  if (selected && !pick(world)) {
-    if (netState) session.broadcast(sendOrder(selected.id, world.x, world.z));
-    setStatus(`order move unit ${selected.id} to ${world.x.toFixed(2)},${world.z.toFixed(2)}${netState ? "" : " (local, not sent)"}`);
+  if (e.button === RIGHT_BUTTON) {
+    issueMove(world);
     return;
   }
   const hit = pick(world);
   selectedId = hit ? hit.id : -1;
+}
+
+function issueMove(world) {
+  const selected = currentUnits().find((u) => u.id === selectedId);
+  if (!selected) return;
+  if (netState) {
+    session.broadcast(sendOrder(selected.id, world.x, world.z));
+    orders += 1;
+  } else if (localGame.order_move(selected.id, world.x, world.z)) {
+    orders += 1;
+  }
+  setStatus(`order move unit ${selected.id} to ${world.x.toFixed(2)},${world.z.toFixed(2)}${netState ? "" : " (local)"}`);
 }
 
 function bindInput() {
@@ -200,6 +214,7 @@ function bindInput() {
     drag = null;
     if (!wasDrag) onClick(e);
   });
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     camera.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, camera.zoom * Math.exp(-e.deltaY * 0.001)));
@@ -377,6 +392,7 @@ function publishWitness() {
   document.body.dataset.units = String(currentUnits().length);
   document.body.dataset.ticks = String(localGame ? localGame.ticks() : netState ? netState.tick : 0);
   document.body.dataset.center = `${camera.cx},${camera.cz}`;
+  document.body.dataset.orders = String(orders);
 }
 
 async function main() {
@@ -412,6 +428,7 @@ if (params.get("ci") === "1") {
   window.__ciFrames = [];
   window.__ciUnits = () => (hosting ? currentUnits() : netState ? netState.units : []).map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
+  window.__ciSelected = () => selectedId;
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 

@@ -1556,6 +1556,40 @@ jobs:
           grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'session=ci-browser '
           grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'message="ci browser probe"'
 
+      - name: Left click selects a unit, right click orders it to move; the sim accepts the order
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/pw/moba-input.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#moba");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          const units = await page.evaluate(() => window.__ciUnits());
+          if (!units.length) throw new Error("no units to order");
+          const [cx, cz] = (await page.getAttribute("body", "data-center")).split(",").map(Number);
+          const toScreen = (x, z) => ({ x: 512 + (x - cx) * 20, y: 384 + (z - cz) * 20 });
+          const unit = units[0];
+          const at = toScreen(unit.x, unit.z);
+          await page.mouse.click(at.x, at.y, { button: "left" });
+          const selected = await page.evaluate(() => window.__ciSelected());
+          if (selected !== unit.id) throw new Error("left click selected " + selected + ", expected " + unit.id);
+          const target = toScreen(Math.min(29, unit.x + 3), unit.z);
+          await page.mouse.click(target.x, target.y, { button: "right" });
+          await page.waitForSelector("body[data-orders='1']", { timeout: 15000 });
+          const orders = await page.getAttribute("body", "data-orders");
+          if (errors.length) throw new Error("console errors: " + errors.join("\n"));
+          console.log(`moba input ok orders=${orders}`);
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/moba-input.mjs" | tee "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba input ok orders=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+
       - name: Edit the mod under a running page; its data-mod-version follows
         run: |
           set -euo pipefail
