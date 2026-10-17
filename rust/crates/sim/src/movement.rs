@@ -75,7 +75,10 @@ impl Sim {
             let d2 = dx as i64 * dx as i64 + dy as i64 * dy as i64;
             if d2 > (ONE as i64 * ONE as i64) / 64 {
                 let dist = fixed::sqrt((d2 >> SHIFT) as i32) as i64;
-                if dist > 0 {
+                if dist > 0 && dist <= speed as i64 {
+                    vx = dx;
+                    vy = dy;
+                } else if dist > 0 {
                     vx = ((dx as i64 * speed as i64) / dist) as i32;
                     vy = ((dy as i64 * speed as i64) / dist) as i32;
                 }

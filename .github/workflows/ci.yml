@@ -383,6 +383,33 @@ jobs:
           test "$(grep -c '^ev=tick_shed ' "$work/quiet.log")" -eq 0
           grep -q '^ev=tick_time ' "$work/quiet.log"
 
+      - name: Siege the moba base; the served room declares side 0 the winner within 2400 ticks
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/moba-siege"
+          mkdir -p "$work"
+          ./target/debug/osdt-data ../scenarios/moba "$work/catalog.osdt"
+          addr=127.0.0.1:8097
+          log="$work/siege.log"
+          target/debug/oscraftd --addr "$addr" --room moba --data "$work/catalog.osdt" --mod crates/mod-host/fixtures/moba_siege.lua --ticks 2400 --tick-budget-us 20000 > "$log" 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          winner=-1; tick=0
+          for i in $(seq 1 400); do
+            state=$(curl -sf "http://$addr/state" || true)
+            [ -n "$state" ] || { sleep 0.25; continue; }
+            tick=$(echo "$state" | jq -r .tick)
+            winner=$(echo "$state" | jq -r .winner)
+            [ "$winner" != "-1" ] && break
+            sleep 0.25
+          done
+          kill "$pid" 2>/dev/null || true
+          trap - EXIT
+          test "$winner" = 0
+          test "$tick" -le 2400
+          echo "moba winner ok winner=$winner tick=$tick"
+
       - name: Drain posted orders under a generous budget; the drain logs no tick-shed
         run: |
           set -euo pipefail
