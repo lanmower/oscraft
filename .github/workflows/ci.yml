@@ -2182,6 +2182,21 @@ jobs:
           env -u OSCRAFT_ICE node "$RUNNER_TEMP/ice-check.mjs" | tee "$RUNNER_TEMP/ice-unset.txt"
           grep -q '^ice config ok default=true$' "$RUNNER_TEMP/ice-unset.txt"
 
+      - name: moba unit models parse as GLB
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { readFileSync, readdirSync } from "node:fs";
+            import { parseGlb } from "./js/client/glb.js";
+            const files = readdirSync("js/client/models").filter((f) => f.endsWith(".glb"));
+            for (const f of files) {
+              const b = readFileSync("js/client/models/" + f);
+              parseGlb(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+            }
+            console.log(`moba models ok kinds=${files.length}`);
+          ' | tee moba-models.txt
+          grep -q '^moba models ok kinds=6$' moba-models.txt
+
       - name: count reference-game terms in the tree
         run: |
           count() { git grep -iE "$1" -- . ':!LICENSES-INVENTORY.md' | wc -l; }

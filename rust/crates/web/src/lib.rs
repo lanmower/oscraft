@@ -102,4 +102,12 @@ impl Game {
         }
         out
     }
+
+    /// Living units' type index, one per unit in `units()` order: the unit declaration order.
+    pub fn unit_types(&self) -> Vec<u32> {
+        (0..self.sim.count())
+            .filter(|&i| self.sim.alive(i))
+            .map(|i| self.sim.unit_type(i).max(0) as u32)
+            .collect()
+    }
 }

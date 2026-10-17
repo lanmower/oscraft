@@ -6,6 +6,7 @@ import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, FRAME } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { applyFrame, createStateEncoder } from "./delta.js";
+import { parseGlb } from "./glb.js";
 
 // The map grid from data/map.osd: grid(32, 24), one tile per cell.
 const W = 32;
@@ -16,6 +17,9 @@ const GRID_COLOR = [0.3, 0.38, 0.3];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const UNIT_HALF = 0.4;
+// The #moba page's unit models, by unit declaration order in scenarios/moba/units.osd:
+// hero, tower, base, creep, tender, objective. Files live in js/client/models.
+const MOBA_MODELS = ["character-male-a", "tower-square", "building-f", "character-skeleton", "character-female-a", "pillar-obelisk"];
 const PICK_RADIUS = 1.0;
 const BASE_PX_PER_UNIT = 20;
 const MIN_ZOOM = 0.5;
@@ -48,6 +52,7 @@ let casts = 0;
 let attacks = 0;
 let attackMode = false;
 let localGame = null;
+let models = [];
 let selectedId = -1;
 let reconnectAttempt = 0;
 let reconnectTimer = 0;
@@ -72,6 +77,35 @@ async function loadSim() {
   // The moba preview runs without fog so every enemy is a valid target; other pages keep the sim's fog.
   game.set_fog(location.hash !== "#moba");
   return game;
+}
+
+// Each model is projected onto the ground: x and z centred and scaled to the unit footprint. Each
+// vertex carries a shade from its normal's height, so tops read brighter than sides.
+function groundTriangles({ positions, normals, indices }) {
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (let v = 0; v < positions.length; v += 3) {
+    minX = Math.min(minX, positions[v]);
+    maxX = Math.max(maxX, positions[v]);
+    minZ = Math.min(minZ, positions[v + 2]);
+    maxZ = Math.max(maxZ, positions[v + 2]);
+  }
+  const scale = (2 * UNIT_HALF) / (Math.max(maxX - minX, maxZ - minZ) || 1);
+  const cx = (minX + maxX) / 2;
+  const cz = (minZ + maxZ) / 2;
+  const out = [];
+  for (const i of indices) {
+    const up = normals ? Math.max(0, normals[3 * i + 1]) : 1;
+    out.push((positions[3 * i] - cx) * scale, (positions[3 * i + 2] - cz) * scale, 0.45 + 0.55 * up);
+  }
+  return new Float32Array(out);
+}
+
+async function loadModels() {
+  if (location.hash !== "#moba") return [];
+  return Promise.all(MOBA_MODELS.map(async (name) => {
+    const bytes = await (await fetch(new URL(`models/${name}.glb`, location.href))).arrayBuffer();
+    return groundTriangles(parseGlb(bytes));
+  }));
 }
 
 function compile(gl, type, src) {
@@ -129,9 +163,11 @@ function currentUnits() {
   if (!localGame) return [];
   const flat = localGame.units();
   const ids = localGame.unit_ids();
+  // Older wasm builds have no unit_types export; their units draw as quads.
+  const types = typeof localGame.unit_types === "function" ? localGame.unit_types() : null;
   const out = [];
   for (let i = 0; i < ids.length; i++) {
-    out.push({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2] });
+    out.push({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1 });
   }
   return out;
 }
@@ -139,8 +175,16 @@ function currentUnits() {
 function unitVerts(units) {
   const out = [];
   for (const u of units) {
-    const color = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
-    pushQuad(out, u.x - UNIT_HALF, u.z - UNIT_HALF, u.x + UNIT_HALF, u.z + UNIT_HALF, color);
+    const base = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
+    const model = models[u.type];
+    if (!model) {
+      pushQuad(out, u.x - UNIT_HALF, u.z - UNIT_HALF, u.x + UNIT_HALF, u.z + UNIT_HALF, base);
+      continue;
+    }
+    for (let v = 0; v < model.length; v += 3) {
+      const s = model[v + 2];
+      out.push(u.x + model[v], u.z + model[v + 1], base[0] * s, base[1] * s, base[2] * s);
+    }
   }
   return new Float32Array(out);
 }
@@ -554,6 +598,7 @@ async function main() {
   const renderer = createRenderer();
   const mapMeshes = buildMapMeshes();
   localGame = await loadSim();
+  models = await loadModels();
   if (params.get("host") === "1") startHost();
   joinRoom();
 
