@@ -2925,8 +2925,15 @@ jobs:
             for (const p of [host, peer]) p.on("pageerror", (e) => errors.push(e.message));
             await host.goto(`${base}&host=1#moba`);
             await peer.goto(`${base}#moba`);
-            await host.waitForFunction(() => window.__ciPeers && window.__ciPeers() >= 1, null, { timeout: 120000 });
-            await peer.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 });
+            // On a timeout, print each page's peer connection states and candidate types before failing.
+            const diagnose = async (page, name, e) => {
+              console.log(`DIAG ${name} debug=${JSON.stringify(await page.evaluate(() => window.__ciDebug()))}`);
+              console.log(`DIAG ${name} candidates=${JSON.stringify(await page.evaluate(() => window.__ciCandidates()))}`);
+              console.log(`DIAG ${name} status=${await page.evaluate(() => document.getElementById("status")?.textContent)}`);
+              throw e;
+            };
+            await host.waitForFunction(() => window.__ciPeers && window.__ciPeers() >= 1, null, { timeout: 120000 }).catch((e) => diagnose(host, "host", e));
+            await peer.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 }).catch((e) => diagnose(peer, "peer", e));
             const relayOnly = (c) => c.localTypes.length > 0 && c.localTypes.every((t) => t === "relay")
               && c.pairs.length > 0 && c.pairs.every((x) => x.local === "relay" && x.remote === "relay");
             let h = null;
@@ -2998,3 +3005,9 @@ jobs:
           grep -qE '^browser turn relay ok local=relay pairs=[1-9][0-9]*/[1-9][0-9]* unit=[0-9]+ moved=true$' "$work/turn-relay.txt"
           grep -qE '^browser relay commands ok attacks=1 casts=1$' "$work/turn-relay.txt"
           grep -qE '^browser relay agreement ok ticks=[2-9][0-9]+$' "$work/turn-relay.txt"
+
+      - name: Show the TURN server and relay logs when the probe fails
+        if: failure()
+        run: |
+          cat "$RUNNER_TEMP/browser-turn-relay/turn.log" || true
+          cat "$RUNNER_TEMP/browser-turn-relay/relay.log" || true
