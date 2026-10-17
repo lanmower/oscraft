@@ -1625,7 +1625,7 @@ jobs:
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
           const ranked = [...units].sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
           let attacker = null;
-          for (const cand of ranked.reverse().slice(0, 15)) {
+          for (const cand of ranked.reverse().slice(0, 60)) {
             const at = toScreen(cand.x, cand.z);
             await page.mouse.click(at.x, at.y, { button: "left" });
             if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;

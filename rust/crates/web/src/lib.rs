@@ -16,6 +16,9 @@ impl Game {
     #[wasm_bindgen(constructor)]
     pub fn new(image: &[u8]) -> Result<Game, JsValue> {
         let sim = sim::load(image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
+        // The preview runs without fog, as the gate's checks do, so an enemy is a valid target from anywhere.
+        let mut sim = sim;
+        sim.set_fog(false);
         Ok(Game { sim })
     }
 
@@ -71,9 +74,10 @@ impl Game {
         self.sim.cast_ability(unit as usize, slot as usize, target, fx, fy)
     }
 
-    /// Orders unit `unit` to attack unit `target`. Returns false when the sim refuses the order.
+    /// Orders unit `unit` to attack unit `target`, walking toward it when it is out of reach.
+    /// Returns false when the sim refuses the order.
     pub fn attack(&mut self, unit: u32, target: u32) -> bool {
-        self.sim.order_attack(unit as usize, target as usize).is_ok()
+        self.sim.order_attack_or_approach(unit as usize, target as usize).is_ok()
     }
 
     /// Test hook for the page's CI probe: deals `damage` whole points to unit `unit`.
