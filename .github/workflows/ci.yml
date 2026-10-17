@@ -2639,6 +2639,10 @@ jobs:
           test "$spawned" -ge "$bases"
           test "$spawned" -le "$max_waves"
           echo "moba wave ok spawned=$spawned at_tick=$at_tick"
+          win=$(grep -E '^behaviour\("win_on_base_loss"' behaviours.osd)
+          test -n "$win"
+          echo "$win" | grep -qE 'trigger="destroyed".*action="declare_winner".*tag="building"'
+          echo "moba win tag ok tag=building"
 
   lobby-room-select:
     name: lobby room panel lists two rooms announced on the relay, joins one, and drops a closed page after its TTL
