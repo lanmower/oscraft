@@ -3158,6 +3158,9 @@ jobs:
             await new Promise((r) => setTimeout(r, 3000));
             const sent = new Map(await host.evaluate(() => window.__ciSentTicks()));
             const recv = await peer.evaluate(() => window.__ciRecvTicks());
+            const recvOrder = recv.map(([tick]) => tick);
+            const outOfOrder = recvOrder.findIndex((t, i) => i > 0 && t <= recvOrder[i - 1]);
+            if (outOfOrder >= 0) throw new Error(`peer applied a stale host frame: tick ${recvOrder[outOfOrder]} after ${recvOrder[outOfOrder - 1]}`);
             let matched = 0;
             let mismatched = 0;
             for (const [tick, key] of recv) {

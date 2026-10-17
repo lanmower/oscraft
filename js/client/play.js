@@ -568,9 +568,13 @@ session.addEventListener("peer-open", (e) => {
 session.addEventListener("peer-close", (e) => {
   peers.delete(e.detail.peerPubkey);
   setStatus(`peer-close ${String(e.detail.peerPubkey).slice(0, 8)}`);
-  if (peers.size === 0) scheduleReconnect();
+  if (peers.size === 0) {
+    netTick = -1;
+    scheduleReconnect();
+  }
 });
 const netUnits = new Map();
+let netTick = -1;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
@@ -579,7 +583,9 @@ session.addEventListener("data", (e) => {
     return;
   }
   if (hosting) return;
+  if (frame.tick <= netTick) return;
   if (!applyFrame(netUnits, frame)) return;
+  netTick = frame.tick;
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp, type: u.kind })) };
   if (window.__ciRecv) recordTick(window.__ciRecv, frame.tick, [...netUnits.values()]);
 });
