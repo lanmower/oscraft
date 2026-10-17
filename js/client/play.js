@@ -401,7 +401,9 @@ function snapshotKey() {
 function saveSnapshot(tick) {
   if (typeof localGame.save_state !== "function") return;
   const bytes = localGame.save_state();
-  const record = { tick, hash: localGame.state_hash().toString(), bytes: btoa(String.fromCharCode(...bytes)) };
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const record = { tick, hash: localGame.state_hash().toString(), bytes: btoa(binary) };
   localStorage.setItem(snapshotKey(), JSON.stringify(record));
 }
 
