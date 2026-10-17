@@ -11,7 +11,7 @@ use sim::{Grid, Sim};
 
 use crate::budget::{
     TickHistogram, Timing, NORMAL_ORDER_CAP, SHED_AFTER_OVERRUNS, SHED_HOLD_TICKS, SHED_LOG_EVERY_TICKS,
-    SHED_ORDER_CAP, SHED_PATHS_EVERY,
+    SHED_ORDER_CAP, SHED_PATHS_EVERY, SHED_VISION_EVERY,
 };
 use crate::mods::{self, ModLink};
 use crate::order::{Order, OrderGate};
@@ -308,6 +308,7 @@ impl Room {
             crate::emit!(Ev::TickShedEdge, room = self.name, tick = c.tick, state = state);
         }
         let run_paths = !shedding || c.tick % SHED_PATHS_EVERY == 0;
+        let run_vision = !shedding || c.tick % SHED_VISION_EVERY == 0;
         let cap = if shedding { SHED_ORDER_CAP } else { NORMAL_ORDER_CAP };
         let mut drained = 0u64;
         while (drained as usize) < cap {
@@ -327,7 +328,7 @@ impl Room {
                 crate::emit!(Ev::ModCmds, room = self.name, tick = c.tick, applied = applied);
             }
         }
-        c.sim.tick_with_paths(run_paths);
+        c.sim.tick_with_cadence(run_paths, run_vision);
         c.tick += 1;
         let cost = started.elapsed();
         c.worst = c.worst.max(cost);

@@ -18,6 +18,8 @@ pub const SHED_AFTER_OVERRUNS: u64 = 3;
 pub const SHED_HOLD_TICKS: u64 = 48;
 /// While shedding, the flow-field (paths) pass runs only on every this many ticks; units run every tick.
 pub const SHED_PATHS_EVERY: u64 = 4;
+/// While shedding, the fog refresh runs only on every this many ticks (a multiple of the sim's fog period).
+pub const SHED_VISION_EVERY: u64 = 32;
 /// Queued submissions drained per tick while shedding; the rest wait until the room recovers.
 pub const SHED_ORDER_CAP: usize = 0;
 /// Queued submissions drained per tick when the room is not shedding.

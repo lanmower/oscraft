@@ -84,16 +84,17 @@ impl Sim {
     }
 
     pub fn tick(&mut self) {
-        self.tick_with_paths(true);
+        self.tick_with_cadence(true, true);
     }
 
-    /// One tick. `run_paths` false skips the flow-field pass for this tick only; units still run.
-    pub fn tick_with_paths(&mut self, run_paths: bool) {
+    /// One tick. `run_paths` false skips the flow-field pass and `run_vision` false skips the fog
+    /// refresh, for this tick only; units, orders and buffs still run every tick.
+    pub fn tick_with_cadence(&mut self, run_paths: bool, run_vision: bool) {
         let mut mark = clock();
         self.rebucket();
         mark = lap(System::Rebucket, mark);
         self.scan_left = RETARGET_BUDGET;
-        if self.fog && self.ticks % VIS_PERIOD == 0 {
+        if run_vision && self.fog && self.ticks % VIS_PERIOD == 0 {
             self.refresh_vision();
         }
         mark = lap(System::Vision, mark);
