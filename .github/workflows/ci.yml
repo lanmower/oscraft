@@ -2893,6 +2893,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y coturn
+          # The package starts a default TURN server on port 3478. Stop it so the probe's own server, with its
+          # test credentials, is the one the page reaches.
+          sudo systemctl disable --now coturn || true
+          sudo pkill -x turnserver || true
+          if (echo > /dev/tcp/127.0.0.1/3478) 2>/dev/null; then echo "port 3478 still in use"; exit 1; fi
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
