@@ -1627,6 +1627,10 @@ jobs:
           const gold = Number(await page.getAttribute("body", "data-gold"));
           if (!(hp > 0) || !(gold >= 0)) throw new Error("hud reads hp=" + hp + " gold=" + gold);
           console.log(`moba hud ok hp=${hp} gold=${gold}`);
+          const dots = Number(await page.getAttribute("body", "data-minimap"));
+          const shown = (await page.evaluate(() => window.__ciUnits())).length;
+          if (!(dots > 0) || dots !== shown) throw new Error("minimap draws " + dots + " dots for " + shown + " units");
+          console.log(`moba minimap ok dots=${dots}`);
           // Not every unit can cast or attack: try the most isolated units until one does both.
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
           const ranked = [...units].sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
@@ -1663,6 +1667,7 @@ jobs:
           node "$RUNNER_TEMP/pw/moba-input.mjs" | tee "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba input ok orders=[1-9][0-9]* casts=[1-9][0-9]* attacks=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba hud ok hp=[1-9][0-9]* gold=[0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba minimap ok dots=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba win screen ok winner=0$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
