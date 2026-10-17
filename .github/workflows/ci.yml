@@ -2419,15 +2419,15 @@ jobs:
           [[ "$BROKEN_LINE" =~ ^[0-9]+$ ]] || { echo "FAIL: broken copy has no diagnostic line: [$BROKEN_DIAG]"; exit 1; }
           [ "$BROKEN_LINE" = 7 ] || { echo "FAIL: broken copy diagnostic at 0-based line $BROKEN_LINE, expected 7"; exit 1; }
           echo "lua-diagnostic: $(basename "$BROKEN") line $((BROKEN_LINE + 1)): $BROKEN_MSG"
-          EXPORTED=$({ sed -n '/^pub const HOST_GLOBALS/,/^\];/p' crates/mod-host/src/lib.rs | grep -o '"[a-z_]*"' | tr -d '"'; sed -n '/^pub const EVENTS/,/^\];/p' crates/mod-host/src/lib.rs | grep -o '("[a-z_]*"' | tr -d '("'; } | sort)
+          EXPORTED=$({ sed -n '/^pub const HOST_GLOBALS/,/^\];/p' crates/mod-host/src/mlua_host.rs | grep -o '"[a-z_]*"' | tr -d '"'; sed -n '/^pub const EVENTS/,/^\];/p' crates/mod-host/src/mlua_host.rs | grep -o '("[a-z_]*"' | tr -d '("'; } | sort)
           COMPLETED=$(jq -r 'select(.id==2) | .result.items[].label' "$RUNNER_TEMP/lua-msgs.jsonl" | sort)
           [ -n "$EXPORTED" ] || { echo "REFUSE: mod-host exports no host globals"; exit 1; }
           [ "$COMPLETED" = "$EXPORTED" ] || { echo "FAIL: lua completion differs from mod-host exports"; diff <(echo "$EXPORTED") <(echo "$COMPLETED") || true; exit 1; }
           echo "lsp host globals match mod-host ok count=$(echo "$EXPORTED" | wc -l)"
           for name in define_region in_region on_tick; do
-            grep -q "\"$name\"" crates/mod-host/src/lib.rs || { echo "FAIL: mod-host no longer registers $name"; exit 1; }
+            grep -q "\"$name\"" crates/mod-host/src/mlua_host.rs || { echo "FAIL: mod-host no longer registers $name"; exit 1; }
           done
-          grep -q 'on_tick(state)' crates/mod-host/src/lib.rs || { echo "FAIL: mod-host contract no longer takes state"; exit 1; }
+          grep -q 'on_tick(state)' crates/mod-host/src/mlua_host.rs || { echo "FAIL: mod-host contract no longer takes state"; exit 1; }
           echo "ok: clean mod has no diagnostic, broken mod reports line 8, host globals complete and registered"
 
   hot-reload:
@@ -2850,7 +2850,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
-    continue-on-error: true
     defaults:
       run:
         working-directory: rust/crates/wasip3
