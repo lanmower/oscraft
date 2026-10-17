@@ -28,7 +28,7 @@ Status is as of main `62af78b0`. Each row names its acceptance witness: the line
 - **ci-pkg-commit-back**: CI rebuilds `js/client/pkg` on push to main and commits it back as one path-limited commit. The commit carries `[skip ci]` so it does not retrigger. Witness: the pkg diff is committed and the page's `pkg` matches the sources. Status: decided, not built.
 - **ci-wasm-opt**: drop `--no-opt` once the wasm-pack pin holds. Status: witnessed. The opt-out is gone from `rust/crates/web/Cargo.toml`, and CI run 39021940544 passed on that head.
 - **ci-caps-flake**: the connection-cap probe `0 held open above cap 64` has failed and then passed on rerun. Fix the root cause. Status: fix landed, witness pending. The probe drains until only cap sockets are registered, under a deadline. Five local runs pass; CI runs 39021940544 and 39022142837 pass with it. A flake needs many runs to rule out, so one more batch of CI runs is the witness.
-- **ci-docs-skip**: the docs-only path skip has never run on a pull request. Witness: one PR that touches only `docs/` skips the Rust and browser jobs. Status: open; needs a PR, which the current rules do not allow.
+- **ci-docs-skip**: the docs-only path skip has never run on a pull request. Witness: one PR that touches only `docs/` skips the Rust and browser jobs. Status: witnessed in run 39022366371 (PR #2, docs-only). `decide` reported success, and every Rust and browser job was skipped.
 - **ci-node-tooling**: see D3.
 
 ## C. Runtime and guest
