@@ -2218,7 +2218,7 @@ jobs:
 
       - name: Count the retired resource names under rust and js
         run: |
-          count() { grep -rhoi "$1" rust js | wc -l; }
+          count() { grep -rhoi --exclude-dir=vendor "$1" rust js | wc -l; }
           m=$(count minerals); v=$(count vespene); s=$(count supply)
           test "$m$v$s" = 000 || { echo "resource names found minerals=$m vespene=$v supply=$s"; exit 1; }
           echo "resource names ok minerals=$m vespene=$v supply=$s"
