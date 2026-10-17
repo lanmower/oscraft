@@ -180,6 +180,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] burrow_ticks: Option<i32>,
         #[starlark(require = named)] rally_dx: Option<i32>,
         #[starlark(require = named)] rally_dy: Option<i32>,
+        #[starlark(require = named)] bounty: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let size = index_of(SIZE_CATEGORIES, size.unwrap_or("small"), "size category")?;
@@ -200,6 +201,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             burrow_ticks: burrow_ticks.unwrap_or(0),
             rally_dx: rally_dx.unwrap_or(0),
             rally_dy: rally_dy.unwrap_or(0),
+            bounty: bounty.unwrap_or(0),
         });
         Ok(NoneType)
     }

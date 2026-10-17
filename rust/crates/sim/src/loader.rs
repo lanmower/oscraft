@@ -289,6 +289,8 @@ pub struct UnitExt {
     pub burrow_ticks: i32,
     pub rally_x: i32,
     pub rally_y: i32,
+    /// Resources paid to the rival side when this unit is destroyed.
+    pub bounty: i32,
 }
 
 /// Channelling of one ability (ACHN, one per ability).
@@ -910,8 +912,8 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let burrow_ticks = xr.i32("ext burrow time")?;
         let rally_x = xr.i32("ext rally x")?;
         let rally_y = xr.i32("ext rally y")?;
-        xr.skip(4, "ext reserved")?;
-        if size > 2 || damage_type > 2 || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 {
+        let bounty = xr.i32("ext bounty")?;
+        if size > 2 || damage_type > 2 || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 || bounty < 0 {
             return Err(LoadError::Range("unit extension outside its table"));
         }
         unit_ext.push(UnitExt {
@@ -925,6 +927,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             burrow_ticks,
             rally_x,
             rally_y,
+            bounty,
         });
     }
 

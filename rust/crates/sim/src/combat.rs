@@ -203,6 +203,17 @@ impl Sim {
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
 
+    /// Pays the destroyed unit's bounty into the resource pool of its owner's rival side.
+    fn pay_bounty(&mut self, j: usize) {
+        let bounty = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty);
+        if bounty <= 0 {
+            return;
+        }
+        if let Some(rival) = self.rival_of(self.player[j]) {
+            self.add_resources(rival, bounty, 0);
+        }
+    }
+
     /// The damage path shared by weapons and abilities: damage response, then shield,
     /// then life, with death recorded when life runs out.
     fn inflict(&mut self, j: usize, mut dmg: i32) {
@@ -220,10 +231,14 @@ impl Sim {
         }
         self.hp[j] = self.hp[j].wrapping_sub(dmg);
         if self.hp[j] <= 0 {
+            let fell = self.alive[j] != 0;
             self.hp[j] = 0;
             self.alive[j] = 0;
             self.trig_death[j] = 1;
             self.stats.deaths += 1;
+            if fell {
+                self.pay_bounty(j);
+            }
         }
     }
 

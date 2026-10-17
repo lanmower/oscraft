@@ -60,9 +60,14 @@ impl Sim {
         if standing {
             return;
         }
-        if let Some(rival) = (0..MAX_PLAYERS as u8).find(|&q| q != side && self.hostile(side, q)) {
+        if let Some(rival) = self.rival_of(side) {
             self.winner = rival as i32;
         }
+    }
+
+    /// The first side hostile to `side`, the side a destroyed unit's bounty or win goes to.
+    pub(crate) fn rival_of(&self, side: u8) -> Option<u8> {
+        (0..MAX_PLAYERS as u8).find(|&q| q != side && self.hostile(side, q))
     }
 
     /// The side declared winner by a declare_winner behaviour, or None while no side has won.

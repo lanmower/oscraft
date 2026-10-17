@@ -203,6 +203,22 @@ pub fn win_trigger(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// Destroying a creep pays its bounty into the rival side's resource pool at once.
+pub fn kill_bounty(_image: &[u8]) -> Result<(), String> {
+    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("duel-routes");
+    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
+    let mut s = fresh(&image)?;
+    let creep = spawn(&mut s, 1, "creep", 30, 20)?;
+    let gold_before = s.resource_a(0);
+    s.hurt(creep, fixed::from_int(10000));
+    let gold_after = s.resource_a(0);
+    if gold_after - gold_before != 25 {
+        return Err(format!("creep bounty paid {} want 25", gold_after - gold_before));
+    }
+    println!("kill bounty ok gold_before={gold_before} gold_after={gold_after}");
+    Ok(())
+}
+
 pub fn region_query(image: &[u8]) -> Result<(), String> {
     let src = r#"
 define_region("zone", 0, 0, 655360, 655360)

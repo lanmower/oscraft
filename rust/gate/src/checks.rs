@@ -34,6 +34,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("mechanic-region-query", mechanic_checks::region_query),
     ("mechanic-structure-damage", mechanic_checks::structure_damage),
     ("mechanic-win-trigger", mechanic_checks::win_trigger),
+    ("mechanic-kill-bounty", mechanic_checks::kill_bounty),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP

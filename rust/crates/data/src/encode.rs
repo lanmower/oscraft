@@ -141,7 +141,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u32_le(&mut uext, ext.burrow_ticks);
         i32_le(&mut uext, ext.rally_dx);
         i32_le(&mut uext, ext.rally_dy);
-        pad(&mut uext, 4);
+        u32_le(&mut uext, ext.bounty);
         debug_assert_eq!(uext.len() - start, UEXT_RECORD);
     }
 

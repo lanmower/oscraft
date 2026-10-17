@@ -241,6 +241,7 @@ pub struct UnitExt {
     pub burrow_ticks: u32,
     pub rally_dx: i32,
     pub rally_dy: i32,
+    pub bounty: u32,
 }
 
 #[derive(Debug, Default, Clone, Copy)]

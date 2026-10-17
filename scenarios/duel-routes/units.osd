@@ -4,3 +4,5 @@ unit("warden", 120, 2250, 500, build_time=720, resource_a=100, capacity=3, abili
 unit("tender", 40, 2800, 350, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="resource_a", harvest=5)
 # Beacon: an objective structure with hit points and no weapon. Ground filter lets side 0 weapons target it.
 unit("beacon", 300, 1000, 500, filters=["ground", "armored", "massive", "structure"], sight_milli=6000)
+# Creep: a light ground unit whose destruction pays its bounty to the rival side.
+unit("creep", 60, 1500, 300, filters=["ground", "light"], sight_milli=6000)

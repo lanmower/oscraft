@@ -246,6 +246,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             burrow_ticks: unsigned("burrow_ticks", raw.burrow_ticks)?,
             rally_dx: raw.rally_dx,
             rally_dy: raw.rally_dy,
+            bounty: unsigned("bounty", raw.bounty)?,
         };
     }
 
