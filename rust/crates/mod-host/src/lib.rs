@@ -19,6 +19,8 @@ const DEFAULT_INSTRUCTIONS: u64 = 10_000_000;
 const DEFAULT_MEMORY: usize = 16 << 20;
 
 // The OSDT image for a directory of `.osd` files, from the generate path `osdt-data <dir> <out>` runs.
+// Behind the `build` feature so a guest that only loads images never links the starlark toolchain.
+#[cfg(feature = "build")]
 pub fn build_image(src_dir: &Path) -> Result<Vec<u8>, String> {
     osdt_data::generate(src_dir).map_err(|e| format!("{e:#}"))
 }
@@ -1318,7 +1320,7 @@ impl ModHost {
         self.world.borrow().state_hash()
     }
 }
-#[cfg(test)]
+#[cfg(all(test, feature = "build"))]
 mod tests {
     use super::*;
 

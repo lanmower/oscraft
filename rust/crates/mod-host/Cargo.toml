@@ -4,15 +4,22 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
+[features]
+default = ["build"]
+# Builds OSDT images from .osd sources; the wasip3 guest turns it off to keep starlark out of wasm.
+build = ["dep:osdt-data"]
+
 [[bin]]
 name = "reload_harness"
 path = "src/bin/reload_harness.rs"
+required-features = ["build"]
 
 [[bin]]
 name = "mod_check"
 path = "src/bin/mod_check.rs"
+required-features = ["build"]
 
 [dependencies]
 mlua = { version = "0.10", features = ["lua54", "vendored"] }
 sim = { path = "../sim" }
-osdt-data = { path = "../data" }
+osdt-data = { path = "../data", optional = true }

@@ -18,7 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 sim = { path = "../sim" }
-mod-host = { path = "../mod-host" }
+mod-host = { path = "../mod-host", default-features = false }
 
 # mlua-sys builds the vendored Lua; lua-src 547.0.0 has no wasi arm upstream, so the guest uses a vendored copy with one.
 [patch.crates-io]

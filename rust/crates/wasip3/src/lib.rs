@@ -3,7 +3,7 @@
 //! Command names are the WIT exports of rust/crates/wasip3/wit/sim-component.wit. COMMANDS lists
 //! them once; ci.yml's host-api job fails when this list and the WIT exports differ.
 
-use std::io::{self, BufRead, Read, Write};
+use std::io::{self, BufRead, Write};
 
 use mod_host::ModHost;
 use sim::Sim;
