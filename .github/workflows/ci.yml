@@ -772,13 +772,13 @@ jobs:
           for i in $(seq 1 60); do catalog >/dev/null 2>&1 && break; sleep 0.5; done
           catalog | jq -e '.loaded == true' >/dev/null
           catalog | jq -e '.units | any(. == "reloadprobe") | not' >/dev/null
-          printf '%s\n' 'unit("reloadprobe", 50, 2000, 300, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$work/reload_probe.osd"
+          printf '%s\n' 'unit("reloadprobe", 50, 2000, 300, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "army"], sight_milli=8000)' > "$RUNNER_TEMP/reload_probe.osd" && mv "$RUNNER_TEMP/reload_probe.osd" "$work/reload_probe.osd"
           for i in $(seq 1 60); do grep -q '^ev=data_reloaded ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reloaded room=ci ' "$log"
           for i in $(seq 1 20); do catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null 2>&1 && break; sleep 0.25; done
           catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null
           grep '^ev=data_reloaded ' "$log" | head -n 1
-          printf '%s\n' 'unit("reloadprobe", 50,' > "$work/reload_probe.osd"
+          printf '%s\n' 'unit("reloadprobe", 50,' > "$RUNNER_TEMP/reload_probe.osd" && mv "$RUNNER_TEMP/reload_probe.osd" "$work/reload_probe.osd"
           for i in $(seq 1 60); do grep -q '^ev=data_reload_failed ' "$log" && break; sleep 0.5; done
           grep -q '^ev=data_reload_failed room=ci ' "$log"
           catalog | jq -e '.units | any(. == "reloadprobe")' >/dev/null
