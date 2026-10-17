@@ -3016,6 +3016,8 @@ jobs:
             };
             await host.waitForFunction(() => window.__ciPeers && window.__ciPeers() >= 1, null, { timeout: 120000 }).catch((e) => diagnose(host, "host", e));
             await peer.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 }).catch((e) => diagnose(peer, "peer", e));
+            const turnUrls = await host.evaluate(() => window.__ciTurnUrls());
+            if (!turnUrls.includes("turn:127.0.0.1:3478?transport=udp")) throw new Error(`TURN url missing from the RTCPeerConnection configuration: ${JSON.stringify(turnUrls)}`);
             const relayOnly = (c) => c.localTypes.length > 0 && c.localTypes.every((t) => t === "relay")
               && c.pairs.length > 0 && c.pairs.every((x) => x.local === "relay" && x.remote === "relay");
             let h = null;

@@ -695,6 +695,8 @@ if (params.get("ci") === "1") {
     }
     return { localTypes: [...localTypes].sort(), pairs };
   };
+  // Every ICE server URL in each CI peer connection's configuration, as the browser recorded it.
+  window.__ciTurnUrls = () => ciPeerConnections.flatMap((pc) => (pc.getConfiguration().iceServers || []).flatMap((s) => [s.urls].flat()));
   window.__ciSelect = (unitId) => { selectedId = unitId; };
   window.__ciKillSide = (player) => {
     for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 10000);
