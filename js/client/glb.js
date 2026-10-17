@@ -63,8 +63,27 @@ function readComponent(view, at, componentType) {
   }
 }
 
-// Returns { positions: Float32Array, normals: Float32Array|null, indices: Uint32Array }
+// Reads the base color image reference of the primitive's material. An embedded image (bufferView)
+// yields its bytes and mime type; an external or data: uri yields the uri as written in the file.
+function readBaseColorTexture(gltf, bin, primitive) {
+  const material = gltf.materials?.[primitive.material ?? -1];
+  const ref = material?.pbrMetallicRoughness?.baseColorTexture;
+  if (!ref) return null;
+  const image = gltf.images?.[gltf.textures?.[ref.index]?.source ?? -1];
+  if (!image) return null;
+  const texCoord = ref.texCoord ?? 0;
+  if (image.bufferView !== undefined) {
+    const view = gltf.bufferViews[image.bufferView];
+    const bytes = bin.slice(view.byteOffset || 0, (view.byteOffset || 0) + view.byteLength);
+    return { uri: null, mimeType: image.mimeType ?? 'image/png', bytes, texCoord };
+  }
+  return { uri: image.uri ?? null, mimeType: image.mimeType ?? null, bytes: null, texCoord };
+}
+
+// Returns { positions: Float32Array, normals: Float32Array|null, texcoords: Float32Array|null,
+//   indices: Uint32Array, baseColorTexture: {uri, mimeType, bytes, texCoord}|null }
 // for the first primitive of the first mesh. Triangles only; indices widened to Uint32.
+// texcoords is TEXCOORD_0 (two floats per vertex); baseColorTexture is the material's image reference.
 export function parseGlb(buffer) {
   const { json: gltf, bin } = readChunks(buffer);
   if (!bin) throw new Error('glb: no BIN chunk');
@@ -73,9 +92,16 @@ export function parseGlb(buffer) {
   if (primitive.mode !== undefined && primitive.mode !== 4) throw new Error('glb: only triangle primitives');
   const positions = readAccessor(gltf, bin, primitive.attributes.POSITION, VERTEX_TYPE);
   const normals = primitive.attributes.NORMAL === undefined ? null : readAccessor(gltf, bin, primitive.attributes.NORMAL, VERTEX_TYPE);
+  const texcoords = primitive.attributes.TEXCOORD_0 === undefined ? null : Float32Array.from(readAccessor(gltf, bin, primitive.attributes.TEXCOORD_0, 'VEC2'));
   const vertexCount = positions.length / COMPONENT_COUNTS[VERTEX_TYPE];
   const indices = primitive.indices === undefined
     ? Uint32Array.from({ length: vertexCount }, (_, i) => i)
     : Uint32Array.from(readAccessor(gltf, bin, primitive.indices, 'SCALAR'));
-  return { positions: Float32Array.from(positions), normals: normals && Float32Array.from(normals), indices };
+  return {
+    positions: Float32Array.from(positions),
+    normals: normals && Float32Array.from(normals),
+    texcoords,
+    indices,
+    baseColorTexture: readBaseColorTexture(gltf, bin, primitive),
+  };
 }

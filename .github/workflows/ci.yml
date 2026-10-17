@@ -2227,11 +2227,13 @@ jobs:
             const files = readdirSync("js/client/models").filter((f) => f.endsWith(".glb"));
             for (const f of files) {
               const b = readFileSync("js/client/models/" + f);
-              parseGlb(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+              const m = parseGlb(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+              if (!m.texcoords || m.texcoords.length !== (m.positions.length / 3) * 2) throw new Error(f + " has no TEXCOORD_0");
+              if (!m.baseColorTexture) throw new Error(f + " has no baseColorTexture");
             }
-            console.log(`moba models ok kinds=${files.length}`);
+            console.log(`moba models ok kinds=${files.length} textured=${files.length}`);
           ' | tee moba-models.txt
-          grep -q '^moba models ok kinds=7$' moba-models.txt
+          grep -q '^moba models ok kinds=7 textured=7$' moba-models.txt
 
       - name: count reference-game terms in the tree
         run: |
