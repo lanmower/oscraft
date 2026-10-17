@@ -63,6 +63,7 @@ jobs:
           test -f _site/js/client/play.js
           test -f _site/js/client/map.bin
           test -f _site/js/client/moba.bin
+          printf '<meta http-equiv="refresh" content="0; url=js/client/play.html">\n' > _site/index.html
           test -f _site/js/client/pkg/web.js
           test -f _site/js/client/pkg/web_bg.wasm
 
