@@ -50,6 +50,14 @@ impl Game {
             .collect()
     }
 
+    /// Hit points of the living units, in whole points, in the same order as `unit_ids()`.
+    pub fn unit_hps(&self) -> Vec<i32> {
+        (0..self.sim.count())
+            .filter(|&i| self.sim.alive(i))
+            .map(|i| sim::fixed::to_int(self.sim.hp(i)))
+            .collect()
+    }
+
     /// Orders unit `unit` to walk to tile (x, y). Returns false when the sim refuses the order.
     pub fn order_move(&mut self, unit: u32, x: f32, y: f32) -> bool {
         // sim's ORDER_MOVE (movement order kind 0); the sim keeps that constant crate-private.
