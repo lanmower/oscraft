@@ -2,7 +2,7 @@ name: pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/wonderful-hopper-xzvxvx]
   workflow_dispatch:
 
 permissions:
@@ -73,6 +73,7 @@ jobs:
   deploy:
     name: publish the built page to GitHub Pages
     needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
