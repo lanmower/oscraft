@@ -27,9 +27,10 @@ done < MANIFEST.sha256
 extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
 [ "$extra" -eq "$members" ] || fail "archive holds $extra files but manifest lists $members"
 [ -s js/client/play.js ] || fail "js/client/play.js is missing or empty"
-for f in play.html play.js rooms.js ice.js delta.js wire/frame.js map.bin pkg/web.js pkg/web_bg.wasm; do
+for f in play.html play.js rooms.js ice.js delta.js wire/frame.js glb.js map.bin pkg/web.js pkg/web_bg.wasm; do
   [ -s "js/client/$f" ] || fail "js/client/$f is missing or empty"
 done
+[ -d js/client/models ] && [ -n "$(ls -A js/client/models)" ] || fail "js/client/models is missing or empty"
 grep -q 'src="play.js"' js/client/play.html || fail "js/client/play.html does not load play.js"
 specs=$(grep -ho -E "[\"'][.][.]?/[^\"']+[\"']" js/client/play.js js/client/delta.js | tr -d "\"'" | sort -u)
 refs=$(grep -ho -E 'data-(pkg|map)="[^"]+"' js/client/play.html | sed -E 's/.*="(.*)"/\1/')

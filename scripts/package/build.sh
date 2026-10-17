@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds one installable archive: oscraftd, oscraft-lsp, the data directory and the browser site.
+# Builds one installable archive: oscraftd, oscraft-lsp, the data directory, the browser site and the browser client.
 # Usage: scripts/package/build.sh <out-dir>
-# Output: <out-dir>/oscraft-<version>.tar.gz, members at its root (bin/ data/ site/ VERSION MANIFEST.sha256).
+# Output: <out-dir>/oscraft-<version>.tar.gz, members at its root (bin/ data/ site/ js/client/ VERSION MANIFEST.sha256).
 set -euo pipefail
 out=${1:?usage: build.sh <out-dir>}
 root=$(cd "$(dirname "$0")/../.." && pwd)
