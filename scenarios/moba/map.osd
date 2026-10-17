@@ -7,7 +7,7 @@ paint(2, 19, 38, 22, 0)
 paint(2, 3, 4, 22, 0)
 paint(36, 3, 38, 22, 0)
 # Elevation: a flat base level and a raised plateau around the middle. Doodads sit between the lanes.
-height_step(500)
+height_step(1000)
 paint_height(0, 0, 40, 24, 1)
 paint_height(16, 7, 24, 17, 6)
 doodad(1, "rock", 9000, 8500)
