@@ -2563,3 +2563,16 @@ jobs:
           grep -q '^browser two peers ok unit=[0-9]* host_moved=true peer_moved=true$' "$work/two-peers.txt"
           grep -q '^browser order refused not_owner ok unit=[0-9]* owner=1 sender=0 stayed=true$' "$work/two-peers.txt"
           grep -q '^browser frame bytes full=[0-9]* delta_avg=[0-9]*$' "$work/two-peers.txt"
+          frame_line=$(grep '^browser frame bytes full=' "$work/two-peers.txt")
+          full=$(echo "$frame_line" | sed 's/.* full=\([0-9]*\) .*/\1/')
+          delta=$(echo "$frame_line" | sed 's/.* delta_avg=\([0-9]*\)$/\1/')
+          budget="$GITHUB_WORKSPACE/.github/perf/browser-frame-bytes.txt"
+          full_ceiling=$(awk -F= '/^full_ceiling_bytes=/{print $2}' "$budget")
+          delta_ceiling=$(awk -F= '/^delta_avg_ceiling_bytes=/{print $2}' "$budget")
+          test -n "$full_ceiling" && test -n "$delta_ceiling"
+          if [ "$full" -le "$full_ceiling" ] && [ "$delta" -le "$delta_ceiling" ]; then
+            echo "browser frame bytes full=$full delta_avg=$delta within full_ceiling=$full_ceiling delta_ceiling=$delta_ceiling ok"
+          else
+            echo "browser frame bytes full=$full delta_avg=$delta exceeds full_ceiling=$full_ceiling delta_ceiling=$delta_ceiling" >&2
+            exit 1
+          fi

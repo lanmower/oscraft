@@ -1,0 +1,7 @@
+# Browser frame byte budget for the browser-two-peers CI job: the host's broadcast frames over its first 200 ticks.
+# full = bytes of the first state frame; delta_avg = mean bytes of the delta frames among those 200 ticks.
+# Measured on five CI runs (full, delta_avg): 38984202426 (582, 168), 38984501399 (582, 168), 38984861301 (582, 168),
+# 38985125826 (582, 168), 38985368020 (582, 168). The frame sizes were identical in every run.
+# Each ceiling is about 4x the measured value (582 x 4 = 2328, 168 x 4 = 672). The job fails above either.
+full_ceiling_bytes=2328
+delta_avg_ceiling_bytes=672
