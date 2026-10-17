@@ -441,7 +441,7 @@ function startHost() {
     hostTick += 1;
     if (hostTick % SNAPSHOT_EVERY_TICKS === 0) saveSnapshot(hostTick);
     const hash = Number(localGame.state_hash() & 0xffffffffn) >>> 0;
-    const units = currentUnits().map((u) => ({ id: u.id, kind: 0, player: u.player, x: Math.round(u.x * WIRE_SCALE), y: Math.round(u.z * WIRE_SCALE), hp: 0 }));
+    const units = currentUnits().map((u) => ({ id: u.id, kind: Math.max(0, u.type), player: u.player, x: Math.round(u.x * WIRE_SCALE), y: Math.round(u.z * WIRE_SCALE), hp: 0 }));
     if (window.__ciSent) recordTick(window.__ciSent, hostTick, units);
     const frame = encoder.encode(hostTick, hash, units);
     const bytes = encodeFrame(frame);
@@ -583,7 +583,7 @@ session.addEventListener("data", (e) => {
   }
   if (hosting) return;
   if (!applyFrame(netUnits, frame)) return;
-  netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp })) };
+  netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp, type: u.kind })) };
   if (window.__ciRecv) recordTick(window.__ciRecv, frame.tick, [...netUnits.values()]);
 });
 
@@ -669,7 +669,7 @@ async function main() {
 if (params.get("ci") === "1") {
   window.__ciPeers = () => peers.size;
   window.__ciFrames = [];
-  window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
+  window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, modeled: !!models[u.type] }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
   window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));

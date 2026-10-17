@@ -90,6 +90,11 @@ jobs:
           target/debug/mapexport crates/web/site/map.bin
           target/debug/mapexport crates/web/site/moba.bin ../scenarios/moba
 
+      - name: Peer scaling of the per-tick guest cost
+        run: |
+          set -euo pipefail
+          node js/host/guest.js --ticks=5000 --reps=5 --peers=1,8,32 | tee "$RUNNER_TEMP/peer-scaling.txt"
+
       - name: Snapshot restores with a matching state_hash
         working-directory: ${{ github.workspace }}
         run: |
@@ -2880,6 +2885,8 @@ jobs:
             }
             const movedToward = (p) => !!p && Math.hypot(p.x - target.x, p.z - target.z) < Math.hypot(unit.x - target.x, unit.z - target.z) - 1;
             if (!movedToward(onPeer) || !movedToward(onHost)) throw new Error(`no movement seen: start=${unit.x},${unit.z} peer=${JSON.stringify(onPeer)} host=${JSON.stringify(onHost)}`);
+            if (onPeer.type < 0 || onPeer.type !== onHost.type || !onPeer.modeled) throw new Error(`remote unit model not mapped: peer=${JSON.stringify(onPeer)} host=${JSON.stringify(onHost)}`);
+            console.log(`browser remote model ok unit=${unit.id} type=${onPeer.type}`);
             // The gunship spawned at (24, 14) for player 1 in rust/data/map.osd. It flies, so the sim's
             // same-layer separation never moves it, and no ground unit reaches it; a ground unit next to
             // the moving unit would be pushed by separation and would not witness the refusal.
@@ -2910,6 +2917,7 @@ jobs:
           EOF
           node "$RUNNER_TEMP/pw/two-peers.mjs" | tee "$work/two-peers.txt"
           grep -q '^browser two peers ok unit=[0-9]* host_moved=true peer_moved=true$' "$work/two-peers.txt"
+          grep -q '^browser remote model ok unit=[0-9]* type=[0-9]*$' "$work/two-peers.txt"
           grep -q '^browser order refused not_owner ok unit=[0-9]* owner=1 sender=0 stayed=true$' "$work/two-peers.txt"
           grep -q '^browser frame bytes full=[0-9]* delta_avg=[0-9]*$' "$work/two-peers.txt"
           frame_line=$(grep '^browser frame bytes full=' "$work/two-peers.txt")
