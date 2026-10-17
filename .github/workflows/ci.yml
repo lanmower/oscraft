@@ -1507,6 +1507,16 @@ jobs:
           npm install playwright@1.47.0
           npx playwright install --with-deps chromium
 
+      - name: Stage the page wasm and maps this run built into js/client, which the static server serves
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          rm -rf js/client/pkg
+          cp -r rust/crates/web/site/pkg js/client/pkg
+          cp rust/crates/web/site/map.bin js/client/map.bin
+          cp rust/crates/web/site/moba.bin js/client/moba.bin
+          ls -la js/client/pkg js/client/map.bin js/client/moba.bin
+
       - name: Render the committed map through the browser Game and check the witness
         run: |
           target/debug/oscraftd --addr 127.0.0.1:8000 --room ci --site crates/web/site > "$RUNNER_TEMP/http.log" 2>&1 &
