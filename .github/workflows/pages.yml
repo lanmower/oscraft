@@ -2,7 +2,7 @@ name: pages
 
 on:
   push:
-    branches: [main, claude/wonderful-hopper-xzvxvx]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
