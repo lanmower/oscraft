@@ -2835,6 +2835,9 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          rm -rf js/client/models
+          mkdir -p js/client/models
+          cp rust/crates/web/site/assets/units/*.glb js/client/models/
 
       - name: Install headless Chromium
         run: |
