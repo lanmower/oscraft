@@ -19,7 +19,7 @@ Status is as of main `62af78b0`. Each row names its acceptance witness: the line
 - **moba-base-tag**: a tag contract for the base structures that the win trigger reads. Gap `gap-moba-base-win-tag`. Status: closed. The `win_on_base_loss` behaviour names `tag="building"`, and the moba job compiles it.
 - **moba-hud**: hit points, gold, a minimap, and a win or lose screen. Witness: `moba hud ok hp=<n> gold=<n>` and `moba win screen ok winner=<side>`. Status: blocked on the wasm exports for hit points, gold and win state, and on ci-pkg-commit-back.
 - **moba-casts**: Q, W and E cast an ability at the cursor, and A-click attacks. Witness: `moba input ok` extended with `casts=<n> attacks=<n>`. Status: blocked on wasm cast and attack exports, and on ci-pkg-commit-back.
-- **moba-camera**: arrow-key or edge pan, and zoom. Witness: `moba camera ok`. Status: not started; needs no wasm change.
+- **moba-camera**: arrow-key or edge pan, and zoom. Witness: `moba camera ok`. Status: pan witnessed in CI run 39021272353 (browser probe job, success). Zoom is not built and not witnessed.
 - **moba-sync**: two peers over wireweave agree on unit positions and hit points after N ticks. Witness: `moba sync ok ticks=<n> diff=0`. Status: not started.
 - **moba-creep-lane**: creeps path along a lane to the enemy base. Witness: `moba creeps ok lane_progress=<n>`. Status: not specified until the sim reports pathing; treat as a candidate.
 
