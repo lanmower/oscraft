@@ -1590,6 +1590,12 @@ jobs:
           if (!units.length) throw new Error("no units to order");
           const [cx, cz] = (await page.getAttribute("body", "data-center")).split(",").map(Number);
           const toScreen = (x, z) => ({ x: 512 + (x - cx) * 20, y: 384 + (z - cz) * 20 });
+          // The camera moves with the arrow keys and zoom changes the scale, so the mapping is read again for each click.
+          const screenAt = async (x, z) => {
+            const [ccx, ccz] = (await page.getAttribute("body", "data-center")).split(",").map(Number);
+            const ppu = 20 * Number(await page.getAttribute("body", "data-zoom"));
+            return { x: 512 + (x - ccx) * ppu, y: 384 + (z - ccz) * ppu };
+          };
           // Click the unit with the most room around it, so the pick cannot land on a neighbour.
           const unit = units.reduce((best, cand) => {
             const gap = Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));
@@ -1626,12 +1632,12 @@ jobs:
           const ranked = [...units].sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
           let attacker = null;
           for (const cand of ranked.reverse().slice(0, 60)) {
-            const at = toScreen(cand.x, cand.z);
+            const at = await screenAt(cand.x, cand.z);
             await page.mouse.click(at.x, at.y, { button: "left" });
             if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
             const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
             if (!foe) continue;
-            const fp = toScreen(foe.x, foe.z);
+            const fp = await screenAt(foe.x, foe.z);
             // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
             await page.mouse.move(fp.x, fp.y);
             await page.keyboard.press("q");
