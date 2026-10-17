@@ -512,7 +512,7 @@ if (params.get("ci") === "1") {
   window.__ciSelected = () => selectedId;
   window.__ciSelect = (unitId) => { selectedId = unitId; };
   window.__ciKillSide = (player) => {
-    for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 100000);
+    for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 10000);
   };
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
