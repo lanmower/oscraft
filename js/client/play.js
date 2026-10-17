@@ -392,13 +392,52 @@ function countRemote(name) {
   document.body.dataset[name] = String(Number(document.body.dataset[name] || 0) + 1);
 }
 
+const SNAPSHOT_EVERY_TICKS = 50;
+
+function snapshotKey() {
+  return `oscraft:snapshot:${namespace}:${room}`;
+}
+
+function saveSnapshot(tick) {
+  if (typeof localGame.save_state !== "function") return;
+  const bytes = localGame.save_state();
+  const record = { tick, hash: localGame.state_hash().toString(), bytes: btoa(String.fromCharCode(...bytes)) };
+  localStorage.setItem(snapshotKey(), JSON.stringify(record));
+}
+
+// Restores the room from its last snapshot. Returns the restored tick, or -1 after an explicit refusal line.
+function restoreSnapshot() {
+  const raw = localStorage.getItem(snapshotKey());
+  if (raw === null) {
+    setStatus("snapshot: none stored, starting fresh");
+    return 0;
+  }
+  try {
+    const record = JSON.parse(raw);
+    const bytes = Uint8Array.from(atob(record.bytes), (c) => c.charCodeAt(0));
+    localGame.load_state(bytes);
+    const hash = localGame.state_hash().toString();
+    if (hash !== record.hash) throw new Error(`hash ${hash} does not match stored ${record.hash}`);
+    document.body.dataset.restoredTick = String(record.tick);
+    document.body.dataset.restoredHash = hash;
+    setStatus(`snapshot: restored tick=${record.tick} state_hash=${hash}`);
+    return record.tick;
+  } catch (err) {
+    setStatus(`snapshot refused: ${err.message || err}`);
+    document.body.dataset.snapshotRefused = String(err.message || err);
+    return -1;
+  }
+}
+
 function startHost() {
   hosting = true;
   const encoder = createStateEncoder();
-  let hostTick = 0;
+  const restoredAt = restoreSnapshot();
+  let hostTick = restoredAt > 0 ? restoredAt : 0;
   setInterval(() => {
     localGame.tick();
     hostTick += 1;
+    if (hostTick % SNAPSHOT_EVERY_TICKS === 0) saveSnapshot(hostTick);
     const hash = Number(localGame.state_hash() & 0xffffffffn) >>> 0;
     const units = currentUnits().map((u) => ({ id: u.id, kind: 0, player: u.player, x: Math.round(u.x * WIRE_SCALE), y: Math.round(u.z * WIRE_SCALE), hp: 0 }));
     if (window.__ciSent) recordTick(window.__ciSent, hostTick, units);

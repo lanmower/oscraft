@@ -32,6 +32,16 @@ impl Game {
         self.sim.state_hash()
     }
 
+    /// The live state as sim save bytes, for the page to keep across a host restart. The sim is only read.
+    pub fn save_state(&self) -> Vec<u8> {
+        self.sim.save_state()
+    }
+
+    /// Restores the sim from bytes `save_state` wrote on the same map. A refused load leaves the game as it was.
+    pub fn load_state(&mut self, bytes: &[u8]) -> Result<(), JsValue> {
+        self.sim.load_state(bytes).map_err(|e| JsValue::from_str(&format!("load_state: {e:?}")))
+    }
+
     /// Sim ids of the living units, in the same order as `units()`.
     pub fn unit_ids(&self) -> Vec<u32> {
         (0..self.sim.count())

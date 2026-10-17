@@ -90,6 +90,31 @@ jobs:
           target/debug/mapexport crates/web/site/map.bin
           target/debug/mapexport crates/web/site/moba.bin ../scenarios/moba
 
+      - name: Snapshot restores with a matching state_hash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const mod = await import("./rust/crates/web/site/pkg/web.js");
+            await mod.default({ module_or_path: fs.readFileSync("./rust/crates/web/site/pkg/web_bg.wasm") });
+            const image = new Uint8Array(fs.readFileSync("./rust/crates/web/site/map.bin"));
+            const live = new mod.Game(image);
+            for (let i = 0; i < 120; i++) live.tick();
+            const bytes = live.save_state();
+            const want = live.state_hash();
+            const restored = new mod.Game(image);
+            restored.load_state(bytes);
+            const got = restored.state_hash();
+            if (got !== want) { console.log(`RESULT: FAIL restored state_hash ${got} != saved ${want}`); process.exit(1); }
+            for (let i = 0; i < 60; i++) { live.tick(); restored.tick(); }
+            if (live.state_hash() !== restored.state_hash()) { console.log("RESULT: FAIL restored run diverged within 60 ticks"); process.exit(1); }
+            let refused = null;
+            try { new mod.Game(image).load_state(bytes.slice(0, 10)); } catch (e) { refused = String(e); }
+            if (refused === null) { console.log("RESULT: FAIL truncated snapshot was accepted"); process.exit(1); }
+            console.log(`RESULT: PASS snapshot state_hash=${got} bytes=${bytes.length} refusal=${refused}`);
+          '
+
       - name: Stage the page for committing
         working-directory: ${{ github.workspace }}
         run: |
