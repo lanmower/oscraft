@@ -9,9 +9,26 @@ use mod_host::{build_image, ModHost};
 use sim::ALL_REFUSALS;
 
 fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().collect();
+    // `--fog off` turns fog of war off for the run, so a command aimed at a unit the sides cannot see is not refused.
+    let mut fog = true;
+    let mut args: Vec<String> = Vec::new();
+    let mut raw = std::env::args();
+    while let Some(arg) = raw.next() {
+        if arg == "--fog" {
+            match raw.next().as_deref() {
+                Some("on") => fog = true,
+                Some("off") => fog = false,
+                _ => {
+                    eprintln!("--fog takes on or off");
+                    return ExitCode::from(2);
+                }
+            }
+        } else {
+            args.push(arg);
+        }
+    }
     if !(3..=4).contains(&args.len()) {
-        eprintln!("usage: mod_check <scenario-dir> <mod.lua> [ticks]");
+        eprintln!("usage: mod_check [--fog on|off] <scenario-dir> <mod.lua> [ticks]");
         return ExitCode::from(2);
     }
     let ticks = match args.get(3).map(|t| t.parse::<u32>()) {
@@ -36,6 +53,7 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    host.sim().set_fog(fog);
     if let Err(e) = host.load(Path::new(&args[2])) {
         println!("mod-check load-error {e}");
         return ExitCode::FAILURE;

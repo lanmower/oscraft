@@ -70,7 +70,7 @@ the order they were queued, so the result does not depend on how the systems int
 
 ## Checking a mod offline
 
-`mod_check <scenario-dir> <mod.lua> [ticks]` builds the scenario image, loads the mod, runs the
+`mod_check [--fog on|off] <scenario-dir> <mod.lua> [ticks]` builds the scenario image, loads the mod, runs the
 ticks (default 100) and prints one `mod-check` line. It exits 0 when the mod loads and every tick
-runs. A load error prints `mod-check load-error` with the file and line; a tick error prints
+runs. Fog of war is on unless `--fog off`; with it on, a command aimed at a unit the sides cannot see is refused. A load error prints `mod-check load-error` with the file and line; a tick error prints
 `mod-check tick-error tick=<n>`. An ok line ends with `refusals=<reason>:<count>,...`, the refusals the sim counted, most frequent first (`none` when there were none). Build it with `cargo build -p mod-host --bin mod_check`.
