@@ -1590,7 +1590,11 @@ jobs:
           if (!units.length) throw new Error("no units to order");
           const [cx, cz] = (await page.getAttribute("body", "data-center")).split(",").map(Number);
           const toScreen = (x, z) => ({ x: 512 + (x - cx) * 20, y: 384 + (z - cz) * 20 });
-          const unit = units[0];
+          // Click the unit with the most room around it, so the pick cannot land on a neighbour.
+          const unit = units.reduce((best, cand) => {
+            const gap = Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));
+            return gap > best.gap ? { unit: cand, gap } : best;
+          }, { unit: units[0], gap: -1 }).unit;
           const at = toScreen(unit.x, unit.z);
           await page.mouse.click(at.x, at.y, { button: "left" });
           const selected = await page.evaluate(() => window.__ciSelected());
