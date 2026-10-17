@@ -1628,8 +1628,8 @@ jobs:
           if (!(hp > 0) || !(gold >= 0)) throw new Error("hud reads hp=" + hp + " gold=" + gold);
           console.log(`moba hud ok hp=${hp} gold=${gold}`);
           const dots = Number(await page.getAttribute("body", "data-minimap"));
-          const shown = (await page.evaluate(() => window.__ciUnits())).length;
-          if (!(dots > 0) || dots !== shown) throw new Error("minimap draws " + dots + " dots for " + shown + " units");
+          const drawnUnits = (await page.evaluate(() => window.__ciUnits())).length;
+          if (!(dots > 0) || dots !== drawnUnits) throw new Error("minimap draws " + dots + " dots for " + drawnUnits + " units");
           console.log(`moba minimap ok dots=${dots}`);
           // Not every unit can cast or attack: try the most isolated units until one does both.
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
