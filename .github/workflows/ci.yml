@@ -2231,7 +2231,7 @@ jobs:
             }
             console.log(`moba models ok kinds=${files.length}`);
           ' | tee moba-models.txt
-          grep -q '^moba models ok kinds=6$' moba-models.txt
+          grep -q '^moba models ok kinds=7$' moba-models.txt
 
       - name: count reference-game terms in the tree
         run: |
