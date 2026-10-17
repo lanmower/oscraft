@@ -1649,7 +1649,7 @@ jobs:
           grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'session=ci-browser '
           grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'message="ci browser probe"'
 
-      - name: The page draws the 3D world: terrain, doodads and unit meshes per draw count
+      - name: The page draws the 3D world, terrain doodads and unit meshes per draw count
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/pw/draw3d.mjs" <<'EOF'
