@@ -426,7 +426,7 @@ async function main() {
 if (params.get("ci") === "1") {
   window.__ciPeers = () => peers.size;
   window.__ciFrames = [];
-  window.__ciUnits = () => (hosting ? currentUnits() : netState ? netState.units : []).map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
+  window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciSelected = () => selectedId;
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
