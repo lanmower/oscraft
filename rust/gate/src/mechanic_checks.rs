@@ -2,8 +2,8 @@
 //! asserts one postcondition through the public sim or mod-host API and names the mechanic,
 //! never a genre.
 
-use crate::checks::{fresh, run_ticks, spawn, MAX_UNITS};
-use sim::fixed;
+use crate::checks::{fresh, kind, run_ticks, spawn, MAX_UNITS};
+use sim::{fixed, Sim};
 
 const ORDER_MOVE: u8 = 0;
 const ORDER_STOP: u8 = 1;
@@ -251,4 +251,88 @@ impl Drop for RemoveOnDrop {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(&self.0);
     }
+}
+fn moba_image() -> Result<Vec<u8>, String> {
+    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
+    osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))
+}
+
+/// The bound on ticks from a base's destruction to a declared winner.
+const MATCH_TICK_LIMIT: u32 = 200;
+
+/// Destroying a side's only base ends the moba match with the rival as winner, within a bounded tick count.
+pub fn moba_match_end(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    run_ticks(&mut s, 50);
+    let base = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("moba has no side 1 base")?;
+    if s.winner().is_some() {
+        return Err("a winner was declared before any base fell".into());
+    }
+    s.hurt(base, fixed::from_int(10000));
+    let mut ticks = 0;
+    while s.winner().is_none() && ticks < MATCH_TICK_LIMIT {
+        s.tick();
+        ticks += 1;
+    }
+    let winner = s.winner().ok_or(format!("no winner within {MATCH_TICK_LIMIT} ticks of the base falling"))?;
+    if winner != 0 {
+        return Err(format!("winner {winner} want 0, the side that is not side 1"));
+    }
+    println!("moba match ok winner={winner} ticks={ticks}");
+    Ok(())
+}
+
+/// A creep ordered from its own base toward the rival base closes distance along the lane.
+pub fn moba_creeps(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
+    let rival = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("moba has no side 1 base")?;
+    let (ox, oy) = s.position_fixed(own);
+    let (tx, ty) = s.position_fixed(rival);
+    let k = kind(&s, "creep")?;
+    let creep = s.spawn_for(0, k, ox, oy).ok_or("spawn_for refused a creep at the side 0 base")?;
+    let dist2 = |s: &Sim| {
+        let (x, y) = s.position_fixed(creep);
+        let (dx, dy) = (i64::from(tx) - i64::from(x), i64::from(ty) - i64::from(y));
+        dx * dx + dy * dy
+    };
+    let before = dist2(&s);
+    s.order(creep, tx, ty);
+    run_ticks(&mut s, 200);
+    let after = dist2(&s);
+    if after >= before {
+        return Err(format!("creep did not close on the rival base: squared distance {before} -> {after}"));
+    }
+    let progress = (before as f64).sqrt() - (after as f64).sqrt();
+    println!("moba creeps ok lane_progress={}", progress as i64);
+    Ok(())
+}
+
+/// Two sims loaded from the same moba image, given the same orders at the same ticks, end in the same state.
+pub fn moba_sync(_image: &[u8]) -> Result<(), String> {
+    let image = moba_image()?;
+    let mut a = fresh(&image)?;
+    let mut b = fresh(&image)?;
+    let ticks = 300;
+    for t in 0..ticks {
+        if t == 0 || t == 150 {
+            let x = fixed::from_int(10 + t as i32 / 10);
+            let y = fixed::from_int(12);
+            a.order_all(0, x, y);
+            b.order_all(0, x, y);
+        }
+        a.tick();
+        b.tick();
+    }
+    let mut diff = 0usize;
+    for i in 0..MAX_UNITS {
+        if a.alive(i) != b.alive(i) || a.position_fixed(i) != b.position_fixed(i) {
+            diff += 1;
+        }
+    }
+    if diff != 0 || a.state_hash() != b.state_hash() {
+        return Err(format!("peers disagree after {ticks} ticks: {diff} units differ"));
+    }
+    println!("moba sync ok ticks={ticks} diff={diff}");
+    Ok(())
 }

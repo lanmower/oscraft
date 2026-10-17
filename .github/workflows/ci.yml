@@ -2443,6 +2443,12 @@ jobs:
           grep -E '^win trigger ok winner=[0-9]+$' "$out"
           grep -q '^check mechanic-kill-bounty PASS$' "$out"
           grep -E '^kill bounty ok gold_before=[0-9]+ gold_after=[0-9]+$' "$out"
+          grep -q '^check moba-match-end PASS$' "$out"
+          grep -E '^moba match ok winner=[0-9]+ ticks=[0-9]+$' "$out"
+          grep -q '^check moba-creeps PASS$' "$out"
+          grep -E '^moba creeps ok lane_progress=[0-9]+$' "$out"
+          grep -q '^check moba-sync PASS$' "$out"
+          grep -E '^moba sync ok ticks=[0-9]+ diff=0$' "$out"
 
   moba:
     name: moba scenario loads, serves its counts, spawns timed creep waves, and reads the win trigger
