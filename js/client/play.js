@@ -533,7 +533,6 @@ session.addEventListener("peer-close", (e) => {
   if (peers.size === 0) scheduleReconnect();
 });
 const netUnits = new Map();
-let netBaseline = false;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
@@ -542,9 +541,7 @@ session.addEventListener("data", (e) => {
     return;
   }
   if (hosting) return;
-  if (frame.type === FRAME.STATE) netBaseline = true;
-  else if (frame.type !== FRAME.DELTA || !netBaseline) return;
-  applyFrame(netUnits, frame);
+  if (!applyFrame(netUnits, frame)) return;
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp })) };
   if (window.__ciRecv) recordTick(window.__ciRecv, frame.tick, [...netUnits.values()]);
 });

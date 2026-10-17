@@ -30,12 +30,16 @@ export function createStateEncoder({ fullEvery = FULL_EVERY } = {}) {
   };
 }
 
-// Applies a state or delta frame to units (a Map of id -> unit) and returns it. A delta is only meaningful
-// on top of the state frame before it; the receiver ignores deltas until one state frame has arrived.
+// Applies a state or delta frame to units (a Map of id -> unit) and returns it, or returns null when the frame
+// was ignored. Each Map keeps its own baseline: deltas are ignored until a state frame has been applied to that Map.
+const baselined = new WeakSet();
+
 export function applyFrame(units, frame) {
   if (frame.type === FRAME.STATE) {
     units.clear();
+    baselined.add(units);
   } else {
+    if (!baselined.has(units)) return null;
     for (const id of frame.removed) units.delete(id);
   }
   for (const u of frame.units) units.set(u.id, u);
