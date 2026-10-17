@@ -2833,13 +2833,15 @@ jobs:
           workspaces: rust/crates/wasip3 -> target
           shared-key: rust-wasip3
 
-      - name: Install clang and the wasi sysroot for the vendored Lua C build
+      - name: Install the wasi-sdk clang and sysroot for the vendored Lua C build
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang llvm wasi-libc
-          echo "CC_wasm32_wasip3=clang" >> "$GITHUB_ENV"
-          echo "AR_wasm32_wasip3=llvm-ar" >> "$GITHUB_ENV"
-          echo "CFLAGS_wasm32_wasip3=--target=wasm32-wasi --sysroot=/usr/share/wasi-sysroot" >> "$GITHUB_ENV"
+          set -euo pipefail
+          curl -sSfL -o "$RUNNER_TEMP/wasi-sdk.tar.gz" https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-25/wasi-sdk-25.0-x86_64-linux.tar.gz
+          sudo mkdir -p /opt/wasi-sdk
+          sudo tar -xzf "$RUNNER_TEMP/wasi-sdk.tar.gz" -C /opt/wasi-sdk --strip-components=1
+          echo "CC_wasm32_wasip3=/opt/wasi-sdk/bin/clang" >> "$GITHUB_ENV"
+          echo "AR_wasm32_wasip3=/opt/wasi-sdk/bin/llvm-ar" >> "$GITHUB_ENV"
+          echo "CFLAGS_wasm32_wasip3=--target=wasm32-wasi --sysroot=/opt/wasi-sdk/share/wasi-sysroot" >> "$GITHUB_ENV"
 
       - name: Build the sim as a wasip3 guest
         run: cargo +nightly build --target wasm32-wasip3 -p wasip3-guest --release
