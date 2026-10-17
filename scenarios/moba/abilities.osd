@@ -1,0 +1,6 @@
+# Ability definitions for the moba scenario. Indices follow declaration order:
+# pulse_shot 0, mend_field 1, creep_wave 2. The hero abilities are the engine's own definitions.
+ability("pulse_shot", 24, 0, "unit", [effect("damage", p0=6)], target_filters=["ground"], projectile_speed_milli=12000)
+ability("mend_field", 96, 50, "point", [effect("heal", p0=12, p1=2000), effect("buff", p0=1, p1=3)])
+# Creep wave: spawns unit index 3 (creep) at the base; cooldown 600 ticks is the spawn timer.
+ability("creep_wave", 600, 0, "none", [effect("spawn", p0=3)])

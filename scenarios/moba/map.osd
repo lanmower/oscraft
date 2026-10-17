@@ -1,0 +1,33 @@
+# Map for the moba scenario: two sides, three lanes, a tower per side per lane, one base per side.
+# grid(fill=1) starts every cell blocked; paint(..., 0) opens a lane. Half-open rectangles.
+grid(40, 24, cell_milli=1000, fill=1)
+paint(2, 3, 38, 6, 0)
+paint(2, 11, 38, 14, 0)
+paint(2, 19, 38, 22, 0)
+paint(2, 3, 4, 22, 0)
+paint(36, 3, 38, 22, 0)
+start(0, 4000, 12000)
+start(1, 36000, 12000)
+# Bases: structures that spawn creeps on a timer and that the win trigger watches.
+spawn("base", 0, 4000, 12000)
+spawn("base", 1, 36000, 12000)
+# One hero per side and one worker per side.
+spawn("hero", 0, 6000, 12000)
+spawn("hero", 1, 34000, 12000)
+spawn("tender", 0, 6000, 12500)
+spawn("tender", 1, 34000, 12500)
+# Lane north (y 3..5): a tower per side with hit points, one opening creep per side.
+spawn("tower", 0, 12000, 4500)
+spawn("tower", 1, 28000, 4500)
+spawn("creep", 0, 10000, 4500)
+spawn("creep", 1, 30000, 4500)
+# Lane middle (y 11..13).
+spawn("tower", 0, 12000, 12500)
+spawn("tower", 1, 28000, 12500)
+spawn("creep", 0, 10000, 12500)
+spawn("creep", 1, 30000, 12500)
+# Lane south (y 19..21).
+spawn("tower", 0, 12000, 20500)
+spawn("tower", 1, 28000, 20500)
+spawn("creep", 0, 10000, 20500)
+spawn("creep", 1, 30000, 20500)

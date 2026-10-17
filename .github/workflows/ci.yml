@@ -2423,6 +2423,72 @@ jobs:
           grep -q '^check mechanic-structure-damage PASS$' "$out"
           grep -E '^structure damage ok hp_before=[0-9]+ hp_after=[0-9]+$' "$out"
 
+  moba:
+    name: moba scenario loads and serves its counts
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-build
+          path: rust
+
+      - name: Mark the prebuilt binaries executable
+        working-directory: ${{ github.workspace }}
+        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
+
+      - name: Compile the moba scenario, serve it, advance 200 ticks, check counts derived from its files
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/moba"
+          mkdir -p "$work"
+          addr=127.0.0.1:8107
+          scen="$GITHUB_WORKSPACE/scenarios/moba"
+          pid=0
+          on_exit() {
+            rc=$?
+            [ "$pid" -ne 0 ] && kill "$pid" 2>/dev/null || true
+            if [ "$rc" -ne 0 ]; then echo "--- server log tail"; tail -n 120 "$work/server.log" 2>/dev/null || echo "(no server log)"; fi
+            exit "$rc"
+          }
+          trap on_exit EXIT
+          cd rust
+          ./target/debug/osdt-data "$scen" "$work/catalog.osdt"
+          target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 > "$work/server.log" 2>&1 &
+          pid=$!
+          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          curl -sf "http://$addr/state?map=ci" > "$work/s0.json"
+          tick=0
+          for i in $(seq 1 240); do
+            curl -sf "http://$addr/state?map=ci" > "$work/s1.json" || true
+            tick=$(jq -r '.tick // 0' "$work/s1.json" 2>/dev/null || echo 0)
+            test "$tick" -ge 200 && break
+            sleep 0.5
+          done
+          test "$tick" -ge 200
+          cd "$scen"
+          starts=$(grep -cE '^start\(' map.osd)
+          spawns=$(grep -cE '^spawn\(' map.osd)
+          towers=$(grep -cE '^spawn\("tower"' map.osd)
+          heroes=$(grep -cE '^spawn\("hero"' map.osd)
+          creeps_spawned=$(grep -cE '^spawn\("creep"' map.osd)
+          lanes=$(grep -E '^spawn\("tower"' map.osd | sed -E 's/.*, *[0-9]+ *, *([0-9]+) *\)$/\1/' | sort -u | wc -l)
+          workers=$(grep -oE 'opening_workers *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
+          expected_units=$((spawns + starts * workers))
+          units=$(jq '.units' "$work/s0.json")
+          sides=$(jq '[.records[].player | select(. >= 0)] | unique | length' "$work/s0.json")
+          echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes expected_units=$expected_units"
+          echo "served at tick 0: units=$units sides=$sides tick_reached=$tick"
+          test "$units" -eq "$expected_units"
+          test "$sides" -eq "$starts"
+          test "$lanes" -eq 3
+          test "$heroes" -eq "$starts"
+          echo "moba scenario ok sides=$sides lanes=$lanes towers=$towers heroes=$heroes creeps_spawned=$creeps_spawned"
+
   lobby-room-select:
     name: lobby room panel lists two rooms announced on the relay, joins one, and drops a closed page after its TTL
     runs-on: ubuntu-latest

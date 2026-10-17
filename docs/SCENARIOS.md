@@ -19,3 +19,6 @@ An objective is a unit with hit points and no weapon. Declare it with `unit(...)
 ## Checking a scenario
 
 The `duel-routes` CI job compiles `scenarios/duel-routes`, starts `oscraftd` on it, advances 200 ticks, and reads `/state?map=ci`. It requires units from two sides, three objective routes, and a changed hit point value on an objective. Its last line is `scenario ok sides=<n> routes=<n> objectives=<n> hp_changed=<bool>`.
+## The moba scenario
+
+`scenarios/moba` is a data-only match: two sides, three lanes, a tower per side per lane, one hero and one base per side, workers, and a `creep_wave` ability on each base that spawns creeps on its cooldown timer. The engine reads it with no scenario-specific code, like `duel-routes`. The `moba` CI job compiles it, serves it, advances 200 ticks, and derives every count it prints from the `.osd` files.
