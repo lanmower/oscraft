@@ -10,6 +10,22 @@ use sim::Sim;
 
 pub const MAX_UNITS: usize = 1024;
 
+// ahash seeds piccolo's hashers through getrandom 0.3, which has no wasip3 backend (the cfg in
+// .cargo/config.toml selects this custom one). Hash seeds need no entropy: the guest is one
+// deterministic run, so a fixed-seed xorshift stream is enough.
+#[cfg(getrandom_backend = "custom")]
+#[no_mangle]
+unsafe extern "Rust" fn __getrandom_v03_custom(dest: *mut u8, len: usize) -> Result<(), getrandom::Error> {
+    let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+    for i in 0..len {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        dest.add(i).write(state as u8);
+    }
+    Ok(())
+}
+
 const TEST_MOD_NAME: &str = "wasip3-test";
 const TEST_MOD: &str = "-- a test mod loaded inside the wasip3 guest\nlocal loaded = true\n";
 
