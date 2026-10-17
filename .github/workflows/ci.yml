@@ -2143,6 +2143,9 @@ jobs:
           if grep -n -i -E 'oscraftd|js/host|server\.js|\.wasm|archive' "$guide"; then
             echo "docs/FRIENDS.md names a server process or archive"; exit 1
           fi
+          for p in $(grep -oE '[?&#]?(relay|ns|host|ice|ci)=' "$guide" | tr -d '?&#=' | sort -u); do
+            grep -q "\"$p\"" js/client/*.js || { echo "docs/FRIENDS.md names query parameter $p, absent from js/client"; exit 1; }
+          done
           echo "friends guide ok command_lines=0 cli_flags=0"
 
       - name: Count the retired resource names under rust and js
