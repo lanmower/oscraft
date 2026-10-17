@@ -2960,18 +2960,28 @@ jobs:
             if (errors.length) throw new Error("page errors: " + errors.join(" | "));
             console.log(`browser two peers ok unit=${unit.id} host_moved=true peer_moved=true`);
             console.log(`browser order refused not_owner ok unit=${foreign.id} owner=1 sender=0 stayed=true`);
-            // HUD: the peer selects its unit and right-clicks the canvas centre, a move order; the peer's HUD
-            // shows its gold and no winner. Then the host's side 1 is killed and the host HUD names side 0 the winner.
-            await peer.evaluate((id) => window.__ciSelect(id), unit.id);
-            const view = await peer.locator("#view").boundingBox();
-            await peer.mouse.click(view.x + view.width / 2, view.y + view.height / 2, { button: "right" });
+            // HUD on the moba room (the scenario with the win trigger): the peer selects its unit and right-clicks the
+            // canvas centre, a move order; the peer's HUD shows its gold and no winner. Then the host's side 1 is
+            // killed and the host HUD names side 0 the winner.
+            const mobaHost = await (await browser.newContext()).newPage();
+            const mobaPeer = await (await browser.newContext()).newPage();
+            for (const p of [mobaHost, mobaPeer]) p.on("pageerror", (e) => errors.push(e.message));
+            await mobaHost.goto(`${base}&host=1#moba`);
+            await mobaPeer.goto(`${base}#moba`);
+            await mobaHost.waitForFunction(() => window.__ciPeers && window.__ciPeers() >= 1, null, { timeout: 120000 });
+            await mobaPeer.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 });
+            const mobaUnit = (await mobaPeer.evaluate(() => window.__ciUnits())).find((u) => u.player === 0);
+            if (!mobaUnit) throw new Error("moba room: no unit owned by the peer's player 0");
+            await mobaPeer.evaluate((id) => window.__ciSelect(id), mobaUnit.id);
+            const view = await mobaPeer.locator("#view").boundingBox();
+            await mobaPeer.mouse.click(view.x + view.width / 2, view.y + view.height / 2, { button: "right" });
             await new Promise((r) => setTimeout(r, 1000));
-            const hudPeer = await peer.evaluate(() => ({ text: document.getElementById("hud").textContent, gold: document.body.dataset.gold, winHidden: document.getElementById("win").hidden }));
+            const hudPeer = await mobaPeer.evaluate(() => ({ text: document.getElementById("hud").textContent, gold: document.body.dataset.gold, winHidden: document.getElementById("win").hidden }));
             if (!hudPeer.text.includes(`gold ${hudPeer.gold}`) || hudPeer.winHidden !== true) throw new Error(`peer hud before the win: ${JSON.stringify(hudPeer)}`);
-            await host.evaluate(() => window.__ciKillSide(1));
-            await host.waitForFunction(() => document.body.dataset.winner === "0", null, { timeout: 60000 });
-            const winText = await host.textContent("#win");
-            if (winText !== "side 0 wins" || !(await host.isVisible("#win"))) throw new Error(`host winner text: ${JSON.stringify(winText)}`);
+            await mobaHost.evaluate(() => window.__ciKillSide(1));
+            await mobaHost.waitForFunction(() => document.body.dataset.winner === "0", null, { timeout: 90000 });
+            const winText = await mobaHost.textContent("#win");
+            if (winText !== "side 0 wins" || !(await mobaHost.isVisible("#win"))) throw new Error(`host winner text: ${JSON.stringify(winText)}`);
             console.log(`browser hud ok gold=${hudPeer.gold} winner=0`);
             await host.waitForFunction(() => window.__ciFrames && window.__ciFrames.length >= 200, null, { timeout: 120000 });
             const frames = await host.evaluate(() => window.__ciFrames.slice(0, 200));
