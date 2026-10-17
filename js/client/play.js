@@ -22,6 +22,8 @@ const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const DRAG_SLOP_PX = 4;
 const RIGHT_BUTTON = 2;
+const PAN_TILES_PER_S = 12;
+const EDGE_PX = 16;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_CAP_MS = 16000;
 const RECONNECT_MAX_ATTEMPTS = 6;
@@ -48,6 +50,9 @@ let reconnectTimer = 0;
 let drag = null;
 let hosting = false;
 let orders = 0;
+let pointer = null;
+let lastFrameMs = 0;
+const keysDown = new Set();
 const hostPlayers = new Map();
 
 function setStatus(extra) {
@@ -146,6 +151,26 @@ function pxPerUnit() {
   return BASE_PX_PER_UNIT * camera.zoom;
 }
 
+// Arrow keys and the pointer at the window edge pan the camera at a constant speed in tiles per second.
+// A drag pans by itself, so edge scroll waits while one is in progress.
+function panCamera(dtS) {
+  let dx = 0;
+  let dz = 0;
+  if (keysDown.has("ArrowLeft")) dx -= 1;
+  if (keysDown.has("ArrowRight")) dx += 1;
+  if (keysDown.has("ArrowUp")) dz -= 1;
+  if (keysDown.has("ArrowDown")) dz += 1;
+  if (pointer && !drag) {
+    if (pointer.x < EDGE_PX) dx -= 1;
+    else if (pointer.x > window.innerWidth - EDGE_PX) dx += 1;
+    if (pointer.y < EDGE_PX) dz -= 1;
+    else if (pointer.y > window.innerHeight - EDGE_PX) dz += 1;
+  }
+  const step = PAN_TILES_PER_S * dtS;
+  camera.cx = Math.min(W, Math.max(0, camera.cx + dx * step));
+  camera.cz = Math.min(H, Math.max(0, camera.cz + dz * step));
+}
+
 function resize() {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.floor(window.innerWidth * dpr);
@@ -215,6 +240,15 @@ function bindInput() {
     if (!wasDrag) onClick(e);
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  window.addEventListener("keydown", (e) => {
+    if (e.target instanceof HTMLInputElement || !e.key.startsWith("Arrow")) return;
+    keysDown.add(e.key);
+    e.preventDefault();
+  });
+  window.addEventListener("keyup", (e) => keysDown.delete(e.key));
+  window.addEventListener("blur", () => keysDown.clear());
+  window.addEventListener("pointermove", (e) => { pointer = { x: e.clientX, y: e.clientY }; });
+  document.documentElement.addEventListener("pointerleave", () => { pointer = null; });
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     camera.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, camera.zoom * Math.exp(-e.deltaY * 0.001)));
@@ -406,7 +440,10 @@ async function main() {
 
   const { gl } = renderer;
   gl.clearColor(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], 1);
-  function frame() {
+  function frame(now) {
+    const dtS = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
+    lastFrameMs = now;
+    panCamera(dtS);
     if (!netState && localGame && !hosting) localGame.tick();
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT);
