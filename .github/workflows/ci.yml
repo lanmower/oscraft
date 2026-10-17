@@ -1643,8 +1643,9 @@ jobs:
           EOF
           node "$RUNNER_TEMP/pw/check.mjs" | tee "$RUNNER_TEMP/map-witness.txt"
           grep -q '^map witness ok ticks=[1-9][0-9]* units=[1-9][0-9]* center=[0-9.]*,[0-9.]*(,[0-9.]*)? source=js/client/map.bin$' "$RUNNER_TEMP/map-witness.txt"
+          echo "traversal status: $(curl -s --path-as-is -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8000/site/../Cargo.toml')"
           test "$(curl -s --path-as-is -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8000/site/../Cargo.toml')" = 404
-          curl -sf -X POST "http://127.0.0.1:8000/client-error?session=ci-browser&message=ci%20browser%20probe"
+          echo "client-error post status: $(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8000/client-error?session=ci-browser&message=ci%20browser%20probe")"
           echo "client_error lines seen by the server:"; grep '^ev=client_error' "$RUNNER_TEMP/http.log" || true
           test "$(grep -c '^ev=client_error session=' "$RUNNER_TEMP/http.log")" -eq 1
           grep '^ev=client_error session=' "$RUNNER_TEMP/http.log" | grep -q 'session=ci-browser '
