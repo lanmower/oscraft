@@ -1,0 +1,6 @@
+{
+  "rock": "models/rock-a.glb",
+  "tree": "models/tree.glb",
+  "crystal": "models/resource-stone.glb",
+  "debris": "models/barrel.glb"
+}

@@ -165,6 +165,14 @@ jobs:
             for (const p of mesh.positions) if (!Number.isFinite(p)) throw new Error("terrain position not finite");
             readDoodads(bytes);
             console.log(`terrain ok tris=${tris}`);
+            const { existsSync } = await import("node:fs");
+            const map = JSON.parse(fs.readFileSync("./js/client/doodads.json", "utf8"));
+            for (const kind of ["rock", "tree", "crystal", "debris"]) {
+              const file = map[kind];
+              if (!file) throw new Error("doodads.json has no model for " + kind);
+              if (!existsSync("./js/client/" + file)) throw new Error("mapped model missing: " + file);
+            }
+            console.log(`doodad models ok kinds=${Object.keys(map).length}`);
           '
 
       - uses: actions/upload-artifact@v4
@@ -2261,7 +2269,7 @@ jobs:
           node --input-type=module -e '
             import { readFileSync, readdirSync } from "node:fs";
             import { parseGlb } from "./js/client/glb.js";
-            const files = readdirSync("js/client/models").filter((f) => f.endsWith(".glb"));
+            const files = readdirSync("rust/crates/web/site/assets/units").filter((f) => f.endsWith(".glb"));
             for (const f of files) {
               const b = readFileSync("js/client/models/" + f);
               const m = parseGlb(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
@@ -2270,7 +2278,7 @@ jobs:
             }
             console.log(`moba models ok kinds=${files.length} textured=${files.length}`);
           ' | tee moba-models.txt
-          grep -q '^moba models ok kinds=7 textured=7$' moba-models.txt
+          grep -q "^moba models ok kinds=$(ls rust/crates/web/site/assets/units/*.glb | wc -l) textured=$(ls rust/crates/web/site/assets/units/*.glb | wc -l)\$" moba-models.txt
 
       - name: count reference-game terms in the tree
         run: |
@@ -2887,7 +2895,6 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
-          rm -rf js/client/models
           mkdir -p js/client/models
           cp rust/crates/web/site/assets/units/*.glb js/client/models/
 
@@ -3089,7 +3096,6 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
-          rm -rf js/client/models
           mkdir -p js/client/models
           cp rust/crates/web/site/assets/units/*.glb js/client/models/
 

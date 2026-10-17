@@ -59,7 +59,7 @@ jobs:
           rm -f _site/js/client/pkg/.gitignore
           cp rust/crates/web/site/map.bin _site/js/client/map.bin
           cp rust/crates/web/site/moba.bin _site/js/client/moba.bin
-          rm -rf _site/js/client/models && mkdir -p _site/js/client/models
+          mkdir -p _site/js/client/models
           cp rust/crates/web/site/assets/units/*.glb _site/js/client/models/
           test -f _site/js/client/play.html
           test -f _site/js/client/play.js
