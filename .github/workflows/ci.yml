@@ -113,6 +113,7 @@ jobs:
             rust/target/debug/mapexport
             rust/target/debug/oscraft-relay
             rust/target/debug/reload_harness
+            rust/target/debug/mod_check
             rust/crates/web/site/pkg
             rust/crates/web/site/map.bin
             rust/crates/web/site/moba.bin
@@ -2372,6 +2373,21 @@ jobs:
           grep -Eq '^reload-check value-changed ok ' reload.txt
           grep -Eq '^reload-check error-reported line=[0-9]+ ok$' reload.txt
           grep -Eq '^reload-check rollback ok ' reload.txt
+
+      - name: Check a mod against the moba scenario with mod_check, and refuse a broken mod with its file and line
+        shell: bash
+        run: |
+          set -euo pipefail
+          target/debug/mod_check ../scenarios/moba crates/mod-host/fixtures/moba_attack.lua 300 > modcheck.txt 2>&1 || { cat modcheck.txt; exit 1; }
+          cat modcheck.txt
+          grep -Eq '^mod-check ok ticks=300 units=[1-9][0-9]* deaths=[0-9]+ casts=[0-9]+ casts_refused=[0-9]+ last_refusal=[A-Za-z]+$' modcheck.txt
+          set +e
+          target/debug/mod_check ../scenarios/moba crates/mod-host/fixtures/broken.lua 5 > broken.txt 2>&1
+          code=$?
+          set -e
+          cat broken.txt
+          test "$code" -eq 1
+          grep -Eq '^mod-check load-error .*broken\.lua:3: ' broken.txt
 
   package-install:
     name: single archive builds and installs into an empty directory

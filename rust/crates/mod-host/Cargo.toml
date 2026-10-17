@@ -8,6 +8,10 @@ publish = false
 name = "reload_harness"
 path = "src/bin/reload_harness.rs"
 
+[[bin]]
+name = "mod_check"
+path = "src/bin/mod_check.rs"
+
 [dependencies]
 mlua = { version = "0.10", features = ["lua54", "vendored"] }
 sim = { path = "../sim" }
