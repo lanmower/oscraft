@@ -1629,14 +1629,15 @@ jobs:
             const at = toScreen(cand.x, cand.z);
             await page.mouse.click(at.x, at.y, { button: "left" });
             if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
-            await page.mouse.move(512, 384);
+            const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
+            if (!foe) continue;
+            const fp = toScreen(foe.x, foe.z);
+            // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
+            await page.mouse.move(fp.x, fp.y);
             await page.keyboard.press("q");
             await page.waitForTimeout(150);
             if (Number(await page.getAttribute("body", "data-casts")) < 1) continue;
-            const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
-            if (!foe) continue;
             await page.keyboard.press("a");
-            const fp = toScreen(foe.x, foe.z);
             await page.mouse.click(fp.x, fp.y, { button: "left" });
             await page.waitForTimeout(150);
             if (Number(await page.getAttribute("body", "data-attacks")) >= 1) { attacker = cand; break; }
