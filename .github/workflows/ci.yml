@@ -1621,15 +1621,27 @@ jobs:
           const gold = Number(await page.getAttribute("body", "data-gold"));
           if (!(hp > 0) || !(gold >= 0)) throw new Error("hud reads hp=" + hp + " gold=" + gold);
           console.log(`moba hud ok hp=${hp} gold=${gold}`);
-          await page.mouse.move(512, 384);
-          await page.keyboard.press("q");
-          await page.waitForFunction(() => Number(document.body.dataset.casts) >= 1, null, { timeout: 5000 });
-          const enemy = (await page.evaluate(() => window.__ciUnits())).find((x) => x.player !== unit.player);
-          if (!enemy) throw new Error("no enemy unit to attack");
-          await page.keyboard.press("a");
-          const foe = toScreen(enemy.x, enemy.z);
-          await page.mouse.click(foe.x, foe.y, { button: "left" });
-          await page.waitForFunction(() => Number(document.body.dataset.attacks) >= 1, null, { timeout: 5000 });
+          // Not every unit can cast or attack: try the most isolated units until one does both.
+          const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
+          const ranked = [...units].sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
+          let attacker = null;
+          for (const cand of ranked.reverse().slice(0, 15)) {
+            const at = toScreen(cand.x, cand.z);
+            await page.mouse.click(at.x, at.y, { button: "left" });
+            if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
+            await page.mouse.move(512, 384);
+            await page.keyboard.press("q");
+            await page.waitForTimeout(150);
+            if (Number(await page.getAttribute("body", "data-casts")) < 1) continue;
+            const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
+            if (!foe) continue;
+            await page.keyboard.press("a");
+            const fp = toScreen(foe.x, foe.z);
+            await page.mouse.click(fp.x, fp.y, { button: "left" });
+            await page.waitForTimeout(150);
+            if (Number(await page.getAttribute("body", "data-attacks")) >= 1) { attacker = cand; break; }
+          }
+          if (!attacker) throw new Error("no unit both cast and attacked");
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
           await page.evaluate(() => window.__ciKillSide(1));
@@ -2716,6 +2728,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Stage the page wasm and maps this run built into js/client, which the static server serves
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          rm -rf js/client/pkg
+          cp -r rust/crates/web/site/pkg js/client/pkg
+          cp rust/crates/web/site/map.bin js/client/map.bin
+          cp rust/crates/web/site/moba.bin js/client/moba.bin
 
       - name: Install headless Chromium
         run: |
