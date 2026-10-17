@@ -59,6 +59,8 @@ mod host {
         let component = Component::from_file(&engine, guest).map_err(|e| format!("component {guest}: {e:#}"))?;
         let mut linker = Linker::<State>::new(&engine);
         wasmtime_wasi::p3::add_to_linker(&mut linker).map_err(|e| format!("linker: {e:#}"))?;
+        // The built guest imports wasi:io/error@0.2.12; the p3 linker does not provide that instance.
+        wasmtime_wasi::p2::add_to_linker_async(&mut linker).map_err(|e| format!("linker p2: {e:#}"))?;
         let mut builder = WasiCtx::builder();
         builder.stdin(MemoryInputPipe::new(input)).stdout(stdout.clone());
         let mut store = Store::new(&engine, State { ctx: builder.build(), table: ResourceTable::default() });
