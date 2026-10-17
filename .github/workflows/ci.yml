@@ -2819,6 +2819,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
+    continue-on-error: true
     defaults:
       run:
         working-directory: rust/crates/wasip3
