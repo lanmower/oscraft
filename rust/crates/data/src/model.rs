@@ -56,6 +56,7 @@ pub struct UnitExtRaw {
     pub burrow_ticks: i32,
     pub rally_dx: i32,
     pub rally_dy: i32,
+    pub bounty: i32,
 }
 
 #[derive(Debug)]

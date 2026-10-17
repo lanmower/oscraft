@@ -4,5 +4,5 @@ behaviour("answer_attack", trigger="attacked", action="attack_nearest", param=0)
 # Spawn timer: a base casts creep_wave once when it is created, then each time its cooldown runs out.
 behaviour("wave_start", trigger="spawned", action="use_ability", param=0, ability="creep_wave")
 behaviour("wave_timer", trigger="ability_ready", action="use_ability", param=0, ability="creep_wave")
-# Win condition: a base is tagged building (filter bit 11). When the last living building of a side dies, the rival wins.
-behaviour("win_on_base_loss", trigger="destroyed", action="declare_winner", param=11)
+# Win condition: a base carries the building filter. When the last living building of a side dies, the rival wins.
+behaviour("win_on_base_loss", trigger="destroyed", action="declare_winner", tag="building")

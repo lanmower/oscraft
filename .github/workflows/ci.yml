@@ -455,6 +455,7 @@ jobs:
           import selectors
           import socket
           import sys
+          import time
           
           pid, cap, slack, port, log = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
           conns = 1000
@@ -473,10 +474,11 @@ jobs:
           for s in socks:
               sel.register(s, selectors.EVENT_READ)
           refused = eof = 0
-          while True:
-              events = sel.select(timeout=2.0)
-              if not events:
-                  break
+          # The server holds exactly cap sockets. Drain until only cap are still registered, under a
+          # deadline: a quiet window ends the loop too early when a 503 is late.
+          deadline = time.monotonic() + 30
+          while len(sel.get_map()) > cap and time.monotonic() < deadline:
+              events = sel.select(timeout=1.0)
               for key, _ in events:
                   sel.unregister(key.fileobj)
                   data = key.fileobj.recv(256)
@@ -1592,11 +1594,18 @@ jobs:
           const after = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];
           if (!(after > before)) throw new Error("arrow right did not pan: " + before + " -> " + after);
           console.log(`moba camera ok pan=${(after - before).toFixed(2)}`);
+          const zoomBefore = Number(await page.getAttribute("body", "data-zoom"));
+          await page.mouse.move(512, 384);
+          await page.mouse.wheel(0, -300);
+          await page.waitForFunction((z) => Number(document.body.dataset.zoom) > z, zoomBefore, { timeout: 5000 });
+          const zoomAfter = Number(await page.getAttribute("body", "data-zoom"));
+          console.log(`moba zoom ok zoom=${zoomBefore.toFixed(3)}->${zoomAfter.toFixed(3)}`);
           await browser.close();
           EOF
           node "$RUNNER_TEMP/pw/moba-input.mjs" | tee "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba input ok orders=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
 
       - name: Edit the mod under a running page; its data-mod-version follows
         run: |

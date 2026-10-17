@@ -214,7 +214,7 @@ A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 | 16     | 4    | burrow time, game ticks, `>= 0`                                    |
 | 20     | 4    | rally point offset x from the building, milli-units, i32           |
 | 24     | 4    | rally point offset y from the building, milli-units, i32           |
-| 28     | 4    | reserved, write 0                                                  |
+| 28     | 4    | kill bounty, resource units paid to the rival side when destroyed, `>= 0` |
 
 Transport capacity is spent in size units: a small unit costs 1, a medium unit 2,
 a large unit 4 (the sim applies these costs; the table is part of the registry).
