@@ -63,6 +63,7 @@ pub struct Snapshot {
     pub tick: u64,
     pub state_hash: u64,
     pub units: usize,
+    pub winner: i32,
     pub records: Vec<String>,
 }
 
@@ -212,6 +213,7 @@ impl Room {
             tick: c.tick,
             state_hash: c.sim.state_hash(),
             units: c.sim.alive_count(),
+            winner: c.sim.winner().map_or(-1, |side| side as i32),
             records: live_records(&c.sim),
         }
     }
