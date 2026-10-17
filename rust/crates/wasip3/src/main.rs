@@ -29,7 +29,8 @@ mod host {
     use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
 
     /// The commands the native host sends after the image. Each reply is one stdout line.
-    const COMMANDS: &[&str] = &["tick 10", "ticks", "unit-count"];
+    const COMMANDS: &[&str] = &["tick 10", "ticks", "unit-count", "mod-load probe"];
+    const MOD_REFUSAL: &str = "this guest is built without the mod runtime";
 
     struct State {
         ctx: WasiCtx,
@@ -69,12 +70,17 @@ mod host {
         result.map_err(|e| format!("guest run: {e:#}"))?.map_err(|()| "guest exited with an error".to_string())?;
         let out = String::from_utf8(stdout.contents().to_vec()).map_err(|e| format!("stdout utf8: {e}"))?;
         let replies: Vec<&str> = out.lines().collect();
-        if replies.len() != COMMANDS.len() || replies.iter().any(|r| r.starts_with("err")) {
+        if replies.len() != COMMANDS.len() || replies[..3].iter().any(|r| r.starts_with("err")) {
             return Err(format!("unexpected replies: {replies:?}"));
         }
         let ticks = replies[1].strip_prefix("ok ticks ").ok_or_else(|| format!("ticks reply {:?}", replies[1]))?;
         let units = replies[2].strip_prefix("ok unit-count ").ok_or_else(|| format!("unit-count reply {:?}", replies[2]))?;
         println!("wasip3 tick ok ticks={ticks} units={units}");
+        let refusal = replies[3].strip_prefix("err ").ok_or_else(|| format!("mod-load reply {:?}", replies[3]))?;
+        if refusal != MOD_REFUSAL {
+            return Err(format!("mod-load not refused: {refusal}"));
+        }
+        println!("wasip3 mod-load refused reason=no mod runtime");
         Ok(())
     }
 }

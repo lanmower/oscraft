@@ -2803,6 +2803,7 @@ jobs:
           cargo +stable run --release --bin oscraft_wasip3 -- target/wasm32-wasip3/release/oscraft_wasip3.wasm "$RUNNER_TEMP/map.osdt" | tee "$RUNNER_TEMP/wasip3.txt"
           grep -q '^wasip3 build ok bytes=[0-9]*$' "$RUNNER_TEMP/wasip3.txt"
           grep -qE '^wasip3 tick ok ticks=10 units=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
+          grep -q '^wasip3 mod-load refused reason=no mod runtime$' "$RUNNER_TEMP/wasip3.txt"
 
   browser-two-peers:
     name: "browser host and browser peer over wireweave: one order moves a unit on both pages"
@@ -2934,6 +2935,49 @@ jobs:
             echo "browser frame bytes full=$full delta_avg=$delta exceeds full_ceiling=$full_ceiling delta_ceiling=$delta_ceiling" >&2
             exit 1
           fi
+
+      - name: "Room chooser: two pages join the same chosen room through the rooms form and both report it in the status panel"
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/browser-room-select"
+          mkdir -p "$work"
+          "$GITHUB_WORKSPACE/rust/target/debug/oscraft-relay" 7447 > "$work/relay.log" 2>&1 &
+          relay=$!
+          python3 -m http.server 8092 --bind 127.0.0.1 --directory js/client > "$work/static.log" 2>&1 &
+          static=$!
+          trap 'kill $relay $static 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8092/play.html > /dev/null && break; sleep 1; done
+          cat > "$RUNNER_TEMP/pw/room-select.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const base = "http://127.0.0.1:8092/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1";
+          const room = `ci-room-${process.env.GITHUB_RUN_ID || "local"}`;
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-features=WebRtcHideLocalIpsWithMdns"] });
+          const errors = [];
+          try {
+            const first = await (await browser.newContext()).newPage();
+            const second = await (await browser.newContext()).newPage();
+            for (const p of [first, second]) p.on("pageerror", (e) => errors.push(e.message));
+            await first.goto(`${base}`);
+            await first.fill("#room-name", room);
+            const reloaded = first.waitForEvent("load", { timeout: 60000 });
+            await first.click("#room-join");
+            await reloaded;
+            await first.waitForFunction((r) => document.getElementById("status").textContent.startsWith(`room ${r}\n`), room, { timeout: 60000 });
+            await second.goto(`${base}#${room}`);
+            await second.waitForFunction((r) => document.getElementById("status").textContent.startsWith(`room ${r}\n`), room, { timeout: 60000 });
+            await new Promise((r) => setTimeout(r, 3000));
+            const line = async (p) => p.evaluate(() => document.getElementById("status").textContent.split("\n")[0]);
+            const a = await line(first);
+            const b = await line(second);
+            if (a !== `room ${room}` || b !== `room ${room}`) throw new Error(`status mismatch: first=${JSON.stringify(a)} second=${JSON.stringify(b)} room=${room}`);
+            if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+            console.log(`browser room select ok room=${room} first=true second=true`);
+          } finally {
+            await browser.close();
+          }
+          EOF
+          node "$RUNNER_TEMP/pw/room-select.mjs" | tee "$work/room-select.txt"
+          grep -q '^browser room select ok room=[A-Za-z0-9_-]* first=true second=true$' "$work/room-select.txt"
 
 
   browser-turn-relay:
