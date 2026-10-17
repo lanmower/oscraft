@@ -14,6 +14,10 @@ const POLL: Duration = Duration::from_millis(250);
 
 /// Consecutive overrunning ticks after which the room sheds deferrable work on the next tick.
 pub const SHED_AFTER_OVERRUNS: u64 = 3;
+/// Once shedding starts, it holds for this many ticks after the latest overrun that triggered or extended it.
+pub const SHED_HOLD_TICKS: u64 = 48;
+/// While shedding, the flow-field (paths) pass runs only on every this many ticks; units run every tick.
+pub const SHED_PATHS_EVERY: u64 = 4;
 /// Queued submissions drained per tick while shedding; the rest wait until the room recovers.
 pub const SHED_ORDER_CAP: usize = 0;
 /// Queued submissions drained per tick when the room is not shedding.

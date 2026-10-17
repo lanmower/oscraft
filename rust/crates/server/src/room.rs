@@ -10,7 +10,8 @@ use mod_host::Cmd;
 use sim::{Grid, Sim};
 
 use crate::budget::{
-    TickHistogram, Timing, NORMAL_ORDER_CAP, SHED_AFTER_OVERRUNS, SHED_LOG_EVERY_TICKS, SHED_ORDER_CAP,
+    TickHistogram, Timing, NORMAL_ORDER_CAP, SHED_AFTER_OVERRUNS, SHED_HOLD_TICKS, SHED_LOG_EVERY_TICKS,
+    SHED_ORDER_CAP, SHED_PATHS_EVERY,
 };
 use crate::mods::{self, ModLink};
 use crate::order::{Order, OrderGate};
@@ -30,6 +31,7 @@ pub struct RoomConfig {
     pub token: String,
     pub rate: u32,
     pub data: Option<PathBuf>,
+    pub shed: bool,
 }
 
 struct Clock {
@@ -38,6 +40,8 @@ struct Clock {
     tick: u64,
     overruns: u64,
     streak: u64,
+    shed_until: u64,
+    shed_on: bool,
     worst: Duration,
     orders_drained: u64,
     orders: Receiver<Order>,
@@ -53,6 +57,7 @@ pub struct Room {
     pub gate: OrderGate,
     queue: Mutex<Sender<Order>>,
     queued: AtomicU64,
+    shed: bool,
     feed: Mutex<Option<Arc<ModLink>>>,
     staged: Mutex<Option<Sim>>,
     clock: Mutex<Clock>,
@@ -146,6 +151,7 @@ impl Room {
             gate: OrderGate::new(cfg.token, cfg.rate),
             queue: Mutex::new(tx),
             queued: AtomicU64::new(0),
+            shed: cfg.shed,
             feed: Mutex::new(None),
             test_panic_at: AtomicU64::new(0),
             staged: Mutex::new(None),
@@ -155,6 +161,8 @@ impl Room {
                 tick: 0,
                 overruns: 0,
                 streak: 0,
+                shed_until: 0,
+                shed_on: false,
                 worst: Duration::ZERO,
                 orders_drained: 0,
                 orders: rx,
@@ -292,8 +300,14 @@ impl Room {
                 refused = refused
             );
         }
-        let shedding = c.streak >= SHED_AFTER_OVERRUNS;
-        let first_shed_tick = c.streak == SHED_AFTER_OVERRUNS;
+        let shedding = self.shed && c.tick < c.shed_until;
+        let first_shed_tick = shedding && !c.shed_on;
+        if shedding != c.shed_on {
+            c.shed_on = shedding;
+            let state = if shedding { "on" } else { "off" };
+            crate::emit!(Ev::TickShedEdge, room = self.name, tick = c.tick, state = state);
+        }
+        let run_paths = !shedding || c.tick % SHED_PATHS_EVERY == 0;
         let cap = if shedding { SHED_ORDER_CAP } else { NORMAL_ORDER_CAP };
         let mut drained = 0u64;
         while (drained as usize) < cap {
@@ -313,7 +327,7 @@ impl Room {
                 crate::emit!(Ev::ModCmds, room = self.name, tick = c.tick, applied = applied);
             }
         }
-        c.sim.tick();
+        c.sim.tick_with_paths(run_paths);
         c.tick += 1;
         let cost = started.elapsed();
         c.worst = c.worst.max(cost);
@@ -327,6 +341,9 @@ impl Room {
         if cost > budget {
             c.streak += 1;
             c.overruns += 1;
+            if c.streak >= SHED_AFTER_OVERRUNS {
+                c.shed_until = c.tick + SHED_HOLD_TICKS;
+            }
             crate::emit!(Ev::TickOverrun, room = self.name, tick = c.tick, cost_us = cost.as_micros(), budget_us = budget.as_micros());
         } else {
             c.streak = 0;

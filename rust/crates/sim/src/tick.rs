@@ -84,6 +84,11 @@ impl Sim {
     }
 
     pub fn tick(&mut self) {
+        self.tick_with_paths(true);
+    }
+
+    /// One tick. `run_paths` false skips the flow-field pass for this tick only; units still run.
+    pub fn tick_with_paths(&mut self, run_paths: bool) {
         let mut mark = clock();
         self.rebucket();
         mark = lap(System::Rebucket, mark);
@@ -92,7 +97,9 @@ impl Sim {
             self.refresh_vision();
         }
         mark = lap(System::Vision, mark);
-        self.paths.tick(&self.grid);
+        if run_paths {
+            self.paths.tick(&self.grid);
+        }
         mark = lap(System::Paths, mark);
         self.tick_buffs();
         mark = lap(System::Buffs, mark);

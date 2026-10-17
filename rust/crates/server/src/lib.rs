@@ -48,6 +48,7 @@ pub struct Options {
     pub tokens: Vec<(String, String)>,
     pub data: Option<PathBuf>,
     pub tick_budget_us: u64,
+    pub shed: bool,
     pub ticks: Option<u64>,
     pub mod_path: Option<PathBuf>,
     pub test_panic_tick: Option<u64>,
@@ -182,6 +183,7 @@ pub fn build_rooms(opts: &Options) -> Result<Vec<Arc<Room>>, String> {
             token,
             rate: opts.rate,
             data: opts.data.clone(),
+            shed: opts.shed,
         })?);
     }
     Ok(rooms)
@@ -199,6 +201,7 @@ pub fn parse_args() -> Result<Options, String> {
         tokens: Vec::new(),
         data: None,
         tick_budget_us: 1_000_000 / u64::from(TICKS_PER_SECOND),
+        shed: true,
         ticks: None,
         mod_path: None,
         test_panic_tick: None,
@@ -223,6 +226,13 @@ pub fn parse_args() -> Result<Options, String> {
             "--max-rooms" => opts.max_rooms = parse_num(&value, &flag)?,
             "--data" => opts.data = Some(PathBuf::from(value)),
             "--tick-budget-us" => opts.tick_budget_us = parse_num(&value, &flag)?,
+            "--shed" => {
+                opts.shed = match value.as_str() {
+                    "on" => true,
+                    "off" => false,
+                    _ => return Err("--shed is on or off".into()),
+                }
+            }
             "--ticks" => opts.ticks = Some(parse_num(&value, &flag)?),
             "--mod" => opts.mod_path = Some(PathBuf::from(value)),
             "--test-panic-tick" => opts.test_panic_tick = Some(parse_num(&value, &flag)?),

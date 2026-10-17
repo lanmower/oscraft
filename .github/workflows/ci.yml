@@ -738,6 +738,65 @@ jobs:
           test "$(grep -c -E '^client-error session="durable" tick=[0-9]+ tokens=[0-9]+ message="after restart"$' "$log")" -eq 1
           cat "$log"
 
+  tick-shed-window:
+    name: "tick shed window: overrun rate with and without shedding"
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-build
+          path: rust
+
+      - name: Mark the prebuilt binaries executable
+        working-directory: ${{ github.workspace }}
+        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
+
+      - name: Run a fixed 400-tick window at a 150 us budget with shedding off and on
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/tick-window"
+          mkdir -p "$work"
+          ./target/debug/osdt-data data "$work/catalog.osdt"
+          window=400
+          budget=150
+          arm() {
+            local shed=$1 port=$2 log="$work/shed-$1.log"
+            local addr=127.0.0.1:$port
+            target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks "$window" --tick-budget-us "$budget" --shed "$shed" > "$log" 2>&1 &
+            local pid=$!
+            for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+            local token
+            token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
+            test -n "$token"
+            for i in $(seq 1 20); do
+              curl -s -o /dev/null -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data "{\"player\":0,\"x\":$((i*5)),\"y\":$((i*3))}"
+            done
+            wait "$pid"
+            local total ticks overruns
+            total=$(grep '^ev=tick_time ticks=' "$log" | tail -1)
+            ticks=$(echo "$total" | sed 's/.* ticks=\([0-9]*\) .*/\1/')
+            overruns=$(echo "$total" | sed 's/.* overruns=\([0-9]*\)$/\1/')
+            edges_on=$(grep -c 'ev=tick_shed_edge .* state=on$' "$log" || true)
+            echo "shed=$shed ticks=$ticks overruns=$overruns rate=$(awk "BEGIN{printf \"%.4f\", $overruns/$ticks}") shed_on_edges=$edges_on"
+            test "$ticks" -ge "$window"
+            if [ "$shed" = off ]; then
+              test "$edges_on" -eq 0
+            else
+              test "$edges_on" -ge 1
+              test "$edges_on" -le $(( ticks / 48 + 1 ))
+            fi
+          }
+          arm off 8101 | tee "$work/rates.txt"
+          arm on 8102 | tee -a "$work/rates.txt"
+
   server-mod-and-data:
     name: "server mod, data and order probes"
     runs-on: ubuntu-latest
