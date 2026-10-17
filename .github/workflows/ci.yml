@@ -88,6 +88,7 @@ jobs:
           set -euo pipefail
           wasm-pack build crates/web --target web --out-dir site/pkg
           target/debug/mapexport crates/web/site/map.bin
+          target/debug/mapexport crates/web/site/moba.bin ../scenarios/moba
 
       - name: Stage the page for committing
         working-directory: ${{ github.workspace }}
@@ -95,7 +96,8 @@ jobs:
           set -euo pipefail
           rm -rf js/client/pkg && cp -r rust/crates/web/site/pkg js/client/pkg && rm -f js/client/pkg/.gitignore
           cp rust/crates/web/site/map.bin js/client/map.bin
-          ls -la js/client/pkg js/client/map.bin
+          cp rust/crates/web/site/moba.bin js/client/moba.bin
+          ls -la js/client/pkg js/client/map.bin js/client/moba.bin
 
       - uses: actions/upload-artifact@v4
         with:
@@ -113,6 +115,7 @@ jobs:
             rust/target/debug/reload_harness
             rust/crates/web/site/pkg
             rust/crates/web/site/map.bin
+            rust/crates/web/site/moba.bin
 
       - uses: actions/upload-artifact@v4
         with:
@@ -121,6 +124,7 @@ jobs:
           path: |
             js/client/pkg
             js/client/map.bin
+            js/client/moba.bin
 
   check:
     name: build, spike and gate (${{ matrix.os }})
@@ -1503,6 +1507,16 @@ jobs:
           npm install playwright@1.47.0
           npx playwright install --with-deps chromium
 
+      - name: Stage the page wasm and maps this run built into js/client, which the static server serves
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          rm -rf js/client/pkg
+          cp -r rust/crates/web/site/pkg js/client/pkg
+          cp rust/crates/web/site/map.bin js/client/map.bin
+          cp rust/crates/web/site/moba.bin js/client/moba.bin
+          ls -la js/client/pkg js/client/map.bin js/client/moba.bin
+
       - name: Render the committed map through the browser Game and check the witness
         run: |
           target/debug/oscraftd --addr 127.0.0.1:8000 --room ci --site crates/web/site > "$RUNNER_TEMP/http.log" 2>&1 &
@@ -1576,7 +1590,17 @@ jobs:
           if (!units.length) throw new Error("no units to order");
           const [cx, cz] = (await page.getAttribute("body", "data-center")).split(",").map(Number);
           const toScreen = (x, z) => ({ x: 512 + (x - cx) * 20, y: 384 + (z - cz) * 20 });
-          const unit = units[0];
+          // The camera moves with the arrow keys and zoom changes the scale, so the mapping is read again for each click.
+          const screenAt = async (x, z) => {
+            const [ccx, ccz] = (await page.getAttribute("body", "data-center")).split(",").map(Number);
+            const ppu = 20 * Number(await page.getAttribute("body", "data-zoom"));
+            return { x: 512 + (x - ccx) * ppu, y: 384 + (z - ccz) * ppu };
+          };
+          // Click the unit with the most room around it, so the pick cannot land on a neighbour.
+          const unit = units.reduce((best, cand) => {
+            const gap = Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));
+            return gap > best.gap ? { unit: cand, gap } : best;
+          }, { unit: units[0], gap: -1 }).unit;
           const at = toScreen(unit.x, unit.z);
           await page.mouse.click(at.x, at.y, { button: "left" });
           const selected = await page.evaluate(() => window.__ciSelected());
@@ -1586,7 +1610,6 @@ jobs:
           await page.waitForSelector("body[data-orders='1']", { timeout: 15000 });
           const orders = await page.getAttribute("body", "data-orders");
           if (errors.length) throw new Error("console errors: " + errors.join("\n"));
-          console.log(`moba input ok orders=${orders}`);
           const before = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];
           await page.keyboard.down("ArrowRight");
           await page.waitForTimeout(500);
@@ -1600,10 +1623,47 @@ jobs:
           await page.waitForFunction((z) => Number(document.body.dataset.zoom) > z, zoomBefore, { timeout: 5000 });
           const zoomAfter = Number(await page.getAttribute("body", "data-zoom"));
           console.log(`moba zoom ok zoom=${zoomBefore.toFixed(3)}->${zoomAfter.toFixed(3)}`);
+          const hp = Number(await page.getAttribute("body", "data-hp"));
+          const gold = Number(await page.getAttribute("body", "data-gold"));
+          if (!(hp > 0) || !(gold >= 0)) throw new Error("hud reads hp=" + hp + " gold=" + gold);
+          console.log(`moba hud ok hp=${hp} gold=${gold}`);
+          // Not every unit can cast or attack: try the most isolated units until one does both.
+          const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
+          const ranked = [...units].sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
+          let attacker = null;
+          for (const cand of ranked.reverse().slice(0, 60)) {
+            // Select through the CI hook: a click can land on another unit drawn over this one.
+            await page.evaluate((id) => window.__ciSelect(id), cand.id);
+            const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
+            if (!foe) continue;
+            const fp = await screenAt(foe.x, foe.z);
+            // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
+            await page.mouse.move(fp.x, fp.y);
+            await page.keyboard.press("q");
+            await page.waitForTimeout(150);
+            const casts = Number(await page.getAttribute("body", "data-casts"));
+            if (casts < 1) { console.log(`probe cast cand=${cand.id} foe=${foe.id} casts=${casts} at=${fp.x.toFixed(0)},${fp.y.toFixed(0)}`); continue; }
+            await page.keyboard.press("a");
+            await page.mouse.click(fp.x, fp.y, { button: "left" });
+            await page.waitForTimeout(150);
+            const attacks = Number(await page.getAttribute("body", "data-attacks"));
+            console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
+            if (attacks >= 1) { attacker = cand; break; }
+          }
+          if (!attacker) throw new Error("no unit both cast and attacked");
+          const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
+          console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
+          await page.evaluate(() => window.__ciKillSide(1));
+          await page.waitForFunction(() => Number(document.body.dataset.winner) >= 0, null, { timeout: 15000 });
+          const shown = await page.evaluate(() => { const w = document.getElementById("win"); return !w.hidden && w.textContent; });
+          if (!shown || !shown.includes("side 0 wins")) throw new Error("win screen shows " + shown);
+          console.log(`moba win screen ok winner=0`);
           await browser.close();
           EOF
           node "$RUNNER_TEMP/pw/moba-input.mjs" | tee "$RUNNER_TEMP/moba-input.txt"
-          grep -q '^moba input ok orders=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba input ok orders=[1-9][0-9]* casts=[1-9][0-9]* attacks=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba hud ok hp=[1-9][0-9]* gold=[0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba win screen ok winner=0$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
 
@@ -2677,6 +2737,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Stage the page wasm and maps this run built into js/client, which the static server serves
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          rm -rf js/client/pkg
+          cp -r rust/crates/web/site/pkg js/client/pkg
+          cp rust/crates/web/site/map.bin js/client/map.bin
+          cp rust/crates/web/site/moba.bin js/client/moba.bin
 
       - name: Install headless Chromium
         run: |

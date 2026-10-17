@@ -38,11 +38,15 @@ const statusEl = document.getElementById("status");
 const canvas = document.getElementById("view");
 const room = location.hash.slice(1) || "lobby";
 const pkgUrl = new URL(document.body.dataset.pkg, location.href).href;
-const mapUrl = new URL(document.body.dataset.map, location.href).href;
+// The #moba page loads the moba scenario image, the default page loads the duel map image.
+const mapUrl = new URL(location.hash === "#moba" ? "moba.bin" : document.body.dataset.map, location.href).href;
 
 const camera = { cx: W / 2, cz: H / 2, zoom: 1 };
 const peers = new Set();
 let netState = null;
+let casts = 0;
+let attacks = 0;
+let attackMode = false;
 let localGame = null;
 let selectedId = -1;
 let reconnectAttempt = 0;
@@ -64,7 +68,10 @@ async function loadSim() {
   const mod = await import(/* @vite-ignore */ pkgUrl);
   await mod.default();
   const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
-  return new mod.Game(image);
+  const game = new mod.Game(image);
+  // The moba preview runs without fog so every enemy is a valid target; other pages keep the sim's fog.
+  game.set_fog(location.hash !== "#moba");
+  return game;
 }
 
 function compile(gl, type, src) {
@@ -202,6 +209,12 @@ function onClick(e) {
     issueMove(world);
     return;
   }
+  if (attackMode) {
+    attackMode = false;
+    const target = pick(world);
+    if (target && localGame && localGame.attack(selectedId, target.id)) attacks += 1;
+    return;
+  }
   const hit = pick(world);
   selectedId = hit ? hit.id : -1;
 }
@@ -216,6 +229,21 @@ function issueMove(world) {
     orders += 1;
   }
   setStatus(`order move unit ${selected.id} to ${world.x.toFixed(2)},${world.z.toFixed(2)}${netState ? "" : " (local)"}`);
+}
+
+// Q, W and E cast the selected unit's ability in slot 0, 1 and 2 at the pointer, aimed at the unit under it.
+// A arms an attack: the next left click on an enemy unit orders the selected unit to attack it.
+const ABILITY_SLOTS = { q: 0, w: 1, e: 2 };
+function handleAbilityKey(key) {
+  if (!localGame || selectedId < 0) return;
+  if (key === "a") {
+    attackMode = true;
+    return;
+  }
+  if (!(key in ABILITY_SLOTS)) return;
+  const world = pointer ? screenToWorld(pointer.x, pointer.y) : { x: 0, z: 0 };
+  const target = pick(world);
+  if (localGame.cast(selectedId, ABILITY_SLOTS[key], target ? target.id : -1, world.x, world.z)) casts += 1;
 }
 
 function bindInput() {
@@ -241,9 +269,13 @@ function bindInput() {
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   window.addEventListener("keydown", (e) => {
-    if (e.target instanceof HTMLInputElement || !e.key.startsWith("Arrow")) return;
-    keysDown.add(e.key);
-    e.preventDefault();
+    if (e.target instanceof HTMLInputElement) return;
+    if (e.key.startsWith("Arrow")) {
+      keysDown.add(e.key);
+      e.preventDefault();
+      return;
+    }
+    handleAbilityKey(e.key.toLowerCase());
   });
   window.addEventListener("keyup", (e) => keysDown.delete(e.key));
   window.addEventListener("blur", () => keysDown.clear());
@@ -428,6 +460,20 @@ function publishWitness() {
   document.body.dataset.center = `${camera.cx},${camera.cz}`;
   document.body.dataset.zoom = camera.zoom.toFixed(3);
   document.body.dataset.orders = String(orders);
+  document.body.dataset.casts = String(casts);
+  document.body.dataset.attacks = String(attacks);
+  if (localGame) {
+    const hp = selectedId >= 0 ? localGame.unit_hp(selectedId) : -1;
+    const gold = localGame.gold(0);
+    const winner = localGame.winner();
+    document.body.dataset.hp = String(hp);
+    document.body.dataset.gold = String(gold);
+    document.body.dataset.winner = String(winner);
+    document.getElementById("hud").textContent = `hp ${hp >= 0 ? hp : "-"}   gold ${gold}`;
+    const win = document.getElementById("win");
+    win.hidden = winner < 0;
+    win.textContent = `side ${winner} wins`;
+  }
 }
 
 async function main() {
@@ -467,6 +513,10 @@ if (params.get("ci") === "1") {
   window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciSelected = () => selectedId;
+  window.__ciSelect = (unitId) => { selectedId = unitId; };
+  window.__ciKillSide = (player) => {
+    for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 10000);
+  };
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 
