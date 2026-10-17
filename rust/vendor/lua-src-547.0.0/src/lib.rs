@@ -135,9 +135,13 @@ impl Build {
             // WASI (wasm32-wasip3 guest): plain ANSI C, no platform defines; the
             // C sysroot comes from CC_<target>/CFLAGS_<target> in the environment.
             // lstate.h includes <signal.h> for sig_atomic_t; wasi-libc's header refuses to compile
-            // unless the minimal signal emulation is enabled.
+            // unless the minimal signal emulation is enabled. Lua's error path needs setjmp, which
+            // wasi-libc only provides through the wasm exception-handling emulation.
             _ if target.contains("wasi") => {
-                config.define("_WASI_EMULATED_SIGNAL", None);
+                config
+                    .define("_WASI_EMULATED_SIGNAL", None)
+                    .flag("-mllvm")
+                    .flag("-wasm-enable-sjlj");
             }
             _ => panic!("don't know how to build Lua for {}", target),
         };
