@@ -134,10 +134,10 @@ impl Build {
             }
             // WASI (wasm32-wasip3 guest): plain ANSI C, no platform defines; the
             // C sysroot comes from CC_<target>/CFLAGS_<target> in the environment.
-            // lstate.h names sig_atomic_t, which wasi-libc declares only in <signal.h>; that header
-            // refuses to compile without the emulated-signal library, so the type is defined here.
+            // lstate.h includes <signal.h> for sig_atomic_t; wasi-libc's header refuses to compile
+            // unless the minimal signal emulation is enabled.
             _ if target.contains("wasi") => {
-                config.define("sig_atomic_t", "int");
+                config.define("_WASI_EMULATED_SIGNAL", None);
             }
             _ => panic!("don't know how to build Lua for {}", target),
         };
