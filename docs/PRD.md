@@ -12,11 +12,11 @@ Status is as of main `62af78b0`. Each row names its acceptance witness: the line
 
 ## A. MOBA (browser game)
 
-- **moba-kill-bounty**: a general bounty on a destroyed unit is paid to the opposing side's resource pool. Witness: `kill bounty ok gold_before=<n> gold_after=<n>`. Status: in progress. The sim edit was not pushed when its connection dropped. Depends on: none.
-- **moba-win-witness**: confirm `win trigger ok winner=<side>` in CI. Status: the mechanic landed in `4f966029`; the witness line is not yet confirmed.
+- **moba-kill-bounty**: a general bounty on a destroyed unit is paid to the opposing side's resource pool. Witness: `kill bounty ok gold_before=<n> gold_after=<n>`. Status: witnessed. Gate line `kill bounty ok gold_before=0 gold_after=25` in CI run 39021272353 (duel-routes job, success).
+- **moba-win-witness**: confirm `win trigger ok winner=<side>` in CI. Status: witnessed. Gate line `win trigger ok winner=0` in CI run 39021272353 (duel-routes job, success).
 - **moba-match-end**: the match ends with a winner within a bounded tick count. Witness: `moba match ok winner=<side> ticks=<n>`. Status: not started. Depends on: moba-win-witness.
-- **moba-wave-spawn**: a timed creep wave spawns past one cooldown. Witness: `moba wave ok spawned=<n> at_tick=<n>`. Status: landed in `c55d4b47`; confirm green.
-- **moba-base-tag**: a tag contract for the base structures that the win trigger reads. Gap `gap-moba-base-win-tag`. Status: open.
+- **moba-wave-spawn**: a timed creep wave spawns past one cooldown. Witness: `moba wave ok spawned=<n> at_tick=<n>`. Status: witnessed in CI run 39021272353 (moba job, success). It was red on `main` until `scenarios/moba/behaviours.osd` named its tag.
+- **moba-base-tag**: a tag contract for the base structures that the win trigger reads. Gap `gap-moba-base-win-tag`. Status: closed. The `win_on_base_loss` behaviour names `tag="building"`, and the moba job compiles it.
 - **moba-hud**: hit points, gold, a minimap, and a win or lose screen. Witness: `moba hud ok hp=<n> gold=<n>` and `moba win screen ok winner=<side>`. Status: blocked on the wasm exports for hit points, gold and win state, and on ci-pkg-commit-back.
 - **moba-casts**: Q, W and E cast an ability at the cursor, and A-click attacks. Witness: `moba input ok` extended with `casts=<n> attacks=<n>`. Status: blocked on wasm cast and attack exports, and on ci-pkg-commit-back.
 - **moba-camera**: arrow-key or edge pan, and zoom. Witness: `moba camera ok`. Status: not started; needs no wasm change.
@@ -68,4 +68,4 @@ The user delegated these to the agent. Each is the default a reviewer can overtu
 - **D4.** Keep the per-ref cancel. The tip gets the verdict.
 - **D5.** The browser keeps running `rust/crates/web`. wasip3 stays native.
 
-Status: `d27b59f` restores the workspace build. The `ci` run on `main` at `60d881b` failed in the `build` job on the missing `UnitExtRaw.bounty` field, and every probe behind it was skipped. The branch has no CI trigger, because `ci.yml` runs on `main` and on pull requests into `main`. The next verdict needs `main` to carry `d27b59f`.
+Status: `d27b59f` restores the workspace build. `9c7b9d3` fixes the moba scenario. CI run 39021272353 on that head passed all 22 jobs. The `ci` run on `main` at `60d881b` failed in the `build` job on the missing `UnitExtRaw.bounty` field, and every probe behind it was skipped. The branch has no CI trigger, because `ci.yml` runs on `main` and on pull requests into `main`. The next verdict needs `main` to carry `d27b59f`.
