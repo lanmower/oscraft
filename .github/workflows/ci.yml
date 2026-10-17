@@ -2713,8 +2713,13 @@ jobs:
       - name: Build the sim as a wasip3 guest
         run: cargo build --target wasm32-wasip3 -p wasip3-guest --release
 
-      - name: Run the native host on the built guest
-        run: cargo run --release --bin oscraft_wasip3 -- target/wasm32-wasip3/release/oscraft_wasip3.wasm
+      - name: Run the guest under the native host on the map image, and check its tick witness
+        run: |
+          set -euo pipefail
+          (cd ../.. && cargo run -q -p mapexport -- "$RUNNER_TEMP/map.osdt" data)
+          cargo run --release --bin oscraft_wasip3 -- target/wasm32-wasip3/release/oscraft_wasip3.wasm "$RUNNER_TEMP/map.osdt" | tee "$RUNNER_TEMP/wasip3.txt"
+          grep -q '^wasip3 build ok bytes=[0-9]*$' "$RUNNER_TEMP/wasip3.txt"
+          grep -qE '^wasip3 tick ok ticks=10 units=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
 
   browser-two-peers:
     name: "browser host and browser peer over wireweave: one order moves a unit on both pages"
