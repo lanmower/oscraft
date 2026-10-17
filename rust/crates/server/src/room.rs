@@ -64,6 +64,7 @@ pub struct Snapshot {
     pub state_hash: u64,
     pub units: usize,
     pub winner: i32,
+    pub resource_a: [i32; 2],
     pub records: Vec<String>,
 }
 
@@ -214,6 +215,7 @@ impl Room {
             state_hash: c.sim.state_hash(),
             units: c.sim.alive_count(),
             winner: c.sim.winner().map_or(-1, |side| side as i32),
+            resource_a: [c.sim.resource_a(0), c.sim.resource_a(1)],
             records: live_records(&c.sim),
         }
     }

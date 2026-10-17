@@ -381,7 +381,7 @@ pub fn serve_state(room: &Room, req: &Request) -> Response {
     Response::json(
         200,
         format!(
-            "{{\"proto\":{},\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{},\"winner\":{},\"unit\":{},\"records\":[{}]}}",
+            "{{\"proto\":{},\"map\":{},\"tick\":{},\"state_hash\":\"{:016x}\",\"max_units\":{},\"units\":{},\"winner\":{},\"resource_a\":[{},{}],\"unit\":{},\"records\":[{}]}}",
             PROTOCOL_VERSION,
             json_string(&room.name),
             snap.tick,
@@ -389,6 +389,8 @@ pub fn serve_state(room: &Room, req: &Request) -> Response {
             room.max_units,
             snap.units,
             snap.winner,
+            snap.resource_a[0],
+            snap.resource_a[1],
             unit,
             snap.records.join(",")
         ),
