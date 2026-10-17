@@ -3050,3 +3050,30 @@ jobs:
         run: |
           cat "$RUNNER_TEMP/browser-turn-relay/turn.log" || true
           cat "$RUNNER_TEMP/browser-turn-relay/relay.log" || true
+
+  net-client:
+    name: "net client: play.html loads play.js through an import map pinned to wireweave"
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: play.html imports wireweave from the a71f179 pin and loads play.js as a module
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          const html = readFileSync('js/client/play.html', 'utf8');
+          const fail = (why) => { console.error(`net client FAIL ${why}`); process.exit(1); };
+          const m = html.match(/<script type="importmap">([\s\S]*?)<\/script>/);
+          if (!m) fail('no importmap script');
+          const map = JSON.parse(m[1]).imports ?? {};
+          const pin = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@a71f179cc5352964bc014deea166969938705e61/src/index.js';
+          if (map.wireweave !== pin) fail(`wireweave pin is ${map.wireweave}`);
+          if (!/<script type="module" src="play\.js"/.test(html)) fail('play.html does not load play.js as a module');
+          if (/dist\//.test(html)) fail('play.html references dist/');
+          console.log(`net client bundle ok wireweave=a71f179 importmap=${Object.keys(map).length}`);
+          JS
+          node --check js/client/play.js
