@@ -59,4 +59,4 @@ Playwright (Node) drives the headless Chromium in these jobs.
 
 ## Retired
 
-The Node host (`js/host`), its wasip1 guest and the wasip2 component are removed. `wasip3` remains as a CI build only.
+The Node host (`js/host`) is removed. `wasip3` is the only guest: CI builds it as a component, and the browser keeps running `rust/crates/web`.
