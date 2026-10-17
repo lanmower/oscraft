@@ -1,6 +1,6 @@
 # Mod parity
 
-The endpoint: the setup can do what StarCraft II mods and games can do. This list names each
+The endpoint: the setup can do what the reference real-time strategy engine's mods and games can do. This list names each
 capability, its status, and the evidence. Status is one of `supported` (the engine does it and a
 check covers it), `partial` (it works in part), or `missing` (the engine refuses it or has no
 path). A `supported` row names its check. Rows change only with a check or a code path behind them.
