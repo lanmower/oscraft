@@ -2365,7 +2365,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "lua-src"
-version = "547.0.0"
