@@ -2703,7 +2703,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install the nightly toolchain with the wasm32-wasip3 target
-        run: rustup toolchain install nightly --profile minimal --target wasm32-wasip3 && rustup default nightly
+        run: rustup toolchain install nightly --profile minimal --target wasm32-wasip3
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -2711,10 +2711,16 @@ jobs:
           shared-key: rust-wasip3
 
       - name: Build the sim as a wasip3 guest
-        run: cargo build --target wasm32-wasip3 -p wasip3-guest --release
+        run: cargo +nightly build --target wasm32-wasip3 -p wasip3-guest --release
 
-      - name: Run the native host on the built guest
-        run: cargo run --release --bin oscraft_wasip3 -- target/wasm32-wasip3/release/oscraft_wasip3.wasm
+      - name: Run the guest under the native host on the map image, and check its tick witness
+        run: |
+          set -euo pipefail
+          (cd ../.. && cargo +stable run -q -p mapexport -- "$RUNNER_TEMP/map.osdt" data)
+          # The host runs on stable: wasmtime's allocative dependency does not compile on this nightly.
+          cargo +stable run --release --bin oscraft_wasip3 -- target/wasm32-wasip3/release/oscraft_wasip3.wasm "$RUNNER_TEMP/map.osdt" | tee "$RUNNER_TEMP/wasip3.txt"
+          grep -q '^wasip3 build ok bytes=[0-9]*$' "$RUNNER_TEMP/wasip3.txt"
+          grep -qE '^wasip3 tick ok ticks=10 units=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
 
   browser-two-peers:
     name: "browser host and browser peer over wireweave: one order moves a unit on both pages"

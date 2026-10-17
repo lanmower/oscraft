@@ -33,7 +33,7 @@ Status is as of main `62af78b0`. Each row names its acceptance witness: the line
 
 ## C. Runtime and guest
 
-- **wasip3-instantiate**: run the wasip3 component under a native host with a newer wasmtime. Witness: `wasip3 tick ok ticks=10 units=<n>`. Status: open. Wasmtime 27 cannot instantiate a wasip3 component.
+- **wasip3-instantiate**: run the wasip3 component under a native host with a newer wasmtime. Witness: `wasip3 tick ok ticks=10 units=<n>`. Status: witnessed. The native host runs on wasmtime 50 with component-model-async, feeds the guest the map image and three commands, and prints `wasip3 tick ok ticks=10 units=30` locally and in CI (wasip3 job, run 39025271922). The host builds on stable; the guest builds on nightly.
 - **wasip12-removal**: wasip1 and wasip2 are gone; the only reference was a doc line. Landed in `9ad18d2`. Witness: the sweep returns zero references. Status: landed.
 - **wasip3-browser**: see D5.
 
