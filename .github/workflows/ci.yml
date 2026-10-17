@@ -1677,7 +1677,7 @@ jobs:
           await browser.close();
           EOF
           node "$RUNNER_TEMP/pw/draw3d.mjs" | tee "$RUNNER_TEMP/draw3d.txt"
-          grep -q '^draw3d ok mode=3d terrain=[1-9][0-9]* doodad=[0-9]* unit=[0-9]* quad=[0-9]*$' "$RUNNER_TEMP/draw3d.txt"
+          grep -q '^draw3d ok mode=3d terrain=[1-9][0-9]* doodad=[0-9]* unit=[0-9]* quad=0$' "$RUNNER_TEMP/draw3d.txt"
 
       - name: Left click selects a unit, right click orders it to move; the sim accepts the order
         run: |
