@@ -448,6 +448,27 @@ impl Sim {
         self.fog = on;
     }
 
+    pub fn fog_on(&self) -> bool {
+        self.fog
+    }
+
+    /// Moves living unit `i` to player `p`. The vision map is rebuilt at once, so the unit's sight
+    /// follows its new owner from this tick. Refusals: a dead or unknown unit is NoTarget; a player at or
+    /// past MAX_PLAYERS is InvalidPlayer. A refused change touches nothing.
+    pub fn set_owner(&mut self, i: usize, p: u8) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        if (p as usize) >= MAX_PLAYERS {
+            return Err(self.reject(Refusal::InvalidPlayer));
+        }
+        self.player[i] = p;
+        if self.fog {
+            self.refresh_vision();
+        }
+        Ok(())
+    }
+
     pub fn set_harvest(&mut self, on: bool) {
         self.harvest = on;
     }

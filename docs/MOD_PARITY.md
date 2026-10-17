@@ -21,7 +21,7 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 | Define unit kinds, abilities, behaviours and upgrades from data files | supported | `rust/data`, `scenarios/*/units.osd` |
 | Reload data and mods while the server runs | supported | `reload_harness` in the hot reload CI job |
 | Read unit position, hit points and owner from Lua | supported | `unit_position`, `unit_hp`, `unit_player` |
-| Change a unit's owner from Lua | missing | no setter in the sim or mod-host |
+| Change a unit's owner from Lua | supported | `game.cmd_set_owner`, `set_owner` in the sim, mod-host test `cmd_set_owner_moves...` |
 | Damage, buff and move units from Lua | supported | `damage_unit`, `buff_unit`, `order_unit` |
 
 ## Abilities and combat
@@ -42,7 +42,7 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 | Regions and region checks | supported | `define_region`, `in_region` |
 | Edit terrain tiles | supported | `set_tile`, `edit_terrain` |
 | Place and remove doodads | supported | `place_doodad`, `remove_doodad`, `list_doodads` |
-| Fog of war, controlled by a mod | missing | the sim has a fog switch, but mods cannot set it (the CLI does, through `--fog`) |
+| Fog of war, controlled by a mod | supported | `game.cmd_set_fog`, mod-host test `cmd_set_fog_turns_fog_off...` |
 
 ## Presentation and players
 
@@ -74,8 +74,7 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 
 ## Open items, in order
 
-1. Fog and owner changes from Lua (small, sim and mod-host).
-2. Commanded attacks that keep a target engaged (a sim change with a save-format bump).
+1. Commanded attacks that keep a target engaged (a sim change with a save-format bump).
 3. Flee (needs a definition of its direction and distance in data).
 4. Camera, sound, UI panels, chat and cinematics (presentation layer; each needs a design, since the sim is headless).
 5. A Lua test runner for running server scenarios from the command line.

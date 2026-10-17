@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{Catalog, Doodad, LoadError, Refusal, Sim, ABILITY_SLOTS};
+use sim::{Catalog, Doodad, LoadError, Refusal, Sim, ABILITY_SLOTS, MAX_PLAYERS};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -78,6 +78,8 @@ pub enum Cmd {
     BuffHandle { handle: u32, kind: i32, ticks: i32 },
     Cast { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
     Attack { unit: usize, target: usize },
+    SetOwner { unit: usize, player: u8 },
+    SetFog { on: bool },
 }
 
 // Q16.16 corners, normalized so x0 <= x1 and y0 <= y1.
@@ -827,6 +829,26 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(())
         })?,
     )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_set_owner",
+        lua.create_function(move |_, (unit, player): (i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let player = usize::try_from(player).ok().filter(|&p| p < MAX_PLAYERS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_player: {player} is outside 0..{MAX_PLAYERS}"))
+            })?;
+            buf.borrow_mut().push(Cmd::SetOwner { unit: u, player: player as u8 });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "cmd_set_fog",
+        lua.create_function(move |_, on: bool| {
+            buf.borrow_mut().push(Cmd::SetFog { on });
+            Ok(())
+        })?,
+    )?;
     env.set("game", game)
 }
 
@@ -1156,6 +1178,10 @@ impl ModHost {
                         let _ = sim.order_attack_or_approach(unit, target);
                     }
                 }
+                Cmd::SetOwner { unit, player } => {
+                    let _ = sim.set_owner(unit, player);
+                }
+                Cmd::SetFog { on } => sim.set_fog(on),
             }
         }
     }
@@ -1374,6 +1400,46 @@ mod tests {
         host.advance(&host.state().clone()).expect("step");
         let unsupported = host.sim().stats.refused_by[sim::Refusal::ActionUnsupported as usize];
         assert_eq!(unsupported, 0, "a behaviour was refused as unsupported");
+    }
+
+    #[test]
+    fn cmd_set_owner_moves_the_unit_to_the_named_player() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        host.load_source("owner", r#"
+            function on_tick(state)
+              game.cmd_set_owner(state.attacker, 1)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        assert_eq!(host.sim().player(a), 1);
+    }
+
+    #[test]
+    fn cmd_set_owner_refuses_a_player_past_the_limit_by_name() {
+        let mut host = host_with_creeps();
+        host.load_source("owner", r#"
+            function on_tick(state)
+              game.cmd_set_owner(state.attacker, 99)
+            end
+        "#).expect("mod loads");
+        let err = host.advance(&host.state().clone()).expect_err("player 99 must be refused");
+        assert!(err.to_string().contains("invalid_player"), "wrong error: {err}");
+    }
+
+    #[test]
+    fn cmd_set_fog_turns_fog_off_in_the_sim() {
+        let mut host = host_with_creeps();
+        assert!(host.sim().fog_on());
+        host.load_source("fog", r#"
+            function on_tick(state)
+              game.cmd_set_fog(false)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        assert!(!host.sim().fog_on());
     }
 
     #[test]

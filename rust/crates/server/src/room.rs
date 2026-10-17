@@ -389,6 +389,10 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
                     let _ = sim.order_attack_or_approach(unit, target);
                 }
             }
+            Cmd::SetOwner { unit, player } => {
+                let _ = sim.set_owner(unit, player);
+            }
+            Cmd::SetFog { on } => sim.set_fog(on),
         }
     }
     applied
