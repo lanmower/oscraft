@@ -542,7 +542,7 @@ relayPool.subscribe("oscraft-rooms", [{ kinds: [ROOM_KIND], "#t": [ROOM_TAG] }],
 announceRoom();
 setInterval(announceRoom, ROOM_ANNOUNCE_S * 1000);
 setInterval(pruneRooms, ROOM_PRUNE_MS);
-// ?ice=<JSON list> replaces the default STUN list. Relay test mode (?relay=) keeps no ICE servers unless ?ice is given.
+// ?ice=<JSON list of stun entries> replaces the default STUN list. Relay test mode (?relay=) keeps no ICE servers unless ?ice is given.
 const iceConfig = (() => {
   try {
     return iceServersFrom(params.get("ice"));
@@ -551,12 +551,9 @@ const iceConfig = (() => {
     return iceServersFrom(null);
   }
 })();
-// ?ice_policy=relay forces every peer connection onto relay candidates (a TURN server from ?ice). CI counts the
-// candidate types to witness the TURN path; the default page keeps wireweave's own policy.
-const relayOnly = params.get("ice_policy") === "relay";
 const ciPeerConnections = [];
 const createPeerConnection = (config) => {
-  const pc = new RTCPeerConnection(relayOnly ? { ...config, iceTransportPolicy: "relay" } : config);
+  const pc = new RTCPeerConnection(config);
   if (params.get("ci") === "1") ciPeerConnections.push(pc);
   return pc;
 };
@@ -695,8 +692,6 @@ if (params.get("ci") === "1") {
     }
     return { localTypes: [...localTypes].sort(), pairs };
   };
-  // Every ICE server URL in each CI peer connection's configuration, as the browser recorded it.
-  window.__ciTurnUrls = () => ciPeerConnections.flatMap((pc) => (pc.getConfiguration().iceServers || []).flatMap((s) => [s.urls].flat()));
   window.__ciSelect = (unitId) => { selectedId = unitId; };
   window.__ciKillSide = (player) => {
     for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 10000);

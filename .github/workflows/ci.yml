@@ -2197,22 +2197,24 @@ jobs:
           const fail = (why) => { console.error(`ice config FAIL ${why}`); process.exit(1); };
           const raw = process.env.OSCRAFT_ICE;
           const config = iceServersFrom(raw ?? null);
-          const hasTurn = config.servers.some((s) => [s.urls].flat().some((u) => /^turns?:/.test(u)));
           if (raw === undefined) {
             if (!config.default || config.servers.length !== 2) fail('unset OSCRAFT_ICE must give the default STUN list');
             console.log('ice config ok default=true');
           } else {
             if (config.default) fail('OSCRAFT_ICE set but the default list was used');
-            if (!hasTurn) fail('OSCRAFT_ICE set without a TURN entry');
+            if (config.servers.some((s) => [s.urls].flat().some((u) => /^turns?:/.test(u)))) fail('OSCRAFT_ICE accepted a TURN entry');
             console.log(`ice config ok servers=${config.servers.length}`);
           }
           let refused = false;
           try { iceServersFrom('not json'); } catch { refused = true; }
           if (!refused) fail('malformed ICE config was accepted');
+          refused = false;
+          try { iceServersFrom('[{"urls":"turn:turn.example.org:3478","username":"u","credential":"p"}]'); } catch { refused = true; }
+          if (!refused) fail('TURN ICE config was accepted');
           process.exit(0);
           JS
-          OSCRAFT_ICE='[{"urls":"turn:turn.example.org:3478","username":"u","credential":"p"},{"urls":"stun:stun.example.org:3478"}]' node "$RUNNER_TEMP/ice-check.mjs" | tee "$RUNNER_TEMP/ice-set.txt"
-          grep -q '^ice config ok servers=2$' "$RUNNER_TEMP/ice-set.txt"
+          OSCRAFT_ICE='[{"urls":"stun:stun.example.org:3478"}]' node "$RUNNER_TEMP/ice-check.mjs" | tee "$RUNNER_TEMP/ice-set.txt"
+          grep -q '^ice config ok servers=1$' "$RUNNER_TEMP/ice-set.txt"
           env -u OSCRAFT_ICE node "$RUNNER_TEMP/ice-check.mjs" | tee "$RUNNER_TEMP/ice-unset.txt"
           grep -q '^ice config ok default=true$' "$RUNNER_TEMP/ice-unset.txt"
 
@@ -2983,8 +2985,8 @@ jobs:
           grep -q '^browser room select ok room=[A-Za-z0-9_-]* first=true second=true$' "$work/room-select.txt"
 
 
-  browser-turn-relay:
-    name: "browser peers forced onto TURN relay candidates: orders, a cast and an attack cross the relay and the peers agree"
+  browser-direct:
+    name: "browser peers connect directly over host or srflx candidates, never relay: orders, a cast and an attack cross the link and the peers agree"
     runs-on: ubuntu-latest
     needs: [changes, build]
     if: needs.changes.outputs.code == 'true'
@@ -3014,38 +3016,29 @@ jobs:
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
 
-      - name: Install headless Chromium and coturn
+      - name: Install headless Chromium
         run: |
-          sudo apt-get update
-          sudo apt-get install -y coturn
-          # The package starts a default TURN server on port 3478. Stop it so the probe's own server, with its
-          # test credentials, is the one the page reaches.
-          sudo systemctl disable --now coturn || true
-          sudo pkill -x turnserver || true
-          if (echo > /dev/tcp/127.0.0.1/3478) 2>/dev/null; then echo "port 3478 still in use"; exit 1; fi
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
           npm install playwright@1.47.0
           npx playwright install --with-deps chromium
 
-      - name: "Relay, TURN server and two browser peers forced to relay candidates: orders, a cast and an attack cross the relay"
+      - name: "Two browser peers connect directly over host or srflx candidates, never relay: orders, a cast and an attack cross the link"
         run: |
           set -euo pipefail
-          work="$RUNNER_TEMP/browser-turn-relay"
+          work="$RUNNER_TEMP/browser-direct"
           mkdir -p "$work"
           "$GITHUB_WORKSPACE/rust/target/debug/oscraft-relay" 7447 > "$work/relay.log" 2>&1 &
           relay=$!
-          turnserver -n --listening-ip=127.0.0.1 --relay-ip=127.0.0.1 --listening-port=3478 --lt-cred-mech --user=oscraft:oscraft-ci --realm=oscraft --no-tls --no-dtls --no-cli --allow-loopback-peers --log-file=stdout > "$work/turn.log" 2>&1 &
-          turn=$!
           python3 -m http.server 8092 --bind 127.0.0.1 --directory js/client > "$work/static.log" 2>&1 &
           static=$!
-          trap 'kill $relay $turn $static 2>/dev/null || true' EXIT
+          trap 'kill $relay $static 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8092/play.html > /dev/null && break; sleep 1; done
-          cat > "$RUNNER_TEMP/pw/turn-relay.mjs" <<'EOF'
+          cat > "$RUNNER_TEMP/pw/direct.mjs" <<'EOF'
           import { chromium } from "playwright";
-          const ice = encodeURIComponent(JSON.stringify([{ urls: "turn:127.0.0.1:3478?transport=udp", username: "oscraft", credential: "oscraft-ci" }]));
-          const base = `http://127.0.0.1:8092/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1&ice_policy=relay&ice=${ice}`;
+          // The signaling relay (?relay=) carries only offers and answers; no ICE servers are configured, so the peers gather host candidates.
+          const base = `http://127.0.0.1:8092/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1`;
           const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-features=WebRtcHideLocalIpsWithMdns"] });
           const errors = [];
           const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -3064,20 +3057,18 @@ jobs:
             };
             await host.waitForFunction(() => window.__ciPeers && window.__ciPeers() >= 1, null, { timeout: 120000 }).catch((e) => diagnose(host, "host", e));
             await peer.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 }).catch((e) => diagnose(peer, "peer", e));
-            const turnUrls = await host.evaluate(() => window.__ciTurnUrls());
-            if (!turnUrls.includes("turn:127.0.0.1:3478?transport=udp")) throw new Error(`TURN url missing from the RTCPeerConnection configuration: ${JSON.stringify(turnUrls)}`);
-            const relayOnly = (c) => c.localTypes.length > 0 && c.localTypes.every((t) => t === "relay")
-              && c.pairs.length > 0 && c.pairs.every((x) => x.local === "relay" && x.remote === "relay");
+            const direct = (c) => c.localTypes.length > 0 && c.localTypes.every((t) => t === "host" || t === "srflx")
+              && c.pairs.length > 0 && c.pairs.every((x) => x.local !== "relay" && x.remote !== "relay");
             let h = null;
             let p = null;
             const pairDeadline = Date.now() + 90000;
             while (Date.now() < pairDeadline) {
               h = await host.evaluate(() => window.__ciCandidates());
               p = await peer.evaluate(() => window.__ciCandidates());
-              if (relayOnly(h) && relayOnly(p)) break;
+              if (direct(h) && direct(p)) break;
               await new Promise((r) => setTimeout(r, 1000));
             }
-            if (!relayOnly(h) || !relayOnly(p)) throw new Error(`not relay-only: host=${JSON.stringify(h)} peer=${JSON.stringify(p)}`);
+            if (!direct(h) || !direct(p)) throw new Error(`not direct host/srflx: host=${JSON.stringify(h)} peer=${JSON.stringify(p)}`);
             const start = await peer.evaluate(() => window.__ciUnits());
             const unit = start.find((u) => u.player === 0);
             if (!unit) throw new Error("no unit owned by the first peer's player 0");
@@ -3092,7 +3083,7 @@ jobs:
               onHost = await seen(host);
               if (movedToward(onHost) && movedToward(await seen(peer))) break;
             }
-            if (!movedToward(onHost) || !movedToward(await seen(peer))) throw new Error(`no movement over the relay: unit=${unit.id} host=${JSON.stringify(onHost)}`);
+            if (!movedToward(onHost) || !movedToward(await seen(peer))) throw new Error(`no movement over the direct link: unit=${unit.id} host=${JSON.stringify(onHost)}`);
             // Not every unit of a side can attack or cast, so each one is tried against its nearest enemies until the host accepts.
             const foes = start.filter((u) => u.player === 1);
             const mine = start.filter((u) => u.player === 0).sort((a, b) => dist(a, foes[0] || a) - dist(b, foes[0] || b));
@@ -3126,23 +3117,21 @@ jobs:
             }
             if (matched < 20 || mismatched > 0) throw new Error(`wireweave disagreement: matched=${matched} mismatched=${mismatched}`);
             if (errors.length) throw new Error("page errors: " + errors.join(" | "));
-            console.log(`browser turn relay ok local=${h.localTypes.join(",")} pairs=${h.pairs.length}/${p.pairs.length} unit=${unit.id} moved=true`);
-            console.log(`browser relay commands ok attacks=${attacks} casts=${casts}`);
-            console.log(`browser relay agreement ok ticks=${matched}`);
+            console.log(`browser direct ok local=${h.localTypes.join(",")} pairs=${h.pairs.length}/${p.pairs.length} unit=${unit.id} moved=true`);
+            console.log(`browser direct commands ok attacks=${attacks} casts=${casts}`);
+            console.log(`browser direct agreement ok ticks=${matched}`);
           } finally {
             await browser.close();
           }
           EOF
-          node "$RUNNER_TEMP/pw/turn-relay.mjs" | tee "$work/turn-relay.txt"
-          grep -qE '^browser turn relay ok local=relay pairs=[1-9][0-9]*/[1-9][0-9]* unit=[0-9]+ moved=true$' "$work/turn-relay.txt"
-          grep -qE '^browser relay commands ok attacks=1 casts=1$' "$work/turn-relay.txt"
-          grep -qE '^browser relay agreement ok ticks=[2-9][0-9]+$' "$work/turn-relay.txt"
+          node "$RUNNER_TEMP/pw/direct.mjs" | tee "$work/direct.txt"
+          grep -qE '^browser direct ok local=(host|srflx)(,(host|srflx))* pairs=[1-9][0-9]*/[1-9][0-9]* unit=[0-9]+ moved=true$' "$work/direct.txt"
+          grep -qE '^browser direct commands ok attacks=1 casts=1$' "$work/direct.txt"
+          grep -qE '^browser direct agreement ok ticks=[2-9][0-9]+$' "$work/direct.txt"
 
-      - name: Show the TURN server and relay logs when the probe fails
+      - name: Show the relay log when the direct probe fails
         if: failure()
-        run: |
-          cat "$RUNNER_TEMP/browser-turn-relay/turn.log" || true
-          cat "$RUNNER_TEMP/browser-turn-relay/relay.log" || true
+        run: cat "$RUNNER_TEMP/browser-direct/relay.log" || true
 
   net-client:
     name: "net client: play.html loads play.js through an import map pinned to wireweave"
