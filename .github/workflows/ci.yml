@@ -2380,7 +2380,7 @@ jobs:
           set -euo pipefail
           target/debug/mod_check ../scenarios/moba crates/mod-host/fixtures/moba_attack.lua 300 > modcheck.txt 2>&1 || { cat modcheck.txt; exit 1; }
           cat modcheck.txt
-          grep -Eq '^mod-check ok ticks=300 units=[1-9][0-9]* deaths=[0-9]+ casts=[0-9]+ casts_refused=[0-9]+ last_refusal=[A-Za-z]+$' modcheck.txt
+          grep -Eq '^mod-check ok ticks=300 units=[1-9][0-9]* deaths=[0-9]+ casts=[0-9]+ casts_refused=[0-9]+ last_refusal=[A-Za-z]+ refusals=(none|[a-z-]+:[0-9]+(,[a-z-]+:[0-9]+)*)$' modcheck.txt
           set +e
           target/debug/mod_check ../scenarios/moba crates/mod-host/fixtures/broken.lua 5 > broken.txt 2>&1
           code=$?

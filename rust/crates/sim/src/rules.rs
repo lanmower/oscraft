@@ -53,6 +53,48 @@ pub enum Refusal {
 
 pub const REFUSAL_KINDS: usize = 37;
 
+/// Every refusal kind, in discriminant order, so a count indexed by `refusal as usize` can be named.
+pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
+    Refusal::Unset,
+    Refusal::NoSlot,
+    Refusal::Cooldown,
+    Refusal::Energy,
+    Refusal::NoTarget,
+    Refusal::UnseenTarget,
+    Refusal::TargetFilter,
+    Refusal::NoSpawnSlot,
+    Refusal::NoTeleport,
+    Refusal::NoMissileSlot,
+    Refusal::EffectUnsupported,
+    Refusal::CalldownNested,
+    Refusal::NoHealerSlot,
+    Refusal::MoveRange,
+    Refusal::InvalidOrderKind,
+    Refusal::InvalidOrderTarget,
+    Refusal::CannotAfford,
+    Refusal::NoTrain,
+    Refusal::InvalidPlayer,
+    Refusal::InvalidTeam,
+    Refusal::InvalidCell,
+    Refusal::ActionUnsupported,
+    Refusal::CameraUnsupported,
+    Refusal::SoundUnsupported,
+    Refusal::UiPanelUnsupported,
+    Refusal::ChatUnsupported,
+    Refusal::UpgradeRefused,
+    Refusal::CellFull,
+    Refusal::CapacityBlocked,
+    Refusal::Prerequisite,
+    Refusal::ResearchBusy,
+    Refusal::TransportFull,
+    Refusal::Channelling,
+    Refusal::OffGrid,
+    Refusal::NoDoodad,
+    Refusal::DuplicateDoodad,
+    Refusal::TrainBusy,
+];
+
+
 impl Refusal {
     pub fn name(self) -> &'static str {
         match self {

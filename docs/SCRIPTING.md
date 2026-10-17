@@ -73,4 +73,4 @@ the order they were queued, so the result does not depend on how the systems int
 `mod_check <scenario-dir> <mod.lua> [ticks]` builds the scenario image, loads the mod, runs the
 ticks (default 100) and prints one `mod-check` line. It exits 0 when the mod loads and every tick
 runs. A load error prints `mod-check load-error` with the file and line; a tick error prints
-`mod-check tick-error tick=<n>`. Build it with `cargo build -p mod-host --bin mod_check`.
+`mod-check tick-error tick=<n>`. An ok line ends with `refusals=<reason>:<count>,...`, the refusals the sim counted, most frequent first (`none` when there were none). Build it with `cargo build -p mod-host --bin mod_check`.

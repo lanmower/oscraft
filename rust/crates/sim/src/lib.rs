@@ -37,7 +37,7 @@ pub use loader::{load, load_file, Catalog, Doodad, LoadError, Trigger};
 pub use pathfinding::Grid;
 pub use persist::StateError;
 pub use combat::armour_reduced;
-pub use rules::Refusal;
+pub use rules::{Refusal, ALL_REFUSALS};
 
 pub(crate) const TICKS_PER_SECOND: i32 = 16;
 pub(crate) const BUCKET_CAP: usize = 8;

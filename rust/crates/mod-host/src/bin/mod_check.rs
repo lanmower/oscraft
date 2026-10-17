@@ -6,6 +6,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use mod_host::{build_image, ModHost};
+use sim::ALL_REFUSALS;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().collect();
@@ -48,8 +49,21 @@ fn main() -> ExitCode {
     }
     let units = host.unit_count();
     let sim = host.sim();
+    // Refusals by reason, most frequent first, so a mod that is refused shows which rule refuses it.
+    let mut by_reason: Vec<(&str, usize)> = ALL_REFUSALS
+        .iter()
+        .zip(sim.stats.refused_by.iter())
+        .filter(|(_, &n)| n > 0)
+        .map(|(r, &n)| (r.name(), n))
+        .collect();
+    by_reason.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+    let reasons = if by_reason.is_empty() {
+        "none".to_string()
+    } else {
+        by_reason.iter().map(|(name, n)| format!("{name}:{n}")).collect::<Vec<_>>().join(",")
+    };
     println!(
-        "mod-check ok ticks={ticks} units={units} deaths={} casts={} casts_refused={} last_refusal={:?}",
+        "mod-check ok ticks={ticks} units={units} deaths={} casts={} casts_refused={} last_refusal={:?} refusals={reasons}",
         sim.stats.deaths,
         sim.stats.casts,
         sim.stats.casts_refused,
