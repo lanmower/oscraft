@@ -284,6 +284,39 @@ pub fn camp_leash(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// A hero within range of a bounty rune takes its gold, the rune dies, and it respawns on its timer.
+pub fn camp_rune_pickup(_image: &[u8]) -> Result<(), String> {
+    let (mut s, _) = moba_camp_unit()?;
+    let rune = (0..MAX_UNITS)
+        .find(|&u| s.alive(u) && s.player(u) == 0xFF && s.hp(u) == fixed::from_int(1))
+        .ok_or("moba image places no bounty rune")?;
+    let (rx, ry) = s.position_fixed(rune);
+    let hero_kind = kind(&s, "hero")?;
+    let hero = s
+        .spawn_hero(0, hero_kind, rx + fixed::from_int(1), ry)
+        .ok_or("spawn_hero refused beside the rune")?;
+    let gold = s.hero_gold(hero);
+    s.tick();
+    if s.alive(rune) {
+        return Err(format!("rune {rune} survived a hero in pickup range"));
+    }
+    let paid = s.hero_gold(hero) - gold;
+    // One tick can land on a second boundary, which adds one passive gold per second of hero income.
+    let passive_slack = 1;
+    if paid < sim::RUNE_GOLD || paid > sim::RUNE_GOLD + passive_slack {
+        return Err(format!("rune paid {paid} gold, want {} plus at most one passive tick", sim::RUNE_GOLD));
+    }
+    s.order(hero, rx + fixed::from_int(12), ry);
+    for _ in 0..sim::RUNE_RESPAWN_S as i32 * sim::TICKS_PER_SECOND + 8 {
+        s.tick();
+    }
+    if !s.alive(rune) {
+        return Err(format!("rune {rune} did not respawn after its timer"));
+    }
+    println!("camp rune pickup ok rune={rune} hero={hero}");
+    Ok(())
+}
+
 /// A hero that kills Roshan is granted one inventory item (the Aegis reward).
 pub fn camp_roshan_aegis(_image: &[u8]) -> Result<(), String> {
     let (mut s, _) = moba_camp_unit()?;

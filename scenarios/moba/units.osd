@@ -19,3 +19,5 @@ unit("tidecaller", 300, 2700, 500, deny_pct=25,build_time=480, resource_a=0, cap
 unit("thornwarden", 330, 2650, 500, deny_pct=25,build_time=480, resource_a=0, capacity=1, abilities=["thorn_hide", "vine_pull", "root_step", "briar_heal", "wild_growth"], filters=["ground", "armored", "army"], weapon_damage=15, weapon_range_milli=3000, weapon_period=24, sight_milli=9000, shield=0, armor=2, model="character-male-a")
 # Roshan: large neutral boss at the jungle pit. Appended last so unit indices hold. UNVERIFIED: health, speed, radius, damage and sight are placeholders.
 unit("roshan", 1800, 800, 900, filters=["ground", "armored", "massive"], weapon_damage=40, weapon_range_milli=1500, weapon_period=24, sight_milli=6000, armor=4, model="character-skeleton", deny_pct=0)
+# Bounty rune: a 1-hp pickup at a river point, no weapon. UNVERIFIED: health 1, radius 300 and model are placeholders.
+unit("bounty_rune", 1, 0, 300, filters=["ground"], sight_milli=0, model="pillar-obelisk", deny_pct=0)

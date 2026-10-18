@@ -14,3 +14,6 @@ spawn("creep", -1, 45000, 41000)
 spawn("creep", -1, 44000, 43000)
 # Roshan at the middle jungle pit. UNVERIFIED: position is a placeholder.
 spawn("roshan", -1, 32000, 32000)
+# Bounty runes at the two river points. UNVERIFIED: positions are placeholders.
+spawn("bounty_rune", -1, 32000, 26000)
+spawn("bounty_rune", -1, 32000, 38000)

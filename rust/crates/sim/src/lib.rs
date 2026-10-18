@@ -37,7 +37,7 @@ mod hero;
 mod camp;
 
 pub use arrays::{Sim, Stats};
-pub use camp::{CAMP_LEASH_MILLI, CAMP_RESPAWN_S};
+pub use camp::{CAMP_LEASH_MILLI, CAMP_RESPAWN_S, RUNE_GOLD, RUNE_RESPAWN_S};
 pub use loader::{load, load_file, Catalog, Doodad, LoadError, Trigger};
 pub use pathfinding::Grid;
 pub use persist::StateError;

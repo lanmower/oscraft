@@ -16,6 +16,13 @@ pub const ROSHAN_RESPAWN_S: u32 = 480;
 /// Unit name of the large neutral boss, and item name of its reward. Both are catalog names.
 pub const ROSHAN_NAME: &str = "roshan";
 pub const AEGIS_NAME: &str = "aegis";
+/// Bounty rune: a 1-hp neutral pickup at a river point. A hero within the pickup range takes its
+/// gold and the rune dies, then respawns at its point after RUNE_RESPAWN_S. UNVERIFIED: all four
+/// numbers are placeholders.
+pub const RUNE_NAME: &str = "bounty_rune";
+pub const RUNE_RESPAWN_S: u32 = 180;
+pub const RUNE_PICKUP_MILLI: i32 = 1500;
+pub const RUNE_GOLD: i32 = 50;
 
 /// Per-unit camp state, sized to the unit cap. `boss_kind` and `reward_kind` come from the
 /// catalog at load, not from the save, so they are neither hashed nor saved.
@@ -28,6 +35,7 @@ pub(crate) struct CampState {
     pub(crate) respawn_at: Vec<u32>,
     pub(crate) boss_kind: Option<u32>,
     pub(crate) reward_kind: u32,
+    pub(crate) rune_kind: Option<u32>,
 }
 
 impl CampState {
@@ -40,6 +48,7 @@ impl CampState {
             respawn_at: vec![0; cap],
             boss_kind: None,
             reward_kind: 0,
+            rune_kind: None,
         }
     }
 
@@ -67,8 +76,15 @@ impl Sim {
         if self.camps.is_camp[j] == 0 {
             return;
         }
-        let boss = self.camps.boss_kind == Some(self.type_of[j] as u32);
-        let secs = if boss { ROSHAN_RESPAWN_S } else { CAMP_RESPAWN_S };
+        let kind = self.type_of[j] as u32;
+        let boss = self.camps.boss_kind == Some(kind);
+        let secs = if boss {
+            ROSHAN_RESPAWN_S
+        } else if self.camps.rune_kind == Some(kind) {
+            RUNE_RESPAWN_S
+        } else {
+            CAMP_RESPAWN_S
+        };
         self.camps.waiting[j] = 1;
         self.camps.respawn_at[j] = self.ticks.wrapping_add(secs * TICKS_PER_SECOND as u32);
         if boss && self.camps.reward_kind != 0 && attacker >= 0 && (attacker as usize) < self.n {
@@ -80,6 +96,7 @@ impl Sim {
     /// timer has run out respawns at home. A respawn blocked by a full home cell retries next tick.
     pub(crate) fn tick_camps(&mut self) {
         let leash = fixed::from_milli(CAMP_LEASH_MILLI) as i64;
+        self.tick_rune_pickups();
         for i in 0..self.n {
             if self.camps.is_camp[i] == 0 {
                 continue;
@@ -96,6 +113,29 @@ impl Sim {
             let (hx, hy) = (self.camps.home_x[i], self.camps.home_y[i]);
             if dist2(self.pos_x[i], self.pos_y[i], hx, hy) > leash * leash {
                 let _ = self.issue_order_kind(i, ORDER_MOVE, hx, hy);
+            }
+        }
+    }
+
+    /// Each live bounty rune within pickup range of a living hero pays that hero RUNE_GOLD, then
+    /// dies and goes on its respawn timer. The first hero in range takes it.
+    fn tick_rune_pickups(&mut self) {
+        let Some(rune) = self.camps.rune_kind else {
+            return;
+        };
+        let reach = fixed::from_milli(RUNE_PICKUP_MILLI) as i64;
+        for r in 0..self.n {
+            if self.camps.is_camp[r] == 0 || self.alive[r] == 0 || self.type_of[r] as u32 != rune {
+                continue;
+            }
+            let taker = (0..self.n).find(|&h| {
+                self.is_hero(h)
+                    && self.alive[h] != 0
+                    && dist2(self.pos_x[h], self.pos_y[h], self.pos_x[r], self.pos_y[r]) <= reach * reach
+            });
+            if let Some(h) = taker {
+                self.heroes.gold[h] = self.heroes.gold[h].saturating_add(RUNE_GOLD);
+                self.hurt(r, fixed::from_int(10000));
             }
         }
     }
