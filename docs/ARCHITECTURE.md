@@ -118,3 +118,75 @@ Follow-ups for the remaining Rust-only content:
 4. Document the wave `p3` bit layout in `rust/crates/data/FORMAT.md` and derive its range from the unit table, so wave content needs no validator edit.
 5. Add a generator check that `scripts/gen-dota-map.mjs` emits no `route(...)` lines while `routes.osd` exists.
 6. Re-classify `.osd` as Engine if the server-side compile (`osdt_data::generate` in `server/src/map_image.rs`, not yet on main) lands.
+
+## Moddable systems
+
+Inventory for moving the whole game into Lua (maps and mods, hot reload, no Rust rebuild). Classes: **MOVE** = logic becomes Lua through a hook, query or command; **DATA** = values become scenario or asset data; **STAY** = Rust, with the reason it cannot move. Moddable today: yes, partly, or no. Paths are repo-relative.
+
+| System | Where it lives now (file, language) | Moddable today | Lua boundary (hook / query / data) | Class |
+|---|---|---|---|---|
+| Camp (neutral leash, respawn, runes) | `rust/crates/sim/src/camp.rs` (Rust) | partly | hook `on_died`; data `scenarios/moba/neutral.osd`; constants in camp.rs | MOVE |
+| Aggro and target priority | `rust/crates/sim/src/aggro.rs` (Rust) | partly | data `scenarios/moba/hero_rules.txt` (HeroRules) | DATA |
+| Courier | `rust/crates/sim/src/courier.rs` (Rust) | no | hook `on_tick`; cmd move; query courier state | MOVE |
+| Wards | `rust/crates/sim/src/wards.rs` (Rust) | no | effect kind `ward` in data; hook `on_enter` for vision | MOVE |
+| Glyph (team duration and cooldown) | `rust/crates/sim/src/rules.rs` (Rust, line ~215) | no | data `scenarios/moba/behaviours.osd` | DATA |
+| Shop (stock, buy) | `rust/crates/sim/src/shop.rs` (Rust); `js/client/ui_shop.js` | partly | query item catalog; cmd buy | MOVE |
+| Hero stats and respawn | `rust/crates/sim/src/hero.rs` (Rust); `scenarios/moba/hero_rules.txt` | partly | data `hero_rules.txt`; hook `on_died` | DATA |
+| XP | `rust/crates/sim/src/xp.rs` (Rust) | no | data `scenarios/moba/economy.osd`; hook `on_died` with killer | DATA |
+| Gold | `rust/crates/sim/src/harvest.rs`, `inventory.rs` (Rust); `mods/creep_gold.lua` (Lua) | partly | hook `on_died`; cmd grant gold | MOVE |
+| Towers and backdoor | `rust/crates/sim/src/aggro.rs`, `hero.rs` (Rust); `mods/tower_buff.lua` (Lua) | partly | hook `on_attacked`; data doodad and unit `.osd` | MOVE |
+| Route and march | `rust/crates/sim/src/route.rs`, `movement.rs` (Rust); `scenarios/moba/routes.osd` | partly | data `routes.osd` (single source) | DATA |
+| Win and objectives | no discrete module; `rust/crates/sim/src/modapi.rs` (victory), `mods/td_waves.lua` (defeat), `triggers.rs` | partly | hook `on_tick`; needs cmd end-of-match | MOVE |
+| Spawns and waves | `mods/moba_waves.lua`, `mods/td_waves.lua` (Lua); `scenarios/moba/waves.osd`; sim `waves.rs` (deleted in the uncommitted working tree); `rust/crates/data/src/validate.rs` (p3 layout, Rust) | yes (Lua drives it) | hook `on_tick`; cmd spawn; data `waves.osd` | MOVE |
+| Strike (attack resolution) | `rust/crates/sim/src/combat.rs`, `projectiles.rs` (Rust) | partly | effect kind `damage`; hook `on_attacked` | STAY: per-tick hashed combat math; the lua surface is the effect kind |
+| Movement and pathing | `rust/crates/sim/src/movement.rs`, `pathfinding.rs`, `astar.rs` (Rust) | partly | query position; cmd move; speed in `UnitSpec` | STAY: per-tick hashed pathing must stay bit-identical across native and wasm |
+| Bot hero AI | `mods/bot_hero.lua`, `mods/bot_lib.lua` (Lua) | yes | hook `on_tick`; cmds through `game` | MOVE (already Lua; geometry constants to data) |
+| Creep behaviour triggers | `rust/crates/sim/src/triggers.rs` (Rust); `scenarios/moba/behaviours.osd` | partly | data `behaviours.osd` | DATA |
+| Bot seating | `mods/bot_lib.lua` (`BOT_SLOTS`, `game.add_player`) | yes | hook `on_player_joined` | MOVE |
+| Hero panel and scoreboard | `js/client/hud5.js`, `js/client/hud.js` (JS) | no | query `/state`; no UI host call | MOVE |
+| Shop UI flow | `js/client/ui_shop.js` (JS) | partly | query `item_catalog_json`; cmd buy | MOVE |
+| Skills bar | `js/client/ui_skills.js`, `hud.js` `ABILITY_SLOTS` (JS) | partly | data ability slots; needs UI host call | MOVE |
+| Inventory UI | `js/client/ui_inventory.js` (JS) | partly | query inventory; needs UI host call | MOVE |
+| Lobby and room setup | `js/client/lobby.js`, `js/client/rooms.js` (JS); `rust/crates/server/src/room.rs` (Rust) | partly | hook `on_player_joined`; room config data | MOVE |
+| Mod UI overlay | `js/client/modui.js` (JS); events polled from `GET /events` | partly | the bridge itself: mod UI events | STAY: it is the host renderer mods call into; keep it as the host ABI |
+| Key bindings and hotkeys | `js/client/hud.js` `ABILITY_SLOTS`, `ATTACK_KEY` (JS) | no | data key map; needs key-bind UI call | DATA |
+| Order input (click, target) | `js/client/play.js` (JS); `rust/crates/server/src/order.rs` (Rust) | partly | cmd order | STAY: orders are validated and networked; the wire format is fixed |
+| Camera control (bounds, zoom, follow) | `js/client/play.js` (`cameraDistance`, `CAMERA_PLAY_DISTANCE`); `js/client/render3d.js` (orbit) | no | hook for camera updates; needs camera host call | MOVE |
+| Camera constants | `js/client/play.js`, `render3d.js` | no | data | DATA |
+| Fog of war rules (sim) | `rust/crates/sim/src/fog.rs` (Rust) | partly | query `visible(x, y)` | STAY: visibility is hashed sim state |
+| Vision and sight values | `rust/crates/sim/src/arrays.rs`, `loader.rs`; `UnitSpec.sight` in `modapi.rs` | partly | data unit `sight` | DATA |
+| Fog render | `js/client/fogview.js` (JS) | no | query fog grid | MOVE |
+| Effects and FX (spawn, animation rules) | `js/client/fx.js`, `js/client/anim.js` (JS) | no | hook `on_spawned` / `on_attacked` to a client fx command | MOVE |
+| Map editor | `js/client/editor.js`, `js/client/editor.html`, `js/client/editor-check.mjs` (JS) | yes (client tool) | none needed beyond data | MOVE |
+| Map generation | `rust/crates/mapexport/src/main.rs` (Rust); `scripts/gen-dota-map.mjs`; `rust/crates/server/src/map_image.rs` | partly | data: generated `scenarios/moba/map.osd` | DATA |
+| Doodad placement and kinds | `rust/crates/sim/src/doodads.rs` (Rust); kind list in `rust/crates/data/src/format.rs` | no | data: kind table; needs list moved out of Rust | DATA |
+| Scenario data (`.osd`) | `scenarios/moba/*.osd`, `scenarios/duel-routes/*.osd` (Starlark); `rust/crates/data/src/reader.rs`, `validate.rs` | yes | data | DATA |
+| Player start placement | `rust/crates/data/src/builtins.rs` (Rust) | no | data: `start` directive in `.osd` | DATA |
+| Asset manifest | `js/client/assets.json` (JSON) | yes | data | DATA |
+| Doodad manifest | `js/client/doodads.json` (JSON); `DOODAD_KINDS` in `js/client/play.js` | partly | data | DATA |
+| Effect kinds (enum and dispatch) | `rust/crates/data/src/format.rs` `EFFECT_KINDS` (40+ kinds, Rust); `rust/crates/sim/src/modapi.rs` `MOD_EFFECTS` (7 kinds, Rust) | partly: mods get 7 of the 40+ | data: effect kind names; dispatch in sim | STAY: binary effect ABI and sim dispatch table; extend `MOD_EFFECTS` in Rust first |
+| Ability definitions | `rust/crates/data/src/abilityext.rs`, `rust/crates/sim/src/loader.rs`; `AbilitySpec` in `modapi.rs` | partly | hook `define_ability`; data `abilities.osd` | DATA |
+| Unit and item definitions | `UnitSpec`, `ItemSpec`, `UpgradeSpec` in `rust/crates/sim/src/modapi.rs`; `scenarios/moba/units*.osd`, `items.osd` | yes | data; mod define calls | DATA |
+| Lockstep and state sync | `rust/crates/server/src/lockstep.rs`, `room.rs` (Rust) | no | none | STAY: determinism and frame integrity |
+| Wire frame codec | `js/wire/frame.js`, `js/client/wire/frame.js` (JS); `docs/WIRE.md` | no | none | STAY: fixed protocol, checked against the server copy in CI |
+| Order rate limits and tick budget | `rust/crates/server/src/budget.rs`, `order.rs` (Rust) | partly | data: limits config | DATA |
+| Relay and signalling | `rust/crates/relay/src/main.rs` (Rust); `rust/crates/server/src/relay.rs` | no | none | STAY: transport; no listening ports is policy |
+| HTTP routes and static files | `rust/crates/server/src/http.rs`, `static_files.rs` (Rust) | no | none | STAY: fixed protocol surface |
+| Replay record and playback | `rust/crates/server/src/replay.rs` (Rust); `js/client/replay.js` (JS) | partly | hook for playback UI; the replay file format is STAY | MOVE |
+| Spectator follow | `js/client/replay.js`; state frames from `/state` and wire | partly | query state frames | MOVE |
+| Save and load bytes | `rust/crates/sim/src/persist.rs` (Rust) | no | cmd save; cmd load | STAY: hash-checked binary image of sim state |
+| Save and load flow | none (no module today) | no | hook and cmd on top of persist | MOVE |
+| Campaign and scripted missions | none in repo; `mods/*.lua` per scenario; `mods/td_waves.lua` as the nearest mission | no | hooks `on_player_joined`, `on_tick`; data mission `.osd` (new) | MOVE |
+| Menus and screens | `js/client/play.html`, `js/client/lobby.js` (JS) | no | hook for screen state; query room list | MOVE |
+| Scoring and stats | `mods/killer.lua`, `mods/creep_gold.lua` (Lua); `js/client/hud5.js` scoreboard | partly | query per-player totals; kv store (none yet) | MOVE |
+| Achievements | none in repo | no | hooks `on_died`, `on_enter`; data achievement `.osd` (new) | MOVE |
+| Fixed tick scheduler | `rust/crates/sim/src/tick.rs` (Rust); `rust/crates/server/src/supervise.rs` | yes at the hook (`on_tick`) | hook `on_tick` | STAY: 16 ticks per second fixed step is the determinism clock |
+| Client frame loop | `js/client/play.js`, `js/client/frame_timer.js` (JS) | no | none | STAY: browser frame pacing |
+| 3D renderer | `js/client/render3d.js` (JS, WebGL2) | no | data: model map | STAY: GPU API boundary |
+| TSL renderer | `js/client/render_tsl.js` (JS, WebGPU) | no | none | STAY: GPU API boundary |
+| Terrain pipeline | `js/client/terrain.js`, `tiles.js`, `texture.js` (JS) | partly | data: map and tile sources | DATA |
+| Model loading | `js/client/glb.js`, `texture.js` (JS); `js/client/assets.json` | partly | data: assets manifest | DATA |
+
+Counts: MOVE 26, DATA 20, STAY 15 (61 systems).
+
+Ordering. Systems that need a new host API first: the mod effect-kind set (`MOD_EFFECTS` is 7 of 40+), a UI and key-binding host call (shop, skills, inventory, hotkeys, camera), camp, courier, ward, glyph and gold hooks with commands, an end-of-match command (win and campaign), a save/load command, a per-player stats store with achievements, and a fog query. Systems that can move as data now: camp, glyph, XP, economy and hero numbers (`behaviours.osd`, `economy.osd`, `hero_rules.txt`), routes (`routes.osd`), camera constants, key maps, asset and doodad manifests, start placement, and map generation. Blockers in order: effect-kind set, UI host call, then the win and save commands.
