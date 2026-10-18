@@ -1243,7 +1243,10 @@ if (params.get("ci") === "1") {
     }
     return { localTypes: [...localTypes].sort(), pairs };
   };
-  window.__ciSelect = (unitId) => { selectedId = unitId; };
+  // Selects through the input layer, the same path a left click takes, so a right click orders this unit.
+  window.__ciSelect = (unitId) => { if (hud) hud.input.setSelection([unitId]); else selectedId = unitId; };
+  window.__ciInputSelection = () => (hud ? hud.input.selection() : []);
+  window.__ciLocalPlayer = () => myPlayer;
   // Moves the 3D camera target onto a ground point, so a probe can act on units that the default view does not show.
   window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, 0, z] }); };
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));
