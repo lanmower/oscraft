@@ -2977,7 +2977,7 @@ jobs:
           spawns=$(grep -cE '^spawn\(' map.osd)
           towers=$(grep -cE '^spawn\("tower"' map.osd)
           heroes=$(grep -cE '^spawn\("hero"' map.osd)
-          creeps_spawned=$(grep -cE '^spawn\("creep"' map.osd)
+          creeps_spawned=$(grep -cE '^spawn\("creep"' map.osd || true)
           lanes=$((towers / 2))
           workers=$(grep -oE 'opening_workers *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           expected_units=$((spawns + starts * workers))
@@ -2988,8 +2988,10 @@ jobs:
           patches=$(grep -oE 'patches_per_base *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           geysers=$(grep -oE 'geysers_per_base *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           neutral=$(jq '[.records[] | select(.player == 255)] | length' "$work/s0.json")
-          echo "neutral resource fields: $neutral, at most $((starts * (patches + geysers))) from economy.osd"
-          test "$neutral" -le $((starts * (patches + geysers)))
+          neutral_camps=$(grep -cE '^spawn\("neutral' "$scen/neutral.osd" || true)
+          neutral_budget=$((starts * (patches + geysers) + neutral_camps))
+          echo "neutral records: $neutral, at most $neutral_budget (fields from economy.osd plus $neutral_camps camp spawns)"
+          test "$neutral" -le "$neutral_budget"
           echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases initial_waves=$initial cooldown=$cooldown expected_units=$expected_units"
           echo "served from tick 3: units=$units0 sides=$sides; expected with initial waves=$initial_units"
           test "$units0" -eq "$initial_units"
