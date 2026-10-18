@@ -69,6 +69,11 @@ const flatView = { cx: W / 2, cz: H / 2 };
 let mapGrid = null;
 // 3D view state: the renderer and its orbit camera exist only when WebGL2 is available.
 let renderer3d = null;
+let tslRenderer = null;
+
+function textureFrom(gl, image) {
+  return tslRenderer ? tslRenderer.uploadTexture(image) : uploadTexture(gl, image);
+}
 let mapBytes = null;
 let terrainMesh = null;
 let tileMeshes = null;
@@ -228,7 +233,7 @@ async function toMesh(gl, fitted, fallbackColor, { animated = false } = {}) {
   if (fitted.baseColorTexture) {
     try {
       const image = await loadBaseColorImage(fitted.baseColorTexture, fitted.glbUrl);
-      if (image) mesh.texture = uploadTexture(gl, image);
+      if (image) mesh.texture = textureFrom(gl, image);
     } catch {
       // A texture that fails to load leaves the model drawn in its fallback colour.
     }
@@ -1023,7 +1028,7 @@ async function build3d(gl, game) {
   terrainTiles = terrain;
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
   const groundImage = await loadBaseColorImage({ uri: "textures/ground.png" }, location.href).catch(() => null);
-  const groundTexture = groundImage ? uploadTexture(gl, groundImage) : null;
+  const groundTexture = groundImage ? textureFrom(gl, groundImage) : null;
   terrainMesh.texture = groundTexture;
   tileMeshes = await loadTileMeshes(gl, groundTexture).catch(() => null);
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
@@ -1064,11 +1069,15 @@ async function loadTileMeshes(gl, groundTexture) {
 async function main() {
   resize();
   bindInput();
-  const gl = canvas.getContext("webgl2", { antialias: true });
+  if (params.get("renderer") === "tsl") {
+    const { createTslRenderer } = await import("./render_tsl.js");
+    tslRenderer = await createTslRenderer(canvas, { debug: params.get("debug") === "1" }).catch(() => null);
+  }
+  const gl = tslRenderer ? null : canvas.getContext("webgl2", { antialias: true });
   const flatCtx = gl ? null : canvas.getContext("2d");
   localGame = await loadSim();
-  if (gl) {
-    renderer3d = createRenderer3d(gl);
+  if (gl || tslRenderer) {
+    renderer3d = tslRenderer ?? createRenderer3d(gl);
     renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, bounds: cameraBounds, pitch: 0.9 });
     try {
       await build3d(gl, localGame);
