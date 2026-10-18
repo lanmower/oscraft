@@ -1972,14 +1972,14 @@ mod tests {
         build_image(&scenario).expect("moba image")
     }
 
-    // Two creeps on the middle lane (y = 30), one per side and 22 tiles apart, past each other's sight, so only a command makes them fight.
+    // Two creeps on a walkable open row (y = 34, tiles 40 and 62; the map's Dota GridNav leaves x 39..119 open there), one per side and 22 tiles apart, past each other's sight, so only a command makes them fight.
     fn host_with_creeps() -> ModHost {
         let mut host = ModHost::new(&moba_image()).expect("moba image loads");
         let (a, b) = {
             let mut sim = host.sim();
             let creep = sim.catalog().unit_index("creep").expect("moba has a creep") as u32;
-            let a = sim.spawn_for(0, creep, sim::fixed::from_int(14), sim::fixed::from_int(30)).expect("creep a");
-            let b = sim.spawn_for(1, creep, sim::fixed::from_int(36), sim::fixed::from_int(30)).expect("creep b");
+            let a = sim.spawn_for(0, creep, sim::fixed::from_int(40), sim::fixed::from_int(34)).expect("creep a");
+            let b = sim.spawn_for(1, creep, sim::fixed::from_int(62), sim::fixed::from_int(34)).expect("creep b");
             (a, b)
         };
         host.state().set("attacker", a as i64).expect("state");
@@ -2123,7 +2123,7 @@ mod tests {
             {
                 let mut sim = host.sim();
                 let creep = sim.catalog().unit_index("creep").expect("creep") as u32;
-                sim.spawn_for(2, creep, sim::fixed::from_int(34), sim::fixed::from_int(30)).expect("scout");
+                sim.spawn_for(2, creep, sim::fixed::from_int(60), sim::fixed::from_int(34)).expect("scout");
             }
             host.load_source("vision", &format!("game.alliance(0, 2, \"{kind}\")\nfunction on_tick(state) end\n")).expect("mod loads");
             for _ in 0..40 {
