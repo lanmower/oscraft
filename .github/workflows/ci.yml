@@ -1931,17 +1931,22 @@ jobs:
           // A move needs a ground point under the pointer: the first nearby offset that is on canvas and that the sim accepts.
           const ordersBefore = Number(await page.getAttribute("body", "data-orders"));
           let orders = ordersBefore;
+          const moveTried = [];
           for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3], [-3, -3], [3, 3]]) {
             const target = await screenAt(Math.max(0, unit.x + dx), Math.max(0, unit.z + dz));
             const onCanvas = target.x >= 0 && target.y >= 0 && target.x < viewport.w && target.y < viewport.h
               && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [target.x, target.y]));
-            if (!onCanvas) continue;
+            if (!onCanvas) { moveTried.push(`${dx},${dz}@${target.x.toFixed(0)},${target.y.toFixed(0)} off`); continue; }
             await page.mouse.click(target.x, target.y, { button: "right" });
             await page.waitForTimeout(150);
             orders = Number(await page.getAttribute("body", "data-orders"));
+            moveTried.push(`${dx},${dz}@${target.x.toFixed(0)},${target.y.toFixed(0)} orders=${orders}`);
             if (orders > ordersBefore) break;
           }
-          if (!(orders > ordersBefore)) throw new Error("no right click on the map ordered unit " + unit.id + " to move");
+          if (!(orders > ordersBefore)) {
+            const refusal = await page.evaluate(() => document.body.dataset.lastRefusal || "none");
+            throw new Error("no right click on the map ordered unit " + unit.id + " to move: before=" + ordersBefore + " tried=" + moveTried.join("; ") + " refusal=" + refusal + " viewport=" + JSON.stringify(viewport));
+          }
           if (errors.length) throw new Error("console errors: " + errors.join("\n"));
           // The camera target is clamped to the walkable bounds, so the arrow that pans toward an edge may not move it: try right, then left.
           const centreX = async () => Number((await page.getAttribute("body", "data-center")).split(",")[0]);
