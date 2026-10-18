@@ -1,13 +1,8 @@
 # Units for the moba scenario. One unit(...) call per line. Declaration order sets unit indices:
 # hero 0, tower 1, base 2, creep 3, tender 4, objective 5. model names a file in js/client/models.
-unit("hero", 300, 2800, 500, build_time=480, resource_a=0, capacity=1, abilities=["pulse_shot", "mend_field"], filters=["ground", "armored", "army"], weapon_damage=12, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, shield=0, armor=1, model="character-male-a")
+unit("hero", 300, 2800, 500, build_time=480, resource_a=0, capacity=1, abilities=["pulse_shot", "mend_field", "cleave_strike", "dash_step", "ward_shield"], filters=["ground", "armored", "army"], weapon_damage=12, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, shield=0, armor=1, model="character-male-a")
 unit("tower", 400, 1000, 600, filters=["ground", "armored", "massive", "structure"], weapon_damage=12, weapon_range_milli=6000, weapon_period=24, sight_milli=8000, model="tower-square")
 unit("base", 1500, 1000, 1000, filters=["ground", "armored", "massive", "structure", "building"], abilities=["creep_wave"], sight_milli=8000, model="building-f")
 unit("creep", 60, 2000, 350, build_time=240, filters=["ground", "light", "army"], weapon_damage=4, weapon_range_milli=4000, weapon_period=24, sight_milli=7000, model="character-skeleton")
 unit("tender", 40, 2800, 350, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="resource_a", harvest=5, model="character-female-a")
 unit("objective", 800, 1000, 900, filters=["ground", "armored", "massive", "structure"], sight_milli=6000, model="pillar-obelisk")
-# Hero roster, appended after objective: brawler 6, warden 7, siege 8, sage 9. Each pairs two distinct abilities.
-unit("brawler", 350, 2800, 500, build_time=480, resource_a=0, capacity=1, abilities=["cleave_strike", "dash_step"], filters=["ground", "armored", "army"], weapon_damage=14, weapon_range_milli=1500, weapon_period=24, sight_milli=8000, shield=0, armor=2, model="character-male-b")
-unit("warden", 320, 2800, 500, build_time=480, resource_a=0, capacity=1, abilities=["ward_shield", "rally_cry"], filters=["ground", "armored", "army"], weapon_damage=10, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, shield=0, armor=1, model="character-female-b")
-unit("siege", 300, 2800, 500, build_time=480, resource_a=0, capacity=1, abilities=["siege_bolt", "pulse_shot"], filters=["ground", "armored", "army"], weapon_damage=12, weapon_range_milli=6000, weapon_period=24, sight_milli=9000, shield=0, armor=1, model="character-male-c")
-unit("sage", 280, 2800, 500, build_time=480, resource_a=0, capacity=1, abilities=["mend_field", "ward_shield"], filters=["ground", "light", "army"], weapon_damage=8, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, shield=0, armor=0, model="character-ghost")

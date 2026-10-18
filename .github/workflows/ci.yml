@@ -2428,6 +2428,31 @@ jobs:
           ' | tee moba-models.txt
           grep -q "^moba models ok kinds=$(ls rust/crates/web/site/assets/units/*.glb | wc -l) textured=$(ls rust/crates/web/site/assets/units/*.glb | wc -l)\$" moba-models.txt
 
+      - name: moba roster heroes resolve to models
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { readFileSync, existsSync } from "node:fs";
+            const roster = ["hero", "creep", "tower"];
+            const units = new Map();
+            for (const line of readFileSync("scenarios/moba/units.osd", "utf8").split("\n")) {
+              const m = /^unit\("([^"]+)"/.exec(line);
+              if (m) units.set(m[1], (/model="([^"]+)"/.exec(line) || [])[1]);
+            }
+            const missing = roster.filter((n) => !units.has(n));
+            if (missing.length) throw new Error("roster types missing: " + missing.join(","));
+            for (const n of roster) {
+              const model = units.get(n);
+              if (!model || !existsSync("js/client/models/" + model + ".glb")) throw new Error(n + " model does not resolve: " + model);
+            }
+            const map = readFileSync("scenarios/moba/map.osd", "utf8").split("\n");
+            const perSide = [0, 1].map((s) => map.filter((l) => l.startsWith(`spawn("hero", ${s},`)).length);
+            const heroesPerSide = Math.min(...perSide);
+            if (heroesPerSide < 5) throw new Error("heroes per side " + perSide.join("/"));
+            console.log(`moba roster types=${roster.length} heroes_per_side=${heroesPerSide}`);
+          ' | tee moba-roster.txt
+          grep -qx 'moba roster types=3 heroes_per_side=5' moba-roster.txt
+
       - name: count reference-game terms in the tree
         run: |
           count() { git grep -iE "$1" -- . ':!LICENSES-INVENTORY.md' ':!rust/vendor' | wc -l; }

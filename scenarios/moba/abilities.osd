@@ -6,9 +6,7 @@ ability("mend_field", 96, 50, "point", [effect("heal", p0=12, p1=2000), effect("
 # from the base; top -22000, middle 0, bottom +22000). Each creep then marches to the nearest
 # enemy building along its lane. Cooldown 600 ticks is the spawn timer.
 ability("creep_wave", 600, 0, "none", [effect("spawn", p0=3, p1=0, p2=-22000), effect("spawn", p0=3, p1=0, p2=0), effect("spawn", p0=3, p1=0, p2=22000)])
-# Hero abilities appended after creep_wave: cleave_strike 3, dash_step 4, ward_shield 5, siege_bolt 6, rally_cry 7.
+# Hero abilities appended after creep_wave: cleave_strike 3, dash_step 4, ward_shield 5.
 ability("cleave_strike", 36, 0, "unit", [effect("damage", p0=14)], target_filters=["ground"])
 ability("dash_step", 120, 0, "point", [effect("move", p0=4000)])
 ability("ward_shield", 80, 0, "unit", [effect("shield_bonus", p0=20)], target_filters=["army"])
-ability("siege_bolt", 60, 0, "point", [effect("damage", p0=18, p1=1500)])
-ability("rally_cry", 90, 0, "unit", [effect("buff", p0=1, p1=3)], target_filters=["army"])
