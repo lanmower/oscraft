@@ -1868,11 +1868,13 @@ jobs:
           let attacker = null;
           for (const cand of ranked.reverse().slice(0, 400)) {
             // Select through the CI hook: a click can land on another unit drawn over this one.
+            // An attack needs a visible, hostile target: only enemies inside the candidate's sight (9 cells) are tried, nearest first.
+            const foes = units.filter((v) => v.player !== cand.player && dist2(v, cand) <= 64).sort((a, b) => dist2(a, cand) - dist2(b, cand)).slice(0, 3);
+            if (!foes.length) continue;
             await page.evaluate((id) => window.__ciSelect(id), cand.id);
             // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
             await page.evaluate((id) => window.__ciLearn(id, 0), cand.id);
-            // An attack needs a visible, hostile target, so try the nearest few enemies. Counters are compared before and after each step.
-            const foes = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand)).slice(0, 3);
+            // Counters are compared before and after each step, so earlier candidates do not count.
             for (const foe of foes) {
               const fp = await screenAt(foe.x, foe.z);
               const casts0 = Number(await page.getAttribute("body", "data-casts"));
