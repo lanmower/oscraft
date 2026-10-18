@@ -221,7 +221,7 @@ async function loadDoodadModels() {
     fetch(new URL("assets.json", location.href)).then((r) => r.json()).catch(() => ({ items: [] })),
   ]);
   return Promise.all(DOODAD_KINDS.map((kind) => {
-    const file = catalogue.items.find((item) => item.id === kind)?.path ?? map[kind];
+    const file = catalogue.items.find((item) => item.id === kind && item.kind === "model")?.path ?? map[kind];
     return fetchModel(file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null, 2 * DOODAD_HALF);
   }));
 }
