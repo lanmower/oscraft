@@ -36,7 +36,7 @@ const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 
-const EFFECT_KINDS: u16 = 31;
+const EFFECT_KINDS: u16 = 33;
 const EFFECT_STAT: u16 = 16;
 const EFFECT_WARD: u16 = 17;
 const EFFECT_GLYPH: u16 = 18;

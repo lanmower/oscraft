@@ -7,7 +7,7 @@
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::loader::{Effect, LoadError};
-use crate::rules::Refusal;
+use crate::rules::{Refusal, Slot};
 use crate::status::{DISARM, HEX, INVULNERABLE, MUTE, PHYSICAL_IMMUNE, SPELL_IMMUNE, TAUNT};
 use crate::*;
 
@@ -235,6 +235,8 @@ pub(crate) fn spell_effect_error(e: &Effect) -> Option<&'static str> {
         K_MANA => e.p0 >= 0 && (0..=2).contains(&e.p1),
         K_IF_KILL => (1..=16).contains(&e.p0),
         K_ATTACK => e.p0 >= 0,
+        crate::teleport::K_TELEPORT => e.p0 >= 0,
+        crate::refresh::K_REFRESH => (1..=3).contains(&e.p0),
         _ => true,
     };
     (!ok).then_some("spell effect parameters")
@@ -714,6 +716,8 @@ impl Sim {
                     self.status_with_source(caster, j, eff.p0 as usize, eff.p1, crate::status::SLOW_NONE);
                 }
             }
+            crate::teleport::K_TELEPORT => self.teleport_effect(caster, eff, recv),
+            crate::refresh::K_REFRESH => self.refresh_effect(caster, eff),
             K_ATTACK => {
                 if let Some(j) = recv.filter(|&j| j != caster && self.hostile(self.player[caster], self.player[j])) {
                     self.strike_pct(caster, j, eff.p0);
@@ -1201,23 +1205,47 @@ impl Sim {
         }
     }
 
+    /// The abilities unit `owner` runs as passives: its ability slots, then the abilities of the items
+    /// in its active slots. Each comes with the slot that holds its cooldown.
+    fn passive_sources(&self, owner: usize) -> ([(usize, Slot); ABILITY_SLOTS + crate::inventory::INV_SLOTS], usize) {
+        let mut out = [(0, Slot::Ability(0)); ABILITY_SLOTS + crate::inventory::INV_SLOTS];
+        let mut n = 0;
+        for slot in 0..ABILITY_SLOTS {
+            let idx = owner * ABILITY_SLOTS + slot;
+            if self.abil_idx[idx] >= 0 {
+                out[n] = (self.abil_idx[idx] as usize, Slot::Ability(idx));
+                n += 1;
+            }
+        }
+        for slot in (0..crate::inventory::INV_SLOTS).filter(|&s| crate::inventory::slot_active(s)) {
+            let key = owner * crate::inventory::INV_SLOTS + slot;
+            let ability = if self.inv_count[key] > 0 { self.item_def(self.inv_kind[key]).map(|d| d.ability) } else { None };
+            if let Some(ai) = ability.filter(|&a| a != crate::loader::NO_INDEX) {
+                out[n] = (ai as usize, Slot::Item(key));
+                n += 1;
+            }
+        }
+        (out, n)
+    }
+
     fn run_procs(&mut self, owner: usize, other: usize, flag: u16, target: i32) {
         if self.stunned(owner) || self.alive[owner] == 0 {
             return;
         }
-        for slot in 0..ABILITY_SLOTS {
-            let idx = owner * ABILITY_SLOTS + slot;
-            let ai = self.abil_idx[idx];
-            if ai < 0 || self.abil_cd[idx] > 0 {
+        let (sources, count) = self.passive_sources(owner);
+        for &(ai, slot) in &sources[..count] {
+            if self.cooldown(slot) > 0 {
                 continue;
             }
-            let ai = ai as usize;
             let ext = self.ext_of(ai);
             if ext.flags & flag == 0 {
                 continue;
             }
             let ability = self.cat.abilities[ai];
-            let rank = self.abil_rank[idx] as usize;
+            let rank = match slot {
+                Slot::Ability(idx) => self.abil_rank[idx] as usize,
+                Slot::Item(_) => 0,
+            };
             if ability.skill.is_some() && rank == 0 {
                 continue;
             }
@@ -1235,7 +1263,7 @@ impl Sim {
                 continue;
             }
             let (_, cooldown) = self.cast_costs(owner, ai, 0, ability.skill.map_or(ability.cooldown, |s| s.cooldown[rank.max(1) - 1]));
-            self.abil_cd[idx] = cooldown;
+            self.set_cooldown(slot, cooldown);
             let at = if flag == FLAG_PROC_ATTACKED { owner } else { other };
             let (x, y) = (self.pos_x[at], self.pos_y[at]);
             self.run_effects(owner, ai, x, y, target);
@@ -1385,22 +1413,23 @@ impl Sim {
     }
 
     fn tick_auras(&mut self, i: usize) {
-        for slot in 0..ABILITY_SLOTS {
-            let idx = i * ABILITY_SLOTS + slot;
-            let ai = self.abil_idx[idx];
-            if ai < 0 || self.abil_cd[idx] > 0 {
+        let (sources, count) = self.passive_sources(i);
+        for &(ai, slot) in &sources[..count] {
+            if self.cooldown(slot) > 0 {
                 continue;
             }
-            let ai = ai as usize;
             let ext = self.ext_of(ai);
             if ext.flags & FLAG_AURA == 0 {
                 continue;
             }
             let ability = self.cat.abilities[ai];
-            if ability.skill.is_some() && self.abil_rank[idx] == 0 {
-                continue;
+            if let Slot::Ability(idx) = slot {
+                if ability.skill.is_some() && self.abil_rank[idx] == 0 {
+                    continue;
+                }
             }
-            self.abil_cd[idx] = self.ability_field(i, ai, SCALED_PERIOD, ext.period).max(1);
+            let period = self.ability_field(i, ai, SCALED_PERIOD, ext.period).max(1);
+            self.set_cooldown(slot, period);
             let (x, y) = (self.pos_x[i], self.pos_y[i]);
             self.run_effects(i, ai, x, y, i as i32);
         }

@@ -34,6 +34,8 @@ mod limits;
 mod upgrades;
 mod inventory;
 mod shop;
+mod teleport;
+mod refresh;
 mod xp;
 mod hero;
 mod modapi;

@@ -228,6 +228,9 @@ pub(crate) struct HeroState {
     pub(crate) buyback_ready: Vec<u32>,
     pub(crate) gold: Vec<i32>,
     pub(crate) mana_max: Vec<i32>,
+    /// Where a reincarnating hero (waiting 2) comes back, milli-units Q16.16 like a unit position.
+    pub(crate) spot_x: Vec<i32>,
+    pub(crate) spot_y: Vec<i32>,
     /// Hero data by catalog unit index; `None` for a type with no `hero` line (global attribute rules apply).
     pub(crate) defs: Vec<Option<HeroDef>>,
 }
@@ -244,6 +247,8 @@ impl HeroState {
             buyback_ready: vec![0; cap],
             gold: vec![0; cap],
             mana_max: vec![0; cap],
+            spot_x: vec![0; cap],
+            spot_y: vec![0; cap],
             defs: Vec::new(),
         }
     }
@@ -574,13 +579,19 @@ impl Sim {
     fn revive(&mut self, i: usize) -> bool {
         let kind = self.type_of[i] as u32;
         let player = self.player[i];
-        let (x, y) = (self.heroes.home_x[i], self.heroes.home_y[i]);
+        let (x, y) = if self.heroes.waiting[i] == 2 {
+            (self.heroes.spot_x[i], self.heroes.spot_y[i])
+        } else {
+            (self.heroes.home_x[i], self.heroes.home_y[i])
+        };
         let (xp, kills, deaths) = (self.xp_total[i], self.unit_kills[i], self.unit_deaths[i]);
         let ranks: Vec<u8> = self.abil_rank[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].to_vec();
         let upgrades = self.spell.upg[i];
+        let items = self.snapshot_items(i);
         if !self.spawn_at(i, kind, player, x, y) {
             return false;
         }
+        self.restore_items(i, items);
         self.abil_rank[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].copy_from_slice(&ranks);
         self.spell.upg[i] = upgrades;
         self.refresh_passives(i);

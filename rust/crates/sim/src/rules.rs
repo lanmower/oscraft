@@ -388,14 +388,14 @@ impl Sim {
         self.channel_left[i] = ticks;
     }
 
-    fn cooldown(&self, cd: Slot) -> i32 {
+    pub(crate) fn cooldown(&self, cd: Slot) -> i32 {
         match cd {
             Slot::Ability(k) => self.abil_cd[k],
             Slot::Item(k) => self.item_cd[k],
         }
     }
 
-    fn set_cooldown(&mut self, cd: Slot, ticks: i32) {
+    pub(crate) fn set_cooldown(&mut self, cd: Slot, ticks: i32) {
         match cd {
             Slot::Ability(k) => self.abil_cd[k] = ticks,
             Slot::Item(k) => self.item_cd[k] = ticks,

@@ -36,6 +36,8 @@ pub(crate) const ITEM_FLAG_ENHANCEMENT: u16 = 16;
 pub(crate) const ITEM_FLAG_MASK: u16 = 31;
 pub(crate) const ITEM_SHOP_MASK: u8 = 7;
 pub(crate) const NEUTRAL_TIERS: u8 = 5;
+/// Seconds a reincarnating hero is gone (reincarnate_time of item_aegis, items.txt @282fad29f0f74504fad465c52d197fb61f4d612b).
+pub(crate) const REINCARNATE_S: i32 = 5;
 pub(crate) const SHOP_HOME: u8 = 1;
 pub(crate) const SHOP_SIDE: u8 = 2;
 pub(crate) const SHOP_SECRET: u8 = 4;
@@ -96,6 +98,15 @@ pub const ITEM_STATS: [&str; ITEM_STAT_COUNT] = [
 
 /// Sums the stat bonuses of a set of item kinds.
 pub(crate) type ItemTotals = [i32; ITEM_STAT_COUNT];
+
+/// Everything a unit carries, for `snapshot_items` and `restore_items`.
+pub(crate) struct ItemSnapshot {
+    inv: Bank,
+    stash: Bank,
+    cd: [i32; INV_SLOTS],
+}
+
+type Bank = [(u32, u32); INV_SLOTS];
 
 /// A unit's arrays that item changes touch, for the before/after difference in `change_items`.
 struct Derived {
@@ -348,6 +359,49 @@ impl Sim {
     pub(crate) fn item_attributes(&self, i: usize) -> [i32; 3] {
         let t = self.item_totals(i);
         [t[STAT_STRENGTH], t[STAT_AGILITY], t[STAT_INTELLIGENCE]]
+    }
+
+    /// The slots, stash and cooldowns of unit `i`, to restore after the unit is respawned in place.
+    pub(crate) fn snapshot_items(&self, i: usize) -> ItemSnapshot {
+        let base = i * INV_SLOTS;
+        ItemSnapshot {
+            inv: std::array::from_fn(|s| (self.inv_kind[base + s], self.inv_count[base + s])),
+            stash: std::array::from_fn(|s| (self.stash_kind[base + s], self.stash_count[base + s])),
+            cd: std::array::from_fn(|s| self.item_cd[base + s]),
+        }
+    }
+
+    /// Puts a snapshot back into freshly respawned unit `i` and applies the stat bonuses of its items.
+    pub(crate) fn restore_items(&mut self, i: usize, snap: ItemSnapshot) {
+        let base = i * INV_SLOTS;
+        for s in 0..INV_SLOTS {
+            (self.inv_kind[base + s], self.inv_count[base + s]) = snap.inv[s];
+            (self.stash_kind[base + s], self.stash_count[base + s]) = snap.stash[s];
+            self.item_cd[base + s] = snap.cd[s];
+        }
+        let hero = self.is_hero(i);
+        let totals = self.item_totals(i);
+        self.apply_item_delta(i, &[0; ITEM_STAT_COUNT], &totals, hero);
+    }
+
+    /// A hero that dies holding the Aegis comes back where it fell after `REINCARNATE_S` seconds, with full
+    /// health and mana, and the Aegis is spent. The death is not booked: no kill, bounty, experience or
+    /// death count. True when the hero reincarnates.
+    pub(crate) fn reincarnate(&mut self, j: usize) -> bool {
+        let aegis = self.camps.reward_kind;
+        if aegis == 0 || !self.is_hero(j) {
+            return false;
+        }
+        let base = j * INV_SLOTS;
+        let Some(slot) = (0..MAIN_SLOTS).find(|&s| self.inv_kind[base + s] == aegis && self.inv_count[base + s] > 0) else {
+            return false;
+        };
+        self.consume_item_charge(j, slot);
+        self.heroes.waiting[j] = 2;
+        self.heroes.respawn_at[j] = self.ticks.wrapping_add((REINCARNATE_S * crate::TICKS_PER_SECOND) as u32);
+        self.heroes.spot_x[j] = self.pos_x[j];
+        self.heroes.spot_y[j] = self.pos_y[j];
+        true
     }
 
     /// Spends one charge of the item in inventory slot `slot` of unit `i`; an emptied slot loses

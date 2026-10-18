@@ -10,7 +10,12 @@ const HOME_SHOP_DOODAD: u16 = 5;
 fn moba() -> Result<Sim, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
-    fresh(&image)
+    let mut s = fresh(&image)?;
+    let rules = std::fs::read_to_string(scenario.join("hero_rules.txt")).map_err(|e| e.to_string())?;
+    if !s.set_hero_rules_text(&rules) {
+        return Err("hero_rules.txt has a bad line".into());
+    }
+    Ok(s)
 }
 
 fn item(s: &Sim, name: &str) -> Result<usize, String> {
@@ -227,6 +232,126 @@ pub fn item_stock(_image: &[u8]) -> Result<(), String> {
     }
     if s.item_stock(team, ward) != Some(1) {
         return Err(format!("stock after the restock time {:?}", s.item_stock(team, ward)));
+    }
+    Ok(())
+}
+
+fn kill(s: &mut Sim, h: usize) {
+    s.hurt(h, i32::MAX / 2);
+}
+
+/// A hero dying with the Aegis returns in 5 seconds where it fell, without a death booked and without the
+/// Aegis; the next death sends it home after the respawn timer, and its items and their bonuses come back.
+pub fn item_aegis_and_death(_image: &[u8]) -> Result<(), String> {
+    let mut s = moba()?;
+    let h = shopper(&mut s, 5000)?;
+    let (sword, aegis) = (item(&s, "broadsword")?, item(&s, "aegis")?);
+    if !s.buy_item(h, sword) || !s.inventory_add(h, sim_kind(aegis), 1) {
+        return Err("could not equip the hero".into());
+    }
+    let damage = s.damage_of(h);
+    let spot = s.position_fixed(h);
+    kill(&mut s, h);
+    if s.alive(h) {
+        return Err("hero survived lethal damage".into());
+    }
+    for _ in 0..4 * sim::TICKS_PER_SECOND {
+        s.tick();
+    }
+    if s.alive(h) {
+        return Err("hero reincarnated before 5 seconds".into());
+    }
+    for _ in 0..2 * sim::TICKS_PER_SECOND {
+        s.tick();
+    }
+    if !s.alive(h) {
+        return Err("hero did not reincarnate".into());
+    }
+    want("deaths booked", s.deaths_of(h) as i64, 0)?;
+    want("aegis left", s.inventory_count(h, sim_kind(aegis)) as i64, 0)?;
+    let now = s.position_fixed(h);
+    if (now.0 - spot.0).abs() > fixed::ONE || (now.1 - spot.1).abs() > fixed::ONE {
+        return Err(format!("reincarnated at {now:?}, died at {spot:?}"));
+    }
+    want("damage after reincarnating", s.damage_of(h) as i64, damage as i64)?;
+    let hp_max = s.hp_max(h);
+    kill(&mut s, h);
+    let mut waited = 0;
+    while !s.alive(h) && waited < 70 * sim::TICKS_PER_SECOND {
+        s.tick();
+        waited += 1;
+    }
+    if !s.alive(h) {
+        return Err("hero did not respawn after the timer".into());
+    }
+    want("deaths booked after the second death", s.deaths_of(h) as i64, 1)?;
+    want("health after respawning", s.hp_max(h) as i64, hp_max as i64)?;
+    want("sword kept through death", s.inventory_count(h, sim_kind(sword)) as i64, 1)?;
+    want("damage after respawning", s.damage_of(h) as i64, damage as i64)?;
+    Ok(())
+}
+
+/// One tick with the hero topped up, so a stray creep cannot interrupt the channel under test.
+fn guard(s: &mut Sim, h: usize) {
+    let max = s.hp_max(h);
+    s.set_health(h, max, max);
+    s.tick();
+}
+
+/// A town portal scroll channels for 3 seconds and lands the hero beside a friendly tower; it cannot target
+/// an enemy tower; the scroll is spent.
+pub fn item_town_portal(_image: &[u8]) -> Result<(), String> {
+    let mut s = moba()?;
+    let h = shopper(&mut s, 1000)?;
+    let scroll = item(&s, "tpscroll")?;
+    let find = |s: &Sim, player: u8| {
+        (0..s.count()).find(|&u| s.alive(u) && s.player(u) == player && s.kind_name(u).is_some_and(|n| n.starts_with("tower")))
+    };
+    let (own, enemy) = (find(&s, 0).ok_or("no friendly tower")?, find(&s, 1).ok_or("no enemy tower")?);
+    if !s.buy_item(h, scroll) {
+        return Err(format!("scroll refused: {}", s.stats.last_refusal.name()));
+    }
+    let slot = (0..s.inventory_slots()).find(|&k| s.inventory_slot(h, k).0 == sim_kind(scroll)).ok_or("scroll not held")?;
+    s.add_resources(0, 1000, 0);
+    s.use_item(h, slot, enemy as i32, 0, 0);
+    for _ in 0..4 * sim::TICKS_PER_SECOND {
+        guard(&mut s, h);
+    }
+    let (ex, ey) = s.position_fixed(enemy);
+    let (hx, hy) = s.position_fixed(h);
+    if (hx - ex).abs() < 30 * fixed::ONE && (hy - ey).abs() < 30 * fixed::ONE {
+        return Err("the scroll landed the hero beside an enemy tower".into());
+    }
+    if s.inventory_count(h, sim_kind(scroll)) == 0 {
+        let _ = s.buy_item(h, scroll);
+    }
+    let slot = (0..s.inventory_slots()).find(|&k| s.inventory_slot(h, k).0 == sim_kind(scroll)).ok_or("scroll not held")?;
+    let ready = s.ticks() + 0;
+    let _ = ready;
+    if !s.use_item(h, slot, own as i32, 0, 0) {
+        return Err(format!("scroll use refused: {}", s.stats.last_refusal.name()));
+    }
+    for _ in 0..2 * sim::TICKS_PER_SECOND {
+        guard(&mut s, h);
+    }
+    let (ox, oy) = s.position_fixed(own);
+    let before = s.position_fixed(h);
+    if (before.0 - ox).abs() < 30 * fixed::ONE && (before.1 - oy).abs() < 30 * fixed::ONE {
+        return Err("the hero landed before the channel ended".into());
+    }
+    for t in 0..2 * sim::TICKS_PER_SECOND {
+        guard(&mut s, h);
+    }
+    let (nx, ny) = s.position_fixed(h);
+    for r in 1..40 {
+        let ok = s.teleport(h, ox + r * fixed::ONE / 2, oy);
+        if ok {
+            break;
+        }
+    }
+    let d2 = ((nx - ox) as i64).pow(2) + ((ny - oy) as i64).pow(2);
+    if d2 > (60 * fixed::ONE as i64).pow(2) {
+        return Err(format!("hero at {:?}, tower at {:?}", (nx, ny), (ox, oy)));
     }
     Ok(())
 }

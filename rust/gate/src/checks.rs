@@ -110,6 +110,8 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("moba-lane", mechanic_checks::moba_lane),
     ("item-stat-names", item_checks::item_stat_names),
     ("item-stock", item_checks::item_stock),
+    ("item-aegis-and-death", item_checks::item_aegis_and_death),
+    ("item-town-portal", item_checks::item_town_portal),
     ("item-stat-stacking", item_checks::item_stat_stacking),
     ("moba-idle-settle", mechanic_checks::moba_idle_settle),
     ("moba-sync", mechanic_checks::moba_sync),

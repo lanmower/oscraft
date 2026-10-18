@@ -233,11 +233,18 @@ const Q16 = 65536;
 const v = (it, key, lvl = 1) => num(level(values(it)[key] ?? "0", lvl));
 const timed = (stat, amount, seconds) => ["timed_stat", { p0: STAT[stat], p1: Math.round(amount), p2: ticks(seconds), p3: 0 }];
 const status = (code, seconds) => ["status", { p0: STATUS[code], p1: ticks(seconds) }];
-const area = (radius, team, effects) => [["aoe", { p0: unitsToMilli(radius), p1: TEAM[team], p2: effects.length, p3: 0 }], ...effects];
+const AT_CASTER = 4;
+const area = (radius, team, effects, at = AT_CASTER) => [["aoe", { p0: unitsToMilli(radius), p1: TEAM[team] | at, p2: effects.length, p3: 0 }], ...effects];
 const slowTo = (multiplier, seconds) => ["slow", { p0: ticks(seconds), p1: Math.round(multiplier * Q16) }];
 const hurt = (amount, type = MAGICAL) => ["damage", { p0: Math.round(amount), p1: 0, p2: type }];
 const heal = (amount) => ["heal", { p0: Math.round(amount), p1: 0, p2: 1 }];
 const mana = (amount) => ["mana", { p0: Math.round(amount), p1: 0 }];
+const portal = (it, channelKey, target, filters) => ({
+  target,
+  filters,
+  channel: channelKey ? v(it, channelKey) || 3 : 3,
+  effects: [["teleport", { p0: unitsToMilli(v(it, "minimum_distance") || 70) }]],
+});
 const dagon = (it, n) => ({ target: "unit", filters: ["ground"], effects: [hurt(v(it, "damage", n))], lvl: n });
 const ACTIVES = {
   blink: (it) => ({ target: "point", effects: [["move", { p0: unitsToMilli(v(it, "blink_range")) }]] }),
@@ -266,7 +273,12 @@ const ACTIVES = {
   heavens_halberd: (it) => ({ target: "unit", filters: ["ground"], effects: [status("disarm", v(it, "disarm_melee"))] }),
   nullifier: (it) => ({ target: "unit", filters: ["ground"], effects: [status("mute", v(it, "mute_duration"))] }),
   rod_of_atos: (it) => ({ target: "unit", filters: ["ground"], effects: [["root", { p0: ticks(v(it, "duration")) }]] }),
-  gungir: (it) => ({ target: "point", effects: area(v(it, "radius"), "enemies", [["root", { p0: ticks(v(it, "duration")) }]]) }),
+  gungir: (it) => ({ target: "point", effects: area(v(it, "radius"), "enemies", [["root", { p0: ticks(v(it, "duration")) }]], 0) }),
+  tpscroll: (it) => ({ ...portal(it, "tooltip_channel_time", "unit", ["structure"]) }),
+  travel_boots: (it) => ({ ...portal(it, "tp_channel_time", "unit"), cooldown: ticks(v(it, "tp_cooldown")), mana: 75 }),
+  travel_boots_2: (it) => ({ ...portal(it, "tp_channel_time", "unit"), cooldown: ticks(v(it, "tp_cooldown")), mana: 75 }),
+  refresher: () => ({ target: "none", effects: [["refresh", { p0: 3 }]] }),
+  refresher_shard: () => ({ target: "none", effects: [["refresh", { p0: 3 }]] }),
   dagon: (it) => dagon(it, 1),
   dagon_2: (it) => dagon(it, 2),
   dagon_3: (it) => dagon(it, 3),
@@ -283,7 +295,7 @@ const ACTIVES = {
   }),
   meteor_hammer: (it) => ({
     target: "point",
-    effects: area(v(it, "impact_radius"), "enemies", [hurt(v(it, "impact_damage_units")), ["stun", { p0: ticks(v(it, "stun_duration")) }]]),
+    effects: area(v(it, "impact_radius"), "enemies", [hurt(v(it, "impact_damage_units")), ["stun", { p0: ticks(v(it, "stun_duration")) }]], 0),
   }),
   black_king_bar: (it) => ({ target: "none", effects: [status("spell_immunity", v(it, "duration"))] }),
   cyclone: (it) => ({ target: "unit", effects: [status("invulnerable", v(it, "cyclone_duration")), ["stun", { p0: ticks(v(it, "cyclone_duration")) }]] }),
@@ -323,9 +335,54 @@ const ACTIVES = {
   smoke_of_deceit: (it) => ({ target: "none", effects: area(v(it, "application_radius"), "friends", [["invisibility", { p0: ticks(v(it, "duration")) }], timed("speed_pct", v(it, "bonus_movement_speed"), v(it, "duration"))]) }),
   blood_grenade: (it) => ({
     target: "point",
-    effects: area(v(it, "radius"), "enemies", [hurt(v(it, "impact_damage")), slowTo(1 + v(it, "movespeed_slow") / 100, v(it, "debuff_duration"))]),
+    effects: area(v(it, "radius"), "enemies", [hurt(v(it, "impact_damage")), slowTo(1 + v(it, "movespeed_slow") / 100, v(it, "debuff_duration"))], 0),
   }),
 };
+// Passive item abilities: an aura pulses on the holder every `period` ticks; a proc rolls `chance` percent on every
+// attack. The holder runs them while the item is in an active slot (spell.rs, passive_sources). An item has one ability,
+// so an item with an active keeps the active.
+const PASSIVES = {
+  maelstrom: (it) => procChain(it, "chain_damage", "chain_strikes", "chain_radius", "chain_chance", "chain_delay", "chain_cooldown"),
+  mjollnir: (it) => procChain(it, "chain_damage", "chain_strikes", "chain_radius", "chain_chance", "chain_delay", "chain_cooldown"),
+  desolator: (it) => proc(100, 0, [timed("armor", v(it, "corruption_armor"), v(it, "corruption_duration"))]),
+  skadi: (it) => proc(100, 0, [slowTo(1 + v(it, "cold_slow_melee") / 100, v(it, "cold_duration")), timed("attack_speed", v(it, "cold_attack_slow_melee"), v(it, "cold_duration"))]),
+  orb_of_venom: (it) => proc(100, 0, [["dot", { p0: Math.round(v(it, "damage")), p1: ticks(v(it, "tick_interval")), p2: ticks(v(it, "poison_duration")), p3: MAGICAL }]]),
+  monkey_king_bar: (it) => proc(v(it, "bonus_chance"), 0, [hurt(v(it, "bonus_chance_damage"))]),
+  radiance: (it) => aura(TPS, 1, area(v(it, "aura_radius"), "enemies", [hurt(v(it, "aura_damage"))])),
+  vladmir: (it) => aura(TPS, 1, area(v(it, "aura_radius"), "friends", [
+    timed("armor", v(it, "armor_aura"), 2), timed("mana_regen", v(it, "mana_regen_aura") * 100, 2),
+    timed("lifesteal", v(it, "lifesteal_aura"), 2), ["timed_stat", { p0: STAT.damage, p1: Math.round(v(it, "damage_aura")), p2: ticks(2), p3: 1 }],
+  ])),
+  headdress: (it) => aura(TPS, 1, area(v(it, "aura_radius"), "friends", [timed("health_regen", v(it, "aura_health_regen") * 100, 2)])),
+  ring_of_basilius: (it) => aura(TPS, 1, area(v(it, "aura_radius"), "friends", [timed("mana_regen", v(it, "aura_mana_regen") * 100, 2)])),
+  buckler: (it) => aura(TPS, 1, area(v(it, "bonus_aoe_radius"), "friends", [timed("armor", v(it, "bonus_aoe_armor"), 2)])),
+};
+function proc(chance, period, effects) {
+  return { target: "unit", cooldown: 0, effects, ext: { proc_attack: true, passive: true, chance: Math.round(chance), ...(period ? { period } : {}) } };
+}
+function procChain(it, damage, strikes, radius, chance, delay, cooldown) {
+  return {
+    target: "unit",
+    cooldown: ticks(v(it, cooldown)),
+    effects: [["chain", { p0: Math.round(v(it, damage)), p1: Math.round(v(it, strikes)), p2: unitsToMilli(v(it, radius)), p3: MAGICAL }]],
+    ext: { proc_attack: true, passive: true, chance: Math.round(v(it, chance)), period: ticks(v(it, delay)) },
+  };
+}
+function aura(period, ticksCooldown, effects) {
+  return { target: "none", cooldown: 0, effects, ext: { aura: true, passive: true, period } };
+}
+// Cast range and the side an active may target, from the item's own keys.
+function targeting(it, active) {
+  if (!active) return {};
+  const out = {};
+  const range = num(level(it.AbilityCastRange ?? "0", 1));
+  const clamps = active.effects.some(([kind]) => kind === "move");
+  if (range > 0 && active.target !== "none" && !clamps) out.cast_range = unitsToMilli(range);
+  const team = it.AbilityUnitTargetTeam ?? "";
+  if (/FRIENDLY/.test(team) && !/ENEMY|BOTH|CUSTOM/.test(team)) out.ally_only = true;
+  if (/ENEMY/.test(team) && !/FRIENDLY|BOTH|CUSTOM/.test(team)) out.enemy_only = true;
+  return out;
+}
 const cooldownOf = (it, lvl = 1) => ticks(num(level(it.AbilityCooldown ?? "0", lvl)));
 const manaOf = (it, lvl = 1) => Math.round(num(level(it.AbilityManaCost ?? "0", lvl)));
 const FIXED_ABILITIES = { ward_observer: "place_observer", ward_sentry: "place_sentry" };
@@ -335,16 +392,21 @@ const abilityLines = [];
 const q = (s) => JSON.stringify(s);
 const kw = (o) =>
   Object.entries(o)
-    .map(([k, v]) => `${k}=${typeof v === "string" ? q(v) : v}`)
+    .map(([k, v]) => `${k}=${typeof v === "string" ? q(v) : v === true ? "True" : v}`)
     .join(", ");
 
 for (const c of ordered) {
-  const build = ACTIVES[c.name];
+  const build = ACTIVES[c.name] ?? PASSIVES[c.name];
   if (!build) continue;
   const a = build(c.it);
+  const ext = { ...targeting(c.it, ACTIVES[c.name] !== undefined ? a : null), ...(a.ext ?? {}) };
   const effects = a.effects.map(([kind, p]) => `effect(${q(kind)}, ${kw(p)})`).join(", ");
   const filters = a.filters ? `, target_filters=${JSON.stringify(a.filters)}` : "";
-  abilityLines.push(`ability(${q("item_" + c.name)}, ${cooldownOf(c.it, a.lvl)}, ${manaOf(c.it, a.lvl)}, ${q(a.target)}, [${effects}]${filters})`);
+  const cooldown = a.cooldown ?? cooldownOf(c.it, a.lvl);
+  const energy = a.mana ?? manaOf(c.it, a.lvl);
+  abilityLines.push(`ability(${q("item_" + c.name)}, ${cooldown}, ${energy}, ${q(a.target)}, [${effects}]${filters})`);
+  if (a.channel) abilityLines.push(`channel(${q("item_" + c.name)}, ${ticks(a.channel)})`);
+  if (Object.keys(ext).length) abilityLines.push(`ability_ext(${q("item_" + c.name)}, ${kw(ext)})`);
 }
 
 for (const c of ordered) {
@@ -360,7 +422,7 @@ for (const c of ordered) {
     : statsOf(it, 1, c.tier > 0);
   const kws = [];
   if (Object.keys(stats).length) kws.push(`stats=${JSON.stringify(stats)}`);
-  const ability = ACTIVES[c.name] ? "item_" + c.name : FIXED_ABILITIES[c.name];
+  const ability = ACTIVES[c.name] || PASSIVES[c.name] ? "item_" + c.name : FIXED_ABILITIES[c.name];
   if (ability) kws.push(`ability=${q(ability)}`);
   if (comps.length) kws.push(`components=${JSON.stringify(comps)}`);
   const consumable = quality.includes("consumable") && it.ItemPermanent !== "1";

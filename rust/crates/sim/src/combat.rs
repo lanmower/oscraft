@@ -420,7 +420,7 @@ impl Sim {
             self.alive[j] = 0;
             self.trig_death[j] = 1;
             self.stats.deaths += 1;
-            if fell && !self.is_illusion(j) {
+            if fell && !self.is_illusion(j) && !self.reincarnate(j) {
                 self.record_death(j, attacker);
                 self.pay_bounty(j, attacker);
                 self.share_xp(j, attacker);
