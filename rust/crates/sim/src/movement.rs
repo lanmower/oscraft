@@ -105,10 +105,11 @@ impl Sim {
         if !routed {
             let d2 = dx as i64 * dx as i64 + dy as i64 * dy as i64;
             if d2 > (ONE as i64 * ONE as i64) / 64 {
-                let dist = fixed::sqrt((d2 >> SHIFT) as i32) as i64;
+                let dist = isqrt(d2);
                 // Inside one tick of the stop, a ground unit lands on it only when both corner cells
-                // of the one-tick jump are walkable; otherwise it holds where it is, short of the
-                // stop by less than one tick of speed, instead of sliding into a refused axis.
+                // of the one-tick jump are walkable. Otherwise the unit stops where it is, within one
+                // tick of speed of the stop, and the stop becomes its own point: the order is complete
+                // rather than held forever with zero velocity (which left units frozen short of targets).
                 let (tx, ty) = (self.tgt_x[i], self.tgt_y[i]);
                 let snap_clear = (self.flying[i] != 0
                     || (self.grid.walkable(cell_of(tx), cy) && self.grid.walkable(cx, cell_of(ty))))
@@ -117,6 +118,9 @@ impl Sim {
                     if snap_clear {
                         vx = dx;
                         vy = dy;
+                    } else {
+                        self.tgt_x[i] = self.pos_x[i];
+                        self.tgt_y[i] = self.pos_y[i];
                     }
                 } else if dist > 0 {
                     vx = ((dx as i64 * speed as i64) / dist) as i32;
