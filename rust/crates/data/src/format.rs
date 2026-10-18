@@ -138,17 +138,21 @@ pub const PREQ_RECORD: usize = 8;
 pub const DMGF_RECORD: usize = 8;
 pub const DODA_RECORD: usize = 20;
 pub const GRID_RECORD: usize = 1;
-pub const ITEM_RECORD: usize = 128;
+pub const ITEM_RECORD: usize = 184;
 /// Recipe components one item may name.
 pub const ITEM_COMPONENTS: usize = 6;
-/// Per-item stat bonuses, in record order. Percent stats are whole percents, regeneration stats
-/// are hundredths per second, speed and range stats are Dota units, the rest are whole numbers.
+/// Per-item stat bonuses, in record order. Armor, health regeneration and mana regeneration are hundredths,
+/// percent stats are whole percents, move speed is milli-units per tick, ranges, distances and widths are
+/// milli-units, durations are ticks, the rest are whole numbers.
 pub const ITEM_STATS: &[&str] = &[
     "armor", "damage", "health", "mana", "strength", "agility", "intelligence", "move_speed", "attack_speed",
     "health_regen", "mana_regen", "magic_resist", "evasion", "spell_amp", "lifesteal", "spell_lifesteal",
     "cast_range", "attack_range", "status_resist", "cooldown_reduction", "gold_per_min", "xp_per_min",
+    "crit_chance", "crit_multiplier", "cleave", "cleave_distance", "cleave_start_width", "cleave_end_width",
+    "bash_chance", "bash_duration", "speed_pct", "slow_resist", "hp_regen_amp", "mana_regen_amp",
+    "mana_cost_reduction", "night_vision",
 ];
-pub const ITEM_STAT_COUNT: usize = 22;
+pub const ITEM_STAT_COUNT: usize = 36;
 pub const ITEM_FLAG_CONSUMABLE: u16 = 1;
 pub const ITEM_FLAG_NEUTRAL: u16 = 2;
 pub const ITEM_FLAG_NO_BUY: u16 = 4;

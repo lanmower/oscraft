@@ -115,6 +115,7 @@ impl Sim {
         self.tick_wards();
         self.tick_spells();
         self.tick_couriers();
+        self.tick_stock();
         for i in 0..self.n {
             if self.alive[i] == 0 {
                 continue;

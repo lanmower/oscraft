@@ -84,6 +84,8 @@ impl Sim {
         h.i32s(&self.couriers.reach);
         h.i32s(&self.couriers.home_x);
         h.i32s(&self.couriers.home_y);
+        h.bytes(&self.stock.count);
+        h.u32s(&self.stock.next_at);
         h.bytes(&self.camps.is_camp);
         h.i32s(&self.camps.home_x);
         h.i32s(&self.camps.home_y);

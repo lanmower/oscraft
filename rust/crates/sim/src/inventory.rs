@@ -13,8 +13,9 @@
 use crate::arrays::Sim;
 use crate::fixed;
 use crate::spell::{
-    S_ARMOR, S_ATTACK_SPEED, S_CDR, S_DAMAGE, S_EVASION, S_LIFESTEAL, S_MAGIC_RESIST, S_SPEED, S_SPELL_AMP, S_SPELL_LIFESTEAL,
-    S_STATUS_RESIST, S_HEALTH, S_MAX_MANA, S_HEALTH_REGEN, S_MANA_REGEN,
+    S_ATTACK_SPEED, S_CDR, S_DAMAGE, S_EVASION, S_LIFESTEAL, S_MAGIC_RESIST, S_SPEED, S_SPELL_AMP, S_SPELL_LIFESTEAL,
+    S_STATUS_RESIST, S_HEALTH, S_MAX_MANA, S_HEALTH_REGEN, S_MANA_REGEN, S_ARMOR_X100, S_CRIT_CHANCE, S_CRIT_MULT, S_CLEAVE,
+    S_CLEAVE_RADIUS, S_CLEAVE_W0, S_CLEAVE_W1, S_BASH_CHANCE, S_BASH_TICKS, S_SPEED_PCT,
 };
 use crate::rules::catalog_index;
 
@@ -26,7 +27,7 @@ pub(crate) const INV_SLOTS: usize = NEUTRAL_SLOT + 1;
 pub(crate) const STASH_SLOTS: usize = NEUTRAL_SLOT;
 
 pub(crate) const ITEM_COMPONENTS: usize = 6;
-pub(crate) const ITEM_STAT_COUNT: usize = 22;
+pub(crate) const ITEM_STAT_COUNT: usize = 36;
 pub(crate) const ITEM_FLAG_CONSUMABLE: u16 = 1;
 pub(crate) const ITEM_FLAG_NEUTRAL: u16 = 2;
 pub(crate) const ITEM_FLAG_NO_BUY: u16 = 4;
@@ -59,12 +60,38 @@ pub(crate) const STAT_SPELL_LIFESTEAL: usize = 15;
 pub(crate) const STAT_ATTACK_RANGE: usize = 17;
 pub(crate) const STAT_STATUS_RESIST: usize = 18;
 pub(crate) const STAT_COOLDOWN_REDUCTION: usize = 19;
+pub(crate) const STAT_CRIT_CHANCE: usize = 22;
+pub(crate) const STAT_CRIT_MULTIPLIER: usize = 23;
+pub(crate) const STAT_CLEAVE: usize = 24;
+pub(crate) const STAT_CLEAVE_DISTANCE: usize = 25;
+pub(crate) const STAT_CLEAVE_START_WIDTH: usize = 26;
+pub(crate) const STAT_CLEAVE_END_WIDTH: usize = 27;
+pub(crate) const STAT_BASH_CHANCE: usize = 28;
+pub(crate) const STAT_BASH_DURATION: usize = 29;
+pub(crate) const STAT_SPEED_PCT: usize = 30;
+pub(crate) const STAT_NIGHT_VISION: usize = 35;
+
+/// Stats that do not add up across items: a unit takes the largest value any active item gives.
+const BEST_ONLY: [usize; 9] = [
+    STAT_CRIT_CHANCE,
+    STAT_CRIT_MULTIPLIER,
+    STAT_CLEAVE,
+    STAT_CLEAVE_DISTANCE,
+    STAT_CLEAVE_START_WIDTH,
+    STAT_CLEAVE_END_WIDTH,
+    STAT_BASH_CHANCE,
+    STAT_BASH_DURATION,
+    STAT_NIGHT_VISION,
+];
 
 /// Names of the item stats, in `Item::stats` order (the data crate's `ITEM_STATS`).
 pub const ITEM_STATS: [&str; ITEM_STAT_COUNT] = [
     "armor", "damage", "health", "mana", "strength", "agility", "intelligence", "move_speed", "attack_speed",
     "health_regen", "mana_regen", "magic_resist", "evasion", "spell_amp", "lifesteal", "spell_lifesteal",
     "cast_range", "attack_range", "status_resist", "cooldown_reduction", "gold_per_min", "xp_per_min",
+    "crit_chance", "crit_multiplier", "cleave", "cleave_distance", "cleave_start_width", "cleave_end_width",
+    "bash_chance", "bash_duration", "speed_pct", "slow_resist", "hp_regen_amp", "mana_regen_amp",
+    "mana_cost_reduction", "night_vision",
 ];
 
 /// Sums the stat bonuses of a set of item kinds.
@@ -81,8 +108,8 @@ struct Derived {
 }
 
 /// Item stats that are stat modifiers of the spell layer, with the modifier each feeds.
-const ITEM_SMODS: [(usize, usize); 15] = [
-    (STAT_ARMOR, S_ARMOR),
+const ITEM_SMODS: [(usize, usize); 24] = [
+    (STAT_ARMOR, S_ARMOR_X100),
     (STAT_DAMAGE, S_DAMAGE),
     (STAT_MOVE_SPEED, S_SPEED),
     (STAT_ATTACK_SPEED, S_ATTACK_SPEED),
@@ -97,6 +124,15 @@ const ITEM_SMODS: [(usize, usize); 15] = [
     (STAT_MANA, S_MAX_MANA),
     (STAT_HEALTH_REGEN, S_HEALTH_REGEN),
     (STAT_MANA_REGEN, S_MANA_REGEN),
+    (STAT_CRIT_CHANCE, S_CRIT_CHANCE),
+    (STAT_CRIT_MULTIPLIER, S_CRIT_MULT),
+    (STAT_CLEAVE, S_CLEAVE),
+    (STAT_CLEAVE_DISTANCE, S_CLEAVE_RADIUS),
+    (STAT_CLEAVE_START_WIDTH, S_CLEAVE_W0),
+    (STAT_CLEAVE_END_WIDTH, S_CLEAVE_W1),
+    (STAT_BASH_CHANCE, S_BASH_CHANCE),
+    (STAT_BASH_DURATION, S_BASH_TICKS),
+    (STAT_SPEED_PCT, S_SPEED_PCT),
 ];
 
 pub(crate) fn slot_active(slot: usize) -> bool {
@@ -227,8 +263,8 @@ impl Sim {
                 continue;
             }
             if let Some(def) = self.item_def(self.inv_kind[base + slot]) {
-                for (total, stat) in sum.iter_mut().zip(def.stats) {
-                    *total = total.saturating_add(stat);
+                for (k, (total, stat)) in sum.iter_mut().zip(def.stats).enumerate() {
+                    *total = if BEST_ONLY.contains(&k) { (*total).max(stat) } else { total.saturating_add(stat) };
                 }
             }
         }

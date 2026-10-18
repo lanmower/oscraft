@@ -16,6 +16,33 @@ pub(crate) const SHOP_REACH_MILLI: i32 = 4000;
 
 type Bank = [(u32, u32); INV_SLOTS];
 
+/// Teams a shop keeps stock for: one per player slot.
+const STOCK_TEAMS: usize = crate::MAX_PLAYERS;
+
+/// Shop stock of the items that have a stock maximum, per team: units in stock, and the tick the next
+/// unit arrives (0 when none is due). Saved and hashed with the rest of the sim.
+#[derive(Clone, Debug)]
+pub(crate) struct StockState {
+    pub(crate) count: Vec<u8>,
+    pub(crate) next_at: Vec<u32>,
+}
+
+impl StockState {
+    pub(crate) fn new(items: &[crate::loader::Item]) -> StockState {
+        let mut s = StockState { count: vec![0; STOCK_TEAMS * items.len()], next_at: vec![0; STOCK_TEAMS * items.len()] };
+        for (k, it) in items.iter().enumerate().filter(|(_, it)| it.stock_max > 0) {
+            let first = if it.stock_start_s > 0 { it.stock_start_s } else { it.stock_time_s.max(1) };
+            for team in 0..STOCK_TEAMS {
+                s.count[team * items.len() + k] = it.stock_initial;
+                if it.stock_initial < it.stock_max {
+                    s.next_at[team * items.len() + k] = u32::from(first) * crate::TICKS_PER_SECOND as u32;
+                }
+            }
+        }
+        s
+    }
+}
+
 impl Sim {
     /// Shop kinds (`SHOP_*` bits) with a shop doodad within reach of unit `i`.
     pub fn shops_in_reach(&self, i: usize) -> u8 {
@@ -31,6 +58,32 @@ impl Sim {
                     _ => 0,
                 }
             })
+    }
+
+    /// Units of catalog item `item` team `team`'s shops have in stock; None for an item with no stock limit.
+    pub fn item_stock(&self, team: u8, item: usize) -> Option<u32> {
+        let it = self.cat.items.get(item).filter(|it| it.stock_max > 0)?;
+        let _ = it;
+        self.stock.count.get(team as usize * self.cat.items.len() + item).map(|&c| u32::from(c))
+    }
+
+    /// Once a second, brings each team's due restocks in: one unit, then the next after the item's
+    /// restock time until the stock is full.
+    pub(crate) fn tick_stock(&mut self) {
+        if self.ticks % crate::TICKS_PER_SECOND as u32 != 0 {
+            return;
+        }
+        let n = self.cat.items.len();
+        for k in (0..n).filter(|&k| self.cat.items[k].stock_max > 0) {
+            let (max, every) = (self.cat.items[k].stock_max, u32::from(self.cat.items[k].stock_time_s.max(1)) * crate::TICKS_PER_SECOND as u32);
+            for team in 0..STOCK_TEAMS {
+                let at = team * n + k;
+                if self.stock.next_at[at] != 0 && self.ticks >= self.stock.next_at[at] {
+                    self.stock.count[at] = (self.stock.count[at] + 1).min(max);
+                    self.stock.next_at[at] = if self.stock.count[at] < max { self.ticks + every } else { 0 };
+                }
+            }
+        }
     }
 
     fn bank(&self, i: usize, stash: bool) -> Bank {
@@ -102,7 +155,7 @@ impl Sim {
     /// cost less their cost (the cost rule). The item lands in the first main slot with room, else
     /// the stash; a stackable item joins a stack of its kind. Its bonuses apply once it is in a main
     /// slot. Refusals, each changing nothing: NoSlot for a dead unit; NoItem for an unknown item or
-    /// one no shop sells; NoShop when no shop in reach stocks it; CannotAfford; InventoryFull.
+    /// one no shop sells or one out of stock; NoShop when no shop in reach stocks it; CannotAfford; InventoryFull.
     pub fn buy_item(&mut self, i: usize, item: usize) -> bool {
         if i >= self.n || self.alive[i] == 0 {
             self.refuse(Refusal::NoSlot);
@@ -120,6 +173,13 @@ impl Sim {
             self.refuse(Refusal::NoShop);
             return false;
         }
+        let stocked = def.stock_max > 0;
+        let team = self.team[self.player[i] as usize % STOCK_TEAMS] as usize % STOCK_TEAMS;
+        let stock_at = team * self.cat.items.len() + item;
+        if stocked && self.stock.count[stock_at] == 0 {
+            self.refuse(Refusal::NoItem);
+            return false;
+        }
         let mut inv = self.bank(i, false);
         let mut stash = self.bank(i, true);
         let saved = self.claim_components(item, &mut inv, &mut stash);
@@ -135,6 +195,12 @@ impl Sim {
             return false;
         }
         self.resource_a[p] -= price;
+        if stocked {
+            if self.stock.count[stock_at] == def.stock_max {
+                self.stock.next_at[stock_at] = self.ticks + u32::from(def.stock_time_s.max(1)) * crate::TICKS_PER_SECOND as u32;
+            }
+            self.stock.count[stock_at] -= 1;
+        }
         self.change_items(i, |sim| sim.write_banks(i, &inv, &stash));
         true
     }

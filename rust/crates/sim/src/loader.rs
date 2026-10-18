@@ -24,7 +24,7 @@ const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 22] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT"];
-const RECORD_SIZES: [usize; 22] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 44, 8, 32, 8, 8, 20, 1, 128, 72, 256, 520];
+const RECORD_SIZES: [usize; 22] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 44, 8, 32, 8, 8, 20, 1, 184, 72, 256, 520];
 const SKILL_RANKS: usize = 4;
 const ULTIMATE_RANKS: u8 = 3;
 const ULTIMATE_GATES: [i32; ULTIMATE_RANKS as usize] = [6, 12, 18];
@@ -397,7 +397,7 @@ pub struct Doodad {
 /// An item (ITEM). The bonuses are added to the buyer's stats when the item enters the inventory;
 /// `ability` is an index into the abilities, or `NO_INDEX` for a passive item. `components` are
 /// the recipe parts, as item indices declared before this one, `NO_INDEX` for an empty slot.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug)]
 pub struct Item {
     pub name: Name,
     pub cost: i32,
@@ -417,6 +417,27 @@ pub struct Item {
     pub stock_initial: u8,
     pub stock_time_s: u16,
     pub stock_start_s: u16,
+}
+
+impl Default for Item {
+    fn default() -> Self {
+        Item {
+            name: Name::default(),
+            cost: 0,
+            stats: [0; ITEM_STAT_COUNT],
+            ability: 0,
+            components: [0; ITEM_COMPONENTS],
+            flags: 0,
+            tier: 0,
+            shops: 0,
+            charges: 0,
+            stack_max: 0,
+            stock_max: 0,
+            stock_initial: 0,
+            stock_time_s: 0,
+            stock_start_s: 0,
+        }
+    }
 }
 
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.

@@ -14,7 +14,7 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
-const STATE_VERSION: u16 = 25;
+const STATE_VERSION: u16 = 26;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -489,6 +489,8 @@ impl Sim {
         put_i32s(&mut w, &self.couriers.reach);
         put_i32s(&mut w, &self.couriers.home_x);
         put_i32s(&mut w, &self.couriers.home_y);
+        w.extend_from_slice(&self.stock.count);
+        put_u32s(&mut w, &self.stock.next_at);
         for table in self.spell.tables() {
             put_i32s(&mut w, table);
         }
@@ -726,6 +728,8 @@ impl Sim {
         r.i32s_into(&mut next.couriers.reach)?;
         r.i32s_into(&mut next.couriers.home_x)?;
         r.i32s_into(&mut next.couriers.home_y)?;
+        r.bytes_into(&mut next.stock.count)?;
+        r.u32s_into(&mut next.stock.next_at)?;
         for table in next.spell.tables_mut() {
             r.i32s_into(table)?;
         }

@@ -171,7 +171,7 @@ pub struct SpawnRaw {
 
 /// An item as `item()` collects it. Stat bonuses are added to the buyer while the item is in the
 /// inventory; `ability` names the active ability the item casts, if any.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ItemRaw {
     pub name: String,
     pub cost: i32,
@@ -193,6 +193,27 @@ pub struct ItemRaw {
     pub stock_initial: i32,
     pub stock_time_s: i32,
     pub stock_start_s: i32,
+}
+
+impl Default for ItemRaw {
+    fn default() -> Self {
+        ItemRaw {
+            name: String::new(),
+            cost: 0,
+            stats: [0; ITEM_STAT_COUNT],
+            ability: None,
+            components: Vec::new(),
+            flags: 0,
+            tier: 0,
+            shops: 0,
+            charges: 0,
+            stack_max: 0,
+            stock_max: 0,
+            stock_initial: 0,
+            stock_time_s: 0,
+            stock_start_s: 0,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -436,7 +457,7 @@ pub struct Doodad {
     pub rotation: u32,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Item {
     pub name: String,
     pub cost: u32,
@@ -454,6 +475,27 @@ pub struct Item {
     pub stock_initial: u8,
     pub stock_time_s: u16,
     pub stock_start_s: u16,
+}
+
+impl Default for Item {
+    fn default() -> Self {
+        Item {
+            name: String::new(),
+            cost: 0,
+            stats: [0; ITEM_STAT_COUNT],
+            ability: 0,
+            components: [0; ITEM_COMPONENTS],
+            flags: 0,
+            tier: 0,
+            shops: 0,
+            charges: 0,
+            stack_max: 0,
+            stock_max: 0,
+            stock_initial: 0,
+            stock_time_s: 0,
+            stock_start_s: 0,
+        }
+    }
 }
 
 #[derive(Debug, Default)]

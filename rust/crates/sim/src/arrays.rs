@@ -173,6 +173,7 @@ pub struct Sim {
     pub(crate) wards: crate::wards::WardState,
     /// Courier delivery state. See courier.rs.
     pub(crate) couriers: crate::courier::CourierState,
+    pub(crate) stock: crate::shop::StockState,
     /// Spell modifiers, damage over time, zones, chains and illusions. See spell.rs.
     pub(crate) spell: crate::spell::SpellState,
     /// Assists credited to each unit, and its recent hitters (ASSIST_SLOTS per unit: the hitter's unit
@@ -284,6 +285,7 @@ impl Sim {
         let research_slots = cat.research.len() * MAX_PLAYERS;
         let doodads_init = cat.doodads.clone();
         let cat_digest = crate::hash::catalog_digest(&cat, &grid);
+        let stock = crate::shop::StockState::new(&cat.items);
         let mut s = Sim {
             grid,
             doodads: doodads_init,
@@ -367,6 +369,7 @@ impl Sim {
             routes: crate::route::RouteState::new(cap),
             wards: crate::wards::WardState::new(cap),
             couriers: crate::courier::CourierState::new(cap),
+            stock,
             spell: crate::spell::SpellState::new(cap),
             unit_deaths: vec![0; cap],
             unit_assists: vec![0; cap],

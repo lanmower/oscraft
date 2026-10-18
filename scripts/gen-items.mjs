@@ -22,6 +22,7 @@ const unitsToMilli = (v) => Math.round(v * MILLI);
 const speedToMilliPerTick = (v) => Math.round((v * MILLI) / TPS);
 const ticks = (seconds) => Math.round(seconds * TPS);
 const UNLIMITED_STACK = 65535;
+const hundredths = (v) => Math.round(v * 100);
 
 function parseKV(text) {
   const tokens = [];
@@ -84,8 +85,8 @@ const values = (it) => it.AbilityValues ?? {};
 
 // Stat keys of AbilityValues by item stat. `x` scales the value; `all` adds the value to the three attributes.
 const STAT_KEYS = [
-  ["armor", ["bonus_armor", "armor_bonus", "bonus_physical_armor"]],
-  ["damage", ["bonus_damage", "damage_bonus", "bonus_attack_damage"]],
+  ["armor", ["bonus_armor", "armor_bonus", "bonus_physical_armor", "armor"], hundredths],
+  ["damage", ["bonus_damage", "damage_bonus", "bonus_attack_damage", "bonus_damage_melee"]],
   ["health", ["bonus_health", "bonus_hp", "health_bonus", "bonus_max_health"]],
   ["mana", ["bonus_mana", "mana_bonus", "bonus_max_mana"]],
   ["strength", ["bonus_strength", "bonus_str"]],
@@ -93,27 +94,38 @@ const STAT_KEYS = [
   ["intelligence", ["bonus_intellect", "bonus_int", "bonus_intelligence"]],
   ["move_speed", ["bonus_movement_speed", "bonus_movement", "bonus_speed", "bonus_move_speed", "bonus_movespeed"], speedToMilliPerTick],
   ["attack_speed", ["bonus_attack_speed", "bonus_attack_speed_pct", "attack_speed_bonus"]],
-  ["health_regen", ["bonus_health_regen", "bonus_hp_regen", "bonus_regen"], (v) => Math.round(v * 100)],
-  ["mana_regen", ["bonus_mana_regen", "bonus_mp_regen"], (v) => Math.round(v * 100)],
-  ["magic_resist", ["bonus_magical_armor", "bonus_magic_resistance", "bonus_spell_resist", "bonus_magic_resist"]],
-  ["evasion", ["bonus_evasion"]],
-  ["spell_amp", ["bonus_spell_amp", "bonus_spell_damage", "bonus_amp"]],
+  ["health_regen", ["bonus_health_regen", "bonus_hp_regen", "bonus_regen", "health_regen", "hp_regen"], hundredths],
+  ["mana_regen", ["bonus_mana_regen", "bonus_mp_regen", "mana_regen"], hundredths],
+  ["magic_resist", ["bonus_magical_armor", "bonus_magic_resistance", "bonus_spell_resist", "bonus_magic_resist", "magic_resistance"]],
+  ["evasion", ["bonus_evasion", "evasion"]],
+  ["spell_amp", ["bonus_spell_amp", "bonus_spell_damage", "bonus_amp", "spell_amp"]],
   ["lifesteal", ["bonus_lifesteal"]],
-  ["spell_lifesteal", ["bonus_spell_lifesteal"]],
-  ["cast_range", ["bonus_cast_range"], unitsToMilli],
-  ["attack_range", ["bonus_attack_range"], unitsToMilli],
-  ["status_resist", ["bonus_status_resist", "bonus_status_resistance"]],
+  ["spell_lifesteal", ["bonus_spell_lifesteal", "spell_lifesteal"]],
+  ["cast_range", ["bonus_cast_range", "cast_range_bonus"], unitsToMilli],
+  ["attack_range", ["bonus_attack_range", "attack_range_bonus"], unitsToMilli],
+  ["status_resist", ["bonus_status_resist", "bonus_status_resistance", "status_resistance"]],
   ["cooldown_reduction", ["bonus_cooldown"]],
   ["gold_per_min", ["bonus_gpm"]],
   ["xp_per_min", ["bonus_xpm"]],
+  ["crit_chance", ["crit_chance"]],
+  ["crit_multiplier", ["crit_multiplier"]],
+  ["cleave", ["cleave_damage_percent"]],
+  ["cleave_distance", ["cleave_distance"], unitsToMilli],
+  ["cleave_start_width", ["cleave_starting_width"], unitsToMilli],
+  ["cleave_end_width", ["cleave_ending_width"], unitsToMilli],
+  ["bash_chance", ["bash_chance_melee", "bash_chance"]],
+  ["bash_duration", ["bash_duration"], ticks],
+  ["speed_pct", ["movement_speed_percent_bonus", "bonus_movement_speed_pct", "bonus_movement_speed_percent", "movement_speed_percent_bonus_melee"]],
+  ["slow_resist", ["slow_resistance", "bonus_slow_resist", "slow_resist"]],
+  ["hp_regen_amp", ["hp_regen_amp"]],
+  ["mana_regen_amp", ["mana_regen_multiplier"]],
+  ["mana_cost_reduction", ["manacost_reduction"]],
+  ["night_vision", ["bonus_night_vision"], unitsToMilli],
 ];
 const ALL_STATS_KEYS = ["bonus_all_stats", "bonus_stats", "all_stats"];
 // Neutral items name the same stats without the bonus_ prefix.
 const NEUTRAL_ALIASES = {
-  health_regen: "health_regen", hp_regen: "health_regen", mana_regen: "mana_regen", mp_regen: "mana_regen",
-  magic_resist: "magic_resist", magic_resistance: "magic_resist", evasion: "evasion", spell_amp: "spell_amp",
-  status_resistance: "status_resist", attack_lifesteal: "lifesteal", spell_lifesteal: "spell_lifesteal",
-  cast_range_bonus: "cast_range", attack_range_bonus: "attack_range", all_stats: "all",
+  mp_regen: "mana_regen", magic_resist: "magic_resist", attack_lifesteal: "lifesteal", all_stats: "all",
 };
 
 function statsOf(it, lvl = 1, isNeutral = false) {

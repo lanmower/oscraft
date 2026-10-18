@@ -182,3 +182,51 @@ pub fn item_slots(_image: &[u8]) -> Result<(), String> {
     println!("item slots ok");
     Ok(())
 }
+
+/// The item stat names the data format writes and the sim reads are the same list in the same order.
+pub fn item_stat_names(_image: &[u8]) -> Result<(), String> {
+    let written = osdt_data::format::ITEM_STATS;
+    if written != sim::ITEM_STATS.as_slice() {
+        return Err(format!("data writes {written:?}, sim reads {:?}", sim::ITEM_STATS));
+    }
+    Ok(())
+}
+
+/// Stats that do not stack take the best item; the others add up.
+pub fn item_stat_stacking(_image: &[u8]) -> Result<(), String> {
+    let mut s = moba()?;
+    let h = shopper(&mut s, 20000)?;
+    let (crit, plate) = (item(&s, "lesser_crit")?, item(&s, "chainmail")?);
+    for _ in 0..2 {
+        if !s.buy_item(h, crit) || !s.buy_item(h, plate) {
+            return Err(format!("purchase refused: {}", s.stats.last_refusal.name()));
+        }
+    }
+    want("crit chance of two crits", s.item_bonus(h, "crit_chance") as i64, 30)?;
+    want("damage of two crits", s.item_bonus(h, "damage") as i64, 64)?;
+    want("armor of two chainmails", s.item_bonus(h, "armor") as i64, 800)?;
+    Ok(())
+}
+
+/// Observer wards come from a shared team stock: two at the start, one more every 135 seconds up to four.
+pub fn item_stock(_image: &[u8]) -> Result<(), String> {
+    let mut s = moba()?;
+    let h = shopper(&mut s, 0)?;
+    let ward = item(&s, "ward_observer")?;
+    let team = s.team_of(0).unwrap_or(0);
+    want("initial stock", s.item_stock(team, ward).map_or(-1, |c| c as i64), 2)?;
+    if !s.buy_item(h, ward) || !s.buy_item(h, ward) {
+        return Err(format!("stocked wards refused: {}", s.stats.last_refusal.name()));
+    }
+    if s.buy_item(h, ward) {
+        return Err("a ward was sold out of stock".into());
+    }
+    want("stock after two purchases", s.item_stock(team, ward).map_or(-1, |c| c as i64), 0)?;
+    for _ in 0..135 * sim::TICKS_PER_SECOND + sim::TICKS_PER_SECOND {
+        s.tick();
+    }
+    if s.item_stock(team, ward) != Some(1) {
+        return Err(format!("stock after the restock time {:?}", s.item_stock(team, ward)));
+    }
+    Ok(())
+}
