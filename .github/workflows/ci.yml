@@ -2999,7 +2999,7 @@ jobs:
           trap on_exit EXIT
           cooldown=$(grep -oE '^ability\("creep_wave", *[0-9]+' "$scen/abilities.osd" | grep -oE '[0-9]+$')
           bases=$(grep -cE '^spawn\("base"' "$scen/map.osd")
-          initial=$(grep -cE 'trigger="spawned".*ability="creep_wave"' "$scen/behaviours.osd")
+          initial=$(grep -cE 'trigger="spawned".*ability="creep_wave"' "$scen/behaviours.osd" || true)
           target=$((cooldown + 100))
           cd rust
           ./target/debug/osdt-data "$scen" "$work/catalog.osdt"
@@ -3069,13 +3069,19 @@ jobs:
           echo "moba scenario ok sides=$sides lanes=$lanes towers=$towers heroes=$heroes creeps_spawned=$creeps_spawned"
           units_end=$(jq '[.records[] | select(.player != 255)] | length' "$work/s1.json")
           spawned=$max_jump
-          max_waves=$((bases * (target / cooldown + 1) * lanes_per_wave))
-          echo "waves per lane: lanes_per_wave=$lanes_per_wave creeps per base per wave, one per lane"
+          timers=$(grep -cE 'trigger="ability_ready".*ability="creep_wave"' "$scen/behaviours.osd" || true)
+          max_waves=$((bases * timers * (target / cooldown + 1) * lanes_per_wave))
+          echo "waves per lane: lanes_per_wave=$lanes_per_wave creeps per base per wave, one per lane; base wave timers=$timers"
           echo "wave: units_end=$units_end spawned=$spawned at_tick=$at_tick bases=$bases max_waves=$max_waves"
-          test -n "$at_tick"
-          test "$spawned" -ge "$bases"
+          if [ "$timers" -eq 0 ]; then
+            test -z "$at_tick"
+            test "$spawned" -eq 0
+          else
+            test -n "$at_tick"
+            test "$spawned" -ge "$bases"
+          fi
           test "$spawned" -le "$max_waves"
-          echo "moba wave ok spawned=$spawned at_tick=$at_tick"
+          echo "moba wave ok spawned=$spawned at_tick=$at_tick timers=$timers"
           win=$(grep -E '^behaviour\("win_on_base_loss"' behaviours.osd)
           test -n "$win"
           echo "$win" | grep -qE 'trigger="destroyed".*action="declare_winner".*tag="building"'
