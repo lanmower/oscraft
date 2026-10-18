@@ -181,7 +181,9 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     const world = toWorld(e.clientX, e.clientY);
     armedAttackMove = false;
     const hit = pick(world);
-    return orderSelected(world, hit && hit.player !== localPlayer() ? hit : null);
+    const enemy = hit && hit.player !== localPlayer() ? hit : null;
+    document.body.dataset.rightCmd = `ids=${me().join("|") || "none"} sel=${selection.join("|") || "none"} hit=${hit ? `${hit.id}:p${hit.player}` : "none"} enemy=${enemy ? enemy.id : "none"}`;
+    return orderSelected(world, enemy);
   }
 
   function onBind(e) {

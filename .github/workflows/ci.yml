@@ -1959,7 +1959,9 @@ jobs:
             const inputAfter = await page.evaluate(() => window.__ciInputSelection());
             const rightUp = await page.evaluate(() => document.body.dataset.rightUp || "never");
             const localAfter = await page.evaluate(() => window.__ciLocalPlayer());
-            throw new Error("no right click on the map ordered unit " + unit.id + " to move: before=" + ordersBefore + " tried=" + moveTried.join("; ") + " refusal=" + refusal + " input=" + JSON.stringify(inputAfter) + " rightUp=" + rightUp + " localAfter=" + localAfter + " pageErrors=" + JSON.stringify(errors) + " viewport=" + JSON.stringify(viewport));
+            const rightCmd = await page.evaluate(() => document.body.dataset.rightCmd || "never");
+            const attacksAfter = await page.evaluate(() => document.body.dataset.attacks || "");
+            throw new Error("no right click on the map ordered unit " + unit.id + " to move: before=" + ordersBefore + " tried=" + moveTried.join("; ") + " refusal=" + refusal + " input=" + JSON.stringify(inputAfter) + " rightUp=" + rightUp + " rightCmd=" + rightCmd + " attacks=" + attacksAfter + " localAfter=" + localAfter + " pageErrors=" + JSON.stringify(errors) + " viewport=" + JSON.stringify(viewport));
           }
           if (errors.length) throw new Error("console errors: " + errors.join("\n"));
           // The camera target is clamped to the walkable bounds, so the arrow that pans toward an edge may not move it: try right, then left.
