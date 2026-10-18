@@ -61,6 +61,12 @@ jobs:
           cp rust/crates/web/site/moba.bin _site/js/client/moba.bin
           mkdir -p _site/js/client/models
           cp rust/crates/web/site/assets/units/*.glb _site/js/client/models/
+          cp -r mods _site/mods
+          [ -d js/client/textures ] && cp -r js/client/textures _site/js/client/ || true
+          printf '{"sha":"%s","ref":"%s","run":"%s","built":"%s"}\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" "$GITHUB_RUN_ID" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > _site/version.json
+          cp _site/version.json _site/js/client/version.json
+          test -f _site/js/client/editor.html
+          test -f _site/version.json
           test -f _site/js/client/play.html
           test -f _site/js/client/play.js
           test -f _site/js/client/map.bin

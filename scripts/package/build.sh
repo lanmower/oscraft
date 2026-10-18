@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds one installable archive: oscraftd, oscraft-lsp, the data directory, the browser site and the browser client.
 # Usage: scripts/package/build.sh <out-dir>
-# Output: <out-dir>/oscraft-<version>.tar.gz, members at its root (bin/ data/ site/ js/client/ VERSION MANIFEST.sha256).
+# Output: <out-dir>/oscraft-<version>.tar.gz, members at its root (bin/ data/ mods/ site/ js/client/ VERSION MANIFEST.sha256).
 set -euo pipefail
 out=${1:?usage: build.sh <out-dir>}
 root=$(cd "$(dirname "$0")/../.." && pwd)
@@ -20,10 +20,12 @@ cp -R crates/web/site/. "$stage/site/"
 cargo run -q -p mapexport -- "$stage/site/map.bin"
 wasm-pack build crates/web --target web --out-dir "$stage/site/pkg" > /dev/null
 cd "$root"
-cp js/client/play.html "$stage/js/client/"
-cp js/client/*.js "$stage/js/client/"
-cp js/client/wire/frame.js "$stage/js/client/wire/"
-cp -R js/client/models "$stage/js/client/"
+cp -R js/client/. "$stage/js/client/"
+rm -rf "$stage/js/client/pkg" "$stage/js/client/editor-check.mjs"
+cp -R mods "$stage/mods"
+for page in play editor replay; do
+  [ -f "js/client/$page.html" ] || [ "$page" = replay ] || { echo "missing js/client/$page.html" >&2; exit 1; }
+done
 wasm-pack build rust/crates/web --target web --out-dir "$stage/js/client/pkg" > /dev/null
 cp "$stage/site/map.bin" "$stage/js/client/map.bin"
 

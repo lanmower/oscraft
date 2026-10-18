@@ -3,11 +3,12 @@
 # then runs oscraftd from that directory and drives oscraft-lsp over stdio.
 # Usage: scripts/package/install-check.sh <archive.tar.gz> <empty-dir>
 set -euo pipefail
-archive=${1:?usage: install-check.sh <archive> <empty-dir>}
+archive=$(realpath "${1:?usage: install-check.sh <archive> <empty-dir>}")
 dest=${2:?usage: install-check.sh <archive> <empty-dir>}
 addr=${OSCRAFT_CHECK_ADDR:-127.0.0.1:18477}
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
+root_src=$(cd "$(dirname "$0")/../.." && pwd)/js/client
 mkdir -p "$dest"
 [ -z "$(ls -A "$dest")" ] || fail "destination $dest is not empty"
 tar -C "$dest" -xzf "$archive"
@@ -27,9 +28,11 @@ done < MANIFEST.sha256
 extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
 [ "$extra" -eq "$members" ] || fail "archive holds $extra files but manifest lists $members"
 [ -s js/client/play.js ] || fail "js/client/play.js is missing or empty"
-for f in play.html play.js rooms.js ice.js delta.js wire/frame.js glb.js map.bin pkg/web.js pkg/web_bg.wasm; do
+for f in $(cd "$root_src" 2>/dev/null && ls *.js *.html 2>/dev/null) editor.html editor.js play.html play.js rooms.js ice.js delta.js wire/frame.js glb.js map.bin pkg/web.js pkg/web_bg.wasm; do
   [ -s "js/client/$f" ] || fail "js/client/$f is missing or empty"
 done
+[ -n "$(ls mods/*.lua 2>/dev/null)" ] || fail "mods/ is missing or empty"
+[ -d js/client/textures ] || fail "js/client/textures is missing"
 [ -d js/client/models ] && [ -n "$(ls -A js/client/models)" ] || fail "js/client/models is missing or empty"
 grep -q 'src="play.js"' js/client/play.html || fail "js/client/play.html does not load play.js"
 specs=$(grep -ho -E "[\"'][.][.]?/[^\"']+[\"']" js/client/play.js js/client/delta.js | tr -d "\"'" | sort -u)
