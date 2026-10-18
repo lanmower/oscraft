@@ -875,7 +875,7 @@ if (params.get("ci") === "1") {
     return { localTypes: [...localTypes].sort(), pairs };
   };
   window.__ciSelect = (unitId) => { selectedId = unitId; };
-  window.__ciToScreen = (x, z) => worldToScreen(x, z);
+  window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));
   window.__ciKillSide = (player) => {
     for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 10000);
   };
