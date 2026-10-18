@@ -149,7 +149,7 @@ impl Sim {
 
     /// Auto-attack: nearest visible enemy on a layer this weapon may hit, within range.
     pub(crate) fn attack(&mut self, i: usize) {
-        if self.damage[i] <= 0 {
+        if self.damage[i] <= 0 || self.stunned(i) {
             return;
         }
         if self.cooldown[i] > 0 {
@@ -207,6 +207,9 @@ impl Sim {
         use crate::rules::Refusal;
         if i >= self.n || self.alive[i] == 0 || target >= self.n || self.alive[target] == 0 {
             return Err(self.reject(Refusal::NoTarget));
+        }
+        if self.stunned(i) {
+            return Err(self.reject(Refusal::Stunned));
         }
         let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
         let in_reach = i != target
@@ -377,10 +380,12 @@ impl Sim {
         self.unit_deaths[j] = self.unit_deaths[j].saturating_add(1);
         let base = j * ASSIST_SLOTS;
         if attacker < 0 || attacker as usize >= self.n || attacker as usize == j {
+            self.killer[j] = -1;
             self.hitter_id[base..base + ASSIST_SLOTS].fill(-1);
             return;
         }
         let k = attacker as usize;
+        self.killer[j] = attacker;
         self.unit_kills[k] = self.unit_kills[k].saturating_add(1);
         self.credit_assists(j, k);
         if self.kill_queue.len() < KILL_QUEUE_CAP {

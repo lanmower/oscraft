@@ -5,6 +5,7 @@
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::inventory::{item_kind, INV_SLOTS};
+use crate::status::{EFFECT_INVISIBILITY, EFFECT_STUN};
 use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER, NO_INDEX};
 use crate::*;
 
@@ -59,9 +60,12 @@ pub enum Refusal {
     NoShop,
     InventoryFull,
     MissingComponent,
+    Stunned,
+    Silenced,
+    Rooted,
 }
 
-pub const REFUSAL_KINDS: usize = 46;
+pub const REFUSAL_KINDS: usize = 49;
 
 /// Every refusal kind, in discriminant order, so a count indexed by `refusal as usize` can be named.
 pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -111,6 +115,9 @@ pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::NoShop,
     Refusal::InventoryFull,
     Refusal::MissingComponent,
+    Refusal::Stunned,
+    Refusal::Silenced,
+    Refusal::Rooted,
 ];
 
 
@@ -163,6 +170,9 @@ impl Refusal {
             Refusal::NoShop => "no-shop",
             Refusal::InventoryFull => "inventory-full",
             Refusal::MissingComponent => "missing-component",
+            Refusal::Stunned => "stunned",
+            Refusal::Silenced => "silenced",
+            Refusal::Rooted => "rooted",
         }
     }
 }
@@ -193,6 +203,8 @@ const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
+/// Mod-only: a flat stat bonus. p0 names the stat (see `modapi::STAT_NAMES`), p1 the amount.
+pub(crate) const EFFECT_STAT: u16 = 64;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 
 impl Sim {
@@ -240,6 +252,14 @@ impl Sim {
         };
         if self.channel_left[i] > 0 {
             self.refuse(Refusal::Channelling);
+            return false;
+        }
+        if self.stunned(i) {
+            self.refuse(Refusal::Stunned);
+            return false;
+        }
+        if matches!(cd, Slot::Ability(_)) && self.silenced(i) {
+            self.refuse(Refusal::Silenced);
             return false;
         }
         if self.cooldown(cd) > 0 {
@@ -599,6 +619,8 @@ impl Sim {
                     self.buff_unit(c, p, target as usize, eff.p0, eff.p1, false);
                 }
             }
+            EFFECT_STAT => self.stat_bonus(caster, target, eff.p0, eff.p1),
+            EFFECT_STUN..=EFFECT_INVISIBILITY => self.status_effect(eff, target),
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),
             EFFECT_REMOVE_BEHAVIOUR => {
                 let _ = self.remove_behaviour(caster, eff.p0, fixed::from_milli(eff.p1), tx, ty, 0);

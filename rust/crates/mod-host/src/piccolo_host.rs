@@ -12,7 +12,7 @@ use piccolo::{
     Callback, CallbackReturn, Closure, Context, Error, Executor, IntoValue, Lua, StashedExecutor, StashedFunction,
     Stack, StashedTable, Table, Value, Variadic,
 };
-use sim::{LoadError, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS};
+use sim::{LoadError, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, TICKS_PER_SECOND};
 
 use crate::{EVENTS, MAX_UNITS};
 
@@ -56,12 +56,13 @@ struct UnitSnap {
     y: i32,
     hp: i32,
     alive: bool,
+    killer: Option<usize>,
 }
 
 enum Pending {
     Spawned(usize),
     Attacked(usize),
-    Died(usize),
+    Died(usize, Option<usize>),
     Enter(usize, usize),
     Leave(usize, usize),
     PlayerJoined(usize),
@@ -472,6 +473,59 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, sh.sim.kind_name(u).map(str::to_owned));
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, game, "time", [sh], |c, s| {
+        let ticks = sh.borrow().sim.ticks();
+        s.replace(c, (i64::from(ticks), f64::from(ticks) / f64::from(TICKS_PER_SECOND)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "unit_cooldown", [sh], |c, s| {
+        let (unit, slot) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let slot = slot_of(slot, ABILITY_SLOTS).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.ability_cooldown(u, slot)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "unit_abilities", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let cat = sh.sim.catalog();
+        let list = Table::new(&c);
+        let mut n = 0i64;
+        for slot in 0..ABILITY_SLOTS {
+            let Some(ability) = sh.sim.ability_in_slot(u, slot).and_then(|ai| cat.abilities.get(ai)) else { continue };
+            let row = Table::new(&c);
+            row.set(c, "slot", slot as i64).expect("row");
+            row.set(c, "name", cat.name(ability.name).to_owned()).expect("row");
+            row.set(c, "cooldown", i64::from(sh.sim.ability_cooldown(u, slot))).expect("row");
+            n += 1;
+            list.set(c, n, row).expect("row");
+        }
+        s.replace(c, list);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "unit_items", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let cat = sh.sim.catalog();
+        let list = Table::new(&c);
+        let mut n = 0i64;
+        for slot in 0..ITEM_SLOTS {
+            let (kind, count) = sh.sim.inventory_slot(u, slot);
+            let Some(item) = (kind as usize).checked_sub(1).and_then(|i| cat.items.get(i)) else { continue };
+            let row = Table::new(&c);
+            row.set(c, "slot", slot as i64).expect("row");
+            row.set(c, "name", cat.name(item.name).to_owned()).expect("row");
+            row.set(c, "count", i64::from(count)).expect("row");
+            row.set(c, "cooldown", i64::from(sh.sim.item_cooldown(u, slot))).expect("row");
+            n += 1;
+            list.set(c, n, row).expect("row");
+        }
+        s.replace(c, list);
+        Ok(CallbackReturn::Return)
+    });
     env.set(ctx, "game", game).expect("bind game");
 }
 
@@ -708,7 +762,11 @@ impl ModHost {
             match event {
                 Pending::Spawned(u) => self.emit("on_spawned", vec![Arg::Int(u as i64)])?,
                 Pending::Attacked(u) => self.emit("on_attacked", vec![Arg::Int(u as i64)])?,
-                Pending::Died(u) => self.emit("on_died", vec![Arg::Int(u as i64)])?,
+                Pending::Died(u, killer) => {
+                    let killer_player = killer.map(|k| self.sh.borrow().sim.player(k) as i64);
+                    let opt = |v: Option<i64>| v.map_or(Arg::Nil, Arg::Int);
+                    self.emit("on_died", vec![Arg::Int(u as i64), opt(killer.map(|k| k as i64)), opt(killer_player)])?
+                }
                 Pending::Enter(u, r) => self.emit_region("on_enter", r, u)?,
                 Pending::Leave(u, r) => self.emit_region("on_leave", r, u)?,
                 Pending::PlayerJoined(p) => self.emit("on_player_joined", vec![Arg::Int(p as i64)])?,
@@ -761,6 +819,7 @@ impl ModHost {
                     .into_iter()
                     .map(|a| match a {
                         Arg::Int(i) => Value::Integer(i),
+                        Arg::Nil => Value::Nil,
                         Arg::Text(t) => t.into_value(ctx),
                         Arg::State => Value::Table(ctx.fetch(state)),
                     })
@@ -828,7 +887,7 @@ impl ModHost {
         let sh = self.sh.borrow();
         for i in 0..sh.sim.count() {
             let (x, y) = sh.sim.position_fixed(i);
-            self.snap.push(UnitSnap { x, y, hp: sh.sim.hp(i), alive: sh.sim.alive(i) });
+            self.snap.push(UnitSnap { x, y, hp: sh.sim.hp(i), alive: sh.sim.alive(i), killer: sh.sim.killer_of(i) });
         }
         for (unit, s) in self.snap.iter().enumerate() {
             match self.prev.get(unit) {
@@ -838,7 +897,7 @@ impl ModHost {
                         self.pending.push(Pending::Attacked(unit));
                     }
                     if p.alive && !s.alive {
-                        self.pending.push(Pending::Died(unit));
+                        self.pending.push(Pending::Died(unit, s.killer));
                     }
                 }
             }
@@ -883,6 +942,7 @@ impl ModHost {
 
 enum Arg {
     Int(i64),
+    Nil,
     Text(String),
     State,
 }

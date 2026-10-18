@@ -34,7 +34,9 @@ const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 
-const EFFECT_KINDS: u16 = 11;
+const EFFECT_KINDS: u16 = 16;
+const EFFECT_SLOW: u16 = 12;
+const EFFECT_STATUS_DURATION: [u16; 4] = [11, 13, 14, 15];
 const EFFECT_ISSUE_ORDER: u16 = 5;
 const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 const EFFECT_USE_CALLDOWN: u16 = 8;
@@ -344,6 +346,8 @@ pub struct Research {
     pub gas: i32,
     pub effect: u32,
     pub applies_mask: u32,
+    /// A mod-defined research also applies its effect to matching units built after it completes.
+    pub to_new: bool,
 }
 
 /// A prerequisite (PREQ): the target needs the requirement complete.
@@ -545,6 +549,8 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         }
         EFFECT_DAMAGE | EFFECT_HEAL if e.p0 < 0 || e.p1 < 0 => Some("damage or heal amount or radius"),
         EFFECT_BUFF if e.p0 < 0 || e.p1 < 0 => Some("buff kind or duration"),
+        EFFECT_SLOW if e.p0 < 1 || !(0..=65536).contains(&e.p1) => Some("slow duration or multiplier"),
+        k if EFFECT_STATUS_DURATION.contains(&k) && e.p0 < 1 => Some("status duration"),
         EFFECT_CREATE_HEALER if e.p0 < 0 || e.p1 < 0 || e.p2 < 1 || e.p3 < 1 => {
             Some("create_healer amount, radius, period or lifetime")
         }
@@ -1109,7 +1115,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         {
             return Err(LoadError::Range("research name, building or effect index"));
         }
-        research.push(Research { name, building, time, resource_a, gas, effect, applies_mask });
+        research.push(Research { name, building, time, resource_a, gas, effect, applies_mask, to_new: false });
     }
 
     let (pqo, pqc) = body(14);

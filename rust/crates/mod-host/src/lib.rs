@@ -13,7 +13,7 @@ const MAX_UNITS: usize = 1024;
 pub const EVENTS: [(&str, &str); 7] = [
     ("on_spawned", "unit"),
     ("on_attacked", "unit"),
-    ("on_died", "unit"),
+    ("on_died", "unit, killer, killer_player"),
     ("on_enter", "region, unit"),
     ("on_leave", "region, unit"),
     ("on_player_joined", "player"),

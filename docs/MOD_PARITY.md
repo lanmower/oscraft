@@ -48,6 +48,8 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 
 | capability | status | evidence |
 |---|---|---|
+| Teams, alliances with shared vision, player slots and controllers from Lua | supported | `game.set_team`, `game.alliance`, `game.add_player`, `game.remove_player`, mod-host tests `shared_vision_shows_player_zero...` and `team_and_slot_commands_reach_the_sim...`, CI `mods/teams.lua` |
+| Custom units, items and upgrades from Lua; killer in `on_died`; game clock; cooldown and inventory queries | supported | `game.unit`, `game.item`, `game.upgrade`, `game.cmd_grant_upgrade`, `game.time`, `game.unit_cooldown`, `game.unit_abilities`, `game.unit_items`, CI `mods/custom_unit.lua`, `custom_item.lua`, `tech_tree.lua`, `killer.lua`, `unit_queries.lua` |
 | Move or control a player's camera | missing | refused as `camera-unsupported` |
 | Play sound | missing | refused as `sound-unsupported` |
 | Custom UI panels | missing | refused as `ui-panel-unsupported` |

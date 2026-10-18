@@ -2716,6 +2716,23 @@ jobs:
           target/debug/mod_check ../scenarios/moba ../mods/custom_spell.lua 300 > spell.txt 2>&1 || { cat spell.txt; exit 1; }
           cat spell.txt
           grep -Eq '^mod-state effects=2 gold=250 ticks=0 winner=0$' spell.txt
+          target/debug/mod_check ../scenarios/moba ../mods/teams.lua 20 > teams.txt 2>&1 || { cat teams.txt; exit 1; }
+          cat teams.txt
+          grep -Eq '^mod-state controller0=human controller1=computer controller2=open rel01=ally rel02=enemy rel03=vision rel04=ally team1=0 ticks=0$' teams.txt
+
+      - name: Run the example mods that define units, items and upgrades, attribute kills, and read the clock and unit queries
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mod in custom_unit custom_item unit_queries tech_tree killer; do
+            target/debug/mod_check ../scenarios/moba ../mods/$mod.lua 300 > $mod.txt 2>&1 || { cat $mod.txt; exit 1; }
+            cat $mod.txt
+          done
+          grep -Eq '^mod-state runners=1 ticks=0 tower_ability=tower_zap tower_hp=26214400$' custom_unit.txt
+          grep -Eq '^mod-state item_cooldown=0 item_count=1 item_name=flask ticks=0$' custom_item.txt
+          grep -Eq '^mod-state ability_count=1 clock_seconds=18.75 clock_ticks=300 cooldown_after=47 first_ability=pulse ready_before=0 ticks=0$' unit_queries.txt
+          grep -Eq '^mod-state first_hp=9830400 second_hp=9830400 ticks=0$' tech_tree.txt
+          grep -Pq '^mod-state at=8 by=(\d+) by_player=0 died=(\d+) killer=\1 ticks=0 victim=\2$' killer.txt
 
   package-install:
     name: single archive builds and installs into an empty directory
