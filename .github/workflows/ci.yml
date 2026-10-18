@@ -2748,15 +2748,17 @@ jobs:
           expected_units=$((spawns + starts * workers))
           units=$(jq '.units' "$work/s0.json")
           sides=$(jq '[.records[].player | select(. >= 0)] | unique | length' "$work/s0.json")
-          live_routes=$(jq '[.records[] | select(.hp == 19660800) | .y] | unique | length' "$work/s0.json")
-          live_beacons=$(jq '[.records[] | select(.hp == 19660800)] | length' "$work/s0.json")
+          beacon_pts="[$(grep -E '^spawn\("beacon"' map.osd | sed -E 's/^spawn\("beacon", *[0-9]+, *([0-9]+), *([0-9]+) *\)$/[\1,\2]/' | paste -sd, -)]"
+          beacon_at='.records[] | select(. as $r | any($bp[]; (($r.x - .[0]*65.536) | fabs) < 2000 and (($r.y - .[1]*65.536) | fabs) < 2000))'
+          live_routes=$(jq --argjson bp "$beacon_pts" "[$beacon_at | .y] | unique | length" "$work/s0.json")
+          live_beacons=$(jq --argjson bp "$beacon_pts" "[$beacon_at] | length" "$work/s0.json")
           echo "from files: starts=$starts spawns=$spawns beacons=$beacons routes=$routes expected_units=$expected_units"
           echo "served at tick 0: units=$units sides=$sides routes=$live_routes objectives=$live_beacons tick_reached=$tick"
           test "$units" -eq "$expected_units"
           test "$sides" -eq "$starts"
           test "$live_routes" -eq "$routes"
           test "$live_beacons" -eq "$beacons"
-          end_full=$(jq '[.records[] | select(.hp == 19660800)] | length' "$work/s1.json")
+          end_full=$(jq --argjson bp "$beacon_pts" "[$beacon_at | select(.hp == 19660800)] | length" "$work/s1.json")
           hp_changed=$([ "$end_full" -lt "$beacons" ] && echo true || echo false)
           echo "scenario ok sides=$sides routes=$routes objectives=$beacons units=$units hp_changed=$hp_changed"
           test "$hp_changed" = true
@@ -2835,14 +2837,19 @@ jobs:
             sleep 0.5
           done
           test "$tick" -ge 3
-          units0=$(jq '.units' "$work/s0.json")
+          units0=$(jq '[.records[] | select(.player != 255)] | length' "$work/s0.json")
           at_tick=""
+          prev=$units0
+          max_jump=0
           tick=0
           for i in $(seq 1 1800); do
             curl -sf "http://$addr/state?map=ci" > "$work/s1.json" || true
             tick=$(jq -r '.tick // 0' "$work/s1.json" 2>/dev/null || echo 0)
-            units_now=$(jq '.units' "$work/s1.json" 2>/dev/null || echo "$units0")
-            if [ -z "$at_tick" ] && [ "$units_now" -gt "$units0" ]; then at_tick=$tick; fi
+            units_now=$(jq '[.records[] | select(.player != 255)] | length' "$work/s1.json" 2>/dev/null || echo "$units0")
+            jump=$((units_now - prev))
+            if [ "$jump" -gt "$max_jump" ]; then max_jump=$jump; fi
+            if [ -z "$at_tick" ] && [ "$jump" -gt 0 ]; then at_tick=$tick; fi
+            prev=$units_now
             test "$tick" -ge "$target" && break
             sleep 0.5
           done
@@ -2858,7 +2865,12 @@ jobs:
           expected_units=$((spawns + starts * workers))
           lanes_per_wave=$(grep -E '^ability\("creep_wave"' abilities.osd | grep -o 'effect("spawn"' | wc -l)
           initial_units=$((expected_units + bases * initial * lanes_per_wave))
-          sides=$(jq '[.records[].player | select(. >= 0)] | unique | length' "$work/s0.json")
+          sides=$(jq '[.records[].player | select(. >= 0 and . != 255)] | unique | length' "$work/s0.json")
+          patches=$(grep -oE 'patches_per_base *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
+          geysers=$(grep -oE 'geysers_per_base *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
+          neutral=$(jq '[.records[] | select(.player == 255)] | length' "$work/s0.json")
+          echo "neutral resource fields: $neutral, at most $((starts * (patches + geysers))) from economy.osd"
+          test "$neutral" -le $((starts * (patches + geysers)))
           echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases initial_waves=$initial cooldown=$cooldown expected_units=$expected_units"
           echo "served from tick 3: units=$units0 sides=$sides; expected with initial waves=$initial_units"
           test "$units0" -eq "$initial_units"
@@ -2872,8 +2884,8 @@ jobs:
           for y in $(grep -E '^spawn\("tower"' map.osd | sed -E 's/.*, *[0-9]+ *, *([0-9]+) *\)$/\1/' | sort -un); do
             echo "moba lane y=$y towers=$(grep -cE "^spawn\(\"tower\", *[0-9]+, *[0-9]+, *$y *\)" map.osd) creeps=$(grep -cE "^spawn\(\"creep\", *[0-9]+, *[0-9]+, *$y *\)" map.osd)"
           done
-          units_end=$(jq '.units' "$work/s1.json")
-          spawned=$((units_end - units0))
+          units_end=$(jq '[.records[] | select(.player != 255)] | length' "$work/s1.json")
+          spawned=$max_jump
           max_waves=$((bases * (target / cooldown + 1) * lanes_per_wave))
           echo "waves per lane: lanes_per_wave=$lanes_per_wave creeps per base per wave, one per lane"
           echo "wave: units_end=$units_end spawned=$spawned at_tick=$at_tick bases=$bases max_waves=$max_waves"
