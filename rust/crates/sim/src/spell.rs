@@ -61,6 +61,7 @@ pub const S_BASH_TICKS: usize = 18;
 pub const S_SPEED_PCT: usize = 19;
 pub const S_CDR: usize = 20;
 pub const S_STATUS_RESIST: usize = 21;
+pub const S_STRENGTH: usize = 22;
 pub const S_SPELL_LIFESTEAL: usize = 25;
 pub const S_ARMOR_X100: usize = 26;
 pub const S_CAST_RANGE: usize = 27;
@@ -91,7 +92,9 @@ pub(crate) const TMOD_SLOTS: usize = 8;
 pub(crate) const DOT_SLOTS: usize = 4;
 pub(crate) const ZONE_SLOTS: usize = 16;
 pub(crate) const CHAIN_SLOTS: usize = 8;
-const AOE_CAP: usize = 128;
+const AOE_CAP: usize = 2048;
+/// Passive stat effects tracked per ability slot.
+const APPLIED: usize = 8;
 const ZONE_DELAY_MASK: i32 = (1 << 30) - 1;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -224,7 +227,7 @@ pub(crate) fn spell_effect_error(e: &Effect) -> Option<&'static str> {
         K_DOT => e.p0 >= 0 && e.p1 >= 1 && e.p2 >= 1 && (0..=3).contains(&e.p3),
         K_STATUS => (0..crate::status::STATUS_KINDS as i32).contains(&e.p0) && e.p1 >= 1,
         K_TIMED_STAT => (0..STAT_COUNT as i32).contains(&e.p0) && e.p2 >= 1 && (0..=1).contains(&e.p3),
-        K_AOE => e.p0 >= 0 && (0..=15).contains(&e.p1) && (0..=16).contains(&e.p2) && e.p3 >= 0,
+        K_AOE => e.p0 >= 0 && (0..=31).contains(&e.p1) && (0..=16).contains(&e.p2) && e.p3 >= 0,
         K_DISPEL => (1..=7).contains(&e.p0),
         K_CHAIN => e.p0 >= 0 && e.p1 >= 0 && e.p2 >= 0 && (0..=3).contains(&e.p3),
         K_ZONE => e.p0 >= 0 && e.p1 >= 1 && e.p2 >= 1 && e.p3 >= 0,
@@ -289,6 +292,7 @@ pub(crate) struct SpellState {
     /// Transient: the ability a running effect belongs to, the kill flag of the last damage, the
     /// pierce flag of the running ability. Not hashed or saved.
     pub(crate) cur_ai: i32,
+    pub(crate) cur_eff: i32,
     pub(crate) kill_flag: bool,
     pub(crate) pierce: bool,
     /// Rank a zone pulse resolves its values at (its owner holds the zone ability, not the pulse ability); 0 for none.
@@ -302,7 +306,7 @@ impl SpellState {
         SpellState {
             upg: vec![0; cap],
             smod: vec![0; cap * STAT_COUNT],
-            applied: vec![0; cap * ABILITY_SLOTS * 4],
+            applied: vec![0; cap * ABILITY_SLOTS * APPLIED],
             tmod_code: vec![-1; cap * TMOD_SLOTS],
             tmod_amt: vec![0; cap * TMOD_SLOTS],
             tmod_left: vec![0; cap * TMOD_SLOTS],
@@ -345,6 +349,7 @@ impl SpellState {
             pend_x: vec![0; cap],
             pend_y: vec![0; cap],
             cur_ai: -1,
+            cur_eff: 0,
             kill_flag: false,
             pierce: false,
             rank_override: 0,
@@ -382,7 +387,7 @@ impl SpellState {
     pub(crate) fn clear_unit(&mut self, i: usize) {
         self.upg[i] = 0;
         self.smod[i * STAT_COUNT..(i + 1) * STAT_COUNT].fill(0);
-        self.applied[i * ABILITY_SLOTS * 4..(i + 1) * ABILITY_SLOTS * 4].fill(0);
+        self.applied[i * ABILITY_SLOTS * APPLIED..(i + 1) * ABILITY_SLOTS * APPLIED].fill(0);
         self.clear_timed(i);
         self.ill_out[i] = 0;
         self.ill_in[i] = 0;
@@ -419,6 +424,10 @@ impl Sim {
 
     pub(crate) fn smod_add(&mut self, i: usize, code: usize, delta: i32) {
         self.spell.smod[i * STAT_COUNT + code] += delta;
+        if code == S_RANGE {
+            self.range_q[i] += fixed::from_milli(delta);
+            self.range_sq[i] = fixed::mul(self.range_q[i], self.range_q[i]);
+        }
         self.touch(i);
     }
 
@@ -624,7 +633,7 @@ impl Sim {
             _ => dmg,
         };
         let before = self.hp[j];
-        self.hurt_by(j, dmg, caster);
+        self.hurt_typed(j, dmg, caster);
         let dealt = before - self.hp[j];
         if dealt > 0 && caster >= 0 && (caster as usize) < self.n {
             let c = caster as usize;
@@ -671,9 +680,6 @@ impl Sim {
     /// Living units within `rad` (Q16.16) of a point, any distance: the cell buckets for a short reach,
     /// a scan of the unit table beyond. Never writes past `buf`.
     pub(crate) fn collect(&self, x: i32, y: i32, rad: i32, buf: &mut [u32]) -> usize {
-        if fixed::round(rad) + 1 <= 8 {
-            return self.gather(x, y, rad, buf);
-        }
         let r2 = rad as i64 * rad as i64;
         let mut count = 0;
         for j in 0..self.n {
@@ -769,8 +775,13 @@ impl Sim {
         }
     }
 
+    /// Identifies the running effect of the running ability, so two timed effects of one ability stack.
+    fn effect_key(&self) -> i32 {
+        self.spell.cur_ai * 64 + self.spell.cur_eff
+    }
+
     fn dot_effect(&mut self, caster: usize, j: usize, eff: Effect) {
-        let key = self.spell.cur_ai;
+        let key = self.effect_key();
         let base = j * DOT_SLOTS;
         let slot = (base..base + DOT_SLOTS)
             .find(|&k| self.spell.dot_left[k] > 0 && self.spell.dot_src[k] == caster as i32 && self.spell.dot_key[k] == key)
@@ -789,7 +800,7 @@ impl Sim {
 
     fn timed_stat(&mut self, j: usize, eff: Effect) {
         let code = eff.p0 as usize;
-        let key = self.spell.cur_ai;
+        let key = self.effect_key();
         let mut amount = eff.p1;
         if eff.p3 == 1 {
             amount = match code {
@@ -881,6 +892,14 @@ impl Sim {
         let n = eff.p2 as usize;
         let p = self.player[caster];
         let (cx, cy) = if eff.p1 & 4 != 0 { (self.pos_x[caster], self.pos_y[caster]) } else { (tx, ty) };
+        if eff.p1 & 16 != 0 {
+            for e in 1..=n {
+                let inner = self.resolve_effect(caster, ai, first + e);
+                self.spell.cur_eff = (first + e) as i32;
+                self.apply_effect(caster, filter, inner, self.pos_x[caster], self.pos_y[caster], caster as i32, true);
+            }
+            return;
+        }
         let line = eff.p1 & 8 != 0;
         let mut found = [0u32; AOE_CAP];
         let count = if line {
@@ -938,6 +957,7 @@ impl Sim {
             let (jx, jy) = (self.pos_x[j], self.pos_y[j]);
             for e in 1..=n {
                 let inner = self.resolve_effect(caster, ai, first + e);
+                self.spell.cur_eff = (first + e) as i32;
                 self.apply_effect(caster, filter, inner, jx, jy, j as i32, true);
             }
         }
@@ -1227,6 +1247,7 @@ impl Sim {
     /// Recomputes the stat contribution of every passive ability unit `i` holds: the difference between
     /// what its learned rank, scepter, shard and talents give now and what was already added.
     pub(crate) fn refresh_passives(&mut self, i: usize) {
+        let mut changed = false;
         for slot in 0..ABILITY_SLOTS {
             let idx = i * ABILITY_SLOTS + slot;
             let ai = self.abil_idx[idx];
@@ -1239,20 +1260,40 @@ impl Sim {
             if self.ext_of(ai).flags & (FLAG_PASSIVE | FLAG_PASSIVE_STATS) == 0 {
                 continue;
             }
-            for k in 0..(ability.effect_count as usize).min(4) {
+            for k in 0..(ability.effect_count as usize).min(APPLIED) {
                 if self.cat.effects[ability.effect_first as usize + k].kind != crate::rules::EFFECT_STAT {
                     continue;
                 }
                 let eff = self.resolve_effect(i, ai, k);
                 let want = if learned { eff.p1 } else { 0 };
-                let at = idx * 4 + k;
+                let at = idx * APPLIED + k;
                 let delta = want - self.spell.applied[at];
                 if delta != 0 {
                     self.spell.applied[at] = want;
                     self.smod_add(i, eff.p0 as usize, delta);
+                    changed = true;
                 }
             }
         }
+        if changed {
+            self.apply_hero_stats(i);
+        }
+    }
+
+    /// Current value of stat `code` (see `STAT_COUNT`; the order of `data::format::STAT_NAMES`) on unit `i`: the
+    /// sum of its passive and timed modifiers. Zero for an unknown unit or code.
+    pub fn stat_value(&self, i: usize, code: usize) -> i32 {
+        if i < self.n && code < STAT_COUNT { self.stat(i, code) } else { 0 }
+    }
+
+    /// The ability slot of unit `i` holding the ability called `name`.
+    pub fn ability_slot(&self, i: usize, name: &str) -> Option<usize> {
+        (0..ABILITY_SLOTS).find(|&slot| self.ability_in_slot(i, slot).is_some_and(|a| self.cat.name(self.cat.abilities[a].name) == name))
+    }
+
+    /// Whether unit `i` is walking into range to finish a cast.
+    pub fn cast_pending(&self, i: usize) -> bool {
+        self.spell.pend_slot.get(i).is_some_and(|&s| s >= 0)
     }
 
     /// Sets upgrade bit 0 (scepter) or 1 (shard) on unit `i`, and refreshes its passives.
@@ -1512,6 +1553,25 @@ impl Sim {
             self.tgt_y[i] = self.pos_y[i];
             self.cast_ability(i, slot as usize, target, x, y);
         }
+    }
+
+    /// Gives each skilled ability of the placed unit `j` the rank its placer holds in the running ability.
+    pub(crate) fn inherit_ranks(&mut self, caster: usize, j: usize) {
+        if self.spell.cur_ai < 0 {
+            return;
+        }
+        let rank = self.rank_of(caster, self.spell.cur_ai as usize);
+        for slot in 0..ABILITY_SLOTS {
+            let k = j * ABILITY_SLOTS + slot;
+            let ai = self.abil_idx[k];
+            if ai < 0 {
+                continue;
+            }
+            if let Some(skill) = self.cat.abilities[ai as usize].skill {
+                self.abil_rank[k] = rank.min(skill.max_rank as usize) as u8;
+            }
+        }
+        self.refresh_passives(j);
     }
 
     /// Whether the cast point (x, y) is farther from unit `i` than the cast range of ability `ai`.

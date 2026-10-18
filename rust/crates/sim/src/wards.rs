@@ -39,6 +39,7 @@ impl Sim {
         };
         self.stats.summoned += 1;
         self.wards.expires[j] = self.ticks.wrapping_add(life.max(1) as u32);
+        self.inherit_ranks(caster, j);
         let slot = self.wards.casting_slot;
         if slot >= 0 {
             self.consume_charge(caster, slot as usize);

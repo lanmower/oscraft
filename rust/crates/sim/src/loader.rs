@@ -36,7 +36,7 @@ const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 
-const EFFECT_KINDS: u16 = 30;
+const EFFECT_KINDS: u16 = 31;
 const EFFECT_STAT: u16 = 16;
 const EFFECT_WARD: u16 = 17;
 const EFFECT_GLYPH: u16 = 18;
@@ -596,7 +596,7 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         {
             Some("vital_fraction vital, fraction, mode or target")
         }
-        EFFECT_DAMAGE | EFFECT_HEAL if e.p0 < 0 || e.p1 < 0 || (e.kind == EFFECT_DAMAGE && !(0..=3).contains(&e.p2)) || (e.kind == EFFECT_HEAL && !(0..=1).contains(&e.p2)) => {
+        EFFECT_DAMAGE | EFFECT_HEAL if e.p0 < 0 || e.p1 < 0 || (e.kind == EFFECT_DAMAGE && !(0..=3).contains(&e.p2)) || (e.kind == EFFECT_HEAL && !(0..=2).contains(&e.p2)) => {
             Some("damage or heal amount, radius or type")
         }
         EFFECT_BUFF if e.p0 < 0 || e.p1 < 0 => Some("buff kind or duration"),

@@ -274,8 +274,16 @@ impl Sim {
         if j >= self.n {
             return;
         }
-        let before = self.hp[j];
         let dmg = self.magic_reduced(j, dmg);
+        self.hurt_typed(j, dmg, attacker);
+    }
+
+    /// Damage whose type was already applied (armour, magic resistance, pure): no further reduction.
+    pub(crate) fn hurt_typed(&mut self, j: usize, dmg: i32, attacker: i32) {
+        if j >= self.n {
+            return;
+        }
+        let before = self.hp[j];
         self.inflict(j, dmg, attacker);
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }

@@ -254,7 +254,7 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
         "dot" => p0 >= 0 && p1 >= 1 && p2 >= 1 && (0..SPELL_DAMAGE_TYPES.len() as i32).contains(&p3),
         "status" => (0..STATUS_CODES.len() as i32).contains(&p0) && p1 >= 1,
         "timed_stat" => (0..STAT_NAMES.len() as i32).contains(&p0) && p2 >= 1 && (0..=1).contains(&p3),
-        "aoe" => p0 >= 0 && (0..=15).contains(&p1) && (0..=16).contains(&p2) && p3 >= 0,
+        "aoe" => p0 >= 0 && (0..=31).contains(&p1) && (0..=16).contains(&p2) && p3 >= 0,
         "dispel" => (1..=7).contains(&p0),
         "chain" => p0 >= 0 && p1 >= 0 && p2 >= 0 && (0..SPELL_DAMAGE_TYPES.len() as i32).contains(&p3),
         "zone" => p0 >= 0 && p1 >= 1 && p2 >= 1 && p3 >= 0,

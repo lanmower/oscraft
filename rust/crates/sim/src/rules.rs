@@ -458,6 +458,7 @@ impl Sim {
         let mut k = 0;
         while k < count {
             let mut eff: Effect = self.resolve_effect(caster, ai, k);
+            self.spell.cur_eff = k as i32;
             if let Some(scaled) = amount {
                 if eff.kind == EFFECT_DAMAGE || eff.kind == EFFECT_HEAL {
                     eff.p0 = scaled;

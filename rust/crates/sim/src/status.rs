@@ -70,7 +70,7 @@ impl Sim {
     }
 
     /// Clears one status counter of unit `i`.
-    pub(crate) fn clear_status(&mut self, i: usize, kind: usize) {
+    pub fn clear_status(&mut self, i: usize, kind: usize) {
         if i < self.n && kind < STATUS_KINDS {
             self.status_left[i * STATUS_KINDS + kind] = 0;
             if kind == SLOW {

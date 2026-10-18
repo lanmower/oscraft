@@ -17,6 +17,8 @@ team_share_pct=20
 # radius 900, activation_time 15, regen_rate 90. The radius is 900 Dota units scaled by the tower range
 # (6000 milli over 700 units), so 7700: the scale is UNVERIFIED. backdoor_reduction_pct 50 is from the patch 7.29 notes. aggro_priority, aggro_hold_s are UNVERIFIED (the dump has no targeting or damage-cut keys).
 aggro_priority=1
+# Dota ends a channel or a cast point by stun, silence or hex, not by damage taken.
+channel_damage_interrupt=0
 aggro_hold_s=3
 backdoor_reduction_pct=50
 backdoor_radius_milli=14062

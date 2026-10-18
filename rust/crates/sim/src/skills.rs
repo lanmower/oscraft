@@ -71,6 +71,6 @@ impl Sim {
         let base = unit * ABILITY_SLOTS;
         let k = (base..base + ABILITY_SLOTS).find(|&k| self.abil_idx[k] == ai as i32)?;
         let rank = self.abil_rank[k] as usize;
-        (rank > 0).then(|| skill.damage[rank - 1])
+        (rank > 0).then(|| skill.damage[rank - 1]).filter(|&amount| amount != 0)
     }
 }

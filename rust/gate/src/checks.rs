@@ -38,6 +38,9 @@ mod hero_checks;
 #[path = "item_checks.rs"]
 mod item_checks;
 
+#[path = "ability_checks.rs"]
+mod ability_checks;
+
 pub const CHECKS: &[(&str, Check)] = &[
     ("determinism-replay-hash", determinism_checks::moba_replay_hash),
     ("determinism-save-load-hash", determinism_checks::moba_save_load_hash),
@@ -67,6 +70,38 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("item-stack-consume", item_checks::item_stack_consume),
     ("item-slots", item_checks::item_slots),
     ("moba-match-end", mechanic_checks::moba_match_end),
+    ("ability-axe-berserkers-call", ability_checks::axe_berserkers_call),
+    ("ability-axe-battle-hunger", ability_checks::axe_battle_hunger),
+    ("ability-axe-counter-helix", ability_checks::axe_counter_helix),
+    ("ability-axe-culling-blade", ability_checks::axe_culling_blade),
+    ("ability-crystal-nova", ability_checks::crystal_nova),
+    ("ability-crystal-frostbite", ability_checks::crystal_frostbite),
+    ("ability-crystal-brilliance-aura", ability_checks::crystal_brilliance_aura),
+    ("ability-crystal-freezing-field", ability_checks::crystal_freezing_field),
+    ("ability-sven-storm-bolt", ability_checks::sven_storm_bolt),
+    ("ability-sven-great-cleave", ability_checks::sven_great_cleave),
+    ("ability-sven-buffs", ability_checks::sven_buffs),
+    ("ability-juggernaut-blade-fury", ability_checks::juggernaut_blade_fury),
+    ("ability-juggernaut-healing-ward", ability_checks::juggernaut_healing_ward),
+    ("ability-juggernaut-blade-dance", ability_checks::juggernaut_blade_dance),
+    ("ability-juggernaut-omni-slash", ability_checks::juggernaut_omni_slash),
+    ("ability-zeus-arc-lightning", ability_checks::zeus_arc_lightning),
+    ("ability-zeus-lightning-bolt", ability_checks::zeus_lightning_bolt),
+    ("ability-zeus-thundergods-wrath", ability_checks::zeus_thundergods_wrath),
+    ("ability-sniper-shrapnel", ability_checks::sniper_shrapnel),
+    ("ability-sniper-headshot", ability_checks::sniper_headshot),
+    ("ability-sniper-take-aim", ability_checks::sniper_take_aim),
+    ("ability-sniper-assassinate", ability_checks::sniper_assassinate),
+    ("ability-lion-impale", ability_checks::lion_impale),
+    ("ability-lion-voodoo", ability_checks::lion_voodoo),
+    ("ability-lion-mana-drain", ability_checks::lion_mana_drain),
+    ("ability-lion-finger-of-death", ability_checks::lion_finger_of_death),
+    ("ability-omniknight-purification", ability_checks::omniknight_purification),
+    ("ability-omniknight-martyr", ability_checks::omniknight_martyr),
+    ("ability-omniknight-guardian-angel", ability_checks::omniknight_guardian_angel),
+    ("ability-talent-picks", ability_checks::talent_picks),
+    ("ability-cast-walks-into-range", ability_checks::cast_walks_into_range),
+    ("ability-skill-level-gates", ability_checks::skill_level_gates),
     ("moba-creeps", mechanic_checks::moba_creeps),
     ("moba-lane", mechanic_checks::moba_lane),
     ("item-stat-names", item_checks::item_stat_names),
@@ -486,7 +521,8 @@ fn http_resources_ok(_image: &[u8]) -> Result<(), String> {
 /// Runs every check, prints one line each, and returns how many failed.
 pub fn run_all(image: &[u8]) -> usize {
     let mut failed = 0;
-    for &(name, check) in CHECKS {
+    let only = std::env::var("GATE_ONLY").unwrap_or_default();
+    for &(name, check) in CHECKS.iter().filter(|(name, _)| name.contains(only.as_str())) {
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| check(image)))
             .unwrap_or_else(|_| Err("panicked, see stderr".to_string()));
         match outcome {

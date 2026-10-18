@@ -292,7 +292,7 @@ impl Sim {
             return own;
         }
         let items = self.item_attributes(i);
-        [0, 1, 2].map(|k| own[k] + items[k] * 100)
+        [0, 1, 2].map(|k| own[k] + (items[k] + self.stat(i, crate::spell::S_STRENGTH + k)) * 100)
     }
 
     /// Attributes of hero `i` before item bonuses, in hundredths.
