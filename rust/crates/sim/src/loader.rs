@@ -1177,7 +1177,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
 
     let (io, ic) = body(18);
     let mut ir = Reader { buf: bytes, at: io };
-    let mut items = Vec::with_capacity(ic);
+    let mut items: Vec<Item> = Vec::with_capacity(ic);
     for _ in 0..ic {
         let name = ir.name("item name")?;
         ir.skip(2, "item reserved")?;

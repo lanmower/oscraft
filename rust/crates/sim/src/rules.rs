@@ -227,15 +227,16 @@ impl Sim {
     fn cast_index(&mut self, i: usize, ai: usize, cd: Slot, target: i32, x: i32, y: i32) -> bool {
         let ability = self.cat.abilities[ai];
         let rank = match cd {
-            Slot::Ability(k) => self.abil_rank[k] as usize,
+            Slot::Ability(k) => Some(self.abil_rank[k] as usize),
+            Slot::Item(_) => None,
         };
-        let (energy_cost, cooldown_ticks) = match ability.skill {
-            Some(skill) if rank > 0 => (skill.energy[rank - 1], skill.cooldown[rank - 1]),
-            Some(_) => {
+        let (energy_cost, cooldown_ticks) = match (ability.skill, rank) {
+            (Some(skill), Some(rank)) if rank > 0 => (skill.energy[rank - 1], skill.cooldown[rank - 1]),
+            (Some(_), Some(_)) => {
                 self.refuse(Refusal::NotLearned);
                 return false;
             }
-            None => (ability.energy, ability.cooldown),
+            _ => (ability.energy, ability.cooldown),
         };
         if self.channel_left[i] > 0 {
             self.refuse(Refusal::Channelling);
