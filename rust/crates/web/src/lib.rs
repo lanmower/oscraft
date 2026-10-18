@@ -188,6 +188,17 @@ impl Game {
         self.sim.skill_up(unit as usize, slot as usize).is_ok()
     }
 
+    /// Chooses talent `side` (0 or 1) of tier `tier` (0..=3, levels 10, 15, 20, 25) for unit `unit`. Returns false
+    /// when the sim refuses it (level below the tier, tier already chosen, dead unit).
+    pub fn choose_talent(&mut self, unit: u32, tier: u32, side: u32) -> bool {
+        self.sim.choose_talent(unit as usize, tier as usize, side as usize).is_ok()
+    }
+
+    /// Upgrade bits of unit `unit`: bit 0 scepter, bit 1 shard, bits 2..=9 the eight talent choices (tier * 2 + side).
+    pub fn upgrade_bits(&self, unit: u32) -> i32 {
+        self.sim.upgrade_bits(unit as usize)
+    }
+
     /// Rank of ability slot `slot` of unit `unit`; 0 when not learned.
     pub fn skill_rank(&self, unit: u32, slot: u32) -> u32 {
         self.sim.skill_rank(unit as usize, slot as usize) as u32

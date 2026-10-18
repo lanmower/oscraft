@@ -1,7 +1,7 @@
-# OSDT data file, format version 19
+# OSDT data file, format version 20
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
-little-endian. There is no padding between sections or records beyond the explicit
+little-endian. Version 20 adds the AXTN section (ability extension), effect kinds 20 to 30 and the spell stats and statuses below; it changes the `damage` and `heal` parameters (type in p2) and lets a non-ultimate rank gate be any level from 1 to 30. There is no padding between sections or records beyond the explicit
 reserved bytes listed below. Version 14 adds a per-cell tile id to GRID and the DODA section for doodads. Version 13 adds a per-level resource_a and gas cost to UPGR, which grows from 16 to 24 bytes. Version 12 changed the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
 combat and cloak/burrow parameters as new sections. Every record size from version 10
 is unchanged. A reader of an older version must reject the file.
@@ -110,6 +110,17 @@ Effect parameters by kind:
 | 17   | `ward`             | unit index into `UNIT`, `>= 0`, `< unit count`                     | lifetime, ticks, `>= 1`                | –                           | –                                |
 | 18   | `glyph`            | duration, ticks, `>= 1`                                            | team cooldown, ticks, `>= 0`           | filter bits covered, `>= 1` | filter bits excluded, `>= 0`     |
 | 19   | `deliver`          | reach, milli-units, `>= 0`                                         | –                                      | –                           | –                                |
+| 20   | `dot`              | damage per pulse, whole hit points, `>= 0`                         | period, ticks, `>= 1`                  | duration, ticks, `>= 1`     | damage type `0..=3` (see below)  |
+| 21   | `status`           | status code `0..=13` (see Registries)                              | duration, ticks, `>= 1`                | hex only: move speed, milli-units per tick (0 = default) | – |
+| 22   | `timed_stat`       | stat code (see Registries)                                         | amount, signed                         | duration, ticks, `>= 1`     | mode: `0 flat`, `1 percent of the receiver's base damage or armour` |
+| 23   | `aoe`              | radius, milli-units (the half width of a line)                     | team `0..=3` plus 4 centre on caster, 8 line, 16 caster only | number of effects that follow, `0..=16` | filter bits required (12 bits), bits 16..23 a cap on targets taken nearest first, bit 30 heroes only |
+| 24   | `dispel`           | mask `1..=7`: 1 timed buffs, 2 debuffs and damage over time, 4 stuns and hexes as well | – | –                  | –                                |
+| 25   | `chain`            | damage, whole hit points                                           | jumps after the first hit              | jump radius, milli-units    | damage type                      |
+| 26   | `zone`             | ability index whose effects pulse (`effect(ability=)`)            | period, ticks, `>= 1`                  | lifetime, ticks, `>= 1`     | delay before the first pulse, ticks; bit 30 makes the zone follow its caster |
+| 27   | `illusion`         | copies `1..=8` placed around the caster                            | duration, ticks, `>= 1`                | damage dealt, percent       | damage taken, percent            |
+| 28   | `mana`             | amount, `>= 0`                                                     | mode: `0 give`, `1 burn`, `2 drain to the caster` | –                | –                                |
+| 29   | `if_kill`          | number of effects that follow and run only if the last damage killed its receiver, `1..=16` | – | –               | –                                |
+| 30   | `attack`           | percent of the caster's weapon damage, `>= 0`                      | –                                      | –                           | –                                |
 
 ### Receiver
 
@@ -128,6 +139,23 @@ effects are defined by the receiver: `issue_order`, `shield_bonus` and
   target (`caster_relative` or `point`) is resolved from the caster or the cast
   point, and is independent of who receives the order.
 - `shield_bonus`: the receiver's shield gains the flat amount.
+- `damage` with type p2 `0` is the legacy raw amount (Q16.16) that only the receiver's hero magic resistance reduces; with p2 `1`
+  physical, `2` magical or `3` pure the amount is whole hit points, scaled by the caster's spell amplification and then reduced
+  by the receiver's armour (physical) or magic resistance (magical, stacked multiplicatively with the hero base); pure is not
+  reduced. `heal` with p2 `1` heals whole hit points, with p2 `2` p0 hundredths of a percent of the receiver's maximum.
+- Spell immunity: a hostile effect of an ability without the pierce flag skips a receiver that has the `spell_immunity` status;
+  invulnerable units take no damage; a unit with `death_prevention` cannot drop below 1 hit point; `physical_immunity` stops weapon
+  hits and physical spell damage; `taunt` forces the target to walk to and strike the taunter; `hex` disarms, silences and slows to
+  the status speed; `disarm` stops weapon attacks; `mute` stops item use; `break` is held for passives that check it.
+- `aoe` runs the p2 effects after it on each unit it selects, with that unit as receiver: units within p0 of the cast point
+  (or of the caster with the centre flag, or in a line from the caster through the cast point of length cast range + `line_extra`),
+  filtered by team, required filter bits (structures are skipped unless the mask names them), the target cap and the heroes flag.
+- `dot` ticks `damage` every `period` ticks for `duration` ticks; reapplying from the same ability refreshes it. `timed_stat`
+  adds to the receiver's stat modifier for `duration` ticks and removes it after; the same effect of the same ability refreshes.
+- `chain` damages the receiver, then jumps to the nearest other living enemy within p2 every `period` ticks (the ability's
+  AXTN period) for p1 jumps. `zone` runs the named ability's effects at the cast point every period ticks; the pulse resolves
+  its values at the rank of the ability that started it. `illusion` places copies of the caster that deal p2 percent and take
+  p3 percent damage, expire after p1 ticks and pay no bounty. `attack` makes the caster strike the receiver once.
 - `stat`: the receiver's stat rises by the flat amount, permanently for that unit's life. A
   passive is a `stat` ability with a very long cooldown that a `spawned` behaviour casts.
 - `stun`, `slow`, `silence`, `root`, `invisibility`: status effects on the receiver for
@@ -291,7 +319,7 @@ An ability with a skill tree learns ranks with skill points. Abilities without o
 | 1      | 1    | max rank, `1..=4` when has skill, else 0                              |
 | 2      | 1    | ultimate: `0` no, `1` yes; an ultimate takes at most 3 ranks         |
 | 3      | 5    | reserved, write 0                                                     |
-| 8      | 16   | level gate per rank, i32 x 4: ultimate rank `k` needs level 6, 12, 18 for `k` = 1, 2, 3; other ranks need level 1 |
+| 8      | 16   | level gate per rank, i32 x 4: ultimate rank `k` needs level 6, 12, 18 for `k` = 1, 2, 3; other ranks need a level `1..=30`, not below the previous rank's (Dota: 1, 3, 5, 7) |
 | 24     | 16   | damage per rank, i32 x 4, `>= 0`: the amount of the ability's first damage or heal effect |
 | 40     | 16   | cooldown per rank, game ticks, i32 x 4, `>= 0`: replaces `ABIL` cooldown |
 | 56     | 16   | energy cost per rank, i32 x 4, `>= 0`: replaces `ABIL` energy cost   |
@@ -301,6 +329,27 @@ the rank count of one ability cannot exceed its max rank. A unit's character lev
 is its xp level plus one, so it has one skill point per character level, less the
 ranks it has spent. A damage table is nonzero only when the ability has a damage or
 heal effect. A rank of 0 means the ability is not learned and cannot be cast.
+
+### AXTN (256 bytes per record, one per ability in `ABIL` order)
+Ability extension: cast mechanics, rank-scaled effect parameters and scepter, shard and talent modifiers.
+
+| offset | size | field                                                                 |
+|--------|------|-----------------------------------------------------------------------|
+| 0      | 2    | flags: 1 passive (never cast), 2 aura (pulses every `period` ticks), 4 proc on attack, 8 proc when attacked, 16 pierce spell immunity, 32 ground pulse, 64 counted proc, 128 passive stats (castable; `stat` effects apply by rank and are skipped on a cast), 256 ally only, 512 enemy only |
+| 2      | 2    | cast point, ticks: the caster is held this long before the effects apply |
+| 4      | 4    | period, ticks: aura and channel pulse period, chain jump delay, or the attack count of a counted proc |
+| 8      | 4    | cast range, milli-units; 0 = none. A cast beyond it walks the caster into range, then casts |
+| 12     | 4    | proc chance, percent |
+| 16     | 8    | scatter min and max, milli-units: a channel pulse lands at a random point of this ring around the caster |
+| 24     | 4    | charges: maximum charges, 0 = none |
+| 28     | 4    | charge restore time, ticks |
+| 32     | 4    | break range, milli-units: a channel on a unit ends when the target is farther |
+| 36     | 4    | line extra, milli-units: length added to the cast range for a line `aoe` |
+| 40     | 120  | 6 scaled entries of 20 bytes: used u8, effect u8, param u8, pad u8, 4 x i32 values by rank. Effect 252, 253, 254 name cast range, period and chance |
+| 160    | 96   | 8 modifier entries of 12 bytes: used u8, cond u8, effect u8, param u8, mode u8, 3 pad, delta i32. cond 0 scepter, 1 shard, 2..=9 the talents; effect 250..=254 name cooldown, energy, cast range, cast point, charge restore; mode 0 adds the delta, mode 1 adds that percent of the base |
+
+A talent is chosen by a hero at character level 10, 15, 20 or 25, one of two per tier, and sets its cond bit; a stat talent is a
+modifier on a passive ability that holds a `stat` effect of amount 0.
 
 ### DMGF (8 bytes per record)
 | offset | size | field                                       |
@@ -478,7 +527,15 @@ without a version bump.
 - Effect kinds (`EFCT.kind`): `0 damage`, `1 heal`, `2 move`, `3 spawn`, `4 buff`,
   `5 issue_order`, `6 remove_behaviour`, `7 create_healer`, `8 use_calldown`,
   `9 vital_fraction`, `10 shield_bonus`, `11 stun`, `12 slow`, `13 silence`, `14 root`,
-  `15 invisibility`, `16 stat`, `17 ward`, `18 glyph`, `19 deliver`. Codes above `19` are rejected.
+  `15 invisibility`, `16 stat`, `17 ward`, `18 glyph`, `19 deliver`, `20 dot`, `21 status`, `22 timed_stat`, `23 aoe`, `24 dispel`, `25 chain`, `26 zone`, `27 illusion`, `28 mana`, `29 if_kill`, `30 attack`. Codes above `30` are rejected.
+- Stats (`stat` p0, `timed_stat` p0): `0 damage`, `1 armor`, `2 health`, `3 speed` (milli-units per tick), `4 range` (milli-units),
+  `5 evasion` %, `6 crit_chance` %, `7 crit_mult` % of damage, `8 cleave` %, `9 cleave_radius` (cone length, milli-units), `10 lifesteal` %,
+  `11 magic_resist` %, `12 attack_speed`, `13 mana_regen` (hundredths per second), `14 health_regen` (hundredths per second), `15 max_mana`,
+  `16 spell_amp` %, `17 bash_chance` %, `18 bash_ticks`, `19 speed_pct`, `20 cooldown_reduction` %, `21 status_resist` %, `22 strength`,
+  `23 agility`, `24 intelligence`, `25 spell_lifesteal` %, `26 armor_x100`, `27 cast_range`, `28 cleave_start_width`, `29 cleave_end_width`
+- Status codes (`status` p0, the sim's status counters): `0 stun`, `1 slow`, `2 silence`, `3 root`, `4 invisibility`, `5 taunt`, `6 hex`,
+  `7 disarm`, `8 spell_immunity`, `9 invulnerable`, `10 break`, `11 mute`, `12 physical_immunity`, `13 death_prevention`
+- Spell damage types (`damage` p2, `dot` p3, `chain` p3): `0 legacy`, `1 physical`, `2 magical`, `3 pure`
 - Targets (`ABIL.target`): `0 none`, `1 unit`, `2 point`
 - Triggers (`BHVR.trigger`): `0 idle`, `1 attacked`, `2 spawned`, `3 ability_ready`, `4 destroyed`
 - Actions (`BHVR.action`): `0 attack_nearest` (strikes the nearest enemy in reach), `1 flee` (refused at load: the engine does not run it yet), `2 use_ability`, `3 declare_winner` (param = FILTERS index named by `tag=`; the rival side wins when the destroyed unit's side has no living unit carrying that tag)

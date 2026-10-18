@@ -2,6 +2,7 @@
 // rank and a + button that calls Game.skill_up. Tooltips come from Game.abilities_json (ticks are 100 ms).
 
 const TICK_S = 0.1;
+const TALENT_LEVELS = [10, 15, 20, 25];
 
 const STYLE = `
 #ui-skills{position:fixed;left:8px;top:48px;width:230px;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:12px/1.3 monospace;padding:6px 8px}
@@ -61,7 +62,8 @@ export function createSkills({ game, selected, localPlayer }) {
     const level = game.character_level(id);
     const points = game.skill_points(id);
     const ranks = abilities.map((a) => game.skill_rank(id, a.slot));
-    const next = `${id}|${level}|${points}|${ranks.join(",")}`;
+    const bits = game.upgrade_bits(id);
+    const next = `${id}|${level}|${points}|${ranks.join(",")}|${bits}`;
     if (next === signature) return;
     signature = next;
     head.textContent = `Skills  level ${level}  points ${points}`;
@@ -78,6 +80,18 @@ export function createSkills({ game, selected, localPlayer }) {
       up.disabled = !a.max_rank || rank >= a.max_rank || points === 0 || level < a.gates[rank];
       up.onclick = () => { game.skill_up(id, a.slot); signature = ""; };
       row.append(info, up);
+      list.appendChild(row);
+    });
+    TALENT_LEVELS.forEach((need, tier) => {
+      const row = el("div", "row");
+      const picked = (bits >> (2 + 2 * tier)) & 3;
+      row.appendChild(el("div", "", `Talent, level ${need}`));
+      for (const side of [0, 1]) {
+        const pick = el("button", "", picked & (1 << side) ? "[x]" : "+");
+        pick.disabled = picked !== 0 || level < need;
+        pick.onclick = () => { game.choose_talent(id, tier, side); signature = ""; };
+        row.appendChild(pick);
+      }
       list.appendChild(row);
     });
   }

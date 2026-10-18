@@ -317,9 +317,9 @@ export const RECIPES = {
   lion_mana_drain: () => ({
     target: "unit",
     flags: ["enemy_only"],
-    ext: { period: 2, break_range: V("break_distance", "dist") },
-    note: "mana moves every 2 ticks (Valve: every 0.1 s)",
-    effects: [mana(V("mana_per_second", "int", { mul: 0.125 }), 2), slow(6, V("movespeed", "slowpos"))],
+    ext: { period: 4, break_range: V("break_distance", "dist") },
+    note: "mana moves every 4 ticks (0.25 s; Valve: every 0.1 s) so each step is a whole number of mana",
+    effects: [mana(V("mana_per_second", "int", { mul: 0.25 }), 2), slow(8, V("movespeed", "slowpos"))],
     ignore: ["duration", "tick_interval", "movespeed_bonus_when_empty_pct", "ally_pct", "damage_pct"],
   }),
   lion_finger_of_death: () => ({

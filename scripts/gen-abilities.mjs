@@ -94,6 +94,7 @@ function readMod(text, hasBase) {
 
 const out = [];
 const notes = [];
+const usedConds = new Set();
 const emit = (s) => out.push(s);
 const q = (s) => JSON.stringify(s);
 
@@ -219,6 +220,7 @@ function emitAbility(name, def, spec, talents) {
   for (const m of cd.mods) mods.push([m.cond, 250, 0, m.delta, m.mode]);
   for (const m of mana.mods) mods.push([m.cond, 251, 0, m.delta, m.mode]);
   if (range) for (const m of range.mods) mods.push([m.cond, 252, 0, m.delta, m.mode]);
+  for (const [cond] of mods) usedConds.add(cond);
   for (const [cond, e, p, d, mode] of mods) lines.push(`ability_mod(${q(name)}, ${cond}, ${e}, ${p}, ${d}${mode ? ", mode=1" : ""})`);
 
   const unmodelled = Object.keys(def.AbilityValues ?? {}).filter((k) => !ctx.used.has(k) && !(spec.ignore ?? []).includes(k) && !META.has(k));
@@ -269,6 +271,7 @@ function emitTalents(hero, talents) {
     const amount = round(CONV[rule[2]](Number(v)));
     for (const stat of [].concat(rule[1])) {
       effs.push(`effect("stat", p0=${stat}, p1=0)`);
+      usedConds.add(2 + k);
       mods.push(`ability_mod(${q(name)}, ${2 + k}, ${effs.length - 1}, 1, ${amount})`);
     }
   });
@@ -306,9 +309,10 @@ for (const [hero, slots] of Object.entries(HEROES)) {
       if (parent === slot) emitAbility(helper, def, { ...RECIPES[helper](H), helper: true }, talents);
     }
   }
-  const unreferenced = talents.filter((t) => t && t.startsWith("special_bonus_unique") && !out.join("\n").includes(t));
+  const missing = talents.map((t, k) => [t, k]).filter(([t, k]) => t && !usedConds.has(2 + k)).map(([t]) => t);
+  if (missing.length) emit(`# ${hero}: talents with no modelled effect: ${missing.join(", ")}`);
+  usedConds.clear();
   assigned.push(`hero_abilities(${q(hero)}, [${names.map(q).join(", ")}])`);
-  void unreferenced;
 }
 assigned.forEach(emit);
 if (notes.length) {

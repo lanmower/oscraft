@@ -41,6 +41,7 @@ ability_mod("axe_culling_blade", 2, 4, 2, 48)
 ability("axe_talents", 100000, 0, "none", [effect("stat", p0=22, p1=0)])
 ability_ext("axe_talents", passive=True)
 ability_mod("axe_talents", 6, 0, 1, 15)
+# axe: talents with no modelled effect: special_bonus_unique_axe_8
 # ---- crystal_maiden ----
 # crystal_maiden_crystal_nova unmodelled Valve keys: vision_duration, physical_barrier_amount, physical_barrier_self_amount, physical_barrier_duration
 ability("crystal_maiden_crystal_nova", 176, 115, "point", [effect("aoe", p0=6641, p1=0, p2=3, p3=0), effect("damage", p0=110, p1=0, p2=2, p3=0), effect("slow", p0=64, p1=52429, p2=0, p3=0), effect("timed_stat", p0=12, p1=-30, p2=64, p3=0)])
@@ -83,6 +84,7 @@ ability("crystal_maiden_talents", 100000, 0, "none", [effect("stat", p0=2, p1=0)
 ability_ext("crystal_maiden_talents", passive=True)
 ability_mod("crystal_maiden_talents", 2, 0, 1, 200)
 ability_mod("crystal_maiden_talents", 3, 1, 1, 12)
+# crystal_maiden: talents with no modelled effect: special_bonus_unique_crystal_maiden_glacial_guard_mana_multiplier
 # ---- sven ----
 # sven_storm_bolt unmodelled Valve keys: vision_radius, scepter_bonus_damage, bonus_damage_pct
 ability("sven_storm_bolt", 336, 110, "unit", [effect("aoe", p0=3906, p1=0, p2=2, p3=0), effect("damage", p0=80, p1=0, p2=2, p3=0), effect("stun", p0=16, p1=0, p2=0, p3=0)], projectile_speed_milli=977)
@@ -118,6 +120,7 @@ ability_ext("sven_gods_strength", cast_point=5)
 ability_scaled("sven_gods_strength", 0, 1, [110,150,190])
 ability_mod("sven_gods_strength", 8, 0, 1, 50)
 ability_mod("sven_gods_strength", 4, 250, 0, -192)
+# sven: talents with no modelled effect: special_bonus_unique_sven_gods_strength_slow_resist
 # ---- juggernaut ----
 # juggernaut_blade_fury: the spin damage runs as a zone that follows Juggernaut, one pulse per 3 ticks (Valve ticks every 0.2 s)
 # juggernaut_blade_fury unmodelled Valve keys: blade_fury_aspd_multiplier, movement_slow, can_crit, blade_fury_outer_radius, attack_interval
@@ -161,6 +164,7 @@ ability_mod("juggernaut_omni_slash", 8, 5, 2, 16)
 ability_mod("juggernaut_omni_slash", 4, 250, 0, -240)
 # juggernaut_omni_slash_pulse unmodelled Valve keys: attack_rate_multiplier, bonus_damage, bonus_attack_speed, duration, dispel
 ability("juggernaut_omni_slash_pulse", 0, 0, "none", [effect("aoe", p0=6641, p1=0, p2=1, p3=65536), effect("attack", p0=100, p1=0, p2=0, p3=0)])
+# juggernaut: talents with no modelled effect: special_bonus_unique_juggernaut_3
 # ---- zuus ----
 ability("zuus_arc_lightning", 26, 85, "unit", [effect("chain", p0=105, p1=5, p2=7031, p3=2)])
 skill("zuus_arc_lightning", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[26,26,26,26], energy=[85,90,95,100])
@@ -194,6 +198,7 @@ ability_mod("zuus_thundergods_wrath", 4, 1, 0, 75)
 ability("zuus_talents", 100000, 0, "none", [effect("stat", p0=2, p1=0)])
 ability_ext("zuus_talents", passive=True)
 ability_mod("zuus_talents", 3, 0, 1, 200)
+# zuus: talents with no modelled effect: special_bonus_unique_zeus_5, special_bonus_unique_zeus_jump_charges
 # ---- sniper ----
 # sniper_shrapnel: shrapnel_damage and slow run in a zone that starts after damage_delay and pulses once a second
 # sniper_shrapnel unmodelled Valve keys: fast_tick
@@ -229,6 +234,7 @@ skill("sniper_assassinate", ultimate=True, gates=[6,12,18], damage=[0,0,0], cool
 ability_ext("sniper_assassinate", cast_range=46875, cast_point=32, enemy_only=True)
 ability_scaled("sniper_assassinate", 0, 0, [300,400,500])
 ability_mod("sniper_assassinate", 5, 0, 0, 150)
+# sniper: talents with no modelled effect: special_bonus_unique_sniper_3
 # ---- lion ----
 # lion_impale: the spike is instant along the line; Valve's travel speed (2800) is not modelled
 ability("lion_impale", 224, 90, "point", [effect("aoe", p0=1094, p1=8, p2=2, p3=0), effect("damage", p0=105, p1=0, p2=2, p3=0), effect("stun", p0=21, p1=0, p2=0, p3=0)])
@@ -244,13 +250,13 @@ ability_scaled("lion_voodoo", 1, 1, [32,38,45,51])
 ability_scaled("lion_voodoo", 252, 0, [8984,9375,9766,10156])
 ability_mod("lion_voodoo", 8, 0, 0, 3906)
 ability_mod("lion_voodoo", 4, 250, 0, -32)
-# lion_mana_drain: mana moves every 2 ticks (Valve: every 0.1 s)
+# lion_mana_drain: mana moves every 4 ticks (0.25 s; Valve: every 0.1 s) so each step is a whole number of mana
 # lion_mana_drain unmodelled Valve keys: shard_bonus_targets, magic_resist
-ability("lion_mana_drain", 240, 0, "unit", [effect("mana", p0=3, p1=2, p2=0, p3=0), effect("slow", p0=6, p1=55706, p2=0, p3=0)])
+ability("lion_mana_drain", 240, 0, "unit", [effect("mana", p0=5, p1=2, p2=0, p3=0), effect("slow", p0=8, p1=55706, p2=0, p3=0)])
 skill("lion_mana_drain", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[240,192,144,96], energy=[0,0,0,0])
 channel("lion_mana_drain", 82)
-ability_ext("lion_mana_drain", cast_range=13281, cast_point=5, period=2, break_range=17188, enemy_only=True)
-ability_scaled("lion_mana_drain", 0, 0, [3,5,8,15])
+ability_ext("lion_mana_drain", cast_range=13281, cast_point=5, period=4, break_range=17188, enemy_only=True)
+ability_scaled("lion_mana_drain", 0, 0, [5,10,15,30])
 ability_scaled("lion_mana_drain", 1, 1, [55706,52429,49152,45875])
 ability_mod("lion_mana_drain", 2, 1, 1, -6554)
 # lion_finger_of_death unmodelled Valve keys: damage_per_kill, grace_period, damage_delay, punch_duration, punch_bonus_movespeed, punch_attack_range, punch_bonus_damage_base, cleave_damage, cleave_starting_width, cleave_ending_width, cleave_distance, splash_radius
@@ -263,6 +269,7 @@ ability_mod("lion_finger_of_death", 0, 0, 0, 100)
 ability("lion_talents", 100000, 0, "none", [effect("stat", p0=3, p1=0)])
 ability_ext("lion_talents", passive=True)
 ability_mod("lion_talents", 3, 0, 1, 20)
+# lion: talents with no modelled effect: special_bonus_unique_lion_11, special_bonus_unique_lion_8, special_bonus_unique_lion_10
 # ---- omniknight ----
 ability("omniknight_purification", 240, 90, "unit", [effect("heal", p0=90, p1=0, p2=1, p3=0), effect("aoe", p0=4063, p1=0, p2=1, p3=0), effect("damage", p0=90, p1=0, p2=3, p3=0)])
 skill("omniknight_purification", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[240,224,208,192], energy=[90,105,120,135])
