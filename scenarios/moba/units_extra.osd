@@ -80,3 +80,5 @@ unit_extra("neutral_harpy_scout", bounty=15, xp_bounty=26, deny_xp_pct=0, assist
 unit_extra("neutral_harpy_storm", bounty=26, xp_bounty=42, deny_xp_pct=0, assist_radius_milli=23438)
 unit_extra("neutral_black_drake", bounty=40, xp_bounty=95, deny_xp_pct=0, assist_radius_milli=23438)
 unit_extra("neutral_black_dragon", bounty=78, xp_bounty=124, deny_xp_pct=0, assist_radius_milli=23438)
+# Tormentor pays 175 gold to each team member (patch 7.38b); the sim pays the killer's side only, so the bounty here is 175 once.
+unit_extra("tormentor", bounty=175, xp_bounty=0, deny_xp_pct=0)

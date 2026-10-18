@@ -38,3 +38,5 @@ spawn("lane_spawner_bot", 0, 96625, 262875)
 spawn("lane_spawner_top", 1, 224406, 77625)
 spawn("lane_spawner_mid", 1, 236969, 103750)
 spawn("lane_spawner_bot", 1, 266500, 110500)
+# Tormentor at the Radiant-side spawner of the dump (npc_dota_miniboss_spawner at -7680, 6336 Dota units; it is at the Radiant side first, at night, patch 7.38). The Dire-side spawner and the day/night swap are not modelled.
+spawn("tormentor", -1, 43500, 64500)

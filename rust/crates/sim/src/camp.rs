@@ -27,6 +27,10 @@ pub const ROSHAN_RESPAWN_MIN_S: u32 = 480;
 pub const ROSHAN_RESPAWN_SPREAD_S: u32 = 180;
 /// Unit name of the large neutral boss, and item name of its reward. Both are catalog names.
 pub const ROSHAN_NAME: &str = "roshan";
+/// Timed boss kinds as (unit name, first spawn seconds, respawn minimum seconds, respawn spread
+/// seconds). Roshan is present from the start and returns after 8 to 11 minutes (Dota wiki). The
+/// Tormentor first spawns at 15:00 and respawns 10 minutes after its death (patches 7.33 and 7.38).
+pub const TIMED_BOSSES: [(&str, u32, u32, u32); 2] = [(ROSHAN_NAME, 0, ROSHAN_RESPAWN_MIN_S, ROSHAN_RESPAWN_SPREAD_S), ("tormentor", 900, 600, 0)];
 pub const AEGIS_NAME: &str = "aegis";
 /// Bounty rune: a 1-hp neutral pickup at a river point. A hero within the pickup range takes its
 /// gold and the rune dies, then respawns at its point on the next RUNE_RESPAWN_S clock mark
@@ -46,6 +50,8 @@ pub(crate) struct CampState {
     pub(crate) waiting: Vec<u8>,
     pub(crate) respawn_at: Vec<u32>,
     pub(crate) boss_kind: Option<u32>,
+    /// (unit kind, first spawn s, respawn minimum s, respawn spread s) for each timed boss in the catalog.
+    pub(crate) timed: Vec<(u32, u32, u32, u32)>,
     pub(crate) reward_kind: u32,
     pub(crate) rune_kind: Option<u32>,
 }
@@ -59,6 +65,7 @@ impl CampState {
             waiting: vec![0; cap],
             respawn_at: vec![0; cap],
             boss_kind: None,
+            timed: Vec::new(),
             reward_kind: 0,
             rune_kind: None,
         }
@@ -87,11 +94,15 @@ impl Sim {
     pub(crate) fn hold_first_camp_spawn(&mut self) {
         let first = CAMP_FIRST_SPAWN_S * TICKS_PER_SECOND as u32;
         for i in 0..self.n {
-            if self.camps.is_camp[i] == 0 || self.respawns_free(i) || !self.remove_unit(i) {
+            if self.camps.is_camp[i] == 0 || self.camps.rune_kind == Some(self.type_of[i] as u32) {
+                continue;
+            }
+            let timed_first = self.camps.timed.iter().find(|t| t.0 == self.type_of[i] as u32).map(|t| t.1);
+            if timed_first == Some(0) || !self.remove_unit(i) {
                 continue;
             }
             self.camps.waiting[i] = 1;
-            self.camps.respawn_at[i] = first;
+            self.camps.respawn_at[i] = timed_first.map_or(first, |s| s * TICKS_PER_SECOND as u32);
         }
     }
 
@@ -103,12 +114,13 @@ impl Sim {
         }
         let kind = self.type_of[j] as u32;
         let boss = self.camps.boss_kind == Some(kind);
+        let timed = self.camps.timed.iter().find(|t| t.0 == kind).copied();
         let tps = TICKS_PER_SECOND as u32;
         self.camps.waiting[j] = 1;
-        self.camps.respawn_at[j] = if boss {
+        self.camps.respawn_at[j] = if let Some((_, _, min, spread)) = timed {
             self.rng = self.rng.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-            let extra = ((self.rng >> 33) as u32) % (ROSHAN_RESPAWN_SPREAD_S * tps + 1);
-            self.ticks.wrapping_add(ROSHAN_RESPAWN_MIN_S * tps + extra)
+            let extra = ((self.rng >> 33) as u32) % (spread * tps + 1);
+            self.ticks.wrapping_add(min * tps + extra)
         } else if self.camps.rune_kind == Some(kind) {
             next_mark(self.ticks, RUNE_RESPAWN_S * tps)
         } else {
@@ -179,7 +191,7 @@ impl Sim {
     /// Whether camp unit `i` is a boss or a rune, which respawn without a clear-home check.
     fn respawns_free(&self, i: usize) -> bool {
         let kind = self.type_of[i] as u32;
-        self.camps.boss_kind == Some(kind) || self.camps.rune_kind == Some(kind)
+        self.camps.boss_kind == Some(kind) || self.camps.rune_kind == Some(kind) || self.camps.timed.iter().any(|t| t.0 == kind)
     }
 
     /// True when no living unit stands within CAMP_CLEAR_MILLI of camp unit `i`'s home.

@@ -178,3 +178,35 @@ pub fn camp_first_spawn(_image: &[u8]) -> Result<(), String> {
     println!("camp first spawn ok at_tick={first} camp_units={n}");
     Ok(())
 }
+
+/// The Tormentor first spawns at 15:00, and returns 10 minutes after its death.
+pub fn camp_tormentor_timing(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    let find = |s: &Sim| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some("tormentor"));
+    if find(&s).is_some() {
+        return Err("a Tormentor lives at tick 0".into());
+    }
+    let tps = sim::TICKS_PER_SECOND as u32;
+    run_ticks(&mut s, 900 * tps - 4);
+    if find(&s).is_some() {
+        return Err("a Tormentor lived before 15:00".into());
+    }
+    run_ticks(&mut s, 8);
+    let t = find(&s).ok_or("no Tormentor after 15:00")?;
+    s.hurt(t, fixed::from_int(10000));
+    s.hurt(t, fixed::from_int(10000));
+    if s.alive(t) {
+        return Err("the Tormentor survived lethal damage".into());
+    }
+    let died = s.ticks();
+    run_ticks(&mut s, 600 * tps - 4);
+    if find(&s).is_some() {
+        return Err("the Tormentor returned before 10 minutes".into());
+    }
+    run_ticks(&mut s, 8);
+    if find(&s).is_none() {
+        return Err("the Tormentor did not return 10 minutes after its death".into());
+    }
+    println!("camp tormentor timing ok first_tick={} died_tick={died}", 900 * tps);
+    Ok(())
+}
