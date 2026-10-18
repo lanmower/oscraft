@@ -217,8 +217,9 @@ impl Room {
     /// The replay so far as text: the initial data image name and hash, every command per tick and
     /// the state hash every few ticks, ending with a check at the current tick.
     pub fn replay_text(&self) -> String {
-        let c = lock(&self.clock);
-        c.rec.render(&c.sim)
+        let mut c = lock(&self.clock);
+        let clock = &mut *c;
+        clock.rec.render(&clock.sim)
     }
 
     /// Streams the replay to `path` as the room ticks.

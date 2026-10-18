@@ -66,6 +66,7 @@ impl Default for Stats {
     }
 }
 
+#[derive(Clone)]
 pub struct Sim {
     pub(crate) grid: Grid,
     pub(crate) cat: Catalog,

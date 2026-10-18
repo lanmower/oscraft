@@ -1,5 +1,7 @@
+use std::collections::VecDeque;
 use std::io::Write;
 use std::str::{FromStr, SplitWhitespace};
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
 
 use sim::{Refusal, Sim, StateError};
@@ -364,8 +366,34 @@ pub struct Recording {
     pub init: u64,
     cmds: Vec<(u32, Command)>,
     checks: Vec<(u32, u64)>,
+    inflight: VecDeque<(u32, Receiver<u64>)>,
+    hasher: Option<Sender<(Sim, Sender<u64>)>>,
+    outbox: VecDeque<Out>,
     incomplete: Option<u32>,
     sink: Option<Box<dyn Write + Send>>,
+}
+
+/// A sink line that is ready to write, or the check at a tick whose hash is still in flight.
+enum Out {
+    Line(String, bool),
+    Check(u32),
+}
+
+/// Thread that hashes the sim snapshots a recording hands it, in the order they were sent.
+fn spawn_hasher() -> Sender<(Sim, Sender<u64>)> {
+    let (tx, rx) = mpsc::channel::<(Sim, Sender<u64>)>();
+    std::thread::spawn(move || {
+        for (snapshot, reply) in rx {
+            let _ = reply.send(snapshot.state_hash());
+        }
+    });
+    tx
+}
+
+impl Drop for Recording {
+    fn drop(&mut self) {
+        self.drain_sink(true);
+    }
 }
 
 impl Recording {
@@ -378,6 +406,9 @@ impl Recording {
             init: sim.state_hash(),
             cmds: Vec::new(),
             checks: Vec::new(),
+            inflight: VecDeque::new(),
+            hasher: None,
+            outbox: VecDeque::new(),
             incomplete: None,
             sink: None,
         }
@@ -385,6 +416,7 @@ impl Recording {
 
     /// Streams the recording to `sink` from now on, after writing what it holds so far.
     pub fn set_sink(&mut self, mut sink: Box<dyn Write + Send>) {
+        self.settle(true);
         let held = self.render_to(None);
         if sink.write_all(held.as_bytes()).and_then(|_| sink.flush()).is_ok() {
             self.sink = Some(sink);
@@ -392,12 +424,72 @@ impl Recording {
     }
 
     fn write_line(&mut self, line: &str, flush: bool) {
-        if let Some(w) = self.sink.as_mut() {
-            let ok = w.write_all(line.as_bytes()).and_then(|_| w.write_all(b"\n")).and_then(|_| if flush { w.flush() } else { Ok(()) });
+        if self.sink.is_some() {
+            self.outbox.push_back(Out::Line(line.to_string(), flush));
+            self.drain_sink(false);
+        }
+    }
+
+    /// Writes queued sink lines in order. A check line waits for its hash: without `block` the
+    /// drain stops at the first hash still in flight, with `block` it waits for it.
+    fn drain_sink(&mut self, block: bool) {
+        while let Some(out) = self.outbox.pop_front() {
+            let (text, flush) = match out {
+                Out::Line(text, flush) => (text, flush),
+                Out::Check(t) => {
+                    self.settle(block);
+                    match self.checks.binary_search_by_key(&t, |c| c.0) {
+                        Ok(i) => (format!("chk {t} {:016x}", self.checks[i].1), true),
+                        Err(_) => {
+                            self.outbox.push_front(Out::Check(t));
+                            break;
+                        }
+                    }
+                }
+            };
+            let Some(w) = self.sink.as_mut() else {
+                self.outbox.clear();
+                return;
+            };
+            let ok = w.write_all(text.as_bytes()).and_then(|_| w.write_all(b"\n")).and_then(|_| if flush { w.flush() } else { Ok(()) });
             if ok.is_err() {
                 self.sink = None;
+                self.outbox.clear();
+                return;
             }
         }
+    }
+
+    /// Moves finished hashes into `checks`, in tick order. With `block`, waits for each one.
+    fn settle(&mut self, block: bool) {
+        while let Some((t, rx)) = self.inflight.front() {
+            let t = *t;
+            let h = if block {
+                rx.recv().expect("state hash worker stopped")
+            } else {
+                match rx.try_recv() {
+                    Ok(h) => h,
+                    Err(TryRecvError::Empty) => return,
+                    Err(TryRecvError::Disconnected) => panic!("state hash worker stopped"),
+                }
+            };
+            self.inflight.pop_front();
+            self.checks.push((t, h));
+        }
+    }
+
+    /// Sends a copy of the sim to the hasher thread; the hash arrives on the returned receiver.
+    fn hash_later(&mut self, sim: &Sim) -> Receiver<u64> {
+        let (reply, rx) = mpsc::channel();
+        let hasher = self.hasher.get_or_insert_with(spawn_hasher);
+        if let Err(mpsc::SendError((snapshot, reply))) = hasher.send((sim.clone(), reply)) {
+            let _ = reply.send(snapshot.state_hash());
+        }
+        rx
+    }
+
+    fn last_check_tick(&self) -> Option<u32> {
+        self.inflight.back().map(|c| c.0).or_else(|| self.checks.last().map(|c| c.0))
     }
 
     fn note(&mut self, tick: u32, cmd: Command) {
@@ -432,17 +524,22 @@ impl Recording {
         if sim.ticks() % CHECK_EVERY == 0 {
             self.check(sim);
         }
+        self.drain_sink(false);
     }
 
     /// Records the state hash at the sim's current tick unless one is already held for it.
     pub fn check(&mut self, sim: &Sim) {
         let t = sim.ticks();
-        if self.checks.last().is_some_and(|c| c.0 == t) {
+        self.settle(false);
+        if self.last_check_tick() == Some(t) {
             return;
         }
-        let h = sim.state_hash();
-        self.checks.push((t, h));
-        self.write_line(&format!("chk {t} {h:016x}"), true);
+        let rx = self.hash_later(sim);
+        self.inflight.push_back((t, rx));
+        if self.sink.is_some() {
+            self.outbox.push_back(Out::Check(t));
+            self.drain_sink(false);
+        }
     }
 
     /// Notes that something outside the command set changed the sim at `tick` (a data reload or a
@@ -463,7 +560,8 @@ impl Recording {
     }
 
     /// The recording as text, ending with a check at the sim's current tick.
-    pub fn render(&self, sim: &Sim) -> String {
+    pub fn render(&mut self, sim: &Sim) -> String {
+        self.settle(true);
         self.render_to(Some((sim.ticks(), sim.state_hash())))
     }
 
@@ -506,6 +604,9 @@ impl Recording {
             init: 0,
             cmds: Vec::new(),
             checks: Vec::new(),
+            inflight: VecDeque::new(),
+            hasher: None,
+            outbox: VecDeque::new(),
             incomplete: None,
             sink: None,
         };

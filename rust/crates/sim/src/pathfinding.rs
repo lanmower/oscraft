@@ -128,6 +128,7 @@ impl Grid {
 
 /// One destination's solved route. `dist` is the cost to the goal; `dir` is the
 /// index of the first step from each cell.
+#[derive(Clone)]
 pub struct Field {
     pub(crate) w: i32,
     pub(crate) h: i32,
@@ -338,6 +339,7 @@ impl Field {
 
 /// The destinations that hold a field at once. Past the cap, the least recently
 /// used slot is evicted and its units steer straight until a field is ready.
+#[derive(Clone)]
 pub struct Pool {
     pub(crate) w: usize,
     pub(crate) h: usize,
