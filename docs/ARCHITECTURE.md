@@ -88,3 +88,33 @@ Audit of `js/client` (imports, `fetch`, dynamic `import()`, wasm, and `/state`, 
 | 6 | `play.html` import map | `wireweave`, `nostr-tools`, `xstate` from CDN; `three/webgpu` and `three/tsl` vendored under `js/client/vendor/three` (pinned in [NOTICE.md](../NOTICE.md)) | OK | none |
 
 Coupling count, server routes plus Rust tooling in the client tree: before 4 (routes 3: `/events` fetch, `eventsBase` wiring, `/replay` hint; tool 1), after 3 (routes 2, tool 1). No client file requires a running server to load; `/events` is needed only when `?events=` is given.
+
+## Content without rebuilds
+
+Each kind of content, the steps a change to it needs, and why. Engine: read at run time, no compile. Build-only: compiled into a derived file, no Rust source change. Rust-only: a Rust constant or table must change and the Rust crates rebuild.
+
+| Content | Class | Steps for a change | Reason |
+|---|---|---|---|
+| `mods/*.lua` mod source | Engine | Edit; copy to the deployed `mods/` (build.sh `cp -R mods`); hot reload or restart the room | mod-host reads the source at run time (`read_to_string` in `mlua_host.rs`, `piccolo_host.rs`) and hot reload swaps functions only |
+| `hero_rules.txt` | Engine | Edit; reload the room | `server/src/mods.rs` parses it when the mod directory loads; defaults apply to omitted keys |
+| `js/client/doodads.json`, `assets.json`, `assets/` models | Engine | None beyond the `js/client` copy in build.sh | Static files fetched by the page at run time, with a fallback when `assets.json` is absent |
+| `js/client/*.js` modules | Engine | None | ES modules through an import map, no bundler |
+| `scenarios/moba/*.osd` (units, abilities, items, waves, map layout) | Build-only | `cargo run -p mapexport -- <site>/map.bin ../scenarios/moba`, then restart `oscraftd --data` with the new image | The sim loads only the OSDT image through `loader.rs`; `.osd` is compiled by `osdt-data` |
+| `scenarios/moba/map.osd` (generated) | Build-only | Edit `scripts/gen-dota-map.mjs`, run it, then mapexport | The file is generated from leamare data; hand edits are overwritten |
+| `map.bin`, `moba.bin` | Build-only | mapexport (build.sh line 20) | Derived from `.osd`; never committed |
+| Doodad kind names (`"tree"`, `"tower_square"`, ...) | Rust-only | Add the kind to the builtin list in `rust/crates/data/src/format.rs`, rebuild sim and data, then mapexport | An unknown kind fails the load with `unknown doodad kind`; the list is a Rust builtin |
+| Player start positions (`rust/crates/data/src/builtins.rs`) | Rust-only | Edit the Rust table, rebuild data | Named in docs/CAPABILITIES.md as a builtin, not `.osd` data |
+| Camp leash, respawn, Roshan and rune numbers (`sim/src/camp.rs`) | Rust-only | Edit constants; rebuild sim, server and the wasm package | Hashed sim constants, marked UNVERIFIED |
+| Wave spawn `p3` bit layout (`wave_spec_fits` in `rust/crates/data/src/validate.rs`) | Rust-only | Edit the validator; rebuild data | Validation of a packed field is in Rust |
+| Lane routes (`scenarios/moba/routes.osd`) | Build-only | Edit `routes.osd`; mapexport | Single route source. The generator must not emit `route(...)` lines: the data validator rejects a route declared twice |
+
+Counts: Engine 4 rows, Build-only 4 rows, Rust-only 4 rows.
+
+Follow-ups for the remaining Rust-only content:
+
+1. Move the doodad kind list from `format.rs` into a data table so a new kind needs only mapexport.
+2. Move player start positions from `builtins.rs` into the `start` directive of `.osd` data.
+3. Move camp and rune numbers from `camp.rs` into `behaviour`/`economy` data (already class (b) above).
+4. Document the wave `p3` bit layout in `rust/crates/data/FORMAT.md` and derive its range from the unit table, so wave content needs no validator edit.
+5. Add a generator check that `scripts/gen-dota-map.mjs` emits no `route(...)` lines while `routes.osd` exists.
+6. Re-classify `.osd` as Engine if the server-side compile (`osdt_data::generate` in `server/src/map_image.rs`, not yet on main) lands.
