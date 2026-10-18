@@ -3,10 +3,12 @@
 -- game.region_center, the variable stores, the score tally and game.defeat. Uses only the mod API.
 
 local TILE = 65536
-local SPAWN_X, SPAWN_Y = 8 * TILE, 12 * TILE
+-- The open run on row y=34 of the moba GridNav (x 39..119); other cells are blocked, so a spawn
+-- there is refused without a unit.
+local SPAWN_X, SPAWN_Y = 40 * TILE, 34 * TILE
 local LIVES = 3
 
-game.region("goal", 13 * TILE, 10 * TILE, 16 * TILE, 14 * TILE, {
+game.region("goal", 44 * TILE, 32 * TILE, 48 * TILE, 36 * TILE, {
   enter = function(unit)
     if game.unit_var(unit, "wave") == nil or game.unit_var(unit, "leaked") then return end
     game.unit_var(unit, "leaked", true)
