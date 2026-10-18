@@ -802,3 +802,124 @@ pub fn skill_level_gates(_image: &[u8]) -> Result<(), String> {
     }
     Ok(())
 }
+
+fn custom(w: &mut World, unit: usize, slot: usize, name: &str, target: u8, effects: &[(u16, i32, i32, i32, i32)]) -> Result<(), String> {
+    let spec = sim::AbilitySpec {
+        name,
+        cooldown: 0,
+        energy: 0,
+        target,
+        filter: 0,
+        effects: effects.iter().map(|&(kind, p0, p1, p2, p3)| sim::Effect { kind, p0, p1, p2, p3 }).collect(),
+    };
+    w.s.define_ability(spec).map_err(|e| e.to_string())?;
+    if !w.s.give_ability(unit, slot, name) {
+        return Err(format!("give_ability {name} refused"));
+    }
+    Ok(())
+}
+
+/// Dispel removes timed buffs from an enemy (mask 1) and debuffs from an ally (mask 2), and a strong dispel (mask 4) ends a stun.
+pub fn spell_dispel(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let caster = w.hero("axe", 0, 0, 0)?;
+    let foe = w.creep(1, 3, 0)?;
+    let friend = w.hero("axe", 0, -3, 0)?;
+    custom(&mut w, caster, 5, "test_buff", 1, &[(22, S_ARMOR as i32, 5, 400, 0)])?;
+    custom(&mut w, caster, 6, "test_purge_buffs", 1, &[(24, 1, 0, 0, 0)])?;
+    custom(&mut w, caster, 7, "test_purge_debuffs", 1, &[(24, 2 | 4, 0, 0, 0)])?;
+    let slot = |w: &World, n: &str| w.s.ability_slot(caster, n).ok_or(format!("no {n}"));
+    let (buff, purge_buffs) = (slot(&w, "test_buff")?, slot(&w, "test_purge_buffs")?);
+    if !w.s.cast_ability(caster, buff, foe as i32, 0, 0) || w.s.stat_value(foe, S_ARMOR) != 5 {
+        return Err("the test buff did not land".into());
+    }
+    if !w.s.cast_ability(caster, purge_buffs, foe as i32, 0, 0) || w.s.stat_value(foe, S_ARMOR) != 0 {
+        return Err(format!("a dispel of buffs left armour {}", w.s.stat_value(foe, S_ARMOR)));
+    }
+    w.s.apply_status(friend, STUN, 100, fixed::ONE);
+    w.s.apply_status(friend, SLOW, 100, 30000);
+    let purge_debuffs = slot(&w, "test_purge_debuffs")?;
+    w.s.clear_status(caster, STUN);
+    if !w.s.cast_ability(caster, purge_debuffs, friend as i32, 0, 0) {
+        return Err(format!("cast refused: {}", w.s.stats.last_refusal.name()));
+    }
+    if w.s.status_left(friend, STUN) != 0 || w.s.status_left(friend, SLOW) != 0 {
+        return Err("a strong dispel left a stun or a slow".into());
+    }
+    Ok(())
+}
+
+/// Illusions: copies that deal and take the stated percent of damage and vanish when their time is up.
+pub fn spell_illusions(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let hero = w.hero("axe", 0, 0, 0)?;
+    custom(&mut w, hero, 7, "test_mirror", 0, &[(27, 2, 64, 50, 300)])?;
+    let kind = w.s.unit_type(hero);
+    let foe = w.creep(1, 12, 0)?;
+    let slot = w.s.ability_slot(hero, "test_mirror").ok_or("no mirror")?;
+    if !w.s.cast_ability(hero, slot, -1, 0, 0) {
+        return Err(format!("cast refused: {}", w.s.stats.last_refusal.name()));
+    }
+    let copies: Vec<usize> = (0..w.s.count()).filter(|&u| u != hero && w.s.alive(u) && w.s.player(u) == 0 && w.s.unit_type(u) == kind && !w.s.is_hero(u)).collect();
+    if copies.len() != 2 {
+        return Err(format!("{} illusions want 2", copies.len()));
+    }
+    let c = copies[0];
+    let before = w.hp(c);
+    w.s.hurt(c, fixed::from_int(10));
+    near("illusion damage taken", before - w.hp(c), 30.0, 0.5)?;
+    w.run(70);
+    if copies.iter().any(|&u| w.s.alive(u)) {
+        return Err("an illusion outlived its 4 s".into());
+    }
+    Ok(())
+}
+
+/// Spirit Lance: 100 magical damage, a 14 percent slow and an illusion for 3.5 s; Juxtapose conjures one on 40 percent of attacks.
+pub fn phantom_lancer_illusions(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let pl = rank_one_hero(&mut w, "phantom_lancer", 6, &["phantom_lancer_spirit_lance", "phantom_lancer_juxtapose"])?;
+    let target = w.hero("antimage", 1, 5, 0)?;
+    let before = w.hp(target);
+    w.cast(pl, "phantom_lancer_spirit_lance", target as i32, 0, 0)?;
+    w.run(6);
+    let lost = before - w.hp(target);
+    if !(72.0..=85.0).contains(&lost) {
+        return Err(format!("lance damage {lost:.2} want 75 plus at most a hit of the new illusion"));
+    }
+    let kind = w.s.unit_type(pl);
+    let copies = (0..w.s.count()).filter(|&u| u != pl && w.s.alive(u) && w.s.player(u) == 0 && w.s.unit_type(u) == kind && !w.s.is_hero(u)).count();
+    if copies != 1 {
+        return Err(format!("{copies} illusions after the lance, want 1"));
+    }
+    w.s.clear_status(pl, DISARM);
+    let victim = w.creep(1, 2, 0)?;
+    w.s.set_health(victim, fixed::from_int(30_000), fixed::from_int(30_000));
+    let slots = w.s.count();
+    for _ in 0..60 {
+        w.strike(pl, victim)?;
+    }
+    let made = w.s.count() - slots;
+    if !(12..=36).contains(&made) {
+        return Err(format!("{made} illusions made by 60 attacks at 40 percent, want about 24"));
+    }
+    Ok(())
+}
+
+/// Shallow Grave: an ally cannot die for 4 s, a lethal blow leaves 1 hit point.
+pub fn dazzle_shallow_grave(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let dz = rank_one_hero(&mut w, "dazzle", 1, &["dazzle_shallow_grave"])?;
+    let ally = w.hero("axe", 0, 4, 0)?;
+    w.cast(dz, "dazzle_shallow_grave", ally as i32, 0, 0)?;
+    w.s.hurt(ally, fixed::from_int(20_000));
+    if !w.s.alive(ally) || w.hp(ally) > 1.5 {
+        return Err("a lethal blow killed or missed the protected ally".into());
+    }
+    w.run(16 * 4 + 6);
+    w.s.hurt(ally, fixed::from_int(20_000));
+    if w.s.alive(ally) {
+        return Err("the grave outlived its 4 s".into());
+    }
+    Ok(())
+}

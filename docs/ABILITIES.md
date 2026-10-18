@@ -13,10 +13,11 @@ Run `node scripts/gen-abilities.mjs` to regenerate. Scale: 1 Dota unit = 15.625 
 
 ## Heroes done
 
-axe, crystal_maiden, sven, juggernaut, zuus (Zeus), sniper, lion, omniknight: four abilities (or three and an ultimate), the
+axe, crystal_maiden, sven, juggernaut, zuus (Zeus), sniper, lion, omniknight (their full kits), phantom_lancer (Spirit Lance and
+Juxtapose) and dazzle (Poison Touch and Shallow Grave): the abilities, the
 generic talents (`<hero>_talents`) and the unique talents wherever the key they change is modelled. Slots: basics, then the
 ultimate, then the talent modifiers. The other 120 roster heroes in `units_heroes.osd` have no abilities yet.
-Not done: phantom_lancer and dazzle (illusions, a recast channel and a line cone are not in the engine).
+Not done: Phantom Lancer's Doppelganger and Phantom Rush, Dazzle's Shadow Wave and Weave and the ultimate that moves the soul.
 
 ## Mechanics added to the engine
 
@@ -28,6 +29,7 @@ Effect kinds `dot`, `status`, `timed_stat`, `aoe`, `dispel`, `chain`, `zone`, `i
 - Cast point (the caster is held, a stun ends it), cast range with walking into range, charges, passive stat abilities, auras,
   procs on attack and when attacked (by chance or every Nth hit), channels that pulse (random ring) and end by stun, silence or
   hex rather than damage (`channel_damage_interrupt=0` in `hero_rules.txt`).
+- Illusions (`illusion`), dispels (`dispel`), summons (`ward` with an aura on the placed unit), blinks (`move`).
 - Statuses: taunt, hex, disarm, spell immunity, invulnerable, break, mute, physical immunity, death prevention.
 - Attack modifiers from stats: evasion, critical strike, cleave (a cone), lifesteal, bash, attack speed, range, magic resistance,
   spell amplification, cooldown reduction, mana and health regeneration, attributes.

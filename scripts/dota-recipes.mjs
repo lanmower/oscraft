@@ -32,6 +32,7 @@ export const H = {
   dot: (amount, period, duration, type) => ({ k: "dot", p: [amount, period, duration, TYPE[type]] }),
   chain: (amount, jumps, radius, type) => ({ k: "chain", p: [amount, jumps, radius, TYPE[type]] }),
   mana: (amount, mode) => ({ k: "mana", p: [amount, mode, 0, 0] }),
+  illusion: (count, duration, out, taken) => ({ k: "illusion", p: [count, duration, out, taken] }),
   move: (cap) => ({ k: "move", p: [cap, 0, 0, 0] }),
   attack: (pct = 100) => ({ k: "attack", p: [pct, 0, 0, 0] }),
   ward: (unit, life) => ({ k: "ward", p: [0, life, 0, 0], unit }),
@@ -46,7 +47,7 @@ export const H = {
   },
   GLOBAL,
 };
-const { V, dmg, heal, healPct, stun, root, slow, status, tstat, stat, dot, chain, mana, move, attack, ward, zone, ifKill, aoe } = H;
+const { V, dmg, heal, healPct, stun, root, slow, status, tstat, stat, dot, chain, mana, move, attack, ward, zone, ifKill, aoe, illusion } = H;
 
 // Slot order of each hero: basic abilities, then the ultimate, then the generic talent modifiers.
 export const HEROES = {
@@ -57,6 +58,8 @@ export const HEROES = {
   zuus: ["zuus_arc_lightning", "zuus_lightning_bolt", "zuus_heavenly_jump", "zuus_thundergods_wrath", "@talents"],
   sniper: ["sniper_shrapnel", "sniper_headshot", "sniper_take_aim", "sniper_assassinate", "@talents"],
   lion: ["lion_impale", "lion_voodoo", "lion_mana_drain", "lion_finger_of_death", "@talents"],
+  phantom_lancer: ["phantom_lancer_spirit_lance", "phantom_lancer_juxtapose", "@talents"],
+  dazzle: ["dazzle_poison_touch", "dazzle_shallow_grave", "@talents"],
   omniknight: ["omniknight_purification", "omniknight_martyr", "omniknight_hammer_of_purity", "omniknight_degen_aura", "omniknight_guardian_angel", "@talents"],
 };
 
@@ -326,6 +329,43 @@ export const RECIPES = {
     target: "unit",
     flags: ["enemy_only"],
     effects: [dmg(V("damage"), "magical")],
+  }),
+
+  // ---- Phantom Lancer ----
+  phantom_lancer_spirit_lance: () => ({
+    target: "unit",
+    flags: ["enemy_only"],
+    projectile: V("lance_speed", "speed"),
+    effects: [
+      dmg(V("lance_damage"), "magical"),
+      slow(V("duration", "time"), V("movement_speed_pct", "slowmul")),
+      illusion(1, V("illusion_duration", "time"), V("illusion_damage_out_pct", "int", { fn: (x) => x + 100 }), V("illusion_damage_in_pct", "int", { fn: (x) => x + 100 })),
+    ],
+    ignore: ["tooltip_illusion_damage", "tooltip_illusion_total_damage_in_pct", "fake_lance_distance"],
+  }),
+  phantom_lancer_juxtapose: () => ({
+    target: "none",
+    flags: ["passive", "proc_attack"],
+    ext: { chance: V("proc_chance_pct") },
+    note: "the illusion comes from a roll on each attack; max_illusions is not enforced",
+    effects: [illusion(1, V("illusion_duration", "time"), V("illusion_damage_out_pct", "int", { fn: (x) => x + 100 }), V("illusion_damage_in_pct", "int", { fn: (x) => x + 100 }))],
+    ignore: ["tooltip_illusion_damage", "tooltip_total_illusion_damage_in_pct"],
+  }),
+
+  // ---- Dazzle ----
+  dazzle_poison_touch: () => ({
+    target: "unit",
+    flags: ["enemy_only"],
+    projectile: V("projectile_speed", "speed"),
+    note: "hits the target only (Valve also poisons up to `targets` units in a cone); the slow does not deepen over time",
+    effects: [dot(V("damage"), 16, V("duration", "time"), "physical"), slow(V("duration", "time"), V("slow", "slowmul"))],
+    ignore: ["start_radius", "end_radius", "end_distance", "targets"],
+  }),
+  dazzle_shallow_grave: () => ({
+    target: "unit",
+    flags: ["ally_only"],
+    effects: [status("death_prevention", V("duration", "time"))],
+    ignore: ["fx_halo_height"],
   }),
 
   // ---- Omniknight ----

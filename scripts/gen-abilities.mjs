@@ -123,7 +123,7 @@ function resolveParam(p, ctx) {
     if (cond === -1) continue;
     const mod = readMod(text, rk.base.length > 0);
     if (cond === -2 || !mod) { notes.push(`${ctx.name}: ${p.v} ${name} ${text} not modelled`); continue; }
-    const d = mod.mode === 1 ? mod.amount : round(fn(delta(conv, mod.amount)) * mul);
+    const d = mod.mode === 1 ? mod.amount : round(delta(conv, mod.amount) * mul);
     mods.push({ cond, mode: mod.mode, delta: d });
   }
   return { ranks, mods };

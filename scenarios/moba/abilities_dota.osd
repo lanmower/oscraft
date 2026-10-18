@@ -270,6 +270,49 @@ ability("lion_talents", 100000, 0, "none", [effect("stat", p0=3, p1=0)])
 ability_ext("lion_talents", passive=True)
 ability_mod("lion_talents", 3, 0, 1, 20)
 # lion: talents with no modelled effect: special_bonus_unique_lion_11, special_bonus_unique_lion_8, special_bonus_unique_lion_10
+# ---- phantom_lancer ----
+# phantom_lancer_spirit_lance unmodelled Valve keys: scepter_bounce_radius, scepter_bonus_illusion_damage, scepter_total_hits, illusion_lance_damage_pct
+ability("phantom_lancer_spirit_lance", 160, 120, "unit", [effect("damage", p0=100, p1=0, p2=2, p3=0), effect("slow", p0=48, p1=56361, p2=0, p3=0), effect("illusion", p0=1, p1=56, p2=15, p3=400)], projectile_speed_milli=977)
+skill("phantom_lancer_spirit_lance", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[160,144,128,112], energy=[120,120,120,120])
+ability_ext("phantom_lancer_spirit_lance", cast_range=9375, cast_point=5, enemy_only=True)
+ability_scaled("phantom_lancer_spirit_lance", 0, 0, [100,160,220,280])
+ability_scaled("phantom_lancer_spirit_lance", 1, 1, [56361,51773,47186,42598])
+ability_scaled("phantom_lancer_spirit_lance", 2, 1, [56,80,104,128])
+ability_scaled("phantom_lancer_spirit_lance", 252, 0, [9375,10156,10938,11719])
+ability_mod("phantom_lancer_spirit_lance", 6, 0, 0, 100)
+ability_mod("phantom_lancer_spirit_lance", 2, 1, 0, 16)
+# phantom_lancer_juxtapose: the illusion comes from a roll on each attack; max_illusions is not enforced
+# phantom_lancer_juxtapose unmodelled Valve keys: max_illusions, illusion_proc_chance_pct, illusion_from_illusion_duration, shard_bonus_illusions, invis_duration, invis_movespeed, uncontrollable_illusions, new_target_radius
+ability("phantom_lancer_juxtapose", 0, 0, "none", [effect("illusion", p0=1, p1=128, p2=15, p3=600)])
+skill("phantom_lancer_juxtapose", ultimate=True, gates=[6,12,18], damage=[0,0,0], cooldown=[0,0,0], energy=[0,0,0])
+ability_ext("phantom_lancer_juxtapose", chance=40, passive=True, proc_attack=True)
+ability_scaled("phantom_lancer_juxtapose", 254, 0, [40,45,50])
+ability_mod("phantom_lancer_juxtapose", 7, 0, 3, -70)
+# phantom_lancer: talents with no modelled effect: special_bonus_unique_phantom_lancer_juxtapose_illusio_proc_chance, special_bonus_unique_phantom_lancer_illusion_lances, special_bonus_unique_phantom_lancer_doppelwalk_cast_range, special_bonus_unique_phantom_lancer_4, special_bonus_unique_phantom_lancer_illusory_armaments_duration
+# ---- dazzle ----
+# dazzle_poison_touch: hits the target only (Valve also poisons up to `targets` units in a cone); the slow does not deepen over time
+# dazzle_poison_touch unmodelled Valve keys: bonus_damage, bonus_slow, attack_range_bonus, split_radius, split_damage, attacks_to_split
+ability("dazzle_poison_touch", 384, 125, "unit", [effect("dot", p0=16, p1=16, p2=56, p3=1), effect("slow", p0=56, p1=57016, p2=0, p3=0)], projectile_speed_milli=1270)
+skill("dazzle_poison_touch", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[384,336,288,240], energy=[125,130,135,140])
+ability_ext("dazzle_poison_touch", cast_range=7813, cast_point=5, enemy_only=True)
+ability_scaled("dazzle_poison_touch", 0, 0, [16,28,40,52])
+ability_scaled("dazzle_poison_touch", 0, 2, [56,80,104,128])
+ability_scaled("dazzle_poison_touch", 1, 0, [56,80,104,128])
+ability_scaled("dazzle_poison_touch", 1, 1, [57016,55050,53084,51118])
+ability_scaled("dazzle_poison_touch", 252, 0, [7813,9375,10938,12500])
+ability_mod("dazzle_poison_touch", 7, 0, 0, 75)
+ability_mod("dazzle_poison_touch", 8, 1, 1, -26214)
+# dazzle_shallow_grave unmodelled Valve keys: heal_amplify
+ability("dazzle_shallow_grave", 480, 90, "unit", [effect("status", p0=13, p1=64, p2=0, p3=0)])
+skill("dazzle_shallow_grave", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[480,416,352,288], energy=[90,100,110,120])
+ability_ext("dazzle_shallow_grave", cast_range=14063, cast_point=5, ally_only=True)
+ability_scaled("dazzle_shallow_grave", 0, 1, [64,72,80,88])
+ability_mod("dazzle_shallow_grave", 6, 250, 0, -48)
+# dazzle_talents: generic talents of dazzle (Valve special_bonus_* values) as stat modifiers; unique talents are modifiers on the abilities they change.
+ability("dazzle_talents", 100000, 0, "none", [effect("stat", p0=13, p1=0)])
+ability_ext("dazzle_talents", passive=True)
+ability_mod("dazzle_talents", 3, 0, 1, 175)
+# dazzle: talents with no modelled effect: special_bonus_unique_dazzle_poison_touch_attack_range_bonus, special_bonus_unique_dazzle_2, special_bonus_unique_dazzle_nothl_projection_duration, special_bonus_unique_dazzle_4
 # ---- omniknight ----
 ability("omniknight_purification", 240, 90, "unit", [effect("heal", p0=90, p1=0, p2=1, p3=0), effect("aoe", p0=4063, p1=0, p2=1, p3=0), effect("damage", p0=90, p1=0, p2=3, p3=0)])
 skill("omniknight_purification", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[240,224,208,192], energy=[90,105,120,135])
@@ -311,7 +354,13 @@ hero_abilities("juggernaut", ["juggernaut_blade_fury", "juggernaut_healing_ward"
 hero_abilities("zuus", ["zuus_arc_lightning", "zuus_lightning_bolt", "zuus_heavenly_jump", "zuus_thundergods_wrath", "zuus_talents"])
 hero_abilities("sniper", ["sniper_shrapnel", "sniper_headshot", "sniper_take_aim", "sniper_assassinate"])
 hero_abilities("lion", ["lion_impale", "lion_voodoo", "lion_mana_drain", "lion_finger_of_death", "lion_talents"])
+hero_abilities("phantom_lancer", ["phantom_lancer_spirit_lance", "phantom_lancer_juxtapose"])
+hero_abilities("dazzle", ["dazzle_poison_touch", "dazzle_shallow_grave", "dazzle_talents"])
 hero_abilities("omniknight", ["omniknight_purification", "omniknight_martyr", "omniknight_hammer_of_purity", "omniknight_degen_aura", "omniknight_guardian_angel", "omniknight_talents"])
 # Modifiers the engine cannot carry:
 #   sven_warcry: radius special_bonus_shard 200 not modelled
+#   phantom_lancer_spirit_lance: AbilityCooldown special_bonus_unique_phantom_lancer_5 -1 not modelled
+#   phantom_lancer_juxtapose: AbilityCooldown special_bonus_shard 18 not modelled
+#   phantom_lancer_juxtapose: AbilityManaCost special_bonus_shard 75 not modelled
+#   phantom_lancer_juxtapose: illusion_duration special_bonus_unique_phantom_lancer_juxtapose_duration +1 not modelled
 #   omniknight_martyr: duration special_bonus_unique_omniknight_5 +1 not modelled
