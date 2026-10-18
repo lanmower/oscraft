@@ -419,7 +419,7 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
         "map_size",
         lua.create_function(move |_, ()| {
             let sim = mw.borrow();
-            Ok((sim.grid().w as i64, sim.grid().h as i64))
+            Ok(((sim.grid().w as i64) << 16, (sim.grid().h as i64) << 16))
         })?,
     )?;
     let t = timers.clone();

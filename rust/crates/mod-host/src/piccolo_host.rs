@@ -376,7 +376,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             let sh = sh.borrow();
             (sh.sim.grid().w as i64, sh.sim.grid().h as i64)
         };
-        s.replace(c, (w, h));
+        s.replace(c, (w << 16, h << 16));
         Ok(CallbackReturn::Return)
     });
     native!(ctx, env, "order_unit", [sh], |c, s| {

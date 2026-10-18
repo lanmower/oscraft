@@ -123,7 +123,7 @@ At most 256 timers. The older `schedule(name, delay, fn)` and `cancel(name)` are
 `game.region(name, x0, y0, x1, y1[, {enter = f, leave = g}])` defines a named rectangle and
 registers `f(unit)` for `on_enter` and `g(unit)` for `on_leave` on it. `game.region_units(name)`
 returns the living units inside it now. At most 64 regions. `in_region(name, x, y)` tests a point.
-`game.map_size()` returns the map width and height in cells, as `width, height`.
+`game.map_size()` returns the map width and height as `width, height` in the fixed-point units `unit_position` uses (cells times 65536), so `map_size() - unit_position` is a valid mirror.
 
 ### Variables and score
 
