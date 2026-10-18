@@ -59,6 +59,8 @@ impl Sim {
         h.bytes(&self.upg_done);
         h.u32s(&self.inv_kind);
         h.u32s(&self.inv_count);
+        h.u32s(&self.stash_kind);
+        h.u32s(&self.stash_count);
         h.u32s(&self.xp_total);
         h.u32s(&self.xp_curve);
         h.u32s(&self.unit_kills);
@@ -121,7 +123,6 @@ impl Sim {
         h.i32s(&self.abil_idx);
         h.i32s(&self.abil_cd);
         h.bytes(&self.abil_rank);
-        h.i32s(&self.item_cd);
         h.i32s(&self.energy);
         h.u32s(&self.changed_at);
         h.bytes(&self.trig_hit);

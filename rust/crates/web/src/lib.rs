@@ -121,6 +121,22 @@ impl Game {
         self.sim.cast_ability(unit as usize, slot as usize, target, fx, fy)
     }
 
+    /// Spends one skill point to raise ability slot `slot` of unit `unit` by a rank. Returns false
+    /// when the sim refuses it (no free point, max rank, level gate, or no skill tree).
+    pub fn skill_up(&mut self, unit: u32, slot: u32) -> bool {
+        self.sim.skill_up(unit as usize, slot as usize).is_ok()
+    }
+
+    /// Rank of ability slot `slot` of unit `unit`; 0 when not learned.
+    pub fn skill_rank(&self, unit: u32, slot: u32) -> u32 {
+        self.sim.skill_rank(unit as usize, slot as usize) as u32
+    }
+
+    /// Unspent skill points of unit `unit`.
+    pub fn skill_points(&self, unit: u32) -> u32 {
+        self.sim.skill_points(unit as usize)
+    }
+
     /// Orders unit `unit` to attack unit `target`, walking toward it when it is out of reach.
     /// Returns false when the sim refuses the order.
     pub fn attack(&mut self, unit: u32, target: u32) -> bool {

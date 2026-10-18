@@ -132,10 +132,6 @@ pub struct Sim {
     pub(crate) abil_cd: Vec<i32>,
     /// Skill rank per ability slot, 0 when not learned. See skills.rs.
     pub(crate) abil_rank: Vec<u8>,
-    /// Inventory: item index per unit slot, -1 when empty. Stat bonuses are already applied to the unit.
-    pub(crate) inventory: Vec<i32>,
-    /// Ticks until each inventory slot's active ability is ready again.
-    pub(crate) item_cd: Vec<i32>,
     pub(crate) energy: Vec<i32>,
     pub(crate) abil_on: bool,
 
@@ -149,9 +145,13 @@ pub struct Sim {
 
     pub(crate) buff_kind: Vec<i32>,
     pub(crate) buff_left: Vec<i32>,
-    /// Inventory slots, INV_SLOTS per unit: item kind (0 = empty) and count. See inventory.rs.
+    /// Inventory slots, INV_SLOTS per unit: catalog id and count, see inventory.rs.
     pub(crate) inv_kind: Vec<u32>,
     pub(crate) inv_count: Vec<u32>,
+    /// Stash bank, the same shape as the inventory: bought items overflow here when the
+    /// inventory is full, and `unstash` moves one back. See inventory.rs.
+    pub(crate) stash_kind: Vec<u32>,
+    pub(crate) stash_count: Vec<u32>,
     /// Experience per unit; the level is derived from the curve. See xp.rs.
     pub(crate) xp_total: Vec<u32>,
     /// Cumulative xp thresholds for levels 1.. Set by the caller and not saved, like the catalog.
@@ -317,8 +317,6 @@ impl Sim {
             abil_idx: vec![-1; cap * ABILITY_SLOTS],
             abil_cd: vec![0; cap * ABILITY_SLOTS],
             abil_rank: vec![0; cap * ABILITY_SLOTS],
-            inventory: vec![-1; cap * ITEM_SLOTS],
-            item_cd: vec![0; cap * ITEM_SLOTS],
             energy: vec![0; cap],
             abil_on: false,
             changed_at: vec![0; cap],
@@ -332,6 +330,8 @@ impl Sim {
             buff_left: vec![0; cap * BUFF_SLOTS],
             inv_kind: vec![0; cap * crate::inventory::INV_SLOTS],
             inv_count: vec![0; cap * crate::inventory::INV_SLOTS],
+            stash_kind: vec![0; cap * crate::inventory::INV_SLOTS],
+            stash_count: vec![0; cap * crate::inventory::INV_SLOTS],
             xp_total: vec![0; cap],
             xp_curve: crate::xp::DEFAULT_XP_CURVE.to_vec(),
             unit_kills: vec![0; cap],
@@ -648,6 +648,7 @@ impl Sim {
         self.player[i] = player;
         self.alive[i] = 1;
         self.inventory_clear(i);
+        self.stash_clear(i);
         self.xp_total[i] = 0;
         self.unit_kills[i] = 0;
         self.unit_deaths[i] = 0;
@@ -695,10 +696,6 @@ impl Sim {
             self.abil_idx[i * ABILITY_SLOTS + slot] = -1;
             self.abil_cd[i * ABILITY_SLOTS + slot] = 0;
             self.abil_rank[i * ABILITY_SLOTS + slot] = 0;
-        }
-        for slot in 0..ITEM_SLOTS {
-            self.inventory[i * ITEM_SLOTS + slot] = -1;
-            self.item_cd[i * ITEM_SLOTS + slot] = 0;
         }
         for slot in 0..(def.abil_count as usize).min(ABILITY_SLOTS) {
             if let Some(&ai) = self.cat.uabl.get(def.abil_first as usize + slot) {

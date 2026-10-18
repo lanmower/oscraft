@@ -12,7 +12,7 @@ use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
-/// Version 17 adds the item inventory and item cooldowns. Older saves are refused.
+/// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
 const STATE_VERSION: u16 = 19;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
@@ -54,9 +54,11 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::NoDoodad,
     Refusal::DuplicateDoodad,
     Refusal::TrainBusy,
-    Refusal::NoItem,
-    Refusal::NoShop,
-    Refusal::InventoryFull,
+    Refusal::NotLearned,
+    Refusal::NoSkillTree,
+    Refusal::NoSkillPoint,
+    Refusal::SkillMaxed,
+    Refusal::SkillLevelGate,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
@@ -361,7 +363,6 @@ impl Sim {
         put_i32s(&mut w, &self.abil_idx);
         put_i32s(&mut w, &self.abil_cd);
         w.extend_from_slice(&self.abil_rank);
-        put_i32s(&mut w, &self.item_cd);
         put_i32s(&mut w, &self.energy);
         put_u32s(&mut w, &self.changed_at);
         w.extend_from_slice(&self.trig_hit);
@@ -444,6 +445,8 @@ impl Sim {
         put_pool(&mut w, &self.paths);
         put_u32s(&mut w, &self.inv_kind);
         put_u32s(&mut w, &self.inv_count);
+        put_u32s(&mut w, &self.stash_kind);
+        put_u32s(&mut w, &self.stash_count);
         put_u32s(&mut w, &self.xp_total);
         put_u32s(&mut w, &self.unit_kills);
         put_u32s(&mut w, &self.unit_deaths);
@@ -555,7 +558,6 @@ impl Sim {
         r.i32s_into(&mut next.abil_idx)?;
         r.i32s_into(&mut next.abil_cd)?;
         r.bytes_into(&mut next.abil_rank)?;
-        r.i32s_into(&mut next.item_cd)?;
         r.i32s_into(&mut next.energy)?;
         r.u32s_into(&mut next.changed_at)?;
         r.bytes_into(&mut next.trig_hit)?;
@@ -648,6 +650,8 @@ impl Sim {
         read_pool(&mut r, &mut next.paths)?;
         r.u32s_into(&mut next.inv_kind)?;
         r.u32s_into(&mut next.inv_count)?;
+        r.u32s_into(&mut next.stash_kind)?;
+        r.u32s_into(&mut next.stash_count)?;
         r.u32s_into(&mut next.xp_total)?;
         r.u32s_into(&mut next.unit_kills)?;
         r.u32s_into(&mut next.unit_deaths)?;

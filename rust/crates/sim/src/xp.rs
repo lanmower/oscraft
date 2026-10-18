@@ -5,8 +5,12 @@
 
 use crate::arrays::Sim;
 
-/// Cumulative xp at which levels 1, 2, ... are reached.
-pub(crate) const DEFAULT_XP_CURVE: [u32; 5] = [100, 250, 500, 900, 1400];
+/// Cumulative xp at which levels 1, 2, ... are reached. Levels 1 to 5 are the original curve;
+/// the rest reach character level 18, the last ultimate gate. UNVERIFIED: the values past
+/// level 5 are design placeholders, not sourced numbers.
+pub(crate) const DEFAULT_XP_CURVE: [u32; 17] = [
+    100, 250, 500, 900, 1400, 2000, 2700, 3500, 4400, 5400, 6500, 7700, 9000, 10400, 11900, 13500, 15200,
+];
 
 impl Sim {
     /// The level curve in use: cumulative xp thresholds, nondecreasing.

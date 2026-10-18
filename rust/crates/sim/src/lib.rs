@@ -23,6 +23,7 @@ mod astar;
 mod production;
 mod projectiles;
 mod rules;
+mod skills;
 mod shields;
 mod tick;
 mod transport;

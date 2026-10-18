@@ -137,6 +137,7 @@ pub const SECTIONS: [([u8; 4], usize); 20] = [
     (TAG_DODA, DODA_RECORD),
     (TAG_GRID, GRID_RECORD),
     (TAG_ITEM, ITEM_RECORD),
+    (TAG_SKIL, SKIL_RECORD),
 ];
 
 pub fn index_of(list: &[&str], value: &str, what: &str) -> anyhow::Result<usize> {
