@@ -2858,7 +2858,13 @@ jobs:
           test "$sides" -eq "$starts"
           test "$lanes" -eq 3
           test "$heroes" -eq "$starts"
+          grid_w=$(grep -oE '^grid\([0-9]+' map.osd | grep -oE '[0-9]+$')
+          grid_h=$(grep -oE '^grid\([0-9]+, *[0-9]+' map.osd | grep -oE '[0-9]+$')
+          echo "moba map grid=${grid_w}x${grid_h} cells=$((grid_w * grid_h)) lanes=$lanes"
           echo "moba scenario ok sides=$sides lanes=$lanes towers=$towers heroes=$heroes creeps_spawned=$creeps_spawned"
+          for y in $(grep -E '^spawn\("tower"' map.osd | sed -E 's/.*, *[0-9]+ *, *([0-9]+) *\)$/\1/' | sort -un); do
+            echo "moba lane y=$y towers=$(grep -cE "^spawn\(\"tower\", *[0-9]+, *[0-9]+, *$y *\)" map.osd) creeps=$(grep -cE "^spawn\(\"creep\", *[0-9]+, *[0-9]+, *$y *\)" map.osd)"
+          done
           units_end=$(jq '.units' "$work/s1.json")
           spawned=$((units_end - units0))
           max_waves=$((bases * (target / cooldown + 1)))
