@@ -30,7 +30,7 @@ A scenario is a directory of `.osd` files (see [SCENARIOS.md](SCENARIOS.md)): `u
 
 ## wasm
 
-`rust/crates/web` builds with `wasm-pack build --target web`. The output (`web.js`, `web_bg.wasm`) is committed under `js/client/pkg` from CI artifacts so the page needs no build step.
+`rust/crates/web` builds with `wasm-pack build --target web`. The output (`web.js`, `web_bg.wasm`) is never committed: Pages, CI and `scripts/package/build.sh` rebuild `js/client/pkg`, `map.bin` and `moba.bin` from source (`js/client/pkg` and the maps are gitignored; stage them as ci.yml does to run the page locally).
 
 ## The browser client
 

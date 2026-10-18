@@ -81,3 +81,10 @@ __pycache__/
 *.wasm
 build/
 *.exe
+# Page build output: CI and Pages rebuild these from source.
+/js/client/pkg/
+/js/client/map.bin
+/js/client/moba.bin
+/rust/crates/web/site/pkg/
+/rust/crates/web/site/map.bin
+/rust/crates/web/site/moba.bin
