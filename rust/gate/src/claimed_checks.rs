@@ -481,8 +481,8 @@ pub fn editor_abilities(image: &[u8]) -> Result<(), String> {
 
 const EVENT_MOD: &str = r#"
 function on_tick(state)
-  local bits = { on_spawned = 1, on_attacked = 2, on_died = 4, on_enter = 8, on_leave = 16 }
-  local want = { on_spawned = "unit", on_attacked = "unit", on_died = "unit", on_enter = "region, unit", on_leave = "region, unit" }
+  local bits = { on_spawned = 1, on_attacked = 2, on_died = 4, on_enter = 8, on_leave = 16, on_player_joined = 32, on_tick = 64 }
+  local want = { on_spawned = "unit", on_attacked = "unit", on_died = "unit", on_enter = "region, unit", on_leave = "region, unit", on_player_joined = "player", on_tick = "state" }
   local events = list_events()
   local mask = 0
   for _, r in ipairs(events) do
@@ -495,11 +495,11 @@ end
 
 pub fn editor_triggers(image: &[u8]) -> Result<(), String> {
     let host = run_mod(image, "editor-triggers", EVENT_MOD, 1)?;
-    if state_int(&host, "events")? != 31 {
+    if state_int(&host, "events")? != 127 {
         return Err(format!("list_events mask {} is missing a trigger event with its arguments", state_int(&host, "events")?));
     }
-    if state_int(&host, "count")? != 5 {
-        return Err(format!("list_events returned {} events, want 5", state_int(&host, "count")?));
+    if state_int(&host, "count")? != 7 {
+        return Err(format!("list_events returned {} events, want 7", state_int(&host, "count")?));
     }
     Ok(())
 }

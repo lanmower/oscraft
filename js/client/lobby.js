@@ -5,7 +5,7 @@
 // (detail = action, carrying its own playerId). The transport is whoever dispatches those events.
 export const TEAM_SIZE = 5;
 export const SLOT_COUNT = 2 * TEAM_SIZE;
-// Hero picks come from the rust/data roster: unit("hero", ...) in rust/data/moba/units.star.
+// Hero picks come from the moba scenario roster: unit("hero", ...) in scenarios/moba/units.osd.
 export const HERO_ROSTER = Object.freeze(["hero"]);
 
 const EMPTY_SLOT = Object.freeze({ owner: null, hero: null, ready: false });

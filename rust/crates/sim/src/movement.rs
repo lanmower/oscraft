@@ -48,6 +48,37 @@ impl Sim {
         }
     }
 
+    /// True when a same-side, same-layer unit's footprint already covers the point (x, y). A unit
+    /// that snapped onto such a point would be pushed off it by separation next tick and snap
+    /// back, so it holds short of the point instead. Enemy footprints do not block the snap:
+    /// an attack approach ends in contact with its target.
+    fn friendly_footprint_at(&self, i: usize, x: i32, y: i32) -> bool {
+        let (gw, gh) = (self.grid.w as i32, self.grid.h as i32);
+        let (cx, cy) = (cell_of(x), cell_of(y));
+        for oy in -1..=1i32 {
+            for ox in -1..=1i32 {
+                let (nx, ny) = (cx + ox, cy + oy);
+                if nx < 0 || ny < 0 || nx >= gw || ny >= gh {
+                    continue;
+                }
+                let cell = (ny * gw + nx) as usize;
+                for k in 0..self.bucket_n[cell] as usize {
+                    let j = self.bucket_idx[cell * BUCKET_CAP + k] as usize;
+                    if j == i || self.alive[j] == 0 || self.flying[j] != self.flying[i] || self.player[j] != self.player[i] {
+                        continue;
+                    }
+                    let sx = x.wrapping_sub(self.pos_x[j]) as i64;
+                    let sy = y.wrapping_sub(self.pos_y[j]) as i64;
+                    let min_d = self.radius[i].wrapping_add(self.radius[j]) as i64;
+                    if sx * sx + sy * sy < min_d * min_d {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
     fn route_slot(&mut self, i: usize) -> usize {
         let gx = fixed::round(self.tgt_x[i]);
         let gy = fixed::round(self.tgt_y[i]);
@@ -79,8 +110,9 @@ impl Sim {
                 // of the one-tick jump are walkable; otherwise it holds where it is, short of the
                 // stop by less than one tick of speed, instead of sliding into a refused axis.
                 let (tx, ty) = (self.tgt_x[i], self.tgt_y[i]);
-                let snap_clear = self.flying[i] != 0
-                    || (self.grid.walkable(cell_of(tx), cy) && self.grid.walkable(cx, cell_of(ty)));
+                let snap_clear = (self.flying[i] != 0
+                    || (self.grid.walkable(cell_of(tx), cy) && self.grid.walkable(cx, cell_of(ty))))
+                    && !self.friendly_footprint_at(i, tx, ty);
                 if dist > 0 && dist <= speed as i64 {
                     if snap_clear {
                         vx = dx;
