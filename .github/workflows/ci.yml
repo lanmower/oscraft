@@ -1867,7 +1867,8 @@ jobs:
           console.log(`moba minimap ok dots=${dots}`);
           // Not every unit can cast or attack: try the most isolated units until one does both.
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
-          const ranked = [...units].sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
+          // Neutral camp units (player 255) never cast or attack in this probe, so they are not candidates.
+          const ranked = units.filter((u) => u.player !== 255).sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
           let attacker = null;
           // Allies on one team are not attack targets, so the foes are the players the sim calls hostile.
           const players = [...new Set(units.map((u) => u.player))];
