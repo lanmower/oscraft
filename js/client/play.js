@@ -220,11 +220,15 @@ async function loadDoodadModels() {
     fetch(new URL("doodads.json", location.href)).then((r) => r.json()),
     fetch(new URL("assets.json", location.href)).then((r) => r.json()).catch(() => ({ items: [] })),
   ]);
+  const modelName = (id) => {
+    const file = catalogue.items.find((item) => item.id === id && item.kind === "model")?.path;
+    return file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null;
+  };
   return Promise.all(DOODAD_KINDS.map(async (kind) => {
-    const file = catalogue.items.find((item) => item.id === kind && item.kind === "model")?.path ?? map[kind];
-    const name = file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null;
+    const name = modelName(kind) ?? (map[kind] ? map[kind].replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null);
+    const lowName = modelName(`${kind}-low`);
     const size = 2 * DOODAD_HALF;
-    const [high, low] = await Promise.all([fetchModel(name, size), name ? fetchModel(`${name}-low`, size) : null]);
+    const [high, low] = await Promise.all([fetchModel(name, size), lowName ? fetchModel(lowName, size) : null]);
     return { high, low };
   }));
 }
@@ -310,6 +314,7 @@ function unitMeshFor(type, color) {
 
 // Joint palette for a unit this frame: its clip (walk when it moved, attack when it reports attacking, else idle)
 // advanced by dt seconds. A unit with no matching clip holds the rest pose.
+const EMPTY_POSE = new Map();
 const EMPTY_POSE = new Map();
 function jointsFor(u, mesh, dt) {
   const key = `${u.id}:${u.type}`;
