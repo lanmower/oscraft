@@ -47,8 +47,10 @@ pub const EFFECT_KINDS: &[&str] = &[
     "mana",
     "if_kill",
     "attack",
+    "teleport",
+    "refresh",
 ];
-pub const MAX_EFFECT_KIND: usize = 30;
+pub const MAX_EFFECT_KIND: usize = 32;
 /// The stats an effect of kind "stat" may raise, by the code in its first parameter.
 pub const STAT_NAMES: &[&str] = &[
     "damage", "armor", "health", "speed", "range", "evasion", "crit_chance", "crit_mult", "cleave", "cleave_radius",
@@ -262,6 +264,8 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
         "mana" => p0 >= 0 && (0..=2).contains(&p1),
         "if_kill" => (1..=16).contains(&p0),
         "attack" => p0 >= 0,
+        "teleport" => p0 >= 0,
+        "refresh" => (1..=3).contains(&p0),
         "stun" | "silence" | "root" | "invisibility" => p0 >= 1,
         "slow" => p0 >= 1 && (0..=Q16_ONE).contains(&p1),
         _ => true,
