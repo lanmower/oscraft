@@ -15,6 +15,12 @@ import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js
 import { bakeTiles, fitModel, planarUvs, TILE_MODELS, TILE_TINTS } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby } from "./lobby.js";
+import { createFogView } from "./fogview.js";
+import { createShop } from "./ui_shop.js";
+import { createSkills } from "./ui_skills.js";
+import { createInventory } from "./ui_inventory.js";
+import { createFx } from "./fx.js";
+import { createModUi } from "./modui.js";
 
 // Map size comes from the loaded map image (loadSim); these are the fallbacks before a map is read.
 let W = 32;
@@ -77,6 +83,9 @@ let attacks = 0;
 let localGame = null;
 let hud = null;
 let hud5 = null;
+let fogview = null;
+const heroPanels = [];
+let fx = null;
 let selectedId = -1;
 let reconnectAttempt = 0;
 let reconnectTimer = 0;
@@ -220,7 +229,7 @@ function currentUnits() {
   for (let i = 0; i < ids.length; i++) {
     out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1, attacking: attacking ? attacking[i] === 1 : false }));
   }
-  return out;
+  return fogview ? fogview.filter(out) : out;
 }
 
 // Draw counts per mesh kind for the current frame, published on the body for the browser probe.
@@ -291,7 +300,9 @@ function drawWorld3d() {
   renderer3d.beginFrame(BACKGROUND);
   for (const mesh of tileMeshes ?? (terrainMesh ? [terrainMesh] : [])) countDraw("terrain", mesh, null);
   for (const d of doodadMeshes) countDraw("doodad", d.mesh, d.transform);
-  drawUnits3d(currentUnits(), dt);
+  const units = currentUnits();
+  drawUnits3d(units, dt);
+  if (fx) fx.frame(units, dt);
 }
 
 // Flat fallback without WebGL2: each unit is a 2D square at its screen position on a 2D canvas.
@@ -408,6 +419,7 @@ const commands = {
   cast(unitId, slot, target, x, z) {
     const ok = netState ? (session.broadcast(sendCast(unitId, slot, target, x, z)), true) : localGame.cast(unitId, slot, target, x, z);
     if (ok) casts += 1;
+    if (ok && fx) fx.cast(unitId, slot, target, x, z);
     return ok;
   },
 };
@@ -726,6 +738,7 @@ function publishWitness() {
   document.body.dataset.attacks = String(attacks);
   if (hud) hud.update();
   if (hud5) hud5.update();
+  for (const panel of heroPanels) panel.update();
 }
 
 function createBarCanvas() {
@@ -826,7 +839,20 @@ async function main() {
     toScreen: worldToScreen,
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
+  if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId });
   hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: () => 0 });
+  const eventsBase = params.get("events");
+  const modUi = createModUi({
+    root: document.body,
+    renderer: () => renderer3d,
+    localPlayer: () => 0,
+    defaultDistance: () => cameraDistance,
+    baseUrl: eventsBase === null ? undefined : eventsBase.replace(/\/$/, ""),
+  });
+  window.__modUi = modUi;
+  const heroUi = { game: localGame, selected: () => selectedId, localPlayer: () => 0 };
+  if (typeof localGame.buy === "function") heroPanels.push(createShop(heroUi), createSkills(heroUi), createInventory(heroUi));
+  fogview = createFogView({ game: localGame, localPlayer: () => 0, toScreen: worldToScreen, groundAt });
   if (params.get("host") === "1") startHost();
   joinRoom();
 
@@ -834,9 +860,11 @@ async function main() {
     const dtS = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
     lastFrameMs = now;
     panByKeys(dtS);
+    modUi.step(dtS);
     if (!netState && localGame && !hosting) localGame.tick();
     if (renderer3d) {
       drawWorld3d();
+      fogview.draw();
     } else if (flatCtx) {
       drawCounts.quad = 0;
       drawFlat(flatCtx, currentUnits());
