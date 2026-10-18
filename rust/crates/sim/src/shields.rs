@@ -92,6 +92,7 @@ impl Sim {
         self.touch(i);
     }
 
+    /// `hp_per_tick` is thousandths of a hit point per tick, so fractional Dota regeneration (hp per second x 62.5) is exact.
     /// Regenerates life on unit `i` once the regeneration delay since its last hit has passed.
     /// Life never exceeds its maximum, and a dead unit regenerates nothing.
     pub(crate) fn regen_health(&mut self, i: usize) {
@@ -100,7 +101,7 @@ impl Sim {
             return;
         }
         let (base, delay) = match self.cat.regen.get(k as usize) {
-            Some(r) => (fixed::from_int(r.hp_per_tick), r.delay as u32),
+            Some(r) => (((r.hp_per_tick as i64 * fixed::ONE as i64) / 1000) as i32, r.delay as u32),
             None => (0, 0),
         };
         let per_tick = base.saturating_add(self.hero_regen_per_tick(i));

@@ -18,13 +18,17 @@ Ten players, two teams of five: even players on team 0, odd on team 1 (`start(..
 
 Each base carries the `creep_wave` ability. It fires when the base spawns and again each time its 600-tick (37.5 s) cooldown ends. It spawns one creep per lane (top, middle, bottom). Each creep marches along its lane to the nearest enemy building and fights what it meets. Idle units with a weapon (creeps, towers, bases) strike the nearest enemy in reach.
 
-Creep: health 550, armor 2, damage 21 (cited); speed 2000, radius 350, range 1000, sight 7000 (UNVERIFIED). Bounty 36 gold and 57 xp (cited).
+The wave now fires every 480 ticks (30 s) and spawns three melee creeps and one ranged creep per lane.
+
+Unit scale: 1 Dota unit = 15.625 milli; speed is milli per tick; weapon period = AttackRate x 100 / BaseAttackSpeed x 16 ticks; health_regen is milli-hp per tick (Dota hp/s x 62.5). Stats below are read from `npc_units.txt` @282fad29 (health, armor, damage midpoint, rate, range, speed, vision, regen, gold midpoint, xp).
+
+Creeps (cited): melee 550 hp, ranged 300 hp, siege 935 hp, plus super and mega variants (`creep_super`, `creep_mega`, ...). The super and mega variants exist as units but nothing spawns them yet: barracks-loss upgrades and the time-based wave stat growth are not modelled. Siege creeps are not in the wave yet (every fifth wave in Dota). Magic resistance (siege 80, flagbearer 40) is not modelled. Hull radii are recalled, not read from the dump (UNVERIFIED).
 
 ## Towers and bases
 
-Three towers per side per lane, outer, middle and inner (x 12000, 16000, 22000 for team 0; mirrored for team 1). Tower: health 1800, armor 12, damage 90 (cited), range 6000, period 40 ticks (UNVERIFIED). A tower pays no bounty.
+Units defined from the dump: `tower` (T1: 1800 hp, armor 12, damage 90, range 700 Dota units), `tower_t2` and `tower_t3` (2500 hp, armor 16, damage 172), `tower_t4` (2600 hp, armor 21), `barracks_melee` (2200 hp, armor 15, regen 5), `barracks_ranged` (1300 hp, armor 9), `base` (the ancient: 4500 hp, armor 23, regen 12) and `outpost` (450 hp). Tower gold and barracks gold are paid by code in Dota and are not in the dump: not modelled. Map placement of the tiers belongs to the map lane.
 
-The base: health 1500, armor 0 (UNVERIFIED; cited ancient values were tried and made the CI siege check fail, so they were reverted). A base carries the `building` filter. When the last living building of a side dies, the rival wins (`win_on_base_loss` in `behaviours.osd`).
+The base carries the `building` filter. When the last living building of a side dies, the rival wins (`win_on_base_loss` in `behaviours.osd`).
 
 ## Heroes
 
@@ -42,11 +46,13 @@ A hero holds six items and a stash of six. Buying needs gold, a free slot (overf
 
 ## Neutrals
 
+Thirty-eight Valve neutral types are defined as `neutral_<name>` units with dump stats (health, regen, armor, damage, attack time, range, speed, vision, bounty). Camp compositions are UNVERIFIED: small = kobold taskmaster, tunneler, kobold; medium = alpha wolf and two giant wolves; large = centaur khan and two outrunners; ancient = granite golem and two rock golems. Neutral abilities are not modelled. Camp positions follow the map lane. Older text below describes the previous placeholder camps.
+
 Twelve neutral creeps in four camps of three (player -1, positions near the four camp doodads), answering attacks through the shared `attacked` behaviour. A camp unit that strays more than 6000 from home walks back; a dead one respawns at home after 60 s (UNVERIFIED).
 
 ## Roshan
 
-A large neutral boss at the middle pit (32000, 32000; position UNVERIFIED). Health 6000, damage 75, armor 30, bounty 245 gold (midpoint of a cited 200-290 range) and 400 xp (cited). Respawns 480 s after death (UNVERIFIED). The killer receives the `aegis` item (cost 300, UNVERIFIED).
+A large neutral boss at the middle pit (32000, 32000; position UNVERIFIED). Health 6000, damage 75 (rate 2.0 s), armor 30, regen 20, speed 270, bounty 245 gold (midpoint of a cited 200-290 range) and 400 xp (cited). Respawns 480 s after death (UNVERIFIED). The killer receives the `aegis` item (cost 300, UNVERIFIED).
 
 ## Runes
 
