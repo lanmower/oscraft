@@ -1858,16 +1858,25 @@ jobs:
           const screenAt = (x, z) => page.evaluate(([px, pz]) => window.__ciToScreen(px, pz), [x, z]);
           // Click the player's own unit with the most room around it, so the pick cannot land on a neighbour.
           // Neutral camp units (player 255) cannot take orders, so they are never the candidate.
-          const own = units.filter((u) => u.player === 0);
+          // The bounded camera can frame a corner unit off screen or under an overlay: a candidate is only clicked when its
+          // projected point is inside the viewport and hit-tests to the canvas, and it counts only if the click selects it.
+          const gapOf = (cand) => Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));
+          const own = units.filter((u) => u.player === 0).sort((a, b) => gapOf(b) - gapOf(a));
           if (!own.length) throw new Error("player 0 has no unit to order");
-          const unit = own.reduce((best, cand) => {
-            const gap = Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));
-            return gap > best.gap ? { unit: cand, gap } : best;
-          }, { unit: own[0], gap: -1 }).unit;
-          const at = await screenAt(unit.x, unit.z);
-          await page.mouse.click(at.x, at.y, { button: "left" });
-          const selected = await page.evaluate(() => window.__ciSelected());
-          if (selected !== unit.id) throw new Error("left click selected " + selected + ", expected " + unit.id);
+          const viewport = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
+          const tried = [];
+          let unit = null;
+          for (const cand of own.slice(0, 60)) {
+            const p = await screenAt(cand.x, cand.z);
+            const visible = p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h
+              && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [p.x, p.y]));
+            if (!visible) { tried.push(`${cand.id}@${p.x.toFixed(0)},${p.y.toFixed(0)} hidden`); continue; }
+            await page.mouse.click(p.x, p.y, { button: "left" });
+            const selected = await page.evaluate(() => window.__ciSelected());
+            if (selected === cand.id) { unit = cand; break; }
+            tried.push(`${cand.id}@${p.x.toFixed(0)},${p.y.toFixed(0)} selected=${selected}`);
+          }
+          if (!unit) throw new Error("no player 0 unit was selected by a left click: " + tried.slice(0, 8).join("; ") + " viewport=" + JSON.stringify(viewport));
           const target = await screenAt(Math.min(29, unit.x + 3), unit.z);
           await page.mouse.click(target.x, target.y, { button: "right" });
           await page.waitForSelector("body[data-orders='1']", { timeout: 15000 });
