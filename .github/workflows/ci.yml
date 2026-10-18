@@ -1880,13 +1880,13 @@ jobs:
           // Neutral camp units (player 255) never cast or attack in this probe, so they are not candidates.
           const ranked = units.filter((u) => u.player !== 255).sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
           let attacker = null;
-          // Allies on one team are not attack targets, so the foes are the players the sim calls hostile; neutral camps (255) are excluded.
+          // Allies on one team are not attack targets, so the foes are the players the sim calls hostile.
           const players = [...new Set(units.map((u) => u.player))];
           const hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));
           for (const cand of ranked.reverse().slice(0, 400)) {
             // Select through the CI hook: a click can land on another unit drawn over this one.
             // An attack needs a visible, hostile target: only enemies inside the candidate's sight (9 cells) are tried, nearest first.
-            const foes = units.filter((v) => v.player !== 255 && hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64).sort((a, b) => dist2(a, cand) - dist2(b, cand)).slice(0, 3);
+            const foes = units.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64).sort((a, b) => dist2(a, cand) - dist2(b, cand)).slice(0, 3);
             if (!foes.length) continue;
             await page.evaluate((id) => window.__ciSelect(id), cand.id);
             // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
