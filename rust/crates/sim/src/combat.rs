@@ -8,6 +8,18 @@ use crate::*;
 
 const RESPONSE_REDUCED: u8 = 1;
 const RESPONSE_IMMUNE: u8 = 2;
+/// Kill events held between drains. Kills past this in one drain window are still tallied per unit.
+pub(crate) const KILL_QUEUE_CAP: usize = 256;
+
+/// One kill: unit `killer` (of `killer_player`) destroyed unit `victim` (of `victim_player`) at `tick`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct KillEvent {
+    pub tick: u32,
+    pub killer: u32,
+    pub killer_player: u8,
+    pub victim: u32,
+    pub victim_player: u8,
+}
 /// The least a weapon hit can do after armour, so armour never zeroes a hit (Q16.16, one quarter).
 const ARMOUR_FLOOR: i32 = fixed::ONE / 4;
 
@@ -157,7 +169,7 @@ impl Sim {
         if self.misses(i) {
             return;
         }
-        self.inflict(b, dmg);
+        self.inflict(b, dmg, i as i32);
     }
 
     /// Orders unit `i` to strike unit `target` through the weapon path (cooldown, armour,
@@ -188,18 +200,23 @@ impl Sim {
         if self.misses(i) {
             return Ok(());
         }
-        self.inflict(target, dmg);
+        self.inflict(target, dmg, i as i32);
         Ok(())
     }
 
     /// Ability damage: the response and shield apply, armour does not.
-    /// Ability damage to unit `j`, through the shared damage path. An unknown unit is a no-op.
+    /// Ability damage to unit `j` with no attacker to credit, through the shared damage path.
     pub fn hurt(&mut self, j: usize, dmg: i32) {
+        self.hurt_by(j, dmg, -1);
+    }
+
+    /// Ability damage to unit `j` from unit `attacker` (-1 for none). An unknown unit is a no-op.
+    pub(crate) fn hurt_by(&mut self, j: usize, dmg: i32, attacker: i32) {
         if j >= self.n {
             return;
         }
         let before = self.hp[j];
-        self.inflict(j, dmg);
+        self.inflict(j, dmg, attacker);
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
 
@@ -215,8 +232,9 @@ impl Sim {
     }
 
     /// The damage path shared by weapons and abilities: damage response, then shield,
-    /// then life, with death recorded when life runs out.
-    fn inflict(&mut self, j: usize, mut dmg: i32) {
+    /// then life, with death recorded when life runs out. `attacker` is the unit dealing the
+    /// damage, or -1; a death it causes is credited to it.
+    fn inflict(&mut self, j: usize, mut dmg: i32, attacker: i32) {
         self.touch(j);
         if dmg > 0 {
             self.trig_hit[j] = 1;
@@ -237,9 +255,35 @@ impl Sim {
             self.trig_death[j] = 1;
             self.stats.deaths += 1;
             if fell {
+                self.record_death(j, attacker);
                 self.pay_bounty(j);
             }
         }
+    }
+
+    /// Books the death of unit `j`, and when `attacker` names another unit credits it a kill and
+    /// queues the event for `drain_kill_events`.
+    pub(crate) fn record_death(&mut self, j: usize, attacker: i32) {
+        self.unit_deaths[j] = self.unit_deaths[j].saturating_add(1);
+        if attacker < 0 || attacker as usize >= self.n || attacker as usize == j {
+            return;
+        }
+        let k = attacker as usize;
+        self.unit_kills[k] = self.unit_kills[k].saturating_add(1);
+        if self.kill_queue.len() < KILL_QUEUE_CAP {
+            self.kill_queue.push(KillEvent {
+                tick: self.ticks,
+                killer: k as u32,
+                killer_player: self.player[k],
+                victim: j as u32,
+                victim_player: self.player[j],
+            });
+        }
+    }
+
+    /// Takes the kill events queued since the last drain, oldest first. The wasm layer drains once per tick.
+    pub fn drain_kill_events(&mut self) -> Vec<KillEvent> {
+        self.kill_queue.drain(..).collect()
     }
 
     /// Damage to the cast target unit alone, for a damage effect with radius 0. Only a living
@@ -252,7 +296,7 @@ impl Sim {
         if target == caster || self.alive[j] == 0 || !self.hostile(p, self.player[j]) {
             return;
         }
-        self.hurt(j, dmg);
+        self.hurt_by(j, dmg, caster);
     }
 
     /// Damages every living enemy unit within `rad` of a point. `caster` is the unit that
@@ -268,7 +312,7 @@ impl Sim {
             if j as i32 == caster || self.alive[j] == 0 || !self.hostile(p, self.player[j]) {
                 continue;
             }
-            self.hurt(j, dmg);
+            self.hurt_by(j, dmg, caster);
         }
         self.scratch = buf;
     }

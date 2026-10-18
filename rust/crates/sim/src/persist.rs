@@ -12,7 +12,7 @@ use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
-const STATE_VERSION: u16 = 16;
+const STATE_VERSION: u16 = 17;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -439,6 +439,8 @@ impl Sim {
         put_u32s(&mut w, &self.inv_kind);
         put_u32s(&mut w, &self.inv_count);
         put_u32s(&mut w, &self.xp_total);
+        put_u32s(&mut w, &self.unit_kills);
+        put_u32s(&mut w, &self.unit_deaths);
         w
     }
 
@@ -636,11 +638,11 @@ impl Sim {
             next.log_y[k] = r.i32()?;
         }
         read_pool(&mut r, &mut next.paths)?;
-        if version == STATE_VERSION {
-            r.u32s_into(&mut next.inv_kind)?;
-            r.u32s_into(&mut next.inv_count)?;
-            r.u32s_into(&mut next.xp_total)?;
-        }
+        r.u32s_into(&mut next.inv_kind)?;
+        r.u32s_into(&mut next.inv_count)?;
+        r.u32s_into(&mut next.xp_total)?;
+        r.u32s_into(&mut next.unit_kills)?;
+        r.u32s_into(&mut next.unit_deaths)?;
         if r.at != bytes.len() {
             return Err(StateError::Length);
         }

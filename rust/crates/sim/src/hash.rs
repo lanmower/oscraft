@@ -61,6 +61,8 @@ impl Sim {
         h.u32s(&self.inv_count);
         h.u32s(&self.xp_total);
         h.u32s(&self.xp_curve);
+        h.u32s(&self.unit_kills);
+        h.u32s(&self.unit_deaths);
         h.bytes(&self.grid.flags);
         h.bytes(&self.grid.tiles);
         h.u64s(&[self.doodads.len() as u64]);

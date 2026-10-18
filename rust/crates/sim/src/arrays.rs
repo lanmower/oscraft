@@ -150,6 +150,11 @@ pub struct Sim {
     pub(crate) xp_total: Vec<u32>,
     /// Cumulative xp thresholds for levels 1.. Set by the caller and not saved, like the catalog.
     pub(crate) xp_curve: Vec<u32>,
+    /// Kills credited to each unit, and deaths each unit suffered, reset when its slot is spawned.
+    pub(crate) unit_kills: Vec<u32>,
+    pub(crate) unit_deaths: Vec<u32>,
+    /// Kill events since the last drain. Derived from the tallies, so not hashed or saved.
+    pub(crate) kill_queue: Vec<crate::combat::KillEvent>,
 
     pub(crate) healer_player: Vec<u8>,
     pub(crate) healer_left: Vec<i32>,
@@ -313,6 +318,9 @@ impl Sim {
             inv_count: vec![0; cap * crate::inventory::INV_SLOTS],
             xp_total: vec![0; cap],
             xp_curve: crate::xp::DEFAULT_XP_CURVE.to_vec(),
+            unit_kills: vec![0; cap],
+            unit_deaths: vec![0; cap],
+            kill_queue: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
             healer_player: vec![0; HEALER_SLOTS],
             healer_left: vec![0; HEALER_SLOTS],
             healer_timer: vec![0; HEALER_SLOTS],
@@ -621,6 +629,8 @@ impl Sim {
         self.alive[i] = 1;
         self.inventory_clear(i);
         self.xp_total[i] = 0;
+        self.unit_kills[i] = 0;
+        self.unit_deaths[i] = 0;
         self.type_of[i] = ty as i32;
         self.filter[i] = def.filter;
         self.response[i] = def.response;
@@ -704,6 +714,24 @@ impl Sim {
     /// Ticks left before unit `i` can strike again (its weapon cooldown); -1 for an unknown index.
     pub fn weapon_cooldown(&self, i: usize) -> i32 {
         self.cooldown.get(i).copied().unwrap_or(-1)
+    }
+
+    /// Kills credited to unit `i`; zero for an unknown index.
+    pub fn kills_of(&self, i: usize) -> u32 {
+        self.unit_kills.get(i).copied().unwrap_or(0)
+    }
+
+    /// Deaths unit `i` has suffered; zero for an unknown index.
+    pub fn deaths_of(&self, i: usize) -> u32 {
+        self.unit_deaths.get(i).copied().unwrap_or(0)
+    }
+
+    /// Ticks left on ability `slot` of unit `i` (0 when ready); -1 for an unknown unit or slot.
+    pub fn ability_cooldown(&self, i: usize, slot: usize) -> i32 {
+        if slot >= ABILITY_SLOTS || i >= self.cap {
+            return -1;
+        }
+        self.abil_cd[i * ABILITY_SLOTS + slot]
     }
 
     /// Shield points left on unit `i` (Q16.16); zero for an unknown index.

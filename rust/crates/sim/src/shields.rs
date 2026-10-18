@@ -64,7 +64,7 @@ impl Sim {
         let current = if life { self.hp[r] } else { self.shield[r] };
         let next = if mode == 0 { current.wrapping_sub(amount) } else { amount };
         if life {
-            self.set_life(r, next);
+            self.set_life(r, next, caster as i32);
         } else {
             self.shield[r] = next.max(0);
             self.touch(r);
@@ -113,13 +113,14 @@ impl Sim {
         self.touch(i);
     }
 
-    /// Writes life clamped to [0, max]; a unit whose life reaches zero dies.
-    fn set_life(&mut self, j: usize, value: i32) {
+    /// Writes life clamped to [0, max]; a unit whose life reaches zero dies, credited to `attacker` (-1 for none).
+    fn set_life(&mut self, j: usize, value: i32, attacker: i32) {
         self.hp[j] = value.clamp(0, self.hp_max[j]);
         self.touch(j);
         if self.hp[j] == 0 && self.alive[j] != 0 {
             self.alive[j] = 0;
             self.stats.deaths += 1;
+            self.record_death(j, attacker);
         }
     }
 }

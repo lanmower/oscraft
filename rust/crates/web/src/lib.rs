@@ -109,6 +109,30 @@ impl Game {
         self.sim.hurt(unit as usize, sim::fixed::from_int(damage));
     }
 
+    /// Kills credited to unit `unit`.
+    pub fn kills_of(&self, unit: u32) -> u32 {
+        self.sim.kills_of(unit as usize)
+    }
+
+    /// Deaths unit `unit` has suffered.
+    pub fn deaths_of(&self, unit: u32) -> u32 {
+        self.sim.deaths_of(unit as usize)
+    }
+
+    /// Ticks left on ability `slot` of unit `unit` (0 when ready); -1 for an unknown unit or slot.
+    pub fn ability_cooldown(&self, unit: u32, slot: u32) -> i32 {
+        self.sim.ability_cooldown(unit as usize, slot as usize)
+    }
+
+    /// Kill events since the last drain, flat as `[tick, killer, killer_player, victim, victim_player]` per event.
+    pub fn drain_kill_events(&mut self) -> Vec<u32> {
+        self.sim
+            .drain_kill_events()
+            .into_iter()
+            .flat_map(|e| [e.tick, e.killer, e.killer_player as u32, e.victim, e.victim_player as u32])
+            .collect()
+    }
+
     /// Turns the fog of war on or off. The moba preview turns it off so every enemy is a valid target.
     pub fn set_fog(&mut self, on: bool) {
         self.sim.set_fog(on);
