@@ -723,7 +723,14 @@ function saveSnapshot(tick) {
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   const record = { tick, hash: localGame.state_hash().toString(), bytes: btoa(binary), seats: seating.export() };
-  localStorage.setItem(snapshotKey(), JSON.stringify(record));
+  try {
+    localStorage.setItem(snapshotKey(), JSON.stringify(record));
+    delete document.body.dataset.snapshotSkipped;
+  } catch (e) {
+    // The moba state can outgrow the origin quota; the room then runs without a restore point instead of throwing per save.
+    if (e && e.name === "QuotaExceededError") { localStorage.removeItem(snapshotKey()); document.body.dataset.snapshotSkipped = String(tick); return; }
+    throw e;
+  }
 }
 
 // Restores the room from its last snapshot. Returns the restored tick, or -1 after an explicit refusal line.
