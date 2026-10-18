@@ -5,11 +5,12 @@
 
 use crate::arrays::Sim;
 
-/// Cumulative xp at which levels 1, 2, ... are reached. Levels 1 to 5 are the original curve;
-/// the rest reach character level 18, the last ultimate gate. UNVERIFIED: the values past
-/// level 5 are design placeholders, not sourced numbers.
-pub(crate) const DEFAULT_XP_CURVE: [u32; 17] = [
-    100, 250, 500, 900, 1400, 2000, 2700, 3500, 4400, 5400, 6500, 7700, 9000, 10400, 11900, 13500, 15200,
+/// Cumulative xp at which character levels 2 to 30 are reached (level 1 needs none). UNVERIFIED:
+/// the Dota table is an engine constant absent from the npc dump; recalled, and
+/// the 720 and 750 steps to levels 7 and 8 match the patch 7.21 notes.
+pub(crate) const DEFAULT_XP_CURVE: [u32; 29] = [
+    230, 600, 1080, 1660, 2260, 2980, 3730, 4620, 5550, 6520, 7530, 8580, 9805, 11055, 12330, 13630, 14955, 16455,
+    18045, 19645, 21495, 23595, 25945, 28545, 31395, 34495, 37895, 41595, 45595,
 ];
 
 impl Sim {

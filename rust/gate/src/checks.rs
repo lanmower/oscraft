@@ -26,6 +26,9 @@ mod mechanic_checks;
 #[path = "determinism_checks.rs"]
 mod determinism_checks;
 
+#[path = "core_formula_checks.rs"]
+mod core_formula_checks;
+
 pub const CHECKS: &[(&str, Check)] = &[
     ("determinism-replay-hash", determinism_checks::moba_replay_hash),
     ("determinism-save-load-hash", determinism_checks::moba_save_load_hash),
@@ -95,6 +98,8 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("shield-absorbs", sim_checks::shield_absorbs),
     ("shield-bonus", shield_bonus_zero_noop),
     ("armour-reduces", armour_reduces_damage),
+    ("core-armour-formula", core_formula_checks::armour_formula),
+    ("core-xp-table", core_formula_checks::xp_table),
     ("vital-fraction", vital_fraction_zero_noop),
     // CAP-PLR
     ("player-ownership", sim_checks::player_ownership),

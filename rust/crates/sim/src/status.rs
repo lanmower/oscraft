@@ -20,6 +20,10 @@ pub(crate) const STATUS_KINDS: usize = 5;
 /// Q16 speed multiplier of an unslowed unit.
 pub(crate) const SLOW_NONE: i32 = fixed::ONE;
 
+/// Dota movement speed limits (550 maximum, 100 minimum; patch 7.38 notes) in Q16.16 per tick.
+pub(crate) const MOVE_SPEED_MAX_Q16: i32 = 550 * 64;
+pub(crate) const MOVE_SPEED_MIN_Q16: i32 = 100 * 64;
+
 pub(crate) const STUN: usize = 0;
 pub(crate) const SLOW: usize = 1;
 pub(crate) const SILENCE: usize = 2;
@@ -59,13 +63,23 @@ impl Sim {
         self.status_left(i, INVISIBLE) > 0
     }
 
-    /// Unit `i`'s speed after its slow, in the same Q16.16 units as `speed`.
+    /// Unit `i`'s speed after its slow, in the same Q16.16 units as `speed`, held to Dota's limits:
+    /// at most 550 (or the unit type's own base when that is higher) and at least 100 for a unit
+    /// that can move (or its own speed when that is lower). One Dota speed point is 64 in Q16.16
+    /// (1 Dota unit = 15.625 milli, 16 ticks per second).
     pub(crate) fn effective_speed(&self, i: usize) -> i32 {
         let mul = self.slow_multiplier(i);
-        if mul == SLOW_NONE {
-            return self.speed[i];
+        let speed = if mul == SLOW_NONE { self.speed[i] } else { ((self.speed[i] as i64 * mul as i64) >> fixed::SHIFT) as i32 };
+        if self.speed[i] <= 0 {
+            return speed;
         }
-        ((self.speed[i] as i64 * mul as i64) >> fixed::SHIFT) as i32
+        let type_base = match self.type_of[i] {
+            k if k >= 0 => fixed::from_milli(self.cat.units[k as usize].speed),
+            _ => 0,
+        };
+        let cap = MOVE_SPEED_MAX_Q16.max(type_base);
+        let floor = MOVE_SPEED_MIN_Q16.min(self.speed[i]);
+        speed.clamp(floor, cap)
     }
 
     /// Gives unit `i` status `kind` for `ticks` ticks, keeping the longer of the held and new

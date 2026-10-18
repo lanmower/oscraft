@@ -38,7 +38,7 @@ Skills: a hero spends one skill point per character level. Ordinary abilities le
 
 ## Respawn and buyback
 
-`hero_rules.txt` (all UNVERIFIED): a dead hero respawns after `5 + 2 * level` seconds, capped at 60. Buyback costs `100 + 20 * level` gold with a 150 s cooldown. Each hero earns 1 passive gold per second, and `team_share_pct=20` governs the team share of gold.
+Sources: patch notes from the dota2.com datafeed (7.24 to 7.40) and `npc_heroes`/`npc_units` @282fad29. A dead hero respawns after `12 + 3 * (level - 1)` seconds: levels 1 to 5 (12, 15, 18, 21, 24) are from the 7.24 notes, the continuation and the 100 s cap are UNVERIFIED. Buyback costs `(200 + net worth / 13) * 1.15` (7.29 and 7.36 notes; net worth is gold plus item costs); its 480 s cooldown is UNVERIFIED. Hero last-hit gold is `125 + 8 * level` (7.31 notes) and each assisting hero gets `15 + (50 + 0.037 * victim net worth) / assisting heroes` (7.40 notes). Armor reduces physical damage by `0.06a / (1 + 0.06|a|)` with no floor; heroes take ability damage reduced by their magic resistance (25 base, `npc_dota_hero_base`). Movement speed is held to 100..550 (7.38 notes; one Dota speed point is 64 in Q16.16). The xp table (230, 600, 1080 ... 45595 for levels 2 to 30) is an engine constant recalled, UNVERIFIED past level 8. Still not Dota: turn rate, attack point and backswing, projectile speed, evasion, per-unit night vision, fountain regeneration, death gold loss, streak bounties, tower and Roshan magic resistance.
 
 ## Items and shops
 

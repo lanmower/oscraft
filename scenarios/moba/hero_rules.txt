@@ -1,18 +1,21 @@
 # Hero death, buyback and gold rules read by Game.set_hero_rules (rust/crates/sim/src/hero.rs).
-# UNVERIFIED: every value is a placeholder, not a sourced Dota 2 number.
-respawn_base_s=5
-respawn_per_level_s=2
-respawn_cap_s=60
-buyback_base=100
-buyback_per_level=20
-buyback_cooldown_s=150
+# Respawn: 12/15/18/21/24 s at levels 1 to 5 is from the patch 7.24 notes (dota2.com datafeed); the
+# line 9 + 3 * level continues it, and the 100 s cap is UNVERIFIED (the table is an engine constant).
+# Buyback: (200 + net worth / 13) * 1.15 from the patch 7.29 and 7.36 notes: buyback_base 230 here, the
+# net worth share in hero.rs. buyback_cooldown_s 480 is UNVERIFIED (recalled). passive_gold_per_s and
+# team_share_pct are UNVERIFIED placeholders.
+respawn_base_s=12
+respawn_per_level_s=3
+respawn_cap_s=100
+buyback_base=230
+buyback_per_level=0
+buyback_cooldown_s=480
 passive_gold_per_s=1
 team_share_pct=20
 # Mechanics read by sim/src/aggro.rs. Verified from SteamDatabase/GameTracking-Dota2
 # @282fad29f0f74504fad465c52d197fb61f4d612b game/dota/pak01_dir/scripts/npc/npc_abilities.txt backdoor_protection:
 # radius 900, activation_time 15, regen_rate 90. The radius is 900 Dota units scaled by the tower range
-# (6000 milli over 700 units), so 7700: the scale is UNVERIFIED. aggro_priority, aggro_hold_s and
-# backdoor_reduction_pct are UNVERIFIED (the dump has no targeting or damage-cut keys).
+# (6000 milli over 700 units), so 7700: the scale is UNVERIFIED. backdoor_reduction_pct 50 is from the patch 7.29 notes. aggro_priority, aggro_hold_s are UNVERIFIED (the dump has no targeting or damage-cut keys).
 aggro_priority=1
 aggro_hold_s=3
 backdoor_reduction_pct=50

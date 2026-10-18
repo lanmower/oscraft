@@ -17,6 +17,10 @@ const MANA_PER_INT: i32 = 12;
 const DAMAGE_PER_STR: i32 = 1;
 const ARMOUR_PER_AGI_DIV: i64 = 6;
 const HP_REGEN_PER_STR_Q16: i64 = 1966;
+/// Buyback cost is 200 + net worth / 13 (patch 7.29 notes), then 15 percent more (patch 7.36 notes).
+/// The 200 and the 15 percent are in `buyback_base` (230); the net worth share is here.
+const BUYBACK_NET_WORTH_DIV: i64 = 13;
+const BUYBACK_NET_WORTH_PCT: i64 = 115;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HeroRules {
@@ -282,7 +286,8 @@ impl Sim {
             return -1;
         }
         let r = self.heroes.rules;
-        r.buyback_base + r.buyback_per_level * self.level(i) as i32
+        let net_worth_part = self.hero_net_worth(i) as i64 * BUYBACK_NET_WORTH_PCT / (100 * BUYBACK_NET_WORTH_DIV);
+        r.buyback_base + r.buyback_per_level * self.level(i) as i32 + net_worth_part as i32
     }
 
     /// Ticks until hero `i` may buy back again; 0 when ready; -1 for a non-hero.

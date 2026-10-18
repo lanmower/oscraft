@@ -37,17 +37,24 @@ pub struct KillEvent {
     pub victim: u32,
     pub victim_player: u8,
 }
-/// The least a weapon hit can do after armour, so armour never zeroes a hit (Q16.16, one quarter).
-const ARMOUR_FLOOR: i32 = fixed::ONE / 4;
+/// Gold for the last hit on a hero: 125 + 8 per victim level (patch 7.31 notes; unchanged in later
+/// notes). Assist gold is 15 + (50 + 0.037 * victim net worth) / assisting heroes (patch 7.40 notes).
+const HERO_KILL_GOLD_BASE: i32 = 125;
+const HERO_KILL_GOLD_PER_LEVEL: i32 = 8;
+const ASSIST_GOLD_BASE: i64 = 15;
+const ASSIST_GOLD_FLAT: i64 = 50;
+const ASSIST_NET_WORTH_PER_MILLE: i64 = 37;
 
-/// Armour reduction per armour point, Q16.16 (0.06). UNVERIFIED: the standard Dota armour
-/// constant, recalled rather than checked against a source; confirm before relying on it.
+const HERO_BASE_MAGIC_RESIST_PCT: i64 = 25;
+
+/// Armour reduction per armour point, Q16.16 (0.06): Dota's physical damage multiplier is
+/// 1 - 0.06a / (1 + 0.06|a|), with no floor. Engine constant, not in the npc dump.
 const ARMOUR_PER_POINT_Q16: i64 = 3932;
 
 /// Weapon damage after armour, in the units `damage` is given in (whole units or Q16.16). `armour`
 /// is Q16.16, as stored on every unit. Armour `a` scales damage by `1 - k*a / (1 + k*|a|)` with
 /// `k` = ARMOUR_PER_POINT_Q16, so armour never reaches zero and negative armour raises damage.
-/// Never below zero. The attack paths apply ARMOUR_FLOOR after this.
+/// Never below zero.
 pub fn armour_reduced(damage: i32, armour: i32) -> i32 {
     let k = ARMOUR_PER_POINT_Q16;
     let ka = (k * armour as i64) >> fixed::SHIFT;
@@ -201,7 +208,7 @@ impl Sim {
             return;
         }
         let b = best as usize;
-        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[b]).max(ARMOUR_FLOOR), i, b);
+        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[b]), i, b);
         self.cooldown[i] = self.period[i];
         if self.misses(i) {
             return;
@@ -235,7 +242,7 @@ impl Sim {
         if self.cooldown[i] > 0 {
             return Err(self.reject(Refusal::Cooldown));
         }
-        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[target]).max(ARMOUR_FLOOR), i, target);
+        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[target]), i, target);
         self.cooldown[i] = self.period[i];
         if self.misses(i) {
             return Ok(());
@@ -250,12 +257,21 @@ impl Sim {
         self.hurt_by(j, dmg, -1);
     }
 
+    /// Ability damage after the magic resistance of unit `j`: `damage * (100 - resist) / 100`, the
+    /// resist being the hero base of 25 percent (`npc_dota_hero_base` MagicalResistance; 0 for a
+    /// non-hero). Ability damage is magical.
+    fn magic_reduced(&self, j: usize, dmg: i32) -> i32 {
+        let resist = if self.is_hero(j) { HERO_BASE_MAGIC_RESIST_PCT } else { 0 };
+        (dmg as i64 * (100 - resist) / 100) as i32
+    }
+
     /// Ability damage to unit `j` from unit `attacker` (-1 for none). An unknown unit is a no-op.
     pub(crate) fn hurt_by(&mut self, j: usize, dmg: i32, attacker: i32) {
         if j >= self.n {
             return;
         }
         let before = self.hp[j];
+        let dmg = self.magic_reduced(j, dmg);
         self.inflict(j, dmg, attacker);
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
@@ -263,7 +279,11 @@ impl Sim {
     /// Pays the destroyed unit's bounty. Any killer unit keeps it as its own gold, less the team
     /// share (see hero.rs). Only an attackerless kill pays the rival side's resource pool.
     fn pay_bounty(&mut self, j: usize, attacker: i32) {
-        let bounty = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty);
+        let bounty = if self.is_hero(j) {
+            HERO_KILL_GOLD_BASE + HERO_KILL_GOLD_PER_LEVEL * self.character_level(j) as i32
+        } else {
+            self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
+        };
         if bounty <= 0 || self.was_denied(j, attacker) {
             return;
         }
@@ -431,6 +451,8 @@ impl Sim {
     fn credit_assists(&mut self, j: usize, killer: usize) {
         let base = j * ASSIST_SLOTS;
         let side = self.player[killer];
+        let mut helpers = [0usize; ASSIST_SLOTS];
+        let mut helper_count = 0;
         for s in base..base + ASSIST_SLOTS {
             let id = self.hitter_id[s];
             self.hitter_id[s] = -1;
@@ -439,8 +461,31 @@ impl Sim {
             }
             if self.ticks.wrapping_sub(self.hitter_tick[s]) <= ASSIST_WINDOW {
                 self.unit_assists[id as usize] = self.unit_assists[id as usize].saturating_add(1);
+                if self.is_hero(id as usize) && !helpers[..helper_count].contains(&(id as usize)) {
+                    helpers[helper_count] = id as usize;
+                    helper_count += 1;
+                }
             }
         }
+        if helper_count == 0 || !self.is_hero(j) || !self.hostile(self.player[killer], self.player[j]) {
+            return;
+        }
+        let shared = (ASSIST_GOLD_FLAT * 1000 + self.hero_net_worth(j) as i64 * ASSIST_NET_WORTH_PER_MILLE) / 1000;
+        let each = (ASSIST_GOLD_BASE + shared / helper_count as i64) as i32;
+        for &u in &helpers[..helper_count] {
+            self.heroes.gold[u] = self.heroes.gold[u].saturating_add(each);
+        }
+    }
+
+    /// Gold held by hero `j` plus the cost of the items in its inventory and stash.
+    pub(crate) fn hero_net_worth(&self, j: usize) -> i32 {
+        let slots = j * crate::inventory::INV_SLOTS..(j + 1) * crate::inventory::INV_SLOTS;
+        let items: i64 = slots
+            .flat_map(|s| [(self.inv_kind[s], self.inv_count[s]), (self.stash_kind[s], self.stash_count[s])])
+            .filter(|&(kind, count)| kind != 0 && count > 0)
+            .map(|(kind, count)| self.cat.items.get(kind as usize - 1).map_or(0, |it| it.cost as i64) * count as i64)
+            .sum();
+        (self.hero_gold(j) as i64 + items).min(i32::MAX as i64) as i32
     }
 
     /// Each player's post-game tally: kills, deaths, assists, gold, xp and held items, summed over
