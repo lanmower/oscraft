@@ -2004,24 +2004,45 @@ jobs:
           };
           // Creeps from the two sides first come into reach mid-lane, so wait on the sim tick (16 per second) for a hostile pair
           // within 8 cells, for at most 180 game seconds. The attacker check below still has to pass.
-          await page.waitForFunction(() => {
-            if (Number(document.body.dataset.ticks) >= 16 * 180) return true;
-            const us = window.__ciUnits();
-            return us.some((a) => a.player !== 255 && window.__ciIsHero(a.id) && us.some((b) => b !== a && (a.x - b.x) ** 2 + (a.z - b.z) ** 2 <= 64 && window.__ciHostile(a.player, b.player)));
-          }, null, { timeout: 240000, polling: 500 }).catch(() => {});
+          // Each poll logs the local hero (id, position, HUD hp), the nearest hostile to any hero (type, player, cells), and the hero count,
+          // so a run that loses its hero during the wait shows when and how it happened.
+          const waitDeadline = Date.now() + 240000;
+          let waited = null;
+          for (;;) {
+            waited = await page.evaluate((me) => {
+              const us = window.__ciUnits();
+              const hero = us.find((u) => u.player === me && window.__ciIsHero(u.id)) || null;
+              let heroes = 0;
+              let best = Infinity;
+              let nearestUnit = null;
+              let pair = false;
+              for (const a of us) {
+                if (a.player === 255 || !window.__ciIsHero(a.id)) continue;
+                heroes += 1;
+                for (const b of us) {
+                  if (b === a || !window.__ciHostile(a.player, b.player)) continue;
+                  const d = (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
+                  if (d <= 64) pair = true;
+                  if (d < best) { best = d; nearestUnit = b; }
+                }
+              }
+              return {
+                ticks: Number(document.body.dataset.ticks),
+                hp: document.body.dataset.hp,
+                hero: hero && { id: hero.id, type: hero.type, x: hero.x, z: hero.z },
+                nearest: nearestUnit && { type: nearestUnit.type, player: nearestUnit.player, cells: Math.sqrt(best) },
+                heroes,
+                pair,
+              };
+            }, localPlayer);
+            const heroText = waited.hero ? `${waited.hero.id}:${waited.hero.type}@${waited.hero.x.toFixed(0)},${waited.hero.z.toFixed(0)}` : "none";
+            const nearestText = waited.nearest ? `${waited.nearest.type}/p${waited.nearest.player}@${waited.nearest.cells.toFixed(2)}` : "none";
+            console.log(`probe poll ticks=${waited.ticks} hero=${heroText} hp=${waited.hp} heroes=${waited.heroes} nearest=${nearestText}`);
+            if (waited.ticks >= 16 * 180 || waited.pair || Date.now() >= waitDeadline) break;
+            await page.waitForTimeout(500);
+          }
           // The wait moves the units, so the candidates, foes and hostile pairs are read from the sim after it, not from the start.
-          const waited = await page.evaluate(() => {
-            const us = window.__ciUnits();
-            let best = Infinity;
-            let heroes = 0;
-            for (const a of us) {
-              if (a.player === 255 || !window.__ciIsHero(a.id)) continue;
-              heroes += 1;
-              for (const b of us) if (b !== a && window.__ciHostile(a.player, b.player)) best = Math.min(best, (a.x - b.x) ** 2 + (a.z - b.z) ** 2);
-            }
-            return { ticks: Number(document.body.dataset.ticks), heroes, nearest: best === Infinity ? -1 : Math.sqrt(best) };
-          });
-          console.log(`probe wait ticks=${waited.ticks} heroes=${waited.heroes} nearest_hero_hostile_cells=${waited.nearest.toFixed(2)}`);
+          console.log(`probe wait ticks=${waited.ticks} heroes=${waited.heroes} nearest_hero_hostile_cells=${waited.nearest ? waited.nearest.cells.toFixed(2) : "-1.00"}`);
           const live = await page.evaluate(() => window.__ciUnits());
           // Only heroes cast (a creep has no ability slots), and neutral camp units (player 255) never cast or attack in this probe.
           const heroIds = new Set(await page.evaluate((ids) => ids.filter((id) => window.__ciIsHero(id)), live.map((u) => u.id)));
@@ -2074,7 +2095,7 @@ jobs:
             }
             if (attacker) break;
           }
-          if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + ` ticks=${waited.ticks} nearest_hostile_cells=${waited.nearest.toFixed(2)} ranked=${ranked.length}`);
+          if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + ` ticks=${waited.ticks} nearest_hostile_cells=${waited.nearest ? waited.nearest.cells.toFixed(2) : "-1.00"} ranked=${ranked.length}`);
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
           await page.evaluate(() => window.__ciKillSide(1));
