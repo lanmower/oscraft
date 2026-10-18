@@ -234,9 +234,11 @@ function currentUnits() {
   // Older wasm builds have no unit_types or unit_hps export; their units draw as quads without health bars.
   const types = typeof localGame.unit_types === "function" ? localGame.unit_types() : null;
   const hps = typeof localGame.unit_hps === "function" ? localGame.unit_hps() : null;
+  // Older wasm builds lack unit_attacking; their units never report an attack clip.
+  const attacking = typeof localGame.unit_attacking === "function" ? localGame.unit_attacking() : null;
   const out = [];
   for (let i = 0; i < ids.length; i++) {
-    out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1 }));
+    out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1, attacking: attacking ? attacking[i] === 1 : false }));
   }
   return out;
 }

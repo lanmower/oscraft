@@ -50,6 +50,14 @@ impl Game {
             .collect()
     }
 
+    /// 1 when the living unit is mid-strike (its weapon is recharging after a hit), else 0, in the same order as `unit_ids()`.
+    pub fn unit_attacking(&self) -> Vec<u8> {
+        (0..self.sim.count())
+            .filter(|&i| self.sim.alive(i))
+            .map(|i| u8::from(self.sim.weapon_cooldown(i) > 0))
+            .collect()
+    }
+
     /// Hit points of the living units, in whole points, in the same order as `unit_ids()`.
     pub fn unit_hps(&self) -> Vec<i32> {
         (0..self.sim.count())
