@@ -3,9 +3,9 @@
 import { createDataSession, createFSM, NostrAuth, RelayPool } from "wireweave";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
-import { encodeFrame, decodeFrame, FRAME } from "./wire/frame.js";
+import { encodeFrame, decodeFrame, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import { applyFrame, createStateEncoder } from "./delta.js";
+import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, jointMatrices } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { createHud } from "./hud.js";
@@ -14,7 +14,7 @@ import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, mu
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { bakeTiles, fitModel, planarUvs, TILE_MODELS, TILE_TINTS } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
-import { createLobby } from "./lobby.js";
+import { createLobby, HERO_ROSTER } from "./lobby.js";
 import { createFogView } from "./fogview.js";
 import { createShop } from "./ui_shop.js";
 import { createSkills } from "./ui_skills.js";
@@ -47,7 +47,8 @@ const RECONNECT_CAP_MS = 16000;
 const RECONNECT_MAX_ATTEMPTS = 6;
 const HOST_TICK_MS = 100;
 const WIRE_SCALE = 1000;
-const MAX_PLAYERS = 256;
+const ROSTER_EVERY_TICKS = 10;
+const U16_MAX = 0xffff;
 
 const params = new URLSearchParams(location.search);
 const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
@@ -95,7 +96,16 @@ let orders = 0;
 let pointer = null;
 let lastFrameMs = 0;
 const keysDown = new Set();
-const hostPlayers = new Map();
+const seating = createSeating();
+const autoSeats = [];
+let seatsExplicit = false;
+let encoder = createStateEncoder();
+let myPlayer = 0;
+let lastAppliedTick = 0;
+let rosterView = null;
+let heroKinds = new Map();
+const localPlayerId = () => myPlayer;
+const isGuest = () => netTick >= 0;
 
 function setStatus(extra) {
   const mode = netState ? "net" : "local";
@@ -217,6 +227,12 @@ function anchored(u) {
 
 function currentUnits() {
   if (netState) return netState.units.map(anchored);
+  const out = simUnits();
+  return fogview ? fogview.filter(out) : out;
+}
+
+// Every living unit of the local sim, unfiltered by fog: the host's view for seats, stats and command ownership.
+function simUnits() {
   if (!localGame) return [];
   const flat = localGame.units();
   const ids = localGame.unit_ids();
@@ -229,7 +245,7 @@ function currentUnits() {
   for (let i = 0; i < ids.length; i++) {
     out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1, attacking: attacking ? attacking[i] === 1 : false }));
   }
-  return fogview ? fogview.filter(out) : out;
+  return out;
 }
 
 // Draw counts per mesh kind for the current frame, published on the body for the browser probe.
@@ -469,27 +485,93 @@ function bindInput() {
   window.addEventListener("resize", resize);
 }
 
-// Browser host: this page owns the sim (localGame). Each peer is assigned a player id when its channel opens
-// (the lowest id no other peer holds); an order is applied only when the unit's player is the sender's.
+// Browser host: this page owns the sim (localGame). Seats come from the lobby START frame (seating.start); before a
+// START a joining peer takes the lowest free slot. A seat is kept by its key, so a reconnecting peer gets it back.
 // Every HOST_TICK_MS the host ticks the sim and broadcasts that tick's state through the delta encoder (delta.js).
-function assignPlayer(players, peerPubkey) {
-  if (players.has(peerPubkey)) return players.get(peerPubkey);
-  const taken = new Set(players.values());
-  for (let p = 0; p < MAX_PLAYERS; p++) {
-    if (!taken.has(p)) {
-      players.set(peerPubkey, p);
-      return p;
+function autoSeat(peerPubkey) {
+  if (seatsExplicit || seating.seat(peerPubkey).you !== SPECTATOR) return;
+  const taken = new Set(autoSeats.map((s) => s.slot));
+  for (let slot = 0; slot < MAX_PLAYERS; slot++) {
+    if (!taken.has(slot)) {
+      autoSeats.push({ slot, owner: peerPubkey, hero: "" });
+      seating.start(autoSeats);
+      return;
     }
   }
-  return null;
+}
+
+function sendTo(peerPubkey, bytes) {
+  if (typeof session.send === "function") session.send(peerPubkey, bytes);
+  else session.broadcast(bytes);
+}
+
+function sendRoster(peerPubkey) {
+  sendTo(peerPubkey, encodeFrame(seating.roster(peerPubkey)));
+}
+
+function heroOf(slot) {
+  return simUnits().find((u) => u.player === slot && isHeroUnit(u.id)) || null;
+}
+
+function isHeroUnit(id) {
+  return typeof localGame.attributes === "function" && localGame.attributes(id).some((v) => v !== 0);
+}
+
+function refreshSeatStats() {
+  for (const { slot } of seating.export()) {
+    const hero = heroOf(slot);
+    if (!hero) continue;
+    seating.setStats(slot, {
+      gold: typeof localGame.hero_gold === "function" ? localGame.hero_gold(hero.id) : localGame.gold(slot),
+      kills: Math.min(U16_MAX, typeof localGame.kills_of === "function" ? localGame.kills_of(hero.id) : 0),
+      deaths: Math.min(U16_MAX, typeof localGame.deaths_of === "function" ? localGame.deaths_of(hero.id) : 0),
+    });
+  }
+}
+
+// Seats a hero for each START seat whose player owns none yet: the picked hero type, at its team's side of the map.
+function spawnSeatHeroes(seats) {
+  if (typeof localGame.spawn_hero !== "function") return;
+  for (const seat of seats) {
+    if (heroOf(seat.slot)) continue;
+    const kind = heroKinds.get(seat.hero) ?? [...heroKinds.values()][0] ?? 0;
+    localGame.spawn_hero(seat.slot, kind, seat.slot < 5 ? W * 0.1 : W * 0.9, H / 2);
+  }
+}
+
+// Applies a START (the lobby's own or a peer's): seats the players, spawns heroes and, on the host, tells every peer.
+function applyStart(frame) {
+  seating.start(frame.seats);
+  seatsExplicit = true;
+  const mine = seating.seat(auth.pubkey);
+  if (mine.you !== SPECTATOR) myPlayer = mine.you;
+  if (!isGuest()) spawnSeatHeroes(frame.seats);
+  document.body.dataset.seated = String(seating.size());
+  if (hosting) {
+    encoder.keyframe();
+    for (const key of peers) sendRoster(key);
+  }
+}
+
+function endLobby() {
+  const lobbyEl = document.getElementById("lobby");
+  if (lobbyEl) lobbyEl.hidden = true;
+  window.dispatchEvent(new Event("oscraft:horn"));
+}
+
+function onLobbyStart(state) {
+  const frame = startFrame(state);
+  setStatus("lobby: match starting");
+  if (!isGuest()) applyStart(frame);
+  try { session.broadcast(encodeFrame(frame)); } catch { /* the frame is refused when a seat key is oversize */ }
 }
 
 // A peer's move, cast or attack runs on the host only for a unit the peer's player owns. Accepted casts and
 // attacks are counted on the host page (data-remote-casts, data-remote-attacks) for the CI witness.
 function applyPeerCommand(peerPubkey, command) {
-  const player = hostPlayers.get(peerPubkey);
-  const unit = currentUnits().find((u) => u.id === command.unitId);
-  if (player === undefined || !unit || unit.player !== player) {
+  const player = seating.seat(peerPubkey).you;
+  const unit = simUnits().find((u) => u.id === command.unitId);
+  if (player === SPECTATOR || !unit || unit.player !== player) {
     setStatus(`order refused not_owner peer=${String(peerPubkey).slice(0, 8)} unit=${command.unitId}`);
     document.body.dataset.lastRefusal = `not_owner unit=${command.unitId}`;
     return false;
@@ -525,7 +607,7 @@ function saveSnapshot(tick) {
   const bytes = localGame.save_state();
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  const record = { tick, hash: localGame.state_hash().toString(), bytes: btoa(binary) };
+  const record = { tick, hash: localGame.state_hash().toString(), bytes: btoa(binary), seats: seating.export() };
   localStorage.setItem(snapshotKey(), JSON.stringify(record));
 }
 
@@ -542,6 +624,10 @@ function restoreSnapshot() {
     localGame.load_state(bytes);
     const hash = localGame.state_hash().toString();
     if (hash !== record.hash) throw new Error(`hash ${hash} does not match stored ${record.hash}`);
+    if (Array.isArray(record.seats) && record.seats.length > 0) {
+      seating.restore(record.seats);
+      seatsExplicit = true;
+    }
     document.body.dataset.restoredTick = String(record.tick);
     document.body.dataset.restoredHash = hash;
     setStatus(`snapshot: restored tick=${record.tick} state_hash=${hash}`);
@@ -555,7 +641,7 @@ function restoreSnapshot() {
 
 function startHost() {
   hosting = true;
-  const encoder = createStateEncoder();
+  encoder = createStateEncoder();
   const restoredAt = restoreSnapshot();
   let hostTick = restoredAt > 0 ? restoredAt : 0;
   setInterval(() => {
@@ -569,6 +655,10 @@ function startHost() {
     const bytes = encodeFrame(frame);
     if (window.__ciFrames && window.__ciFrames.length < 200) window.__ciFrames.push({ type: frame.type, bytes: bytes.byteLength });
     session.broadcast(bytes);
+    if (hostTick % ROSTER_EVERY_TICKS === 0) {
+      refreshSeatStats();
+      for (const key of peers) sendRoster(key);
+    }
   }, HOST_TICK_MS);
   setStatus("hosting");
 }
@@ -610,7 +700,6 @@ function sendAttack(unitId, targetId) {
 const fsm = createFSM(xstate);
 const auth = new NostrAuth({ nostrTools: NostrTools });
 auth.loadFromStorage() || auth.generateKey();
-createLobby({ playerId: auth.pubkey || "local", onStart: () => setStatus("lobby: match starting") });
 const relayPool = new RelayPool({
   verifyEvent: NostrTools.verifyEvent,
   ...(relayUrls ? { relays: relayUrls, fallbackRelays: [], autoRotate: false } : {}),
@@ -634,14 +723,14 @@ function announceRoom() {
   auth.sign({
     kind: ROOM_KIND,
     created_at: Math.floor(Date.now() / 1000),
-    tags: [["d", `oscraft-room:${namespace}:${room}`], ["t", ROOM_TAG], ["ns", namespace], ["room", room]],
+    tags: [["d", `oscraft-room:${namespace}:${room}`], ["t", ROOM_TAG], ["ns", namespace], ["room", room], ["players", String(Math.min(MAX_PLAYERS, hosting ? seating.size() + 1 : peers.size + 1))]],
     content: "",
   }).then((signed) => relayPool.publish(signed)).catch(() => {});
 }
 
 function showRooms() {
-  const names = [...announcedRooms.keys()].sort();
-  const key = names.join(",");
+  const names = [...announcedRooms].map(([name, a]) => ({ name, players: a.players })).sort((a, b) => a.name.localeCompare(b.name));
+  const key = names.map((n) => `${n.name}:${n.players}`).join(",");
   if (key === shownRooms) return;
   shownRooms = key;
   window.dispatchEvent(new CustomEvent("oscraft:rooms", { detail: { rooms: names } }));
@@ -649,8 +738,8 @@ function showRooms() {
 
 function pruneRooms() {
   const nowS = Math.floor(Date.now() / 1000);
-  for (const [name, createdAt] of announcedRooms) {
-    if (nowS - createdAt > ROOM_TTL_S) announcedRooms.delete(name);
+  for (const [name, entry] of announcedRooms) {
+    if (nowS - entry.createdAt > ROOM_TTL_S) announcedRooms.delete(name);
   }
   showRooms();
 }
@@ -659,7 +748,7 @@ relayPool.subscribe("oscraft-rooms", [{ kinds: [ROOM_KIND], "#t": [ROOM_TAG] }],
   const tagValue = (name) => (event.tags.find((t) => t[0] === name) || [])[1];
   if (tagValue("ns") !== namespace || typeof tagValue("room") !== "string") return;
   if (Math.floor(Date.now() / 1000) - event.created_at > ROOM_TTL_S) return;
-  announcedRooms.set(tagValue("room"), event.created_at);
+  announcedRooms.set(tagValue("room"), { createdAt: event.created_at, players: Number(tagValue("players")) || 1 });
   pruneRooms();
 });
 announceRoom();
@@ -684,12 +773,21 @@ const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, cre
 
 session.addEventListener("peer-open", (e) => {
   peers.add(e.detail.peerPubkey);
-  if (hosting) assignPlayer(hostPlayers, e.detail.peerPubkey);
+  if (hosting) {
+    const key = e.detail.peerPubkey;
+    seating.join(key);
+    autoSeat(key);
+    encoder.keyframe();
+    sendRoster(key);
+  } else {
+    try { sendTo(e.detail.peerPubkey, encodeFrame({ type: FRAME.JOIN, lastTick: lastAppliedTick })); } catch { /* the host asks again on the next join */ }
+  }
   reconnectAttempt = 0;
   setStatus(`peer-open ${String(e.detail.peerPubkey).slice(0, 8)}`);
 });
 session.addEventListener("peer-close", (e) => {
   peers.delete(e.detail.peerPubkey);
+  if (hosting) seating.leave(e.detail.peerPubkey);
   setStatus(`peer-close ${String(e.detail.peerPubkey).slice(0, 8)}`);
   if (peers.size === 0) {
     netTick = -1;
@@ -705,10 +803,40 @@ session.addEventListener("data", (e) => {
     if (hosting) applyPeerCommand(e.detail.peerPubkey, frame);
     return;
   }
+  if (frame.type === FRAME.JOIN) {
+    if (hosting) {
+      seating.join(e.detail.peerPubkey);
+      encoder.keyframe();
+      sendRoster(e.detail.peerPubkey);
+    }
+    return;
+  }
+  if (frame.type === FRAME.START) {
+    const sender = e.detail.peerPubkey;
+    if (hosting && !frame.seats.some((s) => s.owner === sender)) return;
+    if (hosting) {
+      applyStart(frame);
+      for (const key of peers) if (key !== sender) sendTo(key, encodeFrame(frame));
+    } else {
+      seatsExplicit = true;
+    }
+    endLobby();
+    return;
+  }
+  if (frame.type === FRAME.ROSTER) {
+    if (hosting) return;
+    rosterView = frame;
+    if (frame.you !== SPECTATOR) myPlayer = frame.you;
+    document.body.dataset.you = String(frame.you);
+    document.body.dataset.players = String(frame.players.length);
+    return;
+  }
   if (hosting) return;
+  if (frame.type !== FRAME.STATE && frame.type !== FRAME.DELTA) return;
   if (frame.tick <= netTick) return;
   if (!applyFrame(netUnits, frame)) return;
   netTick = frame.tick;
+  lastAppliedTick = frame.tick;
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp, type: u.kind })) };
   if (window.__ciRecv) recordTick(window.__ciRecv, frame.tick, [...netUnits.values()]);
 });
@@ -738,7 +866,33 @@ function publishWitness() {
   document.body.dataset.attacks = String(attacks);
   if (hud) hud.update();
   if (hud5) hud5.update();
-  for (const panel of heroPanels) panel.update();
+  for (const panel of heroPanels) {
+    if (netState) panel.root.hidden = true;
+    else panel.update();
+  }
+}
+
+// The hero panels read and act on the local sim, so they need every hero export of the wasm build and show only
+// where this page owns the sim; a guest's page keeps them hidden.
+function hasHeroApi(game) {
+  return ["buy", "item_catalog_json", "abilities_json", "inventory_json", "character_level", "skill_points"].every((name) => typeof game[name] === "function");
+}
+
+// Hero picks for the lobby, read from the live sim: the model name of each unit type held by a living hero
+// (a unit with attributes), mapped to its type index for spawn_hero. Falls back to the scenario roster.
+function liveHeroRoster(game) {
+  heroKinds = new Map();
+  if (typeof game.unit_types === "function" && typeof game.attributes === "function") {
+    const names = typeof game.unit_model_names === "function" ? game.unit_model_names() : [];
+    const ids = game.unit_ids();
+    const types = game.unit_types();
+    ids.forEach((id, i) => {
+      if (!game.attributes(id).some((v) => v !== 0)) return;
+      const label = names[types[i]] || `type${types[i]}`;
+      if (!heroKinds.has(label)) heroKinds.set(label, types[i]);
+    });
+  }
+  return heroKinds.size > 0 ? [...heroKinds.keys()] : HERO_ROSTER;
 }
 
 function createBarCanvas() {
@@ -832,7 +986,7 @@ async function main() {
     units: currentUnits,
     selected: () => selectedId,
     select: (unitId) => { selectedId = unitId; },
-    localPlayer: () => 0,
+    localPlayer: localPlayerId,
     commands,
     pick,
     toWorld: screenToWorld,
@@ -840,19 +994,21 @@ async function main() {
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId });
-  hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: () => 0 });
+  hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: localPlayerId });
   const eventsBase = params.get("events");
   const modUi = createModUi({
     root: document.body,
     renderer: () => renderer3d,
-    localPlayer: () => 0,
+    localPlayer: localPlayerId,
     defaultDistance: () => cameraDistance,
     baseUrl: eventsBase === null ? undefined : eventsBase.replace(/\/$/, ""),
   });
   window.__modUi = modUi;
-  const heroUi = { game: localGame, selected: () => selectedId, localPlayer: () => 0 };
-  if (typeof localGame.buy === "function") heroPanels.push(createShop(heroUi), createSkills(heroUi), createInventory(heroUi));
-  fogview = createFogView({ game: localGame, localPlayer: () => 0, toScreen: worldToScreen, groundAt });
+  const heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId };
+  if (hasHeroApi(localGame)) heroPanels.push(createShop(heroUi), createSkills(heroUi), createInventory(heroUi));
+  const heroNames = liveHeroRoster(localGame);
+  createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
+  fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toScreen: worldToScreen, groundAt });
   if (params.get("host") === "1") startHost();
   joinRoom();
 
