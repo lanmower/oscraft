@@ -853,7 +853,6 @@ if (params.get("ci") === "1") {
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
   window.__ciLearn = (unitId, slot) => (localGame ? localGame.skill_up(unitId, slot) : false);
   window.__ciHostile = (a, b) => localGame.hostile(a, b);
-  window.__ciLocalAttack = (unitId, targetId) => localGame.attack(unitId, targetId);
   window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
   window.__ciSent = new Map();
   window.__ciRecv = new Map();
