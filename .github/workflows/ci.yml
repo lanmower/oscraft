@@ -1826,11 +1826,14 @@ jobs:
           if (!units.length) throw new Error("no units to order");
           // The 3D camera moves with the arrow keys and zoom, so the ground-to-pixel mapping is read from the page each time.
           const screenAt = (x, z) => page.evaluate(([px, pz]) => window.__ciToScreen(px, pz), [x, z]);
-          // Click the unit with the most room around it, so the pick cannot land on a neighbour.
-          const unit = units.reduce((best, cand) => {
+          // Click the player's own unit with the most room around it, so the pick cannot land on a neighbour.
+          // Neutral camp units (player 255) cannot take orders, so they are never the candidate.
+          const own = units.filter((u) => u.player === 0);
+          if (!own.length) throw new Error("player 0 has no unit to order");
+          const unit = own.reduce((best, cand) => {
             const gap = Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));
             return gap > best.gap ? { unit: cand, gap } : best;
-          }, { unit: units[0], gap: -1 }).unit;
+          }, { unit: own[0], gap: -1 }).unit;
           const at = await screenAt(unit.x, unit.z);
           await page.mouse.click(at.x, at.y, { button: "left" });
           const selected = await page.evaluate(() => window.__ciSelected());
