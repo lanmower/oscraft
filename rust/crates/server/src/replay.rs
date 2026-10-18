@@ -293,7 +293,8 @@ fn num<T: FromStr>(it: &mut SplitWhitespace) -> Option<T> {
 }
 
 impl Command {
-    /// Applies the command; false when the sim refused it. A refusal changes nothing.
+    /// Applies the command; false when the sim refused it. A refusal leaves unit state alone but
+    /// bumps the refusal counters, which the state hash covers.
     pub fn apply(&self, sim: &mut Sim) -> bool {
         match *self {
             Command::Order { unit, x, y } => {
@@ -317,12 +318,6 @@ impl Command {
             }
             Command::Cadence { .. } => true,
         }
-    }
-
-    /// True for the commands whose refusal still leaves a mark on the sim state (an attack that
-    /// cannot start still turns the unit; a refused cast still advances sim state), so a recording must keep it.
-    fn refusal_mutates(&self) -> bool {
-        matches!(self, Command::Attack { .. } | Command::Cast { .. })
     }
 
     fn encode(&self) -> String {
@@ -414,12 +409,11 @@ impl Recording {
         self.write_line(&format!("{tick} {}", cmd.encode()), false);
     }
 
-    /// Applies `cmd` to `sim` and records it at the sim's tick when the sim accepted it.
+    /// Applies `cmd` to `sim` and records it at the sim's tick, refused or not: a refusal bumps the
+    /// refusal counters the state hash covers, so playback must attempt it too.
     pub fn apply(&mut self, sim: &mut Sim, cmd: Command) -> bool {
         let accepted = cmd.apply(sim);
-        if accepted || cmd.refusal_mutates() {
-            self.note(sim.ticks(), cmd);
-        }
+        self.note(sim.ticks(), cmd);
         accepted
     }
 
