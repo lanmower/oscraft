@@ -153,7 +153,7 @@ with `game.cmd_cast`. An unknown kind fails with `unknown_effect`, a bad name wi
 
 The first winner stands; a later `victory` or `defeat` changes nothing.
 
-## Gap list against Warcraft III and StarCraft II modding
+## Gap list against the map-editor modding of earlier RTS and arena games
 
 Status: done (in the API), partial (a piece exists), missing (not in the API).
 
