@@ -23,7 +23,13 @@ pub type Check = fn(&[u8]) -> Result<(), String>;
 #[path = "mechanic_checks.rs"]
 mod mechanic_checks;
 
+#[path = "determinism_checks.rs"]
+mod determinism_checks;
+
 pub const CHECKS: &[(&str, Check)] = &[
+    ("determinism-replay-hash", determinism_checks::moba_replay_hash),
+    ("determinism-save-load-hash", determinism_checks::moba_save_load_hash),
+    ("determinism-parity-hash", determinism_checks::moba_parity_hash),
     ("mechanic-unit-spawn", mechanic_checks::unit_spawn),
     ("mechanic-ability-use", mechanic_checks::ability_use),
     ("mechanic-economy-transfer", mechanic_checks::economy_transfer),

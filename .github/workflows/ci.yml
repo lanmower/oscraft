@@ -360,6 +360,13 @@ jobs:
           pattern: gate-output-*
           path: outputs
 
+      - name: Require one determinism hash across OSes
+        run: |
+          set -euo pipefail
+          grep -h '^determinism-parity ' outputs/*/gate.txt | sort | uniq -c
+          test "$(grep -h '^determinism-parity ' outputs/*/gate.txt | sort -u | wc -l)" = 1
+          test "$(grep -l '^determinism-parity ' outputs/*/gate.txt | wc -l)" -ge 3
+
   server-caps-and-ticks:
     name: "server caps, ticks, supervisor and client error probes"
     runs-on: ubuntu-latest
@@ -3136,6 +3143,8 @@ jobs:
           grep -qE '^wasip3 tick ok ticks=10 units=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
           grep -q '^wasip3 mod-load ok mod=wasip3-test$' "$RUNNER_TEMP/wasip3.txt"
           grep -qE '^wasip3 mod-trigger ok mod=tower_buff fired=[1-9][0-9]* applied=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
+          grep -Eq '^mod-state lives=0 score=3 ticks=0 waves=3 winner=1$' "$RUNNER_TEMP/wasip3.txt"
+          grep -Eq '^mod-state effects=2 gold=250 ticks=0 winner=0$' "$RUNNER_TEMP/wasip3.txt"
 
   browser-two-peers:
     name: "browser host and browser peer over wireweave: one order moves a unit on both pages"
