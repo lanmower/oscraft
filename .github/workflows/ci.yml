@@ -363,9 +363,10 @@ jobs:
       - name: Require one determinism hash across OSes
         run: |
           set -euo pipefail
-          grep -h '^determinism-parity ' outputs/*/gate.txt | sort | uniq -c
-          test "$(grep -h '^determinism-parity ' outputs/*/gate.txt | sort -u | wc -l)" = 1
-          test "$(grep -l '^determinism-parity ' outputs/*/gate.txt | wc -l)" -ge 3
+          parity=$(for f in outputs/*/gate.txt; do tr -d '\r' < "$f" | grep '^determinism-parity ' || true; done)
+          echo "$parity" | sort | uniq -c
+          test "$(echo "$parity" | sort -u | wc -l)" = 1
+          test "$(echo "$parity" | grep -c '^determinism-parity ')" -ge 3
 
   server-caps-and-ticks:
     name: "server caps, ticks, supervisor and client error probes"
