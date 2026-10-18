@@ -179,12 +179,13 @@ const FRAG = `#version 300 es
 precision mediump float;
 in vec3 vNormal; in vec2 vUv;
 uniform vec3 uColor; uniform bool uUseTex; uniform sampler2D uTex;
+uniform float uAlpha; uniform bool uGlow; // optional additive blend mode (fx.js)
 out vec4 outColor;
 void main() {
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(vNormal), light), 0.0);
   vec3 base = uUseTex ? texture(uTex, vUv).rgb : uColor;
-  outColor = vec4(base * (0.3 + 0.7 * diffuse), 1.0);
+  outColor = uGlow ? vec4(base, uAlpha) : vec4(base * (0.3 + 0.7 * diffuse), 1.0);
 }`;
 
 function compile(gl, type, source) {
@@ -224,6 +225,8 @@ export function createRenderer(gl) {
     tex: gl.getUniformLocation(program, "uTex"),
     skinned: gl.getUniformLocation(program, "uSkinned"),
     joints: gl.getUniformLocation(program, "uJoints[0]"),
+    alpha: gl.getUniformLocation(program, "uAlpha"),
+    glow: gl.getUniformLocation(program, "uGlow"),
   };
   gl.uniform1i(uni.tex, 0);
   gl.enable(gl.DEPTH_TEST);
@@ -337,6 +340,15 @@ export function createRenderer(gl) {
     gl.uniformMatrix4fv(uni.model, false, model);
     gl.uniformMatrix3fv(uni.normal, false, normalMatrix(model));
     gl.uniform3fv(uni.color, mesh.color || [1, 1, 1]);
+    // Optional blend mode: mesh.blend === "add" draws unlit, additive, without depth writes, with mesh.alpha.
+    const glow = mesh.blend === "add";
+    gl.uniform1i(uni.glow, glow ? 1 : 0);
+    gl.uniform1f(uni.alpha, mesh.alpha ?? 1);
+    if (glow) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.depthMask(false);
+    }
     gl.uniform1i(uni.useTex, mesh.texture ? 1 : 0);
     if (mesh.texture) {
       gl.activeTexture(gl.TEXTURE0);
@@ -347,6 +359,10 @@ export function createRenderer(gl) {
       gl.drawElements(gl.TRIANGLES, buf.count, buf.indexType, 0);
     } else {
       gl.drawArrays(gl.TRIANGLES, 0, buf.count);
+    }
+    if (glow) {
+      gl.disable(gl.BLEND);
+      gl.depthMask(true);
     }
   }
 }
