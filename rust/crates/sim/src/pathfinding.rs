@@ -253,6 +253,7 @@ impl Field {
             return true;
         }
         let (w, h) = (self.w, self.h);
+        let nb_off: [i32; 8] = std::array::from_fn(|k| NB_DY[k] * w + NB_DX[k]);
         let mut n = 0usize;
         while n < budget {
             while self.cur.is_empty() {
@@ -278,32 +279,42 @@ impl Field {
             let cy = c as i32 / w;
             let cx = c as i32 - cy * w;
             let dc = self.dist[c];
-            let row = cy * w;
+            let interior = cx > 0 && cy > 0 && cx < w - 1 && cy < h - 1;
             for k in 0..8usize {
-                let nx = cx + NB_DX[k];
-                let ny = cy + NB_DY[k];
-                if nx < 0 || ny < 0 || nx >= w || ny >= h {
+                let nn = if interior {
+                    (c as i32 + nb_off[k]) as usize
+                } else {
+                    let nx = cx + NB_DX[k];
+                    let ny = cy + NB_DY[k];
+                    if nx < 0 || ny < 0 || nx >= w || ny >= h {
+                        continue;
+                    }
+                    (ny * w + nx) as usize
+                };
+                // A settled cell holds a distance no larger than this cell's plus any step cost,
+                // so the distance comparison alone rejects it.
+                let nd = dc.wrapping_add(NB_COST[k]);
+                let known = self.dist[nn];
+                if known >= 0 && nd >= known {
                     continue;
                 }
-                let nn = (ny * w + nx) as usize;
-                if g.flags[nn] & BLOCKED != 0 || self.settled[nn] != 0 {
+                if g.flags[nn] & BLOCKED != 0 {
                     continue;
                 }
                 // No corner cutting: a diagonal needs both orthogonal neighbours walkable.
-                if NB_COST[k] == COST_DIAGONAL
-                    && (g.flags[(row + nx) as usize] & BLOCKED != 0 || g.flags[(ny * w + cx) as usize] & BLOCKED != 0)
-                {
-                    continue;
-                }
-                let nd = dc.wrapping_add(NB_COST[k]);
-                if self.dist[nn] < 0 || nd < self.dist[nn] {
-                    self.dist[nn] = nd;
-                    self.dir_next[nn] = (k as u8) ^ 4;
-                    match (nd >> 16) - self.b {
-                        0 => self.cur.push(nn as u32),
-                        1 => self.n1.push(nn as u32),
-                        _ => self.n2.push(nn as u32),
+                if NB_COST[k] == COST_DIAGONAL {
+                    let side_x = (c as i32 + NB_DX[k]) as usize;
+                    let side_y = (c as i32 + NB_DY[k] * w) as usize;
+                    if g.flags[side_x] & BLOCKED != 0 || g.flags[side_y] & BLOCKED != 0 {
+                        continue;
                     }
+                }
+                self.dist[nn] = nd;
+                self.dir_next[nn] = (k as u8) ^ 4;
+                match (nd >> 16) - self.b {
+                    0 => self.cur.push(nn as u32),
+                    1 => self.n1.push(nn as u32),
+                    _ => self.n2.push(nn as u32),
                 }
             }
         }

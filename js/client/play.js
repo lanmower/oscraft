@@ -70,8 +70,10 @@ let terrainMesh = null;
 let tileMeshes = null;
 let terrainTiles = null;
 let unitMeshes = [];
-let doodadMeshes = [];
 const drawCounts = { terrain: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
+// Doodads grouped per mesh into static instance batches, and the per-frame batches of unskinned units per mesh.
+let doodadBatches = [];
+const unitBatches = new Map();
 const MOVE_EPS = 1e-4;
 const MAX_FRAME_DT_S = 0.1;
 // Per-unit clip players keyed by unit id and type, with the last seen position (walking vs standing still).
@@ -287,6 +289,42 @@ function jointsFor(u, mesh, dt) {
   return jointMatrices(nodes, skin, entry.player.pose() ?? new Map(), fit);
 }
 
+// Groups { mesh, transform } placements into one static instance batch per mesh.
+function batchByMesh(placed) {
+  const groups = new Map();
+  for (const p of placed) {
+    let list = groups.get(p.mesh);
+    if (!list) groups.set(p.mesh, (list = []));
+    list.push(p.transform);
+  }
+  return [...groups].map(([mesh, transforms]) => {
+    const matrices = new Float32Array(transforms.length * 16);
+    transforms.forEach((t, i) => matrices.set(t, i * 16));
+    return { mesh, batch: { matrices, count: transforms.length, dirty: true } };
+  });
+}
+
+// Appends a unit transform to its mesh's per-frame batch; flushUnitBatches draws one call per mesh.
+function queueUnit(mesh, transform) {
+  let entry = unitBatches.get(mesh);
+  if (!entry) unitBatches.set(mesh, (entry = { matrices: new Float32Array(16 * 64), count: 0, dirty: true }));
+  if ((entry.count + 1) * 16 > entry.matrices.length) {
+    const grown = new Float32Array(entry.matrices.length * 2);
+    grown.set(entry.matrices);
+    entry.matrices = grown;
+  }
+  entry.matrices.set(transform, entry.count * 16);
+  entry.count += 1;
+}
+
+function flushUnitBatches() {
+  for (const [mesh, entry] of unitBatches) {
+    entry.dirty = true;
+    if (entry.count > 0) renderer3d.drawInstanced(mesh, entry);
+    entry.count = 0;
+  }
+}
+
 function drawUnits3d(units, dt) {
   for (const entry of animators.values()) entry.seen = false;
   for (const u of units) {
@@ -298,9 +336,11 @@ function drawUnits3d(units, dt) {
       countDraw("unit", mesh, transform, jointsFor(u, mesh, dt));
       drawCounts.animated += 1;
     } else {
-      countDraw(model ? "unit" : "quad", mesh, transform);
+      drawCounts[model ? "unit" : "quad"] += 1;
+      queueUnit(mesh, transform);
     }
   }
+  flushUnitBatches();
   for (const [key, entry] of animators) if (!entry.seen) animators.delete(key);
 }
 
@@ -315,7 +355,10 @@ function drawWorld3d() {
   lastDrawMs = now;
   renderer3d.beginFrame(BACKGROUND);
   for (const mesh of tileMeshes ?? (terrainMesh ? [terrainMesh] : [])) countDraw("terrain", mesh, null);
-  for (const d of doodadMeshes) countDraw("doodad", d.mesh, d.transform);
+  for (const d of doodadBatches) {
+    drawCounts.doodad += d.batch.count;
+    renderer3d.drawInstanced(d.mesh, d.batch);
+  }
   const units = currentUnits();
   drawUnits3d(units, dt);
   if (fx) fx.frame(units, dt);
@@ -861,6 +904,8 @@ function publishWitness() {
   document.body.dataset.drawUnit = String(drawCounts.unit);
   document.body.dataset.drawQuad = String(drawCounts.quad);
   document.body.dataset.drawAnimated = String(drawCounts.animated);
+  document.body.dataset.drawCalls = String(renderer3d ? renderer3d.stats.drawCalls : 0);
+  document.body.dataset.drawInstances = String(renderer3d ? renderer3d.stats.instances : 0);
   document.body.dataset.orders = String(orders);
   document.body.dataset.casts = String(casts);
   document.body.dataset.attacks = String(attacks);
@@ -930,7 +975,7 @@ async function build3d(gl, game) {
   tileMeshes = await loadTileMeshes(gl, groundTexture).catch(() => null);
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
   const s = 1 / terrain.cellMilli;
-  doodadMeshes = readDoodads(mapBytes).flatMap((p) => {
+  const placed = readDoodads(mapBytes).flatMap((p) => {
     const mesh = doodadByKind[p.kind];
     if (!mesh) return [];
     const x = p.x * s;
@@ -938,6 +983,7 @@ async function build3d(gl, game) {
     const angle = (p.rotation / 1000) * 2 * Math.PI;
     return [{ mesh, transform: multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)) }];
   });
+  doodadBatches = batchByMesh(placed);
   unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
 }
 

@@ -158,9 +158,9 @@ export function zoomCamera(cam, wheelDelta) {
 export const MAX_JOINTS = 64;
 
 const VERT = `#version 300 es
-in vec3 aPos; in vec3 aNormal; in vec2 aUv; in vec4 aJoints; in vec4 aWeights;
+in vec3 aPos; in vec3 aNormal; in vec2 aUv; in vec4 aJoints; in vec4 aWeights; in mat4 aInst;
 uniform mat4 uModel; uniform mat3 uNormal; uniform mat4 uViewProj;
-uniform bool uSkinned; uniform mat4 uJoints[${MAX_JOINTS}];
+uniform bool uSkinned; uniform bool uInstanced; uniform mat4 uJoints[${MAX_JOINTS}];
 out vec3 vNormal; out vec2 vUv;
 void main() {
   mat4 skin = mat4(1.0);
@@ -170,8 +170,10 @@ void main() {
       + aWeights.z * uJoints[int(aJoints.z)] + aWeights.w * uJoints[int(aJoints.w)];
     skinNormal = mat3(skin);
   }
-  vec4 world = uModel * skin * vec4(aPos, 1.0);
-  vNormal = uNormal * skinNormal * aNormal; vUv = aUv;
+  mat4 model = uInstanced ? aInst : uModel;
+  mat3 normalBasis = uInstanced ? mat3(aInst) : uNormal;
+  vec4 world = model * skin * vec4(aPos, 1.0);
+  vNormal = normalBasis * skinNormal * aNormal; vUv = aUv;
   gl_Position = uViewProj * world;
 }`;
 
@@ -215,6 +217,7 @@ export function createRenderer(gl) {
     uv: gl.getAttribLocation(program, "aUv"),
     joints: gl.getAttribLocation(program, "aJoints"),
     weights: gl.getAttribLocation(program, "aWeights"),
+    inst: gl.getAttribLocation(program, "aInst"),
   };
   const uni = {
     model: gl.getUniformLocation(program, "uModel"),
@@ -227,6 +230,7 @@ export function createRenderer(gl) {
     joints: gl.getUniformLocation(program, "uJoints[0]"),
     alpha: gl.getUniformLocation(program, "uAlpha"),
     glow: gl.getUniformLocation(program, "uGlow"),
+    instanced: gl.getUniformLocation(program, "uInstanced"),
   };
   gl.uniform1i(uni.tex, 0);
   gl.enable(gl.DEPTH_TEST);
@@ -234,6 +238,8 @@ export function createRenderer(gl) {
 
   const camera = createCamera();
   const uploads = new WeakMap();
+  const instanceBuffers = new WeakMap();
+  const stats = { drawCalls: 0, instances: 0 };
   let viewProj = identity();
   let aspect = null;
 
@@ -274,6 +280,7 @@ export function createRenderer(gl) {
   return {
     gl,
     camera,
+    stats,
 
     // Merges the given fields into the orbit camera. Accepts the createCamera fields plus `aspect`.
     setCamera(opts = {}) {
@@ -295,6 +302,8 @@ export function createRenderer(gl) {
       viewProj = viewProjection(camera, a);
       gl.clearColor(clearRgb[0], clearRgb[1], clearRgb[2], 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      stats.drawCalls = 0;
+      stats.instances = 0;
       gl.useProgram(program);
       gl.uniformMatrix4fv(uni.viewProj, false, viewProj);
     },
@@ -304,6 +313,14 @@ export function createRenderer(gl) {
       draw(mesh, transform, null);
     },
 
+    // One draw call for many copies of an unskinned mesh. batch: { matrices: Float32Array of count * 16
+    // column-major model matrices, count, dirty?: boolean }. The matrices are re-uploaded when batch.dirty
+    // is set or the batch has not been uploaded yet; a static batch is uploaded once. Normals use the
+    // upper 3x3 of each matrix, so scales must be uniform.
+    drawInstanced(mesh, batch) {
+      if (batch.count > 0) drawInstances(mesh, batch);
+    },
+
     // joints: packed column-major mat4 per joint (at most MAX_JOINTS), from anim.js jointMatrices. Drawn with
     // the skinned path when the mesh carries joints and weights; otherwise it draws as drawMesh does.
     drawSkinned(mesh, transform, joints) {
@@ -311,9 +328,25 @@ export function createRenderer(gl) {
     },
   };
 
-  function draw(mesh, transform, joints) {
-    const model = transform ? Float32Array.from(transform) : identity();
-    const buf = upload(mesh);
+  function bindMaterial(mesh) {
+    gl.uniform3fv(uni.color, mesh.color || [1, 1, 1]);
+    const glow = mesh.blend === "add";
+    gl.uniform1i(uni.glow, glow ? 1 : 0);
+    gl.uniform1f(uni.alpha, mesh.alpha ?? 1);
+    if (glow) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.depthMask(false);
+    }
+    gl.uniform1i(uni.useTex, mesh.texture ? 1 : 0);
+    if (mesh.texture) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, mesh.texture);
+    }
+    return glow;
+  }
+
+  function bindGeometry(buf) {
     gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
     gl.enableVertexAttribArray(attr.pos);
     gl.vertexAttribPointer(attr.pos, 3, gl.FLOAT, false, 0, 0);
@@ -323,6 +356,55 @@ export function createRenderer(gl) {
     gl.bindBuffer(gl.ARRAY_BUFFER, buf.uv);
     gl.enableVertexAttribArray(attr.uv);
     gl.vertexAttribPointer(attr.uv, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  function drawInstances(mesh, batch) {
+    const buf = upload(mesh);
+    bindGeometry(buf);
+    gl.disableVertexAttribArray(attr.joints);
+    gl.disableVertexAttribArray(attr.weights);
+    let inst = instanceBuffers.get(batch);
+    if (!inst) {
+      inst = gl.createBuffer();
+      instanceBuffers.set(batch, inst);
+      batch.dirty = true;
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, inst);
+    if (batch.dirty) {
+      gl.bufferData(gl.ARRAY_BUFFER, batch.matrices.subarray(0, batch.count * 16), gl.DYNAMIC_DRAW);
+      batch.dirty = false;
+    }
+    for (let c = 0; c < 4; c++) {
+      gl.enableVertexAttribArray(attr.inst + c);
+      gl.vertexAttribPointer(attr.inst + c, 4, gl.FLOAT, false, 64, c * 16);
+      gl.vertexAttribDivisor(attr.inst + c, 1);
+    }
+    gl.uniform1i(uni.skinned, 0);
+    gl.uniform1i(uni.instanced, 1);
+    const glow = bindMaterial(mesh);
+    if (buf.index) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.index);
+      gl.drawElementsInstanced(gl.TRIANGLES, buf.count, buf.indexType, 0, batch.count);
+    } else {
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, buf.count, batch.count);
+    }
+    if (glow) {
+      gl.disable(gl.BLEND);
+      gl.depthMask(true);
+    }
+    for (let c = 0; c < 4; c++) {
+      gl.vertexAttribDivisor(attr.inst + c, 0);
+      gl.disableVertexAttribArray(attr.inst + c);
+    }
+    gl.uniform1i(uni.instanced, 0);
+    stats.drawCalls += 1;
+    stats.instances += batch.count;
+  }
+
+  function draw(mesh, transform, joints) {
+    const model = transform ? Float32Array.from(transform) : identity();
+    const buf = upload(mesh);
+    bindGeometry(buf);
     const skinned = Boolean(joints && buf.joints);
     if (skinned) {
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.joints);
@@ -337,23 +419,10 @@ export function createRenderer(gl) {
       gl.disableVertexAttribArray(attr.weights);
     }
     gl.uniform1i(uni.skinned, skinned ? 1 : 0);
+    gl.uniform1i(uni.instanced, 0);
     gl.uniformMatrix4fv(uni.model, false, model);
     gl.uniformMatrix3fv(uni.normal, false, normalMatrix(model));
-    gl.uniform3fv(uni.color, mesh.color || [1, 1, 1]);
-    // Optional blend mode: mesh.blend === "add" draws unlit, additive, without depth writes, with mesh.alpha.
-    const glow = mesh.blend === "add";
-    gl.uniform1i(uni.glow, glow ? 1 : 0);
-    gl.uniform1f(uni.alpha, mesh.alpha ?? 1);
-    if (glow) {
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-      gl.depthMask(false);
-    }
-    gl.uniform1i(uni.useTex, mesh.texture ? 1 : 0);
-    if (mesh.texture) {
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, mesh.texture);
-    }
+    const glow = bindMaterial(mesh);
     if (buf.index) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.index);
       gl.drawElements(gl.TRIANGLES, buf.count, buf.indexType, 0);
@@ -364,6 +433,8 @@ export function createRenderer(gl) {
       gl.disable(gl.BLEND);
       gl.depthMask(true);
     }
+    stats.drawCalls += 1;
+    stats.instances += 1;
   }
 }
 
@@ -373,4 +444,8 @@ export function setCamera(renderer, opts) {
 
 export function drawMesh(renderer, mesh, transform) {
   return renderer.drawMesh(mesh, transform);
+}
+
+export function drawInstanced(renderer, mesh, batch) {
+  return renderer.drawInstanced(mesh, batch);
 }
