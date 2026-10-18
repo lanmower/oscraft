@@ -1976,6 +1976,8 @@ jobs:
               if (casts <= casts0) {
                 const refusal = await page.evaluate(() => document.body.dataset.lastRefusal || "none");
                 console.log(`probe cast cand=${cand.id} foe=${foe.id} casts=${casts} at=${fp.x.toFixed(0)},${fp.y.toFixed(0)} refusal=${refusal}`);
+                // NoSlot: the unit has no ability in this slot (a creep, not a hero), so its other foes cannot cast either.
+                if (refusal.includes("NoSlot")) break;
                 continue;
               }
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
@@ -3488,11 +3490,6 @@ jobs:
               console.log(`DIAG ${name} candidates=${JSON.stringify(await page.evaluate(() => window.__ciCandidates()))}`);
               console.log(`DIAG ${name} status=${await page.evaluate(() => document.getElementById("status")?.textContent)}`);
               throw e;
-            // The sim refuses an order whose destination cell is unwalkable; each offset is tried in turn and the host's
-            // refusal (body.dataset.lastRefusal) is read back, so a refused target is named in the failure.
-            const offsets = [[4, 0], [-4, 0], [0, 4], [0, -4], [2, 0], [-2, 0], [0, 2], [0, -2]];
-            const refusals = [];
-            let target = null;
             };
             await host.waitForFunction(() => window.__ciPeers && window.__ciPeers() >= 1, null, { timeout: 120000 }).catch((e) => diagnose(host, "host", e));
             await peer.waitForFunction(() => window.__ciUnits && window.__ciUnits().length > 0, null, { timeout: 120000 }).catch((e) => diagnose(peer, "peer", e));
@@ -3514,6 +3511,11 @@ jobs:
             const movedToward = (u, t) => !!u && dist(u, t) < dist(unit, t) - 1;
             const seen = async (page) => page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, unit.id);
             let onHost = null;
+            // The sim refuses an order whose destination cell is unwalkable; each offset is tried in turn and the host's
+            // refusal (body.dataset.lastRefusal) is read back, so a refused target is named in the failure.
+            const offsets = [[4, 0], [-4, 0], [0, 4], [0, -4], [2, 0], [-2, 0], [0, 2], [0, -2]];
+            const refusals = [];
+            let target = null;
             for (const [dx, dz] of offsets) {
               target = { x: Math.round(unit.x) + dx, z: Math.round(unit.z) + dz };
               const moveDeadline = Date.now() + 15000;
