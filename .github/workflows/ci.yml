@@ -1942,18 +1942,24 @@ jobs:
           // Allies on one team are not attack targets, so the foes are the players the sim calls hostile.
           const players = [...new Set(units.map((u) => u.player))];
           const hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));
-          // Hover and click land on the canvas only for units projected inside the viewport, so only those take part.
-          const shownIds = new Set();
-          for (const u of units) {
+          // Hover and click land on the canvas only for units projected inside the viewport and not covered by an overlay.
+          const shownNow = async (u) => {
             const p = await screenAt(u.x, u.z);
-            const shown = p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h
+            return p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h
               && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [p.x, p.y]));
-            if (shown) shownIds.add(u.id);
-          }
-          for (const cand of ranked.filter((u) => shownIds.has(u.id)).reverse().slice(0, 400)) {
+          };
+          for (const cand of ranked.reverse().slice(0, 400)) {
             // Select through the CI hook: a click can land on another unit drawn over this one.
-            // An attack needs a visible, hostile target: only shown enemies inside the candidate's sight (9 cells) are tried, nearest first.
-            const foes = units.filter((v) => shownIds.has(v.id) && hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64).sort((a, b) => dist2(a, cand) - dist2(b, cand)).slice(0, 3);
+            // An attack needs a visible, hostile target: the camera moves onto the candidate, then only enemies inside its sight (9 cells) are tried, nearest first.
+            const near = units.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64);
+            if (!near.length) continue;
+            await page.evaluate(([x, z]) => window.__ciFocus(x, z), [cand.x, cand.z]);
+            if (!(await shownNow(cand))) continue;
+            const foes = [];
+            for (const v of near.sort((a, b) => dist2(a, cand) - dist2(b, cand))) {
+              if (foes.length === 3) break;
+              if (await shownNow(v)) foes.push(v);
+            }
             if (!foes.length) continue;
             await page.evaluate((id) => window.__ciSelect(id), cand.id);
             // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
