@@ -110,11 +110,49 @@ Each kind of content, the steps a change to it needs, and why. Engine: read at r
 
 Counts: Engine 4 rows, Build-only 4 rows, Rust-only 4 rows.
 
-Follow-ups for the remaining Rust-only content:
+### Rust-only game rules: final classes
+
+Classes: MOVE = rule logic moves to a Lua hook or scenario data. DATA = number or table content moves to `.osd` data. STAY = stays in Rust, reason given. Source: symbol inventory of `rust/crates/sim/src` at origin `855d02c`. Signatures were classified without reading every body where marked.
+
+| Rule | Where | Class | Reason |
+|---|---|---|---|
+| Camp leash, clear and first-spawn numbers | `camp.rs` `CAMP_LEASH_MILLI`, `CAMP_CLEAR_MILLI`, `CAMP_FIRST_SPAWN_S` | DATA | Plain numbers; move to `behaviour` data |
+| Camp respawn timing | `camp.rs` `respawns_free`, `respawn_camp` | MOVE | Rule logic; needs a Lua hook (`on_camp_cleared`) |
+| Aggro target priority | `aggro.rs` target selection | MOVE | Rule logic; needs a Lua target-priority hook |
+| Backdoor and glyph protection | `aggro.rs` `backdoor_protected`, `glyph_protects`, `glyph_cooldown_left` | MOVE | Rule logic; no Lua hook exists in `mods/` |
+| Backdoor period | `aggro.rs` `BACKDOOR_PERIOD` | DATA | Number |
+| Structure scan radius | `combat.rs` `STRUCTURE_SCAN_CELLS` | DATA | Number |
+| Damage response codes | `combat.rs` `RESPONSE_REDUCED`, `RESPONSE_IMMUNE` | STAY | Persisted and wire codes |
+| Courier state codes | `courier.rs` `IDLE`, `OUTBOUND`, `RETURNING` | STAY | Stored in state snapshots (`persist.rs` `STATE_VERSION`) |
+| Courier delivery rules | `courier.rs` (signatures only; body not yet read) | MOVE | Rule logic; needs a Lua hook |
+| Ward duration | `wards.rs` `ward_left` | DATA | Number |
+| Hero stat coefficients | `hero.rs` `MANA_PER_INT`, `ARMOUR_PER_AGI_DIV`, `HP_REGEN_PER_STR_X100` | DATA | Formula coefficients |
+| Buyback | `hero.rs` `buyback` | MOVE | Rule logic; needs a Lua hook |
+| Shop buy rules | `shop.rs` `buy_item` | MOVE | Rule logic; needs a Lua hook |
+| Shop doodad ids | `shop.rs` `SHOP_DOODAD_HOME`, `SHOP_DOODAD_SIDE` | DATA | Doodad ids belong in `.osd` data |
+| Item stats and recipes | `inventory.rs` `ITEM_STATS`, `ITEM_SMODS`, `BEST_ONLY` | DATA | Tables of content |
+| XP curve | `xp.rs` `xp_curve` | DATA | Table of content |
+| Gold and XP grants on kill | `combat.rs` / `xp.rs` (body not yet read) | MOVE | Rule logic; needs a Lua hook |
+| Teleport ring | `teleport.rs` `RING_POINTS`, `RING_STEPS` | DATA | Numbers |
+| Spell, status and upgrade effect codes | `spell.rs` `K_DOT`, `K_STATUS`; `upgrades.rs` `EFFECT_*_CODE`; `status.rs` `STATUS_NAMES` | STAY | Dispatch keys shared with the Lua host ABI and persisted |
+| Refusal kinds | `rules.rs` `Refusal`, `REFUSAL_KINDS`, `ALL_REFUSALS` | STAY | Wire contract with clients and replay |
+| Route march rules | `route.rs` march logic | MOVE | Rule logic; route points are DATA |
+| Route record layout | `route.rs` `MAX_ROUTE_POINTS`, `ROUT_RECORD` | STAY | Fixed binary record layout |
+| Win and objective rules | `triggers.rs` `winner` | MOVE | Rule logic; needs a Lua hook |
+| Doodad kind list | `doodads.rs` `DOODAD_KIND_COUNT`; builtin list in `format.rs` | MOVE | Follow-up 1 below |
+| Determinism core | `fixed.rs`, `pathfinding.rs` cost constants, `lib.rs` `TICKS_PER_SECOND`, `DAY_TICKS`, `tick.rs` `System`, `SYSTEM_COUNT`, `COST_BUCKET_US` | STAY | Hashed fixed-point sim and scheduler order |
+| Serialization | `loader.rs` `MAGIC`, `VERSION`, `Trigger`, `LoadError`; `persist.rs` `MAGIC`, `STATE_VERSION`, `StateError` | STAY | OSDT and state formats |
+| Diplomacy controller codes | `diplomacy.rs` `CONTROLLER_*` | STAY | Wire codes |
+| Lua host ABI vocabulary | `modapi.rs` `MOD_EFFECTS`, `STAT_NAMES` | STAY | The host enumerates the effect and stat names it dispatches on |
+
+Counts: 28 rules: MOVE 10, DATA 9, STAY 9. No MOVE or DATA row is migrated yet. Blocked rows are in files another lane has uncommitted edits in (`camp.rs`, `aggro.rs`, `combat.rs`, `rules.rs`, `movement.rs`, `shop.rs`, `route.rs`, `lib.rs`, `loader.rs`).
+
+Follow-ups for the MOVE and DATA rows:
 
 1. Move the doodad kind list from `format.rs` into a data table so a new kind needs only mapexport.
 2. Move player start positions from `builtins.rs` into the `start` directive of `.osd` data.
-3. Move camp and rune numbers from `camp.rs` into `behaviour`/`economy` data (already class (b) above).
-4. Document the wave `p3` bit layout in `rust/crates/data/FORMAT.md` and derive its range from the unit table, so wave content needs no validator edit.
+3. Move camp and rune numbers from `camp.rs` into `behaviour`/`economy` data.
+4. Document the wave `p3` bit layout in `rust/crates/data/FORMAT.md` and derive its range from the unit table.
 5. Add a generator check that `scripts/gen-dota-map.mjs` emits no `route(...)` lines while `routes.osd` exists.
-6. Re-classify `.osd` as Engine if the server-side compile (`osdt_data::generate` in `server/src/map_image.rs`, not yet on main) lands.
+6. Re-classify `.osd` as Engine if the server-side compile (`osdt_data::generate` in `server/src/map_image.rs`) lands.
+7. Add Lua hooks for the MOVE rows above (camp respawn, aggro priority, backdoor/glyph, courier, buyback, shop, route march, win rules, gold/XP grants) in `mlua_host.rs`, `piccolo_host.rs` and `shared.rs`, once their owning files are clean.
