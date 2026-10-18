@@ -2457,9 +2457,17 @@ jobs:
               if (!model || !existsSync("js/client/models/" + model + ".glb")) throw new Error(n + " model does not resolve: " + model);
             }
             const map = readFileSync("scenarios/moba/map.osd", "utf8").split("\n");
-            const perSide = [0, 1].map((s) => map.filter((l) => l.startsWith(`spawn("hero", ${s},`)).length);
+            const teamOf = new Map();
+            for (const l of map) {
+              const m = /^start\((\d+),.*team=(\d+)\)/.exec(l);
+              if (m) teamOf.set(+m[1], +m[2]);
+            }
+            const perSide = [0, 1].map((t) => map.filter((l) => {
+              const m = /^spawn\("hero", (\d+),/.exec(l);
+              return m && teamOf.get(+m[1]) === t;
+            }).length);
             const heroesPerSide = Math.min(...perSide);
-            if (heroesPerSide < 5) throw new Error("heroes per side " + perSide.join("/"));
+            if (heroesPerSide < 5) throw new Error("heroes per team " + perSide.join("/"));
             console.log(`moba roster types=${roster.length} heroes_per_side=${heroesPerSide}`);
           ' | tee moba-roster.txt
           grep -qx 'moba roster types=3 heroes_per_side=5' moba-roster.txt
