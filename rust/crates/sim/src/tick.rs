@@ -151,6 +151,7 @@ impl Sim {
                 self.vel_x[i] = 0;
                 self.vel_y[i] = 0;
             } else {
+                self.tick_route(i);
                 self.route_for(i);
                 self.steer(i);
                 self.integrate(i);
