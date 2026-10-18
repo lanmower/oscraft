@@ -1,9 +1,10 @@
 # Extra fields for the moba scenario. unit_extra(name, ...) sets them for one unit.
 # Verified from the Dota deny rules: a denied lane creep gives enemies 50% xp, a denied hero gives 0%,
 # and a denied unit pays no gold. Heroes are player_controlled; they share kill and assist xp.
-# Every other value below is UNVERIFIED: no source confirmed it. Check each before relying on it.
-unit_extra("creep", bounty=25, xp_bounty=30, deny_xp_pct=50, assist_radius_milli=6000)  # UNVERIFIED: bounty 25 gold, xp_bounty 30, assist_radius_milli 6000
-unit_extra("tower", deny_xp_pct=0)  # UNVERIFIED: tower gold and xp are 0 until sourced; deny_xp_pct 0 is a placeholder
+# Every other value below is UNVERIFIED unless its own comment cites a source.
+# Bounties from SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b game/dota/pak01_dir/scripts/npc/npc_units.txt. Creep: BountyGoldMin 34 / Max 39 -> 36, BountyXP 57. Tower: no bounty keys in npc_dota_badguys_tower1_mid, so gold and xp are 0. Roshan: BountyGoldMin 200 / Max 290 -> 245, BountyXP 400. Gold ranges are reduced to their midpoint because the sim takes one value.
+unit_extra("creep", bounty=36, xp_bounty=57, deny_xp_pct=50, assist_radius_milli=6000)  # assist_radius_milli 6000 UNVERIFIED
+unit_extra("tower", bounty=0, xp_bounty=0, deny_xp_pct=0)  # deny_xp_pct 0 is a placeholder
 unit_extra("base", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("objective", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("tender", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
@@ -18,5 +19,5 @@ unit_extra("gale_archer", player_controlled=True, deny_xp_pct=0)
 unit_extra("frostmage", player_controlled=True, deny_xp_pct=0)
 unit_extra("tidecaller", player_controlled=True, deny_xp_pct=0)
 unit_extra("thornwarden", player_controlled=True, deny_xp_pct=0)
-# UNVERIFIED: bounty 150 gold and xp_bounty 300 are placeholders, not sourced values.
-unit_extra("roshan", bounty=150, xp_bounty=300, assist_radius_milli=6000)
+# Roshan bounty: 245 gold (midpoint of 200-290) and 400 xp, source as above. assist_radius_milli UNVERIFIED.
+unit_extra("roshan", bounty=245, xp_bounty=400, assist_radius_milli=6000)

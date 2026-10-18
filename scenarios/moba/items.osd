@@ -7,7 +7,7 @@
 # A recipe names up to two components declared earlier. Buying it consumes the components from the
 # inventory, removes their bonuses, and charges cost minus the components' cost. The cost of a recipe
 # must be at least the sum of its components' costs. Selling returns half the cost.
-# Every cost and stat number below is UNVERIFIED: none was checked against a source.
+# Every cost and stat number below is UNVERIFIED unless its own comment cites a source.
 ability("salve_heal", 120, 0, "unit", [effect("heal", p0=30, p1=0)], target_filters=["army"])
 ability("blink_step", 200, 0, "point", [effect("move", p0=5000)])
 ability("war_cry", 150, 0, "unit", [effect("buff", p0=1, p1=4)], target_filters=["army"])
@@ -19,8 +19,8 @@ item("vitality_ring", 150, health=40)
 item("blade", 200, damage=4)
 # UNVERIFIED
 item("healing_salve", 120, ability="salve_heal")
-# UNVERIFIED
-item("blink_dagger", 250, ability="blink_step")
+# Blink Dagger cost 2250: SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b game/dota/pak01_dir/scripts/npc/items.txt, item_blink ItemCost. Blink range 5000 and the other stats stay UNVERIFIED (Dota blink range is 1200).
+item("blink_dagger", 2250, ability="blink_step")
 # UNVERIFIED
 item("war_banner", 300, damage=3, armor=1, ability="war_cry")
 # UNVERIFIED
