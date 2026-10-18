@@ -1949,7 +1949,8 @@ jobs:
               && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [target.x, target.y]));
             if (!onCanvas) { moveTried.push(`${dx},${dz}@${target.x.toFixed(0)},${target.y.toFixed(0)} off`); continue; }
             await page.mouse.click(target.x, target.y, { button: "right" });
-            await page.waitForTimeout(150);
+            // The witness is written once per animation frame, and a software-rendered frame can outlast a fixed wait.
+            await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, ordersBefore, { timeout: 2000 }).catch(() => {});
             orders = Number(await page.getAttribute("body", "data-orders"));
             moveTried.push(`${dx},${dz}@${target.x.toFixed(0)},${target.y.toFixed(0)} orders=${orders}`);
             if (orders > ordersBefore) break;
