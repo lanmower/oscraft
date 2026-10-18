@@ -32,6 +32,7 @@ mod limits;
 mod upgrades;
 mod inventory;
 mod xp;
+mod hero;
 
 pub use arrays::{Sim, Stats};
 pub use loader::{load, load_file, Catalog, Doodad, LoadError, Trigger};

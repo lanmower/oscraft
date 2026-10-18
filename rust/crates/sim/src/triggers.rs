@@ -61,8 +61,21 @@ impl Sim {
             return;
         }
         if let Some(rival) = self.rival_of(side) {
-            self.winner = rival as i32;
+            self.winner = self.team[rival as usize] as i32;
         }
+    }
+
+    /// The number of player slots the map starts (one start record per player).
+    pub fn player_count(&self) -> usize {
+        self.cat.starts.len()
+    }
+
+    /// The number of teams among the starting players: the sides of the match.
+    pub fn side_count(&self) -> usize {
+        let mut teams: Vec<u8> = self.cat.starts.iter().map(|s| s.team).collect();
+        teams.sort_unstable();
+        teams.dedup();
+        teams.len()
     }
 
     /// The first side hostile to `side`, the side a destroyed unit's bounty or win goes to.

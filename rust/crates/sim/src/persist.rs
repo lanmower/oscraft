@@ -12,7 +12,8 @@ use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
-const STATE_VERSION: u16 = 17;
+/// Version 17 adds the item inventory and item cooldowns. Older saves are refused.
+const STATE_VERSION: u16 = 19;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -53,6 +54,9 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::NoDoodad,
     Refusal::DuplicateDoodad,
     Refusal::TrainBusy,
+    Refusal::NoItem,
+    Refusal::NoShop,
+    Refusal::InventoryFull,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
@@ -356,6 +360,8 @@ impl Sim {
         put_i32s(&mut w, &self.resource_b);
         put_i32s(&mut w, &self.abil_idx);
         put_i32s(&mut w, &self.abil_cd);
+        w.extend_from_slice(&self.abil_rank);
+        put_i32s(&mut w, &self.item_cd);
         put_i32s(&mut w, &self.energy);
         put_u32s(&mut w, &self.changed_at);
         w.extend_from_slice(&self.trig_hit);
@@ -548,6 +554,8 @@ impl Sim {
         r.i32s_into(&mut next.resource_b)?;
         r.i32s_into(&mut next.abil_idx)?;
         r.i32s_into(&mut next.abil_cd)?;
+        r.bytes_into(&mut next.abil_rank)?;
+        r.i32s_into(&mut next.item_cd)?;
         r.i32s_into(&mut next.energy)?;
         r.u32s_into(&mut next.changed_at)?;
         r.bytes_into(&mut next.trig_hit)?;

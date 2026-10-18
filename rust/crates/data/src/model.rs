@@ -43,6 +43,8 @@ pub struct UnitRaw {
     pub health_regen: i32,
     /// Model file the renderer draws the unit with, without its .glb extension. Empty for none.
     pub model: String,
+    /// Health percent at or below which an allied unit may deny this unit, 0..=100.
+    pub deny_pct: i32,
 }
 
 #[derive(Debug)]
@@ -59,6 +61,14 @@ pub struct UnitExtRaw {
     pub rally_dx: i32,
     pub rally_dy: i32,
     pub bounty: i32,
+    /// Experience percent the enemies of this unit share when it is denied, 0..=100.
+    pub deny_xp_pct: i32,
+    /// Whether the unit is player-controlled (a hero), which makes it eligible for assist and xp shares.
+    pub player_controlled: bool,
+    /// Experience the killer side shares when this unit dies by an enemy.
+    pub xp_bounty: i32,
+    /// Assist radius around this unit, milli-units: heroes inside it share its kill or denial xp.
+    pub assist_radius_milli: i32,
 }
 
 #[derive(Debug)]
@@ -145,6 +155,21 @@ pub struct SpawnRaw {
     pub x: i32,
     pub y: i32,
     pub start: bool,
+    pub team: Option<i32>,
+}
+
+/// An item as `item()` collects it. Stat bonuses are added to the buyer on purchase; `ability`
+/// names the active ability the item casts, if any.
+#[derive(Debug)]
+pub struct ItemRaw {
+    pub name: String,
+    pub cost: i32,
+    pub armor: i32,
+    pub damage: i32,
+    pub health: i32,
+    pub ability: Option<String>,
+    /// Recipe components, by item name, declared before this item. At most two.
+    pub components: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -191,6 +216,8 @@ pub struct Collector {
     pub prerequisites: RefCell<Vec<PrereqRaw>>,
     pub damage_factors: RefCell<Vec<DamageFactorRaw>>,
     pub doodads: RefCell<Vec<DoodadRaw>>,
+    pub items: RefCell<Vec<ItemRaw>>,
+    pub skills: RefCell<Vec<SkillRaw>>,
     pub grid: RefCell<Option<Grid>>,
 }
 
@@ -246,6 +273,11 @@ pub struct UnitExt {
     pub rally_dx: i32,
     pub rally_dy: i32,
     pub bounty: u32,
+    pub deny_pct: u8,
+    pub deny_xp_pct: u8,
+    pub player_controlled: bool,
+    pub xp_bounty: u32,
+    pub assist_radius: u32,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -305,6 +337,29 @@ pub struct Ability {
     pub target_filters: u16,
     pub effects: Vec<Effect>,
     pub projectile_speed: Option<u32>,
+    pub skill: Option<Skill>,
+}
+
+/// A skill tree: per-rank gates, damage, cooldown and energy cost for one ability.
+/// Entries past `max_rank` are unused and written 0.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Skill {
+    pub ultimate: bool,
+    pub max_rank: u8,
+    pub gates: [i32; crate::format::SKILL_RANKS],
+    pub damage: [i32; crate::format::SKILL_RANKS],
+    pub cooldown: [i32; crate::format::SKILL_RANKS],
+    pub energy: [i32; crate::format::SKILL_RANKS],
+}
+
+#[derive(Debug)]
+pub struct SkillRaw {
+    pub ability: String,
+    pub ultimate: bool,
+    pub gates: Vec<i32>,
+    pub damage: Vec<i32>,
+    pub cooldown: Vec<i32>,
+    pub energy: Vec<i32>,
 }
 
 #[derive(Debug)]
@@ -348,7 +403,21 @@ pub struct Doodad {
 }
 
 #[derive(Debug, Default)]
+pub struct Item {
+    pub name: String,
+    pub cost: u32,
+    pub armor: u32,
+    pub damage: u32,
+    pub health: u32,
+    /// Index into `Catalog::abilities`, or `NO_ABILITY`.
+    pub ability: u16,
+    /// Indices into `Catalog::items` of the recipe components, `NO_ABILITY` for an empty slot.
+    pub components: [u16; 2],
+}
+
+#[derive(Debug, Default)]
 pub struct Catalog {
+    pub items: Vec<Item>,
     pub units: Vec<Unit>,
     pub unit_ext: Vec<UnitExt>,
     pub abilities: Vec<Ability>,

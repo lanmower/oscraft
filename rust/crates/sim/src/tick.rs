@@ -108,6 +108,7 @@ impl Sim {
         mark = lap(System::Healers, mark);
         self.tick_projectiles();
         mark = lap(System::Projectiles, mark);
+        self.tick_heroes();
         for i in 0..self.n {
             if self.alive[i] == 0 {
                 continue;
@@ -154,7 +155,7 @@ impl Sim {
         self.ticks = self.ticks.wrapping_add(1);
     }
 
-    /// Counts down every ability cooldown on unit `i`.
+    /// Counts down every ability and item cooldown on unit `i`.
     pub(crate) fn tick_cooldowns(&mut self, i: usize) {
         for slot in 0..ABILITY_SLOTS {
             let idx = i * ABILITY_SLOTS + slot;
@@ -164,6 +165,9 @@ impl Sim {
                     self.trig_ready[idx] = 1;
                 }
             }
+        }
+        for key in i * crate::inventory::INV_SLOTS..(i + 1) * crate::inventory::INV_SLOTS {
+            self.item_cd[key] = (self.item_cd[key] - 1).max(0);
         }
     }
 }

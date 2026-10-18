@@ -1,8 +1,12 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 16;
+pub const VERSION: u16 = 18;
 pub const PLCE_FLAG_START: u32 = 1;
+/// A start record that names its team: the team index sits in bits 8..16 of the flags.
+pub const PLCE_FLAG_TEAM: u32 = 2;
+pub const PLCE_TEAM_SHIFT: u32 = 8;
+pub const PLCE_TEAM_MASK: u32 = 0xFF << PLCE_TEAM_SHIFT;
 pub const NEUTRAL_PLAYER: u16 = u16::MAX;
 pub const HEADER_LEN: usize = 16;
 pub const SECTION_ENTRY_LEN: usize = 16;
@@ -77,6 +81,8 @@ pub const TAG_PREQ: [u8; 4] = *b"PREQ";
 pub const TAG_DMGF: [u8; 4] = *b"DMGF";
 pub const TAG_DODA: [u8; 4] = *b"DODA";
 pub const TAG_GRID: [u8; 4] = *b"GRID";
+pub const TAG_ITEM: [u8; 4] = *b"ITEM";
+pub const TAG_SKIL: [u8; 4] = *b"SKIL";
 
 pub const STRS_RECORD: usize = 1;
 pub const EFCT_RECORD: usize = 20;
@@ -89,18 +95,29 @@ pub const UPGR_RECORD: usize = 24;
 pub const REGN_RECORD: usize = 12;
 pub const LIMT_RECORD: usize = 4;
 pub const ECON_RECORD: usize = 32;
-pub const UEXT_RECORD: usize = 32;
+pub const UEXT_RECORD: usize = 44;
 pub const ACHN_RECORD: usize = 8;
 pub const RSCH_RECORD: usize = 32;
 pub const PREQ_RECORD: usize = 8;
 pub const DMGF_RECORD: usize = 8;
 pub const DODA_RECORD: usize = 20;
 pub const GRID_RECORD: usize = 1;
+pub const ITEM_RECORD: usize = 32;
+pub const SKIL_RECORD: usize = 72;
+/// Ranks a skill tree may hold: an ability's max rank is `1..=SKILL_RANKS`.
+pub const SKILL_RANKS: usize = 4;
+/// Ultimates take at most this many ranks, each gated by its level in `ULTIMATE_GATES`.
+pub const ULTIMATE_RANKS: usize = 3;
+pub const ULTIMATE_GATES: [i32; ULTIMATE_RANKS] = [6, 12, 18];
+/// Level gate of a non-ultimate rank: any level.
+pub const NORMAL_GATE: i32 = 1;
+/// Inventory slots each hero carries.
+pub const ITEM_SLOTS: usize = 6;
 pub const DOODAD_KINDS: &[&str] = &["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp"];
 pub const GRID_HEADER_LEN: usize = 16;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
-pub const SECTIONS: [([u8; 4], usize); 18] = [
+pub const SECTIONS: [([u8; 4], usize); 20] = [
     (TAG_STRS, STRS_RECORD),
     (TAG_EFCT, EFCT_RECORD),
     (TAG_ABIL, ABIL_RECORD),
@@ -119,6 +136,7 @@ pub const SECTIONS: [([u8; 4], usize); 18] = [
     (TAG_DMGF, DMGF_RECORD),
     (TAG_DODA, DODA_RECORD),
     (TAG_GRID, GRID_RECORD),
+    (TAG_ITEM, ITEM_RECORD),
 ];
 
 pub fn index_of(list: &[&str], value: &str, what: &str) -> anyhow::Result<usize> {

@@ -9,9 +9,12 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 16;
+const VERSION: u16 = 18;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
+const PLACE_TEAM: u32 = 2;
+const PLACE_TEAM_SHIFT: u32 = 8;
+const PLACE_TEAM_MASK: u32 = 0xFF << PLACE_TEAM_SHIFT;
 const LIMT_COUNT: usize = 1;
 const EFFECT_MOVE: u16 = 2;
 const RESOURCE_KINDS: u8 = 3;
@@ -19,8 +22,13 @@ const ABILITY_FILTER_BITS: u16 = 12;
 const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 18] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID"];
-const RECORD_SIZES: [usize; 18] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 32, 8, 32, 8, 8, 20, 1];
+const SECTION_TAGS: [&[u8; 4]; 20] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL"];
+const RECORD_SIZES: [usize; 20] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 44, 8, 32, 8, 8, 20, 1, 32, 72];
+const SKILL_RANKS: usize = 4;
+const ULTIMATE_RANKS: u8 = 3;
+const ULTIMATE_GATES: [i32; ULTIMATE_RANKS as usize] = [6, 12, 18];
+const NORMAL_GATE: i32 = 1;
+const EFFECT_AMOUNT_KINDS: [u16; 2] = [0, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
@@ -37,7 +45,7 @@ const TRIGGER_CODES: u8 = 5;
 const ACTION_CODES: u8 = 4;
 const RESPONSE_CODES: u8 = 3;
 const FILTER_BITS: u32 = 12;
-const NO_INDEX: u16 = 0xFFFF;
+pub(crate) const NO_INDEX: u16 = 0xFFFF;
 const GRID_HEADER: usize = 16;
 /// The cell size the simulation runs on: one world unit per cell. Other sizes are
 /// refused, because every position-to-cell conversion assumes this.
@@ -77,6 +85,19 @@ pub struct Ability {
     pub projectile_speed: i32,
     /// Unit filters a valid target must carry (12 bits); 0 means no filter.
     pub filter: u16,
+    /// Skill tree, when the ability learns ranks; its cooldown and energy then depend on rank.
+    pub skill: Option<Skill>,
+}
+
+/// Per-rank values of a skill tree. Entries past `max_rank` are unused.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Skill {
+    pub ultimate: bool,
+    pub max_rank: u8,
+    pub gates: [i32; SKILL_RANKS],
+    pub damage: [i32; SKILL_RANKS],
+    pub cooldown: [i32; SKILL_RANKS],
+    pub energy: [i32; SKILL_RANKS],
 }
 
 impl Ability {
@@ -253,6 +274,7 @@ pub struct Regen {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Start {
     pub player: u8,
+    pub team: u8,
     pub x: i32,
     pub y: i32,
 }
@@ -291,8 +313,18 @@ pub struct UnitExt {
     pub burrow_ticks: i32,
     pub rally_x: i32,
     pub rally_y: i32,
-    /// Resources paid to the rival side when this unit is destroyed.
+    /// Gold paid to the killer when this unit is destroyed by an enemy.
     pub bounty: i32,
+    /// Health percent at or below which an allied unit may deny this unit.
+    pub deny_pct: u8,
+    /// Share of `xp_bounty` the enemies get when this unit is denied, percent.
+    pub deny_xp_pct: u8,
+    /// Player-controlled (a hero): shares assist and kill xp.
+    pub player_controlled: bool,
+    /// Xp shared by the killer and in-range heroes when this unit dies.
+    pub xp_bounty: i32,
+    /// Assist radius around this unit, fixed-point milli-units.
+    pub assist_radius: i32,
 }
 
 /// Channelling of one ability (ACHN, one per ability).
@@ -347,10 +379,23 @@ pub struct Doodad {
     pub rotation: i32,
 }
 
+/// An item (ITEM). The bonuses are added to the buyer's stats on purchase; `ability` is an
+/// index into the abilities, or `NO_INDEX` for a passive item.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Item {
+    pub name: Name,
+    pub cost: i32,
+    pub armor: i32,
+    pub damage: i32,
+    pub health: i32,
+    pub ability: u16,
+}
+
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.
 #[derive(Clone, Debug, Default)]
 pub struct Catalog {
     pub strs: Vec<u8>,
+    pub items: Vec<Item>,
     pub effects: Vec<Effect>,
     pub abilities: Vec<Ability>,
     pub uabl: Vec<u16>,
@@ -506,6 +551,55 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
 }
 
 /// Parses a version 2 OSDT image into its catalog and its grid.
+/// Reads one SKIL record and checks it against the effects its ability names.
+fn read_skill(sr: &mut Reader<'_>, effects: &[Effect], first: usize, count: usize) -> Result<Option<Skill>, LoadError> {
+    let has = sr.u8("skill has")?;
+    let max_rank = sr.u8("skill max rank")?;
+    let ultimate = sr.u8("skill ultimate")?;
+    sr.skip(5, "skill reserved")?;
+    let mut skill = Skill::default();
+    for table in [&mut skill.gates, &mut skill.damage, &mut skill.cooldown, &mut skill.energy] {
+        for value in table.iter_mut() {
+            *value = sr.i32("skill value")?;
+        }
+    }
+    if has == 0 {
+        if max_rank != 0 || ultimate != 0 || skill != Skill::default() {
+            return Err(LoadError::Range("skill values without a skill tree"));
+        }
+        return Ok(None);
+    }
+    if has != 1 || max_rank == 0 || max_rank as usize > SKILL_RANKS || ultimate > 1 {
+        return Err(LoadError::Range("skill header"));
+    }
+    if ultimate == 1 && max_rank > ULTIMATE_RANKS {
+        return Err(LoadError::Range("ultimate rank count"));
+    }
+    let ranks = max_rank as usize;
+    for k in 0..SKILL_RANKS {
+        if k >= ranks {
+            if skill.gates[k] != 0 || skill.damage[k] != 0 || skill.cooldown[k] != 0 || skill.energy[k] != 0 {
+                return Err(LoadError::Range("skill entry past max rank"));
+            }
+            continue;
+        }
+        let gate = if ultimate == 1 { ULTIMATE_GATES[k] } else { NORMAL_GATE };
+        if skill.gates[k] != gate {
+            return Err(LoadError::Range("skill level gate"));
+        }
+        if skill.damage[k] < 0 || skill.cooldown[k] < 0 || skill.energy[k] < 0 {
+            return Err(LoadError::Range("skill value negative"));
+        }
+    }
+    let takes_amount = effects[first..first + count].iter().any(|e| EFFECT_AMOUNT_KINDS.contains(&e.kind));
+    if !takes_amount && skill.damage.iter().any(|&d| d != 0) {
+        return Err(LoadError::Range("skill damage without an amount effect"));
+    }
+    skill.ultimate = ultimate == 1;
+    skill.max_rank = max_rank;
+    Ok(Some(skill))
+}
+
 pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let mut r = Reader { buf: bytes, at: 0 };
     if r.take(4, "magic")? != &MAGIC[..] {
@@ -525,7 +619,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 18];
+    let mut sections = [(0usize, 0usize); 20];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -573,6 +667,11 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
 
     let (ao, ac) = body(2);
     let mut ar = Reader { buf: bytes, at: ao };
+    let (so, sc) = body(19);
+    if sc != ac {
+        return Err(LoadError::Section("skill count"));
+    }
+    let mut sr = Reader { buf: bytes, at: so };
     let mut abilities = Vec::with_capacity(ac);
     for _ in 0..ac {
         let name = ar.name("ability name")?;
@@ -601,7 +700,8 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if effect_first as usize + effect_count as usize > ec {
             return Err(LoadError::Range("effect run"));
         }
-        abilities.push(Ability { name, flags, cooldown, energy, target, effect_count, effect_first, projectile_speed, filter });
+        let skill = read_skill(&mut sr, &effects, effect_first as usize, effect_count as usize)?;
+        abilities.push(Ability { name, flags, cooldown, energy, target, effect_count, effect_first, projectile_speed, filter, skill });
     }
 
     if effects.iter().any(|e| e.kind == EFFECT_USE_CALLDOWN && (e.p0 < 0 || e.p0 as usize >= abilities.len())) {
@@ -781,8 +881,8 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let x = pr.i32("placement x")?;
         let y = pr.i32("placement y")?;
         let flags = pr.u32("placement flags")?;
-        if flags & !PLACE_START != 0 {
-            return Err(LoadError::Range("placement flags outside bit 0"));
+        if flags & !(PLACE_START | PLACE_TEAM | PLACE_TEAM_MASK) != 0 {
+            return Err(LoadError::Range("placement flags outside the start and team bits"));
         }
         if x < 0 || y < 0 || x as i64 >= w as i64 * CELL_MILLI as i64 || y as i64 >= h as i64 * CELL_MILLI as i64 {
             return Err(LoadError::Range("placement outside the grid"));
@@ -795,7 +895,11 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             if starts.iter().any(|s| s.player == player as u8) {
                 return Err(LoadError::Range("two start records for one player"));
             }
-            starts.push(Start { player: player as u8, x, y });
+            let team = if flags & PLACE_TEAM != 0 { ((flags & PLACE_TEAM_MASK) >> PLACE_TEAM_SHIFT) as usize } else { player as usize };
+            if team >= crate::MAX_PLAYERS {
+                return Err(LoadError::Range("start team outside 0..MAX_PLAYERS"));
+            }
+            starts.push(Start { player: player as u8, team: team as u8, x, y });
             continue;
         }
         if unit >= units.len() || (player > 15 && player != NO_INDEX) {
@@ -936,8 +1040,17 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let rally_x = xr.i32("ext rally x")?;
         let rally_y = xr.i32("ext rally y")?;
         let bounty = xr.i32("ext bounty")?;
+        let deny_pct = xr.u8("ext deny pct")?;
+        let deny_xp_pct = xr.u8("ext deny xp pct")?;
+        let flags = xr.u8("ext flags")?;
+        xr.skip(1, "ext reserved 2")?;
+        let xp_bounty = xr.i32("ext xp bounty")?;
+        let assist_radius = xr.i32("ext assist radius")?;
         if size > 2 || damage_type > 2 || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 || bounty < 0 {
             return Err(LoadError::Range("unit extension outside its table"));
+        }
+        if deny_pct > 100 || deny_xp_pct > 100 || flags > 1 || xp_bounty < 0 || assist_radius < 0 {
+            return Err(LoadError::Range("unit extension deny or xp outside its table"));
         }
         unit_ext.push(UnitExt {
             capacity_provided,
@@ -951,6 +1064,11 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             rally_x,
             rally_y,
             bounty,
+            deny_pct,
+            deny_xp_pct,
+            player_controlled: flags & 1 != 0,
+            xp_bounty,
+            assist_radius,
         });
     }
 
@@ -1055,9 +1173,32 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         doodads.push(Doodad { id, kind, x, y, rotation });
     }
 
+    let (io, ic) = body(18);
+    let mut ir = Reader { buf: bytes, at: io };
+    let mut items = Vec::with_capacity(ic);
+    for _ in 0..ic {
+        let name = ir.name("item name")?;
+        ir.skip(2, "item reserved")?;
+        let item = Item {
+            name,
+            cost: ir.i32("item cost")?,
+            armor: ir.i32("item armor")?,
+            damage: ir.i32("item damage")?,
+            health: ir.i32("item health")?,
+            ability: ir.u16("item ability")?,
+        };
+        ir.skip(6, "item reserved")?;
+        let ability_ok = item.ability == NO_INDEX || (item.ability as usize) < abilities.len();
+        if item.cost < 0 || item.armor < 0 || item.damage < 0 || item.health < 0 || !ability_ok {
+            return Err(LoadError::Range("item outside its table"));
+        }
+        items.push(item);
+    }
+
     Ok((
         Catalog {
             strs,
+            items,
             effects,
             abilities,
             uabl,
@@ -1094,6 +1235,9 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
     }
     for k in 0..sim.cat.starts.len() {
         let s = sim.cat.starts[k];
+        if sim.set_team(s.player, s.team).is_err() {
+            return Err(LoadError::Range("start team refused"));
+        }
         sim.open_player(s.player, s.x, s.y);
         sim.base_fields(s.x, s.y);
     }

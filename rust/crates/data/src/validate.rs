@@ -6,11 +6,12 @@ use anyhow::{anyhow, bail, Result};
 
 use crate::format::{
     move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, CHANNEL_FLAG, CLOAK_MASK, EFFECT_KINDS, MAX_PLAYERS,
-    NEUTRAL_PLAYER, NO_ABILITY, NO_UNIT, PLCE_FLAG_START, Q16_ONE,
+    NEUTRAL_PLAYER, NO_ABILITY, NO_UNIT, NORMAL_GATE, PLCE_FLAG_START, PLCE_FLAG_TEAM, PLCE_TEAM_SHIFT, Q16_ONE,
+    SKILL_RANKS, ULTIMATE_GATES, ULTIMATE_RANKS,
 };
 use crate::model::{
-    Ability, Behaviour, Catalog, Channel, Collector, DamageFactor, Econ, Effect, Prereq, Research, Spawn, Unit,
-    Doodad, UnitExt, Upgrade, Weapon,
+    Ability, AbilityRaw, Behaviour, Catalog, Channel, Collector, DamageFactor, Econ, Effect, EffectRaw, Prereq,
+    Research, Skill, SkillRaw, Spawn, Unit, Doodad, Item, UnitExt, Upgrade, Weapon,
 };
 
 fn valid_name(name: &str) -> Result<()> {
@@ -48,6 +49,42 @@ fn bounded(what: &str, value: i32, max: u32) -> Result<u32> {
     Ok(v)
 }
 
+/// Checks one skill tree against its ability and the effects it names, then resolves it.
+fn check_skill(raw: &SkillRaw, ability: &AbilityRaw, effects: &[EffectRaw]) -> Result<Skill> {
+    let ranks = raw.damage.len();
+    if ranks == 0 || ranks > SKILL_RANKS {
+        bail!("skill {:?} needs 1..={SKILL_RANKS} ranks, got {ranks}", raw.ability);
+    }
+    if raw.gates.len() != ranks || raw.cooldown.len() != ranks || raw.energy.len() != ranks {
+        bail!("skill {:?}: gates, damage, cooldown and energy must each list {ranks} ranks", raw.ability);
+    }
+    if raw.ultimate && ranks > ULTIMATE_RANKS {
+        bail!("ultimate {:?} takes at most {ULTIMATE_RANKS} ranks, got {ranks}", raw.ability);
+    }
+    let mut skill = Skill {
+        ultimate: raw.ultimate,
+        max_rank: ranks as u8,
+        ..Skill::default()
+    };
+    for k in 0..ranks {
+        let gate = if raw.ultimate { ULTIMATE_GATES[k] } else { NORMAL_GATE };
+        if raw.gates[k] != gate {
+            bail!("skill {:?}: rank {} gate must be level {gate}, got {}", raw.ability, k + 1, raw.gates[k]);
+        }
+        skill.gates[k] = gate;
+        skill.damage[k] = unsigned("skill damage", raw.damage[k])? as i32;
+        skill.cooldown[k] = unsigned("skill cooldown", raw.cooldown[k])? as i32;
+        skill.energy[k] = unsigned("skill energy", raw.energy[k])? as i32;
+    }
+    let takes_amount = ability.effects.iter().any(|&h| {
+        matches!(EFFECT_KINDS.get(effects[h].kind).copied(), Some("damage") | Some("heal"))
+    });
+    if !takes_amount && skill.damage[..ranks].iter().any(|&d| d != 0) {
+        bail!("skill {:?}: damage table is set but the ability has no damage or heal effect", raw.ability);
+    }
+    Ok(skill)
+}
+
 fn required_index(kind: usize, name: &str, units: &HashMap<String, usize>, researches: &HashMap<String, usize>) -> Result<usize> {
     let found = match kind {
         0 => units.get(name),
@@ -66,6 +103,8 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let spawns_raw = collector.spawns.into_inner();
     let upgrades_raw = collector.upgrades.into_inner();
     let doodads_raw = collector.doodads.into_inner();
+    let items_raw = collector.items.into_inner();
+    let skills_raw = collector.skills.into_inner();
     let unit_ext_raw = collector.unit_ext.into_inner();
     let channels_raw = collector.channels.into_inner();
     let economy_raw = collector.economy.into_inner();
@@ -93,8 +132,20 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     name_index("upgrade", upgrades_raw.iter().map(|u| u.name.as_str()))?;
     let research_index = name_index("research", researches_raw.iter().map(|r| r.name.as_str()))?;
 
+    let mut skills_by_ability: HashMap<usize, Skill> = HashMap::new();
+    for raw in &skills_raw {
+        let index = *ability_index
+            .get(&raw.ability)
+            .ok_or_else(|| anyhow!("skill names unknown ability {:?}", raw.ability))?;
+        if skills_by_ability.contains_key(&index) {
+            bail!("ability {:?} has more than one skill tree", raw.ability);
+        }
+        let skill = check_skill(raw, &abilities_raw[index], &effects)?;
+        skills_by_ability.insert(index, skill);
+    }
+
     let mut abilities = Vec::with_capacity(abilities_raw.len());
-    for raw in &abilities_raw {
+    for (ability_no, raw) in abilities_raw.iter().enumerate() {
         if raw.effects.len() > u8::MAX as usize {
             bail!("ability {:?} has more than 255 effects", raw.name);
         }
@@ -140,6 +191,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
                 .projectile_speed
                 .map(|speed| unsigned("projectile_speed_milli", speed))
                 .transpose()?,
+            skill: skills_by_ability.get(&ability_no).copied(),
         });
     }
 
@@ -248,7 +300,15 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             rally_dx: raw.rally_dx,
             rally_dy: raw.rally_dy,
             bounty: unsigned("bounty", raw.bounty)?,
+            deny_pct: 0,
+            deny_xp_pct: bounded("deny_xp_pct", raw.deny_xp_pct, 100)? as u8,
+            player_controlled: raw.player_controlled,
+            xp_bounty: unsigned("xp_bounty", raw.xp_bounty)?,
+            assist_radius: unsigned("assist_radius_milli", raw.assist_radius_milli)?,
         };
+    }
+    for (index, raw) in units_raw.iter().enumerate() {
+        unit_ext[index].deny_pct = bounded("deny_pct", raw.deny_pct, 100)? as u8;
     }
 
     let econ = match economy_raw {
@@ -378,7 +438,11 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
                 if !started.insert(raw.player) {
                     bail!("player {} has more than one start location", raw.player);
                 }
-                (NO_UNIT, PLCE_FLAG_START)
+                let team_flags = match raw.team {
+                    Some(team) => PLCE_FLAG_TEAM | ((team as u32) << PLCE_TEAM_SHIFT),
+                    None => 0,
+                };
+                (NO_UNIT, PLCE_FLAG_START | team_flags)
             }
         };
         spawns.push(Spawn {
@@ -443,7 +507,43 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         });
     }
 
+    name_index("item", items_raw.iter().map(|i| i.name.as_str()))?;
+    let mut items = Vec::with_capacity(items_raw.len());
+    for (at, raw) in items_raw.iter().enumerate() {
+        let ability = match &raw.ability {
+            Some(name) => match ability_index.get(name) {
+                Some(&index) => index as u16,
+                None => bail!("item {:?} names unknown ability {name:?}", raw.name),
+            },
+            None => NO_ABILITY,
+        };
+        let mut components = [NO_ABILITY; 2];
+        let mut component_cost: i64 = 0;
+        for (slot, name) in raw.components.iter().enumerate() {
+            match items_raw[..at].iter().position(|earlier| earlier.name == *name) {
+                Some(index) => {
+                    components[slot] = index as u16;
+                    component_cost += i64::from(items_raw[index].cost);
+                }
+                None => bail!("item {:?} names component {name:?} not declared before it", raw.name),
+            }
+        }
+        if component_cost > i64::from(raw.cost) {
+            bail!("item {:?}: its components cost {component_cost}, more than its cost {}", raw.name, raw.cost);
+        }
+        items.push(Item {
+            name: raw.name.clone(),
+            cost: raw.cost as u32,
+            armor: raw.armor as u32,
+            damage: raw.damage as u32,
+            health: raw.health as u32,
+            ability,
+            components,
+        });
+    }
+
     Ok(Catalog {
+        items,
         doodads,
         units,
         unit_ext,

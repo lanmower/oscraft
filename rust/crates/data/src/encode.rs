@@ -145,6 +145,12 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         i32_le(&mut uext, ext.rally_dx);
         i32_le(&mut uext, ext.rally_dy);
         u32_le(&mut uext, ext.bounty);
+        uext.push(ext.deny_pct);
+        uext.push(ext.deny_xp_pct);
+        uext.push(ext.player_controlled as u8);
+        pad(&mut uext, 1);
+        u32_le(&mut uext, ext.xp_bounty);
+        u32_le(&mut uext, ext.assist_radius);
         debug_assert_eq!(uext.len() - start, UEXT_RECORD);
     }
 
@@ -282,6 +288,43 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
     grid.extend_from_slice(&catalog.grid.heights);
     grid.extend_from_slice(&catalog.grid.tiles);
 
+    let mut item = Vec::new();
+    for raw in &catalog.items {
+        let (name_off, name_len) = strings.intern(&raw.name);
+        u32_le(&mut item, name_off);
+        u16_le(&mut item, name_len);
+        pad(&mut item, 2);
+        u32_le(&mut item, raw.cost);
+        u32_le(&mut item, raw.armor);
+        u32_le(&mut item, raw.damage);
+        u32_le(&mut item, raw.health);
+        u16_le(&mut item, raw.ability);
+        for component in raw.components {
+            u16_le(&mut item, component);
+        }
+        pad(&mut item, 2);
+    }
+
+    let mut skil = Vec::new();
+    for ability in &catalog.abilities {
+        let start = skil.len();
+        match ability.skill {
+            Some(skill) => {
+                skil.push(1);
+                skil.push(skill.max_rank);
+                skil.push(skill.ultimate as u8);
+                pad(&mut skil, 5);
+                for table in [skill.gates, skill.damage, skill.cooldown, skill.energy] {
+                    for value in table {
+                        i32_le(&mut skil, value);
+                    }
+                }
+            }
+            None => pad(&mut skil, SKIL_RECORD),
+        }
+        debug_assert_eq!(skil.len() - start, SKIL_RECORD);
+    }
+
     let strs_len = strings.bytes.len();
     let grid_len = grid.len();
     let sections: Vec<([u8; 4], usize, usize, Vec<u8>)> = vec![
@@ -303,6 +346,8 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_DMGF, catalog.damage_factors.len(), DMGF_RECORD, dmgf),
         (TAG_DODA, catalog.doodads.len(), DODA_RECORD, doda),
         (TAG_GRID, grid_len, GRID_RECORD, grid),
+        (TAG_ITEM, catalog.items.len(), ITEM_RECORD, item),
+        (TAG_SKIL, catalog.abilities.len(), SKIL_RECORD, skil),
     ];
 
     let body_start = HEADER_LEN + sections.len() * SECTION_ENTRY_LEN;

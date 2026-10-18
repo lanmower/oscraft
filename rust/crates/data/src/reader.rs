@@ -78,6 +78,11 @@ pub fn verify(image: &[u8]) -> Result<()> {
     ensure!(regn.count == unit.count, "REGN count differs from UNIT count");
     ensure!(uext.count == unit.count, "UEXT count differs from UNIT count");
     ensure!(achn.count == abil.count, "ACHN count differs from ABIL count");
+    let item = &sections[18];
+    for i in 0..item.count {
+        let ability = u16_at(image, item.offset + i * ITEM_RECORD + 24)? as usize;
+        ensure!(ability == NO_ABILITY as usize || ability < abil.count, "item {i} names ability {ability} out of range");
+    }
 
     for i in 0..efct.count {
         let at = efct.offset + i * EFCT_RECORD;
@@ -164,7 +169,13 @@ pub fn verify(image: &[u8]) -> Result<()> {
         let x = u32_at(image, at + 4)? as i64;
         let y = u32_at(image, at + 8)? as i64;
         let flags = u32_at(image, at + 12)?;
-        ensure!(flags & !PLCE_FLAG_START == 0, "placement {i} sets reserved flags");
+        ensure!(flags & !(PLCE_FLAG_START | PLCE_FLAG_TEAM | PLCE_TEAM_MASK) == 0, "placement {i} sets reserved flags");
+        let team_bits = flags & PLCE_TEAM_MASK;
+        ensure!(
+            team_bits == 0 || (flags & PLCE_FLAG_START != 0 && flags & PLCE_FLAG_TEAM != 0),
+            "placement {i} sets team flags without a team start"
+        );
+        ensure!(team_bits >> PLCE_TEAM_SHIFT < MAX_PLAYERS as u32, "start {i} team out of range");
         ensure!(
             player == NEUTRAL_PLAYER as i32 || (0..MAX_PLAYERS).contains(&player),
             "placement {i} player {player} out of range"

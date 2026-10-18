@@ -1,0 +1,15 @@
+# Items for the moba scenario. item(name, cost, armor=, damage=, health=, ability=) declares one item:
+# cost in gold, stat bonuses added to the buyer when bought, and an optional active ability the
+# item casts from its inventory slot. Active abilities are declared here, after the hero abilities
+# in abilities.osd, so their indices follow them. A hero holds six items; buying needs gold and a
+# free slot, and standing within shop range of a shop doodad (see map.osd).
+ability("salve_heal", 120, 0, "unit", [effect("heal", p0=30, p1=0)], target_filters=["army"])
+ability("blink_step", 200, 0, "point", [effect("move", p0=5000)])
+ability("war_cry", 150, 0, "unit", [effect("buff", p0=1, p1=4)], target_filters=["army"])
+item("iron_plate", 150, armor=2)
+item("vitality_ring", 150, health=40)
+item("blade", 200, damage=4)
+item("healing_salve", 120, ability="salve_heal")
+item("blink_dagger", 250, ability="blink_step")
+item("war_banner", 300, damage=3, armor=1, ability="war_cry")
+item("cleave_axe", 350, damage=7)

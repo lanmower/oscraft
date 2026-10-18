@@ -1,0 +1,10 @@
+# Hero death, buyback and gold rules read by Game.set_hero_rules (rust/crates/sim/src/hero.rs).
+# UNVERIFIED: every value is a placeholder, not a sourced Dota 2 number.
+respawn_base_s=5
+respawn_per_level_s=2
+respawn_cap_s=60
+buyback_base=100
+buyback_per_level=20
+buyback_cooldown_s=150
+passive_gold_per_s=1
+team_share_pct=20

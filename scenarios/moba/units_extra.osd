@@ -1,2 +1,20 @@
 # Extra fields for the moba scenario. unit_extra(name, ...) sets them for one unit.
-unit_extra("creep", bounty=25)
+# Verified from the Dota deny rules: a denied lane creep gives enemies 50% xp, a denied hero gives 0%,
+# and a denied unit pays no gold. Heroes are player_controlled; they share kill and assist xp.
+# Every other value below is UNVERIFIED: no source confirmed it. Check each before relying on it.
+unit_extra("creep", bounty=25, xp_bounty=30, deny_xp_pct=50, assist_radius_milli=6000)  # UNVERIFIED: bounty 25 gold, xp_bounty 30, assist_radius_milli 6000
+unit_extra("tower", deny_xp_pct=0)  # UNVERIFIED: tower gold and xp are 0 until sourced; deny_xp_pct 0 is a placeholder
+unit_extra("base", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
+unit_extra("objective", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
+unit_extra("tender", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
+unit_extra("hero", player_controlled=True, deny_xp_pct=0)
+unit_extra("ironhide", player_controlled=True, deny_xp_pct=0)
+unit_extra("swiftbow", player_controlled=True, deny_xp_pct=0)
+unit_extra("stormcaller", player_controlled=True, deny_xp_pct=0)
+unit_extra("bulwark", player_controlled=True, deny_xp_pct=0)
+unit_extra("shadeblade", player_controlled=True, deny_xp_pct=0)
+unit_extra("emberlord", player_controlled=True, deny_xp_pct=0)
+unit_extra("gale_archer", player_controlled=True, deny_xp_pct=0)
+unit_extra("frostmage", player_controlled=True, deny_xp_pct=0)
+unit_extra("tidecaller", player_controlled=True, deny_xp_pct=0)
+unit_extra("thornwarden", player_controlled=True, deny_xp_pct=0)

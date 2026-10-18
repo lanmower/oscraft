@@ -120,6 +120,8 @@ impl Sim {
         h.i32s(&self.resource_b);
         h.i32s(&self.abil_idx);
         h.i32s(&self.abil_cd);
+        h.bytes(&self.abil_rank);
+        h.i32s(&self.item_cd);
         h.i32s(&self.energy);
         h.u32s(&self.changed_at);
         h.bytes(&self.trig_hit);

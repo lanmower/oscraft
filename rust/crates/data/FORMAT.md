@@ -1,4 +1,4 @@
-# OSDT data file, format version 15
+# OSDT data file, format version 18
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
@@ -43,13 +43,15 @@ Sections appear in this order, and the reader requires all seventeen tags:
 | `REGN` | 12          | one per unit; count = unit count             |
 | `LIMT` | 4           | always 1                                     |
 | `ECON` | 32          | always 1                                     |
-| `UEXT` | 32          | one per unit; count = unit count             |
+| `UEXT` | 44          | one per unit; count = unit count             |
 | `ACHN` | 8           | one per ability; count = ability count       |
 | `RSCH` | 32          | research records                             |
 | `PREQ` | 8           | prerequisite records                         |
 | `DMGF` | 8           | damage factor records                        |
 | `DODA` | 20          | doodad records                               |
 | `GRID` | 1           | byte length                                  |
+| `ITEM` | 32          | item records                                 |
+| `SKIL` | 72          | one per ability; count = ability count       |
 
 Section bodies follow the table back to back. A section body occupies
 `count * record size` bytes, and the next body starts at the end of the previous one.
@@ -205,7 +207,7 @@ A `u16` ability index into `ABIL`. A unit's abilities are a contiguous run here.
 The model name is the file stem, without `.glb`, that a renderer draws the unit with.
 It uses lowercase letters, digits, hyphens and underscores.
 
-### UEXT (32 bytes per record, one per unit in `UNIT` order)
+### UEXT (44 bytes per record, one per unit in `UNIT` order)
 | offset | size | field                                                              |
 |--------|------|--------------------------------------------------------------------|
 | 0      | 2    | capacity provided by this unit (buildings), `>= 0`                   |
@@ -219,10 +221,59 @@ It uses lowercase letters, digits, hyphens and underscores.
 | 16     | 4    | burrow time, game ticks, `>= 0`                                    |
 | 20     | 4    | rally point offset x from the building, milli-units, i32           |
 | 24     | 4    | rally point offset y from the building, milli-units, i32           |
-| 28     | 4    | kill bounty, resource units paid to the rival side when destroyed, `>= 0` |
+| 28     | 4    | kill bounty, resource units paid to the killer when destroyed by an enemy, `>= 0` |
+| 32     | 1    | deny threshold: health percent at or below which an allied unit may deny it, `0..=100` |
+| 33     | 1    | deny xp percent: share of its xp the enemies get when it is denied, `0..=100` |
+| 34     | 1    | flags: bit 0 = player-controlled (a hero), shares assist and xp; other bits 0 |
+| 35     | 1    | reserved, write 0                                                  |
+| 36     | 4    | xp bounty, shared among the killer and in-range heroes, `>= 0`    |
+| 40     | 4    | assist radius, milli-units, `>= 0` (heroes inside it share the xp) |
 
 Transport capacity is spent in size units: a small unit costs 1, a medium unit 2,
 a large unit 4 (the sim applies these costs; the table is part of the registry).
+
+### ITEM (32 bytes per record, in `item()` declaration order; the item id is the record index)
+| offset | size | field                                                              |
+|--------|------|--------------------------------------------------------------------|
+| 0      | 4    | name offset into `STRS`                                            |
+| 4      | 2    | name length                                                        |
+| 6      | 2    | reserved, write 0                                                  |
+| 8      | 4    | cost in gold, `>= 0`                                               |
+| 12     | 4    | armor bonus, `>= 0`                                                |
+| 16     | 4    | damage bonus, `>= 0`                                               |
+| 20     | 4    | health bonus, `>= 0`                                               |
+| 24     | 2    | active ability index into `ABIL`, or `0xFFFF` for none             |
+| 26     | 2    | first recipe component (ITEM index), or `0xFFFF` for none          |
+| 28     | 2    | second recipe component (ITEM index), or `0xFFFF` for none         |
+| 30     | 2    | reserved, write 0                                                  |
+
+The bonuses are added to the buyer's instance stats when the item is bought. The
+active ability is cast from the item's inventory slot with its own cooldown.
+A recipe component must be declared before the item. The item's cost must be at least
+the sum of its components' costs (the cost rule). Buying a recipe consumes its components
+from the buyer's inventory, removes their bonuses, and charges the cost minus the components' cost.
+Selling returns half the cost.
+
+### SKIL (72 bytes per record, one per ability in `ABIL` order)
+An ability with a skill tree learns ranks with skill points. Abilities without one
+(`has skill` 0) cast at their `ABIL` cooldown and energy and need no rank.
+
+| offset | size | field                                                                 |
+|--------|------|-----------------------------------------------------------------------|
+| 0      | 1    | has skill: `0` none, `1` a skill tree                                 |
+| 1      | 1    | max rank, `1..=4` when has skill, else 0                              |
+| 2      | 1    | ultimate: `0` no, `1` yes; an ultimate takes at most 3 ranks         |
+| 3      | 5    | reserved, write 0                                                     |
+| 8      | 16   | level gate per rank, i32 x 4: ultimate rank `k` needs level 6, 12, 18 for `k` = 1, 2, 3; other ranks need level 1 |
+| 24     | 16   | damage per rank, i32 x 4, `>= 0`: the amount of the ability's first damage or heal effect |
+| 40     | 16   | cooldown per rank, game ticks, i32 x 4, `>= 0`: replaces `ABIL` cooldown |
+| 56     | 16   | energy cost per rank, i32 x 4, `>= 0`: replaces `ABIL` energy cost   |
+
+Entries past the max rank are written 0. A rank is spent with a skill point, and
+the rank count of one ability cannot exceed its max rank. A unit's character level
+is its xp level plus one, so it has one skill point per character level, less the
+ranks it has spent. A damage table is nonzero only when the ability has a damage or
+heal effect. A rank of 0 means the ability is not learned and cannot be cast.
 
 ### DMGF (8 bytes per record)
 | offset | size | field                                       |

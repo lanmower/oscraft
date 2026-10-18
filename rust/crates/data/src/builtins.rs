@@ -15,7 +15,7 @@ use crate::format::{
 };
 use crate::model::{
     AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw,
-    DoodadRaw, ResearchRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
+    DoodadRaw, ItemRaw, ResearchRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
 };
 
 pub fn globals() -> Globals {
@@ -128,6 +128,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] regen_delay: Option<i32>,
         #[starlark(require = named)] health_regen: Option<i32>,
         #[starlark(require = named)] model: Option<&str>,
+        #[starlark(require = named)] deny_pct: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let abilities: Vec<String> = abilities.map(|list| list.items).unwrap_or_default();
@@ -166,6 +167,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             regen_delay: regen_delay.unwrap_or(0),
             health_regen: health_regen.unwrap_or(0),
             model: model.unwrap_or("").to_owned(),
+            deny_pct: deny_pct.unwrap_or(50),
         });
         Ok(NoneType)
     }
@@ -183,6 +185,10 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] rally_dx: Option<i32>,
         #[starlark(require = named)] rally_dy: Option<i32>,
         #[starlark(require = named)] bounty: Option<i32>,
+        #[starlark(require = named)] deny_xp_pct: Option<i32>,
+        #[starlark(require = named)] player_controlled: Option<bool>,
+        #[starlark(require = named)] xp_bounty: Option<i32>,
+        #[starlark(require = named)] assist_radius_milli: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let size = index_of(SIZE_CATEGORIES, size.unwrap_or("small"), "size category")?;
@@ -204,6 +210,42 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             rally_dx: rally_dx.unwrap_or(0),
             rally_dy: rally_dy.unwrap_or(0),
             bounty: bounty.unwrap_or(0),
+            deny_xp_pct: deny_xp_pct.unwrap_or(0),
+            player_controlled: player_controlled.unwrap_or(false),
+            xp_bounty: xp_bounty.unwrap_or(0),
+            assist_radius_milli: assist_radius_milli.unwrap_or(0),
+        });
+        Ok(NoneType)
+    }
+
+    fn item(
+        name: &str,
+        cost: i32,
+        #[starlark(require = named)] armor: Option<i32>,
+        #[starlark(require = named)] damage: Option<i32>,
+        #[starlark(require = named)] health: Option<i32>,
+        #[starlark(require = named)] ability: Option<&str>,
+        #[starlark(require = named)] components: Option<UnpackList<String>>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let armor = armor.unwrap_or(0);
+        let damage = damage.unwrap_or(0);
+        let health = health.unwrap_or(0);
+        if cost < 0 || armor < 0 || damage < 0 || health < 0 {
+            bail!("item {name:?}: cost and stat bonuses must be >= 0");
+        }
+        let components = components.map(|list| list.items).unwrap_or_default();
+        if components.len() > 2 {
+            bail!("item {name:?}: a recipe takes at most two components");
+        }
+        collector(eval)?.items.borrow_mut().push(ItemRaw {
+            name: name.to_owned(),
+            cost,
+            armor,
+            damage,
+            health,
+            ability: ability.map(str::to_owned),
+            components,
         });
         Ok(NoneType)
     }
@@ -238,6 +280,28 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             target_filters,
             effects: handles,
             projectile_speed: projectile_speed_milli,
+        });
+        Ok(NoneType)
+    }
+
+    /// Skill tree for an ability declared earlier. One entry per rank in each list; the
+    /// lists must match in length. Damage applies to the ability's first damage or heal effect.
+    fn skill(
+        ability: &str,
+        #[starlark(require = named)] ultimate: bool,
+        #[starlark(require = named)] gates: UnpackList<i32>,
+        #[starlark(require = named)] damage: UnpackList<i32>,
+        #[starlark(require = named)] cooldown: UnpackList<i32>,
+        #[starlark(require = named)] energy: UnpackList<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        collector(eval)?.skills.borrow_mut().push(SkillRaw {
+            ability: ability.to_owned(),
+            ultimate,
+            gates: gates.items,
+            damage: damage.items,
+            cooldown: cooldown.items,
+            energy: energy.items,
         });
         Ok(NoneType)
     }
@@ -297,6 +361,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         collector(eval)?.spawns.borrow_mut().push(SpawnRaw {
             unit: Some(unit.to_owned()),
             start: false,
+            team: None,
             player,
             x,
             y,
@@ -304,9 +369,20 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         Ok(NoneType)
     }
 
-    fn start(player: i32, x: i32, y: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+    fn start(
+        player: i32,
+        x: i32,
+        y: i32,
+        #[starlark(require = named)] team: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
         if x < 0 || y < 0 {
             bail!("start for player {player} at ({x}, {y}) is negative");
+        }
+        if let Some(t) = team {
+            if !(0..MAX_PLAYERS).contains(&t) {
+                bail!("start for player {player} names team {t} outside 0..{MAX_PLAYERS}");
+            }
         }
         collector(eval)?.spawns.borrow_mut().push(SpawnRaw {
             unit: None,
@@ -314,6 +390,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             x,
             y,
             start: true,
+            team,
         });
         Ok(NoneType)
     }

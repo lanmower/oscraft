@@ -4,7 +4,7 @@
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
-use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER};
+use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER, NO_INDEX};
 use crate::*;
 
 /// Why a cast was not applied.
@@ -49,9 +49,17 @@ pub enum Refusal {
     NoDoodad,
     DuplicateDoodad,
     TrainBusy,
+    NoItem,
+    NoShop,
+    InventoryFull,
+    NotLearned,
+    NoSkillTree,
+    NoSkillPoint,
+    SkillMaxed,
+    SkillLevelGate,
 }
 
-pub const REFUSAL_KINDS: usize = 37;
+pub const REFUSAL_KINDS: usize = 45;
 
 /// Every refusal kind, in discriminant order, so a count indexed by `refusal as usize` can be named.
 pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -92,6 +100,14 @@ pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::NoDoodad,
     Refusal::DuplicateDoodad,
     Refusal::TrainBusy,
+    Refusal::NoItem,
+    Refusal::NoShop,
+    Refusal::InventoryFull,
+    Refusal::NotLearned,
+    Refusal::NoSkillTree,
+    Refusal::NoSkillPoint,
+    Refusal::SkillMaxed,
+    Refusal::SkillLevelGate,
 ];
 
 
@@ -135,11 +151,29 @@ impl Refusal {
             Refusal::NoDoodad => "no-doodad",
             Refusal::DuplicateDoodad => "duplicate-doodad",
             Refusal::TrainBusy => "train-busy",
+            Refusal::NoItem => "no-item",
+            Refusal::NoShop => "no-shop",
+            Refusal::InventoryFull => "inventory-full",
+            Refusal::NotLearned => "not-learned",
+            Refusal::NoSkillTree => "no-skill-tree",
+            Refusal::NoSkillPoint => "no-skill-point",
+            Refusal::SkillMaxed => "skill-maxed",
+            Refusal::SkillLevelGate => "skill-level-gate",
         }
     }
 }
 
 pub(crate) const TARGET_UNIT: u8 = 1;
+/// DOODAD_KINDS index of a shop (`5 shop` in FORMAT.md), and how close a unit must stand to buy.
+pub(crate) const SHOP_DOODAD_KIND: u16 = 5;
+pub(crate) const SHOP_REACH_MILLI: i32 = 4000;
+
+/// Which cooldown a cast is charged to: an ability slot or an inventory slot (by array key).
+#[derive(Clone, Copy)]
+enum Slot {
+    Ability(usize),
+    Item(usize),
+}
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 const EFFECT_MOVE: u16 = 2;
@@ -177,12 +211,17 @@ impl Sim {
             self.refuse(Refusal::NoSlot);
             return false;
         }
-        let ability = self.cat.abilities[ai as usize];
+        self.cast_index(i, ai as usize, Slot::Ability(idx), target, x, y)
+    }
+
+    /// Casts catalog ability `ai` for unit `i`, charged to cooldown `cd`. Refusals as for `cast_ability`.
+    fn cast_index(&mut self, i: usize, ai: usize, cd: Slot, target: i32, x: i32, y: i32) -> bool {
+        let ability = self.cat.abilities[ai];
         if self.channel_left[i] > 0 {
             self.refuse(Refusal::Channelling);
             return false;
         }
-        if self.abil_cd[idx] > 0 {
+        if self.cooldown(cd) > 0 {
             self.refuse(Refusal::Cooldown);
             return false;
         }
@@ -232,15 +271,94 @@ impl Sim {
 
         self.stats.casts += 1;
         self.energy[i] -= ability.energy;
-        self.abil_cd[idx] = ability.cooldown;
+        self.set_cooldown(cd, ability.cooldown);
         if ability.is_projectile() {
-            self.launch_missile(i, ai as usize, tx, ty, target);
-        } else if self.cat.channels.get(ai as usize).map_or(false, |c| c.channelled) {
-            self.start_channel(i, ai as usize, tx, ty, target);
+            self.launch_missile(i, ai, tx, ty, target);
+        } else if self.cat.channels.get(ai).map_or(false, |c| c.channelled) {
+            self.start_channel(i, ai, tx, ty, target);
         } else {
-            self.apply_effects(i, ai as usize, tx, ty, target);
+            self.apply_effects(i, ai, tx, ty, target);
         }
         true
+    }
+
+    fn cooldown(&self, cd: Slot) -> i32 {
+        match cd {
+            Slot::Ability(k) => self.abil_cd[k],
+            Slot::Item(k) => self.item_cd[k],
+        }
+    }
+
+    fn set_cooldown(&mut self, cd: Slot, ticks: i32) {
+        match cd {
+            Slot::Ability(k) => self.abil_cd[k] = ticks,
+            Slot::Item(k) => self.item_cd[k] = ticks,
+        }
+    }
+
+    /// Uses the active ability of the item in inventory slot `slot` of unit `i`. Refusals: NoSlot
+    /// for a dead unit, a bad slot, an empty slot or an item without an active ability; otherwise
+    /// the cast refusals (Cooldown, Energy, targeting), each changing nothing.
+    pub fn use_item(&mut self, i: usize, slot: usize, target: i32, x: i32, y: i32) -> bool {
+        if i >= self.n || self.alive[i] == 0 || slot >= ITEM_SLOTS {
+            self.refuse(Refusal::NoSlot);
+            return false;
+        }
+        let key = i * ITEM_SLOTS + slot;
+        let item = self.inventory[key];
+        if item < 0 || self.cat.items[item as usize].ability == NO_INDEX {
+            self.refuse(Refusal::NoSlot);
+            return false;
+        }
+        let ai = self.cat.items[item as usize].ability as usize;
+        self.cast_index(i, ai, Slot::Item(key), target, x, y)
+    }
+
+    /// Buys item `item` for unit `i`: gold moves from the owner to the bank of the purchase, the
+    /// item takes the first free inventory slot, and its stat bonuses are added to the unit.
+    /// Refusals, each changing nothing: a dead or unknown unit is NoSlot; an unknown item is
+    /// NoItem; a unit not within a shop's reach is NoShop; gold below the cost is CannotAfford;
+    /// a full inventory is InventoryFull.
+    pub fn buy_item(&mut self, i: usize, item: usize) -> bool {
+        if i >= self.n || self.alive[i] == 0 {
+            self.refuse(Refusal::NoSlot);
+            return false;
+        }
+        let Some(def) = self.cat.items.get(item).copied() else {
+            self.refuse(Refusal::NoItem);
+            return false;
+        };
+        if !self.in_shop_reach(i) {
+            self.refuse(Refusal::NoShop);
+            return false;
+        }
+        let p = self.player[i] as usize;
+        if self.resource_a[p] < def.cost {
+            self.refuse(Refusal::CannotAfford);
+            return false;
+        }
+        let base = i * ITEM_SLOTS;
+        let Some(slot) = (0..ITEM_SLOTS).find(|s| self.inventory[base + s] < 0) else {
+            self.refuse(Refusal::InventoryFull);
+            return false;
+        };
+        self.resource_a[p] -= def.cost;
+        self.inventory[base + slot] = item as i32;
+        self.armor[i] += fixed::from_int(def.armor);
+        self.damage[i] += fixed::from_int(def.damage);
+        self.hp_max[i] += fixed::from_int(def.health);
+        self.hp[i] += fixed::from_int(def.health);
+        self.touch(i);
+        true
+    }
+
+    /// True when unit `i` stands within `SHOP_REACH_MILLI` of a shop doodad.
+    fn in_shop_reach(&self, i: usize) -> bool {
+        let reach = fixed::from_milli(SHOP_REACH_MILLI) as i64;
+        self.doodads.iter().any(|d| {
+            d.kind == SHOP_DOODAD_KIND
+                && dist2(self.pos_x[i], self.pos_y[i], fixed::from_milli(d.x), fixed::from_milli(d.y)) <= reach * reach
+        })
     }
 
     /// Grants `amount` energy to unit `i`. Refusals, each changing nothing: a dead or unknown
