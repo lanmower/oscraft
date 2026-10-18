@@ -1945,14 +1945,21 @@ jobs:
           for (const cand of ranked.reverse().slice(0, 400)) {
             // Select through the CI hook: a click can land on another unit drawn over this one.
             // An attack needs a visible, hostile target: only enemies inside the candidate's sight (9 cells) are tried, nearest first.
-            const foes = units.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64).sort((a, b) => dist2(a, cand) - dist2(b, cand)).slice(0, 3);
+            const foes = units.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64).sort((a, b) => dist2(a, cand) - dist2(b, cand));
             if (!foes.length) continue;
             await page.evaluate((id) => window.__ciSelect(id), cand.id);
             // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
             await page.evaluate((id) => window.__ciLearn(id, 0), cand.id);
             // Counters are compared before and after each step, so earlier candidates do not count.
+            // The hover needs the foe on screen and under the canvas: off-screen foes are skipped, three visible ones are tried.
+            let triedFoes = 0;
             for (const foe of foes) {
+              if (triedFoes === 3) break;
               const fp = await screenAt(foe.x, foe.z);
+              const seen = fp.x >= 0 && fp.y >= 0 && fp.x < viewport.w && fp.y < viewport.h
+                && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [fp.x, fp.y]));
+              if (!seen) continue;
+              triedFoes += 1;
               const casts0 = Number(await page.getAttribute("body", "data-casts"));
               // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
               await page.mouse.move(fp.x, fp.y);
