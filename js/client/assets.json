@@ -1,6 +1,6 @@
 {
- "count": 775,
- "total_bytes": 27738585,
+ "count": 782,
+ "total_bytes": 27819632,
  "items": [
   {
    "id": "rock",
@@ -5435,6 +5435,62 @@
    "path": "js/client/models/workbench.glb",
    "role": "prop",
    "bytes": 26104
+  },
+  {
+   "id": "terrain-variation-a",
+   "kind": "texture",
+   "path": "js/client/models/Textures/variation-a.png",
+   "placed_by": "none (terrain palette variant)",
+   "bytes": 26149,
+   "role": "terrain"
+  },
+  {
+   "id": "terrain-variation-b",
+   "kind": "texture",
+   "path": "js/client/models/Textures/variation-b.png",
+   "placed_by": "none (terrain palette variant)",
+   "bytes": 25708,
+   "role": "terrain"
+  },
+  {
+   "id": "terrain-variation-c",
+   "kind": "texture",
+   "path": "js/client/models/Textures/variation-c.png",
+   "placed_by": "none (terrain palette variant)",
+   "bytes": 7024,
+   "role": "terrain"
+  },
+  {
+   "id": "terrain-variation-d",
+   "kind": "texture",
+   "path": "js/client/models/Textures/variation-d.png",
+   "placed_by": "none (terrain palette variant)",
+   "bytes": 5974,
+   "role": "terrain"
+  },
+  {
+   "id": "terrain-variation-e",
+   "kind": "texture",
+   "path": "js/client/models/Textures/variation-e.png",
+   "placed_by": "none (terrain palette variant)",
+   "bytes": 5242,
+   "role": "terrain"
+  },
+  {
+   "id": "terrain-variation-f",
+   "kind": "texture",
+   "path": "js/client/models/Textures/variation-f.png",
+   "placed_by": "none (terrain palette variant)",
+   "bytes": 5807,
+   "role": "terrain"
+  },
+  {
+   "id": "terrain-variation-g",
+   "kind": "texture",
+   "path": "js/client/models/Textures/variation-g.png",
+   "placed_by": "none (terrain palette variant)",
+   "bytes": 5143,
+   "role": "terrain"
   }
  ],
  "roles": {
@@ -5444,6 +5500,7 @@
   "structure": 352,
   "building": 106,
   "character": 15,
-  "creep": 5
+  "creep": 5,
+  "terrain": 7
  }
 }
