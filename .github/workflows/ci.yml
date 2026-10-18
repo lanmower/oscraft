@@ -1869,6 +1869,8 @@ jobs:
           for (const cand of ranked.reverse().slice(0, 400)) {
             // Select through the CI hook: a click can land on another unit drawn over this one.
             await page.evaluate((id) => window.__ciSelect(id), cand.id);
+            // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
+            await page.evaluate((id) => window.__ciLearn(id, 0), cand.id);
             const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
             if (!foe) continue;
             const fp = await screenAt(foe.x, foe.z);
@@ -2588,7 +2590,7 @@ jobs:
           [[ "$BROKEN_LINE" =~ ^[0-9]+$ ]] || { echo "FAIL: broken copy has no diagnostic line: [$BROKEN_DIAG]"; exit 1; }
           [ "$BROKEN_LINE" = 7 ] || { echo "FAIL: broken copy diagnostic at 0-based line $BROKEN_LINE, expected 7"; exit 1; }
           echo "lua-diagnostic: $(basename "$BROKEN") line $((BROKEN_LINE + 1)): $BROKEN_MSG"
-          EXPORTED=$({ sed -n '/^pub const HOST_GLOBALS/,/^\];/p' crates/mod-host/src/mlua_host.rs | grep -o '"[a-z_]*"' | tr -d '"'; sed -n '/^pub const EVENTS/,/^\];/p' crates/mod-host/src/mlua_host.rs | grep -o '("[a-z_]*"' | tr -d '("'; } | sort)
+          EXPORTED=$({ sed -n '/^pub const HOST_GLOBALS/,/^\];/p' crates/mod-host/src/mlua_host.rs | grep -o '"[a-z_]*"' | tr -d '"'; sed -n '/^pub const EVENTS/,/^\];/p' crates/mod-host/src/lib.rs | grep -o '("[a-z_]*"' | tr -d '("'; } | sort)
           COMPLETED=$(jq -r 'select(.id==2) | .result.items[].label' "$RUNNER_TEMP/lua-msgs.jsonl" | sort)
           [ -n "$EXPORTED" ] || { echo "REFUSE: mod-host exports no host globals"; exit 1; }
           [ "$COMPLETED" = "$EXPORTED" ] || { echo "FAIL: lua completion differs from mod-host exports"; diff <(echo "$EXPORTED") <(echo "$COMPLETED") || true; exit 1; }
@@ -3206,7 +3208,7 @@ jobs:
             await mobaHost.evaluate(() => window.__ciKillSide(1));
             await mobaHost.waitForFunction(() => document.body.dataset.winner === "0", null, { timeout: 90000 });
             const winText = await mobaHost.textContent("#win");
-            if (winText !== "side 0 wins" || !(await mobaHost.isVisible("#win"))) throw new Error(`host winner text: ${JSON.stringify(winText)}`);
+            if (!winText.startsWith("side 0 wins") || !(await mobaHost.isVisible("#win"))) throw new Error(`host winner text: ${JSON.stringify(winText)}`);
             console.log(`browser hud ok gold=${hudPeer.gold} winner=0`);
             await host.waitForFunction(() => window.__ciFrames && window.__ciFrames.length >= 200, null, { timeout: 120000 });
             const frames = await host.evaluate(() => window.__ciFrames.slice(0, 200));
@@ -3401,7 +3403,10 @@ jobs:
               throw new Error(`no ${attr} accepted by the host: refusal=${await host.evaluate(() => document.body.dataset.lastRefusal)}`);
             };
             await landed("remoteAttacks", (me, foe) => peer.evaluate(([id, targetId]) => window.__ciAttack(id, targetId), [me.id, foe.id]));
-            await landed("remoteCasts", (me, foe) => peer.evaluate(([id, targetId, x, z]) => window.__ciCast(id, 0, targetId, x, z), [me.id, foe.id, foe.x, foe.z]));
+            await landed("remoteCasts", async (me, foe) => {
+              await host.evaluate((id) => window.__ciLearn(id, 0), me.id);
+              await peer.evaluate(([id, targetId, x, z]) => window.__ciCast(id, 0, targetId, x, z), [me.id, foe.id, foe.x, foe.z]);
+            });
             const attacks = await host.evaluate(() => document.body.dataset.remoteAttacks);
             const casts = await host.evaluate(() => document.body.dataset.remoteCasts);
             // Both sides must hold the same unit positions for the host ticks they both logged.

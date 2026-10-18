@@ -851,6 +851,7 @@ if (params.get("ci") === "1") {
   window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, modeled: !!unitMeshes[u.type] }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
+  window.__ciLearn = (unitId, slot) => (localGame ? localGame.skill_up(unitId, slot) : false);
   window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
   window.__ciSent = new Map();
   window.__ciRecv = new Map();
