@@ -5,11 +5,16 @@
 // no side is declared winner within the tick budget. Last line on success:
 // `moba 5v5 match ok winner=<n> tick=<t>`.
 //
-// Usage: cargo run -p server --example moba_match -- <scenario dir> [max_ticks]
+// Every command the heroes issue goes through a replay recording; at the end the match is replayed from
+// a fresh load of the scenario and must reach the same state hash (`replay ok hash=<h> ticks=<n>`).
+// With a third argument the recording is also written to that file.
+//
+// Usage: cargo run -p server --example moba_match -- <scenario dir> [max_ticks] [replay file]
 
 use std::collections::HashSet;
 use std::path::Path;
 
+use server::replay::{Command, Recording, Replayer};
 use sim::{Sim, ABILITY_SLOTS};
 
 const NEUTRAL: u8 = 0xFF;
@@ -82,6 +87,7 @@ fn main() {
             std::process::exit(2);
         }
     };
+    let mut rec = Recording::new(dir, 4096, &sim);
     let heroes: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_hero(i)).collect();
     let sides: HashSet<u8> = heroes.iter().map(|&h| side(sim.player(h))).collect();
     println!("setup heroes={} sides={} players={}", heroes.len(), sides.len(), {
@@ -114,7 +120,7 @@ fn main() {
                     if sim.skill_points(h) == 0 {
                         break;
                     }
-                    let _ = sim.skill_up(h, slot);
+                    rec.apply(&mut sim, Command::SkillUp { unit: h, slot });
                 }
             }
         }
@@ -141,7 +147,7 @@ fn main() {
                     if sim.skill_rank(h, slot) == 0 {
                         continue;
                     }
-                    if sim.cast_ability(h, slot, foe as i32, 0, 0) && seen.first("cast") {
+                    if rec.apply(&mut sim, Command::Cast { unit: h, slot, target: foe as i32, x: 0, y: 0 }) && seen.first("cast") {
                         println!("milestone cast tick={t} hero={h} slot={slot} target={foe}");
                     }
                 }
@@ -159,14 +165,16 @@ fn main() {
             if let Some(tg) = target {
                 match sim.order_attack_or_approach(h, tg) {
                     Ok(true) => {
+                        rec.record_applied(&sim, Command::Attack { unit: h, target: tg });
                         if seen.first("attack") {
                             println!("milestone attack tick={t} hero={h} target={tg}");
                         }
                     }
-                    Ok(false) => {}
+                    Ok(false) => rec.record_applied(&sim, Command::Attack { unit: h, target: tg }),
                     Err(_) => {
+                        rec.record_applied(&sim, Command::Attack { unit: h, target: tg });
                         let (x, y) = sim.position_fixed(tg);
-                        sim.order(h, x, y);
+                        rec.apply(&mut sim, Command::Order { unit: h, x, y });
                     }
                 }
             }
@@ -175,7 +183,7 @@ fn main() {
         for &h in &heroes {
             gold_before[h] = sim.hero_gold(h);
         }
-        sim.tick();
+        rec.tick(&mut sim, true, true);
 
         for ev in sim.drain_kill_events() {
             let killer = ev.killer as usize;
@@ -223,6 +231,26 @@ fn main() {
     for j in 0..sim.count() {
         if is_roshan(&sim, j) {
             eprintln!("roshan unit={j} alive={} hp={}", sim.alive(j), sim.hp(j));
+        }
+    }
+    rec.check(&sim);
+    let text = rec.render(&sim);
+    if let Some(path) = args.get(3) {
+        if let Err(e) = std::fs::write(path, &text) {
+            eprintln!("replay write failed: {e}");
+            std::process::exit(2);
+        }
+    }
+    let mut fresh = server::mods::load_data(Path::new(dir), 4096).unwrap_or_else(|e| {
+        eprintln!("reload failed: {e}");
+        std::process::exit(2);
+    });
+    let replayed = Recording::parse(&text).and_then(|r| Replayer::new(r, &fresh)).and_then(|mut p| p.run_to_end(&mut fresh));
+    match replayed {
+        Ok(h) if h == sim.state_hash() && fresh.ticks() == tick => println!("replay ok hash={h:016x} ticks={tick}"),
+        other => {
+            eprintln!("replay diverged: {other:?} live={:016x} ticks={tick}", sim.state_hash());
+            std::process::exit(1);
         }
     }
     let required = [

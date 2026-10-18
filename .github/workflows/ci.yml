@@ -460,6 +460,14 @@ jobs:
           done
           tail -1 match.log | grep -Eq '^moba 5v5 match ok winner=[0-9]+ tick=[0-9]+$'
 
+      - name: Replay the 5v5 match from its recording; the final state hash is reproduced
+        run: |
+          set -euo pipefail
+          cargo run -q --release -p server --example moba_match -- ../scenarios/moba 40000 "$RUNNER_TEMP/match.replay" > match.log
+          grep -Eq '^replay ok hash=[0-9a-f]{16} ticks=[0-9]+$' match.log
+          cargo run -q --release -p server --example replay_check -- "$RUNNER_TEMP/match.replay" | tee replay.log
+          grep -Eq '^replay ok hash=[0-9a-f]{16} ticks=[0-9]+$' replay.log
+
       - name: Drain posted orders under a generous budget; the drain logs no tick-shed
         run: |
           set -euo pipefail

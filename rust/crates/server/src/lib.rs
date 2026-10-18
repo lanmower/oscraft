@@ -54,6 +54,7 @@ pub struct Options {
     pub test_panic_tick: Option<u64>,
     pub test_panic_mod_tick: Option<u64>,
     pub site: Option<PathBuf>,
+    pub replay_dir: Option<PathBuf>,
 }
 
 pub struct Server {
@@ -83,6 +84,10 @@ pub fn run() -> Result<(), String> {
 
     rooms[0].attach_mod_feed(Arc::clone(&link));
     for room in &rooms {
+        if let Some(dir) = &opts.replay_dir {
+            std::fs::create_dir_all(dir).map_err(|e| format!("--replay-dir {}: {e}", dir.display()))?;
+            room.set_replay_file(&dir.join(format!("{}.replay", room.name)))?;
+        }
         if let Some(tick) = opts.test_panic_tick {
             room.arm_test_panic(tick);
         }
@@ -207,6 +212,7 @@ pub fn parse_args() -> Result<Options, String> {
         test_panic_tick: None,
         test_panic_mod_tick: None,
         site: None,
+        replay_dir: None,
     };
     let mut args = env::args().skip(1);
     while let Some(flag) = args.next() {
@@ -238,6 +244,7 @@ pub fn parse_args() -> Result<Options, String> {
             "--test-panic-tick" => opts.test_panic_tick = Some(parse_num(&value, &flag)?),
             "--test-panic-mod-tick" => opts.test_panic_mod_tick = Some(parse_num(&value, &flag)?),
             "--site" => opts.site = Some(PathBuf::from(value)),
+            "--replay-dir" => opts.replay_dir = Some(PathBuf::from(value)),
             "--order-token" => {
                 let (name, token) = value.split_once('=').ok_or("--order-token is NAME=TOKEN")?;
                 opts.tokens.push((name.to_lowercase(), token.to_string()));
@@ -292,6 +299,7 @@ impl Server {
             ("GET", "/events") => self.on_room(req, serve_events),
             ("GET", "/delta") => self.on_room(req, serve_delta),
             ("GET", "/catalog") => self.on_room(req, serve_catalog),
+            ("GET", "/replay") => self.on_room(req, serve_replay),
             ("GET", "/mod-version") => self.mod_version(),
             ("GET", "/mod-events") => self.mod_events(req),
             ("POST", "/order") => self.on_room(req, serve_order),
@@ -452,6 +460,18 @@ pub fn serve_delta(room: &Room, req: &Request) -> Response {
                 PROTOCOL_VERSION, since, tick
             ),
         ),
+    }
+}
+
+pub fn serve_replay(room: &Room, _req: &Request) -> Response {
+    Response {
+        status: 200,
+        headers: vec![
+            ("Content-Type", "text/plain; charset=utf-8".to_string()),
+            ("Content-Disposition", format!("attachment; filename=\"{}.replay\"", room.name)),
+            ("Access-Control-Allow-Origin", "*".to_string()),
+        ],
+        body: room.replay_text().into_bytes(),
     }
 }
 

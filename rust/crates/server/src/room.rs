@@ -15,6 +15,7 @@ use crate::budget::{
 };
 use crate::mods::{self, ModLink};
 use crate::order::{Order, OrderGate};
+use crate::replay::{Command, Recording};
 use crate::supervise::{supervise, Outcome};
 
 // Matches sim/src/lib.rs `TICKS_PER_SECOND` (16). The sim keeps it pub(crate), so it is not re-exported and must be kept in step by hand.
@@ -46,6 +47,7 @@ struct Clock {
     orders_drained: u64,
     orders: Receiver<Order>,
     hist: TickHistogram,
+    rec: Recording,
 }
 
 // Mod UI events (messages, banners, panels, camera moves, sounds) kept for clients to poll by id.
@@ -154,6 +156,8 @@ impl Room {
                 (sim, cfg.grid_w, cfg.grid_h, false)
             }
         };
+        let image = cfg.data.as_ref().map_or_else(|| format!("open-grid:{grid_w}x{grid_h}"), |p| p.display().to_string());
+        let rec = Recording::new(&image, cfg.max_units, &sim);
         let room = Arc::new(Room {
             name: cfg.name,
             grid_w,
@@ -180,6 +184,7 @@ impl Room {
                 orders_drained: 0,
                 orders: rx,
                 hist: TickHistogram::new(),
+                rec,
             }),
         });
         if let Some(dir) = watch {
@@ -207,6 +212,20 @@ impl Room {
     pub fn ui_events_since(&self, since: u64) -> (u64, Vec<String>) {
         let log = lock(&self.ui);
         (log.next, log.events.iter().filter(|(id, _)| *id > since).map(|(_, e)| e.clone()).collect())
+    }
+
+    /// The replay so far as text: the initial data image name and hash, every command per tick and
+    /// the state hash every few ticks, ending with a check at the current tick.
+    pub fn replay_text(&self) -> String {
+        let c = lock(&self.clock);
+        c.rec.render(&c.sim)
+    }
+
+    /// Streams the replay to `path` as the room ticks.
+    pub fn set_replay_file(&self, path: &std::path::Path) -> Result<(), String> {
+        let file = std::fs::File::create(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        lock(&self.clock).rec.set_sink(Box::new(std::io::BufWriter::new(file)));
+        Ok(())
     }
 
     pub fn attach_mod_feed(&self, link: Arc<ModLink>) {
@@ -325,6 +344,8 @@ impl Room {
         if let Some(mut sim) = lock(&self.staged).take() {
             let (carried, refused) = carry_live_units(&c.sim, &mut sim);
             let kept = keep_handles(&c.sim, &mut sim, &c.handles);
+            let at = c.sim.ticks();
+            c.rec.mark_incomplete(at);
             c.sim = sim;
             c.handles = kept;
             crate::emit!(
@@ -351,7 +372,8 @@ impl Room {
             let Ok(order) = c.orders.try_recv() else {
                 break;
             };
-            c.sim.order_all(order.player as u8, order.x, order.y);
+            let clock = &mut *c;
+            clock.rec.apply(&mut clock.sim, Command::OrderAll { player: order.player as u8, x: order.x, y: order.y });
             drained += 1;
         }
         self.queued.fetch_sub(drained, Ordering::Relaxed);
@@ -360,13 +382,14 @@ impl Room {
         if let Some(link) = feed {
             let clock = &mut *c;
             let mut ui = Vec::new();
-            let applied = apply_mod_commands(&mut clock.sim, &mut clock.handles, link.take_commands(MOD_CMDS_PER_TICK), &mut ui);
+            let applied = apply_mod_commands(&mut clock.sim, &mut clock.rec, &mut clock.handles, link.take_commands(MOD_CMDS_PER_TICK), &mut ui);
             self.log_ui(clock.tick, ui);
             if applied > 0 {
                 crate::emit!(Ev::ModCmds, room = self.name, tick = c.tick, applied = applied);
             }
         }
-        c.sim.tick_with_cadence(run_paths, run_vision);
+        let clock = &mut *c;
+        clock.rec.tick(&mut clock.sim, run_paths, run_vision);
         c.tick += 1;
         let cost = started.elapsed();
         c.worst = c.worst.max(cost);
@@ -396,9 +419,24 @@ use crate::log::Ev;
 // handle to the room unit it got; handle commands resolve through that map, and a handle the map
 // does not hold is refused and logged. Plain unit indices come from the mod's own world, so a
 // target the room does not hold alive is skipped.
-fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Vec<Cmd>, ui: &mut Vec<String>) -> usize {
+fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<u32, usize>, cmds: Vec<Cmd>, ui: &mut Vec<String>) -> usize {
     let applied = cmds.len();
     for cmd in cmds {
+        let replayable = matches!(
+            cmd,
+            Cmd::OrderHandle { .. }
+                | Cmd::Order { .. }
+                | Cmd::Cast { .. }
+                | Cmd::Attack { .. }
+                | Cmd::UseItem { .. }
+                | Cmd::Buy { .. }
+                | Cmd::Sell { .. }
+                | Cmd::Unstash { .. }
+                | Cmd::Ui { .. }
+        );
+        if !replayable {
+            rec.mark_incomplete(sim.ticks());
+        }
         match cmd {
             Cmd::Spawn { handle, index, x, y } => match sim.spawn(index as u32, x, y) {
                 Some(unit) => {
@@ -408,7 +446,9 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
                 None => crate::emit!(Ev::ModUnitRefused, handle = handle, reason = "spawn_failed"),
             },
             Cmd::OrderHandle { handle, x, y } => match mapped(handles, sim, handle) {
-                Some(unit) => sim.order(unit, x, y),
+                Some(unit) => {
+                    rec.apply(sim, Command::Order { unit, x, y });
+                }
                 None => refuse_unmapped(handle),
             },
             Cmd::DamageHandle { caster, target, dmg } => {
@@ -429,7 +469,7 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
             },
             Cmd::Order { unit, x, y } => {
                 if sim.alive(unit) {
-                    sim.order(unit, x, y);
+                    rec.apply(sim, Command::Order { unit, x, y });
                 }
             }
             Cmd::Damage { caster, target, dmg } => {
@@ -446,32 +486,32 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
             // The sim validates a cast or attack and refuses what it cannot do, so a refused one changes nothing.
             Cmd::Cast { unit, slot, target, x, y } => {
                 if sim.alive(unit) {
-                    let _ = sim.cast_ability(unit, slot, target, x, y);
+                    rec.apply(sim, Command::Cast { unit, slot, target, x, y });
                 }
             }
             Cmd::Attack { unit, target } => {
                 if sim.alive(unit) && sim.alive(target) {
-                    let _ = sim.order_attack_or_approach(unit, target);
+                    rec.apply(sim, Command::Attack { unit, target });
                 }
             }
             Cmd::UseItem { unit, slot, target, x, y } => {
                 if sim.alive(unit) {
-                    let _ = sim.use_item(unit, slot, target, x, y);
+                    rec.apply(sim, Command::UseItem { unit, slot, target, x, y });
                 }
             }
             Cmd::Buy { unit, item } => {
                 if sim.alive(unit) {
-                    let _ = sim.buy_item(unit, item);
+                    rec.apply(sim, Command::Buy { unit, item });
                 }
             }
             Cmd::Sell { unit, slot } => {
                 if sim.alive(unit) {
-                    let _ = sim.sell_item(unit, slot);
+                    rec.apply(sim, Command::Sell { unit, slot });
                 }
             }
             Cmd::Unstash { unit, slot } => {
                 if sim.alive(unit) {
-                    let _ = sim.unstash(unit, slot);
+                    rec.apply(sim, Command::Unstash { unit, slot });
                 }
             }
             Cmd::SetOwner { unit, player } => {

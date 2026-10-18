@@ -3,12 +3,20 @@
 
 use wasm_bindgen::prelude::*;
 
+// The replay format and player are shared with the server crate, which records the files this plays.
+#[allow(dead_code)]
+#[path = "../../server/src/replay.rs"]
+mod replay;
+use replay::{Recording, Replayer};
+
 /// The unit cap the gate uses, so the browser and the parity checks load the same limits.
 const MAX_UNITS: usize = 1024;
 
 #[wasm_bindgen]
 pub struct Game {
     sim: sim::Sim,
+    image: Vec<u8>,
+    replay: Option<Replayer>,
 }
 
 #[wasm_bindgen]
@@ -16,8 +24,61 @@ impl Game {
     #[wasm_bindgen(constructor)]
     pub fn new(image: &[u8]) -> Result<Game, JsValue> {
         let sim = sim::load(image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
-        let sim = sim;
-        Ok(Game { sim })
+        Ok(Game { sim, image: image.to_vec(), replay: None })
+    }
+
+    /// Replaces the sim with a fresh load of the map image and cues the replay `text` (the file
+    /// the server's GET /replay serves) at tick 0. Returns the replay's last tick. Refused when the
+    /// replay's initial state hash differs from this map's, since it was recorded on other data.
+    pub fn replay_load(&mut self, text: &str) -> Result<u32, JsValue> {
+        let rec = Recording::parse(text).map_err(replay_error)?;
+        let fresh = sim::load(&self.image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
+        let player = Replayer::new(rec, &fresh).map_err(replay_error)?;
+        let end = player.end();
+        self.sim = fresh;
+        self.replay = Some(player);
+        Ok(end)
+    }
+
+    /// Advances the loaded replay by up to `n` ticks, checking each recorded hash on the way.
+    /// Stops at the end of the replay. Returns the tick reached.
+    pub fn replay_step(&mut self, n: u32) -> Result<u32, JsValue> {
+        let player = self.replay.as_mut().ok_or_else(|| JsValue::from_str("no replay loaded"))?;
+        for _ in 0..n {
+            if self.sim.ticks() >= player.end() {
+                break;
+            }
+            player.step(&mut self.sim).map_err(replay_error)?;
+        }
+        Ok(self.sim.ticks())
+    }
+
+    /// Moves the loaded replay to `tick`. Going back re-simulates from tick 0 on a fresh load.
+    pub fn replay_seek(&mut self, tick: u32) -> Result<u32, JsValue> {
+        let player = self.replay.as_mut().ok_or_else(|| JsValue::from_str("no replay loaded"))?;
+        let tick = tick.min(player.end());
+        if tick < self.sim.ticks() {
+            let fresh = sim::load(&self.image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
+            player.reset(&fresh).map_err(replay_error)?;
+            self.sim = fresh;
+        }
+        player.seek(&mut self.sim, tick).map_err(replay_error)
+    }
+
+    /// Last tick of the loaded replay; 0 when none is loaded.
+    pub fn replay_end(&self) -> u32 {
+        self.replay.as_ref().map_or(0, Replayer::end)
+    }
+
+    /// Tick from which the loaded replay may diverge (a data reload or an unrecordable mod command), or -1.
+    pub fn replay_incomplete(&self) -> i32 {
+        self.replay.as_ref().and_then(|p| p.recording().incomplete()).map_or(-1, |t| t as i32)
+    }
+
+    /// Map size in tiles as `[width, height]`.
+    pub fn map_size(&self) -> Vec<u32> {
+        let g = self.sim.grid();
+        vec![g.w as u32, g.h as u32]
     }
 
     pub fn tick(&mut self) {
@@ -413,6 +474,10 @@ impl Game {
             .collect();
         format!("[{}]", rows.join(","))
     }
+}
+
+fn replay_error(e: replay::ReplayError) -> JsValue {
+    JsValue::from_str(&format!("replay: {e:?}"))
 }
 
 /// A JSON string literal for `s`.
