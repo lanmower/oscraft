@@ -1,7 +1,7 @@
 // Skill-up panel for the selected hero: one row per held ability with its rank pips, the level gate of the next
-// rank and a + button that calls Game.skill_up. Tooltips come from Game.abilities_json (ticks are 100 ms).
+// rank and a + button that calls Game.skill_up. Tooltips come from Game.abilities_json (ticks are 62.5 ms, 16 per second).
 
-const TICK_S = 0.1;
+const TICK_S = 1 / 16;
 const TALENT_LEVELS = [10, 15, 20, 25];
 
 const STYLE = `

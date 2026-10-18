@@ -11,7 +11,7 @@ import { createMinimap } from "./ui_minimap.js";
 import { createSelectionPanel } from "./ui_selection.js";
 import { createScoreboard } from "./ui_scoreboard.js";
 
-const TICK_S = 0.1;
+const TICK_S = 1 / 16;
 const RIGHT_BUTTON = 2;
 const BAR_WIDTH_PX = 20;
 const BAR_HEIGHT_PX = 3;

@@ -4,7 +4,7 @@
 import UI from "./moba_ui.json" with { type: "json" };
 import { cooldownTicks } from "./moba_select.js";
 
-const TICK_S = 0.1;
+const TICK_S = 1 / 16;
 const GROUP_TILES = 12;
 
 const STYLE = `
