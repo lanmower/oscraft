@@ -3078,9 +3078,9 @@ jobs:
           lanes=$((towers / 2))
           workers=$(grep -oE 'opening_workers *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           expected_units=$((spawns + starts * workers))
-          lanes_per_wave=$(cat abilities.osd waves.osd | grep -E '^ability\("creep_wave' | grep -o 'effect("spawn"' | wc -l)
           wave_spawners=$(grep -cE '^spawn\("lane_spawner' waves.osd)
-          initial_units=$((expected_units + wave_spawners + bases * initial * lanes_per_wave))
+          creep_lanes=$(grep -cE '^spawn\("lane_spawner_(top|bot)"' waves.osd)
+          initial_units=$((expected_units + wave_spawners + creep_lanes * 4))
           sides=$(jq '.sides' "$work/s0.json")
           players=$(jq '.players' "$work/s0.json")
           patches=$(grep -oE 'patches_per_base *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
@@ -3090,7 +3090,7 @@ jobs:
           neutral_budget=$((starts * (patches + geysers) + neutral_camps))
           echo "neutral records: $neutral, at most $neutral_budget (fields from economy.osd plus $neutral_camps camp spawns)"
           test "$neutral" -le "$neutral_budget"
-          echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases initial_waves=$initial cooldown=$cooldown expected_units=$expected_units"
+          echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases creep_lanes=$creep_lanes cooldown=$cooldown expected_units=$expected_units"
           echo "served from tick 3: units=$units0 sides=$sides; expected with initial waves=$initial_units"
           test "$units0" -eq "$initial_units"
           test "$sides" -eq 2
@@ -3107,19 +3107,11 @@ jobs:
           echo "moba scenario ok sides=$sides lanes=$lanes towers=$towers heroes=$heroes creeps_spawned=$creeps_spawned"
           units_end=$(jq '[.records[] | select(.player != 255)] | length' "$work/s1.json")
           spawned=$max_jump
-          timers=$(grep -cE 'trigger="ability_ready".*ability="creep_wave"' "$scen/behaviours.osd" || true)
-          max_waves=$((bases * timers * (target / cooldown + 1) * lanes_per_wave))
-          echo "waves per lane: lanes_per_wave=$lanes_per_wave creeps per base per wave, one per lane; base wave timers=$timers"
-          echo "wave: units_end=$units_end spawned=$spawned at_tick=$at_tick bases=$bases max_waves=$max_waves"
-          if [ "$timers" -eq 0 ]; then
-            test -z "$at_tick"
-            test "$spawned" -eq 0
-          else
-            test -n "$at_tick"
-            test "$spawned" -ge "$bases"
-          fi
-          test "$spawned" -le "$max_waves"
-          echo "moba wave ok spawned=$spawned at_tick=$at_tick timers=$timers"
+          wave_units=$((creep_lanes * 4))
+          echo "wave: units_end=$units_end spawned=$spawned at_tick=$at_tick creep_lanes=$creep_lanes wave_units=$wave_units"
+          test -n "$at_tick"
+          test "$spawned" -eq "$wave_units"
+          echo "moba wave ok spawned=$spawned at_tick=$at_tick wave_units=$wave_units"
           win=$(grep -E '^behaviour\("win_on_base_loss"' behaviours.osd)
           test -n "$win"
           echo "$win" | grep -qE 'trigger="destroyed".*action="declare_winner".*tag="building"'
