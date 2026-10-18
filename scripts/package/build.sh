@@ -18,7 +18,6 @@ cp target/release/oscraftd target/release/oscraft-lsp "$stage/bin/"
 cp data/*.osd "$stage/data/"
 cp -R crates/web/site/. "$stage/site/"
 cargo run -q -p mapexport -- "$stage/site/map.bin" ../scenarios/moba
-wasm-pack build crates/web --target web --out-dir "$stage/site/pkg" > /dev/null
 cd "$root"
 cp -R js/client/. "$stage/js/client/"
 rm -rf "$stage/js/client/pkg" "$stage/js/client/editor-check.mjs"
@@ -27,6 +26,7 @@ for page in play editor replay; do
   [ -f "js/client/$page.html" ] || [ "$page" = replay ] || { echo "missing js/client/$page.html" >&2; exit 1; }
 done
 wasm-pack build rust/crates/web --target web --out-dir "$stage/js/client/pkg" > /dev/null
+cp -R "$stage/js/client/pkg" "$stage/site/pkg"
 cp "$stage/site/map.bin" "$stage/js/client/map.bin"
 
 printf '%s\n' "$version" > "$stage/VERSION"

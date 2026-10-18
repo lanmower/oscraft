@@ -28,20 +28,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The wasm package and the maps are a pure function of the build sources, so a source-keyed hit
+      # restores them and skips the toolchain, the cargo build and wasm-pack. Every artifact is still laid out and uploaded.
+      - id: wasm
+        uses: actions/cache@v4
+        with:
+          path: |
+            rust/crates/web/site/pkg
+            rust/crates/web/site/map.bin
+            rust/crates/web/site/moba.bin
+          key: page-build-v1-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/crates/**', 'scenarios/**', '.github/workflows/pages.yml') }}
+
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.wasm.outputs.cache-hit != 'true'
         with:
           targets: wasm32-unknown-unknown
 
       - uses: Swatinem/rust-cache@v2
+        if: steps.wasm.outputs.cache-hit != 'true'
         with:
           workspaces: rust -> target
           shared-key: rust-workspace
 
       - uses: jetli/wasm-pack-action@v0.4.0
+        if: steps.wasm.outputs.cache-hit != 'true'
         with:
           version: v0.15.0
 
       - name: Build the page wasm and export the maps
+        if: steps.wasm.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           cargo build -p mapexport
@@ -79,6 +94,13 @@ jobs:
         with:
           path: _site
 
+      # The same tree, kept under its own name so the deploy job can compare the live URL with exactly what was built.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-expected
+          path: _site
+          retention-days: 1
+
   deploy:
     name: publish the built page to GitHub Pages
     needs: build
@@ -93,3 +115,16 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/observe
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-expected
+          path: expected
+
+      # Pages caches for minutes after a deploy; compare.mjs retries with a bounded backoff, then prints the table and fails.
+      - name: Compare the live page with the build
+        run: node scripts/observe/compare.mjs expected "${{ steps.deployment.outputs.page_url }}" --expect-sha "${{ github.sha }}" --attempts 6 --backoff 10
