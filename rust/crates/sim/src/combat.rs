@@ -164,7 +164,9 @@ impl Sim {
         }
         if self.cooldown[i] > 0 {
             self.cooldown[i] -= 1;
-            return;
+            if self.cooldown[i] > 0 {
+                return;
+            }
         }
         let Some(b) = self.best_strike_target(i) else {
             return;
