@@ -102,6 +102,7 @@ impl Sim {
             self.paths.tick(&self.grid);
         }
         mark = lap(System::Paths, mark);
+        self.tick_statuses();
         self.tick_buffs();
         mark = lap(System::Buffs, mark);
         self.tick_healers();
@@ -126,6 +127,11 @@ impl Sim {
             self.regen_health(i);
             if self.channel_left[i] > 0 {
                 self.tick_channel(i);
+                continue;
+            }
+            if self.stunned(i) {
+                self.vel_x[i] = 0;
+                self.vel_y[i] = 0;
                 continue;
             }
             self.research_step(i);
@@ -154,6 +160,7 @@ impl Sim {
         self.fire_destroyed();
         lap(System::Units, mark);
         self.ticks = self.ticks.wrapping_add(1);
+        self.day_clock = (self.day_clock + 1) % (DAY_TICKS + NIGHT_TICKS);
     }
 
     /// Counts down every ability and item cooldown on unit `i`.

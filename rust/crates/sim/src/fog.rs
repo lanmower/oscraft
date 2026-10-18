@@ -25,6 +25,7 @@ impl Sim {
     pub(crate) fn refresh_vision(&mut self) {
         self.stats.vision_refreshes += 1;
         let vc = self.vcells;
+        let night = self.is_night();
         for p in 0..MAX_PLAYERS {
             if self.has_seer[p] {
                 self.vis[p * vc..(p + 1) * vc].fill(0);
@@ -38,7 +39,7 @@ impl Sim {
             if p >= MAX_PLAYERS {
                 continue;
             }
-            let r = self.sight_cells[i];
+            let r = if night { self.sight_cells[i] / 2 } else { self.sight_cells[i] };
             if r <= 0 {
                 continue;
             }
@@ -130,15 +131,39 @@ impl Sim {
         }
     }
 
+    /// Player `p`'s visible cells (own plus shared allies) as one byte per cell, row-major over
+    /// `vision_dims()`. With the fog off every cell reads visible.
+    pub fn vision_plane(&self, p: u8) -> Vec<u8> {
+        if !self.fog || (p as usize) >= MAX_PLAYERS {
+            return vec![1; self.vcells];
+        }
+        let shared = self.vision[p as usize];
+        (0..self.vcells)
+            .map(|at| {
+                let on = self.vis[p as usize * self.vcells + at] != 0
+                    || (0..MAX_PLAYERS).any(|q| shared & (1 << q) != 0 && self.vis[q * self.vcells + at] != 0);
+                on as u8
+            })
+            .collect()
+    }
+
+    /// Vision grid width, height and cell size in tiles.
+    pub fn vision_dims(&self) -> (i32, i32, i32) {
+        (self.vw, self.vh, VIS_SCALE)
+    }
+
     /// True when the player can see unit `i`. A player always sees its own units.
     pub fn visible(&self, p: u8, i: usize) -> bool {
         if i >= self.n {
             return false;
         }
-        if !self.fog || self.player[i] == p {
+        if self.player[i] == p {
             return true;
         }
-        self.sees(p, i)
+        if self.hidden_by_invisibility(p, i) {
+            return false;
+        }
+        !self.fog || self.sees(p, i)
     }
 
     fn sees(&self, p: u8, i: usize) -> bool {
@@ -150,7 +175,10 @@ impl Sim {
         if cx < 0 || cy < 0 || cx >= self.vw || cy >= self.vh {
             return false;
         }
-        self.vis[p as usize * self.vcells + (cy * self.vw + cx) as usize] != 0
+        let at = (cy * self.vw + cx) as usize;
+        let shared = self.vision[p as usize];
+        self.vis[p as usize * self.vcells + at] != 0
+            || (0..MAX_PLAYERS).any(|q| shared & (1 << q) != 0 && self.vis[q * self.vcells + at] != 0)
     }
 }
 

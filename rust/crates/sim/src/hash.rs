@@ -48,7 +48,7 @@ impl Sim {
         let mut pool = Vec::new();
         crate::persist::pool_bytes(&self.paths, &mut pool);
         h.bytes(&pool);
-        h.u64s(&[self.n as u64, self.head as u64, self.ticks as u64, self.rng, self.scan_left as u64]);
+        h.u64s(&[self.n as u64, self.head as u64, self.ticks as u64, self.day_clock as u64, self.rng, self.scan_left as u64]);
         h.u64s(&[self.log_len as u64, self.log_dropped]);
         h.u32s(&self.log_tick[..self.log_len]);
         h.i32s(&self.log_unit[..self.log_len]);
@@ -167,6 +167,8 @@ impl Sim {
         h.i32s(&self.channel_target);
         h.bytes(&self.burrowed);
         h.i32s(&self.burrow_left);
+        h.i32s(&self.status_left);
+        h.i32s(&self.slow_mul);
         h.bytes(&self.seen);
         h.i32s(&self.seen_x);
         h.i32s(&self.seen_y);
@@ -179,6 +181,10 @@ impl Sim {
         for a in self.alliance {
             h.bytes(&a.to_le_bytes());
         }
+        for v in self.vision {
+            h.bytes(&v.to_le_bytes());
+        }
+        h.bytes(&self.controller);
         h.u64s(&[
             self.stats.deaths as u64,
             self.stats.vision_refreshes as u64,

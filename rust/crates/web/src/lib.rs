@@ -225,6 +225,37 @@ impl Game {
         self.sim.ability_cooldown(unit as usize, slot as usize)
     }
 
+    /// Ticks left on a status of `unit`: `kind` 0 stun, 1 slow, 2 silence, 3 root, 4 invisibility
+    /// (`sim::STATUS_NAMES`). 0 when the status is off or the unit or kind is unknown.
+    pub fn status_left(&self, unit: u32, kind: u32) -> i32 {
+        self.sim.status_left(unit as usize, kind as usize)
+    }
+
+    pub fn stun_left(&self, unit: u32) -> i32 {
+        self.sim.status_left(unit as usize, 0)
+    }
+
+    pub fn slow_left(&self, unit: u32) -> i32 {
+        self.sim.status_left(unit as usize, 1)
+    }
+
+    /// The slow's speed multiplier, Q16 (65536 when the unit is not slowed).
+    pub fn slow_multiplier(&self, unit: u32) -> i32 {
+        self.sim.slow_multiplier(unit as usize)
+    }
+
+    pub fn silence_left(&self, unit: u32) -> i32 {
+        self.sim.status_left(unit as usize, 2)
+    }
+
+    pub fn root_left(&self, unit: u32) -> i32 {
+        self.sim.status_left(unit as usize, 3)
+    }
+
+    pub fn invisible_left(&self, unit: u32) -> i32 {
+        self.sim.status_left(unit as usize, 4)
+    }
+
     /// Kill events since the last drain, flat as `[tick, killer, killer_player, victim, victim_player]` per event.
     pub fn drain_kill_events(&mut self) -> Vec<u32> {
         self.sim
@@ -237,6 +268,21 @@ impl Game {
     /// Turns the fog of war on or off. The moba preview turns it off so every enemy is a valid target.
     pub fn set_fog(&mut self, on: bool) {
         self.sim.set_fog(on);
+    }
+
+    // fogview: vision grid [width, height, cell size in tiles] and player `p`'s visible cells, one byte each.
+    pub fn vision_dims(&self) -> Vec<u32> {
+        let (w, h, s) = self.sim.vision_dims();
+        vec![w as u32, h as u32, s as u32]
+    }
+
+    pub fn vision(&self, p: u8) -> Vec<u8> {
+        self.sim.vision_plane(p)
+    }
+
+    // fogview: day and night clock as `[ticks into cycle, day ticks, night ticks]`.
+    pub fn day_cycle(&self) -> Vec<u32> {
+        vec![self.sim.day_clock(), sim::DAY_TICKS, sim::NIGHT_TICKS]
     }
 
     /// Living units as flat `[x, y, player]` triples, positions in tiles.
@@ -267,4 +313,119 @@ impl Game {
         let cat = self.sim.catalog();
         cat.units.iter().map(|u| cat.name(u.model).to_owned()).collect()
     }
+
+    /// UI export: buys catalog item index `item` for unit `unit` at a shop in reach. False when refused.
+    pub fn buy(&mut self, unit: u32, item: u32) -> bool {
+        self.sim.buy_item(unit as usize, item as usize)
+    }
+
+    /// UI export: sells inventory slot `slot` of unit `unit` for half its cost. False when refused.
+    pub fn sell(&mut self, unit: u32, slot: u32) -> bool {
+        self.sim.sell_item(unit as usize, slot as usize)
+    }
+
+    /// UI export: moves stash slot `slot` of unit `unit` into the inventory. False when refused.
+    pub fn unstash(&mut self, unit: u32, slot: u32) -> bool {
+        self.sim.unstash(unit as usize, slot as usize)
+    }
+
+    /// UI export: character level of unit `unit` (xp level plus one), the number skill gates compare against.
+    pub fn character_level(&self, unit: u32) -> u32 {
+        self.sim.character_level(unit as usize)
+    }
+
+    /// UI export: the item catalog as JSON `[{"id":index,"name","cost","armor","damage","health","components":[index,...]}]`.
+    pub fn item_catalog_json(&self) -> String {
+        let cat = self.sim.catalog();
+        let rows: Vec<String> = cat
+            .items
+            .iter()
+            .enumerate()
+            .map(|(id, it)| {
+                let parts: Vec<String> =
+                    it.components.iter().filter(|&&c| c != 0xFFFF).map(|c| c.to_string()).collect();
+                format!(
+                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"components\":[{}]}}",
+                    id,
+                    json_str(cat.name(it.name)),
+                    it.cost,
+                    it.armor,
+                    it.damage,
+                    it.health,
+                    parts.join(",")
+                )
+            })
+            .collect();
+        format!("[{}]", rows.join(","))
+    }
+
+    /// UI export: unit `unit`'s inventory and stash as JSON `{"slots":[[kind,count],...],"stash":[[kind,count],...]}`;
+    /// kind 0 is empty, otherwise the item catalog index plus one.
+    pub fn inventory_json(&self, unit: u32) -> String {
+        let bank = |read: &dyn Fn(usize) -> (u32, u32)| {
+            let cells: Vec<String> = (0..self.sim.inventory_slots())
+                .map(|s| {
+                    let (k, c) = read(s);
+                    format!("[{k},{c}]")
+                })
+                .collect();
+            cells.join(",")
+        };
+        let u = unit as usize;
+        format!(
+            "{{\"slots\":[{}],\"stash\":[{}]}}",
+            bank(&|s| self.sim.inventory_slot(u, s)),
+            bank(&|s| self.sim.stash_slot(u, s))
+        )
+    }
+
+    /// UI export: the abilities unit `unit` holds as JSON `[{"slot","name","cooldown","energy","ultimate","max_rank",
+    /// "gates":[...],"damage":[...],"cooldowns":[...],"energies":[...]}]`; ability stats are game ticks and
+    /// the skill arrays are empty for an ability with no skill tree.
+    pub fn abilities_json(&self, unit: u32) -> String {
+        let cat = self.sim.catalog();
+        let list = |v: &[i32]| v.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        let rows: Vec<String> = (0..sim::ABILITY_SLOTS)
+            .filter_map(|slot| {
+                let ai = self.sim.ability_in_slot(unit as usize, slot)?;
+                let a = cat.abilities.get(ai)?;
+                let (ult, max, g, d, c, e) = match a.skill {
+                    Some(s) => {
+                        let n = s.max_rank as usize;
+                        (s.ultimate, n, list(&s.gates[..n]), list(&s.damage[..n]), list(&s.cooldown[..n]), list(&s.energy[..n]))
+                    }
+                    None => (false, 0, String::new(), String::new(), String::new(), String::new()),
+                };
+                Some(format!(
+                    "{{\"slot\":{},\"name\":{},\"cooldown\":{},\"energy\":{},\"ultimate\":{},\"max_rank\":{},\"gates\":[{}],\"damage\":[{}],\"cooldowns\":[{}],\"energies\":[{}]}}",
+                    slot,
+                    json_str(cat.name(a.name)),
+                    a.cooldown,
+                    a.energy,
+                    ult,
+                    max,
+                    g,
+                    d,
+                    c,
+                    e
+                ))
+            })
+            .collect();
+        format!("[{}]", rows.join(","))
+    }
+}
+
+/// A JSON string literal for `s`.
+fn json_str(s: &str) -> String {
+    let mut out = String::from("\"");
+    for ch in s.chars() {
+        match ch {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }

@@ -13,7 +13,8 @@ use crate::*;
 const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
-const STATE_VERSION: u16 = 20;
+/// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
+const STATE_VERSION: u16 = 23;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -63,6 +64,9 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::NoShop,
     Refusal::InventoryFull,
     Refusal::MissingComponent,
+    Refusal::Stunned,
+    Refusal::Silenced,
+    Refusal::Rooted,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
@@ -288,6 +292,7 @@ impl Sim {
         put_u64(&mut w, self.n as u64);
         put_u64(&mut w, self.head as u64);
         put_u32(&mut w, self.ticks);
+        put_u32(&mut w, self.day_clock);
         put_u64(&mut w, self.rng);
         put_i32(&mut w, self.scan_left);
         put_bool(&mut w, self.fog);
@@ -413,6 +418,8 @@ impl Sim {
         put_i32s(&mut w, &self.channel_target);
         w.extend_from_slice(&self.burrowed);
         put_i32s(&mut w, &self.burrow_left);
+        put_i32s(&mut w, &self.status_left);
+        put_i32s(&mut w, &self.slow_mul);
 
         for &b in &self.has_seer {
             put_bool(&mut w, b);
@@ -421,6 +428,10 @@ impl Sim {
         for a in self.alliance {
             w.extend_from_slice(&a.to_le_bytes());
         }
+        for v in self.vision {
+            w.extend_from_slice(&v.to_le_bytes());
+        }
+        w.extend_from_slice(&self.controller);
         for r in &self.reveals {
             w.push(r.p);
             put_i32(&mut w, r.x0);
@@ -485,6 +496,7 @@ impl Sim {
         next.n = r.u64()? as usize;
         next.head = r.u64()? as usize;
         next.ticks = r.u32()?;
+        next.day_clock = r.u32()? % (DAY_TICKS + NIGHT_TICKS);
         next.rng = r.u64()?;
         next.scan_left = r.i32()?;
         next.fog = r.bool()?;
@@ -614,6 +626,8 @@ impl Sim {
         r.i32s_into(&mut next.channel_target)?;
         r.bytes_into(&mut next.burrowed)?;
         r.i32s_into(&mut next.burrow_left)?;
+        r.i32s_into(&mut next.status_left)?;
+        r.i32s_into(&mut next.slow_mul)?;
 
         for k in 0..MAX_PLAYERS {
             next.has_seer[k] = r.bool()?;
@@ -622,6 +636,10 @@ impl Sim {
         for k in 0..MAX_PLAYERS {
             next.alliance[k] = r.u16()?;
         }
+        for k in 0..MAX_PLAYERS {
+            next.vision[k] = r.u16()?;
+        }
+        r.bytes_into(&mut next.controller)?;
         for k in 0..REVEAL_CAP {
             next.reveals[k] = Reveal {
                 p: r.u8()?,

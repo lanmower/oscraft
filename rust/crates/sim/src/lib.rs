@@ -24,6 +24,7 @@ mod production;
 mod projectiles;
 mod rules;
 mod skills;
+mod status;
 mod shields;
 mod tick;
 mod transport;
@@ -35,21 +36,27 @@ mod inventory;
 mod xp;
 mod hero;
 mod modapi;
+mod diplomacy;
 mod camp;
 
 pub use arrays::{Sim, Stats};
 pub use camp::{CAMP_LEASH_MILLI, CAMP_RESPAWN_S, RUNE_GOLD, RUNE_RESPAWN_S};
 pub use loader::{load, load_file, Catalog, Doodad, Effect, LoadError, Trigger};
-pub use modapi::{effect_kind, target_code, AbilitySpec, MOD_EFFECTS};
+pub use modapi::{effect_kind, stat_code, target_code, AbilitySpec, ItemSpec, UnitSpec, UpgradeSpec, MOD_EFFECTS, STAT_NAMES};
+pub use diplomacy::{controller_code, CONTROLLER_COMPUTER, CONTROLLER_HUMAN, CONTROLLER_OPEN, MOD_ALLIANCES, MOD_CONTROLLERS};
 pub use pathfinding::Grid;
 pub use persist::StateError;
 pub use combat::armour_reduced;
 pub use rules::{Refusal, ALL_REFUSALS};
+pub use status::STATUS_NAMES;
 
 pub const TICKS_PER_SECOND: i32 = 16;
 pub(crate) const BUCKET_CAP: usize = 8;
 pub(crate) const VIS_SCALE: i32 = 2;
 pub(crate) const VIS_PERIOD: u32 = 8;
+/// Day and night lengths in ticks. UNVERIFIED: 5 minutes each is the recalled Dota 2 cycle, not a sourced value.
+pub const DAY_TICKS: u32 = 300 * TICKS_PER_SECOND as u32;
+pub const NIGHT_TICKS: u32 = 300 * TICKS_PER_SECOND as u32;
 pub const MAX_PLAYERS: usize = 16;
 pub(crate) const REVEAL_CAP: usize = 16;
 pub(crate) const MISSILE_CAP: usize = 128;

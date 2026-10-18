@@ -172,6 +172,8 @@ pub struct Sim {
     pub(crate) hitter_tick: Vec<u32>,
     /// Kill events since the last drain. Derived from the tallies, so not hashed or saved.
     pub(crate) kill_queue: Vec<crate::combat::KillEvent>,
+    /// The unit credited with each unit's latest death, -1 for none. Transient: not hashed or saved.
+    pub(crate) killer: Vec<i32>,
 
     pub(crate) healer_player: Vec<u8>,
     pub(crate) healer_left: Vec<i32>,
@@ -231,9 +233,16 @@ pub struct Sim {
     /// Burrow state per unit: 1 when burrowed, and the ticks left while burrowing.
     pub(crate) burrowed: Vec<u8>,
     pub(crate) burrow_left: Vec<i32>,
+    /// Status countdowns per unit, `STATUS_KINDS` slots each (stun, slow, silence, root, invisibility), and the Q16 slow multiplier.
+    pub(crate) status_left: Vec<i32>,
+    pub(crate) slow_mul: Vec<i32>,
     pub(crate) has_seer: [bool; MAX_PLAYERS],
     pub(crate) team: [u8; MAX_PLAYERS],
     pub(crate) alliance: [u16; MAX_PLAYERS],
+    /// Per player, the bit set of players whose sight it shares. Symmetric, and only between allies.
+    pub(crate) vision: [u16; MAX_PLAYERS],
+    /// Per player, a CONTROLLER_* code: who commands the slot.
+    pub(crate) controller: [u8; MAX_PLAYERS],
     pub(crate) reveals: [Reveal; REVEAL_CAP],
     pub(crate) fog: bool,
     pub(crate) harvest: bool,
@@ -241,6 +250,8 @@ pub struct Sim {
 
     pub(crate) rng: u64,
     pub(crate) ticks: u32,
+    /// Ticks into the day and night cycle, in 0..DAY_TICKS + NIGHT_TICKS. Starts at dawn.
+    pub(crate) day_clock: u32,
     pub(crate) scan_left: i32,
     pub stats: Stats,
 }
@@ -347,6 +358,7 @@ impl Sim {
             hitter_id: vec![-1; cap * crate::combat::ASSIST_SLOTS],
             hitter_tick: vec![0; cap * crate::combat::ASSIST_SLOTS],
             kill_queue: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
+            killer: vec![-1; cap],
             healer_player: vec![0; HEALER_SLOTS],
             healer_left: vec![0; HEALER_SLOTS],
             healer_timer: vec![0; HEALER_SLOTS],
@@ -381,6 +393,8 @@ impl Sim {
             research_rec: vec![-1; cap],
             loaded_into: vec![-1; cap],
             channel_left: vec![0; cap],
+            status_left: vec![0; cap * crate::status::STATUS_KINDS],
+            slow_mul: vec![crate::status::SLOW_NONE; cap],
             channel_ai: vec![-1; cap],
             channel_x: vec![0; cap],
             channel_y: vec![0; cap],
@@ -396,12 +410,15 @@ impl Sim {
             has_seer: [false; MAX_PLAYERS],
             team: std::array::from_fn(|p| p as u8),
             alliance: [0; MAX_PLAYERS],
+            vision: [0; MAX_PLAYERS],
+            controller: [0; MAX_PLAYERS],
             reveals: [Reveal::default(); REVEAL_CAP],
             fog: true,
             harvest: true,
             produce: true,
             rng: 0,
             ticks: 0,
+            day_clock: 0,
             scan_left: 0,
             stats: Stats::default(),
         };
@@ -472,6 +489,15 @@ impl Sim {
 
     pub fn ticks(&self) -> u32 {
         self.ticks
+    }
+
+    /// Ticks into the day and night cycle: 0 up to DAY_TICKS is day, then night until the cycle wraps.
+    pub fn day_clock(&self) -> u32 {
+        self.day_clock
+    }
+
+    pub fn is_night(&self) -> bool {
+        self.day_clock >= DAY_TICKS
     }
 
     pub fn seed(&mut self, v: u64) {
@@ -660,6 +686,7 @@ impl Sim {
         self.unit_kills[i] = 0;
         self.unit_deaths[i] = 0;
         self.unit_assists[i] = 0;
+        self.killer[i] = -1;
         self.hitter_id[i * crate::combat::ASSIST_SLOTS..(i + 1) * crate::combat::ASSIST_SLOTS].fill(-1);
         self.type_of[i] = ty as i32;
         self.filter[i] = def.filter;
@@ -699,6 +726,7 @@ impl Sim {
         for k in 0..BUFF_SLOTS {
             self.buff_kind[i * BUFF_SLOTS + k] = -1;
         }
+        self.clear_statuses(i);
         for slot in 0..ABILITY_SLOTS {
             self.abil_idx[i * ABILITY_SLOTS + slot] = -1;
             self.abil_cd[i * ABILITY_SLOTS + slot] = 0;
@@ -717,6 +745,7 @@ impl Sim {
         self.touch(i);
         self.bucket_add(i);
         self.apply_upgrades_to_new(i, player, ty as i32);
+        self.apply_research_to_new(i, player);
     }
 
     /// Kind from the filter mask and product: a worker gathers, a structure that
