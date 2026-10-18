@@ -3,7 +3,9 @@ behaviour("guard_patrol", trigger="idle", action="use_ability", param=0, ability
 behaviour("answer_attack", trigger="attacked", action="attack_nearest", param=0)
 # Idle units (creeps, towers, bases) strike the nearest enemy in reach when they come to rest.
 behaviour("idle_attack", trigger="idle", action="attack_nearest", param=0)
-# Bases cast no waves: lane spawners send them from mods/moba_waves.lua. A base's creep_wave spawn would place units beside the base.
+# Spawn timer: a base casts creep_wave once when it is created, then each time its cooldown runs out.
+behaviour("wave_start", trigger="spawned", action="use_ability", param=0, ability="creep_wave")
+behaviour("wave_timer", trigger="ability_ready", action="use_ability", param=0, ability="creep_wave")
 # Win condition: a base carries the building filter. When the last living building of a side dies, the rival wins.
 behaviour("win_on_base_loss", trigger="destroyed", action="declare_winner", tag="building")
 # Passives: each stat ability is cast once when its hero spawns (its cooldown keeps it from being recast).
