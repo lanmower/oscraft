@@ -87,5 +87,18 @@ fn main() -> ExitCode {
         sim.stats.casts_refused,
         sim.stats.last_refusal
     );
+    // The scalar fields a mod left in `state`, so a CI step can assert what the mod did.
+    let mut fields: Vec<String> = Vec::new();
+    for pair in host.state().clone().pairs::<String, mlua::Value>().flatten() {
+        match pair {
+            (k, mlua::Value::Integer(v)) => fields.push(format!("{k}={v}")),
+            (k, mlua::Value::Number(v)) => fields.push(format!("{k}={v}")),
+            (k, mlua::Value::Boolean(v)) => fields.push(format!("{k}={v}")),
+            (k, mlua::Value::String(v)) => fields.push(format!("{k}={}", v.to_string_lossy())),
+            _ => {}
+        }
+    }
+    fields.sort();
+    println!("mod-state {}", fields.join(" "));
     ExitCode::SUCCESS
 }

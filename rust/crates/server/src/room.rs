@@ -7,7 +7,7 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use mod_host::Cmd;
-use sim::{Grid, Sim};
+use sim::{AbilitySpec, Grid, Sim};
 
 use crate::budget::{
     TickHistogram, Timing, NORMAL_ORDER_CAP, SHED_AFTER_OVERRUNS, SHED_HOLD_TICKS, SHED_LOG_EVERY_TICKS,
@@ -444,6 +444,18 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
                 let _ = sim.set_owner(unit, player);
             }
             Cmd::SetFog { on } => sim.set_fog(on),
+            Cmd::DefineAbility { name, cooldown, energy, target, filter, effects } => {
+                let _ = sim.define_ability(AbilitySpec { name: &name, cooldown, energy, target, filter, effects });
+            }
+            Cmd::GiveAbility { unit, slot, name } => {
+                let _ = sim.give_ability(unit, slot, &name);
+            }
+            Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
+            Cmd::AddHeroGold { unit, amount } => {
+                let _ = sim.add_hero_gold(unit, amount);
+            }
+            Cmd::Victory { player } => sim.declare_victory(player),
+            Cmd::Defeat { player } => sim.declare_defeat(player),
         }
     }
     applied

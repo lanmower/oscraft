@@ -4,7 +4,9 @@ A mod is one Lua chunk run by the mod host (`rust/crates/mod-host`). It reacts t
 registers triggers, and queues commands on the game. Mods use only the names below. The native
 host runs them on mlua (Lua 5.4); the wasip3 guest runs the same event names on piccolo.
 
-Example mods: `mods/creep_gold.lua` and `mods/tower_buff.lua`.
+Example mods: `mods/creep_gold.lua`, `mods/tower_buff.lua`, `mods/td_waves.lua` (timer, region, variables,
+score, defeat) and `mods/custom_spell.lua` (ability, gold, victory). CI runs the last two with
+`mod_check` and asserts the `mod-state` line they print.
 
 ## The file contract
 
@@ -95,6 +97,95 @@ The host also provides these global functions, which are not in `game`:
 `define_region`, `spawn_unit`, `order_unit`, `order_player`, `damage_unit`, `order_attack`,
 `buff_unit`, `schedule`, `cancel`, `list_abilities`, `ability_info`, `list_events`,
 `edit_terrain`, `set_tile`, `list_doodads`, `place_doodad`, `remove_doodad`.
+
+### Timers
+
+`game.timer(name, delay, action[, period])` runs `action()` after `delay` ticks (at least 1), and
+every `period` ticks after that when `period` is given. A timer of the same name is replaced.
+`game.cancel_timer(name)` stops it, also from inside its own action, and returns whether it was live.
+At most 256 timers. The older `schedule(name, delay, fn)` and `cancel(name)` are the one-shot form.
+
+### Regions
+
+`game.region(name, x0, y0, x1, y1[, {enter = f, leave = g}])` defines a named rectangle and
+registers `f(unit)` for `on_enter` and `g(unit)` for `on_leave` on it. `game.region_units(name)`
+returns the living units inside it now. At most 64 regions. `in_region(name, x, y)` tests a point.
+
+### Variables and score
+
+Variables hold a number, string or boolean under a string key and survive a mod reload.
+Called with a value they set it, called without they read it (`nil` clears it).
+
+| Call | Scope |
+|---|---|
+| `game.var(key[, value])` | the whole game |
+| `game.player_var(player, key[, value])` | one player slot |
+| `game.unit_var(unit, key[, value])` | one unit handle (dead units keep theirs) |
+| `game.add_score(player, n)` / `game.score(player)` | a per-player tally the mod owns; it is not part of the sim state |
+
+### Abilities
+
+`game.ability(name, spec)` defines an ability in the catalog (or redefines the one of that name) and
+returns the name. `name` is a lowercase identifier. `spec` has `cooldown` and `energy` (ticks and
+points), `target` (`"none"`, `"unit"` or `"point"`), `filter` (unit filter mask) and `effects`, a
+list of `{kind = ...}` entries:
+
+| kind | fields |
+|---|---|
+| `damage`, `heal` | `amount`, `radius` (milli-units, 0 = the target only) |
+| `move` | `range` (milli-units) |
+| `buff` | `buff` (behaviour kind), `ticks` |
+| `spawn` | `unit` (catalog name), `dx`, `dy` (milli-units from the caster) |
+
+`game.cmd_give_ability(unit, slot, name)` puts the ability in a slot of a living unit; cast it
+with `game.cmd_cast`. An unknown kind fails with `unknown_effect`, a bad name with `invalid_ability`.
+
+### Match result and gold
+
+| Call | Effect |
+|---|---|
+| `game.victory(player)` | the team of `player` wins (command) |
+| `game.defeat(player)` | `player` loses: the team of its first hostile player wins (command) |
+| `game.winner()` | the winning team, or `nil` while the match runs |
+| `game.cmd_add_gold(player, n)` | add `n` (negative takes) to the player's gold pool |
+| `game.cmd_add_hero_gold(unit, n)` | the same for a hero unit's own gold, which `cmd_buy` spends |
+| `game.gold(player)`, `game.hero_gold(unit)` | read them |
+
+The first winner stands; a later `victory` or `defeat` changes nothing.
+
+## Gap list against Warcraft III and StarCraft II modding
+
+Status: done (in the API), partial (a piece exists), missing (not in the API).
+
+| Capability | Status | How |
+|---|---|---|
+| Events (unit spawn, attacked, died, enter, leave, player joined) | done | Events table, `game.trigger` |
+| Triggers with conditions and actions | done | `game.trigger` |
+| Timers, one-shot and periodic | done | `game.timer`, `game.cancel_timer` |
+| Regions with enter and leave events | done | `game.region`, `on_enter`, `on_leave` |
+| Variables, global, per player, per unit | done | `game.var`, `game.player_var`, `game.unit_var` |
+| Custom abilities with effects | done | `game.ability`, `game.cmd_give_ability` |
+| Victory and defeat | done | `game.victory`, `game.defeat`, `game.winner` |
+| Player gold and score | done | `game.cmd_add_gold`, `game.cmd_add_hero_gold`, `game.add_score` |
+| Items: buy, sell, use | done | `game.cmd_buy`, `cmd_sell`, `cmd_use_item` |
+| Fog of war toggle | done | `game.cmd_set_fog` |
+| Terrain, tiles, doodads placement | done | `edit_terrain`, `set_tile`, `place_doodad`, `remove_doodad` |
+| Spawn, order, attack, damage, buff, ownership | done | `game.cmd_*` |
+| Persistent state across reload | done | `state`, the variable stores |
+| Custom units (stats, weapons) | missing | units come from the scenario catalog; a `game.unit` definition mirroring `game.ability` is next |
+| Custom items | missing | items come from the catalog; same shape as `game.ability` |
+| Upgrades and tech trees | missing | the catalog holds research and prerequisites; no Lua definition or grant call |
+| Teams, alliances, shared vision | partial | `cmd_set_owner` moves units; no team or alliance command |
+| Player slots: create, remove, controller type | missing | `on_player_joined` only reads |
+| Per-unit and per-player resource other than gold | missing | `resource_b` has no mod call |
+| Killer attribution in `on_died` | missing | the event gives the dead unit only |
+| Unit and ability queries (hp, position, abilities of a unit) | partial | `unit_hp`, `unit_position`; no cooldown or inventory read |
+| Game clock query | missing | a mod counts its own ticks |
+| Cinematics, camera, letterbox | missing | the camera is client side; needs a command stream to clients |
+| UI panels, messages, multiboards, dialogs | missing | needs a command stream to clients |
+| AI scripts for computer players | partial | behaviours in the catalog and `game.system` per-unit logic; no player-level AI hook |
+| Save and load game data across matches | missing | state ends with the match |
+| Asset import (models, sounds) | missing | the scenario build owns assets |
 
 ## Backends
 

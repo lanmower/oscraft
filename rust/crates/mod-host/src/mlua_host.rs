@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{Catalog, Doodad, LoadError, Refusal, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS};
+use sim::{effect_kind, target_code, AbilitySpec, Catalog, Doodad, Effect, LoadError, Refusal, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -79,6 +79,12 @@ pub enum Cmd {
     Attack { unit: usize, target: usize },
     SetOwner { unit: usize, player: u8 },
     SetFog { on: bool },
+    DefineAbility { name: String, cooldown: i32, energy: i32, target: u8, filter: u16, effects: Vec<Effect> },
+    GiveAbility { unit: usize, slot: usize, name: String },
+    AddGold { player: u8, amount: i32 },
+    AddHeroGold { unit: usize, amount: i32 },
+    Victory { player: u8 },
+    Defeat { player: u8 },
 }
 
 // Q16.16 corners, normalized so x0 <= x1 and y0 <= y1.
@@ -264,6 +270,34 @@ fn handle_arg(h: i64) -> mlua::Result<u32> {
 
 fn out_of_grid(x0: i64, y0: i64, x1: i64, y1: i64, w: i64, h: i64) -> mlua::Error {
     mlua::Error::RuntimeError(format!("out_of_grid: rect ({x0},{y0})-({x1},{y1}) exceeds grid {w}x{h}"))
+}
+
+fn player_arg(p: i64) -> mlua::Result<u8> {
+    usize::try_from(p)
+        .ok()
+        .filter(|&p| p < MAX_PLAYERS)
+        .map(|p| p as u8)
+        .ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_player: {p} is outside 0..{MAX_PLAYERS}")))
+}
+
+// One entry of game.ability's effects list. The named fields fill the catalog effect parameters
+// each kind reads: damage and heal take amount and radius; move takes range; buff takes buff and
+// ticks; spawn takes unit (a catalog name) and dx, dy.
+fn effect_from(sim: &Sim, entry: &Table) -> mlua::Result<Effect> {
+    let kind: String = entry.get("kind")?;
+    let code = effect_kind(&kind).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_effect: {kind} (known: {})", sim::MOD_EFFECTS.join(", "))))?;
+    let field = |key: &str| -> mlua::Result<i32> { fixed(entry.get::<Option<i64>>(key)?.unwrap_or(0)) };
+    let (p0, p1, p2) = match kind.as_str() {
+        "damage" | "heal" => (field("amount")?, field("radius")?, 0),
+        "move" => (field("range")?, 0, 0),
+        "buff" => (field("buff")?, field("ticks")?, 0),
+        _ => {
+            let unit: String = entry.get("unit")?;
+            let index = sim.catalog().unit_index(&unit).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_unit: {unit}")))?;
+            (index as i32, field("dx")?, field("dy")?)
+        }
+    };
+    Ok(Effect { kind: code, p0, p1, p2, p3: 0 })
 }
 
 // A unit index the sim has spawned, dead or alive.
@@ -938,6 +972,95 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(sim.kind_name(u).map(str::to_owned))
         })?,
     )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "ability",
+        lua.create_function(move |_, (name, spec): (String, Table)| {
+            let mut sim = w.borrow_mut();
+            let mut effects = Vec::new();
+            if let Some(list) = spec.get::<Option<Table>>("effects")? {
+                for entry in list.sequence_values::<Table>() {
+                    effects.push(effect_from(&sim, &entry?)?);
+                }
+            }
+            let target = match spec.get::<Option<String>>("target")? {
+                None => 0,
+                Some(t) => target_code(&t).ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_ability: target {t} is not none, unit or point")))?,
+            };
+            let int = |key: &str| -> mlua::Result<i32> { fixed(spec.get::<Option<i64>>(key)?.unwrap_or(0)) };
+            let (cooldown, energy) = (int("cooldown")?, int("energy")?);
+            let filter = u16::try_from(int("filter")?).map_err(|_| mlua::Error::RuntimeError("invalid_ability: filter is outside 0..=65535".into()))?;
+            sim.define_ability(AbilitySpec { name: &name, cooldown, energy, target, filter, effects: effects.clone() })
+                .map_err(|why| mlua::Error::RuntimeError(format!("invalid_ability: {name}: {why}")))?;
+            buf.borrow_mut().push(Cmd::DefineAbility { name: name.clone(), cooldown, energy, target, filter, effects });
+            Ok(name)
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_give_ability",
+        lua.create_function(move |_, (unit, slot, name): (i64, i64, String)| {
+            let sim = w.borrow();
+            let u = live_unit(&sim, unit)?;
+            let slot = usize::try_from(slot).ok().filter(|&s| s < ABILITY_SLOTS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_slot: {slot} is outside 0..{ABILITY_SLOTS}"))
+            })?;
+            let cat = sim.catalog();
+            if !cat.abilities.iter().any(|a| cat.name(a.name) == name) {
+                return Err(mlua::Error::RuntimeError(format!("unknown_ability: {name}")));
+            }
+            buf.borrow_mut().push(Cmd::GiveAbility { unit: u, slot, name });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "cmd_add_gold",
+        lua.create_function(move |_, (player, amount): (i64, i64)| {
+            let player = player_arg(player)?;
+            let amount = i32::try_from(amount).map_err(|_| mlua::Error::RuntimeError(format!("invalid_amount: {amount} out of i32 range")))?;
+            buf.borrow_mut().push(Cmd::AddGold { player, amount });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_add_hero_gold",
+        lua.create_function(move |_, (unit, amount): (i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let amount = i32::try_from(amount).map_err(|_| mlua::Error::RuntimeError(format!("invalid_amount: {amount} out of i32 range")))?;
+            buf.borrow_mut().push(Cmd::AddHeroGold { unit: u, amount });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "victory",
+        lua.create_function(move |_, player: i64| {
+            buf.borrow_mut().push(Cmd::Victory { player: player_arg(player)? });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "defeat",
+        lua.create_function(move |_, player: i64| {
+            buf.borrow_mut().push(Cmd::Defeat { player: player_arg(player)? });
+            Ok(())
+        })?,
+    )?;
+    let w = world.clone();
+    game.set("winner", lua.create_function(move |_, ()| Ok(w.borrow().winner().map(i64::from)))?)?;
+    let w = world.clone();
+    game.set("gold", lua.create_function(move |_, player: i64| Ok(w.borrow().resource_a(player_arg(player)?) as i64))?)?;
+    let w = world.clone();
+    game.set(
+        "hero_gold",
+        lua.create_function(move |_, unit: i64| {
+            let sim = w.borrow();
+            Ok(sim.hero_gold(known_unit(&sim, unit)?) as i64)
+        })?,
+    )?;
     env.set("game", game)
 }
 
@@ -986,6 +1109,97 @@ return function(known)
 end
 "#;
 
+// game.var, game.player_var, game.unit_var, the score tally, game.region and game.timer. They are
+// written over the host calls above. Variables live in a table the host owns (VARS_KEY), so a reload
+// keeps them; a timer or region trigger belongs to the chunk that registered it.
+const PRELUDE_SRC: &str = r##"
+return function(game, vars, host, max_players)
+  local function check_key(key)
+    if type(key) ~= "string" then error("invalid_key: a variable name is a string, got " .. type(key), 3) end
+  end
+  local function check_value(v)
+    local t = type(v)
+    if v ~= nil and t ~= "number" and t ~= "string" and t ~= "boolean" then
+      error("invalid_value: a variable holds a number, string or boolean, got " .. t, 3)
+    end
+  end
+  local function bucket(scope, id)
+    local all = vars[scope]
+    local row = all[id]
+    if not row then row = {}; all[id] = row end
+    return row
+  end
+  local function access(scope, id, key, ...)
+    check_key(key)
+    local row = bucket(scope, id)
+    if select("#", ...) == 0 then return row[key] end
+    local v = ...
+    check_value(v)
+    row[key] = v
+  end
+  local function player_id(p)
+    if type(p) ~= "number" or p % 1 ~= 0 or p < 0 or p >= max_players then
+      error("invalid_player: " .. tostring(p) .. " is outside 0.." .. max_players, 3)
+    end
+    return p
+  end
+  function game.var(key, ...) return access("global", 0, key, ...) end
+  function game.player_var(player, key, ...) return access("player", player_id(player), key, ...) end
+  function game.unit_var(unit, key, ...)
+    game.unit_kind(unit)
+    return access("unit", unit, key, ...)
+  end
+  function game.add_score(player, amount)
+    if type(amount) ~= "number" then error("invalid_amount: " .. tostring(amount), 2) end
+    local row = bucket("score", player_id(player))
+    row.total = (row.total or 0) + amount
+    return row.total
+  end
+  function game.score(player) return bucket("score", player_id(player)).total or 0 end
+
+  function game.region(name, x0, y0, x1, y1, handlers)
+    host.define_region(name, x0, y0, x1, y1)
+    local function named(region) return region == name end
+    if handlers and handlers.enter then
+      local fn = handlers.enter
+      game.trigger("on_enter", { conditions = { named }, action = function(_, unit) fn(unit) end })
+    end
+    if handlers and handlers.leave then
+      local fn = handlers.leave
+      game.trigger("on_leave", { conditions = { named }, action = function(_, unit) fn(unit) end })
+    end
+    return name
+  end
+  function game.region_units(name)
+    local inside = {}
+    for _, unit in ipairs(game.units()) do
+      local x, y = host.unit_position(unit)
+      if host.in_region(name, x, y) then inside[#inside + 1] = unit end
+    end
+    return inside
+  end
+
+  local live = {}
+  function game.timer(name, delay, action, period)
+    if type(action) ~= "function" then error("invalid_timer: " .. tostring(name) .. " needs an action function", 2) end
+    if period ~= nil and (type(period) ~= "number" or period < 1) then error("invalid_timer: period must be 1 or more ticks", 2) end
+    local function fire()
+      action()
+      if period and live[name] == fire then host.schedule(name, period, fire) end
+    end
+    live[name] = fire
+    host.schedule(name, delay, fire)
+    return name
+  end
+  function game.cancel_timer(name)
+    live[name] = nil
+    return host.cancel(name)
+  end
+end
+"##;
+
+const VARS_KEY: &str = "oscraft_vars";
+
 // pcall and xpcall for mod scripts. They catch script errors, but a limit error (instruction,
 // memory) is rethrown, so a script cannot keep spinning past its budget by catching the limit.
 const PCALL_SRC: &str = r#"
@@ -1026,7 +1240,10 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
         known.set(event, true)?;
     }
     let (trigger, fire) = lua.load(TRIGGER_SRC).eval::<Function>()?.call::<(Function, Function)>(known)?;
-    env.get::<Table>("game")?.set("trigger", trigger)?;
+    let game: Table = env.get("game")?;
+    game.set("trigger", trigger)?;
+    let vars: Table = lua.named_registry_value(VARS_KEY)?;
+    lua.load(PRELUDE_SRC).eval::<Function>()?.call::<()>((game, vars, env.clone(), MAX_PLAYERS as i64))?;
     check_host_globals(&env)?;
     lua.load(src)
         .set_name(format!("@{name}"))
@@ -1091,6 +1308,11 @@ impl ModHost {
         lua.set_memory_limit(DEFAULT_MEMORY).expect("set memory limit");
         let state = lua.create_table().expect("create state table");
         state.set("ticks", 0i64).expect("seed state.ticks");
+        let vars = lua.create_table().expect("create vars table");
+        for scope in ["global", "player", "unit", "score"] {
+            vars.set(scope, lua.create_table().expect("create vars scope")).expect("seed vars scope");
+        }
+        lua.set_named_registry_value(VARS_KEY, vars).expect("store vars table");
         let world = Rc::new(RefCell::new(sim::load(image, MAX_UNITS)?));
         let regions: Regions = Rc::new(RefCell::new(Vec::with_capacity(MAX_REGIONS)));
         Ok(ModHost {
@@ -1357,6 +1579,17 @@ impl ModHost {
                     let _ = sim.set_owner(unit, player);
                 }
                 Cmd::SetFog { on } => sim.set_fog(on),
+                // game.ability already defined the ability in this world when the mod called it.
+                Cmd::DefineAbility { .. } => {}
+                Cmd::GiveAbility { unit, slot, name } => {
+                    let _ = sim.give_ability(unit, slot, &name);
+                }
+                Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
+                Cmd::AddHeroGold { unit, amount } => {
+                    let _ = sim.add_hero_gold(unit, amount);
+                }
+                Cmd::Victory { player } => sim.declare_victory(player),
+                Cmd::Defeat { player } => sim.declare_defeat(player),
             }
         }
     }

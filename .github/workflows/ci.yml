@@ -2706,6 +2706,17 @@ jobs:
           test "$code" -eq 1
           grep -Eq '^mod-check load-error .*broken\.lua:3: ' broken.txt
 
+      - name: Run the example mods that use the timer, region, variable, ability, victory and gold APIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          target/debug/mod_check ../scenarios/moba ../mods/td_waves.lua 300 > td.txt 2>&1 || { cat td.txt; exit 1; }
+          cat td.txt
+          grep -Eq '^mod-state lives=0 score=3 ticks=0 waves=3 winner=1$' td.txt
+          target/debug/mod_check ../scenarios/moba ../mods/custom_spell.lua 300 > spell.txt 2>&1 || { cat spell.txt; exit 1; }
+          cat spell.txt
+          grep -Eq '^mod-state effects=2 gold=250 ticks=0 winner=0$' spell.txt
+
   package-install:
     name: single archive builds and installs into an empty directory
     runs-on: ubuntu-latest
