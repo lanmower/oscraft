@@ -3,7 +3,7 @@
 -- game.item, game.cmd_add_gold, game.cmd_buy and game.unit_items. Uses only the mod API.
 
 local TILE = 65536
-local X, Y = 9 * TILE, 30 * TILE
+local X, Y = 272 * TILE, 58 * TILE
 
 game.ability("flask_heal", {
   cooldown = 80,

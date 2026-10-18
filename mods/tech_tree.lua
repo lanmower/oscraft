@@ -3,7 +3,7 @@
 -- built later. Uses game.unit, game.upgrade, game.cmd_grant_upgrade and game.cmd_spawn. Uses only the mod API.
 
 local TILE = 65536
-local X, Y = 20 * TILE, 40 * TILE
+local X, Y = 60 * TILE, 34 * TILE
 
 game.unit("barracks", { health = 500, radius = 800, filter = 1 })
 game.unit("knight", { health = 100, speed = 1500, weapon = { damage = 10, range = 1000, period = 20 } })

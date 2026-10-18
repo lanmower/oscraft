@@ -3,7 +3,7 @@
 -- game.unit_cooldown, game.unit_abilities and game.time. Uses only the mod API.
 
 local TILE = 65536
-local X, Y = 20 * TILE, 40 * TILE
+local X, Y = 60 * TILE, 34 * TILE
 
 game.ability("pulse", { cooldown = 50, target = "point", effects = { { kind = "damage", amount = 5, radius = 2000 } } })
 game.unit("mage", { health = 80, speed = 1000 })

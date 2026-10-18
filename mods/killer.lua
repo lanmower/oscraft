@@ -3,7 +3,7 @@
 -- game.cmd_spawn and game.time. Uses only the mod API.
 
 local TILE = 65536
-local X, Y = 20 * TILE, 40 * TILE
+local X, Y = 60 * TILE, 34 * TILE
 
 game.unit("duelist", { health = 100, weapon = { damage = 9, range = 1000, period = 20 } })
 
