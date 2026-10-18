@@ -3061,17 +3061,16 @@ jobs:
           test "$tick" -ge 3
           units0=$(jq '[.records[] | select(.player != 255)] | length' "$work/s0.json")
           at_tick=""
-          prev=$units0
+          prev_max=$(jq '[.records[] | select(.player != 255) | .id] | max // 0' "$work/s0.json")
           max_jump=0
           tick=0
           for i in $(seq 1 1800); do
             curl -sf "http://$addr/state?map=ci" > "$work/s1.json" || true
             tick=$(jq -r '.tick // 0' "$work/s1.json" 2>/dev/null || echo 0)
-            units_now=$(jq '[.records[] | select(.player != 255)] | length' "$work/s1.json" 2>/dev/null || echo "$units0")
-            jump=$((units_now - prev))
+            jump=$(jq --argjson p "$prev_max" '[.records[] | select(.player != 255 and .id > $p)] | length' "$work/s1.json" 2>/dev/null || echo 0)
+            prev_max=$(jq --argjson p "$prev_max" '[.records[] | select(.player != 255 and .id > $p) | .id] | max // $p' "$work/s1.json" 2>/dev/null || echo "$prev_max")
             if [ "$jump" -gt "$max_jump" ]; then max_jump=$jump; fi
             if [ -z "$at_tick" ] && [ "$jump" -gt 0 ]; then at_tick=$tick; fi
-            prev=$units_now
             test "$tick" -ge "$target" && break
             sleep 0.5
           done
