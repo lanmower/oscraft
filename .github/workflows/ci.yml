@@ -1956,7 +1956,8 @@ jobs:
           }
           if (!(orders > ordersBefore)) {
             const refusal = await page.evaluate(() => document.body.dataset.lastRefusal || "none");
-            throw new Error("no right click on the map ordered unit " + unit.id + " to move: before=" + ordersBefore + " tried=" + moveTried.join("; ") + " refusal=" + refusal + " viewport=" + JSON.stringify(viewport));
+            const inputAfter = await page.evaluate(() => window.__ciInputSelection());
+            throw new Error("no right click on the map ordered unit " + unit.id + " to move: before=" + ordersBefore + " tried=" + moveTried.join("; ") + " refusal=" + refusal + " input=" + JSON.stringify(inputAfter) + " pageErrors=" + JSON.stringify(errors) + " viewport=" + JSON.stringify(viewport));
           }
           if (errors.length) throw new Error("console errors: " + errors.join("\n"));
           // The camera target is clamped to the walkable bounds, so the arrow that pans toward an edge may not move it: try right, then left.
