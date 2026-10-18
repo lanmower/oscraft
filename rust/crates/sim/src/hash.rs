@@ -66,6 +66,11 @@ impl Sim {
         h.u32s(&self.xp_curve);
         h.u32s(&self.unit_kills);
         h.u32s(&self.unit_deaths);
+        h.bytes(&self.camps.is_camp);
+        h.i32s(&self.camps.home_x);
+        h.i32s(&self.camps.home_y);
+        h.bytes(&self.camps.waiting);
+        h.u32s(&self.camps.respawn_at);
         h.bytes(&self.grid.flags);
         h.bytes(&self.grid.tiles);
         h.u64s(&[self.doodads.len() as u64]);

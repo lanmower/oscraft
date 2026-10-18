@@ -1254,8 +1254,11 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
     let mut sim = Sim::with_catalog(max_units, grid, cat);
     for k in 0..sim.cat.placements.len() {
         let p = sim.cat.placements[k];
-        if sim.spawn_for(p.player, p.unit as u32, p.x, p.y).is_none() {
+        let Some(i) = sim.spawn_for(p.player, p.unit as u32, p.x, p.y) else {
             return Err(LoadError::Range("placement refused: no slot, unknown unit or blocked cell"));
+        };
+        if p.player == NEUTRAL_PLAYER {
+            sim.mark_camp(i);
         }
     }
     for k in 0..sim.cat.starts.len() {

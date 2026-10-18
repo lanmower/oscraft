@@ -13,7 +13,7 @@ use crate::*;
 const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
-const STATE_VERSION: u16 = 19;
+const STATE_VERSION: u16 = 20;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -350,6 +350,11 @@ impl Sim {
         w.extend_from_slice(&self.blocked);
         w.extend_from_slice(&self.routed);
         w.extend_from_slice(&self.order_kind);
+        w.extend_from_slice(&self.camps.is_camp);
+        put_i32s(&mut w, &self.camps.home_x);
+        put_i32s(&mut w, &self.camps.home_y);
+        w.extend_from_slice(&self.camps.waiting);
+        put_u32s(&mut w, &self.camps.respawn_at);
         put_i32s(&mut w, &self.patrol_x);
         put_i32s(&mut w, &self.patrol_y);
         put_i32s(&mut w, &self.amount);
@@ -546,6 +551,11 @@ impl Sim {
         r.bytes_into(&mut next.blocked)?;
         r.bytes_into(&mut next.routed)?;
         r.bytes_into(&mut next.order_kind)?;
+        r.bytes_into(&mut next.camps.is_camp)?;
+        r.i32s_into(&mut next.camps.home_x)?;
+        r.i32s_into(&mut next.camps.home_y)?;
+        r.bytes_into(&mut next.camps.waiting)?;
+        r.u32s_into(&mut next.camps.respawn_at)?;
         r.i32s_into(&mut next.patrol_x)?;
         r.i32s_into(&mut next.patrol_y)?;
         r.i32s_into(&mut next.amount)?;

@@ -219,6 +219,71 @@ pub fn kill_bounty(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// A live neutral camp unit of the moba scenario, with the sim it lives in.
+fn moba_camp_unit() -> Result<(Sim, usize), String> {
+    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
+    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
+    let s = fresh(&image)?;
+    let u = (0..MAX_UNITS)
+        .find(|&u| s.alive(u) && s.player(u) == 0xFF)
+        .ok_or("moba image places no live neutral unit")?;
+    Ok((s, u))
+}
+
+/// A dead camp unit respawns at its home once its timer runs out, and not before.
+pub fn camp_respawn(_image: &[u8]) -> Result<(), String> {
+    let (mut s, u) = moba_camp_unit()?;
+    let home = s.position_fixed(u);
+    s.hurt(u, fixed::from_int(10000));
+    if s.alive(u) {
+        return Err(format!("camp unit {u} survived a lethal hit"));
+    }
+    let wait = sim::CAMP_RESPAWN_S as i32 * sim::TICKS_PER_SECOND;
+    for _ in 0..wait - 4 {
+        s.tick();
+    }
+    if s.alive(u) {
+        return Err(format!("camp unit {u} respawned before its {} s timer", sim::CAMP_RESPAWN_S));
+    }
+    for _ in 0..8 {
+        s.tick();
+    }
+    if !s.alive(u) {
+        return Err(format!("camp unit {u} did not respawn after its timer"));
+    }
+    if s.position_fixed(u) != home {
+        return Err(format!("camp unit {u} respawned at {:?} not home {home:?}", s.position_fixed(u)));
+    }
+    println!("camp respawn ok unit={u} after={} ticks", wait);
+    Ok(())
+}
+
+/// A camp unit ordered past its leash walks back to within it.
+pub fn camp_leash(_image: &[u8]) -> Result<(), String> {
+    let (mut s, u) = moba_camp_unit()?;
+    let (hx, hy) = s.position_fixed(u);
+    let leash = fixed::from_milli(sim::CAMP_LEASH_MILLI) as i64;
+    let dist2 = |s: &Sim| {
+        let (x, y) = s.position_fixed(u);
+        let (dx, dy) = ((x - hx) as i64, (y - hy) as i64);
+        dx * dx + dy * dy
+    };
+    s.order(u, hx + fixed::from_int(30), hy);
+    let mut left = false;
+    for _ in 0..800 {
+        s.tick();
+        left |= dist2(&s) > leash * leash;
+    }
+    if !left {
+        return Err(format!("camp unit {u} never left its {} milli leash", sim::CAMP_LEASH_MILLI));
+    }
+    if dist2(&s) > leash * leash {
+        return Err(format!("camp unit {u} did not walk back inside its leash"));
+    }
+    println!("camp leash ok unit={u}");
+    Ok(())
+}
+
 pub fn region_query(image: &[u8]) -> Result<(), String> {
     let src = r#"
 define_region("zone", 0, 0, 655360, 655360)

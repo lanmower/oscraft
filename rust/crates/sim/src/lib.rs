@@ -34,15 +34,17 @@ mod upgrades;
 mod inventory;
 mod xp;
 mod hero;
+mod camp;
 
 pub use arrays::{Sim, Stats};
+pub use camp::{CAMP_LEASH_MILLI, CAMP_RESPAWN_S};
 pub use loader::{load, load_file, Catalog, Doodad, LoadError, Trigger};
 pub use pathfinding::Grid;
 pub use persist::StateError;
 pub use combat::armour_reduced;
 pub use rules::{Refusal, ALL_REFUSALS};
 
-pub(crate) const TICKS_PER_SECOND: i32 = 16;
+pub const TICKS_PER_SECOND: i32 = 16;
 pub(crate) const BUCKET_CAP: usize = 8;
 pub(crate) const VIS_SCALE: i32 = 2;
 pub(crate) const VIS_PERIOD: u32 = 8;

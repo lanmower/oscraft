@@ -366,6 +366,7 @@ impl Sim {
                 self.pay_bounty(j, attacker);
                 self.share_xp(j, attacker);
                 self.hero_died(j);
+                self.camp_died(j);
             }
         }
     }

@@ -109,6 +109,7 @@ impl Sim {
         self.tick_projectiles();
         mark = lap(System::Projectiles, mark);
         self.tick_heroes();
+        self.tick_camps();
         for i in 0..self.n {
             if self.alive[i] == 0 {
                 continue;

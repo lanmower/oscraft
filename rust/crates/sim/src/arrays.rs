@@ -163,6 +163,8 @@ pub struct Sim {
     pub(crate) unit_deaths: Vec<u32>,
     /// Hero respawn, buyback and gold per unit. See hero.rs.
     pub(crate) heroes: crate::hero::HeroState,
+    /// Neutral camp home, leash and respawn timer per unit. See camp.rs.
+    pub(crate) camps: crate::camp::CampState,
     /// Assists credited to each unit, and its recent hitters (ASSIST_SLOTS per unit: the hitter's unit
     /// id or -1, and the tick it last hit). Transient like kill_queue: not hashed or saved.
     pub(crate) unit_assists: Vec<u32>,
@@ -339,6 +341,7 @@ impl Sim {
             xp_curve: crate::xp::DEFAULT_XP_CURVE.to_vec(),
             unit_kills: vec![0; cap],
             heroes: crate::hero::HeroState::new(cap),
+            camps: crate::camp::CampState::new(cap),
             unit_deaths: vec![0; cap],
             unit_assists: vec![0; cap],
             hitter_id: vec![-1; cap * crate::combat::ASSIST_SLOTS],
@@ -627,6 +630,7 @@ impl Sim {
         self.pos_y[i] = y;
         self.tgt_x[i] = x;
         self.tgt_y[i] = y;
+        self.camps.clear(i);
         self.vel_x[i] = 0;
         self.vel_y[i] = 0;
         self.hp[i] = fixed::from_int(def.health);
