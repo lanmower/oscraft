@@ -552,7 +552,7 @@ impl Sim {
 
     /// True when a unit of player `a` is an enemy of a unit of player `b`: different players
     /// on different teams with no alliance between them. Indices past MAX_PLAYERS are enemies.
-    pub(crate) fn hostile(&self, a: u8, b: u8) -> bool {
+    pub fn hostile(&self, a: u8, b: u8) -> bool {
         if a == b {
             return false;
         }

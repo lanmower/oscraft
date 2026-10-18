@@ -137,6 +137,11 @@ impl Game {
         self.sim.skill_points(unit as usize)
     }
 
+    /// True when player `a` is an enemy of player `b`: different teams and no alliance.
+    pub fn hostile(&self, a: u32, b: u32) -> bool {
+        self.sim.hostile(a as u8, b as u8)
+    }
+
     /// Orders unit `unit` to attack unit `target`, walking toward it when it is out of reach.
     /// Returns false when the sim refuses the order.
     pub fn attack(&mut self, unit: u32, target: u32) -> bool {
