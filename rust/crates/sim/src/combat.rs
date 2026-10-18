@@ -10,6 +10,23 @@ const RESPONSE_REDUCED: u8 = 1;
 const RESPONSE_IMMUNE: u8 = 2;
 /// Kill events held between drains. Kills past this in one drain window are still tallied per unit.
 pub(crate) const KILL_QUEUE_CAP: usize = 256;
+/// Recent hitters remembered per unit for assist credit.
+pub(crate) const ASSIST_SLOTS: usize = 4;
+/// Ticks after a hit within which the hitter is credited an assist on the victim's death.
+pub(crate) const ASSIST_WINDOW: u32 = 50;
+
+/// One player's post-game tally, summed over the player's units.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PlayerTally {
+    pub player: u8,
+    pub kills: u32,
+    pub deaths: u32,
+    pub assists: u32,
+    pub gold: i32,
+    pub xp: u32,
+    /// Item kinds held (non-empty inventory slots), in unit then slot order.
+    pub items: Vec<u32>,
+}
 
 /// One kill: unit `killer` (of `killer_player`) destroyed unit `victim` (of `victim_player`) at `tick`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,10 +40,20 @@ pub struct KillEvent {
 /// The least a weapon hit can do after armour, so armour never zeroes a hit (Q16.16, one quarter).
 const ARMOUR_FLOOR: i32 = fixed::ONE / 4;
 
-/// Weapon damage after a flat armour reduction, in the units both arguments share (whole units or
-/// Q16.16). Never below zero. A hit's floor (ARMOUR_FLOOR) is applied by the attack paths.
+/// Armour reduction per armour point, Q16.16 (0.06). UNVERIFIED: the standard Dota armour
+/// constant, recalled rather than checked against a source; confirm before relying on it.
+const ARMOUR_PER_POINT_Q16: i64 = 3932;
+
+/// Weapon damage after armour, in the units both arguments share (whole units or Q16.16). Armour
+/// `a` scales damage by `1 - k*a / (1 + k*|a|)` with `k` = ARMOUR_PER_POINT_Q16, so armour never
+/// reaches zero and negative armour raises damage. Never below zero. The attack paths apply
+/// ARMOUR_FLOOR after this.
 pub fn armour_reduced(damage: i32, armour: i32) -> i32 {
-    damage.saturating_sub(armour).max(0)
+    let a = armour as i64;
+    let k = ARMOUR_PER_POINT_Q16;
+    let reduction = ((k * a) << fixed::SHIFT) / (fixed::ONE as i64 + k * a.abs());
+    let factor = fixed::ONE as i64 - reduction;
+    ((damage as i64 * factor) >> fixed::SHIFT).clamp(0, i32::MAX as i64) as i32
 }
 
 impl Sim {
@@ -146,7 +173,7 @@ impl Sim {
                 let cnt = self.bucket_n[cell] as usize;
                 for k in 0..cnt {
                     let j = self.bucket_idx[cell * BUCKET_CAP + k] as usize;
-                    if j == i || self.alive[j] == 0 || !self.hostile(self.player[i], self.player[j]) {
+                    if j == i || self.alive[j] == 0 || (!self.hostile(self.player[i], self.player[j]) && !self.deniable(i, j)) {
                         continue;
                     }
                     if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) || !self.targetable(self.player[i], j) {
@@ -184,7 +211,7 @@ impl Sim {
         let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
         let in_reach = i != target
             && self.damage[i] > 0
-            && self.hostile(self.player[i], self.player[target])
+            && (self.hostile(self.player[i], self.player[target]) || self.deniable(i, target))
             && (self.targets[i] & self.layer_of(target)) != 0
             && self.visible(self.player[i], target)
             && self.targetable(self.player[i], target)
@@ -220,14 +247,91 @@ impl Sim {
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
 
-    /// Pays the destroyed unit's bounty into the resource pool of its owner's rival side.
-    fn pay_bounty(&mut self, j: usize) {
+    /// Pays the destroyed unit's bounty. A hero killer keeps it as gold, less the team share (see
+    /// hero.rs); any other killer pays the rival side's resource pool.
+    fn pay_bounty(&mut self, j: usize, attacker: i32) {
         let bounty = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty);
-        if bounty <= 0 {
+        if bounty <= 0 || self.was_denied(j, attacker) {
+            return;
+        }
+        if attacker >= 0 && self.is_hero(attacker as usize) {
+            self.hero_bounty(attacker as usize, bounty);
             return;
         }
         if let Some(rival) = self.rival_of(self.player[j]) {
             self.add_resources(rival, bounty, 0);
+        }
+    }
+
+    /// Whether unit `i` may deny unit `j`: `j` is allied to `i` (not `i` itself) and its health is at
+    /// or below its deny threshold, `deny_pct` percent of max health. A zero threshold never denies.
+    pub(crate) fn deniable(&self, i: usize, j: usize) -> bool {
+        if i == j || self.alive[j] == 0 || self.hostile(self.player[i], self.player[j]) {
+            return false;
+        }
+        let pct = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.deny_pct as i64);
+        pct > 0 && self.hp[j] as i64 * 100 <= self.hp_max[j] as i64 * pct
+    }
+
+    /// Whether the death of unit `j` to `attacker` was a denial: an allied unit landed the blow.
+    fn was_denied(&self, j: usize, attacker: i32) -> bool {
+        attacker >= 0
+            && (attacker as usize) < self.n
+            && attacker as usize != j
+            && !self.hostile(self.player[attacker as usize], self.player[j])
+    }
+
+    /// Shares the xp of unit `j` killed by `attacker`. An enemy kill gives `xp_bounty` to the killer
+    /// and to each hero allied to it within the victim's assist radius, split evenly with any
+    /// remainder to the killer. A denial gives `xp_bounty * deny_xp_pct / 100` to each enemy hero
+    /// within the radius, split the same way. The radius is the victim's assist radius; "in range"
+    /// means inside it, not that the hero hit the victim.
+    fn share_xp(&mut self, j: usize, attacker: i32) {
+        if attacker < 0 || attacker as usize >= self.n || attacker as usize == j {
+            return;
+        }
+        let k = attacker as usize;
+        let ext = self.cat.unit_ext.get(self.type_of[j] as usize).copied().unwrap_or_default();
+        let denied = self.was_denied(j, attacker);
+        let pool = if denied {
+            (ext.xp_bounty.max(0) as i64 * ext.deny_xp_pct as i64 / 100) as u32
+        } else {
+            ext.xp_bounty.max(0) as u32
+        };
+        if pool == 0 {
+            return;
+        }
+        let (victim_side, killer_side) = (self.player[j], self.player[k]);
+        let mut recipients = Vec::new();
+        if !denied {
+            recipients.push(k);
+        }
+        let radius = fixed::from_milli(ext.assist_radius);
+        let mut buf = std::mem::take(&mut self.scratch);
+        let n = self.gather(self.pos_x[j], self.pos_y[j], radius, &mut buf);
+        for &u in &buf[..n] {
+            let u = u as usize;
+            if u == j || u == k || self.alive[u] == 0 || !self.is_hero(u) {
+                continue;
+            }
+            let on_side = if denied {
+                self.hostile(self.player[u], victim_side)
+            } else {
+                !self.hostile(self.player[u], killer_side)
+            };
+            if on_side {
+                recipients.push(u);
+            }
+        }
+        self.scratch = buf;
+        if recipients.is_empty() {
+            return;
+        }
+        let count = recipients.len() as u32;
+        let share = pool / count;
+        let rest = pool - share * count;
+        for (idx, &u) in recipients.iter().enumerate() {
+            self.add_xp(u, share + if idx == 0 { rest } else { 0 });
         }
     }
 
@@ -238,6 +342,9 @@ impl Sim {
         self.touch(j);
         if dmg > 0 {
             self.trig_hit[j] = 1;
+            if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
+                self.remember_hitter(j, attacker);
+            }
             self.interrupt_channel(j);
             self.last_hit[j] = self.ticks;
             match self.response[j] {
@@ -256,7 +363,9 @@ impl Sim {
             self.stats.deaths += 1;
             if fell {
                 self.record_death(j, attacker);
-                self.pay_bounty(j);
+                self.pay_bounty(j, attacker);
+                self.share_xp(j, attacker);
+                self.hero_died(j);
             }
         }
     }
@@ -265,11 +374,14 @@ impl Sim {
     /// queues the event for `drain_kill_events`.
     pub(crate) fn record_death(&mut self, j: usize, attacker: i32) {
         self.unit_deaths[j] = self.unit_deaths[j].saturating_add(1);
+        let base = j * ASSIST_SLOTS;
         if attacker < 0 || attacker as usize >= self.n || attacker as usize == j {
+            self.hitter_id[base..base + ASSIST_SLOTS].fill(-1);
             return;
         }
         let k = attacker as usize;
         self.unit_kills[k] = self.unit_kills[k].saturating_add(1);
+        self.credit_assists(j, k);
         if self.kill_queue.len() < KILL_QUEUE_CAP {
             self.kill_queue.push(KillEvent {
                 tick: self.ticks,
@@ -279,6 +391,68 @@ impl Sim {
                 victim_player: self.player[j],
             });
         }
+    }
+
+    /// Remembers that unit `hitter` hit unit `j` now, reusing its slot or the oldest slot.
+    fn remember_hitter(&mut self, j: usize, hitter: i32) {
+        let base = j * ASSIST_SLOTS;
+        let slots = base..base + ASSIST_SLOTS;
+        let slot = slots
+            .clone()
+            .find(|&s| self.hitter_id[s] == hitter)
+            .or_else(|| slots.clone().find(|&s| self.hitter_id[s] < 0))
+            .unwrap_or_else(|| slots.min_by_key(|&s| self.hitter_tick[s]).unwrap_or(base));
+        self.hitter_id[slot] = hitter;
+        self.hitter_tick[slot] = self.ticks;
+    }
+
+    /// Credits an assist to each recent hitter of dead unit `j` that shares the killer's side and
+    /// is not the killer, then forgets the hitters.
+    fn credit_assists(&mut self, j: usize, killer: usize) {
+        let base = j * ASSIST_SLOTS;
+        let side = self.player[killer];
+        for s in base..base + ASSIST_SLOTS {
+            let id = self.hitter_id[s];
+            self.hitter_id[s] = -1;
+            if id < 0 || id as usize == killer || id as usize >= self.n || self.player[id as usize] != side {
+                continue;
+            }
+            if self.ticks.wrapping_sub(self.hitter_tick[s]) <= ASSIST_WINDOW {
+                self.unit_assists[id as usize] = self.unit_assists[id as usize].saturating_add(1);
+            }
+        }
+    }
+
+    /// Each player's post-game tally: kills, deaths, assists, gold, xp and held items, summed over
+    /// that player's unit slots. Dead units keep their tallies until their slot is respawned.
+    pub fn post_game(&self) -> Vec<PlayerTally> {
+        (0..self.player_count())
+            .map(|p| {
+                let player = p as u8;
+                let mut tally = PlayerTally {
+                    player,
+                    kills: 0,
+                    deaths: 0,
+                    assists: 0,
+                    gold: self.resource_a(player),
+                    xp: 0,
+                    items: Vec::new(),
+                };
+                for i in (0..self.n).filter(|&i| self.player[i] == player) {
+                    tally.kills = tally.kills.saturating_add(self.unit_kills[i]);
+                    tally.deaths = tally.deaths.saturating_add(self.unit_deaths[i]);
+                    tally.assists = tally.assists.saturating_add(self.unit_assists[i]);
+                    tally.xp = tally.xp.saturating_add(self.xp_total[i]);
+                    let slots = i * crate::inventory::INV_SLOTS;
+                    tally.items.extend(
+                        (slots..slots + crate::inventory::INV_SLOTS)
+                            .filter(|&s| self.inv_kind[s] != 0 && self.inv_count[s] > 0)
+                            .map(|s| self.inv_kind[s]),
+                    );
+                }
+                tally
+            })
+            .collect()
     }
 
     /// Takes the kill events queued since the last drain, oldest first. The wasm layer drains once per tick.

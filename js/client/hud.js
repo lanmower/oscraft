@@ -39,6 +39,24 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
   const minimapCtx = minimapEl.getContext("2d");
   const lanes = walkableLayer(grid);
   let attackArmed = false;
+  // The clock reads 0:00 at the horn (the lobby's "oscraft:horn" event). Before the horn the match is in pre-match.
+  let hornTicks = null;
+  window.addEventListener("oscraft:horn", () => {
+    if (game && typeof game.ticks === "function") hornTicks = game.ticks();
+  });
+
+  function clockText(hasGame) {
+    if (!hasGame) return "pre-match";
+    if (hornTicks === null) return "pre-match";
+    return formatClock(game.ticks() - hornTicks);
+  }
+
+  function postGameText(winner) {
+    if (!game || typeof game.post_game_json !== "function") return `side ${winner} wins`;
+    const report = JSON.parse(game.post_game_json());
+    const rows = report.players.map((p) => `P${p.player}  K ${p.kills}  D ${p.deaths}  A ${p.assists}  G ${p.gold}  XP ${p.xp}  items ${p.items.length}`);
+    return [`side ${winner} wins`, ...rows].join("\n");
+  }
 
   function trackedMaxHp(id, hp) {
     const best = Math.max(maxHp.get(id) || 0, hp);
@@ -85,9 +103,9 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     const gold = hasGame ? game.gold(localPlayer()) : 0;
     const winner = hasGame ? game.winner() : -1;
     const hp = selected() >= 0 && hasGame ? game.unit_hp(selected()) : -1;
-    hudEl.textContent = `hp ${hp >= 0 ? hp : "-"}   gold ${gold}   time ${formatClock(hasGame ? game.ticks() : 0)}`;
+    hudEl.textContent = `hp ${hp >= 0 ? hp : "-"}   gold ${gold}   time ${clockText(hasGame)}`;
     winEl.hidden = winner < 0;
-    winEl.textContent = `side ${winner} wins`;
+    if (winner >= 0) winEl.textContent = postGameText(winner);
     const bars = drawBars(list);
     const dots = drawMinimap(list);
     const body = document.body.dataset;

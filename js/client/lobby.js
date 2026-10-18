@@ -83,6 +83,7 @@ export function createLobby({ root, playerId = "local", roster = HERO_ROSTER, on
     render();
     if (!wasStarted && state.started) {
       host.hidden = true;
+      window.dispatchEvent(new Event("oscraft:horn"));
       onStart(state);
     }
   }

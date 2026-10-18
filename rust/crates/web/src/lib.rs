@@ -90,6 +90,29 @@ impl Game {
         self.sim.winner().map_or(-1, |side| side as i32)
     }
 
+    /// Post-game screen data as JSON: `{"winner":side|-1,"players":[{"player","kills","deaths","assists","gold","xp","items":[kind,...]}]}`.
+    pub fn post_game_json(&self) -> String {
+        let players: Vec<String> = self
+            .sim
+            .post_game()
+            .iter()
+            .map(|t| {
+                let items: Vec<String> = t.items.iter().map(|k| k.to_string()).collect();
+                format!(
+                    "{{\"player\":{},\"kills\":{},\"deaths\":{},\"assists\":{},\"gold\":{},\"xp\":{},\"items\":[{}]}}",
+                    t.player,
+                    t.kills,
+                    t.deaths,
+                    t.assists,
+                    t.gold,
+                    t.xp,
+                    items.join(",")
+                )
+            })
+            .collect();
+        format!("{{\"winner\":{},\"players\":[{}]}}", self.winner(), players.join(","))
+    }
+
     /// Casts ability slot `slot` of unit `unit` at tile (x, y), aimed at unit `target` or at the ground when
     /// `target` is -1. Returns false when the sim refuses the cast.
     pub fn cast(&mut self, unit: u32, slot: u32, target: i32, x: f32, y: f32) -> bool {
@@ -117,6 +140,43 @@ impl Game {
     /// Deaths unit `unit` has suffered.
     pub fn deaths_of(&self, unit: u32) -> u32 {
         self.sim.deaths_of(unit as usize)
+    }
+
+    /// Spawns a hero of unit type `kind` for `player` at tile (x, y). Returns its unit id, or -1 when refused.
+    pub fn spawn_hero(&mut self, player: u8, kind: u32, x: f32, y: f32) -> i32 {
+        let fx = (x as f64 * 65536.0) as i32;
+        let fy = (y as f64 * 65536.0) as i32;
+        self.sim.spawn_hero(player, kind, fx, fy).map_or(-1, |i| i as i32)
+    }
+
+    /// Loads the hero rules from `key=value` text (scenarios/moba/hero_rules.txt). False, rules unchanged, on a bad line.
+    pub fn set_hero_rules(&mut self, text: &str) -> bool {
+        self.sim.set_hero_rules_text(text)
+    }
+
+    /// Ticks until hero `unit` respawns; 0 when alive; -1 for a non-hero.
+    pub fn respawn_ticks_left(&self, unit: u32) -> i32 {
+        self.sim.hero_respawn_left(unit as usize)
+    }
+
+    /// Gold a buyback of hero `unit` costs now; -1 for a non-hero.
+    pub fn buyback_cost(&self, unit: u32) -> i32 {
+        self.sim.hero_buyback_cost(unit as usize)
+    }
+
+    /// Ticks until hero `unit` may buy back again; 0 when ready; -1 for a non-hero.
+    pub fn buyback_cooldown_ticks(&self, unit: u32) -> i32 {
+        self.sim.hero_buyback_cooldown_left(unit as usize)
+    }
+
+    /// Buys back dead hero `unit` at its home. False when refused: alive, on cooldown, short of gold, or home cell full.
+    pub fn buyback(&mut self, unit: u32) -> bool {
+        self.sim.buyback(unit as usize)
+    }
+
+    /// Gold held by hero `unit`; 0 for a non-hero.
+    pub fn hero_gold(&self, unit: u32) -> i32 {
+        self.sim.hero_gold(unit as usize)
     }
 
     /// Ticks left on ability `slot` of unit `unit` (0 when ready); -1 for an unknown unit or slot.

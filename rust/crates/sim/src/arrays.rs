@@ -130,6 +130,12 @@ pub struct Sim {
 
     pub(crate) abil_idx: Vec<i32>,
     pub(crate) abil_cd: Vec<i32>,
+    /// Skill rank per ability slot, 0 when not learned. See skills.rs.
+    pub(crate) abil_rank: Vec<u8>,
+    /// Inventory: item index per unit slot, -1 when empty. Stat bonuses are already applied to the unit.
+    pub(crate) inventory: Vec<i32>,
+    /// Ticks until each inventory slot's active ability is ready again.
+    pub(crate) item_cd: Vec<i32>,
     pub(crate) energy: Vec<i32>,
     pub(crate) abil_on: bool,
 
@@ -153,6 +159,13 @@ pub struct Sim {
     /// Kills credited to each unit, and deaths each unit suffered, reset when its slot is spawned.
     pub(crate) unit_kills: Vec<u32>,
     pub(crate) unit_deaths: Vec<u32>,
+    /// Hero respawn, buyback and gold per unit. See hero.rs.
+    pub(crate) heroes: crate::hero::HeroState,
+    /// Assists credited to each unit, and its recent hitters (ASSIST_SLOTS per unit: the hitter's unit
+    /// id or -1, and the tick it last hit). Transient like kill_queue: not hashed or saved.
+    pub(crate) unit_assists: Vec<u32>,
+    pub(crate) hitter_id: Vec<i32>,
+    pub(crate) hitter_tick: Vec<u32>,
     /// Kill events since the last drain. Derived from the tallies, so not hashed or saved.
     pub(crate) kill_queue: Vec<crate::combat::KillEvent>,
 
@@ -303,6 +316,9 @@ impl Sim {
             resource_b: vec![0; MAX_PLAYERS],
             abil_idx: vec![-1; cap * ABILITY_SLOTS],
             abil_cd: vec![0; cap * ABILITY_SLOTS],
+            abil_rank: vec![0; cap * ABILITY_SLOTS],
+            inventory: vec![-1; cap * ITEM_SLOTS],
+            item_cd: vec![0; cap * ITEM_SLOTS],
             energy: vec![0; cap],
             abil_on: false,
             changed_at: vec![0; cap],
@@ -319,7 +335,11 @@ impl Sim {
             xp_total: vec![0; cap],
             xp_curve: crate::xp::DEFAULT_XP_CURVE.to_vec(),
             unit_kills: vec![0; cap],
+            heroes: crate::hero::HeroState::new(cap),
             unit_deaths: vec![0; cap],
+            unit_assists: vec![0; cap],
+            hitter_id: vec![-1; cap * crate::combat::ASSIST_SLOTS],
+            hitter_tick: vec![0; cap * crate::combat::ASSIST_SLOTS],
             kill_queue: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
             healer_player: vec![0; HEALER_SLOTS],
             healer_left: vec![0; HEALER_SLOTS],
@@ -631,6 +651,8 @@ impl Sim {
         self.xp_total[i] = 0;
         self.unit_kills[i] = 0;
         self.unit_deaths[i] = 0;
+        self.unit_assists[i] = 0;
+        self.hitter_id[i * crate::combat::ASSIST_SLOTS..(i + 1) * crate::combat::ASSIST_SLOTS].fill(-1);
         self.type_of[i] = ty as i32;
         self.filter[i] = def.filter;
         self.response[i] = def.response;
@@ -672,6 +694,11 @@ impl Sim {
         for slot in 0..ABILITY_SLOTS {
             self.abil_idx[i * ABILITY_SLOTS + slot] = -1;
             self.abil_cd[i * ABILITY_SLOTS + slot] = 0;
+            self.abil_rank[i * ABILITY_SLOTS + slot] = 0;
+        }
+        for slot in 0..ITEM_SLOTS {
+            self.inventory[i * ITEM_SLOTS + slot] = -1;
+            self.item_cd[i * ITEM_SLOTS + slot] = 0;
         }
         for slot in 0..(def.abil_count as usize).min(ABILITY_SLOTS) {
             if let Some(&ai) = self.cat.uabl.get(def.abil_first as usize + slot) {
