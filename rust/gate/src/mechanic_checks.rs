@@ -344,6 +344,34 @@ pub fn moba_lane(_image: &[u8]) -> Result<(), String> {
     Err("creep did not reach the north lane point within 600 ticks".into())
 }
 
+/// A moba unit standing with no orders and no neighbours to move away from holds one point: its x does not
+/// flip between two lanes on successive ticks. Prints the x sequence in milli-tiles for the witness.
+pub fn moba_idle_settle(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    let unit = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0).ok_or("moba has no side 0 unit")?;
+    let mut xs = Vec::with_capacity(200);
+    for _ in 0..200 {
+        s.tick();
+        xs.push(s.position_fixed(unit).0);
+    }
+    let milli: Vec<i64> = xs.iter().map(|&x| i64::from(x) * 1000 >> 16).collect();
+    let max_step = xs.windows(2).map(|w| (i64::from(w[1]) - i64::from(w[0])).abs()).max().unwrap_or(0);
+    println!("moba idle max_step_milli={} x milli-tiles: {milli:?}", max_step * 1000 >> 16);
+    let step = i64::from(fixed::from_milli(20));
+    let mut flips = 0usize;
+    for w in xs.windows(3) {
+        let (a, b, c) = (i64::from(w[0]), i64::from(w[1]), i64::from(w[2]));
+        let (d1, d2) = (b - a, c - b);
+        if d1.abs() >= step && d2.abs() >= step && (d1 > 0) != (d2 > 0) && (c - a).abs() < step {
+            flips += 1;
+        }
+    }
+    if flips > 4 {
+        return Err(format!("unit {unit} alternates between two points on {flips} ticks of 200"));
+    }
+    Ok(())
+}
+
 /// Two sims loaded from the same moba image, given the same orders at the same ticks, end in the same state.
 pub fn moba_sync(_image: &[u8]) -> Result<(), String> {
     let image = moba_image()?;

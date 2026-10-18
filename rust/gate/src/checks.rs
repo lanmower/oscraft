@@ -38,6 +38,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("moba-match-end", mechanic_checks::moba_match_end),
     ("moba-creeps", mechanic_checks::moba_creeps),
     ("moba-lane", mechanic_checks::moba_lane),
+    ("moba-idle-settle", mechanic_checks::moba_idle_settle),
     ("moba-sync", mechanic_checks::moba_sync),
     ("moba-objective", mechanic_checks::moba_objective),
     ("hash_stable_two_runs", hash_stable_two_runs),

@@ -119,13 +119,12 @@ impl Sim {
                     let min_d = self.radius[i].wrapping_add(self.radius[j]) as i64;
                     let md2 = min_d * min_d;
                     if sd2 < md2 {
-                        // Push i away from j along the dominant axis of their offset, with the sign of the offset.
-                        let push = ((md2 - sd2) >> (SHIFT + 6)) as i32;
-                        if sx.abs() > sy.abs() {
-                            vx = vx.wrapping_add(if sx > 0 { push } else { -push });
-                        } else {
-                            vy = vy.wrapping_add(if sy > 0 { push } else { -push });
-                        }
+                        // Each unit takes half the overlap along the line between centres, so a pair meets at
+                        // contact in one tick instead of overshooting into a two-point oscillation.
+                        let d = (fixed::sqrt((sd2 >> SHIFT) as i32) as i64).max(1);
+                        let half = (min_d - d) / 8;
+                        vx = vx.wrapping_add((sx as i64 * half / d) as i32);
+                        vy = vy.wrapping_add((sy as i64 * half / d) as i32);
                     }
                 }
             }
