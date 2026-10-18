@@ -315,7 +315,6 @@ function unitMeshFor(type, color) {
 // Joint palette for a unit this frame: its clip (walk when it moved, attack when it reports attacking, else idle)
 // advanced by dt seconds. A unit with no matching clip holds the rest pose.
 const EMPTY_POSE = new Map();
-const EMPTY_POSE = new Map();
 function jointsFor(u, mesh, dt) {
   const key = `${u.id}:${u.type}`;
   let entry = animators.get(key);
