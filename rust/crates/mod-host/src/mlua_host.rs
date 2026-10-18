@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{Catalog, Doodad, LoadError, Refusal, Sim, ABILITY_SLOTS, MAX_PLAYERS};
+use sim::{Catalog, Doodad, LoadError, Refusal, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -72,6 +72,10 @@ pub enum Cmd {
     DamageHandle { caster: u32, target: u32, dmg: i32 },
     BuffHandle { handle: u32, kind: i32, ticks: i32 },
     Cast { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
+    UseItem { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
+    Buy { unit: usize, item: usize },
+    Sell { unit: usize, slot: usize },
+    Unstash { unit: usize, slot: usize },
     Attack { unit: usize, target: usize },
     SetOwner { unit: usize, player: u8 },
     SetFog { on: bool },
@@ -815,6 +819,53 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     )?;
     let (w, buf) = (world.clone(), cmds.clone());
     game.set(
+        "cmd_use_item",
+        lua.create_function(move |_, (unit, slot, target, x, y): (i64, i64, i64, i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let slot = usize::try_from(slot).ok().filter(|&s| s < ITEM_SLOTS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_slot: {slot} is outside 0..{ITEM_SLOTS}"))
+            })?;
+            let target = if target == -1 { -1 } else { live_unit(&w.borrow(), target)? as i32 };
+            buf.borrow_mut().push(Cmd::UseItem { unit: u, slot, target, x: fixed(x)?, y: fixed(y)? });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_buy",
+        lua.create_function(move |_, (unit, item): (i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let item = usize::try_from(item).map_err(|_| mlua::Error::RuntimeError(format!("invalid_item: {item}")))?;
+            buf.borrow_mut().push(Cmd::Buy { unit: u, item });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_sell",
+        lua.create_function(move |_, (unit, slot): (i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let slot = usize::try_from(slot).ok().filter(|&s| s < ITEM_SLOTS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_slot: {slot} is outside 0..{ITEM_SLOTS}"))
+            })?;
+            buf.borrow_mut().push(Cmd::Sell { unit: u, slot });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_unstash",
+        lua.create_function(move |_, (unit, slot): (i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let slot = usize::try_from(slot).ok().filter(|&s| s < ITEM_SLOTS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_slot: {slot} is outside 0..{ITEM_SLOTS}"))
+            })?;
+            buf.borrow_mut().push(Cmd::Unstash { unit: u, slot });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
         "cmd_attack",
         lua.create_function(move |_, (attacker, target): (i64, i64)| {
             let (a, t) = {
@@ -1280,6 +1331,26 @@ impl ModHost {
                 Cmd::Attack { unit, target } => {
                     if sim.alive(unit) {
                         let _ = sim.order_attack_or_approach(unit, target);
+                    }
+                }
+                Cmd::UseItem { unit, slot, target, x, y } => {
+                    if sim.alive(unit) {
+                        let _ = sim.use_item(unit, slot, target, x, y);
+                    }
+                }
+                Cmd::Buy { unit, item } => {
+                    if sim.alive(unit) {
+                        let _ = sim.buy_item(unit, item);
+                    }
+                }
+                Cmd::Sell { unit, slot } => {
+                    if sim.alive(unit) {
+                        let _ = sim.sell_item(unit, slot);
+                    }
+                }
+                Cmd::Unstash { unit, slot } => {
+                    if sim.alive(unit) {
+                        let _ = sim.unstash(unit, slot);
                     }
                 }
                 Cmd::SetOwner { unit, player } => {

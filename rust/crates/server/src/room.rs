@@ -420,6 +420,26 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
                     let _ = sim.order_attack_or_approach(unit, target);
                 }
             }
+            Cmd::UseItem { unit, slot, target, x, y } => {
+                if sim.alive(unit) {
+                    let _ = sim.use_item(unit, slot, target, x, y);
+                }
+            }
+            Cmd::Buy { unit, item } => {
+                if sim.alive(unit) {
+                    let _ = sim.buy_item(unit, item);
+                }
+            }
+            Cmd::Sell { unit, slot } => {
+                if sim.alive(unit) {
+                    let _ = sim.sell_item(unit, slot);
+                }
+            }
+            Cmd::Unstash { unit, slot } => {
+                if sim.alive(unit) {
+                    let _ = sim.unstash(unit, slot);
+                }
+            }
             Cmd::SetOwner { unit, player } => {
                 let _ = sim.set_owner(unit, player);
             }
