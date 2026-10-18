@@ -1,0 +1,5 @@
+# MOBA units: hero respawns through build_time (ticks), tower and objective are structures, creep is the lane minion.
+unit("hero", 600, 3000, 500, build_time=120, supply=2, abilities=["hero_strike", "dash", "heal_aura"], filters=["ground", "armored", "massive", "army"], weapon_damage=14, weapon_range_milli=1500, weapon_period=12, sight_milli=10000, shield=0, armor=1, regen_delay=0)
+unit("creep", 300, 2200, 400, build_time=0, supply=0, abilities=["hero_strike"], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=1000, weapon_period=20, sight_milli=6000)
+unit("tower", 1200, 0, 700, build_time=0, supply=0, abilities=["tower_shot"], filters=["ground", "armored", "structure", "building"], weapon_damage=20, weapon_range_milli=7000, weapon_period=24, sight_milli=9000, armor=2, damage_response="reduced")
+unit("objective", 4000, 1000, 1200, build_time=0, supply=0, abilities=["hero_strike"], filters=["ground", "armored", "massive"], weapon_damage=30, weapon_range_milli=2000, weapon_period=30, sight_milli=8000, armor=3)
