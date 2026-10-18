@@ -75,6 +75,7 @@ pub enum Cmd {
     Cast { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
     UseItem { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
     Buy { unit: usize, item: usize },
+    SkillUp { unit: usize, slot: usize },
     Sell { unit: usize, slot: usize },
     Unstash { unit: usize, slot: usize },
     Attack { unit: usize, target: usize },
@@ -869,6 +870,18 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             let u = live_unit(&w.borrow(), unit)?;
             let item = usize::try_from(item).map_err(|_| mlua::Error::RuntimeError(format!("invalid_item: {item}")))?;
             buf.borrow_mut().push(Cmd::Buy { unit: u, item });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_skill_up",
+        lua.create_function(move |_, (unit, slot): (i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            let slot = usize::try_from(slot).ok().filter(|&s| s < ABILITY_SLOTS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_slot: {slot} is outside 0..{ABILITY_SLOTS}"))
+            })?;
+            buf.borrow_mut().push(Cmd::SkillUp { unit: u, slot });
             Ok(())
         })?,
     )?;
@@ -1734,6 +1747,11 @@ impl ModHost {
                 Cmd::Buy { unit, item } => {
                     if sim.alive(unit) {
                         let _ = sim.buy_item(unit, item);
+                    }
+                }
+                Cmd::SkillUp { unit, slot } => {
+                    if sim.alive(unit) {
+                        let _ = sim.skill_up(unit, slot);
                     }
                 }
                 Cmd::Sell { unit, slot } => {

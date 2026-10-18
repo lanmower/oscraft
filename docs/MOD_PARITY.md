@@ -29,6 +29,7 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 | capability | status | evidence |
 |---|---|---|
 | Cast an ability from Lua | supported | `game.cmd_cast` |
+| Spend a skill point from Lua | supported | `game.cmd_skill_up` |
 | List abilities and their costs | supported | `list_abilities`, `ability_info` |
 | Projectile abilities | supported | `projectile` fields in the ability record |
 | Automatic attack on the nearest enemy in reach | supported | `attack_nearest` action, mod-host test `answer_attack_runs...` |

@@ -430,6 +430,7 @@ fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<
                 | Cmd::Attack { .. }
                 | Cmd::UseItem { .. }
                 | Cmd::Buy { .. }
+                | Cmd::SkillUp { .. }
                 | Cmd::Sell { .. }
                 | Cmd::Unstash { .. }
                 | Cmd::Ui { .. }
@@ -502,6 +503,11 @@ fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<
             Cmd::Buy { unit, item } => {
                 if sim.alive(unit) {
                     rec.apply(sim, Command::Buy { unit, item });
+                }
+            }
+            Cmd::SkillUp { unit, slot } => {
+                if sim.alive(unit) {
+                    rec.apply(sim, Command::SkillUp { unit, slot });
                 }
             }
             Cmd::Sell { unit, slot } => {

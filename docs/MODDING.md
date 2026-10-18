@@ -77,6 +77,7 @@ an event or trigger therefore takes effect one step later.
 | `game.cmd_damage(caster, target, dmg)` | deal `dmg` to `target` (i32) |
 | `game.cmd_buff(unit, kind, ticks)` | give `unit` the behaviour kind `kind` for `ticks` (positive i32) |
 | `game.cmd_cast(unit, slot, target, x, y)` | cast ability `slot` at a unit (`target`) or a point (`target = -1`) |
+| `game.cmd_skill_up(unit, slot)` | spend a skill point on ability `slot` (0..ABILITY_SLOTS); the sim refuses it without a point or at max rank |
 | `game.cmd_set_owner(unit, player)` | move `unit` to `player` (0..MAX_PLAYERS) |
 | `game.cmd_set_fog(on)` | turn fog of war on or off (a boolean) |
 | `game.set_team(player, team)` | put `player` on `team` (both 0..MAX_PLAYERS); players on one team are allied |
