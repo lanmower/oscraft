@@ -14,7 +14,9 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
-const STATE_VERSION: u16 = 26;
+/// Version 27 adds the hero per-unit state (respawn, buyback, gold, mana cap, spot) and the assist
+/// tallies and recent hitters.
+const STATE_VERSION: u16 = 27;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -474,6 +476,19 @@ impl Sim {
         put_u32s(&mut w, &self.xp_total);
         put_u32s(&mut w, &self.unit_kills);
         put_u32s(&mut w, &self.unit_deaths);
+        w.extend_from_slice(&self.heroes.is_hero);
+        put_i32s(&mut w, &self.heroes.home_x);
+        put_i32s(&mut w, &self.heroes.home_y);
+        w.extend_from_slice(&self.heroes.waiting);
+        put_u32s(&mut w, &self.heroes.respawn_at);
+        put_u32s(&mut w, &self.heroes.buyback_ready);
+        put_i32s(&mut w, &self.heroes.gold);
+        put_i32s(&mut w, &self.heroes.mana_max);
+        put_i32s(&mut w, &self.heroes.spot_x);
+        put_i32s(&mut w, &self.heroes.spot_y);
+        put_u32s(&mut w, &self.unit_assists);
+        put_i32s(&mut w, &self.hitter_id);
+        put_u32s(&mut w, &self.hitter_tick);
         w.extend_from_slice(&self.routes.lane);
         w.extend_from_slice(&self.routes.step);
         put_i32s(&mut w, &self.aggro.target);
@@ -516,7 +531,9 @@ impl Sim {
 
         let mut next = Sim::with_catalog(self.cap, Grid::open(w, h), self.cat.clone());
         next.xp_curve = self.xp_curve.clone();
-        next.heroes = self.heroes.clone();
+        next.heroes = crate::hero::HeroState::new(cap);
+        next.heroes.rules = self.heroes.rules;
+        next.heroes.defs = self.heroes.defs.clone();
         next.n = r.u64()? as usize;
         next.head = r.u64()? as usize;
         next.ticks = r.u32()?;
@@ -713,6 +730,19 @@ impl Sim {
         r.u32s_into(&mut next.xp_total)?;
         r.u32s_into(&mut next.unit_kills)?;
         r.u32s_into(&mut next.unit_deaths)?;
+        r.bytes_into(&mut next.heroes.is_hero)?;
+        r.i32s_into(&mut next.heroes.home_x)?;
+        r.i32s_into(&mut next.heroes.home_y)?;
+        r.bytes_into(&mut next.heroes.waiting)?;
+        r.u32s_into(&mut next.heroes.respawn_at)?;
+        r.u32s_into(&mut next.heroes.buyback_ready)?;
+        r.i32s_into(&mut next.heroes.gold)?;
+        r.i32s_into(&mut next.heroes.mana_max)?;
+        r.i32s_into(&mut next.heroes.spot_x)?;
+        r.i32s_into(&mut next.heroes.spot_y)?;
+        r.u32s_into(&mut next.unit_assists)?;
+        r.i32s_into(&mut next.hitter_id)?;
+        r.u32s_into(&mut next.hitter_tick)?;
         r.bytes_into(&mut next.routes.lane)?;
         r.bytes_into(&mut next.routes.step)?;
         r.i32s_into(&mut next.aggro.target)?;

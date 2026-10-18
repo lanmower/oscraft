@@ -69,6 +69,9 @@ impl Sim {
         h.u32s(&self.xp_curve);
         h.u32s(&self.unit_kills);
         h.u32s(&self.unit_deaths);
+        h.u32s(&self.unit_assists);
+        h.i32s(&self.hitter_id);
+        h.u32s(&self.hitter_tick);
         h.bytes(&self.routes.lane);
         h.bytes(&self.routes.step);
         h.i32s(&self.aggro.target);
