@@ -7,7 +7,9 @@ const CHUNK_BIN = 0x004e4942;
 const COMPONENT_TYPES = Object.freeze({
   5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array,
 });
-const COMPONENT_COUNTS = Object.freeze({ SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 });
+const COMPONENT_COUNTS = Object.freeze({ SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 });
+const NORMALIZE_DIVISOR = Object.freeze({ 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 });
+const PATH_TYPE = Object.freeze({ translation: 'VEC3', rotation: 'VEC4', scale: 'VEC3' });
 
 function readChunks(buffer) {
   const view = new DataView(buffer);
@@ -97,11 +99,15 @@ export function parseGlb(buffer) {
   const indices = primitive.indices === undefined
     ? Uint32Array.from({ length: vertexCount }, (_, i) => i)
     : Uint32Array.from(readAccessor(gltf, bin, primitive.indices, 'SCALAR'));
+  const joints = primitive.attributes.JOINTS_0 === undefined ? null : Float32Array.from(readAccessor(gltf, bin, primitive.attributes.JOINTS_0, 'VEC4'));
+  const weights = primitive.attributes.WEIGHTS_0 === undefined ? null : readFloats(gltf, bin, primitive.attributes.WEIGHTS_0, 'VEC4');
   return {
     positions: Float32Array.from(positions),
     normals: normals && Float32Array.from(normals),
     texcoords,
     indices,
+    joints,
+    weights,
     baseColorTexture: readBaseColorTexture(gltf, bin, primitive),
   };
 }
@@ -149,5 +155,12 @@ export function parseGlbAnimations(buffer) {
       : readFloats(gltf, bin, skin.inverseBindMatrices, 'MAT4'),
     skeleton: skin.skeleton ?? null,
   }));
-  return { clips, skins };
+  const nodes = (gltf.nodes ?? []).map((node) => ({
+    children: node.children ?? [],
+    translation: node.translation ?? null,
+    rotation: node.rotation ?? null,
+    scale: node.scale ?? null,
+    matrix: node.matrix ?? null,
+  }));
+  return { clips, skins, nodes };
 }

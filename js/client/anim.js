@@ -151,3 +151,70 @@ export class AnimationPlayer {
     return this.clip ? samplePose(this.clip, this.time, this.loop) : null;
   }
 }
+
+// Column-major 4x4 matrices as Float32Array(16). Skinning: a skin's joint matrices are the joint's global
+// transform times its inverse bind matrix, then the model fit, so the shader only blends them per vertex.
+const IDENTITY = Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+
+export function mat4Multiply(a, b) {
+  const out = new Float32Array(16);
+  for (let c = 0; c < 4; c++) {
+    for (let r = 0; r < 4; r++) {
+      let v = 0;
+      for (let k = 0; k < 4; k++) v += a[k * 4 + r] * b[c * 4 + k];
+      out[c * 4 + r] = v;
+    }
+  }
+  return out;
+}
+
+function trsMatrix(t, q, s) {
+  const [x, y, z, w] = q;
+  const xx = x * x, yy = y * y, zz = z * z, xy = x * y, xz = x * z, yz = y * z, wx = w * x, wy = w * y, wz = w * z;
+  return Float32Array.of(
+    (1 - 2 * (yy + zz)) * s[0], 2 * (xy + wz) * s[0], 2 * (xz - wy) * s[0], 0,
+    2 * (xy - wz) * s[1], (1 - 2 * (xx + zz)) * s[1], 2 * (yz + wx) * s[1], 0,
+    2 * (xz + wy) * s[2], 2 * (yz - wx) * s[2], (1 - 2 * (xx + yy)) * s[2], 0,
+    t[0], t[1], t[2], 1,
+  );
+}
+
+// A node's local matrix: its animated TRS from the pose when it has one, else its rest TRS or matrix.
+function localMatrix(node, animated) {
+  if (!animated && node.matrix) return Float32Array.from(node.matrix);
+  return trsMatrix(
+    animated?.translation ?? node.translation ?? [0, 0, 0],
+    animated?.rotation ?? node.rotation ?? [0, 0, 0, 1],
+    animated?.scale ?? node.scale ?? [1, 1, 1],
+  );
+}
+
+// Global matrix per node for a pose (Map node index -> { translation, rotation, scale }). Roots are nodes no
+// other node lists as a child.
+export function globalMatrices(nodes, pose = new Map()) {
+  const globals = new Array(nodes.length);
+  const hasParent = new Uint8Array(nodes.length);
+  for (const node of nodes) for (const child of node.children) hasParent[child] = 1;
+  const visit = (index, parent) => {
+    const local = localMatrix(nodes[index], pose.get(index));
+    globals[index] = parent ? mat4Multiply(parent, local) : local;
+    for (const child of nodes[index].children) visit(child, globals[index]);
+  };
+  nodes.forEach((_, index) => {
+    if (!hasParent[index]) visit(index, null);
+  });
+  return globals;
+}
+
+// Joint matrices for a skin at a pose, pre-multiplied by `fit` (the model's fit to its footprint). The result
+// packs one column-major mat4 per joint, in the order of skin.joints.
+export function jointMatrices(nodes, skin, pose, fit) {
+  const globals = globalMatrices(nodes, pose);
+  const count = skin.joints.length;
+  const out = new Float32Array(16 * count);
+  for (let j = 0; j < count; j++) {
+    const inverseBind = skin.inverseBindMatrices ? skin.inverseBindMatrices.subarray(16 * j, 16 * j + 16) : IDENTITY;
+    out.set(mat4Multiply(fit, mat4Multiply(globals[skin.joints[j]], inverseBind)), 16 * j);
+  }
+  return out;
+}
