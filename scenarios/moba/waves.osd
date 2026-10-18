@@ -32,6 +32,8 @@ behaviour("go_siege_wave_bot_30", trigger="ability_ready", action="use_ability",
 behaviour("go_siege_wave_bot_60", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_bot_60")
 behaviour("start_creep_wave_bot", trigger="spawned", action="use_ability", param=0, ability="creep_wave_bot")
 behaviour("timer_creep_wave_bot", trigger="ability_ready", action="use_ability", param=0, ability="creep_wave_bot")
+behaviour("start_creep_wave_mid", trigger="spawned", action="use_ability", param=0, ability="creep_wave")
+behaviour("timer_creep_wave_mid", trigger="ability_ready", action="use_ability", param=0, ability="creep_wave")
 spawn("lane_spawner_top", 0, 64500, 222219)
 spawn("lane_spawner_mid", 0, 90500, 234625)
 spawn("lane_spawner_bot", 0, 96625, 262875)
