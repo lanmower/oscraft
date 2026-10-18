@@ -119,3 +119,6 @@ spawn("creep", 1, 50000, 52500)
 # One objective per side in the middle lane, appended last so earlier unit indices hold.
 spawn("objective", 0, 26000, 30500)
 spawn("objective", 1, 38000, 30500)
+# One courier per side at its base pad. UNVERIFIED placement.
+spawn("courier", 0, 8000, 28500)
+spawn("courier", 1, 56000, 28500)

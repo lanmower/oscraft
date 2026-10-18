@@ -34,8 +34,11 @@ const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 
-const EFFECT_KINDS: u16 = 17;
+const EFFECT_KINDS: u16 = 20;
 const EFFECT_STAT: u16 = 16;
+const EFFECT_WARD: u16 = 17;
+const EFFECT_GLYPH: u16 = 18;
+const EFFECT_DELIVER: u16 = 19;
 const EFFECT_SLOW: u16 = 12;
 const EFFECT_STATUS_DURATION: [u16; 4] = [11, 13, 14, 15];
 const EFFECT_ISSUE_ORDER: u16 = 5;
@@ -553,6 +556,9 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         EFFECT_SLOW if e.p0 < 1 || !(0..=65536).contains(&e.p1) => Some("slow duration or multiplier"),
         k if EFFECT_STATUS_DURATION.contains(&k) && e.p0 < 1 => Some("status duration"),
         EFFECT_STAT if !(0..=4).contains(&e.p0) || e.p1 < 0 => Some("stat code or amount"),
+        EFFECT_WARD if e.p0 < 0 || e.p1 < 1 => Some("ward unit or lifetime"),
+        EFFECT_GLYPH if e.p0 < 1 || e.p1 < 0 || e.p2 < 1 || e.p3 < 0 => Some("glyph duration, cooldown or filters"),
+        EFFECT_DELIVER if e.p0 < 0 => Some("deliver reach"),
         EFFECT_CREATE_HEALER if e.p0 < 0 || e.p1 < 0 || e.p2 < 1 || e.p3 < 1 => {
             Some("create_healer amount, radius, period or lifetime")
         }

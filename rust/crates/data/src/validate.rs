@@ -157,7 +157,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
                 .ok_or_else(|| anyhow!("ability {:?} uses effect code {} above the registry", raw.name, effect.kind))?;
             let target = effect.params[0] as usize;
             match *kind {
-                "spawn" if target >= units_raw.len() => {
+                "spawn" | "ward" if target >= units_raw.len() => {
                     bail!("ability {:?}: spawn names unit index {target}, only {} units exist", raw.name, units_raw.len())
                 }
                 "use_calldown" if target >= abilities_raw.len() => bail!(

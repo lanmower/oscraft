@@ -167,7 +167,13 @@ pub fn load_data(path: &Path, max_units: usize) -> Result<sim::Sim, String> {
         return sim::load_file(path, max_units).map_err(|e| format!("{e:?}"));
     }
     let image = mod_host::build_image(path)?;
-    sim::load(&image, max_units).map_err(|e| format!("{e:?}"))
+    let mut sim = sim::load(&image, max_units).map_err(|e| format!("{e:?}"))?;
+    if let Ok(rules) = fs::read_to_string(path.join("hero_rules.txt")) {
+        if !sim.set_hero_rules_text(&rules) {
+            return Err("hero_rules.txt has a bad line".to_string());
+        }
+    }
+    Ok(sim)
 }
 
 const DATA_POLL: Duration = Duration::from_millis(500);

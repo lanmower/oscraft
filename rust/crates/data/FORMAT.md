@@ -107,6 +107,9 @@ Effect parameters by kind:
 | 14   | `root`             | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
 | 15   | `invisibility`     | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
 | 16   | `stat`             | stat: `0 damage`, `1 armor`, `2 health`, `3 speed`, `4 range`      | flat amount, `>= 0` (whole units for damage, armor, health; milli-units for speed, range) | – | –            |
+| 17   | `ward`             | unit index into `UNIT`, `>= 0`, `< unit count`                     | lifetime, ticks, `>= 1`                | –                           | –                                |
+| 18   | `glyph`            | duration, ticks, `>= 1`                                            | team cooldown, ticks, `>= 0`           | filter bits covered, `>= 1` | filter bits excluded, `>= 0`     |
+| 19   | `deliver`          | reach, milli-units, `>= 0`                                         | –                                      | –                           | –                                |
 
 ### Receiver
 
@@ -133,6 +136,16 @@ effects are defined by the receiver: `issue_order`, `shield_bonus` and
   and it ends a channel. Slow: speed scales by p1. Silence: no ability cast (items still
   work). Root: no movement or `move` effect. Invisibility: hidden from hostile players
   unless one of their detectors covers the unit.
+- `ward`: places a unit of type p0 at the cast point for the caster's player, removed after p1
+  ticks without a bounty. Sight, a detector radius and health come from the unit's own record. An
+  item whose ability holds a `ward` effect loses one charge when the ward is placed; a placement
+  that fails (no free unit slot, point does not fit) keeps the charge.
+- `glyph`: every unit of the caster's team whose filter holds all of the p2 bits and none of the p3
+  bits takes no damage for p0 ticks. The team then cannot glyph again for p1 ticks (a refused cast
+  counts as a cooldown refusal).
+- `deliver`: the caster walks to the receiver (a living unit friendly to the caster), moves the
+  receiver's stash items into its free inventory slots once within p0 milli-units, then walks back
+  to where it started.
 - `vital_fraction`: the receiver's vital (life or shield) is changed by the
   fraction of the target value, as set by mode and target below.
 
@@ -465,7 +478,7 @@ without a version bump.
 - Effect kinds (`EFCT.kind`): `0 damage`, `1 heal`, `2 move`, `3 spawn`, `4 buff`,
   `5 issue_order`, `6 remove_behaviour`, `7 create_healer`, `8 use_calldown`,
   `9 vital_fraction`, `10 shield_bonus`, `11 stun`, `12 slow`, `13 silence`, `14 root`,
-  `15 invisibility`, `16 stat`. Codes above `16` are rejected.
+  `15 invisibility`, `16 stat`, `17 ward`, `18 glyph`, `19 deliver`. Codes above `19` are rejected.
 - Targets (`ABIL.target`): `0 none`, `1 unit`, `2 point`
 - Triggers (`BHVR.trigger`): `0 idle`, `1 attacked`, `2 spawned`, `3 ability_ready`, `4 destroyed`
 - Actions (`BHVR.action`): `0 attack_nearest` (strikes the nearest enemy in reach), `1 flee` (refused at load: the engine does not run it yet), `2 use_ability`, `3 declare_winner` (param = FILTERS index named by `tag=`; the rival side wins when the destroyed unit's side has no living unit carrying that tag)

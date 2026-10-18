@@ -190,7 +190,7 @@ enum Slot {
 }
 
 /// The catalog item index a slot's kind names, or None for an empty slot or an id past the catalog.
-fn catalog_index(kind: u32, items: usize) -> Option<usize> {
+pub(crate) fn catalog_index(kind: u32, items: usize) -> Option<usize> {
     (kind != 0 && (kind as usize) <= items).then(|| kind as usize - 1)
 }
 const EFFECT_DAMAGE: u16 = 0;
@@ -205,6 +205,12 @@ const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
 /// A flat stat bonus. p0 names the stat (see `modapi::STAT_NAMES`), p1 the amount.
 pub(crate) const EFFECT_STAT: u16 = 16;
+/// Places a ward unit: p0 unit type, p1 lifetime in ticks. See wards.rs.
+pub(crate) const EFFECT_WARD: u16 = 17;
+/// Team glyph: p0 duration ticks, p1 cooldown ticks, p2 filter bits covered, p3 filter bits excluded. See aggro.rs.
+pub(crate) const EFFECT_GLYPH: u16 = 18;
+/// Courier delivery to the receiver: p0 reach in milli-units. See courier.rs.
+pub(crate) const EFFECT_DELIVER: u16 = 19;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 
 impl Sim {
@@ -354,7 +360,10 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         }
-        self.cast_index(i, ability as usize, Slot::Item(key), target, x, y)
+        self.wards.casting_slot = slot as i32;
+        let cast = self.cast_index(i, ability as usize, Slot::Item(key), target, x, y);
+        self.wards.casting_slot = -1;
+        cast
     }
 
     /// Buys catalog item `item` for unit `i` from a shop in reach. A recipe first takes its
@@ -485,7 +494,7 @@ impl Sim {
     }
 
     /// Adds stat bonuses to unit `i` (negative to remove). Negative health clamps life to the new maximum.
-    fn apply_bonus(&mut self, i: usize, armor: i32, damage: i32, health: i32) {
+    pub(crate) fn apply_bonus(&mut self, i: usize, armor: i32, damage: i32, health: i32) {
         self.armor[i] += fixed::from_int(armor);
         self.damage[i] += fixed::from_int(damage);
         self.hp_max[i] += fixed::from_int(health);
@@ -620,6 +629,9 @@ impl Sim {
                 }
             }
             EFFECT_STAT => self.stat_bonus(caster, target, eff.p0, eff.p1),
+            EFFECT_WARD => self.ward_effect(caster, eff.p0, eff.p1, tx, ty),
+            EFFECT_GLYPH => self.glyph_effect(caster, eff.p0, eff.p1, eff.p2, eff.p3),
+            EFFECT_DELIVER => self.deliver_effect(caster, target, eff.p0),
             EFFECT_STUN..=EFFECT_INVISIBILITY => self.status_effect(eff, target),
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),
             EFFECT_REMOVE_BEHAVIOUR => {

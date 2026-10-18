@@ -35,6 +35,15 @@ pub struct HeroRules {
     pub str_gain: i32,
     pub agi_gain: i32,
     pub int_gain: i32,
+    /// Target priority and aggro (aggro.rs): 1 turns it on. Hold time of a drawn aggro target, seconds.
+    pub aggro_priority: bool,
+    pub aggro_hold_s: i32,
+    /// Backdoor protection (aggro.rs): damage cut percent (0 = off), clear radius, quiet seconds before
+    /// it applies, and health per second a protected structure regenerates.
+    pub backdoor_reduction_pct: i32,
+    pub backdoor_radius_milli: i32,
+    pub backdoor_activation_s: i32,
+    pub backdoor_regen_per_s: i32,
 }
 
 impl Default for HeroRules {
@@ -54,6 +63,12 @@ impl Default for HeroRules {
             str_gain: 2,
             agi_gain: 1,
             int_gain: 1,
+            aggro_priority: false,
+            aggro_hold_s: 3,
+            backdoor_reduction_pct: 0,
+            backdoor_radius_milli: 7700,
+            backdoor_activation_s: 15,
+            backdoor_regen_per_s: 0,
         }
     }
 }
@@ -89,6 +104,18 @@ impl HeroRules {
                 "str_gain" => &mut next.str_gain,
                 "agi_gain" => &mut next.agi_gain,
                 "int_gain" => &mut next.int_gain,
+                "aggro_priority" => {
+                    if !(0..=1).contains(&v) {
+                        return false;
+                    }
+                    next.aggro_priority = v == 1;
+                    continue;
+                }
+                "aggro_hold_s" => &mut next.aggro_hold_s,
+                "backdoor_reduction_pct" => &mut next.backdoor_reduction_pct,
+                "backdoor_radius_milli" => &mut next.backdoor_radius_milli,
+                "backdoor_activation_s" => &mut next.backdoor_activation_s,
+                "backdoor_regen_per_s" => &mut next.backdoor_regen_per_s,
                 _ => return false,
             };
             *slot = v;
@@ -107,10 +134,15 @@ impl HeroRules {
             next.str_gain,
             next.agi_gain,
             next.int_gain,
+            next.aggro_hold_s,
+            next.backdoor_radius_milli,
+            next.backdoor_activation_s,
+            next.backdoor_regen_per_s,
         ]
         .iter()
         .all(|&v| v >= 0)
-            && (0..=100).contains(&next.team_share_pct);
+            && (0..=100).contains(&next.team_share_pct)
+            && (0..=100).contains(&next.backdoor_reduction_pct);
         if valid {
             *self = next;
         }

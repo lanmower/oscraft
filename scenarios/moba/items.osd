@@ -33,3 +33,7 @@ item("heart_ring", 350, health=80, components=["vitality_ring", "healing_salve"]
 item("battle_fury_axe", 600, damage=12, components=["blade", "cleave_axe"])
 # Aegis: the reward a Roshan kill grants its killer. UNVERIFIED: cost 300 is a placeholder.
 item("aegis", 300)
+# Observer ward: ItemCost 0, ItemStockMax 4, ItemStockInitial 2, ItemStockTime 135 (item_ward_observer, items.txt). Stock is not modelled. Using it places the ward and spends a charge.
+item("observer_ward", 0, ability="place_observer")
+# Sentry ward: ItemCost 50, stock not modelled (item_ward_sentry).
+item("sentry_ward", 50, ability="place_sentry")

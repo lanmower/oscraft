@@ -14,7 +14,7 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
-const STATE_VERSION: u16 = 23;
+const STATE_VERSION: u16 = 24;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -471,6 +471,19 @@ impl Sim {
         put_u32s(&mut w, &self.xp_total);
         put_u32s(&mut w, &self.unit_kills);
         put_u32s(&mut w, &self.unit_deaths);
+        put_i32s(&mut w, &self.aggro.target);
+        put_u32s(&mut w, &self.aggro.until);
+        put_u32s(&mut w, &self.aggro.creep_seen);
+        put_u32s(&mut w, &self.aggro.glyph_until);
+        put_u32s(&mut w, &self.aggro.glyph_ready);
+        put_u32s(&mut w, &self.aggro.glyph_need);
+        put_u32s(&mut w, &self.aggro.glyph_skip);
+        put_u32s(&mut w, &self.wards.expires);
+        w.extend_from_slice(&self.couriers.phase);
+        put_i32s(&mut w, &self.couriers.target);
+        put_i32s(&mut w, &self.couriers.reach);
+        put_i32s(&mut w, &self.couriers.home_x);
+        put_i32s(&mut w, &self.couriers.home_y);
         w
     }
 
@@ -689,6 +702,19 @@ impl Sim {
         r.u32s_into(&mut next.xp_total)?;
         r.u32s_into(&mut next.unit_kills)?;
         r.u32s_into(&mut next.unit_deaths)?;
+        r.i32s_into(&mut next.aggro.target)?;
+        r.u32s_into(&mut next.aggro.until)?;
+        r.u32s_into(&mut next.aggro.creep_seen)?;
+        r.u32s_into(&mut next.aggro.glyph_until)?;
+        r.u32s_into(&mut next.aggro.glyph_ready)?;
+        r.u32s_into(&mut next.aggro.glyph_need)?;
+        r.u32s_into(&mut next.aggro.glyph_skip)?;
+        r.u32s_into(&mut next.wards.expires)?;
+        r.bytes_into(&mut next.couriers.phase)?;
+        r.i32s_into(&mut next.couriers.target)?;
+        r.i32s_into(&mut next.couriers.reach)?;
+        r.i32s_into(&mut next.couriers.home_x)?;
+        r.i32s_into(&mut next.couriers.home_y)?;
         if r.at != bytes.len() {
             return Err(StateError::Length);
         }

@@ -99,7 +99,7 @@ impl Sim {
     /// Whether one of player `p`'s own units with a detector radius reaches unit `j`.
     pub fn detected(&self, p: u8, j: usize) -> bool {
         (0..self.n).any(|k| {
-            if self.alive[k] == 0 || self.player[k] != p {
+            if self.alive[k] == 0 || (self.player[k] != p && self.vision[p as usize % MAX_PLAYERS] & (1 << self.player[k] as usize % MAX_PLAYERS) == 0) {
                 return false;
             }
             let radius = self.cat.unit_ext.get(self.type_of[k] as usize).map_or(0, |e| e.detector_radius);
@@ -161,7 +161,9 @@ impl Sim {
         let cy = cell_of(self.pos_y[i]);
         let (w, h) = (self.grid.w as i32, self.grid.h as i32);
         let mut best = -1i64;
-        let mut best_d2 = (self.range_sq[i] as i64) << fixed::SHIFT;
+        let mut best_class = u8::MAX;
+        let reach_d2 = (self.range_sq[i] as i64) << fixed::SHIFT;
+        let mut best_d2 = reach_d2;
         for oy in -rc..=rc {
             for ox in -rc..=rc {
                 let nx = cx + ox;
@@ -173,15 +175,23 @@ impl Sim {
                 let cnt = self.bucket_n[cell] as usize;
                 for k in 0..cnt {
                     let j = self.bucket_idx[cell * BUCKET_CAP + k] as usize;
-                    if j == i || self.alive[j] == 0 || (!self.hostile(self.player[i], self.player[j]) && !self.deniable(i, j)) {
+                    if j == i || self.alive[j] == 0 {
+                        continue;
+                    }
+                    let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[j], self.pos_y[j]);
+                    if d2 > reach_d2 {
+                        continue;
+                    }
+                    if !self.hostile(self.player[i], self.player[j]) && !self.deniable(i, j) {
                         continue;
                     }
                     if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) || !self.targetable(self.player[i], j) {
                         continue;
                     }
-                    let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[j], self.pos_y[j]);
-                    if d2 <= best_d2 {
+                    let class = self.target_class(i, j);
+                    if class < best_class || (class == best_class && d2 <= best_d2) {
                         best = j as i64;
+                        best_class = class;
                         best_d2 = d2;
                     }
                 }
@@ -355,7 +365,11 @@ impl Sim {
                 RESPONSE_REDUCED => dmg /= 2,
                 _ => {}
             }
+            dmg = self.mitigate_mech(j, dmg);
             dmg = self.absorb_shield(j, dmg);
+            if attacker >= 0 && (attacker as usize) < self.n {
+                self.aggro_on_hit(j, attacker as usize);
+            }
         }
         self.hp[j] = self.hp[j].wrapping_sub(dmg);
         if self.hp[j] <= 0 {

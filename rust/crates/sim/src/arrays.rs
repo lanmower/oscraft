@@ -165,6 +165,12 @@ pub struct Sim {
     pub(crate) heroes: crate::hero::HeroState,
     /// Neutral camp home, leash and respawn timer per unit. See camp.rs.
     pub(crate) camps: crate::camp::CampState,
+    /// Aggro targets, backdoor stamps and glyph timers. See aggro.rs.
+    pub(crate) aggro: crate::aggro::AggroState,
+    /// Ward expiry stamps. See wards.rs.
+    pub(crate) wards: crate::wards::WardState,
+    /// Courier delivery state. See courier.rs.
+    pub(crate) couriers: crate::courier::CourierState,
     /// Assists credited to each unit, and its recent hitters (ASSIST_SLOTS per unit: the hitter's unit
     /// id or -1, and the tick it last hit). Transient like kill_queue: not hashed or saved.
     pub(crate) unit_assists: Vec<u32>,
@@ -353,6 +359,9 @@ impl Sim {
             unit_kills: vec![0; cap],
             heroes: crate::hero::HeroState::new(cap),
             camps: crate::camp::CampState::new(cap),
+            aggro: crate::aggro::AggroState::new(cap),
+            wards: crate::wards::WardState::new(cap),
+            couriers: crate::courier::CourierState::new(cap),
             unit_deaths: vec![0; cap],
             unit_assists: vec![0; cap],
             hitter_id: vec![-1; cap * crate::combat::ASSIST_SLOTS],
@@ -657,6 +666,9 @@ impl Sim {
         self.tgt_x[i] = x;
         self.tgt_y[i] = y;
         self.camps.clear(i);
+        self.aggro_clear(i);
+        self.wards.expires[i] = 0;
+        self.couriers.clear(i);
         self.vel_x[i] = 0;
         self.vel_y[i] = 0;
         self.hp[i] = fixed::from_int(def.health);

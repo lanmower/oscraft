@@ -106,7 +106,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
         if name == "use_calldown" {
             ensure!((params[0] as usize) < abil.count, "effect {i} names an ability past the end of ABIL");
         }
-        if name == "spawn" {
+        if name == "spawn" || name == "ward" {
             ensure!((params[0] as usize) < unit.count, "effect {i} names a unit past the end of UNIT");
         }
     }

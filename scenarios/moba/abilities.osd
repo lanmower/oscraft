@@ -107,3 +107,14 @@ ability("frost_slow", 80, 0, "unit", [effect("slow", p0=48, p1=32768)], target_f
 ability("hex_silence", 100, 0, "unit", [effect("silence", p0=64)], target_filters=["ground"])
 ability("entangle", 100, 0, "unit", [effect("root", p0=40)], target_filters=["ground"])
 ability("smoke_veil", 160, 0, "none", [effect("invisibility", p0=80)])
+# Wards and courier. Lifetimes at 16 ticks per second: observer 360 s = 5760 ticks and sentry 420 s = 6720 ticks
+# (item_ward_observer / item_ward_sentry "lifetime", items.txt @282fad29f0f74504fad465c52d197fb61f4d612b); cast cooldown
+# 1 s = 16 ticks (AbilityCooldown 1.0). Unit indices 18 and 19 are observer_ward and sentry_ward in units.osd.
+ability("place_observer", 16, 0, "point", [effect("ward", p0=18, p1=5760)])
+ability("place_sentry", 16, 0, "point", [effect("ward", p0=19, p1=6720)])
+# Glyph of fortification: for 80 ticks (5 s) every friendly structure that is not a building (the towers) takes no damage;
+# the team then waits 4800 ticks (300 s). UNVERIFIED: both numbers are recalled Dota 2 values, the dump has no glyph keys.
+# Filter bits: 64 structure, 2048 building.
+ability("glyph_of_fortification", 4800, 0, "none", [effect("glyph", p0=80, p1=4800, p2=64, p3=2048)])
+# Courier: walks to a friendly army unit (a hero), moves its stash into its inventory within 1000 milli, walks back.
+ability("courier_deliver", 16, 0, "unit", [effect("deliver", p0=1000)], target_filters=["army"])

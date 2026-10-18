@@ -21,3 +21,8 @@ unit_extra("tidecaller", player_controlled=True, deny_xp_pct=0)
 unit_extra("thornwarden", player_controlled=True, deny_xp_pct=0)
 # Roshan bounty: 245 gold (midpoint of 200-290) and 400 xp, source as above. assist_radius_milli UNVERIFIED.
 unit_extra("roshan", bounty=245, xp_bounty=400, assist_radius_milli=6000)
+# Wards: bounty 100 gold and 100 xp from npc_dota_observer_wards (sentry copies it, UNVERIFIED). Sentry detector radius 5250 milli: item_ward_sentry true_sight_range 1050 x5 (scale UNVERIFIED).
+unit_extra("observer_ward", bounty=100, xp_bounty=100, deny_xp_pct=0)
+unit_extra("sentry_ward", bounty=100, xp_bounty=100, deny_xp_pct=0, detector_radius=5250)
+# Courier bounty 35 gold: npc_dota_courier BountyGoldMin/Max.
+unit_extra("courier", bounty=35, xp_bounty=0, deny_xp_pct=0)

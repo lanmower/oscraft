@@ -38,6 +38,9 @@ mod hero;
 mod modapi;
 mod diplomacy;
 mod camp;
+mod aggro;
+mod wards;
+mod courier;
 
 pub use arrays::{Sim, Stats};
 pub use camp::{CAMP_LEASH_MILLI, CAMP_RESPAWN_S, RUNE_GOLD, RUNE_RESPAWN_S};

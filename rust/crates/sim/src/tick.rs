@@ -111,6 +111,9 @@ impl Sim {
         mark = lap(System::Projectiles, mark);
         self.tick_heroes();
         self.tick_camps();
+        self.tick_aggro();
+        self.tick_wards();
+        self.tick_couriers();
         for i in 0..self.n {
             if self.alive[i] == 0 {
                 continue;
