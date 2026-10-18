@@ -158,7 +158,9 @@ const doodads = [];
 const dd = (kind, wx, wy) => doodads.push(`doodad(${id++}, "${kind}", ${mx(wx)}, ${my(wy)})`);
 for (const b of bases) dd("base", b.wx, b.wy);
 for (const f of fountains) dd("fountain", f.wx, f.wy);
-for (const s of D.ent_dota_shop) dd("shop", s.x, s.y);
+// The dump has no shop type: the two entities beside the fountains (|y| > 6000) are the home shops; the two inner ones are taken as
+// the secret shops (UNVERIFIED, no source names their kind). The dump lists no side shops.
+for (const s of D.ent_dota_shop) dd(Math.abs(s.y) > 6000 ? "shop" : "secret_shop", s.x, s.y);
 for (const c of camps) dd("camp", c.x, c.y);
 for (const r of D.dota_item_rune_spawner_bounty) dd("lane", r.x, r.y);
 for (const r of D.dota_item_rune_spawner_powerup) dd("lane", r.x, r.y);
