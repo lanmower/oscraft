@@ -88,7 +88,3 @@ unit("neutral_black_dragon", 2000, 293, 250, filters=["ground", "armored", "army
 unit("lane_spawner_top", 1, 0, 100, filters=["air"], abilities=["creep_wave_top", "siege_wave_top", "siege_wave_top_30", "siege_wave_top_60"], damage_response="immune", sight_milli=0, model="pillar-obelisk", deny_pct=0)
 unit("lane_spawner_mid", 1, 0, 100, filters=["air"], abilities=["creep_wave", "siege_wave_mid", "siege_wave_mid_30", "siege_wave_mid_60"], damage_response="immune", sight_milli=0, model="pillar-obelisk", deny_pct=0)
 unit("lane_spawner_bot", 1, 0, 100, filters=["air"], abilities=["creep_wave_bot", "siege_wave_bot", "siege_wave_bot_30", "siege_wave_bot_60"], damage_response="immune", sight_milli=0, model="pillar-obelisk", deny_pct=0)
-# Lane spawners: invulnerable air-layer markers that cast the lane waves (see waves.osd).
-unit("lane_spawner_top", 1, 0, 100, filters=["air"], abilities=["creep_wave_top", "siege_wave_top", "siege_wave_top_30", "siege_wave_top_60"], damage_response="immune", sight_milli=0, model="pillar-obelisk", deny_pct=0)
-unit("lane_spawner_mid", 1, 0, 100, filters=["air"], abilities=["creep_wave", "siege_wave_mid", "siege_wave_mid_30", "siege_wave_mid_60"], damage_response="immune", sight_milli=0, model="pillar-obelisk", deny_pct=0)
-unit("lane_spawner_bot", 1, 0, 100, filters=["air"], abilities=["creep_wave_bot", "siege_wave_bot", "siege_wave_bot_30", "siege_wave_bot_60"], damage_response="immune", sight_milli=0, model="pillar-obelisk", deny_pct=0)
