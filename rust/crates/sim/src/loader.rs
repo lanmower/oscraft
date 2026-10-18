@@ -9,7 +9,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 15;
+const VERSION: u16 = 16;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const LIMT_COUNT: usize = 1;
@@ -338,7 +338,7 @@ pub struct DamageFactor {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Doodad {
     pub id: u32,
-    /// 0 rock, 1 tree, 2 crystal, 3 debris.
+    /// Indexes DOODAD_KINDS: 0 rock, 1 tree, 2 crystal, 3 debris, 4 base, 5 shop, 6 fountain, 7 lane, 8 camp.
     pub kind: u16,
     /// Milli-units, on the map.
     pub x: i32,
@@ -1040,7 +1040,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let x = ddr.i32("doodad x")?;
         let y = ddr.i32("doodad y")?;
         let rotation = ddr.i32("doodad rotation")?;
-        if kind > 3
+        if kind > 8
             || !(0..1000).contains(&rotation)
             || x < 0
             || y < 0

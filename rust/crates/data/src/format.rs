@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 15;
+pub const VERSION: u16 = 16;
 pub const PLCE_FLAG_START: u32 = 1;
 pub const NEUTRAL_PLAYER: u16 = u16::MAX;
 pub const HEADER_LEN: usize = 16;
@@ -96,7 +96,7 @@ pub const PREQ_RECORD: usize = 8;
 pub const DMGF_RECORD: usize = 8;
 pub const DODA_RECORD: usize = 20;
 pub const GRID_RECORD: usize = 1;
-pub const DOODAD_KINDS: &[&str] = &["rock", "tree", "crystal", "debris"];
+pub const DOODAD_KINDS: &[&str] = &["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp"];
 pub const GRID_HEADER_LEN: usize = 16;
 
 /// Section tags and record sizes in the order FORMAT.md requires.

@@ -410,7 +410,7 @@ without a version bump.
 - Resource kind (`UNIT.resource kind`): `0 none`, `1 resource_a`, `2 gas`
 - Damage type (`UEXT.weapon damage type`, `DMGF.damage type`): `0 normal`, `1 concussive`, `2 explosive`
 - Size category (`UEXT.size category`, `DMGF.size category`): `0 small`, `1 medium`, `2 large`
-- Doodad kinds (`DODA.kind`): `0 rock`, `1 tree`, `2 crystal`, `3 debris`. Codes above `3` are rejected.
+- Doodad kinds (`DODA.kind`): `0 rock`, `1 tree`, `2 crystal`, `3 debris`, `4 base`, `5 shop`, `6 fountain`, `7 lane`, `8 camp`. Codes above `8` are rejected.
 - Tile ids (`GRID` tile array): `0..=255`, author-defined; the sim maps each id to terrain and art.
 - Cell walkability bits (`GRID` cell byte): `bit 0 = blocked` (value `1`),
   `bit 1 = cliff` (value `2`). A cell with neither bit is walkable. The bits are
@@ -435,7 +435,7 @@ without a version bump.
 - Reject an ACHN record with a channel flag and a duration of `0`.
 - Reject a section whose count does not match its rule: REGN and UEXT equal the UNIT count, ACHN equals the ABIL count, ECON and LIMT are 1.
 - Reject a GRID body whose length is not `16 + 3 * width * height`, or a height step of `0`.
-- Reject a DODA record with a kind above `3`, a rotation of `1000` or more, a position off the grid, or an id that repeats.
+- Reject a DODA record with a kind above `8`, a rotation of `1000` or more, a position off the grid, or an id that repeats.
 - Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
 - Apply the receiver, radius, upgrade, research and capacity rules above; they are not encoded in the record and must not be inferred from it.
 - The tick path never parses names. It uses only numeric fields.
