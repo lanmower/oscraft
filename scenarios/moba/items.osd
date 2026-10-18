@@ -31,3 +31,5 @@ item("iron_mail", 300, armor=4, components=["iron_plate"])
 item("heart_ring", 350, health=80, components=["vitality_ring", "healing_salve"])
 # UNVERIFIED recipe: blade (200) and cleave_axe (350) are part of the cost 600
 item("battle_fury_axe", 600, damage=12, components=["blade", "cleave_axe"])
+# Aegis: the reward a Roshan kill grants its killer. UNVERIFIED: cost 300 is a placeholder.
+item("aegis", 300)

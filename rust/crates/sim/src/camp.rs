@@ -11,8 +11,14 @@ use crate::{ORDER_MOVE, TICKS_PER_SECOND};
 pub const CAMP_LEASH_MILLI: i32 = 6000;
 /// Seconds a dead camp unit waits before it respawns at home. UNVERIFIED: placeholder.
 pub const CAMP_RESPAWN_S: u32 = 60;
+/// Seconds Roshan waits before it respawns at its pit. UNVERIFIED: placeholder.
+pub const ROSHAN_RESPAWN_S: u32 = 480;
+/// Unit name of the large neutral boss, and item name of its reward. Both are catalog names.
+pub const ROSHAN_NAME: &str = "roshan";
+pub const AEGIS_NAME: &str = "aegis";
 
-/// Per-unit camp state, sized to the unit cap.
+/// Per-unit camp state, sized to the unit cap. `boss_kind` and `reward_kind` come from the
+/// catalog at load, not from the save, so they are neither hashed nor saved.
 #[derive(Clone, Debug)]
 pub(crate) struct CampState {
     pub(crate) is_camp: Vec<u8>,
@@ -20,6 +26,8 @@ pub(crate) struct CampState {
     pub(crate) home_y: Vec<i32>,
     pub(crate) waiting: Vec<u8>,
     pub(crate) respawn_at: Vec<u32>,
+    pub(crate) boss_kind: Option<u32>,
+    pub(crate) reward_kind: u32,
 }
 
 impl CampState {
@@ -30,6 +38,8 @@ impl CampState {
             home_y: vec![0; cap],
             waiting: vec![0; cap],
             respawn_at: vec![0; cap],
+            boss_kind: None,
+            reward_kind: 0,
         }
     }
 
@@ -51,13 +61,19 @@ impl Sim {
         c.home_y[i] = self.pos_y[i];
     }
 
-    /// Books the respawn timer of camp unit `j` when it dies.
-    pub(crate) fn camp_died(&mut self, j: usize) {
+    /// Books the respawn timer of camp unit `j` when it dies. Roshan waits longer. A Roshan killed
+    /// by an attacker unit grants that unit the Aegis item.
+    pub(crate) fn camp_died(&mut self, j: usize, attacker: i32) {
         if self.camps.is_camp[j] == 0 {
             return;
         }
+        let boss = self.camps.boss_kind == Some(self.type_of[j] as u32);
+        let secs = if boss { ROSHAN_RESPAWN_S } else { CAMP_RESPAWN_S };
         self.camps.waiting[j] = 1;
-        self.camps.respawn_at[j] = self.ticks.wrapping_add(CAMP_RESPAWN_S * TICKS_PER_SECOND as u32);
+        self.camps.respawn_at[j] = self.ticks.wrapping_add(secs * TICKS_PER_SECOND as u32);
+        if boss && self.camps.reward_kind != 0 && attacker >= 0 && (attacker as usize) < self.n {
+            let _ = self.inventory_add(attacker as usize, self.camps.reward_kind, 1);
+        }
     }
 
     /// Per tick: each live camp unit past its leash is ordered home, and each dead camp unit whose

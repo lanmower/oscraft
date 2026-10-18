@@ -18,3 +18,5 @@ unit_extra("gale_archer", player_controlled=True, deny_xp_pct=0)
 unit_extra("frostmage", player_controlled=True, deny_xp_pct=0)
 unit_extra("tidecaller", player_controlled=True, deny_xp_pct=0)
 unit_extra("thornwarden", player_controlled=True, deny_xp_pct=0)
+# UNVERIFIED: bounty 150 gold and xp_bounty 300 are placeholders, not sourced values.
+unit_extra("roshan", bounty=150, xp_bounty=300, assist_radius_milli=6000)

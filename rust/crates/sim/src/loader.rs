@@ -1261,6 +1261,13 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
             sim.mark_camp(i);
         }
     }
+    sim.camps.boss_kind = sim.cat.unit_index(crate::camp::ROSHAN_NAME).map(|k| k as u32);
+    sim.camps.reward_kind = sim
+        .cat
+        .items
+        .iter()
+        .position(|it| sim.cat.name(it.name) == crate::camp::AEGIS_NAME)
+        .map_or(0, |k| crate::inventory::item_kind(k));
     for k in 0..sim.cat.starts.len() {
         let s = sim.cat.starts[k];
         if sim.set_team(s.player, s.team).is_err() {

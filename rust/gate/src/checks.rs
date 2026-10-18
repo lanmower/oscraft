@@ -37,6 +37,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("mechanic-kill-bounty", mechanic_checks::kill_bounty),
     ("mechanic-camp-respawn", mechanic_checks::camp_respawn),
     ("mechanic-camp-leash", mechanic_checks::camp_leash),
+    ("mechanic-camp-roshan-aegis", mechanic_checks::camp_roshan_aegis),
     ("moba-match-end", mechanic_checks::moba_match_end),
     ("moba-creeps", mechanic_checks::moba_creeps),
     ("moba-lane", mechanic_checks::moba_lane),

@@ -284,6 +284,36 @@ pub fn camp_leash(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// A hero that kills Roshan is granted one inventory item (the Aegis reward).
+pub fn camp_roshan_aegis(_image: &[u8]) -> Result<(), String> {
+    let (mut s, _) = moba_camp_unit()?;
+    let boss = (0..MAX_UNITS)
+        .filter(|&u| s.alive(u) && s.player(u) == 0xFF)
+        .max_by_key(|&u| s.hp(u))
+        .ok_or("moba image places no neutral unit")?;
+    let (bx, by) = s.position_fixed(boss);
+    let hero = spawn(&mut s, 0, "hero", fixed::to_int(bx) + 1, fixed::to_int(by))?;
+    let hp = s.hp(boss);
+    s.hurt(boss, hp - fixed::from_int(1));
+    let held = |s: &Sim| (0..s.inventory_slots()).filter(|&k| s.inventory_slot(hero, k).0 != 0).count();
+    let before = held(&s);
+    s.order_attack(hero, boss).map_err(|r| format!("hero cannot attack roshan: {}", r.name()))?;
+    for _ in 0..400 {
+        s.tick();
+        if !s.alive(boss) {
+            break;
+        }
+    }
+    if s.alive(boss) {
+        return Err(format!("hero did not kill unit {boss}"));
+    }
+    if held(&s) != before + 1 {
+        return Err(format!("killer holds {} item slots, want {}", held(&s), before + 1));
+    }
+    println!("camp roshan aegis ok boss={boss} hero={hero}");
+    Ok(())
+}
+
 pub fn region_query(image: &[u8]) -> Result<(), String> {
     let src = r#"
 define_region("zone", 0, 0, 655360, 655360)

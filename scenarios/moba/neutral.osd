@@ -12,3 +12,5 @@ spawn("creep", -1, 44000, 21000)
 spawn("creep", -1, 43000, 41000)
 spawn("creep", -1, 45000, 41000)
 spawn("creep", -1, 44000, 43000)
+# Roshan at the middle jungle pit. UNVERIFIED: position is a placeholder.
+spawn("roshan", -1, 32000, 32000)
