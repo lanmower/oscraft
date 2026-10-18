@@ -5,6 +5,8 @@
 #[cfg(all(feature = "mlua", feature = "piccolo"))]
 compile_error!("mod-host: the mlua and piccolo features are exclusive");
 
+mod shared;
+
 const MAX_UNITS: usize = 1024;
 
 // The events a mod handles, shared by both backends so the names match on mlua and piccolo. Each

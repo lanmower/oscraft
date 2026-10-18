@@ -1,8 +1,9 @@
 //! The mod host on piccolo, a pure Rust Lua VM, for the wasip3 guest (no C objects). A mod runs in
 //! its own environment table with the same game table (system, each, trigger, cmd_*, units,
-//! players, unit_kind), the same unit queries and the same event dispatch as the mlua host. Not
-//! carried over: terrain, tile, doodad and ability editing globals. A mod call runs under a step
-//! budget so a loop cannot stall the guest.
+//! players, unit_kind, timer, region, var, score, ability, gold, victory and the UI calls), the same
+//! unit queries and the same event dispatch as the mlua host. The Lua half of var, region and timer
+//! is the source mlua runs (shared.rs). Not carried over: terrain, tile, doodad and unit, item and
+//! upgrade editing globals. A mod call runs under a step budget so a loop cannot stall the guest.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -12,8 +13,9 @@ use piccolo::{
     Callback, CallbackReturn, Closure, Context, Error, Executor, IntoValue, Lua, StashedExecutor, StashedFunction,
     Stack, StashedTable, Table, Value, Variadic,
 };
-use sim::{LoadError, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, TICKS_PER_SECOND};
+use sim::{AbilitySpec, Catalog, LoadError, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, TICKS_PER_SECOND};
 
+use crate::shared::{self, amount_arg, fixed, player_arg, PRELUDE_SRC};
 use crate::{EVENTS, MAX_UNITS};
 
 const FUEL_PER_STEP: i32 = 4096;
@@ -34,6 +36,13 @@ enum Cmd {
     Attack { unit: usize, target: usize },
     SetOwner { unit: usize, player: u8 },
     SetFog { on: bool },
+    GiveAbility { unit: usize, slot: usize, name: String },
+    AddGold { player: u8, amount: i32 },
+    AddHeroGold { unit: usize, amount: i32 },
+    Victory { player: u8 },
+    Defeat { player: u8 },
+    // A client-facing UI event as a JSON object body, kept for the caller to stream (take_ui).
+    Ui { body: String },
 }
 
 struct Region {
@@ -77,6 +86,7 @@ struct Shared {
     clock: u64,
     fired: u64,
     applied: u64,
+    ui: Vec<String>,
 }
 
 type Sh = Rc<RefCell<Shared>>;
@@ -87,14 +97,23 @@ struct Hooks {
     fire_timers: StashedFunction,
 }
 
-// The Lua half of the host, run once per mod load with (env, known events, rows, note_fired, clock).
-// It adds game.system, game.each, game.trigger, schedule and cancel to the mod environment and
-// returns emit (the global handler, then every trigger of the event), run_systems and fire_timers.
+// The Lua half of the host, run once per mod load with (env, known events, rows, note_fired, clock,
+// max_players). It adds game.system, game.each, game.trigger, schedule and cancel to the mod
+// environment, installs the shared var, score, region and timer source over them, and returns emit (the global handler, then every trigger of the event), run_systems and fire_timers.
 // A trigger runs its actions only when every condition returns truthy.
-const PRELUDE: &str = r#"
-local env, known, rows, note_fired, clock = ...
+fn prelude() -> String {
+    format!("local install = (function()\n{PRELUDE_SRC}\nend)()\n{HOST_PRELUDE}")
+}
+
+const HOST_PRELUDE: &str = r#"
+local env, known, rows, note_fired, clock, max_players = ...
 local game = env.game
 local systems, triggers, timers = {}, {}, {}
+local function remove(list, i)
+  local item = list[i]
+  for j = i, #list do list[j] = list[j + 1] end
+  return item
+end
 function game.system(name, comps, func)
   for _, s in ipairs(systems) do
     if s.name == name then error("duplicate_system: " .. name .. " is already registered", 2) end
@@ -139,10 +158,12 @@ function env.schedule(name, after, action)
 end
 function env.cancel(name)
   for i, t in ipairs(timers) do
-    if t.name == name then table.remove(timers, i) return true end
+    if t.name == name then remove(timers, i) return true end
   end
   return false
 end
+local host = { define_region = env.define_region, unit_position = env.unit_position, in_region = env.in_region, schedule = env.schedule, cancel = env.cancel }
+install(game, { global = {}, player = {}, unit = {}, score = {} }, host, max_players)
 local function emit(event, ...)
   local handler = env[event]
   if handler then handler(...) end
@@ -161,7 +182,7 @@ local function fire_timers()
       if t.due <= now then hit = i break end
     end
     if not hit then return end
-    table.remove(timers, hit).action()
+    remove(timers, hit).action()
   end
 end
 return emit, run_systems, fire_timers
@@ -186,8 +207,81 @@ fn text<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<String, Error
     }
 }
 
-fn fixed(v: i64) -> Result<i32, String> {
-    i32::try_from(v).map_err(|_| format!("Q16.16 value {v} out of i32 range"))
+fn num<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<f64, Error<'gc>> {
+    v.to_number().ok_or_else(|| fail(ctx, format!("bad_argument: argument {} must be a number", i + 1)))
+}
+
+fn num_opt<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<Option<f64>, Error<'gc>> {
+    if matches!(v, Value::Nil) {
+        Ok(None)
+    } else {
+        num(ctx, v, i).map(Some)
+    }
+}
+
+fn text_opt<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<Option<String>, Error<'gc>> {
+    if matches!(v, Value::Nil) {
+        Ok(None)
+    } else {
+        text(ctx, v, i).map(Some)
+    }
+}
+
+// A table-valued argument, the spec of game.ability or game.panel.
+fn table_arg<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<Table<'gc>, Error<'gc>> {
+    match v {
+        Value::Table(t) => Ok(t),
+        _ => Err(fail(ctx, format!("bad_argument: argument {} must be a table", i + 1))),
+    }
+}
+
+// An integer field of a spec table, `default` when absent.
+fn field_int<'gc>(ctx: Context<'gc>, t: Table<'gc>, key: &str, default: i64) -> Result<i64, String> {
+    match t.get(ctx, ctx.intern(key.as_bytes())) {
+        Value::Nil => Ok(default),
+        v => v.to_integer().ok_or_else(|| format!("bad_field: {key} must be an integer")),
+    }
+}
+
+fn field_text<'gc>(ctx: Context<'gc>, t: Table<'gc>, key: &str) -> Result<String, String> {
+    match t.get(ctx, ctx.intern(key.as_bytes())) {
+        Value::String(s) => s.to_str().map(str::to_owned).map_err(|_| format!("bad_field: {key} is not utf8")),
+        _ => Err(format!("bad_field: {key} must be a string")),
+    }
+}
+
+fn field_text_opt<'gc>(ctx: Context<'gc>, t: Table<'gc>, key: &str) -> Result<Option<String>, String> {
+    match t.get(ctx, ctx.intern(key.as_bytes())) {
+        Value::Nil => Ok(None),
+        _ => field_text(ctx, t, key).map(Some),
+    }
+}
+
+// One ability as a Lua table: its catalog name, timing, target rules and effects.
+fn ability_row<'gc>(ctx: Context<'gc>, cat: &Catalog, index: usize) -> Table<'gc> {
+    let a = &cat.abilities[index];
+    let row = Table::new(&ctx);
+    row.set(ctx, "name", cat.name(a.name).to_owned()).expect("row");
+    row.set(ctx, "cooldown", a.cooldown as i64).expect("row");
+    row.set(ctx, "energy", a.energy as i64).expect("row");
+    row.set(ctx, "target", a.target as i64).expect("row");
+    row.set(ctx, "filter", a.filter as i64).expect("row");
+    row.set(ctx, "projectile", a.is_projectile()).expect("row");
+    row.set(ctx, "projectile_speed", a.projectile_speed as i64).expect("row");
+    let first = a.effect_first as usize;
+    let span = cat.effects.get(first..first + a.effect_count as usize).unwrap_or(&[]);
+    let effects = Table::new(&ctx);
+    for (i, e) in span.iter().enumerate() {
+        let et = Table::new(&ctx);
+        et.set(ctx, "kind", e.kind as i64).expect("row");
+        et.set(ctx, "p0", e.p0 as i64).expect("row");
+        et.set(ctx, "p1", e.p1 as i64).expect("row");
+        et.set(ctx, "p2", e.p2 as i64).expect("row");
+        et.set(ctx, "p3", e.p3 as i64).expect("row");
+        effects.set(ctx, i as i64 + 1, et).expect("row");
+    }
+    row.set(ctx, "effects", effects).expect("row");
+    row
 }
 
 fn known_unit(sim: &Sim, i: i64) -> Result<usize, String> {
@@ -331,6 +425,24 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, ok);
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, env, "list_abilities", [sh], |c, s| {
+        let sh = sh.borrow();
+        let cat = sh.sim.catalog();
+        let out = Table::new(&c);
+        for i in 0..cat.abilities.len() {
+            out.set(c, i as i64 + 1, ability_row(c, cat, i)).expect("row");
+        }
+        s.replace(c, out);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, env, "ability_info", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let sh = sh.borrow();
+        let cat = sh.sim.catalog();
+        let index = cat.abilities.iter().position(|a| cat.name(a.name) == name).ok_or_else(|| fail(c, format!("unknown_ability: {name}")))?;
+        s.replace(c, ability_row(c, cat, index));
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, env, "list_events", [sh], |c, s| {
         let out = Table::new(&c);
         for (i, (name, args)) in EVENTS.iter().enumerate() {
@@ -442,6 +554,129 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
     native!(ctx, game, "cmd_set_fog", [sh], |c, s| {
         let on = s.get(0).to_bool();
         sh.borrow_mut().cmds.push(Cmd::SetFog { on });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "ability", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let spec = table_arg(c, s.get(1), 1)?;
+        let mut sh = sh.borrow_mut();
+        let int = |key: &str| field_int(c, spec, key, 0).and_then(fixed);
+        let mut effects = Vec::new();
+        if let Value::Table(list) = spec.get(c, "effects") {
+            for k in 1..=list.length() {
+                let entry = table_arg(c, list.get(c, k), k as usize - 1)?;
+                let field = |key: &str| field_int(c, entry, key, 0).and_then(fixed);
+                let kind = field_text(c, entry, "kind").map_err(|m| fail(c, m))?;
+                let txt = |key: &str| field_text(c, entry, key);
+                effects.push(shared::effect_from(&sh.sim, &kind, &field, &txt).map_err(|m| fail(c, m))?);
+            }
+        }
+        let target = field_text_opt(c, spec, "target").map_err(|m| fail(c, m))?;
+        let (target, cooldown, energy, filter) = (|| shared::ability_args(target.as_deref(), int("cooldown")?, int("energy")?, int("filter")?))().map_err(|m| fail(c, m))?;
+        sh.sim
+            .define_ability(AbilitySpec { name: &name, cooldown, energy, target, filter, effects })
+            .map_err(|why| fail(c, format!("invalid_ability: {name}: {why}")))?;
+        s.replace(c, name);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_give_ability", [sh], |c, s| {
+        let (unit, slot) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let name = text(c, s.get(2), 2)?;
+        let mut sh = sh.borrow_mut();
+        let u = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let slot = slot_of(slot, ABILITY_SLOTS).map_err(|m| fail(c, m))?;
+        let cat = sh.sim.catalog();
+        if !cat.abilities.iter().any(|a| cat.name(a.name) == name) {
+            return Err(fail(c, format!("unknown_ability: {name}")));
+        }
+        sh.cmds.push(Cmd::GiveAbility { unit: u, slot, name });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_add_gold", [sh], |c, s| {
+        let (player, amount) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let player = player_arg(player).map_err(|m| fail(c, m))?;
+        let amount = amount_arg(amount).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::AddGold { player, amount });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_add_hero_gold", [sh], |c, s| {
+        let (unit, amount) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let mut sh = sh.borrow_mut();
+        let u = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let amount = amount_arg(amount).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::AddHeroGold { unit: u, amount });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "message", [sh], |c, s| {
+        let (player, msg) = (a(c, &s, 0)?, text(c, s.get(1), 1)?);
+        let seconds = num_opt(c, s.get(2), 2)?;
+        let body = shared::ui_message(player, &msg, seconds).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::Ui { body });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "banner", [sh], |c, s| {
+        let msg = text(c, s.get(0), 0)?;
+        let seconds = num_opt(c, s.get(1), 1)?;
+        let body = shared::ui_banner(&msg, seconds).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::Ui { body });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "panel", [sh], |c, s| {
+        let id = text(c, s.get(0), 0)?;
+        let spec = match s.get(1) {
+            Value::Nil => None,
+            v => {
+                let t = table_arg(c, v, 1)?;
+                let player = match t.get(c, "player") {
+                    Value::Nil => None,
+                    v => Some(int(c, v, 1)?),
+                };
+                Some((field_text_opt(c, t, "title").map_err(|m| fail(c, m))?, field_text_opt(c, t, "text").map_err(|m| fail(c, m))?, player))
+            }
+        };
+        let body = shared::ui_panel(&id, spec).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::Ui { body });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "camera", [sh], |c, s| {
+        let player = a(c, &s, 0)?;
+        let (x, y) = (num(c, s.get(1), 1)?, num(c, s.get(2), 2)?);
+        let (zoom, seconds) = (num_opt(c, s.get(3), 3)?, num_opt(c, s.get(4), 4)?);
+        let body = shared::ui_camera(player, x, y, zoom, seconds).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::Ui { body });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "sound", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        sh.borrow_mut().cmds.push(Cmd::Ui { body: shared::ui_sound(&name) });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "victory", [sh], |c, s| {
+        let player = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::Victory { player });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "defeat", [sh], |c, s| {
+        let player = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::Defeat { player });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "winner", [sh], |c, s| {
+        let winner = sh.borrow().sim.winner().map(i64::from);
+        s.replace(c, winner);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "gold", [sh], |c, s| {
+        let player = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let gold = sh.borrow().sim.resource_a(player) as i64;
+        s.replace(c, gold);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "hero_gold", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        s.replace(c, sh.sim.hero_gold(u) as i64);
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "units", [sh], |c, s| {
@@ -602,7 +837,7 @@ impl ModHost {
         });
         Ok(Self {
             lua,
-            sh: Rc::new(RefCell::new(Shared { sim, regions: Vec::new(), cmds: Vec::new(), clock: 0, fired: 0, applied: 0 })),
+            sh: Rc::new(RefCell::new(Shared { sim, regions: Vec::new(), cmds: Vec::new(), clock: 0, fired: 0, applied: 0, ui: Vec::new() })),
             state,
             hooks: None,
             version: 0,
@@ -656,8 +891,8 @@ impl ModHost {
                         Ok(CallbackReturn::Return)
                     })
                 };
-                let closure = Closure::load(ctx, Some("host-prelude"), PRELUDE.as_bytes())?;
-                let exec = Executor::start(ctx, closure.into(), (env, known, rows_fn, note, clock));
+                let closure = Closure::load(ctx, Some("host-prelude"), prelude().as_bytes())?;
+                let exec = Executor::start(ctx, closure.into(), (env, known, rows_fn, note, clock, MAX_PLAYERS as i64));
                 Ok((ctx.stash(exec), ctx.stash(env)))
             })
             .map_err(|e| e.to_string())?;
@@ -731,6 +966,34 @@ impl ModHost {
         true
     }
 
+    /// The UI event bodies (JSON object bodies) mods queued since the last call, in queue order.
+    pub fn take_ui(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.sh.borrow_mut().ui)
+    }
+
+    /// The scalar fields a mod left in `state`, sorted, as `key=value` words: the same line mod_check
+    /// prints after `mod-state` on the mlua host.
+    pub fn state_line(&mut self) -> String {
+        let mut fields: Vec<String> = self.lua.enter(|ctx| {
+            ctx.fetch(&self.state)
+                .iter()
+                .filter_map(|(k, v)| {
+                    let Value::String(k) = k else { return None };
+                    let k = String::from_utf8_lossy(k.as_bytes()).into_owned();
+                    match v {
+                        Value::Integer(v) => Some(format!("{k}={v}")),
+                        Value::Number(v) => Some(format!("{k}={v}")),
+                        Value::Boolean(v) => Some(format!("{k}={v}")),
+                        Value::String(v) => Some(format!("{k}={}", String::from_utf8_lossy(v.as_bytes()))),
+                        _ => None,
+                    }
+                })
+                .collect()
+        });
+        fields.sort();
+        format!("mod-state {}", fields.join(" "))
+    }
+
     /// The living unit handles, optionally only those `player` owns, in index order (game.units).
     pub fn units(&self, player: Option<u8>) -> Vec<usize> {
         let sh = self.sh.borrow();
@@ -782,10 +1045,6 @@ impl ModHost {
             self.call(&f, Vec::new())?;
         }
         self.emit("on_tick", vec![Arg::State])?;
-        let ticks = self.sh.borrow().clock as i64;
-        self.lua.enter(|ctx| {
-            ctx.fetch(&self.state).set(ctx, "ticks", ticks).expect("state.ticks");
-        });
         Ok(())
     }
 
@@ -836,7 +1095,7 @@ impl ModHost {
         let mut guard = self.sh.borrow_mut();
         let sh = &mut *guard;
         let list = std::mem::take(&mut sh.cmds);
-        let sim = &mut sh.sim;
+        let (sim, ui) = (&mut sh.sim, &mut sh.ui);
         for cmd in list {
             match cmd {
                 Cmd::Spawn { index, x, y } => {
@@ -846,6 +1105,16 @@ impl ModHost {
                     let _ = sim.set_owner(unit, player);
                 }
                 Cmd::SetFog { on } => sim.set_fog(on),
+                Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
+                Cmd::Victory { player } => sim.declare_victory(player),
+                Cmd::Defeat { player } => sim.declare_defeat(player),
+                Cmd::Ui { body } => ui.push(body),
+                Cmd::GiveAbility { unit, slot, name } => {
+                    let _ = sim.give_ability(unit, slot, &name);
+                }
+                Cmd::AddHeroGold { unit, amount } => {
+                    let _ = sim.add_hero_gold(unit, amount);
+                }
                 Cmd::Order { unit, x, y } if sim.alive(unit) => sim.order(unit, x, y),
                 Cmd::Damage { caster, target, dmg } if sim.alive(caster) => {
                     let player = sim.player(caster);

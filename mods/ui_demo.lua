@@ -17,3 +17,5 @@ end)
 game.timer("clear", 200, function()
   game.panel("objective")
 end)
+
+function on_tick(state) end

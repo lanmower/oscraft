@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{controller_code, effect_kind, stat_code, target_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, STAT_NAMES, TICKS_PER_SECOND};
+use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::SystemTime;
 
+use crate::shared::{self, PRELUDE_SRC};
 use crate::MAX_UNITS;
 const MAX_REGIONS: usize = 64;
 const MAX_TIMERS: usize = 256;
@@ -267,7 +268,7 @@ fn io_err(e: std::io::Error) -> mlua::Error {
 }
 
 fn fixed(v: i64) -> mlua::Result<i32> {
-    i32::try_from(v).map_err(|_| mlua::Error::RuntimeError(format!("Q16.16 value {v} out of i32 range")))
+    shared::fixed(v).map_err(mlua::Error::RuntimeError)
 }
 
 fn invalid_unit(i: i64) -> mlua::Error {
@@ -283,72 +284,18 @@ fn out_of_grid(x0: i64, y0: i64, x1: i64, y1: i64, w: i64, h: i64) -> mlua::Erro
     mlua::Error::RuntimeError(format!("out_of_grid: rect ({x0},{y0})-({x1},{y1}) exceeds grid {w}x{h}"))
 }
 
-// A UI event's player: -1 addresses every client, otherwise one of the match players.
-fn ui_player(p: i64) -> mlua::Result<i64> {
-    if p == -1 {
-        return Ok(-1);
-    }
-    player_arg(p).map(i64::from)
-}
-
-fn ui_seconds(seconds: Option<f64>, default: f64) -> mlua::Result<f64> {
-    let s = seconds.unwrap_or(default);
-    if s.is_finite() && s >= 0.0 {
-        Ok(s)
-    } else {
-        Err(mlua::Error::RuntimeError(format!("invalid_seconds: {s} must be finite and not negative")))
-    }
-}
-
-fn ui_json_string(s: &str) -> String {
-    let mut out = String::with_capacity(s.len() + 2);
-    out.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
-            c => out.push(c),
-        }
-    }
-    out.push('"');
-    out
-}
-
 fn player_arg(p: i64) -> mlua::Result<u8> {
-    usize::try_from(p)
-        .ok()
-        .filter(|&p| p < MAX_PLAYERS)
-        .map(|p| p as u8)
-        .ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_player: {p} is outside 0..{MAX_PLAYERS}")))
+    shared::player_arg(p).map_err(mlua::Error::RuntimeError)
 }
 
-// One entry of game.ability's effects list. The named fields fill the catalog effect parameters
-// each kind reads: damage and heal take amount and radius; move takes range; buff takes buff and
-// ticks; shield takes amount; stat takes stat (a STAT_NAMES entry) and amount; spawn takes unit (a
-// catalog name) and dx, dy.
 fn effect_from(sim: &Sim, entry: &Table) -> mlua::Result<Effect> {
     let kind: String = entry.get("kind")?;
-    let code = effect_kind(&kind).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_effect: {kind} (known: {})", sim::MOD_EFFECTS.join(", "))))?;
-    let field = |key: &str| -> mlua::Result<i32> { fixed(entry.get::<Option<i64>>(key)?.unwrap_or(0)) };
-    let (p0, p1, p2) = match kind.as_str() {
-        "damage" | "heal" => (field("amount")?, field("radius")?, 0),
-        "move" => (field("range")?, 0, 0),
-        "shield" => (field("amount")?, 0, 0),
-        "stat" => {
-            let stat: String = entry.get("stat")?;
-            let code = stat_code(&stat).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_stat: {stat} (known: {})", STAT_NAMES.join(", "))))?;
-            (code, field("amount")?, 0)
-        }
-        "buff" => (field("buff")?, field("ticks")?, 0),
-        _ => {
-            let unit: String = entry.get("unit")?;
-            let index = sim.catalog().unit_index(&unit).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_unit: {unit}")))?;
-            (index as i32, field("dx")?, field("dy")?)
-        }
+    let field = |key: &str| -> Result<i32, String> {
+        let v = entry.get::<Option<i64>>(key).map_err(|e| e.to_string())?.unwrap_or(0);
+        shared::fixed(v)
     };
-    Ok(Effect { kind: code, p0, p1, p2, p3: 0 })
+    let text = |key: &str| -> Result<String, String> { entry.get::<String>(key).map_err(|e| e.to_string()) };
+    shared::effect_from(sim, &kind, &field, &text).map_err(mlua::Error::RuntimeError)
 }
 
 // A unit index the sim has spawned, dead or alive.
@@ -1090,13 +1037,10 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
                     effects.push(effect_from(&sim, &entry?)?);
                 }
             }
-            let target = match spec.get::<Option<String>>("target")? {
-                None => 0,
-                Some(t) => target_code(&t).ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_ability: target {t} is not none, unit or point")))?,
-            };
             let int = |key: &str| -> mlua::Result<i32> { fixed(spec.get::<Option<i64>>(key)?.unwrap_or(0)) };
-            let (cooldown, energy) = (int("cooldown")?, int("energy")?);
-            let filter = u16::try_from(int("filter")?).map_err(|_| mlua::Error::RuntimeError("invalid_ability: filter is outside 0..=65535".into()))?;
+            let target = spec.get::<Option<String>>("target")?;
+            let (target, cooldown, energy, filter) =
+                shared::ability_args(target.as_deref(), int("cooldown")?, int("energy")?, int("filter")?).map_err(mlua::Error::RuntimeError)?;
             sim.define_ability(AbilitySpec { name: &name, cooldown, energy, target, filter, effects: effects.clone() })
                 .map_err(|why| mlua::Error::RuntimeError(format!("invalid_ability: {name}: {why}")))?;
             buf.borrow_mut().push(Cmd::DefineAbility { name: name.clone(), cooldown, energy, target, filter, effects });
@@ -1304,7 +1248,7 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     game.set(
         "message",
         lua.create_function(move |_, (player, text, seconds): (i64, String, Option<f64>)| {
-            let body = format!(r#""kind":"message","player":{},"text":{},"seconds":{}"#, ui_player(player)?, ui_json_string(&text), ui_seconds(seconds, 5.0)?);
+            let body = shared::ui_message(player, &text, seconds).map_err(mlua::Error::RuntimeError)?;
             buf.borrow_mut().push(Cmd::Ui { body });
             Ok(())
         })?,
@@ -1313,7 +1257,7 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     game.set(
         "banner",
         lua.create_function(move |_, (text, seconds): (String, Option<f64>)| {
-            let body = format!(r#""kind":"banner","text":{},"seconds":{}"#, ui_json_string(&text), ui_seconds(seconds, 4.0)?);
+            let body = shared::ui_banner(&text, seconds).map_err(mlua::Error::RuntimeError)?;
             buf.borrow_mut().push(Cmd::Ui { body });
             Ok(())
         })?,
@@ -1322,25 +1266,11 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     game.set(
         "panel",
         lua.create_function(move |_, (id, spec): (String, Option<Table>)| {
-            let body = match spec {
-                None => format!(r#""kind":"panel","id":{},"remove":true"#, ui_json_string(&id)),
-                Some(t) => {
-                    let title: Option<String> = t.get("title")?;
-                    let text: Option<String> = t.get("text")?;
-                    let player: Option<i64> = t.get("player")?;
-                    let player = match player {
-                        Some(p) => player_arg(p)? as i64,
-                        None => -1,
-                    };
-                    format!(
-                        r#""kind":"panel","id":{},"player":{},"title":{},"text":{}"#,
-                        ui_json_string(&id),
-                        player,
-                        ui_json_string(&title.unwrap_or_default()),
-                        ui_json_string(&text.unwrap_or_default())
-                    )
-                }
+            let spec = match spec {
+                None => None,
+                Some(t) => Some((t.get::<Option<String>>("title")?, t.get::<Option<String>>("text")?, t.get::<Option<i64>>("player")?)),
             };
+            let body = shared::ui_panel(&id, spec).map_err(mlua::Error::RuntimeError)?;
             buf.borrow_mut().push(Cmd::Ui { body });
             Ok(())
         })?,
@@ -1349,18 +1279,7 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     game.set(
         "camera",
         lua.create_function(move |_, (player, x, y, zoom, seconds): (i64, f64, f64, Option<f64>, Option<f64>)| {
-            let zoom = zoom.unwrap_or(1.0);
-            if !(zoom.is_finite() && zoom > 0.0) || !x.is_finite() || !y.is_finite() {
-                return Err(mlua::Error::RuntimeError("invalid_camera: x, y and zoom must be finite and zoom positive".into()));
-            }
-            let body = format!(
-                r#""kind":"camera","player":{},"x":{},"y":{},"zoom":{},"seconds":{}"#,
-                ui_player(player)?,
-                x / 65536.0,
-                y / 65536.0,
-                zoom,
-                ui_seconds(seconds, 1.0)?
-            );
+            let body = shared::ui_camera(player, x, y, zoom, seconds).map_err(mlua::Error::RuntimeError)?;
             buf.borrow_mut().push(Cmd::Ui { body });
             Ok(())
         })?,
@@ -1369,7 +1288,7 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     game.set(
         "sound",
         lua.create_function(move |_, name: String| {
-            buf.borrow_mut().push(Cmd::Ui { body: format!(r#""kind":"sound","name":{}"#, ui_json_string(&name)) });
+            buf.borrow_mut().push(Cmd::Ui { body: shared::ui_sound(&name) });
             Ok(())
         })?,
     )?;
@@ -1449,94 +1368,6 @@ return function(known)
 end
 "#;
 
-// game.var, game.player_var, game.unit_var, the score tally, game.region and game.timer. They are
-// written over the host calls above. Variables live in a table the host owns (VARS_KEY), so a reload
-// keeps them; a timer or region trigger belongs to the chunk that registered it.
-const PRELUDE_SRC: &str = r##"
-return function(game, vars, host, max_players)
-  local function check_key(key)
-    if type(key) ~= "string" then error("invalid_key: a variable name is a string, got " .. type(key), 3) end
-  end
-  local function check_value(v)
-    local t = type(v)
-    if v ~= nil and t ~= "number" and t ~= "string" and t ~= "boolean" then
-      error("invalid_value: a variable holds a number, string or boolean, got " .. t, 3)
-    end
-  end
-  local function bucket(scope, id)
-    local all = vars[scope]
-    local row = all[id]
-    if not row then row = {}; all[id] = row end
-    return row
-  end
-  local function access(scope, id, key, ...)
-    check_key(key)
-    local row = bucket(scope, id)
-    if select("#", ...) == 0 then return row[key] end
-    local v = ...
-    check_value(v)
-    row[key] = v
-  end
-  local function player_id(p)
-    if type(p) ~= "number" or p % 1 ~= 0 or p < 0 or p >= max_players then
-      error("invalid_player: " .. tostring(p) .. " is outside 0.." .. max_players, 3)
-    end
-    return p
-  end
-  function game.var(key, ...) return access("global", 0, key, ...) end
-  function game.player_var(player, key, ...) return access("player", player_id(player), key, ...) end
-  function game.unit_var(unit, key, ...)
-    game.unit_kind(unit)
-    return access("unit", unit, key, ...)
-  end
-  function game.add_score(player, amount)
-    if type(amount) ~= "number" then error("invalid_amount: " .. tostring(amount), 2) end
-    local row = bucket("score", player_id(player))
-    row.total = (row.total or 0) + amount
-    return row.total
-  end
-  function game.score(player) return bucket("score", player_id(player)).total or 0 end
-
-  function game.region(name, x0, y0, x1, y1, handlers)
-    host.define_region(name, x0, y0, x1, y1)
-    local function named(region) return region == name end
-    if handlers and handlers.enter then
-      local fn = handlers.enter
-      game.trigger("on_enter", { conditions = { named }, action = function(_, unit) fn(unit) end })
-    end
-    if handlers and handlers.leave then
-      local fn = handlers.leave
-      game.trigger("on_leave", { conditions = { named }, action = function(_, unit) fn(unit) end })
-    end
-    return name
-  end
-  function game.region_units(name)
-    local inside = {}
-    for _, unit in ipairs(game.units()) do
-      local x, y = host.unit_position(unit)
-      if host.in_region(name, x, y) then inside[#inside + 1] = unit end
-    end
-    return inside
-  end
-
-  local live = {}
-  function game.timer(name, delay, action, period)
-    if type(action) ~= "function" then error("invalid_timer: " .. tostring(name) .. " needs an action function", 2) end
-    if period ~= nil and (type(period) ~= "number" or period < 1) then error("invalid_timer: period must be 1 or more ticks", 2) end
-    local function fire()
-      action()
-      if period and live[name] == fire then host.schedule(name, period, fire) end
-    end
-    live[name] = fire
-    host.schedule(name, delay, fire)
-    return name
-  end
-  function game.cancel_timer(name)
-    live[name] = nil
-    return host.cancel(name)
-  end
-end
-"##;
 
 const VARS_KEY: &str = "oscraft_vars";
 

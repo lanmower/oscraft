@@ -33,6 +33,9 @@ const TEST_MOD: &str = "-- a test mod loaded inside the wasip3 guest\nlocal load
 const EXAMPLE_MODS: &[(&str, &str)] = &[
     ("creep_gold", include_str!("../../../../mods/creep_gold.lua")),
     ("tower_buff", include_str!("../../../../mods/tower_buff.lua")),
+    ("td_waves", include_str!("../../../../mods/td_waves.lua")),
+    ("custom_spell", include_str!("../../../../mods/custom_spell.lua")),
+    ("ui_demo", include_str!("../../../../mods/ui_demo.lua")),
 ];
 
 pub const COMMANDS: &[&str] = &[
@@ -55,6 +58,7 @@ pub const COMMANDS: &[&str] = &[
     "mod-example",
     "mod-kill",
     "mod-step",
+    "mod-state",
 ];
 
 pub fn run<R: BufRead, W: Write>(mut input: R, mut out: W) -> io::Result<()> {
@@ -114,6 +118,7 @@ fn reply(host: &mut ModHost, line: &str) -> Result<String, String> {
             let (fired, applied) = host.counters();
             Ok(format!("ok mod-step fired={fired} applied={applied}"))
         }
+        "mod-state" => Ok(format!("ok {}", host.state_line())),
         _ => sim_reply(&mut host.sim(), name, words),
     }
 }

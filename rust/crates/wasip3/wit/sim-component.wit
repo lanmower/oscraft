@@ -22,4 +22,5 @@ world sim-component {
     export mod-example: func(name: string) -> result<_, string>;
     export mod-kill: func(kind: string) -> result<u32, string>;
     export mod-step: func(count: u32) -> tuple<u64, u64>;
+    export mod-state: func() -> string;
 }

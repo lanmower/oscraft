@@ -46,6 +46,10 @@ mod host {
     /// The commands that load an example mod on the moba image, kill a tower, and step.
     const MOD_COMMANDS: &[&str] = &["mod-example tower_buff", "mod-step", "mod-kill tower", "mod-step"];
 
+    /// The example mods whose state the host prints after 300 steps on the moba image, as the native
+    /// mod_check prints it: one `mod-state` line each.
+    const STATE_MODS: &[&str] = &["td_waves", "custom_spell"];
+
     /// Runs the guest on the image, checks the tick and mod-load witness, then runs the example
     /// mod script on `mod_image` when one is given.
     pub fn run(guest: &str, image_path: &str, mod_image: Option<&str>) -> Result<(), String> {
@@ -70,6 +74,16 @@ mod host {
             return Err(format!("trigger did not fire or no command applied: {:?}", replies[3]));
         }
         println!("wasip3 mod-trigger ok mod=tower_buff fired={fired} applied={applied}");
+        for name in STATE_MODS {
+            let commands = [format!("mod-example {name}"), "mod-step 300".to_string(), "mod-state".to_string()];
+            let commands: Vec<&str> = commands.iter().map(String::as_str).collect();
+            let replies = exchange(guest, mod_image, &commands)?;
+            if replies.len() != commands.len() || replies.iter().any(|r| r.starts_with("err")) {
+                return Err(format!("unexpected replies for {name}: {replies:?}"));
+            }
+            let line = replies[2].strip_prefix("ok ").ok_or_else(|| format!("mod-state reply {:?}", replies[2]))?;
+            println!("{line}");
+        }
         Ok(())
     }
 
