@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>oscraft map editor</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #1d252c; color: #d8e0e6; font: 13px system-ui, sans-serif; overflow: hidden; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #panel { position: fixed; left: 8px; top: 8px; width: 230px; padding: 8px; background: rgba(0, 0, 0, 0.6); border-radius: 4px; }
+    #panel label { display: block; margin: 4px 0; }
+    #panel input, #panel select, #panel button { width: 100%; box-sizing: border-box; }
+    #panel input[type=number] { width: 70px; }
+    #status { margin-top: 6px; white-space: pre-wrap; }
+    #osd { position: fixed; right: 8px; bottom: 8px; width: 360px; height: 160px; font: 11px monospace; }
+  </style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="panel">
+    <a href="play.html">play</a>
+    <label>map.bin <input id="open" type="file" accept=".bin"></label>
+    <label>new map <input id="new-w" type="number" value="32" min="1"> x <input id="new-h" type="number" value="32" min="1"> <button id="new" type="button">new</button></label>
+    <label>tool
+      <select id="tool">
+        <option value="paint">paint cell kind</option>
+        <option value="height">paint height</option>
+        <option value="doodad">place doodad</option>
+        <option value="spawn">place unit spawn</option>
+        <option value="delete">delete doodad / spawn</option>
+        <option value="region">region (two corners)</option>
+      </select>
+    </label>
+    <label>cell kind <select id="kind"></select></label>
+    <label>height level <input id="level" type="number" value="1" min="0" max="255"></label>
+    <label>brush radius <input id="radius" type="number" value="1" min="0" max="8"></label>
+    <label>doodad kind <select id="doodad-kind"></select></label>
+    <label>unit <input id="unit" value="skirmisher"></label>
+    <label>player (-1 neutral) <input id="player" type="number" value="0" min="-1" max="15"></label>
+    <label>region name <input id="region-name" value="region"></label>
+    <button id="export" type="button">export map.osd</button>
+    <div id="status">loading</div>
+    <div>left: apply, right drag: orbit, shift or middle drag: pan, wheel: zoom</div>
+  </div>
+  <textarea id="osd" readonly placeholder="exported map.osd"></textarea>
+  <script type="module" src="editor.js"></script>
+</body>
+</html>
