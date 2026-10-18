@@ -226,7 +226,7 @@ fn moba_camp_unit() -> Result<(Sim, usize), String> {
     let mut s = fresh(&image)?;
     run_ticks(&mut s, sim::CAMP_FIRST_SPAWN_S * sim::TICKS_PER_SECOND as u32 + 1);
     let u = (0..MAX_UNITS)
-        .find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_")))
+        .find(|&u| s.alive(u) && s.player(u) == 0xFF && s.hp(u) > fixed::from_int(1) && s.hp(u) < fixed::from_int(5000))
         .ok_or("moba image places no live neutral unit")?;
     Ok((s, u))
 }
@@ -235,17 +235,18 @@ fn moba_camp_unit() -> Result<(Sim, usize), String> {
 pub fn camp_respawn(_image: &[u8]) -> Result<(), String> {
     let (mut s, u) = moba_camp_unit()?;
     let home = s.position_fixed(u);
-    let reach = fixed::from_milli(sim::CAMP_CLEAR_MILLI) as i64;
-    let camp: Vec<usize> = (0..MAX_UNITS)
-        .filter(|&k| {
+    let clear_reach = fixed::from_milli(sim::CAMP_CLEAR_MILLI) as i64;
+    let camp_mates: Vec<usize> = (0..MAX_UNITS)
+        .filter(|&k| k != u && s.alive(k) && s.player(k) == 0xFF && {
             let (x, y) = s.position_fixed(k);
-            let (dx, dy) = ((x - home.0) as i64, (y - home.1) as i64);
-            s.alive(k) && s.player(k) == 0xFF && dx * dx + dy * dy <= reach * reach && s.kind_name(k).is_some_and(|n| n.starts_with("neutral_"))
+            let (dx, dy) = (i64::from(x) - i64::from(home.0), i64::from(y) - i64::from(home.1));
+            dx * dx + dy * dy <= clear_reach * clear_reach
         })
         .collect();
-    for &k in &camp {
+    for &k in &camp_mates {
         s.hurt(k, fixed::from_int(10000));
     }
+    s.hurt(u, fixed::from_int(10000));
     if s.alive(u) {
         return Err(format!("camp unit {u} survived a lethal hit"));
     }
