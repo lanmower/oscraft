@@ -575,6 +575,7 @@ function bindInput() {
   canvas.addEventListener("pointerup", (e) => {
     const wasDrag = drag && drag.moved;
     drag = null;
+    if (e.button === 2) document.body.dataset.rightUp = `${wasDrag ? "drag" : "click"} hud=${!!hud} local=${myPlayer}`;
     if (!wasDrag && hud) hud.onPointerUp(e);
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
