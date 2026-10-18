@@ -14,10 +14,13 @@ Run `node scripts/gen-abilities.mjs` to regenerate. Scale: 1 Dota unit = 15.625 
 ## Heroes done
 
 axe, crystal_maiden, sven, juggernaut, zuus (Zeus), sniper, lion, omniknight (their full kits), phantom_lancer (Spirit Lance and
-Juxtapose) and dazzle (Poison Touch and Shallow Grave): the abilities, the
+Juxtapose), dazzle (Poison Touch and Shallow Grave), lina (Dragon Slave, Light Strike Array, Laguna Blade), lich (Frost Nova,
+Frost Shield, Chain Frost), tidehunter (Gush, Kraken Shell, Ravage), slardar (all four) and vengefulspirit (Magic Missile,
+Wave of Terror, Command Aura): the abilities, the
 generic talents (`<hero>_talents`) and the unique talents wherever the key they change is modelled. Slots: basics, then the
 ultimate, then the talent modifiers. The other 120 roster heroes in `units_heroes.osd` have no abilities yet.
-Not done: Phantom Lancer's Doppelganger and Phantom Rush, Dazzle's Shadow Wave and Weave and the ultimate that moves the soul.
+Not done: Phantom Lancer's Doppelganger and Phantom Rush, Dazzle's Shadow Wave and Weave and the ultimate that moves the soul,
+Lina's Fiery Soul, Lich's Sinister Gaze, Tidehunter's Anchor Smash (its radius is not in the dump), Vengeful Spirit's Nether Swap.
 
 ## Mechanics added to the engine
 
@@ -50,5 +53,7 @@ Effect kinds `dot`, `status`, `timed_stat`, `aoe`, `dispel`, `chain`, `zone`, `i
   barrier talent, mana regeneration amplification. Sven: the slow resistance talent, the shard barrier, Wrath of God. Zeus: Static
   Field, the bolt's true sight and spread talent. Sniper: Keen Scope, the shard grenade, Assassinate's scepter. Lion: To Hell
   and Back, Finger of Death's kill stacks. Omniknight: Hammer of Purity's healing and range, the scepter.
+- Lina's Dragon Slave and Vengeful Spirit's Wave of Terror are straight lines of constant width and land at once. Lich's Frost Shield
+  gives only the damage reduction, Chain Frost has no slow, Kraken Shell has no damage-triggered cleanse.
 - Spell immunity pierce comes from the ability's own flag (`SpellImmunityType`); dispel strength is a mask, not Valve's types.
 - Gate checks: `rust/gate/src/ability_checks.rs`, run alone with `GATE_ONLY=ability- cargo run -p oscraft-gate`.
