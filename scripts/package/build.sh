@@ -17,7 +17,7 @@ cargo build --release -q -p oscraft-lsp
 cp target/release/oscraftd target/release/oscraft-lsp "$stage/bin/"
 cp data/*.osd "$stage/data/"
 cp -R crates/web/site/. "$stage/site/"
-cargo run -q -p mapexport -- "$stage/site/map.bin"
+cargo run -q -p mapexport -- "$stage/site/map.bin" ../scenarios/moba
 wasm-pack build crates/web --target web --out-dir "$stage/site/pkg" > /dev/null
 cd "$root"
 cp -R js/client/. "$stage/js/client/"

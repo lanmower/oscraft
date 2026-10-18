@@ -46,7 +46,7 @@ jobs:
           set -euo pipefail
           cargo build -p mapexport
           wasm-pack build crates/web --target web --out-dir site/pkg
-          target/debug/mapexport crates/web/site/map.bin
+          target/debug/mapexport crates/web/site/map.bin ../scenarios/moba
           target/debug/mapexport crates/web/site/moba.bin ../scenarios/moba
 
       - name: Lay out the site
