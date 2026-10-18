@@ -489,16 +489,23 @@ function pick(world) {
 
 // Client pixel of the world point (x, y, z), y defaulting to the ground: the inverse of screenToWorld. Points behind the camera map far off screen.
 function worldToScreen(x, z, y = 0) {
-  if (!renderer3d) {
-    return { x: window.innerWidth / 2 + (x - flatView.cx) * FLAT_PX_PER_UNIT, y: window.innerHeight / 2 + (z - flatView.cz) * FLAT_PX_PER_UNIT };
-  }
-  const vp = viewProjection(renderer3d.camera, window.innerWidth / Math.max(1, window.innerHeight), worldVp);
-  const clip = [0, 1, 2, 3].map((r) => vp[r] * x + vp[4 + r] * y + vp[8 + r] * z + vp[12 + r]);
+  const clip = worldClip(x, z, y);
   if (clip[3] <= 0) return { x: -1e6, y: -1e6 };
   return {
     x: ((clip[0] / clip[3] + 1) / 2) * window.innerWidth,
     y: ((1 - clip[1] / clip[3]) / 2) * window.innerHeight,
   };
+}
+
+// Homogeneous clip coordinates [X, Y, Z, W] of the world point; W <= 0 is behind the camera plane. The fog overlay cuts cells at W so none is projected through the camera.
+function worldClip(x, z, y = 0) {
+  if (!renderer3d) {
+    const px = window.innerWidth / 2 + (x - flatView.cx) * FLAT_PX_PER_UNIT;
+    const py = window.innerHeight / 2 + (z - flatView.cz) * FLAT_PX_PER_UNIT;
+    return [(2 * px) / window.innerWidth - 1, 1 - (2 * py) / window.innerHeight, 0, 1];
+  }
+  const vp = viewProjection(renderer3d.camera, window.innerWidth / Math.max(1, window.innerHeight), worldVp);
+  return [0, 1, 2, 3].map((r) => vp[r] * x + vp[4 + r] * y + vp[8 + r] * z + vp[12 + r]);
 }
 
 // The commands createHud routes input through. Each runs on the host sim, or sends the frame to the host
@@ -1119,7 +1126,7 @@ async function main() {
   if (hasHeroApi(localGame)) heroPanels.push(createShop(heroUi), createSkills(heroUi), createInventory(heroUi));
   const heroNames = liveHeroRoster(localGame);
   createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
-  fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toScreen: worldToScreen, groundAt });
+  fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
   if (params.get("host") === "1") startHost();
   joinRoom();
 
