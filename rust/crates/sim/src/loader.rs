@@ -1232,7 +1232,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let x = ddr.i32("doodad x")?;
         let y = ddr.i32("doodad y")?;
         let rotation = ddr.i32("doodad rotation")?;
-        if kind > 10
+        if kind >= crate::doodads::DOODAD_KIND_COUNT
             || !(0..1000).contains(&rotation)
             || x < 0
             || y < 0
