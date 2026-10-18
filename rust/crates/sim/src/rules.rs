@@ -613,7 +613,8 @@ impl Sim {
             }
         }
         if let Some((k, _)) = best {
-            let _ = self.issue_order_kind(j, ORDER_ATTACK_MOVE, self.pos_x[k], self.pos_y[k]);
+            let (sx, sy) = self.strike_stop(j, k);
+            let _ = self.issue_order_kind(j, ORDER_ATTACK_MOVE, sx, sy);
         }
     }
 

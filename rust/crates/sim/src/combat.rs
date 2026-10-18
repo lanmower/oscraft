@@ -14,6 +14,9 @@ pub(crate) const KILL_QUEUE_CAP: usize = 256;
 pub(crate) const ASSIST_SLOTS: usize = 4;
 /// Ticks after a hit within which the hitter is credited an assist on the victim's death.
 pub(crate) const ASSIST_WINDOW: u32 = 50;
+/// Cells a unit's bucket scan reaches past its weapon range. A structure is bucketed at its
+/// centre, which lies beyond its footprint edge, so the scan must reach past the edge to find it.
+const STRUCTURE_SCAN_CELLS: i32 = 3;
 
 /// One player's post-game tally, summed over the player's units.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -163,7 +166,7 @@ impl Sim {
             self.cooldown[i] -= 1;
             return;
         }
-        let rc = (fixed::round(self.range_q[i]) + 1).clamp(1, 8);
+        let rc = (fixed::round(self.range_q[i]) + 1).clamp(1, 8) + STRUCTURE_SCAN_CELLS;
         let cx = cell_of(self.pos_x[i]);
         let cy = cell_of(self.pos_y[i]);
         let (w, h) = (self.grid.w as i32, self.grid.h as i32);
@@ -185,7 +188,7 @@ impl Sim {
                     if j == i || self.alive[j] == 0 {
                         continue;
                     }
-                    let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[j], self.pos_y[j]);
+                    let d2 = self.strike_measure(i, j).1;
                     if d2 > reach_d2 {
                         continue;
                     }
@@ -240,7 +243,7 @@ impl Sim {
             && (self.targets[i] & self.layer_of(target)) != 0
             && self.visible(self.player[i], target)
             && self.targetable(self.player[i], target)
-            && dist2(self.pos_x[i], self.pos_y[i], self.pos_x[target], self.pos_y[target]) <= reach;
+            && self.strike_measure(i, target).1 <= reach;
         if !in_reach {
             return Err(self.reject(Refusal::InvalidOrderTarget));
         }

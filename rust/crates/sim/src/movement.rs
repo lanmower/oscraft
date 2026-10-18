@@ -298,6 +298,68 @@ impl Sim {
         }
     }
 
+    /// The point a strike on `target` is measured to, and the squared distance from unit `i` to it.
+    /// A unit is measured to its centre. A structure is measured to the nearest point of a blocked
+    /// cell whose centre lies within the structure's radius plus one cell (its stamped footprint).
+    /// With no such cell, the structure is measured to its body: the point on the segment to the
+    /// centre at the structure's radius, or the unit's own position when it is inside the body.
+    /// Approach and strike both use this measure, so a unit that arrives at its approach point is
+    /// in strike reach.
+    pub(crate) fn strike_measure(&self, i: usize, target: usize) -> ((i32, i32), i64) {
+        let (tx, ty) = (self.pos_x[target], self.pos_y[target]);
+        let (ux, uy) = (self.pos_x[i], self.pos_y[i]);
+        if !self.is_structure(target) {
+            return ((tx, ty), dist2(ux, uy, tx, ty));
+        }
+        let radius = self.radius[target];
+        let limit = (radius + ONE) as i64;
+        let span = fixed::round(radius) + 3;
+        let (w, h) = (self.grid.w as i32, self.grid.h as i32);
+        let (cx, cy) = (cell_of(tx), cell_of(ty));
+        let mut edge: Option<((i32, i32), i64)> = None;
+        for oy in -span..=span {
+            for ox in -span..=span {
+                let (nx, ny) = (cx + ox, cy + oy);
+                if nx < 0 || ny < 0 || nx >= w || ny >= h || self.grid.walkable(nx, ny) {
+                    continue;
+                }
+                let (x0, y0) = (nx * ONE, ny * ONE);
+                if dist2(x0 + ONE / 2, y0 + ONE / 2, tx, ty) > limit * limit {
+                    continue;
+                }
+                let p = (ux.clamp(x0, x0 + ONE), uy.clamp(y0, y0 + ONE));
+                let d2 = dist2(ux, uy, p.0, p.1);
+                if edge.map_or(true, |(_, best)| d2 < best) {
+                    edge = Some((p, d2));
+                }
+            }
+        }
+        if let Some(hit) = edge {
+            return hit;
+        }
+        let d = isqrt(dist2(ux, uy, tx, ty));
+        let r = radius as i64;
+        if d <= r {
+            return ((ux, uy), 0);
+        }
+        let ax = tx as i64 + (ux as i64 - tx as i64) * r / d;
+        let ay = ty as i64 + (uy as i64 - ty as i64) * r / d;
+        let anchor = (ax as i32, ay as i32);
+        (anchor, dist2(ux, uy, anchor.0, anchor.1))
+    }
+
+    /// The point unit `i` stops at to strike `target`: three quarters of its weapon range from the
+    /// strike anchor, on the unit's side, so its own auto-attack strikes on arrival. Approach and
+    /// attack-move both stop here.
+    pub(crate) fn strike_stop(&self, i: usize, target: usize) -> (i32, i32) {
+        let (anchor, d2) = self.strike_measure(i, target);
+        let d = isqrt(d2).max(1);
+        let r = self.range_q[i] as i64 * 3 / 4;
+        let dx = self.pos_x[i] as i64 - anchor.0 as i64;
+        let dy = self.pos_y[i] as i64 - anchor.1 as i64;
+        ((anchor.0 as i64 + dx * r / d) as i32, (anchor.1 as i64 + dy * r / d) as i32)
+    }
+
     /// Attacks `target` with unit `i`'s weapon, holding to weapon reach. A target beyond reach
     /// sends the unit to the point at weapon range from it and strikes nothing this call; the
     /// caller re-issues the order each tick until the strike lands. Returns true when the strike
@@ -318,20 +380,13 @@ impl Sim {
             return Err(self.reject(Refusal::InvalidOrderTarget));
         }
         let reach = (self.range_sq[i] as i64) << SHIFT;
-        let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[target], self.pos_y[target]);
+        let (_, d2) = self.strike_measure(i, target);
         if d2 <= reach {
             self.order_attack(i, target)?;
             return Ok(true);
         }
-        let d = isqrt(d2);
-        // Stop at three quarters of weapon range so the unit lands inside reach, and its own
-        // auto-attack strikes the target on arrival.
-        let r = self.range_q[i] as i64 * 3 / 4;
-        let dx = self.pos_x[i] as i64 - self.pos_x[target] as i64;
-        let dy = self.pos_y[i] as i64 - self.pos_y[target] as i64;
-        let sx = self.pos_x[target] as i64 + dx * r / d;
-        let sy = self.pos_y[target] as i64 + dy * r / d;
-        self.approach_to(i, sx as i32, sy as i32);
+        let (sx, sy) = self.strike_stop(i, target);
+        self.approach_to(i, sx, sy);
         Ok(false)
     }
 

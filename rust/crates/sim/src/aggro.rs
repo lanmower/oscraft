@@ -68,7 +68,7 @@ impl Sim {
         if i < self.n && self.ticks < self.aggro.until[i] { self.aggro.target[i] } else { -1 }
     }
 
-    fn is_structure(&self, i: usize) -> bool {
+    pub(crate) fn is_structure(&self, i: usize) -> bool {
         self.filter[i] & FILTER_STRUCTURE != 0
     }
 
