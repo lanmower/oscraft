@@ -1260,6 +1260,9 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
         if p.player == NEUTRAL_PLAYER {
             sim.mark_camp(i);
         }
+        if sim.cat.unit_ext.get(p.unit as usize).is_some_and(|e| e.player_controlled) {
+            sim.enroll_hero(i, p.x, p.y);
+        }
     }
     sim.camps.boss_kind = sim.cat.unit_index(crate::camp::ROSHAN_NAME).map(|k| k as u32);
     sim.camps.rune_kind = sim.cat.unit_index(crate::camp::RUNE_NAME).map(|k| k as u32);

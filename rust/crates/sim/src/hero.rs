@@ -150,6 +150,13 @@ impl Sim {
     /// Spawns a hero of unit type `kind` for `player` at a Q16.16 point; that point is its home.
     pub fn spawn_hero(&mut self, player: u8, kind: u32, x: i32, y: i32) -> Option<usize> {
         let i = self.spawn_for(player, kind, x, y)?;
+        self.enroll_hero(i, x, y);
+        Some(i)
+    }
+
+    /// Makes the already spawned unit `i` a hero at the Q16.16 point (x, y): its home, its respawn
+    /// and gold state, and its hero stats. Map placements of a player-controlled kind call this.
+    pub(crate) fn enroll_hero(&mut self, i: usize, x: i32, y: i32) {
         let h = &mut self.heroes;
         h.is_hero[i] = 1;
         h.home_x[i] = x;
@@ -160,7 +167,6 @@ impl Sim {
         h.gold[i] = 0;
         self.apply_hero_stats(i);
         self.hp[i] = self.hp_max[i];
-        Some(i)
     }
 
     /// Strength, agility and intelligence of hero `i`: the level-0 base plus the growth per level.
