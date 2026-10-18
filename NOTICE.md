@@ -13,7 +13,7 @@ dependencies are not listed because no `Cargo.lock` is tracked.
 | lzma-rs | =0.3.0 | MIT | https://crates.io/crates/lzma-rs/0.3.0 | rust/crates/mpq |
 | mlua | 0.10 (manifest range; resolved version unknown, verify; 0.10.5 is MIT) | MIT | https://crates.io/crates/mlua | rust/crates/spike (feature `vendored`) |
 | Lua 5.4 (vendored through mlua) | unknown, verify (lua-src crate) | MIT | https://www.lua.org/license.html and https://crates.io/crates/lua-src | built from source via mlua `vendored` |
-| 3D model and texture pack (GLB models, colormap and terrain textures) | not recorded; owner states Creative Commons (variant to confirm: CC0 needs no credit, CC BY needs credit) | Creative Commons (owner-stated) | local pack, untracked `assets/Models`; shipped copies in `js/client/models`, `rust/crates/web/site/assets` | browser client, moba and terrain scenes |
+| 3D model and texture pack (GLB models, colormap and terrain textures) | owner-confirmed CC0 (public domain dedication; no attribution required) | CC0 1.0 | local pack, untracked `assets/Models`; shipped copies in `js/client/models`, `rust/crates/web/site/assets` | browser client, moba and terrain scenes |
 
 
 This file is not legal advice. A human legal review is required before any release.
