@@ -61,6 +61,11 @@ fn defender_of_base(sim: &Sim, h: usize) -> Option<usize> {
     best.map(|(_, j)| j)
 }
 
+fn rival_base_of(sim: &Sim, h: usize) -> Option<usize> {
+    let side_h = side(sim.player(h));
+    first_alive(sim, |j| sim.kind_name(j) == Some("base") && side(sim.player(j)) != side_h)
+}
+
 fn is_roshan(sim: &Sim, j: usize) -> bool {
     sim.kind_name(j) == Some("roshan")
 }
@@ -147,6 +152,7 @@ fn main() {
             } else {
                 defender_of_base(&sim, h)
                     .or_else(|| if phase_roshan { first_alive(&sim, |j| is_roshan(&sim, j)) } else { None })
+                    .or_else(|| rival_base_of(&sim, h))
                     .or(hostile_hero)
                     .or_else(|| first_alive(&sim, |j| sim.hostile(sim.player(h), sim.player(j)) && j != h))
             };
