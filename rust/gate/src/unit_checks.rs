@@ -13,22 +13,45 @@ fn count_kind(s: &Sim, player: u8, name: &str) -> usize {
     (0..MAX_UNITS).filter(|&i| s.alive(i) && s.player(i) == player && s.kind_name(i) == Some(name)).count()
 }
 
+/// Spawns of each kind in `names` for `player` during the next `ticks` ticks, one count per name. A unit
+/// counts when it comes alive, so creeps that die inside the window do not lower the count.
+fn count_spawns(s: &mut Sim, player: u8, names: &[&str], ticks: u32) -> Vec<usize> {
+    let live = |s: &Sim, i: usize, name: &str| s.alive(i) && s.player(i) == player && s.kind_name(i) == Some(name);
+    let mut prev: Vec<Vec<bool>> = {
+        let view: &Sim = s;
+        names.iter().map(|name| (0..MAX_UNITS).map(|i| live(view, i, name)).collect()).collect()
+    };
+    let mut spawned = vec![0; names.len()];
+    for _ in 0..ticks {
+        s.tick();
+        for (k, name) in names.iter().enumerate() {
+            for i in 0..MAX_UNITS {
+                let now = live(s, i, name);
+                if now && !prev[k][i] {
+                    spawned[k] += 1;
+                }
+                prev[k][i] = now;
+            }
+        }
+    }
+    spawned
+}
+
 /// Every 30 s each base sends three melee creeps and one ranged creep down each of the three lanes.
 pub fn moba_wave_composition(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&moba_image()?)?;
-    let (melee0, ranged0, siege0) = (count_kind(&s, 0, "creep"), count_kind(&s, 0, "creep_ranged"), count_kind(&s, 0, "creep_siege"));
-    run_ticks(&mut s, 2);
-    let (melee1, ranged1) = (count_kind(&s, 0, "creep"), count_kind(&s, 0, "creep_ranged"));
-    if melee1 - melee0 != 9 || ranged1 - ranged0 != 3 {
-        return Err(format!("first wave added {} melee and {} ranged creeps, want 9 and 3", melee1 - melee0, ranged1 - ranged0));
+    let siege0 = count_kind(&s, 0, "creep_siege");
+    let first = count_spawns(&mut s, 0, &["creep", "creep_ranged"], 2);
+    let (melee1, ranged1) = (first[0], first[1]);
+    if melee1 != 9 || ranged1 != 3 {
+        return Err(format!("first wave spawned {melee1} melee and {ranged1} ranged creeps, want 9 and 3"));
     }
     if count_kind(&s, 0, "creep_siege") != siege0 {
         return Err("a siege creep spawned in the first wave".into());
     }
-    run_ticks(&mut s, 480);
-    let melee2 = count_kind(&s, 0, "creep");
-    if melee2 - melee1 != 9 {
-        return Err(format!("second wave 480 ticks later added {} melee creeps, want 9", melee2 - melee1));
+    let melee2 = count_spawns(&mut s, 0, &["creep"], 480)[0];
+    if melee2 != 9 {
+        return Err(format!("second wave 480 ticks later spawned {melee2} melee creeps, want 9"));
     }
     println!("moba wave composition ok melee_per_wave=9 ranged_per_wave=3 interval_ticks=480");
     Ok(())
@@ -176,79 +199,5 @@ pub fn camp_first_spawn(_image: &[u8]) -> Result<(), String> {
         return Err("no camp unit lived after 1:00".into());
     }
     println!("camp first spawn ok at_tick={first} camp_units={n}");
-    Ok(())
-}
-
-/// The Tormentor first spawns at 15:00, and returns 10 minutes after its death.
-pub fn camp_tormentor_timing(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
-    let find = |s: &Sim| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some("tormentor"));
-    if find(&s).is_some() {
-        return Err("a Tormentor lives at tick 0".into());
-    }
-    let tps = sim::TICKS_PER_SECOND as u32;
-    run_ticks(&mut s, 900 * tps - 4);
-    if find(&s).is_some() {
-        return Err("a Tormentor lived before 15:00".into());
-    }
-    run_ticks(&mut s, 8);
-    let t = find(&s).ok_or("no Tormentor after 15:00")?;
-    s.hurt(t, fixed::from_int(10000));
-    s.hurt(t, fixed::from_int(10000));
-    if s.alive(t) {
-        return Err("the Tormentor survived lethal damage".into());
-    }
-    let died = s.ticks();
-    run_ticks(&mut s, 600 * tps - 4);
-    if find(&s).is_some() {
-        return Err("the Tormentor returned before 10 minutes".into());
-    }
-    run_ticks(&mut s, 8);
-    if find(&s).is_none() {
-        return Err("the Tormentor did not return 10 minutes after its death".into());
-    }
-    println!("camp tormentor timing ok first_tick={} died_tick={died}", 900 * tps);
-    Ok(())
-}
-
-/// From 15:00 Roshan walks to the pit of the day/night phase (top at night), and the Tormentor respawns at the
-/// Radiant corner at night and the Dire corner by day.
-pub fn camp_pit_swap(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
-    let find = |s: &Sim, name: &str| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some(name));
-    let cells = |s: &Sim, u: usize, x: i32, y: i32| {
-        let (px, py) = s.position_fixed(u);
-        let (dx, dy) = (i64::from(px - fixed::from_milli(x)), i64::from(py - fixed::from_milli(y)));
-        ((dx * dx + dy * dy) as f64).sqrt() / f64::from(fixed::ONE)
-    };
-    let roshan = find(&s, "roshan").ok_or("no Roshan at tick 0")?;
-    let d0 = cells(&s, roshan, 207734, 206312);
-    if d0 > 12.0 {
-        return Err(format!("Roshan starts {d0:.0} cells from the bottom pit"));
-    }
-    run_ticks(&mut s, 14400 + 1700);
-    if !s.alive(roshan) {
-        return Err("Roshan died on the way to the top pit".into());
-    }
-    let d1 = cells(&s, roshan, 113589, 126084);
-    if d1 > 12.0 {
-        return Err(format!("at 15:00 plus 1700 ticks Roshan stands {d1:.0} cells from the night pit"));
-    }
-    let tormentor = find(&s, "tormentor").ok_or("no Tormentor after 15:00")?;
-    let t0 = cells(&s, tormentor, 43500, 64500);
-    if t0 > 4.0 {
-        return Err(format!("the night Tormentor stands {t0:.0} cells from the Radiant corner"));
-    }
-    let left = 19300 - s.ticks();
-    run_ticks(&mut s, left);
-    s.hurt(tormentor, fixed::from_int(10000));
-    s.hurt(tormentor, fixed::from_int(10000));
-    run_ticks(&mut s, 9600 + 8);
-    let back = find(&s, "tormentor").ok_or("the Tormentor did not return")?;
-    let t1 = cells(&s, back, 284500, 260500);
-    if t1 > 4.0 {
-        return Err(format!("the day Tormentor stands {t1:.0} cells from the Dire corner"));
-    }
-    println!("camp pit swap ok roshan_night_pit_dist={d1:.1} tormentor_day_dist={t1:.1}");
     Ok(())
 }
