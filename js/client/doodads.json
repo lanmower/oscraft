@@ -2,5 +2,10 @@
   "rock": "models/rock-a.glb",
   "tree": "models/tree.glb",
   "crystal": "models/resource-stone.glb",
-  "debris": "models/barrel.glb"
+  "debris": "models/barrel.glb",
+  "base": "models/building-a.glb",
+  "shop": "models/stall.glb",
+  "fountain": "models/fountain-round.glb",
+  "lane": "models/flag-pennant.glb",
+  "camp": "models/campfire-pit.glb"
 }
