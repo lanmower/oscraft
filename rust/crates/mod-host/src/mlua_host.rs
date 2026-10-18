@@ -1752,14 +1752,14 @@ mod tests {
         build_image(&scenario).expect("moba image")
     }
 
-    // Two creeps in the middle lane, one per side and 22 tiles apart, past each other's sight, so only a command makes them fight.
+    // Two creeps on the middle lane (y = 30), one per side and 22 tiles apart, past each other's sight, so only a command makes them fight.
     fn host_with_creeps() -> ModHost {
         let mut host = ModHost::new(&moba_image()).expect("moba image loads");
         let (a, b) = {
             let mut sim = host.sim();
             let creep = sim.catalog().unit_index("creep").expect("moba has a creep") as u32;
-            let a = sim.spawn_for(0, creep, sim::fixed::from_int(8), sim::fixed::from_int(12)).expect("creep a");
-            let b = sim.spawn_for(1, creep, sim::fixed::from_int(30), sim::fixed::from_int(12)).expect("creep b");
+            let a = sim.spawn_for(0, creep, sim::fixed::from_int(14), sim::fixed::from_int(30)).expect("creep a");
+            let b = sim.spawn_for(1, creep, sim::fixed::from_int(36), sim::fixed::from_int(30)).expect("creep b");
             (a, b)
         };
         host.state().set("attacker", a as i64).expect("state");
@@ -1768,18 +1768,15 @@ mod tests {
     }
 
     // A command queued from on_tick applies in the next advance, so the tests advance once to queue and once more to apply.
-    // The sim never chases: a commanded attack moves the attacker toward its target until the target is in weapon reach.
+    // The sim never chases: a commanded attack sends the attacker one A* leg toward its target, so the mod
+    // re-issues it every tick until the target is in weapon reach.
     #[test]
     fn cmd_attack_moves_the_attacker_into_weapon_reach_of_the_target() {
         let mut host = host_with_creeps();
         host.sim().set_fog(false);
         host.load_source("attack", r#"
-            local queued = false
             function on_tick(state)
-              if not queued then
-                game.cmd_attack(state.attacker, state.target)
-                queued = true
-              end
+              game.cmd_attack(state.attacker, state.target)
             end
         "#).expect("mod loads");
         let (a, b) = (host.state().get::<i64>("attacker").expect("attacker") as usize, host.state().get::<i64>("target").expect("target") as usize);
@@ -1879,7 +1876,8 @@ mod tests {
         assert!(err.to_string().contains("invalid_slot"), "wrong error: {err}");
     }
 
-    // A creep has no ability in slot 0, so the sim refuses the cast. The refusal shows the queued command reached the sim.
+    // A creep has no ability in slot 0, so the sim refuses the cast as NoSlot. Other units idling on the map are refused
+    // for their own unlearned skills, so only the NoSlot count shows the queued command reached the sim.
     #[test]
     fn cmd_cast_reaches_the_sim_and_is_refused_when_the_unit_has_no_such_ability() {
         let mut host = host_with_creeps();
@@ -1888,9 +1886,10 @@ mod tests {
               game.cmd_cast(state.attacker, 0, -1, 11 * 65536, 12 * 65536)
             end
         "#).expect("mod loads");
-        let before = host.sim().stats.casts_refused;
+        let no_slot = |host: &ModHost| host.sim().stats.refused_by[Refusal::NoSlot as usize];
+        let before = no_slot(&host);
         host.advance(&host.state().clone()).expect("queue");
         host.advance(&host.state().clone()).expect("apply");
-        assert_eq!(host.sim().stats.casts_refused, before + 1);
+        assert_eq!(no_slot(&host), before + 1);
     }
 }
