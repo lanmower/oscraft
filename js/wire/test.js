@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { FRAME, WIRE_VERSION, WireError, encodeFrame, decodeFrame, frameTypeName } from './frame.js';
+import { createSeating, createStateEncoder, applyFrame, startFrame } from '../client/delta.js';
+import { emptyLobby, reduceLobby } from '../client/lobby.js';
+import { FRAME, SPECTATOR, WIRE_VERSION, WireError, encodeFrame, decodeFrame, frameTypeName } from './frame.js';
 
 const samples = [
   { type: FRAME.ORDER, unitId: 0, x: 0, y: 0 },
@@ -22,11 +24,24 @@ const samples = [
   { type: FRAME.CAST, unitId: 0xffffffff, slot: 255, target: 0x7fffffff, x: -0x80000000, y: 0x7fffffff },
   { type: FRAME.ATTACK, unitId: 4, targetId: -1 },
   { type: FRAME.ATTACK, unitId: 0xffffffff, targetId: 0x7fffffff },
+  { type: FRAME.JOIN, lastTick: 0 },
+  { type: FRAME.JOIN, lastTick: 0xffffffff },
+  { type: FRAME.ROSTER, you: 255, team: 255, players: [] },
+  { type: FRAME.START, seats: [] },
   { type: FRAME.HELLO, room: '' },
   { type: FRAME.HELLO, room: 'lobby-ünïcode' },
   { type: FRAME.ERROR, code: 0, message: '' },
   { type: FRAME.ERROR, code: 404, message: 'room not found' },
 ];
+
+const tenUnits = Array.from({ length: 10 }, (_, p) => ({ id: p + 1, kind: 1, player: p, x: p * 100, y: 7 - p * 100, hp: 1000 - p }));
+samples.push({ type: FRAME.STATE, tick: 7, hash: 1, units: tenUnits });
+samples.push({ type: FRAME.DELTA, tick: 8, hash: 2, units: tenUnits, removed: [] });
+samples.push({
+  type: FRAME.ROSTER, you: 7, team: 1,
+  players: Array.from({ length: 10 }, (_, p) => ({ slot: p, team: p < 5 ? 0 : 1, connected: p % 2, gold: 500 * p - 1, kills: p, deaths: 65535 - p })),
+});
+samples.push({ type: FRAME.START, seats: Array.from({ length: 10 }, (_, p) => ({ slot: p, owner: `${p}`.repeat(64), hero: 'hero' })) });
 
 const typesSeen = new Set();
 let roundtrip = 0;
@@ -74,6 +89,56 @@ expectReject(Uint8Array.from([FRAME.DELTA, WIRE_VERSION, 0, 0, 0, 0, 0, 0, 0, 0,
 assert.throws(() => encodeFrame({ type: FRAME.ORDER, unitId: -1, x: 0, y: 0 }), WireError);
 assert.throws(() => encodeFrame({ type: FRAME.HELLO, room: 'x'.repeat(65) }), WireError);
 
+expectReject(Uint8Array.from([FRAME.ROSTER, WIRE_VERSION, 0, 0, 11]), 'COUNT_OUT_OF_RANGE', 'roster above ten players');
+expectReject(Uint8Array.from([FRAME.START, WIRE_VERSION, 11]), 'COUNT_OUT_OF_RANGE', 'start above ten seats');
+assert.throws(() => encodeFrame({ type: FRAME.ROSTER, you: 0, team: 0, players: tenUnits.concat(tenUnits[0]) }), WireError);
+
+// Lobby start -> START frame -> host seating -> ROSTER per peer, with a late join and a reconnect.
+let lobby = emptyLobby();
+const keys = Array.from({ length: 10 }, (_, p) => `peer${p}`.padEnd(64, 'k'));
+keys.forEach((playerId, slot) => {
+  for (const action of [{ type: 'claim', slot }, { type: 'pick', slot, hero: 'hero' }, { type: 'ready', slot, ready: true }]) {
+    const r = reduceLobby(lobby, { playerId, ...action });
+    assert.equal(r.error, null);
+    lobby = r.state;
+  }
+});
+const started = reduceLobby(lobby, { type: 'start', playerId: keys[0] });
+assert.equal(started.error, null);
+const sent = decodeFrame(encodeFrame(startFrame(started.state)));
+assert.equal(sent.seats.length, 10);
+const seating = createSeating();
+assert.equal(seating.start(sent.seats), 10);
+for (const [i, key] of keys.entries()) {
+  const mine = decodeFrame(encodeFrame(seating.join(key) && seating.roster(key)));
+  assert.equal(mine.you, i);
+  assert.equal(mine.team, i < 5 ? 0 : 1);
+  assert.equal(mine.players.length, 10);
+}
+assert.equal(seating.roster('stranger').you, SPECTATOR);
+seating.leave(keys[3]);
+assert.equal(seating.roster(keys[0]).players[3].connected, 0);
+assert.equal(seating.join(keys[3]).you, 3, 'reconnect keeps the seat');
+const resumed = createSeating();
+resumed.restore(seating.export());
+assert.equal(resumed.seat(keys[8]).you, 8, 'snapshot restore keeps the seats');
+
+// A late joiner gets a baseline on the next frame and then follows the deltas.
+const encoder = createStateEncoder();
+encoder.encode(1, 0, tenUnits);
+encoder.encode(2, 0, tenUnits);
+encoder.keyframe();
+const lateFrame = decodeFrame(encodeFrame(encoder.encode(3, 0, tenUnits)));
+assert.equal(lateFrame.type, FRAME.STATE);
+const lateView = new Map();
+assert.ok(applyFrame(lateView, lateFrame));
+const next = decodeFrame(encodeFrame(encoder.encode(4, 0, tenUnits.map((u) => ({ ...u, hp: u.hp - 1 })))));
+assert.equal(next.type, FRAME.DELTA);
+applyFrame(lateView, next);
+assert.equal(lateView.size, 10);
+assert.equal(new Set([...lateView.values()].map((u) => u.player)).size, 10);
+
 const types = typesSeen.size;
 assert.equal(types, Object.keys(FRAME).length, 'every frame type round-trips');
 console.log(`wire frames ok types=${types} roundtrip=${roundtrip}`);
+console.log('net ten ok players=10');

@@ -1,10 +1,15 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10 });
 
 export const MAX_UNITS = 1024;
 export const MAX_ROOM_BYTES = 64;
 export const MAX_MESSAGE_BYTES = 256;
+export const MAX_PLAYERS = 10;
+export const TEAM_SIZE = 5;
+export const MAX_OWNER_BYTES = 64;
+export const MAX_HERO_BYTES = 32;
+export const SPECTATOR = 255;
 
 const U32 = 0xffffffff;
 const I32_MIN = -0x80000000;
@@ -148,6 +153,73 @@ const CODECS = {
       const removed = [];
       for (let i = 0; i < removedCount; i++) removed.push(r.u32());
       return { tick, hash, units, removed };
+    },
+  },
+  // The host tells one peer which player it is (SPECTATOR when no seat is free) and sends the per-player data of every seat.
+  [FRAME.ROSTER]: {
+    size: (f) => 2 + 1 + 1 + 1 + f.players.length * (1 + 1 + 1 + 4 + 2 + 2),
+    write(w, f) {
+      if (f.players.length > MAX_PLAYERS) throw new WireError('RANGE', `players ${f.players.length} > ${MAX_PLAYERS}`);
+      w.u8(f.you, 'you');
+      w.u8(f.team, 'team');
+      w.u8(f.players.length, 'playerCount');
+      for (const p of f.players) {
+        w.u8(p.slot, 'slot');
+        w.u8(p.team, 'playerTeam');
+        w.u8(p.connected, 'connected');
+        w.i32(p.gold, 'gold');
+        w.u16(p.kills, 'kills');
+        w.u16(p.deaths, 'deaths');
+      }
+    },
+    read(r) {
+      const you = r.u8();
+      const team = r.u8();
+      const count = r.u8();
+      if (count > MAX_PLAYERS) throw new WireError('COUNT_OUT_OF_RANGE', `players ${count} > ${MAX_PLAYERS}`);
+      const players = [];
+      for (let i = 0; i < count; i++) {
+        players.push({ slot: r.u8(), team: r.u8(), connected: r.u8(), gold: r.i32(), kills: r.u16(), deaths: r.u16() });
+      }
+      return { you, team, players };
+    },
+  },
+  // A peer asks for the current state: lastTick 0 on a fresh join, the last applied tick on a reconnect.
+  [FRAME.JOIN]: {
+    size: () => 2 + 4,
+    write(w, f) { w.u32(f.lastTick, 'lastTick'); },
+    read(r) { return { lastTick: r.u32() }; },
+  },
+  // The lobby start action: the seats in slot order, each with its owner key and hero.
+  [FRAME.START]: {
+    size: (f) => 2 + 1 + f.seats.reduce((n, s) => n + 1 + 1 + utf8(s.owner, MAX_OWNER_BYTES, 'owner').length + 1 + utf8(s.hero, MAX_HERO_BYTES, 'hero').length, 0),
+    write(w, f) {
+      if (f.seats.length > MAX_PLAYERS) throw new WireError('RANGE', `seats ${f.seats.length} > ${MAX_PLAYERS}`);
+      w.u8(f.seats.length, 'seatCount');
+      for (const s of f.seats) {
+        const owner = utf8(s.owner, MAX_OWNER_BYTES, 'owner');
+        const hero = utf8(s.hero, MAX_HERO_BYTES, 'hero');
+        w.u8(s.slot, 'slot');
+        w.u8(owner.length, 'ownerLength');
+        w.raw(owner);
+        w.u8(hero.length, 'heroLength');
+        w.raw(hero);
+      }
+    },
+    read(r) {
+      const count = r.u8();
+      if (count > MAX_PLAYERS) throw new WireError('COUNT_OUT_OF_RANGE', `seats ${count} > ${MAX_PLAYERS}`);
+      const seats = [];
+      for (let i = 0; i < count; i++) {
+        const slot = r.u8();
+        const ownerLength = r.u8();
+        if (ownerLength > MAX_OWNER_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `owner ${ownerLength} > ${MAX_OWNER_BYTES}`);
+        const owner = decoder.decode(r.take(ownerLength));
+        const heroLength = r.u8();
+        if (heroLength > MAX_HERO_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `hero ${heroLength} > ${MAX_HERO_BYTES}`);
+        seats.push({ slot, owner, hero: decoder.decode(r.take(heroLength)) });
+      }
+      return { seats };
     },
   },
   [FRAME.HELLO]: {
