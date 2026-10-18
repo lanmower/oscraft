@@ -223,6 +223,24 @@ These queue commands like `game.victory`. The room stamps each with an id and ti
 when the client page is opened with `?events=<server origin>` and draws the log, banners, panels and camera moves.
 In-browser hosts call `window.__modUi.push(event)` with the same objects.
 
+### Key bindings, panels and HUD text (client)
+
+The MOBA controls read `js/client/moba_ui.json`: the key for each action (`keys`), the double-tap window, the
+team of each player slot (`teams`) and every HUD string (`text`, `{name}` placeholders). Replacing that file
+replaces the defaults.
+
+| Event (`GET /events` or `push`) | Effect |
+|---|---|
+| `{kind="bind", key="f", action="stop"}` | `f` runs the built-in action `stop` (also `attackMove`, `hold`, `scoreboard`, `shop`) |
+| `{kind="bind", key="f", action="<name>"}` | `f` dispatches `moba:action` with `{action: "custom", name: "<name>"}` for a mod's own listener |
+| `{kind="unbind", key="f"}` | removes a runtime bind |
+
+Key handling lives in `js/client/moba_input.js`; panels react to window events `moba:action` (`detail.action`
+is `shop`, `scoreboard`, `custom` or a built-in name). A mod that adds a panel listens for those events and draws
+its own DOM with `data-ui="<name>"` so clicks on it are not taken as ground clicks. The Lua call that emits
+`bind` and `unbind` (`game.bind`, `game.unbind`) is not in the Lua host yet; the client side accepts the events.
+A runtime change to the layer's settings: `window.dispatchEvent(new CustomEvent("moba:config", {detail: {...}}))`.
+
 ## Gap list against the map-editor modding of earlier RTS and arena games
 
 Status: done (in the API), partial (a piece exists), missing (not in the API).

@@ -1,12 +1,17 @@
-// MOBA HUD and controls. createHud returns one object that play.js wires: pointer and key handlers route
-// through injected commands (local sim or wireweave host), update() refreshes the HUD text, winner banner,
-// unit health bars and minimap from the wasm Game each frame.
+// MOBA HUD and controls. createHud builds the input layer (moba_input.js) and the panels: selection, minimap and
+// scoreboard. Text and key bindings come from moba_ui.json. update() refreshes them from the wasm Game each frame,
+// along with the winner banner and unit health bars. Left pointer and key input is handled by the input layer, so
+// onKey and the left-click part of onPointerUp are no-ops kept for play.js.
 
 import { cellKind, voidMask } from "./tiles.js";
+import UI from "./moba_ui.json" with { type: "json" };
+import { fill } from "./moba_select.js";
+import { createMobaInput, centreCamera } from "./moba_input.js";
+import { createMinimap } from "./ui_minimap.js";
+import { createSelectionPanel } from "./ui_selection.js";
+import { createScoreboard } from "./ui_scoreboard.js";
 
 const TICK_S = 0.1;
-const ABILITY_SLOTS = { q: 0, w: 1, e: 2 };
-const ATTACK_KEY = "a";
 const RIGHT_BUTTON = 2;
 const BAR_WIDTH_PX = 20;
 const BAR_HEIGHT_PX = 3;
@@ -45,20 +50,47 @@ function walkableLayer(grid) {
 export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, select, localPlayer, commands, pick, toWorld, toScreen, playerColor }) {
   const maxHp = new Map();
   const barCtx = barCanvas.getContext("2d");
-  minimapEl.height = Math.max(1, Math.round((minimapEl.width * mapSize.h) / mapSize.w));
-  minimapEl.style.height = `${minimapEl.height}px`;
-  const minimapCtx = minimapEl.getContext("2d");
   const lanes = walkableLayer(grid);
-  let attackArmed = false;
   // The clock reads 0:00 at the horn (the lobby's "oscraft:horn" event). Before the horn the match is in pre-match.
   let hornTicks = null;
   window.addEventListener("oscraft:horn", () => {
     if (game && typeof game.ticks === "function") hornTicks = game.ticks();
   });
 
+  const hasHeroes = typeof game.attributes === "function";
+  const isHero = (id) => hasHeroes && game.attributes(id).some((v) => v !== 0);
+  const typeNames = typeof game.unit_model_names === "function" ? game.unit_model_names() : [];
+  const unitName = (type) => typeNames[type] || UI.text.unitUnknown;
+
+  const input = createMobaInput({ game, units, localPlayer, pick, toWorld, toScreen, commands, isHero, select, config: UI });
+
+  function viewRect() {
+    const corners = [[0, 0], [window.innerWidth, 0], [0, window.innerHeight], [window.innerWidth, window.innerHeight]].map(([x, y]) => toWorld(x, y));
+    return {
+      x0: Math.min(...corners.map((c) => c.x)),
+      z0: Math.min(...corners.map((c) => c.z)),
+      x1: Math.max(...corners.map((c) => c.x)),
+      z1: Math.max(...corners.map((c) => c.z)),
+    };
+  }
+
+  const minimap = createMinimap({
+    canvas: minimapEl,
+    mapSize,
+    lanes,
+    units,
+    selected,
+    localPlayer,
+    playerColor,
+    teams: UI.teams,
+    viewRect,
+    centre: centreCamera,
+  });
+  const selectionPanel = createSelectionPanel({ game, input, units, localPlayer, unitName, isHero });
+  const scoreboard = createScoreboard({ game, units, localPlayer, unitName, isHero, teams: UI.teams });
+
   function clockText(hasGame) {
-    if (!hasGame) return "pre-match";
-    if (hornTicks === null) return "pre-match";
+    if (!hasGame || hornTicks === null) return UI.text.preMatch;
     return formatClock(game.ticks() - hornTicks);
   }
 
@@ -96,74 +128,41 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     return drawn;
   }
 
-  function drawMinimap(list) {
-    minimapCtx.fillStyle = "#2a343c";
-    minimapCtx.fillRect(0, 0, minimapEl.width, minimapEl.height);
-    if (lanes) minimapCtx.drawImage(lanes, 0, 0, minimapEl.width, minimapEl.height);
-    for (const u of list) {
-      const [r, g, b] = playerColor(u.player);
-      minimapCtx.fillStyle = u.id === selected() ? "#ffffff" : `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
-      minimapCtx.fillRect((u.x / mapSize.w) * minimapEl.width - 2, (u.z / mapSize.h) * minimapEl.height - 2, 4, 4);
-    }
-    return list.length;
-  }
-
   function update() {
     const list = units();
     const hasGame = game && typeof game.gold === "function";
     const gold = hasGame ? game.gold(localPlayer()) : 0;
     const winner = hasGame ? game.winner() : -1;
-    const hp = selected() >= 0 && hasGame ? game.unit_hp(selected()) : -1;
-    hudEl.textContent = `hp ${hp >= 0 ? hp : "-"}   gold ${gold}   time ${clockText(hasGame)}`;
+    const primary = input.selection()[0];
+    const hp = primary !== undefined && hasGame ? game.unit_hp(primary) : -1;
+    hudEl.textContent = fill(UI.text.hud, { hp: hp >= 0 ? hp : UI.text.noValue, gold, time: clockText(hasGame) });
     winEl.hidden = winner < 0;
     if (winner >= 0) winEl.textContent = postGameText(winner);
     const bars = drawBars(list);
-    const dots = drawMinimap(list);
+    const dots = minimap.draw(list);
+    selectionPanel.update();
+    scoreboard.update();
+    input.draw();
     const body = document.body.dataset;
     body.gold = String(gold);
     body.winner = String(winner);
     body.hp = String(hp);
     body.bars = String(bars);
     body.minimap = String(dots);
+    body.selected = String(input.selection().length);
     return { gold, winner, hp };
   }
 
-  function issueMove(e) {
-    const world = toWorld(e.clientX, e.clientY);
-    const unit = units().find((u) => u.id === selected());
-    if (!unit) return false;
-    return commands.order(unit.id, world.x, world.z);
-  }
-
+  // Right-click is routed here by play.js (its pointer-up on the canvas); left clicks and drags never reach it.
   function onPointerUp(e) {
-    const world = toWorld(e.clientX, e.clientY);
-    if (e.button === RIGHT_BUTTON) {
-      const target = pick(world);
-      if (target && target.player !== localPlayer() && selected() >= 0) return commands.attack(selected(), target.id);
-      return issueMove(e);
-    }
-    if (attackArmed) {
-      attackArmed = false;
-      const target = pick(world);
-      return target && selected() >= 0 ? commands.attack(selected(), target.id) : false;
-    }
-    const hit = pick(world);
-    select(hit ? hit.id : -1);
-    return true;
+    if (e.button !== RIGHT_BUTTON) return false;
+    return input.commandAt(e);
   }
 
-  function onKey(key, pointer) {
-    if (selected() < 0) return false;
-    const k = key.toLowerCase();
-    if (k === ATTACK_KEY) {
-      attackArmed = true;
-      return true;
-    }
-    if (!(k in ABILITY_SLOTS)) return false;
-    const world = pointer ? toWorld(pointer.x, pointer.y) : { x: 0, z: 0 };
-    const target = pick(world);
-    return commands.cast(selected(), ABILITY_SLOTS[k], target ? target.id : -1, world.x, world.z);
+  // Keys are read by the input layer on window, so the page's key hook has nothing left to do.
+  function onKey() {
+    return false;
   }
 
-  return { update, onPointerUp, onKey, drawBars, drawMinimap };
+  return { update, onPointerUp, onKey, drawBars, input };
 }

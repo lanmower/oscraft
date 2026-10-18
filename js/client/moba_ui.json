@@ -1,0 +1,32 @@
+{
+  "keys": {
+    "attackMove": ["a"],
+    "stop": ["s"],
+    "hold": ["h"],
+    "scoreboard": ["tab"],
+    "shop": ["b", "p"],
+    "cast": { "q": 0, "w": 1, "e": 2, "r": 3, "t": 4 },
+    "skillUp": { "modifier": "ctrl", "keys": { "q": 0, "w": 1, "e": 2, "r": 3, "t": 4 } },
+    "group": { "modifier": "ctrl", "keys": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+    "custom": {}
+  },
+  "doubleTapMs": 350,
+  "dragSlopPx": 4,
+  "teams": [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+  "text": {
+    "hud": "hp {hp}   gold {gold}   time {time}",
+    "preMatch": "pre-match",
+    "noValue": "-",
+    "unitUnknown": "unit",
+    "healthLabel": "hp",
+    "manaLabel": "mana",
+    "cooldownSuffix": "s",
+    "groupTitle": "selected {n}",
+    "shopTitle": "Shop  gold {gold}",
+    "shopRefusal": "cannot buy {item}: need a shop in reach, gold and a free slot",
+    "inventoryLabel": "inventory",
+    "stashLabel": "stash",
+    "scoreboardTitle": "Scoreboard",
+    "scoreboardHeaders": ["player", "hero", "level", "K", "D", "A", "gold"]
+  }
+}
