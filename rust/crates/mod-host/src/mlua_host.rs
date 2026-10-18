@@ -239,6 +239,7 @@ pub const HOST_GLOBALS: &[&str] = &[
     "get_unit_count",
     "define_region",
     "in_region",
+    "region_bounds",
     "schedule",
     "cancel",
     "order_unit",
@@ -401,6 +402,15 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             let regions = r.borrow();
             let region = regions.iter().find(|g| g.name == name).ok_or_else(|| unknown_region(&name))?;
             Ok(region.contains(x, y))
+        })?,
+    )?;
+    let r = regions.clone();
+    env.set(
+        "region_bounds",
+        lua.create_function(move |_, name: String| {
+            let regions = r.borrow();
+            let g = regions.iter().find(|g| g.name == name).ok_or_else(|| unknown_region(&name))?;
+            Ok((i64::from(g.x0), i64::from(g.y0), i64::from(g.x1), i64::from(g.y1)))
         })?,
     )?;
     let t = timers.clone();

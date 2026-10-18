@@ -162,7 +162,7 @@ function env.cancel(name)
   end
   return false
 end
-local host = { define_region = env.define_region, unit_position = env.unit_position, in_region = env.in_region, schedule = env.schedule, cancel = env.cancel }
+local host = { define_region = env.define_region, unit_position = env.unit_position, in_region = env.in_region, region_bounds = env.region_bounds, schedule = env.schedule, cancel = env.cancel }
 install(game, { global = {}, player = {}, unit = {}, score = {} }, host, max_players)
 local function emit(event, ...)
   local handler = env[event]
@@ -359,6 +359,12 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         let name = text(c, s.get(0), 0)?;
         let (x, y) = (fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
         let hit = sh.borrow().regions.iter().find(|g| g.name == name).map(|g| g.contains(x, y));
+        s.replace(c, hit.ok_or_else(|| fail(c, format!("unknown_region: {name}")))?);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, env, "region_bounds", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let hit = sh.borrow().regions.iter().find(|g| g.name == name).map(|g| (i64::from(g.x0), i64::from(g.y0), i64::from(g.x1), i64::from(g.y1)));
         s.replace(c, hit.ok_or_else(|| fail(c, format!("unknown_region: {name}")))?);
         Ok(CallbackReturn::Return)
     });

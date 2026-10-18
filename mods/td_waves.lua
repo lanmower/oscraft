@@ -1,11 +1,25 @@
 -- Tower defense waves: a repeating timer sends creeps at a goal region, each one that reaches it
--- costs a life, and the last life lost defeats player 0. Uses game.timer, game.region, the
--- variable stores, the score tally and game.defeat. Uses only the mod API.
+-- costs a life, and the last life lost defeats player 0. Uses game.timer, game.region,
+-- game.region_center, the variable stores, the score tally and game.defeat. Uses only the mod API.
 
 local TILE = 65536
 local SPAWN_X, SPAWN_Y = 8 * TILE, 12 * TILE
-local GOAL = { x0 = 13 * TILE, y0 = 10 * TILE, x1 = 16 * TILE, y1 = 14 * TILE }
 local LIVES = 3
+
+game.region("goal", 13 * TILE, 10 * TILE, 16 * TILE, 14 * TILE, {
+  enter = function(unit)
+    if game.unit_var(unit, "wave") == nil or game.unit_var(unit, "leaked") then return end
+    game.unit_var(unit, "leaked", true)
+    local lives = game.player_var(1, "lives") - 1
+    game.player_var(1, "lives", lives)
+    game.add_score(1, 1)
+    if lives <= 0 then
+      game.cancel_timer("wave")
+      game.defeat(0)
+    end
+  end,
+})
+local GOAL_X, GOAL_Y = game.region_center("goal")
 
 if game.player_var(1, "lives") == nil then game.player_var(1, "lives", LIVES) end
 
@@ -19,21 +33,7 @@ game.trigger("on_spawned", {
   conditions = { is_wave_creep },
   action = function(unit)
     game.unit_var(unit, "wave", game.var("waves"))
-    game.cmd_order(unit, (GOAL.x0 + GOAL.x1) // 2, (GOAL.y0 + GOAL.y1) // 2)
-  end,
-})
-
-game.region("goal", GOAL.x0, GOAL.y0, GOAL.x1, GOAL.y1, {
-  enter = function(unit)
-    if game.unit_var(unit, "wave") == nil or game.unit_var(unit, "leaked") then return end
-    game.unit_var(unit, "leaked", true)
-    local lives = game.player_var(1, "lives") - 1
-    game.player_var(1, "lives", lives)
-    game.add_score(1, 1)
-    if lives <= 0 then
-      game.cancel_timer("wave")
-      game.defeat(0)
-    end
+    game.cmd_order(unit, GOAL_X, GOAL_Y)
   end,
 })
 
