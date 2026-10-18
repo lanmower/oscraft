@@ -91,6 +91,7 @@ impl Sim {
     /// refresh, for this tick only; units, orders and buffs still run every tick.
     pub fn tick_with_cadence(&mut self, run_paths: bool, run_vision: bool) {
         let mut mark = clock();
+        self.in_tick = true;
         self.rebucket();
         mark = lap(System::Rebucket, mark);
         self.scan_left = RETARGET_BUDGET;
@@ -165,6 +166,7 @@ impl Sim {
         }
         self.fire_destroyed();
         lap(System::Units, mark);
+        self.in_tick = false;
         self.ticks = self.ticks.wrapping_add(1);
         self.day_clock = (self.day_clock + 1) % (DAY_TICKS + NIGHT_TICKS);
     }

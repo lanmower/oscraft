@@ -205,6 +205,17 @@ impl Sim {
             h.bytes(&v.to_le_bytes());
         }
         h.bytes(&self.controller);
+        h.bytes(&self.heroes.is_hero);
+        h.i32s(&self.heroes.home_x);
+        h.i32s(&self.heroes.home_y);
+        h.bytes(&self.heroes.waiting);
+        h.u32s(&self.heroes.respawn_at);
+        h.u32s(&self.heroes.buyback_ready);
+        h.i32s(&self.heroes.gold);
+        h.i32s(&self.heroes.mana_max);
+        h.i32s(&self.heroes.spot_x);
+        h.i32s(&self.heroes.spot_y);
+        h.bytes(format!("{:?}{:?}", self.heroes.rules, self.heroes.defs).as_bytes());
         h.u64s(&[
             self.stats.deaths as u64,
             self.stats.vision_refreshes as u64,

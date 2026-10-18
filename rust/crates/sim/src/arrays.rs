@@ -210,6 +210,8 @@ pub struct Sim {
     pub(crate) log_y: Vec<i32>,
     pub(crate) log_len: usize,
     pub(crate) log_dropped: u64,
+    /// True while `tick_with_cadence` runs; orders issued inside a tick are re-derived by the tick on replay, so they are not logged.
+    pub(crate) in_tick: bool,
 
     pub(crate) bucket_n: Vec<u8>,
     pub(crate) bucket_idx: Vec<u32>,
@@ -395,6 +397,7 @@ impl Sim {
             log_y: vec![0; ORDER_LOG_CAP],
             log_len: 0,
             log_dropped: 0,
+            in_tick: false,
             m_caster: vec![-1; MISSILE_CAP],
             m_ability: vec![-1; MISSILE_CAP],
             m_target: vec![-1; MISSILE_CAP],
@@ -909,8 +912,12 @@ impl Sim {
     }
 
     /// Appends an accepted order of unit `i` (its kind and resulting destination, at the current
-    /// tick). A full log counts the order as dropped instead of storing it.
+    /// tick). Orders the tick itself issues are skipped: replaying the logged inputs re-derives them.
+    /// A full log counts the order as dropped instead of storing it.
     pub(crate) fn record_order(&mut self, i: usize) {
+        if self.in_tick {
+            return;
+        }
         if self.log_len >= ORDER_LOG_CAP {
             self.log_dropped += 1;
             return;
