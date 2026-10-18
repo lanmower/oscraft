@@ -3,7 +3,7 @@
 -- game.cmd_cast, the gold commands and game.victory. Uses only the mod API.
 
 local TILE = 65536
-local SPAWN_X, SPAWN_Y = 20 * TILE, 40 * TILE
+local SPAWN_X, SPAWN_Y = 60 * TILE, 120 * TILE
 
 game.ability("frost_nova", {
   cooldown = 50,
@@ -18,7 +18,7 @@ game.ability("frost_nova", {
 local function is_caster(unit)
   if game.unit_kind(unit) ~= "creep" then return false end
   local x, y = unit_position(unit)
-  return x == SPAWN_X and y == SPAWN_Y
+  return x - SPAWN_X <= 2 * TILE and SPAWN_X - x <= 2 * TILE and y - SPAWN_Y <= 2 * TILE and SPAWN_Y - y <= 2 * TILE
 end
 
 game.trigger("on_spawned", {
