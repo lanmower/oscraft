@@ -446,16 +446,15 @@ pub fn moba_creeps(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// A creep ordered from the side 0 base to a point in the north lane, west of the jungle, walks the connector column
-/// and stays on open cells. The jungle detour to that point is longer than the connector, so passing this check means
-/// the route followed the lanes.
+/// A creep ordered from the side 0 base to the second waypoint of player 0's top lane route walks the corridor
+/// between them (rows 190 to 215) and stays on open cells, so passing this check means the route followed the lane.
 pub fn moba_lane(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&moba_image()?)?;
     let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
     let (ox, oy) = s.position_fixed(own);
     let k = kind(&s, "creep")?;
     let creep = s.spawn_for(0, k, ox, oy).ok_or("spawn_for refused a creep at the side 0 base")?;
-    let (gx, gy) = (fixed::from_milli(4500), fixed::from_milli(8500));
+    let (gx, gy) = (fixed::from_milli(61922), fixed::from_milli(177125));
     s.order(creep, gx, gy);
     let one_tile = i64::from(fixed::from_int(1));
     let mut connector = false;
@@ -469,7 +468,7 @@ pub fn moba_lane(_image: &[u8]) -> Result<(), String> {
         if !s.grid().walkable(cx, cy) {
             return Err(format!("creep stands on a blocked cell ({cx}, {cy}) at tick {t}"));
         }
-        connector |= (4..10).contains(&cx) && cy < 11;
+        connector |= (56..80).contains(&cx) && (190..216).contains(&cy);
         let (dx, dy) = (i64::from(gx) - i64::from(x), i64::from(gy) - i64::from(y));
         if dx * dx + dy * dy <= one_tile * one_tile {
             if !connector {
