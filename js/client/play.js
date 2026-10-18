@@ -1035,12 +1035,25 @@ function groundY(terrain, x, z) {
 
 const DOODAD_TINT = [0.55, 0.5, 0.42];
 
-// Deterministic per-placement variety: a hash of the doodad id gives a value in [0, 1), so the map looks the same on every run.
+// Deterministic per-placement variety: a hash of the placement's own position (and a salt per property) gives a value in
+// [0, 1), so the map looks the same on every run and every placement differs from its neighbours.
 function unitHash(n) {
   let h = n | 0;
   h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
   h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function placementHash(x, y, salt) {
+  return unitHash(Math.imul(x | 0, 0x9e3779b1) ^ Math.imul(y | 0, 0x85ebca77) ^ Math.imul(salt, 0xc2b2ae3d));
+}
+// Tints multiply a doodad's colour (its texture, or its fallback colour when the model has no texture); index 0 is the plain model.
+const DOODAD_TINTS = [[1, 1, 1], [0.88, 0.92, 0.98], [1.08, 1.02, 0.9], [0.94, 1.05, 0.96]];
+const doodadVariants = new Map();
+function doodadVariant(base, kind, v) {
+  if (v === 0) return base;
+  const key = kind + ":" + v;
+  if (!doodadVariants.has(key)) doodadVariants.set(key, { ...base, tint: DOODAD_TINTS[v] });
+  return doodadVariants.get(key);
 }
 
 // Builds the 3D world from the staged assets: the terrain mesh from map.bin, doodads at their placements with
@@ -1056,12 +1069,13 @@ async function build3d(gl, game) {
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
   const s = 1 / terrain.cellMilli;
   const placed = readDoodads(mapBytes).flatMap((p) => {
-    const mesh = doodadByKind[p.kind];
-    if (!mesh) return [];
+    const base = doodadByKind[p.kind];
+    if (!base) return [];
     const x = p.x * s;
     const z = p.y * s;
-    const angle = (p.rotation / 1000) * 2 * Math.PI;
-    const k = 0.85 + 0.3 * unitHash(p.id * 3 + 1);
+    const angle = (p.rotation / 1000) * 2 * Math.PI + placementHash(p.x, p.y, 1) * 2 * Math.PI;
+    const k = 0.85 + 0.3 * placementHash(p.x, p.y, 2);
+    const mesh = doodadVariant(base, p.kind, Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length));
     return [{ mesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
   });
   doodadBatches = batchByMesh(placed);

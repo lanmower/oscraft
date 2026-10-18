@@ -106,16 +106,10 @@ const order = (r) => [r.tier, ["top", "mid", "bot", "base"].indexOf(r.lane)];
 towerRows.sort((a, b) => P(a.team) - P(b.team) || a.tier - b.tier || order(a)[1] - order(b)[1] || a.y - b.y);
 const raxRows = D.npc_dota_barracks.map((r) => ({ ...r, kind: /melee/.test(r.name) ? "barracks_melee" : "barracks_ranged" }));
 
-const heroLines = [], tenderLines = [], courierLines = [];
+const heroLines = [], courierLines = [];
 for (const s of starts) {
   const [x, y] = cellMilli(s.c);
   heroLines.push(`spawn("hero", ${s.p}, ${x}, ${y})`);
-}
-for (const s of starts) {
-  const f = fountains[s.team];
-  const c = nearestOpen(f.wx + (s.team ? -1 : 1) * 700, f.wy + (s.team ? 1 : -1) * 300 + (s.p >> 1) * 90, [...heroSpots[s.team]]);
-  const [x, y] = cellMilli(c);
-  tenderLines.push(`spawn("tender", ${s.p}, ${x}, ${y})`);
 }
 for (const f of fountains) {
   const c = nearestOpen(f.wx + (P(f.team) ? -1 : 1) * 380, f.wy + (P(f.team) ? 1 : -1) * 380, heroSpots[P(f.team)]);
@@ -250,17 +244,18 @@ function rects(valueAt, want) {
 const openRects = rects((x, y) => (blocked[y * N + x] ? 1 : 0), (v) => v === 0).map((r) => `paint(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, 0)`);
 const lvlRects = rects((x, y) => level[y * N + x], (v) => v !== 1).map((r) => `paint_height(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`);
 
-// Tile ids the client reads (js/client/tiles.js TILE_IDS): lane 2, dirt 3, water 4. Base high ground (level 2) is dirt.
+// Tile ids the client reads (js/client/tiles.js TILE_IDS): lane 2, dirt 3, water 4; every other open cell is grass.
 // A river cell (level 0) is water only when blocked, because tiles.js draws water on blocked cells alone. Lane cells are
 // the creep routes (tower waypoints per lane) rasterised LANE_HALF_WIDTH cells either side of each segment, on open cells.
-// Tiles never change walkability or height: they only pick the flat tile model drawn on each cell.
+// Dirt is limited to the zones around the bases and towers (footprint radius plus a margin) and a DIRT_LANE_EDGE rim
+// beside each lane; the rest stays grass. Tiles never change walkability or height: they only pick the flat tile model.
 const TILE = { lane: 2, dirt: 3, water: 4 };
 const LANE_HALF_WIDTH = 2;
+const DIRT_LANE_EDGE = 1;
+const BASE_DIRT_MARGIN = 2;
+const TOWER_DIRT_MARGIN = 1;
 const tiles = new Uint8Array(N * N);
-for (let i = 0; i < N * N; i++) {
-  if (!blocked[i] && level[i] === 2) tiles[i] = TILE.dirt;
-  if (blocked[i] && level[i] === 0) tiles[i] = TILE.water;
-}
+for (let i = 0; i < N * N; i++) if (blocked[i] && level[i] === 0) tiles[i] = TILE.water;
 function markLane(a, b) {
   const [ax, ay] = a, [bx, by] = b;
   const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy || 1;
@@ -280,6 +275,19 @@ for (const player of [0, 1]) {
     for (let k = 0; k + 1 < pts.length; k++) markLane(pts[k], pts[k + 1]);
   }
 }
+const footprintRadius = (bounds) => Math.max(1, Math.ceil(bounds / 2 / CELL_UNITS));
+const dirtZone = new Uint8Array(N * N);
+function stampZone(cellX, cellY, r) {
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (inb(cellX + dx, cellY + dy)) dirtZone[(cellY + dy) * N + cellX + dx] = 1;
+}
+for (const b of bases) stampZone(cx(b.wx), cy(b.wy), footprintRadius(b.b) + BASE_DIRT_MARGIN);
+for (const t of towerRows) stampZone(cx(t.x), cy(t.y), footprintRadius(t.bounds[0]) + TOWER_DIRT_MARGIN);
+for (let i = 0; i < N * N; i++) {
+  if (tiles[i] !== TILE.lane) continue;
+  const x0 = i % N, y0 = (i / N) | 0;
+  for (let dy = -DIRT_LANE_EDGE; dy <= DIRT_LANE_EDGE; dy++) for (let dx = -DIRT_LANE_EDGE; dx <= DIRT_LANE_EDGE; dx++) if (inb(x0 + dx, y0 + dy)) dirtZone[(y0 + dy) * N + x0 + dx] = 1;
+}
+for (let i = 0; i < N * N; i++) if (!blocked[i] && dirtZone[i] && tiles[i] === 0) tiles[i] = TILE.dirt;
 const tileRects = rects((x, y) => tiles[y * N + x], (v) => v !== 0).map((r) => `paint_tile(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`);
 const tileCount = (id) => tiles.reduce((a, v) => a + (v === id ? 1 : 0), 0);
 
@@ -303,7 +311,6 @@ const mapLines = [
   ...starts.map((s) => `start(${s.p}, ${cellMilli(s.c).join(", ")}, team=${s.team})`),
   ...bases.map((b) => thingLine({ unit: "base", player: P(b.team), wx: b.wx, wy: b.wy })),
   ...heroLines,
-  ...tenderLines,
   ...towerRows.map((t) => thingLine({ unit: tiers[t.tier], player: P(t.team), wx: t.x, wy: t.y })),
   ...raxRows.map((r) => thingLine({ unit: r.kind, player: P(r.team), wx: r.x, wy: r.y })),
   ...courierLines,

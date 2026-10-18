@@ -242,13 +242,13 @@ void main() {
 const FRAG = `#version 300 es
 precision mediump float;
 in vec3 vNormal; in vec2 vUv;
-uniform vec3 uColor; uniform bool uUseTex; uniform sampler2D uTex;
+uniform vec3 uColor; uniform vec3 uTint; uniform bool uUseTex; uniform sampler2D uTex;
 uniform float uAlpha; uniform bool uGlow; // optional additive blend mode (fx.js)
 out vec4 outColor;
 void main() {
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(vNormal), light), 0.0);
-  vec3 base = uUseTex ? texture(uTex, vUv).rgb : uColor;
+  vec3 base = (uUseTex ? texture(uTex, vUv).rgb : uColor) * uTint;
   outColor = uGlow ? vec4(base, uAlpha) : vec4(base * (0.3 + 0.7 * diffuse), 1.0);
 }`;
 
@@ -286,6 +286,7 @@ export function createRenderer(gl) {
     normal: gl.getUniformLocation(program, "uNormal"),
     viewProj: gl.getUniformLocation(program, "uViewProj"),
     color: gl.getUniformLocation(program, "uColor"),
+    tint: gl.getUniformLocation(program, "uTint"),
     useTex: gl.getUniformLocation(program, "uUseTex"),
     tex: gl.getUniformLocation(program, "uTex"),
     skinned: gl.getUniformLocation(program, "uSkinned"),
@@ -454,6 +455,7 @@ export function createRenderer(gl) {
 
   function bindMaterial(mesh) {
     gl.uniform3fv(uni.color, mesh.color || [1, 1, 1]);
+    gl.uniform3fv(uni.tint, mesh.tint || [1, 1, 1]);
     const glow = mesh.blend === "add";
     gl.uniform1i(uni.glow, glow ? 1 : 0);
     gl.uniform1f(uni.alpha, mesh.alpha ?? 1);
