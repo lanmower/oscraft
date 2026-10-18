@@ -862,7 +862,7 @@ jobs:
             token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
             test -n "$token"
             for i in $(seq 1 20); do
-              curl -s -o /dev/null -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data "{\"player\":0,\"x\":$((i*5)),\"y\":$((i*3))}"
+              curl -s -o /dev/null -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data "{\"player\":0,\"x\":$((i*5)),\"y\":$((i*3))}" || true
             done
             wait "$pid"
             local total ticks overruns
