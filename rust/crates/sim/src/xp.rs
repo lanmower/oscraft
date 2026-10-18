@@ -24,6 +24,9 @@ impl Sim {
             return false;
         }
         self.xp_curve = curve.to_vec();
+        for i in 0..self.n {
+            self.apply_hero_stats(i);
+        }
         true
     }
 

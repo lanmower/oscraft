@@ -200,6 +200,26 @@ impl Game {
         self.sim.hero_gold(unit as usize)
     }
 
+    /// Experience held by unit `unit`; 0 for an unknown unit.
+    pub fn xp(&self, unit: u32) -> u32 {
+        self.sim.xp(unit as usize)
+    }
+
+    /// Level of unit `unit`: the number of xp curve thresholds its xp has reached.
+    pub fn level(&self, unit: u32) -> u32 {
+        self.sim.level(unit as usize)
+    }
+
+    /// Strength, agility and intelligence of hero `unit` as `[str, agi, int]`; zeros for a non-hero.
+    pub fn attributes(&self, unit: u32) -> Vec<i32> {
+        self.sim.hero_attributes(unit as usize).to_vec()
+    }
+
+    /// Max mana of hero `unit` from its intelligence; 0 for a non-hero. A stat only: no mana pool yet.
+    pub fn max_mana(&self, unit: u32) -> i32 {
+        self.sim.hero_max_mana(unit as usize)
+    }
+
     /// Ticks left on ability `slot` of unit `unit` (0 when ready); -1 for an unknown unit or slot.
     pub fn ability_cooldown(&self, unit: u32, slot: u32) -> i32 {
         self.sim.ability_cooldown(unit as usize, slot as usize)

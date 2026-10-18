@@ -4,7 +4,19 @@
 //! `TICKS_PER_SECOND`. UNVERIFIED: the default values are placeholders, not sourced Dota 2 numbers.
 
 use crate::arrays::Sim;
+use crate::fixed;
 use crate::TICKS_PER_SECOND;
+
+/// Dota 2 stat coefficients the hero stats use. UNVERIFIED: recalled, not checked against a source.
+/// Max health gains 20 per strength point; max mana is 75 plus 12 per intelligence point; strength
+/// is the primary attribute, adding 1 damage per point (UNVERIFIED primary choice); each agility
+/// point adds 1/6 armour; regeneration adds 0.03 health per second per strength point.
+const HP_PER_STR: i32 = 20;
+const MANA_BASE: i32 = 75;
+const MANA_PER_INT: i32 = 12;
+const DAMAGE_PER_STR: i32 = 1;
+const ARMOUR_PER_AGI_DIV: i64 = 6;
+const HP_REGEN_PER_STR_Q16: i64 = 1966;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HeroRules {
@@ -16,6 +28,13 @@ pub struct HeroRules {
     pub buyback_cooldown_s: i32,
     pub passive_gold_per_s: i32,
     pub team_share_pct: i32,
+    /// Attributes at level 0, then the growth per level. UNVERIFIED growth values: placeholders.
+    pub str_base: i32,
+    pub agi_base: i32,
+    pub int_base: i32,
+    pub str_gain: i32,
+    pub agi_gain: i32,
+    pub int_gain: i32,
 }
 
 impl Default for HeroRules {
@@ -29,6 +48,12 @@ impl Default for HeroRules {
             buyback_cooldown_s: 150,
             passive_gold_per_s: 1,
             team_share_pct: 20,
+            str_base: 0,
+            agi_base: 0,
+            int_base: 0,
+            str_gain: 2,
+            agi_gain: 1,
+            int_gain: 1,
         }
     }
 }
@@ -58,6 +83,12 @@ impl HeroRules {
                 "buyback_cooldown_s" => &mut next.buyback_cooldown_s,
                 "passive_gold_per_s" => &mut next.passive_gold_per_s,
                 "team_share_pct" => &mut next.team_share_pct,
+                "str_base" => &mut next.str_base,
+                "agi_base" => &mut next.agi_base,
+                "int_base" => &mut next.int_base,
+                "str_gain" => &mut next.str_gain,
+                "agi_gain" => &mut next.agi_gain,
+                "int_gain" => &mut next.int_gain,
                 _ => return false,
             };
             *slot = v;
@@ -70,6 +101,12 @@ impl HeroRules {
             next.buyback_per_level,
             next.buyback_cooldown_s,
             next.passive_gold_per_s,
+            next.str_base,
+            next.agi_base,
+            next.int_base,
+            next.str_gain,
+            next.agi_gain,
+            next.int_gain,
         ]
         .iter()
         .all(|&v| v >= 0)
@@ -121,7 +158,56 @@ impl Sim {
         h.respawn_at[i] = 0;
         h.buyback_ready[i] = 0;
         h.gold[i] = 0;
+        self.apply_hero_stats(i);
+        self.hp[i] = self.hp_max[i];
         Some(i)
+    }
+
+    /// Strength, agility and intelligence of hero `i`: the level-0 base plus the growth per level.
+    /// All zero for a non-hero.
+    pub fn hero_attributes(&self, i: usize) -> [i32; 3] {
+        if !self.is_hero(i) {
+            return [0; 3];
+        }
+        let r = self.heroes.rules;
+        let lvl = self.level(i) as i32;
+        [r.str_base + r.str_gain * lvl, r.agi_base + r.agi_gain * lvl, r.int_base + r.int_gain * lvl]
+    }
+
+    /// Max mana of hero `i` from its intelligence. Zero for a non-hero. There is no mana pool yet,
+    /// so this is a stat only.
+    pub fn hero_max_mana(&self, i: usize) -> i32 {
+        if !self.is_hero(i) {
+            return 0;
+        }
+        MANA_BASE + MANA_PER_INT * self.hero_attributes(i)[2]
+    }
+
+    /// Recomputes the attribute-driven stats of live hero `i` from its catalog type and attributes:
+    /// max health, damage and armour. Health moves by the change in max, so a level-up adds the gain
+    /// and a death-free unit keeps its wounds. A non-hero or dead unit is left alone; revive and
+    /// spawn apply it once the unit is alive.
+    pub(crate) fn apply_hero_stats(&mut self, i: usize) {
+        if !self.is_hero(i) || !self.alive(i) || self.type_of[i] < 0 {
+            return;
+        }
+        let def = self.cat.units[self.type_of[i] as usize];
+        let [str_, agi, _] = self.hero_attributes(i);
+        let old_max = self.hp_max[i];
+        let new_max = fixed::from_int(def.health + HP_PER_STR * str_);
+        self.hp_max[i] = new_max;
+        self.hp[i] = (self.hp[i] + (new_max - old_max)).clamp(0, new_max);
+        self.armor[i] = fixed::from_int(def.armor) + (fixed::ONE as i64 * agi as i64 / ARMOUR_PER_AGI_DIV) as i32;
+        if def.has_weapon() {
+            self.damage[i] = fixed::from_int(def.weapon_damage + DAMAGE_PER_STR * str_);
+        }
+        self.touch(i);
+    }
+
+    /// Health regenerated per tick by the strength of hero `i`, Q16.16. Zero for a non-hero.
+    pub(crate) fn hero_regen_per_tick(&self, i: usize) -> i32 {
+        let [str_, _, _] = self.hero_attributes(i);
+        (str_ as i64 * HP_REGEN_PER_STR_Q16 / TICKS_PER_SECOND as i64) as i32
     }
 
     pub fn is_hero(&self, i: usize) -> bool {
@@ -205,8 +291,8 @@ impl Sim {
         self.heroes.respawn_at[j] = self.ticks.wrapping_add((secs * TICKS_PER_SECOND) as u32);
     }
 
-    /// Pays a kill bounty to hero `k`: the team share goes to its side's resource pool, the rest to
-    /// the hero's gold.
+    /// Pays a kill bounty to killer unit `k`: the team share goes to its side's resource pool, the
+    /// rest to the unit's gold slot. UNVERIFIED: team_share_pct default 20 is a placeholder.
     pub(crate) fn hero_bounty(&mut self, k: usize, bounty: i32) {
         let share = bounty * self.heroes.rules.team_share_pct / 100;
         self.heroes.gold[k] = self.heroes.gold[k].saturating_add(bounty - share);
@@ -245,6 +331,8 @@ impl Sim {
         self.xp_total[i] = xp;
         self.unit_kills[i] = kills;
         self.unit_deaths[i] = deaths;
+        self.apply_hero_stats(i);
+        self.hp[i] = self.hp_max[i];
         self.heroes.waiting[i] = 0;
         true
     }

@@ -99,17 +99,18 @@ impl Sim {
         if k < 0 || self.alive[i] == 0 {
             return;
         }
-        let r = match self.cat.regen.get(k as usize) {
-            Some(r) => *r,
-            None => return,
+        let (base, delay) = match self.cat.regen.get(k as usize) {
+            Some(r) => (fixed::from_int(r.hp_per_tick), r.delay as u32),
+            None => (0, 0),
         };
-        if r.hp_per_tick <= 0 || self.hp[i] >= self.hp_max[i] {
+        let per_tick = base.saturating_add(self.hero_regen_per_tick(i));
+        if per_tick <= 0 || self.hp[i] >= self.hp_max[i] {
             return;
         }
-        if self.ticks.wrapping_sub(self.last_hit[i]) < r.delay as u32 {
+        if self.ticks.wrapping_sub(self.last_hit[i]) < delay {
             return;
         }
-        self.hp[i] = self.hp[i].saturating_add(fixed::from_int(r.hp_per_tick)).min(self.hp_max[i]);
+        self.hp[i] = self.hp[i].saturating_add(per_tick).min(self.hp_max[i]);
         self.touch(i);
     }
 
