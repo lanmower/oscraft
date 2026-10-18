@@ -218,6 +218,10 @@ export function zoomCamera(cam, wheelDelta) {
 
 // Joint palette size of the skinned path; a skin with more joints than this draws unskinned.
 export const MAX_JOINTS = 64;
+// Level of detail: an instance switches to its low model beyond LOD_FAR_PER_DISTANCE times the camera distance, and
+// returns to the full model only inside LOD_HYSTERESIS times that switch distance, so it does not flicker at the edge.
+export const LOD_FAR_PER_DISTANCE = 1.5;
+export const LOD_HYSTERESIS = 0.75;
 
 const VERT = `#version 300 es
 in vec3 aPos; in vec3 aNormal; in vec2 aUv; in vec4 aJoints; in vec4 aWeights; in mat4 aInst;
@@ -302,13 +306,15 @@ export function createRenderer(gl) {
   const camera = createCamera();
   const uploads = new WeakMap();
   const instanceBuffers = new WeakMap();
-  const stats = { drawCalls: 0, instances: 0, culled: 0, frameCpuMs: 0 };
+  const stats = { drawCalls: 0, instances: 0, culled: 0, lod: 0, frameCpuMs: 0 };
   const viewProj = identity();
   const modelScratch = new Float32Array(16);
   const normalScratch = new Float32Array(9);
   const groundBox = [0, 0, 0, 0];
-  const visibleBatches = new WeakMap();
+  const compactedBatches = new WeakMap();
+  const lodTiers = new WeakMap();
   let cullBounds = null;
+  let eye = [0, 0, 0];
   let frameStart = 0;
   let aspect = null;
 
@@ -372,11 +378,13 @@ export function createRenderer(gl) {
       const a = aspect ?? gl.drawingBufferWidth / Math.max(1, gl.drawingBufferHeight);
       viewProjection(camera, a, viewProj);
       cullBounds = visibleGroundBounds(camera, a, groundBox);
+      eye = eyeOf(camera);
       gl.clearColor(clearRgb[0], clearRgb[1], clearRgb[2], 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       stats.drawCalls = 0;
       stats.instances = 0;
       stats.culled = 0;
+      stats.lod = 0;
       gl.useProgram(program);
       gl.uniformMatrix4fv(uni.viewProj, false, viewProj);
     },
@@ -400,37 +408,13 @@ export function createRenderer(gl) {
     // all visible draws as it is, keeping its static upload; otherwise the visible matrices are compacted into a
     // per-batch scratch batch that re-uploads each frame.
     drawInstancedVisible(mesh, batch) {
-      if (!cullBounds) {
-        if (batch.count > 0) drawInstances(mesh, batch);
-        return batch.count;
-      }
-      const reach = meshReach(mesh);
-      const src = batch.matrices;
-      let n = 0;
-      for (let i = 0; i < batch.count; i++) if (inCullBox(src[i * 16 + 12], src[i * 16 + 14], reach)) n += 1;
-      stats.culled += batch.count - n;
-      if (n === 0) return 0;
-      if (n === batch.count) {
-        drawInstances(mesh, batch);
-        return n;
-      }
-      let vis = visibleBatches.get(batch);
-      if (!vis) {
-        vis = { matrices: new Float32Array(batch.count * 16), count: 0, dirty: true };
-        visibleBatches.set(batch, vis);
-      }
-      const dst = vis.matrices;
-      let w = 0;
-      for (let i = 0; i < batch.count; i++) {
-        const o = i * 16;
-        if (!inCullBox(src[o + 12], src[o + 14], reach)) continue;
-        for (let k = 0; k < 16; k++) dst[w * 16 + k] = src[o + k];
-        w += 1;
-      }
-      vis.count = n;
-      vis.dirty = true;
-      drawInstances(mesh, vis);
-      return n;
+      return drawVisible(mesh, batch);
+    },
+
+    // Like drawInstancedVisible, but instances beyond the LOD distance draw with lowMesh (same matrices). Without a
+    // lowMesh it is drawInstancedVisible. Tiers are kept per instance with LOD_HYSTERESIS between the two switches.
+    drawInstancedLod(mesh, batch, lowMesh = null) {
+      return lowMesh ? drawLod(mesh, batch, lowMesh) : drawVisible(mesh, batch);
     },
 
     // transform: column-major 16-element model matrix (identity when omitted).
@@ -485,6 +469,10 @@ export function createRenderer(gl) {
   }
 
   function drawInstances(mesh, batch) {
+    if (isTransparent(mesh)) {
+      drawEachInstance(mesh, batch);
+      return;
+    }
     const buf = upload(mesh);
     bindGeometry(buf);
     gl.disableVertexAttribArray(attr.joints);
@@ -532,21 +520,158 @@ export function createRenderer(gl) {
       && z + reach >= cullBounds[1] && z - reach <= cullBounds[3];
   }
 
+  // The compacted copy of a batch's visible instances, one per slot ('high' or 'low'). Its ids and spare arrays
+  // swap each frame so the kept set can be compared with the last one without allocating.
+  function compactedFor(batch, slot) {
+    let slots = compactedBatches.get(batch);
+    if (!slots) {
+      slots = {};
+      compactedBatches.set(batch, slots);
+    }
+    let vis = slots[slot];
+    if (!vis) {
+      vis = {
+        matrices: new Float32Array(batch.count * 16),
+        ids: new Uint32Array(batch.count),
+        spare: new Uint32Array(batch.count),
+        count: 0,
+        dirty: true,
+      };
+      slots[slot] = vis;
+    }
+    return vis;
+  }
+
+  // Writes the source indices of instances whose ground box is on screen into ids; returns how many.
+  function keepInside(src, count, reach, ids) {
+    let n = 0;
+    for (let i = 0; i < count; i++) {
+      if (!cullBounds || inCullBox(src[i * 16 + 12], src[i * 16 + 14], reach)) ids[n++] = i;
+    }
+    return n;
+  }
+
+  // Copies the n kept instances (their ids are in vis.spare) into vis. vis.dirty is set only when the kept set or
+  // any kept matrix differs from what was last uploaded, so a static scene re-uploads nothing.
+  function compact(vis, src, n) {
+    const ids = vis.spare;
+    const prev = vis.ids;
+    let changed = vis.count !== n;
+    for (let k = 0; k < n && !changed; k++) if (prev[k] !== ids[k]) changed = true;
+    vis.ids = ids;
+    vis.spare = prev;
+    vis.count = n;
+    const m = vis.matrices;
+    for (let k = 0; k < n; k++) {
+      const s = ids[k] * 16;
+      const d = k * 16;
+      for (let c = 0; c < 16; c++) {
+        const v = src[s + c];
+        if (m[d + c] !== v) {
+          m[d + c] = v;
+          changed = true;
+        }
+      }
+    }
+    vis.dirty = changed;
+  }
+
+  function drawVisible(mesh, batch) {
+    if (!cullBounds) {
+      if (batch.count > 0) drawInstances(mesh, batch);
+      return batch.count;
+    }
+    const vis = compactedFor(batch, 'high');
+    const n = keepInside(batch.matrices, batch.count, meshReach(mesh), vis.spare);
+    stats.culled += batch.count - n;
+    if (n === 0) return 0;
+    if (n === batch.count) {
+      drawInstances(mesh, batch);
+      return n;
+    }
+    compact(vis, batch.matrices, n);
+    drawInstances(mesh, vis);
+    return n;
+  }
+
+  function drawLod(mesh, batch, lowMesh) {
+    const count = batch.count;
+    const src = batch.matrices;
+    const reach = meshReach(mesh);
+    let tiers = lodTiers.get(batch);
+    if (!tiers) {
+      tiers = new Uint8Array(count);
+      lodTiers.set(batch, tiers);
+    }
+    const far = camera.distance * LOD_FAR_PER_DISTANCE;
+    const back = far * LOD_HYSTERESIS;
+    const hi = compactedFor(batch, 'high');
+    const lo = compactedFor(batch, 'low');
+    let nh = 0;
+    let nl = 0;
+    for (let i = 0; i < count; i++) {
+      const o = i * 16;
+      if (cullBounds && !inCullBox(src[o + 12], src[o + 14], reach)) continue;
+      const dx = src[o + 12] - eye[0];
+      const dy = src[o + 13] - eye[1];
+      const dz = src[o + 14] - eye[2];
+      const d = Math.hypot(dx, dy, dz);
+      let tier = tiers[i];
+      if (tier === 0 && d > far) tier = 1;
+      else if (tier === 1 && d < back) tier = 0;
+      tiers[i] = tier;
+      if (tier === 0) hi.spare[nh++] = i;
+      else lo.spare[nl++] = i;
+    }
+    const kept = nh + nl;
+    stats.culled += count - kept;
+    stats.lod += nl;
+    if (nh > 0) {
+      compact(hi, src, nh);
+      drawInstances(mesh, hi);
+    }
+    if (nl > 0) {
+      compact(lo, src, nl);
+      drawInstances(lowMesh, lo);
+    }
+    return kept;
+  }
+
+  // Transparent meshes (additive glow or alpha below one) draw one instance at a time, in batch order, instead of
+  // through the instanced path, so they blend in the order they were placed.
+  function isTransparent(mesh) {
+    return mesh.blend === "add" || (mesh.alpha ?? 1) < 1;
+  }
+
+  function drawEachInstance(mesh, batch) {
+    const m = batch.matrices;
+    for (let i = 0; i < batch.count; i++) {
+      for (let k = 0; k < 16; k++) modelScratch[k] = m[i * 16 + k];
+      drawModel(mesh, null);
+    }
+  }
+
   function draw(mesh, transform, joints) {
+    if (transform) modelScratch.set(transform);
+    else identity(modelScratch);
+    drawModel(mesh, joints);
+  }
+
+  // Draws the mesh with the model matrix already in modelScratch.
+  function drawModel(mesh, joints) {
     const model = modelScratch;
-    if (transform) model.set(transform);
-    else identity(model);
     const buf = upload(mesh);
     bindGeometry(buf);
     const skinned = Boolean(joints && buf.joints);
     if (skinned) {
+      const palette = joints.length > MAX_JOINTS * 16 ? joints.subarray(0, MAX_JOINTS * 16) : joints;
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.joints);
       gl.enableVertexAttribArray(attr.joints);
       gl.vertexAttribPointer(attr.joints, 4, gl.FLOAT, false, 0, 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.weights);
       gl.enableVertexAttribArray(attr.weights);
       gl.vertexAttribPointer(attr.weights, 4, gl.FLOAT, false, 0, 0);
-      gl.uniformMatrix4fv(uni.joints, false, joints);
+      gl.uniformMatrix4fv(uni.joints, false, palette);
     } else {
       gl.disableVertexAttribArray(attr.joints);
       gl.disableVertexAttribArray(attr.weights);

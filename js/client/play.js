@@ -220,9 +220,12 @@ async function loadDoodadModels() {
     fetch(new URL("doodads.json", location.href)).then((r) => r.json()),
     fetch(new URL("assets.json", location.href)).then((r) => r.json()).catch(() => ({ items: [] })),
   ]);
-  return Promise.all(DOODAD_KINDS.map((kind) => {
+  return Promise.all(DOODAD_KINDS.map(async (kind) => {
     const file = catalogue.items.find((item) => item.id === kind && item.kind === "model")?.path ?? map[kind];
-    return fetchModel(file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null, 2 * DOODAD_HALF);
+    const name = file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null;
+    const size = 2 * DOODAD_HALF;
+    const [high, low] = await Promise.all([fetchModel(name, size), name ? fetchModel(`${name}-low`, size) : null]);
+    return { high, low };
   }));
 }
 
@@ -307,11 +310,13 @@ function unitMeshFor(type, color) {
 
 // Joint palette for a unit this frame: its clip (walk when it moved, attack when it reports attacking, else idle)
 // advanced by dt seconds. A unit with no matching clip holds the rest pose.
+const EMPTY_POSE = new Map();
 function jointsFor(u, mesh, dt) {
   const key = `${u.id}:${u.type}`;
   let entry = animators.get(key);
   if (!entry) {
-    entry = { player: new AnimationPlayer(mesh.animation.clips), x: u.x, z: u.z, seen: false };
+    const { skin } = mesh.animation;
+    entry = { player: new AnimationPlayer(mesh.animation.clips), x: u.x, z: u.z, seen: false, joints: new Float32Array(16 * skin.joints.length) };
     animators.set(key, entry);
   }
   const moving = Math.hypot(u.x - entry.x, u.z - entry.z) > MOVE_EPS;
@@ -321,21 +326,22 @@ function jointsFor(u, mesh, dt) {
   entry.player.playState({ attacking: Boolean(u.attacking), moving });
   entry.player.update(dt);
   const { nodes, skin, fit } = mesh.animation;
-  return jointMatrices(nodes, skin, entry.player.pose() ?? new Map(), fit);
+  return jointMatrices(nodes, skin, entry.player.pose() ?? EMPTY_POSE, fit, entry.joints);
 }
 
-// Groups { mesh, transform } placements into one static instance batch per mesh.
+// Groups { mesh, lowMesh?, transform } placements into one static instance batch per mesh. lowMesh is the mesh's
+// lower-poly model (shared by every placement of that mesh) for the renderer's level-of-detail path.
 function batchByMesh(placed) {
   const groups = new Map();
   for (const p of placed) {
     let list = groups.get(p.mesh);
-    if (!list) groups.set(p.mesh, (list = []));
-    list.push(p.transform);
+    if (!list) groups.set(p.mesh, (list = { lowMesh: p.lowMesh ?? null, transforms: [] }));
+    list.transforms.push(p.transform);
   }
-  return [...groups].map(([mesh, transforms]) => {
+  return [...groups].map(([mesh, { lowMesh, transforms }]) => {
     const matrices = new Float32Array(transforms.length * 16);
     transforms.forEach((t, i) => matrices.set(t, i * 16));
-    return { mesh, batch: { matrices, count: transforms.length, dirty: true } };
+    return { mesh, lowMesh, batch: { matrices, count: transforms.length, dirty: true } };
   });
 }
 
@@ -401,7 +407,10 @@ function drawWorld3d() {
       renderer3d.drawInstanced(t.mesh, t.batch);
     }
   } else if (terrainMesh) countDraw("terrain", terrainMesh, null);
-  for (const d of doodadBatches) drawCounts.doodad += renderer3d.drawInstancedVisible(d.mesh, d.batch);
+  for (const d of doodadBatches) {
+    // The TSL renderer has no level-of-detail path; it draws the full model for every instance.
+    drawCounts.doodad += renderer3d.drawInstancedLod ? renderer3d.drawInstancedLod(d.mesh, d.batch, d.lowMesh) : renderer3d.drawInstancedVisible(d.mesh, d.batch);
+  }
   const units = currentUnits();
   drawUnits3d(units, dt);
   if (fx) fx.frame(units, dt);
@@ -1066,17 +1075,22 @@ async function build3d(gl, game) {
   const groundTexture = groundImage ? textureFrom(gl, groundImage) : null;
   terrainMesh.texture = groundTexture;
   tileMeshes = await loadTileMeshes(gl, groundTexture).catch(() => null);
-  const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
+  const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map(async ({ high, low }) => ({
+    base: await toMesh(gl, high, DOODAD_TINT),
+    lowBase: await toMesh(gl, low, DOODAD_TINT),
+  })));
   const s = 1 / terrain.cellMilli;
   const placed = readDoodads(mapBytes).flatMap((p) => {
-    const base = doodadByKind[p.kind];
-    if (!base) return [];
+    const kind = doodadByKind[p.kind];
+    if (!kind?.base) return [];
     const x = p.x * s;
     const z = p.y * s;
     const angle = (p.rotation / 1000) * 2 * Math.PI + placementHash(p.x, p.y, 1) * 2 * Math.PI;
     const k = 0.85 + 0.3 * placementHash(p.x, p.y, 2);
-    const mesh = doodadVariant(base, p.kind, Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length));
-    return [{ mesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
+    const variant = Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length);
+    const mesh = doodadVariant(kind.base, p.kind, variant);
+    const lowMesh = kind.lowBase ? doodadVariant(kind.lowBase, `${p.kind}-low`, variant) : null;
+    return [{ mesh, lowMesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
   });
   doodadBatches = batchByMesh(placed);
   unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
