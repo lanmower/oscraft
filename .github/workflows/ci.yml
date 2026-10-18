@@ -281,14 +281,20 @@ jobs:
         run: cargo run -p oscraft-spike
 
       - name: Run parity gate
-        run: cargo run -p oscraft-gate > gate.txt 2>&1
+        run: |
+          set -o pipefail
+          cargo run -p oscraft-gate 2>&1 | tee gate.txt
 
       - name: MPQ round-trip
         run: cargo run -p oscraft-gate -- mpq
 
-      - name: Show gate output
-        if: always()
-        run: cat gate.txt
+      - name: On gate failure, print the failing lines
+        if: failure()
+        run: |
+          echo "gate failed; lines matching fail/error/panic/mismatch:"
+          grep -inE 'fail|error|panic|mismatch' gate.txt | head -80 || true
+          echo "gate.txt tail:"
+          tail -n 40 gate.txt || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -334,14 +340,20 @@ jobs:
         run: target/debug/oscraft-spike
 
       - name: Run parity gate
-        run: target/debug/oscraft-gate > gate.txt 2>&1
+        run: |
+          set -o pipefail
+          target/debug/oscraft-gate 2>&1 | tee gate.txt
 
       - name: MPQ round-trip
         run: target/debug/oscraft-gate mpq
 
-      - name: Show gate output
-        if: always()
-        run: cat gate.txt
+      - name: On gate failure, print the failing lines
+        if: failure()
+        run: |
+          echo "gate failed; lines matching fail/error/panic/mismatch:"
+          grep -inE 'fail|error|panic|mismatch' gate.txt | head -80 || true
+          echo "gate.txt tail:"
+          tail -n 40 gate.txt || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -367,6 +379,7 @@ jobs:
           echo "$parity" | sort | uniq -c
           test "$(echo "$parity" | sort -u | wc -l)" = 1
           test "$(echo "$parity" | grep -c '^determinism-parity ')" -ge 3
+          echo "- determinism hash agreed across $(echo "$parity" | grep -c '^determinism-parity ') gate runs: $(echo "$parity" | sort -u)" >> "$GITHUB_STEP_SUMMARY"
 
   server-caps-and-ticks:
     name: "server caps, ticks, supervisor and client error probes"
@@ -410,7 +423,7 @@ jobs:
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 1 > "$shed_log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
           token=$(sed -n 's/^ev=order_token room=ci token=//p' "$shed_log")
           test -n "$token"
           code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" "http://$addr/order?map=ci" --data '{"player":0,"x":1,"y":1}')
@@ -435,7 +448,7 @@ jobs:
           target/debug/oscraftd --addr "$addr" --room moba --data "$work/catalog.osdt" --mod crates/mod-host/fixtures/moba_siege.lua --ticks 2400 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
           winner=-1; tick=0
           for i in $(seq 1 400); do
             state=$(curl -sf "http://$addr/state" || true)
@@ -447,8 +460,8 @@ jobs:
           done
           kill "$pid" 2>/dev/null || true
           trap - EXIT
-          test "$winner" = 0
-          test "$tick" -le 2400
+          echo "siege summary: winner=$winner tick=$tick (want winner=0, tick<=2400)"
+          if [ "$winner" != 0 ] || [ "$tick" -gt 2400 ]; then echo "siege server log tail:"; tail -n 40 "$log"; exit 1; fi
           echo "moba winner ok winner=$winner tick=$tick"
 
       - name: Run the 5v5 match; all nine milestones happen in one run and a side wins
@@ -480,7 +493,7 @@ jobs:
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
           token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
           test -n "$token"
           posted=5
@@ -562,7 +575,7 @@ jobs:
           target/debug/oscraftd --addr "$addr" --room ci --tick-budget-us 20000 --test-panic-tick 20 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
           for i in $(seq 1 60); do grep -q '^ev=ticker_restarted ' "$log" && break; sleep 0.5; done
           test "$(grep -c '^ev=ticker_died ' "$log")" -eq 1
           test "$(grep -c '^ev=ticker_restarted ' "$log")" -eq 1
@@ -589,7 +602,7 @@ jobs:
           target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$log" || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.1; done
           for i in $(seq 1 $cap); do eval "exec $((i+9))<>/dev/tcp/127.0.0.1/$port"; done
           exec 80<>/dev/tcp/127.0.0.1/$port
           timeout 5 cat <&80 > "$work/refused.txt" || true
@@ -617,7 +630,7 @@ jobs:
           target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$log" || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.1; done
           python3 - "$pid" "$cap" "$slack" "$port" "$log" <<'PY'
           import selectors
           import socket
@@ -679,7 +692,7 @@ jobs:
           OSCRAFT_CONNECTION_CAP_OVERRIDE=4096 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$work/cap.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$work/cap.log" || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.1; done
           python3 -I - "$port" "$cap" <<'PY'
           import selectors
           import socket
@@ -724,7 +737,7 @@ jobs:
           OSCRAFT_CONNECTION_CAP_OVERRIDE=2 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$log" || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 0.1; done
           python3 -I - "$port" 2 <<'PY'
           import socket
           import sys
@@ -761,7 +774,7 @@ jobs:
         run: |
           target/debug/oscraftd --addr 127.0.0.1:8099 --room ci > server.log 2>&1 &
           pid=$!
-          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8099/ && break; sleep 1; done
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8099/ && break; sleep 0.2; done
           curl -sf -X POST "http://127.0.0.1:8099/client-error?map=ci&session=ci-session&message=ci%20probe"
           kill $pid
           test "$(grep -c '^ev=client_error session=' server.log)" -eq 1
@@ -776,7 +789,7 @@ jobs:
           set -euo pipefail
           target/debug/oscraftd --addr 127.0.0.1:8100 --room ci > ratelimit.log 2>&1 &
           pid=$!
-          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8100/ && break; sleep 1; done
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8100/ && break; sleep 0.2; done
           for i in $(seq 1 25); do
             curl -s -o /dev/null -X POST "http://127.0.0.1:8100/client-error?map=ci&session=flood&message=flood%20$i"
           done
@@ -804,7 +817,7 @@ jobs:
           start() {
             target/debug/oscraftd --addr 127.0.0.1:8101 --room ci > "$RUNNER_TEMP/durable-$1.out" 2>&1 &
             pid=$!
-            for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8101/ && break; sleep 1; done
+            for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8101/ && break; sleep 0.2; done
           }
           post() {
             curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8101/client-error?map=ci&session=durable&message=$1"
@@ -858,7 +871,7 @@ jobs:
             local addr=127.0.0.1:$port
             target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks "$window" --tick-budget-us "$budget" --shed "$shed" > "$log" 2>&1 &
             local pid=$!
-            for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+            for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
             local token
             token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
             test -n "$token"
@@ -968,7 +981,7 @@ jobs:
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
           token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
           test -n "$token"
           before=$(curl -sf "http://$addr/state")
@@ -1610,7 +1623,7 @@ jobs:
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 40 "$log" || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
           token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")
           test -n "$token"
           check() {
@@ -1756,7 +1769,7 @@ jobs:
       - name: Render the committed map through the browser Game and check the witness
         run: |
           target/debug/oscraftd --addr 127.0.0.1:8000 --room ci --site crates/web/site > "$RUNNER_TEMP/http.log" 2>&1 &
-          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8000/ && break; sleep 1; done
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8000/ && break; sleep 0.2; done
           "$GITHUB_WORKSPACE/rust/target/debug/oscraft-relay" 7447 > "$RUNNER_TEMP/relay.log" 2>&1 &
           python3 -m http.server 8093 --bind 127.0.0.1 --directory "$GITHUB_WORKSPACE/js/client" > "$RUNNER_TEMP/static.log" 2>&1 &
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8093/play.html > /dev/null && break; sleep 1; done
@@ -2078,7 +2091,7 @@ jobs:
           target/debug/oscraftd --addr 127.0.0.1:8003 --room ci-probe --site crates/web/site > "$work/http.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8003/ && break; sleep 1; done
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8003/ && break; sleep 0.2; done
           cat > "$RUNNER_TEMP/pw/probe.mjs" <<'EOF'
           import { chromium } from "playwright";
           const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
@@ -2103,7 +2116,7 @@ jobs:
           target/debug/oscraftd --addr 127.0.0.1:8004 --room ci-perf --site crates/web/site > "$work/http.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
-          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8004/ && break; sleep 1; done
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8004/ && break; sleep 0.2; done
           cat > "$RUNNER_TEMP/pw/perf.mjs" <<'EOF'
           import { chromium } from "playwright";
           const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
@@ -2856,7 +2869,7 @@ jobs:
           ./target/debug/osdt-data "$scen" "$work/catalog.osdt"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 > "$work/server.log" 2>&1 &
           pid=$!
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
           curl -sf "http://$addr/state?map=ci" > "$work/s0.json"
           tick=0
           for i in $(seq 1 240); do
@@ -2955,7 +2968,7 @@ jobs:
           ./target/debug/osdt-data "$scen" "$work/catalog.osdt"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 > "$work/server.log" 2>&1 &
           pid=$!
-          for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done
+          for i in $(seq 1 300); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.1; done
           tick=0
           for i in $(seq 1 240); do
             curl -sf "http://$addr/state?map=ci" > "$work/s0.json" || true
