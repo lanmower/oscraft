@@ -17,10 +17,27 @@ export function formatClock(ticks) {
   return `${minutes}:${seconds}`;
 }
 
-export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, units, selected, select, localPlayer, commands, pick, toWorld, toScreen, playerColor }) {
+// Open (walkable) cells of the map grid as a small canvas: the lanes and the river show as the open area.
+function walkableLayer(grid) {
+  if (!grid) return null;
+  const layer = document.createElement("canvas");
+  layer.width = grid.width;
+  layer.height = grid.height;
+  const ctx = layer.getContext("2d");
+  const pixels = ctx.createImageData(grid.width, grid.height);
+  for (let i = 0; i < grid.width * grid.height; i++) {
+    const open = grid.flags[i] === 0;
+    pixels.data.set(open ? [92, 110, 84, 255] : [36, 42, 48, 255], i * 4);
+  }
+  ctx.putImageData(pixels, 0, 0);
+  return layer;
+}
+
+export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, select, localPlayer, commands, pick, toWorld, toScreen, playerColor }) {
   const maxHp = new Map();
   const barCtx = barCanvas.getContext("2d");
   const minimapCtx = minimapEl.getContext("2d");
+  const lanes = walkableLayer(grid);
   let attackArmed = false;
 
   function trackedMaxHp(id, hp) {
@@ -53,6 +70,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, u
   function drawMinimap(list) {
     minimapCtx.fillStyle = "#2a343c";
     minimapCtx.fillRect(0, 0, minimapEl.width, minimapEl.height);
+    if (lanes) minimapCtx.drawImage(lanes, 0, 0, minimapEl.width, minimapEl.height);
     for (const u of list) {
       const [r, g, b] = playerColor(u.player);
       minimapCtx.fillStyle = u.id === selected() ? "#ffffff" : `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
