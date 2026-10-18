@@ -264,7 +264,7 @@ impl Sim {
         if !in_reach {
             return Err(self.reject(Refusal::InvalidOrderTarget));
         }
-        if self.cooldown[i] > 0 {
+        if self.cooldown[i] > 1 {
             return Err(self.reject(Refusal::Cooldown));
         }
         self.cooldown[i] = self.attack_period(i);
