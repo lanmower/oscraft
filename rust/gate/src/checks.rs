@@ -26,6 +26,9 @@ mod mechanic_checks;
 #[path = "determinism_checks.rs"]
 mod determinism_checks;
 
+#[path = "hero_checks.rs"]
+mod hero_checks;
+
 #[path = "core_formula_checks.rs"]
 mod core_formula_checks;
 
@@ -48,6 +51,10 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("mechanic-camp-leash", mechanic_checks::camp_leash),
     ("mechanic-camp-roshan-aegis", mechanic_checks::camp_roshan_aegis),
     ("mechanic-camp-rune-pickup", mechanic_checks::camp_rune_pickup),
+    ("hero-axe-level1", hero_checks::hero_axe_level1),
+    ("hero-axe-growth", hero_checks::hero_axe_growth),
+    ("hero-universal-damage", hero_checks::hero_universal_damage),
+    ("hero-roster", hero_checks::hero_roster),
     ("moba-match-end", mechanic_checks::moba_match_end),
     ("moba-creeps", mechanic_checks::moba_creeps),
     ("moba-lane", mechanic_checks::moba_lane),
