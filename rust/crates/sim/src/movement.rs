@@ -75,7 +75,13 @@ impl Sim {
             let d2 = dx as i64 * dx as i64 + dy as i64 * dy as i64;
             if d2 > (ONE as i64 * ONE as i64) / 64 {
                 let dist = fixed::sqrt((d2 >> SHIFT) as i32) as i64;
-                if dist > 0 && dist <= speed as i64 {
+                // A snap is one tick long and moves each axis separately, so it only lands when both
+                // corner cells it passes are walkable; otherwise the unit steps toward the point and
+                // the per-axis refusal in integrate can no longer strand it short of its stop.
+                let (tx, ty) = (self.tgt_x[i], self.tgt_y[i]);
+                let snap_clear = self.flying[i] != 0
+                    || (self.grid.walkable(cell_of(tx), cy) && self.grid.walkable(cx, cell_of(ty)));
+                if dist > 0 && dist <= speed as i64 && snap_clear {
                     vx = dx;
                     vy = dy;
                 } else if dist > 0 {

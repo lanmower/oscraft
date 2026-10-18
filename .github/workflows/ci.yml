@@ -269,7 +269,7 @@ jobs:
         run: cargo run -p oscraft-spike
 
       - name: Run parity gate
-        run: cargo run -p oscraft-gate > gate.txt 2>&1 || echo "gate exited nonzero" >> gate.txt
+        run: cargo run -p oscraft-gate > gate.txt 2>&1
 
       - name: MPQ round-trip
         run: cargo run -p oscraft-gate -- mpq
@@ -322,7 +322,7 @@ jobs:
         run: target/debug/oscraft-spike
 
       - name: Run parity gate
-        run: target/debug/oscraft-gate > gate.txt 2>&1 || echo "gate exited nonzero" >> gate.txt
+        run: target/debug/oscraft-gate > gate.txt 2>&1
 
       - name: MPQ round-trip
         run: target/debug/oscraft-gate mpq
