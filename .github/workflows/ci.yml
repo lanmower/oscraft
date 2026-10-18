@@ -76,6 +76,7 @@ jobs:
         with:
           workspaces: rust -> target
           shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -260,6 +261,7 @@ jobs:
         with:
           workspaces: rust -> target
           shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build workspace (one compile for spike and gate)
         run: cargo build --workspace
@@ -388,6 +390,8 @@ jobs:
     needs: [changes, build]
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
+    env:
+      PORT_BASE: 9100
     defaults:
       run:
         working-directory: rust
@@ -406,7 +410,7 @@ jobs:
       - name: Run 200 ticks with a 1 us budget and check the percentile and overrun lines
         run: |
           set -euo pipefail
-          target/debug/oscraftd --addr 127.0.0.1:8098 --room ci --ticks 200 --tick-budget-us 1 > tick.log 2>&1
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 8)) --room ci --ticks 200 --tick-budget-us 1 > tick.log 2>&1
           cat tick.log
           grep -Eq '^ev=tick_time ticks=[0-9]+ p50_us=[0-9]+ p90_us=[0-9]+ p99_us=[0-9]+ max_us=[0-9]+ queued=[0-9]+ overruns=[0-9]+$' tick.log
           last=$(grep '^ev=tick_time ' tick.log | tail -1 | sed 's/^ev=tick_time ticks=\([0-9]*\) .*/\1/')
@@ -419,7 +423,7 @@ jobs:
           work="$RUNNER_TEMP/tick-shed"
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
-          addr=127.0.0.1:8096
+          addr=127.0.0.1:$((PORT_BASE + 6))
           shed_log="$work/shed.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 1 > "$shed_log" 2>&1 &
           pid=$!
@@ -434,7 +438,7 @@ jobs:
           grep '^ev=tick_shed ' "$shed_log" | head -1
           kill "$pid"; wait "$pid" 2>/dev/null || true
           trap - EXIT
-          target/debug/oscraftd --addr 127.0.0.1:8095 --room ci --ticks 200 --tick-budget-us 20000 > "$work/quiet.log" 2>&1
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 5)) --room ci --ticks 200 --tick-budget-us 20000 > "$work/quiet.log" 2>&1
           test "$(grep -c '^ev=tick_shed ' "$work/quiet.log")" -eq 0
           grep -q '^ev=tick_time ' "$work/quiet.log"
 
@@ -444,7 +448,7 @@ jobs:
           work="$RUNNER_TEMP/moba-siege"
           mkdir -p "$work"
           ./target/debug/osdt-data ../scenarios/moba "$work/catalog.osdt"
-          addr=127.0.0.1:8097
+          addr=127.0.0.1:$((PORT_BASE + 7))
           log="$work/siege.log"
           target/debug/oscraftd --addr "$addr" --room moba --data "$work/catalog.osdt" --mod crates/mod-host/fixtures/moba_siege.lua --ticks 2400 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -489,7 +493,7 @@ jobs:
           work="$RUNNER_TEMP/tick-drain"
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
-          addr=127.0.0.1:8094
+          addr=127.0.0.1:$((PORT_BASE + 4))
           log="$work/drain.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -515,63 +519,12 @@ jobs:
           kill "$pid"; wait "$pid" 2>/dev/null || true
           trap - EXIT
 
-      - name: Run the fixed tick count and compare p99 with the stored ceiling
-        run: |
-          set -euo pipefail
-          check_p99() {
-            local n=$1 c=$2
-            if [ "$n" -le "$c" ]; then
-              echo "tick p99 us=$n ceiling=$c ok"
-            else
-              echo "tick p99 us=$n ceiling=$c FAIL"
-              return 1
-            fi
-          }
-          baseline="$GITHUB_WORKSPACE/.github/perf/tick-baseline.txt"
-          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
-          ceiling=$(awk -F= '/^p99_ceiling_us=/{print $2}' "$baseline")
-          test -n "$ticks" && test -n "$ceiling"
-          target/debug/oscraftd --addr 127.0.0.1:8091 --room ci --ticks "$ticks" --tick-budget-us 20000 > tick-latency.log 2>&1
-          cat tick-latency.log
-          p99=$(grep '^ev=tick_time ' tick-latency.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
-          test -n "$p99"
-          check_p99 "$p99" 0 >/dev/null && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
-          check_p99 "$p99" "$ceiling"
-
-      - name: Run the fixed tick count and compare each system p99 with its ceiling
-        run: |
-          set -euo pipefail
-          check_p99() {
-            local n=$1 c=$2
-            [ "$n" -le "$c" ]
-          }
-          baseline="$GITHUB_WORKSPACE/.github/perf/tick-systems.txt"
-          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
-          test -n "$ticks"
-          target/debug/oscraftd --addr 127.0.0.1:8092 --room ci-systems --ticks "$ticks" --tick-budget-us 20000 > tick-systems.log 2>&1
-          cat tick-systems.log
-          first=""
-          fail=0
-          while read -r name ceiling; do
-            first=${first:-$name}
-            us=$(grep "^ev=tick_time system=$name " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
-            test -n "$us"
-            if check_p99 "$us" "$ceiling"; then
-              echo "tick system $name us=$us ceiling=$ceiling ok"
-            else
-              echo "tick system $name us=$us ceiling=$ceiling FAIL"
-              fail=1
-            fi
-          done < <(awk '/^system=/{split($1,a,"="); split($2,b,"="); print a[2], b[2]}' "$baseline")
-          check_p99 "$(grep "^ev=tick_time system=$first " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')" 0 && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
-          test "$fail" -eq 0
-
       - name: Arm one ticker panic, check one death and one restart, and a tick that advances
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/supervisor-restart"
           mkdir -p "$work"
-          addr=127.0.0.1:8093
+          addr=127.0.0.1:$((PORT_BASE + 3))
           log="$work/panic.log"
           target/debug/oscraftd --addr "$addr" --room ci --tick-budget-us 20000 --test-panic-tick 20 > "$log" 2>&1 &
           pid=$!
@@ -587,7 +540,7 @@ jobs:
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           grep '^ev=ticker_' "$log"
           quiet="$work/quiet.log"
-          target/debug/oscraftd --addr 127.0.0.1:8092 --room ci --tick-budget-us 20000 --ticks 40 > "$quiet" 2>&1
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 2)) --room ci --tick-budget-us 20000 --ticks 40 > "$quiet" 2>&1
           test "$(grep -c '^ev=ticker_died ' "$quiet")" -eq 0
           echo "supervisor ok died=1 restarted=1 tick $before -> $after; unarmed run died=0"
 
@@ -598,7 +551,7 @@ jobs:
           test -n "$cap"
           work="$RUNNER_TEMP/connection-cap"
           mkdir -p "$work"
-          port=8094
+          port=$((PORT_BASE + 4))
           log="$work/cap.log"
           target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -626,7 +579,7 @@ jobs:
           slack=80
           work="$RUNNER_TEMP/connection-cap-threads"
           mkdir -p "$work"
-          port=8097
+          port=$((PORT_BASE + 7))
           log="$work/cap.log"
           target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -689,7 +642,7 @@ jobs:
           test -n "$cap"
           work="$RUNNER_TEMP/connection-cap-control"
           mkdir -p "$work"
-          port=8098
+          port=$((PORT_BASE + 8))
           OSCRAFT_CONNECTION_CAP_OVERRIDE=4096 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$work/cap.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$work/cap.log" || true' EXIT
@@ -733,7 +686,7 @@ jobs:
           set -euo pipefail
           work="$RUNNER_TEMP/connection-cap-status-line"
           mkdir -p "$work"
-          port=8099
+          port=$((PORT_BASE + 9))
           log="$work/cap.log"
           OSCRAFT_CONNECTION_CAP_OVERRIDE=2 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -773,10 +726,10 @@ jobs:
 
       - name: Start the server, post one client error, check one structured log line
         run: |
-          target/debug/oscraftd --addr 127.0.0.1:8099 --room ci > server.log 2>&1 &
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 9)) --room ci > server.log 2>&1 &
           pid=$!
-          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8099/ && break; sleep 0.2; done
-          curl -sf -X POST "http://127.0.0.1:8099/client-error?map=ci&session=ci-session&message=ci%20probe"
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:$((PORT_BASE + 9))/ && break; sleep 0.2; done
+          curl -sf -X POST "http://127.0.0.1:$((PORT_BASE + 9))/client-error?map=ci&session=ci-session&message=ci%20probe"
           kill $pid
           test "$(grep -c '^ev=client_error session=' server.log)" -eq 1
           line=$(grep '^ev=client_error session=' server.log)
@@ -788,15 +741,15 @@ jobs:
       - name: Flood the relay with 25 errors and check the rate limit drops the rest
         run: |
           set -euo pipefail
-          target/debug/oscraftd --addr 127.0.0.1:8100 --room ci > ratelimit.log 2>&1 &
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 10)) --room ci > ratelimit.log 2>&1 &
           pid=$!
-          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8100/ && break; sleep 0.2; done
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:$((PORT_BASE + 10))/ && break; sleep 0.2; done
           for i in $(seq 1 25); do
-            curl -s -o /dev/null -X POST "http://127.0.0.1:8100/client-error?map=ci&session=flood&message=flood%20$i"
+            curl -s -o /dev/null -X POST "http://127.0.0.1:$((PORT_BASE + 10))/client-error?map=ci&session=flood&message=flood%20$i"
           done
           code=000
           for i in $(seq 1 60); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8100/client-error?map=ci&session=flood&message=after%20flood")
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$((PORT_BASE + 10))/client-error?map=ci&session=flood&message=after%20flood")
             [ "$code" = 202 ] && break
             sleep 1
           done
@@ -816,12 +769,12 @@ jobs:
           export OSCRAFT_CLIENT_ERROR_LOG="$log"
           head -c 1100000 /dev/zero | tr '\0' 'x' > "$log"
           start() {
-            target/debug/oscraftd --addr 127.0.0.1:8101 --room ci > "$RUNNER_TEMP/durable-$1.out" 2>&1 &
+            target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 11)) --room ci > "$RUNNER_TEMP/durable-$1.out" 2>&1 &
             pid=$!
-            for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8101/ && break; sleep 0.2; done
+            for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:$((PORT_BASE + 11))/ && break; sleep 0.2; done
           }
           post() {
-            curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8101/client-error?map=ci&session=durable&message=$1"
+            curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$((PORT_BASE + 11))/client-error?map=ci&session=durable&message=$1"
           }
           start first
           test "$(post before%20restart)" = 202
@@ -841,9 +794,14 @@ jobs:
   tick-shed-window:
     name: "tick shed window: overrun rate with and without shedding"
     runs-on: ubuntu-latest
-    needs: [changes, build]
-    if: needs.changes.outputs.code == 'true'
+    needs: [changes, build, server-caps-and-ticks, server-mod-and-data]
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     timeout-minutes: 15
+    env:
+      PORT_BASE: 9400
+    concurrency:
+      group: timing-isolated
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: rust
@@ -896,8 +854,8 @@ jobs:
           }
           : > "$work/rates.txt"
           for r in 1 2 3 4 5; do
-            arm off $((8100 + 2 * r)) "$r" | tee -a "$work/rates.txt"
-            arm on $((8101 + 2 * r)) "$r" | tee -a "$work/rates.txt"
+            arm off $((PORT_BASE + 10 + 2 * r)) "$r" | tee -a "$work/rates.txt"
+            arm on $((PORT_BASE + 11 + 2 * r)) "$r" | tee -a "$work/rates.txt"
           done
           off_avg=$(awk '/^shed=off /{sub(/.*rate=/, ""); sub(/ .*/, ""); s += $1; n++} END{printf "%.4f", s / n}' "$work/rates.txt")
           on_avg=$(awk '/^shed=on /{sub(/.*rate=/, ""); sub(/ .*/, ""); s += $1; n++} END{printf "%.4f", s / n}' "$work/rates.txt")
@@ -909,6 +867,8 @@ jobs:
     needs: [changes, build]
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 20
+    env:
+      PORT_BASE: 9200
     defaults:
       run:
         working-directory: rust
@@ -932,7 +892,7 @@ jobs:
           ./target/debug/osdt-data data "$work/catalog.osdt"
           mod="$work/mod.lua"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
-          addr=127.0.0.1:8096
+          addr=127.0.0.1:$((PORT_BASE + 6))
           log="$work/mod.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --mod "$mod" --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -949,7 +909,7 @@ jobs:
           for i in $(seq 1 40); do grep -q '^ev=tick_time ' "$log" && break; sleep 0.25; done
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           over="$work/overrun.log"
-          target/debug/oscraftd --addr 127.0.0.1:8095 --room ci --data "$work/catalog.osdt" --ticks 200 --tick-budget-us 1 > "$over" 2>&1
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 5)) --room ci --data "$work/catalog.osdt" --ticks 200 --tick-budget-us 1 > "$over" 2>&1
           cat "$log" "$over" > "$work/all.log"
           for ev in serving mod_loaded order_token mod_tick mod_reload_failed mod_error client_error tick_time tick_overrun; do
             grep -q "^ev=$ev " "$work/all.log" || { echo "FAIL: no $ev line"; exit 1; }
@@ -977,7 +937,7 @@ jobs:
           work="$RUNNER_TEMP/order-state"
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
-          addr=127.0.0.1:8090
+          addr=127.0.0.1:$((PORT_BASE + 0))
           log="$work/order.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -1011,7 +971,7 @@ jobs:
           rm -rf "$work"
           mkdir -p "$work"
           cp data/*.osd "$work/"
-          addr=127.0.0.1:18440
+          addr=127.0.0.1:$((PORT_BASE + 110))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
           pid=$!
@@ -1043,7 +1003,7 @@ jobs:
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$work/mod.lua"
-          addr=127.0.0.1:18431
+          addr=127.0.0.1:$((PORT_BASE + 101))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" > "$log" 2>&1 &
           pid=$!
@@ -1072,7 +1032,7 @@ jobs:
           ./target/debug/osdt-data data "$work/catalog.osdt"
           mod="$work/mod.lua"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
-          addr=127.0.0.1:18461
+          addr=127.0.0.1:$((PORT_BASE + 131))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$mod" > "$log" 2>&1 &
           pid=$!
@@ -1113,7 +1073,7 @@ jobs:
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$work/mod.lua"
-          addr=127.0.0.1:18441
+          addr=127.0.0.1:$((PORT_BASE + 111))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --test-panic-mod-tick 20 > "$log" 2>&1 &
           pid=$!
@@ -1147,14 +1107,14 @@ jobs:
           ./target/debug/osdt-data data "$work/catalog.osdt"
           printf '%s\n' 'function on_tick(state)' '  if state.spawned == nil then' '    game.cmd_spawn("skirmisher", 688128, 1343488)' '    state.spawned = 1' '  end' 'end' > "$work/mod.lua"
           units() { curl -sf "http://$1/state" | jq -r .units; }
-          base=127.0.0.1:18435
+          base=127.0.0.1:$((PORT_BASE + 105))
           ./target/debug/oscraftd --addr "$base" --room test --data "$work/catalog.osdt" --tick-budget-us 250000 > "$work/baseline.log" 2>&1 &
           bpid=$!
           for i in $(seq 1 60); do units "$base" >/dev/null 2>&1 && break; sleep 0.5; done
           before=$(units "$base")
           kill $bpid 2>/dev/null || true
           wait $bpid 2>/dev/null || true
-          addr=127.0.0.1:18433
+          addr=127.0.0.1:$((PORT_BASE + 103))
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --tick-budget-us 250000 > "$work/server.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
@@ -1183,7 +1143,7 @@ jobs:
             end
           end
           LUA
-          addr=127.0.0.1:18434
+          addr=127.0.0.1:$((PORT_BASE + 104))
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --tick-budget-us 250000 > "$work/server.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
@@ -1215,7 +1175,7 @@ jobs:
           mkdir -p "$work/data"
           cp -r data/. "$work/data/"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = tostring(ability_info("pulse_shot").cooldown)' 'end' > "$work/mod.lua"
-          addr=127.0.0.1:18432
+          addr=127.0.0.1:$((PORT_BASE + 102))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
           pid=$!
@@ -1252,7 +1212,7 @@ jobs:
             end
           end
           LUA
-          addr=127.0.0.1:18441
+          addr=127.0.0.1:$((PORT_BASE + 111))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room handle --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
           pid=$!
@@ -1308,7 +1268,7 @@ jobs:
           cp data/*.osd "$work/data/"
           mod="$work/mod.lua"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = (state.ticks or 0) + 1' 'end' > "$mod"
-          addr=127.0.0.1:18471
+          addr=127.0.0.1:$((PORT_BASE + 141))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room walk --data "$work/data" --mod "$mod" > "$log" 2>&1 &
           pid=$!
@@ -1335,6 +1295,83 @@ jobs:
           test "$name" = modprobe_unit
           echo "mod walkthrough ok kind=$name"
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+
+  timing-ceilings:
+    name: "server p99 ceilings, run alone after the parallel server jobs"
+    runs-on: ubuntu-latest
+    needs: [changes, build, server-caps-and-ticks, server-mod-and-data]
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    timeout-minutes: 15
+    env:
+      PORT_BASE: 9500
+    concurrency:
+      group: timing-isolated
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-build
+          path: rust
+
+      - name: Mark the prebuilt binaries executable
+        working-directory: ${{ github.workspace }}
+        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
+
+      - name: Run the fixed tick count and compare p99 with the stored ceiling
+        run: |
+          set -euo pipefail
+          check_p99() {
+            local n=$1 c=$2
+            if [ "$n" -le "$c" ]; then
+              echo "tick p99 us=$n ceiling=$c ok"
+            else
+              echo "tick p99 us=$n ceiling=$c FAIL"
+              return 1
+            fi
+          }
+          baseline="$GITHUB_WORKSPACE/.github/perf/tick-baseline.txt"
+          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
+          ceiling=$(awk -F= '/^p99_ceiling_us=/{print $2}' "$baseline")
+          test -n "$ticks" && test -n "$ceiling"
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 1)) --room ci --ticks "$ticks" --tick-budget-us 20000 > tick-latency.log 2>&1
+          cat tick-latency.log
+          p99=$(grep '^ev=tick_time ' tick-latency.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
+          test -n "$p99"
+          check_p99 "$p99" 0 >/dev/null && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
+          check_p99 "$p99" "$ceiling"
+
+      - name: Run the fixed tick count and compare each system p99 with its ceiling
+        run: |
+          set -euo pipefail
+          check_p99() {
+            local n=$1 c=$2
+            [ "$n" -le "$c" ]
+          }
+          baseline="$GITHUB_WORKSPACE/.github/perf/tick-systems.txt"
+          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
+          test -n "$ticks"
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 2)) --room ci-systems --ticks "$ticks" --tick-budget-us 20000 > tick-systems.log 2>&1
+          cat tick-systems.log
+          first=""
+          fail=0
+          while read -r name ceiling; do
+            first=${first:-$name}
+            us=$(grep "^ev=tick_time system=$name " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
+            test -n "$us"
+            if check_p99 "$us" "$ceiling"; then
+              echo "tick system $name us=$us ceiling=$ceiling ok"
+            else
+              echo "tick system $name us=$us ceiling=$ceiling FAIL"
+              fail=1
+            fi
+          done < <(awk '/^system=/{split($1,a,"="); split($2,b,"="); print a[2], b[2]}' "$baseline")
+          check_p99 "$(grep "^ev=tick_time system=$first " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')" 0 && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
+          test "$fail" -eq 0
 
   server-kinds-and-protocol:
     name: "server unit kinds, carry, protocol and log schema probes"
@@ -2726,6 +2763,7 @@ jobs:
         with:
           workspaces: rust -> target
           shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Run the reload harness and check its three check lines
         shell: bash
