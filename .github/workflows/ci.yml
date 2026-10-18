@@ -1973,12 +1973,7 @@ jobs:
           console.log(`moba minimap ok dots=${dots}`);
           // Not every unit can cast or attack: try the most isolated units until one does both.
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
-          // Neutral camp units (player 255) never cast or attack in this probe, so they are not candidates.
-          const ranked = units.filter((u) => u.player !== 255).sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
           let attacker = null;
-          // Allies on one team are not attack targets, so the foes are the players the sim calls hostile.
-          const players = [...new Set(units.map((u) => u.player))];
-          const hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));
           // Hover and click land on the canvas only for units projected inside the viewport and not covered by an overlay.
           const shownNow = async (u) => {
             const p = await screenAt(u.x, u.z);
@@ -1992,10 +1987,24 @@ jobs:
             const us = window.__ciUnits();
             return us.some((a) => a.player !== 255 && us.some((b) => b !== a && (a.x - b.x) ** 2 + (a.z - b.z) ** 2 <= 64 && window.__ciHostile(a.player, b.player)));
           }, null, { timeout: 240000, polling: 500 }).catch(() => {});
+          // The wait moves the units, so the candidates, foes and hostile pairs are read from the sim after it, not from the start.
+          const waited = await page.evaluate(() => {
+            const us = window.__ciUnits();
+            let best = Infinity;
+            for (const a of us) if (a.player !== 255) for (const b of us) if (b !== a && window.__ciHostile(a.player, b.player)) best = Math.min(best, (a.x - b.x) ** 2 + (a.z - b.z) ** 2);
+            return { ticks: Number(document.body.dataset.ticks), nearest: best === Infinity ? -1 : Math.sqrt(best) };
+          });
+          console.log(`probe wait ticks=${waited.ticks} nearest_hostile_cells=${waited.nearest.toFixed(2)}`);
+          const live = await page.evaluate(() => window.__ciUnits());
+          // Neutral camp units (player 255) never cast or attack in this probe, so they are not candidates.
+          const ranked = live.filter((u) => u.player !== 255).sort((a, b) => Math.min(...live.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...live.filter((v) => v !== a).map((v) => dist2(v, a))));
+          // Allies on one team are not attack targets, so the foes are the players the sim calls hostile.
+          const players = [...new Set(live.map((u) => u.player))];
+          const hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));
           for (const cand of ranked.reverse().slice(0, 400)) {
             // Select through the CI hook: a click can land on another unit drawn over this one.
             // An attack needs a visible, hostile target: the camera moves onto the candidate, then only enemies inside its sight (9 cells) are tried, nearest first.
-            const near = units.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64);
+            const near = live.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64);
             if (!near.length) continue;
             await page.evaluate(([x, z]) => window.__ciFocus(x, z), [cand.x, cand.z]);
             if (!(await shownNow(cand))) continue;
@@ -2034,7 +2043,7 @@ jobs:
             }
             if (attacker) break;
           }
-          if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none"));
+          if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + ` ticks=${waited.ticks} nearest_hostile_cells=${waited.nearest.toFixed(2)} ranked=${ranked.length}`);
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
           await page.evaluate(() => window.__ciKillSide(1));
