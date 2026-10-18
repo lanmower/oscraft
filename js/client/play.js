@@ -639,6 +639,7 @@ function applyPeerCommand(peerPubkey, command) {
   if (command.type === FRAME.ORDER) {
     const ok = localGame.order_move(command.unitId, command.x, command.y);
     if (!ok) document.body.dataset.lastRefusal = `order_refused unit=${command.unitId} x=${command.x} z=${command.y}`;
+    if (ok) countRemote("remoteOrders");
     return ok;
   }
   if (command.type === FRAME.CAST) {

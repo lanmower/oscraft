@@ -1971,7 +1971,7 @@ jobs:
               // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
               await page.mouse.move(fp.x, fp.y);
               await page.keyboard.press("q");
-              await page.waitForTimeout(150);
+              await page.waitForFunction((n) => Number(document.body.dataset.casts) > n, casts0, { timeout: 1500 }).catch(() => {});
               const casts = Number(await page.getAttribute("body", "data-casts"));
               if (casts <= casts0) {
                 const refusal = await page.evaluate(() => document.body.dataset.lastRefusal || "none");
@@ -1983,7 +1983,7 @@ jobs:
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
               await page.keyboard.press("a");
               await page.mouse.click(fp.x, fp.y, { button: "left" });
-              await page.waitForTimeout(150);
+              await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 3000 }).catch(() => {});
               const attacks = Number(await page.getAttribute("body", "data-attacks"));
               console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
               if (attacks > attacks0) { attacker = cand; break; }
@@ -3528,7 +3528,7 @@ jobs:
               if (movedToward(onHost, target) && movedToward(await seen(peer), target)) break;
               refusals.push(`${target.x},${target.z}:${await host.evaluate(() => document.body.dataset.lastRefusal || "none")}`);
             }
-            if (!movedToward(onHost, target) || !movedToward(await seen(peer), target)) throw new Error(`no movement over the direct link: unit=${unit.id} host=${JSON.stringify(onHost)} refusals=${refusals.join(" ; ")}`);
+            if (!movedToward(onHost, target) || !movedToward(await seen(peer), target)) throw new Error(`no movement over the direct link: unit=${unit.id} host=${JSON.stringify(onHost)} refusals=${refusals.join(" ; ")} ticks=${await host.evaluate(() => document.body.dataset.ticks)} remoteOrders=${await host.evaluate(() => document.body.dataset.remoteOrders || "0")}`);
             // Not every unit of a side can attack or cast, so each one is tried against its nearest enemies until the host accepts.
             const foes = start.filter((u) => u.player === 1);
             const mine = start.filter((u) => u.player === 0).sort((a, b) => dist(a, foes[0] || a) - dist(b, foes[0] || b));
