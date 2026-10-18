@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -48,6 +48,15 @@ struct Clock {
     hist: TickHistogram,
 }
 
+// Mod UI events (messages, banners, panels, camera moves, sounds) kept for clients to poll by id.
+#[derive(Default)]
+struct UiLog {
+    next: u64,
+    events: VecDeque<(u64, String)>,
+}
+
+const UI_LOG_CAP: usize = 256;
+
 pub struct Room {
     pub name: String,
     pub grid_w: i32,
@@ -59,6 +68,7 @@ pub struct Room {
     queued: AtomicU64,
     shed: bool,
     feed: Mutex<Option<Arc<ModLink>>>,
+    ui: Mutex<UiLog>,
     staged: Mutex<Option<Sim>>,
     clock: Mutex<Clock>,
     test_panic_at: AtomicU64,
@@ -155,6 +165,7 @@ impl Room {
             queued: AtomicU64::new(0),
             shed: cfg.shed,
             feed: Mutex::new(None),
+            ui: Mutex::new(UiLog::default()),
             test_panic_at: AtomicU64::new(0),
             staged: Mutex::new(None),
             clock: Mutex::new(Clock {
@@ -175,6 +186,27 @@ impl Room {
             mods::watch_data(Arc::downgrade(&room), dir, cfg.max_units);
         }
         Ok(room)
+    }
+
+    fn log_ui(&self, tick: u64, bodies: Vec<String>) {
+        if bodies.is_empty() {
+            return;
+        }
+        let mut log = lock(&self.ui);
+        for body in bodies {
+            log.next += 1;
+            let id = log.next;
+            log.events.push_back((id, format!("{{\"id\":{id},\"tick\":{tick},{body}}}")));
+            if log.events.len() > UI_LOG_CAP {
+                log.events.pop_front();
+            }
+        }
+    }
+
+    // The UI events with an id above `since`, and the newest id issued.
+    pub fn ui_events_since(&self, since: u64) -> (u64, Vec<String>) {
+        let log = lock(&self.ui);
+        (log.next, log.events.iter().filter(|(id, _)| *id > since).map(|(_, e)| e.clone()).collect())
     }
 
     pub fn attach_mod_feed(&self, link: Arc<ModLink>) {
@@ -327,7 +359,9 @@ impl Room {
         let feed = lock(&self.feed).clone();
         if let Some(link) = feed {
             let clock = &mut *c;
-            let applied = apply_mod_commands(&mut clock.sim, &mut clock.handles, link.take_commands(MOD_CMDS_PER_TICK));
+            let mut ui = Vec::new();
+            let applied = apply_mod_commands(&mut clock.sim, &mut clock.handles, link.take_commands(MOD_CMDS_PER_TICK), &mut ui);
+            self.log_ui(clock.tick, ui);
             if applied > 0 {
                 crate::emit!(Ev::ModCmds, room = self.name, tick = c.tick, applied = applied);
             }
@@ -362,7 +396,7 @@ use crate::log::Ev;
 // handle to the room unit it got; handle commands resolve through that map, and a handle the map
 // does not hold is refused and logged. Plain unit indices come from the mod's own world, so a
 // target the room does not hold alive is skipped.
-fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Vec<Cmd>) -> usize {
+fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Vec<Cmd>, ui: &mut Vec<String>) -> usize {
     let applied = cmds.len();
     for cmd in cmds {
         match cmd {
@@ -443,9 +477,35 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
             Cmd::SetOwner { unit, player } => {
                 let _ = sim.set_owner(unit, player);
             }
+            Cmd::SetTeam { player, team } => {
+                let _ = sim.set_team(player, team);
+            }
+            Cmd::SetAlliance { a, b, kind } => {
+                let _ = sim.set_relation(a, b, kind);
+            }
+            Cmd::AddPlayer { player, controller } => {
+                let _ = sim.add_player(player, controller);
+            }
+            Cmd::RemovePlayer { player } => {
+                let _ = sim.remove_player(player);
+            }
             Cmd::SetFog { on } => sim.set_fog(on),
             Cmd::DefineAbility { name, cooldown, energy, target, filter, effects } => {
                 let _ = sim.define_ability(AbilitySpec { name: &name, cooldown, energy, target, filter, effects });
+            }
+            Cmd::DefineUnit { spec } => {
+                let _ = sim.define_unit(&spec);
+            }
+            Cmd::DefineItem { spec } => {
+                let _ = sim.define_item(&spec);
+            }
+            Cmd::DefineUpgrade { spec } => {
+                let _ = sim.define_upgrade(&spec);
+            }
+            Cmd::GrantUpgrade { player, name } => {
+                if let Some(r) = sim.research_index(&name) {
+                    sim.grant_research(player, r);
+                }
             }
             Cmd::GiveAbility { unit, slot, name } => {
                 let _ = sim.give_ability(unit, slot, &name);
@@ -456,6 +516,7 @@ fn apply_mod_commands(sim: &mut Sim, handles: &mut HashMap<u32, usize>, cmds: Ve
             }
             Cmd::Victory { player } => sim.declare_victory(player),
             Cmd::Defeat { player } => sim.declare_defeat(player),
+            Cmd::Ui { body } => ui.push(body),
         }
     }
     applied

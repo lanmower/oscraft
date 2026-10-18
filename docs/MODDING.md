@@ -5,8 +5,10 @@ registers triggers, and queues commands on the game. Mods use only the names bel
 host runs them on mlua (Lua 5.4); the wasip3 guest runs the same event names on piccolo.
 
 Example mods: `mods/creep_gold.lua`, `mods/tower_buff.lua`, `mods/td_waves.lua` (timer, region, variables,
-score, defeat) and `mods/custom_spell.lua` (ability, gold, victory). CI runs the last two with
-`mod_check` and asserts the `mod-state` line they print.
+score, defeat), `mods/custom_spell.lua` (ability, gold, victory), `mods/custom_unit.lua` (unit),
+`mods/custom_item.lua` (item, buy, inventory), `mods/tech_tree.lua` (upgrades), `mods/killer.lua`
+(killer attribution, clock) and `mods/unit_queries.lua` (cooldown and ability queries, clock). CI
+runs them with `mod_check` and asserts the `mod-state` line they print.
 
 ## The file contract
 
@@ -25,7 +27,7 @@ trigger on it. Both receive the same arguments. The host queues events in the st
 |---|---|---|
 | `on_spawned` | `unit` | a unit appears in the sim |
 | `on_attacked` | `unit` | a unit's hit points fall |
-| `on_died` | `unit` | a unit goes from alive to dead |
+| `on_died` | `unit, killer, killer_player` | a unit goes from alive to dead; `killer` and `killer_player` are the unit and owner credited with the death, or `nil` when nothing is |
 | `on_enter` | `region, unit` | a unit enters a named region |
 | `on_leave` | `region, unit` | a unit leaves a named region |
 | `on_player_joined` | `player` | the host reports a player joining (the host calls it, not the sim) |
@@ -77,6 +79,11 @@ an event or trigger therefore takes effect one step later.
 | `game.cmd_cast(unit, slot, target, x, y)` | cast ability `slot` at a unit (`target`) or a point (`target = -1`) |
 | `game.cmd_set_owner(unit, player)` | move `unit` to `player` (0..MAX_PLAYERS) |
 | `game.cmd_set_fog(on)` | turn fog of war on or off (a boolean) |
+| `game.set_team(player, team)` | put `player` on `team` (both 0..MAX_PLAYERS); players on one team are allied |
+| `game.alliance(a, b, kind)` | relate players `a` and `b` as `"enemy"`, `"ally"` or `"vision"` (allied with shared sight), both ways. Without `kind` it returns the current relation. |
+| `game.add_player(slot, controller)` | seat `"human"`, `"computer"` or `"open"` in player slot `slot` |
+| `game.remove_player(slot)` | empty `slot`: it becomes open, takes a team of its own and drops every alliance and shared sight; its units stay |
+| `game.cmd_grant_upgrade(player, name)` | complete upgrade `name` for `player` at no cost and time (see Upgrades) |
 | `game.cmd_order_handle`, `game.cmd_damage_handle`, `game.cmd_buff_handle` | the same commands, taking handles from `cmd_spawn` |
 
 Unit arguments of the commands must be living units when the command is queued. A dead or unknown
@@ -87,8 +94,13 @@ handle fails the queueing call, not the step.
 | Call | Returns |
 |---|---|
 | `game.units(player)` | the living unit handles, in index order. Pass a player id to keep only that player's units, or `nil` for all. |
-| `game.players()` | a list of `{id, units}` rows, one per player slot, with the count of living units each owns. |
+| `game.players()` | a list of `{id, units, team, controller}` rows, one per player slot, with the count of living units each owns. |
+| `game.team(player)` | the team number of `player` |
 | `game.unit_kind(unit)` | the catalog name of the unit, or `nil`. Works on dead units. |
+| `game.time()` | the game clock: `ticks, seconds` since the match began (16 ticks to the second) |
+| `game.unit_cooldown(unit, slot)` | ticks left on ability `slot` of `unit`; 0 when ready |
+| `game.unit_abilities(unit)` | the unit's abilities as `{slot, name, cooldown}` rows, empty slots left out |
+| `game.unit_items(unit)` | the unit's inventory as `{slot, name, count, cooldown}` rows (the item's active ability cooldown), empty slots left out |
 | `game.each(comps, fn)` | runs `fn` over every living unit now, with a view of the named components |
 | `game.system(name, comps, fn)` | registers `fn` to run over every living unit each step. Names must be unique. |
 
@@ -140,6 +152,48 @@ list of `{kind = ...}` entries:
 `game.cmd_give_ability(unit, slot, name)` puts the ability in a slot of a living unit; cast it
 with `game.cmd_cast`. An unknown kind fails with `unknown_effect`, a bad name with `invalid_ability`.
 
+### Units
+
+`game.unit(name, spec)` defines a unit kind in the catalog (or redefines the one of that name; units
+already alive keep the stats they spawned with) and returns the name. `name` is a lowercase
+identifier. `spec` fields, all numbers unless noted:
+
+| field | meaning |
+|---|---|
+| `health` | hit points, whole units; required, above 0 |
+| `speed`, `radius`, `sight` | milli-units per tick, milli-units, milli-units (defaults 0, 500, 8000) |
+| `armor`, `shield` | whole units |
+| `cost` | gold the unit costs to train |
+| `bounty` | gold paid to the killer |
+| `filter` | unit filter mask (default 1, ground) |
+| `model` | model file the renderer draws it with (string) |
+| `weapon` | `{damage, range, period}`: whole units, milli-units, ticks (defaults 0, 1000, 16) |
+| `abilities` | list of ability names, at most 8, each already defined |
+
+Spawn it with `game.cmd_spawn(name, x, y)`. A bad name or stat fails with `invalid_unit`.
+
+### Items
+
+`game.item(name, spec)` defines an item (or redefines the one of that name) and returns its catalog
+index, the number `game.cmd_buy(unit, item)` takes. `spec` has `cost`, the stat bonuses `armor`,
+`damage` and `health` (added to the holder when the item enters the inventory) and `ability`, the
+name of an already defined ability the item casts with `game.cmd_use_item`. A bad name or an
+unknown ability fails with `invalid_item`. Buying needs gold in the player pool and a shop in reach.
+
+### Upgrades and tech trees
+
+`game.upgrade(name, spec)` defines an upgrade, a research a building runs, and returns the name.
+`spec` has `building` (the unit kind that researches it, required), `time` (ticks), `cost` and
+`gas`, `effect` (one `{kind = ...}` entry, required), `filter` (unit filter mask the effect applies
+to, 0 for every unit of the player), `requires` (upgrade names that must be complete first) and
+`unlocks` (unit kinds that cannot be trained until it is complete). The effect reaches the player's
+living units when the research completes and every matching unit built after.
+`game.cmd_grant_upgrade(player, name)` completes it for `player` at once, with no cost and no
+prerequisite check. Upgrade effects add to the receiving unit; besides the ability kinds there are
+`shield` (`amount`) and `stat` (`stat` is `damage`, `armor`, `health`, `speed` or `range`; `amount`
+in whole units, milli-units for `speed` and `range`). Both kinds work in abilities too. An unknown
+upgrade fails with `unknown_upgrade`, a bad definition with `invalid_upgrade`.
+
 ### Match result and gold
 
 | Call | Effect |
@@ -148,10 +202,25 @@ with `game.cmd_cast`. An unknown kind fails with `unknown_effect`, a bad name wi
 | `game.defeat(player)` | `player` loses: the team of its first hostile player wins (command) |
 | `game.winner()` | the winning team, or `nil` while the match runs |
 | `game.cmd_add_gold(player, n)` | add `n` (negative takes) to the player's gold pool |
-| `game.cmd_add_hero_gold(unit, n)` | the same for a hero unit's own gold, which `cmd_buy` spends |
+| `game.cmd_add_hero_gold(unit, n)` | the same for a hero unit's own gold |
 | `game.gold(player)`, `game.hero_gold(unit)` | read them |
 
 The first winner stands; a later `victory` or `defeat` changes nothing.
+
+### Client UI and cinematics
+
+| Call | Effect |
+|---|---|
+| `game.message(player, text[, seconds])` | a line in the message log; `player` -1 reaches everyone; default 5 s |
+| `game.banner(text[, seconds])` | a large centred banner; default 4 s |
+| `game.panel(id, {title, text[, player]})` | a text panel keyed by `id`; calling again replaces it, `game.panel(id)` removes it |
+| `game.camera(player, x, y[, zoom[, seconds]])` | glide the render3d camera to the Q16.16 point at `zoom` (1 = default distance) over `seconds` (default 1) |
+| `game.sound(name)` | emit a sound event only; the client hook `onSound(name)` plays it |
+
+These queue commands like `game.victory`. The room stamps each with an id and tick and keeps the last 256.
+`GET /events?since=<id>` returns `{"seq":N,"events":[{"id","tick","kind",...}]}`; `js/client/modui.js` polls it
+when the client page is opened with `?events=<server origin>` and draws the log, banners, panels and camera moves.
+In-browser hosts call `window.__modUi.push(event)` with the same objects.
 
 ## Gap list against the map-editor modding of earlier RTS and arena games
 
@@ -172,17 +241,17 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 | Terrain, tiles, doodads placement | done | `edit_terrain`, `set_tile`, `place_doodad`, `remove_doodad` |
 | Spawn, order, attack, damage, buff, ownership | done | `game.cmd_*` |
 | Persistent state across reload | done | `state`, the variable stores |
-| Custom units (stats, weapons) | missing | units come from the scenario catalog; a `game.unit` definition mirroring `game.ability` is next |
-| Custom items | missing | items come from the catalog; same shape as `game.ability` |
-| Upgrades and tech trees | missing | the catalog holds research and prerequisites; no Lua definition or grant call |
-| Teams, alliances, shared vision | partial | `cmd_set_owner` moves units; no team or alliance command |
-| Player slots: create, remove, controller type | missing | `on_player_joined` only reads |
+| Custom units (stats, weapons) | done | `game.unit`, `mods/custom_unit.lua` |
+| Custom items | done | `game.item`, `mods/custom_item.lua` |
+| Upgrades and tech trees | done | `game.upgrade`, `game.cmd_grant_upgrade`, `mods/tech_tree.lua` |
+| Teams, alliances, shared vision | done | `game.team`, `game.set_team`, `game.alliance`, `mods/teams.lua` |
+| Player slots: create, remove, controller type | done | `game.add_player`, `game.remove_player`, `game.players` |
 | Per-unit and per-player resource other than gold | missing | `resource_b` has no mod call |
-| Killer attribution in `on_died` | missing | the event gives the dead unit only |
-| Unit and ability queries (hp, position, abilities of a unit) | partial | `unit_hp`, `unit_position`; no cooldown or inventory read |
-| Game clock query | missing | a mod counts its own ticks |
-| Cinematics, camera, letterbox | missing | the camera is client side; needs a command stream to clients |
-| UI panels, messages, multiboards, dialogs | missing | needs a command stream to clients |
+| Killer attribution in `on_died` | done | `on_died(unit, killer, killer_player)`, `mods/killer.lua` |
+| Unit and ability queries (hp, position, abilities of a unit) | done | `unit_hp`, `unit_position`, `game.unit_cooldown`, `game.unit_abilities`, `game.unit_items`, `mods/unit_queries.lua` |
+| Game clock query | done | `game.time`, `mods/killer.lua`, `mods/unit_queries.lua` |
+| Cinematics, camera moves | partial | `game.camera`, `game.banner`, streamed by `GET /events`, applied by `js/client/modui.js`; no letterbox |
+| UI messages, banners, text panels, sounds | partial | `game.message`, `game.banner`, `game.panel`, `game.sound` (event only), `mods/ui_demo.lua`; no multiboards or dialogs |
 | AI scripts for computer players | partial | behaviours in the catalog and `game.system` per-unit logic; no player-level AI hook |
 | Save and load game data across matches | missing | state ends with the match |
 | Asset import (models, sounds) | missing | the scenario build owns assets |
@@ -190,9 +259,11 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 ## Backends
 
 - mlua (native host): every call above, the trigger registry, and the query functions.
-- piccolo (wasip3 guest): the same event names (`EVENTS` in `rust/crates/mod-host/src/lib.rs`),
-  `player_joined`, `take_joined`, `units`, `players`, `unit_kind`, and `events`. The guest does not
-  yet run mod-side triggers or the `game` command table. A mod that calls them fails to load on the guest.
+- piccolo (wasip3 guest): the event names (`EVENTS` in `rust/crates/mod-host/src/lib.rs`, with the
+  killer arguments of `on_died`), triggers, the `game` command table, `game.time`,
+  `game.unit_cooldown`, `game.unit_abilities` and `game.unit_items`. It does not define content:
+  `game.unit`, `game.item`, `game.upgrade` and `game.ability` run on the native host only, and the
+  server replays the definitions into the room.
 
 ## Limits
 
@@ -201,5 +272,3 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 - A mod has no file, network or OS access. The base library is the set copied into each
   environment: `pcall`, `xpcall`, `error`, `assert`, `type`, `tostring`, `tonumber`, `select`,
   `pairs`, `ipairs`, `next`, plus the host globals above.
-- Killer attribution is not in the API: `on_died` gives the dead unit, not what killed it. A mod
-  that needs the killer must infer it from its own state.

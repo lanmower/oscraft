@@ -289,6 +289,7 @@ impl Server {
             ("GET", "/") => self.index(),
             ("GET", "/resources") => self.resources(),
             ("GET", "/state") => self.on_room(req, serve_state),
+            ("GET", "/events") => self.on_room(req, serve_events),
             ("GET", "/delta") => self.on_room(req, serve_delta),
             ("GET", "/catalog") => self.on_room(req, serve_catalog),
             ("GET", "/mod-version") => self.mod_version(),
@@ -406,6 +407,15 @@ pub fn serve_state(room: &Room, req: &Request) -> Response {
             snap.records.join(",")
         ),
     )
+}
+
+pub fn serve_events(room: &Room, req: &Request) -> Response {
+    if let Some(refused) = protocol_refusal(req) {
+        return refused;
+    }
+    let since = req.param("since").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+    let (seq, events) = room.ui_events_since(since);
+    Response::json(200, format!("{{\"seq\":{seq},\"events\":[{}]}}", events.join(",")))
 }
 
 pub fn serve_delta(room: &Room, req: &Request) -> Response {

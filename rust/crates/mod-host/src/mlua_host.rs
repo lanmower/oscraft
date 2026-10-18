@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{effect_kind, target_code, AbilitySpec, Catalog, Doodad, Effect, LoadError, Refusal, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS};
+use sim::{controller_code, effect_kind, stat_code, target_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, STAT_NAMES, TICKS_PER_SECOND};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -79,12 +79,22 @@ pub enum Cmd {
     Attack { unit: usize, target: usize },
     SetOwner { unit: usize, player: u8 },
     SetFog { on: bool },
+    SetTeam { player: u8, team: u8 },
+    SetAlliance { a: u8, b: u8, kind: usize },
+    AddPlayer { player: u8, controller: u8 },
+    RemovePlayer { player: u8 },
     DefineAbility { name: String, cooldown: i32, energy: i32, target: u8, filter: u16, effects: Vec<Effect> },
+    DefineUnit { spec: UnitSpec },
+    DefineItem { spec: ItemSpec },
+    DefineUpgrade { spec: UpgradeSpec },
+    GrantUpgrade { player: u8, name: String },
     GiveAbility { unit: usize, slot: usize, name: String },
     AddGold { player: u8, amount: i32 },
     AddHeroGold { unit: usize, amount: i32 },
     Victory { player: u8 },
     Defeat { player: u8 },
+    // A client-facing UI event as a JSON object body; the server stamps id and tick and streams it.
+    Ui { body: String },
 }
 
 // Q16.16 corners, normalized so x0 <= x1 and y0 <= y1.
@@ -146,13 +156,14 @@ struct UnitSnap {
     y: i32,
     hp: i32,
     alive: bool,
+    killer: Option<usize>,
 }
 
 #[derive(Clone, Copy)]
 enum Pending {
     Spawned { unit: usize },
     Attacked { unit: usize },
-    Died { unit: usize },
+    Died { unit: usize, killer: Option<usize> },
     Enter { unit: usize, region: usize },
     Leave { unit: usize, region: usize },
     PlayerJoined { player: usize },
@@ -272,6 +283,39 @@ fn out_of_grid(x0: i64, y0: i64, x1: i64, y1: i64, w: i64, h: i64) -> mlua::Erro
     mlua::Error::RuntimeError(format!("out_of_grid: rect ({x0},{y0})-({x1},{y1}) exceeds grid {w}x{h}"))
 }
 
+// A UI event's player: -1 addresses every client, otherwise one of the match players.
+fn ui_player(p: i64) -> mlua::Result<i64> {
+    if p == -1 {
+        return Ok(-1);
+    }
+    player_arg(p).map(i64::from)
+}
+
+fn ui_seconds(seconds: Option<f64>, default: f64) -> mlua::Result<f64> {
+    let s = seconds.unwrap_or(default);
+    if s.is_finite() && s >= 0.0 {
+        Ok(s)
+    } else {
+        Err(mlua::Error::RuntimeError(format!("invalid_seconds: {s} must be finite and not negative")))
+    }
+}
+
+fn ui_json_string(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
 fn player_arg(p: i64) -> mlua::Result<u8> {
     usize::try_from(p)
         .ok()
@@ -282,7 +326,8 @@ fn player_arg(p: i64) -> mlua::Result<u8> {
 
 // One entry of game.ability's effects list. The named fields fill the catalog effect parameters
 // each kind reads: damage and heal take amount and radius; move takes range; buff takes buff and
-// ticks; spawn takes unit (a catalog name) and dx, dy.
+// ticks; shield takes amount; stat takes stat (a STAT_NAMES entry) and amount; spawn takes unit (a
+// catalog name) and dx, dy.
 fn effect_from(sim: &Sim, entry: &Table) -> mlua::Result<Effect> {
     let kind: String = entry.get("kind")?;
     let code = effect_kind(&kind).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_effect: {kind} (known: {})", sim::MOD_EFFECTS.join(", "))))?;
@@ -290,6 +335,12 @@ fn effect_from(sim: &Sim, entry: &Table) -> mlua::Result<Effect> {
     let (p0, p1, p2) = match kind.as_str() {
         "damage" | "heal" => (field("amount")?, field("radius")?, 0),
         "move" => (field("range")?, 0, 0),
+        "shield" => (field("amount")?, 0, 0),
+        "stat" => {
+            let stat: String = entry.get("stat")?;
+            let code = stat_code(&stat).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_stat: {stat} (known: {})", STAT_NAMES.join(", "))))?;
+            (code, field("amount")?, 0)
+        }
         "buff" => (field("buff")?, field("ticks")?, 0),
         _ => {
             let unit: String = entry.get("unit")?;
@@ -932,6 +983,59 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     )?;
     let w = world.clone();
     game.set(
+        "team",
+        lua.create_function(move |_, player: i64| {
+            let p = player_arg(player)?;
+            Ok(w.borrow().team_of(p).map(i64::from))
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "set_team",
+        lua.create_function(move |_, (player, team): (i64, i64)| {
+            let player = player_arg(player)?;
+            let team = usize::try_from(team).ok().filter(|&t| t < MAX_PLAYERS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_team: {team} is outside 0..{MAX_PLAYERS}"))
+            })?;
+            buf.borrow_mut().push(Cmd::SetTeam { player, team: team as u8 });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "alliance",
+        lua.create_function(move |_, (a, b, kind): (i64, i64, Option<String>)| {
+            let (a, b) = (player_arg(a)?, player_arg(b)?);
+            let Some(kind) = kind else { return Ok(w.borrow().relation(a, b).map(str::to_owned)) };
+            let kind = MOD_ALLIANCES.iter().position(|k| *k == kind).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_alliance: {kind} is not {}", MOD_ALLIANCES.join(", ")))
+            })?;
+            buf.borrow_mut().push(Cmd::SetAlliance { a, b, kind });
+            Ok(None)
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "add_player",
+        lua.create_function(move |_, (player, controller): (i64, String)| {
+            let player = player_arg(player)?;
+            let controller = controller_code(&controller).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_controller: {controller} is not {}", MOD_CONTROLLERS.join(", ")))
+            })?;
+            buf.borrow_mut().push(Cmd::AddPlayer { player, controller });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "remove_player",
+        lua.create_function(move |_, player: i64| {
+            buf.borrow_mut().push(Cmd::RemovePlayer { player: player_arg(player)? });
+            Ok(())
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
         "units",
         lua.create_function(move |lua, player: Option<i64>| {
             let sim = w.borrow();
@@ -951,12 +1055,15 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     game.set(
         "players",
         lua.create_function(move |lua, ()| {
-            let counts = living_per_player(&w.borrow());
+            let sim = w.borrow();
+            let counts = living_per_player(&sim);
             let list = lua.create_table()?;
             for (p, alive) in counts.iter().enumerate() {
                 let row = lua.create_table()?;
                 row.set("id", p as i64)?;
                 row.set("units", *alive)?;
+                row.set("team", sim.team_of(p as u8).map(i64::from))?;
+                row.set("controller", MOD_CONTROLLERS[sim.controller(p as u8) as usize])?;
                 list.raw_set(p as i64 + 1, row)?;
             }
             Ok(list)
@@ -998,6 +1105,166 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     )?;
     let (w, buf) = (world.clone(), cmds.clone());
     game.set(
+        "unit",
+        lua.create_function(move |_, (name, spec): (String, Table)| {
+            let int = |key: &str, default: i64| -> mlua::Result<i32> { fixed(spec.get::<Option<i64>>(key)?.unwrap_or(default)) };
+            let weapon = match spec.get::<Option<Table>>("weapon")? {
+                None => None,
+                Some(t) => {
+                    let get = |key: &str, default: i64| -> mlua::Result<i32> { fixed(t.get::<Option<i64>>(key)?.unwrap_or(default)) };
+                    Some((get("damage", 0)?, get("range", 1000)?, get("period", 16)?))
+                }
+            };
+            let abilities = match spec.get::<Option<Table>>("abilities")? {
+                None => Vec::new(),
+                Some(list) => list.sequence_values::<String>().collect::<mlua::Result<Vec<_>>>()?,
+            };
+            let def = UnitSpec {
+                name: name.clone(),
+                model: spec.get::<Option<String>>("model")?.unwrap_or_default(),
+                health: int("health", 0)?,
+                speed: int("speed", 0)?,
+                radius: int("radius", 500)?,
+                armor: int("armor", 0)?,
+                shield: int("shield", 0)?,
+                sight: int("sight", 8000)?,
+                filter: u32::try_from(int("filter", 1)?).map_err(|_| mlua::Error::RuntimeError("invalid_unit: filter must not be negative".into()))?,
+                cost: int("cost", 0)?,
+                bounty: int("bounty", 0)?,
+                weapon,
+                abilities,
+            };
+            w.borrow_mut().define_unit(&def).map_err(|why| mlua::Error::RuntimeError(format!("invalid_unit: {name}: {why}")))?;
+            buf.borrow_mut().push(Cmd::DefineUnit { spec: def });
+            Ok(name)
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "item",
+        lua.create_function(move |_, (name, spec): (String, Table)| {
+            let int = |key: &str| -> mlua::Result<i32> { fixed(spec.get::<Option<i64>>(key)?.unwrap_or(0)) };
+            let def = ItemSpec {
+                name: name.clone(),
+                cost: int("cost")?,
+                armor: int("armor")?,
+                damage: int("damage")?,
+                health: int("health")?,
+                ability: spec.get::<Option<String>>("ability")?,
+            };
+            let index = w.borrow_mut().define_item(&def).map_err(|why| mlua::Error::RuntimeError(format!("invalid_item: {name}: {why}")))?;
+            buf.borrow_mut().push(Cmd::DefineItem { spec: def });
+            Ok(index as i64)
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "upgrade",
+        lua.create_function(move |_, (name, spec): (String, Table)| {
+            let int = |key: &str, default: i64| -> mlua::Result<i32> { fixed(spec.get::<Option<i64>>(key)?.unwrap_or(default)) };
+            let names = |key: &str| -> mlua::Result<Vec<String>> {
+                match spec.get::<Option<Table>>(key)? {
+                    None => Ok(Vec::new()),
+                    Some(list) => list.sequence_values::<String>().collect(),
+                }
+            };
+            let entry: Table = spec.get("effect")?;
+            let effect = effect_from(&w.borrow(), &entry)?;
+            let def = UpgradeSpec {
+                name: name.clone(),
+                building: spec.get("building")?,
+                time: int("time", 1)?,
+                cost: int("cost", 0)?,
+                gas: int("gas", 0)?,
+                effect,
+                filter: u32::try_from(int("filter", 0)?).map_err(|_| mlua::Error::RuntimeError("invalid_upgrade: filter must not be negative".into()))?,
+                requires: names("requires")?,
+                unlocks: names("unlocks")?,
+            };
+            w.borrow_mut().define_upgrade(&def).map_err(|why| mlua::Error::RuntimeError(format!("invalid_upgrade: {name}: {why}")))?;
+            buf.borrow_mut().push(Cmd::DefineUpgrade { spec: def });
+            Ok(name)
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_grant_upgrade",
+        lua.create_function(move |_, (player, name): (i64, String)| {
+            let player = player_arg(player)?;
+            if w.borrow().research_index(&name).is_none() {
+                return Err(mlua::Error::RuntimeError(format!("unknown_upgrade: {name}")));
+            }
+            buf.borrow_mut().push(Cmd::GrantUpgrade { player, name });
+            Ok(())
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "time",
+        lua.create_function(move |_, ()| {
+            let ticks = w.borrow().ticks();
+            Ok((i64::from(ticks), f64::from(ticks) / f64::from(TICKS_PER_SECOND)))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "unit_cooldown",
+        lua.create_function(move |_, (unit, slot): (i64, i64)| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            let slot = usize::try_from(slot).ok().filter(|&s| s < ABILITY_SLOTS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_slot: {slot} is outside 0..{ABILITY_SLOTS}"))
+            })?;
+            Ok(i64::from(sim.ability_cooldown(u, slot)))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "unit_abilities",
+        lua.create_function(move |lua, unit: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            let cat = sim.catalog();
+            let list = lua.create_table()?;
+            let mut n = 0i64;
+            for slot in 0..ABILITY_SLOTS {
+                let Some(ai) = sim.ability_in_slot(u, slot) else { continue };
+                let Some(a) = cat.abilities.get(ai) else { continue };
+                let row = lua.create_table()?;
+                row.set("slot", slot as i64)?;
+                row.set("name", cat.name(a.name))?;
+                row.set("cooldown", i64::from(sim.ability_cooldown(u, slot)))?;
+                n += 1;
+                list.raw_set(n, row)?;
+            }
+            Ok(list)
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "unit_items",
+        lua.create_function(move |lua, unit: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            let cat = sim.catalog();
+            let list = lua.create_table()?;
+            let mut n = 0i64;
+            for slot in 0..ITEM_SLOTS {
+                let (kind, count) = sim.inventory_slot(u, slot);
+                let Some(item) = (kind as usize).checked_sub(1).and_then(|i| cat.items.get(i)) else { continue };
+                let row = lua.create_table()?;
+                row.set("slot", slot as i64)?;
+                row.set("name", cat.name(item.name))?;
+                row.set("count", i64::from(count))?;
+                row.set("cooldown", i64::from(sim.item_cooldown(u, slot)))?;
+                n += 1;
+                list.raw_set(n, row)?;
+            }
+            Ok(list)
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
         "cmd_give_ability",
         lua.create_function(move |_, (unit, slot, name): (i64, i64, String)| {
             let sim = w.borrow();
@@ -1030,6 +1297,79 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             let u = live_unit(&w.borrow(), unit)?;
             let amount = i32::try_from(amount).map_err(|_| mlua::Error::RuntimeError(format!("invalid_amount: {amount} out of i32 range")))?;
             buf.borrow_mut().push(Cmd::AddHeroGold { unit: u, amount });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "message",
+        lua.create_function(move |_, (player, text, seconds): (i64, String, Option<f64>)| {
+            let body = format!(r#""kind":"message","player":{},"text":{},"seconds":{}"#, ui_player(player)?, ui_json_string(&text), ui_seconds(seconds, 5.0)?);
+            buf.borrow_mut().push(Cmd::Ui { body });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "banner",
+        lua.create_function(move |_, (text, seconds): (String, Option<f64>)| {
+            let body = format!(r#""kind":"banner","text":{},"seconds":{}"#, ui_json_string(&text), ui_seconds(seconds, 4.0)?);
+            buf.borrow_mut().push(Cmd::Ui { body });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "panel",
+        lua.create_function(move |_, (id, spec): (String, Option<Table>)| {
+            let body = match spec {
+                None => format!(r#""kind":"panel","id":{},"remove":true"#, ui_json_string(&id)),
+                Some(t) => {
+                    let title: Option<String> = t.get("title")?;
+                    let text: Option<String> = t.get("text")?;
+                    let player: Option<i64> = t.get("player")?;
+                    let player = match player {
+                        Some(p) => player_arg(p)? as i64,
+                        None => -1,
+                    };
+                    format!(
+                        r#""kind":"panel","id":{},"player":{},"title":{},"text":{}"#,
+                        ui_json_string(&id),
+                        player,
+                        ui_json_string(&title.unwrap_or_default()),
+                        ui_json_string(&text.unwrap_or_default())
+                    )
+                }
+            };
+            buf.borrow_mut().push(Cmd::Ui { body });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "camera",
+        lua.create_function(move |_, (player, x, y, zoom, seconds): (i64, f64, f64, Option<f64>, Option<f64>)| {
+            let zoom = zoom.unwrap_or(1.0);
+            if !(zoom.is_finite() && zoom > 0.0) || !x.is_finite() || !y.is_finite() {
+                return Err(mlua::Error::RuntimeError("invalid_camera: x, y and zoom must be finite and zoom positive".into()));
+            }
+            let body = format!(
+                r#""kind":"camera","player":{},"x":{},"y":{},"zoom":{},"seconds":{}"#,
+                ui_player(player)?,
+                x / 65536.0,
+                y / 65536.0,
+                zoom,
+                ui_seconds(seconds, 1.0)?
+            );
+            buf.borrow_mut().push(Cmd::Ui { body });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "sound",
+        lua.create_function(move |_, name: String| {
+            buf.borrow_mut().push(Cmd::Ui { body: format!(r#""kind":"sound","name":{}"#, ui_json_string(&name)) });
             Ok(())
         })?,
     )?;
@@ -1579,8 +1919,25 @@ impl ModHost {
                     let _ = sim.set_owner(unit, player);
                 }
                 Cmd::SetFog { on } => sim.set_fog(on),
-                // game.ability already defined the ability in this world when the mod called it.
-                Cmd::DefineAbility { .. } => {}
+                Cmd::SetTeam { player, team } => {
+                    let _ = sim.set_team(player, team);
+                }
+                Cmd::SetAlliance { a, b, kind } => {
+                    let _ = sim.set_relation(a, b, kind);
+                }
+                Cmd::AddPlayer { player, controller } => {
+                    let _ = sim.add_player(player, controller);
+                }
+                Cmd::RemovePlayer { player } => {
+                    let _ = sim.remove_player(player);
+                }
+                // game.ability, unit, item and upgrade already defined theirs in this world when the mod called them.
+                Cmd::DefineAbility { .. } | Cmd::DefineUnit { .. } | Cmd::DefineItem { .. } | Cmd::DefineUpgrade { .. } => {}
+                Cmd::GrantUpgrade { player, name } => {
+                    if let Some(r) = sim.research_index(&name) {
+                        sim.grant_research(player, r);
+                    }
+                }
                 Cmd::GiveAbility { unit, slot, name } => {
                     let _ = sim.give_ability(unit, slot, &name);
                 }
@@ -1590,6 +1947,8 @@ impl ModHost {
                 }
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
+                // UI events live in the server's event stream; the host world has nothing to change.
+                Cmd::Ui { .. } => {}
             }
         }
     }
@@ -1615,7 +1974,7 @@ impl ModHost {
             let sim = self.world.borrow();
             for i in 0..sim.count() {
                 let (x, y) = sim.position_fixed(i);
-                self.snap.push(UnitSnap { x, y, hp: sim.hp(i), alive: sim.alive(i) });
+                self.snap.push(UnitSnap { x, y, hp: sim.hp(i), alive: sim.alive(i), killer: sim.killer_of(i) });
             }
         }
         let regions = self.regions.borrow();
@@ -1627,7 +1986,7 @@ impl ModHost {
                         self.pending.push(Pending::Attacked { unit });
                     }
                     if p.alive && !s.alive {
-                        self.pending.push(Pending::Died { unit });
+                        self.pending.push(Pending::Died { unit, killer: s.killer });
                     }
                 }
             }
@@ -1674,11 +2033,13 @@ impl ModHost {
                     }
                     hooks.fire.call::<()>(("on_attacked", unit as i64))?;
                 }
-                Pending::Died { unit } => {
+                Pending::Died { unit, killer } => {
+                    let killer_player = killer.map(|k| i64::from(self.world.borrow().player(k)));
+                    let killer = killer.map(|k| k as i64);
                     if let Some(h) = &hooks.on_died {
-                        h.call::<()>(unit as i64)?;
+                        h.call::<()>((unit as i64, killer, killer_player))?;
                     }
-                    hooks.fire.call::<()>(("on_died", unit as i64))?;
+                    hooks.fire.call::<()>(("on_died", unit as i64, killer, killer_player))?;
                 }
                 Pending::Enter { unit, region } => {
                     if let Some(name) = self.region_name(region) {
@@ -1891,5 +2252,57 @@ mod tests {
         host.advance(&host.state().clone()).expect("queue");
         host.advance(&host.state().clone()).expect("apply");
         assert_eq!(no_slot(&host), before + 1);
+    }
+
+    // Player 2 shares team 0 with player 0 but sees what player 0 cannot: its creep stands beside the target.
+    // Shared vision lets player 0 see through it; a plain alliance does not.
+    #[test]
+    fn shared_vision_shows_player_zero_what_its_ally_sees() {
+        let seen_after = |kind: &str| {
+            let mut host = host_with_creeps();
+            let b = host.state().get::<i64>("target").expect("target") as usize;
+            {
+                let mut sim = host.sim();
+                let creep = sim.catalog().unit_index("creep").expect("creep") as u32;
+                sim.spawn_for(2, creep, sim::fixed::from_int(34), sim::fixed::from_int(30)).expect("scout");
+            }
+            host.load_source("vision", &format!("game.alliance(0, 2, \"{kind}\")\nfunction on_tick(state) end\n")).expect("mod loads");
+            for _ in 0..40 {
+                host.advance(&host.state().clone()).expect("step");
+            }
+            let sim = host.sim();
+            sim.visible(0, b)
+        };
+        assert!(!seen_after("ally"), "an alliance alone shared sight");
+        assert!(seen_after("vision"), "shared vision did not show the target");
+    }
+
+    #[test]
+    fn team_and_slot_commands_reach_the_sim_and_refuse_bad_arguments_by_name() {
+        let mut host = host_with_creeps();
+        host.load_source("teams", r#"
+            function on_tick(state)
+              game.add_player(5, "computer")
+              game.set_team(5, 0)
+              state.team5 = game.team(5)
+              state.rel = game.alliance(0, 5)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        assert_eq!(host.sim().controller(5), sim::CONTROLLER_COMPUTER);
+        assert_eq!(host.state().get::<i64>("team5").expect("team5"), 0);
+        assert_eq!(host.state().get::<String>("rel").expect("rel"), "ally");
+        for (call, why) in [
+            ("game.set_team(0, 99)", "invalid_team"),
+            ("game.alliance(0, 1, \"friend\")", "invalid_alliance"),
+            ("game.add_player(0, \"robot\")", "invalid_controller"),
+            ("game.remove_player(99)", "invalid_player"),
+        ] {
+            let mut host = host_with_creeps();
+            host.load_source("bad", &format!("function on_tick(state) {call} end")).expect("mod loads");
+            let err = host.advance(&host.state().clone()).expect_err("bad argument must be refused");
+            assert!(err.to_string().contains(why), "{call}: wrong error: {err}");
+        }
     }
 }
