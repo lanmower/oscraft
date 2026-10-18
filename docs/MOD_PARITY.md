@@ -41,6 +41,7 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 | capability | status | evidence |
 |---|---|---|
 | Regions and region checks | supported | `define_region`, `in_region` |
+| Map size in cells | supported | `game.map_size`, `map_size` (both hosts) |
 | Edit terrain tiles | supported | `set_tile`, `edit_terrain` |
 | Place and remove doodads | supported | `place_doodad`, `remove_doodad`, `list_doodads` |
 | Fog of war, controlled by a mod | supported | `game.cmd_set_fog`, mod-host test `cmd_set_fog_turns_fog_off...` |

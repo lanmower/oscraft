@@ -108,7 +108,7 @@ handle fails the queueing call, not the step.
 The host also provides these global functions, which are not in `game`:
 `unit_position`, `unit_hp`, `unit_player`, `unit_alive`, `get_unit_count`, `in_region`,
 `define_region`, `spawn_unit`, `order_unit`, `order_player`, `damage_unit`, `order_attack`,
-`buff_unit`, `schedule`, `cancel`, `list_abilities`, `ability_info`, `list_events`,
+`buff_unit`, `map_size`, `schedule`, `cancel`, `list_abilities`, `ability_info`, `list_events`,
 `edit_terrain`, `set_tile`, `list_doodads`, `place_doodad`, `remove_doodad`.
 
 ### Timers
@@ -123,6 +123,7 @@ At most 256 timers. The older `schedule(name, delay, fn)` and `cancel(name)` are
 `game.region(name, x0, y0, x1, y1[, {enter = f, leave = g}])` defines a named rectangle and
 registers `f(unit)` for `on_enter` and `g(unit)` for `on_leave` on it. `game.region_units(name)`
 returns the living units inside it now. At most 64 regions. `in_region(name, x, y)` tests a point.
+`game.map_size()` returns the map width and height in cells, as `width, height`.
 
 ### Variables and score
 
