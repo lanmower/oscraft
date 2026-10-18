@@ -5,7 +5,7 @@ unit("hero", 300, 2800, 500, deny_pct=25,build_time=480, resource_a=0, capacity=
 # Tower (health 1800, armor 12, damage 88-92 -> 90): source SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b game/dota/pak01_dir/scripts/npc/npc_units.txt, npc_dota_badguys_tower1_mid. Range, speed, sight, deny_pct stay UNVERIFIED (sim scale differs from Dota units).
 unit("tower", 1800, 1000, 600, filters=["ground", "armored", "massive", "structure"], weapon_damage=90, weapon_range_milli=6000, weapon_period=40, sight_milli=8000, armor=12, model="tower-square", deny_pct=10)
 # Base: UNVERIFIED. Sourced Ancient values (npc_dota_fort, health 4500, armor 23, SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b) were tried and reverted: with them the siege check ("side 0 wins within 2400 ticks") fails in CI.
-unit("base", 1500, 1000, 1000, filters=["ground", "armored", "massive", "structure", "building"], abilities=["creep_wave"], sight_milli=8000, model="building-f", deny_pct=50)
+unit("base", 1500, 1000, 1000, filters=["ground", "armored", "massive", "structure", "building"], abilities=["creep_wave"], sight_milli=8000, model="building-f", deny_pct=0)
 # Creep (npc_dota_creep_badguys_melee: health 550, armor 2, damage 19-23 -> 21): source as for the tower above. Speed, radius, range, sight, deny_pct stay UNVERIFIED.
 unit("creep", 550, 2000, 350, build_time=240, filters=["ground", "light", "army"], weapon_damage=21, weapon_range_milli=1000, weapon_period=30, sight_milli=7000, armor=2, model="character-skeleton", deny_pct=50)
 unit("tender", 40, 2800, 350, deny_pct=50,build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="resource_a", harvest=5, model="character-female-a")

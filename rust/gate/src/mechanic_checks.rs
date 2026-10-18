@@ -306,7 +306,7 @@ pub fn camp_rune_pickup(_image: &[u8]) -> Result<(), String> {
     if paid < sim::RUNE_GOLD || paid > sim::RUNE_GOLD + passive_slack {
         return Err(format!("rune paid {paid} gold, want {} plus at most one passive tick", sim::RUNE_GOLD));
     }
-    s.order(hero, rx + fixed::from_int(12), ry);
+    s.order(hero, rx - fixed::from_int(12), ry);
     for _ in 0..sim::RUNE_RESPAWN_S as i32 * sim::TICKS_PER_SECOND + 8 {
         s.tick();
     }

@@ -443,6 +443,16 @@ jobs:
           test "$tick" -le 2400
           echo "moba winner ok winner=$winner tick=$tick"
 
+      - name: Run the 5v5 match; all nine milestones happen in one run and a side wins
+        run: |
+          set -euo pipefail
+          cargo run -q --release -p server --example moba_match -- ../scenarios/moba 40000 > match.log
+          cat match.log
+          for m in cast attack death respawn bounty camp camp_respawn roshan winner; do
+            grep -q "^milestone $m " match.log
+          done
+          tail -1 match.log | grep -Eq '^moba 5v5 match ok winner=[0-9]+ tick=[0-9]+$'
+
       - name: Drain posted orders under a generous budget; the drain logs no tick-shed
         run: |
           set -euo pipefail

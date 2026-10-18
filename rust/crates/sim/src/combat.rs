@@ -44,14 +44,14 @@ const ARMOUR_FLOOR: i32 = fixed::ONE / 4;
 /// constant, recalled rather than checked against a source; confirm before relying on it.
 const ARMOUR_PER_POINT_Q16: i64 = 3932;
 
-/// Weapon damage after armour, in the units both arguments share (whole units or Q16.16). Armour
-/// `a` scales damage by `1 - k*a / (1 + k*|a|)` with `k` = ARMOUR_PER_POINT_Q16, so armour never
-/// reaches zero and negative armour raises damage. Never below zero. The attack paths apply
-/// ARMOUR_FLOOR after this.
+/// Weapon damage after armour, in the units `damage` is given in (whole units or Q16.16). `armour`
+/// is Q16.16, as stored on every unit. Armour `a` scales damage by `1 - k*a / (1 + k*|a|)` with
+/// `k` = ARMOUR_PER_POINT_Q16, so armour never reaches zero and negative armour raises damage.
+/// Never below zero. The attack paths apply ARMOUR_FLOOR after this.
 pub fn armour_reduced(damage: i32, armour: i32) -> i32 {
-    let a = armour as i64;
     let k = ARMOUR_PER_POINT_Q16;
-    let reduction = ((k * a) << fixed::SHIFT) / (fixed::ONE as i64 + k * a.abs());
+    let ka = (k * armour as i64) >> fixed::SHIFT;
+    let reduction = (ka << fixed::SHIFT) / (fixed::ONE as i64 + ka.abs());
     let factor = fixed::ONE as i64 - reduction;
     ((damage as i64 * factor) >> fixed::SHIFT).clamp(0, i32::MAX as i64) as i32
 }

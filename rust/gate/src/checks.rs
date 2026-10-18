@@ -313,7 +313,7 @@ fn shield_bonus_zero_noop(image: &[u8]) -> Result<(), String> {
 }
 
 fn armour_reduces_damage(image: &[u8]) -> Result<(), String> {
-    let reduced = sim::armour_reduced(10, 3);
+    let reduced = sim::armour_reduced(10, sim::fixed::from_int(3));
     if !(0..=10).contains(&reduced) {
         return Err(format!("armour_reduced(10, 3) = {reduced}, outside 0..=10"));
     }
