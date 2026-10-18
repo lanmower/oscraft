@@ -474,20 +474,26 @@ function worldToScreen(x, z, y = 0) {
 
 // The commands createHud routes input through. Each runs on the host sim, or sends the frame to the host
 // when this page is a guest; each returns whether the sim (or the host's send) accepted it.
+// A command the local sim refused leaves the sim's refusal name on the page (body.dataset.lastRefusal) for the CI witness.
+function noteLocalRefusal(ok, what) {
+  if (!ok) document.body.dataset.lastRefusal = `${what} ${localGame.last_refusal()}`;
+  return ok;
+}
+
 const commands = {
   order(unitId, x, z) {
-    const ok = netState ? (session.broadcast(sendOrder(unitId, x, z)), true) : localGame.order_move(unitId, x, z);
+    const ok = netState ? (session.broadcast(sendOrder(unitId, x, z)), true) : noteLocalRefusal(localGame.order_move(unitId, x, z), `order_refused unit=${unitId}`);
     if (ok) orders += 1;
     setStatus(`order move unit ${unitId} to ${x.toFixed(2)},${z.toFixed(2)}${netState ? "" : " (local)"}`);
     return ok;
   },
   attack(unitId, targetId) {
-    const ok = netState ? (session.broadcast(sendAttack(unitId, targetId)), true) : localGame.attack(unitId, targetId);
+    const ok = netState ? (session.broadcast(sendAttack(unitId, targetId)), true) : noteLocalRefusal(localGame.attack(unitId, targetId), `attack_refused unit=${unitId}`);
     if (ok) attacks += 1;
     return ok;
   },
   cast(unitId, slot, target, x, z) {
-    const ok = netState ? (session.broadcast(sendCast(unitId, slot, target, x, z)), true) : localGame.cast(unitId, slot, target, x, z);
+    const ok = netState ? (session.broadcast(sendCast(unitId, slot, target, x, z)), true) : noteLocalRefusal(localGame.cast(unitId, slot, target, x, z), `cast_refused unit=${unitId} slot=${slot}`);
     if (ok) casts += 1;
     if (ok && fx) fx.cast(unitId, slot, target, x, z);
     return ok;
@@ -631,8 +637,9 @@ function applyPeerCommand(peerPubkey, command) {
     return false;
   }
   if (command.type === FRAME.ORDER) {
-    localGame.order_move(command.unitId, command.x, command.y);
-    return true;
+    const ok = localGame.order_move(command.unitId, command.x, command.y);
+    if (!ok) document.body.dataset.lastRefusal = `order_refused unit=${command.unitId} x=${command.x} z=${command.y}`;
+    return ok;
   }
   if (command.type === FRAME.CAST) {
     const ok = localGame.cast(command.unitId, command.slot, command.target, command.x, command.y);

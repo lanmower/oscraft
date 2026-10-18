@@ -136,6 +136,11 @@ impl Game {
         self.sim.issue_order_kind(unit as usize, ORDER_MOVE, fx, fy).is_ok()
     }
 
+    /// Name of the sim's most recent refusal (`Refusal` variant), for the page's refusal witness.
+    pub fn last_refusal(&self) -> String {
+        format!("{:?}", self.sim.stats.last_refusal)
+    }
+
     /// Hit points of unit `unit`, in whole points.
     pub fn unit_hp(&self, unit: u32) -> i32 {
         sim::fixed::to_int(self.sim.hp(unit as usize))
