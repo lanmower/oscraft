@@ -169,6 +169,7 @@ jobs:
           rm -rf js/client/pkg && cp -r rust/crates/web/site/pkg js/client/pkg && rm -f js/client/pkg/.gitignore
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt js/client/hero_rules.txt
           ls -la js/client/pkg js/client/map.bin js/client/moba.bin
 
       - name: Terrain mesh builds from the staged map under node
@@ -1798,6 +1799,7 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt js/client/hero_rules.txt
           ls -la js/client/pkg js/client/map.bin js/client/moba.bin
 
       - name: Editor model edits the staged map and the compiled definitions read back
@@ -3351,6 +3353,7 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt js/client/hero_rules.txt
           mkdir -p js/client/models
           cp rust/crates/web/site/assets/units/*.glb js/client/models/
 
@@ -3552,6 +3555,7 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt js/client/hero_rules.txt
           mkdir -p js/client/models
           cp rust/crates/web/site/assets/units/*.glb js/client/models/
 

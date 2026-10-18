@@ -74,6 +74,7 @@ jobs:
           rm -f _site/js/client/pkg/.gitignore
           cp rust/crates/web/site/map.bin _site/js/client/map.bin
           cp rust/crates/web/site/moba.bin _site/js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt _site/js/client/hero_rules.txt
           mkdir -p _site/js/client/models
           cp rust/crates/web/site/assets/units/*.glb _site/js/client/models/
           cp -r mods _site/mods
@@ -86,6 +87,7 @@ jobs:
           test -f _site/js/client/play.js
           test -f _site/js/client/map.bin
           test -f _site/js/client/moba.bin
+          test -f _site/js/client/hero_rules.txt
           printf '<meta http-equiv="refresh" content="0; url=js/client/play.html">\n' > _site/index.html
           test -f _site/js/client/pkg/web.js
           test -f _site/js/client/pkg/web_bg.wasm

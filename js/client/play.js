@@ -137,6 +137,12 @@ async function loadSim() {
   mapBytes = image;
   setMapSize(readGrid(image));
   const game = new mod.Game(image);
+  // Hero types and their attribute and respawn rules come from the same text the server loads. Without them
+  // every hero's attributes are zero at level 0, so heroes are not seen as heroes.
+  if (location.hash === "#moba") {
+    const rulesRes = await fetch(new URL("hero_rules.txt", location.href));
+    if (!rulesRes.ok || !game.set_hero_rules(await rulesRes.text())) throw new Error("hero_rules.txt did not load");
+  }
   // The moba preview runs without fog so every enemy is a valid target; other pages keep the sim's fog.
   game.set_fog(location.hash !== "#moba");
   return game;
