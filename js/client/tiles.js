@@ -1,7 +1,7 @@
 // Terrain tiles from the CC0 pack: each grid cell picks one tile model by its kind, and the cells of one kind are baked
 // into one mesh so the page draws one call per kind. Pure: no DOM and no fetch, so the Node CI witness shares this path.
 import { parseGlb } from "./glb.js";
-import { readGrid, vertexNormals } from "./terrain.js";
+import { GROUND_UV_PER_CELL, readGrid, vertexNormals } from "./terrain.js";
 
 // Cell kinds and the tile model that draws each, by file name under models/ (see NOTICE.md).
 export const TILE_MODELS = Object.freeze({
@@ -25,6 +25,17 @@ export function cellKind(flags, tile) {
   if (tile === TILE_IDS.lane) return "lane";
   if (tile === TILE_IDS.dirt) return "dirt";
   return "grass";
+}
+
+// World-plane UVs for a baked mesh: the ground texture repeats on the same grid as the heightfield. The CC0 tile
+// models' own UVs all sample one palette texel, so the ground tiles take their UVs from position instead.
+export function planarUvs(positions) {
+  const uvs = new Float32Array((positions.length / 3) * 2);
+  for (let v = 0; v < positions.length / 3; v++) {
+    uvs[v * 2] = positions[v * 3] * GROUND_UV_PER_CELL;
+    uvs[v * 2 + 1] = positions[v * 3 + 2] * GROUND_UV_PER_CELL;
+  }
+  return uvs;
 }
 
 // A GLB centred on x and z, its larger footprint side scaled to `size`, and stood on y = 0.

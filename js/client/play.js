@@ -12,7 +12,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, multiply, rotationY, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, fitModel, TILE_MODELS, TILE_TINTS } from "./tiles.js";
+import { bakeTiles, fitModel, planarUvs, TILE_MODELS, TILE_TINTS } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby } from "./lobby.js";
 
@@ -758,8 +758,9 @@ async function build3d(gl, game) {
   terrainTiles = terrain;
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
   const groundImage = await loadBaseColorImage({ uri: "textures/ground.png" }, location.href).catch(() => null);
-  if (groundImage) terrainMesh.texture = uploadTexture(gl, groundImage);
-  tileMeshes = await loadTileMeshes(gl).catch(() => null);
+  const groundTexture = groundImage ? uploadTexture(gl, groundImage) : null;
+  terrainMesh.texture = groundTexture;
+  tileMeshes = await loadTileMeshes(gl, groundTexture).catch(() => null);
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
   const s = 1 / terrain.cellMilli;
   doodadMeshes = readDoodads(mapBytes).flatMap((p) => {
@@ -775,7 +776,7 @@ async function build3d(gl, game) {
 
 // Terrain drawn from the CC0 tile models: one fitted model per kind, cells baked per kind. Any tile that fails to load
 // returns null, so the heightfield mesh stays the drawn terrain.
-async function loadTileMeshes(gl) {
+async function loadTileMeshes(gl, groundTexture) {
   const names = Object.entries(TILE_MODELS);
   const fitted = await Promise.all(names.map(([, name]) => fetchModel(name, 1)));
   if (fitted.some((model) => !model)) return null;
@@ -784,7 +785,10 @@ async function loadTileMeshes(gl) {
   if (!baked) return null;
   return Promise.all([...baked.kinds].map(async ([kind, mesh]) => {
     const model = models[kind];
-    return toMesh(gl, { ...mesh, baseColorTexture: model.baseColorTexture, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
+    const textured = groundTexture && (kind === "grass" || kind === "dirt");
+    const drawn = await toMesh(gl, { ...mesh, uvs: textured ? planarUvs(mesh.positions) : mesh.uvs, baseColorTexture: textured ? null : model.baseColorTexture, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
+    if (drawn && textured) drawn.texture = groundTexture;
+    return drawn;
   }));
 }
 
