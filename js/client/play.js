@@ -9,12 +9,14 @@ import { applyFrame, createStateEncoder } from "./delta.js";
 import { parseGlb } from "./glb.js";
 import { createHud } from "./hud.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, multiply, rotationY, translation, viewProjection } from "./render3d.js";
-import { buildTerrain, readDoodads, vertexNormals } from "./terrain.js";
+import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 
-// The map grid from data/map.osd: grid(32, 24), one tile per cell.
-const W = 32;
-const H = 24;
+// Map size comes from the loaded map image (loadSim); these are the fallbacks before a map is read.
+let W = 32;
+let H = 24;
+const CAMERA_DISTANCE_PER_TILE = 40 / 32;
+const CAMERA_MAX_PER_TILE = 120 / 32;
 const BACKGROUND = [0.114, 0.145, 0.173];
 const MAP_COLOR = [0.2, 0.28, 0.22];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
@@ -25,9 +27,9 @@ const PICK_RADIUS = 1.2;
 const FLAT_PX_PER_UNIT = 20;
 const DRAG_SLOP_PX = 4;
 const PAN_PX_PER_S = 500;
-const ORBIT_ORIGIN = [W / 2, 0, H / 2];
-const CAMERA_DISTANCE = 40;
-const CAMERA_MAX_DISTANCE = 120;
+let orbitOrigin = [W / 2, 0, H / 2];
+let cameraDistance = CAMERA_DISTANCE_PER_TILE * Math.max(W, H);
+let cameraMaxDistance = CAMERA_MAX_PER_TILE * Math.max(W, H);
 const DOODAD_KINDS = ["rock", "tree", "crystal", "debris"];
 const EDGE_PX = 16;
 const RECONNECT_BASE_MS = 1000;
@@ -49,6 +51,7 @@ const mapUrl = new URL(location.hash === "#moba" ? "moba.bin" : document.body.da
 
 // Flat fallback view (no WebGL2): a fixed top-down frame centred on the map.
 const flatView = { cx: W / 2, cz: H / 2 };
+let mapGrid = null;
 // 3D view state: the renderer and its orbit camera exist only when WebGL2 is available.
 let renderer3d = null;
 let mapBytes = null;
@@ -84,10 +87,23 @@ async function loadSim() {
   await mod.default();
   const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
   mapBytes = image;
+  setMapSize(readGrid(image));
   const game = new mod.Game(image);
   // The moba preview runs without fog so every enemy is a valid target; other pages keep the sim's fog.
   game.set_fog(location.hash !== "#moba");
   return game;
+}
+
+// The map's grid sets the playfield: orbit origin, default and maximum camera distance scale with its larger side.
+function setMapSize(grid) {
+  mapGrid = grid;
+  W = grid.width;
+  H = grid.height;
+  flatView.cx = W / 2;
+  flatView.cz = H / 2;
+  orbitOrigin = [W / 2, 0, H / 2];
+  cameraDistance = CAMERA_DISTANCE_PER_TILE * Math.max(W, H);
+  cameraMaxDistance = CAMERA_MAX_PER_TILE * Math.max(W, H);
 }
 
 // A GLB is centred on x and z, scaled so its larger footprint side is `size` world units, and stood on y = 0.
@@ -695,7 +711,9 @@ const DOODAD_TINT = [0.55, 0.5, 0.42];
 async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
-  terrainMesh ={ positions: terrain.positions, normals: terrain.normals, indices: terrain.indices, color: MAP_COLOR };
+  terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
+  const groundImage = await loadBaseColorImage({ uri: "textures/ground.png" }, location.href).catch(() => null);
+  if (groundImage) terrainMesh.texture = uploadTexture(gl, groundImage);
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
   const s = 1 / terrain.cellMilli;
   doodadMeshes = readDoodads(mapBytes).flatMap((p) => {
@@ -717,7 +735,7 @@ async function main() {
   localGame = await loadSim();
   if (gl) {
     renderer3d = createRenderer3d(gl);
-    renderer3d.setCamera({ target: ORBIT_ORIGIN, distance: CAMERA_DISTANCE, maxDistance: CAMERA_MAX_DISTANCE, pitch: 0.9 });
+    renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, pitch: 0.9 });
     try {
       await build3d(gl, localGame);
     } catch (err) {
@@ -732,6 +750,7 @@ async function main() {
     minimapEl: document.getElementById("minimap"),
     barCanvas: createBarCanvas(),
     mapSize: { w: W, h: H },
+    grid: mapGrid,
     units: currentUnits,
     selected: () => selectedId,
     select: (unitId) => { selectedId = unitId; },

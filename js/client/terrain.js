@@ -5,6 +5,8 @@ const HEADER_LEN = 16;
 const SECTION_ENTRY_LEN = 16;
 const GRID_HEADER_LEN = 16;
 const DODA_RECORD = 20;
+// Ground texture repeats: one 128px tile covers four cells, so the shipped ground patch stays readable at unit scale.
+export const GROUND_UV_PER_CELL = 0.25;
 
 function sectionOf(bytes, tag) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -60,6 +62,7 @@ export function buildTerrain(bytes) {
   const { width: w, height: h, cellMilli, heightStep, levels } = grid;
   const cols = w + 1;
   const positions = new Float32Array(cols * (h + 1) * 3);
+  const uvs = new Float32Array(cols * (h + 1) * 2);
   for (let cy = 0; cy <= h; cy++) {
     for (let cx = 0; cx <= w; cx++) {
       let sum = 0;
@@ -78,6 +81,8 @@ export function buildTerrain(bytes) {
       positions[v] = cx * cellMilli;
       positions[v + 1] = (sum / touching) * heightStep;
       positions[v + 2] = cy * cellMilli;
+      uvs[(cy * cols + cx) * 2] = cx * GROUND_UV_PER_CELL;
+      uvs[(cy * cols + cx) * 2 + 1] = cy * GROUND_UV_PER_CELL;
     }
   }
   const indices = new Uint32Array(w * h * 6);
@@ -90,7 +95,7 @@ export function buildTerrain(bytes) {
       t += 6;
     }
   }
-  return { width: w, height: h, cellMilli, positions, normals: vertexNormals(positions, indices), indices, tiles: grid.tiles, flags: grid.flags };
+  return { width: w, height: h, cellMilli, positions, uvs, normals: vertexNormals(positions, indices), indices, tiles: grid.tiles, flags: grid.flags };
 }
 
 // Per-vertex normals: the normalised sum of the face normals of every triangle that uses the vertex.
