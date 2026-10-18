@@ -1,0 +1,249 @@
+// Generates scenarios/moba/map.osd and scenarios/moba/neutral.osd from the Dota 2 map data
+// dumped by leamare/dota-map-coordinates (data/gridnavdata.json, data/elevationdata.json,
+// mapdata.json, patch 7.41). Usage: node scripts/gen-dota-map.mjs [--src dir] [--out scenarios/moba] [--no-trees]
+// Without --src the three source files are downloaded into a temp directory first.
+// Scale: one Dota unit is 125/8 = 15.625 milli, so one 64-unit GridNav cell is one 1000-milli sim cell.
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+const args = process.argv.slice(2);
+const opt = (name, dflt) => (args.includes(name) ? args[args.indexOf(name) + 1] : dflt);
+const outDir = opt("--out", "scenarios/moba");
+const withTrees = !args.includes("--no-trees");
+const RAW = "https://raw.githubusercontent.com/leamare/dota-map-coordinates/HEAD/";
+const FILES = { grid: "data/gridnavdata.json", elev: "data/elevationdata.json", ents: "data/mapdata.json", map: "mapdata.json" };
+
+async function source() {
+  const dir = opt("--src", path.join(os.tmpdir(), "dota-map-src"));
+  fs.mkdirSync(dir, { recursive: true });
+  const out = {};
+  for (const [k, f] of Object.entries(FILES)) {
+    const p = path.join(dir, k + ".json");
+    if (!fs.existsSync(p)) fs.writeFileSync(p, Buffer.from(await (await fetch(RAW + f)).arrayBuffer()));
+    out[k] = JSON.parse(fs.readFileSync(p, "utf8"));
+  }
+  return out;
+}
+
+const S = await source();
+const R = S.map.data;
+const D = S.ents.data;
+const WORLD_MIN = -10464;
+const WORLD_MAX_Y = 10400;
+const CELL_UNITS = 64;
+const N = S.elev.data.length;
+const MILLI_PER_UNIT = 15.625;
+const mx = (wx) => Math.round((wx - WORLD_MIN) * MILLI_PER_UNIT);
+const my = (wy) => Math.round((-WORLD_MIN - wy) * MILLI_PER_UNIT);
+const cx = (wx) => Math.floor((wx - WORLD_MIN) / CELL_UNITS);
+const cy = (wy) => Math.floor((-WORLD_MIN - wy) / CELL_UNITS);
+const inb = (x, y) => x >= 0 && y >= 0 && x < N && y < N;
+
+const blocked = new Uint8Array(N * N);
+for (const c of S.grid.data) blocked[(N - 1 - (c.y - WORLD_MIN) / CELL_UNITS) * N + (c.x - WORLD_MIN) / CELL_UNITS] = 1;
+const gridnavBlocked = blocked.reduce((a, b) => a + b, 0);
+const treeCells = [];
+if (withTrees) for (const t of D.ent_dota_tree) {
+  const x = cx(t.x), y = cy(t.y);
+  if (inb(x, y) && !blocked[y * N + x]) { blocked[y * N + x] = 1; treeCells.push(y * N + x); }
+}
+
+const level = new Uint8Array(N * N);
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+  const v = S.elev.data[j][i];
+  level[(N - 1 - j) * N + i] = v < 0 ? 4 : Math.min(v, 4);
+}
+
+function carveFootprint(wx, wy, bounds) {
+  const r = Math.max(1, Math.ceil(bounds / 2 / CELL_UNITS));
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    const x = cx(wx) + dx, y = cy(wy) + dy;
+    if (inb(x, y)) blocked[y * N + x] = 0;
+  }
+}
+
+const P = (team) => (team === 2 ? 0 : 1);
+const things = [];
+const add = (unit, player, wx, wy, bounds = 0) => { things.push({ unit, player, wx, wy }); if (bounds) carveFootprint(wx, wy, bounds); };
+
+const bases = D.npc_dota_fort.map((f) => ({ team: f.team, wx: f.x, wy: f.y, b: f.bounds[0] })).sort((a, b) => P(a.team) - P(b.team));
+const fountains = D.ent_dota_fountain.map((f) => ({ team: f.team, wx: f.x, wy: f.y })).sort((a, b) => P(a.team) - P(b.team));
+for (const b of bases) add("base", P(b.team), b.wx, b.wy, b.b);
+
+function nearestOpen(wx, wy, avoid = []) {
+  const x0 = cx(wx), y0 = cy(wy);
+  for (let r = 0; r < 40; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const x = x0 + dx, y = y0 + dy;
+    if (inb(x, y) && !blocked[y * N + x] && avoid.every((a) => Math.hypot(a[0] - x, a[1] - y) >= 3)) return [x, y];
+  }
+  throw new Error("no open cell near " + wx + "," + wy);
+}
+const cellMilli = ([x, y]) => [x * 1000 + 500, y * 1000 + 500];
+
+const starts = [];
+const heroSpots = {};
+for (const f of fountains) {
+  const team = P(f.team), fort = bases[team];
+  const toward = Math.atan2(fort.wy - f.wy, fort.wx - f.wx);
+  const taken = [];
+  heroSpots[team] = [];
+  for (let k = 0; k < 10; k++) {
+    const a = toward + (k - 4.5) * 0.55 + Math.PI * 0.0;
+    const wx = f.wx + Math.cos(a) * 520, wy = f.wy + Math.sin(a) * 520;
+    const c = nearestOpen(wx, wy, taken);
+    taken.push(c);
+    heroSpots[team].push(c);
+  }
+}
+for (let p = 0; p < 10; p++) starts.push({ p, team: p % 2, c: heroSpots[p % 2][Math.floor(p / 2)] });
+
+const tiers = { 1: "tower", 2: "tower_t2", 3: "tower_t3", 4: "tower_t4" };
+const towerRows = D.npc_dota_tower.map((t) => ({ ...t, tier: +/tower(\d)/.exec(t.name)[1], lane: /_(top|mid|bot)$/.exec(t.name)?.[1] ?? "base" }));
+const order = (r) => [r.tier, ["top", "mid", "bot", "base"].indexOf(r.lane)];
+towerRows.sort((a, b) => P(a.team) - P(b.team) || a.tier - b.tier || order(a)[1] - order(b)[1] || a.y - b.y);
+const raxRows = D.npc_dota_barracks.map((r) => ({ ...r, kind: /melee/.test(r.name) ? "barracks_melee" : "barracks_ranged" }));
+
+const heroLines = [], tenderLines = [], courierLines = [];
+for (const s of starts) {
+  const [x, y] = cellMilli(s.c);
+  heroLines.push(`spawn("hero", ${s.p}, ${x}, ${y})`);
+}
+for (const s of starts) {
+  const f = fountains[s.team];
+  const c = nearestOpen(f.wx + (s.team ? -1 : 1) * 700, f.wy + (s.team ? 1 : -1) * 300 + (s.p >> 1) * 90, [...heroSpots[s.team]]);
+  const [x, y] = cellMilli(c);
+  tenderLines.push(`spawn("tender", ${s.p}, ${x}, ${y})`);
+}
+for (const f of fountains) {
+  const c = nearestOpen(f.wx + (P(f.team) ? -1 : 1) * 380, f.wy + (P(f.team) ? 1 : -1) * 380, heroSpots[P(f.team)]);
+  const [x, y] = cellMilli(c);
+  courierLines.push(`spawn("courier", ${P(f.team)}, ${x}, ${y})`);
+}
+
+for (const t of towerRows) add(tiers[t.tier], P(t.team), t.x, t.y, t.bounds[0]);
+for (const r of raxRows.sort((a, b) => P(a.team) - P(b.team))) add(r.kind, P(r.team), r.x, r.y, r.bounds[0]);
+
+const camps = R.npc_dota_neutral_spawner.map((s) => ({ ...s, side: s.triggerName.includes("good") ? 0 : 1, t: +s.neutralType }));
+const compose = {
+  0: ["neutral_kobold_taskmaster", "neutral_kobold_tunneler", "neutral_kobold"],
+  1: ["neutral_alpha_wolf", "neutral_giant_wolf", "neutral_giant_wolf"],
+  2: ["neutral_centaur_khan", "neutral_centaur_outrunner", "neutral_centaur_outrunner"],
+  3: ["neutral_granite_golem", "neutral_rock_golem", "neutral_rock_golem"],
+};
+const campLines = [];
+for (const c of camps.sort((a, b) => a.side - b.side || a.t - b.t || a.x - b.x)) {
+  campLines.push(`# camp ${c.triggerName} type ${c.t} pull ${c.pullType}`);
+  const taken = [];
+  compose[c.t].forEach((u, k) => {
+    const a = (k / 3) * Math.PI * 2 + 0.5;
+    const cell = nearestOpen(c.x + Math.cos(a) * 110, c.y + Math.sin(a) * 110, taken);
+    taken.push(cell);
+    const [x, y] = cellMilli(cell);
+    campLines.push(`spawn("${u}", -1, ${x}, ${y})`);
+  });
+}
+
+const rosh = R.npc_dota_roshan_spawner[0];
+const poiLines = [];
+const rc = nearestOpen(rosh.x, rosh.y);
+poiLines.push(`spawn("roshan", -1, ${cellMilli(rc).join(", ")})`);
+for (const r of D.dota_item_rune_spawner_bounty) poiLines.push(`spawn("bounty_rune", -1, ${cellMilli(nearestOpen(r.x, r.y)).join(", ")})`);
+const outposts = D.npc_dota_watch_tower.map((o) => ({ wx: o.x, wy: o.y }));
+for (const o of outposts) { carveFootprint(o.wx, o.wy, 96); poiLines.push(`spawn("outpost", -1, ${mx(o.wx)}, ${my(o.wy)})`); }
+
+let id = 1;
+const doodads = [];
+const dd = (kind, wx, wy) => doodads.push(`doodad(${id++}, "${kind}", ${mx(wx)}, ${my(wy)})`);
+for (const b of bases) dd("base", b.wx, b.wy);
+for (const f of fountains) dd("fountain", f.wx, f.wy);
+for (const s of D.ent_dota_shop) dd("shop", s.x, s.y);
+for (const c of camps) dd("camp", c.x, c.y);
+for (const r of D.dota_item_rune_spawner_bounty) dd("lane", r.x, r.y);
+for (const r of D.dota_item_rune_spawner_powerup) dd("lane", r.x, r.y);
+for (const r of R.npc_dota_roshan_spawner) dd("rock", r.x, r.y);
+for (const o of outposts) dd("crystal", o.wx, o.wy);
+for (const o of [...D.npc_dota_lotus_pool, ...D.npc_dota_xp_fountain, ...D.npc_dota_unit_twin_gate, ...R.npc_dota_miniboss_spawner]) dd("crystal", o.x, o.y);
+for (const l of R.landmarks ?? []) dd("debris", l.x, l.y);
+for (const f of D.npc_dota_filler) dd("debris", f.x, f.y);
+for (const l of D.npc_dota_lantern) dd("debris", l.x, l.y);
+
+// Reachability from the Radiant fountain across open cells (4-connected).
+const seen = new Uint8Array(N * N);
+const [sx, sy] = heroSpots[0][0];
+const q = [sy * N + sx];
+seen[q[0]] = 1;
+for (let h = 0; h < q.length; h++) {
+  const i = q[h], x = i % N, y = (i / N) | 0;
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const nx = x + dx, ny = y + dy;
+    if (inb(nx, ny) && !blocked[ny * N + nx] && !seen[ny * N + nx]) { seen[ny * N + nx] = 1; q.push(ny * N + nx); }
+  }
+}
+const missing = [];
+for (const t of things) { const c = cy(t.wy) * N + cx(t.wx); if (!seen[c]) missing.push(t.unit + "@" + t.wx + "," + t.wy); }
+for (const c of camps) if (!seen[cy(c.y) * N + cx(c.x)]) missing.push("camp@" + c.triggerName);
+for (const s of starts) if (!seen[s.c[1] * N + s.c[0]]) missing.push("start" + s.p);
+if (!seen[cy(rosh.y) * N + cx(rosh.x)]) missing.push("roshan");
+const walkable = blocked.reduce((a, b) => a + (b ? 0 : 1), 0);
+console.error(JSON.stringify({ N, gridnavBlocked, treeCells: treeCells.length, walkable, reachable: q.length, missing }));
+
+// Open-cell and height rectangles: horizontal runs merged across identical consecutive rows.
+function rects(valueAt, want) {
+  const out = [];
+  let open = new Map();
+  for (let y = 0; y <= N; y++) {
+    const runs = [];
+    if (y < N) for (let x = 0; x < N;) {
+      if (!want(valueAt(x, y))) { x++; continue; }
+      let e = x;
+      while (e < N && want(valueAt(e, y)) && valueAt(e, y) === valueAt(x, y)) e++;
+      runs.push([x, e, valueAt(x, y)]);
+      x = e;
+    }
+    const next = new Map();
+    for (const r of runs) {
+      const k = r.join(",");
+      next.set(k, open.has(k) ? open.get(k) : y);
+    }
+    for (const [k, y0] of open) if (!next.has(k)) { const [a, b, v] = k.split(",").map(Number); out.push([a, y0, b, y, v]); }
+    open = next;
+  }
+  return out;
+}
+const openRects = rects((x, y) => (blocked[y * N + x] ? 1 : 0), (v) => v === 0).map((r) => `paint(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, 0)`);
+const lvlRects = rects((x, y) => level[y * N + x], (v) => v !== 1).map((r) => `paint_height(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`);
+
+const thingLine = (t) => `spawn("${t.unit}", ${t.player}, ${mx(t.wx)}, ${my(t.wy)})`;
+const header = [
+  `# Dota 2 map (patch 7.41) at ${N} x ${N} cells: the GridNav of 64-unit cells, generated by scripts/gen-dota-map.mjs.`,
+  `# Source: leamare/dota-map-coordinates data/gridnavdata.json, data/elevationdata.json, mapdata.json (dumped from the game).`,
+  `# Scale: 1 Dota unit = 15.625 milli, so one 64-unit GridNav cell is one 1000-milli cell. Radiant (team 0) is bottom-left,`,
+  `# Dire (team 1) top-right; the y axis points down the screen, so Dota north is small y. Do not edit by hand; edit the script.`,
+  `# Walkable: GridNav-open cells minus ${treeCells.length} tree cells (trees are static here). Height levels: 0 river/low, 1 field, 2 base high ground, 3-4 cliffs and rims.`,
+  `grid(${N}, ${N}, cell_milli=1000, fill=1)`,
+];
+const mapLines = [
+  ...header,
+  ...openRects,
+  `height_step(2000)`,
+  `paint_height(0, 0, ${N}, ${N}, 1)`,
+  ...lvlRects,
+  ...doodads,
+  ...starts.map((s) => `start(${s.p}, ${cellMilli(s.c).join(", ")}, team=${s.team})`),
+  ...bases.map((b) => thingLine({ unit: "base", player: P(b.team), wx: b.wx, wy: b.wy })),
+  ...heroLines,
+  ...tenderLines,
+  ...towerRows.map((t) => thingLine({ unit: tiers[t.tier], player: P(t.team), wx: t.x, wy: t.y })),
+  ...raxRows.map((r) => thingLine({ unit: r.kind, player: P(r.team), wx: r.x, wy: r.y })),
+  ...courierLines,
+  ...poiLines,
+];
+fs.writeFileSync(path.join(outDir, "map.osd"), mapLines.join("\n") + "\n");
+fs.writeFileSync(path.join(outDir, "neutral.osd"), [
+  "# Neutral camps of the Dota 2 map: one camp per sourced spawner (14 per side), composition by neutralType 0..3 (small, medium, large, ancient).",
+  "# Generated by scripts/gen-dota-map.mjs from mapdata.json npc_dota_neutral_spawner; camp compositions are UNVERIFIED.",
+  ...campLines,
+].join("\n") + "\n");
+console.error(`map.osd lines ${mapLines.length} (open rects ${openRects.length}, height rects ${lvlRects.length}); neutral lines ${campLines.length}`);
