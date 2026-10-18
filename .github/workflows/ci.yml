@@ -2313,6 +2313,11 @@ jobs:
           cmp js/wire/frame.js js/client/wire/frame.js
           echo "client modules ok files=$count"
 
+      - name: asset catalogue lists every placeable model and texture on disk
+        run: |
+          set -euo pipefail
+          node -e 'const c=require("./js/client/assets.json");let n=0;for(const i of c.items){require("fs").statSync(i.path);n++}if(n!==c.count)throw new Error("count "+n+" != "+c.count);console.log("assets ok count="+n+" mb="+(c.total_bytes/1048576).toFixed(3))'
+
       - name: 100 ticks of 200 units at 1 percent change, full and delta state bytes
         env:
           WIRE_JS: ${{ github.workspace }}/js/wire/frame.js

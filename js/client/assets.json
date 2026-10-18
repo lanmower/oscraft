@@ -1,0 +1,83 @@
+{
+ "count": 11,
+ "total_bytes": 425117,
+ "items": [
+  {
+   "id": "rock",
+   "kind": "model",
+   "path": "js/client/models/rock-a.glb",
+   "placed_by": "doodads.json",
+   "bytes": 10812
+  },
+  {
+   "id": "tree",
+   "kind": "model",
+   "path": "js/client/models/tree.glb",
+   "placed_by": "doodads.json",
+   "bytes": 22184
+  },
+  {
+   "id": "crystal",
+   "kind": "model",
+   "path": "js/client/models/resource-stone.glb",
+   "placed_by": "doodads.json",
+   "bytes": 5464
+  },
+  {
+   "id": "debris",
+   "kind": "model",
+   "path": "js/client/models/barrel.glb",
+   "placed_by": "doodads.json",
+   "bytes": 34256
+  },
+  {
+   "id": "base",
+   "kind": "model",
+   "path": "js/client/models/building-a.glb",
+   "placed_by": "doodads.json",
+   "bytes": 177316
+  },
+  {
+   "id": "shop",
+   "kind": "model",
+   "path": "js/client/models/stall.glb",
+   "placed_by": "doodads.json",
+   "bytes": 11500
+  },
+  {
+   "id": "fountain",
+   "kind": "model",
+   "path": "js/client/models/fountain-round.glb",
+   "placed_by": "doodads.json",
+   "bytes": 84848
+  },
+  {
+   "id": "lane",
+   "kind": "model",
+   "path": "js/client/models/flag-pennant.glb",
+   "placed_by": "doodads.json",
+   "bytes": 13652
+  },
+  {
+   "id": "camp",
+   "kind": "model",
+   "path": "js/client/models/campfire-pit.glb",
+   "placed_by": "doodads.json",
+   "bytes": 26468
+  },
+  {
+   "id": "colormap",
+   "kind": "texture",
+   "path": "js/client/models/Textures/colormap.png",
+   "placed_by": "texture.js",
+   "bytes": 27782
+  },
+  {
+   "id": "ground",
+   "kind": "texture",
+   "path": "js/client/textures/ground.png",
+   "placed_by": "texture.js",
+   "bytes": 10835
+  }
+ ]
+}
