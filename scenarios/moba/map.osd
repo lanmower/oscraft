@@ -60,19 +60,32 @@ spawn("hero", 0, 9000, 30500)
 spawn("hero", 1, 55000, 30500)
 spawn("tender", 0, 9000, 31500)
 spawn("tender", 1, 55000, 31500)
-# Lane top (y 7..9): a tower per side with hit points, one opening creep per side.
+# Lane top (y 7..9): three towers per side in sequence toward that side's base, with hit points,
+# and one opening creep per side. Outer, middle and inner tower per side.
+spawn("tower", 0, 12000, 8500)
 spawn("tower", 0, 16000, 8500)
+spawn("tower", 0, 22000, 8500)
+spawn("tower", 1, 52000, 8500)
 spawn("tower", 1, 48000, 8500)
+spawn("tower", 1, 42000, 8500)
 spawn("creep", 0, 14000, 8500)
 spawn("creep", 1, 50000, 8500)
-# Lane middle (y 29..31).
+# Lane middle (y 29..31): three towers per side in sequence.
+spawn("tower", 0, 12000, 30500)
 spawn("tower", 0, 16000, 30500)
+spawn("tower", 0, 22000, 30500)
+spawn("tower", 1, 52000, 30500)
 spawn("tower", 1, 48000, 30500)
+spawn("tower", 1, 42000, 30500)
 spawn("creep", 0, 14000, 30500)
 spawn("creep", 1, 50000, 30500)
-# Lane bottom (y 51..53).
+# Lane bottom (y 51..53): three towers per side in sequence.
+spawn("tower", 0, 12000, 52500)
 spawn("tower", 0, 16000, 52500)
+spawn("tower", 0, 22000, 52500)
+spawn("tower", 1, 52000, 52500)
 spawn("tower", 1, 48000, 52500)
+spawn("tower", 1, 42000, 52500)
 spawn("creep", 0, 14000, 52500)
 spawn("creep", 1, 50000, 52500)
 # One objective per side in the middle lane, appended last so earlier unit indices hold.

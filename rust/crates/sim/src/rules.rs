@@ -4,7 +4,7 @@
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
-use crate::loader::{Effect, FILTER_WORKER};
+use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER};
 use crate::*;
 
 /// Why a cast was not applied.
@@ -329,8 +329,19 @@ impl Sim {
             }
             EFFECT_MOVE => self.move_caster(caster, eff.p0, tx, ty),
             EFFECT_SPAWN => {
-                if self.spawn_for(p, eff.p0 as u32, tx, ty).is_some() {
+                // A lane offset (p1, p2) places the unit beside the caster; without one it
+                // spawns at the cast point, as before.
+                let (sx, sy) = if eff.p1 == 0 && eff.p2 == 0 {
+                    (tx, ty)
+                } else {
+                    (
+                        self.pos_x[caster] + fixed::from_milli(eff.p1),
+                        self.pos_y[caster] + fixed::from_milli(eff.p2),
+                    )
+                };
+                if let Some(j) = self.spawn_for(p, eff.p0 as u32, sx, sy) {
                     self.stats.summoned += 1;
+                    self.march_to_enemy_base(j, p);
                 }
             }
             EFFECT_BUFF => {
@@ -363,6 +374,28 @@ impl Sim {
                 }
             }
             _ => self.refuse(Refusal::EffectUnsupported),
+        }
+    }
+
+    /// Sends a freshly summoned unit `j` of `player` on an attack-move toward the nearest living
+    /// hostile building, along the route `approach_to` finds (A* around blocked terrain). A unit
+    /// with no hostile building left stays where it spawned.
+    fn march_to_enemy_base(&mut self, j: usize, player: u8) {
+        let mut best: Option<(usize, i64)> = None;
+        for k in 0..self.n {
+            if k == j || self.alive[k] == 0 || !self.hostile(player, self.player[k]) {
+                continue;
+            }
+            if self.filter[k] & FILTER_BUILDING == 0 {
+                continue;
+            }
+            let d2 = dist2(self.pos_x[j], self.pos_y[j], self.pos_x[k], self.pos_y[k]);
+            if best.map_or(true, |(_, b)| d2 < b) {
+                best = Some((k, d2));
+            }
+        }
+        if let Some((k, _)) = best {
+            let _ = self.issue_order_kind(j, ORDER_ATTACK_MOVE, self.pos_x[k], self.pos_y[k]);
         }
     }
 
