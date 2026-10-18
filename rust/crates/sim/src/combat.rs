@@ -443,11 +443,11 @@ impl Sim {
                     tally.deaths = tally.deaths.saturating_add(self.unit_deaths[i]);
                     tally.assists = tally.assists.saturating_add(self.unit_assists[i]);
                     tally.xp = tally.xp.saturating_add(self.xp_total[i]);
-                    let slots = i * ITEM_SLOTS;
+                    let slots = i * crate::inventory::INV_SLOTS;
                     tally.items.extend(
-                        (slots..slots + ITEM_SLOTS)
-                            .filter(|&s| self.inventory[s] >= 0)
-                            .map(|s| self.inventory[s] as u32),
+                        (slots..slots + crate::inventory::INV_SLOTS)
+                            .filter(|&s| self.inv_kind[s] != 0 && self.inv_count[s] > 0)
+                            .map(|s| self.inv_kind[s]),
                     );
                 }
                 tally

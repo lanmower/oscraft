@@ -61,6 +61,7 @@ impl Sim {
         h.u32s(&self.inv_count);
         h.u32s(&self.stash_kind);
         h.u32s(&self.stash_count);
+        h.i32s(&self.item_cd);
         h.u32s(&self.xp_total);
         h.u32s(&self.xp_curve);
         h.u32s(&self.unit_kills);

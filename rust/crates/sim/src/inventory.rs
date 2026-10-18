@@ -1,7 +1,8 @@
 //! Inventory: a fixed number of item slots per unit, stored struct-of-arrays like every other
 //! per-unit component. A slot holds an item kind (a catalog id, 0 when empty) and a count.
 //! Nothing here names a kind, so any item fits any slot. A slot's count is 0 exactly when its
-//! kind is 0.
+//! kind is 0. The stash is a second bank of the same shape: see `stash_slot`. Shop purchases
+//! use `item_kind` for the id and put one item per slot.
 
 use crate::arrays::Sim;
 
@@ -85,6 +86,31 @@ impl Sim {
         for at in base..base + INV_SLOTS {
             self.inv_kind[at] = 0;
             self.inv_count[at] = 0;
+            self.item_cd[at] = 0;
         }
     }
+
+    /// Empties a unit's stash bank. Called when the unit spawns.
+    pub(crate) fn stash_clear(&mut self, unit: usize) {
+        let base = unit * INV_SLOTS;
+        for at in base..base + INV_SLOTS {
+            self.stash_kind[at] = 0;
+            self.stash_count[at] = 0;
+        }
+    }
+
+    /// The kind and count in one stash slot. Kind 0 means empty; an out-of-range read is empty.
+    pub fn stash_slot(&self, unit: usize, slot: usize) -> (u32, u32) {
+        if unit >= self.cap || slot >= INV_SLOTS {
+            return (0, 0);
+        }
+        let at = unit * INV_SLOTS + slot;
+        (self.stash_kind[at], self.stash_count[at])
+    }
+}
+
+/// The catalog id stored in a slot for catalog item `item`. Id 0 is reserved for an empty slot,
+/// so the id is the item index plus one.
+pub(crate) fn item_kind(item: usize) -> u32 {
+    item as u32 + 1
 }

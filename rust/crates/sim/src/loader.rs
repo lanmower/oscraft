@@ -379,8 +379,9 @@ pub struct Doodad {
     pub rotation: i32,
 }
 
-/// An item (ITEM). The bonuses are added to the buyer's stats on purchase; `ability` is an
-/// index into the abilities, or `NO_INDEX` for a passive item.
+/// An item (ITEM). The bonuses are added to the buyer's stats when the item enters the inventory;
+/// `ability` is an index into the abilities, or `NO_INDEX` for a passive item. `components` are
+/// the recipe parts, as item indices declared before this one, `NO_INDEX` for an empty slot.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Item {
     pub name: Name,
@@ -389,6 +390,7 @@ pub struct Item {
     pub damage: i32,
     pub health: i32,
     pub ability: u16,
+    pub components: [u16; 2],
 }
 
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.
@@ -1186,10 +1188,33 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             damage: ir.i32("item damage")?,
             health: ir.i32("item health")?,
             ability: ir.u16("item ability")?,
+            components: [ir.u16("item component")?, ir.u16("item component")?],
         };
-        ir.skip(6, "item reserved")?;
+        ir.skip(2, "item reserved")?;
         let ability_ok = item.ability == NO_INDEX || (item.ability as usize) < abilities.len();
-        if item.cost < 0 || item.armor < 0 || item.damage < 0 || item.health < 0 || !ability_ok {
+        // A component is an item declared before this one, and the components cost no more than
+        // the item (the cost rule): a recipe never pays out gold.
+        let mut component_cost = 0i64;
+        let components_ok = item.components.iter().all(|&c| {
+            if c == NO_INDEX {
+                return true;
+            }
+            match items.get(c as usize) {
+                Some(part) => {
+                    component_cost += i64::from(part.cost);
+                    true
+                }
+                None => false,
+            }
+        });
+        if item.cost < 0
+            || item.armor < 0
+            || item.damage < 0
+            || item.health < 0
+            || !ability_ok
+            || !components_ok
+            || component_cost > i64::from(item.cost)
+        {
             return Err(LoadError::Range("item outside its table"));
         }
         items.push(item);

@@ -132,6 +132,8 @@ pub struct Sim {
     pub(crate) abil_cd: Vec<i32>,
     /// Skill rank per ability slot, 0 when not learned. See skills.rs.
     pub(crate) abil_rank: Vec<u8>,
+    /// Ticks until each inventory slot's active item ability is ready again, INV_SLOTS per unit.
+    pub(crate) item_cd: Vec<i32>,
     pub(crate) energy: Vec<i32>,
     pub(crate) abil_on: bool,
 
@@ -317,6 +319,7 @@ impl Sim {
             abil_idx: vec![-1; cap * ABILITY_SLOTS],
             abil_cd: vec![0; cap * ABILITY_SLOTS],
             abil_rank: vec![0; cap * ABILITY_SLOTS],
+            item_cd: vec![0; cap * crate::inventory::INV_SLOTS],
             energy: vec![0; cap],
             abil_on: false,
             changed_at: vec![0; cap],

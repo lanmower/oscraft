@@ -59,6 +59,10 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::NoSkillPoint,
     Refusal::SkillMaxed,
     Refusal::SkillLevelGate,
+    Refusal::NoItem,
+    Refusal::NoShop,
+    Refusal::InventoryFull,
+    Refusal::MissingComponent,
 ];
 
 /// Why a save could not be loaded. A failed load leaves the sim as it was.
@@ -447,6 +451,7 @@ impl Sim {
         put_u32s(&mut w, &self.inv_count);
         put_u32s(&mut w, &self.stash_kind);
         put_u32s(&mut w, &self.stash_count);
+        put_i32s(&mut w, &self.item_cd);
         put_u32s(&mut w, &self.xp_total);
         put_u32s(&mut w, &self.unit_kills);
         put_u32s(&mut w, &self.unit_deaths);
@@ -652,6 +657,7 @@ impl Sim {
         r.u32s_into(&mut next.inv_count)?;
         r.u32s_into(&mut next.stash_kind)?;
         r.u32s_into(&mut next.stash_count)?;
+        r.i32s_into(&mut next.item_cd)?;
         r.u32s_into(&mut next.xp_total)?;
         r.u32s_into(&mut next.unit_kills)?;
         r.u32s_into(&mut next.unit_deaths)?;

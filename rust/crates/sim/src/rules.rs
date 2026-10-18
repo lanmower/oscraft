@@ -4,7 +4,8 @@
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
-use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER};
+use crate::inventory::{item_kind, INV_SLOTS};
+use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER, NO_INDEX};
 use crate::*;
 
 /// Why a cast was not applied.
@@ -60,7 +61,7 @@ pub enum Refusal {
     MissingComponent,
 }
 
-pub const REFUSAL_KINDS: usize = 42;
+pub const REFUSAL_KINDS: usize = 46;
 
 /// Every refusal kind, in discriminant order, so a count indexed by `refusal as usize` can be named.
 pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -167,11 +168,20 @@ impl Refusal {
 }
 
 pub(crate) const TARGET_UNIT: u8 = 1;
+/// DOODAD_KINDS index of a shop (`5 shop` in FORMAT.md), and how close a unit must stand to buy.
+pub(crate) const SHOP_DOODAD_KIND: u16 = 5;
+pub(crate) const SHOP_REACH_MILLI: i32 = 4000;
 
 /// Which cooldown a cast is charged to: an ability slot, by array key.
 #[derive(Clone, Copy)]
 enum Slot {
     Ability(usize),
+    Item(usize),
+}
+
+/// The catalog item index a slot's kind names, or None for an empty slot or an id past the catalog.
+fn catalog_index(kind: u32, items: usize) -> Option<usize> {
+    (kind != 0 && (kind as usize) <= items).then(|| kind as usize - 1)
 }
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
@@ -295,13 +305,184 @@ impl Sim {
     fn cooldown(&self, cd: Slot) -> i32 {
         match cd {
             Slot::Ability(k) => self.abil_cd[k],
+            Slot::Item(k) => self.item_cd[k],
         }
     }
 
     fn set_cooldown(&mut self, cd: Slot, ticks: i32) {
         match cd {
             Slot::Ability(k) => self.abil_cd[k] = ticks,
+            Slot::Item(k) => self.item_cd[k] = ticks,
         }
+    }
+
+    /// Uses the active ability of the item in inventory slot `slot` of unit `i`. Refusals: NoSlot
+    /// for a dead unit or a bad slot; NoItem for an empty slot or an item without an active
+    /// ability; otherwise the cast refusals (Cooldown, Energy, targeting), each changing nothing.
+    pub fn use_item(&mut self, i: usize, slot: usize, target: i32, x: i32, y: i32) -> bool {
+        if i >= self.n || self.alive[i] == 0 || slot >= INV_SLOTS {
+            self.refuse(Refusal::NoSlot);
+            return false;
+        }
+        let key = i * INV_SLOTS + slot;
+        let ability = match catalog_index(self.inv_kind[key], self.cat.items.len()) {
+            Some(index) => self.cat.items[index].ability,
+            None => NO_INDEX,
+        };
+        if ability == NO_INDEX {
+            self.refuse(Refusal::NoItem);
+            return false;
+        }
+        self.cast_index(i, ability as usize, Slot::Item(key), target, x, y)
+    }
+
+    /// Buys catalog item `item` for unit `i` from a shop in reach. A recipe first takes its
+    /// components from the inventory and is charged its cost less their cost (the cost rule).
+    /// The item lands in the first empty inventory slot, else in the stash; its stat bonuses
+    /// apply only when it enters the inventory. Refusals, each changing nothing: NoSlot for a dead
+    /// unit; NoItem for an unknown item; NoShop out of reach; MissingComponent when a component is
+    /// not held; CannotAfford; InventoryFull when neither the inventory nor the stash has room.
+    pub fn buy_item(&mut self, i: usize, item: usize) -> bool {
+        if i >= self.n || self.alive[i] == 0 {
+            self.refuse(Refusal::NoSlot);
+            return false;
+        }
+        let Some(def) = self.cat.items.get(item).copied() else {
+            self.refuse(Refusal::NoItem);
+            return false;
+        };
+        if !self.in_shop_reach(i) {
+            self.refuse(Refusal::NoShop);
+            return false;
+        }
+        let base = i * INV_SLOTS;
+        let mut held: [(u32, u32); INV_SLOTS] =
+            std::array::from_fn(|s| (self.inv_kind[base + s], self.inv_count[base + s]));
+        // Components consumed: cost, armour, damage and health bonus.
+        let mut spent = [0i32; 4];
+        for &component in def.components.iter().filter(|&&c| c != NO_INDEX) {
+            let kind = item_kind(component as usize);
+            let Some(s) = held.iter().position(|&(k, c)| k == kind && c > 0) else {
+                self.refuse(Refusal::MissingComponent);
+                return false;
+            };
+            held[s] = (0, 0);
+            let part = self.cat.items[component as usize];
+            spent[0] += part.cost;
+            spent[1] += part.armor;
+            spent[2] += part.damage;
+            spent[3] += part.health;
+        }
+        let price = def.cost - spent[0];
+        let p = self.player[i] as usize;
+        if self.resource_a[p] < price {
+            self.refuse(Refusal::CannotAfford);
+            return false;
+        }
+        let inventory_slot = held.iter().position(|&(k, _)| k == 0);
+        let stash_slot = (0..INV_SLOTS).find(|&s| self.stash_kind[base + s] == 0);
+        if inventory_slot.is_none() && stash_slot.is_none() {
+            self.refuse(Refusal::InventoryFull);
+            return false;
+        }
+        self.resource_a[p] -= price;
+        for (s, &(kind, count)) in held.iter().enumerate() {
+            self.inv_kind[base + s] = kind;
+            self.inv_count[base + s] = count;
+        }
+        self.apply_bonus(i, -spent[1], -spent[2], -spent[3]);
+        match inventory_slot {
+            Some(s) => {
+                self.inv_kind[base + s] = item_kind(item);
+                self.inv_count[base + s] = 1;
+                self.apply_bonus(i, def.armor, def.damage, def.health);
+            }
+            None => {
+                let s = stash_slot.unwrap_or(0);
+                self.stash_kind[base + s] = item_kind(item);
+                self.stash_count[base + s] = 1;
+            }
+        }
+        true
+    }
+
+    /// Sells the item in inventory slot `slot` of unit `i` to a shop in reach for half its cost,
+    /// rounded down, and removes its bonuses. Refusals, each changing nothing: NoSlot for a dead
+    /// unit or a bad slot; NoItem for an empty slot; NoShop out of reach.
+    pub fn sell_item(&mut self, i: usize, slot: usize) -> bool {
+        if i >= self.n || self.alive[i] == 0 || slot >= INV_SLOTS {
+            self.refuse(Refusal::NoSlot);
+            return false;
+        }
+        let key = i * INV_SLOTS + slot;
+        let Some(index) = catalog_index(self.inv_kind[key], self.cat.items.len()) else {
+            self.refuse(Refusal::NoItem);
+            return false;
+        };
+        if !self.in_shop_reach(i) {
+            self.refuse(Refusal::NoShop);
+            return false;
+        }
+        let def = self.cat.items[index];
+        let p = self.player[i] as usize;
+        self.resource_a[p] += def.cost / 2;
+        self.inv_kind[key] = 0;
+        self.inv_count[key] = 0;
+        self.apply_bonus(i, -def.armor, -def.damage, -def.health);
+        true
+    }
+
+    /// Moves the item in stash slot `slot` of unit `i` into the first empty inventory slot, within
+    /// reach of a shop. Its bonuses apply then. Refusals, each changing nothing: NoSlot for a dead
+    /// unit or a bad slot; NoItem for an empty stash slot; NoShop out of reach; InventoryFull.
+    pub fn unstash(&mut self, i: usize, slot: usize) -> bool {
+        if i >= self.n || self.alive[i] == 0 || slot >= INV_SLOTS {
+            self.refuse(Refusal::NoSlot);
+            return false;
+        }
+        let key = i * INV_SLOTS + slot;
+        let Some(index) = catalog_index(self.stash_kind[key], self.cat.items.len()) else {
+            self.refuse(Refusal::NoItem);
+            return false;
+        };
+        if !self.in_shop_reach(i) {
+            self.refuse(Refusal::NoShop);
+            return false;
+        }
+        let base = i * INV_SLOTS;
+        let Some(free) = (0..INV_SLOTS).find(|&s| self.inv_kind[base + s] == 0) else {
+            self.refuse(Refusal::InventoryFull);
+            return false;
+        };
+        let def = self.cat.items[index];
+        self.inv_kind[base + free] = self.stash_kind[key];
+        self.inv_count[base + free] = self.stash_count[key];
+        self.stash_kind[key] = 0;
+        self.stash_count[key] = 0;
+        self.apply_bonus(i, def.armor, def.damage, def.health);
+        true
+    }
+
+    /// Adds stat bonuses to unit `i` (negative to remove). Negative health clamps life to the new maximum.
+    fn apply_bonus(&mut self, i: usize, armor: i32, damage: i32, health: i32) {
+        self.armor[i] += fixed::from_int(armor);
+        self.damage[i] += fixed::from_int(damage);
+        self.hp_max[i] += fixed::from_int(health);
+        self.hp[i] = if health >= 0 {
+            self.hp[i] + fixed::from_int(health)
+        } else {
+            self.hp[i].min(self.hp_max[i])
+        };
+        self.touch(i);
+    }
+
+    /// True when unit `i` stands within `SHOP_REACH_MILLI` of a shop doodad.
+    fn in_shop_reach(&self, i: usize) -> bool {
+        let reach = fixed::from_milli(SHOP_REACH_MILLI) as i64;
+        self.doodads.iter().any(|d| {
+            d.kind == SHOP_DOODAD_KIND
+                && dist2(self.pos_x[i], self.pos_y[i], fixed::from_milli(d.x), fixed::from_milli(d.y)) <= reach * reach
+        })
     }
 
     /// Grants `amount` energy to unit `i`. Refusals, each changing nothing: a dead or unknown
