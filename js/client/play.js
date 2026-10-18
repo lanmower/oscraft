@@ -9,9 +9,11 @@ import { applyFrame, createStateEncoder } from "./delta.js";
 import { AnimationPlayer, jointMatrices } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { createHud } from "./hud.js";
+import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, multiply, rotationY, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
+import { createLobby } from "./lobby.js";
 
 // Map size comes from the loaded map image (loadSim); these are the fallbacks before a map is read.
 let W = 32;
@@ -57,6 +59,7 @@ let mapGrid = null;
 let renderer3d = null;
 let mapBytes = null;
 let terrainMesh = null;
+let tileMeshes = null;
 let terrainTiles = null;
 let unitMeshes = [];
 let doodadMeshes = [];
@@ -72,6 +75,7 @@ let casts = 0;
 let attacks = 0;
 let localGame = null;
 let hud = null;
+let hud5 = null;
 let selectedId = -1;
 let reconnectAttempt = 0;
 let reconnectTimer = 0;
@@ -110,31 +114,6 @@ function setMapSize(grid) {
   orbitOrigin = [W / 2, 0, H / 2];
   cameraDistance = CAMERA_DISTANCE_PER_TILE * Math.max(W, H);
   cameraMaxDistance = CAMERA_MAX_PER_TILE * Math.max(W, H);
-}
-
-// A GLB is centred on x and z, scaled so its larger footprint side is `size` world units, and stood on y = 0.
-// Returns the drawable arrays plus the base colour texture reference (null when the model has none).
-function fitModel(glb, size) {
-  const p = glb.positions;
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, minZ = Infinity, maxZ = -Infinity;
-  for (let v = 0; v < p.length; v += 3) {
-    minX = Math.min(minX, p[v]);
-    maxX = Math.max(maxX, p[v]);
-    minY = Math.min(minY, p[v + 1]);
-    minZ = Math.min(minZ, p[v + 2]);
-    maxZ = Math.max(maxZ, p[v + 2]);
-  }
-  const scale = size / (Math.max(maxX - minX, maxZ - minZ) || 1);
-  const cx = (minX + maxX) / 2;
-  const cz = (minZ + maxZ) / 2;
-  const positions = new Float32Array(p.length);
-  for (let v = 0; v < p.length; v += 3) {
-    positions[v] = (p[v] - cx) * scale;
-    positions[v + 1] = (p[v + 1] - minY) * scale;
-    positions[v + 2] = (p[v + 2] - cz) * scale;
-  }
-  const fit = Float32Array.of(scale, 0, 0, 0, 0, scale, 0, 0, 0, 0, scale, 0, -cx * scale, -minY * scale, -cz * scale, 1);
-  return { positions, normals: glb.normals || vertexNormals(positions, glb.indices), uvs: glb.texcoords, indices: glb.indices, baseColorTexture: glb.baseColorTexture, fit };
 }
 
 // Skin, node tree and clips for a skinned GLB, with its rest-pose geometry (the joint matrices carry the fit).
@@ -309,7 +288,7 @@ function drawWorld3d() {
   const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
   lastDrawMs = now;
   renderer3d.beginFrame(BACKGROUND);
-  if (terrainMesh) countDraw("terrain", terrainMesh, null);
+  for (const mesh of tileMeshes ?? (terrainMesh ? [terrainMesh] : [])) countDraw("terrain", mesh, null);
   for (const d of doodadMeshes) countDraw("doodad", d.mesh, d.transform);
   drawUnits3d(currentUnits(), dt);
 }
@@ -618,6 +597,7 @@ function sendAttack(unitId, targetId) {
 const fsm = createFSM(xstate);
 const auth = new NostrAuth({ nostrTools: NostrTools });
 auth.loadFromStorage() || auth.generateKey();
+createLobby({ playerId: auth.pubkey || "local", onStart: () => setStatus("lobby: match starting") });
 const relayPool = new RelayPool({
   verifyEvent: NostrTools.verifyEvent,
   ...(relayUrls ? { relays: relayUrls, fallbackRelays: [], autoRotate: false } : {}),
@@ -735,6 +715,7 @@ function publishWitness() {
   document.body.dataset.center = renderer3d ? renderer3d.camera.target.map((v) => v.toFixed(2)).join(",") : `${flatView.cx},${flatView.cz}`;
   document.body.dataset.distance = renderer3d ? renderer3d.camera.distance.toFixed(3) : "";
   document.body.dataset.drawTerrain = String(drawCounts.terrain);
+  document.body.dataset.terrainMode = tileMeshes ? "tiles" : "heightfield";
   document.body.dataset.drawDoodad = String(drawCounts.doodad);
   document.body.dataset.drawUnit = String(drawCounts.unit);
   document.body.dataset.drawQuad = String(drawCounts.quad);
@@ -743,6 +724,7 @@ function publishWitness() {
   document.body.dataset.casts = String(casts);
   document.body.dataset.attacks = String(attacks);
   if (hud) hud.update();
+  if (hud5) hud5.update();
 }
 
 function createBarCanvas() {
@@ -776,6 +758,7 @@ async function build3d(gl, game) {
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
   const groundImage = await loadBaseColorImage({ uri: "textures/ground.png" }, location.href).catch(() => null);
   if (groundImage) terrainMesh.texture = uploadTexture(gl, groundImage);
+  tileMeshes = await loadTileMeshes(gl).catch(() => null);
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
   const s = 1 / terrain.cellMilli;
   doodadMeshes = readDoodads(mapBytes).flatMap((p) => {
@@ -787,6 +770,21 @@ async function build3d(gl, game) {
     return [{ mesh, transform: multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)) }];
   });
   unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
+}
+
+// Terrain drawn from the CC0 tile models: one fitted model per kind, cells baked per kind. Any tile that fails to load
+// returns null, so the heightfield mesh stays the drawn terrain.
+async function loadTileMeshes(gl) {
+  const names = Object.entries(TILE_MODELS);
+  const fitted = await Promise.all(names.map(([, name]) => fetchModel(name, 1)));
+  if (fitted.some((model) => !model)) return null;
+  const models = Object.fromEntries(names.map(([kind], i) => [kind, fitted[i]]));
+  const baked = bakeTiles(mapBytes, models);
+  if (!baked) return null;
+  return Promise.all([...baked.kinds].map(async ([kind, mesh]) => {
+    const model = models[kind];
+    return toMesh(gl, { ...mesh, baseColorTexture: model.baseColorTexture, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
+  }));
 }
 
 async function main() {
@@ -823,6 +821,7 @@ async function main() {
     toScreen: worldToScreen,
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
+  hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: () => 0 });
   if (params.get("host") === "1") startHost();
   joinRoom();
 
