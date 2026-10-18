@@ -3079,7 +3079,7 @@ jobs:
           workers=$(grep -oE 'opening_workers *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           expected_units=$((spawns + starts * workers))
           wave_spawners=$(grep -cE '^spawn\("lane_spawner' waves.osd)
-          creep_lanes=$(grep -cE '^spawn\("lane_spawner_(top|bot)"' waves.osd)
+          creep_lanes=$(grep -cE '^spawn\("lane_spawner_(top|mid|bot)"' waves.osd)
           initial_units=$((expected_units + wave_spawners + creep_lanes * 4))
           sides=$(jq '.sides' "$work/s0.json")
           players=$(jq '.players' "$work/s0.json")
