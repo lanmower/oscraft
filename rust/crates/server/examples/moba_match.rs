@@ -45,7 +45,7 @@ fn first_alive(sim: &Sim, pred: impl Fn(usize) -> bool) -> Option<usize> {
     (0..sim.count()).find(|&j| sim.alive(j) && pred(j))
 }
 
-const DEFEND_RADIUS_TILES: i64 = 12;
+const DEFEND_RADIUS_TILES: i64 = 25;
 
 fn defender_of_base(sim: &Sim, h: usize) -> Option<usize> {
     let side_h = side(sim.player(h));
@@ -73,6 +73,25 @@ fn rival_base_of(sim: &Sim, h: usize) -> Option<usize> {
 
 fn is_roshan(sim: &Sim, j: usize) -> bool {
     sim.kind_name(j) == Some("roshan")
+}
+
+fn is_camp_unit(sim: &Sim, j: usize) -> bool {
+    sim.player(j) == NEUTRAL && sim.kind_name(j).is_some_and(|k| k.starts_with("neutral_") || k == "creep")
+}
+
+fn is_enemy_structure(sim: &Sim, h: usize, j: usize) -> bool {
+    sim.hostile(sim.player(h), sim.player(j))
+        && sim.kind_name(j).is_some_and(|k| k.starts_with("tower") || k.starts_with("barracks") || k == "base")
+}
+
+fn nearest_by(sim: &Sim, h: usize, pred: impl Fn(usize) -> bool) -> Option<usize> {
+    let (hx, hy) = sim.position_fixed(h);
+    (0..sim.count())
+        .filter(|&j| sim.alive(j) && pred(j))
+        .min_by_key(|&j| {
+            let (x, y) = sim.position_fixed(j);
+            (x as i64 - hx as i64).pow(2) + (y as i64 - hy as i64).pow(2)
+        })
 }
 
 fn main() {
@@ -104,9 +123,6 @@ fn main() {
 
     while sim.winner().is_none() && sim.ticks() < max_ticks {
         let t = sim.ticks();
-        if t % 500 == 0 {
-            eprintln!("dbgc t={t} c48 alive={} hp={} pos={:?} h2 pos={:?} h2 alive={} phase_camp={}", sim.alive(48), sim.hp(48), sim.position_fixed(48), sim.position_fixed(2), sim.alive(2), t < CAMP_PHASE_END);
-        }
         let phase_camp = t < CAMP_PHASE_END && !seen.0.contains("camp");
         let roshan_alive = first_alive(&sim, |j| is_roshan(&sim, j)).is_some();
         let phase_roshan = !phase_camp && roshan_alive;
@@ -154,10 +170,11 @@ fn main() {
             }
 
             let target = if phase_camp {
-                first_alive(&sim, |j| sim.player(j) == NEUTRAL && sim.kind_name(j) == Some("creep"))
+                nearest_by(&sim, h, |j| is_camp_unit(&sim, j))
             } else {
                 defender_of_base(&sim, h)
                     .or_else(|| if phase_roshan { first_alive(&sim, |j| is_roshan(&sim, j)) } else { None })
+                    .or_else(|| nearest_by(&sim, h, |j| is_enemy_structure(&sim, h, j)))
                     .or_else(|| rival_base_of(&sim, h))
                     .or(hostile_hero)
                     .or_else(|| first_alive(&sim, |j| sim.hostile(sim.player(h), sim.player(j)) && j != h))
@@ -188,16 +205,13 @@ fn main() {
         for ev in sim.drain_kill_events() {
             let killer = ev.killer as usize;
             let victim = ev.victim as usize;
-            if ev.victim_player == NEUTRAL && sim.kind_name(victim) == Some("creep") {
-                eprintln!("creepkill tick={} killer={} kkind={:?} kplayer={}", ev.tick, killer, sim.kind_name(killer), ev.killer_player);
-            }
             if sim.is_hero(killer) && sim.hostile(ev.killer_player, ev.victim_player) {
                 let gold = sim.hero_gold(killer);
                 if gold > gold_before[killer] && seen.first("bounty") {
                     println!("milestone bounty tick={} killer={killer} gold={gold}", ev.tick);
                 }
             }
-            if ev.victim_player == NEUTRAL && !is_roshan(&sim, victim) && sim.kind_name(victim) != Some("creep") {
+            if ev.victim_player == NEUTRAL && !is_roshan(&sim, victim) && !is_camp_unit(&sim, victim) {
                 continue;
             }
             if ev.victim_player == NEUTRAL {
