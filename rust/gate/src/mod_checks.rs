@@ -6,7 +6,7 @@ use std::time::{Duration, SystemTime};
 
 use mod_host::ModHost;
 
-struct TempMod(PathBuf);
+pub(crate) struct TempMod(PathBuf);
 
 impl Drop for TempMod {
     fn drop(&mut self) {
@@ -18,7 +18,7 @@ fn file_name(name: &str) -> String {
     format!("oscraft-gate-{name}.lua")
 }
 
-fn start(image: &[u8], name: &str, src: &str) -> Result<(ModHost, TempMod), String> {
+pub(crate) fn start(image: &[u8], name: &str, src: &str) -> Result<(ModHost, TempMod), String> {
     let path = std::env::temp_dir().join(file_name(name));
     let guard = TempMod(path.clone());
     std::fs::write(&path, src).map_err(|e| format!("write {}: {e}", path.display()))?;
@@ -27,7 +27,7 @@ fn start(image: &[u8], name: &str, src: &str) -> Result<(ModHost, TempMod), Stri
     Ok((host, guard))
 }
 
-fn advance(host: &mut ModHost, frames: u32) -> Result<(), String> {
+pub(crate) fn advance(host: &mut ModHost, frames: u32) -> Result<(), String> {
     for _ in 0..frames {
         let state = host.state().clone();
         host.advance(&state).map_err(|e| format!("advance: {e}"))?;
@@ -35,7 +35,7 @@ fn advance(host: &mut ModHost, frames: u32) -> Result<(), String> {
     Ok(())
 }
 
-fn read_int(host: &ModHost, key: &str) -> Result<i64, String> {
+pub(crate) fn read_int(host: &ModHost, key: &str) -> Result<i64, String> {
     host.state()
         .get::<Option<i64>>(key)
         .map_err(|e| format!("state.{key}: {e}"))?

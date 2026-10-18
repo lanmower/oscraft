@@ -1,14 +1,14 @@
 # Economy for the moba scenario. economy(...) runs once. Saturation counts must be at least 1.
-# resource_a is the gold of this match: tenders harvest it.
+# resource_a is the gold of this match.
 economy(
     patch_saturation=3,
     gas_saturation=3,
-    patches_per_base=8,
-    geysers_per_base=2,
+    patches_per_base=0,
+    geysers_per_base=0,
     extractor_yield=4,
     opening_resource_a=0,
     opening_gas=0,
-    opening_workers=4,
+    opening_workers=0,
     capacity_base=20,
     capacity_max=200,
     patch_yield=1500,

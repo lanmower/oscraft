@@ -2,7 +2,70 @@
 //! upgrades, neutral camp stacking and Roshan's respawn window. Each runs on the moba image.
 
 use crate::checks::{fresh, run_ticks, spawn, MAX_UNITS};
+use crate::mod_checks::{advance, read_int, start};
 use sim::{fixed, Sim};
+
+/// Lane wave logic under test: the moba scenario's wave mod, loaded into the mod host.
+const WAVES_MOD: &str = include_str!("../../../mods/moba_waves.lua");
+/// Creeps per lane spawner per wave, as configured in mods/moba_waves.lua (CREEP_OFFSETS: three
+/// melee, one ranged; creep lanes are top and bottom, mid sends none).
+const MELEE_PER_LANE: i64 = 3;
+const RANGED_PER_LANE: i64 = 1;
+const CREEP_LANES: &[&str] = &["lane_spawner_top", "lane_spawner_bot"];
+const ALL_LANES: &[&str] = &["lane_spawner_top", "lane_spawner_mid", "lane_spawner_bot"];
+/// The mod's wave logic plus a test harness: per-kind spawn counts in the state, the top lane's
+/// mirror tower killed at tick 500, and every side-1 tower killed at tick 1500.
+const UPGRADE_HARNESS: &str = r#"
+local base_on_tick = on_tick
+local function any_tower(owner)
+  for _, t in ipairs(towers) do
+    if t.owner == owner then return t end
+  end
+end
+local function mirror_tower(owner, x, y)
+  local mx, my = MAP_W - x, MAP_H - y
+  local best, best_d
+  for _, t in ipairs(towers) do
+    if t.owner ~= owner then
+      local dx, dy = t.x - mx, t.y - my
+      local d = dx * dx + dy * dy
+      if best_d == nil or d < best_d then best, best_d = t, d end
+    end
+  end
+  return best
+end
+local function lanes_with_dead_mirror(owner)
+  local n = 0
+  for _, s in ipairs(lane_spawners) do
+    if s.owner == owner and s.lane ~= "mid" then
+      local x, y = unit_position(s.id)
+      if counterpart_dead(owner, x, y) then n = n + 1 end
+    end
+  end
+  return n
+end
+function on_tick(state)
+  base_on_tick(state)
+  state.melee_super = spawned["creep_super"] or 0
+  state.melee_mega = spawned["creep_mega"] or 0
+  state.ranged_super = spawned["creep_ranged_super"] or 0
+  state.ranged_mega = spawned["creep_ranged_mega"] or 0
+  state.lanes_super = lanes_with_dead_mirror(0)
+end
+game.timer("gate_kill_top_mirror", 500, function()
+  for _, s in ipairs(lane_spawners) do
+    if s.owner == 0 and s.lane == "top" then
+      local x, y = unit_position(s.id)
+      damage_unit(any_tower(0).id, mirror_tower(0, x, y).id, 655360000)
+    end
+  end
+end, 1000000)
+game.timer("gate_kill_side1_towers", 1500, function()
+  for _, t in ipairs(towers) do
+    if t.owner ~= 0 and unit_alive(t.id) then damage_unit(any_tower(0).id, t.id, 655360000) end
+  end
+end, 1000000)
+"#;
 
 fn moba_image() -> Result<Vec<u8>, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
@@ -13,60 +76,49 @@ fn count_kind(s: &Sim, player: u8, name: &str) -> usize {
     (0..MAX_UNITS).filter(|&i| s.alive(i) && s.player(i) == player && s.kind_name(i) == Some(name)).count()
 }
 
-/// Spawns of each kind in `names` for `player` during the next `ticks` ticks, one count per name. A unit
-/// counts when it comes alive, so creeps that die inside the window do not lower the count.
-fn count_spawns(s: &mut Sim, player: u8, names: &[&str], ticks: u32) -> Vec<usize> {
-    let live = |s: &Sim, i: usize, name: &str| s.alive(i) && s.player(i) == player && s.kind_name(i) == Some(name);
-    let mut prev: Vec<Vec<bool>> = {
-        let view: &Sim = s;
-        names.iter().map(|name| (0..MAX_UNITS).map(|i| live(view, i, name)).collect()).collect()
-    };
-    let mut spawned = vec![0; names.len()];
-    for _ in 0..ticks {
-        s.tick();
-        for (k, name) in names.iter().enumerate() {
-            for i in 0..MAX_UNITS {
-                let now = live(s, i, name);
-                if now && !prev[k][i] {
-                    spawned[k] += 1;
-                }
-                prev[k][i] = now;
-            }
-        }
-    }
-    spawned
+/// Lane spawner units named in `kinds` that are alive for both sides, as the wave mod sees them.
+fn spawners(s: &Sim, kinds: &[&str]) -> i64 {
+    [0u8, 1].iter().map(|&p| kinds.iter().map(|k| count_kind(s, p, k) as i64).sum::<i64>()).sum()
 }
 
-/// Every 30 s each base sends three melee creeps and one ranged creep down each of the three lanes.
+/// Lane creep waves come from mods/moba_waves.lua: each top and bottom lane spawner sends three melee and
+/// one ranged creep every 480 ticks from tick 1, and mid sends none. The mod's counts sum both sides,
+/// so the expected wave is the creep lane spawners in the image times the per-lane counts.
 pub fn moba_wave_composition(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
-    let siege0 = count_kind(&s, 0, "creep_siege");
-    let first = count_spawns(&mut s, 0, &["creep", "creep_ranged"], 2);
-    let (melee1, ranged1) = (first[0], first[1]);
-    if melee1 != 9 || ranged1 != 3 {
-        return Err(format!("first wave spawned {melee1} melee and {ranged1} ranged creeps, want 9 and 3"));
+    let image = moba_image()?;
+    let lanes = spawners(&fresh(&image)?, CREEP_LANES);
+    let (want_melee, want_ranged) = (lanes * MELEE_PER_LANE, lanes * RANGED_PER_LANE);
+    let (mut host, _mod) = start(&image, "waves-composition", WAVES_MOD)?;
+    advance(&mut host, 2)?;
+    let (melee1, ranged1) = (read_int(&host, "waves_creep")?, read_int(&host, "waves_creep_ranged")?);
+    if melee1 != want_melee || ranged1 != want_ranged {
+        return Err(format!("first wave spawned {melee1} melee and {ranged1} ranged creeps, want {want_melee} and {want_ranged}"));
     }
-    if count_kind(&s, 0, "creep_siege") != siege0 {
+    if read_int(&host, "waves_siege")? != 0 {
         return Err("a siege creep spawned in the first wave".into());
     }
-    let melee2 = count_spawns(&mut s, 0, &["creep"], 480)[0];
-    if melee2 != 9 {
-        return Err(format!("second wave 480 ticks later spawned {melee2} melee creeps, want 9"));
+    advance(&mut host, 480)?;
+    let melee2 = read_int(&host, "waves_creep")? - melee1;
+    if melee2 != want_melee {
+        return Err(format!("second wave 480 ticks later spawned {melee2} melee creeps, want {want_melee}"));
     }
-    println!("moba wave composition ok melee_per_wave=9 ranged_per_wave=3 interval_ticks=480");
+    println!("moba wave composition ok melee_per_wave={want_melee} ranged_per_wave={want_ranged} interval_ticks=480");
     Ok(())
 }
 
-/// The first siege creeps of a side appear at 5:00 (4800 ticks), one per lane, and not before.
+/// Siege creeps come from the mod: every lane spawner (top, mid, bottom, both sides) sends one at tick
+/// 4800, and the first wave's size is the siege spawner count in the image.
 pub fn moba_siege_timing(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
+    let image = moba_image()?;
+    let want = spawners(&fresh(&image)?, ALL_LANES);
+    let (mut host, _mod) = start(&image, "waves-siege", WAVES_MOD)?;
     let mut first = None;
     let mut most = 0;
-    for _ in 0..4810 {
-        s.tick();
-        let n = count_kind(&s, 0, "creep_siege");
+    for t in 1..=4810i64 {
+        advance(&mut host, 1)?;
+        let n = read_int(&host, "waves_siege")?;
         if n > 0 && first.is_none() {
-            first = Some(s.ticks());
+            first = Some(t);
         }
         most = most.max(n);
     }
@@ -74,43 +126,47 @@ pub fn moba_siege_timing(_image: &[u8]) -> Result<(), String> {
     if !(4800..=4803).contains(&t) {
         return Err(format!("first siege creep at tick {t}, want 4800"));
     }
-    if most != 3 {
-        return Err(format!("{most} siege creeps in the first siege wave, want 3 (one per lane)"));
+    if most != want {
+        return Err(format!("{most} siege creeps in the first siege wave, want {want} (one per lane spawner)"));
     }
     println!("moba siege timing ok first_tick={t} per_wave={most}");
     Ok(())
 }
 
-/// Destroying the enemy melee barracks makes melee wave creeps spawn as super creeps; once every enemy
-/// barracks is gone, melee and ranged wave creeps spawn as mega creeps.
+/// The mod upgrades wave creeps by enemy towers, not barracks: a creep whose spawner's mirror tower is
+/// dead spawns as super, and once every enemy tower is dead its side's creeps spawn as mega. The harness
+/// kills the top lane's mirror tower at tick 500 (one lane upgrades) and every side-1 tower at tick 1500.
+/// Expected per wave: 3 melee and 1 ranged per upgraded lane (super), then 3 and 1 per creep lane of side 0
+/// (mega), with the creep lane count taken from the image.
 pub fn moba_wave_upgrade(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
-    let rax = |s: &Sim, name: &str| -> Vec<usize> { (0..MAX_UNITS).filter(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some(name)).collect() };
-    let (melee, ranged) = (rax(&s, "barracks_melee"), rax(&s, "barracks_ranged"));
-    if melee.is_empty() || ranged.is_empty() {
-        return Err("moba image places no side 1 barracks".into());
+    let image = moba_image()?;
+    let owner_lanes = spawners(&fresh(&image)?, CREEP_LANES) / 2;
+    let (mut host, _mod) = start(&image, "waves-upgrade", &format!("{WAVES_MOD}\n{UPGRADE_HARNESS}"))?;
+    advance(&mut host, 490)?;
+    let (super0, ranged_super0) = (read_int(&host, "melee_super")?, read_int(&host, "ranged_super")?);
+    if super0 != 0 || ranged_super0 != 0 || read_int(&host, "melee_mega")? != 0 {
+        return Err("wave creeps upgraded before any enemy tower died".into());
     }
-    run_ticks(&mut s, 2);
-    for &i in &melee {
-        s.hurt(i, fixed::from_int(10000));
+    advance(&mut host, 950)?;
+    let lanes = read_int(&host, "lanes_super")?;
+    let (melee, ranged) = (read_int(&host, "melee_super")? - super0, read_int(&host, "ranged_super")? - ranged_super0);
+    if lanes != 1 {
+        return Err(format!("{lanes} side-0 creep lanes have a dead mirror tower after its kill, want 1 (the top lane)"));
     }
-    run_ticks(&mut s, 480);
-    let (sup, mega) = (count_kind(&s, 0, "creep_super"), count_kind(&s, 0, "creep_mega"));
-    if sup != 9 || mega != 0 {
-        return Err(format!("with the melee barracks down the wave held {sup} super and {mega} mega melee creeps, want 9 and 0"));
+    if melee != MELEE_PER_LANE * lanes || ranged != RANGED_PER_LANE * lanes {
+        return Err(format!("with the top mirror tower down the wave held {melee} super melee and {ranged} super ranged creeps, want {} and {}", MELEE_PER_LANE * lanes, RANGED_PER_LANE * lanes));
     }
-    if count_kind(&s, 0, "creep_ranged_super") != 0 {
-        return Err("a ranged super creep spawned while the ranged barracks stand".into());
+    if read_int(&host, "melee_mega")? != 0 {
+        return Err("a melee creep spawned mega while an enemy tower still stood".into());
     }
-    for &i in &ranged {
-        s.hurt(i, fixed::from_int(10000));
+    advance(&mut host, 480)?;
+    let (mega0, ranged_mega0) = (read_int(&host, "melee_mega")?, read_int(&host, "ranged_mega")?);
+    advance(&mut host, 10)?;
+    let (mega, ranged_mega) = (read_int(&host, "melee_mega")? - mega0, read_int(&host, "ranged_mega")? - ranged_mega0);
+    if mega != MELEE_PER_LANE * owner_lanes || ranged_mega != RANGED_PER_LANE * owner_lanes {
+        return Err(format!("with every enemy tower down the wave held {mega} mega melee and {ranged_mega} mega ranged creeps, want {} and {}", MELEE_PER_LANE * owner_lanes, RANGED_PER_LANE * owner_lanes));
     }
-    run_ticks(&mut s, 480);
-    let (mega, ranged_mega) = (count_kind(&s, 0, "creep_mega"), count_kind(&s, 0, "creep_ranged_mega"));
-    if mega != 9 || ranged_mega != 3 {
-        return Err(format!("with every barracks down the wave held {mega} mega melee and {ranged_mega} mega ranged creeps, want 9 and 3"));
-    }
-    println!("moba wave upgrade ok super={sup} mega={mega} ranged_mega={ranged_mega}");
+    println!("moba wave upgrade ok super={melee} mega={mega} ranged_mega={ranged_mega}");
     Ok(())
 }
 
