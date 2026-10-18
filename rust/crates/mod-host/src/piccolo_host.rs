@@ -6,7 +6,9 @@
 //! upgrade editing globals. A mod call runs under a step budget so a loop cannot stall the guest.
 
 use std::cell::RefCell;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::time::SystemTime;
 
 use piccolo::fuel::Fuel;
 use piccolo::{
@@ -45,6 +47,7 @@ enum Cmd {
     Ui { body: String },
 }
 
+#[derive(Clone)]
 struct Region {
     name: String,
     x0: i32,
@@ -817,6 +820,14 @@ fn rows<'gc>(ctx: Context<'gc>, sim: &Sim, comps: Table<'gc>) -> Result<Table<'g
     Ok(out)
 }
 
+fn mtime(path: &Path) -> Result<SystemTime, String> {
+    std::fs::metadata(path).and_then(|m| m.modified()).map_err(|e| format!("stat {}: {e}", path.display()))
+}
+
+fn mod_name(path: &Path) -> String {
+    path.file_stem().map_or_else(|| "mod".to_string(), |s| s.to_string_lossy().into_owned())
+}
+
 pub struct ModHost {
     lua: Lua,
     sh: Sh,
@@ -828,6 +839,7 @@ pub struct ModHost {
     prev: Vec<UnitSnap>,
     inside: Vec<u64>,
     pending: Vec<Pending>,
+    mod_file: Option<(PathBuf, SystemTime)>,
 }
 
 impl ModHost {
@@ -852,6 +864,7 @@ impl ModHost {
             prev: Vec::new(),
             inside: vec![0; MAX_UNITS],
             pending: Vec::new(),
+            mod_file: None,
         })
     }
 
@@ -928,6 +941,43 @@ impl ModHost {
         self.hooks = Some(hooks);
         self.version += 1;
         Ok(())
+    }
+
+    /// Loads the mod file at `path` and remembers it, so `reload` can swap in later edits.
+    pub fn load_file(&mut self, path: &Path) -> Result<(), String> {
+        let seen = mtime(path)?;
+        let src = std::fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
+        self.load_source(&mod_name(path), &src)?;
+        self.mod_file = Some((path.to_path_buf(), seen));
+        Ok(())
+    }
+
+    /// Swaps in the file behind `load_file` when its mtime moved. A mod that fails to load puts the
+    /// sim, regions and queued commands back as they were and keeps the live mod in effect; the
+    /// broken file is not retried until its mtime moves again. Returns Ok(true) when a new version
+    /// went live.
+    pub fn reload(&mut self) -> Result<bool, String> {
+        let Some((path, seen)) = self.mod_file.clone() else { return Ok(false) };
+        let now = mtime(&path)?;
+        if now == seen {
+            return Ok(false);
+        }
+        self.mod_file = Some((path.clone(), now));
+        let src = std::fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
+        let (sim, regions, cmds) = {
+            let sh = self.sh.borrow();
+            (sh.sim.save_state(), sh.regions.clone(), sh.cmds.clone())
+        };
+        match self.load_source(&mod_name(&path), &src) {
+            Ok(()) => Ok(true),
+            Err(e) => {
+                let mut sh = self.sh.borrow_mut();
+                sh.sim.load_state(&sim).map_err(|_| "the saved sim state did not load back".to_string())?;
+                sh.regions = regions;
+                sh.cmds = cmds;
+                Err(e)
+            }
+        }
     }
 
     /// The count of mods this host has loaded.

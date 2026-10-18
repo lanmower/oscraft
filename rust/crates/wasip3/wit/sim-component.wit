@@ -19,7 +19,7 @@ world sim-component {
     export order-all: func(player: u8, x: s32, y: s32);
     export fire-trigger: func(unit: u32, name: string) -> bool;
     export catalog-unit-name: func(kind: u32) -> option<string>;
-    export mod-example: func(name: string) -> result<_, string>;
+    export mod-source: func(name: string, hex-src: string) -> result<_, string>;
     export mod-kill: func(kind: string) -> result<u32, string>;
     export mod-step: func(count: u32) -> tuple<u64, u64>;
     export mod-state: func() -> string;

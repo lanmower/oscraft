@@ -43,12 +43,26 @@ mod host {
         }
     }
 
-    /// The commands that load an example mod on the moba image, kill a tower, and step.
-    const MOD_COMMANDS: &[&str] = &["mod-example tower_buff", "mod-step", "mod-kill tower", "mod-step"];
+    /// The mods directory the host reads from on every run, so an edited mod file is the mod the next
+    /// run loads. The guest has no file access: its source arrives as a `mod-source` command.
+    const MODS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../mods");
 
-    /// The example mods whose state the host prints after 300 steps on the moba image, as the native
+    /// The mods whose state the host prints after 300 steps on the moba image, as the native
     /// mod_check prints it: one `mod-state` line each.
     const STATE_MODS: &[&str] = &["td_waves", "custom_spell"];
+
+    /// The `mod-source` command that hands the guest the current text of mods/<name>.lua.
+    fn load_command(name: &str) -> Result<String, String> {
+        let path = format!("{MODS_DIR}/{name}.lua");
+        let src = std::fs::read(&path).map_err(|e| format!("read mod {path}: {e}"))?;
+        let hex: String = src.iter().map(|b| format!("{b:02x}")).collect();
+        Ok(format!("mod-source {name} {hex}"))
+    }
+
+    fn send(guest: &str, image_path: &str, commands: &[String]) -> Result<Vec<String>, String> {
+        let refs: Vec<&str> = commands.iter().map(String::as_str).collect();
+        exchange(guest, image_path, &refs)
+    }
 
     /// Runs the guest on the image, checks the tick and mod-load witness, then runs the example
     /// mod script on `mod_image` when one is given.
@@ -65,8 +79,9 @@ mod host {
         }
         println!("wasip3 mod-load ok mod=wasip3-test");
         let Some(mod_image) = mod_image else { return Ok(()) };
-        let replies = exchange(guest, mod_image, MOD_COMMANDS)?;
-        if replies.len() != MOD_COMMANDS.len() || replies.iter().any(|r| r.starts_with("err")) {
+        let commands = [load_command("tower_buff")?, "mod-step".into(), "mod-kill tower".into(), "mod-step".into()];
+        let replies = send(guest, mod_image, &commands)?;
+        if replies.len() != commands.len() || replies.iter().any(|r| r.starts_with("err")) {
             return Err(format!("unexpected mod replies: {replies:?}"));
         }
         let (fired, applied) = counters(&replies[3])?;
@@ -75,9 +90,8 @@ mod host {
         }
         println!("wasip3 mod-trigger ok mod=tower_buff fired={fired} applied={applied}");
         for name in STATE_MODS {
-            let commands = [format!("mod-example {name}"), "mod-step 300".to_string(), "mod-state".to_string()];
-            let commands: Vec<&str> = commands.iter().map(String::as_str).collect();
-            let replies = exchange(guest, mod_image, &commands)?;
+            let commands = [load_command(name)?, "mod-step 300".to_string(), "mod-state".to_string()];
+            let replies = send(guest, mod_image, &commands)?;
             if replies.len() != commands.len() || replies.iter().any(|r| r.starts_with("err")) {
                 return Err(format!("unexpected replies for {name}: {replies:?}"));
             }

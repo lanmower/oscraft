@@ -29,15 +29,6 @@ unsafe extern "Rust" fn __getrandom_v03_custom(dest: *mut u8, len: usize) -> Res
 const TEST_MOD_NAME: &str = "wasip3-test";
 const TEST_MOD: &str = "-- a test mod loaded inside the wasip3 guest\nlocal loaded = true\nfunction on_tick(state) end\n";
 
-// The example mods under mods/, embedded because the guest has no file access.
-const EXAMPLE_MODS: &[(&str, &str)] = &[
-    ("creep_gold", include_str!("../../../../mods/creep_gold.lua")),
-    ("tower_buff", include_str!("../../../../mods/tower_buff.lua")),
-    ("td_waves", include_str!("../../../../mods/td_waves.lua")),
-    ("custom_spell", include_str!("../../../../mods/custom_spell.lua")),
-    ("ui_demo", include_str!("../../../../mods/ui_demo.lua")),
-];
-
 pub const COMMANDS: &[&str] = &[
     "load",
     "mod-load",
@@ -55,7 +46,7 @@ pub const COMMANDS: &[&str] = &[
     "order-all",
     "fire-trigger",
     "catalog-unit-name",
-    "mod-example",
+    "mod-source",
     "mod-kill",
     "mod-step",
     "mod-state",
@@ -96,11 +87,11 @@ fn reply(host: &mut ModHost, line: &str) -> Result<String, String> {
             Err(e) => Err(format!("mod-load {e}")),
         },
         "mod-version" => Ok(format!("ok mod-version {}", host.version())),
-        "mod-example" => {
+        "mod-source" => {
             let which = words.next().ok_or("mod name missing")?;
-            let (_, src) = EXAMPLE_MODS.iter().find(|(n, _)| *n == which).ok_or_else(|| format!("unknown example mod {which}"))?;
-            host.load_source(which, src).map_err(|e| format!("mod-example {which}: {e}"))?;
-            Ok(format!("ok mod-example {which}"))
+            let src = unhex(words.next().ok_or("mod source missing")?)?;
+            host.load_source(which, &src).map_err(|e| format!("mod-source {which}: {e}"))?;
+            Ok(format!("ok mod-source {which}"))
         }
         "mod-kill" => {
             let kind = words.next().ok_or("unit kind missing")?;
@@ -207,6 +198,18 @@ fn unit_of<'a>(sim: &Sim, words: &mut impl Iterator<Item = &'a str>) -> Result<u
         return Err(format!("unit {unit} out of range"));
     }
     Ok(unit)
+}
+
+// A mod source travels as lowercase hex so it fits one whitespace-free command line.
+fn unhex(hex: &str) -> Result<String, String> {
+    if hex.len() % 2 != 0 {
+        return Err("mod source hex has odd length".into());
+    }
+    let bytes = (0..hex.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).map_err(|e| format!("mod source hex: {e}")))
+        .collect::<Result<Vec<u8>, String>>()?;
+    String::from_utf8(bytes).map_err(|e| format!("mod source utf8: {e}"))
 }
 
 fn parse<T: std::str::FromStr>(word: Option<&str>, what: &str) -> Result<T, String>
