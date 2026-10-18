@@ -281,6 +281,7 @@ jobs:
         run: cargo run -p oscraft-spike
 
       - name: Run parity gate
+        shell: bash
         run: |
           set -o pipefail
           cargo run -p oscraft-gate 2>&1 | tee gate.txt
