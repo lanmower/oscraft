@@ -90,3 +90,8 @@ unit("lane_spawner_mid", 1, 0, 100, filters=["air"], abilities=["creep_wave", "s
 unit("lane_spawner_bot", 1, 0, 100, filters=["air"], abilities=["creep_wave_bot", "siege_wave_bot", "siege_wave_bot_30", "siege_wave_bot_60"], damage_response="immune", sight_milli=0, model="pillar-obelisk", deny_pct=0)
 # Tormentor: npc_dota_miniboss at the same commit (StatusHealth 1, regen 20, ArmorPhysical 20, MagicalResistance 55, ring radius 110, vision 1200, no attack, no movement). The 3000 damage barrier is the unyielding shield (miniboss_unyielding_shield damage_absorb) as a unit shield; its regeneration of 20 per second is rounded to 1 per tick (16 per second). Reflection, radiance, alleviation and the barrier growth over game time are not modelled. It first spawns at 15:00 and returns 10 minutes after its death.
 unit("tormentor", 1, 0, 1719, filters=["ground", "armored", "massive"], shield=3000, sight_milli=18750, armor=20, model="pillar-obelisk", deny_pct=0)
+# Pit markers: placed units that only give a boss pit position. The loader reads and removes them (camp.rs PIT_MARKERS).
+unit("roshan_pit_night", 1, 0, 100, filters=["air"], sight_milli=0, model="pillar-obelisk", deny_pct=0)
+unit("roshan_pit_day", 1, 0, 100, filters=["air"], sight_milli=0, model="pillar-obelisk", deny_pct=0)
+unit("tormentor_spawn_night", 1, 0, 100, filters=["air"], sight_milli=0, model="pillar-obelisk", deny_pct=0)
+unit("tormentor_spawn_day", 1, 0, 100, filters=["air"], sight_milli=0, model="pillar-obelisk", deny_pct=0)

@@ -1370,6 +1370,7 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
         .iter()
         .filter_map(|&(name, first, min, spread)| sim.cat.unit_index(name).map(|k| (k as u32, first, min, spread)))
         .collect();
+    sim.collect_pit_markers();
     sim.hold_first_camp_spawn();
     sim.camps.reward_kind = sim
         .cat

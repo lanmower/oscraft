@@ -210,3 +210,45 @@ pub fn camp_tormentor_timing(_image: &[u8]) -> Result<(), String> {
     println!("camp tormentor timing ok first_tick={} died_tick={died}", 900 * tps);
     Ok(())
 }
+
+/// From 15:00 Roshan walks to the pit of the day/night phase (top at night), and the Tormentor respawns at the
+/// Radiant corner at night and the Dire corner by day.
+pub fn camp_pit_swap(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    let find = |s: &Sim, name: &str| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some(name));
+    let cells = |s: &Sim, u: usize, x: i32, y: i32| {
+        let (px, py) = s.position_fixed(u);
+        let (dx, dy) = (i64::from(px - fixed::from_milli(x)), i64::from(py - fixed::from_milli(y)));
+        ((dx * dx + dy * dy) as f64).sqrt() / f64::from(fixed::ONE)
+    };
+    let roshan = find(&s, "roshan").ok_or("no Roshan at tick 0")?;
+    let d0 = cells(&s, roshan, 207734, 206312);
+    if d0 > 12.0 {
+        return Err(format!("Roshan starts {d0:.0} cells from the bottom pit"));
+    }
+    run_ticks(&mut s, 14400 + 1700);
+    if !s.alive(roshan) {
+        return Err("Roshan died on the way to the top pit".into());
+    }
+    let d1 = cells(&s, roshan, 113589, 126084);
+    if d1 > 12.0 {
+        return Err(format!("at 15:00 plus 1700 ticks Roshan stands {d1:.0} cells from the night pit"));
+    }
+    let tormentor = find(&s, "tormentor").ok_or("no Tormentor after 15:00")?;
+    let t0 = cells(&s, tormentor, 43500, 64500);
+    if t0 > 4.0 {
+        return Err(format!("the night Tormentor stands {t0:.0} cells from the Radiant corner"));
+    }
+    let left = 19300 - s.ticks();
+    run_ticks(&mut s, left);
+    s.hurt(tormentor, fixed::from_int(10000));
+    s.hurt(tormentor, fixed::from_int(10000));
+    run_ticks(&mut s, 9600 + 8);
+    let back = find(&s, "tormentor").ok_or("the Tormentor did not return")?;
+    let t1 = cells(&s, back, 284500, 260500);
+    if t1 > 4.0 {
+        return Err(format!("the day Tormentor stands {t1:.0} cells from the Dire corner"));
+    }
+    println!("camp pit swap ok roshan_night_pit_dist={d1:.1} tormentor_day_dist={t1:.1}");
+    Ok(())
+}

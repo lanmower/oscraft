@@ -129,6 +129,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("camp-minute-refill", unit_checks::camp_minute_refill),
     ("camp-first-spawn", unit_checks::camp_first_spawn),
     ("camp-tormentor-timing", unit_checks::camp_tormentor_timing),
+    ("camp-pit-swap", unit_checks::camp_pit_swap),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP
