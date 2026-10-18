@@ -12,7 +12,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, multiply, rotationY, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, fitModel, planarUvs, TILE_MODELS, TILE_TINTS } from "./tiles.js";
+import { bakeTiles, fitModel, GROUND_KINDS, TILE_MODELS, TILE_TINTS } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, HERO_ROSTER } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -26,7 +26,10 @@ import { createModUi } from "./modui.js";
 let W = 32;
 let H = 24;
 const CAMERA_DISTANCE_PER_TILE = 40 / 32;
-const CAMERA_MAX_PER_TILE = 120 / 32;
+const CAMERA_MAX_PER_TILE = 1.6;
+const CAMERA_MAX_FLOOR = 120;
+const CAMERA_PLAY_DISTANCE = 70;
+const CAMERA_FAR_PER_MAX = 2;
 const BACKGROUND = [0.114, 0.145, 0.173];
 const MAP_COLOR = [0.2, 0.28, 0.22];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
@@ -38,9 +41,9 @@ const FLAT_PX_PER_UNIT = 20;
 const DRAG_SLOP_PX = 4;
 const PAN_PX_PER_S = 500;
 let orbitOrigin = [W / 2, 0, H / 2];
-let cameraDistance = CAMERA_DISTANCE_PER_TILE * Math.max(W, H);
-let cameraMaxDistance = CAMERA_MAX_PER_TILE * Math.max(W, H);
-const DOODAD_KINDS = ["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp"];
+let cameraDistance = Math.min(CAMERA_PLAY_DISTANCE, CAMERA_DISTANCE_PER_TILE * Math.max(W, H));
+let cameraMaxDistance = Math.max(CAMERA_MAX_FLOOR, CAMERA_MAX_PER_TILE * Math.max(W, H));
+const DOODAD_KINDS = ["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp", "side_shop", "secret_shop"];
 const EDGE_PX = 16;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_CAP_MS = 16000;
@@ -134,8 +137,8 @@ function setMapSize(grid) {
   flatView.cx = W / 2;
   flatView.cz = H / 2;
   orbitOrigin = [W / 2, 0, H / 2];
-  cameraDistance = CAMERA_DISTANCE_PER_TILE * Math.max(W, H);
-  cameraMaxDistance = CAMERA_MAX_PER_TILE * Math.max(W, H);
+  cameraDistance = Math.min(CAMERA_PLAY_DISTANCE, CAMERA_DISTANCE_PER_TILE * Math.max(W, H));
+  cameraMaxDistance = Math.max(CAMERA_MAX_FLOOR, CAMERA_MAX_PER_TILE * Math.max(W, H));
 }
 
 // Skin, node tree and clips for a skinned GLB, with its rest-pose geometry (the joint matrices carry the fit).
@@ -354,7 +357,12 @@ function drawWorld3d() {
   const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
   lastDrawMs = now;
   renderer3d.beginFrame(BACKGROUND);
-  for (const mesh of tileMeshes ?? (terrainMesh ? [terrainMesh] : [])) countDraw("terrain", mesh, null);
+  if (tileMeshes) {
+    for (const t of tileMeshes) {
+      drawCounts.terrain += 1;
+      renderer3d.drawInstanced(t.mesh, t.batch);
+    }
+  } else if (terrainMesh) countDraw("terrain", terrainMesh, null);
   for (const d of doodadBatches) {
     drawCounts.doodad += d.batch.count;
     renderer3d.drawInstanced(d.mesh, d.batch);
@@ -996,13 +1004,15 @@ async function loadTileMeshes(gl, groundTexture) {
   const models = Object.fromEntries(names.map(([kind], i) => [kind, fitted[i]]));
   const baked = bakeTiles(mapBytes, models);
   if (!baked) return null;
-  return Promise.all([...baked.kinds].map(async ([kind, mesh]) => {
-    const model = models[kind];
-    const textured = groundTexture && (kind === "grass" || kind === "dirt");
-    const drawn = await toMesh(gl, { ...mesh, uvs: textured ? planarUvs(mesh.positions) : mesh.uvs, baseColorTexture: textured ? null : model.baseColorTexture, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
-    if (drawn && textured) drawn.texture = groundTexture;
-    return drawn;
-  }));
+  const drawn = await Promise.all([...baked.kinds].flatMap(([kind, group]) => group.batches.map(async ({ uvs, batch }) => {
+    const model = group.model;
+    const textured = groundTexture && GROUND_KINDS.includes(kind);
+    const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: textured ? null : model.baseColorTexture, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
+    if (!mesh) return null;
+    if (textured) mesh.texture = groundTexture;
+    return { mesh, batch };
+  })));
+  return drawn.every(Boolean) ? drawn : null;
 }
 
 async function main() {
@@ -1013,7 +1023,7 @@ async function main() {
   localGame = await loadSim();
   if (gl) {
     renderer3d = createRenderer3d(gl);
-    renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, pitch: 0.9 });
+    renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, pitch: 0.9 });
     try {
       await build3d(gl, localGame);
     } catch (err) {

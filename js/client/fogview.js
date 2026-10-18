@@ -67,23 +67,36 @@ export function createFogView({ game, localPlayer, toScreen, groundAt }) {
     for (let i = 0; i < plane.length; i++) if (plane[i] === 0) { anyHidden = true; break; }
     if (!anyHidden) return;
     const stride = vw + 1;
-    const corners = new Array(stride * (vh + 1));
-    for (let j = 0; j <= vh; j++) {
-      for (let i = 0; i <= vw; i++) corners[j * stride + i] = toScreen(i * s, j * s, groundAt(i * s, j * s));
-    }
+    const sx = new Float32Array(stride * (vh + 1));
+    const sy = new Float32Array(stride * (vh + 1));
+    const known = new Uint8Array(stride * (vh + 1));
+    const corner = (i, j) => {
+      const k = j * stride + i;
+      if (!known[k]) {
+        const p = toScreen(i * s, j * s, groundAt(i * s, j * s));
+        sx[k] = p.x;
+        sy[k] = p.y;
+        known[k] = 1;
+      }
+      return k;
+    };
+    const vwPx = window.innerWidth;
+    const vhPx = window.innerHeight;
     ctx.fillStyle = `rgba(0,0,0,${FOG_ALPHA})`;
     ctx.beginPath();
     for (let j = 0; j < vh; j++) {
       for (let i = 0; i < vw; i++) {
         if (plane[j * vw + i] !== 0) continue;
-        const a = corners[j * stride + i];
-        const b = corners[j * stride + i + 1];
-        const c = corners[(j + 1) * stride + i + 1];
-        const d = corners[(j + 1) * stride + i];
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.lineTo(c.x, c.y);
-        ctx.lineTo(d.x, d.y);
+        const a = corner(i, j);
+        const b = corner(i + 1, j);
+        const c = corner(i + 1, j + 1);
+        const d = corner(i, j + 1);
+        if (Math.max(sx[a], sx[b], sx[c], sx[d]) < 0 || Math.min(sx[a], sx[b], sx[c], sx[d]) > vwPx) continue;
+        if (Math.max(sy[a], sy[b], sy[c], sy[d]) < 0 || Math.min(sy[a], sy[b], sy[c], sy[d]) > vhPx) continue;
+        ctx.moveTo(sx[a], sy[a]);
+        ctx.lineTo(sx[b], sy[b]);
+        ctx.lineTo(sx[c], sy[c]);
+        ctx.lineTo(sx[d], sy[d]);
         ctx.closePath();
       }
     }

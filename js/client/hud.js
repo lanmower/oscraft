@@ -36,6 +36,8 @@ function walkableLayer(grid) {
 export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, select, localPlayer, commands, pick, toWorld, toScreen, playerColor }) {
   const maxHp = new Map();
   const barCtx = barCanvas.getContext("2d");
+  minimapEl.height = Math.max(1, Math.round((minimapEl.width * mapSize.h) / mapSize.w));
+  minimapEl.style.height = `${minimapEl.height}px`;
   const minimapCtx = minimapEl.getContext("2d");
   const lanes = walkableLayer(grid);
   let attackArmed = false;

@@ -27,17 +27,6 @@ export function cellKind(flags, tile) {
   return "grass";
 }
 
-// World-plane UVs for a baked mesh: the ground texture repeats on the same grid as the heightfield. The CC0 tile
-// models' own UVs all sample one palette texel, so the ground tiles take their UVs from position instead.
-export function planarUvs(positions) {
-  const uvs = new Float32Array((positions.length / 3) * 2);
-  for (let v = 0; v < positions.length / 3; v++) {
-    uvs[v * 2] = positions[v * 3] * GROUND_UV_PER_CELL;
-    uvs[v * 2 + 1] = positions[v * 3 + 2] * GROUND_UV_PER_CELL;
-  }
-  return uvs;
-}
-
 // A GLB centred on x and z, its larger footprint side scaled to `size`, and stood on y = 0.
 export function fitModel(glb, size) {
   const p = glb.positions;
@@ -62,47 +51,72 @@ export function fitModel(glb, size) {
   return { positions, normals: glb.normals || vertexNormals(positions, glb.indices), uvs: glb.texcoords, indices: glb.indices, baseColorTexture: glb.baseColorTexture, fit };
 }
 
-// Bakes every cell into its kind's mesh: the tile model placed at the cell centre, on the cell's height level.
+// Kinds drawn with the repeating ground texture: their cells split by position modulo the texture period, so each
+// split shares one instanced draw and still lands on the right part of the texture.
+export const GROUND_KINDS = Object.freeze(["grass", "dirt"]);
+const GROUND_PERIOD = Math.round(1 / GROUND_UV_PER_CELL);
+
+function groundVariantUvs(model, ox, oy) {
+  const uvs = new Float32Array((model.positions.length / 3) * 2);
+  for (let v = 0; v < model.positions.length / 3; v++) {
+    uvs[v * 2] = (ox + 0.5 + model.positions[v * 3]) * GROUND_UV_PER_CELL;
+    uvs[v * 2 + 1] = (oy + 0.5 + model.positions[v * 3 + 2]) * GROUND_UV_PER_CELL;
+  }
+  return uvs;
+}
+
+// Groups every cell by kind (and by texture phase for ground kinds) into instance batches: one translation matrix per
+// cell on the cell's height level, so memory and draw calls scale with the kind count, not the cell count.
 // Returns null when a kind the map uses has no model, so the caller keeps the heightfield as the fallback.
 export function bakeTiles(bytes, models) {
   const grid = readGrid(bytes);
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
-  const perKind = new Map();
+  const kindAt = new Uint8Array(w * h);
+  const names = [];
+  for (let i = 0; i < w * h; i++) {
+    const kind = cellKind(flags[i], tiles[i]);
+    if (!models[kind]) return null;
+    let id = names.indexOf(kind);
+    if (id < 0) id = names.push(kind) - 1;
+    kindAt[i] = id;
+  }
+  const phases = (kind) => (GROUND_KINDS.includes(kind) ? GROUND_PERIOD * GROUND_PERIOD : 1);
+  const groups = new Map();
+  for (const kind of names) {
+    groups.set(kind, Array.from({ length: phases(kind) }, () => ({ cells: [] })));
+  }
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
-      const kind = cellKind(flags[i], tiles[i]);
-      if (!models[kind]) return null;
-      if (!perKind.has(kind)) perKind.set(kind, []);
-      perKind.get(kind).push({ x: x + 0.5, y: (levels[i] * heightStep) / cellMilli, z: y + 0.5 });
+      const kind = names[kindAt[i]];
+      const list = groups.get(kind);
+      const phase = list.length === 1 ? 0 : (y % GROUND_PERIOD) * GROUND_PERIOD + (x % GROUND_PERIOD);
+      list[phase].cells.push(i);
     }
   }
   const meshes = new Map();
   let cells = 0;
-  for (const [kind, placements] of perKind) {
+  for (const [kind, list] of groups) {
     const model = models[kind];
-    const vertexCount = model.positions.length / 3;
-    const positions = new Float32Array(placements.length * model.positions.length);
-    const normals = new Float32Array(positions.length);
-    const uvs = new Float32Array(placements.length * model.uvs.length);
-    const indices = new Uint32Array(placements.length * model.indices.length);
-    placements.forEach((at, n) => {
-      const vBase = n * vertexCount;
-      for (let v = 0; v < vertexCount; v++) {
-        const p = model.positions;
-        const o = (vBase + v) * 3;
-        positions[o] = p[v * 3] + at.x;
-        positions[o + 1] = p[v * 3 + 1] + at.y;
-        positions[o + 2] = p[v * 3 + 2] + at.z;
-        normals[o] = model.normals[v * 3];
-        normals[o + 1] = model.normals[v * 3 + 1];
-        normals[o + 2] = model.normals[v * 3 + 2];
-      }
-      uvs.set(model.uvs, vBase * 2);
-      for (let k = 0; k < model.indices.length; k++) indices[n * model.indices.length + k] = model.indices[k] + vBase;
+    const batches = [];
+    list.forEach((group, phase) => {
+      if (group.cells.length === 0) return;
+      const matrices = new Float32Array(group.cells.length * 16);
+      group.cells.forEach((i, n) => {
+        const o = n * 16;
+        matrices[o] = 1;
+        matrices[o + 5] = 1;
+        matrices[o + 10] = 1;
+        matrices[o + 12] = (i % w) + 0.5;
+        matrices[o + 13] = (levels[i] * heightStep) / cellMilli;
+        matrices[o + 14] = Math.floor(i / w) + 0.5;
+        matrices[o + 15] = 1;
+      });
+      const uvs = list.length === 1 ? model.uvs : groundVariantUvs(model, phase % GROUND_PERIOD, Math.floor(phase / GROUND_PERIOD));
+      batches.push({ uvs, batch: { matrices, count: group.cells.length, dirty: true } });
+      cells += group.cells.length;
     });
-    cells += placements.length;
-    meshes.set(kind, { positions, normals, uvs, indices, cells: placements.length, model });
+    meshes.set(kind, { model, batches, cells: batches.reduce((n, b) => n + b.batch.count, 0) });
   }
   return { kinds: meshes, cells, width: w, height: h };
 }

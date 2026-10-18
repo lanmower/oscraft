@@ -4,7 +4,7 @@ import { readDoodads, readGrid } from "./terrain.js";
 import { cellKind, TILE_IDS, TILE_TINTS } from "./tiles.js";
 import { createCamera, createRenderer, eyeOf, multiply, orbitCamera, panCamera, scaling, translation, viewProjection, zoomCamera } from "./render3d.js";
 
-export const DOODAD_KINDS = Object.freeze(["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp"]);
+export const DOODAD_KINDS = Object.freeze(["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp", "side_shop", "secret_shop"]);
 export const CELL_KINDS = Object.freeze({
   grass: { cell: 0, tile: 0 },
   dirt: { cell: 0, tile: TILE_IDS.dirt },
@@ -138,31 +138,41 @@ function levelHeight(m, i) {
 }
 
 export function kindMeshes(m) {
-  const per = new Map();
-  for (let y = 0; y < m.height; y++) {
-    for (let x = 0; x < m.width; x++) {
-      const kind = kindAt(m, x, y);
-      if (!per.has(kind)) per.set(kind, []);
-      per.get(kind).push(x, y);
+  const n = m.width * m.height;
+  const kinds = [];
+  const kindOf = new Uint8Array(n);
+  const counts = [];
+  for (let i = 0; i < n; i++) {
+    const kind = cellKind(m.cell[i], m.tile[i]);
+    let k = kinds.indexOf(kind);
+    if (k < 0) {
+      k = kinds.push(kind) - 1;
+      counts.push(0);
     }
+    kindOf[i] = k;
+    counts[k]++;
+  }
+  const bufs = kinds.map((_, k) => ({ positions: new Float32Array(counts[k] * 12), normals: new Float32Array(counts[k] * 12), indices: new Uint32Array(counts[k] * 6), at: 0 }));
+  for (let i = 0; i < n; i++) {
+    const buf = bufs[kindOf[i]];
+    const c = buf.at++;
+    const x = i % m.width;
+    const y = (i - x) / m.width;
+    const h = levelHeight(m, i);
+    const p = c * 12;
+    const pos = buf.positions;
+    pos[p] = x; pos[p + 1] = h; pos[p + 2] = y;
+    pos[p + 3] = x + 1; pos[p + 4] = h; pos[p + 5] = y;
+    pos[p + 6] = x; pos[p + 7] = h; pos[p + 8] = y + 1;
+    pos[p + 9] = x + 1; pos[p + 10] = h; pos[p + 11] = y + 1;
+    buf.normals[p + 1] = buf.normals[p + 4] = buf.normals[p + 7] = buf.normals[p + 10] = 1;
+    const b = c * 4;
+    const ix = c * 6;
+    buf.indices[ix] = b; buf.indices[ix + 1] = b + 2; buf.indices[ix + 2] = b + 1;
+    buf.indices[ix + 3] = b + 1; buf.indices[ix + 4] = b + 2; buf.indices[ix + 5] = b + 3;
   }
   const meshes = new Map();
-  for (const [kind, cells] of per) {
-    const count = cells.length / 2;
-    const positions = new Float32Array(count * 12);
-    const normals = new Float32Array(count * 12);
-    const indices = new Uint32Array(count * 6);
-    for (let c = 0; c < count; c++) {
-      const x = cells[c * 2];
-      const y = cells[c * 2 + 1];
-      const h = levelHeight(m, y * m.width + x);
-      positions.set([x, h, y, x + 1, h, y, x, h, y + 1, x + 1, h, y + 1], c * 12);
-      for (let v = 0; v < 4; v++) normals[c * 12 + v * 3 + 1] = 1;
-      const b = c * 4;
-      indices.set([b, b + 2, b + 1, b + 1, b + 2, b + 3], c * 6);
-    }
-    meshes.set(kind, { positions, normals, uvs: new Float32Array(count * 8), indices, color: TILE_TINTS[kind] });
-  }
+  kinds.forEach((kind, k) => meshes.set(kind, { positions: bufs[k].positions, normals: bufs[k].normals, uvs: new Float32Array(counts[k] * 8), indices: bufs[k].indices, color: TILE_TINTS[kind] }));
   return meshes;
 }
 
@@ -243,6 +253,7 @@ function startPage() {
     cam.target = [model.width / 2, 0, model.height / 2];
     cam.distance = Math.max(model.width, model.height) * 1.1;
     cam.maxDistance = cam.distance * 4;
+    cam.far = cam.maxDistance * 2;
     dirty = true;
     $("status").textContent = `${model.width}x${model.height} cells, ${model.doodads.length} doodads`;
   };

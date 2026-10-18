@@ -3,9 +3,6 @@ import init, { Game } from "./pkg/web.js";
 import * as THREE from "three";
 import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-// The map grid from data/map.osd: grid(32, 24), one tile per cell.
-const W = 32;
-const H = 24;
 const BACKGROUND = 0x1d252c;
 const PLAYER_COLORS = [0x3a7bd5, 0xd5543a, 0x3ab26b, 0xb23ab2, 0xd5b33a, 0x3ab2b2, 0xd58a3a, 0x7a3ad5, 0xa5a5a5, 0xd53a7a];
 const MIN_ZOOM = 0.5;
@@ -55,6 +52,7 @@ async function main() {
   await init();
   const image = new Uint8Array(await (await fetch("map.bin")).arrayBuffer());
   let game = new Game(image);
+  const [W, H] = game.map_size();
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -178,13 +176,17 @@ async function main() {
   const tile = normalize(terrainGltf.scene, 1);
   // The kit's UVs sample the shared colour map, the same palette the unit model uses.
   paint(tile, new THREE.MeshBasicMaterial({ map: colormap }));
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const t = tile.clone(true);
-      t.position.add(new THREE.Vector3(x + 0.5, 0, y + 0.5));
-      scene.add(t);
+  tile.updateMatrixWorld(true);
+  tile.traverse((o) => {
+    if (!o.isMesh) return;
+    const ground = new THREE.InstancedMesh(o.geometry, o.material, W * H);
+    const cell = new THREE.Matrix4();
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) ground.setMatrixAt(y * W + x, cell.makeTranslation(x + 0.5, 0, y + 0.5).multiply(o.matrixWorld));
     }
-  }
+    ground.frustumCulled = false;
+    scene.add(ground);
+  });
 
   const unitGltf = await loader.loadAsync("assets/units/character-male-c.glb");
   unskin(unitGltf.scene);
