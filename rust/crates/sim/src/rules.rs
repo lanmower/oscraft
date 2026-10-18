@@ -203,8 +203,8 @@ const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
-/// Mod-only: a flat stat bonus. p0 names the stat (see `modapi::STAT_NAMES`), p1 the amount.
-pub(crate) const EFFECT_STAT: u16 = 64;
+/// A flat stat bonus. p0 names the stat (see `modapi::STAT_NAMES`), p1 the amount.
+pub(crate) const EFFECT_STAT: u16 = 16;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 
 impl Sim {

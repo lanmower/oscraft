@@ -32,8 +32,11 @@ pub const EFFECT_KINDS: &[&str] = &[
     "silence",
     "root",
     "invisibility",
+    "stat",
 ];
-pub const MAX_EFFECT_KIND: usize = 15;
+pub const MAX_EFFECT_KIND: usize = 16;
+/// The stats an effect of kind "stat" may raise, by the code in its first parameter.
+pub const STAT_NAMES: &[&str] = &["damage", "armor", "health", "speed", "range"];
 pub const ORDER_KINDS: &[&str] = &["stop", "attack_move", "hold"];
 pub const ORDER_TARGETS: &[&str] = &["caster_relative", "point"];
 pub const VITALS: &[&str] = &["life", "shield"];
@@ -172,6 +175,7 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
                 && (0..VITAL_TARGETS.len() as i32).contains(&p3)
         }
         "shield_bonus" => p0 >= 0,
+        "stat" => (0..STAT_NAMES.len() as i32).contains(&p0) && p1 >= 0,
         "stun" | "silence" | "root" | "invisibility" => p0 >= 1,
         "slow" => p0 >= 1 && (0..=Q16_ONE).contains(&p1),
         _ => true,

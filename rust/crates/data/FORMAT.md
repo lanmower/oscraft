@@ -106,6 +106,7 @@ Effect parameters by kind:
 | 13   | `silence`          | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
 | 14   | `root`             | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
 | 15   | `invisibility`     | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
+| 16   | `stat`             | stat: `0 damage`, `1 armor`, `2 health`, `3 speed`, `4 range`      | flat amount, `>= 0` (whole units for damage, armor, health; milli-units for speed, range) | – | –            |
 
 ### Receiver
 
@@ -124,6 +125,8 @@ effects are defined by the receiver: `issue_order`, `shield_bonus` and
   target (`caster_relative` or `point`) is resolved from the caster or the cast
   point, and is independent of who receives the order.
 - `shield_bonus`: the receiver's shield gains the flat amount.
+- `stat`: the receiver's stat rises by the flat amount, permanently for that unit's life. A
+  passive is a `stat` ability with a very long cooldown that a `spawned` behaviour casts.
 - `stun`, `slow`, `silence`, `root`, `invisibility`: status effects on the receiver for
   p0 ticks (the cast tick counts as the first). Reapplying keeps the longer duration; a
   slow keeps the lower multiplier while active. Stun: no orders, cast, attack or movement,
@@ -462,7 +465,7 @@ without a version bump.
 - Effect kinds (`EFCT.kind`): `0 damage`, `1 heal`, `2 move`, `3 spawn`, `4 buff`,
   `5 issue_order`, `6 remove_behaviour`, `7 create_healer`, `8 use_calldown`,
   `9 vital_fraction`, `10 shield_bonus`, `11 stun`, `12 slow`, `13 silence`, `14 root`,
-  `15 invisibility`. Codes above `15` are rejected.
+  `15 invisibility`, `16 stat`. Codes above `16` are rejected.
 - Targets (`ABIL.target`): `0 none`, `1 unit`, `2 point`
 - Triggers (`BHVR.trigger`): `0 idle`, `1 attacked`, `2 spawned`, `3 ability_ready`, `4 destroyed`
 - Actions (`BHVR.action`): `0 attack_nearest` (strikes the nearest enemy in reach), `1 flee` (refused at load: the engine does not run it yet), `2 use_ability`, `3 declare_winner` (param = FILTERS index named by `tag=`; the rival side wins when the destroyed unit's side has no living unit carrying that tag)

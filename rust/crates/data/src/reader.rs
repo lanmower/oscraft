@@ -87,7 +87,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
     for i in 0..efct.count {
         let at = efct.offset + i * EFCT_RECORD;
         let kind = u16_at(image, at)? as usize;
-        ensure!(kind <= MAX_EFFECT_KIND, "effect {i} code {kind} is above {MAX_EFFECT_KIND}");
+        ensure!(kind <= MAX_EFFECT_KIND,"effect {i} code {kind} is above {MAX_EFFECT_KIND}");
         let name = EFFECT_KINDS[kind];
         let params = [
             i32_at(image, at + 4)?,
