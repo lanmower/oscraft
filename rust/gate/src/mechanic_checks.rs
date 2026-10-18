@@ -483,6 +483,108 @@ pub fn moba_lane(_image: &[u8]) -> Result<(), String> {
     Err("creep did not reach the north lane point within 600 ticks".into())
 }
 
+/// Creep stats from the moba unit table (scenarios/moba/units.osd): speed and weapon reach in milli-tiles,
+/// weapon period in ticks.
+const CREEP_SPEED_MILLI: i64 = 317;
+const CREEP_REACH_MILLI: i64 = 1562;
+const CREEP_WEAPON_PERIOD: u32 = 16;
+
+/// A creep on an attack-move order stops once an enemy creep is in weapon reach, strikes it, and resumes
+/// its route after the target dies. The approach budget is the time to close the gap at creep speed plus a
+/// margin of 16 ticks; the stop tolerance is the weapon reach plus one tile of hull margin; the hold window
+/// is three weapon periods, so at least three strikes are attempted.
+pub fn creep_stops_to_attack(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
+    let rival = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("moba has no side 1 base")?;
+    let (ox, oy) = s.position_fixed(own);
+    let (tx, ty) = s.position_fixed(rival);
+    let k = kind(&s, "creep")?;
+    let friend = s.spawn_for(0, k, ox, oy).ok_or("spawn_for refused a creep at the side 0 base")?;
+    let (fx, fy) = s.position_fixed(friend);
+    let (dx, dy) = (f64::from(tx) - f64::from(fx), f64::from(ty) - f64::from(fy));
+    let len = (dx * dx + dy * dy).sqrt();
+    let tile = f64::from(fixed::from_int(1));
+    let mut placed = None;
+    for step in 0..=8 {
+        let d = 4.0 + 0.5 * f64::from(step);
+        let ex = (f64::from(fx) + dx / len * d * tile).round() as i32;
+        let ey = (f64::from(fy) + dy / len * d * tile).round() as i32;
+        if !s.grid().walkable(ex >> 16, ey >> 16) {
+            continue;
+        }
+        if let Some(e) = s.spawn_for(1, k, ex, ey) {
+            placed = Some((e, d));
+            break;
+        }
+    }
+    let (enemy, d0) = placed.ok_or("no walkable lane cell 4 to 8 tiles from the side 0 creep for an enemy creep")?;
+    let (ex0, ey0) = s.position_fixed(enemy);
+    s.order(enemy, ex0, ey0);
+    let reach = CREEP_REACH_MILLI as f64 / 1000.0;
+    let speed = CREEP_SPEED_MILLI as f64 / 1000.0;
+    let approach = ((d0 - reach) / speed).ceil() as u32;
+    let budget = 2 * approach + 16;
+    let gap = |s: &Sim| {
+        let (x, y) = s.position_fixed(friend);
+        let (ex, ey) = s.position_fixed(enemy);
+        let (gx, gy) = (f64::from(x) - f64::from(ex), f64::from(y) - f64::from(ey));
+        (gx * gx + gy * gy).sqrt() / tile
+    };
+    s.issue_order_kind(friend, sim::ORDER_ATTACK_MOVE, tx, ty).map_err(|e| format!("attack-move refused: {}", e.name()))?;
+    let enemy_hp0 = s.hp(enemy);
+    let mut stop_tick = None;
+    let mut prev = s.position_fixed(friend);
+    for t in 1..=budget {
+        s.tick();
+        if !s.alive(friend) {
+            return Err(format!("creep died on the approach at tick {t}"));
+        }
+        let now = s.position_fixed(friend);
+        if now == prev && gap(&s) <= reach + 1.0 {
+            stop_tick = Some(t);
+            break;
+        }
+        prev = now;
+    }
+    let t_stop = stop_tick.ok_or(format!("creep did not reach enemy reach within {budget} ticks from {d0:.1} tiles away"))?;
+    let stop_pos = s.position_fixed(friend);
+    let hp_at_stop = s.hp(enemy);
+    for t in 0..3 * CREEP_WEAPON_PERIOD {
+        if !s.alive(enemy) {
+            break;
+        }
+        s.tick();
+        if s.alive(enemy) && s.position_fixed(friend) != stop_pos {
+            return Err(format!("engaged creep moved {} ticks after stopping at tick {t_stop} while its target lived", t + 1));
+        }
+    }
+    if s.hp(enemy) >= hp_at_stop {
+        return Err(format!("engaged creep struck nothing: enemy hp {hp_at_stop} unchanged while in reach"));
+    }
+    s.hurt(enemy, fixed::from_int(10000));
+    if s.alive(enemy) {
+        return Err("enemy creep survived lethal damage".into());
+    }
+    let resumed = (0..budget).any(|_| {
+        s.tick();
+        s.position_fixed(friend) != stop_pos
+    });
+    if !resumed {
+        return Err(format!("creep stayed put {budget} ticks after its target died"));
+    }
+    println!("creep engagement ok stop_tick={t_stop} enemy_hp {enemy_hp0} -> {}", s.hp(enemy));
+    let mut walker = fresh(&moba_image()?)?;
+    let free = walker.spawn_for(0, k, ox, oy).ok_or("spawn_for refused a walking creep at the side 0 base")?;
+    walker.issue_order_kind(free, sim::ORDER_ATTACK_MOVE, tx, ty).map_err(|e| format!("attack-move refused: {}", e.name()))?;
+    let start = walker.position_fixed(free);
+    run_ticks(&mut walker, 30);
+    if walker.position_fixed(free) == start {
+        return Err("a creep with no enemy in reach did not walk its attack-move route".into());
+    }
+    Ok(())
+}
+
 /// A moba unit standing with no orders and no neighbours to move away from holds one point: its x does not
 /// flip between two lanes on successive ticks. Prints the x sequence in milli-tiles for the witness.
 pub fn moba_idle_settle(_image: &[u8]) -> Result<(), String> {

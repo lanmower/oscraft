@@ -114,6 +114,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("ability-antimage-blink-and-mana-break", ability_checks::antimage_blink_and_mana_break),
     ("moba-creeps", mechanic_checks::moba_creeps),
     ("moba-lane", mechanic_checks::moba_lane),
+    ("creep-stops-to-attack", mechanic_checks::creep_stops_to_attack),
     ("item-stat-names", item_checks::item_stat_names),
     ("item-stock", item_checks::item_stock),
     ("item-aegis-and-death", item_checks::item_aegis_and_death),
