@@ -85,8 +85,8 @@ pub fn order_queue(image: &[u8]) -> Result<(), String> {
 pub fn inventory_slots(image: &[u8]) -> Result<(), String> {
     let mut s = fresh(image)?;
     let u = spawn(&mut s, 0, "skirmisher", 10, 10)?;
-    if s.inventory_slots() != 6 {
-        return Err(format!("inventory_slots {} want 6", s.inventory_slots()));
+    if s.inventory_slots() != 10 {
+        return Err(format!("inventory_slots {} want 10", s.inventory_slots()));
     }
     if !s.inventory_add(u, 7, 3) || !s.inventory_add(u, 7, 2) {
         return Err("adding to a kind already held was refused".into());
@@ -529,28 +529,26 @@ pub fn moba_sync(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// Both sides start with a hero, a base and an objective. A side 0 creep ordered to the side 1 objective loses hit points.
+/// Both sides start with a hero, a base and a tower. A side 0 creep set beside the side 1 tower and ordered to it loses that tower hit points.
 pub fn moba_objective(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&moba_image()?)?;
     for side in 0..2 {
-        for name in ["hero", "base", "objective"] {
+        for name in ["hero", "base", "tower"] {
             if !(0..MAX_UNITS).any(|i| s.alive(i) && s.player(i) == side && s.kind_name(i) == Some(name)) {
                 return Err(format!("side {side} has no {name} at match start"));
             }
         }
     }
-    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
-    let target = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("objective")).ok_or("moba has no side 1 objective")?;
-    let (ox, oy) = s.position_fixed(own);
+    let target = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("tower")).ok_or("moba has no side 1 tower")?;
     let (tx, ty) = s.position_fixed(target);
     let k = kind(&s, "creep")?;
-    let creep = s.spawn_for(0, k, ox, oy).ok_or("spawn_for refused a creep at the side 0 base")?;
+    let creep = s.spawn_for(0, k, tx - fixed::from_int(4), ty).ok_or("spawn_for refused a creep beside the side 1 tower")?;
     let before = fixed::to_int(s.hp(target));
     s.order(creep, tx, ty);
     run_ticks(&mut s, 300);
     let after = fixed::to_int(s.hp(target));
     if after >= before {
-        return Err(format!("side 0 creep did not hurt the side 1 objective: hp {before} -> {after}"));
+        return Err(format!("side 0 creep did not hurt the side 1 tower: hp {before} -> {after}"));
     }
     println!("moba objective ok hp={before}->{after}");
     Ok(())
