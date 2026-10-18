@@ -24,13 +24,13 @@ Ten players, two teams of five: even players on team 0, odd on team 1 (`start(..
 
 ## Lanes and creeps
 
-Each base carries the `creep_wave` ability. It fires when the base spawns and again each time its 600-tick (37.5 s) cooldown ends. It spawns one creep per lane (top, middle, bottom). Each creep marches along its lane to the nearest enemy building and fights what it meets. Idle units with a weapon (creeps, towers, bases) strike the nearest enemy in reach.
+Six `lane_spawner` units (three per side, air layer, immune, no weapon) stand at each side's melee barracks and cast the lane waves (`waves.osd`). Every 30 s (480 ticks, the Dota interval) each lane gets three melee creeps and one ranged creep. Siege creeps start at 5:00 (4800 ticks) and then come every 5:00, one per lane, two per lane from 30:00 and three from 60:00 (dotasense.com/guides/siege-creeps, Valve patches 7.06 and 7.41): each siege ability starts on cooldown (`initial_cooldown`) and its ready trigger casts it. Creeps march on the route of their lane when the map has one, otherwise on the nearest enemy building, and fight what they meet. Idle units with a weapon (creeps, towers, bases) strike the nearest enemy in reach.
 
-The wave now fires every 480 ticks (30 s) and spawns three melee creeps and one ranged creep per lane.
+Super and mega creeps: a spawn effect's p3 packs an upgraded kind, a final kind and two filter tags (`waves.rs`). A wave unit spawns as its super kind once the enemy barracks of its type (filter `melee_rax` or `ranged_rax`) that mirrors the spawn point through the map centre is dead, and as its mega kind once every enemy barracks (filter `barracks`) is dead. Super and mega creeps have identical stats in the dump (700 hp melee, 475 hp ranged), so mega differs only by the rule that spawns it.
 
-Unit scale: 1 Dota unit = 15.625 milli; speed is milli per tick; weapon period = AttackRate x 100 / BaseAttackSpeed x 16 ticks; health_regen is milli-hp per tick (Dota hp/s x 62.5). Stats below are read from `npc_units.txt` @282fad29 (health, armor, damage midpoint, rate, range, speed, vision, regen, gold midpoint, xp).
+Unit scale: 1 Dota unit = 15.625 milli; speed is milli per tick; weapon period = AttackRate x 100 / BaseAttackSpeed x 16 ticks; health_regen is milli-hp per tick (Dota hp/s x 62.5). Stats are read from `npc_units.txt` @282fad29 (health, armor, damage midpoint, rate, range, speed, vision, regen, gold midpoint, xp).
 
-Creeps (cited): melee 550 hp, ranged 300 hp, siege 935 hp, plus super and mega variants (`creep_super`, `creep_mega`, ...). The super and mega variants exist as units but nothing spawns them yet: barracks-loss upgrades and the time-based wave stat growth are not modelled. Siege creeps are not in the wave yet (every fifth wave in Dota). Magic resistance (siege 80, flagbearer 40) is not modelled. Hull radii are recalled, not read from the dump (UNVERIFIED).
+Creeps (cited): melee 550 hp, ranged 300 hp, siege 935 hp, plus super and mega variants (`creep_super`, `creep_mega`, ...). Still different from Dota: the time-based creep stat and bounty growth (every 7:30; the growth numbers are not in the dump and Liquipedia and Fandom are blocked), extra melee and ranged creeps late in the game, the flagbearer, magic resistance (siege 80, flagbearer 40), which barracks upgrades the siege creep (melee is assumed, UNVERIFIED), and the lane creeps' aggro rules beyond `aggro.rs`. Hull radii are the dump's RingRadius scaled to milli.
 
 ## Towers and bases
 
@@ -58,15 +58,17 @@ A hero holds six items and a stash of six. Buying needs gold, a free slot (overf
 
 ## Neutrals
 
-Thirty-eight Valve neutral types are defined as `neutral_<name>` units with dump stats (health, regen, armor, damage, attack time, range, speed, vision, bounty). Camp compositions are UNVERIFIED: small = kobold taskmaster, tunneler, kobold; medium = alpha wolf and two giant wolves; large = centaur khan and two outrunners; ancient = granite golem and two rock golems. Neutral abilities are not modelled. The map holds 28 camps of three creeps (player -1) at the dump's spawner points, 14 per side, answering attacks through the shared `attacked` behaviour. A camp unit that strays more than 6000 milli from home walks back; a dead one respawns at home after 60 s (UNVERIFIED).
+Thirty-eight Valve neutral types are defined as `neutral_<name>` units with dump stats (health, regen, armor, damage, attack time, range, speed, vision, bounty). Camp compositions are UNVERIFIED: small = kobold taskmaster, tunneler, kobold; medium = alpha wolf and two giant wolves; large = centaur khan and two outrunners; ancient = granite golem and two rock golems. Neutral abilities are not modelled. The map holds 28 camps of three creeps (player -1) at the dump's spawner points, 14 per side, answering attacks through the shared `attacked` behaviour. A camp unit that strays more than 10938 milli (700 Dota units, UNVERIFIED) from home walks back.
+
+Camps refill on every whole minute of the game clock, and only when no living unit stands within 4688 milli (300 Dota units, UNVERIFIED) of a camp unit's home (neutral camps spawn every minute if the camp is empty, Dota wiki; the camp box size is not in the dump). A camp with a survivor is not refilled, so pulling a creep away from its camp and waiting for the minute mark stacks creeps, as in Dota.
 
 ## Roshan
 
-A large neutral boss at the first pit of the dump (2831, -2740 Dota units; cell 207, 206). Health 6000, damage 75 (rate 2.0 s), armor 30, regen 20, speed 270, bounty 245 gold (midpoint of a cited 200-290 range) and 400 xp (cited). Respawns 480 s after death (UNVERIFIED). The killer receives the `aegis` item (cost 300, UNVERIFIED).
+A large neutral boss at the first pit of the dump (2831, -2740 Dota units; cell 207, 206). Health 6000, damage 75 (rate 2.0 s), armor 30, regen 20, speed 270, bounty 245 gold (midpoint of a cited 200-290 range) and 400 xp (cited). Respawns a random 480 to 660 s (8 to 11 minutes, Dota wiki) after death. The killer receives the `aegis` item (cost 300, UNVERIFIED). Magic resistance 55 and his abilities are not modelled; the second pit and the day/night swap are not modelled.
 
 ## Runes
 
-Two bounty runes at the dump's bounty spawners (-996, 4431) and (595, -4660). A living hero within 1500 takes 50 gold and the rune dies; it respawns after 180 s. The pickup range, gold and respawn numbers are UNVERIFIED.
+Two bounty runes at the dump's bounty spawners (-996, 4431) and (595, -4660). A living hero within 1500 takes 50 gold and the rune dies; it returns on the next 3 minute mark of the game clock (Dota wiki). The pickup range and gold are UNVERIFIED (the Dota value scales with game time). Power runes (haste, double damage, ...), Tormentors, lotus pools and outpost capture are not modelled.
 
 ## Denying
 

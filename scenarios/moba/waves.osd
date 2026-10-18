@@ -1,0 +1,40 @@
+# Lane waves, siege waves and the wave upgrade rule for the moba scenario.
+# Waves spawn from six lane_spawner units (air-layer, immune, no weapon), one per lane per side, placed at each side's melee barracks.
+# Spawn p3 bits 30-31 are the lane id of the route the unit follows (1 top, 2 mid, 3 bot); bits 0-29 pack a wave upgrade
+# (rust/crates/sim/src/waves.rs): bits 0-9 upgraded unit index + 1, 10-19 final unit index + 1, 20-24 lane tag filter bit + 1, 25-29 global tag
+# filter bit + 1. A wave unit spawns as its upgraded kind (super creep) once the enemy barracks of its type that mirrors the spawn point is dead,
+# and as its final kind (mega creep) once every enemy barracks is dead. Filter bits: barracks 12, melee_rax 13, ranged_rax 14.
+# Which barracks upgrades the siege creep is UNVERIFIED (melee is assumed).
+# Wave: 3 melee and 1 ranged creep every 30 s (480 ticks). Siege creeps: the first at 5:00 (4800 ticks) and then every 5:00; a second per lane
+# from 30:00 and a third from 60:00 (dotasense.com/guides/siege-creeps, Valve patches 7.06 and 7.41). Each siege ability starts on cooldown
+# (initial_cooldown); its ready trigger casts it, and its own cooldown end recasts it every 4800 ticks.
+ability("creep_wave_top", 480, 0, "none", [effect("spawn", p0=3, p1=0, p2=0, p3=1524657176), effect("spawn", p0=3, p1=700, p2=0, p3=1524657176), effect("spawn", p0=3, p1=1400, p2=0, p3=1524657176), effect("spawn", p0=21, p1=2100, p2=0, p3=1525706777)])
+ability("siege_wave_top", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=1524659226)], initial_cooldown=4800)
+ability("siege_wave_top_30", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=1524659226)], initial_cooldown=28800)
+ability("siege_wave_top_60", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=1524659226)], initial_cooldown=57600)
+behaviour("go_siege_wave_top", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_top")
+behaviour("go_siege_wave_top_30", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_top_30")
+behaviour("go_siege_wave_top_60", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_top_60")
+behaviour("start_creep_wave_top", trigger="spawned", action="use_ability", param=0, ability="creep_wave_top")
+behaviour("timer_creep_wave_top", trigger="ability_ready", action="use_ability", param=0, ability="creep_wave_top")
+ability("siege_wave_mid", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=-1696566246)], initial_cooldown=4800)
+ability("siege_wave_mid_30", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=-1696566246)], initial_cooldown=28800)
+ability("siege_wave_mid_60", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=-1696566246)], initial_cooldown=57600)
+behaviour("go_siege_wave_mid", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_mid")
+behaviour("go_siege_wave_mid_30", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_mid_30")
+behaviour("go_siege_wave_mid_60", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_mid_60")
+ability("creep_wave_bot", 480, 0, "none", [effect("spawn", p0=3, p1=0, p2=0, p3=-622826472), effect("spawn", p0=3, p1=700, p2=0, p3=-622826472), effect("spawn", p0=3, p1=1400, p2=0, p3=-622826472), effect("spawn", p0=21, p1=2100, p2=0, p3=-621776871)])
+ability("siege_wave_bot", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=-622824422)], initial_cooldown=4800)
+ability("siege_wave_bot_30", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=-622824422)], initial_cooldown=28800)
+ability("siege_wave_bot_60", 4800, 0, "none", [effect("spawn", p0=22, p1=0, p2=0, p3=-622824422)], initial_cooldown=57600)
+behaviour("go_siege_wave_bot", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_bot")
+behaviour("go_siege_wave_bot_30", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_bot_30")
+behaviour("go_siege_wave_bot_60", trigger="ability_ready", action="use_ability", param=0, ability="siege_wave_bot_60")
+behaviour("start_creep_wave_bot", trigger="spawned", action="use_ability", param=0, ability="creep_wave_bot")
+behaviour("timer_creep_wave_bot", trigger="ability_ready", action="use_ability", param=0, ability="creep_wave_bot")
+spawn("lane_spawner_top", 0, 64500, 222219)
+spawn("lane_spawner_mid", 0, 90500, 234625)
+spawn("lane_spawner_bot", 0, 96625, 262875)
+spawn("lane_spawner_top", 1, 224406, 77625)
+spawn("lane_spawner_mid", 1, 236969, 103750)
+spawn("lane_spawner_bot", 1, 266500, 110500)

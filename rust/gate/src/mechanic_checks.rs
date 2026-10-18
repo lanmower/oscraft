@@ -234,7 +234,17 @@ fn moba_camp_unit() -> Result<(Sim, usize), String> {
 pub fn camp_respawn(_image: &[u8]) -> Result<(), String> {
     let (mut s, u) = moba_camp_unit()?;
     let home = s.position_fixed(u);
-    s.hurt(u, fixed::from_int(10000));
+    let reach = fixed::from_milli(sim::CAMP_CLEAR_MILLI) as i64;
+    let camp: Vec<usize> = (0..MAX_UNITS)
+        .filter(|&k| {
+            let (x, y) = s.position_fixed(k);
+            let (dx, dy) = ((x - home.0) as i64, (y - home.1) as i64);
+            s.alive(k) && s.player(k) == 0xFF && dx * dx + dy * dy <= reach * reach && s.hp(k) < fixed::from_int(5000)
+        })
+        .collect();
+    for &k in &camp {
+        s.hurt(k, fixed::from_int(10000));
+    }
     if s.alive(u) {
         return Err(format!("camp unit {u} survived a lethal hit"));
     }

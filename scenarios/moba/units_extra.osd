@@ -4,7 +4,7 @@
 # Every other value below is UNVERIFIED unless its own comment cites a source.
 # Bounties from SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b game/dota/pak01_dir/scripts/npc/npc_units.txt. Creep: BountyGoldMin 34 / Max 39 -> 36, BountyXP 57. Tower: no bounty keys in npc_dota_badguys_tower1_mid, so gold and xp are 0. Roshan: BountyGoldMin 200 / Max 290 -> 245, BountyXP 400. Gold ranges are reduced to their midpoint because the sim takes one value.
 unit_extra("creep", bounty=36, xp_bounty=57, deny_xp_pct=50, assist_radius_milli=23438)
-unit_extra("tower", bounty=0, xp_bounty=0, deny_xp_pct=0)  # deny_xp_pct 0 is a placeholder
+unit_extra("tower", bounty=0, xp_bounty=0, deny_xp_pct=0)  # no bounty keys in the dump
 unit_extra("base", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("objective", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("tender", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
@@ -21,9 +21,9 @@ unit_extra("tidecaller", player_controlled=True, deny_xp_pct=0)
 unit_extra("thornwarden", player_controlled=True, deny_xp_pct=0)
 # Roshan bounty: 245 gold (midpoint of 200-290) and 400 xp, source as above. assist_radius_milli UNVERIFIED.
 unit_extra("roshan", bounty=245, xp_bounty=400, assist_radius_milli=23438)
-# Wards: bounty 100 gold and 100 xp from npc_dota_observer_wards (sentry copies it, UNVERIFIED). Sentry detector radius 5250 milli: item_ward_sentry true_sight_range 1050 x5 (scale UNVERIFIED).
+# Wards: bounty 100 gold and 100 xp from npc_dota_observer_wards (sentry copies it, UNVERIFIED). Sentry detector radius 1050 x 15.625 = 16406 milli (item_ward_sentry true_sight_range).
 unit_extra("observer_ward", bounty=100, xp_bounty=100, deny_xp_pct=0)
-unit_extra("sentry_ward", bounty=100, xp_bounty=100, deny_xp_pct=0, detector_radius=5250)
+unit_extra("sentry_ward", bounty=100, xp_bounty=100, deny_xp_pct=0, detector_radius=16406)
 # Courier bounty 35 gold: npc_dota_courier BountyGoldMin/Max.
 unit_extra("courier", bounty=35, xp_bounty=0, deny_xp_pct=0)
 # Bounties are the midpoint of BountyGoldMin/Max and BountyXP from npc_units.txt @282fad29; assist radius 1500 Dota units = 23438 milli. Structures pay no bounty in the dump (Dota pays tower and barracks gold in code: not modelled).

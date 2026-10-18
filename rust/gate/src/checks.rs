@@ -29,6 +29,9 @@ mod determinism_checks;
 #[path = "core_formula_checks.rs"]
 mod core_formula_checks;
 
+#[path = "unit_checks.rs"]
+mod unit_checks;
+
 #[path = "hero_checks.rs"]
 mod hero_checks;
 
@@ -69,6 +72,11 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("moba-idle-settle", mechanic_checks::moba_idle_settle),
     ("moba-sync", mechanic_checks::moba_sync),
     ("moba-objective", mechanic_checks::moba_objective),
+    ("moba-wave-composition", unit_checks::moba_wave_composition),
+    ("moba-siege-timing", unit_checks::moba_siege_timing),
+    ("moba-wave-upgrade", unit_checks::moba_wave_upgrade),
+    ("camp-roshan-window", unit_checks::camp_roshan_window),
+    ("camp-minute-refill", unit_checks::camp_minute_refill),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP
