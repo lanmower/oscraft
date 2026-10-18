@@ -457,6 +457,10 @@ impl Catalog {
     pub fn unit_index(&self, name: &str) -> Option<usize> {
         self.units.iter().position(|u| self.name(u.name) == name)
     }
+
+    pub fn item_index(&self, name: &str) -> Option<usize> {
+        self.items.iter().position(|i| self.name(i.name) == name)
+    }
 }
 
 #[derive(Debug)]

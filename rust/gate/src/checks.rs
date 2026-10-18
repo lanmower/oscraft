@@ -26,11 +26,14 @@ mod mechanic_checks;
 #[path = "determinism_checks.rs"]
 mod determinism_checks;
 
+#[path = "core_formula_checks.rs"]
+mod core_formula_checks;
+
 #[path = "hero_checks.rs"]
 mod hero_checks;
 
-#[path = "core_formula_checks.rs"]
-mod core_formula_checks;
+#[path = "item_checks.rs"]
+mod item_checks;
 
 pub const CHECKS: &[(&str, Check)] = &[
     ("determinism-replay-hash", determinism_checks::moba_replay_hash),
@@ -55,6 +58,11 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("hero-axe-growth", hero_checks::hero_axe_growth),
     ("hero-universal-damage", hero_checks::hero_universal_damage),
     ("hero-roster", hero_checks::hero_roster),
+    ("item-catalog", item_checks::item_catalog),
+    ("item-recipe-buy", item_checks::item_recipe_buy),
+    ("item-shop-rules", item_checks::item_shop_rules),
+    ("item-stack-consume", item_checks::item_stack_consume),
+    ("item-slots", item_checks::item_slots),
     ("moba-match-end", mechanic_checks::moba_match_end),
     ("moba-creeps", mechanic_checks::moba_creeps),
     ("moba-lane", mechanic_checks::moba_lane),

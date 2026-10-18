@@ -1,4 +1,4 @@
-// Hero bar for the selected local hero: portrait with health and mana, six inventory slots and a six-slot
+// Hero bar for the selected local hero: portrait with health and mana, ten inventory slots (six main, three backpack, one neutral) and a nine-slot
 // stash. Item names come from Game.item_catalog_json, slots from Game.inventory_json. Click an inventory slot
 // to sell it, click a stash slot to move it into the inventory (both need a shop in reach). Mana shows the
 // hero's max pool because the sim exposes no current mana; health tracks the highest value seen as its maximum.
@@ -10,7 +10,7 @@ const STYLE = `
 #ui-inv .bar{height:9px;background:#222;margin-top:2px}
 #ui-inv .bar i{display:block;height:100%}
 #ui-inv .hp i{background:#4caf50}#ui-inv .mp i{background:#3d7bff}
-#ui-inv .grid{display:grid;grid-template-columns:repeat(6,44px);gap:3px}
+#ui-inv .grid{display:grid;grid-template-columns:repeat(5,44px);gap:3px}
 #ui-inv .cell{height:36px;border:1px solid #555;background:#1b1f26;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;font-size:10px;cursor:pointer}
 #ui-inv .cell.stash{background:#161616;border-style:dashed}
 #ui-inv .label{color:#aaa;margin:0 0 2px}
@@ -60,13 +60,13 @@ export function createInventory({ game, selected, localPlayer }) {
   const grid = el("div", "grid");
   const stashGrid = el("div", "grid");
   invWrap.append(el("div", "label", "inventory"), grid, el("div", "label", "stash"), stashGrid);
-  const cells = Array.from({ length: 6 }, (_, s) => {
+  const cells = Array.from({ length: 10 }, (_, s) => {
     const c = el("div", "cell");
     c.onclick = () => game.sell(selected(), s);
     grid.appendChild(c);
     return c;
   });
-  const stashCells = Array.from({ length: 6 }, (_, s) => {
+  const stashCells = Array.from({ length: 9 }, (_, s) => {
     const c = el("div", "cell stash");
     c.onclick = () => game.unstash(selected(), s);
     stashGrid.appendChild(c);

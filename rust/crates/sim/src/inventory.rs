@@ -303,6 +303,11 @@ impl Sim {
         self.touch(i);
     }
 
+    /// The sum of one item stat (a name of `ITEM_STATS`) over the active slots of unit `unit`; 0 for an unknown name.
+    pub fn item_bonus(&self, unit: usize, stat: &str) -> i32 {
+        ITEM_STATS.iter().position(|&n| n == stat).map_or(0, |k| self.item_totals(unit)[k])
+    }
+
     /// Whole attribute points the items of unit `i` add: strength, agility, intelligence.
     pub(crate) fn item_attributes(&self, i: usize) -> [i32; 3] {
         let t = self.item_totals(i);

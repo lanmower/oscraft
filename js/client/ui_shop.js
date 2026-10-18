@@ -28,10 +28,17 @@ function el(tag, className, text) {
 }
 
 export function itemStats(item) {
-  return [["armor", item.armor], ["damage", item.damage], ["health", item.health]]
+  return Object.entries(item.stats ?? { armor: item.armor, damage: item.damage, health: item.health })
     .filter(([, v]) => v)
-    .map(([k, v]) => `+${v} ${k}`)
+    .map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${k}`)
     .join(" ");
+}
+
+export const SHOP_NAMES = ["home", "side", "secret"];
+
+// Shop kinds that stock the item, from the catalog's shop bit mask.
+export function shopText(item) {
+  return SHOP_NAMES.filter((_, bit) => item.shops & (1 << bit)).join("/");
 }
 
 export function recipeText(item, catalog) {
@@ -47,10 +54,16 @@ export function createShop({ game, selected, localPlayer }) {
   const goldLine = el("h4");
   const msg = el("div", "msg");
   root.append(goldLine, msg);
+  const filter = el("input");
+  filter.placeholder = "filter";
+  root.insertBefore(filter, msg);
+  const rows = [];
   const buttons = catalog.map((item) => {
     const row = el("div", "row");
+    row.hidden = !item.shops;
+    rows.push(row);
     const info = el("div");
-    info.append(el("div", "", `${item.name}  ${item.cost}g`), el("div", "stats", [itemStats(item), recipeText(item, catalog)].filter(Boolean).join("  ")));
+    info.append(el("div", "", `${item.name}  ${item.cost}g  [${shopText(item)}]`), el("div", "stats", [itemStats(item), recipeText(item, catalog)].filter(Boolean).join("  ")));
     const buy = el("button", "", "Buy");
     buy.onclick = () => {
       const id = selected();
@@ -60,6 +73,10 @@ export function createShop({ game, selected, localPlayer }) {
     root.appendChild(row);
     return buy;
   });
+  filter.oninput = () => {
+    const needle = filter.value.trim().toLowerCase();
+    catalog.forEach((item, i) => { rows[i].hidden = !item.shops || (needle !== "" && !item.name.includes(needle)); });
+  };
   document.body.appendChild(root);
   window.addEventListener("keydown", (e) => {
     if (e.key === "b" || e.key === "B") root.hidden = !root.hidden;
@@ -70,7 +87,7 @@ export function createShop({ game, selected, localPlayer }) {
     const gold = game.gold(localPlayer());
     goldLine.textContent = `Shop  gold ${gold}`;
     const has = selected() >= 0;
-    catalog.forEach((item, i) => { buttons[i].disabled = !has || gold < item.cost && !item.components.length; });
+    catalog.forEach((item, i) => { buttons[i].disabled = !has || gold < item.cost && !item.components.length || !item.shops; });
   }
 
   return { update, root };
