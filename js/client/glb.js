@@ -105,3 +105,49 @@ export function parseGlb(buffer) {
     baseColorTexture: readBaseColorTexture(gltf, bin, primitive),
   };
 }
+
+// Reads an accessor as float32 values, dividing normalized integer components into [-1, 1] or [0, 1].
+function readFloats(gltf, bin, index, expectedType) {
+  const values = readAccessor(gltf, bin, index, expectedType);
+  const accessor = gltf.accessors[index];
+  const divisor = accessor.normalized ? NORMALIZE_DIVISOR[accessor.componentType] : undefined;
+  if (!divisor) return Float32Array.from(values);
+  const out = new Float32Array(values.length);
+  for (let i = 0; i < values.length; i++) out[i] = Math.max(values[i] / divisor, -1);
+  return out;
+}
+
+// Returns { clips, skins }. Each clip is { name, duration, channels } where a channel is
+// { node, path: 'translation'|'rotation'|'scale', interpolation, times, values, width }; values hold
+// width floats per key, or three per key (in-tangent, value, out-tangent) for CUBICSPLINE. Weight
+// channels are skipped. Each skin is { joints, inverseBindMatrices, skeleton }.
+export function parseGlbAnimations(buffer) {
+  const { json: gltf, bin } = readChunks(buffer);
+  if (!bin) throw new Error('glb: no BIN chunk');
+  const clips = (gltf.animations ?? []).map((animation) => {
+    const samplers = animation.samplers ?? [];
+    const channels = [];
+    let duration = 0;
+    for (const channel of animation.channels ?? []) {
+      const path = channel.target?.path;
+      const type = PATH_TYPE[path];
+      if (channel.target?.node === undefined || !type) continue;
+      const sampler = samplers[channel.sampler];
+      const times = readFloats(gltf, bin, sampler.input, 'SCALAR');
+      const values = readFloats(gltf, bin, sampler.output, type);
+      const interpolation = sampler.interpolation ?? 'LINEAR';
+      const width = COMPONENT_COUNTS[type];
+      duration = Math.max(duration, times[times.length - 1] ?? 0);
+      channels.push({ node: channel.target.node, path, interpolation, times, values, width });
+    }
+    return { name: animation.name ?? '', duration, channels };
+  });
+  const skins = (gltf.skins ?? []).map((skin) => ({
+    joints: Uint32Array.from(skin.joints ?? []),
+    inverseBindMatrices: skin.inverseBindMatrices === undefined
+      ? null
+      : readFloats(gltf, bin, skin.inverseBindMatrices, 'MAT4'),
+    skeleton: skin.skeleton ?? null,
+  }));
+  return { clips, skins };
+}
