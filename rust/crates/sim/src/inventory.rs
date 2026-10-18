@@ -27,7 +27,7 @@ pub(crate) const INV_SLOTS: usize = NEUTRAL_SLOT + 1;
 pub(crate) const STASH_SLOTS: usize = NEUTRAL_SLOT;
 
 pub(crate) const ITEM_COMPONENTS: usize = 6;
-pub(crate) const ITEM_STAT_COUNT: usize = 36;
+pub(crate) const ITEM_STAT_COUNT: usize = 38;
 pub(crate) const ITEM_FLAG_CONSUMABLE: u16 = 1;
 pub(crate) const ITEM_FLAG_NEUTRAL: u16 = 2;
 pub(crate) const ITEM_FLAG_NO_BUY: u16 = 4;
@@ -72,9 +72,13 @@ pub(crate) const STAT_BASH_CHANCE: usize = 28;
 pub(crate) const STAT_BASH_DURATION: usize = 29;
 pub(crate) const STAT_SPEED_PCT: usize = 30;
 pub(crate) const STAT_NIGHT_VISION: usize = 35;
+pub(crate) const STAT_SCEPTER: usize = 36;
+pub(crate) const STAT_SHARD: usize = 37;
 
 /// Stats that do not add up across items: a unit takes the largest value any active item gives.
-const BEST_ONLY: [usize; 9] = [
+const BEST_ONLY: [usize; 11] = [
+    STAT_SCEPTER,
+    STAT_SHARD,
     STAT_CRIT_CHANCE,
     STAT_CRIT_MULTIPLIER,
     STAT_CLEAVE,
@@ -93,7 +97,7 @@ pub const ITEM_STATS: [&str; ITEM_STAT_COUNT] = [
     "cast_range", "attack_range", "status_resist", "cooldown_reduction", "gold_per_min", "xp_per_min",
     "crit_chance", "crit_multiplier", "cleave", "cleave_distance", "cleave_start_width", "cleave_end_width",
     "bash_chance", "bash_duration", "speed_pct", "slow_resist", "hp_regen_amp", "mana_regen_amp",
-    "mana_cost_reduction", "night_vision",
+    "mana_cost_reduction", "night_vision", "scepter", "shard",
 ];
 
 /// Sums the stat bonuses of a set of item kinds.
@@ -297,6 +301,7 @@ impl Sim {
         let out = edit(self);
         let after = self.item_totals(unit);
         self.apply_item_delta(unit, &before, &after, hero);
+        self.sync_upgrades(unit, &before, &after);
         if let (Some(kept), Some(old)) = (kept, old) {
             self.apply_hero_stats(unit);
             let new = self.derived_stats(unit);
@@ -310,6 +315,15 @@ impl Sim {
             self.energy[unit] = (kept.energy + new.energy - old.energy).clamp(0, mana_max);
         }
         out
+    }
+
+    /// Carrying Aghanim's Scepter or Shard in an active slot gives the unit that upgrade; putting it away takes it back.
+    fn sync_upgrades(&mut self, i: usize, before: &ItemTotals, after: &ItemTotals) {
+        for (stat, shard) in [(STAT_SCEPTER, false), (STAT_SHARD, true)] {
+            if (before[stat] > 0) != (after[stat] > 0) {
+                self.grant_upgrade(i, shard, after[stat] > 0);
+            }
+        }
     }
 
     fn derived_stats(&self, i: usize) -> Derived {
@@ -382,6 +396,7 @@ impl Sim {
         let hero = self.is_hero(i);
         let totals = self.item_totals(i);
         self.apply_item_delta(i, &[0; ITEM_STAT_COUNT], &totals, hero);
+        self.sync_upgrades(i, &[0; ITEM_STAT_COUNT], &totals);
     }
 
     /// A hero that dies holding the Aegis comes back where it fell after `REINCARNATE_S` seconds, with full

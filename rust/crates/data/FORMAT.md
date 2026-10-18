@@ -50,7 +50,7 @@ Sections appear in this order, and the reader requires all seventeen tags:
 | `DMGF` | 8           | damage factor records                        |
 | `DODA` | 20          | doodad records                               |
 | `GRID` | 1           | byte length                                  |
-| `ITEM` | 32          | item records                                 |
+| `ITEM` | 192         | item records                                 |
 | `SKIL` | 72          | one per ability; count = ability count       |
 
 Section bodies follow the table back to back. A section body occupies
@@ -121,6 +121,9 @@ Effect parameters by kind:
 | 28   | `mana`             | amount, `>= 0`                                                     | mode: `0 give`, `1 burn`, `2 drain to the caster` | –                | –                                |
 | 29   | `if_kill`          | number of effects that follow and run only if the last damage killed its receiver, `1..=16` | – | –               | –                                |
 | 30   | `attack`           | percent of the caster's weapon damage, `>= 0`                      | –                                      | –                           | –                                |
+| 31   | `teleport`         | landing distance from the receiver, milli-units, `>= 0`            | –                                      | –                           | –                                |
+| 32   | `refresh`          | bit set `1..=3`: 1 ability cooldowns, 2 item cooldowns            | –                                      | –                           | –                                |
+| 33   | `grant_upgrade`    | `0` Aghanim's Scepter, `1` Aghanim's Shard, kept for good          | –                                      | –                           | –                                |
 
 ### Receiver
 
@@ -287,27 +290,48 @@ It uses lowercase letters, digits, hyphens and underscores.
 Transport capacity is spent in size units: a small unit costs 1, a medium unit 2,
 a large unit 4 (the sim applies these costs; the table is part of the registry).
 
-### ITEM (32 bytes per record, in `item()` declaration order; the item id is the record index)
+### ITEM (192 bytes per record, in `item()` declaration order; the item id is the record index)
 | offset | size | field                                                              |
 |--------|------|--------------------------------------------------------------------|
 | 0      | 4    | name offset into `STRS`                                            |
 | 4      | 2    | name length                                                        |
-| 6      | 2    | reserved, write 0                                                  |
-| 8      | 4    | cost in gold, `>= 0`                                               |
-| 12     | 4    | armor bonus, `>= 0`                                                |
-| 16     | 4    | damage bonus, `>= 0`                                               |
-| 20     | 4    | health bonus, `>= 0`                                               |
-| 24     | 2    | active ability index into `ABIL`, or `0xFFFF` for none             |
-| 26     | 2    | first recipe component (ITEM index), or `0xFFFF` for none          |
-| 28     | 2    | second recipe component (ITEM index), or `0xFFFF` for none         |
-| 30     | 2    | reserved, write 0                                                  |
+| 6      | 2    | flags: 1 consumable, 2 neutral, 4 not for sale, 8 cannot be sold, 16 enhancement |
+| 8      | 4    | cost in gold, `>= 0`: the full price, recipe scroll included       |
+| 12     | 2    | active or passive ability index into `ABIL`, or `0xFFFF` for none  |
+| 14     | 1    | neutral tier `0..=5` (0 not a neutral drop)                        |
+| 15     | 1    | shops that sell it, bit 0 home, bit 1 side, bit 2 secret (0 sells nowhere) |
+| 16     | 12   | six recipe components (ITEM index, u16 each), `0xFFFF` for none    |
+| 28     | 2    | charges one purchase grants (0 means one item)                     |
+| 30     | 2    | most charges one slot stacks (0 means not stackable)               |
+| 32     | 1    | stock maximum (0 means unlimited stock)                            |
+| 33     | 1    | stock at the start, `<=` the maximum                               |
+| 34     | 2    | seconds to restock one unit                                        |
+| 36     | 2    | seconds before the first restock (0 means the restock time)        |
+| 38     | 2    | reserved, write 0                                                  |
+| 40     | 152  | 38 stat bonuses, i32 each, in the order of `ITEM_STATS`            |
 
-The bonuses are added to the buyer's instance stats when the item is bought. The
-active ability is cast from the item's inventory slot with its own cooldown.
-A recipe component must be declared before the item. The item's cost must be at least
-the sum of its components' costs (the cost rule). Buying a recipe consumes its components
-from the buyer's inventory, removes their bonuses, and charges the cost minus the components' cost.
-Selling returns half the cost.
+Stats, in order: `armor` (hundredths), `damage`, `health`, `mana`, `strength`, `agility`, `intelligence`,
+`move_speed` (milli-units per tick), `attack_speed`, `health_regen` and `mana_regen` (hundredths per
+second), `magic_resist`, `evasion`, `spell_amp`, `lifesteal`, `spell_lifesteal` (percents),
+`cast_range`, `attack_range` (milli-units), `status_resist`, `cooldown_reduction` (percents),
+`gold_per_min`, `xp_per_min`, `crit_chance` (percent), `crit_multiplier` (percent of damage),
+`cleave` (percent), `cleave_distance`, `cleave_start_width`, `cleave_end_width` (milli-units),
+`bash_chance` (percent), `bash_duration` (ticks), `speed_pct`, `slow_resist`, `hp_regen_amp`,
+`mana_regen_amp`, `mana_cost_reduction` (percents), `night_vision` (milli-units), `scepter` and `shard` (1 gives the hero
+that upgrade while the item is carried). Negative values are legal.
+
+A unit has ten slots: six main, three backpack and one neutral. The stat bonuses of the items in the main
+slots and the neutral slot apply to the unit, and so do their abilities (an active is cast with its own
+cooldown; an ability with the aura or proc flags runs by itself). Armor, damage, speed, attack speed and the
+other combat stats are stat modifiers of the unit; strength, agility and intelligence feed the hero attributes.
+Stats that do not add up (crit, cleave, bash, night vision) take the largest value any active item gives. A
+neutral item fits only the neutral slot and the backpack.
+
+A recipe component must be declared before the item. The item's cost must be at least the sum of its
+components' costs (the cost rule). Buying an item consumes the components held in the inventory or stash (the
+parts of a component not held count too) and charges the cost minus theirs. A shop sells an item only if
+its kind is in the item's shop mask; the item is also refused when its team stock is empty. A purchase of a
+stackable item joins a stack of its kind. Selling returns half the cost, in proportion to the charges held.
 
 ### SKIL (72 bytes per record, one per ability in `ABIL` order)
 An ability with a skill tree learns ranks with skill points. Abilities without one
@@ -546,7 +570,7 @@ without a version bump.
 - Resource kind (`UNIT.resource kind`): `0 none`, `1 resource_a`, `2 gas`
 - Damage type (`UEXT.weapon damage type`, `DMGF.damage type`): `0 normal`, `1 concussive`, `2 explosive`
 - Size category (`UEXT.size category`, `DMGF.size category`): `0 small`, `1 medium`, `2 large`
-- Doodad kinds (`DODA.kind`): `0 rock`, `1 tree`, `2 crystal`, `3 debris`, `4 base`, `5 shop`, `6 fountain`, `7 lane`, `8 camp`. Codes above `8` are rejected.
+- Doodad kinds (`DODA.kind`): `0 rock`, `1 tree`, `2 crystal`, `3 debris`, `4 base`, `5 shop` (home), `6 fountain`, `7 lane`, `8 camp`, `9 side_shop`, `10 secret_shop`. Codes above `10` are rejected.
 - Tile ids (`GRID` tile array): `0..=255`, author-defined; the sim maps each id to terrain and art.
 - Cell walkability bits (`GRID` cell byte): `bit 0 = blocked` (value `1`),
   `bit 1 = cliff` (value `2`). A cell with neither bit is walkable. The bits are

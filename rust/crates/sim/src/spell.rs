@@ -238,6 +238,7 @@ pub(crate) fn spell_effect_error(e: &Effect) -> Option<&'static str> {
         K_ATTACK => e.p0 >= 0,
         crate::teleport::K_TELEPORT => e.p0 >= 0,
         crate::refresh::K_REFRESH => (1..=3).contains(&e.p0),
+        crate::grant::K_GRANT => (0..=1).contains(&e.p0),
         _ => true,
     };
     (!ok).then_some("spell effect parameters")
@@ -722,6 +723,7 @@ impl Sim {
             }
             crate::teleport::K_TELEPORT => self.teleport_effect(caster, eff, recv),
             crate::refresh::K_REFRESH => self.refresh_effect(caster, eff),
+            crate::grant::K_GRANT => self.grant_effect(caster, eff, recv),
             K_ATTACK => {
                 if let Some(j) = recv.filter(|&j| j != caster && self.hostile(self.player[caster], self.player[j])) {
                     self.strike_pct(caster, j, eff.p0);

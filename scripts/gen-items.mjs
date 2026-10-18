@@ -86,7 +86,7 @@ const values = (it) => it.AbilityValues ?? {};
 // Stat keys of AbilityValues by item stat. `x` scales the value; `all` adds the value to the three attributes.
 const STAT_KEYS = [
   ["armor", ["bonus_armor", "armor_bonus", "bonus_physical_armor", "armor"], hundredths],
-  ["damage", ["bonus_damage", "damage_bonus", "bonus_attack_damage", "bonus_damage_melee"]],
+  ["damage", ["bonus_damage", "bonus_attack_damage", "bonus_damage_melee"]],
   ["health", ["bonus_health", "bonus_hp", "health_bonus", "bonus_max_health"]],
   ["mana", ["bonus_mana", "mana_bonus", "bonus_max_mana"]],
   ["strength", ["bonus_strength", "bonus_str"]],
@@ -121,16 +121,22 @@ const STAT_KEYS = [
   ["mana_regen_amp", ["mana_regen_multiplier"]],
   ["mana_cost_reduction", ["manacost_reduction"]],
   ["night_vision", ["bonus_night_vision"], unitsToMilli],
+  ["scepter", []],
+  ["shard", []],
 ];
+// Items that hold an upgrade of the hero while carried.
+const HELD_UPGRADES = { ultimate_scepter: { scepter: 1 } };
+// Items spent when used.
+const SPENT_ON_USE = new Set(["aghanims_shard", "ultimate_scepter_2"]);
 const ALL_STATS_KEYS = ["bonus_all_stats", "bonus_stats", "all_stats"];
 // Neutral items name the same stats without the bonus_ prefix.
 const NEUTRAL_ALIASES = {
   mp_regen: "mana_regen", magic_resist: "magic_resist", attack_lifesteal: "lifesteal", all_stats: "all",
 };
 
-function statsOf(it, lvl = 1, isNeutral = false) {
+function statsOf(it, lvl = 1, isNeutral = false, name = "") {
   const av = values(it);
-  const out = {};
+  const out = { ...(HELD_UPGRADES[name] ?? {}) };
   const add = (stat, v) => {
     if (v) out[stat] = (out[stat] ?? 0) + v;
   };
@@ -226,7 +232,7 @@ const cost = (c) => Math.round(num(c.it.ItemCost));
 // Active abilities. Each entry builds the ability from the item's own AbilityValues, cooldown and mana cost
 // out of the engine's effect kinds. Codes are the engine's (rust/crates/data/src/format.rs).
 const STAT = { damage: 0, armor: 1, health: 2, speed: 3, range: 4, evasion: 5, lifesteal: 10, magic_resist: 11, attack_speed: 12, mana_regen: 13, health_regen: 14, speed_pct: 19, status_resist: 21 };
-const STATUS = { stun: 0, silence: 2, root: 3, invisibility: 4, hex: 6, disarm: 7, spell_immunity: 8, invulnerable: 9, mute: 11 };
+const STATUS = { physical_immunity: 12, stun: 0, silence: 2, root: 3, invisibility: 4, hex: 6, disarm: 7, spell_immunity: 8, invulnerable: 9, mute: 11 };
 const TEAM = { enemies: 0, friends: 1, others: 2, all: 3 };
 const MAGICAL = 2;
 const Q16 = 65536;
@@ -256,6 +262,13 @@ const ACTIVES = {
     filters: ["army"],
     effects: [["create_healer", { p0: Math.round(v(it, "health_regen")) * Q16, p1: 0, p2: TPS, p3: ticks(v(it, "buff_duration")) }]],
   }),
+  aghanims_shard: () => ({ target: "none", cooldown: 0, mana: 0, effects: [["grant_upgrade", { p0: 1 }]] }),
+  ultimate_scepter_2: () => ({ target: "none", cooldown: 0, mana: 0, effects: [["grant_upgrade", { p0: 0 }]] }),
+  manta: (it) => ({
+    target: "none",
+    effects: [["illusion", { p0: Math.round(v(it, "images_count")), p1: ticks(v(it, "illusion_duration")), p2: Math.round(v(it, "tooltip_damage_outgoing_melee")), p3: Math.round(v(it, "tooltip_damage_incoming_total_pct")) }]],
+  }),
+  ghost: (it) => ({ target: "none", effects: [status("physical_immunity", v(it, "duration")), status("disarm", v(it, "duration"))] }),
   faerie_fire: (it) => ({ target: "none", effects: [heal(v(it, "hp_restore"))] }),
   clarity: (it) => ({ target: "unit", filters: ["army"], effects: [timed("mana_regen", v(it, "mana_regen") * 100, v(it, "buff_duration"))] }),
   enchanted_mango: (it) => ({ target: "none", effects: [mana(v(it, "replenish_amount"))] }),
@@ -418,14 +431,14 @@ for (const c of ordered) {
   const quality = it.ItemQuality ?? "";
   const buyable = it.ItemPurchasable !== "0" && !c.tier && !c.enhancementLevel;
   const stats = c.enhancementLevel
-    ? statsOf(it, c.enhancementLevel, true)
-    : statsOf(it, 1, c.tier > 0);
+    ? statsOf(it, c.enhancementLevel, true, c.name)
+    : statsOf(it, 1, c.tier > 0, c.name);
   const kws = [];
   if (Object.keys(stats).length) kws.push(`stats=${JSON.stringify(stats)}`);
   const ability = ACTIVES[c.name] || PASSIVES[c.name] ? "item_" + c.name : FIXED_ABILITIES[c.name];
   if (ability) kws.push(`ability=${q(ability)}`);
   if (comps.length) kws.push(`components=${JSON.stringify(comps)}`);
-  const consumable = quality.includes("consumable") && it.ItemPermanent !== "1";
+  const consumable = (quality.includes("consumable") && it.ItemPermanent !== "1") || SPENT_ON_USE.has(c.name);
   if (consumable) kws.push("consumable=True");
   if (c.tier) kws.push(`neutral_tier=${c.tier}`);
   if (c.enhancementLevel) kws.push("enhancement=True");

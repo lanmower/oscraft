@@ -355,3 +355,50 @@ pub fn item_town_portal(_image: &[u8]) -> Result<(), String> {
     }
     Ok(())
 }
+
+/// Aghanim's Scepter gives the hero its scepter upgrade while carried; the Shard is spent on use and keeps
+/// the shard upgrade; a Refresher Orb resets the cooldowns of the hero's items except its own.
+pub fn item_aghanim_and_refresh(_image: &[u8]) -> Result<(), String> {
+    let mut s = moba()?;
+    let h = shopper(&mut s, 20000)?;
+    let (scepter, shard, blink, refresher) = (item(&s, "ultimate_scepter")?, item(&s, "aghanims_shard")?, item(&s, "blink")?, item(&s, "refresher")?);
+    if !s.buy_item(h, scepter) {
+        return Err(format!("scepter refused: {}", s.stats.last_refusal.name()));
+    }
+    want("scepter upgrade bit", (s.upgrade_bits(h) & 1) as i64, 1)?;
+    let slot = (0..s.inventory_slots()).find(|&k| s.inventory_slot(h, k).0 == sim_kind(scepter)).ok_or("scepter not held")?;
+    if !s.sell_item(h, slot) {
+        return Err("scepter not sold".into());
+    }
+    want("scepter upgrade bit after selling", (s.upgrade_bits(h) & 1) as i64, 0)?;
+    if !s.inventory_add(h, sim_kind(shard), 1) {
+        return Err("shard not added".into());
+    }
+    let slot = (0..s.inventory_slots()).find(|&k| s.inventory_slot(h, k).0 == sim_kind(shard)).ok_or("shard not held")?;
+    if !s.use_item(h, slot, -1, 0, 0) {
+        return Err(format!("shard use refused: {}", s.stats.last_refusal.name()));
+    }
+    want("shard upgrade bit", ((s.upgrade_bits(h) >> 1) & 1) as i64, 1)?;
+    want("shard left", s.inventory_count(h, sim_kind(shard)) as i64, 0)?;
+    if !s.buy_item(h, blink) || !s.buy_item(h, refresher) {
+        return Err(format!("purchases refused: {}", s.stats.last_refusal.name()));
+    }
+    let blink_slot = (0..s.inventory_slots()).find(|&k| s.inventory_slot(h, k).0 == sim_kind(blink)).ok_or("blink not held")?;
+    let refresher_slot = (0..s.inventory_slots()).find(|&k| s.inventory_slot(h, k).0 == sim_kind(refresher)).ok_or("refresher not held")?;
+    let (x, y) = s.position_fixed(h);
+    if !s.use_item(h, blink_slot, -1, x + 5 * fixed::ONE, y) {
+        return Err(format!("blink refused: {}", s.stats.last_refusal.name()));
+    }
+    if s.item_cooldown(h, blink_slot) == 0 {
+        return Err("blink did not start its cooldown".into());
+    }
+    let _ = s.grant_energy(h, 2000);
+    if !s.use_item(h, refresher_slot, -1, 0, 0) {
+        return Err(format!("refresher refused: {}", s.stats.last_refusal.name()));
+    }
+    want("blink cooldown after refresh", s.item_cooldown(h, blink_slot) as i64, 0)?;
+    if s.item_cooldown(h, refresher_slot) == 0 {
+        return Err("the refresher refreshed itself".into());
+    }
+    Ok(())
+}

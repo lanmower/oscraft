@@ -24,7 +24,7 @@ const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 22] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT"];
-const RECORD_SIZES: [usize; 22] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 44, 8, 32, 8, 8, 20, 1, 184, 72, 256, 520];
+const RECORD_SIZES: [usize; 22] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 44, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520];
 const SKILL_RANKS: usize = 4;
 const ULTIMATE_RANKS: u8 = 3;
 const ULTIMATE_GATES: [i32; ULTIMATE_RANKS as usize] = [6, 12, 18];
@@ -36,7 +36,7 @@ const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 
-const EFFECT_KINDS: u16 = 33;
+const EFFECT_KINDS: u16 = 34;
 const EFFECT_STAT: u16 = 16;
 const EFFECT_WARD: u16 = 17;
 const EFFECT_GLYPH: u16 = 18;

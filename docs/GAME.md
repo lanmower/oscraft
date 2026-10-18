@@ -54,7 +54,7 @@ Sources: patch notes from the dota2.com datafeed (7.24 to 7.40) and `npc_heroes`
 
 ## Items and shops
 
-A hero holds six items and a stash of six. Buying needs gold, a free slot (overflow goes to the stash) and standing within 4000 milli of a shop doodad (one beside each base, plus two outer shops). Selling returns half the cost. A recipe names up to two earlier components; buying it consumes them and charges its cost minus theirs. Eleven items: three plain stat items, a healing item, a blink dagger (cost 2250 cited, blink range 5000 UNVERIFIED), a banner with an active, an axe, and three recipes (iron mail, heart ring, battle fury axe), plus the aegis. All stats and all other costs are UNVERIFIED.
+Source: `items.txt` and `neutral_items.txt` of SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b, turned into `scenarios/moba/items.osd` by `scripts/gen-items.mjs` (do not edit the `.osd` by hand). 313 items: every non-obsolete item of the file, with Valve's cost (the full price), the first requirement set of its recipe as components (up to six; the recipe scroll is not an item, its price is the cost less the components), consumable and stack data (`ItemInitialCharges`, `ItemStackable`), shop stock (`ItemStockMax`, `ItemStockInitial`, `ItemStockTime`, `ItemInitialStockTime`) and the neutral tiers, with the neutral items and enhancement levels of `neutral_items.txt`. Every stat key the generator knows (`bonus_*` and the unprefixed forms of the neutral items) becomes an item stat; scale is 15.625 milli per Dota unit and 16 ticks per second.
 
 ## Neutrals
 

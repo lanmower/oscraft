@@ -36,6 +36,7 @@ mod inventory;
 mod shop;
 mod teleport;
 mod refresh;
+mod grant;
 mod xp;
 mod hero;
 mod modapi;

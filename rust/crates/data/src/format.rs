@@ -49,8 +49,9 @@ pub const EFFECT_KINDS: &[&str] = &[
     "attack",
     "teleport",
     "refresh",
+    "grant_upgrade",
 ];
-pub const MAX_EFFECT_KIND: usize = 32;
+pub const MAX_EFFECT_KIND: usize = 33;
 /// The stats an effect of kind "stat" may raise, by the code in its first parameter.
 pub const STAT_NAMES: &[&str] = &[
     "damage", "armor", "health", "speed", "range", "evasion", "crit_chance", "crit_mult", "cleave", "cleave_radius",
@@ -140,7 +141,7 @@ pub const PREQ_RECORD: usize = 8;
 pub const DMGF_RECORD: usize = 8;
 pub const DODA_RECORD: usize = 20;
 pub const GRID_RECORD: usize = 1;
-pub const ITEM_RECORD: usize = 184;
+pub const ITEM_RECORD: usize = 192;
 /// Recipe components one item may name.
 pub const ITEM_COMPONENTS: usize = 6;
 /// Per-item stat bonuses, in record order. Armor, health regeneration and mana regeneration are hundredths,
@@ -152,9 +153,9 @@ pub const ITEM_STATS: &[&str] = &[
     "cast_range", "attack_range", "status_resist", "cooldown_reduction", "gold_per_min", "xp_per_min",
     "crit_chance", "crit_multiplier", "cleave", "cleave_distance", "cleave_start_width", "cleave_end_width",
     "bash_chance", "bash_duration", "speed_pct", "slow_resist", "hp_regen_amp", "mana_regen_amp",
-    "mana_cost_reduction", "night_vision",
+    "mana_cost_reduction", "night_vision", "scepter", "shard",
 ];
-pub const ITEM_STAT_COUNT: usize = 36;
+pub const ITEM_STAT_COUNT: usize = 38;
 pub const ITEM_FLAG_CONSUMABLE: u16 = 1;
 pub const ITEM_FLAG_NEUTRAL: u16 = 2;
 pub const ITEM_FLAG_NO_BUY: u16 = 4;
@@ -266,6 +267,7 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
         "attack" => p0 >= 0,
         "teleport" => p0 >= 0,
         "refresh" => (1..=3).contains(&p0),
+        "grant_upgrade" => (0..=1).contains(&p0),
         "stun" | "silence" | "root" | "invisibility" => p0 >= 1,
         "slow" => p0 >= 1 && (0..=Q16_ONE).contains(&p1),
         _ => true,

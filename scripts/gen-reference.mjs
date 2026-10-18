@@ -93,10 +93,16 @@ L.push("", `## Skill ranks (${Object.keys(skills).length})`, "",
 for (const [n, k] of Object.entries(skills))
   L.push(`| ${n} | ${k.ultimate === "True" ? "yes" : "no"} | ${k.gates} | ${k.damage} | ${k.cooldown} | ${k.energy} |`);
 
+const itemFlags = (c) => ["consumable", "no_buy", "no_sell", "enhancement"].filter((k) => c.kw[k] === "True").join(", ");
 L.push("", `## Items (${by("item").length})`, "",
-  "| Item | Cost | Armor | Damage | Health | Active | Recipe | Status |", "|---|---|---|---|---|---|---|---|");
-for (const c of by("item"))
-  L.push(`| ${unq(c.pos[0])} | ${c.pos[1]} | ${c.kw.armor ?? ""} | ${c.kw.damage ?? ""} | ${c.kw.health ?? ""} | ${unq(c.kw.ability)} | ${c.kw.components ? JSON.parse(c.kw.components).join(" + ") : ""} | ${flag(c)} |`);
+  "Generated from Valve's items.txt by scripts/gen-items.mjs; stats are listed by name (armor, regeneration in hundredths).", "",
+  "| Item | Cost | Stats | Active | Recipe | Shops | Tier | Charges | Stock | Flags |", "|---|---|---|---|---|---|---|---|---|---|");
+for (const c of by("item")) {
+  const stats = c.kw.stats ? Object.entries(JSON.parse(c.kw.stats)).map(([k, v]) => `${k} ${v}`).join(", ") : "";
+  const shops = c.kw.shops ? JSON.parse(c.kw.shops).join("/") : "";
+  const stock = c.kw.stock_max ? `${c.kw.stock_initial}/${c.kw.stock_max} per ${c.kw.stock_time_s} s` : "";
+  L.push(`| ${unq(c.pos[0])} | ${c.pos[1]} | ${stats} | ${unq(c.kw.ability)} | ${c.kw.components ? JSON.parse(c.kw.components).join(" + ") : ""} | ${shops} | ${c.kw.neutral_tier ?? ""} | ${c.kw.charges ?? ""} | ${stock} | ${itemFlags(c)} |`);
+}
 
 L.push("", `## Units (${unitNames.length})`, "",
   "| Unit | Health | Speed | Radius | Damage | Range | Period | Armor | Deny % | Bounty | XP | Status |", "|---|---|---|---|---|---|---|---|---|---|---|---|");
