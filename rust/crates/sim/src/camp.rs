@@ -15,6 +15,10 @@ pub const CAMP_LEASH_MILLI: i32 = 10938;
 /// Radius around a camp unit's home that must hold no living unit for it to respawn, milli-units
 /// (about 300 Dota units). UNVERIFIED: the camp box size is not in the dump.
 pub const CAMP_CLEAR_MILLI: i32 = 4688;
+/// Seconds into the game at which the first regular neutral camps appear (Dota: the first camp set
+/// spawns at 1:00, dotasense.com/guides/jungle citing Valve's Dueling Fates update). Roshan and
+/// runes are present from the start.
+pub const CAMP_FIRST_SPAWN_S: u32 = 60;
 /// Seconds between camp respawn marks: neutral camps refill on every whole minute of the game clock
 /// (Dota wiki, Neutral Creeps).
 pub const CAMP_RESPAWN_S: u32 = 60;
@@ -76,6 +80,19 @@ impl Sim {
         c.is_camp[i] = 1;
         c.home_x[i] = self.pos_x[i];
         c.home_y[i] = self.pos_y[i];
+    }
+
+    /// Takes every placed regular camp unit off the map until the first camp mark, as Dota's camps
+    /// only appear at 1:00. Roshan and runes stay. Call once at load, after the boss and rune kinds are set.
+    pub(crate) fn hold_first_camp_spawn(&mut self) {
+        let first = CAMP_FIRST_SPAWN_S * TICKS_PER_SECOND as u32;
+        for i in 0..self.n {
+            if self.camps.is_camp[i] == 0 || self.respawns_free(i) || !self.remove_unit(i) {
+                continue;
+            }
+            self.camps.waiting[i] = 1;
+            self.camps.respawn_at[i] = first;
+        }
     }
 
     /// Books the respawn timer of camp unit `j` when it dies. Roshan waits longer. A Roshan killed

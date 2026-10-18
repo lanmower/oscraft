@@ -223,9 +223,10 @@ pub fn kill_bounty(_image: &[u8]) -> Result<(), String> {
 fn moba_camp_unit() -> Result<(Sim, usize), String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
-    let s = fresh(&image)?;
+    let mut s = fresh(&image)?;
+    run_ticks(&mut s, sim::CAMP_FIRST_SPAWN_S * sim::TICKS_PER_SECOND as u32 + 1);
     let u = (0..MAX_UNITS)
-        .find(|&u| s.alive(u) && s.player(u) == 0xFF)
+        .find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_")))
         .ok_or("moba image places no live neutral unit")?;
     Ok((s, u))
 }
@@ -239,7 +240,7 @@ pub fn camp_respawn(_image: &[u8]) -> Result<(), String> {
         .filter(|&k| {
             let (x, y) = s.position_fixed(k);
             let (dx, dy) = ((x - home.0) as i64, (y - home.1) as i64);
-            s.alive(k) && s.player(k) == 0xFF && dx * dx + dy * dy <= reach * reach && s.hp(k) < fixed::from_int(5000)
+            s.alive(k) && s.player(k) == 0xFF && dx * dx + dy * dy <= reach * reach && s.kind_name(k).is_some_and(|n| n.starts_with("neutral_"))
         })
         .collect();
     for &k in &camp {

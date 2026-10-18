@@ -47,7 +47,7 @@ mod waves;
 mod route;
 
 pub use arrays::{Sim, Stats};
-pub use camp::{CAMP_CLEAR_MILLI, CAMP_LEASH_MILLI, CAMP_RESPAWN_S, ROSHAN_RESPAWN_MIN_S, ROSHAN_RESPAWN_SPREAD_S, RUNE_GOLD, RUNE_RESPAWN_S};
+pub use camp::{CAMP_FIRST_SPAWN_S, CAMP_CLEAR_MILLI, CAMP_LEASH_MILLI, CAMP_RESPAWN_S, ROSHAN_RESPAWN_MIN_S, ROSHAN_RESPAWN_SPREAD_S, RUNE_GOLD, RUNE_RESPAWN_S};
 pub use loader::{load, load_file, Catalog, Doodad, Effect, LoadError, Trigger};
 pub use modapi::{effect_kind, stat_code, target_code, AbilitySpec, ItemSpec, UnitSpec, UpgradeSpec, MOD_EFFECTS, STAT_NAMES};
 pub use diplomacy::{controller_code, CONTROLLER_COMPUTER, CONTROLLER_HUMAN, CONTROLLER_OPEN, MOD_ALLIANCES, MOD_CONTROLLERS};

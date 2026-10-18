@@ -80,6 +80,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("moba-wave-upgrade", unit_checks::moba_wave_upgrade),
     ("camp-roshan-window", unit_checks::camp_roshan_window),
     ("camp-minute-refill", unit_checks::camp_minute_refill),
+    ("camp-first-spawn", unit_checks::camp_first_spawn),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP

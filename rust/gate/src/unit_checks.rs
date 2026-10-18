@@ -122,14 +122,15 @@ pub fn camp_roshan_window(_image: &[u8]) -> Result<(), String> {
 /// survivor stays as it is (the stacking rule).
 pub fn camp_minute_refill(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&moba_image()?)?;
-    let u = (0..MAX_UNITS).find(|&u| s.alive(u) && s.player(u) == 0xFF && s.hp(u) > fixed::from_int(100)).ok_or("moba image places no neutral camp unit")?;
+    run_ticks(&mut s, sim::CAMP_FIRST_SPAWN_S * sim::TICKS_PER_SECOND as u32 + 1);
+    let u = (0..MAX_UNITS).find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).ok_or("moba image places no neutral camp unit")?;
     let (hx, hy) = s.position_fixed(u);
     let reach = fixed::from_milli(sim::CAMP_CLEAR_MILLI) as i64;
     let mates: Vec<usize> = (0..MAX_UNITS)
         .filter(|&k| {
             let (x, y) = s.position_fixed(k);
             let (dx, dy) = ((x - hx) as i64, (y - hy) as i64);
-            s.alive(k) && s.player(k) == 0xFF && dx * dx + dy * dy <= reach * reach && s.hp(k) < fixed::from_int(5000)
+            s.alive(k) && s.player(k) == 0xFF && dx * dx + dy * dy <= reach * reach && s.kind_name(k).is_some_and(|n| n.starts_with("neutral_"))
         })
         .collect();
     if mates.len() < 2 {
@@ -153,5 +154,27 @@ pub fn camp_minute_refill(_image: &[u8]) -> Result<(), String> {
         return Err("a cleared camp did not refill on the next minute mark".into());
     }
     println!("camp minute refill ok camp_size={} mark_ticks={mark}", mates.len());
+    Ok(())
+}
+
+/// Regular neutral camps are absent until 1:00; Roshan and the bounty runes are present from the start.
+pub fn camp_first_spawn(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&moba_image()?)?;
+    let regular = |s: &Sim| (0..MAX_UNITS).filter(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).count();
+    let boss = (0..MAX_UNITS).filter(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u) == Some("roshan")).count();
+    if regular(&s) != 0 || boss == 0 {
+        return Err(format!("at tick 0 {} camp units live and {boss} bosses, want 0 and at least 1", regular(&s)));
+    }
+    let first = sim::CAMP_FIRST_SPAWN_S * sim::TICKS_PER_SECOND as u32;
+    run_ticks(&mut s, first - 4);
+    if regular(&s) != 0 {
+        return Err("a camp unit lived before 1:00".into());
+    }
+    run_ticks(&mut s, 8);
+    let n = regular(&s);
+    if n == 0 {
+        return Err("no camp unit lived after 1:00".into());
+    }
+    println!("camp first spawn ok at_tick={first} camp_units={n}");
     Ok(())
 }

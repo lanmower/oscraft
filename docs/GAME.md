@@ -60,7 +60,7 @@ A hero holds six items and a stash of six. Buying needs gold, a free slot (overf
 
 Thirty-eight Valve neutral types are defined as `neutral_<name>` units with dump stats (health, regen, armor, damage, attack time, range, speed, vision, bounty). Camp compositions are UNVERIFIED: small = kobold taskmaster, tunneler, kobold; medium = alpha wolf and two giant wolves; large = centaur khan and two outrunners; ancient = granite golem and two rock golems. Neutral abilities are not modelled. The map holds 28 camps of three creeps (player -1) at the dump's spawner points, 14 per side, answering attacks through the shared `attacked` behaviour. A camp unit that strays more than 10938 milli (700 Dota units, UNVERIFIED) from home walks back.
 
-Camps refill on every whole minute of the game clock, and only when no living unit stands within 4688 milli (300 Dota units, UNVERIFIED) of a camp unit's home (neutral camps spawn every minute if the camp is empty, Dota wiki; the camp box size is not in the dump). A camp with a survivor is not refilled, so pulling a creep away from its camp and waiting for the minute mark stacks creeps, as in Dota.
+The first regular camp set appears at 1:00 (CAMP_FIRST_SPAWN_S; Dota's Dueling Fates update); Roshan and the bounty runes are present from the start. Camps then refill on every whole minute of the game clock, and only when no living unit stands within 4688 milli (300 Dota units, UNVERIFIED) of a camp unit's home (neutral camps spawn every minute if the camp is empty, Dota wiki; the camp box size is not in the dump). A camp with a survivor is not refilled, so pulling a creep away from its camp and waiting for the minute mark stacks creeps, as in Dota.
 
 ## Roshan
 
