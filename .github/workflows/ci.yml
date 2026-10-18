@@ -1890,10 +1890,20 @@ jobs:
             tried.push(`${cand.id}@${p.x.toFixed(0)},${p.y.toFixed(0)} selected=${selected}`);
           }
           if (!unit) throw new Error("no player 0 unit was selected by a left click: " + tried.slice(0, 8).join("; ") + " viewport=" + JSON.stringify(viewport));
-          const target = await screenAt(Math.min(29, unit.x + 3), unit.z);
-          await page.mouse.click(target.x, target.y, { button: "right" });
-          await page.waitForSelector("body[data-orders='1']", { timeout: 15000 });
-          const orders = await page.getAttribute("body", "data-orders");
+          // A move needs a ground point under the pointer: the first nearby offset that is on canvas and that the sim accepts.
+          const ordersBefore = Number(await page.getAttribute("body", "data-orders"));
+          let orders = ordersBefore;
+          for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3], [-3, -3], [3, 3]]) {
+            const target = await screenAt(Math.max(0, unit.x + dx), Math.max(0, unit.z + dz));
+            const onCanvas = target.x >= 0 && target.y >= 0 && target.x < viewport.w && target.y < viewport.h
+              && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [target.x, target.y]));
+            if (!onCanvas) continue;
+            await page.mouse.click(target.x, target.y, { button: "right" });
+            await page.waitForTimeout(150);
+            orders = Number(await page.getAttribute("body", "data-orders"));
+            if (orders > ordersBefore) break;
+          }
+          if (!(orders > ordersBefore)) throw new Error("no right click on the map ordered unit " + unit.id + " to move");
           if (errors.length) throw new Error("console errors: " + errors.join("\n"));
           const before = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];
           await page.keyboard.down("ArrowRight");
