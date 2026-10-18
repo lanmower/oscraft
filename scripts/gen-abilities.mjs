@@ -166,7 +166,7 @@ function emitAbility(name, def, spec, talents) {
   const none = { ranks: [0], mods: [] };
   const cd = spec.helper ? none : headerField(def, "AbilityCooldown", "time", ctx) ?? none;
   const mana = spec.helper ? none : headerField(def, "AbilityManaCost", "int", ctx) ?? none;
-  const range = spec.helper ? null : headerField(def, "AbilityCastRange", "dist", ctx);
+  const range = spec.helper || spec.noRange ? null : headerField(def, "AbilityCastRange", "dist", ctx);
   const point = spec.helper ? null : readKey(def, "AbilityCastPoint");
   const chan = spec.helper ? null : readKey(def, "AbilityChannelTime");
   const cooldown = expand(cd.ranks.length ? cd.ranks : [0], R);

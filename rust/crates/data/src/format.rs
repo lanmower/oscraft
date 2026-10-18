@@ -47,16 +47,14 @@ pub const EFFECT_KINDS: &[&str] = &[
     "mana",
     "if_kill",
     "attack",
-    "teleport",
-    "refresh",
 ];
-pub const MAX_EFFECT_KIND: usize = 32;
+pub const MAX_EFFECT_KIND: usize = 30;
 /// The stats an effect of kind "stat" may raise, by the code in its first parameter.
 pub const STAT_NAMES: &[&str] = &[
     "damage", "armor", "health", "speed", "range", "evasion", "crit_chance", "crit_mult", "cleave", "cleave_radius",
     "lifesteal", "magic_resist", "attack_speed", "mana_regen", "health_regen", "max_mana", "spell_amp", "bash_chance",
     "bash_ticks", "speed_pct", "cooldown_reduction", "status_resist", "strength", "agility", "intelligence", "spell_lifesteal",
-    "armor_x100", "cast_range", "cleave_start_width", "cleave_end_width",
+    "armor_x100", "cast_range", "cleave_start_width", "cleave_end_width", "damage_reduction",
 ];
 /// Status codes of the `status` effect (and the sim's status counters): the first five have their own effect kinds.
 pub const STATUS_CODES: &[&str] = &[
@@ -264,8 +262,6 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
         "mana" => p0 >= 0 && (0..=2).contains(&p1),
         "if_kill" => (1..=16).contains(&p0),
         "attack" => p0 >= 0,
-        "teleport" => p0 >= 0,
-        "refresh" => (1..=3).contains(&p0),
         "stun" | "silence" | "root" | "invisibility" => p0 >= 1,
         "slow" => p0 >= 1 && (0..=Q16_ONE).contains(&p1),
         _ => true,

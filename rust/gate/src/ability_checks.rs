@@ -923,3 +923,136 @@ pub fn dazzle_shallow_grave(_image: &[u8]) -> Result<(), String> {
     }
     Ok(())
 }
+
+/// Dragon Slave: 65 magical damage along a line; Light Strike Array: a 0.5 s delay, then 80 damage and a stun in 250 units.
+pub fn lina_slave_and_array(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let lina = rank_one_hero(&mut w, "lina", 3, &["lina_dragon_slave", "lina_light_strike_array"])?;
+    let on = w.creep(1, 6, 0)?;
+    let off = w.creep(1, 6, 4)?;
+    let (x, y) = w.at(8, 0);
+    w.cast(lina, "lina_dragon_slave", -1, x, y)?;
+    near("line victim", 550.0 - w.hp(on), 65.0, 0.6)?;
+    if w.hp(off) < 549.9 {
+        return Err("a unit off the line took dragon slave damage".into());
+    }
+    let (ax, ay) = w.at(6, 4);
+    w.cast(lina, "lina_light_strike_array", -1, ax, ay)?;
+    if w.hp(off) < 549.9 {
+        return Err("the array hit before its delay".into());
+    }
+    w.run(12);
+    near("array damage", 550.0 - w.hp(off), 80.0, 0.6)?;
+    if w.s.status_left(off, STUN) < 15 {
+        return Err("no array stun".into());
+    }
+    Ok(())
+}
+
+/// Frost Nova: 80 area damage to everyone in 200 units plus 40 to the target, and a slow; Chain Frost bounces.
+pub fn lich_nova_and_chain(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let lich = rank_one_hero(&mut w, "lich", 6, &["lich_frost_nova", "lich_chain_frost"])?;
+    let target = w.creep(1, 5, 0)?;
+    let near_one = w.creep(1, 5, 2)?;
+    w.cast(lich, "lich_frost_nova", target as i32, 0, 0)?;
+    near("target damage", 550.0 - w.hp(target), 120.0, 0.6)?;
+    near("neighbour damage", 550.0 - w.hp(near_one), 80.0, 0.6)?;
+    if w.s.slow_multiplier(target) >= fixed::ONE {
+        return Err("no frost nova slow".into());
+    }
+    let mut w = world()?;
+    let lich = rank_one_hero(&mut w, "lich", 6, &["lich_chain_frost"])?;
+    let line: Vec<usize> = (0..3).map(|k| w.creep(1, 3 + 4 * k, 0)).collect::<Result<_, _>>()?;
+    for &u in &line {
+        w.s.set_health(u, fixed::from_int(9000), fixed::from_int(9000));
+    }
+    w.cast(lich, "lich_chain_frost", line[0] as i32, 0, 0)?;
+    w.run(80);
+    let hits: f64 = line.iter().map(|&u| 9000.0 - w.hp(u)).sum();
+    if hits < 250.0 * 8.0 {
+        return Err(format!("chain frost dealt only {hits:.0} over 11 hits among three units"));
+    }
+    Ok(())
+}
+
+/// Ravage: every enemy in 1250 units is stunned for 2 s and takes 275; Kraken Shell cuts damage taken 15 percent.
+pub fn tidehunter_ravage_and_shell(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let tide = rank_one_hero(&mut w, "tidehunter", 6, &["tidehunter_ravage", "tidehunter_kraken_shell"])?;
+    let foes: Vec<usize> = (0..3).map(|k| w.creep(1, 4 + 3 * k, 0)).collect::<Result<_, _>>()?;
+    if w.s.stat_value(tide, 30) != 15 {
+        return Err(format!("kraken shell reduction {} want 15", w.s.stat_value(tide, 30)));
+    }
+    w.cast(tide, "tidehunter_ravage", -1, 0, 0)?;
+    for &f in &foes {
+        near("ravage damage", 550.0 - w.hp(f), 275.0, 0.6)?;
+        if w.s.status_left(f, STUN) < 30 {
+            return Err("ravage did not stun".into());
+        }
+    }
+    let before = w.hp(tide);
+    w.s.hurt(tide, fixed::from_int(100));
+    near("damage taken with 15 percent reduction after hero magic resistance", before - w.hp(tide), 100.0 * 0.75 * 0.85, 1.0)?;
+    Ok(())
+}
+
+/// Bash: every third attack adds 35 physical damage and a 1 s stun.
+pub fn slardar_bash(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let slardar = rank_one_hero(&mut w, "slardar", 1, &["slardar_bash"])?;
+    w.s.clear_status(slardar, DISARM);
+    let target = w.creep(1, 1, 0)?;
+    w.s.set_health(target, fixed::from_int(30_000), fixed::from_int(30_000));
+    let mut stuns = 0;
+    for _ in 0..9 {
+        w.strike(slardar, target)?;
+        if w.s.status_left(target, STUN) > 0 {
+            stuns += 1;
+            w.s.clear_status(target, STUN);
+        }
+    }
+    if stuns != 3 {
+        return Err(format!("{stuns} bashes in 9 attacks, want 3"));
+    }
+    Ok(())
+}
+
+/// Command Aura: allies in 1200 units gain 10 base damage, the caster a quarter of that.
+pub fn vengeful_command_aura(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let vs = rank_one_hero(&mut w, "vengefulspirit", 1, &["vengefulspirit_command_aura"])?;
+    let ally = w.hero("axe", 0, 5, 0)?;
+    w.run(4);
+    if w.s.stat_value(ally, S_DAMAGE) != 10 || w.s.stat_value(vs, S_DAMAGE) != 3 {
+        return Err(format!("aura damage ally {} caster {} want 10 and 3", w.s.stat_value(ally, S_DAMAGE), w.s.stat_value(vs, S_DAMAGE)));
+    }
+    Ok(())
+}
+
+/// Blink: moves the caster to the cast point, at most the cast range (875 units); Mana Break burns 25 mana and deals 65 percent of it.
+pub fn antimage_blink_and_mana_break(_image: &[u8]) -> Result<(), String> {
+    let mut w = world()?;
+    let am = rank_one_hero(&mut w, "antimage", 1, &["antimage_blink"])?;
+    let (x0, y0) = w.s.position_fixed(am);
+    let (tx, ty) = w.at(-20, 0);
+    w.cast(am, "antimage_blink", -1, tx, ty)?;
+    let (x1, _) = w.s.position_fixed(am);
+    near("blink distance in cells", fixed::to_float(x0 - x1), 875.0 * 15.625 / 1000.0, 0.3)?;
+    let _ = y0;
+    let mut w = world()?;
+    let am = rank_one_hero(&mut w, "antimage", 1, &["antimage_mana_break"])?;
+    w.s.clear_status(am, DISARM);
+    let victim = w.hero("crystal_maiden", 1, 1, 0)?;
+    w.s.apply_status(victim, DISARM, 1_000_000, fixed::ONE);
+    let (m0, h0) = (w.s.mana_of(victim), w.hp(victim));
+    w.strike(am, victim)?;
+    if m0 - w.s.mana_of(victim) != 25 {
+        return Err(format!("mana burned {} want 25", m0 - w.s.mana_of(victim)));
+    }
+    let lost = h0 - w.hp(victim);
+    if lost < 16.0 {
+        return Err(format!("health lost {lost:.1}, want the 16 of burned mana plus the attack"));
+    }
+    Ok(())
+}

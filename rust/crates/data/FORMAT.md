@@ -532,7 +532,7 @@ without a version bump.
   `5 evasion` %, `6 crit_chance` %, `7 crit_mult` % of damage, `8 cleave` %, `9 cleave_radius` (cone length, milli-units), `10 lifesteal` %,
   `11 magic_resist` %, `12 attack_speed`, `13 mana_regen` (hundredths per second), `14 health_regen` (hundredths per second), `15 max_mana`,
   `16 spell_amp` %, `17 bash_chance` %, `18 bash_ticks`, `19 speed_pct`, `20 cooldown_reduction` %, `21 status_resist` %, `22 strength`,
-  `23 agility`, `24 intelligence`, `25 spell_lifesteal` %, `26 armor_x100`, `27 cast_range`, `28 cleave_start_width`, `29 cleave_end_width`
+  `23 agility`, `24 intelligence`, `25 spell_lifesteal` %, `26 armor_x100`, `27 cast_range`, `28 cleave_start_width`, `29 cleave_end_width`, `30 damage_reduction` % of all damage taken
 - Status codes (`status` p0, the sim's status counters): `0 stun`, `1 slow`, `2 silence`, `3 root`, `4 invisibility`, `5 taunt`, `6 hex`,
   `7 disarm`, `8 spell_immunity`, `9 invulnerable`, `10 break`, `11 mute`, `12 physical_immunity`, `13 death_prevention`
 - Spell damage types (`damage` p2, `dot` p3, `chain` p3): `0 legacy`, `1 physical`, `2 magical`, `3 pure`

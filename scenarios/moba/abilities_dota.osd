@@ -313,6 +313,163 @@ ability("dazzle_talents", 100000, 0, "none", [effect("stat", p0=13, p1=0)])
 ability_ext("dazzle_talents", passive=True)
 ability_mod("dazzle_talents", 3, 0, 1, 175)
 # dazzle: talents with no modelled effect: special_bonus_unique_dazzle_poison_touch_attack_range_bonus, special_bonus_unique_dazzle_2, special_bonus_unique_dazzle_nothl_projection_duration, special_bonus_unique_dazzle_4
+# ---- antimage ----
+# antimage_mana_break: burns the flat mana_per_hit only (not the percent of maximum mana) and deals percent_damage_per_burn of it as physical damage
+ability("antimage_mana_break", 0, 0, "unit", [effect("mana", p0=25, p1=1, p2=0, p3=0), effect("damage", p0=16, p1=0, p2=1, p3=0)])
+skill("antimage_mana_break", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[0,0,0,0], energy=[0,0,0,0])
+ability_ext("antimage_mana_break", chance=100, passive=True, proc_attack=True)
+ability_scaled("antimage_mana_break", 0, 0, [25,30,35,40])
+ability_scaled("antimage_mana_break", 1, 0, [16,20,23,26])
+# antimage_blink: the blink goes to the cast point, capped at the cast range; min_blink_range is not enforced
+ability("antimage_blink", 168, 60, "point", [effect("move", p0=13672, p1=0, p2=0, p3=0)])
+skill("antimage_blink", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[168,144,120,96], energy=[60,55,50,45])
+ability_ext("antimage_blink", cast_point=6)
+ability_scaled("antimage_blink", 0, 0, [13672,14844,16016,17188])
+ability_mod("antimage_blink", 6, 0, 0, 1953)
+ability_mod("antimage_blink", 8, 250, 0, -16)
+# antimage_counterspell: the magic resistance only; Valve's spell reflection is not modelled
+ability("antimage_counterspell", 240, 50, "none", [effect("timed_stat", p0=11, p1=14, p2=21, p3=0)])
+skill("antimage_counterspell", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[240,176,112,48], energy=[50,50,50,50])
+ability_scaled("antimage_counterspell", 0, 1, [14,21,28,35])
+# antimage_talents: generic talents of antimage (Valve special_bonus_* values) as stat modifiers; unique talents are modifiers on the abilities they change.
+ability("antimage_talents", 100000, 0, "none", [effect("stat", p0=14, p1=0)])
+ability_ext("antimage_talents", passive=True)
+ability_mod("antimage_talents", 2, 0, 1, 300)
+# antimage: talents with no modelled effect: special_bonus_unique_antimage_manavoid_aoe, special_bonus_unique_antimage_5, special_bonus_unique_antimage_6, special_bonus_unique_antimage_8, special_bonus_unique_antimage_2
+# ---- lina ----
+# lina_dragon_slave: the wave is a straight line of constant width (Valve tapers it from dragon_slave_width_initial to dragon_slave_width_end) and lands at once
+ability("lina_dragon_slave", 176, 90, "point", [effect("aoe", p0=2148, p1=8, p2=1, p3=0), effect("damage", p0=65, p1=0, p2=2, p3=0)])
+skill("lina_dragon_slave", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[176,160,144,128], energy=[90,100,110,120])
+ability_ext("lina_dragon_slave", cast_range=16797, cast_point=6)
+ability_scaled("lina_dragon_slave", 1, 0, [65,125,185,245])
+ability_mod("lina_dragon_slave", 3, 250, 0, -48)
+ability("lina_light_strike_array", 208, 100, "point", [effect("zone", p0=0, p1=1, p2=1, p3=8, ability="lina_light_strike_array_pulse")])
+skill("lina_light_strike_array", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[208,176,144,112], energy=[100,110,120,130])
+ability_ext("lina_light_strike_array", cast_range=10938, cast_point=7)
+# lina_light_strike_array_pulse unmodelled Valve keys: light_strike_array_delay_time
+ability("lina_light_strike_array_pulse", 0, 0, "none", [effect("aoe", p0=3906, p1=0, p2=2, p3=0), effect("damage", p0=80, p1=0, p2=2, p3=0), effect("stun", p0=19, p1=0, p2=0, p3=0)])
+ability_scaled("lina_light_strike_array_pulse", 1, 0, [80,125,170,215])
+ability_scaled("lina_light_strike_array_pulse", 2, 0, [19,26,32,38])
+ability_mod("lina_light_strike_array_pulse", 5, 1, 0, 110)
+# lina_laguna_blade unmodelled Valve keys: pierce_immunity, supercharge_duration, supercharge_stacks, barrier_pct, barrier_duration
+ability("lina_laguna_blade", 1120, 150, "unit", [effect("damage", p0=400, p1=0, p2=2, p3=0)])
+skill("lina_laguna_blade", ultimate=True, gates=[6,12,18], damage=[0,0,0], cooldown=[1120,960,800], energy=[150,300,450])
+ability_ext("lina_laguna_blade", cast_range=11719, cast_point=5, enemy_only=True)
+ability_scaled("lina_laguna_blade", 0, 0, [400,580,760])
+ability_mod("lina_laguna_blade", 6, 250, 0, -320)
+# lina_talents: generic talents of lina (Valve special_bonus_* values) as stat modifiers; unique talents are modifiers on the abilities they change.
+ability("lina_talents", 100000, 0, "none", [effect("stat", p0=0, p1=0)])
+ability_ext("lina_talents", passive=True)
+ability_mod("lina_talents", 2, 0, 1, 25)
+# lina: talents with no modelled effect: special_bonus_unique_lina_4, special_bonus_unique_lina_2, special_bonus_unique_lina_7, special_bonus_unique_lina_crit_debuff
+# ---- lich ----
+ability("lich_frost_nova", 112, 110, "unit", [effect("damage", p0=40, p1=0, p2=2, p3=0), effect("aoe", p0=3125, p1=0, p2=3, p3=0), effect("damage", p0=80, p1=0, p2=2, p3=0), effect("slow", p0=64, p1=49152, p2=0, p3=0), effect("timed_stat", p0=12, p1=-30, p2=64, p3=0)])
+skill("lich_frost_nova", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[112,112,112,112], energy=[110,120,130,140])
+ability_ext("lich_frost_nova", cast_range=8984, cast_point=5, enemy_only=True)
+ability_scaled("lich_frost_nova", 0, 0, [40,80,120,160])
+ability_scaled("lich_frost_nova", 2, 0, [80,120,160,200])
+ability_scaled("lich_frost_nova", 4, 1, [-30,-40,-50,-60])
+ability_scaled("lich_frost_nova", 252, 0, [8984,9375,9766,10156])
+ability_mod("lich_frost_nova", 3, 1, 0, 1953)
+ability_mod("lich_frost_nova", 3, 2, 0, 125)
+ability_mod("lich_frost_nova", 5, 250, 0, -56)
+# lich_frost_shield: only the damage reduction is modelled; the pulses that damage and slow nearby enemies are not
+# lich_frost_shield unmodelled Valve keys: health_regen
+ability("lich_frost_shield", 480, 100, "unit", [effect("timed_stat", p0=30, p1=45, p2=64, p3=0)])
+skill("lich_frost_shield", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[480,400,320,240], energy=[100,110,120,130])
+ability_ext("lich_frost_shield", cast_range=12500, cast_point=3, ally_only=True)
+ability_scaled("lich_frost_shield", 0, 1, [45,50,55,60])
+ability_scaled("lich_frost_shield", 0, 2, [64,80,96,112])
+ability_mod("lich_frost_shield", 2, 0, 1, 10)
+# lich_chain_frost: jumps every 6 ticks; the slow and the per-jump damage growth are not modelled
+# lich_chain_frost unmodelled Valve keys: bonus_jump_damage, has_unlimited_jumps, should_fire_chain_frost_on_death, bonus_jumps_per_hero_killed, bonus_jumps_per_creep_killed
+ability("lich_chain_frost", 1600, 180, "unit", [effect("chain", p0=250, p1=10, p2=8594, p3=2)], projectile_speed_milli=1025)
+skill("lich_chain_frost", ultimate=True, gates=[6,12,18], damage=[0,0,0], cooldown=[1600,1280,960], energy=[180,300,420])
+ability_ext("lich_chain_frost", cast_range=11719, cast_point=5, period=6, enemy_only=True)
+ability_scaled("lich_chain_frost", 0, 0, [250,400,550])
+# lich: talents with no modelled effect: special_bonus_unique_lich_2, special_bonus_unique_lich_4, special_bonus_unique_lich_7, special_bonus_unique_lich_1, special_bonus_unique_lich_5
+# ---- tidehunter ----
+ability("tidehunter_gush", 192, 100, "unit", [effect("damage", p0=100, p1=0, p2=2, p3=0), effect("slow", p0=72, p1=39322, p2=0, p3=0), effect("timed_stat", p0=1, p1=-3, p2=72, p3=0)], projectile_speed_milli=2441)
+skill("tidehunter_gush", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[192,192,192,192], energy=[100,100,100,100])
+ability_ext("tidehunter_gush", cast_range=10938, cast_point=5, enemy_only=True)
+ability_scaled("tidehunter_gush", 0, 0, [100,160,220,280])
+ability_scaled("tidehunter_gush", 2, 1, [-3,-4,-5,-6])
+ability_mod("tidehunter_gush", 4, 0, 0, 90)
+ability_mod("tidehunter_gush", 3, 1, 1, -13107)
+ability_mod("tidehunter_gush", 7, 2, 1, -4)
+# tidehunter_kraken_shell: the passive damage reduction and the active purge; the damage-triggered cleanse (blubber) is not modelled
+# tidehunter_kraken_shell unmodelled Valve keys: bonus_reduction_per_kill, smash_on_purge
+ability("tidehunter_kraken_shell", 480, 45, "none", [effect("stat", p0=30, p1=15, p2=0, p3=0), effect("dispel", p0=6, p1=0, p2=0, p3=0)])
+skill("tidehunter_kraken_shell", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[480,480,480,480], energy=[45,45,45,45])
+ability_ext("tidehunter_kraken_shell", passive_stats=True)
+ability_scaled("tidehunter_kraken_shell", 0, 1, [15,35,55,75])
+# tidehunter_ravage: the wave expands at 725 per second in Valve; here every enemy in the radius is hit at once
+ability("tidehunter_ravage", 2400, 125, "none", [effect("aoe", p0=19531, p1=0, p2=2, p3=0), effect("damage", p0=275, p1=0, p2=2, p3=0), effect("stun", p0=32, p1=0, p2=0, p3=0)])
+skill("tidehunter_ravage", ultimate=True, gates=[6,12,18], damage=[0,0,0], cooldown=[2400,2320,2240], energy=[125,225,325])
+ability_ext("tidehunter_ravage", cast_point=5)
+ability_scaled("tidehunter_ravage", 1, 0, [275,375,475])
+ability_scaled("tidehunter_ravage", 2, 0, [32,35,38])
+ability_mod("tidehunter_ravage", 8, 2, 0, 16)
+ability_mod("tidehunter_ravage", 5, 250, 0, -240)
+# tidehunter: talents with no modelled effect: special_bonus_unique_tidehunter_3, special_bonus_unique_tidehunter_smash_on_blubber, special_bonus_unique_tidehunter_10
+# ---- slardar ----
+ability("slardar_sprint", 528, 25, "none", [effect("timed_stat", p0=19, p1=10, p2=160, p3=0)])
+skill("slardar_sprint", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[528,448,368,288], energy=[25,25,25,25])
+ability_scaled("slardar_sprint", 0, 1, [10,18,26,34])
+ability_mod("slardar_sprint", 2, 0, 2, 32)
+# slardar_slithereen_crush unmodelled Valve keys: shard_amp_duration, shard_bonus_radius
+ability("slardar_slithereen_crush", 136, 100, "none", [effect("aoe", p0=5078, p1=4, p2=4, p3=0), effect("damage", p0=60, p1=0, p2=1, p3=0), effect("stun", p0=13, p1=0, p2=0, p3=0), effect("slow", p0=48, p1=52429, p2=0, p3=0), effect("timed_stat", p0=12, p1=-20, p2=48, p3=0)])
+skill("slardar_slithereen_crush", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[136,128,120,112], energy=[100,100,100,100])
+ability_ext("slardar_slithereen_crush", cast_point=4)
+ability_scaled("slardar_slithereen_crush", 1, 0, [60,140,220,300])
+ability_scaled("slardar_slithereen_crush", 3, 0, [48,64,80,96])
+ability_scaled("slardar_slithereen_crush", 3, 1, [52429,49152,45875,42598])
+ability_scaled("slardar_slithereen_crush", 4, 1, [-20,-25,-30,-35])
+ability_scaled("slardar_slithereen_crush", 4, 2, [48,64,80,96])
+ability_mod("slardar_slithereen_crush", 6, 1, 0, 125)
+ability_mod("slardar_slithereen_crush", 8, 250, 0, -48)
+ability("slardar_bash", 0, 0, "unit", [effect("damage", p0=35, p1=0, p2=1, p3=0), effect("stun", p0=16, p1=0, p2=0, p3=0)])
+skill("slardar_bash", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[0,0,0,0], energy=[0,0,0,0])
+ability_ext("slardar_bash", period=3, passive=True, proc_attack=True, counted=True)
+ability_scaled("slardar_bash", 0, 0, [35,90,145,200])
+ability_mod("slardar_bash", 3, 0, 0, 30)
+# slardar_amplify_damage unmodelled Valve keys: has_self_buff, armor_pct
+ability("slardar_amplify_damage", 80, 25, "unit", [effect("timed_stat", p0=1, p1=-8, p2=288, p3=0)])
+skill("slardar_amplify_damage", ultimate=True, gates=[6,12,18], damage=[0,0,0], cooldown=[80,80,80], energy=[25,25,25])
+ability_ext("slardar_amplify_damage", cast_range=14063, cast_point=5, pierce=True, enemy_only=True)
+ability_scaled("slardar_amplify_damage", 0, 1, [-8,-14,-20])
+ability_mod("slardar_amplify_damage", 5, 0, 1, -3)
+# slardar_talents: generic talents of slardar (Valve special_bonus_* values) as stat modifiers; unique talents are modifiers on the abilities they change.
+ability("slardar_talents", 100000, 0, "none", [effect("stat", p0=2, p1=0)])
+ability_ext("slardar_talents", passive=True)
+ability_mod("slardar_talents", 4, 0, 1, 250)
+# slardar: talents with no modelled effect: special_bonus_unique_slardar_6, special_bonus_unique_slardar_3
+# ---- vengefulspirit ----
+# vengefulspirit_magic_missile unmodelled Valve keys: damage_per_lasthit
+ability("vengefulspirit_magic_missile", 224, 90, "unit", [effect("damage", p0=100, p1=0, p2=2, p3=0), effect("stun", p0=19, p1=0, p2=0, p3=0)], projectile_speed_milli=1318)
+skill("vengefulspirit_magic_missile", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[224,208,192,176], energy=[90,95,100,105])
+ability_ext("vengefulspirit_magic_missile", cast_range=10156, cast_point=5, enemy_only=True)
+ability_scaled("vengefulspirit_magic_missile", 0, 0, [100,180,260,340])
+ability_scaled("vengefulspirit_magic_missile", 1, 0, [19,22,26,29])
+ability_mod("vengefulspirit_magic_missile", 5, 1, 0, 5)
+ability_mod("vengefulspirit_magic_missile", 7, 250, 0, -32)
+ability_mod("vengefulspirit_magic_missile", 3, 252, 0, 1563)
+# vengefulspirit_wave_of_terror unmodelled Valve keys: steal_pct
+ability("vengefulspirit_wave_of_terror", 256, 40, "point", [effect("aoe", p0=2539, p1=8, p2=2, p3=0), effect("damage", p0=60, p1=0, p2=2, p3=0), effect("timed_stat", p0=1, p1=-3, p2=128, p3=0)])
+skill("vengefulspirit_wave_of_terror", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[256,224,192,160], energy=[40,40,40,40])
+ability_ext("vengefulspirit_wave_of_terror", cast_range=21875, cast_point=5)
+ability_scaled("vengefulspirit_wave_of_terror", 1, 0, [60,80,100,120])
+ability_scaled("vengefulspirit_wave_of_terror", 2, 1, [-3,-4,-5,-6])
+# vengefulspirit_command_aura: self_multiplier 25: Vengeful Spirit herself gets a quarter of the ally bonus
+# vengefulspirit_command_aura unmodelled Valve keys: scepter_illusion_damage_out_pct, scepter_illusion_damage_in_pct, scepter_illusion_ms_bonus_pct
+ability("vengefulspirit_command_aura", 0, 0, "none", [effect("aoe", p0=18750, p1=6, p2=1, p3=0), effect("timed_stat", p0=0, p1=10, p2=32, p3=0), effect("aoe", p0=0, p1=16, p2=1, p3=0), effect("timed_stat", p0=0, p1=3, p2=32, p3=0)])
+skill("vengefulspirit_command_aura", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[0,0,0,0], energy=[0,0,0,0])
+ability_ext("vengefulspirit_command_aura", cast_range=18750, period=16, aura=True)
+ability_scaled("vengefulspirit_command_aura", 1, 1, [10,15,20,25])
+ability_scaled("vengefulspirit_command_aura", 3, 1, [3,4,5,6])
+ability_mod("vengefulspirit_command_aura", 8, 1, 1, 16)
+ability_mod("vengefulspirit_command_aura", 8, 3, 1, 4)
+# vengefulspirit: talents with no modelled effect: special_bonus_unique_vengeful_spirit_swap_damage, special_bonus_unique_vengeful_spirit_4, special_bonus_unique_vengeful_spirit_wave_of_terror_steal, special_bonus_unique_vengeful_spirit_9
 # ---- omniknight ----
 ability("omniknight_purification", 240, 90, "unit", [effect("heal", p0=90, p1=0, p2=1, p3=0), effect("aoe", p0=4063, p1=0, p2=1, p3=0), effect("damage", p0=90, p1=0, p2=3, p3=0)])
 skill("omniknight_purification", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[240,224,208,192], energy=[90,105,120,135])
@@ -356,6 +513,12 @@ hero_abilities("sniper", ["sniper_shrapnel", "sniper_headshot", "sniper_take_aim
 hero_abilities("lion", ["lion_impale", "lion_voodoo", "lion_mana_drain", "lion_finger_of_death", "lion_talents"])
 hero_abilities("phantom_lancer", ["phantom_lancer_spirit_lance", "phantom_lancer_juxtapose"])
 hero_abilities("dazzle", ["dazzle_poison_touch", "dazzle_shallow_grave", "dazzle_talents"])
+hero_abilities("antimage", ["antimage_mana_break", "antimage_blink", "antimage_counterspell", "antimage_talents"])
+hero_abilities("lina", ["lina_dragon_slave", "lina_light_strike_array", "lina_laguna_blade", "lina_talents"])
+hero_abilities("lich", ["lich_frost_nova", "lich_frost_shield", "lich_chain_frost"])
+hero_abilities("tidehunter", ["tidehunter_gush", "tidehunter_kraken_shell", "tidehunter_ravage"])
+hero_abilities("slardar", ["slardar_sprint", "slardar_slithereen_crush", "slardar_bash", "slardar_amplify_damage", "slardar_talents"])
+hero_abilities("vengefulspirit", ["vengefulspirit_magic_missile", "vengefulspirit_wave_of_terror", "vengefulspirit_command_aura"])
 hero_abilities("omniknight", ["omniknight_purification", "omniknight_martyr", "omniknight_hammer_of_purity", "omniknight_degen_aura", "omniknight_guardian_angel", "omniknight_talents"])
 # Modifiers the engine cannot carry:
 #   sven_warcry: radius special_bonus_shard 200 not modelled
@@ -363,4 +526,6 @@ hero_abilities("omniknight", ["omniknight_purification", "omniknight_martyr", "o
 #   phantom_lancer_juxtapose: AbilityCooldown special_bonus_shard 18 not modelled
 #   phantom_lancer_juxtapose: AbilityManaCost special_bonus_shard 75 not modelled
 #   phantom_lancer_juxtapose: illusion_duration special_bonus_unique_phantom_lancer_juxtapose_duration +1 not modelled
+#   slardar_slithereen_crush: stun_duration special_bonus_unique_slardar_slithereen_crush_stun +0.2 not modelled
+#   vengefulspirit_wave_of_terror: armor_reduction special_bonus_unique_vengeful_spirit_4 +-3 not modelled
 #   omniknight_martyr: duration special_bonus_unique_omniknight_5 +1 not modelled

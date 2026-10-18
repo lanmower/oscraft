@@ -7,7 +7,7 @@ const STAT = {
   damage: 0, armor: 1, health: 2, speed: 3, range: 4, evasion: 5, crit_chance: 6, crit_mult: 7, cleave: 8, cleave_radius: 9,
   lifesteal: 10, magic_resist: 11, attack_speed: 12, mana_regen: 13, health_regen: 14, max_mana: 15, spell_amp: 16,
   bash_chance: 17, bash_ticks: 18, speed_pct: 19, cdr: 20, status_resist: 21, strength: 22, agility: 23, intelligence: 24,
-  spell_lifesteal: 25, armor_x100: 26, cast_range: 27, cleave_w0: 28, cleave_w1: 29,
+  spell_lifesteal: 25, armor_x100: 26, cast_range: 27, cleave_w0: 28, cleave_w1: 29, damage_reduction: 30,
 };
 const STATUS = {
   taunt: 5, hex: 6, disarm: 7, spell_immunity: 8, invulnerable: 9, break: 10, mute: 11, physical_immunity: 12, death_prevention: 13,
@@ -34,6 +34,7 @@ export const H = {
   mana: (amount, mode) => ({ k: "mana", p: [amount, mode, 0, 0] }),
   illusion: (count, duration, out, taken) => ({ k: "illusion", p: [count, duration, out, taken] }),
   move: (cap) => ({ k: "move", p: [cap, 0, 0, 0] }),
+  dispel: (mask) => ({ k: "dispel", p: [mask, 0, 0, 0] }),
   attack: (pct = 100) => ({ k: "attack", p: [pct, 0, 0, 0] }),
   ward: (unit, life) => ({ k: "ward", p: [0, life, 0, 0], unit }),
   zone: (ability, period, life, o = {}) => ({ k: "zone", p: [0, period, life, o.follow ? 1 << 30 : o.delay ?? 0], ability }),
@@ -47,7 +48,7 @@ export const H = {
   },
   GLOBAL,
 };
-const { V, dmg, heal, healPct, stun, root, slow, status, tstat, stat, dot, chain, mana, move, attack, ward, zone, ifKill, aoe, illusion } = H;
+const { V, dmg, heal, healPct, stun, root, slow, status, tstat, stat, dot, chain, mana, move, attack, ward, zone, ifKill, aoe, illusion, dispel } = H;
 
 // Slot order of each hero: basic abilities, then the ultimate, then the generic talent modifiers.
 export const HEROES = {
@@ -60,6 +61,12 @@ export const HEROES = {
   lion: ["lion_impale", "lion_voodoo", "lion_mana_drain", "lion_finger_of_death", "@talents"],
   phantom_lancer: ["phantom_lancer_spirit_lance", "phantom_lancer_juxtapose", "@talents"],
   dazzle: ["dazzle_poison_touch", "dazzle_shallow_grave", "@talents"],
+  antimage: ["antimage_mana_break", "antimage_blink", "antimage_counterspell", "@talents"],
+  lina: ["lina_dragon_slave", "lina_light_strike_array", "lina_laguna_blade", "@talents"],
+  lich: ["lich_frost_nova", "lich_frost_shield", "lich_chain_frost", "@talents"],
+  tidehunter: ["tidehunter_gush", "tidehunter_kraken_shell", "tidehunter_ravage", "@talents"],
+  slardar: ["slardar_sprint", "slardar_slithereen_crush", "slardar_bash", "slardar_amplify_damage", "@talents"],
+  vengefulspirit: ["vengefulspirit_magic_missile", "vengefulspirit_wave_of_terror", "vengefulspirit_command_aura", "@talents"],
   omniknight: ["omniknight_purification", "omniknight_martyr", "omniknight_hammer_of_purity", "omniknight_degen_aura", "omniknight_guardian_angel", "@talents"],
 };
 
@@ -69,6 +76,7 @@ export const HELPERS = {
   juggernaut_omni_slash_pulse: "juggernaut_omni_slash",
   juggernaut_healing_ward_aura: "juggernaut_healing_ward",
   sniper_shrapnel_pulse: "sniper_shrapnel",
+  lina_light_strike_array_pulse: "lina_light_strike_array",
 };
 
 // Units the abilities place. Stats from npc_units.txt @282fad29 (scale 15.625 milli per unit, speed per tick at 16 ticks a second).
@@ -366,6 +374,168 @@ export const RECIPES = {
     flags: ["ally_only"],
     effects: [status("death_prevention", V("duration", "time"))],
     ignore: ["fx_halo_height"],
+  }),
+
+  // ---- Anti-Mage ----
+  antimage_mana_break: () => ({
+    target: "unit",
+    flags: ["passive", "proc_attack"],
+    ext: { chance: 100 },
+    note: "burns the flat mana_per_hit only (not the percent of maximum mana) and deals percent_damage_per_burn of it as physical damage",
+    effects: [mana(V("mana_per_hit"), 1), dmg(V("mana_per_hit", "int", { mul: 0.65 }), "physical")],
+    ignore: ["percent_damage_per_burn", "mana_per_hit_pct", "illusion_percentage", "empowered_max_burn_pct", "empowered_mana_break_debuff_duration"],
+  }),
+  antimage_blink: () => ({
+    target: "point",
+    noRange: true,
+    note: "the blink goes to the cast point, capped at the cast range; min_blink_range is not enforced",
+    effects: [move(V("AbilityCastRange", "dist"))],
+    ignore: ["min_blink_range", "empowered_mana_break_duration", "empowered_max_burn_pct_tooltip", "empowered_mana_break_debuff_duration_tooltip"],
+  }),
+  antimage_counterspell: () => ({
+    target: "none",
+    note: "the magic resistance only; Valve's spell reflection is not modelled",
+    effects: [tstat("magic_resist", V("magic_resistance"), V("duration", "time"))],
+    ignore: ["duration_illusion", "outgoing_damage", "incoming_damage", "does_reflect", "reflected_spell_amp", "heal_pct"],
+  }),
+
+  // ---- Lina ----
+  lina_dragon_slave: () => ({
+    target: "point",
+    note: "the wave is a straight line of constant width (Valve tapers it from dragon_slave_width_initial to dragon_slave_width_end) and lands at once",
+    effects: [aoe(V("dragon_slave_width_initial", "dist", { mul: 0.5 }), "enemy", [dmg(V("dragon_slave_damage"), "magical")], { line: true })],
+    ignore: ["dragon_slave_speed", "dragon_slave_width_end", "dragon_slave_distance"],
+  }),
+  lina_light_strike_array: () => ({
+    target: "point",
+    effects: [zone("lina_light_strike_array_pulse", 1, 1, { delay: V("light_strike_array_delay_time", "time") })],
+    ignore: ["light_strike_array_aoe", "light_strike_array_stun_duration", "light_strike_array_damage"],
+  }),
+  lina_light_strike_array_pulse: () => ({
+    target: "none",
+    ranks: 4,
+    noSkill: true,
+    effects: [aoe(V("light_strike_array_aoe", "dist"), "enemy", [dmg(V("light_strike_array_damage"), "magical"), stun(V("light_strike_array_stun_duration", "time"))])],
+  }),
+  lina_laguna_blade: () => ({
+    target: "unit",
+    flags: ["enemy_only"],
+    effects: [dmg(V("damage"), "magical")],
+    ignore: ["damage_delay"],
+  }),
+
+  // ---- Lich ----
+  lich_frost_nova: () => ({
+    target: "unit",
+    flags: ["enemy_only"],
+    effects: [
+      dmg(V("damage"), "magical"),
+      aoe(V("radius", "dist"), "enemy", [
+        dmg(V("aoe_damage"), "magical"),
+        slow(V("AbilityDuration", "time"), V("slow_movement_speed", "slowmul")),
+        tstat("attack_speed", V("slow_attack_speed_primary"), V("AbilityDuration", "time")),
+      ]),
+    ],
+  }),
+  lich_frost_shield: () => ({
+    target: "unit",
+    flags: ["ally_only"],
+    note: "only the damage reduction is modelled; the pulses that damage and slow nearby enemies are not",
+    effects: [tstat("damage_reduction", V("damage_reduction"), V("duration", "time"))],
+    ignore: ["movement_slow", "slow_duration", "damage", "interval", "radius", "bonus_duration_per_hero_killed", "bonus_duration_per_creep_killed", "AbilityChargeRestoreTime", "AbilityCharges"],
+  }),
+  lich_chain_frost: () => ({
+    target: "unit",
+    flags: ["enemy_only"],
+    projectile: V("initial_projectile_speed", "speed"),
+    ext: { period: 6 },
+    note: "jumps every 6 ticks; the slow and the per-jump damage growth are not modelled",
+    effects: [chain(V("damage"), V("jumps"), V("jump_range", "dist"), "magical")],
+    ignore: ["projectile_speed", "vision_radius", "frostbound_duration", "slow_movement_speed", "slow_attack_speed", "slow_duration"],
+  }),
+
+  // ---- Tidehunter ----
+  tidehunter_gush: () => ({
+    target: "unit",
+    flags: ["enemy_only"],
+    projectile: V("projectile_speed", "speed"),
+    effects: [
+      dmg(V("gush_damage"), "magical"),
+      slow(V("AbilityDuration", "time"), V("movement_speed", "slowmul")),
+      tstat("armor", V("negative_armor", "neg"), V("AbilityDuration", "time")),
+    ],
+    ignore: ["speed_scepter", "aoe_scepter", "cooldown_scepter", "cast_range_scepter"],
+  }),
+  tidehunter_kraken_shell: () => ({
+    target: "none",
+    flags: ["passive_stats"],
+    note: "the passive damage reduction and the active purge; the damage-triggered cleanse (blubber) is not modelled",
+    effects: [stat("damage_reduction", V("damage_reduction")), dispel(6)],
+    ignore: ["creep_reduction_penalty_pct", "active_pct_effectiveness", "active_move_speed_penalty_pct", "active_duration", "damage_cleanse", "damage_reset_interval"],
+  }),
+  tidehunter_ravage: () => ({
+    target: "none",
+    note: "the wave expands at 725 per second in Valve; here every enemy in the radius is hit at once",
+    effects: [aoe(V("radius", "dist"), "enemy", [dmg(V("AbilityDamage"), "magical"), stun(V("duration", "time"))])],
+    ignore: ["speed"],
+  }),
+
+  // ---- Slardar ----
+  slardar_sprint: () => ({
+    target: "none",
+    effects: [tstat("speed_pct", V("bonus_speed"), V("duration", "time"))],
+    ignore: ["speed_burst_max_duration", "slow_resistance_tooltip"],
+  }),
+  slardar_slithereen_crush: () => ({
+    target: "none",
+    effects: [
+      aoe(V("crush_radius", "dist"), "enemy", [
+        dmg(V("crush_damage"), "physical"),
+        stun(V("stun_duration", "time")),
+        slow(V("crush_extra_slow_duration", "time"), V("crush_extra_slow", "slowmul")),
+        tstat("attack_speed", V("crush_attack_slow_tooltip"), V("crush_extra_slow_duration", "time")),
+      ], { center: true }),
+    ],
+    ignore: ["puddle_duration", "puddle_radius"],
+  }),
+  slardar_bash: () => ({
+    target: "unit",
+    flags: ["passive", "proc_attack", "counted"],
+    ext: { period: V("attack_count") },
+    effects: [dmg(V("bonus_damage"), "physical"), stun(V("duration", "time"))],
+  }),
+  slardar_amplify_damage: () => ({
+    target: "unit",
+    flags: ["pierce", "enemy_only"],
+    effects: [tstat("armor", V("armor_reduction"), V("duration", "time"))],
+    ignore: ["puddle_radius", "puddle_duration", "undispellable"],
+  }),
+
+  // ---- Vengeful Spirit ----
+  vengefulspirit_magic_missile: () => ({
+    target: "unit",
+    flags: ["enemy_only"],
+    projectile: V("magic_missile_speed", "speed"),
+    effects: [dmg(V("magic_missile_damage"), "magical"), stun(V("magic_missile_stun", "time"))],
+    ignore: ["bounce_range_pct"],
+  }),
+  vengefulspirit_wave_of_terror: () => ({
+    target: "point",
+    effects: [
+      aoe(V("wave_width", "dist", { mul: 0.5 }), "enemy", [dmg(V("damage"), "magical"), tstat("armor", V("armor_reduction"), V("AbilityDuration", "time"))], { line: true }),
+    ],
+    ignore: ["wave_speed", "attack_reduction", "vision_aoe", "vision_duration"],
+  }),
+  vengefulspirit_command_aura: () => ({
+    target: "none",
+    flags: ["aura"],
+    ext: { period: 16 },
+    note: "self_multiplier 25: Vengeful Spirit herself gets a quarter of the ally bonus",
+    effects: [
+      aoe(V("aura_radius", "dist"), "allyOther", [tstat("damage", V("bonus_base_damage"), 32)], { center: true }),
+      H.self([tstat("damage", V("bonus_base_damage", "int", { mul: 0.25 }), 32)]),
+    ],
+    ignore: ["self_multiplier", "revival_time", "restitution_time"],
   }),
 
   // ---- Omniknight ----

@@ -7,7 +7,7 @@
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::loader::{Effect, LoadError};
-use crate::rules::{Refusal, Slot};
+use crate::rules::Refusal;
 use crate::status::{DISARM, HEX, INVULNERABLE, MUTE, PHYSICAL_IMMUNE, SPELL_IMMUNE, TAUNT};
 use crate::*;
 
@@ -38,7 +38,7 @@ pub const FLAG_ALLY_ONLY: u16 = 256;
 pub const FLAG_ENEMY_ONLY: u16 = 512;
 const FLAG_MASK: u16 = 1023;
 
-pub const STAT_COUNT: usize = 30;
+pub const STAT_COUNT: usize = 31;
 pub const S_DAMAGE: usize = 0;
 pub const S_ARMOR: usize = 1;
 pub const S_HEALTH: usize = 2;
@@ -67,6 +67,7 @@ pub const S_ARMOR_X100: usize = 26;
 pub const S_CAST_RANGE: usize = 27;
 pub const S_CLEAVE_W0: usize = 28;
 pub const S_CLEAVE_W1: usize = 29;
+pub const S_DAMAGE_REDUCTION: usize = 30;
 
 pub const SCALED_SLOTS: usize = 6;
 pub const MOD_SLOTS: usize = 8;
@@ -235,8 +236,6 @@ pub(crate) fn spell_effect_error(e: &Effect) -> Option<&'static str> {
         K_MANA => e.p0 >= 0 && (0..=2).contains(&e.p1),
         K_IF_KILL => (1..=16).contains(&e.p0),
         K_ATTACK => e.p0 >= 0,
-        crate::teleport::K_TELEPORT => e.p0 >= 0,
-        crate::refresh::K_REFRESH => (1..=3).contains(&e.p0),
         _ => true,
     };
     (!ok).then_some("spell effect parameters")
@@ -287,6 +286,7 @@ pub(crate) struct SpellState {
     pub(crate) taunter: Vec<i32>,
     pub(crate) hex_speed: Vec<i32>,
     pub(crate) hits_taken: Vec<i32>,
+    pub(crate) hits_made: Vec<i32>,
     pub(crate) pend_slot: Vec<i32>,
     pub(crate) pend_target: Vec<i32>,
     pub(crate) pend_x: Vec<i32>,
@@ -346,6 +346,7 @@ impl SpellState {
             taunter: vec![-1; cap],
             hex_speed: vec![0; cap],
             hits_taken: vec![0; cap],
+            hits_made: vec![0; cap],
             pend_slot: vec![-1; cap],
             pend_target: vec![-1; cap],
             pend_x: vec![0; cap],
@@ -360,19 +361,19 @@ impl SpellState {
     }
 
     /// Every saved table, in a fixed order, for the state hash and the save bytes.
-    pub(crate) fn tables(&self) -> [&Vec<i32>; 44] {
+    pub(crate) fn tables(&self) -> [&Vec<i32>; 45] {
         [
             &self.upg, &self.smod, &self.applied, &self.tmod_code, &self.tmod_amt, &self.tmod_left, &self.tmod_key,
             &self.dot_src, &self.dot_key, &self.dot_amt, &self.dot_period, &self.dot_left, &self.dot_next, &self.dot_type,
             &self.zone_left, &self.zone_caster, &self.zone_ai, &self.zone_x, &self.zone_y, &self.zone_period,
             &self.zone_next, &self.zone_delay, &self.zone_rank, &self.zone_follow, &self.charge_n, &self.charge_t, &self.chain_left, &self.chain_caster, &self.chain_cur, &self.chain_prev,
             &self.chain_dmg, &self.chain_radius, &self.chain_type, &self.chain_wait, &self.chain_delay, &self.ill_out,
-            &self.ill_in, &self.taunter, &self.hex_speed, &self.hits_taken, &self.pend_slot, &self.pend_target,
+            &self.ill_in, &self.taunter, &self.hex_speed, &self.hits_taken, &self.hits_made, &self.pend_slot, &self.pend_target,
             &self.pend_x, &self.pend_y,
         ]
     }
 
-    pub(crate) fn tables_mut(&mut self) -> [&mut Vec<i32>; 44] {
+    pub(crate) fn tables_mut(&mut self) -> [&mut Vec<i32>; 45] {
         [
             &mut self.upg, &mut self.smod, &mut self.applied, &mut self.tmod_code, &mut self.tmod_amt, &mut self.tmod_left,
             &mut self.tmod_key, &mut self.dot_src, &mut self.dot_key, &mut self.dot_amt, &mut self.dot_period,
@@ -381,7 +382,7 @@ impl SpellState {
             &mut self.zone_delay, &mut self.zone_rank, &mut self.zone_follow, &mut self.charge_n, &mut self.charge_t, &mut self.chain_left, &mut self.chain_caster, &mut self.chain_cur, &mut self.chain_prev,
             &mut self.chain_dmg, &mut self.chain_radius, &mut self.chain_type, &mut self.chain_wait,
             &mut self.chain_delay, &mut self.ill_out, &mut self.ill_in, &mut self.taunter, &mut self.hex_speed,
-            &mut self.hits_taken, &mut self.pend_slot, &mut self.pend_target, &mut self.pend_x, &mut self.pend_y,
+            &mut self.hits_taken, &mut self.hits_made, &mut self.pend_slot, &mut self.pend_target, &mut self.pend_x, &mut self.pend_y,
         ]
     }
 
@@ -396,6 +397,7 @@ impl SpellState {
         self.taunter[i] = -1;
         self.hex_speed[i] = 0;
         self.hits_taken[i] = 0;
+        self.hits_made[i] = 0;
         self.pend_slot[i] = -1;
         self.charge_n[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].fill(-1);
         self.charge_t[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].fill(0);
@@ -716,8 +718,6 @@ impl Sim {
                     self.status_with_source(caster, j, eff.p0 as usize, eff.p1, crate::status::SLOW_NONE);
                 }
             }
-            crate::teleport::K_TELEPORT => self.teleport_effect(caster, eff, recv),
-            crate::refresh::K_REFRESH => self.refresh_effect(caster, eff),
             K_ATTACK => {
                 if let Some(j) = recv.filter(|&j| j != caster && self.hostile(self.player[caster], self.player[j])) {
                     self.strike_pct(caster, j, eff.p0);
@@ -1198,6 +1198,7 @@ impl Sim {
     /// Proc abilities after a weapon hit of `attacker` on `victim`: the attacker's on-attack procs and
     /// the victim's on-attacked procs.
     fn hit_procs(&mut self, attacker: usize, victim: usize) {
+        self.spell.hits_made[attacker] += 1;
         self.run_procs(attacker, victim, FLAG_PROC_ATTACK, victim as i32);
         if self.alive[victim] != 0 {
             self.spell.hits_taken[victim] += 1;
@@ -1205,54 +1206,31 @@ impl Sim {
         }
     }
 
-    /// The abilities unit `owner` runs as passives: its ability slots, then the abilities of the items
-    /// in its active slots. Each comes with the slot that holds its cooldown.
-    fn passive_sources(&self, owner: usize) -> ([(usize, Slot); ABILITY_SLOTS + crate::inventory::INV_SLOTS], usize) {
-        let mut out = [(0, Slot::Ability(0)); ABILITY_SLOTS + crate::inventory::INV_SLOTS];
-        let mut n = 0;
-        for slot in 0..ABILITY_SLOTS {
-            let idx = owner * ABILITY_SLOTS + slot;
-            if self.abil_idx[idx] >= 0 {
-                out[n] = (self.abil_idx[idx] as usize, Slot::Ability(idx));
-                n += 1;
-            }
-        }
-        for slot in (0..crate::inventory::INV_SLOTS).filter(|&s| crate::inventory::slot_active(s)) {
-            let key = owner * crate::inventory::INV_SLOTS + slot;
-            let ability = if self.inv_count[key] > 0 { self.item_def(self.inv_kind[key]).map(|d| d.ability) } else { None };
-            if let Some(ai) = ability.filter(|&a| a != crate::loader::NO_INDEX) {
-                out[n] = (ai as usize, Slot::Item(key));
-                n += 1;
-            }
-        }
-        (out, n)
-    }
-
     fn run_procs(&mut self, owner: usize, other: usize, flag: u16, target: i32) {
         if self.stunned(owner) || self.alive[owner] == 0 {
             return;
         }
-        let (sources, count) = self.passive_sources(owner);
-        for &(ai, slot) in &sources[..count] {
-            if self.cooldown(slot) > 0 {
+        for slot in 0..ABILITY_SLOTS {
+            let idx = owner * ABILITY_SLOTS + slot;
+            let ai = self.abil_idx[idx];
+            if ai < 0 || self.abil_cd[idx] > 0 {
                 continue;
             }
+            let ai = ai as usize;
             let ext = self.ext_of(ai);
             if ext.flags & flag == 0 {
                 continue;
             }
             let ability = self.cat.abilities[ai];
-            let rank = match slot {
-                Slot::Ability(idx) => self.abil_rank[idx] as usize,
-                Slot::Item(_) => 0,
-            };
+            let rank = self.abil_rank[idx] as usize;
             if ability.skill.is_some() && rank == 0 {
                 continue;
             }
             let fire = if ext.flags & FLAG_COUNTED != 0 {
                 let every = self.ability_field(owner, ai, SCALED_PERIOD, ext.period).max(1);
-                self.spell.hits_taken[owner] >= every && {
-                    self.spell.hits_taken[owner] = 0;
+                let counter = if flag == FLAG_PROC_ATTACK { &mut self.spell.hits_made[owner] } else { &mut self.spell.hits_taken[owner] };
+                *counter >= every && {
+                    *counter = 0;
                     true
                 }
             } else {
@@ -1263,7 +1241,7 @@ impl Sim {
                 continue;
             }
             let (_, cooldown) = self.cast_costs(owner, ai, 0, ability.skill.map_or(ability.cooldown, |s| s.cooldown[rank.max(1) - 1]));
-            self.set_cooldown(slot, cooldown);
+            self.abil_cd[idx] = cooldown;
             let at = if flag == FLAG_PROC_ATTACKED { owner } else { other };
             let (x, y) = (self.pos_x[at], self.pos_y[at]);
             self.run_effects(owner, ai, x, y, target);
@@ -1413,23 +1391,22 @@ impl Sim {
     }
 
     fn tick_auras(&mut self, i: usize) {
-        let (sources, count) = self.passive_sources(i);
-        for &(ai, slot) in &sources[..count] {
-            if self.cooldown(slot) > 0 {
+        for slot in 0..ABILITY_SLOTS {
+            let idx = i * ABILITY_SLOTS + slot;
+            let ai = self.abil_idx[idx];
+            if ai < 0 || self.abil_cd[idx] > 0 {
                 continue;
             }
+            let ai = ai as usize;
             let ext = self.ext_of(ai);
             if ext.flags & FLAG_AURA == 0 {
                 continue;
             }
             let ability = self.cat.abilities[ai];
-            if let Slot::Ability(idx) = slot {
-                if ability.skill.is_some() && self.abil_rank[idx] == 0 {
-                    continue;
-                }
+            if ability.skill.is_some() && self.abil_rank[idx] == 0 {
+                continue;
             }
-            let period = self.ability_field(i, ai, SCALED_PERIOD, ext.period).max(1);
-            self.set_cooldown(slot, period);
+            self.abil_cd[idx] = self.ability_field(i, ai, SCALED_PERIOD, ext.period).max(1);
             let (x, y) = (self.pos_x[i], self.pos_y[i]);
             self.run_effects(i, ai, x, y, i as i32);
         }

@@ -391,6 +391,10 @@ impl Sim {
             dmg = (dmg as i64 * self.spell.ill_in[j] as i64 / 100) as i32;
         }
         if dmg > 0 {
+            let reduction = self.stat(j, crate::spell::S_DAMAGE_REDUCTION).clamp(-100, 100) as i64;
+            if reduction != 0 {
+                dmg = (dmg as i64 * (100 - reduction) / 100) as i32;
+            }
             self.trig_hit[j] = 1;
             if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
                 self.remember_hitter(j, attacker);
@@ -420,7 +424,7 @@ impl Sim {
             self.alive[j] = 0;
             self.trig_death[j] = 1;
             self.stats.deaths += 1;
-            if fell && !self.is_illusion(j) && !self.reincarnate(j) {
+            if fell && !self.is_illusion(j) {
                 self.record_death(j, attacker);
                 self.pay_bounty(j, attacker);
                 self.share_xp(j, attacker);
