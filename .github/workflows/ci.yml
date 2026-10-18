@@ -1894,6 +1894,7 @@ jobs:
               const attacks = Number(await page.getAttribute("body", "data-attacks"));
               console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
               if (attacks > attacks0) { attacker = cand; break; }
+              console.log(`probe direct attack cand=${cand.id} foe=${foe.id} accepted=${await page.evaluate(([u, t]) => window.__ciLocalAttack(u, t), [cand.id, foe.id])} selected=${await page.evaluate(() => window.__ciSelected())} hostile=${hostilePairs.has(`${cand.player}:${foe.player}`)} dist2=${dist2(foe, cand).toFixed(1)}`);
             }
             if (attacker) break;
           }
