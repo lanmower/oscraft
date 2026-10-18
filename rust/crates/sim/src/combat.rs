@@ -247,14 +247,14 @@ impl Sim {
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
 
-    /// Pays the destroyed unit's bounty. A hero killer keeps it as gold, less the team share (see
-    /// hero.rs); any other killer pays the rival side's resource pool.
+    /// Pays the destroyed unit's bounty. Any killer unit keeps it as its own gold, less the team
+    /// share (see hero.rs). Only an attackerless kill pays the rival side's resource pool.
     fn pay_bounty(&mut self, j: usize, attacker: i32) {
         let bounty = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty);
         if bounty <= 0 || self.was_denied(j, attacker) {
             return;
         }
-        if attacker >= 0 && self.is_hero(attacker as usize) {
+        if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
             self.hero_bounty(attacker as usize, bounty);
             return;
         }
