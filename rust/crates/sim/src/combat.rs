@@ -166,6 +166,29 @@ impl Sim {
             self.cooldown[i] -= 1;
             return;
         }
+        let Some(b) = self.best_strike_target(i) else {
+            return;
+        };
+        self.cooldown[i] = self.attack_period(i);
+        if self.misses(i) {
+            return;
+        }
+        self.strike(i, b);
+    }
+
+    /// True when unit `i` is on an attack-move order and an enemy is in weapon reach: it holds its
+    /// position and strikes instead of walking past, and its route order resumes once the target
+    /// dies or leaves reach.
+    pub(crate) fn engaged(&self, i: usize) -> bool {
+        self.order_kind[i] == ORDER_ATTACK_MOVE && self.best_strike_target(i).is_some()
+    }
+
+    /// The enemy unit auto-attack would strike for unit `i` this tick, if any: the taunt target when
+    /// one is set, else the best visible enemy in weapon reach by target class, then distance.
+    pub(crate) fn best_strike_target(&self, i: usize) -> Option<usize> {
+        if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
+            return None;
+        }
         let rc = (fixed::round(self.range_q[i]) + 1).clamp(1, 8) + STRUCTURE_SCAN_CELLS;
         let cx = cell_of(self.pos_x[i]);
         let cy = cell_of(self.pos_y[i]);
@@ -210,15 +233,7 @@ impl Sim {
         if let Some(t) = self.taunt_target(i) {
             best = t as i64;
         }
-        if best < 0 {
-            return;
-        }
-        let b = best as usize;
-        self.cooldown[i] = self.attack_period(i);
-        if self.misses(i) {
-            return;
-        }
-        self.strike(i, b);
+        (best >= 0).then_some(best as usize)
     }
 
     /// Orders unit `i` to strike unit `target` through the weapon path (cooldown, armour,
