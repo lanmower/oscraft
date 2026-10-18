@@ -114,6 +114,27 @@ jobs:
             console.log("render3d ok");
           '
 
+      - name: Animated GLB parses and its first clip samples
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const glb = await import("./js/client/glb.js");
+            const anim = await import("./js/client/anim.js");
+            const file = fs.readFileSync("./js/client/models/character-female-a.glb");
+            const bytes = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+            const mesh = glb.parseGlb(bytes);
+            if (!mesh.positions.length || !mesh.indices.length) throw new Error("mesh has no geometry");
+            const { clips, skins } = glb.parseGlbAnimations(bytes);
+            if (!clips.length || !skins.length) throw new Error("no clips or skins");
+            const pose = anim.samplePose(clips[0], clips[0].duration / 2, true);
+            if (!pose || pose.size === 0) throw new Error("first clip sampled no channels");
+            const player = new anim.AnimationPlayer(clips);
+            if (!player.playState({ moving: true })) throw new Error("walk clip missing");
+            console.log(`anim ok clips=${clips.length}`);
+          '
+
       - name: Snapshot restores with a matching state_hash
         working-directory: ${{ github.workspace }}
         run: |
@@ -167,7 +188,7 @@ jobs:
             console.log(`terrain ok tris=${tris}`);
             const { existsSync } = await import("node:fs");
             const map = JSON.parse(fs.readFileSync("./js/client/doodads.json", "utf8"));
-            for (const kind of ["rock", "tree", "crystal", "debris"]) {
+            for (const kind of ["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp"]) {
               const file = map[kind];
               if (!file) throw new Error("doodads.json has no model for " + kind);
               if (!existsSync("./js/client/" + file)) throw new Error("mapped model missing: " + file);
