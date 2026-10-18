@@ -69,7 +69,9 @@ pub struct Snapshot {
     pub state_hash: u64,
     pub units: usize,
     pub winner: i32,
-    pub resource_a: [i32; 2],
+    pub resource_a: Vec<i32>,
+    pub players: usize,
+    pub sides: usize,
     pub records: Vec<String>,
 }
 
@@ -223,7 +225,9 @@ impl Room {
             state_hash: c.sim.state_hash(),
             units: c.sim.alive_count(),
             winner: c.sim.winner().map_or(-1, |side| side as i32),
-            resource_a: [c.sim.resource_a(0), c.sim.resource_a(1)],
+            resource_a: (0..c.sim.player_count()).map(|p| c.sim.resource_a(p as u8)).collect(),
+            players: c.sim.player_count(),
+            sides: c.sim.side_count(),
             records: live_records(&c.sim),
         }
     }

@@ -7,7 +7,7 @@ import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders
 const W = 32;
 const H = 24;
 const BACKGROUND = 0x1d252c;
-const PLAYER_COLORS = [0x3a7bd5, 0xd5543a];
+const PLAYER_COLORS = [0x3a7bd5, 0xd5543a, 0x3ab26b, 0xb23ab2, 0xd5b33a, 0x3ab2b2, 0xd58a3a, 0x7a3ad5, 0xa5a5a5, 0xd53a7a];
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const PICK_RADIUS = 1.0;

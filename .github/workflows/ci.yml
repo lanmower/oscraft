@@ -2901,7 +2901,8 @@ jobs:
           expected_units=$((spawns + starts * workers))
           lanes_per_wave=$(grep -E '^ability\("creep_wave"' abilities.osd | grep -o 'effect("spawn"' | wc -l)
           initial_units=$((expected_units + bases * initial * lanes_per_wave))
-          sides=$(jq '[.records[].player | select(. >= 0 and . != 255)] | unique | length' "$work/s0.json")
+          sides=$(jq '.sides' "$work/s0.json")
+          players=$(jq '.players' "$work/s0.json")
           patches=$(grep -oE 'patches_per_base *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           geysers=$(grep -oE 'geysers_per_base *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           neutral=$(jq '[.records[] | select(.player == 255)] | length' "$work/s0.json")
@@ -2910,10 +2911,13 @@ jobs:
           echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases initial_waves=$initial cooldown=$cooldown expected_units=$expected_units"
           echo "served from tick 3: units=$units0 sides=$sides; expected with initial waves=$initial_units"
           test "$units0" -eq "$initial_units"
-          test "$sides" -eq "$starts"
+          test "$sides" -eq 2
+          test "$players" -eq "$starts"
+          test "$players" -eq 10
           test "$lanes" -eq 3
-          test "$heroes" -eq $((starts * 5))
-          for s in $(seq 0 $((starts - 1))); do test "$(grep -cE "^spawn\(\"hero\", *$s," map.osd)" -eq 5; done
+          test "$heroes" -eq "$starts"
+          for s in $(seq 0 $((starts - 1))); do test "$(grep -cE "^spawn\(\"hero\", *$s," map.osd)" -eq 1; done
+          echo "moba players=$players"
           grid_w=$(grep -oE '^grid\([0-9]+' map.osd | grep -oE '[0-9]+$')
           grid_h=$(grep -oE '^grid\([0-9]+, *[0-9]+' map.osd | grep -oE '[0-9]+$')
           echo "moba map 5v5 sides=$sides heroes=$heroes lanes=$lanes towers=$towers"
