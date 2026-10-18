@@ -1985,6 +1985,13 @@ jobs:
             return p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h
               && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [p.x, p.y]));
           };
+          // Creeps from the two sides first come into reach mid-lane, so wait on the sim tick (16 per second) for a hostile pair
+          // within 8 cells, for at most 180 game seconds. The attacker check below still has to pass.
+          await page.waitForFunction(() => {
+            if (Number(document.body.dataset.ticks) >= 16 * 180) return true;
+            const us = window.__ciUnits();
+            return us.some((a) => a.player !== 255 && us.some((b) => b !== a && (a.x - b.x) ** 2 + (a.z - b.z) ** 2 <= 64 && window.__ciHostile(a.player, b.player)));
+          }, null, { timeout: 240000, polling: 500 }).catch(() => {});
           for (const cand of ranked.reverse().slice(0, 400)) {
             // Select through the CI hook: a click can land on another unit drawn over this one.
             // An attack needs a visible, hostile target: the camera moves onto the candidate, then only enemies inside its sight (9 cells) are tried, nearest first.
@@ -3542,7 +3549,8 @@ jobs:
             }
             if (!direct(h) || !direct(p)) throw new Error(`not direct host/srflx: host=${JSON.stringify(h)} peer=${JSON.stringify(p)}`);
             const start = await peer.evaluate(() => window.__ciUnits());
-            const unit = start.find((u) => u.player === 0);
+            // Unit kind 0 is the hero; kind 2 is the Ancient base, which never moves, so it cannot prove a move.
+            const unit = start.find((u) => u.player === 0 && u.type === 0);
             if (!unit) throw new Error("no unit owned by the first peer's player 0");
             const movedToward = (u, t) => !!u && dist(u, t) < dist(unit, t) - 1;
             const seen = async (page) => page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, unit.id);
