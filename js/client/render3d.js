@@ -135,6 +135,14 @@ export function orbitCamera(cam, dxPx, dyPx, radiansPerPx = 0.005) {
   return cam;
 }
 
+// Keeps the target inside cam.bounds ([minX, minZ, maxX, maxZ] on the ground plane) when the camera has one.
+export function clampTarget(cam) {
+  if (!cam.bounds) return cam;
+  cam.target[0] = Math.min(cam.bounds[2], Math.max(cam.bounds[0], cam.target[0]));
+  cam.target[2] = Math.min(cam.bounds[3], Math.max(cam.bounds[1], cam.target[2]));
+  return cam;
+}
+
 // Slides the target across the ground plane: horizontal drag follows the camera's right vector,
 // vertical drag follows its horizontal forward vector. Scale is world units per pixel at the target.
 export function panCamera(cam, dxPx, dyPx, viewportHeightPx) {
@@ -144,7 +152,7 @@ export function panCamera(cam, dxPx, dyPx, viewportHeightPx) {
   for (let i = 0; i < 3; i++) {
     cam.target[i] += (-right[i] * dxPx + forward[i] * dyPx) * k;
   }
-  return cam;
+  return clampTarget(cam);
 }
 
 // Wheel delta in the usual browser units (about 100 per notch). Positive zooms out.
@@ -285,7 +293,7 @@ export function createRenderer(gl) {
     // Merges the given fields into the orbit camera. Accepts the createCamera fields plus `aspect`.
     setCamera(opts = {}) {
       if (opts.aspect !== undefined) aspect = opts.aspect;
-      for (const key of ["target", "yaw", "pitch", "distance", "minDistance", "maxDistance", "fovY", "near", "far"]) {
+      for (const key of ["target", "yaw", "pitch", "distance", "minDistance", "maxDistance", "fovY", "near", "far", "bounds"]) {
         if (opts[key] !== undefined) camera[key] = key === "target" ? [...opts.target] : opts[key];
       }
       return camera;

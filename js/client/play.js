@@ -12,7 +12,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, multiply, rotationY, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, fitModel, GROUND_KINDS, TILE_MODELS, TILE_TINTS } from "./tiles.js";
+import { bakeTiles, fitModel, GROUND_KINDS, TILE_MODELS, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, HERO_ROSTER } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -41,6 +41,7 @@ const FLAT_PX_PER_UNIT = 20;
 const DRAG_SLOP_PX = 4;
 const PAN_PX_PER_S = 500;
 let orbitOrigin = [W / 2, 0, H / 2];
+let cameraBounds = null;
 let cameraDistance = Math.min(CAMERA_PLAY_DISTANCE, CAMERA_DISTANCE_PER_TILE * Math.max(W, H));
 let cameraMaxDistance = Math.max(CAMERA_MAX_FLOOR, CAMERA_MAX_PER_TILE * Math.max(W, H));
 const DOODAD_KINDS = ["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp", "side_shop", "secret_shop"];
@@ -136,7 +137,9 @@ function setMapSize(grid) {
   H = grid.height;
   flatView.cx = W / 2;
   flatView.cz = H / 2;
-  orbitOrigin = [W / 2, 0, H / 2];
+  const [x0, z0, x1, z1] = walkableBounds(grid);
+  cameraBounds = [x0, z0, x1, z1];
+  orbitOrigin = [(x0 + x1) / 2, 0, (z0 + z1) / 2];
   cameraDistance = Math.min(CAMERA_PLAY_DISTANCE, CAMERA_DISTANCE_PER_TILE * Math.max(W, H));
   cameraMaxDistance = Math.max(CAMERA_MAX_FLOOR, CAMERA_MAX_PER_TILE * Math.max(W, H));
 }
@@ -1023,7 +1026,7 @@ async function main() {
   localGame = await loadSim();
   if (gl) {
     renderer3d = createRenderer3d(gl);
-    renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, pitch: 0.9 });
+    renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, bounds: cameraBounds, pitch: 0.9 });
     try {
       await build3d(gl, localGame);
     } catch (err) {

@@ -14,17 +14,69 @@ export const TILE_MODELS = Object.freeze({
 // Fallback colour for a tile model with no base colour texture (the lane and river tiles ship untextured).
 export const TILE_TINTS = Object.freeze({ grass: [1, 1, 1], dirt: [0.5, 0.38, 0.24], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
 // Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass.
-export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3 });
+export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 4 });
+export const VOID_REACH = 2;
 const CLIFF_BIT = 2;
 const BLOCKED_BIT = 1;
 
-// A cell's kind from its walkability bits and tile id: cliff first, then blocked water, then the tile id.
+// A cell's kind from its walkability bits and tile id: cliff bit first, then a blocked cell is water only when its tile
+// id says so and rock otherwise, then the flat tile ids.
 export function cellKind(flags, tile) {
   if (flags & CLIFF_BIT) return "cliff";
-  if (flags & BLOCKED_BIT) return "water";
+  if (flags & BLOCKED_BIT) return tile === TILE_IDS.water ? "water" : "cliff";
   if (tile === TILE_IDS.lane) return "lane";
   if (tile === TILE_IDS.dirt) return "dirt";
   return "grass";
+}
+
+// Cells with no walkable cell within `reach` cells (Chebyshev): the unreachable void around and between playfields.
+export function voidMask(grid, reach = VOID_REACH) {
+  const { width: w, height: h, flags } = grid;
+  const open = (i) => (flags[i] & (BLOCKED_BIT | CLIFF_BIT)) === 0;
+  const rows = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    let last = -Infinity;
+    const base = y * w;
+    for (let x = 0; x < w; x++) {
+      if (open(base + x)) last = x;
+      if (x - last <= reach) rows[base + x] = 1;
+    }
+    last = Infinity;
+    for (let x = w - 1; x >= 0; x--) {
+      if (open(base + x)) last = x;
+      if (last - x <= reach) rows[base + x] = 1;
+    }
+  }
+  const near = new Uint8Array(w * h);
+  for (let x = 0; x < w; x++) {
+    let last = -Infinity;
+    for (let y = 0; y < h; y++) {
+      if (rows[y * w + x]) last = y;
+      if (y - last <= reach) near[y * w + x] = 1;
+    }
+    last = Infinity;
+    for (let y = h - 1; y >= 0; y--) {
+      if (rows[y * w + x]) last = y;
+      if (last - y <= reach) near[y * w + x] = 1;
+    }
+  }
+  return near.map((v) => 1 - v);
+}
+
+// Cell-space bounding box [x0, z0, x1, z1] of the walkable cells, or the whole grid when none is open.
+export function walkableBounds(grid) {
+  const { width: w, height: h, flags } = grid;
+  let x0 = w, z0 = h, x1 = 0, z1 = 0;
+  for (let i = 0; i < w * h; i++) {
+    if (flags[i] & (BLOCKED_BIT | CLIFF_BIT)) continue;
+    const x = i % w;
+    const z = (i - x) / w;
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (z < z0) z0 = z;
+    if (z > z1) z1 = z;
+  }
+  return x1 < x0 ? [0, 0, w, h] : [x0, z0, x1 + 1, z1 + 1];
 }
 
 // A GLB centred on x and z, its larger footprint side scaled to `size`, and stood on y = 0.
@@ -73,7 +125,12 @@ export function bakeTiles(bytes, models) {
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const kindAt = new Uint8Array(w * h);
   const names = [];
+  const empty = voidMask(grid);
   for (let i = 0; i < w * h; i++) {
+    if (empty[i]) {
+      kindAt[i] = 255;
+      continue;
+    }
     const kind = cellKind(flags[i], tiles[i]);
     if (!models[kind]) return null;
     let id = names.indexOf(kind);
@@ -88,6 +145,7 @@ export function bakeTiles(bytes, models) {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
+      if (kindAt[i] === 255) continue;
       const kind = names[kindAt[i]];
       const list = groups.get(kind);
       const phase = list.length === 1 ? 0 : (y % GROUND_PERIOD) * GROUND_PERIOD + (x % GROUND_PERIOD);

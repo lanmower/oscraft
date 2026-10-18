@@ -2,6 +2,8 @@
 // through injected commands (local sim or wireweave host), update() refreshes the HUD text, winner banner,
 // unit health bars and minimap from the wasm Game each frame.
 
+import { cellKind, voidMask } from "./tiles.js";
+
 const TICK_S = 0.1;
 const ABILITY_SLOTS = { q: 0, w: 1, e: 2 };
 const ATTACK_KEY = "a";
@@ -17,7 +19,12 @@ export function formatClock(ticks) {
   return `${minutes}:${seconds}`;
 }
 
-// Open (walkable) cells of the map grid as a small canvas: the lanes and the river show as the open area.
+const VOID_RGB = [20, 24, 28];
+const OPEN_RGB = [104, 124, 94];
+const ROCK_RGB = [58, 64, 70];
+const WATER_RGB = [48, 96, 150];
+
+// The map grid as a small canvas: void dark, walkable cells light, rock and cliff edges between, water where tiles say so.
 function walkableLayer(grid) {
   if (!grid) return null;
   const layer = document.createElement("canvas");
@@ -25,9 +32,11 @@ function walkableLayer(grid) {
   layer.height = grid.height;
   const ctx = layer.getContext("2d");
   const pixels = ctx.createImageData(grid.width, grid.height);
+  const empty = voidMask(grid);
   for (let i = 0; i < grid.width * grid.height; i++) {
-    const open = grid.flags[i] === 0;
-    pixels.data.set(open ? [92, 110, 84, 255] : [36, 42, 48, 255], i * 4);
+    const kind = cellKind(grid.flags[i], grid.tiles[i]);
+    const rgb = empty[i] ? VOID_RGB : kind === "water" ? WATER_RGB : kind === "cliff" ? ROCK_RGB : OPEN_RGB;
+    pixels.data.set([rgb[0], rgb[1], rgb[2], 255], i * 4);
   }
   ctx.putImageData(pixels, 0, 0);
   return layer;

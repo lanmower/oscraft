@@ -9,7 +9,7 @@ export const CELL_KINDS = Object.freeze({
   grass: { cell: 0, tile: 0 },
   dirt: { cell: 0, tile: TILE_IDS.dirt },
   lane: { cell: 0, tile: TILE_IDS.lane },
-  water: { cell: 1, tile: 0 },
+  water: { cell: 1, tile: TILE_IDS.water },
   cliff: { cell: 2, tile: 0 },
 });
 const MAX_LEVEL = 255;
