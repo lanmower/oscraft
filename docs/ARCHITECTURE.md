@@ -71,3 +71,20 @@ Where each control decision lives. Classes: **(a)** already Lua or movable to Lu
 | `js/client/rooms.js` `MAX_PLAYERS`, `play.js` colours and camera | Presentation constants | (c) | Not designer control logic. |
 
 Nothing in class (a) remains in Rust. The next moves need host APIs: a map/region query for bot and wave geometry, a camp and training policy block in scenario data, and a key-binding and shop-flow UI call for the client.
+
+## Client and server separation
+
+Boundary. The browser owns rendering (`render3d.js`, and the TSL path when it lands), input, UI (`hud*.js`, `ui_*.js`, `lobby.js`, `editor.js`) and the browser sim wasm (`pkg/web.js`, loaded through `data-pkg`). The server owns authoritative sim hosting, rooms, mods and its HTTP surface. The only contract between them is the wire protocol ([WIRE.md](WIRE.md), `js/wire/frame.js`) and static files (`map.bin`, `moba.bin`, `models/`, `doodads.json`, `assets.json`).
+
+Audit of `js/client` (imports, `fetch`, dynamic `import()`, wasm, and `/state`, `/events`, `/replay`, `/map` routes):
+
+| # | Where | Coupling | Status | Fix |
+|---|---|---|---|---|
+| 1 | `modui.js` `poll`; `play.js` `eventsBase` from `?events=` | Polls the server's `GET /events` for mod UI events | Remaining, opt-in | Carry mod UI events in the wire frame or a static feed |
+| 2 | `replay.js` start hint | Named the server's `/replay` route | Fixed: hint names any static `.replay` file; `?replay=URL` unchanged | none |
+| 3 | `play.html` `data-pkg`, `play.js` `loadSim`, `replay.js` `start` | Sim `pkg/web.js` and `web_bg.wasm` are wasm-pack output of `rust/crates/web`; the page cannot run without that build | Allowed by the boundary (browser owns the sim wasm); built by CI, never committed | Keep; CI already stages it |
+| 4 | `play.html` `data-map`, `play.js` `mapUrl`, `editor.js` `map.bin` | Map images written by `mapexport` | Static files on Pages | none |
+| 5 | `js/client/editor-check.mjs` | Node witness in the client tree that runs the Rust `osdt-data` compile | Remaining | Move to `scripts/` and update the CI path |
+| 6 | `play.html` import map | `wireweave`, `nostr-tools`, `xstate` from CDN; `three/webgpu` and `three/tsl` vendored under `js/client/vendor/three` (pinned in [NOTICE.md](../NOTICE.md)) | OK | none |
+
+Coupling count, server routes plus Rust tooling in the client tree: before 4 (routes 3: `/events` fetch, `eventsBase` wiring, `/replay` hint; tool 1), after 3 (routes 2, tool 1). No client file requires a running server to load; `/events` is needed only when `?events=` is given.

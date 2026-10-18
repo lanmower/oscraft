@@ -159,7 +159,7 @@ async function start() {
     await open(await r.text());
     state.playing = params.get("autoplay") !== "0";
   } else {
-    say("choose a .replay file (or ?replay=URL, e.g. the server's /replay)");
+    say("choose a .replay file (or ?replay=URL to any static .replay file)");
   }
 }
 

@@ -13,6 +13,7 @@ dependencies are not listed because no `Cargo.lock` is tracked.
 | lzma-rs | =0.3.0 | MIT | https://crates.io/crates/lzma-rs/0.3.0 | rust/crates/mpq |
 | mlua | 0.10 (manifest range; resolved version unknown, verify; 0.10.5 is MIT) | MIT | https://crates.io/crates/mlua | rust/crates/spike (feature `vendored`) |
 | Lua 5.4 (vendored through mlua) | unknown, verify (lua-src crate) | MIT | https://www.lua.org/license.html and https://crates.io/crates/lua-src | built from source via mlua `vendored` |
+| three.js | 0.186.1 | MIT (see `js/client/vendor/three/LICENSE`) | https://registry.npmjs.org/three/-/three-0.186.1.tgz; vendored `build/three.core.js`, `three.module.js`, `three.webgpu.js`, `three.tsl.js` | js/client/vendor/three (WebGPU and TSL build, buildless ES modules) |
 | 3D model and texture pack (GLB models, colormap and terrain textures) | owner-confirmed CC0 (public domain dedication; no attribution required) | CC0 1.0 | local pack, untracked `assets/Models`; shipped copies in `js/client/models`, `rust/crates/web/site/assets` | browser client, moba and terrain scenes |
 
 
