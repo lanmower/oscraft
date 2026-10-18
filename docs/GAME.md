@@ -2,7 +2,7 @@
 
 The `scenarios/moba` scenario is a data-only match: the engine has no scenario-specific code, and every number here comes from the `.osd` files in that directory. The full tables are in [REFERENCE.md](REFERENCE.md), generated from the same files.
 
-**Provenance.** A figure is UNVERIFIED unless its `.osd` comment cites a source. Cited figures: tower health, armor and damage; creep health, armor, damage, gold and xp bounty; Roshan health, damage, armor, gold and xp; the cost of the blink item. The abilities of eight heroes (axe, crystal_maiden, sven, juggernaut, zuus, sniper, lion, omniknight) are Valve's, see [ABILITIES.md](ABILITIES.md). Everything else (speeds, radii, ranges, sight, item costs and stats, timers, positions, the abilities of the other heroes) is a placeholder. Where this page marks a figure UNVERIFIED, expect it to change.
+**Provenance.** A figure is UNVERIFIED unless its `.osd` comment cites a source. Cited figures: every `npc_units.txt` stat of lane creeps, towers, barracks, the ancient, outposts, neutral types, Roshan, the Tormentor, wards and the courier, and the wave, siege, camp, Roshan, Tormentor and rune timers listed under Units and structures: Dota parity; the cost of the blink item. The abilities of eight heroes (axe, crystal_maiden, sven, juggernaut, zuus, sniper, lion, omniknight) are Valve's, see [ABILITIES.md](ABILITIES.md). Everything else (item costs and stats, timers, positions, the abilities of the other heroes) is a placeholder. Where this page marks a figure UNVERIFIED, expect it to change.
 
 Time: the sim runs 16 ticks per second. Distances are milli-units; one map cell is 1000 (64 Dota units).
 
