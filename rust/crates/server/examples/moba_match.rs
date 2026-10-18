@@ -47,18 +47,41 @@ fn first_alive(sim: &Sim, pred: impl Fn(usize) -> bool) -> Option<usize> {
 
 const DEFEND_RADIUS_TILES: i64 = 25;
 
-fn defender_of_base(sim: &Sim, h: usize) -> Option<usize> {
+fn dist2(sim: &Sim, a: usize, b: usize) -> i64 {
+    let (ax, ay) = sim.position_fixed(a);
+    let (bx, by) = sim.position_fixed(b);
+    (ax as i64 - bx as i64).pow(2) + (ay as i64 - by as i64).pow(2)
+}
+
+fn own_base(sim: &Sim, h: usize) -> Option<usize> {
     let side_h = side(sim.player(h));
-    let base = first_alive(sim, |j| sim.kind_name(j) == Some("base") && side(sim.player(j)) == side_h)?;
-    let (bx, by) = sim.position_fixed(base);
+    first_alive(sim, |j| sim.kind_name(j) == Some("base") && side(sim.player(j)) == side_h)
+}
+
+// The push target: the rival tower or barracks nearest our base. Every hero on a side
+// picks the same one, so the lane is pushed as a unit; when it dies the next one is chosen.
+fn front_structure(sim: &Sim, h: usize) -> Option<usize> {
+    let base = own_base(sim, h)?;
+    (0..sim.count())
+        .filter(|&j| {
+            sim.alive(j)
+                && sim.player(j) != NEUTRAL
+                && sim.hostile(sim.player(h), sim.player(j))
+                && sim.kind_name(j).is_some_and(|k| k.starts_with("tower") || k.starts_with("barracks"))
+        })
+        .min_by_key(|&j| dist2(sim, j, base))
+}
+
+// Only enemy heroes inside the base radius pull a hero back; creeps do not stall the push.
+fn hero_defender_of_base(sim: &Sim, h: usize) -> Option<usize> {
+    let base = own_base(sim, h)?;
     let reach = (DEFEND_RADIUS_TILES << sim::fixed::SHIFT).pow(2);
     let mut best: Option<(i64, usize)> = None;
     for j in 0..sim.count() {
-        if !sim.alive(j) || sim.player(j) == NEUTRAL || !sim.hostile(sim.player(h), sim.player(j)) {
+        if !sim.alive(j) || !sim.is_hero(j) || sim.player(j) == NEUTRAL || !sim.hostile(sim.player(h), sim.player(j)) {
             continue;
         }
-        let (x, y) = sim.position_fixed(j);
-        let d = (x as i64 - bx as i64).pow(2) + (y as i64 - by as i64).pow(2);
+        let d = dist2(sim, j, base);
         if d <= reach && best.is_none_or(|(bd, _)| d < bd) {
             best = Some((d, j));
         }
@@ -77,11 +100,6 @@ fn is_roshan(sim: &Sim, j: usize) -> bool {
 
 fn is_camp_unit(sim: &Sim, j: usize) -> bool {
     sim.player(j) == NEUTRAL && sim.kind_name(j).is_some_and(|k| k.starts_with("neutral_") || k == "creep")
-}
-
-fn is_enemy_structure(sim: &Sim, h: usize, j: usize) -> bool {
-    sim.hostile(sim.player(h), sim.player(j))
-        && sim.kind_name(j).is_some_and(|k| k.starts_with("tower") || k.starts_with("barracks") || k == "base")
 }
 
 fn nearest_by(sim: &Sim, h: usize, pred: impl Fn(usize) -> bool) -> Option<usize> {
@@ -172,9 +190,9 @@ fn main() {
             let target = if phase_camp {
                 nearest_by(&sim, h, |j| is_camp_unit(&sim, j))
             } else {
-                defender_of_base(&sim, h)
+                hero_defender_of_base(&sim, h)
                     .or_else(|| if phase_roshan { first_alive(&sim, |j| is_roshan(&sim, j)) } else { None })
-                    .or_else(|| nearest_by(&sim, h, |j| is_enemy_structure(&sim, h, j)))
+                    .or_else(|| front_structure(&sim, h))
                     .or_else(|| rival_base_of(&sim, h))
                     .or(hostile_hero)
                     .or_else(|| first_alive(&sim, |j| sim.hostile(sim.player(h), sim.player(j)) && j != h))
