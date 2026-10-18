@@ -10,7 +10,7 @@ import { AnimationPlayer, jointMatrices } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
-import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
+import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { bakeTiles, fitModel, GROUND_KINDS, TILE_MODELS, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
@@ -75,6 +75,9 @@ let tileMeshes = null;
 let terrainTiles = null;
 let unitMeshes = [];
 const drawCounts = { terrain: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
+// Scratch matrices for the per-unit transform and the screen projection, reused every frame.
+const unitTransform = new Float32Array(16);
+const worldVp = new Float32Array(16);
 // Doodads grouped per mesh into static instance batches, and the per-frame batches of unskinned units per mesh.
 let doodadBatches = [];
 const unitBatches = new Map();
@@ -146,8 +149,8 @@ function setMapSize(grid) {
 
 // Skin, node tree and clips for a skinned GLB, with its rest-pose geometry (the joint matrices carry the fit).
 // Null when the model has no clips or its skin has more joints than the shader palette.
-function skinnedRig(bytes, glb, fit) {
-  const { clips, skins, nodes } = parseGlbAnimations(bytes);
+function skinnedRig(animations, glb, fit) {
+  const { clips, skins, nodes } = animations;
   const skin = skins[0];
   if (!skin || clips.length === 0 || skin.joints.length > MAX_JOINTS) return null;
   return { clips, skin, nodes, fit, positions: glb.positions, normals: glb.normals || vertexNormals(glb.positions, glb.indices), joints: glb.joints, weights: glb.weights };
@@ -162,16 +165,33 @@ function quadMesh(half) {
   };
 }
 
+// Each model name is fetched and parsed once: unit types and doodad kinds that name the same GLB share one parse,
+// and every fit reads from it. A failed load is dropped from the cache so a later call may retry it.
+const parsedModels = new Map();
+function parsedModel(name) {
+  let entry = parsedModels.get(name);
+  if (!entry) {
+    entry = (async () => {
+      const url = new URL(`models/${name}.glb`, location.href);
+      const bytes = await (await fetch(url)).arrayBuffer();
+      const glb = parseGlb(bytes);
+      const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
+      return { url: url.href, glb, animations };
+    })();
+    parsedModels.set(name, entry);
+    entry.catch(() => parsedModels.delete(name));
+  }
+  return entry;
+}
+
 // Loads one GLB by name and returns its fitted model, or null when the file is missing or unreadable.
 async function fetchModel(name, size) {
   if (!name) return null;
   try {
-    const url = new URL(`models/${name}.glb`, location.href);
-    const bytes = await (await fetch(url)).arrayBuffer();
-    const glb = parseGlb(bytes);
+    const { url, glb, animations } = await parsedModel(name);
     const fitted = fitModel(glb, size);
-    const animation = glb.joints && glb.weights ? skinnedRig(bytes, glb, fitted.fit) : null;
-    return { ...fitted, glbUrl: url.href, animation };
+    const animation = animations ? skinnedRig(animations, glb, fitted.fit) : null;
+    return { ...fitted, glbUrl: url, animation };
   } catch {
     return null;
   }
@@ -337,7 +357,13 @@ function drawUnits3d(units, dt) {
     const color = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
     const model = unitMeshes[u.type];
     const mesh = unitMeshFor(u.type, color);
-    const transform = translation(u.x, groundAt(u.x, u.z), u.z);
+    if (!renderer3d.isVisible(u.x, u.z, meshReach(mesh))) {
+      // Off screen: no draw and no clip advance, but its animator survives so the clip resumes where it stopped.
+      const kept = animators.get(`${u.id}:${u.type}`);
+      if (kept) kept.seen = true;
+      continue;
+    }
+    const transform = translation(u.x, groundAt(u.x, u.z), u.z, unitTransform);
     if (mesh.animation) {
       countDraw("unit", mesh, transform, jointsFor(u, mesh, dt));
       drawCounts.animated += 1;
@@ -366,13 +392,11 @@ function drawWorld3d() {
       renderer3d.drawInstanced(t.mesh, t.batch);
     }
   } else if (terrainMesh) countDraw("terrain", terrainMesh, null);
-  for (const d of doodadBatches) {
-    drawCounts.doodad += d.batch.count;
-    renderer3d.drawInstanced(d.mesh, d.batch);
-  }
+  for (const d of doodadBatches) drawCounts.doodad += renderer3d.drawInstancedVisible(d.mesh, d.batch);
   const units = currentUnits();
   drawUnits3d(units, dt);
   if (fx) fx.frame(units, dt);
+  renderer3d.endFrame();
 }
 
 // Flat fallback without WebGL2: each unit is a 2D square at its screen position on a 2D canvas.
@@ -463,7 +487,7 @@ function worldToScreen(x, z, y = 0) {
   if (!renderer3d) {
     return { x: window.innerWidth / 2 + (x - flatView.cx) * FLAT_PX_PER_UNIT, y: window.innerHeight / 2 + (z - flatView.cz) * FLAT_PX_PER_UNIT };
   }
-  const vp = viewProjection(renderer3d.camera, window.innerWidth / Math.max(1, window.innerHeight));
+  const vp = viewProjection(renderer3d.camera, window.innerWidth / Math.max(1, window.innerHeight), worldVp);
   const clip = [0, 1, 2, 3].map((r) => vp[r] * x + vp[4 + r] * y + vp[8 + r] * z + vp[12 + r]);
   if (clip[3] <= 0) return { x: -1e6, y: -1e6 };
   return {
@@ -925,6 +949,8 @@ function publishWitness() {
   document.body.dataset.drawAnimated = String(drawCounts.animated);
   document.body.dataset.drawCalls = String(renderer3d ? renderer3d.stats.drawCalls : 0);
   document.body.dataset.drawInstances = String(renderer3d ? renderer3d.stats.instances : 0);
+  document.body.dataset.drawCulled = String(renderer3d ? renderer3d.stats.culled : 0);
+  document.body.dataset.drawCpuMs = renderer3d ? renderer3d.stats.frameCpuMs.toFixed(3) : "0";
   document.body.dataset.orders = String(orders);
   document.body.dataset.casts = String(casts);
   document.body.dataset.attacks = String(attacks);

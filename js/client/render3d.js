@@ -3,33 +3,41 @@
 // context until createRenderer(gl) is called.
 
 const PITCH_LIMIT = Math.PI / 2 - 0.01;
+const WORLD_UP = [0, 1, 0];
+const IDENTITY_16 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+// Every helper below takes an optional `out` and writes into it; callers on a hot path pass their own scratch.
+const productScratch = new Float32Array(16);
+const projectionScratch = new Float32Array(16);
+const viewScratch = new Float32Array(16);
 
-export function identity() {
-  return new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+export function identity(out = new Float32Array(16)) {
+  out.set(IDENTITY_16);
+  return out;
 }
 
-export function multiply(a, b) {
-  const out = new Float32Array(16);
+// out may alias a or b: the product is formed in a shared scratch before it is copied out.
+export function multiply(a, b, out = new Float32Array(16)) {
   for (let c = 0; c < 4; c++) {
     for (let r = 0; r < 4; r++) {
       let s = 0;
       for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k];
-      out[c * 4 + r] = s;
+      productScratch[c * 4 + r] = s;
     }
   }
+  out.set(productScratch);
   return out;
 }
 
-export function translation(x, y, z) {
-  const m = identity();
-  m[12] = x; m[13] = y; m[14] = z;
-  return m;
+export function translation(x, y, z, out = new Float32Array(16)) {
+  identity(out);
+  out[12] = x; out[13] = y; out[14] = z;
+  return out;
 }
 
-export function scaling(x, y, z) {
-  const m = identity();
-  m[0] = x; m[5] = y; m[10] = z;
-  return m;
+export function scaling(x, y, z, out = new Float32Array(16)) {
+  identity(out);
+  out[0] = x; out[5] = y; out[10] = z;
+  return out;
 }
 
 export function rotationY(angle) {
@@ -42,31 +50,33 @@ export function rotationX(angle) {
   return new Float32Array([1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1]);
 }
 
-export function perspective(fovY, aspect, near, far) {
+export function perspective(fovY, aspect, near, far, out = new Float32Array(16)) {
   const f = 1 / Math.tan(fovY / 2);
   const nf = 1 / (near - far);
-  return new Float32Array([
+  out.set([
     f / aspect, 0, 0, 0,
     0, f, 0, 0,
     0, 0, (far + near) * nf, -1,
     0, 0, 2 * far * near * nf, 0,
   ]);
+  return out;
 }
 
-export function lookAt(eye, target, up) {
+export function lookAt(eye, target, up, out = new Float32Array(16)) {
   const z = normalize(sub(eye, target));
   const x = normalize(cross(up, z));
   const y = cross(z, x);
-  return new Float32Array([
+  out.set([
     x[0], y[0], z[0], 0,
     x[1], y[1], z[1], 0,
     x[2], y[2], z[2], 0,
     -dot(x, eye), -dot(y, eye), -dot(z, eye), 1,
   ]);
+  return out;
 }
 
 // Normal matrix: inverse transpose of the upper 3x3 of a model matrix, as column-major mat3.
-export function normalMatrix(m) {
+export function normalMatrix(m, out = new Float32Array(9)) {
   const a00 = m[0], a01 = m[4], a02 = m[8];
   const a10 = m[1], a11 = m[5], a12 = m[9];
   const a20 = m[2], a21 = m[6], a22 = m[10];
@@ -75,11 +85,12 @@ export function normalMatrix(m) {
   const c02 = a10 * a21 - a11 * a20;
   const det = a00 * c00 + a01 * c01 + a02 * c02;
   const inv = det === 0 ? 0 : 1 / det;
-  return new Float32Array([
+  out.set([
     c00 * inv, c01 * inv, c02 * inv,
     (a02 * a21 - a01 * a22) * inv, (a00 * a22 - a02 * a20) * inv, (a01 * a20 - a00 * a21) * inv,
     (a01 * a12 - a02 * a11) * inv, (a02 * a10 - a00 * a12) * inv, (a00 * a11 - a01 * a10) * inv,
   ]);
+  return out;
 }
 
 function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
@@ -124,8 +135,51 @@ export function projectionMatrix(cam, aspect) {
   return perspective(cam.fovY, aspect, cam.near, cam.far);
 }
 
-export function viewProjection(cam, aspect) {
-  return multiply(projectionMatrix(cam, aspect), viewMatrix(cam));
+export function viewProjection(cam, aspect, out = new Float32Array(16)) {
+  perspective(cam.fovY, aspect, cam.near, cam.far, projectionScratch);
+  lookAt(eyeOf(cam), cam.target, WORLD_UP, viewScratch);
+  return multiply(projectionScratch, viewScratch, out);
+}
+
+// Ground-plane box [minX, minZ, maxX, maxZ] that the view frustum covers, from the four corner rays meeting y = 0.
+// Null when a corner ray misses the ground (the horizon is on screen), so nothing may be culled.
+export function visibleGroundBounds(cam, aspect, out = [0, 0, 0, 0]) {
+  const eye = eyeOf(cam);
+  const fwd = normalize(sub(cam.target, eye));
+  const right = normalize(cross(fwd, WORLD_UP));
+  const up = cross(right, fwd);
+  const t = Math.tan(cam.fovY / 2);
+  out[0] = Infinity; out[1] = Infinity; out[2] = -Infinity; out[3] = -Infinity;
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      const dy = fwd[1] + right[1] * sx * t * aspect + up[1] * sy * t;
+      if (dy >= 0) return null;
+      const s = -eye[1] / dy;
+      const x = eye[0] + (fwd[0] + right[0] * sx * t * aspect + up[0] * sy * t) * s;
+      const z = eye[2] + (fwd[2] + right[2] * sx * t * aspect + up[2] * sy * t) * s;
+      out[0] = Math.min(out[0], x); out[1] = Math.min(out[1], z);
+      out[2] = Math.max(out[2], x); out[3] = Math.max(out[3], z);
+    }
+  }
+  return out;
+}
+
+const reachCache = new WeakMap();
+// Ground reach of a mesh about its origin: the largest horizontal distance from the origin plus its top height.
+// Culling adds it as a margin, so a tall model whose top is on screen is kept. Cached per mesh object.
+export function meshReach(mesh) {
+  let reach = reachCache.get(mesh);
+  if (reach === undefined) {
+    const p = mesh.positions;
+    let half = 0, top = 0;
+    for (let v = 0; v < p.length; v += 3) {
+      half = Math.max(half, Math.abs(p[v]), Math.abs(p[v + 2]));
+      top = Math.max(top, p[v + 1]);
+    }
+    reach = half + top;
+    reachCache.set(mesh, reach);
+  }
+  return reach;
 }
 
 // Screen-space deltas in pixels; yaw and pitch are radians per pixel.
@@ -247,8 +301,14 @@ export function createRenderer(gl) {
   const camera = createCamera();
   const uploads = new WeakMap();
   const instanceBuffers = new WeakMap();
-  const stats = { drawCalls: 0, instances: 0 };
-  let viewProj = identity();
+  const stats = { drawCalls: 0, instances: 0, culled: 0, frameCpuMs: 0 };
+  const viewProj = identity();
+  const modelScratch = new Float32Array(16);
+  const normalScratch = new Float32Array(9);
+  const groundBox = [0, 0, 0, 0];
+  const visibleBatches = new WeakMap();
+  let cullBounds = null;
+  let frameStart = 0;
   let aspect = null;
 
   function upload(mesh) {
@@ -303,17 +363,73 @@ export function createRenderer(gl) {
     pan(dxPx, dyPx) { return panCamera(camera, dxPx, dyPx, gl.drawingBufferHeight); },
     zoom(wheelDelta) { return zoomCamera(camera, wheelDelta); },
 
-    // Clears colour and depth and latches the view-projection for this frame.
+    // Clears colour and depth, latches the view-projection and the visible ground box for this frame, and starts
+    // the CPU timer that endFrame closes.
     beginFrame(clearRgb = [0.05, 0.06, 0.08]) {
+      frameStart = performance.now();
       gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
       const a = aspect ?? gl.drawingBufferWidth / Math.max(1, gl.drawingBufferHeight);
-      viewProj = viewProjection(camera, a);
+      viewProjection(camera, a, viewProj);
+      cullBounds = visibleGroundBounds(camera, a, groundBox);
       gl.clearColor(clearRgb[0], clearRgb[1], clearRgb[2], 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       stats.drawCalls = 0;
       stats.instances = 0;
+      stats.culled = 0;
       gl.useProgram(program);
       gl.uniformMatrix4fv(uni.viewProj, false, viewProj);
+    },
+
+    // Closes the frame's CPU timer: stats.frameCpuMs is the milliseconds since beginFrame (draw submission only, not GPU time).
+    endFrame() {
+      stats.frameCpuMs = performance.now() - frameStart;
+      return stats.frameCpuMs;
+    },
+
+    // False when a ground point with the given reach (meshReach) lies wholly outside the view box. Each false answer
+    // counts one culled item in stats.culled. Always true when the view has no ground box (horizon on screen).
+    isVisible(x, z, reach) {
+      if (!cullBounds) return true;
+      const inside = inCullBox(x, z, reach);
+      if (!inside) stats.culled += 1;
+      return inside;
+    },
+
+    // Draws the batch's instances that can be on screen, returning how many were drawn. A batch whose instances are
+    // all visible draws as it is, keeping its static upload; otherwise the visible matrices are compacted into a
+    // per-batch scratch batch that re-uploads each frame.
+    drawInstancedVisible(mesh, batch) {
+      if (!cullBounds) {
+        if (batch.count > 0) drawInstances(mesh, batch);
+        return batch.count;
+      }
+      const reach = meshReach(mesh);
+      const src = batch.matrices;
+      let n = 0;
+      for (let i = 0; i < batch.count; i++) if (inCullBox(src[i * 16 + 12], src[i * 16 + 14], reach)) n += 1;
+      stats.culled += batch.count - n;
+      if (n === 0) return 0;
+      if (n === batch.count) {
+        drawInstances(mesh, batch);
+        return n;
+      }
+      let vis = visibleBatches.get(batch);
+      if (!vis) {
+        vis = { matrices: new Float32Array(batch.count * 16), count: 0, dirty: true };
+        visibleBatches.set(batch, vis);
+      }
+      const dst = vis.matrices;
+      let w = 0;
+      for (let i = 0; i < batch.count; i++) {
+        const o = i * 16;
+        if (!inCullBox(src[o + 12], src[o + 14], reach)) continue;
+        for (let k = 0; k < 16; k++) dst[w * 16 + k] = src[o + k];
+        w += 1;
+      }
+      vis.count = n;
+      vis.dirty = true;
+      drawInstances(mesh, vis);
+      return n;
     },
 
     // transform: column-major 16-element model matrix (identity when omitted).
@@ -409,8 +525,15 @@ export function createRenderer(gl) {
     stats.instances += batch.count;
   }
 
+  function inCullBox(x, z, reach) {
+    return x + reach >= cullBounds[0] && x - reach <= cullBounds[2]
+      && z + reach >= cullBounds[1] && z - reach <= cullBounds[3];
+  }
+
   function draw(mesh, transform, joints) {
-    const model = transform ? Float32Array.from(transform) : identity();
+    const model = modelScratch;
+    if (transform) model.set(transform);
+    else identity(model);
     const buf = upload(mesh);
     bindGeometry(buf);
     const skinned = Boolean(joints && buf.joints);
@@ -429,7 +552,7 @@ export function createRenderer(gl) {
     gl.uniform1i(uni.skinned, skinned ? 1 : 0);
     gl.uniform1i(uni.instanced, 0);
     gl.uniformMatrix4fv(uni.model, false, model);
-    gl.uniformMatrix3fv(uni.normal, false, normalMatrix(model));
+    gl.uniformMatrix3fv(uni.normal, false, normalMatrix(model, normalScratch));
     const glow = bindMaterial(mesh);
     if (buf.index) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.index);
