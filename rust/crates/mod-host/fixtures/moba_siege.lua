@@ -14,7 +14,7 @@ function on_tick(state)
   end
   if base_id then
     game.each({"owner"}, function(u)
-      if u.owner == 0 then pcall(game.cmd_damage, u.id, base_id, 100) end
+      if u.owner == 0 then pcall(game.cmd_damage, u.id, base_id, 100 * 65536) end
     end)
   end
 end
