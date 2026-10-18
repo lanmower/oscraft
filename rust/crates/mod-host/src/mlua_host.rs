@@ -118,6 +118,9 @@ struct Hooks {
     on_died: Option<Function>,
     on_enter: Option<Function>,
     on_leave: Option<Function>,
+    on_player_joined: Option<Function>,
+    // Runs every trigger registered on the event name it is called with (game.trigger).
+    fire: Function,
     systems: Vec<System>,
 }
 
@@ -142,6 +145,7 @@ enum Pending {
     Died { unit: usize },
     Enter { unit: usize, region: usize },
     Leave { unit: usize, region: usize },
+    PlayerJoined { player: usize },
 }
 
 /// A failed reload: the mod file, the Lua line when one is known, and the message.
@@ -196,16 +200,13 @@ pub struct ModHost {
     staged: Option<Hooks>,
     version: u64,
     cmds: Cmds,
+    joined: Vec<usize>,
 }
 
-// The events a mod handles, each with the Lua arguments it receives. Editors list them.
-pub const EVENTS: [(&str, &str); 5] = [
-    ("on_spawned", "unit"),
-    ("on_attacked", "unit"),
-    ("on_died", "unit"),
-    ("on_enter", "region, unit"),
-    ("on_leave", "region, unit"),
-];
+// The events a mod handles, each with the Lua arguments it receives. A mod defines a global
+// function of the same name, and game.trigger takes the same names. Editors list them.
+// on_tick is the event the host calls once per step with the state table (see run_on_tick).
+use crate::EVENTS;
 
 // Every global bind_host and bind_game register on a mod environment. compile_src checks this
 // list against the environment both ways (check_host_globals), so a global cannot be registered
@@ -844,8 +845,95 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(())
         })?,
     )?;
+    let w = world.clone();
+    game.set(
+        "units",
+        lua.create_function(move |lua, player: Option<i64>| {
+            let sim = w.borrow();
+            let list = lua.create_table()?;
+            let mut n = 0i64;
+            for i in 0..sim.count() {
+                if !sim.alive(i) || player.is_some_and(|p| sim.player(i) as i64 != p) {
+                    continue;
+                }
+                n += 1;
+                list.raw_set(n, i as i64)?;
+            }
+            Ok(list)
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "players",
+        lua.create_function(move |lua, ()| {
+            let counts = living_per_player(&w.borrow());
+            let list = lua.create_table()?;
+            for (p, alive) in counts.iter().enumerate() {
+                let row = lua.create_table()?;
+                row.set("id", p as i64)?;
+                row.set("units", *alive)?;
+                list.raw_set(p as i64 + 1, row)?;
+            }
+            Ok(list)
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "unit_kind",
+        lua.create_function(move |_, unit: i64| {
+            let sim = w.borrow();
+            // known_unit, not live_unit: on_died runs after the unit is dead and its kind is still asked.
+            let u = known_unit(&sim, unit)?;
+            Ok(sim.kind_name(u).map(str::to_owned))
+        })?,
+    )?;
     env.set("game", game)
 }
+
+// The living units each player owns, indexed by player id (0..MAX_PLAYERS). game.players reads it.
+fn living_per_player(sim: &Sim) -> Vec<i64> {
+    let mut counts = vec![0i64; MAX_PLAYERS];
+    for i in 0..sim.count() {
+        if sim.alive(i) {
+            counts[sim.player(i) as usize % MAX_PLAYERS] += 1;
+        }
+    }
+    counts
+}
+
+// game.trigger and the event runner. The chunk returns a function over the event-name set: it
+// yields (trigger, fire). trigger(event, {conditions = {...}, actions = {...}, action = f})
+// registers a trigger; fire(event, ...) runs each trigger of that event: every condition must
+// return truthy for the actions to run, and each action gets the same arguments as the event.
+const TRIGGER_SRC: &str = r#"
+return function(known)
+  local triggers = {}
+  local function trigger(event, spec)
+    if not known[event] then error("unknown_event: " .. tostring(event), 2) end
+    if type(spec) ~= "table" then error("invalid_trigger: " .. event .. " needs a table of conditions and actions", 2) end
+    local entry = { conditions = spec.conditions or {}, actions = spec.actions or {} }
+    if spec.action then entry.actions[#entry.actions + 1] = spec.action end
+    if #entry.actions == 0 then error("invalid_trigger: " .. event .. " has no action", 2) end
+    triggers[event] = triggers[event] or {}
+    table.insert(triggers[event], entry)
+    return #triggers[event]
+  end
+  local function fire(event, ...)
+    local list = triggers[event]
+    if not list then return end
+    for _, entry in ipairs(list) do
+      local pass = true
+      for _, cond in ipairs(entry.conditions) do
+        if not cond(...) then pass = false break end
+      end
+      if pass then
+        for _, act in ipairs(entry.actions) do act(...) end
+      end
+    end
+  end
+  return trigger, fire
+end
+"#;
 
 // pcall and xpcall for mod scripts. They catch script errors, but a limit error (instruction,
 // memory) is rethrown, so a script cannot keep spinning past its budget by catching the limit.
@@ -882,6 +970,12 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
     let systems: SystemSink = Rc::new(RefCell::new(Vec::new()));
     bind_host(lua, &env, world, regions, timers, clock)?;
     bind_game(lua, &env, world, cmds, &systems)?;
+    let known = lua.create_table()?;
+    for (event, _) in EVENTS {
+        known.set(event, true)?;
+    }
+    let (trigger, fire) = lua.load(TRIGGER_SRC).eval::<Function>()?.call::<(Function, Function)>(known)?;
+    env.get::<Table>("game")?.set("trigger", trigger)?;
     check_host_globals(&env)?;
     lua.load(src)
         .set_name(format!("@{name}"))
@@ -898,6 +992,8 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
         on_died: env.get("on_died")?,
         on_enter: env.get("on_enter")?,
         on_leave: env.get("on_leave")?,
+        on_player_joined: env.get("on_player_joined")?,
+        fire,
         systems: registered,
     })
 }
@@ -963,7 +1059,17 @@ impl ModHost {
             staged: None,
             version: 0,
             cmds: Rc::new(RefCell::new(Vec::new())),
+            joined: Vec::new(),
         })
+    }
+
+    /// Queues a player-joined event for the next step. False when `player` is outside 0..MAX_PLAYERS.
+    pub fn player_joined(&mut self, player: usize) -> bool {
+        if player >= MAX_PLAYERS {
+            return false;
+        }
+        self.joined.push(player);
+        true
     }
 
     /// Compiles the mod at `path` and makes it the active mod.
@@ -1077,7 +1183,10 @@ impl ModHost {
 
     fn run_on_tick(&self, state: &Table) -> mlua::Result<()> {
         match &self.mod_file {
-            Some(m) => m.hooks.on_tick.call::<()>(state.clone()),
+            Some(m) => {
+                m.hooks.on_tick.call::<()>(state.clone())?;
+                m.hooks.fire.call::<()>(("on_tick", state.clone()))
+            }
             None => Ok(()),
         }
     }
@@ -1197,6 +1306,7 @@ impl ModHost {
     fn collect(&mut self) {
         self.snap.clear();
         self.pending.clear();
+        self.pending.extend(self.joined.drain(..).map(|player| Pending::PlayerJoined { player }));
         {
             let sim = self.world.borrow();
             for i in 0..sim.count() {
@@ -1252,26 +1362,41 @@ impl ModHost {
                     if let Some(h) = &hooks.on_spawned {
                         h.call::<()>(unit as i64)?;
                     }
+                    hooks.fire.call::<()>(("on_spawned", unit as i64))?;
                 }
                 Pending::Attacked { unit } => {
                     if let Some(h) = &hooks.on_attacked {
                         h.call::<()>(unit as i64)?;
                     }
+                    hooks.fire.call::<()>(("on_attacked", unit as i64))?;
                 }
                 Pending::Died { unit } => {
                     if let Some(h) = &hooks.on_died {
                         h.call::<()>(unit as i64)?;
                     }
+                    hooks.fire.call::<()>(("on_died", unit as i64))?;
                 }
                 Pending::Enter { unit, region } => {
-                    if let (Some(h), Some(name)) = (&hooks.on_enter, self.region_name(region)) {
-                        h.call::<()>((name, unit as i64))?;
+                    if let Some(name) = self.region_name(region) {
+                        if let Some(h) = &hooks.on_enter {
+                            h.call::<()>((name.clone(), unit as i64))?;
+                        }
+                        hooks.fire.call::<()>(("on_enter", name, unit as i64))?;
                     }
                 }
                 Pending::Leave { unit, region } => {
-                    if let (Some(h), Some(name)) = (&hooks.on_leave, self.region_name(region)) {
-                        h.call::<()>((name, unit as i64))?;
+                    if let Some(name) = self.region_name(region) {
+                        if let Some(h) = &hooks.on_leave {
+                            h.call::<()>((name.clone(), unit as i64))?;
+                        }
+                        hooks.fire.call::<()>(("on_leave", name, unit as i64))?;
                     }
+                }
+                Pending::PlayerJoined { player } => {
+                    if let Some(h) = &hooks.on_player_joined {
+                        h.call::<()>(player as i64)?;
+                    }
+                    hooks.fire.call::<()>(("on_player_joined", player as i64))?;
                 }
             }
         }

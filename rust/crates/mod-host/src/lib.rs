@@ -7,6 +7,19 @@ compile_error!("mod-host: the mlua and piccolo features are exclusive");
 
 const MAX_UNITS: usize = 1024;
 
+// The events a mod handles, shared by both backends so the names match on mlua and piccolo. Each
+// entry is (name, the Lua arguments it receives). A mod defines a global function of the same
+// name, and game.trigger takes the same names. on_tick runs once per step with the state table.
+pub const EVENTS: [(&str, &str); 7] = [
+    ("on_spawned", "unit"),
+    ("on_attacked", "unit"),
+    ("on_died", "unit"),
+    ("on_enter", "region, unit"),
+    ("on_leave", "region, unit"),
+    ("on_player_joined", "player"),
+    ("on_tick", "state"),
+];
+
 // The OSDT image for a directory of `.osd` files, from the generate path `osdt-data <dir> <out>` runs.
 // Behind the `build` feature so a guest that only loads images never links the starlark toolchain.
 #[cfg(feature = "build")]
