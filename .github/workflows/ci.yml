@@ -1866,26 +1866,31 @@ jobs:
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
           const ranked = [...units].sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
           let attacker = null;
-          for (const cand of ranked.reverse().slice(0, 60)) {
+          for (const cand of ranked.reverse().slice(0, 400)) {
             // Select through the CI hook: a click can land on another unit drawn over this one.
             await page.evaluate((id) => window.__ciSelect(id), cand.id);
             // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
             await page.evaluate((id) => window.__ciLearn(id, 0), cand.id);
-            const foe = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand))[0];
-            if (!foe) continue;
-            const fp = await screenAt(foe.x, foe.z);
-            // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
-            await page.mouse.move(fp.x, fp.y);
-            await page.keyboard.press("q");
-            await page.waitForTimeout(150);
-            const casts = Number(await page.getAttribute("body", "data-casts"));
-            if (casts < 1) { console.log(`probe cast cand=${cand.id} foe=${foe.id} casts=${casts} at=${fp.x.toFixed(0)},${fp.y.toFixed(0)}`); continue; }
-            await page.keyboard.press("a");
-            await page.mouse.click(fp.x, fp.y, { button: "left" });
-            await page.waitForTimeout(150);
-            const attacks = Number(await page.getAttribute("body", "data-attacks"));
-            console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
-            if (attacks >= 1) { attacker = cand; break; }
+            // An attack needs a visible, hostile target, so try the nearest few enemies. Counters are compared before and after each step.
+            const foes = units.filter((v) => v.player !== cand.player).sort((a, b) => dist2(a, cand) - dist2(b, cand)).slice(0, 3);
+            for (const foe of foes) {
+              const fp = await screenAt(foe.x, foe.z);
+              const casts0 = Number(await page.getAttribute("body", "data-casts"));
+              // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
+              await page.mouse.move(fp.x, fp.y);
+              await page.keyboard.press("q");
+              await page.waitForTimeout(150);
+              const casts = Number(await page.getAttribute("body", "data-casts"));
+              if (casts <= casts0) { console.log(`probe cast cand=${cand.id} foe=${foe.id} casts=${casts} at=${fp.x.toFixed(0)},${fp.y.toFixed(0)}`); continue; }
+              const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
+              await page.keyboard.press("a");
+              await page.mouse.click(fp.x, fp.y, { button: "left" });
+              await page.waitForTimeout(150);
+              const attacks = Number(await page.getAttribute("body", "data-attacks"));
+              console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
+              if (attacks > attacks0) { attacker = cand; break; }
+            }
+            if (attacker) break;
           }
           if (!attacker) throw new Error("no unit both cast and attacked");
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
