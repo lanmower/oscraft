@@ -6,9 +6,10 @@ import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, FRAME } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { applyFrame, createStateEncoder } from "./delta.js";
-import { parseGlb } from "./glb.js";
+import { AnimationPlayer, jointMatrices } from "./anim.js";
+import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { createHud } from "./hud.js";
-import { createCamera, createRenderer as createRenderer3d, eyeOf, multiply, rotationY, translation, viewProjection } from "./render3d.js";
+import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, multiply, rotationY, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 
@@ -59,7 +60,12 @@ let terrainMesh = null;
 let terrainTiles = null;
 let unitMeshes = [];
 let doodadMeshes = [];
-const drawCounts = { terrain: 0, doodad: 0, unit: 0, quad: 0 };
+const drawCounts = { terrain: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
+const MOVE_EPS = 1e-4;
+const MAX_FRAME_DT_S = 0.1;
+// Per-unit clip players keyed by unit id and type, with the last seen position (walking vs standing still).
+const animators = new Map();
+let lastDrawMs = null;
 const peers = new Set();
 let netState = null;
 let casts = 0;
@@ -127,7 +133,17 @@ function fitModel(glb, size) {
     positions[v + 1] = (p[v + 1] - minY) * scale;
     positions[v + 2] = (p[v + 2] - cz) * scale;
   }
-  return { positions, normals: glb.normals || vertexNormals(positions, glb.indices), uvs: glb.texcoords, indices: glb.indices, baseColorTexture: glb.baseColorTexture };
+  const fit = Float32Array.of(scale, 0, 0, 0, 0, scale, 0, 0, 0, 0, scale, 0, -cx * scale, -minY * scale, -cz * scale, 1);
+  return { positions, normals: glb.normals || vertexNormals(positions, glb.indices), uvs: glb.texcoords, indices: glb.indices, baseColorTexture: glb.baseColorTexture, fit };
+}
+
+// Skin, node tree and clips for a skinned GLB, with its rest-pose geometry (the joint matrices carry the fit).
+// Null when the model has no clips or its skin has more joints than the shader palette.
+function skinnedRig(bytes, glb, fit) {
+  const { clips, skins, nodes } = parseGlbAnimations(bytes);
+  const skin = skins[0];
+  if (!skin || clips.length === 0 || skin.joints.length > MAX_JOINTS) return null;
+  return { clips, skin, nodes, fit, positions: glb.positions, normals: glb.normals || vertexNormals(glb.positions, glb.indices), joints: glb.joints, weights: glb.weights };
 }
 
 // A flat ground square with its normal up: the fallback mesh for a unit with no model.
@@ -145,7 +161,10 @@ async function fetchModel(name, size) {
   try {
     const url = new URL(`models/${name}.glb`, location.href);
     const bytes = await (await fetch(url)).arrayBuffer();
-    return { ...fitModel(parseGlb(bytes), size), glbUrl: url.href };
+    const glb = parseGlb(bytes);
+    const fitted = fitModel(glb, size);
+    const animation = glb.joints && glb.weights ? skinnedRig(bytes, glb, fitted.fit) : null;
+    return { ...fitted, glbUrl: url.href, animation };
   } catch {
     return null;
   }
@@ -159,18 +178,26 @@ async function loadModels(game) {
 }
 
 // Doodads: one fitted model per kind code (DODA kind), read from doodads.json which maps kind name to GLB path.
+// The shipped asset catalogue (assets.json) names each doodad's GLB; doodads.json is the fallback when it is missing.
 async function loadDoodadModels() {
-  const map = await (await fetch(new URL("doodads.json", location.href))).json();
+  const [map, catalogue] = await Promise.all([
+    fetch(new URL("doodads.json", location.href)).then((r) => r.json()),
+    fetch(new URL("assets.json", location.href)).then((r) => r.json()).catch(() => ({ items: [] })),
+  ]);
   return Promise.all(DOODAD_KINDS.map((kind) => {
-    const file = map[kind];
-    return fetchModel(file ? file.replace(/^models\//, "").replace(/\.glb$/, "") : null, 2 * DOODAD_HALF);
+    const file = catalogue.items.find((item) => item.id === kind)?.path ?? map[kind];
+    return fetchModel(file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null, 2 * DOODAD_HALF);
   }));
 }
 
 // Uploads a fitted model as a drawable mesh. Its base colour texture is uploaded when the model has one.
-async function toMesh(gl, fitted, fallbackColor) {
+// Units pass animated: their skinned rig replaces the fitted geometry, which the joint matrices carry instead.
+async function toMesh(gl, fitted, fallbackColor, { animated = false } = {}) {
   if (!fitted) return null;
-  const mesh = { positions: fitted.positions, normals: fitted.normals, uvs: fitted.uvs, indices: fitted.indices, color: fallbackColor, height: maxY(fitted.positions) };
+  const rig = animated ? fitted.animation : null;
+  const mesh = rig
+    ? { positions: rig.positions, normals: rig.normals, uvs: fitted.uvs, indices: fitted.indices, joints: rig.joints, weights: rig.weights, animation: rig, color: fallbackColor, height: maxY(fitted.positions) }
+    : { positions: fitted.positions, normals: fitted.normals, uvs: fitted.uvs, indices: fitted.indices, color: fallbackColor, height: maxY(fitted.positions) };
   if (fitted.baseColorTexture) {
     try {
       const image = await loadBaseColorImage(fitted.baseColorTexture, fitted.glbUrl);
@@ -215,9 +242,10 @@ function currentUnits() {
 }
 
 // Draw counts per mesh kind for the current frame, published on the body for the browser probe.
-function countDraw(kind, mesh, transform) {
+function countDraw(kind, mesh, transform, joints = null) {
   drawCounts[kind] += 1;
-  renderer3d.drawMesh(mesh, transform);
+  if (joints) renderer3d.drawSkinned(mesh, transform, joints);
+  else renderer3d.drawMesh(mesh, transform);
 }
 
 // Unit meshes are cached per (type, colour key): a textured model keeps its texture whatever the colour.
@@ -233,13 +261,40 @@ function unitMeshFor(type, color) {
   return mesh;
 }
 
-function drawUnits3d(units) {
+// Joint palette for a unit this frame: its clip (walk when it moved, attack when it reports attacking, else idle)
+// advanced by dt seconds. A unit with no matching clip holds the rest pose.
+function jointsFor(u, mesh, dt) {
+  const key = `${u.id}:${u.type}`;
+  let entry = animators.get(key);
+  if (!entry) {
+    entry = { player: new AnimationPlayer(mesh.animation.clips), x: u.x, z: u.z, seen: false };
+    animators.set(key, entry);
+  }
+  const moving = Math.hypot(u.x - entry.x, u.z - entry.z) > MOVE_EPS;
+  entry.x = u.x;
+  entry.z = u.z;
+  entry.seen = true;
+  entry.player.playState({ attacking: Boolean(u.attacking), moving });
+  entry.player.update(dt);
+  const { nodes, skin, fit } = mesh.animation;
+  return jointMatrices(nodes, skin, entry.player.pose() ?? new Map(), fit);
+}
+
+function drawUnits3d(units, dt) {
+  for (const entry of animators.values()) entry.seen = false;
   for (const u of units) {
     const color = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
     const model = unitMeshes[u.type];
     const mesh = unitMeshFor(u.type, color);
-    countDraw(model ? "unit" : "quad", mesh, translation(u.x, groundAt(u.x, u.z), u.z));
+    const transform = translation(u.x, groundAt(u.x, u.z), u.z);
+    if (mesh.animation) {
+      countDraw("unit", mesh, transform, jointsFor(u, mesh, dt));
+      drawCounts.animated += 1;
+    } else {
+      countDraw(model ? "unit" : "quad", mesh, transform);
+    }
   }
+  for (const [key, entry] of animators) if (!entry.seen) animators.delete(key);
 }
 
 function drawWorld3d() {
@@ -247,10 +302,14 @@ function drawWorld3d() {
   drawCounts.doodad = 0;
   drawCounts.unit = 0;
   drawCounts.quad = 0;
+  drawCounts.animated = 0;
+  const now = performance.now();
+  const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
+  lastDrawMs = now;
   renderer3d.beginFrame(BACKGROUND);
   if (terrainMesh) countDraw("terrain", terrainMesh, null);
   for (const d of doodadMeshes) countDraw("doodad", d.mesh, d.transform);
-  drawUnits3d(currentUnits());
+  drawUnits3d(currentUnits(), dt);
 }
 
 // Flat fallback without WebGL2: each unit is a 2D square at its screen position on a 2D canvas.
@@ -677,6 +736,7 @@ function publishWitness() {
   document.body.dataset.drawDoodad = String(drawCounts.doodad);
   document.body.dataset.drawUnit = String(drawCounts.unit);
   document.body.dataset.drawQuad = String(drawCounts.quad);
+  document.body.dataset.drawAnimated = String(drawCounts.animated);
   document.body.dataset.orders = String(orders);
   document.body.dataset.casts = String(casts);
   document.body.dataset.attacks = String(attacks);
@@ -724,7 +784,7 @@ async function build3d(gl, game) {
     const angle = (p.rotation / 1000) * 2 * Math.PI;
     return [{ mesh, transform: multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)) }];
   });
-  unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1])));
+  unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
 }
 
 async function main() {

@@ -154,13 +154,24 @@ export function zoomCamera(cam, wheelDelta) {
   return cam;
 }
 
+// Joint palette size of the skinned path; a skin with more joints than this draws unskinned.
+export const MAX_JOINTS = 64;
+
 const VERT = `#version 300 es
-in vec3 aPos; in vec3 aNormal; in vec2 aUv;
+in vec3 aPos; in vec3 aNormal; in vec2 aUv; in vec4 aJoints; in vec4 aWeights;
 uniform mat4 uModel; uniform mat3 uNormal; uniform mat4 uViewProj;
+uniform bool uSkinned; uniform mat4 uJoints[${MAX_JOINTS}];
 out vec3 vNormal; out vec2 vUv;
 void main() {
-  vec4 world = uModel * vec4(aPos, 1.0);
-  vNormal = uNormal * aNormal; vUv = aUv;
+  mat4 skin = mat4(1.0);
+  mat3 skinNormal = mat3(1.0);
+  if (uSkinned) {
+    skin = aWeights.x * uJoints[int(aJoints.x)] + aWeights.y * uJoints[int(aJoints.y)]
+      + aWeights.z * uJoints[int(aJoints.z)] + aWeights.w * uJoints[int(aJoints.w)];
+    skinNormal = mat3(skin);
+  }
+  vec4 world = uModel * skin * vec4(aPos, 1.0);
+  vNormal = uNormal * skinNormal * aNormal; vUv = aUv;
   gl_Position = uViewProj * world;
 }`;
 
@@ -201,6 +212,8 @@ export function createRenderer(gl) {
     pos: gl.getAttribLocation(program, "aPos"),
     normal: gl.getAttribLocation(program, "aNormal"),
     uv: gl.getAttribLocation(program, "aUv"),
+    joints: gl.getAttribLocation(program, "aJoints"),
+    weights: gl.getAttribLocation(program, "aWeights"),
   };
   const uni = {
     model: gl.getUniformLocation(program, "uModel"),
@@ -209,6 +222,8 @@ export function createRenderer(gl) {
     color: gl.getUniformLocation(program, "uColor"),
     useTex: gl.getUniformLocation(program, "uUseTex"),
     tex: gl.getUniformLocation(program, "uTex"),
+    skinned: gl.getUniformLocation(program, "uSkinned"),
+    joints: gl.getUniformLocation(program, "uJoints[0]"),
   };
   gl.uniform1i(uni.tex, 0);
   gl.enable(gl.DEPTH_TEST);
@@ -222,7 +237,7 @@ export function createRenderer(gl) {
   function upload(mesh) {
     let buf = uploads.get(mesh);
     if (!buf || mesh.dirty) {
-      if (!buf) buf = { pos: gl.createBuffer(), normal: gl.createBuffer(), uv: gl.createBuffer(), index: null, count: 0, indexType: 0 };
+      if (!buf) buf = { pos: gl.createBuffer(), normal: gl.createBuffer(), uv: gl.createBuffer(), index: null, count: 0, indexType: 0, joints: null, weights: null };
       const vertexCount = mesh.positions.length / 3;
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
       gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
@@ -230,6 +245,13 @@ export function createRenderer(gl) {
       gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.uv);
       gl.bufferData(gl.ARRAY_BUFFER, mesh.uvs || new Float32Array(vertexCount * 2), gl.STATIC_DRAW);
+      if (mesh.joints && mesh.weights) {
+        if (!buf.joints) { buf.joints = gl.createBuffer(); buf.weights = gl.createBuffer(); }
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf.joints);
+        gl.bufferData(gl.ARRAY_BUFFER, mesh.joints, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf.weights);
+        gl.bufferData(gl.ARRAY_BUFFER, mesh.weights, gl.STATIC_DRAW);
+      }
       if (mesh.indices) {
         if (!buf.index) buf.index = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.index);
@@ -276,33 +298,57 @@ export function createRenderer(gl) {
 
     // transform: column-major 16-element model matrix (identity when omitted).
     drawMesh(mesh, transform = null) {
-      const model = transform ? Float32Array.from(transform) : identity();
-      const buf = upload(mesh);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
-      gl.enableVertexAttribArray(attr.pos);
-      gl.vertexAttribPointer(attr.pos, 3, gl.FLOAT, false, 0, 0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf.normal);
-      gl.enableVertexAttribArray(attr.normal);
-      gl.vertexAttribPointer(attr.normal, 3, gl.FLOAT, false, 0, 0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf.uv);
-      gl.enableVertexAttribArray(attr.uv);
-      gl.vertexAttribPointer(attr.uv, 2, gl.FLOAT, false, 0, 0);
-      gl.uniformMatrix4fv(uni.model, false, model);
-      gl.uniformMatrix3fv(uni.normal, false, normalMatrix(model));
-      gl.uniform3fv(uni.color, mesh.color || [1, 1, 1]);
-      gl.uniform1i(uni.useTex, mesh.texture ? 1 : 0);
-      if (mesh.texture) {
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, mesh.texture);
-      }
-      if (buf.index) {
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.index);
-        gl.drawElements(gl.TRIANGLES, buf.count, buf.indexType, 0);
-      } else {
-        gl.drawArrays(gl.TRIANGLES, 0, buf.count);
-      }
+      draw(mesh, transform, null);
+    },
+
+    // joints: packed column-major mat4 per joint (at most MAX_JOINTS), from anim.js jointMatrices. Drawn with
+    // the skinned path when the mesh carries joints and weights; otherwise it draws as drawMesh does.
+    drawSkinned(mesh, transform, joints) {
+      draw(mesh, transform, joints);
     },
   };
+
+  function draw(mesh, transform, joints) {
+    const model = transform ? Float32Array.from(transform) : identity();
+    const buf = upload(mesh);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
+    gl.enableVertexAttribArray(attr.pos);
+    gl.vertexAttribPointer(attr.pos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.normal);
+    gl.enableVertexAttribArray(attr.normal);
+    gl.vertexAttribPointer(attr.normal, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.uv);
+    gl.enableVertexAttribArray(attr.uv);
+    gl.vertexAttribPointer(attr.uv, 2, gl.FLOAT, false, 0, 0);
+    const skinned = Boolean(joints && buf.joints);
+    if (skinned) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf.joints);
+      gl.enableVertexAttribArray(attr.joints);
+      gl.vertexAttribPointer(attr.joints, 4, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf.weights);
+      gl.enableVertexAttribArray(attr.weights);
+      gl.vertexAttribPointer(attr.weights, 4, gl.FLOAT, false, 0, 0);
+      gl.uniformMatrix4fv(uni.joints, false, joints);
+    } else {
+      gl.disableVertexAttribArray(attr.joints);
+      gl.disableVertexAttribArray(attr.weights);
+    }
+    gl.uniform1i(uni.skinned, skinned ? 1 : 0);
+    gl.uniformMatrix4fv(uni.model, false, model);
+    gl.uniformMatrix3fv(uni.normal, false, normalMatrix(model));
+    gl.uniform3fv(uni.color, mesh.color || [1, 1, 1]);
+    gl.uniform1i(uni.useTex, mesh.texture ? 1 : 0);
+    if (mesh.texture) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, mesh.texture);
+    }
+    if (buf.index) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.index);
+      gl.drawElements(gl.TRIANGLES, buf.count, buf.indexType, 0);
+    } else {
+      gl.drawArrays(gl.TRIANGLES, 0, buf.count);
+    }
+  }
 }
 
 export function setCamera(renderer, opts) {
