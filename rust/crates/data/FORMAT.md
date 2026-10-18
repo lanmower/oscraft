@@ -1,4 +1,4 @@
-# OSDT data file, format version 18
+# OSDT data file, format version 19
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
 little-endian. There is no padding between sections or records beyond the explicit
@@ -182,7 +182,7 @@ breaks either rule. The check compares squares in integers, so no float is read.
 | 18     | 2    | target filter mask (12 bits, `FILTERS` bit n)      |
 | 20     | 4    | first effect index into `EFCT`                     |
 | 24     | 4    | projectile speed, milli-units per tick (0 if none) |
-| 28     | 4    | reserved, write 0                                  |
+| 28     | 4    | initial cooldown, game ticks, `>= 0`: ticks the ability starts on cooldown when its unit spawns; `ability_ready` fires when they run out |
 
 A projectile flag is set exactly when the ability declares a projectile speed.
 The target filter mask is the set of unit filters a valid target must carry

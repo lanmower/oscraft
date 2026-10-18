@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 18;
+pub const VERSION: u16 = 21;
 pub const PLCE_FLAG_START: u32 = 1;
 /// A start record that names its team: the team index sits in bits 8..16 of the flags.
 pub const PLCE_FLAG_TEAM: u32 = 2;
@@ -36,10 +36,33 @@ pub const EFFECT_KINDS: &[&str] = &[
     "ward",
     "glyph",
     "deliver",
+    "dot",
+    "status",
+    "timed_stat",
+    "aoe",
+    "dispel",
+    "chain",
+    "zone",
+    "illusion",
+    "mana",
+    "if_kill",
+    "attack",
 ];
-pub const MAX_EFFECT_KIND: usize = 19;
+pub const MAX_EFFECT_KIND: usize = 30;
 /// The stats an effect of kind "stat" may raise, by the code in its first parameter.
-pub const STAT_NAMES: &[&str] = &["damage", "armor", "health", "speed", "range"];
+pub const STAT_NAMES: &[&str] = &[
+    "damage", "armor", "health", "speed", "range", "evasion", "crit_chance", "crit_mult", "cleave", "cleave_radius",
+    "lifesteal", "magic_resist", "attack_speed", "mana_regen", "health_regen", "max_mana", "spell_amp", "bash_chance",
+    "bash_ticks", "speed_pct", "cooldown_reduction", "status_resist", "strength", "agility", "intelligence", "spell_lifesteal",
+    "armor_x100", "cast_range", "cleave_start_width", "cleave_end_width",
+];
+/// Status codes of the `status` effect (and the sim's status counters): the first five have their own effect kinds.
+pub const STATUS_CODES: &[&str] = &[
+    "stun", "slow", "silence", "root", "invisibility", "taunt", "hex", "disarm", "spell_immunity", "invulnerable", "break", "mute",
+    "physical_immunity", "death_prevention",
+];
+/// Damage types of the `damage`, `dot` and `chain` effects: 0 is the legacy armour-free hit.
+pub const SPELL_DAMAGE_TYPES: &[&str] = &["legacy", "physical", "magical", "pure"];
 pub const ORDER_KINDS: &[&str] = &["stop", "attack_move", "hold"];
 pub const ORDER_TARGETS: &[&str] = &["caster_relative", "point"];
 pub const VITALS: &[&str] = &["life", "shield"];
@@ -54,9 +77,9 @@ pub const ACTION_USE_ABILITY: usize = 2;
 pub const ACTION_DECLARE_WINNER: usize = 3;
 pub const FILTERS: &[&str] = &[
     "ground", "air", "armored", "biological", "mechanical", "psionic", "structure", "light", "massive",
-    "worker", "army", "building",
+    "worker", "army", "building", "barracks", "melee_rax", "ranged_rax",
 ];
-pub const FILTER_MASK_BITS: u32 = 12;
+pub const FILTER_MASK_BITS: u32 = 15;
 pub const FILTER_ALL: u32 = (1 << FILTER_MASK_BITS) - 1;
 pub const DAMAGE_RESPONSES: &[&str] = &["normal", "reduced", "immune"];
 pub const RESOURCE_KINDS: &[&str] = &["none", "resource_a", "gas"];
@@ -94,6 +117,8 @@ pub const TAG_DODA: [u8; 4] = *b"DODA";
 pub const TAG_GRID: [u8; 4] = *b"GRID";
 pub const TAG_ITEM: [u8; 4] = *b"ITEM";
 pub const TAG_SKIL: [u8; 4] = *b"SKIL";
+pub const TAG_AXTN: [u8; 4] = *b"AXTN";
+pub const TAG_ROUT: [u8; 4] = *b"ROUT";
 
 pub const STRS_RECORD: usize = 1;
 pub const EFCT_RECORD: usize = 20;
@@ -113,8 +138,43 @@ pub const PREQ_RECORD: usize = 8;
 pub const DMGF_RECORD: usize = 8;
 pub const DODA_RECORD: usize = 20;
 pub const GRID_RECORD: usize = 1;
-pub const ITEM_RECORD: usize = 32;
+pub const ITEM_RECORD: usize = 128;
+/// Recipe components one item may name.
+pub const ITEM_COMPONENTS: usize = 6;
+/// Per-item stat bonuses, in record order. Percent stats are whole percents, regeneration stats
+/// are hundredths per second, speed and range stats are Dota units, the rest are whole numbers.
+pub const ITEM_STATS: &[&str] = &[
+    "armor", "damage", "health", "mana", "strength", "agility", "intelligence", "move_speed", "attack_speed",
+    "health_regen", "mana_regen", "magic_resist", "evasion", "spell_amp", "lifesteal", "spell_lifesteal",
+    "cast_range", "attack_range", "status_resist", "cooldown_reduction", "gold_per_min", "xp_per_min",
+];
+pub const ITEM_STAT_COUNT: usize = 22;
+pub const ITEM_FLAG_CONSUMABLE: u16 = 1;
+pub const ITEM_FLAG_NEUTRAL: u16 = 2;
+pub const ITEM_FLAG_NO_BUY: u16 = 4;
+pub const ITEM_FLAG_NO_SELL: u16 = 8;
+pub const ITEM_FLAG_ENHANCEMENT: u16 = 16;
+pub const ITEM_FLAG_MASK: u16 = 31;
+/// Shops that can stock an item, by bit.
+pub const ITEM_SHOPS: &[&str] = &["home", "side", "secret"];
+pub const ITEM_SHOP_MASK: u8 = 7;
+pub const NEUTRAL_TIERS: u8 = 5;
 pub const SKIL_RECORD: usize = 72;
+pub const AXTN_RECORD: usize = 256;
+/// Waypoints one route holds.
+pub const MAX_ROUTE_POINTS: usize = 64;
+/// Route lanes: 1 up to this value; the lane id of a spawn effect rides the two top bits of its p3.
+pub const MAX_ROUTE_LANE: i32 = 3;
+/// A route record: player u16, lane u16, count u16, reserved u16, then `MAX_ROUTE_POINTS` x/y pairs of u32 milli-units.
+pub const ROUT_RECORD: usize = 8 + MAX_ROUTE_POINTS * 8;
+/// Rank-scaled effect parameters and conditional modifiers one ability may carry.
+pub const AXTN_SCALED: usize = 6;
+pub const AXTN_MODS: usize = 8;
+pub const AXTN_FLAG_MASK: u16 = 1023;
+/// Upgrade bits a modifier may test: 0 scepter, 1 shard, 2..=9 the eight talents.
+pub const MOD_CONDS: usize = 10;
+/// Modifier "effect" values from here up name an ability field: cooldown, energy, cast range, cast point.
+pub const MOD_FIELD_FIRST: u8 = 250;
 /// Ranks a skill tree may hold: an ability's max rank is `1..=SKILL_RANKS`.
 pub const SKILL_RANKS: usize = 4;
 /// Ultimates take at most this many ranks, each gated by its level in `ULTIMATE_GATES`.
@@ -122,13 +182,15 @@ pub const ULTIMATE_RANKS: usize = 3;
 pub const ULTIMATE_GATES: [i32; ULTIMATE_RANKS] = [6, 12, 18];
 /// Level gate of a non-ultimate rank: any level.
 pub const NORMAL_GATE: i32 = 1;
+/// Latest level gate of a non-ultimate rank (Dota: 1, 3, 5, 7).
+pub const MAX_NORMAL_GATE: i32 = 30;
 /// Inventory slots each hero carries.
 pub const ITEM_SLOTS: usize = 6;
-pub const DOODAD_KINDS: &[&str] = &["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp"];
+pub const DOODAD_KINDS: &[&str] = &["rock", "tree", "crystal", "debris", "base", "shop", "fountain", "lane", "camp", "side_shop", "secret_shop"];
 pub const GRID_HEADER_LEN: usize = 16;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
-pub const SECTIONS: [([u8; 4], usize); 20] = [
+pub const SECTIONS: [([u8; 4], usize); 22] = [
     (TAG_STRS, STRS_RECORD),
     (TAG_EFCT, EFCT_RECORD),
     (TAG_ABIL, ABIL_RECORD),
@@ -149,6 +211,8 @@ pub const SECTIONS: [([u8; 4], usize); 20] = [
     (TAG_GRID, GRID_RECORD),
     (TAG_ITEM, ITEM_RECORD),
     (TAG_SKIL, SKIL_RECORD),
+    (TAG_AXTN, AXTN_RECORD),
+    (TAG_ROUT, ROUT_RECORD),
 ];
 
 pub fn index_of(list: &[&str], value: &str, what: &str) -> anyhow::Result<usize> {
@@ -163,7 +227,8 @@ pub fn index_of(list: &[&str], value: &str, what: &str) -> anyhow::Result<usize>
 pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
     let [p0, p1, p2, p3] = p;
     match kind {
-        "damage" | "heal" => p0 >= 0 && p1 >= 0,
+        "damage" => p0 >= 0 && p1 >= 0 && (0..SPELL_DAMAGE_TYPES.len() as i32).contains(&p2),
+        "heal" => p0 >= 0 && p1 >= 0 && (0..=2).contains(&p2),
         "move" => p0 > 0,
         "buff" => p0 >= 0 && p1 >= 0,
         "spawn" => p0 >= 0,
@@ -178,10 +243,21 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
                 && (0..VITAL_TARGETS.len() as i32).contains(&p3)
         }
         "shield_bonus" => p0 >= 0,
-        "stat" => (0..STAT_NAMES.len() as i32).contains(&p0) && p1 >= 0,
+        "stat" => (0..STAT_NAMES.len() as i32).contains(&p0),
         "ward" => p0 >= 0 && p1 >= 1,
         "glyph" => p0 >= 1 && p1 >= 0 && p2 >= 1 && p3 >= 0,
         "deliver" => p0 >= 0,
+        "dot" => p0 >= 0 && p1 >= 1 && p2 >= 1 && (0..SPELL_DAMAGE_TYPES.len() as i32).contains(&p3),
+        "status" => (0..STATUS_CODES.len() as i32).contains(&p0) && p1 >= 1,
+        "timed_stat" => (0..STAT_NAMES.len() as i32).contains(&p0) && p2 >= 1 && (0..=1).contains(&p3),
+        "aoe" => p0 >= 0 && (0..=15).contains(&p1) && (0..=16).contains(&p2) && p3 >= 0,
+        "dispel" => (1..=7).contains(&p0),
+        "chain" => p0 >= 0 && p1 >= 0 && p2 >= 0 && (0..SPELL_DAMAGE_TYPES.len() as i32).contains(&p3),
+        "zone" => p0 >= 0 && p1 >= 1 && p2 >= 1 && p3 >= 0,
+        "illusion" => (1..=8).contains(&p0) && p1 >= 1 && p2 >= 0 && p3 >= 0,
+        "mana" => p0 >= 0 && (0..=2).contains(&p1),
+        "if_kill" => (1..=16).contains(&p0),
+        "attack" => p0 >= 0,
         "stun" | "silence" | "root" | "invisibility" => p0 >= 1,
         "slow" => p0 >= 1 && (0..=Q16_ONE).contains(&p1),
         _ => true,

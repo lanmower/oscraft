@@ -156,7 +156,7 @@ impl Sim {
 
     /// Auto-attack: nearest visible enemy on a layer this weapon may hit, within range.
     pub(crate) fn attack(&mut self, i: usize) {
-        if self.damage[i] <= 0 || self.stunned(i) {
+        if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
             return;
         }
         if self.cooldown[i] > 0 {
@@ -204,16 +204,18 @@ impl Sim {
                 }
             }
         }
+        if let Some(t) = self.taunt_target(i) {
+            best = t as i64;
+        }
         if best < 0 {
             return;
         }
         let b = best as usize;
-        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[b]), i, b);
-        self.cooldown[i] = self.period[i];
+        self.cooldown[i] = self.attack_period(i);
         if self.misses(i) {
             return;
         }
-        self.inflict(b, dmg, i as i32);
+        self.strike(i, b);
     }
 
     /// Orders unit `i` to strike unit `target` through the weapon path (cooldown, armour,
@@ -226,6 +228,9 @@ impl Sim {
             return Err(self.reject(Refusal::NoTarget));
         }
         if self.stunned(i) {
+            return Err(self.reject(Refusal::Stunned));
+        }
+        if self.disarmed(i) {
             return Err(self.reject(Refusal::Stunned));
         }
         let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
@@ -242,12 +247,11 @@ impl Sim {
         if self.cooldown[i] > 0 {
             return Err(self.reject(Refusal::Cooldown));
         }
-        let dmg = self.scale_hit(armour_reduced(self.damage[i], self.armor[target]), i, target);
-        self.cooldown[i] = self.period[i];
+        self.cooldown[i] = self.attack_period(i);
         if self.misses(i) {
             return Ok(());
         }
-        self.inflict(target, dmg, i as i32);
+        self.strike(i, target);
         Ok(())
     }
 
@@ -371,14 +375,21 @@ impl Sim {
     /// The damage path shared by weapons and abilities: damage response, then shield,
     /// then life, with death recorded when life runs out. `attacker` is the unit dealing the
     /// damage, or -1; a death it causes is credited to it.
-    fn inflict(&mut self, j: usize, mut dmg: i32, attacker: i32) {
+    pub(crate) fn inflict(&mut self, j: usize, mut dmg: i32, attacker: i32) {
         self.touch(j);
+        if self.invulnerable(j) {
+            dmg = 0;
+        } else if self.is_illusion(j) {
+            dmg = (dmg as i64 * self.spell.ill_in[j] as i64 / 100) as i32;
+        }
         if dmg > 0 {
             self.trig_hit[j] = 1;
             if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
                 self.remember_hitter(j, attacker);
             }
-            self.interrupt_channel(j);
+            if self.spell.damage_interrupts {
+                self.interrupt_channel(j);
+            }
             self.last_hit[j] = self.ticks;
             match self.response[j] {
                 RESPONSE_IMMUNE => dmg = 0,
@@ -391,6 +402,9 @@ impl Sim {
                 self.aggro_on_hit(j, attacker as usize);
             }
         }
+        if dmg >= self.hp[j] && self.status_left(j, crate::status::DEATH_PREVENTION) > 0 {
+            dmg = (self.hp[j] - 1).max(0);
+        }
         self.hp[j] = self.hp[j].wrapping_sub(dmg);
         if self.hp[j] <= 0 {
             let fell = self.alive[j] != 0;
@@ -398,7 +412,7 @@ impl Sim {
             self.alive[j] = 0;
             self.trig_death[j] = 1;
             self.stats.deaths += 1;
-            if fell {
+            if fell && !self.is_illusion(j) {
                 self.record_death(j, attacker);
                 self.pay_bounty(j, attacker);
                 self.share_xp(j, attacker);

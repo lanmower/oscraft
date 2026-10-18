@@ -73,22 +73,11 @@ impl Sim {
     /// Moves every stash item of `hero` into its free inventory slots, applying item bonuses.
     /// Returns how many items moved.
     pub(crate) fn deliver_stash(&mut self, hero: usize) -> usize {
-        let base = hero * INV_SLOTS;
         let mut moved = 0;
-        for s in 0..INV_SLOTS {
-            let Some(index) = crate::rules::catalog_index(self.stash_kind[base + s], self.cat.items.len()) else {
-                continue;
-            };
-            let Some(free) = (0..INV_SLOTS).find(|&f| self.inv_kind[base + f] == 0) else {
-                break;
-            };
-            let def = self.cat.items[index];
-            self.inv_kind[base + free] = self.stash_kind[base + s];
-            self.inv_count[base + free] = self.stash_count[base + s];
-            self.stash_kind[base + s] = 0;
-            self.stash_count[base + s] = 0;
-            self.apply_bonus(hero, def.armor, def.damage, def.health);
-            moved += 1;
+        for s in 0..crate::inventory::STASH_SLOTS {
+            if self.stash_count[hero * INV_SLOTS + s] > 0 && self.unstash_slot(hero, s) {
+                moved += 1;
+            }
         }
         moved
     }

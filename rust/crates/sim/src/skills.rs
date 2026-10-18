@@ -61,6 +61,7 @@ impl Sim {
             return Err(self.reject(Refusal::SkillLevelGate));
         }
         self.abil_rank[idx] = (rank + 1) as u8;
+        self.refresh_passives(unit);
         Ok(())
     }
 

@@ -128,16 +128,19 @@ impl Sim {
             effect_count: spec.effects.len() as u8,
             effect_first,
             projectile_speed: 0,
+            initial_cooldown: 0,
             filter: spec.filter,
             skill: None,
         };
         match existing {
             Some(i) => {
                 cat.abilities[i] = ability;
+                cat.ext[i] = Default::default();
                 Ok(i)
             }
             None => {
                 cat.abilities.push(ability);
+                cat.ext.push(Default::default());
                 Ok(cat.abilities.len() - 1)
             }
         }
@@ -230,7 +233,19 @@ impl Sim {
             Some(i) => self.cat.items[i].name,
             None => self.intern(&spec.name),
         };
-        let item = Item { name, cost: spec.cost, armor: spec.armor, damage: spec.damage, health: spec.health, ability, components: [NO_INDEX; 2] };
+        let mut stats = [0; crate::inventory::ITEM_STAT_COUNT];
+        stats[crate::inventory::STAT_ARMOR] = spec.armor;
+        stats[crate::inventory::STAT_DAMAGE] = spec.damage;
+        stats[crate::inventory::STAT_HEALTH] = spec.health;
+        let item = Item {
+            name,
+            cost: spec.cost,
+            stats,
+            ability,
+            shops: crate::inventory::ITEM_SHOP_MASK,
+            components: [NO_INDEX; crate::inventory::ITEM_COMPONENTS],
+            ..Item::default()
+        };
         match existing {
             Some(i) => {
                 self.cat.items[i] = item;

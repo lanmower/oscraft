@@ -5,22 +5,74 @@
 
 use crate::arrays::Sim;
 use crate::fixed;
-use crate::TICKS_PER_SECOND;
+use crate::{ABILITY_SLOTS, TICKS_PER_SECOND};
 
-/// Dota 2 stat coefficients the hero stats use. UNVERIFIED: recalled, not checked against a source.
-/// Max health gains 20 per strength point; max mana is 75 plus 12 per intelligence point; strength
-/// is the primary attribute, adding 1 damage per point (UNVERIFIED primary choice); each agility
-/// point adds 1/6 armour; regeneration adds 0.03 health per second per strength point.
-const HP_PER_STR: i32 = 20;
-const MANA_BASE: i32 = 75;
-const MANA_PER_INT: i32 = 12;
-const DAMAGE_PER_STR: i32 = 1;
+/// Dota 2 attribute coefficients (engine constants, absent from the npc dump; from the Dota 2 wiki
+/// Attributes page): 22 health and 0.1 health regeneration per strength, 1/6 armour and 1 attack speed
+/// per agility, 12 mana and 0.05 mana regeneration per intelligence, 1 damage per primary point (0.7 per
+/// point of every attribute for a universal hero). Attributes and per-hero data are hundredths.
+pub(crate) const HP_PER_STR: i32 = 22;
+/// Damage per strength point of an item bonus (a strength hero); a hero's own damage uses its primary attribute.
+pub(crate) const DAMAGE_PER_STR: i32 = 1;
+const MANA_PER_INT: i64 = 12;
 const ARMOUR_PER_AGI_DIV: i64 = 6;
-const HP_REGEN_PER_STR_Q16: i64 = 1966;
+const HP_REGEN_PER_STR_X100: i64 = 10;
+const MANA_REGEN_PER_INT_X100: i64 = 5;
+const UNIVERSAL_DAMAGE_PCT: i64 = 70;
+const MANA_BASE_DEFAULT: i32 = 75;
 /// Buyback cost is 200 + net worth / 13 (patch 7.29 notes), then 15 percent more (patch 7.36 notes).
 /// The 200 and the 15 percent are in `buyback_base` (230); the net worth share is here.
 const BUYBACK_NET_WORTH_DIV: i64 = 13;
 const BUYBACK_NET_WORTH_PCT: i64 = 115;
+
+/// Per hero type data of a `hero <unit> key=value ...` line in the rules text, written by
+/// scripts/gen-heroes.mjs from npc_heroes. Attributes, gains, armor, damage and mana regeneration are
+/// hundredths; `primary` is 0 strength, 1 agility, 2 intelligence, 3 universal; `bat` is the base attack
+/// time in hundredths of a second (0 keeps the unit's weapon period); `damage` is the min/max midpoint
+/// (0 keeps the unit's weapon damage).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct HeroDef {
+    pub primary: u8,
+    pub base: [i32; 3],
+    pub gain: [i32; 3],
+    pub mana: i32,
+    pub mana_regen: i32,
+    /// Base health regeneration, hundredths per second; may be negative.
+    pub hp_regen: i32,
+    pub armor: i32,
+    pub magic_resist: i32,
+    pub bat: i32,
+    pub damage: i32,
+}
+
+impl HeroDef {
+    fn from_pairs(rest: &str) -> Option<HeroDef> {
+        let mut d = HeroDef { mana: MANA_BASE_DEFAULT, ..HeroDef::default() };
+        for pair in rest.split_whitespace() {
+            let (k, v) = pair.split_once('=')?;
+            let v: i32 = v.parse().ok()?;
+            match k {
+                "primary" if (0..=3).contains(&v) => d.primary = v as u8,
+                "str" => d.base[0] = v,
+                "agi" => d.base[1] = v,
+                "int" => d.base[2] = v,
+                "str_gain" => d.gain[0] = v,
+                "agi_gain" => d.gain[1] = v,
+                "int_gain" => d.gain[2] = v,
+                "mana" => d.mana = v,
+                "mana_regen" => d.mana_regen = v,
+                "hp_regen" => d.hp_regen = v,
+                "armor" => d.armor = v,
+                "mr" if (0..=100).contains(&v) => d.magic_resist = v,
+                "bat" => d.bat = v,
+                "damage" => d.damage = v,
+                _ => return None,
+            }
+        }
+        let nonneg = d.base.iter().chain(d.gain.iter()).chain([d.mana, d.bat, d.damage].iter()).all(|&v| v >= 0);
+        nonneg.then_some(d)
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HeroRules {
@@ -41,6 +93,8 @@ pub struct HeroRules {
     pub int_gain: i32,
     /// Target priority and aggro (aggro.rs): 1 turns it on. Hold time of a drawn aggro target, seconds.
     pub aggro_priority: bool,
+    /// Whether any damage ends a channel (1, the default) or only a stun, hex or silence does (0, as in Dota).
+    pub channel_damage_interrupt: bool,
     pub aggro_hold_s: i32,
     /// Backdoor protection (aggro.rs): damage cut percent (0 = off), clear radius, quiet seconds before
     /// it applies, and health per second a protected structure regenerates.
@@ -68,6 +122,7 @@ impl Default for HeroRules {
             agi_gain: 1,
             int_gain: 1,
             aggro_priority: false,
+            channel_damage_interrupt: true,
             aggro_hold_s: 3,
             backdoor_reduction_pct: 0,
             backdoor_radius_milli: 7700,
@@ -108,6 +163,13 @@ impl HeroRules {
                 "str_gain" => &mut next.str_gain,
                 "agi_gain" => &mut next.agi_gain,
                 "int_gain" => &mut next.int_gain,
+                "channel_damage_interrupt" => {
+                    if !(0..=1).contains(&v) {
+                        return false;
+                    }
+                    next.channel_damage_interrupt = v == 1;
+                    continue;
+                }
                 "aggro_priority" => {
                     if !(0..=1).contains(&v) {
                         return false;
@@ -165,6 +227,9 @@ pub(crate) struct HeroState {
     pub(crate) respawn_at: Vec<u32>,
     pub(crate) buyback_ready: Vec<u32>,
     pub(crate) gold: Vec<i32>,
+    pub(crate) mana_max: Vec<i32>,
+    /// Hero data by catalog unit index; `None` for a type with no `hero` line (global attribute rules apply).
+    pub(crate) defs: Vec<Option<HeroDef>>,
 }
 
 impl HeroState {
@@ -178,6 +243,8 @@ impl HeroState {
             respawn_at: vec![0; cap],
             buyback_ready: vec![0; cap],
             gold: vec![0; cap],
+            mana_max: vec![0; cap],
+            defs: Vec::new(),
         }
     }
 }
@@ -201,55 +268,168 @@ impl Sim {
         h.respawn_at[i] = 0;
         h.buyback_ready[i] = 0;
         h.gold[i] = 0;
+        h.mana_max[i] = 0;
+        self.energy[i] = 0;
+        self.refresh_passives(i);
         self.apply_hero_stats(i);
         self.hp[i] = self.hp_max[i];
     }
 
-    /// Strength, agility and intelligence of hero `i`: the level-0 base plus the growth per level.
-    /// All zero for a non-hero.
-    pub fn hero_attributes(&self, i: usize) -> [i32; 3] {
+    /// The `hero` line data of the type of unit `i`, if the rules text gave one.
+    pub fn hero_def(&self, i: usize) -> Option<HeroDef> {
+        let k = *self.type_of.get(i)?;
+        if k < 0 {
+            return None;
+        }
+        self.heroes.defs.get(k as usize).copied().flatten()
+    }
+
+    /// Strength, agility and intelligence of hero `i` in hundredths: the level-0 base plus the growth
+    /// per level (level 1 is zero levels gained). All zero for a non-hero.
+    pub fn hero_attributes_x100(&self, i: usize) -> [i32; 3] {
+        let own = self.hero_own_attributes_x100(i);
+        if !self.is_hero(i) {
+            return own;
+        }
+        let items = self.item_attributes(i);
+        [0, 1, 2].map(|k| own[k] + items[k] * 100)
+    }
+
+    /// Attributes of hero `i` before item bonuses, in hundredths.
+    fn hero_own_attributes_x100(&self, i: usize) -> [i32; 3] {
         if !self.is_hero(i) {
             return [0; 3];
         }
+        let lvl = self.level(i) as i64;
+        if let Some(d) = self.hero_def(i) {
+            return [0, 1, 2].map(|k| (d.base[k] as i64 + d.gain[k] as i64 * lvl) as i32);
+        }
         let r = self.heroes.rules;
-        let lvl = self.level(i) as i32;
-        [r.str_base + r.str_gain * lvl, r.agi_base + r.agi_gain * lvl, r.int_base + r.int_gain * lvl]
+        let whole = [r.str_base + r.str_gain * lvl as i32, r.agi_base + r.agi_gain * lvl as i32, r.int_base + r.int_gain * lvl as i32];
+        whole.map(|v| v * 100)
     }
 
-    /// Max mana of hero `i` from its intelligence. Zero for a non-hero. There is no mana pool yet,
-    /// so this is a stat only.
+    /// Whole-point strength, agility and intelligence of hero `i`. All zero for a non-hero.
+    pub fn hero_attributes(&self, i: usize) -> [i32; 3] {
+        self.hero_attributes_x100(i).map(|v| v / 100)
+    }
+
+    /// Max mana of hero `i`: its base mana plus 12 per intelligence point. Zero for a non-hero.
     pub fn hero_max_mana(&self, i: usize) -> i32 {
         if !self.is_hero(i) {
             return 0;
         }
-        MANA_BASE + MANA_PER_INT * self.hero_attributes(i)[2]
+        let base = self.hero_def(i).map_or(MANA_BASE_DEFAULT, |d| d.mana) as i64;
+        (base + MANA_PER_INT * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MAX_MANA)
+    }
+
+    /// Mana regeneration of hero `i` in hundredths per second: the base plus 0.05 per intelligence point.
+    pub fn hero_mana_regen_x100(&self, i: usize) -> i32 {
+        if !self.is_hero(i) {
+            return 0;
+        }
+        let base = self.hero_def(i).map_or(0, |d| d.mana_regen) as i64;
+        (base + MANA_REGEN_PER_INT_X100 * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MANA_REGEN)
+    }
+
+    /// Armour of unit `i` (Q16.16), its damage per attack (Q16.16), its attack period in ticks and its
+    /// mana; zero for an unknown index.
+    pub fn armor_of(&self, i: usize) -> i32 {
+        self.armor.get(i).copied().unwrap_or(0)
+    }
+
+    pub fn damage_of(&self, i: usize) -> i32 {
+        self.damage.get(i).copied().unwrap_or(0)
+    }
+
+    pub fn period_of(&self, i: usize) -> i32 {
+        self.period.get(i).copied().unwrap_or(0)
+    }
+
+    pub fn mana_of(&self, i: usize) -> i32 {
+        self.energy.get(i).copied().unwrap_or(0)
+    }
+
+    /// Magic resistance percent of hero `i`; 0 for a non-hero or a type with no `hero` line.
+    pub fn hero_magic_resist_pct(&self, i: usize) -> i32 {
+        if !self.is_hero(i) { 0 } else { self.hero_def(i).map_or(0, |d| d.magic_resist) }
     }
 
     /// Recomputes the attribute-driven stats of live hero `i` from its catalog type and attributes:
-    /// max health, damage and armour. Health moves by the change in max, so a level-up adds the gain
-    /// and a death-free unit keeps its wounds. A non-hero or dead unit is left alone; revive and
-    /// spawn apply it once the unit is alive.
+    /// max health, mana, damage, armour and attack period. Health and mana move by the change in max,
+    /// so a level-up adds the gain and a death-free unit keeps its wounds. A non-hero or dead unit is
+    /// left alone; revive and spawn apply it once the unit is alive.
     pub(crate) fn apply_hero_stats(&mut self, i: usize) {
         if !self.is_hero(i) || !self.alive(i) || self.type_of[i] < 0 {
             return;
         }
         let def = self.cat.units[self.type_of[i] as usize];
-        let [str_, agi, _] = self.hero_attributes(i);
+        let hd = self.hero_def(i);
+        let [s, a, n] = self.hero_attributes_x100(i).map(|v| v as i64);
+        let q16 = |x100: i64| (x100 * fixed::ONE as i64 / 100) as i32;
         let old_max = self.hp_max[i];
-        let new_max = fixed::from_int(def.health + HP_PER_STR * str_);
+        let new_max = fixed::from_int(def.health + self.stat(i, crate::spell::S_HEALTH)).saturating_add(q16(HP_PER_STR as i64 * s));
         self.hp_max[i] = new_max;
         self.hp[i] = (self.hp[i] + (new_max - old_max)).clamp(0, new_max);
-        self.armor[i] = fixed::from_int(def.armor) + (fixed::ONE as i64 * agi as i64 / ARMOUR_PER_AGI_DIV) as i32;
+        let armor_x100 = hd.map_or(def.armor as i64 * 100, |d| d.armor as i64) + a / ARMOUR_PER_AGI_DIV;
+        self.armor[i] = q16(armor_x100);
         if def.has_weapon() {
-            self.damage[i] = fixed::from_int(def.weapon_damage + DAMAGE_PER_STR * str_);
+            let primary = hd.map_or(0, |d| d.primary);
+            let bonus = match primary {
+                0 => s,
+                1 => a,
+                2 => n,
+                _ => (s + a + n) * UNIVERSAL_DAMAGE_PCT / 100,
+            };
+            let base = hd.map_or(0, |d| d.damage) as i64;
+            let base = if base > 0 { base } else { def.weapon_damage as i64 * 100 };
+            self.damage[i] = q16(base + bonus);
+            if let Some(d) = hd.filter(|d| d.bat > 0) {
+                let den = 10_000 + a;
+                let ticks = (2 * TICKS_PER_SECOND as i64 * d.bat as i64 * 100 + den) / (2 * den);
+                self.period[i] = ticks.max(1) as i32;
+            }
         }
+        let mana_max = self.hero_max_mana(i);
+        let old_mana = self.heroes.mana_max[i];
+        self.heroes.mana_max[i] = mana_max;
+        self.energy[i] = (self.energy[i] + (mana_max - old_mana)).clamp(0, mana_max);
         self.touch(i);
     }
 
-    /// Health regenerated per tick by the strength of hero `i`, Q16.16. Zero for a non-hero.
+    /// Health regenerated per tick by the strength of hero `i`, Q16.16 (0.1 per second per point).
+    /// Zero for a non-hero.
     pub(crate) fn hero_regen_per_tick(&self, i: usize) -> i32 {
-        let [str_, _, _] = self.hero_attributes(i);
-        (str_ as i64 * HP_REGEN_PER_STR_Q16 / TICKS_PER_SECOND as i64) as i32
+        let s = self.hero_attributes_x100(i)[0] as i64;
+        let from_str = s * HP_REGEN_PER_STR_X100 * fixed::ONE as i64 / (100 * 100 * TICKS_PER_SECOND as i64);
+        let from_stat = self.stat(i, crate::spell::S_HEALTH_REGEN) as i64 * fixed::ONE as i64 / (100 * TICKS_PER_SECOND as i64);
+        (from_str + from_stat) as i32
+    }
+
+    /// Recomputes every living hero's tracked max mana from its level and items without touching its
+    /// mana. A loaded state keeps the energy it saved but has no tracker.
+    pub(crate) fn resync_hero_mana(&mut self) {
+        for i in 0..self.n {
+            if self.is_hero(i) && self.alive(i) {
+                self.heroes.mana_max[i] = self.hero_max_mana(i);
+            }
+        }
+    }
+
+    /// Adds the mana of hero `i` for this tick. The whole mana gained is the difference of two floors of
+    /// the running total, so a fraction of a point is never lost and no per-unit remainder is stored.
+    fn regen_mana(&mut self, i: usize) {
+        let max = self.heroes.mana_max[i];
+        let rate = self.hero_mana_regen_x100(i) as i64;
+        if rate <= 0 || self.energy[i] >= max {
+            return;
+        }
+        let per = 100 * TICKS_PER_SECOND as i64;
+        let t = self.ticks as i64;
+        let gain = ((t + 1) * rate / per - t * rate / per) as i32;
+        if gain > 0 {
+            self.energy[i] = (self.energy[i] + gain).min(max);
+        }
     }
 
     pub fn is_hero(&self, i: usize) -> bool {
@@ -260,8 +440,33 @@ impl Sim {
         self.heroes.rules
     }
 
+    /// Loads the rules text: `hero <unit> key=value ...` lines set per-type hero data (the unit must
+    /// exist in the catalog); every other line is a `key=value` rule. False, nothing changed, on a bad line.
     pub fn set_hero_rules_text(&mut self, text: &str) -> bool {
-        self.heroes.rules.set_from_text(text)
+        let mut rest = String::new();
+        let mut defs = self.heroes.defs.clone();
+        defs.resize(self.cat.units.len(), None);
+        for line in text.lines() {
+            let Some(body) = line.trim().strip_prefix("hero ") else {
+                rest.push_str(line);
+                rest.push('\n');
+                continue;
+            };
+            let (name, pairs) = body.trim().split_once(' ').unwrap_or((body.trim(), ""));
+            let (Some(k), Some(d)) = (self.cat.unit_index(name), HeroDef::from_pairs(pairs)) else {
+                return false;
+            };
+            defs[k] = Some(d);
+        }
+        if !self.heroes.rules.set_from_text(&rest) {
+            return false;
+        }
+        self.heroes.defs = defs;
+        self.spell.damage_interrupts = self.heroes.rules.channel_damage_interrupt;
+        for i in 0..self.n {
+            self.apply_hero_stats(i);
+        }
+        true
     }
 
     /// Gold held by hero `i`; 0 for a non-hero.
@@ -358,6 +563,9 @@ impl Sim {
             if self.heroes.waiting[i] != 0 && self.ticks >= self.heroes.respawn_at[i] {
                 self.revive(i);
             }
+            if self.is_hero(i) && self.alive(i) {
+                self.regen_mana(i);
+            }
         }
     }
 
@@ -368,12 +576,18 @@ impl Sim {
         let player = self.player[i];
         let (x, y) = (self.heroes.home_x[i], self.heroes.home_y[i]);
         let (xp, kills, deaths) = (self.xp_total[i], self.unit_kills[i], self.unit_deaths[i]);
+        let ranks: Vec<u8> = self.abil_rank[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].to_vec();
+        let upgrades = self.spell.upg[i];
         if !self.spawn_at(i, kind, player, x, y) {
             return false;
         }
+        self.abil_rank[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].copy_from_slice(&ranks);
+        self.spell.upg[i] = upgrades;
+        self.refresh_passives(i);
         self.xp_total[i] = xp;
         self.unit_kills[i] = kills;
         self.unit_deaths[i] = deaths;
+        self.heroes.mana_max[i] = 0;
         self.apply_hero_stats(i);
         self.hp[i] = self.hp_max[i];
         self.heroes.waiting[i] = 0;

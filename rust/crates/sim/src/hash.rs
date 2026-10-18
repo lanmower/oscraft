@@ -55,6 +55,9 @@ impl Sim {
         h.bytes(&self.log_kind[..self.log_len]);
         h.i32s(&self.log_x[..self.log_len]);
         h.i32s(&self.log_y[..self.log_len]);
+        for table in self.spell.tables() {
+            h.i32s(table);
+        }
         h.u32s(&self.last_hit);
         h.bytes(&self.upg_done);
         h.u32s(&self.inv_kind);
@@ -66,6 +69,8 @@ impl Sim {
         h.u32s(&self.xp_curve);
         h.u32s(&self.unit_kills);
         h.u32s(&self.unit_deaths);
+        h.bytes(&self.routes.lane);
+        h.bytes(&self.routes.step);
         h.i32s(&self.aggro.target);
         h.u32s(&self.aggro.until);
         h.u32s(&self.aggro.creep_seen);

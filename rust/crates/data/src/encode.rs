@@ -68,7 +68,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u16_le(&mut abil, ability.target_filters);
         u32_le(&mut abil, effect_first);
         u32_le(&mut abil, ability.projectile_speed.unwrap_or(0));
-        pad(&mut abil, 4);
+        u32_le(&mut abil, ability.initial_cooldown);
         debug_assert_eq!(abil.len() - start, ABIL_RECORD);
     }
 
@@ -279,6 +279,21 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         debug_assert_eq!(doda.len() - start, DODA_RECORD);
     }
 
+    let mut rout = Vec::new();
+    for route in &catalog.routes {
+        let start = rout.len();
+        u16_le(&mut rout, route.player);
+        u16_le(&mut rout, route.lane);
+        u16_le(&mut rout, route.points.len() as u16);
+        pad(&mut rout, 2);
+        for k in 0..MAX_ROUTE_POINTS {
+            let (x, y) = route.points.get(k).copied().unwrap_or((0, 0));
+            u32_le(&mut rout, x);
+            u32_le(&mut rout, y);
+        }
+        debug_assert_eq!(rout.len() - start, ROUT_RECORD);
+    }
+
     let mut grid = Vec::with_capacity(GRID_HEADER_LEN + 3 * catalog.grid.cells.len());
     u32_le(&mut grid, catalog.grid.width);
     u32_le(&mut grid, catalog.grid.height);
@@ -293,16 +308,24 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         let (name_off, name_len) = strings.intern(&raw.name);
         u32_le(&mut item, name_off);
         u16_le(&mut item, name_len);
-        pad(&mut item, 2);
+        u16_le(&mut item, raw.flags);
         u32_le(&mut item, raw.cost);
-        u32_le(&mut item, raw.armor);
-        u32_le(&mut item, raw.damage);
-        u32_le(&mut item, raw.health);
         u16_le(&mut item, raw.ability);
+        item.push(raw.tier);
+        item.push(raw.shops);
         for component in raw.components {
             u16_le(&mut item, component);
         }
+        u16_le(&mut item, raw.charges);
+        u16_le(&mut item, raw.stack_max);
+        item.push(raw.stock_max);
+        item.push(raw.stock_initial);
+        u16_le(&mut item, raw.stock_time_s);
+        u16_le(&mut item, raw.stock_start_s);
         pad(&mut item, 2);
+        for stat in raw.stats {
+            u32_le(&mut item, stat as u32);
+        }
     }
 
     let mut skil = Vec::new();
@@ -323,6 +346,33 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
             None => pad(&mut skil, SKIL_RECORD),
         }
         debug_assert_eq!(skil.len() - start, SKIL_RECORD);
+    }
+
+    let mut axtn = Vec::new();
+    for ext in &catalog.ext {
+        let start = axtn.len();
+        u16_le(&mut axtn, ext.flags);
+        u16_le(&mut axtn, ext.cast_point);
+        i32_le(&mut axtn, ext.period);
+        i32_le(&mut axtn, ext.cast_range);
+        i32_le(&mut axtn, ext.chance);
+        i32_le(&mut axtn, ext.scatter_min);
+        i32_le(&mut axtn, ext.scatter_max);
+        i32_le(&mut axtn, ext.charges);
+        i32_le(&mut axtn, ext.charge_restore);
+        i32_le(&mut axtn, ext.break_range);
+        i32_le(&mut axtn, ext.line_extra);
+        for s in &ext.scaled {
+            axtn.extend_from_slice(&[s.used as u8, s.effect, s.param, 0]);
+            for v in s.values {
+                i32_le(&mut axtn, v);
+            }
+        }
+        for m in &ext.mods {
+            axtn.extend_from_slice(&[m.used as u8, m.cond, m.effect, m.param, m.mode, 0, 0, 0]);
+            i32_le(&mut axtn, m.delta);
+        }
+        debug_assert_eq!(axtn.len() - start, AXTN_RECORD);
     }
 
     let strs_len = strings.bytes.len();
@@ -348,6 +398,8 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_GRID, grid_len, GRID_RECORD, grid),
         (TAG_ITEM, catalog.items.len(), ITEM_RECORD, item),
         (TAG_SKIL, catalog.abilities.len(), SKIL_RECORD, skil),
+        (TAG_AXTN, catalog.ext.len(), AXTN_RECORD, axtn),
+        (TAG_ROUT, catalog.routes.len(), ROUT_RECORD, rout),
     ];
 
     let body_start = HEADER_LEN + sections.len() * SECTION_ENTRY_LEN;

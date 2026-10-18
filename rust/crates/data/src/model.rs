@@ -5,6 +5,8 @@ use std::cell::RefCell;
 
 use starlark::any::ProvidesStaticType;
 
+use crate::format::{ITEM_COMPONENTS, ITEM_STAT_COUNT};
+
 #[derive(Clone, Copy, Debug)]
 pub struct EffectRaw {
     pub kind: usize,
@@ -137,6 +139,7 @@ pub struct AbilityRaw {
     pub target_filters: u32,
     pub effects: Vec<usize>,
     pub projectile_speed: Option<i32>,
+    pub initial_cooldown: i32,
 }
 
 #[derive(Debug)]
@@ -146,6 +149,14 @@ pub struct BehaviourRaw {
     pub action: usize,
     pub param: i32,
     pub ability: Option<String>,
+}
+
+/// A waypoint route as `route()` collects it: the points are milli-unit x/y pairs.
+#[derive(Debug)]
+pub struct RouteRaw {
+    pub player: i32,
+    pub lane: i32,
+    pub points: Vec<(i32, i32)>,
 }
 
 #[derive(Debug)]
@@ -158,18 +169,30 @@ pub struct SpawnRaw {
     pub team: Option<i32>,
 }
 
-/// An item as `item()` collects it. Stat bonuses are added to the buyer on purchase; `ability`
-/// names the active ability the item casts, if any.
-#[derive(Debug)]
+/// An item as `item()` collects it. Stat bonuses are added to the buyer while the item is in the
+/// inventory; `ability` names the active ability the item casts, if any.
+#[derive(Debug, Default)]
 pub struct ItemRaw {
     pub name: String,
     pub cost: i32,
-    pub armor: i32,
-    pub damage: i32,
-    pub health: i32,
+    pub stats: [i32; ITEM_STAT_COUNT],
     pub ability: Option<String>,
-    /// Recipe components, by item name, declared before this item. At most two.
+    /// Recipe components, by item name, declared before this item. At most `ITEM_COMPONENTS`.
     pub components: Vec<String>,
+    pub flags: u16,
+    /// Neutral tier `1..=NEUTRAL_TIERS`, 0 for an item that is not a neutral drop.
+    pub tier: i32,
+    /// Shops that sell the item (`ITEM_SHOP_MASK` bits); 0 sells nowhere.
+    pub shops: i32,
+    /// Charges a purchase grants, and the most charges one slot holds (0 for a single unstackable item).
+    pub charges: i32,
+    pub stack_max: i32,
+    /// Shop stock: 0 max means unlimited; otherwise the starting stock, the seconds to restock one
+    /// unit and the seconds before the first restock begins.
+    pub stock_max: i32,
+    pub stock_initial: i32,
+    pub stock_time_s: i32,
+    pub stock_start_s: i32,
 }
 
 #[derive(Debug)]
@@ -218,7 +241,9 @@ pub struct Collector {
     pub doodads: RefCell<Vec<DoodadRaw>>,
     pub items: RefCell<Vec<ItemRaw>>,
     pub skills: RefCell<Vec<SkillRaw>>,
+    pub ext: RefCell<crate::abilityext::ExtRaw>,
     pub grid: RefCell<Option<Grid>>,
+    pub routes: RefCell<Vec<RouteRaw>>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -337,6 +362,7 @@ pub struct Ability {
     pub target_filters: u16,
     pub effects: Vec<Effect>,
     pub projectile_speed: Option<u32>,
+    pub initial_cooldown: u32,
     pub skill: Option<Skill>,
 }
 
@@ -380,6 +406,14 @@ pub struct Spawn {
     pub flags: u32,
 }
 
+/// The waypoints player `player`'s units follow on lane `lane`, milli-units.
+#[derive(Debug, Clone)]
+pub struct Route {
+    pub player: u16,
+    pub lane: u16,
+    pub points: Vec<(u32, u32)>,
+}
+
 #[derive(Debug)]
 pub struct Upgrade {
     pub name: String,
@@ -406,13 +440,20 @@ pub struct Doodad {
 pub struct Item {
     pub name: String,
     pub cost: u32,
-    pub armor: u32,
-    pub damage: u32,
-    pub health: u32,
+    pub stats: [i32; ITEM_STAT_COUNT],
     /// Index into `Catalog::abilities`, or `NO_ABILITY`.
     pub ability: u16,
     /// Indices into `Catalog::items` of the recipe components, `NO_ABILITY` for an empty slot.
-    pub components: [u16; 2],
+    pub components: [u16; ITEM_COMPONENTS],
+    pub flags: u16,
+    pub tier: u8,
+    pub shops: u8,
+    pub charges: u16,
+    pub stack_max: u16,
+    pub stock_max: u8,
+    pub stock_initial: u8,
+    pub stock_time_s: u16,
+    pub stock_start_s: u16,
 }
 
 #[derive(Debug, Default)]
@@ -422,6 +463,7 @@ pub struct Catalog {
     pub unit_ext: Vec<UnitExt>,
     pub abilities: Vec<Ability>,
     pub channels: Vec<Channel>,
+    pub ext: Vec<crate::abilityext::AbilityExt>,
     pub behaviours: Vec<Behaviour>,
     pub spawns: Vec<Spawn>,
     pub upgrades: Vec<Upgrade>,
@@ -432,4 +474,5 @@ pub struct Catalog {
     pub prereqs: Vec<Prereq>,
     pub damage_factors: Vec<DamageFactor>,
     pub grid: Grid,
+    pub routes: Vec<Route>,
 }

@@ -80,8 +80,15 @@ pub fn verify(image: &[u8]) -> Result<()> {
     ensure!(achn.count == abil.count, "ACHN count differs from ABIL count");
     let item = &sections[18];
     for i in 0..item.count {
-        let ability = u16_at(image, item.offset + i * ITEM_RECORD + 24)? as usize;
+        let at = item.offset + i * ITEM_RECORD;
+        let ability = u16_at(image, at + 12)? as usize;
         ensure!(ability == NO_ABILITY as usize || ability < abil.count, "item {i} names ability {ability} out of range");
+        ensure!(u16_at(image, at + 6)? & !ITEM_FLAG_MASK == 0, "item {i} sets an unknown flag");
+        ensure!(image[at + 14] <= NEUTRAL_TIERS && image[at + 15] <= ITEM_SHOP_MASK, "item {i} tier or shop out of range");
+        for c in 0..ITEM_COMPONENTS {
+            let part = u16_at(image, at + 16 + 2 * c)? as usize;
+            ensure!(part == NO_ABILITY as usize || part < i, "item {i} names component {part} not declared before it");
+        }
     }
 
     for i in 0..efct.count {
@@ -118,6 +125,36 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(first + effects <= efct.count, "ability {i} effects run past EFCT");
         ensure!(image[at + 16] as usize <= TARGETS.len() - 1, "ability {i} target out of range");
         ensure!(u16_at(image, at + 18)? as u32 & !FILTER_ALL == 0, "ability {i} filter mask uses reserved bits");
+    }
+
+    let axtn = &sections[20];
+    ensure!(axtn.count == abil.count, "AXTN count differs from ABIL count");
+    for i in 0..axtn.count {
+        let at = axtn.offset + i * AXTN_RECORD;
+        let effects = image[abil.offset + i * ABIL_RECORD + 17] as usize;
+        ensure!(u16_at(image, at)? & !AXTN_FLAG_MASK == 0, "AXTN {i} sets reserved flags");
+        ensure!(i32_at(image, at + 4)? >= 0 && i32_at(image, at + 8)? >= 0, "AXTN {i} period or cast range negative");
+        ensure!((0..=100).contains(&i32_at(image, at + 12)?), "AXTN {i} chance out of range");
+        ensure!(i32_at(image, at + 16)? >= 0 && i32_at(image, at + 20)? >= i32_at(image, at + 16)?, "AXTN {i} scatter out of range");
+        ensure!((24..=36).step_by(4).all(|o| i32_at(image, at + o).is_ok_and(|v| v >= 0)), "AXTN {i} charge, break or line field negative");
+        for k in 0..AXTN_SCALED {
+            let s = at + 40 + k * 20;
+            if image[s] != 0 {
+                let header = (252..=254).contains(&image[s + 1]);
+                ensure!((header || (image[s + 1] as usize) < effects) && image[s + 2] < 4, "AXTN {i} scaled entry {k} out of range");
+            }
+        }
+        for k in 0..AXTN_MODS {
+            let m = at + 160 + k * 12;
+            if image[m] != 0 {
+                let (cond, effect) = (image[m + 1] as usize, image[m + 2]);
+                ensure!(cond < MOD_CONDS && image[m + 4] <= 1, "AXTN {i} modifier {k} cond or mode out of range");
+                ensure!(
+                    effect >= MOD_FIELD_FIRST || ((effect as usize) < effects && image[m + 3] < 4),
+                    "AXTN {i} modifier {k} effect out of range"
+                );
+            }
+        }
     }
 
     for i in 0..achn.count {
@@ -254,6 +291,33 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(rotation < 1000, "doodad {i} rotation is 1000 or more");
         ensure!(doodad_ids.insert(id), "doodad id {id} repeats");
         ensure!(position_on_grid(x, y, width, height, cell_milli), "doodad {i} is off the grid");
+    }
+
+    let rout = &sections[21];
+    let mut route_keys = std::collections::HashSet::new();
+    let walkable_at = |x: i64, y: i64| -> bool {
+        let cell = image[grid.offset + GRID_HEADER_LEN + (y / cell_milli as i64) as usize * width as usize + (x / cell_milli as i64) as usize];
+        cell & CELL_BLOCKED == 0
+    };
+    for i in 0..rout.count {
+        let at = rout.offset + i * ROUT_RECORD;
+        let player = u16_at(image, at)? as i32;
+        let lane = u16_at(image, at + 2)? as i32;
+        let count = u16_at(image, at + 4)? as usize;
+        ensure!(player < MAX_PLAYERS, "route {i} player out of range");
+        ensure!((1..=MAX_ROUTE_LANE).contains(&lane), "route {i} lane out of range");
+        ensure!((1..=MAX_ROUTE_POINTS).contains(&count), "route {i} point count out of range");
+        ensure!(route_keys.insert((player, lane)), "route {i} repeats player {player} lane {lane}");
+        for k in 0..MAX_ROUTE_POINTS {
+            let x = u32_at(image, at + 8 + k * 8)? as i64;
+            let y = u32_at(image, at + 12 + k * 8)? as i64;
+            if k >= count {
+                ensure!(x == 0 && y == 0, "route {i} unused point {k} is not zero");
+                continue;
+            }
+            ensure!(position_on_grid(x, y, width, height, cell_milli), "route {i} point {k} is off the grid");
+            ensure!(walkable_at(x, y), "route {i} point {k} is on a blocked cell");
+        }
     }
 
     let walkability_end = grid.offset + GRID_HEADER_LEN + width as usize * height as usize;

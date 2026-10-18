@@ -167,10 +167,14 @@ pub struct Sim {
     pub(crate) camps: crate::camp::CampState,
     /// Aggro targets, backdoor stamps and glyph timers. See aggro.rs.
     pub(crate) aggro: crate::aggro::AggroState,
+    /// Lane route progress per unit. See route.rs.
+    pub(crate) routes: crate::route::RouteState,
     /// Ward expiry stamps. See wards.rs.
     pub(crate) wards: crate::wards::WardState,
     /// Courier delivery state. See courier.rs.
     pub(crate) couriers: crate::courier::CourierState,
+    /// Spell modifiers, damage over time, zones, chains and illusions. See spell.rs.
+    pub(crate) spell: crate::spell::SpellState,
     /// Assists credited to each unit, and its recent hitters (ASSIST_SLOTS per unit: the hitter's unit
     /// id or -1, and the tick it last hit). Transient like kill_queue: not hashed or saved.
     pub(crate) unit_assists: Vec<u32>,
@@ -360,8 +364,10 @@ impl Sim {
             heroes: crate::hero::HeroState::new(cap),
             camps: crate::camp::CampState::new(cap),
             aggro: crate::aggro::AggroState::new(cap),
+            routes: crate::route::RouteState::new(cap),
             wards: crate::wards::WardState::new(cap),
             couriers: crate::courier::CourierState::new(cap),
+            spell: crate::spell::SpellState::new(cap),
             unit_deaths: vec![0; cap],
             unit_assists: vec![0; cap],
             hitter_id: vec![-1; cap * crate::combat::ASSIST_SLOTS],
@@ -667,8 +673,10 @@ impl Sim {
         self.tgt_y[i] = y;
         self.camps.clear(i);
         self.aggro_clear(i);
+        self.route_clear(i);
         self.wards.expires[i] = 0;
         self.couriers.clear(i);
+        self.spell.clear_unit(i);
         self.vel_x[i] = 0;
         self.vel_y[i] = 0;
         self.hp[i] = fixed::from_int(def.health);
@@ -747,10 +755,12 @@ impl Sim {
         for slot in 0..(def.abil_count as usize).min(ABILITY_SLOTS) {
             if let Some(&ai) = self.cat.uabl.get(def.abil_first as usize + slot) {
                 self.abil_idx[i * ABILITY_SLOTS + slot] = ai as i32;
+                self.abil_cd[i * ABILITY_SLOTS + slot] = self.cat.abilities.get(ai as usize).map_or(0, |a| a.initial_cooldown);
                 self.abil_on = true;
             }
         }
         self.energy[i] = 0;
+        self.refresh_passives(i);
         if (player as usize) < MAX_PLAYERS {
             self.has_seer[player as usize] = true;
         }

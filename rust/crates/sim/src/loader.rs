@@ -4,12 +4,13 @@
 
 use crate::arrays::Sim;
 use crate::fixed;
+use crate::inventory::{ITEM_COMPONENTS, ITEM_FLAG_MASK, ITEM_SHOP_MASK, ITEM_STAT_COUNT, NEUTRAL_TIERS};
 use crate::pathfinding::Grid;
 use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 18;
+const VERSION: u16 = 21;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const PLACE_TEAM: u32 = 2;
@@ -18,23 +19,24 @@ const PLACE_TEAM_MASK: u32 = 0xFF << PLACE_TEAM_SHIFT;
 const LIMT_COUNT: usize = 1;
 const EFFECT_MOVE: u16 = 2;
 const RESOURCE_KINDS: u8 = 3;
-const ABILITY_FILTER_BITS: u16 = 12;
+const ABILITY_FILTER_BITS: u16 = 15;
 const CELL_BITS: u8 = 0b11;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 20] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL"];
-const RECORD_SIZES: [usize; 20] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 44, 8, 32, 8, 8, 20, 1, 32, 72];
+const SECTION_TAGS: [&[u8; 4]; 22] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT"];
+const RECORD_SIZES: [usize; 22] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 44, 8, 32, 8, 8, 20, 1, 128, 72, 256, 520];
 const SKILL_RANKS: usize = 4;
 const ULTIMATE_RANKS: u8 = 3;
 const ULTIMATE_GATES: [i32; ULTIMATE_RANKS as usize] = [6, 12, 18];
 const NORMAL_GATE: i32 = 1;
+const MAX_NORMAL_GATE: i32 = 30;
 const EFFECT_AMOUNT_KINDS: [u16; 2] = [0, 1];
 const EFFECT_CREATE_HEALER: u16 = 7;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 
-const EFFECT_KINDS: u16 = 20;
+const EFFECT_KINDS: u16 = 30;
 const EFFECT_STAT: u16 = 16;
 const EFFECT_WARD: u16 = 17;
 const EFFECT_GLYPH: u16 = 18;
@@ -50,7 +52,7 @@ const TARGET_CODES: u8 = 3;
 const TRIGGER_CODES: u8 = 5;
 const ACTION_CODES: u8 = 4;
 const RESPONSE_CODES: u8 = 3;
-const FILTER_BITS: u32 = 12;
+const FILTER_BITS: u32 = 15;
 pub(crate) const NO_INDEX: u16 = 0xFFFF;
 const GRID_HEADER: usize = 16;
 /// The cell size the simulation runs on: one world unit per cell. Other sizes are
@@ -89,6 +91,8 @@ pub struct Ability {
     pub effect_first: u32,
     /// Projectile speed in milli-units per tick; 0 when the ability is not a projectile.
     pub projectile_speed: i32,
+    /// Ticks an instance of this ability starts on cooldown when its unit spawns; its ready trigger fires when they run out.
+    pub initial_cooldown: i32,
     /// Unit filters a valid target must carry (12 bits); 0 means no filter.
     pub filter: u16,
     /// Skill tree, when the ability learns ranks; its cooldown and energy then depend on rank.
@@ -186,6 +190,9 @@ pub const FILTER_MASSIVE: u32 = 1 << 8;
 pub const FILTER_WORKER: u32 = 1 << 9;
 pub const FILTER_ARMY: u32 = 1 << 10;
 pub const FILTER_BUILDING: u32 = 1 << 11;
+pub const FILTER_BARRACKS: u32 = 1 << 12;
+pub const FILTER_MELEE_RAX: u32 = 1 << 13;
+pub const FILTER_RANGED_RAX: u32 = 1 << 14;
 
 /// A starting unit from the PLCE section. Position is Q16.16, already converted from milli-units.
 #[derive(Clone, Copy, Debug, Default)]
@@ -378,7 +385,7 @@ pub struct DamageFactor {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Doodad {
     pub id: u32,
-    /// Indexes DOODAD_KINDS: 0 rock, 1 tree, 2 crystal, 3 debris, 4 base, 5 shop, 6 fountain, 7 lane, 8 camp.
+    /// Indexes DOODAD_KINDS: 0 rock, 1 tree, 2 crystal, 3 debris, 4 base, 5 shop (home), 6 fountain, 7 lane, 8 camp, 9 side shop, 10 secret shop.
     pub kind: u16,
     /// Milli-units, on the map.
     pub x: i32,
@@ -394,11 +401,22 @@ pub struct Doodad {
 pub struct Item {
     pub name: Name,
     pub cost: i32,
-    pub armor: i32,
-    pub damage: i32,
-    pub health: i32,
+    /// Stat bonuses in `crate::inventory::STAT_*` order.
+    pub stats: [i32; ITEM_STAT_COUNT],
     pub ability: u16,
-    pub components: [u16; 2],
+    pub components: [u16; ITEM_COMPONENTS],
+    pub flags: u16,
+    /// Neutral tier `1..=NEUTRAL_TIERS`, 0 for an item that is not a neutral drop.
+    pub tier: u8,
+    /// Shops that sell the item: `SHOP_HOME`, `SHOP_SIDE`, `SHOP_SECRET` bits.
+    pub shops: u8,
+    /// Charges one purchase grants, and the most one slot holds (0: a single unstackable item).
+    pub charges: u16,
+    pub stack_max: u16,
+    pub stock_max: u8,
+    pub stock_initial: u8,
+    pub stock_time_s: u16,
+    pub stock_start_s: u16,
 }
 
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.
@@ -421,10 +439,12 @@ pub struct Catalog {
     pub econ: Econ,
     pub unit_ext: Vec<UnitExt>,
     pub channels: Vec<Channel>,
+    pub ext: Vec<crate::spell::AbilityExt>,
     pub research: Vec<Research>,
     pub prereqs: Vec<Prereq>,
     pub damage_factors: Vec<DamageFactor>,
     pub doodads: Vec<Doodad>,
+    pub routes: Vec<crate::route::Route>,
 }
 
 impl Catalog {
@@ -551,11 +571,14 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         {
             Some("vital_fraction vital, fraction, mode or target")
         }
-        EFFECT_DAMAGE | EFFECT_HEAL if e.p0 < 0 || e.p1 < 0 => Some("damage or heal amount or radius"),
+        EFFECT_DAMAGE | EFFECT_HEAL if e.p0 < 0 || e.p1 < 0 || (e.kind == EFFECT_DAMAGE && !(0..=3).contains(&e.p2)) || (e.kind == EFFECT_HEAL && !(0..=1).contains(&e.p2)) => {
+            Some("damage or heal amount, radius or type")
+        }
         EFFECT_BUFF if e.p0 < 0 || e.p1 < 0 => Some("buff kind or duration"),
         EFFECT_SLOW if e.p0 < 1 || !(0..=65536).contains(&e.p1) => Some("slow duration or multiplier"),
         k if EFFECT_STATUS_DURATION.contains(&k) && e.p0 < 1 => Some("status duration"),
-        EFFECT_STAT if !(0..=4).contains(&e.p0) || e.p1 < 0 => Some("stat code or amount"),
+        EFFECT_STAT if !(0..crate::spell::STAT_COUNT as i32).contains(&e.p0) => Some("stat code"),
+        k if k >= crate::spell::FIRST_SPELL_KIND => crate::spell::spell_effect_error(e),
         EFFECT_WARD if e.p0 < 0 || e.p1 < 1 => Some("ward unit or lifetime"),
         EFFECT_GLYPH if e.p0 < 1 || e.p1 < 0 || e.p2 < 1 || e.p3 < 0 => Some("glyph duration, cooldown or filters"),
         EFFECT_DELIVER if e.p0 < 0 => Some("deliver reach"),
@@ -599,8 +622,12 @@ fn read_skill(sr: &mut Reader<'_>, effects: &[Effect], first: usize, count: usiz
             }
             continue;
         }
-        let gate = if ultimate == 1 { ULTIMATE_GATES[k] } else { NORMAL_GATE };
-        if skill.gates[k] != gate {
+        let gate_ok = if ultimate == 1 {
+            skill.gates[k] == ULTIMATE_GATES[k]
+        } else {
+            (NORMAL_GATE..=MAX_NORMAL_GATE).contains(&skill.gates[k]) && (k == 0 || skill.gates[k] >= skill.gates[k - 1])
+        };
+        if !gate_ok {
             return Err(LoadError::Range("skill level gate"));
         }
         if skill.damage[k] < 0 || skill.cooldown[k] < 0 || skill.energy[k] < 0 {
@@ -635,7 +662,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 20];
+    let mut sections = [(0usize, 0usize); 22];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -699,7 +726,10 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let filter = ar.u16("target filter")?;
         let effect_first = ar.u32("effect first")?;
         let projectile_speed = ar.i32("projectile speed")?;
-        ar.skip(4, "ability reserved")?;
+        let initial_cooldown = ar.i32("initial cooldown")?;
+        if initial_cooldown < 0 {
+            return Err(LoadError::Range("ability initial cooldown"));
+        }
         check_name(&strs, name)?;
         if flags & !1 != 0 {
             return Err(LoadError::Range("ability flags reserved bit"));
@@ -717,7 +747,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             return Err(LoadError::Range("effect run"));
         }
         let skill = read_skill(&mut sr, &effects, effect_first as usize, effect_count as usize)?;
-        abilities.push(Ability { name, flags, cooldown, energy, target, effect_count, effect_first, projectile_speed, filter, skill });
+        abilities.push(Ability { name, flags, cooldown, energy, target, effect_count, effect_first, projectile_speed, initial_cooldown, filter, skill });
     }
 
     if effects.iter().any(|e| e.kind == EFFECT_USE_CALLDOWN && (e.p0 < 0 || e.p0 as usize >= abilities.len())) {
@@ -1105,6 +1135,9 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         channels.push(Channel { channelled, duration });
     }
 
+    let routes = crate::route::parse_routes(bytes, body(21), w, h, &grid.flags)?;
+    let ext = crate::spell::parse_ext(bytes, body(20), &abilities, &effects)?;
+
     let (rso, rsc) = body(13);
     let mut rsr = Reader { buf: bytes, at: rso };
     let mut research = Vec::with_capacity(rsc);
@@ -1194,17 +1227,42 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let mut items: Vec<Item> = Vec::with_capacity(ic);
     for _ in 0..ic {
         let name = ir.name("item name")?;
+        let flags = ir.u16("item flags")?;
+        let cost = ir.i32("item cost")?;
+        let ability = ir.u16("item ability")?;
+        let tier = ir.u8("item tier")?;
+        let shops = ir.u8("item shops")?;
+        let mut components = [NO_INDEX; ITEM_COMPONENTS];
+        for c in components.iter_mut() {
+            *c = ir.u16("item component")?;
+        }
+        let charges = ir.u16("item charges")?;
+        let stack_max = ir.u16("item stack")?;
+        let stock_max = ir.u8("item stock max")?;
+        let stock_initial = ir.u8("item stock initial")?;
+        let stock_time_s = ir.u16("item stock time")?;
+        let stock_start_s = ir.u16("item stock start")?;
         ir.skip(2, "item reserved")?;
+        let mut stats = [0i32; ITEM_STAT_COUNT];
+        for v in stats.iter_mut() {
+            *v = ir.i32("item stat")?;
+        }
         let item = Item {
             name,
-            cost: ir.i32("item cost")?,
-            armor: ir.i32("item armor")?,
-            damage: ir.i32("item damage")?,
-            health: ir.i32("item health")?,
-            ability: ir.u16("item ability")?,
-            components: [ir.u16("item component")?, ir.u16("item component")?],
+            cost,
+            stats,
+            ability,
+            components,
+            flags,
+            tier,
+            shops,
+            charges,
+            stack_max,
+            stock_max,
+            stock_initial,
+            stock_time_s,
+            stock_start_s,
         };
-        ir.skip(2, "item reserved")?;
         let ability_ok = item.ability == NO_INDEX || (item.ability as usize) < abilities.len();
         // A component is an item declared before this one, and the components cost no more than
         // the item (the cost rule): a recipe never pays out gold.
@@ -1222,9 +1280,10 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             }
         });
         if item.cost < 0
-            || item.armor < 0
-            || item.damage < 0
-            || item.health < 0
+            || item.flags & !ITEM_FLAG_MASK != 0
+            || item.tier > NEUTRAL_TIERS
+            || item.shops > ITEM_SHOP_MASK
+            || item.stock_initial > item.stock_max
             || !ability_ok
             || !components_ok
             || component_cost > i64::from(item.cost)
@@ -1251,10 +1310,12 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             econ,
             unit_ext,
             channels,
+            ext,
             research,
             prereqs,
             damage_factors,
             doodads,
+            routes,
         },
         grid,
     ))

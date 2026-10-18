@@ -4,9 +4,8 @@
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
-use crate::inventory::{item_kind, INV_SLOTS};
 use crate::status::{EFFECT_INVISIBILITY, EFFECT_STUN};
-use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER, NO_INDEX};
+use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER};
 use crate::*;
 
 /// Why a cast was not applied.
@@ -63,9 +62,12 @@ pub enum Refusal {
     Stunned,
     Silenced,
     Rooted,
+    Passive,
+    SpellImmune,
+    Muted,
 }
 
-pub const REFUSAL_KINDS: usize = 49;
+pub const REFUSAL_KINDS: usize = 52;
 
 /// Every refusal kind, in discriminant order, so a count indexed by `refusal as usize` can be named.
 pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -118,6 +120,9 @@ pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::Stunned,
     Refusal::Silenced,
     Refusal::Rooted,
+    Refusal::Passive,
+    Refusal::SpellImmune,
+    Refusal::Muted,
 ];
 
 
@@ -173,18 +178,18 @@ impl Refusal {
             Refusal::Stunned => "stunned",
             Refusal::Silenced => "silenced",
             Refusal::Rooted => "rooted",
+            Refusal::Passive => "passive",
+            Refusal::SpellImmune => "spell-immune",
+            Refusal::Muted => "muted",
         }
     }
 }
 
 pub(crate) const TARGET_UNIT: u8 = 1;
-/// DOODAD_KINDS index of a shop (`5 shop` in FORMAT.md), and how close a unit must stand to buy.
-pub(crate) const SHOP_DOODAD_KIND: u16 = 5;
-pub(crate) const SHOP_REACH_MILLI: i32 = 4000;
 
 /// Which cooldown a cast is charged to: an ability slot, by array key.
 #[derive(Clone, Copy)]
-enum Slot {
+pub(crate) enum Slot {
     Ability(usize),
     Item(usize),
 }
@@ -242,7 +247,7 @@ impl Sim {
     }
 
     /// Casts catalog ability `ai` for unit `i`, charged to cooldown `cd`. Refusals as for `cast_ability`.
-    fn cast_index(&mut self, i: usize, ai: usize, cd: Slot, target: i32, x: i32, y: i32) -> bool {
+    pub(crate) fn cast_index(&mut self, i: usize, ai: usize, cd: Slot, target: i32, x: i32, y: i32) -> bool {
         let ability = self.cat.abilities[ai];
         let rank = match cd {
             Slot::Ability(k) => Some(self.abil_rank[k] as usize),
@@ -256,6 +261,12 @@ impl Sim {
             }
             _ => (ability.energy, ability.cooldown),
         };
+        let ext = self.ext_of(ai);
+        if ext.flags & crate::spell::FLAG_PASSIVE != 0 {
+            self.refuse(Refusal::Passive);
+            return false;
+        }
+        let (energy_cost, cooldown_ticks) = self.cast_costs(i, ai, energy_cost, cooldown_ticks);
         if self.channel_left[i] > 0 {
             self.refuse(Refusal::Channelling);
             return false;
@@ -268,9 +279,19 @@ impl Sim {
             self.refuse(Refusal::Silenced);
             return false;
         }
+        if matches!(cd, Slot::Item(_)) && self.muted(i) {
+            self.refuse(Refusal::Muted);
+            return false;
+        }
         if self.cooldown(cd) > 0 {
             self.refuse(Refusal::Cooldown);
             return false;
+        }
+        if let Slot::Ability(k) = cd {
+            if !self.has_charge(k, ai) {
+                self.refuse(Refusal::Cooldown);
+                return false;
+            }
         }
         if self.energy[i] < energy_cost {
             self.refuse(Refusal::Energy);
@@ -288,14 +309,31 @@ impl Sim {
                     self.refuse(Refusal::UnseenTarget);
                     return false;
                 }
-                if !self.meets_filter(t, ability.filter as u32) {
+                if !self.meets_filter(t, ability.filter as u32) || self.invulnerable(t) {
                     self.refuse(Refusal::TargetFilter);
+                    return false;
+                }
+                let friend = !self.hostile(self.player[i], self.player[t]);
+                if (ext.flags & crate::spell::FLAG_ALLY_ONLY != 0 && !friend) || (ext.flags & crate::spell::FLAG_ENEMY_ONLY != 0 && friend) {
+                    self.refuse(Refusal::TargetFilter);
+                    return false;
+                }
+                if ext.flags & crate::spell::FLAG_PIERCE == 0 && self.spell_immune(t) && self.hostile(self.player[i], self.player[t]) {
+                    self.refuse(Refusal::SpellImmune);
                     return false;
                 }
                 (self.pos_x[t], self.pos_y[t])
             }
             _ => (x, y),
         };
+        if ability.target != 0 && self.out_of_cast_range(i, ai, tx, ty) {
+            if let Slot::Ability(k) = cd {
+                self.begin_pending_cast(i, k % ABILITY_SLOTS, target, x, y);
+                return true;
+            }
+            self.refuse(Refusal::MoveRange);
+            return false;
+        }
 
         let first = ability.effect_first as usize;
         let count = ability.effect_count as usize;
@@ -317,16 +355,37 @@ impl Sim {
         }
 
         self.stats.casts += 1;
+        if let Slot::Ability(k) = cd {
+            self.spend_charge(i, k, ai);
+        }
         self.energy[i] -= energy_cost;
         self.set_cooldown(cd, cooldown_ticks);
-        if ability.is_projectile() {
-            self.launch_missile(i, ai, tx, ty, target);
-        } else if self.cat.channels.get(ai).map_or(false, |c| c.channelled) {
+        self.spell.pend_slot[i] = -1;
+        let channelled = self.cat.channels.get(ai).map_or(false, |c| c.channelled);
+        let point = self.cast_point_of(i, ai);
+        if channelled {
             self.start_channel(i, ai, tx, ty, target);
+        } else if point > 0 {
+            self.start_cast_point(i, ai, tx, ty, target, point);
+        } else {
+            self.finish_cast(i, ai, tx, ty, target);
+        }
+        true
+    }
+
+    /// The moment a cast takes hold: a projectile leaves, anything else applies at once.
+    pub(crate) fn finish_cast(&mut self, i: usize, ai: usize, tx: i32, ty: i32, target: i32) {
+        if self.cat.abilities[ai].is_projectile() {
+            self.launch_missile(i, ai, tx, ty, target);
         } else {
             self.apply_effects(i, ai, tx, ty, target);
         }
-        true
+    }
+
+    /// Holds the caster still for `ticks` before the cast takes hold (the ability's cast point).
+    fn start_cast_point(&mut self, i: usize, ai: usize, tx: i32, ty: i32, target: i32, ticks: i32) {
+        self.start_channel(i, ai, tx, ty, target);
+        self.channel_left[i] = ticks;
     }
 
     fn cooldown(&self, cd: Slot) -> i32 {
@@ -341,178 +400,6 @@ impl Sim {
             Slot::Ability(k) => self.abil_cd[k] = ticks,
             Slot::Item(k) => self.item_cd[k] = ticks,
         }
-    }
-
-    /// Uses the active ability of the item in inventory slot `slot` of unit `i`. Refusals: NoSlot
-    /// for a dead unit or a bad slot; NoItem for an empty slot or an item without an active
-    /// ability; otherwise the cast refusals (Cooldown, Energy, targeting), each changing nothing.
-    pub fn use_item(&mut self, i: usize, slot: usize, target: i32, x: i32, y: i32) -> bool {
-        if i >= self.n || self.alive[i] == 0 || slot >= INV_SLOTS {
-            self.refuse(Refusal::NoSlot);
-            return false;
-        }
-        let key = i * INV_SLOTS + slot;
-        let ability = match catalog_index(self.inv_kind[key], self.cat.items.len()) {
-            Some(index) => self.cat.items[index].ability,
-            None => NO_INDEX,
-        };
-        if ability == NO_INDEX {
-            self.refuse(Refusal::NoItem);
-            return false;
-        }
-        self.wards.casting_slot = slot as i32;
-        let cast = self.cast_index(i, ability as usize, Slot::Item(key), target, x, y);
-        self.wards.casting_slot = -1;
-        cast
-    }
-
-    /// Buys catalog item `item` for unit `i` from a shop in reach. A recipe first takes its
-    /// components from the inventory and is charged its cost less their cost (the cost rule).
-    /// The item lands in the first empty inventory slot, else in the stash; its stat bonuses
-    /// apply only when it enters the inventory. Refusals, each changing nothing: NoSlot for a dead
-    /// unit; NoItem for an unknown item; NoShop out of reach; MissingComponent when a component is
-    /// not held; CannotAfford; InventoryFull when neither the inventory nor the stash has room.
-    pub fn buy_item(&mut self, i: usize, item: usize) -> bool {
-        if i >= self.n || self.alive[i] == 0 {
-            self.refuse(Refusal::NoSlot);
-            return false;
-        }
-        let Some(def) = self.cat.items.get(item).copied() else {
-            self.refuse(Refusal::NoItem);
-            return false;
-        };
-        if !self.in_shop_reach(i) {
-            self.refuse(Refusal::NoShop);
-            return false;
-        }
-        let base = i * INV_SLOTS;
-        let mut held: [(u32, u32); INV_SLOTS] =
-            std::array::from_fn(|s| (self.inv_kind[base + s], self.inv_count[base + s]));
-        // Components consumed: cost, armour, damage and health bonus.
-        let mut spent = [0i32; 4];
-        for &component in def.components.iter().filter(|&&c| c != NO_INDEX) {
-            let kind = item_kind(component as usize);
-            let Some(s) = held.iter().position(|&(k, c)| k == kind && c > 0) else {
-                self.refuse(Refusal::MissingComponent);
-                return false;
-            };
-            held[s] = (0, 0);
-            let part = self.cat.items[component as usize];
-            spent[0] += part.cost;
-            spent[1] += part.armor;
-            spent[2] += part.damage;
-            spent[3] += part.health;
-        }
-        let price = def.cost - spent[0];
-        let p = self.player[i] as usize;
-        if self.resource_a[p] < price {
-            self.refuse(Refusal::CannotAfford);
-            return false;
-        }
-        let inventory_slot = held.iter().position(|&(k, _)| k == 0);
-        let stash_slot = (0..INV_SLOTS).find(|&s| self.stash_kind[base + s] == 0);
-        if inventory_slot.is_none() && stash_slot.is_none() {
-            self.refuse(Refusal::InventoryFull);
-            return false;
-        }
-        self.resource_a[p] -= price;
-        for (s, &(kind, count)) in held.iter().enumerate() {
-            self.inv_kind[base + s] = kind;
-            self.inv_count[base + s] = count;
-        }
-        self.apply_bonus(i, -spent[1], -spent[2], -spent[3]);
-        match inventory_slot {
-            Some(s) => {
-                self.inv_kind[base + s] = item_kind(item);
-                self.inv_count[base + s] = 1;
-                self.apply_bonus(i, def.armor, def.damage, def.health);
-            }
-            None => {
-                let s = stash_slot.unwrap_or(0);
-                self.stash_kind[base + s] = item_kind(item);
-                self.stash_count[base + s] = 1;
-            }
-        }
-        true
-    }
-
-    /// Sells the item in inventory slot `slot` of unit `i` to a shop in reach for half its cost,
-    /// rounded down, and removes its bonuses. Refusals, each changing nothing: NoSlot for a dead
-    /// unit or a bad slot; NoItem for an empty slot; NoShop out of reach.
-    pub fn sell_item(&mut self, i: usize, slot: usize) -> bool {
-        if i >= self.n || self.alive[i] == 0 || slot >= INV_SLOTS {
-            self.refuse(Refusal::NoSlot);
-            return false;
-        }
-        let key = i * INV_SLOTS + slot;
-        let Some(index) = catalog_index(self.inv_kind[key], self.cat.items.len()) else {
-            self.refuse(Refusal::NoItem);
-            return false;
-        };
-        if !self.in_shop_reach(i) {
-            self.refuse(Refusal::NoShop);
-            return false;
-        }
-        let def = self.cat.items[index];
-        let p = self.player[i] as usize;
-        self.resource_a[p] += def.cost / 2;
-        self.inv_kind[key] = 0;
-        self.inv_count[key] = 0;
-        self.apply_bonus(i, -def.armor, -def.damage, -def.health);
-        true
-    }
-
-    /// Moves the item in stash slot `slot` of unit `i` into the first empty inventory slot, within
-    /// reach of a shop. Its bonuses apply then. Refusals, each changing nothing: NoSlot for a dead
-    /// unit or a bad slot; NoItem for an empty stash slot; NoShop out of reach; InventoryFull.
-    pub fn unstash(&mut self, i: usize, slot: usize) -> bool {
-        if i >= self.n || self.alive[i] == 0 || slot >= INV_SLOTS {
-            self.refuse(Refusal::NoSlot);
-            return false;
-        }
-        let key = i * INV_SLOTS + slot;
-        let Some(index) = catalog_index(self.stash_kind[key], self.cat.items.len()) else {
-            self.refuse(Refusal::NoItem);
-            return false;
-        };
-        if !self.in_shop_reach(i) {
-            self.refuse(Refusal::NoShop);
-            return false;
-        }
-        let base = i * INV_SLOTS;
-        let Some(free) = (0..INV_SLOTS).find(|&s| self.inv_kind[base + s] == 0) else {
-            self.refuse(Refusal::InventoryFull);
-            return false;
-        };
-        let def = self.cat.items[index];
-        self.inv_kind[base + free] = self.stash_kind[key];
-        self.inv_count[base + free] = self.stash_count[key];
-        self.stash_kind[key] = 0;
-        self.stash_count[key] = 0;
-        self.apply_bonus(i, def.armor, def.damage, def.health);
-        true
-    }
-
-    /// Adds stat bonuses to unit `i` (negative to remove). Negative health clamps life to the new maximum.
-    pub(crate) fn apply_bonus(&mut self, i: usize, armor: i32, damage: i32, health: i32) {
-        self.armor[i] += fixed::from_int(armor);
-        self.damage[i] += fixed::from_int(damage);
-        self.hp_max[i] += fixed::from_int(health);
-        self.hp[i] = if health >= 0 {
-            self.hp[i] + fixed::from_int(health)
-        } else {
-            self.hp[i].min(self.hp_max[i])
-        };
-        self.touch(i);
-    }
-
-    /// True when unit `i` stands within `SHOP_REACH_MILLI` of a shop doodad.
-    fn in_shop_reach(&self, i: usize) -> bool {
-        let reach = fixed::from_milli(SHOP_REACH_MILLI) as i64;
-        self.doodads.iter().any(|d| {
-            d.kind == SHOP_DOODAD_KIND
-                && dist2(self.pos_x[i], self.pos_y[i], fixed::from_milli(d.x), fixed::from_milli(d.y)) <= reach * reach
-        })
     }
 
     /// Grants `amount` energy to unit `i`. Refusals, each changing nothing: a dead or unknown
@@ -563,15 +450,53 @@ impl Sim {
             caster as i32
         };
         let mut amount = ability.skill.and_then(|skill| self.skill_amount(caster, ai, skill));
-        for k in 0..ability.effect_count as usize {
-            let mut eff: Effect = self.cat.effects[first + k];
+        let (was_ai, was_pierce) = (self.spell.cur_ai, self.spell.pierce);
+        self.spell.cur_ai = ai as i32;
+        self.spell.pierce = self.ext_of(ai).flags & crate::spell::FLAG_PIERCE != 0;
+        let count = ability.effect_count as usize;
+        let passive_stats = self.ext_of(ai).flags & crate::spell::FLAG_PASSIVE_STATS != 0;
+        let mut k = 0;
+        while k < count {
+            let mut eff: Effect = self.resolve_effect(caster, ai, k);
             if let Some(scaled) = amount {
                 if eff.kind == EFFECT_DAMAGE || eff.kind == EFFECT_HEAL {
                     eff.p0 = scaled;
                     amount = None;
                 }
             }
-            self.apply_effect(caster, ability.filter as u32, eff, tx, ty, receiver, true);
+            let _ = first;
+            if eff.kind == EFFECT_STAT && passive_stats {
+                k += 1;
+                continue;
+            }
+            match eff.kind {
+                crate::spell::K_AOE => {
+                    self.aoe_effects(caster, ai, ability.filter as u32, k, tx, ty);
+                    k += 1 + eff.p2 as usize;
+                    continue;
+                }
+                crate::spell::K_IF_KILL if !self.spell.kill_flag => {
+                    k += 1 + eff.p0 as usize;
+                    continue;
+                }
+                crate::spell::K_IF_KILL => {}
+                _ => self.apply_effect(caster, ability.filter as u32, eff, tx, ty, receiver, true),
+            }
+            k += 1;
+        }
+        self.spell.cur_ai = was_ai;
+        self.spell.pierce = was_pierce;
+    }
+
+    /// Runs ability `ai`'s effects for `caster` at a point even when the caster has died since (a zone
+    /// or an aura pulse outlives its owner).
+    pub(crate) fn run_effects(&mut self, caster: usize, ai: usize, x: i32, y: i32, target: i32) {
+        if caster < self.n && self.alive[caster] == 0 {
+            self.alive[caster] = 1;
+            self.apply_effects(caster, ai, x, y, target);
+            self.alive[caster] = 0;
+        } else {
+            self.apply_effects(caster, ai, x, y, target);
         }
     }
 
@@ -592,6 +517,7 @@ impl Sim {
         let p = self.player[caster];
         let c = caster as i32;
         match eff.kind {
+            EFFECT_DAMAGE if eff.p2 != 0 => self.typed_damage(caster, eff, tx, ty, target),
             EFFECT_DAMAGE => {
                 if eff.p1 == 0 {
                     self.damage_target(c, p, eff.p0, target);
@@ -600,10 +526,15 @@ impl Sim {
                 }
             }
             EFFECT_HEAL => {
+                let amount = match eff.p2 {
+                    1 => fixed::from_int(eff.p0),
+                    2 if target >= 0 && (target as usize) < self.n => (self.hp_max[target as usize] as i64 * eff.p0 as i64 / 10_000) as i32,
+                    _ => eff.p0,
+                };
                 if eff.p1 == 0 {
-                    self.heal_target(p, eff.p0, target);
+                    self.heal_target(p, amount, target);
                 } else {
-                    self.heal_area(p, eff.p0, fixed::from_milli(eff.p1), tx, ty);
+                    self.heal_area(p, amount, fixed::from_milli(eff.p1), tx, ty);
                 }
             }
             EFFECT_MOVE => self.move_caster(caster, eff.p0, tx, ty),
@@ -618,7 +549,8 @@ impl Sim {
                         self.pos_y[caster] + fixed::from_milli(eff.p2),
                     )
                 };
-                if let Some(j) = self.spawn_for(p, eff.p0 as u32, sx, sy) {
+                let kind = self.wave_kind(p, eff.p0 as u32, eff.p3, sx, sy);
+                if let Some(j) = self.spawn_for(p, kind, sx, sy) {
                     self.stats.summoned += 1;
                     self.march_to_enemy_base(j, p);
                 }
@@ -632,7 +564,8 @@ impl Sim {
             EFFECT_WARD => self.ward_effect(caster, eff.p0, eff.p1, tx, ty),
             EFFECT_GLYPH => self.glyph_effect(caster, eff.p0, eff.p1, eff.p2, eff.p3),
             EFFECT_DELIVER => self.deliver_effect(caster, target, eff.p0),
-            EFFECT_STUN..=EFFECT_INVISIBILITY => self.status_effect(eff, target),
+            EFFECT_STUN..=EFFECT_INVISIBILITY => self.status_effect_from(caster, eff, target),
+            k if k >= crate::spell::FIRST_SPELL_KIND => self.spell_effect(caster, eff, tx, ty, target),
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),
             EFFECT_REMOVE_BEHAVIOUR => {
                 let _ = self.remove_behaviour(caster, eff.p0, fixed::from_milli(eff.p1), tx, ty, 0);
@@ -664,7 +597,7 @@ impl Sim {
     /// Sends a freshly summoned unit `j` of `player` on an attack-move toward the nearest living
     /// hostile building, along the route `approach_to` finds (A* around blocked terrain). A unit
     /// with no hostile building left stays where it spawned.
-    fn march_to_enemy_base(&mut self, j: usize, player: u8) {
+    pub(crate) fn march_to_enemy_base(&mut self, j: usize, player: u8) {
         let mut best: Option<(usize, i64)> = None;
         for k in 0..self.n {
             if k == j || self.alive[k] == 0 || !self.hostile(player, self.player[k]) {
@@ -727,15 +660,53 @@ impl Sim {
         self.tgt_x[i] = self.pos_x[i];
         self.tgt_y[i] = self.pos_y[i];
         self.channel_left[i] -= 1;
+        let ai = self.channel_ai[i];
+        let pulsing = ai >= 0
+            && (ai as usize) < self.cat.abilities.len()
+            && self.cat.channels.get(ai as usize).map_or(false, |c| c.channelled)
+            && self.ext_of(ai as usize).period > 0;
+        if pulsing {
+            self.channel_pulse(i, ai as usize);
+        }
         if self.channel_left[i] > 0 {
             return;
         }
-        let ai = self.channel_ai[i];
         self.channel_ai[i] = -1;
-        if ai >= 0 && (ai as usize) < self.cat.abilities.len() {
+        if !pulsing && ai >= 0 && (ai as usize) < self.cat.abilities.len() {
             let (x, y, t) = (self.channel_x[i], self.channel_y[i], self.channel_target[i]);
-            self.apply_effects(i, ai as usize, x, y, t);
+            self.finish_cast(i, ai as usize, x, y, t);
         }
+    }
+
+    /// One pulse of a pulsing channel: its effects apply on the caster, at the cast point for a
+    /// ground pulse, or at a random spot of the ability's scatter ring around the caster.
+    fn channel_pulse(&mut self, i: usize, ai: usize) {
+        let ext = self.ext_of(ai);
+        let period = self.ability_field(i, ai, crate::spell::SCALED_PERIOD, ext.period).max(1);
+        if self.channel_left[i] % period != 0 {
+            return;
+        }
+        let target = self.channel_target[i];
+        if ext.break_range > 0 && target >= 0 {
+            let t = target as usize;
+            let far = fixed::from_milli(ext.break_range) as i64;
+            if t >= self.n || self.alive[t] == 0 || dist2(self.pos_x[i], self.pos_y[i], self.pos_x[t], self.pos_y[t]) > far * far {
+                self.interrupt_channel(i);
+                return;
+            }
+        }
+        let (mut x, mut y) = if ext.flags & crate::spell::FLAG_GROUND_PULSE != 0 {
+            (self.channel_x[i], self.channel_y[i])
+        } else {
+            (self.pos_x[i], self.pos_y[i])
+        };
+        if ext.scatter_max > 0 {
+            let (dx, dy) = self.scatter_offset(ext.scatter_min, ext.scatter_max);
+            x += dx;
+            y += dy;
+        }
+        let t = self.channel_target[i];
+        self.apply_effects(i, ai, x, y, t);
     }
 
     /// Ends unit `i`'s channel early, applying no effects. Called when the unit takes a hit

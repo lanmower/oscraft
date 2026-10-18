@@ -395,7 +395,9 @@ impl Game {
         self.sim.character_level(unit as usize)
     }
 
-    /// UI export: the item catalog as JSON `[{"id":index,"name","cost","armor","damage","health","components":[index,...]}]`.
+    /// UI export: the item catalog as JSON `[{"id":index,"name","cost","armor","damage","health","flags",
+    /// "tier","shops","charges","stack","stats":{name:value,...},"components":[index,...]}]`. `stats` lists
+    /// the non-zero bonuses; `shops` is the bit mask home 1, side 2, secret 4.
     pub fn item_catalog_json(&self) -> String {
         let cat = self.sim.catalog();
         let rows: Vec<String> = cat
@@ -405,14 +407,26 @@ impl Game {
             .map(|(id, it)| {
                 let parts: Vec<String> =
                     it.components.iter().filter(|&&c| c != 0xFFFF).map(|c| c.to_string()).collect();
+                let stats: Vec<String> = sim::ITEM_STATS
+                    .iter()
+                    .zip(it.stats)
+                    .filter(|(_, v)| *v != 0)
+                    .map(|(n, v)| format!("\"{n}\":{v}"))
+                    .collect();
                 format!(
-                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"components\":[{}]}}",
+                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"flags\":{},\"tier\":{},\"shops\":{},\"charges\":{},\"stack\":{},\"stats\":{{{}}},\"components\":[{}]}}",
                     id,
                     json_str(cat.name(it.name)),
                     it.cost,
-                    it.armor,
-                    it.damage,
-                    it.health,
+                    it.stats[0],
+                    it.stats[1],
+                    it.stats[2],
+                    it.flags,
+                    it.tier,
+                    it.shops,
+                    it.charges,
+                    it.stack_max,
+                    stats.join(","),
                     parts.join(",")
                 )
             })

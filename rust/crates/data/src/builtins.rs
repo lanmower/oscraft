@@ -6,20 +6,21 @@ use starlark::docs::{DocItem, DocMember, DocParams};
 use starlark::environment::{Globals, GlobalsBuilder};
 use starlark::eval::Evaluator;
 use starlark::starlark_module;
-use starlark::values::{list::UnpackList, none::NoneType};
+use starlark::values::{dict::UnpackDictEntries, list::UnpackList, none::NoneType};
 
 use crate::format::{
     effect_params_valid, index_of, ACTIONS, ACTION_DECLARE_WINNER, ACTION_USE_ABILITY, CELL_MASK, CLOAK_FLAGS, DAMAGE_RESPONSES,
     DAMAGE_TYPES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
-    DOODAD_KINDS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
+    DOODAD_KINDS, MAX_ROUTE_LANE, MAX_ROUTE_POINTS, ITEM_COMPONENTS, ITEM_FLAG_CONSUMABLE, ITEM_FLAG_ENHANCEMENT, ITEM_FLAG_NEUTRAL, ITEM_FLAG_NO_BUY,
+    ITEM_FLAG_NO_SELL, ITEM_SHOPS, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
 };
 use crate::model::{
     AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw,
-    DoodadRaw, ItemRaw, ResearchRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
+    DoodadRaw, ItemRaw, ResearchRaw, RouteRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
 };
 
 pub fn globals() -> Globals {
-    GlobalsBuilder::standard().with(osdt_builtins).build()
+    GlobalsBuilder::standard().with(osdt_builtins).with(crate::abilityext::ext_builtins).build()
 }
 
 /// Each engine builtin as (name, signature such as `effect(kind, p0, ...)`), read from the
@@ -87,6 +88,8 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] p1: Option<i32>,
         #[starlark(require = named)] p2: Option<i32>,
         #[starlark(require = named)] p3: Option<i32>,
+        #[starlark(require = named)] unit: Option<&str>,
+        #[starlark(require = named)] ability: Option<&str>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<i32> {
         let kind_code = index_of(EFFECT_KINDS, kind, "effect kind")?;
@@ -100,7 +103,11 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             kind: kind_code,
             params,
         });
-        Ok(effects.len() as i32 - 1)
+        let handle = effects.len() - 1;
+        if unit.is_some() || ability.is_some() {
+            pool.ext.borrow_mut().effect_refs.push((handle, unit.map(str::to_owned), ability.map(str::to_owned)));
+        }
+        Ok(handle as i32)
     }
 
     fn unit(
@@ -221,31 +228,69 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
     fn item(
         name: &str,
         cost: i32,
-        #[starlark(require = named)] armor: Option<i32>,
-        #[starlark(require = named)] damage: Option<i32>,
-        #[starlark(require = named)] health: Option<i32>,
+        #[starlark(require = named)] stats: Option<UnpackDictEntries<String, i32>>,
         #[starlark(require = named)] ability: Option<&str>,
         #[starlark(require = named)] components: Option<UnpackList<String>>,
+        #[starlark(require = named)] consumable: Option<bool>,
+        #[starlark(require = named)] neutral_tier: Option<i32>,
+        #[starlark(require = named)] enhancement: Option<bool>,
+        #[starlark(require = named)] no_buy: Option<bool>,
+        #[starlark(require = named)] no_sell: Option<bool>,
+        #[starlark(require = named)] shops: Option<UnpackList<String>>,
+        #[starlark(require = named)] charges: Option<i32>,
+        #[starlark(require = named)] stack_max: Option<i32>,
+        #[starlark(require = named)] stock_max: Option<i32>,
+        #[starlark(require = named)] stock_initial: Option<i32>,
+        #[starlark(require = named)] stock_time_s: Option<i32>,
+        #[starlark(require = named)] stock_start_s: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
-        let armor = armor.unwrap_or(0);
-        let damage = damage.unwrap_or(0);
-        let health = health.unwrap_or(0);
-        if cost < 0 || armor < 0 || damage < 0 || health < 0 {
-            bail!("item {name:?}: cost and stat bonuses must be >= 0");
+        let mut values = [0i32; ITEM_STAT_COUNT];
+        for (stat, amount) in stats.map(|d| d.entries).unwrap_or_default() {
+            values[index_of(ITEM_STATS, &stat, "item stat")?] = amount;
+        }
+        if cost < 0 {
+            bail!("item {name:?}: cost must be >= 0");
         }
         let components = components.map(|list| list.items).unwrap_or_default();
-        if components.len() > 2 {
-            bail!("item {name:?}: a recipe takes at most two components");
+        if components.len() > ITEM_COMPONENTS {
+            bail!("item {name:?}: a recipe takes at most {ITEM_COMPONENTS} components");
+        }
+        let mut flags = 0;
+        for (on, bit) in [
+            (consumable, ITEM_FLAG_CONSUMABLE),
+            (Some(neutral_tier.is_some_and(|t| t > 0)), ITEM_FLAG_NEUTRAL),
+            (no_buy, ITEM_FLAG_NO_BUY),
+            (no_sell, ITEM_FLAG_NO_SELL),
+            (enhancement, ITEM_FLAG_ENHANCEMENT),
+        ] {
+            if on.unwrap_or(false) {
+                flags |= bit;
+            }
+        }
+        let mut shop_bits = 0;
+        for shop in shops.map(|list| list.items).unwrap_or_default() {
+            shop_bits |= 1 << index_of(ITEM_SHOPS, &shop, "item shop")?;
+        }
+        let tier = neutral_tier.unwrap_or(0);
+        if !(0..=NEUTRAL_TIERS as i32).contains(&tier) {
+            bail!("item {name:?}: neutral tier {tier} is outside 0..={NEUTRAL_TIERS}");
         }
         collector(eval)?.items.borrow_mut().push(ItemRaw {
             name: name.to_owned(),
             cost,
-            armor,
-            damage,
-            health,
+            stats: values,
             ability: ability.map(str::to_owned),
             components,
+            flags,
+            tier,
+            shops: shop_bits,
+            charges: charges.unwrap_or(0),
+            stack_max: stack_max.unwrap_or(0),
+            stock_max: stock_max.unwrap_or(0),
+            stock_initial: stock_initial.unwrap_or(0),
+            stock_time_s: stock_time_s.unwrap_or(0),
+            stock_start_s: stock_start_s.unwrap_or(0),
         });
         Ok(NoneType)
     }
@@ -258,6 +303,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         effects: Option<UnpackList<i32>>,
         #[starlark(require = named)] target_filters: Option<UnpackList<String>>,
         #[starlark(require = named)] projectile_speed_milli: Option<i32>,
+        #[starlark(require = named)] initial_cooldown: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let target = index_of(TARGETS, target, "target")?;
@@ -280,6 +326,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             target_filters,
             effects: handles,
             projectile_speed: projectile_speed_milli,
+            initial_cooldown: initial_cooldown.unwrap_or(0),
         });
         Ok(NoneType)
     }
@@ -583,6 +630,27 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             let row = (y * width) as usize;
             grid.tiles[row + x0 as usize..row + x1 as usize].fill(id);
         }
+        Ok(NoneType)
+    }
+
+    fn route(
+        player: i32,
+        lane: i32,
+        points: UnpackList<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        if !(0..MAX_PLAYERS).contains(&player) {
+            bail!("route player {player} is outside 0..{MAX_PLAYERS}");
+        }
+        if !(1..=MAX_ROUTE_LANE).contains(&lane) {
+            bail!("route lane {lane} is outside 1..={MAX_ROUTE_LANE}");
+        }
+        let flat = points.items;
+        if flat.len() % 2 != 0 || flat.is_empty() || flat.len() / 2 > MAX_ROUTE_POINTS {
+            bail!("route points must be 1..={MAX_ROUTE_POINTS} x/y pairs, got {} numbers", flat.len());
+        }
+        let points = flat.chunks(2).map(|p| (p[0], p[1])).collect();
+        collector(eval)?.routes.borrow_mut().push(RouteRaw { player, lane, points });
         Ok(NoneType)
     }
 

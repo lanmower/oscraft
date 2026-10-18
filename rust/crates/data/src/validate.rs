@@ -5,13 +5,13 @@ use std::collections::{HashMap, HashSet};
 use anyhow::{anyhow, bail, Result};
 
 use crate::format::{
-    move_cap_fits_grid, position_on_grid, ACTION_USE_ABILITY, CHANNEL_FLAG, CLOAK_MASK, EFFECT_KINDS, MAX_PLAYERS,
-    NEUTRAL_PLAYER, NO_ABILITY, NO_UNIT, NORMAL_GATE, PLCE_FLAG_START, PLCE_FLAG_TEAM, PLCE_TEAM_SHIFT, Q16_ONE,
-    SKILL_RANKS, ULTIMATE_GATES, ULTIMATE_RANKS,
+    move_cap_fits_grid, position_on_grid, CELL_BLOCKED, ACTION_USE_ABILITY, FILTER_MASK_BITS, CHANNEL_FLAG, CLOAK_MASK, EFFECT_KINDS, MAX_PLAYERS,
+    NEUTRAL_PLAYER, NO_ABILITY, NO_UNIT, NORMAL_GATE, MAX_NORMAL_GATE, PLCE_FLAG_START, PLCE_FLAG_TEAM, PLCE_TEAM_SHIFT, Q16_ONE,
+    ITEM_COMPONENTS, ITEM_SHOP_MASK, SKILL_RANKS, ULTIMATE_GATES, ULTIMATE_RANKS,
 };
 use crate::model::{
     Ability, AbilityRaw, Behaviour, Catalog, Channel, Collector, DamageFactor, Econ, Effect, EffectRaw, Prereq,
-    Research, Skill, SkillRaw, Spawn, Unit, Doodad, Item, UnitExt, Upgrade, Weapon,
+    Research, Route, Skill, SkillRaw, Spawn, Unit, Doodad, Item, UnitExt, Upgrade, Weapon,
 };
 
 fn valid_name(name: &str) -> Result<()> {
@@ -67,9 +67,14 @@ fn check_skill(raw: &SkillRaw, ability: &AbilityRaw, effects: &[EffectRaw]) -> R
         ..Skill::default()
     };
     for k in 0..ranks {
-        let gate = if raw.ultimate { ULTIMATE_GATES[k] } else { NORMAL_GATE };
-        if raw.gates[k] != gate {
-            bail!("skill {:?}: rank {} gate must be level {gate}, got {}", raw.ability, k + 1, raw.gates[k]);
+        let gate = raw.gates[k];
+        let allowed = if raw.ultimate {
+            gate == ULTIMATE_GATES[k]
+        } else {
+            (NORMAL_GATE..=MAX_NORMAL_GATE).contains(&gate) && (k == 0 || gate >= raw.gates[k - 1])
+        };
+        if !allowed {
+            bail!("skill {:?}: rank {} level gate {gate} is not allowed", raw.ability, k + 1);
         }
         skill.gates[k] = gate;
         skill.damage[k] = unsigned("skill damage", raw.damage[k])? as i32;
@@ -96,17 +101,19 @@ fn required_index(kind: usize, name: &str, units: &HashMap<String, usize>, resea
 }
 
 pub fn validate(collector: Collector) -> Result<Catalog> {
-    let effects = collector.effects.into_inner();
-    let units_raw = collector.units.into_inner();
+    let mut effects = collector.effects.into_inner();
+    let mut units_raw = collector.units.into_inner();
     let abilities_raw = collector.abilities.into_inner();
     let behaviours_raw = collector.behaviours.into_inner();
     let spawns_raw = collector.spawns.into_inner();
     let upgrades_raw = collector.upgrades.into_inner();
     let doodads_raw = collector.doodads.into_inner();
+    let routes_raw = collector.routes.into_inner();
     let items_raw = collector.items.into_inner();
     let skills_raw = collector.skills.into_inner();
     let unit_ext_raw = collector.unit_ext.into_inner();
     let channels_raw = collector.channels.into_inner();
+    let ext_raw = collector.ext.into_inner();
     let economy_raw = collector.economy.into_inner();
     let researches_raw = collector.researches.into_inner();
     let prereqs_raw = collector.prerequisites.into_inner();
@@ -123,6 +130,15 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     if abilities_raw.len() >= NO_ABILITY as usize {
         bail!("too many abilities: {} (max {})", abilities_raw.len(), NO_ABILITY as usize - 1);
     }
+    for (unit, list) in &ext_raw.hero_abilities {
+        let raw = units_raw
+            .iter_mut()
+            .find(|u| &u.name == unit)
+            .ok_or_else(|| anyhow!("hero_abilities names unknown unit {unit:?}"))?;
+        if raw.abilities.is_empty() {
+            raw.abilities = list.clone();
+        }
+    }
     if units_raw.len() >= NO_UNIT as usize {
         bail!("too many units: {} (max {})", units_raw.len(), NO_UNIT as usize - 1);
     }
@@ -131,6 +147,14 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     name_index("behaviour", behaviours_raw.iter().map(|b| b.name.as_str()))?;
     name_index("upgrade", upgrades_raw.iter().map(|u| u.name.as_str()))?;
     let research_index = name_index("research", researches_raw.iter().map(|r| r.name.as_str()))?;
+    for (handle, unit, ability) in &ext_raw.effect_refs {
+        if let Some(name) = unit {
+            effects[*handle].params[0] = *unit_index.get(name).ok_or_else(|| anyhow!("effect names unknown unit {name:?}"))? as i32;
+        }
+        if let Some(name) = ability {
+            effects[*handle].params[0] = *ability_index.get(name).ok_or_else(|| anyhow!("effect names unknown ability {name:?}"))? as i32;
+        }
+    }
 
     let mut skills_by_ability: HashMap<usize, Skill> = HashMap::new();
     for raw in &skills_raw {
@@ -159,6 +183,9 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             match *kind {
                 "spawn" | "ward" if target >= units_raw.len() => {
                     bail!("ability {:?}: spawn names unit index {target}, only {} units exist", raw.name, units_raw.len())
+                }
+                "spawn" if effect.params[3] & 0x3FFF_FFFF != 0 && !wave_spec_fits(effect.params[3] & 0x3FFF_FFFF, units_raw.len()) => {
+                    bail!("ability {:?}: spawn p3 {} names a unit or tag out of range", raw.name, effect.params[3])
                 }
                 "use_calldown" if target >= abilities_raw.len() => bail!(
                     "ability {:?}: use_calldown names ability index {target}, only {} abilities exist",
@@ -191,6 +218,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
                 .projectile_speed
                 .map(|speed| unsigned("projectile_speed_milli", speed))
                 .transpose()?,
+            initial_cooldown: unsigned("initial_cooldown", raw.initial_cooldown)?,
             skill: skills_by_ability.get(&ability_no).copied(),
         });
     }
@@ -212,6 +240,8 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             duration: unsigned("channel duration", raw.duration)?,
         };
     }
+
+    let ext = crate::abilityext::resolve(&ext_raw, &abilities_raw, &effects)?;
 
     let mut units = Vec::with_capacity(units_raw.len());
     for raw in &units_raw {
@@ -507,6 +537,26 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         });
     }
 
+    let mut routes = Vec::with_capacity(routes_raw.len());
+    let mut route_keys = HashSet::new();
+    for raw in &routes_raw {
+        if !route_keys.insert((raw.player, raw.lane)) {
+            bail!("route for player {} lane {} is declared twice", raw.player, raw.lane);
+        }
+        let mut points = Vec::with_capacity(raw.points.len());
+        for (k, &(x, y)) in raw.points.iter().enumerate() {
+            if !position_on_grid(x as i64, y as i64, grid.width, grid.height, grid.cell_milli) {
+                bail!("route player {} lane {} point {k} ({x}, {y}) is off the grid", raw.player, raw.lane);
+            }
+            let cell = (y as u32 / grid.cell_milli) as usize * grid.width as usize + (x as u32 / grid.cell_milli) as usize;
+            if grid.cells[cell] & CELL_BLOCKED != 0 {
+                bail!("route player {} lane {} point {k} ({x}, {y}) is on a blocked cell", raw.player, raw.lane);
+            }
+            points.push((x as u32, y as u32));
+        }
+        routes.push(Route { player: raw.player as u16, lane: raw.lane as u16, points });
+    }
+
     name_index("item", items_raw.iter().map(|i| i.name.as_str()))?;
     let mut items = Vec::with_capacity(items_raw.len());
     for (at, raw) in items_raw.iter().enumerate() {
@@ -517,7 +567,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             },
             None => NO_ABILITY,
         };
-        let mut components = [NO_ABILITY; 2];
+        let mut components = [NO_ABILITY; ITEM_COMPONENTS];
         let mut component_cost: i64 = 0;
         for (slot, name) in raw.components.iter().enumerate() {
             match items_raw[..at].iter().position(|earlier| earlier.name == *name) {
@@ -531,14 +581,31 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         if component_cost > i64::from(raw.cost) {
             bail!("item {:?}: its components cost {component_cost}, more than its cost {}", raw.name, raw.cost);
         }
+        if [raw.charges, raw.stack_max, raw.stock_max, raw.stock_initial, raw.stock_time_s, raw.stock_start_s]
+            .iter()
+            .any(|&v| v < 0 || v > i32::from(u16::MAX))
+            || raw.stock_max > i32::from(u8::MAX)
+            || raw.stock_initial > raw.stock_max
+            || (raw.stack_max > 0 && raw.charges > raw.stack_max)
+            || !(0..=i32::from(ITEM_SHOP_MASK)).contains(&raw.shops)
+        {
+            bail!("item {:?}: charges, stack or stock outside their ranges", raw.name);
+        }
         items.push(Item {
             name: raw.name.clone(),
             cost: raw.cost as u32,
-            armor: raw.armor as u32,
-            damage: raw.damage as u32,
-            health: raw.health as u32,
+            stats: raw.stats,
             ability,
             components,
+            flags: raw.flags,
+            tier: raw.tier as u8,
+            shops: raw.shops as u8,
+            charges: raw.charges as u16,
+            stack_max: raw.stack_max as u16,
+            stock_max: raw.stock_max as u8,
+            stock_initial: raw.stock_initial as u8,
+            stock_time_s: raw.stock_time_s as u16,
+            stock_start_s: raw.stock_start_s as u16,
         });
     }
 
@@ -549,6 +616,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         unit_ext,
         abilities,
         channels,
+        ext,
         behaviours,
         spawns,
         upgrades,
@@ -558,5 +626,15 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         prereqs,
         damage_factors,
         grid,
+        routes,
     })
+}
+
+/// Whether a spawn p3 wave spec (see sim waves.rs: two kind fields of 10 bits, two tag fields of 5 bits, the route lane in the top two bits)
+/// names only existing units and filter bits.
+fn wave_spec_fits(spec: i32, units: usize) -> bool {
+    let spec = (spec as u32 & 0x3FFF_FFFF) as i32;
+    let kind = |shift: u32| ((spec >> shift) & 0x3FF) as usize;
+    let tag = |shift: u32| ((spec >> shift) & 0x1F) as u32;
+    kind(0) <= units && kind(10) <= units && tag(20) <= FILTER_MASK_BITS && tag(25) <= FILTER_MASK_BITS
 }

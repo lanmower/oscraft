@@ -16,7 +16,7 @@ pub(crate) const EFFECT_SILENCE: u16 = 13;
 pub(crate) const EFFECT_ROOT: u16 = 14;
 pub(crate) const EFFECT_INVISIBILITY: u16 = 15;
 /// Effect kinds the data format defines for statuses are the codes `EFFECT_STUN..=EFFECT_INVISIBILITY`.
-pub(crate) const STATUS_KINDS: usize = 5;
+pub(crate) const STATUS_KINDS: usize = 14;
 /// Q16 speed multiplier of an unslowed unit.
 pub(crate) const SLOW_NONE: i32 = fixed::ONE;
 
@@ -29,9 +29,23 @@ pub(crate) const SLOW: usize = 1;
 pub(crate) const SILENCE: usize = 2;
 pub(crate) const ROOT: usize = 3;
 pub(crate) const INVISIBLE: usize = 4;
+pub(crate) const TAUNT: usize = 5;
+pub(crate) const HEX: usize = 6;
+pub(crate) const DISARM: usize = 7;
+pub(crate) const SPELL_IMMUNE: usize = 8;
+pub(crate) const INVULNERABLE: usize = 9;
+pub(crate) const BREAK: usize = 10;
+pub(crate) const MUTE: usize = 11;
+pub(crate) const PHYSICAL_IMMUNE: usize = 12;
+pub(crate) const DEATH_PREVENTION: usize = 13;
 
 /// Status names in counter order, for hosts that report them.
-pub const STATUS_NAMES: [&str; STATUS_KINDS] = ["stun", "slow", "silence", "root", "invisibility"];
+pub const STATUS_NAMES: [&str; STATUS_KINDS] = [
+    "stun", "slow", "silence", "root", "invisibility", "taunt", "hex", "disarm", "spell_immunity", "invulnerable", "break", "mute",
+    "physical_immunity", "death_prevention",
+];
+/// Movement speed of a hexed unit in milli-units per tick (140 Dota units a second at the 15.625 scale).
+pub(crate) const HEX_SPEED_MILLI: i32 = 137;
 
 impl Sim {
     /// Ticks left on status `kind` (index into `STATUS_NAMES`) of unit `i`; 0 when none, unknown unit or kind.
@@ -52,7 +66,18 @@ impl Sim {
     }
 
     pub(crate) fn silenced(&self, i: usize) -> bool {
-        self.status_left(i, SILENCE) > 0
+        self.status_left(i, SILENCE) > 0 || self.status_left(i, HEX) > 0
+    }
+
+    /// Clears one status counter of unit `i`.
+    pub(crate) fn clear_status(&mut self, i: usize, kind: usize) {
+        if i < self.n && kind < STATUS_KINDS {
+            self.status_left[i * STATUS_KINDS + kind] = 0;
+            if kind == SLOW {
+                self.slow_mul[i] = SLOW_NONE;
+            }
+            self.touch(i);
+        }
     }
 
     pub(crate) fn rooted(&self, i: usize) -> bool {
@@ -68,8 +93,15 @@ impl Sim {
     /// that can move (or its own speed when that is lower). One Dota speed point is 64 in Q16.16
     /// (1 Dota unit = 15.625 milli, 16 ticks per second).
     pub(crate) fn effective_speed(&self, i: usize) -> i32 {
+        if self.status_left(i, HEX) > 0 {
+            let own = self.spell.hex_speed.get(i).copied().unwrap_or(0);
+            return fixed::from_milli(if own > 0 { own } else { HEX_SPEED_MILLI });
+        }
         let mul = self.slow_multiplier(i);
-        let speed = if mul == SLOW_NONE { self.speed[i] } else { ((self.speed[i] as i64 * mul as i64) >> fixed::SHIFT) as i32 };
+        let boosted = (self.speed[i] as i64 + self.stat(i, crate::spell::S_SPEED) as i64 * fixed::ONE as i64 / 1000)
+            * (100 + self.stat(i, crate::spell::S_SPEED_PCT) as i64).max(0)
+            / 100;
+        let speed = if mul == SLOW_NONE { boosted as i32 } else { ((boosted * mul as i64) >> fixed::SHIFT) as i32 };
         if self.speed[i] <= 0 {
             return speed;
         }

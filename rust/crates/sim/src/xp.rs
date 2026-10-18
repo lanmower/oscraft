@@ -54,6 +54,10 @@ impl Sim {
         }
         let before = self.level(unit);
         self.xp_total[unit] = self.xp_total[unit].saturating_add(amount);
-        self.level(unit) - before
+        let gained = self.level(unit) - before;
+        if gained > 0 {
+            self.apply_hero_stats(unit);
+        }
+        gained
     }
 }

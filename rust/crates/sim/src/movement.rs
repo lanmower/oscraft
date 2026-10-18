@@ -393,6 +393,7 @@ impl Sim {
         }
         self.order_kind[i] = kind;
         self.routed[i] = 0;
+        self.cancel_pending_cast(i);
         self.interrupt_channel(i);
         self.touch(i);
         self.record_order(i);

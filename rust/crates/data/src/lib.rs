@@ -2,6 +2,7 @@
 //! once, validates them, and returns the binary image FORMAT.md describes.
 //! The tick path never runs Starlark.
 
+pub mod abilityext;
 pub mod builtins;
 pub mod encode;
 pub mod format;
