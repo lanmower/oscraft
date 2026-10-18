@@ -334,7 +334,7 @@ impl Sim {
     /// Sets unit `i`'s destination toward a stop point along a walkable route. The point itself
     /// when the straight segment is clear; else a waypoint `APPROACH_LOOKAHEAD` cells along an A*
     /// route around the terrain, to the nearest walkable cell of the point. Flying units, and
-    /// points no route reaches, keep the straight move.
+    /// far points and points A* cannot reach ride the shared flow field to the stop point.
     fn approach_to(&mut self, i: usize, x: i32, y: i32) {
         let from = (cell_of(self.pos_x[i]), cell_of(self.pos_y[i]));
         let to = (cell_of(x), cell_of(y));
@@ -342,7 +342,8 @@ impl Sim {
             self.move_fixed(i, x, y);
             return;
         }
-        let goal = self.grid.nearest_walkable(to.0, to.1, 8);
+        let near = astar::span(from, to) <= astar::ASTAR_MAX_SPAN;
+        let goal = if near { self.grid.nearest_walkable(to.0, to.1, 8) } else { None };
         let route = goal.and_then(|g| astar::route(&self.grid, from, g, astar::ASTAR_NODE_BUDGET));
         let waypoint = route.and_then(|path| path.get(APPROACH_LOOKAHEAD.min(path.len()).max(1) - 1).copied());
         match waypoint {
@@ -352,6 +353,7 @@ impl Sim {
             }
             None => {
                 self.move_fixed(i, x, y);
+                self.routed[i] = 1;
             }
         }
     }

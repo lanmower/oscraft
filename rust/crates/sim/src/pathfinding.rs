@@ -8,10 +8,12 @@ pub const COST_STRAIGHT: i32 = ONE;
 pub const COST_DIAGONAL: i32 = 92682;
 pub const UNIT_DIAGONAL: i32 = 46341;
 pub const NO_DIR: u8 = 255;
-pub const DEFAULT_MAX_FIELDS: usize = 8;
+pub const DEFAULT_MAX_FIELDS: usize = 16;
 pub const DEFAULT_TICK_BUDGET: usize = 4096;
+/// Cells a tick spends on one destination that has no served route yet.
+pub const FIRST_BUILD_BUDGET: usize = 16384;
 pub const MOVE_THRESHOLD: i32 = 4;
-pub const REBUILD_CADENCE: u32 = 16;
+pub const REBUILD_CADENCE: u32 = 512;
 /// Cell bit set on cells that refuse pathing and placement (`bit 0 = blocked`).
 pub const BLOCKED: u8 = 1;
 
@@ -157,9 +159,9 @@ impl Field {
             dir: vec![0; cells],
             dir_next: vec![NO_DIR; cells],
             settled: vec![0; cells],
-            cur: Vec::with_capacity(cells),
-            n1: Vec::with_capacity(cells),
-            n2: Vec::with_capacity(cells),
+            cur: Vec::new(),
+            n1: Vec::new(),
+            n2: Vec::new(),
             b: 0,
             building: false,
             ready: false,
@@ -370,21 +372,15 @@ impl Pool {
         }
     }
 
-    /// Returns the slot routing destination `id` to (gx, gy), claiming one if needed.
+    /// Returns the slot routing to (gx, gy). Requests within `MOVE_THRESHOLD` cells of a held
+    /// destination share its field, whoever asks; otherwise a slot is claimed for the destination.
+    /// `id` only marks the slot as owned.
     pub fn request(&mut self, id: i32, gx: i32, gy: i32) -> usize {
-        if let Some(i) = self.owner.iter().position(|&o| o == id) {
-            self.want_x[i] = gx;
-            self.want_y[i] = gy;
+        let held = (0..self.owner.len()).find(|&i| self.owner[i] >= 0 && !drifted(self.want_x[i], self.want_y[i], gx, gy));
+        if let Some(i) = held {
             self.seen[i] = self.tick_no;
             let stale = match &self.fields[i] {
-                Some(f) => {
-                    !f.is_ready()
-                        || self.age[i] >= REBUILD_CADENCE
-                        || {
-                            let (fx, fy) = f.goal();
-                            drifted(fx, fy, gx, gy)
-                        }
-                }
+                Some(f) => !f.is_ready() || self.age[i] >= REBUILD_CADENCE,
                 None => true,
             };
             if stale {
@@ -440,31 +436,40 @@ impl Pool {
                 self.dirty[i] = true;
             }
         }
-        for k in 0..n {
-            let i = (self.round + k) % n;
-            if self.owner[i] < 0 || !self.dirty[i] {
-                continue;
-            }
-            self.round = i + 1;
-            let (wx, wy, budget) = (self.want_x[i], self.want_y[i], self.budget);
-            let f = match self.fields[i].as_mut() {
-                Some(f) => f,
-                None => {
-                    self.dirty[i] = false;
-                    return 0;
+        let mut spent = 0;
+        for fresh in [true, false] {
+            for k in 0..n {
+                let i = (self.round + k) % n;
+                if self.owner[i] < 0 || !self.dirty[i] {
+                    continue;
                 }
-            };
-            if !f.is_building() && !f.reset(g, wx, wy) {
-                self.dirty[i] = false;
-                return 0;
+                let unserved = self.fields[i].as_ref().map_or(true, |f| !f.is_ready());
+                if unserved != fresh {
+                    continue;
+                }
+                self.round = i + 1;
+                let (wx, wy) = (self.want_x[i], self.want_y[i]);
+                let budget = if fresh { FIRST_BUILD_BUDGET } else { self.budget };
+                let f = match self.fields[i].as_mut() {
+                    Some(f) => f,
+                    None => {
+                        self.dirty[i] = false;
+                        continue;
+                    }
+                };
+                if !f.is_building() && !f.reset(g, wx, wy) {
+                    self.dirty[i] = false;
+                    continue;
+                }
+                if f.step(g, budget) {
+                    self.dirty[i] = false;
+                    self.age[i] = 0;
+                }
+                spent += budget;
+                break;
             }
-            if f.step(g, budget) {
-                self.dirty[i] = false;
-                self.age[i] = 0;
-            }
-            return budget;
         }
-        0
+        spent
     }
 
     /// Drops every solved field so each destination is re-solved against the current grid.
