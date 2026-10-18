@@ -27,8 +27,13 @@ pub const EFFECT_KINDS: &[&str] = &[
     "use_calldown",
     "vital_fraction",
     "shield_bonus",
+    "stun",
+    "slow",
+    "silence",
+    "root",
+    "invisibility",
 ];
-pub const MAX_EFFECT_KIND: usize = 10;
+pub const MAX_EFFECT_KIND: usize = 15;
 pub const ORDER_KINDS: &[&str] = &["stop", "attack_move", "hold"];
 pub const ORDER_TARGETS: &[&str] = &["caster_relative", "point"];
 pub const VITALS: &[&str] = &["life", "shield"];
@@ -167,6 +172,8 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
                 && (0..VITAL_TARGETS.len() as i32).contains(&p3)
         }
         "shield_bonus" => p0 >= 0,
+        "stun" | "silence" | "root" | "invisibility" => p0 >= 1,
+        "slow" => p0 >= 1 && (0..=Q16_ONE).contains(&p1),
         _ => true,
     }
 }

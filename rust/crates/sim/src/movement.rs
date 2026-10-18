@@ -90,7 +90,7 @@ impl Sim {
         let dy = self.tgt_y[i].wrapping_sub(self.pos_y[i]);
         let cx = cell_of(self.pos_x[i]);
         let cy = cell_of(self.pos_y[i]);
-        let speed = self.speed[i];
+        let speed = self.effective_speed(i);
 
         let mut vx = 0i32;
         let mut vy = 0i32;
@@ -181,6 +181,11 @@ impl Sim {
     /// Moves a unit one tick. Ground units are refused unwalkable cells per axis;
     /// air units ignore terrain.
     pub(crate) fn integrate(&mut self, i: usize) {
+        if self.rooted(i) {
+            self.vel_x[i] = 0;
+            self.vel_y[i] = 0;
+            return;
+        }
         let mut nx = self.pos_x[i].wrapping_add(self.vel_x[i]);
         let mut ny = self.pos_y[i].wrapping_add(self.vel_y[i]);
         let max_x = fixed::from_int(self.grid.w as i32 - 1);
@@ -265,6 +270,10 @@ impl Sim {
     /// the same line from the caster. A cap of 0, or one whose square exceeds the grid
     /// diagonal's square, refuses as move-range. Integer arithmetic only.
     pub(crate) fn move_caster(&mut self, caster: usize, cap_milli: i32, tx: i32, ty: i32) {
+        if self.rooted(caster) {
+            self.refuse(Refusal::Rooted);
+            return;
+        }
         let diagonal2 = (self.grid.w as i64 * 1000).pow(2) + (self.grid.h as i64 * 1000).pow(2);
         if cap_milli <= 0 || (cap_milli as i64).pow(2) > diagonal2 {
             self.refuse(Refusal::MoveRange);
@@ -292,6 +301,9 @@ impl Sim {
     pub fn order_attack_or_approach(&mut self, i: usize, target: usize) -> Result<bool, Refusal> {
         if i >= self.n || self.alive[i] == 0 || target >= self.n || self.alive[target] == 0 {
             return Err(self.reject(Refusal::NoTarget));
+        }
+        if self.stunned(i) {
+            return Err(self.reject(Refusal::Stunned));
         }
         let legal = i != target
             && self.damage[i] > 0
@@ -355,6 +367,9 @@ impl Sim {
         }
         if i >= self.n || self.alive[i] == 0 {
             return Err(self.reject(Refusal::NoTarget));
+        }
+        if self.stunned(i) {
+            return Err(self.reject(Refusal::Stunned));
         }
         match kind {
             ORDER_STOP | ORDER_HOLD => {

@@ -101,6 +101,11 @@ Effect parameters by kind:
 | 8    | `use_calldown`     | calldown ability index into `ABIL`, `>= 0`, `< ability count`     | –                                      | –                           | –                                |
 | 9    | `vital_fraction`   | vital: `0 life`, `1 shield`                                        | fraction, Q16, `0..=65536`             | mode: `0 drain`, `1 set`    | target: `0 current`, `1 max`     |
 | 10   | `shield_bonus`     | flat bonus amount, `>= 0`                                          | –                                      | –                           | –                                |
+| 11   | `stun`             | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
+| 12   | `slow`             | duration, ticks, `>= 1`                                            | speed multiplier, Q16, `0..=65536`     | –                           | –                                |
+| 13   | `silence`          | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
+| 14   | `root`             | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
+| 15   | `invisibility`     | duration, ticks, `>= 1`                                            | –                                      | –                           | –                                |
 
 ### Receiver
 
@@ -119,6 +124,12 @@ effects are defined by the receiver: `issue_order`, `shield_bonus` and
   target (`caster_relative` or `point`) is resolved from the caster or the cast
   point, and is independent of who receives the order.
 - `shield_bonus`: the receiver's shield gains the flat amount.
+- `stun`, `slow`, `silence`, `root`, `invisibility`: status effects on the receiver for
+  p0 ticks (the cast tick counts as the first). Reapplying keeps the longer duration; a
+  slow keeps the lower multiplier while active. Stun: no orders, cast, attack or movement,
+  and it ends a channel. Slow: speed scales by p1. Silence: no ability cast (items still
+  work). Root: no movement or `move` effect. Invisibility: hidden from hostile players
+  unless one of their detectors covers the unit.
 - `vital_fraction`: the receiver's vital (life or shield) is changed by the
   fraction of the target value, as set by mode and target below.
 
@@ -450,7 +461,8 @@ without a version bump.
 
 - Effect kinds (`EFCT.kind`): `0 damage`, `1 heal`, `2 move`, `3 spawn`, `4 buff`,
   `5 issue_order`, `6 remove_behaviour`, `7 create_healer`, `8 use_calldown`,
-  `9 vital_fraction`, `10 shield_bonus`. Codes above `10` are rejected.
+  `9 vital_fraction`, `10 shield_bonus`, `11 stun`, `12 slow`, `13 silence`, `14 root`,
+  `15 invisibility`. Codes above `15` are rejected.
 - Targets (`ABIL.target`): `0 none`, `1 unit`, `2 point`
 - Triggers (`BHVR.trigger`): `0 idle`, `1 attacked`, `2 spawned`, `3 ability_ready`, `4 destroyed`
 - Actions (`BHVR.action`): `0 attack_nearest` (strikes the nearest enemy in reach), `1 flee` (refused at load: the engine does not run it yet), `2 use_ability`, `3 declare_winner` (param = FILTERS index named by `tag=`; the rival side wins when the destroyed unit's side has no living unit carrying that tag)

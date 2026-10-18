@@ -85,3 +85,9 @@ skill("evade_step", ultimate=False, gates=[1, 1, 1, 1], damage=[0, 0, 0, 0], coo
 skill("piercing_volley", ultimate=False, gates=[1, 1, 1, 1], damage=[12, 16, 20, 24], cooldown=[70, 66, 62, 58], energy=[0, 0, 0, 0])
 skill("hawk_eye", ultimate=False, gates=[1, 1, 1, 1], damage=[0, 0, 0, 0], cooldown=[100, 95, 90, 85], energy=[0, 0, 0, 0])
 skill("storm_rain", ultimate=True, gates=[6, 12, 18], damage=[40, 60, 80], cooldown=[500, 440, 380], energy=[0, 0, 0])
+# Status abilities: stun, slow (half speed), silence, root and invisibility, durations in ticks (16 per second).
+ability("stun_bolt", 120, 0, "unit", [effect("damage", p0=10), effect("stun", p0=24)], target_filters=["ground"])
+ability("frost_slow", 80, 0, "unit", [effect("slow", p0=48, p1=32768)], target_filters=["ground"])
+ability("hex_silence", 100, 0, "unit", [effect("silence", p0=64)], target_filters=["ground"])
+ability("entangle", 100, 0, "unit", [effect("root", p0=40)], target_filters=["ground"])
+ability("smoke_veil", 160, 0, "none", [effect("invisibility", p0=80)])
