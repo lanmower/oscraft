@@ -1906,13 +1906,19 @@ jobs:
           }
           if (!(orders > ordersBefore)) throw new Error("no right click on the map ordered unit " + unit.id + " to move");
           if (errors.length) throw new Error("console errors: " + errors.join("\n"));
-          const before = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];
-          await page.keyboard.down("ArrowRight");
-          await page.waitForTimeout(500);
-          await page.keyboard.up("ArrowRight");
-          const after = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];
-          if (!(after > before)) throw new Error("arrow right did not pan: " + before + " -> " + after);
-          console.log(`moba camera ok pan=${(after - before).toFixed(2)}`);
+          // The camera target is clamped to the walkable bounds, so the arrow that pans toward an edge may not move it: try right, then left.
+          const centreX = async () => Number((await page.getAttribute("body", "data-center")).split(",")[0]);
+          const before = await centreX();
+          let after = before;
+          for (const key of ["ArrowRight", "ArrowLeft"]) {
+            await page.keyboard.down(key);
+            await page.waitForTimeout(500);
+            await page.keyboard.up(key);
+            after = await centreX();
+            if (after !== before) break;
+          }
+          if (!(after !== before)) throw new Error("arrow keys did not pan the camera from x=" + before);
+          console.log(`moba camera ok pan=${Math.abs(after - before).toFixed(2)}`);
           // Wheel up zooms in: the orbit distance shrinks.
           const zoomBefore = Number(await page.getAttribute("body", "data-distance"));
           await page.mouse.move(512, 384);
