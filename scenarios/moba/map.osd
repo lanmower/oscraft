@@ -1,4 +1,4 @@
-# Map for the moba scenario at Dota scale: 64 x 60 cells, three lanes (top, mid, bottom) between two bases,
+# 5v5 map for the moba scenario at Dota scale: 64 x 60 cells, three lanes (top, mid, bottom) between two ancients (bases),
 # a river (a walkable ford at the low level) between the teams, four jungle camp areas, shops and fountains at each base.
 # grid(fill=1) starts every cell blocked; paint(..., 0) opens walkable terrain. Half-open rectangles.
 grid(64, 60, cell_milli=1000, fill=1)
@@ -55,9 +55,17 @@ start(1, 57500, 30500)
 # Bases: structures that spawn creeps on a timer and that the win trigger watches. Side 1's base is its first unit.
 spawn("base", 0, 6500, 30500)
 spawn("base", 1, 57500, 30500)
-# One hero per side and one worker per side.
+# Five hero slots per side, all inside the base pad, and one worker per side.
+spawn("hero", 0, 9000, 27500)
+spawn("hero", 0, 9000, 29000)
 spawn("hero", 0, 9000, 30500)
+spawn("hero", 0, 9000, 32000)
+spawn("hero", 0, 9000, 33500)
+spawn("hero", 1, 55000, 27500)
+spawn("hero", 1, 55000, 29000)
 spawn("hero", 1, 55000, 30500)
+spawn("hero", 1, 55000, 32000)
+spawn("hero", 1, 55000, 33500)
 spawn("tender", 0, 9000, 31500)
 spawn("tender", 1, 55000, 31500)
 # Lane top (y 7..9): three towers per side in sequence toward that side's base, with hit points,

@@ -2876,9 +2876,11 @@ jobs:
           test "$units0" -eq "$initial_units"
           test "$sides" -eq "$starts"
           test "$lanes" -eq 3
-          test "$heroes" -eq "$starts"
+          test "$heroes" -eq $((starts * 5))
+          for s in $(seq 0 $((starts - 1))); do test "$(grep -cE "^spawn\(\"hero\", *$s," map.osd)" -eq 5; done
           grid_w=$(grep -oE '^grid\([0-9]+' map.osd | grep -oE '[0-9]+$')
           grid_h=$(grep -oE '^grid\([0-9]+, *[0-9]+' map.osd | grep -oE '[0-9]+$')
+          echo "moba map 5v5 sides=$sides heroes=$heroes lanes=$lanes towers=$towers"
           echo "moba map grid=${grid_w}x${grid_h} cells=$((grid_w * grid_h)) lanes=$lanes"
           echo "moba scenario ok sides=$sides lanes=$lanes towers=$towers heroes=$heroes creeps_spawned=$creeps_spawned"
           for y in $(grep -E '^spawn\("tower"' map.osd | sed -E 's/.*, *[0-9]+ *, *([0-9]+) *\)$/\1/' | sort -un); do
