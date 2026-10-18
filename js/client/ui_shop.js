@@ -1,6 +1,8 @@
 // Shop panel: every catalog item with cost, stats, recipe and a buy button. The catalog is read once from
 // Game.item_catalog_json; Buy calls Game.buy for the selected local hero (the sim refuses it out of shop reach).
-// Toggle with the B key.
+// Toggled by the shop action (B and P in moba_ui.json) that the input layer dispatches as "moba:action".
+import UI from "./moba_ui.json" with { type: "json" };
+import { fill } from "./moba_select.js";
 
 const STYLE = `
 #ui-shop{position:fixed;right:8px;top:48px;width:260px;max-height:60vh;overflow:auto;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:12px/1.3 monospace;padding:6px 8px}
@@ -67,7 +69,7 @@ export function createShop({ game, selected, localPlayer }) {
     const buy = el("button", "", "Buy");
     buy.onclick = () => {
       const id = selected();
-      msg.textContent = id >= 0 && game.buy(id, item.id) ? "" : `cannot buy ${item.name}: need a shop in reach, gold and a free slot`;
+      msg.textContent = id >= 0 && game.buy(id, item.id) ? "" : fill(UI.text.shopRefusal, { item: item.name });
     };
     row.append(info, buy);
     root.appendChild(row);
@@ -78,14 +80,14 @@ export function createShop({ game, selected, localPlayer }) {
     catalog.forEach((item, i) => { rows[i].hidden = !item.shops || (needle !== "" && !item.name.includes(needle)); });
   };
   document.body.appendChild(root);
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "b" || e.key === "B") root.hidden = !root.hidden;
+  window.addEventListener("moba:action", (e) => {
+    if (e.detail && e.detail.action === "shop") root.hidden = !root.hidden;
   });
 
   function update() {
     if (root.hidden) return;
     const gold = game.gold(localPlayer());
-    goldLine.textContent = `Shop  gold ${gold}`;
+    goldLine.textContent = fill(UI.text.shopTitle, { gold });
     const has = selected() >= 0;
     catalog.forEach((item, i) => { buttons[i].disabled = !has || gold < item.cost && !item.components.length || !item.shops; });
   }

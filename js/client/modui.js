@@ -92,6 +92,9 @@ export function createModUi(opts) {
       if (!(ev.seconds > 0)) step(0);
     },
     sound(ev) { if (onSound) onSound(ev.name); },
+    // Key bindings a mod registers at runtime: the input layer (moba_input.js) listens for these on window.
+    bind(ev) { doc.defaultView.dispatchEvent(new doc.defaultView.CustomEvent("moba:bind", { detail: { key: ev.key, action: ev.action } })); },
+    unbind(ev) { doc.defaultView.dispatchEvent(new doc.defaultView.CustomEvent("moba:bind", { detail: { key: ev.key, remove: true } })); },
   };
 
   function step(dtS) {

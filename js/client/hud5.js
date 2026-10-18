@@ -1,8 +1,7 @@
-// 5v5 Dota-style HUD: scoreboard, team gold, winner banner and the ability bar. Every value comes from the
-// wasm Game (unit list, unit types, hp, gold, winner) or from the local selection. Kills, deaths, the kill feed
-// and ability cooldowns are filled from the sim exports once they land; until then they are not drawn.
+// 5v5 HUD strip: team scoreboard rows, team gold and the winner banner. Every value comes from the wasm Game
+// (unit list, unit types, hp, gold, winner). The ability bar and the Tab scoreboard live in ui_selection.js and
+// ui_scoreboard.js. Kills and deaths are filled from the sim exports once they land; until then they are not drawn.
 
-export const ABILITY_KEYS = ["q", "w", "e", "r", "t"];
 export const SCOREBOARD_ROWS = 10;
 
 const STYLE = `
@@ -11,10 +10,6 @@ const STYLE = `
 #hud5 table{border-collapse:collapse;width:100%}
 #hud5 td,#hud5 th{padding:1px 6px;text-align:left;white-space:nowrap}
 #hud5 .team0{color:#5b9bff}#hud5 .team1{color:#ff6b5b}
-#hud5 .abilities{display:flex;gap:4px}
-#hud5 .slot{width:48px;height:48px;border:1px solid #555;background:#1b1f26;display:flex;align-items:flex-end;justify-content:center;position:relative}
-#hud5 .slot b{position:absolute;top:2px;left:4px;font-size:11px;color:#ffd54f}
-#hud5 .slot span{font-size:10px;color:#aaa;padding-bottom:2px}
 #hud5 .banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);font:bold 22px monospace;color:#ffd54f;pointer-events:none}
 `;
 
@@ -65,14 +60,7 @@ export function createHud5({ game, units, selected, localPlayer }) {
   scoreTable.appendChild(scoreHead);
   const goldLine = el("div");
   left.append(scoreTable, goldLine);
-  const bar = el("div", "abilities");
-  const slots = ABILITY_KEYS.map((key) => {
-    const slot = el("div", "slot");
-    slot.append(el("b", "", key.toUpperCase()), el("span", "", "-"));
-    bar.appendChild(slot);
-    return slot;
-  });
-  root.append(left, bar);
+  root.append(left);
   document.body.appendChild(root);
   const banner = el("div", "banner");
   banner.hidden = true;
@@ -100,14 +88,6 @@ export function createHud5({ game, units, selected, localPlayer }) {
     goldLine.textContent = teamGold(game, list).map((t) => `team ${t.side} gold ${t.gold}`).join("   ");
   }
 
-  function drawAbilities() {
-    const id = selected();
-    const mine = id >= 0 ? units().find((u) => u.id === id && u.player === localPlayer()) : null;
-    slots.forEach((slot, i) => {
-      slot.querySelector("span").textContent = mine ? `slot ${i + 1}` : "-";
-    });
-  }
-
   function drawWinner() {
     const win = winnerOf(game);
     banner.hidden = win === null;
@@ -119,7 +99,6 @@ export function createHud5({ game, units, selected, localPlayer }) {
     const list = units();
     drawScoreboard(list);
     drawGold(list);
-    drawAbilities();
     const win = drawWinner();
     return { rows: rows.length, winner: win ? win.side : -1 };
   }
