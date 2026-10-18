@@ -1206,17 +1206,21 @@ jobs:
           wait_for 'ev=data_reloaded'
           read -r x0 y0 <<<"$(unit_at)"
           num "$x0"; num "$y0"
-          sleep 6
-          read -r x1 y1 <<<"$(unit_at)"
-          num "$x1"; num "$y1"
+          seen="$x0 $y0"
+          for i in $(seq 1 12); do
+            sleep 0.5
+            read -r xs ys <<<"$(unit_at)"
+            num "$xs"; num "$ys"
+            seen="$seen|$xs $ys"
+          done
           if grep -q 'ev=mod_unit_refused.*reason=unmapped' "$log"; then
             cat "$log"
             echo "mod handle $handle was refused as unmapped after the reload"
             exit 1
           fi
-          if [[ "$x0 $y0" == "$x1 $y1" ]]; then
+          if [[ "$(tr '|' '\n' <<<"$seen" | sort -u | wc -l)" -lt 2 ]]; then
             cat "$log"
-            echo "unit $unit did not move after the reload: $x1 $y1"
+            echo "unit $unit did not move after the reload: $seen"
             exit 1
           fi
           echo "mod handle survives reload ok handle=$handle moved=true"

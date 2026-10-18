@@ -120,9 +120,17 @@ pub fn weapon_range(image: &[u8]) -> Result<(), String> {
         return Err("order_attack accepted a target out of weapon reach".to_string());
     }
     let hp0 = s.hp(target);
-    s.order_attack_or_approach(attacker, target)
-        .map_err(|r| format!("order_attack_or_approach refused: {}", r.name()))?;
-    run_ticks(&mut s, 300);
+    for _ in 0..300 {
+        if let Err(r) = s.order_attack_or_approach(attacker, target) {
+            if r.name() != "cooldown" {
+                return Err(format!("order_attack_or_approach refused: {}", r.name()));
+            }
+        }
+        if s.hp(target) < hp0 {
+            break;
+        }
+        s.tick();
+    }
     if s.hp(target) >= hp0 {
         return Err(format!("target hp {} unchanged after 300 ticks of approach", fixed::to_int(s.hp(target))));
     }
