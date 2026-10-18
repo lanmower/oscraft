@@ -3112,12 +3112,13 @@ jobs:
       - name: Run the guest under the native host on the map image, and check its tick witness
         run: |
           set -euo pipefail
-          (cd ../.. && cargo +stable run -q -p mapexport -- "$RUNNER_TEMP/map.osdt" data)
+          (cd ../.. && cargo +stable run -q -p mapexport -- "$RUNNER_TEMP/map.osdt" data && cargo +stable run -q -p mapexport -- "$RUNNER_TEMP/moba.osdt" ../scenarios/moba)
           # The host runs on stable: wasmtime's allocative dependency does not compile on this nightly.
-          cargo +stable run --release --bin oscraft_wasip3 -- target/wasm32-wasip3/release/oscraft_wasip3.wasm "$RUNNER_TEMP/map.osdt" | tee "$RUNNER_TEMP/wasip3.txt"
+          cargo +stable run --release --bin oscraft_wasip3 -- target/wasm32-wasip3/release/oscraft_wasip3.wasm "$RUNNER_TEMP/map.osdt" "$RUNNER_TEMP/moba.osdt" | tee "$RUNNER_TEMP/wasip3.txt"
           grep -q '^wasip3 build ok bytes=[0-9]*$' "$RUNNER_TEMP/wasip3.txt"
           grep -qE '^wasip3 tick ok ticks=10 units=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
           grep -q '^wasip3 mod-load ok mod=wasip3-test$' "$RUNNER_TEMP/wasip3.txt"
+          grep -qE '^wasip3 mod-trigger ok mod=tower_buff fired=[1-9][0-9]* applied=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
 
   browser-two-peers:
     name: "browser host and browser peer over wireweave: one order moves a unit on both pages"

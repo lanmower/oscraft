@@ -27,7 +27,13 @@ unsafe extern "Rust" fn __getrandom_v03_custom(dest: *mut u8, len: usize) -> Res
 }
 
 const TEST_MOD_NAME: &str = "wasip3-test";
-const TEST_MOD: &str = "-- a test mod loaded inside the wasip3 guest\nlocal loaded = true\n";
+const TEST_MOD: &str = "-- a test mod loaded inside the wasip3 guest\nlocal loaded = true\nfunction on_tick(state) end\n";
+
+// The example mods under mods/, embedded because the guest has no file access.
+const EXAMPLE_MODS: &[(&str, &str)] = &[
+    ("creep_gold", include_str!("../../../../mods/creep_gold.lua")),
+    ("tower_buff", include_str!("../../../../mods/tower_buff.lua")),
+];
 
 pub const COMMANDS: &[&str] = &[
     "load",
@@ -46,6 +52,9 @@ pub const COMMANDS: &[&str] = &[
     "order-all",
     "fire-trigger",
     "catalog-unit-name",
+    "mod-example",
+    "mod-kill",
+    "mod-step",
 ];
 
 pub fn run<R: BufRead, W: Write>(mut input: R, mut out: W) -> io::Result<()> {
@@ -53,8 +62,8 @@ pub fn run<R: BufRead, W: Write>(mut input: R, mut out: W) -> io::Result<()> {
     input.read_exact(&mut len)?;
     let mut image = vec![0u8; u32::from_le_bytes(len) as usize];
     input.read_exact(&mut image)?;
-    let mut sim = match sim::load(&image, MAX_UNITS) {
-        Ok(sim) => sim,
+    let mut host = match ModHost::new(&image) {
+        Ok(host) => host,
         Err(e) => {
             writeln!(out, "err load {e:?}")?;
             return Ok(());
@@ -65,35 +74,63 @@ pub fn run<R: BufRead, W: Write>(mut input: R, mut out: W) -> io::Result<()> {
         if line.trim().is_empty() {
             continue;
         }
-        let reply = match line.trim() {
-            "mod-load" => mod_load(&image),
-            command => reply(&mut sim, command).unwrap_or_else(|e| format!("err {e}")),
-        };
+        let reply = reply(&mut host, line.trim()).unwrap_or_else(|e| format!("err {e}"));
         writeln!(out, "{reply}")?;
     }
     Ok(())
 }
 
-fn mod_load(image: &[u8]) -> String {
-    let mut host = match ModHost::new(image) {
-        Ok(host) => host,
-        Err(e) => return format!("err mod-load host {e:?}"),
-    };
-    match host.load_source(TEST_MOD_NAME, TEST_MOD) {
-        Ok(()) => format!("ok mod-load {TEST_MOD_NAME}"),
-        Err(e) => format!("err mod-load {e}"),
-    }
-}
-
-fn reply(sim: &mut Sim, line: &str) -> Result<String, String> {
+fn reply(host: &mut ModHost, line: &str) -> Result<String, String> {
     let mut words = line.split_whitespace();
-    let name = match words.next() {
-        Some(name) => name,
-        None => return Err("empty command".into()),
-    };
+    let name = words.next().ok_or("empty command")?;
     if !COMMANDS.contains(&name) {
         return Err(format!("unknown command {name}"));
     }
+    match name {
+        "mod-load" => match host.load_source(TEST_MOD_NAME, TEST_MOD) {
+            Ok(()) => Ok(format!("ok mod-load {TEST_MOD_NAME}")),
+            Err(e) => Err(format!("mod-load {e}")),
+        },
+        "mod-version" => Ok(format!("ok mod-version {}", host.version())),
+        "mod-example" => {
+            let which = words.next().ok_or("mod name missing")?;
+            let (_, src) = EXAMPLE_MODS.iter().find(|(n, _)| *n == which).ok_or_else(|| format!("unknown example mod {which}"))?;
+            host.load_source(which, src).map_err(|e| format!("mod-example {which}: {e}"))?;
+            Ok(format!("ok mod-example {which}"))
+        }
+        "mod-kill" => {
+            let kind = words.next().ok_or("unit kind missing")?;
+            let unit = kill_first(host, kind)?;
+            Ok(format!("ok mod-kill {unit}"))
+        }
+        "mod-step" => {
+            let n: u32 = match words.next() {
+                Some(word) => parse(Some(word), "step count")?,
+                None => 1,
+            };
+            for _ in 0..n {
+                host.advance()?;
+            }
+            let (fired, applied) = host.counters();
+            Ok(format!("ok mod-step fired={fired} applied={applied}"))
+        }
+        _ => sim_reply(&mut host.sim(), name, words),
+    }
+}
+
+// Kills the first living unit of `kind` with a hit from a living unit of another player, so the
+// death reaches the mod at the next mod-step like any in-game kill.
+fn kill_first(host: &mut ModHost, kind: &str) -> Result<usize, String> {
+    let mut sim = host.sim();
+    let target = (0..sim.count()).find(|&i| sim.alive(i) && sim.kind_name(i) == Some(kind)).ok_or_else(|| format!("no living {kind}"))?;
+    let owner = sim.player(target);
+    let caster = (0..sim.count()).find(|&i| sim.alive(i) && sim.player(i) != owner).ok_or("no opposing unit to strike with")?;
+    let player = sim.player(caster);
+    sim.damage_target(caster as i32, player, i32::MAX / 2, target as i32);
+    Ok(target)
+}
+
+fn sim_reply<'a>(sim: &mut Sim, name: &str, mut words: impl Iterator<Item = &'a str>) -> Result<String, String> {
     match name {
         "load" => Err("load is stdin-only: the image arrives before the first command".into()),
         "mod-version" => Ok("ok mod-version 0".into()),

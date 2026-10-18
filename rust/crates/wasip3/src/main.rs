@@ -8,14 +8,14 @@ fn main() -> std::io::Result<()> {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let path = args.first().ok_or("usage: oscraft_wasip3 <guest.wasm> [image.osdt]")?;
+    let path = args.first().ok_or("usage: oscraft_wasip3 <guest.wasm> [image.osdt [mod-image.osdt]]")?;
     let bytes = std::fs::read(path).map_err(|e| format!("read guest {path}: {e}"))?;
     if bytes.len() < 8 || &bytes[..4] != b"\0asm" {
         return Err(format!("guest {path} is not a wasm binary"));
     }
     println!("wasip3 build ok bytes={}", bytes.len());
     match args.get(1) {
-        Some(image) => host::run(path, image),
+        Some(image) => host::run(path, image, args.get(2).map(String::as_str)),
         None => Ok(()),
     }
 }
@@ -43,12 +43,49 @@ mod host {
         }
     }
 
-    /// Runs the guest component on the image, sends the commands over stdin, and checks the replies.
-    pub fn run(guest: &str, image_path: &str) -> Result<(), String> {
+    /// The commands that load an example mod on the moba image, kill a tower, and step.
+    const MOD_COMMANDS: &[&str] = &["mod-example tower_buff", "mod-step", "mod-kill tower", "mod-step"];
+
+    /// Runs the guest on the image, checks the tick and mod-load witness, then runs the example
+    /// mod script on `mod_image` when one is given.
+    pub fn run(guest: &str, image_path: &str, mod_image: Option<&str>) -> Result<(), String> {
+        let replies = exchange(guest, image_path, COMMANDS)?;
+        if replies.len() != COMMANDS.len() || replies[..3].iter().any(|r| r.starts_with("err")) {
+            return Err(format!("unexpected replies: {replies:?}"));
+        }
+        let ticks = replies[1].strip_prefix("ok ticks ").ok_or_else(|| format!("ticks reply {:?}", replies[1]))?;
+        let units = replies[2].strip_prefix("ok unit-count ").ok_or_else(|| format!("unit-count reply {:?}", replies[2]))?;
+        println!("wasip3 tick ok ticks={ticks} units={units}");
+        if replies[3] != MOD_LOADED {
+            return Err(format!("mod-load reply {:?}, want {MOD_LOADED:?}", replies[3]));
+        }
+        println!("wasip3 mod-load ok mod=wasip3-test");
+        let Some(mod_image) = mod_image else { return Ok(()) };
+        let replies = exchange(guest, mod_image, MOD_COMMANDS)?;
+        if replies.len() != MOD_COMMANDS.len() || replies.iter().any(|r| r.starts_with("err")) {
+            return Err(format!("unexpected mod replies: {replies:?}"));
+        }
+        let (fired, applied) = counters(&replies[3])?;
+        if fired == 0 || applied == 0 {
+            return Err(format!("trigger did not fire or no command applied: {:?}", replies[3]));
+        }
+        println!("wasip3 mod-trigger ok mod=tower_buff fired={fired} applied={applied}");
+        Ok(())
+    }
+
+    fn counters(reply: &str) -> Result<(u64, u64), String> {
+        let rest = reply.strip_prefix("ok mod-step fired=").ok_or_else(|| format!("mod-step reply {reply:?}"))?;
+        let (fired, applied) = rest.split_once(" applied=").ok_or_else(|| format!("mod-step reply {reply:?}"))?;
+        Ok((fired.parse().map_err(|e| format!("fired: {e}"))?, applied.parse().map_err(|e| format!("applied: {e}"))?))
+    }
+
+    /// Runs the guest component on the image at `image_path`, sends `commands` over stdin, and
+    /// returns the reply lines.
+    fn exchange(guest: &str, image_path: &str, commands: &[&str]) -> Result<Vec<String>, String> {
         let image = std::fs::read(image_path).map_err(|e| format!("read image {image_path}: {e}"))?;
         let mut input = (image.len() as u32).to_le_bytes().to_vec();
         input.extend_from_slice(&image);
-        for line in COMMANDS {
+        for line in commands {
             input.extend_from_slice(line.as_bytes());
             input.push(b'\n');
         }
@@ -71,17 +108,6 @@ mod host {
         });
         result.map_err(|e| format!("guest run: {e:#}"))?.map_err(|()| "guest exited with an error".to_string())?;
         let out = String::from_utf8(stdout.contents().to_vec()).map_err(|e| format!("stdout utf8: {e}"))?;
-        let replies: Vec<&str> = out.lines().collect();
-        if replies.len() != COMMANDS.len() || replies[..3].iter().any(|r| r.starts_with("err")) {
-            return Err(format!("unexpected replies: {replies:?}"));
-        }
-        let ticks = replies[1].strip_prefix("ok ticks ").ok_or_else(|| format!("ticks reply {:?}", replies[1]))?;
-        let units = replies[2].strip_prefix("ok unit-count ").ok_or_else(|| format!("unit-count reply {:?}", replies[2]))?;
-        println!("wasip3 tick ok ticks={ticks} units={units}");
-        if replies[3] != MOD_LOADED {
-            return Err(format!("mod-load reply {:?}, want {MOD_LOADED:?}", replies[3]));
-        }
-        println!("wasip3 mod-load ok mod=wasip3-test");
-        Ok(())
+        Ok(out.lines().map(str::to_owned).collect())
     }
 }
