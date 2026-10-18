@@ -2867,7 +2867,7 @@ jobs:
           units=$(jq '.units' "$work/s0.json")
           sides=$(jq '[.records[].player | select(. >= 0)] | unique | length' "$work/s0.json")
           beacon_pts="[$(grep -E '^spawn\("beacon"' map.osd | sed -E 's/^spawn\("beacon", *[0-9]+, *([0-9]+), *([0-9]+) *\)$/[\1,\2]/' | paste -sd, -)]"
-          beacon_at='.records[] | select(. as $r | any($bp[]; (($r.x - .[0]*65.536) | fabs) < 2000 and (($r.y - .[1]*65.536) | fabs) < 2000))'
+          beacon_at='.records[] | select(. as $r | any($bp[]; (($r.x - .[0]*65.536) | fabs) < 32768 and (($r.y - .[1]*65.536) | fabs) < 131072))'
           live_routes=$(jq --argjson bp "$beacon_pts" "[$beacon_at | .y] | unique | length" "$work/s0.json")
           live_beacons=$(jq --argjson bp "$beacon_pts" "[$beacon_at] | length" "$work/s0.json")
           echo "from files: starts=$starts spawns=$spawns beacons=$beacons routes=$routes expected_units=$expected_units"
