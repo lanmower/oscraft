@@ -195,8 +195,9 @@ function lowEdgeHeight(model) {
   return top;
 }
 
-// Largest drop, in height steps, that a ramp joins. Any taller drop, and every drop beside a water cell, gets a wall.
-const RAMP_MAX_STEPS = 1;
+// A ramp joins a drop of up to one cell, or one height step when a map's step is taller than a cell (the 6.88 layers of
+// the generated map are smoothed, so a one-layer step is one cell of slope). Taller drops, and drops beside water, get walls.
+const RAMP_MAX_DROP_CELLS = 1;
 
 // Edge pieces from the height data, one batch per key so each key is one draw. A boundary between two cells of equal
 // height gets nothing. A drop of at most RAMP_MAX_STEPS between cells that are not water gets a tile-slant ramp (the slant
@@ -239,7 +240,8 @@ export function bakeEdges(grid, models, empty) {
         const high = low === i ? j : i;
         const kLow = low === i ? ki : kj;
         const kHigh = high === i ? ki : kj;
-        const gradual = dh <= RAMP_MAX_STEPS * (heightStep / cellMilli) + 1e-9 && kLow !== "water" && kHigh !== "water";
+        const rampMaxDrop = Math.max(RAMP_MAX_DROP_CELLS, heightStep / cellMilli);
+        const gradual = dh <= rampMaxDrop + 1e-9 && kLow !== "water" && kHigh !== "water";
         if (!gradual) {
           if (!wall) continue;
           const base = heightOf(low) + (kLow === "cliff" ? wallTop : 0);
@@ -255,7 +257,7 @@ export function bakeEdges(grid, models, empty) {
         const lx = low % w, lz = (low - lx) / w;
         const fx = lx - dirX, fz = lz - dirZ;
         const far = fx >= 0 && fz >= 0 && fx < w && fz < h ? fz * w + fx : -1;
-        const span = far >= 0 && !empty[far] && levels[far] <= levels[low] ? 2 : 1;
+        const span = dh > 1 + 1e-9 && far >= 0 && !empty[far] && levels[far] <= levels[low] ? 2 : 1;
         const sy = dh / (rampTop - rampLift);
         put(`ramp:${kLow}`, kLow, TILE_MATERIALS[kLow] ?? TILE_MATERIALS.cliff, ramp, [bx - 0.5 * span * dirX, heightOf(low) - rampLift * sy, bz - 0.5 * span * dirZ, Math.atan2(-dirZ, dirX), span, sy, 1]);
       }

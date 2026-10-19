@@ -120,14 +120,24 @@ const cellBlocked = (cx, cy) => {
   return rows.some((r) => cols.some((c) => (pathing.cells[r * pathing.width + c] & PATH_UNWALKABLE) !== 0));
 };
 const tileOf = (cx, cy) => ({ i: cx >> 1, j: (SIM / 2 - 1) - (cy >> 1) });
-const cellHeight = (cx, cy) => {
+// Corner height in w3 z units: its layer (layer 2 is the ground, one layer is 128 z) plus its ground offset.
+const cornerZ = (c) => (c.layerHeight - 2) * 128 + c.height;
+// Sim cell height in z units, bilinear over the four corners of its tile: the corners are the tile's edges, so a
+// one-layer step between neighbouring tiles becomes a slope across them, the way the 6.88 engine draws it.
+// Tile r (sim rows 2r, 2r+1) has its north edge at corner row j+1 and its south edge at corner row j, j = 127 - r.
+const cellZ = (cx, cy) => {
   const { i, j } = tileOf(cx, cy);
-  const hs = [corner(i, j), corner(i + 1, j), corner(i, j + 1), corner(i + 1, j + 1)].map((c) => c.height);
-  return Math.round(hs.reduce((a, b) => a + b, 0) / 4);
+  const r = cy >> 1;
+  const fx = (cx + 0.5) / 2 - i;
+  const t = (cy + 0.5) / 2 - r;
+  const at = (ci, cj) => cornerZ(corner(ci, cj));
+  return (1 - fx) * (1 - t) * at(i, j + 1) + fx * (1 - t) * at(i + 1, j + 1) + (1 - fx) * t * at(i, j) + fx * t * at(i + 1, j);
 };
-const HEIGHT_OFFSET = 105;
-const HEIGHT_PER_LEVEL = 2;
-const heightLevel = (h) => Math.max(0, Math.min(255, Math.floor((h + HEIGHT_OFFSET) / HEIGHT_PER_LEVEL)));
+// One level is 8 z, which is 125 milli of a 1000-milli sim cell (64 w3 units to a cell).
+const Z_PER_LEVEL = 8;
+const Z_OFFSET = 384;
+const heightLevel = (z) => Math.max(0, Math.min(255, Math.round((z + Z_OFFSET) / Z_PER_LEVEL)));
+const HEIGHT_STEP_MILLI = Math.round((Z_PER_LEVEL / 64) * 1000);
 const tileId = (cx, cy) => { const { i, j } = tileOf(cx, cy); return corner(i, j).groundTexture; };
 
 const open = Array.from({ length: SIM }, (_, cy) => Array.from({ length: SIM }, (_, cx) => !cellBlocked(cx, cy)));
@@ -159,7 +169,7 @@ const rects = (list) => {
 };
 const gridRect = ([x0, y0, x1, y1, v]) => [x0 + GX, y0 + GY, x1 + GX, y1 + GY, v];
 const openRuns = rects(runs((cx, cy) => (open[cy][cx] ? 0 : 1)).filter((r) => r[4] === 0)).map(gridRect);
-const heightRuns = rects(runs((cx, cy) => heightLevel(cellHeight(cx, cy)))).map(gridRect);
+const heightRuns = rects(runs((cx, cy) => heightLevel(cellZ(cx, cy)))).map(gridRect);
 const tileRuns = rects(runs((cx, cy) => tileId(cx, cy))).map(gridRect);
 
 const startLines = starts.map((s, k) => {
@@ -175,13 +185,13 @@ const header = [
   "# Dota Allstars 6.88g map (war3map.w3e, war3map.wpm, war3map.w3i) decoded by scripts/gen-w3-map.mjs.",
   "# World to grid: 1 w3 unit = 15.625 milli; the 16384-unit playable square sits at grid cell (35, 35) as a 256x256 sim block.",
   "# Walkable: no unwalkable pathing cell (bit 0x02) in the 2x2 pathing block of the sim cell. Outside the block: blocked.",
-  "# Height: ground height averaged over the tile corners, level = (h + 105) / 2, height_step 31 milli. Tile: ground texture of the tile's corner.",
+  `# Height: each sim cell bilinear over its tile's corners, z = (layer - 2) * 128 + ground offset, level = (z + 384) / 8, height_step ${HEIGHT_STEP_MILLI} milli. Tile: ground texture of the tile's corner.`,
   "# Doodads are in doodads-688g.tsv (decoded, not placed: the w3 doodad type to kind table is not in the archive).",
   "# Spawn lines are script-driven and kept as they were. Do not edit by hand; edit the script.",
 ];
 const body = [
   `grid(${GRID}, ${GRID}, cell_milli=1000, fill=1)`,
-  "height_step(31)",
+  `height_step(${HEIGHT_STEP_MILLI})`,
   ...heightRuns.map((r) => `paint_height(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`),
   ...tileRuns.map((r) => `paint_tile(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`),
   ...openRuns.map((r) => `paint(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, 0)`),
