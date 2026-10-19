@@ -1,6 +1,7 @@
-// Selection panel: the primary selected unit's portrait, name, health and mana bars and an ability bar with cooldowns
-// and skill-up buttons (own heroes). With several units selected, a row of portraits lists the group; a click on one
-// selects it alone. Labels come from moba_ui.json; keys come from the same file (shown on the ability bar).
+// Selection panel, the left block of the bottom bar: the primary selected unit's portrait, name, health and mana bars and
+// an ability row. Each ability slot shows its key, name, mana cost, rank pips and a cooldown overlay, and carries a
+// data-state (ready, cooldown, unlearned, empty) that drives its look. With several units selected, a grid of tiles lists
+// the group; a click on one selects it alone. Labels come from moba_ui.json; keys come from the same file.
 import UI from "./moba_ui.json" with { type: "json" };
 import { cooldownTicks } from "./moba_select.js";
 
@@ -8,22 +9,34 @@ const TICK_S = 1 / 16;
 const GROUP_TILES = 12;
 
 const STYLE = `
-#ui-select{position:fixed;z-index:2;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:10px;align-items:flex-end;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:11px/1.3 monospace;padding:6px 8px}
-#ui-select .face{width:56px;height:56px;background:#1b1f26;border:1px solid #555;display:flex;align-items:center;justify-content:center;font-size:22px;color:#ffd54f}
-#ui-select .name{font-weight:bold;color:#ffd54f}
-#ui-select .bar{height:9px;background:#222;margin-top:2px;width:170px}
+#ui-select{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;gap:8px 12px;align-items:start;height:100%;box-sizing:border-box;color:var(--text);font:var(--t-body)/1.3 var(--font)}
+#ui-select .head{display:flex;gap:10px;align-items:center;min-width:0}
+#ui-select .face{width:64px;height:64px;flex:none;background:var(--well);border:1px solid var(--edge);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--accent);font-weight:700;font-size:var(--t-title)}
+#ui-select .info{min-width:0;display:flex;flex-direction:column;gap:3px;width:200px}
+#ui-select .name{font-weight:700;color:var(--accent);font-size:var(--t-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ui-select .stat{color:var(--muted);font-size:var(--t-label);font-variant-numeric:tabular-nums}
+#ui-select .bar{height:8px;background:var(--well);border-radius:2px;overflow:hidden}
 #ui-select .bar i{display:block;height:100%}
-#ui-select .hp i{background:#4caf50}#ui-select .mp i{background:#3d7bff}
-#ui-select .abil{display:flex;gap:4px}
-#ui-select .slot{width:50px;height:50px;border:1px solid #555;background:#1b1f26;position:relative;text-align:center;font-size:10px;overflow:hidden}
-#ui-select .slot b{position:absolute;top:1px;left:3px;color:#ffd54f}
-#ui-select .slot .cd{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:14px}
-#ui-select .slot .pips{position:absolute;bottom:1px;left:0;right:0;color:#aaa;font-size:9px}
-#ui-select .slot .up{position:absolute;top:1px;right:1px;background:#243a24;border:1px solid #4a7;color:#eee;font-size:10px;padding:0 3px;cursor:pointer}
-#ui-select .group{display:grid;grid-template-columns:repeat(6,34px);gap:3px}
-#ui-select .tile{height:34px;border:1px solid #555;background:#1b1f26;position:relative;font-size:10px;text-align:center;cursor:pointer}
-#ui-select .tile.active{border-color:#fff}
-#ui-select .tile i{position:absolute;left:0;bottom:0;height:3px;background:#4caf50}
+#ui-select .hp i{background:var(--hp)}#ui-select .mp i{background:var(--mp)}
+#ui-select .abil{display:flex;gap:6px;grid-column:1/-1}
+#ui-select .slot{width:66px;height:66px;flex:none;border:1px solid var(--edge);border-radius:4px;background:var(--well);position:relative;overflow:hidden;box-sizing:border-box;font-size:var(--t-label);line-height:1.1}
+#ui-select .slot b{position:absolute;top:3px;left:5px;color:var(--accent);font-size:var(--t-label);font-weight:700}
+#ui-select .slot .label{position:absolute;left:4px;right:4px;top:50%;transform:translateY(-50%);text-align:center;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-top:6px}
+#ui-select .slot .cost{position:absolute;top:3px;right:5px;color:#8fb4ff;font-weight:700;font-variant-numeric:tabular-nums}
+#ui-select .slot .pips{position:absolute;bottom:3px;left:5px;color:var(--muted);font-size:8px;letter-spacing:1px}
+#ui-select .slot .cd{position:absolute;inset:0;background:var(--shade);display:flex;align-items:center;justify-content:center;color:var(--text);font-size:var(--t-title);font-weight:700;font-variant-numeric:tabular-nums}
+#ui-select .slot .up{position:absolute;bottom:2px;right:2px;background:var(--ok-bg);border:1px solid var(--ok);color:var(--text);font:700 var(--t-label)/1 var(--font);padding:2px 5px;border-radius:3px;cursor:pointer}
+#ui-select .slot[data-state=unlearned]{border-style:dashed;color:var(--muted)}
+#ui-select .slot[data-state=unlearned] .label{color:var(--muted)}
+#ui-select .slot[data-state=cooldown]{border-color:var(--edge)}
+#ui-select .slot[data-state=empty]{opacity:.45}
+#ui-select .slot:hover{border-color:var(--hover-edge);background:var(--well-hi)}
+#ui-select .slot[data-state=cooldown]:hover{background:var(--well)}
+#ui-select .group{display:grid;grid-template-columns:repeat(6,40px);gap:4px;align-content:start}
+#ui-select .tile{height:40px;border:1px solid var(--edge);border-radius:3px;background:var(--well);position:relative;font-size:var(--t-label);text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);overflow:hidden}
+#ui-select .tile:hover{border-color:var(--hover-edge);color:var(--text)}
+#ui-select .tile.active{border-color:var(--sel);color:var(--text);box-shadow:inset 0 0 0 1px var(--sel)}
+#ui-select .tile i{position:absolute;left:0;bottom:0;height:3px;background:var(--hp)}
 `;
 
 function ensureStyle() {
@@ -48,6 +61,20 @@ function barEl(kind) {
   return { outer, fill };
 }
 
+// Mana cost of an ability at its current rank: ranked abilities carry one cost per rank.
+export function abilityCost(ability, rank) {
+  if (ability.max_rank) return ability.energies[Math.max(rank, 1) - 1];
+  return ability.energy;
+}
+
+// Visual state of one slot. Pure, so the state rules can be read without the DOM.
+export function slotState({ ability, rank, cooldownLeft }) {
+  if (!ability) return "empty";
+  if (cooldownLeft > 0) return "cooldown";
+  if (rank === 0) return "unlearned";
+  return "ready";
+}
+
 export function createSelectionPanel({ game, input, units, localPlayer, unitName, isHero }) {
   ensureStyle();
   const root = el("div");
@@ -56,16 +83,19 @@ export function createSelectionPanel({ game, input, units, localPlayer, unitName
   root.hidden = true;
   const face = el("div", "face");
   const name = el("div", "name");
-  const hpText = el("div");
+  const hpText = el("div", "stat");
   const hp = barEl("hp");
-  const mpText = el("div");
+  const mpText = el("div", "stat");
   const mp = barEl("mp");
-  const info = el("div");
+  const info = el("div", "info");
   info.append(name, hpText, hp.outer, mpText, mp.outer);
+  const head = el("div", "head");
+  head.append(face, info);
   const abil = el("div", "abil");
   const group = el("div", "group");
-  root.append(face, info, abil, group);
-  document.body.appendChild(root);
+  root.append(head, group, abil);
+  const host = document.getElementById("ui-bar-left") || document.body;
+  host.appendChild(root);
 
   const peakHp = new Map();
   const abilityCache = new Map();
@@ -87,13 +117,18 @@ export function createSelectionPanel({ game, input, units, localPlayer, unitName
     slotKeys.forEach(([, slotIndex], i) => {
       const slot = slots[i];
       const ability = list.find((a) => a.slot === slotIndex);
-      slot.querySelectorAll(".cd, .pips, .up, .label").forEach((n) => n.remove());
+      slot.querySelectorAll(".cd, .pips, .up, .label, .cost").forEach((n) => n.remove());
+      const rank = ability ? game.skill_rank(id, slotIndex) : 0;
+      const left = ability ? input.cooldownLeft(id, slotIndex) : 0;
+      slot.dataset.state = slotState({ ability, rank, cooldownLeft: left });
       if (!ability) {
         slot.append(el("span", "label", UI.text.noValue));
         return;
       }
-      const rank = game.skill_rank(id, slotIndex);
-      const left = input.cooldownLeft(id, slotIndex);
+      slot.title = `${ability.name}  cost ${abilityCost(ability, rank)} mana`;
+      slot.append(el("span", "label", ability.name));
+      slot.append(el("span", "cost", String(abilityCost(ability, rank))));
+      if (ability.max_rank) slot.append(el("div", "pips", "●".repeat(rank) + "○".repeat(Math.max(0, ability.max_rank - rank))));
       if (left > 0) {
         const total = input.cooldownTotal(id, slotIndex) || cooldownTicks(ability, rank) || 1;
         slot.append(el("div", "cd", `${(left * TICK_S).toFixed(1)}${UI.text.cooldownSuffix}`));
@@ -101,8 +136,6 @@ export function createSelectionPanel({ game, input, units, localPlayer, unitName
       } else {
         delete slot.dataset.cooldownPct;
       }
-      slot.append(el("span", "label", ability.name));
-      if (ability.max_rank) slot.append(el("div", "pips", "●".repeat(rank) + "○".repeat(Math.max(0, ability.max_rank - rank))));
       if (game.skill_points(id) > 0 && rank < (ability.max_rank || 0) && game.character_level(id) >= (ability.gates ? ability.gates[rank] : 0)) {
         const up = el("button", "up", "+");
         up.onclick = () => input.skillUp(slotIndex);

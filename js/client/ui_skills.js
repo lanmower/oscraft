@@ -1,17 +1,25 @@
-// Skill-up panel for the selected hero: one row per held ability with its rank pips, the level gate of the next
-// rank and a + button that calls Game.skill_up. Tooltips come from Game.abilities_json (ticks are 62.5 ms, 16 per second).
+// Skill-up panel for the selected hero, in the top-left column: a header with level and points, one row per held ability
+// (rank pips, the level gate of the next rank, and a + button that calls Game.skill_up), then the talent tiers. Tooltips
+// come from Game.abilities_json (ticks are 62.5 ms, 16 per second).
 
 const TICK_S = 1 / 16;
 const TALENT_LEVELS = [10, 15, 20, 25];
 
 const STYLE = `
-#ui-skills{position:fixed;z-index:2;left:8px;top:48px;width:230px;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:12px/1.3 monospace;padding:6px 8px}
-#ui-skills h4{margin:0 0 4px;font-size:12px;color:#ffd54f}
-#ui-skills .row{display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid #222;padding:3px 0}
-#ui-skills .gate{color:#aaa;font-size:11px}
-#ui-skills .pip{color:#ffd54f}
-#ui-skills button{background:#243a24;color:#eee;border:1px solid #4a7;cursor:pointer}
-#ui-skills button:disabled{background:#222;color:#666;border-color:#333;cursor:default}
+#ui-skills{width:240px;box-sizing:border-box;background:var(--panel);border:1px solid var(--edge);border-radius:6px;color:var(--text);font:var(--t-body)/1.3 var(--font);padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+#ui-skills h4{margin:0 0 4px;font-size:var(--t-title);color:var(--accent);display:flex;justify-content:space-between;align-items:baseline}
+#ui-skills h4 span{font-size:var(--t-label);color:var(--muted);font-weight:400}
+#ui-skills .sec{color:var(--faint);font-size:var(--t-label);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+#ui-skills .row{display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid var(--line);padding:4px 4px;border-radius:2px}
+#ui-skills .row:hover{background:var(--well-hi)}
+#ui-skills .row[data-state=maxed] .pip{color:var(--accent)}
+#ui-skills .row[data-state=locked]{color:var(--muted)}
+#ui-skills .row .name{font-weight:700}
+#ui-skills .gate{color:var(--muted);font-size:var(--t-label)}
+#ui-skills .pip{color:var(--accent);letter-spacing:1px;font-size:var(--t-label)}
+#ui-skills button{background:var(--ok-bg);color:var(--text);border:1px solid var(--ok);border-radius:3px;min-width:30px;padding:2px 6px;font:700 var(--t-label) var(--font);cursor:pointer}
+#ui-skills button:hover:not(:disabled){background:var(--ok)}
+#ui-skills button:disabled{background:var(--well-dim);color:var(--faint);border-color:var(--edge);cursor:default}
 `;
 
 function ensureStyle() {
@@ -43,6 +51,15 @@ export function abilityTooltip(a, rank) {
   return lines.join("\n");
 }
 
+// Row state: maxed (top rank), locked (the next rank needs a higher level), ready (a rank can be bought now), or
+// none (an ability with no skill tree).
+export function skillRowState({ a, rank, level, points }) {
+  if (!a.max_rank) return "none";
+  if (rank >= a.max_rank) return "maxed";
+  if (points === 0 || level < a.gates[rank]) return "locked";
+  return "ready";
+}
+
 export function createSkills({ game, selected, localPlayer }) {
   ensureStyle();
   const root = el("div");
@@ -51,7 +68,8 @@ export function createSkills({ game, selected, localPlayer }) {
   const head = el("h4");
   const list = el("div");
   root.append(head, list);
-  document.body.appendChild(root);
+  const host = document.getElementById("ui-left") || document.body;
+  host.appendChild(root);
   let signature = "";
 
   function update() {
@@ -66,26 +84,31 @@ export function createSkills({ game, selected, localPlayer }) {
     const next = `${id}|${level}|${points}|${ranks.join(",")}|${bits}`;
     if (next === signature) return;
     signature = next;
-    head.textContent = `Skills  level ${level}  points ${points}`;
+    head.replaceChildren(el("span", "", "Skills"), el("span", "", `level ${level}  points ${points}`));
     list.replaceChildren();
+    list.appendChild(el("div", "sec", "Abilities"));
     abilities.forEach((a, i) => {
       const rank = ranks[i];
+      const state = skillRowState({ a, rank, level, points });
       const row = el("div", "row");
+      row.dataset.state = state;
       row.title = abilityTooltip(a, rank);
       const info = el("div");
       const pips = a.max_rank ? "●".repeat(rank) + "○".repeat(a.max_rank - rank) : "";
       const gate = a.max_rank && rank < a.max_rank ? `next rank needs level ${a.gates[rank]}` : a.max_rank ? "maxed" : "no skill tree";
-      info.append(el("div", "", a.name), el("span", "pip", pips), el("div", "gate", gate));
+      info.append(el("div", "name", a.name), el("span", "pip", pips), el("div", "gate", gate));
       const up = el("button", "", "+");
-      up.disabled = !a.max_rank || rank >= a.max_rank || points === 0 || level < a.gates[rank];
+      up.disabled = state !== "ready";
       up.onclick = () => { game.skill_up(id, a.slot); signature = ""; };
       row.append(info, up);
       list.appendChild(row);
     });
+    list.appendChild(el("div", "sec", "Talents"));
     TALENT_LEVELS.forEach((need, tier) => {
       const row = el("div", "row");
+      row.dataset.state = level < need ? "locked" : "ready";
       const picked = (bits >> (2 + 2 * tier)) & 3;
-      row.appendChild(el("div", "", `Talent, level ${need}`));
+      row.appendChild(el("div", "gate", `level ${need}`));
       for (const side of [0, 1]) {
         const pick = el("button", "", picked & (1 << side) ? "[x]" : "+");
         pick.disabled = picked !== 0 || level < need;

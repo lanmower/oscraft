@@ -5,14 +5,15 @@
 export const SCOREBOARD_ROWS = 10;
 
 const STYLE = `
-#hud5{position:fixed;z-index:2;left:0;right:0;bottom:0;pointer-events:none;font:12px/1.3 monospace;color:#eee;display:flex;justify-content:space-between;align-items:flex-end;padding:0 8px 8px}
-#hud5 .panel{background:rgba(12,14,18,.82);border:1px solid #333;padding:6px 8px;min-width:200px}
+#hud5{position:fixed;z-index:2;top:8px;left:50%;transform:translateX(-50%);pointer-events:none;font:var(--t-label)/1.25 var(--font);color:var(--text);width:min(440px,calc(100vw - 600px));min-width:260px;box-sizing:border-box}
+#hud5 .panel{background:var(--panel);border:1px solid var(--edge);border-radius:6px;padding:6px 8px;max-height:calc(100vh - 220px);overflow:hidden}
 #hud5 table{border-collapse:collapse;width:100%}
-#hud5 td,#hud5 th{padding:1px 6px;text-align:left;white-space:nowrap}
-#hud5 .team0{color:#5b9bff}#hud5 .team1{color:#ff6b5b}
-#hud5 .banner{position:fixed;z-index:2;top:12px;left:50%;transform:translateX(-50%);font:bold 22px monospace;color:#ffd54f;pointer-events:none}
+#hud5 td,#hud5 th{padding:2px 6px;text-align:left;white-space:nowrap}
+#hud5 th{color:var(--muted);font-weight:400;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line)}
+#hud5 .team0{color:var(--team0)}#hud5 .team1{color:var(--team1)}
+#hud5 .gold{margin-top:4px;color:var(--gold);font-variant-numeric:tabular-nums}
+#hud5 .banner{position:fixed;z-index:3;top:14%;left:50%;transform:translateX(-50%);font:700 var(--t-head) var(--font);color:var(--accent);pointer-events:none;background:var(--panel-strong);border-radius:6px;padding:8px 22px}
 `;
-
 function ensureStyle() {
   if (document.getElementById("hud5-style")) return;
   const style = document.createElement("style");
@@ -58,10 +59,10 @@ export function createHud5({ game, units, selected, localPlayer }) {
   const scoreHead = el("tr");
   for (const h of ["hero", "team", "state", "hp"]) scoreHead.appendChild(el("th", "", h));
   scoreTable.appendChild(scoreHead);
-  const goldLine = el("div");
+  const goldLine = el("div", "gold");
   left.append(scoreTable, goldLine);
   root.append(left);
-  document.body.appendChild(root);
+  (document.getElementById("ui-top") || document.body).appendChild(root);
   const banner = el("div", "banner");
   banner.hidden = true;
   document.body.appendChild(banner);

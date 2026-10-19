@@ -82,6 +82,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     selected,
     localPlayer,
     playerColor,
+    isHero,
     teams: UI.teams,
     viewRect,
     centre: centreCamera,
