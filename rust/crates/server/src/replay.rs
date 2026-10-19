@@ -4,7 +4,7 @@ use std::str::{FromStr, SplitWhitespace};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
 
-use sim::{Refusal, Sim, StateError};
+use sim::{AbilitySpec, Effect, ItemSpec, Refusal, Sim, StateError, UnitSpec, UpgradeSpec};
 
 const TICKS_PER_SECOND: u32 = 16;
 
@@ -269,13 +269,16 @@ impl Playback {
     }
 }
 
-pub const FORMAT_HEADER: &str = "oscraft-replay 1";
+pub const FORMAT_HEADER: &str = "oscraft-replay 2";
+// Version 1 held orders, casts, items, fog and cadence only; it still parses, and its records are a subset of version 2.
+const FORMAT_HEADER_V1: &str = "oscraft-replay 1";
 pub const CHECK_EVERY: u32 = 64;
 pub const MAX_KEPT: usize = 4_000_000;
 
-/// One input the sim accepts between ticks. A replay is the initial data image plus these, each
-/// tagged with the sim tick it was applied at, in order.
-#[derive(Clone, Copy, Debug, PartialEq)]
+/// One input the sim accepts between ticks, from a player or from a mod. A replay is the initial
+/// data image plus these, each tagged with the sim tick it was applied at, in order. A mod command
+/// that names a handle is recorded with the unit the handle resolved to, so playback needs no mod.
+#[derive(Clone)]
 pub enum Command {
     Order { unit: usize, x: i32, y: i32 },
     OrderAll { player: u8, x: i32, y: i32 },
@@ -288,54 +291,409 @@ pub enum Command {
     Unstash { unit: usize, slot: usize },
     Fog { on: bool },
     Cadence { paths: bool, vision: bool },
+    Spawn { handle: u32, index: u32, x: i32, y: i32 },
+    Damage { caster: usize, target: usize, dmg: i32 },
+    Buff { unit: usize, kind: i32, ticks: i32 },
+    SetOwner { unit: usize, player: u8 },
+    SetTeam { player: u8, team: u8 },
+    SetAlliance { a: u8, b: u8, kind: usize },
+    AddPlayer { player: u8, controller: u8 },
+    RemovePlayer { player: u8 },
+    DefineAbility { name: String, cooldown: i32, energy: i32, target: u8, filter: u16, effects: Vec<Effect> },
+    DefineUnit { spec: UnitSpec },
+    DefineItem { spec: ItemSpec },
+    DefineUpgrade { spec: UpgradeSpec },
+    GrantUpgrade { player: u8, name: String },
+    GiveAbility { unit: usize, slot: usize, name: String },
+    AddGold { player: u8, amount: i32 },
+    AddHeroGold { unit: usize, amount: i32 },
+    Victory { player: u8 },
+    Defeat { player: u8 },
+    Ui { body: String },
 }
 
 fn num<T: FromStr>(it: &mut SplitWhitespace) -> Option<T> {
     it.next()?.parse().ok()
 }
 
+// A text field is `x` followed by the hex bytes of the string, so a name or a UI body never breaks its line.
+fn text(it: &mut SplitWhitespace) -> Option<String> {
+    let hex = it.next()?.strip_prefix('x')?;
+    if hex.len() % 2 != 0 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return None;
+    }
+    let bytes = (0..hex.len()).step_by(2).map(|i| u8::from_str_radix(&hex[i..i + 2], 16).ok()).collect::<Option<Vec<u8>>>()?;
+    String::from_utf8(bytes).ok()
+}
+
+fn texts(it: &mut SplitWhitespace) -> Option<Vec<String>> {
+    let n: usize = num(it)?;
+    (0..n).map(|_| text(it)).collect()
+}
+
+fn effect_of(it: &mut SplitWhitespace) -> Option<Effect> {
+    Some(Effect { kind: num(it)?, p0: num(it)?, p1: num(it)?, p2: num(it)?, p3: num(it)? })
+}
+
+fn effects_of(it: &mut SplitWhitespace) -> Option<Vec<Effect>> {
+    let n: usize = num(it)?;
+    (0..n).map(|_| effect_of(it)).collect()
+}
+
+fn unit_spec_of(it: &mut SplitWhitespace) -> Option<UnitSpec> {
+    let name = text(it)?;
+    let model = text(it)?;
+    let health = num(it)?;
+    let speed = num(it)?;
+    let radius = num(it)?;
+    let armor = num(it)?;
+    let shield = num(it)?;
+    let sight = num(it)?;
+    let filter = num(it)?;
+    let cost = num(it)?;
+    let bounty = num(it)?;
+    let weapon: Option<(i32, i32, i32)> = if num::<u8>(it)? == 0 { None } else { Some((num(it)?, num(it)?, num(it)?)) };
+    let abilities = texts(it)?;
+    Some(UnitSpec { name, model, health, speed, radius, armor, shield, sight, filter, cost, bounty, weapon, abilities })
+}
+
+fn item_spec_of(it: &mut SplitWhitespace) -> Option<ItemSpec> {
+    let name = text(it)?;
+    let cost = num(it)?;
+    let armor = num(it)?;
+    let damage = num(it)?;
+    let health = num(it)?;
+    let ability: Option<String> = if num::<u8>(it)? == 0 { None } else { Some(text(it)?) };
+    Some(ItemSpec { name, cost, armor, damage, health, ability })
+}
+
+fn upgrade_spec_of(it: &mut SplitWhitespace) -> Option<UpgradeSpec> {
+    let name = text(it)?;
+    let building = text(it)?;
+    let time = num(it)?;
+    let cost = num(it)?;
+    let gas = num(it)?;
+    let effect = effect_of(it)?;
+    let filter = num(it)?;
+    let requires = texts(it)?;
+    let unlocks = texts(it)?;
+    Some(UpgradeSpec { name, building, time, cost, gas, effect, filter, requires, unlocks })
+}
+
+fn put<T: std::fmt::Display>(out: &mut String, v: T) {
+    out.push(' ');
+    out.push_str(&v.to_string());
+}
+
+fn put_text(out: &mut String, s: &str) {
+    out.push_str(" x");
+    for b in s.bytes() {
+        out.push_str(&format!("{b:02x}"));
+    }
+}
+
+fn put_texts(out: &mut String, list: &[String]) {
+    put(out, list.len());
+    for s in list {
+        put_text(out, s);
+    }
+}
+
+fn put_effect(out: &mut String, e: &Effect) {
+    put(out, e.kind);
+    put(out, e.p0);
+    put(out, e.p1);
+    put(out, e.p2);
+    put(out, e.p3);
+}
+
+fn put_effects(out: &mut String, list: &[Effect]) {
+    put(out, list.len());
+    for e in list {
+        put_effect(out, e);
+    }
+}
+
+fn put_unit_spec(out: &mut String, s: &UnitSpec) {
+    put_text(out, &s.name);
+    put_text(out, &s.model);
+    for v in [s.health, s.speed, s.radius, s.armor, s.shield, s.sight] {
+        put(out, v);
+    }
+    put(out, s.filter);
+    put(out, s.cost);
+    put(out, s.bounty);
+    match s.weapon {
+        None => put(out, 0),
+        Some((a, b, c)) => {
+            put(out, 1);
+            put(out, a);
+            put(out, b);
+            put(out, c);
+        }
+    }
+    put_texts(out, &s.abilities);
+}
+
+fn put_item_spec(out: &mut String, s: &ItemSpec) {
+    put_text(out, &s.name);
+    for v in [s.cost, s.armor, s.damage, s.health] {
+        put(out, v);
+    }
+    match &s.ability {
+        None => put(out, 0),
+        Some(a) => {
+            put(out, 1);
+            put_text(out, a);
+        }
+    }
+}
+
+fn put_upgrade_spec(out: &mut String, s: &UpgradeSpec) {
+    put_text(out, &s.name);
+    put_text(out, &s.building);
+    for v in [s.time, s.cost, s.gas] {
+        put(out, v);
+    }
+    put_effect(out, &s.effect);
+    put(out, s.filter);
+    put_texts(out, &s.requires);
+    put_texts(out, &s.unlocks);
+}
+
 impl Command {
     /// Applies the command; false when the sim refused it. A refusal leaves unit state alone but
     /// bumps the refusal counters, which the state hash covers.
     pub fn apply(&self, sim: &mut Sim) -> bool {
-        match *self {
+        match self {
             Command::Order { unit, x, y } => {
-                sim.order(unit, x, y);
+                sim.order(*unit, *x, *y);
                 true
             }
             Command::OrderAll { player, x, y } => {
-                sim.order_all(player, x, y);
+                sim.order_all(*player, *x, *y);
                 true
             }
-            Command::Attack { unit, target } => sim.order_attack_or_approach(unit, target).is_ok(),
-            Command::Cast { unit, slot, target, x, y } => sim.cast_ability(unit, slot, target, x, y),
-            Command::SkillUp { unit, slot } => sim.skill_up(unit, slot).is_ok(),
-            Command::UseItem { unit, slot, target, x, y } => sim.use_item(unit, slot, target, x, y),
-            Command::Buy { unit, item } => sim.buy_item(unit, item),
-            Command::Sell { unit, slot } => sim.sell_item(unit, slot),
-            Command::Unstash { unit, slot } => sim.unstash(unit, slot),
+            Command::Attack { unit, target } => sim.order_attack_or_approach(*unit, *target).is_ok(),
+            Command::Cast { unit, slot, target, x, y } => sim.cast_ability(*unit, *slot, *target, *x, *y),
+            Command::SkillUp { unit, slot } => sim.skill_up(*unit, *slot).is_ok(),
+            Command::UseItem { unit, slot, target, x, y } => sim.use_item(*unit, *slot, *target, *x, *y),
+            Command::Buy { unit, item } => sim.buy_item(*unit, *item),
+            Command::Sell { unit, slot } => sim.sell_item(*unit, *slot),
+            Command::Unstash { unit, slot } => sim.unstash(*unit, *slot),
             Command::Fog { on } => {
-                sim.set_fog(on);
+                sim.set_fog(*on);
                 true
             }
             Command::Cadence { .. } => true,
+            Command::Spawn { index, x, y, .. } => sim.spawn(*index, *x, *y).is_some(),
+            Command::Damage { caster, target, dmg } => {
+                let player = sim.player(*caster);
+                sim.damage_target(*caster as i32, player, *dmg, *target as i32);
+                true
+            }
+            Command::Buff { unit, kind, ticks } => sim.apply_buff(*unit, *kind, *ticks),
+            Command::SetOwner { unit, player } => sim.set_owner(*unit, *player).is_ok(),
+            Command::SetTeam { player, team } => sim.set_team(*player, *team).is_ok(),
+            Command::SetAlliance { a, b, kind } => sim.set_relation(*a, *b, *kind).is_ok(),
+            Command::AddPlayer { player, controller } => sim.add_player(*player, *controller).is_ok(),
+            Command::RemovePlayer { player } => sim.remove_player(*player).is_ok(),
+            Command::DefineAbility { name, cooldown, energy, target, filter, effects } => sim
+                .define_ability(AbilitySpec {
+                    name: name.as_str(),
+                    cooldown: *cooldown,
+                    energy: *energy,
+                    target: *target,
+                    filter: *filter,
+                    effects: effects.clone(),
+                })
+                .is_ok(),
+            Command::DefineUnit { spec } => sim.define_unit(spec).is_ok(),
+            Command::DefineItem { spec } => sim.define_item(spec).is_ok(),
+            Command::DefineUpgrade { spec } => sim.define_upgrade(spec).is_ok(),
+            Command::GrantUpgrade { player, name } => match sim.research_index(name) {
+                Some(r) => sim.grant_research(*player, r),
+                None => false,
+            },
+            Command::GiveAbility { unit, slot, name } => sim.give_ability(*unit, *slot, name),
+            Command::AddGold { player, amount } => {
+                sim.add_resources(*player, *amount, 0);
+                true
+            }
+            Command::AddHeroGold { unit, amount } => sim.add_hero_gold(*unit, *amount),
+            Command::Victory { player } => {
+                sim.declare_victory(*player);
+                true
+            }
+            Command::Defeat { player } => {
+                sim.declare_defeat(*player);
+                true
+            }
+            Command::Ui { .. } => true,
         }
     }
 
     fn encode(&self) -> String {
-        match *self {
-            Command::Order { unit, x, y } => format!("o {unit} {x} {y}"),
-            Command::OrderAll { player, x, y } => format!("oa {player} {x} {y}"),
-            Command::Attack { unit, target } => format!("a {unit} {target}"),
-            Command::Cast { unit, slot, target, x, y } => format!("c {unit} {slot} {target} {x} {y}"),
-            Command::SkillUp { unit, slot } => format!("s {unit} {slot}"),
-            Command::UseItem { unit, slot, target, x, y } => format!("u {unit} {slot} {target} {x} {y}"),
-            Command::Buy { unit, item } => format!("b {unit} {item}"),
-            Command::Sell { unit, slot } => format!("l {unit} {slot}"),
-            Command::Unstash { unit, slot } => format!("t {unit} {slot}"),
-            Command::Fog { on } => format!("f {}", u8::from(on)),
-            Command::Cadence { paths, vision } => format!("k {} {}", u8::from(paths), u8::from(vision)),
-        }
+        let mut o = String::new();
+        let code = match self {
+            Command::Order { unit, x, y } => {
+                put(&mut o, unit);
+                put(&mut o, x);
+                put(&mut o, y);
+                "o"
+            }
+            Command::OrderAll { player, x, y } => {
+                put(&mut o, player);
+                put(&mut o, x);
+                put(&mut o, y);
+                "oa"
+            }
+            Command::Attack { unit, target } => {
+                put(&mut o, unit);
+                put(&mut o, target);
+                "a"
+            }
+            Command::Cast { unit, slot, target, x, y } | Command::UseItem { unit, slot, target, x, y } => {
+                put(&mut o, unit);
+                put(&mut o, slot);
+                put(&mut o, target);
+                put(&mut o, x);
+                put(&mut o, y);
+                if matches!(self, Command::Cast { .. }) {
+                    "c"
+                } else {
+                    "u"
+                }
+            }
+            Command::SkillUp { unit, slot } => {
+                put(&mut o, unit);
+                put(&mut o, slot);
+                "s"
+            }
+            Command::Buy { unit, item } => {
+                put(&mut o, unit);
+                put(&mut o, item);
+                "b"
+            }
+            Command::Sell { unit, slot } => {
+                put(&mut o, unit);
+                put(&mut o, slot);
+                "l"
+            }
+            Command::Unstash { unit, slot } => {
+                put(&mut o, unit);
+                put(&mut o, slot);
+                "t"
+            }
+            Command::Fog { on } => {
+                put(&mut o, u8::from(*on));
+                "f"
+            }
+            Command::Cadence { paths, vision } => {
+                put(&mut o, u8::from(*paths));
+                put(&mut o, u8::from(*vision));
+                "k"
+            }
+            Command::Spawn { handle, index, x, y } => {
+                put(&mut o, handle);
+                put(&mut o, index);
+                put(&mut o, x);
+                put(&mut o, y);
+                "sp"
+            }
+            Command::Damage { caster, target, dmg } => {
+                put(&mut o, caster);
+                put(&mut o, target);
+                put(&mut o, dmg);
+                "dm"
+            }
+            Command::Buff { unit, kind, ticks } => {
+                put(&mut o, unit);
+                put(&mut o, kind);
+                put(&mut o, ticks);
+                "bf"
+            }
+            Command::SetOwner { unit, player } => {
+                put(&mut o, unit);
+                put(&mut o, player);
+                "so"
+            }
+            Command::SetTeam { player, team } => {
+                put(&mut o, player);
+                put(&mut o, team);
+                "st"
+            }
+            Command::SetAlliance { a, b, kind } => {
+                put(&mut o, a);
+                put(&mut o, b);
+                put(&mut o, kind);
+                "sa"
+            }
+            Command::AddPlayer { player, controller } => {
+                put(&mut o, player);
+                put(&mut o, controller);
+                "ap"
+            }
+            Command::RemovePlayer { player } => {
+                put(&mut o, player);
+                "rp"
+            }
+            Command::DefineAbility { name, cooldown, energy, target, filter, effects } => {
+                put_text(&mut o, name);
+                put(&mut o, cooldown);
+                put(&mut o, energy);
+                put(&mut o, target);
+                put(&mut o, filter);
+                put_effects(&mut o, effects);
+                "da"
+            }
+            Command::DefineUnit { spec } => {
+                put_unit_spec(&mut o, spec);
+                "du"
+            }
+            Command::DefineItem { spec } => {
+                put_item_spec(&mut o, spec);
+                "di"
+            }
+            Command::DefineUpgrade { spec } => {
+                put_upgrade_spec(&mut o, spec);
+                "dr"
+            }
+            Command::GrantUpgrade { player, name } => {
+                put(&mut o, player);
+                put_text(&mut o, name);
+                "gu"
+            }
+            Command::GiveAbility { unit, slot, name } => {
+                put(&mut o, unit);
+                put(&mut o, slot);
+                put_text(&mut o, name);
+                "ga"
+            }
+            Command::AddGold { player, amount } => {
+                put(&mut o, player);
+                put(&mut o, amount);
+                "ag"
+            }
+            Command::AddHeroGold { unit, amount } => {
+                put(&mut o, unit);
+                put(&mut o, amount);
+                "ah"
+            }
+            Command::Victory { player } => {
+                put(&mut o, player);
+                "vw"
+            }
+            Command::Defeat { player } => {
+                put(&mut o, player);
+                "df"
+            }
+            Command::Ui { body } => {
+                put_text(&mut o, body);
+                "ui"
+            }
+        };
+        format!("{code}{o}")
     }
 
     fn decode(code: &str, it: &mut SplitWhitespace) -> Option<Command> {
@@ -351,13 +709,39 @@ impl Command {
             "t" => Command::Unstash { unit: num(it)?, slot: num(it)? },
             "f" => Command::Fog { on: num::<u8>(it)? != 0 },
             "k" => Command::Cadence { paths: num::<u8>(it)? != 0, vision: num::<u8>(it)? != 0 },
+            "sp" => Command::Spawn { handle: num(it)?, index: num(it)?, x: num(it)?, y: num(it)? },
+            "dm" => Command::Damage { caster: num(it)?, target: num(it)?, dmg: num(it)? },
+            "bf" => Command::Buff { unit: num(it)?, kind: num(it)?, ticks: num(it)? },
+            "so" => Command::SetOwner { unit: num(it)?, player: num(it)? },
+            "st" => Command::SetTeam { player: num(it)?, team: num(it)? },
+            "sa" => Command::SetAlliance { a: num(it)?, b: num(it)?, kind: num(it)? },
+            "ap" => Command::AddPlayer { player: num(it)?, controller: num(it)? },
+            "rp" => Command::RemovePlayer { player: num(it)? },
+            "da" => Command::DefineAbility {
+                name: text(it)?,
+                cooldown: num(it)?,
+                energy: num(it)?,
+                target: num(it)?,
+                filter: num(it)?,
+                effects: effects_of(it)?,
+            },
+            "du" => Command::DefineUnit { spec: unit_spec_of(it)? },
+            "di" => Command::DefineItem { spec: item_spec_of(it)? },
+            "dr" => Command::DefineUpgrade { spec: upgrade_spec_of(it)? },
+            "gu" => Command::GrantUpgrade { player: num(it)?, name: text(it)? },
+            "ga" => Command::GiveAbility { unit: num(it)?, slot: num(it)?, name: text(it)? },
+            "ag" => Command::AddGold { player: num(it)?, amount: num(it)? },
+            "ah" => Command::AddHeroGold { unit: num(it)?, amount: num(it)? },
+            "vw" => Command::Victory { player: num(it)? },
+            "df" => Command::Defeat { player: num(it)? },
+            "ui" => Command::Ui { body: text(it)? },
             _ => return None,
         })
     }
 }
 
 /// The commands a sim run received, per tick, with the state hash every `CHECK_EVERY` ticks.
-/// Text format: a header (`oscraft-replay 1`, `image`, `max_units`, `init`), then one line per
+/// Text format: a header (`oscraft-replay 2`, `image`, `max_units`, `init`), then one line per
 /// command `<tick> <code> <args>` and `chk <ticks> <hash>` lines. A `chk` line follows the tick
 /// that brought the sim to `<ticks>` and precedes the commands applied at that tick.
 pub struct Recording {
@@ -493,12 +877,13 @@ impl Recording {
     }
 
     fn note(&mut self, tick: u32, cmd: Command) {
+        let line = format!("{tick} {}", cmd.encode());
         if self.cmds.len() >= MAX_KEPT {
             self.mark_incomplete(tick);
         } else {
             self.cmds.push((tick, cmd));
         }
-        self.write_line(&format!("{tick} {}", cmd.encode()), false);
+        self.write_line(&line, false);
     }
 
     /// Applies `cmd` to `sim` and records it at the sim's tick, refused or not: a refusal bumps the
@@ -512,6 +897,14 @@ impl Recording {
     /// Records `cmd` at the sim's tick for a caller that already applied it to `sim` itself.
     pub fn record_applied(&mut self, sim: &Sim, cmd: Command) {
         self.note(sim.ticks(), cmd);
+    }
+
+    /// Spawns unit `index` at (x, y) for a mod handle and records the spawn at the sim's tick,
+    /// refused or not. Returns the unit the sim gave.
+    pub fn spawn(&mut self, sim: &mut Sim, handle: u32, index: u32, x: i32, y: i32) -> Option<usize> {
+        let unit = sim.spawn(index, x, y);
+        self.note(sim.ticks(), Command::Spawn { handle, index, x, y });
+        unit
     }
 
     /// Steps `sim` one tick at the given cadence, recording a non-default cadence, and records a
@@ -594,8 +987,8 @@ impl Recording {
         let bad = |line: usize, why: &str| ReplayError::Parse { line, why: why.to_string() };
         let mut lines = text.lines().enumerate().map(|(i, l)| (i + 1, l.trim_end())).filter(|(_, l)| !l.is_empty());
         match lines.next() {
-            Some((_, FORMAT_HEADER)) => {}
-            Some((n, _)) => return Err(bad(n, "not an oscraft replay (first line must be `oscraft-replay 1`)")),
+            Some((_, FORMAT_HEADER)) | Some((_, FORMAT_HEADER_V1)) => {}
+            Some((n, _)) => return Err(bad(n, "not an oscraft replay (first line must be `oscraft-replay 1` or `2`)")),
             None => return Err(bad(0, "empty replay")),
         }
         let mut rec = Recording {
@@ -711,10 +1104,10 @@ impl Replayer {
             return Err(ReplayError::OutOfTrace { tick: t + 1, base: 0, end: self.end() });
         }
         while self.next < self.rec.cmds.len() && self.rec.cmds[self.next].0 <= t {
-            let cmd = self.rec.cmds[self.next].1;
+            let cmd = &self.rec.cmds[self.next].1;
             self.next += 1;
             match cmd {
-                Command::Cadence { paths, vision } => self.cad = (paths, vision),
+                Command::Cadence { paths, vision } => self.cad = (*paths, *vision),
                 _ => {
                     cmd.apply(sim);
                 }
@@ -753,5 +1146,106 @@ impl Replayer {
             self.step(sim)?;
         }
         Ok(sim.state_hash())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn data() -> Sim {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data");
+        crate::mods::load_data(&dir, 4096).expect("data image")
+    }
+
+    // Every mod-issued command is recorded, and playing the text back reproduces the live state
+    // without any mod running.
+    #[test]
+    fn mod_commands_replay_to_the_same_state() {
+        let mut sim = data();
+        let mut rec = Recording::new("data", 4096, &sim);
+        let first = (0..4096).find(|&i| sim.alive(i)).expect("a live unit");
+        let kind = sim.kind_of(first) as u32;
+        let (x, y) = sim.position_fixed(first);
+        let spawned = (1..40).find_map(|k| rec.spawn(&mut sim, 7, kind, x + k * 3 * 65536, y)).expect("a free point for the spawn");
+        rec.apply(&mut sim, Command::AddGold { player: 0, amount: 500 });
+        rec.apply(&mut sim, Command::AddHeroGold { unit: first, amount: 5 });
+        rec.apply(&mut sim, Command::Damage { caster: first, target: spawned, dmg: 3 });
+        rec.apply(&mut sim, Command::Buff { unit: spawned, kind: 1, ticks: 40 });
+        rec.apply(&mut sim, Command::SetOwner { unit: spawned, player: 1 });
+        rec.apply(&mut sim, Command::SetTeam { player: 1, team: 1 });
+        rec.apply(&mut sim, Command::SetAlliance { a: 0, b: 1, kind: 0 });
+        rec.apply(&mut sim, Command::AddPlayer { player: 2, controller: 0 });
+        rec.apply(&mut sim, Command::RemovePlayer { player: 2 });
+        rec.apply(&mut sim, Command::Fog { on: true });
+        rec.apply(&mut sim, Command::GrantUpgrade { player: 0, name: "no such research".into() });
+        rec.apply(&mut sim, Command::GiveAbility { unit: spawned, slot: 0, name: "no_such".into() });
+        rec.apply(&mut sim, Command::DefineAbility {
+            name: "mod_zap".into(),
+            cooldown: 10,
+            energy: 0,
+            target: 1,
+            filter: 0,
+            effects: vec![Effect { kind: 0, p0: 1 << 16, p1: 0, p2: 0, p3: 0 }],
+        });
+        rec.apply(&mut sim, Command::DefineUnit {
+            spec: UnitSpec {
+                name: "mod_grunt".into(),
+                model: "m".into(),
+                health: 100,
+                speed: 1000,
+                radius: 500,
+                armor: 1,
+                shield: 0,
+                sight: 6000,
+                filter: 0,
+                cost: 50,
+                bounty: 10,
+                weapon: Some((10, 1000, 1)),
+                abilities: vec!["mod_zap".into()],
+            },
+        });
+        rec.apply(&mut sim, Command::DefineItem {
+            spec: ItemSpec { name: "mod_charm".into(), cost: 20, armor: 0, damage: 2, health: 5, ability: None },
+        });
+        rec.apply(&mut sim, Command::DefineUpgrade {
+            spec: UpgradeSpec {
+                name: "mod_tech".into(),
+                building: "hall".into(),
+                time: 10,
+                cost: 30,
+                gas: 0,
+                effect: Effect { kind: 0, p0: 0, p1: 0, p2: 0, p3: 0 },
+                filter: 0,
+                requires: vec![],
+                unlocks: vec!["mod_grunt".into()],
+            },
+        });
+        rec.apply(&mut sim, Command::Ui { body: "{\"type\":\"msg\",\"text\":\"hi\nthere\"}".into() });
+        for t in 0..200 {
+            if t == 40 {
+                rec.spawn(&mut sim, 8, kind, x, y);
+                rec.apply(&mut sim, Command::Victory { player: 0 });
+            }
+            if t == 80 {
+                rec.apply(&mut sim, Command::Cast { unit: first, slot: 0, target: spawned as i32, x: 0, y: 0 });
+                rec.apply(&mut sim, Command::AddGold { player: 1, amount: 9 });
+            }
+            rec.tick(&mut sim, true, true);
+        }
+        let text = rec.render(&sim);
+        assert!(text.starts_with("oscraft-replay 2\n"));
+        assert!(text.contains(" sp ") && text.contains(" du ") && text.contains(" ui "));
+        let parsed = Recording::parse(&text).expect("parse");
+        let mut fresh = data();
+        let mut play = Replayer::new(parsed, &fresh).expect("start");
+        let played = play.run_to_end(&mut fresh).expect("playback");
+        assert_eq!(played, sim.state_hash());
+    }
+
+    #[test]
+    fn version_one_files_still_parse() {
+        let text = "oscraft-replay 1\nimage data\nmax_units 4096\ninit 0000000000000000\nchk 0 0000000000000000\n0 o 1 2 3\n";
+        assert!(Recording::parse(text).is_ok());
     }
 }

@@ -7,7 +7,7 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use mod_host::Cmd;
-use sim::{AbilitySpec, Grid, Sim};
+use sim::{Grid, Sim};
 
 use crate::budget::{
     TickHistogram, Timing, NORMAL_ORDER_CAP, SHED_AFTER_OVERRUNS, SHED_HOLD_TICKS, SHED_LOG_EVERY_TICKS,
@@ -423,24 +423,8 @@ use crate::log::Ev;
 fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<u32, usize>, cmds: Vec<Cmd>, ui: &mut Vec<String>) -> usize {
     let applied = cmds.len();
     for cmd in cmds {
-        let replayable = matches!(
-            cmd,
-            Cmd::OrderHandle { .. }
-                | Cmd::Order { .. }
-                | Cmd::Cast { .. }
-                | Cmd::Attack { .. }
-                | Cmd::UseItem { .. }
-                | Cmd::Buy { .. }
-                | Cmd::SkillUp { .. }
-                | Cmd::Sell { .. }
-                | Cmd::Unstash { .. }
-                | Cmd::Ui { .. }
-        );
-        if !replayable {
-            rec.mark_incomplete(sim.ticks());
-        }
         match cmd {
-            Cmd::Spawn { handle, index, x, y } => match sim.spawn(index as u32, x, y) {
+            Cmd::Spawn { handle, index, x, y } => match rec.spawn(sim, handle, index as u32, x, y) {
                 Some(unit) => {
                     handles.insert(handle, unit);
                     crate::emit!(Ev::ModUnitBound, handle = handle, unit = unit);
@@ -456,8 +440,7 @@ fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<
             Cmd::DamageHandle { caster, target, dmg } => {
                 match (mapped(handles, sim, caster), mapped(handles, sim, target)) {
                     (Some(c), Some(t)) => {
-                        let player = sim.player(c);
-                        sim.damage_target(c as i32, player, dmg, t as i32);
+                        rec.apply(sim, Command::Damage { caster: c, target: t, dmg });
                     }
                     (None, _) => refuse_unmapped(caster),
                     (_, None) => refuse_unmapped(target),
@@ -465,7 +448,7 @@ fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<
             }
             Cmd::BuffHandle { handle, kind, ticks } => match mapped(handles, sim, handle) {
                 Some(unit) => {
-                    let _ = sim.apply_buff(unit, kind, ticks);
+                    rec.apply(sim, Command::Buff { unit, kind, ticks });
                 }
                 None => refuse_unmapped(handle),
             },
@@ -476,13 +459,12 @@ fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<
             }
             Cmd::Damage { caster, target, dmg } => {
                 if sim.alive(caster) && sim.alive(target) {
-                    let player = sim.player(caster);
-                    sim.damage_target(caster as i32, player, dmg, target as i32);
+                    rec.apply(sim, Command::Damage { caster, target, dmg });
                 }
             }
             Cmd::Buff { unit, kind, ticks } => {
                 if sim.alive(unit) {
-                    let _ = sim.apply_buff(unit, kind, ticks);
+                    rec.apply(sim, Command::Buff { unit, kind, ticks });
                 }
             }
             // The sim validates a cast or attack and refuses what it cannot do, so a refused one changes nothing.
@@ -522,48 +504,57 @@ fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<
                 }
             }
             Cmd::SetOwner { unit, player } => {
-                let _ = sim.set_owner(unit, player);
+                rec.apply(sim, Command::SetOwner { unit, player });
             }
             Cmd::SetTeam { player, team } => {
-                let _ = sim.set_team(player, team);
+                rec.apply(sim, Command::SetTeam { player, team });
             }
             Cmd::SetAlliance { a, b, kind } => {
-                let _ = sim.set_relation(a, b, kind);
+                rec.apply(sim, Command::SetAlliance { a, b, kind });
             }
             Cmd::AddPlayer { player, controller } => {
-                let _ = sim.add_player(player, controller);
+                rec.apply(sim, Command::AddPlayer { player, controller });
             }
             Cmd::RemovePlayer { player } => {
-                let _ = sim.remove_player(player);
+                rec.apply(sim, Command::RemovePlayer { player });
             }
-            Cmd::SetFog { on } => sim.set_fog(on),
+            Cmd::SetFog { on } => {
+                rec.apply(sim, Command::Fog { on });
+            }
             Cmd::DefineAbility { name, cooldown, energy, target, filter, effects } => {
-                let _ = sim.define_ability(AbilitySpec { name: &name, cooldown, energy, target, filter, effects });
+                rec.apply(sim, Command::DefineAbility { name, cooldown, energy, target, filter, effects });
             }
             Cmd::DefineUnit { spec } => {
-                let _ = sim.define_unit(&spec);
+                rec.apply(sim, Command::DefineUnit { spec });
             }
             Cmd::DefineItem { spec } => {
-                let _ = sim.define_item(&spec);
+                rec.apply(sim, Command::DefineItem { spec });
             }
             Cmd::DefineUpgrade { spec } => {
-                let _ = sim.define_upgrade(&spec);
+                rec.apply(sim, Command::DefineUpgrade { spec });
             }
             Cmd::GrantUpgrade { player, name } => {
-                if let Some(r) = sim.research_index(&name) {
-                    sim.grant_research(player, r);
-                }
+                rec.apply(sim, Command::GrantUpgrade { player, name });
             }
             Cmd::GiveAbility { unit, slot, name } => {
-                let _ = sim.give_ability(unit, slot, &name);
+                rec.apply(sim, Command::GiveAbility { unit, slot, name });
             }
-            Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
+            Cmd::AddGold { player, amount } => {
+                rec.apply(sim, Command::AddGold { player, amount });
+            }
             Cmd::AddHeroGold { unit, amount } => {
-                let _ = sim.add_hero_gold(unit, amount);
+                rec.apply(sim, Command::AddHeroGold { unit, amount });
             }
-            Cmd::Victory { player } => sim.declare_victory(player),
-            Cmd::Defeat { player } => sim.declare_defeat(player),
-            Cmd::Ui { body } => ui.push(body),
+            Cmd::Victory { player } => {
+                rec.apply(sim, Command::Victory { player });
+            }
+            Cmd::Defeat { player } => {
+                rec.apply(sim, Command::Defeat { player });
+            }
+            Cmd::Ui { body } => {
+                rec.apply(sim, Command::Ui { body: body.clone() });
+                ui.push(body);
+            }
         }
     }
     applied
