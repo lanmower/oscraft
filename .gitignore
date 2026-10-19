@@ -88,3 +88,4 @@ build/
 /rust/crates/web/site/pkg/
 /rust/crates/web/site/map.bin
 /rust/crates/web/site/moba.bin
+/.dev-site/
