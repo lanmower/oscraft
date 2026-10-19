@@ -86,6 +86,8 @@ let splat = null;
 const SPLAT_BAND = 0.15;
 // Ground lighting: ambient, diffuse and albedo gain. The gain lifts the owner's darker albedo to lit terrain.
 const SPLAT_SHADE = [0.42, 0.68, 1.3];
+// Cliff faces: the rock albedo is dark, so faces get a strong gain while keeping a light-facing contrast.
+const CLIFF_SHADE = [0.5, 0.7, 2.0];
 let terrainTiles = null;
 let unitMeshes = [];
 const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
@@ -1172,7 +1174,7 @@ async function loadTileMeshes(gl, tileTextures) {
     const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs: faceUvs, baseColorTexture: null, glbUrl: model.glbUrl }, texture ? [1, 1, 1] : TILE_TINTS[kind]);
     if (!mesh) return null;
     if (texture) mesh.texture = texture;
-    if (material === "cliff") mesh.shade = SPLAT_SHADE;
+    if (material === "cliff") mesh.shade = CLIFF_SHADE;
     return { mesh, batch };
   })));
   return drawn.every(Boolean) ? drawn : null;
