@@ -3,7 +3,6 @@
 // Browser: classic scripts are injected and read from the global. Node (CI check): the same files run in a
 // CommonJS shim, so the static test exercises the shipped bytes.
 
-const LIBS = new URL('./vendor/three/libs/', import.meta.url);
 const memo = new Map();
 
 function once(key, load) {
@@ -53,7 +52,7 @@ async function loadClassic(url, globalName) {
 // meshopt: resolves once the wasm is compiled. Decodes with decodeGltfBufferAsync(count, size, source, mode, filter).
 export function loadMeshopt() {
   return once('meshopt', async () => {
-    const { MeshoptDecoder } = await import(new URL('meshopt_decoder.module.js', LIBS).href);
+    const { MeshoptDecoder } = await import(new URL('./vendor/three/libs/meshopt_decoder.module.js', import.meta.url).href);
     await MeshoptDecoder.ready;
     return MeshoptDecoder;
   });
@@ -62,8 +61,8 @@ export function loadMeshopt() {
 // Draco (glTF build): a factory that resolves to the decoder module.
 export function loadDraco() {
   return once('draco', async () => {
-    const factory = await loadClassic(new URL('draco/draco_wasm_wrapper.js', LIBS), 'DracoDecoderModule');
-    const wasmBinary = await readLibBytes(new URL('draco/draco_decoder.wasm', LIBS));
+    const factory = await loadClassic(new URL('./vendor/three/libs/draco/draco_wasm_wrapper.js', import.meta.url), 'DracoDecoderModule');
+    const wasmBinary = await readLibBytes(new URL('./vendor/three/libs/draco/draco_decoder.wasm', import.meta.url));
     return factory({ wasmBinary });
   });
 }
@@ -71,8 +70,8 @@ export function loadDraco() {
 // Basis (KTX2 transcoder): a factory that resolves to the module, initialised for transcoding.
 export function loadBasis() {
   return once('basis', async () => {
-    const factory = await loadClassic(new URL('basis/basis_transcoder.js', LIBS), 'BASIS');
-    const wasmBinary = await readLibBytes(new URL('basis/basis_transcoder.wasm', LIBS));
+    const factory = await loadClassic(new URL('./vendor/three/libs/basis/basis_transcoder.js', import.meta.url), 'BASIS');
+    const wasmBinary = await readLibBytes(new URL('./vendor/three/libs/basis/basis_transcoder.wasm', import.meta.url));
     const basis = await factory({ wasmBinary });
     basis.initializeBasis();
     return basis;
