@@ -15,7 +15,7 @@ use piccolo::{
     Callback, CallbackReturn, Closure, Context, Error, Executor, IntoValue, Lua, StashedExecutor, StashedFunction,
     Stack, StashedTable, Table, Value, Variadic,
 };
-use sim::{AbilitySpec, Catalog, LoadError, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, TICKS_PER_SECOND};
+use sim::{AbilitySpec, Catalog, LoadError, Payout, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, TICKS_PER_SECOND};
 
 use crate::shared::{self, amount_arg, fixed, player_arg, PRELUDE_SRC};
 use crate::{EVENTS, MAX_UNITS};
@@ -25,7 +25,7 @@ const MAX_STEPS: u32 = 2_500;
 const MAX_REGIONS: usize = 64;
 
 #[derive(Clone)]
-enum Cmd {
+pub enum Cmd {
     Spawn { index: usize, x: i32, y: i32, owner: u8, lane: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
@@ -1111,9 +1111,8 @@ impl ModHost {
                 Pending::Spawned(u) => self.emit("on_spawned", vec![Arg::Int(u as i64)])?,
                 Pending::Attacked(u) => self.emit("on_attacked", vec![Arg::Int(u as i64)])?,
                 Pending::Died(u, killer) => {
-                    let killer_player = killer.map(|k| self.sh.borrow().sim.player(k) as i64);
-                    let opt = |v: Option<i64>| v.map_or(Arg::Nil, Arg::Int);
-                    self.emit("on_died", vec![Arg::Int(u as i64), opt(killer.map(|k| k as i64)), opt(killer_player)])?
+                    let death = self.death_of(u, killer);
+                    self.died(&death)?
                 }
                 Pending::Enter(u, r) => self.emit_region("on_enter", r, u)?,
                 Pending::Leave(u, r) => self.emit_region("on_leave", r, u)?,
@@ -1131,6 +1130,56 @@ impl ModHost {
         }
         self.emit("on_tick", vec![Arg::State])?;
         Ok(())
+    }
+
+    /// Feeds one payable death of a room's sim to the mod's on_died, with the room's unit ids and the
+    /// bounty, as the native host does. The commands the handlers queued are returned, not applied:
+    /// their ids are the room's, so the room applies them and this world is untouched. The receiver
+    /// is &mut self because piccolo runs its VM under a mutable borrow, so this differs from the
+    /// native &self; the error is the piccolo host's String, not mlua::Error.
+    pub fn feed_payout(&mut self, p: &Payout) -> Result<Vec<Cmd>, String> {
+        if self.hooks.is_none() {
+            return Ok(Vec::new());
+        }
+        let death = Death {
+            victim: p.victim,
+            victim_player: p.victim_player,
+            killer: p.killer,
+            killer_player: p.killer_player,
+            killer_hero: p.killer_hero,
+            bounty: p.bounty,
+        };
+        let before = self.sh.borrow().cmds.len();
+        self.died(&death)?;
+        Ok(self.sh.borrow_mut().cmds.split_off(before))
+    }
+
+    fn death_of(&self, unit: usize, killer: Option<usize>) -> Death {
+        let sh = self.sh.borrow();
+        Death {
+            victim: unit as u32,
+            victim_player: sh.sim.player(unit),
+            killer: killer.map(|k| k as u32),
+            killer_player: killer.map(|k| sh.sim.player(k)),
+            killer_hero: killer.is_some_and(|k| sh.sim.is_hero(k)),
+            bounty: sh.sim.unit_bounty(unit),
+        }
+    }
+
+    // on_died(unit, killer, killer_player, bounty, victim_player, killer_hero), the handler then the triggers.
+    fn died(&mut self, d: &Death) -> Result<(), String> {
+        let opt = |v: Option<i64>| v.map_or(Arg::Nil, Arg::Int);
+        self.emit(
+            "on_died",
+            vec![
+                Arg::Int(i64::from(d.victim)),
+                opt(d.killer.map(i64::from)),
+                opt(d.killer_player.map(i64::from)),
+                Arg::Int(i64::from(d.bounty)),
+                Arg::Int(i64::from(d.victim_player)),
+                Arg::Bool(d.killer_hero),
+            ],
+        )
     }
 
     /// Runs the event `name` with a unit argument through the mod's handler and triggers, as a
@@ -1163,6 +1212,7 @@ impl ModHost {
                     .into_iter()
                     .map(|a| match a {
                         Arg::Int(i) => Value::Integer(i),
+                        Arg::Bool(b) => Value::Boolean(b),
                         Arg::Nil => Value::Nil,
                         Arg::Text(t) => t.into_value(ctx),
                         Arg::State => Value::Table(ctx.fetch(state)),
@@ -1296,7 +1346,19 @@ impl ModHost {
 
 enum Arg {
     Int(i64),
+    Bool(bool),
     Nil,
     Text(String),
     State,
+}
+
+// One death as on_died receives it. Built from this world's own deaths, or from a room's payable
+// death (feed_payout). Field meanings match sim::Payout.
+struct Death {
+    victim: u32,
+    victim_player: u8,
+    killer: Option<u32>,
+    killer_player: Option<u8>,
+    killer_hero: bool,
+    bounty: i32,
 }
