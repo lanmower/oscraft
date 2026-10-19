@@ -271,10 +271,9 @@ Lua API does not expose `hero_rules`, so `team_share_pct` in `hero_rules.txt` do
 
 The `gold_by_mod` flag. It is a sim field (default off, saved and hashed) that makes the Rust kill payout in
 `pay_bounty` (`rust/crates/sim/src/combat.rs`) return before it pays, so with the flag on the mod is the only payer.
-A mod sets the flag by declaring the top-level global `GOLD_BY_MOD = true`. The server reads it when the mod
-loads and sets it on every room before the first tick; the replay header carries it as `gold_by_mod 1`.
-The Lua payout only sees kills in the mod's own world (`ModHost`), which the room does not feed; see the
-`gold_by_mod` note in [MOD_PARITY.md](MOD_PARITY.md).
+A mod declares the top-level global `GOLD_BY_MOD = true`. Live rooms do not apply it: the room keeps the Rust
+payout, and the replay header carries `gold_by_mod 1` only when a room sets the flag itself. The Lua payout only
+sees kills in the mod's own world (`ModHost`), which the room does not feed; see [MOD_PARITY.md](MOD_PARITY.md).
 
 Known gaps:
 

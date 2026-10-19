@@ -1,5 +1,6 @@
--- Moba match mod: lane waves and kill gold in one mod, with one on_tick. Setting this mod on a
--- room sets the sim's gold_by_mod flag, so the Rust kill payouts stay off and this mod pays.
+-- Moba match mod: lane waves and kill gold in one mod, with one on_tick. Its on_died gold pays in the
+-- mod's own world (ModHost). Live rooms do not take the flag below from the mod, so they keep the Rust
+-- kill payout; see docs/MOD_PARITY.md.
 --
 -- Waves. Every lane spawner (lane_spawner_top, _mid, _bot, one per side) sends creeps on the lane
 -- for its side. Top and bottom spawners send a creep wave every 480 ticks: three melee creeps and
