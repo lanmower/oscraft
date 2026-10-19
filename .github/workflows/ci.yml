@@ -200,9 +200,8 @@ jobs:
             const tiles = await import("./js/client/tiles.js");
             const { parseGlb } = await import("./js/client/glb.js");
             const models = {};
-            for (const [kind, name] of Object.entries(tiles.TILE_MODELS)) {
-              const glb = parseGlb(new Uint8Array(fs.readFileSync("./js/client/models/" + name + ".glb")).buffer);
-              models[kind] = tiles.fitModel(glb, 1);
+            for (const [kind, names] of Object.entries(tiles.TILE_MODELS)) {
+              models[kind] = names.map((name) => tiles.fitModel(parseGlb(new Uint8Array(fs.readFileSync("./js/client/models/" + name + ".glb")).buffer), 1));
             }
             const baked = tiles.bakeTiles(bytes, models);
             if (!baked) throw new Error("tiles: the map uses a kind with no tile model");

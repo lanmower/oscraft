@@ -1115,17 +1115,17 @@ async function build3d(gl, game) {
   unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
 }
 
-// Terrain drawn from the CC0 tile models: one fitted model per kind, cells baked per kind. Any tile that fails to load
-// returns null, so the heightfield mesh stays the drawn terrain.
+// Terrain drawn from the CC0 tile models: each kind's variant models fitted once, cells baked per kind and variant. Any
+// tile that fails to load returns null, so the heightfield mesh stays the drawn terrain.
 async function loadTileMeshes(gl, groundTexture) {
-  const names = Object.entries(TILE_MODELS);
-  const fitted = await Promise.all(names.map(([, name]) => fetchModel(name, 1)));
+  const names = [...new Set(Object.values(TILE_MODELS).flat())];
+  const fitted = await Promise.all(names.map((name) => fetchModel(name, 1)));
   if (fitted.some((model) => !model)) return null;
-  const models = Object.fromEntries(names.map(([kind], i) => [kind, fitted[i]]));
+  const byName = new Map(names.map((name, i) => [name, fitted[i]]));
+  const models = Object.fromEntries(Object.entries(TILE_MODELS).map(([kind, list]) => [kind, list.map((name) => byName.get(name))]));
   const baked = bakeTiles(mapBytes, models);
   if (!baked) return null;
-  const drawn = await Promise.all([...baked.kinds].flatMap(([kind, group]) => group.batches.map(async ({ uvs, batch }) => {
-    const model = group.model;
+  const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, model, batches }) => batches.map(async ({ uvs, batch }) => {
     const textured = groundTexture && GROUND_KINDS.includes(kind);
     const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: textured ? null : model.baseColorTexture, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
     if (!mesh) return null;

@@ -3,16 +3,18 @@
 import { parseGlb } from "./glb.js";
 import { GROUND_UV_PER_CELL, readGrid, vertexNormals } from "./terrain.js";
 
-// Cell kinds and the tile model that draws each, by file name under models/ (see NOTICE.md).
+// Cell kinds and the tile models that draw each, by file name under models/ (see NOTICE.md). A cell picks one of its
+// kind's variants by cellVariant, so the map gets texture variety while every client draws the same tile per cell.
+// Only flat, footprint-one tiles are listed; ground_riverTile ships without a texture, so water keeps its tint.
 export const TILE_MODELS = Object.freeze({
-  grass: "tile-low",
-  dirt: "ground",
-  lane: "ground_pathTile",
-  water: "ground_riverTile",
-  cliff: "tile-high",
+  grass: Object.freeze(["tile-low", "patch-grass"]),
+  dirt: Object.freeze(["ground", "patch-dirt"]),
+  lane: Object.freeze(["road-straight", "road-intersection-path", "road-crossroad-line"]),
+  water: Object.freeze(["ground_riverTile"]),
+  cliff: Object.freeze(["tile-high", "tile-slant"]),
 });
-// Fallback colour for a tile model with no base colour texture (the lane and river tiles ship untextured).
-export const TILE_TINTS = Object.freeze({ grass: [1, 1, 1], dirt: [0.5, 0.38, 0.24], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
+// Fallback colour for a tile model with no base colour texture: green for grass so a failed texture never draws white.
+export const TILE_TINTS = Object.freeze({ grass: [0.36, 0.5, 0.24], dirt: [0.5, 0.38, 0.24], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
 // Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass.
 export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 4 });
 export const VOID_REACH = 2;
@@ -117,50 +119,51 @@ function groundVariantUvs(model, ox, oy) {
   return uvs;
 }
 
-// Groups every cell by kind (and by texture phase for ground kinds) into instance batches: one translation matrix per
-// cell on the cell's height level, so memory and draw calls scale with the kind count, not the cell count.
-// Returns null when a kind the map uses has no model, so the caller keeps the heightfield as the fallback.
+// Deterministic variant index for a cell: an integer hash of its coordinates, so every client picks the same variant.
+export function cellVariant(x, y, count) {
+  let h = Math.imul(x, 0x9e3779b1) ^ Math.imul(y, 0x85ebca77);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  h ^= h >>> 12;
+  return (h >>> 0) % count;
+}
+
+// Groups every cell by kind and variant (and by texture phase for ground kinds) into instance batches: one translation
+// matrix per cell on the cell's height level, so memory and draw calls scale with the kind and variant count, not the
+// cell count. models maps each kind to its fitted variant models. Returns null when a kind the map uses has no model,
+// so the caller keeps the heightfield as the fallback.
 export function bakeTiles(bytes, models) {
   const grid = readGrid(bytes);
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
-  const kindAt = new Uint8Array(w * h);
-  const names = [];
   const empty = voidMask(grid);
-  for (let i = 0; i < w * h; i++) {
-    if (empty[i]) {
-      kindAt[i] = 255;
-      continue;
-    }
-    const kind = cellKind(flags[i], tiles[i]);
-    if (!models[kind]) return null;
-    let id = names.indexOf(kind);
-    if (id < 0) id = names.push(kind) - 1;
-    kindAt[i] = id;
-  }
-  const phases = (kind) => (GROUND_KINDS.includes(kind) ? GROUND_PERIOD * GROUND_PERIOD : 1);
   const groups = new Map();
-  for (const kind of names) {
-    groups.set(kind, Array.from({ length: phases(kind) }, () => ({ cells: [] })));
-  }
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
-      if (kindAt[i] === 255) continue;
-      const kind = names[kindAt[i]];
-      const list = groups.get(kind);
-      const phase = list.length === 1 ? 0 : (y % GROUND_PERIOD) * GROUND_PERIOD + (x % GROUND_PERIOD);
-      list[phase].cells.push(i);
+      if (empty[i]) continue;
+      const kind = cellKind(flags[i], tiles[i]);
+      const variants = models[kind];
+      if (!variants?.length) return null;
+      const v = cellVariant(x, y, variants.length);
+      const key = `${kind}/${v}`;
+      let group = groups.get(key);
+      if (!group) {
+        const phaseCount = GROUND_KINDS.includes(kind) ? GROUND_PERIOD * GROUND_PERIOD : 1;
+        group = { kind, model: variants[v], phases: Array.from({ length: phaseCount }, () => []) };
+        groups.set(key, group);
+      }
+      const phase = group.phases.length === 1 ? 0 : (y % GROUND_PERIOD) * GROUND_PERIOD + (x % GROUND_PERIOD);
+      group.phases[phase].push(i);
     }
   }
   const meshes = new Map();
   let cells = 0;
-  for (const [kind, list] of groups) {
-    const model = models[kind];
+  for (const [key, { kind, model, phases }] of groups) {
     const batches = [];
-    list.forEach((group, phase) => {
-      if (group.cells.length === 0) return;
-      const matrices = new Float32Array(group.cells.length * 16);
-      group.cells.forEach((i, n) => {
+    let count = 0;
+    phases.forEach((cellList, phase) => {
+      if (cellList.length === 0) return;
+      const matrices = new Float32Array(cellList.length * 16);
+      cellList.forEach((i, n) => {
         const o = n * 16;
         matrices[o] = 1;
         matrices[o + 5] = 1;
@@ -170,11 +173,12 @@ export function bakeTiles(bytes, models) {
         matrices[o + 14] = Math.floor(i / w) + 0.5;
         matrices[o + 15] = 1;
       });
-      const uvs = list.length === 1 ? model.uvs : groundVariantUvs(model, phase % GROUND_PERIOD, Math.floor(phase / GROUND_PERIOD));
-      batches.push({ uvs, batch: { matrices, count: group.cells.length, dirty: true } });
-      cells += group.cells.length;
+      const uvs = phases.length === 1 ? model.uvs : groundVariantUvs(model, phase % GROUND_PERIOD, Math.floor(phase / GROUND_PERIOD));
+      batches.push({ uvs, batch: { matrices, count: cellList.length, dirty: true } });
+      count += cellList.length;
     });
-    meshes.set(kind, { model, batches, cells: batches.reduce((n, b) => n + b.batch.count, 0) });
+    meshes.set(key, { kind, model, batches, cells: count });
+    cells += count;
   }
   return { kinds: meshes, cells, width: w, height: h };
 }
