@@ -239,8 +239,14 @@ export function bakeEdges(grid, models, empty) {
         if (!ramp) continue;
         const dirX = high === j ? dx : -dx;
         const dirZ = high === j ? dz : -dz;
+        // A ramp rises its full drop over one cell, which is steep when a step is taller than a cell is wide. When the cell
+        // beyond the low side is no higher than the low cell, the ramp runs over that cell too, so the same drop spans two.
+        const lx = low % w, lz = (low - lx) / w;
+        const fx = lx - dirX, fz = lz - dirZ;
+        const far = fx >= 0 && fz >= 0 && fx < w && fz < h ? fz * w + fx : -1;
+        const span = far >= 0 && !empty[far] && levels[far] <= levels[low] ? 2 : 1;
         const sy = dh / (rampTop - rampLift);
-        put("ramp", "cliff", TILE_MATERIALS.cliff, ramp, [bx - 0.5 * dirX, heightOf(low) - rampLift * sy, bz - 0.5 * dirZ, Math.atan2(-dirZ, dirX), 1, sy, 1]);
+        put("ramp", "cliff", TILE_MATERIALS.cliff, ramp, [bx - 0.5 * span * dirX, heightOf(low) - rampLift * sy, bz - 0.5 * span * dirZ, Math.atan2(-dirZ, dirX), span, sy, 1]);
       }
     }
   }
