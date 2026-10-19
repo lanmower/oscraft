@@ -11,7 +11,8 @@
 -- lookup also finds destroyed towers.
 --
 -- Gold. A unit with a bounty pays when it dies. A killing hero keeps the bounty less the team
--- share, and the killer's side gets the share. An attackerless death pays the rival side's gold.
+-- share, and the killer's side gets the share. A killer that is not a hero (a creep) pays its whole
+-- bounty to its side. An attackerless death pays the rival side's gold.
 -- Uses only the mod API.
 GOLD_BY_MOD = true
 
@@ -113,8 +114,11 @@ game.trigger("on_died", {
     local bounty = game.unit_bounty(unit)
     if killer ~= nil and killer ~= unit then
       local share = bounty * TEAM_SHARE_PCT // 100
-      game.cmd_add_hero_gold(killer, bounty - share)
-      game.cmd_add_gold(killer_player, share)
+      if pcall(game.cmd_add_hero_gold, killer, bounty - share) then
+        game.cmd_add_gold(killer_player, share)
+      else
+        game.cmd_add_gold(killer_player, bounty)
+      end
       return
     end
     local rival = game.rival_of(unit_player(unit))

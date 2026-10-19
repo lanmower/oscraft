@@ -1759,7 +1759,9 @@ impl ModHost {
         for cmd in list {
             match cmd {
                 Cmd::Spawn { index, x, y, owner, .. } => {
-                    let _ = sim.spawn_for(owner, index as u32, x, y);
+                    if let Some(unit) = sim.spawn_for(owner, index as u32, x, y) {
+                        sim.march_to_enemy_base(unit, owner);
+                    }
                 }
                 // Handles resolve in the server room, which holds the handle map; this local world has none.
                 Cmd::OrderHandle { .. } | Cmd::DamageHandle { .. } | Cmd::BuffHandle { .. } => {}

@@ -116,7 +116,7 @@ pub fn moba_siege_timing(_image: &[u8]) -> Result<(), String> {
     let mut most = 0;
     for t in 1..=4810i64 {
         advance(&mut host, 1)?;
-        let n = read_int(&host, "waves_siege")?;
+        let n = read_int(&host, "waves_siege")? + read_int(&host, "waves_siege_upgraded")?;
         if n > 0 && first.is_none() {
             first = Some(t);
         }

@@ -1184,7 +1184,9 @@ impl ModHost {
         for cmd in list {
             match cmd {
                 Cmd::Spawn { index, x, y, owner, .. } => {
-                    sim.spawn_for(owner, index as u32, x, y);
+                    if let Some(unit) = sim.spawn_for(owner, index as u32, x, y) {
+                        sim.march_to_enemy_base(unit, owner);
+                    }
                 }
                 Cmd::SetOwner { unit, player } => {
                     let _ = sim.set_owner(unit, player);

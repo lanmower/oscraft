@@ -597,8 +597,9 @@ impl Sim {
 
     /// Sends a freshly summoned unit `j` of `player` on an attack-move toward the nearest living
     /// hostile building, along the route `approach_to` finds (A* around blocked terrain). A unit
-    /// with no hostile building left stays where it spawned.
-    pub(crate) fn march_to_enemy_base(&mut self, j: usize, player: u8) {
+    /// with no hostile building left stays where it spawned. Mod hosts call this after `spawn_for`
+    /// so their units march the same way native summons do.
+    pub fn march_to_enemy_base(&mut self, j: usize, player: u8) {
         let mut best: Option<(usize, i64)> = None;
         for k in 0..self.n {
             if k == j || self.alive[k] == 0 || !self.hostile(player, self.player[k]) {

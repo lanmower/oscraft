@@ -495,7 +495,13 @@ impl Command {
                 true
             }
             Command::Cadence { .. } => true,
-            Command::Spawn { index, x, y, owner, .. } => sim.spawn_for(*owner, *index, *x, *y).is_some(),
+            Command::Spawn { index, x, y, owner, .. } => match sim.spawn_for(*owner, *index, *x, *y) {
+                Some(unit) => {
+                    sim.march_to_enemy_base(unit, *owner);
+                    true
+                }
+                None => false,
+            },
             Command::Damage { caster, target, dmg } => {
                 let player = sim.player(*caster);
                 sim.damage_target(*caster as i32, player, *dmg, *target as i32);
@@ -917,6 +923,9 @@ impl Recording {
     /// refused or not. Returns the unit the sim gave.
     pub fn spawn(&mut self, sim: &mut Sim, handle: u32, index: u32, x: i32, y: i32, owner: u8, lane: i32) -> Option<usize> {
         let unit = sim.spawn_for(owner, index, x, y);
+        if let Some(j) = unit {
+            sim.march_to_enemy_base(j, owner);
+        }
         self.note(sim.ticks(), Command::Spawn { handle, index, x, y, owner, lane });
         unit
     }
