@@ -12,12 +12,12 @@ Our `scenarios/moba/*.osd` stats are generated from Valve's Dota 2 `npc_units.tx
 - StormLib, w3x2lni and ObjectEditor were not built or installed: libmpq and the stdlib reader were sufficient.
 - Standard members present: `war3map.w3i` (796 B), `war3map.w3e` (116,568 B), `war3map.doo` (259,494 B), `war3mapUnits.doo` (246 B), `war3map.w3a` (15,336 B), `war3map.w3b` (2,636 B), `war3map.w3d` (5,355 B), `war3map.w3h` (37 B), `war3map.wts` (20,067 B), `war3map.wpm` (262,160 B), `war3map.shd` (262,144 B), `war3map.wct` (310 B), `war3map.wtg` (567 B), `war3map.w3c` (8 B), `war3map.w3r` (8 B), `war3map.j` (3,065,090 B), `war3mapMisc.txt` (1,860 B), `war3mapSkin.txt` (2,006 B), `war3mapImported\templates.toc`.
 - Unit, item and ability data are in SLK overrides: `Units\UnitData.slk` (355,210 B), `Units\UnitBalance.slk` (430,025 B), `Units\UnitWeapons.slk` (164,892 B), `Units\UnitAbilities.slk` (114,678 B), `Units\AbilityData.slk` (715,863 B), `Units\UpgradeData.slk` (19,481 B), `units\ItemData.slk` (240,297 B). The lowercase `units\` spelling is also in the archive.
-- Standard members absent from the archive: `war3map.w3u` (units), `war3map.w3t` (items), `war3map.w3q` (upgrades), `war3map.lua`, `war3map.imp`, `war3map.mmp`, `Scripts\war3map.j`, `Scripts\common.j`, `Scripts\blizzard.j`. Confirmed: no hash-table entry resolves to any of them under the standard names or the 6.88g candidate names.
+- Standard members absent from the archive: `war3map.w3u` (units), `war3map.w3t` (items), `war3map.w3q` (upgrades), `war3map.lua`, `war3map.imp`, `war3map.mmp`, `Scripts\war3map.j`, `Scripts\common.j`, the base game helper script `Scripts\<helper>.j`. Confirmed: no hash-table entry resolves to any of them under the standard names or the 6.88g candidate names.
 - Asset members: about 2,200 textures and models (`war3mapImported\*.mdx`, `*.blp`, `*.mp3`), out of scope for this report.
 
 ## 2. Decoded tables
 
-- Units: the object data is in `Units\UnitBalance.slk` (2,032 keyed rows), `Units\UnitData.slk` (2,036 keyed rows) and `Units\UnitWeapons.slk` (480 keyed rows). `war3map.j` calls `CreateUnit*` 737 times with 229 distinct raw ids; 228 of them are rows in UnitBalance. Hero rows (`STR` column set) number 237 in UnitBalance; 6 of the 229 CreateUnit ids are heroes. Stock vs custom rows cannot be separated: the Blizzard stock files are not in the archive.
+- Units: the object data is in `Units\UnitBalance.slk` (2,032 keyed rows), `Units\UnitData.slk` (2,036 keyed rows) and `Units\UnitWeapons.slk` (480 keyed rows). `war3map.j` calls `CreateUnit*` 737 times with 229 distinct raw ids; 228 of them are rows in UnitBalance. Hero rows (`STR` column set) number 237 in UnitBalance; 6 of the 229 CreateUnit ids are heroes. Stock vs custom rows cannot be separated: the Warcraft III base game stock files are not in the archive.
 - Items: `units\ItemData.slk` has 1,169 keyed rows: 412 with `goldcost`, 432 with `abilList`, 21 with `pickRandom`. `war3map.j` calls `CreateItem` with 4 distinct ids (`I00E`, `I00G`, `I02M`, `I0KK`). Recipes are not in the SLK (no recipe column). Cooldowns are an `AbilityData` reference (`cooldownID`), not a number in ItemData.
 - Abilities (`war3map.w3a`, version 2): 16 original-table records (`A21X`, `A21W`, `A21V`, `A0VV`, `A0XL`, `A3H0`, `A0V7`, `A0VE`, `A0EF`, `A0NR`, `A0CQ`, `A0AR`, `A087`, `A08C`, `S00A`, `Aamk`) and 1 custom-table record (`ANeg` to `A0CP`, name `TRIGSTR_019`), 572 modifications in total. Each modification is code, type, level, data pointer, value (number, or string), then a 4-byte trailer; the stream ends exactly at the 15,336-byte end of the member. The previous pass stopped at record 4 because it did not read the trailer.
 - Upgrades (`war3map.w3h`): 37 bytes, a single record (`BNeg`, buff table).
@@ -82,7 +82,7 @@ Counts: MATCH 6, DIFFERENT 14, MISSING for every ability, item and placed-unit f
 
 ## 6. What could not be read
 
-- `war3map.w3u`, `war3map.w3t`, `war3map.w3q`, `war3map.lua`, `war3map.imp`, `war3map.mmp`, `Scripts\war3map.j`, `Scripts\common.j` and `Scripts\blizzard.j` are not in the archive (confirmed by hashing every listed name and the candidate set).
+- `war3map.w3u`, `war3map.w3t`, `war3map.w3q`, `war3map.lua`, `war3map.imp`, `war3map.mmp`, `Scripts\war3map.j`, `Scripts\common.j` and the base game helper script `Scripts\<helper>.j` are not in the archive (confirmed by hashing every listed name and the candidate set).
 - Hero and creep names are not resolved: the `TRIGSTR` strings are not parsed, so the pairings in section 3 are guesses.
 - Items: recipes are not in the SLK, and cooldown values need the `AbilityData` chain (`cooldownID` to `Cool1`).
 - Placed-unit and doodad positions, player starts and region data are not decoded.
