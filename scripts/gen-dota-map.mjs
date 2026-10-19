@@ -1,4 +1,5 @@
 import { roleOf, kindOf } from "./doodad-roles.mjs";
+import { doodadSizes, SCATTER_ROLES } from "./doodad-sizes.mjs";
 // Generates scenarios/moba/map.osd and scenarios/moba/neutral.osd from the Dota 2 map data
 // dumped by leamare/dota-map-coordinates (data/gridnavdata.json, data/elevationdata.json,
 // mapdata.json, patch 7.41). Usage: node scripts/gen-dota-map.mjs [--src dir] [--out scenarios/moba] [--no-trees]
@@ -165,39 +166,6 @@ for (const o of [...D.npc_dota_lotus_pool, ...D.npc_dota_xp_fountain, ...D.npc_d
 for (const l of R.landmarks ?? []) dd("debris", l.x, l.y);
 for (const f of D.npc_dota_filler) dd("debris", f.x, f.y);
 for (const l of D.npc_dota_lantern) dd("debris", l.x, l.y);
-// Visual pack props: every shipped model is placed. scripts/doodad-roles.mjs gives each model a role; a role's models
-// cycle in order. Doodads never block, so walkability is unchanged. Tints, scale and rotation vary per placement in play.js.
-const shippedStems = fs.readdirSync(new URL("../js/client/models/", import.meta.url)).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort();
-const ROLE_KINDS = {};
-for (const stem of shippedStems) (ROLE_KINDS[roleOf(stem)] ??= []).push(kindOf(stem));
-const roleNext = {};
-const pick = (role) => { const list = ROLE_KINDS[role]; const n = roleNext[role] = (roleNext[role] ?? -1) + 1; return list[n % list.length]; };
-const cellDd = (kind, c) => doodads.push(`doodad(${id++}, "${kind}", ${cellMilli(c).join(", ")})`);
-treeCells.forEach((i, k) => {
-  if (k % 12 === 0) cellDd(pick("tree"), [i % N, (i / N) | 0]);
-  if (k % 12 === 6) cellDd(pick("nature"), [i % N, (i / N) | 0]);
-});
-let cliffEdge = 0;
-for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
-  const i = y * N + x;
-  if (level[i] < 3 || (level[i - 1] >= 3 && level[i + 1] >= 3 && level[i - N] >= 3 && level[i + N] >= 3)) continue;
-  if (cliffEdge++ % 9 === 0) cellDd(pick("rock"), [x, y]);
-}
-for (const t of towerRows) {
-  if (t.lane === "base") continue;
-  dd(pick("prop"), t.x + 200, t.y);
-  dd(pick("prop"), t.x - 200, t.y);
-}
-for (const c of camps) dd(pick("character"), c.x + 150, c.y + 150);
-for (const s of D.ent_dota_shop) dd(pick("item"), s.x + 250, s.y);
-for (const b of bases) { dd(pick("building"), b.wx + 700, b.wy - 700); dd(pick("building"), b.wx - 700, b.wy + 700); }
-const fieldCells = [];
-for (let i = 0; i < N * N; i++) if (level[i] === 1 && !blocked[i]) fieldCells.push(i);
-const scatterKinds = shippedStems.map(kindOf);
-const scatterStep = Math.max(1, Math.floor(fieldCells.length / scatterKinds.length));
-if (fieldCells.length < scatterKinds.length) throw new Error(`field cells ${fieldCells.length} below models ${scatterKinds.length}`);
-scatterKinds.forEach((kind, k) => { const c = fieldCells[k * scatterStep]; cellDd(kind, [c % N, (c / N) | 0]); });
-
 // Reachability from the Radiant fountain across open cells (4-connected).
 const seen = new Uint8Array(N * N);
 const [sx, sy] = heroSpots[0][0];
@@ -277,11 +245,20 @@ for (const player of [0, 1]) {
 }
 const footprintRadius = (bounds) => Math.max(1, Math.ceil(bounds / 2 / CELL_UNITS));
 const dirtZone = new Uint8Array(N * N);
-function stampZone(cellX, cellY, r) {
-  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (inb(cellX + dx, cellY + dy)) dirtZone[(cellY + dy) * N + cellX + dx] = 1;
+const structureZone = new Uint8Array(N * N);
+function stampZone(zone, cellX, cellY, r) {
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (inb(cellX + dx, cellY + dy)) zone[(cellY + dy) * N + cellX + dx] = 1;
 }
-for (const b of bases) stampZone(cx(b.wx), cy(b.wy), footprintRadius(b.b) + BASE_DIRT_MARGIN);
-for (const t of towerRows) stampZone(cx(t.x), cy(t.y), footprintRadius(t.bounds[0]) + TOWER_DIRT_MARGIN);
+for (const b of bases) {
+  const r = footprintRadius(b.b) + BASE_DIRT_MARGIN;
+  stampZone(dirtZone, cx(b.wx), cy(b.wy), r);
+  stampZone(structureZone, cx(b.wx), cy(b.wy), r);
+}
+for (const t of towerRows) {
+  const r = footprintRadius(t.bounds[0]) + TOWER_DIRT_MARGIN;
+  stampZone(dirtZone, cx(t.x), cy(t.y), r);
+  stampZone(structureZone, cx(t.x), cy(t.y), r);
+}
 for (let i = 0; i < N * N; i++) {
   if (tiles[i] !== TILE.lane) continue;
   const x0 = i % N, y0 = (i / N) | 0;
@@ -290,6 +267,52 @@ for (let i = 0; i < N * N; i++) {
 for (let i = 0; i < N * N; i++) if (!blocked[i] && dirtZone[i] && tiles[i] === 0) tiles[i] = TILE.dirt;
 const tileRects = rects((x, y) => tiles[y * N + x], (v) => v !== 0).map((r) => `paint_tile(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`);
 const tileCount = (id) => tiles.reduce((a, v) => a + (v === id ? 1 : 0), 0);
+
+// Visual pack props, sized by scripts/doodad-sizes.mjs and classed by scripts/doodad-roles.mjs. Doodads never block, so
+// walkability is unchanged. Every jungle tree cell (a blocked cell) gets a tree, so each blocked cell reads as a tree; bushes,
+// rocks and props sit on open cells. Nothing is placed on a lane cell or inside a base or tower footprint (structureZone);
+// lane rims stay open for bushes along the lane edges. Each role's models cycle in order.
+const modelsDir = new URL("../js/client/models/", import.meta.url);
+const { sizes: doodadFootprints } = doodadSizes(modelsDir);
+const shippedStems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort().filter((stem) => doodadFootprints[stem] !== undefined);
+const ROLE_KINDS = {};
+for (const stem of shippedStems) (ROLE_KINDS[roleOf(stem)] ??= []).push(kindOf(stem));
+const roleNext = {};
+const pick = (role) => { const list = ROLE_KINDS[role]; const n = roleNext[role] = (roleNext[role] ?? -1) + 1; return list[n % list.length]; };
+const clear = (i) => tiles[i] !== TILE.lane && !structureZone[i];
+const clearAt = (wx, wy) => clear(cy(wy) * N + cx(wx));
+const cellDd = (kind, c) => doodads.push(`doodad(${id++}, "${kind}", ${cellMilli(c).join(", ")})`);
+treeCells.forEach((i) => { if (clear(i)) cellDd(pick("tree"), [i % N, (i / N) | 0]); });
+let natureEvery = 0;
+for (let i = 0; i < N * N; i++) {
+  if (level[i] !== 1 || blocked[i] || !clear(i)) continue;
+  if (natureEvery++ % 40 === 0) cellDd(pick("nature"), [i % N, (i / N) | 0]);
+}
+let cliffEdge = 0;
+for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
+  const i = y * N + x;
+  if (level[i] < 3 || (level[i - 1] >= 3 && level[i + 1] >= 3 && level[i - N] >= 3 && level[i + N] >= 3)) continue;
+  if (clear(i) && cliffEdge++ % 9 === 0) cellDd(pick("rock"), [x, y]);
+}
+for (const t of towerRows) {
+  if (t.lane === "base") continue;
+  if (clearAt(t.x + 200, t.y)) dd(pick("prop"), t.x + 200, t.y);
+  if (clearAt(t.x - 200, t.y)) dd(pick("prop"), t.x - 200, t.y);
+}
+for (const c of camps) if (clearAt(c.x + 150, c.y + 150)) dd(pick("character"), c.x + 150, c.y + 150);
+for (const s of D.ent_dota_shop) if (clearAt(s.x + 250, s.y)) dd(pick("item"), s.x + 250, s.y);
+for (const f of fountains) for (const dx of [300, -300]) if (clearAt(f.wx + dx, f.wy)) dd(pick("prop"), f.wx + dx, f.wy);
+for (const b of bases) {
+  if (clearAt(b.wx + 700, b.wy - 700)) dd(pick("building"), b.wx + 700, b.wy - 700);
+  if (clearAt(b.wx - 700, b.wy + 700)) dd(pick("building"), b.wx - 700, b.wy + 700);
+}
+const fieldCells = [];
+for (let i = 0; i < N * N; i++) if (level[i] === 1 && !blocked[i] && clear(i)) fieldCells.push(i);
+const scatterKinds = shippedStems.filter((stem) => SCATTER_ROLES.has(roleOf(stem))).map(kindOf);
+const scatterStep = Math.max(1, Math.floor(fieldCells.length / scatterKinds.length));
+if (fieldCells.length < scatterKinds.length) throw new Error(`field cells ${fieldCells.length} below models ${scatterKinds.length}`);
+scatterKinds.forEach((kind, k) => { const c = fieldCells[k * scatterStep]; cellDd(kind, [c % N, (c / N) | 0]); });
+fs.writeFileSync(new URL("../js/client/doodad_sizes.json", import.meta.url), JSON.stringify(doodadFootprints, null, 1) + "\n");
 
 const thingLine = (t) => `spawn("${t.unit}", ${t.player}, ${mx(t.wx)}, ${my(t.wy)})`;
 const header = [

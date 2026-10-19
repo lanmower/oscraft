@@ -223,19 +223,21 @@ async function loadModels(game) {
 // Doodads: one fitted model per kind code (DODA kind), read from doodads.json which maps kind name to GLB path.
 // The shipped asset catalogue (assets.json) names each doodad's GLB; doodads.json is the fallback when it is missing.
 async function loadDoodadModels() {
-  const [map, catalogue] = await Promise.all([
+  const [map, catalogue, footprints] = await Promise.all([
     fetch(new URL("doodads.json", location.href)).then((r) => r.json()),
     fetch(new URL("assets.json", location.href)).then((r) => r.json()).catch(() => ({ items: [] })),
+    fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({})),
   ]);
   const modelName = (id) => {
     const file = catalogue.items.find((item) => item.id === id && item.kind === "model")?.path;
     return file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null;
   };
+  // Each model is fitted to its footprint in cells from doodad_sizes.json (scripts/doodad-sizes.mjs); a model without one keeps DOODAD_HALF's size.
+  const sizeOf = (name) => footprints[name] ?? 2 * DOODAD_HALF;
   return Promise.all(DOODAD_KINDS.map(async (kind) => {
     const name = modelName(kind) ?? (map[kind] ? map[kind].replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null);
     const lowName = modelName(`${kind}-low`);
-    const size = 2 * DOODAD_HALF;
-    const [high, low] = await Promise.all([fetchModel(name, size), lowName ? fetchModel(lowName, size) : null]);
+    const [high, low] = await Promise.all([fetchModel(name, sizeOf(name)), lowName ? fetchModel(lowName, sizeOf(lowName)) : null]);
     return { high, low };
   }));
 }
