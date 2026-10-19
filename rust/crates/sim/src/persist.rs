@@ -686,6 +686,7 @@ impl Sim {
         for k in 0..MAX_PLAYERS {
             next.vision[k] = r.u16()?;
         }
+        crate::fog::bump_vision_generation();
         r.bytes_into(&mut next.controller)?;
         for k in 0..REVEAL_CAP {
             next.reveals[k] = Reveal {

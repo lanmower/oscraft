@@ -357,6 +357,15 @@ impl Game {
         self.sim.vision_plane(p)
     }
 
+    // fogview: changes whenever a visible plane may have changed; equal values mean `vision` would repeat its bytes.
+    pub fn vision_generation(&self) -> u32 {
+        self.sim.vision_generation()
+    }
+
+    pub fn fog_on(&self) -> bool {
+        self.sim.fog_on()
+    }
+
     // fogview: day and night clock as `[ticks into cycle, day ticks, night ticks]`.
     pub fn day_cycle(&self) -> Vec<u32> {
         vec![self.sim.day_clock(), sim::DAY_TICKS, sim::NIGHT_TICKS]

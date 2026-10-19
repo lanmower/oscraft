@@ -498,6 +498,7 @@ impl Sim {
         }
         let cat = std::mem::take(&mut self.cat);
         *self = Sim::with_catalog(self.cap, grid, cat);
+        crate::fog::bump_vision_generation();
         true
     }
 
@@ -540,6 +541,7 @@ impl Sim {
     }
 
     pub fn set_fog(&mut self, on: bool) {
+        crate::fog::bump_vision_generation();
         self.fog = on;
     }
 
