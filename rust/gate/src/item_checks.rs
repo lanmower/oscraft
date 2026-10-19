@@ -50,7 +50,7 @@ fn want(what: &str, got: i64, want: i64) -> Result<(), String> {
 pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
     let s = moba()?;
     let cat = s.catalog();
-    for (name, cost) in [("blink", 2250), ("black_king_bar", 4050), ("tpscroll", 100), ("tango", 90), ("clarity", 60), ("flask", 100), ("ward_sentry", 50), ("platemail", 1400), ("blade_mail", 2400), ("force_staff", 2200)] {
+    for (name, cost) in [("blink", 2250), ("black_king_bar", 4050), ("tpscroll", 100), ("tango", 90), ("clarity", 60), ("flask", 100), ("ward_sentry", 50), ("platemail", 1400), ("blade_mail", 2200), ("force_staff", 2250)] {
         let it = &cat.items[item(&s, name)?];
         want(&format!("{name} cost"), it.cost as i64, cost)?;
     }
