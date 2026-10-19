@@ -1,6 +1,6 @@
 # OpenGameArt wc3-ish collection: licence inventory and import
 
-Source: https://opengameart.org/content/wc3-ish-mod (collection https://opengameart.org/collection/162729, credits file https://opengameart.org/collection/162729/CREDITS.TXT, 187 KB). Credits were read through the fetch port.
+Source: https://opengameart.org/content/wc3-ish-mod (collection https://opengameart.org/collection/162729, credits file https://opengameart.org/collection/162729/CREDITS.TXT, 187 KB). Credits were read through the fetch port. One item title with a trademarked name is redacted to satisfy the repository naming check.
 
 ## Counts
 
@@ -32,7 +32,7 @@ Already shipped in js/client/models (same bytes, no new files): tree-large (Cast
 
 ## Not usable, and why
 
-- Blender (.blend, 754 files) and FBX/COLLADA-only archives: no converter is on the machine; a portable Blender download was started but was too slow to finish in this run, so these are unconverted.
+- Blender (.blend, 754 files) and FBX/COLLADA-only archives: no converter is on the machine; a portable Blender 4.2 tarball was downloaded to /tmp but not extracted or used, so these are unconverted.
 - OBJ-only packs: no OBJ-to-GLB converter; the loader needs GLB and the OBJ sets carry no textures to embed.
 - Multi-primitive glTF (about 780 files, e.g. Kenney Space/Watercraft/Pirate kits): glb.js reads only the first primitive, so a merge step is needed before use. Not done in this run.
 - Animated characters and rigged skins (Quaternius, Animated Characters Pack): skinning and animation are not wired for placement; not imported.
@@ -186,7 +186,7 @@ Already shipped in js/client/models (same bytes, no new files): tree-large (Cast
 | 140 | Night Demon | nubux | CC-BY 3.0 | rejected | requires attribution or share-alike (CC-BY 3.0) |
 | 141 | Low Poly House Items 1/2 | sjolle | CC0 | accepted | png,zip |
 | 142 | KayKit: Dungeon Pack 1.0 | Kay Lousberg | CC0 | accepted | png,zip |
-| 143 | Chest Blizzard style | Yughues | CC0 | accepted | jpg,7z |
+| 143 | Chest [trademark redacted] style | Yughues | CC0 | accepted | jpg,7z |
 | 144 | Tiny weeds | Yughues | CC0 | accepted | jpg,7z |
 | 145 | Forest Monster | CDmir | CC0 | accepted | png,7z |
 | 146 | Old Lady | CDmir | CC0 | accepted | png,blend |
