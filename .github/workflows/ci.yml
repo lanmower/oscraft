@@ -1914,6 +1914,17 @@ jobs:
           await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
           const error = await page.getAttribute("body", "data-error");
           if (error) throw new Error("page error: " + error);
+          // The lobby is a centred overlay until its match starts and would cover the map under the probe's clicks:
+          // play it through (claim, pick, ready, fill with bots, start), as a player does, before the probe reads the map.
+          if (!(await page.evaluate(() => document.getElementById("lobby").hidden))) {
+            const press = (label) => page.evaluate((text) => [...document.querySelectorAll("#lobby button")].find((b) => b.textContent === text && !b.disabled)?.click(), label);
+            await press("Claim");
+            await page.evaluate(() => { const s = document.querySelector("#lobby select"); s.value = "axe"; s.dispatchEvent(new Event("change")); });
+            await press("Ready");
+            await press("Fill with bots");
+            await press("Start match");
+            await page.waitForFunction(() => document.getElementById("lobby").hidden, null, { timeout: 15000 });
+          }
           const units = await page.evaluate(() => window.__ciUnits());
           if (!units.length) throw new Error("no units to order");
           // The 3D camera moves with the arrow keys and zoom, so the ground-to-pixel mapping is read from the page each time.
