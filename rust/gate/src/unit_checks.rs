@@ -6,8 +6,8 @@ use crate::mod_checks::{advance, read_int, start};
 use sim::{fixed, Sim};
 
 /// Lane wave logic under test: the moba scenario's wave mod, loaded into the mod host.
-const WAVES_MOD: &str = include_str!("../../../mods/moba_waves.lua");
-/// Creeps per lane spawner per wave, as configured in mods/moba_waves.lua (CREEP_OFFSETS: three
+const WAVES_MOD: &str = include_str!("../../../mods/moba_match.lua");
+/// Creeps per lane spawner per wave, as configured in mods/moba_match.lua (CREEP_OFFSETS: three
 /// melee, one ranged; creep lanes are top and bottom, mid sends none).
 const MELEE_PER_LANE: i64 = 3;
 const RANGED_PER_LANE: i64 = 1;
@@ -81,7 +81,7 @@ fn spawners(s: &Sim, kinds: &[&str]) -> i64 {
     [0u8, 1].iter().map(|&p| kinds.iter().map(|k| count_kind(s, p, k) as i64).sum::<i64>()).sum()
 }
 
-/// Lane creep waves come from mods/moba_waves.lua: each top and bottom lane spawner sends three melee and
+/// Lane creep waves come from mods/moba_match.lua: each top and bottom lane spawner sends three melee and
 /// one ranged creep every 480 ticks from tick 1, and mid sends none. The mod's counts sum both sides,
 /// so the expected wave is the creep lane spawners in the image times the per-lane counts.
 pub fn moba_wave_composition(_image: &[u8]) -> Result<(), String> {
