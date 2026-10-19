@@ -202,7 +202,7 @@ unit("tusk", 120, 303, 375, build_time=480, resource_a=0, capacity=1, filters=["
 unit_extra("tusk", player_controlled=True, deny_xp_pct=0)
 unit("skywrath_mage", 150, 317, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=17, weapon_range_milli=9375, weapon_period=27, sight_milli=28125, armor=-1, model="character-male-a", deny_pct=0)
 unit_extra("skywrath_mage", player_controlled=True, deny_xp_pct=0)
-unit("abaddon", 120, 317, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=27, weapon_range_milli=2344, weapon_period=24, sight_milli=28125, armor=-1, model="character-male-a", deny_pct=0)
+unit("abaddon", 120, 317, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=27, weapon_range_milli=2344, weapon_period=24, sight_milli=28125, armor=-1, model="abaddon-skinned", deny_pct=0)
 unit_extra("abaddon", player_controlled=True, deny_xp_pct=0)
 unit("elder_titan", 120, 298, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=28, weapon_range_milli=2344, weapon_period=27, sight_milli=28125, armor=0, model="character-male-a", deny_pct=0)
 unit_extra("elder_titan", player_controlled=True, deny_xp_pct=0)

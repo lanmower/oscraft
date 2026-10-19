@@ -8,7 +8,7 @@ objective	pillar-obelisk	objective pillar (kept)	column	pillar-obelisk
 ironhide	character-male-b	heavy melee hero, broad male build	character-male-d, character-male-f	character-male-a
 swiftbow	character-archer	ranged hero: the archer model fits a bow	character-female-c	character-female-a
 stormcaller	character-male-c	caster hero	character-male-e	character-male-a
-bulwark	character-male-d	tank hero	character-male-f	character-male-a
+bulwark	abaddon-skinned	shield tank hero: Abaddon hy3d build (28 joints, KTX2 base colour)	character-male-f	character-male-d
 shadeblade	character-female-b	agile melee hero	character-female-d	character-female-a
 emberlord	character-male-e	fire caster, male build	character-male-b	character-male-a
 gale_archer	character-female-c	ranged hero, female build	character-archer	character-female-a
