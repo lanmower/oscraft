@@ -218,8 +218,10 @@ pub struct Sim {
     /// True while `tick_with_cadence` runs; orders issued inside a tick are re-derived by the tick on replay, so they are not logged.
     pub(crate) in_tick: bool,
 
-    pub(crate) bucket_n: Vec<u8>,
+    pub(crate) bucket_n: Vec<u32>,
     pub(crate) bucket_idx: Vec<u32>,
+    /// Units past the inline `BUCKET_CAP` slots of a cell, in ascending insertion order.
+    pub(crate) bucket_over: Vec<Vec<u32>>,
     pub(crate) scratch: Vec<u32>,
 
     pub(crate) paths: Pool,
@@ -412,6 +414,7 @@ impl Sim {
             m_y: vec![0; MISSILE_CAP],
             bucket_n: vec![0; cells],
             bucket_idx: vec![0; cells * BUCKET_CAP],
+            bucket_over: vec![Vec::new(); cells],
             scratch: vec![0; AREA_BUF],
             paths,
             cur_field: None,
@@ -985,15 +988,36 @@ impl Sim {
             return;
         }
         let cell = (cy * w + cx) as usize;
+        self.bucket_push(cell, i);
+    }
+
+    /// Appends unit `i` to `cell`: an inline slot while one is free, else the cell's overflow list.
+    /// Every unit is stored, so a crowded cell never hides a unit from the strike or separation scans.
+    fn bucket_push(&mut self, cell: usize, i: usize) {
         let cnt = self.bucket_n[cell] as usize;
         if cnt < BUCKET_CAP {
             self.bucket_idx[cell * BUCKET_CAP + cnt] = i as u32;
-            self.bucket_n[cell] += 1;
+        } else {
+            self.bucket_over[cell].push(i as u32);
         }
+        self.bucket_n[cell] += 1;
+    }
+
+    /// Units bucketed in `cell`, inline slots first then overflow, each in insertion order.
+    pub(crate) fn bucket_members(&self, cell: usize) -> impl Iterator<Item = usize> + '_ {
+        let inline = (self.bucket_n[cell] as usize).min(BUCKET_CAP);
+        let base = cell * BUCKET_CAP;
+        self.bucket_idx[base..base + inline]
+            .iter()
+            .chain(self.bucket_over[cell].iter())
+            .map(|&j| j as usize)
     }
 
     pub(crate) fn rebucket(&mut self) {
         self.bucket_n.fill(0);
+        for over in &mut self.bucket_over {
+            over.clear();
+        }
         let (w, h) = (self.grid.w as i32, self.grid.h as i32);
         for i in 0..self.n {
             if self.alive[i] == 0 {
@@ -1005,11 +1029,7 @@ impl Sim {
                 continue;
             }
             let cell = (cy * w + cx) as usize;
-            let cnt = self.bucket_n[cell] as usize;
-            if cnt < BUCKET_CAP {
-                self.bucket_idx[cell * BUCKET_CAP + cnt] = i as u32;
-                self.bucket_n[cell] += 1;
-            }
+            self.bucket_push(cell, i);
         }
     }
 

@@ -16,7 +16,7 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
 /// Version 27 adds the hero per-unit state (respawn, buyback, gold, mana cap, spot) and the assist
 /// tallies and recent hitters.
-const STATE_VERSION: u16 = 28;
+const STATE_VERSION: u16 = 29;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -499,6 +499,7 @@ impl Sim {
         put_u32s(&mut w, &self.aggro.glyph_ready);
         put_u32s(&mut w, &self.aggro.glyph_need);
         put_u32s(&mut w, &self.aggro.glyph_skip);
+        put_i32s(&mut w, &self.aggro.strike);
         put_u32s(&mut w, &self.wards.expires);
         w.extend_from_slice(&self.couriers.phase);
         put_i32s(&mut w, &self.couriers.target);
@@ -754,6 +755,7 @@ impl Sim {
         r.u32s_into(&mut next.aggro.glyph_ready)?;
         r.u32s_into(&mut next.aggro.glyph_need)?;
         r.u32s_into(&mut next.aggro.glyph_skip)?;
+        r.i32s_into(&mut next.aggro.strike)?;
         r.u32s_into(&mut next.wards.expires)?;
         r.bytes_into(&mut next.couriers.phase)?;
         r.i32s_into(&mut next.couriers.target)?;

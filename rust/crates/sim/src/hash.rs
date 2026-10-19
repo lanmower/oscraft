@@ -81,6 +81,7 @@ impl Sim {
         h.u32s(&self.aggro.glyph_ready);
         h.u32s(&self.aggro.glyph_need);
         h.u32s(&self.aggro.glyph_skip);
+        h.i32s(&self.aggro.strike);
         h.u32s(&self.wards.expires);
         h.bytes(&self.couriers.phase);
         h.i32s(&self.couriers.target);

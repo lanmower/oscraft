@@ -182,8 +182,10 @@ impl Sim {
             }
         }
         let Some(b) = self.best_strike_target(i) else {
+            self.aggro.strike[i] = -1;
             return;
         };
+        self.aggro.strike[i] = b as i32;
         self.cooldown[i] = self.attack_period(i);
         if self.misses(i) {
             return;
@@ -212,6 +214,8 @@ impl Sim {
         let mut best_class = u8::MAX;
         let reach_d2 = (self.range_sq[i] as i64) << fixed::SHIFT;
         let mut best_d2 = reach_d2;
+        let current = self.aggro.strike[i];
+        let mut current_class = None;
         for oy in -rc..=rc {
             for ox in -rc..=rc {
                 let nx = cx + ox;
@@ -220,9 +224,7 @@ impl Sim {
                     continue;
                 }
                 let cell = (ny * w + nx) as usize;
-                let cnt = self.bucket_n[cell] as usize;
-                for k in 0..cnt {
-                    let j = self.bucket_idx[cell * BUCKET_CAP + k] as usize;
+                for j in self.bucket_members(cell) {
                     if j == i || self.alive[j] == 0 {
                         continue;
                     }
@@ -237,12 +239,20 @@ impl Sim {
                         continue;
                     }
                     let class = self.target_class(i, j);
+                    if j as i32 == current {
+                        current_class = Some(class);
+                    }
                     if class < best_class || (class == best_class && d2 <= best_d2) {
                         best = j as i64;
                         best_class = class;
                         best_d2 = d2;
                     }
                 }
+            }
+        }
+        if let Some(class) = current_class {
+            if class <= best_class {
+                best = current as i64;
             }
         }
         if let Some(t) = self.taunt_target(i) {
@@ -669,13 +679,11 @@ impl Sim {
                     continue;
                 }
                 let cell = (ny * w + nx) as usize;
-                let cnt = self.bucket_n[cell] as usize;
-                for k in 0..cnt {
+                for ju in self.bucket_members(cell) {
                     if count == buf.len() {
                         return count;
                     }
-                    let j = self.bucket_idx[cell * BUCKET_CAP + k];
-                    let ju = j as usize;
+                    let j = ju as u32;
                     if dist2(self.pos_x[ju], self.pos_y[ju], x, y) > rad2 {
                         continue;
                     }
@@ -700,6 +708,27 @@ mod tests {
         let mut s = load(&image, CAP).expect("duel-routes sim");
         s.set_fog(false);
         s
+    }
+
+    /// A crowd past the inline cell capacity must stay fully bucketed, so no unit drops out of
+    /// the strike and separation scans.
+    #[test]
+    fn crowded_cell_keeps_every_unit_bucketed() {
+        let mut s = duel_sim();
+        let crowd: Vec<usize> = (0..20).map(|_| creep(&mut s, 0)).collect();
+        let (x, y) = (fixed::from_int(5), fixed::from_int(5));
+        for &i in &crowd {
+            assert!(s.set_position(i, x, y));
+        }
+        let cell = (5 * s.grid().w as usize) + 5;
+        let mut members: Vec<usize> = s.bucket_members(cell).collect();
+        members.sort_unstable();
+        let mut expected = crowd.clone();
+        expected.sort_unstable();
+        assert_eq!(members, expected, "every unit in the crowded cell must be bucketed");
+        let total: usize = (0..s.grid().w as usize * s.grid().h as usize).map(|c| s.bucket_members(c).count()).sum();
+        let alive = (0..s.n).filter(|&i| s.alive(i)).count();
+        assert_eq!(total, alive, "every live in-grid unit must be bucketed exactly once");
     }
 
     /// A creep for `player` on the first walkable cell the map has room for.

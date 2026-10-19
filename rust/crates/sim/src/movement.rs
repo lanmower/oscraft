@@ -62,8 +62,7 @@ impl Sim {
                     continue;
                 }
                 let cell = (ny * gw + nx) as usize;
-                for k in 0..self.bucket_n[cell] as usize {
-                    let j = self.bucket_idx[cell * BUCKET_CAP + k] as usize;
+                for j in self.bucket_members(cell) {
                     if j == i || self.alive[j] == 0 || self.flying[j] != self.flying[i] || self.player[j] != self.player[i] {
                         continue;
                     }
@@ -139,9 +138,7 @@ impl Sim {
                     continue;
                 }
                 let cell = (ny * gw + nx) as usize;
-                let cnt = self.bucket_n[cell] as usize;
-                for k in 0..cnt {
-                    let j = self.bucket_idx[cell * BUCKET_CAP + k] as usize;
+                for j in self.bucket_members(cell) {
                     if j == i || self.alive[j] == 0 || self.flying[j] != self.flying[i] {
                         continue;
                     }

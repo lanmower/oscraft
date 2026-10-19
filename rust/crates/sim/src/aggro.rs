@@ -39,6 +39,8 @@ pub(crate) struct AggroState {
     pub(crate) glyph_ready: Vec<u32>,
     pub(crate) glyph_need: Vec<u32>,
     pub(crate) glyph_skip: Vec<u32>,
+    /// The enemy each unit last auto-attacked, -1 for none. Kept while it lives and stays in reach.
+    pub(crate) strike: Vec<i32>,
 }
 
 impl AggroState {
@@ -51,6 +53,7 @@ impl AggroState {
             glyph_ready: vec![0; MAX_PLAYERS],
             glyph_need: vec![0; MAX_PLAYERS],
             glyph_skip: vec![0; MAX_PLAYERS],
+            strike: vec![-1; cap],
         }
     }
 }
@@ -60,6 +63,7 @@ impl Sim {
     pub(crate) fn aggro_clear(&mut self, i: usize) {
         self.aggro.target[i] = -1;
         self.aggro.until[i] = 0;
+        self.aggro.strike[i] = -1;
         self.aggro.creep_seen[i] = self.ticks;
     }
 
