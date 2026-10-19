@@ -52,6 +52,8 @@
     [hidden] { display: none !important; }
     html, body { margin: 0; height: 100%; background: #1d252c; color: var(--text); font: var(--t-body) / 1.3 var(--font); overflow: hidden; }
     canvas#view { display: block; width: 100vw; height: 100vh; }
+    /* The lobby is appended after the 100vh canvas, so it is placed as a centred overlay above the HUD frames. */
+    #lobby { position: fixed; z-index: 4; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(960px, 96vw); max-height: 96vh; overflow: auto; box-sizing: border-box; padding: 12px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 6px; }
     /* Top-left column: status, hud line, editor link, then the skill panel. */
     #ui-left { position: fixed; z-index: 2; left: 8px; top: 8px; width: 240px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
     #ui-left > * { pointer-events: auto; }
