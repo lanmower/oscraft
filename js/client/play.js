@@ -235,7 +235,7 @@ async function loadModels(game) {
 
 // Doodads: one fitted model per kind code (DODA kind), read from doodads.json which maps kind name to GLB path.
 // The shipped asset catalogue (assets.json) names each doodad's GLB; doodads.json is the fallback when it is missing.
-async function loadDoodadModels() {
+async function loadDoodadModels(usedKinds) {
   const [map, catalogue, footprints] = await Promise.all([
     fetch(new URL("doodads.json", location.href)).then((r) => r.json()),
     fetch(new URL("assets.json", location.href)).then((r) => r.json()).catch(() => ({ items: [] })),
@@ -247,7 +247,9 @@ async function loadDoodadModels() {
   };
   // Each model is fitted to its footprint in cells from doodad_sizes.json (scripts/doodad-sizes.mjs); a model without one keeps DOODAD_HALF's size.
   const sizeOf = (name) => footprints[name] ?? 2 * DOODAD_HALF;
-  return Promise.all(DOODAD_KINDS.map(async (kind) => {
+  // Only kinds the map places are fetched; an unplaced kind keeps an empty entry, so indices still match the kind codes.
+  return Promise.all(DOODAD_KINDS.map(async (kind, code) => {
+    if (usedKinds && !usedKinds.has(code)) return { high: null, low: null };
     const name = modelName(kind) ?? (map[kind] ? map[kind].replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null);
     const lowName = modelName(`${kind}-low`);
     const [high, low] = await Promise.all([fetchModel(name, sizeOf(name)), lowName ? fetchModel(lowName, sizeOf(lowName)) : null]);
@@ -1135,16 +1137,24 @@ async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
-  const tileTextures = await loadTileTextures(gl);
+  // Ground textures, splat layers, doodad and unit models are independent downloads: they start together, so the
+  // wait is the slowest chain rather than the sum of the stages. Tile meshes still wait for the splat they bake against.
+  const placements = readDoodads(mapBytes);
+  const usedKinds = new Set(placements.map((p) => p.kind));
+  const tileTexturesReady = loadTileTextures(gl);
+  const splatReady = buildSplat(gl).catch(() => null);
+  const doodadModelsReady = loadDoodadModels(usedKinds).catch(() => []);
+  const unitFitsReady = loadModels(game);
+  const tileTextures = await tileTexturesReady;
   terrainMesh.texture = tileTextures.get("ground") || null;
-  splat = await buildSplat(gl).catch(() => null);
+  splat = await splatReady;
   tileMeshes = await loadTileMeshes(gl, tileTextures).catch(() => null);
-  const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map(async ({ high, low }) => ({
+  const doodadByKind = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
     base: await toMesh(gl, high, DOODAD_TINT),
     lowBase: await toMesh(gl, low, DOODAD_TINT),
   })));
   const s = 1 / terrain.cellMilli;
-  const placed = readDoodads(mapBytes).flatMap((p) => {
+  const placed = placements.flatMap((p) => {
     const kind = doodadByKind[p.kind];
     if (!kind?.base) return [];
     const x = p.x * s;
@@ -1158,7 +1168,7 @@ async function build3d(gl, game) {
   });
   doodadBatches = batchByMesh(placed);
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
-  unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
+  unitMeshes = await Promise.all((await unitFitsReady).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
 }
 
 // Terrain drawn from the CC0 tile models: each kind's variant models fitted once, cells baked per kind and variant. Any
