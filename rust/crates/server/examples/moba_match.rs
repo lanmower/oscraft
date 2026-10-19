@@ -11,9 +11,10 @@
 //
 // Usage: cargo run -p server --example moba_match -- <scenario dir> [max_ticks] [replay file]
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
+use mod_host::ModHost;
 use server::replay::{Command, Recording, Replayer};
 use sim::{Sim, ABILITY_SLOTS};
 
@@ -113,7 +114,19 @@ fn nearest_by(sim: &Sim, h: usize, pred: impl Fn(usize) -> bool) -> Option<usize
 }
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let mut args: Vec<String> = std::env::args().collect();
+    let mod_path = match args.iter().position(|a| a == "--mod") {
+        Some(i) if i + 1 < args.len() => {
+            let path = args.remove(i + 1);
+            args.remove(i);
+            Some(path)
+        }
+        Some(_) => {
+            eprintln!("--mod needs a file");
+            std::process::exit(2);
+        }
+        None => None,
+    };
     let dir = args.get(1).map(String::as_str).unwrap_or("../scenarios/moba");
     let max_ticks: u32 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(40_000);
 
@@ -124,7 +137,31 @@ fn main() {
             std::process::exit(2);
         }
     };
+    let mut modded = mod_path.map(|path| {
+        let image = match server::mods::load_image(Path::new(dir)) {
+            Ok(image) => image,
+            Err(e) => {
+                eprintln!("mod image failed: {e}");
+                std::process::exit(2);
+            }
+        };
+        let mut host = ModHost::new(&image).unwrap_or_else(|e| {
+            eprintln!("mod host image: {e:?}");
+            std::process::exit(2);
+        });
+        host.load(Path::new(&path)).unwrap_or_else(|e| {
+            eprintln!("--mod {path}: {e}");
+            std::process::exit(2);
+        });
+        if host.gold_by_mod() {
+            sim.set_gold_by_mod(true);
+        }
+        println!("mod loaded path={path} version={}", host.version());
+        host
+    });
     let mut rec = Recording::new(dir, 4096, &sim);
+    let mut handles: HashMap<u32, usize> = HashMap::new();
+    let mut mod_ui: Vec<String> = Vec::new();
     let heroes: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_hero(i)).collect();
     let sides: HashSet<u8> = heroes.iter().map(|&h| side(sim.player(h))).collect();
     println!("setup heroes={} sides={} players={}", heroes.len(), sides.len(), {
@@ -215,6 +252,15 @@ fn main() {
             }
         }
 
+        if let Some(host) = modded.as_mut() {
+            let state = host.state().clone();
+            if let Err(e) = host.advance(&state) {
+                eprintln!("mod error tick={t}: {e}");
+            }
+            let cmds = host.take_commands();
+            server::room::apply_mod_commands(&mut sim, &mut rec, &mut handles, cmds, &mut mod_ui);
+        }
+
         for &h in &heroes {
             gold_before[h] = sim.hero_gold(h);
         }
@@ -277,7 +323,12 @@ fn main() {
         eprintln!("reload failed: {e}");
         std::process::exit(2);
     });
-    let replayed = Recording::parse(&text).and_then(|r| Replayer::new(r, &fresh)).and_then(|mut p| p.run_to_end(&mut fresh));
+    let replayed = Recording::parse(&text)
+        .and_then(|r| {
+            r.apply_header(&mut fresh);
+            Replayer::new(r, &fresh)
+        })
+        .and_then(|mut p| p.run_to_end(&mut fresh));
     match replayed {
         Ok(h) if h == sim.state_hash() && fresh.ticks() == tick => println!("replay ok hash={h:016x} ticks={tick}"),
         other => {
