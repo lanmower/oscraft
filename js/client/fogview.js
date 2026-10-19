@@ -28,7 +28,7 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
   const layerCtx = layer.getContext("2d");
   const softEdge = "filter" in layerCtx;
 
-  const stats = { refreshes: 0, rebuilds: 0, draws: 0, refreshMs: 0, rebuildMs: 0, drawMs: 0 };
+  const stats = { refreshes: 0, rebuilds: 0, draws: 0, refreshMs: 0, pathMs: 0, fillMs: 0, rebuildMs: 0, drawMs: 0 };
   let plane = null;
   let dims = [0, 0, 1];
   let hidden = 0;
@@ -195,6 +195,7 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     layerCtx.clearRect(0, 0, cssW, cssH);
     const unseenPath = new Path2D();
     const exploredPath = new Path2D();
+    const tPath = performance.now();
     for (let j = 0; j < vh; j++) {
       for (let i = 0; i < vw; i++) {
         const idx = j * vw + i;
@@ -218,12 +219,15 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
         target.closePath();
       }
     }
+    const tFill = performance.now();
+    stats.pathMs += tFill - tPath;
     if (softEdge) layerCtx.filter = `blur(${sigma}px)`;
     layerCtx.fillStyle = `rgba(0,0,0,${EXPLORED_ALPHA})`;
     layerCtx.fill(exploredPath);
     layerCtx.fillStyle = `rgba(0,0,0,${FOG_ALPHA})`;
     layerCtx.fill(unseenPath);
     if (softEdge) layerCtx.filter = "none";
+    stats.fillMs += performance.now() - tFill;
     stats.rebuilds++;
   }
 
