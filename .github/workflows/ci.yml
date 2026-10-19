@@ -2011,11 +2011,13 @@ jobs:
             let k = 0;
             while (along[k + 1] < half) k++;
             const f = (half - along[k]) / (along[k + 1] - along[k]);
-            return [pts[k][0] + (pts[k + 1][0] - pts[k][0]) * f, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * f];
+            const mid = [pts[k][0] + (pts[k + 1][0] - pts[k][0]) * f, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * f];
+            // The waypoint nearest the midpoint is a walkable cell centre (the route data is snapped to them); the midpoint itself may not be.
+            const dist = (p) => Math.hypot(p[0] - mid[0], p[1] - mid[1]);
+            const near = dist(pts[k]) <= dist(pts[k + 1]) ? pts[k] : pts[k + 1];
+            return { x: near[0], z: near[1] };
           };
-          const [radX, radZ] = laneMid(0);
-          const [direX, direZ] = laneMid(1);
-          const contact = { x: (radX + direX) / 2, z: (radZ + direZ) / 2 };
+          const contact = laneMid(0);
           // The local hero is selected by a click, then right-clicked toward the contact point: the same order path as the move step.
           // The camera is focused on the hero first so the click lands on it, then on the contact point so the right click can land on it.
           const localHero = (await page.evaluate((me) => window.__ciUnits().filter((u) => u.player === me && window.__ciIsHero(u.id)).map((u) => ({ id: u.id, x: u.x, z: u.z })), localPlayer))[0];
