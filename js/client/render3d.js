@@ -418,6 +418,7 @@ export function createRenderer(gl) {
   const unitModel = identity();
   // Sun shadow map: one depth target over the playfield, filled by re-issuing the caster draws with the light's matrix.
   let shadowFbo = null, shadowTex = null, shadowSize = 0, shadowOn = false, passVP = viewProj;
+  let casterGen = 0, shadowGen = -1, savedCullBounds = null;
   const lightVP = identity();
   const modelScratch = new Float32Array(16);
   const normalScratch = new Float32Array(9);
@@ -432,7 +433,10 @@ export function createRenderer(gl) {
   function upload(mesh) {
     let buf = uploads.get(mesh);
     if (!buf || mesh.dirty) {
-      if (!buf) buf = { pos: gl.createBuffer(), normal: gl.createBuffer(), uv: gl.createBuffer(), index: null, count: 0, indexType: 0, joints: null, weights: null };
+      if (!buf) {
+        buf = { pos: gl.createBuffer(), normal: gl.createBuffer(), uv: gl.createBuffer(), index: null, count: 0, indexType: 0, joints: null, weights: null };
+        casterGen += 1;
+      }
       const vertexCount = mesh.positions.length / 3;
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
       gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
@@ -600,6 +604,7 @@ export function createRenderer(gl) {
       inst = gl.createBuffer();
       instanceBuffers.set(batch, inst);
       batch.dirty = true;
+      casterGen += 1;
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, inst);
     if (batch.dirty) {
@@ -784,7 +789,10 @@ export function createRenderer(gl) {
     return tex;
   }
   function drawSplat(mesh, splat) {
-    if (!splat.gpu) splat.gpu = { control: controlTexture(splat.control) };
+    if (!splat.gpu) {
+      splat.gpu = { control: controlTexture(splat.control) };
+      casterGen += 1;
+    }
     const buf = upload(mesh);
     gl.useProgram(splatProgram);
     bindGeometry(buf);
@@ -851,6 +859,7 @@ export function createRenderer(gl) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       if (!complete) { shadowOn = false; return false; }
     }
+    shadowGen = -1;
     const reach = 2 * SHADOW_DISTANCE;
     const eye = [center[0] + SUN_DIR[0] * SHADOW_DISTANCE, center[1] + SUN_DIR[1] * SHADOW_DISTANCE, center[2] + SUN_DIR[2] * SHADOW_DISTANCE];
     const proj = orthographic(-halfExtent, halfExtent, -halfExtent, halfExtent, 1, reach);
@@ -869,9 +878,14 @@ export function createRenderer(gl) {
     return true;
   }
 
-  // Shadow pass: the caster draws that follow run into the depth map from the sun, with colour writes off.
+  // Shadow pass: the caster draws that follow run into the depth map from the sun, with colour writes off. The map
+  // covers the whole playfield and the casters are static, so it is rebuilt only when a caster GPU resource is
+  // created (casterGen moves); otherwise the pass is skipped and returns false.
   function beginShadowPass() {
     if (!shadowOn || !shadowTex) return false;
+    if (shadowGen === casterGen) return false;
+    savedCullBounds = cullBounds;
+    cullBounds = null;
     gl.activeTexture(gl.TEXTURE0 + SHADOW_UNIT);
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.activeTexture(gl.TEXTURE0);
@@ -892,6 +906,8 @@ export function createRenderer(gl) {
   }
 
   function endShadowPass() {
+    cullBounds = savedCullBounds;
+    shadowGen = casterGen;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.colorMask(true, true, true, true);
