@@ -8,13 +8,26 @@ import { loadBasis, ktx2Size, transcodeKtx2 } from './decoders.js';
 
 const RASTER_URI = /\.(png|jpe?g)$/i;
 
+// The KTX2 files the build ships, read once from the asset catalogue. A raster whose sibling is not listed never
+// requests it, so no 404 is logged and the raster is used directly.
+let shippedKtx2 = null;
+function shippedKtx2Paths() {
+  shippedKtx2 ??= fetch(new URL('assets.json', location.href)).then((r) => r.json())
+    .then((catalogue) => (catalogue.items || []).map((item) => item.path).filter((p) => typeof p === 'string' && p.endsWith('.ktx2')))
+    .catch(() => []);
+  return shippedKtx2;
+}
+
 export async function loadBaseColorImage(ref, glbUrl) {
   if (!ref) return null;
   if (ref.mimeType === 'image/ktx2') return loadKtx2Image(ref, glbUrl);
-  // A PNG or JPEG uri reads its KTX2 sibling first (same name, .ktx2) and keeps the raster file as the fallback.
+  // A PNG or JPEG uri reads its KTX2 sibling first (same name, .ktx2) when the build ships it; the raster is the fallback.
   if (!ref.bytes && ref.uri && RASTER_URI.test(ref.uri)) {
-    const sibling = await loadKtx2Image({ uri: ref.uri.replace(RASTER_URI, '.ktx2'), texCoord: ref.texCoord }, glbUrl).catch(() => null);
-    if (sibling) return sibling;
+    const siblingPath = new URL(ref.uri.replace(RASTER_URI, '.ktx2'), glbUrl ?? location.href).pathname;
+    if ((await shippedKtx2Paths()).some((path) => siblingPath.endsWith('/' + path))) {
+      const sibling = await loadKtx2Image({ uri: ref.uri.replace(RASTER_URI, '.ktx2'), texCoord: ref.texCoord }, glbUrl).catch(() => null);
+      if (sibling) return sibling;
+    }
   }
   const blob = ref.bytes
     ? new Blob([ref.bytes], { type: ref.mimeType ?? 'image/png' })
