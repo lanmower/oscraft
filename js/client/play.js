@@ -1185,6 +1185,8 @@ async function loadTileTextures(gl) {
   return new Map(entries.filter(([, texture]) => texture));
 }
 
+const WORLD_STALL_MS = 15000;
+
 async function main() {
   resize();
   bindInput();
@@ -1198,11 +1200,16 @@ async function main() {
   if (gl || tslRenderer) {
     renderer3d = tslRenderer ?? createRenderer3d(gl);
     renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, bounds: cameraBounds, pitch: 0.9 });
+    // A download that never settles would otherwise leave the status on its initial "connecting" text.
+    setStatus("loading world assets");
+    const stalled = setTimeout(() => setStatus(`loading world assets: still pending after ${WORLD_STALL_MS / 1000} s, check the network`), WORLD_STALL_MS);
     try {
       await build3d(gl, localGame);
     } catch (err) {
       // Missing or broken assets leave the scene with what loaded; units without a model draw as quads.
       document.body.dataset.assetError = err && err.message ? err.message : String(err);
+    } finally {
+      clearTimeout(stalled);
     }
   }
   hud = createHud({
