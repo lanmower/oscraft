@@ -18,9 +18,9 @@ const PIPELINE_ERROR = /RenderPipeline|CommandBuffer/;
 const ERROR_WINDOW_MS = 1000;
 const ERROR_BURST = 3;
 
-function shadeNode(base, glow, normal) {
+function shadeNode(base, glow, normal, shade = [AMBIENT, DIFFUSE, 1]) {
   if (glow) return base;
-  return base.mul(float(AMBIENT).add(float(DIFFUSE).mul(max(dot(normal, LIGHT), 0.0))));
+  return base.mul(float(shade[2])).mul(float(shade[0]).add(float(shade[1]).mul(max(dot(normal, LIGHT), 0.0))));
 }
 
 // Vertex-stage skinning: world-space position and normal from the weighted joint palette, as render3d's VERT does.
@@ -137,7 +137,7 @@ export async function createTslRenderer(canvas, { debug = false } = {}) {
     const tint = uniform(new THREE.Color(...(mesh.color || [1, 1, 1])));
     const base = mesh.texture ? texture(mesh.texture).rgb : tint;
     const material = new THREE.MeshBasicNodeMaterial();
-    material.colorNode = shadeNode(base, glow, normal);
+    material.colorNode = shadeNode(base, glow, normal, mesh.shade);
     material.side = THREE.FrontSide;
     if (glow) {
       material.transparent = true;

@@ -1171,6 +1171,7 @@ async function loadTileMeshes(gl, tileTextures) {
     const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: null, glbUrl: model.glbUrl }, texture ? [1, 1, 1] : TILE_TINTS[kind]);
     if (!mesh) return null;
     if (texture) mesh.texture = texture;
+    if (material === "cliff") mesh.shade = SPLAT_SHADE;
     return { mesh, batch };
   })));
   return drawn.every(Boolean) ? drawn : null;

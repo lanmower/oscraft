@@ -128,7 +128,7 @@ export function fitModel(glb, size) {
 export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: "lane", water: null, cliff: "cliff" });
 // Texture file per material name (CC0, see NOTICE.md). A material's kinds share one texture; the ground material repeats
 // over the map, while the others stretch once over each tile through the model's own UVs.
-export const TILE_TEXTURES = Object.freeze({ ground: "textures/ground.png", lane: "textures/lane.jpg", cliff: "textures/cliff.jpg" });
+export const TILE_TEXTURES = Object.freeze({ ground: "textures/ground.png", lane: "textures/lane.jpg", cliff: "textures/rock.jpg" });
 // Kinds drawn with the repeating ground texture: their cells split by position modulo the texture period, so each
 // split shares one instanced draw and still lands on the right part of the texture.
 export const GROUND_KINDS = Object.freeze(Object.keys(TILE_MATERIALS).filter((kind) => TILE_MATERIALS[kind] === "ground"));
