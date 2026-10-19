@@ -352,6 +352,7 @@ export function createRenderer(gl) {
     band: gl.getUniformLocation(splatProgram, "uBand"),
     viewProj: gl.getUniformLocation(splatProgram, "uViewProj"),
     model: gl.getUniformLocation(splatProgram, "uModel"),
+    normal: gl.getUniformLocation(splatProgram, "uNormal"),
     skinned: gl.getUniformLocation(splatProgram, "uSkinned"),
     instanced: gl.getUniformLocation(splatProgram, "uInstanced"),
     alb: [0, 1, 2, 3].map((k) => gl.getUniformLocation(splatProgram, "uAlb" + k)),
@@ -751,6 +752,7 @@ export function createRenderer(gl) {
     gl.uniform1f(splatUni.band, splat.band);
     gl.uniformMatrix4fv(splatUni.viewProj, false, viewProj);
     gl.uniformMatrix4fv(splatUni.model, false, unitModel);
+    gl.uniformMatrix3fv(splatUni.normal, false, normalMatrix(unitModel, normalScratch));
     gl.uniform1i(splatUni.skinned, 0);
     gl.uniform1i(splatUni.instanced, 0);
     if (buf.index) {
