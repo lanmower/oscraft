@@ -1,6 +1,6 @@
 {
- "count": 785,
- "total_bytes": 45738928,
+ "count": 784,
+ "total_bytes": 43102868,
  "items": [
   {
    "id": "rock",
@@ -837,14 +837,6 @@
    "path": "js/client/models/roshan-lowpoly.glb",
    "placed_by": "doodads.json",
    "bytes": 7504440,
-   "role": "character"
-  },
-  {
-   "id": "abaddon-skinned",
-   "kind": "model",
-   "path": "js/client/models/abaddon-skinned.glb",
-   "placed_by": "doodads.json",
-   "bytes": 2636060,
    "role": "character"
   },
   {
@@ -5523,7 +5515,7 @@
   "prop": 252,
   "structure": 352,
   "building": 106,
-  "character": 18,
+  "character": 17,
   "creep": 5,
   "terrain": 7
  }
