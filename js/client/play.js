@@ -13,7 +13,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, controlMap, fitModel, planarUvs, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
+import { bakeTiles, controlMap, fitModel, planarGroundUvs, planarUvs, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -1223,9 +1223,9 @@ async function loadTileMeshes(gl, tileTextures) {
   const models = Object.fromEntries(Object.entries(TILE_MODELS).map(([kind, list]) => [kind, list.map((name) => byName.get(name))]));
   const baked = bakeTiles(mapBytes, models, { splat: Boolean(splat) });
   if (!baked) return null;
-  const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, material, model, batches }) => batches.map(async ({ uvs, batch }) => {
+  const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, material, model, batches, planar }) => batches.map(async ({ uvs, batch }) => {
     const texture = tileTextures.get(material) || null;
-    const faceUvs = material === "cliff" ? planarUvs(model.positions) : uvs;
+    const faceUvs = material === "cliff" ? planarUvs(model.positions) : planar ? planarGroundUvs(model.positions) : uvs;
     const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs: faceUvs, baseColorTexture: null, glbUrl: model.glbUrl }, texture ? [1, 1, 1] : TILE_TINTS[kind]);
     if (!mesh) return null;
     if (texture) mesh.texture = texture;

@@ -154,6 +154,17 @@ export function planarUvs(positions) {
   return uvs;
 }
 
+// Planar texture coordinates on the ground plane, in the ground texture's repeat: a ramp's walking surface takes the ground
+// layer, and its UVs follow the surface's real extent rather than the model's atlas.
+export function planarGroundUvs(positions) {
+  const uvs = new Float32Array((positions.length / 3) * 2);
+  for (let v = 0; v < positions.length / 3; v++) {
+    uvs[v * 2] = positions[v * 3] * GROUND_UV_PER_CELL;
+    uvs[v * 2 + 1] = positions[v * 3 + 2] * GROUND_UV_PER_CELL;
+  }
+  return uvs;
+}
+
 // Deterministic variant index for a cell: an integer hash of its coordinates, so every client picks the same variant.
 export function cellVariant(x, y, count) {
   let h = Math.imul(x, 0x9e3779b1) ^ Math.imul(y, 0x85ebca77);
@@ -246,7 +257,7 @@ export function bakeEdges(grid, models, empty) {
         const far = fx >= 0 && fz >= 0 && fx < w && fz < h ? fz * w + fx : -1;
         const span = far >= 0 && !empty[far] && levels[far] <= levels[low] ? 2 : 1;
         const sy = dh / (rampTop - rampLift);
-        put("ramp", "cliff", TILE_MATERIALS.cliff, ramp, [bx - 0.5 * span * dirX, heightOf(low) - rampLift * sy, bz - 0.5 * span * dirZ, Math.atan2(-dirZ, dirX), span, sy, 1]);
+        put(`ramp:${kLow}`, kLow, TILE_MATERIALS[kLow] ?? TILE_MATERIALS.cliff, ramp, [bx - 0.5 * span * dirX, heightOf(low) - rampLift * sy, bz - 0.5 * span * dirZ, Math.atan2(-dirZ, dirX), span, sy, 1]);
       }
     }
   }
@@ -344,7 +355,7 @@ export function bakeTiles(bytes, models, { splat = false } = {}) {
   }
   for (const [key, edge] of bakeEdges(grid, models, empty)) {
     const batch = { matrices: edge.matrices, count: edge.count, dirty: true };
-    meshes.set(key, { kind: edge.kind, material: edge.material, model: edge.model, batches: [{ uvs: edge.model.uvs, batch }], cells: edge.count });
+    meshes.set(key, { kind: edge.kind, material: edge.material, model: edge.model, batches: [{ uvs: edge.model.uvs, batch }], cells: edge.count, planar: key.startsWith("ramp:") });
   }
   return { kinds: meshes, cells, width: w, height: h };
 }
