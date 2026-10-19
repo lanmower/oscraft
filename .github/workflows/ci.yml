@@ -2071,7 +2071,7 @@ jobs:
                 for (const b of us) {
                   if (b === a || !window.__ciHostile(a.player, b.player)) continue;
                   const d = (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
-                  if (d <= 64) pair = true;
+                  if (d <= 64 && window.__ciIsHero(b.id)) pair = true;
                   if (d < best) { best = d; nearestUnit = b; }
                 }
               }
