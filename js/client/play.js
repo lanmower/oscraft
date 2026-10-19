@@ -428,6 +428,20 @@ window.__setCellKind = (index, kind) => {
 };
 
 // Terrain and doodads: the casters of the sun's shadow map as well as the lit draws.
+// A visible badge in the corner: green for the splat ground, amber when the terrain fell back to tile types.
+function updateTerrainBadge() {
+  let badge = document.getElementById("terrain-path");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "terrain-path";
+    badge.style.cssText = "position:fixed;left:8px;bottom:8px;padding:2px 6px;font:12px monospace;color:#fff;border-radius:3px;z-index:9;pointer-events:none";
+    document.body.appendChild(badge);
+  }
+  const want = splat ? "terrain: splat" : "terrain: TILE FALLBACK (" + (splatFallbackReason || "splat not built") + ")";
+  if (badge.textContent !== want) badge.textContent = want;
+  badge.style.background = splat ? "#2e6b2e" : "#a86b00";
+}
+
 function drawGround3d() {
   if (splat && terrainMesh) {
     renderer3d.drawSplat(terrainMesh, splat);
@@ -1055,7 +1069,9 @@ function publishWitness() {
   document.body.dataset.splatGround = splat ? "1" : "0";
   document.body.dataset.shadow = SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0";
   document.body.dataset.texelUploads = String(renderer3d ? renderer3d.stats.texelUploads || 0 : 0);
-  document.body.dataset.terrainMode = tileMeshes ? "tiles" : "heightfield";
+  document.body.dataset.terrainMode = splat ? "splat" : tileMeshes ? "tiles" : "heightfield";
+  document.body.dataset.splatFallback = splat ? "" : splatFallbackReason || "splat not built";
+  updateTerrainBadge();
   document.body.dataset.drawDoodad = String(drawCounts.doodad);
   document.body.dataset.drawUnit = String(drawCounts.unit);
   document.body.dataset.drawQuad = String(drawCounts.quad);
@@ -1148,6 +1164,7 @@ async function build3d(gl, game) {
   const tileTextures = await tileTexturesReady;
   terrainMesh.texture = tileTextures.get("ground") || null;
   splat = await splatReady;
+  if (!splat) reportTerrainFallback(splatFallbackReason || "splat layers did not load");
   tileMeshes = await loadTileMeshes(gl, tileTextures).catch(() => null);
   const doodadByKind = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
     base: await toMesh(gl, high, DOODAD_TINT),
@@ -1174,13 +1191,26 @@ async function build3d(gl, game) {
 // Terrain drawn from the CC0 tile models: each kind's variant models fitted once, cells baked per kind and variant. Any
 // tile that fails to load returns null, so the heightfield mesh stays the drawn terrain.
 // Splat ground: the control map from the grid and each layer's albedo and height textures, in SPLAT_LAYERS order.
+// Why the splat ground is not drawn, when it is not: the marker and the log say so, so a tile fallback cannot pass for splat.
+let splatFallbackReason = null;
+function reportTerrainFallback(reason) {
+  splatFallbackReason = reason;
+  console.warn("[terrain] splat ground not drawn, tile fallback: " + reason);
+}
+
 async function buildSplat(gl) {
-  if (params.get("splat") === "0") return null;
+  if (params.get("splat") === "0") {
+    splatFallbackReason = "disabled by ?splat=0";
+    return null;
+  }
   const layers = await Promise.all(SPLAT_LAYERS.map(async (name) => {
     const [albedo, height] = await Promise.all(SPLAT_TEXTURES[name].map((uri) => loadBaseColorImage({ uri }, location.href).catch(() => null)));
     return albedo && height ? { albedo: textureFrom(gl, albedo), height: textureFrom(gl, height) } : null;
   }));
-  if (!layers.every(Boolean)) return null;
+  if (!layers.every(Boolean)) {
+    splatFallbackReason = "a splat layer texture failed to load";
+    return null;
+  }
   const control = controlMap(mapBytes);
   return { control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, gpu: null };
 }
