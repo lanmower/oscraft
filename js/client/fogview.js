@@ -35,14 +35,15 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
   let explored = null;
   let planeGeneration = -1;
   let viewer = null;
-  let planeVersion = 0;
   let buffers = null;
+  let layerStale = true;
   const sample = new Float64Array(12);
   const builtSample = new Float64Array(12);
-  let builtVersion = -1;
   let builtW = -1;
   let builtH = -1;
 
+  // Re-reads the visible plane only when the wasm generation or the viewer changed. A change marks the layer
+  // stale only when it touches a cell that was on screen at the last rebuild, or when the fog count crosses zero.
   function refresh() {
     if (!supported) return;
     const who = localPlayer();
@@ -58,26 +59,29 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     const next = game.vision(who);
     const sameShape = plane !== null && plane.length === next.length
       && nextDims[0] === dims[0] && nextDims[1] === dims[1] && nextDims[2] === dims[2];
-    let changed = !sameShape;
-    if (sameShape) {
-      for (let i = 0; i < next.length; i++) {
-        if (next[i] !== plane[i]) { changed = true; break; }
-      }
-    }
     if (!sameShape) {
       dims = nextDims;
       explored = new Uint8Array(next.length);
       buffers = null;
     }
+    let changed = !sameShape;
+    let relevant = !sameShape || hidden === 0;
+    if (sameShape) {
+      for (let i = 0; i < next.length; i++) {
+        if (next[i] === plane[i]) continue;
+        changed = true;
+        if (buffers && buffers.onScreen[i]) relevant = true;
+      }
+    }
     if (changed) {
       plane = next;
-      planeVersion++;
       hidden = 0;
       const fogOn = typeof game.fog_on === "function" ? game.fog_on() : true;
       for (let i = 0; i < next.length; i++) {
         if (next[i] === 0) hidden++;
         else if (fogOn) explored[i] = 1;
       }
+      if (relevant || hidden === 0) layerStale = true;
     }
     stats.refreshMs += performance.now() - t0;
   }
@@ -139,6 +143,7 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
       sx: new Float64Array(n),
       sy: new Float64Array(n),
       known: new Uint8Array(n),
+      onScreen: new Uint8Array(vw * vh),
       ring: new Int32Array(4),
       quad: new Float64Array(16),
       cut: new Float64Array(32),
@@ -158,10 +163,11 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     }
   }
 
-  // Corner projections are cached per camera (buffers.known), so a plane change repaints without re-projecting.
+  // Paints the hidden cells that reach the viewport. Corner projections are cached per camera (buffers.known),
+  // so a plane change repaints without re-projecting; cells entirely off screen are skipped and marked so.
   function rebuildLayer(cssW, cssH) {
     const [vw, vh, s] = dims;
-    const { stride, clip, sx, sy, known, ring, quad, cut, px, py } = buffers;
+    const { stride, clip, sx, sy, known, onScreen, ring, quad, cut, px, py } = buffers;
     const corner = (i, j) => {
       const k = j * stride + i;
       if (!known[k]) {
@@ -178,10 +184,8 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
       }
       return k;
     };
-    const ci = vw >> 1;
-    const cj = vh >> 1;
-    const c0 = corner(ci, cj);
-    const c1 = corner(ci + 1, cj);
+    const c0 = corner(vw >> 1, vh >> 1);
+    const c1 = corner((vw >> 1) + 1, vh >> 1);
     let cellPx = FALLBACK_CELL_PX;
     if (!Number.isNaN(sx[c0]) && !Number.isNaN(sx[c1])) {
       cellPx = Math.hypot(sx[c1] - sx[c0], sy[c1] - sy[c0]) || FALLBACK_CELL_PX;
@@ -202,23 +206,27 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     for (let j = 0; j < vh; j++) {
       for (let i = 0; i < vw; i++) {
         const idx = j * vw + i;
-        if (plane[idx] !== 0) continue;
-        const target = explored[idx] ? exploredPath : unseenPath;
         const k0 = corner(i, j);
         const k1 = corner(i + 1, j);
         const k2 = corner(i + 1, j + 1);
         const k3 = corner(i, j + 1);
-        if (!Number.isNaN(sx[k0]) && !Number.isNaN(sx[k1]) && !Number.isNaN(sx[k2]) && !Number.isNaN(sx[k3])) {
+        const front = !Number.isNaN(sx[k0]) && !Number.isNaN(sx[k1]) && !Number.isNaN(sx[k2]) && !Number.isNaN(sx[k3]);
+        let on = 1;
+        if (front) {
           const minX = Math.min(sx[k0], sx[k1], sx[k2], sx[k3]);
           const maxX = Math.max(sx[k0], sx[k1], sx[k2], sx[k3]);
           const minY = Math.min(sy[k0], sy[k1], sy[k2], sy[k3]);
           const maxY = Math.max(sy[k0], sy[k1], sy[k2], sy[k3]);
-          if (maxX < 0 || minX > cssW || maxY < 0 || minY > cssH) continue;
+          on = maxX < 0 || minX > cssW || maxY < 0 || minY > cssH ? 0 : 1;
+        }
+        onScreen[idx] = on;
+        if (!on || plane[idx] !== 0) continue;
+        const target = explored[idx] ? exploredPath : unseenPath;
+        if (front) {
           target.moveTo(sx[k0], sy[k0]);
           target.lineTo(sx[k1], sy[k1]);
           target.lineTo(sx[k2], sy[k2]);
           target.lineTo(sx[k3], sy[k3]);
-          target.closePath();
           continue;
         }
         ring[0] = k0;
@@ -228,18 +236,13 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
         for (let n = 0; n < 4; n++) for (let c = 0; c < 4; c++) quad[n * 4 + c] = clip[ring[n] * 4 + c];
         const m = clipToNear(quad, 4, cut);
         if (m < 3) continue;
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         for (let n = 0; n < m; n++) {
           const W = cut[n * 4 + 3];
           px[n] = ((cut[n * 4] / W + 1) / 2) * cssW;
           py[n] = ((1 - cut[n * 4 + 1] / W) / 2) * cssH;
-          minX = Math.min(minX, px[n]); maxX = Math.max(maxX, px[n]);
-          minY = Math.min(minY, py[n]); maxY = Math.max(maxY, py[n]);
         }
-        if (maxX < 0 || minX > cssW || maxY < 0 || minY > cssH) continue;
         target.moveTo(px[0], py[0]);
         for (let n = 1; n < m; n++) target.lineTo(px[n], py[n]);
-        target.closePath();
       }
     }
     const tFill = performance.now();
@@ -254,20 +257,20 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     stats.rebuilds++;
   }
 
-  // Rebuilds the fog layer only when the visible plane, the viewport or the camera sample changed.
+  // Rebuilds the fog layer only when the camera, the viewport or a relevant part of the plane changed.
   function ensureLayer(cssW, cssH) {
     sampleCamera();
     let sameCamera = builtW === cssW && builtH === cssH;
     for (let k = 0; sameCamera && k < 12; k++) if (sample[k] !== builtSample[k]) sameCamera = false;
-    if (sameCamera && builtVersion === planeVersion) return;
+    if (sameCamera && !layerStale) return;
     const t0 = performance.now();
     if (!buffers) buffers = allocBuffers();
     if (!sameCamera) buffers.known.fill(0);
     rebuildLayer(cssW, cssH);
     builtSample.set(sample);
-    builtVersion = planeVersion;
     builtW = cssW;
     builtH = cssH;
+    layerStale = false;
     stats.rebuildMs += performance.now() - t0;
   }
 
