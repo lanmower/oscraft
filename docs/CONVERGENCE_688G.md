@@ -218,9 +218,9 @@ Counts for heroes:
 | Category | Count | Notes |
 |---|---|---|
 | Our hero units | 127 | `units_heroes.osd` |
-| Matched to a 6.88g canonical row, values applied | 66 | `scenarios/moba/heroes_688g.tsv`, applied by `scripts/apply-heroes-688g.py` |
-| Unresolved, left at the Dota 2 values | 61 | see gaps: the name exists only on `h0xx`/`n0xx` rows with `Primary` `_` (no playable stat row found) |
-| Dropped (no 6.88g hero) | 0 | none decided yet; the 11 placeholder heroes in `units.osd` (`hero`, `ironhide`, `swiftbow`, `stormcaller`, `bulwark`, `shadeblade`, `emberlord`, `gale_archer`, `frostmage`, `tidecaller`, `thornwarden`) have no 6.88g name and are candidates to drop |
+| Matched to a 6.88g canonical row, values applied | 69 | `scenarios/moba/heroes_688g.tsv`, applied by `scripts/apply-heroes-688g.py` |
+| Unresolved, left at the Dota 2 values | 58 | see gaps: the name exists only on `h0xx`/`n0xx` rows with `Primary` `_` (no playable stat row found) |
+| Dropped (no 6.88g hero) | 10 | `ironhide`, `swiftbow`, `stormcaller`, `bulwark`, `shadeblade`, `emberlord`, `gale_archer`, `frostmage`, `tidecaller`, `thornwarden`: no 6.88g name, dropped by `scripts/apply-creeps-688g.py`. `hero` is kept as the generic player-hero kind |
 | Added (6.88g hero we lack) | 0 | not attempted in this pass |
 
 Gaps the sim cannot express (not invented):
@@ -263,3 +263,11 @@ Verification on origin main `fa6862f` (fresh clone):
 
 - `oscraft-gate` (rust, release): `gate: 203 checks, 0 failed`.
 - `moba_match ../scenarios/moba 40000` (rust, release): exit 0, `winner=0 tick=29089`, replay hash `35358641158f53c0`. This is the result that holds on current main. The earlier `no winner by tick=40000` and the `winner=0 tick=29089` reports came from different builds.
+
+## 8. Applied: neutral creeps and Roshan
+
+Source: `scenarios/moba/creeps_688g.tsv`, applied by `scripts/apply-creeps-688g.py` to `units.osd`. Pairing is by exact display name (`units/OrcAbilityStrings.txt`); neutral keys prefer rows with `Primary` `_`. Formulas as heroes: damage is `dmgplus1 + dice1 x (sides1 + 1) / 2`, period is `cool1 x 16` ticks, regen is `regenHP x 62.5` milli per tick; armour `def` (blank keeps the current value).
+
+32 rows converted (31 neutrals and Roshan). Kept on current values: the 9 lane creep rows (role keys with no 6.88g display name) and 8 neutrals with no 6.88g name or row (`neutral_warpine_raider`, `neutral_prowler_acolyte`, `neutral_prowler_shaman`, `neutral_granite_golem`, `neutral_ice_shaman`, `neutral_frostbitten_golem`, `neutral_big_thunder_lizard`, `neutral_small_thunder_lizard`).
+
+Not expressible in the sim, not invented: turn rate, weapon min and max, projectile speed, magic resistance, level-based bounty, day and night regeneration.

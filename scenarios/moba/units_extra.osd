@@ -9,16 +9,6 @@ unit_extra("base", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verifie
 unit_extra("objective", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("tender", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("hero", player_controlled=True, deny_xp_pct=0)
-unit_extra("ironhide", player_controlled=True, deny_xp_pct=0)
-unit_extra("swiftbow", player_controlled=True, deny_xp_pct=0)
-unit_extra("stormcaller", player_controlled=True, deny_xp_pct=0)
-unit_extra("bulwark", player_controlled=True, deny_xp_pct=0)
-unit_extra("shadeblade", player_controlled=True, deny_xp_pct=0)
-unit_extra("emberlord", player_controlled=True, deny_xp_pct=0)
-unit_extra("gale_archer", player_controlled=True, deny_xp_pct=0)
-unit_extra("frostmage", player_controlled=True, deny_xp_pct=0)
-unit_extra("tidecaller", player_controlled=True, deny_xp_pct=0)
-unit_extra("thornwarden", player_controlled=True, deny_xp_pct=0)
 # Roshan bounty: 245 gold (midpoint of 200-290) and 400 xp, source as above. assist_radius_milli UNVERIFIED.
 unit_extra("roshan", bounty=245, xp_bounty=400, assist_radius_milli=23438)
 # Wards: bounty 100 gold and 100 xp from npc_dota_observer_wards (sentry copies it, UNVERIFIED). Sentry detector radius 1050 x 15.625 = 16406 milli (item_ward_sentry true_sight_range).
