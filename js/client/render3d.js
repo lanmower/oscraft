@@ -233,6 +233,33 @@ export const LOD_HYSTERESIS = 0.75;
 
 // Lighting for meshes without their own: ambient, diffuse and gain (1 = unchanged).
 export const DEFAULT_SHADE = [0.3, 0.7, 1];
+// Sun direction (the same vector the shaders light by), the shadow map's texture unit, and how far the sun's eye sits.
+const SUN_DIR = (() => { const s = [0.4, 1, 0.6]; const n = Math.hypot(...s); return s.map((v) => v / n); })();
+const SHADOW_UNIT = 9;
+const SHADOW_DISTANCE = 400;
+// Unit-to-sun shadow sampling shared by the lit programs.
+const SHADOW_GLSL = `// Directional sun shadow from the shadow map: 3x3 percentage-closer filter with a slope-scaled bias. Outside the map,
+// and in the shadow pass itself (uShadowOn 0), the surface is lit.
+uniform mat4 uLightVP; uniform sampler2D uShadow; uniform float uShadowOn; uniform float uShadowTexel;
+float sunShadow(vec3 w, vec3 n) {
+  if (uShadowOn < 0.5) return 1.0;
+  vec4 p = uLightVP * vec4(w, 1.0);
+  vec3 s = p.xyz / p.w * 0.5 + 0.5;
+  if (s.x < 0.0 || s.y < 0.0 || s.x > 1.0 || s.y > 1.0 || s.z > 1.0) return 1.0;
+  vec3 sun = vec3(0.4, 1.0, 0.6) / length(vec3(0.4, 1.0, 0.6));
+  float facing = clamp(dot(normalize(n), sun), 0.0, 1.0);
+  float bias = max(0.0009 * (1.0 - facing), 0.00025);
+  float lit = 0.0;
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      float d = texture(uShadow, s.xy + vec2(float(x), float(y)) * uShadowTexel).r;
+      lit += (s.z - bias > d) ? 0.0 : 1.0;
+    }
+  }
+  return lit / 9.0;
+}
+`;
+
 const VERT = `#version 300 es
 in vec3 aPos; in vec3 aNormal; in vec2 aUv; in vec4 aJoints; in vec4 aWeights; in mat4 aInst;
 uniform mat4 uModel; uniform mat3 uNormal; uniform mat4 uViewProj;
@@ -255,7 +282,8 @@ void main() {
 
 const FRAG = `#version 300 es
 precision mediump float;
-in vec3 vNormal; in vec2 vUv;
+in vec3 vNormal; in vec2 vUv; in vec3 vWorld;
+${SHADOW_GLSL}
 uniform vec3 uColor; uniform vec3 uTint; uniform bool uUseTex; uniform sampler2D uTex; uniform vec3 uShade; // ambient, diffuse, gain
 uniform float uAlpha; uniform bool uGlow; // optional additive blend mode (fx.js)
 out vec4 outColor;
@@ -263,7 +291,7 @@ void main() {
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(vNormal), light), 0.0);
   vec3 base = (uUseTex ? texture(uTex, vUv).rgb : uColor) * uTint;
-  outColor = uGlow ? vec4(base, uAlpha) : vec4(base * uShade.z * (uShade.x + uShade.y * diffuse), 1.0);
+  outColor = uGlow ? vec4(base, uAlpha) : vec4(base * uShade.z * (uShade.x + uShade.y * diffuse * sunShadow(vWorld, vNormal)), 1.0);
 }`;
 
 
@@ -273,6 +301,7 @@ void main() {
 const SPLAT_FRAG = `#version 300 es
 precision highp float;
 in vec3 vNormal; in vec3 vWorld;
+${SHADOW_GLSL}
 uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
 uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
 uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
@@ -293,8 +322,20 @@ void main() {
   vec3 base = s > 1e-4 ? mixed : plain;
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(vNormal), light), 0.0);
-  outColor = vec4(base * uShade.z * (uShade.x + uShade.y * diffuse), 1.0);
+  outColor = vec4(base * uShade.z * (uShade.x + uShade.y * diffuse * sunShadow(vWorld, vNormal)), 1.0);
 }`;
+
+function orthographic(l, r, b, t, n, f) {
+  const out = new Float32Array(16);
+  out[0] = 2 / (r - l);
+  out[5] = 2 / (t - b);
+  out[10] = -2 / (f - n);
+  out[12] = -(r + l) / (r - l);
+  out[13] = -(t + b) / (t - b);
+  out[14] = -(f + n) / (f - n);
+  out[15] = 1;
+  return out;
+}
 
 function compile(gl, type, source) {
   const shader = gl.createShader(type);
@@ -341,6 +382,7 @@ export function createRenderer(gl) {
     color: gl.getUniformLocation(program, "uColor"),
     tint: gl.getUniformLocation(program, "uTint"),
     shade: gl.getUniformLocation(program, "uShade"),
+    shadowOn: gl.getUniformLocation(program, "uShadowOn"),
     useTex: gl.getUniformLocation(program, "uUseTex"),
     tex: gl.getUniformLocation(program, "uTex"),
     skinned: gl.getUniformLocation(program, "uSkinned"),
@@ -355,6 +397,7 @@ export function createRenderer(gl) {
     uvScale: gl.getUniformLocation(splatProgram, "uUvScale"),
     band: gl.getUniformLocation(splatProgram, "uBand"),
     shade: gl.getUniformLocation(splatProgram, "uShade"),
+    shadowOn: gl.getUniformLocation(splatProgram, "uShadowOn"),
     viewProj: gl.getUniformLocation(splatProgram, "uViewProj"),
     model: gl.getUniformLocation(splatProgram, "uModel"),
     normal: gl.getUniformLocation(splatProgram, "uNormal"),
@@ -373,6 +416,9 @@ export function createRenderer(gl) {
   const stats = { drawCalls: 0, instances: 0, culled: 0, lod: 0, frameCpuMs: 0 };
   const viewProj = identity();
   const unitModel = identity();
+  // Sun shadow map: one depth target over the playfield, filled by re-issuing the caster draws with the light's matrix.
+  let shadowFbo = null, shadowTex = null, shadowSize = 0, shadowOn = false, passVP = viewProj;
+  const lightVP = identity();
   const modelScratch = new Float32Array(16);
   const normalScratch = new Float32Array(9);
   const groundBox = [0, 0, 0, 0];
@@ -503,6 +549,9 @@ export function createRenderer(gl) {
 
     drawSplat,
     updateSplatCell,
+    setShadows,
+    beginShadowPass,
+    endShadowPass,
   };
 
   function bindMaterial(mesh) {
@@ -757,7 +806,7 @@ export function createRenderer(gl) {
     gl.uniform1f(splatUni.uvScale, splat.uvScale);
     gl.uniform1f(splatUni.band, splat.band);
     gl.uniform3fv(splatUni.shade, splat.shade);
-    gl.uniformMatrix4fv(splatUni.viewProj, false, viewProj);
+    gl.uniformMatrix4fv(splatUni.viewProj, false, passVP);
     gl.uniformMatrix4fv(splatUni.model, false, unitModel);
     gl.uniformMatrix3fv(splatUni.normal, false, normalMatrix(unitModel, normalScratch));
     gl.uniform1i(splatUni.skinned, 0);
@@ -780,6 +829,83 @@ export function createRenderer(gl) {
     gl.bindTexture(gl.TEXTURE_2D, splat.gpu.control);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, index % w, Math.floor(index / w), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, texel);
     stats.texelUploads = (stats.texelUploads || 0) + 1;
+  }
+
+  // Builds the sun's shadow map once: an orthographic view over a square of `halfExtent` cells around `center`.
+  function setShadows({ enabled, size, center, halfExtent }) {
+    shadowOn = Boolean(enabled);
+    if (!shadowOn) return false;
+    if (!shadowTex) {
+      shadowSize = size;
+      shadowTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, shadowTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, size, size, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      shadowFbo = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowTex, 0);
+      const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      if (!complete) { shadowOn = false; return false; }
+    }
+    const reach = 2 * SHADOW_DISTANCE;
+    const eye = [center[0] + SUN_DIR[0] * SHADOW_DISTANCE, center[1] + SUN_DIR[1] * SHADOW_DISTANCE, center[2] + SUN_DIR[2] * SHADOW_DISTANCE];
+    const proj = orthographic(-halfExtent, halfExtent, -halfExtent, halfExtent, 1, reach);
+    multiply(proj, lookAt(eye, center, [0, 1, 0]), lightVP);
+    for (const [p, locs] of [[program, uni], [splatProgram, splatUni]]) {
+      gl.useProgram(p);
+      gl.uniformMatrix4fv(gl.getUniformLocation(p, "uLightVP"), false, lightVP);
+      gl.uniform1i(gl.getUniformLocation(p, "uShadow"), SHADOW_UNIT);
+      gl.uniform1f(gl.getUniformLocation(p, "uShadowTexel"), 1 / size);
+      gl.uniform1f(locs.shadowOn, 1);
+    }
+    gl.useProgram(program);
+    gl.activeTexture(gl.TEXTURE0 + SHADOW_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, shadowTex);
+    gl.activeTexture(gl.TEXTURE0);
+    return true;
+  }
+
+  // Shadow pass: the caster draws that follow run into the depth map from the sun, with colour writes off.
+  function beginShadowPass() {
+    if (!shadowOn || !shadowTex) return false;
+    gl.activeTexture(gl.TEXTURE0 + SHADOW_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFbo);
+    gl.viewport(0, 0, shadowSize, shadowSize);
+    gl.colorMask(false, false, false, false);
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+    gl.polygonOffset(2, 4);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(program);
+    gl.uniform1f(uni.shadowOn, 0);
+    gl.uniformMatrix4fv(uni.viewProj, false, lightVP);
+    gl.useProgram(splatProgram);
+    gl.uniform1f(splatUni.shadowOn, 0);
+    gl.useProgram(program);
+    passVP = lightVP;
+    return true;
+  }
+
+  function endShadowPass() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.colorMask(true, true, true, true);
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+    passVP = viewProj;
+    gl.useProgram(program);
+    gl.uniform1f(uni.shadowOn, 1);
+    gl.uniformMatrix4fv(uni.viewProj, false, viewProj);
+    gl.useProgram(splatProgram);
+    gl.uniform1f(splatUni.shadowOn, 1);
+    gl.useProgram(program);
+    gl.activeTexture(gl.TEXTURE0 + SHADOW_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, shadowTex);
+    gl.activeTexture(gl.TEXTURE0);
   }
 
   function draw(mesh, transform, joints) {

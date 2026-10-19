@@ -84,6 +84,9 @@ let tileMeshes = null;
 // Splat ground: the control map, the four layers and the GPU handles; null when any layer texture fails to load.
 let splat = null;
 const SPLAT_BAND = 0.15;
+// Sun shadows: one setting. ?shadows=0 turns the shadow map off (no shadow pass, no sampling).
+const SHADOW_ON = params.get("shadows") !== "0";
+const SHADOW_SIZE = 2048;
 // Ground lighting: ambient, diffuse and albedo gain. The gain lifts the owner's darker albedo to lit terrain.
 const SPLAT_SHADE = [0.42, 0.68, 1.3];
 // Cliff faces: the rock albedo is dark, so faces get a strong gain while keeping a light-facing contrast.
@@ -422,17 +425,8 @@ window.__setCellKind = (index, kind) => {
   return true;
 };
 
-function drawWorld3d() {
-  drawCounts.terrain = 0;
-  drawCounts.splat = 0;
-  drawCounts.doodad = 0;
-  drawCounts.unit = 0;
-  drawCounts.quad = 0;
-  drawCounts.animated = 0;
-  const now = performance.now();
-  const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
-  lastDrawMs = now;
-  renderer3d.beginFrame(BACKGROUND);
+// Terrain and doodads: the casters of the sun's shadow map as well as the lit draws.
+function drawGround3d() {
   if (splat && terrainMesh) {
     renderer3d.drawSplat(terrainMesh, splat);
     drawCounts.splat += 1;
@@ -447,6 +441,27 @@ function drawWorld3d() {
     // The TSL renderer has no level-of-detail path; it draws the full model for every instance.
     drawCounts.doodad += renderer3d.drawInstancedLod ? renderer3d.drawInstancedLod(d.mesh, d.batch, d.lowMesh) : renderer3d.drawInstancedVisible(d.mesh, d.batch);
   }
+}
+
+function drawWorld3d() {
+  drawCounts.terrain = 0;
+  drawCounts.splat = 0;
+  drawCounts.doodad = 0;
+  drawCounts.unit = 0;
+  drawCounts.quad = 0;
+  drawCounts.animated = 0;
+  const now = performance.now();
+  const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
+  lastDrawMs = now;
+  renderer3d.beginFrame(BACKGROUND);
+  const shadowed = renderer3d.beginShadowPass ? renderer3d.beginShadowPass() : false;
+  if (shadowed) {
+    const counted = { ...drawCounts };
+    drawGround3d();
+    renderer3d.endShadowPass();
+    Object.assign(drawCounts, counted);
+  }
+  drawGround3d();
   const units = currentUnits();
   drawUnits3d(units, dt);
   if (fx) fx.frame(units, dt);
@@ -1036,6 +1051,7 @@ function publishWitness() {
   document.body.dataset.drawTerrain = String(drawCounts.terrain);
   document.body.dataset.drawSplat = String(drawCounts.splat);
   document.body.dataset.splatGround = splat ? "1" : "0";
+  document.body.dataset.shadow = SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0";
   document.body.dataset.texelUploads = String(renderer3d ? renderer3d.stats.texelUploads || 0 : 0);
   document.body.dataset.terrainMode = tileMeshes ? "tiles" : "heightfield";
   document.body.dataset.drawDoodad = String(drawCounts.doodad);
@@ -1146,6 +1162,7 @@ async function build3d(gl, game) {
     return [{ mesh, lowMesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
   });
   doodadBatches = batchByMesh(placed);
+  if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
   unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
 }
 
