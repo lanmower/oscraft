@@ -83,6 +83,9 @@ pub fn run() -> Result<(), String> {
     }
 
     rooms[0].attach_mod_feed(Arc::clone(&link));
+    if link.gold_by_mod() {
+        rooms[0].set_gold_by_mod(true)?;
+    }
     for room in &rooms {
         if let Some(dir) = &opts.replay_dir {
             std::fs::create_dir_all(dir).map_err(|e| format!("--replay-dir {}: {e}", dir.display()))?;
