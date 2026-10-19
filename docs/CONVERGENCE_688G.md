@@ -190,7 +190,7 @@ Lane creep, tower and ancient (Ghoul u001 / Ziggurat uzig / Ancient Protector e0
 
 - Size: 102,278 lines, 4,503 functions, 861 `CreateUnit*` calls, 165 `TimerStart` calls, 142 `CreateTimer` calls.
 - Obfuscated: the functions use short generated names (`Me`, `MS`, `SIE`, `Ez`, `KZE`). Unit and ability codes are the usual four-character raw ids; 5,755 distinct raw ids appear.
-- Wave logic: the only lane-wave hits are `SaveReal(Me,'wave','000x'/'000y', ...)` (about line 22439) and a `-spawncreeps` debug command (about line 31237). The creep wave timers, compositions and upgrade rule could not be isolated from the obfuscated code in this pass. Lane creep waves are MISSING.
+- Wave logic: the creep wave timer and spawn routine are isolated in section 8. Compositions per lane and the siege timing are not isolated. Lane creep wave composition is MISSING.
 - Creep acquisition and attack logic: not isolated: MISSING.
 
 ## 6. What could not be read
@@ -237,6 +237,29 @@ Gate changes (`rust/gate`), each for an old value:
 - `hero_axe_level1` and `hero_axe_growth` (`rust/gate/src/hero_checks.rs`): Axe now has AGI 20 (was 18), health base 150 (was 120), damage 26 (was 33), mana base 100 (was 75), growth 2.5/2.2/1.6 (was 2.7/1.7/1.6). Reason: the expectations were the Dota 2 values; they now carry the 6.88g numbers.
 - `phantom_lancer_illusions` (`rust/gate/src/ability_checks.rs`): the victim spawns one unit away instead of two. Reason: 6.88g Phantom Lancer has a 128 range (melee), and the old placement is out of range. The check is about illusions, not range.
 
-Verification (local): `osdt-data` loads `scenarios/moba`; `mod_check` on `moba_attack.lua` passes; `oscraft-gate` passes 197 of 197; `oscraft-gate mpq` passes. `moba_match` exits 1 with `no winner by tick=40000` both before and after this change (HEAD baseline gives the same line), so it is a pre-existing condition, not a regression.
+Verification (local): `osdt-data` loads `scenarios/moba`; `mod_check` on `moba_attack.lua` passes; `oscraft-gate` passes 197 of 197; `oscraft-gate mpq` passes. `moba_match` exits 1 with `no winner by tick=40000` both before and after this change (HEAD baseline gives the same line), so it is a pre-existing condition, not a regression. Superseded: on origin main `fa6862f`, `moba_match ../scenarios/moba 40000` exits 0 with `winner=0 tick=29089` (section 8).
 
 Not done in this pass (the rest of the brief): creeps and neutrals in `units.osd` and `units_extra.osd` (77 rows), the 61 unresolved heroes, and every ability in `abilities.osd` and `abilities_dota.osd` (AbilityData `Cool1`, `Cost1`, `Rng1`, `Area1`, `Dur1`, `DataA1`..`DataI1` per level, read by the effect model). The ability mapping needs the `effect` model in `rust/crates/data/src/builtins.rs` matched per kind before values can be written.
+
+## 8. Wave, siege, start, day/night and buyback timing (this pass)
+
+Line numbers are in the extracted `war3map.j` (`/tmp/mpq688/out`), unless marked "ours".
+
+Changed: nothing. Every map-sourced value below either matches our data or has no value in the map to compare with.
+
+Map values:
+
+- Creep wave cadence: 30 s periodic. `TriggerRegisterTimerEventPeriodic(xR,30.)` at line 30050, with `TriggerExecute(xR)` at line 30051, so the first wave fires at game start. Action `JAE` (line 26200, bound at line 101660). `JAE` spawns through `JRE` with raw ids `u001`, `n12Q`, `ugho` and `u002`, `unec`, `n12R`, chosen by flags. Every seventh execution (`ModuloInteger(GetTriggerExecCount(xR),7)==0`) calls `H5E` at line 26201. `H5E` only writes stats, so the seventh-wave rule is an upgrade hook, not a spawn change.
+- Ours: `mods/moba_waves.lua` `CREEP_PERIOD = 480` ticks. At `TICKS_PER_SECOND = 16` (`rust/crates/sim/src/lib.rs:65`) that is 30 s. Match. The first creep is at game timer 1 tick, which is the start, so it matches the map's immediate `TriggerExecute`.
+- Siege timing: NOT FOUND in the map. No trigger in this pass fires a siege or name-based siege spawn. Our `SIEGE_STARTS = {4800, 28800, 57600}` (`mods/moba_waves.lua` line 13, 5, 30 and 60 min at 16 ticks/s) and `SIEGE_PERIOD = 4800` have no map source here. The 5-minute value is a public description, not map-sourced, and is kept unchanged.
+- Game-start timer: `TimerStart(CreateTimer(),0xB4,false,function POE)` at line 30036 is a one-shot 180 s (`0xB4`) that sets flag `Oo=true` (`POE` at lines 30013-30016). The flag's consumers are not decoded. The countdown before start is `TimerStart(SA,TA+1,false,null)` at line 36638 (`RZX`). `TA` is a global `90` (line 791), reassigned to `0x96` = 150 (line 37252, `I9X`), `0xB4` = 180 (line 39444), `90` (lines 37852, 39662) and `'x'` = 120 (line 40408). The value in effect at start is not resolved, so no countdown length is claimed.
+- Day and night: `SetTimeOfDayScale(.625)` at line 30035, and the start is dawn with `SetFloatGameState(GAME_STATE_TIME_OF_DAY,6.)` at line 30033. The map stores a rate, not a day or night length in seconds. Length is NOT in the map. Ours: `DAY_TICKS = 300 * 16` and `NIGHT_TICKS = 300 * 16` (`rust/crates/sim/src/lib.rs:70-71`, 5 min each). These are unsourced from the map and kept unchanged.
+- Buyback cooldown: NOT FOUND. No buyback timer or cooldown value is in the map. The `UnitResetCooldown` calls at lines 26211-26220 and 3735-3745 reset unit cooldowns, not buyback. Ours: `BUYBACK_NET_WORTH_DIV = 13` (`rust/crates/sim/src/hero.rs:25`) is a cost divisor. There is no cooldown constant to compare.
+- Other map timers, unmatched to a repo value: 450 s periodic `oR` (line 30052, action `JTE` at line 26536, which swaps tech research counts); 75 s one-shot `rR` (line 101706, action `JUE`); 2669 s one-shot `vR` (line 30053, action `HSE` at line 26000, increments `Ji`); 849 s one-shot `eR` (line 30054, action `HTE` at line 26003, increments `ji`). These are not matched to our wave, siege or day data.
+
+Repo sources that are not map data: `scenarios/moba/waves.osd` holds only lane spawner placements. The wave cadence is in `mods/moba_waves.lua`, not in `waves.osd`. `rust/crates/sim/src/camp.rs` `CAMP_FIRST_SPAWN_S = 60` is a neutral-camp value, not a wave value, so it is not compared.
+
+Verification on origin main `fa6862f` (fresh clone):
+
+- `oscraft-gate` (rust, release): `gate: 203 checks, 0 failed`.
+- `moba_match ../scenarios/moba 40000` (rust, release): exit 0, `winner=0 tick=29089`, replay hash `35358641158f53c0`. This is the result that holds on current main. The earlier `no winner by tick=40000` and the `winner=0 tick=29089` reports came from different builds.
