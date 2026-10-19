@@ -103,6 +103,8 @@ function normalize(v) {
   return [v[0] / len, v[1] / len, v[2] / len];
 }
 
+const DEFAULT_FOV_DEG = 70;
+
 export function createCamera(opts = {}) {
   return {
     target: opts.target ? [...opts.target] : [0, 0, 0],
@@ -111,7 +113,7 @@ export function createCamera(opts = {}) {
     distance: opts.distance ?? 30,
     minDistance: opts.minDistance ?? 2,
     maxDistance: opts.maxDistance ?? 400,
-    fovY: opts.fovY ?? Math.PI / 3,
+    fovY: opts.fovY ?? (DEFAULT_FOV_DEG * Math.PI) / 180,
     near: opts.near ?? 0.1,
     far: opts.far ?? 2000,
   };
