@@ -84,6 +84,9 @@ let tileMeshes = null;
 // Splat ground: the control map, the four layers and the GPU handles; null when any layer texture fails to load.
 let splat = null;
 const SPLAT_BAND = 0.15;
+// Default terrain is the splat heightfield floor with cliff walls and water tiles. ?terrain=tiles restores the per-cell tile
+// path (ramp and cliff tiles included) for comparison.
+const TERRAIN_TILES = params.get("terrain") === "tiles";
 // Sun shadows: one setting. ?shadows=0 turns the shadow map off (no shadow pass, no sampling).
 const SHADOW_ON = params.get("shadows") !== "0";
 const SHADOW_SIZE = 2048;
@@ -436,7 +439,7 @@ function updateTerrainBadge() {
     badge.style.cssText = "position:fixed;left:8px;bottom:8px;padding:2px 6px;font:12px monospace;color:#fff;border-radius:3px;z-index:9;pointer-events:none";
     document.body.appendChild(badge);
   }
-  const want = splat ? "terrain: splat" : "terrain: TILE FALLBACK (" + (splatFallbackReason || "splat not built") + ")";
+  const want = splat && !TERRAIN_TILES ? "terrain: heightfield (splat layers)" : splat ? "terrain: splat tiles" : "terrain: TILE FALLBACK (" + (splatFallbackReason || "splat not built") + ")";
   if (badge.textContent !== want) badge.textContent = want;
   badge.style.background = splat ? "#2e6b2e" : "#a86b00";
 }
@@ -1068,7 +1071,7 @@ function publishWitness() {
   document.body.dataset.splatGround = splat ? "1" : "0";
   document.body.dataset.shadow = SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0";
   document.body.dataset.texelUploads = String(renderer3d ? renderer3d.stats.texelUploads || 0 : 0);
-  document.body.dataset.terrainMode = splat ? "splat" : tileMeshes ? "tiles" : "heightfield";
+  document.body.dataset.terrainMode = splat && !TERRAIN_TILES ? "heightfield" : splat ? "splat" : tileMeshes ? "tiles" : "heightfield";
   document.body.dataset.splatFallback = splat ? "" : splatFallbackReason || "splat not built";
   updateTerrainBadge();
   document.body.dataset.drawDoodad = String(drawCounts.doodad);
@@ -1220,7 +1223,8 @@ async function loadTileMeshes(gl, tileTextures) {
   if (fitted.some((model) => !model)) return null;
   const byName = new Map(names.map((name, i) => [name, fitted[i]]));
   const models = Object.fromEntries(Object.entries(TILE_MODELS).map(([kind, list]) => [kind, list.map((name) => byName.get(name))]));
-  const baked = bakeTiles(mapBytes, models, { splat: Boolean(splat) });
+  const heightfield = Boolean(splat) && !TERRAIN_TILES;
+  const baked = bakeTiles(mapBytes, models, { splat: Boolean(splat), ramps: !heightfield, cliffCells: !heightfield });
   if (!baked) return null;
   const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, material, model, batches, planar }) => batches.map(async ({ uvs, batch }) => {
     const texture = tileTextures.get(material) || null;

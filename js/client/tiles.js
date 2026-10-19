@@ -205,7 +205,7 @@ const RAMP_MAX_DROP_CELLS = 1;
 // beside water, gets a tile-high wall from the lower surface up to the higher one (a cliff cell's own tile adds its
 // height). Corners are covered by the edge pieces of the two cells that meet there. `models.cliff` is [wall] and
 // `models.ramp` is [ramp], as TILE_MODELS lists them.
-export function bakeEdges(grid, models, empty) {
+export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const [wall] = models.cliff ?? [];
   const [ramp] = models.ramp ?? [];
@@ -249,7 +249,7 @@ export function bakeEdges(grid, models, empty) {
           if (top > base) put("wall", "cliff", TILE_MATERIALS.cliff, wall, [bx, base, bz, rot, 1, (top - base) / wallTop, 1]);
           continue;
         }
-        if (!ramp) continue;
+        if (!ramp || !ramps) continue;
         const dirX = high === j ? dx : -dx;
         const dirZ = high === j ? dz : -dz;
         // A ramp rises its full drop over one cell, which is steep when a step is taller than a cell is wide. When the cell
@@ -305,7 +305,7 @@ export function setSplatTexel(control, index, kind) {
 // matrix per cell on the cell's height level, so memory and draw calls scale with the kind and variant count, not the
 // cell count. models maps each kind to its fitted variant models. Returns null when a kind the map uses has no model,
 // so the caller keeps the heightfield as the fallback.
-export function bakeTiles(bytes, models, { splat = false } = {}) {
+export function bakeTiles(bytes, models, { splat = false, ramps = true, cliffCells = true } = {}) {
   const grid = readGrid(bytes);
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const empty = voidMask(grid);
@@ -316,6 +316,7 @@ export function bakeTiles(bytes, models, { splat = false } = {}) {
       if (empty[i]) continue;
       const kind = tileKind(grid, i);
       if (splat && isSplatKind(kind)) continue;
+      if (!cliffCells && kind === "cliff") continue;
       const variants = models[kind];
       if (!variants?.length) return null;
       const v = cellVariant(x, y, variants.length);
@@ -355,7 +356,7 @@ export function bakeTiles(bytes, models, { splat = false } = {}) {
     meshes.set(key, { kind, material: TILE_MATERIALS[kind], model, batches, cells: count });
     cells += count;
   }
-  for (const [key, edge] of bakeEdges(grid, models, empty)) {
+  for (const [key, edge] of bakeEdges(grid, models, empty, { ramps })) {
     const batch = { matrices: edge.matrices, count: edge.count, dirty: true };
     meshes.set(key, { kind: edge.kind, material: edge.material, model: edge.model, batches: [{ uvs: edge.model.uvs, batch }], cells: edge.count, planar: key.startsWith("ramp:") });
   }
