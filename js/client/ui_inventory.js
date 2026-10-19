@@ -5,7 +5,7 @@
 import UI from "./moba_ui.json" with { type: "json" };
 
 const STYLE = `
-#ui-inv{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);display:flex;gap:10px;align-items:flex-end;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:11px/1.3 monospace;padding:6px 8px}
+#ui-inv{position:fixed;z-index:2;left:50%;bottom:130px;transform:translateX(-50%);display:flex;gap:10px;align-items:flex-end;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:11px/1.3 monospace;padding:6px 8px}
 #ui-inv .grid{display:grid;grid-template-columns:repeat(5,44px);gap:3px}
 #ui-inv .cell{height:36px;border:1px solid #555;background:#1b1f26;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;font-size:10px;cursor:pointer}
 #ui-inv .cell.stash{background:#161616;border-style:dashed}

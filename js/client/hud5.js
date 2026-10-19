@@ -5,12 +5,12 @@
 export const SCOREBOARD_ROWS = 10;
 
 const STYLE = `
-#hud5{position:fixed;left:0;right:0;bottom:0;pointer-events:none;font:12px/1.3 monospace;color:#eee;display:flex;justify-content:space-between;align-items:flex-end;padding:0 8px 8px}
+#hud5{position:fixed;z-index:2;left:0;right:0;bottom:0;pointer-events:none;font:12px/1.3 monospace;color:#eee;display:flex;justify-content:space-between;align-items:flex-end;padding:0 8px 8px}
 #hud5 .panel{background:rgba(12,14,18,.82);border:1px solid #333;padding:6px 8px;min-width:200px}
 #hud5 table{border-collapse:collapse;width:100%}
 #hud5 td,#hud5 th{padding:1px 6px;text-align:left;white-space:nowrap}
 #hud5 .team0{color:#5b9bff}#hud5 .team1{color:#ff6b5b}
-#hud5 .banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);font:bold 22px monospace;color:#ffd54f;pointer-events:none}
+#hud5 .banner{position:fixed;z-index:2;top:12px;left:50%;transform:translateX(-50%);font:bold 22px monospace;color:#ffd54f;pointer-events:none}
 `;
 
 function ensureStyle() {

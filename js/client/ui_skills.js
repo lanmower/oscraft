@@ -5,7 +5,7 @@ const TICK_S = 1 / 16;
 const TALENT_LEVELS = [10, 15, 20, 25];
 
 const STYLE = `
-#ui-skills{position:fixed;left:8px;top:48px;width:230px;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:12px/1.3 monospace;padding:6px 8px}
+#ui-skills{position:fixed;z-index:2;left:8px;top:48px;width:230px;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:12px/1.3 monospace;padding:6px 8px}
 #ui-skills h4{margin:0 0 4px;font-size:12px;color:#ffd54f}
 #ui-skills .row{display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid #222;padding:3px 0}
 #ui-skills .gate{color:#aaa;font-size:11px}

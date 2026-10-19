@@ -5,7 +5,7 @@ import UI from "./moba_ui.json" with { type: "json" };
 import { fill } from "./moba_select.js";
 
 const STYLE = `
-#ui-shop{position:fixed;right:8px;top:48px;width:260px;max-height:60vh;overflow:auto;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:12px/1.3 monospace;padding:6px 8px}
+#ui-shop{position:fixed;z-index:2;right:8px;top:48px;width:260px;max-height:60vh;overflow:auto;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:12px/1.3 monospace;padding:6px 8px}
 #ui-shop h4{margin:0 0 4px;font-size:12px;color:#ffd54f}
 #ui-shop .row{display:flex;justify-content:space-between;gap:6px;border-top:1px solid #222;padding:3px 0}
 #ui-shop .stats{color:#aaa;font-size:11px}

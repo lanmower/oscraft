@@ -8,7 +8,7 @@ const TICK_S = 1 / 16;
 const GROUP_TILES = 12;
 
 const STYLE = `
-#ui-select{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:10px;align-items:flex-end;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:11px/1.3 monospace;padding:6px 8px}
+#ui-select{position:fixed;z-index:2;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:10px;align-items:flex-end;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:11px/1.3 monospace;padding:6px 8px}
 #ui-select .face{width:56px;height:56px;background:#1b1f26;border:1px solid #555;display:flex;align-items:center;justify-content:center;font-size:22px;color:#ffd54f}
 #ui-select .name{font-weight:bold;color:#ffd54f}
 #ui-select .bar{height:9px;background:#222;margin-top:2px;width:170px}

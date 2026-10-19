@@ -19,13 +19,13 @@
   <style>
     html, body { margin: 0; height: 100%; background: #1d252c; color: #d8e0e6; font: 13px system-ui, sans-serif; overflow: hidden; }
     canvas { display: block; width: 100vw; height: 100vh; }
-    #status { position: fixed; left: 8px; top: 8px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; white-space: pre; }
-    #rooms { position: fixed; right: 8px; top: 8px; min-width: 160px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; }
+    #status { position: fixed; z-index: 2; left: 8px; top: 8px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; white-space: pre; }
+    #rooms { position: fixed; z-index: 2; right: 8px; top: 8px; min-width: 160px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; }
     #rooms ul { list-style: none; margin: 4px 0; padding: 0; }
     #rooms button { width: 100%; text-align: left; margin: 2px 0; }
-    #hud { position: fixed; left: 8px; bottom: 8px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; }
-    #minimap { position: fixed; right: 8px; bottom: 8px; width: 160px; height: 120px; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 4px; }
-    #win { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); padding: 16px 24px; background: rgba(0, 0, 0, 0.7); border-radius: 6px; font-size: 28px; }
+    #hud { position: fixed; z-index: 2; left: 8px; bottom: 8px; padding: 6px 8px; background: rgba(0, 0, 0, 0.5); border-radius: 4px; }
+    #minimap { position: fixed; z-index: 2; right: 8px; bottom: 8px; width: 160px; height: 120px; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 4px; }
+    #win { position: fixed; z-index: 2; left: 50%; top: 40%; transform: translate(-50%, -50%); padding: 16px 24px; background: rgba(0, 0, 0, 0.7); border-radius: 6px; font-size: 28px; }
   </style>
 </head>
 <body data-pkg="pkg/web.js" data-map="map.bin">

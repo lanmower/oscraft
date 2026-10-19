@@ -3,7 +3,7 @@
 import UI from "./moba_ui.json" with { type: "json" };
 
 const STYLE = `
-#ui-score{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);min-width:420px;background:rgba(12,14,18,.94);border:1px solid #444;color:#eee;font:13px/1.4 monospace;padding:10px 14px;pointer-events:none}
+#ui-score{position:fixed;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);min-width:420px;background:rgba(12,14,18,.94);border:1px solid #444;color:#eee;font:13px/1.4 monospace;padding:10px 14px;pointer-events:none}
 #ui-score h4{margin:0 0 6px;color:#ffd54f;font-size:14px}
 #ui-score table{border-collapse:collapse;width:100%}
 #ui-score th,#ui-score td{padding:2px 10px;text-align:right;white-space:nowrap}
