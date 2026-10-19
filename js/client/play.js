@@ -1275,6 +1275,7 @@ async function main() {
   const heroNames = liveHeroRoster(localGame);
   createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
   fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
+  window.__fogView = fogview;
   if (params.get("host") === "1") startHost();
   joinRoom();
 
