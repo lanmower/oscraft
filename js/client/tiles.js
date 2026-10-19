@@ -33,6 +33,21 @@ export function cellKind(flags, tile) {
   return "grass";
 }
 
+// The tile a cell draws. A blocked cell without the cliff bit is an obstacle standing on open ground (a tree or prop), so it
+// draws the ground of its tile id unless it stands above a neighbour, where its drop is a cliff.
+export function tileKind(grid, i) {
+  const { width: w, height: h, flags, tiles, levels } = grid;
+  const kind = cellKind(flags[i], tiles[i]);
+  if (kind !== "cliff" || (flags[i] & CLIFF_BIT)) return kind;
+  const x = i % w, y = (i - x) / w;
+  let lowest = levels[i];
+  if (x > 0) lowest = Math.min(lowest, levels[i - 1]);
+  if (x < w - 1) lowest = Math.min(lowest, levels[i + 1]);
+  if (y > 0) lowest = Math.min(lowest, levels[i - w]);
+  if (y < h - 1) lowest = Math.min(lowest, levels[i + w]);
+  return lowest < levels[i] ? kind : cellKind(0, tiles[i]);
+}
+
 // Cells with no walkable cell within `reach` cells (Chebyshev): the unreachable void around and between playfields.
 export function voidMask(grid, reach = VOID_REACH) {
   const { width: w, height: h, flags } = grid;
@@ -243,7 +258,7 @@ export function controlMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height, flags, tiles } = grid;
   const data = new Uint8Array(width * height * 4);
-  for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[cellKind(flags[i], tiles[i])]] = 255;
+  for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[tileKind(grid, i)]] = 255;
   return { data, width, height };
 }
 // Rewrites one cell texel to a kind (the creep effect) and returns that texel for a sub-region upload.
@@ -267,7 +282,7 @@ export function bakeTiles(bytes, models, { splat = false } = {}) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       if (empty[i]) continue;
-      const kind = cellKind(flags[i], tiles[i]);
+      const kind = tileKind(grid, i);
       if (splat && isSplatKind(kind)) continue;
       const variants = models[kind];
       if (!variants?.length) return null;
