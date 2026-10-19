@@ -366,6 +366,7 @@ export function createRenderer(gl) {
   const instanceBuffers = new WeakMap();
   const stats = { drawCalls: 0, instances: 0, culled: 0, lod: 0, frameCpuMs: 0 };
   const viewProj = identity();
+  const unitModel = identity();
   const modelScratch = new Float32Array(16);
   const normalScratch = new Float32Array(9);
   const groundBox = [0, 0, 0, 0];
@@ -714,7 +715,6 @@ export function createRenderer(gl) {
 
   // Splat ground: one draw of the terrain mesh. splat = { control: {data, width, height}, layers: [{albedo, height}] x4,
   // width, height (map size in cells), uvScale, band, gpu }; the control texture is created on first draw and kept.
-  const unitModel = identity();
   function controlTexture(control) {
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
