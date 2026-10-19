@@ -225,6 +225,7 @@ pub struct ModHost {
     staged: Option<Hooks>,
     version: u64,
     cmds: Cmds,
+    forward: RefCell<Vec<Cmd>>,
     joined: Vec<usize>,
     gold_by_mod: bool,
 }
@@ -1560,6 +1561,7 @@ impl ModHost {
             staged: None,
             version: 0,
             cmds: Rc::new(RefCell::new(Vec::new())),
+            forward: RefCell::new(Vec::new()),
             joined: Vec::new(),
             gold_by_mod: false,
         })
@@ -1748,9 +1750,11 @@ impl ModHost {
     }
 
     // Applies the queued commands in the order they were queued. A command aimed at a unit
-    // that died since it was queued does nothing.
+    // that died since it was queued does nothing. Each applied command is also kept for the
+    // caller to forward (take_commands), so the room's sim receives what this world applied.
     fn apply_commands(&self) {
         let list = std::mem::take(&mut *self.cmds.borrow_mut());
+        self.forward.borrow_mut().extend(list.iter().cloned());
         let mut sim = self.world.borrow_mut();
         for cmd in list {
             match cmd {
@@ -1968,15 +1972,16 @@ impl ModHost {
         &self.lua
     }
 
-    /// The commands queued since the last take, in queue order. `advance` applies its own queue;
-    /// a caller that forwards commands takes them here after advance.
     /// Whether the loaded mod declared `GOLD_BY_MOD = true`: its kill payout replaces the sim's.
     pub fn gold_by_mod(&self) -> bool {
         self.gold_by_mod
     }
 
+    /// The commands `advance` applied to this world since the last take, in apply order, so a
+    /// caller that forwards them (the server room) applies the same changes to its own sim.
+    /// Commands queued by on_tick or a timer are applied, and so taken, by the next advance.
     pub fn take_commands(&mut self) -> Vec<Cmd> {
-        std::mem::take(&mut *self.cmds.borrow_mut())
+        std::mem::take(&mut *self.forward.borrow_mut())
     }
 
     pub fn state(&self) -> &Table {
@@ -2097,7 +2102,8 @@ mod tests {
               game.cmd_spawn("creep", 52 * 65536, 34 * 65536)
             end
         "#).expect("mod loads");
-        host.advance(&host.state().clone()).expect("step");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
         let spawns: Vec<(u8, i32)> = host
             .take_commands()
             .into_iter()
@@ -2107,6 +2113,30 @@ mod tests {
             })
             .collect();
         assert_eq!(spawns, vec![(1, 2), (0, 0)], "owner and lane are queued; both default to 0");
+    }
+
+    #[test]
+    fn applied_commands_are_forwarded() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("gold", r#"
+            function on_tick(state)
+              if state.paid then return end
+              state.paid = true
+              game.cmd_add_gold(1, 25)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        let gold: Vec<(u8, i32)> = host
+            .take_commands()
+            .into_iter()
+            .filter_map(|c| match c {
+                Cmd::AddGold { player, amount } => Some((player, amount)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(gold, vec![(1, 25)], "a command the world applied reaches the caller");
+        assert!(host.take_commands().is_empty(), "a take drains the forwarded commands");
     }
 
     #[test]
