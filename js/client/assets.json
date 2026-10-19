@@ -1,13 +1,13 @@
 {
- "count": 800,
- "total_bytes": 22907177,
+ "count": 801,
+ "total_bytes": 23146950,
  "items": [
   {
    "id": "rock",
    "kind": "model",
    "path": "js/client/models/rock-a.glb",
    "placed_by": "doodads.json",
-   "bytes": 7072,
+   "bytes": 7076,
    "role": "rock"
   },
   {
@@ -1839,7 +1839,7 @@
    "kind": "model",
    "path": "js/client/models/gate-rock.glb",
    "role": "rock",
-   "bytes": 19868
+   "bytes": 19872
   },
   {
    "id": "gate",
@@ -2686,7 +2686,7 @@
    "kind": "model",
    "path": "js/client/models/resource-stone-large.glb",
    "role": "rock",
-   "bytes": 9432
+   "bytes": 9436
   },
   {
    "id": "resource-wood",
@@ -3204,7 +3204,7 @@
    "kind": "model",
    "path": "js/client/models/rock-b.glb",
    "role": "rock",
-   "bytes": 8868
+   "bytes": 8872
   },
   {
    "id": "rock-c",
@@ -3225,7 +3225,7 @@
    "kind": "model",
    "path": "js/client/models/rock-flat.glb",
    "role": "rock",
-   "bytes": 12068
+   "bytes": 12072
   },
   {
    "id": "rock-large",
@@ -3239,7 +3239,7 @@
    "kind": "model",
    "path": "js/client/models/rock-sand-a.glb",
    "role": "rock",
-   "bytes": 6584
+   "bytes": 6588
   },
   {
    "id": "rock-sand-b",
@@ -3274,7 +3274,7 @@
    "kind": "model",
    "path": "js/client/models/rocks-high.glb",
    "role": "rock",
-   "bytes": 13888
+   "bytes": 13892
   },
   {
    "id": "rocks-large",
@@ -3953,7 +3953,7 @@
    "kind": "model",
    "path": "js/client/models/stone-wall-column.glb",
    "role": "rock",
-   "bytes": 7576
+   "bytes": 7580
   },
   {
    "id": "stone-wall-curve",
@@ -5630,6 +5630,14 @@
    "path": "js/client/models/Textures/colormap.ktx2",
    "placed_by": "KHR_texture_basisu of the room and character GLBs (external image)",
    "bytes": 13386
+  },
+  {
+   "id": "rock-color-ktx2",
+   "kind": "texture",
+   "path": "js/client/models/Textures/rock-color.ktx2",
+   "placed_by": "rock-role GLB models in js/client/models (external image, KHR_texture_basisu)",
+   "bytes": 239741,
+   "role": "rock"
   }
  ],
  "roles": {
