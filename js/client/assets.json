@@ -1,6 +1,6 @@
 {
  "count": 784,
- "total_bytes": 47998860,
+ "total_bytes": 43102868,
  "items": [
   {
    "id": "rock",
@@ -828,7 +828,7 @@
    "kind": "model",
    "path": "js/client/models/roshan-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 10226796,
+   "bytes": 7778796,
    "role": "character"
   },
   {
@@ -836,7 +836,7 @@
    "kind": "model",
    "path": "js/client/models/roshan-lowpoly.glb",
    "placed_by": "doodads.json",
-   "bytes": 9952432,
+   "bytes": 7504440,
    "role": "character"
   },
   {
