@@ -2047,14 +2047,14 @@ jobs:
           };
           // Creeps from the two sides first come into reach mid-lane, at sim tick 301 (measured on origin main: the first hostile
           // pair within 8 cells, moba scenario, tick_with_cadence(true, true)). Poll until the sim tick reaches that contact tick plus
-          // a 300-tick margin (601 ticks), or a hostile hero pair appears. The CI page measured 1.5 ticks per second (lowest observed,
-          // 15 ticks in 10.1 s in the failing run), so the wall-clock deadline covers 601 ticks: ceil(601 / 1.5) = 401 s.
+          // a 300-tick margin (601 ticks), or a hostile hero pair appears. The failing CI run ran about 1.07 ticks per second (tick 18 at 50 s,
+          // tick 393 at 400 s), so the wall-clock deadline is sized for 0.8 ticks per second: ceil(601 / 0.8) = 752 s.
           // The attacker check below still has to pass.
           // Each poll logs the local hero (id, position, HUD hp), the nearest hostile to any hero (type, player, cells), and the hero count,
           // so a run that loses its hero during the wait shows when and how it happened.
           const CONTACT_TICK = 301;
           const WAIT_TICKS = CONTACT_TICK + 300;
-          const CI_TICKS_PER_SECOND = 1.5;
+          const CI_TICKS_PER_SECOND = 0.8;
           const waitDeadline = Date.now() + Math.ceil(WAIT_TICKS / CI_TICKS_PER_SECOND) * 1000;
           let waited = null;
           for (;;) {
