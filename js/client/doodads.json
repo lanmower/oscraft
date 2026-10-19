@@ -785,5 +785,15 @@
   "workbench": "models/workbench.glb",
   "workbench_anvil": "models/workbench-anvil.glb",
   "workbench_grind": "models/workbench-grind.glb",
-  "abaddon_skinned": "models/abaddon-skinned.glb"
+  "abaddon_skinned": "models/abaddon-skinned.glb",
+  "oga_tree_fantasy": "models/oga/tree-fantasy.glb",
+  "oga_tree_snow": "models/oga/tree-snow.glb",
+  "oga_tree_pine_small": "models/oga/tree-pine-small.glb",
+  "oga_rock_flat": "models/oga/rock-flat.glb",
+  "oga_snowman": "models/oga/snowman.glb",
+  "oga_stump": "models/oga/stump.glb",
+  "oga_cactus": "models/oga/cactus.glb",
+  "oga_fence": "models/oga/fence.glb",
+  "oga_gate": "models/oga/gate.glb",
+  "oga_tower_top": "models/oga/tower-top.glb"
 }
