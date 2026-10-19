@@ -271,3 +271,19 @@ Source: `scenarios/moba/creeps_688g.tsv`, applied by `scripts/apply-creeps-688g.
 32 rows converted (31 neutrals and Roshan). Kept on current values: the 9 lane creep rows (role keys with no 6.88g display name) and 8 neutrals with no 6.88g name or row (`neutral_warpine_raider`, `neutral_prowler_acolyte`, `neutral_prowler_shaman`, `neutral_granite_golem`, `neutral_ice_shaman`, `neutral_frostbitten_golem`, `neutral_big_thunder_lizard`, `neutral_small_thunder_lizard`).
 
 Not expressible in the sim, not invented: turn rate, weapon min and max, projectile speed, magic resistance, level-based bounty, day and night regeneration.
+
+## 9. Open: why the ten placeholder hero lines matter
+
+Commit `73fd708` removed the ten slot hero unit lines (ironhide, swiftbow, stormcaller, bulwark, shadeblade, emberlord, gale_archer, frostmage, tidecaller, thornwarden) from `units.osd` and their matching lines from `units_extra.osd` and `slot-models.tsv`. Commit `b56043b` restores the `units.osd` lines before `roshan`, which keeps the original unit order.
+
+Evidence (release gate, same Rust code and only scenario data changed):
+
+- Pre-conversion data: `camp-tormentor-timing` 6.9s, `camp-pit-swap` 7.7s, `camp-roshan-window` 2.7s, gate total 29.6s.
+- Merged data: 76s, 100s, 8.8s, gate total about 3m24s.
+- Only the ten hero lines removed from pre-conversion data: `camp-pit-swap` 89s.
+- Ten hero lines restored on merged data: gate 203 of 203 in 29.8s.
+- Creep, neutral and Roshan lines were each ruled out by bisection (halves of the neutral set and the Roshan line reverted individually stay slow or fast as the hero lines dictate).
+
+Not known: the sim mechanism. Unit kinds are resolved by name (`unit_index`), so a shifted index alone should not change behaviour. The slow path has not been identified. Until it is, keep the ten lines in `units.osd`.
+
+Debug-profile note: the gate with the merged data was killed at 25 minutes at `camp-pit-swap` (after `camp-tormentor-timing` PASS). Release is the reference for timing.
