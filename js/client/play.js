@@ -1146,6 +1146,7 @@ async function build3d(gl, game) {
 // tile that fails to load returns null, so the heightfield mesh stays the drawn terrain.
 // Splat ground: the control map from the grid and each layer's albedo and height textures, in SPLAT_LAYERS order.
 async function buildSplat(gl) {
+  if (params.get("splat") === "0") return null;
   const layers = await Promise.all(SPLAT_LAYERS.map(async (name) => {
     const [albedo, height] = await Promise.all(SPLAT_TEXTURES[name].map((uri) => loadBaseColorImage({ uri }, location.href).catch(() => null)));
     return albedo && height ? { albedo: textureFrom(gl, albedo), height: textureFrom(gl, height) } : null;

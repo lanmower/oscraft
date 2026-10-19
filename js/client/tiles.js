@@ -229,10 +229,10 @@ export function bakeEdges(grid, models, empty) {
 export const SPLAT_LAYERS = Object.freeze(["grass", "dirt", "lane", "rock"]);
 const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 3 });
 export const SPLAT_TEXTURES = Object.freeze({
-  grass: Object.freeze(["textures/ground.png", "textures/grass_disp.jpg"]),
+  grass: Object.freeze(["textures/grass.jpg", "textures/grass_disp.jpg"]),
   dirt: Object.freeze(["textures/dirt.jpg", "textures/dirt_disp.jpg"]),
   lane: Object.freeze(["textures/lane.jpg", "textures/lane_disp.jpg"]),
-  rock: Object.freeze(["textures/cliff.jpg", "textures/rock_disp.jpg"]),
+  rock: Object.freeze(["textures/rock.jpg", "textures/rock_disp.jpg"]),
 });
 // Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
 export function isSplatKind(kind) {
