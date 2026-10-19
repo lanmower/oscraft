@@ -11,6 +11,18 @@ export const SLOT_COUNT = 2 * TEAM_SIZE;
 export const heroNamesFromRules = (text) =>
   text.split("\n").filter((line) => line.startsWith("hero ")).map((line) => line.split(/\s+/)[1]);
 
+// The picker's roster as name -> type index. A name is kept only when the sim's catalog holds it as a hero kind
+// (heroFlags[index] === 1, the player-controlled flag) and hero_rules.txt declares it. Structures, creeps and every
+// other kind are dropped, and the index is the one spawn_hero takes.
+export function heroKindsFor(typeNames, heroFlags, ruleNames) {
+  const kinds = new Map();
+  for (const name of ruleNames) {
+    const kind = typeNames.indexOf(name);
+    if (kind >= 0 && heroFlags[kind] === 1) kinds.set(name, kind);
+  }
+  return kinds;
+}
+
 const EMPTY_SLOT = Object.freeze({ owner: null, hero: null, ready: false });
 
 export function emptyLobby() {

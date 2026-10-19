@@ -15,7 +15,7 @@ import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, me
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { bakeTiles, controlMap, fitModel, planarUvs, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
-import { createLobby, heroNamesFromRules } from "./lobby.js";
+import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
 import { createShop } from "./ui_shop.js";
 import { createSkills } from "./ui_skills.js";
@@ -1077,16 +1077,11 @@ function hasHeroApi(game) {
   return ["buy", "item_catalog_json", "abilities_json", "inventory_json", "character_level", "skill_points"].every((name) => typeof game[name] === "function");
 }
 
-// Hero picks for the lobby: each `hero <unit>` name of hero_rules.txt that the sim's catalog holds, mapped to the
-// type index spawn_hero takes. A name with no catalog index is not offered, so a pick never spawns another type.
+// Hero picks for the lobby: see heroKindsFor (lobby.js). Empty when the wasm build predates the hero getters.
 function liveHeroRoster(game) {
   heroKinds = new Map();
-  if (typeof game.unit_type_names !== "function") return [];
-  const typeNames = game.unit_type_names();
-  for (const name of heroRuleNames) {
-    const kind = typeNames.indexOf(name);
-    if (kind >= 0) heroKinds.set(name, kind);
-  }
+  if (typeof game.unit_type_names !== "function" || typeof game.unit_hero_kinds !== "function") return [];
+  heroKinds = heroKindsFor(game.unit_type_names(), game.unit_hero_kinds(), heroRuleNames);
   return [...heroKinds.keys()];
 }
 

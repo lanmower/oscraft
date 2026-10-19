@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createSeating, createStateEncoder, applyFrame, startFrame } from '../client/delta.js';
-import { emptyLobby, heroNamesFromRules, reduceLobby } from '../client/lobby.js';
+import { emptyLobby, heroKindsFor, heroNamesFromRules, reduceLobby } from '../client/lobby.js';
 
 const ROSTER = ['hero', 'antimage', 'axe'];
 import { FRAME, SPECTATOR, WIRE_VERSION, WireError, encodeFrame, decodeFrame, frameTypeName } from './frame.js';
@@ -122,6 +122,14 @@ assert.throws(() => encodeFrame({ type: FRAME.ROSTER, you: 0, team: 0, players: 
   assert.equal(bots[2], 'axe');
   assert.equal(bots[3], 'hero');
   assert.deepEqual(heroNamesFromRules('# c\nhero antimage primary=1\nmana=1\nhero axe x=1\n'), ['antimage', 'axe']);
+}
+
+// Roster input filter: only hero-kind types named by hero_rules.txt survive; a tower, barracks or creep is dropped.
+{
+  const typeNames = ['tower', 'antimage', 'barracks', 'hero', 'creep', 'axe'];
+  const heroFlags = [0, 1, 0, 1, 0, 1];
+  const kinds = heroKindsFor(typeNames, heroFlags, ['antimage', 'tower', 'hero', 'barracks', 'creep', 'axe', 'missing']);
+  assert.deepEqual([...kinds.entries()], [['antimage', 1], ['hero', 3], ['axe', 5]]);
 }
 
 // Lobby start -> START frame -> host seating -> ROSTER per peer, with a late join and a reconnect.
