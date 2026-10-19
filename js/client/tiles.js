@@ -143,6 +143,17 @@ function groundVariantUvs(model, ox, oy) {
   return uvs;
 }
 
+// Planar texture coordinates for a model's vertices: u runs along x + z and v up y, one texture repeat per two units. Cliff
+// faces take these instead of the model's own atlas UVs, which sample the pack's dark palette stripes.
+export function planarUvs(positions) {
+  const uvs = new Float32Array((positions.length / 3) * 2);
+  for (let v = 0; v < positions.length / 3; v++) {
+    uvs[v * 2] = (positions[v * 3] + positions[v * 3 + 2]) * 0.5;
+    uvs[v * 2 + 1] = positions[v * 3 + 1] * 0.5;
+  }
+  return uvs;
+}
+
 // Deterministic variant index for a cell: an integer hash of its coordinates, so every client picks the same variant.
 export function cellVariant(x, y, count) {
   let h = Math.imul(x, 0x9e3779b1) ^ Math.imul(y, 0x85ebca77);
