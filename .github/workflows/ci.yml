@@ -1973,7 +1973,9 @@ jobs:
           let after = before;
           for (const key of ["ArrowRight", "ArrowLeft"]) {
             await page.keyboard.down(key);
-            await page.waitForTimeout(500);
+            // Pan advances once per rendered frame (dt capped at 0.1 s), and a CI frame can take longer than a fixed hold,
+            // so the key is held until the centre moves, bounded at 15 s.
+            await page.waitForFunction((x) => Number((document.body.dataset.center || "0,0").split(",")[0]) !== x, before, { timeout: 15000 }).catch(() => {});
             await page.keyboard.up(key);
             after = await centreX();
             if (after !== before) break;
