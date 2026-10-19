@@ -15,7 +15,7 @@ gale_archer	character-female-c	ranged hero, female build	character-archer	charac
 frostmage	character-female-d	mage hero	character-female-e	character-male-a
 tidecaller	character-female-e	caster hero, female build	character-ghost	character-female-a
 thornwarden	character-male-f	nature hero	character-keeper	character-male-a
-roshan	character-orc	Roshan: large orc build	character-vampire	character-skeleton
+roshan	roshan-skinned	Roshan: rigged hy3d build (28 joints, PNG base colour)	roshan-lowpoly	character-orc
 bounty_rune	coin	bounty rune: coin pickup	key	pillar-obelisk
 observer_ward	candle	observer ward: small light	candle-multiple	pillar-obelisk
 sentry_ward	candle-multiple	sentry ward: group of lights	lantern	pillar-obelisk

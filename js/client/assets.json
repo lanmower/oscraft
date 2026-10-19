@@ -1,6 +1,6 @@
 {
- "count": 782,
- "total_bytes": 27819632,
+ "count": 784,
+ "total_bytes": 47998860,
  "items": [
   {
    "id": "rock",
@@ -822,6 +822,22 @@
    "path": "js/client/models/character-orc.glb",
    "role": "creep",
    "bytes": 199616
+  },
+  {
+   "id": "roshan-skinned",
+   "kind": "model",
+   "path": "js/client/models/roshan-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 10226796,
+   "role": "character"
+  },
+  {
+   "id": "roshan-lowpoly",
+   "kind": "model",
+   "path": "js/client/models/roshan-lowpoly.glb",
+   "placed_by": "doodads.json",
+   "bytes": 9952432,
+   "role": "character"
   },
   {
    "id": "character-skeleton",
@@ -5499,7 +5515,7 @@
   "prop": 252,
   "structure": 352,
   "building": 106,
-  "character": 15,
+  "character": 17,
   "creep": 5,
   "terrain": 7
  }
