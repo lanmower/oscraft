@@ -20,19 +20,9 @@ const outDir = opt("--out", "scenarios/moba");
 const MILLI = 15.625;
 const TPS = 16;
 
-// Placeholder heroes in units.osd and the Dota hero whose stats each one carries until its kit is replaced.
+// Placeholder hero in units.osd and the Dota hero whose stats it carries. The other placeholders have no 6.88g hero and were dropped (apply-creeps-688g.py).
 const STANDINS = {
   hero: "dragon_knight",
-  ironhide: "sven",
-  swiftbow: "drow_ranger",
-  stormcaller: "zuus",
-  bulwark: "axe",
-  shadeblade: "riki",
-  emberlord: "lina",
-  gale_archer: "windrunner",
-  frostmage: "crystal_maiden",
-  tidecaller: "kunkka",
-  thornwarden: "treant",
 };
 
 function parseKV(text) {

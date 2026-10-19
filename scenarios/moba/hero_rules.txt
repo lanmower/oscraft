@@ -29,7 +29,7 @@ backdoor_regen_per_s=90
 # armor (hundredths), mr (percent), bat (hundredths of a second), damage (hundredths, min/max midpoint).
 hero antimage primary=1 str=2200 str_gain=160 agi=2200 agi_gain=280 int=1500 int_gain=180 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=145 damage=2900
 hero axe primary=0 str=2500 str_gain=250 agi=2000 agi_gain=220 int=1800 int_gain=160 mana=100 mana_regen=1 hp_regen=300 armor=0 mr=25 bat=170 damage=2600
-hero bane primary=3 str=2300 str_gain=250 agi=2300 agi_gain=250 int=2300 int_gain=250 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=2700
+hero bane primary=2 str=2200 str_gain=210 agi=2200 agi_gain=210 int=2200 int_gain=210 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=3600
 hero bloodseeker primary=1 str=2300 str_gain=200 agi=2400 agi_gain=300 int=1800 int_gain=170 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=3200
 hero crystal_maiden primary=2 str=1600 str_gain=170 agi=1600 agi_gain=160 int=1600 int_gain=290 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2200
 hero drow_ranger primary=1 str=1700 str_gain=190 agi=2600 agi_gain=190 int=1500 int_gain=140 mana=100 mana_regen=1 hp_regen=25 armor=-200 mr=25 bat=170 damage=2350
@@ -103,7 +103,7 @@ hero invoker primary=2 str=1900 str_gain=170 agi=2000 agi_gain=190 int=1800 int_
 hero silencer primary=2 str=1700 str_gain=220 agi=1600 agi_gain=300 int=2700 int_gain=250 mana=200 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2300
 hero obsidian_destroyer primary=2 str=1900 str_gain=230 agi=2400 agi_gain=200 int=2600 int_gain=330 mana=200 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=2750
 hero lycan primary=0 str=2800 str_gain=340 agi=1800 agi_gain=170 int=2300 int_gain=170 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=2650
-hero brewmaster primary=3 str=2400 str_gain=320 agi=1900 agi_gain=200 int=1700 int_gain=190 mana=75 mana_regen=0 hp_regen=50 armor=100 mr=25 bat=170 damage=2950
+hero brewmaster primary=0 str=2300 str_gain=290 agi=2200 agi_gain=195 int=1400 int_gain=125 mana=100 mana_regen=1 hp_regen=75 armor=0 mr=25 bat=170 damage=3250
 hero shadow_demon primary=2 str=1700 str_gain=190 agi=1800 agi_gain=220 int=2300 int_gain=270 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=2900
 hero lone_druid primary=1 str=1700 str_gain=210 agi=2400 agi_gain=270 int=1300 int_gain=140 mana=130 mana_regen=1 hp_regen=50 armor=100 mr=25 bat=170 damage=2400
 hero chaos_knight primary=0 str=2000 str_gain=290 agi=1400 agi_gain=210 int=1600 int_gain=160 mana=100 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=4400
@@ -125,7 +125,7 @@ hero centaur primary=0 str=2800 str_gain=430 agi=1500 agi_gain=100 int=1500 int_
 hero magnataur primary=0 str=2100 str_gain=275 agi=1500 agi_gain=250 int=1900 int_gain=165 mana=200 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=3400
 hero shredder primary=0 str=2300 str_gain=360 agi=1600 agi_gain=160 int=2400 int_gain=270 mana=75 mana_regen=50 hp_regen=25 armor=0 mr=25 bat=170 damage=2700
 hero bristleback primary=0 str=2200 str_gain=220 agi=1700 agi_gain=180 int=1400 int_gain=280 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=180 damage=3100
-hero tusk primary=0 str=2300 str_gain=390 agi=2300 agi_gain=190 int=1800 int_gain=170 mana=75 mana_regen=50 hp_regen=100 armor=100 mr=25 bat=170 damage=2900
+hero tusk primary=0 str=2300 str_gain=230 agi=2300 agi_gain=210 int=1800 int_gain=170 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=2900
 hero skywrath_mage primary=2 str=1900 str_gain=150 agi=1300 agi_gain=80 int=2700 int_gain=360 mana=200 mana_regen=1 hp_regen=25 armor=-100 mr=25 bat=170 damage=1700
 hero abaddon primary=3 str=2100 str_gain=260 agi=2200 agi_gain=150 int=1900 int_gain=200 mana=75 mana_regen=0 hp_regen=100 armor=-100 mr=25 bat=150 damage=2700
 hero elder_titan primary=0 str=2600 str_gain=300 agi=1600 agi_gain=180 int=2300 int_gain=160 mana=75 mana_regen=25 hp_regen=75 armor=0 mr=25 bat=170 damage=2800
@@ -155,14 +155,4 @@ hero ringmaster primary=2 str=2100 str_gain=210 agi=1100 agi_gain=160 int=2500 i
 hero kez primary=1 str=2000 str_gain=280 agi=2700 agi_gain=350 int=2000 int_gain=170 mana=75 mana_regen=25 hp_regen=150 armor=100 mr=25 bat=190 damage=2500
 hero largo primary=0 str=2400 str_gain=360 agi=1400 agi_gain=130 int=2100 int_gain=260 mana=75 mana_regen=0 hp_regen=25 armor=200 mr=25 bat=170 damage=4200
 hero hero primary=0 str=2100 str_gain=320 agi=1400 agi_gain=200 int=1800 int_gain=170 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=160 damage=3700
-hero ironhide primary=0 str=2400 str_gain=350 agi=1800 agi_gain=220 int=1600 int_gain=150 mana=75 mana_regen=0 hp_regen=75 armor=0 mr=25 bat=190 damage=3800
-hero swiftbow primary=1 str=1600 str_gain=190 agi=2400 agi_gain=280 int=1500 int_gain=140 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=3050
-hero stormcaller primary=2 str=2100 str_gain=210 agi=1100 agi_gain=120 int=2300 int_gain=330 mana=75 mana_regen=0 hp_regen=25 armor=100 mr=25 bat=170 damage=3500
-hero bulwark primary=0 str=2500 str_gain=270 agi=1800 agi_gain=170 int=1800 int_gain=160 mana=75 mana_regen=0 hp_regen=200 armor=0 mr=25 bat=170 damage=3300
-hero shadeblade primary=1 str=1800 str_gain=200 agi=3000 agi_gain=240 int=1400 int_gain=130 mana=75 mana_regen=0 hp_regen=250 armor=0 mr=25 bat=170 damage=2400
-hero emberlord primary=2 str=2000 str_gain=240 agi=2100 agi_gain=240 int=2800 int_gain=400 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=160 damage=2500
-hero gale_archer primary=3 str=1800 str_gain=260 agi=2000 agi_gain=210 int=1800 int_gain=320 mana=75 mana_regen=25 hp_regen=75 armor=0 mr=25 bat=150 damage=3000
-hero frostmage primary=2 str=1700 str_gain=220 agi=1600 agi_gain=180 int=2000 int_gain=330 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=3100
-hero tidecaller primary=0 str=2400 str_gain=360 agi=1400 agi_gain=160 int=1800 int_gain=180 mana=75 mana_regen=0 hp_regen=75 armor=200 mr=25 bat=170 damage=3300
-hero thornwarden primary=0 str=2500 str_gain=340 agi=1500 agi_gain=180 int=1700 int_gain=180 mana=75 mana_regen=25 hp_regen=25 armor=100 mr=25 bat=190 damage=6400
 # END generated by scripts/gen-heroes.mjs
