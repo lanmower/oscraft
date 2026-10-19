@@ -78,11 +78,19 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     return c ? Math.max(0, c.until - game.ticks()) : 0;
   }
 
+  // A cast dropped before the sim is never counted or refused by the sim, so it names its reason on the page for the CI witness.
+  function dropCast(reason) {
+    document.body.dataset.lastRefusal = `cast_dropped ${reason}`;
+    return false;
+  }
+
   function cast(slot, world) {
     const hero = heroInSelection();
-    if (hero < 0) return false;
+    if (hero < 0) return dropCast(`no_hero_selected slot=${slot}`);
     const ability = JSON.parse(game.abilities_json(hero)).find((a) => a.slot === slot);
-    if (!ability || cooldownLeft(hero, slot) > 0) return false;
+    if (!ability) return dropCast(`no_ability hero=${hero} slot=${slot}`);
+    const left = cooldownLeft(hero, slot);
+    if (left > 0) return dropCast(`cooldown hero=${hero} slot=${slot} ticks=${left}`);
     const target = pick(world);
     const ok = commands.cast(hero, slot, target ? target.id : -1, world.x, world.z);
     if (ok) {
