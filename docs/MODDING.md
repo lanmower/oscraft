@@ -340,3 +340,9 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 - A mod has no file, network or OS access. The base library is the set copied into each
   environment: `pcall`, `xpcall`, `error`, `assert`, `type`, `tostring`, `tonumber`, `select`,
   `pairs`, `ipairs`, `next`, plus the host globals above.
+
+## Asset pipeline: making models and textures load fast
+
+A mod that ships GLB models or PNG and JPEG textures can run `scripts/assets/prep-ktx.mjs` to add lossless
+meshopt geometry and KTX2 textures. It needs the KTX-Software `toktx` binary, which is not in this repository.
+See [docs/ASSET_PIPELINE.md](ASSET_PIPELINE.md) for the download, the exact commands, and how to verify an output.

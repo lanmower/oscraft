@@ -1,13 +1,13 @@
 {
- "count": 795,
- "total_bytes": 46070440,
+ "count": 800,
+ "total_bytes": 22770373,
  "items": [
   {
    "id": "rock",
    "kind": "model",
    "path": "js/client/models/rock-a.glb",
    "placed_by": "doodads.json",
-   "bytes": 10812,
+   "bytes": 6880,
    "role": "rock"
   },
   {
@@ -15,7 +15,7 @@
    "kind": "model",
    "path": "js/client/models/tree.glb",
    "placed_by": "doodads.json",
-   "bytes": 22184,
+   "bytes": 15216,
    "role": "tree"
   },
   {
@@ -23,7 +23,7 @@
    "kind": "model",
    "path": "js/client/models/resource-stone.glb",
    "placed_by": "doodads.json",
-   "bytes": 5464,
+   "bytes": 5036,
    "role": "prop"
   },
   {
@@ -31,7 +31,7 @@
    "kind": "model",
    "path": "js/client/models/barrel.glb",
    "placed_by": "doodads.json",
-   "bytes": 34256,
+   "bytes": 15636,
    "role": "prop"
   },
   {
@@ -39,7 +39,7 @@
    "kind": "model",
    "path": "js/client/models/building-a.glb",
    "placed_by": "doodads.json",
-   "bytes": 177316,
+   "bytes": 72692,
    "role": "prop"
   },
   {
@@ -47,7 +47,7 @@
    "kind": "model",
    "path": "js/client/models/stall.glb",
    "placed_by": "doodads.json",
-   "bytes": 11500,
+   "bytes": 6160,
    "role": "prop"
   },
   {
@@ -55,7 +55,7 @@
    "kind": "model",
    "path": "js/client/models/fountain-round.glb",
    "placed_by": "doodads.json",
-   "bytes": 84848,
+   "bytes": 44404,
    "role": "prop"
   },
   {
@@ -63,7 +63,7 @@
    "kind": "model",
    "path": "js/client/models/flag-pennant.glb",
    "placed_by": "doodads.json",
-   "bytes": 13652,
+   "bytes": 9360,
    "role": "prop"
   },
   {
@@ -71,7 +71,7 @@
    "kind": "model",
    "path": "js/client/models/campfire-pit.glb",
    "placed_by": "doodads.json",
-   "bytes": 26468,
+   "bytes": 14224,
    "role": "prop"
   },
   {
@@ -86,749 +86,749 @@
    "kind": "texture",
    "path": "js/client/textures/ground.png",
    "placed_by": "texture.js",
-   "bytes": 10835
+   "bytes": 262988
   },
   {
    "id": "aid-cane-blind",
    "kind": "model",
    "path": "js/client/models/aid-cane-blind.glb",
    "role": "prop",
-   "bytes": 6168
+   "bytes": 4964
   },
   {
    "id": "aid-cane-low-vision",
    "kind": "model",
    "path": "js/client/models/aid-cane-low-vision.glb",
    "role": "prop",
-   "bytes": 6568
+   "bytes": 5148
   },
   {
    "id": "aid-cane",
    "kind": "model",
    "path": "js/client/models/aid-cane.glb",
    "role": "prop",
-   "bytes": 8524
+   "bytes": 5656
   },
   {
    "id": "aid-crutch",
    "kind": "model",
    "path": "js/client/models/aid-crutch.glb",
    "role": "prop",
-   "bytes": 16008
+   "bytes": 11480
   },
   {
    "id": "aid-defibrillator-green",
    "kind": "model",
    "path": "js/client/models/aid-defibrillator-green.glb",
    "role": "prop",
-   "bytes": 10296
+   "bytes": 8348
   },
   {
    "id": "aid-defibrillator-red",
    "kind": "model",
    "path": "js/client/models/aid-defibrillator-red.glb",
    "role": "prop",
-   "bytes": 10288
+   "bytes": 8280
   },
   {
    "id": "aid-glasses",
    "kind": "model",
    "path": "js/client/models/aid-glasses.glb",
    "role": "prop",
-   "bytes": 6764
+   "bytes": 5340
   },
   {
    "id": "aid-mask",
    "kind": "model",
    "path": "js/client/models/aid-mask.glb",
    "role": "prop",
-   "bytes": 15820
+   "bytes": 9332
   },
   {
    "id": "aid-sunglasses",
    "kind": "model",
    "path": "js/client/models/aid-sunglasses.glb",
    "role": "prop",
-   "bytes": 6324
+   "bytes": 4804
   },
   {
    "id": "aid_hearing",
    "kind": "model",
    "path": "js/client/models/aid_hearing.glb",
    "role": "prop",
-   "bytes": 7212
+   "bytes": 5160
   },
   {
    "id": "altar-stone",
    "kind": "model",
    "path": "js/client/models/altar-stone.glb",
    "role": "prop",
-   "bytes": 17164
+   "bytes": 10804
   },
   {
    "id": "altar-wood",
    "kind": "model",
    "path": "js/client/models/altar-wood.glb",
    "role": "prop",
-   "bytes": 28368
+   "bytes": 14844
   },
   {
    "id": "arrow-basic-rounded",
    "kind": "model",
    "path": "js/client/models/arrow-basic-rounded.glb",
    "role": "prop",
-   "bytes": 5120
+   "bytes": 4340
   },
   {
    "id": "arrow-basic",
    "kind": "model",
    "path": "js/client/models/arrow-basic.glb",
    "role": "prop",
-   "bytes": 3596
+   "bytes": 3516
   },
   {
    "id": "arrow-rounded",
    "kind": "model",
    "path": "js/client/models/arrow-rounded.glb",
    "role": "prop",
-   "bytes": 5404
+   "bytes": 4588
   },
   {
    "id": "arrow",
    "kind": "model",
    "path": "js/client/models/arrow.glb",
    "role": "prop",
-   "bytes": 3848
+   "bytes": 3864
   },
   {
    "id": "balcony-wall-fence",
    "kind": "model",
    "path": "js/client/models/balcony-wall-fence.glb",
    "role": "structure",
-   "bytes": 11236
+   "bytes": 5952
   },
   {
    "id": "balcony-wall",
    "kind": "model",
    "path": "js/client/models/balcony-wall.glb",
    "role": "structure",
-   "bytes": 7424
+   "bytes": 4768
   },
   {
    "id": "banner-green",
    "kind": "model",
    "path": "js/client/models/banner-green.glb",
    "role": "prop",
-   "bytes": 10200
+   "bytes": 5788
   },
   {
    "id": "banner-red",
    "kind": "model",
    "path": "js/client/models/banner-red.glb",
    "role": "prop",
-   "bytes": 9988
+   "bytes": 5752
   },
   {
    "id": "banner",
    "kind": "model",
    "path": "js/client/models/banner.glb",
    "role": "prop",
-   "bytes": 19272
+   "bytes": 9436
   },
   {
    "id": "barrel-open",
    "kind": "model",
    "path": "js/client/models/barrel-open.glb",
    "role": "prop",
-   "bytes": 31772
+   "bytes": 14784
   },
   {
    "id": "bedroll-frame",
    "kind": "model",
    "path": "js/client/models/bedroll-frame.glb",
    "role": "prop",
-   "bytes": 10152
+   "bytes": 5728
   },
   {
    "id": "bedroll-packed",
    "kind": "model",
    "path": "js/client/models/bedroll-packed.glb",
    "role": "prop",
-   "bytes": 13680
+   "bytes": 10272
   },
   {
    "id": "bedroll",
    "kind": "model",
    "path": "js/client/models/bedroll.glb",
    "role": "prop",
-   "bytes": 14036
+   "bytes": 9332
   },
   {
    "id": "bench-damaged",
    "kind": "model",
    "path": "js/client/models/bench-damaged.glb",
    "role": "prop",
-   "bytes": 23548
+   "bytes": 13448
   },
   {
    "id": "bench",
    "kind": "model",
    "path": "js/client/models/bench.glb",
    "role": "prop",
-   "bytes": 15952
+   "bytes": 8888
   },
   {
    "id": "blade",
    "kind": "model",
    "path": "js/client/models/blade.glb",
    "role": "prop",
-   "bytes": 18792
+   "bytes": 9296
   },
   {
    "id": "border-pillar",
    "kind": "model",
    "path": "js/client/models/border-pillar.glb",
    "role": "prop",
-   "bytes": 11292
+   "bytes": 8108
   },
   {
    "id": "bottle-large",
    "kind": "model",
    "path": "js/client/models/bottle-large.glb",
    "role": "prop",
-   "bytes": 10484
+   "bytes": 7852
   },
   {
    "id": "bottle",
    "kind": "model",
    "path": "js/client/models/bottle.glb",
    "role": "prop",
-   "bytes": 10468
+   "bytes": 8004
   },
   {
    "id": "box-large-open",
    "kind": "model",
    "path": "js/client/models/box-large-open.glb",
    "role": "prop",
-   "bytes": 17068
+   "bytes": 11432
   },
   {
    "id": "box-large",
    "kind": "model",
    "path": "js/client/models/box-large.glb",
    "role": "prop",
-   "bytes": 14072
+   "bytes": 10332
   },
   {
    "id": "box-long",
    "kind": "model",
    "path": "js/client/models/box-long.glb",
    "role": "prop",
-   "bytes": 7492
+   "bytes": 5384
   },
   {
    "id": "box-open",
    "kind": "model",
    "path": "js/client/models/box-open.glb",
    "role": "prop",
-   "bytes": 17052
+   "bytes": 11416
   },
   {
    "id": "box-small",
    "kind": "model",
    "path": "js/client/models/box-small.glb",
    "role": "prop",
-   "bytes": 7500
+   "bytes": 5416
   },
   {
    "id": "box-wide",
    "kind": "model",
    "path": "js/client/models/box-wide.glb",
    "role": "prop",
-   "bytes": 7496
+   "bytes": 5472
   },
   {
    "id": "box",
    "kind": "model",
    "path": "js/client/models/box.glb",
    "role": "prop",
-   "bytes": 14056
+   "bytes": 10320
   },
   {
    "id": "brick-wall-curve-small",
    "kind": "model",
    "path": "js/client/models/brick-wall-curve-small.glb",
    "role": "prop",
-   "bytes": 50812
+   "bytes": 27928
   },
   {
    "id": "brick-wall-curve",
    "kind": "model",
    "path": "js/client/models/brick-wall-curve.glb",
    "role": "prop",
-   "bytes": 34684
+   "bytes": 22060
   },
   {
    "id": "brick-wall-end",
    "kind": "model",
    "path": "js/client/models/brick-wall-end.glb",
    "role": "prop",
-   "bytes": 31056
+   "bytes": 14636
   },
   {
    "id": "brick-wall",
    "kind": "model",
    "path": "js/client/models/brick-wall.glb",
    "role": "prop",
-   "bytes": 19440
+   "bytes": 9624
   },
   {
    "id": "bridge-draw",
    "kind": "model",
    "path": "js/client/models/bridge-draw.glb",
    "role": "structure",
-   "bytes": 5140
+   "bytes": 4324
   },
   {
    "id": "bridge-pillar-wide",
    "kind": "model",
    "path": "js/client/models/bridge-pillar-wide.glb",
    "role": "structure",
-   "bytes": 5488
+   "bytes": 4232
   },
   {
    "id": "bridge-pillar",
    "kind": "model",
    "path": "js/client/models/bridge-pillar.glb",
    "role": "structure",
-   "bytes": 5468
+   "bytes": 4216
   },
   {
    "id": "bridge-straight-pillar",
    "kind": "model",
    "path": "js/client/models/bridge-straight-pillar.glb",
    "role": "structure",
-   "bytes": 14344
+   "bytes": 6400
   },
   {
    "id": "bridge-straight",
    "kind": "model",
    "path": "js/client/models/bridge-straight.glb",
    "role": "structure",
-   "bytes": 16832
+   "bytes": 7048
   },
   {
    "id": "bridge",
    "kind": "model",
    "path": "js/client/models/bridge.glb",
    "role": "structure",
-   "bytes": 32460
+   "bytes": 20328
   },
   {
    "id": "bucket",
    "kind": "model",
    "path": "js/client/models/bucket.glb",
    "role": "prop",
-   "bytes": 7816
+   "bytes": 5736
   },
   {
    "id": "building-b",
    "kind": "model",
    "path": "js/client/models/building-b.glb",
    "role": "building",
-   "bytes": 212040
+   "bytes": 89000
   },
   {
    "id": "building-c",
    "kind": "model",
    "path": "js/client/models/building-c.glb",
    "role": "building",
-   "bytes": 175844
+   "bytes": 81776
   },
   {
    "id": "building-d",
    "kind": "model",
    "path": "js/client/models/building-d.glb",
    "role": "building",
-   "bytes": 100768
+   "bytes": 45512
   },
   {
    "id": "building-e",
    "kind": "model",
    "path": "js/client/models/building-e.glb",
    "role": "building",
-   "bytes": 129400
+   "bytes": 57488
   },
   {
    "id": "building-f",
    "kind": "model",
    "path": "js/client/models/building-f.glb",
    "role": "building",
-   "bytes": 134916
+   "bytes": 60288
   },
   {
    "id": "building-g",
    "kind": "model",
    "path": "js/client/models/building-g.glb",
    "role": "building",
-   "bytes": 106940
+   "bytes": 49880
   },
   {
    "id": "building-h",
    "kind": "model",
    "path": "js/client/models/building-h.glb",
    "role": "building",
-   "bytes": 63644
+   "bytes": 31052
   },
   {
    "id": "building-i",
    "kind": "model",
    "path": "js/client/models/building-i.glb",
    "role": "building",
-   "bytes": 73848
+   "bytes": 38584
   },
   {
    "id": "building-j",
    "kind": "model",
    "path": "js/client/models/building-j.glb",
    "role": "building",
-   "bytes": 80792
+   "bytes": 41304
   },
   {
    "id": "building-k",
    "kind": "model",
    "path": "js/client/models/building-k.glb",
    "role": "building",
-   "bytes": 65472
+   "bytes": 34760
   },
   {
    "id": "building-l",
    "kind": "model",
    "path": "js/client/models/building-l.glb",
    "role": "building",
-   "bytes": 162424
+   "bytes": 68760
   },
   {
    "id": "building-m",
    "kind": "model",
    "path": "js/client/models/building-m.glb",
    "role": "building",
-   "bytes": 138920
+   "bytes": 64456
   },
   {
    "id": "building-n",
    "kind": "model",
    "path": "js/client/models/building-n.glb",
    "role": "building",
-   "bytes": 109256
+   "bytes": 49356
   },
   {
    "id": "building-o",
    "kind": "model",
    "path": "js/client/models/building-o.glb",
    "role": "building",
-   "bytes": 76552
+   "bytes": 35360
   },
   {
    "id": "building-p",
    "kind": "model",
    "path": "js/client/models/building-p.glb",
    "role": "building",
-   "bytes": 103760
+   "bytes": 49644
   },
   {
    "id": "building-platform",
    "kind": "model",
    "path": "js/client/models/building-platform.glb",
    "role": "building",
-   "bytes": 48212
+   "bytes": 30600
   },
   {
    "id": "building-q",
    "kind": "model",
    "path": "js/client/models/building-q.glb",
    "role": "building",
-   "bytes": 181248
+   "bytes": 78200
   },
   {
    "id": "building-r",
    "kind": "model",
    "path": "js/client/models/building-r.glb",
    "role": "building",
-   "bytes": 173056
+   "bytes": 81376
   },
   {
    "id": "building-roof",
    "kind": "model",
    "path": "js/client/models/building-roof.glb",
    "role": "building",
-   "bytes": 31964
+   "bytes": 20016
   },
   {
    "id": "building-s",
    "kind": "model",
    "path": "js/client/models/building-s.glb",
    "role": "building",
-   "bytes": 81192
+   "bytes": 39888
   },
   {
    "id": "building-structure",
    "kind": "model",
    "path": "js/client/models/building-structure.glb",
    "role": "building",
-   "bytes": 16356
+   "bytes": 7716
   },
   {
    "id": "building-t",
    "kind": "model",
    "path": "js/client/models/building-t.glb",
    "role": "building",
-   "bytes": 139896
+   "bytes": 68408
   },
   {
    "id": "button-floor-round-small",
    "kind": "model",
    "path": "js/client/models/button-floor-round-small.glb",
    "role": "prop",
-   "bytes": 14708
+   "bytes": 12344
   },
   {
    "id": "button-floor-round",
    "kind": "model",
    "path": "js/client/models/button-floor-round.glb",
    "role": "prop",
-   "bytes": 14628
+   "bytes": 12176
   },
   {
    "id": "button-floor-square-small",
    "kind": "model",
    "path": "js/client/models/button-floor-square-small.glb",
    "role": "prop",
-   "bytes": 15984
+   "bytes": 13212
   },
   {
    "id": "button-floor-square",
    "kind": "model",
    "path": "js/client/models/button-floor-square.glb",
    "role": "prop",
-   "bytes": 15960
+   "bytes": 13288
   },
   {
    "id": "campfire-fishing-stand",
    "kind": "model",
    "path": "js/client/models/campfire-fishing-stand.glb",
    "role": "prop",
-   "bytes": 10188
+   "bytes": 6036
   },
   {
    "id": "campfire-stand",
    "kind": "model",
    "path": "js/client/models/campfire-stand.glb",
    "role": "prop",
-   "bytes": 8320
+   "bytes": 5256
   },
   {
    "id": "candle-multiple",
    "kind": "model",
    "path": "js/client/models/candle-multiple.glb",
    "role": "prop",
-   "bytes": 17304
+   "bytes": 12584
   },
   {
    "id": "candle",
    "kind": "model",
    "path": "js/client/models/candle.glb",
    "role": "prop",
-   "bytes": 6800
+   "bytes": 6000
   },
   {
    "id": "cart-high",
    "kind": "model",
    "path": "js/client/models/cart-high.glb",
    "role": "prop",
-   "bytes": 88560
+   "bytes": 43600
   },
   {
    "id": "cart",
    "kind": "model",
    "path": "js/client/models/cart.glb",
    "role": "prop",
-   "bytes": 52920
+   "bytes": 24988
   },
   {
    "id": "catwalk-corner",
    "kind": "model",
    "path": "js/client/models/catwalk-corner.glb",
    "role": "structure",
-   "bytes": 49600
+   "bytes": 33320
   },
   {
    "id": "catwalk-cross",
    "kind": "model",
    "path": "js/client/models/catwalk-cross.glb",
    "role": "structure",
-   "bytes": 21080
+   "bytes": 14012
   },
   {
    "id": "catwalk-junction",
    "kind": "model",
    "path": "js/client/models/catwalk-junction.glb",
    "role": "structure",
-   "bytes": 30332
+   "bytes": 20264
   },
   {
    "id": "catwalk-stairs-loop",
    "kind": "model",
    "path": "js/client/models/catwalk-stairs-loop.glb",
    "role": "structure",
-   "bytes": 33116
+   "bytes": 20972
   },
   {
    "id": "catwalk-stairs",
    "kind": "model",
    "path": "js/client/models/catwalk-stairs.glb",
    "role": "structure",
-   "bytes": 66256
+   "bytes": 41904
   },
   {
    "id": "catwalk-straight",
    "kind": "model",
    "path": "js/client/models/catwalk-straight.glb",
    "role": "structure",
-   "bytes": 33492
+   "bytes": 22044
   },
   {
    "id": "chair",
    "kind": "model",
    "path": "js/client/models/chair.glb",
    "role": "prop",
-   "bytes": 20464
+   "bytes": 13928
   },
   {
    "id": "character-archer",
    "kind": "model",
    "path": "js/client/models/character-archer.glb",
    "role": "character",
-   "bytes": 239124
+   "bytes": 129760
   },
   {
    "id": "character-female-a",
    "kind": "model",
    "path": "js/client/models/character-female-a.glb",
    "role": "character",
-   "bytes": 273448
+   "bytes": 149940
   },
   {
    "id": "character-female-b",
    "kind": "model",
    "path": "js/client/models/character-female-b.glb",
    "role": "character",
-   "bytes": 252140
+   "bytes": 142608
   },
   {
    "id": "character-female-c",
    "kind": "model",
    "path": "js/client/models/character-female-c.glb",
    "role": "character",
-   "bytes": 252040
+   "bytes": 142816
   },
   {
    "id": "character-female-d",
    "kind": "model",
    "path": "js/client/models/character-female-d.glb",
    "role": "character",
-   "bytes": 258760
+   "bytes": 145300
   },
   {
    "id": "character-female-e",
    "kind": "model",
    "path": "js/client/models/character-female-e.glb",
    "role": "character",
-   "bytes": 248012
+   "bytes": 139776
   },
   {
    "id": "character-female-f",
    "kind": "model",
    "path": "js/client/models/character-female-f.glb",
    "role": "character",
-   "bytes": 259488
+   "bytes": 144220
   },
   {
    "id": "character-ghost",
    "kind": "model",
    "path": "js/client/models/character-ghost.glb",
    "role": "creep",
-   "bytes": 114016
+   "bytes": 82128
   },
   {
    "id": "character-human",
    "kind": "model",
    "path": "js/client/models/character-human.glb",
    "role": "character",
-   "bytes": 218072
+   "bytes": 123872
   },
   {
    "id": "character-keeper",
    "kind": "model",
    "path": "js/client/models/character-keeper.glb",
    "role": "character",
-   "bytes": 250200
+   "bytes": 169096
   },
   {
    "id": "character-male-a",
    "kind": "model",
    "path": "js/client/models/character-male-a.glb",
    "role": "character",
-   "bytes": 246916
+   "bytes": 139212
   },
   {
    "id": "character-male-b",
    "kind": "model",
    "path": "js/client/models/character-male-b.glb",
    "role": "character",
-   "bytes": 247332
+   "bytes": 138960
   },
   {
    "id": "character-male-c",
    "kind": "model",
    "path": "js/client/models/character-male-c.glb",
    "role": "character",
-   "bytes": 263104
+   "bytes": 146768
   },
   {
    "id": "character-male-d",
    "kind": "model",
    "path": "js/client/models/character-male-d.glb",
    "role": "character",
-   "bytes": 245184
+   "bytes": 139392
   },
   {
    "id": "character-male-e",
    "kind": "model",
    "path": "js/client/models/character-male-e.glb",
    "role": "character",
-   "bytes": 242704
+   "bytes": 137124
   },
   {
    "id": "character-male-f",
    "kind": "model",
    "path": "js/client/models/character-male-f.glb",
    "role": "character",
-   "bytes": 249388
+   "bytes": 140940
   },
   {
    "id": "character-orc",
    "kind": "model",
    "path": "js/client/models/character-orc.glb",
    "role": "creep",
-   "bytes": 199616
+   "bytes": 120536
   },
   {
    "id": "roshan-skinned",
    "kind": "model",
    "path": "js/client/models/roshan-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 7778796,
+   "bytes": 1630996,
    "role": "character"
   },
   {
@@ -836,7 +836,7 @@
    "kind": "model",
    "path": "js/client/models/roshan-lowpoly.glb",
    "placed_by": "doodads.json",
-   "bytes": 7504440,
+   "bytes": 1494240,
    "role": "character"
   },
   {
@@ -852,4613 +852,4613 @@
    "kind": "model",
    "path": "js/client/models/character-skeleton.glb",
    "role": "creep",
-   "bytes": 202796
+   "bytes": 141940
   },
   {
    "id": "character-vampire",
    "kind": "model",
    "path": "js/client/models/character-vampire.glb",
    "role": "creep",
-   "bytes": 248132
+   "bytes": 170464
   },
   {
    "id": "character-zombie",
    "kind": "model",
    "path": "js/client/models/character-zombie.glb",
    "role": "creep",
-   "bytes": 245500
+   "bytes": 170232
   },
   {
    "id": "chest",
    "kind": "model",
    "path": "js/client/models/chest.glb",
    "role": "prop",
-   "bytes": 35172
+   "bytes": 17912
   },
   {
    "id": "chimney-base",
    "kind": "model",
    "path": "js/client/models/chimney-base.glb",
    "role": "building",
-   "bytes": 8408
+   "bytes": 5540
   },
   {
    "id": "chimney-basic",
    "kind": "model",
    "path": "js/client/models/chimney-basic.glb",
    "role": "building",
-   "bytes": 9036
+   "bytes": 6088
   },
   {
    "id": "chimney-large",
    "kind": "model",
    "path": "js/client/models/chimney-large.glb",
    "role": "building",
-   "bytes": 20932
+   "bytes": 14664
   },
   {
    "id": "chimney-medium",
    "kind": "model",
    "path": "js/client/models/chimney-medium.glb",
    "role": "building",
-   "bytes": 15020
+   "bytes": 9804
   },
   {
    "id": "chimney-small",
    "kind": "model",
    "path": "js/client/models/chimney-small.glb",
    "role": "building",
-   "bytes": 10536
+   "bytes": 6704
   },
   {
    "id": "chimney-top",
    "kind": "model",
    "path": "js/client/models/chimney-top.glb",
    "role": "building",
-   "bytes": 7896
+   "bytes": 5204
   },
   {
    "id": "chimney",
    "kind": "model",
    "path": "js/client/models/chimney.glb",
    "role": "building",
-   "bytes": 4656
+   "bytes": 3896
   },
   {
    "id": "coffin-old",
    "kind": "model",
    "path": "js/client/models/coffin-old.glb",
    "role": "building",
-   "bytes": 19952
+   "bytes": 10644
   },
   {
    "id": "coffin",
    "kind": "model",
    "path": "js/client/models/coffin.glb",
    "role": "building",
-   "bytes": 24696
+   "bytes": 15252
   },
   {
    "id": "cog-a",
    "kind": "model",
    "path": "js/client/models/cog-a.glb",
    "role": "prop",
-   "bytes": 13660
+   "bytes": 7528
   },
   {
    "id": "cog-b",
    "kind": "model",
    "path": "js/client/models/cog-b.glb",
    "role": "prop",
-   "bytes": 16640
+   "bytes": 8920
   },
   {
    "id": "cog-c",
    "kind": "model",
    "path": "js/client/models/cog-c.glb",
    "role": "prop",
-   "bytes": 13660
+   "bytes": 7664
   },
   {
    "id": "cog-d",
    "kind": "model",
    "path": "js/client/models/cog-d.glb",
    "role": "prop",
-   "bytes": 13660
+   "bytes": 7736
   },
   {
    "id": "cog-e",
    "kind": "model",
    "path": "js/client/models/cog-e.glb",
    "role": "prop",
-   "bytes": 19136
+   "bytes": 9676
   },
   {
    "id": "coin",
    "kind": "model",
    "path": "js/client/models/coin.glb",
    "role": "prop",
-   "bytes": 22124
+   "bytes": 10252
   },
   {
    "id": "column-large",
    "kind": "model",
    "path": "js/client/models/column-large.glb",
    "role": "structure",
-   "bytes": 37540
+   "bytes": 24712
   },
   {
    "id": "column",
    "kind": "model",
    "path": "js/client/models/column.glb",
    "role": "structure",
-   "bytes": 11268
+   "bytes": 9428
   },
   {
    "id": "cone",
    "kind": "model",
    "path": "js/client/models/cone.glb",
    "role": "prop",
-   "bytes": 7028
+   "bytes": 5384
   },
   {
    "id": "construction-barrier",
    "kind": "model",
    "path": "js/client/models/construction-barrier.glb",
    "role": "prop",
-   "bytes": 7052
+   "bytes": 6348
   },
   {
    "id": "construction-cone",
    "kind": "model",
    "path": "js/client/models/construction-cone.glb",
    "role": "prop",
-   "bytes": 7056
+   "bytes": 5556
   },
   {
    "id": "construction-fence",
    "kind": "model",
    "path": "js/client/models/construction-fence.glb",
    "role": "prop",
-   "bytes": 14856
+   "bytes": 11020
   },
   {
    "id": "construction-light",
    "kind": "model",
    "path": "js/client/models/construction-light.glb",
    "role": "prop",
-   "bytes": 15320
+   "bytes": 9408
   },
   {
    "id": "conveyor-bars-fence-slope",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-fence-slope.glb",
    "role": "structure",
-   "bytes": 29328
+   "bytes": 15812
   },
   {
    "id": "conveyor-bars-fence",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-fence.glb",
    "role": "structure",
-   "bytes": 29288
+   "bytes": 14588
   },
   {
    "id": "conveyor-bars-high-slope",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-high-slope.glb",
    "role": "structure",
-   "bytes": 20500
+   "bytes": 11832
   },
   {
    "id": "conveyor-bars-high",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-high.glb",
    "role": "structure",
-   "bytes": 20464
+   "bytes": 11044
   },
   {
    "id": "conveyor-bars-sides",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-sides.glb",
    "role": "structure",
-   "bytes": 21564
+   "bytes": 8900
   },
   {
    "id": "conveyor-bars-stripe-fence-slope",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-stripe-fence-slope.glb",
    "role": "structure",
-   "bytes": 45384
+   "bytes": 21536
   },
   {
    "id": "conveyor-bars-stripe-fence",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-stripe-fence.glb",
    "role": "structure",
-   "bytes": 45364
+   "bytes": 20320
   },
   {
    "id": "conveyor-bars-stripe-high-slope",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-stripe-high-slope.glb",
    "role": "structure",
-   "bytes": 36556
+   "bytes": 17664
   },
   {
    "id": "conveyor-bars-stripe-high",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-stripe-high.glb",
    "role": "structure",
-   "bytes": 36520
+   "bytes": 16828
   },
   {
    "id": "conveyor-bars-stripe-side",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-stripe-side.glb",
    "role": "structure",
-   "bytes": 34256
+   "bytes": 13680
   },
   {
    "id": "conveyor-bars-stripe",
    "kind": "model",
    "path": "js/client/models/conveyor-bars-stripe.glb",
    "role": "structure",
-   "bytes": 31152
+   "bytes": 13196
   },
   {
    "id": "conveyor-bars",
    "kind": "model",
    "path": "js/client/models/conveyor-bars.glb",
    "role": "structure",
-   "bytes": 18476
+   "bytes": 7772
   },
   {
    "id": "conveyor-corner",
    "kind": "model",
    "path": "js/client/models/conveyor-corner.glb",
    "role": "structure",
-   "bytes": 22088
+   "bytes": 13416
   },
   {
    "id": "conveyor-cross",
    "kind": "model",
    "path": "js/client/models/conveyor-cross.glb",
    "role": "structure",
-   "bytes": 6276
+   "bytes": 5868
   },
   {
    "id": "conveyor-junction-t",
    "kind": "model",
    "path": "js/client/models/conveyor-junction-t.glb",
    "role": "structure",
-   "bytes": 12296
+   "bytes": 9392
   },
   {
    "id": "conveyor-long-part-end",
    "kind": "model",
    "path": "js/client/models/conveyor-long-part-end.glb",
    "role": "structure",
-   "bytes": 12860
+   "bytes": 8412
   },
   {
    "id": "conveyor-long-part-middle",
    "kind": "model",
    "path": "js/client/models/conveyor-long-part-middle.glb",
    "role": "structure",
-   "bytes": 5284
+   "bytes": 3760
   },
   {
    "id": "conveyor-long-sides-part-end",
    "kind": "model",
    "path": "js/client/models/conveyor-long-sides-part-end.glb",
    "role": "structure",
-   "bytes": 17736
+   "bytes": 9676
   },
   {
    "id": "conveyor-long-sides-part-middle",
    "kind": "model",
    "path": "js/client/models/conveyor-long-sides-part-middle.glb",
    "role": "structure",
-   "bytes": 8288
+   "bytes": 4876
   },
   {
    "id": "conveyor-long-sides",
    "kind": "model",
    "path": "js/client/models/conveyor-long-sides.glb",
    "role": "structure",
-   "bytes": 22100
+   "bytes": 12884
   },
   {
    "id": "conveyor-long-stripe-sides-part-end",
    "kind": "model",
    "path": "js/client/models/conveyor-long-stripe-sides-part-end.glb",
    "role": "structure",
-   "bytes": 22844
+   "bytes": 11016
   },
   {
    "id": "conveyor-long-stripe-sides-part-middle",
    "kind": "model",
    "path": "js/client/models/conveyor-long-stripe-sides-part-middle.glb",
    "role": "structure",
-   "bytes": 9912
+   "bytes": 5324
   },
   {
    "id": "conveyor-long-stripe-sides",
    "kind": "model",
    "path": "js/client/models/conveyor-long-stripe-sides.glb",
    "role": "structure",
-   "bytes": 26632
+   "bytes": 14628
   },
   {
    "id": "conveyor-long-stripe",
    "kind": "model",
    "path": "js/client/models/conveyor-long-stripe.glb",
    "role": "structure",
-   "bytes": 23608
+   "bytes": 13644
   },
   {
    "id": "conveyor-long",
    "kind": "model",
    "path": "js/client/models/conveyor-long.glb",
    "role": "structure",
-   "bytes": 18688
+   "bytes": 11664
   },
   {
    "id": "conveyor-sides-cross",
    "kind": "model",
    "path": "js/client/models/conveyor-sides-cross.glb",
    "role": "structure",
-   "bytes": 6292
+   "bytes": 5884
   },
   {
    "id": "conveyor-sides-junction-t",
    "kind": "model",
    "path": "js/client/models/conveyor-sides-junction-t.glb",
    "role": "structure",
-   "bytes": 13608
+   "bytes": 10056
   },
   {
    "id": "conveyor-sides",
    "kind": "model",
    "path": "js/client/models/conveyor-sides.glb",
    "role": "structure",
-   "bytes": 22084
+   "bytes": 12864
   },
   {
    "id": "conveyor-stripe-corner",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe-corner.glb",
    "role": "structure",
-   "bytes": 23596
+   "bytes": 13688
   },
   {
    "id": "conveyor-stripe-cross",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe-cross.glb",
    "role": "structure",
-   "bytes": 17844
+   "bytes": 12564
   },
   {
    "id": "conveyor-stripe-junction-t",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe-junction-t.glb",
    "role": "structure",
-   "bytes": 20808
+   "bytes": 13836
   },
   {
    "id": "conveyor-stripe-part-end",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe-part-end.glb",
    "role": "structure",
-   "bytes": 16588
+   "bytes": 9884
   },
   {
    "id": "conveyor-stripe-part-middle",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe-part-middle.glb",
    "role": "structure",
-   "bytes": 6884
+   "bytes": 4232
   },
   {
    "id": "conveyor-stripe-sides-cross",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe-sides-cross.glb",
    "role": "structure",
-   "bytes": 17864
+   "bytes": 12580
   },
   {
    "id": "conveyor-stripe-sides-junction-t",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe-sides-junction-t.glb",
    "role": "structure",
-   "bytes": 22180
+   "bytes": 14336
   },
   {
    "id": "conveyor-stripe-sides",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe-sides.glb",
    "role": "structure",
-   "bytes": 26620
+   "bytes": 14560
   },
   {
    "id": "conveyor-stripe",
    "kind": "model",
    "path": "js/client/models/conveyor-stripe.glb",
    "role": "structure",
-   "bytes": 23592
+   "bytes": 13608
   },
   {
    "id": "conveyor",
    "kind": "model",
    "path": "js/client/models/conveyor.glb",
    "role": "structure",
-   "bytes": 18676
+   "bytes": 11644
   },
   {
    "id": "corridor-corner",
    "kind": "model",
    "path": "js/client/models/corridor-corner.glb",
    "role": "structure",
-   "bytes": 66572
+   "bytes": 43560
   },
   {
    "id": "corridor-end",
    "kind": "model",
    "path": "js/client/models/corridor-end.glb",
    "role": "structure",
-   "bytes": 128884
+   "bytes": 82928
   },
   {
    "id": "corridor-intersection",
    "kind": "model",
    "path": "js/client/models/corridor-intersection.glb",
    "role": "structure",
-   "bytes": 24464
+   "bytes": 15588
   },
   {
    "id": "corridor-junction",
    "kind": "model",
    "path": "js/client/models/corridor-junction.glb",
    "role": "structure",
-   "bytes": 55584
+   "bytes": 36084
   },
   {
    "id": "corridor-transition",
    "kind": "model",
    "path": "js/client/models/corridor-transition.glb",
    "role": "structure",
-   "bytes": 219484
+   "bytes": 137356
   },
   {
    "id": "corridor-wide-corner",
    "kind": "model",
    "path": "js/client/models/corridor-wide-corner.glb",
    "role": "structure",
-   "bytes": 152320
+   "bytes": 96080
   },
   {
    "id": "corridor-wide-end",
    "kind": "model",
    "path": "js/client/models/corridor-wide-end.glb",
    "role": "structure",
-   "bytes": 233460
+   "bytes": 144956
   },
   {
    "id": "corridor-wide-intersection",
    "kind": "model",
    "path": "js/client/models/corridor-wide-intersection.glb",
    "role": "structure",
-   "bytes": 25704
+   "bytes": 15684
   },
   {
    "id": "corridor-wide-junction",
    "kind": "model",
    "path": "js/client/models/corridor-wide-junction.glb",
    "role": "structure",
-   "bytes": 91252
+   "bytes": 56428
   },
   {
    "id": "corridor-wide",
    "kind": "model",
    "path": "js/client/models/corridor-wide.glb",
    "role": "structure",
-   "bytes": 156680
+   "bytes": 97312
   },
   {
    "id": "corridor",
    "kind": "model",
    "path": "js/client/models/corridor.glb",
    "role": "structure",
-   "bytes": 86560
+   "bytes": 56228
   },
   {
    "id": "crane-lift",
    "kind": "model",
    "path": "js/client/models/crane-lift.glb",
    "role": "prop",
-   "bytes": 31836
+   "bytes": 21960
   },
   {
    "id": "crane-magnet",
    "kind": "model",
    "path": "js/client/models/crane-magnet.glb",
    "role": "prop",
-   "bytes": 16912
+   "bytes": 9944
   },
   {
    "id": "crane",
    "kind": "model",
    "path": "js/client/models/crane.glb",
    "role": "prop",
-   "bytes": 53396
+   "bytes": 27824
   },
   {
    "id": "cross-column",
    "kind": "model",
    "path": "js/client/models/cross-column.glb",
    "role": "building",
-   "bytes": 20820
+   "bytes": 12212
   },
   {
    "id": "cross-wood",
    "kind": "model",
    "path": "js/client/models/cross-wood.glb",
    "role": "building",
-   "bytes": 13080
+   "bytes": 7816
   },
   {
    "id": "cross",
    "kind": "model",
    "path": "js/client/models/cross.glb",
    "role": "building",
-   "bytes": 15556
+   "bytes": 8012
   },
   {
    "id": "crypt-a",
    "kind": "model",
    "path": "js/client/models/crypt-a.glb",
    "role": "building",
-   "bytes": 10904
+   "bytes": 6548
   },
   {
    "id": "crypt-b",
    "kind": "model",
    "path": "js/client/models/crypt-b.glb",
    "role": "building",
-   "bytes": 12088
+   "bytes": 6744
   },
   {
    "id": "crypt-door",
    "kind": "model",
    "path": "js/client/models/crypt-door.glb",
    "role": "building",
-   "bytes": 16168
+   "bytes": 9700
   },
   {
    "id": "crypt-large-door",
    "kind": "model",
    "path": "js/client/models/crypt-large-door.glb",
    "role": "building",
-   "bytes": 21712
+   "bytes": 11416
   },
   {
    "id": "crypt-large-roof",
    "kind": "model",
    "path": "js/client/models/crypt-large-roof.glb",
    "role": "building",
-   "bytes": 35600
+   "bytes": 19524
   },
   {
    "id": "crypt-large",
    "kind": "model",
    "path": "js/client/models/crypt-large.glb",
    "role": "building",
-   "bytes": 54852
+   "bytes": 26156
   },
   {
    "id": "crypt-small-roof",
    "kind": "model",
    "path": "js/client/models/crypt-small-roof.glb",
    "role": "building",
-   "bytes": 27284
+   "bytes": 15604
   },
   {
    "id": "crypt-small",
    "kind": "model",
    "path": "js/client/models/crypt-small.glb",
    "role": "building",
-   "bytes": 36872
+   "bytes": 19608
   },
   {
    "id": "crypt",
    "kind": "model",
    "path": "js/client/models/crypt.glb",
    "role": "building",
-   "bytes": 25048
+   "bytes": 12476
   },
   {
    "id": "debris-wood",
    "kind": "model",
    "path": "js/client/models/debris-wood.glb",
    "role": "prop",
-   "bytes": 10820
+   "bytes": 7304
   },
   {
    "id": "debris",
    "kind": "model",
    "path": "js/client/models/debris.glb",
    "role": "prop",
-   "bytes": 25132
+   "bytes": 11692
   },
   {
    "id": "detail-bowl",
    "kind": "model",
    "path": "js/client/models/detail-bowl.glb",
    "role": "prop",
-   "bytes": 17472
+   "bytes": 12300
   },
   {
    "id": "detail-chalice",
    "kind": "model",
    "path": "js/client/models/detail-chalice.glb",
    "role": "prop",
-   "bytes": 13816
+   "bytes": 10564
   },
   {
    "id": "detail-plate",
    "kind": "model",
    "path": "js/client/models/detail-plate.glb",
    "role": "prop",
-   "bytes": 11424
+   "bytes": 8780
   },
   {
    "id": "detail-tank-large",
    "kind": "model",
    "path": "js/client/models/detail-tank-large.glb",
    "role": "prop",
-   "bytes": 47452
+   "bytes": 32260
   },
   {
    "id": "detail-tank",
    "kind": "model",
    "path": "js/client/models/detail-tank.glb",
    "role": "prop",
-   "bytes": 31436
+   "bytes": 20692
   },
   {
    "id": "dirt",
    "kind": "model",
    "path": "js/client/models/dirt.glb",
    "role": "prop",
-   "bytes": 2816
+   "bytes": 3092
   },
   {
    "id": "door-wide-closed",
    "kind": "model",
    "path": "js/client/models/door-wide-closed.glb",
    "role": "structure",
-   "bytes": 3572
+   "bytes": 3284
   },
   {
    "id": "door-wide-half",
    "kind": "model",
    "path": "js/client/models/door-wide-half.glb",
    "role": "structure",
-   "bytes": 3396
+   "bytes": 3352
   },
   {
    "id": "door-wide-open",
    "kind": "model",
    "path": "js/client/models/door-wide-open.glb",
    "role": "structure",
-   "bytes": 3000
+   "bytes": 3292
   },
   {
    "id": "door",
    "kind": "model",
    "path": "js/client/models/door.glb",
    "role": "structure",
-   "bytes": 16968
+   "bytes": 8160
   },
   {
    "id": "dumpster",
    "kind": "model",
    "path": "js/client/models/dumpster.glb",
    "role": "prop",
-   "bytes": 24400
+   "bytes": 16748
   },
   {
    "id": "electricity-pole-single",
    "kind": "model",
    "path": "js/client/models/electricity-pole-single.glb",
    "role": "structure",
-   "bytes": 19480
+   "bytes": 14156
   },
   {
    "id": "electricity-pole-wide",
    "kind": "model",
    "path": "js/client/models/electricity-pole-wide.glb",
    "role": "structure",
-   "bytes": 56732
+   "bytes": 38380
   },
   {
    "id": "electricity-pole",
    "kind": "model",
    "path": "js/client/models/electricity-pole.glb",
    "role": "structure",
-   "bytes": 43652
+   "bytes": 29576
   },
   {
    "id": "electricity-side-single",
    "kind": "model",
    "path": "js/client/models/electricity-side-single.glb",
    "role": "structure",
-   "bytes": 19464
+   "bytes": 14164
   },
   {
    "id": "electricity-side-wide",
    "kind": "model",
    "path": "js/client/models/electricity-side-wide.glb",
    "role": "structure",
-   "bytes": 56732
+   "bytes": 38420
   },
   {
    "id": "electricity-side",
    "kind": "model",
    "path": "js/client/models/electricity-side.glb",
    "role": "structure",
-   "bytes": 43652
+   "bytes": 29500
   },
   {
    "id": "electricity-wires-wide",
    "kind": "model",
    "path": "js/client/models/electricity-wires-wide.glb",
    "role": "structure",
-   "bytes": 22240
+   "bytes": 17260
   },
   {
    "id": "electricity-wires",
    "kind": "model",
    "path": "js/client/models/electricity-wires.glb",
    "role": "structure",
-   "bytes": 8952
+   "bytes": 8192
   },
   {
    "id": "fence-broken",
    "kind": "model",
    "path": "js/client/models/fence-broken.glb",
    "role": "structure",
-   "bytes": 11960
+   "bytes": 6644
   },
   {
    "id": "fence-curved",
    "kind": "model",
    "path": "js/client/models/fence-curved.glb",
    "role": "structure",
-   "bytes": 25408
+   "bytes": 12648
   },
   {
    "id": "fence-damaged",
    "kind": "model",
    "path": "js/client/models/fence-damaged.glb",
    "role": "structure",
-   "bytes": 30152
+   "bytes": 13408
   },
   {
    "id": "fence-doorway",
    "kind": "model",
    "path": "js/client/models/fence-doorway.glb",
    "role": "structure",
-   "bytes": 13588
+   "bytes": 8232
   },
   {
    "id": "fence-fortified",
    "kind": "model",
    "path": "js/client/models/fence-fortified.glb",
    "role": "structure",
-   "bytes": 13592
+   "bytes": 6988
   },
   {
    "id": "fence-gate",
    "kind": "model",
    "path": "js/client/models/fence-gate.glb",
    "role": "structure",
-   "bytes": 46340
+   "bytes": 19416
   },
   {
    "id": "fence",
    "kind": "model",
    "path": "js/client/models/fence.glb",
    "role": "structure",
-   "bytes": 6428
+   "bytes": 4372
   },
   {
    "id": "fire-basket",
    "kind": "model",
    "path": "js/client/models/fire-basket.glb",
    "role": "prop",
-   "bytes": 18740
+   "bytes": 9632
   },
   {
    "id": "fish-large",
    "kind": "model",
    "path": "js/client/models/fish-large.glb",
    "role": "prop",
-   "bytes": 31728
+   "bytes": 22580
   },
   {
    "id": "fish",
    "kind": "model",
    "path": "js/client/models/fish.glb",
    "role": "prop",
-   "bytes": 31688
+   "bytes": 22580
   },
   {
    "id": "flag-banner-long",
    "kind": "model",
    "path": "js/client/models/flag-banner-long.glb",
    "role": "prop",
-   "bytes": 6660
+   "bytes": 4452
   },
   {
    "id": "flag-banner-short",
    "kind": "model",
    "path": "js/client/models/flag-banner-short.glb",
    "role": "prop",
-   "bytes": 6664
+   "bytes": 4512
   },
   {
    "id": "flag-wide",
    "kind": "model",
    "path": "js/client/models/flag-wide.glb",
    "role": "prop",
-   "bytes": 25460
+   "bytes": 13312
   },
   {
    "id": "flag",
    "kind": "model",
    "path": "js/client/models/flag.glb",
    "role": "prop",
-   "bytes": 15192
+   "bytes": 8652
   },
   {
    "id": "floor-detail",
    "kind": "model",
    "path": "js/client/models/floor-detail.glb",
    "role": "structure",
-   "bytes": 11924
+   "bytes": 9716
   },
   {
    "id": "floor-hole",
    "kind": "model",
    "path": "js/client/models/floor-hole.glb",
    "role": "structure",
-   "bytes": 16432
+   "bytes": 7444
   },
   {
    "id": "floor-large",
    "kind": "model",
    "path": "js/client/models/floor-large.glb",
    "role": "structure",
-   "bytes": 1804
+   "bytes": 2852
   },
   {
    "id": "floor-old",
    "kind": "model",
    "path": "js/client/models/floor-old.glb",
    "role": "structure",
-   "bytes": 10056
+   "bytes": 5712
   },
   {
    "id": "floor",
    "kind": "model",
    "path": "js/client/models/floor.glb",
    "role": "structure",
-   "bytes": 10044
+   "bytes": 5564
   },
   {
    "id": "fountain-center",
    "kind": "model",
    "path": "js/client/models/fountain-center.glb",
    "role": "prop",
-   "bytes": 3280
+   "bytes": 4772
   },
   {
    "id": "fountain-corner-inner-square",
    "kind": "model",
    "path": "js/client/models/fountain-corner-inner-square.glb",
    "role": "prop",
-   "bytes": 6908
+   "bytes": 6312
   },
   {
    "id": "fountain-corner-inner",
    "kind": "model",
    "path": "js/client/models/fountain-corner-inner.glb",
    "role": "prop",
-   "bytes": 15000
+   "bytes": 10756
   },
   {
    "id": "fountain-corner",
    "kind": "model",
    "path": "js/client/models/fountain-corner.glb",
    "role": "prop",
-   "bytes": 8272
+   "bytes": 7024
   },
   {
    "id": "fountain-curved",
    "kind": "model",
    "path": "js/client/models/fountain-curved.glb",
    "role": "prop",
-   "bytes": 25048
+   "bytes": 16184
   },
   {
    "id": "fountain-edge",
    "kind": "model",
    "path": "js/client/models/fountain-edge.glb",
    "role": "prop",
-   "bytes": 6024
+   "bytes": 5692
   },
   {
    "id": "fountain-round-detail",
    "kind": "model",
    "path": "js/client/models/fountain-round-detail.glb",
    "role": "prop",
-   "bytes": 136888
+   "bytes": 70476
   },
   {
    "id": "fountain-square-detail",
    "kind": "model",
    "path": "js/client/models/fountain-square-detail.glb",
    "role": "prop",
-   "bytes": 32092
+   "bytes": 16912
   },
   {
    "id": "fountain-square",
    "kind": "model",
    "path": "js/client/models/fountain-square.glb",
    "role": "prop",
-   "bytes": 27104
+   "bytes": 14916
   },
   {
    "id": "gate-metal-bars",
    "kind": "model",
    "path": "js/client/models/gate-metal-bars.glb",
    "role": "structure",
-   "bytes": 68172
+   "bytes": 35888
   },
   {
    "id": "gate-overhang",
    "kind": "model",
    "path": "js/client/models/gate-overhang.glb",
    "role": "structure",
-   "bytes": 10140
+   "bytes": 6872
   },
   {
    "id": "gate-rock",
    "kind": "model",
    "path": "js/client/models/gate-rock.glb",
    "role": "rock",
-   "bytes": 31728
+   "bytes": 19428
   },
   {
    "id": "gate",
    "kind": "model",
    "path": "js/client/models/gate.glb",
    "role": "structure",
-   "bytes": 53804
+   "bytes": 30476
   },
   {
    "id": "grass-large",
    "kind": "model",
    "path": "js/client/models/grass-large.glb",
    "role": "prop",
-   "bytes": 18848
+   "bytes": 11008
   },
   {
    "id": "grass",
    "kind": "model",
    "path": "js/client/models/grass.glb",
    "role": "prop",
-   "bytes": 5992
+   "bytes": 5036
   },
   {
    "id": "grave-border",
    "kind": "model",
    "path": "js/client/models/grave-border.glb",
    "role": "prop",
-   "bytes": 57352
+   "bytes": 38664
   },
   {
    "id": "grave",
    "kind": "model",
    "path": "js/client/models/grave.glb",
    "role": "prop",
-   "bytes": 25080
+   "bytes": 17604
   },
   {
    "id": "gravestone-bevel",
    "kind": "model",
    "path": "js/client/models/gravestone-bevel.glb",
    "role": "building",
-   "bytes": 15852
+   "bytes": 8300
   },
   {
    "id": "gravestone-broken",
    "kind": "model",
    "path": "js/client/models/gravestone-broken.glb",
    "role": "building",
-   "bytes": 12920
+   "bytes": 7840
   },
   {
    "id": "gravestone-cross-large",
    "kind": "model",
    "path": "js/client/models/gravestone-cross-large.glb",
    "role": "building",
-   "bytes": 18212
+   "bytes": 9896
   },
   {
    "id": "gravestone-cross",
    "kind": "model",
    "path": "js/client/models/gravestone-cross.glb",
    "role": "building",
-   "bytes": 20584
+   "bytes": 10588
   },
   {
    "id": "gravestone-debris",
    "kind": "model",
    "path": "js/client/models/gravestone-debris.glb",
    "role": "building",
-   "bytes": 11908
+   "bytes": 7796
   },
   {
    "id": "gravestone-decorative",
    "kind": "model",
    "path": "js/client/models/gravestone-decorative.glb",
    "role": "building",
-   "bytes": 10004
+   "bytes": 6092
   },
   {
    "id": "gravestone-roof",
    "kind": "model",
    "path": "js/client/models/gravestone-roof.glb",
    "role": "building",
-   "bytes": 16316
+   "bytes": 8828
   },
   {
    "id": "gravestone-round",
    "kind": "model",
    "path": "js/client/models/gravestone-round.glb",
    "role": "building",
-   "bytes": 16832
+   "bytes": 8464
   },
   {
    "id": "gravestone-wide",
    "kind": "model",
    "path": "js/client/models/gravestone-wide.glb",
    "role": "building",
-   "bytes": 23020
+   "bytes": 10676
   },
   {
    "id": "ground-hills",
    "kind": "model",
    "path": "js/client/models/ground-hills.glb",
    "role": "prop",
-   "bytes": 12732
+   "bytes": 10468
   },
   {
    "id": "ground",
    "kind": "model",
    "path": "js/client/models/ground.glb",
    "role": "prop",
-   "bytes": 1788
+   "bytes": 2812
   },
   {
    "id": "hay-bale-bundled",
    "kind": "model",
    "path": "js/client/models/hay-bale-bundled.glb",
    "role": "prop",
-   "bytes": 35088
+   "bytes": 24936
   },
   {
    "id": "hay-bale",
    "kind": "model",
    "path": "js/client/models/hay-bale.glb",
    "role": "prop",
-   "bytes": 17828
+   "bytes": 13172
   },
   {
    "id": "hedge-curved",
    "kind": "model",
    "path": "js/client/models/hedge-curved.glb",
    "role": "structure",
-   "bytes": 26312
+   "bytes": 16996
   },
   {
    "id": "hedge-gate",
    "kind": "model",
    "path": "js/client/models/hedge-gate.glb",
    "role": "structure",
-   "bytes": 8432
+   "bytes": 6372
   },
   {
    "id": "hedge-large-curved",
    "kind": "model",
    "path": "js/client/models/hedge-large-curved.glb",
    "role": "structure",
-   "bytes": 25024
+   "bytes": 17924
   },
   {
    "id": "hedge-large-gate",
    "kind": "model",
    "path": "js/client/models/hedge-large-gate.glb",
    "role": "structure",
-   "bytes": 18072
+   "bytes": 12504
   },
   {
    "id": "hedge-large",
    "kind": "model",
    "path": "js/client/models/hedge-large.glb",
    "role": "structure",
-   "bytes": 9568
+   "bytes": 6856
   },
   {
    "id": "hedge",
    "kind": "model",
    "path": "js/client/models/hedge.glb",
    "role": "structure",
-   "bytes": 6524
+   "bytes": 5436
   },
   {
    "id": "hopper-high-round",
    "kind": "model",
    "path": "js/client/models/hopper-high-round.glb",
    "role": "structure",
-   "bytes": 16644
+   "bytes": 11524
   },
   {
    "id": "hopper-high-square",
    "kind": "model",
    "path": "js/client/models/hopper-high-square.glb",
    "role": "structure",
-   "bytes": 11308
+   "bytes": 6212
   },
   {
    "id": "hopper-round",
    "kind": "model",
    "path": "js/client/models/hopper-round.glb",
    "role": "structure",
-   "bytes": 13700
+   "bytes": 10020
   },
   {
    "id": "hopper-square",
    "kind": "model",
    "path": "js/client/models/hopper-square.glb",
    "role": "structure",
-   "bytes": 10092
+   "bytes": 6340
   },
   {
    "id": "indicator-special-area",
    "kind": "model",
    "path": "js/client/models/indicator-special-area.glb",
    "role": "prop",
-   "bytes": 3036
+   "bytes": 3064
   },
   {
    "id": "indicator-special-arrow",
    "kind": "model",
    "path": "js/client/models/indicator-special-arrow.glb",
    "role": "prop",
-   "bytes": 2500
+   "bytes": 2984
   },
   {
    "id": "indicator-special-cross",
    "kind": "model",
    "path": "js/client/models/indicator-special-cross.glb",
    "role": "prop",
-   "bytes": 2856
+   "bytes": 3060
   },
   {
    "id": "indicator-special-lines",
    "kind": "model",
    "path": "js/client/models/indicator-special-lines.glb",
    "role": "prop",
-   "bytes": 3128
+   "bytes": 3100
   },
   {
    "id": "iron-fence-bar",
    "kind": "model",
    "path": "js/client/models/iron-fence-bar.glb",
    "role": "structure",
-   "bytes": 10128
+   "bytes": 8196
   },
   {
    "id": "iron-fence-border-column",
    "kind": "model",
    "path": "js/client/models/iron-fence-border-column.glb",
    "role": "structure",
-   "bytes": 40752
+   "bytes": 24940
   },
   {
    "id": "iron-fence-border-curve",
    "kind": "model",
    "path": "js/client/models/iron-fence-border-curve.glb",
    "role": "structure",
-   "bytes": 55232
+   "bytes": 36520
   },
   {
    "id": "iron-fence-border-gate",
    "kind": "model",
    "path": "js/client/models/iron-fence-border-gate.glb",
    "role": "structure",
-   "bytes": 26340
+   "bytes": 14916
   },
   {
    "id": "iron-fence-border",
    "kind": "model",
    "path": "js/client/models/iron-fence-border.glb",
    "role": "structure",
-   "bytes": 39188
+   "bytes": 24512
   },
   {
    "id": "iron-fence-curve",
    "kind": "model",
    "path": "js/client/models/iron-fence-curve.glb",
    "role": "structure",
-   "bytes": 46152
+   "bytes": 30904
   },
   {
    "id": "iron-fence-damaged",
    "kind": "model",
    "path": "js/client/models/iron-fence-damaged.glb",
    "role": "structure",
-   "bytes": 34956
+   "bytes": 22944
   },
   {
    "id": "iron-fence",
    "kind": "model",
    "path": "js/client/models/iron-fence.glb",
    "role": "structure",
-   "bytes": 38576
+   "bytes": 24288
   },
   {
    "id": "key",
    "kind": "model",
    "path": "js/client/models/key.glb",
    "role": "prop",
-   "bytes": 16812
+   "bytes": 10700
   },
   {
    "id": "ladder",
    "kind": "model",
    "path": "js/client/models/ladder.glb",
    "role": "structure",
-   "bytes": 17324
+   "bytes": 6960
   },
   {
    "id": "lantern-candle",
    "kind": "model",
    "path": "js/client/models/lantern-candle.glb",
    "role": "prop",
-   "bytes": 22124
+   "bytes": 12916
   },
   {
    "id": "lantern-glass",
    "kind": "model",
    "path": "js/client/models/lantern-glass.glb",
    "role": "prop",
-   "bytes": 18596
+   "bytes": 10436
   },
   {
    "id": "lantern",
    "kind": "model",
    "path": "js/client/models/lantern.glb",
    "role": "prop",
-   "bytes": 14984
+   "bytes": 9332
   },
   {
    "id": "lever-double",
    "kind": "model",
    "path": "js/client/models/lever-double.glb",
    "role": "prop",
-   "bytes": 18324
+   "bytes": 13256
   },
   {
    "id": "lever-single",
    "kind": "model",
    "path": "js/client/models/lever-single.glb",
    "role": "prop",
-   "bytes": 17516
+   "bytes": 13852
   },
   {
    "id": "light-curved-cross",
    "kind": "model",
    "path": "js/client/models/light-curved-cross.glb",
    "role": "prop",
-   "bytes": 24912
+   "bytes": 11804
   },
   {
    "id": "light-curved-double",
    "kind": "model",
    "path": "js/client/models/light-curved-double.glb",
    "role": "prop",
-   "bytes": 14208
+   "bytes": 7752
   },
   {
    "id": "light-curved",
    "kind": "model",
    "path": "js/client/models/light-curved.glb",
    "role": "prop",
-   "bytes": 9492
+   "bytes": 5948
   },
   {
    "id": "light-square-cross",
    "kind": "model",
    "path": "js/client/models/light-square-cross.glb",
    "role": "prop",
-   "bytes": 13512
+   "bytes": 7508
   },
   {
    "id": "light-square-double",
    "kind": "model",
    "path": "js/client/models/light-square-double.glb",
    "role": "prop",
-   "bytes": 9216
+   "bytes": 5828
   },
   {
    "id": "light-square",
    "kind": "model",
    "path": "js/client/models/light-square.glb",
    "role": "prop",
-   "bytes": 6996
+   "bytes": 4960
   },
   {
    "id": "lightpost-all",
    "kind": "model",
    "path": "js/client/models/lightpost-all.glb",
    "role": "structure",
-   "bytes": 93724
+   "bytes": 45516
   },
   {
    "id": "lightpost-double",
    "kind": "model",
    "path": "js/client/models/lightpost-double.glb",
    "role": "structure",
-   "bytes": 54228
+   "bytes": 28408
   },
   {
    "id": "lightpost-single",
    "kind": "model",
    "path": "js/client/models/lightpost-single.glb",
    "role": "structure",
-   "bytes": 34440
+   "bytes": 20192
   },
   {
    "id": "machine-bed",
    "kind": "model",
    "path": "js/client/models/machine-bed.glb",
    "role": "structure",
-   "bytes": 52136
+   "bytes": 31652
   },
   {
    "id": "machine-connection-hole",
    "kind": "model",
    "path": "js/client/models/machine-connection-hole.glb",
    "role": "structure",
-   "bytes": 27936
+   "bytes": 14524
   },
   {
    "id": "machine-connection-pipe",
    "kind": "model",
    "path": "js/client/models/machine-connection-pipe.glb",
    "role": "structure",
-   "bytes": 32068
+   "bytes": 16548
   },
   {
    "id": "machine-fortified",
    "kind": "model",
    "path": "js/client/models/machine-fortified.glb",
    "role": "structure",
-   "bytes": 29828
+   "bytes": 14788
   },
   {
    "id": "machine-window-bar",
    "kind": "model",
    "path": "js/client/models/machine-window-bar.glb",
    "role": "structure",
-   "bytes": 40456
+   "bytes": 20120
   },
   {
    "id": "machine-window",
    "kind": "model",
    "path": "js/client/models/machine-window.glb",
    "role": "structure",
-   "bytes": 38812
+   "bytes": 19576
   },
   {
    "id": "machine",
    "kind": "model",
    "path": "js/client/models/machine.glb",
    "role": "structure",
-   "bytes": 25620
+   "bytes": 13192
   },
   {
    "id": "metal-gate",
    "kind": "model",
    "path": "js/client/models/metal-gate.glb",
    "role": "prop",
-   "bytes": 23240
+   "bytes": 11588
   },
   {
    "id": "metal-panel-narrow",
    "kind": "model",
    "path": "js/client/models/metal-panel-narrow.glb",
    "role": "structure",
-   "bytes": 13700
+   "bytes": 7248
   },
   {
    "id": "metal-panel-screws-half",
    "kind": "model",
    "path": "js/client/models/metal-panel-screws-half.glb",
    "role": "structure",
-   "bytes": 28272
+   "bytes": 12936
   },
   {
    "id": "metal-panel-screws-narrow",
    "kind": "model",
    "path": "js/client/models/metal-panel-screws-narrow.glb",
    "role": "structure",
-   "bytes": 18292
+   "bytes": 9848
   },
   {
    "id": "metal-panel-screws",
    "kind": "model",
    "path": "js/client/models/metal-panel-screws.glb",
    "role": "structure",
-   "bytes": 28256
+   "bytes": 12684
   },
   {
    "id": "metal-panel",
    "kind": "model",
    "path": "js/client/models/metal-panel.glb",
    "role": "structure",
-   "bytes": 24120
+   "bytes": 10172
   },
   {
    "id": "oopi",
    "kind": "model",
    "path": "js/client/models/oopi.glb",
    "role": "prop",
-   "bytes": 79380
+   "bytes": 53280
   },
   {
    "id": "overhang",
    "kind": "model",
    "path": "js/client/models/overhang.glb",
    "role": "structure",
-   "bytes": 7648
+   "bytes": 4752
   },
   {
    "id": "patch-dirt",
    "kind": "model",
    "path": "js/client/models/patch-dirt.glb",
    "role": "prop",
-   "bytes": 10176
+   "bytes": 7512
   },
   {
    "id": "patch-grass-large",
    "kind": "model",
    "path": "js/client/models/patch-grass-large.glb",
    "role": "prop",
-   "bytes": 3508
+   "bytes": 3192
   },
   {
    "id": "patch-grass",
    "kind": "model",
    "path": "js/client/models/patch-grass.glb",
    "role": "prop",
-   "bytes": 3492
+   "bytes": 3176
   },
   {
    "id": "pillar-large",
    "kind": "model",
    "path": "js/client/models/pillar-large.glb",
    "role": "structure",
-   "bytes": 17076
+   "bytes": 11856
   },
   {
    "id": "pillar-obelisk",
    "kind": "model",
    "path": "js/client/models/pillar-obelisk.glb",
    "role": "structure",
-   "bytes": 8552
+   "bytes": 5852
   },
   {
    "id": "pillar-small",
    "kind": "model",
    "path": "js/client/models/pillar-small.glb",
    "role": "structure",
-   "bytes": 10748
+   "bytes": 7664
   },
   {
    "id": "pillar-square",
    "kind": "model",
    "path": "js/client/models/pillar-square.glb",
    "role": "structure",
-   "bytes": 18352
+   "bytes": 9856
   },
   {
    "id": "pillar-stone",
    "kind": "model",
    "path": "js/client/models/pillar-stone.glb",
    "role": "structure",
-   "bytes": 11324
+   "bytes": 6336
   },
   {
    "id": "pillar-wood",
    "kind": "model",
    "path": "js/client/models/pillar-wood.glb",
    "role": "structure",
-   "bytes": 5312
+   "bytes": 4388
   },
   {
    "id": "pine-crooked",
    "kind": "model",
    "path": "js/client/models/pine-crooked.glb",
    "role": "tree",
-   "bytes": 35944
+   "bytes": 22532
   },
   {
    "id": "pine-fall-crooked",
    "kind": "model",
    "path": "js/client/models/pine-fall-crooked.glb",
    "role": "tree",
-   "bytes": 35960
+   "bytes": 22520
   },
   {
    "id": "pine-fall",
    "kind": "model",
    "path": "js/client/models/pine-fall.glb",
    "role": "tree",
-   "bytes": 35936
+   "bytes": 21840
   },
   {
    "id": "pine",
    "kind": "model",
    "path": "js/client/models/pine.glb",
    "role": "tree",
-   "bytes": 35920
+   "bytes": 21928
   },
   {
    "id": "pipe-glass-large-bend",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large-bend.glb",
    "role": "structure",
-   "bytes": 44544
+   "bytes": 29644
   },
   {
    "id": "pipe-glass-large-bump",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large-bump.glb",
    "role": "structure",
-   "bytes": 25176
+   "bytes": 15632
   },
   {
    "id": "pipe-glass-large-cross",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large-cross.glb",
    "role": "structure",
-   "bytes": 33936
+   "bytes": 18564
   },
   {
    "id": "pipe-glass-large-curve",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large-curve.glb",
    "role": "structure",
-   "bytes": 28088
+   "bytes": 19548
   },
   {
    "id": "pipe-glass-large-junction",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large-junction.glb",
    "role": "structure",
-   "bytes": 25332
+   "bytes": 15228
   },
   {
    "id": "pipe-glass-large-long",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large-long.glb",
    "role": "structure",
-   "bytes": 14976
+   "bytes": 9440
   },
   {
    "id": "pipe-glass-large-side",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large-side.glb",
    "role": "structure",
-   "bytes": 24916
+   "bytes": 14256
   },
   {
    "id": "pipe-glass-large-valve",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large-valve.glb",
    "role": "structure",
-   "bytes": 39712
+   "bytes": 23756
   },
   {
    "id": "pipe-glass-large",
    "kind": "model",
    "path": "js/client/models/pipe-glass-large.glb",
    "role": "structure",
-   "bytes": 14948
+   "bytes": 9456
   },
   {
    "id": "pipe-large-bend",
    "kind": "model",
    "path": "js/client/models/pipe-large-bend.glb",
    "role": "structure",
-   "bytes": 44512
+   "bytes": 29900
   },
   {
    "id": "pipe-large-bump",
    "kind": "model",
    "path": "js/client/models/pipe-large-bump.glb",
    "role": "structure",
-   "bytes": 28068
+   "bytes": 16496
   },
   {
    "id": "pipe-large-cross",
    "kind": "model",
    "path": "js/client/models/pipe-large-cross.glb",
    "role": "structure",
-   "bytes": 42016
+   "bytes": 23540
   },
   {
    "id": "pipe-large-curve",
    "kind": "model",
    "path": "js/client/models/pipe-large-curve.glb",
    "role": "structure",
-   "bytes": 32156
+   "bytes": 21580
   },
   {
    "id": "pipe-large-junction",
    "kind": "model",
    "path": "js/client/models/pipe-large-junction.glb",
    "role": "structure",
-   "bytes": 35796
+   "bytes": 20396
   },
   {
    "id": "pipe-large-long",
    "kind": "model",
    "path": "js/client/models/pipe-large-long.glb",
    "role": "structure",
-   "bytes": 27288
+   "bytes": 16168
   },
   {
    "id": "pipe-large-side",
    "kind": "model",
    "path": "js/client/models/pipe-large-side.glb",
    "role": "structure",
-   "bytes": 32948
+   "bytes": 18832
   },
   {
    "id": "pipe-large-valve",
    "kind": "model",
    "path": "js/client/models/pipe-large-valve.glb",
    "role": "structure",
-   "bytes": 42604
+   "bytes": 24580
   },
   {
    "id": "pipe-large",
    "kind": "model",
    "path": "js/client/models/pipe-large.glb",
    "role": "structure",
-   "bytes": 23156
+   "bytes": 13388
   },
   {
    "id": "piston-round",
    "kind": "model",
    "path": "js/client/models/piston-round.glb",
    "role": "structure",
-   "bytes": 37736
+   "bytes": 30856
   },
   {
    "id": "piston-square",
    "kind": "model",
    "path": "js/client/models/piston-square.glb",
    "role": "structure",
-   "bytes": 29404
+   "bytes": 24752
   },
   {
    "id": "piston-thin-round",
    "kind": "model",
    "path": "js/client/models/piston-thin-round.glb",
    "role": "structure",
-   "bytes": 37760
+   "bytes": 30948
   },
   {
    "id": "piston-thin-square",
    "kind": "model",
    "path": "js/client/models/piston-thin-square.glb",
    "role": "structure",
-   "bytes": 29424
+   "bytes": 24700
   },
   {
    "id": "planks-half",
    "kind": "model",
    "path": "js/client/models/planks-half.glb",
    "role": "structure",
-   "bytes": 10164
+   "bytes": 5312
   },
   {
    "id": "planks-opening",
    "kind": "model",
    "path": "js/client/models/planks-opening.glb",
    "role": "structure",
-   "bytes": 16360
+   "bytes": 6412
   },
   {
    "id": "planks",
    "kind": "model",
    "path": "js/client/models/planks.glb",
    "role": "structure",
-   "bytes": 11148
+   "bytes": 4860
   },
   {
    "id": "plant",
    "kind": "model",
    "path": "js/client/models/plant.glb",
    "role": "prop",
-   "bytes": 22424
+   "bytes": 17544
   },
   {
    "id": "platform",
    "kind": "model",
    "path": "js/client/models/platform.glb",
    "role": "structure",
-   "bytes": 63436
+   "bytes": 43352
   },
   {
    "id": "poles-horizontal",
    "kind": "model",
    "path": "js/client/models/poles-horizontal.glb",
    "role": "structure",
-   "bytes": 5660
+   "bytes": 4084
   },
   {
    "id": "poles",
    "kind": "model",
    "path": "js/client/models/poles.glb",
    "role": "structure",
-   "bytes": 4212
+   "bytes": 3512
   },
   {
    "id": "pot",
    "kind": "model",
    "path": "js/client/models/pot.glb",
    "role": "prop",
-   "bytes": 26516
+   "bytes": 18680
   },
   {
    "id": "potion",
    "kind": "model",
    "path": "js/client/models/potion.glb",
    "role": "prop",
-   "bytes": 12860
+   "bytes": 10308
   },
   {
    "id": "pumpkin-carved",
    "kind": "model",
    "path": "js/client/models/pumpkin-carved.glb",
    "role": "prop",
-   "bytes": 46164
+   "bytes": 32444
   },
   {
    "id": "pumpkin-tall-carved",
    "kind": "model",
    "path": "js/client/models/pumpkin-tall-carved.glb",
    "role": "prop",
-   "bytes": 44248
+   "bytes": 30620
   },
   {
    "id": "pumpkin-tall",
    "kind": "model",
    "path": "js/client/models/pumpkin-tall.glb",
    "role": "prop",
-   "bytes": 35456
+   "bytes": 25776
   },
   {
    "id": "pumpkin",
    "kind": "model",
    "path": "js/client/models/pumpkin.glb",
    "role": "prop",
-   "bytes": 35344
+   "bytes": 26472
   },
   {
    "id": "resource-planks",
    "kind": "model",
    "path": "js/client/models/resource-planks.glb",
    "role": "prop",
-   "bytes": 8884
+   "bytes": 5728
   },
   {
    "id": "resource-stone-large",
    "kind": "model",
    "path": "js/client/models/resource-stone-large.glb",
    "role": "rock",
-   "bytes": 12664
+   "bytes": 9460
   },
   {
    "id": "resource-wood",
    "kind": "model",
    "path": "js/client/models/resource-wood.glb",
    "role": "prop",
-   "bytes": 7272
+   "bytes": 5680
   },
   {
    "id": "road-bend-barrier",
    "kind": "model",
    "path": "js/client/models/road-bend-barrier.glb",
    "role": "structure",
-   "bytes": 11912
+   "bytes": 7612
   },
   {
    "id": "road-bend-sidewalk",
    "kind": "model",
    "path": "js/client/models/road-bend-sidewalk.glb",
    "role": "structure",
-   "bytes": 17024
+   "bytes": 7524
   },
   {
    "id": "road-bend-square-barrier",
    "kind": "model",
    "path": "js/client/models/road-bend-square-barrier.glb",
    "role": "structure",
-   "bytes": 5880
+   "bytes": 4792
   },
   {
    "id": "road-bend-square",
    "kind": "model",
    "path": "js/client/models/road-bend-square.glb",
    "role": "structure",
-   "bytes": 6268
+   "bytes": 4016
   },
   {
    "id": "road-bend",
    "kind": "model",
    "path": "js/client/models/road-bend.glb",
    "role": "structure",
-   "bytes": 20164
+   "bytes": 8884
   },
   {
    "id": "road-bridge",
    "kind": "model",
    "path": "js/client/models/road-bridge.glb",
    "role": "structure",
-   "bytes": 24796
+   "bytes": 10440
   },
   {
    "id": "road-corner-inner",
    "kind": "model",
    "path": "js/client/models/road-corner-inner.glb",
    "role": "structure",
-   "bytes": 13552
+   "bytes": 8080
   },
   {
    "id": "road-corner",
    "kind": "model",
    "path": "js/client/models/road-corner.glb",
    "role": "structure",
-   "bytes": 13736
+   "bytes": 7976
   },
   {
    "id": "road-crossing",
    "kind": "model",
    "path": "js/client/models/road-crossing.glb",
    "role": "structure",
-   "bytes": 8700
+   "bytes": 4180
   },
   {
    "id": "road-crossroad-barrier",
    "kind": "model",
    "path": "js/client/models/road-crossroad-barrier.glb",
    "role": "structure",
-   "bytes": 11256
+   "bytes": 7348
   },
   {
    "id": "road-crossroad-line",
    "kind": "model",
    "path": "js/client/models/road-crossroad-line.glb",
    "role": "structure",
-   "bytes": 9692
+   "bytes": 4756
   },
   {
    "id": "road-crossroad-path",
    "kind": "model",
    "path": "js/client/models/road-crossroad-path.glb",
    "role": "structure",
-   "bytes": 18708
+   "bytes": 6008
   },
   {
    "id": "road-crossroad",
    "kind": "model",
    "path": "js/client/models/road-crossroad.glb",
    "role": "structure",
-   "bytes": 10084
+   "bytes": 4816
   },
   {
    "id": "road-curb-end",
    "kind": "model",
    "path": "js/client/models/road-curb-end.glb",
    "role": "structure",
-   "bytes": 4828
+   "bytes": 3752
   },
   {
    "id": "road-curb",
    "kind": "model",
    "path": "js/client/models/road-curb.glb",
    "role": "structure",
-   "bytes": 2804
+   "bytes": 3032
   },
   {
    "id": "road-curve-barrier",
    "kind": "model",
    "path": "js/client/models/road-curve-barrier.glb",
    "role": "structure",
-   "bytes": 17920
+   "bytes": 10224
   },
   {
    "id": "road-curve-intersection-barrier",
    "kind": "model",
    "path": "js/client/models/road-curve-intersection-barrier.glb",
    "role": "structure",
-   "bytes": 15480
+   "bytes": 9020
   },
   {
    "id": "road-curve-intersection",
    "kind": "model",
    "path": "js/client/models/road-curve-intersection.glb",
    "role": "structure",
-   "bytes": 22788
+   "bytes": 9504
   },
   {
    "id": "road-curve-pavement",
    "kind": "model",
    "path": "js/client/models/road-curve-pavement.glb",
    "role": "structure",
-   "bytes": 17044
+   "bytes": 7412
   },
   {
    "id": "road-curve",
    "kind": "model",
    "path": "js/client/models/road-curve.glb",
    "role": "structure",
-   "bytes": 23912
+   "bytes": 10412
   },
   {
    "id": "road-driveway-double-barrier",
    "kind": "model",
    "path": "js/client/models/road-driveway-double-barrier.glb",
    "role": "structure",
-   "bytes": 8460
+   "bytes": 6664
   },
   {
    "id": "road-driveway-double",
    "kind": "model",
    "path": "js/client/models/road-driveway-double.glb",
    "role": "structure",
-   "bytes": 7664
+   "bytes": 4320
   },
   {
    "id": "road-driveway-single-barrier",
    "kind": "model",
    "path": "js/client/models/road-driveway-single-barrier.glb",
    "role": "structure",
-   "bytes": 6272
+   "bytes": 5116
   },
   {
    "id": "road-driveway-single",
    "kind": "model",
    "path": "js/client/models/road-driveway-single.glb",
    "role": "structure",
-   "bytes": 6568
+   "bytes": 4016
   },
   {
    "id": "road-edge-slope",
    "kind": "model",
    "path": "js/client/models/road-edge-slope.glb",
    "role": "structure",
-   "bytes": 5724
+   "bytes": 3836
   },
   {
    "id": "road-edge",
    "kind": "model",
    "path": "js/client/models/road-edge.glb",
    "role": "structure",
-   "bytes": 4912
+   "bytes": 3652
   },
   {
    "id": "road-end-barrier",
    "kind": "model",
    "path": "js/client/models/road-end-barrier.glb",
    "role": "structure",
-   "bytes": 4028
+   "bytes": 3540
   },
   {
    "id": "road-end-round-barrier",
    "kind": "model",
    "path": "js/client/models/road-end-round-barrier.glb",
    "role": "structure",
-   "bytes": 16328
+   "bytes": 9376
   },
   {
    "id": "road-end-round",
    "kind": "model",
    "path": "js/client/models/road-end-round.glb",
    "role": "structure",
-   "bytes": 17532
+   "bytes": 8372
   },
   {
    "id": "road-end",
    "kind": "model",
    "path": "js/client/models/road-end.glb",
    "role": "structure",
-   "bytes": 4940
+   "bytes": 3652
   },
   {
    "id": "road-intersection-barrier",
    "kind": "model",
    "path": "js/client/models/road-intersection-barrier.glb",
    "role": "structure",
-   "bytes": 7676
+   "bytes": 5632
   },
   {
    "id": "road-intersection-line",
    "kind": "model",
    "path": "js/client/models/road-intersection-line.glb",
    "role": "structure",
-   "bytes": 7492
+   "bytes": 4284
   },
   {
    "id": "road-intersection-path",
    "kind": "model",
    "path": "js/client/models/road-intersection-path.glb",
    "role": "structure",
-   "bytes": 13736
+   "bytes": 5276
   },
   {
    "id": "road-intersection",
    "kind": "model",
    "path": "js/client/models/road-intersection.glb",
    "role": "structure",
-   "bytes": 7900
+   "bytes": 4356
   },
   {
    "id": "road-roundabout-barrier",
    "kind": "model",
    "path": "js/client/models/road-roundabout-barrier.glb",
    "role": "structure",
-   "bytes": 61636
+   "bytes": 29676
   },
   {
    "id": "road-roundabout",
    "kind": "model",
    "path": "js/client/models/road-roundabout.glb",
    "role": "structure",
-   "bytes": 105876
+   "bytes": 32544
   },
   {
    "id": "road-side-barrier",
    "kind": "model",
    "path": "js/client/models/road-side-barrier.glb",
    "role": "structure",
-   "bytes": 4200
+   "bytes": 3608
   },
   {
    "id": "road-side-entry-barrier",
    "kind": "model",
    "path": "js/client/models/road-side-entry-barrier.glb",
    "role": "structure",
-   "bytes": 20276
+   "bytes": 11480
   },
   {
    "id": "road-side-entry",
    "kind": "model",
    "path": "js/client/models/road-side-entry.glb",
    "role": "structure",
-   "bytes": 24288
+   "bytes": 10940
   },
   {
    "id": "road-side-exit-barrier",
    "kind": "model",
    "path": "js/client/models/road-side-exit-barrier.glb",
    "role": "structure",
-   "bytes": 20272
+   "bytes": 11332
   },
   {
    "id": "road-side-exit",
    "kind": "model",
    "path": "js/client/models/road-side-exit.glb",
    "role": "structure",
-   "bytes": 24280
+   "bytes": 10908
   },
   {
    "id": "road-side",
    "kind": "model",
    "path": "js/client/models/road-side.glb",
    "role": "structure",
-   "bytes": 5272
+   "bytes": 3640
   },
   {
    "id": "road-sign-empty-hanging",
    "kind": "model",
    "path": "js/client/models/road-sign-empty-hanging.glb",
    "role": "structure",
-   "bytes": 12072
+   "bytes": 7152
   },
   {
    "id": "road-sign-empty",
    "kind": "model",
    "path": "js/client/models/road-sign-empty.glb",
    "role": "structure",
-   "bytes": 5968
+   "bytes": 4788
   },
   {
    "id": "road-sign-object-stop",
    "kind": "model",
    "path": "js/client/models/road-sign-object-stop.glb",
    "role": "structure",
-   "bytes": 6600
+   "bytes": 5236
   },
   {
    "id": "road-sign-object-street",
    "kind": "model",
    "path": "js/client/models/road-sign-object-street.glb",
    "role": "structure",
-   "bytes": 6648
+   "bytes": 4728
   },
   {
    "id": "road-sign-object-warning",
    "kind": "model",
    "path": "js/client/models/road-sign-object-warning.glb",
    "role": "structure",
-   "bytes": 7384
+   "bytes": 6176
   },
   {
    "id": "road-sign-stop",
    "kind": "model",
    "path": "js/client/models/road-sign-stop.glb",
    "role": "structure",
-   "bytes": 10720
+   "bytes": 7104
   },
   {
    "id": "road-sign-street",
    "kind": "model",
    "path": "js/client/models/road-sign-street.glb",
    "role": "structure",
-   "bytes": 15948
+   "bytes": 8540
   },
   {
    "id": "road-sign-warning",
    "kind": "model",
    "path": "js/client/models/road-sign-warning.glb",
    "role": "structure",
-   "bytes": 11496
+   "bytes": 8116
   },
   {
    "id": "road-slant-barrier",
    "kind": "model",
    "path": "js/client/models/road-slant-barrier.glb",
    "role": "structure",
-   "bytes": 4052
+   "bytes": 3592
   },
   {
    "id": "road-slant-curve-barrier",
    "kind": "model",
    "path": "js/client/models/road-slant-curve-barrier.glb",
    "role": "structure",
-   "bytes": 38824
+   "bytes": 19712
   },
   {
    "id": "road-slant-curve",
    "kind": "model",
    "path": "js/client/models/road-slant-curve.glb",
    "role": "structure",
-   "bytes": 47880
+   "bytes": 17604
   },
   {
    "id": "road-slant-flat-curve",
    "kind": "model",
    "path": "js/client/models/road-slant-flat-curve.glb",
    "role": "structure",
-   "bytes": 55868
+   "bytes": 20096
   },
   {
    "id": "road-slant-flat-high",
    "kind": "model",
    "path": "js/client/models/road-slant-flat-high.glb",
    "role": "structure",
-   "bytes": 5300
+   "bytes": 3880
   },
   {
    "id": "road-slant-flat",
    "kind": "model",
    "path": "js/client/models/road-slant-flat.glb",
    "role": "structure",
-   "bytes": 5284
+   "bytes": 3880
   },
   {
    "id": "road-slant-high-barrier",
    "kind": "model",
    "path": "js/client/models/road-slant-high-barrier.glb",
    "role": "structure",
-   "bytes": 4068
+   "bytes": 3608
   },
   {
    "id": "road-slant-high",
    "kind": "model",
    "path": "js/client/models/road-slant-high.glb",
    "role": "structure",
-   "bytes": 5256
+   "bytes": 3852
   },
   {
    "id": "road-slant",
    "kind": "model",
    "path": "js/client/models/road-slant.glb",
    "role": "structure",
-   "bytes": 5240
+   "bytes": 3848
   },
   {
    "id": "road-slope",
    "kind": "model",
    "path": "js/client/models/road-slope.glb",
    "role": "structure",
-   "bytes": 2820
+   "bytes": 3132
   },
   {
    "id": "road-split-barrier",
    "kind": "model",
    "path": "js/client/models/road-split-barrier.glb",
    "role": "structure",
-   "bytes": 41340
+   "bytes": 21080
   },
   {
    "id": "road-split",
    "kind": "model",
    "path": "js/client/models/road-split.glb",
    "role": "structure",
-   "bytes": 60128
+   "bytes": 20620
   },
   {
    "id": "road-square-barrier",
    "kind": "model",
    "path": "js/client/models/road-square-barrier.glb",
    "role": "structure",
-   "bytes": 4048
+   "bytes": 3556
   },
   {
    "id": "road-square",
    "kind": "model",
    "path": "js/client/models/road-square.glb",
    "role": "structure",
-   "bytes": 4436
+   "bytes": 3520
   },
   {
    "id": "road-straight-barrier-end",
    "kind": "model",
    "path": "js/client/models/road-straight-barrier-end.glb",
    "role": "structure",
-   "bytes": 3640
+   "bytes": 3500
   },
   {
    "id": "road-straight-barrier-half",
    "kind": "model",
    "path": "js/client/models/road-straight-barrier-half.glb",
    "role": "structure",
-   "bytes": 4092
+   "bytes": 3536
   },
   {
    "id": "road-straight-barrier",
    "kind": "model",
    "path": "js/client/models/road-straight-barrier.glb",
    "role": "structure",
-   "bytes": 4196
+   "bytes": 3544
   },
   {
    "id": "road-straight-half",
    "kind": "model",
    "path": "js/client/models/road-straight-half.glb",
    "role": "structure",
-   "bytes": 5264
+   "bytes": 3636
   },
   {
    "id": "road-straight",
    "kind": "model",
    "path": "js/client/models/road-straight.glb",
    "role": "structure",
-   "bytes": 5248
+   "bytes": 3620
   },
   {
    "id": "road",
    "kind": "model",
    "path": "js/client/models/road.glb",
    "role": "structure",
-   "bytes": 2788
+   "bytes": 3028
   },
   {
    "id": "robot-arm-a",
    "kind": "model",
    "path": "js/client/models/robot-arm-a.glb",
    "role": "prop",
-   "bytes": 50592
+   "bytes": 32368
   },
   {
    "id": "robot-arm-b",
    "kind": "model",
    "path": "js/client/models/robot-arm-b.glb",
    "role": "prop",
-   "bytes": 44524
+   "bytes": 28004
   },
   {
    "id": "rock-b",
    "kind": "model",
    "path": "js/client/models/rock-b.glb",
    "role": "rock",
-   "bytes": 15184
+   "bytes": 8640
   },
   {
    "id": "rock-c",
    "kind": "model",
    "path": "js/client/models/rock-c.glb",
    "role": "rock",
-   "bytes": 11692
+   "bytes": 7308
   },
   {
    "id": "rock-flat-grass",
    "kind": "model",
    "path": "js/client/models/rock-flat-grass.glb",
    "role": "rock",
-   "bytes": 65376
+   "bytes": 36116
   },
   {
    "id": "rock-flat",
    "kind": "model",
    "path": "js/client/models/rock-flat.glb",
    "role": "rock",
-   "bytes": 24780
+   "bytes": 11808
   },
   {
    "id": "rock-large",
    "kind": "model",
    "path": "js/client/models/rock-large.glb",
    "role": "rock",
-   "bytes": 18876
+   "bytes": 10620
   },
   {
    "id": "rock-sand-a",
    "kind": "model",
    "path": "js/client/models/rock-sand-a.glb",
    "role": "rock",
-   "bytes": 9636
+   "bytes": 6416
   },
   {
    "id": "rock-sand-b",
    "kind": "model",
    "path": "js/client/models/rock-sand-b.glb",
    "role": "rock",
-   "bytes": 17624
+   "bytes": 9548
   },
   {
    "id": "rock-sand-c",
    "kind": "model",
    "path": "js/client/models/rock-sand-c.glb",
    "role": "rock",
-   "bytes": 14084
+   "bytes": 8224
   },
   {
    "id": "rock-small",
    "kind": "model",
    "path": "js/client/models/rock-small.glb",
    "role": "rock",
-   "bytes": 12620
+   "bytes": 8144
   },
   {
    "id": "rock-wide",
    "kind": "model",
    "path": "js/client/models/rock-wide.glb",
    "role": "rock",
-   "bytes": 15172
+   "bytes": 8864
   },
   {
    "id": "rocks-high",
    "kind": "model",
    "path": "js/client/models/rocks-high.glb",
    "role": "rock",
-   "bytes": 31952
+   "bytes": 13456
   },
   {
    "id": "rocks-large",
    "kind": "model",
    "path": "js/client/models/rocks-large.glb",
    "role": "rock",
-   "bytes": 16204
+   "bytes": 10460
   },
   {
    "id": "rocks-low",
    "kind": "model",
    "path": "js/client/models/rocks-low.glb",
    "role": "rock",
-   "bytes": 31964
+   "bytes": 13912
   },
   {
    "id": "rocks-ramp",
    "kind": "model",
    "path": "js/client/models/rocks-ramp.glb",
    "role": "rock",
-   "bytes": 23148
+   "bytes": 12832
   },
   {
    "id": "rocks-small",
    "kind": "model",
    "path": "js/client/models/rocks-small.glb",
    "role": "rock",
-   "bytes": 15192
+   "bytes": 9828
   },
   {
    "id": "rocks-tall",
    "kind": "model",
    "path": "js/client/models/rocks-tall.glb",
    "role": "rock",
-   "bytes": 36924
+   "bytes": 23804
   },
   {
    "id": "rocks",
    "kind": "model",
    "path": "js/client/models/rocks.glb",
    "role": "rock",
-   "bytes": 36844
+   "bytes": 23520
   },
   {
    "id": "roof-corner-inner",
    "kind": "model",
    "path": "js/client/models/roof-corner-inner.glb",
    "role": "structure",
-   "bytes": 4464
+   "bytes": 3960
   },
   {
    "id": "roof-corner-round",
    "kind": "model",
    "path": "js/client/models/roof-corner-round.glb",
    "role": "structure",
-   "bytes": 5836
+   "bytes": 5280
   },
   {
    "id": "roof-corner",
    "kind": "model",
    "path": "js/client/models/roof-corner.glb",
    "role": "structure",
-   "bytes": 4996
+   "bytes": 4244
   },
   {
    "id": "roof-flat",
    "kind": "model",
    "path": "js/client/models/roof-flat.glb",
    "role": "structure",
-   "bytes": 3448
+   "bytes": 3472
   },
   {
    "id": "roof-gable-detail",
    "kind": "model",
    "path": "js/client/models/roof-gable-detail.glb",
    "role": "structure",
-   "bytes": 12028
+   "bytes": 6236
   },
   {
    "id": "roof-gable-end",
    "kind": "model",
    "path": "js/client/models/roof-gable-end.glb",
    "role": "structure",
-   "bytes": 6056
+   "bytes": 4576
   },
   {
    "id": "roof-gable-top",
    "kind": "model",
    "path": "js/client/models/roof-gable-top.glb",
    "role": "structure",
-   "bytes": 6572
+   "bytes": 4596
   },
   {
    "id": "roof-gable",
    "kind": "model",
    "path": "js/client/models/roof-gable.glb",
    "role": "structure",
-   "bytes": 7632
+   "bytes": 4904
   },
   {
    "id": "roof-high-corner-round",
    "kind": "model",
    "path": "js/client/models/roof-high-corner-round.glb",
    "role": "structure",
-   "bytes": 6056
+   "bytes": 5580
   },
   {
    "id": "roof-high-corner",
    "kind": "model",
    "path": "js/client/models/roof-high-corner.glb",
    "role": "structure",
-   "bytes": 5008
+   "bytes": 4308
   },
   {
    "id": "roof-high-cornerinner",
    "kind": "model",
    "path": "js/client/models/roof-high-cornerinner.glb",
    "role": "structure",
-   "bytes": 4284
+   "bytes": 3784
   },
   {
    "id": "roof-high-flat",
    "kind": "model",
    "path": "js/client/models/roof-high-flat.glb",
    "role": "structure",
-   "bytes": 3464
+   "bytes": 3432
   },
   {
    "id": "roof-high-gable-detail",
    "kind": "model",
    "path": "js/client/models/roof-high-gable-detail.glb",
    "role": "structure",
-   "bytes": 12840
+   "bytes": 6504
   },
   {
    "id": "roof-high-gable-end",
    "kind": "model",
    "path": "js/client/models/roof-high-gable-end.glb",
    "role": "structure",
-   "bytes": 6268
+   "bytes": 4616
   },
   {
    "id": "roof-high-gable-top",
    "kind": "model",
    "path": "js/client/models/roof-high-gable-top.glb",
    "role": "structure",
-   "bytes": 6568
+   "bytes": 4584
   },
   {
    "id": "roof-high-gable",
    "kind": "model",
    "path": "js/client/models/roof-high-gable.glb",
    "role": "structure",
-   "bytes": 7456
+   "bytes": 4792
   },
   {
    "id": "roof-high-left",
    "kind": "model",
    "path": "js/client/models/roof-high-left.glb",
    "role": "structure",
-   "bytes": 11376
+   "bytes": 5324
   },
   {
    "id": "roof-high-point",
    "kind": "model",
    "path": "js/client/models/roof-high-point.glb",
    "role": "structure",
-   "bytes": 6192
+   "bytes": 5560
   },
   {
    "id": "roof-high-right",
    "kind": "model",
    "path": "js/client/models/roof-high-right.glb",
    "role": "structure",
-   "bytes": 10996
+   "bytes": 5436
   },
   {
    "id": "roof-high-window",
    "kind": "model",
    "path": "js/client/models/roof-high-window.glb",
    "role": "structure",
-   "bytes": 20732
+   "bytes": 8852
   },
   {
    "id": "roof-high",
    "kind": "model",
    "path": "js/client/models/roof-high.glb",
    "role": "structure",
-   "bytes": 8088
+   "bytes": 4648
   },
   {
    "id": "roof-left",
    "kind": "model",
    "path": "js/client/models/roof-left.glb",
    "role": "structure",
-   "bytes": 12904
+   "bytes": 5364
   },
   {
    "id": "roof-point",
    "kind": "model",
    "path": "js/client/models/roof-point.glb",
    "role": "structure",
-   "bytes": 6180
+   "bytes": 5600
   },
   {
    "id": "roof-right",
    "kind": "model",
    "path": "js/client/models/roof-right.glb",
    "role": "structure",
-   "bytes": 13004
+   "bytes": 5384
   },
   {
    "id": "roof-window",
    "kind": "model",
    "path": "js/client/models/roof-window.glb",
    "role": "structure",
-   "bytes": 15524
+   "bytes": 7404
   },
   {
    "id": "roof",
    "kind": "model",
    "path": "js/client/models/roof.glb",
    "role": "structure",
-   "bytes": 9324
+   "bytes": 4644
   },
   {
    "id": "room-corner",
    "kind": "model",
    "path": "js/client/models/room-corner.glb",
    "role": "prop",
-   "bytes": 363032
+   "bytes": 225232
   },
   {
    "id": "room-large-variation",
    "kind": "model",
    "path": "js/client/models/room-large-variation.glb",
    "role": "prop",
-   "bytes": 791784
+   "bytes": 493020
   },
   {
    "id": "room-large",
    "kind": "model",
    "path": "js/client/models/room-large.glb",
    "role": "prop",
-   "bytes": 804964
+   "bytes": 498368
   },
   {
    "id": "room-small-variation",
    "kind": "model",
    "path": "js/client/models/room-small-variation.glb",
    "role": "prop",
-   "bytes": 385728
+   "bytes": 242080
   },
   {
    "id": "room-small",
    "kind": "model",
    "path": "js/client/models/room-small.glb",
    "role": "prop",
-   "bytes": 346532
+   "bytes": 215624
   },
   {
    "id": "room-wide-variation",
    "kind": "model",
    "path": "js/client/models/room-wide-variation.glb",
    "role": "prop",
-   "bytes": 666560
+   "bytes": 410784
   },
   {
    "id": "room-wide",
    "kind": "model",
    "path": "js/client/models/room-wide.glb",
    "role": "prop",
-   "bytes": 550380
+   "bytes": 341716
   },
   {
    "id": "scanner-high",
    "kind": "model",
    "path": "js/client/models/scanner-high.glb",
    "role": "prop",
-   "bytes": 21656
+   "bytes": 11428
   },
   {
    "id": "scanner-low",
    "kind": "model",
    "path": "js/client/models/scanner-low.glb",
    "role": "prop",
-   "bytes": 22192
+   "bytes": 10056
   },
   {
    "id": "screen-flat",
    "kind": "model",
    "path": "js/client/models/screen-flat.glb",
    "role": "prop",
-   "bytes": 11524
+   "bytes": 7644
   },
   {
    "id": "screen-hanging-small",
    "kind": "model",
    "path": "js/client/models/screen-hanging-small.glb",
    "role": "prop",
-   "bytes": 8776
+   "bytes": 6688
   },
   {
    "id": "screen-hanging-wide",
    "kind": "model",
    "path": "js/client/models/screen-hanging-wide.glb",
    "role": "prop",
-   "bytes": 9764
+   "bytes": 6948
   },
   {
    "id": "screen-panel-flat",
    "kind": "model",
    "path": "js/client/models/screen-panel-flat.glb",
    "role": "prop",
-   "bytes": 13136
+   "bytes": 8624
   },
   {
    "id": "screen-panel-small",
    "kind": "model",
    "path": "js/client/models/screen-panel-small.glb",
    "role": "prop",
-   "bytes": 13956
+   "bytes": 9436
   },
   {
    "id": "screen-panel-wide",
    "kind": "model",
    "path": "js/client/models/screen-panel-wide.glb",
    "role": "prop",
-   "bytes": 16000
+   "bytes": 9924
   },
   {
    "id": "screen-small",
    "kind": "model",
    "path": "js/client/models/screen-small.glb",
    "role": "prop",
-   "bytes": 12352
+   "bytes": 8488
   },
   {
    "id": "screen-wide",
    "kind": "model",
    "path": "js/client/models/screen-wide.glb",
    "role": "prop",
-   "bytes": 13904
+   "bytes": 8892
   },
   {
    "id": "shield-rectangle",
    "kind": "model",
    "path": "js/client/models/shield-rectangle.glb",
    "role": "prop",
-   "bytes": 13196
+   "bytes": 8484
   },
   {
    "id": "shield-round",
    "kind": "model",
    "path": "js/client/models/shield-round.glb",
    "role": "prop",
-   "bytes": 15512
+   "bytes": 11812
   },
   {
    "id": "shipping-container-a",
    "kind": "model",
    "path": "js/client/models/shipping-container-a.glb",
    "role": "prop",
-   "bytes": 36624
+   "bytes": 19084
   },
   {
    "id": "shipping-container-b",
    "kind": "model",
    "path": "js/client/models/shipping-container-b.glb",
    "role": "prop",
-   "bytes": 37052
+   "bytes": 21020
   },
   {
    "id": "shipping-container-c",
    "kind": "model",
    "path": "js/client/models/shipping-container-c.glb",
    "role": "prop",
-   "bytes": 36620
+   "bytes": 19080
   },
   {
    "id": "shovel-dirt",
    "kind": "model",
    "path": "js/client/models/shovel-dirt.glb",
    "role": "prop",
-   "bytes": 26068
+   "bytes": 16072
   },
   {
    "id": "shovel",
    "kind": "model",
    "path": "js/client/models/shovel.glb",
    "role": "prop",
-   "bytes": 13812
+   "bytes": 8004
   },
   {
    "id": "siege-ballista-demolished",
    "kind": "model",
    "path": "js/client/models/siege-ballista-demolished.glb",
    "role": "prop",
-   "bytes": 54576
+   "bytes": 27988
   },
   {
    "id": "siege-ballista",
    "kind": "model",
    "path": "js/client/models/siege-ballista.glb",
    "role": "prop",
-   "bytes": 64608
+   "bytes": 34964
   },
   {
    "id": "siege-catapult-demolished",
    "kind": "model",
    "path": "js/client/models/siege-catapult-demolished.glb",
    "role": "prop",
-   "bytes": 71252
+   "bytes": 35408
   },
   {
    "id": "siege-catapult",
    "kind": "model",
    "path": "js/client/models/siege-catapult.glb",
    "role": "prop",
-   "bytes": 86164
+   "bytes": 46416
   },
   {
    "id": "siege-ram-demolished",
    "kind": "model",
    "path": "js/client/models/siege-ram-demolished.glb",
    "role": "prop",
-   "bytes": 68036
+   "bytes": 33800
   },
   {
    "id": "siege-ram",
    "kind": "model",
    "path": "js/client/models/siege-ram.glb",
    "role": "prop",
-   "bytes": 103620
+   "bytes": 54816
   },
   {
    "id": "siege-tower-demolished",
    "kind": "model",
    "path": "js/client/models/siege-tower-demolished.glb",
    "role": "building",
-   "bytes": 119700
+   "bytes": 50572
   },
   {
    "id": "siege-tower",
    "kind": "model",
    "path": "js/client/models/siege-tower.glb",
    "role": "building",
-   "bytes": 144200
+   "bytes": 62544
   },
   {
    "id": "siege-trebuchet-demolished",
    "kind": "model",
    "path": "js/client/models/siege-trebuchet-demolished.glb",
    "role": "prop",
-   "bytes": 66012
+   "bytes": 32332
   },
   {
    "id": "siege-trebuchet",
    "kind": "model",
    "path": "js/client/models/siege-trebuchet.glb",
    "role": "prop",
-   "bytes": 139848
+   "bytes": 73748
   },
   {
    "id": "sign-highway-detailed",
    "kind": "model",
    "path": "js/client/models/sign-highway-detailed.glb",
    "role": "prop",
-   "bytes": 23532
+   "bytes": 10664
   },
   {
    "id": "sign-highway-wide",
    "kind": "model",
    "path": "js/client/models/sign-highway-wide.glb",
    "role": "prop",
-   "bytes": 13968
+   "bytes": 7712
   },
   {
    "id": "sign-highway",
    "kind": "model",
    "path": "js/client/models/sign-highway.glb",
    "role": "prop",
-   "bytes": 17288
+   "bytes": 8648
   },
   {
    "id": "signpost-single",
    "kind": "model",
    "path": "js/client/models/signpost-single.glb",
    "role": "prop",
-   "bytes": 4452
+   "bytes": 3968
   },
   {
    "id": "signpost",
    "kind": "model",
    "path": "js/client/models/signpost.glb",
    "role": "prop",
-   "bytes": 5924
+   "bytes": 4508
   },
   {
    "id": "solar-panel-flat",
    "kind": "model",
    "path": "js/client/models/solar-panel-flat.glb",
    "role": "prop",
-   "bytes": 13964
+   "bytes": 8204
   },
   {
    "id": "solar-panel-landscape-group",
    "kind": "model",
    "path": "js/client/models/solar-panel-landscape-group.glb",
    "role": "prop",
-   "bytes": 81860
+   "bytes": 33664
   },
   {
    "id": "solar-panel-landscape",
    "kind": "model",
    "path": "js/client/models/solar-panel-landscape.glb",
    "role": "prop",
-   "bytes": 21776
+   "bytes": 12304
   },
   {
    "id": "solar-panel-portrait-group",
    "kind": "model",
    "path": "js/client/models/solar-panel-portrait-group.glb",
    "role": "prop",
-   "bytes": 81856
+   "bytes": 33008
   },
   {
    "id": "solar-panel-portrait",
    "kind": "model",
    "path": "js/client/models/solar-panel-portrait.glb",
    "role": "prop",
-   "bytes": 21772
+   "bytes": 12048
   },
   {
    "id": "stairs-full-corner-inner",
    "kind": "model",
    "path": "js/client/models/stairs-full-corner-inner.glb",
    "role": "structure",
-   "bytes": 8304
+   "bytes": 5544
   },
   {
    "id": "stairs-full-corner-outer",
    "kind": "model",
    "path": "js/client/models/stairs-full-corner-outer.glb",
    "role": "structure",
-   "bytes": 9440
+   "bytes": 6276
   },
   {
    "id": "stairs-full",
    "kind": "model",
    "path": "js/client/models/stairs-full.glb",
    "role": "structure",
-   "bytes": 7064
+   "bytes": 4660
   },
   {
    "id": "stairs-stone-corner",
    "kind": "model",
    "path": "js/client/models/stairs-stone-corner.glb",
    "role": "structure",
-   "bytes": 12792
+   "bytes": 7040
   },
   {
    "id": "stairs-stone-handrail",
    "kind": "model",
    "path": "js/client/models/stairs-stone-handrail.glb",
    "role": "structure",
-   "bytes": 23428
+   "bytes": 9852
   },
   {
    "id": "stairs-stone-round",
    "kind": "model",
    "path": "js/client/models/stairs-stone-round.glb",
    "role": "structure",
-   "bytes": 17840
+   "bytes": 10760
   },
   {
    "id": "stairs-stone-square",
    "kind": "model",
    "path": "js/client/models/stairs-stone-square.glb",
    "role": "structure",
-   "bytes": 9556
+   "bytes": 4696
   },
   {
    "id": "stairs-stone",
    "kind": "model",
    "path": "js/client/models/stairs-stone.glb",
    "role": "structure",
-   "bytes": 9836
+   "bytes": 4904
   },
   {
    "id": "stairs-wide-stone-handrail",
    "kind": "model",
    "path": "js/client/models/stairs-wide-stone-handrail.glb",
    "role": "structure",
-   "bytes": 23440
+   "bytes": 9968
   },
   {
    "id": "stairs-wide-stone",
    "kind": "model",
    "path": "js/client/models/stairs-wide-stone.glb",
    "role": "structure",
-   "bytes": 12188
+   "bytes": 6592
   },
   {
    "id": "stairs-wide-wood-handrail",
    "kind": "model",
    "path": "js/client/models/stairs-wide-wood-handrail.glb",
    "role": "structure",
-   "bytes": 43904
+   "bytes": 15552
   },
   {
    "id": "stairs-wide-wood",
    "kind": "model",
    "path": "js/client/models/stairs-wide-wood.glb",
    "role": "structure",
-   "bytes": 33060
+   "bytes": 12212
   },
   {
    "id": "stairs-wide",
    "kind": "model",
    "path": "js/client/models/stairs-wide.glb",
    "role": "structure",
-   "bytes": 237464
+   "bytes": 142672
   },
   {
    "id": "stairs-wood-handrail",
    "kind": "model",
    "path": "js/client/models/stairs-wood-handrail.glb",
    "role": "structure",
-   "bytes": 44228
+   "bytes": 15704
   },
   {
    "id": "stairs-wood",
    "kind": "model",
    "path": "js/client/models/stairs-wood.glb",
    "role": "structure",
-   "bytes": 33384
+   "bytes": 12412
   },
   {
    "id": "stairs",
    "kind": "model",
    "path": "js/client/models/stairs.glb",
    "role": "structure",
-   "bytes": 227896
+   "bytes": 139848
   },
   {
    "id": "stall-bench",
    "kind": "model",
    "path": "js/client/models/stall-bench.glb",
    "role": "prop",
-   "bytes": 14168
+   "bytes": 6844
   },
   {
    "id": "stall-green",
    "kind": "model",
    "path": "js/client/models/stall-green.glb",
    "role": "prop",
-   "bytes": 27120
+   "bytes": 10012
   },
   {
    "id": "stall-red",
    "kind": "model",
    "path": "js/client/models/stall-red.glb",
    "role": "prop",
-   "bytes": 24304
+   "bytes": 9804
   },
   {
    "id": "stall-stool",
    "kind": "model",
    "path": "js/client/models/stall-stool.glb",
    "role": "prop",
-   "bytes": 14172
+   "bytes": 6848
   },
   {
    "id": "stone-wall-column",
    "kind": "model",
    "path": "js/client/models/stone-wall-column.glb",
    "role": "rock",
-   "bytes": 13744
+   "bytes": 7648
   },
   {
    "id": "stone-wall-curve",
    "kind": "model",
    "path": "js/client/models/stone-wall-curve.glb",
    "role": "rock",
-   "bytes": 27584
+   "bytes": 19060
   },
   {
    "id": "stone-wall-damaged",
    "kind": "model",
    "path": "js/client/models/stone-wall-damaged.glb",
    "role": "rock",
-   "bytes": 14168
+   "bytes": 8444
   },
   {
    "id": "stone-wall",
    "kind": "model",
    "path": "js/client/models/stone-wall.glb",
    "role": "rock",
-   "bytes": 6944
+   "bytes": 4644
   },
   {
    "id": "stones",
    "kind": "model",
    "path": "js/client/models/stones.glb",
    "role": "rock",
-   "bytes": 24356
+   "bytes": 14964
   },
   {
    "id": "structure-canvas",
    "kind": "model",
    "path": "js/client/models/structure-canvas.glb",
    "role": "building",
-   "bytes": 11276
+   "bytes": 5900
   },
   {
    "id": "structure-corner-inner",
    "kind": "model",
    "path": "js/client/models/structure-corner-inner.glb",
    "role": "building",
-   "bytes": 6324
+   "bytes": 5112
   },
   {
    "id": "structure-corner-outer",
    "kind": "model",
    "path": "js/client/models/structure-corner-outer.glb",
    "role": "building",
-   "bytes": 6308
+   "bytes": 5056
   },
   {
    "id": "structure-doorway-wide",
    "kind": "model",
    "path": "js/client/models/structure-doorway-wide.glb",
    "role": "building",
-   "bytes": 5572
+   "bytes": 4092
   },
   {
    "id": "structure-doorway",
    "kind": "model",
    "path": "js/client/models/structure-doorway.glb",
    "role": "building",
-   "bytes": 6464
+   "bytes": 4304
   },
   {
    "id": "structure-floor",
    "kind": "model",
    "path": "js/client/models/structure-floor.glb",
    "role": "building",
-   "bytes": 19236
+   "bytes": 9840
   },
   {
    "id": "structure-high",
    "kind": "model",
    "path": "js/client/models/structure-high.glb",
    "role": "building",
-   "bytes": 25860
+   "bytes": 15108
   },
   {
    "id": "structure-medium",
    "kind": "model",
    "path": "js/client/models/structure-medium.glb",
    "role": "building",
-   "bytes": 25852
+   "bytes": 15096
   },
   {
    "id": "structure-metal-doorway",
    "kind": "model",
    "path": "js/client/models/structure-metal-doorway.glb",
    "role": "building",
-   "bytes": 18532
+   "bytes": 10836
   },
   {
    "id": "structure-metal-floor",
    "kind": "model",
    "path": "js/client/models/structure-metal-floor.glb",
    "role": "building",
-   "bytes": 33068
+   "bytes": 15248
   },
   {
    "id": "structure-metal-roof",
    "kind": "model",
    "path": "js/client/models/structure-metal-roof.glb",
    "role": "building",
-   "bytes": 40704
+   "bytes": 18720
   },
   {
    "id": "structure-metal-wall",
    "kind": "model",
    "path": "js/client/models/structure-metal-wall.glb",
    "role": "building",
-   "bytes": 10172
+   "bytes": 6668
   },
   {
    "id": "structure-metal",
    "kind": "model",
    "path": "js/client/models/structure-metal.glb",
    "role": "building",
-   "bytes": 19088
+   "bytes": 10420
   },
   {
    "id": "structure-roof",
    "kind": "model",
    "path": "js/client/models/structure-roof.glb",
    "role": "building",
-   "bytes": 21740
+   "bytes": 12620
   },
   {
    "id": "structure-short",
    "kind": "model",
    "path": "js/client/models/structure-short.glb",
    "role": "building",
-   "bytes": 25828
+   "bytes": 15068
   },
   {
    "id": "structure-tall",
    "kind": "model",
    "path": "js/client/models/structure-tall.glb",
    "role": "building",
-   "bytes": 25828
+   "bytes": 15088
   },
   {
    "id": "structure-wall",
    "kind": "model",
    "path": "js/client/models/structure-wall.glb",
    "role": "building",
-   "bytes": 4236
+   "bytes": 3616
   },
   {
    "id": "structure-window-wide",
    "kind": "model",
    "path": "js/client/models/structure-window-wide.glb",
    "role": "building",
-   "bytes": 23340
+   "bytes": 11820
   },
   {
    "id": "structure-window",
    "kind": "model",
    "path": "js/client/models/structure-window.glb",
    "role": "building",
-   "bytes": 19104
+   "bytes": 9524
   },
   {
    "id": "structure-yellow-high",
    "kind": "model",
    "path": "js/client/models/structure-yellow-high.glb",
    "role": "building",
-   "bytes": 36804
+   "bytes": 19956
   },
   {
    "id": "structure-yellow-medium",
    "kind": "model",
    "path": "js/client/models/structure-yellow-medium.glb",
    "role": "building",
-   "bytes": 36796
+   "bytes": 19952
   },
   {
    "id": "structure-yellow-short",
    "kind": "model",
    "path": "js/client/models/structure-yellow-short.glb",
    "role": "building",
-   "bytes": 25852
+   "bytes": 15092
   },
   {
    "id": "structure-yellow-tall",
    "kind": "model",
    "path": "js/client/models/structure-yellow-tall.glb",
    "role": "building",
-   "bytes": 36768
+   "bytes": 19888
   },
   {
    "id": "structure",
    "kind": "model",
    "path": "js/client/models/structure.glb",
    "role": "building",
-   "bytes": 9672
+   "bytes": 5236
   },
   {
    "id": "table",
    "kind": "model",
    "path": "js/client/models/table.glb",
    "role": "prop",
-   "bytes": 15312
+   "bytes": 10336
   },
   {
    "id": "target",
    "kind": "model",
    "path": "js/client/models/target.glb",
    "role": "prop",
-   "bytes": 17696
+   "bytes": 10740
   },
   {
    "id": "template-corner",
    "kind": "model",
    "path": "js/client/models/template-corner.glb",
    "role": "prop",
-   "bytes": 61028
+   "bytes": 40560
   },
   {
    "id": "template-detail",
    "kind": "model",
    "path": "js/client/models/template-detail.glb",
    "role": "prop",
-   "bytes": 32636
+   "bytes": 23704
   },
   {
    "id": "template-floor-big",
    "kind": "model",
    "path": "js/client/models/template-floor-big.glb",
    "role": "prop",
-   "bytes": 64824
+   "bytes": 44528
   },
   {
    "id": "template-floor-detail-a",
    "kind": "model",
    "path": "js/client/models/template-floor-detail-a.glb",
    "role": "prop",
-   "bytes": 22672
+   "bytes": 16744
   },
   {
    "id": "template-floor-detail",
    "kind": "model",
    "path": "js/client/models/template-floor-detail.glb",
    "role": "prop",
-   "bytes": 22664
+   "bytes": 16796
   },
   {
    "id": "template-floor-layer-hole",
    "kind": "model",
    "path": "js/client/models/template-floor-layer-hole.glb",
    "role": "prop",
-   "bytes": 41092
+   "bytes": 17424
   },
   {
    "id": "template-floor-layer-raised",
    "kind": "model",
    "path": "js/client/models/template-floor-layer-raised.glb",
    "role": "prop",
-   "bytes": 33704
+   "bytes": 13524
   },
   {
    "id": "template-floor-layer",
    "kind": "model",
    "path": "js/client/models/template-floor-layer.glb",
    "role": "prop",
-   "bytes": 18996
+   "bytes": 8860
   },
   {
    "id": "template-floor",
    "kind": "model",
    "path": "js/client/models/template-floor.glb",
    "role": "prop",
-   "bytes": 2052
+   "bytes": 2904
   },
   {
    "id": "template-wall-corner",
    "kind": "model",
    "path": "js/client/models/template-wall-corner.glb",
    "role": "prop",
-   "bytes": 7120
+   "bytes": 6064
   },
   {
    "id": "template-wall-detail-a",
    "kind": "model",
    "path": "js/client/models/template-wall-detail-a.glb",
    "role": "prop",
-   "bytes": 41936
+   "bytes": 28012
   },
   {
    "id": "template-wall-half",
    "kind": "model",
    "path": "js/client/models/template-wall-half.glb",
    "role": "prop",
-   "bytes": 19996
+   "bytes": 14292
   },
   {
    "id": "template-wall-stairs",
    "kind": "model",
    "path": "js/client/models/template-wall-stairs.glb",
    "role": "prop",
-   "bytes": 10884
+   "bytes": 8340
   },
   {
    "id": "template-wall-top",
    "kind": "model",
    "path": "js/client/models/template-wall-top.glb",
    "role": "prop",
-   "bytes": 15316
+   "bytes": 10604
   },
   {
    "id": "template-wall",
    "kind": "model",
    "path": "js/client/models/template-wall.glb",
    "role": "prop",
-   "bytes": 43956
+   "bytes": 29600
   },
   {
    "id": "tent-canvas-half",
    "kind": "model",
    "path": "js/client/models/tent-canvas-half.glb",
    "role": "prop",
-   "bytes": 15656
+   "bytes": 9044
   },
   {
    "id": "tent-canvas",
    "kind": "model",
    "path": "js/client/models/tent-canvas.glb",
    "role": "prop",
-   "bytes": 16864
+   "bytes": 9512
   },
   {
    "id": "tent",
    "kind": "model",
    "path": "js/client/models/tent.glb",
    "role": "prop",
-   "bytes": 14020
+   "bytes": 8616
   },
   {
    "id": "tile-high",
    "kind": "model",
    "path": "js/client/models/tile-high.glb",
    "role": "prop",
-   "bytes": 2788
+   "bytes": 3008
   },
   {
    "id": "tile-low",
    "kind": "model",
    "path": "js/client/models/tile-low.glb",
    "role": "prop",
-   "bytes": 2800
+   "bytes": 3056
   },
   {
    "id": "tile-slant",
    "kind": "model",
    "path": "js/client/models/tile-slant.glb",
    "role": "prop",
-   "bytes": 2820
+   "bytes": 3108
   },
   {
    "id": "tile-slantHigh",
    "kind": "model",
    "path": "js/client/models/tile-slantHigh.glb",
    "role": "prop",
-   "bytes": 2832
+   "bytes": 3144
   },
   {
    "id": "tool-axe-upgraded",
    "kind": "model",
    "path": "js/client/models/tool-axe-upgraded.glb",
    "role": "prop",
-   "bytes": 13132
+   "bytes": 7004
   },
   {
    "id": "tool-axe",
    "kind": "model",
    "path": "js/client/models/tool-axe.glb",
    "role": "prop",
-   "bytes": 8612
+   "bytes": 5236
   },
   {
    "id": "tool-hammer-upgraded",
    "kind": "model",
    "path": "js/client/models/tool-hammer-upgraded.glb",
    "role": "prop",
-   "bytes": 8940
+   "bytes": 6144
   },
   {
    "id": "tool-hammer",
    "kind": "model",
    "path": "js/client/models/tool-hammer.glb",
    "role": "prop",
-   "bytes": 6520
+   "bytes": 4976
   },
   {
    "id": "tool-hoe-upgraded",
    "kind": "model",
    "path": "js/client/models/tool-hoe-upgraded.glb",
    "role": "prop",
-   "bytes": 10740
+   "bytes": 6300
   },
   {
    "id": "tool-hoe",
    "kind": "model",
    "path": "js/client/models/tool-hoe.glb",
    "role": "prop",
-   "bytes": 6628
+   "bytes": 4728
   },
   {
    "id": "tool-pickaxe-upgraded",
    "kind": "model",
    "path": "js/client/models/tool-pickaxe-upgraded.glb",
    "role": "prop",
-   "bytes": 11168
+   "bytes": 6608
   },
   {
    "id": "tool-pickaxe",
    "kind": "model",
    "path": "js/client/models/tool-pickaxe.glb",
    "role": "prop",
-   "bytes": 8152
+   "bytes": 5268
   },
   {
    "id": "tool-shovel-upgraded",
    "kind": "model",
    "path": "js/client/models/tool-shovel-upgraded.glb",
    "role": "prop",
-   "bytes": 16400
+   "bytes": 8468
   },
   {
    "id": "tool-shovel",
    "kind": "model",
    "path": "js/client/models/tool-shovel.glb",
    "role": "prop",
-   "bytes": 11656
+   "bytes": 6796
   },
   {
    "id": "top-large-checkerboard",
    "kind": "model",
    "path": "js/client/models/top-large-checkerboard.glb",
    "role": "prop",
-   "bytes": 2444
+   "bytes": 2996
   },
   {
    "id": "top-large",
    "kind": "model",
    "path": "js/client/models/top-large.glb",
    "role": "prop",
-   "bytes": 1800
+   "bytes": 2844
   },
   {
    "id": "top",
    "kind": "model",
    "path": "js/client/models/top.glb",
    "role": "prop",
-   "bytes": 1780
+   "bytes": 2836
   },
   {
    "id": "tower-base",
    "kind": "model",
    "path": "js/client/models/tower-base.glb",
    "role": "building",
-   "bytes": 41724
+   "bytes": 17284
   },
   {
    "id": "tower-hexagon-base",
    "kind": "model",
    "path": "js/client/models/tower-hexagon-base.glb",
    "role": "building",
-   "bytes": 8336
+   "bytes": 6120
   },
   {
    "id": "tower-hexagon-mid",
    "kind": "model",
    "path": "js/client/models/tower-hexagon-mid.glb",
    "role": "building",
-   "bytes": 33568
+   "bytes": 15064
   },
   {
    "id": "tower-hexagon-roof-secondary",
    "kind": "model",
    "path": "js/client/models/tower-hexagon-roof-secondary.glb",
    "role": "building",
-   "bytes": 12540
+   "bytes": 7720
   },
   {
    "id": "tower-hexagon-roof",
    "kind": "model",
    "path": "js/client/models/tower-hexagon-roof.glb",
    "role": "building",
-   "bytes": 8400
+   "bytes": 6080
   },
   {
    "id": "tower-hexagon-top-wood",
    "kind": "model",
    "path": "js/client/models/tower-hexagon-top-wood.glb",
    "role": "building",
-   "bytes": 13852
+   "bytes": 7152
   },
   {
    "id": "tower-hexagon-top",
    "kind": "model",
    "path": "js/client/models/tower-hexagon-top.glb",
    "role": "building",
-   "bytes": 13848
+   "bytes": 7168
   },
   {
    "id": "tower-slant-roof",
    "kind": "model",
    "path": "js/client/models/tower-slant-roof.glb",
    "role": "building",
-   "bytes": 47488
+   "bytes": 22964
   },
   {
    "id": "tower-square-arch",
    "kind": "model",
    "path": "js/client/models/tower-square-arch.glb",
    "role": "building",
-   "bytes": 29724
+   "bytes": 11040
   },
   {
    "id": "tower-square-base-border",
    "kind": "model",
    "path": "js/client/models/tower-square-base-border.glb",
    "role": "building",
-   "bytes": 3684
+   "bytes": 3536
   },
   {
    "id": "tower-square-base-color",
    "kind": "model",
    "path": "js/client/models/tower-square-base-color.glb",
    "role": "building",
-   "bytes": 6908
+   "bytes": 4368
   },
   {
    "id": "tower-square-base",
    "kind": "model",
    "path": "js/client/models/tower-square-base.glb",
    "role": "building",
-   "bytes": 4456
+   "bytes": 3732
   },
   {
    "id": "tower-square-mid-color",
    "kind": "model",
    "path": "js/client/models/tower-square-mid-color.glb",
    "role": "building",
-   "bytes": 5380
+   "bytes": 3800
   },
   {
    "id": "tower-square-mid-door",
    "kind": "model",
    "path": "js/client/models/tower-square-mid-door.glb",
    "role": "building",
-   "bytes": 28996
+   "bytes": 11648
   },
   {
    "id": "tower-square-mid-open-simple",
    "kind": "model",
    "path": "js/client/models/tower-square-mid-open-simple.glb",
    "role": "building",
-   "bytes": 19752
+   "bytes": 7912
   },
   {
    "id": "tower-square-mid-open",
    "kind": "model",
    "path": "js/client/models/tower-square-mid-open.glb",
    "role": "building",
-   "bytes": 23568
+   "bytes": 8716
   },
   {
    "id": "tower-square-mid-windows",
    "kind": "model",
    "path": "js/client/models/tower-square-mid-windows.glb",
    "role": "building",
-   "bytes": 30852
+   "bytes": 11816
   },
   {
    "id": "tower-square-mid",
    "kind": "model",
    "path": "js/client/models/tower-square-mid.glb",
    "role": "building",
-   "bytes": 7744
+   "bytes": 4640
   },
   {
    "id": "tower-square-roof",
    "kind": "model",
    "path": "js/client/models/tower-square-roof.glb",
    "role": "building",
-   "bytes": 14036
+   "bytes": 6604
   },
   {
    "id": "tower-square-top-color",
    "kind": "model",
    "path": "js/client/models/tower-square-top-color.glb",
    "role": "building",
-   "bytes": 14088
+   "bytes": 6488
   },
   {
    "id": "tower-square-top-roof-high-windows",
    "kind": "model",
    "path": "js/client/models/tower-square-top-roof-high-windows.glb",
    "role": "building",
-   "bytes": 22788
+   "bytes": 10204
   },
   {
    "id": "tower-square-top-roof-high",
    "kind": "model",
    "path": "js/client/models/tower-square-top-roof-high.glb",
    "role": "building",
-   "bytes": 11288
+   "bytes": 5848
   },
   {
    "id": "tower-square-top-roof-rounded",
    "kind": "model",
    "path": "js/client/models/tower-square-top-roof-rounded.glb",
    "role": "building",
-   "bytes": 11296
+   "bytes": 5812
   },
   {
    "id": "tower-square-top-roof",
    "kind": "model",
    "path": "js/client/models/tower-square-top-roof.glb",
    "role": "building",
-   "bytes": 11256
+   "bytes": 5852
   },
   {
    "id": "tower-square-top",
    "kind": "model",
    "path": "js/client/models/tower-square-top.glb",
    "role": "building",
-   "bytes": 13276
+   "bytes": 6272
   },
   {
    "id": "tower-square",
    "kind": "model",
    "path": "js/client/models/tower-square.glb",
    "role": "building",
-   "bytes": 16564
+   "bytes": 6884
   },
   {
    "id": "tower-top",
    "kind": "model",
    "path": "js/client/models/tower-top.glb",
    "role": "building",
-   "bytes": 27408
+   "bytes": 14320
   },
   {
    "id": "traffic-light-hanging",
    "kind": "model",
    "path": "js/client/models/traffic-light-hanging.glb",
    "role": "prop",
-   "bytes": 22132
+   "bytes": 11520
   },
   {
    "id": "traffic-light-object-hanging",
    "kind": "model",
    "path": "js/client/models/traffic-light-object-hanging.glb",
    "role": "prop",
-   "bytes": 10876
+   "bytes": 7248
   },
   {
    "id": "traffic-light-object-horizontal",
    "kind": "model",
    "path": "js/client/models/traffic-light-object-horizontal.glb",
    "role": "prop",
-   "bytes": 11664
+   "bytes": 7160
   },
   {
    "id": "traffic-light-object-vertical",
    "kind": "model",
    "path": "js/client/models/traffic-light-object-vertical.glb",
    "role": "prop",
-   "bytes": 12408
+   "bytes": 7848
   },
   {
    "id": "traffic-light",
    "kind": "model",
    "path": "js/client/models/traffic-light.glb",
    "role": "prop",
-   "bytes": 20344
+   "bytes": 10676
   },
   {
    "id": "trap",
    "kind": "model",
    "path": "js/client/models/trap.glb",
    "role": "prop",
-   "bytes": 42944
+   "bytes": 30280
   },
   {
    "id": "tree-autumn-tall",
    "kind": "model",
    "path": "js/client/models/tree-autumn-tall.glb",
    "role": "tree",
-   "bytes": 19748
+   "bytes": 13924
   },
   {
    "id": "tree-autumn-trunk",
    "kind": "model",
    "path": "js/client/models/tree-autumn-trunk.glb",
    "role": "tree",
-   "bytes": 6928
+   "bytes": 5772
   },
   {
    "id": "tree-autumn",
    "kind": "model",
    "path": "js/client/models/tree-autumn.glb",
    "role": "tree",
-   "bytes": 19732
+   "bytes": 13880
   },
   {
    "id": "tree-crooked",
    "kind": "model",
    "path": "js/client/models/tree-crooked.glb",
    "role": "tree",
-   "bytes": 19252
+   "bytes": 14336
   },
   {
    "id": "tree-high-crooked",
    "kind": "model",
    "path": "js/client/models/tree-high-crooked.glb",
    "role": "tree",
-   "bytes": 21744
+   "bytes": 15472
   },
   {
    "id": "tree-high-round",
    "kind": "model",
    "path": "js/client/models/tree-high-round.glb",
    "role": "tree",
-   "bytes": 13176
+   "bytes": 10192
   },
   {
    "id": "tree-high",
    "kind": "model",
    "path": "js/client/models/tree-high.glb",
    "role": "tree",
-   "bytes": 20700
+   "bytes": 14620
   },
   {
    "id": "tree-large",
    "kind": "model",
    "path": "js/client/models/tree-large.glb",
    "role": "tree",
-   "bytes": 21248
+   "bytes": 13860
   },
   {
    "id": "tree-log-small",
    "kind": "model",
    "path": "js/client/models/tree-log-small.glb",
    "role": "tree",
-   "bytes": 9216
+   "bytes": 7148
   },
   {
    "id": "tree-log",
    "kind": "model",
    "path": "js/client/models/tree-log.glb",
    "role": "tree",
-   "bytes": 9180
+   "bytes": 7008
   },
   {
    "id": "tree-small",
    "kind": "model",
    "path": "js/client/models/tree-small.glb",
    "role": "tree",
-   "bytes": 15816
+   "bytes": 10780
   },
   {
    "id": "tree-tall",
    "kind": "model",
    "path": "js/client/models/tree-tall.glb",
    "role": "tree",
-   "bytes": 24672
+   "bytes": 16488
   },
   {
    "id": "tree-trunk",
    "kind": "model",
    "path": "js/client/models/tree-trunk.glb",
    "role": "tree",
-   "bytes": 6920
+   "bytes": 5752
   },
   {
    "id": "trunk-long",
    "kind": "model",
    "path": "js/client/models/trunk-long.glb",
    "role": "prop",
-   "bytes": 30832
+   "bytes": 21468
   },
   {
    "id": "trunk",
    "kind": "model",
    "path": "js/client/models/trunk.glb",
    "role": "prop",
-   "bytes": 27100
+   "bytes": 18996
   },
   {
    "id": "urn-round",
    "kind": "model",
    "path": "js/client/models/urn-round.glb",
    "role": "prop",
-   "bytes": 23712
+   "bytes": 18052
   },
   {
    "id": "urn-square",
    "kind": "model",
    "path": "js/client/models/urn-square.glb",
    "role": "prop",
-   "bytes": 22460
+   "bytes": 17924
   },
   {
    "id": "wall-arch-top-detail",
    "kind": "model",
    "path": "js/client/models/wall-arch-top-detail.glb",
    "role": "structure",
-   "bytes": 16076
+   "bytes": 7844
   },
   {
    "id": "wall-arch-top",
    "kind": "model",
    "path": "js/client/models/wall-arch-top.glb",
    "role": "structure",
-   "bytes": 12876
+   "bytes": 6740
   },
   {
    "id": "wall-arch",
    "kind": "model",
    "path": "js/client/models/wall-arch.glb",
    "role": "structure",
-   "bytes": 4840
+   "bytes": 3792
   },
   {
    "id": "wall-block-half",
    "kind": "model",
    "path": "js/client/models/wall-block-half.glb",
    "role": "structure",
-   "bytes": 8564
+   "bytes": 5116
   },
   {
    "id": "wall-block",
    "kind": "model",
    "path": "js/client/models/wall-block.glb",
    "role": "structure",
-   "bytes": 8532
+   "bytes": 4872
   },
   {
    "id": "wall-broken",
    "kind": "model",
    "path": "js/client/models/wall-broken.glb",
    "role": "structure",
-   "bytes": 16904
+   "bytes": 7408
   },
   {
    "id": "wall-corner-detail",
    "kind": "model",
    "path": "js/client/models/wall-corner-detail.glb",
    "role": "structure",
-   "bytes": 15748
+   "bytes": 8580
   },
   {
    "id": "wall-corner-diagonal-half",
    "kind": "model",
    "path": "js/client/models/wall-corner-diagonal-half.glb",
    "role": "structure",
-   "bytes": 4788
+   "bytes": 3852
   },
   {
    "id": "wall-corner-diagonal",
    "kind": "model",
    "path": "js/client/models/wall-corner-diagonal.glb",
    "role": "structure",
-   "bytes": 6032
+   "bytes": 4196
   },
   {
    "id": "wall-corner-edge",
    "kind": "model",
    "path": "js/client/models/wall-corner-edge.glb",
    "role": "structure",
-   "bytes": 5416
+   "bytes": 4076
   },
   {
    "id": "wall-corner-half-tower",
    "kind": "model",
    "path": "js/client/models/wall-corner-half-tower.glb",
    "role": "structure",
-   "bytes": 80020
+   "bytes": 28968
   },
   {
    "id": "wall-corner-half",
    "kind": "model",
    "path": "js/client/models/wall-corner-half.glb",
    "role": "structure",
-   "bytes": 12976
+   "bytes": 6268
   },
   {
    "id": "wall-corner-slant",
    "kind": "model",
    "path": "js/client/models/wall-corner-slant.glb",
    "role": "structure",
-   "bytes": 16028
+   "bytes": 6940
   },
   {
    "id": "wall-corner",
    "kind": "model",
    "path": "js/client/models/wall-corner.glb",
    "role": "structure",
-   "bytes": 15264
+   "bytes": 6872
   },
   {
    "id": "wall-curved",
    "kind": "model",
    "path": "js/client/models/wall-curved.glb",
    "role": "structure",
-   "bytes": 11432
+   "bytes": 6808
   },
   {
    "id": "wall-detail-cross",
    "kind": "model",
    "path": "js/client/models/wall-detail-cross.glb",
    "role": "structure",
-   "bytes": 8464
+   "bytes": 4988
   },
   {
    "id": "wall-detail-diagonal",
    "kind": "model",
    "path": "js/client/models/wall-detail-diagonal.glb",
    "role": "structure",
-   "bytes": 6672
+   "bytes": 4400
   },
   {
    "id": "wall-detail-horizontal",
    "kind": "model",
    "path": "js/client/models/wall-detail-horizontal.glb",
    "role": "structure",
-   "bytes": 6240
+   "bytes": 4148
   },
   {
    "id": "wall-diagonal",
    "kind": "model",
    "path": "js/client/models/wall-diagonal.glb",
    "role": "structure",
-   "bytes": 5212
+   "bytes": 4084
   },
   {
    "id": "wall-door",
    "kind": "model",
    "path": "js/client/models/wall-door.glb",
    "role": "structure",
-   "bytes": 29276
+   "bytes": 12948
   },
   {
    "id": "wall-doorway-base",
    "kind": "model",
    "path": "js/client/models/wall-doorway-base.glb",
    "role": "structure",
-   "bytes": 8028
+   "bytes": 4788
   },
   {
    "id": "wall-doorway-round",
    "kind": "model",
    "path": "js/client/models/wall-doorway-round.glb",
    "role": "structure",
-   "bytes": 13332
+   "bytes": 6660
   },
   {
    "id": "wall-doorway-square-wide-curved",
    "kind": "model",
    "path": "js/client/models/wall-doorway-square-wide-curved.glb",
    "role": "structure",
-   "bytes": 14316
+   "bytes": 6864
   },
   {
    "id": "wall-doorway-square-wide",
    "kind": "model",
    "path": "js/client/models/wall-doorway-square-wide.glb",
    "role": "structure",
-   "bytes": 5864
+   "bytes": 4188
   },
   {
    "id": "wall-doorway-square",
    "kind": "model",
    "path": "js/client/models/wall-doorway-square.glb",
    "role": "structure",
-   "bytes": 7844
+   "bytes": 4608
   },
   {
    "id": "wall-doorway",
    "kind": "model",
    "path": "js/client/models/wall-doorway.glb",
    "role": "structure",
-   "bytes": 37560
+   "bytes": 14772
   },
   {
    "id": "wall-half-modular",
    "kind": "model",
    "path": "js/client/models/wall-half-modular.glb",
    "role": "structure",
-   "bytes": 8016
+   "bytes": 4696
   },
   {
    "id": "wall-half",
    "kind": "model",
    "path": "js/client/models/wall-half.glb",
    "role": "structure",
-   "bytes": 12132
+   "bytes": 6644
   },
   {
    "id": "wall-narrow-corner",
    "kind": "model",
    "path": "js/client/models/wall-narrow-corner.glb",
    "role": "structure",
-   "bytes": 9384
+   "bytes": 5500
   },
   {
    "id": "wall-narrow-gate",
    "kind": "model",
    "path": "js/client/models/wall-narrow-gate.glb",
    "role": "structure",
-   "bytes": 17092
+   "bytes": 7692
   },
   {
    "id": "wall-narrow-stairs-rail",
    "kind": "model",
    "path": "js/client/models/wall-narrow-stairs-rail.glb",
    "role": "structure",
-   "bytes": 40896
+   "bytes": 14140
   },
   {
    "id": "wall-narrow-stairs",
    "kind": "model",
    "path": "js/client/models/wall-narrow-stairs.glb",
    "role": "structure",
-   "bytes": 26972
+   "bytes": 8500
   },
   {
    "id": "wall-narrow-wood-fence",
    "kind": "model",
    "path": "js/client/models/wall-narrow-wood-fence.glb",
    "role": "structure",
-   "bytes": 32988
+   "bytes": 13456
   },
   {
    "id": "wall-narrow-wood",
    "kind": "model",
    "path": "js/client/models/wall-narrow-wood.glb",
    "role": "structure",
-   "bytes": 26812
+   "bytes": 11712
   },
   {
    "id": "wall-narrow",
    "kind": "model",
    "path": "js/client/models/wall-narrow.glb",
    "role": "structure",
-   "bytes": 12160
+   "bytes": 6732
   },
   {
    "id": "wall-opening",
    "kind": "model",
    "path": "js/client/models/wall-opening.glb",
    "role": "structure",
-   "bytes": 19220
+   "bytes": 10760
   },
   {
    "id": "wall-pillar",
    "kind": "model",
    "path": "js/client/models/wall-pillar.glb",
    "role": "structure",
-   "bytes": 18156
+   "bytes": 6800
   },
   {
    "id": "wall-rounded",
    "kind": "model",
    "path": "js/client/models/wall-rounded.glb",
    "role": "structure",
-   "bytes": 12616
+   "bytes": 6960
   },
   {
    "id": "wall-side",
    "kind": "model",
    "path": "js/client/models/wall-side.glb",
    "role": "structure",
-   "bytes": 3852
+   "bytes": 3516
   },
   {
    "id": "wall-slope",
    "kind": "model",
    "path": "js/client/models/wall-slope.glb",
    "role": "structure",
-   "bytes": 4812
+   "bytes": 3708
   },
   {
    "id": "wall-stud",
    "kind": "model",
    "path": "js/client/models/wall-stud.glb",
    "role": "structure",
-   "bytes": 3212
+   "bytes": 3332
   },
   {
    "id": "wall-to-narrow",
    "kind": "model",
    "path": "js/client/models/wall-to-narrow.glb",
    "role": "structure",
-   "bytes": 19776
+   "bytes": 9220
   },
   {
    "id": "wall-window-glass",
    "kind": "model",
    "path": "js/client/models/wall-window-glass.glb",
    "role": "structure",
-   "bytes": 15708
+   "bytes": 6688
   },
   {
    "id": "wall-window-round",
    "kind": "model",
    "path": "js/client/models/wall-window-round.glb",
    "role": "structure",
-   "bytes": 22356
+   "bytes": 10604
   },
   {
    "id": "wall-window-shutters",
    "kind": "model",
    "path": "js/client/models/wall-window-shutters.glb",
    "role": "structure",
-   "bytes": 23892
+   "bytes": 9828
   },
   {
    "id": "wall-window-small",
    "kind": "model",
    "path": "js/client/models/wall-window-small.glb",
    "role": "structure",
-   "bytes": 9376
+   "bytes": 5048
   },
   {
    "id": "wall-window-stone",
    "kind": "model",
    "path": "js/client/models/wall-window-stone.glb",
    "role": "structure",
-   "bytes": 12484
+   "bytes": 6472
   },
   {
    "id": "wall-wood-arch-top-detail",
    "kind": "model",
    "path": "js/client/models/wall-wood-arch-top-detail.glb",
    "role": "structure",
-   "bytes": 16092
+   "bytes": 7852
   },
   {
    "id": "wall-wood-arch-top",
    "kind": "model",
    "path": "js/client/models/wall-wood-arch-top.glb",
    "role": "structure",
-   "bytes": 12892
+   "bytes": 6752
   },
   {
    "id": "wall-wood-arch",
    "kind": "model",
    "path": "js/client/models/wall-wood-arch.glb",
    "role": "structure",
-   "bytes": 4856
+   "bytes": 3804
   },
   {
    "id": "wall-wood-block-half",
    "kind": "model",
    "path": "js/client/models/wall-wood-block-half.glb",
    "role": "structure",
-   "bytes": 8580
+   "bytes": 5124
   },
   {
    "id": "wall-wood-block",
    "kind": "model",
    "path": "js/client/models/wall-wood-block.glb",
    "role": "structure",
-   "bytes": 8548
+   "bytes": 4880
   },
   {
    "id": "wall-wood-broken",
    "kind": "model",
    "path": "js/client/models/wall-wood-broken.glb",
    "role": "structure",
-   "bytes": 16344
+   "bytes": 7220
   },
   {
    "id": "wall-wood-corner-diagonal-half",
    "kind": "model",
    "path": "js/client/models/wall-wood-corner-diagonal-half.glb",
    "role": "structure",
-   "bytes": 4804
+   "bytes": 3864
   },
   {
    "id": "wall-wood-corner-diagonal",
    "kind": "model",
    "path": "js/client/models/wall-wood-corner-diagonal.glb",
    "role": "structure",
-   "bytes": 6048
+   "bytes": 4208
   },
   {
    "id": "wall-wood-corner-edge",
    "kind": "model",
    "path": "js/client/models/wall-wood-corner-edge.glb",
    "role": "structure",
-   "bytes": 5432
+   "bytes": 4088
   },
   {
    "id": "wall-wood-corner",
    "kind": "model",
    "path": "js/client/models/wall-wood-corner.glb",
    "role": "structure",
-   "bytes": 6804
+   "bytes": 4348
   },
   {
    "id": "wall-wood-curved",
    "kind": "model",
    "path": "js/client/models/wall-wood-curved.glb",
    "role": "structure",
-   "bytes": 11444
+   "bytes": 6820
   },
   {
    "id": "wall-wood-detail-cross",
    "kind": "model",
    "path": "js/client/models/wall-wood-detail-cross.glb",
    "role": "structure",
-   "bytes": 8480
+   "bytes": 5000
   },
   {
    "id": "wall-wood-detail-diagonal",
    "kind": "model",
    "path": "js/client/models/wall-wood-detail-diagonal.glb",
    "role": "structure",
-   "bytes": 6684
+   "bytes": 4408
   },
   {
    "id": "wall-wood-detail-horizontal",
    "kind": "model",
    "path": "js/client/models/wall-wood-detail-horizontal.glb",
    "role": "structure",
-   "bytes": 6256
+   "bytes": 4156
   },
   {
    "id": "wall-wood-diagonal",
    "kind": "model",
    "path": "js/client/models/wall-wood-diagonal.glb",
    "role": "structure",
-   "bytes": 5228
+   "bytes": 4092
   },
   {
    "id": "wall-wood-door",
    "kind": "model",
    "path": "js/client/models/wall-wood-door.glb",
    "role": "structure",
-   "bytes": 30744
+   "bytes": 13592
   },
   {
    "id": "wall-wood-doorway-base",
    "kind": "model",
    "path": "js/client/models/wall-wood-doorway-base.glb",
    "role": "structure",
-   "bytes": 8044
+   "bytes": 4800
   },
   {
    "id": "wall-wood-doorway-round",
    "kind": "model",
    "path": "js/client/models/wall-wood-doorway-round.glb",
    "role": "structure",
-   "bytes": 15068
+   "bytes": 6992
   },
   {
    "id": "wall-wood-doorway-square-wide-curved",
    "kind": "model",
    "path": "js/client/models/wall-wood-doorway-square-wide-curved.glb",
    "role": "structure",
-   "bytes": 14332
+   "bytes": 6872
   },
   {
    "id": "wall-wood-doorway-square-wide",
    "kind": "model",
    "path": "js/client/models/wall-wood-doorway-square-wide.glb",
    "role": "structure",
-   "bytes": 5876
+   "bytes": 4200
   },
   {
    "id": "wall-wood-doorway-square",
    "kind": "model",
    "path": "js/client/models/wall-wood-doorway-square.glb",
    "role": "structure",
-   "bytes": 8664
+   "bytes": 5052
   },
   {
    "id": "wall-wood-half",
    "kind": "model",
    "path": "js/client/models/wall-wood-half.glb",
    "role": "structure",
-   "bytes": 4824
+   "bytes": 3640
   },
   {
    "id": "wall-wood-rounded",
    "kind": "model",
    "path": "js/client/models/wall-wood-rounded.glb",
    "role": "structure",
-   "bytes": 12632
+   "bytes": 6972
   },
   {
    "id": "wall-wood-side",
    "kind": "model",
    "path": "js/client/models/wall-wood-side.glb",
    "role": "structure",
-   "bytes": 3868
+   "bytes": 3524
   },
   {
    "id": "wall-wood-slope",
    "kind": "model",
    "path": "js/client/models/wall-wood-slope.glb",
    "role": "structure",
-   "bytes": 8544
+   "bytes": 5072
   },
   {
    "id": "wall-wood-window-glass",
    "kind": "model",
    "path": "js/client/models/wall-wood-window-glass.glb",
    "role": "structure",
-   "bytes": 11184
+   "bytes": 5524
   },
   {
    "id": "wall-wood-window-round",
    "kind": "model",
    "path": "js/client/models/wall-wood-window-round.glb",
    "role": "structure",
-   "bytes": 23636
+   "bytes": 11000
   },
   {
    "id": "wall-wood-window-shutters",
    "kind": "model",
    "path": "js/client/models/wall-wood-window-shutters.glb",
    "role": "structure",
-   "bytes": 10612
+   "bytes": 5480
   },
   {
    "id": "wall-wood-window-small",
    "kind": "model",
    "path": "js/client/models/wall-wood-window-small.glb",
    "role": "structure",
-   "bytes": 11808
+   "bytes": 6012
   },
   {
    "id": "wall-wood-window-stone",
    "kind": "model",
    "path": "js/client/models/wall-wood-window-stone.glb",
    "role": "structure",
-   "bytes": 16844
+   "bytes": 7468
   },
   {
    "id": "wall-wood",
    "kind": "model",
    "path": "js/client/models/wall-wood.glb",
    "role": "structure",
-   "bytes": 4808
+   "bytes": 3668
   },
   {
    "id": "wall",
    "kind": "model",
    "path": "js/client/models/wall.glb",
    "role": "structure",
-   "bytes": 16552
+   "bytes": 7788
   },
   {
    "id": "warning-orange",
    "kind": "model",
    "path": "js/client/models/warning-orange.glb",
    "role": "prop",
-   "bytes": 16136
+   "bytes": 11284
   },
   {
    "id": "warning-traffic",
    "kind": "model",
    "path": "js/client/models/warning-traffic.glb",
    "role": "prop",
-   "bytes": 18192
+   "bytes": 11284
   },
   {
    "id": "water-tower",
    "kind": "model",
    "path": "js/client/models/water-tower.glb",
    "role": "building",
-   "bytes": 93836
+   "bytes": 60828
   },
   {
    "id": "watermill-wide",
    "kind": "model",
    "path": "js/client/models/watermill-wide.glb",
    "role": "prop",
-   "bytes": 53872
+   "bytes": 25608
   },
   {
    "id": "watermill",
    "kind": "model",
    "path": "js/client/models/watermill.glb",
    "role": "prop",
-   "bytes": 53856
+   "bytes": 25432
   },
   {
    "id": "weapon-arrow",
    "kind": "model",
    "path": "js/client/models/weapon-arrow.glb",
    "role": "prop",
-   "bytes": 7168
+   "bytes": 5448
   },
   {
    "id": "weapon-bow",
    "kind": "model",
    "path": "js/client/models/weapon-bow.glb",
    "role": "prop",
-   "bytes": 8508
+   "bytes": 5836
   },
   {
    "id": "weapon-spear",
    "kind": "model",
    "path": "js/client/models/weapon-spear.glb",
    "role": "prop",
-   "bytes": 7152
+   "bytes": 5448
   },
   {
    "id": "weapon-sword",
    "kind": "model",
    "path": "js/client/models/weapon-sword.glb",
    "role": "prop",
-   "bytes": 9284
+   "bytes": 7440
   },
   {
    "id": "wheel",
    "kind": "model",
    "path": "js/client/models/wheel.glb",
    "role": "prop",
-   "bytes": 17184
+   "bytes": 10880
   },
   {
    "id": "wheelchair-deluxe",
    "kind": "model",
    "path": "js/client/models/wheelchair-deluxe.glb",
    "role": "prop",
-   "bytes": 60588
+   "bytes": 33560
   },
   {
    "id": "wheelchair-power-deluxe",
    "kind": "model",
    "path": "js/client/models/wheelchair-power-deluxe.glb",
    "role": "prop",
-   "bytes": 90512
+   "bytes": 49508
   },
   {
    "id": "wheelchair-power",
    "kind": "model",
    "path": "js/client/models/wheelchair-power.glb",
    "role": "prop",
-   "bytes": 76664
+   "bytes": 41792
   },
   {
    "id": "wheelchair",
    "kind": "model",
    "path": "js/client/models/wheelchair.glb",
    "role": "prop",
-   "bytes": 56680
+   "bytes": 31232
   },
   {
    "id": "windmill-low",
    "kind": "model",
    "path": "js/client/models/windmill-low.glb",
    "role": "prop",
-   "bytes": 46296
+   "bytes": 31936
   },
   {
    "id": "windmill",
    "kind": "model",
    "path": "js/client/models/windmill.glb",
    "role": "prop",
-   "bytes": 46292
+   "bytes": 31936
   },
   {
    "id": "wood-structure",
    "kind": "model",
    "path": "js/client/models/wood-structure.glb",
    "role": "prop",
-   "bytes": 26292
+   "bytes": 11700
   },
   {
    "id": "wood-support",
    "kind": "model",
    "path": "js/client/models/wood-support.glb",
    "role": "prop",
-   "bytes": 11236
+   "bytes": 6320
   },
   {
    "id": "workbench-anvil",
    "kind": "model",
    "path": "js/client/models/workbench-anvil.glb",
    "role": "prop",
-   "bytes": 30084
+   "bytes": 17496
   },
   {
    "id": "workbench-grind",
    "kind": "model",
    "path": "js/client/models/workbench-grind.glb",
    "role": "prop",
-   "bytes": 24704
+   "bytes": 14104
   },
   {
    "id": "workbench",
    "kind": "model",
    "path": "js/client/models/workbench.glb",
    "role": "prop",
-   "bytes": 26104
+   "bytes": 16416
   },
   {
    "id": "terrain-variation-a",
@@ -5595,6 +5595,41 @@
    "placed_by": "doodads.json",
    "bytes": 18840,
    "role": "building"
+  },
+  {
+   "id": "grass-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/grass.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of grass.jpg, splat layer)",
+   "bytes": 83992
+  },
+  {
+   "id": "ground-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/ground.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of ground.png, tile)",
+   "bytes": 77170
+  },
+  {
+   "id": "lane-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/lane.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of lane.jpg, splat/tile)",
+   "bytes": 81665
+  },
+  {
+   "id": "rock-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/rock.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of rock.jpg, splat/tile)",
+   "bytes": 77127
+  },
+  {
+   "id": "colormap-ktx2",
+   "kind": "texture",
+   "path": "js/client/models/Textures/colormap.ktx2",
+   "placed_by": "KHR_texture_basisu of the room and character GLBs (external image)",
+   "bytes": 13386
   }
  ],
  "roles": {

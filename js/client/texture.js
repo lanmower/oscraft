@@ -6,9 +6,16 @@
 
 import { loadBasis, ktx2Size, transcodeKtx2 } from './decoders.js';
 
+const RASTER_URI = /\.(png|jpe?g)$/i;
+
 export async function loadBaseColorImage(ref, glbUrl) {
   if (!ref) return null;
   if (ref.mimeType === 'image/ktx2') return loadKtx2Image(ref, glbUrl);
+  // A PNG or JPEG uri reads its KTX2 sibling first (same name, .ktx2) and keeps the raster file as the fallback.
+  if (!ref.bytes && ref.uri && RASTER_URI.test(ref.uri)) {
+    const sibling = await loadKtx2Image({ uri: ref.uri.replace(RASTER_URI, '.ktx2'), texCoord: ref.texCoord }, glbUrl).catch(() => null);
+    if (sibling) return sibling;
+  }
   const blob = ref.bytes
     ? new Blob([ref.bytes], { type: ref.mimeType ?? 'image/png' })
     : await fetchImageBlob(ref.uri, glbUrl);

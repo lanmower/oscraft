@@ -22,6 +22,8 @@ dependencies are not listed because no `Cargo.lock` is tracked.
 | Splat layers `js/client/textures/grass.jpg`, `dirt.jpg`, `rock.jpg` and their height maps `grass_disp.jpg`, `dirt_disp.jpg`, `rock_disp.jpg` (colour and displacement maps of the owner's mapspinner set, resized to 512 px, JPEG) | internal, made by the owner, in `/workspace/spoint/packages/mapspinner/textures` (sand-color and sand-displacement become `dirt`; not CC0) | owner-made, shipped by owner decision | `/workspace/spoint/packages/mapspinner/textures` | browser client, splat ground layers (`js/client/tiles.js`, `SPLAT_TEXTURES`; `js/client/render3d.js` `SPLAT_FRAG`, `js/client/render_tsl.js`) |
 | Splat lane layer `js/client/textures/lane.jpg` and `lane_disp.jpg` (Ground037 colour and displacement maps, 512 px, JPEG) | ambientCG Ground037, CC0 1.0 (public domain dedication; no attribution required) | CC0 1.0 | https://ambientcg.com/view?id=Ground037 (downloads: `Ground037_1K-JPG_Color.jpg`, `Ground037_1K-JPG_Displacement.jpg`) | browser client, lane splat layer (the mapspinner set has no lane layer) |
 
+| Encoded copies of the rows above: GLB models in `js/client/models` re-encoded with meshopt and KTX2 textures, and `*.ktx2` files in `js/client/textures` and `js/client/models/Textures` (made by `scripts/assets/prep-ktx.mjs`) | same as the source of each encoded file | same as the source of each encoded file | the rows above | js/client/models, js/client/textures |
+
 
 
 This file is not legal advice. A human legal review is required before any release.
