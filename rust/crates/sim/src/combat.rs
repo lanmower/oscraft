@@ -40,6 +40,19 @@ pub struct KillEvent {
     pub victim: u32,
     pub victim_player: u8,
 }
+/// One payable death, queued while a mod owns kill gold (`gold_by_mod`) and drained by the room, which
+/// feeds it to the mod's `on_died` with these room ids. `killer` and `killer_player` are `None` for an
+/// attackerless death (or a self-kill); `bounty` is the victim's bounty and is always positive.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Payout {
+    pub tick: u32,
+    pub victim: u32,
+    pub victim_player: u8,
+    pub killer: Option<u32>,
+    pub killer_player: Option<u8>,
+    pub killer_hero: bool,
+    pub bounty: i32,
+}
 /// Gold for the last hit on a hero: 125 + 8 per victim level (patch 7.31 notes; unchanged in later
 /// notes). Assist gold is 15 + (50 + 0.037 * victim net worth) / assisting heroes (patch 7.40 notes).
 const HERO_KILL_GOLD_BASE: i32 = 125;
@@ -323,10 +336,15 @@ impl Sim {
 
     /// Pays the destroyed unit's bounty. Any killer unit keeps it as its own gold, less the team
     /// share (see hero.rs). Only an attackerless kill pays the rival side's resource pool. Neither
-    /// payout is made while a mod owns gold (`gold_by_mod`); the kill itself is unchanged.
+    /// payout is made while a mod owns gold (`gold_by_mod`); the death is queued as a `Payout` for
+    /// the mod instead, and the kill itself is unchanged.
     fn pay_bounty(&mut self, j: usize, attacker: i32) {
         let bounty = self.unit_bounty(j);
-        if bounty <= 0 || self.was_denied(j, attacker) || self.gold_by_mod {
+        if bounty <= 0 || self.was_denied(j, attacker) {
+            return;
+        }
+        if self.gold_by_mod {
+            self.queue_payout(j, attacker, bounty);
             return;
         }
         if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
@@ -336,6 +354,27 @@ impl Sim {
         if let Some(rival) = self.rival_of(self.player[j]) {
             self.add_resources(rival, bounty, 0);
         }
+    }
+
+    fn queue_payout(&mut self, j: usize, attacker: i32, bounty: i32) {
+        if self.payouts.len() >= KILL_QUEUE_CAP {
+            return;
+        }
+        let killer = (attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j).then_some(attacker as usize);
+        self.payouts.push(Payout {
+            tick: self.ticks,
+            victim: j as u32,
+            victim_player: self.player[j],
+            killer: killer.map(|k| k as u32),
+            killer_player: killer.map(|k| self.player[k]),
+            killer_hero: killer.is_some_and(|k| self.is_hero(k)),
+            bounty,
+        });
+    }
+
+    /// Takes the payable deaths queued since the last drain, oldest first.
+    pub fn drain_payouts(&mut self) -> Vec<Payout> {
+        self.payouts.drain(..).collect()
     }
 
     /// Whether unit `i` may deny unit `j`: `j` is allied to `i` (not `i` itself) and its health is at

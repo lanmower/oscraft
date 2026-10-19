@@ -14,9 +14,50 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-use mod_host::ModHost;
+use mod_host::{Cmd, ModHost};
 use server::replay::{Command, Recording, Replayer};
-use sim::{Sim, ABILITY_SLOTS};
+use sim::{Payout, Sim, ABILITY_SLOTS};
+
+// The gold a payable death should produce, from the mod's formula (mods/moba_match.lua on_died):
+// a hero killer keeps the bounty less the team share and its side gets the share; a creep killer
+// pays the whole bounty to its side; an attackerless death pays the rival side. Each entry is
+// (0 = add_gold | 1 = add_hero_gold, id, amount).
+const TEAM_SHARE_PCT: i64 = 20;
+
+fn expected_gold(sim: &Sim, p: &Payout) -> Vec<(u8, i64, i64)> {
+    let bounty = i64::from(p.bounty);
+    match (p.killer, p.killer_player) {
+        (Some(k), Some(kp)) => {
+            let share = bounty * TEAM_SHARE_PCT / 100;
+            if p.killer_hero {
+                vec![(1, i64::from(k), bounty - share), (0, i64::from(kp), share)]
+            } else {
+                vec![(0, i64::from(kp), bounty)]
+            }
+        }
+        _ => sim.rival_of(p.victim_player).map(|r| vec![(0, i64::from(r), bounty)]).unwrap_or_default(),
+    }
+}
+
+fn gold_key(c: &Cmd) -> Option<(u8, i64, i64)> {
+    match c {
+        Cmd::AddGold { player, amount } => Some((0, *player as i64, *amount as i64)),
+        Cmd::AddHeroGold { unit, amount } => Some((1, *unit as i64, *amount as i64)),
+        _ => None,
+    }
+}
+
+fn print_gold(sim: &Sim, heroes: &[usize], label: &str) {
+    for &h in heroes {
+        println!("gold {label} hero={h} side={} gold={}", side(sim.player(h)), sim.hero_gold(h));
+    }
+    let mut players: Vec<u8> = heroes.iter().map(|&h| sim.player(h)).collect();
+    players.sort();
+    players.dedup();
+    for p in players {
+        println!("gold {label} player={p} side={} resource_a={}", side(p), sim.resource_a(p));
+    }
+}
 
 const NEUTRAL: u8 = 0xFF;
 const CAMP_PHASE_END: u32 = 6000;
@@ -175,6 +216,10 @@ fn main() {
     let mut dead_at: Vec<Option<u32>> = vec![None; sim.count()];
     let mut camp_dead: HashSet<usize> = HashSet::new();
     let mut gold_before: Vec<i32> = vec![0; sim.count()];
+    let mut pending_payouts: Vec<Payout> = Vec::new();
+    let (mut fed, mut matched, mut hero_miss) = (0u32, 0u32, 0u32);
+    let mut mismatched: Vec<String> = Vec::new();
+    let mut applied = [0u32; 2];
 
     while sim.winner().is_none() && sim.ticks() < max_ticks {
         let t = sim.ticks();
@@ -254,10 +299,39 @@ fn main() {
 
         if let Some(host) = modded.as_mut() {
             let state = host.state().clone();
+            let mut cmds = Vec::new();
+            for p in std::mem::take(&mut pending_payouts) {
+                match host.feed_payout(&p) {
+                    Ok(fed_cmds) => {
+                        fed += 1;
+                        let got: Vec<_> = fed_cmds.iter().filter_map(gold_key).collect();
+                        let want = expected_gold(&sim, &p);
+                        if got == want {
+                            matched += 1;
+                        } else {
+                            mismatched.push(format!("tick={} victim={} expected={want:?} got={got:?}", p.tick, p.victim));
+                        }
+                        cmds.extend(fed_cmds);
+                    }
+                    Err(e) => eprintln!("mod error on_died tick={t}: {e}"),
+                }
+            }
             if let Err(e) = host.advance(&state) {
                 eprintln!("mod error tick={t}: {e}");
             }
-            let cmds = host.take_commands();
+            cmds.extend(host.take_commands());
+            for c in &cmds {
+                if let Cmd::AddHeroGold { unit, amount } = c {
+                    if !sim.is_hero(*unit as usize) {
+                        hero_miss += 1;
+                    } else if *amount > 0 && seen.first("bounty") {
+                        println!("milestone bounty tick={t} killer={unit} gold={}", sim.hero_gold(*unit as usize));
+                    }
+                }
+                if let Some((kind, _, _)) = gold_key(c) {
+                    applied[kind as usize] += 1;
+                }
+            }
             server::room::apply_mod_commands(&mut sim, &mut rec, &mut handles, cmds, &mut mod_ui);
         }
 
@@ -265,6 +339,12 @@ fn main() {
             gold_before[h] = sim.hero_gold(h);
         }
         rec.tick(&mut sim, true, true);
+        if modded.is_some() {
+            pending_payouts = sim.drain_payouts();
+        }
+        if sim.ticks() == 12000 {
+            print_gold(&sim, &heroes, "tick12000");
+        }
 
         for ev in sim.drain_kill_events() {
             let killer = ev.killer as usize;
@@ -309,6 +389,13 @@ fn main() {
     for j in 0..sim.count() {
         if is_roshan(&sim, j) {
             eprintln!("roshan unit={j} alive={} hp={}", sim.alive(j), sim.hp(j));
+        }
+    }
+    print_gold(&sim, &heroes, "end");
+    if modded.is_some() {
+        println!("mod payouts fed={fed} matched={matched} mismatched={} hero_targets_missed={hero_miss} applied_ag={} applied_ah={}", mismatched.len(), applied[0], applied[1]);
+        for m in mismatched.iter().take(10) {
+            eprintln!("mismatch {m}");
         }
     }
     rec.check(&sim);

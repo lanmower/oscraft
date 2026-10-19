@@ -1,6 +1,6 @@
--- Moba match mod: lane waves and kill gold in one mod, with one on_tick. Its on_died gold pays in the
--- mod's own world (ModHost). Live rooms do not take the flag below from the mod, so they keep the Rust
--- kill payout; see docs/MOD_PARITY.md.
+-- Moba match mod: lane waves and kill gold in one mod, with one on_tick. Its on_died gold pays both in
+-- the mod's own world and in a live room, where the room feeds each payable death with room unit ids
+-- and the bounty (docs/MODDING.md, on_died). The flag below hands kill gold to this mod.
 --
 -- Waves. Every lane spawner (lane_spawner_top, _mid, _bot, one per side) sends creeps on the lane
 -- for its side. Top and bottom spawners send a creep wave every 480 ticks: three melee creeps and
@@ -108,20 +108,22 @@ local function start_lane(s)
   end
 end
 
+-- on_died(unit, killer, killer_player, bounty, victim_player, killer_hero): ids are the mod's world
+-- or the room's, whichever fed the death; bounty and killer_hero come with the event.
 game.trigger("on_died", {
-  conditions = { function(unit) return game.unit_bounty(unit) > 0 end },
-  action = function(unit, killer, killer_player)
-    local bounty = game.unit_bounty(unit)
+  conditions = { function(_, _, _, bounty) return bounty > 0 end },
+  action = function(unit, killer, killer_player, bounty, victim_player, killer_hero)
     if killer ~= nil and killer ~= unit then
       local share = bounty * TEAM_SHARE_PCT // 100
-      if pcall(game.cmd_add_hero_gold, killer, bounty - share) then
+      if killer_hero then
+        game.cmd_add_hero_gold(killer, bounty - share)
         game.cmd_add_gold(killer_player, share)
       else
         game.cmd_add_gold(killer_player, bounty)
       end
       return
     end
-    local rival = game.rival_of(unit_player(unit))
+    local rival = game.rival_of(victim_player)
     if rival ~= nil then game.cmd_add_gold(rival, bounty) end
   end,
 })

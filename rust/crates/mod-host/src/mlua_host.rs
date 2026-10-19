@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
+use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Payout, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -154,6 +154,17 @@ struct ModFile {
     hooks: Hooks,
 }
 
+// One death as on_died receives it: a unit id, the killer's and the victim's players, the bounty.
+// Built from the mod's own world, or from a room's payable death (see feed_payout).
+struct Death {
+    victim: u32,
+    victim_player: u8,
+    killer: Option<u32>,
+    killer_player: Option<u8>,
+    killer_hero: bool,
+    bounty: i32,
+}
+
 #[derive(Clone, Copy)]
 struct UnitSnap {
     x: i32,
@@ -226,6 +237,9 @@ pub struct ModHost {
     version: u64,
     cmds: Cmds,
     forward: RefCell<Vec<Cmd>>,
+    // Commands an on_died of this world's own deaths queued. They apply to this world but are not
+    // forwarded: their unit indices belong to this world, not to the room.
+    local: RefCell<Vec<Cmd>>,
     joined: Vec<usize>,
     gold_by_mod: bool,
 }
@@ -1562,6 +1576,7 @@ impl ModHost {
             version: 0,
             cmds: Rc::new(RefCell::new(Vec::new())),
             forward: RefCell::new(Vec::new()),
+            local: RefCell::new(Vec::new()),
             joined: Vec::new(),
             gold_by_mod: false,
         })
@@ -1753,10 +1768,11 @@ impl ModHost {
     // that died since it was queued does nothing. Each applied command is also kept for the
     // caller to forward (take_commands), so the room's sim receives what this world applied.
     fn apply_commands(&self) {
+        let local = std::mem::take(&mut *self.local.borrow_mut());
         let list = std::mem::take(&mut *self.cmds.borrow_mut());
         self.forward.borrow_mut().extend(list.iter().cloned());
         let mut sim = self.world.borrow_mut();
-        for cmd in list {
+        for cmd in local.into_iter().chain(list) {
             match cmd {
                 Cmd::Spawn { index, x, y, owner, lane, .. } => {
                     let _ = sim.spawn_mod_unit(owner, index as u32, x, y, lane);
@@ -1934,12 +1950,21 @@ impl ModHost {
                     hooks.fire.call::<()>(("on_attacked", unit as i64))?;
                 }
                 Pending::Died { unit, killer } => {
-                    let killer_player = killer.map(|k| i64::from(self.world.borrow().player(k)));
-                    let killer = killer.map(|k| k as i64);
-                    if let Some(h) = &hooks.on_died {
-                        h.call::<()>((unit as i64, killer, killer_player))?;
-                    }
-                    hooks.fire.call::<()>(("on_died", unit as i64, killer, killer_player))?;
+                    let death = {
+                        let w = self.world.borrow();
+                        Death {
+                            victim: unit as u32,
+                            victim_player: w.player(unit),
+                            killer: killer.map(|k| k as u32),
+                            killer_player: killer.map(|k| w.player(k)),
+                            killer_hero: killer.is_some_and(|k| w.is_hero(k)),
+                            bounty: w.unit_bounty(unit),
+                        }
+                    };
+                    let before = self.cmds.borrow().len();
+                    self.call_died(hooks, &death)?;
+                    let own = self.cmds.borrow_mut().split_off(before);
+                    self.local.borrow_mut().extend(own);
                 }
                 Pending::Enter { unit, region } => {
                     if let Some(name) = self.region_name(region) {
@@ -1966,6 +1991,37 @@ impl ModHost {
             }
         }
         Ok(())
+    }
+
+    /// Feeds one payable death of the room's sim to the mod's on_died, with the room's unit ids and
+    /// the bounty (docs/MODDING.md, on_died). The commands the handlers queued are returned, not
+    /// applied: their ids are the room's, so the room applies them to its own sim and this world
+    /// is untouched.
+    pub fn feed_payout(&self, p: &Payout) -> mlua::Result<Vec<Cmd>> {
+        let Some(m) = self.mod_file.as_ref() else { return Ok(Vec::new()) };
+        let death = Death {
+            victim: p.victim,
+            victim_player: p.victim_player,
+            killer: p.killer,
+            killer_player: p.killer_player,
+            killer_hero: p.killer_hero,
+            bounty: p.bounty,
+        };
+        let before = self.cmds.borrow().len();
+        let result = self.call_died(&m.hooks, &death);
+        let fed = self.cmds.borrow_mut().split_off(before);
+        result.map(|()| fed)
+    }
+
+    // Calls the on_died hook and every on_died trigger with the same arguments.
+    fn call_died(&self, hooks: &Hooks, d: &Death) -> mlua::Result<()> {
+        let killer = d.killer.map(i64::from);
+        let killer_player = d.killer_player.map(i64::from);
+        let (victim, victim_player, bounty) = (i64::from(d.victim), i64::from(d.victim_player), i64::from(d.bounty));
+        if let Some(h) = &hooks.on_died {
+            h.call::<()>((victim, killer, killer_player, bounty, victim_player, d.killer_hero))?;
+        }
+        hooks.fire.call::<()>(("on_died", victim, killer, killer_player, bounty, victim_player, d.killer_hero))
     }
 
     pub fn lua(&self) -> &Lua {

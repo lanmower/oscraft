@@ -62,21 +62,28 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 ## Gold and kill payouts
 
 The Rust payout is `pay_bounty` in `rust/crates/sim/src/combat.rs`, with `hero_bounty` in `hero.rs` for the team
-share. The Lua payout is the `on_died` trigger of `mods/moba_match.lua`. Both run in a live room: the server does not
-apply the mod's `GOLD_BY_MOD` declaration to rooms, so `pay_bounty` keeps paying.
+share. The Lua payout is the `on_died` trigger of `mods/moba_match.lua`. With `GOLD_BY_MOD = true` the room's
+sim queues each payable death (`Sim::drain_payouts`, `combat.rs` `Payout`) instead of paying it. The server
+(`room.rs`) drains that queue each tick and hands the deaths to the mod thread (`mods.rs` `ModLink::push_payouts`),
+which calls `ModHost::feed_payout` (mod-host `mlua_host.rs`) before its step. The mod's `on_died` receives the room
+ids and bounty (docs/MODDING.md, on_died), and its queued gold commands return to the room, which applies them to
+its sim with room ids and records them as `ag`/`ah` replay lines. The mod's own world keeps its own on_died gold
+and does not forward it.
 
-Parity is not met. `ModHost` runs its own sim (the mod's world), and the room never feeds that world its commands or
-hero orders. The mod's `on_died` therefore sees only kills in the mod's world, and its `cmd_add_hero_gold` and
-`cmd_add_gold` name units by mod-world index, which the room may not hold as the same unit. Setting the room flag
-from the mod would switch the Rust payout off and pay no gold in a live room, so it is not set there.
+Verified with `cargo run -p server --example moba_match -- scenarios/moba 40000 <replay> --mod mods/moba_match.lua`:
+every payable death fed (2165) produced the gold the formula gives (`matched=2165 mismatched=0`), every `ah` (13)
+targets a room hero, and the replay holds 2165 `ag` and 13 `ah` lines. The no-mod run is unchanged (replay hash
+`2140ec87bfd4ec53`, winner side 0 at tick 29057).
 
 | capability | status | evidence |
 |---|---|---|
-| Kill gold rule: the Lua payout matches the Rust payout (killer gets bounty less share, the killer's side gets the share) | partial | `pay_bounty`, `hero_bounty`; `mods/moba_match.lua` `on_died`; with `gold_by_mod` off both pay, and no check runs the mod's payout |
+| Kill gold rule: the Lua payout matches the Rust payout (killer gets bounty less share, the killer's side gets the share) | partial | `pay_bounty`, `hero_bounty`; `mods/moba_match.lua` `on_died`; the hero split matches `hero_bounty`; a creep killer pays its whole bounty to its side in the Lua formula, where Rust pays its own gold slot and the side the share |
+| Live room feeds kills to the mod's on_died with room ids | done | `Sim::drain_payouts`, `ModHost::feed_payout`, `ModLink::push_payouts`; example `moba_match` witness above |
 | Team share: 20 percent of the bounty to the killer's side | partial | Rust reads `team_share_pct` from `hero_rules.txt` (default 20); the mod hard-codes `TEAM_SHARE_PCT = 20` because `hero_rules` is not in the Lua API |
-| Attackerless kill pays the rival slot's gold | partial | Rust `pay_bounty` (`rival_of`); mod `on_died` with `killer == nil` or self-kill (`game.rival_of`, `game.cmd_add_gold`); no check runs the mod's branch |
-| Denied kill pays nothing, in the Lua payout too | missing | Rust skips a kill that `was_denied` (an allied unit landed the blow); the mod cannot see denial, so it pays denied kills |
-| `gold_by_mod` switches the Rust payout off | partial | `combat.rs` `pay_bounty` checks the flag, `arrays.rs` `set_gold_by_mod`; set by `Room::set_gold_by_mod` (not called on live rooms) and read from the replay header (`gold_by_mod 1`); the mod's `GOLD_BY_MOD` is stored by `mod-host` `load` only |
+| Attackerless kill pays the rival slot's gold | done | `Payout` with `killer = None` from `pay_bounty`; mod `on_died` with `killer == nil` pays `game.rival_of(victim_player)` |
+| Denied kill pays nothing, in the Lua payout too | done | `pay_bounty` returns before queueing a payout when `was_denied`, so no payout is fed |
+| `gold_by_mod` switches the Rust payout off | done for rooms | `room.rs` and `lib.rs` set it from the mod's `GOLD_BY_MOD`; `combat.rs` `pay_bounty` queues instead of paying; the replay header carries it (`gold_by_mod 1`) |
+| piccolo (wasip3 guest) on_died | missing | `piccolo_host.rs` still passes three arguments; a mod that reads `bounty` gets nil there |
 
 ## Determinism, replays and saves
 

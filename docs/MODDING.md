@@ -28,7 +28,7 @@ trigger on it. Both receive the same arguments. The host queues events in the st
 |---|---|---|
 | `on_spawned` | `unit` | a unit appears in the sim |
 | `on_attacked` | `unit` | a unit's hit points fall |
-| `on_died` | `unit, killer, killer_player` | a unit goes from alive to dead; `killer` and `killer_player` are the unit and owner credited with the death, or `nil` when nothing is |
+| `on_died` | `unit, killer, killer_player, bounty, victim_player, killer_hero` | a unit goes from alive to dead; `killer` and `killer_player` are the unit and owner credited with the death, or `nil` when nothing is; `bounty` is the victim's `game.unit_bounty`; `victim_player` is the victim's owner; `killer_hero` is `true` when the killer is a hero |
 | `on_enter` | `region, unit` | a unit enters a named region |
 | `on_leave` | `region, unit` | a unit leaves a named region |
 | `on_player_joined` | `player` | the host reports a player joining (the host calls it, not the sim) |
@@ -38,6 +38,16 @@ trigger on it. Both receive the same arguments. The host queues events in the st
 `unit_player` and `game.unit_kind` accept it.
 
 `list_events()` returns this table at runtime, with the same names.
+
+**Contract change (on_died from a live room).** A live room feeds its own payable deaths to the mod's
+`on_died` (only while the mod sets `GOLD_BY_MOD = true`, which hands kill gold to the mod). In that feed the
+unit, killer and player arguments are the room's unit ids and owners, not the mod world's, and `bounty`,
+`victim_player` and `killer_hero` come from the room's sim. Only deaths the room pays are fed: a bounty
+above 0 that no denial (an allied unit landed the blow) cancels. Attackerless deaths arrive with
+`killer` and `killer_player` set to `nil`. Commands the handlers queue are applied by the room to its own sim,
+so `cmd_add_hero_gold` takes a room hero id there. The mod's own world still fires `on_died` for its own deaths
+with the same six arguments, and its gold stays in that world. A mod that uses only the first three
+arguments keeps working in both.
 
 ## Triggers
 

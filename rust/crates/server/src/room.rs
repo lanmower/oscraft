@@ -409,6 +409,12 @@ impl Room {
         }
         let clock = &mut *c;
         clock.rec.tick(&mut clock.sim, run_paths, run_vision);
+        let deaths = clock.sim.drain_payouts();
+        if let Some(link) = lock(&self.feed).clone() {
+            if link.gold_by_mod() {
+                link.push_payouts(deaths);
+            }
+        }
         c.tick += 1;
         let cost = started.elapsed();
         c.worst = c.worst.max(cost);
