@@ -893,7 +893,8 @@ pub fn phantom_lancer_illusions(_image: &[u8]) -> Result<(), String> {
         return Err(format!("{copies} illusions after the lance, want 1"));
     }
     w.s.clear_status(pl, DISARM);
-    let victim = w.creep(1, 2, 0)?;
+    // DotA 6.88g Phantom Lancer is melee (range 128 = 2 units); the victim stands one unit away so the attack is in range.
+    let victim = w.creep(1, 1, 0)?;
     w.s.set_health(victim, fixed::from_int(30_000), fixed::from_int(30_000));
     let slots = w.s.count();
     for _ in 0..60 {

@@ -42,27 +42,27 @@ fn q16(x100: i64) -> i64 {
     x100 * fixed::ONE as i64 / 100
 }
 
-/// Axe at level 1: strength 25, agility 18, intelligence 18; health 120 + 22 x 25; armour 0 + 18/6;
-/// damage 33 (31-35) + 25 strength; attack period 1.7 s / (1 + 18/100) = 23 ticks; mana 75 + 12 x 18.
+/// Axe at level 1 (DotA 6.88g): strength 25, agility 20, intelligence 18; health 150 + 22 x 25; armour 0 + 20/6;
+/// damage 26 (2d3 + 25 = 26 average) + 25 strength; attack period 1.7 s; mana 100 + 12 x 18.
 pub fn hero_axe_level1(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
     let h = spawn_hero(&mut s, "axe")?;
-    if s.hero_attributes(h) != [25, 18, 18] {
-        return Err(format!("axe attributes {:?} want [25, 18, 18]", s.hero_attributes(h)));
+    if s.hero_attributes(h) != [25, 20, 18] {
+        return Err(format!("axe attributes {:?} want [25, 20, 18]", s.hero_attributes(h)));
     }
-    near("axe max health", s.hp_max(h), q16((120 + 22 * 25) * 100))?;
-    near("axe armour", s.armor_of(h), q16(300))?;
-    near("axe damage", s.damage_of(h), q16((33 + 25) * 100))?;
+    near("axe max health", s.hp_max(h), q16((150 + 22 * 25) * 100))?;
+    near("axe armour", s.armor_of(h), q16(333))?;
+    near("axe damage", s.damage_of(h), q16((26 + 25) * 100))?;
     if s.period_of(h) != 23 {
         return Err(format!("axe attack period {} want 23 ticks", s.period_of(h)));
     }
-    if s.mana_of(h) != 75 + 12 * 18 || s.hero_max_mana(h) != 75 + 12 * 18 {
-        return Err(format!("axe mana {} max {} want {}", s.mana_of(h), s.hero_max_mana(h), 75 + 12 * 18));
+    if s.mana_of(h) != 100 + 12 * 18 || s.hero_max_mana(h) != 100 + 12 * 18 {
+        return Err(format!("axe mana {} max {} want {}", s.mana_of(h), s.hero_max_mana(h), 100 + 12 * 18));
     }
     Ok(())
 }
 
-/// One level of growth: axe strength 25 + 2.7, agility 18 + 1.7, intelligence 18 + 1.6; health gains 22 per
+/// One level of growth (DotA 6.88g): axe strength 25 + 2.5, agility 20 + 2.2, intelligence 18 + 1.6; health gains 22 per
 /// strength point and the wounded fraction is kept as a flat amount.
 pub fn hero_axe_growth(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
@@ -72,12 +72,12 @@ pub fn hero_axe_growth(_image: &[u8]) -> Result<(), String> {
     if gained != 1 || s.level(h) != 1 {
         return Err(format!("{first} xp gave {gained} levels, level {}", s.level(h)));
     }
-    if s.hero_attributes_x100(h) != [2770, 1970, 1960] {
-        return Err(format!("axe attributes at level 2 {:?} want [2770, 1970, 1960]", s.hero_attributes_x100(h)));
+    if s.hero_attributes_x100(h) != [2750, 2220, 1960] {
+        return Err(format!("axe attributes at level 2 {:?} want [2750, 2220, 1960]", s.hero_attributes_x100(h)));
     }
-    near("axe max health at level 2", s.hp_max(h), q16(12000 + 22 * 2770))?;
-    near("axe armour at level 2", s.armor_of(h), q16(1970 / 6))?;
-    near("axe damage at level 2", s.damage_of(h), q16(3300 + 2770))?;
+    near("axe max health at level 2", s.hp_max(h), q16(15000 + 22 * 2750))?;
+    near("axe armour at level 2", s.armor_of(h), q16(2220 / 6))?;
+    near("axe damage at level 2", s.damage_of(h), q16(2600 + 2750))?;
     if s.hp(h) != s.hp_max(h) {
         return Err("a full-health hero lost its fill on level-up".into());
     }

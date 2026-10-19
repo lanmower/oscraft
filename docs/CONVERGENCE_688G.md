@@ -1,6 +1,6 @@
 # DotA Allstars 6.88g: convergence report
 
-Subject: `/workspace/oscraft/DotA v6.88g Allstars.w3x` (DotA Allstars 6.88g), compared with the MOBA scenario data in `scenarios/moba/`. Every value below is labelled DotA Allstars 6.88g. No game code or scenario data was changed.
+Subject: `/workspace/oscraft/DotA v6.88g Allstars.w3x` (DotA Allstars 6.88g), compared with the MOBA scenario data in `scenarios/moba/`. Every value below is labelled DotA Allstars 6.88g. Section 7 records the one data change applied so far (66 matched heroes); everything else in sections 1 to 6 is still a comparison, not an edit.
 
 Our `scenarios/moba/*.osd` stats are generated from Valve's Dota 2 `npc_units.txt` and `items.txt` (SteamDatabase dump), not from 6.88g. Every comparison below is therefore a cross-game check of the same concept, not a 6.88g-to-6.88g diff.
 
@@ -12,12 +12,12 @@ Our `scenarios/moba/*.osd` stats are generated from Valve's Dota 2 `npc_units.tx
 - StormLib, w3x2lni and ObjectEditor were not built or installed: libmpq and the stdlib reader were sufficient.
 - Standard members present: `war3map.w3i` (796 B), `war3map.w3e` (116,568 B), `war3map.doo` (259,494 B), `war3mapUnits.doo` (246 B), `war3map.w3a` (15,336 B), `war3map.w3b` (2,636 B), `war3map.w3d` (5,355 B), `war3map.w3h` (37 B), `war3map.wts` (20,067 B), `war3map.wpm` (262,160 B), `war3map.shd` (262,144 B), `war3map.wct` (310 B), `war3map.wtg` (567 B), `war3map.w3c` (8 B), `war3map.w3r` (8 B), `war3map.j` (3,065,090 B), `war3mapMisc.txt` (1,860 B), `war3mapSkin.txt` (2,006 B), `war3mapImported\templates.toc`.
 - Unit, item and ability data are in SLK overrides: `Units\UnitData.slk` (355,210 B), `Units\UnitBalance.slk` (430,025 B), `Units\UnitWeapons.slk` (164,892 B), `Units\UnitAbilities.slk` (114,678 B), `Units\AbilityData.slk` (715,863 B), `Units\UpgradeData.slk` (19,481 B), `units\ItemData.slk` (240,297 B). The lowercase `units\` spelling is also in the archive.
-- Standard members absent from the archive: `war3map.w3u` (units), `war3map.w3t` (items), `war3map.w3q` (upgrades), `war3map.lua`, `war3map.imp`, `war3map.mmp`, `Scripts\war3map.j`, `Scripts\common.j`, `the vendor base-library script in Scripts\ (.j)`. Confirmed: no hash-table entry resolves to any of them under the standard names or the 6.88g candidate names.
+- Standard members absent from the archive: `war3map.w3u` (units), `war3map.w3t` (items), `war3map.w3q` (upgrades), `war3map.lua`, `war3map.imp`, `war3map.mmp`, `Scripts\war3map.j`, `Scripts\common.j`, `Scripts\blizzard.j`. Confirmed: no hash-table entry resolves to any of them under the standard names or the 6.88g candidate names.
 - Asset members: about 2,200 textures and models (`war3mapImported\*.mdx`, `*.blp`, `*.mp3`), out of scope for this report.
 
 ## 2. Decoded tables
 
-- Units: the object data is in `Units\UnitBalance.slk` (2,032 keyed rows), `Units\UnitData.slk` (2,036 keyed rows) and `Units\UnitWeapons.slk` (480 keyed rows). `war3map.j` calls `CreateUnit*` 737 times with 229 distinct raw ids; 228 of them are rows in UnitBalance. Hero rows (`STR` column set) number 237 in UnitBalance; 6 of the 229 CreateUnit ids are heroes. Stock vs custom rows cannot be separated: the vendor stock files are not in the archive.
+- Units: the object data is in `Units\UnitBalance.slk` (2,032 keyed rows), `Units\UnitData.slk` (2,036 keyed rows) and `Units\UnitWeapons.slk` (480 keyed rows). `war3map.j` calls `CreateUnit*` 737 times with 229 distinct raw ids; 228 of them are rows in UnitBalance. Hero rows (`STR` column set) number 237 in UnitBalance; 6 of the 229 CreateUnit ids are heroes. Stock vs custom rows cannot be separated: the Blizzard stock files are not in the archive.
 - Items: `units\ItemData.slk` has 1,169 keyed rows: 412 with `goldcost`, 432 with `abilList`, 21 with `pickRandom`. `war3map.j` calls `CreateItem` with 4 distinct ids (`I00E`, `I00G`, `I02M`, `I0KK`). Recipes are not in the SLK (no recipe column). Cooldowns are an `AbilityData` reference (`cooldownID`), not a number in ItemData.
 - Abilities (`war3map.w3a`, version 2): 16 original-table records (`A21X`, `A21W`, `A21V`, `A0VV`, `A0XL`, `A3H0`, `A0V7`, `A0VE`, `A0EF`, `A0NR`, `A0CQ`, `A0AR`, `A087`, `A08C`, `S00A`, `Aamk`) and 1 custom-table record (`ANeg` to `A0CP`, name `TRIGSTR_019`), 572 modifications in total. Each modification is code, type, level, data pointer, value (number, or string), then a 4-byte trailer; the stream ends exactly at the 15,336-byte end of the member. The previous pass stopped at record 4 because it did not read the trailer.
 - Upgrades (`war3map.w3h`): 37 bytes, a single record (`BNeg`, buff table).
@@ -195,8 +195,48 @@ Lane creep, tower and ancient (Ghoul u001 / Ziggurat uzig / Ancient Protector e0
 
 ## 6. What could not be read
 
-- `war3map.w3u`, `war3map.w3t`, `war3map.w3q`, `war3map.lua`, `war3map.imp`, `war3map.mmp`, `Scripts\war3map.j`, `Scripts\common.j` and `the vendor base-library script in Scripts\ (.j)` are not in the archive (confirmed by hashing every listed name and the candidate set).
+- `war3map.w3u`, `war3map.w3t`, `war3map.w3q`, `war3map.lua`, `war3map.imp`, `war3map.mmp`, `Scripts\war3map.j`, `Scripts\common.j` and `Scripts\blizzard.j` are not in the archive (confirmed by hashing every listed name and the candidate set).
 - Lane creep, tower and ancient rows are not resolved by name (our keys are role names; the 6.88g names are in section 3). The 40 names that only match placeholder rows, and the 58 ambiguous names, need the trigger code to confirm.
 - Items: recipes are not in the SLK, and cooldown values need the `AbilityData` chain (`cooldownID` to `Cool1`).
 - Placed-unit and doodad positions, player starts and region data are not decoded.
 - The obfuscated trigger script was not decoded into wave timings or compositions.
+
+## 7. Applied: heroes (this pass)
+
+Decisions, each with its reason:
+
+- Source tables: `UnitBalance`, `UnitData`, `UnitWeapons`, `UnitUI`, `UnitAbilities`, `UpgradeData`, `ItemData` and `AbilityData` were decoded from the SLK members (the `ID;PWXL` text tables, parsed cell by cell). Names come from the strings member (section keys with `name=`, 6,019 sections). Extraction used the libmpq binding shipped in the `libmpq` wheel (`mpq.py` with `libmpq.so`), because the pip `libmpq` module name is a different package. The archive listfile is encrypted for the pure-Python reader, so member indices were matched to names by their SLK headers.
+- Canonical row per hero name: the balance rows whose `Primary` is STR, AGI or INT and whose name matches our hero id after lowercasing and stripping non-alphanumerics. Among duplicate rows, the most frequent stat tuple wins, then a non-`TX` id (the `TX` prefix marks duplicated test or skin copies). Reason: duplicates carry identical stats, so the choice only fixes the id, not the value.
+- Scale (unchanged from `scripts/gen-heroes.mjs`): 1 WC3 unit = 15.625 milli; move speed milli per tick = spd x 15.625 / 16; attack period ticks = bat x 16; sight and range milli = WC3 units x 15.625; radius = collision x 15.625. Reason: the sim already uses this scale for the Dota 2 values, so the 6.88g numbers are expressed in the same model.
+- Weapon damage: `dmgplus1 + dice1 x (sides1 + 1) / 2` (average of the dice roll). Reason: the sim models one damage number, so the 6.88g dice average is the closest expressible value (min and max are a gap, see below).
+- Armour: the balance `def` base only. Reason: the sim adds agility to armour itself (gate: `q16(agi/6)`), so adding it here would double count.
+- Hit points: the balance `HP` field is used as `health`. Reason: the sim adds strength on top of this base, as it did for the Dota 2 values.
+- Mana and regeneration: `mana0` for mana, `regenMana` and `regenHP` per second (hundredths) for `mana_regen` and `hp_regen`.
+
+Counts for heroes:
+
+| Category | Count | Notes |
+|---|---|---|
+| Our hero units | 127 | `units_heroes.osd` |
+| Matched to a 6.88g canonical row, values applied | 66 | `scenarios/moba/heroes_688g.tsv`, applied by `scripts/apply-heroes-688g.py` |
+| Unresolved, left at the Dota 2 values | 61 | see gaps: the name exists only on `h0xx`/`n0xx` rows with `Primary` `_` (no playable stat row found) |
+| Dropped (no 6.88g hero) | 0 | none decided yet; the 11 placeholder heroes in `units.osd` (`hero`, `ironhide`, `swiftbow`, `stormcaller`, `bulwark`, `shadeblade`, `emberlord`, `gale_archer`, `frostmage`, `tidecaller`, `thornwarden`) have no 6.88g name and are candidates to drop |
+| Added (6.88g hero we lack) | 0 | not attempted in this pass |
+
+Gaps the sim cannot express (not invented):
+
+- Turn rate (`turnRate` in `UnitData`) has no field in `unit()`.
+- Weapon damage min and max (dice and sides) collapse to one number.
+- Projectile speed for ranged heroes is not in the SLK rows read here.
+- Magic resistance: 6.88g has no field; `mr=25` is kept from the Dota 2 block.
+- Hero bounty (level-based in 6.88g) is not in `unit_extra`; kept at 0.
+- The sim's per-strength health (22) and per-intelligence mana (12) factors are the Dota 2 constants; 6.88g's factors are not in the SLK rows.
+
+Gate changes (`rust/gate`), each for an old value:
+
+- `hero_axe_level1` and `hero_axe_growth` (`rust/gate/src/hero_checks.rs`): Axe now has AGI 20 (was 18), health base 150 (was 120), damage 26 (was 33), mana base 100 (was 75), growth 2.5/2.2/1.6 (was 2.7/1.7/1.6). Reason: the expectations were the Dota 2 values; they now carry the 6.88g numbers.
+- `phantom_lancer_illusions` (`rust/gate/src/ability_checks.rs`): the victim spawns one unit away instead of two. Reason: 6.88g Phantom Lancer has a 128 range (melee), and the old placement is out of range. The check is about illusions, not range.
+
+Verification (local): `osdt-data` loads `scenarios/moba`; `mod_check` on `moba_attack.lua` passes; `oscraft-gate` passes 197 of 197; `oscraft-gate mpq` passes. `moba_match` exits 1 with `no winner by tick=40000` both before and after this change (HEAD baseline gives the same line), so it is a pre-existing condition, not a regression.
+
+Not done in this pass (the rest of the brief): creeps and neutrals in `units.osd` and `units_extra.osd` (77 rows), the 61 unresolved heroes, and every ability in `abilities.osd` and `abilities_dota.osd` (AbilityData `Cool1`, `Cost1`, `Rng1`, `Area1`, `Dur1`, `DataA1`..`DataI1` per level, read by the effect model). The ability mapping needs the `effect` model in `rust/crates/data/src/builtins.rs` matched per kind before values can be written.
