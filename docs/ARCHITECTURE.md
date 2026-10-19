@@ -96,6 +96,7 @@ Each kind of content, the steps a change to it needs, and why. Engine: read at r
 | Content | Class | Steps for a change | Reason |
 |---|---|---|---|
 | `mods/*.lua` mod source | Engine | Edit; copy to the deployed `mods/` (build.sh `cp -R mods`); hot reload or restart the room | mod-host reads the source at run time (`read_to_string` in `mlua_host.rs`, `piccolo_host.rs`) and hot reload swaps functions only |
+| Kill gold and team share in `mods/moba_match.lua` | Engine | Edit the file; copy to `mods/`; hot reload or restart the room | Lua pays the kill gold only while the sim flag `gold_by_mod` is set; no loader sets it at `369c3ba`, so the Rust payout (`pay_bounty`) also pays. The 20 percent share is hard-coded in the file |
 | `hero_rules.txt` | Engine | Edit; reload the room | `server/src/mods.rs` parses it when the mod directory loads; defaults apply to omitted keys |
 | `js/client/doodads.json`, `assets.json`, `assets/` models | Engine | None beyond the `js/client` copy in build.sh | Static files fetched by the page at run time, with a fallback when `assets.json` is absent |
 | `js/client/*.js` modules | Engine | None | ES modules through an import map, no bundler |
@@ -108,7 +109,7 @@ Each kind of content, the steps a change to it needs, and why. Engine: read at r
 | Wave spawn `p3` bit layout (`wave_spec_fits` in `rust/crates/data/src/validate.rs`) | Rust-only | Edit the validator; rebuild data | Validation of a packed field is in Rust |
 | Lane routes (`scenarios/moba/routes.osd`) | Build-only | Edit `routes.osd`; mapexport | Single route source. The generator must not emit `route(...)` lines: the data validator rejects a route declared twice |
 
-Counts: Engine 4 rows, Build-only 4 rows, Rust-only 4 rows.
+Counts: Engine 5 rows, Build-only 4 rows, Rust-only 4 rows.
 
 ### Rust-only game rules: final classes
 
@@ -132,7 +133,7 @@ Classes: MOVE = rule logic moves to a Lua hook or scenario data. DATA = number o
 | Shop doodad ids | `shop.rs` `SHOP_DOODAD_HOME`, `SHOP_DOODAD_SIDE` | DATA | Doodad ids belong in `.osd` data |
 | Item stats and recipes | `inventory.rs` `ITEM_STATS`, `ITEM_SMODS`, `BEST_ONLY` | DATA | Tables of content |
 | XP curve | `xp.rs` `xp_curve` | DATA | Table of content |
-| Gold and XP grants on kill | `combat.rs` / `xp.rs` (body not yet read) | MOVE | Rule logic; needs a Lua hook |
+| Gold grants on kill | `combat.rs` `pay_bounty`, `hero.rs` `hero_bounty` | MOVE | Lua payer exists in `mods/moba_match.lua` (`on_died`), behind the sim flag `gold_by_mod`; the Rust payout stays until a loader sets the flag. The XP grant is not moved |
 | Teleport ring | `teleport.rs` `RING_POINTS`, `RING_STEPS` | DATA | Numbers |
 | Spell, status and upgrade effect codes | `spell.rs` `K_DOT`, `K_STATUS`; `upgrades.rs` `EFFECT_*_CODE`; `status.rs` `STATUS_NAMES` | STAY | Dispatch keys shared with the Lua host ABI and persisted |
 | Refusal kinds | `rules.rs` `Refusal`, `REFUSAL_KINDS`, `ALL_REFUSALS` | STAY | Wire contract with clients and replay |
@@ -173,7 +174,7 @@ Verification: verified against `lanmower/oscraft` main `88adede5` (a descendant 
 | Shop (stock, buy) | `rust/crates/sim/src/shop.rs` (Rust); `js/client/ui_shop.js` | partly | query item catalog; cmd buy | MOVE | CONFIRMED (`buy_item`; `item_catalog_json` is in `rust/crates/web/src/lib.rs`) |
 | Hero stats and respawn | `rust/crates/sim/src/hero.rs` (Rust); `scenarios/moba/hero_rules.txt` | partly | data `hero_rules.txt`; hook `on_died` | DATA | CONFIRMED (`MANA_PER_INT`, `ARMOUR_PER_AGI_DIV`, `HP_REGEN_PER_STR_X100`) |
 | XP | `rust/crates/sim/src/xp.rs` (Rust) | no | data `scenarios/moba/economy.osd`; hook `on_died` with killer | DATA | CONFIRMED (`xp_curve`) |
-| Gold | `rust/crates/sim/src/harvest.rs`, `inventory.rs` (Rust); `mods/creep_gold.lua` (Lua) | partly | hook `on_died`; cmd grant gold | MOVE | CONFIRMED |
+| Gold | `rust/crates/sim/src/combat.rs` `pay_bounty`, `hero.rs` `hero_bounty` (Rust); `mods/moba_match.lua` (Lua, `on_died`); `mods/creep_gold.lua` (Lua) | partly | hook `on_died`; cmd `add_gold`, `add_hero_gold`; query `unit_bounty`, `rival_of`; the Rust payout is off only while `gold_by_mod` is set | MOVE | UPDATED: the payout moved to `mods/moba_match.lua` behind `gold_by_mod`; no loader sets that flag at `369c3ba`, so both payers run |
 | Towers and backdoor | `rust/crates/sim/src/aggro.rs`, `hero.rs` (Rust); `mods/tower_buff.lua` (Lua) | partly | hook `on_attacked`; data doodad and unit `.osd` | MOVE | CONFIRMED |
 | Route and march | `rust/crates/sim/src/route.rs` (`start_route`, `tick_route`, `march_to_enemy_base`), `movement.rs` (Rust); `scenarios/moba/routes.osd` | partly | data `routes.osd` (single source) | DATA | CONFIRMED (the march symbol is `march_to_enemy_base`, not `march`) |
 | Win and objectives | no discrete module; `rust/crates/sim/src/modapi.rs` (victory), `mods/td_waves.lua` (defeat), `rust/crates/sim/src/triggers.rs` (`winner`) | partly | hook `on_tick`; needs cmd end-of-match | MOVE | CONFIRMED |
@@ -212,7 +213,7 @@ Verification: verified against `lanmower/oscraft` main `88adede5` (a descendant 
 | Order rate limits and tick budget | `rust/crates/server/src/budget.rs`, `order.rs` (Rust) | partly | data: limits config | DATA | CONFIRMED |
 | Relay and signalling | `rust/crates/relay/src/main.rs` (Rust); `rust/crates/server/src/relay.rs` | no | none | STAY | CONFIRMED: transport; no listening ports is policy |
 | HTTP routes and static files | `rust/crates/server/src/http.rs`, `static_files.rs` (Rust) | no | none | STAY | CONFIRMED: fixed protocol surface |
-| Replay record and playback | `rust/crates/server/src/replay.rs` (Rust); `js/client/replay.js` (JS) | partly | hook for playback UI; the replay file format is STAY | MOVE | CONFIRMED |
+| Replay record and playback | `rust/crates/server/src/replay.rs` (Rust); `js/client/replay.js` (JS) | partly | hook for playback UI; the replay file format is STAY. Format `oscraft-replay 2` (`FORMAT_HEADER`) records mod commands with handles resolved to units, so playback needs no mod; `oscraft-replay 1` still parses | MOVE | UPDATED: format version 2 at `369c3ba` |
 | Spectator follow | `js/client/replay.js`; state frames from `/state` and wire | partly | query state frames | MOVE | CONFIRMED |
 | Save and load bytes | `rust/crates/sim/src/persist.rs` (Rust, `MAGIC`, `STATE_VERSION`) | no | cmd save; cmd load | STAY | CONFIRMED: hash-checked binary image of sim state |
 | Save and load flow | client snapshot in `js/client/play.js` (`snapshotKey`, `localStorage`, lines 707-752); no server or Lua save command | partly | hook and cmd on top of persist | MOVE | CORRECTED: a client save path exists (localStorage snapshot); the Lua save and load command does not |

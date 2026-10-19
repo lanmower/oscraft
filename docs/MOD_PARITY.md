@@ -59,6 +59,20 @@ path). A `supported` row names its check. Rows change only with a check or a cod
 | Chat and messages to players | missing | refused as `chat-unsupported` |
 | Dialogs and cinematics | missing | no path in the engine |
 
+## Gold and kill payouts
+
+The Rust payout is `pay_bounty` in `rust/crates/sim/src/combat.rs`, with `hero_bounty` in `hero.rs` for the team
+share. The Lua payout is the `on_died` trigger of `mods/moba_match.lua`. Both run unless `gold_by_mod` is set, and
+no loader sets that flag at `369c3ba`.
+
+| capability | status | evidence |
+|---|---|---|
+| Kill gold rule: the Lua payout matches the Rust payout (killer gets bounty less share, the killer's side gets the share) | partial | `pay_bounty`, `hero_bounty`; `mods/moba_match.lua` `on_died`; with `gold_by_mod` off both pay, and no check runs the mod's payout |
+| Team share: 20 percent of the bounty to the killer's side | partial | Rust reads `team_share_pct` from `hero_rules.txt` (default 20); the mod hard-codes `TEAM_SHARE_PCT = 20` because `hero_rules` is not in the Lua API |
+| Attackerless kill pays the rival slot's gold | partial | Rust `pay_bounty` (`rival_of`); mod `on_died` with `killer == nil` or self-kill (`game.rival_of`, `game.cmd_add_gold`); no check runs the mod's branch |
+| Denied kill pays nothing, in the Lua payout too | missing | Rust skips a kill that `was_denied` (an allied unit landed the blow); the mod cannot see denial, so it pays denied kills |
+| `gold_by_mod` switches the Rust payout off | partial | `combat.rs` `pay_bounty` checks the flag, `arrays.rs` `set_gold_by_mod`; only a sim test sets it at `369c3ba` |
+
 ## Determinism, replays and saves
 
 | capability | status | evidence |

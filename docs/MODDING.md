@@ -8,7 +8,8 @@ Example mods: `mods/creep_gold.lua`, `mods/tower_buff.lua`, `mods/td_waves.lua` 
 score, defeat), `mods/custom_spell.lua` (ability, gold, victory), `mods/custom_unit.lua` (unit),
 `mods/custom_item.lua` (item, buy, inventory), `mods/tech_tree.lua` (upgrades), `mods/killer.lua`
 (killer attribution, clock) and `mods/unit_queries.lua` (cooldown and ability queries, clock). CI
-runs them with `mod_check` and asserts the `mod-state` line they print.
+runs them with `mod_check` and asserts the `mod-state` line they print. `mods/moba_match.lua` is the MOBA
+match mod (lane waves and kill gold in one file), described in [The MOBA match mod](#the-moba-match-mod-modsmoba_matchlua).
 
 ## The file contract
 
@@ -243,6 +244,42 @@ is `shop`, `scoreboard`, `custom` or a built-in name). A mod that adds a panel l
 its own DOM with `data-ui="<name>"` so clicks on it are not taken as ground clicks. The Lua call that emits
 `bind` and `unbind` (`game.bind`, `game.unbind`) is not in the Lua host yet; the client side accepts the events.
 A runtime change to the layer's settings: `window.dispatchEvent(new CustomEvent("moba:config", {detail: {...}}))`.
+
+## The MOBA match mod: `mods/moba_match.lua`
+
+One file carries the lane waves and the kill gold of the MOBA scenario. It has one `on_tick` and one
+`on_died` trigger. It uses the API above and the host globals `unit_position`, `unit_player` and `unit_alive`.
+
+Waves. Each `lane_spawner_top`, `lane_spawner_mid` and `lane_spawner_bot` unit sends creeps on the lane for its side.
+Top and bottom spawners send a wave every 480 ticks: three `creep` and one `creep_ranged`, at x offsets 0, 0.7, 1.4
+and 2.1 tiles. Mid sends no creep waves. Every lane spawner runs three siege timers, starting at ticks 4800, 28800
+and 57600, each repeating every 4800 ticks and spawning one `creep_siege`. A wave unit's kind follows the towers:
+`_super` once the enemy tower mirrored through the map centre is dead, `_mega` once every enemy tower is dead,
+otherwise the base kind. Dead towers keep their slot, so the mirror lookup still finds them. `on_tick` writes the
+counters `state.waves_total`, `waves_base`, `waves_super`, `waves_mega`, `waves_creep`, `waves_creep_ranged`,
+`waves_siege` and `waves_siege_upgraded` (the super and mega siege units together).
+
+Gold. `on_died` pays a unit whose `game.unit_bounty` is above 0.
+
+- A killer other than the dead unit: `bounty * 20 // 100` goes to `game.cmd_add_gold(killer_player, share)`, and the
+  rest to `game.cmd_add_hero_gold(killer, bounty - share)`.
+- No killer, or the unit killed itself: `game.rival_of(unit_player(unit))` gets the whole bounty through
+  `game.cmd_add_gold`, when the player has a rival.
+
+Commands from a trigger apply one step later. The team share is hard-coded: `TEAM_SHARE_PCT = 20` in the file. The
+Lua API does not expose `hero_rules`, so `team_share_pct` in `hero_rules.txt` does not change this mod.
+
+The `gold_by_mod` flag. It is a sim field (default off, saved and hashed) that makes the Rust kill payout in
+`pay_bounty` (`rust/crates/sim/src/combat.rs`) return before it pays, so with the flag on the mod is the only payer.
+The file header says that loading the mod sets the flag. At origin `369c3ba` no loader does: `set_gold_by_mod` is
+called only from a sim test. Until a loader sets it, the Rust payout and this mod both pay.
+
+Known gaps at `369c3ba`:
+
+- The mod calls `game.cmd_spawn(kind, x, y, owner, lane)`. The native (mlua) `cmd_spawn` takes only `kind, x, y`,
+  so the owner and lane arguments are ignored and wave units do not get the spawner's owner.
+- A denied kill (an allied unit landed the blow) pays here. The Rust path skips it, and the mod cannot read denial.
+  See [MOD_PARITY.md](MOD_PARITY.md).
 
 ## Gap list against the map-editor modding of earlier RTS and arena games
 
