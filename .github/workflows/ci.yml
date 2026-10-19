@@ -1896,6 +1896,7 @@ jobs:
           set -euo pipefail
           cat > "$RUNNER_TEMP/pw/moba-input.mjs" <<'EOF'
           import { chromium } from "playwright";
+          import { readFileSync } from "fs";
           const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
           const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
           const errors = [];
@@ -1995,6 +1996,45 @@ jobs:
           const drawnUnits = (await page.evaluate(() => window.__ciUnits())).length;
           if (!(dots > 0) || dots !== drawnUnits) throw new Error("minimap draws " + dots + " dots for " + drawnUnits + " units");
           console.log(`moba minimap ok dots=${dots}`);
+          // Contact point: the midpoint (by arc length) of the mid lane (lane 2) route of each side, averaged, from the route data
+          // the sim loads. Creeps from both sides meet there, so the local hero is ordered toward it before the tick wait.
+          const routes = readFileSync(process.env.GITHUB_WORKSPACE + "/scenarios/moba/routes.osd", "utf8");
+          const laneMid = (side) => {
+            const m = routes.match(new RegExp(`route\\(${side}, 2, \\[([^\\]]*)\\]\\)`));
+            if (!m) throw new Error("no mid lane route for side " + side);
+            const v = m[1].split(",").map((s) => Number(s.trim()) / 1000);
+            const pts = [];
+            for (let i = 0; i < v.length; i += 2) pts.push([v[i], v[i + 1]]);
+            const along = [0];
+            for (let i = 1; i < pts.length; i++) along.push(along[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+            const half = along[along.length - 1] / 2;
+            let k = 0;
+            while (along[k + 1] < half) k++;
+            const f = (half - along[k]) / (along[k + 1] - along[k]);
+            return [pts[k][0] + (pts[k + 1][0] - pts[k][0]) * f, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * f];
+          };
+          const [radX, radZ] = laneMid(0);
+          const [direX, direZ] = laneMid(1);
+          const contact = { x: (radX + direX) / 2, z: (radZ + direZ) / 2 };
+          // The local hero is selected by a click, then right-clicked toward the contact point: the same order path as the move step.
+          // The camera is focused on the hero first so the click lands on it, then on the contact point so the right click can land on it.
+          const localHero = (await page.evaluate((me) => window.__ciUnits().filter((u) => u.player === me && window.__ciIsHero(u.id)).map((u) => ({ id: u.id, x: u.x, z: u.z })), localPlayer))[0];
+          if (!localHero) throw new Error("local player " + localPlayer + " has no hero to order toward the contact point");
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [localHero.x, localHero.z]);
+          const heroAt = await screenAt(localHero.x, localHero.z);
+          await page.mouse.click(heroAt.x, heroAt.z, { button: "left" });
+          const heroSelected = (await page.evaluate(() => window.__ciSelected())) === localHero.id;
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [contact.x, contact.z]);
+          const contactAt = await screenAt(contact.x, contact.z);
+          const contactOnCanvas = contactAt.x >= 0 && contactAt.y >= 0 && contactAt.x < viewport.w && contactAt.y < viewport.h
+            && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [contactAt.x, contactAt.y]));
+          const contactOrdersBefore = Number(await page.getAttribute("body", "data-orders"));
+          if (heroSelected && contactOnCanvas) {
+            await page.mouse.click(contactAt.x, contactAt.y, { button: "right" });
+            await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, contactOrdersBefore, { timeout: 2000 }).catch(() => {});
+          }
+          const contactOrders = Number(await page.getAttribute("body", "data-orders"));
+          console.log(`probe contact order hero=${localHero.id} from=${localHero.x.toFixed(1)},${localHero.z.toFixed(1)} contact=${contact.x.toFixed(1)},${contact.z.toFixed(1)} selected=${heroSelected} on_canvas=${contactOnCanvas} orders=${contactOrdersBefore}->${contactOrders}`);
           // Not every unit can cast or attack: try the most isolated units until one does both.
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
           let attacker = null;
