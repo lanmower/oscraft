@@ -198,6 +198,9 @@ function lowEdgeHeight(model) {
 // A ramp joins a drop of up to one cell, or one height step when a map's step is taller than a cell (the 6.88 layers of
 // the generated map are smoothed, so a one-layer step is one cell of slope). Taller drops, and drops beside water, get walls.
 const RAMP_MAX_DROP_CELLS = 1;
+// One 6.88 cliff level is 128 z, which the generated heights draw as 2 cells of height. A drop of a full cliff level or more is
+// a wall; any smaller drop is the mesh slope (the interpolated corners), with no wall.
+const CLIFF_LEVEL_CELLS = 2;
 
 // Edge pieces from the height data, one batch per key so each key is one draw. A boundary between two cells of equal
 // height gets nothing. A drop of at most RAMP_MAX_STEPS between cells that are not water gets a tile-slant ramp (the slant
@@ -240,7 +243,10 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
         const high = low === i ? j : i;
         const kLow = low === i ? ki : kj;
         const kHigh = high === i ? ki : kj;
-        const rampMaxDrop = Math.max(RAMP_MAX_DROP_CELLS, heightStep / cellMilli);
+        // A map whose height step is a cell or taller takes one level as its cliff level (legacy maps: a drop of one level is
+        // a ramp). A fine-stepped map (the generated 6.88 heights) takes a full cliff level: smaller drops are slope.
+        const level = heightStep / cellMilli;
+        const rampMaxDrop = level >= RAMP_MAX_DROP_CELLS ? level + 1e-9 : CLIFF_LEVEL_CELLS - 1e-6;
         const gradual = dh <= rampMaxDrop + 1e-9 && kLow !== "water" && kHigh !== "water";
         if (!gradual) {
           if (!wall) continue;
