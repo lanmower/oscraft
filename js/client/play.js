@@ -13,7 +13,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, fitModel, TILE_MATERIALS, TILE_MODELS, TILE_TINTS, walkableBounds } from "./tiles.js";
+import { bakeTiles, fitModel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, HERO_ROSTER } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -1098,10 +1098,9 @@ async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
-  const groundImage = await loadBaseColorImage({ uri: "textures/ground.png" }, location.href).catch(() => null);
-  const groundTexture = groundImage ? textureFrom(gl, groundImage) : null;
-  terrainMesh.texture = groundTexture;
-  tileMeshes = await loadTileMeshes(gl, groundTexture).catch(() => null);
+  const tileTextures = await loadTileTextures(gl);
+  terrainMesh.texture = tileTextures.get("ground") || null;
+  tileMeshes = await loadTileMeshes(gl, tileTextures).catch(() => null);
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map(async ({ high, low }) => ({
     base: await toMesh(gl, high, DOODAD_TINT),
     lowBase: await toMesh(gl, low, DOODAD_TINT),
@@ -1125,7 +1124,7 @@ async function build3d(gl, game) {
 
 // Terrain drawn from the CC0 tile models: each kind's variant models fitted once, cells baked per kind and variant. Any
 // tile that fails to load returns null, so the heightfield mesh stays the drawn terrain.
-async function loadTileMeshes(gl, groundTexture) {
+async function loadTileMeshes(gl, tileTextures) {
   const names = [...new Set(Object.values(TILE_MODELS).flat())];
   const fitted = await Promise.all(names.map((name) => fetchModel(name, 1)));
   if (fitted.some((model) => !model)) return null;
@@ -1134,13 +1133,22 @@ async function loadTileMeshes(gl, groundTexture) {
   const baked = bakeTiles(mapBytes, models);
   if (!baked) return null;
   const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, model, batches }) => batches.map(async ({ uvs, batch }) => {
-    const textured = groundTexture && TILE_MATERIALS[kind] === "ground";
-    const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: null, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
+    const texture = tileTextures.get(TILE_MATERIALS[kind]) || null;
+    const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: null, glbUrl: model.glbUrl }, texture ? [1, 1, 1] : TILE_TINTS[kind]);
     if (!mesh) return null;
-    if (textured) mesh.texture = groundTexture;
+    if (texture) mesh.texture = texture;
     return { mesh, batch };
   })));
   return drawn.every(Boolean) ? drawn : null;
+}
+
+// Every tile material's texture, keyed by material name: one GPU texture per name, shared by the kinds that use it.
+async function loadTileTextures(gl) {
+  const entries = await Promise.all(Object.entries(TILE_TEXTURES).map(async ([name, uri]) => {
+    const image = await loadBaseColorImage({ uri }, location.href).catch(() => null);
+    return [name, image ? textureFrom(gl, image) : null];
+  }));
+  return new Map(entries.filter(([, texture]) => texture));
 }
 
 async function main() {
