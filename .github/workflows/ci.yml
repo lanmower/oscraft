@@ -2004,11 +2004,17 @@ jobs:
             return p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h
               && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [p.x, p.y]));
           };
-          // Creeps from the two sides first come into reach mid-lane, so wait on the sim tick (16 per second) for a hostile pair
-          // within 8 cells, for at most 180 game seconds. The attacker check below still has to pass.
+          // Creeps from the two sides first come into reach mid-lane, at sim tick 301 (measured on origin main: the first hostile
+          // pair within 8 cells, moba scenario, tick_with_cadence(true, true)). Poll until the sim tick reaches that contact tick plus
+          // a 300-tick margin (601 ticks), or a hostile hero pair appears. The CI page measured 1.5 ticks per second (lowest observed,
+          // 15 ticks in 10.1 s in the failing run), so the wall-clock deadline covers 601 ticks: ceil(601 / 1.5) = 401 s.
+          // The attacker check below still has to pass.
           // Each poll logs the local hero (id, position, HUD hp), the nearest hostile to any hero (type, player, cells), and the hero count,
           // so a run that loses its hero during the wait shows when and how it happened.
-          const waitDeadline = Date.now() + 240000;
+          const CONTACT_TICK = 301;
+          const WAIT_TICKS = CONTACT_TICK + 300;
+          const CI_TICKS_PER_SECOND = 1.5;
+          const waitDeadline = Date.now() + Math.ceil(WAIT_TICKS / CI_TICKS_PER_SECOND) * 1000;
           let waited = null;
           for (;;) {
             waited = await page.evaluate((me) => {
@@ -2040,7 +2046,7 @@ jobs:
             const heroText = waited.hero ? `${waited.hero.id}:${waited.hero.type}@${waited.hero.x.toFixed(0)},${waited.hero.z.toFixed(0)}` : "none";
             const nearestText = waited.nearest ? `${waited.nearest.type}/p${waited.nearest.player}@${waited.nearest.cells.toFixed(2)}` : "none";
             console.log(`probe poll ticks=${waited.ticks} hero=${heroText} hp=${waited.hp} heroes=${waited.heroes} nearest=${nearestText}`);
-            if (waited.ticks >= 16 * 180 || waited.pair || Date.now() >= waitDeadline) break;
+            if (waited.ticks >= WAIT_TICKS || waited.pair || Date.now() >= waitDeadline) break;
             await page.waitForTimeout(500);
           }
           // The wait moves the units, so the candidates, foes and hostile pairs are read from the sim after it, not from the start.
