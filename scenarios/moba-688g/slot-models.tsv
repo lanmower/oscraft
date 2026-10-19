@@ -1,0 +1,68 @@
+slot	chosen_model	why	alternatives	previous_model
+hero	character-male-a	hero slot: first male hero, keeps the existing model	character-male-b, character-male-c	character-male-a
+tower	tower-square-top-roof	tier 1 tower: roofed square tower	tower-square-top	tower-square
+base	building-b	ancient: largest building class in the pack	building-l	building-f
+creep	character-skeleton	melee lane creep	character-zombie	character-skeleton
+tender	character-female-a	support hero, female build	character-female-b	character-female-a
+objective	pillar-obelisk	objective pillar (kept)	column	pillar-obelisk
+roshan	roshan-skinned	Roshan: rigged hy3d build (28 joints, PNG base colour)	roshan-lowpoly	character-orc
+bounty_rune	coin	bounty rune: coin pickup	key	pillar-obelisk
+observer_ward	candle	observer ward: small light	candle-multiple	pillar-obelisk
+sentry_ward	candle-multiple	sentry ward: group of lights	lantern	pillar-obelisk
+courier	character-human	courier: human figure	character-keeper	character-skeleton
+creep_ranged	character-archer	ranged lane creep: archer silhouette	character-human	character-skeleton
+creep_siege	character-orc	siege creep: heavy orc build	character-zombie	character-skeleton
+creep_super	character-zombie	super melee creep (upgraded)	character-skeleton	character-skeleton
+creep_ranged_super	character-ghost	super ranged creep: ghostly caster	character-human	character-skeleton
+creep_siege_super	character-vampire	super siege creep	character-orc	character-skeleton
+creep_mega	character-zombie	mega melee creep	character-skeleton	character-skeleton
+creep_ranged_mega	character-ghost	mega ranged creep	character-human	character-skeleton
+creep_siege_mega	character-vampire	mega siege creep	character-orc	character-skeleton
+tower_t2	tower-square-mid	tier 2 tower: mid section	tower-square-mid-windows	tower-square
+tower_t3	tower-square-top-roof-high	tier 3 tower: tall roof	tower-hexagon-top	tower-square
+tower_t4	tower-hexagon-top	tier 4 tower: hexagonal top	tower-square-top-roof-rounded	tower-square
+barracks_melee	building-d	melee barracks: plain block	building-h	building-f
+barracks_ranged	building-k	ranged barracks: windowed block	building-l	building-f
+outpost	tower-hexagon-base	watch outpost: small hexagonal base	tower-base	tower-square
+neutral_kobold	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_kobold_tunneler	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_kobold_taskmaster	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_centaur_outrunner	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_centaur_khan	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_fel_beast	character-zombie	beast neutral: zombie build as stand-in	character-skeleton	character-skeleton
+neutral_furbolg_champion	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_furbolg_ursa_warrior	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_warpine_raider	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_mud_golem	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_ogre_mauler	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_ogre_magi	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_giant_wolf	character-zombie	beast neutral: zombie build as stand-in	character-skeleton	character-skeleton
+neutral_alpha_wolf	character-zombie	beast neutral: zombie build as stand-in	character-skeleton	character-skeleton
+neutral_wildkin	character-zombie	beast neutral: zombie build as stand-in	character-skeleton	character-skeleton
+neutral_enraged_wildkin	character-zombie	beast neutral: zombie build as stand-in	character-skeleton	character-skeleton
+neutral_satyr_soulstealer	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_satyr_hellcaller	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_satyr_trickster	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_jungle_stalker	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_elder_jungle_stalker	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_prowler_acolyte	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_prowler_shaman	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_rock_golem	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_granite_golem	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_ice_shaman	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_frostbitten_golem	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_big_thunder_lizard	character-vampire	dragon or drake: vampire silhouette	character-zombie	character-skeleton
+neutral_small_thunder_lizard	character-vampire	dragon or drake: vampire silhouette	character-zombie	character-skeleton
+neutral_gnoll_assassin	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_ghost	character-ghost	ghost neutral	character-vampire	character-skeleton
+neutral_dark_troll	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_dark_troll_warlord	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_forest_troll_berserker	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_forest_troll_high_priest	character-orc	large neutral: orc build	character-zombie	character-skeleton
+neutral_harpy_scout	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_harpy_storm	character-skeleton	small neutral: skeleton build	character-human	character-skeleton
+neutral_black_drake	character-vampire	dragon or drake: vampire silhouette	character-zombie	character-skeleton
+neutral_black_dragon	character-vampire	dragon or drake: vampire silhouette	character-zombie	character-skeleton
+lane_spawner_top	pillar-obelisk	lane spawner marker (kept)	pillar-stone	pillar-obelisk
+lane_spawner_mid	pillar-obelisk	lane spawner marker (kept)	pillar-stone	pillar-obelisk
+lane_spawner_bot	pillar-obelisk	lane spawner marker (kept)	pillar-stone	pillar-obelisk

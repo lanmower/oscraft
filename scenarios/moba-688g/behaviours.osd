@@ -1,0 +1,12 @@
+# Behaviour definitions for the moba scenario. behaviour(name, trigger, action, param=, ability=)
+behaviour("guard_patrol", trigger="idle", action="use_ability", param=0, ability="pulse_shot")
+behaviour("answer_attack", trigger="attacked", action="attack_nearest", param=0)
+# Idle units (creeps, towers, bases) strike the nearest enemy in reach when they come to rest.
+behaviour("idle_attack", trigger="idle", action="attack_nearest", param=0)
+# Win condition: a base carries the building filter. When the last living building of a side dies, the rival wins.
+behaviour("win_on_base_loss", trigger="destroyed", action="declare_winner", tag="building")
+# Passives: each stat ability is cast once when its hero spawns (its cooldown keeps it from being recast).
+behaviour("passive_iron_guard", trigger="spawned", action="use_ability", param=0, ability="iron_guard")
+behaviour("passive_hawk_eye", trigger="spawned", action="use_ability", param=0, ability="hawk_eye")
+behaviour("passive_rapid_fire", trigger="spawned", action="use_ability", param=0, ability="rapid_fire")
+behaviour("passive_thorn_hide", trigger="spawned", action="use_ability", param=0, ability="thorn_hide")

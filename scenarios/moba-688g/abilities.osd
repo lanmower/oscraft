@@ -1,0 +1,120 @@
+# Ability definitions for the moba scenario. Indices follow declaration order:
+# pulse_shot 0, mend_field 1, creep_wave 2. The hero abilities are the engine's own definitions.
+ability("pulse_shot", 24, 0, "unit", [effect("damage", p0=6)], target_filters=["ground"], projectile_speed_milli=12000)
+ability("mend_field", 96, 50, "point", [effect("heal", p0=12, p1=2000), effect("buff", p0=1, p1=3)])
+# Creep wave: three melee creeps (unit 3) and one ranged creep (creep_ranged) per lane, every 30 s (480 ticks, Dota wave interval) at the base, offset to the lane's row (p2, milli
+# from the base; top -22000, middle 0, bottom +22000). Each creep then marches to the nearest
+# enemy building along its lane. Cooldown 480 ticks is the spawn timer.
+ability("creep_wave", 480, 0, "none", [effect("spawn", p0=3, p1=0, p2=0, p3=-1696568296), effect("spawn", p0=3, p1=700, p2=0, p3=-1696568296), effect("spawn", p0=3, p1=1400, p2=0, p3=-1696568296), effect("spawn", p0=21, p1=2100, p2=0, p3=-1695518695)])
+# Hero abilities appended after creep_wave: cleave_strike 3, dash_step 4, ward_shield 5.
+ability("cleave_strike", 36, 0, "unit", [effect("damage", p0=14)], target_filters=["ground"])
+ability("dash_step", 120, 0, "point", [effect("move", p0=4000)])
+ability("ward_shield", 80, 0, "unit", [effect("shield_bonus", p0=20)], target_filters=["army"])
+# Dota-style roster (four abilities, then the ultimate, per hero; heroes reference them by name). Mechanics: nuke, projectile,
+# AoE, blink, heal-over-time, aura, passive, summon, channel, and the status effects stun, slow, silence, root, invisibility.
+# UNVERIFIED: every value below. These heroes are original, and SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b
+# game/dota/pak01_dir/scripts/npc/npc_abilities.txt (664 entries) holds no hero ability to copy, so no figure is sourced.
+# A passive is a stat ability with cooldown 100000 (never recast) that a spawned behaviour casts once (behaviours.osd). The stat effect is NEW (code 16).
+# Ironhide: AoE, passive armor, blink, silence, summon (two creeps).
+ability("iron_slam", 40, 0, "none", [effect("damage", p0=18, p1=1200)])
+ability("iron_guard", 100000, 0, "none", [effect("stat", p0=1, p1=3)])
+ability("iron_charge", 150, 0, "point", [effect("move", p0=6000), effect("damage", p0=14, p1=800)])
+ability("iron_roar", 200, 0, "unit", [effect("damage", p0=10), effect("silence", p0=48)], target_filters=["ground"])
+ability("iron_titan", 600, 0, "none", [effect("spawn", p0=3, p1=1500, p2=0), effect("spawn", p0=3, p1=-1500, p2=0)])
+# Swiftbow: projectile nuke, blink, AoE volley, passive range, channelled AoE ultimate.
+ability("swift_arrow", 20, 0, "unit", [effect("damage", p0=16)], target_filters=["ground"], projectile_speed_milli=15000)
+ability("evade_step", 120, 0, "point", [effect("move", p0=3500)])
+ability("piercing_volley", 70, 0, "point", [effect("damage", p0=12, p1=1500)])
+ability("hawk_eye", 100000, 0, "none", [effect("stat", p0=4, p1=1500)])
+ability("storm_rain", 500, 0, "point", [effect("damage", p0=40, p1=2500)])
+channel("storm_rain", 48)
+# Stormcaller: projectile nuke, AoE, ally shield, stun nuke, AoE ultimate.
+ability("spark_bolt", 20, 0, "unit", [effect("damage", p0=22)], target_filters=["ground"], projectile_speed_milli=14000)
+ability("frost_nova", 128, 0, "none", [effect("damage", p0=14, p1=1800)])
+ability("wind_shield", 70, 0, "unit", [effect("shield_bonus", p0=30)], target_filters=["army"])
+ability("chain_storm", 80, 0, "unit", [effect("damage", p0=28), effect("stun", p0=24)], target_filters=["ground"])
+ability("storm_sky", 500, 0, "point", [effect("damage", p0=80, p1=3000)])
+# Bulwark: self shield, stun nuke, blink strike, AoE heal, full-life restore ultimate.
+ability("bulwark_stance", 100, 0, "none", [effect("shield_bonus", p0=60)])
+ability("taunt_cry", 60, 0, "unit", [effect("damage", p0=8), effect("stun", p0=24)], target_filters=["ground"])
+ability("crush_step", 80, 0, "point", [effect("move", p0=4000), effect("damage", p0=12, p1=1000)])
+ability("bastion_mend", 60, 0, "none", [effect("heal", p0=20, p1=1500)])
+ability("last_wall", 600, 0, "none", [effect("shield_bonus", p0=200), effect("vital_fraction", p0=0, p1=65536, p2=1, p3=1)])
+# Shadeblade: nuke, blink with invisibility, AoE, silence, blink-strike ultimate.
+ability("shade_strike", 30, 0, "unit", [effect("damage", p0=26)], target_filters=["ground"])
+ability("smoke_step", 120, 0, "point", [effect("move", p0=5000), effect("invisibility", p0=48)])
+ability("blade_dance", 70, 0, "none", [effect("damage", p0=12, p1=1200)])
+ability("shadow_mark", 80, 0, "unit", [effect("silence", p0=48)], target_filters=["ground"])
+ability("death_glide", 500, 0, "point", [effect("move", p0=9000), effect("damage", p0=40, p1=1000)])
+# Emberlord: projectile, AoE, blink, aura (pulsing heal for 1600 ticks), channelled AoE ultimate.
+ability("ember_bolt", 20, 0, "unit", [effect("damage", p0=20)], target_filters=["ground"], projectile_speed_milli=12000)
+ability("ember_wave", 60, 0, "point", [effect("damage", p0=22, p1=1800)])
+ability("flame_leap", 110, 0, "point", [effect("move", p0=4500)])
+ability("kindle_aura", 200, 0, "none", [effect("create_healer", p0=8, p1=1500, p2=30, p3=1600)])
+ability("inferno_storm", 600, 0, "point", [effect("damage", p0=60, p1=2200)])
+channel("inferno_storm", 32)
+# Gale archer: projectile nuke, blink, passive damage, slow, AoE ultimate.
+ability("gale_shot", 20, 0, "unit", [effect("damage", p0=18)], target_filters=["ground"], projectile_speed_milli=15000)
+ability("gust_step", 100, 0, "point", [effect("move", p0=3500)])
+ability("rapid_fire", 100000, 0, "none", [effect("stat", p0=0, p1=5)])
+ability("gale_mark", 60, 0, "unit", [effect("damage", p0=6), effect("slow", p0=64, p1=32768)], target_filters=["ground"])
+ability("hurricane", 500, 0, "point", [effect("damage", p0=45, p1=2000)])
+# Frostmage: projectile with slow, AoE, ally shield, blink, channelled AoE ultimate.
+ability("frost_bolt", 20, 0, "unit", [effect("damage", p0=16), effect("slow", p0=48, p1=32768)], target_filters=["ground"], projectile_speed_milli=10000)
+ability("ice_ring", 60, 0, "none", [effect("damage", p0=12, p1=2000)])
+ability("frost_shield", 80, 0, "unit", [effect("shield_bonus", p0=50)], target_filters=["army"])
+ability("arcane_lift", 100, 0, "point", [effect("move", p0=2500)])
+ability("glacial_storm", 600, 0, "point", [effect("damage", p0=70, p1=2500)])
+channel("glacial_storm", 48)
+# Tidecaller: AoE, heal over time (a 160 tick field), ally shield, slow nuke, AoE ultimate.
+ability("tide_wave", 50, 0, "point", [effect("damage", p0=20, p1=1600)])
+ability("tide_mend", 90, 0, "point", [effect("create_healer", p0=6, p1=1800, p2=16, p3=160)])
+ability("tide_ward", 70, 0, "unit", [effect("shield_bonus", p0=35)], target_filters=["army"])
+ability("undertow", 120, 0, "unit", [effect("damage", p0=14), effect("slow", p0=64, p1=32768)], target_filters=["ground"])
+ability("tsunami", 600, 0, "none", [effect("damage", p0=50, p1=2800)])
+# Thornwarden: passive health, root nuke, blink, self heal over time, aura ultimate.
+ability("thorn_hide", 100000, 0, "none", [effect("stat", p0=2, p1=80)])
+ability("vine_pull", 60, 0, "unit", [effect("damage", p0=16), effect("root", p0=40)], target_filters=["ground"])
+ability("root_step", 90, 0, "point", [effect("move", p0=3000)])
+ability("briar_heal", 80, 0, "none", [effect("create_healer", p0=5, p1=0, p2=16, p3=96)])
+ability("wild_growth", 500, 0, "none", [effect("create_healer", p0=10, p1=2500, p2=20, p3=800)])
+# Skill trees for the three character types in declaration order: hero, ironhide, swiftbow.
+# Each hero spends one skill point per character level. Four abilities learn up to rank 4; the
+# ultimate (slot R, the fifth ability) learns up to rank 3 at levels 6, 12 and 18. Rank 1 of
+# damage, cooldown and energy equals the base values above; ranks 2 and up are scaling.
+# UNVERIFIED: every rank value below is a design placeholder, not sourced from any game. The
+# engine has no passive energy regeneration, so energy costs only matter where the caller grants
+# energy (mend_field's base cost is 50; the other abilities cost nothing).
+# iron_guard and hawk_eye are passives and carry no skill tree: they cast at spawn, unlearned.
+# Damage applies to the ability's first damage or heal effect; ability damage tables for
+# abilities without one are 0.
+skill("pulse_shot", ultimate=False, gates=[1, 1, 1, 1], damage=[6, 8, 10, 12], cooldown=[24, 22, 20, 18], energy=[0, 0, 0, 0])
+skill("mend_field", ultimate=False, gates=[1, 1, 1, 1], damage=[12, 16, 20, 24], cooldown=[96, 90, 84, 78], energy=[50, 55, 60, 65])
+skill("cleave_strike", ultimate=False, gates=[1, 1, 1, 1], damage=[14, 18, 22, 26], cooldown=[36, 34, 32, 30], energy=[0, 0, 0, 0])
+skill("dash_step", ultimate=False, gates=[1, 1, 1, 1], damage=[0, 0, 0, 0], cooldown=[120, 110, 100, 90], energy=[0, 0, 0, 0])
+skill("ward_shield", ultimate=True, gates=[6, 12, 18], damage=[0, 0, 0], cooldown=[80, 70, 60], energy=[0, 0, 0])
+skill("iron_slam", ultimate=False, gates=[1, 1, 1, 1], damage=[18, 24, 30, 36], cooldown=[40, 38, 36, 34], energy=[0, 0, 0, 0])
+skill("iron_charge", ultimate=False, gates=[1, 1, 1, 1], damage=[14, 18, 22, 26], cooldown=[150, 140, 130, 120], energy=[0, 0, 0, 0])
+skill("iron_roar", ultimate=False, gates=[1, 1, 1, 1], damage=[10, 14, 18, 22], cooldown=[200, 190, 180, 170], energy=[0, 0, 0, 0])
+skill("iron_titan", ultimate=True, gates=[6, 12, 18], damage=[0, 0, 0], cooldown=[600, 540, 480], energy=[0, 0, 0])
+skill("swift_arrow", ultimate=False, gates=[1, 1, 1, 1], damage=[16, 20, 24, 28], cooldown=[20, 19, 18, 17], energy=[0, 0, 0, 0])
+skill("evade_step", ultimate=False, gates=[1, 1, 1, 1], damage=[0, 0, 0, 0], cooldown=[120, 110, 100, 90], energy=[0, 0, 0, 0])
+skill("piercing_volley", ultimate=False, gates=[1, 1, 1, 1], damage=[12, 16, 20, 24], cooldown=[70, 66, 62, 58], energy=[0, 0, 0, 0])
+skill("storm_rain", ultimate=True, gates=[6, 12, 18], damage=[40, 60, 80], cooldown=[500, 440, 380], energy=[0, 0, 0])
+# Status abilities: stun, slow (half speed), silence, root and invisibility, durations in ticks (16 per second).
+ability("stun_bolt", 120, 0, "unit", [effect("damage", p0=10), effect("stun", p0=24)], target_filters=["ground"])
+ability("frost_slow", 80, 0, "unit", [effect("slow", p0=48, p1=32768)], target_filters=["ground"])
+ability("hex_silence", 100, 0, "unit", [effect("silence", p0=64)], target_filters=["ground"])
+ability("entangle", 100, 0, "unit", [effect("root", p0=40)], target_filters=["ground"])
+ability("smoke_veil", 160, 0, "none", [effect("invisibility", p0=80)])
+# Wards and courier. Lifetimes at 16 ticks per second: observer 360 s = 5760 ticks and sentry 420 s = 6720 ticks
+# (item_ward_observer / item_ward_sentry "lifetime", items.txt @282fad29f0f74504fad465c52d197fb61f4d612b); cast cooldown
+# 1 s = 16 ticks (AbilityCooldown 1.0). Unit indices 18 and 19 are observer_ward and sentry_ward in units.osd.
+ability("place_observer", 16, 0, "point", [effect("ward", p0=18, p1=5760)])
+ability("place_sentry", 16, 0, "point", [effect("ward", p0=19, p1=6720)])
+# Glyph of fortification: for 80 ticks (5 s) every friendly structure that is not a building (the towers) takes no damage;
+# the team then waits 4800 ticks (300 s). UNVERIFIED: both numbers are recalled Dota 2 values, the dump has no glyph keys.
+# Filter bits: 64 structure, 2048 building.
+ability("glyph_of_fortification", 4800, 0, "none", [effect("glyph", p0=80, p1=4800, p2=64, p3=2048)])
+# Courier: walks to a friendly army unit (a hero), moves its stash into its inventory within 1000 milli, walks back.
+ability("courier_deliver", 16, 0, "unit", [effect("deliver", p0=1000)], target_filters=["army"])
