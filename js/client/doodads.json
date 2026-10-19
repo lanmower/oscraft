@@ -784,5 +784,6 @@
   "wood_support": "models/wood-support.glb",
   "workbench": "models/workbench.glb",
   "workbench_anvil": "models/workbench-anvil.glb",
-  "workbench_grind": "models/workbench-grind.glb"
+  "workbench_grind": "models/workbench-grind.glb",
+  "abaddon_skinned": "models/abaddon-skinned.glb"
 }
