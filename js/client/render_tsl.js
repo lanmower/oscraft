@@ -8,7 +8,7 @@ import {
   attribute, dot, float, int, max, modelNormalMatrix, normalize, normalLocal, normalWorld, positionLocal,
   texture, uniform, uniformArray, varying, vec3, vec4,
 } from "three/tsl";
-import { createCamera, eyeOf, meshReach, MAX_JOINTS, orbitCamera, panCamera, visibleGroundBounds, zoomCamera } from "./render3d.js";
+import { createCamera, eyeOf, meshReach, nearOf, MAX_JOINTS, orbitCamera, panCamera, visibleGroundBounds, zoomCamera } from "./render3d.js";
 
 const LIGHT = normalize(vec3(0.4, 1.0, 0.6));
 const AMBIENT = 0.3;
@@ -241,7 +241,7 @@ export async function createTslRenderer(canvas, { debug = false } = {}) {
   function syncCamera(viewAspect) {
     threeCamera.fov = (camera.fovY * 180) / Math.PI;
     threeCamera.aspect = viewAspect;
-    threeCamera.near = camera.near;
+    threeCamera.near = nearOf(camera);
     threeCamera.far = camera.far;
     threeCamera.updateProjectionMatrix();
     const eye = eyeOf(camera);

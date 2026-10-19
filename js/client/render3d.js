@@ -131,12 +131,20 @@ export function viewMatrix(cam) {
   return lookAt(eyeOf(cam), cam.target, [0, 1, 0]);
 }
 
+// Near plane grows with the orbit distance so depth precision holds when zoomed out: at the far zoom the fixed near
+// plane (0.1) left a far/near ratio near 2400, and coplanar floor layers flickered. Eye height is ~0.78 * distance,
+// so the nearest floor is always beyond 0.02 * distance.
+const NEAR_PER_DISTANCE = 0.02;
+export function nearOf(cam) {
+  return Math.max(cam.near, cam.distance * NEAR_PER_DISTANCE);
+}
+
 export function projectionMatrix(cam, aspect) {
-  return perspective(cam.fovY, aspect, cam.near, cam.far);
+  return perspective(cam.fovY, aspect, nearOf(cam), cam.far);
 }
 
 export function viewProjection(cam, aspect, out = new Float32Array(16)) {
-  perspective(cam.fovY, aspect, cam.near, cam.far, projectionScratch);
+  perspective(cam.fovY, aspect, nearOf(cam), cam.far, projectionScratch);
   lookAt(eyeOf(cam), cam.target, WORLD_UP, viewScratch);
   return multiply(projectionScratch, viewScratch, out);
 }
