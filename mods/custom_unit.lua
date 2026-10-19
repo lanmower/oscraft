@@ -3,8 +3,8 @@
 -- Uses only the mod API.
 
 local TILE = 65536
--- A tower and a runner are ground units, so they sit on the open run of the moba GridNav (row y=34).
-local TOWER_X, TOWER_Y = 80 * TILE, 34 * TILE
+-- A tower and a runner are ground units, so they sit on a walkable tile of the 6.88 moba GridNav.
+local TOWER_X, TOWER_Y = 64 * TILE, 64 * TILE
 
 game.ability("tower_zap", {
   cooldown = 40,
