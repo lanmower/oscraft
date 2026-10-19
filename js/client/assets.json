@@ -1,13 +1,13 @@
 {
  "count": 801,
- "total_bytes": 23146950,
+ "total_bytes": 23187850,
  "items": [
   {
    "id": "rock",
    "kind": "model",
    "path": "js/client/models/rock-a.glb",
    "placed_by": "doodads.json",
-   "bytes": 7076,
+   "bytes": 7984,
    "role": "rock"
   },
   {
@@ -1839,7 +1839,7 @@
    "kind": "model",
    "path": "js/client/models/gate-rock.glb",
    "role": "rock",
-   "bytes": 19872
+   "bytes": 22096
   },
   {
    "id": "gate",
@@ -2686,7 +2686,7 @@
    "kind": "model",
    "path": "js/client/models/resource-stone-large.glb",
    "role": "rock",
-   "bytes": 9436
+   "bytes": 10548
   },
   {
    "id": "resource-wood",
@@ -3204,119 +3204,119 @@
    "kind": "model",
    "path": "js/client/models/rock-b.glb",
    "role": "rock",
-   "bytes": 8872
+   "bytes": 10064
   },
   {
    "id": "rock-c",
    "kind": "model",
    "path": "js/client/models/rock-c.glb",
    "role": "rock",
-   "bytes": 7468
+   "bytes": 8412
   },
   {
    "id": "rock-flat-grass",
    "kind": "model",
    "path": "js/client/models/rock-flat-grass.glb",
    "role": "rock",
-   "bytes": 36756
+   "bytes": 41368
   },
   {
    "id": "rock-flat",
    "kind": "model",
    "path": "js/client/models/rock-flat.glb",
    "role": "rock",
-   "bytes": 12072
+   "bytes": 14012
   },
   {
    "id": "rock-large",
    "kind": "model",
    "path": "js/client/models/rock-large.glb",
    "role": "rock",
-   "bytes": 10940
+   "bytes": 12460
   },
   {
    "id": "rock-sand-a",
    "kind": "model",
    "path": "js/client/models/rock-sand-a.glb",
    "role": "rock",
-   "bytes": 6588
+   "bytes": 7356
   },
   {
    "id": "rock-sand-b",
    "kind": "model",
    "path": "js/client/models/rock-sand-b.glb",
    "role": "rock",
-   "bytes": 9852
+   "bytes": 11268
   },
   {
    "id": "rock-sand-c",
    "kind": "model",
    "path": "js/client/models/rock-sand-c.glb",
    "role": "rock",
-   "bytes": 8456
+   "bytes": 9624
   },
   {
    "id": "rock-small",
    "kind": "model",
    "path": "js/client/models/rock-small.glb",
    "role": "rock",
-   "bytes": 8348
+   "bytes": 9364
   },
   {
    "id": "rock-wide",
    "kind": "model",
    "path": "js/client/models/rock-wide.glb",
    "role": "rock",
-   "bytes": 9104
+   "bytes": 10308
   },
   {
    "id": "rocks-high",
    "kind": "model",
    "path": "js/client/models/rocks-high.glb",
    "role": "rock",
-   "bytes": 13892
+   "bytes": 15956
   },
   {
    "id": "rocks-large",
    "kind": "model",
    "path": "js/client/models/rocks-large.glb",
    "role": "rock",
-   "bytes": 10732
+   "bytes": 12140
   },
   {
    "id": "rocks-low",
    "kind": "model",
    "path": "js/client/models/rocks-low.glb",
    "role": "rock",
-   "bytes": 14352
+   "bytes": 16848
   },
   {
    "id": "rocks-ramp",
    "kind": "model",
    "path": "js/client/models/rocks-ramp.glb",
    "role": "rock",
-   "bytes": 13120
+   "bytes": 15012
   },
   {
    "id": "rocks-small",
    "kind": "model",
    "path": "js/client/models/rocks-small.glb",
    "role": "rock",
-   "bytes": 10080
+   "bytes": 11376
   },
   {
    "id": "rocks-tall",
    "kind": "model",
    "path": "js/client/models/rocks-tall.glb",
    "role": "rock",
-   "bytes": 23800
+   "bytes": 27064
   },
   {
    "id": "rocks",
    "kind": "model",
    "path": "js/client/models/rocks.glb",
    "role": "rock",
-   "bytes": 23668
+   "bytes": 26820
   },
   {
    "id": "roof-corner-inner",
@@ -3953,35 +3953,35 @@
    "kind": "model",
    "path": "js/client/models/stone-wall-column.glb",
    "role": "rock",
-   "bytes": 7580
+   "bytes": 8336
   },
   {
    "id": "stone-wall-curve",
    "kind": "model",
    "path": "js/client/models/stone-wall-curve.glb",
    "role": "rock",
-   "bytes": 19332
+   "bytes": 21440
   },
   {
    "id": "stone-wall-damaged",
    "kind": "model",
    "path": "js/client/models/stone-wall-damaged.glb",
    "role": "rock",
-   "bytes": 8480
+   "bytes": 9412
   },
   {
    "id": "stone-wall",
    "kind": "model",
    "path": "js/client/models/stone-wall.glb",
    "role": "rock",
-   "bytes": 4700
+   "bytes": 4988
   },
   {
    "id": "stones",
    "kind": "model",
    "path": "js/client/models/stones.glb",
    "role": "rock",
-   "bytes": 15204
+   "bytes": 17356
   },
   {
    "id": "structure-canvas",
@@ -5545,7 +5545,7 @@
    "kind": "model",
    "path": "js/client/models/oga/rock-flat.glb",
    "placed_by": "doodads.json",
-   "bytes": 7124,
+   "bytes": 6192,
    "role": "rock"
   },
   {
