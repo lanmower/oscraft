@@ -64,7 +64,7 @@ export function createInventory({ game, selected, localPlayer }) {
     if (!hero) return;
     const inv = JSON.parse(game.inventory_json(id));
     inv.slots.forEach(([kind], s) => { cells[s].textContent = slotLabel(kind, catalog); });
-    inv.stash.forEach(([kind], s) => { stashCells[s].textContent = slotLabel(kind, catalog); });
+    inv.stash.forEach(([kind], s) => { if (stashCells[s]) stashCells[s].textContent = slotLabel(kind, catalog); });
   }
 
   return { update, root };
