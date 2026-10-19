@@ -218,10 +218,13 @@ pub struct Sim {
     /// True while `tick_with_cadence` runs; orders issued inside a tick are re-derived by the tick on replay, so they are not logged.
     pub(crate) in_tick: bool,
 
-    pub(crate) bucket_n: Vec<u32>,
+    /// Inline slots filled per cell (at most `BUCKET_CAP`); units past them live in `bucket_over`.
+    pub(crate) bucket_n: Vec<u8>,
     pub(crate) bucket_idx: Vec<u32>,
     /// Units past the inline `BUCKET_CAP` slots of a cell, in ascending insertion order.
     pub(crate) bucket_over: Vec<Vec<u32>>,
+    /// Cells whose overflow list is non-empty, so a rebucket clears only those lists.
+    pub(crate) bucket_over_cells: Vec<u32>,
     pub(crate) scratch: Vec<u32>,
 
     pub(crate) paths: Pool,
@@ -415,6 +418,7 @@ impl Sim {
             bucket_n: vec![0; cells],
             bucket_idx: vec![0; cells * BUCKET_CAP],
             bucket_over: vec![Vec::new(); cells],
+            bucket_over_cells: Vec::new(),
             scratch: vec![0; AREA_BUF],
             paths,
             cur_field: None,
@@ -997,15 +1001,18 @@ impl Sim {
         let cnt = self.bucket_n[cell] as usize;
         if cnt < BUCKET_CAP {
             self.bucket_idx[cell * BUCKET_CAP + cnt] = i as u32;
+            self.bucket_n[cell] += 1;
         } else {
+            if self.bucket_over[cell].is_empty() {
+                self.bucket_over_cells.push(cell as u32);
+            }
             self.bucket_over[cell].push(i as u32);
         }
-        self.bucket_n[cell] += 1;
     }
 
     /// Units bucketed in `cell`, inline slots first then overflow, each in insertion order.
     pub(crate) fn bucket_members(&self, cell: usize) -> impl Iterator<Item = usize> + '_ {
-        let inline = (self.bucket_n[cell] as usize).min(BUCKET_CAP);
+        let inline = self.bucket_n[cell] as usize;
         let base = cell * BUCKET_CAP;
         self.bucket_idx[base..base + inline]
             .iter()
@@ -1015,8 +1022,8 @@ impl Sim {
 
     pub(crate) fn rebucket(&mut self) {
         self.bucket_n.fill(0);
-        for over in &mut self.bucket_over {
-            over.clear();
+        for cell in self.bucket_over_cells.drain(..) {
+            self.bucket_over[cell as usize].clear();
         }
         let (w, h) = (self.grid.w as i32, self.grid.h as i32);
         for i in 0..self.n {
