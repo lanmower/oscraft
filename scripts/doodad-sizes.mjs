@@ -8,7 +8,7 @@ const UNIT_HALF = 0.9; // play.js UNIT_HALF: a unit model is fitted to 2 * UNIT_
 const HERO_STEM = "character-male-a"; // human-scale reference: the height play.js draws for it, from the same first-mesh fit.
 // Target height per role, in hero heights. Trees tower over a hero, buildings over a tower base, props and items stay near waist height.
 // Upright models keep their own proportions: the scale comes from the target height, so crown width follows the model.
-export const ROLE_HEIGHT_IN_HEROES = { tree: 2, building: 2.5, prop: 0.75, nature: 0.4, rock: 0.35, item: 0.25, decoration: 0.5, character: 1 };
+export const ROLE_HEIGHT_IN_HEROES = { tree: 3, building: 2.5, prop: 0.75, nature: 0.4, rock: 0.23, item: 0.25, decoration: 0.5, character: 1 };
 export const SCATTER_ROLES = new Set(["tree", "nature", "rock", "prop", "item", "decoration"]);
 const FLAT_RATIO = 0.3; // a model under 0.3 of its footprint in height is flat (ground patch, log, fountain basin).
 const FLAT_FOOTPRINT_PER_TARGET = 2; // flat models take twice the role's target height as their footprint.
