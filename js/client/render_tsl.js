@@ -222,8 +222,10 @@ export async function createTslRenderer(canvas, { debug = false } = {}) {
     const mixed = albedo[0].mul(blend[0]).add(albedo[1].mul(blend[1])).add(albedo[2].mul(blend[2])).add(albedo[3].mul(blend[3])).div(max(sum, float(1e-4)));
     const weightSum = weight[0].add(weight[1]).add(weight[2]).add(weight[3]);
     const plain = albedo[0].mul(weight[0]).add(albedo[1].mul(weight[1])).add(albedo[2].mul(weight[2])).add(albedo[3].mul(weight[3])).div(max(weightSum, float(1e-4)));
+    const [ambient, diffuse, gain] = splat.shade;
+    const lit = select(sum.greaterThan(float(1e-4)), mixed, plain).mul(float(gain));
     const material = new THREE.MeshBasicNodeMaterial();
-    material.colorNode = shadeNode(select(sum.greaterThan(float(1e-4)), mixed, plain), false, normalWorld);
+    material.colorNode = lit.mul(float(ambient).add(float(diffuse).mul(max(dot(normalWorld, LIGHT), 0.0))));
     material.side = THREE.FrontSide;
     materialSet.add(material);
     pendingCompile = true;

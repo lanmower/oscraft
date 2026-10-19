@@ -13,7 +13,8 @@ export const TILE_MODELS = Object.freeze({
   dirt: Object.freeze(["ground", "patch-dirt", "dirt"]),
   lane: Object.freeze(["road-straight", "road-intersection-path", "road-crossroad-line"]),
   water: Object.freeze(["ground_riverTile"]),
-  cliff: Object.freeze(["tile-high", "tile-slant"]),
+  cliff: Object.freeze(["tile-high"]),
+  ramp: Object.freeze(["tile-slant"]),
 });
 // Tint for every kind drawn without a texture (the editor draws all kinds with it; play draws a textured kind in white).
 export const TILE_TINTS = Object.freeze({ grass: [1, 1, 1], dirt: [0.62, 0.5, 0.3], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
@@ -31,21 +32,6 @@ export function cellKind(flags, tile) {
   if (tile === TILE_IDS.lane) return "lane";
   if (tile === TILE_IDS.dirt) return "dirt";
   return "grass";
-}
-
-// The tile a cell draws. A blocked cell without the cliff bit is an obstacle standing on open ground (a tree or prop), so it
-// draws the ground of its tile id unless it stands above a neighbour, where its drop is a cliff.
-export function tileKind(grid, i) {
-  const { width: w, height: h, flags, tiles, levels } = grid;
-  const kind = cellKind(flags[i], tiles[i]);
-  if (kind !== "cliff" || (flags[i] & CLIFF_BIT)) return kind;
-  const x = i % w, y = (i - x) / w;
-  let lowest = levels[i];
-  if (x > 0) lowest = Math.min(lowest, levels[i - 1]);
-  if (x < w - 1) lowest = Math.min(lowest, levels[i + 1]);
-  if (y > 0) lowest = Math.min(lowest, levels[i - w]);
-  if (y < h - 1) lowest = Math.min(lowest, levels[i + w]);
-  return lowest < levels[i] ? kind : cellKind(0, tiles[i]);
 }
 
 // Cells with no walkable cell within `reach` cells (Chebyshev): the unreachable void around and between playfields.
@@ -172,18 +158,19 @@ function lowEdgeHeight(model) {
   return top;
 }
 
-// Height step at most which two non-cliff, non-water neighbours are joined by a ramp; any taller drop, and every drop
-// beside a cliff or water cell, gets a wall.
+// Largest drop, in height steps, that a ramp joins. Any taller drop, and every drop beside a water cell, gets a wall.
 const RAMP_MAX_STEPS = 1;
 
 // Edge pieces from the height data, one batch per key so each key is one draw. A boundary between two cells of equal
-// height gets nothing; a gradual drop between two flat cells gets a tile-slant ramp (the slant rises along its local +x)
-// that covers the lower cell; a steep drop, or any drop beside a cliff or water cell, gets a tile-high wall that runs
-// from the lower surface up to the higher one (a cliff cell's own tile adds its height). Corners are covered by the
-// edge pieces of the two cells that meet there. `models.cliff` is [wall, ramp] in TILE_MODELS order.
+// height gets nothing. A drop of at most RAMP_MAX_STEPS between cells that are not water gets a tile-slant ramp (the slant
+// rises along its local +x) covering the lower cell, whatever the kinds of the two cells. A steeper drop, or any drop
+// beside water, gets a tile-high wall from the lower surface up to the higher one (a cliff cell's own tile adds its
+// height). Corners are covered by the edge pieces of the two cells that meet there. `models.cliff` is [wall] and
+// `models.ramp` is [ramp], as TILE_MODELS lists them.
 export function bakeEdges(grid, models, empty) {
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
-  const [wall, ramp] = models.cliff ?? [];
+  const [wall] = models.cliff ?? [];
+  const [ramp] = models.ramp ?? [];
   const wallTop = wall ? modelTop(wall) : 0;
   const rampTop = ramp ? modelTop(ramp) : 0;
   const rampLift = ramp ? lowEdgeHeight(ramp) : 0;
@@ -215,7 +202,7 @@ export function bakeEdges(grid, models, empty) {
         const high = low === i ? j : i;
         const kLow = low === i ? ki : kj;
         const kHigh = high === i ? ki : kj;
-        const gradual = dh <= RAMP_MAX_STEPS * (heightStep / cellMilli) + 1e-9 && kLow !== "cliff" && kHigh !== "cliff" && kLow !== "water" && kHigh !== "water";
+        const gradual = dh <= RAMP_MAX_STEPS * (heightStep / cellMilli) + 1e-9 && kLow !== "water" && kHigh !== "water";
         if (!gradual) {
           if (!wall) continue;
           const base = heightOf(low) + (kLow === "cliff" ? wallTop : 0);
@@ -258,7 +245,7 @@ export function controlMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height, flags, tiles } = grid;
   const data = new Uint8Array(width * height * 4);
-  for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[tileKind(grid, i)]] = 255;
+  for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[cellKind(flags[i], tiles[i])]] = 255;
   return { data, width, height };
 }
 // Rewrites one cell texel to a kind (the creep effect) and returns that texel for a sub-region upload.
@@ -282,7 +269,7 @@ export function bakeTiles(bytes, models, { splat = false } = {}) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       if (empty[i]) continue;
-      const kind = tileKind(grid, i);
+      const kind = cellKind(flags[i], tiles[i]);
       if (splat && isSplatKind(kind)) continue;
       const variants = models[kind];
       if (!variants?.length) return null;

@@ -274,6 +274,7 @@ in vec3 vNormal; in vec3 vWorld;
 uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
 uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
 uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
+uniform vec3 uShade; // ambient, diffuse, albedo gain
 out vec4 outColor;
 void main() {
   vec4 w = texture(uControl, vWorld.xz / uMapSize);
@@ -290,7 +291,7 @@ void main() {
   vec3 base = s > 1e-4 ? mixed : plain;
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(vNormal), light), 0.0);
-  outColor = vec4(base * (0.3 + 0.7 * diffuse), 1.0);
+  outColor = vec4(base * uShade.z * (uShade.x + uShade.y * diffuse), 1.0);
 }`;
 
 function compile(gl, type, source) {
@@ -350,6 +351,7 @@ export function createRenderer(gl) {
     mapSize: gl.getUniformLocation(splatProgram, "uMapSize"),
     uvScale: gl.getUniformLocation(splatProgram, "uUvScale"),
     band: gl.getUniformLocation(splatProgram, "uBand"),
+    shade: gl.getUniformLocation(splatProgram, "uShade"),
     viewProj: gl.getUniformLocation(splatProgram, "uViewProj"),
     model: gl.getUniformLocation(splatProgram, "uModel"),
     normal: gl.getUniformLocation(splatProgram, "uNormal"),
@@ -750,6 +752,7 @@ export function createRenderer(gl) {
     gl.uniform2f(splatUni.mapSize, splat.width, splat.height);
     gl.uniform1f(splatUni.uvScale, splat.uvScale);
     gl.uniform1f(splatUni.band, splat.band);
+    gl.uniform3fv(splatUni.shade, splat.shade);
     gl.uniformMatrix4fv(splatUni.viewProj, false, viewProj);
     gl.uniformMatrix4fv(splatUni.model, false, unitModel);
     gl.uniformMatrix3fv(splatUni.normal, false, normalMatrix(unitModel, normalScratch));

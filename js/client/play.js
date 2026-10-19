@@ -84,6 +84,8 @@ let tileMeshes = null;
 // Splat ground: the control map, the four layers and the GPU handles; null when any layer texture fails to load.
 let splat = null;
 const SPLAT_BAND = 0.15;
+// Ground lighting: ambient, diffuse and albedo gain. The gain lifts the owner's darker albedo to lit terrain.
+const SPLAT_SHADE = [0.42, 0.68, 1.3];
 let terrainTiles = null;
 let unitMeshes = [];
 const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
@@ -1153,7 +1155,7 @@ async function buildSplat(gl) {
   }));
   if (!layers.every(Boolean)) return null;
   const control = controlMap(mapBytes);
-  return { control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, gpu: null };
+  return { control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, gpu: null };
 }
 
 async function loadTileMeshes(gl, tileTextures) {
