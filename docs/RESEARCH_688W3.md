@@ -47,7 +47,7 @@ Encrypted members (flag 0x10000, FIX_KEY absent) decrypted with the filename key
 
 - The archive has no war3map.w3u or war3map.w3t. Unit and item object data are the base Warcraft III SLK tables (Units\UnitData.slk, UnitBalance, UnitUI, ItemData, AbilityData). The 6.88w3 map does not override them with its own binary object files.
 - war3map.w3a (9,109 bytes, version 2, 14 original-object records) holds ability modifications. Its record layout (object id, new id, modification count, then id, level, data, and a value that is a 4-byte number or a null-terminated string followed by 4 bytes of padding) was parsed for the header only. The full value decode is not finished.
-- Base SLK values for hero-class codes present in the map's script (base WC3 stats, not DotA-specific): Hblm HP 200, move 335, STR 14, AGI 15, INT 25; Naka def 4, move 315; Ulic move 315; Ntin move 305, INT 30; Ogrh move 290, AGI 29. These are Blizzard base values for those codes. Their binding to the 16 DotA heroes is not confirmed (see below).
+- Base SLK values for hero-class codes present in the map's script (base WC3 stats, not DotA-specific): Hblm HP 200, move 335, STR 14, AGI 15, INT 25; Naka def 4, move 315; Ulic move 315; Ntin move 305, INT 30; Ogrh move 290, AGI 29. These are the stock base values for those codes. Their binding to the 16 DotA heroes is not confirmed (see below).
 
 ## Wave logic (war3map.j)
 
