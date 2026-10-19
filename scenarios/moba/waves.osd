@@ -41,9 +41,9 @@ spawn("lane_spawner_top", 1, 224406, 77625)
 spawn("lane_spawner_mid", 1, 236969, 103750)
 spawn("lane_spawner_bot", 1, 266500, 110500)
 # Tormentor at the Radiant-side spawner of the dump (npc_dota_miniboss_spawner at -7680, 6336 Dota units; it is at the Radiant side first, at night, patch 7.38). The Dire-side spawner and the day/night swap are not modelled.
-spawn("tormentor", -1, 43500, 64500)
+spawn("tormentor", -1, 44500, 64500)
 # Boss pits from the dump (npc_dota_roshan_spawner and npc_dota_miniboss_spawner, converted at 15.625 milli per Dota unit): Roshan starts in the bottom pit, the day pit, and from 15:00 stands in the top pit at night and the bottom pit by day; the Tormentor spawns at the Radiant corner at night and the Dire corner by day (Valve patch 7.38).
 spawn("roshan_pit_night", -1, 113589, 126084)
 spawn("roshan_pit_day", -1, 207734, 206312)
-spawn("tormentor_spawn_night", -1, 43500, 64500)
-spawn("tormentor_spawn_day", -1, 284500, 260500)
+spawn("tormentor_spawn_night", -1, 44500, 64500)
+spawn("tormentor_spawn_day", -1, 282500, 260500)

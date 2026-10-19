@@ -4,6 +4,7 @@
 // Script-driven lines of map.osd (spawn) are kept verbatim; every other script-driven file is untouched.
 import fs from "node:fs";
 import path from "node:path";
+import { reanchor } from "./w3-placements.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => (args.includes(name) ? args[args.indexOf(name) + 1] : dflt);
@@ -162,14 +163,14 @@ const openRuns = rects(runs((cx, cy) => (open[cy][cx] ? 0 : 1)).filter((r) => r[
 const heightRuns = rects(runs((cx, cy) => heightLevel(cellHeight(cx, cy)))).map(gridRect);
 const tileRuns = rects(runs((cx, cy) => tileId(cx, cy))).map(gridRect);
 
-const startLines = starts.map((s, k) => {
-  const [mx, my] = toMilli(s.x, s.y);
-  const team = k < 5 ? 0 : 1;
-  return `start(${k}, ${mx}, ${my}, team=${team})`;
-});
-
-const old = fs.readFileSync(path.join(outDir, "map.osd"), "utf8").split("\n");
-const spawnLines = old.filter((l) => l.startsWith("spawn("));
+// The sim takes each start as the player home (loader: open_player, base_fields), and the decoded w3i starts are not
+// the team homes: the 6.88 start of player 1 is about 160 cells from the Dire ancient. The homes therefore come from
+// --legacy (the previous map.osd: start, spawn and shop doodad lines), and the decoded starts go to starts-688g.tsv.
+const legacy = opt("--legacy", null);
+const legacyLines = legacy ? fs.readFileSync(legacy, "utf8").split("\n") : fs.readFileSync(path.join(outDir, "map.osd"), "utf8").split("\n");
+const startLines = legacyLines.filter((l) => l.startsWith("start("));
+const spawnLines = legacyLines.filter((l) => l.startsWith("spawn("));
+const shopLines = legacyLines.filter((l) => /^doodad\(\d+, "(shop|side_shop|secret_shop)"/.test(l));
 
 const header = [
   "# Dota Allstars 6.88g map (war3map.w3e, war3map.wpm, war3map.w3i) decoded by scripts/gen-w3-map.mjs.",
@@ -187,8 +188,11 @@ const body = [
   ...openRuns.map((r) => `paint(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, 0)`),
   ...startLines,
   ...spawnLines,
+  ...shopLines,
 ];
 fs.writeFileSync(path.join(outDir, "map.osd"), [...header, ...body, ""].join("\n"));
+
+fs.writeFileSync(path.join(outDir, "starts-688g.tsv"), ["player_index\tid\tname\tx\ty", ...starts.map((s, k) => [k, s.id, s.name, s.x, s.y].join("\t"))].join("\n") + "\n");
 
 const tsv = [
   "type\tvariation\tx\ty\tz\tangle\tscale_x\tscale_y\tscale_z\tskin\tflags\tlife\titem_table\titem_sets\tuid",
@@ -204,3 +208,10 @@ const summary = {
   openRuns: openRuns.length, heightRuns: heightRuns.length, tileRuns: tileRuns.length,
 };
 console.log(JSON.stringify(summary));
+
+
+if (args.includes("--reanchor")) {
+  const rows = reanchor(outDir);
+  console.log(["file", "unit", "player", "old_x", "old_y", "new_x", "new_y", "rule"].join("\t"));
+  for (const r of rows) console.log(r);
+}

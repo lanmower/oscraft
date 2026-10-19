@@ -1,9 +1,0 @@
-# 6.88g ability rows for scenarios/moba abilities.osd. Source: DotA v6.88g Allstars.w3x units/AbilityData.slk (Cool1 seconds, Cost1 mana, Rng1 cast range WC3 units,
-# Area1, Dur1), names from units/OrcAbilityStrings.txt [alias] name=. Only ours whose name equals a 6.88g ability name are paired (exact normalised name).
-# status applied: the sim value is converted and written by scripts/apply-abilities-688g.py. status kept: the 6.88g row has nothing the sim can express.
-# cool_ticks = cool_s x 16 (16 ticks per second). Mana and cast range have no field in the sim's ability() (energy only, no base cast range), so they are not applied.
-id	alias	name_688g	cool_s	cool_ticks	mana_cost	cast_range	area	duration	status	note
-frost_nova	A07F	Frost Nova	8	128	125	600	none	none	applied	A07F is the only Frost Nova alias row with a cooldown that is not the 3600-s A091 row; ambiguous, chosen by cooldown and range (provisional)
-blade_dance	A00K	Blade Dance	none	none	none	none	none	none	kept	row has no Cool1, Cost1 or Rng1; DataA1 20 and DataB1 2 are not damage
-entangle	A09Y	Entangle	none	none	none	none	none	none	kept	row is a summon (UnitID1 A1GZ) with no cooldown, cost or range
-glyph_of_fortification	h07C,h07E	Glyph of Fortification	none	none	none	none	none	none	kept	name exists only in the strings (h07C, h07E); no AbilityData row
