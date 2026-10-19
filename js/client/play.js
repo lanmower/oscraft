@@ -545,18 +545,18 @@ function noteLocalRefusal(ok, what) {
 const commands = {
   order(unitId, x, z) {
     const ok = netState ? (session.broadcast(sendOrder(unitId, x, z)), true) : noteLocalRefusal(localGame.order_move(unitId, x, z), `order_refused unit=${unitId}`);
-    if (ok) orders += 1;
+    if (ok) { orders += 1; publishCommandCounts(); }
     setStatus(`order move unit ${unitId} to ${x.toFixed(2)},${z.toFixed(2)}${netState ? "" : " (local)"}`);
     return ok;
   },
   attack(unitId, targetId) {
     const ok = netState ? (session.broadcast(sendAttack(unitId, targetId)), true) : noteLocalRefusal(localGame.attack(unitId, targetId), `attack_refused unit=${unitId}`);
-    if (ok) attacks += 1;
+    if (ok) { attacks += 1; publishCommandCounts(); }
     return ok;
   },
   cast(unitId, slot, target, x, z) {
     const ok = netState ? (session.broadcast(sendCast(unitId, slot, target, x, z)), true) : noteLocalRefusal(localGame.cast(unitId, slot, target, x, z), `cast_refused unit=${unitId} slot=${slot}`);
-    if (ok) casts += 1;
+    if (ok) { casts += 1; publishCommandCounts(); }
     if (ok && fx) fx.cast(unitId, slot, target, x, z);
     return ok;
   },
@@ -991,6 +991,14 @@ function recordTick(log, tick, units) {
   if (log.size > CI_TICK_LOG) log.delete(log.keys().next().value);
 }
 
+// Accepted commands are published when they are counted, not on the next animation frame: a CI frame can take longer than the
+// probe's wait for the witness, so a frame-only publish reads an accepted command as dropped.
+function publishCommandCounts() {
+  document.body.dataset.orders = String(orders);
+  document.body.dataset.casts = String(casts);
+  document.body.dataset.attacks = String(attacks);
+}
+
 // Page state for headless checks. The HUD (gold, winner, health bars, minimap) refreshes from the same frame.
 function publishWitness() {
   document.body.dataset.units = String(currentUnits().length);
@@ -1008,9 +1016,7 @@ function publishWitness() {
   document.body.dataset.drawInstances = String(renderer3d ? renderer3d.stats.instances : 0);
   document.body.dataset.drawCulled = String(renderer3d ? renderer3d.stats.culled : 0);
   document.body.dataset.drawCpuMs = renderer3d ? renderer3d.stats.frameCpuMs.toFixed(3) : "0";
-  document.body.dataset.orders = String(orders);
-  document.body.dataset.casts = String(casts);
-  document.body.dataset.attacks = String(attacks);
+  publishCommandCounts();
   if (hud) hud.update();
   if (hud5) hud5.update();
   for (const panel of heroPanels) {
