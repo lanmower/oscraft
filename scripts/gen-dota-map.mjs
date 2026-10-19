@@ -336,7 +336,7 @@ for (let i = 0; i < N * N; i++) if (level[i] === 1 && !blocked[i] && clear(i)) f
 const scatterKinds = shippedStems.filter((stem) => SCATTER_ROLES.has(roleOf(stem))).map(kindOf);
 const scatterStep = Math.max(1, Math.floor(fieldCells.length / scatterKinds.length));
 if (fieldCells.length < scatterKinds.length) throw new Error(`field cells ${fieldCells.length} below models ${scatterKinds.length}`);
-scatterKinds.forEach((kind, k) => { const c = fieldCells[k * scatterStep]; if (roleOf(kind.replace(/_/g, "-")) === "tree" && !footprintClear(c, kind)) return; cellDd(kind, [c % N, (c / N) | 0]); });
+scatterKinds.forEach((kind, k) => { const c = fieldCells[k * scatterStep]; if ((roleOf(kind.replace(/_/g, "-")) === "tree" || /stump|trunk|log/.test(kind)) && !footprintClear(c, kind)) return; cellDd(kind, [c % N, (c / N) | 0]); });
 treeCells.forEach((i) => { if (!clear(i)) return; const kind = pick("tree"); if (footprintClear(i, kind)) cellDd(kind, [i % N, (i / N) | 0]); });
 
 fs.writeFileSync(new URL("../js/client/doodad_sizes.json", import.meta.url), JSON.stringify(doodadFootprints, null, 1) + "\n");

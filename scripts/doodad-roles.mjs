@@ -2,6 +2,7 @@
 // and a model matching none is a decoration. The kind name of a model is its stem with "-" turned into "_".
 export const ROLE_RULES = [
   ["character", /^(character-|hero|keeper|knight)/],
+  ["prop", /^(stump|trunk|tree-trunk|tree-autumn-trunk|tree-log)/], // cut trunks and logs are stumps, sized as props, not as trees
   ["tree", /^(tree|plant|pine)/],
   ["nature", /^(grass|patch-|hedge|bush|flower|mushroom|ground-hills)/],
   ["rock", /^(rock|rocks|stones?$|stones-|resource-|gate-rock|debris-|gravestone-debris)/],
