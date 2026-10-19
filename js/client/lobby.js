@@ -16,6 +16,10 @@ export function emptyLobby() {
 
 export const teamOf = (slot) => (slot < TEAM_SIZE ? 0 : 1);
 
+// A computer seat is an owner string "bot:<slot>" with the first roster hero, ready from the start.
+export const BOT_OWNER_PREFIX = "bot:";
+export const isBot = (owner) => typeof owner === "string" && owner.startsWith(BOT_OWNER_PREFIX);
+
 const refuse = (state, error) => ({ state, error });
 
 export function allReady(state) {
@@ -30,6 +34,15 @@ export function reduceLobby(state, action, roster = HERO_ROSTER) {
     if (state.host !== playerId) return refuse(state, "not-host");
     if (!allReady(state)) return refuse(state, "not-ready");
     return { state: { ...state, started: true }, error: null };
+  }
+  if (type === "fill") {
+    if (state.host !== playerId) return refuse(state, "not-host");
+    if (state.slots.every((s) => s.owner)) return refuse(state, "nothing-to-fill");
+    const next = structuredClone(state);
+    next.slots.forEach((s, i) => {
+      if (!s.owner) next.slots[i] = { owner: `${BOT_OWNER_PREFIX}${i}`, hero: roster[0], ready: true };
+    });
+    return { state: next, error: null };
   }
   if (!Number.isInteger(slot) || slot < 0 || slot >= SLOT_COUNT) return refuse(state, "bad-slot");
   const seat = state.slots[slot];
@@ -107,7 +120,7 @@ export function createLobby({ root, playerId = "local", roster = HERO_ROSTER, on
     item.dataset.slot = String(index);
     item.dataset.team = teamOf(index) === 0 ? "A" : "B";
     const label = document.createElement("span");
-    label.textContent = `Slot ${index + 1}: ${seat.owner ? (seat.owner === playerId ? "you" : seat.owner.slice(0, 8)) : "open"}`;
+    label.textContent = `Slot ${index + 1}: ${seat.owner ? (seat.owner === playerId ? "you" : isBot(seat.owner) ? "computer" : seat.owner.slice(0, 8)) : "open"}`;
     item.append(label);
     if (!seat.owner) {
       item.append(seatButton("Claim", () => act("claim", { slot: index }), state.slots.some((s) => s.owner === playerId)));
@@ -143,10 +156,11 @@ export function createLobby({ root, playerId = "local", roster = HERO_ROSTER, on
       return wrap;
     });
     const ready = state.slots.filter((s) => s.owner && s.ready).length;
+    const fillButton = seatButton("Fill with bots", () => act("fill"), !(state.host === playerId && state.slots.some((s) => !s.owner)));
     const startButton = seatButton("Start match", () => act("start"), !(state.host === playerId && allReady(state)));
     const status = document.createElement("p");
     status.textContent = `${ready}/${SLOT_COUNT} ready${lastError ? ` (refused: ${lastError})` : ""}`;
-    host.replaceChildren(...teams, status, startButton);
+    host.replaceChildren(...teams, status, fillButton, startButton);
   }
 
   function onRemote(event) {

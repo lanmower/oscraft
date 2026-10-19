@@ -93,6 +93,21 @@ expectReject(Uint8Array.from([FRAME.ROSTER, WIRE_VERSION, 0, 0, 11]), 'COUNT_OUT
 expectReject(Uint8Array.from([FRAME.START, WIRE_VERSION, 11]), 'COUNT_OUT_OF_RANGE', 'start above ten seats');
 assert.throws(() => encodeFrame({ type: FRAME.ROSTER, you: 0, team: 0, players: tenUnits.concat(tenUnits[0]) }), WireError);
 
+// Bot fill: only the host fills, computers take every empty seat ready, and the match can then start.
+{
+  const claimed = reduceLobby(emptyLobby(), { type: 'claim', slot: 0, playerId: 'host' }).state;
+  assert.equal(reduceLobby(claimed, { type: 'fill', playerId: 'guest' }).error, 'not-host');
+  const filled = reduceLobby(claimed, { type: 'fill', playerId: 'host' });
+  assert.equal(filled.error, null);
+  assert.equal(filled.state.slots.filter((s) => s.owner && s.ready).length, 9);
+  assert.equal(filled.state.slots[9].owner, 'bot:9');
+  assert.equal(reduceLobby(filled.state, { type: 'fill', playerId: 'host' }).error, 'nothing-to-fill');
+  assert.equal(reduceLobby(filled.state, { type: 'start', playerId: 'host' }).error, 'not-ready');
+  let ready = reduceLobby(filled.state, { type: 'pick', slot: 0, playerId: 'host', hero: 'hero' }).state;
+  ready = reduceLobby(ready, { type: 'ready', slot: 0, playerId: 'host', ready: true }).state;
+  assert.equal(reduceLobby(ready, { type: 'start', playerId: 'host' }).error, null);
+}
+
 // Lobby start -> START frame -> host seating -> ROSTER per peer, with a late join and a reconnect.
 let lobby = emptyLobby();
 const keys = Array.from({ length: 10 }, (_, p) => `peer${p}`.padEnd(64, 'k'));

@@ -36,6 +36,10 @@ A scenario is a directory of `.osd` files (see [SCENARIOS.md](SCENARIOS.md)): `u
 
 `js/client/play.html` plus ES modules loaded through an import map (no bundler): `play.js` (WebGL2 view, sim loop, orders), `render3d.js`, `terrain.js`, `fx.js`, `hud*.js`, `ui_shop.js`, `ui_inventory.js`, `ui_skills.js`, `lobby.js`, `rooms.js`, `editor.js`. One page hosts the sim; others follow its state frames. See [HOST.md](HOST.md).
 
+## Lobby
+
+`js/client/lobby.js` is a pure reducer over `(state, action)`; the host's page renders it and announces each accepted action on `oscraft:lobby`. Actions: `claim`, `release`, `pick`, `ready`, `start`, and `fill`. `fill` is host-only and seats a computer ("bot:<slot>", first roster hero, ready) on every empty slot; it is refused with `nothing-to-fill` when no seat is open. The Start frame carries the seats' owner keys and heroes unchanged, so computer seats need no extra frame. The lobby's "Fill with bots" button sends `fill`.
+
 ## The wire
 
 Peers talk over wireweave data channels (WebRTC), with Nostr relays for signalling and room announcements. Frames: ORDER, STATE, HELLO, ERROR, two-byte header, little-endian ([WIRE.md](WIRE.md)). `js/wire/frame.js` is the codec; CI compares it with the client copy.
