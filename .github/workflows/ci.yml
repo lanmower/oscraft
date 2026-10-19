@@ -126,9 +126,11 @@ jobs:
             const anim = await import("./js/client/anim.js");
             const file = fs.readFileSync("./js/client/models/character-female-a.glb");
             const bytes = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
-            const mesh = glb.parseGlb(bytes);
+            const { resolveGlbExtensions } = await import("./js/client/glb_resolve.js");
+            const resolved = await resolveGlbExtensions(bytes);
+            const mesh = glb.parseGlb(resolved);
             if (!mesh.positions.length || !mesh.indices.length) throw new Error("mesh has no geometry");
-            const { clips, skins } = glb.parseGlbAnimations(bytes);
+            const { clips, skins } = glb.parseGlbAnimations(resolved);
             if (!clips.length || !skins.length) throw new Error("no clips or skins");
             const pose = anim.samplePose(clips[0], clips[0].duration / 2, true);
             if (!pose || pose.size === 0) throw new Error("first clip sampled no channels");
@@ -199,9 +201,14 @@ jobs:
             console.log(`doodad models ok kinds=${Object.keys(map).length}`);
             const tiles = await import("./js/client/tiles.js");
             const { parseGlb } = await import("./js/client/glb.js");
+            const { resolveGlbExtensions } = await import("./js/client/glb_resolve.js");
             const models = {};
             for (const [kind, names] of Object.entries(tiles.TILE_MODELS)) {
-              models[kind] = names.map((name) => tiles.fitModel(parseGlb(new Uint8Array(fs.readFileSync("./js/client/models/" + name + ".glb")).buffer), 1));
+              models[kind] = [];
+              for (const name of names) {
+                const resolved = await resolveGlbExtensions(new Uint8Array(fs.readFileSync("./js/client/models/" + name + ".glb")).buffer);
+                models[kind].push(tiles.fitModel(parseGlb(resolved), 1));
+              }
             }
             const baked = tiles.bakeTiles(bytes, models);
             if (!baked) throw new Error("tiles: the map uses a kind with no tile model");
@@ -2695,10 +2702,11 @@ jobs:
           node --input-type=module -e '
             import { readFileSync, readdirSync } from "node:fs";
             import { parseGlb } from "./js/client/glb.js";
+            import { resolveGlbExtensions } from "./js/client/glb_resolve.js";
             const files = readdirSync("rust/crates/web/site/assets/units").filter((f) => f.endsWith(".glb"));
             for (const f of files) {
               const b = readFileSync("js/client/models/" + f);
-              const m = parseGlb(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+              const m = parseGlb(await resolveGlbExtensions(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)));
               if (!m.texcoords || m.texcoords.length !== (m.positions.length / 3) * 2) throw new Error(f + " has no TEXCOORD_0");
               if (!m.baseColorTexture) throw new Error(f + " has no baseColorTexture");
             }

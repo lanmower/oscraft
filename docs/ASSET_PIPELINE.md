@@ -88,10 +88,9 @@ or metal-rough slot uses the UASTC form.
   `.ktx2` file at the same relative path (`Textures/colormap.ktx2`). The GLB refers to it by URI with
   `image/ktx2`, so the file is shared rather than copied into every model.
 - **Embedded images stay embedded.** An image inside the GLB stays in the GLB as KTX2.
-- **Geometry is lossless.** The script runs `reorder` (vertex and triangle order for compression) and then writes
-  `EXT_meshopt_compression` with no quantization and no filter. The encoder method is set to `quantize` only
-  because that is the writer's filter-free mode; the quantize pass itself is never run. `reorder` can drop vertices that no index uses.
-  The checks below compare triangles, not raw vertex counts.
+- **Geometry is lossless.** The script writes `EXT_meshopt_compression` with no quantization and no filter, keeps
+  every vertex (no `reorder`, which would drop vertices no index uses and change the footprints the client fits
+  over), and widens 8-bit indices to 16-bit, because the meshopt triangle encoder takes only 16-bit or 32-bit indices.
 - **Already-prepared files are left alone.** A GLB that already uses KTX2 and meshopt is not re-encoded. Check
   its manifest entry first if you add a file like it.
 

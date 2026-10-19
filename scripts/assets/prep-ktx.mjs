@@ -19,7 +19,6 @@ import { join, extname, basename, dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { NodeIO } from '@gltf-transform/core';
 import { EXTMeshoptCompression, KHRTextureBasisu, KHRTextureTransform, KHRMeshQuantization, KHRMaterialsUnlit } from '@gltf-transform/extensions';
-import { reorder } from '@gltf-transform/functions';
 import { MeshoptEncoder, MeshoptDecoder } from 'meshoptimizer';
 
 const run = promisify(execFile);
@@ -86,8 +85,7 @@ function linearTextureSet(doc) {
 }
 
 // Order-independent view of the drawn geometry: every triangle as its three corners (POSITION and TEXCOORD_0), sorted,
-// plus each primitive's extent over the vertices its triangles reference, index counts and vertex counts (vertex counts may shrink, see below). reorder() drops vertices that no
-// index references, so vertex counts can shrink; index counts and the triangle view must match.
+// plus each primitive's extent over the vertices its triangles reference, and the index counts.
 function geometryView(doc) {
   const root = doc.getRoot();
   const primitives = root.listMeshes().flatMap((mesh) => mesh.listPrimitives());
@@ -137,7 +135,8 @@ function compareViews(before, after) {
   return checks;
 }
 
-// Lossless: reorder for compression, then meshopt with the filter-free method. meshopt() would quantize positions.
+// Lossless meshopt with the filter-free method. meshopt() would quantize positions. reorder() is not run: it drops vertices
+// no index uses, and the client fits models over every POSITION vertex, so dropping them would change footprints.
 async function prepGlb(io, toktx, workDir, inputPath, outDir, name) {
   const doc = await io.read(inputPath);
   const before = geometryView(doc);
@@ -171,7 +170,11 @@ async function prepGlb(io, toktx, workDir, inputPath, outDir, name) {
     images.push({ name: texture.getName(), uri: uri ?? null, mime, inBytes: source.byteLength, outBytes: encoded.bytes.byteLength, shift: encoded.shift });
   }
   if (images.length) doc.createExtension(KHRTextureBasisu).setRequired(true);
-  await doc.transform(reorder({ encoder: MeshoptEncoder, target: 'size' }));
+  // meshopt triangle encoding takes 16-bit or 32-bit indices only. reorder() used to widen them; widen them here instead.
+  for (const prim of doc.getRoot().listMeshes().flatMap((mesh) => mesh.listPrimitives())) {
+    const indices = prim.getIndices();
+    if (indices && indices.getComponentType() === 5121) indices.setArray(Uint16Array.from(indices.getArray()));
+  }
   doc.createExtension(EXTMeshoptCompression).setRequired(true).setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE, level: 'medium' });
   const glb = withImageUris(Buffer.from(await io.writeBinary(doc)), externalUris);
   await writeFile(join(outDir, name), glb);
