@@ -1058,6 +1058,24 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(sim.kind_name(u).map(str::to_owned))
         })?,
     )?;
+    let w = world.clone();
+    game.set(
+        "unit_bounty",
+        lua.create_function(move |_, unit: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            Ok(i64::from(sim.unit_bounty(u)))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "rival_of",
+        lua.create_function(move |_, player: i64| {
+            let side = player_arg(player)?;
+            let sim = w.borrow();
+            Ok(sim.rival_of(side).map(i64::from))
+        })?,
+    )?;
     let (w, buf) = (world.clone(), cmds.clone());
     game.set(
         "ability",

@@ -308,15 +308,25 @@ impl Sim {
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
 
-    /// Pays the destroyed unit's bounty. Any killer unit keeps it as its own gold, less the team
-    /// share (see hero.rs). Only an attackerless kill pays the rival side's resource pool.
-    fn pay_bounty(&mut self, j: usize, attacker: i32) {
-        let bounty = if self.is_hero(j) {
+    /// The gold unit `j` is worth when destroyed: a hero's level-scaled bounty, or the catalog
+    /// bounty of any other unit. Zero for an unknown unit.
+    pub fn unit_bounty(&self, j: usize) -> i32 {
+        if j >= self.n {
+            return 0;
+        }
+        if self.is_hero(j) {
             HERO_KILL_GOLD_BASE + HERO_KILL_GOLD_PER_LEVEL * self.character_level(j) as i32
         } else {
             self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
-        };
-        if bounty <= 0 || self.was_denied(j, attacker) {
+        }
+    }
+
+    /// Pays the destroyed unit's bounty. Any killer unit keeps it as its own gold, less the team
+    /// share (see hero.rs). Only an attackerless kill pays the rival side's resource pool. Neither
+    /// payout is made while a mod owns gold (`gold_by_mod`); the kill itself is unchanged.
+    fn pay_bounty(&mut self, j: usize, attacker: i32) {
+        let bounty = self.unit_bounty(j);
+        if bounty <= 0 || self.was_denied(j, attacker) || self.gold_by_mod {
             return;
         }
         if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
@@ -636,5 +646,74 @@ impl Sim {
             }
         }
         count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{fixed, load, Sim};
+
+    const CAP: usize = 1024;
+
+    fn duel_sim() -> Sim {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let image = osdt_data::generate(&scenario).expect("duel-routes image");
+        let mut s = load(&image, CAP).expect("duel-routes sim");
+        s.set_fog(false);
+        s
+    }
+
+    /// A creep for `player` on the first walkable cell the map has room for.
+    fn creep(s: &mut Sim, player: u8) -> usize {
+        let kind = s.catalog().unit_index("creep").expect("creep unit") as u32;
+        let (w, h) = (s.grid().w as i32, s.grid().h as i32);
+        (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .find_map(|(x, y)| s.spawn_for(player, kind, fixed::from_int(x), fixed::from_int(y)))
+            .expect("a free cell for the creep")
+    }
+
+    /// Kills one enemy creep by an allied unit's blow, then one by no attacker. Returns the
+    /// killer's gold delta and the rival side's resource delta.
+    fn kill_both_ways(s: &mut Sim) -> (i32, i32) {
+        let killer = creep(s, 0);
+        let gold_before = s.heroes.gold[killer];
+        let victim = creep(s, 1);
+        s.inflict(victim, fixed::from_int(10000), killer as i32);
+        assert!(!s.alive(victim), "a lethal blow must still kill the unit");
+        let killer_gold = s.heroes.gold[killer] - gold_before;
+
+        let rival_before = s.resource_a(0);
+        let neutral = creep(s, 1);
+        s.inflict(neutral, fixed::from_int(10000), -1);
+        assert!(!s.alive(neutral), "an attackerless lethal blow must still kill the unit");
+        (killer_gold, s.resource_a(0) - rival_before)
+    }
+
+    #[test]
+    fn kill_pays_the_usual_bounty_when_gold_is_not_owned_by_a_mod() {
+        let mut s = duel_sim();
+        assert!(!s.gold_by_mod(), "the flag defaults to off");
+        let sample = creep(&mut s, 1);
+        let bounty = s.unit_bounty(sample);
+        assert!(bounty > 0, "the creep has a bounty");
+        let share = bounty * s.heroes.rules.team_share_pct / 100;
+        let (killer_gold, rival_gold) = kill_both_ways(&mut s);
+        assert_eq!(killer_gold, bounty - share, "allied killer keeps the bounty less the team share");
+        assert_eq!(rival_gold, bounty, "attackerless kill pays the rival side the bounty");
+    }
+
+    #[test]
+    fn kill_pays_no_rust_bounty_when_gold_is_owned_by_a_mod() {
+        let mut s = duel_sim();
+        s.set_gold_by_mod(true);
+        let (killer_gold, rival_gold) = kill_both_ways(&mut s);
+        assert_eq!(killer_gold, 0, "no hero bounty while a mod owns gold");
+        assert_eq!(rival_gold, 0, "no rival payout while a mod owns gold");
+
+        let saved = s.save_state();
+        let mut restored = duel_sim();
+        restored.load_state(&saved).expect("save with the flag loads");
+        assert!(restored.gold_by_mod(), "the flag survives a save and load");
     }
 }

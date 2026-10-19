@@ -44,7 +44,7 @@ impl Sim {
     pub fn state_hash(&self) -> u64 {
         let mut h = Fnv(0xcbf2_9ce4_8422_2325);
         h.u64s(&[self.cat_digest, self.cap as u64]);
-        h.bytes(&[self.abil_on as u8, self.fog as u8, self.harvest as u8, self.produce as u8]);
+        h.bytes(&[self.abil_on as u8, self.fog as u8, self.harvest as u8, self.produce as u8, self.gold_by_mod as u8]);
         let mut pool = Vec::new();
         crate::persist::pool_bytes(&self.paths, &mut pool);
         h.bytes(&pool);

@@ -98,6 +98,8 @@ handle fails the queueing call, not the step.
 | `game.players()` | a list of `{id, units, team, controller}` rows, one per player slot, with the count of living units each owns. |
 | `game.team(player)` | the team number of `player` |
 | `game.unit_kind(unit)` | the catalog name of the unit, or `nil`. Works on dead units. |
+| `game.unit_bounty(unit)` | the gold the unit is worth when destroyed: a hero's level-scaled bounty, or the catalog bounty of other units. `0` for no bounty. Read-only. |
+| `game.rival_of(player)` | the first player slot hostile to `player`, or `nil` when none is. Read-only. |
 | `game.time()` | the game clock: `ticks, seconds` since the match began (16 ticks to the second) |
 | `game.unit_cooldown(unit, slot)` | ticks left on ability `slot` of `unit`; 0 when ready |
 | `game.unit_abilities(unit)` | the unit's abilities as `{slot, name, cooldown}` rows, empty slots left out |

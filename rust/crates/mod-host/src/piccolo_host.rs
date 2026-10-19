@@ -725,6 +725,19 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, sh.sim.kind_name(u).map(str::to_owned));
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, game, "unit_bounty", [sh], |c, s| {
+        let i = a(c, &s, 0)?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.unit_bounty(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "rival_of", [sh], |c, s| {
+        let player = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let sh = sh.borrow();
+        s.replace(c, sh.sim.rival_of(player).map(i64::from));
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "time", [sh], |c, s| {
         let ticks = sh.borrow().sim.ticks();
         s.replace(c, (i64::from(ticks), f64::from(ticks) / f64::from(TICKS_PER_SECOND)));

@@ -16,7 +16,7 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
 /// Version 27 adds the hero per-unit state (respawn, buyback, gold, mana cap, spot) and the assist
 /// tallies and recent hitters.
-const STATE_VERSION: u16 = 27;
+const STATE_VERSION: u16 = 28;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -304,6 +304,7 @@ impl Sim {
         put_bool(&mut w, self.harvest);
         put_bool(&mut w, self.produce);
         put_bool(&mut w, self.abil_on);
+        put_bool(&mut w, self.gold_by_mod);
 
         let s = &self.stats;
         put_u64(&mut w, s.deaths as u64);
@@ -544,6 +545,7 @@ impl Sim {
         next.harvest = r.bool()?;
         next.produce = r.bool()?;
         next.abil_on = r.bool()?;
+        next.gold_by_mod = r.bool()?;
 
         let mut st = Stats::default();
         st.deaths = r.u64()? as usize;
