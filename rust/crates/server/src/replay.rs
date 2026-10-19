@@ -291,7 +291,8 @@ pub enum Command {
     Unstash { unit: usize, slot: usize },
     Fog { on: bool },
     Cadence { paths: bool, vision: bool },
-    Spawn { handle: u32, index: u32, x: i32, y: i32 },
+    /// A mod spawn for `owner` in `lane` (0 when the mod names none). `lane` is recorded for the mod, not read by the sim.
+    Spawn { handle: u32, index: u32, x: i32, y: i32, owner: u8, lane: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
     SetOwner { unit: usize, player: u8 },
@@ -314,6 +315,14 @@ pub enum Command {
 
 fn num<T: FromStr>(it: &mut SplitWhitespace) -> Option<T> {
     it.next()?.parse().ok()
+}
+
+// A trailing field an older line may lack: absent reads as `default`, present must parse.
+fn num_or<T: FromStr>(it: &mut SplitWhitespace, default: T) -> Option<T> {
+    match it.next() {
+        None => Some(default),
+        Some(t) => t.parse().ok(),
+    }
 }
 
 // A text field is `x` followed by the hex bytes of the string, so a name or a UI body never breaks its line.
@@ -486,7 +495,7 @@ impl Command {
                 true
             }
             Command::Cadence { .. } => true,
-            Command::Spawn { index, x, y, .. } => sim.spawn(*index, *x, *y).is_some(),
+            Command::Spawn { index, x, y, owner, .. } => sim.spawn_for(*owner, *index, *x, *y).is_some(),
             Command::Damage { caster, target, dmg } => {
                 let player = sim.player(*caster);
                 sim.damage_target(*caster as i32, player, *dmg, *target as i32);
@@ -594,11 +603,13 @@ impl Command {
                 put(&mut o, u8::from(*vision));
                 "k"
             }
-            Command::Spawn { handle, index, x, y } => {
+            Command::Spawn { handle, index, x, y, owner, lane } => {
                 put(&mut o, handle);
                 put(&mut o, index);
                 put(&mut o, x);
                 put(&mut o, y);
+                put(&mut o, owner);
+                put(&mut o, lane);
                 "sp"
             }
             Command::Damage { caster, target, dmg } => {
@@ -709,7 +720,7 @@ impl Command {
             "t" => Command::Unstash { unit: num(it)?, slot: num(it)? },
             "f" => Command::Fog { on: num::<u8>(it)? != 0 },
             "k" => Command::Cadence { paths: num::<u8>(it)? != 0, vision: num::<u8>(it)? != 0 },
-            "sp" => Command::Spawn { handle: num(it)?, index: num(it)?, x: num(it)?, y: num(it)? },
+            "sp" => Command::Spawn { handle: num(it)?, index: num(it)?, x: num(it)?, y: num(it)?, owner: num_or(it, 0)?, lane: num_or(it, 0)? },
             "dm" => Command::Damage { caster: num(it)?, target: num(it)?, dmg: num(it)? },
             "bf" => Command::Buff { unit: num(it)?, kind: num(it)?, ticks: num(it)? },
             "so" => Command::SetOwner { unit: num(it)?, player: num(it)? },
@@ -748,6 +759,8 @@ pub struct Recording {
     pub image: String,
     pub max_units: u32,
     pub init: u64,
+    /// Whether a mod owned the kill payout (`gold_by_mod`) when the recording started; the header carries it.
+    pub gold_by_mod: bool,
     cmds: Vec<(u32, Command)>,
     checks: Vec<(u32, u64)>,
     inflight: VecDeque<(u32, Receiver<u64>)>,
@@ -788,6 +801,7 @@ impl Recording {
             image: image.to_string(),
             max_units: max_units as u32,
             init: sim.state_hash(),
+            gold_by_mod: sim.gold_by_mod(),
             cmds: Vec::new(),
             checks: Vec::new(),
             inflight: VecDeque::new(),
@@ -901,9 +915,9 @@ impl Recording {
 
     /// Spawns unit `index` at (x, y) for a mod handle and records the spawn at the sim's tick,
     /// refused or not. Returns the unit the sim gave.
-    pub fn spawn(&mut self, sim: &mut Sim, handle: u32, index: u32, x: i32, y: i32) -> Option<usize> {
-        let unit = sim.spawn(index, x, y);
-        self.note(sim.ticks(), Command::Spawn { handle, index, x, y });
+    pub fn spawn(&mut self, sim: &mut Sim, handle: u32, index: u32, x: i32, y: i32, owner: u8, lane: i32) -> Option<usize> {
+        let unit = sim.spawn_for(owner, index, x, y);
+        self.note(sim.ticks(), Command::Spawn { handle, index, x, y, owner, lane });
         unit
     }
 
@@ -960,6 +974,9 @@ impl Recording {
 
     fn render_to(&self, last: Option<(u32, u64)>) -> String {
         let mut out = format!("{FORMAT_HEADER}\nimage {}\nmax_units {}\ninit {:016x}\n", self.image, self.max_units, self.init);
+        if self.gold_by_mod {
+            out.push_str("gold_by_mod 1\n");
+        }
         if let Some(t) = self.incomplete {
             out.push_str(&format!("incomplete {t}\n"));
         }
@@ -983,6 +1000,12 @@ impl Recording {
         out
     }
 
+    /// Sets `fresh` (a sim loaded from the recording's image) to the header's `gold_by_mod`, which the
+    /// init hash covers. Call it before `Replayer::new` or `Playback::new`.
+    pub fn apply_header(&self, fresh: &mut Sim) {
+        fresh.set_gold_by_mod(self.gold_by_mod);
+    }
+
     pub fn parse(text: &str) -> Result<Recording, ReplayError> {
         let bad = |line: usize, why: &str| ReplayError::Parse { line, why: why.to_string() };
         let mut lines = text.lines().enumerate().map(|(i, l)| (i + 1, l.trim_end())).filter(|(_, l)| !l.is_empty());
@@ -993,6 +1016,7 @@ impl Recording {
         }
         let mut rec = Recording {
             image: String::new(),
+            gold_by_mod: false,
             max_units: 0,
             init: 0,
             cmds: Vec::new(),
@@ -1013,6 +1037,7 @@ impl Recording {
             let first = it.next().unwrap_or_default();
             match first {
                 "max_units" => rec.max_units = num(&mut it).ok_or_else(|| bad(n, "max_units needs a number"))?,
+                "gold_by_mod" => rec.gold_by_mod = num::<u8>(&mut it).ok_or_else(|| bad(n, "gold_by_mod needs 0 or 1"))? != 0,
                 "init" => {
                     rec.init = it.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "init needs a hex hash"))?;
                     have_init = true;
@@ -1167,7 +1192,7 @@ mod tests {
         let first = (0..4096).find(|&i| sim.alive(i)).expect("a live unit");
         let kind = sim.kind_of(first) as u32;
         let (x, y) = sim.position_fixed(first);
-        let spawned = (1..40).find_map(|k| rec.spawn(&mut sim, 7, kind, x + k * 3 * 65536, y)).expect("a free point for the spawn");
+        let spawned = (1..40).find_map(|k| rec.spawn(&mut sim, 7, kind, x + k * 3 * 65536, y, 0, 0)).expect("a free point for the spawn");
         rec.apply(&mut sim, Command::AddGold { player: 0, amount: 500 });
         rec.apply(&mut sim, Command::AddHeroGold { unit: first, amount: 5 });
         rec.apply(&mut sim, Command::Damage { caster: first, target: spawned, dmg: 3 });
@@ -1224,7 +1249,7 @@ mod tests {
         rec.apply(&mut sim, Command::Ui { body: "{\"type\":\"msg\",\"text\":\"hi\nthere\"}".into() });
         for t in 0..200 {
             if t == 40 {
-                rec.spawn(&mut sim, 8, kind, x, y);
+                rec.spawn(&mut sim, 8, kind, x, y, 0, 0);
                 rec.apply(&mut sim, Command::Victory { player: 0 });
             }
             if t == 80 {

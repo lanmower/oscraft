@@ -65,7 +65,7 @@ struct System {
 // A command queued during a step; applied after every system, in queue order.
 #[derive(Clone)]
 pub enum Cmd {
-    Spawn { handle: u32, index: usize, x: i32, y: i32 },
+    Spawn { handle: u32, index: usize, x: i32, y: i32, owner: u8, lane: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
@@ -144,6 +144,8 @@ struct Hooks {
     // Runs every trigger registered on the event name it is called with (game.trigger).
     fire: Function,
     systems: Vec<System>,
+    // Set by the mod's top-level `GOLD_BY_MOD = true`: the sim's kill payout belongs to the mod.
+    gold_by_mod: bool,
 }
 
 struct ModFile {
@@ -224,6 +226,7 @@ pub struct ModHost {
     version: u64,
     cmds: Cmds,
     joined: Vec<usize>,
+    gold_by_mod: bool,
 }
 
 // The events a mod handles, each with the Lua arguments it receives. A mod defines a global
@@ -777,15 +780,18 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     let next_handle = Rc::new(std::cell::Cell::new(0u32));
     game.set(
         "cmd_spawn",
-        lua.create_function(move |_, (kind, x, y): (String, i64, i64)| {
+        lua.create_function(move |_, (kind, x, y, owner, lane): (String, i64, i64, Option<i64>, Option<i64>)| {
             let index = w
                 .borrow()
                 .catalog()
                 .unit_index(&kind)
                 .ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_unit: {kind}")))?;
+            let owner = player_arg(owner.unwrap_or(0))?;
+            let lane = lane.unwrap_or(0);
+            let lane = i32::try_from(lane).map_err(|_| mlua::Error::RuntimeError(format!("invalid_lane: {lane}")))?;
             let handle = next_handle.get() + 1;
             next_handle.set(handle);
-            buf.borrow_mut().push(Cmd::Spawn { handle, index, x: fixed(x)?, y: fixed(y)? });
+            buf.borrow_mut().push(Cmd::Spawn { handle, index, x: fixed(x)?, y: fixed(y)?, owner, lane });
             Ok(handle)
         })?,
     )?;
@@ -1484,6 +1490,7 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
         on_player_joined: env.get("on_player_joined")?,
         fire,
         systems: registered,
+        gold_by_mod: env.get::<Option<bool>>("GOLD_BY_MOD")?.unwrap_or(false),
     })
 }
 
@@ -1554,6 +1561,7 @@ impl ModHost {
             version: 0,
             cmds: Rc::new(RefCell::new(Vec::new())),
             joined: Vec::new(),
+            gold_by_mod: false,
         })
     }
 
@@ -1570,6 +1578,7 @@ impl ModHost {
     pub fn load(&mut self, path: &Path) -> mlua::Result<()> {
         self.spent.set(0);
         let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, path).map_err(named)?;
+        self.gold_by_mod = hooks.gold_by_mod;
         self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, hooks });
         self.staged = None;
         self.version += 1;
@@ -1581,6 +1590,7 @@ impl ModHost {
     pub fn load_source(&mut self, name: &str, src: &str) -> mlua::Result<()> {
         self.spent.set(0);
         let hooks = compile_src(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, name, src).map_err(named)?;
+        self.gold_by_mod = hooks.gold_by_mod;
         self.mod_file = Some(ModFile { path: PathBuf::from(name), mtime: SystemTime::UNIX_EPOCH, hooks });
         self.staged = None;
         self.version += 1;
@@ -1744,8 +1754,8 @@ impl ModHost {
         let mut sim = self.world.borrow_mut();
         for cmd in list {
             match cmd {
-                Cmd::Spawn { index, x, y, .. } => {
-                    let _ = sim.spawn(index as u32, x, y);
+                Cmd::Spawn { index, x, y, owner, .. } => {
+                    let _ = sim.spawn_for(owner, index as u32, x, y);
                 }
                 // Handles resolve in the server room, which holds the handle map; this local world has none.
                 Cmd::OrderHandle { .. } | Cmd::DamageHandle { .. } | Cmd::BuffHandle { .. } => {}
@@ -1960,6 +1970,11 @@ impl ModHost {
 
     /// The commands queued since the last take, in queue order. `advance` applies its own queue;
     /// a caller that forwards commands takes them here after advance.
+    /// Whether the loaded mod declared `GOLD_BY_MOD = true`: its kill payout replaces the sim's.
+    pub fn gold_by_mod(&self) -> bool {
+        self.gold_by_mod
+    }
+
     pub fn take_commands(&mut self) -> Vec<Cmd> {
         std::mem::take(&mut *self.cmds.borrow_mut())
     }
@@ -2069,6 +2084,29 @@ mod tests {
         host.advance(&host.state().clone()).expect("step");
         let unsupported = host.sim().stats.refused_by[sim::Refusal::ActionUnsupported as usize];
         assert_eq!(unsupported, 0, "a behaviour was refused as unsupported");
+    }
+
+    #[test]
+    fn cmd_spawn_queues_the_owner_and_lane_and_defaults_both_to_zero() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("spawn", r#"
+            function on_tick(state)
+              if state.spawned then return end
+              state.spawned = true
+              game.cmd_spawn("creep", 50 * 65536, 34 * 65536, 1, 2)
+              game.cmd_spawn("creep", 52 * 65536, 34 * 65536)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("step");
+        let spawns: Vec<(u8, i32)> = host
+            .take_commands()
+            .into_iter()
+            .filter_map(|c| match c {
+                Cmd::Spawn { owner, lane, .. } => Some((owner, lane)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(spawns, vec![(1, 2), (0, 0)], "owner and lane are queued; both default to 0");
     }
 
     #[test]

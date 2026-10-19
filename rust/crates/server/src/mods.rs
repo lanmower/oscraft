@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex, Weak};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
@@ -24,6 +24,7 @@ pub struct ModLink {
     cmds: Mutex<Vec<Cmd>>,
     test_panic_at: AtomicU64,
     image: Mutex<Option<Vec<u8>>>,
+    gold_by_mod: AtomicBool,
 }
 
 impl ModLink {
@@ -41,6 +42,11 @@ impl ModLink {
 
     pub fn version(&self) -> u64 {
         self.version.load(Ordering::Acquire)
+    }
+
+    /// Whether the loaded mod owns kill gold (`GOLD_BY_MOD = true`). Set once the mod is live.
+    pub fn gold_by_mod(&self) -> bool {
+        self.gold_by_mod.load(Ordering::Acquire)
     }
 
     pub fn tick(&self) -> u64 {
@@ -94,6 +100,7 @@ pub fn spawn(image: Vec<u8>, path: PathBuf, budget: Duration, link: Arc<ModLink>
                 }
             };
             link.version.store(host.version(), Ordering::Release);
+            link.gold_by_mod.store(host.gold_by_mod(), Ordering::Release);
             if let Some(tx) = ready.take() {
                 let _ = tx.send(Ok(()));
             }

@@ -26,7 +26,7 @@ const MAX_REGIONS: usize = 64;
 
 #[derive(Clone)]
 enum Cmd {
-    Spawn { index: usize, x: i32, y: i32 },
+    Spawn { index: usize, x: i32, y: i32, owner: u8, lane: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
@@ -475,9 +475,17 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
     native!(ctx, game, "cmd_spawn", [sh], |c, s| {
         let kind = text(c, s.get(0), 0)?;
         let (x, y) = (fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        let owner = match s.get(3) {
+            Value::Nil => 0,
+            _ => player_arg(a(c, &s, 3)?).map_err(|m| fail(c, m))?,
+        };
+        let lane = match s.get(4) {
+            Value::Nil => 0,
+            _ => i32::try_from(a(c, &s, 4)?).map_err(|_| fail(c, "invalid_lane: lane out of i32 range".to_string()))?,
+        };
         let mut sh = sh.borrow_mut();
         let index = sh.sim.catalog().unit_index(&kind).ok_or_else(|| fail(c, format!("unknown_unit: {kind}")))?;
-        sh.cmds.push(Cmd::Spawn { index, x, y });
+        sh.cmds.push(Cmd::Spawn { index, x, y, owner, lane });
         let handle = sh.cmds.len() as i64;
         s.replace(c, handle);
         Ok(CallbackReturn::Return)
@@ -1175,8 +1183,8 @@ impl ModHost {
         let (sim, ui) = (&mut sh.sim, &mut sh.ui);
         for cmd in list {
             match cmd {
-                Cmd::Spawn { index, x, y } => {
-                    sim.spawn(index as u32, x, y);
+                Cmd::Spawn { index, x, y, owner, .. } => {
+                    sim.spawn_for(owner, index as u32, x, y);
                 }
                 Cmd::SetOwner { unit, player } => {
                     let _ = sim.set_owner(unit, player);

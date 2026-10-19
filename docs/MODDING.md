@@ -72,7 +72,7 @@ an event or trigger therefore takes effect one step later.
 
 | Call | Effect |
 |---|---|
-| `game.cmd_spawn(kind, x, y)` | spawn a unit of catalog name `kind` at `x, y`; returns its handle. Unknown kinds fail with `unknown_unit`. |
+| `game.cmd_spawn(kind, x, y, owner, lane)` | spawn a unit of catalog name `kind` at `x, y` for player `owner` (default 0) in `lane` (default 0); returns its handle. Unknown kinds fail with `unknown_unit`. |
 | `game.cmd_order(unit, x, y)` | move `unit` to `x, y` |
 | `game.cmd_attack(attacker, target)` | attack `target` with `attacker` |
 | `game.cmd_damage(caster, target, dmg)` | deal `dmg` to `target` (i32) |
@@ -271,13 +271,13 @@ Lua API does not expose `hero_rules`, so `team_share_pct` in `hero_rules.txt` do
 
 The `gold_by_mod` flag. It is a sim field (default off, saved and hashed) that makes the Rust kill payout in
 `pay_bounty` (`rust/crates/sim/src/combat.rs`) return before it pays, so with the flag on the mod is the only payer.
-The file header says that loading the mod sets the flag. At origin `369c3ba` no loader does: `set_gold_by_mod` is
-called only from a sim test. Until a loader sets it, the Rust payout and this mod both pay.
+A mod sets the flag by declaring the top-level global `GOLD_BY_MOD = true`. The server reads it when the mod
+loads and sets it on every room before the first tick; the replay header carries it as `gold_by_mod 1`.
+The Lua payout only sees kills in the mod's own world (`ModHost`), which the room does not feed; see the
+`gold_by_mod` note in [MOD_PARITY.md](MOD_PARITY.md).
 
-Known gaps at `369c3ba`:
+Known gaps:
 
-- The mod calls `game.cmd_spawn(kind, x, y, owner, lane)`. The native (mlua) `cmd_spawn` takes only `kind, x, y`,
-  so the owner and lane arguments are ignored and wave units do not get the spawner's owner.
 - A denied kill (an allied unit landed the blow) pays here. The Rust path skips it, and the mod cannot read denial.
   See [MOD_PARITY.md](MOD_PARITY.md).
 

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
@@ -74,6 +74,7 @@ pub struct Room {
     staged: Mutex<Option<Sim>>,
     clock: Mutex<Clock>,
     test_panic_at: AtomicU64,
+    gold_by_mod: AtomicBool,
 }
 
 pub struct Snapshot {
@@ -171,6 +172,7 @@ impl Room {
             feed: Mutex::new(None),
             ui: Mutex::new(UiLog::default()),
             test_panic_at: AtomicU64::new(0),
+            gold_by_mod: AtomicBool::new(false),
             staged: Mutex::new(None),
             clock: Mutex::new(Clock {
                 sim,
@@ -222,6 +224,21 @@ impl Room {
         clock.rec.render(&clock.sim)
     }
 
+    /// Sets the sim's `gold_by_mod`: the mod owns kill gold, so the Rust payout stays off. The recording
+    /// is restarted so its header carries the flag, which the init hash covers. Only before the first tick.
+    pub fn set_gold_by_mod(&self, on: bool) -> Result<(), String> {
+        let mut c = lock(&self.clock);
+        if c.tick != 0 {
+            return Err(format!("{}: gold_by_mod must be set before the first tick", self.name));
+        }
+        self.gold_by_mod.store(on, Ordering::Relaxed);
+        c.sim.set_gold_by_mod(on);
+        let image = c.rec.image.clone();
+        let max_units = c.rec.max_units as usize;
+        c.rec = Recording::new(&image, max_units, &c.sim);
+        Ok(())
+    }
+
     /// Streams the replay to `path` as the room ticks.
     pub fn set_replay_file(&self, path: &std::path::Path) -> Result<(), String> {
         let file = std::fs::File::create(path).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -234,7 +251,7 @@ impl Room {
     }
 
     // A rebuilt image waits here until the next tick boundary swaps it in.
-    pub fn stage_data(&self, sim: Sim) -> Result<(), String> {
+    pub fn stage_data(&self, mut sim: Sim) -> Result<(), String> {
         let (w, h) = (sim.grid().w as i32, sim.grid().h as i32);
         if (w, h) != (self.grid_w, self.grid_h) {
             return Err(format!(
@@ -242,6 +259,7 @@ impl Room {
                 self.grid_w, self.grid_h
             ));
         }
+        sim.set_gold_by_mod(self.gold_by_mod.load(Ordering::Relaxed));
         *lock(&self.staged) = Some(sim);
         Ok(())
     }
@@ -420,11 +438,11 @@ use crate::log::Ev;
 // handle to the room unit it got; handle commands resolve through that map, and a handle the map
 // does not hold is refused and logged. Plain unit indices come from the mod's own world, so a
 // target the room does not hold alive is skipped.
-fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<u32, usize>, cmds: Vec<Cmd>, ui: &mut Vec<String>) -> usize {
+pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut HashMap<u32, usize>, cmds: Vec<Cmd>, ui: &mut Vec<String>) -> usize {
     let applied = cmds.len();
     for cmd in cmds {
         match cmd {
-            Cmd::Spawn { handle, index, x, y } => match rec.spawn(sim, handle, index as u32, x, y) {
+            Cmd::Spawn { handle, index, x, y, owner, lane } => match rec.spawn(sim, handle, index as u32, x, y, owner, lane) {
                 Some(unit) => {
                     handles.insert(handle, unit);
                     crate::emit!(Ev::ModUnitBound, handle = handle, unit = unit);

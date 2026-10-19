@@ -37,8 +37,8 @@ Systems and queries see only the components they name. Every unit view also carr
   replaces the systems.
 - `game.each({components}, fn)` runs `fn(unit)` for each living unit now, from `on_tick` or a
   system.
-- `game.cmd_spawn(kind, x, y)` queues a spawn at Q16.16 coordinates. An unknown kind raises
-  `unknown_unit` at queue time.
+- `game.cmd_spawn(kind, x, y[, owner, lane])` queues a spawn at Q16.16 coordinates for `owner` (default 0) in
+  `lane` (default 0). An unknown kind raises `unknown_unit` at queue time.
 - `game.cmd_order(unit, x, y)` queues a move order.
 - `game.cmd_damage(caster, target, dmg)` queues damage from the caster's player.
 - `game.cmd_buff(unit, kind, ticks)` queues a buff.

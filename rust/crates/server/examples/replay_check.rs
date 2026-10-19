@@ -25,16 +25,22 @@ fn main() {
     });
     let image = args.get(2).cloned().unwrap_or_else(|| rec.image.clone());
     let max_units = rec.max_units as usize;
+    let gold = rec.gold_by_mod;
     let load = || -> sim::Sim {
         let loaded = if image.ends_with(".bin") {
             std::fs::read(&image).map_err(|e| e.to_string()).and_then(|b| sim::load(&b, max_units).map_err(|e| format!("{e:?}")))
         } else {
             server::mods::load_data(Path::new(&image), max_units)
         };
-        loaded.unwrap_or_else(|e| {
-            eprintln!("load {image}: {e}");
-            std::process::exit(2);
-        })
+        loaded
+            .map(|mut s| {
+                s.set_gold_by_mod(gold);
+                s
+            })
+            .unwrap_or_else(|e| {
+                eprintln!("load {image}: {e}");
+                std::process::exit(2);
+            })
     };
     let mut sim = load();
     if let Some(t) = rec.incomplete() {

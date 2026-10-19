@@ -12,6 +12,7 @@
 -- Gold. A unit with a bounty pays when it dies. A killing hero keeps the bounty less the team
 -- share, and the killer's side gets the share. An attackerless death pays the rival side's gold.
 -- Uses only the mod API.
+GOLD_BY_MOD = true
 
 local MILLI_TILE = 65536 // 1000
 local CREEP_PERIOD = 480
