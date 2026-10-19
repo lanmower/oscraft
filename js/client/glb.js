@@ -31,6 +31,31 @@ function readChunks(buffer) {
   return { json, bin };
 }
 
+export { readChunks as readGlbChunks };
+
+// Packs a glTF JSON object and its BIN chunk into a GLB ArrayBuffer.
+export function writeGlb(json, bin) {
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(json));
+  const jsonLength = (jsonBytes.byteLength + 3) & ~3;
+  const binLength = (bin.byteLength + 3) & ~3;
+  const total = 12 + 8 + jsonLength + 8 + binLength;
+  const out = new ArrayBuffer(total);
+  const view = new DataView(out);
+  const bytes = new Uint8Array(out);
+  view.setUint32(0, MAGIC, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, total, true);
+  view.setUint32(12, jsonLength, true);
+  view.setUint32(16, CHUNK_JSON, true);
+  bytes.fill(0x20, 20 + jsonBytes.byteLength, 20 + jsonLength);
+  bytes.set(jsonBytes, 20);
+  const binHeader = 20 + jsonLength;
+  view.setUint32(binHeader, binLength, true);
+  view.setUint32(binHeader + 4, CHUNK_BIN, true);
+  bytes.set(bin, binHeader + 8);
+  return out;
+}
+
 const VERTEX_TYPE = 'VEC3';
 
 function readAccessor(gltf, bin, index, expectedType) {
@@ -65,13 +90,19 @@ function readComponent(view, at, componentType) {
   }
 }
 
+// The image a texture samples: the EXT_texture_webp or KHR_texture_basisu source when present, else the core source.
+function textureSource(texture) {
+  const extensions = texture?.extensions;
+  return extensions?.EXT_texture_webp?.source ?? extensions?.KHR_texture_basisu?.source ?? texture?.source ?? -1;
+}
+
 // Reads the base color image reference of the primitive's material. An embedded image (bufferView)
 // yields its bytes and mime type; an external or data: uri yields the uri as written in the file.
 function readBaseColorTexture(gltf, bin, primitive) {
   const material = gltf.materials?.[primitive.material ?? -1];
   const ref = material?.pbrMetallicRoughness?.baseColorTexture;
   if (!ref) return null;
-  const image = gltf.images?.[gltf.textures?.[ref.index]?.source ?? -1];
+  const image = gltf.images?.[textureSource(gltf.textures?.[ref.index])];
   if (!image) return null;
   const texCoord = ref.texCoord ?? 0;
   if (image.bufferView !== undefined) {
@@ -92,9 +123,9 @@ export function parseGlb(buffer) {
   const primitive = gltf.meshes?.[0]?.primitives?.[0];
   if (!primitive || primitive.attributes?.POSITION === undefined) throw new Error('glb: no POSITION attribute');
   if (primitive.mode !== undefined && primitive.mode !== 4) throw new Error('glb: only triangle primitives');
-  const positions = readAccessor(gltf, bin, primitive.attributes.POSITION, VERTEX_TYPE);
-  const normals = primitive.attributes.NORMAL === undefined ? null : readAccessor(gltf, bin, primitive.attributes.NORMAL, VERTEX_TYPE);
-  const texcoords = primitive.attributes.TEXCOORD_0 === undefined ? null : Float32Array.from(readAccessor(gltf, bin, primitive.attributes.TEXCOORD_0, 'VEC2'));
+  const positions = readFloats(gltf, bin, primitive.attributes.POSITION, VERTEX_TYPE);
+  const normals = primitive.attributes.NORMAL === undefined ? null : readFloats(gltf, bin, primitive.attributes.NORMAL, VERTEX_TYPE);
+  const texcoords = primitive.attributes.TEXCOORD_0 === undefined ? null : readFloats(gltf, bin, primitive.attributes.TEXCOORD_0, 'VEC2');
   const vertexCount = positions.length / COMPONENT_COUNTS[VERTEX_TYPE];
   const indices = primitive.indices === undefined
     ? Uint32Array.from({ length: vertexCount }, (_, i) => i)

@@ -8,6 +8,7 @@ import { iceServersFrom } from "./ice.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, jointMatrices } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
+import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
@@ -188,7 +189,7 @@ function parsedModel(name) {
   if (!entry) {
     entry = (async () => {
       const url = new URL(`models/${name}.glb`, location.href);
-      const bytes = await (await fetch(url)).arrayBuffer();
+      const bytes = await resolveGlbExtensions(await (await fetch(url)).arrayBuffer());
       const glb = parseGlb(bytes);
       const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
       return { url: url.href, glb, animations };
