@@ -585,6 +585,115 @@ pub fn creep_stops_to_attack(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// The moba sim with its hero rules loaded. `aggro_priority` is off until those rules are set, so without them a
+/// creep takes the nearest target, and a tower's body can be nearer than a creep.
+fn moba_rules_sim() -> Result<Sim, String> {
+    let mut s = fresh(&moba_image()?)?;
+    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
+    let rules = std::fs::read_to_string(scenario.join("hero_rules.txt")).map_err(|e| e.to_string())?;
+    if !s.set_hero_rules_text(&rules) {
+        return Err("hero_rules.txt has a bad line".into());
+    }
+    Ok(s)
+}
+
+/// First cell (row-major) whose four neighbours are walkable too, so a friendly creep, an enemy creep and a tower
+/// can each stand one cell from the next without a wall between them.
+fn open_cell(s: &Sim) -> Result<(i32, i32), String> {
+    let g = s.grid();
+    let (w, h) = (g.w as i32, g.h as i32);
+    for y in 1..h - 1 {
+        for x in 1..w - 1 {
+            if [(x, y), (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)].iter().all(|&(a, b)| g.walkable(a, b)) {
+                return Ok((x, y));
+            }
+        }
+    }
+    Err("the moba grid has no cell with four walkable neighbours".into())
+}
+
+/// Creep targeting, one friendly creep with an enemy creep and a tower each one tile away. A tile is one cell (the
+/// loader refuses other cell sizes), and creep weapon reach is CREEP_REACH_MILLI (1.562 tiles), so both are in
+/// reach. Target class ranks a plain creep (0) ahead of a structure (2), so the friend strikes the enemy creep
+/// and the tower's hp must not move while the enemy lives. Creep weapon period is CREEP_WEAPON_PERIOD ticks, so
+/// three periods (48 ticks) hold three strikes on that one creep, and the first strike lands on tick 1.
+pub fn creep_strikes_creep_before_tower(_image: &[u8]) -> Result<(), String> {
+    let mut s = moba_rules_sim()?;
+    let (x, y) = open_cell(&s)?;
+    let creep = kind(&s, "creep")?;
+    let tower_kind = kind(&s, "tower")?;
+    let friend = s.spawn_for(0, creep, fixed::from_int(x), fixed::from_int(y)).ok_or("spawn_for refused the friendly creep")?;
+    let enemy = s.spawn_for(1, creep, fixed::from_int(x + 1), fixed::from_int(y)).ok_or("spawn_for refused the enemy creep")?;
+    let tower = s.spawn_for(1, tower_kind, fixed::from_int(x - 1), fixed::from_int(y)).ok_or("spawn_for refused the tower")?;
+    let tower_hp = s.hp(tower);
+    let mut enemy_hp = s.hp(enemy);
+    let mut strikes = 0;
+    for t in 1..=3 * CREEP_WEAPON_PERIOD {
+        s.tick();
+        if !s.alive(friend) {
+            return Err(format!("friendly creep died at tick {t} before its strikes landed"));
+        }
+        if !s.alive(enemy) {
+            break;
+        }
+        if s.hp(tower) != tower_hp {
+            return Err(format!("tower hp {} -> {} at tick {t} while the enemy creep lived in reach", tower_hp, s.hp(tower)));
+        }
+        if s.hp(enemy) < enemy_hp {
+            strikes += 1;
+            enemy_hp = s.hp(enemy);
+        }
+    }
+    if strikes < 3 {
+        return Err(format!("friendly creep struck the enemy creep {strikes} times in {} ticks, want 3", 3 * CREEP_WEAPON_PERIOD));
+    }
+    println!("creep strike priority ok strikes={strikes} enemy_hp={enemy_hp} tower_hp={tower_hp}");
+    Ok(())
+}
+
+/// A crowded bucket cell keeps every unit. The friendly creep shares a one-tile cell with seven allied creeps,
+/// which fill the eight inline bucket slots (BUCKET_CAP) after it, and twelve enemy creeps overflow past them. All
+/// twelve are inside creep reach of the friend (1.562 tiles, against a cell diagonal of 1.414), and a tower one
+/// tile west is in reach too. A dropped unit would leave the friend with only the tower, so after one tick the
+/// tower must be untouched and one of the twelve enemy creeps must have lost hp. Live units after the spawns:
+/// 1 friend + 7 allies + 12 enemies + 1 tower = 21 more than before, so none is lost to the spawn either.
+pub fn creep_crowded_cell_strikes_creep(_image: &[u8]) -> Result<(), String> {
+    let mut s = moba_rules_sim()?;
+    let (x, y) = open_cell(&s)?;
+    let creep = kind(&s, "creep")?;
+    let tower_kind = kind(&s, "tower")?;
+    let live_before = s.alive_count();
+    let (px, py) = (fixed::from_int(x), fixed::from_int(y));
+    let friend = s.spawn_for(0, creep, px, py).ok_or("spawn_for refused the friendly creep")?;
+    for _ in 0..7 {
+        s.spawn_for(0, creep, px, py).ok_or("spawn_for refused an allied filler creep")?;
+    }
+    let mut enemies = Vec::with_capacity(12);
+    for _ in 0..12 {
+        enemies.push(s.spawn_for(1, creep, px, py).ok_or("spawn_for refused an enemy creep in the crowded cell")?);
+    }
+    let tower = s.spawn_for(1, tower_kind, fixed::from_int(x - 1), py).ok_or("spawn_for refused the tower")?;
+    let live_after = s.alive_count();
+    if live_after != live_before + 21 {
+        return Err(format!("alive_count {live_after} want {} after 21 spawns", live_before + 21));
+    }
+    let tower_hp = s.hp(tower);
+    let enemy_hp: Vec<i32> = enemies.iter().map(|&e| s.hp(e)).collect();
+    s.tick();
+    if !s.alive(friend) {
+        return Err("friendly creep died on tick 1 of the crowded cell".into());
+    }
+    if s.hp(tower) != tower_hp {
+        return Err(format!("tower hp {tower_hp} -> {} on tick 1: the crowded cell hid the enemy creeps", s.hp(tower)));
+    }
+    let struck = enemies.iter().zip(&enemy_hp).filter(|(&e, &h0)| s.hp(e) < h0).count();
+    if struck == 0 {
+        return Err("no enemy creep among the twelve lost hp on tick 1 with the tower untouched".into());
+    }
+    println!("creep crowded cell ok enemies_struck={struck} tower_hp={tower_hp}");
+    Ok(())
+}
+
 /// A moba unit standing with no orders and no neighbours to move away from holds one point: its x does not
 /// flip between two lanes on successive ticks. Prints the x sequence in milli-tiles for the witness.
 pub fn moba_idle_settle(_image: &[u8]) -> Result<(), String> {
