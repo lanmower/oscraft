@@ -186,6 +186,7 @@ impl Sim {
             return;
         };
         self.aggro.strike[i] = b as i32;
+        self.aggro.strike_gen[i] = self.aggro.spawn_gen[b];
         self.cooldown[i] = self.attack_period(i);
         if self.misses(i) {
             return;
@@ -214,7 +215,7 @@ impl Sim {
         let mut best_class = u8::MAX;
         let reach_d2 = (self.range_sq[i] as i64) << fixed::SHIFT;
         let mut best_d2 = reach_d2;
-        let current = self.aggro.strike[i];
+        let current = self.sticky_strike(i);
         let mut current_class = None;
         for oy in -rc..=rc {
             for ox in -rc..=rc {

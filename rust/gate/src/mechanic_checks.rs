@@ -2,7 +2,7 @@
 //! asserts one postcondition through the public sim or mod-host API and names the mechanic,
 //! never a genre.
 
-use crate::checks::{fresh, kind, run_ticks, spawn, MAX_UNITS};
+use crate::checks::{fresh, kind, run_ticks, spawn, MAX_UNITS, RUN_TICKS};
 use sim::{fixed, Sim};
 
 const ORDER_MOVE: u8 = 0;
@@ -649,6 +649,89 @@ pub fn creep_strikes_creep_before_tower(_image: &[u8]) -> Result<(), String> {
     }
     println!("creep strike priority ok strikes={strikes} enemy_hp={enemy_hp} tower_hp={tower_hp}");
     Ok(())
+}
+
+/// A reused slot must not inherit its previous occupant's sticky target. Friendly creep F (with two more friends south of it,
+/// so three of them kill A faster) strikes enemy creep A east of F until A dies. A tower stands one
+/// tile west, in reach. F's strike record keeps A's slot through its weapon cooldown after the killing blow, so the slot
+/// is reused at once: spawn_at puts a new enemy creep B on it, one tile diagonal to F's north-east, and a second enemy
+/// creep C spawns one tile north of F. Both are plain creeps (one class), so F's next strike must land on the nearer C
+/// (squared distance 1, against B's 2). B and C share a team, so F is the only thing that can lower their hp.
+pub fn reused_slot_drops_stale_sticky_target(_image: &[u8]) -> Result<(), String> {
+    let mut s = moba_rules_sim()?;
+    let (x, y) = open_block(&s)?;
+    let creep = kind(&s, "creep")?;
+    let tower_kind = kind(&s, "tower")?;
+    let friend = s.spawn_for(0, creep, fixed::from_int(x), fixed::from_int(y)).ok_or("spawn_for refused the friendly creep")?;
+    s.spawn_for(0, creep, fixed::from_int(x), fixed::from_int(y - 1)).ok_or("spawn_for refused the second friendly creep")?;
+    s.spawn_for(0, creep, fixed::from_int(x + 1), fixed::from_int(y - 1)).ok_or("spawn_for refused the third friendly creep")?;
+    let a = s.spawn_for(1, creep, fixed::from_int(x + 1), fixed::from_int(y)).ok_or("spawn_for refused enemy creep A")?;
+    for i in [friend, friend + 1, friend + 2, a] {
+        hold_in_place(&mut s, i)?;
+    }
+    let mut t = 0;
+    while s.alive(a) {
+        t += 1;
+        if t > RUN_TICKS {
+            return Err(format!("enemy creep A in slot {a} never died in {RUN_TICKS} ticks"));
+        }
+        s.tick();
+        if !s.alive(friend) {
+            return Err(format!("friendly creep died at tick {t} before enemy creep A died"));
+        }
+    }
+    if !s.spawn_at(a, creep, 1, fixed::from_int(x + 1), fixed::from_int(y + 1)) {
+        return Err(format!("spawn_at refused the dead slot {a} for enemy creep B"));
+    }
+    if !s.alive(a) || s.player(a) != 1 {
+        return Err(format!("reused slot {a} is not a live enemy after spawn_at"));
+    }
+    let c = s.spawn_for(1, creep, fixed::from_int(x), fixed::from_int(y + 1)).ok_or("spawn_for refused enemy creep C")?;
+    let tower = s.spawn_for(1, tower_kind, fixed::from_int(x - 1), fixed::from_int(y)).ok_or("spawn_for refused the tower")?;
+    let tower_hp = s.hp(tower);
+    hold_in_place(&mut s, a)?;
+    hold_in_place(&mut s, c)?;
+    let (b_hp, c_hp) = (s.hp(a), s.hp(c));
+    for t in 1..=3 * CREEP_WEAPON_PERIOD {
+        s.tick();
+        if !s.alive(friend) {
+            return Err(format!("friendly creep died at tick {t} before its first strike on B or C"));
+        }
+        if s.hp(tower) != tower_hp {
+            return Err(format!("tower hp {} -> {} at tick {t}; the tower is out of class and must not be struck", tower_hp, s.hp(tower)));
+        }
+        if s.hp(a) < b_hp {
+            return Err(format!(
+                "friendly creep struck enemy creep B in reused slot {a} at tick {t} instead of nearer enemy creep C in slot {c}: stale sticky target"
+            ));
+        }
+        if s.hp(c) < c_hp {
+            return Ok(());
+        }
+    }
+    Err(format!("friendly creep struck neither B (slot {a}) nor C (slot {c}) in {} ticks", 3 * CREEP_WEAPON_PERIOD))
+}
+
+/// Holds unit `i` where it stands (ORDER_HOLD at its own point), so no creep walks out of the reach the check built.
+fn hold_in_place(s: &mut Sim, i: usize) -> Result<(), String> {
+    const ORDER_HOLD: u8 = 4;
+    let (x, y) = s.position_fixed(i);
+    s.issue_order_kind(i, ORDER_HOLD, x, y).map_err(|r| format!("hold refused for unit {i}: {}", r.name()))
+}
+
+/// First cell (row-major) whose eight neighbours and itself are all walkable, so the friends, the enemy and the new
+/// creeps of the stale-target check each stand on their own open cell.
+fn open_block(s: &Sim) -> Result<(i32, i32), String> {
+    let g = s.grid();
+    let (w, h) = (g.w as i32, g.h as i32);
+    for y in 1..h - 1 {
+        for x in 1..w - 1 {
+            if (-1..=1).all(|dy| (-1..=1).all(|dx| g.walkable(x + dx, y + dy))) {
+                return Ok((x, y));
+            }
+        }
+    }
+    Err("the moba grid has no cell with eight walkable neighbours".into())
 }
 
 /// A crowded bucket cell keeps every unit. The friendly creep shares a one-tile cell with seven allied creeps,

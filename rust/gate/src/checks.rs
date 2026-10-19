@@ -117,6 +117,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("creep-stops-to-attack", mechanic_checks::creep_stops_to_attack),
     ("creep-strikes-creep-before-tower", mechanic_checks::creep_strikes_creep_before_tower),
     ("creep-crowded-cell-strikes-creep", mechanic_checks::creep_crowded_cell_strikes_creep),
+    ("creep-reused-slot-drops-stale-target", mechanic_checks::reused_slot_drops_stale_sticky_target),
     ("item-stat-names", item_checks::item_stat_names),
     ("item-stock", item_checks::item_stock),
     ("item-aegis-and-death", item_checks::item_aegis_and_death),
