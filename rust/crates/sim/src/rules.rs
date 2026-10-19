@@ -597,9 +597,8 @@ impl Sim {
 
     /// Sends a freshly summoned unit `j` of `player` on an attack-move toward the nearest living
     /// hostile building, along the route `approach_to` finds (A* around blocked terrain). A unit
-    /// with no hostile building left stays where it spawned. Mod hosts call this after `spawn_for`
-    /// so their units march the same way native summons do.
-    pub fn march_to_enemy_base(&mut self, j: usize, player: u8) {
+    /// with no hostile building left stays where it spawned.
+    pub(crate) fn march_to_enemy_base(&mut self, j: usize, player: u8) {
         let mut best: Option<(usize, i64)> = None;
         for k in 0..self.n {
             if k == j || self.alive[k] == 0 || !self.hostile(player, self.player[k]) {
@@ -617,6 +616,17 @@ impl Sim {
             let (sx, sy) = self.strike_stop(j, k);
             let _ = self.issue_order_kind(j, ORDER_ATTACK_MOVE, sx, sy);
         }
+    }
+
+    /// Spawns a mod's unit `kind` for `player` at (x, y). A spawn that names a lane (`lane != 0`)
+    /// marches to the enemy base like a native summon; a lane-0 spawn stands where it was placed,
+    /// so a mod that moves its own units (a tower defense route, for one) keeps control of them.
+    pub fn spawn_mod_unit(&mut self, player: u8, kind: u32, x: i32, y: i32, lane: i32) -> Option<usize> {
+        let unit = self.spawn_for(player, kind, x, y)?;
+        if lane != 0 {
+            self.march_to_enemy_base(unit, player);
+        }
+        Some(unit)
     }
 
     /// Whether a unit may take a spell or attack. `required` is a filter mask; every

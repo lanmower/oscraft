@@ -1758,10 +1758,8 @@ impl ModHost {
         let mut sim = self.world.borrow_mut();
         for cmd in list {
             match cmd {
-                Cmd::Spawn { index, x, y, owner, .. } => {
-                    if let Some(unit) = sim.spawn_for(owner, index as u32, x, y) {
-                        sim.march_to_enemy_base(unit, owner);
-                    }
+                Cmd::Spawn { index, x, y, owner, lane, .. } => {
+                    let _ = sim.spawn_mod_unit(owner, index as u32, x, y, lane);
                 }
                 // Handles resolve in the server room, which holds the handle map; this local world has none.
                 Cmd::OrderHandle { .. } | Cmd::DamageHandle { .. } | Cmd::BuffHandle { .. } => {}
