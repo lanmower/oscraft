@@ -2022,7 +2022,7 @@ jobs:
           if (!localHero) throw new Error("local player " + localPlayer + " has no hero to order toward the contact point");
           await page.evaluate(([x, z]) => window.__ciFocus(x, z), [localHero.x, localHero.z]);
           const heroAt = await screenAt(localHero.x, localHero.z);
-          await page.mouse.click(heroAt.x, heroAt.z, { button: "left" });
+          await page.mouse.click(heroAt.x, heroAt.y, { button: "left" });
           const heroSelected = (await page.evaluate(() => window.__ciSelected())) === localHero.id;
           await page.evaluate(([x, z]) => window.__ciFocus(x, z), [contact.x, contact.z]);
           const contactAt = await screenAt(contact.x, contact.z);
