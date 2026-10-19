@@ -1132,8 +1132,8 @@ async function loadTileMeshes(gl, tileTextures) {
   const models = Object.fromEntries(Object.entries(TILE_MODELS).map(([kind, list]) => [kind, list.map((name) => byName.get(name))]));
   const baked = bakeTiles(mapBytes, models);
   if (!baked) return null;
-  const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, model, batches }) => batches.map(async ({ uvs, batch }) => {
-    const texture = tileTextures.get(TILE_MATERIALS[kind]) || null;
+  const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, material, model, batches }) => batches.map(async ({ uvs, batch }) => {
+    const texture = tileTextures.get(material) || null;
     const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: null, glbUrl: model.glbUrl }, texture ? [1, 1, 1] : TILE_TINTS[kind]);
     if (!mesh) return null;
     if (texture) mesh.texture = texture;

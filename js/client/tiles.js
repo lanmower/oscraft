@@ -135,6 +135,94 @@ export function cellVariant(x, y, count) {
   return (h >>> 0) % count;
 }
 
+function modelTop(model) {
+  let top = 0;
+  for (let v = 1; v < model.positions.length; v += 3) top = Math.max(top, model.positions[v]);
+  return top;
+}
+
+// Appends one instance transform: rotation about y, then per-axis scale, then translation (column-major 4x4).
+function placeInstance(out, x, y, z, rot, sx, sy, sz) {
+  const c = Math.cos(rot), s = Math.sin(rot);
+  out.push(c * sx, 0, -s * sx, 0, 0, sy, 0, 0, s * sz, 0, c * sz, 0, x, y, z, 1);
+}
+
+// Top height of a model's low end: the highest surface at its smallest x, where a ramp meets the lower cell.
+function lowEdgeHeight(model) {
+  const p = model.positions;
+  let minX = Infinity;
+  for (let v = 0; v < p.length; v += 3) minX = Math.min(minX, p[v]);
+  let top = 0;
+  for (let v = 0; v < p.length; v += 3) if (p[v] - minX < 1e-4) top = Math.max(top, p[v + 1]);
+  return top;
+}
+
+// Height step at most which two non-cliff, non-water neighbours are joined by a ramp; any taller drop, and every drop
+// beside a cliff or water cell, gets a wall.
+const RAMP_MAX_STEPS = 1;
+
+// Edge pieces from the height data, one batch per key so each key is one draw. A boundary between two cells of equal
+// height gets nothing; a gradual drop between two flat cells gets a tile-slant ramp (the slant rises along its local +x)
+// that covers the lower cell; a steep drop, or any drop beside a cliff or water cell, gets a tile-high wall that runs
+// from the lower surface up to the higher one (a cliff cell's own tile adds its height). Corners are covered by the
+// edge pieces of the two cells that meet there. `models.cliff` is [wall, ramp] in TILE_MODELS order.
+export function bakeEdges(grid, models, empty) {
+  const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
+  const [wall, ramp] = models.cliff ?? [];
+  const wallTop = wall ? modelTop(wall) : 0;
+  const rampTop = ramp ? modelTop(ramp) : 0;
+  const rampLift = ramp ? lowEdgeHeight(ramp) : 0;
+  const edges = new Map();
+  const put = (key, kind, material, model, instance) => {
+    let edge = edges.get(key);
+    if (!edge) edges.set(key, (edge = { kind, material, model, instances: [] }));
+    edge.instances.push(instance);
+  };
+  const heightOf = (i) => (levels[i] * heightStep) / cellMilli;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (empty[i]) continue;
+      for (const [dx, dz] of [[1, 0], [0, 1]]) {
+        const nx = x + dx, nz = y + dz;
+        if (nx >= w || nz >= h) continue;
+        const j = nz * w + nx;
+        if (empty[j]) continue;
+        const ki = cellKind(flags[i], tiles[i]);
+        const kj = cellKind(flags[j], tiles[j]);
+        const hi = heightOf(i), hj = heightOf(j);
+        const dh = Math.abs(hi - hj);
+        const rot = dx ? -Math.PI / 2 : 0;
+        const bx = dx ? x + 1 : x + 0.5;
+        const bz = dx ? y + 0.5 : y + 1;
+        if (dh === 0) continue;
+        const low = hi <= hj ? i : j;
+        const high = low === i ? j : i;
+        const kLow = low === i ? ki : kj;
+        const kHigh = high === i ? ki : kj;
+        const gradual = dh <= RAMP_MAX_STEPS * (heightStep / cellMilli) + 1e-9 && kLow !== "cliff" && kHigh !== "cliff" && kLow !== "water" && kHigh !== "water";
+        if (!gradual) {
+          if (!wall) continue;
+          const base = heightOf(low) + (kLow === "cliff" ? wallTop : 0);
+          const top = heightOf(high) + (kHigh === "cliff" ? wallTop : 0);
+          if (top > base) put("wall", "cliff", TILE_MATERIALS.cliff, wall, [bx, base, bz, rot, 1, (top - base) / wallTop, 1]);
+          continue;
+        }
+        if (!ramp) continue;
+        const dirX = high === j ? dx : -dx;
+        const dirZ = high === j ? dz : -dz;
+        const sy = dh / (rampTop - rampLift);
+        put("ramp", "cliff", TILE_MATERIALS.cliff, ramp, [bx - 0.5 * dirX, heightOf(low) - rampLift * sy, bz - 0.5 * dirZ, Math.atan2(-dirZ, dirX), 1, sy, 1]);
+      }
+    }
+  }
+  return new Map([...edges].map(([key, { kind, material, model, instances }]) => {
+    const matrices = [];
+    for (const [x, y, z, r, sx, sy, sz] of instances) placeInstance(matrices, x, y, z, r, sx, sy, sz);
+    return [key, { kind, material, model, matrices: Float32Array.from(matrices), count: instances.length }];
+  }));
+}
+
 // Groups every cell by kind and variant (and by texture phase for ground kinds) into instance batches: one translation
 // matrix per cell on the cell's height level, so memory and draw calls scale with the kind and variant count, not the
 // cell count. models maps each kind to its fitted variant models. Returns null when a kind the map uses has no model,
@@ -185,8 +273,12 @@ export function bakeTiles(bytes, models) {
       batches.push({ uvs, batch: { matrices, count: cellList.length, dirty: true } });
       count += cellList.length;
     });
-    meshes.set(key, { kind, model, batches, cells: count });
+    meshes.set(key, { kind, material: TILE_MATERIALS[kind], model, batches, cells: count });
     cells += count;
+  }
+  for (const [key, edge] of bakeEdges(grid, models, empty)) {
+    const batch = { matrices: edge.matrices, count: edge.count, dirty: true };
+    meshes.set(key, { kind: edge.kind, material: edge.material, model: edge.model, batches: [{ uvs: edge.model.uvs, batch }], cells: edge.count });
   }
   return { kinds: meshes, cells, width: w, height: h };
 }
