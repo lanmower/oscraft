@@ -1127,7 +1127,7 @@ async function loadTileMeshes(gl, groundTexture) {
   if (!baked) return null;
   const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, model, batches }) => batches.map(async ({ uvs, batch }) => {
     const textured = groundTexture && GROUND_KINDS.includes(kind);
-    const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: textured ? null : model.baseColorTexture, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
+    const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: null, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
     if (!mesh) return null;
     if (textured) mesh.texture = groundTexture;
     return { mesh, batch };

@@ -4,16 +4,18 @@ import { parseGlb } from "./glb.js";
 import { GROUND_UV_PER_CELL, readGrid, vertexNormals } from "./terrain.js";
 
 // Cell kinds and the tile models that draw each, by file name under models/ (see NOTICE.md). A cell picks one of its
-// kind's variants by cellVariant, so the map gets texture variety while every client draws the same tile per cell.
-// Only flat, footprint-one tiles are listed; ground_riverTile ships without a texture, so water keeps its tint.
+// kind's variants by cellVariant, so the map gets shape variety while every client draws the same tile per cell.
+// Grass and dirt draw the ground texture over the model's footprint. Every other kind draws its tint, because the pack's
+// colormap atlas maps the cliff and road UVs onto palette stripes (white for the cliff tiles). ground_riverTile ships
+// without a texture and no other water tile exists, so water has one model.
 export const TILE_MODELS = Object.freeze({
-  grass: Object.freeze(["tile-low", "patch-grass"]),
-  dirt: Object.freeze(["ground", "patch-dirt"]),
+  grass: Object.freeze(["tile-low", "patch-grass", "patch-grass-large"]),
+  dirt: Object.freeze(["ground", "patch-dirt", "dirt"]),
   lane: Object.freeze(["road-straight", "road-intersection-path", "road-crossroad-line"]),
   water: Object.freeze(["ground_riverTile"]),
   cliff: Object.freeze(["tile-high", "tile-slant"]),
 });
-// Fallback colour for a tile model with no base colour texture: green for grass so a failed texture never draws white.
+// Tint for every kind drawn without a texture (all but grass and dirt, which take the ground texture).
 export const TILE_TINTS = Object.freeze({ grass: [0.36, 0.5, 0.24], dirt: [0.5, 0.38, 0.24], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
 // Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass.
 export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 4 });
