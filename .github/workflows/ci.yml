@@ -3054,7 +3054,7 @@ jobs:
     name: duel-routes scenario loads and serves its counts
     runs-on: ubuntu-latest
     needs: [changes, build, check-linux]
-    if: needs.changes.outputs.code == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -3130,8 +3130,8 @@ jobs:
       - name: Gate witnesses - a beacon loses hit points in range; destroying a side's tagged structures names the winner
         run: |
           set -euo pipefail
-          # check-linux runs the same oscraft-gate binary on this commit and fails on any nonzero exit, so its output
-          # is the run this step witnesses; the witness lines below are still asserted here.
+          # check-linux runs the same oscraft-gate binary on this commit and uploads its output even when the gate
+          # fails, so the witness lines are read from that run; a failed gate still fails check-linux itself.
           out="$GITHUB_WORKSPACE/gate-output/gate.txt"
           test -s "$out"
           grep -q '^check mechanic-structure-damage PASS$' "$out"
