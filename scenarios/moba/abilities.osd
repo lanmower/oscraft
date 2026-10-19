@@ -30,7 +30,7 @@ ability("storm_rain", 500, 0, "point", [effect("damage", p0=40, p1=2500)])
 channel("storm_rain", 48)
 # Stormcaller: projectile nuke, AoE, ally shield, stun nuke, AoE ultimate.
 ability("spark_bolt", 20, 0, "unit", [effect("damage", p0=22)], target_filters=["ground"], projectile_speed_milli=14000)
-ability("frost_nova", 60, 0, "none", [effect("damage", p0=14, p1=1800)])
+ability("frost_nova", 128, 0, "none", [effect("damage", p0=14, p1=1800)])
 ability("wind_shield", 70, 0, "unit", [effect("shield_bonus", p0=30)], target_filters=["army"])
 ability("chain_storm", 80, 0, "unit", [effect("damage", p0=28), effect("stun", p0=24)], target_filters=["ground"])
 ability("storm_sky", 500, 0, "point", [effect("damage", p0=80, p1=3000)])
