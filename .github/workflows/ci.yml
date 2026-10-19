@@ -1847,6 +1847,8 @@ jobs:
           }
           const error = await page.getAttribute("body", "data-error");
           if (error) throw new Error("page error: " + error);
+          // ready is set before the first frame, so the sim's first tick lands a frame or two later.
+          await page.waitForFunction(() => Number(document.body.dataset.ticks) > 0, null, { timeout: 30000 }).catch(() => {});
           const units = Number(await page.getAttribute("body", "data-units"));
           const ticks = Number(await page.getAttribute("body", "data-ticks"));
           if (!(await page.$("canvas"))) throw new Error("no canvas on the page");
