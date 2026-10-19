@@ -302,10 +302,20 @@ for (const t of towerRows) {
 for (const c of camps) if (clearAt(c.x + 150, c.y + 150)) dd(pick("character"), c.x + 150, c.y + 150);
 for (const s of D.ent_dota_shop) if (clearAt(s.x + 250, s.y)) dd(pick("item"), s.x + 250, s.y);
 for (const f of fountains) for (const dx of [300, -300]) if (clearAt(f.wx + dx, f.wy)) dd(pick("prop"), f.wx + dx, f.wy);
-for (const b of bases) {
-  if (clearAt(b.wx + 700, b.wy - 700)) dd(pick("building"), b.wx + 700, b.wy - 700);
-  if (clearAt(b.wx - 700, b.wy + 700)) dd(pick("building"), b.wx - 700, b.wy + 700);
-}
+// Castle kit (wall and tower stems) as base and tower decoration: one piece on each diagonal corner of a ring just outside
+// the structure zone (footprint plus margin plus CASTLE_RING_EXTRA cells), on clear cells only, cycling through the kit.
+const CASTLE_RING_EXTRA = 2;
+const CASTLE_STEM = /^(wall|tower-|brick-wall|stone-wall)/;
+const castleKinds = shippedStems.filter((stem) => CASTLE_STEM.test(stem)).map(kindOf);
+let castleNext = 0;
+const castleRing = (cellX, cellY, r) => {
+  for (const [dx, dy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    const x = cellX + dx * r, y = cellY + dy * r;
+    if (inb(x, y) && clear(y * N + x)) cellDd(castleKinds[castleNext++ % castleKinds.length], [x, y]);
+  }
+};
+for (const b of bases) castleRing(cx(b.wx), cy(b.wy), footprintRadius(b.b) + BASE_DIRT_MARGIN + CASTLE_RING_EXTRA);
+for (const t of towerRows) castleRing(cx(t.x), cy(t.y), footprintRadius(t.bounds[0]) + TOWER_DIRT_MARGIN + CASTLE_RING_EXTRA);
 const fieldCells = [];
 for (let i = 0; i < N * N; i++) if (level[i] === 1 && !blocked[i] && clear(i)) fieldCells.push(i);
 const scatterKinds = shippedStems.filter((stem) => SCATTER_ROLES.has(roleOf(stem))).map(kindOf);
