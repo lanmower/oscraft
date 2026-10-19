@@ -16,7 +16,7 @@ export const TILE_MODELS = Object.freeze({
   cliff: Object.freeze(["tile-high", "tile-slant"]),
 });
 // Tint for every kind drawn without a texture (all but grass and dirt, which take the ground texture).
-export const TILE_TINTS = Object.freeze({ grass: [0.36, 0.5, 0.24], dirt: [0.5, 0.38, 0.24], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
+export const TILE_TINTS = Object.freeze({ grass: [1, 1, 1], dirt: [0.62, 0.5, 0.3], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
 // Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass.
 export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 4 });
 export const VOID_REACH = 2;
