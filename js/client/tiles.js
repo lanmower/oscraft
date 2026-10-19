@@ -107,9 +107,12 @@ export function fitModel(glb, size) {
   return { positions, normals: glb.normals || vertexNormals(positions, glb.indices), uvs: glb.texcoords, indices: glb.indices, baseColorTexture: glb.baseColorTexture, fit };
 }
 
+// Material per cell kind: the named texture a kind's batches bind, or null for the model's tint. Adding a surface is one
+// entry here; a kind mapped to "ground" is drawn with the repeating ground texture.
+export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: null, water: null, cliff: null });
 // Kinds drawn with the repeating ground texture: their cells split by position modulo the texture period, so each
 // split shares one instanced draw and still lands on the right part of the texture.
-export const GROUND_KINDS = Object.freeze(["grass", "dirt"]);
+export const GROUND_KINDS = Object.freeze(Object.keys(TILE_MATERIALS).filter((kind) => TILE_MATERIALS[kind] === "ground"));
 const GROUND_PERIOD = Math.round(1 / GROUND_UV_PER_CELL);
 
 function groundVariantUvs(model, ox, oy) {

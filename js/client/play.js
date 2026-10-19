@@ -13,7 +13,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, fitModel, GROUND_KINDS, TILE_MODELS, TILE_TINTS, walkableBounds } from "./tiles.js";
+import { bakeTiles, fitModel, TILE_MATERIALS, TILE_MODELS, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, HERO_ROSTER } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -1134,7 +1134,7 @@ async function loadTileMeshes(gl, groundTexture) {
   const baked = bakeTiles(mapBytes, models);
   if (!baked) return null;
   const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, model, batches }) => batches.map(async ({ uvs, batch }) => {
-    const textured = groundTexture && GROUND_KINDS.includes(kind);
+    const textured = groundTexture && TILE_MATERIALS[kind] === "ground";
     const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: null, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
     if (!mesh) return null;
     if (textured) mesh.texture = groundTexture;
