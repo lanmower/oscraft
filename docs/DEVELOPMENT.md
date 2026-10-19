@@ -27,3 +27,12 @@ With the server running, dispatch a `crawl` body (the cdp engine drives a headfu
     console
 
 The `console` step reports messages captured by the crawl session, and an empty list means no errors were seen after navigation.
+
+## Fast path
+
+- JS, HTML or CSS only: edit, copy `js/client` into `.dev-site/js/client` and reload. No cargo run is needed, and `stage.sh` is not needed.
+- Rust, mods or scenario data: run `scripts/dev/stage.sh` (it reruns mapexport; wasm-pack runs only when the pkg is missing or `WASM=1`), then reload.
+- One Rust test: `cargo test -p <crate> <filter>` inside `rust/`, with `<crate>` from `rust/crates/`.
+- CI on a push runs every job except when every changed file is a root-level `*.md`. A `docs/` change still runs every job, because `static-probes` and the log-schema check read `docs/`.
+- The slowest CI path is the browser probes (`browser-direct`, `browser-two-peers`, `browser-probes`). Their Chromium install is cached per Playwright version and runs once per job. Check a probe's own step time in `gh run view --json jobs` before changing its waits.
+- The parity gate (`oscraft-gate`) runs once per OS in `check`, `check-linux`; `duel-routes` reads the `check-linux` output, not a second run.

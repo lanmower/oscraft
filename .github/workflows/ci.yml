@@ -39,22 +39,24 @@ jobs:
         shell: bash
         env:
           EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           set -euo pipefail
-          if [ "$EVENT" != pull_request ]; then
+          # Only a root-level markdown file skips the jobs: docs/ is read by checks (LOG_SCHEMA.md, FRIENDS.md),
+          # so every docs/ change runs them. A push whose base cannot be diffed (new branch, rewritten history) runs all jobs.
+          if [ "$EVENT" = workflow_dispatch ] || [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] \
+            || ! files=$(git diff --name-only "$BASE" "$GITHUB_SHA" 2>/dev/null); then
             echo "code=true" >> "$GITHUB_OUTPUT"
             echo "decide: $EVENT runs every job"
             exit 0
           fi
           code=false
-          files=$(git diff --name-only "$BASE" "$GITHUB_SHA")
           while IFS= read -r f; do
             [ -n "$f" ] || continue
-            case "$f" in docs/*|*.md) ;; *) code=true ;; esac
+            case "$f" in */*|LICENSES-INVENTORY.md|NOTICE.md) code=true ;; *.md) ;; *) code=true ;; esac
           done <<< "$files"
           echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "decide: pull_request code=$code changed=$(printf '%s\n' "$files" | grep -c .)"
+          echo "decide: $EVENT code=$code changed=$(printf '%s\n' "$files" | grep -c .)"
 
   build:
     name: build once - workspace, test binaries, page wasm and map image
@@ -1789,6 +1791,22 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
 
+      - name: Restore the Playwright npm and browser caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: playwright-1.47.0-${{ runner.os }}
+
+      - name: Restore the Playwright npm and browser caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: playwright-1.47.0-${{ runner.os }}
+
       - name: Install headless Chromium
         run: |
           mkdir -p "$RUNNER_TEMP/pw"
@@ -2396,13 +2414,6 @@ jobs:
           echo "$out" | tail -1 | grep -q ' FAIL$' || { echo "witness: FAIL line missing"; exit 1; }
           echo "browser over-ceiling witnessed load=$load ceiling=$ceiling exit=$rc"
 
-      - name: Install headless Chromium
-        run: |
-          mkdir -p "$RUNNER_TEMP/pw"
-          cd "$RUNNER_TEMP/pw"
-          npm init -y > /dev/null
-          npm install playwright@1.47.0
-          npx playwright install --with-deps chromium
 
       - name: Restart oscraftd under an open page; the watch resumes at the new version
         run: |
@@ -2462,13 +2473,6 @@ jobs:
           EOF
           node "$RUNNER_TEMP/pw/reconnect.mjs" "$PWD/target/debug/oscraftd" "$work/catalog.osdt" "$mod" "$work/server.log" 127.0.0.1:8006
 
-      - name: Install headless Chromium
-        run: |
-          mkdir -p "$RUNNER_TEMP/pw"
-          cd "$RUNNER_TEMP/pw"
-          npm init -y > /dev/null
-          npm install playwright@1.47.0
-          npx playwright install --with-deps chromium
 
       - name: Serve a job-owned copy of the site, edit its main.js, and watch the page reload itself
         run: |
@@ -2522,13 +2526,6 @@ jobs:
           JS
           node "$RUNNER_TEMP/pw/self-reload.mjs" "$PWD/target/debug/oscraftd" "$work/site" 127.0.0.1:8008 "$work/server.log"
 
-      - name: Install headless Chromium
-        run: |
-          mkdir -p "$RUNNER_TEMP/pw"
-          cd "$RUNNER_TEMP/pw"
-          npm init -y > /dev/null
-          npm install playwright@1.47.0
-          npx playwright install --with-deps chromium
 
       - name: Serve a job-owned copy of the site, break its main.js, and check the page rejects the edit
         run: |
@@ -3056,7 +3053,7 @@ jobs:
   duel-routes:
     name: duel-routes scenario loads and serves its counts
     runs-on: ubuntu-latest
-    needs: [changes, build]
+    needs: [changes, build, check-linux]
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 20
     steps:
@@ -3124,13 +3121,19 @@ jobs:
           echo "scenario ok sides=$sides routes=$routes objectives=$beacons units=$units hp_changed=$hp_changed"
           test "$hp_changed" = true
 
+      - name: Read the gate output check-linux wrote for this commit
+        uses: actions/download-artifact@v4
+        with:
+          name: gate-output-ubuntu-latest
+          path: gate-output
+
       - name: Gate witnesses - a beacon loses hit points in range; destroying a side's tagged structures names the winner
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/gate-witness.txt"
-          cd "$GITHUB_WORKSPACE/rust"
-          # The gate exits nonzero when any other check fails; this step asserts only its own PASS line.
-          target/debug/oscraft-gate > "$out" 2>&1 || true
+          # check-linux runs the same oscraft-gate binary on this commit and fails on any nonzero exit, so its output
+          # is the run this step witnesses; the witness lines below are still asserted here.
+          out="$GITHUB_WORKSPACE/gate-output/gate.txt"
+          test -s "$out"
           grep -q '^check mechanic-structure-damage PASS$' "$out"
           grep -E '^structure damage ok hp_before=[0-9]+ hp_after=[0-9]+$' "$out"
           grep -q '^check mechanic-win-trigger PASS$' "$out"
@@ -3433,6 +3436,14 @@ jobs:
           mkdir -p js/client/models
           cp rust/crates/web/site/assets/units/*.glb js/client/models/
 
+      - name: Restore the Playwright npm and browser caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: playwright-1.47.0-${{ runner.os }}
+
       - name: Install headless Chromium
         run: |
           mkdir -p "$RUNNER_TEMP/pw"
@@ -3635,6 +3646,14 @@ jobs:
           mkdir -p js/client/models
           cp rust/crates/web/site/assets/units/*.glb js/client/models/
 
+      - name: Restore the Playwright npm and browser caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: playwright-1.47.0-${{ runner.os }}
+
       - name: Install headless Chromium
         run: |
           mkdir -p "$RUNNER_TEMP/pw"
@@ -3694,6 +3713,13 @@ jobs:
             if (!unit) throw new Error("no unit owned by the first peer's player 0");
             const movedToward = (u, t) => !!u && dist(u, t) < dist(unit, t) - 1;
             const seen = async (page) => page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, unit.id);
+            const pause = async (ms, done) => {
+              const until = Date.now() + ms;
+              while (Date.now() < until) {
+                if (await done()) return;
+                await new Promise((r) => setTimeout(r, 100));
+              }
+            };
             let onHost = null;
             // The sim refuses an order whose destination cell is unwalkable; each offset is tried in turn and the host's
             // refusal (body.dataset.lastRefusal) is read back, so a refused target is named in the failure.
@@ -3705,7 +3731,7 @@ jobs:
               const moveDeadline = Date.now() + 15000;
               while (Date.now() < moveDeadline) {
                 await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [unit.id, target.x, target.z]);
-                await new Promise((r) => setTimeout(r, 1500));
+                await pause(1500, async () => movedToward(await seen(host), target) && movedToward(await seen(peer), target));
                 onHost = await seen(host);
                 if (movedToward(onHost, target) && movedToward(await seen(peer), target)) break;
               }
@@ -3737,7 +3763,13 @@ jobs:
             const attacks = await host.evaluate(() => document.body.dataset.remoteAttacks);
             const casts = await host.evaluate(() => document.body.dataset.remoteCasts);
             // Both sides must hold the same unit positions for the host ticks they both logged.
-            await new Promise((r) => setTimeout(r, 3000));
+            const agreedUntil = Date.now() + 30000;
+            while (Date.now() < agreedUntil) {
+              const sentNow = new Map(await host.evaluate(() => window.__ciSentTicks()));
+              const recvNow = await peer.evaluate(() => window.__ciRecvTicks());
+              if (recvNow.filter(([tick, key]) => sentNow.get(tick) === key).length >= 20) break;
+              await new Promise((r) => setTimeout(r, 250));
+            }
             const sent = new Map(await host.evaluate(() => window.__ciSentTicks()));
             const recv = await peer.evaluate(() => window.__ciRecvTicks());
             const recvOrder = recv.map(([tick]) => tick);
