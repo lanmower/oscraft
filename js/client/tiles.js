@@ -15,7 +15,7 @@ export const TILE_MODELS = Object.freeze({
   water: Object.freeze(["ground_riverTile"]),
   cliff: Object.freeze(["tile-high", "tile-slant"]),
 });
-// Tint for every kind drawn without a texture (all but grass and dirt, which take the ground texture).
+// Tint for every kind drawn without a texture (the editor draws all kinds with it; play draws a textured kind in white).
 export const TILE_TINTS = Object.freeze({ grass: [1, 1, 1], dirt: [0.62, 0.5, 0.3], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
 // Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass.
 export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 4 });
@@ -109,7 +109,10 @@ export function fitModel(glb, size) {
 
 // Material per cell kind: the named texture a kind's batches bind, or null for the model's tint. Adding a surface is one
 // entry here; a kind mapped to "ground" is drawn with the repeating ground texture.
-export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: null, water: null, cliff: null });
+export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: "lane", water: null, cliff: "cliff" });
+// Texture file per material name (CC0, see NOTICE.md). A material's kinds share one texture; the ground material repeats
+// over the map, while the others stretch once over each tile through the model's own UVs.
+export const TILE_TEXTURES = Object.freeze({ ground: "textures/ground.png", lane: "textures/lane.jpg", cliff: "textures/cliff.jpg" });
 // Kinds drawn with the repeating ground texture: their cells split by position modulo the texture period, so each
 // split shares one instanced draw and still lands on the right part of the texture.
 export const GROUND_KINDS = Object.freeze(Object.keys(TILE_MATERIALS).filter((kind) => TILE_MATERIALS[kind] === "ground"));
