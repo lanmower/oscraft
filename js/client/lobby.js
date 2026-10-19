@@ -5,8 +5,11 @@
 // (detail = action, carrying its own playerId). The transport is whoever dispatches those events.
 export const TEAM_SIZE = 5;
 export const SLOT_COUNT = 2 * TEAM_SIZE;
-// Hero picks come from the moba scenario roster: unit("hero", ...) in scenarios/moba/units.osd.
-export const HERO_ROSTER = Object.freeze(["hero"]);
+// The hero roster is passed in by the page: play.js reads it from the live sim (unit_type_names, filtered to the
+// `hero <unit>` lines of scenarios/moba/hero_rules.txt), so a pick is offered only when the sim can spawn that type.
+// An empty roster offers no picks and no bot fill.
+export const heroNamesFromRules = (text) =>
+  text.split("\n").filter((line) => line.startsWith("hero ")).map((line) => line.split(/\s+/)[1]);
 
 const EMPTY_SLOT = Object.freeze({ owner: null, hero: null, ready: false });
 
@@ -16,7 +19,8 @@ export function emptyLobby() {
 
 export const teamOf = (slot) => (slot < TEAM_SIZE ? 0 : 1);
 
-// A computer seat is an owner string "bot:<slot>" with the first roster hero, ready from the start.
+// A computer seat is an owner string "bot:<slot>", ready from the start. Bot rule: each computer takes the first
+// roster hero no seat holds yet, so bots differ while the roster allows; once it is exhausted they take roster[0].
 export const BOT_OWNER_PREFIX = "bot:";
 export const isBot = (owner) => typeof owner === "string" && owner.startsWith(BOT_OWNER_PREFIX);
 
@@ -26,7 +30,7 @@ export function allReady(state) {
   return state.slots.every((s) => s.owner && s.hero && s.ready);
 }
 
-export function reduceLobby(state, action, roster = HERO_ROSTER) {
+export function reduceLobby(state, action, roster = []) {
   if (state.started) return refuse(state, "match-started");
   const { type, playerId, slot } = action;
   if (!playerId) return refuse(state, "no-player");
@@ -38,9 +42,13 @@ export function reduceLobby(state, action, roster = HERO_ROSTER) {
   if (type === "fill") {
     if (state.host !== playerId) return refuse(state, "not-host");
     if (state.slots.every((s) => s.owner)) return refuse(state, "nothing-to-fill");
+    if (roster.length === 0) return refuse(state, "no-roster");
     const next = structuredClone(state);
     next.slots.forEach((s, i) => {
-      if (!s.owner) next.slots[i] = { owner: `${BOT_OWNER_PREFIX}${i}`, hero: roster[0], ready: true };
+      if (s.owner) return;
+      const held = new Set(next.slots.map((seat) => seat.hero));
+      const hero = roster.find((h) => !held.has(h)) ?? roster[0];
+      next.slots[i] = { owner: `${BOT_OWNER_PREFIX}${i}`, hero, ready: true };
     });
     return { state: next, error: null };
   }
@@ -80,7 +88,7 @@ export function reduceLobby(state, action, roster = HERO_ROSTER) {
   return { state: next, error: null };
 }
 
-export function createLobby({ root, playerId = "local", roster = HERO_ROSTER, onStart = () => {} } = {}) {
+export function createLobby({ root, playerId = "local", roster = [], onStart = () => {} } = {}) {
   const host = root || document.body.appendChild(document.createElement("section"));
   host.id = host.id || "lobby";
   let state = emptyLobby();

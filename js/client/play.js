@@ -15,7 +15,7 @@ import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, me
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { bakeTiles, controlMap, fitModel, planarUvs, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
-import { createLobby, HERO_ROSTER } from "./lobby.js";
+import { createLobby, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
 import { createShop } from "./ui_shop.js";
 import { createSkills } from "./ui_skills.js";
@@ -130,6 +130,7 @@ let myPlayer = 0;
 let lastAppliedTick = 0;
 let rosterView = null;
 let heroKinds = new Map();
+let heroRuleNames = [];
 const localPlayerId = () => myPlayer;
 const isGuest = () => netTick >= 0;
 
@@ -149,7 +150,9 @@ async function loadSim() {
   // every hero's attributes are zero at level 0, so heroes are not seen as heroes.
   if (location.hash === "#moba") {
     const rulesRes = await fetch(new URL("hero_rules.txt", location.href));
-    if (!rulesRes.ok || !game.set_hero_rules(await rulesRes.text())) throw new Error("hero_rules.txt did not load");
+    const rulesText = rulesRes.ok ? await rulesRes.text() : "";
+    if (!rulesRes.ok || !game.set_hero_rules(rulesText)) throw new Error("hero_rules.txt did not load");
+    heroRuleNames = heroNamesFromRules(rulesText);
   }
   // The moba preview runs without fog so every enemy is a valid target; other pages keep the sim's fog.
   game.set_fog(location.hash !== "#moba");
@@ -677,7 +680,11 @@ function spawnSeatHeroes(seats) {
   if (typeof localGame.spawn_hero !== "function") return;
   for (const seat of seats) {
     if (heroOf(seat.slot)) continue;
-    const kind = heroKinds.get(seat.hero) ?? [...heroKinds.values()][0] ?? 0;
+    const kind = heroKinds.get(seat.hero);
+    if (kind === undefined) {
+      console.error(`seat ${seat.slot}: hero ${seat.hero} is not in the roster; no hero spawned`);
+      continue;
+    }
     localGame.spawn_hero(seat.slot, kind, seat.slot < 5 ? W * 0.1 : W * 0.9, H / 2);
   }
 }
@@ -1054,21 +1061,17 @@ function hasHeroApi(game) {
   return ["buy", "item_catalog_json", "abilities_json", "inventory_json", "character_level", "skill_points"].every((name) => typeof game[name] === "function");
 }
 
-// Hero picks for the lobby, read from the live sim: the model name of each unit type held by a living hero
-// (a unit with attributes), mapped to its type index for spawn_hero. Falls back to the scenario roster.
+// Hero picks for the lobby: each `hero <unit>` name of hero_rules.txt that the sim's catalog holds, mapped to the
+// type index spawn_hero takes. A name with no catalog index is not offered, so a pick never spawns another type.
 function liveHeroRoster(game) {
   heroKinds = new Map();
-  if (typeof game.unit_types === "function" && typeof game.attributes === "function") {
-    const names = typeof game.unit_model_names === "function" ? game.unit_model_names() : [];
-    const ids = game.unit_ids();
-    const types = game.unit_types();
-    ids.forEach((id, i) => {
-      if (!game.attributes(id).some((v) => v !== 0)) return;
-      const label = names[types[i]] || `type${types[i]}`;
-      if (!heroKinds.has(label)) heroKinds.set(label, types[i]);
-    });
+  if (typeof game.unit_type_names !== "function") return [];
+  const typeNames = game.unit_type_names();
+  for (const name of heroRuleNames) {
+    const kind = typeNames.indexOf(name);
+    if (kind >= 0) heroKinds.set(name, kind);
   }
-  return heroKinds.size > 0 ? [...heroKinds.keys()] : HERO_ROSTER;
+  return [...heroKinds.keys()];
 }
 
 function createBarCanvas() {

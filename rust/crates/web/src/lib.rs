@@ -391,6 +391,12 @@ impl Game {
         cat.units.iter().map(|u| cat.name(u.model).to_owned()).collect()
     }
 
+    /// The catalog name of each unit type, indexed by type index: the index `spawn_hero` takes.
+    pub fn unit_type_names(&self) -> Vec<String> {
+        let cat = self.sim.catalog();
+        cat.units.iter().map(|u| cat.name(u.name).to_owned()).collect()
+    }
+
     /// UI export: buys catalog item index `item` for unit `unit` at a shop in reach. False when refused.
     pub fn buy(&mut self, unit: u32, item: u32) -> bool {
         self.sim.buy_item(unit as usize, item as usize)
