@@ -103,8 +103,6 @@ function normalize(v) {
   return [v[0] / len, v[1] / len, v[2] / len];
 }
 
-const DEFAULT_FOV_DEG = 70;
-
 export function createCamera(opts = {}) {
   return {
     target: opts.target ? [...opts.target] : [0, 0, 0],
@@ -113,7 +111,7 @@ export function createCamera(opts = {}) {
     distance: opts.distance ?? 30,
     minDistance: opts.minDistance ?? 2,
     maxDistance: opts.maxDistance ?? 400,
-    fovY: opts.fovY ?? (DEFAULT_FOV_DEG * Math.PI) / 180,
+    fovY: opts.fovY ?? Math.PI / 3,
     near: opts.near ?? 0.1,
     far: opts.far ?? 2000,
   };
@@ -237,7 +235,7 @@ const VERT = `#version 300 es
 in vec3 aPos; in vec3 aNormal; in vec2 aUv; in vec4 aJoints; in vec4 aWeights; in mat4 aInst;
 uniform mat4 uModel; uniform mat3 uNormal; uniform mat4 uViewProj;
 uniform bool uSkinned; uniform bool uInstanced; uniform mat4 uJoints[${MAX_JOINTS}];
-out vec3 vNormal; out vec2 vUv;
+out vec3 vNormal; out vec2 vUv; out vec3 vWorld;
 void main() {
   mat4 skin = mat4(1.0);
   mat3 skinNormal = mat3(1.0);
@@ -249,7 +247,7 @@ void main() {
   mat4 model = uInstanced ? aInst : uModel;
   mat3 normalBasis = uInstanced ? mat3(aInst) : uNormal;
   vec4 world = model * skin * vec4(aPos, 1.0);
-  vNormal = normalBasis * skinNormal * aNormal; vUv = aUv;
+  vNormal = normalBasis * skinNormal * aNormal; vUv = aUv; vWorld = world.xyz;
   gl_Position = uViewProj * world;
 }`;
 
@@ -266,6 +264,35 @@ void main() {
   outColor = uGlow ? vec4(base, uAlpha) : vec4(base * (0.3 + 0.7 * diffuse), 1.0);
 }`;
 
+
+// Splat ground: four layers blended by the control map's weights. Each layer's height (its displacement plus half)
+// scaled by its weight decides the blend: only layers within uBand of the highest one contribute, so rock or roots
+// show through before the other layer. The fallback is the plain weight mix where no layer clears the threshold.
+const SPLAT_FRAG = `#version 300 es
+precision highp float;
+in vec3 vNormal; in vec3 vWorld;
+uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
+uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
+uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
+out vec4 outColor;
+void main() {
+  vec4 w = texture(uControl, vWorld.xz / uMapSize);
+  vec2 uv = vWorld.xz * uUvScale;
+  vec3 c0 = texture(uAlb0, uv).rgb; vec3 c1 = texture(uAlb1, uv).rgb;
+  vec3 c2 = texture(uAlb2, uv).rgb; vec3 c3 = texture(uAlb3, uv).rgb;
+  vec4 d = vec4(texture(uDisp0, uv).r, texture(uDisp1, uv).r, texture(uDisp2, uv).r, texture(uDisp3, uv).r);
+  vec4 h = w * (d + 0.5);
+  float m = max(max(h.x, h.y), max(h.z, h.w));
+  vec4 b = max(h - (m - uBand), 0.0) * w;
+  float s = b.x + b.y + b.z + b.w;
+  vec3 mixed = (b.x * c0 + b.y * c1 + b.z * c2 + b.w * c3) / max(s, 1e-4);
+  vec3 plain = (w.x * c0 + w.y * c1 + w.z * c2 + w.w * c3) / max(w.x + w.y + w.z + w.w, 1e-4);
+  vec3 base = s > 1e-4 ? mixed : plain;
+  vec3 light = normalize(vec3(0.4, 1.0, 0.6));
+  float diffuse = max(dot(normalize(vNormal), light), 0.0);
+  outColor = vec4(base * (0.3 + 0.7 * diffuse), 1.0);
+}`;
+
 function compile(gl, type, source) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
@@ -274,17 +301,26 @@ function compile(gl, type, source) {
   return shader;
 }
 
+// Attribute slots are fixed for every program, so one mesh's buffers bind the same way in the main and splat programs.
+const ATTRIBUTE_NAMES = ["aPos", "aNormal", "aUv", "aJoints", "aWeights", "aInst"];
+function linkProgram(gl, fragment) {
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERT));
+  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragment));
+  ATTRIBUTE_NAMES.forEach((name, slot) => gl.bindAttribLocation(program, slot, name));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  return program;
+}
+
 // Uploads a mesh once and keeps its buffers. Mesh shape:
 //   { positions: Float32Array xyz, normals: Float32Array xyz, uvs?: Float32Array uv,
 //     indices?: Uint16Array|Uint32Array, color?: [r,g,b] in 0..1, texture?: WebGLTexture,
 //     dirty?: boolean }
 // Set mesh.dirty = true after changing its arrays so the next draw re-uploads them.
 export function createRenderer(gl) {
-  const program = gl.createProgram();
-  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERT));
-  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAG));
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  const program = linkProgram(gl, FRAG);
+  const splatProgram = linkProgram(gl, SPLAT_FRAG);
   gl.useProgram(program);
 
   const attr = {
@@ -308,6 +344,18 @@ export function createRenderer(gl) {
     alpha: gl.getUniformLocation(program, "uAlpha"),
     glow: gl.getUniformLocation(program, "uGlow"),
     instanced: gl.getUniformLocation(program, "uInstanced"),
+  };
+  const splatUni = {
+    control: gl.getUniformLocation(splatProgram, "uControl"),
+    mapSize: gl.getUniformLocation(splatProgram, "uMapSize"),
+    uvScale: gl.getUniformLocation(splatProgram, "uUvScale"),
+    band: gl.getUniformLocation(splatProgram, "uBand"),
+    viewProj: gl.getUniformLocation(splatProgram, "uViewProj"),
+    model: gl.getUniformLocation(splatProgram, "uModel"),
+    skinned: gl.getUniformLocation(splatProgram, "uSkinned"),
+    instanced: gl.getUniformLocation(splatProgram, "uInstanced"),
+    alb: [0, 1, 2, 3].map((k) => gl.getUniformLocation(splatProgram, "uAlb" + k)),
+    disp: [0, 1, 2, 3].map((k) => gl.getUniformLocation(splatProgram, "uDisp" + k)),
   };
   gl.uniform1i(uni.tex, 0);
   gl.enable(gl.DEPTH_TEST);
@@ -445,6 +493,9 @@ export function createRenderer(gl) {
     drawSkinned(mesh, transform, joints) {
       draw(mesh, transform, joints);
     },
+
+    drawSplat,
+    updateSplatCell,
   };
 
   function bindMaterial(mesh) {
@@ -659,6 +710,67 @@ export function createRenderer(gl) {
       for (let k = 0; k < 16; k++) modelScratch[k] = m[i * 16 + k];
       drawModel(mesh, null);
     }
+  }
+
+  // Splat ground: one draw of the terrain mesh. splat = { control: {data, width, height}, layers: [{albedo, height}] x4,
+  // width, height (map size in cells), uvScale, band, gpu }; the control texture is created on first draw and kept.
+  const unitModel = identity();
+  function controlTexture(control) {
+    const tex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, control.width, control.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, control.data);
+    return tex;
+  }
+  function drawSplat(mesh, splat) {
+    if (!splat.gpu) splat.gpu = { control: controlTexture(splat.control) };
+    const buf = upload(mesh);
+    gl.useProgram(splatProgram);
+    bindGeometry(buf);
+    gl.disableVertexAttribArray(attr.joints);
+    gl.disableVertexAttribArray(attr.weights);
+    for (let c = 0; c < 4; c++) gl.disableVertexAttribArray(attr.inst + c);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, splat.gpu.control);
+    gl.uniform1i(splatUni.control, 0);
+    splat.layers.forEach((layer, k) => {
+      gl.activeTexture(gl.TEXTURE1 + k);
+      gl.bindTexture(gl.TEXTURE_2D, layer.albedo);
+      gl.uniform1i(splatUni.alb[k], 1 + k);
+      gl.activeTexture(gl.TEXTURE5 + k);
+      gl.bindTexture(gl.TEXTURE_2D, layer.height);
+      gl.uniform1i(splatUni.disp[k], 5 + k);
+    });
+    gl.uniform2f(splatUni.mapSize, splat.width, splat.height);
+    gl.uniform1f(splatUni.uvScale, splat.uvScale);
+    gl.uniform1f(splatUni.band, splat.band);
+    gl.uniformMatrix4fv(splatUni.viewProj, false, viewProj);
+    gl.uniformMatrix4fv(splatUni.model, false, unitModel);
+    gl.uniform1i(splatUni.skinned, 0);
+    gl.uniform1i(splatUni.instanced, 0);
+    if (buf.index) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.index);
+      gl.drawElements(gl.TRIANGLES, buf.count, buf.indexType, 0);
+    } else {
+      gl.drawArrays(gl.TRIANGLES, 0, buf.count);
+    }
+    gl.useProgram(program);
+    stats.drawCalls += 1;
+    stats.instances += 1;
+  }
+  // Rewrites one cell's control texel in place: a sub-region upload, no rebuild of the terrain mesh.
+  function updateSplatCell(splat, index, texel) {
+    if (!splat.gpu) return;
+    const w = splat.control.width;
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, splat.gpu.control);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, index % w, Math.floor(index / w), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, texel);
+    stats.texelUploads = (stats.texelUploads || 0) + 1;
   }
 
   function draw(mesh, transform, joints) {

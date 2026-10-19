@@ -6,7 +6,7 @@
 import * as THREE from "three/webgpu";
 import {
   attribute, dot, float, int, max, modelNormalMatrix, normalize, normalLocal, normalWorld, positionLocal,
-  texture, uniform, uniformArray, varying, vec3, vec4,
+  positionWorld, select, texture, uniform, uniformArray, varying, vec2, vec3, vec4,
 } from "three/tsl";
 import { createCamera, eyeOf, meshReach, nearOf, MAX_JOINTS, orbitCamera, panCamera, visibleGroundBounds, zoomCamera } from "./render3d.js";
 
@@ -194,6 +194,43 @@ export async function createTslRenderer(canvas, { debug = false } = {}) {
     return object;
   }
 
+  // Splat ground as one node material: the control texture (one texel per cell, LINEAR) and four layers blended by
+  // their height threshold, the same rule as render3d's SPLAT_FRAG. The control texture is a DataTexture over the same
+  // CPU array that setSplatTexel writes, so an edit re-uploads that small texture rather than the terrain mesh.
+  const splatMaterials = new WeakMap();
+  function splatMaterialFor(splat) {
+    const cached = splatMaterials.get(splat);
+    if (cached) return cached;
+    const control = new THREE.DataTexture(splat.control.data, splat.control.width, splat.control.height, THREE.RGBAFormat);
+    control.magFilter = THREE.LinearFilter;
+    control.minFilter = THREE.LinearFilter;
+    control.wrapS = THREE.ClampToEdgeWrapping;
+    control.wrapT = THREE.ClampToEdgeWrapping;
+    control.flipY = false;
+    control.colorSpace = THREE.NoColorSpace;
+    control.needsUpdate = true;
+    splat.gpu = { control };
+    const w = texture(control, positionWorld.xz.div(vec2(splat.width, splat.height)));
+    const uvLayer = positionWorld.xz.mul(float(splat.uvScale));
+    const albedo = splat.layers.map((layer) => texture(layer.albedo, uvLayer).rgb);
+    const height = splat.layers.map((layer) => texture(layer.height, uvLayer).r);
+    const weight = [w.x, w.y, w.z, w.w];
+    const lifted = weight.map((wk, k) => wk.mul(height[k].add(0.5)));
+    const top = max(max(lifted[0], lifted[1]), max(lifted[2], lifted[3]));
+    const blend = lifted.map((hk, k) => max(hk.sub(top.sub(float(splat.band))), 0.0).mul(weight[k]));
+    const sum = blend[0].add(blend[1]).add(blend[2]).add(blend[3]);
+    const mixed = albedo[0].mul(blend[0]).add(albedo[1].mul(blend[1])).add(albedo[2].mul(blend[2])).add(albedo[3].mul(blend[3])).div(max(sum, float(1e-4)));
+    const weightSum = weight[0].add(weight[1]).add(weight[2]).add(weight[3]);
+    const plain = albedo[0].mul(weight[0]).add(albedo[1].mul(weight[1])).add(albedo[2].mul(weight[2])).add(albedo[3].mul(weight[3])).div(max(weightSum, float(1e-4)));
+    const material = new THREE.MeshBasicNodeMaterial();
+    material.colorNode = shadeNode(select(sum.greaterThan(float(1e-4)), mixed, plain), false, normalWorld);
+    material.side = THREE.FrontSide;
+    materialSet.add(material);
+    pendingCompile = true;
+    splatMaterials.set(splat, material);
+    return material;
+  }
+
   function drawMesh(mesh, transform) {
     submit(mesh, transform, materialFor(mesh), geometryFor(mesh));
   }
@@ -294,6 +331,14 @@ export async function createTslRenderer(canvas, { debug = false } = {}) {
       const a = aspect ?? canvas.width / Math.max(1, canvas.height);
       syncCamera(a);
       cullBounds = visibleGroundBounds(camera, a, groundBox);
+    },
+
+    drawSplat(mesh, splat) {
+      submit(mesh, IDENTITY, splatMaterialFor(splat), geometryFor(mesh));
+    },
+
+    updateSplatCell(splat, index, texel) {
+      if (splat.gpu) splat.gpu.control.needsUpdate = true;
     },
 
     drawMesh(mesh, transform = null) {

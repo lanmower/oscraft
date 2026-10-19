@@ -223,11 +223,42 @@ export function bakeEdges(grid, models, empty) {
   }));
 }
 
+// Splat layers: the ground is one draw whose fragment shader blends four layers by a per-cell control map, one RGBA
+// texel per cell, each channel the weight of one layer. A cell kind sets its channel; the fourth (rock) channel also
+// takes water and cliff cells. SPLAT_TEXTURES gives each layer [albedo, height] files (CC0, see NOTICE.md).
+export const SPLAT_LAYERS = Object.freeze(["grass", "dirt", "lane", "rock"]);
+const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 3 });
+export const SPLAT_TEXTURES = Object.freeze({
+  grass: Object.freeze(["textures/ground.png", "textures/grass_disp.jpg"]),
+  dirt: Object.freeze(["textures/dirt.jpg", "textures/dirt_disp.jpg"]),
+  lane: Object.freeze(["textures/lane.jpg", "textures/lane_disp.jpg"]),
+  rock: Object.freeze(["textures/cliff.jpg", "textures/rock_disp.jpg"]),
+});
+// Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
+export function isSplatKind(kind) {
+  return SPLAT_CHANNEL[kind] !== undefined && SPLAT_CHANNEL[kind] < SPLAT_LAYERS.indexOf("rock");
+}
+// Control map for a grid: { data: Uint8Array RGBA per cell, width, height }, each cell's channel at full weight.
+export function controlMap(bytes) {
+  const grid = readGrid(bytes);
+  const { width, height, flags, tiles } = grid;
+  const data = new Uint8Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[cellKind(flags[i], tiles[i])]] = 255;
+  return { data, width, height };
+}
+// Rewrites one cell texel to a kind (the creep effect) and returns that texel for a sub-region upload.
+export function setSplatTexel(control, index, kind) {
+  const o = index * 4;
+  control.data.fill(0, o, o + 4);
+  control.data[o + SPLAT_CHANNEL[kind]] = 255;
+  return control.data.subarray(o, o + 4);
+}
+
 // Groups every cell by kind and variant (and by texture phase for ground kinds) into instance batches: one translation
 // matrix per cell on the cell's height level, so memory and draw calls scale with the kind and variant count, not the
 // cell count. models maps each kind to its fitted variant models. Returns null when a kind the map uses has no model,
 // so the caller keeps the heightfield as the fallback.
-export function bakeTiles(bytes, models) {
+export function bakeTiles(bytes, models, { splat = false } = {}) {
   const grid = readGrid(bytes);
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const empty = voidMask(grid);
@@ -237,6 +268,7 @@ export function bakeTiles(bytes, models) {
       const i = y * w + x;
       if (empty[i]) continue;
       const kind = cellKind(flags[i], tiles[i]);
+      if (splat && isSplatKind(kind)) continue;
       const variants = models[kind];
       if (!variants?.length) return null;
       const v = cellVariant(x, y, variants.length);

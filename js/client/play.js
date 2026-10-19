@@ -12,8 +12,8 @@ import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
-import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, fitModel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
+import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
+import { bakeTiles, controlMap, fitModel, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, HERO_ROSTER } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -81,9 +81,12 @@ function textureFrom(gl, image) {
 let mapBytes = null;
 let terrainMesh = null;
 let tileMeshes = null;
+// Splat ground: the control map, the four layers and the GPU handles; null when any layer texture fails to load.
+let splat = null;
+const SPLAT_BAND = 0.15;
 let terrainTiles = null;
 let unitMeshes = [];
-const drawCounts = { terrain: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
+const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
 // Scratch matrices for the per-unit transform and the screen projection, reused every frame.
 const unitTransform = new Float32Array(16);
 const worldVp = new Float32Array(16);
@@ -404,8 +407,17 @@ function drawUnits3d(units, dt) {
   for (const [key, entry] of animators) if (!entry.seen) animators.delete(key);
 }
 
+// Creep: sets one cell's ground kind (grass, dirt or lane) by rewriting its control texel. Only that texel is uploaded;
+// the terrain mesh and the tile batches are not rebuilt. Index is y * width + x in map cells.
+window.__setCellKind = (index, kind) => {
+  if (!splat || !renderer3d) return false;
+  renderer3d.updateSplatCell(splat, index, setSplatTexel(splat.control, index, kind));
+  return true;
+};
+
 function drawWorld3d() {
   drawCounts.terrain = 0;
+  drawCounts.splat = 0;
   drawCounts.doodad = 0;
   drawCounts.unit = 0;
   drawCounts.quad = 0;
@@ -414,12 +426,16 @@ function drawWorld3d() {
   const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
   lastDrawMs = now;
   renderer3d.beginFrame(BACKGROUND);
+  if (splat && terrainMesh) {
+    renderer3d.drawSplat(terrainMesh, splat);
+    drawCounts.splat += 1;
+  } else if (!tileMeshes && terrainMesh) countDraw("terrain", terrainMesh, null);
   if (tileMeshes) {
     for (const t of tileMeshes) {
       drawCounts.terrain += 1;
       renderer3d.drawInstanced(t.mesh, t.batch);
     }
-  } else if (terrainMesh) countDraw("terrain", terrainMesh, null);
+  }
   for (const d of doodadBatches) {
     // The TSL renderer has no level-of-detail path; it draws the full model for every instance.
     drawCounts.doodad += renderer3d.drawInstancedLod ? renderer3d.drawInstancedLod(d.mesh, d.batch, d.lowMesh) : renderer3d.drawInstancedVisible(d.mesh, d.batch);
@@ -1007,6 +1023,9 @@ function publishWitness() {
   document.body.dataset.center = renderer3d ? renderer3d.camera.target.map((v) => v.toFixed(2)).join(",") : `${flatView.cx},${flatView.cz}`;
   document.body.dataset.distance = renderer3d ? renderer3d.camera.distance.toFixed(3) : "";
   document.body.dataset.drawTerrain = String(drawCounts.terrain);
+  document.body.dataset.drawSplat = String(drawCounts.splat);
+  document.body.dataset.splatGround = splat ? "1" : "0";
+  document.body.dataset.texelUploads = String(renderer3d ? renderer3d.stats.texelUploads || 0 : 0);
   document.body.dataset.terrainMode = tileMeshes ? "tiles" : "heightfield";
   document.body.dataset.drawDoodad = String(drawCounts.doodad);
   document.body.dataset.drawUnit = String(drawCounts.unit);
@@ -1100,6 +1119,7 @@ async function build3d(gl, game) {
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
   const tileTextures = await loadTileTextures(gl);
   terrainMesh.texture = tileTextures.get("ground") || null;
+  splat = await buildSplat(gl).catch(() => null);
   tileMeshes = await loadTileMeshes(gl, tileTextures).catch(() => null);
   const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map(async ({ high, low }) => ({
     base: await toMesh(gl, high, DOODAD_TINT),
@@ -1124,13 +1144,24 @@ async function build3d(gl, game) {
 
 // Terrain drawn from the CC0 tile models: each kind's variant models fitted once, cells baked per kind and variant. Any
 // tile that fails to load returns null, so the heightfield mesh stays the drawn terrain.
+// Splat ground: the control map from the grid and each layer's albedo and height textures, in SPLAT_LAYERS order.
+async function buildSplat(gl) {
+  const layers = await Promise.all(SPLAT_LAYERS.map(async (name) => {
+    const [albedo, height] = await Promise.all(SPLAT_TEXTURES[name].map((uri) => loadBaseColorImage({ uri }, location.href).catch(() => null)));
+    return albedo && height ? { albedo: textureFrom(gl, albedo), height: textureFrom(gl, height) } : null;
+  }));
+  if (!layers.every(Boolean)) return null;
+  const control = controlMap(mapBytes);
+  return { control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, gpu: null };
+}
+
 async function loadTileMeshes(gl, tileTextures) {
   const names = [...new Set(Object.values(TILE_MODELS).flat())];
   const fitted = await Promise.all(names.map((name) => fetchModel(name, 1)));
   if (fitted.some((model) => !model)) return null;
   const byName = new Map(names.map((name, i) => [name, fitted[i]]));
   const models = Object.fromEntries(Object.entries(TILE_MODELS).map(([kind, list]) => [kind, list.map((name) => byName.get(name))]));
-  const baked = bakeTiles(mapBytes, models);
+  const baked = bakeTiles(mapBytes, models, { splat: Boolean(splat) });
   if (!baked) return null;
   const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, material, model, batches }) => batches.map(async ({ uvs, batch }) => {
     const texture = tileTextures.get(material) || null;
