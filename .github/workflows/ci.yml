@@ -2332,6 +2332,8 @@ jobs:
           const refusalShown = await fxWait("refusal");
           if (refusalShown) await fxShot("refusal.png");
           console.log(`moba fx ok move=${Number(moveShown)} ring=${Number(ringShown)} reticle=${Number(reticleShown)} refusal=${Number(refusalShown)}`);
+          // Diagnostic: every fx overlay the page showed, so a move marker that is missing shows whether an fx overlay appeared at all and in what colour.
+          console.log("moba fx diag " + JSON.stringify(await page.evaluate(() => (window.__ciOverlayLog || []).filter((e) => e.ui === "fx").slice(-8).map((e) => [Math.round(e.t), e.c]))));
           // The skill panel's cooldown sweep on the cast row is drawn while that ability is on cooldown.
           console.log(`moba cooldown ok sweep=${Number(sweepSeen)}`);
           // A then click, last in the step so the fights above cannot take its hero: the hero is selected again, then
