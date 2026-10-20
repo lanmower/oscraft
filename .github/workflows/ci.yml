@@ -2248,6 +2248,8 @@ jobs:
           // Visual feedback witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
           const heroNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id), attacker.id);
           const heroAtNow = await screenAt(heroNow.x, heroNow.z);
+          // Escape clears any armed attack or cast, so the right click on open ground is a plain move with a green marker.
+          await page.keyboard.press("Escape");
           await page.mouse.click(heroAtNow.x + 90, heroAtNow.y + 40, { button: "right" });
           const moveShown = await fxWait("fx", "rgb(76, 175, 80)");
           if (moveShown) await fxShot("move-marker.png");
