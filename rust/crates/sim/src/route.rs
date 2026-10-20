@@ -105,17 +105,6 @@ impl Sim {
         true
     }
 
-    /// Spawns `kind` for `player` at (x, y) and sends it along `lane`'s route; lane 0 or a player
-    /// with no such route marches it on the enemy base instead. None when the sim refuses the spawn.
-    pub fn spawn_on_lane(&mut self, player: u8, kind: u32, x: i32, y: i32, lane: u8) -> Option<usize> {
-        let j = self.spawn_for(player, kind, x, y)?;
-        self.stats.summoned += 1;
-        if lane == 0 || !self.start_route(j, player, lane) {
-            self.march_to_enemy_base(j, player);
-        }
-        Some(j)
-    }
-
     /// Advances unit `i` along its route: on reaching the current waypoint, the next one is ordered, or
     /// after the last the unit marches on the nearest hostile building. A changed order ends the route.
     pub(crate) fn tick_route(&mut self, i: usize) {
