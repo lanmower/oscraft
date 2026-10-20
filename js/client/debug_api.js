@@ -15,7 +15,7 @@ const HELP = [
   "oscraft.setShadows(bool)                sun shadow pass on or off (renderer setShadows)",
   "oscraft.setFog(bool)                    fog-of-war overlay and fog unit filter on or off (render side only; the sim's fog rule is unchanged)",
   "oscraft.setTerrain('splat' | 'tiles')   terrain mode; reloads the page with ?terrain= (boot-time switch)",
-  "oscraft.setRenderer('webgl' | 'tsl')    renderer; reloads the page with ?renderer= (boot-time switch)",
+  "oscraft.setRenderer('webgl')    renderer (the only one); reloads the page",
 ];
 
 // hooks are closures over play.js state, so every read sees the current value.
@@ -133,8 +133,8 @@ export function createDebugApi(hooks) {
     },
 
     setRenderer(kind) {
-      if (kind !== "webgl" && kind !== "tsl") return false;
-      reloadWith("renderer", kind === "tsl" ? "tsl" : null);
+      if (kind !== "webgl") return false;
+      reloadWith("renderer", null);
       return true;
     },
   };

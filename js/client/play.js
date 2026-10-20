@@ -1,5 +1,6 @@
 // Net client: WebGL2 map and unit view. Map and units come from the same assets as the browser
 // page (map.bin and the wasm sim pkg). Joins a wireweave DataSession room named by the URL hash.
+// There is no fallback path: a missing or failed asset is shown on the page (see recordAssetError), never drawn as something else.
 import { createDataSession, createFSM, NostrAuth, RelayPool } from "wireweave";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
@@ -13,7 +14,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, controlMap, fitModel, planarGroundUvs, planarUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
+import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -43,7 +44,6 @@ const UNIT_HALF = 0.9;
 const HERO_DRAW_SCALE = 2;
 const DOODAD_HALF = 0.5;
 const PICK_RADIUS = 1.2;
-const FLAT_PX_PER_UNIT = 20;
 const DRAG_SLOP_PX = 4;
 const PAN_PX_PER_S = 500;
 let orbitOrigin = [W / 2, 0, H / 2];
@@ -73,25 +73,14 @@ const pkgUrl = new URL(document.body.dataset.pkg, location.href).href;
 // The #moba page loads the moba scenario image, the default page loads the duel map image.
 const mapUrl = new URL(location.hash === "#moba" ? "moba.bin" : document.body.dataset.map, location.href).href;
 
-// Flat fallback view (no WebGL2): a fixed top-down frame centred on the map.
-const flatView = { cx: W / 2, cz: H / 2 };
 let mapGrid = null;
-// 3D view state: the renderer and its orbit camera exist only when WebGL2 is available.
+// The WebGL2 renderer and its orbit camera; created once the WebGL2 context exists.
 let renderer3d = null;
-let tslRenderer = null;
-
-function textureFrom(gl, image) {
-  return tslRenderer ? tslRenderer.uploadTexture(image) : uploadTexture(gl, image);
-}
 let mapBytes = null;
 let terrainMesh = null;
-let tileMeshes = null;
-// Splat ground: the control map, the four layers and the GPU handles; null when any layer texture fails to load.
+// Splat ground: the control map, the four layers and the GPU handles. Built before the match starts; a layer that fails is an error.
 let splat = null;
 const SPLAT_BAND = 0.15;
-// Default terrain is the splat heightfield floor with cliff walls and water tiles. ?terrain=tiles restores the per-cell tile
-// path (ramp and cliff tiles included) for comparison.
-const TERRAIN_TILES = params.get("terrain") === "tiles";
 // Sun shadows: one setting. ?shadows=0 turns the shadow map off (no shadow pass, no sampling).
 const SHADOW_ON = params.get("shadows") !== "0";
 const SHADOW_SIZE = 2048;
@@ -100,12 +89,13 @@ const SPLAT_SHADE = [0.42, 0.68, 1.3];
 // Per-layer albedo tint, in SPLAT_LAYERS order. The sand (dirt) layer takes the dirt tint so it sits with the grass family;
 // the other layers keep their own colour.
 const SPLAT_TINTS = SPLAT_LAYERS.map((name) => (name === "dirt" ? TILE_TINTS.dirt : [1, 1, 1]));
-// Cliff faces: the rock albedo is dark, so faces get a strong gain while keeping a light-facing contrast.
-const CLIFF_SHADE = [0.5, 0.7, 2.0];
 let terrainTiles = null;
 let unitMeshes = [];
 let arrowMesh = null;
-const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
+const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, animated: 0 };
+// Every asset that failed to load or build, by asset name (and the unit types with no model). Shown on the status line
+// and in body.dataset.assetError; a failed required asset (a hero model, the splat ground, the arrow) stops the start.
+const assetErrors = new Map();
 // Unit instances drawn into the sun's shadow map this frame (the dynamic casters), published for the browser probe.
 let shadowUnitCount = 0;
 // Scratch matrices for the per-unit transform and the screen projection, reused every frame.
@@ -154,7 +144,32 @@ const isGuest = () => netTick >= 0;
 
 function setStatus(extra) {
   const mode = netState ? "net" : "local";
-  statusEl.textContent = `room ${room}\npeers ${peers.size} (${mode})\n${extra || ""}`;
+  const errors = assetErrors.size ? `\nasset errors:\n${[...assetErrors].map(([name, message]) => `${name}: ${message}`).join("\n")}` : "";
+  statusEl.textContent = `room ${room}\npeers ${peers.size} (${mode})\n${extra || ""}${errors}`;
+}
+
+// A failed asset is named on the page: console error, the status line, and body.dataset.assetError. Each name is recorded once.
+function recordAssetError(name, err) {
+  if (assetErrors.has(name)) return;
+  const message = err && err.message ? err.message : String(err);
+  assetErrors.set(name, message);
+  console.error(`[asset] ${name}: ${message}`);
+  document.body.dataset.assetError = [...assetErrors].map(([n, m]) => `${n}: ${m}`).join("; ");
+  setStatus("assets failed to load");
+}
+
+// A start that cannot run (no WebGL2, a required asset) shows its reason on the page and does not continue.
+function failStart(err) {
+  const message = err && err.message ? err.message : String(err);
+  console.error(`[start] ${message}`);
+  document.body.dataset.startError = message;
+  setStatus(`start failed: ${message}`);
+}
+
+async function fetchJson(name) {
+  const res = await fetch(new URL(name, location.href));
+  if (!res.ok) throw new Error(`${name} HTTP ${res.status}`);
+  return res.json();
 }
 
 async function loadSim() {
@@ -168,8 +183,9 @@ async function loadSim() {
   // every hero's attributes are zero at level 0, so heroes are not seen as heroes. The lobby's picker lists the
   // names on every page, so the text is always read for them; only the moba page hands it to the sim.
   const rulesRes = await fetch(new URL("hero_rules.txt", location.href));
-  const rulesText = rulesRes.ok ? await rulesRes.text() : "";
-  if (location.hash === "#moba" && !(rulesRes.ok && game.set_hero_rules(rulesText))) throw new Error("hero_rules.txt did not load");
+  if (!rulesRes.ok) throw new Error(`hero_rules.txt HTTP ${rulesRes.status}`);
+  const rulesText = await rulesRes.text();
+  if (location.hash === "#moba" && !game.set_hero_rules(rulesText)) throw new Error("hero_rules.txt was refused by the sim");
   heroRuleNames = heroNamesFromRules(rulesText);
   // Fog of war is on for every page, moba included: enemies outside the local team's vision stay hidden.
   game.set_fog(true);
@@ -181,8 +197,6 @@ function setMapSize(grid) {
   mapGrid = grid;
   W = grid.width;
   H = grid.height;
-  flatView.cx = W / 2;
-  flatView.cz = H / 2;
   const [x0, z0, x1, z1] = walkableBounds(grid);
   cameraBounds = [x0, z0, x1, z1];
   orbitOrigin = [(x0 + x1) / 2, 0, (z0 + z1) / 2];
@@ -204,15 +218,6 @@ function skinnedRig(animations, glb, fit) {
   return { clips, skin, nodes, fit: grounded, positions: glb.positions, normals: glb.normals || vertexNormals(glb.positions, glb.indices), joints: glb.joints, weights: glb.weights };
 }
 
-// A flat ground square with its normal up: the fallback mesh for a unit with no model.
-function quadMesh(half) {
-  return {
-    positions: new Float32Array([-half, 0, -half, half, 0, -half, half, 0, half, -half, 0, half]),
-    normals: new Float32Array([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]),
-    indices: new Uint16Array([0, 1, 2, 0, 2, 3]),
-  };
-}
-
 // Humanoid clip library (anim/library.json, extracted from the spoint animation set). Shared by every rig.
 let animLibrary = null;
 function humanoidLibrary() {
@@ -221,14 +226,10 @@ function humanoidLibrary() {
 }
 
 // A rig without embedded clips is animated from the humanoid library through its bone map (anim/maps/<model>.json).
-// A rig with no map, or a map that fails to load, keeps no clips and draws in its rest pose.
+// A rig with no map, or a map that fails to load, is an error for that model: it is never drawn in its rest pose.
 async function libraryClips(name, nodes) {
-  try {
-    const [map, library] = await Promise.all([fetch(new URL(`anim/maps/${name}.json`, location.href)).then((r) => r.json()), humanoidLibrary()]);
-    return retargetLibrary(library, map, nodes);
-  } catch {
-    return [];
-  }
+  const [map, library] = await Promise.all([fetchJson(`anim/maps/${name}.json`), humanoidLibrary()]);
+  return retargetLibrary(library, map, nodes);
 }
 
 // Each model name is fetched and parsed once: unit types and doodad kinds that name the same GLB share one parse,
@@ -239,7 +240,9 @@ function parsedModel(name) {
   if (!entry) {
     entry = (async () => {
       const url = new URL(`models/${name}.glb`, location.href);
-      const bytes = await resolveGlbExtensions(await (await fetch(url)).arrayBuffer());
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`models/${name}.glb HTTP ${res.status}`);
+      const bytes = await resolveGlbExtensions(await res.arrayBuffer());
       const glb = parseGlb(bytes);
       const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
       if (animations && animations.clips.length === 0) animations.clips = await libraryClips(name, animations.nodes);
@@ -251,56 +254,92 @@ function parsedModel(name) {
   return entry;
 }
 
-// Loads one GLB by name and returns its fitted model, or null when the file is missing or unreadable.
+// Loads one GLB by name and returns its fitted model. A missing or unreadable file, or a rig with no clips or too many
+// joints, throws with the asset name: nothing is drawn in its place.
 async function fetchModel(name, size) {
-  if (!name) return null;
   try {
     const { url, glb, animations } = await parsedModel(name);
     const fitted = fitModel(glb, size);
     const animation = animations ? skinnedRig(animations, glb, fitted.fit) : null;
+    if (animations && !animation) throw new Error("rig has no clips or more joints than the shader palette");
     return { ...fitted, glbUrl: url, animation };
-  } catch {
-    return null;
+  } catch (err) {
+    throw new Error(`model ${name}: ${err && err.message ? err.message : err}`);
   }
 }
 
-// One fitted model per unit type, indexed like the wasm unit_types export. A type with no model, or a model
-// that fails to load, is null and draws as a ground quad. A model with its own size in doodad_sizes.json (Roshan,
-// at hero heights) is fitted to it; every other unit is fitted to a hero footprint.
+// One fitted model per unit type, indexed like the wasm unit_types export. A type with no model entry, or a model that
+// fails to load, is null: the unit type is then reported on the page once and not drawn. A hero that has no model, or
+// whose model fails, throws, so the match does not start. A model with its own size in doodad_sizes.json (Roshan,
+// at hero heights) is fitted to it; every other unit is fitted to a hero footprint (UNIT_HALF, the design rule that
+// scripts/doodad-sizes.mjs also states).
 async function loadModels(game) {
-  if (typeof game.unit_model_names !== "function") return [];
-  const sizes = await fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({}));
+  if (typeof game.unit_model_names !== "function") throw new Error("the wasm build has no unit_model_names export");
+  const sizes = await fetchJson("doodad_sizes.json");
   // Heroes (player-controlled unit types) are drawn at HERO_DRAW_SCALE times their fitted size: the owner's intended hero size is twice the fit.
   const heroFlags = typeof game.unit_hero_kinds === "function" ? game.unit_hero_kinds() : [];
-  return Promise.all(game.unit_model_names().map((name, type) => fetchModel(name, (sizes[name] ?? 2 * UNIT_HALF) * (heroFlags[type] === 1 ? HERO_DRAW_SCALE : 1))));
+  const typeNames = typeof game.unit_type_names === "function" ? game.unit_type_names() : [];
+  return Promise.all(game.unit_model_names().map(async (name, type) => {
+    const hero = heroFlags[type] === 1;
+    if (!name) {
+      if (hero) throw new Error(`unit ${typeNames[type] ?? type}: hero has no model`);
+      recordAssetError(`unit ${typeNames[type] ?? type}`, new Error("has no model"));
+      return null;
+    }
+    const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
+    try {
+      return await fetchModel(name, size);
+    } catch (err) {
+      if (hero) throw err;
+      recordAssetError(name, err);
+      return null;
+    }
+  }));
 }
 
-// Doodads: one fitted model per kind code (DODA kind), read from doodads.json which maps kind name to GLB path.
-// The shipped asset catalogue (assets.json) names each doodad's GLB; doodads.json is the fallback when it is missing.
+// Doodads: one fitted model per kind code (DODA kind). The asset catalogue (assets.json) names a kind's GLB when it has
+// an entry; doodads.json maps every kind to its GLB path. A placed kind whose model or footprint is missing is recorded
+// on the page and its placements are not drawn.
 async function loadDoodadModels(usedKinds) {
-  const [map, catalogue, footprints] = await Promise.all([
-    fetch(new URL("doodads.json", location.href)).then((r) => r.json()),
-    fetch(new URL("assets.json", location.href)).then((r) => r.json()).catch(() => ({ items: [] })),
-    fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({})),
-  ]);
+  const [catalogue, paths, footprints] = await Promise.all([fetchJson("assets.json"), fetchJson("doodads.json"), fetchJson("doodad_sizes.json")]);
+  const toStem = (file) => file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "");
   const modelName = (id) => {
     const file = catalogue.items.find((item) => item.id === id && item.kind === "model")?.path;
-    return file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null;
+    return file ? toStem(file) : null;
   };
-  // Each model is fitted to its footprint in cells from doodad_sizes.json (scripts/doodad-sizes.mjs); a model without one keeps DOODAD_HALF's size.
-  const sizeOf = (name) => footprints[name] ?? 2 * DOODAD_HALF;
+  // Each model is fitted to its footprint in cells from doodad_sizes.json (scripts/doodad-sizes.mjs).
+  const sizeOf = (name) => footprints[name];
   // Only kinds the map places are fetched; an unplaced kind keeps an empty entry, so indices still match the kind codes.
   return Promise.all(DOODAD_KINDS.map(async (kind, code) => {
     if (usedKinds && !usedKinds.has(code)) return { high: null, low: null };
-    const name = modelName(kind) ?? (map[kind] ? map[kind].replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null);
+    const name = modelName(kind) ?? (paths[kind] ? toStem(paths[kind]) : null);
+    if (!name) {
+      recordAssetError(`doodad ${kind}`, new Error("no model path in assets.json or doodads.json"));
+      return { high: null, low: null };
+    }
     const lowName = modelName(`${kind}-low`);
-    const [high, low] = await Promise.all([fetchModel(name, sizeOf(name)), lowName ? fetchModel(lowName, sizeOf(lowName)) : null]);
+    const load = (model) => {
+      if (sizeOf(model) === undefined) {
+        recordAssetError(model, new Error("no footprint in doodad_sizes.json"));
+        return null;
+      }
+      return modelOrRecord(model, fetchModel(model, sizeOf(model)));
+    };
+    const [high, low] = await Promise.all([load(name), lowName ? load(lowName) : null]);
     return { high, low };
   }));
 }
 
-// Uploads a fitted model as a drawable mesh. Its base colour texture is uploaded when the model has one.
-// Units pass animated: their skinned rig replaces the fitted geometry, which the joint matrices carry instead.
+// Records a model that fails and resolves to null, so only that asset is missing from the page.
+function modelOrRecord(name, promise) {
+  return promise.catch((err) => {
+    recordAssetError(name, err);
+    return null;
+  });
+}
+
+// Uploads a fitted model as a drawable mesh. Its base colour texture is uploaded when the model has one; a texture
+// that does not load throws. Units pass animated: their skinned rig replaces the fitted geometry, which the joint matrices carry instead.
 async function toMesh(gl, fitted, fallbackColor, { animated = false } = {}) {
   if (!fitted) return null;
   const rig = animated ? fitted.animation : null;
@@ -308,12 +347,9 @@ async function toMesh(gl, fitted, fallbackColor, { animated = false } = {}) {
     ? { positions: rig.positions, normals: rig.normals, uvs: fitted.uvs, indices: fitted.indices, joints: rig.joints, weights: rig.weights, animation: rig, color: fallbackColor, height: maxY(fitted.positions) }
     : { positions: fitted.positions, normals: fitted.normals, uvs: fitted.uvs, indices: fitted.indices, color: fallbackColor, height: maxY(fitted.positions) };
   if (fitted.baseColorTexture) {
-    try {
-      const image = await loadBaseColorImage(fitted.baseColorTexture, fitted.glbUrl);
-      if (image) mesh.texture = textureFrom(gl, image);
-    } catch {
-      // A texture that fails to load leaves the model drawn in its fallback colour.
-    }
+    const image = await loadBaseColorImage(fitted.baseColorTexture, fitted.glbUrl);
+    if (!image) throw new Error(`base colour texture of ${fitted.glbUrl} did not load`);
+    mesh.texture = uploadTexture(gl, image);
   }
   return mesh;
 }
@@ -324,11 +360,12 @@ function maxY(positions) {
   return top;
 }
 
-// The ranged attack's projectile: the arrow model, fitted to the footprint doodad_sizes.json gives it. Null when it does
-// not load, and the effects keep their octahedron.
+// The ranged attack's projectile: the arrow model, fitted to the footprint doodad_sizes.json gives it. Required: a
+// failed arrow stops the start rather than drawing the projectile as something else.
 async function loadArrowMesh(gl) {
-  const footprints = await fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({}));
-  return toMesh(gl, await fetchModel("arrow", footprints.arrow ?? 2 * DOODAD_HALF), [1, 1, 1]).catch(() => null);
+  const footprints = await fetchJson("doodad_sizes.json");
+  if (footprints.arrow === undefined) throw new Error("model arrow: no footprint in doodad_sizes.json");
+  return toMesh(gl, await fetchModel("arrow", footprints.arrow), [1, 1, 1]);
 }
 
 // Ground height under a tile position; the terrain is flat at 0 until its mesh is built.
@@ -353,7 +390,7 @@ function simUnits() {
   if (!localGame) return [];
   const flat = localGame.units();
   const ids = localGame.unit_ids();
-  // Older wasm builds have no unit_types or unit_hps export; their units draw as quads without health bars.
+  // Older wasm builds have no unit_types or unit_hps export: their type is unknown (-1), so no model is drawn for them and the page reports it.
   const types = typeof localGame.unit_types === "function" ? localGame.unit_types() : null;
   const hps = typeof localGame.unit_hps === "function" ? localGame.unit_hps() : null;
   // Older wasm builds lack unit_attacking; their units never report an attack clip.
@@ -372,17 +409,23 @@ function countDraw(kind, mesh, transform, joints = null) {
   else renderer3d.drawMesh(mesh, transform);
 }
 
-// Unit meshes are cached per (type, colour key): a textured model keeps its texture whatever the colour.
+// Unit meshes are cached per (type, colour key): a textured model keeps its texture whatever the colour. Callers pass
+// only a type that has a model (collectUnitDraws reports the rest).
 const unitMeshCache = new Map();
 function unitMeshFor(type, color) {
   const key = `${type}:${color.join(",")}`;
   let mesh = unitMeshCache.get(key);
   if (!mesh) {
-    const base = type >= 0 && unitMeshes[type] ? unitMeshes[type] : null;
-    mesh = base ? { ...base, color } : { ...quadMesh(UNIT_HALF), color };
+    mesh = { ...unitMeshes[type], color };
     unitMeshCache.set(key, mesh);
   }
   return mesh;
+}
+
+// A unit type with no model is reported once (console and status line) and its units are not drawn.
+function reportMissingModel(type) {
+  const names = localGame && typeof localGame.unit_type_names === "function" ? localGame.unit_type_names() : [];
+  recordAssetError(`unit ${names[type] ?? type}`, new Error(`type ${type} has no model`));
 }
 
 // Joint palette for a unit this frame: its clip (walk when it moved, attack when it reports attacking, else idle)
@@ -475,8 +518,11 @@ function collectUnitDraws(units, dt) {
   for (const entry of animators.values()) entry.seen = false;
   for (const raw of units) {
     const u = drawnPosition(raw);
+    if (!unitMeshes[u.type]) {
+      reportMissingModel(u.type);
+      continue;
+    }
     const color = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
-    const model = unitMeshes[u.type];
     const mesh = unitMeshFor(u.type, color);
     if (!renderer3d.isVisible(u.x, u.z, meshReach(mesh))) {
       // Off screen: no draw and no clip advance, but its animator survives so the clip resumes where it stopped.
@@ -492,7 +538,7 @@ function collectUnitDraws(units, dt) {
       list.push({ kind: "unit", mesh, transform: facing, joints });
       clips.push(`${u.id}:${entry.player.clip?.name ?? ""}:${entry.player.rate.toFixed(2)}`);
       yaws.push(`${u.id}:${entry.yaw.toFixed(2)}`);
-    } else list.push({ kind: model ? "unit" : "quad", mesh, transform, joints: null });
+    } else list.push({ kind: "unit", mesh, transform, joints: null });
   }
   for (const [key, entry] of animators) if (!entry.seen) animators.delete(key);
   // The clip each rigged unit plays this frame, for the browser probe.
@@ -559,34 +605,11 @@ window.__setCellKind = (index, kind) => {
 };
 
 // Terrain and doodads: the casters of the sun's shadow map as well as the lit draws.
-// A visible badge in the corner: green for the splat ground, amber when the terrain fell back to tile types.
-function updateTerrainBadge() {
-  let badge = document.getElementById("terrain-path");
-  if (!badge) {
-    badge = document.createElement("div");
-    badge.id = "terrain-path";
-    badge.style.cssText = "position:fixed;left:8px;bottom:8px;padding:2px 6px;font:12px monospace;color:#fff;border-radius:3px;z-index:9;pointer-events:none";
-    document.body.appendChild(badge);
-  }
-  const want = splat && !TERRAIN_TILES ? "terrain: heightfield (splat layers)" : splat ? "terrain: splat tiles" : "terrain: TILE FALLBACK (" + (splatFallbackReason || "splat not built") + ")";
-  if (badge.textContent !== want) badge.textContent = want;
-  badge.style.background = splat ? "#2e6b2e" : "#a86b00";
-}
-
 function drawGround3d() {
-  if (splat && terrainMesh) {
-    renderer3d.drawSplat(terrainMesh, splat);
-    drawCounts.splat += 1;
-  } else if (!tileMeshes && terrainMesh) countDraw("terrain", terrainMesh, null);
-  if (tileMeshes) {
-    for (const t of tileMeshes) {
-      drawCounts.terrain += 1;
-      renderer3d.drawInstanced(t.mesh, t.batch);
-    }
-  }
+  renderer3d.drawSplat(terrainMesh, splat);
+  drawCounts.splat += 1;
   for (const d of doodadBatches) {
-    // The TSL renderer has no level-of-detail path; it draws the full model for every instance.
-    drawCounts.doodad += renderer3d.drawInstancedLod ? renderer3d.drawInstancedLod(d.mesh, d.batch, d.lowMesh) : renderer3d.drawInstancedVisible(d.mesh, d.batch);
+    drawCounts.doodad += renderer3d.drawInstancedLod(d.mesh, d.batch, d.lowMesh);
   }
 }
 
@@ -595,7 +618,6 @@ function drawWorld3d() {
   drawCounts.splat = 0;
   drawCounts.doodad = 0;
   drawCounts.unit = 0;
-  drawCounts.quad = 0;
   drawCounts.animated = 0;
   const now = performance.now();
   const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
@@ -620,20 +642,6 @@ function drawWorld3d() {
   // window.__fxOff is the CI probe switch that measures the frame cost of the effects.
   if (fx && window.__fxOff !== true) fx.frame(units, dt);
   renderer3d.endFrame();
-}
-
-// Flat fallback without WebGL2: each unit is a 2D square at its screen position on a 2D canvas.
-function drawFlat(ctx, units) {
-  ctx.fillStyle = `rgb(${MAP_COLOR.map((c) => Math.round(c * 255)).join(",")})`;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  for (const u of units) {
-    const color = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
-    const p = worldToScreen(u.x, u.z);
-    const half = UNIT_HALF * FLAT_PX_PER_UNIT;
-    ctx.fillStyle = `rgb(${color.map((c) => Math.round(c * 255)).join(",")})`;
-    ctx.fillRect(p.x * window.devicePixelRatio - half, p.y * window.devicePixelRatio - half, 2 * half, 2 * half);
-    drawCounts.quad += 1;
-  }
 }
 
 // Arrow keys and the pointer at the window edge pan the orbit camera; the speed is in pixels per second, so
@@ -663,13 +671,8 @@ function resize() {
   canvas.height = Math.floor(window.innerHeight * dpr);
 }
 
-// Ground point (x, z) under a client pixel. In 3D this intersects the view ray with the ground plane y = 0;
-// the flat fallback maps the pixel through its fixed top-down frame.
+// Ground point (x, z) under a client pixel: the view ray intersected with the terrain surface.
 function screenToWorld(clientX, clientY) {
-  if (!renderer3d) {
-    const ppu = FLAT_PX_PER_UNIT;
-    return { x: flatView.cx + (clientX - window.innerWidth / 2) / ppu, z: flatView.cz + (clientY - window.innerHeight / 2) / ppu };
-  }
   const cam = renderer3d.camera;
   const eye = eyeOf(cam);
   const fwd = normalize(sub(cam.target, eye));
@@ -717,11 +720,6 @@ function worldToScreen(x, z, y = 0) {
 
 // Homogeneous clip coordinates [X, Y, Z, W] of the world point; W <= 0 is behind the camera plane. The fog overlay cuts cells at W so none is projected through the camera.
 function worldClip(x, z, y = 0) {
-  if (!renderer3d) {
-    const px = window.innerWidth / 2 + (x - flatView.cx) * FLAT_PX_PER_UNIT;
-    const py = window.innerHeight / 2 + (z - flatView.cz) * FLAT_PX_PER_UNIT;
-    return [(2 * px) / window.innerWidth - 1, 1 - (2 * py) / window.innerHeight, 0, 1];
-  }
   const vp = viewProjection(renderer3d.camera, window.innerWidth / Math.max(1, window.innerHeight), worldVp);
   return [0, 1, 2, 3].map((r) => vp[r] * x + vp[4 + r] * y + vp[8 + r] * z + vp[12 + r]);
 }
@@ -1275,21 +1273,18 @@ function publishCommandCounts() {
 function publishWitness() {
   document.body.dataset.units = String(currentUnits().length);
   document.body.dataset.ticks = String(localGame ? localGame.ticks() : netState ? netState.tick : 0);
-  document.body.dataset.mode = renderer3d ? "3d" : "flat";
-  document.body.dataset.center = renderer3d ? renderer3d.camera.target.map((v) => v.toFixed(2)).join(",") : `${flatView.cx},${flatView.cz}`;
-  document.body.dataset.distance = renderer3d ? renderer3d.camera.distance.toFixed(3) : "";
+  document.body.dataset.mode = "3d";
+  document.body.dataset.center = renderer3d.camera.target.map((v) => v.toFixed(2)).join(",");
+  document.body.dataset.distance = renderer3d.camera.distance.toFixed(3);
   document.body.dataset.drawTerrain = String(drawCounts.terrain);
   document.body.dataset.drawSplat = String(drawCounts.splat);
   document.body.dataset.splatGround = splat ? "1" : "0";
   document.body.dataset.shadow = SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0";
   document.body.dataset.shadowUnits = String(shadowUnitCount);
-  document.body.dataset.texelUploads = String(renderer3d ? renderer3d.stats.texelUploads || 0 : 0);
-  document.body.dataset.terrainMode = splat && !TERRAIN_TILES ? "heightfield" : splat ? "splat" : tileMeshes ? "tiles" : "heightfield";
-  document.body.dataset.splatFallback = splat ? "" : splatFallbackReason || "splat not built";
-  updateTerrainBadge();
+  document.body.dataset.texelUploads = String(renderer3d.stats.texelUploads || 0);
+  document.body.dataset.terrainMode = "heightfield";
   document.body.dataset.drawDoodad = String(drawCounts.doodad);
   document.body.dataset.drawUnit = String(drawCounts.unit);
-  document.body.dataset.drawQuad = String(drawCounts.quad);
   document.body.dataset.drawAnimated = String(drawCounts.animated);
   document.body.dataset.drawCalls = String(renderer3d ? renderer3d.stats.drawCalls : 0);
   document.body.dataset.drawInstances = String(renderer3d ? renderer3d.stats.instances : 0);
@@ -1363,27 +1358,23 @@ function doodadVariant(base, kind, v) {
 }
 
 // Builds the 3D world from the staged assets: the terrain mesh from map.bin, doodads at their placements with
-// their GLB models, and unit models from the sim's model names. Each unit type keeps a model or null (quad).
+// their GLB models, and unit models from the sim's model names. Each unit type keeps a model, or null when it has none.
 async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: planarGroundUvs(terrain.positions), indices: terrain.indices, color: MAP_COLOR };
-  // Ground textures, splat layers, doodad and unit models are independent downloads: they start together, so the
-  // wait is the slowest chain rather than the sum of the stages. Tile meshes still wait for the splat they bake against.
+  // Splat layers, doodad and unit models are independent downloads: they start together, so the wait is the slowest
+  // chain rather than the sum of the stages.
   const placements = readDoodads(mapBytes);
   const usedKinds = new Set(placements.map((p) => p.kind));
-  const tileTexturesReady = loadTileTextures(gl);
-  const splatReady = buildSplat(gl).catch(() => null);
-  const doodadModelsReady = loadDoodadModels(usedKinds).catch(() => []);
+  const splatReady = buildSplat(gl);
+  const doodadModelsReady = loadDoodadModels(usedKinds);
   const unitFitsReady = loadModels(game);
-  const tileTextures = await tileTexturesReady;
-  terrainMesh.texture = tileTextures.get("ground") || null;
+  // The splat ground is the default floor: a layer that does not build stops the start (buildSplat throws).
   splat = await splatReady;
-  if (!splat) reportTerrainFallback(splatFallbackReason || "splat layers did not load");
-  tileMeshes = await loadTileMeshes(gl, tileTextures).catch(() => null);
   const doodadByKind = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
-    base: await toMesh(gl, high, DOODAD_TINT),
-    lowBase: await toMesh(gl, low, DOODAD_TINT),
+    base: high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null,
+    lowBase: low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null,
   })));
   const s = 1 / terrain.cellMilli;
   const placed = placements.flatMap((p) => {
@@ -1400,65 +1391,32 @@ async function build3d(gl, game) {
   });
   doodadBatches = batchByMesh(placed);
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
-  unitMeshes = await Promise.all((await unitFitsReady).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
+  // A hero's mesh failure stops the start; any other unit's failure is recorded and that type is not drawn.
+  const heroFlags = typeof game.unit_hero_kinds === "function" ? game.unit_hero_kinds() : [];
+  unitMeshes = await Promise.all((await unitFitsReady).map((f, type) => {
+    if (!f) return null;
+    const mesh = toMesh(gl, f, [1, 1, 1], { animated: true });
+    return heroFlags[type] === 1 ? mesh : modelOrRecord(f.glbUrl, mesh);
+  }));
   arrowMesh = await loadArrowMesh(gl);
 }
 
-// Terrain drawn from the CC0 tile models: each kind's variant models fitted once, cells baked per kind and variant. Any
-// tile that fails to load returns null, so the heightfield mesh stays the drawn terrain.
 // Splat ground: the control map from the grid and each layer's albedo and height textures, in SPLAT_LAYERS order.
-// Why the splat ground is not drawn, when it is not: the marker and the log say so, so a tile fallback cannot pass for splat.
-let splatFallbackReason = null;
-function reportTerrainFallback(reason) {
-  splatFallbackReason = reason;
-  console.warn("[terrain] splat ground not drawn, tile fallback: " + reason);
-}
-
+// A layer texture that does not load throws, naming the layer: the splat ground is required.
 async function buildSplat(gl) {
-  if (params.get("splat") === "0") {
-    splatFallbackReason = "disabled by ?splat=0";
-    return null;
-  }
   const layers = await Promise.all(SPLAT_LAYERS.map(async (name) => {
-    const [albedo, height] = await Promise.all(SPLAT_TEXTURES[name].map((uri) => loadBaseColorImage({ uri }, location.href).catch(() => null)));
-    return albedo && height ? { albedo: textureFrom(gl, albedo), height: textureFrom(gl, height) } : null;
+    const [albedo, height] = await Promise.all(SPLAT_TEXTURES[name].map(async (uri) => {
+      const image = await loadBaseColorImage({ uri }, location.href);
+      if (!image) throw new Error(`splat layer ${name} texture ${uri} did not load`);
+      return image;
+    }));
+    return { albedo: uploadTexture(gl, albedo), height: uploadTexture(gl, height) };
   }));
-  if (!layers.every(Boolean)) {
-    splatFallbackReason = "a splat layer texture failed to load";
-    return null;
-  }
   const control = controlMap(mapBytes);
-  return { control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, tints: SPLAT_TINTS, gpu: null };
-}
-
-async function loadTileMeshes(gl, tileTextures) {
-  const names = [...new Set(Object.values(TILE_MODELS).flat())];
-  const fitted = await Promise.all(names.map((name) => fetchModel(name, 1)));
-  if (fitted.some((model) => !model)) return null;
-  const byName = new Map(names.map((name, i) => [name, fitted[i]]));
-  const models = Object.fromEntries(Object.entries(TILE_MODELS).map(([kind, list]) => [kind, list.map((name) => byName.get(name))]));
-  const heightfield = Boolean(splat) && !TERRAIN_TILES;
-  const baked = bakeTiles(mapBytes, models, { splat: Boolean(splat), ramps: !heightfield, cliffCells: !heightfield, water: !heightfield });
-  if (!baked) return null;
-  const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, material, model, batches, planar }) => batches.map(async ({ uvs, batch }) => {
-    const texture = tileTextures.get(material) || null;
-    const faceUvs = material === "cliff" ? planarUvs(model.positions) : planar ? planarGroundUvs(model.positions) : uvs;
-    const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs: faceUvs, baseColorTexture: null, glbUrl: model.glbUrl }, texture ? [1, 1, 1] : TILE_TINTS[kind]);
-    if (!mesh) return null;
-    if (texture) mesh.texture = texture;
-    if (material === "cliff") mesh.shade = CLIFF_SHADE;
-    return { mesh, batch };
-  })));
-  return drawn.every(Boolean) ? drawn : null;
-}
-
-// Every tile material's texture, keyed by material name: one GPU texture per name, shared by the kinds that use it.
-async function loadTileTextures(gl) {
-  const entries = await Promise.all(Object.entries(TILE_TEXTURES).map(async ([name, uri]) => {
-    const image = await loadBaseColorImage({ uri }, location.href).catch(() => null);
-    return [name, image ? textureFrom(gl, image) : null];
-  }));
-  return new Map(entries.filter(([, texture]) => texture));
+  return {
+    control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, tints: SPLAT_TINTS,
+    gpu: null,
+  };
 }
 
 const WORLD_STALL_MS = 15000;
@@ -1466,27 +1424,18 @@ const WORLD_STALL_MS = 15000;
 async function main() {
   resize();
   bindInput();
-  if (params.get("renderer") === "tsl") {
-    const { createTslRenderer } = await import("./render_tsl.js");
-    tslRenderer = await createTslRenderer(canvas, { debug: params.get("debug") === "1" }).catch(() => null);
-  }
-  const gl = tslRenderer ? null : canvas.getContext("webgl2", { antialias: true });
-  const flatCtx = gl ? null : canvas.getContext("2d");
+  const gl = canvas.getContext("webgl2", { antialias: true });
+  if (!gl) throw new Error("WebGL2 is required: this browser gave no WebGL2 context for the game canvas");
   localGame = await loadSim();
-  if (gl || tslRenderer) {
-    renderer3d = tslRenderer ?? createRenderer3d(gl);
-    renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, bounds: cameraBounds, pitch: 0.9 });
-    // A download that never settles would otherwise leave the status on its initial "connecting" text.
-    setStatus("loading world assets");
-    const stalled = setTimeout(() => setStatus(`loading world assets: still pending after ${WORLD_STALL_MS / 1000} s, check the network`), WORLD_STALL_MS);
-    try {
-      await build3d(gl, localGame);
-    } catch (err) {
-      // Missing or broken assets leave the scene with what loaded; units without a model draw as quads.
-      document.body.dataset.assetError = err && err.message ? err.message : String(err);
-    } finally {
-      clearTimeout(stalled);
-    }
+  renderer3d = createRenderer3d(gl);
+  renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, bounds: cameraBounds, pitch: 0.9 });
+  // A download that never settles would otherwise leave the status on its initial "connecting" text.
+  setStatus("loading world assets");
+  const stalled = setTimeout(() => setStatus(`loading world assets: still pending after ${WORLD_STALL_MS / 1000} s, check the network`), WORLD_STALL_MS);
+  try {
+    await build3d(gl, localGame);
+  } finally {
+    clearTimeout(stalled);
   }
   hud = createHud({
     game: localGame,
@@ -1546,13 +1495,8 @@ async function main() {
         localTickAcc -= SIM_TICK_S;
       }
     }
-    if (renderer3d) {
-      drawWorld3d();
-      fogview.draw();
-    } else if (flatCtx) {
-      drawCounts.quad = 0;
-      drawFlat(flatCtx, currentUnits());
-    }
+    drawWorld3d();
+    fogview.draw();
     publishWitness();
     requestAnimationFrame(frame);
   }
@@ -1566,7 +1510,7 @@ async function main() {
 let shadowsEnabled = SHADOW_ON;
 installDebugApi({
   renderer: () => renderer3d,
-  rendererKind: () => (tslRenderer ? "tsl" : "webgl"),
+  rendererKind: () => "webgl",
   game: () => localGame,
   localPlayer: () => myPlayer,
   netTick: () => (netState ? netState.tick : 0),
@@ -1578,7 +1522,7 @@ installDebugApi({
   order: (id, x, z) => commands.order(id, x, z),
   attack: (id, targetId) => commands.attack(id, targetId),
   drawCounts: () => ({ ...drawCounts }),
-  terrainMode: () => (splat && !TERRAIN_TILES ? "heightfield" : splat ? "splat" : tileMeshes ? "tiles" : "heightfield"),
+  terrainMode: () => "heightfield",
   shadowsOn: () => shadowsEnabled,
   setShadows: (on) => {
     if (!renderer3d || !renderer3d.setShadows) return false;
@@ -1680,5 +1624,5 @@ if (params.get("ci") === "1") {
 main().catch((err) => {
   const message = err && err.message ? err.message : String(err);
   document.body.dataset.error = message;
-  setStatus(`failed: ${message}`);
+  failStart(err);
 });

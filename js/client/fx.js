@@ -402,7 +402,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     const model = arrow();
     for (let i = 0; i < projectiles.count; i++) {
       const p = projectiles.slots[i];
-      if (p.ranged && model) glow(model, p.color, 1, arrowAt(model, p));
+      if (p.ranged) glow(model, p.color, 1, arrowAt(model, p));
       else glow(octa, p.color, 1, placed(draw, p.pos.x, p.pos.y, p.pos.z, 0.25));
     }
   }
