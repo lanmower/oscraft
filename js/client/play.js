@@ -92,6 +92,9 @@ const SHADOW_ON = params.get("shadows") !== "0";
 const SHADOW_SIZE = 2048;
 // Ground lighting: ambient, diffuse and albedo gain. The gain lifts the owner's darker albedo to lit terrain.
 const SPLAT_SHADE = [0.42, 0.68, 1.3];
+// Per-layer albedo tint, in SPLAT_LAYERS order. The sand (dirt) layer takes the dirt tint so it sits with the grass family;
+// the other layers keep their own colour.
+const SPLAT_TINTS = SPLAT_LAYERS.map((name) => (name === "dirt" ? TILE_TINTS.dirt : [1, 1, 1]));
 // Cliff faces: the rock albedo is dark, so faces get a strong gain while keeping a light-facing contrast.
 const CLIFF_SHADE = [0.5, 0.7, 2.0];
 let terrainTiles = null;
@@ -1299,7 +1302,7 @@ async function buildSplat(gl) {
     return null;
   }
   const control = controlMap(mapBytes);
-  return { control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, gpu: null };
+  return { control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, tints: SPLAT_TINTS, gpu: null };
 }
 
 async function loadTileMeshes(gl, tileTextures) {

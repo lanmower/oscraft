@@ -306,12 +306,13 @@ uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; unifo
 uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
 uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
 uniform vec3 uShade; // ambient, diffuse, albedo gain
+uniform vec3 uLayerTint[4]; // per-layer albedo tint (the sand layer takes the dirt tint)
 out vec4 outColor;
 void main() {
   vec4 w = texture(uControl, vWorld.xz / uMapSize);
   vec2 uv = vWorld.xz * uUvScale;
-  vec3 c0 = texture(uAlb0, uv).rgb; vec3 c1 = texture(uAlb1, uv).rgb;
-  vec3 c2 = texture(uAlb2, uv).rgb; vec3 c3 = texture(uAlb3, uv).rgb;
+  vec3 c0 = texture(uAlb0, uv).rgb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv).rgb * uLayerTint[1];
+  vec3 c2 = texture(uAlb2, uv).rgb * uLayerTint[2]; vec3 c3 = texture(uAlb3, uv).rgb * uLayerTint[3];
   vec4 d = vec4(texture(uDisp0, uv).r, texture(uDisp1, uv).r, texture(uDisp2, uv).r, texture(uDisp3, uv).r);
   vec4 h = w * (d + 0.5);
   float m = max(max(h.x, h.y), max(h.z, h.w));
@@ -397,6 +398,7 @@ export function createRenderer(gl) {
     uvScale: gl.getUniformLocation(splatProgram, "uUvScale"),
     band: gl.getUniformLocation(splatProgram, "uBand"),
     shade: gl.getUniformLocation(splatProgram, "uShade"),
+    layerTint: gl.getUniformLocation(splatProgram, "uLayerTint[0]"),
     shadowOn: gl.getUniformLocation(splatProgram, "uShadowOn"),
     viewProj: gl.getUniformLocation(splatProgram, "uViewProj"),
     model: gl.getUniformLocation(splatProgram, "uModel"),
@@ -814,6 +816,7 @@ export function createRenderer(gl) {
     gl.uniform1f(splatUni.uvScale, splat.uvScale);
     gl.uniform1f(splatUni.band, splat.band);
     gl.uniform3fv(splatUni.shade, splat.shade);
+    gl.uniform3fv(splatUni.layerTint, splat.tints.flat());
     gl.uniformMatrix4fv(splatUni.viewProj, false, passVP);
     gl.uniformMatrix4fv(splatUni.model, false, unitModel);
     gl.uniformMatrix3fv(splatUni.normal, false, normalMatrix(unitModel, normalScratch));

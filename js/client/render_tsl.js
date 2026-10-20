@@ -212,7 +212,7 @@ export async function createTslRenderer(canvas, { debug = false } = {}) {
     splat.gpu = { control };
     const w = texture(control, positionWorld.xz.div(vec2(splat.width, splat.height)));
     const uvLayer = positionWorld.xz.mul(float(splat.uvScale));
-    const albedo = splat.layers.map((layer) => texture(layer.albedo, uvLayer).rgb);
+    const albedo = splat.layers.map((layer, k) => texture(layer.albedo, uvLayer).rgb.mul(vec3(...splat.tints[k])));
     const height = splat.layers.map((layer) => texture(layer.height, uvLayer).r);
     const weight = [w.x, w.y, w.z, w.w];
     const lifted = weight.map((wk, k) => wk.mul(height[k].add(0.5)));
