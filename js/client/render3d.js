@@ -316,6 +316,8 @@ uniform sampler2D uWaterMap; uniform vec3 uWaterTint; uniform float uTime; unifo
 out vec4 outColor;
 void main() {
   vec4 w = texture(uControl, vWorld.xz / uMapSize);
+  // Cliff (rock) weight is read per cell, so a cliff edge stays hard while the ground layers blend.
+  w.w = texelFetch(uControl, ivec2(floor(vWorld.xz / uMapSize * vec2(textureSize(uControl, 0)))), 0).w;
   vec2 uv = vWorld.xz * uUvScale;
   vec3 c0 = texture(uAlb0, uv).rgb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv).rgb * uLayerTint[1];
   vec3 c2 = texture(uAlb2, uv).rgb * uLayerTint[2]; vec3 c3 = texture(uAlb3, uv).rgb * uLayerTint[3];
@@ -833,9 +835,9 @@ export function createRenderer(gl) {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-    // Nearest: each cell takes one layer, so a path has a hard edge against the grass (no per-cell blend).
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    // Linear: ground layers blend across cell borders. The rock (cliff) channel is read nearest in the shader, so cliffs stay hard.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, control.width, control.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, control.data);

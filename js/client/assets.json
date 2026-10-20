@@ -1,6 +1,6 @@
 {
  "count": 824,
- "total_bytes": 23434411,
+ "total_bytes": 23479561,
  "items": [
   {
    "id": "rock",
@@ -5768,30 +5768,30 @@
   {
    "id": "dirt-cc0-256",
    "kind": "texture",
-   "path": "js/client/textures/dirt_earth_cc0_256.jpg",
-   "placed_by": "texture.js (splat layer dirt, SPLAT_TEXTURES, Dirt Aerial 03)",
-   "bytes": 15585
+   "path": "js/client/textures/grass_b_cc0_256.jpg",
+   "placed_by": "texture.js (splat layer dirt, SPLAT_TEXTURES, Grass 002)",
+   "bytes": 24744
   },
   {
    "id": "dirt-cc0-256-ktx2",
    "kind": "texture",
-   "path": "js/client/textures/dirt_earth_cc0_256.ktx2",
-   "placed_by": "texture.js (KTX2 sibling of dirt_earth_cc0_256.jpg, splat layer dirt)",
-   "bytes": 18235
+   "path": "js/client/textures/grass_b_cc0_256.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of grass_b_cc0_256.jpg, splat layer dirt)",
+   "bytes": 19653
   },
   {
    "id": "dirt-cc0-256-disp",
    "kind": "texture",
-   "path": "js/client/textures/dirt_earth_cc0_256_disp.jpg",
-   "placed_by": "texture.js (splat layer dirt height map, SPLAT_TEXTURES, Dirt Aerial 03)",
-   "bytes": 8535
+   "path": "js/client/textures/grass_b_cc0_256_disp.jpg",
+   "placed_by": "texture.js (splat layer dirt height map, SPLAT_TEXTURES, Grass 002)",
+   "bytes": 37021
   },
   {
    "id": "dirt-cc0-256-disp-ktx2",
    "kind": "texture",
-   "path": "js/client/textures/dirt_earth_cc0_256_disp.ktx2",
-   "placed_by": "texture.js (KTX2 sibling of dirt_earth_cc0_256_disp.jpg, splat layer dirt height)",
-   "bytes": 13878
+   "path": "js/client/textures/grass_b_cc0_256_disp.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of grass_b_cc0_256_disp.jpg, splat layer dirt height)",
+   "bytes": 19965
   },
   {
    "id": "rock-ktx2",
