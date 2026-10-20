@@ -5,7 +5,7 @@ base	building-b	ancient: largest building class in the pack	building-l	building-
 creep	character-skeleton	melee lane creep	character-zombie	character-skeleton
 tender	character-female-a	support hero, female build	character-female-b	character-female-a
 objective	pillar-obelisk	objective pillar (kept)	column	pillar-obelisk
-roshan	roshan-skinned	Roshan: rigged hy3d build (28 joints, PNG base colour)	roshan-lowpoly	character-orc
+roshan	roshan-skinned	Roshan: rigged hy3d build (28 joints, KTX2 base colour, 256 px)	roshan-lowpoly	character-orc
 bounty_rune	coin	bounty rune: coin pickup	key	pillar-obelisk
 observer_ward	candle	observer ward: small light	candle-multiple	pillar-obelisk
 sentry_ward	candle-multiple	sentry ward: group of lights	lantern	pillar-obelisk
