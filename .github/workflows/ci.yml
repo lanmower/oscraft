@@ -2061,7 +2061,13 @@ jobs:
             const mid = [pts[k][0] + (pts[k + 1][0] - pts[k][0]) * f, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * f];
             // The waypoint nearest the midpoint is a walkable cell centre (the route data is snapped to them); the midpoint itself may not be.
             const dist = (p) => Math.hypot(p[0] - mid[0], p[1] - mid[1]);
-            const near = dist(pts[k]) <= dist(pts[k + 1]) ? pts[k] : pts[k + 1];
+            // The contact must sit outside the enemy towers' reach: the mid tower (weapon range 10.938 cells, units.osd) would
+            // otherwise shoot the hero while it waits there. The nearest route waypoint clear of every side-1 tower, with a 3-cell margin, is used.
+            const enemyTowers = [...readFileSync(process.env.GITHUB_WORKSPACE + "/scenarios/moba/map.osd", "utf8").matchAll(/^spawn\("tower(?:_t\d)?", 1, (-?\d+), (-?\d+)\)$/gm)].map((m) => [Number(m[1]) / 1000, Number(m[2]) / 1000]);
+            const TOWER_REACH_CELLS = 10.938 + 3;
+            const clearOfTowers = (p) => enemyTowers.every((t) => Math.hypot(p[0] - t[0], p[1] - t[1]) > TOWER_REACH_CELLS);
+            const near = [...pts].sort((a, b) => dist(a) - dist(b)).find(clearOfTowers);
+            if (!near) throw new Error("no mid lane waypoint outside the enemy tower reach");
             return { x: near[0], z: near[1] };
           };
           const contact = laneMid(0);
