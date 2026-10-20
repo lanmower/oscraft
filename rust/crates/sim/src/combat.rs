@@ -785,4 +785,50 @@ mod tests {
         restored.load_state(&saved).expect("save with the flag loads");
         assert!(restored.gold_by_mod(), "the flag survives a save and load");
     }
+
+    /// A unit of catalog kind `name` for `player` on the first free walkable cell.
+    fn unit_named(s: &mut Sim, player: u8, name: &str) -> usize {
+        let kind = s.catalog().unit_index(name).expect("catalog unit") as u32;
+        let (w, h) = (s.grid().w as i32, s.grid().h as i32);
+        (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .find_map(|(x, y)| s.spawn_for(player, kind, fixed::from_int(x), fixed::from_int(y)))
+            .expect("a free cell for the unit")
+    }
+
+    /// A held unit keeps its tile while an enemy walks past it, and strikes an enemy inside its reach.
+    #[test]
+    fn held_unit_stays_put_and_strikes_only_in_reach() {
+        let mut s = duel_sim();
+        let holder = unit_named(&mut s, 0, "skirmisher");
+        let (hx, hy) = s.position_fixed(holder);
+        assert!(s.issue_order_kind(holder, crate::ORDER_HOLD, 0, 0).is_ok());
+
+        let walker = creep(&mut s, 1);
+        assert!(s.set_position(walker, hx - fixed::from_int(4), hy));
+        assert!(s.issue_order_kind(walker, crate::ORDER_MOVE, hx + fixed::from_int(4), hy).is_ok());
+        for _ in 0..200 {
+            s.tick();
+        }
+        assert_eq!(s.position_fixed(holder), (hx, hy), "a held unit must not chase or be pushed off its tile");
+
+        let rival = unit_named(&mut s, 1, "skirmisher");
+        assert!(s.set_position(rival, hx, hy));
+        let rival_hp = s.hp(rival);
+        for _ in 0..50 {
+            s.tick();
+        }
+        assert!(s.hp(rival) < rival_hp || !s.alive(rival), "a held unit must strike an enemy in its reach");
+        assert_eq!(s.position_fixed(holder), (hx, hy), "striking from a hold must not move the unit");
+    }
+
+    /// Using an item from an empty slot is refused and changes nothing.
+    #[test]
+    fn use_item_on_an_empty_slot_is_refused() {
+        let mut s = duel_sim();
+        let unit = creep(&mut s, 0);
+        let before = s.hp(unit);
+        assert!(!s.use_item(unit, 0, -1, 0, 0), "an empty slot has no item to use");
+        assert_eq!(s.hp(unit), before, "a refused item use changes no unit state");
+    }
 }

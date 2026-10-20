@@ -136,6 +136,12 @@ impl Game {
         self.sim.issue_order_kind(unit as usize, ORDER_MOVE, fx, fy).is_ok()
     }
 
+    /// Holds unit `unit` where it stands: it does not chase, and strikes only enemies in its reach.
+    /// Returns false when the sim refuses the order (dead or unknown unit, stunned).
+    pub fn hold(&mut self, unit: u32) -> bool {
+        self.sim.issue_order_kind(unit as usize, sim::ORDER_HOLD, 0, 0).is_ok()
+    }
+
     /// Name of the sim's most recent refusal (`Refusal` variant), for the page's refusal witness.
     pub fn last_refusal(&self) -> String {
         format!("{:?}", self.sim.stats.last_refusal)
@@ -185,6 +191,15 @@ impl Game {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
         self.sim.cast_ability(unit as usize, slot as usize, target, fx, fy)
+    }
+
+    /// Uses the active item in inventory slot `slot` of unit `unit`, aimed at unit `target` or at the
+    /// ground (tile x, y) when `target` is -1. Returns false when the sim refuses it (empty slot, item
+    /// cooldown, range); a refused use changes nothing.
+    pub fn use_item(&mut self, unit: u32, slot: u32, target: i32, x: f32, y: f32) -> bool {
+        let fx = (x as f64 * 65536.0) as i32;
+        let fy = (y as f64 * 65536.0) as i32;
+        self.sim.use_item(unit as usize, slot as usize, target, fx, fy)
     }
 
     /// Spends one skill point to raise ability slot `slot` of unit `unit` by a rank. Returns false
