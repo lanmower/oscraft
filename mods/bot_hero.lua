@@ -37,6 +37,9 @@ function on_tick(state)
     if bot.held then holding = holding + 1 end
   end
   state.heroes = holding
+  state.walks = Bot.stats.walks
+  state.retreats = Bot.stats.retreats
+  state.attacks = Bot.stats.attacks
   state.kills = kills
   state.ticks_seen = ticks
 end

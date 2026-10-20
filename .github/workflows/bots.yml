@@ -30,3 +30,16 @@ jobs:
           line=$(grep -E '^mod-state heroes=10 kills=[1-9][0-9]* ' bots.txt)
           kills=$(echo "$line" | sed -E 's/.* kills=([0-9]+).*/\1/')
           echo "bots ok heroes=10 kills=$kills"
+      - name: Bot witness: walks its lane, last-hits a creep, retreats at low health
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat ../mods/bot_lib.lua ../mods/bot_hero.lua ../mods/bot_probe.lua > bots_probe.lua
+          target/debug/mod_check --fog off ../scenarios/moba bots_probe.lua 240 > probe.txt 2>&1 || { cat probe.txt; exit 1; }
+          cat probe.txt
+          grep -Eq '^mod-check ok ' probe.txt
+          state=$(grep -E '^mod-state ' probe.txt)
+          for key in walks attacks kills retreats probe_spawned; do
+            echo "$state" | grep -Eq " $key=[1-9]" || { echo "bot witness: $key not set"; exit 1; }
+          done
+          echo "bot witness ok: $state"
