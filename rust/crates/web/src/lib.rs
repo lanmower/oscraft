@@ -445,6 +445,11 @@ impl Game {
         self.sim.buy_item(unit as usize, item as usize)
     }
 
+    /// Test hook for the page's CI probe: puts `count` charges of catalog item index `item` into unit `unit`'s inventory. False when no slot is free.
+    pub fn give_item(&mut self, unit: u32, item: u32, count: u32) -> bool {
+        self.sim.inventory_add(unit as usize, item + 1, count)
+    }
+
     /// UI export: sells inventory slot `slot` of unit `unit` for half its cost. False when refused.
     pub fn sell(&mut self, unit: u32, slot: u32) -> bool {
         self.sim.sell_item(unit as usize, slot as usize)

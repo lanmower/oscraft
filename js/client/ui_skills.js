@@ -110,6 +110,7 @@ export function createSkills({ game, selected, localPlayer, input }) {
       const row = el("div", "row");
       row.dataset.state = state;
       row.title = abilityTooltip(a, rank);
+      row.dataset.slot = String(a.slot);
       const info = el("div");
       const pips = a.max_rank ? "●".repeat(rank) + "○".repeat(a.max_rank - rank) : "";
       const gate = a.max_rank && rank < a.max_rank ? `next rank needs level ${a.gates[rank]}` : a.max_rank ? "maxed" : "no skill tree";
