@@ -2261,8 +2261,10 @@ jobs:
           const heroAtNow = await screenAt(heroNow.x, heroNow.z);
           // Escape clears any armed attack or cast, so the right click on open ground is a plain move with a green marker.
           await page.keyboard.press("Escape");
+          // The green marker lives 500 ms: its poll starts before the click, so a slow page cannot finish the click before the wait is armed.
+          const moveWait = fxWait("fx", "rgb(76, 175, 80)");
           await page.mouse.click(heroAtNow.x + 90, heroAtNow.y + 40, { button: "right" });
-          const moveShown = await fxWait("fx", "rgb(76, 175, 80)");
+          const moveShown = await moveWait;
           if (moveShown) await fxShot("move-marker.png");
           const ringShown = ringSeen;
           await page.mouse.click(heroAtNow.x, heroAtNow.y, { button: "left" });
