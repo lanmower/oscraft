@@ -345,11 +345,21 @@ function rotateVector(q, v) {
 // rig's node name. Each rotation is carried through world space: the source motion is a delta on its rest pose, applied
 // to the rig's rest pose in the rig's own bone frame, so rigs whose bone axes differ still pose the same way.
 // Translations are rotated the same way and scaled by the ratio of the rig's hips height to the source's. Bones the rig
-// lacks are dropped; the rig keeps its rest pose there.
+// lacks are dropped; the rig keeps its rest pose there. Arm rotations (ARM_CHAIN) are the blend of the delta solve and the
+// absolute solve at ARM_BLEND, so they sit between the two.
+// Weight of the absolute arm solve in the blend: 0 is the delta alone, 1 the absolute alone. The owner tunes the arm pose here.
+const ARM_BLEND = 0.5;
+const ARM_CHAIN = ['leftShoulder', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightShoulder', 'rightUpperArm', 'rightLowerArm', 'rightHand'];
+const ARM_BONES = new Set(ARM_CHAIN);
+const SAMPLE_TRACK = new Float32Array(4);
+const ARM_PAIR = new Float32Array(8);
+const ARM_OUT = new Float32Array(4);
 export function retargetLibrary(library, map, nodes) {
   const byName = new Map();
   nodes.forEach((node, i) => { if (node.name) byName.set(node.name, i); });
   const boneNode = (bone) => byName.get(map.bones[bone]) ?? -1;
+  const parentOf = new Int32Array(nodes.length).fill(-1);
+  nodes.forEach((node, i) => { for (const c of node.children) parentOf[c] = i; });
   const hips = boneNode('hips');
   const rigHips = hips < 0 ? null : restHips(nodes, hips);
   const scale = rigHips ? (rigHips.height / library.hipsHeight) * (library.hipsParentScale / rigHips.parentScale) : 1;
@@ -367,8 +377,60 @@ export function retargetLibrary(library, map, nodes) {
     frames.set(bone, frame);
     return frame;
   };
+  // Rig world rotation of node i when each ancestor-or-self has local rotation local(n): the product down the chain.
+  const worldRotation = (i, local) => {
+    const chain = [];
+    for (let n = i; n >= 0; n = parentOf[n]) chain.push(n);
+    let q = [0, 0, 0, 1];
+    for (let k = chain.length - 1; k >= 0; k--) q = quatMul(q, local(chain[k]));
+    return q;
+  };
+  // Arm tracks of one clip: the absolute solve (each bone's world orientation is the source's) blended with the delta
+  // channel already built for the same bone, at ARM_BLEND, over the union of the source key times.
+  const armTracks = (clip, base, deltaArm) => {
+    const tracks = [];
+    for (const bone of ARM_CHAIN) {
+      const node = boneNode(bone);
+      const channel = clip.channels.find((c) => c.bone === bone && c.path === 'rotation');
+      const source = library.rest[bone];
+      if (node < 0 || !channel || !source || channel.times.length === 0 || !deltaArm.has(node)) continue;
+      tracks.push({ node, channel, source: source.parentWorld, delta: deltaArm.get(node) });
+    }
+    if (tracks.length === 0) return [];
+    const times = [...new Set(tracks.flatMap((t) => Array.from(t.channel.times)))].sort((a, b) => a - b);
+    const partial = { duration: clip.duration, channels: base };
+    const absolute = new Map(tracks.map((t) => [t.node, new Float32Array(times.length * 4)]));
+    const local = new Map();
+    times.forEach((time, k) => {
+      local.clear();
+      const pose = samplePose(partial, time, true);
+      const rotationOf = (i) => local.get(i) ?? pose.get(i)?.rotation ?? nodes[i].rotation ?? [0, 0, 0, 1];
+      for (const t of tracks) {
+        sampleChannel(t.channel, time, SAMPLE_TRACK);
+        const want = quatMul(t.source, SAMPLE_TRACK);
+        const q = quatMul(quatConj(worldRotation(parentOf[t.node], rotationOf)), want);
+        const len = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+        const unit = q.map((x) => x / len);
+        local.set(t.node, unit);
+        absolute.get(t.node).set(unit, k * 4);
+      }
+    });
+    return tracks.map((t) => {
+      const values = new Float32Array(times.length * 4);
+      const abs = absolute.get(t.node);
+      times.forEach((time, k) => {
+        sampleChannel(t.delta, time, SAMPLE_TRACK);
+        ARM_PAIR.set(SAMPLE_TRACK, 0);
+        ARM_PAIR.set(abs.subarray(k * 4, k * 4 + 4), 4);
+        slerp(ARM_PAIR, 0, 4, ARM_BLEND, ARM_OUT);
+        values.set(ARM_OUT, k * 4);
+      });
+      return { node: t.node, path: 'rotation', interpolation: 'LINEAR', times: Float32Array.from(times), values, width: 4 };
+    });
+  };
   return library.clips.map((clip) => {
     const channels = [];
+    const deltaArm = new Map();
     for (const channel of clip.channels) {
       const frame = frameOf(channel.bone);
       if (!frame) continue;
@@ -389,8 +451,10 @@ export function retargetLibrary(library, map, nodes) {
           for (let c = 0; c < 3; c++) values[i * 3 + c] = rest[c] + moved[c] * k;
         }
       }
-      channels.push({ node: frame.node, path: channel.path, interpolation: 'LINEAR', times: Float32Array.from(channel.times), values, width: channel.path === 'rotation' ? 4 : 3 });
+      const built = { node: frame.node, path: channel.path, interpolation: 'LINEAR', times: Float32Array.from(channel.times), values, width: channel.path === 'rotation' ? 4 : 3 };
+      if (ARM_BONES.has(channel.bone) && channel.path === 'rotation') deltaArm.set(frame.node, built);
+      else channels.push(built);
     }
-    return { name: clip.name, duration: clip.duration, channels };
+    return { name: clip.name, duration: clip.duration, channels: channels.concat(armTracks(clip, channels, deltaArm)) };
   });
 }
