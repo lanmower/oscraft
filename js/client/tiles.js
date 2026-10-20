@@ -395,11 +395,8 @@ export function controlMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height } = grid;
   const data = new Uint8Array(width * height * 4);
-  const river = riverMask(grid);
   for (let i = 0; i < width * height; i++) {
-    const kind = splatKind(grid, i);
-    // A water tile that is not river (a small pool or stray cell) is drawn as its riverbed, the dirt layer.
-    const ch = SPLAT_CHANNEL[kind === "water" && !river[i] ? "dirt" : kind];
+    const ch = SPLAT_CHANNEL[splatKind(grid, i)];
     if (ch !== undefined) data[i * 4 + ch] = 255;
   }
   // A ramp's lower cell is half its ground layer and half rock, so a ramp reads apart from the flat ground of its kind.
@@ -419,8 +416,7 @@ export function waterSurface(bytes) {
   const grid = readGrid(bytes);
   const { width: w, height: h } = grid;
   const { shown } = displayHeights(grid);
-  const river = riverMask(grid);
-  const isWater = (k) => river[k] === 1;
+  const isWater = (k) => tileKind(grid, k) === "water";
   const positions = [];
   const normals = [];
   const uvs = [];
@@ -447,45 +443,15 @@ export function waterSurface(bytes) {
   }
   return { positions: new Float32Array(positions), normals: new Float32Array(normals), uvs: new Float32Array(uvs), indices: new Uint32Array(indices) };
 }
-// Water map for a grid: { data: Uint8Array one byte per cell, width, height }, 255 on water cells.
+// Water map for a grid: { data: Uint8Array one byte per cell, width, height }, 255 on water cells only. A water cell is a
+// blocked cell painted with water tile id 4 in the map (scenarios/moba/map.osd); nothing else takes water, so nearest
+// sampling keeps land and cliff cells dry.
 export function waterMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height } = grid;
-  const river = riverMask(grid);
   const data = new Uint8Array(width * height);
-  for (let i = 0; i < width * height; i++) if (river[i]) data[i] = 255;
+  for (let i = 0; i < width * height; i++) if (tileKind(grid, i) === "water") data[i] = 255;
   return { data, width, height };
-}
-// River cells: water tiles in a 4-connected body of at least RIVER_MIN_CELLS cells. Smaller water patches (pools, stray
-// cells scattered over the land) are not river and are never drawn as water.
-export const RIVER_MIN_CELLS = 50;
-export function riverMask(grid) {
-  const { width: w, height: h } = grid;
-  const n = w * h;
-  const water = new Uint8Array(n);
-  for (let i = 0; i < n; i++) water[i] = tileKind(grid, i) === "water" ? 1 : 0;
-  const river = new Uint8Array(n);
-  const seen = new Uint8Array(n);
-  const body = [];
-  for (let s = 0; s < n; s++) {
-    if (!water[s] || seen[s]) continue;
-    const stack = [s];
-    const cells = [];
-    seen[s] = 1;
-    while (stack.length) {
-      const i = stack.pop();
-      cells.push(i);
-      const x = i % w;
-      const y = (i - x) / w;
-      if (x > 0 && water[i - 1] && !seen[i - 1]) { seen[i - 1] = 1; stack.push(i - 1); }
-      if (x < w - 1 && water[i + 1] && !seen[i + 1]) { seen[i + 1] = 1; stack.push(i + 1); }
-      if (y > 0 && water[i - w] && !seen[i - w]) { seen[i - w] = 1; stack.push(i - w); }
-      if (y < h - 1 && water[i + w] && !seen[i + w]) { seen[i + w] = 1; stack.push(i + w); }
-    }
-    body.push(cells);
-  }
-  for (const cells of body) if (cells.length >= RIVER_MIN_CELLS) for (const i of cells) river[i] = 1;
-  return river;
 }
 // Rewrites one cell texel to a kind (the creep effect) and returns that texel for a sub-region upload.
 export function setSplatTexel(control, index, kind) {
