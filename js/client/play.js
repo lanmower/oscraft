@@ -14,7 +14,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap } from "./tiles.js";
+import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -78,6 +78,7 @@ let mapGrid = null;
 let renderer3d = null;
 let mapBytes = null;
 let terrainMesh = null;
+let waterMesh = null;
 // Splat ground: the control map, the four layers and the GPU handles. Built before the match starts; a layer that fails is an error.
 let splat = null;
 const SPLAT_BAND = 0.15;
@@ -609,7 +610,9 @@ window.__setCellKind = (index, kind) => {
 // Terrain and doodads: the casters of the sun's shadow map as well as the lit draws.
 function drawGround3d() {
   renderer3d.drawSplat(terrainMesh, splat);
+  if (waterMesh) renderer3d.drawSplat(waterMesh, splat);
   drawCounts.splat += 1;
+  drawCounts.terrain += 1;
   for (const d of doodadBatches) {
     drawCounts.doodad += renderer3d.drawInstancedLod(d.mesh, d.batch, d.lowMesh);
   }
@@ -1365,6 +1368,9 @@ async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: planarGroundUvs(terrain.positions), indices: terrain.indices, color: MAP_COLOR };
+  // The river's surface: flat quads over the water cells, drawn by the splat pass with the procedural water shader.
+  const water = waterSurface(mapBytes);
+  waterMesh = water.indices.length ? { ...water, color: MAP_COLOR } : null;
   // Splat layers, doodad and unit models are independent downloads: they start together, so the wait is the slowest
   // chain rather than the sum of the stages.
   const placements = readDoodads(mapBytes);
