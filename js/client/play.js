@@ -137,6 +137,7 @@ let lastAppliedTick = 0;
 let rosterView = null;
 let heroKinds = new Map();
 let heroRuleNames = [];
+let spawnedSeats = [];
 const localPlayerId = () => myPlayer;
 const isGuest = () => netTick >= 0;
 
@@ -712,6 +713,7 @@ function refreshSeatStats() {
 // Seats a hero for each START seat whose player owns none yet: the picked hero type, at its team's side of the map.
 function spawnSeatHeroes(seats) {
   if (typeof localGame.spawn_hero !== "function") return;
+  spawnedSeats = seats.map(({ slot, hero }) => ({ slot, hero }));
   for (const seat of seats) {
     if (heroOf(seat.slot)) continue;
     const kind = heroKinds.get(seat.hero);
@@ -1385,6 +1387,14 @@ if (params.get("ci") === "1") {
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));
   window.__ciKillSide = (player) => {
     for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 10000);
+  };
+  // Read-only: per START seat, the picked hero name and the catalog name of the unit the sim actually spawned for it.
+  window.__ciHeroNames = () => {
+    const names = typeof localGame.unit_type_names === "function" ? localGame.unit_type_names() : [];
+    return spawnedSeats.map(({ slot, hero }) => {
+      const u = heroOf(slot);
+      return { slot, picked: hero, spawned: u ? names[u.type] ?? null : null };
+    });
   };
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
