@@ -249,7 +249,11 @@ fs.writeFileSync(path.join(outDir, "doodad-types-688g.tsv"), ["type\tcount\ttree
 
 execFileSync(process.execPath, [fileURLToPath(new URL("./place-doodads-688g.mjs", import.meta.url)), "--dir", outDir], { stdio: "inherit" });
 
+// Water: a sim cell is water when it is blocked and its tile's ground texture is tileset index 4 (Clvg in the source
+// terrain tileset list). The source has no water tile name; this rule matches the water cells the moba map image shows.
+const waterCells = open.flat().filter((v, k) => !v && corner(tileOf(k % SIM, Math.floor(k / SIM)).i, tileOf(k % SIM, Math.floor(k / SIM)).j).groundTexture === 4).length;
 console.log(JSON.stringify({
+  water: { cells: waterCells, rule: "blocked cell, ground texture index 4 (terrain tileset list)" },
   terrainCorners: W * terrain.height,
   blockedSimCells: open.flat().filter((v) => !v).length,
   doodads: doodads.length,
