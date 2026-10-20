@@ -4,12 +4,13 @@
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex, Weak};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
 use mod_host::{Cmd, ModHost};
+use sim::Payout;
 use crate::log::Ev;
 use crate::room::Room;
 use crate::supervise::{supervise, Outcome};
@@ -22,8 +23,11 @@ pub struct ModLink {
     version: AtomicU64,
     tick: AtomicU64,
     cmds: Mutex<Vec<Cmd>>,
+    // Payable deaths of the room's sim, waiting for the mod thread to feed them to on_died.
+    payouts: Mutex<Vec<Payout>>,
     test_panic_at: AtomicU64,
     image: Mutex<Option<Vec<u8>>>,
+    gold_by_mod: AtomicBool,
 }
 
 impl ModLink {
@@ -43,6 +47,11 @@ impl ModLink {
         self.version.load(Ordering::Acquire)
     }
 
+    /// Whether the loaded mod owns kill gold (`GOLD_BY_MOD = true`). Set once the mod is live.
+    pub fn gold_by_mod(&self) -> bool {
+        self.gold_by_mod.load(Ordering::Acquire)
+    }
+
     pub fn tick(&self) -> u64 {
         self.tick.load(Ordering::Acquire)
     }
@@ -54,6 +63,20 @@ impl ModLink {
             crate::emit!(Ev::ModCmdsDropped, count = cmds.len() - room);
         }
         queue.extend(cmds.into_iter().take(room));
+    }
+
+    /// Queues the room's payable deaths for the mod's on_died. Taken in order, at most the queue cap.
+    pub fn push_payouts(&self, deaths: Vec<Payout>) {
+        let mut queue = self.payouts.lock().unwrap_or_else(|p| p.into_inner());
+        let room = MOD_CMD_QUEUE_CAP.saturating_sub(queue.len());
+        if deaths.len() > room {
+            crate::emit!(Ev::ModCmdsDropped, count = deaths.len() - room);
+        }
+        queue.extend(deaths.into_iter().take(room));
+    }
+
+    fn take_payouts(&self) -> Vec<Payout> {
+        std::mem::take(&mut *self.payouts.lock().unwrap_or_else(|p| p.into_inner()))
     }
 
     pub fn stage_image(&self, image: Vec<u8>) {
@@ -94,6 +117,7 @@ pub fn spawn(image: Vec<u8>, path: PathBuf, budget: Duration, link: Arc<ModLink>
                 }
             };
             link.version.store(host.version(), Ordering::Release);
+            link.gold_by_mod.store(host.gold_by_mod(), Ordering::Release);
             if let Some(tx) = ready.take() {
                 let _ = tx.send(Ok(()));
             }
@@ -136,6 +160,14 @@ fn drive(host: &mut ModHost, link: &ModLink, budget: Duration) {
             Ok(true) => crate::emit!(Ev::ModReloadStaged),
             Ok(false) => {}
             Err(e) => crate::emit!(Ev::ModReloadFailed, error = e),
+        }
+        // The room's kills reach on_died before this step, so the gold they queue is applied at the
+        // room's next boundary with room ids.
+        for payout in link.take_payouts() {
+            match host.feed_payout(&payout) {
+                Ok(cmds) => link.push_commands(cmds),
+                Err(e) => crate::emit!(Ev::ModError, tick = ticks, error = e),
+            }
         }
         if let Err(e) = host.advance(&state) {
             crate::emit!(Ev::ModError, tick = ticks, error = e);

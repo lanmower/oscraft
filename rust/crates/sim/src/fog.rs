@@ -4,8 +4,22 @@
 use crate::arrays::{cell_of, Reveal, Sim};
 use crate::fixed;
 use crate::*;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+// Process-wide, so a replaced Sim never reuses a generation a client already saw.
+static VISION_GENERATION: AtomicU32 = AtomicU32::new(0);
+
+/// Marks every player's visible plane as possibly changed. Called wherever `vis`, `vision` or `fog` change.
+pub(crate) fn bump_vision_generation() {
+    VISION_GENERATION.fetch_add(1, Ordering::Relaxed);
+}
 
 impl Sim {
+    /// Changes whenever any visible plane may have changed. Equal values mean `vision_plane` would return the same bytes.
+    pub fn vision_generation(&self) -> u32 {
+        VISION_GENERATION.load(Ordering::Relaxed)
+    }
+
     pub fn reveal_area(&mut self, p: u8, x0: i32, y0: i32, x1: i32, y1: i32, until: i32) {
         if (p as usize) >= MAX_PLAYERS {
             return;
@@ -24,6 +38,7 @@ impl Sim {
 
     pub(crate) fn refresh_vision(&mut self) {
         self.stats.vision_refreshes += 1;
+        bump_vision_generation();
         let vc = self.vcells;
         let night = self.is_night();
         for p in 0..MAX_PLAYERS {

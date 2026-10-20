@@ -66,6 +66,7 @@ impl Default for Stats {
     }
 }
 
+#[derive(Clone)]
 pub struct Sim {
     pub(crate) grid: Grid,
     pub(crate) cat: Catalog,
@@ -136,6 +137,8 @@ pub struct Sim {
     pub(crate) item_cd: Vec<i32>,
     pub(crate) energy: Vec<i32>,
     pub(crate) abil_on: bool,
+    /// Set when a mod owns gold: the Rust kill payouts (hero bounty and rival resources) are skipped.
+    pub(crate) gold_by_mod: bool,
 
     pub(crate) changed_at: Vec<u32>,
     pub(crate) trig_hit: Vec<u8>,
@@ -183,6 +186,8 @@ pub struct Sim {
     pub(crate) hitter_tick: Vec<u32>,
     /// Kill events since the last drain. Derived from the tallies, so not hashed or saved.
     pub(crate) kill_queue: Vec<crate::combat::KillEvent>,
+    /// Payable deaths queued while a mod owns kill gold, for the room to feed the mod. Transient.
+    pub(crate) payouts: Vec<crate::combat::Payout>,
     /// The unit credited with each unit's latest death, -1 for none. Transient: not hashed or saved.
     pub(crate) killer: Vec<i32>,
 
@@ -213,8 +218,13 @@ pub struct Sim {
     /// True while `tick_with_cadence` runs; orders issued inside a tick are re-derived by the tick on replay, so they are not logged.
     pub(crate) in_tick: bool,
 
+    /// Inline slots filled per cell (at most `BUCKET_CAP`); units past them live in `bucket_over`.
     pub(crate) bucket_n: Vec<u8>,
     pub(crate) bucket_idx: Vec<u32>,
+    /// Units past the inline `BUCKET_CAP` slots of a cell, in ascending insertion order.
+    pub(crate) bucket_over: Vec<Vec<u32>>,
+    /// Cells whose overflow list is non-empty, so a rebucket clears only those lists.
+    pub(crate) bucket_over_cells: Vec<u32>,
     pub(crate) scratch: Vec<u32>,
 
     pub(crate) paths: Pool,
@@ -349,6 +359,7 @@ impl Sim {
             item_cd: vec![0; cap * crate::inventory::INV_SLOTS],
             energy: vec![0; cap],
             abil_on: false,
+            gold_by_mod: false,
             changed_at: vec![0; cap],
             trig_hit: vec![0; cap],
             trig_spawn: vec![0; cap],
@@ -378,6 +389,7 @@ impl Sim {
             hitter_id: vec![-1; cap * crate::combat::ASSIST_SLOTS],
             hitter_tick: vec![0; cap * crate::combat::ASSIST_SLOTS],
             kill_queue: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
+            payouts: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
             killer: vec![-1; cap],
             healer_player: vec![0; HEALER_SLOTS],
             healer_left: vec![0; HEALER_SLOTS],
@@ -405,6 +417,8 @@ impl Sim {
             m_y: vec![0; MISSILE_CAP],
             bucket_n: vec![0; cells],
             bucket_idx: vec![0; cells * BUCKET_CAP],
+            bucket_over: vec![Vec::new(); cells],
+            bucket_over_cells: Vec::new(),
             scratch: vec![0; AREA_BUF],
             paths,
             cur_field: None,
@@ -484,6 +498,7 @@ impl Sim {
         }
         let cat = std::mem::take(&mut self.cat);
         *self = Sim::with_catalog(self.cap, grid, cat);
+        crate::fog::bump_vision_generation();
         true
     }
 
@@ -526,6 +541,7 @@ impl Sim {
     }
 
     pub fn set_fog(&mut self, on: bool) {
+        crate::fog::bump_vision_generation();
         self.fog = on;
     }
 
@@ -556,6 +572,15 @@ impl Sim {
 
     pub fn set_production(&mut self, on: bool) {
         self.produce = on;
+    }
+
+    /// Whether a mod owns gold. When true, kills pay no Rust bounty (hero share or rival resources).
+    pub fn gold_by_mod(&self) -> bool {
+        self.gold_by_mod
+    }
+
+    pub fn set_gold_by_mod(&mut self, on: bool) {
+        self.gold_by_mod = on;
     }
 
     pub fn add_resources(&mut self, p: u8, resource_a: i32, resource_b: i32) {
@@ -969,15 +994,39 @@ impl Sim {
             return;
         }
         let cell = (cy * w + cx) as usize;
+        self.bucket_push(cell, i);
+    }
+
+    /// Appends unit `i` to `cell`: an inline slot while one is free, else the cell's overflow list.
+    /// Every unit is stored, so a crowded cell never hides a unit from the strike or separation scans.
+    fn bucket_push(&mut self, cell: usize, i: usize) {
         let cnt = self.bucket_n[cell] as usize;
         if cnt < BUCKET_CAP {
             self.bucket_idx[cell * BUCKET_CAP + cnt] = i as u32;
             self.bucket_n[cell] += 1;
+        } else {
+            if self.bucket_over[cell].is_empty() {
+                self.bucket_over_cells.push(cell as u32);
+            }
+            self.bucket_over[cell].push(i as u32);
         }
+    }
+
+    /// Units bucketed in `cell`, inline slots first then overflow, each in insertion order.
+    pub(crate) fn bucket_members(&self, cell: usize) -> impl Iterator<Item = usize> + '_ {
+        let inline = self.bucket_n[cell] as usize;
+        let base = cell * BUCKET_CAP;
+        self.bucket_idx[base..base + inline]
+            .iter()
+            .chain(self.bucket_over[cell].iter())
+            .map(|&j| j as usize)
     }
 
     pub(crate) fn rebucket(&mut self) {
         self.bucket_n.fill(0);
+        for cell in self.bucket_over_cells.drain(..) {
+            self.bucket_over[cell as usize].clear();
+        }
         let (w, h) = (self.grid.w as i32, self.grid.h as i32);
         for i in 0..self.n {
             if self.alive[i] == 0 {
@@ -989,11 +1038,7 @@ impl Sim {
                 continue;
             }
             let cell = (cy * w + cx) as usize;
-            let cnt = self.bucket_n[cell] as usize;
-            if cnt < BUCKET_CAP {
-                self.bucket_idx[cell * BUCKET_CAP + cnt] = i as u32;
-                self.bucket_n[cell] += 1;
-            }
+            self.bucket_push(cell, i);
         }
     }
 

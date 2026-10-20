@@ -1,0 +1,113 @@
+{
+  "toktx": "/workspace/hy3d/tools/ktx/KTX-Software-4.4.2-Linux-x86_64/bin/toktx",
+  "etc1s": {
+    "qlevel": 192,
+    "clevel": 2,
+    "mipmaps": true,
+    "colour": "srgb"
+  },
+  "uastc": {
+    "level": 2,
+    "zcmp": 18,
+    "mipmaps": true,
+    "used_for": "normal, occlusion, metallicRoughness (linear)"
+  },
+  "entries": [
+    {
+      "file": "cliff.jpg",
+      "kept": true,
+      "inBytes": 68314,
+      "outBytes": 68314,
+      "note": "KTX2 not smaller than source; source kept",
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "dirt.jpg",
+      "kept": true,
+      "inBytes": 14905,
+      "outBytes": 14905,
+      "note": "KTX2 not smaller than source; source kept",
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "dirt_disp.jpg",
+      "kept": true,
+      "inBytes": 40735,
+      "outBytes": 40735,
+      "note": "KTX2 not smaller than source; source kept",
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "grass.ktx2",
+      "inBytes": 121420,
+      "outBytes": 83992,
+      "shift": 0,
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "grass_disp.jpg",
+      "kept": true,
+      "inBytes": 36558,
+      "outBytes": 36558,
+      "note": "KTX2 not smaller than source; source kept",
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "ground.ktx2",
+      "inBytes": 262988,
+      "outBytes": 77170,
+      "shift": 0,
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "lane.ktx2",
+      "inBytes": 99759,
+      "outBytes": 81665,
+      "shift": 0,
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "lane_disp.jpg",
+      "kept": true,
+      "inBytes": 35741,
+      "outBytes": 35741,
+      "note": "KTX2 not smaller than source; source kept",
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "rock.ktx2",
+      "inBytes": 86881,
+      "outBytes": 77127,
+      "shift": 0,
+      "checks": {
+        "naming": "PASS"
+      }
+    },
+    {
+      "file": "rock_disp.jpg",
+      "kept": true,
+      "inBytes": 36601,
+      "outBytes": 36601,
+      "note": "KTX2 not smaller than source; source kept",
+      "checks": {
+        "naming": "PASS"
+      }
+    }
+  ]
+}

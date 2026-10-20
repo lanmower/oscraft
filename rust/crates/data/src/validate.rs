@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use anyhow::{anyhow, bail, Result};
 
 use crate::format::{
-    move_cap_fits_grid, position_on_grid, CELL_BLOCKED, ACTION_USE_ABILITY, FILTER_MASK_BITS, CHANNEL_FLAG, CLOAK_MASK, EFFECT_KINDS, MAX_PLAYERS,
+    move_cap_fits_grid, position_on_grid, CELL_BLOCKED, ACTION_USE_ABILITY, CHANNEL_FLAG, CLOAK_MASK, EFFECT_KINDS, MAX_PLAYERS,
     NEUTRAL_PLAYER, NO_ABILITY, NO_UNIT, NORMAL_GATE, MAX_NORMAL_GATE, PLCE_FLAG_START, PLCE_FLAG_TEAM, PLCE_TEAM_SHIFT, Q16_ONE,
     ITEM_COMPONENTS, ITEM_SHOP_MASK, SKILL_RANKS, ULTIMATE_GATES, ULTIMATE_RANKS,
 };
@@ -183,9 +183,6 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             match *kind {
                 "spawn" | "ward" if target >= units_raw.len() => {
                     bail!("ability {:?}: spawn names unit index {target}, only {} units exist", raw.name, units_raw.len())
-                }
-                "spawn" if effect.params[3] & 0x3FFF_FFFF != 0 && !wave_spec_fits(effect.params[3] & 0x3FFF_FFFF, units_raw.len()) => {
-                    bail!("ability {:?}: spawn p3 {} names a unit or tag out of range", raw.name, effect.params[3])
                 }
                 "use_calldown" if target >= abilities_raw.len() => bail!(
                     "ability {:?}: use_calldown names ability index {target}, only {} abilities exist",
@@ -630,11 +627,3 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     })
 }
 
-/// Whether a spawn p3 wave spec (see sim waves.rs: two kind fields of 10 bits, two tag fields of 5 bits, the route lane in the top two bits)
-/// names only existing units and filter bits.
-fn wave_spec_fits(spec: i32, units: usize) -> bool {
-    let spec = (spec as u32 & 0x3FFF_FFFF) as i32;
-    let kind = |shift: u32| ((spec >> shift) & 0x3FF) as usize;
-    let tag = |shift: u32| ((spec >> shift) & 0x1F) as u32;
-    kind(0) <= units && kind(10) <= units && tag(20) <= FILTER_MASK_BITS && tag(25) <= FILTER_MASK_BITS
-}

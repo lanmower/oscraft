@@ -44,6 +44,7 @@ impl Sim {
         self.set_alliance(a, b, kind > 0)?;
         let (ai, bi) = (a as usize, b as usize);
         if ai != bi {
+            crate::fog::bump_vision_generation();
             if kind == 2 {
                 self.vision[ai] |= 1 << bi;
                 self.vision[bi] |= 1 << ai;

@@ -1,28 +1,89 @@
 // Client fog and day-night view. A 2D canvas laid over the WebGL view darkens every vision cell the local
-// player cannot see and tints the whole scene at night; enemy units outside vision are filtered out of the
-// unit list. The visible set comes from the wasm Game (vision_dims, vision, day_cycle).
+// player cannot see, dims cells it has explored but cannot see now, and tints the whole scene at night; enemy
+// units outside vision are filtered out of the unit list. The visible set comes from the wasm Game
+// (vision_dims, vision, vision_generation, fog_on, day_cycle).
 
 const FOG_ALPHA = 0.55;
+const EXPLORED_ALPHA = 0.3;
 const NIGHT_RGB = "16,24,72";
 const NIGHT_ALPHA = 0.32;
 const DUSK_TICKS = 160;
 // Clip-space w below this is behind (or at) the camera plane; cell outlines are cut there before projection.
 const NEAR_W = 1e-3;
+// The fog is composed at 1/LAYER_DIV of CSS pixels, then scaled up bilinearly: the layer is cheap to fill.
+const LAYER_DIV = 4;
+// Blur sigma as a fraction of one projected cell: the visible-to-unseen transition spans about half a cell.
+const EDGE_SIGMA_CELLS = 0.25;
+const FALLBACK_CELL_PX = 32;
 
 // toClip(x, z, y) returns homogeneous clip coordinates [X, Y, Z, W] of a world point.
 export function createFogView({ game, localPlayer, toClip, groundAt }) {
   const supported = typeof game.vision === "function" && typeof game.vision_dims === "function";
+  const versioned = typeof game.vision_generation === "function";
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:1";
   document.getElementById("view").after(canvas);
   const ctx = canvas.getContext("2d");
+  const layer = document.createElement("canvas");
+  const layerCtx = layer.getContext("2d");
+  const softEdge = "filter" in layerCtx;
+
+  const stats = { refreshes: 0, rebuilds: 0, draws: 0, refreshMs: 0, pathMs: 0, fillMs: 0, rebuildMs: 0, drawMs: 0 };
   let plane = null;
   let dims = [0, 0, 1];
+  let hidden = 0;
+  let explored = null;
+  let planeGeneration = -1;
+  let viewer = null;
+  let buffers = null;
+  let layerStale = true;
+  const sample = new Float64Array(12);
+  const builtSample = new Float64Array(12);
+  let builtW = -1;
+  let builtH = -1;
 
+  // Re-reads the visible plane only when the wasm generation or the viewer changed. A change marks the layer
+  // stale only when it touches a cell that was on screen at the last rebuild, or when the fog count crosses zero.
   function refresh() {
     if (!supported) return;
-    dims = game.vision_dims();
-    plane = game.vision(localPlayer());
+    const who = localPlayer();
+    if (versioned) {
+      const generation = game.vision_generation();
+      if (generation === planeGeneration && who === viewer) return;
+      planeGeneration = generation;
+    }
+    const t0 = performance.now();
+    stats.refreshes++;
+    viewer = who;
+    const nextDims = game.vision_dims();
+    const next = game.vision(who);
+    const sameShape = plane !== null && plane.length === next.length
+      && nextDims[0] === dims[0] && nextDims[1] === dims[1] && nextDims[2] === dims[2];
+    if (!sameShape) {
+      dims = nextDims;
+      explored = new Uint8Array(next.length);
+      buffers = null;
+    }
+    let changed = !sameShape;
+    let relevant = !sameShape || hidden === 0;
+    if (sameShape) {
+      for (let i = 0; i < next.length; i++) {
+        if (next[i] === plane[i]) continue;
+        changed = true;
+        if (buffers && buffers.onScreen[i]) relevant = true;
+      }
+    }
+    if (changed) {
+      plane = next;
+      hidden = 0;
+      const fogOn = typeof game.fog_on === "function" ? game.fog_on() : true;
+      for (let i = 0; i < next.length; i++) {
+        if (next[i] === 0) hidden++;
+        else if (fogOn) explored[i] = 1;
+      }
+      if (relevant || hidden === 0) layerStale = true;
+    }
+    stats.refreshMs += performance.now() - t0;
   }
 
   function seen(x, z) {
@@ -72,7 +133,152 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     return m;
   }
 
+  function allocBuffers() {
+    const [vw, vh] = dims;
+    const stride = vw + 1;
+    const n = stride * (vh + 1);
+    return {
+      stride,
+      clip: new Float64Array(n * 4),
+      sx: new Float64Array(n),
+      sy: new Float64Array(n),
+      known: new Uint8Array(n),
+      onScreen: new Uint8Array(vw * vh),
+      ring: new Int32Array(4),
+      quad: new Float64Array(16),
+      cut: new Float64Array(32),
+      px: new Float64Array(8),
+      py: new Float64Array(8),
+    };
+  }
+
+  // Writes the camera-dependent part of the key: three world points projected to clip space.
+  function sampleCamera() {
+    const [vw, vh, s] = dims;
+    const points = [[0, 0], [vw * s, vh * s], [(vw * s) / 2, (vh * s) / 2]];
+    for (let n = 0; n < 3; n++) {
+      const [x, z] = points[n];
+      const c = toClip(x, z, groundAt(x, z));
+      for (let k = 0; k < 4; k++) sample[n * 4 + k] = c[k];
+    }
+  }
+
+  // Paints the hidden cells that reach the viewport. Corner projections are cached per camera (buffers.known),
+  // so a plane change repaints without re-projecting; cells entirely off screen are skipped and marked so.
+  function rebuildLayer(cssW, cssH) {
+    const [vw, vh, s] = dims;
+    const { stride, clip, sx, sy, known, onScreen, ring, quad, cut, px, py } = buffers;
+    const corner = (i, j) => {
+      const k = j * stride + i;
+      if (!known[k]) {
+        const c = toClip(i * s, j * s, groundAt(i * s, j * s));
+        clip[k * 4] = c[0];
+        clip[k * 4 + 1] = c[1];
+        clip[k * 4 + 2] = c[2];
+        clip[k * 4 + 3] = c[3];
+        const W = c[3];
+        const front = W >= NEAR_W;
+        sx[k] = front ? ((c[0] / W + 1) / 2) * cssW : NaN;
+        sy[k] = front ? ((1 - c[1] / W) / 2) * cssH : NaN;
+        known[k] = 1;
+      }
+      return k;
+    };
+    const c0 = corner(vw >> 1, vh >> 1);
+    const c1 = corner((vw >> 1) + 1, vh >> 1);
+    let cellPx = FALLBACK_CELL_PX;
+    if (!Number.isNaN(sx[c0]) && !Number.isNaN(sx[c1])) {
+      cellPx = Math.hypot(sx[c1] - sx[c0], sy[c1] - sy[c0]) || FALLBACK_CELL_PX;
+    }
+    const sigma = Math.min(40, Math.max(0.5, EDGE_SIGMA_CELLS * cellPx)) / LAYER_DIV;
+
+    const lw = Math.max(1, Math.ceil(cssW / LAYER_DIV));
+    const lh = Math.max(1, Math.ceil(cssH / LAYER_DIV));
+    if (layer.width !== lw || layer.height !== lh) {
+      layer.width = lw;
+      layer.height = lh;
+    }
+    layerCtx.setTransform(1 / LAYER_DIV, 0, 0, 1 / LAYER_DIV, 0, 0);
+    layerCtx.clearRect(0, 0, cssW, cssH);
+    const unseenPath = new Path2D();
+    const exploredPath = new Path2D();
+    const tPath = performance.now();
+    for (let j = 0; j < vh; j++) {
+      for (let i = 0; i < vw; i++) {
+        const idx = j * vw + i;
+        const k0 = corner(i, j);
+        const k1 = corner(i + 1, j);
+        const k2 = corner(i + 1, j + 1);
+        const k3 = corner(i, j + 1);
+        const front = !Number.isNaN(sx[k0]) && !Number.isNaN(sx[k1]) && !Number.isNaN(sx[k2]) && !Number.isNaN(sx[k3]);
+        let on = 1;
+        if (front) {
+          const minX = Math.min(sx[k0], sx[k1], sx[k2], sx[k3]);
+          const maxX = Math.max(sx[k0], sx[k1], sx[k2], sx[k3]);
+          const minY = Math.min(sy[k0], sy[k1], sy[k2], sy[k3]);
+          const maxY = Math.max(sy[k0], sy[k1], sy[k2], sy[k3]);
+          on = maxX < 0 || minX > cssW || maxY < 0 || minY > cssH ? 0 : 1;
+        }
+        onScreen[idx] = on;
+        if (!on || plane[idx] !== 0) continue;
+        const target = explored[idx] ? exploredPath : unseenPath;
+        if (front) {
+          target.moveTo(sx[k0], sy[k0]);
+          target.lineTo(sx[k1], sy[k1]);
+          target.lineTo(sx[k2], sy[k2]);
+          target.lineTo(sx[k3], sy[k3]);
+          continue;
+        }
+        ring[0] = k0;
+        ring[1] = k1;
+        ring[2] = k2;
+        ring[3] = k3;
+        for (let n = 0; n < 4; n++) for (let c = 0; c < 4; c++) quad[n * 4 + c] = clip[ring[n] * 4 + c];
+        const m = clipToNear(quad, 4, cut);
+        if (m < 3) continue;
+        for (let n = 0; n < m; n++) {
+          const W = cut[n * 4 + 3];
+          px[n] = ((cut[n * 4] / W + 1) / 2) * cssW;
+          py[n] = ((1 - cut[n * 4 + 1] / W) / 2) * cssH;
+        }
+        target.moveTo(px[0], py[0]);
+        for (let n = 1; n < m; n++) target.lineTo(px[n], py[n]);
+      }
+    }
+    const tFill = performance.now();
+    stats.pathMs += tFill - tPath;
+    if (softEdge) layerCtx.filter = `blur(${sigma}px)`;
+    layerCtx.fillStyle = `rgba(0,0,0,${EXPLORED_ALPHA})`;
+    layerCtx.fill(exploredPath);
+    layerCtx.fillStyle = `rgba(0,0,0,${FOG_ALPHA})`;
+    layerCtx.fill(unseenPath);
+    if (softEdge) layerCtx.filter = "none";
+    stats.fillMs += performance.now() - tFill;
+    stats.rebuilds++;
+  }
+
+  // Rebuilds the fog layer only when the camera, the viewport or a relevant part of the plane changed.
+  function ensureLayer(cssW, cssH) {
+    sampleCamera();
+    let sameCamera = builtW === cssW && builtH === cssH;
+    for (let k = 0; sameCamera && k < 12; k++) if (sample[k] !== builtSample[k]) sameCamera = false;
+    if (sameCamera && !layerStale) return;
+    const t0 = performance.now();
+    if (!buffers) buffers = allocBuffers();
+    if (!sameCamera) buffers.known.fill(0);
+    rebuildLayer(cssW, cssH);
+    builtSample.set(sample);
+    builtW = cssW;
+    builtH = cssH;
+    layerStale = false;
+    stats.rebuildMs += performance.now() - t0;
+  }
+
+  // Night tint first, then the cached fog layer as one scaled blit: no per-cell work runs on a frame.
   function draw() {
+    const t0 = performance.now();
+    stats.draws++;
+    refresh();
     const dpr = window.devicePixelRatio || 1;
     const w = Math.floor(window.innerWidth * dpr);
     const h = Math.floor(window.innerHeight * dpr);
@@ -87,57 +293,12 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
       ctx.fillStyle = `rgba(${NIGHT_RGB},${NIGHT_ALPHA * night})`;
       ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     }
-    if (!plane) return;
-    const [vw, vh, s] = dims;
-    let anyHidden = false;
-    for (let i = 0; i < plane.length; i++) if (plane[i] === 0) { anyHidden = true; break; }
-    if (!anyHidden) return;
-    const stride = vw + 1;
-    const clip = new Float64Array(stride * (vh + 1) * 4);
-    const known = new Uint8Array(stride * (vh + 1));
-    const quad = new Float64Array(16);
-    const cut = new Float64Array(32);
-    const px = new Float64Array(8);
-    const py = new Float64Array(8);
-    const corner = (i, j) => {
-      const k = j * stride + i;
-      if (!known[k]) {
-        const c = toClip(i * s, j * s, groundAt(i * s, j * s));
-        clip[k * 4] = c[0];
-        clip[k * 4 + 1] = c[1];
-        clip[k * 4 + 2] = c[2];
-        clip[k * 4 + 3] = c[3];
-        known[k] = 1;
-      }
-      return k;
-    };
-    const vwPx = window.innerWidth;
-    const vhPx = window.innerHeight;
-    ctx.fillStyle = `rgba(0,0,0,${FOG_ALPHA})`;
-    ctx.beginPath();
-    for (let j = 0; j < vh; j++) {
-      for (let i = 0; i < vw; i++) {
-        if (plane[j * vw + i] !== 0) continue;
-        const ks = [corner(i, j), corner(i + 1, j), corner(i + 1, j + 1), corner(i, j + 1)];
-        for (let n = 0; n < 4; n++) for (let c = 0; c < 4; c++) quad[n * 4 + c] = clip[ks[n] * 4 + c];
-        const m = clipToNear(quad, 4, cut);
-        if (m < 3) continue;
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (let n = 0; n < m; n++) {
-          const W = cut[n * 4 + 3];
-          px[n] = ((cut[n * 4] / W + 1) / 2) * vwPx;
-          py[n] = ((1 - cut[n * 4 + 1] / W) / 2) * vhPx;
-          minX = Math.min(minX, px[n]); maxX = Math.max(maxX, px[n]);
-          minY = Math.min(minY, py[n]); maxY = Math.max(maxY, py[n]);
-        }
-        if (maxX < 0 || minX > vwPx || maxY < 0 || minY > vhPx) continue;
-        ctx.moveTo(px[0], py[0]);
-        for (let n = 1; n < m; n++) ctx.lineTo(px[n], py[n]);
-        ctx.closePath();
-      }
+    if (plane && hidden > 0) {
+      ensureLayer(window.innerWidth, window.innerHeight);
+      ctx.drawImage(layer, 0, 0, window.innerWidth, window.innerHeight);
     }
-    ctx.fill();
+    stats.drawMs += performance.now() - t0;
   }
 
-  return { filter, draw };
+  return { filter, draw, stats };
 }

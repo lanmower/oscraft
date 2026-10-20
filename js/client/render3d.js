@@ -131,12 +131,20 @@ export function viewMatrix(cam) {
   return lookAt(eyeOf(cam), cam.target, [0, 1, 0]);
 }
 
+// Near plane grows with the orbit distance so depth precision holds when zoomed out: at the far zoom the fixed near
+// plane (0.1) left a far/near ratio near 2400, and coplanar floor layers flickered. Eye height is ~0.78 * distance,
+// so the nearest floor is always beyond 0.02 * distance.
+const NEAR_PER_DISTANCE = 0.02;
+export function nearOf(cam) {
+  return Math.max(cam.near, cam.distance * NEAR_PER_DISTANCE);
+}
+
 export function projectionMatrix(cam, aspect) {
-  return perspective(cam.fovY, aspect, cam.near, cam.far);
+  return perspective(cam.fovY, aspect, nearOf(cam), cam.far);
 }
 
 export function viewProjection(cam, aspect, out = new Float32Array(16)) {
-  perspective(cam.fovY, aspect, cam.near, cam.far, projectionScratch);
+  perspective(cam.fovY, aspect, nearOf(cam), cam.far, projectionScratch);
   lookAt(eyeOf(cam), cam.target, WORLD_UP, viewScratch);
   return multiply(projectionScratch, viewScratch, out);
 }
@@ -218,12 +226,45 @@ export function zoomCamera(cam, wheelDelta) {
 
 // Joint palette size of the skinned path; a skin with more joints than this draws unskinned.
 export const MAX_JOINTS = 64;
+// Level of detail: an instance switches to its low model beyond LOD_FAR_PER_DISTANCE times the camera distance, and
+// returns to the full model only inside LOD_HYSTERESIS times that switch distance, so it does not flicker at the edge.
+export const LOD_FAR_PER_DISTANCE = 1.5;
+export const LOD_HYSTERESIS = 0.75;
+
+// Lighting for meshes without their own: ambient, diffuse and gain (1 = unchanged).
+export const DEFAULT_SHADE = [0.3, 0.7, 1];
+// Sun direction (the same vector the shaders light by), the shadow map's texture unit, and how far the sun's eye sits.
+const SUN_DIR = (() => { const s = [0.4, 1, 0.6]; const n = Math.hypot(...s); return s.map((v) => v / n); })();
+const SHADOW_UNIT = 9;
+const SHADOW_DISTANCE = 400;
+// Unit-to-sun shadow sampling shared by the lit programs.
+const SHADOW_GLSL = `// Directional sun shadow from the shadow map: 3x3 percentage-closer filter with a slope-scaled bias. Outside the map,
+// and in the shadow pass itself (uShadowOn 0), the surface is lit.
+uniform mat4 uLightVP; uniform sampler2D uShadow; uniform float uShadowOn; uniform float uShadowTexel;
+float sunShadow(vec3 w, vec3 n) {
+  if (uShadowOn < 0.5) return 1.0;
+  vec4 p = uLightVP * vec4(w, 1.0);
+  vec3 s = p.xyz / p.w * 0.5 + 0.5;
+  if (s.x < 0.0 || s.y < 0.0 || s.x > 1.0 || s.y > 1.0 || s.z > 1.0) return 1.0;
+  vec3 sun = vec3(0.4, 1.0, 0.6) / length(vec3(0.4, 1.0, 0.6));
+  float facing = clamp(dot(normalize(n), sun), 0.0, 1.0);
+  float bias = max(0.0009 * (1.0 - facing), 0.00025);
+  float lit = 0.0;
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      float d = texture(uShadow, s.xy + vec2(float(x), float(y)) * uShadowTexel).r;
+      lit += (s.z - bias > d) ? 0.0 : 1.0;
+    }
+  }
+  return lit / 9.0;
+}
+`;
 
 const VERT = `#version 300 es
 in vec3 aPos; in vec3 aNormal; in vec2 aUv; in vec4 aJoints; in vec4 aWeights; in mat4 aInst;
 uniform mat4 uModel; uniform mat3 uNormal; uniform mat4 uViewProj;
 uniform bool uSkinned; uniform bool uInstanced; uniform mat4 uJoints[${MAX_JOINTS}];
-out vec3 vNormal; out vec2 vUv;
+out vec3 vNormal; out vec2 vUv; out vec3 vWorld;
 void main() {
   mat4 skin = mat4(1.0);
   mat3 skinNormal = mat3(1.0);
@@ -235,22 +276,66 @@ void main() {
   mat4 model = uInstanced ? aInst : uModel;
   mat3 normalBasis = uInstanced ? mat3(aInst) : uNormal;
   vec4 world = model * skin * vec4(aPos, 1.0);
-  vNormal = normalBasis * skinNormal * aNormal; vUv = aUv;
+  vNormal = normalBasis * skinNormal * aNormal; vUv = aUv; vWorld = world.xyz;
   gl_Position = uViewProj * world;
 }`;
 
 const FRAG = `#version 300 es
 precision mediump float;
-in vec3 vNormal; in vec2 vUv;
-uniform vec3 uColor; uniform bool uUseTex; uniform sampler2D uTex;
+in vec3 vNormal; in vec2 vUv; in vec3 vWorld;
+${SHADOW_GLSL}
+uniform vec3 uColor; uniform vec3 uTint; uniform bool uUseTex; uniform sampler2D uTex; uniform vec3 uShade; // ambient, diffuse, gain
 uniform float uAlpha; uniform bool uGlow; // optional additive blend mode (fx.js)
 out vec4 outColor;
 void main() {
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(vNormal), light), 0.0);
-  vec3 base = uUseTex ? texture(uTex, vUv).rgb : uColor;
-  outColor = uGlow ? vec4(base, uAlpha) : vec4(base * (0.3 + 0.7 * diffuse), 1.0);
+  vec3 base = (uUseTex ? texture(uTex, vUv).rgb : uColor) * uTint;
+  outColor = uGlow ? vec4(base, uAlpha) : vec4(base * uShade.z * (uShade.x + uShade.y * diffuse * sunShadow(vWorld, vNormal)), 1.0);
 }`;
+
+
+// Splat ground: four layers blended by the control map's weights. Each layer's height (its displacement plus half)
+// scaled by its weight decides the blend: only layers within uBand of the highest one contribute, so rock or roots
+// show through before the other layer. The fallback is the plain weight mix where no layer clears the threshold.
+const SPLAT_FRAG = `#version 300 es
+precision highp float;
+in vec3 vNormal; in vec3 vWorld;
+${SHADOW_GLSL}
+uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
+uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
+uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
+uniform vec3 uShade; // ambient, diffuse, albedo gain
+out vec4 outColor;
+void main() {
+  vec4 w = texture(uControl, vWorld.xz / uMapSize);
+  vec2 uv = vWorld.xz * uUvScale;
+  vec3 c0 = texture(uAlb0, uv).rgb; vec3 c1 = texture(uAlb1, uv).rgb;
+  vec3 c2 = texture(uAlb2, uv).rgb; vec3 c3 = texture(uAlb3, uv).rgb;
+  vec4 d = vec4(texture(uDisp0, uv).r, texture(uDisp1, uv).r, texture(uDisp2, uv).r, texture(uDisp3, uv).r);
+  vec4 h = w * (d + 0.5);
+  float m = max(max(h.x, h.y), max(h.z, h.w));
+  vec4 b = max(h - (m - uBand), 0.0) * w;
+  float s = b.x + b.y + b.z + b.w;
+  vec3 mixed = (b.x * c0 + b.y * c1 + b.z * c2 + b.w * c3) / max(s, 1e-4);
+  vec3 plain = (w.x * c0 + w.y * c1 + w.z * c2 + w.w * c3) / max(w.x + w.y + w.z + w.w, 1e-4);
+  vec3 base = s > 1e-4 ? mixed : plain;
+  vec3 light = normalize(vec3(0.4, 1.0, 0.6));
+  float diffuse = max(dot(normalize(vNormal), light), 0.0);
+  outColor = vec4(base * uShade.z * (uShade.x + uShade.y * diffuse * sunShadow(vWorld, vNormal)), 1.0);
+}`;
+
+function orthographic(l, r, b, t, n, f) {
+  const out = new Float32Array(16);
+  out[0] = 2 / (r - l);
+  out[5] = 2 / (t - b);
+  out[10] = -2 / (f - n);
+  out[12] = -(r + l) / (r - l);
+  out[13] = -(t + b) / (t - b);
+  out[14] = -(f + n) / (f - n);
+  out[15] = 1;
+  return out;
+}
 
 function compile(gl, type, source) {
   const shader = gl.createShader(type);
@@ -260,17 +345,26 @@ function compile(gl, type, source) {
   return shader;
 }
 
+// Attribute slots are fixed for every program, so one mesh's buffers bind the same way in the main and splat programs.
+const ATTRIBUTE_NAMES = ["aPos", "aNormal", "aUv", "aJoints", "aWeights", "aInst"];
+function linkProgram(gl, fragment) {
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERT));
+  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragment));
+  ATTRIBUTE_NAMES.forEach((name, slot) => gl.bindAttribLocation(program, slot, name));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  return program;
+}
+
 // Uploads a mesh once and keeps its buffers. Mesh shape:
 //   { positions: Float32Array xyz, normals: Float32Array xyz, uvs?: Float32Array uv,
 //     indices?: Uint16Array|Uint32Array, color?: [r,g,b] in 0..1, texture?: WebGLTexture,
 //     dirty?: boolean }
 // Set mesh.dirty = true after changing its arrays so the next draw re-uploads them.
 export function createRenderer(gl) {
-  const program = gl.createProgram();
-  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERT));
-  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAG));
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  const program = linkProgram(gl, FRAG);
+  const splatProgram = linkProgram(gl, SPLAT_FRAG);
   gl.useProgram(program);
 
   const attr = {
@@ -286,6 +380,9 @@ export function createRenderer(gl) {
     normal: gl.getUniformLocation(program, "uNormal"),
     viewProj: gl.getUniformLocation(program, "uViewProj"),
     color: gl.getUniformLocation(program, "uColor"),
+    tint: gl.getUniformLocation(program, "uTint"),
+    shade: gl.getUniformLocation(program, "uShade"),
+    shadowOn: gl.getUniformLocation(program, "uShadowOn"),
     useTex: gl.getUniformLocation(program, "uUseTex"),
     tex: gl.getUniformLocation(program, "uTex"),
     skinned: gl.getUniformLocation(program, "uSkinned"),
@@ -294,6 +391,21 @@ export function createRenderer(gl) {
     glow: gl.getUniformLocation(program, "uGlow"),
     instanced: gl.getUniformLocation(program, "uInstanced"),
   };
+  const splatUni = {
+    control: gl.getUniformLocation(splatProgram, "uControl"),
+    mapSize: gl.getUniformLocation(splatProgram, "uMapSize"),
+    uvScale: gl.getUniformLocation(splatProgram, "uUvScale"),
+    band: gl.getUniformLocation(splatProgram, "uBand"),
+    shade: gl.getUniformLocation(splatProgram, "uShade"),
+    shadowOn: gl.getUniformLocation(splatProgram, "uShadowOn"),
+    viewProj: gl.getUniformLocation(splatProgram, "uViewProj"),
+    model: gl.getUniformLocation(splatProgram, "uModel"),
+    normal: gl.getUniformLocation(splatProgram, "uNormal"),
+    skinned: gl.getUniformLocation(splatProgram, "uSkinned"),
+    instanced: gl.getUniformLocation(splatProgram, "uInstanced"),
+    alb: [0, 1, 2, 3].map((k) => gl.getUniformLocation(splatProgram, "uAlb" + k)),
+    disp: [0, 1, 2, 3].map((k) => gl.getUniformLocation(splatProgram, "uDisp" + k)),
+  };
   gl.uniform1i(uni.tex, 0);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
@@ -301,20 +413,30 @@ export function createRenderer(gl) {
   const camera = createCamera();
   const uploads = new WeakMap();
   const instanceBuffers = new WeakMap();
-  const stats = { drawCalls: 0, instances: 0, culled: 0, frameCpuMs: 0 };
+  const stats = { drawCalls: 0, instances: 0, culled: 0, lod: 0, frameCpuMs: 0 };
   const viewProj = identity();
+  const unitModel = identity();
+  // Sun shadow map: one depth target over the playfield, filled by re-issuing the caster draws with the light's matrix.
+  let shadowFbo = null, shadowTex = null, shadowSize = 0, shadowOn = false, passVP = viewProj;
+  let casterGen = 0, shadowGen = -1, savedCullBounds = null;
+  const lightVP = identity();
   const modelScratch = new Float32Array(16);
   const normalScratch = new Float32Array(9);
   const groundBox = [0, 0, 0, 0];
-  const visibleBatches = new WeakMap();
+  const compactedBatches = new WeakMap();
+  const lodTiers = new WeakMap();
   let cullBounds = null;
+  let eye = [0, 0, 0];
   let frameStart = 0;
   let aspect = null;
 
   function upload(mesh) {
     let buf = uploads.get(mesh);
     if (!buf || mesh.dirty) {
-      if (!buf) buf = { pos: gl.createBuffer(), normal: gl.createBuffer(), uv: gl.createBuffer(), index: null, count: 0, indexType: 0, joints: null, weights: null };
+      if (!buf) {
+        buf = { pos: gl.createBuffer(), normal: gl.createBuffer(), uv: gl.createBuffer(), index: null, count: 0, indexType: 0, joints: null, weights: null };
+        casterGen += 1;
+      }
       const vertexCount = mesh.positions.length / 3;
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.pos);
       gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
@@ -371,11 +493,13 @@ export function createRenderer(gl) {
       const a = aspect ?? gl.drawingBufferWidth / Math.max(1, gl.drawingBufferHeight);
       viewProjection(camera, a, viewProj);
       cullBounds = visibleGroundBounds(camera, a, groundBox);
+      eye = eyeOf(camera);
       gl.clearColor(clearRgb[0], clearRgb[1], clearRgb[2], 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       stats.drawCalls = 0;
       stats.instances = 0;
       stats.culled = 0;
+      stats.lod = 0;
       gl.useProgram(program);
       gl.uniformMatrix4fv(uni.viewProj, false, viewProj);
     },
@@ -399,37 +523,13 @@ export function createRenderer(gl) {
     // all visible draws as it is, keeping its static upload; otherwise the visible matrices are compacted into a
     // per-batch scratch batch that re-uploads each frame.
     drawInstancedVisible(mesh, batch) {
-      if (!cullBounds) {
-        if (batch.count > 0) drawInstances(mesh, batch);
-        return batch.count;
-      }
-      const reach = meshReach(mesh);
-      const src = batch.matrices;
-      let n = 0;
-      for (let i = 0; i < batch.count; i++) if (inCullBox(src[i * 16 + 12], src[i * 16 + 14], reach)) n += 1;
-      stats.culled += batch.count - n;
-      if (n === 0) return 0;
-      if (n === batch.count) {
-        drawInstances(mesh, batch);
-        return n;
-      }
-      let vis = visibleBatches.get(batch);
-      if (!vis) {
-        vis = { matrices: new Float32Array(batch.count * 16), count: 0, dirty: true };
-        visibleBatches.set(batch, vis);
-      }
-      const dst = vis.matrices;
-      let w = 0;
-      for (let i = 0; i < batch.count; i++) {
-        const o = i * 16;
-        if (!inCullBox(src[o + 12], src[o + 14], reach)) continue;
-        for (let k = 0; k < 16; k++) dst[w * 16 + k] = src[o + k];
-        w += 1;
-      }
-      vis.count = n;
-      vis.dirty = true;
-      drawInstances(mesh, vis);
-      return n;
+      return drawVisible(mesh, batch);
+    },
+
+    // Like drawInstancedVisible, but instances beyond the LOD distance draw with lowMesh (same matrices). Without a
+    // lowMesh it is drawInstancedVisible. Tiers are kept per instance with LOD_HYSTERESIS between the two switches.
+    drawInstancedLod(mesh, batch, lowMesh = null) {
+      return lowMesh ? drawLod(mesh, batch, lowMesh) : drawVisible(mesh, batch);
     },
 
     // transform: column-major 16-element model matrix (identity when omitted).
@@ -450,10 +550,18 @@ export function createRenderer(gl) {
     drawSkinned(mesh, transform, joints) {
       draw(mesh, transform, joints);
     },
+
+    drawSplat,
+    updateSplatCell,
+    setShadows,
+    beginShadowPass,
+    endShadowPass,
   };
 
   function bindMaterial(mesh) {
     gl.uniform3fv(uni.color, mesh.color || [1, 1, 1]);
+    gl.uniform3fv(uni.tint, mesh.tint || [1, 1, 1]);
+    gl.uniform3fv(uni.shade, mesh.shade || DEFAULT_SHADE);
     const glow = mesh.blend === "add";
     gl.uniform1i(uni.glow, glow ? 1 : 0);
     gl.uniform1f(uni.alpha, mesh.alpha ?? 1);
@@ -483,6 +591,10 @@ export function createRenderer(gl) {
   }
 
   function drawInstances(mesh, batch) {
+    if (isTransparent(mesh)) {
+      drawEachInstance(mesh, batch);
+      return;
+    }
     const buf = upload(mesh);
     bindGeometry(buf);
     gl.disableVertexAttribArray(attr.joints);
@@ -492,6 +604,7 @@ export function createRenderer(gl) {
       inst = gl.createBuffer();
       instanceBuffers.set(batch, inst);
       batch.dirty = true;
+      casterGen += 1;
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, inst);
     if (batch.dirty) {
@@ -530,21 +643,308 @@ export function createRenderer(gl) {
       && z + reach >= cullBounds[1] && z - reach <= cullBounds[3];
   }
 
+  // The compacted copy of a batch's visible instances, one per slot ('high' or 'low'). Its ids and spare arrays
+  // swap each frame so the kept set can be compared with the last one without allocating.
+  function compactedFor(batch, slot) {
+    let slots = compactedBatches.get(batch);
+    if (!slots) {
+      slots = {};
+      compactedBatches.set(batch, slots);
+    }
+    let vis = slots[slot];
+    if (!vis) {
+      vis = {
+        matrices: new Float32Array(batch.count * 16),
+        ids: new Uint32Array(batch.count),
+        spare: new Uint32Array(batch.count),
+        count: 0,
+        dirty: true,
+      };
+      slots[slot] = vis;
+    }
+    return vis;
+  }
+
+  // Writes the source indices of instances whose ground box is on screen into ids; returns how many.
+  function keepInside(src, count, reach, ids) {
+    let n = 0;
+    for (let i = 0; i < count; i++) {
+      if (!cullBounds || inCullBox(src[i * 16 + 12], src[i * 16 + 14], reach)) ids[n++] = i;
+    }
+    return n;
+  }
+
+  // Copies the n kept instances (their ids are in vis.spare) into vis. vis.dirty is set only when the kept set or
+  // any kept matrix differs from what was last uploaded, so a static scene re-uploads nothing.
+  function compact(vis, src, n) {
+    const ids = vis.spare;
+    const prev = vis.ids;
+    let changed = vis.count !== n;
+    for (let k = 0; k < n && !changed; k++) if (prev[k] !== ids[k]) changed = true;
+    vis.ids = ids;
+    vis.spare = prev;
+    vis.count = n;
+    const m = vis.matrices;
+    for (let k = 0; k < n; k++) {
+      const s = ids[k] * 16;
+      const d = k * 16;
+      for (let c = 0; c < 16; c++) {
+        const v = src[s + c];
+        if (m[d + c] !== v) {
+          m[d + c] = v;
+          changed = true;
+        }
+      }
+    }
+    vis.dirty = changed;
+  }
+
+  function drawVisible(mesh, batch) {
+    if (!cullBounds) {
+      if (batch.count > 0) drawInstances(mesh, batch);
+      return batch.count;
+    }
+    const vis = compactedFor(batch, 'high');
+    const n = keepInside(batch.matrices, batch.count, meshReach(mesh), vis.spare);
+    stats.culled += batch.count - n;
+    if (n === 0) return 0;
+    if (n === batch.count) {
+      drawInstances(mesh, batch);
+      return n;
+    }
+    compact(vis, batch.matrices, n);
+    drawInstances(mesh, vis);
+    return n;
+  }
+
+  function drawLod(mesh, batch, lowMesh) {
+    const count = batch.count;
+    const src = batch.matrices;
+    const reach = meshReach(mesh);
+    let tiers = lodTiers.get(batch);
+    if (!tiers) {
+      tiers = new Uint8Array(count);
+      lodTiers.set(batch, tiers);
+    }
+    const far = camera.distance * LOD_FAR_PER_DISTANCE;
+    const back = far * LOD_HYSTERESIS;
+    const hi = compactedFor(batch, 'high');
+    const lo = compactedFor(batch, 'low');
+    let nh = 0;
+    let nl = 0;
+    for (let i = 0; i < count; i++) {
+      const o = i * 16;
+      if (cullBounds && !inCullBox(src[o + 12], src[o + 14], reach)) continue;
+      const dx = src[o + 12] - eye[0];
+      const dy = src[o + 13] - eye[1];
+      const dz = src[o + 14] - eye[2];
+      const d = Math.hypot(dx, dy, dz);
+      let tier = tiers[i];
+      if (tier === 0 && d > far) tier = 1;
+      else if (tier === 1 && d < back) tier = 0;
+      tiers[i] = tier;
+      if (tier === 0) hi.spare[nh++] = i;
+      else lo.spare[nl++] = i;
+    }
+    const kept = nh + nl;
+    stats.culled += count - kept;
+    stats.lod += nl;
+    if (nh > 0) {
+      compact(hi, src, nh);
+      drawInstances(mesh, hi);
+    }
+    if (nl > 0) {
+      compact(lo, src, nl);
+      drawInstances(lowMesh, lo);
+    }
+    return kept;
+  }
+
+  // Transparent meshes (additive glow or alpha below one) draw one instance at a time, in batch order, instead of
+  // through the instanced path, so they blend in the order they were placed.
+  function isTransparent(mesh) {
+    return mesh.blend === "add" || (mesh.alpha ?? 1) < 1;
+  }
+
+  function drawEachInstance(mesh, batch) {
+    const m = batch.matrices;
+    for (let i = 0; i < batch.count; i++) {
+      for (let k = 0; k < 16; k++) modelScratch[k] = m[i * 16 + k];
+      drawModel(mesh, null);
+    }
+  }
+
+  // Splat ground: one draw of the terrain mesh. splat = { control: {data, width, height}, layers: [{albedo, height}] x4,
+  // width, height (map size in cells), uvScale, band, gpu }; the control texture is created on first draw and kept.
+  function controlTexture(control) {
+    const tex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, control.width, control.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, control.data);
+    return tex;
+  }
+  function drawSplat(mesh, splat) {
+    if (!splat.gpu) {
+      splat.gpu = { control: controlTexture(splat.control) };
+      casterGen += 1;
+    }
+    const buf = upload(mesh);
+    gl.useProgram(splatProgram);
+    bindGeometry(buf);
+    gl.disableVertexAttribArray(attr.joints);
+    gl.disableVertexAttribArray(attr.weights);
+    for (let c = 0; c < 4; c++) gl.disableVertexAttribArray(attr.inst + c);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, splat.gpu.control);
+    gl.uniform1i(splatUni.control, 0);
+    splat.layers.forEach((layer, k) => {
+      gl.activeTexture(gl.TEXTURE1 + k);
+      gl.bindTexture(gl.TEXTURE_2D, layer.albedo);
+      gl.uniform1i(splatUni.alb[k], 1 + k);
+      gl.activeTexture(gl.TEXTURE5 + k);
+      gl.bindTexture(gl.TEXTURE_2D, layer.height);
+      gl.uniform1i(splatUni.disp[k], 5 + k);
+    });
+    gl.uniform2f(splatUni.mapSize, splat.width, splat.height);
+    gl.uniform1f(splatUni.uvScale, splat.uvScale);
+    gl.uniform1f(splatUni.band, splat.band);
+    gl.uniform3fv(splatUni.shade, splat.shade);
+    gl.uniformMatrix4fv(splatUni.viewProj, false, passVP);
+    gl.uniformMatrix4fv(splatUni.model, false, unitModel);
+    gl.uniformMatrix3fv(splatUni.normal, false, normalMatrix(unitModel, normalScratch));
+    gl.uniform1i(splatUni.skinned, 0);
+    gl.uniform1i(splatUni.instanced, 0);
+    if (buf.index) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.index);
+      gl.drawElements(gl.TRIANGLES, buf.count, buf.indexType, 0);
+    } else {
+      gl.drawArrays(gl.TRIANGLES, 0, buf.count);
+    }
+    gl.useProgram(program);
+    stats.drawCalls += 1;
+    stats.instances += 1;
+  }
+  // Rewrites one cell's control texel in place: a sub-region upload, no rebuild of the terrain mesh.
+  function updateSplatCell(splat, index, texel) {
+    if (!splat.gpu) return;
+    const w = splat.control.width;
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, splat.gpu.control);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, index % w, Math.floor(index / w), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, texel);
+    stats.texelUploads = (stats.texelUploads || 0) + 1;
+  }
+
+  // Builds the sun's shadow map once: an orthographic view over a square of `halfExtent` cells around `center`.
+  function setShadows({ enabled, size, center, halfExtent }) {
+    shadowOn = Boolean(enabled);
+    if (!shadowOn) return false;
+    if (!shadowTex) {
+      shadowSize = size;
+      shadowTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, shadowTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, size, size, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      shadowFbo = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowTex, 0);
+      const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      if (!complete) { shadowOn = false; return false; }
+    }
+    shadowGen = -1;
+    const reach = 2 * SHADOW_DISTANCE;
+    const eye = [center[0] + SUN_DIR[0] * SHADOW_DISTANCE, center[1] + SUN_DIR[1] * SHADOW_DISTANCE, center[2] + SUN_DIR[2] * SHADOW_DISTANCE];
+    const proj = orthographic(-halfExtent, halfExtent, -halfExtent, halfExtent, 1, reach);
+    multiply(proj, lookAt(eye, center, [0, 1, 0]), lightVP);
+    for (const [p, locs] of [[program, uni], [splatProgram, splatUni]]) {
+      gl.useProgram(p);
+      gl.uniformMatrix4fv(gl.getUniformLocation(p, "uLightVP"), false, lightVP);
+      gl.uniform1i(gl.getUniformLocation(p, "uShadow"), SHADOW_UNIT);
+      gl.uniform1f(gl.getUniformLocation(p, "uShadowTexel"), 1 / size);
+      gl.uniform1f(locs.shadowOn, 1);
+    }
+    gl.useProgram(program);
+    gl.activeTexture(gl.TEXTURE0 + SHADOW_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, shadowTex);
+    gl.activeTexture(gl.TEXTURE0);
+    return true;
+  }
+
+  // Shadow pass: the caster draws that follow run into the depth map from the sun, with colour writes off. The map
+  // covers the whole playfield and the casters are static, so it is rebuilt only when a caster GPU resource is
+  // created (casterGen moves); otherwise the pass is skipped and returns false.
+  function beginShadowPass() {
+    if (!shadowOn || !shadowTex) return false;
+    if (shadowGen === casterGen) return false;
+    savedCullBounds = cullBounds;
+    cullBounds = null;
+    gl.activeTexture(gl.TEXTURE0 + SHADOW_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFbo);
+    gl.viewport(0, 0, shadowSize, shadowSize);
+    gl.colorMask(false, false, false, false);
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+    gl.polygonOffset(2, 4);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(program);
+    gl.uniform1f(uni.shadowOn, 0);
+    gl.uniformMatrix4fv(uni.viewProj, false, lightVP);
+    gl.useProgram(splatProgram);
+    gl.uniform1f(splatUni.shadowOn, 0);
+    gl.useProgram(program);
+    passVP = lightVP;
+    return true;
+  }
+
+  function endShadowPass() {
+    cullBounds = savedCullBounds;
+    shadowGen = casterGen;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.colorMask(true, true, true, true);
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+    passVP = viewProj;
+    gl.useProgram(program);
+    gl.uniform1f(uni.shadowOn, 1);
+    gl.uniformMatrix4fv(uni.viewProj, false, viewProj);
+    gl.useProgram(splatProgram);
+    gl.uniform1f(splatUni.shadowOn, 1);
+    gl.useProgram(program);
+    gl.activeTexture(gl.TEXTURE0 + SHADOW_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, shadowTex);
+    gl.activeTexture(gl.TEXTURE0);
+  }
+
   function draw(mesh, transform, joints) {
+    if (transform) modelScratch.set(transform);
+    else identity(modelScratch);
+    drawModel(mesh, joints);
+  }
+
+  // Draws the mesh with the model matrix already in modelScratch.
+  function drawModel(mesh, joints) {
     const model = modelScratch;
-    if (transform) model.set(transform);
-    else identity(model);
     const buf = upload(mesh);
     bindGeometry(buf);
     const skinned = Boolean(joints && buf.joints);
     if (skinned) {
+      const palette = joints.length > MAX_JOINTS * 16 ? joints.subarray(0, MAX_JOINTS * 16) : joints;
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.joints);
       gl.enableVertexAttribArray(attr.joints);
       gl.vertexAttribPointer(attr.joints, 4, gl.FLOAT, false, 0, 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, buf.weights);
       gl.enableVertexAttribArray(attr.weights);
       gl.vertexAttribPointer(attr.weights, 4, gl.FLOAT, false, 0, 0);
-      gl.uniformMatrix4fv(uni.joints, false, joints);
+      gl.uniformMatrix4fv(uni.joints, false, palette);
     } else {
       gl.disableVertexAttribArray(attr.joints);
       gl.disableVertexAttribArray(attr.weights);

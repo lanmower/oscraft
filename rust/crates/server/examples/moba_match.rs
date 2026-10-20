@@ -11,11 +11,53 @@
 //
 // Usage: cargo run -p server --example moba_match -- <scenario dir> [max_ticks] [replay file]
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
+use mod_host::{Cmd, ModHost};
 use server::replay::{Command, Recording, Replayer};
-use sim::{Sim, ABILITY_SLOTS};
+use sim::{Payout, Sim, ABILITY_SLOTS};
+
+// The gold a payable death should produce, from the mod's formula (mods/moba_match.lua on_died):
+// a hero killer keeps the bounty less the team share and its side gets the share; a creep killer
+// pays the whole bounty to its side; an attackerless death pays the rival side. Each entry is
+// (0 = add_gold | 1 = add_hero_gold, id, amount).
+const TEAM_SHARE_PCT: i64 = 20;
+
+fn expected_gold(sim: &Sim, p: &Payout) -> Vec<(u8, i64, i64)> {
+    let bounty = i64::from(p.bounty);
+    match (p.killer, p.killer_player) {
+        (Some(k), Some(kp)) => {
+            let share = bounty * TEAM_SHARE_PCT / 100;
+            if p.killer_hero {
+                vec![(1, i64::from(k), bounty - share), (0, i64::from(kp), share)]
+            } else {
+                vec![(0, i64::from(kp), bounty)]
+            }
+        }
+        _ => sim.rival_of(p.victim_player).map(|r| vec![(0, i64::from(r), bounty)]).unwrap_or_default(),
+    }
+}
+
+fn gold_key(c: &Cmd) -> Option<(u8, i64, i64)> {
+    match c {
+        Cmd::AddGold { player, amount } => Some((0, *player as i64, *amount as i64)),
+        Cmd::AddHeroGold { unit, amount } => Some((1, *unit as i64, *amount as i64)),
+        _ => None,
+    }
+}
+
+fn print_gold(sim: &Sim, heroes: &[usize], label: &str) {
+    for &h in heroes {
+        println!("gold {label} hero={h} side={} gold={}", side(sim.player(h)), sim.hero_gold(h));
+    }
+    let mut players: Vec<u8> = heroes.iter().map(|&h| sim.player(h)).collect();
+    players.sort();
+    players.dedup();
+    for p in players {
+        println!("gold {label} player={p} side={} resource_a={}", side(p), sim.resource_a(p));
+    }
+}
 
 const NEUTRAL: u8 = 0xFF;
 const CAMP_PHASE_END: u32 = 6000;
@@ -47,18 +89,41 @@ fn first_alive(sim: &Sim, pred: impl Fn(usize) -> bool) -> Option<usize> {
 
 const DEFEND_RADIUS_TILES: i64 = 25;
 
-fn defender_of_base(sim: &Sim, h: usize) -> Option<usize> {
+fn dist2(sim: &Sim, a: usize, b: usize) -> i64 {
+    let (ax, ay) = sim.position_fixed(a);
+    let (bx, by) = sim.position_fixed(b);
+    (ax as i64 - bx as i64).pow(2) + (ay as i64 - by as i64).pow(2)
+}
+
+fn own_base(sim: &Sim, h: usize) -> Option<usize> {
     let side_h = side(sim.player(h));
-    let base = first_alive(sim, |j| sim.kind_name(j) == Some("base") && side(sim.player(j)) == side_h)?;
-    let (bx, by) = sim.position_fixed(base);
+    first_alive(sim, |j| sim.kind_name(j) == Some("base") && side(sim.player(j)) == side_h)
+}
+
+// The push target: the rival tower or barracks nearest our base. Every hero on a side
+// picks the same one, so the lane is pushed as a unit; when it dies the next one is chosen.
+fn front_structure(sim: &Sim, h: usize) -> Option<usize> {
+    let base = own_base(sim, h)?;
+    (0..sim.count())
+        .filter(|&j| {
+            sim.alive(j)
+                && sim.player(j) != NEUTRAL
+                && sim.hostile(sim.player(h), sim.player(j))
+                && sim.kind_name(j).is_some_and(|k| k.starts_with("tower") || k.starts_with("barracks"))
+        })
+        .min_by_key(|&j| dist2(sim, j, base))
+}
+
+// Only enemy heroes inside the base radius pull a hero back; creeps do not stall the push.
+fn hero_defender_of_base(sim: &Sim, h: usize) -> Option<usize> {
+    let base = own_base(sim, h)?;
     let reach = (DEFEND_RADIUS_TILES << sim::fixed::SHIFT).pow(2);
     let mut best: Option<(i64, usize)> = None;
     for j in 0..sim.count() {
-        if !sim.alive(j) || sim.player(j) == NEUTRAL || !sim.hostile(sim.player(h), sim.player(j)) {
+        if !sim.alive(j) || !sim.is_hero(j) || sim.player(j) == NEUTRAL || !sim.hostile(sim.player(h), sim.player(j)) {
             continue;
         }
-        let (x, y) = sim.position_fixed(j);
-        let d = (x as i64 - bx as i64).pow(2) + (y as i64 - by as i64).pow(2);
+        let d = dist2(sim, j, base);
         if d <= reach && best.is_none_or(|(bd, _)| d < bd) {
             best = Some((d, j));
         }
@@ -79,11 +144,6 @@ fn is_camp_unit(sim: &Sim, j: usize) -> bool {
     sim.player(j) == NEUTRAL && sim.kind_name(j).is_some_and(|k| k.starts_with("neutral_") || k == "creep")
 }
 
-fn is_enemy_structure(sim: &Sim, h: usize, j: usize) -> bool {
-    sim.hostile(sim.player(h), sim.player(j))
-        && sim.kind_name(j).is_some_and(|k| k.starts_with("tower") || k.starts_with("barracks") || k == "base")
-}
-
 fn nearest_by(sim: &Sim, h: usize, pred: impl Fn(usize) -> bool) -> Option<usize> {
     let (hx, hy) = sim.position_fixed(h);
     (0..sim.count())
@@ -95,7 +155,19 @@ fn nearest_by(sim: &Sim, h: usize, pred: impl Fn(usize) -> bool) -> Option<usize
 }
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let mut args: Vec<String> = std::env::args().collect();
+    let mod_path = match args.iter().position(|a| a == "--mod") {
+        Some(i) if i + 1 < args.len() => {
+            let path = args.remove(i + 1);
+            args.remove(i);
+            Some(path)
+        }
+        Some(_) => {
+            eprintln!("--mod needs a file");
+            std::process::exit(2);
+        }
+        None => None,
+    };
     let dir = args.get(1).map(String::as_str).unwrap_or("../scenarios/moba");
     let max_ticks: u32 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(40_000);
 
@@ -106,7 +178,31 @@ fn main() {
             std::process::exit(2);
         }
     };
+    let mut modded = mod_path.map(|path| {
+        let image = match server::mods::load_image(Path::new(dir)) {
+            Ok(image) => image,
+            Err(e) => {
+                eprintln!("mod image failed: {e}");
+                std::process::exit(2);
+            }
+        };
+        let mut host = ModHost::new(&image).unwrap_or_else(|e| {
+            eprintln!("mod host image: {e:?}");
+            std::process::exit(2);
+        });
+        host.load(Path::new(&path)).unwrap_or_else(|e| {
+            eprintln!("--mod {path}: {e}");
+            std::process::exit(2);
+        });
+        if host.gold_by_mod() {
+            sim.set_gold_by_mod(true);
+        }
+        println!("mod loaded path={path} version={}", host.version());
+        host
+    });
     let mut rec = Recording::new(dir, 4096, &sim);
+    let mut handles: HashMap<u32, usize> = HashMap::new();
+    let mut mod_ui: Vec<String> = Vec::new();
     let heroes: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_hero(i)).collect();
     let sides: HashSet<u8> = heroes.iter().map(|&h| side(sim.player(h))).collect();
     println!("setup heroes={} sides={} players={}", heroes.len(), sides.len(), {
@@ -120,6 +216,10 @@ fn main() {
     let mut dead_at: Vec<Option<u32>> = vec![None; sim.count()];
     let mut camp_dead: HashSet<usize> = HashSet::new();
     let mut gold_before: Vec<i32> = vec![0; sim.count()];
+    let mut pending_payouts: Vec<Payout> = Vec::new();
+    let (mut fed, mut matched, mut hero_miss) = (0u32, 0u32, 0u32);
+    let mut mismatched: Vec<String> = Vec::new();
+    let mut applied = [0u32; 2];
 
     while sim.winner().is_none() && sim.ticks() < max_ticks {
         let t = sim.ticks();
@@ -172,9 +272,9 @@ fn main() {
             let target = if phase_camp {
                 nearest_by(&sim, h, |j| is_camp_unit(&sim, j))
             } else {
-                defender_of_base(&sim, h)
+                hero_defender_of_base(&sim, h)
                     .or_else(|| if phase_roshan { first_alive(&sim, |j| is_roshan(&sim, j)) } else { None })
-                    .or_else(|| nearest_by(&sim, h, |j| is_enemy_structure(&sim, h, j)))
+                    .or_else(|| front_structure(&sim, h))
                     .or_else(|| rival_base_of(&sim, h))
                     .or(hostile_hero)
                     .or_else(|| first_alive(&sim, |j| sim.hostile(sim.player(h), sim.player(j)) && j != h))
@@ -197,10 +297,54 @@ fn main() {
             }
         }
 
+        if let Some(host) = modded.as_mut() {
+            let state = host.state().clone();
+            let mut cmds = Vec::new();
+            for p in std::mem::take(&mut pending_payouts) {
+                match host.feed_payout(&p) {
+                    Ok(fed_cmds) => {
+                        fed += 1;
+                        let got: Vec<_> = fed_cmds.iter().filter_map(gold_key).collect();
+                        let want = expected_gold(&sim, &p);
+                        if got == want {
+                            matched += 1;
+                        } else {
+                            mismatched.push(format!("tick={} victim={} expected={want:?} got={got:?}", p.tick, p.victim));
+                        }
+                        cmds.extend(fed_cmds);
+                    }
+                    Err(e) => eprintln!("mod error on_died tick={t}: {e}"),
+                }
+            }
+            if let Err(e) = host.advance(&state) {
+                eprintln!("mod error tick={t}: {e}");
+            }
+            cmds.extend(host.take_commands());
+            for c in &cmds {
+                if let Cmd::AddHeroGold { unit, amount } = c {
+                    if !sim.is_hero(*unit as usize) {
+                        hero_miss += 1;
+                    } else if *amount > 0 && seen.first("bounty") {
+                        println!("milestone bounty tick={t} killer={unit} gold={}", sim.hero_gold(*unit as usize));
+                    }
+                }
+                if let Some((kind, _, _)) = gold_key(c) {
+                    applied[kind as usize] += 1;
+                }
+            }
+            server::room::apply_mod_commands(&mut sim, &mut rec, &mut handles, cmds, &mut mod_ui);
+        }
+
         for &h in &heroes {
             gold_before[h] = sim.hero_gold(h);
         }
         rec.tick(&mut sim, true, true);
+        if modded.is_some() {
+            pending_payouts = sim.drain_payouts();
+        }
+        if sim.ticks() == 12000 {
+            print_gold(&sim, &heroes, "tick12000");
+        }
 
         for ev in sim.drain_kill_events() {
             let killer = ev.killer as usize;
@@ -247,6 +391,13 @@ fn main() {
             eprintln!("roshan unit={j} alive={} hp={}", sim.alive(j), sim.hp(j));
         }
     }
+    print_gold(&sim, &heroes, "end");
+    if modded.is_some() {
+        println!("mod payouts fed={fed} matched={matched} mismatched={} hero_targets_missed={hero_miss} applied_ag={} applied_ah={}", mismatched.len(), applied[0], applied[1]);
+        for m in mismatched.iter().take(10) {
+            eprintln!("mismatch {m}");
+        }
+    }
     rec.check(&sim);
     let text = rec.render(&sim);
     if let Some(path) = args.get(3) {
@@ -259,7 +410,12 @@ fn main() {
         eprintln!("reload failed: {e}");
         std::process::exit(2);
     });
-    let replayed = Recording::parse(&text).and_then(|r| Replayer::new(r, &fresh)).and_then(|mut p| p.run_to_end(&mut fresh));
+    let replayed = Recording::parse(&text)
+        .and_then(|r| {
+            r.apply_header(&mut fresh);
+            Replayer::new(r, &fresh)
+        })
+        .and_then(|mut p| p.run_to_end(&mut fresh));
     match replayed {
         Ok(h) if h == sim.state_hash() && fresh.ticks() == tick => println!("replay ok hash={h:016x} ticks={tick}"),
         other => {

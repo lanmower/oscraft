@@ -39,22 +39,24 @@ jobs:
         shell: bash
         env:
           EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           set -euo pipefail
-          if [ "$EVENT" != pull_request ]; then
+          # Only a root-level markdown file skips the jobs: docs/ is read by checks (LOG_SCHEMA.md, FRIENDS.md),
+          # so every docs/ change runs them. A push whose base cannot be diffed (new branch, rewritten history) runs all jobs.
+          if [ "$EVENT" = workflow_dispatch ] || [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] \
+            || ! files=$(git diff --name-only "$BASE" "$GITHUB_SHA" 2>/dev/null); then
             echo "code=true" >> "$GITHUB_OUTPUT"
             echo "decide: $EVENT runs every job"
             exit 0
           fi
           code=false
-          files=$(git diff --name-only "$BASE" "$GITHUB_SHA")
           while IFS= read -r f; do
             [ -n "$f" ] || continue
-            case "$f" in docs/*|*.md) ;; *) code=true ;; esac
+            case "$f" in */*|LICENSES-INVENTORY.md|NOTICE.md) code=true ;; *.md) ;; *) code=true ;; esac
           done <<< "$files"
           echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "decide: pull_request code=$code changed=$(printf '%s\n' "$files" | grep -c .)"
+          echo "decide: $EVENT code=$code changed=$(printf '%s\n' "$files" | grep -c .)"
 
   build:
     name: build once - workspace, test binaries, page wasm and map image
@@ -76,6 +78,7 @@ jobs:
         with:
           workspaces: rust -> target
           shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -125,9 +128,11 @@ jobs:
             const anim = await import("./js/client/anim.js");
             const file = fs.readFileSync("./js/client/models/character-female-a.glb");
             const bytes = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
-            const mesh = glb.parseGlb(bytes);
+            const { resolveGlbExtensions } = await import("./js/client/glb_resolve.js");
+            const resolved = await resolveGlbExtensions(bytes);
+            const mesh = glb.parseGlb(resolved);
             if (!mesh.positions.length || !mesh.indices.length) throw new Error("mesh has no geometry");
-            const { clips, skins } = glb.parseGlbAnimations(bytes);
+            const { clips, skins } = glb.parseGlbAnimations(resolved);
             if (!clips.length || !skins.length) throw new Error("no clips or skins");
             const pose = anim.samplePose(clips[0], clips[0].duration / 2, true);
             if (!pose || pose.size === 0) throw new Error("first clip sampled no channels");
@@ -168,6 +173,7 @@ jobs:
           rm -rf js/client/pkg && cp -r rust/crates/web/site/pkg js/client/pkg && rm -f js/client/pkg/.gitignore
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt js/client/hero_rules.txt
           ls -la js/client/pkg js/client/map.bin js/client/moba.bin
 
       - name: Terrain mesh builds from the staged map under node
@@ -197,10 +203,14 @@ jobs:
             console.log(`doodad models ok kinds=${Object.keys(map).length}`);
             const tiles = await import("./js/client/tiles.js");
             const { parseGlb } = await import("./js/client/glb.js");
+            const { resolveGlbExtensions } = await import("./js/client/glb_resolve.js");
             const models = {};
-            for (const [kind, name] of Object.entries(tiles.TILE_MODELS)) {
-              const glb = parseGlb(new Uint8Array(fs.readFileSync("./js/client/models/" + name + ".glb")).buffer);
-              models[kind] = tiles.fitModel(glb, 1);
+            for (const [kind, names] of Object.entries(tiles.TILE_MODELS)) {
+              models[kind] = [];
+              for (const name of names) {
+                const resolved = await resolveGlbExtensions(new Uint8Array(fs.readFileSync("./js/client/models/" + name + ".glb")).buffer);
+                models[kind].push(tiles.fitModel(parseGlb(resolved), 1));
+              }
             }
             const baked = tiles.bakeTiles(bytes, models);
             if (!baked) throw new Error("tiles: the map uses a kind with no tile model");
@@ -260,6 +270,7 @@ jobs:
         with:
           workspaces: rust -> target
           shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build workspace (one compile for spike and gate)
         run: cargo build --workspace
@@ -388,6 +399,8 @@ jobs:
     needs: [changes, build]
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 30
+    env:
+      PORT_BASE: 9100
     defaults:
       run:
         working-directory: rust
@@ -406,7 +419,7 @@ jobs:
       - name: Run 200 ticks with a 1 us budget and check the percentile and overrun lines
         run: |
           set -euo pipefail
-          target/debug/oscraftd --addr 127.0.0.1:8098 --room ci --ticks 200 --tick-budget-us 1 > tick.log 2>&1
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 8)) --room ci --ticks 200 --tick-budget-us 1 > tick.log 2>&1
           cat tick.log
           grep -Eq '^ev=tick_time ticks=[0-9]+ p50_us=[0-9]+ p90_us=[0-9]+ p99_us=[0-9]+ max_us=[0-9]+ queued=[0-9]+ overruns=[0-9]+$' tick.log
           last=$(grep '^ev=tick_time ' tick.log | tail -1 | sed 's/^ev=tick_time ticks=\([0-9]*\) .*/\1/')
@@ -419,7 +432,7 @@ jobs:
           work="$RUNNER_TEMP/tick-shed"
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
-          addr=127.0.0.1:8096
+          addr=127.0.0.1:$((PORT_BASE + 6))
           shed_log="$work/shed.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 1 > "$shed_log" 2>&1 &
           pid=$!
@@ -434,7 +447,7 @@ jobs:
           grep '^ev=tick_shed ' "$shed_log" | head -1
           kill "$pid"; wait "$pid" 2>/dev/null || true
           trap - EXIT
-          target/debug/oscraftd --addr 127.0.0.1:8095 --room ci --ticks 200 --tick-budget-us 20000 > "$work/quiet.log" 2>&1
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 5)) --room ci --ticks 200 --tick-budget-us 20000 > "$work/quiet.log" 2>&1
           test "$(grep -c '^ev=tick_shed ' "$work/quiet.log")" -eq 0
           grep -q '^ev=tick_time ' "$work/quiet.log"
 
@@ -444,7 +457,7 @@ jobs:
           work="$RUNNER_TEMP/moba-siege"
           mkdir -p "$work"
           ./target/debug/osdt-data ../scenarios/moba "$work/catalog.osdt"
-          addr=127.0.0.1:8097
+          addr=127.0.0.1:$((PORT_BASE + 7))
           log="$work/siege.log"
           target/debug/oscraftd --addr "$addr" --room moba --data "$work/catalog.osdt" --mod crates/mod-host/fixtures/moba_siege.lua --ticks 2400 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -489,7 +502,7 @@ jobs:
           work="$RUNNER_TEMP/tick-drain"
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
-          addr=127.0.0.1:8094
+          addr=127.0.0.1:$((PORT_BASE + 4))
           log="$work/drain.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -515,63 +528,12 @@ jobs:
           kill "$pid"; wait "$pid" 2>/dev/null || true
           trap - EXIT
 
-      - name: Run the fixed tick count and compare p99 with the stored ceiling
-        run: |
-          set -euo pipefail
-          check_p99() {
-            local n=$1 c=$2
-            if [ "$n" -le "$c" ]; then
-              echo "tick p99 us=$n ceiling=$c ok"
-            else
-              echo "tick p99 us=$n ceiling=$c FAIL"
-              return 1
-            fi
-          }
-          baseline="$GITHUB_WORKSPACE/.github/perf/tick-baseline.txt"
-          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
-          ceiling=$(awk -F= '/^p99_ceiling_us=/{print $2}' "$baseline")
-          test -n "$ticks" && test -n "$ceiling"
-          target/debug/oscraftd --addr 127.0.0.1:8091 --room ci --ticks "$ticks" --tick-budget-us 20000 > tick-latency.log 2>&1
-          cat tick-latency.log
-          p99=$(grep '^ev=tick_time ' tick-latency.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
-          test -n "$p99"
-          check_p99 "$p99" 0 >/dev/null && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
-          check_p99 "$p99" "$ceiling"
-
-      - name: Run the fixed tick count and compare each system p99 with its ceiling
-        run: |
-          set -euo pipefail
-          check_p99() {
-            local n=$1 c=$2
-            [ "$n" -le "$c" ]
-          }
-          baseline="$GITHUB_WORKSPACE/.github/perf/tick-systems.txt"
-          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
-          test -n "$ticks"
-          target/debug/oscraftd --addr 127.0.0.1:8092 --room ci-systems --ticks "$ticks" --tick-budget-us 20000 > tick-systems.log 2>&1
-          cat tick-systems.log
-          first=""
-          fail=0
-          while read -r name ceiling; do
-            first=${first:-$name}
-            us=$(grep "^ev=tick_time system=$name " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
-            test -n "$us"
-            if check_p99 "$us" "$ceiling"; then
-              echo "tick system $name us=$us ceiling=$ceiling ok"
-            else
-              echo "tick system $name us=$us ceiling=$ceiling FAIL"
-              fail=1
-            fi
-          done < <(awk '/^system=/{split($1,a,"="); split($2,b,"="); print a[2], b[2]}' "$baseline")
-          check_p99 "$(grep "^ev=tick_time system=$first " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')" 0 && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
-          test "$fail" -eq 0
-
       - name: Arm one ticker panic, check one death and one restart, and a tick that advances
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/supervisor-restart"
           mkdir -p "$work"
-          addr=127.0.0.1:8093
+          addr=127.0.0.1:$((PORT_BASE + 3))
           log="$work/panic.log"
           target/debug/oscraftd --addr "$addr" --room ci --tick-budget-us 20000 --test-panic-tick 20 > "$log" 2>&1 &
           pid=$!
@@ -587,7 +549,7 @@ jobs:
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           grep '^ev=ticker_' "$log"
           quiet="$work/quiet.log"
-          target/debug/oscraftd --addr 127.0.0.1:8092 --room ci --tick-budget-us 20000 --ticks 40 > "$quiet" 2>&1
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 2)) --room ci --tick-budget-us 20000 --ticks 40 > "$quiet" 2>&1
           test "$(grep -c '^ev=ticker_died ' "$quiet")" -eq 0
           echo "supervisor ok died=1 restarted=1 tick $before -> $after; unarmed run died=0"
 
@@ -598,7 +560,7 @@ jobs:
           test -n "$cap"
           work="$RUNNER_TEMP/connection-cap"
           mkdir -p "$work"
-          port=8094
+          port=$((PORT_BASE + 4))
           log="$work/cap.log"
           target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -626,7 +588,7 @@ jobs:
           slack=80
           work="$RUNNER_TEMP/connection-cap-threads"
           mkdir -p "$work"
-          port=8097
+          port=$((PORT_BASE + 7))
           log="$work/cap.log"
           target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -689,7 +651,7 @@ jobs:
           test -n "$cap"
           work="$RUNNER_TEMP/connection-cap-control"
           mkdir -p "$work"
-          port=8098
+          port=$((PORT_BASE + 8))
           OSCRAFT_CONNECTION_CAP_OVERRIDE=4096 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$work/cap.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true; echo "server log:"; tail -n 20 "$work/cap.log" || true' EXIT
@@ -733,7 +695,7 @@ jobs:
           set -euo pipefail
           work="$RUNNER_TEMP/connection-cap-status-line"
           mkdir -p "$work"
-          port=8099
+          port=$((PORT_BASE + 9))
           log="$work/cap.log"
           OSCRAFT_CONNECTION_CAP_OVERRIDE=2 target/debug/oscraftd --addr 127.0.0.1:$port --room ci --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -773,10 +735,10 @@ jobs:
 
       - name: Start the server, post one client error, check one structured log line
         run: |
-          target/debug/oscraftd --addr 127.0.0.1:8099 --room ci > server.log 2>&1 &
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 9)) --room ci > server.log 2>&1 &
           pid=$!
-          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8099/ && break; sleep 0.2; done
-          curl -sf -X POST "http://127.0.0.1:8099/client-error?map=ci&session=ci-session&message=ci%20probe"
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:$((PORT_BASE + 9))/ && break; sleep 0.2; done
+          curl -sf -X POST "http://127.0.0.1:$((PORT_BASE + 9))/client-error?map=ci&session=ci-session&message=ci%20probe"
           kill $pid
           test "$(grep -c '^ev=client_error session=' server.log)" -eq 1
           line=$(grep '^ev=client_error session=' server.log)
@@ -788,15 +750,15 @@ jobs:
       - name: Flood the relay with 25 errors and check the rate limit drops the rest
         run: |
           set -euo pipefail
-          target/debug/oscraftd --addr 127.0.0.1:8100 --room ci > ratelimit.log 2>&1 &
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 10)) --room ci > ratelimit.log 2>&1 &
           pid=$!
-          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8100/ && break; sleep 0.2; done
+          for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:$((PORT_BASE + 10))/ && break; sleep 0.2; done
           for i in $(seq 1 25); do
-            curl -s -o /dev/null -X POST "http://127.0.0.1:8100/client-error?map=ci&session=flood&message=flood%20$i"
+            curl -s -o /dev/null -X POST "http://127.0.0.1:$((PORT_BASE + 10))/client-error?map=ci&session=flood&message=flood%20$i"
           done
           code=000
           for i in $(seq 1 60); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8100/client-error?map=ci&session=flood&message=after%20flood")
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$((PORT_BASE + 10))/client-error?map=ci&session=flood&message=after%20flood")
             [ "$code" = 202 ] && break
             sleep 1
           done
@@ -816,12 +778,12 @@ jobs:
           export OSCRAFT_CLIENT_ERROR_LOG="$log"
           head -c 1100000 /dev/zero | tr '\0' 'x' > "$log"
           start() {
-            target/debug/oscraftd --addr 127.0.0.1:8101 --room ci > "$RUNNER_TEMP/durable-$1.out" 2>&1 &
+            target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 11)) --room ci > "$RUNNER_TEMP/durable-$1.out" 2>&1 &
             pid=$!
-            for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:8101/ && break; sleep 0.2; done
+            for i in $(seq 1 300); do curl -s -o /dev/null http://127.0.0.1:$((PORT_BASE + 11))/ && break; sleep 0.2; done
           }
           post() {
-            curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8101/client-error?map=ci&session=durable&message=$1"
+            curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$((PORT_BASE + 11))/client-error?map=ci&session=durable&message=$1"
           }
           start first
           test "$(post before%20restart)" = 202
@@ -841,9 +803,14 @@ jobs:
   tick-shed-window:
     name: "tick shed window: overrun rate with and without shedding"
     runs-on: ubuntu-latest
-    needs: [changes, build]
-    if: needs.changes.outputs.code == 'true'
+    needs: [changes, build, server-caps-and-ticks, server-mod-and-data]
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     timeout-minutes: 15
+    env:
+      PORT_BASE: 9400
+    concurrency:
+      group: timing-isolated
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: rust
@@ -896,8 +863,8 @@ jobs:
           }
           : > "$work/rates.txt"
           for r in 1 2 3 4 5; do
-            arm off $((8100 + 2 * r)) "$r" | tee -a "$work/rates.txt"
-            arm on $((8101 + 2 * r)) "$r" | tee -a "$work/rates.txt"
+            arm off $((PORT_BASE + 10 + 2 * r)) "$r" | tee -a "$work/rates.txt"
+            arm on $((PORT_BASE + 11 + 2 * r)) "$r" | tee -a "$work/rates.txt"
           done
           off_avg=$(awk '/^shed=off /{sub(/.*rate=/, ""); sub(/ .*/, ""); s += $1; n++} END{printf "%.4f", s / n}' "$work/rates.txt")
           on_avg=$(awk '/^shed=on /{sub(/.*rate=/, ""); sub(/ .*/, ""); s += $1; n++} END{printf "%.4f", s / n}' "$work/rates.txt")
@@ -909,6 +876,8 @@ jobs:
     needs: [changes, build]
     if: needs.changes.outputs.code == 'true'
     timeout-minutes: 20
+    env:
+      PORT_BASE: 9200
     defaults:
       run:
         working-directory: rust
@@ -932,7 +901,7 @@ jobs:
           ./target/debug/osdt-data data "$work/catalog.osdt"
           mod="$work/mod.lua"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
-          addr=127.0.0.1:8096
+          addr=127.0.0.1:$((PORT_BASE + 6))
           log="$work/mod.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --mod "$mod" --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -949,7 +918,7 @@ jobs:
           for i in $(seq 1 40); do grep -q '^ev=tick_time ' "$log" && break; sleep 0.25; done
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
           over="$work/overrun.log"
-          target/debug/oscraftd --addr 127.0.0.1:8095 --room ci --data "$work/catalog.osdt" --ticks 200 --tick-budget-us 1 > "$over" 2>&1
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 5)) --room ci --data "$work/catalog.osdt" --ticks 200 --tick-budget-us 1 > "$over" 2>&1
           cat "$log" "$over" > "$work/all.log"
           for ev in serving mod_loaded order_token mod_tick mod_reload_failed mod_error client_error tick_time tick_overrun; do
             grep -q "^ev=$ev " "$work/all.log" || { echo "FAIL: no $ev line"; exit 1; }
@@ -977,7 +946,7 @@ jobs:
           work="$RUNNER_TEMP/order-state"
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
-          addr=127.0.0.1:8090
+          addr=127.0.0.1:$((PORT_BASE + 0))
           log="$work/order.log"
           target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks 100000000 --tick-budget-us 20000 > "$log" 2>&1 &
           pid=$!
@@ -1011,7 +980,7 @@ jobs:
           rm -rf "$work"
           mkdir -p "$work"
           cp data/*.osd "$work/"
-          addr=127.0.0.1:18440
+          addr=127.0.0.1:$((PORT_BASE + 110))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &
           pid=$!
@@ -1043,7 +1012,7 @@ jobs:
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$work/mod.lua"
-          addr=127.0.0.1:18431
+          addr=127.0.0.1:$((PORT_BASE + 101))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" > "$log" 2>&1 &
           pid=$!
@@ -1072,7 +1041,7 @@ jobs:
           ./target/debug/osdt-data data "$work/catalog.osdt"
           mod="$work/mod.lua"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$mod"
-          addr=127.0.0.1:18461
+          addr=127.0.0.1:$((PORT_BASE + 131))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$mod" > "$log" 2>&1 &
           pid=$!
@@ -1113,7 +1082,7 @@ jobs:
           mkdir -p "$work"
           ./target/debug/osdt-data data "$work/catalog.osdt"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = "v1"' 'end' > "$work/mod.lua"
-          addr=127.0.0.1:18441
+          addr=127.0.0.1:$((PORT_BASE + 111))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --test-panic-mod-tick 20 > "$log" 2>&1 &
           pid=$!
@@ -1147,14 +1116,14 @@ jobs:
           ./target/debug/osdt-data data "$work/catalog.osdt"
           printf '%s\n' 'function on_tick(state)' '  if state.spawned == nil then' '    game.cmd_spawn("skirmisher", 688128, 1343488)' '    state.spawned = 1' '  end' 'end' > "$work/mod.lua"
           units() { curl -sf "http://$1/state" | jq -r .units; }
-          base=127.0.0.1:18435
+          base=127.0.0.1:$((PORT_BASE + 105))
           ./target/debug/oscraftd --addr "$base" --room test --data "$work/catalog.osdt" --tick-budget-us 250000 > "$work/baseline.log" 2>&1 &
           bpid=$!
           for i in $(seq 1 60); do units "$base" >/dev/null 2>&1 && break; sleep 0.5; done
           before=$(units "$base")
           kill $bpid 2>/dev/null || true
           wait $bpid 2>/dev/null || true
-          addr=127.0.0.1:18433
+          addr=127.0.0.1:$((PORT_BASE + 103))
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --tick-budget-us 250000 > "$work/server.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
@@ -1183,7 +1152,7 @@ jobs:
             end
           end
           LUA
-          addr=127.0.0.1:18434
+          addr=127.0.0.1:$((PORT_BASE + 104))
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/catalog.osdt" --mod "$work/mod.lua" --tick-budget-us 250000 > "$work/server.log" 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
@@ -1215,7 +1184,7 @@ jobs:
           mkdir -p "$work/data"
           cp -r data/. "$work/data/"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = state.ticks + 1' '  state.probe = tostring(ability_info("pulse_shot").cooldown)' 'end' > "$work/mod.lua"
-          addr=127.0.0.1:18432
+          addr=127.0.0.1:$((PORT_BASE + 102))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room test --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
           pid=$!
@@ -1252,7 +1221,7 @@ jobs:
             end
           end
           LUA
-          addr=127.0.0.1:18441
+          addr=127.0.0.1:$((PORT_BASE + 111))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room handle --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &
           pid=$!
@@ -1308,7 +1277,7 @@ jobs:
           cp data/*.osd "$work/data/"
           mod="$work/mod.lua"
           printf '%s\n' 'function on_tick(state)' '  state.ticks = (state.ticks or 0) + 1' 'end' > "$mod"
-          addr=127.0.0.1:18471
+          addr=127.0.0.1:$((PORT_BASE + 141))
           log="$work/server.log"
           ./target/debug/oscraftd --addr "$addr" --room walk --data "$work/data" --mod "$mod" > "$log" 2>&1 &
           pid=$!
@@ -1335,6 +1304,83 @@ jobs:
           test "$name" = modprobe_unit
           echo "mod walkthrough ok kind=$name"
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
+
+  timing-ceilings:
+    name: "server p99 ceilings, run alone after the parallel server jobs"
+    runs-on: ubuntu-latest
+    needs: [changes, build, server-caps-and-ticks, server-mod-and-data]
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    timeout-minutes: 15
+    env:
+      PORT_BASE: 9500
+    concurrency:
+      group: timing-isolated
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-build
+          path: rust
+
+      - name: Mark the prebuilt binaries executable
+        working-directory: ${{ github.workspace }}
+        run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
+
+      - name: Run the fixed tick count and compare p99 with the stored ceiling
+        run: |
+          set -euo pipefail
+          check_p99() {
+            local n=$1 c=$2
+            if [ "$n" -le "$c" ]; then
+              echo "tick p99 us=$n ceiling=$c ok"
+            else
+              echo "tick p99 us=$n ceiling=$c FAIL"
+              return 1
+            fi
+          }
+          baseline="$GITHUB_WORKSPACE/.github/perf/tick-baseline.txt"
+          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
+          ceiling=$(awk -F= '/^p99_ceiling_us=/{print $2}' "$baseline")
+          test -n "$ticks" && test -n "$ceiling"
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 1)) --room ci --ticks "$ticks" --tick-budget-us 20000 > tick-latency.log 2>&1
+          cat tick-latency.log
+          p99=$(grep '^ev=tick_time ' tick-latency.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
+          test -n "$p99"
+          check_p99 "$p99" 0 >/dev/null && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
+          check_p99 "$p99" "$ceiling"
+
+      - name: Run the fixed tick count and compare each system p99 with its ceiling
+        run: |
+          set -euo pipefail
+          check_p99() {
+            local n=$1 c=$2
+            [ "$n" -le "$c" ]
+          }
+          baseline="$GITHUB_WORKSPACE/.github/perf/tick-systems.txt"
+          ticks=$(awk -F= '/^ticks=/{print $2}' "$baseline")
+          test -n "$ticks"
+          target/debug/oscraftd --addr 127.0.0.1:$((PORT_BASE + 2)) --room ci-systems --ticks "$ticks" --tick-budget-us 20000 > tick-systems.log 2>&1
+          cat tick-systems.log
+          first=""
+          fail=0
+          while read -r name ceiling; do
+            first=${first:-$name}
+            us=$(grep "^ev=tick_time system=$name " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')
+            test -n "$us"
+            if check_p99 "$us" "$ceiling"; then
+              echo "tick system $name us=$us ceiling=$ceiling ok"
+            else
+              echo "tick system $name us=$us ceiling=$ceiling FAIL"
+              fail=1
+            fi
+          done < <(awk '/^system=/{split($1,a,"="); split($2,b,"="); print a[2], b[2]}' "$baseline")
+          check_p99 "$(grep "^ev=tick_time system=$first " tick-systems.log | tail -1 | sed 's/.* p99_us=\([0-9]*\) .*/\1/')" 0 && { echo "self-check: a zero ceiling must fail"; exit 1; } || echo "self-check: a zero ceiling is refused ok"
+          test "$fail" -eq 0
 
   server-kinds-and-protocol:
     name: "server unit kinds, carry, protocol and log schema probes"
@@ -1745,6 +1791,22 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
 
+      - name: Restore the Playwright npm and browser caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: playwright-1.47.0-${{ runner.os }}
+
+      - name: Restore the Playwright npm and browser caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: playwright-1.47.0-${{ runner.os }}
+
       - name: Install headless Chromium
         run: |
           mkdir -p "$RUNNER_TEMP/pw"
@@ -1761,6 +1823,7 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt js/client/hero_rules.txt
           ls -la js/client/pkg js/client/map.bin js/client/moba.bin
 
       - name: Editor model edits the staged map and the compiled definitions read back
@@ -1802,6 +1865,8 @@ jobs:
           }
           const error = await page.getAttribute("body", "data-error");
           if (error) throw new Error("page error: " + error);
+          // ready is set before the first frame, so the sim's first tick lands a frame or two later.
+          await page.waitForFunction(() => Number(document.body.dataset.ticks) > 0, null, { timeout: 30000 }).catch(() => {});
           const units = Number(await page.getAttribute("body", "data-units"));
           const ticks = Number(await page.getAttribute("body", "data-ticks"));
           if (!(await page.$("canvas"))) throw new Error("no canvas on the page");
@@ -1857,6 +1922,9 @@ jobs:
           set -euo pipefail
           cat > "$RUNNER_TEMP/pw/moba-input.mjs" <<'EOF'
           import { chromium } from "playwright";
+          import { readFileSync } from "fs";
+          // Watchdog: a page or sim that stops answering fails this step with its last log lines instead of holding the job.
+          setTimeout(() => { console.log("DIAGNOSTICS: watchdog after 1500 s; the probe is stuck"); process.exit(1); }, 1500000).unref();
           const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
           const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
           const errors = [];
@@ -1866,6 +1934,23 @@ jobs:
           await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
           const error = await page.getAttribute("body", "data-error");
           if (error) throw new Error("page error: " + error);
+          // The lobby is a centred overlay until its match starts and would cover the map under the probe's clicks:
+          // play it through (claim, pick, ready, fill with bots, start), as a player does, before the probe reads the map.
+          if (!(await page.evaluate(() => document.getElementById("lobby").hidden))) {
+            const press = (label) => page.evaluate((text) => [...document.querySelectorAll("#lobby button")].find((b) => b.textContent === text && !b.disabled)?.click(), label);
+            await press("Claim");
+            await page.evaluate(() => { const s = document.querySelector("#lobby select"); s.value = "axe"; s.dispatchEvent(new Event("change")); });
+            await press("Ready");
+            await press("Fill with bots");
+            await press("Start match");
+            await page.waitForFunction(() => document.getElementById("lobby").hidden, null, { timeout: 15000 });
+          }
+          // The spawned hero must be the type picked in the lobby: the local seat's picked name and its unit's catalog name.
+          const spawnSeats = await page.evaluate(() => window.__ciHeroNames());
+          const spawnSlot = await page.evaluate(() => window.__ciLocalPlayer());
+          const spawnSeat = spawnSeats.find((h) => h.slot === spawnSlot);
+          console.log(`probe hero spawn local=${spawnSlot} picked=${spawnSeat?.picked} spawned=${spawnSeat?.spawned} seats=${JSON.stringify(spawnSeats)}`);
+          if (!spawnSeat || spawnSeat.picked !== "axe" || spawnSeat.spawned !== spawnSeat.picked) throw new Error(`hero spawn mismatch: ${JSON.stringify(spawnSeat)}`);
           const units = await page.evaluate(() => window.__ciUnits());
           if (!units.length) throw new Error("no units to order");
           // The 3D camera moves with the arrow keys and zoom, so the ground-to-pixel mapping is read from the page each time.
@@ -1875,8 +1960,10 @@ jobs:
           // The bounded camera can frame a corner unit off screen or under an overlay: a candidate is only clicked when its
           // projected point is inside the viewport and hit-tests to the canvas, and it counts only if the click selects it.
           const gapOf = (cand) => Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));
-          const own = units.filter((u) => u.player === 0).sort((a, b) => gapOf(b) - gapOf(a));
-          if (!own.length) throw new Error("player 0 has no unit to order");
+          // The input layer orders only units owned by the page's local player (the seat the server assigned), not player 0.
+          const localPlayer = await page.evaluate(() => window.__ciLocalPlayer());
+          const own = units.filter((u) => u.player === localPlayer).sort((a, b) => gapOf(b) - gapOf(a));
+          if (!own.length) throw new Error("local player " + localPlayer + " has no unit to order");
           const viewport = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
           const tried = [];
           let unit = null;
@@ -1890,21 +1977,41 @@ jobs:
             if (selected === cand.id) { unit = cand; break; }
             tried.push(`${cand.id}@${p.x.toFixed(0)},${p.y.toFixed(0)} selected=${selected}`);
           }
-          if (!unit) throw new Error("no player 0 unit was selected by a left click: " + tried.slice(0, 8).join("; ") + " viewport=" + JSON.stringify(viewport));
+          if (!unit) throw new Error("no local unit was selected by a left click: " + tried.slice(0, 8).join("; ") + " viewport=" + JSON.stringify(viewport));
+          // The right click orders the input layer's own selection, so that is what must hold the unit before the move clicks.
+          const selectionBeforeMove = {
+            localPlayer,
+            unit: unit.id,
+            selected: await page.evaluate(() => window.__ciSelected()),
+            input: await page.evaluate(() => window.__ciInputSelection()),
+          };
+          console.log("move pre-click selection " + JSON.stringify(selectionBeforeMove));
+          if (!selectionBeforeMove.input.includes(unit.id)) throw new Error("input layer selection does not hold the unit a right click orders: " + JSON.stringify(selectionBeforeMove));
           // A move needs a ground point under the pointer: the first nearby offset that is on canvas and that the sim accepts.
           const ordersBefore = Number(await page.getAttribute("body", "data-orders"));
           let orders = ordersBefore;
+          const moveTried = [];
           for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3], [-3, -3], [3, 3]]) {
             const target = await screenAt(Math.max(0, unit.x + dx), Math.max(0, unit.z + dz));
             const onCanvas = target.x >= 0 && target.y >= 0 && target.x < viewport.w && target.y < viewport.h
               && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [target.x, target.y]));
-            if (!onCanvas) continue;
+            if (!onCanvas) { moveTried.push(`${dx},${dz}@${target.x.toFixed(0)},${target.y.toFixed(0)} off`); continue; }
             await page.mouse.click(target.x, target.y, { button: "right" });
-            await page.waitForTimeout(150);
+            // The witness is written once per animation frame, and a software-rendered frame can outlast a fixed wait.
+            await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, ordersBefore, { timeout: 2000 }).catch(() => {});
             orders = Number(await page.getAttribute("body", "data-orders"));
+            moveTried.push(`${dx},${dz}@${target.x.toFixed(0)},${target.y.toFixed(0)} orders=${orders}`);
             if (orders > ordersBefore) break;
           }
-          if (!(orders > ordersBefore)) throw new Error("no right click on the map ordered unit " + unit.id + " to move");
+          if (!(orders > ordersBefore)) {
+            const refusal = await page.evaluate(() => document.body.dataset.lastRefusal || "none");
+            const inputAfter = await page.evaluate(() => window.__ciInputSelection());
+            const rightUp = await page.evaluate(() => document.body.dataset.rightUp || "never");
+            const localAfter = await page.evaluate(() => window.__ciLocalPlayer());
+            const rightCmd = await page.evaluate(() => document.body.dataset.rightCmd || "never");
+            const attacksAfter = await page.evaluate(() => document.body.dataset.attacks || "");
+            throw new Error("no right click on the map ordered unit " + unit.id + " to move: before=" + ordersBefore + " tried=" + moveTried.join("; ") + " refusal=" + refusal + " input=" + JSON.stringify(inputAfter) + " rightUp=" + rightUp + " rightCmd=" + rightCmd + " attacks=" + attacksAfter + " localAfter=" + localAfter + " pageErrors=" + JSON.stringify(errors) + " viewport=" + JSON.stringify(viewport));
+          }
           if (errors.length) throw new Error("console errors: " + errors.join("\n"));
           // The camera target is clamped to the walkable bounds, so the arrow that pans toward an edge may not move it: try right, then left.
           const centreX = async () => Number((await page.getAttribute("body", "data-center")).split(",")[0]);
@@ -1912,7 +2019,9 @@ jobs:
           let after = before;
           for (const key of ["ArrowRight", "ArrowLeft"]) {
             await page.keyboard.down(key);
-            await page.waitForTimeout(500);
+            // Pan advances once per rendered frame (dt capped at 0.1 s), and a CI frame can take longer than a fixed hold,
+            // so the key is held until the centre moves, bounded at 15 s.
+            await page.waitForFunction((x) => Number((document.body.dataset.center || "0,0").split(",")[0]) !== x, before, { timeout: 15000 }).catch(() => {});
             await page.keyboard.up(key);
             after = await centreX();
             if (after !== before) break;
@@ -1934,24 +2043,129 @@ jobs:
           const drawnUnits = (await page.evaluate(() => window.__ciUnits())).length;
           if (!(dots > 0) || dots !== drawnUnits) throw new Error("minimap draws " + dots + " dots for " + drawnUnits + " units");
           console.log(`moba minimap ok dots=${dots}`);
+          // Contact point: the midpoint (by arc length) of the mid lane (lane 2) route of each side, averaged, from the route data
+          // the sim loads. Creeps from both sides meet there, so the local hero is ordered toward it before the tick wait.
+          const routes = readFileSync(process.env.GITHUB_WORKSPACE + "/scenarios/moba/routes.osd", "utf8");
+          const laneMid = (side) => {
+            const m = routes.match(new RegExp(`route\\(${side}, 2, \\[([^\\]]*)\\]\\)`));
+            if (!m) throw new Error("no mid lane route for side " + side);
+            const v = m[1].split(",").map((s) => Number(s.trim()) / 1000);
+            const pts = [];
+            for (let i = 0; i < v.length; i += 2) pts.push([v[i], v[i + 1]]);
+            const along = [0];
+            for (let i = 1; i < pts.length; i++) along.push(along[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+            const half = along[along.length - 1] / 2;
+            let k = 0;
+            while (along[k + 1] < half) k++;
+            const f = (half - along[k]) / (along[k + 1] - along[k]);
+            const mid = [pts[k][0] + (pts[k + 1][0] - pts[k][0]) * f, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * f];
+            // The waypoint nearest the midpoint is a walkable cell centre (the route data is snapped to them); the midpoint itself may not be.
+            const dist = (p) => Math.hypot(p[0] - mid[0], p[1] - mid[1]);
+            // The contact must sit outside the enemy towers' reach: the mid tower (weapon range 10.938 cells, units.osd) would
+            // otherwise shoot the hero while it waits there. The nearest route waypoint clear of every side-1 tower, with a 3-cell margin, is used.
+            const enemyTowers = [...readFileSync(process.env.GITHUB_WORKSPACE + "/scenarios/moba/map.osd", "utf8").matchAll(/^spawn\("tower(?:_t\d)?", 1, (-?\d+), (-?\d+)\)$/gm)].map((m) => [Number(m[1]) / 1000, Number(m[2]) / 1000]);
+            const TOWER_REACH_CELLS = 10.938 + 3;
+            const clearOfTowers = (p) => enemyTowers.every((t) => Math.hypot(p[0] - t[0], p[1] - t[1]) > TOWER_REACH_CELLS);
+            const near = [...pts].sort((a, b) => dist(a) - dist(b)).find(clearOfTowers);
+            if (!near) throw new Error("no mid lane waypoint outside the enemy tower reach");
+            return { x: near[0], z: near[1] };
+          };
+          const contact = laneMid(0);
+          // The local hero is selected by a click, then right-clicked toward the contact point: the same order path as the move step.
+          // The camera is focused on the hero first so the click lands on it, then on the contact point so the right click can land on it.
+          const orderHero = (await page.evaluate((me) => window.__ciUnits().filter((u) => u.player === me && window.__ciIsHero(u.id)).map((u) => ({ id: u.id, x: u.x, z: u.z })), localPlayer))[0];
+          if (!orderHero) throw new Error("local player " + localPlayer + " has no hero to order toward the contact point");
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [orderHero.x, orderHero.z]);
+          const heroAt = await screenAt(orderHero.x, orderHero.z);
+          await page.mouse.click(heroAt.x, heroAt.y, { button: "left" });
+          const heroSelected = (await page.evaluate(() => window.__ciSelected())) === orderHero.id;
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [contact.x, contact.z]);
+          const contactAt = await screenAt(contact.x, contact.z);
+          const contactOnCanvas = contactAt.x >= 0 && contactAt.y >= 0 && contactAt.x < viewport.w && contactAt.y < viewport.h
+            && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [contactAt.x, contactAt.y]));
+          const contactOrdersBefore = Number(await page.getAttribute("body", "data-orders"));
+          if (heroSelected && contactOnCanvas) {
+            await page.mouse.click(contactAt.x, contactAt.y, { button: "right" });
+            await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, contactOrdersBefore, { timeout: 2000 }).catch(() => {});
+          }
+          const contactOrders = Number(await page.getAttribute("body", "data-orders"));
+          console.log(`probe contact order hero=${orderHero.id} from=${orderHero.x.toFixed(1)},${orderHero.z.toFixed(1)} contact=${contact.x.toFixed(1)},${contact.z.toFixed(1)} selected=${heroSelected} on_canvas=${contactOnCanvas} orders=${contactOrdersBefore}->${contactOrders}`);
           // Not every unit can cast or attack: try the most isolated units until one does both.
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
-          // Neutral camp units (player 255) never cast or attack in this probe, so they are not candidates.
-          const ranked = units.filter((u) => u.player !== 255).sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));
           let attacker = null;
-          // Allies on one team are not attack targets, so the foes are the players the sim calls hostile.
-          const players = [...new Set(units.map((u) => u.player))];
-          const hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));
           // Hover and click land on the canvas only for units projected inside the viewport and not covered by an overlay.
           const shownNow = async (u) => {
             const p = await screenAt(u.x, u.z);
             return p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h
               && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [p.x, p.y]));
           };
+          // Creeps from the two sides first come into reach mid-lane, at sim tick 301 (measured on origin main: the first hostile
+          // pair within 8 cells, moba scenario, tick_with_cadence(true, true)). Poll until the sim tick reaches that contact tick plus
+          // a 300-tick margin (601 ticks), or a hostile hero pair appears. The failing CI run ran about 1.07 ticks per second (tick 18 at 50 s,
+          // tick 393 at 400 s), so the wall-clock deadline is sized for 0.8 ticks per second: ceil(601 / 0.8) = 752 s.
+          // The attacker check below still has to pass.
+          // Each poll logs the local hero (id, position, HUD hp), the nearest hostile to any hero (type, player, cells), and the hero count,
+          // so a run that loses its hero during the wait shows when and how it happened.
+          const CONTACT_TICK = 301;
+          const WAIT_TICKS = CONTACT_TICK + 300;
+          const CI_TICKS_PER_SECOND = 0.8;
+          const waitDeadline = Date.now() + Math.ceil(WAIT_TICKS / CI_TICKS_PER_SECOND) * 1000;
+          let waited = null;
+          for (;;) {
+            waited = await page.evaluate((me) => {
+              const us = window.__ciUnits();
+              const hero = us.find((u) => u.player === me && window.__ciIsHero(u.id)) || null;
+              let heroes = 0;
+              let best = Infinity;
+              let nearestUnit = null;
+              let pair = false;
+              for (const a of us) {
+                if (a.player === 255 || !window.__ciIsHero(a.id)) continue;
+                heroes += 1;
+                for (const b of us) {
+                  if (b === a || !window.__ciHostile(a.player, b.player)) continue;
+                  const d = (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
+                  if (d <= 64 && window.__ciIsHero(b.id)) pair = true;
+                  if (d < best) { best = d; nearestUnit = b; }
+                }
+              }
+              return {
+                ticks: Number(document.body.dataset.ticks),
+                hp: document.body.dataset.hp,
+                hero: hero && { id: hero.id, type: hero.type, x: hero.x, z: hero.z },
+                nearest: nearestUnit && { type: nearestUnit.type, player: nearestUnit.player, cells: Math.sqrt(best) },
+                heroes,
+                pair,
+              };
+            }, localPlayer);
+            const heroText = waited.hero ? `${waited.hero.id}:${waited.hero.type}@${waited.hero.x.toFixed(0)},${waited.hero.z.toFixed(0)}` : "none";
+            const nearestText = waited.nearest ? `${waited.nearest.type}/p${waited.nearest.player}@${waited.nearest.cells.toFixed(2)}` : "none";
+            console.log(`probe poll ticks=${waited.ticks} hero=${heroText} hp=${waited.hp} heroes=${waited.heroes} nearest=${nearestText}`);
+            if (waited.ticks >= WAIT_TICKS || waited.pair || Date.now() >= waitDeadline) break;
+            await page.waitForTimeout(500);
+          }
+          // The wait moves the units, so the candidates, foes and hostile pairs are read from the sim after it, not from the start.
+          console.log(`probe wait ticks=${waited.ticks} heroes=${waited.heroes} nearest_hero_hostile_cells=${waited.nearest ? waited.nearest.cells.toFixed(2) : "-1.00"}`);
+          const live = await page.evaluate(() => window.__ciUnits());
+          // Only heroes cast (a creep has no ability slots), and neutral camp units (player 255) never cast or attack in this probe.
+          const heroIds = new Set(await page.evaluate((ids) => ids.filter((id) => window.__ciIsHero(id)), live.map((u) => u.id)));
+          const ranked = live.filter((u) => u.player !== 255 && heroIds.has(u.id)).sort((a, b) => Math.min(...live.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...live.filter((v) => v !== a).map((v) => dist2(v, a))));
+          // Allies on one team are not attack targets, so the foes are the players the sim calls hostile.
+          const players = [...new Set(live.map((u) => u.player))];
+          const hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));
+          // Bounded: the attack search gives up after 180 s so a foe the sim never accepts cannot hold the job.
+          const attackDeadline = Date.now() + 180000;
+          // Visual witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
+          const fxWait = (ui, rgb) => page.waitForFunction(([u, c]) => [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb], { timeout: 1500, polling: 16 }).then(() => true, () => false);
+          const fxShot = async (name) => page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/" + name });
+          let reticleSeen = false;
+          let ringSeen = false;
+          let castKey = "q";
           for (const cand of ranked.reverse().slice(0, 400)) {
+            if (Date.now() >= attackDeadline) break;
             // Select through the CI hook: a click can land on another unit drawn over this one.
             // An attack needs a visible, hostile target: the camera moves onto the candidate, then only enemies inside its sight (9 cells) are tried, nearest first.
-            const near = units.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64);
+            const near = live.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64);
             if (!near.length) continue;
             await page.evaluate(([x, z]) => window.__ciFocus(x, z), [cand.x, cand.z]);
             if (!(await shownNow(cand))) continue;
@@ -1961,16 +2175,34 @@ jobs:
               if (await shownNow(v)) foes.push(v);
             }
             if (!foes.length) continue;
-            await page.evaluate((id) => window.__ciSelect(id), cand.id);
+            // The hook only sets the page's selected id; the MOBA input layer casts and attacks for its own selection, so the hero is selected by a click.
+            const at = await screenAt(cand.x, cand.z);
+            await page.mouse.click(at.x, at.y, { button: "left" });
+            if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
             // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
-            await page.evaluate((id) => window.__ciLearn(id, 0), cand.id);
+            // The reticle needs a targeted ability: the probe learns and casts the unit's first unit- or point-target slot (Q to R), or skips the unit.
+            const castSlot = await page.evaluate((id) => window.__ciTargetedSlot(id), cand.id);
+            if (castSlot < 0) continue;
+            castKey = ["q", "w", "e", "r"][castSlot];
+            await page.evaluate(([id, slot]) => window.__ciLearn(id, slot), [cand.id, castSlot]);
+            console.log(`probe learned cand=${cand.id} casts=${await page.getAttribute("body", "data-casts")} attacks=${await page.getAttribute("body", "data-attacks")} refusal=${await page.evaluate(() => document.body.dataset.lastRefusal || "none")}`);
             // Counters are compared before and after each step, so earlier candidates do not count.
             for (const foe of foes) {
               const fp = await screenAt(foe.x, foe.z);
               const casts0 = Number(await page.getAttribute("body", "data-casts"));
+              // The input layer's own selection must hold the candidate before Q (the page's selected id alone does not cast).
+              const candAt = await screenAt(cand.x, cand.z);
+              await page.mouse.click(candAt.x, candAt.y, { button: "left" });
+              if (!(await page.evaluate((id) => window.__ciInputSelection().includes(id), cand.id))) continue;
               // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
               await page.mouse.move(fp.x, fp.y);
-              await page.keyboard.press("q");
+              await page.keyboard.press(castKey);
+              // The first targeted Q that arms the reticle is witnessed and shot before the click resolves it.
+              if (!reticleSeen && (await fxWait("reticle"))) { reticleSeen = true; await fxShot("reticle.png"); }
+              // A targeted Q arms and the left click on the foe casts there; a plain Q already cast, and the click only selects the foe.
+              await page.mouse.click(fp.x, fp.y, { button: "left" });
+              // Re-select the hero so the foe's click does not leave the attack step with no own unit selected.
+              await page.mouse.click(candAt.x, candAt.y, { button: "left" });
               await page.waitForFunction((n) => Number(document.body.dataset.casts) > n, casts0, { timeout: 1500 }).catch(() => {});
               const casts = Number(await page.getAttribute("body", "data-casts"));
               if (casts <= casts0) {
@@ -1980,17 +2212,105 @@ jobs:
                 if (refusal.includes("NoSlot")) break;
                 continue;
               }
+              // The axe strikes only a foe within its weapon reach (2 cells, weapon_range_milli=2000), and a unit never walks to a foe on its own.
+              // Each try reads the hero and foe from the page: a foe beyond 1.5 cells gets a move to a point one cell short of it on the hero's side (a right click on open ground),
+              // and a foe inside 1.5 cells gets a right click (an attack). A refused order changes nothing, so the loop retries until the weapon's 27-tick period has passed.
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
-              await page.keyboard.press("a");
-              await page.mouse.click(fp.x, fp.y, { button: "left" });
-              await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 3000 }).catch(() => {});
-              const attacks = Number(await page.getAttribute("body", "data-attacks"));
+              let attacks = attacks0;
+              for (let tries = 0; tries < 30 && attacks <= attacks0 && Date.now() < attackDeadline; tries++) {
+                const homeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, cand.id);
+                // A foe that moved out of sight is replaced by another visible foe of this candidate.
+                // Foes are re-read each try: the cast or the fight may have killed the listed ones, so the nearest hostile in sight stands in for them.
+                const liveFoes = homeNow ? (await page.evaluate(() => window.__ciUnits())).filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, homeNow) <= 81) : [];
+                const foeNow = liveFoes.sort((a, b) => dist2(a, homeNow) - dist2(b, homeNow))[0] || null;
+                if (!homeNow || !foeNow) break;
+                // The hero stays selected while its orders run, so it is clicked again only when a foe click changed the selection.
+                if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) {
+                  const home = await screenAt(homeNow.x, homeNow.z);
+                  await page.mouse.click(home.x, home.y, { button: "left" });
+                }
+                const gap = Math.hypot(foeNow.x - homeNow.x, foeNow.z - homeNow.z);
+                if (gap > 1.5) {
+                  const k = 1 / gap;
+                  const stand = await screenAt(foeNow.x + (homeNow.x - foeNow.x) * k, foeNow.z + (homeNow.z - foeNow.z) * k);
+                  await page.mouse.click(stand.x, stand.y, { button: "right" });
+                } else {
+                  const target = await screenAt(foeNow.x, foeNow.z);
+                  await page.mouse.click(target.x, target.y, { button: "right" });
+                }
+                await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 1000 }).catch(() => {});
+                attacks = Number(await page.getAttribute("body", "data-attacks"));
+                console.log(`probe try cand=${cand.id} foe=${foeNow.id} gap=${gap.toFixed(2)} attacks=${attacks}`);
+              }
+              // The attack ring lives 2500 ms from the click that ordered the strike; the sim accepts the order a tick or more later, so the ring is still up when the strike is counted.
+              if (attacks > attacks0) { ringSeen = await fxWait("fx", "rgb(229, 57, 53)"); if (ringSeen) await fxShot("attack-ring.png"); }
               console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
               if (attacks > attacks0) { attacker = cand; break; }
             }
             if (attacker) break;
           }
-          if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none"));
+          if (!attacker) {
+            const serverTail = (name) => readFileSync(process.env.RUNNER_TEMP + "/" + name, "utf8").split("\n").slice(-25).join("\n");
+            console.log("DIAGNOSTICS: page errors " + JSON.stringify(errors));
+            console.log("DIAGNOSTICS: page state " + JSON.stringify(await page.evaluate(() => ({ ticks: document.body.dataset.ticks, hp: document.body.dataset.hp, mode: document.body.dataset.mode, lastRefusal: document.body.dataset.lastRefusal || "", rightCmd: document.body.dataset.rightCmd || "", attackPick: document.body.dataset.attackPick || "" }))));
+            console.log("DIAGNOSTICS: server log tail\n" + serverTail("http.log") + "\nrelay log tail\n" + serverTail("relay.log"));
+          }
+          if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + ` ticks=${waited.ticks} nearest_hostile_cells=${waited.nearest ? waited.nearest.cells.toFixed(2) : "-1.00"} ranked=${ranked.length}`);
+          // Visual feedback witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
+          const heroNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id), attacker.id);
+          const heroAtNow = await screenAt(heroNow.x, heroNow.z);
+          // Escape clears any armed attack or cast, so the right click on open ground is a plain move with a green marker.
+          await page.keyboard.press("Escape");
+          await page.mouse.click(heroAtNow.x + 90, heroAtNow.y + 40, { button: "right" });
+          const moveShown = await fxWait("fx", "rgb(76, 175, 80)");
+          if (moveShown) await fxShot("move-marker.png");
+          const ringShown = ringSeen;
+          await page.mouse.click(heroAtNow.x, heroAtNow.y, { button: "left" });
+          // The reticle was witnessed and shot when the first targeted Q armed it above; Q is on cooldown now.
+          const reticleShown = reticleSeen;
+          await page.keyboard.press("Escape");
+          await page.keyboard.press(castKey);
+          const refusalShown = await fxWait("refusal");
+          if (refusalShown) await fxShot("refusal.png");
+          console.log(`moba fx ok move=${Number(moveShown)} ring=${Number(ringShown)} reticle=${Number(reticleShown)} refusal=${Number(refusalShown)}`);
+          // The skill panel's cooldown sweep on the cast row is drawn while that ability is on cooldown.
+          const sweepShown = await page.evaluate(() => [...document.querySelectorAll("#ui-skills .cd")].some((n) => n.style.background.startsWith("conic-gradient")));
+          console.log(`moba cooldown ok sweep=${Number(sweepShown)}`);
+          // A then click, last in the step so the fights above cannot take its hero: the hero is selected again, then
+          // attack-moved 5 cells toward the contact point. Its red marker stays up while it walks, and the sim strikes foes it meets.
+          const heroXZ = async () => page.evaluate((id) => { const u = window.__ciUnits().find((v) => v.id === id); return u ? { x: u.x, z: u.z } : null; }, orderHero.id);
+          const dTo = (p, q) => Math.hypot(p.x - q.x, p.z - q.z);
+          const amStart = await heroXZ();
+          if (!amStart) throw new Error("attack-move probe: local hero " + orderHero.id + " is gone");
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [amStart.x, amStart.z]);
+          const amHeroAt = await screenAt(amStart.x, amStart.z);
+          await page.mouse.click(amHeroAt.x, amHeroAt.y, { button: "left" });
+          if ((await page.evaluate(() => window.__ciSelected())) !== orderHero.id) throw new Error("attack-move probe: the hero click did not select " + orderHero.id);
+          const span = dTo(amStart, contact);
+          const k = span > 0 ? Math.min(1, 5 / span) : 0;
+          const point = { x: amStart.x + (contact.x - amStart.x) * k, z: amStart.z + (contact.z - amStart.z) * k };
+          const pointAt = await screenAt(point.x, point.z);
+          const pointOnCanvas = pointAt.x >= 0 && pointAt.y >= 0 && pointAt.x < viewport.w && pointAt.y < viewport.h
+            && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [pointAt.x, pointAt.y]));
+          if (!pointOnCanvas) throw new Error("attack-move point is not on the canvas");
+          const amBefore = Number(await page.getAttribute("body", "data-orders"));
+          await page.keyboard.press("a");
+          await page.mouse.click(pointAt.x, pointAt.y, { button: "left" });
+          await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, amBefore, { timeout: 2000 }).catch(() => {});
+          const amOrders = Number(await page.getAttribute("body", "data-orders"));
+          const amShown = await fxWait("fx", "rgb(229, 57, 53)");
+          if (amShown) await fxShot("attack-move.png");
+          let amEnd = amStart;
+          for (let i = 0; i < 40; i++) {
+            amEnd = (await heroXZ()) || amEnd;
+            if (dTo(amEnd, point) <= 1) break;
+            await page.waitForTimeout(500);
+          }
+          const startDist = dTo(amStart, point);
+          const endDist = dTo(amEnd, point);
+          console.log(`moba attack-move ok orders=${amBefore}->${amOrders} dist=${startDist.toFixed(2)}->${endDist.toFixed(2)} marker=${Number(amShown)}`);
+          if (!(amOrders > amBefore)) throw new Error("attack-move click was not accepted: refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none"));
+          if (!(endDist <= 1 || endDist < startDist - 0.5)) throw new Error(`hero did not travel toward the attack-move point: ${startDist.toFixed(2)}->${endDist.toFixed(2)}`);
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
           await page.evaluate(() => window.__ciKillSide(1));
@@ -2007,6 +2327,74 @@ jobs:
           grep -q '^moba win screen ok winner=0$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba fx ok move=1 ring=1 reticle=1 refusal=1$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba cooldown ok sweep=1$' "$RUNNER_TEMP/moba-input.txt"
+          grep -Eq '^moba attack-move ok orders=[0-9]+->[0-9]+ dist=[0-9.]+->[0-9.]+ marker=[01]$' "$RUNNER_TEMP/moba-input.txt"
+
+      - name: Screenshot a ranged attack and a ramp beside flat ground
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/pw/effects.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#moba");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          if (!(await page.evaluate(() => document.getElementById("lobby").hidden))) {
+            const press = (label) => page.evaluate((text) => [...document.querySelectorAll("#lobby button")].find((b) => b.textContent === text && !b.disabled)?.click(), label);
+            await press("Claim");
+            await page.evaluate(() => { const s = document.querySelector("#lobby select"); s.value = "axe"; s.dispatchEvent(new Event("change")); });
+            await press("Ready");
+            await press("Fill with bots");
+            await press("Start match");
+            await page.waitForFunction(() => document.getElementById("lobby").hidden, null, { timeout: 15000 });
+          }
+          const inFlight = await page.waitForFunction(() => { const n = window.__ciFx ? window.__ciFx().ranged : 0; return n > 0 ? n : false; }, null, { timeout: 150000, polling: 50 });
+          const ranged = await inFlight.jsonValue();
+          await page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/ranged-attack.png" });
+          console.log(`effects ok ranged=${ranged}`);
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/effects.mjs" | tee "$RUNNER_TEMP/effects.txt"
+          grep -q '^effects ok ranged=[1-9][0-9]*$' "$RUNNER_TEMP/effects.txt"
+          cat > "$RUNNER_TEMP/pw/ramp.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#moba");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          await page.waitForFunction(() => Number(document.body.dataset.drawTerrain) > 0, null, { timeout: 30000 });
+          // The moba map is the one with ramps; its lobby overlay is hidden so the terrain is in view.
+          await page.evaluate(() => { const lobby = document.getElementById("lobby"); if (lobby) lobby.hidden = true; });
+          const ramp = await page.evaluate(() => window.__ciRampCell());
+          if (!ramp) throw new Error("map has no ramp cell");
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [ramp.x, ramp.z]);
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/ramp.png" });
+          if (errors.length) throw new Error("console errors: " + errors.join("\n"));
+          console.log(`ramp ok cell=${ramp.x},${ramp.z}`);
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/ramp.mjs" | tee "$RUNNER_TEMP/ramp.txt"
+          grep -q '^ramp ok cell=' "$RUNNER_TEMP/ramp.txt"
+
+      - name: Upload the ranged attack and ramp screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: effect-screenshots
+          path: ${{ runner.temp }}/pw/*.png
+          if-no-files-found: ignore
 
       - name: Edit the mod under a running page; its data-mod-version follows
         run: |
@@ -2091,6 +2479,7 @@ jobs:
             else errors.push(m.text());
           });
           page.on("request", (r) => { if (r.url().includes("map.bin?v=2")) applies.push(r.url()); });
+          page.on("response", (r) => { if (r.status() >= 400) errors.push(`http ${r.status()} ${r.url()}`); });
           await page.goto("http://127.0.0.1:8002/site/?rejectReloads=5");
           await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
           const error = await page.getAttribute("body", "data-error");
@@ -2214,13 +2603,6 @@ jobs:
           echo "$out" | tail -1 | grep -q ' FAIL$' || { echo "witness: FAIL line missing"; exit 1; }
           echo "browser over-ceiling witnessed load=$load ceiling=$ceiling exit=$rc"
 
-      - name: Install headless Chromium
-        run: |
-          mkdir -p "$RUNNER_TEMP/pw"
-          cd "$RUNNER_TEMP/pw"
-          npm init -y > /dev/null
-          npm install playwright@1.47.0
-          npx playwright install --with-deps chromium
 
       - name: Restart oscraftd under an open page; the watch resumes at the new version
         run: |
@@ -2280,13 +2662,6 @@ jobs:
           EOF
           node "$RUNNER_TEMP/pw/reconnect.mjs" "$PWD/target/debug/oscraftd" "$work/catalog.osdt" "$mod" "$work/server.log" 127.0.0.1:8006
 
-      - name: Install headless Chromium
-        run: |
-          mkdir -p "$RUNNER_TEMP/pw"
-          cd "$RUNNER_TEMP/pw"
-          npm init -y > /dev/null
-          npm install playwright@1.47.0
-          npx playwright install --with-deps chromium
 
       - name: Serve a job-owned copy of the site, edit its main.js, and watch the page reload itself
         run: |
@@ -2340,13 +2715,6 @@ jobs:
           JS
           node "$RUNNER_TEMP/pw/self-reload.mjs" "$PWD/target/debug/oscraftd" "$work/site" 127.0.0.1:8008 "$work/server.log"
 
-      - name: Install headless Chromium
-        run: |
-          mkdir -p "$RUNNER_TEMP/pw"
-          cd "$RUNNER_TEMP/pw"
-          npm init -y > /dev/null
-          npm install playwright@1.47.0
-          npx playwright install --with-deps chromium
 
       - name: Serve a job-owned copy of the site, break its main.js, and check the page rejects the edit
         run: |
@@ -2533,10 +2901,11 @@ jobs:
           node --input-type=module -e '
             import { readFileSync, readdirSync } from "node:fs";
             import { parseGlb } from "./js/client/glb.js";
+            import { resolveGlbExtensions } from "./js/client/glb_resolve.js";
             const files = readdirSync("rust/crates/web/site/assets/units").filter((f) => f.endsWith(".glb"));
             for (const f of files) {
               const b = readFileSync("js/client/models/" + f);
-              const m = parseGlb(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+              const m = parseGlb(await resolveGlbExtensions(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)));
               if (!m.texcoords || m.texcoords.length !== (m.positions.length / 3) * 2) throw new Error(f + " has no TEXCOORD_0");
               if (!m.baseColorTexture) throw new Error(f + " has no baseColorTexture");
             }
@@ -2726,6 +3095,7 @@ jobs:
         with:
           workspaces: rust -> target
           shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Run the reload harness and check its three check lines
         shell: bash
@@ -2791,7 +3161,7 @@ jobs:
           set -euo pipefail
           target/debug/mod_check ../scenarios/moba ../mods/td_waves.lua 300 > td.txt 2>&1 || { cat td.txt; exit 1; }
           cat td.txt
-          grep -Eq '^mod-state lives=0 score=3 ticks=0 waves=3 winner=1$' td.txt
+          grep -Eq '^mod-state lives=3 score=0 ticks=0 waves=20 winner=-1$' td.txt
           target/debug/mod_check ../scenarios/moba ../mods/custom_spell.lua 300 > spell.txt 2>&1 || { cat spell.txt; exit 1; }
           cat spell.txt
           grep -Eq '^mod-state effects=2 gold=250 ticks=0 winner=0$' spell.txt
@@ -2872,8 +3242,8 @@ jobs:
   duel-routes:
     name: duel-routes scenario loads and serves its counts
     runs-on: ubuntu-latest
-    needs: [changes, build]
-    if: needs.changes.outputs.code == 'true'
+    needs: [changes, build, check-linux]
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -2940,13 +3310,19 @@ jobs:
           echo "scenario ok sides=$sides routes=$routes objectives=$beacons units=$units hp_changed=$hp_changed"
           test "$hp_changed" = true
 
+      - name: Read the gate output check-linux wrote for this commit
+        uses: actions/download-artifact@v4
+        with:
+          name: gate-output-ubuntu-latest
+          path: gate-output
+
       - name: Gate witnesses - a beacon loses hit points in range; destroying a side's tagged structures names the winner
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/gate-witness.txt"
-          cd "$GITHUB_WORKSPACE/rust"
-          # The gate exits nonzero when any other check fails; this step asserts only its own PASS line.
-          target/debug/oscraft-gate > "$out" 2>&1 || true
+          # check-linux runs the same oscraft-gate binary on this commit and uploads its output even when the gate
+          # fails, so the witness lines are read from that run; a failed gate still fails check-linux itself.
+          out="$GITHUB_WORKSPACE/gate-output/gate.txt"
+          test -s "$out"
           grep -q '^check mechanic-structure-damage PASS$' "$out"
           grep -E '^structure damage ok hp_before=[0-9]+ hp_after=[0-9]+$' "$out"
           grep -q '^check mechanic-win-trigger PASS$' "$out"
@@ -3016,17 +3392,16 @@ jobs:
           test "$tick" -ge 3
           units0=$(jq '[.records[] | select(.player != 255)] | length' "$work/s0.json")
           at_tick=""
-          prev=$units0
+          prev_max=$(jq '[.records[] | select(.player != 255) | .id] | max // 0' "$work/s0.json")
           max_jump=0
           tick=0
           for i in $(seq 1 1800); do
             curl -sf "http://$addr/state?map=ci" > "$work/s1.json" || true
             tick=$(jq -r '.tick // 0' "$work/s1.json" 2>/dev/null || echo 0)
-            units_now=$(jq '[.records[] | select(.player != 255)] | length' "$work/s1.json" 2>/dev/null || echo "$units0")
-            jump=$((units_now - prev))
+            jump=$(jq --argjson p "$prev_max" '[.records[] | select(.player != 255 and .id > $p)] | length' "$work/s1.json" 2>/dev/null || echo 0)
+            prev_max=$(jq --argjson p "$prev_max" '[.records[] | select(.player != 255 and .id > $p) | .id] | max // $p' "$work/s1.json" 2>/dev/null || echo "$prev_max")
             if [ "$jump" -gt "$max_jump" ]; then max_jump=$jump; fi
             if [ -z "$at_tick" ] && [ "$jump" -gt 0 ]; then at_tick=$tick; fi
-            prev=$units_now
             test "$tick" -ge "$target" && break
             sleep 0.5
           done
@@ -3040,9 +3415,9 @@ jobs:
           lanes=$((towers / 2))
           workers=$(grep -oE 'opening_workers *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
           expected_units=$((spawns + starts * workers))
-          lanes_per_wave=$(cat abilities.osd waves.osd | grep -E '^ability\("creep_wave' | grep -o 'effect("spawn"' | wc -l)
           wave_spawners=$(grep -cE '^spawn\("lane_spawner' waves.osd)
-          initial_units=$((expected_units + wave_spawners + bases * initial * lanes_per_wave))
+          creep_lanes=$(grep -cE '^spawn\("lane_spawner_(top|mid|bot)"' waves.osd)
+          initial_units=$((expected_units + wave_spawners + creep_lanes * 4))
           sides=$(jq '.sides' "$work/s0.json")
           players=$(jq '.players' "$work/s0.json")
           patches=$(grep -oE 'patches_per_base *= *[0-9]+' economy.osd | grep -oE '[0-9]+$')
@@ -3052,7 +3427,7 @@ jobs:
           neutral_budget=$((starts * (patches + geysers) + neutral_camps))
           echo "neutral records: $neutral, at most $neutral_budget (fields from economy.osd plus $neutral_camps camp spawns)"
           test "$neutral" -le "$neutral_budget"
-          echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases initial_waves=$initial cooldown=$cooldown expected_units=$expected_units"
+          echo "from files: starts=$starts spawns=$spawns towers=$towers heroes=$heroes creeps=$creeps_spawned lanes=$lanes bases=$bases creep_lanes=$creep_lanes cooldown=$cooldown expected_units=$expected_units"
           echo "served from tick 3: units=$units0 sides=$sides; expected with initial waves=$initial_units"
           test "$units0" -eq "$initial_units"
           test "$sides" -eq 2
@@ -3069,19 +3444,11 @@ jobs:
           echo "moba scenario ok sides=$sides lanes=$lanes towers=$towers heroes=$heroes creeps_spawned=$creeps_spawned"
           units_end=$(jq '[.records[] | select(.player != 255)] | length' "$work/s1.json")
           spawned=$max_jump
-          timers=$(grep -cE 'trigger="ability_ready".*ability="creep_wave"' "$scen/behaviours.osd" || true)
-          max_waves=$((bases * timers * (target / cooldown + 1) * lanes_per_wave))
-          echo "waves per lane: lanes_per_wave=$lanes_per_wave creeps per base per wave, one per lane; base wave timers=$timers"
-          echo "wave: units_end=$units_end spawned=$spawned at_tick=$at_tick bases=$bases max_waves=$max_waves"
-          if [ "$timers" -eq 0 ]; then
-            test -z "$at_tick"
-            test "$spawned" -eq 0
-          else
-            test -n "$at_tick"
-            test "$spawned" -ge "$bases"
-          fi
-          test "$spawned" -le "$max_waves"
-          echo "moba wave ok spawned=$spawned at_tick=$at_tick timers=$timers"
+          wave_units=$((creep_lanes * 4))
+          echo "wave: units_end=$units_end spawned=$spawned at_tick=$at_tick creep_lanes=$creep_lanes wave_units=$wave_units"
+          test -n "$at_tick"
+          test "$spawned" -eq "$wave_units"
+          echo "moba wave ok spawned=$spawned at_tick=$at_tick wave_units=$wave_units"
           win=$(grep -E '^behaviour\("win_on_base_loss"' behaviours.osd)
           test -n "$win"
           echo "$win" | grep -qE 'trigger="destroyed".*action="declare_winner".*tag="building"'
@@ -3221,7 +3588,7 @@ jobs:
           grep -qE '^wasip3 tick ok ticks=10 units=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
           grep -q '^wasip3 mod-load ok mod=wasip3-test$' "$RUNNER_TEMP/wasip3.txt"
           grep -qE '^wasip3 mod-trigger ok mod=tower_buff fired=[1-9][0-9]* applied=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
-          grep -Eq '^mod-state lives=0 score=3 ticks=0 waves=3 winner=1$' "$RUNNER_TEMP/wasip3.txt"
+          grep -Eq '^mod-state lives=3 score=0 ticks=0 waves=20 winner=-1$' "$RUNNER_TEMP/wasip3.txt"
           grep -Eq '^mod-state effects=2 gold=250 ticks=0 winner=0$' "$RUNNER_TEMP/wasip3.txt"
 
   browser-two-peers:
@@ -3254,8 +3621,17 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt js/client/hero_rules.txt
           mkdir -p js/client/models
           cp rust/crates/web/site/assets/units/*.glb js/client/models/
+
+      - name: Restore the Playwright npm and browser caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: playwright-1.47.0-${{ runner.os }}
 
       - name: Install headless Chromium
         run: |
@@ -3455,8 +3831,17 @@ jobs:
           cp -r rust/crates/web/site/pkg js/client/pkg
           cp rust/crates/web/site/map.bin js/client/map.bin
           cp rust/crates/web/site/moba.bin js/client/moba.bin
+          cp scenarios/moba/hero_rules.txt js/client/hero_rules.txt
           mkdir -p js/client/models
           cp rust/crates/web/site/assets/units/*.glb js/client/models/
+
+      - name: Restore the Playwright npm and browser caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: playwright-1.47.0-${{ runner.os }}
 
       - name: Install headless Chromium
         run: |
@@ -3512,10 +3897,18 @@ jobs:
             }
             if (!direct(h) || !direct(p)) throw new Error(`not direct host/srflx: host=${JSON.stringify(h)} peer=${JSON.stringify(p)}`);
             const start = await peer.evaluate(() => window.__ciUnits());
-            const unit = start.find((u) => u.player === 0);
+            // Unit kind 0 is the hero; kind 2 is the Ancient base, which never moves, so it cannot prove a move.
+            const unit = start.find((u) => u.player === 0 && u.type === 0);
             if (!unit) throw new Error("no unit owned by the first peer's player 0");
             const movedToward = (u, t) => !!u && dist(u, t) < dist(unit, t) - 1;
             const seen = async (page) => page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, unit.id);
+            const pause = async (ms, done) => {
+              const until = Date.now() + ms;
+              while (Date.now() < until) {
+                if (await done()) return;
+                await new Promise((r) => setTimeout(r, 100));
+              }
+            };
             let onHost = null;
             // The sim refuses an order whose destination cell is unwalkable; each offset is tried in turn and the host's
             // refusal (body.dataset.lastRefusal) is read back, so a refused target is named in the failure.
@@ -3527,7 +3920,7 @@ jobs:
               const moveDeadline = Date.now() + 15000;
               while (Date.now() < moveDeadline) {
                 await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [unit.id, target.x, target.z]);
-                await new Promise((r) => setTimeout(r, 1500));
+                await pause(1500, async () => movedToward(await seen(host), target) && movedToward(await seen(peer), target));
                 onHost = await seen(host);
                 if (movedToward(onHost, target) && movedToward(await seen(peer), target)) break;
               }
@@ -3559,7 +3952,13 @@ jobs:
             const attacks = await host.evaluate(() => document.body.dataset.remoteAttacks);
             const casts = await host.evaluate(() => document.body.dataset.remoteCasts);
             // Both sides must hold the same unit positions for the host ticks they both logged.
-            await new Promise((r) => setTimeout(r, 3000));
+            const agreedUntil = Date.now() + 30000;
+            while (Date.now() < agreedUntil) {
+              const sentNow = new Map(await host.evaluate(() => window.__ciSentTicks()));
+              const recvNow = await peer.evaluate(() => window.__ciRecvTicks());
+              if (recvNow.filter(([tick, key]) => sentNow.get(tick) === key).length >= 20) break;
+              await new Promise((r) => setTimeout(r, 250));
+            }
             const sent = new Map(await host.evaluate(() => window.__ciSentTicks()));
             const recv = await peer.evaluate(() => window.__ciRecvTicks());
             const recvOrder = recv.map(([tick]) => tick);

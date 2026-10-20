@@ -15,10 +15,12 @@ export function findClip(clips, name) {
   return clips.find((clip) => clip.name === name) ?? clips.find((clip) => clip.name.startsWith(name)) ?? null;
 }
 
+// Keyframe segment for the sampled time, written into one shared record (sampling reads it straight away).
+const SEGMENT = { lo: 0, hi: 0, u: 0 };
 function segment(times, t) {
   const last = times.length - 1;
-  if (t <= times[0]) return { lo: 0, hi: 0, u: 0 };
-  if (t >= times[last]) return { lo: last, hi: last, u: 0 };
+  if (t <= times[0]) { SEGMENT.lo = 0; SEGMENT.hi = 0; SEGMENT.u = 0; return SEGMENT; }
+  if (t >= times[last]) { SEGMENT.lo = last; SEGMENT.hi = last; SEGMENT.u = 0; return SEGMENT; }
   let lo = 0;
   let hi = last;
   while (hi - lo > 1) {
@@ -26,7 +28,8 @@ function segment(times, t) {
     if (times[mid] <= t) lo = mid;
     else hi = mid;
   }
-  return { lo, hi, u: (t - times[lo]) / (times[hi] - times[lo]) };
+  SEGMENT.lo = lo; SEGMENT.hi = hi; SEGMENT.u = (t - times[lo]) / (times[hi] - times[lo]);
+  return SEGMENT;
 }
 
 function sampleLinear(channel, s, out) {
@@ -59,55 +62,56 @@ function sampleStep(channel, s, out) {
   for (let c = 0; c < width; c++) out[c] = values[s.lo * width + c];
 }
 
-function slerp(a, b, u, out) {
-  let dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+// Quaternion slerp between values[ao..ao+4) and values[bo..bo+4) into out.
+function slerp(values, ao, bo, u, out) {
+  let dot = values[ao] * values[bo] + values[ao + 1] * values[bo + 1] + values[ao + 2] * values[bo + 2] + values[ao + 3] * values[bo + 3];
   const sign = dot < 0 ? -1 : 1;
   dot = Math.min(1, Math.abs(dot));
   if (dot > 0.9995) {
-    for (let c = 0; c < 4; c++) out[c] = a[c] + (sign * b[c] - a[c]) * u;
+    for (let c = 0; c < 4; c++) out[c] = values[ao + c] + (sign * values[bo + c] - values[ao + c]) * u;
   } else {
     const theta = Math.acos(dot);
     const wa = Math.sin((1 - u) * theta) / Math.sin(theta);
     const wb = Math.sin(u * theta) / Math.sin(theta);
-    for (let c = 0; c < 4; c++) out[c] = wa * a[c] + wb * sign * b[c];
+    for (let c = 0; c < 4; c++) out[c] = wa * values[ao + c] + wb * sign * values[bo + c];
   }
   const len = Math.hypot(out[0], out[1], out[2], out[3]) || 1;
   for (let c = 0; c < 4; c++) out[c] /= len;
 }
 
-function sampleChannel(channel, time, loop, scratch) {
-  const { times, interpolation, width } = channel;
-  if (times.length === 0) return null;
+// Writes the channel value at time into out (width floats). False when the channel has no keys.
+function sampleChannel(channel, time, out) {
+  const { times, interpolation } = channel;
+  if (times.length === 0) return false;
   const s = segment(times, time);
-  const out = scratch.slice(0, width);
-  if (interpolation === 'STEP') sampleStep(channel, s, out);
-  else if (interpolation === 'CUBICSPLINE') sampleCubic(channel, s, times[s.hi] - times[s.lo] || 0, out);
-  else if (channel.path === 'rotation' && s.lo !== s.hi) {
-    const a = channel.values.subarray(s.lo * 4, s.lo * 4 + 4);
-    const b = channel.values.subarray(s.hi * 4, s.hi * 4 + 4);
-    slerp(a, b, s.u, out);
-  } else sampleLinear(channel, s, out);
-  return out;
+  if (interpolation === "STEP") sampleStep(channel, s, out);
+  else if (interpolation === "CUBICSPLINE") sampleCubic(channel, s, times[s.hi] - times[s.lo] || 0, out);
+  else if (channel.path === "rotation" && s.lo !== s.hi) slerp(channel.values, s.lo * 4, s.hi * 4, s.u, out);
+  else sampleLinear(channel, s, out);
+  return true;
 }
 
+const SAMPLE = new Float32Array(4);
+
 // Local pose per animated node at `time` seconds. Nodes without a channel keep their rest pose
-// (absent from the result). With loop=false the time clamps to the clip's last key.
-export function samplePose(clip, time, loop = true) {
+// (absent from the result). With loop=false the time clamps to the clip's last key. Pass `into` (a Map from an
+// earlier call on the same clip) to refill its entries in place instead of allocating a new pose.
+export function samplePose(clip, time, loop = true, into = null) {
   const duration = clip.duration;
   let t = time;
   if (duration > 0) t = loop ? ((time % duration) + duration) % duration : Math.min(Math.max(time, 0), duration);
   else t = 0;
-  const pose = new Map();
-  const scratch = new Float32Array(4);
+  const pose = into ?? new Map();
   for (const channel of clip.channels) {
-    const value = sampleChannel(channel, t, loop, scratch);
-    if (!value) continue;
+    if (!sampleChannel(channel, t, SAMPLE)) continue;
     let entry = pose.get(channel.node);
     if (!entry) {
       entry = {};
       pose.set(channel.node, entry);
     }
-    entry[channel.path] = Float32Array.from(value);
+    let dst = entry[channel.path];
+    if (!dst) dst = entry[channel.path] = new Float32Array(channel.width);
+    for (let c = 0; c < channel.width; c++) dst[c] = SAMPLE[c];
   }
   return pose;
 }
@@ -119,6 +123,8 @@ export class AnimationPlayer {
     this.clip = null;
     this.time = 0;
     this.loop = true;
+    this.poseCache = new Map();
+    this.poseClip = null;
   }
 
   play(name, { loop = true } = {}) {
@@ -148,7 +154,12 @@ export class AnimationPlayer {
   }
 
   pose() {
-    return this.clip ? samplePose(this.clip, this.time, this.loop) : null;
+    if (!this.clip) return null;
+    if (this.poseClip !== this.clip) {
+      this.poseCache.clear();
+      this.poseClip = this.clip;
+    }
+    return samplePose(this.clip, this.time, this.loop, this.poseCache);
   }
 }
 
@@ -156,65 +167,93 @@ export class AnimationPlayer {
 // transform times its inverse bind matrix, then the model fit, so the shader only blends them per vertex.
 const IDENTITY = Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 
-export function mat4Multiply(a, b) {
-  const out = new Float32Array(16);
+// out must not alias a or b. Operands are read at aOff/bOff so one packed array can hold several matrices.
+function mulInto(out, oo, a, ao, b, bo) {
   for (let c = 0; c < 4; c++) {
     for (let r = 0; r < 4; r++) {
       let v = 0;
-      for (let k = 0; k < 4; k++) v += a[k * 4 + r] * b[c * 4 + k];
-      out[c * 4 + r] = v;
+      for (let k = 0; k < 4; k++) v += a[ao + k * 4 + r] * b[bo + c * 4 + k];
+      out[oo + c * 4 + r] = v;
     }
   }
   return out;
 }
 
-function trsMatrix(t, q, s) {
-  const [x, y, z, w] = q;
+export function mat4Multiply(a, b) {
+  return mulInto(new Float32Array(16), 0, a, 0, b, 0);
+}
+
+function trsInto(out, o, t, q, s) {
+  const x = q[0], y = q[1], z = q[2], w = q[3];
   const xx = x * x, yy = y * y, zz = z * z, xy = x * y, xz = x * z, yz = y * z, wx = w * x, wy = w * y, wz = w * z;
-  return Float32Array.of(
-    (1 - 2 * (yy + zz)) * s[0], 2 * (xy + wz) * s[0], 2 * (xz - wy) * s[0], 0,
-    2 * (xy - wz) * s[1], (1 - 2 * (xx + zz)) * s[1], 2 * (yz + wx) * s[1], 0,
-    2 * (xz + wy) * s[2], 2 * (yz - wx) * s[2], (1 - 2 * (xx + yy)) * s[2], 0,
-    t[0], t[1], t[2], 1,
-  );
+  out[o] = (1 - 2 * (yy + zz)) * s[0]; out[o + 1] = 2 * (xy + wz) * s[0]; out[o + 2] = 2 * (xz - wy) * s[0]; out[o + 3] = 0;
+  out[o + 4] = 2 * (xy - wz) * s[1]; out[o + 5] = (1 - 2 * (xx + zz)) * s[1]; out[o + 6] = 2 * (yz + wx) * s[1]; out[o + 7] = 0;
+  out[o + 8] = 2 * (xz + wy) * s[2]; out[o + 9] = 2 * (yz - wx) * s[2]; out[o + 10] = (1 - 2 * (xx + yy)) * s[2]; out[o + 11] = 0;
+  out[o + 12] = t[0]; out[o + 13] = t[1]; out[o + 14] = t[2]; out[o + 15] = 1;
+  return out;
 }
 
-// A node's local matrix: its animated TRS from the pose when it has one, else its rest TRS or matrix.
-function localMatrix(node, animated) {
-  if (!animated && node.matrix) return Float32Array.from(node.matrix);
-  return trsMatrix(
-    animated?.translation ?? node.translation ?? [0, 0, 0],
-    animated?.rotation ?? node.rotation ?? [0, 0, 0, 1],
-    animated?.scale ?? node.scale ?? [1, 1, 1],
-  );
+const TRANSLATION_0 = [0, 0, 0];
+const ROTATION_0 = [0, 0, 0, 1];
+const SCALE_0 = [1, 1, 1];
+
+// A node's local matrix written at out[o]: its animated TRS from the pose when it has one, else its rest TRS or matrix.
+function localInto(out, o, node, animated) {
+  if (!animated && node.matrix) {
+    for (let k = 0; k < 16; k++) out[o + k] = node.matrix[k];
+    return out;
+  }
+  return trsInto(out, o, animated?.translation ?? node.translation ?? TRANSLATION_0,
+    animated?.rotation ?? node.rotation ?? ROTATION_0, animated?.scale ?? node.scale ?? SCALE_0);
 }
 
-// Global matrix per node for a pose (Map node index -> { translation, rotation, scale }). Roots are nodes no
-// other node lists as a child.
-export function globalMatrices(nodes, pose = new Map()) {
-  const globals = new Array(nodes.length);
-  const hasParent = new Uint8Array(nodes.length);
-  for (const node of nodes) for (const child of node.children) hasParent[child] = 1;
-  const visit = (index, parent) => {
-    const local = localMatrix(nodes[index], pose.get(index));
-    globals[index] = parent ? mat4Multiply(parent, local) : local;
-    for (const child of nodes[index].children) visit(child, globals[index]);
-  };
-  nodes.forEach((_, index) => {
-    if (!hasParent[index]) visit(index, null);
-  });
-  return globals;
+// Per node.children array: the roots (nodes no other node lists as a child) and one scratch block of 16 floats per
+// node for globals, plus a local and a joint-product scratch. Built once per nodes array, reused every frame.
+const nodeScratch = new WeakMap();
+function scratchFor(nodes) {
+  let s = nodeScratch.get(nodes);
+  if (!s) {
+    const hasParent = new Uint8Array(nodes.length);
+    for (const node of nodes) for (const child of node.children) hasParent[child] = 1;
+    const roots = [];
+    for (let i = 0; i < nodes.length; i++) if (!hasParent[i]) roots.push(i);
+    s = { roots, globals: new Float32Array(16 * nodes.length), local: new Float32Array(16), product: new Float32Array(16) };
+    nodeScratch.set(nodes, s);
+  }
+  return s;
 }
 
-// Joint matrices for a skin at a pose, pre-multiplied by `fit` (the model's fit to its footprint). The result
-// packs one column-major mat4 per joint, in the order of skin.joints.
-export function jointMatrices(nodes, skin, pose, fit) {
-  const globals = globalMatrices(nodes, pose);
+const EMPTY_POSE = new Map();
+
+function visitGlobals(nodes, index, parent, pose, s) {
+  const o = index * 16;
+  localInto(s.local, 0, nodes[index], pose.get(index));
+  if (parent < 0) s.globals.set(s.local, o);
+  else mulInto(s.globals, o, s.globals, parent * 16, s.local, 0);
+  for (const child of nodes[index].children) visitGlobals(nodes, child, index, pose, s);
+}
+
+// Global matrix per node for a pose (Map node index -> { translation, rotation, scale }), packed as 16 floats per
+// node into the shared scratch that the caller must read before the next call for the same nodes array.
+export function globalMatrices(nodes, pose = EMPTY_POSE) {
+  const s = scratchFor(nodes);
+  for (const root of s.roots) visitGlobals(nodes, root, -1, pose, s);
+  return s.globals;
+}
+
+// Joint matrices for a skin at a pose, pre-multiplied by `fit` (the model's fit to its footprint). Writes one
+// column-major mat4 per joint, in the order of skin.joints, into `out` (length 16 * joints) and returns it. Pass a
+// reused `out` per character so a frame allocates nothing here.
+export function jointMatrices(nodes, skin, pose, fit, out = new Float32Array(16 * skin.joints.length)) {
+  const s = scratchFor(nodes);
+  globalMatrices(nodes, pose ?? EMPTY_POSE);
+  const ib = skin.inverseBindMatrices;
   const count = skin.joints.length;
-  const out = new Float32Array(16 * count);
   for (let j = 0; j < count; j++) {
-    const inverseBind = skin.inverseBindMatrices ? skin.inverseBindMatrices.subarray(16 * j, 16 * j + 16) : IDENTITY;
-    out.set(mat4Multiply(fit, mat4Multiply(globals[skin.joints[j]], inverseBind)), 16 * j);
+    const g = skin.joints[j] * 16;
+    if (ib) mulInto(s.product, 0, s.globals, g, ib, 16 * j);
+    else mulInto(s.product, 0, s.globals, g, IDENTITY, 0);
+    mulInto(out, 16 * j, fit, 0, s.product, 0);
   }
   return out;
 }

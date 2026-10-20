@@ -10,7 +10,8 @@ local CAST_EVERY = 16
 local ATTACK_REACH = 10
 local CAST_REACH = 7
 local LAST_HIT_HP = 60
-local RETREAT_FRACTION = 0.3
+local RETREAT_FRACTION = 0.4
+local DISENGAGE_GAP = 0.2
 local RECOVER_FRACTION = 0.8
 local SHOP_REACH = 1.5
 
@@ -22,7 +23,7 @@ local PUSH_X = { [0] = 50000, [1] = 14000 }
 -- Catalog index and gold cost of each purchase, in the order a bot buys them.
 local SHOPPING = { { 2, 200 }, { 6, 350 }, { 0, 150 }, { 1, 150 }, { 7, 300 }, { 10, 600 } }
 
-Bot = {}
+Bot = { stats = { walks = 0, retreats = 0, attacks = 0 } }
 
 local function fixed(v) return (v // 1) | 0 end
 
@@ -32,6 +33,14 @@ local function distance_tiles(ax, ay, bx, by)
 end
 
 local function whole_hp(unit) return unit_hp(unit) / TILE end
+
+-- Health percent against the most HP this unit has shown; the mod API exposes no max HP.
+local seen_max_hp = {}
+local function hp_pct(unit)
+  local hp = unit_hp(unit)
+  if (seen_max_hp[unit] or 0) < hp then seen_max_hp[unit] = hp end
+  return hp * 100 / seen_max_hp[unit]
+end
 
 local function hostile(team_a, unit)
   local player = unit_player(unit)
@@ -110,12 +119,20 @@ end
 
 function Bot.retreat(bot, hero, team)
   local fx, fy = FOUNTAIN[team % 2][1] * 65.536, FOUNTAIN[team % 2][2] * 65.536
+  Bot.stats.retreats = Bot.stats.retreats + 1
   game.cmd_order(hero, fixed(fx), fixed(fy))
 end
 
 function Bot.walk_lane(bot, hero, team)
   local x, y = PUSH_X[team % 2] * 65.536, LANE_Y[bot.lane] * 65.536
+  Bot.stats.walks = Bot.stats.walks + 1
   game.cmd_order(hero, fixed(x), fixed(y))
+end
+
+-- A hero target that has the upper hand on health (the map's disengage rule, 87158-87160) makes the bot back off.
+local function outmatched(hero, target)
+  if game.unit_kind(target) ~= "hero" then return false end
+  return hp_pct(hero) + DISENGAGE_GAP * 100 < hp_pct(target)
 end
 
 -- One decision for a bot: returns the hero it controls, or nil when the slot has none alive.
@@ -140,8 +157,11 @@ function Bot.think(bot, units, ticks)
   if Bot.shop(bot, hero, team, bot.slot) then return hero end
 
   local target, d = Bot.pick_target(bot, hero, team, units, ATTACK_REACH)
-  if target then
+  if target and outmatched(hero, target) then
+    Bot.retreat(bot, hero, team)
+  elseif target then
     if d < CAST_REACH then Bot.cast_ready(bot, hero, target, ticks) end
+    Bot.stats.attacks = Bot.stats.attacks + 1
     game.cmd_attack(hero, target)
   else
     Bot.walk_lane(bot, hero, team)

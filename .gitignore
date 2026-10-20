@@ -88,3 +88,7 @@ build/
 /rust/crates/web/site/pkg/
 /rust/crates/web/site/map.bin
 /rust/crates/web/site/moba.bin
+/.dev-site/
+
+# Asset prep dependencies (npm ci in scripts/assets, see docs/ASSET_PIPELINE.md)
+scripts/assets/node_modules

@@ -482,7 +482,7 @@ pub fn editor_abilities(image: &[u8]) -> Result<(), String> {
 const EVENT_MOD: &str = r#"
 function on_tick(state)
   local bits = { on_spawned = 1, on_attacked = 2, on_died = 4, on_enter = 8, on_leave = 16, on_player_joined = 32, on_tick = 64 }
-  local want = { on_spawned = "unit", on_attacked = "unit", on_died = "unit, killer, killer_player", on_enter = "region, unit", on_leave = "region, unit", on_player_joined = "player", on_tick = "state" }
+  local want = { on_spawned = "unit", on_attacked = "unit", on_died = "unit, killer, killer_player, bounty, victim_player, killer_hero", on_enter = "region, unit", on_leave = "region, unit", on_player_joined = "player", on_tick = "state" }
   local events = list_events()
   local mask = 0
   for _, r in ipairs(events) do

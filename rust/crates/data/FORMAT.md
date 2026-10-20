@@ -93,7 +93,7 @@ Effect parameters by kind:
 | 0    | `damage`           | amount, `>= 0`                                                     | radius, milli-units, `>= 0` (0 = target only) | –                    | –                                |
 | 1    | `heal`             | amount, `>= 0`                                                     | radius, milli-units, `>= 0` (0 = target only) | –                    | –                                |
 | 2    | `move`             | distance cap, milli-units, `> 0` and `<=` the grid diagonal        | –                                      | –                           | –                                |
-| 3    | `spawn`            | unit index into `UNIT`, `>= 0`                                     | –                                      | –                           | –                                |
+| 3    | `spawn`            | unit index into `UNIT`, `>= 0`                                     | offset x, milli-units (0 with p2 = spawn at the cast point) | offset y, milli-units | route lane in the top two bits of p3 (0 = none, marches on the enemy base) |
 | 4    | `buff`             | buff kind code (sim-defined), `>= 0`                               | duration, ticks, `>= 0`                | –                           | –                                |
 | 5    | `issue_order`      | order kind: `0 stop`, `1 attack_move`, `2 hold`                    | target: `0 caster_relative`, `1 point` | –                           | –                                |
 | 6    | `remove_behaviour` | buff kind code to remove, `>= 0`                                   | radius, milli-units, `>= 0`            | –                           | –                                |

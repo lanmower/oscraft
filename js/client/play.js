@@ -8,13 +8,14 @@ import { iceServersFrom } from "./ice.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, jointMatrices } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
+import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
-import { buildTerrain, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, fitModel, GROUND_KINDS, TILE_MODELS, TILE_TINTS, walkableBounds } from "./tiles.js";
+import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
+import { bakeTiles, controlMap, fitModel, planarGroundUvs, planarUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
-import { createLobby, HERO_ROSTER } from "./lobby.js";
+import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
 import { createShop } from "./ui_shop.js";
 import { createSkills } from "./ui_skills.js";
@@ -49,7 +50,10 @@ const EDGE_PX = 16;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_CAP_MS = 16000;
 const RECONNECT_MAX_ATTEMPTS = 6;
-const HOST_TICK_MS = 100;
+const SIM_TICKS_PER_SECOND = 16;
+const SIM_TICK_S = 1 / SIM_TICKS_PER_SECOND;
+const SIM_TICK_MS = 1000 * SIM_TICK_S;
+const HOST_POLL_MS = 10;
 const WIRE_SCALE = 1000;
 const ROSTER_EVERY_TICKS = 10;
 const U16_MAX = 0xffff;
@@ -77,9 +81,23 @@ function textureFrom(gl, image) {
 let mapBytes = null;
 let terrainMesh = null;
 let tileMeshes = null;
+// Splat ground: the control map, the four layers and the GPU handles; null when any layer texture fails to load.
+let splat = null;
+const SPLAT_BAND = 0.15;
+// Default terrain is the splat heightfield floor with cliff walls and water tiles. ?terrain=tiles restores the per-cell tile
+// path (ramp and cliff tiles included) for comparison.
+const TERRAIN_TILES = params.get("terrain") === "tiles";
+// Sun shadows: one setting. ?shadows=0 turns the shadow map off (no shadow pass, no sampling).
+const SHADOW_ON = params.get("shadows") !== "0";
+const SHADOW_SIZE = 2048;
+// Ground lighting: ambient, diffuse and albedo gain. The gain lifts the owner's darker albedo to lit terrain.
+const SPLAT_SHADE = [0.42, 0.68, 1.3];
+// Cliff faces: the rock albedo is dark, so faces get a strong gain while keeping a light-facing contrast.
+const CLIFF_SHADE = [0.5, 0.7, 2.0];
 let terrainTiles = null;
 let unitMeshes = [];
-const drawCounts = { terrain: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
+let arrowMesh = null;
+const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
 // Scratch matrices for the per-unit transform and the screen projection, reused every frame.
 const unitTransform = new Float32Array(16);
 const worldVp = new Float32Array(16);
@@ -109,6 +127,7 @@ let hosting = false;
 let orders = 0;
 let pointer = null;
 let lastFrameMs = 0;
+let localTickAcc = 0;
 const keysDown = new Set();
 const seating = createSeating();
 const autoSeats = [];
@@ -118,6 +137,8 @@ let myPlayer = 0;
 let lastAppliedTick = 0;
 let rosterView = null;
 let heroKinds = new Map();
+let heroRuleNames = [];
+let spawnedSeats = [];
 const localPlayerId = () => myPlayer;
 const isGuest = () => netTick >= 0;
 
@@ -133,6 +154,13 @@ async function loadSim() {
   mapBytes = image;
   setMapSize(readGrid(image));
   const game = new mod.Game(image);
+  // Hero types and their attribute and respawn rules come from the same text the server loads. Without them
+  // every hero's attributes are zero at level 0, so heroes are not seen as heroes. The lobby's picker lists the
+  // names on every page, so the text is always read for them; only the moba page hands it to the sim.
+  const rulesRes = await fetch(new URL("hero_rules.txt", location.href));
+  const rulesText = rulesRes.ok ? await rulesRes.text() : "";
+  if (location.hash === "#moba" && !(rulesRes.ok && game.set_hero_rules(rulesText))) throw new Error("hero_rules.txt did not load");
+  heroRuleNames = heroNamesFromRules(rulesText);
   // The moba preview runs without fog so every enemy is a valid target; other pages keep the sim's fog.
   game.set_fog(location.hash !== "#moba");
   return game;
@@ -178,7 +206,7 @@ function parsedModel(name) {
   if (!entry) {
     entry = (async () => {
       const url = new URL(`models/${name}.glb`, location.href);
-      const bytes = await (await fetch(url)).arrayBuffer();
+      const bytes = await resolveGlbExtensions(await (await fetch(url)).arrayBuffer());
       const glb = parseGlb(bytes);
       const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
       return { url: url.href, glb, animations };
@@ -211,14 +239,25 @@ async function loadModels(game) {
 
 // Doodads: one fitted model per kind code (DODA kind), read from doodads.json which maps kind name to GLB path.
 // The shipped asset catalogue (assets.json) names each doodad's GLB; doodads.json is the fallback when it is missing.
-async function loadDoodadModels() {
-  const [map, catalogue] = await Promise.all([
+async function loadDoodadModels(usedKinds) {
+  const [map, catalogue, footprints] = await Promise.all([
     fetch(new URL("doodads.json", location.href)).then((r) => r.json()),
     fetch(new URL("assets.json", location.href)).then((r) => r.json()).catch(() => ({ items: [] })),
+    fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({})),
   ]);
-  return Promise.all(DOODAD_KINDS.map((kind) => {
-    const file = catalogue.items.find((item) => item.id === kind)?.path ?? map[kind];
-    return fetchModel(file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null, 2 * DOODAD_HALF);
+  const modelName = (id) => {
+    const file = catalogue.items.find((item) => item.id === id && item.kind === "model")?.path;
+    return file ? file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null;
+  };
+  // Each model is fitted to its footprint in cells from doodad_sizes.json (scripts/doodad-sizes.mjs); a model without one keeps DOODAD_HALF's size.
+  const sizeOf = (name) => footprints[name] ?? 2 * DOODAD_HALF;
+  // Only kinds the map places are fetched; an unplaced kind keeps an empty entry, so indices still match the kind codes.
+  return Promise.all(DOODAD_KINDS.map(async (kind, code) => {
+    if (usedKinds && !usedKinds.has(code)) return { high: null, low: null };
+    const name = modelName(kind) ?? (map[kind] ? map[kind].replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") : null);
+    const lowName = modelName(`${kind}-low`);
+    const [high, low] = await Promise.all([fetchModel(name, sizeOf(name)), lowName ? fetchModel(lowName, sizeOf(lowName)) : null]);
+    return { high, low };
   }));
 }
 
@@ -245,6 +284,13 @@ function maxY(positions) {
   let top = 0;
   for (let v = 1; v < positions.length; v += 3) top = Math.max(top, positions[v]);
   return top;
+}
+
+// The ranged attack's projectile: the arrow model, fitted to the footprint doodad_sizes.json gives it. Null when it does
+// not load, and the effects keep their octahedron.
+async function loadArrowMesh(gl) {
+  const footprints = await fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({}));
+  return toMesh(gl, await fetchModel("arrow", footprints.arrow ?? 2 * DOODAD_HALF), [1, 1, 1]).catch(() => null);
 }
 
 // Ground height under a tile position; the terrain is flat at 0 until its mesh is built.
@@ -303,11 +349,13 @@ function unitMeshFor(type, color) {
 
 // Joint palette for a unit this frame: its clip (walk when it moved, attack when it reports attacking, else idle)
 // advanced by dt seconds. A unit with no matching clip holds the rest pose.
+const EMPTY_POSE = new Map();
 function jointsFor(u, mesh, dt) {
   const key = `${u.id}:${u.type}`;
   let entry = animators.get(key);
   if (!entry) {
-    entry = { player: new AnimationPlayer(mesh.animation.clips), x: u.x, z: u.z, seen: false };
+    const { skin } = mesh.animation;
+    entry = { player: new AnimationPlayer(mesh.animation.clips), x: u.x, z: u.z, seen: false, joints: new Float32Array(16 * skin.joints.length) };
     animators.set(key, entry);
   }
   const moving = Math.hypot(u.x - entry.x, u.z - entry.z) > MOVE_EPS;
@@ -317,21 +365,22 @@ function jointsFor(u, mesh, dt) {
   entry.player.playState({ attacking: Boolean(u.attacking), moving });
   entry.player.update(dt);
   const { nodes, skin, fit } = mesh.animation;
-  return jointMatrices(nodes, skin, entry.player.pose() ?? new Map(), fit);
+  return jointMatrices(nodes, skin, entry.player.pose() ?? EMPTY_POSE, fit, entry.joints);
 }
 
-// Groups { mesh, transform } placements into one static instance batch per mesh.
+// Groups { mesh, lowMesh?, transform } placements into one static instance batch per mesh. lowMesh is the mesh's
+// lower-poly model (shared by every placement of that mesh) for the renderer's level-of-detail path.
 function batchByMesh(placed) {
   const groups = new Map();
   for (const p of placed) {
     let list = groups.get(p.mesh);
-    if (!list) groups.set(p.mesh, (list = []));
-    list.push(p.transform);
+    if (!list) groups.set(p.mesh, (list = { lowMesh: p.lowMesh ?? null, transforms: [] }));
+    list.transforms.push(p.transform);
   }
-  return [...groups].map(([mesh, transforms]) => {
+  return [...groups].map(([mesh, { lowMesh, transforms }]) => {
     const matrices = new Float32Array(transforms.length * 16);
     transforms.forEach((t, i) => matrices.set(t, i * 16));
-    return { mesh, batch: { matrices, count: transforms.length, dirty: true } };
+    return { mesh, lowMesh, batch: { matrices, count: transforms.length, dirty: true } };
   });
 }
 
@@ -381,8 +430,49 @@ function drawUnits3d(units, dt) {
   for (const [key, entry] of animators) if (!entry.seen) animators.delete(key);
 }
 
+// Creep: sets one cell's ground kind (grass, dirt or lane) by rewriting its control texel. Only that texel is uploaded;
+// the terrain mesh and the tile batches are not rebuilt. Index is y * width + x in map cells.
+window.__setCellKind = (index, kind) => {
+  if (!splat || !renderer3d) return false;
+  renderer3d.updateSplatCell(splat, index, setSplatTexel(splat.control, index, kind));
+  return true;
+};
+
+// Terrain and doodads: the casters of the sun's shadow map as well as the lit draws.
+// A visible badge in the corner: green for the splat ground, amber when the terrain fell back to tile types.
+function updateTerrainBadge() {
+  let badge = document.getElementById("terrain-path");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "terrain-path";
+    badge.style.cssText = "position:fixed;left:8px;bottom:8px;padding:2px 6px;font:12px monospace;color:#fff;border-radius:3px;z-index:9;pointer-events:none";
+    document.body.appendChild(badge);
+  }
+  const want = splat && !TERRAIN_TILES ? "terrain: heightfield (splat layers)" : splat ? "terrain: splat tiles" : "terrain: TILE FALLBACK (" + (splatFallbackReason || "splat not built") + ")";
+  if (badge.textContent !== want) badge.textContent = want;
+  badge.style.background = splat ? "#2e6b2e" : "#a86b00";
+}
+
+function drawGround3d() {
+  if (splat && terrainMesh) {
+    renderer3d.drawSplat(terrainMesh, splat);
+    drawCounts.splat += 1;
+  } else if (!tileMeshes && terrainMesh) countDraw("terrain", terrainMesh, null);
+  if (tileMeshes) {
+    for (const t of tileMeshes) {
+      drawCounts.terrain += 1;
+      renderer3d.drawInstanced(t.mesh, t.batch);
+    }
+  }
+  for (const d of doodadBatches) {
+    // The TSL renderer has no level-of-detail path; it draws the full model for every instance.
+    drawCounts.doodad += renderer3d.drawInstancedLod ? renderer3d.drawInstancedLod(d.mesh, d.batch, d.lowMesh) : renderer3d.drawInstancedVisible(d.mesh, d.batch);
+  }
+}
+
 function drawWorld3d() {
   drawCounts.terrain = 0;
+  drawCounts.splat = 0;
   drawCounts.doodad = 0;
   drawCounts.unit = 0;
   drawCounts.quad = 0;
@@ -391,16 +481,18 @@ function drawWorld3d() {
   const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
   lastDrawMs = now;
   renderer3d.beginFrame(BACKGROUND);
-  if (tileMeshes) {
-    for (const t of tileMeshes) {
-      drawCounts.terrain += 1;
-      renderer3d.drawInstanced(t.mesh, t.batch);
-    }
-  } else if (terrainMesh) countDraw("terrain", terrainMesh, null);
-  for (const d of doodadBatches) drawCounts.doodad += renderer3d.drawInstancedVisible(d.mesh, d.batch);
+  const shadowed = renderer3d.beginShadowPass ? renderer3d.beginShadowPass() : false;
+  if (shadowed) {
+    const counted = { ...drawCounts };
+    drawGround3d();
+    renderer3d.endShadowPass();
+    Object.assign(drawCounts, counted);
+  }
+  drawGround3d();
   const units = currentUnits();
   drawUnits3d(units, dt);
-  if (fx) fx.frame(units, dt);
+  // window.__fxOff is the CI probe switch that measures the frame cost of the effects.
+  if (fx && window.__fxOff !== true) fx.frame(units, dt);
   renderer3d.endFrame();
 }
 
@@ -511,27 +603,45 @@ function worldClip(x, z, y = 0) {
 // The commands createHud routes input through. Each runs on the host sim, or sends the frame to the host
 // when this page is a guest; each returns whether the sim (or the host's send) accepted it.
 // A command the local sim refused leaves the sim's refusal name on the page (body.dataset.lastRefusal) for the CI witness.
+// An accepted command clears the page's last refusal, so lastRefusal always names the most recent command's outcome.
 function noteLocalRefusal(ok, what) {
-  if (!ok) document.body.dataset.lastRefusal = `${what} ${localGame.last_refusal()}`;
+  if (ok) delete document.body.dataset.lastRefusal;
+  else document.body.dataset.lastRefusal = `${what} ${localGame.last_refusal()}`;
   return ok;
 }
 
 const commands = {
   order(unitId, x, z) {
     const ok = netState ? (session.broadcast(sendOrder(unitId, x, z)), true) : noteLocalRefusal(localGame.order_move(unitId, x, z), `order_refused unit=${unitId}`);
-    if (ok) orders += 1;
+    if (ok) { orders += 1; publishCommandCounts(); }
     setStatus(`order move unit ${unitId} to ${x.toFixed(2)},${z.toFixed(2)}${netState ? "" : " (local)"}`);
+    return ok;
+  },
+  attackMove(unitId, x, z) {
+    const ok = netState ? (session.broadcast(sendAttackMove(unitId, x, z)), true) : noteLocalRefusal(localGame.attack_move(unitId, x, z), `attack_move_refused unit=${unitId}`);
+    if (ok) { orders += 1; publishCommandCounts(); }
+    setStatus(`attack-move unit ${unitId} to ${x.toFixed(2)},${z.toFixed(2)}${netState ? "" : " (local)"}`);
     return ok;
   },
   attack(unitId, targetId) {
     const ok = netState ? (session.broadcast(sendAttack(unitId, targetId)), true) : noteLocalRefusal(localGame.attack(unitId, targetId), `attack_refused unit=${unitId}`);
-    if (ok) attacks += 1;
+    if (ok) { attacks += 1; publishCommandCounts(); }
     return ok;
   },
   cast(unitId, slot, target, x, z) {
     const ok = netState ? (session.broadcast(sendCast(unitId, slot, target, x, z)), true) : noteLocalRefusal(localGame.cast(unitId, slot, target, x, z), `cast_refused unit=${unitId} slot=${slot}`);
-    if (ok) casts += 1;
+    if (ok) { casts += 1; publishCommandCounts(); }
     if (ok && fx) fx.cast(unitId, slot, target, x, z);
+    return ok;
+  },
+  hold(unitId) {
+    const ok = netState ? (session.broadcast(sendHold(unitId)), true) : noteLocalRefusal(localGame.hold(unitId), `hold_refused unit=${unitId}`);
+    if (ok) { orders += 1; publishCommandCounts(); }
+    return ok;
+  },
+  useItem(unitId, slot, target, x, z) {
+    const ok = netState ? (session.broadcast(sendUseItem(unitId, slot, target, x, z)), true) : noteLocalRefusal(localGame.use_item(unitId, slot, target, Math.round(x), Math.round(z)), `item_refused unit=${unitId} slot=${slot}`);
+    if (ok) { casts += 1; publishCommandCounts(); }
     return ok;
   },
 };
@@ -558,6 +668,7 @@ function bindInput() {
   canvas.addEventListener("pointerup", (e) => {
     const wasDrag = drag && drag.moved;
     drag = null;
+    if (e.button === 2) document.body.dataset.rightUp = `${wasDrag ? "drag" : "click"} hud=${!!hud} local=${myPlayer}`;
     if (!wasDrag && hud) hud.onPointerUp(e);
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -583,7 +694,7 @@ function bindInput() {
 
 // Browser host: this page owns the sim (localGame). Seats come from the lobby START frame (seating.start); before a
 // START a joining peer takes the lowest free slot. A seat is kept by its key, so a reconnecting peer gets it back.
-// Every HOST_TICK_MS the host ticks the sim and broadcasts that tick's state through the delta encoder (delta.js).
+// Every SIM_TICK_MS the host ticks the sim and broadcasts that tick's state through the delta encoder (delta.js).
 function autoSeat(peerPubkey) {
   if (seatsExplicit || seating.seat(peerPubkey).you !== SPECTATOR) return;
   const taken = new Set(autoSeats.map((s) => s.slot));
@@ -628,11 +739,39 @@ function refreshSeatStats() {
 // Seats a hero for each START seat whose player owns none yet: the picked hero type, at its team's side of the map.
 function spawnSeatHeroes(seats) {
   if (typeof localGame.spawn_hero !== "function") return;
+  spawnedSeats = seats.map(({ slot, hero }) => ({ slot, hero }));
   for (const seat of seats) {
-    if (heroOf(seat.slot)) continue;
-    const kind = heroKinds.get(seat.hero) ?? [...heroKinds.values()][0] ?? 0;
-    localGame.spawn_hero(seat.slot, kind, seat.slot < 5 ? W * 0.1 : W * 0.9, H / 2);
+    const placed = heroOf(seat.slot);
+    const kind = heroKinds.get(seat.hero);
+    if (kind === undefined) {
+      if (!placed) console.error(`seat ${seat.slot}: hero ${seat.hero} is not in the roster; no hero spawned`);
+      continue;
+    }
+    if (placed?.type === kind) continue;
+    // The map starts each seat with a placeholder hero of the generic `hero` type; the pick replaces it.
+    if (placed) {
+      if (typeof localGame.remove_unit !== "function") continue;
+      localGame.remove_unit(placed.id);
+    }
+    spawnAtSide(seat.slot, kind, placed);
   }
+}
+
+// The sim refuses a spawn on a blocked tile, so the hero takes the nearest free tile to `from` (the placeholder it
+// replaces, which keeps the map's start) or else to its side's start point.
+function spawnAtSide(slot, kind, from = null) {
+  const x0 = Math.floor(from ? from.x : slot < 5 ? W * 0.1 : W * 0.9);
+  const y0 = Math.floor(from ? from.z : H / 2);
+  for (let r = 0; r <= 24; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (localGame.spawn_hero(slot, kind, x0 + dx, y0 + dy) >= 0) return true;
+      }
+    }
+  }
+  console.error(`seat ${slot}: no free tile near its start; no hero spawned`);
+  return false;
 }
 
 // Applies a START (the lobby's own or a peer's): seats the players, spawns heroes and, on the host, tells every peer.
@@ -684,6 +823,24 @@ function applyPeerCommand(peerPubkey, command) {
     if (ok) countRemote("remoteCasts");
     return ok;
   }
+  if (command.type === FRAME.ATTACK_MOVE) {
+    const ok = localGame.attack_move(command.unitId, command.x, command.y);
+    if (!ok) document.body.dataset.lastRefusal = `attack_move_refused unit=${command.unitId} x=${command.x} z=${command.y}`;
+    if (ok) countRemote("remoteOrders");
+    return ok;
+  }
+  if (command.type === FRAME.HOLD) {
+    const ok = localGame.hold(command.unitId);
+    if (!ok) document.body.dataset.lastRefusal = `hold_refused unit=${command.unitId}`;
+    if (ok) countRemote("remoteOrders");
+    return ok;
+  }
+  if (command.type === FRAME.USE_ITEM) {
+    const ok = localGame.use_item(command.unitId, command.slot, command.target, command.x, command.y);
+    if (!ok) document.body.dataset.lastRefusal = `item_refused unit=${command.unitId} slot=${command.slot}`;
+    if (ok) countRemote("remoteCasts");
+    return ok;
+  }
   const ok = localGame.attack(command.unitId, command.targetId);
   if (!ok) document.body.dataset.lastRefusal = `attack_refused unit=${command.unitId}`;
   if (ok) countRemote("remoteAttacks");
@@ -706,7 +863,14 @@ function saveSnapshot(tick) {
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   const record = { tick, hash: localGame.state_hash().toString(), bytes: btoa(binary), seats: seating.export() };
-  localStorage.setItem(snapshotKey(), JSON.stringify(record));
+  try {
+    localStorage.setItem(snapshotKey(), JSON.stringify(record));
+    delete document.body.dataset.snapshotSkipped;
+  } catch (e) {
+    // The moba state can outgrow the origin quota; the room then runs without a restore point instead of throwing per save.
+    if (e && e.name === "QuotaExceededError") { localStorage.removeItem(snapshotKey()); document.body.dataset.snapshotSkipped = String(tick); return; }
+    throw e;
+  }
 }
 
 // Restores the room from its last snapshot. Returns the restored tick, or -1 after an explicit refusal line.
@@ -742,7 +906,7 @@ function startHost() {
   encoder = createStateEncoder();
   const restoredAt = restoreSnapshot();
   let hostTick = restoredAt > 0 ? restoredAt : 0;
-  setInterval(() => {
+  const hostStep = () => {
     localGame.tick();
     hostTick += 1;
     if (hostTick % SNAPSHOT_EVERY_TICKS === 0) saveSnapshot(hostTick);
@@ -757,7 +921,18 @@ function startHost() {
       refreshSeatStats();
       for (const key of peers) sendRoster(key);
     }
-  }, HOST_TICK_MS);
+  };
+  let hostAcc = 0;
+  let hostLast = performance.now();
+  setInterval(() => {
+    const now = performance.now();
+    hostAcc += Math.min(now - hostLast, MAX_FRAME_DT_S * 1000);
+    hostLast = now;
+    while (hostAcc >= SIM_TICK_MS) {
+      hostAcc -= SIM_TICK_MS;
+      hostStep();
+    }
+  }, HOST_POLL_MS);
   setStatus("hosting");
 }
 
@@ -791,8 +966,20 @@ function sendCast(unitId, slot, target, x, z) {
   return encodeFrame({ type: FRAME.CAST, unitId, slot, target, x: Math.round(x), y: Math.round(z) });
 }
 
+function sendAttackMove(unitId, x, z) {
+  return encodeFrame({ type: FRAME.ATTACK_MOVE, unitId, x: Math.round(x), y: Math.round(z) });
+}
+
 function sendAttack(unitId, targetId) {
   return encodeFrame({ type: FRAME.ATTACK, unitId, targetId });
+}
+
+function sendHold(unitId) {
+  return encodeFrame({ type: FRAME.HOLD, unitId });
+}
+
+function sendUseItem(unitId, slot, target, x, z) {
+  return encodeFrame({ type: FRAME.USE_ITEM, unitId, slot, target, x: Math.round(x), y: Math.round(z) });
 }
 
 const fsm = createFSM(xstate);
@@ -897,7 +1084,7 @@ let netTick = -1;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
-  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK) {
+  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM || frame.type === FRAME.ATTACK_MOVE) {
     if (hosting) applyPeerCommand(e.detail.peerPubkey, frame);
     return;
   }
@@ -946,6 +1133,14 @@ function recordTick(log, tick, units) {
   if (log.size > CI_TICK_LOG) log.delete(log.keys().next().value);
 }
 
+// Accepted commands are published when they are counted, not on the next animation frame: a CI frame can take longer than the
+// probe's wait for the witness, so a frame-only publish reads an accepted command as dropped.
+function publishCommandCounts() {
+  document.body.dataset.orders = String(orders);
+  document.body.dataset.casts = String(casts);
+  document.body.dataset.attacks = String(attacks);
+}
+
 // Page state for headless checks. The HUD (gold, winner, health bars, minimap) refreshes from the same frame.
 function publishWitness() {
   document.body.dataset.units = String(currentUnits().length);
@@ -954,7 +1149,13 @@ function publishWitness() {
   document.body.dataset.center = renderer3d ? renderer3d.camera.target.map((v) => v.toFixed(2)).join(",") : `${flatView.cx},${flatView.cz}`;
   document.body.dataset.distance = renderer3d ? renderer3d.camera.distance.toFixed(3) : "";
   document.body.dataset.drawTerrain = String(drawCounts.terrain);
-  document.body.dataset.terrainMode = tileMeshes ? "tiles" : "heightfield";
+  document.body.dataset.drawSplat = String(drawCounts.splat);
+  document.body.dataset.splatGround = splat ? "1" : "0";
+  document.body.dataset.shadow = SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0";
+  document.body.dataset.texelUploads = String(renderer3d ? renderer3d.stats.texelUploads || 0 : 0);
+  document.body.dataset.terrainMode = splat && !TERRAIN_TILES ? "heightfield" : splat ? "splat" : tileMeshes ? "tiles" : "heightfield";
+  document.body.dataset.splatFallback = splat ? "" : splatFallbackReason || "splat not built";
+  updateTerrainBadge();
   document.body.dataset.drawDoodad = String(drawCounts.doodad);
   document.body.dataset.drawUnit = String(drawCounts.unit);
   document.body.dataset.drawQuad = String(drawCounts.quad);
@@ -963,9 +1164,7 @@ function publishWitness() {
   document.body.dataset.drawInstances = String(renderer3d ? renderer3d.stats.instances : 0);
   document.body.dataset.drawCulled = String(renderer3d ? renderer3d.stats.culled : 0);
   document.body.dataset.drawCpuMs = renderer3d ? renderer3d.stats.frameCpuMs.toFixed(3) : "0";
-  document.body.dataset.orders = String(orders);
-  document.body.dataset.casts = String(casts);
-  document.body.dataset.attacks = String(attacks);
+  publishCommandCounts();
   if (hud) hud.update();
   if (hud5) hud5.update();
   for (const panel of heroPanels) {
@@ -980,21 +1179,12 @@ function hasHeroApi(game) {
   return ["buy", "item_catalog_json", "abilities_json", "inventory_json", "character_level", "skill_points"].every((name) => typeof game[name] === "function");
 }
 
-// Hero picks for the lobby, read from the live sim: the model name of each unit type held by a living hero
-// (a unit with attributes), mapped to its type index for spawn_hero. Falls back to the scenario roster.
+// Hero picks for the lobby: see heroKindsFor (lobby.js). Empty when the wasm build predates the hero getters.
 function liveHeroRoster(game) {
   heroKinds = new Map();
-  if (typeof game.unit_types === "function" && typeof game.attributes === "function") {
-    const names = typeof game.unit_model_names === "function" ? game.unit_model_names() : [];
-    const ids = game.unit_ids();
-    const types = game.unit_types();
-    ids.forEach((id, i) => {
-      if (!game.attributes(id).some((v) => v !== 0)) return;
-      const label = names[types[i]] || `type${types[i]}`;
-      if (!heroKinds.has(label)) heroKinds.set(label, types[i]);
-    });
-  }
-  return heroKinds.size > 0 ? [...heroKinds.keys()] : HERO_ROSTER;
+  if (typeof game.unit_type_names !== "function" || typeof game.unit_hero_kinds !== "function") return [];
+  heroKinds = heroKindsFor(game.unit_type_names(), game.unit_hero_kinds(), heroRuleNames);
+  return [...heroKinds.keys()];
 }
 
 function createBarCanvas() {
@@ -1020,12 +1210,25 @@ function groundY(terrain, x, z) {
 
 const DOODAD_TINT = [0.55, 0.5, 0.42];
 
-// Deterministic per-placement variety: a hash of the doodad id gives a value in [0, 1), so the map looks the same on every run.
+// Deterministic per-placement variety: a hash of the placement's own position (and a salt per property) gives a value in
+// [0, 1), so the map looks the same on every run and every placement differs from its neighbours.
 function unitHash(n) {
   let h = n | 0;
   h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
   h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function placementHash(x, y, salt) {
+  return unitHash(Math.imul(x | 0, 0x9e3779b1) ^ Math.imul(y | 0, 0x85ebca77) ^ Math.imul(salt, 0xc2b2ae3d));
+}
+// Tints multiply a doodad's colour (its texture, or its fallback colour when the model has no texture); index 0 is the plain model.
+const DOODAD_TINTS = [[1, 1, 1], [0.88, 0.92, 0.98], [1.08, 1.02, 0.9], [0.94, 1.05, 0.96]];
+const doodadVariants = new Map();
+function doodadVariant(base, kind, v) {
+  if (v === 0) return base;
+  const key = kind + ":" + v;
+  if (!doodadVariants.has(key)) doodadVariants.set(key, { ...base, tint: DOODAD_TINTS[v] });
+  return doodadVariants.get(key);
 }
 
 // Builds the 3D world from the staged assets: the terrain mesh from map.bin, doodads at their placements with
@@ -1034,44 +1237,100 @@ async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
   terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
-  const groundImage = await loadBaseColorImage({ uri: "textures/ground.png" }, location.href).catch(() => null);
-  const groundTexture = groundImage ? textureFrom(gl, groundImage) : null;
-  terrainMesh.texture = groundTexture;
-  tileMeshes = await loadTileMeshes(gl, groundTexture).catch(() => null);
-  const doodadByKind = await Promise.all((await loadDoodadModels().catch(() => [])).map((f) => toMesh(gl, f, DOODAD_TINT)));
+  // Ground textures, splat layers, doodad and unit models are independent downloads: they start together, so the
+  // wait is the slowest chain rather than the sum of the stages. Tile meshes still wait for the splat they bake against.
+  const placements = readDoodads(mapBytes);
+  const usedKinds = new Set(placements.map((p) => p.kind));
+  const tileTexturesReady = loadTileTextures(gl);
+  const splatReady = buildSplat(gl).catch(() => null);
+  const doodadModelsReady = loadDoodadModels(usedKinds).catch(() => []);
+  const unitFitsReady = loadModels(game);
+  const tileTextures = await tileTexturesReady;
+  terrainMesh.texture = tileTextures.get("ground") || null;
+  splat = await splatReady;
+  if (!splat) reportTerrainFallback(splatFallbackReason || "splat layers did not load");
+  tileMeshes = await loadTileMeshes(gl, tileTextures).catch(() => null);
+  const doodadByKind = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
+    base: await toMesh(gl, high, DOODAD_TINT),
+    lowBase: await toMesh(gl, low, DOODAD_TINT),
+  })));
   const s = 1 / terrain.cellMilli;
-  const placed = readDoodads(mapBytes).flatMap((p) => {
-    const mesh = doodadByKind[p.kind];
-    if (!mesh) return [];
+  const placed = placements.flatMap((p) => {
+    const kind = doodadByKind[p.kind];
+    if (!kind?.base) return [];
     const x = p.x * s;
     const z = p.y * s;
-    const angle = (p.rotation / 1000) * 2 * Math.PI;
-    const k = 0.85 + 0.3 * unitHash(p.id * 3 + 1);
-    return [{ mesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
+    const angle = (p.rotation / 1000) * 2 * Math.PI + placementHash(p.x, p.y, 1) * 2 * Math.PI;
+    const k = 0.85 + 0.3 * placementHash(p.x, p.y, 2);
+    const variant = Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length);
+    const mesh = doodadVariant(kind.base, p.kind, variant);
+    const lowMesh = kind.lowBase ? doodadVariant(kind.lowBase, `${p.kind}-low`, variant) : null;
+    return [{ mesh, lowMesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
   });
   doodadBatches = batchByMesh(placed);
-  unitMeshes = await Promise.all((await loadModels(game)).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
+  if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
+  unitMeshes = await Promise.all((await unitFitsReady).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
+  arrowMesh = await loadArrowMesh(gl);
 }
 
-// Terrain drawn from the CC0 tile models: one fitted model per kind, cells baked per kind. Any tile that fails to load
-// returns null, so the heightfield mesh stays the drawn terrain.
-async function loadTileMeshes(gl, groundTexture) {
-  const names = Object.entries(TILE_MODELS);
-  const fitted = await Promise.all(names.map(([, name]) => fetchModel(name, 1)));
+// Terrain drawn from the CC0 tile models: each kind's variant models fitted once, cells baked per kind and variant. Any
+// tile that fails to load returns null, so the heightfield mesh stays the drawn terrain.
+// Splat ground: the control map from the grid and each layer's albedo and height textures, in SPLAT_LAYERS order.
+// Why the splat ground is not drawn, when it is not: the marker and the log say so, so a tile fallback cannot pass for splat.
+let splatFallbackReason = null;
+function reportTerrainFallback(reason) {
+  splatFallbackReason = reason;
+  console.warn("[terrain] splat ground not drawn, tile fallback: " + reason);
+}
+
+async function buildSplat(gl) {
+  if (params.get("splat") === "0") {
+    splatFallbackReason = "disabled by ?splat=0";
+    return null;
+  }
+  const layers = await Promise.all(SPLAT_LAYERS.map(async (name) => {
+    const [albedo, height] = await Promise.all(SPLAT_TEXTURES[name].map((uri) => loadBaseColorImage({ uri }, location.href).catch(() => null)));
+    return albedo && height ? { albedo: textureFrom(gl, albedo), height: textureFrom(gl, height) } : null;
+  }));
+  if (!layers.every(Boolean)) {
+    splatFallbackReason = "a splat layer texture failed to load";
+    return null;
+  }
+  const control = controlMap(mapBytes);
+  return { control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, gpu: null };
+}
+
+async function loadTileMeshes(gl, tileTextures) {
+  const names = [...new Set(Object.values(TILE_MODELS).flat())];
+  const fitted = await Promise.all(names.map((name) => fetchModel(name, 1)));
   if (fitted.some((model) => !model)) return null;
-  const models = Object.fromEntries(names.map(([kind], i) => [kind, fitted[i]]));
-  const baked = bakeTiles(mapBytes, models);
+  const byName = new Map(names.map((name, i) => [name, fitted[i]]));
+  const models = Object.fromEntries(Object.entries(TILE_MODELS).map(([kind, list]) => [kind, list.map((name) => byName.get(name))]));
+  const heightfield = Boolean(splat) && !TERRAIN_TILES;
+  const baked = bakeTiles(mapBytes, models, { splat: Boolean(splat), ramps: !heightfield, cliffCells: !heightfield });
   if (!baked) return null;
-  const drawn = await Promise.all([...baked.kinds].flatMap(([kind, group]) => group.batches.map(async ({ uvs, batch }) => {
-    const model = group.model;
-    const textured = groundTexture && GROUND_KINDS.includes(kind);
-    const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs, baseColorTexture: textured ? null : model.baseColorTexture, glbUrl: model.glbUrl }, TILE_TINTS[kind]);
+  const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, material, model, batches, planar }) => batches.map(async ({ uvs, batch }) => {
+    const texture = tileTextures.get(material) || null;
+    const faceUvs = material === "cliff" ? planarUvs(model.positions) : planar ? planarGroundUvs(model.positions) : uvs;
+    const mesh = await toMesh(gl, { positions: model.positions, normals: model.normals, indices: model.indices, uvs: faceUvs, baseColorTexture: null, glbUrl: model.glbUrl }, texture ? [1, 1, 1] : TILE_TINTS[kind]);
     if (!mesh) return null;
-    if (textured) mesh.texture = groundTexture;
+    if (texture) mesh.texture = texture;
+    if (material === "cliff") mesh.shade = CLIFF_SHADE;
     return { mesh, batch };
   })));
   return drawn.every(Boolean) ? drawn : null;
 }
+
+// Every tile material's texture, keyed by material name: one GPU texture per name, shared by the kinds that use it.
+async function loadTileTextures(gl) {
+  const entries = await Promise.all(Object.entries(TILE_TEXTURES).map(async ([name, uri]) => {
+    const image = await loadBaseColorImage({ uri }, location.href).catch(() => null);
+    return [name, image ? textureFrom(gl, image) : null];
+  }));
+  return new Map(entries.filter(([, texture]) => texture));
+}
+
+const WORLD_STALL_MS = 15000;
 
 async function main() {
   resize();
@@ -1086,11 +1345,16 @@ async function main() {
   if (gl || tslRenderer) {
     renderer3d = tslRenderer ?? createRenderer3d(gl);
     renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, bounds: cameraBounds, pitch: 0.9 });
+    // A download that never settles would otherwise leave the status on its initial "connecting" text.
+    setStatus("loading world assets");
+    const stalled = setTimeout(() => setStatus(`loading world assets: still pending after ${WORLD_STALL_MS / 1000} s, check the network`), WORLD_STALL_MS);
     try {
       await build3d(gl, localGame);
     } catch (err) {
       // Missing or broken assets leave the scene with what loaded; units without a model draw as quads.
       document.body.dataset.assetError = err && err.message ? err.message : String(err);
+    } finally {
+      clearTimeout(stalled);
     }
   }
   hud = createHud({
@@ -1111,7 +1375,7 @@ async function main() {
     toScreen: worldToScreen,
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
-  if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId });
+  if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
   hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: localPlayerId });
   const eventsBase = params.get("events");
   const modUi = createModUi({
@@ -1122,11 +1386,12 @@ async function main() {
     baseUrl: eventsBase === null ? undefined : eventsBase.replace(/\/$/, ""),
   });
   window.__modUi = modUi;
-  const heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId };
+  const heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId, input: hud ? hud.input : null };
   if (hasHeroApi(localGame)) heroPanels.push(createShop(heroUi), createSkills(heroUi), createInventory(heroUi));
   const heroNames = liveHeroRoster(localGame);
   createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
   fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
+  window.__fogView = fogview;
   if (params.get("host") === "1") startHost();
   joinRoom();
 
@@ -1135,7 +1400,13 @@ async function main() {
     lastFrameMs = now;
     panByKeys(dtS);
     modUi.step(dtS);
-    if (!netState && localGame && !hosting) localGame.tick();
+    if (!netState && localGame && !hosting) {
+      localTickAcc += dtS;
+      while (localTickAcc >= SIM_TICK_S) {
+        localGame.tick();
+        localTickAcc -= SIM_TICK_S;
+      }
+    }
     if (renderer3d) {
       drawWorld3d();
       fogview.draw();
@@ -1158,8 +1429,15 @@ if (params.get("ci") === "1") {
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
   window.__ciLearn = (unitId, slot) => (localGame ? localGame.skill_up(unitId, slot) : false);
+  // The first ability slot of a unit whose cast waits for a click (target unit or point), or -1: the probe learns and casts that one.
+  window.__ciTargetedSlot = (unitId) => { const list = JSON.parse(localGame.abilities_json(unitId)); const t = list.find((a) => (a.target === "unit" || a.target === "point") && a.slot < 4); return t ? t.slot : -1; };
   window.__ciHostile = (a, b) => localGame.hostile(a, b);
+  window.__ciIsHero = (unitId) => isHeroUnit(unitId);
   window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
+  // Local cast for the probe: the sim cast and the effect the page draws for it, without a network session.
+  window.__ciLocalCast = (unitId, slot, target, x, z) => { const ok = localGame.cast(unitId, slot, target, x, z); if (ok && fx) fx.cast(unitId, slot, target, x, z); return ok; };
+  window.__ciLocalAttack = (unitId, targetId) => localGame.attack(unitId, targetId);
+  window.__ciFxCounts = () => (fx ? fx.counts() : null);
   window.__ciSent = new Map();
   window.__ciRecv = new Map();
   window.__ciSentTicks = () => [...window.__ciSent];
@@ -1182,13 +1460,33 @@ if (params.get("ci") === "1") {
     }
     return { localTypes: [...localTypes].sort(), pairs };
   };
-  window.__ciSelect = (unitId) => { selectedId = unitId; };
+  // Selects through the input layer, the same path a left click takes, so a right click orders this unit.
+  window.__ciSelect = (unitId) => { if (hud) hud.input.setSelection([unitId]); else selectedId = unitId; };
+  window.__ciInputSelection = () => (hud ? hud.input.selection() : []);
+  window.__ciLocalPlayer = () => myPlayer;
   // Moves the 3D camera target onto a ground point, so a probe can act on units that the default view does not show.
   window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, 0, z] }); };
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));
   window.__ciKillSide = (player) => {
     for (const u of currentUnits()) if (u.player === player) localGame.hurt(u.id, 10000);
   };
+  // Read-only: per START seat, the picked hero name and the catalog name of the unit the sim actually spawned for it.
+  window.__ciHeroNames = () => {
+    const names = typeof localGame.unit_type_names === "function" ? localGame.unit_type_names() : [];
+    return spawnedSeats.map(({ slot, hero }) => {
+      // The seat's hero is the unit of the picked kind; the first hero of the slot may be a map-placed unit of another type.
+      const kind = heroKinds.get(hero);
+      const u = simUnits().find((v) => v.player === slot && isHeroUnit(v.id) && v.type === kind) || null;
+      return { slot, picked: hero, spawned: u ? names[u.type] ?? null : null };
+    });
+  };
+  // Read-only: the first ramp cell's centre in tile units, and the effects' counts (ranged attack projectiles in flight).
+  window.__ciRampCell = () => {
+    const grid = readGrid(mapBytes);
+    const [cell] = rampLowCells(grid);
+    return cell === undefined ? null : { x: (cell % grid.width) + 0.5, z: Math.floor(cell / grid.width) + 0.5 };
+  };
+  window.__ciFx = () => (fx ? fx.counts() : null);
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 

@@ -15,8 +15,9 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
 /// Version 27 adds the hero per-unit state (respawn, buyback, gold, mana cap, spot) and the assist
-/// tallies and recent hitters.
-const STATE_VERSION: u16 = 27;
+/// tallies and recent hitters. Version 30 adds the per-slot spawn generation and the generation each sticky
+/// strike target was struck under, so a reused slot never hands its old occupant's target to the new unit.
+const STATE_VERSION: u16 = 30;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -304,6 +305,7 @@ impl Sim {
         put_bool(&mut w, self.harvest);
         put_bool(&mut w, self.produce);
         put_bool(&mut w, self.abil_on);
+        put_bool(&mut w, self.gold_by_mod);
 
         let s = &self.stats;
         put_u64(&mut w, s.deaths as u64);
@@ -498,6 +500,9 @@ impl Sim {
         put_u32s(&mut w, &self.aggro.glyph_ready);
         put_u32s(&mut w, &self.aggro.glyph_need);
         put_u32s(&mut w, &self.aggro.glyph_skip);
+        put_i32s(&mut w, &self.aggro.strike);
+        put_u32s(&mut w, &self.aggro.strike_gen);
+        put_u32s(&mut w, &self.aggro.spawn_gen);
         put_u32s(&mut w, &self.wards.expires);
         w.extend_from_slice(&self.couriers.phase);
         put_i32s(&mut w, &self.couriers.target);
@@ -544,6 +549,7 @@ impl Sim {
         next.harvest = r.bool()?;
         next.produce = r.bool()?;
         next.abil_on = r.bool()?;
+        next.gold_by_mod = r.bool()?;
 
         let mut st = Stats::default();
         st.deaths = r.u64()? as usize;
@@ -680,6 +686,7 @@ impl Sim {
         for k in 0..MAX_PLAYERS {
             next.vision[k] = r.u16()?;
         }
+        crate::fog::bump_vision_generation();
         r.bytes_into(&mut next.controller)?;
         for k in 0..REVEAL_CAP {
             next.reveals[k] = Reveal {
@@ -752,6 +759,9 @@ impl Sim {
         r.u32s_into(&mut next.aggro.glyph_ready)?;
         r.u32s_into(&mut next.aggro.glyph_need)?;
         r.u32s_into(&mut next.aggro.glyph_skip)?;
+        r.i32s_into(&mut next.aggro.strike)?;
+        r.u32s_into(&mut next.aggro.strike_gen)?;
+        r.u32s_into(&mut next.aggro.spawn_gen)?;
         r.u32s_into(&mut next.wards.expires)?;
         r.bytes_into(&mut next.couriers.phase)?;
         r.i32s_into(&mut next.couriers.target)?;

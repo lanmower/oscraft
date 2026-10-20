@@ -5,8 +5,8 @@ const POLL_MS = 500;
 const LOG_LINES = 6;
 
 const STYLE = `
-.modui { position: fixed; inset: 0; pointer-events: none; font: 14px system-ui, sans-serif; color: #fff; }
-.modui-log { position: absolute; left: 8px; bottom: 60px; max-width: 40vw; }
+.modui { position: fixed; z-index: 2; inset: 0; pointer-events: none; font: 14px system-ui, sans-serif; color: #fff; }
+.modui-log { position: absolute; left: 8px; bottom: 180px; max-width: 40vw; }
 .modui-line { margin: 2px 0; padding: 3px 8px; background: rgba(0,0,0,.6); border-radius: 4px; transition: opacity .4s; }
 .modui-banner { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); padding: 10px 28px; background: rgba(0,0,0,.75); border-radius: 6px; font-size: 30px; transition: opacity .4s; }
 .modui-panels { position: absolute; left: 8px; top: 60px; display: flex; flex-direction: column; gap: 6px; max-width: 30vw; }

@@ -50,9 +50,20 @@ fn world() -> Result<World, String> {
     let (w, h) = (s.grid().w as i32, s.grid().h as i32);
     let reach = 14;
     let open = |cx: i32, cy: i32| (-reach..=reach).all(|dy| (-reach..=reach).all(|dx| s.grid().walkable(cx + dx, cy + dy)));
+    // A living map unit within reach of the arena would take bounces that the check counts as misses.
+    let clear = |cx: i32, cy: i32| {
+        (0..s.count()).all(|u| {
+            if !s.alive(u) {
+                return true;
+            }
+            let (x, y) = s.position_fixed(u);
+            let (dx, dy) = ((x >> 16) - cx, (y >> 16) - cy);
+            dx * dx + dy * dy > (reach + 8) * (reach + 8)
+        })
+    };
     for cy in (reach..h - reach).step_by(2) {
         for cx in (reach..w - reach).step_by(2) {
-            if open(cx, cy) {
+            if open(cx, cy) && clear(cx, cy) {
                 return Ok(World { s, cx, cy });
             }
         }
@@ -893,7 +904,8 @@ pub fn phantom_lancer_illusions(_image: &[u8]) -> Result<(), String> {
         return Err(format!("{copies} illusions after the lance, want 1"));
     }
     w.s.clear_status(pl, DISARM);
-    let victim = w.creep(1, 2, 0)?;
+    // DotA 6.88g Phantom Lancer is melee (range 128 = 2 units); the victim stands one unit away so the attack is in range.
+    let victim = w.creep(1, 1, 0)?;
     w.s.set_health(victim, fixed::from_int(30_000), fixed::from_int(30_000));
     let slots = w.s.count();
     for _ in 0..60 {

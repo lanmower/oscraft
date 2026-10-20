@@ -7,6 +7,7 @@ import { cellKind, voidMask } from "./tiles.js";
 import UI from "./moba_ui.json" with { type: "json" };
 import { fill } from "./moba_select.js";
 import { createMobaInput, centreCamera } from "./moba_input.js";
+import { createFeedback } from "./feedback.js";
 import { createMinimap } from "./ui_minimap.js";
 import { createSelectionPanel } from "./ui_selection.js";
 import { createScoreboard } from "./ui_scoreboard.js";
@@ -63,6 +64,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
   const unitName = (type) => typeNames[type] || UI.text.unitUnknown;
 
   const input = createMobaInput({ game, units, localPlayer, pick, toWorld, toScreen, commands, isHero, select, config: UI });
+  const feedback = createFeedback({ toScreen, toWorld, units });
 
   function viewRect() {
     const corners = [[0, 0], [window.innerWidth, 0], [0, window.innerHeight], [window.innerWidth, window.innerHeight]].map(([x, y]) => toWorld(x, y));
@@ -82,6 +84,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     selected,
     localPlayer,
     playerColor,
+    isHero,
     teams: UI.teams,
     viewRect,
     centre: centreCamera,
@@ -143,6 +146,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     selectionPanel.update();
     scoreboard.update();
     input.draw();
+    feedback.draw();
     const body = document.body.dataset;
     body.gold = String(gold);
     body.winner = String(winner);

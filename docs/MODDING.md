@@ -8,7 +8,8 @@ Example mods: `mods/creep_gold.lua`, `mods/tower_buff.lua`, `mods/td_waves.lua` 
 score, defeat), `mods/custom_spell.lua` (ability, gold, victory), `mods/custom_unit.lua` (unit),
 `mods/custom_item.lua` (item, buy, inventory), `mods/tech_tree.lua` (upgrades), `mods/killer.lua`
 (killer attribution, clock) and `mods/unit_queries.lua` (cooldown and ability queries, clock). CI
-runs them with `mod_check` and asserts the `mod-state` line they print.
+runs them with `mod_check` and asserts the `mod-state` line they print. `mods/moba_match.lua` is the MOBA
+match mod (lane waves and kill gold in one file), described in [The MOBA match mod](#the-moba-match-mod-modsmoba_matchlua).
 
 ## The file contract
 
@@ -27,7 +28,7 @@ trigger on it. Both receive the same arguments. The host queues events in the st
 |---|---|---|
 | `on_spawned` | `unit` | a unit appears in the sim |
 | `on_attacked` | `unit` | a unit's hit points fall |
-| `on_died` | `unit, killer, killer_player` | a unit goes from alive to dead; `killer` and `killer_player` are the unit and owner credited with the death, or `nil` when nothing is |
+| `on_died` | `unit, killer, killer_player, bounty, victim_player, killer_hero` | a unit goes from alive to dead; `killer` and `killer_player` are the unit and owner credited with the death, or `nil` when nothing is; `bounty` is the victim's `game.unit_bounty`; `victim_player` is the victim's owner; `killer_hero` is `true` when the killer is a hero |
 | `on_enter` | `region, unit` | a unit enters a named region |
 | `on_leave` | `region, unit` | a unit leaves a named region |
 | `on_player_joined` | `player` | the host reports a player joining (the host calls it, not the sim) |
@@ -37,6 +38,16 @@ trigger on it. Both receive the same arguments. The host queues events in the st
 `unit_player` and `game.unit_kind` accept it.
 
 `list_events()` returns this table at runtime, with the same names.
+
+**Contract change (on_died from a live room).** A live room feeds its own payable deaths to the mod's
+`on_died` (only while the mod sets `GOLD_BY_MOD = true`, which hands kill gold to the mod). In that feed the
+unit, killer and player arguments are the room's unit ids and owners, not the mod world's, and `bounty`,
+`victim_player` and `killer_hero` come from the room's sim. Only deaths the room pays are fed: a bounty
+above 0 that no denial (an allied unit landed the blow) cancels. Attackerless deaths arrive with
+`killer` and `killer_player` set to `nil`. Commands the handlers queue are applied by the room to its own sim,
+so `cmd_add_hero_gold` takes a room hero id there. The mod's own world still fires `on_died` for its own deaths
+with the same six arguments, and its gold stays in that world. A mod that uses only the first three
+arguments keeps working in both.
 
 ## Triggers
 
@@ -71,7 +82,7 @@ an event or trigger therefore takes effect one step later.
 
 | Call | Effect |
 |---|---|
-| `game.cmd_spawn(kind, x, y)` | spawn a unit of catalog name `kind` at `x, y`; returns its handle. Unknown kinds fail with `unknown_unit`. |
+| `game.cmd_spawn(kind, x, y, owner, lane)` | spawn a unit of catalog name `kind` at `x, y` for player `owner` (default 0) in `lane` (default 0); returns its handle. Unknown kinds fail with `unknown_unit`. |
 | `game.cmd_order(unit, x, y)` | move `unit` to `x, y` |
 | `game.cmd_attack(attacker, target)` | attack `target` with `attacker` |
 | `game.cmd_damage(caster, target, dmg)` | deal `dmg` to `target` (i32) |
@@ -98,6 +109,8 @@ handle fails the queueing call, not the step.
 | `game.players()` | a list of `{id, units, team, controller}` rows, one per player slot, with the count of living units each owns. |
 | `game.team(player)` | the team number of `player` |
 | `game.unit_kind(unit)` | the catalog name of the unit, or `nil`. Works on dead units. |
+| `game.unit_bounty(unit)` | the gold the unit is worth when destroyed: a hero's level-scaled bounty, or the catalog bounty of other units. `0` for no bounty. Read-only. |
+| `game.rival_of(player)` | the first player slot hostile to `player`, or `nil` when none is. Read-only. |
 | `game.time()` | the game clock: `ticks, seconds` since the match began (16 ticks to the second) |
 | `game.unit_cooldown(unit, slot)` | ticks left on ability `slot` of `unit`; 0 when ready |
 | `game.unit_abilities(unit)` | the unit's abilities as `{slot, name, cooldown}` rows, empty slots left out |
@@ -108,7 +121,7 @@ handle fails the queueing call, not the step.
 The host also provides these global functions, which are not in `game`:
 `unit_position`, `unit_hp`, `unit_player`, `unit_alive`, `get_unit_count`, `in_region`,
 `define_region`, `spawn_unit`, `order_unit`, `order_player`, `damage_unit`, `order_attack`,
-`buff_unit`, `schedule`, `cancel`, `list_abilities`, `ability_info`, `list_events`,
+`buff_unit`, `map_size`, `schedule`, `cancel`, `list_abilities`, `ability_info`, `list_events`,
 `edit_terrain`, `set_tile`, `list_doodads`, `place_doodad`, `remove_doodad`.
 
 ### Timers
@@ -123,6 +136,7 @@ At most 256 timers. The older `schedule(name, delay, fn)` and `cancel(name)` are
 `game.region(name, x0, y0, x1, y1[, {enter = f, leave = g}])` defines a named rectangle and
 registers `f(unit)` for `on_enter` and `g(unit)` for `on_leave` on it. `game.region_units(name)`
 returns the living units inside it now. At most 64 regions. `in_region(name, x, y)` tests a point.
+`game.map_size()` returns the map width and height as `width, height` in the fixed-point units `unit_position` uses (cells times 65536), so `map_size() - unit_position` is a valid mirror.
 
 ### Variables and score
 
@@ -241,6 +255,41 @@ its own DOM with `data-ui="<name>"` so clicks on it are not taken as ground clic
 `bind` and `unbind` (`game.bind`, `game.unbind`) is not in the Lua host yet; the client side accepts the events.
 A runtime change to the layer's settings: `window.dispatchEvent(new CustomEvent("moba:config", {detail: {...}}))`.
 
+## The MOBA match mod: `mods/moba_match.lua`
+
+One file carries the lane waves and the kill gold of the MOBA scenario. It has one `on_tick` and one
+`on_died` trigger. It uses the API above and the host globals `unit_position`, `unit_player` and `unit_alive`.
+
+Waves. Each `lane_spawner_top`, `lane_spawner_mid` and `lane_spawner_bot` unit sends creeps on the lane for its side.
+Top and bottom spawners send a wave every 480 ticks: three `creep` and one `creep_ranged`, at x offsets 0, 0.7, 1.4
+and 2.1 tiles. Mid sends no creep waves. Every lane spawner runs three siege timers, starting at ticks 4800, 28800
+and 57600, each repeating every 4800 ticks and spawning one `creep_siege`. A wave unit's kind follows the towers:
+`_super` once the enemy tower mirrored through the map centre is dead, `_mega` once every enemy tower is dead,
+otherwise the base kind. Dead towers keep their slot, so the mirror lookup still finds them. `on_tick` writes the
+counters `state.waves_total`, `waves_base`, `waves_super`, `waves_mega`, `waves_creep`, `waves_creep_ranged`,
+`waves_siege` and `waves_siege_upgraded` (the super and mega siege units together).
+
+Gold. `on_died` pays a unit whose `game.unit_bounty` is above 0.
+
+- A killer other than the dead unit: `bounty * 20 // 100` goes to `game.cmd_add_gold(killer_player, share)`, and the
+  rest to `game.cmd_add_hero_gold(killer, bounty - share)`.
+- No killer, or the unit killed itself: `game.rival_of(unit_player(unit))` gets the whole bounty through
+  `game.cmd_add_gold`, when the player has a rival.
+
+Commands from a trigger apply one step later. The team share is hard-coded: `TEAM_SHARE_PCT = 20` in the file. The
+Lua API does not expose `hero_rules`, so `team_share_pct` in `hero_rules.txt` does not change this mod.
+
+The `gold_by_mod` flag. It is a sim field (default off, saved and hashed) that makes the Rust kill payout in
+`pay_bounty` (`rust/crates/sim/src/combat.rs`) return before it pays, so with the flag on the mod is the only payer.
+A mod declares the top-level global `GOLD_BY_MOD = true`. Live rooms do not apply it: the room keeps the Rust
+payout, and the replay header carries `gold_by_mod 1` only when a room sets the flag itself. The Lua payout only
+sees kills in the mod's own world (`ModHost`), which the room does not feed; see [MOD_PARITY.md](MOD_PARITY.md).
+
+Known gaps:
+
+- A denied kill (an allied unit landed the blow) pays here. The Rust path skips it, and the mod cannot read denial.
+  See [MOD_PARITY.md](MOD_PARITY.md).
+
 ## Gap list against the map-editor modding of earlier RTS and arena games
 
 Status: done (in the API), partial (a piece exists), missing (not in the API).
@@ -291,3 +340,9 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 - A mod has no file, network or OS access. The base library is the set copied into each
   environment: `pcall`, `xpcall`, `error`, `assert`, `type`, `tostring`, `tonumber`, `select`,
   `pairs`, `ipairs`, `next`, plus the host globals above.
+
+## Asset pipeline: making models and textures load fast
+
+A mod that ships GLB models or PNG and JPEG textures can run `scripts/assets/prep-ktx.mjs` to add lossless
+meshopt geometry and KTX2 textures. It needs the KTX-Software `toktx` binary, which is not in this repository.
+See [docs/ASSET_PIPELINE.md](ASSET_PIPELINE.md) for the download, the exact commands, and how to verify an output.

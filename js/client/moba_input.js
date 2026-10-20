@@ -1,12 +1,20 @@
 // MOBA input layer. Left-drag draws a box and selects own units (heroes first), click selects one unit, shift adds.
 // Right-click moves or attacks the whole selection. Keys come from moba_ui.json and can be rebound by a mod.
 // Left pointer events are taken in the window's capture phase, so the orbit camera's left-drag pan does not run.
+// A targeted cast or item arms on its key; the next left click casts at that point. Right-click, Escape or the same key cancels.
 // Panels learn of actions through "moba:action" events on window; Lua binds arrive as "moba:bind" events.
-import { boxSelect, clickSelect, ownIds, ControlGroups, resolveKey, cooldownTicks, formationPoints, mergeConfig } from "./moba_select.js";
+// Targeting and refusals reach the HUD as "moba:feedback" events: targetArm, targetEnd and refusal.
+import { boxSelect, clickSelect, ownIds, ControlGroups, resolveKey, cooldownTicks, formationPoints, mergeConfig, targetSpec, refusalText } from "./moba_select.js";
 
 // Camera glide to a ground point through the mod UI's camera move (its renderer is the 3D view; a flat view ignores it).
+// seconds is the ease length: the move eases in and out over it instead of jumping.
+export const CENTRE_SECONDS = 0.4;
 export function centreCamera(x, z) {
-  if (window.__modUi) window.__modUi.push({ kind: "camera", x, y: z, zoom: 1, seconds: 0 });
+  if (window.__modUi) window.__modUi.push({ kind: "camera", x, y: z, zoom: 1, seconds: CENTRE_SECONDS });
+}
+
+function feedback(detail) {
+  window.dispatchEvent(new CustomEvent("moba:feedback", { detail }));
 }
 
 function isGround(target) {
@@ -21,6 +29,7 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
   let cfg = config;
   let selection = [];
   let armedAttackMove = false;
+  let armed = null;
   let press = null;
   let box = null;
   const pointer = { x: 0, y: 0 };
@@ -47,17 +56,22 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     return me().find((id) => isHero(id)) ?? -1;
   }
 
-  function orderSelected(world, enemy) {
+  // A ground order is a move, or an attack-move when `attackMove` is set (A then click): the units walk to the
+  // point and strike enemies they meet on the way. Clicking an enemy attacks it either way.
+  function orderSelected(world, enemy, attackMove = false) {
     const ids = me();
     if (ids.length === 0) return false;
     const points = formationPoints(ids.length, world.x, world.z);
+    if (enemy) feedback({ kind: "attack", x: world.x, z: world.z, targetId: enemy.id });
+    else feedback({ kind: attackMove ? "attackMove" : "move", x: world.x, z: world.z, ids });
     let ok = true;
     ids.forEach((id, i) => {
       if (enemy) {
         ok = commands.attack(id, enemy.id) && ok;
         return;
       }
-      const sent = commands.order(id, points[i].x, points[i].z) || commands.order(id, world.x, world.z);
+      const send = attackMove ? commands.attackMove : commands.order;
+      const sent = send(id, points[i].x, points[i].z) || send(id, world.x, world.z);
       ok = sent && ok;
     });
     return ok;
@@ -73,23 +87,112 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     return ok;
   }
 
+  // Hold: each own selected unit stops and attacks only what is in reach, until a move or attack replaces the hold.
+  function holdSelected() {
+    let ok = true;
+    for (const id of me()) ok = commands.hold(id) && ok;
+    return ok;
+  }
+
   function cooldownLeft(id, slot) {
     const c = cooldowns.get(`${id}:${slot}`);
     return c ? Math.max(0, c.until - game.ticks()) : 0;
   }
 
-  function cast(slot, world) {
-    const hero = heroInSelection();
-    if (hero < 0) return false;
-    const ability = JSON.parse(game.abilities_json(hero)).find((a) => a.slot === slot);
-    if (!ability || cooldownLeft(hero, slot) > 0) return false;
-    const target = pick(world);
+  // A cast or item dropped before the sim is never counted or refused by the sim, so it names its reason on the page for the CI witness.
+  function dropCast(reason) {
+    document.body.dataset.lastRefusal = `cast_dropped ${reason}`;
+    feedback({ kind: "refusal", text: refusalText(reason) });
+    return false;
+  }
+
+  // A command the sim refused: its refusal name is already on the page (noteLocalRefusal), so the HUD reads that.
+  function refusedBySim() {
+    feedback({ kind: "refusal", text: refusalText(document.body.dataset.lastRefusal) });
+    return false;
+  }
+
+  function abilityIn(hero, slot) {
+    return JSON.parse(game.abilities_json(hero)).find((a) => a.slot === slot) ?? null;
+  }
+
+  function castAbility(hero, ability, slot, world, target) {
+    const left = cooldownLeft(hero, slot);
+    if (left > 0) return dropCast(`cooldown hero=${hero} slot=${slot} ticks=${left}`);
     const ok = commands.cast(hero, slot, target ? target.id : -1, world.x, world.z);
-    if (ok) {
-      const total = cooldownTicks(ability, game.skill_rank(hero, slot));
-      cooldowns.set(`${hero}:${slot}`, { until: game.ticks() + total, total });
+    if (!ok) return refusedBySim();
+    // The sim charges the cooldown only when the cast fires: a cast it queued (out of range) or refused has none,
+    // so the client cooldown follows the sim's own ability_cooldown, never the accepted flag alone.
+    if (typeof game.ability_cooldown === "function") {
+      const simLeft = game.ability_cooldown(hero, slot);
+      if (simLeft > 0) {
+        const total = cooldownTicks(ability, game.skill_rank(hero, slot));
+        cooldowns.set(`${hero}:${slot}`, { until: game.ticks() + simLeft, total });
+      }
     }
     return ok;
+  }
+
+  // The key of a targeted cast or item arms it; a plain one casts at once at the pointer.
+  function castKey(slot, world) {
+    const hero = heroInSelection();
+    if (hero < 0) return dropCast(`no_hero_selected slot=${slot}`);
+    const ability = abilityIn(hero, slot);
+    if (!ability) return dropCast(`no_ability hero=${hero} slot=${slot}`);
+    const spec = targetSpec(ability);
+    if (spec.targetKind === "none") return castAbility(hero, ability, slot, world, pick(world));
+    if (cooldownLeft(hero, slot) > 0) return dropCast(`cooldown hero=${hero} slot=${slot}`);
+    arm({ item: false, slot, targetKind: spec.targetKind, radius: spec.radius });
+    return true;
+  }
+
+  function useItem(hero, slot, target, world) {
+    const p = byId().get(hero);
+    const at = world ?? { x: p ? p.x : 0, z: p ? p.z : 0 };
+    const ok = commands.useItem(hero, slot, target ? target.id : -1, at.x, at.z);
+    return ok ? true : refusedBySim();
+  }
+
+  // The item in an inventory slot, read from the unit's inventory and the item catalog; null when the slot is empty.
+  function itemKey(slot) {
+    const hero = heroInSelection();
+    if (hero < 0) return dropCast(`no_hero_selected item=${slot}`);
+    const cell = JSON.parse(game.inventory_json(hero)).slots[slot];
+    if (!cell || cell[0] === 0) return dropCast(`no_item hero=${hero} slot=${slot}`);
+    const entry = JSON.parse(game.item_catalog_json())[cell[0] - 1];
+    const spec = targetSpec(entry);
+    if (spec.targetKind === "none") return useItem(hero, slot, null, null);
+    arm({ item: true, slot, targetKind: spec.targetKind, radius: spec.radius });
+    return true;
+  }
+
+  function arm(state) {
+    armed = state;
+    feedback({ kind: "targetArm", slot: state.slot, item: state.item, radius: state.radius, targetKind: state.targetKind });
+  }
+
+  function disarm() {
+    if (!armed) return false;
+    armed = null;
+    feedback({ kind: "targetEnd" });
+    return true;
+  }
+
+  // The left click that completes an armed cast. A unit-targeted spell keeps waiting while the click finds no unit.
+  function resolveArmed(world) {
+    const hero = heroInSelection();
+    if (hero < 0) {
+      disarm();
+      return dropCast("no_hero_selected armed");
+    }
+    const target = pick(world);
+    if (armed.targetKind === "unit" && !target) return dropCast(`no_target slot=${armed.slot}`);
+    const a = armed;
+    disarm();
+    if (a.item) return useItem(hero, a.slot, target, world);
+    const ability = abilityIn(hero, a.slot);
+    if (!ability) return dropCast(`no_ability hero=${hero} slot=${a.slot}`);
+    return castAbility(hero, ability, a.slot, world, target);
   }
 
   function skillUp(slot) {
@@ -102,22 +205,47 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     if (u) centreCamera(u.x, u.z);
   }
 
+  // Space: the camera glides to the hero, or to the first selected unit when no hero is selected.
+  function centreSelected() {
+    const hero = heroInSelection();
+    const id = hero >= 0 ? hero : me()[0];
+    if (id !== undefined) centreOn(id);
+  }
+
   function onKeyDown(e) {
     if (isTyping(e.target)) return;
+    if (armed && e.key === "Escape") {
+      e.preventDefault();
+      disarm();
+      return;
+    }
     const act = resolveKey(cfg.keys, e.key, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, alt: e.altKey });
     if (!act) return;
     e.preventDefault();
     const world = toWorld(pointer.x, pointer.y);
+    const armedSame = armed && (act.action === "cast" || act.action === "item") && act.slot === armed.slot && (act.action === "item") === armed.item;
+    if (armedSame) {
+      disarm();
+      return;
+    }
     switch (act.action) {
       case "attackMove":
         armedAttackMove = true;
         break;
       case "stop":
-      case "hold":
         stopSelected();
         break;
+      case "hold":
+        holdSelected();
+        break;
+      case "centre":
+        centreSelected();
+        break;
       case "cast":
-        cast(act.slot, world);
+        castKey(act.slot, world);
+        break;
+      case "item":
+        itemKey(act.slot);
         break;
       case "skillUp":
         skillUp(act.slot);
@@ -166,22 +294,34 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
       }));
       return;
     }
+    if (armed) {
+      resolveArmed(toWorld(e.clientX, e.clientY));
+      return;
+    }
     const hit = pick(toWorld(e.clientX, e.clientY));
     if (armedAttackMove) {
       armedAttackMove = false;
       const enemy = hit && hit.player !== localPlayer() ? hit : null;
-      orderSelected(toWorld(e.clientX, e.clientY), enemy);
+      const point = toWorld(e.clientX, e.clientY);
+      const sent = orderSelected(point, enemy, true);
+      document.body.dataset.attackPick = `hit=${hit ? `${hit.id}:p${hit.player}` : "none"} local=${localPlayer()} sel=${me().join("|") || "none"} enemy=${enemy ? enemy.id : "none"} sent=${sent}`;
       return;
     }
     setSelection(clickSelect(hit ? hit.id : -1, { current: selection, additive: p.shift }));
   }
 
-  // Right-click: attack the enemy under the pointer, else move the selection there.
+  // Right-click: cancels an armed cast or item; otherwise attacks the enemy under the pointer, else moves the selection there.
   function commandAt(e) {
+    if (armed) {
+      disarm();
+      return false;
+    }
     const world = toWorld(e.clientX, e.clientY);
     armedAttackMove = false;
     const hit = pick(world);
-    return orderSelected(world, hit && hit.player !== localPlayer() ? hit : null);
+    const enemy = hit && hit.player !== localPlayer() ? hit : null;
+    document.body.dataset.rightCmd = `ids=${me().join("|") || "none"} sel=${selection.join("|") || "none"} hit=${hit ? `${hit.id}:p${hit.player}` : "none"} enemy=${enemy ? enemy.id : "none"}`;
+    return orderSelected(world, enemy);
   }
 
   function onBind(e) {

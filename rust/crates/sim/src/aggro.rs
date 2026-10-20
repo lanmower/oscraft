@@ -39,6 +39,13 @@ pub(crate) struct AggroState {
     pub(crate) glyph_ready: Vec<u32>,
     pub(crate) glyph_need: Vec<u32>,
     pub(crate) glyph_skip: Vec<u32>,
+    /// The enemy each unit last auto-attacked, -1 for none. Kept while it lives and stays in reach.
+    pub(crate) strike: Vec<i32>,
+    /// Spawn generation of each slot, bumped by every spawn into it. A sticky target is only that same
+    /// spawn while its generation still matches, so a reused slot never hands the new unit its old target.
+    pub(crate) spawn_gen: Vec<u32>,
+    /// The spawn generation of `strike`'s target at the moment it was struck.
+    pub(crate) strike_gen: Vec<u32>,
 }
 
 impl AggroState {
@@ -51,16 +58,28 @@ impl AggroState {
             glyph_ready: vec![0; MAX_PLAYERS],
             glyph_need: vec![0; MAX_PLAYERS],
             glyph_skip: vec![0; MAX_PLAYERS],
+            strike: vec![-1; cap],
+            spawn_gen: vec![0; cap],
+            strike_gen: vec![0; cap],
         }
     }
 }
 
 impl Sim {
-    /// Resets the per-unit aggro state of a freshly spawned slot `i`.
+    /// Resets the per-unit aggro state of a freshly spawned slot `i` and starts a new spawn generation for it.
     pub(crate) fn aggro_clear(&mut self, i: usize) {
         self.aggro.target[i] = -1;
         self.aggro.until[i] = 0;
+        self.aggro.strike[i] = -1;
+        self.aggro.spawn_gen[i] = self.aggro.spawn_gen[i].wrapping_add(1);
         self.aggro.creep_seen[i] = self.ticks;
+    }
+
+    /// The unit unit `i` last struck, -1 when none or when that slot has been spawned into since.
+    pub(crate) fn sticky_strike(&self, i: usize) -> i32 {
+        let s = self.aggro.strike[i];
+        let same_spawn = s >= 0 && self.aggro.strike_gen[i] == self.aggro.spawn_gen[s as usize];
+        if same_spawn { s } else { -1 }
     }
 
     /// The unit that last drew aggro from unit `i` and has not yet lapsed, -1 for none.
@@ -68,7 +87,7 @@ impl Sim {
         if i < self.n && self.ticks < self.aggro.until[i] { self.aggro.target[i] } else { -1 }
     }
 
-    fn is_structure(&self, i: usize) -> bool {
+    pub(crate) fn is_structure(&self, i: usize) -> bool {
         self.filter[i] & FILTER_STRUCTURE != 0
     }
 

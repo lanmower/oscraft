@@ -2,6 +2,8 @@
 import init, { Game } from "./pkg/web.js";
 import * as THREE from "three";
 import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+import { KTX2Loader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/KTX2Loader.js";
+import { MeshoptDecoder } from "https://unpkg.com/three@0.160.0/examples/jsm/libs/meshopt_decoder.module.js";
 
 const BACKGROUND = 0x1d252c;
 const PLAYER_COLORS = [0x3a7bd5, 0xd5543a, 0x3ab26b, 0xb23ab2, 0xd5b33a, 0x3ab2b2, 0xd58a3a, 0x7a3ad5, 0xa5a5a5, 0xd53a7a];
@@ -169,7 +171,9 @@ async function main() {
     { passive: false },
   );
 
-  const loader = new GLTFLoader();
+  // The unit model is compressed: its textures are KTX2 (KHR_texture_basisu) and its geometry is meshopt-coded.
+  const ktx2 = new KTX2Loader().setTranscoderPath("https://unpkg.com/three@0.160.0/examples/jsm/libs/basis/").detectSupport(renderer);
+  const loader = new GLTFLoader().setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
   const colormap = await new THREE.TextureLoader().loadAsync("assets/units/Textures/colormap.png");
   colormap.colorSpace = THREE.SRGBColorSpace;
   const terrainGltf = await loader.loadAsync("assets/terrain/terrain.glb");

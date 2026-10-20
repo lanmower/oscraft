@@ -85,13 +85,18 @@ export function buildTerrain(bytes) {
       uvs[(cy * cols + cx) * 2 + 1] = cy * GROUND_UV_PER_CELL;
     }
   }
+  // Each cell is split along its steeper diagonal: the corners that differ most in height are joined, so the two
+  // triangles follow the slope and no crease runs across it. Both splits wind the same way (up-facing).
   const indices = new Uint32Array(w * h * 6);
   let t = 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const a = y * cols + x;
       const c = a + cols;
-      indices.set([a, c, a + 1, a + 1, c, c + 1], t);
+      const steepMain = Math.abs(positions[a * 3 + 1] - positions[(c + 1) * 3 + 1]);
+      const steepAnti = Math.abs(positions[(a + 1) * 3 + 1] - positions[c * 3 + 1]);
+      if (steepMain > steepAnti) indices.set([a, c, c + 1, a, c + 1, a + 1], t);
+      else indices.set([a, c, a + 1, a + 1, c, c + 1], t);
       t += 6;
     }
   }

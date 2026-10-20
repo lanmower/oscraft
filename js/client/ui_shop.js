@@ -1,17 +1,29 @@
-// Shop panel: every catalog item with cost, stats, recipe and a buy button. The catalog is read once from
-// Game.item_catalog_json; Buy calls Game.buy for the selected local hero (the sim refuses it out of shop reach).
-// Toggled by the shop action (B and P in moba_ui.json) that the input layer dispatches as "moba:action".
+// Shop panel: every catalog item as a card with its name, cost, shop tags, stats, recipe and a buy button. The catalog is
+// read once from Game.item_catalog_json; Buy calls Game.buy for the selected local hero (the sim refuses it out of shop
+// reach). A card is marked affordable or short of gold, and the header shows the gold the hero holds. Toggled by the
+// shop action (B and P in moba_ui.json) that the input layer dispatches as "moba:action".
 import UI from "./moba_ui.json" with { type: "json" };
 import { fill } from "./moba_select.js";
 
 const STYLE = `
-#ui-shop{position:fixed;right:8px;top:48px;width:260px;max-height:60vh;overflow:auto;background:rgba(12,14,18,.9);border:1px solid #333;color:#eee;font:12px/1.3 monospace;padding:6px 8px}
-#ui-shop h4{margin:0 0 4px;font-size:12px;color:#ffd54f}
-#ui-shop .row{display:flex;justify-content:space-between;gap:6px;border-top:1px solid #222;padding:3px 0}
-#ui-shop .stats{color:#aaa;font-size:11px}
-#ui-shop button{background:#243a24;color:#eee;border:1px solid #4a7;cursor:pointer}
-#ui-shop button:disabled{background:#222;color:#666;border-color:#333;cursor:default}
-#ui-shop .msg{color:#ff8a65;min-height:14px}
+#ui-shop{position:relative;width:360px;max-height:calc(100vh - 290px);display:flex;flex-direction:column;gap:6px;box-sizing:border-box;background:var(--panel);border:1px solid var(--edge);border-radius:6px;color:var(--text);font:var(--t-body)/1.3 var(--font);padding:8px 10px}
+#ui-shop .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#ui-shop h4{margin:0;font-size:var(--t-title);color:var(--accent)}
+#ui-shop input{flex:1;min-width:0;max-width:150px;background:var(--well);border:1px solid var(--edge);border-radius:3px;color:var(--text);font:var(--t-label) var(--font);padding:3px 6px}
+#ui-shop .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;overflow:auto;min-height:0}
+#ui-shop .card{display:flex;flex-direction:column;gap:3px;background:var(--well);border:1px solid var(--edge);border-radius:4px;padding:6px;min-width:0}
+#ui-shop .card:hover{border-color:var(--hover-edge)}
+#ui-shop .card[data-afford=no]{opacity:.7}
+#ui-shop .card .name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ui-shop .card .cost{color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
+#ui-shop .card[data-afford=no] .cost{color:var(--bad)}
+#ui-shop .tags{color:var(--faint);font-size:var(--t-label)}
+#ui-shop .stats{color:var(--muted);font-size:var(--t-label);min-height:14px}
+#ui-shop .recipe{color:var(--faint);font-size:var(--t-label)}
+#ui-shop .buy{margin-top:auto;background:var(--ok-bg);color:var(--text);border:1px solid var(--ok);border-radius:3px;padding:3px 6px;font:700 var(--t-label) var(--font);cursor:pointer}
+#ui-shop .buy:hover:not(:disabled){background:var(--ok)}
+#ui-shop .buy:disabled{background:var(--well-dim);color:var(--faint);border-color:var(--edge);cursor:default}
+#ui-shop .msg{color:var(--warn);min-height:14px;font-size:var(--t-label)}
 `;
 
 function ensureStyle() {
@@ -47,6 +59,11 @@ export function recipeText(item, catalog) {
   return item.components.length ? `recipe: ${item.components.map((c) => (catalog[c] ? catalog[c].name : `#${c}`)).join(" + ")}` : "";
 }
 
+// Whether a card reads as affordable: a recipe item is always buyable (its parts are the cost), else gold must cover it.
+export function affordable(item, gold) {
+  return item.components.length > 0 || gold >= item.cost;
+}
+
 export function createShop({ game, selected, localPlayer }) {
   ensureStyle();
   const catalog = JSON.parse(game.item_catalog_json());
@@ -54,32 +71,40 @@ export function createShop({ game, selected, localPlayer }) {
   root.id = "ui-shop";
   root.hidden = true;
   const goldLine = el("h4");
-  const msg = el("div", "msg");
-  root.append(goldLine, msg);
   const filter = el("input");
   filter.placeholder = "filter";
-  root.insertBefore(filter, msg);
-  const rows = [];
+  const top = el("div", "top");
+  top.append(goldLine, filter);
+  const msg = el("div", "msg");
+  const grid = el("div", "grid");
+  root.append(top, grid, msg);
+  const cards = [];
   const buttons = catalog.map((item) => {
-    const row = el("div", "row");
-    row.hidden = !item.shops;
-    rows.push(row);
-    const info = el("div");
-    info.append(el("div", "", `${item.name}  ${item.cost}g  [${shopText(item)}]`), el("div", "stats", [itemStats(item), recipeText(item, catalog)].filter(Boolean).join("  ")));
-    const buy = el("button", "", "Buy");
+    const card = el("div", "card");
+    card.dataset.item = String(item.id);
+    cards.push(card);
+    const name = el("div", "name", item.name);
+    name.title = item.name;
+    const cost = el("div", "cost", `${item.cost}g`);
+    const tags = el("div", "tags", `[${shopText(item)}]`);
+    const stats = el("div", "stats", itemStats(item));
+    const recipe = el("div", "recipe", recipeText(item, catalog));
+    const buy = el("button", "buy", "Buy");
     buy.onclick = () => {
       const id = selected();
       msg.textContent = id >= 0 && game.buy(id, item.id) ? "" : fill(UI.text.shopRefusal, { item: item.name });
     };
-    row.append(info, buy);
-    root.appendChild(row);
+    card.append(name, cost, tags, stats, recipe, buy);
+    grid.appendChild(card);
     return buy;
   });
   filter.oninput = () => {
     const needle = filter.value.trim().toLowerCase();
-    catalog.forEach((item, i) => { rows[i].hidden = !item.shops || (needle !== "" && !item.name.includes(needle)); });
+    catalog.forEach((item, i) => { cards[i].hidden = !item.shops || (needle !== "" && !item.name.toLowerCase().includes(needle)); });
   };
-  document.body.appendChild(root);
+  catalog.forEach((item, i) => { cards[i].hidden = !item.shops; });
+  const host = document.getElementById("ui-right") || document.body;
+  host.appendChild(root);
   window.addEventListener("moba:action", (e) => {
     if (e.detail && e.detail.action === "shop") root.hidden = !root.hidden;
   });
@@ -89,7 +114,10 @@ export function createShop({ game, selected, localPlayer }) {
     const gold = game.gold(localPlayer());
     goldLine.textContent = fill(UI.text.shopTitle, { gold });
     const has = selected() >= 0;
-    catalog.forEach((item, i) => { buttons[i].disabled = !has || gold < item.cost && !item.components.length || !item.shops; });
+    catalog.forEach((item, i) => {
+      buttons[i].disabled = !has || gold < item.cost && !item.components.length || !item.shops;
+      cards[i].dataset.afford = affordable(item, gold) ? "yes" : "no";
+    });
   }
 
   return { update, root };

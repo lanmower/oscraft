@@ -56,7 +56,7 @@ pub use modapi::{effect_kind, stat_code, target_code, AbilitySpec, ItemSpec, Uni
 pub use diplomacy::{controller_code, CONTROLLER_COMPUTER, CONTROLLER_HUMAN, CONTROLLER_OPEN, MOD_ALLIANCES, MOD_CONTROLLERS};
 pub use pathfinding::Grid;
 pub use persist::StateError;
-pub use combat::armour_reduced;
+pub use combat::{armour_reduced, Payout};
 pub use rules::{Refusal, ALL_REFUSALS};
 pub use status::STATUS_NAMES;
 pub use spell::{AbilityExt, STAT_COUNT};
@@ -104,7 +104,7 @@ pub(crate) const ORDER_MOVE: u8 = 0;
 pub(crate) const ORDER_STOP: u8 = 1;
 pub const ORDER_ATTACK_MOVE: u8 = 2;
 pub(crate) const ORDER_PATROL: u8 = 3;
-pub(crate) const ORDER_HOLD: u8 = 4;
+pub const ORDER_HOLD: u8 = 4;
 
 pub(crate) const TRIGGER_IDLE: u8 = 0;
 pub(crate) const TRIGGER_ATTACKED: u8 = 1;

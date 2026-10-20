@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
+use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Payout, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -65,7 +65,7 @@ struct System {
 // A command queued during a step; applied after every system, in queue order.
 #[derive(Clone)]
 pub enum Cmd {
-    Spawn { handle: u32, index: usize, x: i32, y: i32 },
+    Spawn { handle: u32, index: usize, x: i32, y: i32, owner: u8, lane: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
@@ -144,12 +144,25 @@ struct Hooks {
     // Runs every trigger registered on the event name it is called with (game.trigger).
     fire: Function,
     systems: Vec<System>,
+    // Set by the mod's top-level `GOLD_BY_MOD = true`: the sim's kill payout belongs to the mod.
+    gold_by_mod: bool,
 }
 
 struct ModFile {
     path: PathBuf,
     mtime: SystemTime,
     hooks: Hooks,
+}
+
+// One death as on_died receives it: a unit id, the killer's and the victim's players, the bounty.
+// Built from the mod's own world, or from a room's payable death (see feed_payout).
+struct Death {
+    victim: u32,
+    victim_player: u8,
+    killer: Option<u32>,
+    killer_player: Option<u8>,
+    killer_hero: bool,
+    bounty: i32,
 }
 
 #[derive(Clone, Copy)]
@@ -223,7 +236,12 @@ pub struct ModHost {
     staged: Option<Hooks>,
     version: u64,
     cmds: Cmds,
+    forward: RefCell<Vec<Cmd>>,
+    // Commands an on_died of this world's own deaths queued. They apply to this world but are not
+    // forwarded: their unit indices belong to this world, not to the room.
+    local: RefCell<Vec<Cmd>>,
     joined: Vec<usize>,
+    gold_by_mod: bool,
 }
 
 // The events a mod handles, each with the Lua arguments it receives. A mod defines a global
@@ -240,6 +258,7 @@ pub const HOST_GLOBALS: &[&str] = &[
     "define_region",
     "in_region",
     "region_bounds",
+    "map_size",
     "schedule",
     "cancel",
     "order_unit",
@@ -411,6 +430,14 @@ fn bind_host(lua: &Lua, env: &Table, world: &Shared, regions: &Regions, timers: 
             let regions = r.borrow();
             let g = regions.iter().find(|g| g.name == name).ok_or_else(|| unknown_region(&name))?;
             Ok((i64::from(g.x0), i64::from(g.y0), i64::from(g.x1), i64::from(g.y1)))
+        })?,
+    )?;
+    let mw = world.clone();
+    env.set(
+        "map_size",
+        lua.create_function(move |_, ()| {
+            let sim = mw.borrow();
+            Ok(((sim.grid().w as i64) << 16, (sim.grid().h as i64) << 16))
         })?,
     )?;
     let t = timers.clone();
@@ -768,15 +795,18 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     let next_handle = Rc::new(std::cell::Cell::new(0u32));
     game.set(
         "cmd_spawn",
-        lua.create_function(move |_, (kind, x, y): (String, i64, i64)| {
+        lua.create_function(move |_, (kind, x, y, owner, lane): (String, i64, i64, Option<i64>, Option<i64>)| {
             let index = w
                 .borrow()
                 .catalog()
                 .unit_index(&kind)
                 .ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_unit: {kind}")))?;
+            let owner = player_arg(owner.unwrap_or(0))?;
+            let lane = lane.unwrap_or(0);
+            let lane = i32::try_from(lane).map_err(|_| mlua::Error::RuntimeError(format!("invalid_lane: {lane}")))?;
             let handle = next_handle.get() + 1;
             next_handle.set(handle);
-            buf.borrow_mut().push(Cmd::Spawn { handle, index, x: fixed(x)?, y: fixed(y)? });
+            buf.borrow_mut().push(Cmd::Spawn { handle, index, x: fixed(x)?, y: fixed(y)?, owner, lane });
             Ok(handle)
         })?,
     )?;
@@ -1047,6 +1077,24 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             // known_unit, not live_unit: on_died runs after the unit is dead and its kind is still asked.
             let u = known_unit(&sim, unit)?;
             Ok(sim.kind_name(u).map(str::to_owned))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "unit_bounty",
+        lua.create_function(move |_, unit: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            Ok(i64::from(sim.unit_bounty(u)))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "rival_of",
+        lua.create_function(move |_, player: i64| {
+            let side = player_arg(player)?;
+            let sim = w.borrow();
+            Ok(sim.rival_of(side).map(i64::from))
         })?,
     )?;
     let (w, buf) = (world.clone(), cmds.clone());
@@ -1457,6 +1505,7 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
         on_player_joined: env.get("on_player_joined")?,
         fire,
         systems: registered,
+        gold_by_mod: env.get::<Option<bool>>("GOLD_BY_MOD")?.unwrap_or(false),
     })
 }
 
@@ -1526,7 +1575,10 @@ impl ModHost {
             staged: None,
             version: 0,
             cmds: Rc::new(RefCell::new(Vec::new())),
+            forward: RefCell::new(Vec::new()),
+            local: RefCell::new(Vec::new()),
             joined: Vec::new(),
+            gold_by_mod: false,
         })
     }
 
@@ -1543,6 +1595,7 @@ impl ModHost {
     pub fn load(&mut self, path: &Path) -> mlua::Result<()> {
         self.spent.set(0);
         let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, path).map_err(named)?;
+        self.gold_by_mod = hooks.gold_by_mod;
         self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, hooks });
         self.staged = None;
         self.version += 1;
@@ -1554,6 +1607,7 @@ impl ModHost {
     pub fn load_source(&mut self, name: &str, src: &str) -> mlua::Result<()> {
         self.spent.set(0);
         let hooks = compile_src(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, name, src).map_err(named)?;
+        self.gold_by_mod = hooks.gold_by_mod;
         self.mod_file = Some(ModFile { path: PathBuf::from(name), mtime: SystemTime::UNIX_EPOCH, hooks });
         self.staged = None;
         self.version += 1;
@@ -1711,14 +1765,17 @@ impl ModHost {
     }
 
     // Applies the queued commands in the order they were queued. A command aimed at a unit
-    // that died since it was queued does nothing.
+    // that died since it was queued does nothing. Each applied command is also kept for the
+    // caller to forward (take_commands), so the room's sim receives what this world applied.
     fn apply_commands(&self) {
+        let local = std::mem::take(&mut *self.local.borrow_mut());
         let list = std::mem::take(&mut *self.cmds.borrow_mut());
+        self.forward.borrow_mut().extend(list.iter().cloned());
         let mut sim = self.world.borrow_mut();
-        for cmd in list {
+        for cmd in local.into_iter().chain(list) {
             match cmd {
-                Cmd::Spawn { index, x, y, .. } => {
-                    let _ = sim.spawn(index as u32, x, y);
+                Cmd::Spawn { index, x, y, owner, lane, .. } => {
+                    let _ = sim.spawn_mod_unit(owner, index as u32, x, y, lane);
                 }
                 // Handles resolve in the server room, which holds the handle map; this local world has none.
                 Cmd::OrderHandle { .. } | Cmd::DamageHandle { .. } | Cmd::BuffHandle { .. } => {}
@@ -1893,12 +1950,21 @@ impl ModHost {
                     hooks.fire.call::<()>(("on_attacked", unit as i64))?;
                 }
                 Pending::Died { unit, killer } => {
-                    let killer_player = killer.map(|k| i64::from(self.world.borrow().player(k)));
-                    let killer = killer.map(|k| k as i64);
-                    if let Some(h) = &hooks.on_died {
-                        h.call::<()>((unit as i64, killer, killer_player))?;
-                    }
-                    hooks.fire.call::<()>(("on_died", unit as i64, killer, killer_player))?;
+                    let death = {
+                        let w = self.world.borrow();
+                        Death {
+                            victim: unit as u32,
+                            victim_player: w.player(unit),
+                            killer: killer.map(|k| k as u32),
+                            killer_player: killer.map(|k| w.player(k)),
+                            killer_hero: killer.is_some_and(|k| w.is_hero(k)),
+                            bounty: w.unit_bounty(unit),
+                        }
+                    };
+                    let before = self.cmds.borrow().len();
+                    self.call_died(hooks, &death)?;
+                    let own = self.cmds.borrow_mut().split_off(before);
+                    self.local.borrow_mut().extend(own);
                 }
                 Pending::Enter { unit, region } => {
                     if let Some(name) = self.region_name(region) {
@@ -1927,14 +1993,51 @@ impl ModHost {
         Ok(())
     }
 
+    /// Feeds one payable death of the room's sim to the mod's on_died, with the room's unit ids and
+    /// the bounty (docs/MODDING.md, on_died). The commands the handlers queued are returned, not
+    /// applied: their ids are the room's, so the room applies them to its own sim and this world
+    /// is untouched.
+    pub fn feed_payout(&self, p: &Payout) -> mlua::Result<Vec<Cmd>> {
+        let Some(m) = self.mod_file.as_ref() else { return Ok(Vec::new()) };
+        let death = Death {
+            victim: p.victim,
+            victim_player: p.victim_player,
+            killer: p.killer,
+            killer_player: p.killer_player,
+            killer_hero: p.killer_hero,
+            bounty: p.bounty,
+        };
+        let before = self.cmds.borrow().len();
+        let result = self.call_died(&m.hooks, &death);
+        let fed = self.cmds.borrow_mut().split_off(before);
+        result.map(|()| fed)
+    }
+
+    // Calls the on_died hook and every on_died trigger with the same arguments.
+    fn call_died(&self, hooks: &Hooks, d: &Death) -> mlua::Result<()> {
+        let killer = d.killer.map(i64::from);
+        let killer_player = d.killer_player.map(i64::from);
+        let (victim, victim_player, bounty) = (i64::from(d.victim), i64::from(d.victim_player), i64::from(d.bounty));
+        if let Some(h) = &hooks.on_died {
+            h.call::<()>((victim, killer, killer_player, bounty, victim_player, d.killer_hero))?;
+        }
+        hooks.fire.call::<()>(("on_died", victim, killer, killer_player, bounty, victim_player, d.killer_hero))
+    }
+
     pub fn lua(&self) -> &Lua {
         &self.lua
     }
 
-    /// The commands queued since the last take, in queue order. `advance` applies its own queue;
-    /// a caller that forwards commands takes them here after advance.
+    /// Whether the loaded mod declared `GOLD_BY_MOD = true`: its kill payout replaces the sim's.
+    pub fn gold_by_mod(&self) -> bool {
+        self.gold_by_mod
+    }
+
+    /// The commands `advance` applied to this world since the last take, in apply order, so a
+    /// caller that forwards them (the server room) applies the same changes to its own sim.
+    /// Commands queued by on_tick or a timer are applied, and so taken, by the next advance.
     pub fn take_commands(&mut self) -> Vec<Cmd> {
-        std::mem::take(&mut *self.cmds.borrow_mut())
+        std::mem::take(&mut *self.forward.borrow_mut())
     }
 
     pub fn state(&self) -> &Table {
@@ -2042,6 +2145,54 @@ mod tests {
         host.advance(&host.state().clone()).expect("step");
         let unsupported = host.sim().stats.refused_by[sim::Refusal::ActionUnsupported as usize];
         assert_eq!(unsupported, 0, "a behaviour was refused as unsupported");
+    }
+
+    #[test]
+    fn cmd_spawn_queues_the_owner_and_lane_and_defaults_both_to_zero() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("spawn", r#"
+            function on_tick(state)
+              if state.spawned then return end
+              state.spawned = true
+              game.cmd_spawn("creep", 50 * 65536, 34 * 65536, 1, 2)
+              game.cmd_spawn("creep", 52 * 65536, 34 * 65536)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        let spawns: Vec<(u8, i32)> = host
+            .take_commands()
+            .into_iter()
+            .filter_map(|c| match c {
+                Cmd::Spawn { owner, lane, .. } => Some((owner, lane)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(spawns, vec![(1, 2), (0, 0)], "owner and lane are queued; both default to 0");
+    }
+
+    #[test]
+    fn applied_commands_are_forwarded() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("gold", r#"
+            function on_tick(state)
+              if state.paid then return end
+              state.paid = true
+              game.cmd_add_gold(1, 25)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        let gold: Vec<(u8, i32)> = host
+            .take_commands()
+            .into_iter()
+            .filter_map(|c| match c {
+                Cmd::AddGold { player, amount } => Some((player, amount)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(gold, vec![(1, 25)], "a command the world applied reaches the caller");
+        assert!(host.take_commands().is_empty(), "a take drains the forwarded commands");
     }
 
     #[test]

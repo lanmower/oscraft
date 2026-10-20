@@ -79,7 +79,7 @@ impl Sim {
     }
 
     /// The first side hostile to `side`, the side a destroyed unit's bounty or win goes to.
-    pub(crate) fn rival_of(&self, side: u8) -> Option<u8> {
+    pub fn rival_of(&self, side: u8) -> Option<u8> {
         (0..MAX_PLAYERS as u8).find(|&q| q != side && self.hostile(side, q))
     }
 

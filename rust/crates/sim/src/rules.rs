@@ -613,8 +613,20 @@ impl Sim {
             }
         }
         if let Some((k, _)) = best {
-            let _ = self.issue_order_kind(j, ORDER_ATTACK_MOVE, self.pos_x[k], self.pos_y[k]);
+            let (sx, sy) = self.strike_stop(j, k);
+            let _ = self.issue_order_kind(j, ORDER_ATTACK_MOVE, sx, sy);
         }
+    }
+
+    /// Spawns a mod's unit `kind` for `player` at (x, y). A spawn that names a lane (`lane != 0`)
+    /// marches to the enemy base like a native summon; a lane-0 spawn stands where it was placed,
+    /// so a mod that moves its own units (a tower defense route, for one) keeps control of them.
+    pub fn spawn_mod_unit(&mut self, player: u8, kind: u32, x: i32, y: i32, lane: i32) -> Option<usize> {
+        let unit = self.spawn_for(player, kind, x, y)?;
+        if lane != 0 {
+            self.march_to_enemy_base(unit, player);
+        }
+        Some(unit)
     }
 
     /// Whether a unit may take a spell or attack. `required` is a filter mask; every

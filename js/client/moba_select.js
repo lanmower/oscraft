@@ -2,7 +2,7 @@
 // and the node check (moba_select_check.mjs) both run it. Units carry sx, sy (client pixels) for box selection.
 
 // Every control the layer exposes; each must have a binding in moba_ui.json (checked by moba_select_check.mjs).
-export const CONTROL_ACTIONS = ["attackMove", "stop", "hold", "scoreboard", "shop", "cast", "skillUp", "group"];
+export const CONTROL_ACTIONS = ["attackMove", "stop", "hold", "centre", "item", "scoreboard", "shop", "cast", "skillUp", "group"];
 
 export function unique(ids) {
   return [...new Set(ids)];
@@ -64,8 +64,12 @@ export class ControlGroups {
 
 // Key to action. Custom binds (set by a mod through the moba:bind event) win over the defaults.
 // Returns null for keys the layer does not own, so they reach the page unchanged.
+export function keyName(key) {
+  return key === " " ? "space" : key.toLowerCase();
+}
+
 export function resolveKey(keys, key, mods = {}) {
-  const k = key.toLowerCase();
+  const k = keyName(key);
   if (Object.hasOwn(keys.custom || {}, k)) return { action: "custom", name: keys.custom[k] };
   const group = keys.group;
   const slot = group.keys.indexOf(k);
@@ -73,12 +77,35 @@ export function resolveKey(keys, key, mods = {}) {
   if (keys.attackMove.includes(k)) return { action: "attackMove" };
   if (keys.stop.includes(k)) return { action: "stop" };
   if (keys.hold.includes(k)) return { action: "hold" };
+  if ((keys.centre || []).includes(k)) return { action: "centre" };
   if (keys.scoreboard.includes(k)) return { action: "scoreboard" };
   if (keys.shop.includes(k)) return { action: "shop" };
+  const item = (keys.item || []).indexOf(k);
+  if (item >= 0) return { action: "item", slot: item };
   const skill = keys.skillUp;
   if (Object.hasOwn(skill.keys, k) && mods[skill.modifier]) return { action: "skillUp", slot: skill.keys[k] };
   if (Object.hasOwn(keys.cast, k)) return { action: "cast", slot: keys.cast[k] };
   return null;
+}
+
+// Target kind and area radius (world units) of an ability or item entry. "unit" and "point" arm the cast until a
+// click; anything else (or a missing field) casts on press. The web export does not carry these yet, so today every entry casts on press.
+export function targetSpec(entry) {
+  const kind = entry && typeof entry.target === "string" ? entry.target : "none";
+  const radius = entry && typeof entry.radius === "number" ? entry.radius : 0;
+  return { targetKind: kind === "unit" || kind === "point" ? kind : "none", radius };
+}
+
+// A sim or layer refusal name as the words a player reads.
+export function refusalText(raw) {
+  const s = String(raw || "");
+  if (s.includes("cooldown")) return "on cooldown";
+  if (s.includes("no_hero")) return "select a hero first";
+  if (s.includes("no_ability")) return "no ability in that slot";
+  if (s.includes("no_item")) return "empty item slot";
+  if (/mana|energy/i.test(s)) return "no mana";
+  if (/range|distance/i.test(s)) return "out of range";
+  return s ? `refused: ${s.replace(/_/g, " ")}` : "refused";
 }
 
 // Ticks until an ability is ready again after a cast. Ultimates and ranked abilities read the cooldown of the held rank.

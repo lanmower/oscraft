@@ -14,6 +14,9 @@ pub(crate) const KILL_QUEUE_CAP: usize = 256;
 pub(crate) const ASSIST_SLOTS: usize = 4;
 /// Ticks after a hit within which the hitter is credited an assist on the victim's death.
 pub(crate) const ASSIST_WINDOW: u32 = 50;
+/// Cells a unit's bucket scan reaches past its weapon range. A structure is bucketed at its
+/// centre, which lies beyond its footprint edge, so the scan must reach past the edge to find it.
+const STRUCTURE_SCAN_CELLS: i32 = 3;
 
 /// One player's post-game tally, summed over the player's units.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -36,6 +39,19 @@ pub struct KillEvent {
     pub killer_player: u8,
     pub victim: u32,
     pub victim_player: u8,
+}
+/// One payable death, queued while a mod owns kill gold (`gold_by_mod`) and drained by the room, which
+/// feeds it to the mod's `on_died` with these room ids. `killer` and `killer_player` are `None` for an
+/// attackerless death (or a self-kill); `bounty` is the victim's bounty and is always positive.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Payout {
+    pub tick: u32,
+    pub victim: u32,
+    pub victim_player: u8,
+    pub killer: Option<u32>,
+    pub killer_player: Option<u8>,
+    pub killer_hero: bool,
+    pub bounty: i32,
 }
 /// Gold for the last hit on a hero: 125 + 8 per victim level (patch 7.31 notes; unchanged in later
 /// notes). Assist gold is 15 + (50 + 0.037 * victim net worth) / assisting heroes (patch 7.40 notes).
@@ -161,9 +177,37 @@ impl Sim {
         }
         if self.cooldown[i] > 0 {
             self.cooldown[i] -= 1;
+            if self.cooldown[i] > 0 {
+                return;
+            }
+        }
+        let Some(b) = self.best_strike_target(i) else {
+            self.aggro.strike[i] = -1;
+            return;
+        };
+        self.aggro.strike[i] = b as i32;
+        self.aggro.strike_gen[i] = self.aggro.spawn_gen[b];
+        self.cooldown[i] = self.attack_period(i);
+        if self.misses(i) {
             return;
         }
-        let rc = (fixed::round(self.range_q[i]) + 1).clamp(1, 8);
+        self.strike(i, b);
+    }
+
+    /// True when unit `i` is on an attack-move order and an enemy is in weapon reach: it holds its
+    /// position and strikes instead of walking past, and its route order resumes once the target
+    /// dies or leaves reach.
+    pub(crate) fn engaged(&self, i: usize) -> bool {
+        self.order_kind[i] == ORDER_ATTACK_MOVE && self.best_strike_target(i).is_some()
+    }
+
+    /// The enemy unit auto-attack would strike for unit `i` this tick, if any: the taunt target when
+    /// one is set, else the best visible enemy in weapon reach by target class, then distance.
+    pub(crate) fn best_strike_target(&self, i: usize) -> Option<usize> {
+        if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
+            return None;
+        }
+        let rc = (fixed::round(self.range_q[i]) + 1).clamp(1, 8) + STRUCTURE_SCAN_CELLS;
         let cx = cell_of(self.pos_x[i]);
         let cy = cell_of(self.pos_y[i]);
         let (w, h) = (self.grid.w as i32, self.grid.h as i32);
@@ -171,6 +215,8 @@ impl Sim {
         let mut best_class = u8::MAX;
         let reach_d2 = (self.range_sq[i] as i64) << fixed::SHIFT;
         let mut best_d2 = reach_d2;
+        let current = self.sticky_strike(i);
+        let mut current_class = None;
         for oy in -rc..=rc {
             for ox in -rc..=rc {
                 let nx = cx + ox;
@@ -179,13 +225,11 @@ impl Sim {
                     continue;
                 }
                 let cell = (ny * w + nx) as usize;
-                let cnt = self.bucket_n[cell] as usize;
-                for k in 0..cnt {
-                    let j = self.bucket_idx[cell * BUCKET_CAP + k] as usize;
+                for j in self.bucket_members(cell) {
                     if j == i || self.alive[j] == 0 {
                         continue;
                     }
-                    let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[j], self.pos_y[j]);
+                    let d2 = self.strike_measure(i, j).1;
                     if d2 > reach_d2 {
                         continue;
                     }
@@ -196,6 +240,9 @@ impl Sim {
                         continue;
                     }
                     let class = self.target_class(i, j);
+                    if j as i32 == current {
+                        current_class = Some(class);
+                    }
                     if class < best_class || (class == best_class && d2 <= best_d2) {
                         best = j as i64;
                         best_class = class;
@@ -204,18 +251,15 @@ impl Sim {
                 }
             }
         }
+        if let Some(class) = current_class {
+            if class <= best_class {
+                best = current as i64;
+            }
+        }
         if let Some(t) = self.taunt_target(i) {
             best = t as i64;
         }
-        if best < 0 {
-            return;
-        }
-        let b = best as usize;
-        self.cooldown[i] = self.attack_period(i);
-        if self.misses(i) {
-            return;
-        }
-        self.strike(i, b);
+        (best >= 0).then_some(best as usize)
     }
 
     /// Orders unit `i` to strike unit `target` through the weapon path (cooldown, armour,
@@ -240,11 +284,11 @@ impl Sim {
             && (self.targets[i] & self.layer_of(target)) != 0
             && self.visible(self.player[i], target)
             && self.targetable(self.player[i], target)
-            && dist2(self.pos_x[i], self.pos_y[i], self.pos_x[target], self.pos_y[target]) <= reach;
+            && self.strike_measure(i, target).1 <= reach;
         if !in_reach {
             return Err(self.reject(Refusal::InvalidOrderTarget));
         }
-        if self.cooldown[i] > 0 {
+        if self.cooldown[i] > 1 {
             return Err(self.reject(Refusal::Cooldown));
         }
         self.cooldown[i] = self.attack_period(i);
@@ -288,15 +332,30 @@ impl Sim {
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
 
-    /// Pays the destroyed unit's bounty. Any killer unit keeps it as its own gold, less the team
-    /// share (see hero.rs). Only an attackerless kill pays the rival side's resource pool.
-    fn pay_bounty(&mut self, j: usize, attacker: i32) {
-        let bounty = if self.is_hero(j) {
+    /// The gold unit `j` is worth when destroyed: a hero's level-scaled bounty, or the catalog
+    /// bounty of any other unit. Zero for an unknown unit.
+    pub fn unit_bounty(&self, j: usize) -> i32 {
+        if j >= self.n {
+            return 0;
+        }
+        if self.is_hero(j) {
             HERO_KILL_GOLD_BASE + HERO_KILL_GOLD_PER_LEVEL * self.character_level(j) as i32
         } else {
             self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
-        };
+        }
+    }
+
+    /// Pays the destroyed unit's bounty. Any killer unit keeps it as its own gold, less the team
+    /// share (see hero.rs). Only an attackerless kill pays the rival side's resource pool. Neither
+    /// payout is made while a mod owns gold (`gold_by_mod`); the death is queued as a `Payout` for
+    /// the mod instead, and the kill itself is unchanged.
+    fn pay_bounty(&mut self, j: usize, attacker: i32) {
+        let bounty = self.unit_bounty(j);
         if bounty <= 0 || self.was_denied(j, attacker) {
+            return;
+        }
+        if self.gold_by_mod {
+            self.queue_payout(j, attacker, bounty);
             return;
         }
         if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
@@ -306,6 +365,27 @@ impl Sim {
         if let Some(rival) = self.rival_of(self.player[j]) {
             self.add_resources(rival, bounty, 0);
         }
+    }
+
+    fn queue_payout(&mut self, j: usize, attacker: i32, bounty: i32) {
+        if self.payouts.len() >= KILL_QUEUE_CAP {
+            return;
+        }
+        let killer = (attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j).then_some(attacker as usize);
+        self.payouts.push(Payout {
+            tick: self.ticks,
+            victim: j as u32,
+            victim_player: self.player[j],
+            killer: killer.map(|k| k as u32),
+            killer_player: killer.map(|k| self.player[k]),
+            killer_hero: killer.is_some_and(|k| self.is_hero(k)),
+            bounty,
+        });
+    }
+
+    /// Takes the payable deaths queued since the last drain, oldest first.
+    pub fn drain_payouts(&mut self) -> Vec<Payout> {
+        self.payouts.drain(..).collect()
     }
 
     /// Whether unit `i` may deny unit `j`: `j` is allied to `i` (not `i` itself) and its health is at
@@ -600,13 +680,11 @@ impl Sim {
                     continue;
                 }
                 let cell = (ny * w + nx) as usize;
-                let cnt = self.bucket_n[cell] as usize;
-                for k in 0..cnt {
+                for ju in self.bucket_members(cell) {
                     if count == buf.len() {
                         return count;
                     }
-                    let j = self.bucket_idx[cell * BUCKET_CAP + k];
-                    let ju = j as usize;
+                    let j = ju as u32;
                     if dist2(self.pos_x[ju], self.pos_y[ju], x, y) > rad2 {
                         continue;
                     }
@@ -616,5 +694,203 @@ impl Sim {
             }
         }
         count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{fixed, load, Sim};
+
+    const CAP: usize = 1024;
+
+    fn duel_sim() -> Sim {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let image = osdt_data::generate(&scenario).expect("duel-routes image");
+        let mut s = load(&image, CAP).expect("duel-routes sim");
+        s.set_fog(false);
+        s
+    }
+
+    /// A crowd past the inline cell capacity must stay fully bucketed, so no unit drops out of
+    /// the strike and separation scans.
+    #[test]
+    fn crowded_cell_keeps_every_unit_bucketed() {
+        let mut s = duel_sim();
+        let crowd: Vec<usize> = (0..20).map(|_| creep(&mut s, 0)).collect();
+        let (x, y) = (fixed::from_int(5), fixed::from_int(5));
+        for &i in &crowd {
+            assert!(s.set_position(i, x, y));
+        }
+        let cell = (5 * s.grid().w as usize) + 5;
+        let mut members: Vec<usize> = s.bucket_members(cell).collect();
+        members.sort_unstable();
+        let mut expected = crowd.clone();
+        expected.sort_unstable();
+        assert_eq!(members, expected, "every unit in the crowded cell must be bucketed");
+        let total: usize = (0..s.grid().w as usize * s.grid().h as usize).map(|c| s.bucket_members(c).count()).sum();
+        let alive = (0..s.n).filter(|&i| s.alive(i)).count();
+        assert_eq!(total, alive, "every live in-grid unit must be bucketed exactly once");
+    }
+
+    /// A creep for `player` on the first walkable cell the map has room for.
+    fn creep(s: &mut Sim, player: u8) -> usize {
+        let kind = s.catalog().unit_index("creep").expect("creep unit") as u32;
+        let (w, h) = (s.grid().w as i32, s.grid().h as i32);
+        (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .find_map(|(x, y)| s.spawn_for(player, kind, fixed::from_int(x), fixed::from_int(y)))
+            .expect("a free cell for the creep")
+    }
+
+    /// Kills one enemy creep by an allied unit's blow, then one by no attacker. Returns the
+    /// killer's gold delta and the rival side's resource delta.
+    fn kill_both_ways(s: &mut Sim) -> (i32, i32) {
+        let killer = creep(s, 0);
+        let gold_before = s.heroes.gold[killer];
+        let victim = creep(s, 1);
+        s.inflict(victim, fixed::from_int(10000), killer as i32);
+        assert!(!s.alive(victim), "a lethal blow must still kill the unit");
+        let killer_gold = s.heroes.gold[killer] - gold_before;
+
+        let rival_before = s.resource_a(0);
+        let neutral = creep(s, 1);
+        s.inflict(neutral, fixed::from_int(10000), -1);
+        assert!(!s.alive(neutral), "an attackerless lethal blow must still kill the unit");
+        (killer_gold, s.resource_a(0) - rival_before)
+    }
+
+    #[test]
+    fn kill_pays_the_usual_bounty_when_gold_is_not_owned_by_a_mod() {
+        let mut s = duel_sim();
+        assert!(!s.gold_by_mod(), "the flag defaults to off");
+        let sample = creep(&mut s, 1);
+        let bounty = s.unit_bounty(sample);
+        assert!(bounty > 0, "the creep has a bounty");
+        let share = bounty * s.heroes.rules.team_share_pct / 100;
+        let (killer_gold, rival_gold) = kill_both_ways(&mut s);
+        assert_eq!(killer_gold, bounty - share, "allied killer keeps the bounty less the team share");
+        assert_eq!(rival_gold, bounty, "attackerless kill pays the rival side the bounty");
+    }
+
+    #[test]
+    fn kill_pays_no_rust_bounty_when_gold_is_owned_by_a_mod() {
+        let mut s = duel_sim();
+        s.set_gold_by_mod(true);
+        let (killer_gold, rival_gold) = kill_both_ways(&mut s);
+        assert_eq!(killer_gold, 0, "no hero bounty while a mod owns gold");
+        assert_eq!(rival_gold, 0, "no rival payout while a mod owns gold");
+
+        let saved = s.save_state();
+        let mut restored = duel_sim();
+        restored.load_state(&saved).expect("save with the flag loads");
+        assert!(restored.gold_by_mod(), "the flag survives a save and load");
+    }
+
+    /// A unit of catalog kind `name` for `player` on the first free walkable cell.
+    fn unit_named(s: &mut Sim, player: u8, name: &str) -> usize {
+        let kind = s.catalog().unit_index(name).expect("catalog unit") as u32;
+        let (w, h) = (s.grid().w as i32, s.grid().h as i32);
+        (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .find_map(|(x, y)| s.spawn_for(player, kind, fixed::from_int(x), fixed::from_int(y)))
+            .expect("a free cell for the unit")
+    }
+
+    /// A held unit keeps its tile while an enemy walks past it, and strikes an enemy inside its reach.
+    #[test]
+    fn held_unit_stays_put_and_strikes_only_in_reach() {
+        let mut s = duel_sim();
+        let holder = unit_named(&mut s, 0, "skirmisher");
+        let (hx, hy) = s.position_fixed(holder);
+        assert!(s.issue_order_kind(holder, crate::ORDER_HOLD, 0, 0).is_ok());
+
+        let walker = creep(&mut s, 1);
+        assert!(s.set_position(walker, hx - fixed::from_int(4), hy));
+        assert!(s.issue_order_kind(walker, crate::ORDER_MOVE, hx + fixed::from_int(4), hy).is_ok());
+        for _ in 0..200 {
+            s.tick();
+        }
+        assert_eq!(s.position_fixed(holder), (hx, hy), "a held unit must not chase or be pushed off its tile");
+
+        let rival = unit_named(&mut s, 1, "skirmisher");
+        assert!(s.set_position(rival, hx, hy));
+        let rival_hp = s.hp(rival);
+        for _ in 0..50 {
+            s.tick();
+        }
+        assert!(s.hp(rival) < rival_hp || !s.alive(rival), "a held unit must strike an enemy in its reach");
+        assert_eq!(s.position_fixed(holder), (hx, hy), "striking from a hold must not move the unit");
+    }
+
+    /// First cell `(x, y)` of a walkable run `len` cells long on one row.
+    fn open_run(s: &Sim, len: i32) -> Option<(i32, i32)> {
+        let (w, h) = (s.grid().w as i32, s.grid().h as i32);
+        (0..h)
+            .flat_map(|y| (0..w - len).map(move |x| (x, y)))
+            .find(|&(x, y)| (0..len).all(|k| s.grid().walkable(x + k, y)))
+    }
+
+    /// Attack-move walks to its point through a line of enemies: it strikes each one met on the
+    /// way, resumes travel after each kill, and stops at the point once no enemy is left.
+    #[test]
+    fn attack_move_reaches_point_through_enemies_and_stops_there() {
+        let mut s = duel_sim();
+        let (x0, y) = open_run(&s, 16).expect("a 16-cell walkable run");
+        let hunter = unit_named(&mut s, 0, "skirmisher");
+        assert!(s.set_position(hunter, fixed::from_int(x0), fixed::from_int(y)));
+        let foes: Vec<usize> = [5, 8]
+            .iter()
+            .map(|&k| {
+                let foe = creep(&mut s, 1);
+                assert!(s.set_position(foe, fixed::from_int(x0 + k), fixed::from_int(y)));
+                foe
+            })
+            .collect();
+        let (gx, gy) = (fixed::from_int(x0 + 14), fixed::from_int(y));
+        assert!(s.issue_order_kind(hunter, crate::ORDER_ATTACK_MOVE, gx, gy).is_ok());
+        let mut arrived = false;
+        for _ in 0..3000 {
+            s.tick();
+            let (px, py) = s.position_fixed(hunter);
+            if (px - gx).abs() <= fixed::ONE && (py - gy).abs() <= fixed::ONE {
+                arrived = true;
+                break;
+            }
+        }
+        assert!(arrived, "attack-move must travel to its point");
+        assert!(s.alive(hunter), "the hunter must survive the route");
+        for &foe in &foes {
+            assert!(!s.alive(foe), "attack-move must kill each enemy it meets on the route");
+        }
+    }
+
+    /// Using an item from an empty slot is refused and changes nothing.
+    #[test]
+    fn use_item_on_an_empty_slot_is_refused() {
+        let mut s = duel_sim();
+        let unit = creep(&mut s, 0);
+        let before = s.hp(unit);
+        assert!(!s.use_item(unit, 0, -1, 0, 0), "an empty slot has no item to use");
+        assert_eq!(s.hp(unit), before, "a refused item use changes no unit state");
+    }
+
+    /// A consumable spends one charge per successful use, and a second use inside the item's cooldown is refused.
+    #[test]
+    fn consumable_use_spends_a_charge_and_refuses_reuse_in_cooldown() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
+        let image = osdt_data::generate(&scenario).expect("moba image");
+        let mut s = load(&image, CAP).expect("moba sim");
+        s.set_fog(false);
+        let hero = unit_named(&mut s, 0, "antimage");
+        let (hx, hy) = s.position_fixed(hero);
+        s.enroll_hero(hero, hx, hy);
+        let item = crate::inventory::item_kind(s.catalog().item_index("faerie_fire").expect("faerie fire item"));
+        assert!(s.inventory_add(hero, item, 2), "the hero takes two charges");
+        let base = hero * crate::inventory::INV_SLOTS;
+        let slot = (0..crate::inventory::MAIN_SLOTS).find(|&k| s.inv_kind[base + k] == item).expect("item slot");
+        assert!(s.use_item(hero, slot, hero as i32, 0, 0), "the first use casts");
+        assert_eq!(s.inv_count[base + slot], 1, "one charge is spent");
+        assert!(!s.use_item(hero, slot, hero as i32, 0, 0), "a second use inside the cooldown is refused");
+        assert_eq!(s.inv_count[base + slot], 1, "a refused use spends no charge");
     }
 }

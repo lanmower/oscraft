@@ -203,6 +203,9 @@ return function(game, vars, host, max_players)
   function game.region_bounds(name)
     return host.region_bounds(name)
   end
+  function game.map_size()
+    return host.map_size()
+  end
   function game.region_center(name)
     local x0, y0, x1, y1 = host.region_bounds(name)
     return (x0 + x1) // 2, (y0 + y1) // 2
