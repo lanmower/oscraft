@@ -2337,8 +2337,10 @@ jobs:
           // The reticle was witnessed and shot when the first targeted Q armed it above; Q is on cooldown now.
           const reticleShown = reticleSeen;
           await page.keyboard.press("Escape");
+          // Armed before the key press: the refusal comes from the sim a tick later, and the poll must already be running to see it.
+          const refusalWait = fxWait("refusal");
           await page.keyboard.press(castKey);
-          const refusalShown = await fxWait("refusal");
+          const refusalShown = await refusalWait;
           if (refusalShown) await fxShot("refusal.png");
           console.log(`moba fx ok move=${Number(moveShown)} ring=${Number(ringShown)} reticle=${Number(reticleShown)} refusal=${Number(refusalShown)}`);
           // Diagnostic: every fx overlay the page showed, so a move marker that is missing shows whether an fx overlay appeared at all and in what colour.
