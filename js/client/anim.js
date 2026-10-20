@@ -2,7 +2,8 @@
 // (glb.js) returns and yields per-node local poses { translation, rotation, scale } as Float32Arrays.
 // Composing poses with the skin is the renderer's job; wiring to a unit's state is the caller's.
 
-const STATE_CLIPS = Object.freeze({ attack: ['attack'], walk: ['walk'], idle: ['idle'] });
+// A moving unit plays the library's run clip; walk is the fallback for a clip set that has no run.
+const STATE_CLIPS = Object.freeze({ attack: ['attack'], walk: ['run', 'walk'], idle: ['idle'] });
 
 export function chooseState({ attacking = false, moving = false } = {}) {
   if (attacking) return 'attack';
@@ -125,6 +126,7 @@ export class AnimationPlayer {
     this.loop = true;
     this.poseCache = new Map();
     this.poseClip = null;
+    this.rate = 1; // playback rate: the clock advances dt * rate per update (set from the unit's draw-side speed)
   }
 
   play(name, { loop = true } = {}) {
@@ -149,7 +151,7 @@ export class AnimationPlayer {
   }
 
   update(dt) {
-    if (this.clip) this.time += dt;
+    if (this.clip) this.time += dt * this.rate;
     if (this.clip && !this.loop && this.time >= this.clip.duration) this.time = this.clip.duration;
   }
 
@@ -272,6 +274,54 @@ export function restHips(nodes, hipsIndex) {
   nodes.forEach((node, i) => { if (node.children.includes(hipsIndex)) parent = i; });
   const parentScale = parent < 0 ? 1 : Math.hypot(globals[parent * 16], globals[parent * 16 + 1], globals[parent * 16 + 2]);
   return { height: globals[hipsIndex * 16 + 13], parentScale };
+}
+
+// Lowest skinned vertex height at one joint-matrix set (fit space): the vertex's weighted joint transform.
+function lowestSkinned(M, positions, joints, weights) {
+  let lo = Infinity;
+  const n = positions.length / 3;
+  for (let v = 0; v < n; v++) {
+    const px = positions[v * 3], py = positions[v * 3 + 1], pz = positions[v * 3 + 2];
+    let y = 0;
+    for (let k = 0; k < 4; k++) {
+      const w = weights[v * 4 + k];
+      if (!w) continue;
+      const o = joints[v * 4 + k] * 16;
+      y += w * (M[o + 1] * px + M[o + 5] * py + M[o + 9] * pz + M[o + 13]);
+    }
+    if (y < lo) lo = y;
+  }
+  return lo;
+}
+
+// The rig's floor: the lowest skinned vertex over sampled frames of the given clips, in fit space. Subtracting it from the
+// fit's y translation stands the rig's feet on y = 0 in those poses (the raw-position fit does not match the bind pose).
+export function skinFloor(nodes, skin, fit, positions, joints, weights, clips, frames = 12) {
+  let lo = Infinity;
+  for (const clip of clips) {
+    for (let i = 0; i <= frames; i++) {
+      const M = jointMatrices(nodes, skin, samplePose(clip, clip.duration * i / frames, true), fit);
+      lo = Math.min(lo, lowestSkinned(M, positions, joints, weights));
+    }
+  }
+  return lo;
+}
+
+// The gait's world speed at playback rate 1: twice the largest hips-to-foot offset over one cycle, per clip duration.
+// A clip plays at the unit's draw speed divided by this, so the feet keep pace with the ground. 0 when the rig has no
+// hips or feet to measure.
+export function cycleSpeed(nodes, fit, clip, frames = 24) {
+  const hips = nodes.findIndex((n) => /^hips$/i.test(n.name ?? ""));
+  const feet = nodes.flatMap((n, i) => (/foot$/i.test(n.name ?? "") ? [i] : []));
+  if (hips < 0 || feet.length === 0 || !(clip.duration > 0)) return 0;
+  const s = fit[0];
+  let reach = 0;
+  for (let i = 0; i < frames; i++) {
+    const G = globalMatrices(nodes, samplePose(clip, clip.duration * i / frames, true));
+    const hx = s * G[hips * 16 + 12], hz = s * G[hips * 16 + 14];
+    for (const f of feet) reach = Math.max(reach, Math.hypot(s * G[f * 16 + 12] - hx, s * G[f * 16 + 14] - hz));
+  }
+  return (2 * reach) / clip.duration;
 }
 
 function quatMul(a, b) {
