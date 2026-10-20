@@ -2195,7 +2195,12 @@ jobs:
               for (let tries = 0; tries < 60 && attacks <= attacks0; tries++) {
                 // The hero and foe move while the order waits, so both points are read from the page on every try.
                 const homeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, cand.id);
-                const foeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, foe.id);
+                // A foe that moved out of sight is replaced by another visible foe of this candidate.
+                let foeNow = null;
+                for (const f of foes) {
+                  foeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, f.id);
+                  if (foeNow) break;
+                }
                 if (!homeNow || !foeNow) break;
                 const home = await screenAt(homeNow.x, homeNow.z);
                 const target = await screenAt(foeNow.x, foeNow.z);
