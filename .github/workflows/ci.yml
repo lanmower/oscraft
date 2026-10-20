@@ -3022,6 +3022,10 @@ jobs:
               const model = units.get(n);
               if (!model || !existsSync("js/client/models/" + model + ".glb")) throw new Error(n + " model does not resolve: " + model);
             }
+            for (const line of readFileSync("scenarios/moba/units_heroes.osd", "utf8").split("\n")) {
+              const u = /^unit\("([^"]+)"[^\n]*model="([^"]+)"/.exec(line);
+              if (u && !existsSync("js/client/models/" + u[2] + ".glb")) throw new Error("hero " + u[1] + " model does not resolve: " + u[2]);
+            }
             const map = readFileSync("scenarios/moba/map.osd", "utf8").split("\n");
             const teamOf = new Map();
             for (const l of map) {
