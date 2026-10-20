@@ -2385,9 +2385,16 @@ jobs:
           // Attack-move stops to strike a foe it meets, so a hero that lands a strike on the way has moved toward the order as well.
           const amAttacks0 = Number(await page.getAttribute("body", "data-attacks"));
           let amEnd = amStart;
-          for (let i = 0; i < 40; i++) {
+          for (let i = 0; i < 80; i++) {
             amEnd = (await heroXZ()) || amEnd;
             if (dTo(amEnd, point) <= 1) break;
+            // A hero that has not left its start after 10 s is given the accepted attack-move once more: the order can be
+            // accepted by the input layer while the sim has not yet started the walk (slow CI ticks).
+            if (i === 20 && dTo(amEnd, amStart) < 0.01) {
+              const reAt = await screenAt(point.x, point.z);
+              await page.keyboard.press("a");
+              await page.mouse.click(reAt.x, reAt.y, { button: "left" });
+            }
             await page.waitForTimeout(500);
           }
           const startDist = dTo(amStart, point);
