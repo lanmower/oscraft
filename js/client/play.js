@@ -739,8 +739,24 @@ function spawnSeatHeroes(seats) {
       console.error(`seat ${seat.slot}: hero ${seat.hero} is not in the roster; no hero spawned`);
       continue;
     }
-    localGame.spawn_hero(seat.slot, kind, seat.slot < 5 ? W * 0.1 : W * 0.9, H / 2);
+    spawnAtSide(seat.slot, kind);
   }
+}
+
+// The sim refuses a spawn on a blocked tile, so the hero takes the nearest free tile to its side's start point.
+function spawnAtSide(slot, kind) {
+  const x0 = Math.floor(slot < 5 ? W * 0.1 : W * 0.9);
+  const y0 = Math.floor(H / 2);
+  for (let r = 0; r <= 24; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (localGame.spawn_hero(slot, kind, x0 + dx, y0 + dy) >= 0) return true;
+      }
+    }
+  }
+  console.error(`seat ${slot}: no free tile near its start; no hero spawned`);
+  return false;
 }
 
 // Applies a START (the lobby's own or a peer's): seats the players, spawns heroes and, on the host, tells every peer.
