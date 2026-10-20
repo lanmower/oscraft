@@ -2197,11 +2197,9 @@ jobs:
               for (let tries = 0; tries < 90 && attacks <= attacks0; tries++) {
                 const homeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, cand.id);
                 // A foe that moved out of sight is replaced by another visible foe of this candidate.
-                let foeNow = null;
-                for (const f of foes) {
-                  foeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, f.id);
-                  if (foeNow) break;
-                }
+                // Foes are re-read each try: the cast or the fight may have killed the listed ones, so the nearest hostile in sight stands in for them.
+                const liveFoes = homeNow ? (await page.evaluate(() => window.__ciUnits())).filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, homeNow) <= 81) : [];
+                const foeNow = liveFoes.sort((a, b) => dist2(a, homeNow) - dist2(b, homeNow))[0] || null;
                 if (!homeNow || !foeNow) break;
                 // The hero stays selected while its orders run, so it is clicked again only when a foe click changed the selection.
                 if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) {
@@ -2232,6 +2230,33 @@ jobs:
             console.log("DIAGNOSTICS: server log tail\n" + serverTail("http.log") + "\nrelay log tail\n" + serverTail("relay.log"));
           }
           if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + ` ticks=${waited.ticks} nearest_hostile_cells=${waited.nearest ? waited.nearest.cells.toFixed(2) : "-1.00"} ranked=${ranked.length}`);
+          // Visual feedback witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
+          const fxShown = (ui, rgb) => page.evaluate(([u, c]) => [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb]);
+          const fxWait = (ui, rgb) => page.waitForFunction(([u, c]) => [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb], { timeout: 1500, polling: 16 }).then(() => true, () => false);
+          const fxShot = async (name) => page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/" + name });
+          const heroNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id), attacker.id);
+          const heroAtNow = await screenAt(heroNow.x, heroNow.z);
+          const unitsNow = await page.evaluate(() => window.__ciUnits());
+          const foeNow = unitsNow.filter((v) => hostilePairs.has(`${attacker.player}:${v.player}`) && dist2(v, heroNow) <= 81).sort((a, b) => dist2(a, heroNow) - dist2(b, heroNow))[0];
+          await page.mouse.click(heroAtNow.x + 90, heroAtNow.y + 40, { button: "right" });
+          const moveShown = await fxWait("fx", "rgb(76, 175, 80)");
+          if (moveShown) await fxShot("move-marker.png");
+          let ringShown = false;
+          if (foeNow) {
+            const foeAtNow = await screenAt(foeNow.x, foeNow.z);
+            await page.mouse.click(foeAtNow.x, foeAtNow.y, { button: "right" });
+            ringShown = await fxWait("fx", "rgb(229, 57, 53)");
+            if (ringShown) await fxShot("attack-ring.png");
+          }
+          await page.mouse.click(heroAtNow.x, heroAtNow.y, { button: "left" });
+          await page.keyboard.press("q");
+          const reticleShown = await fxWait("reticle");
+          if (reticleShown) await fxShot("reticle.png");
+          await page.keyboard.press("Escape");
+          await page.keyboard.press("q");
+          const refusalShown = await fxWait("refusal");
+          if (refusalShown) await fxShot("refusal.png");
+          console.log(`moba fx ok move=${Number(moveShown)} ring=${Number(ringShown)} reticle=${Number(reticleShown)} refusal=${Number(refusalShown)}`);
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
           await page.evaluate(() => window.__ciKillSide(1));
@@ -2248,6 +2273,7 @@ jobs:
           grep -q '^moba win screen ok winner=0$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba fx ok move=1 ring=1 reticle=1 refusal=1$' "$RUNNER_TEMP/moba-input.txt"
 
       - name: Screenshot a ranged attack and a ramp beside flat ground
         run: |
