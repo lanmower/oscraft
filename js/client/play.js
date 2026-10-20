@@ -1352,6 +1352,8 @@ if (params.get("ci") === "1") {
   window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
   // Local cast for the probe: the sim cast and the effect the page draws for it, without a network session.
   window.__ciLocalCast = (unitId, slot, target, x, z) => { const ok = localGame.cast(unitId, slot, target, x, z); if (ok && fx) fx.cast(unitId, slot, target, x, z); return ok; };
+  window.__ciLocalAttack = (unitId, targetId) => localGame.attack(unitId, targetId);
+  window.__ciFxCounts = () => (fx ? fx.counts() : null);
   window.__ciSent = new Map();
   window.__ciRecv = new Map();
   window.__ciSentTicks = () => [...window.__ciSent];
