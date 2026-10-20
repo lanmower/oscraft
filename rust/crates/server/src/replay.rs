@@ -4,7 +4,7 @@ use std::str::{FromStr, SplitWhitespace};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
 
-use sim::{AbilitySpec, Effect, ItemSpec, Refusal, Sim, StateError, UnitSpec, UpgradeSpec};
+use sim::{AbilitySpec, Effect, ItemSpec, ORDER_HOLD, Refusal, Sim, StateError, UnitSpec, UpgradeSpec};
 
 const TICKS_PER_SECOND: u32 = 16;
 
@@ -281,6 +281,7 @@ pub const MAX_KEPT: usize = 4_000_000;
 #[derive(Clone)]
 pub enum Command {
     Order { unit: usize, x: i32, y: i32 },
+    Hold { unit: usize },
     OrderAll { player: u8, x: i32, y: i32 },
     Attack { unit: usize, target: usize },
     Cast { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
@@ -479,6 +480,7 @@ impl Command {
                 sim.order(*unit, *x, *y);
                 true
             }
+            Command::Hold { unit } => sim.issue_order_kind(*unit, ORDER_HOLD, 0, 0).is_ok(),
             Command::OrderAll { player, x, y } => {
                 sim.order_all(*player, *x, *y);
                 true
@@ -550,6 +552,10 @@ impl Command {
                 put(&mut o, x);
                 put(&mut o, y);
                 "o"
+            }
+            Command::Hold { unit } => {
+                put(&mut o, unit);
+                "h"
             }
             Command::OrderAll { player, x, y } => {
                 put(&mut o, player);
@@ -710,6 +716,7 @@ impl Command {
     fn decode(code: &str, it: &mut SplitWhitespace) -> Option<Command> {
         Some(match code {
             "o" => Command::Order { unit: num(it)?, x: num(it)?, y: num(it)? },
+            "h" => Command::Hold { unit: num(it)? },
             "oa" => Command::OrderAll { player: num(it)?, x: num(it)?, y: num(it)? },
             "a" => Command::Attack { unit: num(it)?, target: num(it)? },
             "c" => Command::Cast { unit: num(it)?, slot: num(it)?, target: num(it)?, x: num(it)?, y: num(it)? },

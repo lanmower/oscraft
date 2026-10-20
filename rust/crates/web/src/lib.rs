@@ -136,6 +136,12 @@ impl Game {
         self.sim.issue_order_kind(unit as usize, ORDER_MOVE, fx, fy).is_ok()
     }
 
+    /// Holds unit `unit` where it stands: it does not chase, and strikes only enemies in its reach.
+    /// Returns false when the sim refuses the order (dead or unknown unit, stunned).
+    pub fn hold(&mut self, unit: u32) -> bool {
+        self.sim.issue_order_kind(unit as usize, sim::ORDER_HOLD, 0, 0).is_ok()
+    }
+
     /// Name of the sim's most recent refusal (`Refusal` variant), for the page's refusal witness.
     pub fn last_refusal(&self) -> String {
         format!("{:?}", self.sim.stats.last_refusal)
@@ -185,6 +191,15 @@ impl Game {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
         self.sim.cast_ability(unit as usize, slot as usize, target, fx, fy)
+    }
+
+    /// Uses the active item in inventory slot `slot` of unit `unit`, aimed at unit `target` or at the
+    /// ground (tile x, y) when `target` is -1. Returns false when the sim refuses it (empty slot, item
+    /// cooldown, range); a refused use changes nothing.
+    pub fn use_item(&mut self, unit: u32, slot: u32, target: i32, x: f32, y: f32) -> bool {
+        let fx = (x as f64 * 65536.0) as i32;
+        let fy = (y as f64 * 65536.0) as i32;
+        self.sim.use_item(unit as usize, slot as usize, target, fx, fy)
     }
 
     /// Spends one skill point to raise ability slot `slot` of unit `unit` by a rank. Returns false
@@ -245,6 +260,11 @@ impl Game {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
         self.sim.spawn_hero(player, kind, fx, fy).map_or(-1, |i| i as i32)
+    }
+
+    /// Removes live unit `unit` from the sim: its slot stops counting and no query finds it. False when it is not alive.
+    pub fn remove_unit(&mut self, unit: u32) -> bool {
+        self.sim.remove_unit(unit as usize)
     }
 
     /// Loads the hero rules from `key=value` text (scenarios/moba/hero_rules.txt). False, rules unchanged, on a bad line.
@@ -433,7 +453,8 @@ impl Game {
     }
 
     /// UI export: the item catalog as JSON `[{"id":index,"name","cost","armor","damage","health","flags",
-    /// "tier","shops","charges","stack","stats":{name:value,...},"components":[index,...]}]`. `stats` lists
+    /// "tier","shops","charges","stack","stats":{name:value,...},"components":[index,...],"target","radius"}]`
+    /// (`target` and `radius` describe the item's active ability, see `targeting`). `stats` lists
     /// the non-zero bonuses; `shops` is the bit mask home 1, side 2, secret 4.
     pub fn item_catalog_json(&self) -> String {
         let cat = self.sim.catalog();
@@ -450,8 +471,9 @@ impl Game {
                     .filter(|(_, v)| *v != 0)
                     .map(|(n, v)| format!("\"{n}\":{v}"))
                     .collect();
+                let (target, radius) = targeting(cat, it.ability as usize);
                 format!(
-                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"flags\":{},\"tier\":{},\"shops\":{},\"charges\":{},\"stack\":{},\"stats\":{{{}}},\"components\":[{}]}}",
+                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"flags\":{},\"tier\":{},\"shops\":{},\"charges\":{},\"stack\":{},\"stats\":{{{}}},\"components\":[{}],\"target\":\"{}\",\"radius\":{}}}",
                     id,
                     json_str(cat.name(it.name)),
                     it.cost,
@@ -464,7 +486,9 @@ impl Game {
                     it.charges,
                     it.stack_max,
                     stats.join(","),
-                    parts.join(",")
+                    parts.join(","),
+                    target,
+                    radius
                 )
             })
             .collect();
@@ -492,7 +516,8 @@ impl Game {
     }
 
     /// UI export: the abilities unit `unit` holds as JSON `[{"slot","name","cooldown","energy","ultimate","max_rank",
-    /// "gates":[...],"damage":[...],"cooldowns":[...],"energies":[...]}]`; ability stats are game ticks and
+    /// "gates":[...],"damage":[...],"cooldowns":[...],"energies":[...],"target":"none|unit|point","radius"}]`
+    /// (world units, 0 for `none`); ability stats are game ticks and
     /// the skill arrays are empty for an ability with no skill tree.
     pub fn abilities_json(&self, unit: u32) -> String {
         let cat = self.sim.catalog();
@@ -508,8 +533,9 @@ impl Game {
                     }
                     None => (false, 0, String::new(), String::new(), String::new(), String::new()),
                 };
+                let (target, radius) = targeting(cat, ai);
                 Some(format!(
-                    "{{\"slot\":{},\"name\":{},\"cooldown\":{},\"energy\":{},\"ultimate\":{},\"max_rank\":{},\"gates\":[{}],\"damage\":[{}],\"cooldowns\":[{}],\"energies\":[{}]}}",
+                    "{{\"slot\":{},\"name\":{},\"cooldown\":{},\"energy\":{},\"ultimate\":{},\"max_rank\":{},\"gates\":[{}],\"damage\":[{}],\"cooldowns\":[{}],\"energies\":[{}],\"target\":\"{}\",\"radius\":{}}}",
                     slot,
                     json_str(cat.name(a.name)),
                     a.cooldown,
@@ -519,12 +545,33 @@ impl Game {
                     g,
                     d,
                     c,
-                    e
+                    e,
+                    target,
+                    radius
                 ))
             })
             .collect();
         format!("[{}]", rows.join(","))
     }
+}
+
+/// Aim of catalog ability `ai` for the UI: its target word (`none`, `unit` or `point`, from the sim's
+/// ability target codes 0, 1 and any other) and its cast range in whole world units, 0 for `none`
+/// or an unknown ability. A missing index (`0xFFFF` on an item without an active) reads as `none`.
+fn targeting(cat: &sim::Catalog, ai: usize) -> (&'static str, i32) {
+    const TARGET_NONE: u8 = 0;
+    const TARGET_UNIT: u8 = 1;
+    let Some(a) = cat.abilities.get(ai) else {
+        return ("none", 0);
+    };
+    let word = match a.target {
+        TARGET_NONE => "none",
+        TARGET_UNIT => "unit",
+        _ => "point",
+    };
+    let range_milli = cat.ext.get(ai).map_or(0, |e| e.cast_range);
+    let radius = if a.target == TARGET_NONE { 0 } else { range_milli.max(0) / 1000 };
+    (word, radius)
 }
 
 fn replay_error(e: replay::ReplayError) -> JsValue {

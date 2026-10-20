@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import UI from "./moba_ui.json" with { type: "json" };
 import {
   boxSelect, clickSelect, ownIds, ControlGroups, resolveKey, cooldownTicks, formationPoints,
-  mergeConfig, fill, teamOf, CONTROL_ACTIONS,
+  mergeConfig, fill, teamOf, CONTROL_ACTIONS, targetSpec, refusalText,
 } from "./moba_select.js";
 
 const ME = 0;
@@ -87,12 +87,16 @@ check("keys resolve to actions: plain, ctrl and custom", () => {
   assert.deepEqual(resolveKey(keys, "h"), { action: "hold" });
   assert.deepEqual(resolveKey(keys, "Tab"), { action: "scoreboard" });
   assert.deepEqual(resolveKey(keys, "p"), { action: "shop" });
-  assert.deepEqual(resolveKey(keys, "b"), { action: "shop" });
+  assert.deepEqual(resolveKey(keys, "b"), { action: "item", slot: 4 });
+  assert.deepEqual(resolveKey(keys, "z"), { action: "item", slot: 0 });
+  assert.deepEqual(resolveKey(keys, "n"), { action: "item", slot: 5 });
+  assert.deepEqual(resolveKey(keys, " "), { action: "centre" });
   assert.deepEqual(resolveKey(keys, "q"), { action: "cast", slot: 0 });
   assert.deepEqual(resolveKey(keys, "q", { ctrl: true }), { action: "skillUp", slot: 0 });
   assert.deepEqual(resolveKey(keys, "3"), { action: "recallGroup", slot: 2 });
   assert.deepEqual(resolveKey(keys, "3", { ctrl: true }), { action: "setGroup", slot: 2 });
-  assert.equal(resolveKey(keys, "x"), null);
+  assert.deepEqual(resolveKey(keys, "x"), { action: "item", slot: 1 });
+  assert.equal(resolveKey(keys, "g"), null);
   const custom = { ...keys, custom: { f: "recall_hero" } };
   assert.deepEqual(resolveKey(custom, "F"), { action: "custom", name: "recall_hero" });
 });
@@ -109,6 +113,8 @@ check("every control has a binding", () => {
     attackMove: UI.keys.attackMove,
     stop: UI.keys.stop,
     hold: UI.keys.hold,
+    centre: UI.keys.centre,
+    item: UI.keys.item,
     scoreboard: UI.keys.scoreboard,
     shop: UI.keys.shop,
     cast: UI.keys.cast,
@@ -120,6 +126,17 @@ check("every control has a binding", () => {
     assert.ok(value && (Array.isArray(value) ? value.length : Object.keys(value).length), `unbound control: ${action}`);
   }
   assert.equal(UI.keys.group.keys.length, 9, "control groups need keys 1..9");
+});
+
+check("targeted entries arm, plain entries cast on press; refusals read as words", () => {
+  assert.deepEqual(targetSpec({ target: "point", radius: 4 }), { targetKind: "point", radius: 4 });
+  assert.deepEqual(targetSpec({ target: "unit" }), { targetKind: "unit", radius: 0 });
+  assert.deepEqual(targetSpec({ target: "none" }), { targetKind: "none", radius: 0 });
+  assert.deepEqual(targetSpec({}), { targetKind: "none", radius: 0 });
+  assert.equal(refusalText("cast_refused_cooldown"), "on cooldown");
+  assert.equal(refusalText("NotEnoughMana"), "no mana");
+  assert.equal(refusalText("OutOfRange"), "out of range");
+  assert.equal(refusalText("cast_dropped no_hero_selected slot=0"), "select a hero first");
 });
 
 check("config merges and text fills", () => {

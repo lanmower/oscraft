@@ -198,6 +198,44 @@ function lowEdgeHeight(model) {
 // A ramp joins a drop of up to one cell, or one height step when a map's step is taller than a cell (the 6.88 layers of
 // the generated map are smoothed, so a one-layer step is one cell of slope). Taller drops, and drops beside water, get walls.
 const RAMP_MAX_DROP_CELLS = 1;
+// One 6.88 cliff level is 128 z, which the generated heights draw as 2 cells of height. A drop of a full cliff level or more is
+// a wall; any smaller drop is the mesh slope (the interpolated corners), with no wall.
+const CLIFF_LEVEL_CELLS = 2;
+
+// The drop between two side-adjacent cells: its height, the lower and higher cell, their kinds, and whether a ramp joins
+// them. A map whose height step is a cell or taller takes one level as its cliff level (legacy maps: a drop of one level is
+// a ramp). A fine-stepped map (the generated 6.88 heights) takes a full cliff level: smaller drops are slope. A drop beside
+// water is never a ramp.
+function edgeDrop(grid, i, j) {
+  const { cellMilli, heightStep, levels } = grid;
+  const heightOf = (k) => (levels[k] * heightStep) / cellMilli;
+  const dh = Math.abs(heightOf(i) - heightOf(j));
+  const low = heightOf(i) <= heightOf(j) ? i : j;
+  const high = low === i ? j : i;
+  const kLow = tileKind(grid, low);
+  const kHigh = tileKind(grid, high);
+  const level = heightStep / cellMilli;
+  const rampMaxDrop = level >= RAMP_MAX_DROP_CELLS ? level + 1e-9 : CLIFF_LEVEL_CELLS - 1e-6;
+  const gradual = dh <= rampMaxDrop + 1e-9 && kLow !== "water" && kHigh !== "water";
+  return { dh, low, high, kLow, kHigh, gradual };
+}
+
+// The lower cell of every gradual drop between side-adjacent cells: the cells a ramp covers, by the test bakeEdges uses.
+export function rampLowCells(grid) {
+  const { width: w, height: h } = grid;
+  const cells = [];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      for (const j of [x + 1 < w ? i + 1 : -1, y + 1 < h ? i + w : -1]) {
+        if (j < 0) continue;
+        const drop = edgeDrop(grid, i, j);
+        if (drop.dh > 0 && drop.gradual) cells.push(drop.low);
+      }
+    }
+  }
+  return cells;
+}
 
 // Edge pieces from the height data, one batch per key so each key is one draw. A boundary between two cells of equal
 // height gets nothing. A drop of at most RAMP_MAX_STEPS between cells that are not water gets a tile-slant ramp (the slant
@@ -205,7 +243,7 @@ const RAMP_MAX_DROP_CELLS = 1;
 // beside water, gets a tile-high wall from the lower surface up to the higher one (a cliff cell's own tile adds its
 // height). Corners are covered by the edge pieces of the two cells that meet there. `models.cliff` is [wall] and
 // `models.ramp` is [ramp], as TILE_MODELS lists them.
-export function bakeEdges(grid, models, empty) {
+export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const [wall] = models.cliff ?? [];
   const [ramp] = models.ramp ?? [];
@@ -228,20 +266,11 @@ export function bakeEdges(grid, models, empty) {
         if (nx >= w || nz >= h) continue;
         const j = nz * w + nx;
         if (empty[j]) continue;
-        const ki = tileKind(grid, i);
-        const kj = tileKind(grid, j);
-        const hi = heightOf(i), hj = heightOf(j);
-        const dh = Math.abs(hi - hj);
         const rot = dx ? -Math.PI / 2 : 0;
         const bx = dx ? x + 1 : x + 0.5;
         const bz = dx ? y + 0.5 : y + 1;
+        const { dh, low, high, kLow, kHigh, gradual } = edgeDrop(grid, i, j);
         if (dh === 0) continue;
-        const low = hi <= hj ? i : j;
-        const high = low === i ? j : i;
-        const kLow = low === i ? ki : kj;
-        const kHigh = high === i ? ki : kj;
-        const rampMaxDrop = Math.max(RAMP_MAX_DROP_CELLS, heightStep / cellMilli);
-        const gradual = dh <= rampMaxDrop + 1e-9 && kLow !== "water" && kHigh !== "water";
         if (!gradual) {
           if (!wall) continue;
           const base = heightOf(low) + (kLow === "cliff" ? wallTop : 0);
@@ -249,7 +278,7 @@ export function bakeEdges(grid, models, empty) {
           if (top > base) put("wall", "cliff", TILE_MATERIALS.cliff, wall, [bx, base, bz, rot, 1, (top - base) / wallTop, 1]);
           continue;
         }
-        if (!ramp) continue;
+        if (!ramp || !ramps) continue;
         const dirX = high === j ? dx : -dx;
         const dirZ = high === j ? dz : -dz;
         // A ramp rises its full drop over one cell, which is steep when a step is taller than a cell is wide. When the cell
@@ -288,9 +317,17 @@ export function isSplatKind(kind) {
 // Control map for a grid: { data: Uint8Array RGBA per cell, width, height }, each cell's channel at full weight.
 export function controlMap(bytes) {
   const grid = readGrid(bytes);
-  const { width, height, flags, tiles } = grid;
+  const { width, height } = grid;
   const data = new Uint8Array(width * height * 4);
   for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[tileKind(grid, i)]] = 255;
+  // A ramp's lower cell is half its ground layer and half rock, so a ramp reads apart from the flat ground of its kind.
+  const rock = SPLAT_LAYERS.indexOf("rock");
+  for (const i of rampLowCells(grid)) {
+    const ch = SPLAT_CHANNEL[tileKind(grid, i)];
+    if (ch === undefined || ch >= rock) continue;
+    data[i * 4 + ch] = 128;
+    data[i * 4 + rock] = 127;
+  }
   return { data, width, height };
 }
 // Rewrites one cell texel to a kind (the creep effect) and returns that texel for a sub-region upload.
@@ -305,7 +342,7 @@ export function setSplatTexel(control, index, kind) {
 // matrix per cell on the cell's height level, so memory and draw calls scale with the kind and variant count, not the
 // cell count. models maps each kind to its fitted variant models. Returns null when a kind the map uses has no model,
 // so the caller keeps the heightfield as the fallback.
-export function bakeTiles(bytes, models, { splat = false } = {}) {
+export function bakeTiles(bytes, models, { splat = false, ramps = true, cliffCells = true } = {}) {
   const grid = readGrid(bytes);
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const empty = voidMask(grid);
@@ -316,6 +353,7 @@ export function bakeTiles(bytes, models, { splat = false } = {}) {
       if (empty[i]) continue;
       const kind = tileKind(grid, i);
       if (splat && isSplatKind(kind)) continue;
+      if (!cliffCells && kind === "cliff") continue;
       const variants = models[kind];
       if (!variants?.length) return null;
       const v = cellVariant(x, y, variants.length);
@@ -355,7 +393,7 @@ export function bakeTiles(bytes, models, { splat = false } = {}) {
     meshes.set(key, { kind, material: TILE_MATERIALS[kind], model, batches, cells: count });
     cells += count;
   }
-  for (const [key, edge] of bakeEdges(grid, models, empty)) {
+  for (const [key, edge] of bakeEdges(grid, models, empty, { ramps })) {
     const batch = { matrices: edge.matrices, count: edge.count, dirty: true };
     meshes.set(key, { kind: edge.kind, material: edge.material, model: edge.model, batches: [{ uvs: edge.model.uvs, batch }], cells: edge.count, planar: key.startsWith("ramp:") });
   }
