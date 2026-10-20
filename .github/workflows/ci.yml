@@ -4031,12 +4031,14 @@ jobs:
             }
             if (!movedToward(onHost, target) || !movedToward(await seen(peer), target)) throw new Error(`no movement over the direct link: unit=${unit.id} host=${JSON.stringify(onHost)} refusals=${refusals.join(" ; ")} ticks=${await host.evaluate(() => document.body.dataset.ticks)} remoteOrders=${await host.evaluate(() => document.body.dataset.remoteOrders || "0")}`);
             // Not every unit of a side can attack or cast, so each one is tried against its nearest enemies until the host accepts.
-            // The foes come from the sim's whole roster: under fog the peer's own view may show none of them yet, and the approach brings them into sight.
-            const foes = (await peer.evaluate(() => window.__ciRoster())).filter((u) => u.player === 1);
-            const mine = start.filter((u) => u.player === 0);
+            // The units and foes come from the host's sim roster (the authority that applies the orders), fogged or not: under fog the peer's view
+            // may show none of the foes yet, and a peer replica can hold a unit the host never spawned, which the host refuses as not_owner.
+            const hostRoster = await host.evaluate(() => window.__ciRoster());
+            const foes = hostRoster.filter((u) => u.player === 1);
+            const mine = hostRoster.filter((u) => u.player === 0);
             // Fog: a foe is targetable only inside the unit's sight, and an attack needs weapon reach, so the unit is walked toward its foe
             // until the foe is visible within 1.5 cells. Out of sight, the unit keeps walking toward the foe's last seen cell, which brings it back into sight.
-            const unitAt = (id) => peer.evaluate((i) => window.__ciRoster().find((u) => u.id === i) || null, id);
+            const unitAt = (id) => host.evaluate((i) => window.__ciRoster().find((u) => u.id === i) || null, id);
             const seenAt = (id) => peer.evaluate((i) => window.__ciUnits().find((u) => u.id === i) || null, id);
             const approach = async (me, foe) => {
               let spot = foe;
