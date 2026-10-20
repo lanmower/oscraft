@@ -307,7 +307,8 @@ export function skinFloor(nodes, skin, fit, positions, joints, weights, clips, f
   return lo;
 }
 
-// The gait's world speed at playback rate 1: twice the largest hips-to-foot offset over one cycle, per clip duration.
+// The gait's world speed at playback rate 1: four times the largest hips-to-foot offset over one cycle, per clip duration (the
+// owner measured a run at twice the move speed with two times).
 // A clip plays at the unit's draw speed divided by this, so the feet keep pace with the ground. 0 when the rig has no
 // hips or feet to measure.
 export function cycleSpeed(nodes, fit, clip, frames = 24) {
@@ -321,7 +322,7 @@ export function cycleSpeed(nodes, fit, clip, frames = 24) {
     const hx = s * G[hips * 16 + 12], hz = s * G[hips * 16 + 14];
     for (const f of feet) reach = Math.max(reach, Math.hypot(s * G[f * 16 + 12] - hx, s * G[f * 16 + 14] - hz));
   }
-  return (2 * reach) / clip.duration;
+  return (4 * reach) / clip.duration;
 }
 
 function quatMul(a, b) {
