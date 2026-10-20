@@ -179,7 +179,28 @@ const tileRuns = rects(runs((cx, cy) => tileId(cx, cy))).map(gridRect);
 const legacy = opt("--legacy", null);
 const legacyLines = legacy ? fs.readFileSync(legacy, "utf8").split("\n") : fs.readFileSync(path.join(outDir, "map.osd"), "utf8").split("\n");
 const startLines = legacyLines.filter((l) => l.startsWith("start("));
-const spawnLines = legacyLines.filter((l) => l.startsWith("spawn("));
+const spawnLines = legacyLines.filter((l) => l.startsWith("spawn(") && !l.startsWith('spawn("base"'));
+// Ancients come from the script (war3map.j): the literal CreateUnit lines for the ancient codes (etol Sentinel,
+// unpl Scourge). The player for each side is the side convention (Sentinel = player 0, Scourge = player 1).
+const jass = fs.readFileSync(path.join(src, "war3map.j"), "latin1");
+const ANCIENT_SIDES = { etol: 0, unpl: 1 };
+const ancientLines = [];
+for (const m of jass.matchAll(/CreateUnit\([^,]+,'(etol|unpl)',(-?\d+),(-?\d+),/g)) {
+  const [, code, wx, wy] = m;
+  if (ancientLines.some((l) => l.includes(`# ancient ${code} `))) continue;
+  const [mx, my] = toMilli(Number(wx), Number(wy));
+  ancientLines.push(`# ancient ${code} at ${wx},${wy} from war3map.j`, `spawn("base", ${ANCIENT_SIDES[code]}, ${mx}, ${my})`);
+}
+if (ancientLines.filter((l) => l.startsWith("spawn(")).length !== 2) throw new Error("expected two literal ancient placements in war3map.j");
+
+// Trees: the script tree rule (function pU) lists the destructable codes that are trees. Those doodad records become
+// tree doodads, one per record. Every other type has no name in the archive and no shipped kind, so it stays unmatched.
+const pU = jass.match(/function pU takes destructable d returns boolean[\s\S]*?endfunction/)[0];
+const treeCodes = new Set([...pU.matchAll(/'([A-Za-z0-9]{4})'/g)].map((m) => m[1]));
+const treeLines = doodads.filter((d) => treeCodes.has(d.type)).map((d, k) => {
+  const [x, y] = toMilli(d.x, d.y);
+  return `doodad(${k + 100}, "tree", ${x}, ${y})`;
+});
 const shopLines = legacyLines.filter((l) => /^doodad\(\d+, "(shop|side_shop|secret_shop)"/.test(l));
 
 const header = [
@@ -198,7 +219,9 @@ const body = [
   ...openRuns.map((r) => `paint(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, 0)`),
   ...startLines,
   ...spawnLines,
+  ...ancientLines,
   ...shopLines,
+  ...treeLines,
 ];
 fs.writeFileSync(path.join(outDir, "map.osd"), [...header, ...body, ""].join("\n"));
 
@@ -225,3 +248,14 @@ if (args.includes("--reanchor")) {
   console.log(["file", "unit", "player", "old_x", "old_y", "new_x", "new_y", "rule"].join("\t"));
   for (const r of rows) console.log(r);
 }
+
+// Doodad type table: one row per four-letter type code in war3map.doo. The archive holds no type names (the editor's
+// Doodads.slk is not in it), so the name column is empty and the kind comes only from the script's tree rule.
+const typeCounts = new Map();
+for (const d of doodads) typeCounts.set(d.type, (typeCounts.get(d.type) || 0) + 1);
+const typeRows = [...typeCounts].sort((a, b) => b[1] - a[1]).map(([type, n]) => {
+  const tree = treeCodes.has(type);
+  return [type, n, tree ? "tree" : "", "", tree ? "tree" : "", tree ? "script tree rule (pU)" : "no name in archive, no shipped kind"].join("\t");
+});
+fs.writeFileSync(path.join(outDir, "doodad-types-688g.tsv"), ["type\tcount\ttree_rule\tname\tshipped_kind\treason", ...typeRows].join("\n") + "\n");
+console.log(JSON.stringify({ doodadTypes: typeCounts.size, treeTypes: [...typeCounts.keys()].filter((t) => treeCodes.has(t)).length, treeDoodads: treeLines.length, unmatchedRecords: doodads.length - treeLines.length, ancients: ancientLines.filter((l) => l.startsWith("spawn(")) }));

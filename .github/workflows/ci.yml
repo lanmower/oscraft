@@ -2975,7 +2975,7 @@ jobs:
           set -euo pipefail
           target/debug/mod_check ../scenarios/moba ../mods/td_waves.lua 300 > td.txt 2>&1 || { cat td.txt; exit 1; }
           cat td.txt
-          grep -Eq '^mod-state lives=0 score=3 ticks=0 waves=3 winner=1$' td.txt
+          grep -Eq '^mod-state lives=3 score=0 ticks=0 waves=20 winner=-1$' td.txt
           target/debug/mod_check ../scenarios/moba ../mods/custom_spell.lua 300 > spell.txt 2>&1 || { cat spell.txt; exit 1; }
           cat spell.txt
           grep -Eq '^mod-state effects=2 gold=250 ticks=0 winner=0$' spell.txt
@@ -3396,7 +3396,7 @@ jobs:
           grep -qE '^wasip3 tick ok ticks=10 units=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
           grep -q '^wasip3 mod-load ok mod=wasip3-test$' "$RUNNER_TEMP/wasip3.txt"
           grep -qE '^wasip3 mod-trigger ok mod=tower_buff fired=[1-9][0-9]* applied=[1-9][0-9]*$' "$RUNNER_TEMP/wasip3.txt"
-          grep -Eq '^mod-state lives=0 score=3 ticks=0 waves=3 winner=1$' "$RUNNER_TEMP/wasip3.txt"
+          grep -Eq '^mod-state lives=3 score=0 ticks=0 waves=20 winner=-1$' "$RUNNER_TEMP/wasip3.txt"
           grep -Eq '^mod-state effects=2 gold=250 ticks=0 winner=0$' "$RUNNER_TEMP/wasip3.txt"
 
   browser-two-peers:
