@@ -2318,8 +2318,11 @@ jobs:
           await page.keyboard.press("Escape");
           // The green marker lives 500 ms: its poll starts before the click, so a slow page cannot finish the click before the wait is armed.
           const moveWait = fxWait("fx", "rgb(76, 175, 80)");
-          // Open ground six cells west of the hero: a click 90 px off it can land on a creep, and a right click on a foe is an attack, not a move.
-          const moveAt = await screenAt(heroNow.x - 6, heroNow.z);
+          // Open ground: the first of four points six cells off the hero with no unit within 2.5 cells. A right click on a foe is an attack, not a move.
+          const unitsNow = await page.evaluate(() => window.__ciUnits().map((u) => ({ x: u.x, z: u.z })));
+          const moveSpot = [[-6, 0], [6, 0], [0, -6], [0, 6]].map(([dx, dz]) => ({ x: heroNow.x + dx, z: heroNow.z + dz }))
+            .find((p) => unitsNow.every((u) => Math.hypot(u.x - p.x, u.z - p.z) > 2.5)) ?? { x: heroNow.x - 6, z: heroNow.z };
+          const moveAt = await screenAt(moveSpot.x, moveSpot.z);
           await page.mouse.click(moveAt.x, moveAt.y, { button: "right" });
           const moveShown = await moveWait;
           if (moveShown) await fxShot("move-marker.png");
