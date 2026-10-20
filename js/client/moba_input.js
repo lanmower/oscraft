@@ -187,6 +187,14 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     return true;
   }
 
+  // A point cast or item beyond its cast range is refused here: the sim parks it and raises no refusal. The range is
+  // the export's radius (whole world units, the same cast range the sim reads).
+  function beyondCastRange(hero, range, world) {
+    const p = byId().get(hero);
+    if (!p || !(range > 0)) return false;
+    return Math.hypot(world.x - p.x, world.z - p.z) > range;
+  }
+
   // The left click that completes an armed cast. A unit-targeted spell keeps waiting while the click finds no unit.
   function resolveArmed(world) {
     const hero = heroInSelection();
@@ -198,6 +206,7 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     if (armed.targetKind === "unit" && !target) return dropCast(`no_target slot=${armed.slot}`);
     const a = armed;
     disarm();
+    if (a.targetKind === "point" && beyondCastRange(hero, a.radius, world)) return dropCast(`out_of_range hero=${hero} slot=${a.slot}`);
     if (a.item) return useItem(hero, a.slot, target, world);
     const ability = abilityIn(hero, a.slot);
     if (!ability) return dropCast(`no_ability hero=${hero} slot=${a.slot}`);
