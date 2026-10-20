@@ -2483,7 +2483,7 @@ jobs:
           grep -q '^moba right-click ok move=1 attack=1$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba item ok charge=2->1 second=refused refusal=item_refused .*[Cc]ooldown$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba range ok refusal="out of range" area=1$' "$RUNNER_TEMP/moba-input.txt"
-          grep -Eq '^moba attack-move ok orders=[0-9]+->[0-9]+ dist=[0-9.]+->[0-9.]+ marker=[01]$' "$RUNNER_TEMP/moba-input.txt"
+          grep -Eq '^moba attack-move ok orders=[0-9]+->[0-9]+ dist=[0-9.]+->[0-9.]+ attacks=[0-9]+->[0-9]+ marker=[01]$' "$RUNNER_TEMP/moba-input.txt"
 
       - name: Screenshot a ranged attack and a ramp beside flat ground
         run: |
