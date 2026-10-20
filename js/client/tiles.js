@@ -242,12 +242,53 @@ export function rampLowCells(grid) {
   return cells;
 }
 
+// Cliff strips: a drop that is a wall becomes one vertical quad on its cell edge, from the lower surface up to the higher
+// one, instead of a tile-high slab per edge. Each edge is stored as 8 numbers: the edge's two ends in x and z, its base
+// and top heights, and the unit normal that faces the lower side.
+const EDGE_STRIDE = 8;
+const STRIP_QUADS_MAX = 16384; // 4 vertices per quad, so a chunk's indices fit in 16 bits
+function cliffStrips(edges) {
+  const total = edges.length / EDGE_STRIDE;
+  const chunks = [];
+  for (let start = 0; start < total; start += STRIP_QUADS_MAX) {
+    const n = Math.min(STRIP_QUADS_MAX, total - start);
+    const positions = new Float32Array(n * 12);
+    const normals = new Float32Array(n * 12);
+    const uvs = new Float32Array(n * 8);
+    const indices = new Uint16Array(n * 6);
+    for (let q = 0; q < n; q++) {
+      const o = (start + q) * EDGE_STRIDE;
+      const [ax, az, bx, bz, base, top, nx, nz] = edges.subarray(o, o + EDGE_STRIDE);
+      const corners = [[ax, base, az], [bx, base, bz], [bx, top, bz], [ax, top, az]];
+      // The quad faces the lower side: its counter-clockwise front side is the one the normal points out of.
+      const facing = ((bz - az) * -nx + (bx - ax) * nz) * (top - base);
+      const order = facing < 0 ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3];
+      const first = q * 4;
+      corners.forEach(([x, y, z], k) => {
+        const v = (q * 4 + k) * 3;
+        positions[v] = x;
+        positions[v + 1] = y;
+        positions[v + 2] = z;
+        normals[v] = nx;
+        normals[v + 1] = 0;
+        normals[v + 2] = nz;
+        uvs[(q * 4 + k) * 2] = (x + z) * 0.5;
+        uvs[(q * 4 + k) * 2 + 1] = y * 0.5;
+      });
+      for (let k = 0; k < 6; k++) indices[q * 6 + k] = first + order[k];
+    }
+    chunks.push({ positions, normals, uvs, indices, quads: n });
+  }
+  return chunks;
+}
+
 // Edge pieces from the height data, one batch per key so each key is one draw. A boundary between two cells of equal
 // height gets nothing. A drop of at most RAMP_MAX_STEPS between cells that are not water gets a tile-slant ramp (the slant
 // rises along its local +x) covering the lower cell, whatever the kinds of the two cells. A steeper drop, or any drop
-// beside water, gets a tile-high wall from the lower surface up to the higher one (a cliff cell's own tile adds its
-// height). Corners are covered by the edge pieces of the two cells that meet there. `models.cliff` is [wall] and
-// `models.ramp` is [ramp], as TILE_MODELS lists them.
+// beside water, is a cliff wall: a vertical strip from the lower surface up to the higher one (a cliff cell's own tile adds
+// its height), collected into `walls` as EDGE_STRIDE numbers per edge. Corners are covered by the edge pieces of the two
+// cells that meet there. `models.cliff` is [wall] and `models.ramp` is [ramp], as TILE_MODELS lists them; the wall model
+// still sizes the cliff cells' own tiles.
 export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const [wall] = models.cliff ?? [];
@@ -256,6 +297,7 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
   const rampTop = ramp ? modelTop(ramp) : 0;
   const rampLift = ramp ? lowEdgeHeight(ramp) : 0;
   const edges = new Map();
+  const walls = [];
   const put = (key, kind, material, model, instance) => {
     let edge = edges.get(key);
     if (!edge) edges.set(key, (edge = { kind, material, model, instances: [] }));
@@ -271,7 +313,6 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
         if (nx >= w || nz >= h) continue;
         const j = nz * w + nx;
         if (empty[j]) continue;
-        const rot = dx ? -Math.PI / 2 : 0;
         const bx = dx ? x + 1 : x + 0.5;
         const bz = dx ? y + 0.5 : y + 1;
         const { dh, low, high, kLow, kHigh, gradual } = edgeDrop(grid, i, j);
@@ -281,7 +322,13 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
           if (!wall || rampSide) continue;
           const base = heightOf(low) + (kLow === "cliff" ? wallTop : 0);
           const top = heightOf(high) + (kHigh === "cliff" ? wallTop : 0);
-          if (top > base) put("wall", "cliff", TILE_MATERIALS.cliff, wall, [bx, base, bz, rot, 1, (top - base) / wallTop, 1]);
+          if (top > base) {
+            // The edge runs along z for an x-neighbour and along x for a z-neighbour; the normal points to the lower cell.
+            const sgn = low === i ? -1 : 1;
+            // The edge runs from its start corner (ax, az) to the far corner (x + 1, y + 1) of the cell.
+            const ax = dx ? x + 1 : x, az = dx ? y : y + 1;
+            walls.push(ax, az, x + 1, y + 1, base, top, sgn * dx, sgn * dz);
+          }
           continue;
         }
         if (!ramp || !ramps) continue;
@@ -298,11 +345,12 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
       }
     }
   }
-  return new Map([...edges].map(([key, { kind, material, model, instances }]) => {
+  const pieces = new Map([...edges].map(([key, { kind, material, model, instances }]) => {
     const matrices = [];
     for (const [x, y, z, r, sx, sy, sz] of instances) placeInstance(matrices, x, y, z, r, sx, sy, sz);
     return [key, { kind, material, model, matrices: Float32Array.from(matrices), count: instances.length }];
   }));
+  return { pieces, walls: Float64Array.from(walls) };
 }
 
 // Splat layers: the ground is one draw whose fragment shader blends four layers by a per-cell control map, one RGBA
@@ -401,9 +449,19 @@ export function bakeTiles(bytes, models, { splat = false, ramps = true, cliffCel
     meshes.set(key, { kind, material: TILE_MATERIALS[kind], model, batches, cells: count });
     cells += count;
   }
-  for (const [key, edge] of bakeEdges(grid, models, empty, { ramps })) {
+  const edges = bakeEdges(grid, models, empty, { ramps });
+  for (const [key, edge] of edges.pieces) {
     const batch = { matrices: edge.matrices, count: edge.count, dirty: true };
     meshes.set(key, { kind: edge.kind, material: edge.material, model: edge.model, batches: [{ uvs: edge.model.uvs, batch }], cells: edge.count, planar: key.startsWith("ramp:") });
   }
-  return { kinds: meshes, cells, width: w, height: h };
+  // Cliff walls: one identity-placed mesh per strip chunk, so a wall costs its quad and no per-cell slab.
+  let quads = 0;
+  cliffStrips(edges.walls).forEach((strip, c) => {
+    const identity = Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+    const model = { positions: strip.positions, normals: strip.normals, indices: strip.indices, uvs: strip.uvs, baseColorTexture: null, glbUrl: undefined };
+    meshes.set(`strip/${c}`, { kind: "cliff", material: TILE_MATERIALS.cliff, model, batches: [{ uvs: strip.uvs, batch: { matrices: identity, count: 1, dirty: true } }], cells: strip.quads, strip: true });
+    quads += strip.quads;
+  });
+  // Edge walls are no longer tile-high slabs: the count of slabs is zero by construction.
+  return { kinds: meshes, cells, strips: quads, slabs: 0, width: w, height: h };
 }
