@@ -2250,13 +2250,19 @@ jobs:
               sweepSeen = await page.waitForFunction((s) => { const n = document.querySelector(`#ui-skills .row[data-slot="${s}"] .cd`); return !!n && n.style.background.startsWith("conic-gradient"); }, castSlot, { timeout: 1500 }).then(() => true, () => false);
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
               let attacks = attacks0;
+              // A foe the sim never lets this unit strike (no attack lands for 45 s of trying, longer than the 27-tick weapon period) is dropped, so the
+              // next nearest visible foe is tried instead of the same one forever.
+              const unstrikable = new Set();
+              const firstTry = new Map();
               for (let tries = 0; tries < 30 && attacks <= attacks0 && Date.now() < attackDeadline; tries++) {
                 const homeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, cand.id);
                 // A foe that moved out of sight is replaced by another visible foe of this candidate.
                 // Foes are re-read each try: the cast or the fight may have killed the listed ones, so the nearest hostile in sight stands in for them.
-                const liveFoes = homeNow ? (await page.evaluate(() => window.__ciUnits())).filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, homeNow) <= 81) : [];
+                const liveFoes = homeNow ? (await page.evaluate(() => window.__ciUnits())).filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, homeNow) <= 81 && !unstrikable.has(v.id)) : [];
                 const foeNow = liveFoes.sort((a, b) => dist2(a, homeNow) - dist2(b, homeNow))[0] || null;
                 if (!homeNow || !foeNow) break;
+                if (!firstTry.has(foeNow.id)) firstTry.set(foeNow.id, Date.now());
+                else if (Date.now() - firstTry.get(foeNow.id) > 45000) { unstrikable.add(foeNow.id); continue; }
                 // The hero stays selected while its orders run, so it is clicked again only when a foe click changed the selection.
                 if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) {
                   const home = await screenAt(homeNow.x, homeNow.z);
@@ -3021,6 +3027,10 @@ jobs:
             for (const n of roster) {
               const model = units.get(n);
               if (!model || !existsSync("js/client/models/" + model + ".glb")) throw new Error(n + " model does not resolve: " + model);
+            }
+            for (const line of readFileSync("scenarios/moba/units_heroes.osd", "utf8").split("\n")) {
+              const u = /^unit\("([^"]+)"[^\n]*model="([^"]+)"/.exec(line);
+              if (u && !existsSync("js/client/models/" + u[2] + ".glb")) throw new Error("hero " + u[1] + " model does not resolve: " + u[2]);
             }
             const map = readFileSync("scenarios/moba/map.osd", "utf8").split("\n");
             const teamOf = new Map();
@@ -4021,35 +4031,42 @@ jobs:
             }
             if (!movedToward(onHost, target) || !movedToward(await seen(peer), target)) throw new Error(`no movement over the direct link: unit=${unit.id} host=${JSON.stringify(onHost)} refusals=${refusals.join(" ; ")} ticks=${await host.evaluate(() => document.body.dataset.ticks)} remoteOrders=${await host.evaluate(() => document.body.dataset.remoteOrders || "0")}`);
             // Not every unit of a side can attack or cast, so each one is tried against its nearest enemies until the host accepts.
-            const foes = start.filter((u) => u.player === 1);
-            const mine = start.filter((u) => u.player === 0).sort((a, b) => dist(a, foes[0] || a) - dist(b, foes[0] || b));
-            // Fog: a foe is targetable only inside the unit's sight, and an attack needs weapon reach (2 cells), so the unit is walked
-            // to 1 cell short of its nearest foe (a right click on open ground) until the foe is within 1.5 cells, then the order is sent.
-            const unitAt = (id) => peer.evaluate((i) => window.__ciUnits().find((u) => u.id === i) || null, id);
+            // The foes come from the sim's whole roster: under fog the peer's own view may show none of them yet, and the approach brings them into sight.
+            const foes = (await peer.evaluate(() => window.__ciRoster())).filter((u) => u.player === 1);
+            const mine = start.filter((u) => u.player === 0);
+            // Fog: a foe is targetable only inside the unit's sight, and an attack needs weapon reach, so the unit is walked toward its foe
+            // until the foe is visible within 1.5 cells. Out of sight, the unit keeps walking toward the foe's last seen cell, which brings it back into sight.
+            const unitAt = (id) => peer.evaluate((i) => window.__ciRoster().find((u) => u.id === i) || null, id);
+            const seenAt = (id) => peer.evaluate((i) => window.__ciUnits().find((u) => u.id === i) || null, id);
             const approach = async (me, foe) => {
-              const until = Date.now() + 30000;
+              let spot = foe;
+              const until = Date.now() + 150000;
               while (Date.now() < until) {
                 const h = await unitAt(me.id);
+                if (!h) return false;
                 const f = await unitAt(foe.id);
-                if (!h || !f) return false;
-                const gap = dist(h, f);
-                if (gap <= 1.5) return true;
-                const k = (gap - 1) / gap;
-                await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [me.id, Math.round(h.x + (f.x - h.x) * k), Math.round(h.z + (f.z - h.z) * k)]);
+                if (!f) return false;
+                spot = f;
+                const gap = dist(h, spot);
+                if (gap <= 1.5 && (await seenAt(foe.id))) return true;
+                const k = gap > 1 ? (gap - 1) / gap : 0;
+                await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [me.id, Math.round(h.x + (spot.x - h.x) * k), Math.round(h.z + (spot.z - h.z) * k)]);
                 await new Promise((r) => setTimeout(r, 1500));
               }
               return false;
             };
+            // The four nearest (unit, foe) pairs are tried in turn, each unit walking to its foe; the whole search gives up after 400 s.
+            const pairs = mine.flatMap((me) => foes.map((foe) => ({ me, foe, d: dist(me, foe) }))).sort((a, b) => a.d - b.d).slice(0, 4);
             const landed = async (attr, send) => {
-              for (const me of mine) {
-                for (const foe of foes.slice().sort((a, b) => dist(a, me) - dist(b, me)).slice(0, 3)) {
-                  if (!(await approach(me, foe))) continue;
-                  await send(me, foe);
-                  const until = Date.now() + 3000;
-                  while (Date.now() < until) {
-                    if (await host.evaluate((a) => document.body.dataset[a] === "1", attr)) return { me, foe };
-                    await new Promise((r) => setTimeout(r, 250));
-                  }
+              const landedUntil = Date.now() + 400000;
+              for (const { me, foe } of pairs) {
+                if (Date.now() > landedUntil) break;
+                if (!(await approach(me, foe))) continue;
+                await send(me, foe);
+                const until = Date.now() + 3000;
+                while (Date.now() < until) {
+                  if (await host.evaluate((a) => document.body.dataset[a] === "1", attr)) return { me, foe };
+                  await new Promise((r) => setTimeout(r, 250));
                 }
               }
               throw new Error(`no ${attr} accepted by the host: refusal=${await host.evaluate(() => document.body.dataset.lastRefusal)}`);
