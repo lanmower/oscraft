@@ -110,6 +110,11 @@ const HY3D_MODEL = {
   ancient_apparition: "ancient-apparition-skinned",
   antimage: "anti-mage-skinned",
   axe: "axe-skinned",
+  bane: "bane-elemental-skinned",
+  batrider: "batrider-skinned",
+  beastmaster: "beastmaster-skinned",
+  bloodseeker: "bloodseeker-skinned",
+  bounty_hunter: "bounty-hunter-skinned",
 };
 
 const osd = [

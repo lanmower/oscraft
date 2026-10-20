@@ -1,6 +1,6 @@
 {
- "count": 809,
- "total_bytes": 21718998,
+ "count": 814,
+ "total_bytes": 22569298,
  "items": [
   {
    "id": "rock",
@@ -891,6 +891,46 @@
    "path": "js/client/models/axe-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 150640,
+   "role": "character"
+  },
+  {
+   "id": "bane-elemental-skinned",
+   "kind": "model",
+   "path": "js/client/models/bane-elemental-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 141060,
+   "role": "character"
+  },
+  {
+   "id": "batrider-skinned",
+   "kind": "model",
+   "path": "js/client/models/batrider-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 157228,
+   "role": "character"
+  },
+  {
+   "id": "beastmaster-skinned",
+   "kind": "model",
+   "path": "js/client/models/beastmaster-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 215452,
+   "role": "character"
+  },
+  {
+   "id": "bloodseeker-skinned",
+   "kind": "model",
+   "path": "js/client/models/bloodseeker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 182604,
+   "role": "character"
+  },
+  {
+   "id": "bounty-hunter-skinned",
+   "kind": "model",
+   "path": "js/client/models/bounty-hunter-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 153956,
    "role": "character"
   },
   {
@@ -5706,7 +5746,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 22,
+  "character": 27,
   "creep": 5,
   "terrain": 7
  }

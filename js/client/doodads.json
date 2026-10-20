@@ -799,5 +799,10 @@
   "oga_fence": "models/oga/fence.glb",
   "oga_gate": "models/oga/gate.glb",
   "oga_tower_top": "models/oga/tower-top.glb",
-  "axe_skinned": "models/axe-skinned.glb"
+  "axe_skinned": "models/axe-skinned.glb",
+  "bane_elemental_skinned": "models/bane-elemental-skinned.glb",
+  "batrider_skinned": "models/batrider-skinned.glb",
+  "beastmaster_skinned": "models/beastmaster-skinned.glb",
+  "bloodseeker_skinned": "models/bloodseeker-skinned.glb",
+  "bounty_hunter_skinned": "models/bounty-hunter-skinned.glb"
 }
