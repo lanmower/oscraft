@@ -2192,7 +2192,7 @@ jobs:
               // A strike can be refused while the hero's last one recovers (Cooldown), so the order is retried until one is accepted.
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
               let attacks = attacks0;
-              for (let tries = 0; tries < 40 && attacks <= attacks0; tries++) {
+              for (let tries = 0; tries < 60 && attacks <= attacks0; tries++) {
                 // The hero and foe move while the order waits, so both points are read from the page on every try.
                 const homeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, cand.id);
                 const foeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, foe.id);
@@ -2200,10 +2200,7 @@ jobs:
                 const home = await screenAt(homeNow.x, homeNow.z);
                 const target = await screenAt(foeNow.x, foeNow.z);
                 // The hero stays selected while its attack is armed and resolved, so it is clicked again only when a foe click changed the selection.
-                if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) {
-                  await page.mouse.click(home.x, home.y, { button: "left" });
-                  if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
-                }
+                if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) await page.mouse.click(home.x, home.y, { button: "left" });
                 await page.keyboard.press("a");
                 await page.mouse.click(target.x, target.y, { button: "left" });
                 await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 1000 }).catch(() => {});
