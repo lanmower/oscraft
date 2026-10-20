@@ -1930,6 +1930,18 @@ jobs:
           const errors = [];
           page.on("pageerror", (e) => errors.push(String(e)));
           page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+          // Overlays are short-lived (the move marker lives 500 ms), so a poll can miss one that a slow page showed and hid between polls.
+          // The page keeps a log of each overlay shown, and fxWait also reads it for shows in the last 600 ms.
+          await page.addInitScript(() => {
+            window.__ciFx = [];
+            new MutationObserver((recs) => {
+              for (const r of recs) {
+                const n = r.target;
+                if (!(n instanceof HTMLElement) || !n.dataset.ui || n.style.display === "none") continue;
+                window.__ciFx.push({ ui: n.dataset.ui, c: n.style.borderColor, t: performance.now() });
+              }
+            }).observe(document, { attributes: true, subtree: true, attributeFilter: ["style"] });
+          });
           await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#moba");
           await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
           const error = await page.getAttribute("body", "data-error");
@@ -2182,7 +2194,11 @@ jobs:
           // Bounded: the attack search gives up after 180 s so a foe the sim never accepts cannot hold the job.
           const attackDeadline = Date.now() + 180000;
           // Visual witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
-          const fxWait = (ui, rgb) => page.waitForFunction(([u, c]) => [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb], { timeout: 1500, polling: 16 }).then(() => true, () => false);
+          const fxWait = async (ui, rgb) => {
+            const since = (await page.evaluate(() => performance.now())) - 600;
+            return page.waitForFunction(([u, c, s]) => window.__ciFx.some((e) => e.ui === u && e.t >= s && (!c || e.c === c))
+              || [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb, since], { timeout: 1500, polling: 16 }).then(() => true, () => false);
+          };
           const fxShot = async (name) => page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/" + name });
           let reticleSeen = false;
           let ringSeen = false;
