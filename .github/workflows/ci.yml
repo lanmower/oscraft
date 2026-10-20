@@ -2391,7 +2391,7 @@ jobs:
           if (!(await page.evaluate(() => document.getElementById("lobby").hidden))) {
             const press = (label) => page.evaluate((text) => [...document.querySelectorAll("#lobby button")].find((b) => b.textContent === text && !b.disabled)?.click(), label);
             await press("Claim");
-            await page.evaluate(() => { const s = document.querySelector("#lobby select"); s.value = "axe"; s.dispatchEvent(new Event("change")); });
+            await page.evaluate(() => { const s = document.querySelector("#lobby select"); s.value = "drow_ranger"; s.dispatchEvent(new Event("change")); });
             await press("Ready");
             await press("Fill with bots");
             await press("Start match");
