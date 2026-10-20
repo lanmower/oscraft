@@ -2353,6 +2353,8 @@ jobs:
           }
           const amShown = await fxWait("fx", "rgb(229, 57, 53)");
           if (amShown) await fxShot("attack-move.png");
+          // Attack-move stops to strike a foe it meets, so a hero that lands a strike on the way has moved toward the order as well.
+          const amAttacks0 = Number(await page.getAttribute("body", "data-attacks"));
           let amEnd = amStart;
           for (let i = 0; i < 40; i++) {
             amEnd = (await heroXZ()) || amEnd;
@@ -2361,9 +2363,10 @@ jobs:
           }
           const startDist = dTo(amStart, point);
           const endDist = dTo(amEnd, point);
-          console.log(`moba attack-move ok orders=${amBefore}->${amOrders} dist=${startDist.toFixed(2)}->${endDist.toFixed(2)} marker=${Number(amShown)}`);
+          const amAttacks = Number(await page.getAttribute("body", "data-attacks"));
+          console.log(`moba attack-move ok orders=${amBefore}->${amOrders} dist=${startDist.toFixed(2)}->${endDist.toFixed(2)} attacks=${amAttacks0}->${amAttacks} marker=${Number(amShown)}`);
           if (!(amOrders > amBefore)) throw new Error("attack-move click was not accepted: refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + " pick=" + await page.evaluate(() => document.body.dataset.attackPick || "none") + " input=" + JSON.stringify(await page.evaluate(() => window.__ciInputSelection())));
-          if (!(endDist <= 1 || endDist < startDist - 0.5)) throw new Error(`hero did not travel toward the attack-move point: ${startDist.toFixed(2)}->${endDist.toFixed(2)}`);
+          if (!(endDist <= 1 || endDist < startDist - 0.5 || amAttacks > amAttacks0)) throw new Error(`hero neither travelled toward nor struck on the attack-move: ${startDist.toFixed(2)}->${endDist.toFixed(2)} attacks=${amAttacks0}->${amAttacks}`);
           // Right-click witness: a right click on open ground orders the sim to move the hero, and a right click on a hostile unit in reach orders an attack.
           const rcHero = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id), attacker.id);
           const rcUnits = await page.evaluate(() => window.__ciUnits());
