@@ -93,9 +93,14 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     if (left > 0) return dropCast(`cooldown hero=${hero} slot=${slot} ticks=${left}`);
     const target = pick(world);
     const ok = commands.cast(hero, slot, target ? target.id : -1, world.x, world.z);
-    if (ok) {
-      const total = cooldownTicks(ability, game.skill_rank(hero, slot));
-      cooldowns.set(`${hero}:${slot}`, { until: game.ticks() + total, total });
+    // The sim charges the cooldown only when the cast fires: a cast it queued (out of range) or refused has none,
+    // so the client cooldown follows the sim's own ability_cooldown, never the accepted flag alone.
+    if (ok && typeof game.ability_cooldown === "function") {
+      const simLeft = game.ability_cooldown(hero, slot);
+      if (simLeft > 0) {
+        const total = cooldownTicks(ability, game.skill_rank(hero, slot));
+        cooldowns.set(`${hero}:${slot}`, { until: game.ticks() + simLeft, total });
+      }
     }
     return ok;
   }
