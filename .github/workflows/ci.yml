@@ -2255,9 +2255,13 @@ jobs:
             if (ringShown) await fxShot("attack-ring.png");
           }
           await page.mouse.click(heroAtNow.x, heroAtNow.y, { button: "left" });
-          await page.keyboard.press("q");
-          const reticleShown = await fxWait("reticle");
-          if (reticleShown) await fxShot("reticle.png");
+          // Q is on cooldown from the cast above, so the reticle comes from the first ready targeted ability in slots W to R.
+          let reticleShown = false;
+          for (const key of ["w", "e", "r"]) {
+            await page.keyboard.press(key);
+            reticleShown = await fxWait("reticle");
+            if (reticleShown) { await fxShot("reticle.png"); break; }
+          }
           await page.keyboard.press("Escape");
           await page.keyboard.press("q");
           const refusalShown = await fxWait("refusal");
