@@ -37,6 +37,8 @@ const STYLE = `
 #ui-select .tile:hover{border-color:var(--hover-edge);color:var(--text)}
 #ui-select .tile.active{border-color:var(--sel);color:var(--text);box-shadow:inset 0 0 0 1px var(--sel)}
 #ui-select .tile i{position:absolute;left:0;bottom:0;height:3px;background:var(--hp)}
+#ui-select[data-state=empty] .face{color:var(--faint);border-style:dashed}
+#ui-select[data-state=empty] .name{color:var(--muted);font-weight:400}
 `;
 
 function ensureStyle() {
@@ -80,7 +82,6 @@ export function createSelectionPanel({ game, input, units, localPlayer, unitName
   const root = el("div");
   root.id = "ui-select";
   root.dataset.ui = "selection";
-  root.hidden = true;
   const face = el("div", "face");
   const name = el("div", "name");
   const hpText = el("div", "stat");
@@ -164,8 +165,20 @@ export function createSelectionPanel({ game, input, units, localPlayer, unitName
 
   function update() {
     const sel = input.selection();
-    root.hidden = sel.length === 0;
-    if (sel.length === 0) return;
+    if (sel.length === 0) {
+      // Empty state: the frame stays drawn, with a dashed face and a muted label, so the bar never reads as a blank strip.
+      root.dataset.state = "empty";
+      face.textContent = UI.text.noValue;
+      name.textContent = UI.text.noSelection;
+      hpText.textContent = "";
+      hp.outer.hidden = true;
+      mpText.hidden = true;
+      mp.outer.hidden = true;
+      abil.hidden = true;
+      group.replaceChildren();
+      return;
+    }
+    delete root.dataset.state;
     const primary = sel[0];
     const u = units().find((x) => x.id === primary);
     const hpNow = typeof game.unit_hp === "function" ? game.unit_hp(primary) : -1;
@@ -174,6 +187,7 @@ export function createSelectionPanel({ game, input, units, localPlayer, unitName
     face.textContent = u ? `L${isHero(primary) ? game.character_level(primary) : ""}` : UI.text.noValue;
     name.textContent = u ? unitName(u.type) : UI.text.unitUnknown;
     hpText.textContent = `${UI.text.healthLabel} ${hpNow >= 0 ? hpNow : UI.text.noValue}/${peak}`;
+    hp.outer.hidden = false;
     hp.fill.style.width = `${peak > 0 ? (100 * Math.max(hpNow, 0)) / peak : 0}%`;
     const hero = isHero(primary);
     mpText.hidden = !hero;

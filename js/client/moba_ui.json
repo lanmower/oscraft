@@ -19,6 +19,7 @@
     "hud": "hp {hp}   gold {gold}   time {time}",
     "preMatch": "pre-match",
     "noValue": "-",
+    "noSelection": "no selection",
     "unitUnknown": "unit",
     "healthLabel": "hp",
     "manaLabel": "mana",

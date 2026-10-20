@@ -43,7 +43,6 @@ export function createInventory({ game, selected, localPlayer }) {
   const catalog = JSON.parse(game.item_catalog_json());
   const root = el("div");
   root.id = "ui-inv";
-  root.hidden = true;
   const grid = el("div", "grid main");
   const stashGrid = el("div", "grid stash");
   const invBlock = el("div", "block", "");
@@ -78,8 +77,12 @@ export function createInventory({ game, selected, localPlayer }) {
   function update() {
     const id = selected();
     const hero = id >= 0 && game.attributes(id).some((v) => v > 0);
-    root.hidden = !hero;
-    if (!hero) return;
+    // Not a hero (or nothing selected): the ten slots stay drawn, dimmed and empty.
+    if (!hero) {
+      cells.forEach((c) => paint(c, 0));
+      stashCells.forEach((c) => paint(c, 0));
+      return;
+    }
     const inv = JSON.parse(game.inventory_json(id));
     inv.slots.forEach(([kind], s) => paint(cells[s], kind));
     inv.stash.forEach(([kind], s) => { if (stashCells[s]) paint(stashCells[s], kind); });
