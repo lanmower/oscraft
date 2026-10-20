@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
-use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, EffectEvent, ItemSpec, LoadError, Payout, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
+use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Payout, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -95,7 +95,6 @@ pub enum Cmd {
     AddHeroGold { unit: usize, amount: i32 },
     Victory { player: u8 },
     Defeat { player: u8 },
-    ResetCooldowns { unit: usize, abilities: bool, items: bool, keep_slot: i32 },
     // A client-facing UI event as a JSON object body; the server stamps id and tick and streams it.
     Ui { body: String },
 }
@@ -142,8 +141,6 @@ struct Hooks {
     on_enter: Option<Function>,
     on_leave: Option<Function>,
     on_player_joined: Option<Function>,
-    // on_effect(kind, caster, p0, slot): a mod-owned effect the sim applied (see sim::EffectEvent).
-    on_effect: Option<Function>,
     // Runs every trigger registered on the event name it is called with (game.trigger).
     fire: Function,
     systems: Vec<System>,
@@ -976,16 +973,6 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(())
         })?,
     )?;
-    let (w, buf) = (world.clone(), cmds.clone());
-    game.set(
-        "cmd_reset_cooldowns",
-        lua.create_function(move |_, (unit, abilities, items, slot): (i64, bool, bool, i64)| {
-            let u = live_unit(&w.borrow(), unit)?;
-            let keep_slot = i32::try_from(slot).map_err(|_| mlua::Error::RuntimeError(format!("invalid_slot: {slot}")))?;
-            buf.borrow_mut().push(Cmd::ResetCooldowns { unit: u, abilities, items, keep_slot });
-            Ok(())
-        })?,
-    )?;
     let buf = cmds.clone();
     game.set(
         "cmd_set_fog",
@@ -1525,7 +1512,6 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
         on_enter: env.get("on_enter")?,
         on_leave: env.get("on_leave")?,
         on_player_joined: env.get("on_player_joined")?,
-        on_effect: env.get("on_effect")?,
         fire,
         systems: registered,
         gold_by_mod: env.get::<Option<bool>>("GOLD_BY_MOD")?.unwrap_or(false),
@@ -1770,8 +1756,6 @@ impl ModHost {
         self.world.borrow_mut().tick();
         self.collect();
         self.dispatch()?;
-        let effects = self.world.borrow_mut().drain_effect_events();
-        self.dispatch_effects(&effects)?;
         self.run_systems()?;
         self.apply_commands();
         self.fire_timers()?;
@@ -1888,11 +1872,6 @@ impl ModHost {
                 }
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
-                Cmd::ResetCooldowns { unit, abilities, items, keep_slot } => {
-                    if sim.alive(unit) {
-                        sim.reset_cooldowns(unit, abilities, items, keep_slot);
-                    }
-                }
                 // UI events live in the server's event stream; the host world has nothing to change.
                 Cmd::Ui { .. } => {}
             }
@@ -2041,35 +2020,6 @@ impl ModHost {
         let result = self.call_died(&m.hooks, &death);
         let fed = self.cmds.borrow_mut().split_off(before);
         result.map(|()| fed)
-    }
-
-    /// Feeds the effects a room's sim applied to the mod's on_effect, and returns the commands the handler
-    /// queued, for the room to apply to its own sim (the same contract as feed_payout).
-    pub fn feed_effects(&self, events: &[EffectEvent]) -> mlua::Result<Vec<Cmd>> {
-        let Some(m) = self.mod_file.as_ref() else { return Ok(Vec::new()) };
-        let before = self.cmds.borrow().len();
-        let result = events.iter().try_for_each(|e| self.call_effect(&m.hooks, e));
-        let fed = self.cmds.borrow_mut().split_off(before);
-        result.map(|()| fed)
-    }
-
-    // This world's own effects: on_effect runs and its commands are applied this step, locally.
-    fn dispatch_effects(&self, events: &[EffectEvent]) -> mlua::Result<()> {
-        let Some(m) = self.mod_file.as_ref() else { return Ok(()) };
-        for e in events {
-            let before = self.cmds.borrow().len();
-            self.call_effect(&m.hooks, e)?;
-            let own = self.cmds.borrow_mut().split_off(before);
-            self.local.borrow_mut().extend(own);
-        }
-        Ok(())
-    }
-
-    fn call_effect(&self, hooks: &Hooks, e: &EffectEvent) -> mlua::Result<()> {
-        if let Some(h) = &hooks.on_effect {
-            h.call::<()>((e.kind, i64::from(e.caster), i64::from(e.p0), i64::from(e.slot)))?;
-        }
-        Ok(())
     }
 
     // Calls the on_died hook and every on_died trigger with the same arguments.

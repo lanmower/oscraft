@@ -218,7 +218,6 @@ fn main() {
     let mut tally: std::collections::BTreeMap<(u8, u8, bool), u32> = Default::default();
     let mut gold_before: Vec<i32> = vec![0; sim.count()];
     let mut pending_payouts: Vec<Payout> = Vec::new();
-    let mut pending_effects: Vec<sim::EffectEvent> = Vec::new();
     let (mut fed, mut matched, mut hero_miss) = (0u32, 0u32, 0u32);
     let mut mismatched: Vec<String> = Vec::new();
     let mut applied = [0u32; 2];
@@ -318,12 +317,6 @@ fn main() {
                     Err(e) => eprintln!("mod error on_died tick={t}: {e}"),
                 }
             }
-            if !pending_effects.is_empty() {
-                match host.feed_effects(&pending_effects) {
-                    Ok(fed_cmds) => cmds.extend(fed_cmds),
-                    Err(e) => eprintln!("mod error on_effect tick={t}: {e}"),
-                }
-            }
             if let Err(e) = host.advance(&state) {
                 eprintln!("mod error tick={t}: {e}");
             }
@@ -350,7 +343,6 @@ fn main() {
         if modded.is_some() {
             pending_payouts = sim.drain_payouts();
         }
-        pending_effects = sim.drain_effect_events();
         if sim.ticks() == 12000 {
             print_gold(&sim, &heroes, "tick12000");
         }

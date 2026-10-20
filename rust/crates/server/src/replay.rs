@@ -312,8 +312,6 @@ pub enum Command {
     Victory { player: u8 },
     Defeat { player: u8 },
     Ui { body: String },
-    /// A mod's refresh: resets the cooldowns of `unit` (abilities and items), keeping inventory slot `keep_slot`.
-    ResetCooldowns { unit: usize, abilities: bool, items: bool, keep_slot: i32 },
 }
 
 fn num<T: FromStr>(it: &mut SplitWhitespace) -> Option<T> {
@@ -499,7 +497,6 @@ impl Command {
                 true
             }
             Command::Cadence { .. } => true,
-            Command::ResetCooldowns { unit, abilities, items, keep_slot } => sim.reset_cooldowns(*unit, *abilities, *items, *keep_slot),
             Command::Spawn { index, x, y, owner, lane, .. } => sim.spawn_mod_unit(*owner, *index, *x, *y, *lane).is_some(),
             Command::Damage { caster, target, dmg } => {
                 let player = sim.player(*caster);
@@ -606,13 +603,6 @@ impl Command {
             Command::Fog { on } => {
                 put(&mut o, u8::from(*on));
                 "f"
-            }
-            Command::ResetCooldowns { unit, abilities, items, keep_slot } => {
-                put(&mut o, unit);
-                put(&mut o, u8::from(*abilities));
-                put(&mut o, u8::from(*items));
-                put(&mut o, keep_slot);
-                "rc"
             }
             Command::Cadence { paths, vision } => {
                 put(&mut o, u8::from(*paths));
@@ -736,7 +726,6 @@ impl Command {
             "l" => Command::Sell { unit: num(it)?, slot: num(it)? },
             "t" => Command::Unstash { unit: num(it)?, slot: num(it)? },
             "f" => Command::Fog { on: num::<u8>(it)? != 0 },
-            "rc" => Command::ResetCooldowns { unit: num(it)?, abilities: num::<u8>(it)? != 0, items: num::<u8>(it)? != 0, keep_slot: num(it)? },
             "k" => Command::Cadence { paths: num::<u8>(it)? != 0, vision: num::<u8>(it)? != 0 },
             "sp" => Command::Spawn { handle: num(it)?, index: num(it)?, x: num(it)?, y: num(it)?, owner: num_or(it, 0)?, lane: num_or(it, 0)? },
             "dm" => Command::Damage { caster: num(it)?, target: num(it)?, dmg: num(it)? },

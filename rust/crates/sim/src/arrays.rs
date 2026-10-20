@@ -192,8 +192,6 @@ pub struct Sim {
     pub(crate) kill_queue: Vec<crate::combat::KillEvent>,
     /// Payable deaths queued while a mod owns kill gold, for the room to feed the mod. Transient.
     pub(crate) payouts: Vec<crate::combat::Payout>,
-    /// Mod-owned effects applied since the last drain, for the host to feed to `on_effect`. Transient.
-    pub(crate) effect_events: Vec<crate::refresh::EffectEvent>,
     /// The unit credited with each unit's latest death, -1 for none. Transient: not hashed or saved.
     pub(crate) killer: Vec<i32>,
 
@@ -399,7 +397,6 @@ impl Sim {
             hitter_tick: vec![0; cap * crate::combat::ASSIST_SLOTS],
             kill_queue: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
             payouts: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
-            effect_events: Vec::new(),
             killer: vec![-1; cap],
             healer_player: vec![0; HEALER_SLOTS],
             healer_left: vec![0; HEALER_SLOTS],
