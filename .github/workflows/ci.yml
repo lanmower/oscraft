@@ -2101,6 +2101,30 @@ jobs:
             return p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h
               && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [p.x, p.y]));
           };
+          // Fog: the hero walks toward its nearest hostile in right-click steps, stopping 6 cells short of it (inside the 8-cell sight), and
+          // re-reads the sim each step. Returns the hero's current unit, or null when no hostile is reachable within the step budget.
+          const SIGHT_CELLS = 8;
+          const closeIn = async (cand) => {
+            for (let step = 0; step < 30 && Date.now() < attackDeadline; step++) {
+              const now = await page.evaluate(() => window.__ciUnits());
+              const home = now.find((v) => v.id === cand.id);
+              const foe = home && now.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`)).sort((a, b) => dist2(a, home) - dist2(b, home))[0];
+              if (!home || !foe) return null;
+              if (dist2(foe, home) <= SIGHT_CELLS ** 2) return home;
+              const gap = Math.sqrt(dist2(foe, home));
+              const k = (gap - (SIGHT_CELLS - 2)) / gap;
+              const stand = { x: home.x + (foe.x - home.x) * k, z: home.z + (foe.z - home.z) * k };
+              await page.evaluate(([x, z]) => window.__ciFocus(x, z), [(home.x + stand.x) / 2, (home.z + stand.z) / 2]);
+              if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) {
+                const hp = await screenAt(home.x, home.z);
+                await page.mouse.click(hp.x, hp.y, { button: "left" });
+              }
+              const sp = await screenAt(stand.x, stand.z);
+              await page.mouse.click(sp.x, sp.y, { button: "right" });
+              await page.waitForFunction(([id, x, z]) => { const u = window.__ciUnits().find((v) => v.id === id); return !!u && Math.hypot(u.x - x, u.z - z) < 1.5; }, [cand.id, stand.x, stand.z], { timeout: 3000, polling: 250 }).catch(() => {});
+            }
+            return null;
+          };
           // Creeps from the two sides first come into reach mid-lane, at sim tick 301 (measured on origin main: the first hostile
           // pair within 8 cells, moba scenario, tick_with_cadence(true, true)). Poll until the sim tick reaches that contact tick plus
           // a 300-tick margin (601 ticks), or a hostile hero pair appears. The failing CI run ran about 1.07 ticks per second (tick 18 at 50 s,
@@ -2167,19 +2191,23 @@ jobs:
           for (const cand of ranked.reverse().slice(0, 400)) {
             if (Date.now() >= attackDeadline) break;
             // Select through the CI hook: a click can land on another unit drawn over this one.
-            // An attack needs a visible, hostile target: the camera moves onto the candidate, then only enemies inside its sight (9 cells) are tried, nearest first.
-            const near = live.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64);
-            if (!near.length) continue;
+            if (!live.some((v) => hostilePairs.has(`${cand.player}:${v.player}`))) continue;
             await page.evaluate(([x, z]) => window.__ciFocus(x, z), [cand.x, cand.z]);
             if (!(await shownNow(cand))) continue;
+            // Fog: a foe is targetable only inside the hero's sight (8 cells), and a unit never walks to a foe on its own.
+            // closeIn selects the hero and walks it toward its nearest hostile until that foe is in sight; then the foes in sight are read from the sim.
+            const homeAt = await closeIn(cand);
+            if (!homeAt) continue;
+            const near = (await page.evaluate(() => window.__ciUnits())).filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, homeAt) <= 64);
+            if (!near.length) continue;
             const foes = [];
-            for (const v of near.sort((a, b) => dist2(a, cand) - dist2(b, cand))) {
+            for (const v of near.sort((a, b) => dist2(a, homeAt) - dist2(b, homeAt))) {
               if (foes.length === 3) break;
               if (await shownNow(v)) foes.push(v);
             }
             if (!foes.length) continue;
             // The hook only sets the page's selected id; the MOBA input layer casts and attacks for its own selection, so the hero is selected by a click.
-            const at = await screenAt(cand.x, cand.z);
+            const at = await screenAt(homeAt.x, homeAt.z);
             await page.mouse.click(at.x, at.y, { button: "left" });
             if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
             // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
@@ -3995,9 +4023,27 @@ jobs:
             // Not every unit of a side can attack or cast, so each one is tried against its nearest enemies until the host accepts.
             const foes = start.filter((u) => u.player === 1);
             const mine = start.filter((u) => u.player === 0).sort((a, b) => dist(a, foes[0] || a) - dist(b, foes[0] || b));
+            // Fog: a foe is targetable only inside the unit's sight, and an attack needs weapon reach (2 cells), so the unit is walked
+            // to 1 cell short of its nearest foe (a right click on open ground) until the foe is within 1.5 cells, then the order is sent.
+            const unitAt = (id) => peer.evaluate((i) => window.__ciUnits().find((u) => u.id === i) || null, id);
+            const approach = async (me, foe) => {
+              const until = Date.now() + 30000;
+              while (Date.now() < until) {
+                const h = await unitAt(me.id);
+                const f = await unitAt(foe.id);
+                if (!h || !f) return false;
+                const gap = dist(h, f);
+                if (gap <= 1.5) return true;
+                const k = (gap - 1) / gap;
+                await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [me.id, Math.round(h.x + (f.x - h.x) * k), Math.round(h.z + (f.z - h.z) * k)]);
+                await new Promise((r) => setTimeout(r, 1500));
+              }
+              return false;
+            };
             const landed = async (attr, send) => {
               for (const me of mine) {
                 for (const foe of foes.slice().sort((a, b) => dist(a, me) - dist(b, me)).slice(0, 3)) {
+                  if (!(await approach(me, foe))) continue;
                   await send(me, foe);
                   const until = Date.now() + 3000;
                   while (Date.now() < until) {
