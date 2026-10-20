@@ -98,7 +98,9 @@ pub const CHANNEL_FLAG: u16 = 1;
 
 pub const CELL_BLOCKED: u8 = 1;
 pub const CELL_CLIFF: u8 = 2;
-pub const CELL_MASK: u8 = CELL_BLOCKED | CELL_CLIFF;
+// A ramp cell is walkable and drawn with the slope it belongs to (6.88 W3E ramp flag, bit 0x10 of the ground byte).
+pub const CELL_RAMP: u8 = 4;
+pub const CELL_MASK: u8 = CELL_BLOCKED | CELL_CLIFF | CELL_RAMP;
 
 pub const TAG_STRS: [u8; 4] = *b"STRS";
 pub const TAG_EFCT: [u8; 4] = *b"EFCT";

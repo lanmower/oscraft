@@ -172,6 +172,9 @@ const gridRect = ([x0, y0, x1, y1, v]) => [x0 + GX, y0 + GY, x1 + GX, y1 + GY, v
 const openRuns = rects(runs((cx, cy) => (open[cy][cx] ? 0 : 1)).filter((r) => r[4] === 0)).map(gridRect);
 const heightRuns = rects(runs((cx, cy) => heightLevel(cellZ(cx, cy)))).map(gridRect);
 const tileRuns = rects(runs((cx, cy) => tileId(cx, cy))).map(gridRect);
+// The W3E ramp flag (bit 0x10 of the ground byte) of the tile's corner, the same corner the tile id is read from.
+const rampAt = (cx, cy) => { const { i, j } = tileOf(cx, cy); return (corner(i, j).flags & 0x10) !== 0 ? 1 : 0; };
+const rampRuns = rects(runs((cx, cy) => rampAt(cx, cy)).filter((r) => r[4] === 1)).map(gridRect);
 
 // The sim takes each start as the player home (loader: open_player, base_fields), and the decoded w3i starts are not
 // the team homes: the 6.88 start of player 1 is about 160 cells from the Dire ancient. The homes therefore come from
@@ -246,6 +249,7 @@ const body = [
   `height_step(${HEIGHT_STEP_MILLI})`,
   ...heightRuns.map((r) => `paint_height(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`),
   ...tileRuns.map((r) => `paint_tile(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`),
+  ...rampRuns.map((r) => `paint_ramp(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]})`),
   ...openRuns.map((r) => `paint(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, 0)`),
   ...startLines,
   ...ancientLines,
@@ -268,7 +272,7 @@ const summary = {
   pathing: { cells: pathing.width * pathing.height, sim: `${SIM}x${SIM}`, blockedSimCells: open.flat().filter((v) => !v).length },
   doodads: doodads.length,
   starts: starts.map((s, k) => ({ k, id: s.id, name: s.name, x: s.x, y: s.y, cellOpen: open[Math.floor((8192 - s.y) / 64)][Math.floor((s.x + 8192) / 64)] })),
-  openRuns: openRuns.length, heightRuns: heightRuns.length, tileRuns: tileRuns.length,
+  openRuns: openRuns.length, heightRuns: heightRuns.length, tileRuns: tileRuns.length, rampRuns: rampRuns.length, rampCells: rampRuns.reduce((n, r) => n + (r[2] - r[0]) * (r[3] - r[1]), 0),
 };
 console.log(JSON.stringify(summary));
 
