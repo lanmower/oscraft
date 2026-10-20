@@ -2199,8 +2199,11 @@ jobs:
                 if (!homeNow || !foeNow) break;
                 const home = await screenAt(homeNow.x, homeNow.z);
                 const target = await screenAt(foeNow.x, foeNow.z);
-                await page.mouse.click(home.x, home.y, { button: "left" });
-                if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
+                // The hero stays selected while its attack is armed and resolved, so it is clicked again only when a foe click changed the selection.
+                if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) {
+                  await page.mouse.click(home.x, home.y, { button: "left" });
+                  if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
+                }
                 await page.keyboard.press("a");
                 await page.mouse.click(target.x, target.y, { button: "left" });
                 await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 1000 }).catch(() => {});
