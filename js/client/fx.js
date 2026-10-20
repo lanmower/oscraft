@@ -164,6 +164,12 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   const ctx = overlay.getContext("2d");
 
   function glow(mesh, color, alpha, transform) {
+    // An effect wholly outside the visible ground box is not drawn: its translation is the fourth column and the largest
+    // entry of its 3x3 part bounds the mesh reach (oriented arrows included), plus a margin. Without a view box
+    // (horizon on screen) every effect draws.
+    let scale = 0;
+    for (let i = 0; i < 12; i++) if ((i & 3) !== 3) scale = Math.max(scale, Math.abs(transform[i]));
+    if (renderer.isVisible && !renderer.isVisible(transform[12], transform[14], 2 * scale + 1)) return;
     mesh.color = color;
     mesh.alpha = alpha;
     renderer.drawMesh(mesh, transform);
