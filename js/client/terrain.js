@@ -85,6 +85,7 @@ export function buildTerrain(bytes) {
       uvs[(cy * cols + cx) * 2 + 1] = cy * GROUND_UV_PER_CELL;
     }
   }
+  limitSlopes(positions, cols, h + 1, cellMilli);
   // Each cell is split along its steeper diagonal: the corners that differ most in height are joined, so the two
   // triangles follow the slope and no crease runs across it. Both splits wind the same way (up-facing).
   const indices = new Uint32Array(w * h * 6);
@@ -101,6 +102,43 @@ export function buildTerrain(bytes) {
     }
   }
   return { width: w, height: h, cellMilli, positions, uvs, normals: vertexNormals(positions, indices), indices, tiles: grid.tiles, flags: grid.flags };
+}
+
+// Render-only slope limit: no two corners may differ by more than MAX_SLOPE cells of height per cell of run (side or
+// diagonal), so a full cliff level (two cells of rise) spreads over two cells of slope and reads as a ramp, not a hill.
+// The sim's pathing never reads heights (walkability is the BLOCKED flag), so only the drawn surface changes. Each
+// pass moves the two corners of an over-steep pair toward each other by half the excess; passes stop when none is left.
+export const MAX_SLOPE = 1;
+const SLOPE_PASSES = 64;
+const NEIGHBOURS = [[1, 0, 1], [0, 1, 1], [1, 1, Math.SQRT2], [1, -1, Math.SQRT2]];
+export function limitSlopes(positions, cols, rows, cellMilli) {
+  for (let pass = 0; pass < SLOPE_PASSES; pass++) {
+    let worst = 0;
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const a = cy * cols + cx;
+        for (const [dx, dy, run] of NEIGHBOURS) {
+          const nx = cx + dx, ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+          const b = ny * cols + nx;
+          const ya = positions[a * 3 + 1], yb = positions[b * 3 + 1];
+          const limit = MAX_SLOPE * cellMilli * run;
+          const excess = Math.abs(ya - yb) - limit;
+          if (excess <= 0) continue;
+          worst = Math.max(worst, excess);
+          const shift = excess / 2;
+          if (ya > yb) {
+            positions[a * 3 + 1] = ya - shift;
+            positions[b * 3 + 1] = yb + shift;
+          } else {
+            positions[a * 3 + 1] = ya + shift;
+            positions[b * 3 + 1] = yb - shift;
+          }
+        }
+      }
+    }
+    if (worst < 1) break;
+  }
 }
 
 // Per-vertex normals: the normalised sum of the face normals of every triangle that uses the vertex.
