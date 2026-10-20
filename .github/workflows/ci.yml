@@ -1944,11 +1944,11 @@ jobs:
             await page.waitForFunction(() => document.getElementById("lobby").hidden, null, { timeout: 15000 });
           }
           // The spawned hero must be the type picked in the lobby: the local seat's picked name and its unit's catalog name.
-          const heroNames = await page.evaluate(() => window.__ciHeroNames());
-          const localSlot = await page.evaluate(() => window.__ciLocalPlayer());
-          const localHero = heroNames.find((h) => h.slot === localSlot);
-          console.log(`probe hero spawn local=${localSlot} picked=${localHero?.picked} spawned=${localHero?.spawned} seats=${JSON.stringify(heroNames)}`);
-          if (!localHero || localHero.picked !== "axe" || localHero.spawned !== localHero.picked) throw new Error(`hero spawn mismatch: ${JSON.stringify(localHero)}`);
+          const spawnSeats = await page.evaluate(() => window.__ciHeroNames());
+          const spawnSlot = await page.evaluate(() => window.__ciLocalPlayer());
+          const spawnSeat = spawnSeats.find((h) => h.slot === spawnSlot);
+          console.log(`probe hero spawn local=${spawnSlot} picked=${spawnSeat?.picked} spawned=${spawnSeat?.spawned} seats=${JSON.stringify(spawnSeats)}`);
+          if (!spawnSeat || spawnSeat.picked !== "axe" || spawnSeat.spawned !== spawnSeat.picked) throw new Error(`hero spawn mismatch: ${JSON.stringify(spawnSeat)}`);
           const units = await page.evaluate(() => window.__ciUnits());
           if (!units.length) throw new Error("no units to order");
           // The 3D camera moves with the arrow keys and zoom, so the ground-to-pixel mapping is read from the page each time.
