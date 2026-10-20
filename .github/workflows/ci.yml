@@ -2214,7 +2214,7 @@ jobs:
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
 
-      - name: Screenshot a ranged attack in flight
+      - name: Screenshot a ranged attack and a ramp beside flat ground
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/pw/effects.mjs" <<'EOF'
@@ -2244,8 +2244,31 @@ jobs:
           EOF
           node "$RUNNER_TEMP/pw/effects.mjs" | tee "$RUNNER_TEMP/effects.txt"
           grep -q '^effects ok ranged=[1-9][0-9]*$' "$RUNNER_TEMP/effects.txt"
+          cat > "$RUNNER_TEMP/pw/ramp.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#map");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          await page.waitForFunction(() => Number(document.body.dataset.drawTerrain) > 0, null, { timeout: 30000 });
+          const ramp = await page.evaluate(() => window.__ciRampCell());
+          if (!ramp) throw new Error("map has no ramp cell");
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [ramp.x, ramp.z]);
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/ramp.png" });
+          if (errors.length) throw new Error("console errors: " + errors.join("\n"));
+          console.log(`ramp ok cell=${ramp.x},${ramp.z}`);
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/ramp.mjs" | tee "$RUNNER_TEMP/ramp.txt"
+          grep -q '^ramp ok cell=' "$RUNNER_TEMP/ramp.txt"
 
-      - name: Upload the ranged attack screenshot
+      - name: Upload the ranged attack and ramp screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:

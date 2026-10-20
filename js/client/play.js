@@ -13,7 +13,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { bakeTiles, controlMap, fitModel, planarGroundUvs, planarUvs, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
+import { bakeTiles, controlMap, fitModel, planarGroundUvs, planarUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_MATERIALS, TILE_MODELS, TILE_TEXTURES, TILE_TINTS, walkableBounds } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -1405,7 +1405,12 @@ if (params.get("ci") === "1") {
       return { slot, picked: hero, spawned: u ? names[u.type] ?? null : null };
     });
   };
-  // Read-only: the effects' counts (ranged attack projectiles in flight).
+  // Read-only: the first ramp cell's centre in tile units, and the effects' counts (ranged attack projectiles in flight).
+  window.__ciRampCell = () => {
+    const grid = readGrid(mapBytes);
+    const [cell] = rampLowCells(grid);
+    return cell === undefined ? null : { x: (cell % grid.width) + 0.5, z: Math.floor(cell / grid.width) + 0.5 };
+  };
   window.__ciFx = () => (fx ? fx.counts() : null);
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
