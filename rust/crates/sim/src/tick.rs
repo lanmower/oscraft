@@ -148,11 +148,14 @@ impl Sim {
             if self.produce && self.kind[i] == KIND_PRODUCER {
                 self.produce_step(i);
             }
+            self.acquire_step(i);
             if self.order_kind[i] == ORDER_HOLD || self.engaged(i) {
                 self.vel_x[i] = 0;
                 self.vel_y[i] = 0;
             } else {
-                self.tick_route(i);
+                if !self.chasing(i) {
+                    self.tick_route(i);
+                }
                 self.route_for(i);
                 self.steer(i);
                 self.integrate(i);

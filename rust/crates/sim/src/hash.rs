@@ -84,6 +84,11 @@ impl Sim {
         h.i32s(&self.aggro.strike);
         h.u32s(&self.aggro.strike_gen);
         h.u32s(&self.aggro.spawn_gen);
+        h.i32s(&self.chase.target);
+        h.u32s(&self.chase.target_gen);
+        h.bytes(&self.chase.ret_kind);
+        h.i32s(&self.chase.ret_x);
+        h.i32s(&self.chase.ret_y);
         h.u32s(&self.wards.expires);
         h.bytes(&self.couriers.phase);
         h.i32s(&self.couriers.target);

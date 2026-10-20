@@ -215,6 +215,7 @@ fn main() {
     let mut seen = Seen::default();
     let mut dead_at: Vec<Option<u32>> = vec![None; sim.count()];
     let mut camp_dead: HashSet<usize> = HashSet::new();
+    let mut tally: std::collections::BTreeMap<(u8, u8, bool), u32> = Default::default();
     let mut gold_before: Vec<i32> = vec![0; sim.count()];
     let mut pending_payouts: Vec<Payout> = Vec::new();
     let (mut fed, mut matched, mut hero_miss) = (0u32, 0u32, 0u32);
@@ -347,6 +348,7 @@ fn main() {
         }
 
         for ev in sim.drain_kill_events() {
+            *tally.entry((ev.killer_player, ev.victim_player, sim.is_hero(ev.victim as usize))).or_default() += 1;
             let killer = ev.killer as usize;
             let victim = ev.victim as usize;
             if sim.is_hero(killer) && sim.hostile(ev.killer_player, ev.victim_player) {
@@ -405,6 +407,9 @@ fn main() {
             eprintln!("replay write failed: {e}");
             std::process::exit(2);
         }
+    }
+    for ((killer_player, victim_player, victim_hero), n) in &tally {
+        println!("kills killer_player={killer_player} victim_player={victim_player} victim_hero={victim_hero} count={n}");
     }
     let mut fresh = server::mods::load_data(Path::new(dir), 4096).unwrap_or_else(|e| {
         eprintln!("reload failed: {e}");

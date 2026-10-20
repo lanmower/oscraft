@@ -17,7 +17,8 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 27 adds the hero per-unit state (respawn, buyback, gold, mana cap, spot) and the assist
 /// tallies and recent hitters. Version 30 adds the per-slot spawn generation and the generation each sticky
 /// strike target was struck under, so a reused slot never hands its old occupant's target to the new unit.
-const STATE_VERSION: u16 = 30;
+/// Version 31 adds the chase and return state of acquiring units (acquire.rs).
+const STATE_VERSION: u16 = 31;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -503,6 +504,11 @@ impl Sim {
         put_i32s(&mut w, &self.aggro.strike);
         put_u32s(&mut w, &self.aggro.strike_gen);
         put_u32s(&mut w, &self.aggro.spawn_gen);
+        put_i32s(&mut w, &self.chase.target);
+        put_u32s(&mut w, &self.chase.target_gen);
+        w.extend_from_slice(&self.chase.ret_kind);
+        put_i32s(&mut w, &self.chase.ret_x);
+        put_i32s(&mut w, &self.chase.ret_y);
         put_u32s(&mut w, &self.wards.expires);
         w.extend_from_slice(&self.couriers.phase);
         put_i32s(&mut w, &self.couriers.target);
@@ -762,6 +768,11 @@ impl Sim {
         r.i32s_into(&mut next.aggro.strike)?;
         r.u32s_into(&mut next.aggro.strike_gen)?;
         r.u32s_into(&mut next.aggro.spawn_gen)?;
+        r.i32s_into(&mut next.chase.target)?;
+        r.u32s_into(&mut next.chase.target_gen)?;
+        r.bytes_into(&mut next.chase.ret_kind)?;
+        r.i32s_into(&mut next.chase.ret_x)?;
+        r.i32s_into(&mut next.chase.ret_y)?;
         r.u32s_into(&mut next.wards.expires)?;
         r.bytes_into(&mut next.couriers.phase)?;
         r.i32s_into(&mut next.couriers.target)?;

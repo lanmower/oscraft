@@ -949,6 +949,7 @@ pub fn lina_slave_and_array(_image: &[u8]) -> Result<(), String> {
         return Err("a unit off the line took dragon slave damage".into());
     }
     let (ax, ay) = w.at(6, 4);
+    w.s.issue_order_kind(off, sim::ORDER_HOLD, ax, ay).map_err(|r| format!("hold refused: {}", r.name()))?;
     w.cast(lina, "lina_light_strike_array", -1, ax, ay)?;
     if w.hp(off) < 549.9 {
         return Err("the array hit before its delay".into());
