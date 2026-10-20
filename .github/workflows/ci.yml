@@ -2189,11 +2189,15 @@ jobs:
                 if (refusal.includes("NoSlot")) break;
                 continue;
               }
+              // A strike can be refused while the hero's last one recovers (Cooldown), so the order is retried until one is accepted.
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
-              await page.keyboard.press("a");
-              await page.mouse.click(fp.x, fp.y, { button: "left" });
-              await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 3000 }).catch(() => {});
-              const attacks = Number(await page.getAttribute("body", "data-attacks"));
+              let attacks = attacks0;
+              for (let tries = 0; tries < 8 && attacks <= attacks0; tries++) {
+                await page.keyboard.press("a");
+                await page.mouse.click(fp.x, fp.y, { button: "left" });
+                await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 1000 }).catch(() => {});
+                attacks = Number(await page.getAttribute("body", "data-attacks"));
+              }
               console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
               if (attacks > attacks0) { attacker = cand; break; }
             }
