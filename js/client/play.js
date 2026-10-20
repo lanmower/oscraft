@@ -231,10 +231,12 @@ async function fetchModel(name, size) {
 }
 
 // One fitted model per unit type, indexed like the wasm unit_types export. A type with no model, or a model
-// that fails to load, is null and draws as a ground quad.
+// that fails to load, is null and draws as a ground quad. A model with its own size in doodad_sizes.json (Roshan,
+// at hero heights) is fitted to it; every other unit is fitted to a hero footprint.
 async function loadModels(game) {
   if (typeof game.unit_model_names !== "function") return [];
-  return Promise.all(game.unit_model_names().map((name) => fetchModel(name, 2 * UNIT_HALF)));
+  const sizes = await fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({}));
+  return Promise.all(game.unit_model_names().map((name) => fetchModel(name, sizes[name] ?? 2 * UNIT_HALF)));
 }
 
 // Doodads: one fitted model per kind code (DODA kind), read from doodads.json which maps kind name to GLB path.
