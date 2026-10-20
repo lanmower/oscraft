@@ -109,6 +109,7 @@ const HY3D_MODEL = {
   alchemist: "alchemist-skinned",
   ancient_apparition: "ancient-apparition-skinned",
   antimage: "anti-mage-skinned",
+  axe: "axe-skinned",
 };
 
 const osd = [

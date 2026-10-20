@@ -798,5 +798,6 @@
   "oga_cactus": "models/oga/cactus.glb",
   "oga_fence": "models/oga/fence.glb",
   "oga_gate": "models/oga/gate.glb",
-  "oga_tower_top": "models/oga/tower-top.glb"
+  "oga_tower_top": "models/oga/tower-top.glb",
+  "axe_skinned": "models/axe-skinned.glb"
 }

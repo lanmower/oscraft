@@ -1,6 +1,6 @@
 {
- "count": 808,
- "total_bytes": 21568358,
+ "count": 809,
+ "total_bytes": 21718998,
  "items": [
   {
    "id": "rock",
@@ -883,6 +883,14 @@
    "path": "js/client/models/anti-mage-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 145772,
+   "role": "character"
+  },
+  {
+   "id": "axe-skinned",
+   "kind": "model",
+   "path": "js/client/models/axe-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 150640,
    "role": "character"
   },
   {
@@ -5698,7 +5706,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 21,
+  "character": 22,
   "creep": 5,
   "terrain": 7
  }
