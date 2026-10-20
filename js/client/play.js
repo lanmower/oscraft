@@ -81,7 +81,7 @@ let terrainMesh = null;
 let waterMesh = null;
 // Splat ground: the control map, the four layers and the GPU handles. Built before the match starts; a layer that fails is an error.
 let splat = null;
-const SPLAT_BAND = 0.15;
+const SPLAT_BAND = 0.4;
 // Sun shadows: one setting. ?shadows=0 turns the shadow map off (no shadow pass, no sampling).
 const SHADOW_ON = params.get("shadows") !== "0";
 const SHADOW_SIZE = 2048;
