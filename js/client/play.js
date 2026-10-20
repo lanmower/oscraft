@@ -603,8 +603,10 @@ function worldClip(x, z, y = 0) {
 // The commands createHud routes input through. Each runs on the host sim, or sends the frame to the host
 // when this page is a guest; each returns whether the sim (or the host's send) accepted it.
 // A command the local sim refused leaves the sim's refusal name on the page (body.dataset.lastRefusal) for the CI witness.
+// An accepted command clears the page's last refusal, so lastRefusal always names the most recent command's outcome.
 function noteLocalRefusal(ok, what) {
-  if (!ok) document.body.dataset.lastRefusal = `${what} ${localGame.last_refusal()}`;
+  if (ok) delete document.body.dataset.lastRefusal;
+  else document.body.dataset.lastRefusal = `${what} ${localGame.last_refusal()}`;
   return ok;
 }
 
