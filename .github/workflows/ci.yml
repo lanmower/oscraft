@@ -1933,12 +1933,12 @@ jobs:
           // Overlays are short-lived (the move marker lives 500 ms), so a poll can miss one that a slow page showed and hid between polls.
           // The page keeps a log of each overlay shown, and fxWait also reads it for shows in the last 600 ms.
           await page.addInitScript(() => {
-            window.__ciFx = [];
+            window.__ciOverlayLog = [];
             new MutationObserver((recs) => {
               for (const r of recs) {
                 const n = r.target;
                 if (!(n instanceof HTMLElement) || !n.dataset.ui || n.style.display === "none") continue;
-                window.__ciFx.push({ ui: n.dataset.ui, c: n.style.borderColor, t: performance.now() });
+                window.__ciOverlayLog.push({ ui: n.dataset.ui, c: n.style.borderColor, t: performance.now() });
               }
             }).observe(document, { attributes: true, subtree: true, attributeFilter: ["style"] });
           });
@@ -2196,7 +2196,7 @@ jobs:
           // Visual witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
           const fxWait = async (ui, rgb) => {
             const since = (await page.evaluate(() => performance.now())) - 600;
-            return page.waitForFunction(([u, c, s]) => window.__ciFx.some((e) => e.ui === u && e.t >= s && (!c || e.c === c))
+            return page.waitForFunction(([u, c, s]) => window.__ciOverlayLog.some((e) => e.ui === u && e.t >= s && (!c || e.c === c))
               || [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb, since], { timeout: 1500, polling: 16 }).then(() => true, () => false);
           };
           const fxShot = async (name) => page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/" + name });
