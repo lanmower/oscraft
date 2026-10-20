@@ -362,7 +362,7 @@ const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, wate
 // The water surface is procedural (render3d.js): the water map is one byte per cell, 255 on water cells.
 export const SPLAT_TEXTURES = Object.freeze({
   grass: Object.freeze(["textures/grass.jpg", "textures/grass_disp.jpg"]),
-  dirt: Object.freeze(["textures/dirt_cc0_256.jpg", "textures/dirt_cc0_256_disp.jpg"]),
+  dirt: Object.freeze(["textures/dirt_earth_cc0_256.jpg", "textures/dirt_earth_cc0_256_disp.jpg"]),
   lane: Object.freeze(["textures/lane.jpg", "textures/lane_disp.jpg"]),
   rock: Object.freeze(["textures/rock.jpg", "textures/rock_disp.jpg"]),
 });
@@ -390,13 +390,46 @@ function splatKind(grid, i) {
   return cellKind(0, grid.tiles[i]);
 }
 
+// Dirt cells in 8-connected groups smaller than this are scattered paint, not a trail: they draw as grass (client only).
+export const DIRT_MIN_GROUP = 10;
+// Dirt kind cells in groups of at least DIRT_MIN_GROUP (8-connected) stay dirt; the rest become grass. Returns a Uint8Array
+// over the cells: 1 where the cell is dirt and kept. Only the splat's dirt channel reads this; the sim is unchanged.
+function keptDirtCells(grid, kinds) {
+  const { width: w, height: h } = grid;
+  const keep = new Uint8Array(w * h);
+  const seen = new Uint8Array(w * h);
+  const group = [];
+  for (let s = 0; s < w * h; s++) {
+    if (kinds[s] !== "dirt" || seen[s]) continue;
+    seen[s] = 1;
+    group.length = 0;
+    group.push(s);
+    for (let k = 0; k < group.length; k++) {
+      const i = group[k], x = i % w, y = (i - x) / w;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (!seen[j] && kinds[j] === "dirt") { seen[j] = 1; group.push(j); }
+      }
+    }
+    if (group.length >= DIRT_MIN_GROUP) for (const i of group) keep[i] = 1;
+  }
+  return keep;
+}
+
 // Control map for a grid: { data: Uint8Array RGBA per cell, width, height }, each cell's channel at full weight.
 export function controlMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height } = grid;
   const data = new Uint8Array(width * height * 4);
+  const kinds = new Array(width * height);
+  for (let i = 0; i < width * height; i++) kinds[i] = splatKind(grid, i);
+  const keptDirt = keptDirtCells(grid, kinds);
   for (let i = 0; i < width * height; i++) {
-    const ch = SPLAT_CHANNEL[splatKind(grid, i)];
+    let kind = kinds[i];
+    if (kind === "dirt" && !keptDirt[i]) kind = "grass";
+    const ch = SPLAT_CHANNEL[kind];
     if (ch !== undefined) data[i * 4 + ch] = 255;
   }
   // A ramp's lower cell is half its ground layer and half rock, so a ramp reads apart from the flat ground of its kind.
