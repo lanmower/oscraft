@@ -125,7 +125,7 @@ impl Sim {
         for cy in y0.max(0)..=y1.min(h - 1) {
             for cx in x0.max(0)..=x1.min(w - 1) {
                 for j in self.bucket_members((cy * w + cx) as usize) {
-                    if j == i || self.alive[j] == 0 || !self.hostile(self.player[i], self.player[j]) {
+                    if j == i || self.alive[j] == 0 || self.is_structure(j) || !self.hostile(self.player[i], self.player[j]) {
                         continue;
                     }
                     if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) || !self.targetable(self.player[i], j) {
