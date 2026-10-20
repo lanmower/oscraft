@@ -2512,6 +2512,8 @@ jobs:
           if (!far) throw new Error("no point 22 cells from the hero is on screen");
           await page.mouse.click(far.x, far.y, { button: "left" });
           const rangeShown = await fxWait("refusal");
+          // The refusal line is shown before its text is set on a slow runner: wait for the text, up to 3 s.
+          await page.waitForFunction(() => { const n = document.querySelector('[data-ui="refusal"]'); return !!n && n.textContent.trim().length > 0; }, null, { timeout: 3000 }).catch(() => {});
           const rangeText = await page.evaluate(() => { const n = document.querySelector('[data-ui="refusal"]'); return n ? n.textContent : ""; });
           console.log(`moba range ok refusal="${rangeShown ? rangeText : ""}" area=${Number(areaShown)}`);
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
