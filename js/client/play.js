@@ -626,6 +626,16 @@ const commands = {
     if (ok && fx) fx.cast(unitId, slot, target, x, z);
     return ok;
   },
+  hold(unitId) {
+    const ok = netState ? (session.broadcast(sendHold(unitId)), true) : noteLocalRefusal(localGame.hold(unitId), `hold_refused unit=${unitId}`);
+    if (ok) { orders += 1; publishCommandCounts(); }
+    return ok;
+  },
+  useItem(unitId, slot, target, x, z) {
+    const ok = netState ? (session.broadcast(sendUseItem(unitId, slot, target, x, z)), true) : noteLocalRefusal(localGame.use_item(unitId, slot, target, Math.round(x), Math.round(z)), `item_refused unit=${unitId} slot=${slot}`);
+    if (ok) { casts += 1; publishCommandCounts(); }
+    return ok;
+  },
 };
 
 function bindInput() {
@@ -782,6 +792,18 @@ function applyPeerCommand(peerPubkey, command) {
     if (ok) countRemote("remoteCasts");
     return ok;
   }
+  if (command.type === FRAME.HOLD) {
+    const ok = localGame.hold(command.unitId);
+    if (!ok) document.body.dataset.lastRefusal = `hold_refused unit=${command.unitId}`;
+    if (ok) countRemote("remoteOrders");
+    return ok;
+  }
+  if (command.type === FRAME.USE_ITEM) {
+    const ok = localGame.use_item(command.unitId, command.slot, command.target, command.x, command.y);
+    if (!ok) document.body.dataset.lastRefusal = `item_refused unit=${command.unitId} slot=${command.slot}`;
+    if (ok) countRemote("remoteCasts");
+    return ok;
+  }
   const ok = localGame.attack(command.unitId, command.targetId);
   if (!ok) document.body.dataset.lastRefusal = `attack_refused unit=${command.unitId}`;
   if (ok) countRemote("remoteAttacks");
@@ -911,6 +933,14 @@ function sendAttack(unitId, targetId) {
   return encodeFrame({ type: FRAME.ATTACK, unitId, targetId });
 }
 
+function sendHold(unitId) {
+  return encodeFrame({ type: FRAME.HOLD, unitId });
+}
+
+function sendUseItem(unitId, slot, target, x, z) {
+  return encodeFrame({ type: FRAME.USE_ITEM, unitId, slot, target, x: Math.round(x), y: Math.round(z) });
+}
+
 const fsm = createFSM(xstate);
 const auth = new NostrAuth({ nostrTools: NostrTools });
 auth.loadFromStorage() || auth.generateKey();
@@ -1013,7 +1043,7 @@ let netTick = -1;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
-  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK) {
+  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM) {
     if (hosting) applyPeerCommand(e.detail.peerPubkey, frame);
     return;
   }
