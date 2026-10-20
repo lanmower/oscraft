@@ -205,17 +205,17 @@ What a general game server needs beyond the gameplay list.
 
 ## Control citations
 
-Sources were located by web search. The Fandom and Liquipedia pages returned HTTP 402/403 to direct fetch, so the statements below rest on search snippets and are not checked against page text. No 6.88 page was confirmed.
+Each row names its source. A row is confirmed only when a 6.88 page or patch note names the control; none does. Fandom pages return HTTP 402/403 to direct fetch, and the 6.88 searches (Liquipedia Version 6.88 https://www.liquipedia.net/dota2/Version_6.88 and GosuGamers https://www.gosugamers.net/dota2/news/35846-6-88-hero-buffs-with-a-side-of-nerfs) cover hero and item balance only.
 
-| Control | Dota 2 behaviour | Source | Version |
+| Control | Dota 2 behaviour | Source | 6.88 status |
 | --- | --- | --- | --- |
-| Move command | Right click moves selected units | https://dota2.fandom.com/wiki/Controls | not confirmed |
-| Attack move (A) | Default key A; attacks enemies crossed on the way | https://liquipedia.net/dota2/Movement_Speed | not confirmed |
-| Hold position (H) | Interrupts the action and holds position; H is in the legacy preset column | https://dota2.fandom.com/wiki/Hotkeys | not confirmed |
-| Targeted abilities and cast cursor | Targeted cast arms a cursor, cast on click | https://liquipedia.net/dota2/Controls | not confirmed |
-| Ability cooldown | Ability is on cooldown once cast; cooldown message favoured over mana | https://dota2.fandom.com/wiki/Cooldown | not confirmed |
-| Item use and slots | Six inventory slots; only inventory items are active; backpack items are inactive | https://dota2.fandom.com/wiki/Items | not confirmed |
-| Consumable charges | Charges are spent per use; permanent items keep the item when charges run out | https://liquipedia.net/dota2/Tango | not confirmed |
-| Refusal "Not enough mana" | Spoken line; on-screen text not found | https://liquipedia.net/dota2/Mana/Changelogs | not confirmed |
-| Refusal "Ability is on cooldown" | Spoken line; on-screen text not found | https://liquipedia.net/dota2/Abilities | not confirmed |
-| Refusal "Target out of range" | No source found | none | none |
+| Move command | Right click moves selected units | https://dota2.fandom.com/wiki/Controls (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
+| Attack move (A) | Default key A; attacks enemies met on the way | https://liquipedia.net/dota2/Movement_Speed (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
+| Hold position (H) | Holds position; H in the legacy preset column | https://dota2.fandom.com/wiki/Hotkeys (search snippet) | not confirmed: fetch returned 402; no 6.88 control note found |
+| Targeted abilities and cast cursor | Targeted cast arms a cursor, cast on click | https://liquipedia.net/dota2/Controls (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
+| Ability cooldown | Ability on cooldown after a cast | https://dota2.fandom.com/wiki/Cooldown | not confirmed: fetch returned 402; no 6.88 note found |
+| Item use and slots | Six active inventory slots; backpack items inactive | https://dota2.fandom.com/wiki/Items (search snippet) | not confirmed: page not fetchable; slot counts disagree between sources |
+| Consumable charges | Charges spent per use; permanent items keep the item | https://liquipedia.net/dota2/Tango (search snippet) | not confirmed: page not fetchable; no 6.88 note found |
+| Refusal "Not enough mana" | Spoken voice line, not on-screen text | https://liquipedia.net/dota2/Mana/Changelogs | not confirmed: fetch returned 403; on-screen text not found |
+| Refusal "Ability is on cooldown" | Spoken voice line, not on-screen text | https://liquipedia.net/dota2/Abilities | not confirmed: fetch returned 403; on-screen text not found |
+| Refusal "Target out of range" | No source found | none | not confirmed: no source; the sim's wording is move-range for item casts |
