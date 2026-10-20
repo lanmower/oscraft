@@ -1431,7 +1431,9 @@ if (params.get("ci") === "1") {
   window.__ciHeroNames = () => {
     const names = typeof localGame.unit_type_names === "function" ? localGame.unit_type_names() : [];
     return spawnedSeats.map(({ slot, hero }) => {
-      const u = heroOf(slot);
+      // The seat's hero is the unit of the picked kind; the first hero of the slot may be a map-placed unit of another type.
+      const kind = heroKinds.get(hero);
+      const u = simUnits().find((v) => v.player === slot && isHeroUnit(v.id) && v.type === kind) || null;
       return { slot, picked: hero, spawned: u ? names[u.type] ?? null : null };
     });
   };
