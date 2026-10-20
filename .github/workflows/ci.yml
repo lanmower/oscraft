@@ -185,13 +185,16 @@ jobs:
           set -euo pipefail
           node --input-type=module -e '
             import fs from "node:fs";
-            const { buildTerrain, readDoodads } = await import("./js/client/terrain.js");
+            const { buildTerrain, readDoodads, readGrid } = await import("./js/client/terrain.js");
             const bytes = new Uint8Array(fs.readFileSync("./js/client/map.bin"));
             const mesh = buildTerrain(bytes);
+            const grid = readGrid(bytes);
+            const impassable = Array.from(grid.flags).filter((f) => (f & 3) !== 0).length;
             const tris = mesh.indices.length / 3;
             const vertices = mesh.positions.length / 3;
+            const expectVertices = (mesh.width + 1) * (mesh.height + 1) + 4 * impassable;
             if (tris !== mesh.width * mesh.height * 2 || tris < 1) throw new Error("terrain triangle count " + tris);
-            if (vertices !== (mesh.width + 1) * (mesh.height + 1)) throw new Error("terrain vertex count " + vertices);
+            if (vertices !== expectVertices) throw new Error("terrain vertex count " + vertices + " expected " + expectVertices);
             for (const i of mesh.indices) if (i >= vertices) throw new Error("terrain index out of range");
             for (const p of mesh.positions) if (!Number.isFinite(p)) throw new Error("terrain position not finite");
             readDoodads(bytes);
