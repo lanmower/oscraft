@@ -6,7 +6,7 @@ import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
-import { AnimationPlayer, jointMatrices, retargetLibrary } from "./anim.js";
+import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
@@ -31,12 +31,16 @@ const CAMERA_DISTANCE_PER_TILE = 40 / 32;
 const CAMERA_MAX_PER_TILE = 1.6;
 const CAMERA_MAX_FLOOR = 120;
 const CAMERA_PLAY_DISTANCE = 70;
+// The match opens on the local hero at this distance: close enough to read a hero, far enough to see its lane.
+const CAMERA_START_DISTANCE = 40;
+let pendingStartCentre = false;
 const CAMERA_FAR_PER_MAX = 2;
 const BACKGROUND = [0.114, 0.145, 0.173];
 const MAP_COLOR = [0.2, 0.28, 0.22];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const UNIT_HALF = 0.9;
+const HERO_DRAW_SCALE = 2;
 const DOODAD_HALF = 0.5;
 const PICK_RADIUS = 1.2;
 const FLAT_PX_PER_UNIT = 20;
@@ -188,11 +192,16 @@ function setMapSize(grid) {
 
 // Skin, node tree and clips for a skinned GLB, with its rest-pose geometry (the joint matrices carry the fit).
 // Null when the model has no clips or its skin has more joints than the shader palette.
+// The fit is lowered so the rig's lowest skinned vertex stands on y = 0 in its idle, walk and run poses (the fit's own
+// floor is the raw first mesh, which the bind pose does not match).
 function skinnedRig(animations, glb, fit) {
   const { clips, skins, nodes } = animations;
   const skin = skins[0];
   if (!skin || clips.length === 0 || skin.joints.length > MAX_JOINTS) return null;
-  return { clips, skin, nodes, fit, positions: glb.positions, normals: glb.normals || vertexNormals(glb.positions, glb.indices), joints: glb.joints, weights: glb.weights };
+  const grounding = clips.filter((clip) => /^(idle|walk|run)/.test(clip.name));
+  const grounded = Float32Array.from(fit);
+  grounded[13] -= skinFloor(nodes, skin, fit, glb.positions, glb.joints, glb.weights, grounding.length ? grounding : clips);
+  return { clips, skin, nodes, fit: grounded, positions: glb.positions, normals: glb.normals || vertexNormals(glb.positions, glb.indices), joints: glb.joints, weights: glb.weights };
 }
 
 // A flat ground square with its normal up: the fallback mesh for a unit with no model.
@@ -261,7 +270,9 @@ async function fetchModel(name, size) {
 async function loadModels(game) {
   if (typeof game.unit_model_names !== "function") return [];
   const sizes = await fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({}));
-  return Promise.all(game.unit_model_names().map((name) => fetchModel(name, sizes[name] ?? 2 * UNIT_HALF)));
+  // Heroes (player-controlled unit types) are drawn at HERO_DRAW_SCALE times their fitted size: the owner's intended hero size is twice the fit.
+  const heroFlags = typeof game.unit_hero_kinds === "function" ? game.unit_hero_kinds() : [];
+  return Promise.all(game.unit_model_names().map((name, type) => fetchModel(name, (sizes[name] ?? 2 * UNIT_HALF) * (heroFlags[type] === 1 ? HERO_DRAW_SCALE : 1))));
 }
 
 // Doodads: one fitted model per kind code (DODA kind), read from doodads.json which maps kind name to GLB path.
@@ -377,21 +388,44 @@ function unitMeshFor(type, color) {
 // Joint palette for a unit this frame: its clip (walk when it moved, attack when it reports attacking, else idle)
 // advanced by dt seconds. A unit with no matching clip holds the rest pose.
 const EMPTY_POSE = new Map();
+// Turn rate of a rigged unit toward its heading, in radians per second scale (the step is eased by dt).
+const TURN_RATE = 10;
+// Walk and run clip rate bounds, and the ease (per second) of the draw-side speed the rate follows.
+const RATE_MIN = 0.25;
+const RATE_MAX = 4;
+const SPEED_EASE = 8;
+function wrapAngle(a) {
+  return ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+}
 function jointsFor(u, mesh, dt) {
   const key = `${u.id}:${u.type}`;
   let entry = animators.get(key);
   if (!entry) {
     const { skin } = mesh.animation;
-    entry = { player: new AnimationPlayer(mesh.animation.clips), x: u.x, z: u.z, seen: false, joints: new Float32Array(16 * skin.joints.length) };
+    entry = { player: new AnimationPlayer(mesh.animation.clips), x: u.x, z: u.z, seen: false, heading: 0, yaw: 0, speed: 0, cycle: {}, joints: new Float32Array(16 * skin.joints.length) };
     animators.set(key, entry);
   }
-  const moving = Math.hypot(u.x - entry.x, u.z - entry.z) > MOVE_EPS;
+  const { nodes, skin, fit } = mesh.animation;
+  // Heading comes from the draw-side step since the last frame; an attacking unit keeps its heading (no target is exposed).
+  const dx = u.x - entry.x;
+  const dz = u.z - entry.z;
+  const step = Math.hypot(dx, dz);
+  const moving = step > MOVE_EPS;
+  if (moving) entry.heading = Math.atan2(dx, dz);
+  const turn = wrapAngle(entry.heading - entry.yaw);
+  entry.yaw += turn * Math.min(1, dt * TURN_RATE);
+  // Draw-side speed, eased so one frame's jitter does not change the clip's rate.
+  entry.speed += ((dt > 0 ? step / dt : 0) - entry.speed) * Math.min(1, dt * SPEED_EASE);
   entry.x = u.x;
   entry.z = u.z;
   entry.seen = true;
   entry.player.playState({ attacking: Boolean(u.attacking), moving });
+  // A walk or run cycle plays at the unit's speed over the gait's own speed, so its feet keep pace with the ground.
+  const clip = entry.player.clip;
+  if (clip && entry.cycle[clip.name] === undefined) entry.cycle[clip.name] = cycleSpeed(nodes, fit, clip);
+  const cycle = clip ? entry.cycle[clip.name] : 0;
+  entry.player.rate = moving && !u.attacking && cycle > 0 ? Math.min(RATE_MAX, Math.max(RATE_MIN, entry.speed / cycle)) : 1;
   entry.player.update(dt);
-  const { nodes, skin, fit } = mesh.animation;
   return jointMatrices(nodes, skin, entry.player.pose() ?? EMPTY_POSE, fit, entry.joints);
 }
 
@@ -436,8 +470,11 @@ function flushUnitBatches() {
 // pass and the lit pass. The transform is copied because the scratch matrix is reused by the next unit.
 function collectUnitDraws(units, dt) {
   const list = [];
+  const clips = [];
+  const yaws = [];
   for (const entry of animators.values()) entry.seen = false;
-  for (const u of units) {
+  for (const raw of units) {
+    const u = drawnPosition(raw);
     const color = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
     const model = unitMeshes[u.type];
     const mesh = unitMeshFor(u.type, color);
@@ -448,11 +485,48 @@ function collectUnitDraws(units, dt) {
       continue;
     }
     const transform = new Float32Array(translation(u.x, groundAt(u.x, u.z), u.z, unitTransform));
-    if (mesh.animation) list.push({ kind: "unit", mesh, transform, joints: jointsFor(u, mesh, dt) });
-    else list.push({ kind: model ? "unit" : "quad", mesh, transform, joints: null });
+    if (mesh.animation) {
+      const joints = jointsFor(u, mesh, dt);
+      const entry = animators.get(`${u.id}:${u.type}`);
+      const facing = new Float32Array(multiply(translation(u.x, groundAt(u.x, u.z), u.z), rotationY(entry.yaw)));
+      list.push({ kind: "unit", mesh, transform: facing, joints });
+      clips.push(`${u.id}:${entry.player.clip?.name ?? ""}:${entry.player.rate.toFixed(2)}`);
+      yaws.push(`${u.id}:${entry.yaw.toFixed(2)}`);
+    } else list.push({ kind: model ? "unit" : "quad", mesh, transform, joints: null });
   }
   for (const [key, entry] of animators) if (!entry.seen) animators.delete(key);
+  // The clip each rigged unit plays this frame, for the browser probe.
+  document.body.dataset.animClips = clips.join(",");
+  document.body.dataset.tickAlpha = tickShare().toFixed(3);
+  document.body.dataset.animYaw = yaws.join(",");
   return list;
+}
+
+// Draw-only interpolation between sim ticks. Each unit glides from its position at the tick before to its position at
+// the latest tick, over one tick of wall time, so the sim's positions (and everything that reads them) stay unchanged.
+const tickClock = new Map();
+let tickStampMs = null;
+function advanceTickClock(units) {
+  const next = new Map();
+  for (const u of units) {
+    const old = tickClock.get(u.id);
+    next.set(u.id, { px: old ? old.x : u.x, pz: old ? old.z : u.z, x: u.x, z: u.z });
+  }
+  tickClock.clear();
+  for (const [id, v] of next) tickClock.set(id, v);
+  tickStampMs = performance.now();
+}
+
+// The unit with its draw position: between its previous and latest tick positions by the share of a tick elapsed.
+function tickShare() {
+  return tickStampMs === null ? 0 : Math.min(1, Math.max(0, (performance.now() - tickStampMs) / SIM_TICK_MS));
+}
+
+function drawnPosition(u) {
+  const c = tickClock.get(u.id);
+  if (!c || tickStampMs === null) return u;
+  const a = tickShare();
+  return { ...u, x: c.px + (c.x - c.px) * a, z: c.pz + (c.z - c.pz) * a };
 }
 
 // Draws a collected unit list. The shadow pass (shadow = true) re-issues the same meshes with the light's matrix and
@@ -850,6 +924,8 @@ function onLobbyStart(state) {
   const frame = startFrame(state);
   setStatus("lobby: match starting");
   if (!isGuest()) applyStart(frame);
+  // The match opens on the local hero: the frame loop centres the camera once that hero is in the sim.
+  pendingStartCentre = true;
   try { session.broadcast(encodeFrame(frame)); } catch { /* the frame is refused when a seat key is oversize */ }
 }
 
@@ -960,6 +1036,7 @@ function startHost() {
   let hostTick = restoredAt > 0 ? restoredAt : 0;
   const hostStep = () => {
     localGame.tick();
+    advanceTickClock(simUnits());
     hostTick += 1;
     if (hostTick % SNAPSHOT_EVERY_TICKS === 0) saveSnapshot(hostTick);
     const hash = Number(localGame.state_hash() & 0xffffffffn) >>> 0;
@@ -1175,6 +1252,7 @@ session.addEventListener("data", (e) => {
   netTick = frame.tick;
   lastAppliedTick = frame.tick;
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp, type: u.kind })) };
+  advanceTickClock(netState.units);
   if (window.__ciRecv) recordTick(window.__ciRecv, frame.tick, [...netUnits.values()]);
 });
 
@@ -1453,10 +1531,18 @@ async function main() {
     lastFrameMs = now;
     panByKeys(dtS);
     modUi.step(dtS);
+    if (pendingStartCentre && renderer3d) {
+      const own = simUnits().find((u) => u.player === localPlayerId() && isHeroUnit(u.id));
+      if (own) {
+        renderer3d.setCamera({ target: [own.x, 0, own.z], distance: Math.min(CAMERA_START_DISTANCE, cameraMaxDistance) });
+        pendingStartCentre = false;
+      }
+    }
     if (!netState && localGame && !hosting) {
       localTickAcc += dtS;
       while (localTickAcc >= SIM_TICK_S) {
         localGame.tick();
+        advanceTickClock(simUnits());
         localTickAcc -= SIM_TICK_S;
       }
     }
@@ -1515,6 +1601,9 @@ if (params.get("ci") === "1") {
   // Read-only: every living unit of the local sim, fogged or not, for probes that walk toward a foe until it is in sight.
   window.__ciRoster = () => simUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
+  // Local order through the sim's own command path (the local match has no peers to broadcast to).
+  window.__ciMove = (unitId, x, z) => commands.order(unitId, x, z);
+  window.__ciAttack = (unitId, targetId) => commands.attack(unitId, targetId);
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
   window.__ciLearn = (unitId, slot) => (localGame ? localGame.skill_up(unitId, slot) : false);
   // The first ability slot of a unit whose cast waits for a click (target unit or point), or -1: the probe learns and casts that one.
