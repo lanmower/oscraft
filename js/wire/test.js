@@ -28,6 +28,7 @@ const samples = [
   { type: FRAME.ATTACK, unitId: 0xffffffff, targetId: 0x7fffffff },
   { type: FRAME.HOLD, unitId: 4 },
   { type: FRAME.HOLD, unitId: 0xffffffff },
+  { type: FRAME.ATTACK_MOVE, unitId: 4, x: -3, y: 1310720 },
   { type: FRAME.USE_ITEM, unitId: 4, slot: 0, target: -1, x: 0, y: 0 },
   { type: FRAME.USE_ITEM, unitId: 0xffffffff, slot: 5, target: 0x7fffffff, x: -0x80000000, y: 0x7fffffff },
   { type: FRAME.JOIN, lastTick: 0 },

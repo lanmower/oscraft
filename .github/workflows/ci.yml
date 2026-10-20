@@ -2061,7 +2061,13 @@ jobs:
             const mid = [pts[k][0] + (pts[k + 1][0] - pts[k][0]) * f, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * f];
             // The waypoint nearest the midpoint is a walkable cell centre (the route data is snapped to them); the midpoint itself may not be.
             const dist = (p) => Math.hypot(p[0] - mid[0], p[1] - mid[1]);
-            const near = dist(pts[k]) <= dist(pts[k + 1]) ? pts[k] : pts[k + 1];
+            // The contact must sit outside the enemy towers' reach: the mid tower (weapon range 10.938 cells, units.osd) would
+            // otherwise shoot the hero while it waits there. The nearest route waypoint clear of every side-1 tower, with a 3-cell margin, is used.
+            const enemyTowers = [...readFileSync(process.env.GITHUB_WORKSPACE + "/scenarios/moba/map.osd", "utf8").matchAll(/^spawn\("tower(?:_t\d)?", 1, (-?\d+), (-?\d+)\)$/gm)].map((m) => [Number(m[1]) / 1000, Number(m[2]) / 1000]);
+            const TOWER_REACH_CELLS = 10.938 + 3;
+            const clearOfTowers = (p) => enemyTowers.every((t) => Math.hypot(p[0] - t[0], p[1] - t[1]) > TOWER_REACH_CELLS);
+            const near = [...pts].sort((a, b) => dist(a) - dist(b)).find(clearOfTowers);
+            if (!near) throw new Error("no mid lane waypoint outside the enemy tower reach");
             return { x: near[0], z: near[1] };
           };
           const contact = laneMid(0);
@@ -2236,7 +2242,7 @@ jobs:
                 attacks = Number(await page.getAttribute("body", "data-attacks"));
                 console.log(`probe try cand=${cand.id} foe=${foeNow.id} gap=${gap.toFixed(2)} attacks=${attacks}`);
               }
-              // The attack ring lives 600 ms from the click that ordered the strike, so it is witnessed right after the strike is accepted.
+              // The attack ring lives 2500 ms from the click that ordered the strike; the sim accepts the order a tick or more later, so the ring is still up when the strike is counted.
               if (attacks > attacks0) { ringSeen = await fxWait("fx", "rgb(229, 57, 53)"); if (ringSeen) await fxShot("attack-ring.png"); }
               console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
               if (attacks > attacks0) { attacker = cand; break; }
@@ -2270,6 +2276,41 @@ jobs:
           // The skill panel's cooldown sweep on the cast row is drawn while that ability is on cooldown.
           const sweepShown = await page.evaluate(() => [...document.querySelectorAll("#ui-skills .cd")].some((n) => n.style.background.startsWith("conic-gradient")));
           console.log(`moba cooldown ok sweep=${Number(sweepShown)}`);
+          // A then click, last in the step so the fights above cannot take its hero: the hero is selected again, then
+          // attack-moved 5 cells toward the contact point. Its red marker stays up while it walks, and the sim strikes foes it meets.
+          const heroXZ = async () => page.evaluate((id) => { const u = window.__ciUnits().find((v) => v.id === id); return u ? { x: u.x, z: u.z } : null; }, orderHero.id);
+          const dTo = (p, q) => Math.hypot(p.x - q.x, p.z - q.z);
+          const amStart = await heroXZ();
+          if (!amStart) throw new Error("attack-move probe: local hero " + orderHero.id + " is gone");
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [amStart.x, amStart.z]);
+          const amHeroAt = await screenAt(amStart.x, amStart.z);
+          await page.mouse.click(amHeroAt.x, amHeroAt.y, { button: "left" });
+          if ((await page.evaluate(() => window.__ciSelected())) !== orderHero.id) throw new Error("attack-move probe: the hero click did not select " + orderHero.id);
+          const span = dTo(amStart, contact);
+          const k = span > 0 ? Math.min(1, 5 / span) : 0;
+          const point = { x: amStart.x + (contact.x - amStart.x) * k, z: amStart.z + (contact.z - amStart.z) * k };
+          const pointAt = await screenAt(point.x, point.z);
+          const pointOnCanvas = pointAt.x >= 0 && pointAt.y >= 0 && pointAt.x < viewport.w && pointAt.y < viewport.h
+            && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [pointAt.x, pointAt.y]));
+          if (!pointOnCanvas) throw new Error("attack-move point is not on the canvas");
+          const amBefore = Number(await page.getAttribute("body", "data-orders"));
+          await page.keyboard.press("a");
+          await page.mouse.click(pointAt.x, pointAt.y, { button: "left" });
+          await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, amBefore, { timeout: 2000 }).catch(() => {});
+          const amOrders = Number(await page.getAttribute("body", "data-orders"));
+          const amShown = await fxWait("fx", "rgb(229, 57, 53)");
+          if (amShown) await fxShot("attack-move.png");
+          let amEnd = amStart;
+          for (let i = 0; i < 40; i++) {
+            amEnd = (await heroXZ()) || amEnd;
+            if (dTo(amEnd, point) <= 1) break;
+            await page.waitForTimeout(500);
+          }
+          const startDist = dTo(amStart, point);
+          const endDist = dTo(amEnd, point);
+          console.log(`moba attack-move ok orders=${amBefore}->${amOrders} dist=${startDist.toFixed(2)}->${endDist.toFixed(2)} marker=${Number(amShown)}`);
+          if (!(amOrders > amBefore)) throw new Error("attack-move click was not accepted: refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none"));
+          if (!(endDist <= 1 || endDist < startDist - 0.5)) throw new Error(`hero did not travel toward the attack-move point: ${startDist.toFixed(2)}->${endDist.toFixed(2)}`);
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
           await page.evaluate(() => window.__ciKillSide(1));
@@ -2288,6 +2329,7 @@ jobs:
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba fx ok move=1 ring=1 reticle=1 refusal=1$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba cooldown ok sweep=1$' "$RUNNER_TEMP/moba-input.txt"
+          grep -Eq '^moba attack-move ok orders=[0-9]+->[0-9]+ dist=[0-9.]+->[0-9.]+ marker=[01]$' "$RUNNER_TEMP/moba-input.txt"
 
       - name: Screenshot a ranged attack and a ramp beside flat ground
         run: |

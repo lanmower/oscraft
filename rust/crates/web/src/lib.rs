@@ -136,6 +136,14 @@ impl Game {
         self.sim.issue_order_kind(unit as usize, ORDER_MOVE, fx, fy).is_ok()
     }
 
+    /// Attack-moves unit `unit` to tile (x, y): it walks there, strikes each enemy in its reach on the way,
+    /// and resumes travel after each kill. Returns false when the sim refuses the order.
+    pub fn attack_move(&mut self, unit: u32, x: f32, y: f32) -> bool {
+        let fx = (x as f64 * 65536.0) as i32;
+        let fy = (y as f64 * 65536.0) as i32;
+        self.sim.issue_order_kind(unit as usize, sim::ORDER_ATTACK_MOVE, fx, fy).is_ok()
+    }
+
     /// Holds unit `unit` where it stands: it does not chase, and strikes only enemies in its reach.
     /// Returns false when the sim refuses the order (dead or unknown unit, stunned).
     pub fn hold(&mut self, unit: u32) -> bool {
