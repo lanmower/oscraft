@@ -82,6 +82,12 @@ export function displayHeights(grid) {
     return out;
   };
   for (let i = 0; i < n; i++) if (isWaterCell(grid, i)) fixed[i] = 1;
+  // Every impassable cell (BLOCKED or cliff, as tiles.js cellKind reads it) and every cell beside one keeps its committed height.
+  for (let i = 0; i < n; i++) {
+    if (!isImpassableCell(grid, i)) continue;
+    fixed[i] = 1;
+    for (const j of neighbours(i)) fixed[j] = 1;
+  }
   for (let i = 0; i < n; i++) {
     for (const j of neighbours(i)) {
       const dh = Math.abs(shown[i] - shown[j]);
@@ -119,6 +125,11 @@ const CLIFF_BIT = 2, BLOCKED_BIT = 1, WATER_TILE_ID = 4;
 function isWaterCell(grid, i) {
   const f = grid.flags[i];
   return (f & BLOCKED_BIT) !== 0 && (f & CLIFF_BIT) === 0 && grid.tiles[i] === WATER_TILE_ID;
+}
+
+// Impassable cell: the BLOCKED or CLIFF flag is set (cellKind is "cliff" or "water" for these).
+function isImpassableCell(grid, i) {
+  return (grid.flags[i] & (BLOCKED_BIT | CLIFF_BIT)) !== 0;
 }
 
 export function buildTerrain(bytes) {
