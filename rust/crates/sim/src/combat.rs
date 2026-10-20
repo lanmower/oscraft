@@ -831,4 +831,24 @@ mod tests {
         assert!(!s.use_item(unit, 0, -1, 0, 0), "an empty slot has no item to use");
         assert_eq!(s.hp(unit), before, "a refused item use changes no unit state");
     }
+
+    /// A consumable spends one charge per successful use, and a second use inside the item's cooldown is refused.
+    #[test]
+    fn consumable_use_spends_a_charge_and_refuses_reuse_in_cooldown() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
+        let image = osdt_data::generate(&scenario).expect("moba image");
+        let mut s = load(&image, CAP).expect("moba sim");
+        s.set_fog(false);
+        let hero = unit_named(&mut s, 0, "antimage");
+        let (hx, hy) = s.position_fixed(hero);
+        s.enroll_hero(hero, hx, hy);
+        let item = crate::inventory::item_kind(s.catalog().item_index("faerie_fire").expect("faerie fire item"));
+        assert!(s.inventory_add(hero, item, 2), "the hero takes two charges");
+        let base = hero * crate::inventory::INV_SLOTS;
+        let slot = (0..crate::inventory::MAIN_SLOTS).find(|&k| s.inv_kind[base + k] == item).expect("item slot");
+        assert!(s.use_item(hero, slot, hero as i32, 0, 0), "the first use casts");
+        assert_eq!(s.inv_count[base + slot], 1, "one charge is spent");
+        assert!(!s.use_item(hero, slot, hero as i32, 0, 0), "a second use inside the cooldown is refused");
+        assert_eq!(s.inv_count[base + slot], 1, "a refused use spends no charge");
+    }
 }
