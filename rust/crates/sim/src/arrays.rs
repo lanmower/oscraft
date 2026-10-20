@@ -172,6 +172,10 @@ pub struct Sim {
     pub(crate) aggro: crate::aggro::AggroState,
     /// Lane route progress per unit. See route.rs.
     pub(crate) routes: crate::route::RouteState,
+    /// Chase and return state of acquiring units. See acquire.rs.
+    pub(crate) chase: crate::acquire::ChaseState,
+    /// Acquire range per unit kind, milli-units, from the table in acquire.rs. Catalog-derived, not hashed.
+    pub(crate) acquire: Vec<i32>,
     /// Ward expiry stamps. See wards.rs.
     pub(crate) wards: crate::wards::WardState,
     /// Courier delivery state. See courier.rs.
@@ -297,6 +301,7 @@ impl Sim {
         let research_slots = cat.research.len() * MAX_PLAYERS;
         let doodads_init = cat.doodads.clone();
         let cat_digest = crate::hash::catalog_digest(&cat, &grid);
+        let acquire = crate::acquire::per_kind(&cat);
         let stock = crate::shop::StockState::new(&cat.items);
         let mut s = Sim {
             grid,
@@ -380,6 +385,8 @@ impl Sim {
             camps: crate::camp::CampState::new(cap),
             aggro: crate::aggro::AggroState::new(cap),
             routes: crate::route::RouteState::new(cap),
+            chase: crate::acquire::ChaseState::new(cap),
+            acquire,
             wards: crate::wards::WardState::new(cap),
             couriers: crate::courier::CourierState::new(cap),
             stock,
@@ -705,6 +712,7 @@ impl Sim {
         self.camps.clear(i);
         self.aggro_clear(i);
         self.route_clear(i);
+        self.chase_clear(i);
         self.wards.expires[i] = 0;
         self.couriers.clear(i);
         self.spell.clear_unit(i);

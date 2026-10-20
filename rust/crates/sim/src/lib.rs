@@ -11,6 +11,7 @@ mod arrays;
 mod buffs;
 mod combat;
 mod filters;
+mod acquire;
 mod fog;
 mod harvest;
 mod healers;
