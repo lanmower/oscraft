@@ -1282,6 +1282,8 @@ function publishWitness() {
   document.body.dataset.center = renderer3d.camera.target.map((v) => v.toFixed(2)).join(",");
   document.body.dataset.distance = renderer3d.camera.distance.toFixed(3);
   document.body.dataset.drawTerrain = String(drawCounts.terrain);
+  // No quad placeholder exists any more: units with no model are not drawn, so the quad count is always 0.
+  document.body.dataset.drawQuad = "0";
   document.body.dataset.drawSplat = String(drawCounts.splat);
   document.body.dataset.splatGround = splat ? "1" : "0";
   document.body.dataset.shadow = SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0";
