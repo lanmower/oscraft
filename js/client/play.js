@@ -102,6 +102,8 @@ let terrainTiles = null;
 let unitMeshes = [];
 let arrowMesh = null;
 const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
+// Unit instances drawn into the sun's shadow map this frame (the dynamic casters), published for the browser probe.
+let shadowUnitCount = 0;
 // Scratch matrices for the per-unit transform and the screen projection, reused every frame.
 const unitTransform = new Float32Array(16);
 const worldVp = new Float32Array(16);
@@ -430,7 +432,10 @@ function flushUnitBatches() {
   }
 }
 
-function drawUnits3d(units, dt) {
+// Collects this frame's visible unit draws once: each animator advances here, and the list is replayed by the shadow
+// pass and the lit pass. The transform is copied because the scratch matrix is reused by the next unit.
+function collectUnitDraws(units, dt) {
+  const list = [];
   for (const entry of animators.values()) entry.seen = false;
   for (const u of units) {
     const color = u.id === selectedId ? SELECT_COLOR : PLAYER_COLORS[u.player] || PLAYER_COLORS[0];
@@ -442,17 +447,33 @@ function drawUnits3d(units, dt) {
       if (kept) kept.seen = true;
       continue;
     }
-    const transform = translation(u.x, groundAt(u.x, u.z), u.z, unitTransform);
-    if (mesh.animation) {
-      countDraw("unit", mesh, transform, jointsFor(u, mesh, dt));
-      drawCounts.animated += 1;
+    const transform = new Float32Array(translation(u.x, groundAt(u.x, u.z), u.z, unitTransform));
+    if (mesh.animation) list.push({ kind: "unit", mesh, transform, joints: jointsFor(u, mesh, dt) });
+    else list.push({ kind: model ? "unit" : "quad", mesh, transform, joints: null });
+  }
+  for (const [key, entry] of animators) if (!entry.seen) animators.delete(key);
+  return list;
+}
+
+// Draws a collected unit list. The shadow pass (shadow = true) re-issues the same meshes with the light's matrix and
+// returns the number of unit instances it cast; the lit pass counts per category as before.
+function emitUnitDraws(list, shadow) {
+  let casters = 0;
+  for (const d of list) {
+    if (shadow) casters += 1;
+    if (d.joints) {
+      if (shadow) renderer3d.drawSkinned(d.mesh, d.transform, d.joints);
+      else {
+        countDraw(d.kind, d.mesh, d.transform, d.joints);
+        drawCounts.animated += 1;
+      }
     } else {
-      drawCounts[model ? "unit" : "quad"] += 1;
-      queueUnit(mesh, transform);
+      if (!shadow) drawCounts[d.kind] += 1;
+      queueUnit(d.mesh, d.transform);
     }
   }
   flushUnitBatches();
-  for (const [key, entry] of animators) if (!entry.seen) animators.delete(key);
+  return casters;
 }
 
 // Creep: sets one cell's ground kind (grass, dirt or lane) by rewriting its control texel. Only that texel is uploaded;
@@ -506,16 +527,22 @@ function drawWorld3d() {
   const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
   lastDrawMs = now;
   renderer3d.beginFrame(BACKGROUND);
-  const shadowed = renderer3d.beginShadowPass ? renderer3d.beginShadowPass() : false;
-  if (shadowed) {
+  const units = currentUnits();
+  const unitDraws = collectUnitDraws(units, dt);
+  // Static casters (terrain, doodads, buildings, towers) are drawn into the cached layer only when it is dirty; the
+  // dynamic casters (units) are drawn into the working map every frame, on top of that layer.
+  const shadow = renderer3d.beginShadowPass ? renderer3d.beginShadowPass() : null;
+  shadowUnitCount = 0;
+  if (shadow) {
     const counted = { ...drawCounts };
-    drawGround3d();
+    if (shadow.staticDirty) drawGround3d();
+    renderer3d.beginShadowUnits();
+    shadowUnitCount = emitUnitDraws(unitDraws, true);
     renderer3d.endShadowPass();
     Object.assign(drawCounts, counted);
   }
   drawGround3d();
-  const units = currentUnits();
-  drawUnits3d(units, dt);
+  emitUnitDraws(unitDraws, false);
   // window.__fxOff is the CI probe switch that measures the frame cost of the effects.
   if (fx && window.__fxOff !== true) fx.frame(units, dt);
   renderer3d.endFrame();
@@ -1177,6 +1204,7 @@ function publishWitness() {
   document.body.dataset.drawSplat = String(drawCounts.splat);
   document.body.dataset.splatGround = splat ? "1" : "0";
   document.body.dataset.shadow = SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0";
+  document.body.dataset.shadowUnits = String(shadowUnitCount);
   document.body.dataset.texelUploads = String(renderer3d ? renderer3d.stats.texelUploads || 0 : 0);
   document.body.dataset.terrainMode = splat && !TERRAIN_TILES ? "heightfield" : splat ? "splat" : tileMeshes ? "tiles" : "heightfield";
   document.body.dataset.splatFallback = splat ? "" : splatFallbackReason || "splat not built";

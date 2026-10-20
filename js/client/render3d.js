@@ -419,7 +419,8 @@ export function createRenderer(gl) {
   const viewProj = identity();
   const unitModel = identity();
   // Sun shadow map: one depth target over the playfield, filled by re-issuing the caster draws with the light's matrix.
-  let shadowFbo = null, shadowTex = null, shadowSize = 0, shadowOn = false, passVP = viewProj;
+  // shadowFbo/shadowTex: the working map the lit pass samples. staticFbo/staticTex: the cached layer of static casters.
+  let shadowFbo = null, shadowTex = null, staticFbo = null, staticTex = null, shadowSize = 0, shadowOn = false, passVP = viewProj;
   let casterGen = 0, shadowGen = -1, savedCullBounds = null;
   const lightVP = identity();
   const modelScratch = new Float32Array(16);
@@ -557,6 +558,7 @@ export function createRenderer(gl) {
     updateSplatCell,
     setShadows,
     beginShadowPass,
+    beginShadowUnits,
     endShadowPass,
   };
 
@@ -842,25 +844,36 @@ export function createRenderer(gl) {
     stats.texelUploads = (stats.texelUploads || 0) + 1;
   }
 
-  // Builds the sun's shadow map once: an orthographic view over a square of `halfExtent` cells around `center`.
+  // A depth-only render target of `size` texels square. Returns null when the framebuffer is incomplete.
+  function makeDepthTarget(size) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, size, size, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, tex, 0);
+    const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return complete ? { tex, fbo } : null;
+  }
+
+  // Builds the sun's shadow maps once: an orthographic view over a square of `halfExtent` cells around `center`.
   function setShadows({ enabled, size, center, halfExtent }) {
     shadowOn = Boolean(enabled);
     if (!shadowOn) return false;
     if (!shadowTex) {
       shadowSize = size;
-      shadowTex = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, shadowTex);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, size, size, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      shadowFbo = gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFbo);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowTex, 0);
-      const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      if (!complete) { shadowOn = false; return false; }
+      const working = makeDepthTarget(size);
+      const layer = working && makeDepthTarget(size);
+      if (!working || !layer) { shadowOn = false; return false; }
+      shadowTex = working.tex;
+      shadowFbo = working.fbo;
+      staticTex = layer.tex;
+      staticFbo = layer.fbo;
     }
     shadowGen = -1;
     const reach = 2 * SHADOW_DISTANCE;
@@ -881,23 +894,30 @@ export function createRenderer(gl) {
     return true;
   }
 
-  // Shadow pass: the caster draws that follow run into the depth map from the sun, with colour writes off. The map
-  // covers the whole playfield and the casters are static, so it is rebuilt only when a caster GPU resource is
-  // created (casterGen moves); otherwise the pass is skipped and returns false.
+  // Shadow pass, in three steps. The static casters (terrain, doodads, buildings, towers) live in a cached layer that is
+  // redrawn only when a caster GPU resource is created (casterGen moves). Each frame the working map is refilled from
+  // that layer with one depth blit (no draw calls), and the dynamic casters (units) are drawn on top of it.
+  //   beginShadowPass()   binds the static layer; returns { staticDirty }, or null when shadows are off. When staticDirty,
+  //                       the caller draws the static casters into it.
+  //   beginShadowUnits()  copies the static depth into the working map and binds it for the dynamic casters.
+  //   endShadowPass()     restores the lit pass.
   function beginShadowPass() {
-    if (!shadowOn || !shadowTex) return false;
-    if (shadowGen === casterGen) return false;
+    if (!shadowOn || !shadowTex) return null;
+    const staticDirty = shadowGen !== casterGen;
     savedCullBounds = cullBounds;
     cullBounds = null;
     gl.activeTexture(gl.TEXTURE0 + SHADOW_UNIT);
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, staticFbo);
     gl.viewport(0, 0, shadowSize, shadowSize);
     gl.colorMask(false, false, false, false);
     gl.enable(gl.POLYGON_OFFSET_FILL);
     gl.polygonOffset(2, 4);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
+    if (staticDirty) {
+      gl.clear(gl.DEPTH_BUFFER_BIT);
+      shadowGen = casterGen;
+    }
     gl.useProgram(program);
     gl.uniform1f(uni.shadowOn, 0);
     gl.uniformMatrix4fv(uni.viewProj, false, lightVP);
@@ -905,12 +925,18 @@ export function createRenderer(gl) {
     gl.uniform1f(splatUni.shadowOn, 0);
     gl.useProgram(program);
     passVP = lightVP;
-    return true;
+    return { staticDirty };
+  }
+
+  function beginShadowUnits() {
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, staticFbo);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, shadowFbo);
+    gl.blitFramebuffer(0, 0, shadowSize, shadowSize, 0, 0, shadowSize, shadowSize, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFbo);
   }
 
   function endShadowPass() {
     cullBounds = savedCullBounds;
-    shadowGen = casterGen;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.colorMask(true, true, true, true);

@@ -2480,6 +2480,8 @@ jobs:
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
           const draws = await page.evaluate(() => { const d = document.body.dataset; return { total: d.drawCalls, terrain: d.drawTerrain, splat: d.drawSplat, doodad: d.drawDoodad, unit: d.drawUnit, quad: d.drawQuad, animated: d.drawAnimated }; });
           console.log(`moba draw calls total=${draws.total} terrain=${draws.terrain} splat=${draws.splat} doodad=${draws.doodad} unit=${draws.unit} quad=${draws.quad} animated=${draws.animated}`);
+          const casters = await page.evaluate(() => ({ shadow: document.body.dataset.shadow, units: document.body.dataset.shadowUnits }));
+          console.log(`moba shadow casters units=${casters.units} shadow=${casters.shadow}`);
           await page.evaluate(() => window.__ciKillSide(1));
           await page.waitForFunction(() => Number(document.body.dataset.winner) >= 0, null, { timeout: 15000 });
           const shown = await page.evaluate(() => { const w = document.getElementById("win"); return !w.hidden && w.textContent; });
@@ -2491,6 +2493,7 @@ jobs:
           grep -q '^moba input ok orders=[1-9][0-9]* casts=[1-9][0-9]* attacks=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba hud ok hp=[1-9][0-9]* gold=[0-9]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba minimap ok dots=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba shadow casters units=[1-9][0-9]* shadow=1$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba win screen ok winner=0$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
