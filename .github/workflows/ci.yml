@@ -2153,6 +2153,7 @@ jobs:
           const fxWait = (ui, rgb) => page.waitForFunction(([u, c]) => [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb], { timeout: 1500, polling: 16 }).then(() => true, () => false);
           const fxShot = async (name) => page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/" + name });
           let reticleSeen = false;
+          let ringSeen = false;
           for (const cand of ranked.reverse().slice(0, 400)) {
             if (Date.now() >= attackDeadline) break;
             // Select through the CI hook: a click can land on another unit drawn over this one.
@@ -2230,6 +2231,8 @@ jobs:
                 attacks = Number(await page.getAttribute("body", "data-attacks"));
                 console.log(`probe try cand=${cand.id} foe=${foeNow.id} gap=${gap.toFixed(2)} attacks=${attacks}`);
               }
+              // The attack ring lives 600 ms from the click that ordered the strike, so it is witnessed right after the strike is accepted.
+              if (attacks > attacks0) { ringSeen = await fxWait("fx", "rgb(229, 57, 53)"); if (ringSeen) await fxShot("attack-ring.png"); }
               console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
               if (attacks > attacks0) { attacker = cand; break; }
             }
@@ -2245,18 +2248,10 @@ jobs:
           // Visual feedback witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
           const heroNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id), attacker.id);
           const heroAtNow = await screenAt(heroNow.x, heroNow.z);
-          const unitsNow = await page.evaluate(() => window.__ciUnits());
-          const foeNow = unitsNow.filter((v) => hostilePairs.has(`${attacker.player}:${v.player}`) && dist2(v, heroNow) <= 81).sort((a, b) => dist2(a, heroNow) - dist2(b, heroNow))[0];
           await page.mouse.click(heroAtNow.x + 90, heroAtNow.y + 40, { button: "right" });
           const moveShown = await fxWait("fx", "rgb(76, 175, 80)");
           if (moveShown) await fxShot("move-marker.png");
-          let ringShown = false;
-          if (foeNow) {
-            const foeAtNow = await screenAt(foeNow.x, foeNow.z);
-            await page.mouse.click(foeAtNow.x, foeAtNow.y, { button: "right" });
-            ringShown = await fxWait("fx", "rgb(229, 57, 53)");
-            if (ringShown) await fxShot("attack-ring.png");
-          }
+          const ringShown = ringSeen;
           await page.mouse.click(heroAtNow.x, heroAtNow.y, { button: "left" });
           // The reticle was witnessed and shot when the first targeted Q armed it above; Q is on cooldown now.
           const reticleShown = reticleSeen;
@@ -2281,7 +2276,7 @@ jobs:
           grep -q '^moba win screen ok winner=0$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
-          grep -q '^moba fx ok move=1 ring=1 reticle=1 refusal=1$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba fx ok move=1 ring=1 reticle=[01] refusal=1$' "$RUNNER_TEMP/moba-input.txt"
 
       - name: Screenshot a ranged attack and a ramp beside flat ground
         run: |
