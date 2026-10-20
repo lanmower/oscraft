@@ -2164,6 +2164,7 @@ jobs:
             if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) continue;
             // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).
             await page.evaluate((id) => window.__ciLearn(id, 0), cand.id);
+            console.log(`probe learned cand=${cand.id} casts=${await page.getAttribute("body", "data-casts")} attacks=${await page.getAttribute("body", "data-attacks")} refusal=${await page.evaluate(() => document.body.dataset.lastRefusal || "none")}`);
             // Counters are compared before and after each step, so earlier candidates do not count.
             for (const foe of foes) {
               const fp = await screenAt(foe.x, foe.z);
