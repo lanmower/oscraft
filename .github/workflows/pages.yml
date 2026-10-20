@@ -27,6 +27,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       # The wasm package and the maps are a pure function of the build sources, so a source-keyed hit
       # restores them and skips the toolchain, the cargo build and wasm-pack. Every artifact is still laid out and uploaded.
@@ -120,6 +122,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
+          submodules: recursive
           sparse-checkout: scripts/observe
 
       - uses: actions/download-artifact@v4

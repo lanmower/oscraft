@@ -33,6 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          submodules: recursive
           fetch-depth: 0
 
       - id: decide
@@ -69,6 +70,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -280,6 +283,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -344,6 +349,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -425,6 +432,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -835,6 +844,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -902,6 +913,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -1340,6 +1353,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -1412,6 +1427,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -1800,6 +1817,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -2980,13 +2999,16 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: play.html loads committed modules through an import map
         run: |
           set -euo pipefail
           grep -q 'type="module" src="play.js"' js/client/play.html
           if grep -q 'dist/' js/client/play.html; then echo "play.html still references a dist bundle"; exit 1; fi
-          grep -q '"wireweave": "https://' js/client/play.html
+          grep -q '"wireweave": "./vendor/wireweave/src/index.js"' js/client/play.html
+          test -f js/client/vendor/wireweave/src/index.js
           count=0
           for f in js/client/*.js js/wire/frame.js js/wire/test.js; do node --check "$f"; count=$((count + 1)); done
           cmp js/wire/frame.js js/client/wire/frame.js
@@ -3162,6 +3184,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -3286,6 +3310,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -3317,6 +3343,8 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -3389,6 +3417,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -3433,6 +3463,8 @@ jobs:
         working-directory: js/wire
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Round-trip and reject tests
         run: node test.js
@@ -3445,6 +3477,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -3546,6 +3580,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -3660,6 +3696,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -3754,6 +3792,8 @@ jobs:
         working-directory: rust/crates/wasip3
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install the nightly toolchain with the wasm32-wasip3 target
         run: rustup toolchain install nightly --profile minimal --target wasm32-wasip3
@@ -3797,6 +3837,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -4007,6 +4049,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:
@@ -4245,21 +4289,24 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: play.html imports wireweave from the a71f179 pin and loads play.js as a module
+      - name: play.html imports the wireweave submodule and loads play.js as a module
         run: |
           set -euo pipefail
           node --input-type=module <<'JS'
-          import { readFileSync } from 'node:fs';
+          import { readFileSync, existsSync } from 'node:fs';
           const html = readFileSync('js/client/play.html', 'utf8');
           const fail = (why) => { console.error(`net client FAIL ${why}`); process.exit(1); };
           const m = html.match(/<script type="importmap">([\s\S]*?)<\/script>/);
           if (!m) fail('no importmap script');
           const map = JSON.parse(m[1]).imports ?? {};
-          const pin = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@a71f179cc5352964bc014deea166969938705e61/src/index.js';
-          if (map.wireweave !== pin) fail(`wireweave pin is ${map.wireweave}`);
+          const sub = './vendor/wireweave/src/index.js';
+          if (map.wireweave !== sub) fail(`wireweave import is ${map.wireweave}`);
+          if (!existsSync('js/client/vendor/wireweave/src/index.js')) fail('wireweave submodule is not checked out');
           if (!/<script type="module" src="play\.js"/.test(html)) fail('play.html does not load play.js as a module');
           if (/dist\//.test(html)) fail('play.html references dist/');
-          console.log(`net client bundle ok wireweave=a71f179 importmap=${Object.keys(map).length}`);
+          console.log(`net client bundle ok wireweave=submodule importmap=${Object.keys(map).length}`);
           JS
           node --check js/client/play.js
