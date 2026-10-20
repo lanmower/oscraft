@@ -2145,7 +2145,10 @@ jobs:
           // Allies on one team are not attack targets, so the foes are the players the sim calls hostile.
           const players = [...new Set(live.map((u) => u.player))];
           const hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));
+          // Bounded: the attack search gives up after 180 s so a foe the sim never accepts cannot hold the job.
+          const attackDeadline = Date.now() + 180000;
           for (const cand of ranked.reverse().slice(0, 400)) {
+            if (Date.now() >= attackDeadline) break;
             // Select through the CI hook: a click can land on another unit drawn over this one.
             // An attack needs a visible, hostile target: the camera moves onto the candidate, then only enemies inside its sight (9 cells) are tried, nearest first.
             const near = live.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64);
@@ -2194,7 +2197,7 @@ jobs:
               // and a foe inside 1.5 cells gets a right click (an attack). A refused order changes nothing, so the loop retries until the weapon's 27-tick period has passed.
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
               let attacks = attacks0;
-              for (let tries = 0; tries < 90 && attacks <= attacks0; tries++) {
+              for (let tries = 0; tries < 30 && attacks <= attacks0 && Date.now() < attackDeadline; tries++) {
                 const homeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, cand.id);
                 // A foe that moved out of sight is replaced by another visible foe of this candidate.
                 // Foes are re-read each try: the cast or the fight may have killed the listed ones, so the nearest hostile in sight stands in for them.
