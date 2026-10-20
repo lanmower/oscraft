@@ -182,33 +182,48 @@ const startLines = legacyLines.filter((l) => l.startsWith("start("));
 const jass = fs.readFileSync(path.join(src, "war3map.j"), "latin1");
 const spawnLinesLegacy = legacyLines.filter((l) => l.startsWith("spawn(") && !l.startsWith('spawn("base"'));
 
-// Towers of the Scourge side (player 1) move to the 6.88 towers. The script's tower code is 'uzig' (Ziggurat, from
-// docs/CONVERGENCE_688G.md). Its literal CreateUnit calls in war3map.j are the decoded tower positions; the calls
-// with variables (Ve[0], lines 101260-101270) re-create the same points (their X/Y arguments are GetUnitX/Y of the
-// literal units, war3map.j:101168-101189), so they add no position. Each legacy tower line of player 1 takes the
-// nearest unclaimed decoded position that is an open cell; a line whose position is blocked keeps its legacy position.
-const towerPositions = [];
-for (const m of jass.matchAll(/CreateUnit\([^,]+,'uzig',(-?[\d.]+),(-?[\d.]+),/g)) {
-  const wx = Number(m[1]), wy = Number(m[2]);
-  if (!towerPositions.some((p) => p.wx === wx && p.wy === wy)) towerPositions.push({ wx, wy });
-}
+// Towers and barracks move to their 6.88 positions. Each group is one side's script codes; its positions are the literal
+// CreateUnit calls for those codes in war3map.j. The variable-coordinate calls re-create the same points (their X/Y are
+// GetUnitX/Y of the literal units), so they add no position. Tower codes: uzig (Scourge, player 1; the Ziggurat, from
+// docs/CONVERGENCE_688G.md) and emow (Sentinel, player 0; the same tower-type table as uzig, war3map.j:91724 and 91751).
+// Barracks codes are inferred, not named in the archive: on each side the two codes that have exactly six literal creates
+// (three each) and sit in the lane-sized groups are taken as the barracks: eaom+eaoe (Sentinel, player 0) and usep+utod
+// (Scourge, player 1). Each legacy line of a group takes the nearest unclaimed decoded position that is an open cell; a
+// line with no open position keeps its legacy position.
+const literalPositions = (codes) => {
+  const out = [];
+  for (const m of jass.matchAll(/CreateUnit\([^,]+,'([^']+)',(-?[\d.]+),(-?[\d.]+),/g)) {
+    if (!codes.includes(m[1])) continue;
+    const wx = Number(m[2]), wy = Number(m[3]);
+    if (!out.some((p) => p.wx === wx && p.wy === wy)) out.push({ wx, wy });
+  }
+  return out;
+};
+const groups = [
+  { player: 0, match: /^spawn\("(tower(?:_t\d)?)", 0, /, codes: ["emow"] },
+  { player: 1, match: /^spawn\("(tower(?:_t\d)?)", 1, /, codes: ["uzig"] },
+  { player: 0, match: /^spawn\("(barracks_(?:melee|ranged))", 0, /, codes: ["eaom", "eaoe"] },
+  { player: 1, match: /^spawn\("(barracks_(?:melee|ranged))", 1, /, codes: ["usep", "utod"] },
+];
+const groupPositions = groups.map((g) => literalPositions(g.codes));
+const groupClaimed = groups.map(() => new Set());
 const towerCell = (p) => ({ cx: Math.floor((p.wx + 8192) / 64), cy: Math.floor((8192 - p.wy) / 64) });
-const claimed = new Set();
 const spawnLines = spawnLinesLegacy.map((line) => {
-  const m = line.match(/^spawn\("(tower(?:_t\d)?)", 1, (-?\d+), (-?\d+)\)$/);
-  if (!m) return line;
-  const lx = Number(m[2]) / 1000 - GX, ly = Number(m[3]) / 1000 - GY;
+  const gi = groups.findIndex((g) => g.match.test(line));
+  if (gi < 0) return line;
+  const m = line.match(/^spawn\("([^"]+)", (\d+), (-?\d+), (-?\d+)\)$/);
+  const lx = Number(m[3]) / 1000 - GX, ly = Number(m[4]) / 1000 - GY;
   let best = null;
-  for (const p of towerPositions) {
+  for (const p of groupPositions[gi]) {
     const { cx, cy } = towerCell(p);
-    if (claimed.has(`${cx},${cy}`) || !open[cy]?.[cx]) continue;
+    if (groupClaimed[gi].has(`${cx},${cy}`) || !open[cy]?.[cx]) continue;
     const d = (cx + 0.5 - lx) ** 2 + (cy + 0.5 - ly) ** 2;
     if (!best || d < best.d) best = { p, cx, cy, d };
   }
   if (!best) return line;
-  claimed.add(`${best.cx},${best.cy}`);
+  groupClaimed[gi].add(`${best.cx},${best.cy}`);
   const [x, y] = toMilli(best.p.wx, best.p.wy);
-  return `spawn("${m[1]}", 1, ${x}, ${y})`;
+  return `spawn("${m[1]}", ${m[2]}, ${x}, ${y})`;
 });
 
 // Ancients come from the script (war3map.j): the literal CreateUnit lines for the ancient codes (etol Sentinel,
