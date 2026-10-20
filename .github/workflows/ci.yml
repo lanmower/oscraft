@@ -2463,6 +2463,8 @@ jobs:
           console.log(`moba range ok refusal="${rangeShown ? rangeText : ""}" area=${Number(areaShown)}`);
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
+          const draws = await page.evaluate(() => { const d = document.body.dataset; return { total: d.drawCalls, terrain: d.drawTerrain, splat: d.drawSplat, doodad: d.drawDoodad, unit: d.drawUnit, quad: d.drawQuad, animated: d.drawAnimated }; });
+          console.log(`moba draw calls total=${draws.total} terrain=${draws.terrain} splat=${draws.splat} doodad=${draws.doodad} unit=${draws.unit} quad=${draws.quad} animated=${draws.animated}`);
           await page.evaluate(() => window.__ciKillSide(1));
           await page.waitForFunction(() => Number(document.body.dataset.winner) >= 0, null, { timeout: 15000 });
           const shown = await page.evaluate(() => { const w = document.getElementById("win"); return !w.hidden && w.textContent; });
