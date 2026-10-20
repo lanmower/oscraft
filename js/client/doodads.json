@@ -807,5 +807,8 @@
   "bounty_hunter_skinned": "models/bounty-hunter-skinned.glb",
   "arc_warden_skinned": "models/arc-warden-skinned.glb",
   "broodmother_skinned": "models/broodmother-skinned.glb",
-  "chaos_knight_skinned": "models/chaos-knight-skinned.glb"
+  "chaos_knight_skinned": "models/chaos-knight-skinned.glb",
+  "bristleback_skinned": "models/bristleback-skinned.glb",
+  "crystal_maiden_skinned": "models/crystal-maiden-skinned.glb",
+  "dark_seer_skinned": "models/dark-seer-skinned.glb"
 }

@@ -118,6 +118,9 @@ const HY3D_MODEL = {
   arc_warden: "arc-warden-skinned",
   broodmother: "broodmother-skinned",
   chaos_knight: "chaos-knight-skinned",
+  bristleback: "bristleback-skinned",
+  crystal_maiden: "crystal-maiden-skinned",
+  dark_seer: "dark-seer-skinned",
 };
 
 const osd = [

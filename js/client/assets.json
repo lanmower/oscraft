@@ -1,6 +1,6 @@
 {
- "count": 817,
- "total_bytes": 23007762,
+ "count": 820,
+ "total_bytes": 23378178,
  "items": [
   {
    "id": "rock",
@@ -955,6 +955,30 @@
    "path": "js/client/models/chaos-knight-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 133184,
+   "role": "character"
+  },
+  {
+   "id": "bristleback-skinned",
+   "kind": "model",
+   "path": "js/client/models/bristleback-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 156704,
+   "role": "character"
+  },
+  {
+   "id": "crystal-maiden-skinned",
+   "kind": "model",
+   "path": "js/client/models/crystal-maiden-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 100864,
+   "role": "character"
+  },
+  {
+   "id": "dark-seer-skinned",
+   "kind": "model",
+   "path": "js/client/models/dark-seer-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 112848,
    "role": "character"
   },
   {
@@ -5770,7 +5794,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 30,
+  "character": 33,
   "creep": 5,
   "terrain": 7
  }
