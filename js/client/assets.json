@@ -1,6 +1,6 @@
 {
- "count": 801,
- "total_bytes": 21010242,
+ "count": 804,
+ "total_bytes": 21474458,
  "items": [
   {
    "id": "rock",
@@ -845,6 +845,30 @@
    "path": "js/client/models/abaddon-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 165476,
+   "role": "character"
+  },
+  {
+   "id": "alchemist-skinned",
+   "kind": "model",
+   "path": "js/client/models/alchemist-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 136068,
+   "role": "character"
+  },
+  {
+   "id": "ancient-apparition-skinned",
+   "kind": "model",
+   "path": "js/client/models/ancient-apparition-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 182376,
+   "role": "character"
+  },
+  {
+   "id": "anti-mage-skinned",
+   "kind": "model",
+   "path": "js/client/models/anti-mage-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 145772,
    "role": "character"
   },
   {
@@ -5646,7 +5670,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 18,
+  "character": 21,
   "creep": 5,
   "terrain": 7
  }

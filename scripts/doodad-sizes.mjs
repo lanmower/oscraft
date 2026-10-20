@@ -15,7 +15,7 @@ const FLAT_FOOTPRINT_PER_TARGET = 2; // flat models take twice the role's target
 const FOOTPRINT_MIN = 0.05;
 const FOOTPRINT_MAX = 4;
 const MAX_NATIVE = 100; // native extents above this are not scale-able assets (for example a skinned unit with corrupt bounds).
-const UNIT_ONLY = /^(roshan|abaddon)-/; // unit models, drawn by the sim as units, never as scenery: never placed as doodads.
+const UNIT_ONLY = /-(skinned|lowpoly)$/; // hy3d character exports (roshan-skinned, abaddon-skinned, ...): drawn by the sim as units, never placed as scenery doodads.
 // Unit models drawn at their own size: target height in hero heights. Every other unit is fitted to a hero footprint (play.js UNIT_HALF).
 export const UNIT_HEIGHT_IN_HEROES = { "roshan-skinned": 2.5 };
 

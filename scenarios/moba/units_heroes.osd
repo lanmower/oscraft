@@ -2,7 +2,7 @@
 # One unit per enabled Dota hero, appended after every hand-written unit so earlier indices hold. Per-hero attributes, growth,
 # mana, health regeneration, armor, magic resistance and base attack time are the `hero` lines of hero_rules.txt. Abilities are filled by the ability data.
 # Fixed: radius 375 = DOTA_HULL_SIZE_HERO 24 units (hull sizes are engine constants, not in the dump: UNVERIFIED).
-unit("antimage", 150, 308, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=29, weapon_range_milli=2000, weapon_period=23, sight_milli=28125, armor=1, model="character-male-a", deny_pct=0)
+unit("antimage", 150, 308, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=29, weapon_range_milli=2000, weapon_period=23, sight_milli=28125, armor=1, model="anti-mage-skinned", deny_pct=0)
 unit_extra("antimage", player_controlled=True, deny_xp_pct=0)
 unit("axe", 150, 283, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=26, weapon_range_milli=2000, weapon_period=27, sight_milli=28125, armor=0, model="character-male-a", deny_pct=0)
 unit_extra("axe", player_controlled=True, deny_xp_pct=0)
@@ -136,7 +136,7 @@ unit("spectre", 150, 283, 375, build_time=480, resource_a=0, capacity=1, filters
 unit_extra("spectre", player_controlled=True, deny_xp_pct=0)
 unit("doom_bringer", 150, 283, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=35, weapon_range_milli=2344, weapon_period=27, sight_milli=28125, armor=0, model="character-male-a", deny_pct=0)
 unit_extra("doom_bringer", player_controlled=True, deny_xp_pct=0)
-unit("ancient_apparition", 150, 288, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=24, weapon_range_milli=9375, weapon_period=27, sight_milli=28125, armor=0, model="character-male-a", deny_pct=0)
+unit("ancient_apparition", 150, 288, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=24, weapon_range_milli=9375, weapon_period=27, sight_milli=28125, armor=0, model="ancient-apparition-skinned", deny_pct=0)
 unit_extra("ancient_apparition", player_controlled=True, deny_xp_pct=0)
 unit("ursa", 120, 303, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=26, weapon_range_milli=2344, weapon_period=27, sight_milli=28125, armor=1, model="character-male-a", deny_pct=0)
 unit_extra("ursa", player_controlled=True, deny_xp_pct=0)
@@ -144,7 +144,7 @@ unit("spirit_breaker", 150, 283, 375, build_time=480, resource_a=0, capacity=1, 
 unit_extra("spirit_breaker", player_controlled=True, deny_xp_pct=0)
 unit("gyrocopter", 150, 308, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=22, weapon_range_milli=5703, weapon_period=27, sight_milli=28125, armor=2, model="character-male-a", deny_pct=0)
 unit_extra("gyrocopter", player_controlled=True, deny_xp_pct=0)
-unit("alchemist", 150, 317, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=28, weapon_range_milli=2000, weapon_period=22, sight_milli=28125, armor=1, model="character-male-a", deny_pct=0)
+unit("alchemist", 150, 317, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=28, weapon_range_milli=2000, weapon_period=22, sight_milli=28125, armor=1, model="alchemist-skinned", deny_pct=0)
 unit_extra("alchemist", player_controlled=True, deny_xp_pct=0)
 unit("invoker", 150, 273, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=22, weapon_range_milli=9375, weapon_period=27, sight_milli=28125, armor=0, model="character-male-a", deny_pct=0)
 unit_extra("invoker", player_controlled=True, deny_xp_pct=0)
