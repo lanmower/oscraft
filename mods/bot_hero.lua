@@ -4,7 +4,6 @@
 -- state.heroes counts bots that have held a hero (a death at the last tick does not drop it), state.kills counts kills credited to a bot slot.
 
 local BOT_SLOTS = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }
-local DECIDE_EVERY = 8
 
 local bots = {}
 local kills = 0
@@ -29,7 +28,7 @@ function on_tick(state)
   local units = nil
   local holding = 0
   for index, bot in ipairs(bots) do
-    if (ticks + index) % DECIDE_EVERY == 0 then
+    if (ticks + index) % Bot.DECIDE_EVERY == 0 then
       units = units or game.units(nil)
       Bot.think(bot, units, ticks)
     end
@@ -40,6 +39,9 @@ function on_tick(state)
   state.walks = Bot.stats.walks
   state.retreats = Bot.stats.retreats
   state.attacks = Bot.stats.attacks
+  state.blinks = Bot.stats.blinks
+  state.helps = Bot.stats.helps
+  state.heals = Bot.stats.heals
   state.kills = kills
   state.ticks_seen = ticks
 end

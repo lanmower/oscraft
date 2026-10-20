@@ -759,6 +759,13 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, i64::from(sh.sim.ability_cooldown(u, slot)));
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, game, "unit_level", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.level(u)));
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "unit_abilities", [sh], |c, s| {
         let unit = a(c, &s, 0)?;
         let sh = sh.borrow();

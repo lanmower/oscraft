@@ -113,6 +113,7 @@ handle fails the queueing call, not the step.
 | `game.rival_of(player)` | the first player slot hostile to `player`, or `nil` when none is. Read-only. |
 | `game.time()` | the game clock: `ticks, seconds` since the match began (16 ticks to the second) |
 | `game.unit_cooldown(unit, slot)` | ticks left on ability `slot` of `unit`; 0 when ready |
+| `game.unit_level(unit)` | the unit's level in the sim's experience table (heroes gain levels). Read-only. |
 | `game.unit_abilities(unit)` | the unit's abilities as `{slot, name, cooldown}` rows, empty slots left out |
 | `game.unit_items(unit)` | the unit's inventory as `{slot, name, count, cooldown}` rows (the item's active ability cooldown), empty slots left out |
 | `game.each(comps, fn)` | runs `fn` over every living unit now, with a view of the named components |

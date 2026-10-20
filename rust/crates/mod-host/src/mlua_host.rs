@@ -1235,6 +1235,15 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     )?;
     let w = world.clone();
     game.set(
+        "unit_level",
+        lua.create_function(move |_, unit: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            Ok(i64::from(sim.level(u)))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
         "unit_abilities",
         lua.create_function(move |lua, unit: i64| {
             let sim = w.borrow();
