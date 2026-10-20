@@ -23,6 +23,11 @@ export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 4 });
 export const VOID_REACH = 2;
 const CLIFF_BIT = 2;
 const BLOCKED_BIT = 1;
+// A ramp cell (the 6.88 W3E ramp flag, painted by paint_ramp): a walkable slope, so no cliff wall stands on its edges.
+const RAMP_BIT = 4;
+export function isRampCell(flags, i) {
+  return (flags[i] & RAMP_BIT) !== 0;
+}
 
 // A cell's kind from its walkability bits and tile id: cliff bit first, then a blocked cell is water only when its tile
 // id says so and rock otherwise, then the flat tile ids.
@@ -271,8 +276,9 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
         const bz = dx ? y + 0.5 : y + 1;
         const { dh, low, high, kLow, kHigh, gradual } = edgeDrop(grid, i, j);
         if (dh === 0) continue;
+        const rampSide = isRampCell(flags, i) || isRampCell(flags, j);
         if (!gradual) {
-          if (!wall) continue;
+          if (!wall || rampSide) continue;
           const base = heightOf(low) + (kLow === "cliff" ? wallTop : 0);
           const top = heightOf(high) + (kHigh === "cliff" ? wallTop : 0);
           if (top > base) put("wall", "cliff", TILE_MATERIALS.cliff, wall, [bx, base, bz, rot, 1, (top - base) / wallTop, 1]);

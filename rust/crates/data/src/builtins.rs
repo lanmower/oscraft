@@ -9,7 +9,7 @@ use starlark::starlark_module;
 use starlark::values::{dict::UnpackDictEntries, list::UnpackList, none::NoneType};
 
 use crate::format::{
-    effect_params_valid, index_of, ACTIONS, ACTION_DECLARE_WINNER, ACTION_USE_ABILITY, CELL_MASK, CLOAK_FLAGS, DAMAGE_RESPONSES,
+    effect_params_valid, index_of, ACTIONS, ACTION_DECLARE_WINNER, ACTION_USE_ABILITY, CELL_MASK, CELL_RAMP, CLOAK_FLAGS, DAMAGE_RESPONSES,
     DAMAGE_TYPES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
     DOODAD_KINDS, MAX_ROUTE_LANE, MAX_ROUTE_POINTS, ITEM_COMPONENTS, ITEM_FLAG_CONSUMABLE, ITEM_FLAG_ENHANCEMENT, ITEM_FLAG_NEUTRAL, ITEM_FLAG_NO_BUY,
     ITEM_FLAG_NO_SELL, ITEM_SHOPS, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
@@ -607,6 +607,29 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             heights: vec![0; cell_count],
             tiles: vec![0; cell_count],
         });
+        Ok(NoneType)
+    }
+
+    fn paint_ramp(
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.grid.borrow_mut();
+        let grid = slot.as_mut().ok_or_else(|| anyhow!("paint_ramp() needs grid() first"))?;
+        let (width, height) = (grid.width as i32, grid.height as i32);
+        if !(0 <= x0 && x0 <= x1 && x1 <= width && 0 <= y0 && y0 <= y1 && y1 <= height) {
+            bail!("paint_ramp({x0}, {y0}, {x1}, {y1}) is inverted or outside the {width}x{height} grid");
+        }
+        for y in y0..y1 {
+            let row = (y * width) as usize;
+            for cell in &mut grid.cells[row + x0 as usize..row + x1 as usize] {
+                *cell |= CELL_RAMP;
+            }
+        }
         Ok(NoneType)
     }
 
