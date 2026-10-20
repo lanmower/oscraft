@@ -219,3 +219,9 @@ Each row names its source. A row is confirmed only when a 6.88 page or patch not
 | Refusal "Not enough mana" | Spoken voice line, not on-screen text | https://liquipedia.net/dota2/Mana/Changelogs | not confirmed: fetch returned 403; on-screen text not found |
 | Refusal "Ability is on cooldown" | Spoken voice line, not on-screen text | https://liquipedia.net/dota2/Abilities | not confirmed: fetch returned 403; on-screen text not found |
 | Refusal "Target out of range" | No source found | none | not confirmed: no source; the sim's wording is move-range for item casts |
+
+## Wave creep acquire (decision)
+
+Wave creeps now chase an enemy inside their acquire range and then resume the route (`rust/crates/sim/src/acquire.rs`, commit b92f8a9). Acquire ranges come from the 6.88 creep unit data: creep Ghoul 500, creep_ranged Necromancer 600, creep_siege Meat Wagon 800. Structures are excluded as creep acquire targets; the 6.88 data does not say this, so it is a judgement call made to keep matches from stalling.
+
+Measured shift on the 3600-tick match (b92f8a9 against its parent): non-hero kills side 0 to 1 went from 43 to 36, side 1 to 0 from 72 to 70, and the win tick from 28655 to 18953. The shift is kept as the intended behaviour. Revisit it only with a new 6.88 source for creep targeting.
