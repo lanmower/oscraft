@@ -27,7 +27,7 @@ jobs:
           target/debug/mod_check --fog off ../scenarios/moba bots.lua 1200 > bots.txt 2>&1 || { cat bots.txt; exit 1; }
           cat bots.txt
           grep -Eq '^mod-check ok ' bots.txt
-          line=$(grep -E '^mod-state heroes=10 kills=[1-9][0-9]* ' bots.txt)
+          line=$(grep -E '^mod-state .*heroes=10 .*kills=[1-9][0-9]* ' bots.txt)
           kills=$(echo "$line" | sed -E 's/.* kills=([0-9]+).*/\1/')
           echo "bots ok heroes=10 kills=$kills"
       - name: 'Bot witness: walks its lane, last-hits a creep, retreats at low health'
