@@ -60,6 +60,8 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     const ids = me();
     if (ids.length === 0) return false;
     const points = formationPoints(ids.length, world.x, world.z);
+    if (enemy) feedback({ kind: "attack", x: world.x, z: world.z, targetId: enemy.id });
+    else feedback({ kind: "move", x: world.x, z: world.z });
     let ok = true;
     ids.forEach((id, i) => {
       if (enemy) {
@@ -297,7 +299,9 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     if (armedAttackMove) {
       armedAttackMove = false;
       const enemy = hit && hit.player !== localPlayer() ? hit : null;
-      const sent = orderSelected(toWorld(e.clientX, e.clientY), enemy);
+      const point = toWorld(e.clientX, e.clientY);
+      feedback({ kind: "attackMove", x: point.x, z: point.z });
+      const sent = orderSelected(point, enemy);
       document.body.dataset.attackPick = `hit=${hit ? `${hit.id}:p${hit.player}` : "none"} local=${localPlayer()} sel=${me().join("|") || "none"} enemy=${enemy ? enemy.id : "none"} sent=${sent}`;
       return;
     }
