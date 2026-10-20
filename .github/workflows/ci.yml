@@ -2328,9 +2328,11 @@ jobs:
           if ((await page.evaluate(() => window.__ciSelected())) !== orderHero.id) throw new Error("attack-move probe: the hero click did not select " + orderHero.id);
           // The attack-move click orders the input layer's own selection, which a click on the hero's pixels can leave on another unit: select the hero there.
           if (!(await page.evaluate((id) => window.__ciInputSelection().includes(id), orderHero.id))) await page.evaluate((id) => window.__ciSelect(id), orderHero.id);
+          // Five cells toward the contact point when it is that far off; a hero already nearer than that (the fights above walk it up to the
+          // contact) walks five cells back the other way, so the walk is not cut short by the foe it is already fighting.
           const span = dTo(amStart, contact);
-          const k = span > 0 ? Math.min(1, 5 / span) : 0;
-          const point = { x: amStart.x + (contact.x - amStart.x) * k, z: amStart.z + (contact.z - amStart.z) * k };
+          const sign = span >= 5 ? 1 : -1;
+          const point = { x: amStart.x + sign * (contact.x - amStart.x) / Math.max(span, 1e-6) * 5, z: amStart.z + sign * (contact.z - amStart.z) / Math.max(span, 1e-6) * 5 };
           const pointAt = await screenAt(point.x, point.z);
           const pointOnCanvas = pointAt.x >= 0 && pointAt.y >= 0 && pointAt.x < viewport.w && pointAt.y < viewport.h
             && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [pointAt.x, pointAt.y]));
@@ -4051,13 +4053,15 @@ jobs:
             // The two sides start about 180 cells apart, so no foe is in reach at the start. Creeps from the two sides meet mid-lane at about
             // tick 301 (the moba scenario): wait on the host's roster until a unit of each side is within 20 cells, then walk to the nearest foe.
             const meetUntil = Date.now() + 420000;
+            let meetClosest = Infinity;
             for (;;) {
               const roster = await host.evaluate(() => window.__ciRoster());
               const sides = [roster.filter((u) => u.player === 0), roster.filter((u) => u.player === 1)];
-              const closest = Math.min(...sides[0].flatMap((a) => sides[1].map((b) => Math.hypot(a.x - b.x, a.z - b.z))));
-              if (closest <= 20 || Date.now() > meetUntil) break;
+              meetClosest = Math.min(...sides[0].flatMap((a) => sides[1].map((b) => Math.hypot(a.x - b.x, a.z - b.z))));
+              if (meetClosest <= 20 || Date.now() > meetUntil) break;
               await new Promise((r) => setTimeout(r, 2000));
             }
+            console.log(`direct contact closest=${meetClosest.toFixed(1)} waited_s=${Math.round((Date.now() - (meetUntil - 420000)) / 1000)}`);
             // The units and foes come from the host's sim roster (the authority that applies the orders), fogged or not: under fog the peer's view
             // may show none of the foes yet, and a peer replica can hold a unit the host never spawned, which the host refuses as not_owner.
             const hostRoster = await host.evaluate(() => window.__ciRoster());
