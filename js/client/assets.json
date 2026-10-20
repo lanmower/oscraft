@@ -1,6 +1,6 @@
 {
- "count": 830,
- "total_bytes": 24423873,
+ "count": 832,
+ "total_bytes": 24457693,
  "items": [
   {
    "id": "rock",
@@ -5812,6 +5812,20 @@
    "path": "js/client/textures/lane.ktx2",
    "placed_by": "texture.js (KTX2 sibling of lane.jpg, splat/tile)",
    "bytes": 72421
+  },
+  {
+   "id": "lane-earth-cc0-256",
+   "kind": "texture",
+   "path": "js/client/textures/lane_earth_cc0_256.jpg",
+   "placed_by": "texture.js (splat lane layer, SPLAT_TEXTURES; Dirt Aerial 03)",
+   "bytes": 15585
+  },
+  {
+   "id": "lane-earth-cc0-256-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/lane_earth_cc0_256.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of lane_earth_cc0_256.jpg, splat lane layer)",
+   "bytes": 18235
   },
   {
    "id": "dirt-cc0-256",

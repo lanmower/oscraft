@@ -364,7 +364,7 @@ const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, wate
 export const SPLAT_TEXTURES = Object.freeze({
   grass: Object.freeze(["textures/grass.jpg", "textures/grass_disp.jpg"]),
   dirt: Object.freeze(["textures/grass_b_cc0_256.jpg", "textures/grass_b_cc0_256_disp.jpg"]),
-  lane: Object.freeze(["textures/lane.jpg", "textures/lane_disp.jpg"]),
+  lane: Object.freeze(["textures/lane_earth_cc0_256.jpg", "textures/lane_disp.jpg"]),
   rock: Object.freeze(["textures/rock.jpg", "textures/rock_disp.jpg"]),
 });
 // Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
