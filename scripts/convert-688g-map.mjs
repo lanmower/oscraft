@@ -134,7 +134,11 @@ const Z_PER_LEVEL = 8;
 const Z_OFFSET = 384;
 const heightLevel = (z) => Math.max(0, Math.min(255, Math.round((z + Z_OFFSET) / Z_PER_LEVEL)));
 const HEIGHT_STEP_MILLI = Math.round((Z_PER_LEVEL / 64) * 1000);
-const tileId = (cx, cy) => { const { i, j } = tileOf(cx, cy); return corner(i, j).groundTexture; };
+// Water comes from the W3E corner flags: bit 0x40 of a corner's ground byte marks its tile as water. A water cell takes the
+// water tile id below (its ground under the water is the riverbed); every other cell keeps its ground texture index.
+const WATER_TILE = 255;
+const isWaterCell = (cx, cy) => { const { i, j } = tileOf(cx, cy); return (corner(i, j).flags & 0x40) !== 0; };
+const tileId = (cx, cy) => (isWaterCell(cx, cy) ? WATER_TILE : corner(tileOf(cx, cy).i, tileOf(cx, cy).j).groundTexture);
 
 const open = Array.from({ length: SIM }, (_, cy) => Array.from({ length: SIM }, (_, cx) => !cellBlocked(cx, cy)));
 const runs = (valueAt) => {
@@ -249,11 +253,10 @@ fs.writeFileSync(path.join(outDir, "doodad-types-688g.tsv"), ["type\tcount\ttree
 
 execFileSync(process.execPath, [fileURLToPath(new URL("./place-doodads-688g.mjs", import.meta.url)), "--dir", outDir], { stdio: "inherit" });
 
-// Water: a sim cell is water when it is blocked and its tile's ground texture is tileset index 4 (Clvg in the source
-// terrain tileset list). The source has no water tile name; this rule matches the water cells the moba map image shows.
-const waterCells = open.flat().filter((v, k) => !v && corner(tileOf(k % SIM, Math.floor(k / SIM)).i, tileOf(k % SIM, Math.floor(k / SIM)).j).groundTexture === 4).length;
+// Water: every sim cell whose W3E tile has the water flag (0x40), whatever its walkability.
+const waterCells = Array.from({ length: SIM * SIM }, (_, k) => isWaterCell(k % SIM, Math.floor(k / SIM))).filter(Boolean).length;
 console.log(JSON.stringify({
-  water: { cells: waterCells, rule: "blocked cell, ground texture index 4 (terrain tileset list)" },
+  water: { cells: waterCells, rule: "W3E corner ground flag 0x40, tile id 255" },
   terrainCorners: W * terrain.height,
   blockedSimCells: open.flat().filter((v) => !v).length,
   doodads: doodads.length,

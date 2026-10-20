@@ -19,7 +19,7 @@ export const TILE_MODELS = Object.freeze({
 // Tint for every kind drawn without a texture (the editor draws all kinds with it; play draws a textured kind in white).
 export const TILE_TINTS = Object.freeze({ grass: [1, 1, 1], dirt: [0.62, 0.5, 0.3], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
 // Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass.
-export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 4 });
+export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 255 });
 export const VOID_REACH = 2;
 const CLIFF_BIT = 2;
 const BLOCKED_BIT = 1;
@@ -29,11 +29,11 @@ export function isRampCell(flags, i) {
   return (flags[i] & RAMP_BIT) !== 0;
 }
 
-// A cell's kind from its walkability bits and tile id: cliff bit first, then any blocked cell is a cliff, then the flat tile ids.
-// No cell is water yet: the tile id is a ground texture index (tile 4 is Clvg), not a water type. Water is to come from the
-// original W3E corner water level and flag 0x40, which the repo's map data does not carry yet.
+// A cell's kind from its walkability bits and tile id: cliff bit first, then the water tile id (255, set from the W3E water
+// flag by scripts/convert-688g-map.mjs), then any blocked cell is a cliff, then the flat tile ids.
 export function cellKind(flags, tile) {
   if (flags & CLIFF_BIT) return "cliff";
+  if (tile === TILE_IDS.water) return "water";
   if (flags & BLOCKED_BIT) return "cliff";
   if (tile === TILE_IDS.lane) return "lane";
   if (tile === TILE_IDS.dirt) return "dirt";
@@ -363,7 +363,7 @@ const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, wate
 // The water surface is procedural (render3d.js): the water map is one byte per cell, 255 on water cells.
 export const SPLAT_TEXTURES = Object.freeze({
   grass: Object.freeze(["textures/grass.jpg", "textures/grass_disp.jpg"]),
-  dirt: Object.freeze(["textures/dirt_earth_cc0_256.jpg", "textures/dirt_earth_cc0_256_disp.jpg"]),
+  dirt: Object.freeze(["textures/grass_b_cc0_256.jpg", "textures/grass_b_cc0_256_disp.jpg"]),
   lane: Object.freeze(["textures/lane.jpg", "textures/lane_disp.jpg"]),
   rock: Object.freeze(["textures/rock.jpg", "textures/rock_disp.jpg"]),
 });
