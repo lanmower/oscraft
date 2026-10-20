@@ -6,7 +6,7 @@ import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
-import { AnimationPlayer, jointMatrices } from "./anim.js";
+import { AnimationPlayer, jointMatrices, retargetLibrary } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
@@ -201,6 +201,24 @@ function quadMesh(half) {
   };
 }
 
+// Humanoid clip library (anim/library.json, extracted from the spoint animation set). Shared by every rig.
+let animLibrary = null;
+function humanoidLibrary() {
+  if (!animLibrary) animLibrary = fetch(new URL("anim/library.json", location.href)).then((r) => r.json()).catch((error) => { animLibrary = null; throw error; });
+  return animLibrary;
+}
+
+// A rig without embedded clips is animated from the humanoid library through its bone map (anim/maps/<model>.json).
+// A rig with no map, or a map that fails to load, keeps no clips and draws in its rest pose.
+async function libraryClips(name, nodes) {
+  try {
+    const [map, library] = await Promise.all([fetch(new URL(`anim/maps/${name}.json`, location.href)).then((r) => r.json()), humanoidLibrary()]);
+    return retargetLibrary(library, map, nodes);
+  } catch {
+    return [];
+  }
+}
+
 // Each model name is fetched and parsed once: unit types and doodad kinds that name the same GLB share one parse,
 // and every fit reads from it. A failed load is dropped from the cache so a later call may retry it.
 const parsedModels = new Map();
@@ -212,6 +230,7 @@ function parsedModel(name) {
       const bytes = await resolveGlbExtensions(await (await fetch(url)).arrayBuffer());
       const glb = parseGlb(bytes);
       const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
+      if (animations && animations.clips.length === 0) animations.clips = await libraryClips(name, animations.nodes);
       return { url: url.href, glb, animations };
     })();
     parsedModels.set(name, entry);

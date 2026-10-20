@@ -187,6 +187,7 @@ export function parseGlbAnimations(buffer) {
     skeleton: skin.skeleton ?? null,
   }));
   const nodes = (gltf.nodes ?? []).map((node) => ({
+    name: node.name ?? null,
     children: node.children ?? [],
     translation: node.translation ?? null,
     rotation: node.rotation ?? null,

@@ -257,3 +257,89 @@ export function jointMatrices(nodes, skin, pose, fit, out = new Float32Array(16 
   }
   return out;
 }
+
+// World rotation of a node's parent at rest, from the root down the chain of parent rest rotations.
+export function parentWorldRotation(nodes, index) {
+  const parent = nodes.findIndex((node) => node.children.includes(index));
+  if (parent < 0) return [0, 0, 0, 1];
+  return quatMul(parentWorldRotation(nodes, parent), nodes[parent].rotation ?? [0, 0, 0, 1]);
+}
+
+// Rest-pose hips height in world units and the world scale of the hips' parent, for one rig's node tree.
+export function restHips(nodes, hipsIndex) {
+  const globals = globalMatrices(nodes);
+  let parent = -1;
+  nodes.forEach((node, i) => { if (node.children.includes(hipsIndex)) parent = i; });
+  const parentScale = parent < 0 ? 1 : Math.hypot(globals[parent * 16], globals[parent * 16 + 1], globals[parent * 16 + 2]);
+  return { height: globals[hipsIndex * 16 + 13], parentScale };
+}
+
+function quatMul(a, b) {
+  return [
+    a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+    a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+    a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+    a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
+  ];
+}
+
+function quatConj(q) { return [-q[0], -q[1], -q[2], q[3]]; }
+
+function rotateVector(q, v) {
+  const r = quatMul(quatMul(q, [v[0], v[1], v[2], 0]), quatConj(q));
+  return [r[0], r[1], r[2]];
+}
+
+// Re-expresses a humanoid library (js/client/anim/library.json) on one rig. map.bones maps each humanoid bone to the
+// rig's node name. Each rotation is carried through world space: the source motion is a delta on its rest pose, applied
+// to the rig's rest pose in the rig's own bone frame, so rigs whose bone axes differ still pose the same way.
+// Translations are rotated the same way and scaled by the ratio of the rig's hips height to the source's. Bones the rig
+// lacks are dropped; the rig keeps its rest pose there.
+export function retargetLibrary(library, map, nodes) {
+  const byName = new Map();
+  nodes.forEach((node, i) => { if (node.name) byName.set(node.name, i); });
+  const boneNode = (bone) => byName.get(map.bones[bone]) ?? -1;
+  const hips = boneNode('hips');
+  const rigHips = hips < 0 ? null : restHips(nodes, hips);
+  const scale = rigHips ? (rigHips.height / library.hipsHeight) * (library.hipsParentScale / rigHips.parentScale) : 1;
+  const frames = new Map();
+  const frameOf = (bone) => {
+    if (frames.has(bone)) return frames.get(bone);
+    const node = boneNode(bone);
+    const source = library.rest[bone];
+    if (node < 0 || !source) return null;
+    const rigRest = nodes[node].rotation ?? [0, 0, 0, 1];
+    const rigParent = parentWorldRotation(nodes, node);
+    const A = quatMul(quatConj(rigParent), source.parentWorld);
+    const B = quatMul(quatConj(source.rotation), quatMul(quatConj(source.parentWorld), quatMul(rigParent, rigRest)));
+    const frame = { node, A, B, source };
+    frames.set(bone, frame);
+    return frame;
+  };
+  return library.clips.map((clip) => {
+    const channels = [];
+    for (const channel of clip.channels) {
+      const frame = frameOf(channel.bone);
+      if (!frame) continue;
+      const count = channel.times.length;
+      const values = new Float32Array(channel.values.length);
+      if (channel.path === 'rotation') {
+        for (let i = 0; i < count; i++) {
+          const q = quatMul(quatMul(frame.A, channel.values.slice(i * 4, i * 4 + 4)), frame.B);
+          const len = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+          for (let c = 0; c < 4; c++) values[i * 4 + c] = q[c] / len;
+        }
+      } else {
+        const rest = nodes[frame.node].translation ?? [0, 0, 0];
+        const k = channel.bone === 'hips' || channel.bone === 'root' ? scale : 1;
+        for (let i = 0; i < count; i++) {
+          const delta = [0, 1, 2].map((c) => channel.values[i * 3 + c] - frame.source.translation[c]);
+          const moved = rotateVector(frame.A, delta);
+          for (let c = 0; c < 3; c++) values[i * 3 + c] = rest[c] + moved[c] * k;
+        }
+      }
+      channels.push({ node: frame.node, path: channel.path, interpolation: 'LINEAR', times: Float32Array.from(channel.times), values, width: channel.path === 'rotation' ? 4 : 3 });
+    }
+    return { name: clip.name, duration: clip.duration, channels };
+  });
+}
