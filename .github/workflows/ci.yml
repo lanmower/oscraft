@@ -2366,6 +2366,14 @@ jobs:
           let rcAttacked = false;
           if (rcFoe) {
             const rcAttacks0 = Number(await page.getAttribute("body", "data-attacks"));
+            // A right click on a foe is an attack only inside weapon reach (2 cells), otherwise a move: under fog the foe may stand farther off,
+            // so the hero walks to 1 cell short of it first, and the right click on the foe comes once it is within 1.5 cells.
+            const rcGap = Math.hypot(rcFoe.x - rcHero.x, rcFoe.z - rcHero.z);
+            if (rcGap > 1.5) {
+              const rcStand = await screenAt(rcFoe.x + (rcHero.x - rcFoe.x) / rcGap, rcFoe.z + (rcHero.z - rcFoe.z) / rcGap);
+              await page.mouse.click(rcStand.x, rcStand.y, { button: "right" });
+              await page.waitForFunction(([id, x, z]) => { const u = window.__ciUnits().find((v) => v.id === id); return !!u && Math.hypot(u.x - x, u.z - z) <= 1.5; }, [attacker.id, rcFoe.x, rcFoe.z], { timeout: 8000, polling: 250 }).catch(() => {});
+            }
             const rcFoeAt = await screenAt(rcFoe.x, rcFoe.z);
             await page.mouse.click(rcFoeAt.x, rcFoeAt.y, { button: "right" });
             rcAttacked = await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, rcAttacks0, { timeout: 2000 }).then(() => true, () => false);
@@ -4033,6 +4041,16 @@ jobs:
             }
             if (!movedToward(onHost, target) || !movedToward(await seen(peer), target)) throw new Error(`no movement over the direct link: unit=${unit.id} host=${JSON.stringify(onHost)} refusals=${refusals.join(" ; ")} ticks=${await host.evaluate(() => document.body.dataset.ticks)} remoteOrders=${await host.evaluate(() => document.body.dataset.remoteOrders || "0")}`);
             // Not every unit of a side can attack or cast, so each one is tried against its nearest enemies until the host accepts.
+            // The two sides start about 180 cells apart, so no foe is in reach at the start. Creeps from the two sides meet mid-lane at about
+            // tick 301 (the moba scenario): wait on the host's roster until a unit of each side is within 20 cells, then walk to the nearest foe.
+            const meetUntil = Date.now() + 420000;
+            for (;;) {
+              const roster = await host.evaluate(() => window.__ciRoster());
+              const sides = [roster.filter((u) => u.player === 0), roster.filter((u) => u.player === 1)];
+              const closest = Math.min(...sides[0].flatMap((a) => sides[1].map((b) => Math.hypot(a.x - b.x, a.z - b.z))));
+              if (closest <= 20 || Date.now() > meetUntil) break;
+              await new Promise((r) => setTimeout(r, 2000));
+            }
             // The units and foes come from the host's sim roster (the authority that applies the orders), fogged or not: under fog the peer's view
             // may show none of the foes yet, and a peer replica can hold a unit the host never spawned, which the host refuses as not_owner.
             const hostRoster = await host.evaluate(() => window.__ciRoster());
