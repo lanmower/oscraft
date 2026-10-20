@@ -733,11 +733,17 @@ function spawnSeatHeroes(seats) {
   if (typeof localGame.spawn_hero !== "function") return;
   spawnedSeats = seats.map(({ slot, hero }) => ({ slot, hero }));
   for (const seat of seats) {
-    if (heroOf(seat.slot)) continue;
+    const placed = heroOf(seat.slot);
     const kind = heroKinds.get(seat.hero);
     if (kind === undefined) {
-      console.error(`seat ${seat.slot}: hero ${seat.hero} is not in the roster; no hero spawned`);
+      if (!placed) console.error(`seat ${seat.slot}: hero ${seat.hero} is not in the roster; no hero spawned`);
       continue;
+    }
+    if (placed?.type === kind) continue;
+    // The map starts each seat with a placeholder hero of the generic `hero` type; the pick replaces it.
+    if (placed) {
+      if (typeof localGame.remove_unit !== "function") continue;
+      localGame.remove_unit(placed.id);
     }
     spawnAtSide(seat.slot, kind);
   }

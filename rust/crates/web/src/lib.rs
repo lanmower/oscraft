@@ -262,6 +262,11 @@ impl Game {
         self.sim.spawn_hero(player, kind, fx, fy).map_or(-1, |i| i as i32)
     }
 
+    /// Removes live unit `unit` from the sim: its slot stops counting and no query finds it. False when it is not alive.
+    pub fn remove_unit(&mut self, unit: u32) -> bool {
+        self.sim.remove_unit(unit as usize)
+    }
+
     /// Loads the hero rules from `key=value` text (scenarios/moba/hero_rules.txt). False, rules unchanged, on a bad line.
     pub fn set_hero_rules(&mut self, text: &str) -> bool {
         self.sim.set_hero_rules_text(text)
