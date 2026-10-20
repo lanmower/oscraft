@@ -202,3 +202,20 @@ What a general game server needs beyond the gameplay list.
 | GP-ORD-2 | Order intake is rate-limited per player. | CAP-ORD-6 |
 | GP-ORD-3 | Order intake checks authorization before an order is applied. | CAP-ORD-6 |
 | GP-ORD-4 | A malformed order or out-of-bounds coordinate is rejected before it reaches the simulation. | CAP-ORD-1 |
+
+## Control citations
+
+Sources were located by web search. The Fandom and Liquipedia pages returned HTTP 402/403 to direct fetch, so the statements below rest on search snippets and are not checked against page text. No 6.88 page was confirmed.
+
+| Control | Dota 2 behaviour | Source | Version |
+| --- | --- | --- | --- |
+| Move command | Right click moves selected units | https://dota2.fandom.com/wiki/Controls | not confirmed |
+| Attack move (A) | Default key A; attacks enemies crossed on the way | https://liquipedia.net/dota2/Movement_Speed | not confirmed |
+| Hold position (H) | Interrupts the action and holds position; H is in the legacy preset column | https://dota2.fandom.com/wiki/Hotkeys | not confirmed |
+| Targeted abilities and cast cursor | Targeted cast arms a cursor, cast on click | https://liquipedia.net/dota2/Controls | not confirmed |
+| Ability cooldown | Ability is on cooldown once cast; cooldown message favoured over mana | https://dota2.fandom.com/wiki/Cooldown | not confirmed |
+| Item use and slots | Six inventory slots; only inventory items are active; backpack items are inactive | https://dota2.fandom.com/wiki/Items | not confirmed |
+| Consumable charges | Charges are spent per use; permanent items keep the item when charges run out | https://liquipedia.net/dota2/Tango | not confirmed |
+| Refusal "Not enough mana" | Spoken line; on-screen text not found | https://liquipedia.net/dota2/Mana/Changelogs | not confirmed |
+| Refusal "Ability is on cooldown" | Spoken line; on-screen text not found | https://liquipedia.net/dota2/Abilities | not confirmed |
+| Refusal "Target out of range" | No source found | none | none |
