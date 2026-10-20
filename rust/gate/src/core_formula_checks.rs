@@ -1,4 +1,4 @@
-//! Gate checks for the Dota core formulas the sim carries. Each asserts one postcondition through
+//! Gate checks for the reference core formulas the sim carries. Each asserts one postcondition through
 //! the public sim API.
 
 use crate::checks::fresh;
@@ -20,7 +20,7 @@ pub fn armour_formula(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// The level curve holds Dota's 29 thresholds (levels 2 to 30), first at 230 xp, nondecreasing.
+/// The level curve holds reference's 29 thresholds (levels 2 to 30), first at 230 xp, nondecreasing.
 pub fn xp_table(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
     let curve = s.xp_curve();

@@ -1,4 +1,4 @@
-# Dota Allstars 6.88g map (war3map.w3e, war3map.wpm, war3map.w3i) decoded by scripts/gen-w3-map.mjs.
+# reference map 6.88g map (refmap.w3e, refmap.wpm, refmap.w3i) decoded by the archive decoder removed in the rename commit.
 # World to grid: 1 w3 unit = 15.625 milli; the 16384-unit playable square sits at grid cell (35, 35) as a 256x256 sim block.
 # Walkable: no unwalkable pathing cell (bit 0x02) in the 2x2 pathing block of the sim cell. Outside the block: blocked.
 # Height: each sim cell bilinear over its tile's corners, z = (layer - 2) * 128 + ground offset, level = (z + 384) / 8, height_step 125 milli. Tile: ground texture of the tile's corner.
@@ -13820,9 +13820,9 @@ start(6, 52500, 269500, team=0)
 start(7, 266500, 61500, team=1)
 start(8, 53500, 266500, team=0)
 start(9, 271500, 61500, team=1)
-# ancient etol at -5568,-6016 from war3map.j
+# ancient etol at -5568,-6016 from refmap.j
 spawn("base", 0, 76000, 257000)
-# ancient unpl at 5248,4918 from war3map.j
+# ancient unpl at 5248,4918 from refmap.j
 spawn("base", 1, 245000, 86156)
 spawn("hero", 0, 52500, 273500)
 spawn("hero", 1, 273500, 57500)

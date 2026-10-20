@@ -302,7 +302,7 @@ pub(crate) struct SpellState {
     pub(crate) pierce: bool,
     /// Rank a zone pulse resolves its values at (its owner holds the zone ability, not the pulse ability); 0 for none.
     pub(crate) rank_override: i32,
-    /// Whether any damage ends a channel (the legacy rule); Dota ends it by stun, silence or hex only.
+    /// Whether any damage ends a channel (the legacy rule); reference ends it by stun, silence or hex only.
     pub(crate) damage_interrupts: bool,
 }
 

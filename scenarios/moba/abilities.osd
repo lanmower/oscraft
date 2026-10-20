@@ -2,7 +2,7 @@
 # pulse_shot 0, mend_field 1, creep_wave 2. The hero abilities are the engine's own definitions.
 ability("pulse_shot", 24, 0, "unit", [effect("damage", p0=6)], target_filters=["ground"], projectile_speed_milli=12000)
 ability("mend_field", 96, 50, "point", [effect("heal", p0=12, p1=2000), effect("buff", p0=1, p1=3)])
-# Creep wave: three melee creeps (unit 3) and one ranged creep (creep_ranged) per lane, every 30 s (480 ticks, Dota wave interval) at the base, offset to the lane's row (p2, milli
+# Creep wave: three melee creeps (unit 3) and one ranged creep (creep_ranged) per lane, every 30 s (480 ticks, reference wave interval) at the base, offset to the lane's row (p2, milli
 # from the base; top -22000, middle 0, bottom +22000). Each creep then marches to the nearest
 # enemy building along its lane. Cooldown 480 ticks is the spawn timer.
 ability("creep_wave", 480, 0, "none", [effect("spawn", p0=3, p1=0, p2=0, p3=-1696568296), effect("spawn", p0=3, p1=700, p2=0, p3=-1696568296), effect("spawn", p0=3, p1=1400, p2=0, p3=-1696568296), effect("spawn", p0=21, p1=2100, p2=0, p3=-1695518695)])
@@ -10,10 +10,10 @@ ability("creep_wave", 480, 0, "none", [effect("spawn", p0=3, p1=0, p2=0, p3=-169
 ability("cleave_strike", 36, 0, "unit", [effect("damage", p0=14)], target_filters=["ground"])
 ability("dash_step", 120, 0, "point", [effect("move", p0=4000)])
 ability("ward_shield", 80, 0, "unit", [effect("shield_bonus", p0=20)], target_filters=["army"])
-# Dota-style roster (four abilities, then the ultimate, per hero; heroes reference them by name). Mechanics: nuke, projectile,
+# reference-style roster (four abilities, then the ultimate, per hero; heroes reference them by name). Mechanics: nuke, projectile,
 # AoE, blink, heal-over-time, aura, passive, summon, channel, and the status effects stun, slow, silence, root, invisibility.
-# UNVERIFIED: every value below. These heroes are original, and SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b
-# game/dota/pak01_dir/scripts/npc/npc_abilities.txt (664 entries) holds no hero ability to copy, so no figure is sourced.
+# UNVERIFIED: every value below. These heroes are original, and SteamDatabase tracking repo @282fad29f0f74504fad465c52d197fb61f4d612b
+# source/scripts/npc/npc_abilities.txt (664 entries) holds no hero ability to copy, so no figure is sourced.
 # A passive is a stat ability with cooldown 100000 (never recast) that a spawned behaviour casts once (behaviours.osd). The stat effect is NEW (code 16).
 # Ironhide: AoE, passive armor, blink, silence, summon (two creeps).
 ability("iron_slam", 40, 0, "none", [effect("damage", p0=18, p1=1200)])
@@ -113,7 +113,7 @@ ability("smoke_veil", 160, 0, "none", [effect("invisibility", p0=80)])
 ability("place_observer", 16, 0, "point", [effect("ward", p0=18, p1=5760)])
 ability("place_sentry", 16, 0, "point", [effect("ward", p0=19, p1=6720)])
 # Glyph of fortification: for 80 ticks (5 s) every friendly structure that is not a building (the towers) takes no damage;
-# the team then waits 4800 ticks (300 s). UNVERIFIED: both numbers are recalled Dota 2 values, the dump has no glyph keys.
+# the team then waits 4800 ticks (300 s). UNVERIFIED: both numbers are recalled reference ruleset values, the dump has no glyph keys.
 # Filter bits: 64 structure, 2048 building.
 ability("glyph_of_fortification", 4800, 0, "none", [effect("glyph", p0=80, p1=4800, p2=64, p3=2048)])
 # Courier: walks to a friendly army unit (a hero), moves its stash into its inventory within 1000 milli, walks back.

@@ -343,7 +343,7 @@ An ability with a skill tree learns ranks with skill points. Abilities without o
 | 1      | 1    | max rank, `1..=4` when has skill, else 0                              |
 | 2      | 1    | ultimate: `0` no, `1` yes; an ultimate takes at most 3 ranks         |
 | 3      | 5    | reserved, write 0                                                     |
-| 8      | 16   | level gate per rank, i32 x 4: ultimate rank `k` needs level 6, 12, 18 for `k` = 1, 2, 3; other ranks need a level `1..=30`, not below the previous rank's (Dota: 1, 3, 5, 7) |
+| 8      | 16   | level gate per rank, i32 x 4: ultimate rank `k` needs level 6, 12, 18 for `k` = 1, 2, 3; other ranks need a level `1..=30`, not below the previous rank's (reference: 1, 3, 5, 7) |
 | 24     | 16   | damage per rank, i32 x 4, `>= 0`: the amount of the ability's first damage or heal effect |
 | 40     | 16   | cooldown per rank, game ticks, i32 x 4, `>= 0`: replaces `ABIL` cooldown |
 | 56     | 16   | energy cost per rank, i32 x 4, `>= 0`: replaces `ABIL` energy cost   |

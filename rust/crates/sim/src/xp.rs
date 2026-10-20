@@ -6,7 +6,7 @@
 use crate::arrays::Sim;
 
 /// Cumulative xp at which character levels 2 to 30 are reached (level 1 needs none). UNVERIFIED:
-/// the Dota table is an engine constant absent from the npc dump; recalled, and
+/// the reference table is an engine constant absent from the npc dump; recalled, and
 /// the 720 and 750 steps to levels 7 and 8 match the patch 7.21 notes.
 pub(crate) const DEFAULT_XP_CURVE: [u32; 29] = [
     230, 600, 1080, 1660, 2260, 2980, 3730, 4620, 5550, 6520, 7530, 8580, 9805, 11055, 12330, 13630, 14955, 16455,

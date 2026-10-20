@@ -6,14 +6,14 @@
 //! prefers plain units over heroes over structures. An armed structure prefers the unit that hit an
 //! allied hero in its reach (the aggro target, held `aggro_hold_s`), then plain units, heroes,
 //! structures. Within one class the nearest target wins. UNVERIFIED: the class order and the hold
-//! time are recalled Dota 2 behaviour, not in the dump (SteamDatabase/GameTracking-Dota2
+//! time are recalled reference ruleset behaviour, not in the dump (SteamDatabase tracking repo
 //! @282fad29f0f74504fad465c52d197fb61f4d612b has no targeting keys).
 //!
 //! Backdoor protection (rule `backdoor_reduction_pct`): a structure with no hostile armed plain unit
 //! within `backdoor_radius_milli` for `backdoor_activation_s` takes reduced damage and regenerates
 //! `backdoor_regen_per_s`. Verified from npc_abilities.txt `backdoor_protection`: radius 900,
 //! activation_time 15, regen_rate 90. UNVERIFIED: the damage reduction (not in the dump) and the
-//! radius scale into sim milli-units (900 Dota units x tower range 6000/700).
+//! radius scale into sim milli-units (900 reference units x tower range 6000/700).
 //!
 //! Glyph: the `glyph` effect makes every friendly unit of the caster's team whose filter holds all
 //! `need` bits and none of the `skip` bits take no damage for a duration, then locks the team out for

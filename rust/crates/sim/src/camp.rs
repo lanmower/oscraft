@@ -2,27 +2,27 @@
 //! unit that strays past its leash walks back home. A dead camp unit respawns at home once its
 //! timer runs out. Home, leash and timer are sim state: hashed and saved with the rest. Camp units
 //! respawn only on a whole-minute clock mark and only when no living unit stands within
-//! CAMP_CLEAR_MILLI of their home (Dota stacking rule). Roshan waits a random 8 to 11 minutes and
+//! CAMP_CLEAR_MILLI of their home (reference stacking rule). Roshan waits a random 8 to 11 minutes and
 //! bounty runes reappear on a 3 minute clock.
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::{DAY_TICKS, ORDER_MOVE, TICKS_PER_SECOND};
 
-/// Distance a camp unit may roam from home, milli-units (about 700 Dota units at 15.625 milli per
+/// Distance a camp unit may roam from home, milli-units (about 700 reference units at 15.625 milli per
 /// unit). UNVERIFIED: the leash radius is not in the dump.
 pub const CAMP_LEASH_MILLI: i32 = 10938;
 /// Radius around a camp unit's home that must hold no living unit for it to respawn, milli-units
-/// (about 300 Dota units). UNVERIFIED: the camp box size is not in the dump.
+/// (about 300 reference units). UNVERIFIED: the camp box size is not in the dump.
 pub const CAMP_CLEAR_MILLI: i32 = 4688;
-/// Seconds into the game at which the first regular neutral camps appear (Dota: the first camp set
-/// spawns at 1:00, dotasense.com/guides/jungle citing Valve's Dueling Fates update). Roshan and
+/// Seconds into the game at which the first regular neutral camps appear (reference: the first camp set
+/// spawns at 1:00, reference wiki citing reference Dueling Fates update). Roshan and
 /// runes are present from the start.
 pub const CAMP_FIRST_SPAWN_S: u32 = 60;
 /// Seconds between camp respawn marks: neutral camps refill on every whole minute of the game clock
-/// (Dota wiki, Neutral Creeps).
+/// (reference wiki, Neutral Creeps).
 pub const CAMP_RESPAWN_S: u32 = 60;
-/// Roshan respawns a random 8 to 11 minutes after death (Dota wiki, Roshan): minimum and spread.
+/// Roshan respawns a random 8 to 11 minutes after death (reference wiki, Roshan): minimum and spread.
 pub const ROSHAN_RESPAWN_MIN_S: u32 = 480;
 pub const ROSHAN_RESPAWN_SPREAD_S: u32 = 180;
 /// Unit name of the large neutral boss, and item name of its reward. Both are catalog names.
@@ -30,7 +30,7 @@ pub const ROSHAN_NAME: &str = "roshan";
 /// Pit markers: (boss unit name, night marker unit name, day marker unit name). A placed marker unit
 /// only gives a position: the loader reads it and removes it. A boss uses its day pit before 15:00 and
 /// then the pit of the current phase, night or day (Roshan and the Tormentor swap sides with the
-/// day/night cycle from 15:00, Valve patch 7.38). Roshan walks to the new pit; the Tormentor cannot
+/// day/night cycle from 15:00, reference patch 7.38). Roshan walks to the new pit; the Tormentor cannot
 /// move, so it respawns at the pit of the phase it dies in.
 pub const PIT_MARKERS: [(&str, &str, &str); 2] = [
     (ROSHAN_NAME, "roshan_pit_night", "roshan_pit_day"),
@@ -40,13 +40,13 @@ pub const PIT_MARKERS: [(&str, &str, &str); 2] = [
 pub const PIT_SWAP_S: u32 = 900;
 
 /// Timed boss kinds as (unit name, first spawn seconds, respawn minimum seconds, respawn spread
-/// seconds). Roshan is present from the start and returns after 8 to 11 minutes (Dota wiki). The
+/// seconds). Roshan is present from the start and returns after 8 to 11 minutes (reference wiki). The
 /// Tormentor first spawns at 15:00 and respawns 10 minutes after its death (patches 7.33 and 7.38).
 pub const TIMED_BOSSES: [(&str, u32, u32, u32); 2] = [(ROSHAN_NAME, 0, ROSHAN_RESPAWN_MIN_S, ROSHAN_RESPAWN_SPREAD_S), ("tormentor", 900, 600, 0)];
 pub const AEGIS_NAME: &str = "aegis";
 /// Bounty rune: a 1-hp neutral pickup at a river point. A hero within the pickup range takes its
 /// gold and the rune dies, then respawns at its point on the next RUNE_RESPAWN_S clock mark
-/// (every 3 minutes, Dota wiki, Runes). UNVERIFIED: pickup range and gold.
+/// (every 3 minutes, reference wiki, Runes). UNVERIFIED: pickup range and gold.
 pub const RUNE_NAME: &str = "bounty_rune";
 pub const RUNE_RESPAWN_S: u32 = 180;
 pub const RUNE_PICKUP_MILLI: i32 = 1500;
@@ -150,7 +150,7 @@ impl Sim {
         Some(if swapping && self.is_night() { night } else { day })
     }
 
-    /// Takes every placed regular camp unit off the map until the first camp mark, as Dota's camps
+    /// Takes every placed regular camp unit off the map until the first camp mark, as reference's camps
     /// only appear at 1:00. Roshan and runes stay. Call once at load, after the boss and rune kinds are set.
     pub(crate) fn hold_first_camp_spawn(&mut self) {
         let first = CAMP_FIRST_SPAWN_S * TICKS_PER_SECOND as u32;

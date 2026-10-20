@@ -12,7 +12,7 @@ const WAVES_MOD: &str = include_str!("../../../mods/moba_match.lua");
 const MELEE_PER_LANE: i64 = 3;
 const RANGED_PER_LANE: i64 = 1;
 // Super creeps held by the top lane after its mirror tower dies, on the 6.88 tower positions (was 3 melee, 1 ranged on the
-// 7.41 positions: the Scourge towers moved to their war3map.j uzig positions, see the commit that moved them).
+// 7.41 positions: the Scourge towers moved to their refmap.j uzig positions, see the commit that moved them).
 const SUPER_MELEE_TOP_LANE: i64 = 2;
 const SUPER_RANGED_TOP_LANE: i64 = 0;
 const CREEP_LANES: &[&str] = &["lane_spawner_top", "lane_spawner_bot"];

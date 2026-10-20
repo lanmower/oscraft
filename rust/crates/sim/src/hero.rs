@@ -1,13 +1,13 @@
 //! Heroes: units that respawn after a death timer, buy back for gold, and earn passive gold.
 //! Every timer and cost is in `HeroRules`, read from a `key=value` text file by
 //! `Sim::set_hero_rules_text` (scenarios/moba/hero_rules.txt). Seconds convert to ticks at
-//! `TICKS_PER_SECOND`. UNVERIFIED: the default values are placeholders, not sourced Dota 2 numbers.
+//! `TICKS_PER_SECOND`. UNVERIFIED: the default values are placeholders, not sourced reference ruleset numbers.
 
 use crate::arrays::Sim;
 use crate::fixed;
 use crate::{ABILITY_SLOTS, TICKS_PER_SECOND};
 
-/// Dota 2 attribute coefficients (engine constants, absent from the npc dump; from the Dota 2 wiki
+/// reference ruleset attribute coefficients (engine constants, absent from the npc dump; from the reference ruleset wiki
 /// Attributes page): 22 health and 0.1 health regeneration per strength, 1/6 armour and 1 attack speed
 /// per agility, 12 mana and 0.05 mana regeneration per intelligence, 1 damage per primary point (0.7 per
 /// point of every attribute for a universal hero). Attributes and per-hero data are hundredths.
@@ -93,7 +93,7 @@ pub struct HeroRules {
     pub int_gain: i32,
     /// Target priority and aggro (aggro.rs): 1 turns it on. Hold time of a drawn aggro target, seconds.
     pub aggro_priority: bool,
-    /// Whether any damage ends a channel (1, the default) or only a stun, hex or silence does (0, as in Dota).
+    /// Whether any damage ends a channel (1, the default) or only a stun, hex or silence does (0, as in reference).
     pub channel_damage_interrupt: bool,
     pub aggro_hold_s: i32,
     /// Backdoor protection (aggro.rs): damage cut percent (0 = off), clear radius, quiet seconds before

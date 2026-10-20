@@ -191,7 +191,7 @@ pub const ULTIMATE_RANKS: usize = 3;
 pub const ULTIMATE_GATES: [i32; ULTIMATE_RANKS] = [6, 12, 18];
 /// Level gate of a non-ultimate rank: any level.
 pub const NORMAL_GATE: i32 = 1;
-/// Latest level gate of a non-ultimate rank (Dota: 1, 3, 5, 7).
+/// Latest level gate of a non-ultimate rank (reference: 1, 3, 5, 7).
 pub const MAX_NORMAL_GATE: i32 = 30;
 /// Inventory slots each hero carries.
 pub const ITEM_SLOTS: usize = 6;

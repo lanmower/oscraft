@@ -20,7 +20,7 @@ pub(crate) const STATUS_KINDS: usize = 14;
 /// Q16 speed multiplier of an unslowed unit.
 pub(crate) const SLOW_NONE: i32 = fixed::ONE;
 
-/// Dota movement speed limits (550 maximum, 100 minimum; patch 7.38 notes) in Q16.16 per tick.
+/// reference movement speed limits (550 maximum, 100 minimum; patch 7.38 notes) in Q16.16 per tick.
 pub(crate) const MOVE_SPEED_MAX_Q16: i32 = 550 * 64;
 pub(crate) const MOVE_SPEED_MIN_Q16: i32 = 100 * 64;
 
@@ -44,7 +44,7 @@ pub const STATUS_NAMES: [&str; STATUS_KINDS] = [
     "stun", "slow", "silence", "root", "invisibility", "taunt", "hex", "disarm", "spell_immunity", "invulnerable", "break", "mute",
     "physical_immunity", "death_prevention",
 ];
-/// Movement speed of a hexed unit in milli-units per tick (140 Dota units a second at the 15.625 scale).
+/// Movement speed of a hexed unit in milli-units per tick (140 reference units a second at the 15.625 scale).
 pub(crate) const HEX_SPEED_MILLI: i32 = 137;
 
 impl Sim {
@@ -88,10 +88,10 @@ impl Sim {
         self.status_left(i, INVISIBLE) > 0
     }
 
-    /// Unit `i`'s speed after its slow, in the same Q16.16 units as `speed`, held to Dota's limits:
+    /// Unit `i`'s speed after its slow, in the same Q16.16 units as `speed`, held to reference's limits:
     /// at most 550 (or the unit type's own base when that is higher) and at least 100 for a unit
-    /// that can move (or its own speed when that is lower). One Dota speed point is 64 in Q16.16
-    /// (1 Dota unit = 15.625 milli, 16 ticks per second).
+    /// that can move (or its own speed when that is lower). One reference speed point is 64 in Q16.16
+    /// (1 reference unit = 15.625 milli, 16 ticks per second).
     pub(crate) fn effective_speed(&self, i: usize) -> i32 {
         if self.status_left(i, HEX) > 0 {
             let own = self.spell.hex_speed.get(i).copied().unwrap_or(0);

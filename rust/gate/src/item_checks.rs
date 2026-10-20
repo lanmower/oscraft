@@ -1,4 +1,4 @@
-//! Gate checks for Dota items on the moba scenario: costs and recipes against items.txt
+//! Gate checks for reference items on the moba scenario: costs and recipes against items.txt
 //! @282fad29f0f74504fad465c52d197fb61f4d612b, the recipe purchase rule, shops, stacks, slots,
 //! stat bonuses and consumables.
 

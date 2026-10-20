@@ -1,6 +1,6 @@
-//! Gate checks for Dota hero base stats on the moba scenario with its hero_rules.txt: attributes, growth,
+//! Gate checks for reference hero base stats on the moba scenario with its hero_rules.txt: attributes, growth,
 //! health, mana, armour, damage and attack period for a strength hero (axe) and a universal hero (marci),
-//! each against numbers computed by hand from npc_dota_hero_*.txt @282fad29f0f74504fad465c52d197fb61f4d612b.
+//! each against numbers computed by hand from hero_*.txt @282fad29f0f74504fad465c52d197fb61f4d612b.
 
 use crate::checks::{fresh, kind};
 use sim::{fixed, Sim};
@@ -42,7 +42,7 @@ fn q16(x100: i64) -> i64 {
     x100 * fixed::ONE as i64 / 100
 }
 
-/// Axe at level 1 (DotA 6.88g): strength 25, agility 20, intelligence 18; health 150 + 22 x 25; armour 0 + 20/6;
+/// Axe at level 1 (reference ruleset 6.88g): strength 25, agility 20, intelligence 18; health 150 + 22 x 25; armour 0 + 20/6;
 /// damage 26 (2d3 + 25 = 26 average) + 25 strength; attack period 1.7 s; mana 100 + 12 x 18.
 pub fn hero_axe_level1(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
@@ -62,7 +62,7 @@ pub fn hero_axe_level1(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// One level of growth (DotA 6.88g): axe strength 25 + 2.5, agility 20 + 2.2, intelligence 18 + 1.6; health gains 22 per
+/// One level of growth (reference ruleset 6.88g): axe strength 25 + 2.5, agility 20 + 2.2, intelligence 18 + 1.6; health gains 22 per
 /// strength point and the wounded fraction is kept as a flat amount.
 pub fn hero_axe_growth(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
@@ -92,7 +92,7 @@ pub fn hero_universal_damage(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// Every enabled Dota hero is in the catalog with its own hero line.
+/// Every enabled reference hero is in the catalog with its own hero line.
 pub fn hero_roster(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
     let mut with_def = 0;

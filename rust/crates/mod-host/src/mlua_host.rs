@@ -2075,7 +2075,7 @@ mod tests {
         build_image(&scenario).expect("moba image")
     }
 
-    // Two creeps on a walkable open row (y = 34, tiles 40 and 62; the map's Dota GridNav leaves x 39..119 open there), one per side and 22 tiles apart, past each other's sight, so only a command makes them fight.
+    // Two creeps on a walkable open row (y = 34, tiles 40 and 62; the map's reference GridNav leaves x 39..119 open there), one per side and 22 tiles apart, past each other's sight, so only a command makes them fight.
     fn host_with_creeps() -> ModHost {
         let mut host = ModHost::new(&moba_image()).expect("moba image loads");
         let (a, b) = {

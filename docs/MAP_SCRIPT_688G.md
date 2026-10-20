@@ -1,6 +1,6 @@
-# DotA Allstars 6.88g war3map.j: function index and literal facts
+# reference map 6.88g refmap.j: function index and literal facts
 
-Source: `war3map.j` extracted from `DotA v6.88g Allstars.w3x` (3,065,090 bytes, 102,278 lines). The text is obfuscated (random identifiers, locals reused for unrelated values), so behaviour below is read from bodies, not names. No JASS interpreter was run. Line numbers are 1-based in `war3map.j`.
+Source: `refmap.j` extracted from `reference map 6.88g.w3x` (3,065,090 bytes, 102,278 lines). The text is obfuscated (random identifiers, locals reused for unrelated values), so behaviour below is read from bodies, not names. No JASS interpreter was run. Line numbers are 1-based in `refmap.j`.
 
 Method: a Node text scan finds each `function ... endfunction` pair (4,503 functions) and counts the natives each body calls. A function is tagged with a direct effect when its body calls a unit, timer, stock, time, hero or tech native. Tags are counts of native use, not proof of intent. Hand-read rows are marked as such.
 

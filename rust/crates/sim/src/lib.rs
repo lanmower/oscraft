@@ -67,7 +67,7 @@ pub const TICKS_PER_SECOND: i32 = 16;
 pub(crate) const BUCKET_CAP: usize = 8;
 pub(crate) const VIS_SCALE: i32 = 2;
 pub(crate) const VIS_PERIOD: u32 = 8;
-/// Day and night lengths in ticks. UNVERIFIED: 5 minutes each is the recalled Dota 2 cycle, not a sourced value.
+/// Day and night lengths in ticks. UNVERIFIED: 5 minutes each is the recalled reference ruleset cycle, not a sourced value.
 pub const DAY_TICKS: u32 = 300 * TICKS_PER_SECOND as u32;
 pub const NIGHT_TICKS: u32 = 300 * TICKS_PER_SECOND as u32;
 pub const MAX_PLAYERS: usize = 16;

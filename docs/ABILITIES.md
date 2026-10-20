@@ -1,15 +1,15 @@
 # Hero abilities
 
-Parity target: Dota 2 at SteamDatabase/GameTracking-Dota2 `282fad29f0f74504fad465c52d197fb61f4d612b`. Every ability number of the
-heroes below comes from that commit's `game/dota/pak01_dir/scripts/npc/heroes/npc_dota_hero_<hero>.txt` (`AbilityDefinitions`:
+Parity target: reference ruleset at SteamDatabase tracking repo `282fad29f0f74504fad465c52d197fb61f4d612b`. Every ability number of the
+heroes below comes from that commit's `source/scripts/npc/heroes/hero_<hero>.txt` (`AbilityDefinitions`:
 cooldown, mana, cast range, cast point, channel time, `AbilityValues` by level, scepter, shard and talent deltas) and the generic
 talents from `npc/npc_abilities.txt`. The heroes' ability values are not in `npc_abilities.txt` at this commit; they live in the
 per-hero files.
 
-`scripts/gen-abilities.mjs` reads those files and writes `scenarios/moba/abilities_dota.osd` and `units_summons.osd`;
-`scripts/dota-recipes.mjs` says which engine effect carries which Valve key. A key a recipe does not name is listed in the
-generated file as `# <ability> unmodelled Valve keys`, and a talent with no effect as `# <hero>: talents with no modelled effect`.
-Run `node scripts/gen-abilities.mjs` to regenerate. Scale: 1 Dota unit = 15.625 milli, 16 ticks a second.
+`scripts/gen-abilities.mjs` reads those files and writes `scenarios/moba/abilities_ruleset.osd` and `units_summons.osd`;
+`scripts/ability-recipes.mjs` says which engine effect carries which reference key. A key a recipe does not name is listed in the
+generated file as `# <ability> unmodelled reference keys`, and a talent with no effect as `# <hero>: talents with no modelled effect`.
+Run `node scripts/gen-abilities.mjs` to regenerate. Scale: 1 reference unit = 15.625 milli, 16 ticks a second.
 
 ## Heroes done
 
@@ -38,7 +38,7 @@ Effect kinds `dot`, `status`, `timed_stat`, `aoe`, `dispel`, `chain`, `zone`, `i
   spell amplification, cooldown reduction, mana and health regeneration, attributes.
 - Armour, magic resistance and spell amplification apply to typed spell damage; hero magic resistance 25 percent.
 
-## What differs from Dota and why
+## What differs from reference and why
 
 - Charges exist; Zeus's Heavenly Jump talent charges are not modelled.
 - Facets are deprecated in the dump and not modelled. Shard and scepter values are modelled only where a recipe names the key;
@@ -56,5 +56,5 @@ Effect kinds `dot`, `status`, `timed_stat`, `aoe`, `dispel`, `chain`, `zone`, `i
 - Lina's Dragon Slave and Vengeful Spirit's Wave of Terror are straight lines of constant width and land at once. Lich's Frost Shield
   gives only the damage reduction, Chain Frost has no slow, Kraken Shell has no damage-triggered cleanse.
 - Anti-Mage: Mana Break burns the flat mana only, Counterspell gives the magic resistance without reflecting spells, Blink has no minimum range.
-- Spell immunity pierce comes from the ability's own flag (`SpellImmunityType`); dispel strength is a mask, not Valve's types.
+- Spell immunity pierce comes from the ability's own flag (`SpellImmunityType`); dispel strength is a mask, not reference types.
 - Gate checks: `rust/gate/src/ability_checks.rs`, run alone with `GATE_ONLY=ability- cargo run -p oscraft-gate`.

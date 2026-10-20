@@ -1,17 +1,17 @@
 # 6.88f proxy map data analysis
 
-Source label: every value taken from the GitHub repository BEN-HUR5/DotA_6.88f_AI is labelled "6.88f proxy". The 6.88g archive (wc3maps.com) is behind a Cloudflare challenge and returns 403, so the proxy is the only reachable copy. Our values come from `scenarios/moba/*` in this repository (Valve Dota 2 npc dump at SteamDatabase/GameTracking-Dota2 @282fad29f0f74504fad465c52d197fb61f4d612b).
+Source label: every value taken from the reference proxy repository (owner BEN-HUR5, repo name withheld) is labelled "6.88f proxy". The 6.88g archive (wc3maps.com) is behind a Cloudflare challenge and returns 403, so the proxy is the only reachable copy. Our values come from `scenarios/moba/*` in this repository (reference ruleset npc dump at SteamDatabase tracking repo @282fad29f0f74504fad465c52d197fb61f4d612b).
 
-Read method: `gh api repos/BEN-HUR5/DotA_6.88f_AI/contents/<path>?ref=main` with the raw media type, parsed into scratch storage outside the repository.
+Read method: `gh api repos/<proxy-owner>/<proxy-repo>/contents/<path>?ref=main` with the raw media type, parsed into scratch storage outside the repository.
 
 ## 1. Inventory (6.88f proxy)
 
 | Location | Entries | Notes |
 | --- | --- | --- |
-| repo root | 22 files, 13 directories | 2,398,871 bytes of root files; includes `War3map.w3a` (878,361 bytes), `War3map.doo` (275,324), `War3map.w3e` (116,568), `War3map.shd` (262,144) |
+| repo root | 22 files, 13 directories | 2,398,871 bytes of root files; includes `refmap.w3a` (878,361 bytes), `refmap.doo` (275,324), `refmap.w3e` (116,568), `refmap.shd` (262,144) |
 | `Units/` | 51 files | 8,196,474 bytes; 9 `.slk` tables: AbilityBuffData, AbilityData, ItemData, UnitAbilities, UnitBalance, UnitData, UnitUI, UnitWeapons, UpgradeData |
 | `Units/` unit and item strings | 6 `*UnitStrings.txt`, `ItemStrings.txt` and the race `*Func.txt` scripts | Used to resolve unit ids to names (Chinese for most entries, English for a few) |
-| `Scripts/` | 1 file: `war3map.j`, 5,199,936 bytes, 135,555 lines | Obfuscated Jass (function names are hashed, for example `LX7`, `R1X`). Most of its text is hero-help tip strings |
+| `Scripts/` | 1 file: `refmap.j`, 5,199,936 bytes, 135,555 lines | Obfuscated Jass (function names are hashed, for example `LX7`, `R1X`). Most of its text is hero-help tip strings |
 
 Parsed tables (rows excluding the header): UnitData 1,898, UnitBalance 1,898, UnitUI 1,898, UnitWeapons 1,897, ItemData 1,103, AbilityData 4,476, UpgradeData 87. Localized name strings: 3,058 unit ids and 1,177 item strings.
 
@@ -19,22 +19,22 @@ Parsed tables (rows excluding the header): UnitData 1,898, UnitBalance 1,898, Un
 
 - Heroes: hero base stats for 16 shipped heroes. 11 map to proxy codes (see 2.1). The other five are UNMAPPED.
 - Items: 313 items in `scenarios/moba/items.osd`. 69 match a 6.88f proxy English item name with a gold cost, 244 do not (proxy strings are localized).
-- Creeps, towers and barracks: the proxy has stock towers (`hgtw` Guard Tower 500 HP, `hctw` Cannon Tower 600 HP, `owtw` Watch Tower 500 HP). The DotA lane creep, tower and barracks roles are not identifiable from the obfuscated script, so these rows are MISSING.
-- Waves: `war3map.j` does not expose a readable wave timer, composition or spawn-point table. The frequent `CreateUnit` codes resolve to helper or dummy units (`e00E` Spellcaster 194 calls, `n00C` region indicator 30 calls). MISSING.
+- Creeps, towers and barracks: the proxy has stock towers (`hgtw` Guard Tower 500 HP, `hctw` Cannon Tower 600 HP, `owtw` Watch Tower 500 HP). The reference lane creep, tower and barracks roles are not identifiable from the obfuscated script, so these rows are MISSING.
+- Waves: `refmap.j` does not expose a readable wave timer, composition or spawn-point table. The frequent `CreateUnit` codes resolve to helper or dummy units (`e00E` Spellcaster 194 calls, `n00C` region indicator 30 calls). MISSING.
 - Abilities: cooldown and mana per level exist in `AbilityData.slk` for the proxy ability codes listed in 2.3, but the proxy ability names are localized, so they cannot be paired with our ability ids. MISSING.
 - Recipes: `ItemData.slk` has no component columns in the proxy, so recipes are MISSING.
 
 ### 2.1 Hero identity used for the mapping (6.88f proxy)
 
-Mapping is by the proxy's localized name in `Units/*UnitStrings.txt` for the unit id in `UnitBalance.slk` and the `R1W` hero table in `war3map.j`. Chinese names: 斧王 Axe (`Opgh`), 水晶室女 Crystal Maiden (`Hjai`), 主宰 Juggernaut (`Nbbc`), 奥林匹斯之王 Zeus (`Hmbr`), 矮人狙击手 Sniper (`Usyl`), 幻影长矛手 Phantom Lancer (`Ogrh`), 魅惑魔女 Dazzle (`Emoo`), 巫妖 Lich (`Ulic`), 潮汐猎人 Tidehunter (`Ofar`), 复仇之魂 Vengeful Spirit (`Hvwd`), 敌法师 Anti-Mage (`Edem`).
+Mapping is by the proxy's localized name in `Units/*UnitStrings.txt` for the unit id in `UnitBalance.slk` and the `R1W` hero table in `refmap.j`. Chinese names: 斧王 Axe (`Opgh`), 水晶室女 Crystal Maiden (`Hjai`), 主宰 Juggernaut (`Nbbc`), 奥林匹斯之王 Zeus (`Hmbr`), 矮人狙击手 Sniper (`Usyl`), 幻影长矛手 Phantom Lancer (`Ogrh`), 魅惑魔女 Dazzle (`Emoo`), 巫妖 Lich (`Ulic`), 潮汐猎人 Tidehunter (`Ofar`), 复仇之魂 Vengeful Spirit (`Hvwd`), 敌法师 Anti-Mage (`Edem`).
 
 Unmapped: Sven, Lion, Omniknight, Lina, Slardar. Candidate ids exist (for example `Ucrl` STR, `Ekee` INT, `Hpal`/`Hhkl`/`Hpb1` "Paladin", `Hblm` INT, `Oshd` INT) but none is confirmed, so they are not compared.
 
-Label: 6.88f proxy. Stat conventions: health and armor in the proxy are WC3 fields, and in our data `hero_rules.txt` stores armor in hundredths. Our range and sight are scaled by 15.625 milli per Dota unit (`range_milli / 15.625`, `sight_milli / 15.625`).
+Label: 6.88f proxy. Stat conventions: health and armor in the proxy are reference fields, and in our data `hero_rules.txt` stores armor in hundredths. Our range and sight are scaled by 15.625 milli per reference unit (`range_milli / 15.625`, `sight_milli / 15.625`).
 
 ### 2.2 Hero base stats (6.88f proxy vs ours)
 
-Columns: ours first, proxy second. Health: ours is the Valve `StatusHealth` base (`units_heroes.osd` line 1 field), proxy is WC3 base life 200.
+Columns: ours first, proxy second. Health: ours is the reference `StatusHealth` base (`units_heroes.osd` line 1 field), proxy is reference base life 200.
 
 | Ours | Proxy | Health | STR | AGI | INT | Mana | Armor | Move speed | Attack period | Range | Sight | Collision |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -194,11 +194,11 @@ Our file and line references for the comparison: `scenarios/moba/units_heroes.os
 
 ## 4. Differences that look like real parity gaps
 
-Caveat: our data is the Valve Dota 2 dump and the proxy is 6.88f, so most differences are expected patch drift. The list ranks differences that are per-unit gameplay values rather than encoding or scale.
+Caveat: our data is the reference ruleset dump and the proxy is 6.88f, so most differences are expected patch drift. The list ranks differences that are per-unit gameplay values rather than encoding or scale.
 
 | # | Item | Ours | Proxy |
 | --- | --- | --- | --- |
-| 1 | Phantom Lancer collision (radius) | ours 375 (24 Dota units), units_heroes.osd line 27 | proxy 8 (Ogrh) |
+| 1 | Phantom Lancer collision (radius) | ours 375 (24 reference units), units_heroes.osd line 27 | proxy 8 (Ogrh) |
 | 2 | Dazzle move speed | ours 298, units_heroes.osd line 101 | proxy 335 (Emoo) |
 | 3 | Lich move speed | ours 283, units_heroes.osd line 53 | proxy 315 (Ulic) |
 | 4 | Lich armor | ours -1, hero_rules.txt (armor=-100) | proxy 0 (Ulic) |
@@ -213,8 +213,8 @@ Full per-hero and per-item rows are in the tables above. Other differences that 
 
 ## 5. Not reachable from the proxy
 
-- Map layout, doodads, regions, starting positions and creep camps: these live in `War3map.w3e`, `War3map.doo` and `war3map.w3i` binary data, and the 6.88g `.w3x` archive is behind Cloudflare. Only the text tables above are reachable.
-- Wave logic: `war3map.j` is obfuscated (hashed function names) and the wave routines were not isolated in this pass.
+- Map layout, doodads, regions, starting positions and creep camps: these live in `refmap.w3e`, `refmap.doo` and `refmap.w3i` binary data, and the 6.88g `.w3x` archive is behind Cloudflare. Only the text tables above are reachable.
+- Wave logic: `refmap.j` is obfuscated (hashed function names) and the wave routines were not isolated in this pass.
 - Hero identity for Sven, Lion, Omniknight, Lina and Slardar: no confirmed proxy id.
 - Tower, barracks and lane creep roles: no confirmed proxy id.
 

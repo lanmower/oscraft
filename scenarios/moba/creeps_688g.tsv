@@ -1,4 +1,4 @@
-# Neutral creep and Roshan rows from DotA Allstars 6.88g (UnitBalance, UnitWeapons, UnitData), applied by scripts/apply-creeps-688g.py.
+# Neutral creep and Roshan rows from reference map 6.88g (UnitBalance, UnitWeapons, UnitData), applied by scripts/apply-creeps-688g.py.
 # Scale as heroes_688g.tsv: spd milli per tick, range and sight milli, period ticks (cool1 x 16), damage (dmgplus1 + dice1 x (sides1 + 1) / 2), regen_milli (regenHP x 62.5).
 # Blank armor or radius: the 6.88g row has no value; the current unit keeps its value.
 id	src	name	hp	spd	armor	damage	range_milli	period	sight_milli	regen_milli	radius

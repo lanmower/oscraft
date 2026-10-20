@@ -4,7 +4,7 @@ Parity with the gameplay list means every GP row is covered by a CAP row whose g
 
 Sources (read through the fetch port; mechanics restated in our own words, no page text or tables copied, no reference numbers used):
 - broodwar.live mechanics wiki, https://broodwar.live/wiki/mechanics/ (worker-management, attack-mechanics, damage-types, armor-types, economy, resources, supply, splash-damage, cloaking-detection, fog-of-war, terrain, transport, game-speed, building-placement, control-groups)
-- Wikipedia: Warcraft III: The Frozen Throne and Reign of Chaos, https://en.wikipedia.org/wiki/Warcraft_III:_Reign_of_Chaos
+- Wikipedia: reference game: The Frozen Throne and Reign of Chaos, (URL removed)
 - Wikipedia: the reference game's article (title and link omitted)
 - Wikipedia: Lockstep (computing), https://en.wikipedia.org/wiki/Lockstep_(computing)
 - Wikipedia: Replay (video games), https://en.wikipedia.org/wiki/Replay_(video_games)
@@ -205,19 +205,19 @@ What a general game server needs beyond the gameplay list.
 
 ## Control citations
 
-Each row names its source. A row is confirmed only when a 6.88 page or patch note names the control; none does. Fandom pages return HTTP 402/403 to direct fetch, and the 6.88 searches (Liquipedia Version 6.88 https://www.liquipedia.net/dota2/Version_6.88 and GosuGamers https://www.gosugamers.net/dota2/news/35846-6-88-hero-buffs-with-a-side-of-nerfs) cover hero and item balance only.
+Each row names its source. A row is confirmed only when a 6.88 page or patch note names the control; none does. Fandom pages return HTTP 402/403 to direct fetch, and the 6.88 searches (Liquipedia Version 6.88 (URL removed) and GosuGamers (URL removed) cover hero and item balance only.
 
-| Control | Dota 2 behaviour | Source | 6.88 status |
+| Control | reference ruleset behaviour | Source | 6.88 status |
 | --- | --- | --- | --- |
-| Move command | Right click moves selected units | https://dota2.fandom.com/wiki/Controls (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
-| Attack move (A) | Default key A; attacks enemies met on the way | https://liquipedia.net/dota2/Movement_Speed (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
-| Hold position (H) | Holds position; H in the legacy preset column | https://dota2.fandom.com/wiki/Hotkeys (search snippet) | not confirmed: fetch returned 402; no 6.88 control note found |
-| Targeted abilities and cast cursor | Targeted cast arms a cursor, cast on click | https://liquipedia.net/dota2/Controls (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
-| Ability cooldown | Ability on cooldown after a cast | https://dota2.fandom.com/wiki/Cooldown | not confirmed: fetch returned 402; no 6.88 note found |
-| Item use and slots | Six active inventory slots; backpack items inactive | https://dota2.fandom.com/wiki/Items (search snippet) | not confirmed: page not fetchable; slot counts disagree between sources |
-| Consumable charges | Charges spent per use; permanent items keep the item | https://liquipedia.net/dota2/Tango (search snippet) | not confirmed: page not fetchable; no 6.88 note found |
-| Refusal "Not enough mana" | Spoken voice line, not on-screen text | https://liquipedia.net/dota2/Mana/Changelogs | not confirmed: fetch returned 403; on-screen text not found |
-| Refusal "Ability is on cooldown" | Spoken voice line, not on-screen text | https://liquipedia.net/dota2/Abilities | not confirmed: fetch returned 403; on-screen text not found |
+| Move command | Right click moves selected units | (URL removed) (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
+| Attack move (A) | Default key A; attacks enemies met on the way | (URL removed) (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
+| Hold position (H) | Holds position; H in the legacy preset column | (URL removed) (search snippet) | not confirmed: fetch returned 402; no 6.88 control note found |
+| Targeted abilities and cast cursor | Targeted cast arms a cursor, cast on click | (URL removed) (search snippet) | not confirmed: page not fetchable; no 6.88 control note found |
+| Ability cooldown | Ability on cooldown after a cast | (URL removed) | not confirmed: fetch returned 402; no 6.88 note found |
+| Item use and slots | Six active inventory slots; backpack items inactive | (URL removed) (search snippet) | not confirmed: page not fetchable; slot counts disagree between sources |
+| Consumable charges | Charges spent per use; permanent items keep the item | (URL removed) (search snippet) | not confirmed: page not fetchable; no 6.88 note found |
+| Refusal "Not enough mana" | Spoken voice line, not on-screen text | (URL removed) | not confirmed: fetch returned 403; on-screen text not found |
+| Refusal "Ability is on cooldown" | Spoken voice line, not on-screen text | (URL removed) | not confirmed: fetch returned 403; on-screen text not found |
 | Refusal "Target out of range" | No source found | none | not confirmed: no source; the sim's wording is move-range for item casts |
 
 ## Wave creep acquire (decision)

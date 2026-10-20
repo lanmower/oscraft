@@ -71,7 +71,7 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     ids.forEach((id, i) => {
       if (enemy) {
         const struck = commands.attack(id, enemy.id);
-        // A right click on a foe this unit cannot strike is a move to that spot, as in Dota; an attack-move onto it stays an attack.
+        // A right click on a foe this unit cannot strike is a move to that spot, as in reference; an attack-move onto it stays an attack.
         if (struck || attackMove) {
           ok = struck && ok;
           return;

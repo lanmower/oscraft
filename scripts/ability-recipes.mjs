@@ -1,4 +1,4 @@
-// Which engine effect carries which Valve ability value. scripts/gen-abilities.mjs reads every number from Valve's file by key;
+// Which engine effect carries which reference ability value. scripts/gen-abilities.mjs reads every number from reference file by key;
 // a recipe names the key (H.V), the unit conversion and the engine effect that uses it. A key a recipe does not name is listed in
 // the generated file as unmodelled. Engine effect semantics: rust/crates/data/FORMAT.md (effect table, AXTN).
 
@@ -70,7 +70,7 @@ export const HEROES = {
   omniknight: ["omniknight_purification", "omniknight_martyr", "omniknight_hammer_of_purity", "omniknight_degen_aura", "omniknight_guardian_angel", "@talents"],
 };
 
-// Helper abilities (not in a hero's slots): the pulse a zone, aura or ward runs. Each takes its Valve values from `parent`.
+// Helper abilities (not in a hero's slots): the pulse a zone, aura or ward runs. Each takes its reference values from `parent`.
 export const HELPERS = {
   juggernaut_blade_fury_pulse: "juggernaut_blade_fury",
   juggernaut_omni_slash_pulse: "juggernaut_omni_slash",
@@ -82,7 +82,7 @@ export const HELPERS = {
 // Units the abilities place. Stats from npc_units.txt @282fad29 (scale 15.625 milli per unit, speed per tick at 16 ticks a second).
 export const SUMMON_UNITS = [
   "# Summoned units of the hero abilities. juggernaut_healing_ward: StatusHealth 1, MovementSpeed 325, VisionDaytimeRange 600, BountyGold 75, BountyXP 75",
-  "# (npc_dota_juggernaut_healing_ward, npc_units.txt @282fad29f0f74504fad465c52d197fb61f4d612b). Hull radius 125 is UNVERIFIED (hull sizes are engine constants).",
+  "# (juggernaut_healing_ward, npc_units.txt @282fad29f0f74504fad465c52d197fb61f4d612b). Hull radius 125 is UNVERIFIED (hull sizes are engine constants).",
   'unit("juggernaut_healing_ward", 1, 317, 125, abilities=["juggernaut_healing_ward_aura"], filters=["ground", "light"], sight_milli=9375, model="pillar-obelisk", deny_pct=0)',
   'unit_extra("juggernaut_healing_ward", bounty=75, xp_bounty=75, deny_xp_pct=0)',
 ];

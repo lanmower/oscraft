@@ -1,6 +1,6 @@
 # Bot AI: behaviours read from the AI map
 
-Source: `war3map.j` extracted from `DotA 6.88 AI REBORN.w3x` (the owner's copy, 8,402,417 bytes, one 4,104,779-byte script, single 16 MB sector, zlib). Extraction: a Python reader of the MPQ tables in scratch space (`.gm/scratch`, not committed). Line numbers below are 1-based in that `war3map.j`. Identifiers in the script are obfuscated, so each rule is read from its body; names such as `N9F` are the script's own labels.
+Source: `refmap.j` extracted from `reference ruleset 6.88 AI REBORN.w3x` (the owner's copy, 8,402,417 bytes, one 4,104,779-byte script, single 16 MB sector, zlib). Extraction: a Python reader of the MPQ tables in scratch space (`.gm/scratch`, not committed). Line numbers below are 1-based in that `refmap.j`. Identifiers in the script are obfuscated, so each rule is read from its body; names such as `N9F` are the script's own labels.
 
 Trigger key: `timer` = driven by a clock or sleep, `event` = driven by a game event or trigger, `state` = a check on unit or AI state each tick.
 

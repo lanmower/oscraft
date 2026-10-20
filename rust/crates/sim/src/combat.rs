@@ -63,7 +63,7 @@ const ASSIST_NET_WORTH_PER_MILLE: i64 = 37;
 
 const HERO_BASE_MAGIC_RESIST_PCT: i64 = 25;
 
-/// Armour reduction per armour point, Q16.16 (0.06): Dota's physical damage multiplier is
+/// Armour reduction per armour point, Q16.16 (0.06): reference's physical damage multiplier is
 /// 1 - 0.06a / (1 + 0.06|a|), with no floor. Engine constant, not in the npc dump.
 const ARMOUR_PER_POINT_Q16: i64 = 3932;
 
@@ -306,7 +306,7 @@ impl Sim {
     }
 
     /// Ability damage after the magic resistance of unit `j`: `damage * (100 - resist) / 100`, the
-    /// resist being the hero base of 25 percent (`npc_dota_hero_base` MagicalResistance; 0 for a
+    /// resist being the hero base of 25 percent (`hero_base` MagicalResistance; 0 for a
     /// non-hero). Ability damage is magical.
     fn magic_reduced(&self, j: usize, dmg: i32) -> i32 {
         let resist = if self.is_hero(j) { HERO_BASE_MAGIC_RESIST_PCT } else { 0 };

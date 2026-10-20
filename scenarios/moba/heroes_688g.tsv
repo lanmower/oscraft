@@ -1,7 +1,7 @@
-# 6.88g hero rows for scenarios/moba units_heroes.osd and hero_rules.txt. Source: DotA v6.88g Allstars.w3x SLK tables
+# 6.88g hero rows for scenarios/moba units_heroes.osd and hero_rules.txt. Source: reference map 6.88g.w3x SLK tables
 # UnitBalance (attributes, mana, regen, def, spd, sight, collision), UnitWeapons (range, cool1 period, damage), UnitData (turnRate).
 # Units: attributes/gains are the base and per-level values; mana/regen are per s (hundredths for regen); armor, bat and damage in hundredths.
-# spd is WC3 units per second; sight, collision and range are WC3 units. Canonical row per hero name: most common stat tuple, then non-TX id.
+# spd is reference units per second; sight, collision and range are reference units. Canonical row per hero name: most common stat tuple, then non-TX id.
 id	src	name	primary	hp	str	str_gain	agi	agi_gain	int	int_gain	mana	mana_regen	hp_regen	armor	bat	damage	spd	sight	collision	range	turn
 antimage	Edem	Anti-Mage	1	150	2200	160	2200	280	1500	180	100	1	25	100	145	2900	315	1800	24	128	0.5
 axe	Opgh	Axe	0	150	2500	250	2000	220	1800	160	100	1	300	0	170	2600	290	1800	24	128	0.6
