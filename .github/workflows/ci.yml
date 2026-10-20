@@ -2374,9 +2374,16 @@ jobs:
               await page.mouse.click(rcStand.x, rcStand.y, { button: "right" });
               await page.waitForFunction(([id, x, z]) => { const u = window.__ciUnits().find((v) => v.id === id); return !!u && Math.hypot(u.x - x, u.z - z) <= 1.5; }, [attacker.id, rcFoe.x, rcFoe.z], { timeout: 8000, polling: 250 }).catch(() => {});
             }
-            const rcFoeAt = await screenAt(rcFoe.x, rcFoe.z);
-            await page.mouse.click(rcFoeAt.x, rcFoeAt.y, { button: "right" });
-            rcAttacked = await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, rcAttacks0, { timeout: 2000 }).then(() => true, () => false);
+            // The weapon has a cooldown of about 27 ticks after the strikes above, and a refused attack falls back to a move, so the foe is
+            // right-clicked again every 3 s until a strike lands (40 s at most).
+            const rcUntil = Date.now() + 40000;
+            while (!rcAttacked && Date.now() < rcUntil) {
+              const rcNow = await page.evaluate((id) => window.__ciUnits().find((v) => v.id === id) || null, rcFoe.id);
+              if (!rcNow) break;
+              const rcFoeAt = await screenAt(rcNow.x, rcNow.z);
+              await page.mouse.click(rcFoeAt.x, rcFoeAt.y, { button: "right" });
+              rcAttacked = await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, rcAttacks0, { timeout: 3000 }).then(() => true, () => false);
+            }
           }
           console.log(`moba right-click ok move=${Number(rcOrdered && rcMoved)} attack=${Number(rcAttacked)}`);
           // Items: the main slots are the first six cells of the inventory bar, keyed Z X C V B N in that order.
@@ -4080,8 +4087,8 @@ jobs:
               }
               return false;
             };
-            // The four nearest (unit, foe) pairs are tried in turn, each unit walking to its foe; the whole search gives up after 400 s.
-            const pairs = mine.flatMap((me) => foes.map((foe) => ({ me, foe, d: dist(me, foe) }))).sort((a, b) => a.d - b.d).slice(0, 4);
+            // The eight nearest (unit, foe) pairs are tried in turn, each unit walking to its foe; the whole search gives up after 400 s.
+            const pairs = mine.flatMap((me) => foes.map((foe) => ({ me, foe, d: dist(me, foe) }))).sort((a, b) => a.d - b.d).slice(0, 8);
             const landed = async (attr, send) => {
               const landedUntil = Date.now() + 400000;
               for (const { me, foe } of pairs) {
