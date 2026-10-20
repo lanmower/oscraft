@@ -2149,6 +2149,10 @@ jobs:
           const hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));
           // Bounded: the attack search gives up after 180 s so a foe the sim never accepts cannot hold the job.
           const attackDeadline = Date.now() + 180000;
+          // Visual witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
+          const fxWait = (ui, rgb) => page.waitForFunction(([u, c]) => [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb], { timeout: 1500, polling: 16 }).then(() => true, () => false);
+          const fxShot = async (name) => page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/" + name });
+          let reticleSeen = false;
           for (const cand of ranked.reverse().slice(0, 400)) {
             if (Date.now() >= attackDeadline) break;
             // Select through the CI hook: a click can land on another unit drawn over this one.
@@ -2181,6 +2185,8 @@ jobs:
               // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
               await page.mouse.move(fp.x, fp.y);
               await page.keyboard.press("q");
+              // The first targeted Q that arms the reticle is witnessed and shot before the click resolves it.
+              if (!reticleSeen && (await fxWait("reticle"))) { reticleSeen = true; await fxShot("reticle.png"); }
               // A targeted Q arms and the left click on the foe casts there; a plain Q already cast, and the click only selects the foe.
               await page.mouse.click(fp.x, fp.y, { button: "left" });
               // Re-select the hero so the foe's click does not leave the attack step with no own unit selected.
@@ -2237,9 +2243,6 @@ jobs:
           }
           if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + ` ticks=${waited.ticks} nearest_hostile_cells=${waited.nearest ? waited.nearest.cells.toFixed(2) : "-1.00"} ranked=${ranked.length}`);
           // Visual feedback witnesses: each overlay the page shows is found by its data-ui and its colour, and screenshotted while it is up.
-          const fxShown = (ui, rgb) => page.evaluate(([u, c]) => [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb]);
-          const fxWait = (ui, rgb) => page.waitForFunction(([u, c]) => [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb], { timeout: 1500, polling: 16 }).then(() => true, () => false);
-          const fxShot = async (name) => page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/" + name });
           const heroNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id), attacker.id);
           const heroAtNow = await screenAt(heroNow.x, heroNow.z);
           const unitsNow = await page.evaluate(() => window.__ciUnits());
@@ -2255,13 +2258,8 @@ jobs:
             if (ringShown) await fxShot("attack-ring.png");
           }
           await page.mouse.click(heroAtNow.x, heroAtNow.y, { button: "left" });
-          // Q is on cooldown from the cast above, so the reticle comes from the first ready targeted ability in slots W to R.
-          let reticleShown = false;
-          for (const key of ["w", "e", "r"]) {
-            await page.keyboard.press(key);
-            reticleShown = await fxWait("reticle");
-            if (reticleShown) { await fxShot("reticle.png"); break; }
-          }
+          // The reticle was witnessed and shot when the first targeted Q armed it above; Q is on cooldown now.
+          const reticleShown = reticleSeen;
           await page.keyboard.press("Escape");
           await page.keyboard.press("q");
           const refusalShown = await fxWait("refusal");
