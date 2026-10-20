@@ -2328,11 +2328,12 @@ jobs:
           if ((await page.evaluate(() => window.__ciSelected())) !== orderHero.id) throw new Error("attack-move probe: the hero click did not select " + orderHero.id);
           // The attack-move click orders the input layer's own selection, which a click on the hero's pixels can leave on another unit: select the hero there.
           if (!(await page.evaluate((id) => window.__ciInputSelection().includes(id), orderHero.id))) await page.evaluate((id) => window.__ciSelect(id), orderHero.id);
-          // Five cells toward the contact point when it is that far off; a hero already nearer than that (the fights above walk it up to the
-          // contact) walks five cells back the other way, so the walk is not cut short by the foe it is already fighting.
+          // Five cells toward the contact point when it is that far off. A hero already nearer than that (the fights above walk it up to the
+          // contact) walks five cells sideways instead: a click back toward the foe it fights would pick that foe and attack it.
           const span = dTo(amStart, contact);
-          const sign = span >= 5 ? 1 : -1;
-          const point = { x: amStart.x + sign * (contact.x - amStart.x) / Math.max(span, 1e-6) * 5, z: amStart.z + sign * (contact.z - amStart.z) / Math.max(span, 1e-6) * 5 };
+          const ux = (contact.x - amStart.x) / Math.max(span, 1e-6);
+          const uz = (contact.z - amStart.z) / Math.max(span, 1e-6);
+          const point = span >= 5 ? { x: amStart.x + ux * 5, z: amStart.z + uz * 5 } : { x: amStart.x - uz * 5, z: amStart.z + ux * 5 };
           const pointAt = await screenAt(point.x, point.z);
           const pointOnCanvas = pointAt.x >= 0 && pointAt.y >= 0 && pointAt.x < viewport.w && pointAt.y < viewport.h
             && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [pointAt.x, pointAt.y]));
