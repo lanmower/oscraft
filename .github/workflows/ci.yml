@@ -216,7 +216,26 @@ jobs:
             if (!baked) throw new Error("tiles: the map uses a kind with no tile model");
             if (baked.cells !== mesh.width * mesh.height) throw new Error("tiles: cell count " + baked.cells);
             console.log(`tiles ok kinds=${baked.kinds.size} cells=${baked.cells}`);
-          '
+            const mobaBytes = new Uint8Array(fs.readFileSync("./js/client/moba.bin"));
+            const cliff = tiles.bakeTiles(mobaBytes, models);
+            if (!cliff) throw new Error("moba cliff: the map uses a kind with no tile model");
+            if (cliff.slabs !== 0) throw new Error("moba cliff: tile-high slabs left " + cliff.slabs);
+            let strips = 0;
+            for (const entry of cliff.kinds.values()) {
+              if (!entry.strip) continue;
+              const { positions: p, indices: ix } = entry.model;
+              for (const i of ix) if (i >= p.length / 3) throw new Error("moba cliff: strip index out of range");
+              for (let q = 0; q < entry.cells; q++) {
+                const [a0, a1, a2, a3] = [0, 1, 2, 3].map((k) => [p[(q * 4 + k) * 3], p[(q * 4 + k) * 3 + 1], p[(q * 4 + k) * 3 + 2]]);
+                if (a0[1] !== a1[1] || a2[1] !== a3[1] || !(a2[1] > a0[1])) throw new Error("moba cliff: strip quad does not run from base up to top");
+                if (a0[0] !== a3[0] || a0[2] !== a3[2] || a1[0] !== a2[0] || a1[2] !== a2[2]) throw new Error("moba cliff: strip quad is not vertical");
+              }
+              strips += entry.cells;
+            }
+            if (strips < 1) throw new Error("moba cliff: no cliff strips on the moba map");
+            console.log(`moba cliff ok strips=${strips} slabs=${cliff.slabs}`);
+          ' | tee "$RUNNER_TEMP/terrain-probe.log"
+          grep -Eq '^moba cliff ok strips=[1-9][0-9]* slabs=0$' "$RUNNER_TEMP/terrain-probe.log"
 
       - uses: actions/upload-artifact@v4
         with:
