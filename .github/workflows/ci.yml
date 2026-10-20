@@ -2250,9 +2250,10 @@ jobs:
             await press("Start match");
             await page.waitForFunction(() => document.getElementById("lobby").hidden, null, { timeout: 15000 });
           }
-          await page.waitForFunction(() => window.__ciFx && window.__ciFx().ranged > 0, null, { timeout: 150000, polling: 100 });
+          const inFlight = await page.waitForFunction(() => { const n = window.__ciFx ? window.__ciFx().ranged : 0; return n > 0 ? n : false; }, null, { timeout: 150000, polling: 50 });
+          const ranged = await inFlight.jsonValue();
           await page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/ranged-attack.png" });
-          console.log(`effects ok ranged=${(await page.evaluate(() => window.__ciFx().ranged))}`);
+          console.log(`effects ok ranged=${ranged}`);
           await browser.close();
           EOF
           node "$RUNNER_TEMP/pw/effects.mjs" | tee "$RUNNER_TEMP/effects.txt"
