@@ -1413,6 +1413,8 @@ if (params.get("ci") === "1") {
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
   window.__ciLearn = (unitId, slot) => (localGame ? localGame.skill_up(unitId, slot) : false);
+  // The first ability slot of a unit whose cast waits for a click (target unit or point), or -1: the probe learns and casts that one.
+  window.__ciTargetedSlot = (unitId) => { const list = JSON.parse(localGame.abilities_json(unitId)); const t = list.find((a) => (a.target === "unit" || a.target === "point") && a.slot < 4); return t ? t.slot : -1; };
   window.__ciHostile = (a, b) => localGame.hostile(a, b);
   window.__ciIsHero = (unitId) => isHeroUnit(unitId);
   window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
