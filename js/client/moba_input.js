@@ -17,6 +17,9 @@ function feedback(detail) {
   window.dispatchEvent(new CustomEvent("moba:feedback", { detail }));
 }
 
+// Offsets (world cells) tried after a move point the sim refuses: the cell's neighbours, then the diagonal ring.
+const MOVE_SPOTS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1.5, 1.5], [-1.5, 1.5], [1.5, -1.5], [-1.5, -1.5]];
+
 function isGround(target) {
   return target instanceof HTMLCanvasElement && !target.closest("[data-ui]");
 }
@@ -67,11 +70,17 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     let ok = true;
     ids.forEach((id, i) => {
       if (enemy) {
-        ok = commands.attack(id, enemy.id) && ok;
-        return;
+        const struck = commands.attack(id, enemy.id);
+        // A right click on a foe this unit cannot strike is a move to that spot, as in Dota; an attack-move onto it stays an attack.
+        if (struck || attackMove) {
+          ok = struck && ok;
+          return;
+        }
       }
       const send = attackMove ? commands.attackMove : commands.order;
-      const sent = send(id, points[i].x, points[i].z) || send(id, world.x, world.z);
+      // The formation spot first, then the cell and its neighbours, so a move onto a blocked cell lands on a walkable one next to it.
+      const spots = [[points[i].x, points[i].z], ...MOVE_SPOTS.map(([dx, dz]) => [world.x + dx, world.z + dz])];
+      const sent = spots.some(([x, z]) => send(id, x, z));
       ok = sent && ok;
     });
     return ok;
