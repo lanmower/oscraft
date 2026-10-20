@@ -57,9 +57,61 @@ export function readDoodads(bytes) {
 
 // One vertex per grid corner (heights averaged over the cells that touch it) and two triangles per cell.
 // Positions are in milli-units: x and z from the cell size, y from the height level times the height step.
+// Display-only height field, in cell units per cell. A cell beside a drop under a full cliff level is a slope cell: it relaxes
+// toward its neighbours, so a ridge of slope cells (a crest of several levels above its surroundings) draws as a straight
+// incline between the surfaces on either side. Cells beside a full cliff level keep their own height, so cliff walls still
+// meet the surface where a full drop exists. The sim never reads this field (walkability is the BLOCKED flag, heights are
+// read from the map levels), so only the drawn surface changes.
+const FULL_CLIFF_CELLS = 2; // one 6.88 cliff level, as tiles.js CLIFF_LEVEL_CELLS
+const DISPLAY_RELAX_MAX_PASSES = 5000;
+const DISPLAY_RELAX_TOLERANCE = 1e-6;
+export function displayHeights(grid) {
+  const { width: w, height: h, cellMilli, heightStep, levels } = grid;
+  const n = w * h;
+  const shown = new Float64Array(n);
+  for (let i = 0; i < n; i++) shown[i] = (levels[i] * heightStep) / cellMilli;
+  const fixed = new Uint8Array(n);
+  const relax = new Uint8Array(n);
+  const neighbours = (i) => {
+    const x = i % w, y = (i - x) / w;
+    const out = [];
+    if (x > 0) out.push(i - 1);
+    if (x < w - 1) out.push(i + 1);
+    if (y > 0) out.push(i - w);
+    if (y < h - 1) out.push(i + w);
+    return out;
+  };
+  for (let i = 0; i < n; i++) {
+    for (const j of neighbours(i)) {
+      const dh = Math.abs(shown[i] - shown[j]);
+      if (dh >= FULL_CLIFF_CELLS - 1e-6) fixed[i] = 1;
+      else if (dh > 1e-9) relax[i] = 1;
+    }
+  }
+  for (let i = 0; i < n; i++) if (fixed[i]) relax[i] = 0;
+  const active = [];
+  for (let i = 0; i < n; i++) if (relax[i]) active.push(i);
+  const nbr = active.map(neighbours);
+  for (let pass = 0; pass < DISPLAY_RELAX_MAX_PASSES; pass++) {
+    let change = 0;
+    for (let k = 0; k < active.length; k++) {
+      const i = active[k];
+      const list = nbr[k];
+      let sum = 0;
+      for (const j of list) sum += shown[j];
+      const next = sum / list.length;
+      change = Math.max(change, Math.abs(next - shown[i]));
+      shown[i] = next;
+    }
+    if (change < DISPLAY_RELAX_TOLERANCE) break;
+  }
+  return shown;
+}
+
 export function buildTerrain(bytes) {
   const grid = readGrid(bytes);
-  const { width: w, height: h, cellMilli, heightStep, levels } = grid;
+  const { width: w, height: h, cellMilli } = grid;
+  const shown = displayHeights(grid);
   const cols = w + 1;
   const positions = new Float32Array(cols * (h + 1) * 3);
   const uvs = new Float32Array(cols * (h + 1) * 2);
@@ -72,14 +124,14 @@ export function buildTerrain(bytes) {
           const x = cx + dx;
           const y = cy + dy;
           if (x >= 0 && y >= 0 && x < w && y < h) {
-            sum += levels[y * w + x];
+            sum += shown[y * w + x];
             touching++;
           }
         }
       }
       const v = (cy * cols + cx) * 3;
       positions[v] = cx * cellMilli;
-      positions[v + 1] = (sum / touching) * heightStep;
+      positions[v + 1] = (sum / touching) * cellMilli;
       positions[v + 2] = cy * cellMilli;
       uvs[(cy * cols + cx) * 2] = cx * GROUND_UV_PER_CELL;
       uvs[(cy * cols + cx) * 2 + 1] = cy * GROUND_UV_PER_CELL;
