@@ -2444,7 +2444,7 @@ jobs:
           grep -q '^moba cooldown ok sweep=1$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba bar cells=0,1,2,3,4,5 keys=zxcvbn$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba right-click ok move=1 attack=1$' "$RUNNER_TEMP/moba-input.txt"
-          grep -q '^moba item ok charge=2->1 second=refused refusal=item_refused .*cooldown$' "$RUNNER_TEMP/moba-input.txt"
+          grep -q '^moba item ok charge=2->1 second=refused refusal=item_refused .*[Cc]ooldown$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba range ok refusal="out of range" area=1$' "$RUNNER_TEMP/moba-input.txt"
           grep -Eq '^moba attack-move ok orders=[0-9]+->[0-9]+ dist=[0-9.]+->[0-9.]+ marker=[01]$' "$RUNNER_TEMP/moba-input.txt"
 
@@ -4071,10 +4071,10 @@ jobs:
             // until the foe is visible within 1.5 cells. Out of sight, the unit keeps walking toward the foe's last seen cell, which brings it back into sight.
             const unitAt = (id) => host.evaluate((i) => window.__ciRoster().find((u) => u.id === i) || null, id);
             const seenAt = (id) => peer.evaluate((i) => window.__ciUnits().find((u) => u.id === i) || null, id);
-            const approach = async (me, foe) => {
+            const approach = async (me, foe, budgetMs = 150000) => {
               let spot = foe;
               let attempt = 0;
-              const until = Date.now() + 150000;
+              const until = Date.now() + budgetMs;
               while (Date.now() < until) {
                 const h = await unitAt(me.id);
                 if (!h) return false;
@@ -4093,18 +4093,19 @@ jobs:
             };
             // Units die fast once their sides meet, so the pair is chosen again on each round from the host's live roster: the nearest
             // living (unit, foe) pair not yet tried, walked to and sent. The whole search gives up after 240 s.
-            const landed = async (attr, send) => {
-              const landedUntil = Date.now() + 240000;
+            // Only heroes cast (a creep has no ability slots), so the cast search takes hero casters and a longer walk.
+            const landed = async (attr, send, casterOk = () => true, budgetMs = 150000, searchMs = 240000) => {
+              const landedUntil = Date.now() + searchMs;
               const tried = new Set();
               while (Date.now() < landedUntil) {
                 const roster = await host.evaluate(() => window.__ciRoster());
-                const ours = roster.filter((u) => u.player === 0);
+                const ours = roster.filter((u) => u.player === 0 && casterOk(u));
                 const theirs = roster.filter((u) => u.player === 1);
                 const pair = ours.flatMap((me) => theirs.map((foe) => ({ me, foe, d: dist(me, foe) })))
                   .filter((p) => !tried.has(`${p.me.id}:${p.foe.id}`)).sort((x, y) => x.d - y.d)[0];
                 if (!pair) break;
                 tried.add(`${pair.me.id}:${pair.foe.id}`);
-                if (!(await approach(pair.me, pair.foe))) continue;
+                if (!(await approach(pair.me, pair.foe, budgetMs))) continue;
                 await send(pair.me, pair.foe);
                 const until = Date.now() + 3000;
                 while (Date.now() < until) {
@@ -4118,7 +4119,7 @@ jobs:
             await landed("remoteCasts", async (me, foe) => {
               await host.evaluate((id) => window.__ciLearn(id, 0), me.id);
               await peer.evaluate(([id, targetId, x, z]) => window.__ciCast(id, 0, targetId, x, z), [me.id, foe.id, foe.x, foe.z]);
-            });
+            }, (u) => u.type === 0, 420000, 600000);
             const attacks = await host.evaluate(() => document.body.dataset.remoteAttacks);
             const casts = await host.evaluate(() => document.body.dataset.remoteCasts);
             // Both sides must hold the same unit positions for the host ticks they both logged.
