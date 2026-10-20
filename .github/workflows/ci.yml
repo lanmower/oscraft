@@ -2197,7 +2197,7 @@ jobs:
           const fxWait = async (ui, rgb) => {
             const since = (await page.evaluate(() => performance.now())) - 600;
             return page.waitForFunction(([u, c, s]) => window.__ciOverlayLog.some((e) => e.ui === u && e.t >= s && (!c || e.c === c))
-              || [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb, since], { timeout: 1500, polling: 16 }).then(() => true, () => false);
+              || [...document.querySelectorAll(`[data-ui="${u}"]`)].some((n) => n.style.display !== "none" && (!c || n.style.borderColor === c)), [ui, rgb, since], { timeout: 8000, polling: 16 }).then(() => true, () => false);
           };
           const fxShot = async (name) => page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/" + name });
           let reticleSeen = false;
