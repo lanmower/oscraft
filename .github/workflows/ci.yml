@@ -2339,10 +2339,18 @@ jobs:
             && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS", [pointAt.x, pointAt.y]));
           if (!pointOnCanvas) throw new Error("attack-move point is not on the canvas");
           const amBefore = Number(await page.getAttribute("body", "data-orders"));
-          await page.keyboard.press("a");
-          await page.mouse.click(pointAt.x, pointAt.y, { button: "left" });
-          await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, amBefore, { timeout: 2000 }).catch(() => {});
-          const amOrders = Number(await page.getAttribute("body", "data-orders"));
+          // A click on a unit is an attack, not an attack-move: a point whose pixels hit a foe is retried at the next nearby ground point.
+          const amTries = [point, { x: amStart.x - (point.x - amStart.x), z: amStart.z - (point.z - amStart.z) }, { x: amStart.x + (point.z - amStart.z), z: amStart.z - (point.x - amStart.x) }];
+          let amOrders = amBefore;
+          for (const tryPoint of amTries) {
+            const tryAt = await screenAt(tryPoint.x, tryPoint.z);
+            if (!(tryAt.x >= 0 && tryAt.y >= 0 && tryAt.x < viewport.w && tryAt.y < viewport.h)) continue;
+            await page.keyboard.press("a");
+            await page.mouse.click(tryAt.x, tryAt.y, { button: "left" });
+            await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, amBefore, { timeout: 2000 }).catch(() => {});
+            amOrders = Number(await page.getAttribute("body", "data-orders"));
+            if (amOrders > amBefore) { Object.assign(point, tryPoint); break; }
+          }
           const amShown = await fxWait("fx", "rgb(229, 57, 53)");
           if (amShown) await fxShot("attack-move.png");
           let amEnd = amStart;
