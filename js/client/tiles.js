@@ -368,36 +368,16 @@ export const SPLAT_TEXTURES = Object.freeze({
 export function isSplatKind(kind) {
   return SPLAT_CHANNEL[kind] !== undefined && SPLAT_CHANNEL[kind] < SPLAT_LAYERS.indexOf("rock");
 }
-// A cell is at a full cliff level when one of its side edges is a wall: a drop of a full cliff level, or any drop beside water.
-// Slopes (smaller drops) are not walls.
-function isCliffLevelCell(grid, i) {
-  const { width: w, height: h } = grid;
-  const x = i % w, y = (i - x) / w;
-  for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) {
-    if (j < 0) continue;
-    const { dh, kLow, kHigh, gradual } = edgeDrop(grid, i, j);
-    if (dh > 0 && !gradual && (dh >= CLIFF_LEVEL_CELLS - 1e-6 || kLow === "water" || kHigh === "water")) return true;
-  }
-  return false;
-}
-// The kind a cell's surface layer takes in the splat: a cliff-kind cell on a slope (no wall edge) is ground of its tile id,
-// so the cliff layer shows only at a full cliff level or on water.
-function splatKind(grid, i) {
-  const kind = tileKind(grid, i);
-  if (kind !== "cliff" || isCliffLevelCell(grid, i)) return kind;
-  return cellKind(0, grid.tiles[i]);
-}
-
 // Control map for a grid: { data: Uint8Array RGBA per cell, width, height }, each cell's channel at full weight.
 export function controlMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height } = grid;
   const data = new Uint8Array(width * height * 4);
-  for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[splatKind(grid, i)]] = 255;
+  for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[tileKind(grid, i)]] = 255;
   // A ramp's lower cell is half its ground layer and half rock, so a ramp reads apart from the flat ground of its kind.
   const rock = SPLAT_LAYERS.indexOf("rock");
   for (const i of rampLowCells(grid)) {
-    const ch = SPLAT_CHANNEL[splatKind(grid, i)];
+    const ch = SPLAT_CHANNEL[tileKind(grid, i)];
     if (ch === undefined || ch >= rock) continue;
     data[i * 4 + ch] = 128;
     data[i * 4 + rock] = 127;
