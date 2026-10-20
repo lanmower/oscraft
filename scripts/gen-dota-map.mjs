@@ -277,7 +277,7 @@ const tileCount = (id) => tiles.reduce((a, v) => a + (v === id ? 1 : 0), 0);
 // rocks and props sit on open cells. Nothing is placed on a lane cell or inside a base or tower footprint (structureZone);
 // lane rims stay open for bushes along the lane edges. Each role's models cycle in order.
 const modelsDir = new URL("../js/client/models/", import.meta.url);
-const { sizes: doodadFootprints } = doodadSizes(modelsDir);
+const { sizes: doodadFootprints, units: unitFootprints } = doodadSizes(modelsDir);
 const shippedStems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort().filter((stem) => doodadFootprints[stem] !== undefined);
 const ROLE_KINDS = {};
 for (const stem of shippedStems) (ROLE_KINDS[roleOf(stem)] ??= []).push(kindOf(stem));
@@ -339,7 +339,7 @@ if (fieldCells.length < scatterKinds.length) throw new Error(`field cells ${fiel
 scatterKinds.forEach((kind, k) => { const c = fieldCells[k * scatterStep]; if ((roleOf(kind.replace(/_/g, "-")) === "tree" || /stump|trunk|log/.test(kind)) && !footprintClear(c, kind)) return; cellDd(kind, [c % N, (c / N) | 0]); });
 treeCells.forEach((i) => { if (!clear(i)) return; const kind = pick("tree"); if (footprintClear(i, kind)) cellDd(kind, [i % N, (i / N) | 0]); });
 
-fs.writeFileSync(new URL("../js/client/doodad_sizes.json", import.meta.url), JSON.stringify(doodadFootprints, null, 1) + "\n");
+fs.writeFileSync(new URL("../js/client/doodad_sizes.json", import.meta.url), JSON.stringify({ ...doodadFootprints, ...unitFootprints }, null, 1) + "\n");
 
 const thingLine = (t) => `spawn("${t.unit}", ${t.player}, ${mx(t.wx)}, ${my(t.wy)})`;
 const header = [

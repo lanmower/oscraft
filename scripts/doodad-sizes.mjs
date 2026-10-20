@@ -15,7 +15,9 @@ const FLAT_FOOTPRINT_PER_TARGET = 2; // flat models take twice the role's target
 const FOOTPRINT_MIN = 0.05;
 const FOOTPRINT_MAX = 4;
 const MAX_NATIVE = 100; // native extents above this are not scale-able assets (for example a skinned unit with corrupt bounds).
-const UNIT_ONLY = /^(roshan|abaddon)-/; // unit models, drawn by the sim as units, never as scenery: no footprint, never placed.
+const UNIT_ONLY = /^(roshan|abaddon)-/; // unit models, drawn by the sim as units, never as scenery: never placed as doodads.
+// Unit models drawn at their own size: target height in hero heights. Every other unit is fitted to a hero footprint (play.js UNIT_HALF).
+export const UNIT_HEIGHT_IN_HEROES = { "roshan-skinned": 2.5 };
 
 // Bounds of the first mesh's POSITION accessor, the same vertices play.js fits (glb.js parseGlb reads only that primitive).
 export function firstPrimitiveBounds(file) {
@@ -30,7 +32,8 @@ export function firstPrimitiveBounds(file) {
   return { x, h, z, foot: Math.max(x, z) };
 }
 
-// Returns { sizes: model stem -> footprint in cells, heroHeight, bounds: stem -> measured bounds }. Models with no sane bounds are left out.
+// Returns { sizes: model stem -> footprint in cells, heroHeight, bounds: stem -> measured bounds, units: unit stem -> footprint }.
+// Models with no sane bounds are left out. A unit footprint keeps the model's own proportions at its target height, unclamped.
 export function doodadSizes(modelsDir) {
   const stems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort();
   const bounds = {};
@@ -49,5 +52,11 @@ export function doodadSizes(modelsDir) {
     const footprint = flat ? FLAT_FOOTPRINT_PER_TARGET * targetHeight : targetHeight * b.foot / b.h;
     sizes[stem] = Math.round(Math.min(FOOTPRINT_MAX, Math.max(FOOTPRINT_MIN, footprint)) * 1000) / 1000;
   }
-  return { sizes, heroHeight, bounds };
+  const units = {};
+  for (const [stem, heroes] of Object.entries(UNIT_HEIGHT_IN_HEROES)) {
+    const b = firstPrimitiveBounds(new URL(stem + ".glb", modelsDir));
+    if (!b || b.h <= 0 || b.foot <= 0) throw new Error("unit model missing or flat: " + stem);
+    units[stem] = Math.round(heroes * heroHeight * b.foot / b.h * 1000) / 1000;
+  }
+  return { sizes, heroHeight, bounds, units };
 }
