@@ -67,13 +67,17 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
     if (!d || typeof d.kind !== "string") return;
     const t = now();
     if (d.kind === "move" || d.kind === "attackMove") {
+      for (const o of markers) o.pinned = false;
       const m = markers[nextMarker];
       nextMarker = (nextMarker + 1) % MARKER_POOL;
       m.t0 = t;
       m.wx = d.x;
       m.wz = d.z;
+      m.pinned = d.kind === "attackMove" && Array.isArray(d.ids) && d.ids.length > 0;
+      m.ids = m.pinned ? d.ids : null;
       m.node.style.borderColor = d.kind === "move" ? COLOUR.move : COLOUR.attackMove;
     } else if (d.kind === "attack") {
+      for (const o of markers) o.pinned = false;
       const r = rings[nextRing];
       nextRing = (nextRing + 1) % RING_POOL;
       r.t0 = t;
@@ -110,16 +114,26 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
     for (const item of [...markers, ...rings, reticle, area, refusal]) put(item, "display", "none");
   }
 
+  // An attack-move marker stays up while any ordered unit is still short of its point, and is replaced by the next order.
+  function pinDone(m) {
+    return m.ids.every((id) => {
+      const u = unitAt(id);
+      return !u || Math.hypot(u.x - m.wx, u.z - m.wz) <= 1;
+    });
+  }
+
   function drawMarkers(t) {
     for (const m of markers) {
       const age = t - m.t0;
-      if (m.t0 < 0 || age >= MARKER_MS) {
+      const pinned = m.pinned && !pinDone(m);
+      if (m.t0 < 0 || (!pinned && age >= MARKER_MS)) {
         put(m, "display", "none");
+        m.pinned = false;
         continue;
       }
       const p = toScreen(m.wx, m.wz, 0);
       put(m, "display", "block");
-      put(m, "opacity", String(1 - age / MARKER_MS));
+      put(m, "opacity", pinned ? "1" : String(1 - age / MARKER_MS));
       place(m, p);
     }
   }

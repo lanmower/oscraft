@@ -56,19 +56,22 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     return me().find((id) => isHero(id)) ?? -1;
   }
 
-  function orderSelected(world, enemy) {
+  // A ground order is a move, or an attack-move when `attackMove` is set (A then click): the units walk to the
+  // point and strike enemies they meet on the way. Clicking an enemy attacks it either way.
+  function orderSelected(world, enemy, attackMove = false) {
     const ids = me();
     if (ids.length === 0) return false;
     const points = formationPoints(ids.length, world.x, world.z);
     if (enemy) feedback({ kind: "attack", x: world.x, z: world.z, targetId: enemy.id });
-    else feedback({ kind: "move", x: world.x, z: world.z });
+    else feedback({ kind: attackMove ? "attackMove" : "move", x: world.x, z: world.z, ids });
     let ok = true;
     ids.forEach((id, i) => {
       if (enemy) {
         ok = commands.attack(id, enemy.id) && ok;
         return;
       }
-      const sent = commands.order(id, points[i].x, points[i].z) || commands.order(id, world.x, world.z);
+      const send = attackMove ? commands.attackMove : commands.order;
+      const sent = send(id, points[i].x, points[i].z) || send(id, world.x, world.z);
       ok = sent && ok;
     });
     return ok;
@@ -300,8 +303,7 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
       armedAttackMove = false;
       const enemy = hit && hit.player !== localPlayer() ? hit : null;
       const point = toWorld(e.clientX, e.clientY);
-      feedback({ kind: "attackMove", x: point.x, z: point.z });
-      const sent = orderSelected(point, enemy);
+      const sent = orderSelected(point, enemy, true);
       document.body.dataset.attackPick = `hit=${hit ? `${hit.id}:p${hit.player}` : "none"} local=${localPlayer()} sel=${me().join("|") || "none"} enemy=${enemy ? enemy.id : "none"} sent=${sent}`;
       return;
     }

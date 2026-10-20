@@ -822,6 +822,48 @@ mod tests {
         assert_eq!(s.position_fixed(holder), (hx, hy), "striking from a hold must not move the unit");
     }
 
+    /// First cell `(x, y)` of a walkable run `len` cells long on one row.
+    fn open_run(s: &Sim, len: i32) -> Option<(i32, i32)> {
+        let (w, h) = (s.grid().w as i32, s.grid().h as i32);
+        (0..h)
+            .flat_map(|y| (0..w - len).map(move |x| (x, y)))
+            .find(|&(x, y)| (0..len).all(|k| s.grid().walkable(x + k, y)))
+    }
+
+    /// Attack-move walks to its point through a line of enemies: it strikes each one met on the
+    /// way, resumes travel after each kill, and stops at the point once no enemy is left.
+    #[test]
+    fn attack_move_reaches_point_through_enemies_and_stops_there() {
+        let mut s = duel_sim();
+        let (x0, y) = open_run(&s, 16).expect("a 16-cell walkable run");
+        let hunter = unit_named(&mut s, 0, "skirmisher");
+        assert!(s.set_position(hunter, fixed::from_int(x0), fixed::from_int(y)));
+        let foes: Vec<usize> = [5, 8]
+            .iter()
+            .map(|&k| {
+                let foe = creep(&mut s, 1);
+                assert!(s.set_position(foe, fixed::from_int(x0 + k), fixed::from_int(y)));
+                foe
+            })
+            .collect();
+        let (gx, gy) = (fixed::from_int(x0 + 14), fixed::from_int(y));
+        assert!(s.issue_order_kind(hunter, crate::ORDER_ATTACK_MOVE, gx, gy).is_ok());
+        let mut arrived = false;
+        for _ in 0..3000 {
+            s.tick();
+            let (px, py) = s.position_fixed(hunter);
+            if (px - gx).abs() <= fixed::ONE && (py - gy).abs() <= fixed::ONE {
+                arrived = true;
+                break;
+            }
+        }
+        assert!(arrived, "attack-move must travel to its point");
+        assert!(s.alive(hunter), "the hunter must survive the route");
+        for &foe in &foes {
+            assert!(!s.alive(foe), "attack-move must kill each enemy it meets on the route");
+        }
+    }
+
     /// Using an item from an empty slot is refused and changes nothing.
     #[test]
     fn use_item_on_an_empty_slot_is_refused() {

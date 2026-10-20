@@ -617,6 +617,12 @@ const commands = {
     setStatus(`order move unit ${unitId} to ${x.toFixed(2)},${z.toFixed(2)}${netState ? "" : " (local)"}`);
     return ok;
   },
+  attackMove(unitId, x, z) {
+    const ok = netState ? (session.broadcast(sendAttackMove(unitId, x, z)), true) : noteLocalRefusal(localGame.attack_move(unitId, x, z), `attack_move_refused unit=${unitId}`);
+    if (ok) { orders += 1; publishCommandCounts(); }
+    setStatus(`attack-move unit ${unitId} to ${x.toFixed(2)},${z.toFixed(2)}${netState ? "" : " (local)"}`);
+    return ok;
+  },
   attack(unitId, targetId) {
     const ok = netState ? (session.broadcast(sendAttack(unitId, targetId)), true) : noteLocalRefusal(localGame.attack(unitId, targetId), `attack_refused unit=${unitId}`);
     if (ok) { attacks += 1; publishCommandCounts(); }
@@ -817,6 +823,12 @@ function applyPeerCommand(peerPubkey, command) {
     if (ok) countRemote("remoteCasts");
     return ok;
   }
+  if (command.type === FRAME.ATTACK_MOVE) {
+    const ok = localGame.attack_move(command.unitId, command.x, command.y);
+    if (!ok) document.body.dataset.lastRefusal = `attack_move_refused unit=${command.unitId} x=${command.x} z=${command.y}`;
+    if (ok) countRemote("remoteOrders");
+    return ok;
+  }
   if (command.type === FRAME.HOLD) {
     const ok = localGame.hold(command.unitId);
     if (!ok) document.body.dataset.lastRefusal = `hold_refused unit=${command.unitId}`;
@@ -954,6 +966,10 @@ function sendCast(unitId, slot, target, x, z) {
   return encodeFrame({ type: FRAME.CAST, unitId, slot, target, x: Math.round(x), y: Math.round(z) });
 }
 
+function sendAttackMove(unitId, x, z) {
+  return encodeFrame({ type: FRAME.ATTACK_MOVE, unitId, x: Math.round(x), y: Math.round(z) });
+}
+
 function sendAttack(unitId, targetId) {
   return encodeFrame({ type: FRAME.ATTACK, unitId, targetId });
 }
@@ -1068,7 +1084,7 @@ let netTick = -1;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
-  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM) {
+  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM || frame.type === FRAME.ATTACK_MOVE) {
     if (hosting) applyPeerCommand(e.detail.peerPubkey, frame);
     return;
   }
