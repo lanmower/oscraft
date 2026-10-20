@@ -119,6 +119,12 @@ const HY3D_MODEL = {
   broodmother: "broodmother-skinned",
   chaos_knight: "chaos-knight-skinned",
   bristleback: "bristleback-skinned",
+  death_prophet: "death-prophet-skinned",
+  disruptor: "disruptor-skinned",
+  doom_bringer: "doom-bringer-skinned",
+  dragon_knight: "dragon-knight-skinned",
+  drow_ranger: "drow-ranger-skinned",
+  earthshaker: "earthshaker-skinned",
   crystal_maiden: "crystal-maiden-skinned",
   dark_seer: "dark-seer-skinned",
 };

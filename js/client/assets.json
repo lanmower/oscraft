@@ -1,6 +1,6 @@
 {
- "count": 824,
- "total_bytes": 23479561,
+ "count": 830,
+ "total_bytes": 24423873,
  "items": [
   {
    "id": "rock",
@@ -979,6 +979,54 @@
    "path": "js/client/models/dark-seer-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 112848,
+   "role": "character"
+  },
+  {
+   "id": "death-prophet-skinned",
+   "kind": "model",
+   "path": "js/client/models/death-prophet-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 174996,
+   "role": "character"
+  },
+  {
+   "id": "disruptor-skinned",
+   "kind": "model",
+   "path": "js/client/models/disruptor-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 174816,
+   "role": "character"
+  },
+  {
+   "id": "doom-bringer-skinned",
+   "kind": "model",
+   "path": "js/client/models/doom-bringer-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 116160,
+   "role": "character"
+  },
+  {
+   "id": "dragon-knight-skinned",
+   "kind": "model",
+   "path": "js/client/models/dragon-knight-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 155568,
+   "role": "character"
+  },
+  {
+   "id": "drow-ranger-skinned",
+   "kind": "model",
+   "path": "js/client/models/drow-ranger-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 161372,
+   "role": "character"
+  },
+  {
+   "id": "earthshaker-skinned",
+   "kind": "model",
+   "path": "js/client/models/earthshaker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 161400,
    "role": "character"
   },
   {
@@ -5822,7 +5870,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 33,
+  "character": 39,
   "creep": 5,
   "terrain": 7
  }

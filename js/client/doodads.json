@@ -810,5 +810,11 @@
   "chaos_knight_skinned": "models/chaos-knight-skinned.glb",
   "bristleback_skinned": "models/bristleback-skinned.glb",
   "crystal_maiden_skinned": "models/crystal-maiden-skinned.glb",
-  "dark_seer_skinned": "models/dark-seer-skinned.glb"
+  "dark_seer_skinned": "models/dark-seer-skinned.glb",
+  "death_prophet_skinned": "models/death-prophet-skinned.glb",
+  "disruptor_skinned": "models/disruptor-skinned.glb",
+  "doom_bringer_skinned": "models/doom-bringer-skinned.glb",
+  "dragon_knight_skinned": "models/dragon-knight-skinned.glb",
+  "drow_ranger_skinned": "models/drow-ranger-skinned.glb",
+  "earthshaker_skinned": "models/earthshaker-skinned.glb"
 }
