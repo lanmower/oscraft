@@ -2950,7 +2950,7 @@ jobs:
 
       - name: count reference-game terms in the tree
         run: |
-          count() { git grep -iE "$1" -- . ':!LICENSES-INVENTORY.md' ':!rust/vendor' | wc -l; }
+          count() { git grep -IiE "$1" -- . ':!LICENSES-INVENTORY.md' ':!rust/vendor' | wc -l; }
           s=$(count 'st[a]rcraft'); c=$(count 'sc[2]'); b=$(count 'blizz[a]rd'); g=$(count 'gal[a]xy')
           if [ $((s+c+b+g)) -ne 0 ]; then echo naming comments FAIL st''arcraft=$s sc''2=$c bli''zzard=$b gal''axy=$g; exit 1; fi
           echo naming comments ok st''arcraft=$s sc''2=$c bli''zzard=$b
