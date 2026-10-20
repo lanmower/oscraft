@@ -29,11 +29,12 @@ export function isRampCell(flags, i) {
   return (flags[i] & RAMP_BIT) !== 0;
 }
 
-// A cell's kind from its walkability bits and tile id: cliff bit first, then a blocked cell is water only when its tile
-// id says so and rock otherwise, then the flat tile ids.
+// A cell's kind from its walkability bits and tile id: cliff bit first, then any blocked cell is a cliff, then the flat tile ids.
+// No cell is water yet: the tile id is a ground texture index (tile 4 is Clvg), not a water type. Water is to come from the
+// original W3E corner water level and flag 0x40, which the repo's map data does not carry yet.
 export function cellKind(flags, tile) {
   if (flags & CLIFF_BIT) return "cliff";
-  if (flags & BLOCKED_BIT) return tile === TILE_IDS.water ? "water" : "cliff";
+  if (flags & BLOCKED_BIT) return "cliff";
   if (tile === TILE_IDS.lane) return "lane";
   if (tile === TILE_IDS.dirt) return "dirt";
   return "grass";
