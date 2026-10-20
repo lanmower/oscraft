@@ -82,9 +82,12 @@ export function displayHeights(grid) {
     return out;
   };
   for (let i = 0; i < n; i++) if (isWaterCell(grid, i)) fixed[i] = 1;
-  // Every impassable cell (BLOCKED or cliff, as tiles.js cellKind reads it) keeps its committed height. Its walkable
-  // neighbours are not pinned, so the slopes beside a barrier still smooth from their passable cells.
-  for (let i = 0; i < n; i++) if (isImpassableCell(grid, i)) fixed[i] = 1;
+  // Every impassable cell (BLOCKED or cliff, as tiles.js cellKind reads it) and every cell beside one keeps its committed height.
+  for (let i = 0; i < n; i++) {
+    if (!isImpassableCell(grid, i)) continue;
+    fixed[i] = 1;
+    for (const j of neighbours(i)) fixed[j] = 1;
+  }
   for (let i = 0; i < n; i++) {
     for (const j of neighbours(i)) {
       const dh = Math.abs(shown[i] - shown[j]);
@@ -134,40 +137,20 @@ export function buildTerrain(bytes) {
   const { width: w, height: h, cellMilli, heightStep, levels } = grid;
   const { shown, fixed } = displayHeights(grid);
   const cols = w + 1;
-  // Shared grid corners first (same layout as before, so grid lookups still work), then four private corners per
-  // impassable cell appended after them. A barrier's private corners sit at its committed level; the passable side
-  // keeps its shared corners, averaged over passable cells only, so the drop between the two is vertical.
-  const base = cols * (h + 1);
-  const impassable = new Uint8Array(w * h);
-  let impCount = 0;
-  for (let k = 0; k < w * h; k++) if (isImpassableCell(grid, k)) { impassable[k] = 1; impCount++; }
-  const total = base + 4 * impCount;
-  const positions = new Float32Array(total * 3);
-  const uvs = new Float32Array(total * 2);
-  const committed = (k) => (levels[k] * heightStep) / cellMilli;
-  const setVertex = (v, cx, cy, height) => {
-    positions[v * 3] = cx * cellMilli;
-    positions[v * 3 + 1] = height * cellMilli;
-    positions[v * 3 + 2] = cy * cellMilli;
-    uvs[v * 2] = cx * GROUND_UV_PER_CELL;
-    uvs[v * 2 + 1] = cy * GROUND_UV_PER_CELL;
-  };
+  const positions = new Float32Array(cols * (h + 1) * 3);
+  const uvs = new Float32Array(cols * (h + 1) * 2);
   for (let cy = 0; cy <= h; cy++) {
     for (let cx = 0; cx <= w; cx++) {
       let sum = 0;
       let touching = 0;
-      let impSum = 0;
-      let impTouching = 0;
-      // A corner that touches a pinned passable cell keeps the committed heights, so barriers stay as drawn.
+      // A corner that touches a pinned cell (a full cliff level or water) keeps the committed heights, so barriers stay as drawn.
       let pinnedCorner = false;
       for (let dy = -1; dy <= 0; dy++) {
         for (let dx = -1; dx <= 0; dx++) {
           const x = cx + dx;
           const y = cy + dy;
           if (x >= 0 && y >= 0 && x < w && y < h) {
-            const k = y * w + x;
-            if (impassable[k]) { impSum += committed(k); impTouching++; continue; }
-            if (fixed[k]) pinnedCorner = true;
+            if (fixed[y * w + x]) pinnedCorner = true;
             touching++;
           }
         }
@@ -178,40 +161,30 @@ export function buildTerrain(bytes) {
           const y = cy + dy;
           if (x >= 0 && y >= 0 && x < w && y < h) {
             const k = y * w + x;
-            if (impassable[k]) continue;
-            sum += pinnedCorner ? committed(k) : shown[k];
+            sum += pinnedCorner ? levels[k] * heightStep / cellMilli : shown[k];
           }
         }
       }
-      // A corner touching only barriers is used by no passable cell; it takes the barrier average.
-      const height = touching > 0 ? sum / touching : impSum / impTouching;
-      setVertex(cy * cols + cx, cx, cy, height);
+      const v = (cy * cols + cx) * 3;
+      positions[v] = cx * cellMilli;
+      positions[v + 1] = (sum / touching) * cellMilli;
+      positions[v + 2] = cy * cellMilli;
+      uvs[(cy * cols + cx) * 2] = cx * GROUND_UV_PER_CELL;
+      uvs[(cy * cols + cx) * 2 + 1] = cy * GROUND_UV_PER_CELL;
     }
   }
   // Each cell is split along its steeper diagonal: the corners that differ most in height are joined, so the two
   // triangles follow the slope and no crease runs across it. Both splits wind the same way (up-facing).
   const indices = new Uint32Array(w * h * 6);
   let t = 0;
-  let next = base;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      let a = y * cols + x;
-      let b = a + 1;
-      let c = a + cols;
-      let d = c + 1;
-      if (impassable[y * w + x]) {
-        const hgt = committed(y * w + x);
-        a = next; b = next + 1; c = next + 2; d = next + 3;
-        next += 4;
-        setVertex(a, x, y, hgt);
-        setVertex(b, x + 1, y, hgt);
-        setVertex(c, x, y + 1, hgt);
-        setVertex(d, x + 1, y + 1, hgt);
-      }
-      const steepMain = Math.abs(positions[a * 3 + 1] - positions[d * 3 + 1]);
-      const steepAnti = Math.abs(positions[b * 3 + 1] - positions[c * 3 + 1]);
-      if (steepMain > steepAnti) indices.set([a, c, d, a, d, b], t);
-      else indices.set([a, c, b, b, c, d], t);
+      const a = y * cols + x;
+      const c = a + cols;
+      const steepMain = Math.abs(positions[a * 3 + 1] - positions[(c + 1) * 3 + 1]);
+      const steepAnti = Math.abs(positions[(a + 1) * 3 + 1] - positions[c * 3 + 1]);
+      if (steepMain > steepAnti) indices.set([a, c, c + 1, a, c + 1, a + 1], t);
+      else indices.set([a, c, a + 1, a + 1, c, c + 1], t);
       t += 6;
     }
   }
