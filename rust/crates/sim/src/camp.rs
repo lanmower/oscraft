@@ -7,7 +7,7 @@
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
-use crate::{ORDER_MOVE, TICKS_PER_SECOND};
+use crate::{DAY_TICKS, ORDER_MOVE, TICKS_PER_SECOND};
 
 /// Distance a camp unit may roam from home, milli-units (about 700 Dota units at 15.625 milli per
 /// unit). UNVERIFIED: the leash radius is not in the dump.
@@ -27,6 +27,22 @@ pub const ROSHAN_RESPAWN_MIN_S: u32 = 480;
 pub const ROSHAN_RESPAWN_SPREAD_S: u32 = 180;
 /// Unit name of the large neutral boss, and item name of its reward. Both are catalog names.
 pub const ROSHAN_NAME: &str = "roshan";
+/// Pit markers: (boss unit name, night marker unit name, day marker unit name). A placed marker unit
+/// only gives a position: the loader reads it and removes it. A boss uses its day pit before 15:00 and
+/// then the pit of the current phase, night or day (Roshan and the Tormentor swap sides with the
+/// day/night cycle from 15:00, Valve patch 7.38). Roshan walks to the new pit; the Tormentor cannot
+/// move, so it respawns at the pit of the phase it dies in.
+pub const PIT_MARKERS: [(&str, &str, &str); 2] = [
+    (ROSHAN_NAME, "roshan_pit_night", "roshan_pit_day"),
+    ("tormentor", "tormentor_spawn_night", "tormentor_spawn_day"),
+];
+/// Game second at which the pit swap begins.
+pub const PIT_SWAP_S: u32 = 900;
+
+/// Timed boss kinds as (unit name, first spawn seconds, respawn minimum seconds, respawn spread
+/// seconds). Roshan is present from the start and returns after 8 to 11 minutes (Dota wiki). The
+/// Tormentor first spawns at 15:00 and respawns 10 minutes after its death (patches 7.33 and 7.38).
+pub const TIMED_BOSSES: [(&str, u32, u32, u32); 2] = [(ROSHAN_NAME, 0, ROSHAN_RESPAWN_MIN_S, ROSHAN_RESPAWN_SPREAD_S), ("tormentor", 900, 600, 0)];
 pub const AEGIS_NAME: &str = "aegis";
 /// Bounty rune: a 1-hp neutral pickup at a river point. A hero within the pickup range takes its
 /// gold and the rune dies, then respawns at its point on the next RUNE_RESPAWN_S clock mark
@@ -46,6 +62,10 @@ pub(crate) struct CampState {
     pub(crate) waiting: Vec<u8>,
     pub(crate) respawn_at: Vec<u32>,
     pub(crate) boss_kind: Option<u32>,
+    /// (unit kind, first spawn s, respawn minimum s, respawn spread s) for each timed boss in the catalog.
+    pub(crate) timed: Vec<(u32, u32, u32, u32)>,
+    /// (boss unit kind, night pit, day pit) in Q16.16 sim coordinates, read from the placed markers.
+    pub(crate) pits: Vec<(u32, (i32, i32), (i32, i32))>,
     pub(crate) reward_kind: u32,
     pub(crate) rune_kind: Option<u32>,
 }
@@ -59,6 +79,8 @@ impl CampState {
             waiting: vec![0; cap],
             respawn_at: vec![0; cap],
             boss_kind: None,
+            timed: Vec::new(),
+            pits: Vec::new(),
             reward_kind: 0,
             rune_kind: None,
         }
@@ -82,16 +104,66 @@ impl Sim {
         c.home_y[i] = self.pos_y[i];
     }
 
+    /// Reads the pit marker units placed by the map into `camps.pits` and removes them.
+    pub(crate) fn collect_pit_markers(&mut self) {
+        let mut found: Vec<(usize, &str, bool, (i32, i32))> = Vec::new();
+        for i in 0..self.n {
+            if self.alive[i] == 0 {
+                continue;
+            }
+            let Some(name) = self.kind_name(i) else { continue };
+            for &(boss, night, day) in PIT_MARKERS.iter() {
+                if name == night || name == day {
+                    found.push((i, boss, name == night, (self.pos_x[i], self.pos_y[i])));
+                }
+            }
+        }
+        let mut pits: Vec<(u32, (i32, i32), (i32, i32))> = Vec::new();
+        for &(_, boss, is_night, pos) in &found {
+            let Some(kind) = self.cat.unit_index(boss) else { continue };
+            let kind = kind as u32;
+            let at = match pits.iter().position(|p| p.0 == kind) {
+                Some(at) => at,
+                None => {
+                    pits.push((kind, pos, pos));
+                    pits.len() - 1
+                }
+            };
+            if is_night {
+                pits[at].1 = pos;
+            } else {
+                pits[at].2 = pos;
+            }
+        }
+        let markers: Vec<usize> = found.iter().map(|f| f.0).collect();
+        for i in markers {
+            self.remove_unit(i);
+            self.camps.clear(i);
+        }
+        self.camps.pits = pits;
+    }
+
+    /// The pit unit kind `kind` belongs in now, if the map placed markers for it.
+    fn pit_now(&self, kind: u32) -> Option<(i32, i32)> {
+        let (_, night, day) = *self.camps.pits.iter().find(|p| p.0 == kind)?;
+        let swapping = self.ticks >= PIT_SWAP_S * TICKS_PER_SECOND as u32;
+        Some(if swapping && self.is_night() { night } else { day })
+    }
+
     /// Takes every placed regular camp unit off the map until the first camp mark, as Dota's camps
     /// only appear at 1:00. Roshan and runes stay. Call once at load, after the boss and rune kinds are set.
     pub(crate) fn hold_first_camp_spawn(&mut self) {
         let first = CAMP_FIRST_SPAWN_S * TICKS_PER_SECOND as u32;
         for i in 0..self.n {
-            if self.camps.is_camp[i] == 0 || self.respawns_free(i) || !self.remove_unit(i) {
+            if self.camps.is_camp[i] == 0 || self.camps.rune_kind == Some(self.type_of[i] as u32) {
+                continue;
+            }
+            let timed_first = self.camps.timed.iter().find(|t| t.0 == self.type_of[i] as u32).map(|t| t.1);
+            if timed_first == Some(0) || !self.remove_unit(i) {
                 continue;
             }
             self.camps.waiting[i] = 1;
-            self.camps.respawn_at[i] = first;
+            self.camps.respawn_at[i] = timed_first.map_or(first, |s| s * TICKS_PER_SECOND as u32);
         }
     }
 
@@ -103,12 +175,13 @@ impl Sim {
         }
         let kind = self.type_of[j] as u32;
         let boss = self.camps.boss_kind == Some(kind);
+        let timed = self.camps.timed.iter().find(|t| t.0 == kind).copied();
         let tps = TICKS_PER_SECOND as u32;
         self.camps.waiting[j] = 1;
-        self.camps.respawn_at[j] = if boss {
+        self.camps.respawn_at[j] = if let Some((_, _, min, spread)) = timed {
             self.rng = self.rng.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-            let extra = ((self.rng >> 33) as u32) % (ROSHAN_RESPAWN_SPREAD_S * tps + 1);
-            self.ticks.wrapping_add(ROSHAN_RESPAWN_MIN_S * tps + extra)
+            let extra = ((self.rng >> 33) as u32) % (spread * tps + 1);
+            self.ticks.wrapping_add(min * tps + extra)
         } else if self.camps.rune_kind == Some(kind) {
             next_mark(self.ticks, RUNE_RESPAWN_S * tps)
         } else {
@@ -137,6 +210,12 @@ impl Sim {
             }
             if self.alive[i] == 0 {
                 continue;
+            }
+            if self.speed[i] > 0 && self.ticks >= PIT_SWAP_S * TICKS_PER_SECOND as u32 && (self.day_clock == 0 || self.day_clock == DAY_TICKS) {
+                if let Some((px, py)) = self.pit_now(self.type_of[i] as u32) {
+                    self.camps.home_x[i] = px;
+                    self.camps.home_y[i] = py;
+                }
             }
             let (hx, hy) = (self.camps.home_x[i], self.camps.home_y[i]);
             if dist2(self.pos_x[i], self.pos_y[i], hx, hy) > leash * leash {
@@ -179,7 +258,7 @@ impl Sim {
     /// Whether camp unit `i` is a boss or a rune, which respawn without a clear-home check.
     fn respawns_free(&self, i: usize) -> bool {
         let kind = self.type_of[i] as u32;
-        self.camps.boss_kind == Some(kind) || self.camps.rune_kind == Some(kind)
+        self.camps.boss_kind == Some(kind) || self.camps.rune_kind == Some(kind) || self.camps.timed.iter().any(|t| t.0 == kind)
     }
 
     /// True when no living unit stands within CAMP_CLEAR_MILLI of camp unit `i`'s home.
@@ -192,6 +271,10 @@ impl Sim {
     fn respawn_camp(&mut self, i: usize) {
         let kind = self.type_of[i] as u32;
         let player = self.player[i];
+        if let Some((px, py)) = self.pit_now(kind) {
+            self.camps.home_x[i] = px;
+            self.camps.home_y[i] = py;
+        }
         let (x, y) = (self.camps.home_x[i], self.camps.home_y[i]);
         if !self.spawn_at(i, kind, player, x, y) {
             return;
