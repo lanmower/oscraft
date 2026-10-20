@@ -4,6 +4,8 @@
 // Script-driven lines of map.osd (spawn) are kept verbatim; every other script-driven file is untouched.
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { reanchor } from "./w3-placements.mjs";
 
 const args = process.argv.slice(2);
@@ -256,7 +258,7 @@ const header = [
   "# World to grid: 1 w3 unit = 15.625 milli; the 16384-unit playable square sits at grid cell (35, 35) as a 256x256 sim block.",
   "# Walkable: no unwalkable pathing cell (bit 0x02) in the 2x2 pathing block of the sim cell. Outside the block: blocked.",
   `# Height: each sim cell bilinear over its tile's corners, z = (layer - 2) * 128 + ground offset, level = (z + 384) / 8, height_step ${HEIGHT_STEP_MILLI} milli. Tile: ground texture of the tile's corner.`,
-  "# Doodads are in doodads-688g.tsv (decoded, not placed: the w3 doodad type to kind table is not in the archive).",
+  "# Doodads: tree records are placed here; the other types are placed by scripts/place-doodads-688g.mjs from doodad-types-688g.tsv (shipped_kind).",
   "# Spawn lines are script-driven and kept as they were. Do not edit by hand; edit the script.",
 ];
 const body = [
@@ -302,9 +304,14 @@ if (args.includes("--reanchor")) {
 // Doodads.slk is not in it), so the name column is empty and the kind comes only from the script's tree rule.
 const typeCounts = new Map();
 for (const d of doodads) typeCounts.set(d.type, (typeCounts.get(d.type) || 0) + 1);
+const priorPath = path.join(outDir, "doodad-types-688g.tsv");
+const priorRows = fs.existsSync(priorPath) ? fs.readFileSync(priorPath, "utf8").trim().split("\n").slice(1).map((l) => l.split("\t")) : [];
+const priorMapped = new Map(priorRows.filter((c) => c[2] !== "tree" && c[4]).map((c) => [c[0], c]));
 const typeRows = [...typeCounts].sort((a, b) => b[1] - a[1]).map(([type, n]) => {
   const tree = treeCodes.has(type);
+  if (!tree && priorMapped.has(type)) { const c = priorMapped.get(type); return [type, n, "", "", c[4], c[5]].join("\t"); }
   return [type, n, tree ? "tree" : "", "", tree ? "tree" : "", tree ? "script tree rule (pU)" : "no name in archive, no shipped kind"].join("\t");
 });
 fs.writeFileSync(path.join(outDir, "doodad-types-688g.tsv"), ["type\tcount\ttree_rule\tname\tshipped_kind\treason", ...typeRows].join("\n") + "\n");
+execFileSync(process.execPath, [fileURLToPath(new URL("./place-doodads-688g.mjs", import.meta.url)), "--dir", outDir], { stdio: "inherit" });
 console.log(JSON.stringify({ doodadTypes: typeCounts.size, treeTypes: [...typeCounts.keys()].filter((t) => treeCodes.has(t)).length, treeDoodads: treeLines.length, unmatchedRecords: doodads.length - treeLines.length, ancients: ancientLines.filter((l) => l.startsWith("spawn(")) }));
