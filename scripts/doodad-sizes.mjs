@@ -11,7 +11,9 @@ const HERO_STEM = "character-male-a"; // human-scale reference: the height play.
 export const ROLE_HEIGHT_IN_HEROES = { tree: 5, building: 2.5, prop: 0.75, nature: 0.4, rock: 0.23, item: 0.25, decoration: 0.5, character: 1 };
 export const SCATTER_ROLES = new Set(["tree", "nature", "rock", "prop", "item", "decoration"]);
 const FLAT_RATIO = 0.3; // a model under 0.3 of its footprint in height is flat (ground patch, log, fountain basin).
-const FLAT_FOOTPRINT_PER_TARGET = 2; // flat models take twice the role's target height as their footprint.
+const FLAT_FOOTPRINT_PER_TARGET = 2;
+// Fountain basins are flat and reach the 4-cell clamp under the flat rule; the owner measured them 3x too big, so they take a third of that.
+const FOUNTAIN_FOOTPRINT_SCALE = 1 / 3; // flat models take twice the role's target height as their footprint.
 const FOOTPRINT_MIN = 0.05;
 const FOOTPRINT_MAX = 4;
 const MAX_NATIVE = 100; // native extents above this are not scale-able assets (for example a skinned unit with corrupt bounds).
@@ -49,7 +51,7 @@ export function doodadSizes(modelsDir) {
     const role = roleOf(stem);
     const targetHeight = (ROLE_HEIGHT_IN_HEROES[role] ?? ROLE_HEIGHT_IN_HEROES.decoration) * heroHeight;
     const flat = b.h / b.foot < FLAT_RATIO;
-    const footprint = flat ? FLAT_FOOTPRINT_PER_TARGET * targetHeight : targetHeight * b.foot / b.h;
+    const footprint = (flat ? FLAT_FOOTPRINT_PER_TARGET * targetHeight : targetHeight * b.foot / b.h) * (stem.startsWith("fountain-") ? FOUNTAIN_FOOTPRINT_SCALE : 1);
     sizes[stem] = Math.round(Math.min(FOOTPRINT_MAX, Math.max(FOOTPRINT_MIN, footprint)) * 1000) / 1000;
   }
   const units = {};
