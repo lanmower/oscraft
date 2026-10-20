@@ -172,7 +172,12 @@ const rampRuns = rects(runs((cx, cy) => rampAt(cx, cy)).filter((r) => r[4] === 1
 
 // The homes and script-driven lines stay as they were in the committed scenario; only the decoded members change.
 const legacyLines = fs.readFileSync(path.join(outDir, "map.osd"), "utf8").split("\n");
-const startLines = legacyLines.filter((l) => l.startsWith("start("));
+// Player starts come from info.bin: sorted by slot id, player index k takes the k-th start, team alternates by index.
+// Names are the source's trigger-string keys, so the committed table carries the neutral key slot<id> instead.
+const startLines = starts.map((s, k) => {
+  const [x, y] = toMilli(s.x, s.y);
+  return `start(${k}, ${x}, ${y}, team=${k % 2})`;
+});
 const script = fs.readFileSync(path.join(src, "script.txt"), "latin1");
 const spawnLines = legacyLines.filter((l) => l.startsWith("spawn(") && !l.startsWith('spawn("base"'));
 const shopLines = legacyLines.filter((l) => /^doodad\(\d+, "(shop|side_shop|secret_shop)"/.test(l));
@@ -220,7 +225,7 @@ const body = [
 ];
 fs.writeFileSync(path.join(outDir, "map.osd"), [...header, ...body, ""].join("\n"));
 
-fs.writeFileSync(path.join(outDir, "starts-688g.tsv"), ["player_index\tid\tname\tx\ty", ...starts.map((s, k) => [k, s.id, s.name, s.x, s.y].join("\t"))].join("\n") + "\n");
+fs.writeFileSync(path.join(outDir, "starts-688g.tsv"), ["player_index\tid\tkey\tx\ty", ...starts.map((s, k) => [k, s.id, `slot${s.id}`, s.x, s.y].join("\t"))].join("\n") + "\n");
 
 const tsv = [
   "type\tvariation\tx\ty\tz\tangle\tscale_x\tscale_y\tscale_z\tskin\tflags\tlife\titem_table\titem_sets\tuid",
