@@ -2193,8 +2193,15 @@ jobs:
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
               let attacks = attacks0;
               for (let tries = 0; tries < 40 && attacks <= attacks0; tries++) {
+                // The hero and foe move while the order waits, so both points are read from the page on every try.
+                const homeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, cand.id);
+                const foeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, foe.id);
+                if (!homeNow || !foeNow) break;
+                const home = await screenAt(homeNow.x, homeNow.z);
+                const target = await screenAt(foeNow.x, foeNow.z);
+                await page.mouse.click(home.x, home.y, { button: "left" });
                 await page.keyboard.press("a");
-                await page.mouse.click(fp.x, fp.y, { button: "left" });
+                await page.mouse.click(target.x, target.y, { button: "left" });
                 await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 1000 }).catch(() => {});
                 attacks = Number(await page.getAttribute("body", "data-attacks"));
               }
