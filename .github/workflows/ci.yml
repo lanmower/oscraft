@@ -2065,12 +2065,12 @@ jobs:
           const contact = laneMid(0);
           // The local hero is selected by a click, then right-clicked toward the contact point: the same order path as the move step.
           // The camera is focused on the hero first so the click lands on it, then on the contact point so the right click can land on it.
-          const localHero = (await page.evaluate((me) => window.__ciUnits().filter((u) => u.player === me && window.__ciIsHero(u.id)).map((u) => ({ id: u.id, x: u.x, z: u.z })), localPlayer))[0];
-          if (!localHero) throw new Error("local player " + localPlayer + " has no hero to order toward the contact point");
-          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [localHero.x, localHero.z]);
-          const heroAt = await screenAt(localHero.x, localHero.z);
+          const orderHero = (await page.evaluate((me) => window.__ciUnits().filter((u) => u.player === me && window.__ciIsHero(u.id)).map((u) => ({ id: u.id, x: u.x, z: u.z })), localPlayer))[0];
+          if (!orderHero) throw new Error("local player " + localPlayer + " has no hero to order toward the contact point");
+          await page.evaluate(([x, z]) => window.__ciFocus(x, z), [orderHero.x, orderHero.z]);
+          const heroAt = await screenAt(orderHero.x, orderHero.z);
           await page.mouse.click(heroAt.x, heroAt.y, { button: "left" });
-          const heroSelected = (await page.evaluate(() => window.__ciSelected())) === localHero.id;
+          const heroSelected = (await page.evaluate(() => window.__ciSelected())) === orderHero.id;
           await page.evaluate(([x, z]) => window.__ciFocus(x, z), [contact.x, contact.z]);
           const contactAt = await screenAt(contact.x, contact.z);
           const contactOnCanvas = contactAt.x >= 0 && contactAt.y >= 0 && contactAt.x < viewport.w && contactAt.y < viewport.h
@@ -2081,7 +2081,7 @@ jobs:
             await page.waitForFunction((before) => Number(document.body.dataset.orders) > before, contactOrdersBefore, { timeout: 2000 }).catch(() => {});
           }
           const contactOrders = Number(await page.getAttribute("body", "data-orders"));
-          console.log(`probe contact order hero=${localHero.id} from=${localHero.x.toFixed(1)},${localHero.z.toFixed(1)} contact=${contact.x.toFixed(1)},${contact.z.toFixed(1)} selected=${heroSelected} on_canvas=${contactOnCanvas} orders=${contactOrdersBefore}->${contactOrders}`);
+          console.log(`probe contact order hero=${orderHero.id} from=${orderHero.x.toFixed(1)},${orderHero.z.toFixed(1)} contact=${contact.x.toFixed(1)},${contact.z.toFixed(1)} selected=${heroSelected} on_canvas=${contactOnCanvas} orders=${contactOrdersBefore}->${contactOrders}`);
           // Not every unit can cast or attack: try the most isolated units until one does both.
           const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
           let attacker = null;

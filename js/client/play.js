@@ -1345,7 +1345,7 @@ async function main() {
     baseUrl: eventsBase === null ? undefined : eventsBase.replace(/\/$/, ""),
   });
   window.__modUi = modUi;
-  const heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId };
+  const heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId, input: hud ? hud.input : null };
   if (hasHeroApi(localGame)) heroPanels.push(createShop(heroUi), createSkills(heroUi), createInventory(heroUi));
   const heroNames = liveHeroRoster(localGame);
   createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
