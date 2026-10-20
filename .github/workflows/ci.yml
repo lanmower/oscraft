@@ -2189,11 +2189,12 @@ jobs:
                 if (refusal.includes("NoSlot")) break;
                 continue;
               }
-              // A strike can be refused while the hero's last one recovers (Cooldown), so the order is retried until one is accepted.
+              // The axe strikes only a foe within its weapon reach (2 cells, weapon_range_milli=2000), and a unit never walks to a foe on its own.
+              // Each try reads the hero and foe from the page: a foe beyond 1.5 cells gets a move to a point one cell short of it on the hero's side (a right click on open ground),
+              // and a foe inside 1.5 cells gets a right click (an attack). A refused order changes nothing, so the loop retries until the weapon's 27-tick period has passed.
               const attacks0 = Number(await page.getAttribute("body", "data-attacks"));
               let attacks = attacks0;
-              for (let tries = 0; tries < 60 && attacks <= attacks0; tries++) {
-                // The hero and foe move while the order waits, so both points are read from the page on every try.
+              for (let tries = 0; tries < 90 && attacks <= attacks0; tries++) {
                 const homeNow = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id) || null, cand.id);
                 // A foe that moved out of sight is replaced by another visible foe of this candidate.
                 let foeNow = null;
@@ -2202,12 +2203,20 @@ jobs:
                   if (foeNow) break;
                 }
                 if (!homeNow || !foeNow) break;
-                const home = await screenAt(homeNow.x, homeNow.z);
-                const target = await screenAt(foeNow.x, foeNow.z);
-                // The hero stays selected while its attack is armed and resolved, so it is clicked again only when a foe click changed the selection.
-                if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) await page.mouse.click(home.x, home.y, { button: "left" });
-                await page.keyboard.press("a");
-                await page.mouse.click(target.x, target.y, { button: "left" });
+                // The hero stays selected while its orders run, so it is clicked again only when a foe click changed the selection.
+                if ((await page.evaluate(() => window.__ciSelected())) !== cand.id) {
+                  const home = await screenAt(homeNow.x, homeNow.z);
+                  await page.mouse.click(home.x, home.y, { button: "left" });
+                }
+                const gap = Math.hypot(foeNow.x - homeNow.x, foeNow.z - homeNow.z);
+                if (gap > 1.5) {
+                  const k = 1 / gap;
+                  const stand = await screenAt(foeNow.x + (homeNow.x - foeNow.x) * k, foeNow.z + (homeNow.z - foeNow.z) * k);
+                  await page.mouse.click(stand.x, stand.y, { button: "right" });
+                } else {
+                  const target = await screenAt(foeNow.x, foeNow.z);
+                  await page.mouse.click(target.x, target.y, { button: "right" });
+                }
                 await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 1000 }).catch(() => {});
                 attacks = Number(await page.getAttribute("body", "data-attacks"));
               }
