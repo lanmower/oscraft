@@ -745,14 +745,15 @@ function spawnSeatHeroes(seats) {
       if (typeof localGame.remove_unit !== "function") continue;
       localGame.remove_unit(placed.id);
     }
-    spawnAtSide(seat.slot, kind);
+    spawnAtSide(seat.slot, kind, placed);
   }
 }
 
-// The sim refuses a spawn on a blocked tile, so the hero takes the nearest free tile to its side's start point.
-function spawnAtSide(slot, kind) {
-  const x0 = Math.floor(slot < 5 ? W * 0.1 : W * 0.9);
-  const y0 = Math.floor(H / 2);
+// The sim refuses a spawn on a blocked tile, so the hero takes the nearest free tile to `from` (the placeholder it
+// replaces, which keeps the map's start) or else to its side's start point.
+function spawnAtSide(slot, kind, from = null) {
+  const x0 = Math.floor(from ? from.x : slot < 5 ? W * 0.1 : W * 0.9);
+  const y0 = Math.floor(from ? from.z : H / 2);
   for (let r = 0; r <= 24; r++) {
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
