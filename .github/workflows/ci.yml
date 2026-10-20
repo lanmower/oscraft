@@ -4091,17 +4091,24 @@ jobs:
               }
               return false;
             };
-            // The eight nearest (unit, foe) pairs are tried in turn, each unit walking to its foe; the whole search gives up after 400 s.
-            const pairs = mine.flatMap((me) => foes.map((foe) => ({ me, foe, d: dist(me, foe) }))).sort((a, b) => a.d - b.d).slice(0, 8);
+            // Units die fast once their sides meet, so the pair is chosen again on each round from the host's live roster: the nearest
+            // living (unit, foe) pair not yet tried, walked to and sent. The whole search gives up after 240 s.
             const landed = async (attr, send) => {
-              const landedUntil = Date.now() + 400000;
-              for (const { me, foe } of pairs) {
-                if (Date.now() > landedUntil) break;
-                if (!(await approach(me, foe))) continue;
-                await send(me, foe);
+              const landedUntil = Date.now() + 240000;
+              const tried = new Set();
+              while (Date.now() < landedUntil) {
+                const roster = await host.evaluate(() => window.__ciRoster());
+                const ours = roster.filter((u) => u.player === 0);
+                const theirs = roster.filter((u) => u.player === 1);
+                const pair = ours.flatMap((me) => theirs.map((foe) => ({ me, foe, d: dist(me, foe) })))
+                  .filter((p) => !tried.has(`${p.me.id}:${p.foe.id}`)).sort((x, y) => x.d - y.d)[0];
+                if (!pair) break;
+                tried.add(`${pair.me.id}:${pair.foe.id}`);
+                if (!(await approach(pair.me, pair.foe))) continue;
+                await send(pair.me, pair.foe);
                 const until = Date.now() + 3000;
                 while (Date.now() < until) {
-                  if (await host.evaluate((a) => document.body.dataset[a] === "1", attr)) return { me, foe };
+                  if (await host.evaluate((a) => document.body.dataset[a] === "1", attr)) return { me: pair.me, foe: pair.foe };
                   await new Promise((r) => setTimeout(r, 250));
                 }
               }
