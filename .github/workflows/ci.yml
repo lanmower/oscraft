@@ -2326,6 +2326,8 @@ jobs:
           const amHeroAt = await screenAt(amStart.x, amStart.z);
           await page.mouse.click(amHeroAt.x, amHeroAt.y, { button: "left" });
           if ((await page.evaluate(() => window.__ciSelected())) !== orderHero.id) throw new Error("attack-move probe: the hero click did not select " + orderHero.id);
+          // The attack-move click orders the input layer's own selection, which a click on the hero's pixels can leave on another unit: select the hero there.
+          if (!(await page.evaluate((id) => window.__ciInputSelection().includes(id), orderHero.id))) await page.evaluate((id) => window.__ciSelect(id), orderHero.id);
           const span = dTo(amStart, contact);
           const k = span > 0 ? Math.min(1, 5 / span) : 0;
           const point = { x: amStart.x + (contact.x - amStart.x) * k, z: amStart.z + (contact.z - amStart.z) * k };
@@ -2349,7 +2351,7 @@ jobs:
           const startDist = dTo(amStart, point);
           const endDist = dTo(amEnd, point);
           console.log(`moba attack-move ok orders=${amBefore}->${amOrders} dist=${startDist.toFixed(2)}->${endDist.toFixed(2)} marker=${Number(amShown)}`);
-          if (!(amOrders > amBefore)) throw new Error("attack-move click was not accepted: refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none"));
+          if (!(amOrders > amBefore)) throw new Error("attack-move click was not accepted: refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + " pick=" + await page.evaluate(() => document.body.dataset.attackPick || "none") + " input=" + JSON.stringify(await page.evaluate(() => window.__ciInputSelection())));
           if (!(endDist <= 1 || endDist < startDist - 0.5)) throw new Error(`hero did not travel toward the attack-move point: ${startDist.toFixed(2)}->${endDist.toFixed(2)}`);
           // Right-click witness: a right click on open ground orders the sim to move the hero, and a right click on a hostile unit in reach orders an attack.
           const rcHero = await page.evaluate((id) => window.__ciUnits().find((u) => u.id === id), attacker.id);
@@ -4042,6 +4044,7 @@ jobs:
             const seenAt = (id) => peer.evaluate((i) => window.__ciUnits().find((u) => u.id === i) || null, id);
             const approach = async (me, foe) => {
               let spot = foe;
+              let attempt = 0;
               const until = Date.now() + 150000;
               while (Date.now() < until) {
                 const h = await unitAt(me.id);
@@ -4052,7 +4055,9 @@ jobs:
                 const gap = dist(h, spot);
                 if (gap <= 1.5 && (await seenAt(foe.id))) return true;
                 const k = gap > 1 ? (gap - 1) / gap : 0;
-                await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [me.id, Math.round(h.x + (spot.x - h.x) * k), Math.round(h.z + (spot.z - h.z) * k)]);
+                // A move onto a blocked cell is refused, so each attempt aims at the next neighbouring cell of the stand point.
+                const [ox, oz] = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1]][attempt++ % 7];
+                await peer.evaluate(([id, x, z]) => window.__ciOrder(id, x, z), [me.id, Math.round(h.x + (spot.x - h.x) * k) + ox, Math.round(h.z + (spot.z - h.z) * k) + oz]);
                 await new Promise((r) => setTimeout(r, 1500));
               }
               return false;
