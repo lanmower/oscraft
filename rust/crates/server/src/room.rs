@@ -410,10 +410,12 @@ impl Room {
         let clock = &mut *c;
         clock.rec.tick(&mut clock.sim, run_paths, run_vision);
         let deaths = clock.sim.drain_payouts();
+        let effects = clock.sim.drain_effect_events();
         if let Some(link) = lock(&self.feed).clone() {
             if link.gold_by_mod() {
                 link.push_payouts(deaths);
             }
+            link.push_effects(effects);
         }
         c.tick += 1;
         let cost = started.elapsed();
@@ -574,6 +576,11 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
             }
             Cmd::Defeat { player } => {
                 rec.apply(sim, Command::Defeat { player });
+            }
+            Cmd::ResetCooldowns { unit, abilities, items, keep_slot } => {
+                if sim.alive(unit) {
+                    rec.apply(sim, Command::ResetCooldowns { unit, abilities, items, keep_slot });
+                }
             }
             Cmd::Ui { body } => {
                 rec.apply(sim, Command::Ui { body: body.clone() });

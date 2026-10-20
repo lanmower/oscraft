@@ -58,6 +58,7 @@ pub use diplomacy::{controller_code, CONTROLLER_COMPUTER, CONTROLLER_HUMAN, CONT
 pub use pathfinding::Grid;
 pub use persist::StateError;
 pub use combat::{armour_reduced, Payout};
+pub use refresh::EffectEvent;
 pub use rules::{Refusal, ALL_REFUSALS};
 pub use status::STATUS_NAMES;
 pub use spell::{AbilityExt, STAT_COUNT};

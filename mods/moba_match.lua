@@ -141,3 +141,11 @@ function on_tick(state)
   state.waves_siege = spawned.creep_siege or 0
   state.waves_siege_upgraded = (spawned.creep_siege_super or 0) + (spawned.creep_siege_mega or 0)
 end
+
+-- Refresh: a refresher item resets the caster's cooldowns. The effect's p0 bits are 1 (abilities) and 2
+-- (items); the item being used (slot) keeps its own cooldown. The sim queues the effect; this applies it.
+local REFRESH = "refresh"
+function on_effect(kind, caster, p0, slot)
+  if kind ~= REFRESH then return end
+  game.cmd_reset_cooldowns(caster, p0 & 1 ~= 0, p0 & 2 ~= 0, slot)
+end

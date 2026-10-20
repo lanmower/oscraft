@@ -15,7 +15,7 @@ use piccolo::{
     Callback, CallbackReturn, Closure, Context, Error, Executor, IntoValue, Lua, StashedExecutor, StashedFunction,
     Stack, StashedTable, Table, Value, Variadic,
 };
-use sim::{AbilitySpec, Catalog, LoadError, Payout, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, TICKS_PER_SECOND};
+use sim::{AbilitySpec, Catalog, EffectEvent, LoadError, Payout, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, TICKS_PER_SECOND};
 
 use crate::shared::{self, amount_arg, fixed, player_arg, PRELUDE_SRC};
 use crate::{EVENTS, MAX_UNITS};
@@ -38,6 +38,7 @@ pub enum Cmd {
     Attack { unit: usize, target: usize },
     SetOwner { unit: usize, player: u8 },
     SetFog { on: bool },
+    ResetCooldowns { unit: usize, abilities: bool, items: bool, keep_slot: i32 },
     GiveAbility { unit: usize, slot: usize, name: String },
     AddGold { player: u8, amount: i32 },
     AddHeroGold { unit: usize, amount: i32 },
@@ -1126,6 +1127,10 @@ impl ModHost {
                 Pending::PlayerJoined(p) => self.emit("on_player_joined", vec![Arg::Int(p as i64)])?,
             }
         }
+        let effects = self.sh.borrow_mut().sim.drain_effect_events();
+        for e in effects {
+            self.effect(&e)?;
+        }
         if let Some(h) = &self.hooks {
             let f = h.run_systems.clone();
             self.call(&f, Vec::new())?;
@@ -1137,6 +1142,27 @@ impl ModHost {
         }
         self.emit("on_tick", vec![Arg::State])?;
         Ok(())
+    }
+
+    /// Feeds the effects a room's sim applied to the mod's on_effect; the commands the handler queued are
+    /// returned for the room to apply to its own sim (the feed_payout contract).
+    pub fn feed_effects(&mut self, events: &[EffectEvent]) -> Result<Vec<Cmd>, String> {
+        if self.hooks.is_none() {
+            return Ok(Vec::new());
+        }
+        let before = self.sh.borrow().cmds.len();
+        for e in events {
+            self.effect(e)?;
+        }
+        Ok(self.sh.borrow_mut().cmds.split_off(before))
+    }
+
+    // on_effect(kind, caster, p0, slot); the commands it queues are applied this step.
+    fn effect(&mut self, e: &EffectEvent) -> Result<(), String> {
+        self.emit(
+            "on_effect",
+            vec![Arg::Text(e.kind.to_owned()), Arg::Int(i64::from(e.caster)), Arg::Int(i64::from(e.p0)), Arg::Int(i64::from(e.slot))],
+        )
     }
 
     /// Feeds one payable death of a room's sim to the mod's on_died, with the room's unit ids and the
@@ -1250,6 +1276,9 @@ impl ModHost {
                 Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
+                Cmd::ResetCooldowns { unit, abilities, items, keep_slot } if sim.alive(unit) => {
+                    sim.reset_cooldowns(unit, abilities, items, keep_slot);
+                }
                 Cmd::Ui { body } => ui.push(body),
                 Cmd::GiveAbility { unit, slot, name } => {
                     let _ = sim.give_ability(unit, slot, &name);

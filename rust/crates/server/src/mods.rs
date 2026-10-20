@@ -10,7 +10,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
 use mod_host::{Cmd, ModHost};
-use sim::Payout;
+use sim::{EffectEvent, Payout};
 use crate::log::Ev;
 use crate::room::Room;
 use crate::supervise::{supervise, Outcome};
@@ -25,6 +25,8 @@ pub struct ModLink {
     cmds: Mutex<Vec<Cmd>>,
     // Payable deaths of the room's sim, waiting for the mod thread to feed them to on_died.
     payouts: Mutex<Vec<Payout>>,
+    // Mod-owned effects the room's sim applied, waiting for the mod thread to feed them to on_effect.
+    effects: Mutex<Vec<EffectEvent>>,
     test_panic_at: AtomicU64,
     image: Mutex<Option<Vec<u8>>>,
     gold_by_mod: AtomicBool,
@@ -77,6 +79,20 @@ impl ModLink {
 
     fn take_payouts(&self) -> Vec<Payout> {
         std::mem::take(&mut *self.payouts.lock().unwrap_or_else(|p| p.into_inner()))
+    }
+
+    /// Queues the room's applied mod-owned effects for on_effect, in order, at most the queue cap.
+    pub fn push_effects(&self, events: Vec<EffectEvent>) {
+        let mut queue = self.effects.lock().unwrap_or_else(|p| p.into_inner());
+        let room = MOD_CMD_QUEUE_CAP.saturating_sub(queue.len());
+        if events.len() > room {
+            crate::emit!(Ev::ModCmdsDropped, count = events.len() - room);
+        }
+        queue.extend(events.into_iter().take(room));
+    }
+
+    fn take_effects(&self) -> Vec<EffectEvent> {
+        std::mem::take(&mut *self.effects.lock().unwrap_or_else(|p| p.into_inner()))
     }
 
     pub fn stage_image(&self, image: Vec<u8>) {
@@ -165,6 +181,13 @@ fn drive(host: &mut ModHost, link: &ModLink, budget: Duration) {
         // room's next boundary with room ids.
         for payout in link.take_payouts() {
             match host.feed_payout(&payout) {
+                Ok(cmds) => link.push_commands(cmds),
+                Err(e) => crate::emit!(Ev::ModError, tick = ticks, error = e),
+            }
+        }
+        let effects = link.take_effects();
+        if !effects.is_empty() {
+            match host.feed_effects(&effects) {
                 Ok(cmds) => link.push_commands(cmds),
                 Err(e) => crate::emit!(Ev::ModError, tick = ticks, error = e),
             }
