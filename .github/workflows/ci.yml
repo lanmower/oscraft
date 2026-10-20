@@ -1923,6 +1923,8 @@ jobs:
           cat > "$RUNNER_TEMP/pw/moba-input.mjs" <<'EOF'
           import { chromium } from "playwright";
           import { readFileSync } from "fs";
+          // Watchdog: a page or sim that stops answering fails this step with its last log lines instead of holding the job.
+          setTimeout(() => { console.log("DIAGNOSTICS: watchdog after 1500 s; the probe is stuck"); process.exit(1); }, 1500000).unref();
           const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
           const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
           const errors = [];
@@ -2220,6 +2222,7 @@ jobs:
                 }
                 await page.waitForFunction((n) => Number(document.body.dataset.attacks) > n, attacks0, { timeout: 1000 }).catch(() => {});
                 attacks = Number(await page.getAttribute("body", "data-attacks"));
+                console.log(`probe try cand=${cand.id} foe=${foeNow.id} gap=${gap.toFixed(2)} attacks=${attacks}`);
               }
               console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
               if (attacks > attacks0) { attacker = cand; break; }
