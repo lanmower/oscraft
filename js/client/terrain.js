@@ -82,12 +82,9 @@ export function displayHeights(grid) {
     return out;
   };
   for (let i = 0; i < n; i++) if (isWaterCell(grid, i)) fixed[i] = 1;
-  // Every impassable cell (BLOCKED or cliff, as tiles.js cellKind reads it) and every cell beside one keeps its committed height.
-  for (let i = 0; i < n; i++) {
-    if (!isImpassableCell(grid, i)) continue;
-    fixed[i] = 1;
-    for (const j of neighbours(i)) fixed[j] = 1;
-  }
+  // Every impassable cell (BLOCKED or cliff, as tiles.js cellKind reads it) keeps its committed height. Walkable cells beside
+  // one are not pinned, so the slopes next to a barrier still smooth.
+  for (let i = 0; i < n; i++) if (isImpassableCell(grid, i)) fixed[i] = 1;
   for (let i = 0; i < n; i++) {
     for (const j of neighbours(i)) {
       const dh = Math.abs(shown[i] - shown[j]);
@@ -141,27 +138,17 @@ export function buildTerrain(bytes) {
   const uvs = new Float32Array(cols * (h + 1) * 2);
   for (let cy = 0; cy <= h; cy++) {
     for (let cx = 0; cx <= w; cx++) {
+      // One vertex per grid corner: the average of the display heights of its cells. Impassable cells hold their
+      // committed height in shown, so barrier corners follow them; walkable slopes carry the smoothing.
       let sum = 0;
       let touching = 0;
-      // A corner that touches a pinned cell (a full cliff level or water) keeps the committed heights, so barriers stay as drawn.
-      let pinnedCorner = false;
       for (let dy = -1; dy <= 0; dy++) {
         for (let dx = -1; dx <= 0; dx++) {
           const x = cx + dx;
           const y = cy + dy;
           if (x >= 0 && y >= 0 && x < w && y < h) {
-            if (fixed[y * w + x]) pinnedCorner = true;
+            sum += shown[y * w + x];
             touching++;
-          }
-        }
-      }
-      for (let dy = -1; dy <= 0; dy++) {
-        for (let dx = -1; dx <= 0; dx++) {
-          const x = cx + dx;
-          const y = cy + dy;
-          if (x >= 0 && y >= 0 && x < w && y < h) {
-            const k = y * w + x;
-            sum += pinnedCorner ? levels[k] * heightStep / cellMilli : shown[k];
           }
         }
       }
