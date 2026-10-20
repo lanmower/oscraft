@@ -20,7 +20,7 @@ const LIMT_COUNT: usize = 1;
 const EFFECT_MOVE: u16 = 2;
 const RESOURCE_KINDS: u8 = 3;
 const ABILITY_FILTER_BITS: u16 = 15;
-const CELL_BITS: u8 = 0b11;
+const CELL_BITS: u8 = 0b111;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 22] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT"];
@@ -931,7 +931,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     }
     let flags = gr.take(w * h, "grid cells")?.to_vec();
     if flags.iter().any(|&c| c & !CELL_BITS != 0) {
-        return Err(LoadError::Range("grid cell bits outside 0b11"));
+        return Err(LoadError::Range("grid cell bits outside 0b111 (blocked, cliff, ramp)"));
     }
     let heights = gr.take(w * h, "grid heights")?.to_vec();
     let tiles = gr.take(w * h, "grid tiles")?.to_vec();

@@ -596,6 +596,6 @@ without a version bump.
 - Reject a section whose count does not match its rule: REGN and UEXT equal the UNIT count, ACHN equals the ABIL count, ECON and LIMT are 1.
 - Reject a GRID body whose length is not `16 + 3 * width * height`, or a height step of `0`.
 - Reject a DODA record with a kind above `8`, a rotation of `1000` or more, a position off the grid, or an id that repeats.
-- Reject a cell byte with bits outside `0b11` and a resource kind code above `2`.
+- Reject a cell byte with bits outside `0b111` (blocked 1, cliff 2, ramp 4) and a resource kind code above `2`.
 - Apply the receiver, radius, upgrade, research and capacity rules above; they are not encoded in the record and must not be inferred from it.
 - The tick path never parses names. It uses only numeric fields.
