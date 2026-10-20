@@ -1484,6 +1484,8 @@ if (params.get("ci") === "1") {
   window.__ciPeers = () => peers.size;
   window.__ciFrames = [];
   window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, modeled: !!unitMeshes[u.type] }));
+  // Read-only: every living unit of the local sim, fogged or not, for probes that walk toward a foe until it is in sight.
+  window.__ciRoster = () => simUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
   window.__ciLearn = (unitId, slot) => (localGame ? localGame.skill_up(unitId, slot) : false);
