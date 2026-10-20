@@ -2318,7 +2318,9 @@ jobs:
           await page.keyboard.press("Escape");
           // The green marker lives 500 ms: its poll starts before the click, so a slow page cannot finish the click before the wait is armed.
           const moveWait = fxWait("fx", "rgb(76, 175, 80)");
-          await page.mouse.click(heroAtNow.x + 90, heroAtNow.y + 40, { button: "right" });
+          // Open ground six cells west of the hero: a click 90 px off it can land on a creep, and a right click on a foe is an attack, not a move.
+          const moveAt = await screenAt(heroNow.x - 6, heroNow.z);
+          await page.mouse.click(moveAt.x, moveAt.y, { button: "right" });
           const moveShown = await moveWait;
           if (moveShown) await fxShot("move-marker.png");
           const ringShown = ringSeen;
