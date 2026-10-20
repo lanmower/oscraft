@@ -301,12 +301,18 @@ void main() {
 const SPLAT_FRAG = `#version 300 es
 precision highp float;
 in vec3 vNormal; in vec3 vWorld;
+// Ripple height: three travelling waves on the water plane.
+float waveH(vec2 q, float t) {
+  return sin(dot(q, vec2(0.8, 0.6)) * 1.3 + t * 1.1) * 0.5 + sin(dot(q, vec2(-0.5, 0.9)) * 2.1 + t * 1.7) * 0.3
+    + sin(dot(q, vec2(0.2, -1.0)) * 3.7 + t * 2.3) * 0.2;
+}
 ${SHADOW_GLSL}
 uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
 uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
 uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
 uniform vec3 uShade; // ambient, diffuse, albedo gain
 uniform vec3 uLayerTint[4]; // per-layer albedo tint (the sand layer takes the dirt tint)
+uniform sampler2D uWaterMap; uniform vec3 uWaterTint; uniform float uTime; uniform vec3 uEye; // water: cell map, tint, clock, eye
 out vec4 outColor;
 void main() {
   vec4 w = texture(uControl, vWorld.xz / uMapSize);
@@ -323,7 +329,44 @@ void main() {
   vec3 base = s > 1e-4 ? mixed : plain;
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(vNormal), light), 0.0);
-  outColor = vec4(base * uShade.z * (uShade.x + uShade.y * diffuse * sunShadow(vWorld, vNormal)), 1.0);
+  float lit = uShade.x + uShade.y * diffuse * sunShadow(vWorld, vNormal);
+  vec3 bed = base * uShade.z * lit;
+  float ww = texture(uWaterMap, vWorld.xz / uMapSize).r;
+  if (ww <= 0.0) { outColor = vec4(bed, 1.0); return; }
+  // Procedural water (ported from spoint's water-tsl.js: the surface, ripples, fresnel and foam; the planet geometry is dropped).
+  // Depth is how much of the neighbourhood is water: 1 well inside the river, lower towards its banks.
+  vec2 p = vWorld.xz;
+  float near = 0.0; float far = 0.0;
+  for (int k = 0; k < 8; k++) {
+    float a = float(k) * 0.7853982;
+    vec2 o = vec2(cos(a), sin(a));
+    near += texture(uWaterMap, (p + o * 1.2) / uMapSize).r;
+    far += texture(uWaterMap, (p + o * 3.5) / uMapSize).r;
+  }
+  near /= 8.0; far /= 8.0;
+  float depth = smoothstep(0.55, 1.0, far);
+  float bank = 1.0 - smoothstep(0.92, 1.0, near);
+  float t = uTime;
+  float e = 0.15;
+  float hx = waveH(p + vec2(e, 0.0), t) - waveH(p - vec2(e, 0.0), t);
+  float hz = waveH(p + vec2(0.0, e), t) - waveH(p - vec2(0.0, e), t);
+  vec3 n = normalize(vec3(-hx / (2.0 * e) * 0.35, 1.0, -hz / (2.0 * e) * 0.35));
+  vec3 V = normalize(uEye - vec3(p.x, vWorld.y, p.y));
+  float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, V), 0.0), 5.0);
+  vec3 R = reflect(-V, n);
+  vec3 sky = mix(vec3(0.62, 0.78, 0.86), vec3(0.22, 0.46, 0.66), clamp(R.y, 0.0, 1.0));
+  float glint = pow(max(dot(R, light), 0.0), 140.0) * 1.2;
+  vec3 shallow = vec3(0.34, 0.62, 0.56) * uWaterTint;
+  vec3 deep = vec3(0.04, 0.22, 0.30) * uWaterTint;
+  vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
+  float alpha = mix(0.55, 0.92, depth); // the riverbed shows through the shallows
+  vec3 water = mix(bed, body, alpha);
+  water = mix(water, sky, fres * 0.8);
+  water += vec3(1.0, 0.97, 0.9) * glint;
+  float ripple = 0.5 + 0.5 * sin(waveH(p * 2.3, t * 1.7) * 4.0);
+  float foam = bank * (0.5 + 0.5 * ripple);
+  water = mix(water, vec3(0.85, 0.93, 0.90), clamp(foam, 0.0, 1.0) * 0.6);
+  outColor = vec4(mix(bed, water, ww), 1.0);
 }`;
 
 function orthographic(l, r, b, t, n, f) {
@@ -399,6 +442,10 @@ export function createRenderer(gl) {
     band: gl.getUniformLocation(splatProgram, "uBand"),
     shade: gl.getUniformLocation(splatProgram, "uShade"),
     layerTint: gl.getUniformLocation(splatProgram, "uLayerTint[0]"),
+    waterMap: gl.getUniformLocation(splatProgram, "uWaterMap"),
+    time: gl.getUniformLocation(splatProgram, "uTime"),
+    eye: gl.getUniformLocation(splatProgram, "uEye"),
+    waterTint: gl.getUniformLocation(splatProgram, "uWaterTint"),
     shadowOn: gl.getUniformLocation(splatProgram, "uShadowOn"),
     viewProj: gl.getUniformLocation(splatProgram, "uViewProj"),
     model: gl.getUniformLocation(splatProgram, "uModel"),
@@ -779,7 +826,8 @@ export function createRenderer(gl) {
   }
 
   // Splat ground: one draw of the terrain mesh. splat = { control: {data, width, height}, layers: [{albedo, height}] x4,
-  // width, height (map size in cells), uvScale, band, gpu }; the control texture is created on first draw and kept.
+  // waterMap: {data, width, height}, waterTint, width, height (map size in cells), uvScale,
+  // band, gpu }; the control and water textures are created on first draw and kept.
   function controlTexture(control) {
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
@@ -792,9 +840,22 @@ export function createRenderer(gl) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, control.width, control.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, control.data);
     return tex;
   }
+  // The water weight map: one byte per cell (R8), read by the splat shader's water blend.
+  function waterTexture(map) {
+    const tex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, map.width, map.height, 0, gl.RED, gl.UNSIGNED_BYTE, map.data);
+    return tex;
+  }
   function drawSplat(mesh, splat) {
     if (!splat.gpu) {
-      splat.gpu = { control: controlTexture(splat.control) };
+      splat.gpu = { control: controlTexture(splat.control), waterMap: waterTexture(splat.waterMap) };
       casterGen += 1;
     }
     const buf = upload(mesh);
@@ -806,6 +867,13 @@ export function createRenderer(gl) {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, splat.gpu.control);
     gl.uniform1i(splatUni.control, 0);
+    // Water: the weight map on unit 10 (unit 9 is the shadow map).
+    gl.activeTexture(gl.TEXTURE10);
+    gl.bindTexture(gl.TEXTURE_2D, splat.gpu.waterMap);
+    gl.uniform1i(splatUni.waterMap, 10);
+    gl.uniform3fv(splatUni.waterTint, splat.waterTint);
+    gl.uniform1f(splatUni.time, performance.now() / 1000);
+    gl.uniform3f(splatUni.eye, eye[0], eye[1], eye[2]);
     splat.layers.forEach((layer, k) => {
       gl.activeTexture(gl.TEXTURE1 + k);
       gl.bindTexture(gl.TEXTURE_2D, layer.albedo);

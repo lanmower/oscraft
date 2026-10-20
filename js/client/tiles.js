@@ -354,10 +354,12 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
 }
 
 // Splat layers: the ground is one draw whose fragment shader blends four layers by a per-cell control map, one RGBA
-// texel per cell, each channel the weight of one layer. A cell kind sets its channel; the fourth (rock) channel also
-// takes water and cliff cells. SPLAT_TEXTURES gives each layer [albedo, height] files (CC0, see NOTICE.md).
+// texel per cell, each channel the weight of one layer. A cell kind sets its channel; the fourth (rock) channel takes
+// cliff cells. SPLAT_TEXTURES gives each layer [albedo, height] files (CC0, see NOTICE.md).
 export const SPLAT_LAYERS = Object.freeze(["grass", "dirt", "lane", "rock"]);
-const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 3 });
+// Water cells take the dirt layer as the riverbed the water is drawn over (the shader shows it through the shallows).
+const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 1 });
+// The water surface is procedural (render3d.js): the water map is one byte per cell, 255 on water cells.
 export const SPLAT_TEXTURES = Object.freeze({
   grass: Object.freeze(["textures/grass.jpg", "textures/grass_disp.jpg"]),
   dirt: Object.freeze(["textures/dirt.jpg", "textures/dirt_disp.jpg"]),
@@ -366,7 +368,7 @@ export const SPLAT_TEXTURES = Object.freeze({
 });
 // Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
 export function isSplatKind(kind) {
-  return SPLAT_CHANNEL[kind] !== undefined && SPLAT_CHANNEL[kind] < SPLAT_LAYERS.indexOf("rock");
+  return kind === "water" || (SPLAT_CHANNEL[kind] !== undefined && SPLAT_CHANNEL[kind] < SPLAT_LAYERS.indexOf("rock"));
 }
 // A cell is at a full cliff level when one of its side edges is a wall: a drop of a full cliff level, or any drop beside water.
 // Slopes (smaller drops) are not walls.
@@ -393,7 +395,10 @@ export function controlMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height } = grid;
   const data = new Uint8Array(width * height * 4);
-  for (let i = 0; i < width * height; i++) data[i * 4 + SPLAT_CHANNEL[splatKind(grid, i)]] = 255;
+  for (let i = 0; i < width * height; i++) {
+    const ch = SPLAT_CHANNEL[splatKind(grid, i)];
+    if (ch !== undefined) data[i * 4 + ch] = 255;
+  }
   // A ramp's lower cell is half its ground layer and half rock, so a ramp reads apart from the flat ground of its kind.
   const rock = SPLAT_LAYERS.indexOf("rock");
   for (const i of rampLowCells(grid)) {
@@ -402,6 +407,14 @@ export function controlMap(bytes) {
     data[i * 4 + ch] = 128;
     data[i * 4 + rock] = 127;
   }
+  return { data, width, height };
+}
+// Water map for a grid: { data: Uint8Array one byte per cell, width, height }, 255 on water cells.
+export function waterMap(bytes) {
+  const grid = readGrid(bytes);
+  const { width, height } = grid;
+  const data = new Uint8Array(width * height);
+  for (let i = 0; i < width * height; i++) if (splatKind(grid, i) === "water") data[i] = 255;
   return { data, width, height };
 }
 // Rewrites one cell texel to a kind (the creep effect) and returns that texel for a sub-region upload.

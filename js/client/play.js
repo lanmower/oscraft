@@ -14,7 +14,7 @@ import { createHud } from "./hud.js";
 import { createHud5 } from "./hud5.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds } from "./tiles.js";
+import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
@@ -89,6 +89,8 @@ const SPLAT_SHADE = [0.42, 0.68, 1.3];
 // Per-layer albedo tint, in SPLAT_LAYERS order. The sand (dirt) layer takes the dirt tint so it sits with the grass family;
 // the other layers keep their own colour.
 const SPLAT_TINTS = SPLAT_LAYERS.map((name) => (name === "dirt" ? TILE_TINTS.dirt : [1, 1, 1]));
+// Water tint: multiplies the procedural water colour (1 leaves it as shaded).
+const SPLAT_WATER_TINT = [1, 1, 1];
 let terrainTiles = null;
 let unitMeshes = [];
 let arrowMesh = null;
@@ -1415,7 +1417,7 @@ async function buildSplat(gl) {
   const control = controlMap(mapBytes);
   return {
     control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, tints: SPLAT_TINTS,
-    gpu: null,
+    waterMap: waterMap(mapBytes), waterTint: SPLAT_WATER_TINT, gpu: null,
   };
 }
 
