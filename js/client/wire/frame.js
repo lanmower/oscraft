@@ -1,6 +1,6 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13 });
 
 export const MAX_UNITS = 1024;
 export const MAX_ROOM_BYTES = 64;
@@ -93,6 +93,12 @@ const CODECS = {
     size: () => 2 + 4 + 4,
     write(w, f) { w.u32(f.unitId, 'unitId'); w.i32(f.targetId, 'targetId'); },
     read(r) { return { unitId: r.u32(), targetId: r.i32() }; },
+  },
+  // An attack-move order: the unit walks to (x, y), strikes enemies in reach on the way, and resumes after each kill.
+  [FRAME.ATTACK_MOVE]: {
+    size: () => 2 + 4 + 4 + 4,
+    write(w, f) { w.u32(f.unitId, 'unitId'); w.i32(f.x, 'x'); w.i32(f.y, 'y'); },
+    read(r) { return { unitId: r.u32(), x: r.i32(), y: r.i32() }; },
   },
   // A hold order: the unit stops where it stands and attacks only what is in reach, until a move or attack replaces it.
   [FRAME.HOLD]: {
