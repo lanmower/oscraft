@@ -60,7 +60,7 @@ function ringMesh(inner, segments = 32) {
   return glowMesh(pos, idx);
 }
 
-// Unit-size octahedron: particles, projectile (attack missile substitute) and flash body.
+// Unit-size octahedron: particles, spell projectiles and flash body.
 function octaMesh() {
   const pos = [1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1];
   const idx = [0, 2, 4, 2, 1, 4, 1, 3, 4, 3, 0, 4, 2, 0, 5, 1, 2, 5, 3, 1, 5, 0, 3, 5];
@@ -90,6 +90,33 @@ function sweep(pool, lifeOf) {
   }
 }
 
+// The arrow model's tip turn about y, added to its heading. Zero when the model's tip points along its shaft's +x or +z.
+const ARROW_TIP_TURN = 0;
+
+// True when a model's footprint runs farther along x than along z.
+function alongX(positions) {
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (let v = 0; v < positions.length; v += 3) {
+    x0 = Math.min(x0, positions[v]);
+    x1 = Math.max(x1, positions[v]);
+    z0 = Math.min(z0, positions[v + 2]);
+    z1 = Math.max(z1, positions[v + 2]);
+  }
+  return x1 - x0 >= z1 - z0;
+}
+
+// Unit-scale transform turned by `yaw` about y (the same column-major layout placed writes), at a point.
+function oriented(next, x, y, z, yaw) {
+  const m = placed(next, x, y, z, 1);
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  m[0] = c;
+  m[2] = -s;
+  m[8] = s;
+  m[10] = c;
+  return m;
+}
+
 // Scratch matrices for one frame: a draw reads its transform synchronously, so each draw takes the next slot.
 // The list grows to the largest frame seen (one team ring per unit) and is then reused without allocating.
 const matrixScratch = [];
@@ -105,13 +132,15 @@ function placed(next, x, y, z, sx, sy = sx, sz = sx) {
   return m;
 }
 
-export function createFx({ renderer, game, toScreen, groundAt, playerColor, selected }) {
+export function createFx({ renderer, game, toScreen, groundAt, playerColor, selected, arrow = () => null }) {
   const thin = ringMesh(0.88);
   const thick = ringMesh(0.6);
   const octa = octaMesh();
+  let arrowModel = null;
+  let arrowAlongX = true;
   const rings = makePool(CAP_RINGS, () => ({ x: 0, z: 0, r0: 0, r1: 0, t: 0, dur: 0, color: null, mesh: thick }));
   const particles = makePool(CAP_PARTICLES, () => ({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0, dur: 0, color: null, size: 0 }));
-  const projectiles = makePool(CAP_PROJECTILES, () => ({ from: { x: 0, y: 0, z: 0 }, pos: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0, z: 0 }, targetId: -1, t: 0, dur: 0, color: null, melee: false }));
+  const projectiles = makePool(CAP_PROJECTILES, () => ({ from: { x: 0, y: 0, z: 0 }, pos: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0, z: 0 }, targetId: -1, t: 0, dur: 0, color: null, melee: false, ranged: false }));
   const flashes = makePool(CAP_FLASHES, () => ({ id: -1, t: 0 }));
   const floats = makePool(CAP_FLOATS, () => ({ x: 0, z: 0, y: 0, text: "", color: "", t: 0 }));
   const strikes = makePool(CAP_STRIKES, () => ({ id: -1, player: -1, x: 0, y: 0, z: 0, t: 0 }));
@@ -173,14 +202,15 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     burst(u.x, (u.top ?? 1) * 0.6, u.z, FLASH_COLOR, 5, 1.8);
   }
 
-  // A projectile from `from` to unit `targetId` (followed while it lives) or, for melee, an instant impact.
-  function launch(fromX, fromY, fromZ, targetId, color, melee) {
+  // A projectile from `from` to unit `targetId` (followed while it lives) or, for melee, an instant impact. A ranged
+  // attack's projectile is drawn as the arrow model; spells keep the octahedron.
+  function launch(fromX, fromY, fromZ, targetId, color, melee, ranged = false) {
     const p = spawn(projectiles);
     if (!p) return;
     p.from.x = fromX; p.from.y = fromY; p.from.z = fromZ;
     p.pos.x = fromX; p.pos.y = fromY; p.pos.z = fromZ;
     p.to.x = fromX; p.to.y = fromY; p.to.z = fromZ;
-    p.targetId = targetId; p.t = 0; p.dur = 0; p.color = color; p.melee = melee;
+    p.targetId = targetId; p.t = 0; p.dur = 0; p.color = color; p.melee = melee; p.ranged = ranged;
   }
 
   // Attack attribution: a unit whose weapon starts a strike is a candidate for hits landing within the window.
@@ -274,7 +304,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
       const from = attackerOf(victim);
       if (!from) continue;
       if (Math.hypot(from.x - victim.x, from.z - victim.z) <= MELEE_RANGE) burst(victim.x, 0.3, victim.z, MISSILE_COLOR, 6, 1.5);
-      else launch(from.x, from.y, from.z, victim.id, MISSILE_COLOR, false);
+      else launch(from.x, from.y, from.z, victim.id, MISSILE_COLOR, false, true);
     }
     for (const id of lastPos.keys()) if (!seen.has(id)) { missing.add(id); lastPos.delete(id); lastHp.delete(id); lastAttacking.delete(id); }
   }
@@ -363,10 +393,25 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
       const p = particles.slots[i];
       glow(octa, p.color, 1 - p.t / p.dur, placed(draw, p.x, p.y, p.z, p.size));
     }
+    const model = arrow();
     for (let i = 0; i < projectiles.count; i++) {
       const p = projectiles.slots[i];
-      glow(octa, p.color, 1, placed(draw, p.pos.x, p.pos.y, p.pos.z, 0.25));
+      if (p.ranged && model) glow(model, p.color, 1, arrowAt(model, p));
+      else glow(octa, p.color, 1, placed(draw, p.pos.x, p.pos.y, p.pos.z, 0.25));
     }
+  }
+
+  // The arrow's transform: its shaft lies along the flight heading. The fitted model runs along x or z (its longer
+  // footprint side), so the yaw is taken on that axis.
+  function arrowAt(model, p) {
+    if (model !== arrowModel) {
+      arrowModel = model;
+      arrowAlongX = alongX(model.positions);
+    }
+    const hx = p.to.x - p.pos.x;
+    const hz = p.to.z - p.pos.z;
+    const yaw = arrowAlongX ? Math.atan2(-hz, hx) : Math.atan2(hx, hz);
+    return oriented(draw, p.pos.x, p.pos.y, p.pos.z, yaw + ARROW_TIP_TURN);
   }
 
   function drawNumbers() {
@@ -413,9 +458,15 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     costMs += ((performance.now() - t0) - costMs) * COST_SMOOTHING;
   }
 
+  function rangedInFlight() {
+    let n = 0;
+    for (let i = 0; i < projectiles.count; i++) if (projectiles.slots[i].ranged) n += 1;
+    return n;
+  }
+
   return {
     frame,
     cast,
-    counts: () => ({ rings: rings.count, particles: particles.count, projectiles: projectiles.count, floats: floats.count, flashes: flashes.count, costMs: Number(costMs.toFixed(3)) }),
+    counts: () => ({ rings: rings.count, particles: particles.count, projectiles: projectiles.count, ranged: rangedInFlight(), floats: floats.count, flashes: flashes.count, costMs: Number(costMs.toFixed(3)) }),
   };
 }

@@ -2214,6 +2214,45 @@ jobs:
           grep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
           grep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"
 
+      - name: Screenshot a ranged attack in flight
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/pw/effects.mjs" <<'EOF'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+          const errors = [];
+          page.on("pageerror", (e) => errors.push(String(e)));
+          page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#moba");
+          await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
+          const error = await page.getAttribute("body", "data-error");
+          if (error) throw new Error("page error: " + error);
+          if (!(await page.evaluate(() => document.getElementById("lobby").hidden))) {
+            const press = (label) => page.evaluate((text) => [...document.querySelectorAll("#lobby button")].find((b) => b.textContent === text && !b.disabled)?.click(), label);
+            await press("Claim");
+            await page.evaluate(() => { const s = document.querySelector("#lobby select"); s.value = "axe"; s.dispatchEvent(new Event("change")); });
+            await press("Ready");
+            await press("Fill with bots");
+            await press("Start match");
+            await page.waitForFunction(() => document.getElementById("lobby").hidden, null, { timeout: 15000 });
+          }
+          await page.waitForFunction(() => window.__ciFx && window.__ciFx().ranged > 0, null, { timeout: 150000, polling: 100 });
+          await page.screenshot({ path: process.env.RUNNER_TEMP + "/pw/ranged-attack.png" });
+          console.log(`effects ok ranged=${(await page.evaluate(() => window.__ciFx().ranged))}`);
+          await browser.close();
+          EOF
+          node "$RUNNER_TEMP/pw/effects.mjs" | tee "$RUNNER_TEMP/effects.txt"
+          grep -q '^effects ok ranged=[1-9][0-9]*$' "$RUNNER_TEMP/effects.txt"
+
+      - name: Upload the ranged attack screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: effect-screenshots
+          path: ${{ runner.temp }}/pw/*.png
+          if-no-files-found: ignore
+
       - name: Edit the mod under a running page; its data-mod-version follows
         run: |
           set -euo pipefail

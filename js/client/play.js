@@ -96,6 +96,7 @@ const SPLAT_SHADE = [0.42, 0.68, 1.3];
 const CLIFF_SHADE = [0.5, 0.7, 2.0];
 let terrainTiles = null;
 let unitMeshes = [];
+let arrowMesh = null;
 const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, quad: 0, animated: 0 };
 // Scratch matrices for the per-unit transform and the screen projection, reused every frame.
 const unitTransform = new Float32Array(16);
@@ -283,6 +284,13 @@ function maxY(positions) {
   let top = 0;
   for (let v = 1; v < positions.length; v += 3) top = Math.max(top, positions[v]);
   return top;
+}
+
+// The ranged attack's projectile: the arrow model, fitted to the footprint doodad_sizes.json gives it. Null when it does
+// not load, and the effects keep their octahedron.
+async function loadArrowMesh(gl) {
+  const footprints = await fetch(new URL("doodad_sizes.json", location.href)).then((r) => r.json()).catch(() => ({}));
+  return toMesh(gl, await fetchModel("arrow", footprints.arrow ?? 2 * DOODAD_HALF), [1, 1, 1]).catch(() => null);
 }
 
 // Ground height under a tile position; the terrain is flat at 0 until its mesh is built.
@@ -1191,6 +1199,7 @@ async function build3d(gl, game) {
   doodadBatches = batchByMesh(placed);
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
   unitMeshes = await Promise.all((await unitFitsReady).map((f) => toMesh(gl, f, [1, 1, 1], { animated: true })));
+  arrowMesh = await loadArrowMesh(gl);
 }
 
 // Terrain drawn from the CC0 tile models: each kind's variant models fitted once, cells baked per kind and variant. Any
@@ -1295,7 +1304,7 @@ async function main() {
     toScreen: worldToScreen,
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
-  if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId });
+  if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
   hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: localPlayerId });
   const eventsBase = params.get("events");
   const modUi = createModUi({
@@ -1396,6 +1405,8 @@ if (params.get("ci") === "1") {
       return { slot, picked: hero, spawned: u ? names[u.type] ?? null : null };
     });
   };
+  // Read-only: the effects' counts (ranged attack projectiles in flight).
+  window.__ciFx = () => (fx ? fx.counts() : null);
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 
