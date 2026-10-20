@@ -804,5 +804,8 @@
   "batrider_skinned": "models/batrider-skinned.glb",
   "beastmaster_skinned": "models/beastmaster-skinned.glb",
   "bloodseeker_skinned": "models/bloodseeker-skinned.glb",
-  "bounty_hunter_skinned": "models/bounty-hunter-skinned.glb"
+  "bounty_hunter_skinned": "models/bounty-hunter-skinned.glb",
+  "arc_warden_skinned": "models/arc-warden-skinned.glb",
+  "broodmother_skinned": "models/broodmother-skinned.glb",
+  "chaos_knight_skinned": "models/chaos-knight-skinned.glb"
 }

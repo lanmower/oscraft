@@ -115,6 +115,9 @@ const HY3D_MODEL = {
   beastmaster: "beastmaster-skinned",
   bloodseeker: "bloodseeker-skinned",
   bounty_hunter: "bounty-hunter-skinned",
+  arc_warden: "arc-warden-skinned",
+  broodmother: "broodmother-skinned",
+  chaos_knight: "chaos-knight-skinned",
 };
 
 const osd = [
