@@ -2270,7 +2270,7 @@ jobs:
                 attacks = Number(await page.getAttribute("body", "data-attacks"));
                 console.log(`probe try cand=${cand.id} foe=${foeNow.id} gap=${gap.toFixed(2)} attacks=${attacks}`);
               }
-              // The attack ring lives 600 ms from the click that ordered the strike, so it is witnessed right after the strike is accepted.
+              // The attack ring lives 2500 ms from the click that ordered the strike; the sim accepts the order a tick or more later, so the ring is still up when the strike is counted.
               if (attacks > attacks0) { ringSeen = await fxWait("fx", "rgb(229, 57, 53)"); if (ringSeen) await fxShot("attack-ring.png"); }
               console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);
               if (attacks > attacks0) { attacker = cand; break; }
