@@ -38,6 +38,7 @@ const SPELL_COLORS = [[0.55, 0.4, 1], [0.3, 0.8, 1], [1, 0.55, 0.2], [0.4, 1, 0.
 const LEVEL_COLOR = [1, 0.9, 0.4];
 const RESPAWN_COLOR = [0.6, 1, 0.8];
 const FLASH_COLOR = [1, 0.85, 0.8];
+const COST_SMOOTHING = 0.05;
 const MISSILE_COLOR = [1, 0.95, 0.7];
 
 function glowMesh(positions, indices) {
@@ -125,6 +126,8 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   const draw = { n: 0 };
   let unitsById = new Map();
   let clockS = 0;
+  // Smoothed CPU milliseconds the effect pass takes per frame (not the GPU cost of its draws).
+  let costMs = 0;
 
   const overlay = document.createElement("canvas");
   overlay.style.cssText = "position:fixed;left:0;top:0;pointer-events:none";
@@ -399,6 +402,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   // One frame: read the sim's events and unit changes, advance the effects by dt seconds, draw them.
   // Call after the units are drawn (glow meshes blend over the scene).
   function frame(units, dt) {
+    const t0 = performance.now();
     clockS += dt;
     readUnits(units);
     readEvents();
@@ -406,11 +410,12 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     advance(dt);
     drawGlow(units);
     drawNumbers();
+    costMs += ((performance.now() - t0) - costMs) * COST_SMOOTHING;
   }
 
   return {
     frame,
     cast,
-    counts: () => ({ rings: rings.count, particles: particles.count, projectiles: projectiles.count, floats: floats.count, flashes: flashes.count }),
+    counts: () => ({ rings: rings.count, particles: particles.count, projectiles: projectiles.count, floats: floats.count, flashes: flashes.count, costMs: Number(costMs.toFixed(3)) }),
   };
 }
