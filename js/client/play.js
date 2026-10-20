@@ -164,8 +164,8 @@ async function loadSim() {
   const rulesText = rulesRes.ok ? await rulesRes.text() : "";
   if (location.hash === "#moba" && !(rulesRes.ok && game.set_hero_rules(rulesText))) throw new Error("hero_rules.txt did not load");
   heroRuleNames = heroNamesFromRules(rulesText);
-  // The moba preview runs without fog so every enemy is a valid target; other pages keep the sim's fog.
-  game.set_fog(location.hash !== "#moba");
+  // Fog of war is on for every page, moba included: enemies outside the local team's vision stay hidden.
+  game.set_fog(true);
   return game;
 }
 
