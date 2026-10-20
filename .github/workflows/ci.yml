@@ -2168,13 +2168,17 @@ jobs:
             for (const foe of foes) {
               const fp = await screenAt(foe.x, foe.z);
               const casts0 = Number(await page.getAttribute("body", "data-casts"));
+              // The input layer's own selection must hold the candidate before Q (the page's selected id alone does not cast).
+              const candAt = await screenAt(cand.x, cand.z);
+              await page.mouse.click(candAt.x, candAt.y, { button: "left" });
+              if (!(await page.evaluate((id) => window.__ciInputSelection().includes(id), cand.id))) continue;
               // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.
               await page.mouse.move(fp.x, fp.y);
               await page.keyboard.press("q");
               // A targeted Q arms and the left click on the foe casts there; a plain Q already cast, and the click only selects the foe.
               await page.mouse.click(fp.x, fp.y, { button: "left" });
               // Re-select the hero so the foe's click does not leave the attack step with no own unit selected.
-              await page.mouse.click(at.x, at.y, { button: "left" });
+              await page.mouse.click(candAt.x, candAt.y, { button: "left" });
               await page.waitForFunction((n) => Number(document.body.dataset.casts) > n, casts0, { timeout: 1500 }).catch(() => {});
               const casts = Number(await page.getAttribute("body", "data-casts"));
               if (casts <= casts0) {
