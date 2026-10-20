@@ -218,8 +218,8 @@ const body = [
   ...tileRuns.map((r) => `paint_tile(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`),
   ...openRuns.map((r) => `paint(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, 0)`),
   ...startLines,
-  ...spawnLines,
   ...ancientLines,
+  ...spawnLines,
   ...shopLines,
   ...treeLines,
 ];

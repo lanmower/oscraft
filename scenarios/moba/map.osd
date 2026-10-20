@@ -13744,6 +13744,10 @@ start(6, 52500, 269500, team=0)
 start(7, 266500, 61500, team=1)
 start(8, 53500, 266500, team=0)
 start(9, 271500, 61500, team=1)
+# ancient etol at -5568,-6016 from war3map.j
+spawn("base", 0, 76000, 257000)
+# ancient unpl at 5248,4918 from war3map.j
+spawn("base", 1, 245000, 86156)
 spawn("hero", 0, 52500, 273500)
 spawn("hero", 1, 273500, 57500)
 spawn("hero", 2, 55500, 274500)
@@ -13790,10 +13794,6 @@ spawn("barracks_melee", 1, 224406, 77625)
 spawn("barracks_ranged", 1, 224344, 69359)
 spawn("courier", 0, 58500, 271500)
 spawn("courier", 1, 259500, 57500)
-# ancient etol at -5568,-6016 from war3map.j
-spawn("base", 0, 76000, 257000)
-# ancient unpl at 5248,4918 from war3map.j
-spawn("base", 1, 245000, 86156)
 doodad(5, "shop", 268141, 57109)
 doodad(6, "shop", 47500, 259500)
 doodad(7, "secret_shop", 239844, 182375)
