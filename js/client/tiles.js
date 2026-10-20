@@ -130,13 +130,13 @@ export function fitModel(glb, size) {
 
 // Material per cell kind: the named texture a kind's batches bind, or null for the model's tint. Adding a surface is one
 // entry here; a kind mapped to "ground" is drawn with the repeating ground texture.
-export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: "lane", water: null, cliff: "cliff" });
-// Texture file per material name (CC0, see NOTICE.md). A material's kinds share one texture; the ground material repeats
-// over the map, while the others stretch once over each tile through the model's own UVs.
-export const TILE_TEXTURES = Object.freeze({ ground: "textures/ground.png", lane: "textures/lane.jpg", cliff: "textures/rock.jpg" });
-// Kinds drawn with the repeating ground texture: their cells split by position modulo the texture period, so each
-// split shares one instanced draw and still lands on the right part of the texture.
-export const GROUND_KINDS = Object.freeze(Object.keys(TILE_MATERIALS).filter((kind) => TILE_MATERIALS[kind] === "ground"));
+export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: "lane", water: "water", cliff: "cliff" });
+// Texture file per material name (CC0, see NOTICE.md). A material's kinds share one texture; the ground and water materials
+// repeat over the map in world space (GROUND_KINDS), while the others stretch once over each tile through the model's UVs.
+export const TILE_TEXTURES = Object.freeze({ ground: "textures/ground.jpg", lane: "textures/lane.jpg", cliff: "textures/cliff.jpg", water: "textures/water.jpg" });
+// Kinds drawn with a repeating texture (ground and water): their cells split by position modulo the texture period, so each
+// split shares one instanced draw and still lands on the right part of the texture. A river is one continuous surface.
+export const GROUND_KINDS = Object.freeze(Object.keys(TILE_MATERIALS).filter((kind) => ["ground", "water"].includes(TILE_MATERIALS[kind])));
 const GROUND_PERIOD = Math.round(1 / GROUND_UV_PER_CELL);
 
 function groundVariantUvs(model, ox, oy) {

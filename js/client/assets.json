@@ -1,6 +1,6 @@
 {
- "count": 804,
- "total_bytes": 21474458,
+ "count": 808,
+ "total_bytes": 21568358,
  "items": [
   {
    "id": "rock",
@@ -84,9 +84,23 @@
   {
    "id": "ground",
    "kind": "texture",
-   "path": "js/client/textures/ground.png",
+   "path": "js/client/textures/ground.jpg",
    "placed_by": "texture.js",
-   "bytes": 262988
+   "bytes": 63134
+  },
+  {
+   "id": "water",
+   "kind": "texture",
+   "path": "js/client/textures/water.jpg",
+   "placed_by": "texture.js (river tile, TILE_TEXTURES water)",
+   "bytes": 70577
+  },
+  {
+   "id": "cliff",
+   "kind": "texture",
+   "path": "js/client/textures/cliff.jpg",
+   "placed_by": "texture.js (cliff tile, TILE_TEXTURES cliff)",
+   "bytes": 82728
   },
   {
    "id": "aid-cane-blind",
@@ -5631,15 +5645,29 @@
    "id": "ground-ktx2",
    "kind": "texture",
    "path": "js/client/textures/ground.ktx2",
-   "placed_by": "texture.js (KTX2 sibling of ground.png, tile)",
-   "bytes": 77170
+   "placed_by": "texture.js (KTX2 sibling of ground.jpg, tile)",
+   "bytes": 74792
+  },
+  {
+   "id": "water-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/water.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of water.jpg, river tile)",
+   "bytes": 74971
+  },
+  {
+   "id": "cliff-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/cliff.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of cliff.jpg, cliff tile)",
+   "bytes": 77100
   },
   {
    "id": "lane-ktx2",
    "kind": "texture",
    "path": "js/client/textures/lane.ktx2",
    "placed_by": "texture.js (KTX2 sibling of lane.jpg, splat/tile)",
-   "bytes": 81665
+   "bytes": 72421
   },
   {
    "id": "rock-ktx2",

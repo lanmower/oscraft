@@ -783,7 +783,7 @@ wood_support	format.rs DOODAD_KINDS + js/client/doodads.json	js/client/models/wo
 workbench	format.rs DOODAD_KINDS + js/client/doodads.json	js/client/models/workbench.glb	same-named pack model (name match); GLB in assets/Models/GLB format	yes	26104	1
 workbench_anvil	format.rs DOODAD_KINDS + js/client/doodads.json	js/client/models/workbench-anvil.glb	same-named pack model (name match); GLB in assets/Models/GLB format	yes	30084	1
 workbench_grind	format.rs DOODAD_KINDS + js/client/doodads.json	js/client/models/workbench-grind.glb	same-named pack model (name match); GLB in assets/Models/GLB format	yes	24704	1
-ground	js/client/assets.json	js/client/textures/ground.png	terrain base ground texture used by play.js	yes	10835	0
+ground	js/client/assets.json	js/client/textures/ground.jpg	terrain base ground texture used by play.js	yes	63134	0
 colormap	js/client/assets.json	js/client/models/Textures/colormap.png	pack colormap texture beside models, found by texture.js	yes	27782	0
 terrain-variation-a	assets/Models/Textures (copied)	js/client/models/Textures/variation-a.png	pack terrain/prop palette variant; copied and registered in assets.json	yes	26149	0
 terrain-variation-b	assets/Models/Textures (copied)	js/client/models/Textures/variation-b.png	pack terrain/prop palette variant; copied and registered in assets.json	yes	25708	0
