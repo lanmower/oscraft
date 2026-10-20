@@ -2272,11 +2272,13 @@ jobs:
           const errors = [];
           page.on("pageerror", (e) => errors.push(String(e)));
           page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
-          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#map");
+          await page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#moba");
           await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
           const error = await page.getAttribute("body", "data-error");
           if (error) throw new Error("page error: " + error);
           await page.waitForFunction(() => Number(document.body.dataset.drawTerrain) > 0, null, { timeout: 30000 });
+          // The moba map is the one with ramps; its lobby overlay is hidden so the terrain is in view.
+          await page.evaluate(() => { const lobby = document.getElementById("lobby"); if (lobby) lobby.hidden = true; });
           const ramp = await page.evaluate(() => window.__ciRampCell());
           if (!ramp) throw new Error("map has no ramp cell");
           await page.evaluate(([x, z]) => window.__ciFocus(x, z), [ramp.x, ramp.z]);
