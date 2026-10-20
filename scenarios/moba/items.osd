@@ -6,6 +6,7 @@
 # tick, ranges are milli (one Dota unit is 15.625 milli). Side shop membership is a heuristic (basic components and
 # consumables), not Valve data: shops.txt is not in the dump.
 ability("item_blink", 240, 0, "point", [effect("move", p0=18750)])
+ability_ext("item_blink", cast_range=18750)
 ability("item_overwhelming_blink", 240, 0, "point", [effect("move", p0=18750)])
 ability("item_swift_blink", 240, 0, "point", [effect("move", p0=18750)])
 ability("item_arcane_blink", 144, 0, "point", [effect("move", p0=21875)])
