@@ -348,7 +348,7 @@ export function setSplatTexel(control, index, kind) {
 // matrix per cell on the cell's height level, so memory and draw calls scale with the kind and variant count, not the
 // cell count. models maps each kind to its fitted variant models. Returns null when a kind the map uses has no model,
 // so the caller keeps the heightfield as the fallback.
-export function bakeTiles(bytes, models, { splat = false, ramps = true, cliffCells = true } = {}) {
+export function bakeTiles(bytes, models, { splat = false, ramps = true, cliffCells = true, water = true } = {}) {
   const grid = readGrid(bytes);
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const empty = voidMask(grid);
@@ -360,6 +360,8 @@ export function bakeTiles(bytes, models, { splat = false, ramps = true, cliffCel
       const kind = tileKind(grid, i);
       if (splat && isSplatKind(kind)) continue;
       if (!cliffCells && kind === "cliff") continue;
+      // Water cells draw as flat tinted squares (the water tile). With the splat floor on, the floor shows them instead.
+      if (!water && kind === "water") continue;
       const variants = models[kind];
       if (!variants?.length) return null;
       const v = cellVariant(x, y, variants.length);

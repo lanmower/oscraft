@@ -1309,7 +1309,7 @@ async function loadTileMeshes(gl, tileTextures) {
   const byName = new Map(names.map((name, i) => [name, fitted[i]]));
   const models = Object.fromEntries(Object.entries(TILE_MODELS).map(([kind, list]) => [kind, list.map((name) => byName.get(name))]));
   const heightfield = Boolean(splat) && !TERRAIN_TILES;
-  const baked = bakeTiles(mapBytes, models, { splat: Boolean(splat), ramps: !heightfield, cliffCells: !heightfield });
+  const baked = bakeTiles(mapBytes, models, { splat: Boolean(splat), ramps: !heightfield, cliffCells: !heightfield, water: !heightfield });
   if (!baked) return null;
   const drawn = await Promise.all([...baked.kinds.values()].flatMap(({ kind, material, model, batches, planar }) => batches.map(async ({ uvs, batch }) => {
     const texture = tileTextures.get(material) || null;
