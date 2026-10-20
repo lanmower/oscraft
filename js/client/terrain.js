@@ -81,14 +81,20 @@ export function displayHeights(grid) {
     if (y < h - 1) out.push(i + w);
     return out;
   };
+  for (let i = 0; i < n; i++) if (isWaterCell(grid, i)) fixed[i] = 1;
   for (let i = 0; i < n; i++) {
     for (const j of neighbours(i)) {
       const dh = Math.abs(shown[i] - shown[j]);
-      if (dh >= FULL_CLIFF_CELLS - 1e-6) fixed[i] = 1;
-      else if (dh > 1e-9) relax[i] = 1;
+      if (dh > 1e-9 && (dh >= FULL_CLIFF_CELLS - 1e-6 || isWaterCell(grid, i) || isWaterCell(grid, j))) fixed[i] = 1;
     }
   }
-  for (let i = 0; i < n; i++) if (fixed[i]) relax[i] = 0;
+  // A slope cell relaxes only when no neighbour is pinned, so the committed heights at a barrier stay where they are.
+  for (let i = 0; i < n; i++) {
+    if (fixed[i]) continue;
+    const list = neighbours(i);
+    if (list.some((j) => fixed[j])) continue;
+    if (list.some((j) => Math.abs(shown[i] - shown[j]) > 1e-9)) relax[i] = 1;
+  }
   const active = [];
   for (let i = 0; i < n; i++) if (relax[i]) active.push(i);
   const nbr = active.map(neighbours);
@@ -105,13 +111,20 @@ export function displayHeights(grid) {
     }
     if (change < DISPLAY_RELAX_TOLERANCE) break;
   }
-  return shown;
+  return { shown, fixed };
+}
+
+// Water cell as tiles.js cellKind reads it: blocked, no cliff bit, and the water tile id (TILE_IDS.water in tiles.js).
+const CLIFF_BIT = 2, BLOCKED_BIT = 1, WATER_TILE_ID = 4;
+function isWaterCell(grid, i) {
+  const f = grid.flags[i];
+  return (f & BLOCKED_BIT) !== 0 && (f & CLIFF_BIT) === 0 && grid.tiles[i] === WATER_TILE_ID;
 }
 
 export function buildTerrain(bytes) {
   const grid = readGrid(bytes);
-  const { width: w, height: h, cellMilli } = grid;
-  const shown = displayHeights(grid);
+  const { width: w, height: h, cellMilli, heightStep, levels } = grid;
+  const { shown, fixed } = displayHeights(grid);
   const cols = w + 1;
   const positions = new Float32Array(cols * (h + 1) * 3);
   const uvs = new Float32Array(cols * (h + 1) * 2);
@@ -119,13 +132,25 @@ export function buildTerrain(bytes) {
     for (let cx = 0; cx <= w; cx++) {
       let sum = 0;
       let touching = 0;
+      // A corner that touches a pinned cell (a full cliff level or water) keeps the committed heights, so barriers stay as drawn.
+      let pinnedCorner = false;
       for (let dy = -1; dy <= 0; dy++) {
         for (let dx = -1; dx <= 0; dx++) {
           const x = cx + dx;
           const y = cy + dy;
           if (x >= 0 && y >= 0 && x < w && y < h) {
-            sum += shown[y * w + x];
+            if (fixed[y * w + x]) pinnedCorner = true;
             touching++;
+          }
+        }
+      }
+      for (let dy = -1; dy <= 0; dy++) {
+        for (let dx = -1; dx <= 0; dx++) {
+          const x = cx + dx;
+          const y = cy + dy;
+          if (x >= 0 && y >= 0 && x < w && y < h) {
+            const k = y * w + x;
+            sum += pinnedCorner ? levels[k] * heightStep / cellMilli : shown[k];
           }
         }
       }
