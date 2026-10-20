@@ -448,7 +448,8 @@ impl Game {
     }
 
     /// UI export: the item catalog as JSON `[{"id":index,"name","cost","armor","damage","health","flags",
-    /// "tier","shops","charges","stack","stats":{name:value,...},"components":[index,...]}]`. `stats` lists
+    /// "tier","shops","charges","stack","stats":{name:value,...},"components":[index,...],"target","radius"}]`
+    /// (`target` and `radius` describe the item's active ability, see `targeting`). `stats` lists
     /// the non-zero bonuses; `shops` is the bit mask home 1, side 2, secret 4.
     pub fn item_catalog_json(&self) -> String {
         let cat = self.sim.catalog();
@@ -465,8 +466,9 @@ impl Game {
                     .filter(|(_, v)| *v != 0)
                     .map(|(n, v)| format!("\"{n}\":{v}"))
                     .collect();
+                let (target, radius) = targeting(cat, it.ability as usize);
                 format!(
-                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"flags\":{},\"tier\":{},\"shops\":{},\"charges\":{},\"stack\":{},\"stats\":{{{}}},\"components\":[{}]}}",
+                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"flags\":{},\"tier\":{},\"shops\":{},\"charges\":{},\"stack\":{},\"stats\":{{{}}},\"components\":[{}],\"target\":\"{}\",\"radius\":{}}}",
                     id,
                     json_str(cat.name(it.name)),
                     it.cost,
@@ -479,7 +481,9 @@ impl Game {
                     it.charges,
                     it.stack_max,
                     stats.join(","),
-                    parts.join(",")
+                    parts.join(","),
+                    target,
+                    radius
                 )
             })
             .collect();
@@ -507,7 +511,8 @@ impl Game {
     }
 
     /// UI export: the abilities unit `unit` holds as JSON `[{"slot","name","cooldown","energy","ultimate","max_rank",
-    /// "gates":[...],"damage":[...],"cooldowns":[...],"energies":[...]}]`; ability stats are game ticks and
+    /// "gates":[...],"damage":[...],"cooldowns":[...],"energies":[...],"target":"none|unit|point","radius"}]`
+    /// (world units, 0 for `none`); ability stats are game ticks and
     /// the skill arrays are empty for an ability with no skill tree.
     pub fn abilities_json(&self, unit: u32) -> String {
         let cat = self.sim.catalog();
@@ -523,8 +528,9 @@ impl Game {
                     }
                     None => (false, 0, String::new(), String::new(), String::new(), String::new()),
                 };
+                let (target, radius) = targeting(cat, ai);
                 Some(format!(
-                    "{{\"slot\":{},\"name\":{},\"cooldown\":{},\"energy\":{},\"ultimate\":{},\"max_rank\":{},\"gates\":[{}],\"damage\":[{}],\"cooldowns\":[{}],\"energies\":[{}]}}",
+                    "{{\"slot\":{},\"name\":{},\"cooldown\":{},\"energy\":{},\"ultimate\":{},\"max_rank\":{},\"gates\":[{}],\"damage\":[{}],\"cooldowns\":[{}],\"energies\":[{}],\"target\":\"{}\",\"radius\":{}}}",
                     slot,
                     json_str(cat.name(a.name)),
                     a.cooldown,
@@ -534,12 +540,33 @@ impl Game {
                     g,
                     d,
                     c,
-                    e
+                    e,
+                    target,
+                    radius
                 ))
             })
             .collect();
         format!("[{}]", rows.join(","))
     }
+}
+
+/// Aim of catalog ability `ai` for the UI: its target word (`none`, `unit` or `point`, from the sim's
+/// ability target codes 0, 1 and any other) and its cast range in whole world units, 0 for `none`
+/// or an unknown ability. A missing index (`0xFFFF` on an item without an active) reads as `none`.
+fn targeting(cat: &sim::Catalog, ai: usize) -> (&'static str, i32) {
+    const TARGET_NONE: u8 = 0;
+    const TARGET_UNIT: u8 = 1;
+    let Some(a) = cat.abilities.get(ai) else {
+        return ("none", 0);
+    };
+    let word = match a.target {
+        TARGET_NONE => "none",
+        TARGET_UNIT => "unit",
+        _ => "point",
+    };
+    let range_milli = cat.ext.get(ai).map_or(0, |e| e.cast_range);
+    let radius = if a.target == TARGET_NONE { 0 } else { range_milli.max(0) / 1000 };
+    (word, radius)
 }
 
 fn replay_error(e: replay::ReplayError) -> JsValue {
