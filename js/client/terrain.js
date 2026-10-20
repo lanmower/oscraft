@@ -120,16 +120,16 @@ export function displayHeights(grid) {
   return { shown, fixed };
 }
 
-// Water cell as tiles.js cellKind reads it: blocked, no cliff bit, and the water tile id (TILE_IDS.water in tiles.js).
-const CLIFF_BIT = 2, BLOCKED_BIT = 1, WATER_TILE_ID = 4;
+// Water cell as tiles.js cellKind reads it: no cliff bit, and the water tile id (TILE_IDS.water in tiles.js, set from the
+// W3E water flag by scripts/convert-688g-map.mjs).
+const CLIFF_BIT = 2, BLOCKED_BIT = 1, WATER_TILE_ID = 255;
 function isWaterCell(grid, i) {
-  const f = grid.flags[i];
-  return (f & BLOCKED_BIT) !== 0 && (f & CLIFF_BIT) === 0 && grid.tiles[i] === WATER_TILE_ID;
+  return (grid.flags[i] & CLIFF_BIT) === 0 && grid.tiles[i] === WATER_TILE_ID;
 }
 
-// Impassable cell: the BLOCKED or CLIFF flag is set (cellKind is "cliff" or "water" for these).
+// Impassable cell: the BLOCKED or CLIFF flag is set, or the cell is water (cellKind is "cliff" or "water" for these).
 function isImpassableCell(grid, i) {
-  return (grid.flags[i] & (BLOCKED_BIT | CLIFF_BIT)) !== 0;
+  return (grid.flags[i] & (BLOCKED_BIT | CLIFF_BIT)) !== 0 || isWaterCell(grid, i);
 }
 
 export function buildTerrain(bytes) {
