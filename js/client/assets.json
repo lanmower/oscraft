@@ -5766,6 +5766,34 @@
    "bytes": 72421
   },
   {
+   "id": "dirt-cc0-256",
+   "kind": "texture",
+   "path": "js/client/textures/dirt_cc0_256.jpg",
+   "placed_by": "texture.js (splat layer dirt, SPLAT_TEXTURES, Coast Sand 01)",
+   "bytes": 24160
+  },
+  {
+   "id": "dirt-cc0-256-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/dirt_cc0_256.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of dirt_cc0_256.jpg, splat layer dirt)",
+   "bytes": 19899
+  },
+  {
+   "id": "dirt-cc0-256-disp",
+   "kind": "texture",
+   "path": "js/client/textures/dirt_cc0_256_disp.jpg",
+   "placed_by": "texture.js (splat layer dirt height map, SPLAT_TEXTURES, Coast Sand 01)",
+   "bytes": 13103
+  },
+  {
+   "id": "dirt-cc0-256-disp-ktx2",
+   "kind": "texture",
+   "path": "js/client/textures/dirt_cc0_256_disp.ktx2",
+   "placed_by": "texture.js (KTX2 sibling of dirt_cc0_256_disp.jpg, splat layer dirt height)",
+   "bytes": 16881
+  },
+  {
    "id": "rock-ktx2",
    "kind": "texture",
    "path": "js/client/textures/rock.ktx2",
