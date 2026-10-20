@@ -1261,7 +1261,7 @@ function doodadVariant(base, kind, v) {
 async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
-  terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: terrain.uvs, indices: terrain.indices, color: MAP_COLOR };
+  terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: planarGroundUvs(terrain.positions), indices: terrain.indices, color: MAP_COLOR };
   // Ground textures, splat layers, doodad and unit models are independent downloads: they start together, so the
   // wait is the slowest chain rather than the sum of the stages. Tile meshes still wait for the splat they bake against.
   const placements = readDoodads(mapBytes);
