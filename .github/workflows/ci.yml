@@ -2388,6 +2388,7 @@ jobs:
             else errors.push(m.text());
           });
           page.on("request", (r) => { if (r.url().includes("map.bin?v=2")) applies.push(r.url()); });
+          page.on("response", (r) => { if (r.status() >= 400) errors.push(`http ${r.status()} ${r.url()}`); });
           await page.goto("http://127.0.0.1:8002/site/?rejectReloads=5");
           await page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });
           const error = await page.getAttribute("body", "data-error");
