@@ -179,10 +179,40 @@ const tileRuns = rects(runs((cx, cy) => tileId(cx, cy))).map(gridRect);
 const legacy = opt("--legacy", null);
 const legacyLines = legacy ? fs.readFileSync(legacy, "utf8").split("\n") : fs.readFileSync(path.join(outDir, "map.osd"), "utf8").split("\n");
 const startLines = legacyLines.filter((l) => l.startsWith("start("));
-const spawnLines = legacyLines.filter((l) => l.startsWith("spawn(") && !l.startsWith('spawn("base"'));
+const jass = fs.readFileSync(path.join(src, "war3map.j"), "latin1");
+const spawnLinesLegacy = legacyLines.filter((l) => l.startsWith("spawn(") && !l.startsWith('spawn("base"'));
+
+// Towers of the Scourge side (player 1) move to the 6.88 towers. The script's tower code is 'uzig' (Ziggurat, from
+// docs/CONVERGENCE_688G.md). Its literal CreateUnit calls in war3map.j are the decoded tower positions; the calls
+// with variables (Ve[0], lines 101260-101270) re-create the same points (their X/Y arguments are GetUnitX/Y of the
+// literal units, war3map.j:101168-101189), so they add no position. Each legacy tower line of player 1 takes the
+// nearest unclaimed decoded position that is an open cell; a line whose position is blocked keeps its legacy position.
+const towerPositions = [];
+for (const m of jass.matchAll(/CreateUnit\([^,]+,'uzig',(-?[\d.]+),(-?[\d.]+),/g)) {
+  const wx = Number(m[1]), wy = Number(m[2]);
+  if (!towerPositions.some((p) => p.wx === wx && p.wy === wy)) towerPositions.push({ wx, wy });
+}
+const towerCell = (p) => ({ cx: Math.floor((p.wx + 8192) / 64), cy: Math.floor((8192 - p.wy) / 64) });
+const claimed = new Set();
+const spawnLines = spawnLinesLegacy.map((line) => {
+  const m = line.match(/^spawn\("(tower(?:_t\d)?)", 1, (-?\d+), (-?\d+)\)$/);
+  if (!m) return line;
+  const lx = Number(m[2]) / 1000 - GX, ly = Number(m[3]) / 1000 - GY;
+  let best = null;
+  for (const p of towerPositions) {
+    const { cx, cy } = towerCell(p);
+    if (claimed.has(`${cx},${cy}`) || !open[cy]?.[cx]) continue;
+    const d = (cx + 0.5 - lx) ** 2 + (cy + 0.5 - ly) ** 2;
+    if (!best || d < best.d) best = { p, cx, cy, d };
+  }
+  if (!best) return line;
+  claimed.add(`${best.cx},${best.cy}`);
+  const [x, y] = toMilli(best.p.wx, best.p.wy);
+  return `spawn("${m[1]}", 1, ${x}, ${y})`;
+});
+
 // Ancients come from the script (war3map.j): the literal CreateUnit lines for the ancient codes (etol Sentinel,
 // unpl Scourge). The player for each side is the side convention (Sentinel = player 0, Scourge = player 1).
-const jass = fs.readFileSync(path.join(src, "war3map.j"), "latin1");
 const ANCIENT_SIDES = { etol: 0, unpl: 1 };
 const ancientLines = [];
 for (const m of jass.matchAll(/CreateUnit\([^,]+,'(etol|unpl)',(-?\d+),(-?\d+),/g)) {
