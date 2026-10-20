@@ -10,7 +10,8 @@ const STYLE = `
 #ui-skills h4{margin:0 0 4px;font-size:var(--t-title);color:var(--accent);display:flex;justify-content:space-between;align-items:baseline}
 #ui-skills h4 span{font-size:var(--t-label);color:var(--muted);font-weight:400}
 #ui-skills .sec{color:var(--faint);font-size:var(--t-label);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
-#ui-skills .row{display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid var(--line);padding:4px 4px;border-radius:2px}
+#ui-skills .row{position:relative;display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid var(--line);padding:4px 4px;border-radius:2px}
+#ui-skills .cd{position:absolute;inset:0;pointer-events:none;border-radius:2px;background:none}
 #ui-skills .row:hover{background:var(--well-hi)}
 #ui-skills .row[data-state=maxed] .pip{color:var(--accent)}
 #ui-skills .row[data-state=locked]{color:var(--muted)}
@@ -60,7 +61,9 @@ export function skillRowState({ a, rank, level, points }) {
   return "ready";
 }
 
-export function createSkills({ game, selected, localPlayer }) {
+// Cooldown sweep: each ability row gets one overlay whose conic-gradient covers the share of its cooldown still to run.
+// Needs `input` (the controls layer, for cooldownLeft/cooldownTotal); without it the rows show no sweep.
+export function createSkills({ game, selected, localPlayer, input }) {
   ensureStyle();
   const root = el("div");
   root.id = "ui-skills";
@@ -71,12 +74,25 @@ export function createSkills({ game, selected, localPlayer }) {
   const host = document.getElementById("ui-left") || document.body;
   host.appendChild(root);
   let signature = "";
+  let sweeps = [];
+
+  function tickSweeps(id) {
+    if (!input) return;
+    for (const s of sweeps) {
+      const left = input.cooldownLeft(id, s.slot);
+      if (left === s.last) continue;
+      s.last = left;
+      const total = input.cooldownTotal(id, s.slot) || 1;
+      s.node.style.background = left > 0 ? `conic-gradient(rgba(0,0,0,.55) ${Math.round((360 * left) / total)}deg, transparent 0)` : "none";
+    }
+  }
 
   function update() {
     const id = selected();
     const abilities = id >= 0 ? JSON.parse(game.abilities_json(id)) : [];
     root.hidden = abilities.length === 0;
     if (root.hidden) return;
+    tickSweeps(id);
     const level = game.character_level(id);
     const points = game.skill_points(id);
     const ranks = abilities.map((a) => game.skill_rank(id, a.slot));
@@ -87,6 +103,7 @@ export function createSkills({ game, selected, localPlayer }) {
     head.replaceChildren(el("span", "", "Skills"), el("span", "", `level ${level}  points ${points}`));
     list.replaceChildren();
     list.appendChild(el("div", "sec", "Abilities"));
+    sweeps = [];
     abilities.forEach((a, i) => {
       const rank = ranks[i];
       const state = skillRowState({ a, rank, level, points });
@@ -100,9 +117,12 @@ export function createSkills({ game, selected, localPlayer }) {
       const up = el("button", "", "+");
       up.disabled = state !== "ready";
       up.onclick = () => { game.skill_up(id, a.slot); signature = ""; };
-      row.append(info, up);
+      const sweep = el("div", "cd");
+      sweeps.push({ slot: a.slot, node: sweep, last: -1 });
+      row.append(info, up, sweep);
       list.appendChild(row);
     });
+    tickSweeps(id);
     list.appendChild(el("div", "sec", "Talents"));
     TALENT_LEVELS.forEach((need, tier) => {
       const row = el("div", "row");
