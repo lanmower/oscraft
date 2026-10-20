@@ -36,3 +36,18 @@ The `console` step reports messages captured by the crawl session, and an empty 
 - CI on a push runs every job except when every changed file is a root-level `*.md`. A `docs/` change still runs every job, because `static-probes` and the log-schema check read `docs/`.
 - The slowest CI path is the browser probes (`browser-direct`, `browser-two-peers`, `browser-probes`). Their Chromium install is cached per Playwright version and runs once per job. Check a probe's own step time in `gh run view --json jobs` before changing its waits.
 - The parity gate (`oscraft-gate`) runs once per OS in `check`, `check-linux`; `duel-routes` reads the `check-linux` output, not a second run.
+
+## Live debugging
+
+Every page load exposes `window.oscraft` (no flag, no per-frame cost). Open `js/client/play.html#moba` in a browser and use the console. Camera `x` and `y` are world x and z (ground coordinates). `oscraft.help()` prints the list.
+
+    oscraft.setCamera({ x: 44, y: 48, distance: 46, yaw: 0.6, pitch: 0.9 })   // clamped by the mouse's own limits
+    oscraft.getCamera()
+    const hero = oscraft.getState().hero;                                    // tick, units, hero, frame counters, terrain mode
+    oscraft.selectUnit(hero.id)
+    oscraft.issueOrder(hero.id, 'move', hero.x - 3, hero.z)                  // 'move', 'stop', or 'attack' at (x, y)
+    oscraft.centreOn(hero.id)
+    oscraft.setShadows(false); oscraft.setFog(false)                         // fog is render-side only
+    oscraft.setTerrain('tiles'); oscraft.setRenderer('tsl')                  // reload with ?terrain= / ?renderer=
+
+Orders go through the same command path the mouse takes, so the sim sees a real order and its refusal lands in `document.body.dataset.lastRefusal`. `window.__ci*` probes still need `?ci=1`.

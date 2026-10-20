@@ -17,6 +17,7 @@ import { bakeTiles, controlMap, fitModel, planarGroundUvs, planarUvs, rampLowCel
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { createFogView } from "./fogview.js";
+import { installDebugApi } from "./debug_api.js";
 import { createShop } from "./ui_shop.js";
 import { createSkills } from "./ui_skills.js";
 import { createInventory } from "./ui_inventory.js";
@@ -1445,6 +1446,39 @@ async function main() {
   setStatus("local preview");
   document.body.dataset.ready = "1";
 }
+
+// Live debug API (window.oscraft) on every load, with no per-frame work; see debug_api.js for each call's effect.
+// Shadows are tracked here because the boot-time ?shadows switch seeds them and publishWitness keeps the page's shadow mark.
+let shadowsEnabled = SHADOW_ON;
+installDebugApi({
+  renderer: () => renderer3d,
+  rendererKind: () => (tslRenderer ? "tsl" : "webgl"),
+  game: () => localGame,
+  localPlayer: () => myPlayer,
+  netTick: () => (netState ? netState.tick : 0),
+  units: currentUnits,
+  isHero: (id) => localGame !== null && isHeroUnit(id),
+  selected: () => (hud ? hud.input.selection() : selectedId === -1 ? [] : [selectedId]),
+  select: (ids) => { if (hud) hud.input.setSelection(ids); else selectedId = ids[0] ?? -1; },
+  pick: (world) => pick(world),
+  order: (id, x, z) => commands.order(id, x, z),
+  attack: (id, targetId) => commands.attack(id, targetId),
+  drawCounts: () => ({ ...drawCounts }),
+  terrainMode: () => (splat && !TERRAIN_TILES ? "heightfield" : splat ? "splat" : tileMeshes ? "tiles" : "heightfield"),
+  shadowsOn: () => shadowsEnabled,
+  setShadows: (on) => {
+    if (!renderer3d || !renderer3d.setShadows) return false;
+    renderer3d.setShadows({ enabled: on, size: SHADOW_SIZE, center: [W / 2, 0, H / 2], halfExtent: Math.max(W, H) / 2 + 4 });
+    shadowsEnabled = on;
+    return true;
+  },
+  fogOn: () => (fogview ? fogview.enabled() : false),
+  setFog: (on) => {
+    if (!fogview) return false;
+    fogview.setEnabled(on);
+    return true;
+  },
+});
 
 if (params.get("ci") === "1") {
   window.__ciPeers = () => peers.size;

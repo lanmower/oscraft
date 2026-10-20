@@ -1,0 +1,156 @@
+// Live debug API on window.oscraft, for the browser console. Installed on every page load; it does no work per frame
+// and reads the sim only when a call is made. Mutating calls take the same paths the mouse, the keys and the page's
+// own switches take (commands.order / commands.attack, the input layer's selection, the renderer's camera limits,
+// the ?renderer / ?terrain / ?shadows / fog switches), so they never change combat, timing or the sim's rules.
+// Camera positions are ground coordinates: x and y are world x and z, the same convention as the mod UI camera move.
+
+const HELP = [
+  "oscraft.help()                          print this list",
+  "oscraft.getCamera()                     {x, y, distance, yaw, pitch, minDistance, maxDistance, bounds} or null (flat view)",
+  "oscraft.setCamera({x, y, distance, yaw, pitch})  set fields, then clamp with the mouse's limits; returns getCamera()",
+  "oscraft.centreOn(unitId)                move the camera target onto a unit (distance and angles kept)",
+  "oscraft.getState()                      tick, localPlayer, hero, units, selected, renderer, frame counters, terrain mode, fog, shadows",
+  "oscraft.selectUnit(id)                  select one of the visible units through the input layer",
+  "oscraft.issueOrder(id, kind, x, y)      kind 'move' to (x, y); 'stop' in place; 'attack' an enemy unit picked at (x, y). Returns the sim's accept",
+  "oscraft.setShadows(bool)                sun shadow pass on or off (renderer setShadows)",
+  "oscraft.setFog(bool)                    fog-of-war overlay and fog unit filter on or off (render side only; the sim's fog rule is unchanged)",
+  "oscraft.setTerrain('splat' | 'tiles')   terrain mode; reloads the page with ?terrain= (boot-time switch)",
+  "oscraft.setRenderer('webgl' | 'tsl')    renderer; reloads the page with ?renderer= (boot-time switch)",
+];
+
+// hooks are closures over play.js state, so every read sees the current value.
+export function createDebugApi(hooks) {
+  const renderer = () => hooks.renderer();
+  const unitById = (id) => hooks.units().find((u) => u.id === id) || null;
+
+  function cameraView(r) {
+    const c = r.camera;
+    return {
+      x: c.target[0], y: c.target[2], distance: c.distance, yaw: c.yaw, pitch: c.pitch,
+      minDistance: c.minDistance, maxDistance: c.maxDistance, bounds: c.bounds ? [...c.bounds] : null,
+    };
+  }
+
+  // Clamps the camera through the renderer's own limits: orbit clamps pitch, zoom clamps distance, pan clamps the target to bounds.
+  function clampCamera(r) {
+    r.orbit(0, 0);
+    r.zoom(0);
+    r.pan(0, 0);
+  }
+
+  const api = {
+    help() {
+      console.log(HELP.join("\n"));
+      return HELP;
+    },
+
+    getCamera() {
+      const r = renderer();
+      return r ? cameraView(r) : null;
+    },
+
+    setCamera(opts = {}) {
+      const r = renderer();
+      if (!r) return null;
+      const cur = r.camera.target;
+      const patch = { target: [opts.x ?? cur[0], 0, opts.y ?? cur[2]] };
+      for (const key of ["distance", "yaw", "pitch"]) if (opts[key] !== undefined) patch[key] = opts[key];
+      r.setCamera(patch);
+      clampCamera(r);
+      return cameraView(r);
+    },
+
+    centreOn(unitId) {
+      const r = renderer();
+      const u = unitById(unitId);
+      if (!r || !u) return false;
+      r.setCamera({ target: [u.x, 0, u.z] });
+      clampCamera(r);
+      return true;
+    },
+
+    getState() {
+      const game = hooks.game();
+      const me = hooks.localPlayer();
+      const units = hooks.units();
+      const heroUnit = units.find((u) => u.player === me && hooks.isHero(u.id)) || null;
+      const hero = heroUnit && game ? {
+        id: heroUnit.id,
+        x: heroUnit.x,
+        z: heroUnit.z,
+        hp: heroUnit.hp ?? null,
+        mana: typeof game.max_mana === "function" ? game.max_mana(heroUnit.id) : null,
+        level: typeof game.character_level === "function" ? game.character_level(heroUnit.id) : null,
+      } : null;
+      const r = renderer();
+      const selection = hooks.selected();
+      return {
+        tick: game ? game.ticks() : hooks.netTick(),
+        localPlayer: me,
+        hero,
+        units: units.map((u) => ({ id: u.id, type: u.type, owner: u.player, x: u.x, z: u.z, hp: u.hp ?? null })),
+        selected: selection.length ? selection[0] : -1,
+        selection,
+        renderer: r ? hooks.rendererKind() : "flat",
+        frame: r ? { drawCalls: r.stats.drawCalls, instances: r.stats.instances, cpuMs: r.stats.frameCpuMs, ...hooks.drawCounts() } : null,
+        terrainMode: hooks.terrainMode(),
+        fog: hooks.fogOn(),
+        shadows: Boolean(r && hooks.shadowsOn()),
+      };
+    },
+
+    selectUnit(id) {
+      if (!unitById(id)) return false;
+      hooks.select([id]);
+      return true;
+    },
+
+    issueOrder(id, kind, x, y) {
+      const u = unitById(id);
+      if (!u) return false;
+      if (kind === "move") return hooks.order(id, x, y);
+      if (kind === "stop") return hooks.order(id, u.x, u.z);
+      if (kind === "attack") {
+        const target = hooks.pick({ x, z: y });
+        if (!target || target.player === hooks.localPlayer()) return false;
+        return hooks.attack(id, target.id);
+      }
+      return false;
+    },
+
+    setShadows(on) {
+      return hooks.setShadows(Boolean(on));
+    },
+
+    setFog(on) {
+      return hooks.setFog(Boolean(on));
+    },
+
+    setTerrain(mode) {
+      if (mode !== "splat" && mode !== "tiles") return false;
+      reloadWith("terrain", mode === "tiles" ? "tiles" : null);
+      return true;
+    },
+
+    setRenderer(kind) {
+      if (kind !== "webgl" && kind !== "tsl") return false;
+      reloadWith("renderer", kind === "tsl" ? "tsl" : null);
+      return true;
+    },
+  };
+
+  // The boot-time switches (?renderer, ?terrain) are read once at load, so changing them is a reload with the new query.
+  function reloadWith(name, value) {
+    const url = new URL(location.href);
+    if (value === null) url.searchParams.delete(name);
+    else url.searchParams.set(name, value);
+    location.assign(url.href);
+  }
+
+  return api;
+}
+
+export function installDebugApi(hooks) {
+  window.oscraft = createDebugApi(hooks);
+  return window.oscraft;
+}

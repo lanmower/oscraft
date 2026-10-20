@@ -32,6 +32,7 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
   let plane = null;
   let dims = [0, 0, 1];
   let hidden = 0;
+  let fogEnabled = true;
   let explored = null;
   let planeGeneration = -1;
   let viewer = null;
@@ -96,6 +97,7 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
 
   // Own and allied-visible units stay; an enemy on a cell outside the local team's vision is hidden.
   function filter(units) {
+    if (!fogEnabled) return units;
     refresh();
     const me = localPlayer();
     return units.filter((u) => u.player === me || seen(u.x, u.z));
@@ -293,12 +295,17 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
       ctx.fillStyle = `rgba(${NIGHT_RGB},${NIGHT_ALPHA * night})`;
       ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     }
-    if (plane && hidden > 0) {
+    if (fogEnabled && plane && hidden > 0) {
       ensureLayer(window.innerWidth, window.innerHeight);
       ctx.drawImage(layer, 0, 0, window.innerWidth, window.innerHeight);
     }
     stats.drawMs += performance.now() - t0;
   }
 
-  return { filter, draw, stats };
+  function setEnabled(on) {
+    fogEnabled = Boolean(on);
+    layerStale = true;
+  }
+
+  return { filter, draw, stats, setEnabled, enabled: () => fogEnabled };
 }
