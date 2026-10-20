@@ -2197,7 +2197,7 @@ jobs:
           if (!attacker) {
             const serverTail = (name) => readFileSync(process.env.RUNNER_TEMP + "/" + name, "utf8").split("\n").slice(-25).join("\n");
             console.log("DIAGNOSTICS: page errors " + JSON.stringify(errors));
-            console.log("DIAGNOSTICS: page state " + JSON.stringify(await page.evaluate(() => ({ ticks: document.body.dataset.ticks, hp: document.body.dataset.hp, mode: document.body.dataset.mode, lastRefusal: document.body.dataset.lastRefusal || "", rightCmd: document.body.dataset.rightCmd || "" }))));
+            console.log("DIAGNOSTICS: page state " + JSON.stringify(await page.evaluate(() => ({ ticks: document.body.dataset.ticks, hp: document.body.dataset.hp, mode: document.body.dataset.mode, lastRefusal: document.body.dataset.lastRefusal || "", rightCmd: document.body.dataset.rightCmd || "", attackPick: document.body.dataset.attackPick || "" }))));
             console.log("DIAGNOSTICS: server log tail\n" + serverTail("http.log") + "\nrelay log tail\n" + serverTail("relay.log"));
           }
           if (!attacker) throw new Error("no unit both cast and attacked: last refusal=" + await page.evaluate(() => document.body.dataset.lastRefusal || "none") + ` ticks=${waited.ticks} nearest_hostile_cells=${waited.nearest ? waited.nearest.cells.toFixed(2) : "-1.00"} ranked=${ranked.length}`);

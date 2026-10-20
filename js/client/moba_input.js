@@ -297,7 +297,8 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     if (armedAttackMove) {
       armedAttackMove = false;
       const enemy = hit && hit.player !== localPlayer() ? hit : null;
-      orderSelected(toWorld(e.clientX, e.clientY), enemy);
+      const sent = orderSelected(toWorld(e.clientX, e.clientY), enemy);
+      document.body.dataset.attackPick = `hit=${hit ? `${hit.id}:p${hit.player}` : "none"} local=${localPlayer()} sel=${me().join("|") || "none"} enemy=${enemy ? enemy.id : "none"} sent=${sent}`;
       return;
     }
     setSelection(clickSelect(hit ? hit.id : -1, { current: selection, additive: p.shift }));
