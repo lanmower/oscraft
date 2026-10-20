@@ -94,10 +94,11 @@ impl Sim {
         let mut vx = 0i32;
         let mut vy = 0i32;
         let mut routed = false;
-        // An attack-move unit within one tick of its point steers straight at it: the flow field
-        // has no stop, so following it would carry the unit past the point.
+        // A hand-ordered attack-move unit within one tick of its point steers straight at it: the flow field
+        // has no stop, so following it would carry the unit past the point. Lane units keep the field.
         let remaining2 = dx as i64 * dx as i64 + dy as i64 * dy as i64;
-        let field = self.cur_field.filter(|_| !(self.order_kind[i] == ORDER_ATTACK_MOVE && remaining2 <= speed as i64 * speed as i64));
+        let hand_attack_move = self.order_kind[i] == ORDER_ATTACK_MOVE && self.routes.lane[i] == 0;
+        let field = self.cur_field.filter(|_| !(hand_attack_move && remaining2 <= speed as i64 * speed as i64));
         if let Some(slot) = field {
             if let Some((fx, fy)) = self.paths.field(slot).dir_fixed(cx, cy) {
                 vx = fixed::mul(fx, speed);
