@@ -5,11 +5,11 @@ in vec3 vNormal; in vec3 vWorld;
 // isotropic and no single direction streaks across the river. A small drift along the river's flow is the only
 // directional term.
 float waveH(vec2 q, float t) {
-  float h = 0.3 * sin(dot(q, vec2(1.0, 0.0)) * 1.3 + t * 1.1)
-    + 0.3 * sin(dot(q, vec2(0.70711, 0.70711)) * 1.6 + t * 1.3)
-    + 0.3 * sin(dot(q, vec2(0.0, 1.0)) * 2.1 + t * 1.5)
-    + 0.3 * sin(dot(q, vec2(-0.70711, 0.70711)) * 2.5 + t * 1.7);
-  return h + 0.1 * sin(dot(q, vec2(0.8, 0.6)) * 0.9 + t * 0.4);
+  float h = 0.3 * sin(dot(q, vec2(1.0, 0.0)) * 5.2 + t * 1.1)
+    + 0.3 * sin(dot(q, vec2(0.70711, 0.70711)) * 6.4 + t * 1.3)
+    + 0.3 * sin(dot(q, vec2(0.0, 1.0)) * 8.4 + t * 1.5)
+    + 0.3 * sin(dot(q, vec2(-0.70711, 0.70711)) * 10.0 + t * 1.7);
+  return h + 0.1 * sin(dot(q, vec2(0.8, 0.6)) * 3.6 + t * 0.4);
 }
 #include "shadow.glsl"
 uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
@@ -83,7 +83,7 @@ void main() {
   vec2 refr = n.xz * 0.15;
   vec3 bedR = bedAt(p + refr, vWorld.y, vNormal);
   // Caustic from the isotropic ripple sum, not one plane wave, so no single direction is traced across the pool.
-  float caustic = 0.5 + 0.5 * clamp(waveH((p + refr) * 1.5, t) / 1.1, -1.0, 1.0);
+  float caustic = 0.5 + 0.5 * clamp(waveH((p + refr) * 6.0, t) / 1.1, -1.0, 1.0);
   caustic = smoothstep(0.6, 0.95, caustic);
   bedR *= 1.0 + 0.7 * caustic;
   // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
