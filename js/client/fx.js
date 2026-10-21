@@ -1,46 +1,56 @@
-// Client visual effects: selection and team rings, floating damage and gold numbers, spell bursts,
-// attack projectiles and melee impacts, area rings, hit flashes, level-up and respawn effects. Every effect
-// lives in a fixed-capacity pool of preallocated slots: a spawn past the cap is dropped, an expired slot is
-// swap-removed, and nothing allocates per frame except the overlay's text draw. Glow meshes are drawn through
-// the renderer's drawMesh with the additive blend mode (mesh.blend = "add", mesh.alpha); numbers are drawn on a
-// 2D overlay canvas. Gameplay state is only read, never changed: attack targets are not in the sim, so an attack
-// is attributed on the client to the nearest enemy that started a strike within ATTACK_WINDOW_S of the hit.
+// Client visual effects. The sim queues display events (game.effect, rust/crates/sim/src/fx.rs) and the page drains them
+// once per frame. Each event is drawn by its kind's renderer (ring, burst, float, projectile, flash or flag), with the
+// geometry and colours the pack gives that kind (UI.effects in the scenario's moba_ui.json). Nothing here decides which
+// effect shows: that is a mod rule. Team and selection rings are drawn for every unit, since they show state, not events.
+// Every effect lives in a fixed-capacity pool of preallocated slots: a spawn past the cap is dropped, an expired slot is
+// swap-removed, and nothing allocates per frame except the overlay's text draw. Glow meshes are drawn through the
+// renderer's drawMesh with the additive blend mode (mesh.blend = "add", mesh.alpha); numbers are drawn on a 2D overlay.
 import { translation } from "./render3d.js";
 import { UI } from "./pack_load.js";
 
+const FIXED_ONE = 65536;
 const TEAM_RING_RADIUS = 0.8;
 const SELECT_RING_RADIUS = 1.1;
 const RING_LIFT = 0.12;
-const HIT_FLASH_S = 0.18;
-const FLOAT_S = 1.1;
-const FLOAT_RISE_PX = 48;
-const BURST_S = 0.6;
-const BURST_COUNT = 14;
-const PROJECTILE_SPEED = 14;
-const MELEE_RANGE = 2.6;
-const ATTACK_WINDOW_S = 0.4;
-const ATTACK_MAX_RANGE = 14;
-const AOE_RING_S = 0.55;
-const AOE_RADIUS = 3;
-const LEVEL_S = 1.0;
-const RESPAWN_S = 0.9;
-const GOLD_KILL_WINDOW_S = 1.0;
-const MAX_PLAYERS = 4;
+const DEFAULT_BURST_S = 0.6;
+const DEFAULT_LIFT = 0.6;
+const DEFAULT_COUNT = 14;
+const DEFAULT_SPEED = 2.5;
+const DEFAULT_PROJECTILE_SPEED = 14;
+const DEFAULT_FLOAT_S = 1.1;
+const DEFAULT_RISE_PX = 48;
+const DEFAULT_TEXT_PX = 16;
+const DEFAULT_FLASH_S = 0.18;
+const COST_SMOOTHING = 0.05;
+const SELECT_COLOR = [0.95, 0.85, 0.3];
+const WHITE = [1, 1, 1];
 const CAP_RINGS = 48;
 const CAP_PARTICLES = 160;
 const CAP_PROJECTILES = 48;
 const CAP_FLOATS = 32;
 const CAP_FLASHES = 32;
-const CAP_STRIKES = 64;
-const DAMAGE_COLOR = "#ff5a4a";
-const GOLD_COLOR = UI.fx.goldColor;
-const SELECT_COLOR = [0.95, 0.85, 0.3];
-const SPELL_COLORS = [[0.55, 0.4, 1], [0.3, 0.8, 1], [1, 0.55, 0.2], [0.4, 1, 0.5]];
-const LEVEL_COLOR = UI.fx.levelColor;
-const RESPAWN_COLOR = [0.6, 1, 0.8];
-const FLASH_COLOR = [1, 0.85, 0.8];
-const COST_SMOOTHING = 0.05;
-const MISSILE_COLOR = [1, 0.95, 0.7];
+const NO_PARAMS = {};
+
+// The pack's effect data: colours by name ([r, g, b] in 0..1, or a CSS colour) and the kinds the page knows how to draw.
+const EFFECTS = UI.effects ?? { colours: {}, kinds: {} };
+
+function colourOf(name) {
+  const c = EFFECTS.colours[name];
+  return c === undefined ? WHITE : c;
+}
+
+// An [r, g, b] list in 0..1 from a pack colour, for the glow meshes.
+function rgbOf(c) {
+  if (Array.isArray(c)) return c;
+  const n = parseInt(c.slice(1), 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
+// A CSS colour from a pack colour, for the overlay text.
+function cssOf(c) {
+  if (!Array.isArray(c)) return c;
+  return `rgb(${c.map((v) => Math.round(v * 255)).join(",")})`;
+}
 
 function glowMesh(positions, indices) {
   const normals = new Float32Array(positions.length);
@@ -61,7 +71,7 @@ function ringMesh(inner, segments = 32) {
   return glowMesh(pos, idx);
 }
 
-// Unit-size octahedron: particles, spell projectiles and flash body.
+// Unit-size octahedron: particles, orb projectiles and flash body.
 function octaMesh() {
   const pos = [1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1];
   const idx = [0, 2, 4, 2, 1, 4, 1, 3, 4, 3, 0, 4, 2, 0, 5, 1, 2, 5, 3, 1, 5, 0, 3, 5];
@@ -133,6 +143,14 @@ function placed(next, x, y, z, sx, sy = sx, sz = sx) {
   return m;
 }
 
+// Writes the flag a flag effect names, and tells the page controls that read it.
+function setFlag(name, value) {
+  if (typeof name !== "string" || name === "") return;
+  const on = value !== 0;
+  window.__mobaFlags = { ...(window.__mobaFlags ?? {}), [name]: on };
+  window.dispatchEvent(new CustomEvent("moba:flag", { detail: { name, on } }));
+}
+
 export function createFx({ renderer, game, toScreen, groundAt, playerColor, selected, arrow = () => null }) {
   const thin = ringMesh(0.88);
   const thick = ringMesh(0.6);
@@ -141,21 +159,16 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   let arrowAlongX = true;
   const rings = makePool(CAP_RINGS, () => ({ x: 0, z: 0, r0: 0, r1: 0, t: 0, dur: 0, color: null, mesh: thick }));
   const particles = makePool(CAP_PARTICLES, () => ({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0, dur: 0, color: null, size: 0 }));
-  const projectiles = makePool(CAP_PROJECTILES, () => ({ from: { x: 0, y: 0, z: 0 }, pos: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0, z: 0 }, targetId: -1, t: 0, dur: 0, color: null, melee: false, ranged: false }));
-  const flashes = makePool(CAP_FLASHES, () => ({ id: -1, t: 0 }));
-  const floats = makePool(CAP_FLOATS, () => ({ x: 0, z: 0, y: 0, text: "", color: "", t: 0 }));
-  const strikes = makePool(CAP_STRIKES, () => ({ id: -1, player: -1, x: 0, y: 0, z: 0, t: 0 }));
-  const lastHp = new Map();
-  const lastPos = new Map();
-  const lastLevel = new Map();
-  const lastAttacking = new Map();
-  const missing = new Set();
-  const killedBy = [];
-  const hits = [];
-  const goldPrev = new Array(MAX_PLAYERS).fill(null);
+  const projectiles = makePool(CAP_PROJECTILES, () => ({
+    from: { x: 0, y: 0, z: 0 }, pos: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0, z: 0 }, targetId: -1,
+    color: null, colourName: "", arrow: false, speed: DEFAULT_PROJECTILE_SPEED, arrive: [],
+  }));
+  const flashes = makePool(CAP_FLASHES, () => ({ x: 0, y: 0, z: 0, t: 0, dur: DEFAULT_FLASH_S, color: null }));
+  const floats = makePool(CAP_FLOATS, () => ({ x: 0, z: 0, y: 0, text: "", color: "", t: 0, dur: DEFAULT_FLOAT_S, rise: DEFAULT_RISE_PX, px: DEFAULT_TEXT_PX }));
+  // Each unit's position at its last frame, kept after it dies so an effect on a dead unit still lands where it fell.
+  const lastSeen = new Map();
   const draw = { n: 0 };
   let unitsById = new Map();
-  let clockS = 0;
   // Smoothed CPU milliseconds the effect pass takes per frame (not the GPU cost of its draws).
   let costMs = 0;
 
@@ -178,13 +191,13 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
 
   function ground(x, z) { return groundAt(x, z); }
 
-  function addRing(x, z, r0, r1, dur, color, mesh = thick) {
+  function addRing(x, z, r0, r1, dur, color, mesh) {
     const r = spawn(rings);
     if (!r) return;
     r.x = x; r.z = z; r.r0 = r0; r.r1 = r1; r.t = 0; r.dur = dur; r.color = color; r.mesh = mesh;
   }
 
-  function burst(x, y, z, color, count = BURST_COUNT, speed = 3) {
+  function burst(x, y, z, color, count, speed, seconds) {
     for (let i = 0; i < count; i++) {
       const p = spawn(particles);
       if (!p) return;
@@ -193,156 +206,121 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
       const s = speed * (0.4 + Math.random() * 0.6);
       p.x = x; p.y = y; p.z = z;
       p.vx = Math.cos(a) * s; p.vy = up * speed; p.vz = Math.sin(a) * s;
-      p.t = 0; p.dur = BURST_S * (0.6 + Math.random() * 0.6); p.color = color; p.size = 0.09 + Math.random() * 0.08;
+      p.t = 0; p.dur = seconds * (0.6 + Math.random() * 0.6); p.color = color; p.size = 0.09 + Math.random() * 0.08;
     }
   }
 
-  function addFloat(x, z, y, text, color) {
+  function addFloat(at, text, color, kind) {
     const f = spawn(floats);
     if (!f) return;
-    f.x = x; f.z = z; f.y = y; f.text = text; f.color = color; f.t = 0;
+    f.x = at.x; f.z = at.z; f.y = at.top; f.text = text; f.color = color; f.t = 0;
+    f.dur = kind.seconds ?? DEFAULT_FLOAT_S;
+    f.rise = kind.rise ?? DEFAULT_RISE_PX;
+    f.px = kind.size ?? DEFAULT_TEXT_PX;
   }
 
-  function flash(u) {
+  function addFlash(at, color, kind) {
     const f = spawn(flashes);
-    if (f) { f.id = u.id; f.t = 0; }
-    burst(u.x, (u.top ?? 1) * 0.6, u.z, FLASH_COLOR, 5, 1.8);
+    if (!f) return;
+    f.x = at.x; f.y = at.top * 0.5; f.z = at.z; f.t = 0; f.dur = kind.seconds ?? DEFAULT_FLASH_S; f.color = color;
   }
 
-  // A projectile from `from` to unit `targetId` (followed while it lives) or, for melee, an instant impact. A ranged
-  // attack's projectile is drawn as the arrow model; spells keep the octahedron.
-  function launch(fromX, fromY, fromZ, targetId, color, melee, ranged = false) {
+  // A projectile from `from` to `to` (followed while it lives, when it names a unit). An arrow kind draws the arrow
+  // model; other kinds keep the octahedron. Its arrival draws the kinds it names.
+  function launch(from, to, targetId, colourName, kind) {
     const p = spawn(projectiles);
     if (!p) return;
-    p.from.x = fromX; p.from.y = fromY; p.from.z = fromZ;
-    p.pos.x = fromX; p.pos.y = fromY; p.pos.z = fromZ;
-    p.to.x = fromX; p.to.y = fromY; p.to.z = fromZ;
-    p.targetId = targetId; p.t = 0; p.dur = 0; p.color = color; p.melee = melee; p.ranged = ranged;
+    p.from.x = from.x; p.from.y = from.top * 0.6; p.from.z = from.z;
+    p.pos.x = from.x; p.pos.y = from.top * 0.6; p.pos.z = from.z;
+    p.to.x = to.x; p.to.y = to.top * 0.6; p.to.z = to.z;
+    p.targetId = targetId;
+    p.colourName = colourName;
+    p.color = rgbOf(colourOf(colourName));
+    p.arrow = kind.model === "arrow";
+    p.speed = kind.speed ?? DEFAULT_PROJECTILE_SPEED;
+    p.arrive = kind.arrive ?? [];
   }
 
-  // Attack attribution: a unit whose weapon starts a strike is a candidate for hits landing within the window.
-  function noteStrike(u) {
-    const s = spawn(strikes);
-    if (!s) return;
-    s.id = u.id; s.player = u.player; s.x = u.x; s.z = u.z; s.y = (u.top ?? 1) * 0.6; s.t = 0;
-  }
-
-  function attackerOf(victim) {
-    let best = null;
-    let bestD = ATTACK_MAX_RANGE;
-    for (let i = 0; i < strikes.count; i++) {
-      const s = strikes.slots[i];
-      if (s.t > ATTACK_WINDOW_S || s.player === victim.player || s.id === victim.id) continue;
-      const d = Math.hypot(s.x - victim.x, s.z - victim.z);
-      if (d < bestD) { bestD = d; best = s; }
-    }
-    return best;
-  }
-
-  function readEvents() {
-    if (typeof game().drain_kill_events !== "function") return;
-    const ev = game().drain_kill_events();
-    for (let i = 0; i + 4 < ev.length; i += 5) {
-      const victim = ev[i + 3];
-      const pos = lastPos.get(victim);
-      if (pos) {
-        burst(pos.x, 0.8, pos.z, [1, 0.45, 0.35], 18, 3.5);
-        killedBy.push({ player: ev[i + 2], x: pos.x, z: pos.z, y: pos.y, at: clockS });
-      }
+  // Draws one kind at a point. `e` is the event (its text and flag fields); a colour the event leaves out is the kind's own.
+  function show(kind, colourName, at, e) {
+    const c = colourOf(colourName);
+    switch (kind.renderer) {
+      case "ring":
+        addRing(at.x, at.z, kind.r0, kind.r1, kind.seconds, rgbOf(c), kind.mesh === "thick" ? thick : thin);
+        break;
+      case "burst":
+        burst(at.x, kind.lift ?? DEFAULT_LIFT, at.z, rgbOf(c), kind.count ?? DEFAULT_COUNT, kind.speed ?? DEFAULT_SPEED, kind.seconds ?? DEFAULT_BURST_S);
+        break;
+      case "float":
+        addFloat(at, e.text || kind.text || "", cssOf(c), kind);
+        break;
+      case "flash":
+        addFlash(at, rgbOf(c), kind);
+        if (kind.count) burst(at.x, kind.lift ?? DEFAULT_LIFT, at.z, rgbOf(c), kind.count, kind.speed ?? DEFAULT_SPEED, DEFAULT_BURST_S);
+        break;
+      case "flag":
+        setFlag(e.name, e.value);
+        break;
+      default:
+        break;
     }
   }
 
-  function readGold() {
+  // Where an event sits: the position of unit `id` (its last one once it has died), else the fixed-point point x, y.
+  function anchorOf(id, x, y) {
+    if (id >= 0) {
+      const u = unitsById.get(id);
+      if (u) return { x: u.x, z: u.z, top: u.top ?? 1 };
+      const seen = lastSeen.get(id);
+      if (seen) return seen;
+    }
+    return { x: x / FIXED_ONE, z: y / FIXED_ONE, top: 0 };
+  }
+
+  function spawnEvent(e) {
+    const kind = EFFECTS.kinds[e.kind];
+    if (!kind) return;
+    const colourName = e.colour || kind.colour || "";
+    if (kind.renderer === "projectile") {
+      launch(anchorOf(e.source, e.x, e.y), anchorOf(e.target, e.x, e.y), e.target, colourName, kind);
+      return;
+    }
+    show(kind, colourName, anchorOf(e.target >= 0 ? e.target : e.source, e.x, e.y), e);
+  }
+
+  // Draws the kinds a projectile's arrival names. Arrivals are drawn only: a projectile is not spawned again on arrival.
+  function arrive(p) {
+    for (const name of p.arrive) {
+      const kind = EFFECTS.kinds[name];
+      if (!kind || kind.renderer === "projectile" || kind.renderer === "flag") continue;
+      show(kind, p.colourName, { x: p.to.x, z: p.to.z, top: p.to.y / 0.6 }, NO_PARAMS);
+    }
+  }
+
+  function drainEvents() {
     const g = game();
-    if (typeof g.gold !== "function") return;
-    for (let p = 0; p < MAX_PLAYERS; p++) {
-      let now;
-      try { now = g.gold(p); } catch { now = null; }
-      if (typeof now !== "number") continue;
-      const before = goldPrev[p];
-      goldPrev[p] = now;
-      if (before === null || now <= before) continue;
-      const k = killedBy.find((e) => e.player === p && clockS - e.at <= GOLD_KILL_WINDOW_S);
-      if (k) addFloat(k.x, k.z, k.y, `+${now - before}`, GOLD_COLOR);
-    }
-    while (killedBy.length && clockS - killedBy[0].at > GOLD_KILL_WINDOW_S) killedBy.shift();
+    if (typeof g.drain_effects !== "function") return;
+    for (const e of JSON.parse(g.drain_effects())) spawnEvent(e);
   }
 
-  function readUnits(units) {
-    const g = game();
-    const seen = new Set();
-    unitsById = new Map();
-    hits.length = 0;
-    for (const u of units) {
-      unitsById.set(u.id, u);
-      seen.add(u.id);
-      const top = u.top ?? 1;
-      lastPos.set(u.id, { x: u.x, z: u.z, y: top, player: u.player });
-      if (missing.delete(u.id)) {
-        addRing(u.x, u.z, 0.3, 2.2, RESPAWN_S, RESPAWN_COLOR, thick);
-        burst(u.x, 0.2, u.z, RESPAWN_COLOR, 16, 2.5);
-      }
-      const attacking = Boolean(u.attacking);
-      if (attacking && !lastAttacking.get(u.id)) noteStrike(u);
-      lastAttacking.set(u.id, attacking);
-      if (u.hp >= 0) {
-        const before = lastHp.get(u.id);
-        if (before !== undefined && u.hp < before) {
-          addFloat(u.x, u.z, top, `-${before - u.hp}`, DAMAGE_COLOR);
-          flash(u);
-          hits.push(u);
-        }
-        lastHp.set(u.id, u.hp);
-      }
-      if (typeof g.level === "function" && u.type >= 0) {
-        let level = 0;
-        try { level = g.level(u.id); } catch { level = 0; }
-        const before = lastLevel.get(u.id);
-        if (before !== undefined && level > before) {
-          addRing(u.x, u.z, 0.4, 2.4, LEVEL_S, LEVEL_COLOR, thin);
-          burst(u.x, 0.2, u.z, LEVEL_COLOR, 20, 3);
-          addFloat(u.x, u.z, top, UI.fx.levelUp, GOLD_COLOR);
-        }
-        lastLevel.set(u.id, level);
-      }
+  function remember(u) {
+    let rec = lastSeen.get(u.id);
+    if (!rec) {
+      rec = { x: 0, z: 0, top: 0 };
+      lastSeen.set(u.id, rec);
     }
-    // Attribution runs after every strike of this frame is noted, so a hit never misses its attacker by list order.
-    for (const victim of hits) {
-      const from = attackerOf(victim);
-      if (!from) continue;
-      if (Math.hypot(from.x - victim.x, from.z - victim.z) <= MELEE_RANGE) burst(victim.x, 0.3, victim.z, MISSILE_COLOR, 6, 1.5);
-      else launch(from.x, from.y, from.z, victim.id, MISSILE_COLOR, false, true);
-    }
-    for (const id of lastPos.keys()) if (!seen.has(id)) { missing.add(id); lastPos.delete(id); lastHp.delete(id); lastAttacking.delete(id); }
-  }
-
-  // A cast by `unitId` on slot `slot`: a burst and ring at the caster, then a projectile to a unit target, or an
-  // area ring at the ground point (negative target, finite x, z).
-  function cast(unitId, slot, target, x, z) {
-    const caster = unitsById.get(unitId) || lastPos.get(unitId);
-    if (!caster) return;
-    const color = SPELL_COLORS[Math.abs(slot) % SPELL_COLORS.length];
-    const top = (caster.top ?? caster.y ?? 1) * 0.6;
-    burst(caster.x, top, caster.z, color, BURST_COUNT, 2.5);
-    addRing(caster.x, caster.z, 0.3, 1.4, AOE_RING_S, color, thin);
-    const dest = target >= 0 ? unitsById.get(target) : null;
-    if (dest) {
-      launch(caster.x, top, caster.z, target, color, false);
-    } else if (Number.isFinite(x) && Number.isFinite(z)) {
-      addRing(x, z, 0.3, AOE_RADIUS, AOE_RING_S, color, thick);
-      burst(x, 0.3, z, color, BURST_COUNT, 2);
-    }
+    rec.x = u.x;
+    rec.z = u.z;
+    rec.top = u.top ?? 1;
   }
 
   function advance(dt) {
     sweep(rings, (e) => e.dur);
-    sweep(flashes, () => HIT_FLASH_S);
-    sweep(floats, () => FLOAT_S);
+    sweep(flashes, (e) => e.dur);
+    sweep(floats, (e) => e.dur);
     for (let i = 0; i < rings.count; i++) rings.slots[i].t += dt;
     for (let i = 0; i < flashes.count; i++) flashes.slots[i].t += dt;
     for (let i = 0; i < floats.count; i++) floats.slots[i].t += dt;
-    for (let i = 0; i < strikes.count; i++) strikes.slots[i].t += dt;
-    sweep(strikes, () => ATTACK_WINDOW_S);
     sweep(particles, (e) => e.dur);
     for (let i = 0; i < particles.count; i++) {
       const p = particles.slots[i];
@@ -354,16 +332,15 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     }
     for (let i = projectiles.count - 1; i >= 0; i--) {
       const p = projectiles.slots[i];
-      const live = p.targetId >= 0 ? unitsById.get(p.targetId) : null;
+      const live = p.targetId >= 0 ? (unitsById.get(p.targetId) ?? lastSeen.get(p.targetId)) : null;
       if (live) { p.to.x = live.x; p.to.y = (live.top ?? 1) * 0.6; p.to.z = live.z; }
       const dx = p.to.x - p.pos.x;
       const dy = p.to.y - p.pos.y;
       const dz = p.to.z - p.pos.z;
       const d = Math.hypot(dx, dy, dz);
-      const step = PROJECTILE_SPEED * dt;
+      const step = p.speed * dt;
       if (d <= step) {
-        burst(p.to.x, p.to.y, p.to.z, p.color, 12, 2.5);
-        addRing(p.to.x, p.to.z, 0.2, 1.3, AOE_RING_S, p.color, thin);
+        arrive(p);
         projectiles.count -= 1;
         projectiles.slots[i] = projectiles.slots[projectiles.count];
         projectiles.slots[projectiles.count] = p;
@@ -385,10 +362,8 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     }
     for (let i = 0; i < flashes.count; i++) {
       const f = flashes.slots[i];
-      const u = unitsById.get(f.id);
-      if (!u) continue;
-      const k = 1 - f.t / HIT_FLASH_S;
-      glow(octa, FLASH_COLOR, 0.6 * k, placed(draw, u.x, (u.top ?? 1) * 0.5, u.z, 0.7, 0.9, 0.7));
+      const k = 1 - f.t / f.dur;
+      glow(octa, f.color, 0.6 * k, placed(draw, f.x, f.y, f.z, 0.7, 0.9, 0.7));
     }
     for (let i = 0; i < rings.count; i++) {
       const r = rings.slots[i];
@@ -403,7 +378,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     const model = arrow();
     for (let i = 0; i < projectiles.count; i++) {
       const p = projectiles.slots[i];
-      if (p.ranged) glow(model, p.color, 1, arrowAt(model, p));
+      if (p.arrow && model) glow(model, p.color, 1, arrowAt(model, p));
       else glow(octa, p.color, 1, placed(draw, p.pos.x, p.pos.y, p.pos.z, 0.25));
     }
   }
@@ -433,32 +408,34 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     }
     ctx.clearRect(0, 0, w, h);
     if (floats.count === 0) return;
-    ctx.font = `bold ${Math.round(16 * dpr)}px sans-serif`;
     ctx.textAlign = "center";
     for (let i = 0; i < floats.count; i++) {
       const f = floats.slots[i];
-      const k = f.t / FLOAT_S;
+      const k = f.t / f.dur;
       const p = toScreen(f.x, f.z, f.y);
+      ctx.font = `bold ${Math.round(f.px * dpr)}px sans-serif`;
       ctx.globalAlpha = 1 - k * k;
       ctx.lineWidth = 3 * dpr;
       ctx.strokeStyle = "rgba(0,0,0,0.8)";
       ctx.fillStyle = f.color;
       const px = p.x * dpr;
-      const py = (p.y - FLOAT_RISE_PX * k) * dpr;
+      const py = (p.y - f.rise * k) * dpr;
       ctx.strokeText(f.text, px, py);
       ctx.fillText(f.text, px, py);
     }
     ctx.globalAlpha = 1;
   }
 
-  // One frame: read the sim's events and unit changes, advance the effects by dt seconds, draw them.
-  // Call after the units are drawn (glow meshes blend over the scene).
+  // One frame: drain the sim's display events, advance the effects by dt seconds, draw them. Call after the units
+  // are drawn (glow meshes blend over the scene).
   function frame(units, dt) {
     const t0 = performance.now();
-    clockS += dt;
-    readUnits(units);
-    readEvents();
-    readGold();
+    unitsById = new Map();
+    for (const u of units) {
+      unitsById.set(u.id, u);
+      remember(u);
+    }
+    drainEvents();
     advance(dt);
     drawGlow(units);
     drawNumbers();
@@ -467,13 +444,12 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
 
   function rangedInFlight() {
     let n = 0;
-    for (let i = 0; i < projectiles.count; i++) if (projectiles.slots[i].ranged) n += 1;
+    for (let i = 0; i < projectiles.count; i++) if (projectiles.slots[i].arrow) n += 1;
     return n;
   }
 
   return {
     frame,
-    cast,
     counts: () => ({ rings: rings.count, particles: particles.count, projectiles: projectiles.count, ranged: rangedInFlight(), floats: floats.count, flashes: flashes.count, costMs: Number(costMs.toFixed(3)) }),
   };
 }

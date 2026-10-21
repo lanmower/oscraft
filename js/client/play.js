@@ -188,6 +188,18 @@ function failStart(err) {
   setStatus(`start failed: ${message}`);
 }
 
+// A mod error comes back as text from the sim's load_mods and tick, for the page to log.
+function logModError(text) {
+  if (text) console.error(`[mods] ${text}`);
+}
+
+// A pointer event reaches the pack's on_pointer as ground coordinates. Joined clients do not run the local sim.
+function forwardPointer(kind, e) {
+  if (!localGame || netState || !renderer3d) return;
+  const at = screenToWorld(e.clientX, e.clientY);
+  if (at) logModError(localGame.pointer(kind, at.x, at.z, e.button));
+}
+
 async function loadSim() {
   const mod = await import(/* @vite-ignore */ pkgUrl);
   await mod.default();
@@ -196,6 +208,9 @@ async function loadSim() {
   mapBytes = image;
   setMapSize(readGrid(image));
   const game = new mod.Game(image);
+  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
+  const mods = await Promise.all((manifest.mods ?? []).map(async (name) => ({ name, text: await packText(name) })));
+  logModError(game.load_mods(JSON.stringify(mods)));
   // The lobby's picker lists the roster names on every page, so the rules text is read for them.
   const rulesText = manifest.rules ? await packText(manifest.rules) : "";
   heroRuleNames = heroNamesFromRules(rulesText);
@@ -775,7 +790,6 @@ const commands = {
   cast(unitId, slot, target, x, z) {
     const ok = netState ? (session.broadcast(sendCast(unitId, slot, target, x, z)), true) : noteLocalRefusal(localGame.cast(unitId, slot, target, x, z), `cast_refused unit=${unitId} slot=${slot}`);
     if (ok) { casts += 1; publishCommandCounts(); }
-    if (ok && fx) fx.cast(unitId, slot, target, x, z);
     return ok;
   },
   hold(unitId) {
@@ -802,6 +816,7 @@ function bindInput() {
   canvas.addEventListener("pointerdown", (e) => {
     drag = { x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
+    forwardPointer("down", e);
   });
   canvas.addEventListener("pointermove", (e) => {
     if (!drag) return;
@@ -820,6 +835,7 @@ function bindInput() {
   canvas.addEventListener("pointerup", (e) => {
     const wasDrag = drag && drag.moved;
     drag = null;
+    forwardPointer("up", e);
     if (e.button === 2) document.body.dataset.rightUp = `${wasDrag ? "drag" : "click"} hud=${!!hud} local=${myPlayer}`;
     if (!wasDrag && hud) hud.onPointerUp(e);
   });
@@ -1068,7 +1084,7 @@ function startHost() {
   const restoredAt = restoreSnapshot();
   let hostTick = restoredAt > 0 ? restoredAt : 0;
   const hostStep = () => {
-    localGame.tick();
+    logModError(localGame.tick());
     hostSwapGate();
     applyDueSwap();
     advanceTickClock(simUnits());
@@ -1861,7 +1877,7 @@ async function main() {
     if (!netState && localGame && !hosting) {
       localTickAcc += dtS;
       while (localTickAcc >= SIM_TICK_S) {
-        localGame.tick();
+        logModError(localGame.tick());
         applyDueSwap();
         advanceTickClock(simUnits());
         localTickAcc -= SIM_TICK_S;
@@ -1935,7 +1951,7 @@ if (params.get("ci") === "1") {
   window.__ciIsHero = (unitId) => isHeroUnit(unitId);
   window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
   // Local cast for the probe: the sim cast and the effect the page draws for it, without a network session.
-  window.__ciLocalCast = (unitId, slot, target, x, z) => { const ok = localGame.cast(unitId, slot, target, x, z); if (ok && fx) fx.cast(unitId, slot, target, x, z); return ok; };
+  window.__ciLocalCast = (unitId, slot, target, x, z) => localGame.cast(unitId, slot, target, x, z);
   window.__ciLocalAttack = (unitId, targetId) => localGame.attack(unitId, targetId);
   window.__ciFxCounts = () => (fx ? fx.counts() : null);
   window.__ciSent = new Map();

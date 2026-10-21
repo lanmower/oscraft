@@ -60,6 +60,7 @@ end
 
 function on_cast(unit, ability, state)
   cast_spell(unit, ability)
+  cast_effects(unit, ability)
   if ability == "buyback" then return hero_on_cast(unit, ability, state) end
   if ability ~= GLYPH_NAME then return end
   local p = unit_player(unit)
