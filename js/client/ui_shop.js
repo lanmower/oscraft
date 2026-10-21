@@ -65,6 +65,7 @@ export function affordable(item, gold) {
 }
 
 export function createShop({ game, selected, localPlayer }) {
+  hot.set("ui-shop", { game, selected, localPlayer });
   ensureStyle();
   const catalog = JSON.parse(game.item_catalog_json());
   const root = el("div");
@@ -121,4 +122,14 @@ export function createShop({ game, selected, localPlayer }) {
   }
 
   return { update, root };
+}
+
+// Hot-update hook (see hmr.js): replaces the #ui-shop root with a fresh one built from the inputs of the last createShop call
+// (same id, same host). The new panel is the hook value for its owner; listeners of the old panel are not detached.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("ui-shop");
+  if (!args) return null;
+  document.getElementById("ui-shop")?.remove();
+  return createShop(args);
 }

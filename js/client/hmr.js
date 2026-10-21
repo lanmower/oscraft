@@ -2,6 +2,13 @@
 // and the js/client modules that are loaded. A changed shader is recompiled in place on each live renderer, so the
 // match keeps running. A changed module is re-imported with a ?v= query; if its exports include hmrReload(mod), that
 // hook is called, otherwise the log says a page reload is needed.
+//
+// Hook contract (hot-accept). A module exports `hmrReload(mod)`. It runs on the NEW module instance, so it cannot
+// read the old instance's state; instead each module stashes the inputs of its builders on globalThis.__oscraftHot
+// (a Map shared by every module instance) when the builder runs, and the hook re-runs the builder from that stash.
+// The hook's return value is dispatched as a window "oscraft:hmr" event: detail = { url, value }. For data modules
+// (terrain, tiles, anim) value is the rebuilt data for the owner to rebuild its mesh or clips; for panels (hud,
+// ui_*) value is the new panel object, and the old root element (same id) is replaced in place.
 import { liveRenderers, SHADER_FILES } from "./render3d.js";
 
 const POLL_MS = 500;
@@ -61,7 +68,8 @@ async function reloadModule(url) {
   }
   if (typeof mod.hmrReload === "function") {
     try {
-      mod.hmrReload(mod);
+      const value = mod.hmrReload(mod);
+      window.dispatchEvent(new CustomEvent("oscraft:hmr", { detail: { url, value } }));
       console.log(`[hmr] ${url} reloaded through its hook`);
     } catch (err) {
       console.error(`[hmr] ${url} hook failed: ${err.message}`);

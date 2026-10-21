@@ -49,6 +49,7 @@ function walkableLayer(grid) {
 }
 
 export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, select, localPlayer, commands, pick, toWorld, toScreen, playerColor }) {
+  hot.set("hud", { game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, select, localPlayer, commands, pick, toWorld, toScreen, playerColor });
   const maxHp = new Map();
   const barCtx = barCanvas.getContext("2d");
   const lanes = walkableLayer(grid);
@@ -76,7 +77,8 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     };
   }
 
-  const minimap = createMinimap({
+  // let, not const: a hot update of a panel module hands its new panel to this HUD (see the oscraft:hmr listener below).
+  let minimap = createMinimap({
     canvas: minimapEl,
     mapSize,
     lanes,
@@ -89,8 +91,16 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     viewRect,
     centre: centreCamera,
   });
-  const selectionPanel = createSelectionPanel({ game, input, units, localPlayer, unitName, isHero });
-  const scoreboard = createScoreboard({ game, units, localPlayer, unitName, isHero, teams: UI.teams });
+  let selectionPanel = createSelectionPanel({ game, input, units, localPlayer, unitName, isHero });
+  let scoreboard = createScoreboard({ game, units, localPlayer, unitName, isHero, teams: UI.teams });
+  // A hot update of ui_minimap / ui_selection / ui_scoreboard re-creates that panel and dispatches it (see hmr.js).
+  window.addEventListener("oscraft:hmr", (e) => {
+    const { url, value } = e.detail;
+    if (!value) return;
+    if (url.endsWith("/ui_minimap.js")) minimap = value;
+    else if (url.endsWith("/ui_selection.js")) selectionPanel = value;
+    else if (url.endsWith("/ui_scoreboard.js")) scoreboard = value;
+  });
 
   function clockText(hasGame) {
     if (!hasGame || hornTicks === null) return UI.text.preMatch;
@@ -169,4 +179,12 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
   }
 
   return { update, onPointerUp, onKey, drawBars, input };
+}
+
+// Hot-update hook (see hmr.js): re-runs createHud on the inputs of its last call. HUD and canvases are the same DOM
+// elements, so the returned HUD takes over for play.js; the old instance keeps its window listeners (dev only).
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("hud");
+  return args ? createHud(args) : null;
 }

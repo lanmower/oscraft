@@ -130,6 +130,7 @@ function isImpassableCell(grid, i) {
 }
 
 export function buildTerrain(bytes) {
+  hot.set("terrain.buildTerrain", [bytes]);
   const grid = readGrid(bytes);
   const { width: w, height: h, cellMilli, heightStep, levels } = grid;
   const { shown, fixed } = displayHeights(grid);
@@ -201,4 +202,12 @@ export function vertexNormals(positions, indices) {
     normals[v + 2] /= len;
   }
   return normals;
+}
+
+// Hot-update hook (see hmr.js): re-runs buildTerrain on the bytes it last received, so display heights and the mesh
+// are rebuilt from the map bytes play.js already holds. The returned terrain replaces play.js's mesh.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("terrain.buildTerrain");
+  return args ? buildTerrain(...args) : null;
 }

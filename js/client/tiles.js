@@ -510,6 +510,7 @@ export function setSplatTexel(control, index, kind) {
 // cell count. models maps each kind to its fitted variant models. Returns null when a kind the map uses has no model,
 // so the caller keeps the heightfield as the fallback.
 export function bakeTiles(bytes, models, { splat = false, ramps = true, cliffCells = true, water = true } = {}) {
+  hot.set("tiles.bakeTiles", [bytes, models, { splat, ramps, cliffCells, water }]);
   const grid = readGrid(bytes);
   const { width: w, height: h, cellMilli, heightStep, levels, flags, tiles } = grid;
   const empty = voidMask(grid);
@@ -577,4 +578,12 @@ export function bakeTiles(bytes, models, { splat = false, ramps = true, cliffCel
   });
   // Edge walls are no longer tile-high slabs: the count of slabs is zero by construction.
   return { kinds: meshes, cells, strips: quads, slabs: 0, width: w, height: h };
+}
+
+// Hot-update hook (see hmr.js): re-runs bakeTiles on the bytes, models and options of its last call, so tile kinds and
+// batches are rebuilt from the map bytes play.js already holds. The returned batches replace play.js's tile meshes.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("tiles.bakeTiles");
+  return args ? bakeTiles(...args) : null;
 }

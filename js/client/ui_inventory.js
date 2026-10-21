@@ -39,6 +39,7 @@ export function slotLabel(kind, catalog) {
 }
 
 export function createInventory({ game, selected, localPlayer }) {
+  hot.set("ui-inv", { game, selected, localPlayer });
   ensureStyle();
   const catalog = JSON.parse(game.item_catalog_json());
   const root = el("div");
@@ -89,4 +90,14 @@ export function createInventory({ game, selected, localPlayer }) {
   }
 
   return { update, root };
+}
+
+// Hot-update hook (see hmr.js): replaces the #ui-inv root with a fresh one built from the inputs of the last createInventory call
+// (same id, same host). The new panel is the hook value for its owner; listeners of the old panel are not detached.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("ui-inv");
+  if (!args) return null;
+  document.getElementById("ui-inv")?.remove();
+  return createInventory(args);
 }

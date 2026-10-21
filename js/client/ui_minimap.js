@@ -11,6 +11,7 @@ export function dotSize({ own, hero }) {
 }
 
 export function createMinimap({ canvas, mapSize, lanes, units, selected, localPlayer, playerColor, teams, viewRect, centre, isHero = () => false }) {
+  hot.set("ui-minimap", { canvas, mapSize, lanes, units, selected, localPlayer, playerColor, teams, viewRect, centre, isHero });
   canvas.dataset.ui = "minimap";
   canvas.height = Math.max(1, Math.round((canvas.width * mapSize.h) / mapSize.w));
   canvas.style.height = `${canvas.height}px`;
@@ -85,4 +86,12 @@ export function createMinimap({ canvas, mapSize, lanes, units, selected, localPl
   window.addEventListener("pointerup", () => { pressed = false; });
 
   return { draw };
+}
+
+// Hot-update hook (see hmr.js): re-runs createMinimap on the inputs of its last call. The canvas is kept; the returned
+// panel's draw() replaces the one hud.js holds.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("ui-minimap");
+  return args ? createMinimap(args) : null;
 }

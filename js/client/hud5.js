@@ -74,6 +74,7 @@ export function winnerOf(game) {
 }
 
 export function createHud5({ game, units, selected, localPlayer, isHero, heroUnits }) {
+  hot.set("hud5", { game, units, selected, localPlayer, isHero, heroUnits });
   ensureStyle();
   const root = el("div");
   root.id = "hud5";
@@ -95,6 +96,7 @@ export function createHud5({ game, units, selected, localPlayer, isHero, heroUni
   const banner = el("div", "banner");
   banner.hidden = true;
   document.body.appendChild(banner);
+  hot.set("hud5.banner", banner);
 
   const typeNames = typeof game.unit_model_names === "function" ? game.unit_model_names() : [];
   const typeName = (type) => (type >= 0 && typeNames[type]) || `type ${type}`;
@@ -157,4 +159,15 @@ export function createHud5({ game, units, selected, localPlayer, isHero, heroUni
   }
 
   return { update, root };
+}
+
+// Hot-update hook (see hmr.js): replaces the #hud5 root and its banner with a fresh pair built from the inputs of the
+// last createHud5 call. The new HUD is the hook value for its owner.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("hud5");
+  if (!args) return null;
+  document.getElementById("hud5")?.remove();
+  hot.get("hud5.banner")?.remove();
+  return createHud5(args);
 }

@@ -78,6 +78,7 @@ export function slotState({ ability, rank, cooldownLeft }) {
 }
 
 export function createSelectionPanel({ game, input, units, localPlayer, unitName, isHero }) {
+  hot.set("ui-select", { game, input, units, localPlayer, unitName, isHero });
   ensureStyle();
   const root = el("div");
   root.id = "ui-select";
@@ -202,4 +203,14 @@ export function createSelectionPanel({ game, input, units, localPlayer, unitName
   }
 
   return { update, root };
+}
+
+// Hot-update hook (see hmr.js): replaces the #ui-select root with a fresh one built from the inputs of the last createSelectionPanel call
+// (same id, same host). The new panel is the hook value for its owner; listeners of the old panel are not detached.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("ui-select");
+  if (!args) return null;
+  document.getElementById("ui-select")?.remove();
+  return createSelectionPanel(args);
 }

@@ -371,6 +371,7 @@ const SAMPLE_TRACK = new Float32Array(4);
 const ARM_PAIR = new Float32Array(8);
 const ARM_OUT = new Float32Array(4);
 export function retargetLibrary(library, map, nodes) {
+  hot.set("anim.retargetLibrary", [library, map, nodes]);
   const byName = new Map();
   nodes.forEach((node, i) => { if (node.name) byName.set(node.name, i); });
   const boneNode = (bone) => byName.get(map.bones[bone]) ?? -1;
@@ -478,4 +479,12 @@ export function retargetLibrary(library, map, nodes) {
     }
     return { name: clip.name, duration: clip.duration, channels: all };
   });
+}
+
+// Hot-update hook (see hmr.js): re-runs retargetLibrary on the library, map and nodes of its last call. The returned
+// clips replace the retargeted library play.js holds.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("anim.retargetLibrary");
+  return args ? retargetLibrary(...args) : null;
 }

@@ -64,6 +64,7 @@ export function skillRowState({ a, rank, level, points }) {
 // Cooldown sweep: each ability row gets one overlay whose conic-gradient covers the share of its cooldown still to run.
 // Needs `input` (the controls layer, for cooldownLeft/cooldownTotal); without it the rows show no sweep.
 export function createSkills({ game, selected, localPlayer, input }) {
+  hot.set("ui-skills", { game, selected, localPlayer, input });
   ensureStyle();
   const root = el("div");
   root.id = "ui-skills";
@@ -141,4 +142,14 @@ export function createSkills({ game, selected, localPlayer, input }) {
   }
 
   return { update, root };
+}
+
+// Hot-update hook (see hmr.js): replaces the #ui-skills root with a fresh one built from the inputs of the last createSkills call
+// (same id, same host). The new panel is the hook value for its owner; listeners of the old panel are not detached.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("ui-skills");
+  if (!args) return null;
+  document.getElementById("ui-skills")?.remove();
+  return createSkills(args);
 }

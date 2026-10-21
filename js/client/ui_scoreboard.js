@@ -39,6 +39,7 @@ export function groupByTeam(players, teams) {
 }
 
 export function createScoreboard({ game, units, localPlayer, unitName, isHero, teams }) {
+  hot.set("ui-score", { game, units, localPlayer, unitName, isHero, teams });
   ensureStyle();
   const root = document.createElement("div");
   root.id = "ui-score";
@@ -97,4 +98,14 @@ export function createScoreboard({ game, units, localPlayer, unitName, isHero, t
   }
 
   return { update, root };
+}
+
+// Hot-update hook (see hmr.js): replaces the #ui-score root with a fresh one built from the inputs of the last createScoreboard call
+// (same id, same host). The new panel is the hook value for its owner; listeners of the old panel are not detached.
+const hot = (globalThis.__oscraftHot ??= new Map());
+export function hmrReload() {
+  const args = hot.get("ui-score");
+  if (!args) return null;
+  document.getElementById("ui-score")?.remove();
+  return createScoreboard(args);
 }
