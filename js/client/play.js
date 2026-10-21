@@ -4,7 +4,7 @@
 import { createDataSession, createFSM, NostrAuth, RelayPool } from "wireweave";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
-import { encodeFrame, decodeFrame, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
+import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
@@ -143,6 +143,10 @@ let myPlayer = 0;
 let lastAppliedTick = 0;
 // A module reload waiting for its swap tick: every peer applies it at the same tick the host announced (FRAME.SWAP).
 let pendingSwap = null;
+// The pubkey of the host, learnt from its ROSTER (only the host sends one); only this peer may announce a swap.
+let hostKey = null;
+// The last swap announcements this page refused, kept for window.oscraft.swapRejections().
+const swapRejections = [];
 let rosterView = null;
 let heroKinds = new Map();
 let heroRuleNames = [];
@@ -1258,7 +1262,11 @@ const netUnits = new Map();
 let netTick = -1;
 session.addEventListener("data", (e) => {
   let frame = null;
-  try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
+  const bytes = new Uint8Array(e.detail.data);
+  try { frame = decodeFrame(bytes); } catch (err) {
+    console.error(`[wire] frame decode failed type=${frameTypeName(bytes[0]) ?? bytes[0]} from ${String(e.detail.peerPubkey).slice(0, 8)}: ${err.message}`);
+    return;
+  }
   if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM || frame.type === FRAME.ATTACK_MOVE || frame.type === FRAME.CLASS_OVERRIDE || frame.type === FRAME.HOLD_OVERRIDE) {
     if (hosting) applyPeerCommand(e.detail.peerPubkey, frame);
     return;
@@ -1273,6 +1281,8 @@ session.addEventListener("data", (e) => {
   }
   if (frame.type === FRAME.SWAP) {
     // A peer records the host's swap tick; the module reload itself is applied by the host's announced value, here or on reload.
+    const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
+    if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
     pendingSwap = { tick: frame.tick, file: frame.file, url: new URL(`./${frame.file}`, import.meta.url).href, value: null };
     return;
   }
@@ -1290,6 +1300,7 @@ session.addEventListener("data", (e) => {
   }
   if (frame.type === FRAME.ROSTER) {
     if (hosting) return;
+    hostKey = e.detail.peerPubkey;
     rosterView = frame;
     if (frame.you !== SPECTATOR) myPlayer = frame.you;
     document.body.dataset.you = String(frame.you);
@@ -1498,9 +1509,12 @@ window.addEventListener("oscraft:hmr", (e) => {
   const file = url.slice(url.lastIndexOf("/") + 1);
   if (hosting && localGame) {
     // Announce the swap tick ahead so every peer applies the reload at the same tick, then apply it there.
+    // One swap at a time: a second is refused while the first waits for its tick.
+    if (pendingSwap) { refuseSwap(`swap already pending for ${pendingSwap.file} at tick ${pendingSwap.tick}`, null, file, "[hmr]"); return; }
     const tick = localGame.ticks() + SWAP_LEAD_TICKS;
+    // Broadcast first: the host only keeps the swap if its peers were sent the announcement.
+    try { session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, file })); } catch (err) { console.error(`[hmr] ${file}: swap announce failed, not applied: ${err.message}`); return; }
     pendingSwap = { tick, file, url, value };
-    try { session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, file })); } catch (err) { console.error(`[hmr] swap announce failed: ${err.message}`); }
     console.log(`[hmr] ${file}: swap at tick ${tick}`);
     return;
   }
@@ -1508,6 +1522,25 @@ window.addEventListener("oscraft:hmr", (e) => {
 });
 // Ticks between a swap announcement and its swap (the same lead the server uses for staged data reloads).
 const SWAP_LEAD_TICKS = 32;
+
+// A swap name is a plain module file name: letters, digits, _ . - and a .js or .mjs ending, with no slash, query or "..".
+const SWAP_FILE = /^[A-Za-z0-9_.-]+\.m?js$/;
+
+// Why a SWAP announcement must be ignored, or null when it may be applied: only the host announces one, and the name must be a plain module file.
+function swapRefusal(sender, file) {
+  if (hosting) return "this page is the host";
+  if (hostKey === null || sender !== hostKey) return `sender ${String(sender).slice(0, 8)} is not the host`;
+  if (typeof file !== "string" || !SWAP_FILE.test(file) || file.includes("..")) return `file name ${JSON.stringify(file)} is not a plain .js or .mjs name`;
+  return null;
+}
+
+// Logs a refused swap to the console and keeps it on window.oscraft (swapRejections()).
+function refuseSwap(reason, sender, file, tag = "[swap]") {
+  const entry = { reason, sender: sender === null ? null : String(sender).slice(0, 8), file: String(file).slice(0, 80), at: Date.now() };
+  swapRejections.push(entry);
+  if (swapRejections.length > 20) swapRejections.shift();
+  console.warn(`${tag} swap refused: ${reason} (file=${JSON.stringify(entry.file)}${entry.sender ? ` sender=${entry.sender}` : ""})`);
+}
 
 // A peer's half of a swap: re-import the module under a fresh query and dispatch its hook's value, as hmr.js does for
 // a changed file. A module with no hook, or a failed import, is logged and the previous code stays in service.
@@ -1803,6 +1836,7 @@ if (params.get("ci") === "1") {
     setCamera: (opts = {}) => (renderer3d ? renderer3d.setCamera(opts) : null),
     centreOn: (x, z) => (renderer3d ? renderer3d.setCamera({ target: [x, groundAt(x, z), z] }) : null),
     fx: () => (fx ? fx.counts() : null),
+    swapRejections: () => swapRejections.slice(),
   });
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }

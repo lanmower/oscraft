@@ -95,9 +95,9 @@ for (const frame of samples) {
 expectReject(Uint8Array.from([0x7f, WIRE_VERSION]), 'UNKNOWN_TYPE', 'unknown type');
 expectReject(Uint8Array.from([FRAME.ORDER]), 'TRUNCATED', 'one-byte frame');
 
-const overCount = Uint8Array.from([FRAME.STATE, WIRE_VERSION, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0x04]);
+const overCount = Uint8Array.from([FRAME.STATE, WIRE_VERSION, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0x10]);
 expectReject(overCount, 'COUNT_OUT_OF_RANGE', 'state count above bound');
-expectReject(Uint8Array.from([FRAME.DELTA, WIRE_VERSION, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0x04]), 'COUNT_OUT_OF_RANGE', 'delta count above bound');
+expectReject(Uint8Array.from([FRAME.DELTA, WIRE_VERSION, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0x10]), 'COUNT_OUT_OF_RANGE', 'delta count above bound');
 
 assert.throws(() => encodeFrame({ type: FRAME.ORDER, unitId: -1, x: 0, y: 0 }), WireError);
 assert.throws(() => encodeFrame({ type: FRAME.HELLO, room: 'x'.repeat(65) }), WireError);
@@ -187,6 +187,21 @@ assert.equal(next.type, FRAME.DELTA);
 applyFrame(lateView, next);
 assert.equal(lateView.size, 10);
 assert.equal(new Set([...lateView.values()].map((u) => u.player)).size, 10);
+
+// The unit cap matches the server's default (4096): a STATE above the old 1024 round-trips.
+const manyUnits = Array.from({ length: 2000 }, (_, i) => ({ id: i + 1, kind: 1, player: i % 10, x: i, y: 0 - i, hp: 5 }));
+assert.deepStrictEqual(decodeFrame(encodeFrame({ type: FRAME.STATE, tick: 9, hash: 3, units: manyUnits })).units, manyUnits, 'state of 2000 units round-trips');
+
+// A swap name is at most 64 bytes on both sides; a longer one is refused by the writer and by the decoder.
+const longName = 'a'.repeat(65);
+assert.throws(() => encodeFrame({ type: FRAME.SWAP, tick: 1, file: longName }), (err) => err instanceof WireError && err.code === 'RANGE', 'swap writer refuses 65 bytes');
+const swap64 = encodeFrame({ type: FRAME.SWAP, tick: 1, file: 'a'.repeat(64) });
+assert.equal(decodeFrame(swap64).file.length, 64, 'swap of 64 bytes round-trips');
+expectReject(Uint8Array.from([FRAME.SWAP, WIRE_VERSION, 1, 0, 0, 0, 65, ...new Uint8Array(65).fill(0x61)]), 'COUNT_OUT_OF_RANGE', 'swap decode of 65 bytes');
+
+// Bad UTF-8 in a string field is a WireError, not a TypeError.
+expectReject(Uint8Array.from([FRAME.HELLO, WIRE_VERSION, 1, 0xff]), 'BAD_UTF8', 'hello with invalid UTF-8');
+expectReject(Uint8Array.from([FRAME.ERROR, WIRE_VERSION, 0, 0, 1, 0, 0xc3]), 'BAD_UTF8', 'error message truncated mid-character');
 
 const types = typesSeen.size;
 assert.equal(types, Object.keys(FRAME).length, 'every frame type round-trips');

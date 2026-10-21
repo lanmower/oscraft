@@ -2,7 +2,9 @@ export const WIRE_VERSION = 1;
 
 export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16 });
 
-export const MAX_UNITS = 1024;
+// Matches the server's DEFAULT_MAX_UNITS (rust/crates/server/src/lib.rs): a STATE or DELTA may carry this many units.
+export const MAX_UNITS = 4096;
+export const MAX_SWAP_NAME_BYTES = 64;
 export const MAX_ROOM_BYTES = 64;
 export const MAX_MESSAGE_BYTES = 256;
 export const MAX_PLAYERS = 10;
@@ -77,6 +79,15 @@ function utf8(text, maxBytes, field) {
   return b;
 }
 
+// Decodes a string field; bad UTF-8 is a WireError like every other malformed field, not a TypeError.
+function text(bytes, field) {
+  try {
+    return decoder.decode(bytes);
+  } catch {
+    throw new WireError('BAD_UTF8', `${field} is not valid UTF-8`);
+  }
+}
+
 const CODECS = {
   [FRAME.ORDER]: {
     size: () => 2 + 4 + 4 + 4,
@@ -101,12 +112,18 @@ const CODECS = {
     read(r) { return { unitId: r.u32(), x: r.i32(), y: r.i32() }; },
   },
   // A hold order: the unit stops where it stands and attacks only what is in reach, until a move or attack replaces it.
+  [FRAME.HOLD]: {
+    size: () => 2 + 4,
+    write(w, f) { w.u32(f.unitId, 'unitId'); },
+    read(r) { return { unitId: r.u32() }; },
+  },
   // A data reload's swap tick: the tick at which every peer swaps to the new data (see the room's DATA_SWAP_LEAD_TICKS).
+  // The file name is a plain module name of at most MAX_SWAP_NAME_BYTES bytes; a longer one is refused on both sides.
   [FRAME.SWAP]: {
-    size: (f) => 2 + 4 + 1 + new TextEncoder().encode(f.file || '').length,
+    size: (f) => 2 + 4 + 1 + encoder.encode(f.file || '').length,
     write(w, f) {
-      const name = new TextEncoder().encode(f.file || '');
-      if (name.length > 64) throw new WireError('BAD_VALUE', 'swap file name longer than 64 bytes');
+      const name = encoder.encode(f.file || '');
+      if (name.length > MAX_SWAP_NAME_BYTES) throw new WireError('RANGE', `swap file name is ${name.length} bytes, max ${MAX_SWAP_NAME_BYTES}`);
       w.u32(f.tick, 'tick');
       w.u8(name.length, 'file length');
       w.raw(name);
@@ -114,13 +131,9 @@ const CODECS = {
     read(r) {
       const tick = r.u32();
       const len = r.u8();
-      return { tick, file: new TextDecoder().decode(r.take(len)) };
+      if (len > MAX_SWAP_NAME_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `swap file name ${len} > ${MAX_SWAP_NAME_BYTES}`);
+      return { tick, file: text(r.take(len), 'swap file name') };
     },
-  },
-  [FRAME.HOLD]: {
-    size: () => 2 + 4,
-    write(w, f) { w.u32(f.unitId, 'unitId'); },
-    read(r) { return { unitId: r.u32() }; },
   },
   // A debug override of a unit's target class: 0..3, or 255 to clear it back to the Rust rule.
   [FRAME.CLASS_OVERRIDE]: {
@@ -260,10 +273,10 @@ const CODECS = {
         const slot = r.u8();
         const ownerLength = r.u8();
         if (ownerLength > MAX_OWNER_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `owner ${ownerLength} > ${MAX_OWNER_BYTES}`);
-        const owner = decoder.decode(r.take(ownerLength));
+        const owner = text(r.take(ownerLength), 'owner');
         const heroLength = r.u8();
         if (heroLength > MAX_HERO_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `hero ${heroLength} > ${MAX_HERO_BYTES}`);
-        seats.push({ slot, owner, hero: decoder.decode(r.take(heroLength)) });
+        seats.push({ slot, owner, hero: text(r.take(heroLength), 'hero') });
       }
       return { seats };
     },
@@ -278,7 +291,7 @@ const CODECS = {
     read(r) {
       const len = r.u8();
       if (len > MAX_ROOM_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `room ${len} > ${MAX_ROOM_BYTES}`);
-      return { room: decoder.decode(r.take(len)) };
+      return { room: text(r.take(len), 'room') };
     },
   },
   [FRAME.ERROR]: {
@@ -293,7 +306,7 @@ const CODECS = {
       const code = r.u16();
       const len = r.u16();
       if (len > MAX_MESSAGE_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `message ${len} > ${MAX_MESSAGE_BYTES}`);
-      return { code, message: decoder.decode(r.take(len)) };
+      return { code, message: text(r.take(len), 'message') };
     },
   },
 };
