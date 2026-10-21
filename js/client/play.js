@@ -1622,6 +1622,7 @@ installDebugApi({
   netTick: () => (netState ? netState.tick : 0),
   units: currentUnits,
   isHero: (id) => localGame !== null && isHeroUnit(id),
+  attributes: (id) => (localGame !== null && typeof localGame.attributes === "function" ? Array.from(localGame.attributes(id)) : null),
   selected: () => (hud ? hud.input.selection() : selectedId === -1 ? [] : [selectedId]),
   select: (ids) => { if (hud) hud.input.setSelection(ids); else selectedId = ids[0] ?? -1; },
   pick: (world) => pick(world),
