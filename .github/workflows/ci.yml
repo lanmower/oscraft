@@ -1,0 +1,43 @@
+name: ci
+
+# Runs on every push to main and on demand: the Rust workspace tests (sim, mod host, replay, server, the moba pack
+# and the example mods) and the wire codec round-trip. Pages deploys are in pages.yml.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: workspace tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Test the workspace
+        run: cargo test --workspace
+
+  wire:
+    name: wire codec round-trip
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Round-trip every frame type
+        working-directory: js/wire
+        run: node test.js
