@@ -1720,11 +1720,12 @@ if (params.get("ci") === "1") {
   };
   window.__ciFx = () => (fx ? fx.counts() : null);
   // Debug API for probes and screenshots: move the 3D camera onto a ground point (cell units), or set its distance.
-  window.oscraft = {
+  // Merged into the debug API installed above, so getState and the other probes stay on window.oscraft.
+  window.oscraft = Object.assign(window.oscraft || {}, {
     setCamera: (opts = {}) => (renderer3d ? renderer3d.setCamera(opts) : null),
     centreOn: (x, z) => (renderer3d ? renderer3d.setCamera({ target: [x, groundAt(x, z), z] }) : null),
     fx: () => (fx ? fx.counts() : null),
-  };
+  });
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 
