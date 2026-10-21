@@ -1493,7 +1493,7 @@ async function main() {
     if (pendingStartCentre && renderer3d) {
       const own = simUnits().find((u) => u.player === localPlayerId() && isHeroUnit(u.id));
       if (own) {
-        renderer3d.setCamera({ target: [own.x, 0, own.z], distance: Math.min(CAMERA_START_DISTANCE, cameraMaxDistance) });
+        renderer3d.setCamera({ target: [own.x, groundAt(own.x, own.z), own.z], distance: Math.min(CAMERA_START_DISTANCE, cameraMaxDistance) });
         pendingStartCentre = false;
       }
     }
@@ -1599,7 +1599,7 @@ if (params.get("ci") === "1") {
   window.__ciInputSelection = () => (hud ? hud.input.selection() : []);
   window.__ciLocalPlayer = () => myPlayer;
   // Moves the 3D camera target onto a ground point, so a probe can act on units that the default view does not show.
-  window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, 0, z] }); };
+  window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, groundAt(x, z), z] }); };
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));
   // Every unit of the side, fogged or not: the sim's own roster, so a side is killed whole whatever the local vision.
   window.__ciKillSide = (player) => {
@@ -1625,7 +1625,7 @@ if (params.get("ci") === "1") {
   // Debug API for probes and screenshots: move the 3D camera onto a ground point (cell units), or set its distance.
   window.oscraft = {
     setCamera: (opts = {}) => (renderer3d ? renderer3d.setCamera(opts) : null),
-    centreOn: (x, z) => (renderer3d ? renderer3d.setCamera({ target: [x, 0, z] }) : null),
+    centreOn: (x, z) => (renderer3d ? renderer3d.setCamera({ target: [x, groundAt(x, z), z] }) : null),
     fx: () => (fx ? fx.counts() : null),
   };
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
