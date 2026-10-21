@@ -28,8 +28,10 @@ vec2 layerWarp(vec2 xz, float k) {
 }
 vec3 bedAt(vec2 xz, float y, vec3 n0) {
   vec4 w = texture(uControl, xz / uMapSize);
-  // Every layer weight is bilinear across the cell (no cell-aligned step), the rock weight included.
-  // The layer band is widened (twice the uniform) so the blends run over a longer height range.
+  // Ground layer weights are bilinear across the cell. The rock (cliff) weight is the rock channel of the cell itself,
+  // read without filtering, so rock stays on cliff cells only.
+  float cliffCell = texelFetch(uControl, ivec2(floor(xz / uMapSize * vec2(textureSize(uControl, 0)))), 0).w;
+  // The ground band is widened (twice the uniform) so the blends run over a longer height range.
   float bandW = 2.0 * uBand;
   vec2 uv0 = xz * uUvScale + layerWarp(xz, 0.0), uv1 = xz * uUvScale + layerWarp(xz, 1.0);
   vec2 uv2 = xz * uUvScale + layerWarp(xz, 2.0), uv3 = xz * uUvScale + layerWarp(xz, 3.0);
@@ -47,7 +49,9 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
   vec3 ground = gs > 1e-4 ? (gb.x * c0 + gb.y * c1 + gb.z * c2) / gs : (g.x * c0 + g.y * c1 + g.z * c2) / max(g.x + g.y + g.z, 1e-4);
   // Cliff: only cells whose rock channel is set take rock. The cutaway edge is biased by the rock024 height, and a flat
   // cell (rock channel 0) stays at 0 whatever its height, so rock never wins on flat ground.
-  float rw = smoothstep(0.0, 1.0, (w.w - 0.5) * 2.5 + (d.w - 0.5) * 0.8 + 0.5);
+  // The rock024 height biases the edge by at most +-0.2 of the cell's rock value, so a flat cell (rock channel 0) stays
+  // below the threshold whatever its height, and a cliff cell (rock channel 1) stays above it.
+  float rw = smoothstep(0.35, 0.65, cliffCell + (d.w - 0.5) * 0.4);
   vec3 base = mix(ground, c3, rw);
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(n0), light), 0.0);
