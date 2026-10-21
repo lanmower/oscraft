@@ -9,7 +9,7 @@ const HELP = [
   "oscraft.getCamera()                     {x, y, distance, yaw, pitch, minDistance, maxDistance, bounds} or null (flat view)",
   "oscraft.setCamera({x, y, distance, yaw, pitch})  set fields, then clamp with the mouse's limits; returns getCamera()",
   "oscraft.centreOn(unitId)                move the camera target onto a unit (distance and angles kept)",
-  "oscraft.getState()                      tick, localPlayer, hero, units, selected, renderer, frame counters, terrain mode, fog, shadows",
+  "oscraft.getState()                      tick, localPlayer, controlled, units, selected, renderer, frame counters, terrain mode, fog, shadows",
   "oscraft.selectUnit(id)                  select one of the visible units through the input layer",
   "oscraft.issueOrder(id, kind, x, y)      kind 'move' to (x, y); 'stop' in place; 'attack' an enemy unit picked at (x, y). Returns the sim's accept",
   "oscraft.getOverrides(unitId)            {classOverride: 0..3 | null, holdOverride: true | false | null}: the mod-set target class and attack-move hold; null without a local sim",
@@ -92,22 +92,22 @@ export function createDebugApi(hooks) {
       const game = hooks.game();
       const me = hooks.localPlayer();
       const units = hooks.units();
-      const heroUnit = units.find((u) => u.player === me && hooks.isHero(u.id)) || null;
-      const hero = heroUnit && game ? {
-        id: heroUnit.id,
-        x: heroUnit.x,
-        z: heroUnit.z,
-        hp: heroUnit.hp ?? null,
-        mana: typeof game.max_mana === "function" ? game.max_mana(heroUnit.id) : null,
-        level: typeof game.character_level === "function" ? game.character_level(heroUnit.id) : null,
+      const controlledUnit = units.find((u) => u.player === me && hooks.isControlled(u.id)) || null;
+      const controlled = controlledUnit && game ? {
+        id: controlledUnit.id,
+        x: controlledUnit.x,
+        z: controlledUnit.z,
+        hp: controlledUnit.hp ?? null,
+        mana: typeof game.max_mana === "function" ? game.max_mana(controlledUnit.id) : null,
+        level: typeof game.character_level === "function" ? game.character_level(controlledUnit.id) : null,
       } : null;
       const r = renderer();
       const selection = hooks.selected();
       return {
         tick: game ? game.ticks() : hooks.netTick(),
         localPlayer: me,
-        hero,
-        units: units.map((u) => ({ id: u.id, type: u.type, owner: u.player, x: u.x, z: u.z, hp: u.hp ?? null, hero: hooks.isHero(u.id), attributes: hooks.isHero(u.id) ? hooks.attributes?.(u.id) ?? null : null })),
+        controlled,
+        units: units.map((u) => ({ id: u.id, type: u.type, owner: u.player, x: u.x, z: u.z, hp: u.hp ?? null, controlled: hooks.isControlled(u.id), attributes: hooks.isControlled(u.id) ? hooks.attributes?.(u.id) ?? null : null })),
         selected: selection.length ? selection[0] : -1,
         selection,
         renderer: r ? hooks.rendererKind() : "flat",

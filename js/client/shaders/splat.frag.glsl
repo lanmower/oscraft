@@ -40,7 +40,7 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
   // The rock albedo is toned to the grass layer's mean brightness (rock024 averages 0.48, grass 0.34): 0.7 scale.
   vec3 c3 = texture(uAlb3, uv3).rgb * uLayerTint[3] * 0.7;
   vec4 d = vec4(texture(uDisp0, uv0).r, texture(uDisp1, uv1).r, texture(uDisp2, uv2).r, texture(uDisp3, uv3).r);
-  // Ground: grass, dirt and lane, blended by their own control weights and the band on their heights.
+  // Ground: grass, dirt and path, blended by their own control weights and the band on their heights.
   vec3 g = w.xyz;
   vec3 gh = g * (d.xyz + 0.5);
   float gm = max(gh.x, max(gh.y, gh.z));

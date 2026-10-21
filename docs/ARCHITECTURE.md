@@ -176,7 +176,7 @@ Verification: verified against `lanmower/oscraft` main `88adede5` (a descendant 
 | Inventory UI | `js/client/ui_inventory.js` (JS) | partly | query inventory; needs UI host call | MOVE | CONFIRMED |
 | Lobby and room setup | `js/client/lobby.js`, `js/client/rooms.js` (JS); `rust/crates/server/src/room.rs` (Rust) | partly | hook `on_player_joined`; room config data | MOVE | CONFIRMED |
 | Mod UI overlay | `js/client/modui.js` (JS); events polled from `GET /events` (`rust/crates/server/src/lib.rs`) | partly | the bridge itself: mod UI events | STAY | CONFIRMED: it is the host renderer mods call into; keep it as the host ABI |
-| Key bindings and hotkeys | `js/client/moba_input.js` (`keydown` at line 204), `js/client/play.js` (`keydown` at line 568) (JS) | no | data key map; needs key-bind UI call | DATA | CORRECTED: `ABILITY_SLOTS` and `ATTACK_KEY` are not in `hud.js`; `ATTACK_KEY` is absent from the repo; the handlers are in moba_input.js and play.js |
+| Key bindings and hotkeys | `js/client/input.js` (`keydown` at line 204), `js/client/play.js` (`keydown` at line 568) (JS) | no | data key map; needs key-bind UI call | DATA | CORRECTED: `ABILITY_SLOTS` and `ATTACK_KEY` are not in `hud.js`; `ATTACK_KEY` is absent from the repo; the handlers are in moba_input.js and play.js |
 | Order input (click, target) | `js/client/play.js` (JS); `rust/crates/server/src/order.rs` (Rust) | partly | cmd order | STAY | CONFIRMED: orders are validated and networked; the wire format is fixed |
 | Camera control (bounds, zoom, follow) | `js/client/play.js` (`cameraDistance`, `CAMERA_PLAY_DISTANCE`); `js/client/render3d.js` (orbit) | no | hook for camera updates; needs camera host call | MOVE | CONFIRMED |
 | Camera constants | `js/client/play.js`, `render3d.js` | no | data | DATA | CONFIRMED |
@@ -214,7 +214,7 @@ Verification: verified against `lanmower/oscraft` main `88adede5` (a descendant 
 | Terrain pipeline | `js/client/terrain.js`, `tiles.js`, `texture.js` (JS) | partly | data: map and tile sources | DATA | CONFIRMED |
 | Model loading | `js/client/glb.js`, `texture.js` (JS); `scenarios/moba/assets/assets.json` | partly | data: assets manifest | DATA | CONFIRMED |
 | Pause, settings and result screens | `js/client/replay.js` (pause only); `post_game_json` in `rust/crates/web/src/lib.rs`; no settings screen anywhere | no | query `post_game_json`; hook for screen state; no UI host call | MOVE | ADDED: missing from the table; no Lua call reaches the result JSON |
-| Selection, drag select and control groups | `js/client/moba_select.js`, `js/client/ui_selection.js` (JS) | no | query selection; cmd group assign; no UI host call | MOVE | ADDED: client-only selection logic with no host boundary |
+| Selection, drag select and control groups | `js/client/ui_selection.js` (JS) | no | query selection; cmd group assign; no UI host call | MOVE | ADDED: client-only selection logic with no host boundary |
 | Minimap | `js/client/ui_minimap.js` (JS) | no | query map and vision grid; needs UI host call | MOVE | ADDED |
 | UI layout data | `js/client/moba_ui.json`, read by `hud.js`, `ui_scoreboard.js`, `ui_inventory.js`, `ui_shop.js` | partly | data: layout file | DATA | ADDED: layout is data but not in the table |
 | Spell casting and resolution | `rust/crates/sim/src/spell.rs` (Rust, `parse_ext`, 45 tables) | partly | hook `define_ability` (exposed in `mlua_host.rs`, `piccolo_host.rs`); data `abilities.osd`; cast rules stay Rust | MOVE | ADDED |

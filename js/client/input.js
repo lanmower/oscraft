@@ -1,20 +1,20 @@
-// MOBA input capture. The pack decides what a key or a ground click means (scenarios/moba/controls.lua); this module only
-// draws the drag box while the left button is held and mirrors the selection the pack reports. Its selection and skill
-// calls are sent to the pack. The drag box is shown from the press that starts on the ground.
-import { cooldownTicks } from "./moba_select.js";
+// Input capture. The pack decides what a key or a ground click means (the pack's controls.lua); this module only draws the
+// drag box while the left button is held and mirrors the selection the pack reports. Its selection and skill calls are
+// sent to the pack. The drag box is shown from the press that starts on the ground.
+import { UI } from "./pack_load.js";
 
 function isGround(target) {
   return target instanceof HTMLCanvasElement && !target.closest("[data-ui]");
 }
 
-// send(name, args) hands an action to the pack (play.js sendInput). game reads the sim's ability cooldowns.
-export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
+// send(name, args) hands an action to the pack (play.js sendInput).
+export function createInput({ send, dragSlopPx }) {
   let selection = [];
   let press = null;
   let box = null;
   const overlay = document.createElement("div");
   overlay.dataset.ui = "box";
-  overlay.style.cssText = "position:fixed;display:none;border:1px solid #7cff7c;background:rgba(124,255,124,.12);pointer-events:none";
+  overlay.style.cssText = `position:fixed;display:none;border:1px solid ${UI.colours.selectBox};background:${UI.colours.selectFill};pointer-events:none`;
   document.body.appendChild(overlay);
 
   // The pack's feedback names the selection of this seat; the HUD and panels read it from here.
@@ -39,7 +39,7 @@ export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
     box = null;
   }
 
-  window.addEventListener("moba:feedback", onFeedback);
+  window.addEventListener("pack:feedback", onFeedback);
   window.addEventListener("pointerdown", onDown);
   window.addEventListener("pointermove", onMove);
   window.addEventListener("pointerup", onUp);
@@ -56,19 +56,8 @@ export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
     overlay.style.height = `${Math.abs(box.y1 - box.y0)}px`;
   }
 
-  // Cooldown left (ticks) from the sim; the total from the ability's data at its held rank.
-  function cooldownLeft(id, slot) {
-    return typeof game.ability_cooldown === "function" ? Math.max(0, game.ability_cooldown(id, slot)) : 0;
-  }
-
-  function cooldownTotal(id, slot) {
-    const ability = JSON.parse(game.abilities_json(id)).find((a) => a.slot === slot);
-    if (!ability) return 0;
-    return cooldownTicks(ability, typeof game.skill_rank === "function" ? game.skill_rank(id, slot) : 0);
-  }
-
   function destroy() {
-    window.removeEventListener("moba:feedback", onFeedback);
+    window.removeEventListener("pack:feedback", onFeedback);
     window.removeEventListener("pointerdown", onDown);
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
@@ -86,7 +75,5 @@ export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
     },
     draw,
     destroy,
-    cooldownLeft,
-    cooldownTotal,
   };
 }

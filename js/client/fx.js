@@ -147,8 +147,8 @@ function placed(next, x, y, z, sx, sy = sx, sz = sx) {
 function setFlag(name, value) {
   if (typeof name !== "string" || name === "") return;
   const on = value !== 0;
-  window.__mobaFlags = { ...(window.__mobaFlags ?? {}), [name]: on };
-  window.dispatchEvent(new CustomEvent("moba:flag", { detail: { name, on } }));
+  window.__packFlags = { ...(window.__packFlags ?? {}), [name]: on };
+  window.dispatchEvent(new CustomEvent("pack:flag", { detail: { name, on } }));
 }
 
 export function createFx({ renderer, game, toScreen, groundAt, playerColor, selected, arrow = () => null }) {

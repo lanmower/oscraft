@@ -118,7 +118,8 @@
       "hp"
     ],
     "shop": {
-      "title": "Shop"
+      "title": "Shop",
+      "filter": "filter by name"
     },
     "buy": "Buy",
     "costSuffix": "g",
@@ -199,6 +200,18 @@
     "side",
     "secret"
   ],
+  "colours": {
+    "terrain": {"grass": [1, 1, 1], "dirt": [1.92, 1.36, 1.35], "path": [0.78, 0.68, 0.48], "water": [0.2, 0.45, 0.7], "cliff": [0.6, 0.58, 0.55]},
+    "minimap": {
+      "background": "#1a2129", "frame": "#3b4752", "view": "#ffd54f", "viewShadow": "rgba(0,0,0,.7)", "outline": "#0b0f13",
+      "own": "#ffffff", "ally": "#7cc7ff", "sizes": {"controlled": 5, "other": 3},
+      "terrain": {"void": [20, 24, 28], "open": [104, 124, 94], "rock": [58, 64, 70], "water": [48, 96, 150]}
+    },
+    "bars": {"own": "#4caf50", "other": "#e53935", "back": "rgba(0,0,0,0.6)"},
+    "selectBox": "#7cff7c",
+    "selectFill": "rgba(124,255,124,.12)",
+    "feedback": {"move": "#4caf50", "attackMove": "#e53935", "attack": "#e53935", "reticle": "#ffeb3b", "refusal": "#ffffff", "refusalBg": "rgba(0,0,0,0.7)"}
+  },
   "effects": {
     "colours": {
       "spell": [0.55, 0.4, 1],
@@ -231,7 +244,7 @@
       "set_flag": { "renderer": "flag" }
     }
   },
-  "heroDrawScale": 2,
+  "controlledDrawScale": 2,
   "doodadKinds": [
     "rock",
     "tree",

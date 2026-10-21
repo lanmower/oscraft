@@ -17,10 +17,15 @@ local S_MANA_REGEN, S_HEALTH_REGEN, S_MAX_MANA, S_ARMOR_X100 = 13, 14, 15, 26
 
 -- Seat pick: the page records the pick, the mod spawns the hero at the seat's start and enrols it.
 -- seat_start is the seat's start point in Q16.16 (x, y); player is the seat's player.
+-- The camera distance at the start, over the seat's own unit.
+local START_CAMERA_DISTANCE = 40
+
 function on_seat_pick(player, hero_kind, seat_start_x, seat_start_y, state)
   local unit = game.spawn(player, hero_kind, seat_start_x, seat_start_y)
   if unit == nil then return end
   game.enroll(unit, seat_start_x, seat_start_y)
+  -- The seat's view opens on its unit: the page centres its camera there once the unit is in the sim.
+  game.ui_event("view", '{"player":' .. tostring(player) .. ',"centreOn":' .. tostring(unit) .. ',"distance":' .. tostring(START_CAMERA_DISTANCE) .. "}")
 end
 
 -- Milli-units to Q16.16 (65536 per unit, milli-units are 1/1000), as protection.lua does.

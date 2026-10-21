@@ -87,6 +87,6 @@ export function createSeating() {
 // START frame from a lobby state (the reduceLobby state with started true): the owned seats in slot order.
 export function startFrame(lobby) {
   const seats = [];
-  lobby.slots.forEach((s, slot) => { if (s.owner) seats.push({ slot, owner: s.owner, pick: s.hero || '' }); });
+  lobby.slots.forEach((s, slot) => { if (s.owner) seats.push({ slot, owner: s.owner, pick: s.pick || '' }); });
   return { type: FRAME.START, seats };
 }

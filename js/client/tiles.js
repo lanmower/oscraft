@@ -11,15 +11,13 @@ import { displayHeights, GROUND_UV_PER_CELL, readGrid, vertexNormals } from "./t
 export const TILE_MODELS = Object.freeze({
   grass: Object.freeze(["tile-low", "patch-grass", "patch-grass-large"]),
   dirt: Object.freeze(["ground", "patch-dirt", "dirt"]),
-  lane: Object.freeze(["road-straight", "road-intersection-path", "road-crossroad-line"]),
+  path: Object.freeze(["road-straight", "road-intersection-path", "road-crossroad-line"]),
   water: Object.freeze(["ground_riverTile"]),
   cliff: Object.freeze(["tile-high"]),
   ramp: Object.freeze(["tile-slant"]),
 });
-// Tint for every kind drawn without a texture (the editor draws all kinds with it; play draws a textured kind in white).
-export const TILE_TINTS = Object.freeze({ grass: [1, 1, 1], dirt: [1.92, 1.36, 1.35], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
 // Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass.
-export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 255 });
+export const TILE_IDS = Object.freeze({ path: 2, dirt: 3, water: 255 });
 export const VOID_REACH = 2;
 const CLIFF_BIT = 2;
 const BLOCKED_BIT = 1;
@@ -35,7 +33,7 @@ export function cellKind(flags, tile) {
   if (flags & CLIFF_BIT) return "cliff";
   if (tile === TILE_IDS.water) return "water";
   if (flags & BLOCKED_BIT) return "cliff";
-  if (tile === TILE_IDS.lane) return "lane";
+  if (tile === TILE_IDS.path) return "path";
   if (tile === TILE_IDS.dirt) return "dirt";
   return "grass";
 }
@@ -131,7 +129,7 @@ export function fitModel(glb, size) {
 
 // Material per cell kind: the named texture a kind's batches bind, or null for the model's tint. Adding a surface is one
 // entry here; a kind mapped to "ground" is drawn with the repeating ground texture.
-export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: "path_road", water: "water", cliff: "cliff" });
+export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", path: "path_road", water: "water", cliff: "cliff" });
 // Texture file per material name (CC0, see NOTICE.md). A material's kinds share one texture; the ground and water materials
 // repeat over the map in world space (GROUND_KINDS), while the others stretch once over each tile through the model's UVs.
 export const TILE_TEXTURES = Object.freeze({ ground: "ground", path_road: "path_road", cliff: "cliff", water: "water" });
@@ -357,14 +355,14 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
 // Splat layers: the ground is one draw whose fragment shader blends four layers by a per-cell control map, one RGBA
 // texel per cell, each channel the weight of one layer. A cell kind sets its channel; the fourth (rock) channel takes
 // cliff cells. SPLAT_TEXTURES gives each layer [albedo, height] files (CC0, see NOTICE.md).
-export const SPLAT_LAYERS = Object.freeze(["grass", "dirt", "lane", "rock"]);
+export const SPLAT_LAYERS = Object.freeze(["grass", "dirt", "path", "rock"]);
 // Water cells take the dirt layer as the riverbed the water is drawn over (the shader shows it through the shallows).
-const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 1 });
+const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, path: 2, cliff: 3, water: 1 });
 // The water surface is procedural (render3d.js): the water map is one byte per cell, 255 on water cells.
 export const SPLAT_TEXTURES = Object.freeze({
   grass: Object.freeze(["textures.grass", "textures.grassDisp"]),
   dirt: Object.freeze(["textures.dirt", "textures.dirtDisp"]),
-  lane: Object.freeze(["textures.path_earth", "textures.path_earth_disp"]),
+  path: Object.freeze(["textures.path_earth", "textures.path_earth_disp"]),
   rock: Object.freeze(["textures.rock", "textures.rockDisp"]),
 });
 // Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
@@ -521,7 +519,7 @@ export function waterSurface(bytes) {
   return { positions: new Float32Array(positions), normals: new Float32Array(normals), uvs: new Float32Array(uvs), indices: new Uint32Array(indices) };
 }
 // Water map for a grid: { data: Uint8Array one byte per cell, width, height }. A water cell is a blocked cell painted with
-// water tile id 4 in the map (scenarios/moba/map.osd). The weight is the water share of the cells around each cell, eased,
+// water tile id 4 in the map. The weight is the water share of the cells around each cell, eased,
 // so the river fades into its banks over RAMP_SPAN cells: deep water is 255, the shore ring is partly wet, and land
 // beyond the span is dry. The shader samples this map as a continuous weight.
 export function waterMap(bytes) {

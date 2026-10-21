@@ -32,6 +32,7 @@ local LOCAL = 0
 local OWNER = "local"
 local SEL = {}
 local OPEN = { shop = false, scoreboard = false }
+local SHOP_FILTER = ""
 local EXPANDED = false
 local HORN = nil
 local PEAK = {}
@@ -299,6 +300,12 @@ local function recipe_text(components)
   return join(names, " + ")
 end
 
+-- The shop's name filter: an item shows when its name holds the typed text, ignoring case. An empty filter shows all.
+local function name_matches(name)
+  if SHOP_FILTER == "" then return true end
+  return game.str_find_ci(name, SHOP_FILTER) ~= nil
+end
+
 local function shop_tree()
   local hero = hero_of(LOCAL)
   local gold = game.gold(LOCAL)
@@ -307,7 +314,7 @@ local function shop_tree()
   while true do
     local def = game.item_info(i)
     if def == nil then break end
-    if def.tags ~= 0 then
+    if def.tags ~= 0 and name_matches(def.name) then
       local afford = #def.components > 0 or gold >= def.cost
       local kids = {
         label(def.name, "strong"),
@@ -322,7 +329,8 @@ local function shop_tree()
     end
     i = i + 1
   end
-  return panel(TEXT.shop.title .. "  " .. TEXT.goldLabel .. " " .. tostring(gold), { grid(2, cards) })
+  local filter = node("input", { S("value", SHOP_FILTER), S("text", TEXT.shop.filter or ""), S("call", "shop_filter") })
+  return panel(TEXT.shop.title .. "  " .. TEXT.goldLabel .. " " .. tostring(gold), { filter, grid(2, cards) })
 end
 
 local function skills_tree(hero)
@@ -562,7 +570,7 @@ end
 local function lobby_started_event()
   local items = {}
   for _, s in ipairs(LOBBY.slots) do
-    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or "") })
+    items[#items + 1] = obj({ S("owner", s.owner or ""), S("pick", s.hero or "") })
   end
   game.ui_event("lobby", obj({ I("player", LOCAL), B("started", true), R("slots", arr(items)) }))
 end
@@ -733,6 +741,11 @@ local function ui_call(who, call, a)
   elseif call == "skill_up" then
     local hero = hero_of(who)
     if hero ~= nil then game.cmd_skill_up(hero, a.slot) end
+  elseif call == "shop_filter" then
+    -- The typed text, lower-cased. Text with a quote or a backslash would break the panel's JSON, so it is dropped.
+    local text = game.str_lower(a.text or "")
+    if game.str_find_ci(text, '"') ~= nil or game.str_find_ci(text, "\\") ~= nil then text = "" end
+    SHOP_FILTER = text
   elseif call == "claim" or call == "release" or call == "pick" or call == "ready" or call == "fill" or call == "start" then
     lobby_act(call, a)
   end

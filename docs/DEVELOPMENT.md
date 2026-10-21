@@ -43,7 +43,7 @@ Every page load exposes `window.oscraft` (no flag, no per-frame cost). Open `js/
 
     oscraft.setCamera({ x: 44, y: 48, distance: 46, yaw: 0.6, pitch: 0.9 })   // clamped by the mouse's own limits
     oscraft.getCamera()
-    const hero = oscraft.getState().hero;                                    // tick, units, hero, frame counters, terrain mode
+    const controlled = oscraft.getState().controlled;                                    // tick, units, controlled, frame counters, terrain mode
     oscraft.selectUnit(hero.id)
     oscraft.issueOrder(hero.id, 'move', hero.x - 3, hero.z)                  // 'move', 'stop', or 'attack' at (x, y)
     oscraft.centreOn(hero.id)
