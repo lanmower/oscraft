@@ -16,7 +16,7 @@ use piccolo::{
     Stack, StashedTable, Table, Value, Variadic,
 };
 use sim::{
-    controller_code, AbilitySpec, Catalog, ItemSpec, LoadError, Payout, Refusal, Request, Sim, UpgradeSpec, Verdict, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS,
+    controller_code, AbilitySpec, Catalog, ItemSpec, LoadError, Payout, Refusal, Request, Sim, UnitSpec, UpgradeSpec, Verdict, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS,
     MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, TICKS_PER_SECOND, VERDICT_TAKES,
 };
 
@@ -204,7 +204,7 @@ fn parse_takes(v: &Own, items: usize) -> Option<[u32; VERDICT_TAKES]> {
 fn denial(v: &Own) -> Refusal {
     match v {
         Own::Str(s) => match s.as_str() {
-            "no-shop" => Refusal::NoShop,
+            "out-of-reach" | "no-shop" => Refusal::OutOfReach,
             "cannot-afford" => Refusal::CannotAfford,
             "inventory-full" => Refusal::InventoryFull,
             "missing-component" => Refusal::MissingComponent,
@@ -985,6 +985,52 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             fail(c, format!("invalid_controller: {controller} is not {}", MOD_CONTROLLERS.join(", ")))
         })?;
         sh.borrow_mut().cmds.push(Cmd::AddPlayer { player: p, controller });
+        Ok(CallbackReturn::Return)
+    });
+    // game.unit(name, spec): defines a catalog unit in this world at the call, as mlua does. Every number
+    // is a whole value scaled by fixed(), and a weapon is damage, range and period.
+    native!(ctx, game, "unit", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let spec = table_arg(c, s.get(1), 1)?;
+        let int = |key: &str, default: i64| field_int(c, spec, key, default).and_then(fixed).map_err(|m| fail(c, m));
+        let weapon = match spec.get(c, "weapon") {
+            Value::Nil => None,
+            Value::Table(t) => {
+                let get = |key: &str, default: i64| field_int(c, t, key, default).and_then(fixed).map_err(|m| fail(c, m));
+                Some((get("damage", 0)?, get("range", 1000)?, get("period", 16)?))
+            }
+            _ => return Err(fail(c, "bad_field: weapon must be a table".into())),
+        };
+        let abilities = match spec.get(c, "abilities") {
+            Value::Nil => Vec::new(),
+            Value::Table(t) => {
+                let mut out = Vec::new();
+                for k in 1..=t.length() {
+                    out.push(text(c, t.get(c, k), k as usize - 1)?);
+                }
+                out
+            }
+            _ => return Err(fail(c, "bad_field: abilities must be a list".into())),
+        };
+        let model = field_text_opt(c, spec, "model").map_err(|m| fail(c, m))?.unwrap_or_default();
+        let filter = u32::try_from(int("filter", 1)?).map_err(|_| fail(c, "invalid_unit: filter must not be negative".into()))?;
+        let def = UnitSpec {
+            name: name.clone(),
+            model,
+            health: int("health", 0)?,
+            speed: int("speed", 0)?,
+            radius: int("radius", 500)?,
+            armor: int("armor", 0)?,
+            shield: int("shield", 0)?,
+            sight: int("sight", 8000)?,
+            filter,
+            cost: int("cost", 0)?,
+            bounty: int("bounty", 0)?,
+            weapon,
+            abilities,
+        };
+        sh.borrow_mut().sim.define_unit(&def).map_err(|why| fail(c, format!("invalid_unit: {name}: {why}")))?;
+        s.replace(c, name);
         Ok(CallbackReturn::Return)
     });
     // game.item(name, spec): defines a catalog item in this world at the call, as mlua does.
