@@ -390,7 +390,7 @@ impl Sim {
             return;
         }
         if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
-            self.hero_bounty(attacker as usize, bounty);
+            self.credit_kill_gold(attacker as usize, bounty);
             return;
         }
         if let Some(rival) = self.rival_of(self.player[j]) {
@@ -623,7 +623,7 @@ impl Sim {
             .filter(|&(kind, count)| kind != 0 && count > 0)
             .map(|(kind, count)| self.cat.items.get(kind as usize - 1).map_or(0, |it| it.cost as i64) * count as i64)
             .sum();
-        (self.hero_gold(j) as i64 + items).min(i32::MAX as i64) as i32
+        (self.unit_gold(j) as i64 + items).min(i32::MAX as i64) as i32
     }
 
     /// Each player's post-game tally: kills, deaths, assists, gold, xp and held items, summed over

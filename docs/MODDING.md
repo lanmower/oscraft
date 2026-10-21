@@ -45,7 +45,7 @@ unit, killer and player arguments are the room's unit ids and owners, not the mo
 `victim_player` and `killer_hero` come from the room's sim. Only deaths the room pays are fed: a bounty
 above 0 that no denial (an allied unit landed the blow) cancels. Attackerless deaths arrive with
 `killer` and `killer_player` set to `nil`. Commands the handlers queue are applied by the room to its own sim,
-so `cmd_add_hero_gold` takes a room hero id there. The mod's own world still fires `on_died` for its own deaths
+so `cmd_add_unit_gold` takes a room hero id there. The mod's own world still fires `on_died` for its own deaths
 with the same six arguments, and its gold stays in that world. A mod that uses only the first three
 arguments keeps working in both.
 
@@ -218,8 +218,9 @@ upgrade fails with `unknown_upgrade`, a bad definition with `invalid_upgrade`.
 | `game.defeat(player)` | `player` loses: the team of its first hostile player wins (command) |
 | `game.winner()` | the winning team, or `nil` while the match runs |
 | `game.cmd_add_gold(player, n)` | add `n` (negative takes) to the player's gold pool |
-| `game.cmd_add_hero_gold(unit, n)` | the same for a hero unit's own gold |
-| `game.gold(player)`, `game.hero_gold(unit)` | read them |
+| `game.cmd_add_unit_gold(unit, n)` | the same for a hero unit's own gold |
+| `game.cmd_set_respawn(unit, s \| false)` | the respawn decision for a dead unit: seconds until it comes back at its home, or `false` to leave it dead. A dead hero keeps the engine timer until a mod sets one; `on_unit_died` returns the same value. A buyback is `cmd_add_unit_gold(unit, -cost)` then `cmd_set_respawn(unit, 0)` |
+| `game.gold(player)`, `game.unit_gold(unit)` | read them |
 
 The first winner stands; a later `victory` or `defeat` changes nothing.
 
@@ -273,7 +274,7 @@ counters `state.waves_total`, `waves_base`, `waves_super`, `waves_mega`, `waves_
 Gold. `on_died` pays a unit whose `game.unit_bounty` is above 0.
 
 - A killer other than the dead unit: `bounty * 20 // 100` goes to `game.cmd_add_gold(killer_player, share)`, and the
-  rest to `game.cmd_add_hero_gold(killer, bounty - share)`.
+  rest to `game.cmd_add_unit_gold(killer, bounty - share)`.
 - No killer, or the unit killed itself: `game.rival_of(unit_player(unit))` gets the whole bounty through
   `game.cmd_add_gold`, when the player has a rival.
 
@@ -304,7 +305,7 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 | Variables, global, per player, per unit | done | `game.var`, `game.player_var`, `game.unit_var` |
 | Custom abilities with effects | done | `game.ability`, `game.cmd_give_ability` |
 | Victory and defeat | done | `game.victory`, `game.defeat`, `game.winner` |
-| Player gold and score | done | `game.cmd_add_gold`, `game.cmd_add_hero_gold`, `game.add_score` |
+| Player gold and score | done | `game.cmd_add_gold`, `game.cmd_add_unit_gold`, `game.add_score` |
 | Items: buy, sell, use | done | `game.cmd_buy`, `cmd_sell`, `cmd_use_item` |
 | Fog of war toggle | done | `game.cmd_set_fog` |
 | Terrain, tiles, doodads placement | done | `edit_terrain`, `set_tile`, `place_doodad`, `remove_doodad` |

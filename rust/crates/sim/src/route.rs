@@ -1,34 +1,29 @@
-//! Waypoint routes. A route is the ordered list of points a player's units walk for one lane id; a
-//! spawn effect whose p3 carries a lane id sends the unit it spawns along that player's route for the
-//! lane: it attack-moves to each waypoint in turn, advancing once within `ROUTE_REACH_MILLI` of the
-//! current one, and after the last waypoint marches on the nearest hostile building. An order issued
-//! to the unit by anything else ends the route. Lane and step are per-unit sim state, hashed and saved.
+//! Waypoint routes and destination requests. A route is the ordered list of points one player's units
+//! walk for one route id (data, the ROUT section). A unit that finishes its route, or that a spawn puts on
+//! the map with a route id, asks for a destination: the sim queues a destination request (unit, player)
+//! and the host answers it with a move order. Choosing that destination is mod code, not engine rule.
+//! Route id and step are per-unit sim state, hashed and saved. Requests are transient: drained each step.
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::loader::{LoadError, CELL_MILLI};
 use crate::*;
 
-/// Waypoint record size in the ROUT section: player, lane, count, reserved, then 64 x/y pairs.
+/// Waypoint record size in the ROUT section: player, route id, count, reserved, then 64 x/y pairs.
 const ROUT_RECORD: usize = 8 + MAX_ROUTE_POINTS * 8;
 pub const MAX_ROUTE_POINTS: usize = 64;
-pub const MAX_ROUTE_LANE: u16 = 3;
+pub const MAX_ROUTE_ID: u16 = 3;
 /// Distance to a waypoint, in milli-units, at which a unit moves on to the next one.
 pub const ROUTE_REACH_MILLI: i32 = 3000;
-/// Bit of a spawn effect's p3 where the lane id starts; the id takes the top two bits.
-pub const LANE_SHIFT: u32 = 30;
+/// Destination requests the log holds between drains. A host that drains every step never reaches it.
+const REQUEST_CAP: usize = 1024;
 
-/// The waypoints of one lane for one player, in milli-units.
+/// The waypoints of one route id for one player, in milli-units.
 #[derive(Clone, Debug, Default)]
 pub struct Route {
     pub player: u16,
-    pub lane: u16,
+    pub id: u16,
     pub points: Vec<(i32, i32)>,
-}
-
-/// The lane id a spawn effect's p3 carries, 0 for none.
-pub(crate) fn lane_of_spec(spec: i32) -> u8 {
-    ((spec as u32) >> LANE_SHIFT) as u8
 }
 
 /// Reads the ROUT section: `(off, count)` locates it in `bytes`; `w` x `h` is the grid and `flags` its cells.
@@ -39,12 +34,12 @@ pub(crate) fn parse_routes(bytes: &[u8], (off, count): (usize, usize), w: usize,
         let rec = bytes.get(at..at + ROUT_RECORD).ok_or(LoadError::Truncated("ROUT record"))?;
         let u16_at = |k: usize| u16::from_le_bytes([rec[k], rec[k + 1]]);
         let u32_at = |k: usize| u32::from_le_bytes([rec[k], rec[k + 1], rec[k + 2], rec[k + 3]]);
-        let (player, lane, points) = (u16_at(0), u16_at(2), u16_at(4) as usize);
-        if player as usize >= MAX_PLAYERS || lane == 0 || lane > MAX_ROUTE_LANE || points == 0 || points > MAX_ROUTE_POINTS {
-            return Err(LoadError::Range("route player, lane or point count"));
+        let (player, id, points) = (u16_at(0), u16_at(2), u16_at(4) as usize);
+        if player as usize >= MAX_PLAYERS || id == 0 || id > MAX_ROUTE_ID || points == 0 || points > MAX_ROUTE_POINTS {
+            return Err(LoadError::Range("route player, id or point count"));
         }
-        if out.iter().any(|r| r.player == player && r.lane == lane) {
-            return Err(LoadError::Range("route repeats a player and lane"));
+        if out.iter().any(|r| r.player == player && r.id == id) {
+            return Err(LoadError::Range("route repeats a player and id"));
         }
         let mut list = Vec::with_capacity(points);
         for k in 0..MAX_ROUTE_POINTS {
@@ -61,60 +56,75 @@ pub(crate) fn parse_routes(bytes: &[u8], (off, count): (usize, usize), w: usize,
             }
             list.push((x as i32, y as i32));
         }
-        out.push(Route { player, lane, points: list });
+        out.push(Route { player, id, points: list });
     }
     Ok(out)
 }
 
-/// Per-unit route progress: the lane id being followed (0 for none) and the index of the next waypoint.
+/// Per-unit route progress (the route id being followed, 0 for none, and the next waypoint index), and the
+/// transient log of destination requests.
 #[derive(Clone, Debug)]
 pub(crate) struct RouteState {
-    pub(crate) lane: Vec<u8>,
+    pub(crate) id: Vec<u8>,
     pub(crate) step: Vec<u8>,
+    /// (unit, player) pairs whose unit needs a destination since the host last drained the log.
+    pub(crate) requests: Vec<(u32, u8)>,
 }
 
 impl RouteState {
     pub(crate) fn new(cap: usize) -> RouteState {
-        RouteState { lane: vec![0; cap], step: vec![0; cap] }
+        RouteState { id: vec![0; cap], step: vec![0; cap], requests: Vec::new() }
     }
 }
 
 impl Sim {
     pub(crate) fn route_clear(&mut self, i: usize) {
-        self.routes.lane[i] = 0;
+        self.routes.id[i] = 0;
         self.routes.step[i] = 0;
     }
 
-    fn route_point(&self, player: u8, lane: u8, step: usize) -> Option<(i32, i32, bool)> {
-        let route = self.cat.routes.iter().find(|r| r.player == player as u16 && r.lane == lane as u16)?;
+    fn route_point(&self, player: u8, id: u8, step: usize) -> Option<(i32, i32, bool)> {
+        let route = self.cat.routes.iter().find(|r| r.player == player as u16 && r.id == id as u16)?;
         let (x, y) = *route.points.get(step)?;
         Some((fixed::from_milli(x), fixed::from_milli(y), step + 1 == route.points.len()))
     }
 
-    /// Sends unit `j` of `player` along that player's route for `lane`. False when the player has no
-    /// such route or the first order is refused; the unit then keeps no route.
-    pub(crate) fn start_route(&mut self, j: usize, player: u8, lane: u8) -> bool {
-        let Some((x, y, _)) = self.route_point(player, lane, 0) else {
+    /// Sends unit `j` of `player` along that player's route `id`. False when the player has no such route
+    /// or the first order is refused; the unit then keeps no route.
+    pub(crate) fn start_route(&mut self, j: usize, player: u8, id: u8) -> bool {
+        let Some((x, y, _)) = self.route_point(player, id, 0) else {
             return false;
         };
         if self.issue_order_kind(j, ORDER_ATTACK_MOVE, x, y).is_err() {
             return false;
         }
-        self.routes.lane[j] = lane;
+        self.routes.id[j] = id;
         self.routes.step[j] = 0;
         true
     }
 
+    /// Asks the host for a destination for unit `j` of `player`. The request is queued, not answered here.
+    pub(crate) fn request_destination(&mut self, j: usize, player: u8) {
+        if self.routes.requests.len() < REQUEST_CAP {
+            self.routes.requests.push((j as u32, player));
+        }
+    }
+
+    /// Takes the destination requests since the last call, oldest first, as (unit, player).
+    pub fn take_destination_requests(&mut self) -> Vec<(usize, u8)> {
+        std::mem::take(&mut self.routes.requests).into_iter().map(|(u, p)| (u as usize, p)).collect()
+    }
+
     /// Advances unit `i` along its route: on reaching the current waypoint, the next one is ordered, or
-    /// after the last the unit marches on the nearest hostile building. A changed order ends the route.
+    /// after the last the unit asks for a destination. A changed order ends the route.
     pub(crate) fn tick_route(&mut self, i: usize) {
-        let lane = self.routes.lane[i];
-        if lane == 0 {
+        let id = self.routes.id[i];
+        if id == 0 {
             return;
         }
         let step = self.routes.step[i] as usize;
         let player = self.player[i];
-        let Some((x, y, last)) = self.route_point(player, lane, step) else {
+        let Some((x, y, last)) = self.route_point(player, id, step) else {
             self.route_clear(i);
             return;
         };
@@ -128,10 +138,10 @@ impl Sim {
         }
         if last {
             self.route_clear(i);
-            self.march_to_enemy_base(i, player);
+            self.request_destination(i, player);
             return;
         }
-        if let Some((nx, ny, _)) = self.route_point(player, lane, step + 1) {
+        if let Some((nx, ny, _)) = self.route_point(player, id, step + 1) {
             if self.issue_order_kind(i, ORDER_ATTACK_MOVE, nx, ny).is_ok() {
                 self.routes.step[i] = (step + 1) as u8;
             }

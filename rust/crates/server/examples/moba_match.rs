@@ -21,7 +21,7 @@ use sim::{Payout, Sim, ABILITY_SLOTS};
 // The gold a payable death should produce, from the mod's formula (mods/moba_match.lua on_died):
 // a hero killer keeps the bounty less the team share and its side gets the share; a creep killer
 // pays the whole bounty to its side; an attackerless death pays the rival side. Each entry is
-// (0 = add_gold | 1 = add_hero_gold, id, amount).
+// (0 = add_gold | 1 = add_unit_gold, id, amount).
 const TEAM_SHARE_PCT: i64 = 20;
 
 fn expected_gold(sim: &Sim, p: &Payout) -> Vec<(u8, i64, i64)> {
@@ -42,14 +42,14 @@ fn expected_gold(sim: &Sim, p: &Payout) -> Vec<(u8, i64, i64)> {
 fn gold_key(c: &Cmd) -> Option<(u8, i64, i64)> {
     match c {
         Cmd::AddGold { player, amount } => Some((0, *player as i64, *amount as i64)),
-        Cmd::AddHeroGold { unit, amount } => Some((1, *unit as i64, *amount as i64)),
+        Cmd::AddUnitGold { unit, amount } => Some((1, *unit as i64, *amount as i64)),
         _ => None,
     }
 }
 
 fn print_gold(sim: &Sim, heroes: &[usize], label: &str) {
     for &h in heroes {
-        println!("gold {label} hero={h} side={} gold={}", side(sim.player(h)), sim.hero_gold(h));
+        println!("gold {label} hero={h} side={} gold={}", side(sim.player(h)), sim.unit_gold(h));
     }
     let mut players: Vec<u8> = heroes.iter().map(|&h| sim.player(h)).collect();
     players.sort();
@@ -322,11 +322,11 @@ fn main() {
             }
             cmds.extend(host.take_commands());
             for c in &cmds {
-                if let Cmd::AddHeroGold { unit, amount } = c {
+                if let Cmd::AddUnitGold { unit, amount } = c {
                     if !sim.is_hero(*unit as usize) {
                         hero_miss += 1;
                     } else if *amount > 0 && seen.first("bounty") {
-                        println!("milestone bounty tick={t} killer={unit} gold={}", sim.hero_gold(*unit as usize));
+                        println!("milestone bounty tick={t} killer={unit} gold={}", sim.unit_gold(*unit as usize));
                     }
                 }
                 if let Some((kind, _, _)) = gold_key(c) {
@@ -337,7 +337,7 @@ fn main() {
         }
 
         for &h in &heroes {
-            gold_before[h] = sim.hero_gold(h);
+            gold_before[h] = sim.unit_gold(h);
         }
         rec.tick(&mut sim, true, true);
         if modded.is_some() {
@@ -352,7 +352,7 @@ fn main() {
             let killer = ev.killer as usize;
             let victim = ev.victim as usize;
             if sim.is_hero(killer) && sim.hostile(ev.killer_player, ev.victim_player) {
-                let gold = sim.hero_gold(killer);
+                let gold = sim.unit_gold(killer);
                 if gold > gold_before[killer] && seen.first("bounty") {
                     println!("milestone bounty tick={} killer={killer} gold={gold}", ev.tick);
                 }
@@ -386,7 +386,7 @@ fn main() {
         eprintln!("tally player={} kills={} deaths={}", t.player, t.kills, t.deaths);
     }
     for &h in &heroes {
-        eprintln!("hero={h} side={} alive={} gold={} hp={}", side(sim.player(h)), sim.alive(h), sim.hero_gold(h), sim.hp(h));
+        eprintln!("hero={h} side={} alive={} gold={} hp={}", side(sim.player(h)), sim.alive(h), sim.unit_gold(h), sim.hp(h));
     }
     for j in 0..sim.count() {
         if is_roshan(&sim, j) {

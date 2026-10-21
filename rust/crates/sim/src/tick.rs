@@ -114,8 +114,6 @@ impl Sim {
         self.tick_camps();
         self.tick_wards();
         self.tick_spells();
-        self.tick_couriers();
-        self.tick_stock();
         for i in 0..self.n {
             if self.alive[i] == 0 {
                 continue;
@@ -130,6 +128,7 @@ impl Sim {
             }
             self.regen_shield(i);
             self.regen_health(i);
+            self.tick_healing(i);
             if self.channel_left[i] > 0 {
                 self.tick_channel(i);
                 continue;

@@ -577,21 +577,21 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let mut routes = Vec::with_capacity(routes_raw.len());
     let mut route_keys = HashSet::new();
     for raw in &routes_raw {
-        if !route_keys.insert((raw.player, raw.lane)) {
-            bail!("route for player {} lane {} is declared twice", raw.player, raw.lane);
+        if !route_keys.insert((raw.player, raw.id)) {
+            bail!("route for player {} id {} is declared twice", raw.player, raw.id);
         }
         let mut points = Vec::with_capacity(raw.points.len());
         for (k, &(x, y)) in raw.points.iter().enumerate() {
             if !position_on_grid(x as i64, y as i64, grid.width, grid.height, grid.cell_milli) {
-                bail!("route player {} lane {} point {k} ({x}, {y}) is off the grid", raw.player, raw.lane);
+                bail!("route player {} id {} point {k} ({x}, {y}) is off the grid", raw.player, raw.id);
             }
             let cell = (y as u32 / grid.cell_milli) as usize * grid.width as usize + (x as u32 / grid.cell_milli) as usize;
             if grid.cells[cell] & CELL_BLOCKED != 0 {
-                bail!("route player {} lane {} point {k} ({x}, {y}) is on a blocked cell", raw.player, raw.lane);
+                bail!("route player {} id {} point {k} ({x}, {y}) is on a blocked cell", raw.player, raw.id);
             }
             points.push((x as u32, y as u32));
         }
-        routes.push(Route { player: raw.player as u16, lane: raw.lane as u16, points });
+        routes.push(Route { player: raw.player as u16, id: raw.id as u16, points });
     }
 
     name_index("item", items_raw.iter().map(|i| i.name.as_str()))?;
@@ -668,7 +668,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     })
 }
 
-/// Whether a spawn p3 wave spec (see sim waves.rs: two kind fields of 10 bits, two tag fields of 5 bits, the route lane in the top two bits)
+/// Whether a spawn p3 wave spec (see sim waves.rs: two kind fields of 10 bits, two tag fields of 5 bits, the route id in the top two bits)
 /// names only existing units and filter bits.
 fn wave_spec_fits(spec: i32, units: usize) -> bool {
     let spec = (spec as u32 & 0x3FFF_FFFF) as i32;

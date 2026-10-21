@@ -438,6 +438,11 @@ impl Room {
         }
         let clock = &mut *c;
         clock.rec.tick(&mut clock.sim, run_paths, run_vision);
+        // The sim's trade and delivery requests go to the mod, which answers them through the link.
+        let requests = clock.sim.drain_requests();
+        if let Some(link) = lock(&self.feed).clone() {
+            link.push_requests(requests);
+        }
         self.log_hash_loss(&mut clock.rec);
         let deaths = clock.sim.drain_payouts();
         if let Some(link) = lock(&self.feed).clone() {
@@ -478,9 +483,9 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
     let applied = cmds.len();
     for cmd in cmds {
         match cmd {
-            Cmd::Spawn { handle, index, x, y, owner, lane } => match u32::try_from(index) {
+            Cmd::Spawn { handle, index, x, y, owner, route } => match u32::try_from(index) {
                 Err(_) => crate::emit!(Ev::ModUnitRefused, handle = handle, reason = "index_out_of_range"),
-                Ok(index) => match rec.spawn(sim, handle, index, x, y, owner, lane) {
+                Ok(index) => match rec.spawn(sim, handle, index, x, y, owner, route) {
                     Some(unit) => {
                         handles.insert(handle, unit);
                         crate::emit!(Ev::ModUnitBound, handle = handle, unit = unit);
@@ -560,6 +565,20 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
                     rec.apply(sim, Command::Unstash { unit, slot });
                 }
             }
+            Cmd::Trade { verdict } => {
+                rec.apply(sim, Command::Trade { verdict });
+            }
+            Cmd::PackStash { unit } => {
+                if sim.alive(unit) {
+                    rec.apply(sim, Command::PackStash { unit });
+                }
+            }
+            Cmd::SaveOrder { unit, x, y } => {
+                rec.apply(sim, Command::SaveOrder { unit, x, y });
+            }
+            Cmd::RestoreOrder { unit } => {
+                rec.apply(sim, Command::RestoreOrder { unit });
+            }
             Cmd::SetOwner { unit, player } => {
                 rec.apply(sim, Command::SetOwner { unit, player });
             }
@@ -599,6 +618,21 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
             Cmd::SetReduction { unit, pct } => match u32::try_from(unit) {
                 Ok(unit) => {
                     rec.apply(sim, Command::Reduction { unit, pct });
+                }
+                Err(_) => refuse_out_of_range(unit),
+            },
+            Cmd::SetHealing { unit, hp_per_s } => match u32::try_from(unit) {
+                Ok(unit) => {
+                    rec.apply(sim, Command::Healing { unit, hp_per_s });
+                }
+                Err(_) => refuse_out_of_range(unit),
+            },
+            Cmd::DeclareSide { side } => {
+                rec.apply(sim, Command::DeclareSide { side });
+            }
+            Cmd::AttackMove { unit, x, y } => match u32::try_from(unit) {
+                Ok(unit) => {
+                    rec.apply(sim, Command::AttackMove { unit, x, y });
                 }
                 Err(_) => refuse_out_of_range(unit),
             },
@@ -642,8 +676,8 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
             Cmd::AddGold { player, amount } => {
                 rec.apply(sim, Command::AddGold { player, amount });
             }
-            Cmd::AddHeroGold { unit, amount } => {
-                rec.apply(sim, Command::AddHeroGold { unit, amount });
+            Cmd::AddUnitGold { unit, amount } => {
+                rec.apply(sim, Command::AddUnitGold { unit, amount });
             }
             Cmd::Victory { player } => {
                 rec.apply(sim, Command::Victory { player });

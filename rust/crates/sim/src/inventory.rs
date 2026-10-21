@@ -1,8 +1,8 @@
 //! Inventory: a fixed number of item slots per unit, stored struct-of-arrays like every other
 //! per-unit component. A slot holds an item kind (a catalog id, 0 when empty) and a count.
 //! Nothing here names a kind, so any item fits any slot. A slot's count is 0 exactly when its
-//! kind is 0. The stash is a second bank of the same shape: see `stash_slot`. Shop purchases
-//! use `item_kind` for the id and put one item per slot (a stackable item adds charges to a stack).
+//! kind is 0. The stash is a second bank of the same shape: see `stash_slot`. Store purchases
+//! use `item_kind` for the id (see store.rs) and put one item per slot (a stackable item adds charges to a stack).
 //!
 //! A unit has ten slots: six main (`0..MAIN_SLOTS`), three backpack and one neutral. Items in the
 //! main slots and the neutral slot are active: they add their stat bonuses and cast their abilities.
@@ -34,13 +34,10 @@ pub(crate) const ITEM_FLAG_NO_BUY: u16 = 4;
 pub(crate) const ITEM_FLAG_NO_SELL: u16 = 8;
 pub(crate) const ITEM_FLAG_ENHANCEMENT: u16 = 16;
 pub(crate) const ITEM_FLAG_MASK: u16 = 31;
-pub(crate) const ITEM_SHOP_MASK: u8 = 7;
+pub(crate) const ITEM_STORE_MASK: u8 = 7;
 pub(crate) const NEUTRAL_TIERS: u8 = 5;
 /// Seconds a reincarnating hero is gone (reincarnate_time of item_aegis, items.txt @282fad29f0f74504fad465c52d197fb61f4d612b).
 pub(crate) const REINCARNATE_S: i32 = 5;
-pub(crate) const SHOP_HOME: u8 = 1;
-pub(crate) const SHOP_SIDE: u8 = 2;
-pub(crate) const SHOP_SECRET: u8 = 4;
 
 /// Indices into `Item::stats`, in the order of `ITEM_STATS` in the data crate.
 pub(crate) const STAT_ARMOR: usize = 0;

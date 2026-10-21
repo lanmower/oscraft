@@ -1,21 +1,22 @@
-//! Heroes: units that respawn after a death timer, buy back for gold, and earn passive gold.
-//! Every timer and cost is in `HeroRules`, read from a `key=value` text file by
-//! `Sim::set_hero_rules_text` (scenarios/moba/hero_rules.txt). Seconds convert to ticks at
-//! `TICKS_PER_SECOND`. UNVERIFIED: the default values are placeholders, not sourced reference ruleset numbers.
+//! Attributed units: per-type attribute data (three attributes with a base and a growth each, the
+//! primary attribute, mana, regeneration, armour, damage and base attack time) and the stats those
+//! attributes drive. The rules are read from a `key=value` text file by `Sim::set_hero_rules_text`
+//! (scenarios/moba/hero_rules.txt). A dead attributed unit waits for a respawn decision: its respawn
+//! time comes from the mod (`set_respawn`, called by `on_unit_died`), never from a rule here.
+//! Buyback costs and the passive gold rate are also rules here until a mod can trigger them.
 
 use crate::arrays::Sim;
 use crate::fixed;
 use crate::{ABILITY_SLOTS, TICKS_PER_SECOND};
 
-/// Damage per strength point of an item bonus (a strength hero); a hero's own damage uses its primary attribute.
-pub(crate) const DAMAGE_PER_STR: i32 = 1;
-/// Attribute coefficients (health per strength, armour per agility, mana per intelligence, universal damage
-/// share, buyback net worth share) are `HeroRules` fields read from hero_rules.txt. Attributes and per-hero data are hundredths.
+/// Attribute coefficients (health per attribute a, armour per attribute b, mana per attribute c, universal
+/// damage share, buyback net worth share) are `HeroRules` fields read from hero_rules.txt. Attributes and
+/// per-unit data are hundredths.
 const MANA_BASE_DEFAULT: i32 = 75;
 
-/// Per hero type data of a `hero <unit> key=value ...` line in the rules text, written by
+/// Per unit type attribute data of a `hero <unit> key=value ...` line in the rules text, written by
 /// scripts/gen-heroes.mjs from npc_heroes. Attributes, gains, armor, damage and mana regeneration are
-/// hundredths; `primary` is 0 strength, 1 agility, 2 intelligence, 3 universal; `bat` is the base attack
+/// hundredths; `primary` is the index of the attribute that drives damage (0 a, 1 b, 2 c, 3 all three); `bat` is the base attack
 /// time in hundredths of a second (0 keeps the unit's weapon period); `damage` is the min/max midpoint
 /// (0 keeps the unit's weapon damage).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -44,9 +45,9 @@ impl HeroDef {
                 "str" => d.base[0] = v,
                 "agi" => d.base[1] = v,
                 "int" => d.base[2] = v,
-                "str_gain" => d.gain[0] = v,
-                "agi_gain" => d.gain[1] = v,
-                "int_gain" => d.gain[2] = v,
+                "attr_a_gain" => d.gain[0] = v,
+                "attr_b_gain" => d.gain[1] = v,
+                "attr_c_gain" => d.gain[2] = v,
                 "mana" => d.mana = v,
                 "mana_regen" => d.mana_regen = v,
                 "hp_regen" => d.hp_regen = v,
@@ -64,6 +65,8 @@ impl HeroDef {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HeroRules {
+    /// Respawn fallback for a dead hero when no mod decides (on_unit_died answers with SetRespawn otherwise):
+    /// base + per level seconds, capped.
     pub respawn_base_s: i32,
     pub respawn_per_level_s: i32,
     pub respawn_cap_s: i32,
@@ -73,12 +76,12 @@ pub struct HeroRules {
     pub passive_gold_per_s: i32,
     pub team_share_pct: i32,
     /// Attributes at level 0, then the growth per level. UNVERIFIED growth values: placeholders.
-    pub str_base: i32,
-    pub agi_base: i32,
-    pub int_base: i32,
-    pub str_gain: i32,
-    pub agi_gain: i32,
-    pub int_gain: i32,
+    pub attr_a_base: i32,
+    pub attr_b_base: i32,
+    pub attr_c_base: i32,
+    pub attr_a_gain: i32,
+    pub attr_b_gain: i32,
+    pub attr_c_gain: i32,
     /// Target priority and aggro (aggro.rs): 1 turns it on. Hold time of a drawn aggro target, seconds.
     pub aggro_priority: bool,
     /// Whether any damage ends a channel (1, the default) or only a stun, hex or silence does (0, as in reference).
@@ -106,11 +109,11 @@ pub struct HeroRules {
     pub move_speed_min: i32,
     pub hex_speed_milli: i32,
     /// Attribute coefficients (see the attribute notes in hero_rules.txt).
-    pub hp_per_str: i32,
-    pub armour_per_agi_div: i32,
-    pub hp_regen_per_str_x100: i32,
-    pub mana_per_int: i32,
-    pub mana_regen_per_int_x100: i32,
+    pub hp_per_attr_a: i32,
+    pub armour_per_attr_b_div: i32,
+    pub hp_regen_per_attr_a_x100: i32,
+    pub mana_per_attr_c: i32,
+    pub mana_regen_per_attr_c_x100: i32,
     pub universal_damage_pct: i32,
 }
 
@@ -127,11 +130,11 @@ const REQUIRED_KEYS: &[&str] = &[
     "move_speed_max",
     "move_speed_min",
     "hex_speed_milli",
-    "hp_per_str",
-    "armour_per_agi_div",
-    "hp_regen_per_str_x100",
-    "mana_per_int",
-    "mana_regen_per_int_x100",
+    "hp_per_attr_a",
+    "armour_per_attr_b_div",
+    "hp_regen_per_attr_a_x100",
+    "mana_per_attr_c",
+    "mana_regen_per_attr_c_x100",
     "universal_damage_pct",
 ];
 
@@ -146,12 +149,12 @@ impl Default for HeroRules {
             buyback_cooldown_s: 150,
             passive_gold_per_s: 1,
             team_share_pct: 20,
-            str_base: 0,
-            agi_base: 0,
-            int_base: 0,
-            str_gain: 2,
-            agi_gain: 1,
-            int_gain: 1,
+            attr_a_base: 0,
+            attr_b_base: 0,
+            attr_c_base: 0,
+            attr_a_gain: 2,
+            attr_b_gain: 1,
+            attr_c_gain: 1,
             aggro_priority: false,
             channel_damage_interrupt: true,
             aggro_hold_s: 3,
@@ -171,11 +174,11 @@ impl Default for HeroRules {
             move_speed_max: 550,
             move_speed_min: 100,
             hex_speed_milli: 137,
-            hp_per_str: 22,
-            armour_per_agi_div: 6,
-            hp_regen_per_str_x100: 10,
-            mana_per_int: 12,
-            mana_regen_per_int_x100: 5,
+            hp_per_attr_a: 22,
+            armour_per_attr_b_div: 6,
+            hp_regen_per_attr_a_x100: 10,
+            mana_per_attr_c: 12,
+            mana_regen_per_attr_c_x100: 5,
             universal_damage_pct: 70,
         }
     }
@@ -209,12 +212,12 @@ impl HeroRules {
                 "buyback_cooldown_s" => &mut next.buyback_cooldown_s,
                 "passive_gold_per_s" => &mut next.passive_gold_per_s,
                 "team_share_pct" => &mut next.team_share_pct,
-                "str_base" => &mut next.str_base,
-                "agi_base" => &mut next.agi_base,
-                "int_base" => &mut next.int_base,
-                "str_gain" => &mut next.str_gain,
-                "agi_gain" => &mut next.agi_gain,
-                "int_gain" => &mut next.int_gain,
+                "attr_a_base" => &mut next.attr_a_base,
+                "attr_b_base" => &mut next.attr_b_base,
+                "attr_c_base" => &mut next.attr_c_base,
+                "attr_a_gain" => &mut next.attr_a_gain,
+                "attr_b_gain" => &mut next.attr_b_gain,
+                "attr_c_gain" => &mut next.attr_c_gain,
                 "channel_damage_interrupt" => {
                     if !(0..=1).contains(&v) {
                         return false;
@@ -245,11 +248,11 @@ impl HeroRules {
                 "move_speed_max" => &mut next.move_speed_max,
                 "move_speed_min" => &mut next.move_speed_min,
                 "hex_speed_milli" => &mut next.hex_speed_milli,
-                "hp_per_str" => &mut next.hp_per_str,
-                "armour_per_agi_div" => &mut next.armour_per_agi_div,
-                "hp_regen_per_str_x100" => &mut next.hp_regen_per_str_x100,
-                "mana_per_int" => &mut next.mana_per_int,
-                "mana_regen_per_int_x100" => &mut next.mana_regen_per_int_x100,
+                "hp_per_attr_a" => &mut next.hp_per_attr_a,
+                "armour_per_attr_b_div" => &mut next.armour_per_attr_b_div,
+                "hp_regen_per_attr_a_x100" => &mut next.hp_regen_per_attr_a_x100,
+                "mana_per_attr_c" => &mut next.mana_per_attr_c,
+                "mana_regen_per_attr_c_x100" => &mut next.mana_regen_per_attr_c_x100,
                 "universal_damage_pct" => &mut next.universal_damage_pct,
                 _ => return false,
             };
@@ -266,12 +269,12 @@ impl HeroRules {
             next.buyback_per_level,
             next.buyback_cooldown_s,
             next.passive_gold_per_s,
-            next.str_base,
-            next.agi_base,
-            next.int_base,
-            next.str_gain,
-            next.agi_gain,
-            next.int_gain,
+            next.attr_a_base,
+            next.attr_b_base,
+            next.attr_c_base,
+            next.attr_a_gain,
+            next.attr_b_gain,
+            next.attr_c_gain,
             next.aggro_hold_s,
             next.backdoor_radius_milli,
             next.backdoor_activation_s,
@@ -327,8 +330,9 @@ impl HeroState {
 }
 
 impl Sim {
-    /// Spawns a hero of unit type `kind` for `player` at a Q16.16 point; that point is its home.
-    pub fn spawn_hero(&mut self, player: u8, kind: u32, x: i32, y: i32) -> Option<usize> {
+    /// Spawns unit type `kind` for `player` at a Q16.16 point with the attribute data of its type (a hero: the
+    /// `hero` line of the rules); that point is its home.
+    pub fn spawn_attributed(&mut self, player: u8, kind: u32, x: i32, y: i32) -> Option<usize> {
         let i = self.spawn_for(player, kind, x, y)?;
         self.enroll_hero(i, x, y);
         Some(i)
@@ -382,7 +386,7 @@ impl Sim {
             return [0, 1, 2].map(|k| (d.base[k] as i64 + d.gain[k] as i64 * lvl) as i32);
         }
         let r = self.heroes.rules;
-        let whole = [r.str_base + r.str_gain * lvl as i32, r.agi_base + r.agi_gain * lvl as i32, r.int_base + r.int_gain * lvl as i32];
+        let whole = [r.attr_a_base + r.attr_a_gain * lvl as i32, r.attr_b_base + r.attr_b_gain * lvl as i32, r.attr_c_base + r.attr_c_gain * lvl as i32];
         whole.map(|v| v * 100)
     }
 
@@ -397,7 +401,7 @@ impl Sim {
             return 0;
         }
         let base = self.hero_def(i).map_or(MANA_BASE_DEFAULT, |d| d.mana) as i64;
-        let per_int = self.heroes.rules.mana_per_int as i64;
+        let per_int = self.heroes.rules.mana_per_attr_c as i64;
         (base + per_int * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MAX_MANA)
     }
 
@@ -407,7 +411,7 @@ impl Sim {
             return 0;
         }
         let base = self.hero_def(i).map_or(0, |d| d.mana_regen) as i64;
-        let per_int = self.heroes.rules.mana_regen_per_int_x100 as i64;
+        let per_int = self.heroes.rules.mana_regen_per_attr_c_x100 as i64;
         (base + per_int * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MANA_REGEN)
     }
 
@@ -448,10 +452,10 @@ impl Sim {
         let [s, a, n] = self.hero_attributes_x100(i).map(|v| v as i64);
         let q16 = |x100: i64| (x100 * fixed::ONE as i64 / 100) as i32;
         let old_max = self.hp_max[i];
-        let new_max = fixed::from_int(def.health + self.stat(i, crate::spell::S_HEALTH)).saturating_add(q16(r.hp_per_str as i64 * s));
+        let new_max = fixed::from_int(def.health + self.stat(i, crate::spell::S_HEALTH)).saturating_add(q16(r.hp_per_attr_a as i64 * s));
         self.hp_max[i] = new_max;
         self.hp[i] = (self.hp[i] + (new_max - old_max)).clamp(0, new_max);
-        let armor_x100 = hd.map_or(def.armor as i64 * 100, |d| d.armor as i64) + a / r.armour_per_agi_div as i64;
+        let armor_x100 = hd.map_or(def.armor as i64 * 100, |d| d.armor as i64) + a / r.armour_per_attr_b_div as i64;
         self.armor[i] = q16(armor_x100);
         if def.has_weapon() {
             let primary = hd.map_or(0, |d| d.primary);
@@ -481,7 +485,7 @@ impl Sim {
     /// Zero for a non-hero.
     pub(crate) fn hero_regen_per_tick(&self, i: usize) -> i32 {
         let s = self.hero_attributes_x100(i)[0] as i64;
-        let per_str = self.heroes.rules.hp_regen_per_str_x100 as i64;
+        let per_str = self.heroes.rules.hp_regen_per_attr_a_x100 as i64;
         let from_str = s * per_str * fixed::ONE as i64 / (100 * 100 * TICKS_PER_SECOND as i64);
         let from_stat = self.stat(i, crate::spell::S_HEALTH_REGEN) as i64 * fixed::ONE as i64 / (100 * TICKS_PER_SECOND as i64);
         (from_str + from_stat) as i32
@@ -551,7 +555,7 @@ impl Sim {
     }
 
     /// Gold held by hero `i`; 0 for a non-hero.
-    pub fn hero_gold(&self, i: usize) -> i32 {
+    pub fn unit_gold(&self, i: usize) -> i32 {
         if self.is_hero(i) { self.heroes.gold[i] } else { 0 }
     }
 
@@ -608,7 +612,8 @@ impl Sim {
         true
     }
 
-    /// Books the death timer of hero `j`: base plus a per-level add, capped.
+    /// Books the death timer of hero `j`: the rule's base plus a per-level add, capped. A mod's
+    /// `on_unit_died` decision replaces it through `set_hero_respawn`.
     pub(crate) fn hero_died(&mut self, j: usize) {
         if !self.is_hero(j) {
             return;
@@ -620,9 +625,23 @@ impl Sim {
         self.heroes.respawn_at[j] = self.ticks.wrapping_add((secs * TICKS_PER_SECOND) as u32);
     }
 
-    /// Pays a kill bounty to killer unit `k`: the team share goes to its side's resource pool, the
-    /// rest to the unit's gold slot. UNVERIFIED: team_share_pct default 20 is a placeholder.
-    pub(crate) fn hero_bounty(&mut self, k: usize, bounty: i32) {
+    /// Sets the respawn of dead hero `i` (the `set_respawn` primitive): `Some(s)` revives it `s` seconds
+    /// from now at its home, `None` leaves it dead. Refused for a live unit, a non-hero, or a hero that is
+    /// reincarnating (its aegis timer owns it).
+    pub(crate) fn set_hero_respawn(&mut self, i: usize, delay_s: Option<u32>) -> Result<(), &'static str> {
+        if !self.is_hero(i) || self.alive(i) || self.heroes.waiting[i] != 1 {
+            return Err("not a dead hero");
+        }
+        self.heroes.respawn_at[i] = match delay_s {
+            Some(s) => self.ticks.wrapping_add(s.saturating_mul(TICKS_PER_SECOND as u32)),
+            None => u32::MAX,
+        };
+        Ok(())
+    }
+
+    /// Credits a kill bounty to killer unit `k` (the engine fallback when no mod owns kill gold): the team
+    /// share goes to its side's resource pool, the rest to the unit's gold. The share is the `team_share_pct` rule.
+    pub(crate) fn credit_kill_gold(&mut self, k: usize, bounty: i32) {
         let share = bounty * self.heroes.rules.team_share_pct / 100;
         self.heroes.gold[k] = self.heroes.gold[k].saturating_add(bounty - share);
         let side = self.player[k];

@@ -1,4 +1,4 @@
-//! Target priority, hero aggro, backdoor protection and the team glyph. Roles come from unit filters,
+//! Target priority, hero aggro, and the per-unit protection and healing state a mod sets. Roles come from unit filters,
 //! never from names: a structure is a unit carrying the structure filter, a hero is `Sim::is_hero`,
 //! anything else is a plain unit. Every rule is off until `HeroRules` turns it on.
 //!
@@ -9,21 +9,17 @@
 //! time are recalled reference ruleset behaviour, not in the dump (SteamDatabase tracking repo
 //! @282fad29f0f74504fad465c52d197fb61f4d612b has no targeting keys).
 //!
-//! Damage reduction and invulnerability are per-unit state a mod sets (`set_damage_reduction`,
-//! `set_invulnerable`). The engine applies no reduction by default. Any rule that decides when a unit
-//! is protected (a structure's backdoor, a timed shield) is mod code that reads `units_near` and sets this state.
+//! Damage reduction, invulnerability and healing are per-unit state a mod sets (`set_damage_reduction`,
+//! `set_invulnerable`, `set_healing`). The engine applies none of them by default. Any rule that decides
+//! when a unit is protected or healed (a structure's guard, a timed shield, a team's glyph) is mod code
+//! that reads `units_near` or `filter_bits` and sets this state.
 //!
-//! Glyph: the `glyph` effect makes every friendly unit of the caster's team whose filter holds all
-//! `need` bits and none of the `skip` bits take no damage for a duration, then locks the team out for
-//! a cooldown. Duration, cooldown and filters are the effect's parameters.
-//!
-//! Aggro, backdoor stamps and glyph timers are sim state: hashed and saved with the rest.
+//! Aggro and this per-unit state are sim state: hashed and saved with the rest.
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::loader::FILTER_STRUCTURE;
-use crate::rules::Refusal;
-use crate::{MAX_PLAYERS, TICKS_PER_SECOND};
+use crate::TICKS_PER_SECOND;
 
 #[derive(Clone, Debug)]
 pub(crate) struct AggroState {
@@ -33,10 +29,8 @@ pub(crate) struct AggroState {
     pub(crate) invuln_until: Vec<u32>,
     /// Percent of incoming damage removed per unit (0..=100), set by a mod.
     pub(crate) reduce_pct: Vec<u8>,
-    pub(crate) glyph_until: Vec<u32>,
-    pub(crate) glyph_ready: Vec<u32>,
-    pub(crate) glyph_need: Vec<u32>,
-    pub(crate) glyph_skip: Vec<u32>,
+    /// Healing per second per unit (fixed-point life), set by a mod. Applied every tick while the unit lives.
+    pub(crate) heal: Vec<i32>,
     /// The enemy each unit last auto-attacked, -1 for none. Kept while it lives and stays in reach.
     pub(crate) strike: Vec<i32>,
     /// Spawn generation of each slot, bumped by every spawn into it. A sticky target is only that same
@@ -59,10 +53,7 @@ impl AggroState {
             until: vec![0; cap],
             invuln_until: vec![0; cap],
             reduce_pct: vec![0; cap],
-            glyph_until: vec![0; MAX_PLAYERS],
-            glyph_ready: vec![0; MAX_PLAYERS],
-            glyph_need: vec![0; MAX_PLAYERS],
-            glyph_skip: vec![0; MAX_PLAYERS],
+            heal: vec![0; cap],
             strike: vec![-1; cap],
             spawn_gen: vec![0; cap],
             strike_gen: vec![0; cap],
@@ -80,6 +71,7 @@ impl Sim {
         self.aggro.spawn_gen[i] = self.aggro.spawn_gen[i].wrapping_add(1);
         self.aggro.invuln_until[i] = 0;
         self.aggro.reduce_pct[i] = 0;
+        self.aggro.heal[i] = 0;
     }
 
     /// The unit unit `i` last struck, -1 when none or when that slot has been spawned into since.
@@ -156,13 +148,13 @@ impl Sim {
         }
     }
 
-    /// Damage `dmg` to unit `j` after the glyph, the mod's invulnerability and the mod's damage reduction.
+    /// Damage `dmg` to unit `j` after the mod's invulnerability and the mod's damage reduction.
     /// With no mod state set this returns `dmg`.
     pub(crate) fn mitigate_mech(&self, j: usize, dmg: i32) -> i32 {
         if dmg <= 0 {
             return dmg;
         }
-        if self.glyph_protects(j) || self.ticks < self.aggro.invuln_until.get(j).copied().unwrap_or(0) {
+        if self.ticks < self.aggro.invuln_until.get(j).copied().unwrap_or(0) {
             return 0;
         }
         let pct = self.aggro.reduce_pct.get(j).copied().unwrap_or(0) as i64;
@@ -172,46 +164,32 @@ impl Sim {
         dmg
     }
 
-    fn team_slot(&self, p: u8) -> usize {
-        (self.team[(p as usize).min(MAX_PLAYERS - 1)] as usize).min(MAX_PLAYERS - 1)
-    }
-
-    /// Whether the glyph of unit `j`'s team is running and covers it.
-    pub fn glyph_protects(&self, j: usize) -> bool {
-        let t = self.team_slot(self.player[j]);
-        let a = &self.aggro;
-        self.ticks < a.glyph_until[t]
-            && a.glyph_need[t] != 0
-            && self.filter[j] & a.glyph_need[t] == a.glyph_need[t]
-            && self.filter[j] & a.glyph_skip[t] == 0
-    }
-
-    /// Ticks until the team of `p` may glyph again; 0 when ready.
-    pub fn glyph_cooldown_left(&self, p: u8) -> i32 {
-        self.aggro.glyph_ready[self.team_slot(p)].saturating_sub(self.ticks) as i32
-    }
-
-    /// The `glyph` effect: p0 duration ticks, p1 team cooldown ticks, p2 filter bits a covered unit
-    /// must hold, p3 filter bits it must not hold. A team still on cooldown is refused.
-    pub(crate) fn glyph_effect(&mut self, caster: usize, duration: i32, cooldown: i32, need: i32, skip: i32) {
-        let t = self.team_slot(self.player[caster]);
-        if self.ticks < self.aggro.glyph_ready[t] {
-            self.refuse(Refusal::Cooldown);
+    /// Adds the healing a mod set on unit `i` for one tick: its per-second amount spread over the ticks of a
+    /// second, capped at its maximum life. A dead unit heals nothing; a unit with no healing is left alone.
+    pub(crate) fn tick_healing(&mut self, i: usize) {
+        let per_s = self.aggro.heal[i];
+        if per_s <= 0 || self.alive[i] == 0 || self.hp[i] >= self.hp_max[i] {
             return;
         }
-        self.aggro.glyph_until[t] = self.ticks.wrapping_add(duration.max(0) as u32);
-        self.aggro.glyph_ready[t] = self.ticks.wrapping_add(cooldown.max(0) as u32);
-        self.aggro.glyph_need[t] = need as u32;
-        self.aggro.glyph_skip[t] = skip as u32;
-        for i in 0..self.n {
-            if self.alive[i] != 0 && self.team_slot(self.player[i]) == t && self.glyph_protects(i) {
-                self.touch(i);
-            }
-        }
+        let per_tick = per_s / TICKS_PER_SECOND as i32;
+        self.hp[i] = self.hp[i].saturating_add(per_tick).min(self.hp_max[i]);
     }
 }
 
 impl crate::arrays::Sim {
+    /// Sets the healing of unit `i` in whole life per second (0 stops it). A mod's command; the amount is applied
+    /// each tick by `tick_healing`, so a mod that wants a regeneration rule sets it while the rule holds.
+    pub fn set_healing(&mut self, i: usize, hp_per_s: i32) -> Result<(), &'static str> {
+        if i >= self.n {
+            return Err("unknown unit");
+        }
+        if hp_per_s < 0 {
+            return Err("healing out of range");
+        }
+        self.aggro.heal[i] = crate::fixed::from_int(hp_per_s);
+        Ok(())
+    }
+
     /// Makes unit `i` invulnerable for `ticks` ticks from now (a mod's command). Refused for a unit past the cap.
     pub fn set_invulnerable(&mut self, i: usize, ticks: u32) -> Result<(), &'static str> {
         if i >= self.n {
@@ -231,6 +209,11 @@ impl crate::arrays::Sim {
         }
         self.aggro.reduce_pct[i] = pct;
         Ok(())
+    }
+
+    /// The filter bits of unit `i` (a mask over FILTERS indices). A mod reads them to tell structures from buildings.
+    pub fn filter_bits(&self, i: usize) -> u32 {
+        self.filter.get(i).copied().unwrap_or(0)
     }
 
     /// The living units (any owner) whose position lies within `radius` of (`x`, `y`), all in fixed point.

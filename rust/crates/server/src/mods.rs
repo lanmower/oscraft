@@ -10,7 +10,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
 use mod_host::{Cmd, ModHost};
-use sim::Payout;
+use sim::{Payout, Request};
 use crate::log::Ev;
 use crate::room::Room;
 use crate::supervise::{supervise, Outcome};
@@ -27,6 +27,8 @@ pub struct ModLink {
     payouts: Mutex<Vec<Payout>>,
     // Deaths that did not fit the payout queue cap; they move into the queue as it drains, in order.
     payout_carry: Mutex<Vec<Payout>>,
+    // Trade and delivery requests of the room's sim, waiting for the mod thread to answer them.
+    requests: Mutex<Vec<Request>>,
     #[cfg(any(test, feature = "crash-probes"))]
     test_panic_at: AtomicU64,
     image: Mutex<Option<Vec<u8>>>,
@@ -92,6 +94,21 @@ impl ModLink {
         let n = MOD_CMD_QUEUE_CAP.min(carry.len());
         queue.extend(carry.drain(..n));
         taken
+    }
+
+    /// Queues the room's trade and delivery requests for the mod's answer. The queue holds at most the
+    /// cap; the excess is dropped and logged.
+    pub fn push_requests(&self, reqs: Vec<Request>) {
+        let mut queue = self.requests.lock().unwrap_or_else(|p| p.into_inner());
+        let room = MOD_CMD_QUEUE_CAP.saturating_sub(queue.len());
+        if reqs.len() > room {
+            crate::emit!(Ev::ModCmdsDropped, count = reqs.len() - room);
+        }
+        queue.extend(reqs.into_iter().take(room));
+    }
+
+    fn take_requests(&self) -> Vec<Request> {
+        std::mem::take(&mut *self.requests.lock().unwrap_or_else(|p| p.into_inner()))
     }
 
     pub fn stage_image(&self, image: Vec<u8>) {
@@ -184,6 +201,10 @@ fn drive(host: &mut ModHost, link: &ModLink, budget: Duration) {
                 Ok(cmds) => link.push_commands(cmds),
                 Err(e) => crate::emit!(Ev::ModError, tick = ticks, error = e),
             }
+        }
+        // The room's requests are answered in this world; the answers are the room's commands.
+        for req in link.take_requests() {
+            link.push_commands(host.feed_request(&req));
         }
         if let Err(e) = host.advance(&state) {
             crate::emit!(Ev::ModError, tick = ticks, error = e);

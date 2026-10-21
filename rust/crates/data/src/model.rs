@@ -168,7 +168,7 @@ pub struct BehaviourRaw {
 #[derive(Debug)]
 pub struct RouteRaw {
     pub player: i32,
-    pub lane: i32,
+    pub id: i32,
     pub points: Vec<(i32, i32)>,
 }
 
@@ -453,11 +453,11 @@ pub struct Spawn {
     pub flags: u32,
 }
 
-/// The waypoints player `player`'s units follow on lane `lane`, milli-units.
+/// The waypoints player `player`'s units follow on route `id`, milli-units.
 #[derive(Debug, Clone)]
 pub struct Route {
     pub player: u16,
-    pub lane: u16,
+    pub id: u16,
     pub points: Vec<(u32, u32)>,
 }
 

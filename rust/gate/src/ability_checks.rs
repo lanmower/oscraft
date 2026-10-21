@@ -80,7 +80,7 @@ impl World {
     fn hero(&mut self, name: &str, player: u8, dx: i32, dy: i32) -> Result<usize, String> {
         let k = kind(&self.s, name)?;
         let (x, y) = self.at(dx, dy);
-        let h = self.s.spawn_hero(player, k, x, y).ok_or_else(|| format!("spawn_hero refused {name} at ({dx},{dy})"))?;
+        let h = self.s.spawn_attributed(player, k, x, y).ok_or_else(|| format!("spawn_attributed refused {name} at ({dx},{dy})"))?;
         self.s.apply_status(h, DISARM, 1_000_000, fixed::ONE);
         Ok(h)
     }

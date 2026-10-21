@@ -13,7 +13,7 @@ export const heroNamesFromRules = (text) =>
 
 // The picker's roster as name -> type index. A name is kept only when the sim's catalog holds it as a hero kind
 // (heroFlags[index] === 1, the player-controlled flag) and hero_rules.txt declares it. Structures, creeps and every
-// other kind are dropped, and the index is the one spawn_hero takes.
+// other kind are dropped, and the index is the one spawn_attributed takes.
 export function heroKindsFor(typeNames, heroFlags, ruleNames) {
   const kinds = new Map();
   for (const name of ruleNames) {

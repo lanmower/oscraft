@@ -61,7 +61,7 @@ samples.push({
   type: FRAME.ROSTER, you: 7, team: 1,
   players: Array.from({ length: 10 }, (_, p) => ({ slot: p, team: p < 5 ? 0 : 1, connected: p % 2, gold: 500 * p - 1, kills: p, deaths: 65535 - p })),
 });
-samples.push({ type: FRAME.START, seats: Array.from({ length: 10 }, (_, p) => ({ slot: p, owner: `${p}`.repeat(64), hero: 'hero' })) });
+samples.push({ type: FRAME.START, seats: Array.from({ length: 10 }, (_, p) => ({ slot: p, owner: `${p}`.repeat(64), pick: 'hero' })) });
 
 const typesSeen = new Set();
 let roundtrip = 0;

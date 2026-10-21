@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, Value, VmState};
-use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Payout, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
+use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Payout, Refusal, Request, Sim, UnitSpec, UpgradeSpec, Verdict, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, TICKS_PER_SECOND, VERDICT_TAKES};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -72,7 +72,12 @@ pub enum Cmd {
     // A unit's invulnerability for `ticks` ticks from the apply, and its damage reduction in percent.
     SetInvulnerable { unit: usize, ticks: u32 },
     SetReduction { unit: usize, pct: u8 },
-    Spawn { handle: u32, index: usize, x: i32, y: i32, owner: u8, lane: i32 },
+    // A unit's healing in whole life per second (0 stops it), the side a mod's on_check_win declares the winner,
+    // and a move-to-point order that attacks what it meets on the way.
+    SetHealing { unit: usize, hp_per_s: i32 },
+    DeclareSide { side: u8 },
+    AttackMove { unit: usize, x: i32, y: i32 },
+    Spawn { handle: u32, index: usize, x: i32, y: i32, owner: u8, route: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
@@ -85,6 +90,13 @@ pub enum Cmd {
     SkillUp { unit: usize, slot: usize },
     Sell { unit: usize, slot: usize },
     Unstash { unit: usize, slot: usize },
+    // A mod's answer to a trade request, applied as the sim applies it (store.rs).
+    Trade { verdict: Verdict },
+    // Moves every stash item of a unit into its free slots, with no trade check (a delivery).
+    PackStash { unit: usize },
+    // Saves a unit's order point, and orders the unit back to its saved point.
+    SaveOrder { unit: usize, x: i32, y: i32 },
+    RestoreOrder { unit: usize },
     Attack { unit: usize, target: usize },
     SetOwner { unit: usize, player: u8 },
     SetFog { on: bool },
@@ -103,11 +115,18 @@ pub enum Cmd {
     // Puts `count` of catalog item `item` into a living unit's inventory (the sim's grant_item).
     GiveItem { unit: usize, item: usize, count: u32 },
     AddGold { player: u8, amount: i32 },
-    AddHeroGold { unit: usize, amount: i32 },
+    AddUnitGold { unit: usize, amount: i32 },
     Victory { player: u8 },
     Defeat { player: u8 },
     // A client-facing UI event as a JSON object body; the server stamps id and tick and streams it.
     Ui { body: String },
+}
+
+impl Cmd {
+    // A trade request is answered by the world that applies it; only its verdict travels to the room.
+    fn is_trade_request(&self) -> bool {
+        matches!(self, Cmd::Buy { .. } | Cmd::Sell { .. } | Cmd::Unstash { .. })
+    }
 }
 
 // Q16.16 corners, normalized so x0 <= x1 and y0 <= y1.
@@ -155,9 +174,25 @@ struct Hooks {
     // target_priority(unit, candidates, state) returns the target class (0..3) for a unit that drew aggro;
     // nil keeps the Rust rule, false clears an earlier class.
     target_priority: Option<Function>,
+    // on_march(unit, player, state) returns the x, y point a route-ended or summoned unit moves to (nil keeps it
+    // where it stands). on_cast(unit, ability, state) runs when a cast takes hold. on_check_win(state) returns the
+    // winning side, or nil while no side has won. A mod without these callbacks has no march, no cast reaction
+    // and no win.
+    on_march: Option<Function>,
+    on_cast: Option<Function>,
+    on_check_win: Option<Function>,
     on_enter: Option<Function>,
     on_leave: Option<Function>,
     on_player_joined: Option<Function>,
+    // The store rule. on_buy(unit, item, state) returns true, price, takes or false, reason;
+    // on_sell(unit, slot, state) returns true, refund or false, reason; on_unstash(unit, slot, state)
+    // returns true or false, reason. A reason is "no-item", "no-shop", "cannot-afford", "inventory-full"
+    // or "missing-component". A mod without a rule refuses that trade.
+    on_buy: Option<Function>,
+    on_sell: Option<Function>,
+    on_unstash: Option<Function>,
+    // on_deliver(caster, target, reach_milli, state) runs a courier's own logic. It returns nothing.
+    on_deliver: Option<Function>,
     // Runs every trigger registered on the event name it is called with (game.trigger).
     fire: Function,
     systems: Vec<System>,
@@ -314,6 +349,15 @@ fn fixed(v: i64) -> mlua::Result<i32> {
 
 fn invalid_unit(i: i64) -> mlua::Error {
     mlua::Error::RuntimeError(format!("invalid_unit: {i}"))
+}
+
+// A point coordinate a mod returned: an integer in i32 range, or a whole-number float.
+fn point_coord(v: &Value) -> Option<i32> {
+    match v {
+        Value::Integer(n) => i32::try_from(*n).ok(),
+        Value::Number(n) if n.fract() == 0.0 => i32::try_from(*n as i64).ok(),
+        _ => None,
+    }
 }
 
 // A handle cmd_spawn returned. The room maps it to the unit it spawned; the mod never names a room index.
@@ -815,18 +859,18 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     let next_handle = Rc::new(std::cell::Cell::new(0u32));
     game.set(
         "cmd_spawn",
-        lua.create_function(move |_, (kind, x, y, owner, lane): (String, i64, i64, Option<i64>, Option<i64>)| {
+        lua.create_function(move |_, (kind, x, y, owner, route): (String, i64, i64, Option<i64>, Option<i64>)| {
             let index = w
                 .borrow()
                 .catalog()
                 .unit_index(&kind)
                 .ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_unit: {kind}")))?;
             let owner = player_arg(owner.unwrap_or(0))?;
-            let lane = lane.unwrap_or(0);
-            let lane = i32::try_from(lane).map_err(|_| mlua::Error::RuntimeError(format!("invalid_lane: {lane}")))?;
+            let route = route.unwrap_or(0);
+            let route = i32::try_from(route).map_err(|_| mlua::Error::RuntimeError(format!("invalid_route: {route}")))?;
             let handle = next_handle.get() + 1;
             next_handle.set(handle);
-            buf.borrow_mut().push(Cmd::Spawn { handle, index, x: fixed(x)?, y: fixed(y)?, owner, lane });
+            buf.borrow_mut().push(Cmd::Spawn { handle, index, x: fixed(x)?, y: fixed(y)?, owner, route });
             Ok(handle)
         })?,
     )?;
@@ -1212,6 +1256,46 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(())
         })?,
     )?;
+    let buf = cmds.clone();
+    game.set(
+        "set_healing",
+        lua.create_function(move |_, (unit, hp_per_s): (i64, i64)| {
+            let unit = usize::try_from(unit).map_err(|_| invalid_unit(unit))?;
+            let hp_per_s = i32::try_from(hp_per_s).ok().filter(|&h| h >= 0).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_healing: {hp_per_s} is outside 0..=2147483647"))
+            })?;
+            buf.borrow_mut().push(Cmd::SetHealing { unit, hp_per_s });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "declare_side",
+        lua.create_function(move |_, side: i64| {
+            let side = u8::try_from(side).ok().filter(|&s| (s as usize) < MAX_PLAYERS).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_side: {side} is outside 0..{MAX_PLAYERS}"))
+            })?;
+            buf.borrow_mut().push(Cmd::DeclareSide { side });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "attack_move",
+        lua.create_function(move |_, (unit, x, y): (i64, i64, i64)| {
+            let unit = live_unit(&w.borrow(), unit)?;
+            buf.borrow_mut().push(Cmd::AttackMove { unit, x: fixed(x)?, y: fixed(y)? });
+            Ok(())
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "filter_bits",
+        lua.create_function(move |_, unit: i64| {
+            let sim = w.borrow();
+            Ok(sim.filter_bits(known_unit(&sim, unit)?) as i64)
+        })?,
+    )?;
     let (w, buf) = (world.clone(), cmds.clone());
     game.set(
         "ability",
@@ -1420,6 +1504,7 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
                 let Some(item) = (kind as usize).checked_sub(1).and_then(|i| cat.items.get(i)) else { continue };
                 let row = lua.create_table()?;
                 row.set("slot", slot as i64)?;
+                row.set("item", kind as i64 - 1)?;
                 row.set("name", cat.name(item.name))?;
                 row.set("count", i64::from(count))?;
                 row.set("cooldown", i64::from(sim.item_cooldown(u, slot)))?;
@@ -1427,6 +1512,111 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
                 list.raw_set(n, row)?;
             }
             Ok(list)
+        })?,
+    )?;
+    // The store and courier surface (docs/MODDING.md, Stores and carriers). Reads report the sim's
+    // state; the commands queue like the others and take effect in the next command step.
+    let w = world.clone();
+    game.set(
+        "item_info",
+        lua.create_function(move |lua, item: i64| {
+            let sim = w.borrow();
+            let cat = sim.catalog();
+            let Some(it) = usize::try_from(item).ok().and_then(|i| cat.items.get(i)) else {
+                return Ok(Value::Nil);
+            };
+            let t = lua.create_table()?;
+            t.set("name", cat.name(it.name))?;
+            t.set("cost", it.cost)?;
+            t.set("charges", i64::from(it.charges))?;
+            t.set("stack_max", i64::from(it.stack_max))?;
+            t.set("shops", i64::from(it.shops))?;
+            t.set("stock_max", i64::from(it.stock_max))?;
+            t.set("stock_initial", i64::from(it.stock_initial))?;
+            t.set("stock_time_s", i64::from(it.stock_time_s))?;
+            t.set("stock_start_s", i64::from(it.stock_start_s))?;
+            let comps = lua.create_table()?;
+            let mut n = 0i64;
+            for &c in it.components.iter().filter(|&&c| c != NO_COMPONENT) {
+                n += 1;
+                comps.raw_set(n, i64::from(c))?;
+            }
+            t.set("components", comps)?;
+            Ok(Value::Table(t))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "unit_stash",
+        lua.create_function(move |lua, unit: i64| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            let cat = sim.catalog();
+            let list = lua.create_table()?;
+            let mut n = 0i64;
+            for slot in 0..sim.inventory_slots() {
+                let (kind, count) = sim.stash_slot(u, slot);
+                let Some(item) = (kind as usize).checked_sub(1).and_then(|i| cat.items.get(i)) else { continue };
+                let row = lua.create_table()?;
+                row.set("slot", slot as i64)?;
+                row.set("item", kind as i64 - 1)?;
+                row.set("name", cat.name(item.name))?;
+                row.set("count", i64::from(count))?;
+                n += 1;
+                list.raw_set(n, row)?;
+            }
+            Ok(list)
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "doodads_near",
+        lua.create_function(move |lua, (unit, reach): (i64, i64)| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            let reach = i32::try_from(reach).map_err(|_| mlua::Error::RuntimeError(format!("invalid_reach: {reach}")))?;
+            let list = lua.create_table()?;
+            for (n, kind) in sim.doodads_near(u, reach).into_iter().enumerate() {
+                list.raw_set(n as i64 + 1, i64::from(kind))?;
+            }
+            Ok(list)
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "within",
+        lua.create_function(move |_, (unit, x, y, reach): (i64, i64, i64, i64)| {
+            let sim = w.borrow();
+            let u = known_unit(&sim, unit)?;
+            let reach = i32::try_from(reach).map_err(|_| mlua::Error::RuntimeError(format!("invalid_reach: {reach}")))?;
+            Ok(sim.within_reach(u, fixed(x)?, fixed(y)?, reach))
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_pack_stash",
+        lua.create_function(move |_, unit: i64| {
+            let u = live_unit(&w.borrow(), unit)?;
+            buf.borrow_mut().push(Cmd::PackStash { unit: u });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_save_order",
+        lua.create_function(move |_, (unit, x, y): (i64, i64, i64)| {
+            let u = live_unit(&w.borrow(), unit)?;
+            buf.borrow_mut().push(Cmd::SaveOrder { unit: u, x: fixed(x)?, y: fixed(y)? });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_restore_order",
+        lua.create_function(move |_, unit: i64| {
+            let u = live_unit(&w.borrow(), unit)?;
+            buf.borrow_mut().push(Cmd::RestoreOrder { unit: u });
+            Ok(())
         })?,
     )?;
     let (w, buf) = (world.clone(), cmds.clone());
@@ -1447,6 +1637,22 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             let item = sim.catalog().item_index(&name).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_item: {name}")))?;
             let count = u32::try_from(count).ok().filter(|&c| c > 0).ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_count: {count} must be 1 or more")))?;
             buf.borrow_mut().push(Cmd::GiveItem { unit: u, item, count });
+            Ok(())
+        })?,
+    )?;
+    // game.cmd_set_respawn(unit, seconds | false): the respawn decision for a dead unit (false leaves it dead).
+    // The same command on_unit_died returns, so a buyback is a respawn now (0) plus an add_unit_gold.
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_set_respawn",
+        lua.create_function(move |_, (unit, delay): (i64, Value)| {
+            let u = known_unit(&w.borrow(), unit)?;
+            let delay_s = match delay {
+                Value::Boolean(false) => None,
+                Value::Integer(n) if (0..=MAX_RESPAWN_S).contains(&n) => Some(n as u32),
+                other => return Err(mlua::Error::RuntimeError(format!("invalid_respawn: {}", other.type_name()))),
+            };
+            buf.borrow_mut().push(Cmd::SetRespawn { unit: u, delay_s });
             Ok(())
         })?,
     )?;
@@ -1479,11 +1685,11 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     )?;
     let (w, buf) = (world.clone(), cmds.clone());
     game.set(
-        "cmd_add_hero_gold",
+        "cmd_add_unit_gold",
         lua.create_function(move |_, (unit, amount): (i64, i64)| {
-            let u = live_unit(&w.borrow(), unit)?;
+            let u = known_unit(&w.borrow(), unit)?;
             let amount = i32::try_from(amount).map_err(|_| mlua::Error::RuntimeError(format!("invalid_amount: {amount} out of i32 range")))?;
-            buf.borrow_mut().push(Cmd::AddHeroGold { unit: u, amount });
+            buf.borrow_mut().push(Cmd::AddUnitGold { unit: u, amount });
             Ok(())
         })?,
     )?;
@@ -1557,10 +1763,10 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     game.set("gold", lua.create_function(move |_, player: i64| Ok(w.borrow().resource_a(player_arg(player)?) as i64))?)?;
     let w = world.clone();
     game.set(
-        "hero_gold",
+        "unit_gold",
         lua.create_function(move |_, unit: i64| {
             let sim = w.borrow();
-            Ok(sim.hero_gold(known_unit(&sim, unit)?) as i64)
+            Ok(sim.unit_gold(known_unit(&sim, unit)?) as i64)
         })?,
     )?;
     env.set("game", game)
@@ -1674,9 +1880,16 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
         on_died: env.get("on_died")?,
         on_unit_died: env.get("on_unit_died")?,
         target_priority: env.get("target_priority")?,
+        on_march: env.get("on_march")?,
+        on_cast: env.get("on_cast")?,
+        on_check_win: env.get("on_check_win")?,
         on_enter: env.get("on_enter")?,
         on_leave: env.get("on_leave")?,
         on_player_joined: env.get("on_player_joined")?,
+        on_buy: env.get("on_buy")?,
+        on_sell: env.get("on_sell")?,
+        on_unstash: env.get("on_unstash")?,
+        on_deliver: env.get("on_deliver")?,
         fire,
         systems: registered,
         gold_by_mod: env.get::<Option<bool>>("GOLD_BY_MOD")?.unwrap_or(false),
@@ -1944,12 +2157,22 @@ impl ModHost {
     fn apply_commands(&self) {
         let local = std::mem::take(&mut *self.local.borrow_mut());
         let list = std::mem::take(&mut *self.cmds.borrow_mut());
-        self.forward.borrow_mut().extend(list.iter().cloned());
-        let mut sim = self.world.borrow_mut();
-        for cmd in local.into_iter().chain(list) {
+        // A trade request is answered in this world and its verdict forwarded to the room, so the
+        // request itself is not forwarded: the room would answer it a second time.
+        self.forward.borrow_mut().extend(list.iter().filter(|c| !c.is_trade_request()).cloned());
+        for (cmd, from_mod) in local.into_iter().map(|c| (c, false)).chain(list.into_iter().map(|c| (c, true))) {
+            self.apply_one(cmd, from_mod);
+        }
+    }
+
+    // Applies one command to this world, then answers the trade requests it queued. A verdict is
+    // applied here, and forwarded when the request came from the mod's own commands.
+    fn apply_one(&self, cmd: Cmd, from_mod: bool) {
+        let requests = {
+            let mut sim = self.world.borrow_mut();
             match cmd {
-                Cmd::Spawn { index, x, y, owner, lane, .. } => {
-                    let _ = sim.spawn_mod_unit(owner, index as u32, x, y, lane);
+                Cmd::Spawn { index, x, y, owner, route, .. } => {
+                    let _ = sim.spawn_mod_unit(owner, index as u32, x, y, route);
                 }
                 // Handles resolve in the server room, which holds the handle map; this local world has none.
                 Cmd::OrderHandle { .. } | Cmd::DamageHandle { .. } | Cmd::BuffHandle { .. } => {}
@@ -2024,6 +2247,15 @@ impl ModHost {
                 Cmd::SetReduction { unit, pct } => {
                     let _ = sim.set_damage_reduction(unit, pct);
                 }
+                Cmd::SetHealing { unit, hp_per_s } => {
+                    let _ = sim.set_healing(unit, hp_per_s);
+                }
+                Cmd::DeclareSide { side } => sim.declare_side(side),
+                Cmd::AttackMove { unit, x, y } => {
+                    if sim.alive(unit) {
+                        let _ = sim.issue_order_kind(unit, sim::ORDER_ATTACK_MOVE, x, y);
+                    }
+                }
                 Cmd::SetTeam { player, team } => {
                     let _ = sim.set_team(player, team);
                 }
@@ -2053,13 +2285,37 @@ impl ModHost {
                     let _ = sim.grant_item(unit, item, count);
                 }
                 Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
-                Cmd::AddHeroGold { unit, amount } => {
-                    let _ = sim.add_hero_gold(unit, amount);
+                Cmd::AddUnitGold { unit, amount } => {
+                    let _ = sim.add_unit_gold(unit, amount);
                 }
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
                 // UI events live in the server's event stream; the host world has nothing to change.
+                Cmd::Trade { verdict } => {
+                    let _ = sim.apply_verdict(&verdict);
+                }
+                Cmd::PackStash { unit } => {
+                    if sim.alive(unit) {
+                        sim.pack_stash(unit);
+                    }
+                }
+                Cmd::SaveOrder { unit, x, y } => {
+                    let _ = sim.save_order(unit, x, y);
+                }
+                Cmd::RestoreOrder { unit } => {
+                    let _ = sim.restore_order(unit);
+                }
+                // UI events live in the server's event stream; the host world has nothing to change.
                 Cmd::Ui { .. } => {}
+            }
+            sim.drain_requests()
+        };
+        for req in requests {
+            if let Some(verdict) = self.answer(&req) {
+                if from_mod {
+                    self.forward.borrow_mut().push(verdict.clone());
+                }
+                self.apply_one(verdict, false);
             }
         }
     }
@@ -2130,10 +2386,22 @@ impl ModHost {
     fn dispatch(&self) -> mlua::Result<()> {
         // Taken every step, mod or not, so the sim's acquisition log never grows past its cap unread.
         let acquired = self.world.borrow_mut().take_acquisitions();
+        // The destination requests and the casts are taken every step for the same reason.
+        let requests = self.world.borrow_mut().take_destination_requests();
+        let casts = self.world.borrow_mut().take_casts();
         let Some(m) = self.mod_file.as_ref() else { return Ok(()) };
         let hooks = &m.hooks;
         for (unit, target) in acquired {
             self.call_target_priority(hooks, unit, target);
+        }
+        for (unit, player) in requests {
+            self.call_on_march(hooks, unit, player);
+        }
+        for (caster, ability) in casts {
+            self.call_on_cast(hooks, caster, ability);
+        }
+        if self.world.borrow().winner().is_none() {
+            self.call_on_check_win(hooks);
         }
         for &event in self.pending.iter() {
             match event {
@@ -2192,6 +2460,99 @@ impl ModHost {
             }
         }
         Ok(())
+    }
+
+    /// Feeds a trade or courier request from the room to the mod (the room's sim queued it). Returns the
+    /// commands the answer queued, for the room to apply. The same answer is applied to this world, so
+    /// its mirror of the room stays in step; no request is re-answered.
+    pub fn feed_request(&self, req: &Request) -> Vec<Cmd> {
+        let before = self.cmds.borrow().len();
+        let answer = self.answer(req);
+        let mut fed = self.cmds.borrow_mut().split_off(before);
+        fed.extend(answer);
+        for cmd in fed.iter().cloned() {
+            self.apply_one(cmd, false);
+        }
+        fed
+    }
+
+    // Answers one trade or courier request with the mod's rule. A trade's answer is its verdict. A mod
+    // with no rule for a trade refuses it, so nothing is bought by default. A deliver request has no
+    // verdict: its handler queues the courier's commands, which the caller collects.
+    fn answer(&self, req: &Request) -> Option<Cmd> {
+        let hooks = self.mod_file.as_ref().map(|m| &m.hooks);
+        match *req {
+            Request::Buy { unit, item } => {
+                let verdict = match hooks.and_then(|h| h.on_buy.clone()) {
+                    Some(f) => self.buy_verdict(&f, unit, item),
+                    None => Verdict::Buy { unit, item, allow: false, deny: Refusal::NoItem, price: 0, takes: [NO_TAKE; VERDICT_TAKES] },
+                };
+                Some(Cmd::Trade { verdict })
+            }
+            Request::Sell { unit, slot } => {
+                let verdict = match hooks.and_then(|h| h.on_sell.clone()) {
+                    Some(f) => self.sell_verdict(&f, unit, slot),
+                    None => Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 },
+                };
+                Some(Cmd::Trade { verdict })
+            }
+            Request::Unstash { unit, slot } => {
+                let verdict = match hooks.and_then(|h| h.on_unstash.clone()) {
+                    Some(f) => self.unstash_verdict(&f, unit, slot),
+                    None => Verdict::Unstash { unit, slot, allow: false, deny: Refusal::NoItem },
+                };
+                Some(Cmd::Trade { verdict })
+            }
+            Request::Deliver { caster, target, reach_milli } => {
+                if let Some(f) = hooks.and_then(|h| h.on_deliver.clone()) {
+                    if let Err(e) = f.call::<()>((caster as i64, target as i64, i64::from(reach_milli), self.state.clone())) {
+                        println!("ev=mod_hook_failed hook=on_deliver error={:?}", e.to_string());
+                    }
+                }
+                None
+            }
+        }
+    }
+
+    fn buy_verdict(&self, f: &Function, unit: usize, item: usize) -> Verdict {
+        let refuse = |deny| Verdict::Buy { unit, item, allow: false, deny, price: 0, takes: [NO_TAKE; VERDICT_TAKES] };
+        let items = self.world.borrow().catalog().items.len();
+        match f.call::<(Value, Value, Value)>((unit as i64, item as i64, self.state.clone())) {
+            Ok((Value::Boolean(true), price, takes)) => match (whole(&price, i64::from(i32::MAX)), parse_takes(&takes, items)) {
+                (Some(price), Some(takes)) => Verdict::Buy { unit, item, allow: true, deny: Refusal::NoItem, price: price as i32, takes },
+                _ => refuse(Refusal::NoItem),
+            },
+            Ok((_, reason, _)) => refuse(denial(&reason)),
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=on_buy error={:?}", e.to_string());
+                refuse(Refusal::NoItem)
+            }
+        }
+    }
+
+    fn sell_verdict(&self, f: &Function, unit: usize, slot: usize) -> Verdict {
+        match f.call::<(Value, Value)>((unit as i64, slot as i64, self.state.clone())) {
+            Ok((Value::Boolean(true), refund)) => match whole(&refund, i64::from(i32::MAX)) {
+                Some(refund) => Verdict::Sell { unit, slot, allow: true, deny: Refusal::NoItem, refund: refund as i32 },
+                None => Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 },
+            },
+            Ok((_, reason)) => Verdict::Sell { unit, slot, allow: false, deny: denial(&reason), refund: 0 },
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=on_sell error={:?}", e.to_string());
+                Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 }
+            }
+        }
+    }
+
+    fn unstash_verdict(&self, f: &Function, unit: usize, slot: usize) -> Verdict {
+        match f.call::<(Value, Value)>((unit as i64, slot as i64, self.state.clone())) {
+            Ok((Value::Boolean(true), _)) => Verdict::Unstash { unit, slot, allow: true, deny: Refusal::NoItem },
+            Ok((_, reason)) => Verdict::Unstash { unit, slot, allow: false, deny: denial(&reason) },
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=on_unstash error={:?}", e.to_string());
+                Verdict::Unstash { unit, slot, allow: false, deny: Refusal::NoItem }
+            }
+        }
     }
 
     /// Feeds one payable death of the room's sim to the mod's on_died, with the room's unit ids and
@@ -2261,6 +2622,50 @@ impl ModHost {
         self.cmds.borrow_mut().push(Cmd::SetClassOverride { unit, class });
     }
 
+    // Calls on_march for a unit that needs a destination and queues the attack-move it returns: on_march(unit,
+    // player, state) returns the x and y of the point, in fixed point. nil keeps the unit where it stands. An error
+    // or a malformed answer queues nothing.
+    fn call_on_march(&self, hooks: &Hooks, unit: usize, player: u8) {
+        let Some(h) = &hooks.on_march else { return };
+        match h.call::<(Value, Value)>((unit as i64, player as i64, self.state.clone())) {
+            Ok((x, y)) => match (point_coord(&x), point_coord(&y)) {
+                (Some(x), Some(y)) => self.cmds.borrow_mut().push(Cmd::AttackMove { unit, x, y }),
+                _ if matches!(x, Value::Nil | Value::Boolean(false)) => {}
+                _ => println!("ev=mod_hook_refused hook=on_march value={:?}", x.type_name()),
+            },
+            Err(e) => println!("ev=mod_hook_failed hook=on_march error={:?}", e.to_string()),
+        }
+    }
+
+    // Calls on_cast when a cast takes hold, with the caster and the ability's name.
+    fn call_on_cast(&self, hooks: &Hooks, caster: usize, ability: usize) {
+        let Some(h) = &hooks.on_cast else { return };
+        let name = {
+            let sim = self.world.borrow();
+            let cat = sim.catalog();
+            match cat.abilities.get(ability) {
+                Some(a) => cat.name(a.name).to_string(),
+                None => return,
+            }
+        };
+        if let Err(e) = h.call::<()>((caster as i64, name, self.state.clone())) {
+            println!("ev=mod_hook_failed hook=on_cast error={:?}", e.to_string());
+        }
+    }
+
+    // Calls on_check_win and queues the side it returns as the winner. nil or false means no side has won yet.
+    fn call_on_check_win(&self, hooks: &Hooks) {
+        let Some(h) = &hooks.on_check_win else { return };
+        match h.call::<Value>(self.state.clone()) {
+            Ok(Value::Nil) | Ok(Value::Boolean(false)) => {}
+            Ok(Value::Integer(s)) if (0..MAX_PLAYERS as i64).contains(&s) => {
+                self.cmds.borrow_mut().push(Cmd::DeclareSide { side: s as u8 });
+            }
+            Ok(other) => println!("ev=mod_hook_refused hook=on_check_win value={:?}", other.type_name()),
+            Err(e) => println!("ev=mod_hook_failed hook=on_check_win error={:?}", e.to_string()),
+        }
+    }
+
     // Calls the on_died hook and every on_died trigger with the same arguments.
     fn call_died(&self, hooks: &Hooks, d: &Death) -> mlua::Result<()> {
         let killer = d.killer.map(i64::from);
@@ -2313,6 +2718,49 @@ impl ModHost {
         self.world.borrow().state_hash()
     }
 }
+// The mod's answer values, read from the Lua results. A count must be a whole number in range.
+fn whole(v: &Value, max: i64) -> Option<i64> {
+    let n = match v {
+        Value::Integer(n) => *n,
+        Value::Number(f) if f.fract() == 0.0 && f.abs() < 9.2e18 => *f as i64,
+        _ => return None,
+    };
+    (0..=max).contains(&n).then_some(n)
+}
+
+// The catalog items a purchase takes: a list of at most VERDICT_TAKES valid item indices, or none.
+fn parse_takes(v: &Value, items: usize) -> Option<[u32; VERDICT_TAKES]> {
+    let mut out = [NO_TAKE; VERDICT_TAKES];
+    match v {
+        Value::Nil => Some(out),
+        Value::Table(t) => {
+            let mut n = 0;
+            for x in t.clone().sequence_values::<i64>() {
+                let x = x.ok()?;
+                if n >= VERDICT_TAKES || x < 0 || x as usize >= items {
+                    return None;
+                }
+                out[n] = x as u32;
+                n += 1;
+            }
+            Some(out)
+        }
+        _ => None,
+    }
+}
+
+// The refusal a mod names with a denial. An unknown or missing reason is the item being unavailable.
+fn denial(v: &Value) -> Refusal {
+    let Value::String(s) = v else { return Refusal::NoItem };
+    match s.to_str().ok().as_deref() {
+        Some("no-shop") => Refusal::NoShop,
+        Some("cannot-afford") => Refusal::CannotAfford,
+        Some("inventory-full") => Refusal::InventoryFull,
+        Some("missing-component") => Refusal::MissingComponent,
+        _ => Refusal::NoItem,
+    }
+}
+
 #[cfg(all(test, feature = "build"))]
 mod tests {
     use super::*;
@@ -2397,6 +2845,67 @@ mod tests {
         assert!(!host.sim().alive(b), "game.cmd_remove did not remove the unit");
     }
 
+    // A moba-style buyback built only from generic primitives: on_unit_died leaves the hero dead, and a
+    // mod timer-style check on the tick pays the gold (game.cmd_add_unit_gold) and respawns it now
+    // (game.cmd_set_respawn with 0). Two runs of the same script reproduce the same state.
+    #[test]
+    fn a_buyback_built_from_generic_primitives_reproduces() {
+        const BUYBACK_SRC: &str = r#"
+            function on_tick(state)
+              if state.buy and not unit_alive(state.hero) and game.unit_gold(state.hero) >= 230 then
+                game.cmd_add_unit_gold(state.hero, -230)
+                game.cmd_set_respawn(state.hero, 0)
+                state.buy = false
+              end
+            end
+            function on_unit_died(unit, state) return false end
+        "#;
+        let run = || -> (u64, bool, i32) {
+            let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+            let hero = {
+                let mut sim = host.sim();
+                let kind = sim.catalog().unit_index("axe").expect("moba has axe") as u32;
+                let mut found = None;
+                'search: for y in 20..=60 {
+                    for x in 40..=100 {
+                        if !sim.grid().walkable(x, y) {
+                            continue;
+                        }
+                        if let Some(i) = sim.spawn_attributed(0, kind, sim::fixed::from_int(x), sim::fixed::from_int(y)) {
+                            found = Some(i);
+                            break 'search;
+                        }
+                    }
+                }
+                let h = found.expect("a walkable tile takes the hero");
+                sim.add_unit_gold(h, 500);
+                sim.hurt(h, sim::fixed::from_int(30_000));
+                h
+            };
+            host.state().set("hero", hero as i64).expect("state");
+            host.state().set("buy", false).expect("state");
+            host.load_source("buyback", BUYBACK_SRC).expect("mod loads");
+            // The death reaches on_unit_died and its decision (leave dead) applies first.
+            for _ in 0..3 {
+                host.advance(&host.state().clone()).expect("step");
+            }
+            assert!(!host.sim().alive(hero), "the hero should be dead before the buyback");
+            host.state().set("buy", true).expect("state");
+            for _ in 0..3 {
+                host.advance(&host.state().clone()).expect("step");
+            }
+            let hash = host.state_hash();
+            let sim = host.sim();
+            (hash, sim.alive(hero), sim.unit_gold(hero))
+        };
+        let (hash_a, alive_a, gold_a) = run();
+        let (hash_b, alive_b, gold_b) = run();
+        assert!(alive_a, "the buyback did not respawn the hero");
+        assert!(gold_a <= 500 - 230 + 1 && gold_a >= 500 - 230, "gold after buyback {gold_a}");
+        assert_eq!((alive_a, gold_a), (alive_b, gold_b));
+        assert_eq!(hash_a, hash_b, "the same buyback script did not reproduce the same state");
+    }
+
     // game.cmd_give_item puts a catalog item into a living unit's inventory through the sim's slot rules.
     #[test]
     fn cmd_give_item_adds_the_item_to_the_unit_and_rejects_an_unknown_one() {
@@ -2477,7 +2986,7 @@ mod tests {
     }
 
     #[test]
-    fn cmd_spawn_queues_the_owner_and_lane_and_defaults_both_to_zero() {
+    fn cmd_spawn_queues_the_owner_and_route_and_defaults_both_to_zero() {
         let mut host = ModHost::new(&moba_image()).expect("moba image loads");
         host.load_source("spawn", r#"
             function on_tick(state)
@@ -2493,11 +3002,11 @@ mod tests {
             .take_commands()
             .into_iter()
             .filter_map(|c| match c {
-                Cmd::Spawn { owner, lane, .. } => Some((owner, lane)),
+                Cmd::Spawn { owner, route, .. } => Some((owner, route)),
                 _ => None,
             })
             .collect();
-        assert_eq!(spawns, vec![(1, 2), (0, 0)], "owner and lane are queued; both default to 0");
+        assert_eq!(spawns, vec![(1, 2), (0, 0)], "owner and route are queued; both default to 0");
     }
 
     #[test]
@@ -2660,6 +3169,141 @@ mod tests {
 
     // on_unit_died and target_priority queue commands only when the mod defines them and they return a value
     // in the contract. A missing, erroring or out-of-contract hook queues nothing, so the Rust rule stands.
+    // Answers the room-side requests the way the room does: each one goes to the mod, and the verdicts it
+    // returns are applied (feed_request applies them to this world too).
+    fn settle(host: &ModHost) {
+        let reqs = host.sim().drain_requests();
+        for r in reqs {
+            host.feed_request(&r);
+        }
+    }
+
+    // A moba-style store rule with no shops: every item costs 300 and takes nothing. It buys through the
+    // generic primitives only: game.cmd_buy queues the purchase, the sim asks on_buy, and the answer debits.
+    const FLAT_PRICE_STORE: &str = r#"
+        local done = false
+        function on_tick(state)
+          if not done then
+            done = true
+            game.cmd_buy(state.attacker, state.item)
+          end
+        end
+        function on_buy(unit, item, state)
+          return true, 300, {}
+        end
+    "#;
+
+    // A purchase is decided by the mod: its price is debited, the item is placed, and a listed component is
+    // consumed. Without an on_buy the purchase is refused, so no mod means nothing is bought.
+    #[test]
+    fn a_moba_style_mod_reproduces_a_purchase_through_the_store_callback() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        let blink = host.sim().catalog().item_index("blink").expect("moba has blink");
+        host.state().set("item", blink as i64).expect("state");
+        host.sim().add_resources(0, 1000, 0);
+        host.load_source("store", FLAT_PRICE_STORE).expect("mod loads");
+        for _ in 0..3 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        assert_eq!(host.sim().inventory_count(a, blink as u32 + 1), 1, "the purchase did not place the item");
+        assert_eq!(host.sim().resource_a(0), 700, "the price was not debited from the counter");
+    }
+
+    #[test]
+    fn a_mod_without_an_on_buy_rule_leaves_the_item_unbought() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        let blink = host.sim().catalog().item_index("blink").expect("moba has blink");
+        host.state().set("item", blink as i64).expect("state");
+        host.sim().add_resources(0, 1000, 0);
+        host.load_source("nobuy", "local done = false\nfunction on_tick(state)\n  if not done then done = true game.cmd_buy(state.attacker, state.item) end\nend\n").expect("mod loads");
+        for _ in 0..3 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        assert_eq!(host.sim().inventory_count(a, blink as u32 + 1), 0, "a mod with no rule bought an item");
+        assert_eq!(host.sim().resource_a(0), 1000, "a refused purchase took gold");
+    }
+
+    // A denial names its refusal and changes nothing; a listed component is consumed with the price.
+    #[test]
+    fn a_denial_names_its_refusal_and_a_listed_component_is_consumed() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        let blink = host.sim().catalog().item_index("blink").expect("moba has blink");
+        let comp = host.sim().catalog().item_index("tango").expect("moba has tango");
+        host.state().set("item", blink as i64).expect("state");
+        host.sim().add_resources(0, 1000, 0);
+        assert!(host.sim().inventory_add(a, comp as u32 + 1, 1));
+        host.load_source("deny", "local done = false\nfunction on_tick(state)\n  if not done then done = true game.cmd_buy(state.attacker, state.item) end\nend\nfunction on_buy(unit, item, state) return false, \"no-shop\" end\n").expect("mod loads");
+        for _ in 0..3 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        assert_eq!(host.sim().inventory_count(a, blink as u32 + 1), 0, "a denied purchase placed the item");
+        assert_eq!(host.sim().stats.last_refusal, Refusal::NoShop, "the denial did not name its refusal");
+        assert_eq!(host.sim().resource_a(0), 1000);
+        // Now allowed, with the component listed: the component is consumed and the item placed.
+        host.load_source("take", "local done = false\nfunction on_tick(state)\n  if not done then done = true game.cmd_buy(state.attacker, state.item) end\nend\nfunction on_buy(unit, item, state) return true, 250, {state.comp} end\n").expect("mod loads");
+        host.state().set("comp", comp as i64).expect("state");
+        for _ in 0..3 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        assert_eq!(host.sim().inventory_count(a, comp as u32 + 1), 0, "the listed component was not consumed");
+        assert_eq!(host.sim().inventory_count(a, blink as u32 + 1), 1, "the purchase with a component was not placed");
+        assert_eq!(host.sim().resource_a(0), 750, "the net price was not debited");
+    }
+
+    // The deliver request reaches the mod, which walks the courier to the receiver, hands over the receiver's
+    // stash, and walks it back to the point it left from. A mod with no deliver rule delivers nothing.
+    #[test]
+    fn a_moba_courier_delivers_the_stash_and_walks_home() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        let b = host.state().get::<i64>("target").expect("target") as usize;
+        let blink = host.sim().catalog().item_index("blink").expect("moba has blink");
+        {
+            let mut sim = host.sim();
+            sim.set_fog(false);
+            assert!(sim.set_owner(b, 0).is_ok(), "the receiver joins the caster's side");
+            assert!(sim.give_ability(a, 0, "courier_deliver"), "the caster takes the courier ability");
+            assert!(sim.stash_item(b, blink, 1), "the receiver's stash takes the item");
+        }
+        let start = host.sim().position_fixed(a);
+        host.load_source("courier", include_str!("../../../../scenarios/moba/store.lua")).expect("the moba store mod loads");
+        assert!(host.sim().cast_ability(a, 0, b as i32, 0, 0), "the courier cast was refused");
+        settle(&host);
+        for _ in 0..3000 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        assert_eq!(host.sim().inventory_count(b, blink as u32 + 1), 1, "the receiver's stash was not delivered");
+        assert_eq!(host.sim().stash_slot(b, 0).1, 0, "the delivered stash slot is still full");
+        let (x, y) = host.sim().position_fixed(a);
+        let (sx, sy) = start;
+        let (dx, dy) = (i64::from(x) - i64::from(sx), i64::from(y) - i64::from(sy));
+        assert!(dx * dx + dy * dy <= (2 * 65536i64).pow(2), "the courier did not walk back to its start");
+    }
+
+    #[test]
+    fn a_mod_without_a_deliver_rule_delivers_nothing() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        let b = host.state().get::<i64>("target").expect("target") as usize;
+        let blink = host.sim().catalog().item_index("blink").expect("moba has blink");
+        {
+            let mut sim = host.sim();
+            assert!(sim.set_owner(b, 0).is_ok());
+            assert!(sim.give_ability(a, 0, "courier_deliver"));
+            assert!(sim.stash_item(b, blink, 1));
+        }
+        host.load_source("idle", "function on_tick(state) end\n").expect("mod loads");
+        assert!(host.sim().cast_ability(a, 0, b as i32, 0, 0));
+        settle(&host);
+        for _ in 0..200 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        assert_eq!(host.sim().inventory_count(b, blink as u32 + 1), 0, "a mod with no courier rule delivered");
+    }
+
     fn queued(host: &ModHost) -> Vec<Cmd> {
         host.cmds.borrow().clone()
     }
@@ -2735,5 +3379,127 @@ mod tests {
             host.advance(&host.state().clone()).expect("step");
         }
         assert!(host.take_commands().iter().all(|c| !matches!(c, Cmd::SetReduction { .. })));
+    }
+
+    // The moba mod is protection.lua, march.lua and win.lua as one chunk: a host runs one mod file, and only
+    // protection.lua defines on_tick.
+    fn moba_mod_source() -> String {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
+        ["protection.lua", "march.lua", "win.lua"]
+            .iter()
+            .map(|f| std::fs::read_to_string(dir.join(f)).expect("moba mod file"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    // Spawns a unit of `kind` for `player` on the first open tile, asking for a destination when `route` is nonzero.
+    fn spawn_on_open_ground(host: &ModHost, kind: u32, player: u8, route: i32) -> usize {
+        let mut sim = host.sim();
+        for y in 20..=60 {
+            for x in 40..=100 {
+                if !sim.grid().walkable(x, y) {
+                    continue;
+                }
+                if let Some(i) = sim.spawn_mod_unit(player, kind, sim::fixed::from_int(x), sim::fixed::from_int(y), route) {
+                    return i;
+                }
+            }
+        }
+        panic!("no open ground for the unit");
+    }
+
+    // Every living building of `player`, by unit id.
+    fn buildings_of(host: &ModHost, player: u8) -> Vec<usize> {
+        let sim = host.sim();
+        (0..sim.count()).filter(|&k| sim.alive(k) && sim.player(k) == player && (sim.filter_bits(k) & 2048) != 0).collect()
+    }
+
+    #[test]
+    fn a_moba_mod_marches_a_summon_to_the_nearest_enemy_building() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("moba", &moba_mod_source()).expect("moba mod loads");
+        let creep = host.sim().catalog().unit_index("creep").expect("creep") as u32;
+        let summon = spawn_on_open_ground(&host, creep, 0, 1);
+        for _ in 0..3 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        let cmds = host.take_commands();
+        let ordered = cmds.iter().find_map(|c| match c {
+            Cmd::AttackMove { unit, x, y } if *unit == summon => Some((*x, *y)),
+            _ => None,
+        });
+        let (x, y) = ordered.expect("the summon was not marched");
+        let enemy_buildings = buildings_of(&host, 1);
+        assert!(!enemy_buildings.is_empty(), "the moba map has enemy buildings");
+        assert!(
+            enemy_buildings.iter().any(|&b| host.sim().position_fixed(b) == (x, y)),
+            "the march must point at an enemy building, got ({x}, {y})"
+        );
+    }
+
+    #[test]
+    fn a_moba_mod_glyph_reduces_the_team_structures_its_filter_covers() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("moba", &moba_mod_source()).expect("moba mod loads");
+        // A structure that is not a building: filter bit 6 set, bit 11 clear.
+        let kind = {
+            let sim = host.sim();
+            sim.catalog().units.iter().position(|u| u.filter & 64 != 0 && u.filter & 2048 == 0).expect("a non-building structure kind") as u32
+        };
+        let glyphed = spawn_on_open_ground(&host, kind, 0, 0);
+        let name = {
+            let sim = host.sim();
+            let cat = sim.catalog();
+            let index = cat.abilities.iter().position(|a| cat.name(a.name) == "glyph_of_fortification").expect("the moba map has the glyph ability");
+            cat.name(cat.abilities[index].name).to_string()
+        };
+        assert!(host.sim().give_ability(glyphed, 0, &name), "the structure takes the glyph ability");
+        let cast = host.sim().cast_ability(glyphed, 0, -1, 0, 0);
+        assert!(cast, "the glyph cast takes hold");
+        for _ in 0..3 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        let cmds = host.take_commands();
+        assert!(
+            cmds.iter().any(|c| matches!(c, Cmd::SetReduction { unit, pct: 100 } if *unit == glyphed)),
+            "the glyph must cover the team's non-building structure"
+        );
+    }
+
+    #[test]
+    fn a_moba_mod_declares_the_side_that_outlives_the_buildings_and_no_other() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("moba", &moba_mod_source()).expect("moba mod loads");
+        host.advance(&host.state().clone()).expect("step");
+        assert_eq!(host.sim().winner(), None, "no side has won while both stand");
+        for b in buildings_of(&host, 1) {
+            host.sim().hurt(b, sim::fixed::from_int(30_000));
+        }
+        for _ in 0..3 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        let side = host.sim().team_of(0);
+        assert_eq!(host.sim().winner(), side, "the side of player 0 outlives player 1's buildings");
+    }
+
+    // A mod without the callbacks has no march, no protection and no win, whatever the sim does.
+    #[test]
+    fn a_mod_without_the_callbacks_has_no_march_no_protection_and_no_win() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("bare", "function on_tick(state) end").expect("bare mod loads");
+        let creep = host.sim().catalog().unit_index("creep").expect("creep") as u32;
+        let summon = spawn_on_open_ground(&host, creep, 0, 1);
+        for b in buildings_of(&host, 1) {
+            host.sim().hurt(b, sim::fixed::from_int(30_000));
+        }
+        for _ in 0..20 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        let cmds = host.take_commands();
+        assert!(cmds.iter().all(|c| !matches!(c, Cmd::AttackMove { .. })), "no march without on_march");
+        assert!(cmds.iter().all(|c| !matches!(c, Cmd::SetReduction { .. } | Cmd::SetHealing { .. })), "no protection without the callbacks");
+        assert!(cmds.iter().all(|c| !matches!(c, Cmd::DeclareSide { .. })), "no win without on_check_win");
+        assert_eq!(host.sim().winner(), None, "no side is declared without on_check_win");
+        assert!(host.sim().alive(summon), "the summon stands where it was placed");
     }
 }

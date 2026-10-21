@@ -26,7 +26,7 @@ const MAX_REGIONS: usize = 64;
 
 #[derive(Clone)]
 pub enum Cmd {
-    Spawn { index: usize, x: i32, y: i32, owner: u8, lane: i32 },
+    Spawn { index: usize, x: i32, y: i32, owner: u8, route: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
@@ -40,7 +40,7 @@ pub enum Cmd {
     SetFog { on: bool },
     GiveAbility { unit: usize, slot: usize, name: String },
     AddGold { player: u8, amount: i32 },
-    AddHeroGold { unit: usize, amount: i32 },
+    AddUnitGold { unit: usize, amount: i32 },
     Victory { player: u8 },
     Defeat { player: u8 },
     // A client-facing UI event as a JSON object body, kept for the caller to stream (take_ui).
@@ -479,13 +479,13 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             Value::Nil => 0,
             _ => player_arg(a(c, &s, 3)?).map_err(|m| fail(c, m))?,
         };
-        let lane = match s.get(4) {
+        let route = match s.get(4) {
             Value::Nil => 0,
-            _ => i32::try_from(a(c, &s, 4)?).map_err(|_| fail(c, "invalid_lane: lane out of i32 range".to_string()))?,
+            _ => i32::try_from(a(c, &s, 4)?).map_err(|_| fail(c, "invalid_route: route out of i32 range".to_string()))?,
         };
         let mut sh = sh.borrow_mut();
         let index = sh.sim.catalog().unit_index(&kind).ok_or_else(|| fail(c, format!("unknown_unit: {kind}")))?;
-        sh.cmds.push(Cmd::Spawn { index, x, y, owner, lane });
+        sh.cmds.push(Cmd::Spawn { index, x, y, owner, route });
         let handle = sh.cmds.len() as i64;
         s.replace(c, handle);
         Ok(CallbackReturn::Return)
@@ -624,12 +624,12 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.borrow_mut().cmds.push(Cmd::AddGold { player, amount });
         Ok(CallbackReturn::Return)
     });
-    native!(ctx, game, "cmd_add_hero_gold", [sh], |c, s| {
+    native!(ctx, game, "cmd_add_unit_gold", [sh], |c, s| {
         let (unit, amount) = (a(c, &s, 0)?, a(c, &s, 1)?);
         let mut sh = sh.borrow_mut();
         let u = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
         let amount = amount_arg(amount).map_err(|m| fail(c, m))?;
-        sh.cmds.push(Cmd::AddHeroGold { unit: u, amount });
+        sh.cmds.push(Cmd::AddUnitGold { unit: u, amount });
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "message", [sh], |c, s| {
@@ -697,11 +697,11 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, gold);
         Ok(CallbackReturn::Return)
     });
-    native!(ctx, game, "hero_gold", [sh], |c, s| {
+    native!(ctx, game, "unit_gold", [sh], |c, s| {
         let unit = a(c, &s, 0)?;
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
-        s.replace(c, sh.sim.hero_gold(u) as i64);
+        s.replace(c, sh.sim.unit_gold(u) as i64);
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "units", [sh], |c, s| {
@@ -1240,8 +1240,8 @@ impl ModHost {
         let (sim, ui) = (&mut sh.sim, &mut sh.ui);
         for cmd in list {
             match cmd {
-                Cmd::Spawn { index, x, y, owner, lane, .. } => {
-                    sim.spawn_mod_unit(owner, index as u32, x, y, lane);
+                Cmd::Spawn { index, x, y, owner, route, .. } => {
+                    sim.spawn_mod_unit(owner, index as u32, x, y, route);
                 }
                 Cmd::SetOwner { unit, player } => {
                     let _ = sim.set_owner(unit, player);
@@ -1260,8 +1260,8 @@ impl ModHost {
                 Cmd::GiveAbility { unit, slot, name } => {
                     let _ = sim.give_ability(unit, slot, &name);
                 }
-                Cmd::AddHeroGold { unit, amount } => {
-                    let _ = sim.add_hero_gold(unit, amount);
+                Cmd::AddUnitGold { unit, amount } => {
+                    let _ = sim.add_unit_gold(unit, amount);
                 }
                 Cmd::Order { unit, x, y } if sim.alive(unit) => sim.order(unit, x, y),
                 Cmd::Damage { caster, target, dmg } if sim.alive(caster) => {

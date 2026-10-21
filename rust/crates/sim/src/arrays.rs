@@ -168,10 +168,12 @@ pub struct Sim {
     pub(crate) heroes: crate::hero::HeroState,
     /// Neutral camp home, leash and respawn timer per unit. See camp.rs.
     pub(crate) camps: crate::camp::CampState,
-    /// Aggro targets, backdoor stamps and glyph timers. See aggro.rs.
+    /// Aggro targets, invulnerability, damage reduction and healing per unit. See aggro.rs.
     pub(crate) aggro: crate::aggro::AggroState,
-    /// Lane route progress per unit. See route.rs.
+    /// Route progress per unit and the destination request log. See route.rs.
     pub(crate) routes: crate::route::RouteState,
+    /// Casts that took hold since the host last drained them, as (caster, ability). Transient. See rules.rs.
+    pub(crate) cast_log: Vec<(u32, u16)>,
     /// Chase and return state of acquiring units. See acquire.rs.
     pub(crate) chase: crate::acquire::ChaseState,
     /// Acquire range per unit kind, milli-units, from the table in acquire.rs. Catalog-derived, not hashed.
@@ -182,9 +184,9 @@ pub struct Sim {
     pub(crate) hold_override: Vec<i8>,
     /// Ward expiry stamps. See wards.rs.
     pub(crate) wards: crate::wards::WardState,
-    /// Courier delivery state. See courier.rs.
-    pub(crate) couriers: crate::courier::CourierState,
-    pub(crate) stock: crate::shop::StockState,
+    /// Saved order points for mods that send units away. See carrier.rs.
+    pub(crate) order_memory: crate::carrier::OrderMemory,
+    pub(crate) store: crate::store::StoreState,
     /// Spell modifiers, damage over time, zones, chains and illusions. See spell.rs.
     pub(crate) spell: crate::spell::SpellState,
     /// Assists credited to each unit, and its recent hitters (ASSIST_SLOTS per unit: the hitter's unit
@@ -307,7 +309,7 @@ impl Sim {
         let cat_digest = crate::hash::catalog_digest(&cat, &grid);
         let acquire = crate::acquire::per_kind(&cat);
         let xp_curve = cat.tune.xp_curve.clone();
-        let stock = crate::shop::StockState::new(&cat.items);
+        
         let mut s = Sim {
             grid,
             doodads: doodads_init,
@@ -390,13 +392,14 @@ impl Sim {
             camps: crate::camp::CampState::new(cap),
             aggro: crate::aggro::AggroState::new(cap),
             routes: crate::route::RouteState::new(cap),
+            cast_log: Vec::new(),
             chase: crate::acquire::ChaseState::new(cap),
             acquire,
             class_override: vec![-1; cap],
             hold_override: vec![-1; cap],
             wards: crate::wards::WardState::new(cap),
-            couriers: crate::courier::CourierState::new(cap),
-            stock,
+            order_memory: crate::carrier::OrderMemory::new(cap),
+            store: Default::default(),
             spell: crate::spell::SpellState::new(cap),
             unit_deaths: vec![0; cap],
             unit_assists: vec![0; cap],
@@ -721,7 +724,7 @@ impl Sim {
         self.route_clear(i);
         self.chase_clear(i);
         self.wards.expires[i] = 0;
-        self.couriers.clear(i);
+        self.order_memory.clear(i);
         self.spell.clear_unit(i);
         self.vel_x[i] = 0;
         self.vel_y[i] = 0;

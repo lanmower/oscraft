@@ -17,7 +17,7 @@ fn image() -> Vec<u8> {
 fn show(c: &Cmd) -> String {
     match c {
         Cmd::AddGold { player, amount } => format!("gold player={player} amount={amount}"),
-        Cmd::AddHeroGold { unit, amount } => format!("hero_gold unit={unit} amount={amount}"),
+        Cmd::AddUnitGold { unit, amount } => format!("unit_gold unit={unit} amount={amount}"),
         _ => "other".to_owned(),
     }
 }
@@ -30,7 +30,7 @@ const PROBE: &str = r#"
 GOLD_BY_MOD = true
 function on_tick(state) end
 function on_died(unit, killer, killer_player, bounty, victim_player, killer_hero)
-  game.cmd_add_hero_gold(unit, bounty)
+  game.cmd_add_unit_gold(unit, bounty)
   game.cmd_add_gold(victim_player, killer_hero and 1 or 0)
   game.cmd_add_gold(killer_player or 0, killer or -1)
 end
@@ -43,11 +43,11 @@ fn on_died_receives_six_arguments_with_bounty() {
     let fed = host.feed_payout(&payout(7, 2, Some(3), Some(1), true, 55)).expect("fed");
     let lines: Vec<String> = fed.iter().map(show).collect();
     println!("PARITY probe hero-kill {lines:?}");
-    assert_eq!(lines, ["hero_gold unit=7 amount=55", "gold player=2 amount=1", "gold player=1 amount=3"]);
+    assert_eq!(lines, ["unit_gold unit=7 amount=55", "gold player=2 amount=1", "gold player=1 amount=3"]);
     let fed = host.feed_payout(&payout(7, 2, None, None, false, 9)).expect("fed");
     let lines: Vec<String> = fed.iter().map(show).collect();
     println!("PARITY probe attackerless {lines:?}");
-    assert_eq!(lines, ["hero_gold unit=7 amount=9", "gold player=2 amount=0", "gold player=0 amount=-1"]);
+    assert_eq!(lines, ["unit_gold unit=7 amount=9", "gold player=2 amount=0", "gold player=0 amount=-1"]);
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn moba_match_pays_the_same_for_fixed_kills() {
         ("no bounty", payout(32, 0, Some(20), Some(0), true, 0)),
     ];
     let want: [&[&str]; 5] = [
-        &["hero_gold unit=20 amount=32", "gold player=0 amount=8"],
+        &["unit_gold unit=20 amount=32", "gold player=0 amount=8", "other"],
         &["gold player=1 amount=17"],
         &["gold player=1 amount=30"],
         &["gold player=0 amount=12"],

@@ -16,7 +16,7 @@ fn moba_with_rules() -> Result<Sim, String> {
     Ok(s)
 }
 
-fn spawn_hero(s: &mut Sim, name: &str) -> Result<usize, String> {
+fn spawn_attributed(s: &mut Sim, name: &str) -> Result<usize, String> {
     let k = kind(s, name)?;
     let base = kind(s, "base")?;
     let anchor = (0..s.count())
@@ -24,11 +24,11 @@ fn spawn_hero(s: &mut Sim, name: &str) -> Result<usize, String> {
         .ok_or("moba scenario has no base for player 0")?;
     let (x, y) = s.position_fixed(anchor);
     for dx in 8..60 {
-        if let Some(h) = s.spawn_hero(0, k, x + fixed::from_int(dx), y) {
+        if let Some(h) = s.spawn_attributed(0, k, x + fixed::from_int(dx), y) {
             return Ok(h);
         }
     }
-    Err(format!("spawn_hero refused {name} beside the base"))
+    Err(format!("spawn_attributed refused {name} beside the base"))
 }
 
 fn near(what: &str, got: i32, want_q16: i64) -> Result<(), String> {
@@ -46,7 +46,7 @@ fn q16(x100: i64) -> i64 {
 /// damage 26 (2d3 + 25 = 26 average) + 25 strength; attack period 1.7 s; mana 100 + 12 x 18.
 pub fn hero_axe_level1(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
-    let h = spawn_hero(&mut s, "axe")?;
+    let h = spawn_attributed(&mut s, "axe")?;
     if s.hero_attributes(h) != [25, 20, 18] {
         return Err(format!("axe attributes {:?} want [25, 20, 18]", s.hero_attributes(h)));
     }
@@ -66,7 +66,7 @@ pub fn hero_axe_level1(_image: &[u8]) -> Result<(), String> {
 /// strength point and the wounded fraction is kept as a flat amount.
 pub fn hero_axe_growth(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
-    let h = spawn_hero(&mut s, "axe")?;
+    let h = spawn_attributed(&mut s, "axe")?;
     let first = s.xp_curve()[0];
     let gained = s.add_xp(h, first);
     if gained != 1 || s.level(h) != 1 {
@@ -87,7 +87,7 @@ pub fn hero_axe_growth(_image: &[u8]) -> Result<(), String> {
 /// Universal marci at level 1 (strength 23, agility 20, intelligence 19): damage 31 + 0.7 x 62.
 pub fn hero_universal_damage(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
-    let h = spawn_hero(&mut s, "marci")?;
+    let h = spawn_attributed(&mut s, "marci")?;
     near("marci damage", s.damage_of(h), q16(3100 + (2300 + 2000 + 1900) * 70 / 100))?;
     Ok(())
 }
@@ -97,7 +97,7 @@ pub fn hero_roster(_image: &[u8]) -> Result<(), String> {
     let mut s = moba_with_rules()?;
     let mut with_def = 0;
     for name in ["antimage", "axe", "crystal_maiden", "zuus", "nevermore", "pudge", "invoker", "largo"] {
-        let h = spawn_hero(&mut s, name)?;
+        let h = spawn_attributed(&mut s, name)?;
         if s.hero_def(h).is_none() {
             return Err(format!("{name} has no hero line"));
         }

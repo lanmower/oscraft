@@ -4,7 +4,7 @@ use std::str::{FromStr, SplitWhitespace};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
 
-use sim::{carry_from, AbilitySpec, Effect, ItemSpec, ORDER_HOLD, Refusal, Sim, StateError, UnitSpec, UpgradeSpec};
+use sim::{carry_from, AbilitySpec, Effect, ItemSpec, ORDER_HOLD, Refusal, Sim, StateError, UnitSpec, UpgradeSpec, Verdict, ALL_REFUSALS, NO_TAKE, VERDICT_TAKES};
 
 const TICKS_PER_SECOND: u32 = 16;
 
@@ -296,6 +296,13 @@ pub enum Command {
     Buy { unit: usize, item: usize },
     Sell { unit: usize, slot: usize },
     Unstash { unit: usize, slot: usize },
+    /// A mod's answer to a trade request (store.rs), applied as the sim applies it.
+    Trade { verdict: Verdict },
+    /// Moves every stash item of a unit into its free slots (a delivery).
+    PackStash { unit: usize },
+    /// Saves a unit's order point, and orders the unit back to its saved point.
+    SaveOrder { unit: usize, x: i32, y: i32 },
+    RestoreOrder { unit: usize },
     Fog { on: bool },
     /// A mod's per-attacker target class (255 = clear, back to the Rust rule).
     ClassOverride { unit: u32, class: u8 },
@@ -307,9 +314,15 @@ pub enum Command {
     Invulnerable { unit: u32, ticks: u32 },
     /// A mod's damage reduction for a unit, in percent (0..=100).
     Reduction { unit: u32, pct: u8 },
+    /// A mod's healing for a unit, in whole life per second (0 stops it).
+    Healing { unit: u32, hp_per_s: i32 },
+    /// The side a mod's on_check_win declared the winner.
+    DeclareSide { side: u8 },
+    /// A move-to-point attack-move a mod's on_march ordered for a unit.
+    AttackMove { unit: u32, x: i32, y: i32 },
     Cadence { paths: bool, vision: bool },
-    /// A mod spawn for `owner` in `lane` (0 when the mod names none). `lane` is recorded for the mod, not read by the sim.
-    Spawn { handle: u32, index: u32, x: i32, y: i32, owner: u8, lane: i32 },
+    /// A mod spawn for `owner` on route `route` (0 when the mod names none). A route asks the mod for a destination (on_march).
+    Spawn { handle: u32, index: u32, x: i32, y: i32, owner: u8, route: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
     SetOwner { unit: usize, player: u8 },
@@ -328,7 +341,7 @@ pub enum Command {
     /// A mod's grant of `count` of catalog item `item` to a living unit (the sim's grant_item).
     GiveItem { unit: usize, item: usize, count: u32 },
     AddGold { player: u8, amount: i32 },
-    AddHeroGold { unit: usize, amount: i32 },
+    AddUnitGold { unit: usize, amount: i32 },
     Victory { player: u8 },
     Defeat { player: u8 },
     Ui { body: String },
@@ -415,6 +428,59 @@ fn upgrade_spec_of(it: &mut SplitWhitespace) -> Option<UpgradeSpec> {
 fn put<T: std::fmt::Display>(out: &mut String, v: T) {
     out.push(' ');
     out.push_str(&v.to_string());
+}
+
+// A verdict as text: its kind (b buy, s sell, u unstash), then its unit, argument, allow, refusal index
+// (into ALL_REFUSALS) and the kind's fields: a buy's price and its takes, a sell's refund.
+fn put_verdict(out: &mut String, v: &Verdict) {
+    match *v {
+        Verdict::Buy { unit, item, allow, deny, price, takes } => {
+            put(out, "b");
+            put(out, unit);
+            put(out, item);
+            put(out, u8::from(allow));
+            put(out, ALL_REFUSALS.iter().position(|&r| r == deny).unwrap_or(0));
+            put(out, price);
+            for t in takes {
+                put(out, t);
+            }
+        }
+        Verdict::Sell { unit, slot, allow, deny, refund } => {
+            put(out, "s");
+            put(out, unit);
+            put(out, slot);
+            put(out, u8::from(allow));
+            put(out, ALL_REFUSALS.iter().position(|&r| r == deny).unwrap_or(0));
+            put(out, refund);
+        }
+        Verdict::Unstash { unit, slot, allow, deny } => {
+            put(out, "u");
+            put(out, unit);
+            put(out, slot);
+            put(out, u8::from(allow));
+            put(out, ALL_REFUSALS.iter().position(|&r| r == deny).unwrap_or(0));
+        }
+    }
+}
+
+fn decode_verdict(it: &mut SplitWhitespace) -> Option<Verdict> {
+    let kind: String = num(it)?;
+    let (unit, slot_or_item): (usize, usize) = (num(it)?, num(it)?);
+    let allow = num::<u8>(it)? != 0;
+    let deny = *ALL_REFUSALS.get(num::<usize>(it)?)?;
+    Some(match kind.as_str() {
+        "b" => {
+            let price = num(it)?;
+            let mut takes = [NO_TAKE; VERDICT_TAKES];
+            for t in takes.iter_mut() {
+                *t = num(it)?;
+            }
+            Verdict::Buy { unit, item: slot_or_item, allow, deny, price, takes }
+        }
+        "s" => Verdict::Sell { unit, slot: slot_or_item, allow, deny, refund: num(it)? },
+        "u" => Verdict::Unstash { unit, slot: slot_or_item, allow, deny },
+        _ => return None,
+    })
 }
 
 fn put_text(out: &mut String, s: &str) {
@@ -515,6 +581,13 @@ impl Command {
             Command::Buy { unit, item } => sim.buy_item(*unit, *item),
             Command::Sell { unit, slot } => sim.sell_item(*unit, *slot),
             Command::Unstash { unit, slot } => sim.unstash(*unit, *slot),
+            Command::Trade { verdict } => sim.apply_verdict(verdict),
+            Command::PackStash { unit } => {
+                sim.pack_stash(*unit);
+                true
+            }
+            Command::SaveOrder { unit, x, y } => sim.save_order(*unit, *x, *y),
+            Command::RestoreOrder { unit } => sim.restore_order(*unit),
             Command::Fog { on } => {
                 sim.set_fog(*on);
                 true
@@ -536,8 +609,14 @@ impl Command {
             }
             Command::Invulnerable { unit, ticks } => sim.set_invulnerable(*unit as usize, *ticks).is_ok(),
             Command::Reduction { unit, pct } => sim.set_damage_reduction(*unit as usize, *pct).is_ok(),
+            Command::Healing { unit, hp_per_s } => sim.set_healing(*unit as usize, *hp_per_s).is_ok(),
+            Command::DeclareSide { side } => {
+                sim.declare_side(*side);
+                true
+            }
+            Command::AttackMove { unit, x, y } => sim.issue_order_kind(*unit as usize, sim::ORDER_ATTACK_MOVE, *x, *y).is_ok(),
             Command::Cadence { .. } => true,
-            Command::Spawn { index, x, y, owner, lane, .. } => sim.spawn_mod_unit(*owner, *index, *x, *y, *lane).is_some(),
+            Command::Spawn { index, x, y, owner, route, .. } => sim.spawn_mod_unit(*owner, *index, *x, *y, *route).is_some(),
             Command::Damage { caster, target, dmg } => {
                 let player = sim.player(*caster);
                 sim.damage_target(*caster as i32, player, *dmg, *target as i32);
@@ -573,7 +652,7 @@ impl Command {
                 sim.add_resources(*player, *amount, 0);
                 true
             }
-            Command::AddHeroGold { unit, amount } => sim.add_hero_gold(*unit, *amount),
+            Command::AddUnitGold { unit, amount } => sim.add_unit_gold(*unit, *amount),
             Command::Victory { player } => {
                 sim.declare_victory(*player);
                 true
@@ -650,6 +729,24 @@ impl Command {
                 put(&mut o, slot);
                 "t"
             }
+            Command::Trade { verdict } => {
+                put_verdict(&mut o, verdict);
+                "tr"
+            }
+            Command::PackStash { unit } => {
+                put(&mut o, unit);
+                "pk"
+            }
+            Command::SaveOrder { unit, x, y } => {
+                put(&mut o, unit);
+                put(&mut o, x);
+                put(&mut o, y);
+                "sv"
+            }
+            Command::RestoreOrder { unit } => {
+                put(&mut o, unit);
+                "ro"
+            }
             Command::Fog { on } => {
                 put(&mut o, u8::from(*on));
                 "f"
@@ -679,18 +776,33 @@ impl Command {
                 put(&mut o, *pct);
                 "rd"
             }
+            Command::Healing { unit, hp_per_s } => {
+                put(&mut o, *unit);
+                put(&mut o, *hp_per_s);
+                "hl"
+            }
+            Command::DeclareSide { side } => {
+                put(&mut o, *side);
+                "ds"
+            }
+            Command::AttackMove { unit, x, y } => {
+                put(&mut o, *unit);
+                put(&mut o, *x);
+                put(&mut o, *y);
+                "am"
+            }
             Command::Cadence { paths, vision } => {
                 put(&mut o, u8::from(*paths));
                 put(&mut o, u8::from(*vision));
                 "k"
             }
-            Command::Spawn { handle, index, x, y, owner, lane } => {
+            Command::Spawn { handle, index, x, y, owner, route } => {
                 put(&mut o, handle);
                 put(&mut o, index);
                 put(&mut o, x);
                 put(&mut o, y);
                 put(&mut o, owner);
-                put(&mut o, lane);
+                put(&mut o, route);
                 "sp"
             }
             Command::Damage { caster, target, dmg } => {
@@ -777,10 +889,10 @@ impl Command {
                 put(&mut o, amount);
                 "ag"
             }
-            Command::AddHeroGold { unit, amount } => {
+            Command::AddUnitGold { unit, amount } => {
                 put(&mut o, unit);
                 put(&mut o, amount);
-                "ah"
+                "au"
             }
             Command::Victory { player } => {
                 put(&mut o, player);
@@ -819,14 +931,21 @@ impl Command {
             "b" => Command::Buy { unit: num(it)?, item: num(it)? },
             "l" => Command::Sell { unit: num(it)?, slot: num(it)? },
             "t" => Command::Unstash { unit: num(it)?, slot: num(it)? },
+            "tr" => Command::Trade { verdict: decode_verdict(it)? },
+            "pk" => Command::PackStash { unit: num(it)? },
+            "sv" => Command::SaveOrder { unit: num(it)?, x: num(it)?, y: num(it)? },
+            "ro" => Command::RestoreOrder { unit: num(it)? },
             "f" => Command::Fog { on: num::<u8>(it)? != 0 },
             "co" => Command::ClassOverride { unit: num(it)?, class: num(it)? },
             "ho" => Command::HoldOverride { unit: num(it)?, hold: num(it)? },
             "rs" => Command::SetRespawn { unit: num(it)?, delay_s: num(it)? },
             "iv" => Command::Invulnerable { unit: num(it)?, ticks: num(it)? },
             "rd" => Command::Reduction { unit: num(it)?, pct: num(it)? },
+            "hl" => Command::Healing { unit: num(it)?, hp_per_s: num(it)? },
+            "ds" => Command::DeclareSide { side: num(it)? },
+            "am" => Command::AttackMove { unit: num(it)?, x: num(it)?, y: num(it)? },
             "k" => Command::Cadence { paths: num::<u8>(it)? != 0, vision: num::<u8>(it)? != 0 },
-            "sp" => Command::Spawn { handle: num(it)?, index: num(it)?, x: num(it)?, y: num(it)?, owner: num_or(it, 0)?, lane: num_or(it, 0)? },
+            "sp" => Command::Spawn { handle: num(it)?, index: num(it)?, x: num(it)?, y: num(it)?, owner: num_or(it, 0)?, route: num_or(it, 0)? },
             "dm" => Command::Damage { caster: num(it)?, target: num(it)?, dmg: num(it)? },
             "bf" => Command::Buff { unit: num(it)?, kind: num(it)?, ticks: num(it)? },
             "so" => Command::SetOwner { unit: num(it)?, player: num(it)? },
@@ -850,7 +969,8 @@ impl Command {
             "rm" => Command::Remove { unit: num(it)? },
             "gi" => Command::GiveItem { unit: num(it)?, item: num(it)?, count: num(it)? },
             "ag" => Command::AddGold { player: num(it)?, amount: num(it)? },
-            "ah" => Command::AddHeroGold { unit: num(it)?, amount: num(it)? },
+            // "ah" is the code a hero-named gold command was written under; it still decodes.
+            "au" | "ah" => Command::AddUnitGold { unit: num(it)?, amount: num(it)? },
             "vw" => Command::Victory { player: num(it)? },
             "df" => Command::Defeat { player: num(it)? },
             "ui" => Command::Ui { body: text(it)? },
@@ -1066,9 +1186,9 @@ impl Recording {
 
     /// Spawns unit `index` at (x, y) for a mod handle and records the spawn at the sim's tick,
     /// refused or not. Returns the unit the sim gave.
-    pub fn spawn(&mut self, sim: &mut Sim, handle: u32, index: u32, x: i32, y: i32, owner: u8, lane: i32) -> Option<usize> {
-        let unit = sim.spawn_mod_unit(owner, index, x, y, lane);
-        self.note(sim.ticks(), Command::Spawn { handle, index, x, y, owner, lane });
+    pub fn spawn(&mut self, sim: &mut Sim, handle: u32, index: u32, x: i32, y: i32, owner: u8, route: i32) -> Option<usize> {
+        let unit = sim.spawn_mod_unit(owner, index, x, y, route);
+        self.note(sim.ticks(), Command::Spawn { handle, index, x, y, owner, route });
         unit
     }
 
@@ -1452,7 +1572,7 @@ mod tests {
         let (x, y) = sim.position_fixed(first);
         let spawned = (1..40).find_map(|k| rec.spawn(&mut sim, 7, kind, x + k * 3 * 65536, y, 0, 0)).expect("a free point for the spawn");
         rec.apply(&mut sim, Command::AddGold { player: 0, amount: 500 });
-        rec.apply(&mut sim, Command::AddHeroGold { unit: first, amount: 5 });
+        rec.apply(&mut sim, Command::AddUnitGold { unit: first, amount: 5 });
         rec.apply(&mut sim, Command::Damage { caster: first, target: spawned, dmg: 3 });
         rec.apply(&mut sim, Command::Buff { unit: spawned, kind: 1, ticks: 40 });
         rec.apply(&mut sim, Command::SetOwner { unit: spawned, player: 1 });

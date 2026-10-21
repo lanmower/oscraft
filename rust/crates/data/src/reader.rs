@@ -313,12 +313,12 @@ pub fn verify(image: &[u8]) -> Result<()> {
     for i in 0..rout.count {
         let at = rout.offset + i * ROUT_RECORD;
         let player = u16_at(image, at)? as i32;
-        let lane = u16_at(image, at + 2)? as i32;
+        let route_id = u16_at(image, at + 2)? as i32;
         let count = u16_at(image, at + 4)? as usize;
         ensure!(player < MAX_PLAYERS, "route {i} player out of range");
-        ensure!((1..=MAX_ROUTE_LANE).contains(&lane), "route {i} lane out of range");
+        ensure!((1..=MAX_ROUTE_ID).contains(&route_id), "route {i} id out of range");
         ensure!((1..=MAX_ROUTE_POINTS).contains(&count), "route {i} point count out of range");
-        ensure!(route_keys.insert((player, lane)), "route {i} repeats player {player} lane {lane}");
+        ensure!(route_keys.insert((player, route_id)), "route {i} repeats player {player} id {route_id}");
         for k in 0..MAX_ROUTE_POINTS {
             let x = u32_at(image, at + 8 + k * 8)? as i64;
             let y = u32_at(image, at + 12 + k * 8)? as i64;

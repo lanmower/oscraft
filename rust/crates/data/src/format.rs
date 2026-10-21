@@ -34,7 +34,7 @@ pub const EFFECT_KINDS: &[&str] = &[
     "invisibility",
     "stat",
     "ward",
-    "glyph",
+    "retired_glyph",
     "deliver",
     "dot",
     "status",
@@ -75,9 +75,9 @@ pub const Q16_ONE: i32 = 65536;
 
 pub const TARGETS: &[&str] = &["none", "unit", "point"];
 pub const TRIGGERS: &[&str] = &["idle", "attacked", "spawned", "ability_ready", "destroyed"];
-pub const ACTIONS: &[&str] = &["attack_nearest", "flee", "use_ability", "declare_winner"];
+// Retired names keep their index so old images decode the same; a behaviour naming one is refused.
+pub const ACTIONS: &[&str] = &["attack_nearest", "flee", "use_ability", "retired_declare_winner"];
 pub const ACTION_USE_ABILITY: usize = 2;
-pub const ACTION_DECLARE_WINNER: usize = 3;
 pub const FILTERS: &[&str] = &[
     "ground", "air", "armored", "biological", "mechanical", "psionic", "structure", "light", "massive",
     "worker", "army", "building", "barracks", "melee_rax", "ranged_rax",
@@ -173,9 +173,9 @@ pub const SKIL_RECORD: usize = 72;
 pub const AXTN_RECORD: usize = 256;
 /// Waypoints one route holds.
 pub const MAX_ROUTE_POINTS: usize = 64;
-/// Route lanes: 1 up to this value; the lane id of a spawn effect rides the two top bits of its p3.
-pub const MAX_ROUTE_LANE: i32 = 3;
-/// A route record: player u16, lane u16, count u16, reserved u16, then `MAX_ROUTE_POINTS` x/y pairs of u32 milli-units.
+/// Route ids: 1 up to this value; the route id of a spawn effect rides the two top bits of its p3.
+pub const MAX_ROUTE_ID: i32 = 3;
+/// A route record: player u16, route id u16, count u16, reserved u16, then `MAX_ROUTE_POINTS` x/y pairs of u32 milli-units.
 pub const ROUT_RECORD: usize = 8 + MAX_ROUTE_POINTS * 8;
 /// Tuning record (TUNE, one record): structure scan cells u8, teleport ring points u8, teleport ring steps u8,
 /// reserved u8, best-only stat mask u64 (bit k is item stat k of `ITEM_STATS`), then `XP_CURVE_LEN` cumulative xp
@@ -265,7 +265,7 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
         "shield_bonus" => p0 >= 0,
         "stat" => (0..STAT_NAMES.len() as i32).contains(&p0),
         "ward" => p0 >= 0 && p1 >= 1,
-        "glyph" => p0 >= 1 && p1 >= 0 && p2 >= 1 && p3 >= 0,
+        "retired_glyph" => false,
         "deliver" => p0 >= 0,
         "dot" => p0 >= 0 && p1 >= 1 && p2 >= 1 && (0..SPELL_DAMAGE_TYPES.len() as i32).contains(&p3),
         "status" => (0..STATUS_CODES.len() as i32).contains(&p0) && p1 >= 1,

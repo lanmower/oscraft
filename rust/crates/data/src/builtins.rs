@@ -9,9 +9,9 @@ use starlark::starlark_module;
 use starlark::values::{dict::UnpackDictEntries, list::UnpackList, none::NoneType};
 
 use crate::format::{
-    effect_params_valid, index_of, ACTIONS, ACTION_DECLARE_WINNER, ACTION_USE_ABILITY, CELL_MASK, CELL_RAMP, CLOAK_FLAGS, DAMAGE_RESPONSES,
+    effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, CELL_RAMP, CLOAK_FLAGS, DAMAGE_RESPONSES,
     DAMAGE_TYPES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
-    DOODAD_KINDS, MAX_ROUTE_LANE, MAX_ROUTE_POINTS, ITEM_COMPONENTS, ITEM_FLAG_CONSUMABLE, ITEM_FLAG_ENHANCEMENT, ITEM_FLAG_NEUTRAL, ITEM_FLAG_NO_BUY,
+    DOODAD_KINDS, MAX_ROUTE_ID, MAX_ROUTE_POINTS, ITEM_COMPONENTS, ITEM_FLAG_CONSUMABLE, ITEM_FLAG_ENHANCEMENT, ITEM_FLAG_NEUTRAL, ITEM_FLAG_NO_BUY,
     ITEM_FLAG_NO_SELL, ITEM_SHOPS, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
 };
 use crate::model::{
@@ -369,7 +369,6 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         action: &str,
         #[starlark(require = named)] param: Option<i32>,
         #[starlark(require = named)] ability: Option<&str>,
-        #[starlark(require = named)] tag: Option<&str>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let trigger = index_of(TRIGGERS, trigger, "trigger")?;
@@ -377,16 +376,10 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         if action == ACTION_USE_ABILITY && ability.is_none() {
             bail!("behaviour {name:?} uses use_ability and needs ability=");
         }
-        if action == ACTION_DECLARE_WINNER && tag.is_none() {
-            bail!("behaviour {name:?} uses declare_winner and needs tag= (a FILTERS name)");
+        if ACTIONS[action].starts_with("retired_") {
+            bail!("behaviour {name:?} uses the retired action {}", ACTIONS[action]);
         }
-        if action != ACTION_DECLARE_WINNER && tag.is_some() {
-            bail!("behaviour {name:?}: tag= is only read by declare_winner");
-        }
-        let param = match tag {
-            Some(tag) => index_of(FILTERS, tag, "tag")? as i32,
-            None => param.unwrap_or(0),
-        };
+        let param = param.unwrap_or(0);
         if TRIGGERS[trigger] == "ability_ready" && ability.is_none() {
             bail!("behaviour {name:?} fires on ability_ready and needs ability=");
         }
@@ -690,22 +683,22 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
 
     fn route(
         player: i32,
-        lane: i32,
+        route_id: i32,
         points: UnpackList<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         if !(0..MAX_PLAYERS).contains(&player) {
             bail!("route player {player} is outside 0..{MAX_PLAYERS}");
         }
-        if !(1..=MAX_ROUTE_LANE).contains(&lane) {
-            bail!("route lane {lane} is outside 1..={MAX_ROUTE_LANE}");
+        if !(1..=MAX_ROUTE_ID).contains(&route_id) {
+            bail!("route id {route_id} is outside 1..={MAX_ROUTE_ID}");
         }
         let flat = points.items;
         if flat.len() % 2 != 0 || flat.is_empty() || flat.len() / 2 > MAX_ROUTE_POINTS {
             bail!("route points must be 1..={MAX_ROUTE_POINTS} x/y pairs, got {} numbers", flat.len());
         }
         let points = flat.chunks(2).map(|p| (p[0], p[1])).collect();
-        collector(eval)?.routes.borrow_mut().push(RouteRaw { player, lane, points });
+        collector(eval)?.routes.borrow_mut().push(RouteRaw { player, id: route_id, points });
         Ok(NoneType)
     }
 

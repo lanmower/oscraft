@@ -5,7 +5,7 @@
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::status::{EFFECT_INVISIBILITY, EFFECT_STUN};
-use crate::loader::{Effect, FILTER_BUILDING, FILTER_WORKER};
+use crate::loader::{Effect, FILTER_WORKER};
 use crate::*;
 
 /// Why a cast was not applied.
@@ -198,6 +198,8 @@ pub(crate) enum Slot {
 pub(crate) fn catalog_index(kind: u32, items: usize) -> Option<usize> {
     (kind != 0 && (kind as usize) <= items).then(|| kind as usize - 1)
 }
+/// Casts the cast log holds between drains.
+const CAST_LOG_CAP: usize = 1024;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 const EFFECT_MOVE: u16 = 2;
@@ -212,8 +214,7 @@ const EFFECT_SHIELD_BONUS: u16 = 10;
 pub(crate) const EFFECT_STAT: u16 = 16;
 /// Places a ward unit: p0 unit type, p1 lifetime in ticks. See wards.rs.
 pub(crate) const EFFECT_WARD: u16 = 17;
-/// Team glyph: p0 duration ticks, p1 cooldown ticks, p2 filter bits covered, p3 filter bits excluded. See aggro.rs.
-pub(crate) const EFFECT_GLYPH: u16 = 18;
+/// Code 18 is retired (the team glyph became a mod rule, on_cast). It is refused as unsupported.
 /// Courier delivery to the receiver: p0 reach in milli-units. See courier.rs.
 pub(crate) const EFFECT_DELIVER: u16 = 19;
 const EFFECT_VITAL_FRACTION: u16 = 9;
@@ -355,6 +356,9 @@ impl Sim {
         }
 
         self.stats.casts += 1;
+        if self.cast_log.len() < CAST_LOG_CAP {
+            self.cast_log.push((i as u32, ai as u16));
+        }
         if let Slot::Ability(k) = cd {
             self.spend_charge(i, k, ai);
         }
@@ -540,7 +544,7 @@ impl Sim {
             }
             EFFECT_MOVE => self.move_caster(caster, eff.p0, tx, ty),
             EFFECT_SPAWN => {
-                // A lane offset (p1, p2) places the unit beside the caster; without one it
+                // An offset (p1, p2) places the unit beside the caster; without one it
                 // spawns at the cast point, as before.
                 let (sx, sy) = if eff.p1 == 0 && eff.p2 == 0 {
                     (tx, ty)
@@ -553,7 +557,7 @@ impl Sim {
                 let kind = self.wave_kind(p, eff.p0 as u32, eff.p3, sx, sy);
                 if let Some(j) = self.spawn_for(p, kind, sx, sy) {
                     self.stats.summoned += 1;
-                    self.march_to_enemy_base(j, p);
+                    self.request_destination(j, p);
                 }
             }
             EFFECT_BUFF => {
@@ -563,7 +567,6 @@ impl Sim {
             }
             EFFECT_STAT => self.stat_bonus(caster, target, eff.p0, eff.p1),
             EFFECT_WARD => self.ward_effect(caster, eff.p0, eff.p1, tx, ty),
-            EFFECT_GLYPH => self.glyph_effect(caster, eff.p0, eff.p1, eff.p2, eff.p3),
             EFFECT_DELIVER => self.deliver_effect(caster, target, eff.p0),
             EFFECT_STUN..=EFFECT_INVISIBILITY => self.status_effect_from(caster, eff, target),
             k if k >= crate::spell::FIRST_SPELL_KIND => self.spell_effect(caster, eff, tx, ty, target),
@@ -595,38 +598,21 @@ impl Sim {
         }
     }
 
-    /// Sends a freshly summoned unit `j` of `player` on an attack-move toward the nearest living
-    /// hostile building, along the route `approach_to` finds (A* around blocked terrain). A unit
-    /// with no hostile building left stays where it spawned.
-    pub(crate) fn march_to_enemy_base(&mut self, j: usize, player: u8) {
-        let mut best: Option<(usize, i64)> = None;
-        for k in 0..self.n {
-            if k == j || self.alive[k] == 0 || !self.hostile(player, self.player[k]) {
-                continue;
-            }
-            if self.filter[k] & FILTER_BUILDING == 0 {
-                continue;
-            }
-            let d2 = dist2(self.pos_x[j], self.pos_y[j], self.pos_x[k], self.pos_y[k]);
-            if best.map_or(true, |(_, b)| d2 < b) {
-                best = Some((k, d2));
-            }
-        }
-        if let Some((k, _)) = best {
-            let (sx, sy) = self.strike_stop(j, k);
-            let _ = self.issue_order_kind(j, ORDER_ATTACK_MOVE, sx, sy);
-        }
-    }
-
-    /// Spawns a mod's unit `kind` for `player` at (x, y). A spawn that names a lane (`lane != 0`)
-    /// marches to the enemy base like a native summon; a lane-0 spawn stands where it was placed,
-    /// so a mod that moves its own units (a tower defense route, for one) keeps control of them.
-    pub fn spawn_mod_unit(&mut self, player: u8, kind: u32, x: i32, y: i32, lane: i32) -> Option<usize> {
+    /// Spawns a mod's unit `kind` for `player` at (x, y). A spawn that names a route (`route != 0`)
+    /// asks the host for a destination (on_march); a route-0 spawn stands where it was placed, so a mod
+    /// that moves its own units (a tower defense route, for one) keeps control of them.
+    pub fn spawn_mod_unit(&mut self, player: u8, kind: u32, x: i32, y: i32, route: i32) -> Option<usize> {
         let unit = self.spawn_for(player, kind, x, y)?;
-        if lane != 0 {
-            self.march_to_enemy_base(unit, player);
+        if route != 0 {
+            self.request_destination(unit, player);
         }
         Some(unit)
+    }
+
+    /// Takes the casts that took hold since the last call, oldest first, as (caster, ability index). Read by a
+    /// host that runs an on_cast callback; a sim nobody drains only keeps the first CAST_LOG_CAP.
+    pub fn take_casts(&mut self) -> Vec<(usize, usize)> {
+        std::mem::take(&mut self.cast_log).into_iter().map(|(u, a)| (u as usize, a as usize)).collect()
     }
 
     /// Whether a unit may take a spell or attack. `required` is a filter mask; every

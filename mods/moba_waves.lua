@@ -101,7 +101,7 @@ end
 for _, unit in ipairs(game.units()) do register_unit(unit) end
 for _, s in ipairs(lane_spawners) do start_lane(s) end
 
-function on_tick(state)
+local function mod_tick(state)
   state.waves_total = spawned.total or 0
   state.waves_base = spawned.base or 0
   state.waves_super = spawned.super or 0
@@ -110,4 +110,143 @@ function on_tick(state)
   state.waves_creep_ranged = spawned.creep_ranged or 0
   state.waves_siege = spawned.creep_siege or 0
   state.waves_siege_upgraded = (spawned.creep_siege_super or 0) + (spawned.creep_siege_mega or 0)
+end
+
+-- Moba protection, march and win (scenarios/moba/protection.lua, march.lua, win.lua), one chunk with the
+-- mod above: one on_tick runs both, and on_march, on_cast and on_check_win are defined here.
+local RADIUS_MILLI = 14062
+local ACTIVATION_S = 15
+local REDUCTION_PCT = 50
+local REGEN_PER_S = 90
+local TICKS_PER_SECOND = 16
+local SCAN_EVERY = 4
+local GLYPH_NAME = "glyph_of_fortification"
+local GLYPH_TICKS = 80
+local GLYPH_COOLDOWN = 4800
+local GLYPH_NEED = 64    -- filter bit 6, structure
+local GLYPH_SKIP = 2048  -- filter bit 11, building
+
+-- Same conversion as the sim's fixed::from_milli (65536 per unit, milli-units are 1/1000).
+local RADIUS_RAW = RADIUS_MILLI * 65536
+local RADIUS = (RADIUS_RAW - RADIUS_RAW % 1000) / 1000  -- whole fixed units; the sandbox has no math library
+local ACTIVATION_TICKS = ACTIVATION_S * TICKS_PER_SECOND
+
+local ticks = 0
+local last_threat = {}   -- structure id -> tick a hostile plain unit was last within RADIUS
+local backdoor = {}      -- structure id -> 1 while its backdoor is active
+local applied = {}       -- unit id -> the damage reduction last sent
+local applied_heal = {}  -- structure id -> the healing last sent
+local glyph_until = {}   -- team -> tick its glyph ends
+local glyph_ready = {}   -- team -> tick it may glyph again
+
+local function threatened(structure, owner, x, y)
+  for _, k in ipairs(game.units_near(x, y, RADIUS)) do
+    if k ~= structure and not game.is_structure(k) and not game.is_hero(k)
+      and unit_player(k) < 16 and game.hostile(owner, unit_player(k)) then
+      return true
+    end
+  end
+  return false
+end
+
+-- Whether unit i is covered by a glyph running for its team.
+local function glyph_covers(i)
+  local p = unit_player(i)
+  if p >= 16 then return false end  -- neutral units (player 255) have no team
+  local team = game.team(p)
+  if team == nil or (glyph_until[team] or 0) <= ticks then return false end
+  local bits = game.filter_bits(i)
+  return (bits & GLYPH_NEED) == GLYPH_NEED and (bits & GLYPH_SKIP) == 0
+end
+
+function on_cast(unit, ability, state)
+  if ability ~= GLYPH_NAME then return end
+  local p = unit_player(unit)
+  if p >= 16 then return end
+  local team = game.team(p)
+  if team == nil or (glyph_ready[team] or 0) > ticks then return end
+  glyph_until[team] = ticks + GLYPH_TICKS
+  glyph_ready[team] = ticks + GLYPH_COOLDOWN
+end
+
+local function protection_tick(state)
+  ticks = ticks + 1
+  local scan = ticks % SCAN_EVERY == 0
+  for i = 0, get_unit_count() - 1 do
+    if unit_alive(i) then
+      if scan and game.is_structure(i) then
+        local x, y = unit_position(i)
+        if threatened(i, unit_player(i), x, y) then last_threat[i] = ticks end
+        local quiet = ticks - (last_threat[i] or 0)
+        backdoor[i] = quiet >= ACTIVATION_TICKS
+        local heal = backdoor[i] and REGEN_PER_S or 0
+        if applied_heal[i] ~= heal then
+          game.set_healing(i, heal)
+          applied_heal[i] = heal
+        end
+      end
+      local pct = (backdoor[i] and REDUCTION_PCT or 0)
+      if glyph_covers(i) then pct = 100 end
+      if applied[i] ~= pct then
+        game.set_damage_reduction(i, pct)
+        applied[i] = pct
+      end
+    end
+  end
+end
+
+local BUILDING = 2048  -- filter bit 11, building (FILTERS in osdt-data format.rs)
+local PLAYERS = 16     -- MAX_PLAYERS; neutral units are player 255 and have no side
+
+function on_march(unit, player, state)
+  local ux, uy = unit_position(unit)
+  local best_x, best_y, best_d = nil, nil, nil
+  for k = 0, get_unit_count() - 1 do
+    if k ~= unit and unit_alive(k) and unit_player(k) < PLAYERS and game.hostile(player, unit_player(k))
+      and (game.filter_bits(k) & BUILDING) ~= 0 then
+      local x, y = unit_position(k)
+      local d = (x - ux) * (x - ux) + (y - uy) * (y - uy)
+      if best_d == nil or d < best_d then
+        best_x, best_y, best_d = x, y, d
+      end
+    end
+  end
+  if best_x ~= nil then
+    return best_x, best_y
+  end
+end
+
+local BUILDING = 2048  -- filter bit 11, building
+local PLAYERS = 16     -- MAX_PLAYERS in the sim
+
+local had_building = {}  -- player -> true once the player held a living building
+
+function on_check_win(state)
+  local standing = {}
+  for k = 0, get_unit_count() - 1 do
+    if unit_alive(k) and (game.filter_bits(k) & BUILDING) ~= 0 then
+      standing[unit_player(k)] = true
+    end
+  end
+  for p = 0, PLAYERS - 1 do
+    if standing[p] then
+      had_building[p] = true
+    elseif had_building[p] then
+      -- p has lost its last building: the first player hostile to p names the winning side.
+      for q = 0, PLAYERS - 1 do
+        if q ~= p and game.hostile(p, q) then
+          local side = game.team(q)
+          if side ~= nil then
+            return side
+          end
+        end
+      end
+    end
+  end
+  return nil
+end
+
+function on_tick(state)
+  mod_tick(state)
+  protection_tick(state)
 end

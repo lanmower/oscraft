@@ -4,7 +4,7 @@
 
 use crate::arrays::Sim;
 use crate::fixed;
-use crate::inventory::{ITEM_COMPONENTS, ITEM_FLAG_MASK, ITEM_SHOP_MASK, ITEM_STAT_COUNT, NEUTRAL_TIERS};
+use crate::inventory::{ITEM_COMPONENTS, ITEM_FLAG_MASK, ITEM_STORE_MASK, ITEM_STAT_COUNT, NEUTRAL_TIERS};
 use crate::pathfinding::Grid;
 use std::fmt;
 use std::path::Path;
@@ -45,7 +45,6 @@ const EFFECT_HEAL: u16 = 1;
 const EFFECT_KINDS: u16 = 34;
 const EFFECT_STAT: u16 = 16;
 const EFFECT_WARD: u16 = 17;
-const EFFECT_GLYPH: u16 = 18;
 const EFFECT_DELIVER: u16 = 19;
 const EFFECT_SLOW: u16 = 12;
 const EFFECT_STATUS_DURATION: [u16; 4] = [11, 13, 14, 15];
@@ -431,7 +430,7 @@ pub struct Item {
     pub flags: u16,
     /// Neutral tier `1..=NEUTRAL_TIERS`, 0 for an item that is not a neutral drop.
     pub tier: u8,
-    /// Shops that sell the item: `SHOP_HOME`, `SHOP_SIDE`, `SHOP_SECRET` bits.
+    /// Shops that sell the item: `STORE_HOME`, `STORE_SIDE`, `STORE_SECRET` bits.
     pub shops: u8,
     /// Charges one purchase grants, and the most one slot holds (0: a single unstackable item).
     pub charges: u16,
@@ -630,7 +629,6 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         EFFECT_STAT if !(0..crate::spell::STAT_COUNT as i32).contains(&e.p0) => Some("stat code"),
         k if k >= crate::spell::FIRST_SPELL_KIND => crate::spell::spell_effect_error(e),
         EFFECT_WARD if e.p0 < 0 || e.p1 < 1 => Some("ward unit or lifetime"),
-        EFFECT_GLYPH if e.p0 < 1 || e.p1 < 0 || e.p2 < 1 || e.p3 < 0 => Some("glyph duration, cooldown or filters"),
         EFFECT_DELIVER if e.p0 < 0 => Some("deliver reach"),
         EFFECT_CREATE_HEALER if e.p0 < 0 || e.p1 < 0 || e.p2 < 1 || e.p3 < 1 => {
             Some("create_healer amount, radius, period or lifetime")
@@ -1369,7 +1367,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if item.cost < 0
             || item.flags & !ITEM_FLAG_MASK != 0
             || item.tier > NEUTRAL_TIERS
-            || item.shops > ITEM_SHOP_MASK
+            || item.shops > ITEM_STORE_MASK
             || item.stock_initial > item.stock_max
             || !ability_ok
             || !components_ok

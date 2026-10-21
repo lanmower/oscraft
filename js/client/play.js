@@ -858,7 +858,7 @@ function autoSeat(peerPubkey) {
   const taken = new Set(autoSeats.map((s) => s.slot));
   for (let slot = 0; slot < MAX_PLAYERS; slot++) {
     if (!taken.has(slot)) {
-      autoSeats.push({ slot, owner: peerPubkey, hero: "" });
+      autoSeats.push({ slot, owner: peerPubkey, pick: "" });
       seating.start(autoSeats);
       return;
     }
@@ -894,7 +894,7 @@ function refreshSeatStats() {
     const hero = heroOf(slot);
     if (!hero) continue;
     seating.setStats(slot, {
-      gold: typeof localGame.hero_gold === "function" ? localGame.hero_gold(hero.id) : localGame.gold(slot),
+      gold: typeof localGame.unit_gold === "function" ? localGame.unit_gold(hero.id) : localGame.gold(slot),
       kills: Math.min(U16_MAX, typeof localGame.kills_of === "function" ? localGame.kills_of(hero.id) : 0),
       deaths: Math.min(U16_MAX, typeof localGame.deaths_of === "function" ? localGame.deaths_of(hero.id) : 0),
     });
@@ -903,13 +903,13 @@ function refreshSeatStats() {
 
 // Seats a hero for each START seat whose player owns none yet: the picked hero type, at its team's side of the map.
 function spawnSeatHeroes(seats) {
-  if (typeof localGame.spawn_hero !== "function") return;
-  spawnedSeats = seats.map(({ slot, hero }) => ({ slot, hero }));
+  if (typeof localGame.spawn_attributed !== "function") return;
+  spawnedSeats = seats.map(({ slot, pick }) => ({ slot, pick }));
   for (const seat of seats) {
     const placed = placeholderOf(seat.slot);
-    const kind = heroKinds.get(seat.hero);
+    const kind = heroKinds.get(seat.pick);
     if (kind === undefined) {
-      if (!placed) console.error(`seat ${seat.slot}: hero ${seat.hero} is not in the roster; no hero spawned`);
+      if (!placed) console.error(`seat ${seat.slot}: hero ${seat.pick} is not in the roster; no hero spawned`);
       continue;
     }
     if (placed?.type === kind) continue;
@@ -932,7 +932,7 @@ function spawnAtSide(slot, kind, from = null) {
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-        if (localGame.spawn_hero(slot, kind, x0 + dx, y0 + dy) >= 0) return true;
+        if (localGame.spawn_attributed(slot, kind, x0 + dx, y0 + dy) >= 0) return true;
       }
     }
   }
@@ -1977,11 +1977,11 @@ if (params.get("ci") === "1") {
   // Read-only: per START seat, the picked hero name and the catalog name of the unit the sim actually spawned for it.
   window.__ciHeroNames = () => {
     const names = typeof localGame.unit_type_names === "function" ? localGame.unit_type_names() : [];
-    return spawnedSeats.map(({ slot, hero }) => {
+    return spawnedSeats.map(({ slot, pick }) => {
       // The seat's hero is the unit of the picked kind; the first hero of the slot may be a map-placed unit of another type.
-      const kind = heroKinds.get(hero);
+      const kind = heroKinds.get(pick);
       const u = simUnits().find((v) => v.player === slot && isHeroUnit(v.id) && v.type === kind) || null;
-      return { slot, picked: hero, spawned: u ? names[u.type] ?? null : null };
+      return { slot, picked: pick, spawned: u ? names[u.type] ?? null : null };
     });
   };
   // Read-only: the first ramp cell's centre in tile units, and the effects' counts (ranged attack projectiles in flight).

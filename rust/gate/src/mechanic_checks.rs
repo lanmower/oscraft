@@ -305,14 +305,14 @@ pub fn camp_rune_pickup(_image: &[u8]) -> Result<(), String> {
     let (rx, ry) = s.position_fixed(rune);
     let hero_kind = kind(&s, "hero")?;
     let hero = s
-        .spawn_hero(0, hero_kind, rx + fixed::from_int(1), ry)
-        .ok_or("spawn_hero refused beside the rune")?;
-    let gold = s.hero_gold(hero);
+        .spawn_attributed(0, hero_kind, rx + fixed::from_int(1), ry)
+        .ok_or("spawn_attributed refused beside the rune")?;
+    let gold = s.unit_gold(hero);
     s.tick();
     if s.alive(rune) {
         return Err(format!("rune {rune} survived a hero in pickup range"));
     }
-    let paid = s.hero_gold(hero) - gold;
+    let paid = s.unit_gold(hero) - gold;
     // One tick can land on a second boundary, which adds one passive gold per second of hero income.
     let passive_slack = 1;
     if paid < sim::RUNE_GOLD || paid > sim::RUNE_GOLD + passive_slack {

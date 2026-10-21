@@ -330,6 +330,9 @@ impl Sim {
     /// it `s` seconds from now (the usual home-clear check still applies), `None` leaves it dead. A live unit or a
     /// unit outside a spawn group is refused.
     pub fn set_respawn(&mut self, i: usize, delay_s: Option<u32>) -> Result<(), &'static str> {
+        if self.is_hero(i) {
+            return self.set_hero_respawn(i, delay_s);
+        }
         if !self.is_spawn_group_unit(i) || self.camps.waiting[i] == 0 {
             return Err("not a dead spawn-group unit");
         }

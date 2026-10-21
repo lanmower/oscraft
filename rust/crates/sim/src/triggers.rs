@@ -6,6 +6,7 @@
 //! does not hold it is skipped, not refused); any other action refuses as action-unsupported.
 //! Behaviours carry no unit link, so every unit is offered each one. Nothing allocates: the
 //! catalog is read by index and each pending flag is a byte in its unit's array.
+//! The win rule is not a behaviour: a mod decides it (on_check_win) and declares the side with declare_side.
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
@@ -45,26 +46,6 @@ impl Sim {
         }
     }
 
-    /// Declares the rival side the winner when dead unit `i` carried the tag (a filter bit index)
-    /// and no other living unit of its side carries it. The first winner stands.
-    fn declare_winner(&mut self, i: usize, tag: i32) {
-        if self.winner >= 0 || !(0..32).contains(&tag) {
-            return;
-        }
-        let bit = 1u32 << tag;
-        let side = self.player[i];
-        if self.filter[i] & bit == 0 {
-            return;
-        }
-        let standing = (0..self.n).any(|k| self.alive[k] != 0 && self.player[k] == side && self.filter[k] & bit != 0);
-        if standing {
-            return;
-        }
-        if let Some(rival) = self.rival_of(side) {
-            self.winner = self.team[rival as usize] as i32;
-        }
-    }
-
     /// The number of player slots the map starts (one start record per player).
     pub fn player_count(&self) -> usize {
         self.cat.starts.len()
@@ -78,12 +59,19 @@ impl Sim {
         teams.len()
     }
 
-    /// The first side hostile to `side`, the side a destroyed unit's bounty or win goes to.
+    /// The first side hostile to `side`, the side a destroyed unit's bounty goes to.
     pub fn rival_of(&self, side: u8) -> Option<u8> {
         (0..MAX_PLAYERS as u8).find(|&q| q != side && self.hostile(side, q))
     }
 
-    /// The side declared winner by a declare_winner behaviour, or None while no side has won.
+    /// Declares side `side` the winner (the team a mod names from its win rule). The first winner stands.
+    pub fn declare_side(&mut self, side: u8) {
+        if self.winner < 0 && (side as usize) < MAX_PLAYERS {
+            self.winner = side as i32;
+        }
+    }
+
+    /// The side declared winner, or None while no side has won.
     pub fn winner(&self) -> Option<u8> {
         u8::try_from(self.winner).ok()
     }
@@ -141,7 +129,6 @@ impl Sim {
                 continue;
             }
             match beh.action {
-                ACTION_DECLARE_WINNER => self.declare_winner(i, beh.param),
                 // Strikes the nearest enemy that unit i can strike in reach. With none in reach it does nothing.
                 ACTION_ATTACK_NEAREST => {
                     let target = self.nearest_enemy(i);

@@ -113,8 +113,9 @@ ability("smoke_veil", 160, 0, "none", [effect("invisibility", p0=80)])
 ability("place_observer", 16, 0, "point", [effect("ward", p0=18, p1=5760)])
 ability("place_sentry", 16, 0, "point", [effect("ward", p0=19, p1=6720)])
 # Glyph of fortification: for 80 ticks (5 s) every friendly structure that is not a building (the towers) takes no damage;
-# the team then waits 4800 ticks (300 s). UNVERIFIED: both numbers are recalled reference ruleset values, the dump has no glyph keys.
+# the team then waits 4800 ticks (300 s). The engine has no glyph effect: protection.lua runs the rule on the cast (on_cast)
+# through set_damage_reduction and filter_bits. UNVERIFIED: both numbers are recalled reference ruleset values.
 # Filter bits: 64 structure, 2048 building.
-ability("glyph_of_fortification", 4800, 0, "none", [effect("glyph", p0=80, p1=4800, p2=64, p3=2048)])
+ability("glyph_of_fortification", 4800, 0, "none", [])
 # Courier: walks to a friendly army unit (a hero), moves its stash into its inventory within 1000 milli, walks back.
 ability("courier_deliver", 16, 0, "unit", [effect("deliver", p0=1000)], target_filters=["army"])

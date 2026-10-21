@@ -323,10 +323,10 @@ impl Game {
     }
 
     /// Spawns a hero of unit type `kind` for `player` at tile (x, y). Returns its unit id, or -1 when refused.
-    pub fn spawn_hero(&mut self, player: u8, kind: u32, x: f32, y: f32) -> i32 {
+    pub fn spawn_attributed(&mut self, player: u8, kind: u32, x: f32, y: f32) -> i32 {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
-        let id = self.sim.spawn_hero(player, kind, fx, fy).map_or(-1, |i| i as i32);
+        let id = self.sim.spawn_attributed(player, kind, fx, fy).map_or(-1, |i| i as i32);
         self.rec.mark_incomplete(self.sim.ticks());
         id
     }
@@ -368,8 +368,8 @@ impl Game {
     }
 
     /// Gold held by hero `unit`; 0 for a non-hero.
-    pub fn hero_gold(&self, unit: u32) -> i32 {
-        self.sim.hero_gold(unit as usize)
+    pub fn unit_gold(&self, unit: u32) -> i32 {
+        self.sim.unit_gold(unit as usize)
     }
 
     /// Experience held by unit `unit`; 0 for an unknown unit.
@@ -495,7 +495,7 @@ impl Game {
         cat.units.iter().map(|u| cat.name(u.model).to_owned()).collect()
     }
 
-    /// The catalog name of each unit type, indexed by type index: the index `spawn_hero` takes.
+    /// The catalog name of each unit type, indexed by type index: the index `spawn_attributed` takes.
     pub fn unit_type_names(&self) -> Vec<String> {
         let cat = self.sim.catalog();
         cat.units.iter().map(|u| cat.name(u.name).to_owned()).collect()

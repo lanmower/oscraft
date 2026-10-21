@@ -10,7 +10,7 @@ export const MAX_MESSAGE_BYTES = 256;
 export const MAX_PLAYERS = 10;
 export const TEAM_SIZE = 5;
 export const MAX_OWNER_BYTES = 64;
-export const MAX_HERO_BYTES = 32;
+export const MAX_PICK_BYTES = 32;
 export const SPECTATOR = 255;
 
 const U32 = 0xffffffff;
@@ -272,20 +272,20 @@ const CODECS = {
     write(w, f) { w.u32(f.lastTick, 'lastTick'); },
     read(r) { return { lastTick: r.u32() }; },
   },
-  // The lobby start action: the seats in slot order, each with its owner key and hero.
+  // The lobby start action: the seats in slot order, each with its owner key and pick.
   [FRAME.START]: {
-    size: (f) => 2 + 1 + f.seats.reduce((n, s) => n + 1 + 1 + utf8(s.owner, MAX_OWNER_BYTES, 'owner').length + 1 + utf8(s.hero, MAX_HERO_BYTES, 'hero').length, 0),
+    size: (f) => 2 + 1 + f.seats.reduce((n, s) => n + 1 + 1 + utf8(s.owner, MAX_OWNER_BYTES, 'owner').length + 1 + utf8(s.pick, MAX_PICK_BYTES, 'pick').length, 0),
     write(w, f) {
       if (f.seats.length > MAX_PLAYERS) throw new WireError('RANGE', `seats ${f.seats.length} > ${MAX_PLAYERS}`);
       w.u8(f.seats.length, 'seatCount');
       for (const s of f.seats) {
         const owner = utf8(s.owner, MAX_OWNER_BYTES, 'owner');
-        const hero = utf8(s.hero, MAX_HERO_BYTES, 'hero');
+        const pick = utf8(s.pick, MAX_PICK_BYTES, 'pick');
         w.u8(s.slot, 'slot');
         w.u8(owner.length, 'ownerLength');
         w.raw(owner);
-        w.u8(hero.length, 'heroLength');
-        w.raw(hero);
+        w.u8(pick.length, 'pickLength');
+        w.raw(pick);
       }
     },
     read(r) {
@@ -297,9 +297,9 @@ const CODECS = {
         const ownerLength = r.u8();
         if (ownerLength > MAX_OWNER_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `owner ${ownerLength} > ${MAX_OWNER_BYTES}`);
         const owner = text(r.take(ownerLength), 'owner');
-        const heroLength = r.u8();
-        if (heroLength > MAX_HERO_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `hero ${heroLength} > ${MAX_HERO_BYTES}`);
-        seats.push({ slot, owner, hero: text(r.take(heroLength), 'hero') });
+        const pickLength = r.u8();
+        if (pickLength > MAX_PICK_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `pick ${pickLength} > ${MAX_PICK_BYTES}`);
+        seats.push({ slot, owner, pick: text(r.take(pickLength), 'pick') });
       }
       return { seats };
     },

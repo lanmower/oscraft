@@ -242,7 +242,7 @@ impl Sim {
             cost: spec.cost,
             stats,
             ability,
-            shops: crate::inventory::ITEM_SHOP_MASK,
+            shops: crate::inventory::ITEM_STORE_MASK,
             components: [NO_INDEX; crate::inventory::ITEM_COMPONENTS],
             ..Item::default()
         };
@@ -415,7 +415,7 @@ impl Sim {
     }
 
     /// Adds `amount` (negative to take) to the gold of a hero unit. False when the unit is not a hero.
-    pub fn add_hero_gold(&mut self, unit: usize, amount: i32) -> bool {
+    pub fn add_unit_gold(&mut self, unit: usize, amount: i32) -> bool {
         if !self.is_hero(unit) {
             return false;
         }

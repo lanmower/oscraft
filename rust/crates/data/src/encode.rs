@@ -284,7 +284,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
     for route in &catalog.routes {
         let start = rout.len();
         u16_le(&mut rout, route.player);
-        u16_le(&mut rout, route.lane);
+        u16_le(&mut rout, route.id);
         u16_le(&mut rout, route.points.len() as u16);
         pad(&mut rout, 2);
         for k in 0..MAX_ROUTE_POINTS {

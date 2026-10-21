@@ -11,14 +11,23 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-/// Version 16 adds the destroyed-trigger flags and the declared winner. Older saves are refused.
+/// Version 16 adds the destroyed-trigger flags and the declared winner. Version 32 drops the glyph timers and adds per-unit healing. Older saves are refused.
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
 /// Version 27 adds the hero per-unit state (respawn, buyback, gold, mana cap, spot) and the assist
 /// tallies and recent hitters. Version 30 adds the per-slot spawn generation and the generation each sticky
 /// strike target was struck under, so a reused slot never hands its old occupant's target to the new unit.
 /// Version 31 adds the chase and return state of acquiring units (acquire.rs).
-const STATE_VERSION: u16 = 31;
+/// Version 33 drops the courier and store-stock sections: a courier's walk and a store's stock are mod
+/// state now, and the sim keeps only the saved order point per unit (carrier.rs). Version 32 saves
+/// still load: their courier section is read and dropped (the phase codes below must hold), and their
+/// stock section is skipped. The courier phase codes were 0 idle, 1 outbound (walking to the
+/// receiver) and 2 returning home. Their names stay here so the codes keep their meaning.
+const STATE_VERSION: u16 = 33;
+const LEGACY_COURIER_VERSION: u16 = 32;
+const LEGACY_COURIER_RETURNING: u8 = 2;
+/// Teams a store kept stock for in version 32 (one per player slot).
+const STOCK_TEAMS: usize = MAX_PLAYERS;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -492,16 +501,13 @@ impl Sim {
         put_u32s(&mut w, &self.unit_assists);
         put_i32s(&mut w, &self.hitter_id);
         put_u32s(&mut w, &self.hitter_tick);
-        w.extend_from_slice(&self.routes.lane);
+        w.extend_from_slice(&self.routes.id);
         w.extend_from_slice(&self.routes.step);
         put_i32s(&mut w, &self.aggro.target);
         put_u32s(&mut w, &self.aggro.until);
         put_u32s(&mut w, &self.aggro.invuln_until);
         w.extend_from_slice(&self.aggro.reduce_pct);
-        put_u32s(&mut w, &self.aggro.glyph_until);
-        put_u32s(&mut w, &self.aggro.glyph_ready);
-        put_u32s(&mut w, &self.aggro.glyph_need);
-        put_u32s(&mut w, &self.aggro.glyph_skip);
+        put_i32s(&mut w, &self.aggro.heal);
         put_i32s(&mut w, &self.aggro.strike);
         put_u32s(&mut w, &self.aggro.strike_gen);
         put_u32s(&mut w, &self.aggro.spawn_gen);
@@ -511,13 +517,9 @@ impl Sim {
         put_i32s(&mut w, &self.chase.ret_x);
         put_i32s(&mut w, &self.chase.ret_y);
         put_u32s(&mut w, &self.wards.expires);
-        w.extend_from_slice(&self.couriers.phase);
-        put_i32s(&mut w, &self.couriers.target);
-        put_i32s(&mut w, &self.couriers.reach);
-        put_i32s(&mut w, &self.couriers.home_x);
-        put_i32s(&mut w, &self.couriers.home_y);
-        w.extend_from_slice(&self.stock.count);
-        put_u32s(&mut w, &self.stock.next_at);
+        w.extend_from_slice(&self.order_memory.set);
+        put_i32s(&mut w, &self.order_memory.x);
+        put_i32s(&mut w, &self.order_memory.y);
         for table in self.spell.tables() {
             put_i32s(&mut w, table);
         }
@@ -532,7 +534,7 @@ impl Sim {
             return Err(StateError::BadMagic);
         }
         let version = r.u16()?;
-        if version != STATE_VERSION {
+        if version != STATE_VERSION && version != LEGACY_COURIER_VERSION {
             return Err(StateError::BadVersion(version));
         }
         let cap = r.u32()? as usize;
@@ -757,16 +759,13 @@ impl Sim {
         r.u32s_into(&mut next.unit_assists)?;
         r.i32s_into(&mut next.hitter_id)?;
         r.u32s_into(&mut next.hitter_tick)?;
-        r.bytes_into(&mut next.routes.lane)?;
+        r.bytes_into(&mut next.routes.id)?;
         r.bytes_into(&mut next.routes.step)?;
         r.i32s_into(&mut next.aggro.target)?;
         r.u32s_into(&mut next.aggro.until)?;
         r.u32s_into(&mut next.aggro.invuln_until)?;
         r.bytes_into(&mut next.aggro.reduce_pct)?;
-        r.u32s_into(&mut next.aggro.glyph_until)?;
-        r.u32s_into(&mut next.aggro.glyph_ready)?;
-        r.u32s_into(&mut next.aggro.glyph_need)?;
-        r.u32s_into(&mut next.aggro.glyph_skip)?;
+        r.i32s_into(&mut next.aggro.heal)?;
         r.i32s_into(&mut next.aggro.strike)?;
         r.u32s_into(&mut next.aggro.strike_gen)?;
         r.u32s_into(&mut next.aggro.spawn_gen)?;
@@ -776,13 +775,21 @@ impl Sim {
         r.i32s_into(&mut next.chase.ret_x)?;
         r.i32s_into(&mut next.chase.ret_y)?;
         r.u32s_into(&mut next.wards.expires)?;
-        r.bytes_into(&mut next.couriers.phase)?;
-        r.i32s_into(&mut next.couriers.target)?;
-        r.i32s_into(&mut next.couriers.reach)?;
-        r.i32s_into(&mut next.couriers.home_x)?;
-        r.i32s_into(&mut next.couriers.home_y)?;
-        r.bytes_into(&mut next.stock.count)?;
-        r.u32s_into(&mut next.stock.next_at)?;
+        if version == LEGACY_COURIER_VERSION {
+            // Version 32 held the courier phases, targets, reach and home, and the store stock. They
+            // are read and dropped: the phase codes must be 0 (idle), 1 (outbound) or 2 (returning).
+            let phases = r.take(cap)?;
+            if phases.iter().any(|&p| p > LEGACY_COURIER_RETURNING) {
+                return Err(StateError::Length);
+            }
+            r.take(4 * 4 * cap)?;
+            let stock = STOCK_TEAMS * next.cat.items.len();
+            r.take(stock + 4 * stock)?;
+        } else {
+            r.bytes_into(&mut next.order_memory.set)?;
+            r.i32s_into(&mut next.order_memory.x)?;
+            r.i32s_into(&mut next.order_memory.y)?;
+        }
         for table in next.spell.tables_mut() {
             r.i32s_into(table)?;
         }
