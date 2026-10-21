@@ -1,4 +1,4 @@
-//! Lua mod host. A mod is a chunk that defines `on_tick(state)`. The host owns `state` and the
+//! Lua mod host. A mod is a chunk; its hooks, on_tick(state) among them, are optional. The host owns `state` and the
 //! sim; a mod reload never resets them. Mods run on piccolo (pure Rust), in piccolo_host.rs.
 
 mod shared;

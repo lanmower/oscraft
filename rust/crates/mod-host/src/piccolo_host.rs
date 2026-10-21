@@ -1791,7 +1791,7 @@ impl ModHost {
     }
 
     /// Compiles the mod in `src`, named `name` in error messages, runs its top level in its own
-    /// environment, and makes it the active version. The mod must define on_tick.
+    /// environment, and makes it the active version. Every hook is optional, on_tick included.
     pub fn load_source(&mut self, name: &str, src: &str) -> Result<(), String> {
         let hooks = self.build_mod(name, src)?;
         self.hooks = vec![hooks];
@@ -1934,10 +1934,6 @@ impl ModHost {
             })
             .map_err(|e| e.to_string())?;
         self.run(&exec)?;
-        let defined = self.lua.borrow_mut().enter(|ctx| matches!(ctx.fetch(&env).get(ctx, "on_tick"), Value::Function(_)));
-        if !defined {
-            return Err(format!("{name}: on_tick is not defined"));
-        }
         let mut hooks = hooks;
         let named = |key: &str| {
             self.lua.borrow_mut().enter(|ctx| match ctx.fetch(&env).get(ctx, ctx.intern(key.as_bytes())) {
@@ -2138,6 +2134,7 @@ impl ModHost {
         for f in timers {
             self.call(&f, Vec::new())?;
         }
+        // emit calls on_tick only in the chunks that define it; the others are skipped.
         self.emit("on_tick", vec![Arg::State])?;
         Ok(())
     }
