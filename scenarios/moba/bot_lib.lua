@@ -46,11 +46,7 @@ local HEAL_PCT = 50
 local HEAL_ITEM = "flask"
 local BLINK_ITEM = "blink"
 
-local LANE_Y = { top = 8500, mid = 30500, bot = 52500 }
 local LANE_OF_SEAT = { "top", "mid", "bot", "mid", "top" }
-local BASE_X = { [0] = 8000, [1] = 56000 }
-local FOUNTAIN = { [0] = { 7500, 34000 }, [1] = { 56500, 26500 } }
-local PUSH_X = { [0] = 50000, [1] = 14000 }
 -- Catalog index and gold cost of each purchase, in the order a bot buys them.
 local SHOPPING = { { 2, 200 }, { 6, 350 }, { 0, 150 }, { 1, 150 }, { 7, 300 }, { 10, 600 } }
 
@@ -278,13 +274,32 @@ function Bot.cast_ready(bot, hero, target, ticks)
   end
 end
 
+-- The position (fixed point) of the base of a player, from the live unit; nil when the player has none.
+local function base_of(player)
+  for _, unit in ipairs(game.units(player)) do
+    if game.unit_kind(unit) == "base" then return unit_position(unit) end
+  end
+  return nil
+end
+
+-- The position of an enemy base: the first base of a player hostile to `player`; nil when none is standing.
+local function enemy_base(player)
+  for q = 0, 15 do
+    if q ~= player and game.hostile(player, q) then
+      local x, y = base_of(q)
+      if x ~= nil then return x, y end
+    end
+  end
+  return nil
+end
+
 function Bot.shop(bot, hero, team, player)
   local item = SHOPPING[bot.shopped + 1]
   if not item or game.gold(player) < item[2] then return false end
   local hx, hy = unit_position(hero)
-  local sx, sy = BASE_X[team % 2] * 65.536, LANE_Y.mid * 65.536
-  if distance_tiles(hx, hy, sx, sy) > SHOP_REACH then
-    game.cmd_order(hero, fixed(sx), fixed(sy))
+  local sx, sy = base_of(player)
+  if sx ~= nil and distance_tiles(hx, hy, sx, sy) > SHOP_REACH then
+    game.cmd_order(hero, sx, sy)
     return true
   end
   game.cmd_buy(hero, item[1])
@@ -293,15 +308,17 @@ function Bot.shop(bot, hero, team, player)
 end
 
 function Bot.retreat(bot, hero, team)
-  local fx, fy = FOUNTAIN[team % 2][1] * 65.536, FOUNTAIN[team % 2][2] * 65.536
+  local fx, fy = base_of(bot.slot)
+  if fx == nil then return end
   Bot.stats.retreats = Bot.stats.retreats + 1
-  game.cmd_order(hero, fixed(fx), fixed(fy))
+  game.cmd_order(hero, fx, fy)
 end
 
 function Bot.walk_lane(bot, hero, team)
-  local x, y = PUSH_X[team % 2] * 65.536, LANE_Y[bot.lane] * 65.536
+  local x, y = enemy_base(bot.slot)
+  if x == nil then return end
   Bot.stats.walks = Bot.stats.walks + 1
-  game.cmd_order(hero, fixed(x), fixed(y))
+  game.cmd_order(hero, x, y)
 end
 
 -- One decision for a bot: returns the hero it controls, or nil when the slot has none alive.
