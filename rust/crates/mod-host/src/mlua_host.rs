@@ -1154,6 +1154,24 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(name)
         })?,
     )?;
+    // timed_boss(name, first_s, min_s, spread_s): a load-time setting of one timed boss's spawn timing (see camp.rs).
+    let w = world.clone();
+    game.set(
+        "timed_boss",
+        lua.create_function(move |_, (name, first, min, spread): (String, i64, i64, i64)| {
+            let to_u32 = |v: i64| u32::try_from(v).map_err(|_| mlua::Error::RuntimeError("invalid_timed_boss: times must not be negative".into()));
+            w.borrow_mut().set_timed_boss(&name, to_u32(first)?, to_u32(min)?, to_u32(spread)?).map_err(|why| mlua::Error::RuntimeError(format!("invalid_timed_boss: {name}: {why}")))
+        })?,
+    )?;
+    // camp_rule(name, value): a load-time setting of one camp, rune or pit timing or reach (see CampRules in camp.rs).
+    let w = world.clone();
+    game.set(
+        "camp_rule",
+        lua.create_function(move |_, (name, value): (String, i64)| {
+            let value = u32::try_from(value).map_err(|_| mlua::Error::RuntimeError("invalid_camp_rule: value must not be negative".into()))?;
+            w.borrow_mut().set_camp_rule(&name, value).map_err(|why| mlua::Error::RuntimeError(format!("invalid_camp_rule: {name}: {why}")))
+        })?,
+    )?;
     // acquire(name, game_units): a load-time setting of one unit's acquire range (see acquire.rs in the sim).
     let w = world.clone();
     game.set(

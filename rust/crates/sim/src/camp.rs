@@ -54,6 +54,35 @@ pub const RUNE_GOLD: i32 = 50;
 
 /// Per-unit camp state, sized to the unit cap. `boss_kind` and `reward_kind` come from the
 /// catalog at load, not from the save, so they are neither hashed nor saved.
+/// Camp, rune and pit timing and reach, in the units each value is read in. Defaults are the reference values;
+/// a load-time mod sets any of them through `Sim::set_camp_rule`, so the rules are data, not engine constants.
+#[derive(Clone, Debug)]
+pub(crate) struct CampRules {
+    pub(crate) leash_milli: i32,
+    pub(crate) clear_milli: i32,
+    pub(crate) first_spawn_s: u32,
+    pub(crate) respawn_s: u32,
+    pub(crate) rune_respawn_s: u32,
+    pub(crate) rune_pickup_milli: i32,
+    pub(crate) rune_gold: i32,
+    pub(crate) pit_swap_s: u32,
+}
+
+impl Default for CampRules {
+    fn default() -> CampRules {
+        CampRules {
+            leash_milli: CAMP_LEASH_MILLI,
+            clear_milli: CAMP_CLEAR_MILLI,
+            first_spawn_s: CAMP_FIRST_SPAWN_S,
+            respawn_s: CAMP_RESPAWN_S,
+            rune_respawn_s: RUNE_RESPAWN_S,
+            rune_pickup_milli: RUNE_PICKUP_MILLI,
+            rune_gold: RUNE_GOLD,
+            pit_swap_s: PIT_SWAP_S,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct CampState {
     pub(crate) is_camp: Vec<u8>,
@@ -68,6 +97,7 @@ pub(crate) struct CampState {
     pub(crate) pits: Vec<(u32, (i32, i32), (i32, i32))>,
     pub(crate) reward_kind: u32,
     pub(crate) rune_kind: Option<u32>,
+    pub(crate) rules: CampRules,
 }
 
 impl CampState {
@@ -83,6 +113,7 @@ impl CampState {
             pits: Vec::new(),
             reward_kind: 0,
             rune_kind: None,
+            rules: CampRules::default(),
         }
     }
 
@@ -146,14 +177,14 @@ impl Sim {
     /// The pit unit kind `kind` belongs in now, if the map placed markers for it.
     fn pit_now(&self, kind: u32) -> Option<(i32, i32)> {
         let (_, night, day) = *self.camps.pits.iter().find(|p| p.0 == kind)?;
-        let swapping = self.ticks >= PIT_SWAP_S * TICKS_PER_SECOND as u32;
+        let swapping = self.ticks >= self.camps.rules.pit_swap_s * TICKS_PER_SECOND as u32;
         Some(if swapping && self.is_night() { night } else { day })
     }
 
     /// Takes every placed regular camp unit off the map until the first camp mark, as reference's camps
     /// only appear at 1:00. Roshan and runes stay. Call once at load, after the boss and rune kinds are set.
     pub(crate) fn hold_first_camp_spawn(&mut self) {
-        let first = CAMP_FIRST_SPAWN_S * TICKS_PER_SECOND as u32;
+        let first = self.camps.rules.first_spawn_s * TICKS_PER_SECOND as u32;
         for i in 0..self.n {
             if self.camps.is_camp[i] == 0 || self.camps.rune_kind == Some(self.type_of[i] as u32) {
                 continue;
@@ -183,9 +214,9 @@ impl Sim {
             let extra = ((self.rng >> 33) as u32) % (spread * tps + 1);
             self.ticks.wrapping_add(min * tps + extra)
         } else if self.camps.rune_kind == Some(kind) {
-            next_mark(self.ticks, RUNE_RESPAWN_S * tps)
+            next_mark(self.ticks, self.camps.rules.rune_respawn_s * tps)
         } else {
-            next_mark(self.ticks, CAMP_RESPAWN_S * tps)
+            next_mark(self.ticks, self.camps.rules.respawn_s * tps)
         };
         if boss && self.camps.reward_kind != 0 && attacker >= 0 && (attacker as usize) < self.n {
             let _ = self.inventory_add(attacker as usize, self.camps.reward_kind, 1);
@@ -195,7 +226,7 @@ impl Sim {
     /// Per tick: each live camp unit past its leash is ordered home, and each dead camp unit whose
     /// timer has run out respawns at home. A respawn blocked by a full home cell retries next tick.
     pub(crate) fn tick_camps(&mut self) {
-        let leash = fixed::from_milli(CAMP_LEASH_MILLI) as i64;
+        let leash = fixed::from_milli(self.camps.rules.leash_milli) as i64;
         self.tick_rune_pickups();
         let mut due: Vec<usize> = Vec::new();
         for i in 0..self.n {
@@ -211,7 +242,7 @@ impl Sim {
             if self.alive[i] == 0 {
                 continue;
             }
-            if self.speed[i] > 0 && self.ticks >= PIT_SWAP_S * TICKS_PER_SECOND as u32 && (self.day_clock == 0 || self.day_clock == DAY_TICKS) {
+            if self.speed[i] > 0 && self.ticks >= self.camps.rules.pit_swap_s * TICKS_PER_SECOND as u32 && (self.day_clock == 0 || self.day_clock == DAY_TICKS) {
                 if let Some((px, py)) = self.pit_now(self.type_of[i] as u32) {
                     self.camps.home_x[i] = px;
                     self.camps.home_y[i] = py;
@@ -227,7 +258,7 @@ impl Sim {
             if ok {
                 self.respawn_camp(i);
             } else {
-                self.camps.respawn_at[i] = next_mark(self.ticks, CAMP_RESPAWN_S * TICKS_PER_SECOND as u32);
+                self.camps.respawn_at[i] = next_mark(self.ticks, self.camps.rules.respawn_s * TICKS_PER_SECOND as u32);
             }
         }
     }
@@ -238,7 +269,7 @@ impl Sim {
         let Some(rune) = self.camps.rune_kind else {
             return;
         };
-        let reach = fixed::from_milli(RUNE_PICKUP_MILLI) as i64;
+        let reach = fixed::from_milli(self.camps.rules.rune_pickup_milli) as i64;
         for r in 0..self.n {
             if self.camps.is_camp[r] == 0 || self.alive[r] == 0 || self.type_of[r] as u32 != rune {
                 continue;
@@ -249,7 +280,7 @@ impl Sim {
                     && dist2(self.pos_x[h], self.pos_y[h], self.pos_x[r], self.pos_y[r]) <= reach * reach
             });
             if let Some(h) = taker {
-                self.heroes.gold[h] = self.heroes.gold[h].saturating_add(RUNE_GOLD);
+                self.heroes.gold[h] = self.heroes.gold[h].saturating_add(self.camps.rules.rune_gold);
                 self.hurt(r, fixed::from_int(10000));
             }
         }
@@ -263,7 +294,7 @@ impl Sim {
 
     /// True when no living unit stands within CAMP_CLEAR_MILLI of camp unit `i`'s home.
     fn camp_home_clear(&self, i: usize) -> bool {
-        let reach = fixed::from_milli(CAMP_CLEAR_MILLI) as i64;
+        let reach = fixed::from_milli(self.camps.rules.clear_milli) as i64;
         let (hx, hy) = (self.camps.home_x[i], self.camps.home_y[i]);
         !(0..self.n).any(|k| k != i && self.alive[k] != 0 && dist2(self.pos_x[k], self.pos_y[k], hx, hy) <= reach * reach)
     }
@@ -287,4 +318,36 @@ impl Sim {
 /// The first multiple of `interval` ticks strictly after `now`.
 fn next_mark(now: u32, interval: u32) -> u32 {
     (now / interval + 1).wrapping_mul(interval)
+}
+
+impl Sim {
+    /// Sets one camp rule by name at load (a mod's `camp_rule(name, value)`). The names are the CampRules fields.
+    pub fn set_camp_rule(&mut self, name: &str, value: u32) -> Result<(), &'static str> {
+        let r = &mut self.camps.rules;
+        match name {
+            "leash_milli" => r.leash_milli = value as i32,
+            "clear_milli" => r.clear_milli = value as i32,
+            "first_spawn_s" => r.first_spawn_s = value,
+            "respawn_s" => r.respawn_s = value,
+            "rune_respawn_s" => r.rune_respawn_s = value,
+            "rune_pickup_milli" => r.rune_pickup_milli = value as i32,
+            "rune_gold" => r.rune_gold = value as i32,
+            "pit_swap_s" => r.pit_swap_s = value,
+            _ => return Err("unknown camp rule"),
+        }
+        Ok(())
+    }
+}
+
+impl Sim {
+    /// Sets the timed boss `name` (its first spawn, respawn minimum and respawn spread, in seconds): a load-time
+    /// mod call. A boss not yet in the table is added; an unknown unit name is refused.
+    pub fn set_timed_boss(&mut self, name: &str, first_s: u32, min_s: u32, spread_s: u32) -> Result<(), &'static str> {
+        let k = self.cat.unit_index(name).ok_or("unknown unit")? as u32;
+        match self.camps.timed.iter_mut().find(|t| t.0 == k) {
+            Some(t) => *t = (k, first_s, min_s, spread_s),
+            None => self.camps.timed.push((k, first_s, min_s, spread_s)),
+        }
+        Ok(())
+    }
 }
