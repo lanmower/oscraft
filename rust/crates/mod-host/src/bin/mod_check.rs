@@ -53,7 +53,7 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    host.sim().set_fog(fog);
+    host.sim_mut().set_fog(fog);
     if let Err(e) = host.load_file(Path::new(&args[2])) {
         println!("mod-check load-error {e}");
         return ExitCode::FAILURE;
