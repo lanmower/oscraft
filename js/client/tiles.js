@@ -484,7 +484,17 @@ export function waterMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height } = grid;
   const data = new Uint8Array(width * height);
-  for (let i = 0; i < width * height; i++) if (tileKind(grid, i) === "water") data[i] = 255;
+  const isWater = (x, y) => x >= 0 && y >= 0 && x < width && y < height && tileKind(grid, y * width + x) === "water";
+  // The outer ring of a river is painted as water tiles too: only a water cell whose eight neighbours are water is wet
+  // (deep water). The shore ring stays dry, so its ground shows instead of the water.
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!isWater(x, y)) continue;
+      let interior = true;
+      for (let dy = -1; dy <= 1 && interior; dy++) for (let dx = -1; dx <= 1; dx++) if (!isWater(x + dx, y + dy)) { interior = false; break; }
+      if (interior) data[y * width + x] = 255;
+    }
+  }
   return { data, width, height };
 }
 // Rewrites one cell texel to a kind (the creep effect) and returns that texel for a sub-region upload.
