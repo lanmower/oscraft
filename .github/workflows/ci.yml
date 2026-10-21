@@ -2505,8 +2505,12 @@ jobs:
           const areaShown = await fxWait("area-ring");
           if (areaShown) await fxShot("area-ring.png");
           let far = null;
+          // A click on a unit is an attack, not a point cast, so the far point must have no unit within 3 cells.
+          const farUnits = await page.evaluate(() => window.__ciUnits().map((u) => ({ x: u.x, z: u.z })));
           for (const [dx, dz] of [[22, 0], [-22, 0], [0, 22], [0, -22]]) {
-            const p = await screenAt(heroPos.x + dx, heroPos.z + dz);
+            const wx = heroPos.x + dx, wz = heroPos.z + dz;
+            if (farUnits.some((u) => Math.hypot(u.x - wx, u.z - wz) <= 3)) continue;
+            const p = await screenAt(wx, wz);
             if (p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h) { far = p; break; }
           }
           if (!far) throw new Error("no point 22 cells from the hero is on screen");
