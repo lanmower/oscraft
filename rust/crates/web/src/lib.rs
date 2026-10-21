@@ -269,29 +269,6 @@ impl Game {
         self.rec.apply(&mut self.sim, Command::SkillUp { unit: unit as usize, slot: slot as usize })
     }
 
-    /// Chooses talent `side` (0 or 1) of tier `tier` (0..=3, levels 10, 15, 20, 25) for unit `unit`. Returns false
-    /// when the sim refuses it (level below the tier, tier already chosen, dead unit).
-    pub fn choose_talent(&mut self, unit: u32, tier: u32, side: u32) -> bool {
-        let chosen = self.sim.choose_talent(unit as usize, tier as usize, side as usize).is_ok();
-        self.rec.mark_incomplete(self.sim.ticks());
-        chosen
-    }
-
-    /// Upgrade bits of unit `unit`: bit 0 scepter, bit 1 shard, bits 2..=9 the eight talent choices (tier * 2 + side).
-    pub fn upgrade_bits(&self, unit: u32) -> i32 {
-        self.sim.upgrade_bits(unit as usize)
-    }
-
-    /// Rank of ability slot `slot` of unit `unit`; 0 when not learned.
-    pub fn skill_rank(&self, unit: u32, slot: u32) -> u32 {
-        self.sim.skill_rank(unit as usize, slot as usize) as u32
-    }
-
-    /// Unspent skill points of unit `unit`.
-    pub fn skill_points(&self, unit: u32) -> u32 {
-        self.sim.skill_points(unit as usize)
-    }
-
     /// True when player `a` is an enemy of player `b`: different teams and no alliance.
     pub fn hostile(&self, a: u32, b: u32) -> bool {
         self.sim.hostile(a as u8, b as u8)
@@ -319,7 +296,7 @@ impl Game {
         self.sim.deaths_of(unit as usize)
     }
 
-    /// Spawns a hero of unit type `kind` for `player` at tile (x, y). Returns its unit id, or -1 when refused.
+    /// Spawns a unit of unit type `kind` for `player` at tile (x, y). Returns its unit id, or -1 when refused.
     pub fn spawn_attributed(&mut self, player: u8, kind: u32, x: f32, y: f32) -> i32 {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
@@ -335,58 +312,9 @@ impl Game {
         removed
     }
 
-    /// Loads the hero rules from `key=value` text (scenarios/moba/hero_rules.txt). False, rules unchanged, on a bad line.
-    pub fn set_hero_rules(&mut self, text: &str) -> bool {
-        let set = self.sim.set_hero_rules_text(text);
-        self.rec.mark_incomplete(self.sim.ticks());
-        set
-    }
-
-    /// Ticks until hero `unit` respawns; 0 when alive; -1 for a non-hero.
-    pub fn respawn_ticks_left(&self, unit: u32) -> i32 {
-        self.sim.hero_respawn_left(unit as usize)
-    }
-
-    /// Gold a buyback of hero `unit` costs now; -1 for a non-hero.
-    pub fn buyback_cost(&self, unit: u32) -> i32 {
-        self.sim.hero_buyback_cost(unit as usize)
-    }
-
-    /// Ticks until hero `unit` may buy back again; 0 when ready; -1 for a non-hero.
-    pub fn buyback_cooldown_ticks(&self, unit: u32) -> i32 {
-        self.sim.hero_buyback_cooldown_left(unit as usize)
-    }
-
-    /// Buys back dead hero `unit` at its home. False when refused: alive, on cooldown, short of gold, or home cell full.
-    pub fn buyback(&mut self, unit: u32) -> bool {
-        let bought = self.sim.buyback(unit as usize);
-        self.rec.mark_incomplete(self.sim.ticks());
-        bought
-    }
-
-    /// Gold held by hero `unit`; 0 for a non-hero.
+    /// Gold held by unit `unit`; 0 for an unknown unit.
     pub fn unit_gold(&self, unit: u32) -> i32 {
         self.sim.unit_gold(unit as usize)
-    }
-
-    /// Experience held by unit `unit`; 0 for an unknown unit.
-    pub fn xp(&self, unit: u32) -> u32 {
-        self.sim.xp(unit as usize)
-    }
-
-    /// Level of unit `unit`: the number of xp curve thresholds its xp has reached.
-    pub fn level(&self, unit: u32) -> u32 {
-        self.sim.level(unit as usize)
-    }
-
-    /// Strength, agility and intelligence of hero `unit` as `[str, agi, int]`; zeros for a non-hero.
-    pub fn attributes(&self, unit: u32) -> Vec<i32> {
-        self.sim.hero_attributes(unit as usize).to_vec()
-    }
-
-    /// Max mana of hero `unit` from its intelligence; 0 for a non-hero. A stat only: no mana pool yet.
-    pub fn max_mana(&self, unit: u32) -> i32 {
-        self.sim.hero_max_mana(unit as usize)
     }
 
     /// Ticks left on ability `slot` of unit `unit` (0 when ready); -1 for an unknown unit or slot.
@@ -434,7 +362,7 @@ impl Game {
             .collect()
     }
 
-    /// Turns the fog of war on or off. The moba preview turns it off so every enemy is a valid target.
+    /// Turns the fog of war on or off. The preview turns it off so every enemy is a valid target.
     pub fn set_fog(&mut self, on: bool) {
         self.rec.apply(&mut self.sim, Command::Fog { on });
     }
@@ -498,15 +426,10 @@ impl Game {
         cat.units.iter().map(|u| cat.name(u.name).to_owned()).collect()
     }
 
-    /// Per unit type, indexed like unit_type_names: 1 when the type is a hero (player-controlled: unit_extra
-    /// player_controlled=True, the flag that enrolls a placed unit as a hero), 0 for every other kind.
-    pub fn unit_hero_kinds(&self) -> Vec<u8> {
+    /// Per unit type, indexed like unit_type_names: 1 when the type is player-controlled (unit_extra
+    /// player_controlled=True), 0 for every other kind. The page reads it as a data flag, not a genre.
+    pub fn unit_flags(&self) -> Vec<u8> {
         self.sim.catalog().unit_ext.iter().map(|e| e.player_controlled as u8).collect()
-    }
-
-    /// UI export: buys catalog item index `item` for unit `unit` at a shop in reach. False when refused.
-    pub fn buy(&mut self, unit: u32, item: u32) -> bool {
-        self.rec.apply(&mut self.sim, Command::Buy { unit: unit as usize, item: item as usize })
     }
 
     /// Test hook for the page's CI probe: puts `count` charges of catalog item index `item` into unit `unit`'s inventory. False when no slot is free.
@@ -514,21 +437,6 @@ impl Game {
         let added = self.sim.inventory_add(unit as usize, item + 1, count);
         self.rec.mark_incomplete(self.sim.ticks());
         added
-    }
-
-    /// UI export: sells inventory slot `slot` of unit `unit` for half its cost. False when refused.
-    pub fn sell(&mut self, unit: u32, slot: u32) -> bool {
-        self.rec.apply(&mut self.sim, Command::Sell { unit: unit as usize, slot: slot as usize })
-    }
-
-    /// UI export: moves stash slot `slot` of unit `unit` into the inventory. False when refused.
-    pub fn unstash(&mut self, unit: u32, slot: u32) -> bool {
-        self.rec.apply(&mut self.sim, Command::Unstash { unit: unit as usize, slot: slot as usize })
-    }
-
-    /// UI export: character level of unit `unit` (xp level plus one), the number skill gates compare against.
-    pub fn character_level(&self, unit: u32) -> u32 {
-        self.sim.character_level(unit as usize)
     }
 
     /// UI export: the item catalog as JSON `[{"id":index,"name","cost","armor","damage","health","flags",

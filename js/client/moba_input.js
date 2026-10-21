@@ -135,7 +135,7 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
     if (typeof game.ability_cooldown === "function") {
       const simLeft = game.ability_cooldown(hero, slot);
       if (simLeft > 0) {
-        const total = cooldownTicks(ability, game.skill_rank(hero, slot));
+        const total = cooldownTicks(ability, typeof game.skill_rank === "function" ? game.skill_rank(hero, slot) : 0);
         cooldowns.set(`${hero}:${slot}`, { until: game.ticks() + simLeft, total });
       }
     }

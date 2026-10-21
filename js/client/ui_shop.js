@@ -93,7 +93,7 @@ export function createShop({ game, selected, localPlayer }) {
     const buy = el("button", "buy", "Buy");
     buy.onclick = () => {
       const id = selected();
-      msg.textContent = id >= 0 && game.buy(id, item.id) ? "" : fill(UI.text.shopRefusal, { item: item.name });
+      msg.textContent = id >= 0 && typeof game.buy === "function" && game.buy(id, item.id) ? "" : fill(UI.text.shopRefusal, { item: item.name });
     };
     card.append(name, cost, tags, stats, recipe, buy);
     grid.appendChild(card);
