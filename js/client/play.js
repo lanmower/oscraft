@@ -109,6 +109,11 @@ const unitTransform = new Float32Array(16);
 const worldVp = new Float32Array(16);
 // Doodads grouped per mesh into static instance batches, and the per-frame batches of unskinned units per mesh.
 let doodadBatches = [];
+// Doodads kept for a model reload: the placed entries (kind code, tint variant, meshes, transform), each kind's loaded meshes,
+// and each kind's GLB names ({ high, low }) from loadDoodadModels.
+let placedDoodads = [];
+let doodadByKindState = [];
+const doodadModelNames = [];
 const unitBatches = new Map();
 const MOVE_EPS = 1e-4;
 const MAX_FRAME_DT_S = 0.1;
@@ -552,6 +557,7 @@ async function loadDoodadModels(usedKinds) {
       return { high: null, low: null };
     }
     const lowName = modelName(`${kind}-low`);
+    doodadModelNames[code] = { high: name, low: lowName ?? null };
     const load = (model) => {
       if (sizeOf(model) === undefined) {
         recordAssetError(model, new Error("no footprint in doodad_sizes.json"));
@@ -1840,10 +1846,11 @@ async function build3d(gl, game) {
   const unitFitsReady = loadModels(game);
   // The splat ground is the default floor: a layer that does not build stops the start (buildSplat throws).
   splat = await splatReady;
-  const doodadByKind = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
+  doodadByKindState = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
     base: high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null,
     lowBase: low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null,
   })));
+  const doodadByKind = doodadByKindState;
   const s = 1 / terrain.cellMilli;
   const placed = placements.flatMap((p) => {
     const kind = doodadByKind[p.kind];
@@ -1855,8 +1862,9 @@ async function build3d(gl, game) {
     const variant = Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length);
     const mesh = doodadVariant(kind.base, p.kind, variant);
     const lowMesh = kind.lowBase ? doodadVariant(kind.lowBase, `${p.kind}-low`, variant) : null;
-    return [{ mesh, lowMesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
+    return [{ kind: p.kind, variant, mesh, lowMesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
   });
+  placedDoodads = placed;
   doodadBatches = batchByMesh(placed);
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
   // A hero's mesh failure stops the start; any other unit's failure is recorded and that type is not drawn.
@@ -2430,7 +2438,7 @@ async function checkModelWatch() {
   if (modelWatchBusy || !localGame || !renderGl) return;
   modelWatchBusy = true;
   try {
-    const names = [...new Set(localGame.unit_model_names().filter((n) => n))];
+    const names = [...new Set([...localGame.unit_model_names(), ...doodadModelNames.flatMap((n) => (n ? [n.high, n.low] : []))].filter((n) => n))];
     for (const name of names) {
       const url = new URL(assetUrl("models", `${name}.glb`), location.href).href;
       let sig;
@@ -2443,12 +2451,51 @@ async function checkModelWatch() {
       }
       const prev = modelWatchSig.get(url);
       modelWatchSig.set(url, sig);
-      if (prev !== undefined && prev !== sig) await reloadUnitModel(name);
+      if (prev !== undefined && prev !== sig) {
+        await reloadUnitModel(name);
+        await reloadDoodadModel(name);
+      }
     }
   } catch (err) {
     console.error(`[model] watch failed: ${err.message}`);
   } finally {
     modelWatchBusy = false;
+  }
+}
+
+// Rebuilds the doodad kinds that draw the named GLB (high or low detail) and re-batches the placed doodads. The old GPU
+// buffers of the replaced batches are not freed yet.
+async function reloadDoodadModel(name) {
+  const sizes = await assetJson("doodadSizes");
+  for (let code = 0; code < doodadModelNames.length; code++) {
+    const names = doodadModelNames[code];
+    if (!names) continue;
+    const high = names.high === name;
+    const low = names.low === name;
+    if (!high && !low) continue;
+    parsedModels.delete(name);
+    let mesh;
+    try {
+      mesh = await toMesh(renderGl, await fetchModel(name, sizes[name]), DOODAD_TINT);
+    } catch (err) {
+      console.error(`[model] doodad ${name} kept the old model: ${err.message}`);
+      continue;
+    }
+    const slot = doodadByKindState[code];
+    if (high) {
+      slot.base = mesh;
+      for (const key of [...doodadVariants.keys()]) if (key.startsWith(`${code}:`)) doodadVariants.delete(key);
+    } else {
+      slot.lowBase = mesh;
+      for (const key of [...doodadVariants.keys()]) if (key.startsWith(`${code}-low:`)) doodadVariants.delete(key);
+    }
+    for (const e of placedDoodads) {
+      if (e.kind !== code) continue;
+      if (high) e.mesh = doodadVariant(slot.base, code, e.variant);
+      else e.lowMesh = slot.lowBase ? doodadVariant(slot.lowBase, `${code}-low`, e.variant) : null;
+    }
+    doodadBatches = batchByMesh(placedDoodads);
+    console.log(`[model] doodad ${name} reloaded in place for kind ${code}`);
   }
 }
 
