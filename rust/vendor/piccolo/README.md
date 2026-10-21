@@ -13,10 +13,11 @@ in a crates.io release.
 Reproduced as a flaky failure of the mod-host panels test (about one run in five, from the hash layout). Remove this
 directory and the `[patch.crates-io]` entry once a release carries the upstream change.
 
-The multiple assignment of `assignment_statement` (`src/compiler/compiler.rs`) stored each target before the next value
-was evaluated, so `a, b = b, a` gave `b, b`. Lua 5.4 evaluates the table and key of every field target and every value
-first, then stores. The fix copies those into fresh registers and stores after them. The regression tests are
-rust/crates/mod-host/tests/vm_assignment.rs.
+The assignment statement (`assignment_statement` in `src/compiler/compiler.rs`) stored each target before the next value
+was evaluated, so `a, b = b, a` gave `b, b`. A single field target evaluated its value before its table and key, so
+`t[f()] = g()` called g first. Single and multiple assignments both follow the Lua 5.4 order now: the table and key of
+every field target, then every value, then the stores. The fix copies those into fresh registers and stores after them.
+The regression tests are rust/crates/mod-host/tests/vm_assignment.rs.
 
 The build allows the newer lint `dangerous_implicit_autorefs` for this crate (upstream code in `string.rs`): a path
 dependency is not capped to warnings the way a registry crate is, and the lint is an error on current rustc.

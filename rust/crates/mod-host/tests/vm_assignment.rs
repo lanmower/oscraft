@@ -112,3 +112,30 @@ fn a_single_assignment_and_call_results_are_unchanged() {
 "#);
     assert_eq!(got, pairs(&[("single", "2"), ("calls", "0pq")]), "one value and a call's results still store as before");
 }
+
+#[test]
+fn a_single_field_target_evaluates_its_table_and_key_before_the_value() {
+    // Lua 5.4 calls the key's function and the table's function before the value's, then stores.
+    let got = run(r#"
+    local log = {}
+    local function note(s) log[#log + 1] = s end
+    local function f() note("f") return 1 end
+    local function g() note("g") return 2 end
+    local function obj() note("obj") return {} end
+    local t = {}
+    t[f()] = g()
+    show("index", tostring(log[1]) .. "," .. tostring(log[2]))
+    log = {}
+    obj().x = g()
+    show("prefix", tostring(log[1]) .. "," .. tostring(log[2]))
+    local x
+    x = g()
+    show("local", tostring(x))
+    show("stored", tostring(t[1]))
+"#);
+    assert_eq!(
+        got,
+        pairs(&[("index", "f,g"), ("prefix", "obj,g"), ("local", "2"), ("stored", "2")]),
+        "a field target's table and key are evaluated before the value; a local target stores the value"
+    );
+}

@@ -934,8 +934,7 @@ impl<S: StringInterner> Compiler<S> {
         let val_len = assignment.values.len();
         assert!(val_len != 0);
 
-        // Stores `expr` in `target`. `place` is the table and key of a field target when they were evaluated ahead of
-        // the values (below); otherwise they are evaluated here.
+        // Stores `expr` in `target`. `place` is the table and key of a field target, read before the values (below).
         fn assign<'a, S: StringInterner>(
             this: &'a mut Compiler<S>,
             target: &AssignmentTarget<S::String>,
@@ -963,20 +962,8 @@ impl<S: StringInterner> Compiler<S> {
                     }
                 },
 
-                AssignmentTarget::Field(table, field) => {
-                    let (table, key) = match place {
-                        Some(place) => place,
-                        None => {
-                            let table = this.suffixed_expression(table)?;
-                            let key = match field {
-                                FieldSuffix::Named(name) => {
-                                    ExprDescriptor::Constant(Constant::String(name.clone()))
-                                }
-                                FieldSuffix::Indexed(idx) => this.expression(idx)?,
-                            };
-                            (table, key)
-                        }
-                    };
+                AssignmentTarget::Field(..) => {
+                    let (table, key) = place.expect("a field target's table and key are evaluated before its value");
                     this.set_table(table, key, expr)?;
                 }
             }
@@ -994,16 +981,16 @@ impl<S: StringInterner> Compiler<S> {
             Ok(reg)
         }
 
-        // Lua 5.4 runs a multiple assignment in three steps: the table and key of each field target, then every value,
-        // then the stores. So `a, b = b, a` swaps, and `i, a[i] = i + 1, 20` stores at the old i. The early results are
-        // copied to fresh registers, so no store can change what a later step reads. A single target keeps its order
-        // (value, then table and key): no other store can come before it.
+        // Lua 5.4 runs an assignment in three steps: the table and key of each field target, then every value, then the
+        // stores. So `a, b = b, a` swaps, and `i, a[i] = i + 1, 20` stores at the old i. The early results are copied
+        // to fresh registers, so no store can change what a later step reads. A single field target takes the same
+        // steps, so `t[f()] = g()` calls f before g.
         let top = self.current_function.register_allocator.stack_top();
         let mut held: Vec<RegisterIndex> = Vec::new();
         let mut places = Vec::with_capacity(target_len);
         for target in assignment.targets.iter() {
             places.push(match target {
-                AssignmentTarget::Field(table, field) if target_len > 1 => {
+                AssignmentTarget::Field(table, field) => {
                     let table = self.suffixed_expression(table)?;
                     let table = ExprDescriptor::Variable(VariableDescriptor::Local(hold(
                         self, table, &mut held,

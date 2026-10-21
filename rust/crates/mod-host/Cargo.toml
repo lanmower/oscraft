@@ -10,6 +10,8 @@ default = ["build", "piccolo"]
 build = ["dep:osdt-data"]
 # The mod VM: piccolo, pure Rust. The native host and the wasip3 guest both run mods on it.
 piccolo = ["dep:piccolo", "dep:serde_json"]
+# Test builds only: a mod whose source has `-- wasip3-fault: panic at <tick>` panics in its on_tick dispatch at that sim tick.
+fault-injection = []
 
 [[bin]]
 name = "mod_check"

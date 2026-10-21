@@ -445,6 +445,14 @@ fn guarded<T>(what: &str, body: impl FnOnce() -> Result<T, String>) -> Result<T,
     }
 }
 
+// Test builds only (--features fault-injection): the tick named by a `-- wasip3-fault: panic at <tick>` line in a
+// mod's source, if it has one. The panic it sets up is a real Rust panic, which on wasm32 (panic=abort) traps.
+// A normal build has no such marker and no such field.
+#[cfg(feature = "fault-injection")]
+fn fault_tick(src: &str) -> Option<u32> {
+    src.lines().find_map(|line| line.trim().strip_prefix("-- wasip3-fault: panic at")?.trim().parse().ok())
+}
+
 // Removes every entry of a table, so the values it held can be collected.
 fn clear_table<'gc>(ctx: Context<'gc>, t: Table<'gc>) {
     let mut keys = Vec::new();
@@ -2566,6 +2574,9 @@ struct Module {
     // The module's own environment, a peer of the other modules' for the read fallback (see new_env).
     env: StashedTable,
     off: Vec<String>,
+    // Test builds only (--features fault-injection): the sim tick at which this module's on_tick panics, from its source.
+    #[cfg(feature = "fault-injection")]
+    fault_tick: Option<u32>,
 }
 
 // The environments of the pack's loaded modules, read on a global miss so an old-style file still
@@ -2935,7 +2946,16 @@ impl ModHost {
         let exports = self.run_chunk(&env, name, src)?;
         let handlers = exports.clone().unwrap_or_else(|| env.clone());
         let hooks = self.name_hooks(hooks, &handlers);
-        Ok(Module { name: name.to_owned(), hooks, handlers, exports, env, off: Vec::new() })
+        Ok(Module {
+            name: name.to_owned(),
+            hooks,
+            handlers,
+            exports,
+            env,
+            off: Vec::new(),
+            #[cfg(feature = "fault-injection")]
+            fault_tick: fault_tick(src),
+        })
     }
 
     /// Loads the mod file at `path` and remembers it, so `reload` can swap in later edits.
@@ -3342,6 +3362,13 @@ impl ModHost {
     // (its returned table's entry, or its global) and its triggers. An error turns that event off for that module.
     fn emit(&mut self, event: &str, args: Vec<Arg>) -> Result<(), String> {
         for (i, f) in self.live_hooks(event, |h| Some(h.emit.clone())) {
+            #[cfg(feature = "fault-injection")]
+            if event == "on_tick" {
+                let tick = self.sh.borrow().sim.ticks();
+                if self.modules[i].fault_tick == Some(tick) {
+                    panic!("fault injected: {} on_tick at sim tick {tick}", self.modules[i].name);
+                }
+            }
             let mut values = vec![Arg::Table(self.modules[i].handlers.clone()), Arg::Text(event.to_owned())];
             values.extend(args.iter().cloned());
             if let Err(e) = self.call(&f, values) {
