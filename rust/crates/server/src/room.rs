@@ -374,6 +374,10 @@ impl Room {
             // and camp progress carry over. Falls back to carrying the live units when the replay cannot run.
             let inner = &mut *c;
             let rebuilt = rebuild_by_replay(&mut inner.rec, &inner.sim, &mut sim);
+            if rebuilt.is_ok() {
+                // The old checkpoints were hashed under the old data; the swap tick starts the checkpoints for the new data.
+                inner.rec.drop_checks_before(inner.sim.ticks());
+            }
             let (carried, refused, kept) = match rebuilt {
                 Ok(()) => (0, 0, c.handles.clone()),
                 Err(_) => {

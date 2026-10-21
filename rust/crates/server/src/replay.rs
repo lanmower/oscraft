@@ -992,6 +992,12 @@ impl Recording {
         }
     }
 
+    /// Drops the checkpoints recorded before `tick`. A data swap at `tick` changes the rules the earlier checkpoints were
+    /// hashed under, so replay under the new data would fail them; the checkpoints from the swap on are kept.
+    pub fn drop_checks_before(&mut self, tick: u32) {
+        self.checks.retain(|c| c.0 >= tick);
+    }
+
     pub fn incomplete(&self) -> Option<u32> {
         self.incomplete
     }
