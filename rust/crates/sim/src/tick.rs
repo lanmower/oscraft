@@ -111,6 +111,7 @@ impl Sim {
         self.tick_projectiles();
         mark = lap(System::Projectiles, mark);
         self.tick_timed_life();
+        self.tick_respawns();
         self.tick_spells();
         for i in 0..self.n {
             if self.alive[i] == 0 {

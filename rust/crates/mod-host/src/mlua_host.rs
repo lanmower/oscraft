@@ -2750,7 +2750,7 @@ fn parse_takes(v: &Value, items: usize) -> Option<[u32; VERDICT_TAKES]> {
 fn denial(v: &Value) -> Refusal {
     let Value::String(s) = v else { return Refusal::NoItem };
     match s.to_str().ok().as_deref() {
-        Some("no-shop") => Refusal::NoShop,
+        Some("no-shop") => Refusal::OutOfReach,
         Some("cannot-afford") => Refusal::CannotAfford,
         Some("inventory-full") => Refusal::InventoryFull,
         Some("missing-component") => Refusal::MissingComponent,
@@ -3237,7 +3237,7 @@ mod tests {
             host.advance(&host.state().clone()).expect("step");
         }
         assert_eq!(host.sim().inventory_count(a, blink as u32 + 1), 0, "a denied purchase placed the item");
-        assert_eq!(host.sim().stats.last_refusal, Refusal::NoShop, "the denial did not name its refusal");
+        assert_eq!(host.sim().stats.last_refusal, Refusal::OutOfReach, "the denial did not name its refusal");
         assert_eq!(host.sim().resource_a(0), 1000);
         // Now allowed, with the component listed: the component is consumed and the item placed.
         host.load_source("take", "local done = false\nfunction on_tick(state)\n  if not done then done = true game.cmd_buy(state.attacker, state.item) end\nend\nfunction on_buy(unit, item, state) return true, 250, {state.comp} end\n").expect("mod loads");
@@ -3382,7 +3382,7 @@ mod tests {
     // protection.lua defines on_tick.
     fn moba_mod_source() -> String {
         let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
-        ["protection.lua", "march.lua", "win.lua"]
+        ["protection.lua", "hero.lua", "march.lua", "win.lua"]
             .iter()
             .map(|f| std::fs::read_to_string(dir.join(f)).expect("moba mod file"))
             .collect::<Vec<_>>()

@@ -1,17 +1,19 @@
 //! Attributed units: per-type attribute data (three attributes with a base and a growth each, the
 //! primary attribute, mana, regeneration, armour, damage and base attack time) and the stats those
-//! attributes drive. The rules are read from a `key=value` text file by `Sim::set_hero_rules_text`
-//! (scenarios/moba/hero_rules.txt). A dead attributed unit waits for a respawn decision: its respawn
-//! time comes from the mod (`set_respawn`, called by `on_unit_died`), never from a rule here.
-//! Buyback costs and the passive gold rate are also rules here until a mod can trigger them.
+//! attributes drive. The engine rules are read from a `key=value` text file by `Sim::set_hero_rules_text`
+//! (scenarios/moba/hero_rules.txt). Every other `key=value` line of that file is a named number that
+//! the mod reads through `Sim::rule`: the respawn, buyback, gold and xp numbers live there, not here.
+//! A dead attributed unit waits for a respawn decision (`set_hero_respawn`, from the mod's on_died)
+//! and comes back through `revive_at_point`.
+
+use std::collections::BTreeMap;
 
 use crate::arrays::Sim;
 use crate::fixed;
 use crate::{ABILITY_SLOTS, TICKS_PER_SECOND};
 
 /// Attribute coefficients (health per attribute a, armour per attribute b, mana per attribute c, universal
-/// damage share, buyback net worth share) are `HeroRules` fields read from hero_rules.txt. Attributes and
-/// per-unit data are hundredths.
+/// damage share) are `HeroRules` fields read from hero_rules.txt. Attributes and per-unit data are hundredths.
 const MANA_BASE_DEFAULT: i32 = 75;
 
 /// Per unit type attribute data of a `hero <unit> key=value ...` line in the rules text, written by
@@ -63,18 +65,9 @@ impl HeroDef {
     }
 }
 
+/// The engine's own rule values. Copyable; the named values of the rules text live beside it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HeroRules {
-    /// Respawn fallback for a dead hero when no mod decides (on_unit_died answers with SetRespawn otherwise):
-    /// base + per level seconds, capped.
-    pub respawn_base_s: i32,
-    pub respawn_per_level_s: i32,
-    pub respawn_cap_s: i32,
-    pub buyback_base: i32,
-    pub buyback_per_level: i32,
-    pub buyback_cooldown_s: i32,
-    pub passive_gold_per_s: i32,
-    pub team_share_pct: i32,
     /// Attributes at level 0, then the growth per level. UNVERIFIED growth values: placeholders.
     pub attr_a_base: i32,
     pub attr_b_base: i32,
@@ -87,23 +80,6 @@ pub struct HeroRules {
     /// Whether any damage ends a channel (1, the default) or only a stun, hex or silence does (0, as in reference).
     pub channel_damage_interrupt: bool,
     pub aggro_hold_s: i32,
-    /// Backdoor protection (aggro.rs): damage cut percent (0 = off), clear radius, quiet seconds before
-    /// it applies, and health per second a protected structure regenerates.
-    pub backdoor_reduction_pct: i32,
-    pub backdoor_radius_milli: i32,
-    pub backdoor_activation_s: i32,
-    pub backdoor_regen_per_s: i32,
-    /// Hero kill gold: base + per level of the victim. Assist gold: base + (flat + net worth share) / helpers.
-    pub hero_kill_gold_base: i32,
-    pub hero_kill_gold_per_level: i32,
-    pub assist_gold_base: i32,
-    pub assist_gold_flat: i32,
-    pub assist_net_worth_per_mille: i32,
-    /// Buyback net worth share: net worth * pct / (100 * div).
-    pub buyback_net_worth_div: i32,
-    pub buyback_net_worth_pct: i32,
-    /// Magic resistance percent of every hero (combat.rs).
-    pub base_magic_resist_pct: i32,
     /// Movement speed limits in reference speed points, and hexed movement speed in milli-units per tick.
     pub move_speed_max: i32,
     pub move_speed_min: i32,
@@ -117,16 +93,8 @@ pub struct HeroRules {
     pub universal_damage_pct: i32,
 }
 
-/// Keys every rules text must give: a file without one is refused (`set_from_text` returns false).
+/// Keys the engine must find in every rules text: a file without one is refused (`set_from_text` returns None).
 const REQUIRED_KEYS: &[&str] = &[
-    "hero_kill_gold_base",
-    "hero_kill_gold_per_level",
-    "assist_gold_base",
-    "assist_gold_flat",
-    "assist_net_worth_per_mille",
-    "buyback_net_worth_div",
-    "buyback_net_worth_pct",
-    "base_magic_resist_pct",
     "move_speed_max",
     "move_speed_min",
     "hex_speed_milli",
@@ -141,14 +109,6 @@ const REQUIRED_KEYS: &[&str] = &[
 impl Default for HeroRules {
     fn default() -> Self {
         HeroRules {
-            respawn_base_s: 5,
-            respawn_per_level_s: 2,
-            respawn_cap_s: 60,
-            buyback_base: 100,
-            buyback_per_level: 20,
-            buyback_cooldown_s: 150,
-            passive_gold_per_s: 1,
-            team_share_pct: 20,
             attr_a_base: 0,
             attr_b_base: 0,
             attr_c_base: 0,
@@ -158,19 +118,7 @@ impl Default for HeroRules {
             aggro_priority: false,
             channel_damage_interrupt: true,
             aggro_hold_s: 3,
-            backdoor_reduction_pct: 0,
-            backdoor_radius_milli: 7700,
-            backdoor_activation_s: 15,
-            backdoor_regen_per_s: 0,
             // Before any rules text is loaded (a Sim that never reads hero_rules.txt) these keep the engine values.
-            hero_kill_gold_base: 125,
-            hero_kill_gold_per_level: 8,
-            assist_gold_base: 15,
-            assist_gold_flat: 50,
-            assist_net_worth_per_mille: 37,
-            buyback_net_worth_div: 13,
-            buyback_net_worth_pct: 115,
-            base_magic_resist_pct: 25,
             move_speed_max: 550,
             move_speed_min: 100,
             hex_speed_milli: 137,
@@ -185,33 +133,23 @@ impl Default for HeroRules {
 }
 
 impl HeroRules {
-    /// Reads `key=value` lines over the current rules. Blank lines and `#` comments are skipped.
-    /// False, with the rules unchanged, on an unknown key, a bad number or an invalid value.
-    pub fn set_from_text(&mut self, text: &str) -> bool {
+    /// Reads `key=value` lines over the current rules. The engine keys set the rules; every other key is
+    /// a named value, returned in the map. Blank lines and `#` comments are skipped. None, with the rules
+    /// unchanged, on a bad line, a missing engine key or an invalid engine value.
+    pub fn set_from_text(&mut self, text: &str) -> Option<BTreeMap<String, i32>> {
         let mut next = *self;
+        let mut named = BTreeMap::new();
         let mut seen: Vec<&str> = Vec::new();
         for line in text.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            let Some((key, value)) = line.split_once('=') else {
-                return false;
-            };
-            let Ok(v) = value.trim().parse::<i32>() else {
-                return false;
-            };
+            let (key, value) = line.split_once('=')?;
+            let v: i32 = value.trim().parse().ok()?;
             let key = key.trim();
             seen.push(key);
             let slot = match key {
-                "respawn_base_s" => &mut next.respawn_base_s,
-                "respawn_per_level_s" => &mut next.respawn_per_level_s,
-                "respawn_cap_s" => &mut next.respawn_cap_s,
-                "buyback_base" => &mut next.buyback_base,
-                "buyback_per_level" => &mut next.buyback_per_level,
-                "buyback_cooldown_s" => &mut next.buyback_cooldown_s,
-                "passive_gold_per_s" => &mut next.passive_gold_per_s,
-                "team_share_pct" => &mut next.team_share_pct,
                 "attr_a_base" => &mut next.attr_a_base,
                 "attr_b_base" => &mut next.attr_b_base,
                 "attr_c_base" => &mut next.attr_c_base,
@@ -220,31 +158,19 @@ impl HeroRules {
                 "attr_c_gain" => &mut next.attr_c_gain,
                 "channel_damage_interrupt" => {
                     if !(0..=1).contains(&v) {
-                        return false;
+                        return None;
                     }
                     next.channel_damage_interrupt = v == 1;
                     continue;
                 }
                 "aggro_priority" => {
                     if !(0..=1).contains(&v) {
-                        return false;
+                        return None;
                     }
                     next.aggro_priority = v == 1;
                     continue;
                 }
                 "aggro_hold_s" => &mut next.aggro_hold_s,
-                "backdoor_reduction_pct" => &mut next.backdoor_reduction_pct,
-                "backdoor_radius_milli" => &mut next.backdoor_radius_milli,
-                "backdoor_activation_s" => &mut next.backdoor_activation_s,
-                "backdoor_regen_per_s" => &mut next.backdoor_regen_per_s,
-                "hero_kill_gold_base" => &mut next.hero_kill_gold_base,
-                "hero_kill_gold_per_level" => &mut next.hero_kill_gold_per_level,
-                "assist_gold_base" => &mut next.assist_gold_base,
-                "assist_gold_flat" => &mut next.assist_gold_flat,
-                "assist_net_worth_per_mille" => &mut next.assist_net_worth_per_mille,
-                "buyback_net_worth_div" => &mut next.buyback_net_worth_div,
-                "buyback_net_worth_pct" => &mut next.buyback_net_worth_pct,
-                "base_magic_resist_pct" => &mut next.base_magic_resist_pct,
                 "move_speed_max" => &mut next.move_speed_max,
                 "move_speed_min" => &mut next.move_speed_min,
                 "hex_speed_milli" => &mut next.hex_speed_milli,
@@ -254,21 +180,17 @@ impl HeroRules {
                 "mana_per_attr_c" => &mut next.mana_per_attr_c,
                 "mana_regen_per_attr_c_x100" => &mut next.mana_regen_per_attr_c_x100,
                 "universal_damage_pct" => &mut next.universal_damage_pct,
-                _ => return false,
+                _ => {
+                    named.insert(key.to_string(), v);
+                    continue;
+                }
             };
             *slot = v;
         }
         if !REQUIRED_KEYS.iter().all(|k| seen.contains(k)) {
-            return false;
+            return None;
         }
         let valid = [
-            next.respawn_base_s,
-            next.respawn_per_level_s,
-            next.respawn_cap_s,
-            next.buyback_base,
-            next.buyback_per_level,
-            next.buyback_cooldown_s,
-            next.passive_gold_per_s,
             next.attr_a_base,
             next.attr_b_base,
             next.attr_c_base,
@@ -276,18 +198,15 @@ impl HeroRules {
             next.attr_b_gain,
             next.attr_c_gain,
             next.aggro_hold_s,
-            next.backdoor_radius_milli,
-            next.backdoor_activation_s,
-            next.backdoor_regen_per_s,
         ]
         .iter()
         .all(|&v| v >= 0)
-            && (0..=100).contains(&next.team_share_pct)
-            && (0..=100).contains(&next.backdoor_reduction_pct);
-        if valid {
-            *self = next;
+            && next.armour_per_attr_b_div > 0;
+        if !valid {
+            return None;
         }
-        valid
+        *self = next;
+        Some(named)
     }
 }
 
@@ -295,12 +214,14 @@ impl HeroRules {
 #[derive(Clone, Debug)]
 pub(crate) struct HeroState {
     pub(crate) rules: HeroRules,
+    /// The named values of the rules text (every key the engine does not own), read by mods through `Sim::rule`.
+    pub(crate) named: BTreeMap<String, i32>,
     pub(crate) is_hero: Vec<u8>,
     pub(crate) home_x: Vec<i32>,
     pub(crate) home_y: Vec<i32>,
+    /// 0 alive, 1 dead awaiting the respawn the mod set (`u32::MAX` until it sets one), 2 reincarnating.
     pub(crate) waiting: Vec<u8>,
     pub(crate) respawn_at: Vec<u32>,
-    pub(crate) buyback_ready: Vec<u32>,
     pub(crate) gold: Vec<i32>,
     pub(crate) mana_max: Vec<i32>,
     /// Where a reincarnating hero (waiting 2) comes back, milli-units Q16.16 like a unit position.
@@ -314,12 +235,12 @@ impl HeroState {
     pub(crate) fn new(cap: usize) -> HeroState {
         HeroState {
             rules: HeroRules::default(),
+            named: BTreeMap::new(),
             is_hero: vec![0; cap],
             home_x: vec![0; cap],
             home_y: vec![0; cap],
             waiting: vec![0; cap],
             respawn_at: vec![0; cap],
-            buyback_ready: vec![0; cap],
             gold: vec![0; cap],
             mana_max: vec![0; cap],
             spot_x: vec![0; cap],
@@ -330,30 +251,44 @@ impl HeroState {
 }
 
 impl Sim {
-    /// Spawns unit type `kind` for `player` at a Q16.16 point with the attribute data of its type (a hero: the
-    /// `hero` line of the rules); that point is its home.
+    /// Spawns unit type `kind` for `player` at a Q16.16 point and gives it the attribute data of its type;
+    /// that point is its home.
     pub fn spawn_attributed(&mut self, player: u8, kind: u32, x: i32, y: i32) -> Option<usize> {
         let i = self.spawn_for(player, kind, x, y)?;
-        self.enroll_hero(i, x, y);
+        self.attribute_unit(i, x, y);
         Some(i)
     }
 
-    /// Makes the already spawned unit `i` a hero at the Q16.16 point (x, y): its home, its respawn
-    /// and gold state, and its hero stats. Map placements of a player-controlled kind call this.
-    pub(crate) fn enroll_hero(&mut self, i: usize, x: i32, y: i32) {
+    /// Gives the already spawned unit `i` attributed state at the Q16.16 point (x, y): its home, its
+    /// respawn and gold state, and its attribute stats. The mod's seat-pick spawn and map placements call this.
+    pub(crate) fn attribute_unit(&mut self, i: usize, x: i32, y: i32) {
         let h = &mut self.heroes;
         h.is_hero[i] = 1;
         h.home_x[i] = x;
         h.home_y[i] = y;
         h.waiting[i] = 0;
         h.respawn_at[i] = 0;
-        h.buyback_ready[i] = 0;
         h.gold[i] = 0;
         h.mana_max[i] = 0;
         self.energy[i] = 0;
         self.refresh_passives(i);
         self.apply_hero_stats(i);
         self.hp[i] = self.hp_max[i];
+    }
+
+    /// Marks attributed unit `j` dead and waiting. Its respawn stays unset (never due) until the mod's
+    /// on_died calls `set_hero_respawn`. A unit that is not attributed is left alone.
+    pub(crate) fn hold_dead(&mut self, j: usize) {
+        if !self.is_hero(j) {
+            return;
+        }
+        self.heroes.waiting[j] = 1;
+        self.heroes.respawn_at[j] = u32::MAX;
+    }
+
+    /// A named value of the rules text (every `key=value` line the engine does not own), or None.
+    pub fn rule(&self, key: &str) -> Option<i32> {
+        self.heroes.named.get(key).copied()
     }
 
     /// The `hero` line data of the type of unit `i`, if the rules text gave one.
@@ -431,11 +366,6 @@ impl Sim {
 
     pub fn mana_of(&self, i: usize) -> i32 {
         self.energy.get(i).copied().unwrap_or(0)
-    }
-
-    /// Magic resistance percent of hero `i`; 0 for a non-hero or a type with no `hero` line.
-    pub fn hero_magic_resist_pct(&self, i: usize) -> i32 {
-        if !self.is_hero(i) { 0 } else { self.hero_def(i).map_or(0, |d| d.magic_resist) }
     }
 
     /// Recomputes the attribute-driven stats of live hero `i` from its catalog type and attributes:
@@ -526,7 +456,8 @@ impl Sim {
     }
 
     /// Loads the rules text: `hero <unit> key=value ...` lines set per-type hero data (the unit must
-    /// exist in the catalog); every other line is a `key=value` rule. False, nothing changed, on a bad line.
+    /// exist in the catalog); the engine keys set the rules and every other `key=value` line is a named
+    /// value for `rule`. False, nothing changed, on a bad line.
     pub fn set_hero_rules_text(&mut self, text: &str) -> bool {
         let mut rest = String::new();
         let mut defs = self.heroes.defs.clone();
@@ -543,9 +474,12 @@ impl Sim {
             };
             defs[k] = Some(d);
         }
-        if !self.heroes.rules.set_from_text(&rest) {
+        let mut rules = self.heroes.rules;
+        let Some(named) = rules.set_from_text(&rest) else {
             return false;
-        }
+        };
+        self.heroes.rules = rules;
+        self.heroes.named = named;
         self.heroes.defs = defs;
         self.spell.damage_interrupts = self.heroes.rules.channel_damage_interrupt;
         for i in 0..self.n {
@@ -554,7 +488,7 @@ impl Sim {
         true
     }
 
-    /// Gold held by hero `i`; 0 for a non-hero.
+    /// Gold held by unit `i`; 0 for a unit with no gold state.
     pub fn unit_gold(&self, i: usize) -> i32 {
         if self.is_hero(i) { self.heroes.gold[i] } else { 0 }
     }
@@ -568,61 +502,6 @@ impl Sim {
             return 0;
         }
         self.heroes.respawn_at[i].saturating_sub(self.ticks) as i32
-    }
-
-    /// Gold a buyback of hero `i` costs at its current level; -1 for a non-hero.
-    pub fn hero_buyback_cost(&self, i: usize) -> i32 {
-        if !self.is_hero(i) {
-            return -1;
-        }
-        let r = self.heroes.rules;
-        let net_worth_part = self.hero_net_worth(i) as i64 * r.buyback_net_worth_pct as i64 / (100 * r.buyback_net_worth_div as i64);
-        r.buyback_base + r.buyback_per_level * self.level(i) as i32 + net_worth_part as i32
-    }
-
-    /// Ticks until hero `i` may buy back again; 0 when ready; -1 for a non-hero.
-    pub fn hero_buyback_cooldown_left(&self, i: usize) -> i32 {
-        if !self.is_hero(i) {
-            return -1;
-        }
-        self.heroes.buyback_ready[i].saturating_sub(self.ticks) as i32
-    }
-
-    /// Buys back dead hero `i` at its home: pays the buyback cost, revives it at once and starts the
-    /// cooldown. False, with nothing changed, when it is alive, not dead-and-waiting, on cooldown,
-    /// short of gold, or its home cell is full.
-    pub fn buyback(&mut self, i: usize) -> bool {
-        if !self.is_hero(i) || self.alive(i) || self.heroes.waiting[i] == 0 {
-            return false;
-        }
-        if self.hero_buyback_cooldown_left(i) > 0 {
-            return false;
-        }
-        let cost = self.hero_buyback_cost(i);
-        if self.heroes.gold[i] < cost {
-            return false;
-        }
-        self.heroes.gold[i] -= cost;
-        if !self.revive(i) {
-            self.heroes.gold[i] += cost;
-            return false;
-        }
-        let cooldown = self.heroes.rules.buyback_cooldown_s * TICKS_PER_SECOND;
-        self.heroes.buyback_ready[i] = self.ticks.wrapping_add(cooldown as u32);
-        true
-    }
-
-    /// Books the death timer of hero `j`: the rule's base plus a per-level add, capped. A mod's
-    /// `on_unit_died` decision replaces it through `set_hero_respawn`.
-    pub(crate) fn hero_died(&mut self, j: usize) {
-        if !self.is_hero(j) {
-            return;
-        }
-        let r = self.heroes.rules;
-        let secs = (r.respawn_base_s + r.respawn_per_level_s * self.level(j) as i32)
-            .min(r.respawn_cap_s);
-        self.heroes.waiting[j] = 1;
-        self.heroes.respawn_at[j] = self.ticks.wrapping_add((secs * TICKS_PER_SECOND) as u32);
     }
 
     /// Sets the respawn of dead hero `i` (the `set_respawn` primitive): `Some(s)` revives it `s` seconds
@@ -639,29 +518,18 @@ impl Sim {
         Ok(())
     }
 
-    /// Credits a kill bounty to killer unit `k` (the engine fallback when no mod owns kill gold): the team
-    /// share goes to its side's resource pool, the rest to the unit's gold. The share is the `team_share_pct` rule.
-    pub(crate) fn credit_kill_gold(&mut self, k: usize, bounty: i32) {
-        let share = bounty * self.heroes.rules.team_share_pct / 100;
-        self.heroes.gold[k] = self.heroes.gold[k].saturating_add(bounty - share);
-        let side = self.player[k];
-        self.add_resources(side, share, 0);
-    }
-
-    /// Per tick: passive gold each second for every hero, then respawn of each dead hero whose
-    /// timer has run out. A respawn blocked by a full home cell retries next tick.
-    pub(crate) fn tick_heroes(&mut self) {
-        if self.ticks % TICKS_PER_SECOND as u32 == 0 {
-            let passive = self.heroes.rules.passive_gold_per_s;
-            for i in 0..self.n {
-                if self.is_hero(i) {
-                    self.heroes.gold[i] = self.heroes.gold[i].saturating_add(passive);
-                }
-            }
-        }
+    /// Per tick: the respawn timer of each dead unit once it has run out (a revive at its home, or at its
+    /// reincarnation spot), and the mana regeneration of each living hero. A revive blocked by a full cell
+    /// retries next tick.
+    pub(crate) fn tick_respawns(&mut self) {
         for i in 0..self.n {
             if self.heroes.waiting[i] != 0 && self.ticks >= self.heroes.respawn_at[i] {
-                self.revive(i);
+                let (x, y) = if self.heroes.waiting[i] == 2 {
+                    (self.heroes.spot_x[i], self.heroes.spot_y[i])
+                } else {
+                    (self.heroes.home_x[i], self.heroes.home_y[i])
+                };
+                self.revive_at_point(i, x, y);
             }
             if self.is_hero(i) && self.alive(i) {
                 self.regen_mana(i);
@@ -669,16 +537,11 @@ impl Sim {
         }
     }
 
-    /// Puts hero `i` back at its home with full health, keeping its xp and its kill and death
-    /// tallies (a slot spawn resets them). False when the home cell cannot take it.
-    fn revive(&mut self, i: usize) -> bool {
+    /// Puts dead unit `i` back at the Q16.16 point (x, y) with full health, keeping its xp and its kill
+    /// and death tallies (a slot spawn resets them). False when the cell cannot take it.
+    pub(crate) fn revive_at_point(&mut self, i: usize, x: i32, y: i32) -> bool {
         let kind = self.type_of[i] as u32;
         let player = self.player[i];
-        let (x, y) = if self.heroes.waiting[i] == 2 {
-            (self.heroes.spot_x[i], self.heroes.spot_y[i])
-        } else {
-            (self.heroes.home_x[i], self.heroes.home_y[i])
-        };
         let (xp, kills, deaths) = (self.xp_total[i], self.unit_kills[i], self.unit_deaths[i]);
         let ranks: Vec<u8> = self.abil_rank[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].to_vec();
         let upgrades = self.spell.upg[i];

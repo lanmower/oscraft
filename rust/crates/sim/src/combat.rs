@@ -49,9 +49,6 @@ pub struct Payout {
     pub killer_player: Option<u8>,
     pub bounty: i32,
 }
-/// Gold for the last hit on a hero: 125 + 8 per victim level (patch 7.31 notes; unchanged in later
-/// notes). Assist gold is 15 + (50 + 0.037 * victim net worth) / assisting heroes (patch 7.40 notes).
-// The hero gold, assist gold and base magic resistance values are `HeroRules` fields (hero_rules.txt).
 
 /// Armour reduction per armour point, Q16.16 (0.06): reference's physical damage multiplier is
 /// 1 - 0.06a / (1 + 0.06|a|), with no floor. Engine constant, not in the npc dump.
@@ -334,11 +331,10 @@ impl Sim {
         self.hurt_by(j, dmg, -1);
     }
 
-    /// Ability damage after the magic resistance of unit `j`: `damage * (100 - resist) / 100`, the
-    /// resist being the hero base of 25 percent (`hero_base` MagicalResistance; 0 for a
-    /// non-hero). Ability damage is magical.
+    /// Ability damage after the magic resistance of unit `j` (`magic_resist_pct`, from its type data).
+    /// Ability damage is magical.
     fn magic_reduced(&self, j: usize, dmg: i32) -> i32 {
-        let resist = if self.is_hero(j) { self.heroes.rules.base_magic_resist_pct as i64 } else { 0 };
+        let resist = self.magic_resist_pct(j) as i64;
         (dmg as i64 * (100 - resist) / 100) as i32
     }
 
@@ -361,24 +357,16 @@ impl Sim {
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
 
-    /// The gold unit `j` is worth when destroyed: a hero's level-scaled bounty, or the catalog
-    /// bounty of any other unit. Zero for an unknown unit.
+    /// The catalog bounty of unit `j` when destroyed. Zero for an unknown unit.
     pub fn unit_bounty(&self, j: usize) -> i32 {
         if j >= self.n {
             return 0;
         }
-        if self.is_hero(j) {
-            let r = self.heroes.rules;
-            r.hero_kill_gold_base + r.hero_kill_gold_per_level * self.character_level(j) as i32
-        } else {
-            self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
-        }
+        self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
     }
 
-    /// Pays the destroyed unit's bounty. Any killer unit keeps it as its own gold, less the team
-    /// share (see hero.rs). Only an attackerless kill pays the rival side's resource pool. Neither
-    /// payout is made while a mod owns gold (`gold_by_mod`); the death is queued as a `Payout` for
-    /// the mod instead, and the kill itself is unchanged.
+    /// Queues the destroyed unit's bounty as a `Payout` for the mod's on_died, which pays gold. The
+    /// engine pays nothing itself; the queue is only filled while a mod owns gold (`gold_by_mod`).
     fn pay_bounty(&mut self, j: usize, attacker: i32) {
         let bounty = self.unit_bounty(j);
         if bounty <= 0 || self.was_denied(j, attacker) {
@@ -386,14 +374,6 @@ impl Sim {
         }
         if self.gold_by_mod {
             self.queue_payout(j, attacker, bounty);
-            return;
-        }
-        if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
-            self.credit_kill_gold(attacker as usize, bounty);
-            return;
-        }
-        if let Some(rival) = self.rival_of(self.player[j]) {
-            self.add_resources(rival, bounty, 0);
         }
     }
 
@@ -433,60 +413,6 @@ impl Sim {
             && (attacker as usize) < self.n
             && attacker as usize != j
             && !self.hostile(self.player[attacker as usize], self.player[j])
-    }
-
-    /// Shares the xp of unit `j` killed by `attacker`. An enemy kill gives `xp_bounty` to the killer
-    /// and to each hero allied to it within the victim's assist radius, split evenly with any
-    /// remainder to the killer. A denial gives `xp_bounty * deny_xp_pct / 100` to each enemy hero
-    /// within the radius, split the same way. The radius is the victim's assist radius; "in range"
-    /// means inside it, not that the hero hit the victim.
-    fn share_xp(&mut self, j: usize, attacker: i32) {
-        if attacker < 0 || attacker as usize >= self.n || attacker as usize == j {
-            return;
-        }
-        let k = attacker as usize;
-        let ext = self.cat.unit_ext.get(self.type_of[j] as usize).copied().unwrap_or_default();
-        let denied = self.was_denied(j, attacker);
-        let pool = if denied {
-            (ext.xp_bounty.max(0) as i64 * ext.deny_xp_pct as i64 / 100) as u32
-        } else {
-            ext.xp_bounty.max(0) as u32
-        };
-        if pool == 0 {
-            return;
-        }
-        let (victim_side, killer_side) = (self.player[j], self.player[k]);
-        let mut recipients = Vec::new();
-        if !denied {
-            recipients.push(k);
-        }
-        let radius = fixed::from_milli(ext.assist_radius);
-        let mut buf = std::mem::take(&mut self.scratch);
-        let n = self.gather(self.pos_x[j], self.pos_y[j], radius, &mut buf);
-        for &u in &buf[..n] {
-            let u = u as usize;
-            if u == j || u == k || self.alive[u] == 0 || !self.is_hero(u) {
-                continue;
-            }
-            let on_side = if denied {
-                self.hostile(self.player[u], victim_side)
-            } else {
-                !self.hostile(self.player[u], killer_side)
-            };
-            if on_side {
-                recipients.push(u);
-            }
-        }
-        self.scratch = buf;
-        if recipients.is_empty() {
-            return;
-        }
-        let count = recipients.len() as u32;
-        let share = pool / count;
-        let rest = pool - share * count;
-        for (idx, &u) in recipients.iter().enumerate() {
-            self.add_xp(u, share + if idx == 0 { rest } else { 0 });
-        }
     }
 
     /// The damage path shared by weapons and abilities: damage response, then shield,
@@ -536,8 +462,7 @@ impl Sim {
             if fell && !self.is_illusion(j) && !self.reincarnate(j) {
                 self.record_death(j, attacker);
                 self.pay_bounty(j, attacker);
-                self.share_xp(j, attacker);
-                self.hero_died(j);
+                self.hold_dead(j);
                 self.camp_died(j, attacker);
             }
         }
@@ -582,12 +507,10 @@ impl Sim {
     }
 
     /// Credits an assist to each recent hitter of dead unit `j` that shares the killer's side and
-    /// is not the killer, then forgets the hitters.
+    /// is not the killer, then forgets the hitters. The assist gold is the mod's (on_died).
     fn credit_assists(&mut self, j: usize, killer: usize) {
         let base = j * ASSIST_SLOTS;
         let side = self.player[killer];
-        let mut helpers = [0usize; ASSIST_SLOTS];
-        let mut helper_count = 0;
         for s in base..base + ASSIST_SLOTS {
             let id = self.hitter_id[s];
             self.hitter_id[s] = -1;
@@ -596,25 +519,13 @@ impl Sim {
             }
             if self.ticks.wrapping_sub(self.hitter_tick[s]) <= ASSIST_WINDOW {
                 self.unit_assists[id as usize] = self.unit_assists[id as usize].saturating_add(1);
-                if self.is_hero(id as usize) && !helpers[..helper_count].contains(&(id as usize)) {
-                    helpers[helper_count] = id as usize;
-                    helper_count += 1;
-                }
             }
-        }
-        if helper_count == 0 || !self.is_hero(j) || !self.hostile(self.player[killer], self.player[j]) {
-            return;
-        }
-        let r = self.heroes.rules;
-        let shared = (r.assist_gold_flat as i64 * 1000 + self.hero_net_worth(j) as i64 * r.assist_net_worth_per_mille as i64) / 1000;
-        let each = (r.assist_gold_base as i64 + shared / helper_count as i64) as i32;
-        for &u in &helpers[..helper_count] {
-            self.heroes.gold[u] = self.heroes.gold[u].saturating_add(each);
         }
     }
 
-    /// Gold held by hero `j` plus the cost of the items in its inventory and stash.
-    pub(crate) fn hero_net_worth(&self, j: usize) -> i32 {
+    /// Gold held by unit `j` plus the cost of the items in its inventory and stash (the net worth
+    /// the mod's gold rules read through `game.net_worth`).
+    pub fn net_worth(&self, j: usize) -> i32 {
         let slots = j * crate::inventory::INV_SLOTS..(j + 1) * crate::inventory::INV_SLOTS;
         let items: i64 = slots
             .flat_map(|s| [(self.inv_kind[s], self.inv_count[s]), (self.stash_kind[s], self.stash_count[s])])
@@ -772,8 +683,8 @@ mod tests {
             .expect("a free cell for the creep")
     }
 
-    /// Kills one enemy creep by an allied unit's blow, then one by no attacker. Returns the
-    /// killer's gold delta and the rival side's resource delta.
+    /// Kills one enemy creep by an allied unit's blow, then one by no attacker. Returns the killer's
+    /// gold delta and the rival side's resource delta. The engine pays neither: gold is the mod's.
     fn kill_both_ways(s: &mut Sim) -> (i32, i32) {
         let killer = creep(s, 0);
         let gold_before = s.heroes.gold[killer];
@@ -790,21 +701,12 @@ mod tests {
     }
 
     #[test]
-    fn kill_pays_the_usual_bounty_when_gold_is_not_owned_by_a_mod() {
+    fn kill_pays_nothing_in_the_engine_whether_or_not_a_mod_owns_gold() {
         let mut s = duel_sim();
         assert!(!s.gold_by_mod(), "the flag defaults to off");
-        let sample = creep(&mut s, 1);
-        let bounty = s.unit_bounty(sample);
-        assert!(bounty > 0, "the creep has a bounty");
-        let share = bounty * s.heroes.rules.team_share_pct / 100;
         let (killer_gold, rival_gold) = kill_both_ways(&mut s);
-        assert_eq!(killer_gold, bounty - share, "allied killer keeps the bounty less the team share");
-        assert_eq!(rival_gold, bounty, "attackerless kill pays the rival side the bounty");
-    }
-
-    #[test]
-    fn kill_pays_no_rust_bounty_when_gold_is_owned_by_a_mod() {
-        let mut s = duel_sim();
+        assert_eq!(killer_gold, 0, "no engine gold for the killer");
+        assert_eq!(rival_gold, 0, "no engine payout to the rival side");
         s.set_gold_by_mod(true);
         let (killer_gold, rival_gold) = kill_both_ways(&mut s);
         assert_eq!(killer_gold, 0, "no hero bounty while a mod owns gold");
@@ -938,7 +840,7 @@ mod tests {
         s.set_fog(false);
         let hero = unit_named(&mut s, 0, "antimage");
         let (hx, hy) = s.position_fixed(hero);
-        s.enroll_hero(hero, hx, hy);
+        s.attribute_unit(hero, hx, hy);
         s.energy[hero] = 100_000;
         let item = crate::inventory::item_kind(s.catalog().item_index("blink").expect("blink item"));
         assert!(s.inventory_add(hero, item, 1), "the hero takes the blink");
@@ -959,7 +861,7 @@ mod tests {
         s.set_fog(false);
         let hero = unit_named(&mut s, 0, "antimage");
         let (hx, hy) = s.position_fixed(hero);
-        s.enroll_hero(hero, hx, hy);
+        s.attribute_unit(hero, hx, hy);
         let item = crate::inventory::item_kind(s.catalog().item_index("faerie_fire").expect("faerie fire item"));
         assert!(s.inventory_add(hero, item, 2), "the hero takes two charges");
         let base = hero * crate::inventory::INV_SLOTS;
