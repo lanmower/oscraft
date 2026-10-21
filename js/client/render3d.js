@@ -372,9 +372,10 @@ void main() {
   float alpha = mix(0.2, 0.42, depth);
   vec3 water = mix(bed, body, alpha);
   // The sky reflection and the sun glint are the shine of deep water only: they fade out with depth, so the shallow shore
-  // tiles stay matte.
-  water = mix(water, sky, fres * 0.8 * depth);
-  water += vec3(1.0, 0.97, 0.9) * glint * depth;
+  // tiles stay matte. SPECULAR scales both: at 0.1 the shine is a tenth of its full strength.
+  const float SPECULAR = 0.1;
+  water = mix(water, sky, fres * 0.8 * depth * SPECULAR);
+  water += vec3(1.0, 0.97, 0.9) * glint * depth * SPECULAR;
   // Refraction: a shimmer in the bed seen through the surface, shifted by the surface normal so it moves with the ripples.
   vec2 refr = n.xz * 0.6;
   float caustic = 0.5 + 0.5 * sin(dot(p + refr, vec2(1.7, 1.1)) * 3.0 + t * 1.3);
