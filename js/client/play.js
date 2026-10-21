@@ -1328,7 +1328,6 @@ function startHost() {
     if (window.__ciFrames && window.__ciFrames.length < 200) window.__ciFrames.push({ type: frame.type, bytes: bytes.byteLength });
     session.broadcast(bytes);
     if (hostTick % ROSTER_EVERY_TICKS === 0) {
-      refreshSeatStats();
       for (const key of peers) sendRoster(key);
     }
   };
@@ -1591,6 +1590,7 @@ session.addEventListener("data", (e) => {
   lastAppliedTick = frame.tick;
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp, type: u.kind })) };
   advanceTickClock(netState.units);
+  applyDueSwap();
   if (window.__ciRecv) recordTick(window.__ciRecv, frame.tick, [...netUnits.values()]);
 });
 
@@ -1816,7 +1816,7 @@ async function announceSwap(file, url, value) {
 // A missing or wrong image, or a refused load, is logged and the old Game stays in service. Called once per swap tick
 // (applyDueSwap guards the tick), so the Game's swap_data never runs twice for one swap.
 function applyDataSwap(due) {
-  const tick = localGame.ticks();
+  const tick = swapClock();
   const fail = (error) => {
     lastSwapResult = { tick, file: due.file, ok: false, carried: null, refused: null, error, readiness: due.error ? "failed" : "in-flight", deferred: false, deferrals: due.deferrals };
     console.error(`[swap] ${due.file} at tick ${tick}: data swap failed, previous data kept: ${error}`);
@@ -1937,10 +1937,16 @@ function failSwapNotReady(report, sender) {
   console.error(`[swap] ${file} at tick ${report.tick}: peer ${short} was not ready; swap failed`);
 }
 
+// The tick a pending swap is due against: a guest's sim is the host's frame stream (netTick), a host or local page runs its own.
+function swapClock() {
+  if (netState) return netTick;
+  return localGame ? localGame.ticks() : -1;
+}
+
 // Applies a pending swap once the sim reaches its tick. A peer without the verified image keeps its old data, logs it and
 // reports SWAP_NOT_READY. A swap tick this page already applied is never applied again.
 function applyDueSwap() {
-  if (!pendingSwap || !localGame || localGame.ticks() < pendingSwap.tick) return;
+  if (!pendingSwap || !localGame || swapClock() < pendingSwap.tick) return;
   const due = pendingSwap;
   pendingSwap = null;
   if (lastApplied && !swapIsNew(lastApplied.tick, due.tick)) {
