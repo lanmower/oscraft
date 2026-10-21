@@ -1000,6 +1000,12 @@ function isHeroUnit(id) {
 // Records each START seat's pick. The sim's Lua spawn rule places the picked unit; the page does not spawn it.
 function recordSeatPicks(seats) {
   spawnedSeats = seats.map(({ slot, pick }) => ({ slot, pick }));
+  // The host's sim spawns each seat's picked hero at the seat's start (heroes.lua seat_pick, routed by controls.lua).
+  if (!localGame) return;
+  for (const { slot, pick } of spawnedSeats) {
+    if (!pick) continue;
+    logModError(localGame.dispatch_action("seat_pick", JSON.stringify({ player: slot, hero: pick })));
+  }
 }
 
 // Applies a START (the lobby's own or a peer's): seats the players, spawns heroes and, on the host, tells every peer.

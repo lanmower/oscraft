@@ -108,11 +108,14 @@ local function attribute_bonuses(unit)
 end
 
 return {
-  -- The page's seat pick: spawn the hero at the seat's start and enrol it.
-  on_seat_pick = function(player, hero_kind, seat_start_x, seat_start_y)
-    local unit = game.spawn(player, hero_kind, seat_start_x, seat_start_y)
+  -- A seat's pick from the lobby's start: spawn the picked hero at the seat's start point and enrol it. Dispatched by the
+  -- page for each seat that picked a hero (controls.lua routes the "seat_pick" action here).
+  seat_pick = function(player, hero_kind)
+    local start = game.seat_start(player)
+    if start == nil then return end
+    local unit = game.spawn(player, hero_kind, start.x, start.y)
     if unit == nil then return end
-    game.enroll(unit, seat_start_x, seat_start_y)
+    game.enroll(unit, start.x, start.y)
   end,
 
   -- A hero's kill: its gold (the killer keeps all but the team share), the assist credit and the xp share.

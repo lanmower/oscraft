@@ -663,6 +663,22 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         sh.sim.enroll_attributed(u, x, y);
         Ok(CallbackReturn::Return)
     });
+    // The start point of player `p` as the map gives it (fixed-point x and y, the units spawn takes), or nil when no start is
+    // listed for that player.
+    native!(ctx, game, "seat_start", [sh], |c, s| {
+        let player = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let start = sh.borrow().sim.catalog().starts.iter().find(|st| st.player == player).map(|st| (st.x, st.y));
+        match start {
+            Some((x, y)) => {
+                let t = Table::new(&c);
+                t.set(c, "x", i64::from(x)).expect("start");
+                t.set(c, "y", i64::from(y)).expect("start");
+                s.replace(c, t);
+            }
+            None => s.replace(c, ()),
+        }
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "spawn", [sh], |c, s| {
         let player = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
         let kind = match s.get(1) {

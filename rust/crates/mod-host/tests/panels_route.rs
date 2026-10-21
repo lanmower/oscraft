@@ -15,6 +15,8 @@ fn host_with_panels() -> ModHost {
     let image = build_image(&scenario()).expect("moba scenario builds an image");
     let mut host = ModHost::new(&image).expect("host");
     let read = |name: &str| std::fs::read_to_string(scenario().join(name)).expect(name);
+    // The page loads the pack's rules file with its modules; a module reads its rule numbers from it.
+    assert!(host.sim_mut().set_attr_rules_text(&read("attr_rules.txt")), "the pack's rules file loads");
     let mods = common::pack_mods(&scenario(), &common::pack_roots(&scenario()));
     host.load_mods(&mods).expect("moba mods load");
     let ui: serde_json::Value = serde_json::from_str(&read("moba_ui.json")).expect("ui json");
