@@ -12,18 +12,14 @@ import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor 
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
-import { createHud5 } from "./hud5.js";
+import { createWidgets } from "./widgets.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
-import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
 import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, packSwapKind, swapGate, swapIsNew } from "./swap_protocol.js";
 import { createFogView } from "./fogview.js";
 import { installDebugApi } from "./debug_api.js";
-import { createShop } from "./ui_shop.js";
-import { createSkills } from "./ui_skills.js";
-import { createInventory } from "./ui_inventory.js";
 import { createFx } from "./fx.js";
 import { createModUi } from "./modui.js";
 import { Pack } from "./pack.js";
@@ -123,12 +119,9 @@ let casts = 0;
 let attacks = 0;
 let localGame = null;
 let hud = null;
-let hud5 = null;
-// The hero UI's shared inputs, and the inventory panel (kept so a hot reload can swap it in heroPanels).
-let heroUi = null;
-let inventoryPanel = null;
+let widgets = null;
+let packStartMounted = false;
 let fogview = null;
-const heroPanels = [];
 let fx = null;
 let selectedId = -1;
 let reconnectAttempt = 0;
@@ -158,8 +151,6 @@ let hostKey = null;
 // The last swap announcements this page refused, kept for window.oscraft.swapRejections().
 const swapRejections = [];
 let rosterView = null;
-let heroKinds = new Map();
-let heroRuleNames = [];
 let spawnedSeats = [];
 const localPlayerId = () => myPlayer;
 const isGuest = () => netTick >= 0;
@@ -252,10 +243,24 @@ let debugReply = null;
 function routeUi(ev) {
   const data = ev.data || {};
   if (ev.kind === "debug") { debugReply = data; return; }
+  if (ev.kind === "widget") {
+    if (data.player !== undefined && data.player !== myPlayer) return;
+    if (widgets) widgets.apply(data);
+    // The pack-start bar sits in the lobby panel: it is mounted once that panel is up.
+    if (data.id === "lobby" && !data.remove && !packStartMounted) { packStartMounted = true; mountPackStart(); }
+    return;
+  }
+  if (ev.kind === "lobby") {
+    // The lobby's start comes from the page that runs the sim: it starts the match from the seats the pack gives.
+    if (data.player === myPlayer && data.started && !netState) onLobbyStart({ slots: data.slots });
+    return;
+  }
   if (ev.kind === "feedback" || ev.kind === "action" || ev.kind === "view") {
     if (data.player !== undefined && data.player !== myPlayer) return;
     if (ev.kind === "feedback") {
       if (data.kind === "selection") selectedId = data.ids[0] ?? -1;
+      // The pack's panels follow the selection: the page that runs the sim tells the pack what is selected.
+      if (data.kind === "selection" && localGame && !netState) logModError(localGame.dispatch_action("selection", JSON.stringify({ player: data.player, ids: data.ids })));
       if (data.kind === "refusal") document.body.dataset.lastRefusal = `cast_dropped ${data.reason}`;
       window.dispatchEvent(new CustomEvent("moba:feedback", { detail: data }));
     } else if (ev.kind === "action") {
@@ -274,7 +279,7 @@ function pumpUi() {
   if (!localGame || netState) return;
   if (setupSeat !== myPlayer) {
     setupSeat = myPlayer;
-    logModError(localGame.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer })));
+    logModError(localGame.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || "local" })));
   }
   for (const ev of JSON.parse(localGame.drain_ui())) {
     routeUi(ev);
@@ -294,10 +299,7 @@ async function loadSim() {
   const mods = await Promise.all((manifest.mods ?? []).map(async (name) => ({ name, text: await packText(name) })));
   logModError(game.load_mods(JSON.stringify(mods)));
   // The pack's controls read the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
-  logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer })));
-  // The lobby's picker lists the roster names on every page, so the rules text is read for them.
-  const rulesText = manifest.rules ? await packText(manifest.rules) : "";
-  heroRuleNames = heroNamesFromRules(rulesText);
+  logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || "local" })));
   // Fog of war is on for every page, moba included: enemies outside the local team's vision stay hidden.
   game.set_fog(true);
   return game;
@@ -1008,9 +1010,7 @@ function applyStart(frame) {
 }
 
 function endLobby() {
-  const lobbyEl = document.getElementById("lobby");
-  if (lobbyEl) lobbyEl.hidden = true;
-  window.dispatchEvent(new Event("oscraft:horn"));
+  document.getElementById("ui-modal")?.remove();
 }
 
 // Pack editing. The host edits the pack in the editor; a saved change goes to every peer as PACK_FILE frames, and a peer
@@ -1159,7 +1159,7 @@ function startFromLoadedPack(hostRoom) {
 // The lobby's "start from loaded pack" buttons: a local game and a hosted one. The lobby redraws its children on every
 // change, so the bar is put back into the lobby section after each redraw (and hides with it).
 function mountPackStart() {
-  const lobbyEl = document.getElementById("lobby");
+  const lobbyEl = document.getElementById("ui-modal");
   if (!lobbyEl) return;
   const bar = document.createElement("div");
   bar.className = "pack-start";
@@ -1635,25 +1635,6 @@ function publishWitness() {
   publishCommandCounts();
   pumpUi();
   if (hud) hud.update();
-  if (hud5) hud5.update();
-  for (const panel of heroPanels) {
-    if (netState) panel.root.hidden = true;
-    else panel.update();
-  }
-}
-
-// The hero panels read and act on the local sim, so they need every hero export of the wasm build and show only
-// where this page owns the sim; a guest's page keeps them hidden.
-function hasHeroApi(game) {
-  return ["item_catalog_json", "abilities_json", "inventory_json"].every((name) => typeof game[name] === "function");
-}
-
-// Hero picks for the lobby: see heroKindsFor (lobby.js). Empty when the wasm build predates the hero getters.
-function liveHeroRoster(game) {
-  heroKinds = new Map();
-  if (typeof game.unit_type_names !== "function" || typeof game.unit_flags !== "function") return [];
-  heroKinds = heroKindsFor(game.unit_type_names(), game.unit_flags(), heroRuleNames);
-  return [...heroKinds.keys()];
 }
 
 function createBarCanvas() {
@@ -2003,17 +1984,7 @@ async function hmrApply(file, url, value) {
   if (file === "anim.js") return hmrAnim();
   if (file === "hud.js") {
     hud = value;
-    if (heroUi) heroUi.input = hud.input;
     return;
-  }
-  if (file === "hud5.js") {
-    hud5 = value;
-    return;
-  }
-  if (file === "ui_inventory.js") {
-    const i = heroPanels.indexOf(inventoryPanel);
-    if (i >= 0) heroPanels[i] = value;
-    inventoryPanel = value;
   }
 }
 
@@ -2071,8 +2042,6 @@ async function main() {
   }
   hud = createHud({
     game: localGame,
-    hudEl: document.getElementById("hud"),
-    winEl: document.getElementById("win"),
     minimapEl: document.getElementById("minimap"),
     barCanvas: createBarCanvas(),
     mapSize: { w: W, h: H },
@@ -2086,7 +2055,7 @@ async function main() {
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
-  hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: localPlayerId, isHero: (id) => localGame !== null && isHeroUnit(id), heroUnits: simUnits });
+  widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
   const eventsBase = params.get("events");
   const modUi = createModUi({
     root: document.body,
@@ -2097,14 +2066,6 @@ async function main() {
     onBind: (bind) => sendInput("bind", bind),
   });
   window.__modUi = modUi;
-  heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId, input: hud ? hud.input : null };
-  if (hasHeroApi(localGame)) {
-    inventoryPanel = createInventory(heroUi);
-    heroPanels.push(createShop(heroUi), createSkills(heroUi), inventoryPanel);
-  }
-  const heroNames = liveHeroRoster(localGame);
-  createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
-  mountPackStart();
   fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
   window.__fogView = fogview;
   const packButton = document.createElement("button");
@@ -2264,7 +2225,7 @@ if (params.get("ci") === "1") {
     const names = typeof localGame.unit_type_names === "function" ? localGame.unit_type_names() : [];
     return spawnedSeats.map(({ slot, pick }) => {
       // The seat's hero is the unit of the picked kind; the first hero of the slot may be a map-placed unit of another type.
-      const kind = heroKinds.get(pick);
+      const kind = names.indexOf(pick);
       const u = simUnits().find((v) => v.player === slot && isHeroUnit(v.id) && v.type === kind) || null;
       return { slot, picked: pick, spawned: u ? names[u.type] ?? null : null };
     });

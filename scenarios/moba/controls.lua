@@ -446,6 +446,9 @@ end
 local ACTIONS = { "setup", "key", "pointer", "select", "skill_up", "bind", "camera_to", "view", "debug_actions" }
 
 function on_action(name, args, state)
+  -- The pack has one on_action: the panels and the talents answer their actions from here.
+  if panels_on_action then panels_on_action(name, args, state) end
+  if talents_on_action then talents_on_action(name, args, state) end
   if name == "debug_actions" then
     local out = "["
     for i, action in ipairs(ACTIONS) do
@@ -461,6 +464,9 @@ function on_action(name, args, state)
     on_ground(args.player, args.kind, args.x, args.y, args.button)
   elseif name == "select" then
     set_selection(args.player or LOCAL, args.ids or {})
+  elseif name == "ui" then
+    -- A panel's button press (panels.lua owns the panels): the selection tiles select through here.
+    if args.call == "select" and args.args ~= nil then set_selection(args.player or LOCAL, args.args.ids or {}) end
   elseif name == "skill_up" then
     skill_up(args.player or LOCAL, args.slot)
   elseif name == "bind" then

@@ -1,28 +1,16 @@
-// MOBA HUD. createHud builds the input capture (moba_input.js), the feedback layer and the panels: selection, minimap
-// and scoreboard. Text comes from moba_ui.json. Keys and ground clicks are the pack's (controls.lua): the HUD sends
-// its own actions (select, camera_to) through send(name, args). update() refreshes the HUD from the wasm Game each frame,
-// along with the winner banner and unit health bars.
+// Page HUD: the input capture (moba_input.js), the feedback layer, the minimap and the unit health bars. Every panel's
+// content and every button is the pack's (scenarios/moba/panels.lua, drawn by widgets.js); keys and ground clicks are the
+// pack's (controls.lua). update() refreshes the page's own layers from the wasm Game each frame.
 
 import { cellKind, voidMask } from "./tiles.js";
-import { UI } from "./pack_load.js";
-import { fill } from "./moba_select.js";
 import { createMobaInput } from "./moba_input.js";
 import { createFeedback } from "./feedback.js";
 import { createMinimap } from "./ui_minimap.js";
-import { createSelectionPanel } from "./ui_selection.js";
-import { createScoreboard } from "./ui_scoreboard.js";
+import { UI } from "./pack_load.js";
 
-const TICK_S = 1 / 16;
 const BAR_WIDTH_PX = 20;
 const BAR_HEIGHT_PX = 3;
 const BAR_LIFT_PX = 5;
-
-export function formatClock(ticks) {
-  const total = Math.floor(ticks * TICK_S);
-  const minutes = Math.floor(total / 60);
-  const seconds = String(total % 60).padStart(2, "0");
-  return `${minutes}:${seconds}`;
-}
 
 const VOID_RGB = [20, 24, 28];
 const OPEN_RGB = [104, 124, 94];
@@ -47,21 +35,11 @@ function walkableLayer(grid) {
   return layer;
 }
 
-export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor }) {
-  hot.set("hud", { game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor });
+export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor }) {
+  hot.set("hud", { game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor });
   const maxHp = new Map();
   const barCtx = barCanvas.getContext("2d");
-  const lanes = walkableLayer(grid);
-  // The clock reads 0:00 at the horn (the lobby's "oscraft:horn" event). Before the horn the match is in pre-match.
-  let hornTicks = null;
-  window.addEventListener("oscraft:horn", () => {
-    if (game && typeof game.ticks === "function") hornTicks = game.ticks();
-  });
-
-  const hasHeroes = typeof game.attributes === "function";
-  const isHero = (id) => hasHeroes && game.attributes(id).some((v) => v !== 0);
-  const typeNames = typeof game.unit_model_names === "function" ? game.unit_model_names() : [];
-  const unitName = (type) => typeNames[type] || UI.text.unitUnknown;
+  const walkable = walkableLayer(grid);
 
   const input = createMobaInput({ game, toWorld, toScreen, send, dragSlopPx: UI.dragSlopPx });
   const feedback = createFeedback({ toScreen, toWorld, units });
@@ -76,43 +54,24 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     };
   }
 
-  // let, not const: a hot update of a panel module hands its new panel to this HUD (see the oscraft:hmr listener below).
+  // let, not const: a hot update of ui_minimap hands its new minimap to this HUD (see the oscraft:hmr listener below).
   let minimap = createMinimap({
     canvas: minimapEl,
     mapSize,
-    lanes,
+    lanes: walkable,
     units,
     selected,
     localPlayer,
     playerColor,
-    isHero,
     teams: UI.teams,
     viewRect,
     centre: (x, z) => send("camera_to", { x, z }),
   });
-  let selectionPanel = createSelectionPanel({ game, input, units, localPlayer, unitName, isHero });
-  let scoreboard = createScoreboard({ game, units, localPlayer, unitName, isHero, teams: UI.teams });
-  // A hot update of ui_minimap / ui_selection / ui_scoreboard re-creates that panel and dispatches it (see hmr.js).
+  // A hot update of ui_minimap re-creates the minimap and dispatches it (see hmr.js).
   window.addEventListener("oscraft:hmr", (e) => {
     const { url, value } = e.detail;
-    if (!value) return;
-    if (url.endsWith("/ui_minimap.js")) minimap = value;
-    else if (url.endsWith("/ui_selection.js")) selectionPanel = value;
-    else if (url.endsWith("/ui_scoreboard.js")) scoreboard = value;
+    if (value && url.endsWith("/ui_minimap.js")) minimap = value;
   });
-
-  function clockText(hasGame) {
-    if (!hasGame || hornTicks === null) return UI.text.preMatch;
-    return formatClock(game.ticks() - hornTicks);
-  }
-
-  function postGameText(winner) {
-    const banner = fill(UI.text.winnerBanner, { side: winner });
-    if (!game || typeof game.post_game_json !== "function") return banner;
-    const report = JSON.parse(game.post_game_json());
-    const rows = report.players.map((p) => fill(UI.text.postGameRow, { player: p.player, kills: p.kills, deaths: p.deaths, assists: p.assists, gold: p.gold, xp: p.xp, items: p.items.length }));
-    return [banner, ...rows].join("\n");
-  }
 
   function trackedMaxHp(id, hp) {
     const best = Math.max(maxHp.get(id) || 0, hp);
@@ -148,13 +107,8 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     const winner = hasGame ? game.winner() : -1;
     const primary = input.selection()[0];
     const hp = primary !== undefined && hasGame ? game.unit_hp(primary) : -1;
-    hudEl.textContent = fill(UI.text.hud, { hp: hp >= 0 ? hp : UI.text.noValue, gold, time: clockText(hasGame) });
-    winEl.hidden = winner < 0;
-    if (winner >= 0) winEl.textContent = postGameText(winner);
     const bars = drawBars(list);
     const dots = minimap.draw(list);
-    selectionPanel.update();
-    scoreboard.update();
     input.draw();
     feedback.draw();
     const body = document.body.dataset;

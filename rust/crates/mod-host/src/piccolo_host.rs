@@ -1009,6 +1009,14 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         t.set(c, "stock_time_s", i64::from(it.stock_time_s)).expect("item");
         t.set(c, "stock_start_s", i64::from(it.stock_start_s)).expect("item");
         t.set(c, "components", list_of(c, it.components.iter().filter(|&&k| k != NO_COMPONENT).map(|&k| i64::from(k)))?).expect("item");
+        // The non-zero stat bonuses, by stat name (sim::ITEM_STATS order).
+        let stats = Table::new(&c);
+        for (name, v) in sim::ITEM_STATS.iter().zip(it.stats) {
+            if v != 0 {
+                stats.set(c, *name, i64::from(v)).expect("item");
+            }
+        }
+        t.set(c, "stats", stats).expect("item");
         s.replace(c, t);
         Ok(CallbackReturn::Return)
     });
@@ -1685,6 +1693,79 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             list.set(c, n, row).expect("row");
         }
         s.replace(c, list);
+        Ok(CallbackReturn::Return)
+    });
+    // The skill tree of ability slot `slot` of unit `unit`: max_rank, and per rank the level gate, damage, cooldown and
+    // energy. Nil when the slot holds no ability or the ability has no tree.
+    native!(ctx, game, "skill_info", [sh], |c, s| {
+        let (i, slot) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let slot = slot_of(slot, ABILITY_SLOTS).map_err(|m| fail(c, m))?;
+        match sh.sim.skill_tree(u, slot) {
+            Some(k) => {
+                let t = Table::new(&c);
+                t.set(c, "max_rank", i64::from(k.max_rank)).expect("skill");
+                let per_rank = |v: &[i32]| list_of(c, v.iter().take(usize::from(k.max_rank)).map(|&n| i64::from(n)));
+                t.set(c, "gates", per_rank(&k.gates)?).expect("skill");
+                t.set(c, "damage", per_rank(&k.damage)?).expect("skill");
+                t.set(c, "cooldowns", per_rank(&k.cooldown)?).expect("skill");
+                t.set(c, "energies", per_rank(&k.energy)?).expect("skill");
+                t.set(c, "ultimate", k.ultimate).expect("skill");
+                s.replace(c, t);
+            }
+            None => s.replace(c, Value::Nil),
+        }
+        Ok(CallbackReturn::Return)
+    });
+    // The post-game tallies: one row per player with kills, deaths, assists, gold, xp and the item kinds held.
+    native!(ctx, game, "post_game", [sh], |c, s| {
+        let rows = sh.borrow().sim.post_game();
+        let out = Table::new(&c);
+        for (n, t) in rows.iter().enumerate() {
+            let row = Table::new(&c);
+            row.set(c, "player", i64::from(t.player)).expect("tally");
+            row.set(c, "kills", i64::from(t.kills)).expect("tally");
+            row.set(c, "deaths", i64::from(t.deaths)).expect("tally");
+            row.set(c, "assists", i64::from(t.assists)).expect("tally");
+            row.set(c, "gold", i64::from(t.gold)).expect("tally");
+            row.set(c, "xp", i64::from(t.xp)).expect("tally");
+            row.set(c, "items", list_of(c, t.items.iter().map(|&k| i64::from(k)))?).expect("tally");
+            out.set(c, n as i64 + 1, row).expect("tally");
+        }
+        s.replace(c, out);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "mana", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.mana_of(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "max_mana", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.unit_max_mana(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "kills_of", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.kills_of(u)));
+        Ok(CallbackReturn::Return)
+    });
+    // Every unit kind of the catalog: its name, and whether the kind is player-controlled (a hero kind a seat may pick).
+    native!(ctx, game, "unit_kinds", [sh], |c, s| {
+        let sh = sh.borrow();
+        let cat = sh.sim.catalog();
+        let out = Table::new(&c);
+        for (k, unit) in cat.units.iter().enumerate() {
+            let row = Table::new(&c);
+            row.set(c, "name", cat.name(unit.name).to_owned()).expect("kind");
+            row.set(c, "player_controlled", cat.unit_ext.get(k).is_some_and(|e| e.player_controlled)).expect("kind");
+            out.set(c, k as i64 + 1, row).expect("kind");
+        }
+        s.replace(c, out);
         Ok(CallbackReturn::Return)
     });
     // The command primitives hero.lua calls bare (its header lists them), as host globals.

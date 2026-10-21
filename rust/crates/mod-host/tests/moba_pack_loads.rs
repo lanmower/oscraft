@@ -22,7 +22,7 @@ fn every_manifest_mod_loads_and_runs_300_ticks() {
             (file.to_owned(), src)
         })
         .collect();
-    assert_eq!(mods.len(), 14, "the manifest lists 14 mod chunks");
+    assert_eq!(mods.len(), 15, "the manifest lists 15 mod chunks");
 
     let image = build_image(&scenario).expect("moba scenario builds an image");
     let mut host = ModHost::new(&image).expect("host");

@@ -11,7 +11,7 @@
   "image": "moba.osdt",
   "mods": [
     "effects.lua", "hero.lua", "hero_respawn.lua", "camp.lua", "kill_gold.lua", "lanes.lua", "march.lua", "protection.lua",
-    "skills.lua", "spells.lua", "store.lua", "talents.lua", "win.lua", "controls.lua"
+    "skills.lua", "spells.lua", "store.lua", "talents.lua", "win.lua", "panels.lua", "controls.lua"
   ],
   "rules": "hero_rules.txt",
   "tables": [

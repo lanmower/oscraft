@@ -4,6 +4,8 @@
 --
 -- Host bindings used: game.character_level(unit), game.upgrade_bits(unit), game.set_upgrade_bit(unit, bit, on).
 -- choose_talent returns true when the choice took hold and false when it changed nothing.
+-- The talent buttons of panels.lua arrive as the "ui" action with call "talent" and args {unit, tier, side}; the unit
+-- must be the sending seat's own.
 
 local TALENT_LEVELS = { 10, 15, 20, 25 }
 local TALENT_SIDES = 2
@@ -11,6 +13,18 @@ local FIRST_TALENT_BIT = 2
 
 local function has_bit(value, bit)
   return math.floor(value / (2 ^ bit)) % 2 == 1
+end
+
+local LOCAL = 0
+
+function talents_on_action(name, args, state)
+  if name == "setup" then
+    LOCAL = args.player or LOCAL
+  elseif name == "ui" and args.call == "talent" and args.args ~= nil then
+    local a = args.args
+    local seat = args.player or LOCAL
+    if unit_alive(a.unit) and unit_player(a.unit) == seat then choose_talent(a.unit, a.tier, a.side) end
+  end
 end
 
 function choose_talent(unit, tier, side)

@@ -79,7 +79,11 @@
     1
   ],
   "text": {
-    "hud": "hp {hp}   gold {gold}   time {time}",
+    "hud": {
+      "hp": "hp",
+      "gold": "gold",
+      "time": "time"
+    },
     "preMatch": "pre-match",
     "noValue": "-",
     "noSelection": "no selection",
@@ -87,9 +91,38 @@
     "healthLabel": "hp",
     "manaLabel": "mana",
     "cooldownSuffix": "s",
-    "groupTitle": "selected {n}",
-    "shopTitle": "Shop  gold {gold}",
-    "shopRefusal": "cannot buy {item}: need a shop in reach, gold and a free slot",
+    "goldLabel": "gold",
+    "winner": {
+      "prefix": "side",
+      "suffix": "wins"
+    },
+    "post": {
+      "kills": "K",
+      "deaths": "D",
+      "assists": "A",
+      "gold": "G",
+      "xp": "XP",
+      "items": "items"
+    },
+    "teamLabel": "Team",
+    "killsLabel": "kills",
+    "teamGold": {
+      "team": "team",
+      "gold": "gold"
+    },
+    "teamRows": "hero rows",
+    "heroRowHeaders": [
+      "hero",
+      "team",
+      "state",
+      "hp"
+    ],
+    "shop": {
+      "title": "Shop"
+    },
+    "buy": "Buy",
+    "costSuffix": "g",
+    "recipePrefix": "recipe: ",
     "inventoryLabel": "inventory",
     "stashLabel": "stash",
     "scoreboardTitle": "Scoreboard",
@@ -102,22 +135,42 @@
       "A",
       "gold"
     ],
-    "winnerBanner": "side {side} wins",
-    "postGameRow": "P{player}  K {kills}  D {deaths}  A {assists}  G {gold}  XP {xp}  items {items}",
-    "teamLabel": "Team {side}",
-    "killsLabel": "kills {kills}",
-    "teamGoldLine": "team {side} gold {gold}",
-    "heroRowHeaders": [
-      "hero",
-      "team",
-      "state",
-      "hp"
-    ],
-    "unitTypeFallback": "type {type}",
-    "shopFilter": "filter",
-    "buy": "Buy",
-    "costSuffix": "g",
-    "recipePrefix": "recipe: ",
+    "skills": {
+      "title": "Skills",
+      "level": "level",
+      "points": "points",
+      "abilities": "Abilities",
+      "talents": "Talents",
+      "gate": "next rank needs level",
+      "maxed": "maxed",
+      "none": "no skill tree",
+      "needLevel": "level"
+    },
+    "lobby": {
+      "title": "Hero select",
+      "teamNames": [
+        "Team A",
+        "Team B"
+      ],
+      "slotWord": "Slot",
+      "owners": {
+        "you": "you",
+        "computer": "computer",
+        "other": "player",
+        "open": "open"
+      },
+      "claim": "Claim",
+      "unready": "Unready",
+      "ready": "Ready",
+      "leave": "Leave",
+      "noHero": "no hero",
+      "readySuffix": " (ready)",
+      "pickHero": "pick a hero",
+      "fillBots": "Fill with bots",
+      "startMatch": "Start match",
+      "readyWord": "ready",
+      "refusedWord": "refused"
+    },
     "refusals": {
       "cooldown": "on cooldown",
       "noHero": "select a hero first",
@@ -127,30 +180,6 @@
       "range": "out of range",
       "refused": "refused",
       "refusedWith": "refused: {reason}"
-    },
-    "lobby": {
-      "teamNames": [
-        "Team A",
-        "Team B"
-      ],
-      "slotLabel": "Slot {n}: {owner}",
-      "owners": {
-        "you": "you",
-        "computer": "computer",
-        "open": "open"
-      },
-      "ownerIdLength": 8,
-      "pickHero": "pick a hero",
-      "claim": "Claim",
-      "unready": "Unready",
-      "ready": "Ready",
-      "leave": "Leave",
-      "noHero": "no hero",
-      "readySuffix": " (ready)",
-      "fillBots": "Fill with bots",
-      "startMatch": "Start match",
-      "status": "{ready}/{total} ready",
-      "refused": " (refused: {error})"
     }
   },
   "controlActions": [
