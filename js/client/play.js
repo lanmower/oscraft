@@ -849,6 +849,13 @@ function heroOf(slot) {
   return simUnits().find((u) => u.player === slot && isHeroUnit(u.id)) || null;
 }
 
+// The unit a seat starts with: a player-controlled type (the map's generic `hero` placeholder is one, though it has no
+// hero attributes until a picked hero replaces it), so the lookup uses the type flag rather than the attributes.
+function placeholderOf(slot) {
+  const flags = typeof localGame.unit_hero_kinds === "function" ? localGame.unit_hero_kinds() : [];
+  return simUnits().find((u) => u.player === slot && flags[u.type] === 1) || null;
+}
+
 function isHeroUnit(id) {
   return typeof localGame.attributes === "function" && localGame.attributes(id).some((v) => v !== 0);
 }
@@ -870,16 +877,17 @@ function spawnSeatHeroes(seats) {
   if (typeof localGame.spawn_hero !== "function") return;
   spawnedSeats = seats.map(({ slot, hero }) => ({ slot, hero }));
   for (const seat of seats) {
-    const placed = heroOf(seat.slot);
+    const placed = placeholderOf(seat.slot);
     const kind = heroKinds.get(seat.hero);
     if (kind === undefined) {
       if (!placed) console.error(`seat ${seat.slot}: hero ${seat.hero} is not in the roster; no hero spawned`);
       continue;
     }
     if (placed?.type === kind) continue;
-    // The map starts each seat with a placeholder hero of the generic `hero` type; the pick replaces it.
+    // The map starts each seat with a placeholder hero of the generic `hero` type; the pick replaces it. A removal the
+    // sim cannot make is an error, never a silent skip: the placeholder would stand in for the picked hero.
     if (placed) {
-      if (typeof localGame.remove_unit !== "function") continue;
+      if (typeof localGame.remove_unit !== "function") throw new Error("sim has no remove_unit; the placeholder hero cannot be replaced");
       localGame.remove_unit(placed.id);
     }
     spawnAtSide(seat.slot, kind, placed);
