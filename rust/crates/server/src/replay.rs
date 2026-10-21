@@ -848,6 +848,8 @@ pub struct Recording {
     hasher: Option<Sender<(Sim, Sender<u64>)>>,
     outbox: VecDeque<Out>,
     incomplete: Option<u32>,
+    /// The first check tick whose hash died with the hash worker, until a room takes it to log.
+    hash_lost: Option<u32>,
     sink: Option<Box<dyn Write + Send>>,
 }
 
@@ -886,6 +888,7 @@ impl Recording {
             hasher: None,
             outbox: VecDeque::new(),
             incomplete: None,
+            hash_lost: None,
             sink: None,
         }
     }
@@ -916,6 +919,8 @@ impl Recording {
                     self.settle(block);
                     match self.checks.binary_search_by_key(&t, |c| c.0) {
                         Ok(i) => (format!("chk {t} {:016x}", self.checks[i].1), true),
+                        // Its hash died with the worker; the recording is already marked incomplete, so no check line.
+                        Err(_) if !self.inflight.iter().any(|c| c.0 == t) => continue,
                         Err(_) => {
                             self.outbox.push_front(Out::Check(t));
                             break;
@@ -936,22 +941,37 @@ impl Recording {
         }
     }
 
-    /// Moves finished hashes into `checks`, in tick order. With `block`, waits for each one.
+    /// Moves finished hashes into `checks`, in tick order. With `block`, waits for each one. A dead
+    /// hash worker loses its pending hashes: the recording is marked incomplete from the first lost
+    /// tick, and the next hash starts a new worker. Nothing here panics.
     fn settle(&mut self, block: bool) {
         while let Some((t, rx)) = self.inflight.front() {
             let t = *t;
-            let h = if block {
-                rx.recv().expect("state hash worker stopped")
-            } else {
-                match rx.try_recv() {
-                    Ok(h) => h,
-                    Err(TryRecvError::Empty) => return,
-                    Err(TryRecvError::Disconnected) => panic!("state hash worker stopped"),
+            let got = if block { rx.recv().map_err(|_| TryRecvError::Disconnected) } else { rx.try_recv() };
+            match got {
+                Ok(h) => {
+                    self.inflight.pop_front();
+                    self.checks.push((t, h));
                 }
-            };
-            self.inflight.pop_front();
-            self.checks.push((t, h));
+                Err(TryRecvError::Empty) => return,
+                Err(TryRecvError::Disconnected) => {
+                    self.hash_worker_lost(t);
+                    return;
+                }
+            }
         }
+    }
+
+    fn hash_worker_lost(&mut self, first: u32) {
+        self.inflight.clear();
+        self.hasher = None;
+        self.hash_lost.get_or_insert(first);
+        self.mark_incomplete(first);
+    }
+
+    /// The first tick whose state hash was lost when the hash worker died, reported once for logging.
+    pub fn take_hash_loss(&mut self) -> Option<u32> {
+        self.hash_lost.take()
     }
 
     /// Sends a copy of the sim to the hasher thread; the hash arrives on the returned receiver.
@@ -1218,6 +1238,7 @@ impl Recording {
             hasher: None,
             outbox: VecDeque::new(),
             incomplete,
+            hash_lost: None,
             sink: None,
         })
     }
@@ -1524,5 +1545,44 @@ mod changed_rules_replay {
         // Two replays of one recording under the same rule must agree. A rule set after load does not move the
         // load-time camp holds, so the rule change here is not a sanity check of the rule's effect (see notes).
         assert_eq!(run(&text, Some(30)), run(&text, Some(30)));
+    }
+}
+
+#[cfg(test)]
+mod hash_worker_tests {
+    use super::*;
+
+    fn dead_reply() -> Receiver<u64> {
+        let (tx, rx) = mpsc::channel::<u64>();
+        drop(tx);
+        rx
+    }
+
+    // A hash worker that died with checks in flight must not panic the room: the recording is marked incomplete at the
+    // first lost tick, the loss is reported once, and a later check starts a new worker and records its hash.
+    #[test]
+    fn dead_hash_worker_does_not_panic_and_marks_incomplete() {
+        let sim = Sim::new(64);
+        let mut rec = Recording::new("open-grid:64x64", 64, &sim);
+        rec.inflight.push_back((5, dead_reply()));
+        rec.settle(false);
+        assert_eq!(rec.incomplete(), Some(5));
+        assert_eq!(rec.take_hash_loss(), Some(5));
+        assert_eq!(rec.take_hash_loss(), None);
+
+        rec.inflight.push_back((6, dead_reply()));
+        rec.settle(true);
+        assert!(rec.inflight.is_empty());
+
+        // A queued check whose hash was lost is skipped by the sink instead of stalling it.
+        rec.sink = Some(Box::new(Vec::new()));
+        rec.outbox.push_back(Out::Check(6));
+        rec.drain_sink(true);
+        assert!(rec.outbox.is_empty());
+
+        rec.check(&sim);
+        let text = rec.render(&sim);
+        assert!(text.lines().any(|l| l.starts_with("chk 0 ")), "a new worker hashes after the loss");
+        assert!(text.lines().any(|l| l == "incomplete 5"));
     }
 }

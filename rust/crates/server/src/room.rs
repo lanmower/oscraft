@@ -74,6 +74,7 @@ pub struct Room {
     /// A reloaded sim waiting for its swap tick: applied when the room's tick reaches the first value.
     staged: Mutex<Option<(u64, Sim, String)>>,
     clock: Mutex<Clock>,
+    #[cfg(any(test, feature = "server-tests"))]
     test_panic_at: AtomicU64,
     gold_by_mod: AtomicBool,
 }
@@ -172,6 +173,7 @@ impl Room {
             shed: cfg.shed,
             feed: Mutex::new(None),
             ui: Mutex::new(UiLog::default()),
+            #[cfg(any(test, feature = "server-tests"))]
             test_panic_at: AtomicU64::new(0),
             gold_by_mod: AtomicBool::new(false),
             staged: Mutex::new(None),
@@ -222,7 +224,9 @@ impl Room {
     pub fn replay_text(&self) -> String {
         let mut c = lock(&self.clock);
         let clock = &mut *c;
-        clock.rec.render(&clock.sim)
+        let text = clock.rec.render(&clock.sim);
+        self.log_hash_loss(&mut clock.rec);
+        text
     }
 
     /// Sets the sim's `gold_by_mod`: the mod owns kill gold, so the Rust payout stays off. The recording
@@ -262,20 +266,38 @@ impl Room {
         }
         sim.set_gold_by_mod(self.gold_by_mod.load(Ordering::Relaxed));
         let swap_at = self.tick_now() + DATA_SWAP_LEAD_TICKS;
-        *lock(&self.staged) = Some((swap_at, sim, image.to_string()));
+        let replaced = lock(&self.staged).replace((swap_at, sim, image.to_string()));
+        if let Some((_, _, staged)) = replaced {
+            crate::emit!(Ev::DataStageReplaced, room = self.name, staged = staged, image = image);
+        }
         Ok(())
     }
 
+    /// Arms the test-only panic at `tick`. Only test builds and the server-tests feature carry it; a release build ignores it.
+    #[cfg(any(test, feature = "server-tests"))]
     pub fn arm_test_panic(&self, tick: u64) {
         self.test_panic_at.store(tick + 1, Ordering::Relaxed);
     }
 
-    fn take_test_panic(&self, tick: u64) -> bool {
-        if self.test_panic_at.load(Ordering::Relaxed) != tick + 1 {
-            return false;
+    #[cfg(not(any(test, feature = "server-tests")))]
+    pub fn arm_test_panic(&self, _tick: u64) {}
+
+    #[cfg(any(test, feature = "server-tests"))]
+    fn fire_test_panic(&self, tick: u64) {
+        if self.test_panic_at.load(Ordering::Relaxed) == tick + 1 {
+            self.test_panic_at.store(0, Ordering::Relaxed);
+            panic!("test-only panic armed by --test-panic-tick fired at tick {tick}");
         }
-        self.test_panic_at.store(0, Ordering::Relaxed);
-        true
+    }
+
+    #[cfg(not(any(test, feature = "server-tests")))]
+    fn fire_test_panic(&self, _tick: u64) {}
+
+    // Logs the state hashes a dead hash worker took with it. The recording is already marked incomplete.
+    fn log_hash_loss(&self, rec: &mut Recording) {
+        if let Some(tick) = rec.take_hash_loss() {
+            crate::emit_err!(Ev::StateHashLost, room = self.name, tick = tick);
+        }
     }
 
     pub fn submit(&self, order: Order) -> Result<(), String> {
@@ -359,9 +381,7 @@ impl Room {
     fn step(&self, budget: Duration) {
         let started = Instant::now();
         let mut c = lock(&self.clock);
-        if self.take_test_panic(c.tick) {
-            panic!("test-only panic armed by --test-panic-tick fired at tick {}", c.tick);
-        }
+        self.fire_test_panic(c.tick);
         let due = {
             let mut slot = lock(&self.staged);
             match slot.as_ref() {
@@ -416,6 +436,7 @@ impl Room {
         }
         let clock = &mut *c;
         clock.rec.tick(&mut clock.sim, run_paths, run_vision);
+        self.log_hash_loss(&mut clock.rec);
         let deaths = clock.sim.drain_payouts();
         if let Some(link) = lock(&self.feed).clone() {
             if link.gold_by_mod() {
@@ -455,12 +476,15 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
     let applied = cmds.len();
     for cmd in cmds {
         match cmd {
-            Cmd::Spawn { handle, index, x, y, owner, lane } => match rec.spawn(sim, handle, index as u32, x, y, owner, lane) {
-                Some(unit) => {
-                    handles.insert(handle, unit);
-                    crate::emit!(Ev::ModUnitBound, handle = handle, unit = unit);
-                }
-                None => crate::emit!(Ev::ModUnitRefused, handle = handle, reason = "spawn_failed"),
+            Cmd::Spawn { handle, index, x, y, owner, lane } => match u32::try_from(index) {
+                Err(_) => crate::emit!(Ev::ModUnitRefused, handle = handle, reason = "index_out_of_range"),
+                Ok(index) => match rec.spawn(sim, handle, index, x, y, owner, lane) {
+                    Some(unit) => {
+                        handles.insert(handle, unit);
+                        crate::emit!(Ev::ModUnitBound, handle = handle, unit = unit);
+                    }
+                    None => crate::emit!(Ev::ModUnitRefused, handle = handle, reason = "spawn_failed"),
+                },
             },
             Cmd::OrderHandle { handle, x, y } => match mapped(handles, sim, handle) {
                 Some(unit) => {
@@ -552,16 +576,24 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
             Cmd::SetFog { on } => {
                 rec.apply(sim, Command::Fog { on });
             }
-            Cmd::SetClassOverride { unit, class } => {
-                rec.apply(sim, Command::ClassOverride { unit: unit as u32, class: class.unwrap_or(255) });
-            }
+            Cmd::SetClassOverride { unit, class } => match u32::try_from(unit) {
+                Ok(unit) => {
+                    rec.apply(sim, Command::ClassOverride { unit, class: class.unwrap_or(255) });
+                }
+                Err(_) => refuse_out_of_range(unit),
+            },
             Cmd::SetHoldOverride { unit, hold } => {
                 let hold = match hold {
                     None => 255,
                     Some(true) => 1,
                     Some(false) => 0,
                 };
-                rec.apply(sim, Command::HoldOverride { unit: unit as u32, hold });
+                match u32::try_from(unit) {
+                    Ok(unit) => {
+                        rec.apply(sim, Command::HoldOverride { unit, hold });
+                    }
+                    Err(_) => refuse_out_of_range(unit),
+                }
             }
             Cmd::DefineAbility { name, cooldown, energy, target, filter, effects } => {
                 rec.apply(sim, Command::DefineAbility { name, cooldown, energy, target, filter, effects });
@@ -659,6 +691,11 @@ fn mapped(handles: &HashMap<u32, usize>, sim: &Sim, handle: u32) -> Option<usize
 
 fn refuse_unmapped(handle: u32) {
     crate::emit!(Ev::ModUnitRefused, handle = handle, reason = "unmapped");
+}
+
+// A unit id too large for the u32 the recording stores is refused, not truncated onto a lower unit.
+fn refuse_out_of_range(unit: usize) {
+    crate::emit!(Ev::ModUnitRefused, unit = unit, reason = "unit_out_of_range");
 }
 
 pub fn spawn_ticker(room: Arc<Room>, budget: Duration) -> JoinHandle<()> {
@@ -805,6 +842,50 @@ mod swap_segment_tests {
         assert_eq!(refused, 1, "unchanged data refuses only the mod unit the map does not place, which its handle respawns");
         let _ = std::fs::remove_dir_all(&work);
         assert_eq!(replayed, live);
+    }
+
+    // Two swaps: the replay of the whole recording still runs the first segment on its own data, so a second swap
+    // does not cut the first swap's commands and checks off from verification.
+    #[test]
+    fn second_swap_still_replays_the_first_segment() {
+        let renamed = copy_scenario("twice-renamed", Some(("skirmisher", "skirmisher_renamed")));
+        let plain = copy_scenario("twice-plain", None);
+        let mut live = crate::mods::load_data(&scenario(), 64).expect("live sim");
+        live.set_fog(false);
+        let mut rec = Recording::new("duel-routes", 64, &live);
+        let mut handles = HashMap::new();
+        for (dir, image) in [(&renamed, "duel-routes-renamed"), (&plain, "duel-routes-same")] {
+            for _ in 0..150 {
+                rec.tick(&mut live, false, false);
+            }
+            let mut fresh = crate::mods::load_data(dir, 64).expect("swapped data");
+            fresh.set_fog(false);
+            swap_in(&mut live, &mut handles, &mut rec, fresh, image, 64);
+        }
+        for _ in 0..150 {
+            rec.tick(&mut live, false, false);
+        }
+        assert_eq!(rec.segments().len(), 3, "two swaps start two new segments");
+        let text = rec.render(&live);
+        let parsed = Recording::parse(&text).expect("recording parses");
+        let mut replay = crate::mods::load_data(&scenario(), 64).expect("first image");
+        replay.set_fog(false);
+        let mut player = Replayer::new(parsed, &replay).expect("replayer");
+        let mut load = |seg: &Segment| -> Option<sim::Sim> {
+            let dir = match seg.image.as_str() {
+                "duel-routes-renamed" => &renamed,
+                "duel-routes-same" => &plain,
+                _ => return None,
+            };
+            let mut next = crate::mods::load_data(dir, 64).ok()?;
+            next.set_fog(false);
+            Some(next)
+        };
+        let replayed = player.run_to_end_with(&mut replay, &mut load).expect("replay of every segment");
+        let _ = std::fs::remove_dir_all(&renamed);
+        let _ = std::fs::remove_dir_all(&plain);
+        assert_eq!(replay.ticks(), live.ticks());
+        assert_eq!(replayed, live.state_hash());
     }
 }
 
