@@ -609,8 +609,9 @@ window.__setCellKind = (index, kind) => {
 
 // Terrain and doodads: the casters of the sun's shadow map as well as the lit draws.
 function drawGround3d() {
+  // The water is drawn on the terrain itself (the splat shader's water blend), so the water quads are not drawn on top of
+  // it: at the banks they overlapped the terrain and showed the same ground twice.
   renderer3d.drawSplat(terrainMesh, splat);
-  if (waterMesh) renderer3d.drawSplat(waterMesh, splat);
   drawCounts.splat += 1;
   drawCounts.terrain += 1;
   for (const d of doodadBatches) {
