@@ -1,11 +1,11 @@
 # oscraft
 
-A deterministic game engine and a data-driven lane-battle match, played in the browser. The simulation is Rust (native and wasm), the game is data (`.osd` text compiled to a binary image), and mods are Lua 5.4. The same inputs give the same state hash on every platform.
+A deterministic, generic game engine: a pack of data and Lua defines the game, played in the browser. The simulation is Rust (native and wasm), the game is data (`.osd` text compiled to a binary image), and mods are Lua 5.4. The same inputs give the same state hash on every platform.
 
 ## What it is
 
-- A fixed-point simulation (`rust/crates/sim`) with combat, pathfinding, heroes, skills, items, shops, neutral camps and status effects.
-- A 5v5 lane-battle scenario in `scenarios/moba`: three lanes, towers, creep waves, ten hero types, items, neutrals, a boss and runes. Engine and scenario are separate: the engine knows no genre.
+- A fixed-point simulation (`rust/crates/sim`) with combat, pathfinding, attributed units, ability ranks, items, shops, camps and status effects.
+- A pack model: each scenario directory holds `.osd` data, Lua mods and a `manifest.json`; the engine has no built-in game types. `scenarios/moba` is one example pack (a 5v5 match of units, items and rules) and `scenarios/duel-routes` is a routes test.
 - A static browser client in `js/client` (GitHub Pages target), buildless: committed ES modules and wasm, peers joined over WebRTC and Nostr.
 
 ## Run

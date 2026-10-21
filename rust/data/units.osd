@@ -2,7 +2,7 @@
 # Skirmisher: ground army unit with a mineral harvest.
 unit("skirmisher", 45, 3150, 375, build_time=480, resource_a=50, capacity=1, abilities=["pulse_shot"], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="resource_a", harvest=5, model="character-male-c")
 # Warden: armored ground army unit with a gas harvest, regeneration and a product.
-unit("warden", 120, 2250, 500, build_time=720, resource_a=100, gas=50, capacity=3, abilities=["mend_field", "pulse_shot"], filters=["ground", "armored", "massive", "army"], product="skirmisher", weapon_damage=10, weapon_range_milli=6000, weapon_period=36, sight_milli=10000, shield=40, armor=1, damage_response="reduced", resource="gas", harvest=4, shield_regen=2, regen_delay=600, model="character-male-b")
+unit("warden", 120, 2250, 500, build_time=720, resource_a=100, gas=50, capacity=3, abilities=["mend_field", "pulse_shot"], filters=["ground", "armored", "massive", "army"], product="skirmisher", weapon_damage=10, weapon_range_milli=6000, weapon_period=36, sight_milli=10000, shield=40, defense=1, damage_response="reduced", resource="gas", harvest=4, shield_regen=2, regen_delay=600, model="character-male-b")
 # Tender: worker filter, harvests resource_a (exercises harvest-resources).
 unit("tender", 40, 2800, 350, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="resource_a", harvest=5, model="character-female-a")
 # Spore: biological flying unit without the ground filter (exercises ability-target-filter).

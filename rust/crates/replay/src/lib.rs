@@ -969,7 +969,7 @@ impl Command {
             "rm" => Command::Remove { unit: num(it)? },
             "gi" => Command::GiveItem { unit: num(it)?, item: num(it)?, count: num(it)? },
             "ag" => Command::AddGold { player: num(it)?, amount: num(it)? },
-            // "ah" is the code a hero-named gold command was written under; it still decodes.
+            // "ah" is the code a unit-named gold command was written under; it still decodes.
             "au" | "ah" => Command::AddUnitGold { unit: num(it)?, amount: num(it)? },
             "vw" => Command::Victory { player: num(it)? },
             "df" => Command::Defeat { player: num(it)? },
@@ -1555,7 +1555,7 @@ impl Replayer {
 
 #[cfg(test)]
 fn load_data(path: &std::path::Path, max_units: usize) -> Result<Sim, String> {
-    // The directory branch of the loader the server ran: compile the .osd sources, then the hero rules file if any.
+    // The directory branch of the loader the server ran: compile the .osd sources, then the attribute rules file if any.
     if !path.is_dir() {
         return sim::load_file(path, max_units).map_err(|e| format!("{e:?}"));
     }

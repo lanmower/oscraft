@@ -1,5 +1,5 @@
-// Per-system tick cost on the moba scenario with ten heroes, creep waves and neutrals.
-// Heroes level, cast and push the rival base. Prints per-system totals read from the tick
+// Per-system tick cost on a scenario with ten attributed units, unit waves and neutrals.
+// Attributed units level, cast and push the rival base. Prints per-system totals read from the tick
 // histogram, the whole-tick wall time, and the state hash at fixed ticks.
 //
 // Usage: cargo run --release -p sim --example bench -- <scenario dir> [ticks]
@@ -18,7 +18,7 @@ fn rival_base(sim: &Sim, h: usize) -> Option<usize> {
     (0..sim.count()).find(|&j| sim.alive(j) && sim.kind_name(j) == Some("base") && sim.player(j) % 2 != side)
 }
 
-fn foe_hero(sim: &Sim, h: usize) -> Option<usize> {
+fn foe_attributed(sim: &Sim, h: usize) -> Option<usize> {
     let p = sim.player(h);
     (0..sim.count()).find(|&j| sim.alive(j) && sim.is_hero(j) && sim.player(j) != NEUTRAL && sim.hostile(p, sim.player(j)))
 }
@@ -27,18 +27,18 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let dir = args.get(1).map(String::as_str).unwrap_or("../scenarios/moba");
     let ticks: u32 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(6000);
-    // The scenario directory compiles from its .osd sources, then its hero rules file (if any) applies.
+    // The scenario directory compiles from its .osd sources, then its attribute rules file (if any) applies.
     let image = osdt_data::generate(Path::new(dir)).expect("compile scenario");
     let mut sim = sim::load(&image, 4096).expect("load scenario");
     if let Ok(rules) = std::fs::read_to_string(Path::new(dir).join("hero_rules.txt")) {
         assert!(sim.set_hero_rules_text(&rules), "hero_rules.txt has a bad line");
     }
-    let heroes: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_hero(i)).collect();
+    let attributed: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_hero(i)).collect();
     let mut total = std::time::Duration::ZERO;
     let mut worst = std::time::Duration::ZERO;
     for t in 0..ticks {
         if t % ORDER_EVERY == 0 {
-            for &h in &heroes {
+            for &h in &attributed {
                 if !sim.alive(h) {
                     continue;
                 }
@@ -47,7 +47,7 @@ fn main() {
                         let _ = sim.skill_up(h, slot);
                     }
                 }
-                if let Some(foe) = foe_hero(&sim, h) {
+                if let Some(foe) = foe_attributed(&sim, h) {
                     for slot in 0..ABILITY_SLOTS {
                         if sim.skill_rank(h, slot) > 0 {
                             sim.cast_ability(h, slot, foe as i32, 0, 0);

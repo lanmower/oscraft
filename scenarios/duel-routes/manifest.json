@@ -11,8 +11,8 @@
   "rules": null,
   "tables": [],
   "fixtures": [],
-  "ui": "moba_ui.json",
-  "effects": "moba_ui.json",
+  "ui": "ui.json",
+  "effects": "ui.json",
   "assets": {
     "root": "../../js/client",
     "textures": {

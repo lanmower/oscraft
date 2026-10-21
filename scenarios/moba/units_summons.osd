@@ -2,4 +2,4 @@
 # Summoned units of the hero abilities. juggernaut_healing_ward: StatusHealth 1, MovementSpeed 325, VisionDaytimeRange 600, BountyGold 75, BountyXP 75
 # (juggernaut_healing_ward, npc_units.txt @282fad29f0f74504fad465c52d197fb61f4d612b). Hull radius 125 is UNVERIFIED (hull sizes are engine constants).
 unit("juggernaut_healing_ward", 1, 317, 125, abilities=["juggernaut_healing_ward_aura"], filters=["ground", "light"], sight_milli=9375, model="pillar-obelisk", deny_pct=0)
-unit_extra("juggernaut_healing_ward", bounty=75, xp_bounty=75, deny_xp_pct=0)
+unit_extra("juggernaut_healing_ward", reward=75, xp_reward=75, deny_xp_pct=0)

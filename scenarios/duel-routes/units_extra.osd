@@ -1,2 +1,2 @@
 # Extra fields for the duel-routes scenario. unit_extra(name, ...) sets them for one unit.
-unit_extra("creep", bounty=25)
+unit_extra("creep", reward=25)

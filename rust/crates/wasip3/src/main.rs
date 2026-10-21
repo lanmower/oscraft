@@ -47,7 +47,7 @@ mod host {
     /// run loads. The guest has no file access: its source arrives as a `mod-source` command.
     const MODS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../mods");
 
-    /// The mods whose state the host prints after 300 steps on the moba image, as the native
+    /// The mods whose state the host prints after 300 steps on the scenario image, as the native
     /// mod_check prints it: one `mod-state` line each.
     const STATE_MODS: &[&str] = &["waves_example", "custom_spell"];
 
