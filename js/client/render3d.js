@@ -370,8 +370,10 @@ void main() {
   vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
   float alpha = mix(0.55, 0.92, depth); // the riverbed shows through the shallows
   vec3 water = mix(bed, body, alpha);
-  water = mix(water, sky, fres * 0.8);
-  water += vec3(1.0, 0.97, 0.9) * glint;
+  // The sky reflection and the sun glint are the shine of deep water only: they fade out with depth, so the shallow shore
+  // tiles stay matte.
+  water = mix(water, sky, fres * 0.8 * depth);
+  water += vec3(1.0, 0.97, 0.9) * glint * depth;
   outColor = vec4(mix(bed, water, ww), 1.0);
 }`;
 
