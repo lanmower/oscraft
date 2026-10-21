@@ -84,27 +84,10 @@ pub struct HeroRules {
     pub move_speed_max: i32,
     pub move_speed_min: i32,
     pub hex_speed_milli: i32,
-    /// Attribute coefficients (see the attribute notes in hero_rules.txt).
-    pub hp_per_attr_a: i32,
-    pub armour_per_attr_b_div: i32,
-    pub hp_regen_per_attr_a_x100: i32,
-    pub mana_per_attr_c: i32,
-    pub mana_regen_per_attr_c_x100: i32,
-    pub universal_damage_pct: i32,
 }
 
 /// Keys the engine must find in every rules text: a file without one is refused (`set_from_text` returns None).
-const REQUIRED_KEYS: &[&str] = &[
-    "move_speed_max",
-    "move_speed_min",
-    "hex_speed_milli",
-    "hp_per_attr_a",
-    "armour_per_attr_b_div",
-    "hp_regen_per_attr_a_x100",
-    "mana_per_attr_c",
-    "mana_regen_per_attr_c_x100",
-    "universal_damage_pct",
-];
+const REQUIRED_KEYS: &[&str] = &["move_speed_max", "move_speed_min", "hex_speed_milli"];
 
 impl Default for HeroRules {
     fn default() -> Self {
@@ -122,12 +105,6 @@ impl Default for HeroRules {
             move_speed_max: 550,
             move_speed_min: 100,
             hex_speed_milli: 137,
-            hp_per_attr_a: 22,
-            armour_per_attr_b_div: 6,
-            hp_regen_per_attr_a_x100: 10,
-            mana_per_attr_c: 12,
-            mana_regen_per_attr_c_x100: 5,
-            universal_damage_pct: 70,
         }
     }
 }
@@ -174,12 +151,6 @@ impl HeroRules {
                 "move_speed_max" => &mut next.move_speed_max,
                 "move_speed_min" => &mut next.move_speed_min,
                 "hex_speed_milli" => &mut next.hex_speed_milli,
-                "hp_per_attr_a" => &mut next.hp_per_attr_a,
-                "armour_per_attr_b_div" => &mut next.armour_per_attr_b_div,
-                "hp_regen_per_attr_a_x100" => &mut next.hp_regen_per_attr_a_x100,
-                "mana_per_attr_c" => &mut next.mana_per_attr_c,
-                "mana_regen_per_attr_c_x100" => &mut next.mana_regen_per_attr_c_x100,
-                "universal_damage_pct" => &mut next.universal_damage_pct,
                 _ => {
                     named.insert(key.to_string(), v);
                     continue;
@@ -200,8 +171,7 @@ impl HeroRules {
             next.aggro_hold_s,
         ]
         .iter()
-        .all(|&v| v >= 0)
-            && next.armour_per_attr_b_div > 0;
+        .all(|&v| v >= 0);
         if !valid {
             return None;
         }
@@ -216,6 +186,8 @@ pub(crate) struct HeroState {
     pub(crate) rules: HeroRules,
     /// The named values of the rules text (every key the engine does not own), read by mods through `Sim::rule`.
     pub(crate) named: BTreeMap<String, i32>,
+    /// Named per-unit counters the mods keep (buyback cooldown and the like), by (unit, name).
+    pub(crate) counters: BTreeMap<(usize, String), i64>,
     pub(crate) is_hero: Vec<u8>,
     pub(crate) home_x: Vec<i32>,
     pub(crate) home_y: Vec<i32>,
@@ -236,6 +208,7 @@ impl HeroState {
         HeroState {
             rules: HeroRules::default(),
             named: BTreeMap::new(),
+            counters: BTreeMap::new(),
             is_hero: vec![0; cap],
             home_x: vec![0; cap],
             home_y: vec![0; cap],
@@ -291,6 +264,57 @@ impl Sim {
         self.heroes.named.get(key).copied()
     }
 
+    /// The xp a kill of unit `j` is worth, its assist radius in milli-units, and its denial xp percent,
+    /// from the catalog's unit data (the mod's xp share reads these).
+    pub fn xp_bounty(&self, j: usize) -> i32 {
+        self.cat.unit_ext.get(self.type_of.get(j).copied().unwrap_or(-1).max(0) as usize).map_or(0, |e| e.xp_bounty)
+    }
+
+    pub fn assist_radius_milli(&self, j: usize) -> i32 {
+        self.cat.unit_ext.get(self.type_of.get(j).copied().unwrap_or(-1).max(0) as usize).map_or(0, |e| e.assist_radius)
+    }
+
+    pub fn deny_xp_pct(&self, j: usize) -> i32 {
+        self.cat.unit_ext.get(self.type_of.get(j).copied().unwrap_or(-1).max(0) as usize).map_or(0, |e| e.deny_xp_pct)
+    }
+
+    /// A named counter of unit `i` the mods keep (`set_counter`); 0 when never set.
+    pub fn counter(&self, i: usize, name: &str) -> i64 {
+        self.heroes.counters.get(&(i, name.to_string())).copied().unwrap_or(0)
+    }
+
+    /// Sets the named counter of unit `i`.
+    pub fn set_counter(&mut self, i: usize, name: &str, value: i64) {
+        self.heroes.counters.insert((i, name.to_string()), value);
+    }
+
+    /// A field of the `hero` line data of unit `i` by name: primary, str, agi, int, mana, mana_regen,
+    /// hp_regen, armor, mr, bat or damage. None for a unit with no hero line or an unknown name.
+    pub fn hero_field(&self, i: usize, name: &str) -> Option<i32> {
+        let d = self.hero_def(i)?;
+        Some(match name {
+            "primary" => d.primary as i32,
+            "str" => d.base[0],
+            "agi" => d.base[1],
+            "int" => d.base[2],
+            "mana" => d.mana,
+            "mana_regen" => d.mana_regen,
+            "hp_regen" => d.hp_regen,
+            "armor" => d.armor,
+            "mr" => d.magic_resist,
+            "bat" => d.bat,
+            "damage" => d.damage,
+            _ => return None,
+        })
+    }
+
+    /// Adds `delta` to stat `code` of unit `i` (a generic stat modifier, the mod's attribute bonuses)
+    /// and recomputes the stats of a hero from them.
+    pub fn add_stat_bonus(&mut self, i: usize, code: usize, delta: i32) {
+        self.smod_add(i, code, delta);
+        self.apply_hero_stats(i);
+    }
+
     /// The `hero` line data of the type of unit `i`, if the rules text gave one.
     pub fn hero_def(&self, i: usize) -> Option<HeroDef> {
         let k = *self.type_of.get(i)?;
@@ -331,23 +355,22 @@ impl Sim {
     }
 
     /// Max mana of hero `i`: its base mana plus 12 per intelligence point. Zero for a non-hero.
+    /// The base mana of hero `i` plus its S_MAX_MANA stat (the mod's intelligence bonus). Zero for a non-hero.
     pub fn hero_max_mana(&self, i: usize) -> i32 {
         if !self.is_hero(i) {
             return 0;
         }
-        let base = self.hero_def(i).map_or(MANA_BASE_DEFAULT, |d| d.mana) as i64;
-        let per_int = self.heroes.rules.mana_per_attr_c as i64;
-        (base + per_int * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MAX_MANA)
+        let base = self.hero_def(i).map_or(MANA_BASE_DEFAULT, |d| d.mana);
+        base + self.stat(i, crate::spell::S_MAX_MANA)
     }
 
-    /// Mana regeneration of hero `i` in hundredths per second: the base plus 0.05 per intelligence point.
+    /// Mana regeneration of hero `i` in hundredths per second: the base regen plus its S_MANA_REGEN stat
+    /// (the mod's intelligence bonus).
     pub fn hero_mana_regen_x100(&self, i: usize) -> i32 {
         if !self.is_hero(i) {
             return 0;
         }
-        let base = self.hero_def(i).map_or(0, |d| d.mana_regen) as i64;
-        let per_int = self.heroes.rules.mana_regen_per_attr_c_x100 as i64;
-        (base + per_int * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MANA_REGEN)
+        self.hero_def(i).map_or(0, |d| d.mana_regen) + self.stat(i, crate::spell::S_MANA_REGEN)
     }
 
     /// Armour of unit `i` (Q16.16), its damage per attack (Q16.16), its attack period in ticks and its
@@ -378,28 +401,20 @@ impl Sim {
         }
         let def = self.cat.units[self.type_of[i] as usize];
         let hd = self.hero_def(i);
-        let r = self.heroes.rules;
-        let [s, a, n] = self.hero_attributes_x100(i).map(|v| v as i64);
         let q16 = |x100: i64| (x100 * fixed::ONE as i64 / 100) as i32;
         let old_max = self.hp_max[i];
-        let new_max = fixed::from_int(def.health + self.stat(i, crate::spell::S_HEALTH)).saturating_add(q16(r.hp_per_attr_a as i64 * s));
+        let new_max = fixed::from_int(def.health + self.stat(i, crate::spell::S_HEALTH));
         self.hp_max[i] = new_max;
         self.hp[i] = (self.hp[i] + (new_max - old_max)).clamp(0, new_max);
-        let armor_x100 = hd.map_or(def.armor as i64 * 100, |d| d.armor as i64) + a / r.armour_per_attr_b_div as i64;
+        let armor_x100 = hd.map_or(def.armor as i64 * 100, |d| d.armor as i64);
         self.armor[i] = q16(armor_x100);
         if def.has_weapon() {
-            let primary = hd.map_or(0, |d| d.primary);
-            let bonus = match primary {
-                0 => s,
-                1 => a,
-                2 => n,
-                _ => (s + a + n) * r.universal_damage_pct as i64 / 100,
-            };
             let base = hd.map_or(0, |d| d.damage) as i64;
             let base = if base > 0 { base } else { def.weapon_damage as i64 * 100 };
-            self.damage[i] = q16(base + bonus);
+            self.damage[i] = q16(base);
             if let Some(d) = hd.filter(|d| d.bat > 0) {
-                let den = 10_000 + a;
+                // The base period; the agility bonus is the mod's S_ATTACK_SPEED stat (attack_period).
+                let den = 10_000;
                 let ticks = (2 * TICKS_PER_SECOND as i64 * d.bat as i64 * 100 + den) / (2 * den);
                 self.period[i] = ticks.max(1) as i32;
             }
@@ -411,14 +426,10 @@ impl Sim {
         self.touch(i);
     }
 
-    /// Health regenerated per tick by the strength of hero `i`, Q16.16 (0.1 per second per point).
-    /// Zero for a non-hero.
+    /// The S_HEALTH_REGEN stat (hundredths per second, the mod's strength bonus) per tick, Q16.16.
     pub(crate) fn hero_regen_per_tick(&self, i: usize) -> i32 {
-        let s = self.hero_attributes_x100(i)[0] as i64;
-        let per_str = self.heroes.rules.hp_regen_per_attr_a_x100 as i64;
-        let from_str = s * per_str * fixed::ONE as i64 / (100 * 100 * TICKS_PER_SECOND as i64);
         let from_stat = self.stat(i, crate::spell::S_HEALTH_REGEN) as i64 * fixed::ONE as i64 / (100 * TICKS_PER_SECOND as i64);
-        (from_str + from_stat) as i32
+        from_stat as i32
     }
 
     /// Recomputes every living hero's tracked max mana from its level and items without touching its
@@ -539,7 +550,7 @@ impl Sim {
 
     /// Puts dead unit `i` back at the Q16.16 point (x, y) with full health, keeping its xp and its kill
     /// and death tallies (a slot spawn resets them). False when the cell cannot take it.
-    pub(crate) fn revive_at_point(&mut self, i: usize, x: i32, y: i32) -> bool {
+    pub fn revive_at_point(&mut self, i: usize, x: i32, y: i32) -> bool {
         let kind = self.type_of[i] as u32;
         let player = self.player[i];
         let (xp, kills, deaths) = (self.xp_total[i], self.unit_kills[i], self.unit_deaths[i]);
