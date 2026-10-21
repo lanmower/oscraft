@@ -545,6 +545,9 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
             Cmd::SetFog { on } => {
                 rec.apply(sim, Command::Fog { on });
             }
+            Cmd::SetClassOverride { unit, class } => {
+                rec.apply(sim, Command::ClassOverride { unit: unit as u32, class: class.unwrap_or(255) });
+            }
             Cmd::DefineAbility { name, cooldown, energy, target, filter, effects } => {
                 rec.apply(sim, Command::DefineAbility { name, cooldown, energy, target, filter, effects });
             }

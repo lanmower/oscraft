@@ -176,6 +176,8 @@ pub struct Sim {
     pub(crate) chase: crate::acquire::ChaseState,
     /// Acquire range per unit kind, milli-units, from the table in acquire.rs. Catalog-derived, not hashed.
     pub(crate) acquire: Vec<i32>,
+    /// Per-attacker target class set by a mod (-1 = the Rust rule). Mod-set state, hashed only when a value is set.
+    pub(crate) class_override: Vec<i8>,
     /// Ward expiry stamps. See wards.rs.
     pub(crate) wards: crate::wards::WardState,
     /// Courier delivery state. See courier.rs.
@@ -387,6 +389,7 @@ impl Sim {
             routes: crate::route::RouteState::new(cap),
             chase: crate::acquire::ChaseState::new(cap),
             acquire,
+            class_override: vec![-1; cap],
             wards: crate::wards::WardState::new(cap),
             couriers: crate::courier::CourierState::new(cap),
             stock,

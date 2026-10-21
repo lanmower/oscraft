@@ -65,6 +65,7 @@ struct System {
 // A command queued during a step; applied after every system, in queue order.
 #[derive(Clone)]
 pub enum Cmd {
+    SetClassOverride { unit: usize, class: Option<u8> },
     Spawn { handle: u32, index: usize, x: i32, y: i32, owner: u8, lane: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
@@ -974,6 +975,24 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
         })?,
     )?;
     let buf = cmds.clone();
+    // set_target_class(unit, class) / clear_target_class(unit): queued, applied at the next tick start.
+    game.set(
+        "set_target_class",
+        lua.create_function(move |_, (unit, class): (i64, i64)| {
+            let class = u8::try_from(class).map_err(|_| mlua::Error::RuntimeError("invalid_target_class: class must be 0..=3".into()))?;
+            buf.borrow_mut().push(Cmd::SetClassOverride { unit: unit as usize, class: Some(class) });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "clear_target_class",
+        lua.create_function(move |_, unit: i64| {
+            buf.borrow_mut().push(Cmd::SetClassOverride { unit: unit as usize, class: None });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
     game.set(
         "cmd_set_fog",
         lua.create_function(move |_, on: bool| {
@@ -1871,6 +1890,9 @@ impl ModHost {
                     let _ = sim.set_owner(unit, player);
                 }
                 Cmd::SetFog { on } => sim.set_fog(on),
+                Cmd::SetClassOverride { unit, class } => {
+                    let _ = sim.set_class_override(unit, class);
+                }
                 Cmd::SetTeam { player, team } => {
                     let _ = sim.set_team(player, team);
                 }

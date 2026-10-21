@@ -291,6 +291,8 @@ pub enum Command {
     Sell { unit: usize, slot: usize },
     Unstash { unit: usize, slot: usize },
     Fog { on: bool },
+    /// A mod's per-attacker target class (255 = clear, back to the Rust rule).
+    ClassOverride { unit: u32, class: u8 },
     Cadence { paths: bool, vision: bool },
     /// A mod spawn for `owner` in `lane` (0 when the mod names none). `lane` is recorded for the mod, not read by the sim.
     Spawn { handle: u32, index: u32, x: i32, y: i32, owner: u8, lane: i32 },
@@ -496,6 +498,10 @@ impl Command {
                 sim.set_fog(*on);
                 true
             }
+            Command::ClassOverride { unit, class } => {
+                let class = if *class == 255 { None } else { Some(*class) };
+                sim.set_class_override(*unit as usize, class).is_ok()
+            }
             Command::Cadence { .. } => true,
             Command::Spawn { index, x, y, owner, lane, .. } => sim.spawn_mod_unit(*owner, *index, *x, *y, *lane).is_some(),
             Command::Damage { caster, target, dmg } => {
@@ -603,6 +609,11 @@ impl Command {
             Command::Fog { on } => {
                 put(&mut o, u8::from(*on));
                 "f"
+            }
+            Command::ClassOverride { unit, class } => {
+                put(&mut o, *unit);
+                put(&mut o, *class);
+                "co"
             }
             Command::Cadence { paths, vision } => {
                 put(&mut o, u8::from(*paths));
@@ -726,6 +737,7 @@ impl Command {
             "l" => Command::Sell { unit: num(it)?, slot: num(it)? },
             "t" => Command::Unstash { unit: num(it)?, slot: num(it)? },
             "f" => Command::Fog { on: num::<u8>(it)? != 0 },
+            "co" => Command::ClassOverride { unit: num(it)?, class: num(it)? },
             "k" => Command::Cadence { paths: num::<u8>(it)? != 0, vision: num::<u8>(it)? != 0 },
             "sp" => Command::Spawn { handle: num(it)?, index: num(it)?, x: num(it)?, y: num(it)?, owner: num_or(it, 0)?, lane: num_or(it, 0)? },
             "dm" => Command::Damage { caster: num(it)?, target: num(it)?, dmg: num(it)? },

@@ -93,6 +93,10 @@ impl Sim {
 
     /// Priority class of target `j` for attacker `i`; lower is preferred.
     pub(crate) fn target_class(&self, i: usize, j: usize) -> u8 {
+        let forced = self.class_override[i];
+        if forced >= 0 {
+            return forced as u8;
+        }
         if !self.heroes.rules.aggro_priority {
             return 0;
         }
@@ -244,5 +248,44 @@ impl Sim {
             }
         }
         self.scratch = buf;
+    }
+}
+
+impl crate::arrays::Sim {
+    /// Sets the target class attacker `i` uses for every candidate (0..=3, the classes `target_class` ranks), or
+    /// clears it with `None` so the Rust rule applies again. Applied by a queued mod command at the next tick.
+    pub fn set_class_override(&mut self, i: usize, class: Option<u8>) -> Result<(), &'static str> {
+        if i >= self.n {
+            return Err("unknown unit");
+        }
+        self.class_override[i] = match class {
+            None => -1,
+            Some(c) if c <= 3 => c as i8,
+            Some(_) => return Err("class out of range"),
+        };
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod override_tests {
+    use crate::fixed;
+
+    // A mod's class override is read before the Rust rule and cleared back to it.
+    #[test]
+    fn class_override_takes_precedence_and_clears() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let image = osdt_data::generate(&scenario).expect("duel-routes image");
+        let mut sim = crate::load(&image, 64).expect("duel-routes sim");
+        sim.set_fog(false);
+        let kind = sim.catalog().unit_index("creep").expect("creep") as u32;
+        let a = sim.spawn_for(0, kind, fixed::from_int(5), fixed::from_int(5)).expect("attacker");
+        let b = sim.spawn_for(1, kind, fixed::from_int(6), fixed::from_int(5)).expect("target");
+        let rust = sim.target_class(a, b);
+        sim.set_class_override(a, Some(3)).expect("override");
+        assert_eq!(sim.target_class(a, b), 3);
+        sim.set_class_override(a, None).expect("clear");
+        assert_eq!(sim.target_class(a, b), rust);
+        assert!(sim.set_class_override(a, Some(9)).is_err());
     }
 }
