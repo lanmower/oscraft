@@ -353,10 +353,14 @@ void main() {
   float depth = smoothstep(0.55, 1.0, far);
   float bank = 1.0 - smoothstep(0.92, 1.0, near);
   float t = uTime;
-  float e = 0.15;
-  float hx = waveH(p + vec2(e, 0.0), t) - waveH(p - vec2(e, 0.0), t);
-  float hz = waveH(p + vec2(0.0, e), t) - waveH(p - vec2(0.0, e), t);
-  vec3 n = normalize(vec3(-hx / (2.0 * e) * 0.35, 1.0, -hz / (2.0 * e) * 0.35));
+  // Ripples are RIPPLE_SCALE times finer than the raw wave pattern: the wave is sampled at p * RIPPLE_SCALE, the finite
+  // difference step shrinks by the same factor (so the wave-space step stays 0.15), and the slope is divided back by it
+  // so the ripple strength reads the same as before, only smaller on screen.
+  const float RIPPLE_SCALE = 4.0;
+  float e = 0.15 / RIPPLE_SCALE;
+  float hx = waveH((p + vec2(e, 0.0)) * RIPPLE_SCALE, t) - waveH((p - vec2(e, 0.0)) * RIPPLE_SCALE, t);
+  float hz = waveH((p + vec2(0.0, e)) * RIPPLE_SCALE, t) - waveH((p - vec2(0.0, e)) * RIPPLE_SCALE, t);
+  vec3 n = normalize(vec3(-hx / (2.0 * e) * 0.35 / RIPPLE_SCALE, 1.0, -hz / (2.0 * e) * 0.35 / RIPPLE_SCALE));
   vec3 V = normalize(uEye - vec3(p.x, vWorld.y, p.y));
   float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, V), 0.0), 5.0);
   vec3 R = reflect(-V, n);
@@ -369,7 +373,7 @@ void main() {
   vec3 water = mix(bed, body, alpha);
   water = mix(water, sky, fres * 0.8);
   water += vec3(1.0, 0.97, 0.9) * glint;
-  float ripple = 0.5 + 0.5 * sin(waveH(p * 2.3, t * 1.7) * 4.0);
+  float ripple = 0.5 + 0.5 * sin(waveH(p * 2.3 * RIPPLE_SCALE, t * 1.7) * 4.0);
   float foam = bank * (0.5 + 0.5 * ripple);
   water = mix(water, vec3(0.85, 0.93, 0.90), clamp(foam, 0.0, 1.0) * 0.6);
   outColor = vec4(mix(bed, water, ww), 1.0);
@@ -847,14 +851,15 @@ export function createRenderer(gl) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, control.width, control.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, control.data);
     return tex;
   }
-  // The water weight map: one byte per cell (R8), read by the splat shader's water blend.
+  // The water weight map: one byte per cell (R8), read by the splat shader's water blend. Linear filtering blends the
+  // water edge across a cell; nearest filtering cut it at cell boundaries, which showed as squares under the surface.
   function waterTexture(map) {
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, map.width, map.height, 0, gl.RED, gl.UNSIGNED_BYTE, map.data);
