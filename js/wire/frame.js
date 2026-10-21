@@ -103,9 +103,19 @@ const CODECS = {
   // A hold order: the unit stops where it stands and attacks only what is in reach, until a move or attack replaces it.
   // A data reload's swap tick: the tick at which every peer swaps to the new data (see the room's DATA_SWAP_LEAD_TICKS).
   [FRAME.SWAP]: {
-    size: () => 2 + 4,
-    write(w, f) { w.u32(f.tick, 'tick'); },
-    read(r) { return { tick: r.u32() }; },
+    size: (f) => 2 + 4 + 1 + new TextEncoder().encode(f.file || '').length,
+    write(w, f) {
+      const name = new TextEncoder().encode(f.file || '');
+      if (name.length > 64) throw new WireError('BAD_VALUE', 'swap file name longer than 64 bytes');
+      w.u32(f.tick, 'tick');
+      w.u8(name.length, 'file length');
+      w.raw(name);
+    },
+    read(r) {
+      const tick = r.u32();
+      const len = r.u8();
+      return { tick, file: new TextDecoder().decode(r.take(len)) };
+    },
   },
   [FRAME.HOLD]: {
     size: () => 2 + 4,

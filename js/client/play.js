@@ -1250,7 +1250,7 @@ session.addEventListener("data", (e) => {
   }
   if (frame.type === FRAME.SWAP) {
     // A peer records the host's swap tick; the module reload itself is applied by the host's announced value, here or on reload.
-    pendingSwap = { tick: frame.tick, file: "", url: "", value: null };
+    pendingSwap = { tick: frame.tick, file: frame.file, url: new URL(`./${frame.file}`, import.meta.url).href, value: null };
     return;
   }
   if (frame.type === FRAME.START) {
@@ -1477,7 +1477,7 @@ window.addEventListener("oscraft:hmr", (e) => {
     // Announce the swap tick ahead so every peer applies the reload at the same tick, then apply it there.
     const tick = localGame.ticks() + SWAP_LEAD_TICKS;
     pendingSwap = { tick, file, url, value };
-    try { session.broadcast(encodeFrame({ type: FRAME.SWAP, tick })); } catch (err) { console.error(`[hmr] swap announce failed: ${err.message}`); }
+    try { session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, file })); } catch (err) { console.error(`[hmr] swap announce failed: ${err.message}`); }
     console.log(`[hmr] ${file}: swap at tick ${tick}`);
     return;
   }
@@ -1486,13 +1486,34 @@ window.addEventListener("oscraft:hmr", (e) => {
 // Ticks between a swap announcement and its swap (the same lead the server uses for staged data reloads).
 const SWAP_LEAD_TICKS = 32;
 
+// A peer's half of a swap: re-import the module under a fresh query and dispatch its hook's value, as hmr.js does for
+// a changed file. A module with no hook, or a failed import, is logged and the previous code stays in service.
+async function peerReloadModule(file, url) {
+  const bumped = new URL(url);
+  bumped.search = `?v=${Date.now()}`;
+  let mod;
+  try {
+    mod = await import(bumped.href);
+  } catch (err) {
+    console.error(`[hmr] ${file} failed to re-import on this peer: ${err.message}`);
+    return;
+  }
+  if (typeof mod.hmrReload !== "function") {
+    console.log(`[hmr] ${file}: swap applied on this peer (no hook; a page reload applies it)`);
+    return;
+  }
+  const value = mod.hmrReload(mod);
+  window.dispatchEvent(new CustomEvent("oscraft:hmr", { detail: { url, value } }));
+}
+
 // Applies a pending swap once the sim reaches its tick. A failed rebuild is logged and the previous data stays in service.
 function applyDueSwap() {
   if (!pendingSwap || !localGame || localGame.ticks() < pendingSwap.tick) return;
   const due = pendingSwap;
   pendingSwap = null;
   if (!due.value) {
-    console.log(`[hmr] swap tick ${due.tick} reached: this peer keeps its data until its module reloads`);
+    // A peer re-imports the named module at the swap tick, as the host did, and runs its hook.
+    peerReloadModule(due.file, due.url).catch((err) => console.error(`[hmr] ${due.file}: peer reload failed: ${err.message}`));
     return;
   }
   hmrApply(due.file, due.url, due.value).catch((err) => console.error(`[hmr] ${due.file}: swap failed: ${err.message}`));
