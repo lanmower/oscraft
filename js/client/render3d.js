@@ -339,7 +339,7 @@ void main() {
   vec3 bed = base * uShade.z * lit;
   float ww = texture(uWaterMap, vWorld.xz / uMapSize).r;
   if (ww <= 0.0) { outColor = vec4(bed, 1.0); return; }
-  // Procedural water (ported from spoint's water-tsl.js: the surface, ripples, fresnel and foam; the planet geometry is dropped).
+  // Procedural water (ported from spoint's water-tsl.js: the surface, ripples and fresnel; the planet geometry is dropped).
   // Depth is how much of the neighbourhood is water: 1 well inside the river, lower towards its banks.
   vec2 p = vWorld.xz;
   float near = 0.0; float far = 0.0;
@@ -351,7 +351,6 @@ void main() {
   }
   near /= 8.0; far /= 8.0;
   float depth = smoothstep(0.55, 1.0, far);
-  float bank = 1.0 - smoothstep(0.92, 1.0, near);
   float t = uTime;
   // Ripples are RIPPLE_SCALE times finer than the raw wave pattern: the wave is sampled at p * RIPPLE_SCALE, the finite
   // difference step shrinks by the same factor (so the wave-space step stays 0.15), and the slope is divided back by it
@@ -373,9 +372,6 @@ void main() {
   vec3 water = mix(bed, body, alpha);
   water = mix(water, sky, fres * 0.8);
   water += vec3(1.0, 0.97, 0.9) * glint;
-  float ripple = 0.5 + 0.5 * sin(waveH(p * 2.3 * RIPPLE_SCALE, t * 1.7) * 4.0);
-  float foam = bank * (0.5 + 0.5 * ripple);
-  water = mix(water, vec3(0.85, 0.93, 0.90), clamp(foam, 0.0, 1.0) * 0.6);
   outColor = vec4(mix(bed, water, ww), 1.0);
 }`;
 
