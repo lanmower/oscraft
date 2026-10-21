@@ -52,7 +52,7 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
 uniform sampler2D uRipple; uniform float uRippleOn;
 float rippleH(vec2 q, float t, float k) {
   if (uRippleOn < 0.5) return waveH(q, t);
-  vec2 uv = q * 0.06 + t * 0.002 * vec2(0.8 + 0.1 * k, 0.6 - 0.1 * k);
+  vec2 uv = q * 0.03 + t * 0.002 * vec2(0.8 + 0.1 * k, 0.6 - 0.1 * k);
   return (texture(uRipple, uv).r - 0.5) * 2.0;
 }
 // Ripple sample position for one of the three normal scales: the scaled position plus its own slow warp (about 0.6 of
@@ -78,7 +78,7 @@ void main() {
   }
   near /= 8.0; far /= 8.0;
   float depth = smoothstep(0.55, 1.0, far);
-  float t = 24.0 * uTime;
+  float t = 48.0 * uTime;
   // Three ripple scales interfere: each samples the wave pattern at its own frequency and weight, so the sum never repeats
   // on one regular grid. The slope of each scale is divided back by its frequency, so the strengths stay comparable.
   vec2 slope = vec2(0.0);
