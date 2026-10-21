@@ -342,7 +342,12 @@ function startPage() {
     requestAnimationFrame(frame);
   };
 
-  fetch("map.bin").then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status)))).then((b) => load(new Uint8Array(b))).catch(() => status("map.bin not loaded: open a file or create a new map"));
+  // The map image is the pack's manifest.image, read through pack_load.js as the page reads it. Imported here, not at the top,
+  // so the module (and its pack fetch) loads only in the browser.
+  import("./pack_load.js")
+    .then(({ manifest, packBytes }) => packBytes(manifest.image))
+    .then((b) => load(new Uint8Array(b)))
+    .catch(() => status("map image not loaded: open a file or create a new map"));
   requestAnimationFrame(frame);
 }
 

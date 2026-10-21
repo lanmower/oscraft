@@ -1,7 +1,8 @@
 // The pack editor: a file tree, a text editor for .lua .osd .json .txt .tsv, a drop zone for asset files, Save and a
 // download link. Opened from the host's menu. Only the host may edit (canEdit); a peer sees the same pack read-only.
 // Save hands the changed files to onSave(changes) (see play.js, which sends them to every peer as PACK_FILE frames).
-import { Pack, isText, readFileList, readZip, refusedPath, writeZip, normalizePath } from "./pack.js";
+import { isText, normalizePath, readFileList, readZip, refusedPath } from "./pack_load.js";
+import { Pack, writeZip } from "./pack.js";
 
 // Builds the editor inside `root` for `pack` (a Pack). Returns { setPack, close }.
 export function createPackEditor({ root, pack, canEdit = false, onSave = () => {}, onLoad = () => {} }) {

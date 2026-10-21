@@ -3,30 +3,11 @@
 // The page never hard-codes a package file name: the manifest (manifest.json at the pack root) lists what the pack
 // holds. A pack holds no code the page runs: a .js, .mjs, .html, .wasm or .ts path is refused on load, on edit and on
 // transfer. Text files (.lua, .osd, .json, .txt, .tsv) are kept as strings; other files as Uint8Array.
+//
+// Reading (directory, tar.gz, zip, folder list) and the path rules live in pack_load.js, the one reader. This module holds
+// the editor's side: the Pack class, the content hash, and the zip writer.
 
-export const TEXT_EXTENSIONS = Object.freeze([".lua", ".osd", ".json", ".txt", ".tsv"]);
-export const ASSET_EXTENSIONS = Object.freeze([".png", ".jpg", ".jpeg", ".webp", ".glb", ".gltf", ".bin", ".ogg", ".wav", ".ktx2"]);
-const REFUSED = /\.(m?js|html?|wasm|ts|cjs|map)$/i;
-
-// A pack path is relative, slash-separated, without "..", a leading slash, a backslash or an empty segment.
-export function normalizePath(path) {
-  const p = String(path).replace(/^\.\//, "");
-  if (!p || p.startsWith("/") || p.includes("\\") || p.split("/").some((s) => s === "" || s === "." || s === "..")) {
-    throw new Error(`pack path ${JSON.stringify(path)} is not a plain relative path`);
-  }
-  return p;
-}
-
-// Why a file may not be part of a pack, or null when it may.
-export function refusedPath(path) {
-  if (REFUSED.test(path)) return `${path}: code files are not part of a pack`;
-  const dot = path.lastIndexOf(".");
-  const ext = dot < 0 ? "" : path.slice(dot).toLowerCase();
-  if (!TEXT_EXTENSIONS.includes(ext) && !ASSET_EXTENSIONS.includes(ext)) return `${path}: ${ext || "no extension"} is not a pack file type`;
-  return null;
-}
-
-export const isText = (path) => TEXT_EXTENSIONS.includes(path.slice(path.lastIndexOf(".")).toLowerCase());
+import { crc32, isText, normalizePath, refusedPath } from "./pack_load.js";
 
 // 32-bit FNV-1a of the bytes: the content hash of a file (the same hash the SWAP frame uses for an image).
 export function contentHash(bytes) {
@@ -83,89 +64,6 @@ export class Pack {
     this.manifest = JSON.parse(typeof raw === "string" ? raw : decoder.decode(raw));
     return this.manifest;
   }
-}
-
-// ---- zip reading ----
-
-const CRC_TABLE = (() => {
-  const t = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    t[n] = c >>> 0;
-  }
-  return t;
-})();
-
-export function crc32(bytes) {
-  let c = 0xffffffff;
-  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-
-async function inflateRaw(bytes) {
-  if (typeof DecompressionStream !== "function") throw new Error("this browser cannot read deflated zip entries");
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-// Reads a zip archive (stored or deflated entries) into a Map of path -> bytes. Directories and refused paths are skipped
-// and reported in `skipped`.
-export async function readZip(buffer) {
-  const data = new Uint8Array(buffer);
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  let eocd = -1;
-  for (let i = data.length - 22; i >= Math.max(0, data.length - 22 - 65535); i--) {
-    if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
-  }
-  if (eocd < 0) throw new Error("not a zip archive");
-  const count = view.getUint16(eocd + 10, true);
-  let at = view.getUint32(eocd + 16, true);
-  const files = new Map();
-  const skipped = [];
-  for (let n = 0; n < count; n++) {
-    if (view.getUint32(at, true) !== 0x02014b50) throw new Error("zip central directory is damaged");
-    const method = view.getUint16(at + 10, true);
-    const crc = view.getUint32(at + 16, true);
-    const csize = view.getUint32(at + 20, true);
-    const nameLen = view.getUint16(at + 28, true);
-    const extraLen = view.getUint16(at + 30, true);
-    const commentLen = view.getUint16(at + 32, true);
-    const localAt = view.getUint32(at + 42, true);
-    const name = decoder.decode(data.subarray(at + 46, at + 46 + nameLen));
-    at += 46 + nameLen + extraLen + commentLen;
-    if (name.endsWith("/")) continue;
-    if (view.getUint32(localAt, true) !== 0x04034b50) throw new Error(`zip entry ${name} has a damaged local header`);
-    const start = localAt + 30 + view.getUint16(localAt + 26, true) + view.getUint16(localAt + 28, true);
-    const raw = data.subarray(start, start + csize);
-    let bytes;
-    if (method === 0) bytes = raw.slice();
-    else if (method === 8) bytes = await inflateRaw(raw);
-    else throw new Error(`zip entry ${name} uses unsupported method ${method}`);
-    if (crc32(bytes) !== crc) throw new Error(`zip entry ${name} fails its CRC`);
-    let path;
-    try { path = normalizePath(name); } catch { skipped.push(name); continue; }
-    if (refusedPath(path)) { skipped.push(path); continue; }
-    files.set(path, isText(path) ? decoder.decode(bytes) : bytes);
-  }
-  return { files, skipped };
-}
-
-// Reads a folder picked with <input webkitdirectory> (File objects with webkitRelativePath). The first path segment is the
-// folder's own name and is dropped, so the manifest sits at the root of the pack.
-export async function readFileList(list) {
-  const files = new Map();
-  const skipped = [];
-  for (const file of list) {
-    const rel = file.webkitRelativePath || file.name;
-    const path = rel.includes("/") ? rel.slice(rel.indexOf("/") + 1) : rel;
-    let clean;
-    try { clean = normalizePath(path); } catch { skipped.push(path); continue; }
-    if (refusedPath(clean)) { skipped.push(clean); continue; }
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    files.set(clean, isText(clean) ? decoder.decode(bytes) : bytes);
-  }
-  return { files, skipped };
 }
 
 // ---- zip writing (stored entries, so no compressor is needed) ----
