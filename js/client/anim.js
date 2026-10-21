@@ -359,6 +359,9 @@ function rollRotations(values, angle) {
 // absolute solve at ARM_BLEND, so they sit between the two.
 // Weight of the absolute arm solve in the blend: 0 is the delta alone, 1 the absolute alone. The owner tunes the arm pose here.
 const ARM_BLEND = 0.5;
+// Forearms take the delta solve alone: the rig's own rest elbow bend is kept and the source's idle motion is added to it.
+// The absolute solve straightens the elbow on some rigs (beastmaster idle 20 deg against a 34 deg rest bend).
+const FOREARM_BLEND = 0;
 const ARM_CHAIN = ['leftShoulder', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightShoulder', 'rightUpperArm', 'rightLowerArm', 'rightHand'];
 const ARM_BONES = new Set(ARM_CHAIN);
 // Roll of each hand about its own finger axis (local Y), applied after the solve. The delta solve keeps the rig's rest
@@ -435,7 +438,7 @@ export function retargetLibrary(library, map, nodes) {
         sampleChannel(t.delta, time, SAMPLE_TRACK);
         ARM_PAIR.set(SAMPLE_TRACK, 0);
         ARM_PAIR.set(abs.subarray(k * 4, k * 4 + 4), 4);
-        slerp(ARM_PAIR, 0, 4, ARM_BLEND, ARM_OUT);
+        slerp(ARM_PAIR, 0, 4, t.channel.bone === 'leftLowerArm' || t.channel.bone === 'rightLowerArm' ? FOREARM_BLEND : ARM_BLEND, ARM_OUT);
         values.set(ARM_OUT, k * 4);
       });
       return { node: t.node, path: 'rotation', interpolation: 'LINEAR', times: Float32Array.from(times), values, width: 4 };
