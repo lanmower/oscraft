@@ -3,6 +3,9 @@
 // state and exchanges it with the rest of the room: each accepted change is announced on window
 // event "oscraft:lobby" (detail = {state, action}); remote changes arrive on "oscraft:lobby-msg"
 // (detail = action, carrying its own playerId). The transport is whoever dispatches those events.
+import UI from "./moba_ui.json" with { type: "json" };
+import { fill } from "./moba_select.js";
+
 export const TEAM_SIZE = 5;
 export const SLOT_COUNT = 2 * TEAM_SIZE;
 // The hero roster is passed in by the page: play.js reads it from the live sim (unit_type_names, filtered to the
@@ -140,25 +143,27 @@ export function createLobby({ root, playerId = "local", roster = [], onStart = (
     item.dataset.slot = String(index);
     item.dataset.team = teamOf(index) === 0 ? "A" : "B";
     const label = document.createElement("span");
-    label.textContent = `Slot ${index + 1}: ${seat.owner ? (seat.owner === playerId ? "you" : isBot(seat.owner) ? "computer" : seat.owner.slice(0, 8)) : "open"}`;
+    const L = UI.lobby;
+    const ownerText = seat.owner ? (seat.owner === playerId ? L.owners.you : isBot(seat.owner) ? L.owners.computer : seat.owner.slice(0, L.ownerIdLength)) : L.owners.open;
+    label.textContent = fill(L.slotLabel, { n: index + 1, owner: ownerText });
     item.append(label);
     if (!seat.owner) {
-      item.append(seatButton("Claim", () => act("claim", { slot: index }), state.slots.some((s) => s.owner === playerId)));
+      item.append(seatButton(L.claim, () => act("claim", { slot: index }), state.slots.some((s) => s.owner === playerId)));
     } else if (seat.owner === playerId) {
       const select = document.createElement("select");
       const blank = document.createElement("option");
       blank.value = "";
-      blank.textContent = "pick a hero";
+      blank.textContent = UI.lobby.pickHero;
       select.append(blank, ...roster.map((hero) => new Option(hero, hero, false, hero === seat.hero)));
       select.value = seat.hero || "";
       select.disabled = seat.ready;
       select.addEventListener("change", () => act("pick", { slot: index, hero: select.value }));
       item.append(select);
-      item.append(seatButton(seat.ready ? "Unready" : "Ready", () => act("ready", { slot: index, ready: !seat.ready })));
-      item.append(seatButton("Leave", () => act("release", { slot: index })));
+      item.append(seatButton(seat.ready ? UI.lobby.unready : UI.lobby.ready, () => act("ready", { slot: index, ready: !seat.ready })));
+      item.append(seatButton(UI.lobby.leave, () => act("release", { slot: index })));
     } else {
       const info = document.createElement("span");
-      info.textContent = ` ${seat.hero || "no hero"}${seat.ready ? " (ready)" : ""}`;
+      info.textContent = ` ${seat.hero || UI.lobby.noHero}${seat.ready ? UI.lobby.readySuffix : ""}`;
       item.append(info);
     }
     return item;
@@ -169,17 +174,17 @@ export function createLobby({ root, playerId = "local", roster = [], onStart = (
       const column = document.createElement("ol");
       column.dataset.team = team === 0 ? "A" : "B";
       const heading = document.createElement("h3");
-      heading.textContent = `Team ${team === 0 ? "A" : "B"}`;
+      heading.textContent = UI.lobby.teamNames[team];
       const wrap = document.createElement("div");
       wrap.append(heading, column);
       column.append(...Array.from({ length: TEAM_SIZE }, (_, i) => renderSlot(team * TEAM_SIZE + i)));
       return wrap;
     });
     const ready = state.slots.filter((s) => s.owner && s.ready).length;
-    const fillButton = seatButton("Fill with bots", () => act("fill"), !(state.host === playerId && state.slots.some((s) => !s.owner)));
-    const startButton = seatButton("Start match", () => act("start"), !(state.host === playerId && allReady(state)));
+    const fillButton = seatButton(UI.lobby.fillBots, () => act("fill"), !(state.host === playerId && state.slots.some((s) => !s.owner)));
+    const startButton = seatButton(UI.lobby.startMatch, () => act("start"), !(state.host === playerId && allReady(state)));
     const status = document.createElement("p");
-    status.textContent = `${ready}/${SLOT_COUNT} ready${lastError ? ` (refused: ${lastError})` : ""}`;
+    status.textContent = fill(UI.lobby.status, { ready, total: SLOT_COUNT }) + (lastError ? fill(UI.lobby.refused, { error: lastError }) : "");
     host.replaceChildren(...teams, status, fillButton, startButton);
   }
 

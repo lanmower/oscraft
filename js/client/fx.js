@@ -6,6 +6,7 @@
 // 2D overlay canvas. Gameplay state is only read, never changed: attack targets are not in the sim, so an attack
 // is attributed on the client to the nearest enemy that started a strike within ATTACK_WINDOW_S of the hit.
 import { translation } from "./render3d.js";
+import UI from "./moba_ui.json" with { type: "json" };
 
 const TEAM_RING_RADIUS = 0.8;
 const SELECT_RING_RADIUS = 1.1;
@@ -32,10 +33,10 @@ const CAP_FLOATS = 32;
 const CAP_FLASHES = 32;
 const CAP_STRIKES = 64;
 const DAMAGE_COLOR = "#ff5a4a";
-const GOLD_COLOR = "#f2c53d";
+const GOLD_COLOR = UI.fx.goldColor;
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const SPELL_COLORS = [[0.55, 0.4, 1], [0.3, 0.8, 1], [1, 0.55, 0.2], [0.4, 1, 0.5]];
-const LEVEL_COLOR = [1, 0.9, 0.4];
+const LEVEL_COLOR = UI.fx.levelColor;
 const RESPAWN_COLOR = [0.6, 1, 0.8];
 const FLASH_COLOR = [1, 0.85, 0.8];
 const COST_SMOOTHING = 0.05;
@@ -300,7 +301,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
         if (before !== undefined && level > before) {
           addRing(u.x, u.z, 0.4, 2.4, LEVEL_S, LEVEL_COLOR, thin);
           burst(u.x, 0.2, u.z, LEVEL_COLOR, 20, 3);
-          addFloat(u.x, u.z, top, "LEVEL UP", GOLD_COLOR);
+          addFloat(u.x, u.z, top, UI.fx.levelUp, GOLD_COLOR);
         }
         lastLevel.set(u.id, level);
       }

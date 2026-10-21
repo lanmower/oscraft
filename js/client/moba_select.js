@@ -1,8 +1,10 @@
 // Pure MOBA selection, control groups, key resolution and cooldown maths. No DOM: the input layer (moba_input.js)
 // and the node check (moba_select_check.mjs) both run it. Units carry sx, sy (client pixels) for box selection.
 
+import UI from "./moba_ui.json" with { type: "json" };
+
 // Every control the layer exposes; each must have a binding in moba_ui.json (checked by moba_select_check.mjs).
-export const CONTROL_ACTIONS = ["attackMove", "stop", "hold", "centre", "item", "scoreboard", "shop", "cast", "skillUp", "group"];
+export const CONTROL_ACTIONS = UI.controlActions;
 
 export function unique(ids) {
   return [...new Set(ids)];
@@ -99,13 +101,14 @@ export function targetSpec(entry) {
 // A sim or layer refusal name as the words a player reads.
 export function refusalText(raw) {
   const s = String(raw || "");
-  if (s.includes("cooldown")) return "on cooldown";
-  if (s.includes("no_hero")) return "select a hero first";
-  if (s.includes("no_ability")) return "no ability in that slot";
-  if (s.includes("no_item")) return "empty item slot";
-  if (/mana|energy/i.test(s)) return "no mana";
-  if (/range|distance/i.test(s)) return "out of range";
-  return s ? `refused: ${s.replace(/_/g, " ")}` : "refused";
+  const R = UI.text.refusals;
+  if (s.includes("cooldown")) return R.cooldown;
+  if (s.includes("no_hero")) return R.noHero;
+  if (s.includes("no_ability")) return R.noAbility;
+  if (s.includes("no_item")) return R.noItem;
+  if (/mana|energy/i.test(s)) return R.mana;
+  if (/range|distance/i.test(s)) return R.range;
+  return s ? fill(R.refusedWith, { reason: s.replace(/_/g, " ") }) : R.refused;
 }
 
 // Ticks until an ability is ready again after a cast. Ultimates and ranked abilities read the cooldown of the held rank.

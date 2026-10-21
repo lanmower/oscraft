@@ -4,6 +4,7 @@
 // (green alive, red dead); a click on the panel expands the hero rows.
 
 import UI from "./moba_ui.json" with { type: "json" };
+import { fill } from "./moba_select.js";
 
 export const SCOREBOARD_ROWS = 10;
 
@@ -83,7 +84,7 @@ export function createHud5({ game, units, selected, localPlayer, isHero, heroUni
   const summary = el("div", "summary");
   const scoreTable = el("table");
   const scoreHead = el("tr");
-  for (const h of ["hero", "team", "state", "hp"]) scoreHead.appendChild(el("th", "", h));
+  for (const h of UI.text.heroRowHeaders) scoreHead.appendChild(el("th", "", h));
   scoreTable.appendChild(scoreHead);
   scoreTable.hidden = true;
   const goldLine = el("div", "gold");
@@ -99,7 +100,7 @@ export function createHud5({ game, units, selected, localPlayer, isHero, heroUni
   hot.set("hud5.banner", banner);
 
   const typeNames = typeof game.unit_model_names === "function" ? game.unit_model_names() : [];
-  const typeName = (type) => (type >= 0 && typeNames[type]) || `type ${type}`;
+  const typeName = (type) => (type >= 0 && typeNames[type]) || fill(UI.text.unitTypeFallback, { type });
   const roster = new Map();
   // The horn starts the match: heroes listed before it belong to the pre-match world, so the roster starts over.
   window.addEventListener("oscraft:horn", () => roster.clear());
@@ -110,7 +111,7 @@ export function createHud5({ game, units, selected, localPlayer, isHero, heroUni
 
   function sumLine(side, rows) {
     const line = el("div", `sum team${side % 2}`);
-    line.append(el("span", "tname", `Team ${side}`), el("span", "", `kills ${kills.get(side) || 0}`));
+    line.append(el("span", "tname", fill(UI.text.teamLabel, { side })), el("span", "", fill(UI.text.killsLabel, { kills: kills.get(side) || 0 })));
     for (const r of rows) {
       if (r.team !== side) continue;
       const dot = el("span", `dot ${r.state}`);
@@ -140,13 +141,13 @@ export function createHud5({ game, units, selected, localPlayer, isHero, heroUni
   }
 
   function drawGold(list) {
-    goldLine.textContent = teamGold(game, list).map((t) => `team ${t.side} gold ${t.gold}`).join("   ");
+    goldLine.textContent = teamGold(game, list).map((t) => fill(UI.text.teamGoldLine, { side: t.side, gold: t.gold })).join("   ");
   }
 
   function drawWinner() {
     const win = winnerOf(game);
     banner.hidden = win === null;
-    banner.textContent = win ? `side ${win.side} wins` : "";
+    banner.textContent = win ? fill(UI.text.winnerBanner, { side: win.side }) : "";
     return win;
   }
 

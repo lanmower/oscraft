@@ -97,6 +97,82 @@
       "D",
       "A",
       "gold"
+    ],
+    "winnerBanner": "side {side} wins",
+    "postGameRow": "P{player}  K {kills}  D {deaths}  A {assists}  G {gold}  XP {xp}  items {items}",
+    "teamLabel": "Team {side}",
+    "killsLabel": "kills {kills}",
+    "teamGoldLine": "team {side} gold {gold}",
+    "heroRowHeaders": [
+      "hero",
+      "team",
+      "state",
+      "hp"
+    ],
+    "unitTypeFallback": "type {type}",
+    "shopFilter": "filter",
+    "buy": "Buy",
+    "costSuffix": "g",
+    "recipePrefix": "recipe: ",
+    "refusals": {
+      "cooldown": "on cooldown",
+      "noHero": "select a hero first",
+      "noAbility": "no ability in that slot",
+      "noItem": "empty item slot",
+      "mana": "no mana",
+      "range": "out of range",
+      "refused": "refused",
+      "refusedWith": "refused: {reason}"
+    },
+    "lobby": {
+      "teamNames": [
+        "Team A",
+        "Team B"
+      ],
+      "slotLabel": "Slot {n}: {owner}",
+      "owners": {
+        "you": "you",
+        "computer": "computer",
+        "open": "open"
+      },
+      "ownerIdLength": 8,
+      "pickHero": "pick a hero",
+      "claim": "Claim",
+      "unready": "Unready",
+      "ready": "Ready",
+      "leave": "Leave",
+      "noHero": "no hero",
+      "readySuffix": " (ready)",
+      "fillBots": "Fill with bots",
+      "startMatch": "Start match",
+      "status": "{ready}/{total} ready",
+      "refused": " (refused: {error})"
+    }
+  },
+  "controlActions": [
+    "attackMove",
+    "stop",
+    "hold",
+    "centre",
+    "item",
+    "scoreboard",
+    "shop",
+    "cast",
+    "skillUp",
+    "group"
+  ],
+  "shopNames": [
+    "home",
+    "side",
+    "secret"
+  ],
+  "fx": {
+    "levelUp": "LEVEL UP",
+    "goldColor": "#f2c53d",
+    "levelColor": [
+      1,
+      0.9,
+      0.4
     ]
   },
   "heroDrawScale": 2,

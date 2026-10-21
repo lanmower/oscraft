@@ -48,7 +48,7 @@ export function itemStats(item) {
     .join(" ");
 }
 
-export const SHOP_NAMES = ["home", "side", "secret"];
+export const SHOP_NAMES = UI.shopNames;
 
 // Shop kinds that stock the item, from the catalog's shop bit mask.
 export function shopText(item) {
@@ -56,7 +56,7 @@ export function shopText(item) {
 }
 
 export function recipeText(item, catalog) {
-  return item.components.length ? `recipe: ${item.components.map((c) => (catalog[c] ? catalog[c].name : `#${c}`)).join(" + ")}` : "";
+  return item.components.length ? `${UI.text.recipePrefix}${item.components.map((c) => (catalog[c] ? catalog[c].name : `#${c}`)).join(" + ")}` : "";
 }
 
 // Whether a card reads as affordable: a recipe item is always buyable (its parts are the cost), else gold must cover it.
@@ -73,7 +73,7 @@ export function createShop({ game, selected, localPlayer }) {
   root.hidden = true;
   const goldLine = el("h4");
   const filter = el("input");
-  filter.placeholder = "filter";
+  filter.placeholder = UI.text.shopFilter;
   const top = el("div", "top");
   top.append(goldLine, filter);
   const msg = el("div", "msg");
@@ -86,11 +86,11 @@ export function createShop({ game, selected, localPlayer }) {
     cards.push(card);
     const name = el("div", "name", item.name);
     name.title = item.name;
-    const cost = el("div", "cost", `${item.cost}g`);
+    const cost = el("div", "cost", `${item.cost}${UI.text.costSuffix}`);
     const tags = el("div", "tags", `[${shopText(item)}]`);
     const stats = el("div", "stats", itemStats(item));
     const recipe = el("div", "recipe", recipeText(item, catalog));
-    const buy = el("button", "buy", "Buy");
+    const buy = el("button", "buy", UI.text.buy);
     buy.onclick = () => {
       const id = selected();
       msg.textContent = id >= 0 && typeof game.buy === "function" && game.buy(id, item.id) ? "" : fill(UI.text.shopRefusal, { item: item.name });

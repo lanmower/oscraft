@@ -108,10 +108,11 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
   }
 
   function postGameText(winner) {
-    if (!game || typeof game.post_game_json !== "function") return `side ${winner} wins`;
+    const banner = fill(UI.text.winnerBanner, { side: winner });
+    if (!game || typeof game.post_game_json !== "function") return banner;
     const report = JSON.parse(game.post_game_json());
-    const rows = report.players.map((p) => `P${p.player}  K ${p.kills}  D ${p.deaths}  A ${p.assists}  G ${p.gold}  XP ${p.xp}  items ${p.items.length}`);
-    return [`side ${winner} wins`, ...rows].join("\n");
+    const rows = report.players.map((p) => fill(UI.text.postGameRow, { player: p.player, kills: p.kills, deaths: p.deaths, assists: p.assists, gold: p.gold, xp: p.xp, items: p.items.length }));
+    return [banner, ...rows].join("\n");
   }
 
   function trackedMaxHp(id, hp) {
