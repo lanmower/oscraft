@@ -2416,6 +2416,60 @@ if (params.get("ci") === "1") {
 // data, the rules, the UI and the tables the manifest names) is fetched every PACK_WATCH_MS and hashed; a changed one goes
 // through publishPackChanges, the pack editor's save path: peers get the file, and the swap applies it at a shared tick (Lua
 // reloads the mod set, data swaps the map), as a saved edit does. Only on localhost: a deployed page is not watched.
+// Localhost dev, host with no peers connected: a changed wasm build (pkg/web_bg.wasm) replaces the running module in place.
+// The sim is saved, the new module is imported and initialised, and a Game of the new module takes the saved state and the
+// mods. Mod-owned Lua state (timers, counters) starts again, since a save holds only the sim. Peers would have to load the
+// same binary at the same tick; with peers connected the new build is only reported, not swapped in.
+const WASM_WATCH_MS = 2000;
+let wasmWatchSig = null; // the build's signature at the first check, and after each attempt
+let wasmWatchBusy = false;
+
+async function checkWasmWatch() {
+  if (wasmWatchBusy || !hosting || !localGame) return;
+  const wasmUrl = new URL("web_bg.wasm", pkgUrl).href;
+  let sig;
+  try {
+    const head = await fetch(wasmUrl, { method: "HEAD", cache: "no-store" });
+    if (!head.ok) return;
+    sig = [head.headers.get("etag"), head.headers.get("last-modified"), head.headers.get("content-length")].join("|");
+  } catch {
+    return;
+  }
+  if (wasmWatchSig === null) { wasmWatchSig = sig; return; }
+  if (sig === wasmWatchSig) return;
+  if (peers.size > 0) {
+    console.warn("[wasm] a new build is on disk; peers are connected, so it is not swapped in");
+    return;
+  }
+  wasmWatchBusy = true;
+  try {
+    await swapWasm(wasmUrl);
+  } catch (err) {
+    console.error(`[wasm] swap failed, the running module stays: ${err.message}`);
+  } finally {
+    wasmWatchSig = sig; // one attempt per build: a failed build is not retried every tick
+    wasmWatchBusy = false;
+  }
+}
+
+async function swapWasm(wasmUrl) {
+  const saved = localGame.save_state();
+  const fresh = await import(/* @vite-ignore */ `${pkgUrl}?v=${Date.now()}`);
+  await fresh.default({ module_or_path: fetch(`${wasmUrl}?v=${Date.now()}`, { cache: "no-store" }) });
+  const game = new fresh.Game(mapBytes);
+  logModError(game.set_attr_rules(rulesText));
+  game.load_state(saved);
+  if (!sameBytes(game.save_state(), saved)) throw new Error("the new module does not save back the same state");
+  finishGame(game, JSON.stringify(noMods ? [] : await moduleClosure(manifest, packText)));
+  wasmModule = fresh;
+  localGame = game;
+  lastGoodSnapshot = captureSnapshot(game);
+  setStatus(`wasm: the build changed on disk; swapped in at tick ${game.ticks()}`);
+  console.log(`[wasm] swapped the running module in at tick ${game.ticks()}`);
+}
+
+if (["localhost", "127.0.0.1"].includes(location.hostname)) setInterval(checkWasmWatch, WASM_WATCH_MS);
+
 const PACK_WATCH_MS = 1000;
 const PACK_WATCH_TEXT = /\.(lua|osd|json|tsv|txt)$/i;
 let packWatchSeen = null; // path -> content hash, recorded on the first check (no change is sent for it)
