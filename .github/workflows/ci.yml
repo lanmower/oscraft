@@ -2514,15 +2514,21 @@ jobs:
           const areaShown = await fxWait("area-ring");
           if (areaShown) await fxShot("area-ring.png");
           let far = null;
+          let farHit = "none";
           // A click on a unit is an attack, not a point cast, so the far point must have no unit within 3 cells.
           const farUnits = await page.evaluate(() => window.__ciUnits().map((u) => ({ x: u.x, z: u.z })));
           for (const [dx, dz] of [[22, 0], [-22, 0], [0, 22], [0, -22]]) {
             const wx = heroPos.x + dx, wz = heroPos.z + dz;
             if (farUnits.some((u) => Math.hypot(u.x - wx, u.z - wz) <= 3)) continue;
             const p = await screenAt(wx, wz);
-            if (p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h) { far = p; break; }
+            if (!(p.x >= 0 && p.y >= 0 && p.x < viewport.w && p.y < viewport.h)) continue;
+            // A click on a HUD panel is not a ground click, so the far point must show the map canvas, not a data-ui element.
+            const hit = await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? `${e.tagName}:${e.closest("[data-ui]")?.dataset.ui || "ground"}` : "none"; }, [p.x, p.y]);
+            if (!hit.endsWith(":ground") || !hit.startsWith("CANVAS:")) { farHit = hit; continue; }
+            far = p;
+            break;
           }
-          if (!far) throw new Error("no point 22 cells from the hero is on screen");
+          if (!far) throw new Error("no point 22 cells from the hero is on screen: last hit " + farHit);
           await page.mouse.click(far.x, far.y, { button: "left" });
           const rangeShown = await fxWait("refusal");
           // The refusal line is shown before its text is set on a slow runner: wait for the text, up to 3 s.
