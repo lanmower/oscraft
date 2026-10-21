@@ -89,6 +89,21 @@ jobs:
           test -f _site/js/client/pkg/web.js
           test -f _site/js/client/pkg/web_bg.wasm
 
+      # The moba game as one archive, the file ?pack= loads. --build re-runs mapexport so the pack's image matches the source.
+      # latest.json names the archive so a loader can find it without knowing the version.
+      - name: Pack the moba game into one archive
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node scripts/pack-package.mjs scenarios/moba _site/packs --build
+          name=$(node -p "JSON.parse(require('fs').readFileSync('scenarios/moba/manifest.json', 'utf8')).name")
+          version=$(node -p "JSON.parse(require('fs').readFileSync('scenarios/moba/manifest.json', 'utf8')).version")
+          file="packs/${name}-${version}.tar.gz"
+          test -f "_site/${file}"
+          sha=$(sha256sum "_site/${file}" | cut -d' ' -f1)
+          printf '{"name":"%s","version":"%s","file":"%s","sha256":"%s","sha":"%s"}\n' "$name" "$version" "$file" "$sha" "$GITHUB_SHA" > _site/packs/latest.json
+          cat _site/packs/latest.json
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

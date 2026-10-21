@@ -1,11 +1,13 @@
 // The one reader of a game pack. A pack is a directory, a .tar.gz (or .tgz) archive, or a .zip, with a manifest.json at its root
-// (the schema is in scenarios/moba/manifest.json). The page names it with ?package=<dir or archive>; the default is
-// scenarios/moba, resolved from the site root. Every file the client needs (the UI json, the map image, the rules, the asset
+// (the schema is in scenarios/moba/manifest.json). The page names it with ?pack=<dir or archive URL> (?package= still works);
+// the default is scenarios/moba, resolved from the site root. An archive URL is fetched and read by readPackFile, the same
+// reader the lobby's file picker uses. Every file the client needs (the UI json, the map image, the rules, the asset
 // catalogue) is read through this module by its manifest path. Top-level await: the modules that import UI wait until the
 // pack has loaded. pack.js (the editor's Pack) imports the readers and path rules from here and holds no parser of its own.
 
 const SITE_ROOT = new URL("../../", import.meta.url);
-const PACK_PARAM = new URLSearchParams(location.search).get("package") || "scenarios/moba";
+const PACK_PARAMS = new URLSearchParams(location.search);
+const PACK_PARAM = PACK_PARAMS.get("pack") || PACK_PARAMS.get("package") || "scenarios/moba";
 const TAR_GZ = /\.(tar\.gz|tgz)$/i;
 const ZIP = /\.zip$/i;
 
@@ -252,15 +254,12 @@ async function openFetched(url) {
   return res;
 }
 
-async function openTarGz(url) {
+// An archive URL becomes a File named after its last path segment, so readPackFile reads it as the file picker's file would be.
+async function openArchive(url) {
   const res = await openFetched(url);
-  const gunzipped = new Response(res.body.pipeThrough(new DecompressionStream("gzip")));
-  return fromFiles(readTar(new Uint8Array(await gunzipped.arrayBuffer())));
-}
-
-async function openZip(url) {
-  const res = await openFetched(url);
-  return fromFiles((await readZip(await res.arrayBuffer())).files);
+  const name = decodeURIComponent(new URL(url).pathname.split("/").pop());
+  const { files } = await readPackFile(new File([await res.blob()], name));
+  return fromFiles(files);
 }
 
 function openDirectory(url) {
@@ -277,8 +276,7 @@ function openDirectory(url) {
 
 const archiveUrl = new URL(PACK_PARAM, SITE_ROOT);
 const source = STASHED ? fromFiles(await takeStash())
-  : TAR_GZ.test(PACK_PARAM) ? await openTarGz(archiveUrl)
-  : ZIP.test(PACK_PARAM) ? await openZip(archiveUrl)
+  : TAR_GZ.test(PACK_PARAM) || ZIP.test(PACK_PARAM) ? await openArchive(archiveUrl)
   : openDirectory(new URL(PACK_PARAM.replace(/\/?$/, "/"), SITE_ROOT));
 
 const manifestBytes = await source.bytes("manifest.json");
