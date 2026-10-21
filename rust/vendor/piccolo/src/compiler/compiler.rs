@@ -934,9 +934,12 @@ impl<S: StringInterner> Compiler<S> {
         let val_len = assignment.values.len();
         assert!(val_len != 0);
 
+        // Stores `expr` in `target`. `place` is the table and key of a field target when they were evaluated ahead of
+        // the values (below); otherwise they are evaluated here.
         fn assign<'a, S: StringInterner>(
             this: &'a mut Compiler<S>,
             target: &AssignmentTarget<S::String>,
+            place: Option<(ExprDescriptor<S::String>, ExprDescriptor<S::String>)>,
             expr: ExprDescriptor<S::String>,
         ) -> Result<(), CompileErrorKind> {
             match target {
@@ -961,12 +964,18 @@ impl<S: StringInterner> Compiler<S> {
                 },
 
                 AssignmentTarget::Field(table, field) => {
-                    let table = this.suffixed_expression(table)?;
-                    let key = match field {
-                        FieldSuffix::Named(name) => {
-                            ExprDescriptor::Constant(Constant::String(name.clone()))
+                    let (table, key) = match place {
+                        Some(place) => place,
+                        None => {
+                            let table = this.suffixed_expression(table)?;
+                            let key = match field {
+                                FieldSuffix::Named(name) => {
+                                    ExprDescriptor::Constant(Constant::String(name.clone()))
+                                }
+                                FieldSuffix::Indexed(idx) => this.expression(idx)?,
+                            };
+                            (table, key)
                         }
-                        FieldSuffix::Indexed(idx) => this.expression(idx)?,
                     };
                     this.set_table(table, key, expr)?;
                 }
@@ -974,32 +983,78 @@ impl<S: StringInterner> Compiler<S> {
             Ok(())
         }
 
+        // Evaluates `expr` into a fresh register, recorded in `held` for the statement to free.
+        fn hold<'a, S: StringInterner>(
+            this: &'a mut Compiler<S>,
+            expr: ExprDescriptor<S::String>,
+            held: &mut Vec<RegisterIndex>,
+        ) -> Result<RegisterIndex, CompileErrorKind> {
+            let reg = this.expr_discharge(expr, ExprDestination::AllocateNew)?;
+            held.push(reg);
+            Ok(reg)
+        }
+
+        // Lua 5.4 runs a multiple assignment in three steps: the table and key of each field target, then every value,
+        // then the stores. So `a, b = b, a` swaps, and `i, a[i] = i + 1, 20` stores at the old i. The early results are
+        // copied to fresh registers, so no store can change what a later step reads. A single target keeps its order
+        // (value, then table and key): no other store can come before it.
+        let top = self.current_function.register_allocator.stack_top();
+        let mut held: Vec<RegisterIndex> = Vec::new();
+        let mut places = Vec::with_capacity(target_len);
+        for target in assignment.targets.iter() {
+            places.push(match target {
+                AssignmentTarget::Field(table, field) if target_len > 1 => {
+                    let table = self.suffixed_expression(table)?;
+                    let table = ExprDescriptor::Variable(VariableDescriptor::Local(hold(
+                        self, table, &mut held,
+                    )?));
+                    let key = match field {
+                        FieldSuffix::Named(name) => {
+                            ExprDescriptor::Constant(Constant::String(name.clone()))
+                        }
+                        FieldSuffix::Indexed(idx) => match self.expression(idx)? {
+                            key @ ExprDescriptor::Constant(_) => key,
+                            key => ExprDescriptor::Variable(VariableDescriptor::Local(hold(
+                                self, key, &mut held,
+                            )?)),
+                        },
+                    };
+                    Some((table, key))
+                }
+                _ => None,
+            });
+        }
+
+        let mut values = Vec::with_capacity(target_len);
         for i in 0..val_len {
             let expr = self.expression(&assignment.values[i])?;
 
             if i >= target_len {
+                // A value with no target is evaluated for its effects only.
                 let reg = self.expr_discharge(expr, ExprDestination::AllocateNew)?;
                 self.current_function.register_allocator.free(reg);
             } else if i == val_len - 1 {
-                let top = self.current_function.register_allocator.stack_top();
-
+                // The last value gives one result per remaining target (a call may give several).
                 let targets_left = (1 + target_len - val_len)
                     .try_into()
                     .map_err(|_| CompileErrorKind::Registers)?;
                 let results = self.expr_push_count(expr, targets_left)?;
-
-                for j in 0..targets_left {
-                    let expr = ExprDescriptor::Variable(VariableDescriptor::Local(RegisterIndex(
-                        results.0 + j,
-                    )));
-                    assign(self, &assignment.targets[val_len - 1 + j as usize], expr)?;
-                }
-
-                self.current_function.register_allocator.pop_to(top);
+                values.extend((0..targets_left).map(|j| RegisterIndex(results.0 + j)));
             } else {
-                assign(self, &assignment.targets[i], expr)?;
+                values.push(hold(self, expr, &mut held)?);
             }
         }
+        debug_assert_eq!(values.len(), target_len);
+
+        for ((target, place), value) in assignment.targets.iter().zip(places).zip(values) {
+            let expr = ExprDescriptor::Variable(VariableDescriptor::Local(value));
+            assign(self, target, place, expr)?;
+        }
+
+        for reg in held.into_iter().rev() {
+            self.current_function.register_allocator.free(reg);
+        }
+        self.current_function.register_allocator.pop_to(top);
 
         Ok(())
     }

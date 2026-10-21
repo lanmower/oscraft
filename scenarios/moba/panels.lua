@@ -387,14 +387,18 @@ local function skills_tree(hero)
   return panel(TEXT.skills.title, kids)
 end
 
--- Ability keys in slot order: {key, slot} from setup's cast map.
+-- Ability keys in slot order: {key, slot} from setup's cast map. The swap goes through a local, one assignment at a
+-- time: the host's Lua VM evaluates a multiple assignment (a, b = b, a) with the first target already written, which
+-- duplicated entries in the bar.
 local function cast_keys()
   local list = {}
   for key, slot in pairs(KEYS.cast or {}) do list[#list + 1] = { key = key, slot = slot } end
   for i = 2, #list do
     local j = i
     while j > 1 and list[j - 1].slot > list[j].slot do
-      list[j - 1], list[j] = list[j], list[j - 1]
+      local held = list[j - 1]
+      list[j - 1] = list[j]
+      list[j] = held
       j = j - 1
     end
   end

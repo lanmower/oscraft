@@ -3,6 +3,6 @@ resolver = "2"
 members = ["crates/*", "gate"]
 exclude = ["crates/wasip3"]
 
-# piccolo 0.3.3 with the RawTable grow fix; see vendor/piccolo/README.md.
+# piccolo 0.3.3 with the RawTable grow and multiple-assignment fixes; see vendor/piccolo/README.md.
 [patch.crates-io]
 piccolo = { path = "vendor/piccolo" }
