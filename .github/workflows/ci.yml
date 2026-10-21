@@ -2437,8 +2437,10 @@ jobs:
             // A hero that has not left its start after 10 s is given the accepted attack-move once more: the order can be
             // accepted by the input layer while the sim has not yet started the walk (slow CI ticks).
             // Still at the start after 10 s: the point may be unwalkable from here, so the order goes to the next candidate point.
-            if (i === 20 && dTo(amEnd, amStart) < 0.01) {
-              const next = amTries[1] ?? amTries[0];
+            // Each 10 s with no movement moves the order to the next candidate point, so a foe that stands in reach of the
+            // first point (a creep the hero holds for) does not pin the probe.
+            if ((i === 20 || i === 40) && dTo(amEnd, amStart) < 0.01) {
+              const next = amTries[(i === 20 ? 1 : 2) % amTries.length];
               Object.assign(point, next);
               const reAt = await screenAt(next.x, next.z);
               await page.keyboard.press("a");
