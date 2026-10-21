@@ -4,7 +4,7 @@ use std::str::{FromStr, SplitWhitespace};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
 
-use sim::{AbilitySpec, Effect, ItemSpec, ORDER_HOLD, Refusal, Sim, StateError, UnitSpec, UpgradeSpec};
+use sim::{carry_from, AbilitySpec, Effect, ItemSpec, ORDER_HOLD, Refusal, Sim, StateError, UnitSpec, UpgradeSpec};
 
 const TICKS_PER_SECOND: u32 = 16;
 
@@ -27,6 +27,8 @@ pub enum ReplayError {
     Parse { line: usize, why: String },
     Init { expected: u64, actual: u64 },
     NotAtStart { tick: u32 },
+    /// A data swap at `tick` needs the image of the next segment, and the caller gave none.
+    NoSegmentData { tick: u32 },
 }
 
 type Record = (u32, i32, u8, i32, i32);
@@ -269,9 +271,11 @@ impl Playback {
     }
 }
 
-pub const FORMAT_HEADER: &str = "oscraft-replay 2";
+pub const FORMAT_HEADER: &str = "oscraft-replay 3";
 // Version 1 held orders, casts, items, fog and cadence only; it still parses, and its records are a subset of version 2.
 const FORMAT_HEADER_V1: &str = "oscraft-replay 1";
+// Version 2 has one segment; version 3 adds `segment` lines for data swaps.
+const FORMAT_HEADER_V2: &str = "oscraft-replay 2";
 pub const CHECK_EVERY: u32 = 64;
 pub const MAX_KEPT: usize = 4_000_000;
 
@@ -282,6 +286,8 @@ pub const MAX_KEPT: usize = 4_000_000;
 pub enum Command {
     Order { unit: usize, x: i32, y: i32 },
     Hold { unit: usize },
+    /// An order of sim kind `kind` (an ORDER_* code) to the point (x, y): a move or an attack-move.
+    Kind { unit: usize, kind: u8, x: i32, y: i32 },
     OrderAll { player: u8, x: i32, y: i32 },
     Attack { unit: usize, target: usize },
     Cast { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
@@ -316,6 +322,8 @@ pub enum Command {
     Victory { player: u8 },
     Defeat { player: u8 },
     Ui { body: String },
+    /// A unit the data swap respawned at its old point: slot `unit`, kind index `kind` of the new data.
+    Respawn { unit: usize, kind: u32, player: u8, x: i32, y: i32 },
 }
 
 fn num<T: FromStr>(it: &mut SplitWhitespace) -> Option<T> {
@@ -485,6 +493,7 @@ impl Command {
                 true
             }
             Command::Hold { unit } => sim.issue_order_kind(*unit, ORDER_HOLD, 0, 0).is_ok(),
+            Command::Kind { unit, kind, x, y } => sim.issue_order_kind(*unit, *kind, *x, *y).is_ok(),
             Command::OrderAll { player, x, y } => {
                 sim.order_all(*player, *x, *y);
                 true
@@ -556,6 +565,7 @@ impl Command {
                 true
             }
             Command::Ui { .. } => true,
+            Command::Respawn { unit, kind, player, x, y } => sim.spawn_at(*unit, *kind, *player, *x, *y),
         }
     }
 
@@ -571,6 +581,13 @@ impl Command {
             Command::Hold { unit } => {
                 put(&mut o, unit);
                 "h"
+            }
+            Command::Kind { unit, kind, x, y } => {
+                put(&mut o, unit);
+                put(&mut o, kind);
+                put(&mut o, x);
+                put(&mut o, y);
+                "ok"
             }
             Command::OrderAll { player, x, y } => {
                 put(&mut o, player);
@@ -734,6 +751,14 @@ impl Command {
                 put_text(&mut o, body);
                 "ui"
             }
+            Command::Respawn { unit, kind, player, x, y } => {
+                put(&mut o, unit);
+                put(&mut o, kind);
+                put(&mut o, player);
+                put(&mut o, x);
+                put(&mut o, y);
+                "rn"
+            }
         };
         format!("{code}{o}")
     }
@@ -742,6 +767,7 @@ impl Command {
         Some(match code {
             "o" => Command::Order { unit: num(it)?, x: num(it)?, y: num(it)? },
             "h" => Command::Hold { unit: num(it)? },
+            "ok" => Command::Kind { unit: num(it)?, kind: num(it)?, x: num(it)?, y: num(it)? },
             "oa" => Command::OrderAll { player: num(it)?, x: num(it)?, y: num(it)? },
             "a" => Command::Attack { unit: num(it)?, target: num(it)? },
             "c" => Command::Cast { unit: num(it)?, slot: num(it)?, target: num(it)?, x: num(it)?, y: num(it)? },
@@ -780,21 +806,42 @@ impl Command {
             "vw" => Command::Victory { player: num(it)? },
             "df" => Command::Defeat { player: num(it)? },
             "ui" => Command::Ui { body: text(it)? },
+            "rn" => Command::Respawn { unit: num(it)?, kind: num(it)?, player: num(it)?, x: num(it)?, y: num(it)? },
             _ => return None,
         })
     }
 }
 
-/// The commands a sim run received, per tick, with the state hash every `CHECK_EVERY` ticks.
-/// Text format: a header (`oscraft-replay 2`, `image`, `max_units`, `init`), then one line per
-/// command `<tick> <code> <args>` and `chk <ticks> <hash>` lines. A `chk` line follows the tick
-/// that brought the sim to `<ticks>` and precedes the commands applied at that tick.
-pub struct Recording {
+/// One data image a recording ran on. Segment 0 starts at tick 0 from the fresh load of `image`; a later segment
+/// starts at a data swap tick, where the live units were carried onto the new image. `init` is the state hash the
+/// sim must have at `start` (after the carry), so a replay can check it reached the same state.
+#[derive(Clone, Debug)]
+pub struct Segment {
+    pub start: u32,
     pub image: String,
     pub max_units: u32,
     pub init: u64,
-    /// Whether a mod owned the kill payout (`gold_by_mod`) when the recording started; the header carries it.
+    /// Whether a mod owned the kill payout (`gold_by_mod`) at the segment's start; the header carries it.
     pub gold_by_mod: bool,
+}
+
+impl Segment {
+    fn of(start: u32, image: &str, max_units: usize, sim: &Sim) -> Segment {
+        Segment { start, image: image.to_string(), max_units: max_units as u32, init: sim.state_hash(), gold_by_mod: sim.gold_by_mod() }
+    }
+}
+
+fn segment_line(s: &Segment) -> String {
+    format!("segment {} {} {:016x} {} {}", s.start, s.max_units, s.init, u8::from(s.gold_by_mod), s.image)
+}
+
+/// The commands a sim run received, per tick, with the state hash every `CHECK_EVERY` ticks.
+/// Text format: a header (`oscraft-replay 3`, `image`, `max_units`, `init`), then one line per
+/// command `<tick> <code> <args>` and `chk <ticks> <hash>` lines. A `chk` line follows the tick
+/// that brought the sim to `<ticks>` and precedes the commands applied at that tick. A data swap
+/// adds `segment <start> <max_units> <init> <gold_by_mod> <image>` lines, one per swap.
+pub struct Recording {
+    segments: Vec<Segment>,
     cmds: Vec<(u32, Command)>,
     checks: Vec<(u32, u64)>,
     inflight: VecDeque<(u32, Receiver<u64>)>,
@@ -832,10 +879,7 @@ impl Recording {
     /// playback loads; `sim` is that data freshly loaded, at tick 0.
     pub fn new(image: &str, max_units: usize, sim: &Sim) -> Recording {
         Recording {
-            image: image.to_string(),
-            max_units: max_units as u32,
-            init: sim.state_hash(),
-            gold_by_mod: sim.gold_by_mod(),
+            segments: vec![Segment::of(0, image, max_units, sim)],
             cmds: Vec::new(),
             checks: Vec::new(),
             inflight: VecDeque::new(),
@@ -913,6 +957,11 @@ impl Recording {
     /// Sends a copy of the sim to the hasher thread; the hash arrives on the returned receiver.
     fn hash_later(&mut self, sim: &Sim) -> Receiver<u64> {
         let (reply, rx) = mpsc::channel();
+        // The browser build has no threads, so it hashes in place.
+        if cfg!(target_arch = "wasm32") {
+            let _ = reply.send(sim.state_hash());
+            return rx;
+        }
         let hasher = self.hasher.get_or_insert_with(spawn_hasher);
         if let Err(mpsc::SendError((snapshot, reply))) = hasher.send((sim.clone(), reply)) {
             let _ = reply.send(snapshot.state_hash());
@@ -992,18 +1041,36 @@ impl Recording {
         }
     }
 
-    /// Drops the checkpoints recorded before `tick`. A data swap at `tick` changes the rules the earlier checkpoints were
-    /// hashed under, so replay under the new data would fail them; the checkpoints from the swap on are kept.
-    pub fn drop_checks_before(&mut self, tick: u32) {
-        self.checks.retain(|c| c.0 >= tick);
-    }
-
     pub fn incomplete(&self) -> Option<u32> {
         self.incomplete
     }
 
     pub fn command_count(&self) -> usize {
         self.cmds.len()
+    }
+
+    /// Starts a new segment at the sim's tick: the live state now runs on `sim`, the new data, after the caller carried
+    /// the live units onto it. Commands and checks from here on belong to the new segment; the earlier ones replay
+    /// under the data they were recorded on.
+    pub fn rebase(&mut self, image: &str, max_units: usize, sim: &Sim) {
+        let segment = Segment::of(sim.ticks(), image, max_units, sim);
+        self.write_line(&segment_line(&segment), true);
+        self.segments.push(segment);
+    }
+
+    /// The data segments the recording runs on, in order; the first starts at tick 0.
+    pub fn segments(&self) -> &[Segment] {
+        &self.segments
+    }
+
+    /// The image the recording currently runs on.
+    pub fn image(&self) -> &str {
+        &self.segments[self.segments.len() - 1].image
+    }
+
+    /// The unit cap of the image the recording currently runs on.
+    pub fn max_units(&self) -> usize {
+        self.segments[self.segments.len() - 1].max_units as usize
     }
 
     /// The recording as text, ending with a check at the sim's current tick.
@@ -1013,8 +1080,9 @@ impl Recording {
     }
 
     fn render_to(&self, last: Option<(u32, u64)>) -> String {
-        let mut out = format!("{FORMAT_HEADER}\nimage {}\nmax_units {}\ninit {:016x}\n", self.image, self.max_units, self.init);
-        if self.gold_by_mod {
+        let first = &self.segments[0];
+        let mut out = format!("{FORMAT_HEADER}\nimage {}\nmax_units {}\ninit {:016x}\n", first.image, first.max_units, first.init);
+        if first.gold_by_mod {
             out.push_str("gold_by_mod 1\n");
         }
         if let Some(t) = self.incomplete {
@@ -1022,109 +1090,155 @@ impl Recording {
         }
         let mut checks = self.checks.clone();
         if let Some((t, h)) = last {
-            if checks.last().map(|c| c.0) != Some(t) {
+            // A check at the start tick of the newest segment would read as belonging to the segment before it.
+            let newest_start = self.segments[self.segments.len() - 1].start;
+            if checks.last().map(|c| c.0) != Some(t) && (self.segments.len() == 1 || t > newest_start) {
                 checks.push((t, h));
             }
         }
-        let mut k = 0;
+        // File order: a check at tick t precedes the segment that starts at t, which precedes the commands of t.
+        let mut items: Vec<(u32, u8, String)> = Vec::with_capacity(checks.len() + self.segments.len() + self.cmds.len());
         for (ct, h) in checks {
-            while k < self.cmds.len() && self.cmds[k].0 < ct {
-                out.push_str(&format!("{} {}\n", self.cmds[k].0, self.cmds[k].1.encode()));
-                k += 1;
-            }
-            out.push_str(&format!("chk {ct} {h:016x}\n"));
+            items.push((ct, 0, format!("chk {ct} {h:016x}")));
         }
-        for (t, c) in &self.cmds[k..] {
-            out.push_str(&format!("{t} {}\n", c.encode()));
+        for s in &self.segments[1..] {
+            items.push((s.start, 1, segment_line(s)));
+        }
+        for (t, c) in &self.cmds {
+            items.push((*t, 2, format!("{t} {}", c.encode())));
+        }
+        items.sort_by_key(|i| (i.0, i.1));
+        for (_, _, line) in items {
+            out.push_str(&line);
+            out.push('\n');
         }
         out
     }
 
-    /// Sets `fresh` (a sim loaded from the recording's image) to the header's `gold_by_mod`, which the
+    /// Sets `fresh` (a sim loaded from the recording's first image) to the header's `gold_by_mod`, which the
     /// init hash covers. Call it before `Replayer::new` or `Playback::new`.
     pub fn apply_header(&self, fresh: &mut Sim) {
-        fresh.set_gold_by_mod(self.gold_by_mod);
+        fresh.set_gold_by_mod(self.segments[0].gold_by_mod);
     }
 
     pub fn parse(text: &str) -> Result<Recording, ReplayError> {
         let bad = |line: usize, why: &str| ReplayError::Parse { line, why: why.to_string() };
         let mut lines = text.lines().enumerate().map(|(i, l)| (i + 1, l.trim_end())).filter(|(_, l)| !l.is_empty());
         match lines.next() {
-            Some((_, FORMAT_HEADER)) | Some((_, FORMAT_HEADER_V1)) => {}
-            Some((n, _)) => return Err(bad(n, "not an oscraft replay (first line must be `oscraft-replay 1` or `2`)")),
+            Some((_, FORMAT_HEADER)) | Some((_, FORMAT_HEADER_V2)) | Some((_, FORMAT_HEADER_V1)) => {}
+            Some((n, _)) => return Err(bad(n, "not an oscraft replay (first line must be `oscraft-replay 1`, `2` or `3`)")),
             None => return Err(bad(0, "empty replay")),
         }
-        let mut rec = Recording {
-            image: String::new(),
-            gold_by_mod: false,
-            max_units: 0,
-            init: 0,
-            cmds: Vec::new(),
-            checks: Vec::new(),
-            inflight: VecDeque::new(),
-            hasher: None,
-            outbox: VecDeque::new(),
-            incomplete: None,
-            sink: None,
-        };
+        // Segment 0 is the header; each `segment` line after it starts a later segment.
+        let mut segments = vec![Segment { start: 0, image: String::new(), max_units: 0, init: 0, gold_by_mod: false }];
         let mut have_init = false;
+        let mut cmds: Vec<(u32, Command)> = Vec::new();
+        let mut checks: Vec<(u32, u64)> = Vec::new();
+        let mut incomplete = None;
         for (n, line) in lines {
-            if let Some(rest) = line.strip_prefix("image ") {
-                rec.image = rest.to_string();
-                continue;
-            }
             let mut it = line.split_whitespace();
             let first = it.next().unwrap_or_default();
+            let header = matches!(first, "image" | "max_units" | "init" | "gold_by_mod" | "incomplete");
+            if header && segments.len() > 1 {
+                return Err(bad(n, "a header line must come before the segments"));
+            }
+            let head = &mut segments[0];
+            if let Some(rest) = line.strip_prefix("image ") {
+                head.image = rest.to_string();
+                continue;
+            }
             match first {
-                "max_units" => rec.max_units = num(&mut it).ok_or_else(|| bad(n, "max_units needs a number"))?,
-                "gold_by_mod" => rec.gold_by_mod = num::<u8>(&mut it).ok_or_else(|| bad(n, "gold_by_mod needs 0 or 1"))? != 0,
+                "max_units" => head.max_units = num(&mut it).ok_or_else(|| bad(n, "max_units needs a number"))?,
+                "gold_by_mod" => head.gold_by_mod = num::<u8>(&mut it).ok_or_else(|| bad(n, "gold_by_mod needs 0 or 1"))? != 0,
                 "init" => {
-                    rec.init = it.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "init needs a hex hash"))?;
+                    head.init = it.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "init needs a hex hash"))?;
                     have_init = true;
                 }
-                "incomplete" => rec.incomplete = Some(num(&mut it).ok_or_else(|| bad(n, "incomplete needs a tick"))?),
+                "incomplete" => incomplete = Some(num(&mut it).ok_or_else(|| bad(n, "incomplete needs a tick"))?),
+                "segment" => {
+                    let rest = line["segment".len()..].trim_start();
+                    let mut f = rest.splitn(5, ' ');
+                    let start: u32 = f.next().and_then(|v| v.parse().ok()).ok_or_else(|| bad(n, "segment needs a start tick"))?;
+                    let max_units: u32 = f.next().and_then(|v| v.parse().ok()).ok_or_else(|| bad(n, "segment needs max_units"))?;
+                    let init = f.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "segment needs a hex hash"))?;
+                    let gold_by_mod = match f.next() {
+                        Some("0") => false,
+                        Some("1") => true,
+                        _ => return Err(bad(n, "segment needs gold_by_mod 0 or 1")),
+                    };
+                    let image = f.next().filter(|s| !s.is_empty()).ok_or_else(|| bad(n, "segment needs an image"))?;
+                    let last_start = segments[segments.len() - 1].start;
+                    if start <= last_start {
+                        return Err(bad(n, "segment start ticks must increase"));
+                    }
+                    if cmds.last().is_some_and(|c| c.0 >= start) {
+                        return Err(bad(n, "a segment must start after the commands before it"));
+                    }
+                    if checks.last().is_some_and(|c| c.0 > start) {
+                        return Err(bad(n, "a segment must start after the checks before it"));
+                    }
+                    segments.push(Segment { start, image: image.to_string(), max_units, init, gold_by_mod });
+                }
                 "chk" => {
                     let t: u32 = num(&mut it).ok_or_else(|| bad(n, "chk needs a tick"))?;
                     let h = it.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "chk needs a hex hash"))?;
-                    if rec.checks.last().is_some_and(|c| c.0 >= t) {
+                    if checks.last().is_some_and(|c| c.0 >= t) {
                         return Err(bad(n, "chk ticks must increase"));
                     }
-                    if rec.cmds.last().is_some_and(|c| c.0 >= t) {
+                    if segments.len() > 1 && t <= segments[segments.len() - 1].start {
+                        return Err(bad(n, "a chk of an earlier segment must come before its segment line"));
+                    }
+                    if cmds.last().is_some_and(|c| c.0 >= t) {
                         return Err(bad(n, "a chk must come before the commands of its tick"));
                     }
-                    rec.checks.push((t, h));
+                    checks.push((t, h));
                 }
                 tick => {
                     let t: u32 = tick.parse().map_err(|_| bad(n, "unknown line"))?;
                     let code = it.next().ok_or_else(|| bad(n, "command code missing"))?;
                     let cmd = Command::decode(code, &mut it).ok_or_else(|| bad(n, "bad command"))?;
-                    if rec.cmds.last().is_some_and(|c| c.0 > t) || rec.checks.last().is_some_and(|c| c.0 > t) {
+                    if cmds.last().is_some_and(|c| c.0 > t) || checks.last().is_some_and(|c| c.0 > t) {
                         return Err(bad(n, "commands must not go back in time"));
                     }
-                    rec.cmds.push((t, cmd));
+                    if t < segments[segments.len() - 1].start {
+                        return Err(bad(n, "a command comes before its segment's start tick"));
+                    }
+                    cmds.push((t, cmd));
                 }
             }
         }
-        if !have_init || rec.image.is_empty() {
+        if !have_init || segments[0].image.is_empty() {
             return Err(bad(0, "header lacks image or init"));
         }
-        Ok(rec)
+        Ok(Recording {
+            segments,
+            cmds,
+            checks,
+            inflight: VecDeque::new(),
+            hasher: None,
+            outbox: VecDeque::new(),
+            incomplete,
+            sink: None,
+        })
     }
 }
 
 /// Drives a parsed recording against a freshly loaded sim, one tick at a time, checking every
-/// recorded hash. The sim only moves forward: to go back, load a fresh sim, call `reset`, and
-/// seek forward again (a saved state does not carry every transient field, so it is not used).
+/// recorded hash. At a data swap the replay carries the live units onto the next segment's image
+/// (`step_with` asks for it) and checks the state against that segment's init hash. The sim only
+/// moves forward: to go back, load a fresh sim, call `reset`, and seek forward again (a saved state
+/// does not carry every transient field, so it is not used).
 pub struct Replayer {
     rec: Recording,
     next: usize,
     nchk: usize,
+    seg: usize,
     cad: (bool, bool),
 }
 
 impl Replayer {
     pub fn new(rec: Recording, sim: &Sim) -> Result<Replayer, ReplayError> {
-        let p = Replayer { rec, next: 0, nchk: 0, cad: (true, true) };
+        let p = Replayer { rec, next: 0, nchk: 0, seg: 0, cad: (true, true) };
         p.check_start(sim)?;
         Ok(p)
     }
@@ -1133,24 +1247,31 @@ impl Replayer {
         if sim.ticks() != 0 {
             return Err(ReplayError::NotAtStart { tick: sim.ticks() });
         }
+        let expected = self.rec.segments[0].init;
         let actual = sim.state_hash();
-        if actual != self.rec.init {
-            return Err(ReplayError::Init { expected: self.rec.init, actual });
+        if actual != expected {
+            return Err(ReplayError::Init { expected, actual });
         }
         Ok(())
     }
 
-    /// Starts over against `fresh`, a newly loaded sim of the same data.
+    /// Starts over against `fresh`, a newly loaded sim of the recording's first image.
     pub fn reset(&mut self, fresh: &Sim) -> Result<(), ReplayError> {
         self.check_start(fresh)?;
         self.next = 0;
         self.nchk = 0;
+        self.seg = 0;
         self.cad = (true, true);
         Ok(())
     }
 
     pub fn recording(&self) -> &Recording {
         &self.rec
+    }
+
+    /// The segment the replay is in; 0 until the first data swap.
+    pub fn segment(&self) -> usize {
+        self.seg
     }
 
     /// The last tick the recording holds a hash for.
@@ -1163,11 +1284,33 @@ impl Replayer {
         self.rec.checks.last().map(|c| c.1)
     }
 
+    /// Steps one tick. A recording that spans a data swap needs `step_with`, which can load the next image.
     pub fn step(&mut self, sim: &mut Sim) -> Result<(), ReplayError> {
+        self.step_with(sim, &mut |_| None)
+    }
+
+    /// Steps one tick. When the replay reaches the next segment's start tick, `load` gives the fresh sim of that
+    /// segment's image (None when it has none, which fails with `NoSegmentData`); the live units are carried onto it
+    /// and its state must hash to the segment's init before the replay continues.
+    pub fn step_with(&mut self, sim: &mut Sim, load: &mut dyn FnMut(&Segment) -> Option<Sim>) -> Result<(), ReplayError> {
         let t = sim.ticks();
         if t >= self.end() {
             return Err(ReplayError::OutOfTrace { tick: t + 1, base: 0, end: self.end() });
         }
+        if let Some(next) = self.rec.segments.get(self.seg + 1) {
+            if next.start == t {
+                let mut fresh = load(next).ok_or(ReplayError::NoSegmentData { tick: t })?;
+                fresh.set_gold_by_mod(next.gold_by_mod);
+                carry_from(sim, &mut fresh);
+                let actual = fresh.state_hash();
+                if actual != next.init {
+                    return Err(ReplayError::Init { expected: next.init, actual });
+                }
+                *sim = fresh;
+                self.seg += 1;
+            }
+        }
+        let t = sim.ticks();
         while self.next < self.rec.cmds.len() && self.rec.cmds[self.next].0 <= t {
             let cmd = &self.rec.cmds[self.next].1;
             self.next += 1;
@@ -1205,14 +1348,20 @@ impl Replayer {
         Ok(sim.ticks())
     }
 
-    /// Plays from the current tick to the end of the recording and returns the final hash.
-    pub fn run_to_end(&mut self, sim: &mut Sim) -> Result<u64, ReplayError> {
+    /// Plays from the current tick to the end of the recording and returns the final hash. `load` as in `step_with`.
+    pub fn run_to_end_with(&mut self, sim: &mut Sim, load: &mut dyn FnMut(&Segment) -> Option<Sim>) -> Result<u64, ReplayError> {
         while sim.ticks() < self.end() {
-            self.step(sim)?;
+            self.step_with(sim, load)?;
         }
         Ok(sim.state_hash())
     }
+
+    /// Plays from the current tick to the end of a single-segment recording and returns the final hash.
+    pub fn run_to_end(&mut self, sim: &mut Sim) -> Result<u64, ReplayError> {
+        self.run_to_end_with(sim, &mut |_| None)
+    }
 }
+
 
 #[cfg(all(test, feature = "server-tests"))]
 mod tests {
@@ -1299,7 +1448,7 @@ mod tests {
             rec.tick(&mut sim, true, true);
         }
         let text = rec.render(&sim);
-        assert!(text.starts_with("oscraft-replay 2\n"));
+        assert!(text.starts_with("oscraft-replay 3\n"));
         assert!(text.contains(" sp ") && text.contains(" du ") && text.contains(" ui "));
         let parsed = Recording::parse(&text).expect("parse");
         let mut fresh = data();

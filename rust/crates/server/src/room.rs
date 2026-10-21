@@ -72,7 +72,7 @@ pub struct Room {
     feed: Mutex<Option<Arc<ModLink>>>,
     ui: Mutex<UiLog>,
     /// A reloaded sim waiting for its swap tick: applied when the room's tick reaches the first value.
-    staged: Mutex<Option<(u64, Sim)>>,
+    staged: Mutex<Option<(u64, Sim, String)>>,
     clock: Mutex<Clock>,
     test_panic_at: AtomicU64,
     gold_by_mod: AtomicBool,
@@ -234,8 +234,8 @@ impl Room {
         }
         self.gold_by_mod.store(on, Ordering::Relaxed);
         c.sim.set_gold_by_mod(on);
-        let image = c.rec.image.clone();
-        let max_units = c.rec.max_units as usize;
+        let image = c.rec.image().to_string();
+        let max_units = c.rec.max_units();
         c.rec = Recording::new(&image, max_units, &c.sim);
         Ok(())
     }
@@ -251,8 +251,8 @@ impl Room {
         *lock(&self.feed) = Some(link);
     }
 
-    // A rebuilt image waits here until the next tick boundary swaps it in.
-    pub fn stage_data(&self, mut sim: Sim) -> Result<(), String> {
+    // A rebuilt image waits here until the next tick boundary swaps it in. `image` names it in the recording.
+    pub fn stage_data(&self, mut sim: Sim, image: &str) -> Result<(), String> {
         let (w, h) = (sim.grid().w as i32, sim.grid().h as i32);
         if (w, h) != (self.grid_w, self.grid_h) {
             return Err(format!(
@@ -262,7 +262,7 @@ impl Room {
         }
         sim.set_gold_by_mod(self.gold_by_mod.load(Ordering::Relaxed));
         let swap_at = self.tick_now() + DATA_SWAP_LEAD_TICKS;
-        *lock(&self.staged) = Some((swap_at, sim));
+        *lock(&self.staged) = Some((swap_at, sim, image.to_string()));
         Ok(())
     }
 
@@ -365,32 +365,14 @@ impl Room {
         let due = {
             let mut slot = lock(&self.staged);
             match slot.as_ref() {
-                Some((at, _)) if c.tick >= *at => slot.take(),
+                Some((at, _, _)) if c.tick >= *at => slot.take(),
                 _ => None,
             }
         };
-        if let Some((_, mut sim)) = due {
-            // Rebuild the match on the new data by replaying the recording onto the fresh sim, so gold, kills, items
-            // and camp progress carry over. Falls back to carrying the live units when the replay cannot run.
+        if let Some((_, sim, image)) = due {
             let live = c.sim.alive_count();
-            let inner = &mut *c;
-            let rebuilt = rebuild_by_replay(&mut inner.rec, &inner.sim, &mut sim);
-            if rebuilt.is_ok() {
-                // The old checkpoints were hashed under the old data; the swap tick starts the checkpoints for the new data.
-                inner.rec.drop_checks_before(inner.sim.ticks());
-            }
-            let (carried, refused, kept) = match rebuilt {
-                Ok(()) => (0, 0, c.handles.clone()),
-                Err(_) => {
-                    let (carried, refused) = carry_live_units(&c.sim, &mut sim);
-                    let kept = keep_handles(&c.sim, &mut sim, &c.handles);
-                    let at = c.sim.ticks();
-                    c.rec.mark_incomplete(at);
-                    (carried, refused, kept)
-                }
-            };
-            c.sim = sim;
-            c.handles = kept;
+            let clock = &mut *c;
+            let (carried, refused) = swap_in(&mut clock.sim, &mut clock.handles, &mut clock.rec, sim, &image, self.max_units);
             crate::emit!(
                 Ev::DataReloaded,
                 room = self.name,
@@ -620,38 +602,23 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
     applied
 }
 
-// Carries the live units of the sim in service into a freshly loaded image without new ids. A
-// live unit keeps its index and moves to its old point when the new map places a unit of the same
-// player and the same kind name there; any other unit the new map placed is removed, so no unit is
-// duplicated. A carried unit keeps its old health and maximum. Returns (carried, refused): refused
-// counts the old live units that found no such slot.
-fn carry_live_units(old: &Sim, new: &mut Sim) -> (usize, usize) {
-    let mut carried = 0;
-    for i in 0..new.count() {
-        if !new.alive(i) {
-            continue;
-        }
-        let same = i < old.count()
-            && old.alive(i)
-            && old.player(i) == new.player(i)
-            && old.kind_name(i).is_some()
-            && old.kind_name(i) == new.kind_name(i);
-        if same {
-            let (x, y) = old.position_fixed(i);
-            new.set_position(i, x, y);
-            new.set_health(i, old.hp(i), old.hp_max(i));
-            carried += 1;
-        } else {
-            new.remove_unit(i);
-        }
-    }
-    (carried, old.alive_count().saturating_sub(carried))
+// Swaps the live match onto `fresh`, the newly loaded data. The live units are carried onto it (sim::carry_from),
+// the handles keep their units, and the recording starts a new segment at the swap tick: its init is the state after
+// the carry, and each respawn is recorded as a command, so a replay of the whole recording reaches the same state.
+// Returns (carried, refused) as the carry counted them.
+fn swap_in(live: &mut Sim, handles: &mut HashMap<u32, usize>, rec: &mut Recording, mut fresh: Sim, image: &str, max_units: usize) -> (usize, usize) {
+    let (carried, refused) = sim::carry_from(live, &mut fresh);
+    rec.rebase(image, max_units, &fresh);
+    let kept = keep_handles(live, &mut fresh, handles, rec);
+    *live = fresh;
+    *handles = kept;
+    (carried, refused)
 }
 
 // Keeps each handle whose unit was live before the swap and whose kind name is unchanged. A unit
 // the new map leaves out is respawned at its old index, kind, owner and point, so the handle still
 // names the unit it was bound to. Any other handle is dropped and logged as refused with its reason.
-fn keep_handles(old: &Sim, new: &mut Sim, handles: &HashMap<u32, usize>) -> HashMap<u32, usize> {
+fn keep_handles(old: &Sim, new: &mut Sim, handles: &HashMap<u32, usize>, rec: &mut Recording) -> HashMap<u32, usize> {
     let mut kept = HashMap::new();
     for (&handle, &unit) in handles {
         if !old.alive(unit) {
@@ -666,7 +633,7 @@ fn keep_handles(old: &Sim, new: &mut Sim, handles: &HashMap<u32, usize>) -> Hash
             refuse("kind_changed");
             continue;
         }
-        if new.alive(unit) || respawn(old, new, unit) {
+        if new.alive(unit) || respawn(old, new, unit, rec) {
             kept.insert(handle, unit);
         } else {
             refuse(if new.catalog().unit_index(name).is_some() { "respawn_failed" } else { "kind_absent" });
@@ -675,7 +642,7 @@ fn keep_handles(old: &Sim, new: &mut Sim, handles: &HashMap<u32, usize>) -> Hash
     kept
 }
 
-fn respawn(old: &Sim, new: &mut Sim, unit: usize) -> bool {
+fn respawn(old: &Sim, new: &mut Sim, unit: usize, rec: &mut Recording) -> bool {
     let Some(name) = old.kind_name(unit) else {
         return false;
     };
@@ -683,7 +650,7 @@ fn respawn(old: &Sim, new: &mut Sim, unit: usize) -> bool {
         return false;
     };
     let (x, y) = old.position_fixed(unit);
-    new.spawn_at(unit, kind as u32, old.player(unit), x, y)
+    rec.apply(new, Command::Respawn { unit, kind: kind as u32, player: old.player(unit), x, y })
 }
 
 fn mapped(handles: &HashMap<u32, usize>, sim: &Sim, handle: u32) -> Option<usize> {
@@ -740,6 +707,107 @@ mod swap_rebuild_tests {
     }
 }
 
+#[cfg(all(test, feature = "server-tests"))]
+mod swap_segment_tests {
+    use super::*;
+    use crate::replay::{Replayer, Segment};
+    use std::path::{Path, PathBuf};
+
+    fn scenario() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes")
+    }
+
+    // A copy of the duel-routes scenario in its own temp dir, with `from` renamed to `to` in every .osd file.
+    fn copy_scenario(tag: &str, rename: Option<(&str, &str)>) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("oscraft-swap-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        for entry in std::fs::read_dir(scenario()).expect("scenario dir") {
+            let path = entry.expect("dir entry").path();
+            if path.extension().is_some_and(|e| e == "osd") {
+                let text = std::fs::read_to_string(&path).expect("read osd");
+                let text = match rename {
+                    Some((from, to)) => text.replace(&format!("\"{from}\""), &format!("\"{to}\"")),
+                    None => text,
+                };
+                std::fs::write(dir.join(path.file_name().expect("file name")), text).expect("write osd");
+            }
+        }
+        dir
+    }
+
+    // Runs `before` ticks on the duel-routes data with a mod unit bound to a handle, swaps to the data in `work`
+    // (recorded as `image`), runs `after` more ticks, and replays the whole recording from its first segment. The
+    // replay loads the swapped image by name. Returns the live and the replayed final state hashes, and the units the
+    // swap refused.
+    fn swap_and_replay(work: &Path, image: &str, before: u32, after: u32) -> (u64, u64, usize) {
+        let mut live = crate::mods::load_data(&scenario(), 64).expect("live sim");
+        live.set_fog(false);
+        let mut rec = Recording::new("duel-routes", 64, &live);
+        for _ in 0..before {
+            rec.tick(&mut live, false, false);
+        }
+        // A mod unit of a kind the swap keeps, placed off the map: the swap respawns it, and the respawn is recorded.
+        let kind = live.catalog().unit_index("tender").expect("tender kind") as u32;
+        let first = (0..live.count()).find(|&i| live.alive(i)).expect("a live unit");
+        let (x, y) = live.position_fixed(first);
+        let mut handles = HashMap::new();
+        let unit = (1..40)
+            .find_map(|k| rec.spawn(&mut live, 7, kind, x + k * 3 * 65536, y, 0, 0))
+            .expect("a free point for the mod unit");
+        handles.insert(7, unit);
+        let mut fresh = crate::mods::load_data(work, 64).expect("swapped data");
+        fresh.set_fog(false);
+        let (carried, refused) = swap_in(&mut live, &mut handles, &mut rec, fresh, image, 64);
+        assert!(carried > 0, "the swap carries live units");
+        assert_eq!(rec.segments().len(), 2, "the swap starts a new segment");
+        assert!(handles.contains_key(&7), "the handle keeps its unit through the swap");
+        for _ in 0..after {
+            rec.tick(&mut live, false, false);
+        }
+        let text = rec.render(&live);
+        assert!(text.lines().any(|l| l.contains(" rn ")), "the respawn is a recorded command");
+        let parsed = Recording::parse(&text).expect("recording parses");
+        let mut replay = crate::mods::load_data(&scenario(), 64).expect("first image");
+        replay.set_fog(false);
+        let mut player = Replayer::new(parsed, &replay).expect("replayer");
+        let work = work.to_path_buf();
+        let image = image.to_string();
+        let mut load = |seg: &Segment| -> Option<sim::Sim> {
+            if seg.image != image {
+                return None;
+            }
+            let mut next = crate::mods::load_data(&work, 64).ok()?;
+            next.set_fog(false);
+            Some(next)
+        };
+        let replayed = player.run_to_end_with(&mut replay, &mut load).expect("replay of every segment");
+        assert_eq!(replay.ticks(), live.ticks());
+        (live.state_hash(), replayed, refused)
+    }
+
+    // A unit kind renamed by the data change: the live units of that kind are refused, and the replay of the whole
+    // recording, across the swap, still reaches the live state.
+    #[test]
+    fn renamed_kind_swap_replays_from_the_first_segment() {
+        let work = copy_scenario("renamed", Some(("skirmisher", "skirmisher_renamed")));
+        let (live, replayed, refused) = swap_and_replay(&work, "duel-routes-renamed", 200, 200);
+        let _ = std::fs::remove_dir_all(&work);
+        assert!(refused > 0, "the renamed kind refuses live units");
+        assert_eq!(replayed, live);
+    }
+
+    // A swap onto unchanged data is still a segment, and its replay reaches the live state too.
+    #[test]
+    fn unchanged_swap_replays_from_the_first_segment() {
+        let work = copy_scenario("unchanged", None);
+        let (live, replayed, refused) = swap_and_replay(&work, "duel-routes-same", 200, 200);
+        assert_eq!(refused, 1, "unchanged data refuses only the mod unit the map does not place, which its handle respawns");
+        let _ = std::fs::remove_dir_all(&work);
+        assert_eq!(replayed, live);
+    }
+}
+
 #[cfg(test)]
 mod carry_tests {
     use super::*;
@@ -752,14 +820,15 @@ mod carry_tests {
         let max = old.hp_max(i);
         old.set_health(i, 7, max);
         let mut new = mods::load_data(&data, 4096).expect("new image");
-        let (carried, _) = carry_live_units(&old, &mut new);
+        let (carried, _) = sim::carry_from(&old, &mut new);
         assert!(carried > 0);
         assert_eq!(new.hp(i), 7, "a carried unit keeps its pre-swap health");
     }
 }
 
-// Rebuilds a running match on `fresh` (the new data) by replaying the room's recording onto it up to the live tick.
-// The recording is kept as it was; a failed replay leaves `fresh` unused and the caller carries the live units instead.
+// Rebuilds a single-segment match on `fresh` by replaying the recording onto it up to the live tick. The swap does not
+// use this (it re-bases the recording); the test checks that a replay of the recording reaches the live state.
+#[cfg(test)]
 fn rebuild_by_replay(rec: &mut crate::replay::Recording, live: &Sim, fresh: &mut Sim) -> Result<(), String> {
     let text = rec.render(live);
     let parsed = crate::replay::Recording::parse(&text).map_err(|e| format!("{e:?}"))?;

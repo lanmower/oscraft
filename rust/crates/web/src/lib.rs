@@ -9,6 +9,9 @@ use wasm_bindgen::prelude::*;
 mod replay;
 use replay::{Command, Recording, Replayer};
 
+/// The image name the live recording runs on. The browser loads map bytes, so it has no file name to record.
+const LIVE_IMAGE: &str = "map";
+
 /// The unit cap the gate uses, so the browser and the parity checks load the same limits.
 const MAX_UNITS: usize = 1024;
 
@@ -17,6 +20,8 @@ pub struct Game {
     sim: sim::Sim,
     image: Vec<u8>,
     replay: Option<Replayer>,
+    /// The commands the live sim received, so a data swap re-bases the record the same way the server's does.
+    rec: Recording,
 }
 
 #[wasm_bindgen]
@@ -24,7 +29,8 @@ impl Game {
     #[wasm_bindgen(constructor)]
     pub fn new(image: &[u8]) -> Result<Game, JsValue> {
         let sim = sim::load(image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
-        Ok(Game { sim, image: image.to_vec(), replay: None })
+        let rec = Recording::new(LIVE_IMAGE, MAX_UNITS, &sim);
+        Ok(Game { sim, image: image.to_vec(), replay: None, rec })
     }
 
     /// Replaces the sim with a fresh load of the map image and cues the replay `text` (the file
@@ -35,6 +41,7 @@ impl Game {
         let fresh = sim::load(&self.image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
         let player = Replayer::new(rec, &fresh).map_err(replay_error)?;
         let end = player.end();
+        self.rec.mark_incomplete(fresh.ticks());
         self.sim = fresh;
         self.replay = Some(player);
         Ok(end)
@@ -60,6 +67,7 @@ impl Game {
         if tick < self.sim.ticks() {
             let fresh = sim::load(&self.image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
             player.reset(&fresh).map_err(replay_error)?;
+            self.rec.mark_incomplete(fresh.ticks());
             self.sim = fresh;
         }
         player.seek(&mut self.sim, tick).map_err(replay_error)
@@ -82,7 +90,21 @@ impl Game {
     }
 
     pub fn tick(&mut self) {
-        self.sim.tick();
+        self.rec.tick(&mut self.sim, true, true);
+    }
+
+    /// Swaps the live match onto the map image `image` (new data). The live units carry over onto it, as on the server,
+    /// and the record starts a new segment at this tick. Returns `[carried, refused]`: the live units carried, and the
+    /// live units the new data had no slot for. Refused when the image does not load; the match is unchanged then.
+    pub fn swap_data(&mut self, image: &[u8]) -> Result<Vec<u32>, JsValue> {
+        let mut fresh = sim::load(image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
+        fresh.set_gold_by_mod(self.sim.gold_by_mod());
+        fresh.set_fog(self.sim.fog_on());
+        let (carried, refused) = sim::carry_from(&self.sim, &mut fresh);
+        self.rec.rebase(LIVE_IMAGE, MAX_UNITS, &fresh);
+        self.sim = fresh;
+        self.image = image.to_vec();
+        Ok(vec![carried as u32, refused as u32])
     }
 
     pub fn ticks(&self) -> u32 {
@@ -100,7 +122,9 @@ impl Game {
 
     /// Restores the sim from bytes `save_state` wrote on the same map. A refused load leaves the game as it was.
     pub fn load_state(&mut self, bytes: &[u8]) -> Result<(), JsValue> {
-        self.sim.load_state(bytes).map_err(|e| JsValue::from_str(&format!("load_state: {e:?}")))
+        self.sim.load_state(bytes).map_err(|e| JsValue::from_str(&format!("load_state: {e:?}")))?;
+        self.rec.mark_incomplete(self.sim.ticks());
+        Ok(())
     }
 
     /// Sim ids of the living units, in the same order as `units()`.
@@ -133,7 +157,7 @@ impl Game {
         const ORDER_MOVE: u8 = 0;
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
-        self.sim.issue_order_kind(unit as usize, ORDER_MOVE, fx, fy).is_ok()
+        self.rec.apply(&mut self.sim, Command::Kind { unit: unit as usize, kind: ORDER_MOVE, x: fx, y: fy })
     }
 
     /// Attack-moves unit `unit` to tile (x, y): it walks there, strikes each enemy in its reach on the way,
@@ -141,13 +165,13 @@ impl Game {
     pub fn attack_move(&mut self, unit: u32, x: f32, y: f32) -> bool {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
-        self.sim.issue_order_kind(unit as usize, sim::ORDER_ATTACK_MOVE, fx, fy).is_ok()
+        self.rec.apply(&mut self.sim, Command::Kind { unit: unit as usize, kind: sim::ORDER_ATTACK_MOVE, x: fx, y: fy })
     }
 
     /// Holds unit `unit` where it stands: it does not chase, and strikes only enemies in its reach.
     /// Returns false when the sim refuses the order (dead or unknown unit, stunned).
     pub fn hold(&mut self, unit: u32) -> bool {
-        self.sim.issue_order_kind(unit as usize, sim::ORDER_HOLD, 0, 0).is_ok()
+        self.rec.apply(&mut self.sim, Command::Hold { unit: unit as usize })
     }
 
     /// Debug view: the target class a mod set on unit `unit` (0..=3), or -1 when the Rust rule applies.
@@ -168,7 +192,7 @@ impl Game {
             0..=254 => class as u8,
             _ => return false,
         };
-        Command::ClassOverride { unit, class }.apply(&mut self.sim)
+        self.rec.apply(&mut self.sim, Command::ClassOverride { unit, class })
     }
 
     /// Sets unit `unit`'s attack-move hold: 1 always holds, 0 never holds, -1 restores the Rust rule.
@@ -179,7 +203,7 @@ impl Game {
             0 | 1 => hold as u8,
             _ => return false,
         };
-        Command::HoldOverride { unit, hold }.apply(&mut self.sim)
+        self.rec.apply(&mut self.sim, Command::HoldOverride { unit, hold })
     }
 
     /// Name of the sim's most recent refusal (`Refusal` variant), for the page's refusal witness.
@@ -230,7 +254,7 @@ impl Game {
     pub fn cast(&mut self, unit: u32, slot: u32, target: i32, x: f32, y: f32) -> bool {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
-        self.sim.cast_ability(unit as usize, slot as usize, target, fx, fy)
+        self.rec.apply(&mut self.sim, Command::Cast { unit: unit as usize, slot: slot as usize, target, x: fx, y: fy })
     }
 
     /// Uses the active item in inventory slot `slot` of unit `unit`, aimed at unit `target` or at the
@@ -239,19 +263,21 @@ impl Game {
     pub fn use_item(&mut self, unit: u32, slot: u32, target: i32, x: f32, y: f32) -> bool {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
-        self.sim.use_item(unit as usize, slot as usize, target, fx, fy)
+        self.rec.apply(&mut self.sim, Command::UseItem { unit: unit as usize, slot: slot as usize, target, x: fx, y: fy })
     }
 
     /// Spends one skill point to raise ability slot `slot` of unit `unit` by a rank. Returns false
     /// when the sim refuses it (no free point, max rank, level gate, or no skill tree).
     pub fn skill_up(&mut self, unit: u32, slot: u32) -> bool {
-        self.sim.skill_up(unit as usize, slot as usize).is_ok()
+        self.rec.apply(&mut self.sim, Command::SkillUp { unit: unit as usize, slot: slot as usize })
     }
 
     /// Chooses talent `side` (0 or 1) of tier `tier` (0..=3, levels 10, 15, 20, 25) for unit `unit`. Returns false
     /// when the sim refuses it (level below the tier, tier already chosen, dead unit).
     pub fn choose_talent(&mut self, unit: u32, tier: u32, side: u32) -> bool {
-        self.sim.choose_talent(unit as usize, tier as usize, side as usize).is_ok()
+        let chosen = self.sim.choose_talent(unit as usize, tier as usize, side as usize).is_ok();
+        self.rec.mark_incomplete(self.sim.ticks());
+        chosen
     }
 
     /// Upgrade bits of unit `unit`: bit 0 scepter, bit 1 shard, bits 2..=9 the eight talent choices (tier * 2 + side).
@@ -277,12 +303,13 @@ impl Game {
     /// Orders unit `unit` to attack unit `target`, walking toward it when it is out of reach.
     /// Returns false when the sim refuses the order.
     pub fn attack(&mut self, unit: u32, target: u32) -> bool {
-        self.sim.order_attack_or_approach(unit as usize, target as usize).is_ok()
+        self.rec.apply(&mut self.sim, Command::Attack { unit: unit as usize, target: target as usize })
     }
 
     /// Test hook for the page's CI probe: deals `damage` whole points to unit `unit`.
     pub fn hurt(&mut self, unit: u32, damage: i32) {
         self.sim.hurt(unit as usize, sim::fixed::from_int(damage));
+        self.rec.mark_incomplete(self.sim.ticks());
     }
 
     /// Kills credited to unit `unit`.
@@ -299,17 +326,23 @@ impl Game {
     pub fn spawn_hero(&mut self, player: u8, kind: u32, x: f32, y: f32) -> i32 {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
-        self.sim.spawn_hero(player, kind, fx, fy).map_or(-1, |i| i as i32)
+        let id = self.sim.spawn_hero(player, kind, fx, fy).map_or(-1, |i| i as i32);
+        self.rec.mark_incomplete(self.sim.ticks());
+        id
     }
 
     /// Removes live unit `unit` from the sim: its slot stops counting and no query finds it. False when it is not alive.
     pub fn remove_unit(&mut self, unit: u32) -> bool {
-        self.sim.remove_unit(unit as usize)
+        let removed = self.sim.remove_unit(unit as usize);
+        self.rec.mark_incomplete(self.sim.ticks());
+        removed
     }
 
     /// Loads the hero rules from `key=value` text (scenarios/moba/hero_rules.txt). False, rules unchanged, on a bad line.
     pub fn set_hero_rules(&mut self, text: &str) -> bool {
-        self.sim.set_hero_rules_text(text)
+        let set = self.sim.set_hero_rules_text(text);
+        self.rec.mark_incomplete(self.sim.ticks());
+        set
     }
 
     /// Ticks until hero `unit` respawns; 0 when alive; -1 for a non-hero.
@@ -329,7 +362,9 @@ impl Game {
 
     /// Buys back dead hero `unit` at its home. False when refused: alive, on cooldown, short of gold, or home cell full.
     pub fn buyback(&mut self, unit: u32) -> bool {
-        self.sim.buyback(unit as usize)
+        let bought = self.sim.buyback(unit as usize);
+        self.rec.mark_incomplete(self.sim.ticks());
+        bought
     }
 
     /// Gold held by hero `unit`; 0 for a non-hero.
@@ -404,7 +439,7 @@ impl Game {
 
     /// Turns the fog of war on or off. The moba preview turns it off so every enemy is a valid target.
     pub fn set_fog(&mut self, on: bool) {
-        self.sim.set_fog(on);
+        self.rec.apply(&mut self.sim, Command::Fog { on });
     }
 
     // fogview: vision grid [width, height, cell size in tiles] and player `p`'s visible cells, one byte each.
@@ -474,22 +509,24 @@ impl Game {
 
     /// UI export: buys catalog item index `item` for unit `unit` at a shop in reach. False when refused.
     pub fn buy(&mut self, unit: u32, item: u32) -> bool {
-        self.sim.buy_item(unit as usize, item as usize)
+        self.rec.apply(&mut self.sim, Command::Buy { unit: unit as usize, item: item as usize })
     }
 
     /// Test hook for the page's CI probe: puts `count` charges of catalog item index `item` into unit `unit`'s inventory. False when no slot is free.
     pub fn give_item(&mut self, unit: u32, item: u32, count: u32) -> bool {
-        self.sim.inventory_add(unit as usize, item + 1, count)
+        let added = self.sim.inventory_add(unit as usize, item + 1, count);
+        self.rec.mark_incomplete(self.sim.ticks());
+        added
     }
 
     /// UI export: sells inventory slot `slot` of unit `unit` for half its cost. False when refused.
     pub fn sell(&mut self, unit: u32, slot: u32) -> bool {
-        self.sim.sell_item(unit as usize, slot as usize)
+        self.rec.apply(&mut self.sim, Command::Sell { unit: unit as usize, slot: slot as usize })
     }
 
     /// UI export: moves stash slot `slot` of unit `unit` into the inventory. False when refused.
     pub fn unstash(&mut self, unit: u32, slot: u32) -> bool {
-        self.sim.unstash(unit as usize, slot as usize)
+        self.rec.apply(&mut self.sim, Command::Unstash { unit: unit as usize, slot: slot as usize })
     }
 
     /// UI export: character level of unit `unit` (xp level plus one), the number skill gates compare against.

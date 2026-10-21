@@ -43,6 +43,7 @@ mod hero;
 mod modapi;
 mod diplomacy;
 mod camp;
+mod carry;
 mod aggro;
 mod wards;
 mod courier;
@@ -51,6 +52,7 @@ mod waves;
 mod route;
 
 pub use arrays::{Sim, Stats};
+pub use carry::carry_from;
 pub use camp::{CAMP_FIRST_SPAWN_S, CAMP_CLEAR_MILLI, CAMP_LEASH_MILLI, CAMP_RESPAWN_S, ROSHAN_RESPAWN_MIN_S, ROSHAN_RESPAWN_SPREAD_S, RUNE_GOLD, RUNE_RESPAWN_S};
 pub use loader::{load, load_file, Catalog, Doodad, Effect, LoadError, Trigger};
 pub use modapi::{effect_kind, stat_code, target_code, AbilitySpec, ItemSpec, UnitSpec, UpgradeSpec, MOD_EFFECTS, STAT_NAMES};

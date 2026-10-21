@@ -23,9 +23,14 @@ fn main() {
         eprintln!("{file}: {e:?}");
         std::process::exit(2);
     });
-    let image = args.get(2).cloned().unwrap_or_else(|| rec.image.clone());
-    let max_units = rec.max_units as usize;
-    let gold = rec.gold_by_mod;
+    if rec.segments().len() > 1 {
+        eprintln!("{file}: the recording spans {} data swaps; this check replays one image", rec.segments().len() - 1);
+        std::process::exit(2);
+    }
+    let first = rec.segments()[0].clone();
+    let image = args.get(2).cloned().unwrap_or_else(|| first.image.clone());
+    let max_units = first.max_units as usize;
+    let gold = first.gold_by_mod;
     let load = || -> sim::Sim {
         let loaded = if image.ends_with(".bin") {
             std::fs::read(&image).map_err(|e| e.to_string()).and_then(|b| sim::load(&b, max_units).map_err(|e| format!("{e:?}")))
