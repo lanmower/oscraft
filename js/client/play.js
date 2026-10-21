@@ -1280,10 +1280,17 @@ session.addEventListener("data", (e) => {
     return;
   }
   if (frame.type === FRAME.SWAP) {
-    // A peer records the host's swap tick; the module reload itself is applied by the host's announced value, here or on reload.
+    // A peer records the host's swap tick and fetches the new image now, so it is ready by the tick. The module reload
+    // itself is applied by the host's announced value, here or on reload.
     const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
     if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
-    pendingSwap = { tick: frame.tick, file: frame.file, url: new URL(`./${frame.file}`, import.meta.url).href, value: null };
+    const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null };
+    pendingSwap = swap;
+    fetchMapImage().then((bytes) => {
+      const got = fnv1a32(bytes);
+      if (got !== swap.hash) swap.error = `image hash ${got.toString(16)} is not the host's ${swap.hash.toString(16)}`;
+      else swap.image = bytes;
+    }, (err) => { swap.error = err.message; });
     return;
   }
   if (frame.type === FRAME.START) {
@@ -1508,20 +1515,71 @@ window.addEventListener("oscraft:hmr", (e) => {
   if (!value) return;
   const file = url.slice(url.lastIndexOf("/") + 1);
   if (hosting && localGame) {
-    // Announce the swap tick ahead so every peer applies the reload at the same tick, then apply it there.
-    // One swap at a time: a second is refused while the first waits for its tick.
-    if (pendingSwap) { refuseSwap(`swap already pending for ${pendingSwap.file} at tick ${pendingSwap.tick}`, null, file, "[hmr]"); return; }
-    const tick = localGame.ticks() + SWAP_LEAD_TICKS;
-    // Broadcast first: the host only keeps the swap if its peers were sent the announcement.
-    try { session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, file })); } catch (err) { console.error(`[hmr] ${file}: swap announce failed, not applied: ${err.message}`); return; }
-    pendingSwap = { tick, file, url, value };
-    console.log(`[hmr] ${file}: swap at tick ${tick}`);
+    announceSwap(file, url, value);
     return;
   }
   hmrApply(file, url, value).catch((err) => console.error(`[hmr] ${file}: rebuild failed: ${err.message}`));
 });
 // Ticks between a swap announcement and its swap (the same lead the server uses for staged data reloads).
 const SWAP_LEAD_TICKS = 32;
+// True while the host fetches the new image for an announcement; a second hot reload is refused until it is sent.
+let swapFetching = false;
+// The last data swap this page applied or failed, for window.oscraft.lastSwap() and getState().
+let lastSwapResult = null;
+
+// The page's map image as the sim loads it, fetched from the same origin path with no cache, so a rebuilt image is read.
+async function fetchMapImage() {
+  const res = await fetch(mapUrl, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${mapUrl} HTTP ${res.status}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+// 32-bit FNV-1a of the bytes: the image's identity in a SWAP frame.
+function fnv1a32(bytes) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i += 1) h = Math.imul(h ^ bytes[i], 0x01000193) >>> 0;
+  return h >>> 0;
+}
+
+// Host half of a data swap: fetches the new image and hashes it, then announces the swap tick, so every peer swaps at
+// the tick the host does. A failed fetch announces nothing and the match keeps its data.
+async function announceSwap(file, url, value) {
+  if (pendingSwap || swapFetching) { refuseSwap(`swap already pending for ${pendingSwap ? pendingSwap.file : file} at tick ${pendingSwap ? pendingSwap.tick : "?"}`, null, file, "[hmr]"); return; }
+  swapFetching = true;
+  try {
+    const bytes = await fetchMapImage();
+    const hash = fnv1a32(bytes);
+    const tick = localGame.ticks() + SWAP_LEAD_TICKS;
+    // Broadcast first: the host only keeps the swap if its peers were sent the announcement.
+    session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, hash, file }));
+    pendingSwap = { tick, hash, file, url, value, image: bytes, error: null };
+    console.log(`[hmr] ${file}: swap at tick ${tick} (image hash ${hash.toString(16)})`);
+  } catch (err) {
+    console.error(`[hmr] ${file}: swap not announced, not applied: ${err.message}`);
+    lastSwapResult = { tick: localGame ? localGame.ticks() : 0, file, ok: false, carried: null, refused: null, error: err.message };
+  } finally {
+    swapFetching = false;
+  }
+}
+
+// Applies the data half of a swap on this peer at its tick: the Game takes the new image and keeps the live units.
+// A missing or wrong image, or a refused load, is logged and the old Game stays in service.
+function applyDataSwap(due) {
+  const tick = localGame.ticks();
+  const fail = (error) => {
+    lastSwapResult = { tick, file: due.file, ok: false, carried: null, refused: null, error };
+    console.error(`[swap] ${due.file} at tick ${tick}: data swap failed, previous data kept: ${error}`);
+  };
+  if (due.error) return fail(due.error);
+  if (!due.image) return fail("image not loaded on this peer by the swap tick");
+  try {
+    const [carried, refused] = localGame.swap_data(due.image);
+    lastSwapResult = { tick, file: due.file, ok: true, carried, refused, error: null };
+    console.log(`[swap] ${due.file} at tick ${tick}: carried=${carried} refused=${refused}`);
+  } catch (err) {
+    fail(err && err.message ? err.message : String(err));
+  }
+}
 
 // A swap name is a plain module file name: letters, digits, _ . - and a .js or .mjs ending, with no slash, query or "..".
 const SWAP_FILE = /^[A-Za-z0-9_.-]+\.m?js$/;
@@ -1567,6 +1625,7 @@ function applyDueSwap() {
   if (!pendingSwap || !localGame || localGame.ticks() < pendingSwap.tick) return;
   const due = pendingSwap;
   pendingSwap = null;
+  applyDataSwap(due);
   if (!due.value) {
     // A peer re-imports the named module at the swap tick, as the host did, and runs its hook.
     peerReloadModule(due.file, due.url).catch((err) => console.error(`[hmr] ${due.file}: peer reload failed: ${err.message}`));
@@ -1729,6 +1788,7 @@ installDebugApi({
   localPlayer: () => myPlayer,
   netTick: () => (netState ? netState.tick : 0),
   units: currentUnits,
+  lastSwap: () => (lastSwapResult ? { ...lastSwapResult } : null),
   isHero: (id) => localGame !== null && isHeroUnit(id),
   attributes: (id) => (localGame !== null && typeof localGame.attributes === "function" ? Array.from(localGame.attributes(id)) : null),
   selected: () => (hud ? hud.input.selection() : selectedId === -1 ? [] : [selectedId]),
@@ -1837,6 +1897,7 @@ if (params.get("ci") === "1") {
     centreOn: (x, z) => (renderer3d ? renderer3d.setCamera({ target: [x, groundAt(x, z), z] }) : null),
     fx: () => (fx ? fx.counts() : null),
     swapRejections: () => swapRejections.slice(),
+    lastSwap: () => (lastSwapResult ? { ...lastSwapResult } : null),
   });
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }

@@ -35,8 +35,8 @@ const samples = [
   { type: FRAME.ATTACK_MOVE, unitId: 4, x: -3, y: 1310720 },
   { type: FRAME.USE_ITEM, unitId: 4, slot: 0, target: -1, x: 0, y: 0 },
   { type: FRAME.USE_ITEM, unitId: 0xffffffff, slot: 5, target: 0x7fffffff, x: -0x80000000, y: 0x7fffffff },
-  { type: FRAME.SWAP, tick: 0, file: "" },
-  { type: FRAME.SWAP, tick: 0xffffffff, file: "moba-units.lua" },
+  { type: FRAME.SWAP, tick: 0, hash: 0, file: "" },
+  { type: FRAME.SWAP, tick: 0xffffffff, hash: 0xffffffff, file: "moba-units.lua" },
   { type: FRAME.JOIN, lastTick: 0 },
   { type: FRAME.JOIN, lastTick: 0xffffffff },
   { type: FRAME.ROSTER, you: 255, team: 255, players: [] },
@@ -194,10 +194,11 @@ assert.deepStrictEqual(decodeFrame(encodeFrame({ type: FRAME.STATE, tick: 9, has
 
 // A swap name is at most 64 bytes on both sides; a longer one is refused by the writer and by the decoder.
 const longName = 'a'.repeat(65);
-assert.throws(() => encodeFrame({ type: FRAME.SWAP, tick: 1, file: longName }), (err) => err instanceof WireError && err.code === 'RANGE', 'swap writer refuses 65 bytes');
-const swap64 = encodeFrame({ type: FRAME.SWAP, tick: 1, file: 'a'.repeat(64) });
+assert.throws(() => encodeFrame({ type: FRAME.SWAP, tick: 1, hash: 0, file: longName }), (err) => err instanceof WireError && err.code === 'RANGE', 'swap writer refuses 65 bytes');
+const swap64 = encodeFrame({ type: FRAME.SWAP, tick: 1, hash: 0x811c9dc5, file: 'a'.repeat(64) });
 assert.equal(decodeFrame(swap64).file.length, 64, 'swap of 64 bytes round-trips');
-expectReject(Uint8Array.from([FRAME.SWAP, WIRE_VERSION, 1, 0, 0, 0, 65, ...new Uint8Array(65).fill(0x61)]), 'COUNT_OUT_OF_RANGE', 'swap decode of 65 bytes');
+assert.equal(decodeFrame(swap64).hash, 0x811c9dc5, 'swap carries the image hash');
+expectReject(Uint8Array.from([FRAME.SWAP, WIRE_VERSION, 1, 0, 0, 0, 0, 0, 0, 0, 65, ...new Uint8Array(65).fill(0x61)]), 'COUNT_OUT_OF_RANGE', 'swap decode of 65 bytes');
 
 // Bad UTF-8 in a string field is a WireError, not a TypeError.
 expectReject(Uint8Array.from([FRAME.HELLO, WIRE_VERSION, 1, 0xff]), 'BAD_UTF8', 'hello with invalid UTF-8');

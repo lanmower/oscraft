@@ -99,6 +99,7 @@ export function createDebugApi(hooks) {
         terrainMode: hooks.terrainMode(),
         fog: hooks.fogOn(),
         shadows: Boolean(r && hooks.shadowsOn()),
+        lastSwap: hooks.lastSwap ? hooks.lastSwap() : null,
       };
     },
 

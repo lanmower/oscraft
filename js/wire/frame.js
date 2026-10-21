@@ -118,21 +118,24 @@ const CODECS = {
     read(r) { return { unitId: r.u32() }; },
   },
   // A data reload's swap tick: the tick at which every peer swaps to the new data (see the room's DATA_SWAP_LEAD_TICKS).
+  // The hash is the 32-bit FNV-1a of the new image bytes, so a peer can check the image it fetched is the host's.
   // The file name is a plain module name of at most MAX_SWAP_NAME_BYTES bytes; a longer one is refused on both sides.
   [FRAME.SWAP]: {
-    size: (f) => 2 + 4 + 1 + encoder.encode(f.file || '').length,
+    size: (f) => 2 + 4 + 4 + 1 + encoder.encode(f.file || '').length,
     write(w, f) {
       const name = encoder.encode(f.file || '');
       if (name.length > MAX_SWAP_NAME_BYTES) throw new WireError('RANGE', `swap file name is ${name.length} bytes, max ${MAX_SWAP_NAME_BYTES}`);
       w.u32(f.tick, 'tick');
+      w.u32(f.hash, 'hash');
       w.u8(name.length, 'file length');
       w.raw(name);
     },
     read(r) {
       const tick = r.u32();
+      const hash = r.u32();
       const len = r.u8();
       if (len > MAX_SWAP_NAME_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `swap file name ${len} > ${MAX_SWAP_NAME_BYTES}`);
-      return { tick, file: text(r.take(len), 'swap file name') };
+      return { tick, hash, file: text(r.take(len), 'swap file name') };
     },
   },
   // A debug override of a unit's target class: 0..3, or 255 to clear it back to the Rust rule.
