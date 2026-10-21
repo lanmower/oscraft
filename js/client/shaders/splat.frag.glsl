@@ -55,7 +55,7 @@ void main() {
   }
   near /= 8.0; far /= 8.0;
   float depth = smoothstep(0.55, 1.0, far);
-  float t = uTime;
+  float t = 3.0 * uTime;
   // Three ripple scales interfere: each samples the wave pattern at its own frequency and weight, so the sum never repeats
   // on one regular grid. The slope of each scale is divided back by its frequency, so the strengths stay comparable.
   vec2 slope = vec2(0.0);
