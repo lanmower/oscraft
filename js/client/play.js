@@ -686,11 +686,18 @@ function tickShare() {
   return tickStampMs === null ? 0 : Math.min(1, Math.max(0, (performance.now() - tickStampMs) / SIM_TICK_MS));
 }
 
+// The unit as drawn this frame: model and health bar both read this, so they move together between ticks. The top height
+// follows the drawn ground, so a bar stays over its model up a slope.
 function drawnPosition(u) {
   const c = tickClock.get(u.id);
   if (!c || tickStampMs === null) return u;
   const a = tickShare();
-  return { ...u, x: c.px + (c.x - c.px) * a, z: c.pz + (c.z - c.pz) * a };
+  return anchored({ ...u, x: c.px + (c.x - c.px) * a, z: c.pz + (c.z - c.pz) * a });
+}
+
+// The units the HUD's health bars and feedback read: the same drawn positions the models use this frame.
+function shownUnits() {
+  return currentUnits().map(drawnPosition);
 }
 
 // Draws a collected unit list. The shadow pass (shadow = true) re-issues the same meshes with the light's matrix and
@@ -2052,7 +2059,7 @@ async function main() {
     barCanvas: createBarCanvas(),
     mapSize: { w: W, h: H },
     grid: mapGrid,
-    units: currentUnits,
+    units: shownUnits,
     selected: () => selectedId,
     localPlayer: localPlayerId,
     send: sendInput,

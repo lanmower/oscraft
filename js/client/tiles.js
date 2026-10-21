@@ -464,12 +464,32 @@ export function controlMap(bytes) {
     const ch = SPLAT_CHANNEL[kind];
     if (ch !== undefined) data[i * 4 + ch] = 255;
   }
+  // Ground ramp: grass, dirt and path weights average over the box of RAMP_SPAN cells, so each ground layer fades into its
+  // neighbours over several cells instead of stepping on a cell edge. The splat shader biases that fade by each layer's
+  // height texture, so the ramp follows the features (a stone shows through the dirt, a root through the grass). A cell's
+  // rock and water cover keeps its share; the ground weights fill what is left.
+  const ground = SPLAT_LAYERS.indexOf("rock");
+  const groundShare = [];
+  for (let c = 0; c < ground; c++) {
+    const one = new Float32Array(width * height);
+    for (let i = 0; i < one.length; i++) one[i] = data[i * 4 + c] / 255;
+    // Two box passes approximate a Gaussian: one box pass keeps the mask's axis-aligned corners, which the thresholds then draw.
+    groundShare.push(boxMean(grid, boxMean(grid, one)));
+  }
+  for (let i = 0; i < width * height; i++) {
+    const o = i * 4;
+    const budget = 255 - data[o + ground];
+    let total = 0;
+    for (let c = 0; c < ground; c++) total += groundShare[c][i];
+    if (total <= 0 || budget <= 0) continue;
+    for (let c = 0; c < ground; c++) data[o + c] = Math.round((budget * groundShare[c][i]) / total);
+  }
   // Rock (cliff) weight fades over RAMP_SPAN cells: the share of wall cells around each cell, eased, moves weight from the
   // ground channels to rock, so a cliff meets its ground along a gradual edge instead of a line. Display only.
   const rock = SPLAT_LAYERS.indexOf("rock");
   const walls = new Float32Array(width * height);
   for (let i = 0; i < walls.length; i++) if (isCliffLevelCell(grid, i)) walls[i] = 1;
-  const rockShare = boxMean(grid, walls);
+  const rockShare = boxMean(grid, boxMean(grid, walls));
   for (let i = 0; i < walls.length; i++) {
     const r = easeStep(2 * rockShare[i]);
     if (r <= 0) continue;
