@@ -250,14 +250,16 @@ float sunShadow(vec3 w, vec3 n) {
   float facing = clamp(dot(normalize(n), sun), 0.0, 1.0);
   float bias = max(0.0009 * (1.0 - facing), 0.00025);
   // Bilinear PCF: compare the four texels around s and blend by s's fractional position in the texel grid.
-  vec2 t = s.xy / uShadowTexel - 0.5;
+  // The kernel spacing is twice a texel, so the shadow edge blurs over twice the width.
+  float k = 2.0 * uShadowTexel;
+  vec2 t = s.xy / k - 0.5;
   vec2 f = fract(t);
-  vec2 c = (floor(t) + 0.5) * uShadowTexel;
+  vec2 c = (floor(t) + 0.5) * k;
   float r = s.z - bias;
   float a = (r > texture(uShadow, c).r) ? 0.0 : 1.0;
-  float b = (r > texture(uShadow, c + vec2(uShadowTexel, 0.0)).r) ? 0.0 : 1.0;
-  float e = (r > texture(uShadow, c + vec2(0.0, uShadowTexel)).r) ? 0.0 : 1.0;
-  float g = (r > texture(uShadow, c + vec2(uShadowTexel)).r) ? 0.0 : 1.0;
+  float b = (r > texture(uShadow, c + vec2(k, 0.0)).r) ? 0.0 : 1.0;
+  float e = (r > texture(uShadow, c + vec2(0.0, k)).r) ? 0.0 : 1.0;
+  float g = (r > texture(uShadow, c + vec2(k)).r) ? 0.0 : 1.0;
   return mix(mix(a, b, f.x), mix(e, g, f.x), f.y);
 }
 `;
