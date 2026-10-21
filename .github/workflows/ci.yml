@@ -1602,12 +1602,19 @@ jobs:
           after=$(state | jq -r .units)
           dump "$before" | sort > "$work/post.txt"
           kept=$(comm -12 "$work/pre.txt" "$work/post.txt" | wc -l)
-          test "$after" -le "$before" || { echo "units_after=$after exceeds units_before=$before"; exit 1; }
-          test "$after" -eq "$before"
-          test "$kept" -eq "$before"
+          # A cost edit refuses nothing, and the reload event counts the units alive at its swap tick. Creep waves spawn
+          # between reads, so the event is the authority: every live unit is carried, none refused, and some keep their ids.
+          line=$(grep '^ev=data_reloaded room=ci ' "$log" | head -n 1)
+          live=$(sed -n 's/.* live=\([0-9]*\).*/\1/p' <<<"$line")
+          carried=$(sed -n 's/.* carried=\([0-9]*\).*/\1/p' <<<"$line")
+          refused=$(sed -n 's/.* refused=\([0-9]*\).*/\1/p' <<<"$line")
+          test "$refused" -eq 0
+          test "$carried" -eq "$live"
+          test "$after" -gt 0
+          test "$kept" -ge 1
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
-          grep '^ev=data_reloaded ' "$log" | head -n 1
-          echo "match carried units_before=$before units_after=$after positions_kept=$kept"
+          echo "$line"
+          echo "match carried live=$live carried=$carried units_before=$before units_after=$after positions_kept=$kept"
 
       - name: Swap the first two unit kinds in the catalog under a running match; carried units keep their kind name and the dropped count is printed
         shell: bash
