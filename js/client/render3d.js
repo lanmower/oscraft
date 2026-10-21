@@ -237,159 +237,41 @@ export const DEFAULT_SHADE = [0.3, 0.7, 1];
 const SUN_DIR = (() => { const s = [0.4, 1, 0.6]; const n = Math.hypot(...s); return s.map((v) => v / n); })();
 const SHADOW_UNIT = 9;
 const SHADOW_DISTANCE = 400;
-// Unit-to-sun shadow sampling shared by the lit programs.
-const SHADOW_GLSL = `// Directional sun shadow from the shadow map: bilinear percentage-closer filter with a slope-scaled bias. Outside the map,
-// and in the shadow pass itself (uShadowOn 0), the surface is lit.
-uniform mat4 uLightVP; uniform sampler2D uShadow; uniform float uShadowOn; uniform float uShadowTexel;
-float sunShadow(vec3 w, vec3 n) {
-  if (uShadowOn < 0.5) return 1.0;
-  vec4 p = uLightVP * vec4(w, 1.0);
-  vec3 s = p.xyz / p.w * 0.5 + 0.5;
-  if (s.x < 0.0 || s.y < 0.0 || s.x > 1.0 || s.y > 1.0 || s.z > 1.0) return 1.0;
-  vec3 sun = vec3(0.4, 1.0, 0.6) / length(vec3(0.4, 1.0, 0.6));
-  float facing = clamp(dot(normalize(n), sun), 0.0, 1.0);
-  float bias = max(0.0009 * (1.0 - facing), 0.00025);
-  // Bilinear PCF: compare the four texels around s and blend by s's fractional position in the texel grid.
-  // The kernel spacing is four texels, so the shadow edge blurs over four times the texel width (twice the previous blur).
-  float k = 4.0 * uShadowTexel;
-  vec2 t = s.xy / k - 0.5;
-  vec2 f = fract(t);
-  vec2 c = (floor(t) + 0.5) * k;
-  float r = s.z - bias;
-  float a = (r > texture(uShadow, c).r) ? 0.0 : 1.0;
-  float b = (r > texture(uShadow, c + vec2(k, 0.0)).r) ? 0.0 : 1.0;
-  float e = (r > texture(uShadow, c + vec2(0.0, k)).r) ? 0.0 : 1.0;
-  float g = (r > texture(uShadow, c + vec2(k)).r) ? 0.0 : 1.0;
-  return mix(mix(a, b, f.x), mix(e, g, f.x), f.y);
+// GLSL sources live in js/client/shaders/*.glsl. They are fetched once when this module loads (top-level await), so
+// createRenderer only compiles text that has arrived. A line `#include "name.glsl"` is replaced by that file, and
+// __MAX_JOINTS__ by the joint palette size. Under node (no document) nothing is fetched and createRenderer refuses to run.
+const SHADER_DIR = new URL("./shaders/", import.meta.url);
+export const SHADER_FILES = ["mesh.vert.glsl", "mesh.frag.glsl", "splat.frag.glsl", "shadow.glsl"];
+// Which shader files each program is linked from. The vertex shader is shared.
+const PROGRAM_SHADERS = {
+  mesh: { vertex: "mesh.vert.glsl", fragment: "mesh.frag.glsl" },
+  splat: { vertex: "mesh.vert.glsl", fragment: "splat.frag.glsl" },
+};
+const SHADERS = typeof document === "undefined" ? null : await loadShaders("");
+
+// query: "" for the page load; a cache-busting query when a hot reload re-fetches the files.
+async function loadShaders(query) {
+  const out = {};
+  for (const name of SHADER_FILES) out[name] = await readShader(name, query);
+  return out;
 }
-`;
-
-const VERT = `#version 300 es
-in vec3 aPos; in vec3 aNormal; in vec2 aUv; in vec4 aJoints; in vec4 aWeights; in mat4 aInst;
-uniform mat4 uModel; uniform mat3 uNormal; uniform mat4 uViewProj;
-uniform bool uSkinned; uniform bool uInstanced; uniform mat4 uJoints[${MAX_JOINTS}];
-out vec3 vNormal; out vec2 vUv; out vec3 vWorld;
-void main() {
-  mat4 skin = mat4(1.0);
-  mat3 skinNormal = mat3(1.0);
-  if (uSkinned) {
-    skin = aWeights.x * uJoints[int(aJoints.x)] + aWeights.y * uJoints[int(aJoints.y)]
-      + aWeights.z * uJoints[int(aJoints.z)] + aWeights.w * uJoints[int(aJoints.w)];
-    skinNormal = mat3(skin);
-  }
-  mat4 model = uInstanced ? aInst : uModel;
-  mat3 normalBasis = uInstanced ? mat3(aInst) : uNormal;
-  vec4 world = model * skin * vec4(aPos, 1.0);
-  vNormal = normalBasis * skinNormal * aNormal; vUv = aUv; vWorld = world.xyz;
-  gl_Position = uViewProj * world;
-}`;
-
-const FRAG = `#version 300 es
-precision mediump float;
-in vec3 vNormal; in vec2 vUv; in vec3 vWorld;
-${SHADOW_GLSL}
-uniform vec3 uColor; uniform vec3 uTint; uniform bool uUseTex; uniform sampler2D uTex; uniform vec3 uShade; // ambient, diffuse, gain
-uniform float uAlpha; uniform bool uGlow; // optional additive blend mode (fx.js)
-out vec4 outColor;
-void main() {
-  vec3 light = normalize(vec3(0.4, 1.0, 0.6));
-  float diffuse = max(dot(normalize(vNormal), light), 0.0);
-  vec3 base = (uUseTex ? texture(uTex, vUv).rgb : uColor) * uTint;
-  outColor = uGlow ? vec4(base, uAlpha) : vec4(base * uShade.z * (uShade.x + uShade.y * diffuse * sunShadow(vWorld, vNormal)), 1.0);
-}`;
-
-
-// Splat ground: four layers blended by the control map's weights. Each layer's height (its displacement plus half)
-// scaled by its weight decides the blend: only layers within uBand of the highest one contribute, so rock or roots
-// show through before the other layer. The fallback is the plain weight mix where no layer clears the threshold.
-const SPLAT_FRAG = `#version 300 es
-precision highp float;
-in vec3 vNormal; in vec3 vWorld;
-// Ripple height: three travelling waves on the water plane.
-float waveH(vec2 q, float t) {
-  return sin(dot(q, vec2(0.8, 0.6)) * 1.3 + t * 1.1) * 0.5 + sin(dot(q, vec2(-0.5, 0.9)) * 2.1 + t * 1.7) * 0.3
-    + sin(dot(q, vec2(0.2, -1.0)) * 3.7 + t * 2.3) * 0.2;
+async function readShader(name, query) {
+  const text = await expandIncludes(await fetchText(name, query), query);
+  return text.replaceAll("__MAX_JOINTS__", String(MAX_JOINTS));
 }
-${SHADOW_GLSL}
-uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
-uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
-uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
-uniform vec3 uShade; // ambient, diffuse, albedo gain
-uniform vec3 uLayerTint[4]; // per-layer albedo tint (the sand layer takes the dirt tint)
-uniform sampler2D uWaterMap; uniform vec3 uWaterTint; uniform float uTime; uniform vec3 uEye; // water: cell map, tint, clock, eye
-out vec4 outColor;
-void main() {
-  vec4 w = texture(uControl, vWorld.xz / uMapSize);
-  // Cliff (rock) weight is read per cell, so a cliff edge stays hard while the ground layers blend.
-  w.w = texelFetch(uControl, ivec2(floor(vWorld.xz / uMapSize * vec2(textureSize(uControl, 0)))), 0).w;
-  vec2 uv = vWorld.xz * uUvScale;
-  vec3 c0 = texture(uAlb0, uv).rgb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv).rgb * uLayerTint[1];
-  vec3 c2 = texture(uAlb2, uv).rgb * uLayerTint[2]; vec3 c3 = texture(uAlb3, uv).rgb * uLayerTint[3];
-  vec4 d = vec4(texture(uDisp0, uv).r, texture(uDisp1, uv).r, texture(uDisp2, uv).r, texture(uDisp3, uv).r);
-  vec4 h = w * (d + 0.5);
-  float m = max(max(h.x, h.y), max(h.z, h.w));
-  vec4 b = max(h - (m - uBand), 0.0) * w;
-  float s = b.x + b.y + b.z + b.w;
-  vec3 mixed = (b.x * c0 + b.y * c1 + b.z * c2 + b.w * c3) / max(s, 1e-4);
-  vec3 plain = (w.x * c0 + w.y * c1 + w.z * c2 + w.w * c3) / max(w.x + w.y + w.z + w.w, 1e-4);
-  vec3 base = s > 1e-4 ? mixed : plain;
-  vec3 light = normalize(vec3(0.4, 1.0, 0.6));
-  float diffuse = max(dot(normalize(vNormal), light), 0.0);
-  float lit = uShade.x + uShade.y * diffuse * sunShadow(vWorld, vNormal);
-  vec3 bed = base * uShade.z * lit;
-  float ww = texture(uWaterMap, vWorld.xz / uMapSize).r;
-  if (ww <= 0.0) { outColor = vec4(bed, 1.0); return; }
-  // Procedural water (ported from spoint's water-tsl.js: the surface, ripples and fresnel; the planet geometry is dropped).
-  // Depth is how much of the neighbourhood is water: 1 well inside the river, lower towards its banks.
-  vec2 p = vWorld.xz;
-  float near = 0.0; float far = 0.0;
-  for (int k = 0; k < 8; k++) {
-    float a = float(k) * 0.7853982;
-    vec2 o = vec2(cos(a), sin(a));
-    near += texture(uWaterMap, (p + o * 1.2) / uMapSize).r;
-    far += texture(uWaterMap, (p + o * 3.5) / uMapSize).r;
+async function fetchText(name, query) {
+  const res = await fetch(new URL(name, SHADER_DIR).href + query, { cache: query ? "no-store" : "default" });
+  if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
+  return res.text();
+}
+async function expandIncludes(text, query) {
+  const out = [];
+  for (const line of text.split("\n")) {
+    const m = /^#include "([^"]+)"\s*$/.exec(line);
+    out.push(m ? await readShader(m[1], query) : line);
   }
-  near /= 8.0; far /= 8.0;
-  float depth = smoothstep(0.55, 1.0, far);
-  float t = uTime;
-  // Three ripple scales interfere: each samples the wave pattern at its own frequency and weight, so the sum never repeats
-  // on one regular grid. The slope of each scale is divided back by its frequency, so the strengths stay comparable.
-  vec2 slope = vec2(0.0);
-  for (int k = 0; k < 3; k++) {
-    float sc = k == 0 ? 2.6 : (k == 1 ? 4.0 : 6.8);
-    float w = k == 0 ? 0.5 : (k == 1 ? 1.0 : 0.6);
-    float e = 0.15 / sc;
-    float hx = waveH((p + vec2(e, 0.0)) * sc, t) - waveH((p - vec2(e, 0.0)) * sc, t);
-    float hz = waveH((p + vec2(0.0, e)) * sc, t) - waveH((p - vec2(0.0, e)) * sc, t);
-    slope += vec2(hx, hz) / (2.0 * e) * 0.35 / sc * w;
-  }
-  vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
-  vec3 V = normalize(uEye - vec3(p.x, vWorld.y, p.y));
-  float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, V), 0.0), 5.0);
-  vec3 R = reflect(-V, n);
-  vec3 sky = mix(vec3(0.62, 0.78, 0.86), vec3(0.22, 0.46, 0.66), clamp(R.y, 0.0, 1.0));
-  float glint = pow(max(dot(R, light), 0.0), 140.0) * 1.2;
-  vec3 shallow = vec3(0.34, 0.62, 0.56) * uWaterTint;
-  vec3 deep = vec3(0.04, 0.22, 0.30) * uWaterTint;
-  vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
-  // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
-  float alpha = mix(0.14, 0.3, depth);
-  vec3 water = mix(bed, body, alpha);
-  // The sky reflection and the sun glint are the shine of deep water only: they fade out with depth, so the shallow shore
-  // tiles stay matte. SPECULAR scales both: at 0.1 the shine is a tenth of its full strength.
-  const float SPECULAR = 0.1;
-  water = mix(water, sky, fres * 0.8 * depth * SPECULAR);
-  water += vec3(1.0, 0.97, 0.9) * glint * depth * SPECULAR;
-  // Refraction: a shimmer in the bed seen through the surface, shifted by the surface normal so it moves with the ripples.
-  vec2 refr = n.xz * 0.6;
-  float caustic = 0.5 + 0.5 * sin(dot(p + refr, vec2(1.7, 1.1)) * 3.0 + t * 1.3);
-  water += vec3(0.6, 0.85, 0.8) * caustic * 0.07;
-  // Wet only where the neighbourhood is all water: a shore cell with land beside it stays dry ground, so the water does
-  // not spill over the edge tiles.
-  float wet = smoothstep(0.97, 1.0, near) * ww;
-  outColor = vec4(mix(bed, water, wet), 1.0);
-}`;
-
+  return out.join("\n");
+}
 function orthographic(l, r, b, t, n, f) {
   const out = new Float32Array(16);
   out[0] = 2 / (r - l);
@@ -406,20 +288,82 @@ function compile(gl, type, source) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    const log = gl.getShaderInfoLog(shader);
+    gl.deleteShader(shader);
+    throw new Error(log);
+  }
   return shader;
 }
 
 // Attribute slots are fixed for every program, so one mesh's buffers bind the same way in the main and splat programs.
 const ATTRIBUTE_NAMES = ["aPos", "aNormal", "aUv", "aJoints", "aWeights", "aInst"];
-function linkProgram(gl, fragment) {
+// Compiles and links one program. On failure everything it created is deleted and the error is thrown, so a failed
+// hot reload leaves no half-built program behind.
+function linkProgram(gl, vertexSource, fragmentSource) {
   const program = gl.createProgram();
-  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERT));
-  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragment));
-  ATTRIBUTE_NAMES.forEach((name, slot) => gl.bindAttribLocation(program, slot, name));
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  const shaders = [];
+  try {
+    shaders.push(compile(gl, gl.VERTEX_SHADER, vertexSource), compile(gl, gl.FRAGMENT_SHADER, fragmentSource));
+    shaders.forEach((shader) => gl.attachShader(program, shader));
+    ATTRIBUTE_NAMES.forEach((name, slot) => gl.bindAttribLocation(program, slot, name));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  } catch (err) {
+    gl.deleteProgram(program);
+    throw err;
+  } finally {
+    shaders.forEach((shader) => gl.deleteShader(shader));
+  }
   return program;
+}
+
+// Uniform locations of each program, by the names the renderer sets. Re-fetched whenever a program is relinked.
+function meshUniforms(gl, p) {
+  return {
+    model: gl.getUniformLocation(p, "uModel"),
+    normal: gl.getUniformLocation(p, "uNormal"),
+    viewProj: gl.getUniformLocation(p, "uViewProj"),
+    color: gl.getUniformLocation(p, "uColor"),
+    tint: gl.getUniformLocation(p, "uTint"),
+    shade: gl.getUniformLocation(p, "uShade"),
+    shadowOn: gl.getUniformLocation(p, "uShadowOn"),
+    useTex: gl.getUniformLocation(p, "uUseTex"),
+    tex: gl.getUniformLocation(p, "uTex"),
+    skinned: gl.getUniformLocation(p, "uSkinned"),
+    joints: gl.getUniformLocation(p, "uJoints[0]"),
+    alpha: gl.getUniformLocation(p, "uAlpha"),
+    glow: gl.getUniformLocation(p, "uGlow"),
+    instanced: gl.getUniformLocation(p, "uInstanced"),
+    lightVP: gl.getUniformLocation(p, "uLightVP"),
+    shadow: gl.getUniformLocation(p, "uShadow"),
+    shadowTexel: gl.getUniformLocation(p, "uShadowTexel"),
+  };
+}
+function splatUniforms(gl, p) {
+  return {
+    control: gl.getUniformLocation(p, "uControl"),
+    mapSize: gl.getUniformLocation(p, "uMapSize"),
+    uvScale: gl.getUniformLocation(p, "uUvScale"),
+    band: gl.getUniformLocation(p, "uBand"),
+    shade: gl.getUniformLocation(p, "uShade"),
+    layerTint: gl.getUniformLocation(p, "uLayerTint[0]"),
+    waterMap: gl.getUniformLocation(p, "uWaterMap"),
+    time: gl.getUniformLocation(p, "uTime"),
+    eye: gl.getUniformLocation(p, "uEye"),
+    waterTint: gl.getUniformLocation(p, "uWaterTint"),
+    shadowOn: gl.getUniformLocation(p, "uShadowOn"),
+    viewProj: gl.getUniformLocation(p, "uViewProj"),
+    model: gl.getUniformLocation(p, "uModel"),
+    normal: gl.getUniformLocation(p, "uNormal"),
+    skinned: gl.getUniformLocation(p, "uSkinned"),
+    instanced: gl.getUniformLocation(p, "uInstanced"),
+    lightVP: gl.getUniformLocation(p, "uLightVP"),
+    shadow: gl.getUniformLocation(p, "uShadow"),
+    shadowTexel: gl.getUniformLocation(p, "uShadowTexel"),
+    alb: [0, 1, 2, 3].map((k) => gl.getUniformLocation(p, "uAlb" + k)),
+    disp: [0, 1, 2, 3].map((k) => gl.getUniformLocation(p, "uDisp" + k)),
+  };
 }
 
 // Uploads a mesh once and keeps its buffers. Mesh shape:
@@ -427,9 +371,14 @@ function linkProgram(gl, fragment) {
 //     indices?: Uint16Array|Uint32Array, color?: [r,g,b] in 0..1, texture?: WebGLTexture,
 //     dirty?: boolean }
 // Set mesh.dirty = true after changing its arrays so the next draw re-uploads them.
+// Every renderer made by createRenderer, so the hot reload (hmr.js) can reach the live ones.
+export const liveRenderers = new Set();
+
 export function createRenderer(gl) {
-  const program = linkProgram(gl, FRAG);
-  const splatProgram = linkProgram(gl, SPLAT_FRAG);
+  if (!SHADERS) throw new Error("render3d: shader sources are not loaded (createRenderer needs a browser page)");
+  // The programs are the live handles: a hot reload swaps them in place, so every draw below reads them at call time.
+  let program = linkProgram(gl, SHADERS[PROGRAM_SHADERS.mesh.vertex], SHADERS[PROGRAM_SHADERS.mesh.fragment]);
+  let splatProgram = linkProgram(gl, SHADERS[PROGRAM_SHADERS.splat.vertex], SHADERS[PROGRAM_SHADERS.splat.fragment]);
   gl.useProgram(program);
 
   const attr = {
@@ -440,42 +389,9 @@ export function createRenderer(gl) {
     weights: gl.getAttribLocation(program, "aWeights"),
     inst: gl.getAttribLocation(program, "aInst"),
   };
-  const uni = {
-    model: gl.getUniformLocation(program, "uModel"),
-    normal: gl.getUniformLocation(program, "uNormal"),
-    viewProj: gl.getUniformLocation(program, "uViewProj"),
-    color: gl.getUniformLocation(program, "uColor"),
-    tint: gl.getUniformLocation(program, "uTint"),
-    shade: gl.getUniformLocation(program, "uShade"),
-    shadowOn: gl.getUniformLocation(program, "uShadowOn"),
-    useTex: gl.getUniformLocation(program, "uUseTex"),
-    tex: gl.getUniformLocation(program, "uTex"),
-    skinned: gl.getUniformLocation(program, "uSkinned"),
-    joints: gl.getUniformLocation(program, "uJoints[0]"),
-    alpha: gl.getUniformLocation(program, "uAlpha"),
-    glow: gl.getUniformLocation(program, "uGlow"),
-    instanced: gl.getUniformLocation(program, "uInstanced"),
-  };
-  const splatUni = {
-    control: gl.getUniformLocation(splatProgram, "uControl"),
-    mapSize: gl.getUniformLocation(splatProgram, "uMapSize"),
-    uvScale: gl.getUniformLocation(splatProgram, "uUvScale"),
-    band: gl.getUniformLocation(splatProgram, "uBand"),
-    shade: gl.getUniformLocation(splatProgram, "uShade"),
-    layerTint: gl.getUniformLocation(splatProgram, "uLayerTint[0]"),
-    waterMap: gl.getUniformLocation(splatProgram, "uWaterMap"),
-    time: gl.getUniformLocation(splatProgram, "uTime"),
-    eye: gl.getUniformLocation(splatProgram, "uEye"),
-    waterTint: gl.getUniformLocation(splatProgram, "uWaterTint"),
-    shadowOn: gl.getUniformLocation(splatProgram, "uShadowOn"),
-    viewProj: gl.getUniformLocation(splatProgram, "uViewProj"),
-    model: gl.getUniformLocation(splatProgram, "uModel"),
-    normal: gl.getUniformLocation(splatProgram, "uNormal"),
-    skinned: gl.getUniformLocation(splatProgram, "uSkinned"),
-    instanced: gl.getUniformLocation(splatProgram, "uInstanced"),
-    alb: [0, 1, 2, 3].map((k) => gl.getUniformLocation(splatProgram, "uAlb" + k)),
-    disp: [0, 1, 2, 3].map((k) => gl.getUniformLocation(splatProgram, "uDisp" + k)),
-  };
+  // Filled in place by recompile, so the uniform objects keep their identity.
+  const uni = meshUniforms(gl, program);
+  const splatUni = splatUniforms(gl, splatProgram);
   gl.uniform1i(uni.tex, 0);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
@@ -538,10 +454,60 @@ export function createRenderer(gl) {
     return buf;
   }
 
-  return {
+  // Re-fetches the shader files and relinks the named programs ('mesh', 'splat'; default both) in place. The new
+  // program replaces the old one only when it compiles and links; otherwise the old program stays, the GLSL error is
+  // logged, and nothing else changes. Runs between frames (it awaits the fetch first), so no draw sees a half swap.
+  // Resolves to the names that were swapped.
+  async function recompile(names = Object.keys(PROGRAM_SHADERS)) {
+    let fresh;
+    try {
+      fresh = await loadShaders(`?v=${Date.now()}`);
+    } catch (err) {
+      console.error(`render3d: shader fetch failed, keeping the current programs: ${err.message}`);
+      return [];
+    }
+    const swapped = [];
+    for (const name of [names].flat()) {
+      const src = PROGRAM_SHADERS[name];
+      if (!src) continue;
+      let next;
+      try {
+        next = linkProgram(gl, fresh[src.vertex], fresh[src.fragment]);
+      } catch (err) {
+        console.error(`render3d: ${name} program not recompiled, keeping the old one:\n${err.message}`);
+        continue;
+      }
+      const old = name === "mesh" ? program : splatProgram;
+      if (name === "mesh") program = next;
+      else splatProgram = next;
+      Object.assign(name === "mesh" ? uni : splatUni, name === "mesh" ? meshUniforms(gl, next) : splatUniforms(gl, next));
+      gl.deleteProgram(old);
+      restoreProgramState(name);
+      swapped.push(name);
+    }
+    gl.useProgram(program);
+    return swapped;
+  }
+
+  // Sets the per-program uniforms that are not re-sent every draw, on a freshly linked program.
+  function restoreProgramState(name) {
+    const p = name === "mesh" ? program : splatProgram;
+    const locs = name === "mesh" ? uni : splatUni;
+    gl.useProgram(p);
+    if (name === "mesh") gl.uniform1i(locs.tex, 0);
+    if (shadowTex) {
+      gl.uniformMatrix4fv(locs.lightVP, false, lightVP);
+      gl.uniform1i(locs.shadow, SHADOW_UNIT);
+      gl.uniform1f(locs.shadowTexel, 1 / shadowSize);
+    }
+    gl.uniform1f(locs.shadowOn, shadowOn && shadowTex ? 1 : 0);
+  }
+
+  const renderer = {
     gl,
     camera,
     stats,
+    recompile,
 
     // Merges the given fields into the orbit camera. Accepts the createCamera fields plus `aspect`.
     setCamera(opts = {}) {
@@ -629,6 +595,8 @@ export function createRenderer(gl) {
     beginShadowUnits,
     endShadowPass,
   };
+  liveRenderers.add(renderer);
+  return renderer;
 
   function bindMaterial(mesh) {
     gl.uniform3fv(uni.color, mesh.color || [1, 1, 1]);
@@ -973,9 +941,9 @@ export function createRenderer(gl) {
     multiply(proj, lookAt(eye, center, [0, 1, 0]), lightVP);
     for (const [p, locs] of [[program, uni], [splatProgram, splatUni]]) {
       gl.useProgram(p);
-      gl.uniformMatrix4fv(gl.getUniformLocation(p, "uLightVP"), false, lightVP);
-      gl.uniform1i(gl.getUniformLocation(p, "uShadow"), SHADOW_UNIT);
-      gl.uniform1f(gl.getUniformLocation(p, "uShadowTexel"), 1 / size);
+      gl.uniformMatrix4fv(locs.lightVP, false, lightVP);
+      gl.uniform1i(locs.shadow, SHADOW_UNIT);
+      gl.uniform1f(locs.shadowTexel, 1 / size);
       gl.uniform1f(locs.shadowOn, 1);
     }
     gl.useProgram(program);

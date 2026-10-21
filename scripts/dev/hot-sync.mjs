@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const target = path.resolve(process.argv[2] ?? path.join(root, "..", "oscraft-site"));
+// js/client includes js/client/shaders, so the .glsl shader sources are in the watched set (recursive watch and full copy).
 const watched = ["js/client", "scenarios/moba"];
 const DEBOUNCE_MS = 80;
 const pending = new Map();

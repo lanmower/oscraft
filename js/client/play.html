@@ -97,5 +97,6 @@
   </div>
   <script type="module" src="rooms.js"></script>
   <script type="module" src="play.js"></script>
+  <script type="module">if (new URLSearchParams(location.search).has("hmr")) import("./hmr.js");</script>
 </body>
 </html>
