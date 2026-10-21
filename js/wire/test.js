@@ -154,7 +154,7 @@ applyFrame(lateView, next);
 assert.equal(lateView.size, 10);
 assert.equal(new Set([...lateView.values()].map((u) => u.player)).size, 10);
 
-// The unit cap matches the server's default (4096): a STATE above the old 1024 round-trips.
+// The unit cap is MAX_UNITS (4096): a STATE above the old 1024 round-trips.
 const manyUnits = Array.from({ length: 2000 }, (_, i) => ({ id: i + 1, kind: 1, player: i % 10, x: i, y: 0 - i, hp: 5 }));
 assert.deepStrictEqual(decodeFrame(encodeFrame({ type: FRAME.STATE, tick: 9, hash: 3, units: manyUnits })).units, manyUnits, 'state of 2000 units round-trips');
 
