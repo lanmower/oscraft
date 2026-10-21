@@ -236,7 +236,7 @@ pub(crate) fn spell_effect_error(e: &Effect) -> Option<&'static str> {
         K_RESOURCE => e.p0 >= 0 && (0..=2).contains(&e.p1),
         K_IF_KILL => (1..=16).contains(&e.p0),
         K_ATTACK => e.p0 >= 0,
-        crate::teleport::K_TELEPORT => e.p0 >= 0,
+        crate::point_move::K_POINT_MOVE => e.p0 >= 0,
         crate::refresh::K_REFRESH => (1..=3).contains(&e.p0),
         crate::grant::K_GRANT => (0..=1).contains(&e.p0),
         _ => true,
@@ -721,7 +721,7 @@ impl Sim {
                     self.status_with_source(caster, j, eff.p0 as usize, eff.p1, crate::status::SLOW_NONE);
                 }
             }
-            crate::teleport::K_TELEPORT => self.teleport_effect(caster, tx, ty),
+            crate::point_move::K_POINT_MOVE => self.point_move_effect(caster, tx, ty),
             crate::refresh::K_REFRESH => self.refresh_effect(caster, eff),
             crate::grant::K_GRANT => self.grant_effect(caster, eff, recv),
             K_ATTACK => {

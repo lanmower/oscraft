@@ -1,16 +1,16 @@
-//! Timed spawns: the generic `timed_spawn` primitive places a unit of a catalog type at a point for its
+//! Timed life: the generic `timed_spawn` primitive places a unit of a catalog type at a point for its
 //! caster's player, and the unit expires after a lifetime in ticks, removed without bounty. Nothing here
-//! names a ward: what a placed unit does comes from its unit data (sight, detector radius, health), and
-//! which unit, where and for how long is a mod's choice (the pack's spells.lua). The `ward` effect in
-//! data is a caller of this primitive. An item the cast consumes is named by the caller's inventory slot.
-//! Expiry stamps are sim state: hashed and saved with the rest.
+//! says what the unit is for: its behaviour comes from its unit data (sight, detector radius, health), and
+//! which unit, where and for how long is the mod's choice (the pack's spells.lua). A data effect that
+//! places timed units is a caller of this primitive. An item the cast consumes is named by the caller's
+//! inventory slot. Expiry stamps are sim state: hashed and saved with the rest.
 
 use crate::arrays::Sim;
 use crate::inventory::INV_SLOTS;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ExpiryState {
-    /// Tick at which each ward expires; 0 for a unit that is not a ward.
+    /// Tick at which each timed unit expires; 0 for a unit with no lifetime.
     pub(crate) expires: Vec<u32>,
     /// Inventory slot being cast during `use_item`, -1 otherwise. Transient: not hashed or saved.
     pub(crate) casting_slot: i32,
@@ -48,7 +48,7 @@ impl Sim {
     }
 
     /// Spends one charge of the item in inventory slot `slot` of unit `i`; an empty slot loses its
-    /// item and the stat bonuses stay at zero because a ward item carries none.
+    /// item and the stat bonuses stay at zero because the consumed item carries none.
     fn consume_charge(&mut self, i: usize, slot: usize) {
         let key = i * INV_SLOTS + slot;
         if self.inv_count[key] > 1 {

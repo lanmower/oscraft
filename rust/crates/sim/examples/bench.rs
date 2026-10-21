@@ -44,13 +44,13 @@ fn main() {
                     continue;
                 }
                 for slot in 0..ABILITY_SLOTS {
-                    if sim.skill_next_gate(h, slot).is_some_and(|gate| gate <= sim.character_level(h)) {
-                        let _ = sim.skill_up(h, slot);
+                    if sim.next_rank_gate(h, slot).is_some_and(|gate| gate <= sim.character_level(h)) {
+                        let _ = sim.rank_up(h, slot);
                     }
                 }
                 if let Some(foe) = foe_attributed(&sim, h) {
                     for slot in 0..ABILITY_SLOTS {
-                        if sim.skill_rank(h, slot) > 0 {
+                        if sim.ability_rank(h, slot) > 0 {
                             sim.cast_ability(h, slot, foe as i32, 0, 0);
                         }
                     }

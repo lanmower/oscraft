@@ -1,4 +1,4 @@
-//! Wave upgrades. A spawn effect whose p3 carries a wave spec (bits 0..30; bits 30..32 are the route id of route.rs) names alternative unit kinds that replace the
+//! Wave upgrades. A spawn effect whose p3 carries a wave spec (bits 0..30; bits 30..32 are the route id of waypoints.rs) names alternative unit kinds that replace the
 //! base kind once enemy structures carrying a filter tag are gone. Bits of p3: 0..10 upgraded kind
 //! plus one, 10..20 final kind plus one, 20..25 counterpart tag filter bit plus one, 25..30 global tag
 //! filter bit plus one. The upgraded kind applies when the enemy structure with the counterpart tag that

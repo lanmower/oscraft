@@ -1,6 +1,6 @@
-//! Order memory, and the `carry` effect's request. A mod that sends a unit away saves the unit's
-//! order point first and restores it when the unit comes back. The sim keeps only that point (a
-//! generic per-unit slot) and the request. What carrying means, how a unit walks and when it hands
+//! Order memory, and the friendly-request effect. A mod that sends a unit away saves the unit's order
+//! point first and restores it when the unit comes back. The sim keeps only that point (a generic
+//! per-unit slot) and the request. What the unit does while it is away, how it walks and when it hands
 //! over are the mod's rule (the pack's store.lua), driven by `ItemRequest::Carry` and move-to-point orders.
 
 use crate::arrays::{dist2, Sim};
@@ -64,9 +64,9 @@ impl Sim {
         dist2(self.pos_x[i], self.pos_y[i], x, y) <= reach * reach
     }
 
-    /// The `carry` effect: `target` must be a living unit friendly to the caster, other than the
-    /// caster; anything else changes nothing. Queues the request for the mod (`ItemRequest::Carry`).
-    pub(crate) fn carry_effect(&mut self, caster: usize, target: i32) {
+    /// The friendly-request effect (code 19): `target` must be a living unit friendly to the caster, other
+    /// than the caster; anything else changes nothing. Queues the request for the mod (`ItemRequest::Carry`).
+    pub(crate) fn friendly_request_effect(&mut self, caster: usize, target: i32) {
         if target < 0 || target as usize >= self.n || target as usize == caster {
             return;
         }

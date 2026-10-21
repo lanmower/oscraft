@@ -435,7 +435,7 @@ impl Sim {
         if self.winner >= 0 || (player as usize) >= MAX_PLAYERS {
             return;
         }
-        if let Some(rival) = self.rival_of(player) {
+        if let Some(rival) = self.first_hostile_side(player) {
             self.winner = self.team[rival as usize] as i32;
         }
     }

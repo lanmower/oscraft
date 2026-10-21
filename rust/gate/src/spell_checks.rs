@@ -103,7 +103,7 @@ impl World {
     fn learn(&mut self, h: usize, ability: &str, ranks: usize) -> Result<usize, String> {
         let slot = self.s.ability_slot(h, ability).ok_or_else(|| format!("hero holds no {ability}"))?;
         for _ in 0..ranks {
-            self.s.skill_up(h, slot).map_err(|r| format!("skill_up {ability}: {}", r.name()))?;
+            self.s.rank_up(h, slot).map_err(|r| format!("skill_up {ability}: {}", r.name()))?;
         }
         Ok(slot)
     }
@@ -799,19 +799,19 @@ pub fn skill_gate_data(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
     let axe = w.hero(role("hero.a")?, 0, 0, 0)?;
     let slot = w.s.ability_slot(axe, role("hero.a.s1")?).ok_or("axe holds no battle hunger")?;
-    if w.s.skill_next_gate(axe, slot) != Some(1) {
-        return Err(format!("first rank of a basic ability gates at {:?}, expected Some(1)", w.s.skill_next_gate(axe, slot)));
+    if w.s.next_rank_gate(axe, slot) != Some(1) {
+        return Err(format!("first rank of a basic ability gates at {:?}, expected Some(1)", w.s.next_rank_gate(axe, slot)));
     }
-    w.s.skill_up(axe, slot).map_err(|r| r.name().to_string())?;
-    if w.s.skill_next_gate(axe, slot) != Some(3) {
+    w.s.rank_up(axe, slot).map_err(|r| r.name().to_string())?;
+    if w.s.next_rank_gate(axe, slot) != Some(3) {
         return Err("second rank of a basic ability should gate at level 3".into());
     }
     let ult = w.s.ability_slot(axe, role("hero.a.s4")?).ok_or("axe holds no culling blade")?;
-    if w.s.skill_next_gate(axe, ult) != Some(6) {
+    if w.s.next_rank_gate(axe, ult) != Some(6) {
         return Err("first rank of an ultimate should gate at level 6".into());
     }
-    w.s.skill_up(axe, ult).map_err(|r| r.name().to_string())?;
-    if w.s.skill_next_gate(axe, ult) != Some(12) {
+    w.s.rank_up(axe, ult).map_err(|r| r.name().to_string())?;
+    if w.s.next_rank_gate(axe, ult) != Some(12) {
         return Err("second rank of an ultimate should gate at level 12".into());
     }
     Ok(())

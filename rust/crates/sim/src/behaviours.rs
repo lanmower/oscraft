@@ -1,12 +1,13 @@
-//! Behaviour triggers: a behaviour declared in data fires during the tick when its trigger
-//! happens to a unit. Spawned fires once, on the unit's first tick. Attacked fires on the
-//! tick after a unit takes a hit. Idle fires on the edge where a unit comes to rest, not on
-//! every resting tick. Ability_ready fires when a slot's cooldown runs out. Destroyed fires once when a unit's life runs out. A fired behaviour
-//! runs its action: use_ability casts the named ability when the unit holds it (a unit that
-//! does not hold it is skipped, not refused); any other action refuses as action-unsupported.
-//! Behaviours carry no unit link, so every unit is offered each one. Nothing allocates: the
-//! catalog is read by index and each pending flag is a byte in its unit's array.
-//! The win rule is not a behaviour: a mod decides it (on_check_win) and declares the side with declare_side.
+//! Behaviour triggers: a behaviour declared in data fires during the tick when its trigger happens to a
+//! unit. Spawned fires once, on the unit's first tick. Attacked fires on the tick after a unit takes a
+//! hit. Idle fires on the edge where a unit comes to rest, not on every resting tick. Ability_ready fires
+//! when a slot's cooldown runs out. Destroyed fires once when a unit's life runs out. A fired behaviour
+//! runs its action: use_ability casts the named ability when the unit holds it (a unit that does not
+//! hold it is skipped, not refused); any other action refuses as action-unsupported. Behaviours carry no
+//! unit link, so every unit is offered each one. Nothing allocates: the catalog is read by index and each
+//! pending flag is a byte in its unit's array.
+//! The winner record is not a behaviour: the sim keeps the side a mod declares with `declare_winner`, and
+//! the win rule itself is the mod's (on_check_win).
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
@@ -59,13 +60,13 @@ impl Sim {
         teams.len()
     }
 
-    /// The first side hostile to `side`, the side a destroyed unit's bounty goes to.
-    pub fn rival_of(&self, side: u8) -> Option<u8> {
+    /// The first side hostile to `side`, or None when no side is.
+    pub fn first_hostile_side(&self, side: u8) -> Option<u8> {
         (0..MAX_PLAYERS as u8).find(|&q| q != side && self.hostile(side, q))
     }
 
-    /// Declares side `side` the winner (the team a mod names from its win rule). The first winner stands.
-    pub fn declare_side(&mut self, side: u8) {
+    /// Declares side `side` the winner (the side a mod names from its win rule). The first winner stands.
+    pub fn declare_winner(&mut self, side: u8) {
         if self.winner < 0 && (side as usize) < MAX_PLAYERS {
             self.winner = side as i32;
         }

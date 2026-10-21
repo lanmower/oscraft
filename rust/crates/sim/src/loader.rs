@@ -475,7 +475,7 @@ pub struct Catalog {
     pub prereqs: Vec<Prereq>,
     pub damage_factors: Vec<DamageFactor>,
     pub doodads: Vec<Doodad>,
-    pub routes: Vec<crate::route::Route>,
+    pub routes: Vec<crate::waypoints::Route>,
 }
 
 impl Catalog {
@@ -1254,7 +1254,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         channels.push(Channel { channelled, duration });
     }
 
-    let routes = crate::route::parse_routes(bytes, body(21), w, h, &grid.flags)?;
+    let routes = crate::waypoints::parse_waypoints(bytes, body(21), w, h, &grid.flags)?;
     let ext = crate::spell::parse_ext(bytes, body(20), &abilities, &effects)?;
 
     let (rso, rsc) = body(13);

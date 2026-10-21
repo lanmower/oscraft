@@ -578,7 +578,7 @@ impl Command {
             }
             Command::Attack { unit, target } => sim.order_attack_or_approach(*unit, *target).is_ok(),
             Command::Cast { unit, slot, target, x, y } => sim.cast_ability(*unit, *slot, *target, *x, *y),
-            Command::SkillUp { unit, slot } => sim.skill_up(*unit, *slot).is_ok(),
+            Command::SkillUp { unit, slot } => sim.rank_up(*unit, *slot).is_ok(),
             Command::UseItem { unit, slot, target, x, y } => sim.use_item(*unit, *slot, *target, *x, *y),
             Command::Buy { unit, item } => sim.buy_item(*unit, *item),
             Command::Sell { unit, slot } => sim.sell_item(*unit, *slot),
@@ -613,7 +613,7 @@ impl Command {
             Command::Reduction { unit, pct } => sim.set_damage_reduction(*unit as usize, *pct).is_ok(),
             Command::Healing { unit, hp_per_s } => sim.set_healing(*unit as usize, *hp_per_s).is_ok(),
             Command::DeclareSide { side } => {
-                sim.declare_side(*side);
+                sim.declare_winner(*side);
                 true
             }
             Command::AttackMove { unit, x, y } => sim.issue_order_kind(*unit as usize, sim::ORDER_ATTACK_MOVE, *x, *y).is_ok(),

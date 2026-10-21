@@ -212,10 +212,10 @@ const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
 /// A flat stat bonus. p0 names the stat (see `modapi::STAT_NAMES`), p1 the amount.
 pub(crate) const EFFECT_STAT: u16 = 16;
-/// Places a ward unit: p0 unit type, p1 lifetime in ticks. See wards.rs.
+/// Places a timed unit: p0 unit type, p1 lifetime in ticks. See timed_life.rs.
 pub(crate) const EFFECT_TIMED_SPAWN: u16 = 17;
 /// Code 18 is retired (the team aura became a mod rule, on_cast). It is refused as unsupported.
-/// Carry a friendly unit: queues a request for the mod (carrier.rs). The mod owns what carrying means.
+/// Carry a friendly unit: queues a request for the mod (order_memory.rs). The mod owns what carrying means.
 pub(crate) const EFFECT_CARRY: u16 = 19;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 
@@ -454,7 +454,7 @@ impl Sim {
         } else {
             caster as i32
         };
-        let mut amount = ability.skill.and_then(|skill| self.skill_amount(caster, ai, skill));
+        let mut amount = ability.skill.and_then(|skill| self.rank_amount(caster, ai, skill));
         let (was_ai, was_pierce) = (self.spell.cur_ai, self.spell.pierce);
         self.spell.cur_ai = ai as i32;
         self.spell.pierce = self.ext_of(ai).flags & crate::spell::FLAG_PIERCE != 0;
@@ -568,7 +568,7 @@ impl Sim {
             }
             EFFECT_STAT => self.stat_bonus(caster, target, eff.p0, eff.p1),
             EFFECT_TIMED_SPAWN => self.timed_spawn_effect(caster, eff.p0, eff.p1, tx, ty),
-            EFFECT_CARRY => self.carry_effect(caster, target),
+            EFFECT_CARRY => self.friendly_request_effect(caster, target),
             EFFECT_STUN..=EFFECT_INVISIBILITY => self.status_effect_from(caster, eff, target),
             k if k >= crate::spell::FIRST_SPELL_KIND => self.spell_effect(caster, eff, tx, ty, target),
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),

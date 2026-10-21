@@ -64,7 +64,7 @@ Where each control decision lives. Classes: **(a)** already Lua or movable to Lu
 | `sim/src/aggro.rs` target priority (plain > hero > structure), backdoor | Auto-target choice | (c) | Core combat. Enabled and tuned through `HeroRules` (`hero_rules.txt`), which is already data. |
 | `sim/src/hero.rs` `HeroRules` defaults, `set_hero_rules_text` | Hero rule defaults | (a) done | Already read from `hero_rules.txt`; defaults only apply when the file omits a key. |
 | `sim/src/rules.rs` `cast_ability`, `cast_index`, `channel_ai` | Cast validation, channel interrupt | (c) | Determinism core. |
-| `sim/src/triggers.rs` `fire_triggers`, `fire_trigger` | Behaviour trigger dispatch | (c) | Trigger definitions come from data; dispatch is core. |
+| `sim/src/behaviours.rs` `fire_triggers`, `fire_trigger` | Behaviour trigger dispatch | (c) | Trigger definitions come from data; dispatch is core. |
 | `sim/src/production.rs` `train_block`, `start_train`, `finish_train` | Training rules | (b) | Refusal and timing rules could move into data. |
 | `sim/src/modapi.rs` `define_ability`, `ability_in_slot` | Mod-facing ability API | (c) | Host boundary. |
 | `server/src/room.rs` `respawn(old, new, unit)` | Room state diff | (c) | Serialization and networking. |
@@ -125,14 +125,14 @@ Classes: MOVE = rule logic moves to a Lua hook or scenario data. DATA = number o
 | Lane creep and siege waves | `scenarios/moba/lanes.lua` (`on_tick`, timers); engine `waves.rs` and the spawn command | MOVE | Rule logic in mod code |
 | Hero respawn time | `scenarios/moba/hero_respawn.lua` (`on_unit_died`) | MOVE | Rule logic in mod code |
 | Backdoor and glyph protection | `scenarios/moba/protection.lua` (`on_tick`, `on_cast`); no longer in the engine | MOVE | Rule logic in mod code |
-| Route march target | `scenarios/moba/march.lua` (`on_march`); engine `route.rs` keeps the route records | MOVE | Rule logic in mod code |
-| Win condition | `scenarios/moba/win.lua` (`on_check_win`); engine `triggers.rs` `winner` is the generic victory primitive | MOVE | Rule logic in mod code |
-| Shop buy and sell, courier delivery | `scenarios/moba/store.lua` (`on_buy`, `on_sell`, `on_unstash`, `on_deliver`); engine `store.rs` and `carrier.rs` keep the primitives | MOVE | Rule logic in mod code |
+| Route march target | `scenarios/moba/march.lua` (`on_march`); engine `waypoints.rs` keeps the route records | MOVE | Rule logic in mod code |
+| Win condition | `scenarios/moba/win.lua` (`on_check_win`); engine `behaviours.rs` `winner` is the generic victory primitive | MOVE | Rule logic in mod code |
+| Shop buy and sell, courier delivery | `scenarios/moba/store.lua` (`on_buy`, `on_sell`, `on_unstash`, `on_deliver`); engine `store.rs` and `order_memory.rs` keep the primitives | MOVE | Rule logic in mod code |
 | Camp respawn, aggro target priority, buyback | still engine: `camp.rs` `respawn_camp`, `aggro.rs`, `hero.rs` `buyback` | MOVE | Not yet moved; needs a hook or a command |
 | Camp leash and clear numbers, ward duration, XP curve, item tables | still engine constants and tables | DATA | Not yet moved to `.osd` data |
 | Determinism core, serialization, wire and dispatch codes | engine | STAY | Hashed or persisted formats |
 
-Current state: the scenario mod code covers kill gold, waves, hero respawn, protection, march, win and the store. Generic primitives (hooks, commands, `pay_bounty` fallback, `winner`, `route.rs`, `store.rs`) stay in the engine. The rows still in the engine are the MOVE rows marked not yet moved.
+Current state: the scenario mod code covers kill gold, waves, hero respawn, protection, march, win and the store. Generic primitives (hooks, commands, `pay_bounty` fallback, `winner`, `waypoints.rs`, `store.rs`) stay in the engine. The rows still in the engine are the MOVE rows marked not yet moved.
 
 Follow-ups for the MOVE and DATA rows:
 
@@ -155,20 +155,20 @@ Verification: verified against `lanmower/oscraft` main `88adede5` (a descendant 
 | Camp (neutral leash, respawn, runes) | `rust/crates/sim/src/camp.rs` (Rust) | partly | hook `on_died`; data `scenarios/moba/neutral.osd`; constants in camp.rs | MOVE | CONFIRMED (`respawn_camp`, `respawns_free`, `CAMP_LEASH_MILLI` exist; no `on_camp_cleared` hook exists anywhere, the hook is `on_died`) |
 | Aggro and target priority | `rust/crates/sim/src/aggro.rs` (Rust) | partly | hook for target priority (none exposed); data `scenarios/moba/hero_rules.txt` holds numbers only | MOVE | CORRECTED: target priority is code in aggro.rs (`backdoor_protected`, `glyph_protects`), not data; class changed DATA to MOVE to match the Rust-only table |
 | Courier | `rust/crates/sim/src/courier.rs` (Rust) | no | hook `on_tick`; cmd move; query courier state | MOVE | CONFIRMED |
-| Wards | `rust/crates/sim/src/wards.rs` (Rust) | no | effect kind `ward` in data; hook `on_enter` for vision | MOVE | CONFIRMED (`ward_left`; `"ward"` in `rust/crates/data/src/format.rs`) |
+| Wards | `rust/crates/sim/src/timed_life.rs` (Rust) | no | effect kind `ward` in data; hook `on_enter` for vision | MOVE | CONFIRMED (`ward_left`; `"ward"` in `rust/crates/data/src/format.rs`) |
 | Glyph (team duration and cooldown) | `rust/crates/sim/src/rules.rs` (Rust, `glyph_effect` near line 566); `rust/crates/sim/src/aggro.rs` (protection) | no | data `scenarios/moba/behaviours.osd` for durations; protection logic has no hook | MOVE | CORRECTED: protection is `glyph_protects` in aggro.rs, which is rule logic (MOVE); only the duration and cooldown numbers are DATA |
 | Shop (stock, buy) | `rust/crates/sim/src/shop.rs` (Rust); `js/client/ui_shop.js` | partly | query item catalog; cmd buy | MOVE | CONFIRMED (`buy_item`; `item_catalog_json` is in `rust/crates/web/src/lib.rs`) |
 | Hero stats and respawn | `rust/crates/sim/src/hero.rs` (Rust); `scenarios/moba/hero_rules.txt` | partly | data `hero_rules.txt`; hook `on_died` | DATA | CONFIRMED (`MANA_PER_INT`, `ARMOUR_PER_AGI_DIV`, `HP_REGEN_PER_STR_X100`) |
 | XP | `rust/crates/sim/src/xp.rs` (Rust) | no | data `scenarios/moba/economy.osd`; hook `on_died` with killer | DATA | CONFIRMED (`xp_curve`) |
 | Gold | `rust/crates/sim/src/combat.rs` `pay_bounty`, `hero.rs` `hero_bounty` (Rust); `mods/moba_match.lua` (Lua, `on_died`); `mods/unit_bounty_example.lua` (Lua) | partly | hook `on_died`; cmd `add_gold`, `add_unit_gold`; query `unit_bounty`, `rival_of`; the Rust payout is off only while `gold_by_mod` is set | MOVE | UPDATED: the payout moved to `mods/moba_match.lua` behind `gold_by_mod`; no loader sets that flag at `369c3ba`, so both payers run |
 | Towers and backdoor | `rust/crates/sim/src/aggro.rs`, `hero.rs` (Rust); `mods/structure_buff_example.lua` (Lua) | partly | hook `on_attacked`; data doodad and unit `.osd` | MOVE | CONFIRMED |
-| Route and march | `rust/crates/sim/src/route.rs` (`start_route`, `tick_route`, `march_to_enemy_base`), `movement.rs` (Rust); `scenarios/moba/routes.osd` | partly | data `routes.osd` (single source) | DATA | CONFIRMED (the march symbol is `march_to_enemy_base`, not `march`) |
-| Win and objectives | no discrete module; `rust/crates/sim/src/modapi.rs` (victory), `mods/waves_example.lua` (defeat), `rust/crates/sim/src/triggers.rs` (`winner`) | partly | hook `on_tick`; needs cmd end-of-match | MOVE | CONFIRMED |
+| Route and march | `rust/crates/sim/src/waypoints.rs` (`start_route`, `tick_route`, `march_to_enemy_base`), `movement.rs` (Rust); `scenarios/moba/routes.osd` | partly | data `routes.osd` (single source) | DATA | CONFIRMED (the march symbol is `march_to_enemy_base`, not `march`) |
+| Win and objectives | no discrete module; `rust/crates/sim/src/modapi.rs` (victory), `mods/waves_example.lua` (defeat), `rust/crates/sim/src/behaviours.rs` (`winner`) | partly | hook `on_tick`; needs cmd end-of-match | MOVE | CONFIRMED |
 | Spawns and waves | `mods/moba_waves.lua`, `mods/waves_example.lua` (Lua); `scenarios/moba/waves.osd`; sim `rust/crates/sim/src/waves.rs`; `rust/crates/data/src/validate.rs` (p3 layout, Rust) | yes (Lua drives it) | hook `on_tick`; cmd spawn; data `waves.osd` | MOVE | CORRECTED: `waves.rs` exists on main; the deletion is only in the local uncommitted working tree |
 | Strike (attack resolution) | `rust/crates/sim/src/combat.rs`, `projectiles.rs` (Rust) | partly | effect kind `damage`; hook `on_attacked` | STAY | CONFIRMED: per-tick hashed combat math; the Lua surface is the effect kind |
 | Movement and pathing | `rust/crates/sim/src/movement.rs`, `pathfinding.rs`, `astar.rs` (Rust) | partly | query position; cmd move; speed in `UnitSpec` | STAY | CONFIRMED: per-tick hashed pathing must stay bit-identical across native and wasm |
 | Bot hero AI | `mods/bot_unit_example.lua`, `mods/bot_lib.lua` (Lua) | yes | hook `on_tick` (confirmed at `mods/bot_unit_example.lua:27`); cmds through `game` | MOVE | CONFIRMED (geometry constants to data) |
-| Creep behaviour triggers | `rust/crates/sim/src/triggers.rs` (Rust); `scenarios/moba/behaviours.osd` | partly | data `behaviours.osd` | DATA | CONFIRMED |
+| Creep behaviour triggers | `rust/crates/sim/src/behaviours.rs` (Rust); `scenarios/moba/behaviours.osd` | partly | data `behaviours.osd` | DATA | CONFIRMED |
 | Bot seating | `mods/bot_unit_example.lua` (`BOT_SLOTS`, `game.add_player`, line 19) | yes | hook `on_player_joined` | MOVE | CORRECTED: the file is `mods/bot_unit_example.lua`; `mods/bot_lib.lua` has neither symbol |
 | Hero panel and scoreboard | `js/client/hud5.js`, `js/client/hud.js`, `js/client/ui_scoreboard.js` (JS) | no | query `/state`; no UI host call | MOVE | CONFIRMED |
 | Shop UI flow | `js/client/ui_shop.js` (JS) | partly | query `item_catalog_json`; cmd buy | MOVE | CONFIRMED |
@@ -220,7 +220,7 @@ Verification: verified against `lanmower/oscraft` main `88adede5` (a descendant 
 | Spell casting and resolution | `rust/crates/sim/src/spell.rs` (Rust, `parse_ext`, 45 tables) | partly | hook `define_ability` (exposed in `mlua_host.rs`, `piccolo_host.rs`); data `abilities.osd`; cast rules stay Rust | MOVE | ADDED |
 | Status effects (stun, root, silence, slow) | `rust/crates/sim/src/status.rs` (Rust, `stunned`, `rooted`, `silenced`, `slow_multiplier`) | partly | data durations; effects via `MOD_EFFECTS` `stat`; no status query or clear command exposed | MOVE | ADDED: rule logic is in Rust with no Lua query |
 | Upgrades | `rust/crates/sim/src/upgrades.rs` (`complete_upgrade`, `apply_upgrade_effect`); `UpgradeSpec` in `modapi.rs` | partly | data: upgrade table; cmd research | DATA | ADDED |
-| Teleport | `rust/crates/sim/src/teleport.rs` (`teleport_effect`); `RING_POINTS` numbers | no | data: ring points; cmd teleport via effect | MOVE | ADDED |
+| Teleport | `rust/crates/sim/src/point_move.rs` (`point_move_effect`); `RING_POINTS` numbers | no | data: ring points; cmd teleport via effect | MOVE | ADDED |
 | Diplomacy and teams | `rust/crates/sim/src/diplomacy.rs` (`set_relation`, `add_player`, `relation`); `mods/team_rules_example.lua` | partly | cmd set relation; query relation; controller codes stay STAY | MOVE | ADDED |
 | Lua host ABI and dispatch | `rust/crates/mod-host/src/mlua_host.rs`, `piccolo_host.rs`, `shared.rs`; `rust/crates/sim/src/modapi.rs` | yes (hooks `on_tick`, `on_died`, `on_attacked`, `on_enter`, `on_spawned`, `on_player_joined`, `define_ability`) | the boundary itself | STAY | ADDED: this is the boundary every MOVE row calls through |
 | Mod loading and hot reload | `rust/crates/server/src/mods.rs` (`open`, `stage_image`, `take_commands`) | partly | cmd reload; data mod image | STAY | ADDED: host loader must stay in Rust |

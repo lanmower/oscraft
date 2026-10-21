@@ -131,7 +131,7 @@ pub struct Sim {
 
     pub(crate) abil_idx: Vec<i32>,
     pub(crate) abil_cd: Vec<i32>,
-    /// Skill rank per ability slot, 0 when not learned. See skills.rs.
+    /// Skill rank per ability slot, 0 when not learned. See ranks.rs.
     pub(crate) abil_rank: Vec<u8>,
     /// Ticks until each inventory slot's active item ability is ready again, INV_SLOTS per unit.
     pub(crate) item_cd: Vec<i32>,
@@ -166,12 +166,12 @@ pub struct Sim {
     pub(crate) attributed: crate::attributes::AttributedState,
     /// Named per-unit counters the mods keep (a cooldown stamp and the like), by (unit, name). Not hashed or saved.
     pub(crate) counters: std::collections::BTreeMap<(usize, String), i64>,
-    /// Spawn-group home, leash and respawn timer per unit. See groups.rs.
-    pub(crate) groups: crate::groups::GroupState,
+    /// Spawn-group home, leash and respawn timer per unit. See spawn_groups.rs.
+    pub(crate) groups: crate::spawn_groups::GroupState,
     /// Aggro targets, invulnerability, damage reduction and healing per unit. See aggro.rs.
     pub(crate) aggro: crate::aggro::AggroState,
-    /// Route progress per unit and the destination request log. See route.rs.
-    pub(crate) dests: crate::route::DestState,
+    /// Route progress per unit and the destination request log. See waypoints.rs.
+    pub(crate) dests: crate::waypoints::DestState,
     /// Casts that took hold since the host last drained them, as (caster, ability). Transient. See rules.rs.
     pub(crate) cast_log: Vec<(u32, u16)>,
     /// Target, x and y of the cast each unit last took hold with (target -1 for none). Transient, not hashed.
@@ -188,10 +188,10 @@ pub struct Sim {
     pub(crate) class_override: Vec<i8>,
     /// Per-attacker attack-move hold set by a mod (-1 = the Rust rule, 0 = walk past foes, 1 = always hold).
     pub(crate) hold_override: Vec<i8>,
-    /// Ward expiry stamps. See wards.rs.
-    pub(crate) expiry: crate::wards::ExpiryState,
-    /// Saved order points for mods that send units away. See carrier.rs.
-    pub(crate) order_memory: crate::carrier::OrderMemory,
+    /// Timed-unit expiry stamps. See timed_life.rs.
+    pub(crate) expiry: crate::timed_life::ExpiryState,
+    /// Saved order points for mods that send units away. See order_memory.rs.
+    pub(crate) order_memory: crate::order_memory::OrderMemory,
     pub(crate) item_requests: crate::store::ItemRequestState,
     /// Spell modifiers, damage over time, zones, chains and illusions. See spell.rs.
     pub(crate) spell: crate::spell::SpellState,
@@ -393,9 +393,9 @@ impl Sim {
             unit_kills: vec![0; cap],
             attributed: crate::attributes::AttributedState::new(cap),
             counters: std::collections::BTreeMap::new(),
-            groups: crate::groups::GroupState::new(cap),
+            groups: crate::spawn_groups::GroupState::new(cap),
             aggro: crate::aggro::AggroState::new(cap),
-            dests: crate::route::DestState::new(cap),
+            dests: crate::waypoints::DestState::new(cap),
             cast_log: Vec::new(),
             last_cast: vec![(-1, 0, 0); cap],
             fx: Vec::new(),
@@ -404,8 +404,8 @@ impl Sim {
             acquire,
             class_override: vec![-1; cap],
             hold_override: vec![-1; cap],
-            expiry: crate::wards::ExpiryState::new(cap),
-            order_memory: crate::carrier::OrderMemory::new(cap),
+            expiry: crate::timed_life::ExpiryState::new(cap),
+            order_memory: crate::order_memory::OrderMemory::new(cap),
             item_requests: Default::default(),
             spell: crate::spell::SpellState::new(cap),
             unit_deaths: vec![0; cap],
@@ -718,7 +718,7 @@ impl Sim {
         self.tgt_y[i] = y;
         self.groups.clear(i);
         self.aggro_clear(i);
-        self.route_clear(i);
+        self.waypoint_clear(i);
         self.chase_clear(i);
         self.expiry.expires[i] = 0;
         self.order_memory.clear(i);

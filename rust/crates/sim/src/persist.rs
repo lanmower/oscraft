@@ -19,7 +19,7 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// strike target was struck under, so a reused slot never hands its old occupant's target to the new unit.
 /// Version 31 adds the chase and return state of acquiring units (acquire.rs).
 /// Version 33 drops the carrier and store-stock sections: a carrier's walk and a store's stock are mod
-/// state now, and the sim keeps only the saved order point per unit (carrier.rs). Saves of any other
+/// state now, and the sim keeps only the saved order point per unit (order_memory.rs). Saves of any other
 /// version, older ones included, are refused with `BadVersion`.
 /// Version 35 renames the sections to neutral names (attributed units, groups, dests, expiry,
 /// item_requests, aura) and drops the skill-point rule from the engine: the layout is unchanged.
