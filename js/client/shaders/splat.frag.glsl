@@ -78,15 +78,13 @@ void main() {
   vec3 shallow = vec3(0.34, 0.62, 0.56) * uWaterTint;
   vec3 deep = vec3(0.04, 0.22, 0.30) * uWaterTint;
   vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
-  // Refraction: the surface shifts what is seen through it, by the surface normal, so the bed and the water mask both
-  // read at the refracted point. The shimmer in the bed moves with the ripples.
+  // Refraction: only the caustic shimmer is shifted by the surface normal. The bed, control and water mask stay at the
+  // unshifted position: a world-unit offset on the ground lookups smeared the texture across the pool.
   vec2 refr = n.xz * 0.8;
   vec2 pr = p + refr;
-  vec3 bedR = bedAt(pr, vWorld.y, vNormal);
-  float wwR = texture(uWaterMap, pr / uMapSize).r;
   // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
   float alpha = mix(0.18, 0.38, depth);
-  vec3 water = mix(bedR, body, alpha);
+  vec3 water = mix(bed, body, alpha);
   // The sky reflection and the sun glint are the shine of deep water only: they fade out with depth, so the shallow shore
   // tiles stay matte. SPECULAR scales both: at 0.1 the shine is a tenth of its full strength.
   const float SPECULAR = 0.1;
@@ -96,6 +94,6 @@ void main() {
   water += vec3(0.6, 0.85, 0.8) * caustic * 0.1;
   // Wet only where the neighbourhood is all water: a shore cell with land beside it stays dry ground, so the water does
   // not spill over the edge tiles.
-  float wet = smoothstep(0.97, 1.0, near) * wwR;
+  float wet = smoothstep(0.97, 1.0, near) * ww;
   outColor = vec4(mix(bed, water, wet), 1.0);
 }
