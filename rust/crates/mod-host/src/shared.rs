@@ -247,5 +247,27 @@ return function(game, vars, host, max_players)
     live[name] = nil
     return host.cancel(name)
   end
+
+  -- The values a mod's unit, weapon and upgrade specs take when they leave them out. The natives read only what
+  -- the spec gives, so the game's defaults live here.
+  local function filled(spec, defaults)
+    local out = {}
+    for k, v in pairs(spec) do out[k] = v end
+    for k, v in pairs(defaults) do
+      if out[k] == nil then out[k] = v end
+    end
+    return out
+  end
+  local define_unit, define_upgrade = game.unit, game.upgrade
+  function game.unit(name, spec)
+    if type(spec) ~= "table" then return define_unit(name, spec) end
+    local out = filled(spec, { radius = 500, sight = 8000, filter = 1 })
+    if type(spec.weapon) == "table" then out.weapon = filled(spec.weapon, { range = 1000, period = 16 }) end
+    return define_unit(name, out)
+  end
+  function game.upgrade(name, spec)
+    if type(spec) ~= "table" then return define_upgrade(name, spec) end
+    return define_upgrade(name, filled(spec, { time = 1 }))
+  end
 end
 "##;

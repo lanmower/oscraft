@@ -1,8 +1,8 @@
 -- Neutral camps, bosses (Roshan, Tormentor), bounty runes and the pit swap, as mod code on the engine's spawn-group
--- primitive. The engine keeps a spawn group only: a member with a home point and a leash radius (game.set_group_leash),
--- a dead member that waits for a respawn decision (game.cmd_set_respawn), and a respawn at its home (game.cmd_set_home).
--- This file decides who is a boss or a rune, when each dead unit is due (core/respawn.lua), the whole-minute clock and
--- stacking rule, rune gold, the aegis reward and the pit swap. The numbers are rules (shared/config.lua reads them).
+-- primitive. The engine keeps a spawn group only: a member with a home point, a dead member that waits for a respawn
+-- decision (game.cmd_set_respawn), and a respawn at its home (game.cmd_set_home). This file decides who is a boss or a
+-- rune, when each dead unit is due (core/respawn.lua), the whole-minute clock and stacking rule, the leash (a member past
+-- its radius is ordered home), rune gold, the aegis reward and the pit swap. The numbers are rules (shared/config.lua reads them).
 local config = require("config")
 local units = require("units")
 local respawn = require("respawn")
@@ -45,6 +45,7 @@ local function read_config()
     aegis_s = config.rule("aegis_reincarnate_s"),
   }
   c.clear_fixed = config.milli(c.clear_milli)
+  c.leash_fixed = config.milli(c.leash_milli)
   c.pickup_fixed = config.milli(c.pickup_milli)
   return c
 end
@@ -76,11 +77,10 @@ local POLICY = {
   tormentor = { free = true, due = function(now) return now + cfg.tormentor_respawn_s * TPS end },
 }
 
--- Setup on the first tick: pit markers, leash and reincarnation, and every member's role. A regular camp creep and
+-- Setup on the first tick: pit markers, reincarnation, and every member's role. A regular camp creep and
 -- the Tormentor are held off the map until their first spawn, so they are removed and their respawn is set due.
 local function setup(now)
   cfg = read_config()
-  game.set_group_leash(cfg.leash_milli)
   game.set_reincarnate_item("aegis", cfg.aegis_s)
   local n = get_unit_count()
   for k = 0, n - 1 do
@@ -140,6 +140,15 @@ local function camp_clear(r)
   return #units.units_near(r.hx, r.hy, cfg.clear_fixed) == 0
 end
 
+-- The leash: a living registered unit past its leash radius of home is ordered home (ORDER_MOVE is 0), every tick.
+local function leash_home(k, r)
+  local x, y = unit_position(k)
+  local dx, dy = x - r.hx, y - r.hy
+  if dx * dx + dy * dy > cfg.leash_fixed * cfg.leash_fixed then
+    game.issue_order(k, 0, r.hx, r.hy)
+  end
+end
+
 -- A bounty rune pays the first living hero in pickup range, then leaves the map until its next mark.
 local function rune_pickup(k, r, now)
   local taker = nil
@@ -155,7 +164,7 @@ local function rune_pickup(k, r, now)
 end
 
 return {
-  -- Per tick: setup once, keep the pit homes, pay runes, and respawn each dead unit whose due mark has come.
+  -- Per tick: setup once, keep the pit homes, hold the leash, pay runes, and respawn each dead unit whose due mark has come.
   on_tick = function(state)
     local now = game.time()
     if not ready then
@@ -167,6 +176,7 @@ return {
       if r ~= nil then
         update_home(k, r, now)
         if unit_alive(k) then
+          leash_home(k, r)
           if r.kind == "rune" and not r.taken then rune_pickup(k, r, now) end
         elseif respawn.due(r, now, camp_clear) then
           r.taken = false

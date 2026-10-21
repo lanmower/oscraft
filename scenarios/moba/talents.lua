@@ -2,11 +2,12 @@
 -- here, not in the sim. The sim keeps only the upgrade bits (data: bits 2..=9 are the eight talent slots that abilities
 -- test). Tier t side s sets bit 2 + 2t + s.
 --
--- Host bindings used: game.character_level(unit), game.upgrade_bits(unit), game.set_upgrade_bit(unit, bit, on).
+-- Used: xp.character_level(unit) (shared/xp.lua), game.upgrade_bits(unit), game.set_upgrade_bit(unit, bit, on).
 -- choose_talent returns true when the choice took hold and false when it changed nothing. The talent buttons of
 -- panels.lua arrive as the "ui" action with call "talent" and args {unit, tier, side}; the unit must be the sending
 -- seat's own.
 local units = require("units")
+local xp = require("xp")
 
 local TALENT_LEVELS = { 10, 15, 20, 25 }
 local TALENT_SIDES = 2
@@ -20,7 +21,7 @@ local function choose_talent(unit, tier, side)
   if tier < 0 or tier >= #TALENT_LEVELS or side < 0 or side >= TALENT_SIDES then
     return false
   end
-  if game.character_level(unit) < TALENT_LEVELS[tier + 1] then
+  if xp.character_level(unit) < TALENT_LEVELS[tier + 1] then
     return false
   end
   local bits = game.upgrade_bits(unit)

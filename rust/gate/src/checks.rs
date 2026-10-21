@@ -53,26 +53,18 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("mechanic-economy-transfer", mechanic_checks::economy_transfer),
     ("mechanic-order-queue", mechanic_checks::order_queue),
     ("mechanic-inventory-slots", mechanic_checks::inventory_slots),
-    ("mechanic-xp-level-up", mechanic_checks::xp_level_up),
+    ("mechanic-xp-accumulates", mechanic_checks::xp_accumulates),
     ("mechanic-trigger-firing", mechanic_checks::trigger_firing),
     ("mechanic-region-query", mechanic_checks::region_query),
     ("mechanic-structure-damage", mechanic_checks::structure_damage),
-    ("mechanic-win-trigger", mechanic_checks::win_trigger),
-    ("mechanic-kill-bounty", mechanic_checks::kill_bounty),
     ("mechanic-group-respawn", mechanic_checks::spawn_group_respawn),
-    ("mechanic-group-leash", mechanic_checks::spawn_group_leash),
     ("mechanic-group-roshan-aegis", mechanic_checks::spawn_group_boss_aegis),
     ("mechanic-group-rune-pickup", mechanic_checks::spawn_group_pickup),
-    ("attribute-level1", attribute_checks::attribute_level1),
-    ("attribute-growth", attribute_checks::attribute_growth),
     ("attribute-universal-damage", attribute_checks::attribute_universal_damage),
     ("attribute-roster", attribute_checks::attribute_roster),
     ("item-catalog", item_checks::item_catalog),
-    ("item-recipe-buy", item_checks::item_recipe_buy),
-    ("item-shop-rules", item_checks::item_shop_rules),
     ("item-stack-consume", item_checks::item_stack_consume),
     ("item-slots", item_checks::item_slots),
-    ("scenario-match-end", mechanic_checks::scenario_match_end),
     ("spell-a-2", spell_checks::spell_a_2),
     ("spell-a-1", spell_checks::spell_a_1),
     ("spell-a-3", spell_checks::spell_a_3),
@@ -103,9 +95,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("spell-c-2", spell_checks::spell_c_2),
     ("spell-c-1", spell_checks::spell_c_1),
     ("ability-talent-picks", spell_checks::talent_picks),
-    ("ability-cast-walks-into-range", spell_checks::cast_walks_into_range),
     ("ability-skill-gate-data", spell_checks::skill_gate_data),
-    ("ability-dispel", spell_checks::spell_dispel),
     ("ability-illusions", spell_checks::spell_illusions),
     ("spell-i-2", spell_checks::spell_i_2),
     ("spell-s-1", spell_checks::spell_s_1),
@@ -122,7 +112,6 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("unit-crowded-cell-strikes-creep", mechanic_checks::unit_crowded_cell_strikes_unit),
     ("unit-reused-slot-drops-stale-target", mechanic_checks::reused_slot_drops_stale_target),
     ("item-stat-names", item_checks::item_stat_names),
-    ("item-stock", item_checks::item_stock),
     ("item-aegis-and-death", item_checks::item_aegis_and_death),
     ("item-town-portal", item_checks::item_town_portal),
     ("item-aghanim-and-refresh", item_checks::item_aghanim_and_refresh),
@@ -130,9 +119,6 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("scenario-idle-settle", mechanic_checks::scenario_idle_settle),
     ("scenario-sync", mechanic_checks::scenario_sync),
     ("scenario-objective", mechanic_checks::scenario_objective),
-    ("scenario-wave-composition", unit_checks::scenario_wave_composition),
-    ("scenario-siege-timing", unit_checks::scenario_siege_timing),
-    ("scenario-wave-upgrade", unit_checks::scenario_wave_upgrade),
     ("group-roshan-window", unit_checks::spawn_group_boss_window),
     ("group-minute-refill", unit_checks::spawn_group_minute_refill),
     ("group-first-spawn", unit_checks::spawn_group_first_spawn),
@@ -166,11 +152,6 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("move-units-tick", sim_checks::move_units_tick),
     ("path-to-goal", sim_checks::path_to_goal),
     ("order-kinds", sim_checks::order_kinds),
-    // CAP-PROD
-    ("produce-unit", sim_checks::produce_unit),
-    ("harvest-resources", sim_checks::harvest_resources),
-    ("spend-resources", sim_checks::spend_resources),
-    ("cancel-production", sim_checks::cancel_production),
     // CAP-CMB
     ("attack-unit", sim_checks::attack_unit),
     ("area-damage", damage_area_zero_noop),
@@ -225,13 +206,8 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("mod-package-version", claimed_checks::mod_package_version),
     ("save-load-hash-equal", sim_checks::save_load_state),
     // CAP rows still claimed, batch 2
-    ("transport-load", claimed_checks::transport_load),
-    ("transport-unload-point", claimed_checks::transport_unload_point),
     ("buff-stacking-rule", claimed_checks::buff_stacking_rule),
     ("shield-regen-delay", claimed_checks::shield_regen_delay),
-    ("upgrade-levels", claimed_checks::upgrade_levels),
-    ("upgrade-stacking", claimed_checks::upgrade_stacking),
-    ("upgrade-applies-existing", claimed_checks::upgrade_applies_existing),
     ("ranged-miss-chance", claimed_checks::ranged_miss_chance),
     ("replay-playback-controls", claimed_checks::replay_playback_controls),
     // CAP rows still claimed, batch 3
@@ -244,18 +220,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("editor-abilities", claimed_checks::editor_abilities),
     ("editor-triggers", claimed_checks::editor_triggers),
     ("channel-interrupt", claimed_checks::channel_interrupt),
-    ("worker-saturation", claimed_checks::worker_saturation),
     // CAP rows still claimed, batch 4
-    ("geyser-extraction", claimed_checks::geyser_extraction),
-    ("opening-resources", claimed_checks::opening_resources),
-    ("base-resource-nodes", claimed_checks::base_resource_nodes),
-    ("capacity-cap", claimed_checks::capacity_cap),
-    ("capacity-providers", claimed_checks::capacity_providers),
-    ("capacity-reservation", claimed_checks::capacity_reservation),
-    ("rally-point", claimed_checks::rally_point),
-    ("tech-prerequisites", claimed_checks::tech_prerequisites),
-    ("research-queue", claimed_checks::research_queue),
-    ("research-applies-all", claimed_checks::research_applies_all),
     ("damage-type-size", claimed_checks::damage_type_size),
     ("cloak-detection", claimed_checks::cloak_detection),
 ];
@@ -458,7 +423,7 @@ fn shield_bonus_zero_noop(image: &[u8]) -> Result<(), String> {
 }
 
 fn armour_reduces_damage(image: &[u8]) -> Result<(), String> {
-    let reduced = sim::armour_reduced(10, sim::fixed::from_int(3));
+    let reduced = sim::armour_reduced(10, sim::fixed::from_int(3), scenario_rule("armour_per_point_q16")?);
     if !(0..=10).contains(&reduced) {
         return Err(format!("armour_reduced(10, 3) = {reduced}, outside 0..=10"));
     }

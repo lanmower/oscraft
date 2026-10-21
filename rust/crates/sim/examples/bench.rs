@@ -44,7 +44,8 @@ fn main() {
                     continue;
                 }
                 for slot in 0..ABILITY_SLOTS {
-                    if sim.next_rank_gate(h, slot).is_some_and(|gate| gate <= sim.character_level(h)) {
+                    let level = sim.xp_curve().iter().take_while(|&&t| sim.xp(h) >= t).count() as u32;
+                    if sim.next_rank_gate(h, slot).is_some_and(|gate| gate <= level + 1) {
                         let _ = sim.rank_up(h, slot);
                     }
                 }

@@ -11,8 +11,9 @@ fn near(got: i32, want: i32) -> bool {
 /// Physical damage is scaled by 1 - 0.06a / (1 + 0.06|a|): armour 10 keeps 62.5 percent, armour -10
 /// takes 137.5 percent, armour 20 keeps 45.45 percent, armour 0 changes nothing.
 pub fn armour_formula(_image: &[u8]) -> Result<(), String> {
+    let k = crate::checks::scenario_rule("armour_per_point_q16")?;
     for (armour, want) in [(0, 1000), (10, 625), (-10, 1375), (20, 454), (23, 420)] {
-        let got = sim::armour_reduced(1000, fixed::from_int(armour));
+        let got = sim::armour_reduced(1000, fixed::from_int(armour), k);
         if !near(got, want) {
             return Err(format!("armour {armour}: 1000 damage became {got}, want about {want}"));
         }

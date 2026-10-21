@@ -106,6 +106,16 @@ impl Game {
     /// its own Lua environment over this match's sim. Every mod compiles before any takes effect: a failing mod keeps
     /// the last-known-good set and the error text is returned for the page to log. Returns "" when the set loaded.
     /// A replay of a match with mods is not reproducible, so the record is marked from this tick on.
+    /// Applies the pack's rules text (attr_rules.txt: the engine's rule keys and the named values mods read through
+    /// game.rule) before any mod loads. Returns an empty string on success, else the reason the text is refused.
+    pub fn set_attr_rules(&mut self, text: &str) -> String {
+        if self.host.sim_mut().set_attr_rules_text(text) {
+            String::new()
+        } else {
+            "the pack's rules text is refused".to_owned()
+        }
+    }
+
     pub fn load_mods(&mut self, json: &str) -> String {
         let mods = match parse_mods(json) {
             Ok(mods) => mods,
@@ -257,6 +267,11 @@ impl Game {
         sim::fixed::to_int(self.host.sim().hp(unit as usize))
     }
 
+    /// The xp total of unit `unit` (a primitive read; the level is the pack's rule, see scenarios/moba/shared/xp.lua).
+    pub fn xp(&self, unit: u32) -> u32 {
+        self.host.sim().xp(unit as usize)
+    }
+
     /// Gold (resource a) of player `player`, in whole units.
     pub fn gold(&self, player: u8) -> i32 {
         self.host.sim().resource_a(player)
@@ -267,34 +282,14 @@ impl Game {
         self.host.sim().winner().map_or(-1, |side| side as i32)
     }
 
-    /// Post-game screen data as JSON: `{"winner":side|-1,"players":[{"player","kills","deaths","assists","gold","xp","items":[kind,...]}]}`.
-    pub fn post_game_json(&self) -> String {
-        let players: Vec<String> = self
-            .host.sim()
-            .post_game()
-            .iter()
-            .map(|t| {
-                let items: Vec<String> = t.items.iter().map(|k| k.to_string()).collect();
-                format!(
-                    "{{\"player\":{},\"kills\":{},\"deaths\":{},\"assists\":{},\"gold\":{},\"xp\":{},\"items\":[{}]}}",
-                    t.player,
-                    t.kills,
-                    t.deaths,
-                    t.assists,
-                    t.gold,
-                    t.xp,
-                    items.join(",")
-                )
-            })
-            .collect();
-        format!("{{\"winner\":{},\"players\":[{}]}}", self.winner(), players.join(","))
-    }
-
     /// Casts ability slot `slot` of unit `unit` at tile (x, y), aimed at unit `target` or at the ground when
     /// `target` is -1. Returns false when the sim refuses the cast.
     pub fn cast(&mut self, unit: u32, slot: u32, target: i32, x: f32, y: f32) -> bool {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
+        if !self.host.cast_allowed(unit as usize, slot as usize, target, fx, fy, false) {
+            return false;
+        }
         self.rec.apply(&mut self.host.sim_mut(), Command::Cast { unit: unit as usize, slot: slot as usize, target, x: fx, y: fy })
     }
 
@@ -304,6 +299,9 @@ impl Game {
     pub fn use_item(&mut self, unit: u32, slot: u32, target: i32, x: f32, y: f32) -> bool {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
+        if !self.host.cast_allowed(unit as usize, slot as usize, target, fx, fy, true) {
+            return false;
+        }
         self.rec.apply(&mut self.host.sim_mut(), Command::UseItem { unit: unit as usize, slot: slot as usize, target, x: fx, y: fy })
     }
 
@@ -465,9 +463,9 @@ impl Game {
         self.host.sim().fog_on()
     }
 
-    // fogview: day and night clock as `[ticks into cycle, day ticks, night ticks]`.
+    // fogview: day and night clock as `[ticks into cycle, day ticks, night ticks]`, as the pack's clock reported it.
     pub fn day_cycle(&self) -> Vec<u32> {
-        vec![self.host.sim().day_clock(), sim::DAY_TICKS, sim::NIGHT_TICKS]
+        self.host.sim().day_cycle().to_vec()
     }
 
     /// Living units as flat `[x, y, player]` triples, positions in tiles.

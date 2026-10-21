@@ -44,11 +44,14 @@ impl Sim {
     pub fn state_hash(&self) -> u64 {
         let mut h = Fnv(0xcbf2_9ce4_8422_2325);
         h.u64s(&[self.cat_digest, self.cap as u64]);
-        h.bytes(&[self.abil_on as u8, self.fog as u8, self.harvest as u8, self.produce as u8]);
+        h.bytes(&[self.abil_on as u8, self.fog as u8]);
         let mut pool = Vec::new();
         crate::persist::pool_bytes(&self.paths, &mut pool);
         h.bytes(&pool);
-        h.u64s(&[self.n as u64, self.head as u64, self.ticks as u64, self.day_clock as u64, self.rng, self.scan_left as u64]);
+        h.u64s(&[self.n as u64, self.head as u64, self.ticks as u64]);
+        h.bytes(&[self.night as u8]);
+        h.u32s(&self.day_cycle);
+        h.u64s(&[self.rng]);
         h.u64s(&[self.log_len as u64, self.log_dropped]);
         h.u32s(&self.log_tick[..self.log_len]);
         h.i32s(&self.log_unit[..self.log_len]);
@@ -59,7 +62,6 @@ impl Sim {
             h.i32s(table);
         }
         h.u32s(&self.last_hit);
-        h.bytes(&self.upg_done);
         h.u32s(&self.inv_kind);
         h.u32s(&self.inv_count);
         h.u32s(&self.stash_kind);
@@ -79,11 +81,7 @@ impl Sim {
         h.u32s(&self.aggro.invuln_until);
         h.bytes(&self.aggro.reduce_pct);
         h.i32s(&self.aggro.heal);
-        h.i32s(&self.aggro.strike);
-        h.u32s(&self.aggro.strike_gen);
-        h.u32s(&self.aggro.spawn_gen);
         h.i32s(&self.chase.target);
-        h.u32s(&self.chase.target_gen);
         h.bytes(&self.chase.ret_kind);
         h.i32s(&self.chase.ret_x);
         h.i32s(&self.chase.ret_y);
@@ -130,7 +128,6 @@ impl Sim {
         h.i32s(&self.type_of);
         h.u32s(&self.filter);
         h.bytes(&self.response);
-        h.i32s(&self.product);
         h.bytes(&self.flying);
         h.bytes(&self.targets);
         h.bytes(&self.kind);
@@ -140,15 +137,6 @@ impl Sim {
         h.i32s(&self.patrol_x);
         h.i32s(&self.patrol_y);
         h.i32s(&self.amount);
-        h.bytes(&self.wstate);
-        h.i32s(&self.wtarget);
-        h.i32s(&self.wtimer);
-        h.i32s(&self.carry);
-        h.bytes(&self.carry_kind);
-        h.i32s(&self.harvest_amt);
-        h.i32s(&self.trainee);
-        h.i32s(&self.train_left);
-        h.bytes(&self.train_hold);
         h.i32s(&self.resource_a);
         h.i32s(&self.resource_b);
         h.i32s(&self.abil_idx);
@@ -181,17 +169,11 @@ impl Sim {
         h.i32s(&self.m_x);
         h.i32s(&self.m_y);
         h.bytes(&self.vis);
-        h.bytes(&self.researched);
-        h.i32s(&self.research_left);
-        h.i32s(&self.research_rec);
-        h.i32s(&self.loaded_into);
         h.i32s(&self.channel_left);
         h.i32s(&self.channel_ai);
         h.i32s(&self.channel_x);
         h.i32s(&self.channel_y);
         h.i32s(&self.channel_target);
-        h.bytes(&self.burrowed);
-        h.i32s(&self.burrow_left);
         h.i32s(&self.status_left);
         h.i32s(&self.slow_mul);
         h.bytes(&self.seen);
@@ -199,10 +181,6 @@ impl Sim {
         h.i32s(&self.seen_y);
         h.bytes(&self.has_seer.map(|b| b as u8));
         h.bytes(&self.team);
-        for r in &self.reveals {
-            h.bytes(&[r.p, r.live as u8]);
-            h.i32s(&[r.x0, r.y0, r.x1, r.y1, r.until]);
-        }
         for a in self.alliance {
             h.bytes(&a.to_le_bytes());
         }
@@ -219,6 +197,10 @@ impl Sim {
             let bytes: Vec<u8> = self.hold_override.iter().map(|&c| c as u8).collect();
             h.bytes(&bytes);
         }
+        if self.strike_target.iter().any(|&c| c >= 0) {
+            h.i32s(&self.strike_target);
+        }
+        h.bytes(&self.researched);
         h.i32s(&self.attributed.home_x);
         h.i32s(&self.attributed.home_y);
         h.bytes(&self.attributed.waiting);
@@ -231,23 +213,17 @@ impl Sim {
         h.u64s(&[
             self.stats.deaths as u64,
             self.stats.vision_refreshes as u64,
-            self.stats.harvested as u64,
-            self.stats.trained as u64,
-            self.stats.trains_refused as u64,
             self.stats.casts as u64,
             self.stats.casts_refused as u64,
             self.stats.missiles_lost as u64,
             self.stats.ability_damage as u32 as u64,
-            self.stats.retargets as u64,
-            self.stats.retargets_deferred as u64,
             self.stats.buffs_dropped as u64,
             self.stats.summoned as u64,
-            self.stats.reveals_dropped as u64,
         ]);
         for c in self.stats.refused_by {
             h.u64s(&[c as u64]);
         }
-        h.bytes(&[self.stats.last_refusal as u8, self.stats.last_train_refusal as u8]);
+        h.bytes(&[self.stats.last_refusal as u8]);
         h.0
     }
 }

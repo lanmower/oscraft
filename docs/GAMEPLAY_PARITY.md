@@ -1,6 +1,6 @@
 # Gameplay parity list
 
-Parity with the gameplay list means every GP row is covered by a CAP row whose gate check passes on CI. A row marked MISSING has no covering CAP row in docs/CAPABILITIES.md (read from remote main). Coverage here is a mapping check; CAP rows marked `claimed` are not yet verified by a passing gate.
+Parity with the gameplay list means every GP row is covered by a CAP row whose gate check passes on CI. A row marked MISSING has no covering CAP row in docs/CAPABILITIES.md (read from remote main). Coverage here is a mapping check; CAP rows marked `claimed` are not yet verified by a passing gate, and CAP rows whose gate reads `none (gate removed)` have no gate at all.
 
 Sources (read through the fetch port; mechanics restated in our own words, no page text or tables copied, no reference numbers used):
 - broodwar.live mechanics wiki, https://broodwar.live/wiki/mechanics/ (worker-management, attack-mechanics, damage-types, armor-types, economy, resources, supply, splash-damage, cloaking-detection, fog-of-war, terrain, transport, game-speed, building-placement, control-groups)
@@ -222,6 +222,6 @@ Each row names its source. A row is confirmed only when a 6.88 page or patch not
 
 ## Wave creep acquire (decision)
 
-Wave creeps now chase an enemy inside their acquire range and then resume the route (`rust/crates/sim/src/acquire.rs`, commit b92f8a9). Acquire ranges come from the 6.88 creep unit data: creep Ghoul 500, creep_ranged Necromancer 600, creep_siege Meat Wagon 800. Structures are excluded as creep acquire targets; the 6.88 data does not say this, so it is a judgement call made to keep matches from stalling.
+Wave creeps now chase an enemy inside their acquire range and then resume the route. The chase is mod code in `scenarios/moba/lanes.lua` (game.acquire_of, game.order_of, game.issue_order, game.chase_get, game.chase_set); the Rust version at commit b92f8a9 was `rust/crates/sim/src/acquire.rs`. Acquire ranges come from the 6.88 creep unit data: creep Ghoul 500, creep_ranged Necromancer 600, creep_siege Meat Wagon 800. Structures are excluded as creep acquire targets; the 6.88 data does not say this, so it is a judgement call made to keep matches from stalling.
 
 Measured shift on the 3600-tick match (b92f8a9 against its parent): non-hero kills side 0 to 1 went from 43 to 36, side 1 to 0 from 72 to 70, and the win tick from 28655 to 18953. The shift is kept as the intended behaviour. Revisit it only with a new 6.88 source for creep targeting.

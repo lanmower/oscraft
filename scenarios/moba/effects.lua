@@ -8,6 +8,7 @@
 -- Positions are fixed point, as unit_position returns them. Effects anchored to a unit name it in target or source;
 -- the page reads its position, and keeps the last one for a unit that has died.
 local units = require("units")
+local xp = require("xp")
 
 local MELEE_RANGE_RAW = 170394  -- 2.6 world units in fixed point (65536 per unit), the reach of a melee strike
 local SPELL = "spell"
@@ -57,7 +58,7 @@ return {
   on_tick = function()
     for i = 0, get_unit_count() - 1 do
       if units.is_hero(i) then
-        local level, alive = game.level(i), game.alive(i)
+        local level, alive = xp.level_of(i), game.alive(i)
         local before_level, was_alive = seen_level[i], seen_alive[i]
         if before_level ~= nil and level > before_level then
           game.effect("level_ring", 0, 0, { target = i, colour = "level" })

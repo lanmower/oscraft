@@ -1,5 +1,6 @@
 -- The moba pack's root. It names the features in hook order and nothing else; each feature returns its own hooks.
 require("heroes")
+require("clock")
 require("camps")
 require("lanes")
 require("store")
@@ -12,4 +13,8 @@ require("effects")
 require("controls")
 require("panels")
 require("kill_gold")
+require("taunt")
+require("levelup")
+require("upgrades")
+require("targeting")
 return {}

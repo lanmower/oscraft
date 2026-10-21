@@ -50,13 +50,14 @@ pub(crate) struct ItemRequestState {
 type Bank = [(u32, u32); INV_SLOTS];
 
 impl Sim {
-    /// Queues an acquire of catalog item `item` for unit `i`; the mod answers it. False when the unit
-    /// is dead (NoSlot), or the item is unknown or flagged no-buy (NoItem); nothing is queued then.
+    /// Queues an acquire of catalog item `item` for unit `i`; the mod answers it, and its shop rule decides
+    /// whether the item may be bought. False when the unit is dead (NoSlot) or the item is not in the
+    /// catalog (NoItem); nothing is queued then.
     pub fn buy_item(&mut self, i: usize, item: usize) -> bool {
         if !self.trade_unit_ok(i) {
             return false;
         }
-        if item >= self.cat.items.len() || self.cat.items[item].flags & ITEM_FLAG_NO_BUY != 0 {
+        if item >= self.cat.items.len() {
             self.refuse(Refusal::NoItem);
             return false;
         }
@@ -64,16 +65,14 @@ impl Sim {
         true
     }
 
-    /// Queues a release of the item in inventory slot `slot` of unit `i`. False (nothing queued) for a dead
-    /// unit, a bad slot (NoSlot) or an empty or no-sell slot (NoItem).
+    /// Queues a release of the item in inventory slot `slot` of unit `i`; the mod's shop rule decides whether
+    /// the item may be sold. False (nothing queued) for a dead unit, a bad slot (NoSlot) or an empty slot (NoItem).
     pub fn sell_item(&mut self, i: usize, slot: usize) -> bool {
         if !self.trade_unit_ok(i) || slot >= INV_SLOTS {
             self.refuse(Refusal::NoSlot);
             return false;
         }
-        let kind = self.inv_kind[i * INV_SLOTS + slot];
-        let sellable = self.item_def(kind).is_some_and(|d| d.flags & ITEM_FLAG_NO_SELL == 0);
-        if self.inv_count[i * INV_SLOTS + slot] == 0 || !sellable {
+        if self.inv_count[i * INV_SLOTS + slot] == 0 {
             self.refuse(Refusal::NoItem);
             return false;
         }
@@ -96,22 +95,6 @@ impl Sim {
         true
     }
 
-    /// Puts `count` of catalog item `item` into the first empty stash slot of unit `i`. False for a dead
-    /// or unknown unit, an unknown item, or a full stash. Stash items give no bonuses, so nothing else
-    /// changes. A mod or a test uses it to stage items for a carry.
-    pub fn stash_item(&mut self, i: usize, item: usize, count: u32) -> bool {
-        if !self.trade_unit_ok(i) || item >= self.cat.items.len() || count == 0 {
-            return false;
-        }
-        let base = i * INV_SLOTS;
-        let Some(s) = (0..STASH_SLOTS).find(|&s| self.stash_count[base + s] == 0) else {
-            return false;
-        };
-        self.stash_kind[base + s] = item_kind(item);
-        self.stash_count[base + s] = count;
-        true
-    }
-
     /// Takes the queued requests, in the order they were queued.
     pub fn drain_requests(&mut self) -> Vec<ItemRequest> {
         std::mem::take(&mut self.item_requests.requests)
@@ -119,7 +102,8 @@ impl Sim {
 
     /// Applies a mod's verdict on an item request. Refusals, each changing nothing: NoSlot for a dead unit or
     /// bad slot; the verdict's own `deny`; NoItem for an unknown item or a negative debit or credit;
-    /// MissingComponent when a listed copy is not held; CannotAfford; InventoryFull.
+    /// MissingComponent when a listed copy is not held; InventoryFull. Whether the buyer can pay the debit is the
+    /// mod's rule (store.lua checks the gold before it answers).
     pub fn apply_verdict(&mut self, v: &ItemVerdict) -> bool {
         match *v {
             ItemVerdict::Acquire { unit, item, allow, deny, debit, takes } => self.apply_acquire(unit, item, allow, deny, debit, takes),
@@ -246,10 +230,6 @@ impl Sim {
             }
         }
         let p = self.player[i] as usize;
-        if self.resource_a[p] < debit {
-            self.refuse(Refusal::CannotAfford);
-            return false;
-        }
         let count = u32::from(def.charges).max(1);
         if !self.place_item(item_kind(item), count, u32::from(def.stack_max), &mut inv, &mut stash) {
             self.refuse(Refusal::InventoryFull);

@@ -53,7 +53,7 @@ const EFFECT_SHIELD_BONUS: u16 = 10;
 const EFFECT_BUFF: u16 = 4;
 const TARGET_CODES: u8 = 3;
 const TRIGGER_CODES: u8 = 5;
-const ACTION_CODES: u8 = 4;
+const ACTION_CODES: u8 = 2;
 const RESPONSE_CODES: u8 = 3;
 const FILTER_BITS: u32 = 15;
 pub(crate) const NO_INDEX: u16 = 0xFFFF;
@@ -1464,8 +1464,6 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
         if sim.set_team(s.player, s.team).is_err() {
             return Err(LoadError::Range("start team refused"));
         }
-        sim.open_player(s.player, s.x, s.y);
-        sim.base_fields(s.x, s.y);
     }
     Ok(sim)
 }

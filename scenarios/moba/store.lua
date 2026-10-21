@@ -75,7 +75,7 @@ end
 -- missing component's own parts are claimed in its place). The answer lists the copies to take.
 local function acquire(unit, item, state)
   local def = game.item_info(item)
-  if def == nil or def.tags == 0 then return false, "no-item" end
+  if def == nil or def.tags == 0 or def.no_buy then return false, "no-item" end
   if depot_tags_in_reach(unit) & def.tags == 0 then return false, "out-of-reach" end
   local now = game.time()
   local team = game.team(unit_player(unit))
@@ -106,6 +106,8 @@ local function acquire(unit, item, state)
     return saved
   end
   local price = def.cost - claim(item)
+  -- The engine debits the player's gold without a floor, so the rule refuses a price the player cannot pay.
+  if game.gold(unit_player(unit)) < price then return false, "cannot-afford" end
   if s ~= nil then
     if s.count == def.stock_max then s.next_at = now + restock_every(def) end
     s.count = s.count - 1
@@ -122,6 +124,7 @@ local function release(unit, slot, state)
   end
   if held == nil then return false, "no-item" end
   local def = game.item_info(held.item)
+  if def == nil or def.no_sell then return false, "no-item" end
   local units = def.charges
   if units < 1 then units = 1 end
   return true, math.floor((def.cost * held.count) / (2 * units))
@@ -172,8 +175,10 @@ local function courier_step(u)
 end
 
 -- The carry request: `caster` is sent to `target`, within COURIER_REACH_MILLI. A courier already out
--- keeps the point it left from.
+-- keeps the point it left from. The target must be a living unit friendly to the caster and not the caster itself;
+-- the engine queues the request for any unit index, so the refusal is here.
 local function carry(caster, target, reach, state)
+  if target == caster or not unit_alive(target) or game.hostile(unit_player(caster), unit_player(target)) then return end
   local c = couriers[caster]
   if c == nil then
     local hx, hy = unit_position(caster)
@@ -189,6 +194,19 @@ local function carry(caster, target, reach, state)
   game.timer(courier_name(caster), 1, function() courier_step(caster) end, 1)
 end
 
+-- Net worth: the unit's gold, plus the cost of each item it holds and each item in its stash, per copy.
+-- The hero buyback reads it (heroes.lua buyback_cost).
+local function net_worth(unit)
+  local total = game.unit_gold(unit)
+  for _, row in ipairs(game.unit_items(unit)) do
+    total = total + game.item_info(row.item).cost * row.count
+  end
+  for _, row in ipairs(game.unit_stash(unit)) do
+    total = total + game.item_info(row.item).cost * row.count
+  end
+  return total
+end
+
 -- The one rule the engine asks. Refusal reasons: "no-item", "out-of-reach", "cannot-afford",
 -- "inventory-full", "missing-component". A kind this file does not know is refused.
 local function on_request(kind, unit, item, state)
@@ -199,4 +217,4 @@ local function on_request(kind, unit, item, state)
   return false, "no-item"
 end
 
-return { on_request = on_request }
+return { on_request = on_request, net_worth = net_worth }

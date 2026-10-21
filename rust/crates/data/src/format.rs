@@ -33,9 +33,9 @@ pub const Q16_ONE: i32 = 65536;
 
 pub const TARGETS: &[&str] = &["none", "unit", "point"];
 pub const TRIGGERS: &[&str] = &["idle", "attacked", "spawned", "ability_ready", "destroyed"];
-// Retired names keep their index so old images decode the same; a behaviour naming one is refused.
-pub const ACTIONS: &[&str] = &["attack_nearest", "flee", "use_ability", "retired_declare_winner"];
-pub const ACTION_USE_ABILITY: usize = 2;
+// The sim queues each fired behaviour with its action code; the pack chooses what the action does.
+pub const ACTIONS: &[&str] = &["flee", "use_ability"];
+pub const ACTION_USE_ABILITY: usize = 1;
 pub const FILTER_MASK_BITS: u32 = 15;
 pub const FILTER_ALL: u32 = (1 << FILTER_MASK_BITS) - 1;
 pub const DAMAGE_RESPONSES: &[&str] = &["normal", "reduced", "immune"];
@@ -277,7 +277,6 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
         "if_kill" => (1..=16).contains(&p0),
         "attack" => p0 >= 0,
         "refresh" => (1..=3).contains(&p0),
-        "grant_upgrade" => (0..=1).contains(&p0),
         "stun" | "silence" | "root" | "invisibility" => p0 >= 1,
         "slow" => p0 >= 1 && (0..=Q16_ONE).contains(&p1),
         _ => true,

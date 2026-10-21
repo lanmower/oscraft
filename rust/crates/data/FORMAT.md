@@ -182,7 +182,7 @@ Transport capacity is spent in size units: the size category sets the cost (smal
 | 12     | 2    | ability index into `ABIL`, `0xFFFF` = none              |
 | 14     | 2    | reserved, write 0                                       |
 
-Whether `param` is read and whether `ability` is required depend on the trigger and action. `use_ability` requires an ability index other than `0xFFFF`. `attack_nearest` reads `param` as a search radius in milli-units (`0` = the unit's sight); `flee` reads a distance in milli-units.
+Whether `param` is read and whether `ability` is required depend on the trigger and action. `use_ability` requires an ability index other than `0xFFFF`. `flee` reads a distance in milli-units. `attack_nearest` is removed; its targeting is in `scenarios/moba/targeting.lua`.
 
 ### PLCE (16 bytes per record)
 One record per placed object: a unit placed for a player, a neutral unit, or a start location.
@@ -398,7 +398,7 @@ These lists are fixed in `format.rs`. A code is the zero-based index. Changing o
 
 - Targets (`ABIL.target`): `none`, `unit`, `point`
 - Triggers (`BHVR.trigger`): `idle`, `attacked`, `spawned`, `ability_ready`, `destroyed`
-- Actions (`BHVR.action`): `attack_nearest`, `flee`, `use_ability`, `retired_declare_winner` (the last index is kept so old images decode the same and is refused)
+- Actions (`BHVR.action`): `flee` (0), `use_ability` (1). Any other name, including the removed `attack_nearest` and `retired_declare_winner`, fails to load.
 - Status codes: `stun`, `slow`, `silence`, `root`, `invisibility`, `taunt`, `hex`, `disarm`, `spell_immunity`, `invulnerable`, `break`, `mute`, `physical_immunity`, `death_prevention`
 - Spell damage types: `legacy`, `physical`, `magical`, `pure`
 - Order kinds: `stop`, `attack_move`, `hold`; order targets: `caster_relative`, `point`

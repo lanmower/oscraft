@@ -5,6 +5,8 @@ local units = require("units")
 local bounty = require("bounty")
 local respawn = require("respawn")
 local counter = require("counter")
+local store = require("store")
+local xp = require("xp")
 
 local TICKS = config.TICKS_PER_SECOND
 
@@ -59,13 +61,13 @@ local function credit_assists(victim, killer, killer_player)
 end
 
 local function hero_gold(unit)
-  return config.rule("hero_kill_gold_base") + config.rule("hero_kill_gold_per_level") * game.level(unit)
+  return config.rule("hero_kill_gold_base") + config.rule("hero_kill_gold_per_level") * xp.level_of(unit)
 end
 
 -- Buyback: base + per level + a share of net worth; the cooldown is a per-unit counter.
 local function buyback_cost(unit)
-  local nw = math.floor(game.net_worth(unit) * config.rule("buyback_net_worth_pct") / (100 * config.rule("buyback_net_worth_div")))
-  return config.rule("buyback_base") + config.rule("buyback_per_level") * game.level(unit) + nw
+  local nw = math.floor(store.net_worth(unit) * config.rule("buyback_net_worth_pct") / (100 * config.rule("buyback_net_worth_div")))
+  return config.rule("buyback_base") + config.rule("buyback_per_level") * xp.level_of(unit) + nw
 end
 
 -- The stat bonus of unit `unit` for `code` last sent, so each tick sends only the change.
@@ -82,11 +84,32 @@ local function set_bonus(unit, code, target)
   end
 end
 
+-- Each attribute's unit line field (attr_field, and its gain per level under the name with "_gain"), its ITEM_STATS name
+-- for the item bonus, and its stat code (the attribute slots are 22 + k; sim/src/spell.rs S_SLOT_22).
+local ATTRIBUTES = {
+  { field = "str", item = "strength", code = 22 },
+  { field = "agi", item = "agility", code = 23 },
+  { field = "int", item = "intelligence", code = 24 },
+}
+
+-- Strength, agility and intelligence of a unit in hundredths: the base plus the gain per xp level (the unit line's
+-- values), then the item bonus and the stat bonus, which are whole points.
+local function unit_attributes(unit)
+  local level = xp.level_of(unit)
+  local out = {}
+  for k, attr in ipairs(ATTRIBUTES) do
+    local base = game.attr_field(unit, attr.field) or 0
+    local gain = game.attr_field(unit, attr.field .. "_gain") or 0
+    out[k] = base + gain * level + (game.item_bonus(unit, attr.item) + game.stat_value(unit, attr.code)) * 100
+  end
+  return out[1], out[2], out[3]
+end
+
 -- The attribute-to-stat rules: strength gives health, health regen and the universal or strength damage;
 -- agility gives armour, attack speed and the agility damage; intelligence gives mana and mana regen.
--- Attributes are hundredths (game.attributes_x100); the coefficients are rules.
+-- Attributes are hundredths (unit_attributes); the coefficients are rules.
 local function attribute_bonuses(unit)
-  local s, a, n = game.attributes_x100(unit)
+  local s, a, n = unit_attributes(unit)
   local primary = game.attr_field(unit, "primary")
   local damage_x100
   if primary == 0 then
@@ -103,7 +126,10 @@ local function attribute_bonuses(unit)
   set_bonus(unit, S_DAMAGE, math.floor(damage_x100 / 100))
   set_bonus(unit, S_ARMOR_X100, math.floor(a / config.rule("armour_per_attr_b_div")))
   set_bonus(unit, S_ATTACK_SPEED, math.floor(a / 100))
-  set_bonus(unit, S_MAX_MANA, math.floor(config.rule("mana_per_attr_c") * n / 100))
+  -- A unit with no unit line in the rules has no base mana of its own: it takes the pack's default mana.
+  local mana_default = 0
+  if game.attr_field(unit, "mana") == nil then mana_default = config.rule("mana_base_default") end
+  set_bonus(unit, S_MAX_MANA, mana_default + math.floor(config.rule("mana_per_attr_c") * n / 100))
   set_bonus(unit, S_MANA_REGEN, math.floor(config.rule("mana_regen_per_attr_c_x100") * n / 100))
 end
 
@@ -134,7 +160,7 @@ return {
   -- A dead hero's respawn time, by its level.
   on_unit_died = function(unit)
     if not units.is_hero(unit) then return nil end
-    return respawn.linear(game.level(unit), "respawn_base_s", "respawn_per_level_s", "respawn_cap_s")
+    return respawn.linear(xp.level_of(unit), "respawn_base_s", "respawn_per_level_s", "respawn_cap_s")
   end,
 
   -- Buyback: a dead hero with the gold and the cooldown ready returns at once.

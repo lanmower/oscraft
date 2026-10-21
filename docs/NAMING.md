@@ -60,7 +60,7 @@ This map is the spec for one atomic rename commit across `rust/` and `docs/`. Ev
 | UPGRADE_TARGET_KINDS | TECH_TARGET_KINDS | `format.rs` | constant rename |
 | shield | secondary health pool | `VITALS` in `format.rs`, `FORMAT.md`, `builtins.rs` | secondary health pool |
 | shield_bonus | secondary_pool_bonus | `EFFECT_KINDS` in `format.rs` | effect kind |
-| production, produce | spawning | `production.rs`, `FORMAT.md` | production becomes spawning; `production.rs` becomes `spawning.rs` |
+| production, produce | spawning | `FORMAT.md` | production becomes spawning; `production.rs` was deleted, its queue rules are `mods/production.lua` |
 | MPQ, Mo'PaQ, mpq crate | deleted | `rust/crates/mpq/`, `lib.rs`, `Cargo.toml` | deletion |
 | vendor product names and their data formats (see the LICENSES inventory audit) | deleted | docs, code comments, `testdata/_incoming/` | deletion, not replacement |
 | OSDT | OSDT | `format.rs`, `loader.rs`, `data/Cargo.toml`, `FORMAT.md` | keep: file magic, OScraft Data Table |
@@ -97,9 +97,9 @@ This map is the spec for one atomic rename commit across `rust/` and `docs/`. Ev
 | `GET /resources` | `GET /resources` | `server/src/main.rs` | keep |
 | `?map=<name>` | `room={name}` in path | `server/src/main.rs` | query replaced by path segment |
 | CLI flags, env vars | none found | `rust/` has no `env::var` and no argument parser | any future name uses `OSCRAFT_` prefix and `oscraft-*` binary names |
-| `harvest.rs` | `harvest.rs` | `sim/src/harvest.rs` | keep |
+| `harvest.rs` | removed | `sim/src/harvest.rs` (deleted) | the gather rule is `scenarios/duel-routes/harvest.lua` |
 | `arrays.rs`, `hash.rs`, `lib.rs` | unchanged | `sim/src/` | keep |
-| `production.rs` | `spawning.rs` | `sim/src/` | file name |
+| `production.rs` | removed | `sim/src/` (deleted) | no `spawning.rs`; the queue rules are `mods/production.lua` |
 | `buffs.rs` | `status_effects.rs` | `sim/src/` | file name |
 | `FORMAT.md` | `docs/FORMAT.md` | `rust/crates/data/` | doc moves to `docs/`; doc names are UPPERCASE.md |
 | `Unit` (type) | `Entity` | `sim`, `data` | type rename |

@@ -315,40 +315,39 @@ impl Sim {
         self.cat.research.iter().position(|r| self.cat.name(r.name) == name)
     }
 
-    /// Completes research `r` for `player` at no cost and time: marks it done and applies its effect
-    /// to the player's living units it matches. False for an unknown research or player, or one
-    /// the player already holds.
-    pub fn grant_research(&mut self, player: u8, r: usize) -> bool {
+    /// The per-player research bit for record `r`: true once `player` holds it. False for an unknown
+    /// record or player. The bit is the only research state the sim keeps; the rules live in Lua.
+    pub fn research_bit(&self, player: u8, r: usize) -> bool {
         let rc = self.cat.research.len();
-        if r >= rc || (player as usize) >= MAX_PLAYERS || self.researched[player as usize * rc + r] != 0 {
+        r < rc && (player as usize) < MAX_PLAYERS && self.researched[player as usize * rc + r] != 0
+    }
+
+    /// Sets or clears the per-player research bit for record `r`. False for an unknown record or
+    /// player, and nothing changes then. Applies no effect: Lua calls `apply_research` per unit.
+    pub fn set_research_bit(&mut self, player: u8, r: usize, on: bool) -> bool {
+        let rc = self.cat.research.len();
+        if r >= rc || (player as usize) >= MAX_PLAYERS {
             return false;
         }
-        self.researched[player as usize * rc + r] = 1;
-        let rec = self.cat.research[r];
-        if let Some(eff) = self.cat.effects.get(rec.effect as usize).copied() {
-            for j in 0..self.n {
-                if self.alive[j] != 0 && self.player[j] == player && self.meets_filter(j, rec.applies_mask) {
-                    self.apply_effect(j, 0, eff, self.pos_x[j], self.pos_y[j], j as i32, true);
-                }
-            }
-        }
+        self.researched[player as usize * rc + r] = u8::from(on);
         true
     }
 
-    /// Applies the effect of every to_new research `player` holds to unit `i`, just built.
-    pub(crate) fn apply_research_to_new(&mut self, i: usize, player: u8) {
-        let rc = self.cat.research.len();
-        if (player as usize) >= MAX_PLAYERS {
-            return;
+    /// Applies research `r`'s effect to unit `i` when the unit is alive and its filter passes.
+    /// The effect runs through `apply_effect`, the same path a cast takes. True when applied.
+    pub fn apply_research(&mut self, r: usize, i: usize) -> bool {
+        if r >= self.cat.research.len() || i >= self.n || self.alive[i] == 0 {
+            return false;
         }
-        for r in 0..rc {
-            let rec = self.cat.research[r];
-            if rec.to_new && self.researched[player as usize * rc + r] != 0 && self.meets_filter(i, rec.applies_mask) {
-                if let Some(eff) = self.cat.effects.get(rec.effect as usize).copied() {
-                    self.apply_effect(i, 0, eff, self.pos_x[i], self.pos_y[i], i as i32, true);
-                }
-            }
+        let rec = self.cat.research[r];
+        if !self.meets_filter(i, rec.applies_mask) {
+            return false;
         }
+        let Some(eff) = self.cat.effects.get(rec.effect as usize).copied() else {
+            return false;
+        };
+        self.apply_effect(i, 0, eff, self.pos_x[i], self.pos_y[i], i as i32, true);
+        true
     }
 
     /// Adds a flat bonus to one stat of the receiver (the cast target unit, or the caster when the
@@ -430,13 +429,7 @@ impl Sim {
         }
     }
 
-    /// Declares `player` defeated: the team of the first player hostile to it wins. The first winner stands.
-    pub fn declare_defeat(&mut self, player: u8) {
-        if self.winner >= 0 || (player as usize) >= MAX_PLAYERS {
-            return;
-        }
-        if let Some(rival) = self.first_hostile_side(player) {
-            self.winner = self.team[rival as usize] as i32;
-        }
-    }
+    /// Records that `player` was defeated. The sim keeps no defeat record and picks no winner here: the
+    /// mod's win rule decides who wins, and declares it with `declare_winner`.
+    pub fn declare_defeat(&mut self, _player: u8) {}
 }

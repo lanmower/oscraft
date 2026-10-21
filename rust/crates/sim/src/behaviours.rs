@@ -1,17 +1,16 @@
 //! Behaviour triggers: a behaviour declared in data fires during the tick when its trigger happens to a
 //! unit. Spawned fires once, on the unit's first tick. Attacked fires on the tick after a unit takes a
 //! hit. Idle fires on the edge where a unit comes to rest, not on every resting tick. Ability_ready fires
-//! when a slot's cooldown runs out. Destroyed fires once when a unit's life runs out. A fired behaviour
-//! runs its action: use_ability casts the named ability when the unit holds it (a unit that does not
-//! hold it is skipped, not refused); any other action refuses as action-unsupported. Behaviours carry no
-//! unit link, so every unit is offered each one. Nothing allocates: the catalog is read by index and each
-//! pending flag is a byte in its unit's array.
+//! when a slot's cooldown runs out. Destroyed fires once when a unit's life runs out. A fired behaviour is
+//! queued (`take_fired`) for the pack, which chooses the action and its target. A use_ability behaviour is
+//! queued only when the unit holds its ability (a unit that does not hold it is skipped, not refused).
+//! Behaviours carry no unit link, so every unit is offered each one. The queue is capped and transient; the
+//! catalog is read by index and each pending flag is a byte in its unit's array.
 //! The winner record is not a behaviour: the sim keeps the side a mod declares with `declare_winner`, and
 //! the win rule itself is the mod's (on_check_win).
 
-use crate::arrays::{dist2, Sim};
-use crate::fixed;
-use crate::rules::{Refusal, TARGET_UNIT};
+use crate::aggro::{Fired, FIRED_CAP};
+use crate::arrays::Sim;
 use crate::*;
 
 impl Sim {
@@ -52,14 +51,6 @@ impl Sim {
         self.cat.starts.len()
     }
 
-    /// The number of teams among the starting players: the sides of the match.
-    pub fn side_count(&self) -> usize {
-        let mut teams: Vec<u8> = self.cat.starts.iter().map(|s| s.team).collect();
-        teams.sort_unstable();
-        teams.dedup();
-        teams.len()
-    }
-
     /// The first side hostile to `side`, or None when no side is.
     pub fn first_hostile_side(&self, side: u8) -> Option<u8> {
         (0..MAX_PLAYERS as u8).find(|&q| q != side && self.hostile(side, q))
@@ -91,9 +82,9 @@ impl Sim {
         }
     }
 
-    /// Fires every behaviour declared for the named trigger (idle, attacked, spawned or
+    /// Queues every behaviour declared for the named trigger (idle, attacked, spawned or
     /// ability_ready) on unit `i`, as if that trigger had just happened. Returns false for an
-    /// out-of-range unit or an unknown trigger name; true once the behaviours have run.
+    /// out-of-range unit or an unknown trigger name; true once the behaviours are queued.
     pub fn fire_trigger(&mut self, i: usize, name: &str) -> bool {
         if i >= self.n {
             return false;
@@ -118,8 +109,9 @@ impl Sim {
         true
     }
 
-    /// Runs every behaviour declared for `trigger` on unit `i`. For ability_ready only the
-    /// behaviours naming `ability` (an ability index, or -1 for any) run.
+    /// Queues every behaviour declared for `trigger` on unit `i` for the pack. For ability_ready only the
+    /// behaviours naming `ability` (an ability index, or -1 for any) queue. A use_ability behaviour queues
+    /// with its ability's slot on the unit, and only when the unit holds that ability.
     fn run_behaviours(&mut self, i: usize, trigger: u8, ability: i32) {
         for b in 0..self.cat.behaviours.len() {
             let beh = self.cat.behaviours[b];
@@ -129,51 +121,26 @@ impl Sim {
             if trigger == TRIGGER_ABILITY_READY && beh.ability as i32 != ability {
                 continue;
             }
-            match beh.action {
-                // Strikes the nearest enemy that unit i can strike in reach. With none in reach it does nothing.
-                ACTION_ATTACK_NEAREST => {
-                    let target = self.nearest_enemy(i);
-                    if target >= 0 {
-                        let _ = self.order_attack(i, target as usize);
-                    }
-                }
-                ACTION_USE_ABILITY => {
-                    if let Some(slot) = self.slot_holding(i, beh.ability) {
-                        let unit_target = self.cat.abilities.get(beh.ability as usize).map_or(false, |a| a.target == TARGET_UNIT);
-                        let target = if unit_target { self.nearest_enemy(i) } else { -1 };
-                        if !unit_target || target >= 0 {
-                            let (x, y) = (self.pos_x[i], self.pos_y[i]);
-                            self.cast_ability(i, slot, target, x, y);
-                        }
-                    }
-                }
-                _ => {
-                    self.reject(Refusal::ActionUnsupported);
-                }
+            let (slot, target_kind) = if beh.action == ACTION_USE_ABILITY {
+                let Some(slot) = self.slot_holding(i, beh.ability) else {
+                    continue;
+                };
+                let kind = self.cat.abilities.get(beh.ability as usize).map_or(0, |a| a.target as u8);
+                (slot as i32, kind)
+            } else {
+                (-1, 0)
+            };
+            if self.aggro.fired.len() < FIRED_CAP {
+                self.aggro.fired.push(Fired {
+                    unit: i as u32,
+                    trigger,
+                    action: beh.action,
+                    ability: beh.ability as i32,
+                    slot,
+                    target_kind,
+                });
             }
         }
-    }
-
-    /// The nearest living enemy that unit `i` can see and strike within its weapon reach, or -1.
-    /// A unit-target behaviour needs one; with none in reach it is skipped.
-    pub(crate) fn nearest_enemy(&self, i: usize) -> i32 {
-        let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
-        let mut best = -1i32;
-        let mut best_d2 = 0i64;
-        for j in 0..self.n {
-            if j == i || self.alive[j] == 0 || !self.hostile(self.player[i], self.player[j]) {
-                continue;
-            }
-            if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) {
-                continue;
-            }
-            let d2 = dist2(self.pos_x[i], self.pos_y[i], self.pos_x[j], self.pos_y[j]);
-            if d2 <= reach && (best < 0 || d2 < best_d2) {
-                best = j as i32;
-                best_d2 = d2;
-            }
-        }
-        best
     }
 
     /// The ability slot of unit `i` that holds catalog ability `ability`, if any.

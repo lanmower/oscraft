@@ -262,8 +262,9 @@ const ACTIVES = {
     filters: ["army"],
     effects: [["create_healer", { p0: Math.round(v(it, "health_regen")) * Q16, p1: 0, p2: TPS, p3: ticks(v(it, "buff_duration")) }]],
   }),
-  aghanims_shard: () => ({ target: "none", cooldown: 0, mana: 0, effects: [["grant_upgrade", { p0: 1 }]] }),
-  ultimate_scepter_2: () => ({ target: "none", cooldown: 0, mana: 0, effects: [["grant_upgrade", { p0: 0 }]] }),
+  // The upgrade bits these carry are set by scenarios/moba/upgrades.lua, not by an effect.
+  aghanims_shard: () => ({ target: "none", cooldown: 0, mana: 0, effects: [] }),
+  ultimate_scepter_2: () => ({ target: "none", cooldown: 0, mana: 0, effects: [] }),
   manta: (it) => ({
     target: "none",
     effects: [["illusion", { p0: Math.round(v(it, "images_count")), p1: ticks(v(it, "illusion_duration")), p2: Math.round(v(it, "tooltip_damage_outgoing_melee")), p3: Math.round(v(it, "tooltip_damage_incoming_total_pct")) }]],

@@ -30,8 +30,6 @@ pub(crate) const ITEM_COMPONENTS: usize = 6;
 pub(crate) const ITEM_STAT_COUNT: usize = 38;
 pub(crate) const ITEM_FLAG_CONSUMABLE: u16 = 1;
 pub(crate) const ITEM_FLAG_NEUTRAL: u16 = 2;
-pub(crate) const ITEM_FLAG_NO_BUY: u16 = 4;
-pub(crate) const ITEM_FLAG_NO_SELL: u16 = 8;
 pub(crate) const ITEM_FLAG_MASK: u16 = 31;
 pub(crate) const NEUTRAL_TIERS: u8 = 5;
 
@@ -40,9 +38,6 @@ pub(crate) const STAT_SLOT_0: usize = 0;
 pub(crate) const STAT_DAMAGE: usize = 1;
 pub(crate) const STAT_HEALTH: usize = 2;
 pub(crate) const STAT_SLOT_3: usize = 3;
-pub(crate) const STAT_SLOT_4: usize = 4;
-pub(crate) const STAT_SLOT_5: usize = 5;
-pub(crate) const STAT_SLOT_6: usize = 6;
 pub(crate) const STAT_MOVE_SPEED: usize = 7;
 pub(crate) const STAT_ATTACK_SPEED: usize = 8;
 pub(crate) const STAT_HEALTH_REGEN: usize = 9;
@@ -64,8 +59,6 @@ pub(crate) const STAT_CLEAVE_END_WIDTH: usize = 27;
 pub(crate) const STAT_BASH_CHANCE: usize = 28;
 pub(crate) const STAT_BASH_DURATION: usize = 29;
 pub(crate) const STAT_SPEED_PCT: usize = 30;
-pub(crate) const STAT_SCEPTER: usize = 36;
-pub(crate) const STAT_SHARD: usize = 37;
 
 /// Names of the item stats, in `Item::stats` order (the data crate's `ITEM_STATS`).
 pub const ITEM_STATS: [&str; ITEM_STAT_COUNT] = [
@@ -280,7 +273,6 @@ impl Sim {
         let out = edit(self);
         let after = self.item_totals(unit);
         self.apply_item_delta(unit, &before, &after, attributed);
-        self.sync_upgrades(unit, &before, &after);
         if let (Some(kept), Some(old)) = (kept, old) {
             self.apply_attr_stats(unit);
             let new = self.derived_stats(unit);
@@ -294,15 +286,6 @@ impl Sim {
             self.energy[unit] = (kept.energy + new.energy - old.energy).clamp(0, mana_max);
         }
         out
-    }
-
-    /// Carrying Aghanim's Scepter or Shard in an active slot gives the unit that upgrade; putting it away takes it back.
-    fn sync_upgrades(&mut self, i: usize, before: &ItemTotals, after: &ItemTotals) {
-        for (stat, shard) in [(STAT_SCEPTER, false), (STAT_SHARD, true)] {
-            if (before[stat] > 0) != (after[stat] > 0) {
-                self.grant_upgrade(i, shard, after[stat] > 0);
-            }
-        }
     }
 
     fn derived_stats(&self, i: usize) -> Derived {
@@ -348,12 +331,6 @@ impl Sim {
         ITEM_STATS.iter().position(|&n| n == stat).map_or(0, |k| self.item_totals(unit)[k])
     }
 
-    /// Whole attribute points the items of unit `i` add: strength, agility, intelligence.
-    pub(crate) fn item_attributes(&self, i: usize) -> [i32; 3] {
-        let t = self.item_totals(i);
-        [t[STAT_SLOT_4], t[STAT_SLOT_5], t[STAT_SLOT_6]]
-    }
-
     /// The slots, stash and cooldowns of unit `i`, to restore after the unit is respawned in place.
     pub(crate) fn snapshot_items(&self, i: usize) -> ItemSnapshot {
         let base = i * INV_SLOTS;
@@ -375,7 +352,6 @@ impl Sim {
         let attributed = self.is_attributed(i);
         let totals = self.item_totals(i);
         self.apply_item_delta(i, &[0; ITEM_STAT_COUNT], &totals, attributed);
-        self.sync_upgrades(i, &[0; ITEM_STAT_COUNT], &totals);
     }
 
     /// A unit that dies holding the reincarnation item (a mod's `set_reincarnate_item`, e.g. the pack's
@@ -402,8 +378,8 @@ impl Sim {
     }
 
     /// Spends one charge of the item in inventory slot `slot` of unit `i`; an emptied slot loses
-    /// the item and its stat bonuses.
-    pub(crate) fn consume_item_charge(&mut self, i: usize, slot: usize) {
+    /// the item and its stat bonuses. The caller checks the slot is in range and holds an item.
+    pub fn consume_item_charge(&mut self, i: usize, slot: usize) {
         let key = i * INV_SLOTS + slot;
         self.change_items(i, |sim| {
             if sim.inv_count[key] > 1 {
@@ -421,36 +397,4 @@ impl Sim {
 /// so the id is the item index plus one.
 pub(crate) fn item_kind(item: usize) -> u32 {
     item as u32 + 1
-}
-
-#[cfg(test)]
-mod best_only_tests {
-    use super::*;
-
-    // The stat slot the old best-only list named for night vision. The engine no longer names it; the data carries it.
-    const STAT_NIGHT_VISION: usize = 35;
-
-    /// The best-only mask the pack's TUNE section carries names the same stats the sim took as
-    /// best-value before the list moved into data.
-    #[test]
-    fn best_only_mask_loads_from_data_and_matches_old_list() {
-        let scenario = crate::test_pack_dir();
-        let image = osdt_data::generate(&scenario).expect("pack image");
-        let s = crate::load(&image, 1024).expect("pack sim");
-        let old = [
-            STAT_SCEPTER,
-            STAT_SHARD,
-            STAT_CRIT_CHANCE,
-            STAT_CRIT_MULTIPLIER,
-            STAT_CLEAVE,
-            STAT_CLEAVE_DISTANCE,
-            STAT_CLEAVE_START_WIDTH,
-            STAT_CLEAVE_END_WIDTH,
-            STAT_BASH_CHANCE,
-            STAT_BASH_DURATION,
-            STAT_NIGHT_VISION,
-        ];
-        let expected = old.iter().fold(0u64, |m, &k| m | (1u64 << k));
-        assert_eq!(s.catalog().tune.best_only, expected);
-    }
 }

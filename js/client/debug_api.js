@@ -99,7 +99,7 @@ export function createDebugApi(hooks) {
         z: heroUnit.z,
         hp: heroUnit.hp ?? null,
         mana: typeof game.max_mana === "function" ? game.max_mana(heroUnit.id) : null,
-        level: typeof game.character_level === "function" ? game.character_level(heroUnit.id) : null,
+        xp: typeof game.xp === "function" ? game.xp(heroUnit.id) : null,
       } : null;
       const r = renderer();
       const selection = hooks.selected();

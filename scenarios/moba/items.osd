@@ -67,8 +67,9 @@ ability("item_dagon_4", 288, 180, "unit", [effect("damage", p0=700, p1=0, p2=2)]
 ability_ext("item_dagon_4", cast_range=10000, enemy_only=True)
 ability("item_dagon_5", 240, 200, "unit", [effect("damage", p0=800, p1=0, p2=2)], target_filters=["ground"])
 ability_ext("item_dagon_5", cast_range=10000, enemy_only=True)
-ability("item_ultimate_scepter_2", 0, 0, "none", [effect("grant_upgrade", p0=0)])
-ability("item_aghanims_shard", 0, 0, "none", [effect("grant_upgrade", p0=1)])
+# The upgrade bits these carry are set by scenarios/moba/upgrades.lua (carried items, and on_cast), not by an effect.
+ability("item_ultimate_scepter_2", 0, 0, "none", [])
+ability("item_aghanims_shard", 0, 0, "none", [])
 ability("item_refresher", 2880, 325, "none", [effect("refresh", p0=3)])
 ability("item_black_king_bar", 1520, 50, "none", [effect("status", p0=8, p1=144)])
 ability("item_shivas_guard", 432, 75, "none", [effect("aoe", p0=12891, p1=4, p2=2, p3=0), effect("damage", p0=225, p1=0, p2=2), effect("slow", p0=64, p1=39322)])
@@ -185,8 +186,9 @@ item("royale_with_cheese", 2, ability="item_royale_with_cheese", consumable=True
 item("flask", 100, stats={"health_regen":3000}, ability="item_flask", consumable=True, tags=["home","side"], charges=1, stack_max=65535, stock_max=5, stock_initial=5, stock_time_s=120)
 item("dust", 80, ability="item_dust", consumable=True, tags=["home","side"], charges=1, stack_max=65535)
 item("bottle", 675, tags=["home","side"], charges=3)
-item("ward_observer", 0, ability="place_observer", consumable=True, tags=["home","side"], charges=1, stack_max=65535, stock_max=4, stock_initial=2, stock_time_s=135)
-item("ward_sentry", 50, ability="place_sentry", consumable=True, tags=["home","side"], charges=1, stack_max=65535, stock_max=8, stock_initial=3, stock_time_s=70)
+# Wards are not consumable here: spells.lua spends the charge once the ward is placed, so a placement that fails keeps it.
+item("ward_observer", 0, ability="place_observer", tags=["home","side"], charges=1, stack_max=65535, stock_max=4, stock_initial=2, stock_time_s=135)
+item("ward_sentry", 50, ability="place_sentry", tags=["home","side"], charges=1, stack_max=65535, stock_max=8, stock_initial=3, stock_time_s=70)
 item("ward_dispenser", 50, stats={"health":75}, components=["ward_sentry","ward_observer"], consumable=True, no_buy=True)
 item("tango", 90, stats={"health_regen":700}, consumable=True, tags=["home","side"], charges=3, stack_max=65535, stock_max=10, stock_initial=10, stock_time_s=120)
 item("tango_single", 30, stats={"health_regen":350}, consumable=True, no_buy=True, no_sell=True, charges=1)

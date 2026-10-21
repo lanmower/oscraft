@@ -1,0 +1,17 @@
+# The scenario's rules text. The engine keys hold the sim's own defaults (sim attributes.rs AttrRules::default), so the
+# scenario's physics are unchanged; the other lines are named values the scenario reads through game.rule.
+aggro_priority=0
+channel_damage_interrupt=1
+aggro_hold_s=3
+move_speed_max=550
+move_speed_min=100
+hex_speed_milli=137
+# Armour reduction per armour point, Q16.16 (0.06; combat.rs armour_reduced), and the percent of a hit a `reduced`
+# damage response keeps (half; combat.rs inflict). Required engine keys.
+armour_per_point_q16=3932
+reduced_response_pct=50
+# The day and night clock (scenarios/duel-routes/clock.lua): day and night last 300 s each, as in the moba pack.
+day_s=300
+night_s=300
+# A unit's sight at night is divided by this (sim fog.rs), as in the moba pack.
+night_sight_divisor=2

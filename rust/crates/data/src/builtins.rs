@@ -12,11 +12,11 @@ use crate::format::{
     effect_params_valid, index_of, NAME_LIST_MAX, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, CELL_RAMP, CLOAK_FLAGS, DAMAGE_RESPONSES,
     DAMAGE_TYPES, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
     MAX_ROUTE_ID, MAX_ROUTE_POINTS, ITEM_COMPONENTS, ITEM_FLAG_CONSUMABLE, ITEM_FLAG_ENHANCEMENT, ITEM_FLAG_NEUTRAL, ITEM_FLAG_NO_BUY,
-    ITEM_FLAG_NO_SELL, ITEM_TAG_LIMIT, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
+    ITEM_FLAG_NO_SELL, ITEM_TAG_LIMIT, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS,
 };
 use crate::model::{
     AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw, TuneRaw,
-    DoodadRaw, ItemRaw, ResearchRaw, RouteRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
+    DoodadRaw, ItemRaw, ResearchRaw, RouteRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, WeaponRaw,
 };
 
 pub fn globals() -> Globals {
@@ -450,9 +450,6 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         if action == ACTION_USE_ABILITY && ability.is_none() {
             bail!("behaviour {name:?} uses use_ability and needs ability=");
         }
-        if ACTIONS[action].starts_with("retired_") {
-            bail!("behaviour {name:?} uses the retired action {}", ACTIONS[action]);
-        }
         let param = param.unwrap_or(0);
         if TRIGGERS[trigger] == "ability_ready" && ability.is_none() {
             bail!("behaviour {name:?} fires on ability_ready and needs ability=");
@@ -507,36 +504,6 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             y,
             start: true,
             team,
-        });
-        Ok(NoneType)
-    }
-
-    fn upgrade(
-        name: &str,
-        kind: &str,
-        target: &str,
-        effect: i32,
-        #[starlark(require = named)] level: Option<i32>,
-        #[starlark(require = named)] apply: Option<&str>,
-        #[starlark(require = named)] stacking: Option<&str>,
-        #[starlark(require = named)] resource_a_per_level: Option<i32>,
-        #[starlark(require = named)] gas_per_level: Option<i32>,
-        eval: &mut Evaluator,
-    ) -> anyhow::Result<NoneType> {
-        let target_kind = index_of(UPGRADE_TARGET_KINDS, kind, "upgrade target kind")?;
-        let apply = index_of(UPGRADE_APPLY, apply.unwrap_or("new_only"), "upgrade apply")?;
-        let stacking = index_of(UPGRADE_STACKING, stacking.unwrap_or("replace"), "upgrade stacking")?;
-        let effect = usize::try_from(effect).map_err(|_| anyhow!("upgrade {name:?} has an invalid effect handle"))?;
-        collector(eval)?.upgrades.borrow_mut().push(UpgradeRaw {
-            name: name.to_owned(),
-            target_kind,
-            target: target.to_owned(),
-            level: level.unwrap_or(1),
-            apply,
-            stacking,
-            effect,
-            resource_a_per_level: resource_a_per_level.unwrap_or(0),
-            gas_per_level: gas_per_level.unwrap_or(0),
         });
         Ok(NoneType)
     }

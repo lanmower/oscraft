@@ -295,6 +295,8 @@ async function loadSim() {
   mapBytes = image;
   setMapSize(readGrid(image));
   const game = new mod.Game(image);
+  // The pack's rules text (attr_rules.txt) applies before any mod loads: the engine's rule keys and the named values mods read.
+  logModError(game.set_attr_rules(await packText(manifest.rules)));
   // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
   const mods = await moduleClosure(manifest, packText);
   logModError(game.load_mods(JSON.stringify(mods)));

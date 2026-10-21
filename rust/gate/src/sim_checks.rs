@@ -1,7 +1,7 @@
 //! Sim-side gate checks. Each runs against the sim's public API on the map that osdt_data
 //! generates from rust/data/*.osd, and returns Err with the reason it fails.
 
-use crate::checks::{fresh, kind, run_ticks, spawn};
+use crate::checks::{fresh, run_ticks, spawn};
 use sim::{fixed, Refusal, Sim};
 
 // ORDER_* in rust/crates/sim/src/lib.rs. They are not public, so the values are repeated here.
@@ -254,79 +254,6 @@ pub fn order_kinds(image: &[u8]) -> Result<(), String> {
     run_ticks(&mut s, 30);
     if s.position_fixed(a) != held {
         return Err("hold order moved the unit".into());
-    }
-    Ok(())
-}
-
-pub fn produce_unit(image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(image)?;
-    s.add_resources(0, 1000, 1000);
-    s.set_production(true);
-    let before = s.count();
-    for _ in 0..1000 {
-        s.tick();
-        if s.stats.trained > 0 {
-            break;
-        }
-    }
-    if s.stats.trained == 0 {
-        return Err(format!(
-            "no unit trained in 1000 ticks (trains_refused {}, last {})",
-            s.stats.trains_refused,
-            s.stats.last_train_refusal.name()
-        ));
-    }
-    if s.count() <= before {
-        return Err("stats.trained moved but no unit appeared".into());
-    }
-    Ok(())
-}
-
-pub fn harvest_resources(image: &[u8]) -> Result<(), String> {
-    let s = fresh(image)?;
-    let worker = filter_bit(&s, "worker")?;
-    if !s.catalog().units.iter().any(|u| u.filter & worker != 0) {
-        return Err("catalog has no unit with the worker filter, so harvest_step never runs".into());
-    }
-    Ok(())
-}
-
-pub fn spend_resources(image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(image)?;
-    s.set_production(true);
-    if s.resource_a(0) != 0 {
-        return Err(format!("player 0 starts with {} resource_a, want 0", s.resource_a(0)));
-    }
-    run_ticks(&mut s, 5);
-    if s.stats.trains_refused == 0 {
-        return Err("no train was refused for cost with zero resource_a".into());
-    }
-    if s.stats.last_train_refusal != Refusal::CannotAfford {
-        return Err(format!("last refusal {} want cannot-afford", s.stats.last_train_refusal.name()));
-    }
-    if s.resource_a(0) != 0 {
-        return Err(format!("refused trains changed resource_a to {}", s.resource_a(0)));
-    }
-    Ok(())
-}
-
-pub fn cancel_production(image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(image)?;
-    s.add_resources(0, 1000, 1000);
-    s.set_production(true);
-    let k = kind(&s, "skirmisher")? as usize;
-    let cost = s.catalog().units[k].resource_a;
-    let w = spawn(&mut s, 0, "warden", 6, 5)?;
-    let before = s.resource_a(0);
-    run_ticks(&mut s, 1);
-    let started = s.resource_a(0);
-    if started >= before {
-        return Err("no train started: resource_a unchanged after one tick".into());
-    }
-    s.cancel_train(w).map_err(|r| refused("cancel_train", r))?;
-    let after = s.resource_a(0);
-    if after != started + cost {
-        return Err(format!("refund left resource_a at {after}, want {}", started + cost));
     }
     Ok(())
 }

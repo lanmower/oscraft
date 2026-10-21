@@ -247,7 +247,10 @@ impl Sim {
         self.cast_index(i, ai as usize, Slot::Ability(idx), target, x, y)
     }
 
-    /// Casts catalog ability `ai` for unit `i`, charged to cooldown `cd`. Refusals as for `cast_ability`.
+    /// Casts catalog ability `ai` for unit `i`, charged to cooldown `cd`. The engine's refusals only: a rank with no
+    /// cost, cooldown and charges, mana, a dead unit target, and the capacity of the spawn, healer and missile arrays.
+    /// What may be cast when (stun, silence, mute, channelling, passives, target filters, cast range) is the pack's
+    /// `on_cast_request`, which the host asks before a cast reaches here.
     pub(crate) fn cast_index(&mut self, i: usize, ai: usize, cd: Slot, target: i32, x: i32, y: i32) -> bool {
         let ability = self.cat.abilities[ai];
         let rank = match cd {
@@ -262,28 +265,7 @@ impl Sim {
             }
             _ => (ability.energy, ability.cooldown),
         };
-        let ext = self.ext_of(ai);
-        if ext.flags & crate::spell::FLAG_PASSIVE != 0 {
-            self.refuse(Refusal::Passive);
-            return false;
-        }
         let (energy_cost, cooldown_ticks) = self.cast_costs(i, ai, energy_cost, cooldown_ticks);
-        if self.channel_left[i] > 0 {
-            self.refuse(Refusal::Channelling);
-            return false;
-        }
-        if self.stunned(i) {
-            self.refuse(Refusal::Stunned);
-            return false;
-        }
-        if matches!(cd, Slot::Ability(_)) && self.silenced(i) {
-            self.refuse(Refusal::Silenced);
-            return false;
-        }
-        if matches!(cd, Slot::Item(_)) && self.muted(i) {
-            self.refuse(Refusal::Muted);
-            return false;
-        }
         if self.cooldown(cd) > 0 {
             self.refuse(Refusal::Cooldown);
             return false;
@@ -305,36 +287,10 @@ impl Sim {
                     self.refuse(Refusal::NoTarget);
                     return false;
                 }
-                let t = target as usize;
-                if !self.visible(self.player[i], t) {
-                    self.refuse(Refusal::UnseenTarget);
-                    return false;
-                }
-                if !self.meets_filter(t, ability.filter as u32) || self.invulnerable(t) {
-                    self.refuse(Refusal::TargetFilter);
-                    return false;
-                }
-                let friend = !self.hostile(self.player[i], self.player[t]);
-                if (ext.flags & crate::spell::FLAG_ALLY_ONLY != 0 && !friend) || (ext.flags & crate::spell::FLAG_ENEMY_ONLY != 0 && friend) {
-                    self.refuse(Refusal::TargetFilter);
-                    return false;
-                }
-                if ext.flags & crate::spell::FLAG_PIERCE == 0 && self.spell_immune(t) && self.hostile(self.player[i], self.player[t]) {
-                    self.refuse(Refusal::SpellImmune);
-                    return false;
-                }
-                (self.pos_x[t], self.pos_y[t])
+                (self.pos_x[target as usize], self.pos_y[target as usize])
             }
             _ => (x, y),
         };
-        if ability.target != 0 && self.out_of_cast_range(i, ai, tx, ty) {
-            if let Slot::Ability(k) = cd {
-                self.begin_pending_cast(i, k % ABILITY_SLOTS, target, x, y);
-                return true;
-            }
-            self.refuse(Refusal::MoveRange);
-            return false;
-        }
 
         let first = ability.effect_first as usize;
         let count = ability.effect_count as usize;
@@ -365,7 +321,6 @@ impl Sim {
         }
         self.energy[i] -= energy_cost;
         self.set_cooldown(cd, cooldown_ticks);
-        self.spell.pend_slot[i] = -1;
         let channelled = self.cat.channels.get(ai).map_or(false, |c| c.channelled);
         let point = self.cast_point_of(i, ai);
         if channelled {
@@ -405,20 +360,6 @@ impl Sim {
             Slot::Ability(k) => self.abil_cd[k] = ticks,
             Slot::Item(k) => self.item_cd[k] = ticks,
         }
-    }
-
-    /// Grants `amount` energy to unit `i`. Refusals, each changing nothing: a dead or unknown
-    /// unit is NoTarget; a non-positive amount is Energy.
-    pub fn grant_energy(&mut self, i: usize, amount: i32) -> Result<(), Refusal> {
-        if i >= self.n || self.alive[i] == 0 {
-            return Err(self.reject(Refusal::NoTarget));
-        }
-        if amount <= 0 {
-            return Err(self.reject(Refusal::Energy));
-        }
-        self.energy[i] = self.energy[i].saturating_add(amount);
-        self.touch(i);
-        Ok(())
     }
 
     /// Spends `amount` energy from unit `i`. Refusals, each changing nothing: a dead or unknown
@@ -622,8 +563,6 @@ impl Sim {
         self.last_cast.get(i).copied().unwrap_or((-1, 0, 0))
     }
 
-    /// Whether a unit may take a spell or attack. `required` is a filter mask; every
-    /// bit must be present on the unit. A zero mask is always met.
     /// Ticks left in unit `i`'s channel, or 0 when it is not channelling.
     pub fn channel_left(&self, i: usize) -> i32 {
         self.channel_left.get(i).copied().unwrap_or(0)
@@ -634,7 +573,9 @@ impl Sim {
         self.channel_ai.get(i).copied().unwrap_or(-1)
     }
 
-    pub(crate) fn meets_filter(&self, j: usize, required: u32) -> bool {
+    /// Whether a unit may take a spell or attack. `required` is a filter mask; every
+    /// bit must be present on the unit. A zero mask is always met.
+    pub fn meets_filter(&self, j: usize, required: u32) -> bool {
         j < self.n && self.filter[j] & required == required
     }
 

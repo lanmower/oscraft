@@ -8,6 +8,7 @@
 
 use crate::arrays::Sim;
 use crate::fixed;
+use crate::spell::{STATUS_ENDS_CHANNEL, STATUS_SETS_SPEED};
 
 
 pub(crate) const EFFECT_STUN: u16 = 11;
@@ -23,7 +24,6 @@ pub(crate) const SPEED_POINT_Q16: i32 = 64;
 
 pub(crate) const STUN: usize = 0;
 pub(crate) const SLOW: usize = 1;
-pub(crate) const SILENCE: usize = 2;
 pub(crate) const ROOT: usize = 3;
 pub(crate) const INVISIBLE: usize = 4;
 pub(crate) const TAUNT: usize = 5;
@@ -31,8 +31,6 @@ pub(crate) const HEX: usize = 6;
 pub(crate) const DISARM: usize = 7;
 pub(crate) const SPELL_IMMUNE: usize = 8;
 pub(crate) const INVULNERABLE: usize = 9;
-pub(crate) const BREAK: usize = 10;
-pub(crate) const MUTE: usize = 11;
 pub(crate) const PHYSICAL_IMMUNE: usize = 12;
 pub(crate) const DEATH_PREVENTION: usize = 13;
 
@@ -60,10 +58,6 @@ impl Sim {
         self.status_left(i, STUN) > 0
     }
 
-    pub(crate) fn silenced(&self, i: usize) -> bool {
-        self.status_left(i, SILENCE) > 0 || self.status_left(i, HEX) > 0
-    }
-
     /// Clears one status counter of unit `i`.
     pub fn clear_status(&mut self, i: usize, kind: usize) {
         if i < self.n && kind < STATUS_KINDS {
@@ -88,7 +82,8 @@ impl Sim {
     /// that can move (or its own speed when that is lower). One reference speed point is 64 in Q16.16
     /// (1 reference unit = 15.625 milli, 16 ticks per second).
     pub(crate) fn effective_speed(&self, i: usize) -> i32 {
-        if self.status_left(i, HEX) > 0 {
+        let sets_speed = (0..STATUS_KINDS).any(|k| self.status_left(i, k) > 0 && self.status_flag(k) & STATUS_SETS_SPEED != 0);
+        if sets_speed {
             let own = self.spell.hex_speed.get(i).copied().unwrap_or(0);
             return fixed::from_milli(if own > 0 { own } else { self.attributed.rules.hex_speed_milli });
         }
@@ -124,7 +119,7 @@ impl Sim {
             self.slow_mul[i] = if held { self.slow_mul[i].min(mul) } else { mul };
         }
         self.status_left[at] = self.status_left[at].max(ticks);
-        if kind == STUN {
+        if self.status_flag(kind) & STATUS_ENDS_CHANNEL != 0 {
             self.interrupt_channel(i);
         }
         self.touch(i);

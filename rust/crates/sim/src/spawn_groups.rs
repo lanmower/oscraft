@@ -1,9 +1,9 @@
 //! Spawn groups: a generic primitive. A unit the map places for the neutral player is a group member
-//! whose spawn point is its home. A member past its leash radius walks home. A dead member waits until
-//! its respawn timer is set (`set_respawn`, a `cmd_set_respawn` from a mod), then respawns at its home.
-//! Which units form a group, when each one is due, what a death pays and the pit swap are mod code
-//! (the pack's spawn-group script). Home and timer are sim state: hashed and saved. The leash radius and the
-//! reincarnation item are load-time mod settings and are neither hashed nor saved.
+//! whose spawn point is its home. A dead member waits until its respawn timer is set (`set_respawn`, a
+//! `cmd_set_respawn` from a mod), then respawns at its home when the timer runs out (`tick_groups`).
+//! Which units form a group, when each one is due, the leash (a member past its radius is ordered home),
+//! what a death pays and the pit swap are mod code (the pack's camps.lua). Home and timer are sim state:
+//! hashed and saved. The reincarnation item is a load-time mod setting, neither hashed nor saved.
 
 use crate::arrays::Sim;
 
@@ -14,14 +14,12 @@ use crate::arrays::Sim;
 pub(crate) struct GroupState {
     /// 1 for a spawn-group member (set at load for neutral placements).
     pub(crate) member: Vec<u8>,
-    /// Home point of each member, Q16.16 sim coordinates. A member walks back here past its leash.
+    /// Home point of each member, Q16.16 sim coordinates. A dead member respawns here.
     pub(crate) anchor_x: Vec<i32>,
     pub(crate) anchor_y: Vec<i32>,
     /// 1 while a member is dead and held for a respawn decision; the unit respawns once `revive_at` passes.
     pub(crate) waiting: Vec<u8>,
     pub(crate) revive_at: Vec<u32>,
-    /// Leash radius per member, milli-units. 0 means no leash. Load-time setting, not hashed or saved.
-    pub(crate) leash_milli: Vec<i32>,
     /// Item that lets a dying unit reincarnate: (item kind, seconds the unit is gone). Load-time setting.
     pub(crate) revive_item: Option<(u32, u32)>,
 }
@@ -34,7 +32,6 @@ impl GroupState {
             anchor_y: vec![0; cap],
             waiting: vec![0; cap],
             revive_at: vec![0; cap],
-            leash_milli: vec![0; cap],
             revive_item: None,
         }
     }
@@ -66,6 +63,24 @@ impl Sim {
         self.groups.revive_at[j] = u32::MAX;
     }
 
+    /// Per tick: each dead member whose respawn timer has run out returns at its home, a member again. A held
+    /// member (no timer) stays dead, and a revive blocked by a full cell retries next tick.
+    pub(crate) fn tick_groups(&mut self) {
+        for i in 0..self.n {
+            if self.groups.member[i] == 0 || self.groups.waiting[i] == 0 || self.ticks < self.groups.revive_at[i] || self.alive(i) {
+                continue;
+            }
+            let kind = self.type_of[i];
+            if kind < 0 {
+                continue;
+            }
+            let (player, x, y) = (self.player[i], self.groups.anchor_x[i], self.groups.anchor_y[i]);
+            if self.spawn_at(i, kind as u32, player, x, y) {
+                self.groups.member[i] = 1;
+                self.groups.waiting[i] = 0;
+            }
+        }
+    }
 }
 
 impl Sim {
@@ -86,7 +101,7 @@ impl Sim {
         }
         self.groups.waiting[i] = 1;
         self.groups.revive_at[i] = match delay_s {
-            Some(s) => self.ticks.wrapping_add(s.saturating_mul(crate::TICKS_PER_SECOND as u32)),
+            Some(s) => self.ticks.saturating_add(s.saturating_mul(crate::TICKS_PER_SECOND as u32)),
             None => u32::MAX,
         };
         Ok(())
@@ -100,15 +115,6 @@ impl Sim {
         self.groups.anchor_x[i] = x;
         self.groups.anchor_y[i] = y;
         Ok(())
-    }
-
-    /// Sets the leash radius (milli-units, 0 for none) of every spawn-group member. A load-time mod setting.
-    pub fn set_group_leash(&mut self, milli: u32) {
-        for i in 0..self.n {
-            if self.groups.member[i] != 0 {
-                self.groups.leash_milli[i] = milli as i32;
-            }
-        }
     }
 
     /// Names the item that lets a dying unit reincarnate and how long the unit is gone. A load-time mod setting;
@@ -138,8 +144,29 @@ mod respawn_decision_tests {
         assert!(sim.set_respawn(u, Some(3)).is_err(), "a live spawn-group unit is refused");
         sim.remove_unit(u);
         sim.set_respawn(u, Some(3)).expect("dead group unit");
-        assert_eq!(sim.groups.revive_at[u], sim.ticks().wrapping_add(3 * crate::TICKS_PER_SECOND as u32));
+        assert_eq!(sim.groups.revive_at[u], sim.ticks().saturating_add(3 * crate::TICKS_PER_SECOND as u32));
         sim.set_respawn(u, None).expect("leave dead");
         assert_eq!(sim.groups.revive_at[u], u32::MAX);
+    }
+
+    // A held member stays dead; a member whose timer has run out returns at its home and is a member again.
+    #[test]
+    fn a_due_member_returns_at_its_home_and_a_held_one_stays_dead() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let image = osdt_data::generate(&scenario).expect("duel-routes image");
+        let mut sim = crate::load(&image, 64).expect("duel-routes sim");
+        let kind = sim.catalog().unit_index("creep").expect("creep") as u32;
+        let u = sim.spawn_for(0, kind, fixed::from_int(5), fixed::from_int(5)).expect("unit");
+        sim.mark_group(u);
+        let home = sim.position_fixed(u);
+        sim.remove_unit(u);
+        sim.set_respawn(u, None).expect("held");
+        sim.tick_groups();
+        assert!(!sim.alive(u), "a held member stays dead");
+        sim.set_respawn(u, Some(0)).expect("due");
+        sim.tick_groups();
+        assert!(sim.alive(u), "a due member respawns");
+        assert_eq!(sim.position_fixed(u), home, "the member respawns at its home");
+        assert!(sim.is_spawn_group_unit(u), "the respawned unit is a member again");
     }
 }

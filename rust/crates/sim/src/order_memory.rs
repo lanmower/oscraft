@@ -64,16 +64,13 @@ impl Sim {
         dist2(self.pos_x[i], self.pos_y[i], x, y) <= reach * reach
     }
 
-    /// The friendly-request effect (code 19): `target` must be a living unit friendly to the caster, other
-    /// than the caster; anything else changes nothing. Queues the request for the mod (`ItemRequest::Carry`).
+    /// The friendly-request effect (code 19): queues a carry request for the mod (`ItemRequest::Carry`) naming the
+    /// caster and the target unit. Only a target index that names a unit is queued; whether the target is alive,
+    /// friendly and not the caster is the pack's rule (store.lua carry).
     pub(crate) fn friendly_request_effect(&mut self, caster: usize, target: i32) {
-        if target < 0 || target as usize >= self.n || target as usize == caster {
+        if target < 0 || target as usize >= self.n {
             return;
         }
-        let t = target as usize;
-        if self.alive[t] == 0 || self.hostile(self.player[caster], self.player[t]) {
-            return;
-        }
-        self.item_requests.requests.push(ItemRequest::Carry { caster, target: t });
+        self.item_requests.requests.push(ItemRequest::Carry { caster, target: target as usize });
     }
 }

@@ -644,7 +644,7 @@ impl Command {
             Command::DefineItem { spec } => sim.define_item(spec).is_ok(),
             Command::DefineUpgrade { spec } => sim.define_upgrade(spec).is_ok(),
             Command::GrantUpgrade { player, name } => match sim.research_index(name) {
-                Some(r) => sim.grant_research(*player, r),
+                Some(r) => sim.set_research_bit(*player, r, true),
                 None => false,
             },
             Command::GiveAbility { unit, slot, name } => sim.give_ability(*unit, *slot, name),

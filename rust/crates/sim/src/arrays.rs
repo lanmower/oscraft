@@ -2,40 +2,22 @@
 //! in `tick` allocates.
 
 use crate::fixed;
-use crate::loader::{Catalog, Doodad, FILTER_STRUCTURE, FILTER_WORKER};
+use crate::loader::{Catalog, Doodad};
 use crate::pathfinding::{Grid, Pool, DEFAULT_MAX_FIELDS};
 use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
-
-#[derive(Clone, Copy, Default)]
-pub(crate) struct Reveal {
-    pub(crate) p: u8,
-    pub(crate) x0: i32,
-    pub(crate) y0: i32,
-    pub(crate) x1: i32,
-    pub(crate) y1: i32,
-    pub(crate) until: i32,
-    pub(crate) live: bool,
-}
 
 /// Counters the host reads. Refusals are kept apart from misses on purpose.
 #[derive(Clone, Copy, Debug)]
 pub struct Stats {
     pub deaths: usize,
     pub vision_refreshes: usize,
-    pub harvested: usize,
-    pub trained: usize,
-    pub trains_refused: usize,
-    pub last_train_refusal: Refusal,
-    pub retargets: usize,
-    pub retargets_deferred: usize,
     pub casts: usize,
     pub casts_refused: usize,
     pub refused_by: [usize; REFUSAL_KINDS],
     pub last_refusal: Refusal,
     pub buffs_dropped: usize,
     pub summoned: usize,
-    pub reveals_dropped: usize,
     pub missiles_lost: usize,
     pub ability_damage: i32,
 }
@@ -47,19 +29,12 @@ impl Default for Stats {
         Stats {
             deaths: 0,
             vision_refreshes: 0,
-            harvested: 0,
-            trained: 0,
-            trains_refused: 0,
-            last_train_refusal: Refusal::default(),
-            retargets: 0,
-            retargets_deferred: 0,
             casts: 0,
             casts_refused: 0,
             refused_by: [0; REFUSAL_KINDS],
             last_refusal: Refusal::default(),
             buffs_dropped: 0,
             summoned: 0,
-            reveals_dropped: 0,
             missiles_lost: 0,
             ability_damage: 0,
         }
@@ -98,15 +73,15 @@ pub struct Sim {
     pub(crate) shield_max: Vec<i32>,
     /// Tick of each unit's last damage taken (or its spawn tick), for the regeneration delay.
     pub(crate) last_hit: Vec<u32>,
-    /// Per upgrade record and player: 1 once the record has completed for that player.
-    pub(crate) upg_done: Vec<u8>,
+    /// Per (player, research record): 1 once the player holds the research, index `p * research count + record`.
+    /// The only research state the sim keeps; see modapi.rs (research_bit, set_research_bit).
+    pub(crate) researched: Vec<u8>,
     pub(crate) sight_cells: Vec<i32>,
     pub(crate) player: Vec<u8>,
     pub(crate) alive: Vec<u8>,
     pub(crate) type_of: Vec<i32>,
     pub(crate) filter: Vec<u32>,
     pub(crate) response: Vec<u8>,
-    pub(crate) product: Vec<i32>,
     pub(crate) flying: Vec<u8>,
     pub(crate) targets: Vec<u8>,
     pub(crate) kind: Vec<u8>,
@@ -117,15 +92,6 @@ pub struct Sim {
     pub(crate) patrol_y: Vec<i32>,
 
     pub(crate) amount: Vec<i32>,
-    pub(crate) wstate: Vec<u8>,
-    pub(crate) wtarget: Vec<i32>,
-    pub(crate) wtimer: Vec<i32>,
-    pub(crate) carry: Vec<i32>,
-    pub(crate) carry_kind: Vec<u8>,
-    pub(crate) harvest_amt: Vec<i32>,
-    pub(crate) trainee: Vec<i32>,
-    pub(crate) train_left: Vec<i32>,
-    pub(crate) train_hold: Vec<u8>,
     pub(crate) resource_a: Vec<i32>,
     pub(crate) resource_b: Vec<i32>,
 
@@ -184,10 +150,12 @@ pub struct Sim {
     pub(crate) chase: crate::acquire::ChaseState,
     /// Acquire range per unit kind, milli-units, from the table in acquire.rs. Catalog-derived, not hashed.
     pub(crate) acquire: Vec<i32>,
-    /// Per-attacker target class set by a mod (-1 = the Rust rule). Mod-set state, hashed only when a value is set.
+    /// Per-attacker target class set by a mod (-1 = none). Mod-set state, hashed only when a value is set.
     pub(crate) class_override: Vec<i8>,
-    /// Per-attacker attack-move hold set by a mod (-1 = the Rust rule, 0 = walk past foes, 1 = always hold).
+    /// Per-attacker attack-move hold set by a mod (-1 = none, 0 = walk on, 1 = hold while on an attack-move).
     pub(crate) hold_override: Vec<i8>,
+    /// Per-attacker strike target set by a mod (-1 = none). Hashed only when a value is set.
+    pub(crate) strike_target: Vec<i32>,
     /// Ward expiry stamps. See timed_life.rs.
     pub(crate) expiry: crate::timed_life::ExpiryState,
     /// Saved order points for mods that send units away. See order_memory.rs.
@@ -252,14 +220,6 @@ pub struct Sim {
     pub(crate) seen: Vec<u8>,
     pub(crate) seen_x: Vec<i32>,
     pub(crate) seen_y: Vec<i32>,
-    /// Completed research per (player, research record), index `p * research count + record`.
-    pub(crate) researched: Vec<u8>,
-    /// Ticks left on the research running at each building; 0 when idle.
-    pub(crate) research_left: Vec<i32>,
-    /// Research record index running at each building, -1 when none.
-    pub(crate) research_rec: Vec<i32>,
-    /// Transport index each unit is boarded in, -1 when not boarded. A boarded unit is not alive.
-    pub(crate) loaded_into: Vec<i32>,
     /// Channel state per unit: ticks left (0 when not channelling), the ability index (-1 when
     /// none), the cast point and the cast target (-1 for none).
     pub(crate) channel_left: Vec<i32>,
@@ -267,9 +227,6 @@ pub struct Sim {
     pub(crate) channel_x: Vec<i32>,
     pub(crate) channel_y: Vec<i32>,
     pub(crate) channel_target: Vec<i32>,
-    /// Burrow state per unit: 1 when burrowed, and the ticks left while burrowing.
-    pub(crate) burrowed: Vec<u8>,
-    pub(crate) burrow_left: Vec<i32>,
     /// Status countdowns per unit, `STATUS_KINDS` slots each (stun, slow, silence, root, invisibility), and the Q16 slow multiplier.
     pub(crate) status_left: Vec<i32>,
     pub(crate) slow_mul: Vec<i32>,
@@ -280,16 +237,14 @@ pub struct Sim {
     pub(crate) vision: [u16; MAX_PLAYERS],
     /// Per player, a CONTROLLER_* code: who commands the slot.
     pub(crate) controller: [u8; MAX_PLAYERS],
-    pub(crate) reveals: [Reveal; REVEAL_CAP],
     pub(crate) fog: bool,
-    pub(crate) harvest: bool,
-    pub(crate) produce: bool,
 
     pub(crate) rng: u64,
     pub(crate) ticks: u32,
-    /// Ticks into the day and night cycle, in 0..DAY_TICKS + NIGHT_TICKS. Starts at dawn.
-    pub(crate) day_clock: u32,
-    pub(crate) scan_left: i32,
+    /// Night, as the pack's clock last set it (`game.set_clock`). Storage only: the pack decides the phase. Starts at dawn.
+    pub(crate) night: bool,
+    /// The clock the pack last reported: ticks into the cycle, day ticks and night ticks (for the client's dusk view).
+    pub(crate) day_cycle: [u32; 3],
     pub stats: Stats,
 }
 
@@ -302,13 +257,13 @@ impl Sim {
 
     pub fn with_catalog(max_units: usize, grid: Grid, cat: Catalog) -> Sim {
         let cap = max_units;
-        let upg_len = cat.upgrades.len() * MAX_PLAYERS;
+
+        let research_slots = cat.research.len() * MAX_PLAYERS;
         let cells = (grid.w * grid.h).max(1);
         let vw = ((grid.w as i32 + VIS_SCALE - 1) / VIS_SCALE).max(1);
         let vh = ((grid.h as i32 + VIS_SCALE - 1) / VIS_SCALE).max(1);
         let vcells = (vw * vh) as usize;
         let paths = Pool::new(grid.w, grid.h, DEFAULT_MAX_FIELDS);
-        let research_slots = cat.research.len() * MAX_PLAYERS;
         let doodads_init = cat.doodads.clone();
         let cat_digest = crate::hash::catalog_digest(&cat, &grid);
         let acquire = crate::acquire::per_kind(&cat);
@@ -341,14 +296,13 @@ impl Sim {
             shield: vec![0; cap],
             shield_max: vec![0; cap],
             last_hit: vec![0; cap],
-            upg_done: vec![0; upg_len],
+            researched: vec![0; research_slots],
             sight_cells: vec![0; cap],
             player: vec![0; cap],
             alive: vec![0; cap],
             type_of: vec![-1; cap],
             filter: vec![0; cap],
             response: vec![0; cap],
-            product: vec![-1; cap],
             flying: vec![0; cap],
             targets: vec![0; cap],
             kind: vec![KIND_ACTOR; cap],
@@ -358,15 +312,6 @@ impl Sim {
             patrol_x: vec![0; cap],
             patrol_y: vec![0; cap],
             amount: vec![0; cap],
-            wstate: vec![W_SEEK; cap],
-            wtarget: vec![-1; cap],
-            wtimer: vec![0; cap],
-            carry: vec![0; cap],
-            carry_kind: vec![0; cap],
-            harvest_amt: vec![0; cap],
-            trainee: vec![-1; cap],
-            train_left: vec![0; cap],
-            train_hold: vec![0; cap],
             resource_a: vec![0; MAX_PLAYERS],
             resource_b: vec![0; MAX_PLAYERS],
             abil_idx: vec![-1; cap * ABILITY_SLOTS],
@@ -404,6 +349,7 @@ impl Sim {
             acquire,
             class_override: vec![-1; cap],
             hold_override: vec![-1; cap],
+            strike_target: vec![-1; cap],
             expiry: crate::timed_life::ExpiryState::new(cap),
             order_memory: crate::order_memory::OrderMemory::new(cap),
             item_requests: Default::default(),
@@ -446,10 +392,6 @@ impl Sim {
             paths,
             cur_field: None,
             vis: vec![0; MAX_PLAYERS * vcells],
-            researched: vec![0; research_slots],
-            research_left: vec![0; cap],
-            research_rec: vec![-1; cap],
-            loaded_into: vec![-1; cap],
             channel_left: vec![0; cap],
             status_left: vec![0; cap * crate::status::STATUS_KINDS],
             slow_mul: vec![crate::status::SLOW_NONE; cap],
@@ -457,8 +399,6 @@ impl Sim {
             channel_x: vec![0; cap],
             channel_y: vec![0; cap],
             channel_target: vec![-1; cap],
-            burrowed: vec![0; cap],
-            burrow_left: vec![0; cap],
             seen: vec![0; MAX_PLAYERS * cap],
             seen_x: vec![0; MAX_PLAYERS * cap],
             seen_y: vec![0; MAX_PLAYERS * cap],
@@ -470,14 +410,11 @@ impl Sim {
             alliance: [0; MAX_PLAYERS],
             vision: [0; MAX_PLAYERS],
             controller: [0; MAX_PLAYERS],
-            reveals: [Reveal::default(); REVEAL_CAP],
             fog: true,
-            harvest: true,
-            produce: true,
             rng: 0,
             ticks: 0,
-            day_clock: 0,
-            scan_left: 0,
+            night: false,
+            day_cycle: [0; 3],
             stats: Stats::default(),
         };
         s.rebucket();
@@ -550,13 +487,20 @@ impl Sim {
         self.ticks
     }
 
-    /// Ticks into the day and night cycle: 0 up to DAY_TICKS is day, then night until the cycle wraps.
-    pub fn day_clock(&self) -> u32 {
-        self.day_clock
+    /// Whether it is night, as the pack's clock set it. The sim keeps the flag; it does not run the clock.
+    pub fn is_night(&self) -> bool {
+        self.night
     }
 
-    pub fn is_night(&self) -> bool {
-        self.day_clock >= DAY_TICKS
+    /// The clock the pack reported with `set_clock`: ticks into the cycle, day ticks, night ticks.
+    pub fn day_cycle(&self) -> [u32; 3] {
+        self.day_cycle
+    }
+
+    /// Stores the day and night clock the pack computed for this tick (`game.set_clock`).
+    pub fn set_clock(&mut self, night: bool, day_cycle: [u32; 3]) {
+        self.night = night;
+        self.day_cycle = day_cycle;
     }
 
     pub fn seed(&mut self, v: u64) {
@@ -587,14 +531,6 @@ impl Sim {
             self.refresh_vision();
         }
         Ok(())
-    }
-
-    pub fn set_harvest(&mut self, on: bool) {
-        self.harvest = on;
-    }
-
-    pub fn set_production(&mut self, on: bool) {
-        self.produce = on;
     }
 
     pub fn add_resources(&mut self, p: u8, resource_a: i32, resource_b: i32) {
@@ -752,12 +688,12 @@ impl Sim {
         self.unit_kills[i] = 0;
         self.unit_deaths[i] = 0;
         self.unit_credits[i] = 0;
+        self.strike_target[i] = -1;
         self.killer[i] = -1;
         self.hitter_id[i * crate::combat::HITTER_SLOTS..(i + 1) * crate::combat::HITTER_SLOTS].fill(-1);
         self.type_of[i] = ty as i32;
         self.filter[i] = def.filter;
         self.response[i] = def.response;
-        self.product[i] = def.product_index().map_or(-1, |p| p as i32);
         self.flying[i] = u8::from(def.is_air());
         // The v11 format names no anti-air weapon, so every weapon is a ground weapon and refuses
         // air targets. A unit with no weapon targets nothing either way.
@@ -773,15 +709,6 @@ impl Sim {
             KIND_GEYSER => self.cat.econ.gas_per_geyser,
             _ => 0,
         };
-        self.wstate[i] = W_SEEK;
-        self.wtarget[i] = -1;
-        self.wtimer[i] = 0;
-        self.carry[i] = 0;
-        self.carry_kind[i] = 0;
-        self.harvest_amt[i] = def.harvest_amount;
-        self.trainee[i] = if self.kind[i] == KIND_PRODUCER { self.product[i] } else { -1 };
-        self.train_left[i] = 0;
-        self.train_hold[i] = 0;
         self.trig_hit[i] = 0;
         self.trig_spawn[i] = 1;
         self.last_hit[i] = self.ticks;
@@ -812,22 +739,11 @@ impl Sim {
         }
         self.touch(i);
         self.bucket_add(i);
-        self.apply_upgrades_to_new(i, player, ty as i32);
-        self.apply_research_to_new(i, player);
     }
 
-    /// Kind from the filter mask and product: a worker gathers, a structure that
-    /// trains workers is a base, and any other product-holder is a producer.
+    /// The engine kind of a unit type: the resource it holds (a mineral patch or a geyser), else an actor. Which
+    /// units gather, train or are bases is the pack's, read from the unit data (game.unit_info).
     fn classify(&self, def: crate::loader::Unit) -> u8 {
-        if def.filter & FILTER_WORKER != 0 {
-            return KIND_WORKER;
-        }
-        if let Some(p) = def.product_index() {
-            if self.cat.units[p].filter & FILTER_WORKER != 0 && def.filter & FILTER_STRUCTURE != 0 {
-                return KIND_BASE;
-            }
-            return KIND_PRODUCER;
-        }
         match def.resource_kind {
             1 => KIND_MINERAL,
             2 => KIND_GEYSER,
@@ -837,6 +753,56 @@ impl Sim {
 
     pub fn position_fixed(&self, i: usize) -> (i32, i32) {
         if i >= self.n { (0, 0) } else { (self.pos_x[i], self.pos_y[i]) }
+    }
+
+    /// Radius of unit `i` in Q16.16; zero for an unknown index.
+    pub fn radius_fixed(&self, i: usize) -> i32 {
+        self.radius.get(i).copied().unwrap_or(0)
+    }
+
+    /// Resource left in unit `i` (a mineral patch or a geyser); zero for an unknown index.
+    pub fn resource_left(&self, i: usize) -> i32 {
+        self.amount.get(i).copied().unwrap_or(0)
+    }
+
+    /// Takes up to `want` resource from live unit `i` and returns what it took. The unit is marked
+    /// changed. A dead or unknown unit gives nothing.
+    pub fn take_resource(&mut self, i: usize, want: i32) -> i32 {
+        if !self.alive(i) || want <= 0 {
+            return 0;
+        }
+        let taken = want.min(self.amount[i]).max(0);
+        self.amount[i] -= taken;
+        self.touch(i);
+        taken
+    }
+
+    /// Harvest per trip that the data gives unit `i`'s type; zero when it gives none.
+    pub fn harvest_per_trip(&self, i: usize) -> i32 {
+        usize::try_from(self.unit_type(i))
+            .ok()
+            .and_then(|t| self.cat.units.get(t))
+            .map_or(0, |def| def.harvest_amount)
+    }
+
+    /// The resource class of unit `i` as mods name it: mineral, geyser, or actor for any other unit.
+    pub fn class_name(&self, i: usize) -> &'static str {
+        match self.kind.get(i).copied() {
+            Some(KIND_MINERAL) => "mineral",
+            Some(KIND_GEYSER) => "geyser",
+            _ => "actor",
+        }
+    }
+
+    /// An economy setting by its data name (the saturation counts and the gas per trip); None for any other name.
+    pub fn econ_value(&self, key: &str) -> Option<i64> {
+        let e = &self.cat.econ;
+        match key {
+            "workers_per_mineral" => Some(i64::from(e.workers_per_mineral)),
+            "workers_per_extractor" => Some(i64::from(e.workers_per_extractor)),
+            "gas_per_trip" => Some(i64::from(e.gas_per_trip)),
+            _ => None,
+        }
     }
 
     /// Ticks left before unit `i` can strike again (its weapon cooldown); -1 for an unknown index.
@@ -1083,6 +1049,28 @@ impl Sim {
         true
     }
 
+    /// Brings dead slot `i` back to life at the point (x, y), clamped to the map: the unit is alive there, its
+    /// position and target are the point, its velocity is zero, and its routed and blocked flags are clear. Returns
+    /// false for an out-of-range slot or a slot that is alive, which changes nothing.
+    pub fn revive_unit(&mut self, i: usize, x: i32, y: i32) -> bool {
+        if i >= self.count() || self.alive(i) {
+            return false;
+        }
+        let (x, y) = self.clamp_to_grid(x, y);
+        self.alive[i] = 1;
+        self.pos_x[i] = x;
+        self.pos_y[i] = y;
+        self.tgt_x[i] = x;
+        self.tgt_y[i] = y;
+        self.vel_x[i] = 0;
+        self.vel_y[i] = 0;
+        self.routed[i] = 0;
+        self.blocked[i] = 0;
+        self.touch(i);
+        self.rebucket();
+        true
+    }
+
     /// Clamps a world point onto the grid. Orders store the clamped point.
     pub fn clamp_to_grid(&self, x: i32, y: i32) -> (i32, i32) {
         let max_x = fixed::from_int(self.grid.w as i32 - 1);
@@ -1097,6 +1085,7 @@ impl Sim {
     pub(crate) fn live_at(&self, t: i32) -> bool {
         t >= 0 && (t as usize) < self.n && self.alive[t as usize] != 0
     }
+
 }
 
 /// Cells are one world unit each (the loader refuses any other cell size).

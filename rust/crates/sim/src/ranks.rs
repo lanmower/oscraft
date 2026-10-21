@@ -10,11 +10,6 @@ use crate::rules::Refusal;
 use crate::ABILITY_SLOTS;
 
 impl Sim {
-    /// Level a rank gate is checked against: the xp level of a unit plus one.
-    pub fn character_level(&self, unit: usize) -> u32 {
-        self.level(unit) + 1
-    }
-
     /// Rank of ability slot `slot` of unit `unit`. Zero when not learned or out of range.
     pub fn ability_rank(&self, unit: usize, slot: usize) -> u8 {
         if unit >= self.cap || slot >= ABILITY_SLOTS {

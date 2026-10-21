@@ -153,15 +153,14 @@ Ranks per ability. Gates are the character level needed for each rank.
 | Name | Trigger | Action | Ability |
 |---|---|---|---|
 | guard_patrol | idle | use_ability | pulse_shot |
-| answer_attack | attacked | attack_nearest |  |
-| idle_attack | idle | attack_nearest |  |
 | wave_start | spawned | use_ability | creep_wave |
 | wave_timer | ability_ready | use_ability | creep_wave |
-| win_on_base_loss | destroyed | declare_winner | building |
 | passive_iron_guard | spawned | use_ability | iron_guard |
 | passive_hawk_eye | spawned | use_ability | hawk_eye |
 | passive_rapid_fire | spawned | use_ability | rapid_fire |
 | passive_thorn_hide | spawned | use_ability | thorn_hide |
+
+`answer_attack` and `idle_attack` were `attack_nearest` records and are removed; targeting is in `scenarios/moba/targeting.lua`. The base-loss win rule is `scenarios/moba/win.lua` (`on_check_win`).
 
 ## Hero rules
 

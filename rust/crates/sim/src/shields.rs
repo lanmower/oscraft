@@ -115,7 +115,7 @@ impl Sim {
         self.touch(i);
     }
 
-    /// Writes life clamped to [0, max]; a unit whose life reaches zero dies, credited to `attacker` (-1 for none).
+    /// Writes life clamped to [0, max]; a unit whose life reaches zero dies, its death recorded with `attacker` (the caster, or -1) as the killer. The pack decides any credit from the death event.
     fn set_life(&mut self, j: usize, value: i32, attacker: i32) {
         self.hp[j] = value.clamp(0, self.hp_max[j]);
         self.touch(j);

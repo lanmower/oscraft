@@ -1,26 +1,14 @@
-//! Experience: a per-unit xp counter read against a level curve. A unit's level is how many
-//! curve thresholds its xp has reached, so a level-up is a rise in that count. The curve is
-//! data the sim carries: the scenario's TUNE section supplies it at load, and a preset replaces
-//! it through `set_xp_curve`.
+//! Experience: a per-unit xp counter, and the level curve it is read against. The curve is data the sim
+//! carries: the scenario's TUNE section supplies it at load. The level a unit's xp reaches on that curve is
+//! the mod's rule (scenarios/moba/levelup.lua reads `xp` and `xp_curve` through natives), so the engine
+//! stores xp and adds to it, and says nothing about levels.
 
 use crate::arrays::Sim;
 
 impl Sim {
-    /// The level curve in use: cumulative xp thresholds, nondecreasing.
+    /// The level curve in use: cumulative xp thresholds, nondecreasing (checked at load).
     pub fn xp_curve(&self) -> &[u32] {
         &self.xp_curve
-    }
-
-    /// Replaces the level curve. False, with the curve unchanged, when it is not nondecreasing.
-    pub fn set_xp_curve(&mut self, curve: &[u32]) -> bool {
-        if !curve.windows(2).all(|w| w[0] <= w[1]) {
-            return false;
-        }
-        self.xp_curve = curve.to_vec();
-        for i in 0..self.n {
-            self.apply_attr_stats(i);
-        }
-        true
     }
 
     /// Xp held by a unit. Zero for an out-of-range unit.
@@ -32,25 +20,12 @@ impl Sim {
         }
     }
 
-    /// Level of a unit: the number of curve thresholds its xp has reached.
-    pub fn level(&self, unit: usize) -> u32 {
-        let xp = self.xp(unit);
-        self.xp_curve.iter().take_while(|&&t| xp >= t).count() as u32
-    }
-
-    /// Adds xp to a unit (saturating) and returns the levels it gained. Zero for an
-    /// out-of-range unit.
-    pub fn add_xp(&mut self, unit: usize, amount: u32) -> u32 {
-        if unit >= self.cap {
-            return 0;
+    /// Adds xp to a unit (saturating). Nothing happens for an out-of-range unit. The levels the gain reaches
+    /// are the mod's rule: it reads `xp` against the curve each tick.
+    pub fn add_xp(&mut self, unit: usize, amount: u32) {
+        if unit < self.cap {
+            self.xp_total[unit] = self.xp_total[unit].saturating_add(amount);
         }
-        let before = self.level(unit);
-        self.xp_total[unit] = self.xp_total[unit].saturating_add(amount);
-        let gained = self.level(unit) - before;
-        if gained > 0 {
-            self.apply_attr_stats(unit);
-        }
-        gained
     }
 }
 
