@@ -442,8 +442,18 @@ local function setup(args)
   LOCAL = args.player or LOCAL
 end
 
+-- The actions this file answers, listed for the page's debug API (oscraft.debug.actions()).
+local ACTIONS = { "setup", "key", "pointer", "select", "skill_up", "bind", "camera_to", "view", "debug_actions" }
+
 function on_action(name, args, state)
-  if name == "setup" then
+  if name == "debug_actions" then
+    local out = "["
+    for i, action in ipairs(ACTIONS) do
+      if i > 1 then out = out .. "," end
+      out = out .. json_str(action)
+    end
+    game.ui_event("debug", '{"actions":' .. out .. "]}")
+  elseif name == "setup" then
     setup(args)
   elseif name == "key" then
     on_key(args.player or LOCAL, args)

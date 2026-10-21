@@ -19,6 +19,11 @@ const HELP = [
   "oscraft.setFog(bool)                    fog-of-war overlay and fog unit filter on or off (render side only; the sim's fog rule is unchanged)",
   "oscraft.setTerrain('splat' | 'tiles')   terrain mode; reloads the page with ?terrain= (boot-time switch)",
   "oscraft.setRenderer('webgl')    renderer (the only one); reloads the page",
+  "oscraft.debug.actions()         the pack's controls.lua actions (asked through debug_actions); null without a local sim",
+  "oscraft.debug.effects()         the last 64 display effects the page drained from the sim (read-only copy)",
+  "oscraft.debug.modErrors()       the mod error log of this page, newest last: [{tick, text}] (read-only copy)",
+  "oscraft.debug.swap()            {applied, pending, rejections}: the last data swap, the pending one and refused announcements",
+  "oscraft.debug.run(action, args) dispatch a pack action as the page does (a guest sends it to the host); false without a sim",
 ];
 
 // hooks are closures over play.js state, so every read sees the current value.
@@ -41,7 +46,18 @@ export function createDebugApi(hooks) {
     r.pan(0, 0);
   }
 
+  // Read-only views of the page's pack state, plus run (a dispatch through the same path as the input layer).
+  const debug = Object.freeze({
+    actions: () => hooks.debugActions(),
+    effects: () => hooks.effects(),
+    modErrors: () => hooks.modErrors(),
+    swap: () => hooks.swap(),
+    run: (action, args = null) => (typeof action === "string" && action !== "" ? hooks.run(action, args) : false),
+  });
+
   const api = {
+    debug,
+
     help() {
       console.log(HELP.join("\n"));
       return HELP;

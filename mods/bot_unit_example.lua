@@ -1,6 +1,6 @@
 -- Computer-player bots: one bot per hero slot, run through the mod API alone. Until the teams lane seats
 -- computers by itself, the slots below are the list of bots this mod seats with game.add_player.
--- Join mods/bot_lib.lua ahead of this file to run it: cat bot_lib.lua bot_hero.lua > bots.lua.
+-- Join mods/bot_lib.lua ahead of this file to run it: cat bot_lib.lua bot_unit_example.lua > bots.lua.
 -- state.heroes counts bots that have held a hero (a death at the last tick does not drop it), state.kills counts kills credited to a bot slot.
 
 local BOT_SLOTS = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }

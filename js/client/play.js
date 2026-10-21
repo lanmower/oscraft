@@ -189,8 +189,14 @@ function failStart(err) {
 }
 
 // A mod error comes back as text from the sim's load_mods and tick, for the page to log.
+// The mod errors this page has logged, newest last (kept for oscraft.debug.modErrors()).
+const MOD_ERROR_LOG_MAX = 50;
+const modErrorLog = [];
 function logModError(text) {
-  if (text) console.error(`[mods] ${text}`);
+  if (!text) return;
+  console.error(`[mods] ${text}`);
+  modErrorLog.push({ tick: localGame ? localGame.ticks() : null, text: String(text) });
+  if (modErrorLog.length > MOD_ERROR_LOG_MAX) modErrorLog.shift();
 }
 
 // Input goes to the pack. The page that runs the sim calls it directly; a joined page sends the same event to the host
@@ -238,10 +244,14 @@ function applyPeerAction(peerPubkey, frame) {
   logModError(localGame.dispatch_action(frame.name, JSON.stringify(args)));
 }
 
+// The last reply the pack gave a debug action (debug_actions), read by oscraft.debug.actions() after its dispatch.
+let debugReply = null;
+
 // UI events from the pack. The host's page renders its own and sends every event to the joined pages; each page
 // shows the events of its own seat (or of every seat, when the event names none).
 function routeUi(ev) {
   const data = ev.data || {};
+  if (ev.kind === "debug") { debugReply = data; return; }
   if (ev.kind === "feedback" || ev.kind === "action" || ev.kind === "view") {
     if (data.player !== undefined && data.player !== myPlayer) return;
     if (ev.kind === "feedback") {
@@ -1993,6 +2003,24 @@ installDebugApi({
   netTick: () => (netState ? netState.tick : 0),
   units: currentUnits,
   lastSwap: () => (lastSwapResult ? { ...lastSwapResult } : null),
+  debugActions: () => {
+    if (!localGame || netState) return null;
+    logModError(localGame.dispatch_action("debug_actions", "null"));
+    pumpUi();
+    return debugReply && Array.isArray(debugReply.actions) ? [...debugReply.actions] : null;
+  },
+  effects: () => (fx ? fx.recentEffects() : null),
+  modErrors: () => modErrorLog.map((e) => ({ ...e })),
+  swap: () => ({
+    applied: lastSwapResult ? { ...lastSwapResult } : null,
+    pending: pendingSwap ? { tick: pendingSwap.tick, file: pendingSwap.file, hash: pendingSwap.hash, deferrals: pendingSwap.deferrals, ready: Boolean(pendingSwap.image) } : null,
+    rejections: swapRejections.slice(-10),
+  }),
+  run: (name, args = null) => {
+    if (!localGame && !netState) return false;
+    sendInput(name, args);
+    return true;
+  },
   isHero: (id) => localGame !== null && isHeroUnit(id),
   selected: () => (hud ? hud.input.selection() : selectedId === -1 ? [] : [selectedId]),
   select: (ids) => { if (hud) hud.input.setSelection(ids); else selectedId = ids[0] ?? -1; },

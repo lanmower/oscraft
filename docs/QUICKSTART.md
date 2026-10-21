@@ -32,7 +32,7 @@ Serve the repo root with any static file server and open `js/client/play.html#mo
 A mod is one Lua chunk defining `on_tick(state)`; see [MODDING.md](MODDING.md) and the examples in `mods/`. Check one without a match:
 
 ```
-cargo run -p mod-host --bin mod_check -- ../scenarios/moba ../mods/creep_gold.lua 200
+cargo run -p mod-host --bin mod_check -- ../scenarios/moba ../mods/unit_bounty_example.lua 200
 ```
 
 `oscraft-lsp` gives editors diagnostics for `.osd` and `.lua` files over stdio.

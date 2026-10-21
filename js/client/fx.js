@@ -297,10 +297,17 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     }
   }
 
+  // The last drained events, kept for the debug API (oscraft.debug.effects()); the queue itself is drained once.
+  const RECENT_EFFECTS = 64;
+  const recent = [];
   function drainEvents() {
     const g = game();
     if (typeof g.drain_effects !== "function") return;
-    for (const e of JSON.parse(g.drain_effects())) spawnEvent(e);
+    for (const e of JSON.parse(g.drain_effects())) {
+      spawnEvent(e);
+      recent.push(e);
+      if (recent.length > RECENT_EFFECTS) recent.shift();
+    }
   }
 
   function remember(u) {
@@ -451,5 +458,6 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   return {
     frame,
     counts: () => ({ rings: rings.count, particles: particles.count, projectiles: projectiles.count, ranged: rangedInFlight(), floats: floats.count, flashes: flashes.count, costMs: Number(costMs.toFixed(3)) }),
+    recentEffects: () => recent.slice(),
   };
 }

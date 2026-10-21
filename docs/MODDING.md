@@ -4,9 +4,9 @@ A mod is one Lua chunk run by the mod host (`rust/crates/mod-host`). It reacts t
 registers triggers, and queues commands on the game. Mods use only the names below. The browser
 host runs them on piccolo, the only Lua runtime.
 
-Example mods: `mods/creep_gold.lua`, `mods/tower_buff.lua`, `mods/td_waves.lua` (timer, region, variables,
+Example mods: `mods/unit_bounty_example.lua`, `mods/structure_buff_example.lua`, `mods/waves_example.lua` (timer, region, variables,
 score, defeat), `mods/custom_spell.lua` (ability, gold, victory), `mods/custom_unit.lua` (unit),
-`mods/custom_item.lua` (item, buy, inventory), `mods/tech_tree.lua` (upgrades), `mods/killer.lua`
+`mods/custom_item.lua` (item, buy, inventory), `mods/upgrade_tree_example.lua` (upgrades), `mods/killer.lua`
 (killer attribution, clock) and `mods/unit_queries.lua` (cooldown and ability queries, clock). CI
 runs them with `mod_check` and asserts the `mod-state` line they print. `mods/moba_match.lua` is the MOBA
 match mod (lane waves and kill gold in one file), described in [The MOBA match mod](#the-moba-match-mod-modsmoba_matchlua).
@@ -312,8 +312,8 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 | Persistent state across reload | done | `state`, the variable stores |
 | Custom units (stats, weapons) | done | `game.unit`, `mods/custom_unit.lua` |
 | Custom items | done | `game.item`, `mods/custom_item.lua` |
-| Upgrades and tech trees | done | `game.upgrade`, `game.cmd_grant_upgrade`, `mods/tech_tree.lua` |
-| Teams, alliances, shared vision | done | `game.team`, `game.set_team`, `game.alliance`, `mods/teams.lua` |
+| Upgrades and tech trees | done | `game.upgrade`, `game.cmd_grant_upgrade`, `mods/upgrade_tree_example.lua` |
+| Teams, alliances, shared vision | done | `game.team`, `game.set_team`, `game.alliance`, `mods/team_rules_example.lua` |
 | Player slots: create, remove, controller type | done | `game.add_player`, `game.remove_player`, `game.players` |
 | Per-unit and per-player resource other than gold | missing | `resource_b` has no mod call |
 | Killer attribution in `on_died` | done | `on_died(unit, killer, killer_player)`, `mods/killer.lua` |
@@ -345,3 +345,26 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 A mod that ships GLB models or PNG and JPEG textures can run `scripts/assets/prep-ktx.mjs` to add lossless
 meshopt geometry and KTX2 textures. It needs the KTX-Software `toktx` binary, which is not in this repository.
 See [docs/ASSET_PIPELINE.md](ASSET_PIPELINE.md) for the download, the exact commands, and how to verify an output.
+
+## Debugging
+
+The page exposes the pack's Lua state on `window.oscraft` for the browser console. Every view is a read-only
+copy; `oscraft.debug.run` is the only dispatch. The calls work on a local match (a page that runs the sim);
+`actions` and `run` are answered by the local sim, and a joined page sends `run` to the host like the input layer does.
+
+- `oscraft.debug.actions()`: the actions `scenarios/moba/controls.lua` answers, as an array of names. The pack
+  returns them: `on_action("debug_actions")` emits the list as a `debug` UI event, which the page reads straight away.
+  A pack that adds an action lists it in its own `ACTIONS` table, so the page needs no change. Returns `null`
+  without a local sim.
+- `oscraft.debug.effects()`: the last 64 display effects the page drained from the sim (`game.effect`), each with
+  `kind`, `x`, `y`, `source`, `target`, `team`, `colour`, `duration`, `text`, `scale`, `name` and `value`. The queue
+  itself is drained once per frame, so this is the page's recent copy, not a peek at the queue.
+- `oscraft.debug.modErrors()`: the mod error log of this page, newest last, as `[{tick, text}]` (50 entries). It
+  holds every error the page logged as `[mods]`: a failed load, a failed `setup`, a failed `tick` or action.
+- `oscraft.debug.swap()`: `{applied, pending, rejections}`. `applied` is the last data swap this page applied or
+  failed (`tick`, `file`, `ok`, `carried`, `refused`, `error`, `readiness`); `pending` is the swap still waiting for
+  its tick (`tick`, `file`, `hash`, `deferrals`, `ready`), or `null`; `rejections` are the last refused announcements.
+- `oscraft.debug.run(action, args)`: dispatches `action` with `args` through the same path the keys and clicks take
+  (`on_action(name, args)`), for example `oscraft.debug.run("view", {fog: false})`. It returns `true` when it
+  sent the dispatch and `false` without a sim or with an empty name. The pack's error text goes to the `[mods]` log.
+  A dispatch changes the match, so use it on a debug match only.

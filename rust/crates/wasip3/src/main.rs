@@ -49,7 +49,7 @@ mod host {
 
     /// The mods whose state the host prints after 300 steps on the moba image, as the native
     /// mod_check prints it: one `mod-state` line each.
-    const STATE_MODS: &[&str] = &["td_waves", "custom_spell"];
+    const STATE_MODS: &[&str] = &["waves_example", "custom_spell"];
 
     /// The `mod-source` command that hands the guest the current text of mods/<name>.lua.
     fn load_command(name: &str) -> Result<String, String> {
@@ -79,7 +79,7 @@ mod host {
         }
         println!("wasip3 mod-load ok mod=wasip3-test");
         let Some(mod_image) = mod_image else { return Ok(()) };
-        let commands = [load_command("tower_buff")?, "mod-step".into(), "mod-kill tower".into(), "mod-step".into()];
+        let commands = [load_command("structure_buff_example")?, "mod-step".into(), "mod-kill tower".into(), "mod-step".into()];
         let replies = send(guest, mod_image, &commands)?;
         if replies.len() != commands.len() || replies.iter().any(|r| r.starts_with("err")) {
             return Err(format!("unexpected mod replies: {replies:?}"));
@@ -88,7 +88,7 @@ mod host {
         if fired == 0 || applied == 0 {
             return Err(format!("trigger did not fire or no command applied: {:?}", replies[3]));
         }
-        println!("wasip3 mod-trigger ok mod=tower_buff fired={fired} applied={applied}");
+        println!("wasip3 mod-trigger ok mod=structure_buff_example fired={fired} applied={applied}");
         for name in STATE_MODS {
             let commands = [load_command(name)?, "mod-step 300".to_string(), "mod-state".to_string()];
             let replies = send(guest, mod_image, &commands)?;

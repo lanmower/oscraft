@@ -1,5 +1,5 @@
 -- Bot library: the decision logic of a computer-controlled hero, written only against the mod API.
--- A mod is one chunk, so CI joins this file ahead of mods/bot_hero.lua (cat bot_lib.lua bot_hero.lua > bots.lua).
+-- A mod is one chunk, so CI joins this file ahead of mods/bot_unit_example.lua (cat bot_lib.lua bot_unit_example.lua > bots.lua).
 -- Uses game.units, game.unit_kind, game.unit_abilities, game.unit_cooldown, game.unit_level, game.unit_items,
 -- game.gold, game.team, game.time, game.cmd_order, game.cmd_attack, game.cmd_cast, game.cmd_use_item,
 -- game.cmd_buy, unit_position, unit_hp and unit_alive.

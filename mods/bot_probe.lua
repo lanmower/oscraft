@@ -1,4 +1,4 @@
--- Witness fixture for the bot path: appended after mods/bot_lib.lua and mods/bot_hero.lua (cat them in that order).
+-- Witness fixture for the bot path: appended after mods/bot_lib.lua and mods/bot_unit_example.lua (cat them in that order).
 -- It spawns a hostile creep next to bot slot 0's hero and drops that creep to 30 HP so the bot last-hits it,
 -- then drops the hero below 40% HP so the bot retreats. mod-state then carries probe_* and the bot counters.
 local probe_stage = 0
