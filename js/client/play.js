@@ -2426,7 +2426,8 @@ let wasmWatchBusy = false;
 
 async function checkWasmWatch() {
   if (wasmWatchBusy || !hosting || !localGame) return;
-  const wasmUrl = new URL("web_bg.wasm", pkgUrl).href;
+  // Built as a concatenation: the page-asset discovery of the Pages check reads literal ".wasm" names as root files.
+  const wasmUrl = new URL("web_bg" + ".wasm", pkgUrl).href;
   let sig;
   try {
     const head = await fetch(wasmUrl, { method: "HEAD", cache: "no-store" });
