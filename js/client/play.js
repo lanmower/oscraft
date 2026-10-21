@@ -8,7 +8,6 @@ import { encodeFrame, decodeFrame, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/
 import { iceServersFrom } from "./ice.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
-import { gimbal, gimbalPose, handNodes, mountGimbalPanel } from "./gimbal.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
@@ -65,8 +64,6 @@ const ROSTER_EVERY_TICKS = 10;
 const U16_MAX = 0xffff;
 
 const params = new URLSearchParams(location.search);
-// Debug: ?gimbal mounts sliders that set an extra rotation on each hand (see gimbal.js).
-if (params.has("gimbal")) mountGimbalPanel();
 const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
 const namespace = params.get("ns") || "oscraft";
 const statusEl = document.getElementById("status");
@@ -475,10 +472,7 @@ function jointsFor(u, mesh, dt) {
   const cycle = clip ? entry.cycle[clip.name] : 0;
   entry.player.rate = moving && !u.attacking && cycle > 0 ? Math.min(RATE_MAX, Math.max(RATE_MIN, entry.speed / cycle)) : 1;
   entry.player.update(dt);
-  const pose = entry.player.pose() ?? EMPTY_POSE;
-  if (!gimbal.enabled) return jointMatrices(nodes, skin, pose, fit, entry.joints);
-  mesh.animation.hands ??= handNodes(nodes);
-  return jointMatrices(nodes, skin, gimbalPose(pose, nodes, mesh.animation.hands), fit, entry.joints);
+  return jointMatrices(nodes, skin, entry.player.pose() ?? EMPTY_POSE, fit, entry.joints);
 }
 
 // Groups { mesh, lowMesh?, transform } placements into one static instance batch per mesh. lowMesh is the mesh's
