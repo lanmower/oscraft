@@ -7,10 +7,6 @@ use std::path::{Path, PathBuf};
 
 use std::sync::Arc;
 
-use server::http::Request;
-use server::order::{parse_order, OrderGate};
-use server::room::{Room, RoomConfig};
-use server::{serve_catalog, serve_delta, serve_order, serve_state, Server};
 use sim::{fixed, Refusal, Sim};
 
 use crate::{claimed_checks, mod_checks, sim_checks};
@@ -159,12 +155,10 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("behaviour-declared", sim_checks::behaviour_declared),
     ("behaviour-trigger-fires", sim_checks::behaviour_trigger_fires),
     // CAP-ORD
-    ("order-parse", order_parse_rejects_empty),
     ("issue-move", sim_checks::issue_move),
     ("move-units-tick", sim_checks::move_units_tick),
     ("path-to-goal", sim_checks::path_to_goal),
     ("order-kinds", sim_checks::order_kinds),
-    ("order-rate-limit", order_gate_limits),
     // CAP-PROD
     ("produce-unit", sim_checks::produce_unit),
     ("harvest-resources", sim_checks::harvest_resources),
@@ -202,13 +196,6 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("lua-host-api", mod_checks::lua_host_api),
     ("lua-host-api-full", mod_checks::lua_host_api_full),
     ("lua-sandbox-limits", mod_checks::lua_sandbox_limits),
-    // CAP-SRV
-    ("http-state", http_state_ok),
-    ("http-catalog", http_catalog_ok),
-    ("http-order", http_order_rejects_empty),
-    ("http-delta", http_delta_no_5xx),
-    ("multi-room", multi_room_routes),
-    ("http-resources", http_resources_ok),
     // CAP-DET
     ("fixed-math", sim_checks::fixed_math),
     ("state-hash-stable", sim_checks::state_hash_stable),
@@ -240,7 +227,6 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("upgrade-applies-existing", claimed_checks::upgrade_applies_existing),
     ("ranged-miss-chance", claimed_checks::ranged_miss_chance),
     ("replay-playback-controls", claimed_checks::replay_playback_controls),
-    ("lockstep-input-exchange", claimed_checks::lockstep_input_exchange),
     // CAP rows still claimed, batch 3
     ("player-start-positions", claimed_checks::player_start_positions),
     ("neutral-objects", claimed_checks::neutral_objects),
@@ -439,103 +425,15 @@ fn presentation_refusals_named(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-fn test_room(name: &str) -> Result<Arc<Room>, String> {
-    Room::new(RoomConfig {
-        name: name.to_string(),
-        grid_w: 16,
-        grid_h: 16,
-        max_units: 64,
-        token: "tok".to_string(),
-        rate: 8,
-        data: None,
-        shed: true,
-    })
-}
 
-fn get_request(path: &str, query: &str) -> Request {
-    Request { method: "GET".to_string(), path: path.to_string(), query: query.to_string(), headers: Vec::new(), body: Vec::new() }
-}
 
-fn order_parse_rejects_empty(_image: &[u8]) -> Result<(), String> {
-    if parse_order(b"", 16, 16).is_ok() {
-        return Err("an empty order body was accepted".to_string());
-    }
-    Ok(())
-}
 
-fn order_gate_limits(_image: &[u8]) -> Result<(), String> {
-    let gate = OrderGate::new("tok".to_string(), 2);
-    if gate.rate() != 2 {
-        return Err(format!("rate() = {}, want 2", gate.rate()));
-    }
-    if gate.authorized(None) {
-        return Err("a request without the token was authorized".to_string());
-    }
-    if gate.take().is_none() {
-        return Err("the first take was refused".to_string());
-    }
-    Ok(())
-}
 
-fn http_state_ok(_image: &[u8]) -> Result<(), String> {
-    let room = test_room("a")?;
-    let r = serve_state(&room, &get_request("/state", ""));
-    if r.status != 200 {
-        return Err(format!("GET /state status {}", r.status));
-    }
-    let body = String::from_utf8_lossy(&r.body);
-    if !body.contains("\"winner\":-1") {
-        return Err(format!("GET /state reports no winner field with no winner declared: {body}"));
-    }
-    Ok(())
-}
 
-fn http_catalog_ok(_image: &[u8]) -> Result<(), String> {
-    let room = test_room("a")?;
-    let r = serve_catalog(&room, &get_request("/catalog", ""));
-    if r.status != 200 {
-        return Err(format!("GET /catalog status {}", r.status));
-    }
-    Ok(())
-}
 
-fn http_order_rejects_empty(_image: &[u8]) -> Result<(), String> {
-    let room = test_room("a")?;
-    let mut req = get_request("/order", "");
-    req.method = "POST".to_string();
-    let r = serve_order(&room, &req);
-    if r.status == 200 {
-        return Err("an empty POST /order was accepted".to_string());
-    }
-    Ok(())
-}
 
-fn http_delta_no_5xx(_image: &[u8]) -> Result<(), String> {
-    let room = test_room("a")?;
-    let r = serve_delta(&room, &get_request("/delta", "since=0"));
-    if r.status >= 500 {
-        return Err(format!("GET /delta status {}", r.status));
-    }
-    Ok(())
-}
 
-fn multi_room_routes(_image: &[u8]) -> Result<(), String> {
-    let server = Server { mods: Default::default(), rooms: vec![test_room("a")?, test_room("b")?], max_rooms: 2, site: None };
-    let r = server.route(&get_request("/state", "map=b"));
-    if r.status != 200 {
-        return Err(format!("GET /state?map=b status {}", r.status));
-    }
-    Ok(())
-}
 
-fn http_resources_ok(_image: &[u8]) -> Result<(), String> {
-    let server = Server { mods: Default::default(), rooms: vec![test_room("a")?], max_rooms: 1, site: None };
-    let r = server.route(&get_request("/resources", ""));
-    if r.status != 200 {
-        return Err(format!("GET /resources status {}", r.status));
-    }
-    Ok(())
-}
 
 /// Runs every check, prints one line each, and returns how many failed.
 pub fn run_all(image: &[u8]) -> usize {

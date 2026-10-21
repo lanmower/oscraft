@@ -3,10 +3,7 @@
 
 use wasm_bindgen::prelude::*;
 
-// The replay format and player are shared with the server crate, which records the files this plays.
-#[allow(dead_code)]
-#[path = "../../server/src/replay.rs"]
-mod replay;
+// The replay format and player live in the replay crate, which records the files this plays.
 use replay::{Command, Recording, Replayer};
 
 /// The image name the live recording runs on. The browser loads map bytes, so it has no file name to record.

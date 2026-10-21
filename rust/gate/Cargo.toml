@@ -13,7 +13,7 @@ osdt-data = { path = "../crates/data" }
 sim = { path = "../crates/sim" }
 mod-host = { path = "../crates/mod-host" }
 mpq = { path = "../crates/mpq" }
-server = { path = "../crates/server" }
+replay = { path = "../crates/replay" }
 flate2 = "=1.1.9"
 bzip2 = "=0.6.0"
 lzma-rs = "=0.3.0"

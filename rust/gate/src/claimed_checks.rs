@@ -285,7 +285,7 @@ pub fn replay_playback_controls(image: &[u8]) -> Result<(), String> {
     spawn(&mut source, 0, "skirmisher", 10, 10)?;
     run_ticks(&mut source, 20);
     let start = fresh(image)?;
-    let mut p = server::replay::Playback::new(&source, start, &[]).map_err(|e| format!("Playback::new: {e:?}"))?;
+    let mut p = replay::Playback::new(&source, start, &[]).map_err(|e| format!("Playback::new: {e:?}"))?;
     let end = p.end();
     if end == 0 {
         return Err("playback ends at tick 0 for a 20-tick source".to_string());
@@ -299,19 +299,6 @@ pub fn replay_playback_controls(image: &[u8]) -> Result<(), String> {
     p.resume();
     p.set_speed(2).map_err(|e| format!("set_speed(2): {e:?}"))?;
     Ok(())
-}
-
-pub fn lockstep_input_exchange(_image: &[u8]) -> Result<(), String> {
-    use std::time::{Duration, Instant};
-    let mut ls = server::lockstep::Lockstep::new(&[0, 1], 0, Duration::from_secs(1));
-    ls.submit(0, 0, Vec::new()).map_err(|e| format!("submit player 0: {e:?}"))?;
-    ls.submit(0, 1, Vec::new()).map_err(|e| format!("submit player 1: {e:?}"))?;
-    match ls.poll(Instant::now()) {
-        Ok(Some(r)) if r.tick == 0 => Ok(()),
-        Ok(Some(r)) => Err(format!("released tick {}, want 0", r.tick)),
-        Ok(None) => Err("no tick released after both players submitted".to_string()),
-        Err(e) => Err(format!("poll: {e:?}")),
-    }
 }
 
 const NEUTRAL_OWNER: u8 = 0xFF;

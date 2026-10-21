@@ -27,7 +27,12 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let dir = args.get(1).map(String::as_str).unwrap_or("../scenarios/moba");
     let ticks: u32 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(6000);
-    let mut sim = server::mods::load_data(Path::new(dir), 4096).expect("load scenario");
+    // The scenario directory compiles from its .osd sources, then its hero rules file (if any) applies.
+    let image = osdt_data::generate(Path::new(dir)).expect("compile scenario");
+    let mut sim = sim::load(&image, 4096).expect("load scenario");
+    if let Ok(rules) = std::fs::read_to_string(Path::new(dir).join("hero_rules.txt")) {
+        assert!(sim.set_hero_rules_text(&rules), "hero_rules.txt has a bad line");
+    }
     let heroes: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_hero(i)).collect();
     let mut total = std::time::Duration::ZERO;
     let mut worst = std::time::Duration::ZERO;

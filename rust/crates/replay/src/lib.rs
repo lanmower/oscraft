@@ -1552,13 +1552,33 @@ impl Replayer {
 }
 
 
-#[cfg(all(test, feature = "server-tests"))]
+#[cfg(test)]
+fn load_data(path: &std::path::Path, max_units: usize) -> Result<Sim, String> {
+    // The directory branch of the loader the server ran: compile the .osd sources, then the hero rules file if any.
+    if !path.is_dir() {
+        return sim::load_file(path, max_units).map_err(|e| format!("{e:?}"));
+    }
+    let image = osdt_data::generate(path).map_err(|e| format!("{e:#}"))?;
+    let mut sim = sim::load(&image, max_units).map_err(|e| format!("{e:?}"))?;
+    match std::fs::read_to_string(path.join("hero_rules.txt")) {
+        Ok(rules) => {
+            if !sim.set_hero_rules_text(&rules) {
+                return Err("hero_rules.txt has a bad line".to_string());
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(format!("hero_rules.txt cannot be read: {e}")),
+    }
+    Ok(sim)
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
     fn data() -> Sim {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data");
-        crate::mods::load_data(&dir, 4096).expect("data image")
+        load_data(&dir, 4096).expect("data image")
     }
 
     // Every mod-issued command is recorded, and playing the text back reproduces the live state
@@ -1681,7 +1701,7 @@ mod tests {
     }
 }
 
-#[cfg(all(test, feature = "server-tests"))]
+#[cfg(test)]
 mod changed_rules_replay {
     use super::*;
 
@@ -1690,7 +1710,7 @@ mod changed_rules_replay {
     #[test]
     fn replay_under_changed_rules_is_deterministic() {
         let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
-        let mut src = crate::mods::load_data(&scenario, 64).expect("source sim");
+        let mut src = load_data(&scenario, 64).expect("source sim");
         src.set_fog(false);
         let mut rec = Recording::new("duel-routes", 64, &src);
         for _ in 0..1200 {
@@ -1698,7 +1718,7 @@ mod changed_rules_replay {
         }
         let text = rec.render(&src);
         let run = |text: &str, first: Option<u32>| -> u64 {
-            let mut fresh = crate::mods::load_data(&scenario, 64).expect("fresh sim");
+            let mut fresh = load_data(&scenario, 64).expect("fresh sim");
             fresh.set_fog(false);
             if let Some(v) = first {
                 fresh.set_camp_rule("first_spawn_s", v).expect("rule");

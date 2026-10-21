@@ -7,5 +7,4 @@ description = "Deterministic headless simulation: Q16.16, struct-of-arrays, port
 [dependencies]
 
 [dev-dependencies]
-server = { path = "../server" }
 osdt-data = { path = "../data" }
