@@ -1,16 +1,15 @@
 #version 300 es
 precision highp float;
 in vec3 vNormal; in vec3 vWorld;
-// Ripple height: three travelling waves on the water plane.
-// Each wave's direction turns slowly across the map and over time, so no single diagonal streak dominates the river.
-vec2 rippleDir(float base, vec2 q, float t) {
-  float a = base + 0.35 * sin(dot(q, vec2(0.11, 0.07)) + t * 0.05) + 0.15 * sin(t * 0.09 + base * 3.0);
-  return vec2(cos(a), sin(a));
-}
+// Ripple height: four travelling plane waves at 0, 45, 90 and 135 degrees with comparable weights, so the surface is
+// isotropic and no single direction streaks across the river. A small drift along the river's flow is the only
+// directional term.
 float waveH(vec2 q, float t) {
-  return sin(dot(q, rippleDir(0.6435, q, t)) * 1.3 + t * 1.1) * 0.5
-    + sin(dot(q, rippleDir(2.0344, q, t)) * 2.1 + t * 1.7) * 0.3
-    + sin(dot(q, rippleDir(-1.3734, q, t)) * 3.7 + t * 2.3) * 0.2;
+  float h = 0.3 * sin(dot(q, vec2(1.0, 0.0)) * 1.3 + t * 1.1)
+    + 0.3 * sin(dot(q, vec2(0.70711, 0.70711)) * 1.6 + t * 1.3)
+    + 0.3 * sin(dot(q, vec2(0.0, 1.0)) * 2.1 + t * 1.5)
+    + 0.3 * sin(dot(q, vec2(-0.70711, 0.70711)) * 2.5 + t * 1.7);
+  return h + 0.1 * sin(dot(q, vec2(0.8, 0.6)) * 0.9 + t * 0.4);
 }
 #include "shadow.glsl"
 uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
