@@ -374,7 +374,10 @@ void main() {
   // tiles stay matte.
   water = mix(water, sky, fres * 0.8 * depth);
   water += vec3(1.0, 0.97, 0.9) * glint * depth;
-  outColor = vec4(mix(bed, water, ww), 1.0);
+  // Wet only where the neighbourhood is all water: a shore cell with land beside it stays dry ground, so the water does
+  // not spill over the edge tiles.
+  float wet = smoothstep(0.85, 1.0, near) * ww;
+  outColor = vec4(mix(bed, water, wet), 1.0);
 }`;
 
 function orthographic(l, r, b, t, n, f) {
