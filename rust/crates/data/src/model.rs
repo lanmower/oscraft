@@ -67,6 +67,8 @@ pub struct UnitExtRaw {
     pub deny_xp_pct: i32,
     /// Whether the unit is player-controlled (a hero), which makes it eligible for assist and xp shares.
     pub player_controlled: bool,
+    /// Acquire range in game units (0 for none): a creep with no hold order chases a visible enemy inside it.
+    pub acquire: i32,
     /// Experience the killer side shares when this unit dies by an enemy.
     pub xp_bounty: i32,
     /// Assist radius around this unit, milli-units: heroes inside it share its kill or denial xp.
@@ -324,6 +326,8 @@ pub struct UnitExt {
     pub player_controlled: bool,
     pub xp_bounty: u32,
     pub assist_radius: u32,
+    /// Acquire range in game units (0 for none).
+    pub acquire: u32,
 }
 
 #[derive(Debug, Default, Clone, Copy)]

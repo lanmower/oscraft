@@ -196,6 +196,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] player_controlled: Option<bool>,
         #[starlark(require = named)] xp_bounty: Option<i32>,
         #[starlark(require = named)] assist_radius_milli: Option<i32>,
+        #[starlark(require = named)] acquire: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let size = index_of(SIZE_CATEGORIES, size.unwrap_or("small"), "size category")?;
@@ -221,6 +222,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             player_controlled: player_controlled.unwrap_or(false),
             xp_bounty: xp_bounty.unwrap_or(0),
             assist_radius_milli: assist_radius_milli.unwrap_or(0),
+            acquire: acquire.unwrap_or(0),
         });
         Ok(NoneType)
     }

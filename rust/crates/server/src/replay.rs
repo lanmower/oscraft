@@ -1181,7 +1181,7 @@ impl Replayer {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "server-tests"))]
 mod tests {
     use super::*;
 

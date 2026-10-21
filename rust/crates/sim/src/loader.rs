@@ -10,7 +10,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 21;
+const VERSION: u16 = 22;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const PLACE_TEAM: u32 = 2;
@@ -24,7 +24,7 @@ const CELL_BITS: u8 = 0b111;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 22] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT"];
-const RECORD_SIZES: [usize; 22] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 44, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520];
+const RECORD_SIZES: [usize; 22] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520];
 const SKILL_RANKS: usize = 4;
 const ULTIMATE_RANKS: u8 = 3;
 const ULTIMATE_GATES: [i32; ULTIMATE_RANKS as usize] = [6, 12, 18];
@@ -338,6 +338,8 @@ pub struct UnitExt {
     pub xp_bounty: i32,
     /// Assist radius around this unit, fixed-point milli-units.
     pub assist_radius: i32,
+    /// Acquire range in game units (0 for none): see acquire.rs.
+    pub acquire: u32,
 }
 
 /// Channelling of one ability (ACHN, one per ability).
@@ -1117,6 +1119,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         xr.skip(1, "ext reserved 2")?;
         let xp_bounty = xr.i32("ext xp bounty")?;
         let assist_radius = xr.i32("ext assist radius")?;
+        let acquire = xr.u32("ext acquire")?;
         if size > 2 || damage_type > 2 || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 || bounty < 0 {
             return Err(LoadError::Range("unit extension outside its table"));
         }
@@ -1140,6 +1143,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             player_controlled: flags & 1 != 0,
             xp_bounty,
             assist_radius,
+            acquire,
         });
     }
 

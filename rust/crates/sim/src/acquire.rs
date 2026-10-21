@@ -2,8 +2,8 @@
 //! enemy inside its acquire range chases it, strikes it from weapon reach, and keeps that target
 //! until the target dies or leaves acquire range. Then it resumes the order it had before the chase.
 //!
-//! The table is keyed by unit name and read once when the catalog is built, so the unit record and
-//! the OSDT format version are unchanged. Values are in game units as the 6.88g UnitWeapons acquire
+//! Each unit record carries its acquire range (the `acquire=` key of `unit_extra` in the scenario data,
+//! read when the catalog is built). Values are in game units as the 6.88g UnitWeapons acquire
 //! column gives them; `acquire_milli` converts them at 125/8 milli-units per game unit (the same
 //! scale units.osd uses). Role mapping, coordinator decision: creep = Ghoul (500), creep_ranged =
 //! Necromancer (600), creep_siege = Meat Wagon (800); each super and mega tier takes the value of
@@ -28,36 +28,14 @@ const MILLI_PER_GAME_DEN: i64 = 8;
 /// across ticks instead of bunching on one.
 pub const ACQUIRE_PERIOD: u32 = 4;
 
-/// Acquire range by unit name, game units.
-pub const ACQUIRE_TABLE: &[(&str, i32)] = &[
-    ("creep", 500),
-    ("creep_super", 500),
-    ("creep_mega", 500),
-    ("creep_ranged", 600),
-    ("creep_ranged_super", 600),
-    ("creep_ranged_mega", 600),
-    ("creep_siege", 800),
-    ("creep_siege_super", 800),
-    ("creep_siege_mega", 800),
-    ("n003", 500),
-    ("n00E", 300),
-    ("n00D", 500),
-];
-
 /// Milli-units for an acquire value in game units.
 pub fn acquire_milli(game: i32) -> i32 {
     (game as i64 * MILLI_PER_GAME_NUM / MILLI_PER_GAME_DEN) as i32
 }
 
-/// One acquire range per unit kind, milli-units; 0 for kinds with no entry.
+/// One acquire range per unit kind, milli-units; 0 for kinds with no acquire value in their unit record.
 pub(crate) fn per_kind(cat: &Catalog) -> Vec<i32> {
-    cat.units
-        .iter()
-        .map(|u| {
-            let name = cat.name(u.name);
-            ACQUIRE_TABLE.iter().find(|(n, _)| *n == name).map_or(0, |&(_, game)| acquire_milli(game))
-        })
-        .collect()
+    cat.unit_ext.iter().map(|ext| acquire_milli(ext.acquire as i32)).collect()
 }
 
 /// Chase and return state per unit: target slot (-1 none), the spawn generation of that target,
@@ -194,5 +172,17 @@ impl Sim {
         if self.issue_order_kind(i, ORDER_ATTACK_MOVE, tx, ty).is_err() {
             self.chase.target[i] = -1;
         }
+    }
+}
+
+impl crate::arrays::Sim {
+    /// Sets the acquire range of unit `name` in game units. A load-time mod call: the unit record, the
+    /// per-kind value and the catalog digest all change, so the witnesses see the new range.
+    pub fn set_acquire(&mut self, name: &str, game: u32) -> Result<(), &'static str> {
+        let k = self.cat.unit_index(name).ok_or("unknown unit")?;
+        self.cat.unit_ext[k].acquire = game;
+        self.acquire[k] = acquire_milli(game as i32);
+        self.cat_digest = crate::hash::catalog_digest(&self.cat, &self.grid);
+        Ok(())
     }
 }

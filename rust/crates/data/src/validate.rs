@@ -335,6 +335,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             player_controlled: raw.player_controlled,
             xp_bounty: unsigned("xp_bounty", raw.xp_bounty)?,
             assist_radius: unsigned("assist_radius_milli", raw.assist_radius_milli)?,
+            acquire: unsigned("acquire", raw.acquire)?,
         };
     }
     for (index, raw) in units_raw.iter().enumerate() {

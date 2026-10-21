@@ -3,7 +3,7 @@
 # and a denied unit pays no gold. Heroes are player_controlled; they share kill and assist xp.
 # Every other value below is UNVERIFIED unless its own comment cites a source.
 # Bounties from SteamDatabase tracking repo @282fad29f0f74504fad465c52d197fb61f4d612b source/scripts/npc/npc_units.txt. Creep: BountyGoldMin 34 / Max 39 -> 36, BountyXP 57. Tower: no bounty keys in badguys_tower1_mid, so gold and xp are 0. Roshan: BountyGoldMin 200 / Max 290 -> 245, BountyXP 400. Gold ranges are reduced to their midpoint because the sim takes one value.
-unit_extra("creep", bounty=36, xp_bounty=57, deny_xp_pct=50, assist_radius_milli=23438)
+unit_extra("creep", bounty=36, xp_bounty=57, deny_xp_pct=50, assist_radius_milli=23438, acquire=500)
 unit_extra("tower", bounty=0, xp_bounty=0, deny_xp_pct=0)  # no bounty keys in the dump
 unit_extra("base", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("objective", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
@@ -17,14 +17,14 @@ unit_extra("sentry_ward", bounty=100, xp_bounty=100, deny_xp_pct=0, detector_rad
 # Courier bounty 35 gold: courier BountyGoldMin/Max.
 unit_extra("courier", bounty=35, xp_bounty=0, deny_xp_pct=0)
 # Bounties are the midpoint of BountyGoldMin/Max and BountyXP from npc_units.txt @282fad29; assist radius 1500 reference units = 23438 milli. Structures pay no bounty in the dump (reference pays tower and barracks gold in code: not modelled).
-unit_extra("creep_ranged", bounty=48, xp_bounty=69, deny_xp_pct=50, assist_radius_milli=23438)
-unit_extra("creep_siege", bounty=66, xp_bounty=88, deny_xp_pct=50, assist_radius_milli=23438)
-unit_extra("creep_super", bounty=23, xp_bounty=25, deny_xp_pct=50, assist_radius_milli=23438)
-unit_extra("creep_ranged_super", bounty=22, xp_bounty=22, deny_xp_pct=50, assist_radius_milli=23438)
-unit_extra("creep_siege_super", bounty=66, xp_bounty=88, deny_xp_pct=50, assist_radius_milli=23438)
-unit_extra("creep_mega", bounty=23, xp_bounty=25, deny_xp_pct=50, assist_radius_milli=23438)
-unit_extra("creep_ranged_mega", bounty=22, xp_bounty=22, deny_xp_pct=50, assist_radius_milli=23438)
-unit_extra("creep_siege_mega", bounty=66, xp_bounty=88, deny_xp_pct=50, assist_radius_milli=23438)
+unit_extra("creep_ranged", bounty=48, xp_bounty=69, deny_xp_pct=50, assist_radius_milli=23438, acquire=600)
+unit_extra("creep_siege", bounty=66, xp_bounty=88, deny_xp_pct=50, assist_radius_milli=23438, acquire=800)
+unit_extra("creep_super", bounty=23, xp_bounty=25, deny_xp_pct=50, assist_radius_milli=23438, acquire=500)
+unit_extra("creep_ranged_super", bounty=22, xp_bounty=22, deny_xp_pct=50, assist_radius_milli=23438, acquire=600)
+unit_extra("creep_siege_super", bounty=66, xp_bounty=88, deny_xp_pct=50, assist_radius_milli=23438, acquire=800)
+unit_extra("creep_mega", bounty=23, xp_bounty=25, deny_xp_pct=50, assist_radius_milli=23438, acquire=500)
+unit_extra("creep_ranged_mega", bounty=22, xp_bounty=22, deny_xp_pct=50, assist_radius_milli=23438, acquire=600)
+unit_extra("creep_siege_mega", bounty=66, xp_bounty=88, deny_xp_pct=50, assist_radius_milli=23438, acquire=800)
 unit_extra("tower_t2", bounty=0, xp_bounty=0, deny_xp_pct=0)
 unit_extra("tower_t3", bounty=0, xp_bounty=0, deny_xp_pct=0)
 unit_extra("tower_t4", bounty=0, xp_bounty=0, deny_xp_pct=0)

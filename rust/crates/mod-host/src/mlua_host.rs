@@ -1154,6 +1154,15 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(name)
         })?,
     )?;
+    // acquire(name, game_units): a load-time setting of one unit's acquire range (see acquire.rs in the sim).
+    let w = world.clone();
+    game.set(
+        "acquire",
+        lua.create_function(move |_, (name, value): (String, i64)| {
+            let game_units = u32::try_from(value).map_err(|_| mlua::Error::RuntimeError("invalid_unit: acquire must not be negative".into()))?;
+            w.borrow_mut().set_acquire(&name, game_units).map_err(|why| mlua::Error::RuntimeError(format!("invalid_unit: {name}: {why}")))
+        })?,
+    )?;
     let (w, buf) = (world.clone(), cmds.clone());
     game.set(
         "item",
@@ -2090,8 +2099,24 @@ mod tests {
         let (a, b) = {
             let mut sim = host.sim();
             let creep = sim.catalog().unit_index("creep").expect("moba has a creep") as u32;
-            let a = sim.spawn_for(0, creep, sim::fixed::from_int(40), sim::fixed::from_int(34)).expect("creep a");
-            let b = sim.spawn_for(1, creep, sim::fixed::from_int(62), sim::fixed::from_int(34)).expect("creep b");
+            // The first open tile at or after x = 40 for side 0, and the first at or before x = 62 for side 1, on the row.
+            // Walkable tiles of the current map: the first that takes a creep for side 0 from the left, and the first
+            // for side 1 from the right, at least 20 tiles apart.
+            let spawn_row = |player: u8, xs: Vec<i32>, sim: &mut sim::Sim| -> Option<(usize, i32)> {
+                for y in 20..=60 {
+                    for &x in &xs {
+                        if !sim.grid().walkable(x, y) {
+                            continue;
+                        }
+                        if let Some(i) = sim.spawn_for(player, creep, sim::fixed::from_int(x), sim::fixed::from_int(y)) {
+                            return Some((i, x));
+                        }
+                    }
+                }
+                None
+            };
+            let (a, ax) = spawn_row(0, (40..=119).collect(), &mut sim).expect("creep a");
+            let (b, _) = spawn_row(1, (ax + 20..=119).rev().collect(), &mut sim).expect("creep b");
             (a, b)
         };
         host.state().set("attacker", a as i64).expect("state");
@@ -2283,7 +2308,20 @@ mod tests {
             {
                 let mut sim = host.sim();
                 let creep = sim.catalog().unit_index("creep").expect("creep") as u32;
-                sim.spawn_for(2, creep, sim::fixed::from_int(60), sim::fixed::from_int(34)).expect("scout");
+                // A walkable tile beside the target (the scout must stand within sight of it).
+                let (tx, ty) = sim.position_fixed(b);
+                let (tx, ty) = (sim::fixed::to_int(tx), sim::fixed::to_int(ty));
+                [(3, 0), (-3, 0), (0, 3), (0, -3), (4, 4), (-4, -4), (4, -4), (-4, 4)]
+                    .iter()
+                    .find_map(|&(dx, dy)| {
+                        let (x, y) = (tx + dx, ty + dy);
+                        if sim.grid().walkable(x, y) {
+                            sim.spawn_for(2, creep, sim::fixed::from_int(x), sim::fixed::from_int(y))
+                        } else {
+                            None
+                        }
+                    })
+                    .expect("scout");
             }
             host.load_source("vision", &format!("game.alliance(0, 2, \"{kind}\")\nfunction on_tick(state) end\n")).expect("mod loads");
             for _ in 0..40 {

@@ -11,3 +11,8 @@ path = "src/main.rs"
 [dependencies]
 sim = { path = "../sim" }
 mod-host = { path = "../mod-host" }
+
+[features]
+default = ["server-tests"]
+# Tests that load game data through the server's mod loader. The web crate includes replay.rs without this feature.
+server-tests = []

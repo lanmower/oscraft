@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 21;
+pub const VERSION: u16 = 22;
 pub const PLCE_FLAG_START: u32 = 1;
 /// A start record that names its team: the team index sits in bits 8..16 of the flags.
 pub const PLCE_FLAG_TEAM: u32 = 2;
@@ -136,7 +136,7 @@ pub const UPGR_RECORD: usize = 24;
 pub const REGN_RECORD: usize = 12;
 pub const LIMT_RECORD: usize = 4;
 pub const ECON_RECORD: usize = 32;
-pub const UEXT_RECORD: usize = 44;
+pub const UEXT_RECORD: usize = 48;
 pub const ACHN_RECORD: usize = 8;
 pub const RSCH_RECORD: usize = 32;
 pub const PREQ_RECORD: usize = 8;
