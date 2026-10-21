@@ -15,7 +15,7 @@ use piccolo::{
     Callback, CallbackReturn, Closure, Context, Error, Executor, IntoValue, Lua, StashedExecutor, StashedFunction,
     Stack, StashedTable, Table, Value, Variadic,
 };
-use sim::{AbilitySpec, Catalog, LoadError, Payout, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, NO_COMPONENT, TICKS_PER_SECOND};
+use sim::{controller_code, AbilitySpec, Catalog, LoadError, Payout, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, TICKS_PER_SECOND};
 
 use crate::shared::{self, amount_arg, fixed, player_arg, PRELUDE_SRC};
 use crate::{EVENTS, MAX_UNITS};
@@ -46,6 +46,12 @@ pub enum Cmd {
     SetClassOverride { unit: usize, class: Option<u8> },
     SetHoldOverride { unit: usize, hold: Option<bool> },
     SkillUp { unit: usize, slot: usize },
+    OrderHandle { handle: u32, x: i32, y: i32 },
+    DamageHandle { caster: u32, target: u32, dmg: i32 },
+    BuffHandle { handle: u32, kind: i32, ticks: i32 },
+    GrantUpgrade { player: u8, name: String },
+    SetAlliance { a: u8, b: u8, kind: usize },
+    AddPlayer { player: u8, controller: u8 },
     RemovePlayer { player: u8 },
     // A spawn-group unit's respawn timer: Some(s) respawns it s seconds from now, None leaves it dead.
     SetRespawn { unit: usize, delay_s: Option<u32> },
@@ -349,6 +355,11 @@ fn known_unit(sim: &Sim, i: i64) -> Result<usize, String> {
 
 // The largest respawn delay a mod can ask for, in seconds (mlua's MAX_RESPAWN_S).
 const MAX_RESPAWN_S: i64 = 86_400;
+
+// A handle argument: a non-negative u32 (the server room's handle map resolves it).
+fn handle_arg<'gc>(ctx: Context<'gc>, h: i64) -> Result<u32, Error<'gc>> {
+    u32::try_from(h).map_err(|_| fail(ctx, format!("invalid_handle: {h}")))
+}
 
 // A Lua sequence of `items`, indexed from 1.
 fn list_of<'gc>(ctx: Context<'gc>, items: impl Iterator<Item = i64>) -> Result<Table<'gc>, Error<'gc>> {
@@ -802,6 +813,95 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
     native!(ctx, game, "remove_player", [sh], |c, s| {
         let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
         sh.borrow_mut().cmds.push(Cmd::RemovePlayer { player: p });
+        Ok(CallbackReturn::Return)
+    });
+    // Handles resolve in the server room, which holds the handle map; the local world has none, so these
+    // are queued and applied as no-ops, as the mlua host does.
+    native!(ctx, game, "cmd_order_handle", [sh], |c, s| {
+        let handle = handle_arg(c, a(c, &s, 0)?)?;
+        let (x, y) = (fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        sh.borrow_mut().cmds.push(Cmd::OrderHandle { handle, x, y });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_damage_handle", [sh], |c, s| {
+        let caster = handle_arg(c, a(c, &s, 0)?)?;
+        let target = handle_arg(c, a(c, &s, 1)?)?;
+        let dmg = a(c, &s, 2)?;
+        let dmg = i32::try_from(dmg).map_err(|_| fail(c, format!("invalid_damage: {dmg} out of i32 range")))?;
+        sh.borrow_mut().cmds.push(Cmd::DamageHandle { caster, target, dmg });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_buff_handle", [sh], |c, s| {
+        let handle = handle_arg(c, a(c, &s, 0)?)?;
+        let kind = a(c, &s, 1)?;
+        let kind = i32::try_from(kind).map_err(|_| fail(c, format!("invalid_buff: kind {kind} out of i32 range")))?;
+        let ticks = a(c, &s, 2)?;
+        let ticks = i32::try_from(ticks).ok().filter(|&t| t > 0).ok_or_else(|| fail(c, format!("invalid_buff: ticks {ticks} must be a positive i32")))?;
+        sh.borrow_mut().cmds.push(Cmd::BuffHandle { handle, kind, ticks });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_grant_upgrade", [sh], |c, s| {
+        let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let name = text(c, s.get(1), 1)?;
+        let mut sh = sh.borrow_mut();
+        if sh.sim.research_index(&name).is_none() {
+            return Err(fail(c, format!("unknown_upgrade: {name}")));
+        }
+        sh.cmds.push(Cmd::GrantUpgrade { player: p, name });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "timed_boss", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let times = [a(c, &s, 1)?, a(c, &s, 2)?, a(c, &s, 3)?];
+        let mut v = [0u32; 3];
+        for (i, t) in times.iter().enumerate() {
+            v[i] = u32::try_from(*t).map_err(|_| fail(c, "invalid_timed_boss: times must not be negative".into()))?;
+        }
+        sh.borrow_mut()
+            .sim
+            .set_timed_boss(&name, v[0], v[1], v[2])
+            .map_err(|why| fail(c, format!("invalid_timed_boss: {name}: {why}")))?;
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "camp_rule", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let value = a(c, &s, 1)?;
+        let value = u32::try_from(value).map_err(|_| fail(c, "invalid_camp_rule: value must not be negative".into()))?;
+        sh.borrow_mut().sim.set_camp_rule(&name, value).map_err(|why| fail(c, format!("invalid_camp_rule: {name}: {why}")))?;
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "acquire", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let value = a(c, &s, 1)?;
+        let game_units = u32::try_from(value).map_err(|_| fail(c, "invalid_unit: acquire must not be negative".into()))?;
+        sh.borrow_mut().sim.set_acquire(&name, game_units).map_err(|why| fail(c, format!("invalid_unit: {name}: {why}")))?;
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "alliance", [sh], |c, s| {
+        let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let q = player_arg(a(c, &s, 1)?).map_err(|m| fail(c, m))?;
+        match s.get(2) {
+            Value::Nil => {
+                let rel = sh.borrow().sim.relation(p, q).map(str::to_owned);
+                s.replace(c, rel.map_or(Value::Nil, |r| r.into_value(c)));
+            }
+            kind_value => {
+                let kind = text(c, kind_value, 2)?;
+                let kind = MOD_ALLIANCES.iter().position(|k| *k == kind.as_str()).ok_or_else(|| {
+                    fail(c, format!("invalid_alliance: {kind} is not {}", MOD_ALLIANCES.join(", ")))
+                })?;
+                sh.borrow_mut().cmds.push(Cmd::SetAlliance { a: p, b: q, kind });
+            }
+        }
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "add_player", [sh], |c, s| {
+        let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let controller = text(c, s.get(1), 1)?;
+        let controller = controller_code(&controller).ok_or_else(|| {
+            fail(c, format!("invalid_controller: {controller} is not {}", MOD_CONTROLLERS.join(", ")))
+        })?;
+        sh.borrow_mut().cmds.push(Cmd::AddPlayer { player: p, controller });
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "cmd_damage", [sh], |c, s| {
@@ -1482,7 +1582,6 @@ impl ModHost {
             victim_player: p.victim_player,
             killer: p.killer,
             killer_player: p.killer_player,
-            killer_hero: p.killer_hero,
             bounty: p.bounty,
         };
         let before = self.sh.borrow().local.len();
@@ -1497,12 +1596,11 @@ impl ModHost {
             victim_player: sh.sim.player(unit),
             killer: killer.map(|k| k as u32),
             killer_player: killer.map(|k| sh.sim.player(k)),
-            killer_hero: killer.is_some_and(|k| sh.sim.is_hero(k)),
             bounty: sh.sim.unit_bounty(unit),
         }
     }
 
-    // on_died(unit, killer, killer_player, bounty, victim_player, killer_hero), the handler then the triggers.
+    // on_died(unit, killer, killer_player, bounty, victim_player), the handler then the triggers.
     // The commands the handlers queue here are the mod's own, so they move to `local` and apply before
     // the systems' commands, as the mlua host orders them.
     fn died(&mut self, d: &Death) -> Result<(), String> {
@@ -1516,7 +1614,6 @@ impl ModHost {
                 opt(d.killer_player.map(i64::from)),
                 Arg::Int(i64::from(d.bounty)),
                 Arg::Int(i64::from(d.victim_player)),
-                Arg::Bool(d.killer_hero),
             ],
         )?;
         if let Some(f) = self.hooks.as_ref().and_then(|h| h.on_unit_died.clone()) {
@@ -1755,6 +1852,18 @@ impl ModHost {
                 Cmd::RemovePlayer { player } => {
                     let _ = sim.remove_player(player);
                 }
+                Cmd::OrderHandle { .. } | Cmd::DamageHandle { .. } | Cmd::BuffHandle { .. } => {}
+                Cmd::GrantUpgrade { player, name } => {
+                    if let Some(r) = sim.research_index(&name) {
+                        sim.grant_research(player, r);
+                    }
+                }
+                Cmd::SetAlliance { a, b, kind } => {
+                    let _ = sim.set_relation(a, b, kind);
+                }
+                Cmd::AddPlayer { player, controller } => {
+                    let _ = sim.add_player(player, controller);
+                }
                 Cmd::SetRespawn { unit, delay_s } => {
                     let _ = sim.set_respawn(unit, delay_s);
                 }
@@ -1867,6 +1976,5 @@ struct Death {
     victim_player: u8,
     killer: Option<u32>,
     killer_player: Option<u8>,
-    killer_hero: bool,
     bounty: i32,
 }
