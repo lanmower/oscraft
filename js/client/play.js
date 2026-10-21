@@ -2424,7 +2424,9 @@ let packWatchBusy = false;
 function watchedPackPaths() {
   const m = manifest;
   const list = [...modulePaths(m), ...(m.data ?? []), ...(m.tables ?? []), m.rules, m.ui, "manifest.json"];
-  return [...new Set(list.filter((p) => typeof p === "string" && PACK_WATCH_TEXT.test(p)))];
+  // The map image is binary but watched too: its change is a data swap (hot-sync rebuilds it from the data files).
+  const text = list.filter((p) => typeof p === "string" && PACK_WATCH_TEXT.test(p));
+  return [...new Set([...text, m.image].filter((p) => typeof p === "string"))];
 }
 
 async function checkPackWatch() {
