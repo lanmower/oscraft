@@ -2430,8 +2430,11 @@ jobs:
             if (dTo(amEnd, point) <= 1) break;
             // A hero that has not left its start after 10 s is given the accepted attack-move once more: the order can be
             // accepted by the input layer while the sim has not yet started the walk (slow CI ticks).
+            // Still at the start after 10 s: the point may be unwalkable from here, so the order goes to the next candidate point.
             if (i === 20 && dTo(amEnd, amStart) < 0.01) {
-              const reAt = await screenAt(point.x, point.z);
+              const next = amTries[1] ?? amTries[0];
+              Object.assign(point, next);
+              const reAt = await screenAt(next.x, next.z);
               await page.keyboard.press("a");
               await page.mouse.click(reAt.x, reAt.y, { button: "left" });
             }
