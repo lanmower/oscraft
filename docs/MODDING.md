@@ -1,8 +1,8 @@
 # Modding: the Lua mod API
 
 A mod is one Lua chunk run by the mod host (`rust/crates/mod-host`). It reacts to events,
-registers triggers, and queues commands on the game. Mods use only the names below. The native
-host runs them on mlua (Lua 5.4); the wasip3 guest runs the same event names on piccolo.
+registers triggers, and queues commands on the game. Mods use only the names below. The browser
+host runs them on piccolo, the only Lua runtime.
 
 Example mods: `mods/creep_gold.lua`, `mods/tower_buff.lua`, `mods/td_waves.lua` (timer, region, variables,
 score, defeat), `mods/custom_spell.lua` (ability, gold, victory), `mods/custom_unit.lua` (unit),
@@ -285,12 +285,11 @@ The `gold_by_mod` flag. It is a sim field (default off, saved and hashed) that m
 `pay_bounty` (`rust/crates/sim/src/combat.rs`) return before it pays, so with the flag on the mod is the only payer.
 A mod declares the top-level global `GOLD_BY_MOD = true`. Live rooms do not apply it: the room keeps the Rust
 payout, and the replay header carries `gold_by_mod 1` only when a room sets the flag itself. The Lua payout only
-sees kills in the mod's own world (`ModHost`), which the room does not feed; see [MOD_PARITY.md](MOD_PARITY.md).
+sees kills in the mod's own world (`ModHost`), which the room does not feed.
 
 Known gaps:
 
 - A denied kill (an allied unit landed the blow) pays here. The Rust path skips it, and the mod cannot read denial.
-  See [MOD_PARITY.md](MOD_PARITY.md).
 
 ## Gap list against the map-editor modding of earlier RTS and arena games
 
@@ -328,12 +327,10 @@ Status: done (in the API), partial (a piece exists), missing (not in the API).
 
 ## Backends
 
-- mlua (native host): every call above, the trigger registry, and the query functions.
-- piccolo (wasip3 guest): the event names (`EVENTS` in `rust/crates/mod-host/src/lib.rs`, with the
-  killer arguments of `on_died`), triggers, the `game` command table, `game.time`,
-  `game.unit_cooldown`, `game.unit_abilities` and `game.unit_items`. It does not define content:
-  `game.unit`, `game.item`, `game.upgrade` and `game.ability` run on the native host only, and the
-  server replays the definitions into the room.
+- piccolo (browser host, `rust/crates/mod-host`): the event names (`EVENTS` in `rust/crates/mod-host/src/lib.rs`,
+  with the killer arguments of `on_died`), triggers, the `game` command table, `game.time`,
+  `game.unit_cooldown`, `game.unit_abilities` and `game.unit_items`, and the `game.unit`, `game.item`,
+  `game.upgrade` and `game.ability` definitions.
 
 ## Limits
 

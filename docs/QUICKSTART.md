@@ -1,6 +1,6 @@
 # Quickstart
 
-All commands run from `rust/` unless noted. Rust stable and, for the browser build, `wasm-pack` are required.
+All commands run from `rust/` unless noted. Rust stable and `wasm-pack` are required.
 
 ## Build
 
@@ -17,13 +17,6 @@ cargo run -p osdt-data -- ../scenarios/moba /tmp/moba.osdt
 `osdt-data` evaluates every `*.osd` file directly in the directory and writes one catalog image. A bad definition fails with the file and line.
 
 ## Serve and play
-
-Native server:
-
-```
-cargo run -p server -- --data /tmp/moba.osdt --room ci --addr 127.0.0.1:8080
-curl 'http://127.0.0.1:8080/state?map=ci'
-```
 
 Browser game (the same path the Pages workflow uses):
 
@@ -42,7 +35,7 @@ A mod is one Lua chunk defining `on_tick(state)`; see [MODDING.md](MODDING.md) a
 cargo run -p mod-host --bin mod_check -- ../scenarios/moba ../mods/creep_gold.lua 200
 ```
 
-Run it on a live server with `--mod ../mods/creep_gold.lua --data /tmp/moba.osdt`. A save of the mod file hot-reloads between ticks; a failed reload keeps the old functions. `oscraft-lsp` gives editors diagnostics for `.osd` and `.lua` files over stdio.
+`oscraft-lsp` gives editors diagnostics for `.osd` and `.lua` files over stdio.
 
 ## Edit a map
 

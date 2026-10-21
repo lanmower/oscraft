@@ -3,7 +3,8 @@
 --
 -- Backdoor: a structure with no hostile plain unit (a living non-structure, non-hero unit of an enemy player)
 -- within RADIUS for ACTIVATION_S seconds takes REDUCTION_PCT less damage and regenerates REGEN_PER_S life a
--- second. Values are from scenarios/moba/hero_rules.txt (backdoor_*).
+-- second. Values are literal constants below (radius from npc_abilities.txt scaled by tower range, reduction from the
+-- patch 7.29 notes, regen from npc_abilities.txt; the radius scale is UNVERIFIED).
 --
 -- Glyph: the cast of glyph_of_fortification (on_cast) covers, for GLYPH_TICKS, every unit of the caster's team
 -- whose filter holds all GLYPH_NEED bits and none of the GLYPH_SKIP bits: it takes no damage. The team then waits

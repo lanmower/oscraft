@@ -18,7 +18,7 @@ Serves `.dev-site` on `http://localhost:8790` (127.0.0.1 only, no-store headers,
 
 ## Crawl the lobby (engine=cdp)
 
-With the server running, dispatch a `crawl` body (the cdp engine drives a headful Chrome, one window per project root):
+With `scripts/dev/serve.mjs` running, dispatch a `crawl` body (the cdp engine drives a headful Chrome, one window per project root):
 
     engine=cdp
     session=dev

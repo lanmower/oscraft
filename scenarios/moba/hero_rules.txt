@@ -12,7 +12,7 @@ buyback_per_level=0
 buyback_cooldown_s=480
 passive_gold_per_s=1
 team_share_pct=20
-# Mechanics read by sim/src/aggro.rs. Verified from SteamDatabase tracking repo
+# Mechanics read by sim/src/aggro.rs (backdoor values live in scenarios/moba/protection.lua). Verified from SteamDatabase tracking repo
 # @282fad29f0f74504fad465c52d197fb61f4d612b source/scripts/npc/npc_abilities.txt backdoor_protection:
 # radius 900, activation_time 15, regen_rate 90. The radius is 900 reference units scaled by the tower range
 # (6000 milli over 700 units), so 7700: the scale is UNVERIFIED. backdoor_reduction_pct 50 is from the patch 7.29 notes. aggro_priority, aggro_hold_s are UNVERIFIED (the dump has no targeting or damage-cut keys).
@@ -20,10 +20,6 @@ aggro_priority=1
 # reference ends a channel or a cast point by stun, silence or hex, not by damage taken.
 channel_damage_interrupt=0
 aggro_hold_s=3
-backdoor_reduction_pct=50
-backdoor_radius_milli=14062
-backdoor_activation_s=15
-backdoor_regen_per_s=90
 # Engine balance values moved out of sim/src (same numbers, read by hero.rs set_from_text; every key below is
 # required, so a file without one is refused). Kill gold: last hit on a hero is base + per_level * victim level
 # (patch 7.31 notes). Assist gold: assist_gold_base + (assist_gold_flat + net worth * assist_net_worth_per_mille / 1000) / helpers
