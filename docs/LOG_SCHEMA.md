@@ -27,7 +27,7 @@ Columns: `Event` is the `ev=` name, `Variant` the `Ev` variant, `Emitted from` t
 | `mod_reload_failed` | ModReloadFailed | mods.rs | error | required |
 | `mod_image_reloaded` | ModImageReloaded | mods.rs | bytes | optional |
 | `mod_image_reload_failed` | ModImageReloadFailed | mods.rs | error | optional |
-| `data_reloaded` | DataReloaded | room.rs | room, tick, units, carried, refused | optional |
+| `data_reloaded` | DataReloaded | room.rs | room, tick, units, live, carried, refused | optional |
 | `data_reload_failed` | DataReloadFailed | mods.rs | room, error | optional |
 | `mod_error` | ModError | mods.rs | tick, error | required |
 | `mod_tick` | ModTick | mods.rs | tick, version, probe | required |

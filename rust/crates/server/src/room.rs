@@ -372,6 +372,7 @@ impl Room {
         if let Some((_, mut sim)) = due {
             // Rebuild the match on the new data by replaying the recording onto the fresh sim, so gold, kills, items
             // and camp progress carry over. Falls back to carrying the live units when the replay cannot run.
+            let live = c.sim.alive_count();
             let inner = &mut *c;
             let rebuilt = rebuild_by_replay(&mut inner.rec, &inner.sim, &mut sim);
             if rebuilt.is_ok() {
@@ -395,6 +396,7 @@ impl Room {
                 room = self.name,
                 tick = c.tick,
                 units = c.sim.catalog().units.len(),
+                live = live,
                 carried = carried,
                 refused = refused
             );

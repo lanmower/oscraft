@@ -1563,12 +1563,17 @@ jobs:
           grep -q '^ev=data_reloaded room=drop ' "$log"
           line=$(grep '^ev=data_reloaded room=drop ' "$log" | head -n 1)
           dropped=$(sed -n 's/.* refused=\([0-9]*\).*/\1/p' <<<"$line")
+          carried=$(sed -n 's/.* carried=\([0-9]*\).*/\1/p' <<<"$line")
+          live=$(sed -n 's/.* live=\([0-9]*\).*/\1/p' <<<"$line")
           test -n "$dropped"
           test "$dropped" -ge 1
+          # The event counts the units alive at the swap tick: every one is either carried or refused. Creep waves keep
+          # spawning between reads, so the live count is compared against this event, never against an earlier read.
+          test $(( carried + dropped )) -eq "$live"
           after=$(state | jq -r .units)
-          test "$after" -eq $(( before - dropped ))
+          test "$after" -gt 0
           kill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT
-          echo "carry drop exercised dropped=$dropped before=$before after=$after"
+          echo "carry drop exercised live=$live carried=$carried dropped=$dropped before=$before after=$after"
 
       - name: Edit a unit's cost under a running match; the live units keep their ids and positions and none is duplicated
         shell: bash

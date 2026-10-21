@@ -31,6 +31,8 @@ const samples = [
   { type: FRAME.ATTACK_MOVE, unitId: 4, x: -3, y: 1310720 },
   { type: FRAME.USE_ITEM, unitId: 4, slot: 0, target: -1, x: 0, y: 0 },
   { type: FRAME.USE_ITEM, unitId: 0xffffffff, slot: 5, target: 0x7fffffff, x: -0x80000000, y: 0x7fffffff },
+  { type: FRAME.SWAP, tick: 0, file: "" },
+  { type: FRAME.SWAP, tick: 0xffffffff, file: "moba-units.lua" },
   { type: FRAME.JOIN, lastTick: 0 },
   { type: FRAME.JOIN, lastTick: 0xffffffff },
   { type: FRAME.ROSTER, you: 255, team: 255, players: [] },
