@@ -119,6 +119,9 @@ let attacks = 0;
 let localGame = null;
 let hud = null;
 let hud5 = null;
+// The hero UI's shared inputs, and the inventory panel (kept so a hot reload can swap it in heroPanels).
+let heroUi = null;
+let inventoryPanel = null;
 let fogview = null;
 const heroPanels = [];
 let fx = null;
@@ -234,6 +237,8 @@ async function libraryClips(name, nodes) {
   const [map, library] = await Promise.all([fetchJson(`anim/maps/${name}.json`), humanoidLibrary()]);
   return retargetLibrary(library, map, nodes);
 }
+// Rig names that take their clips from the library (see parsedModel): the ones a hot reload re-retargets.
+const libraryRigs = new Set();
 
 // Each model name is fetched and parsed once: unit types and doodad kinds that name the same GLB share one parse,
 // and every fit reads from it. A failed load is dropped from the cache so a later call may retry it.
@@ -248,7 +253,10 @@ function parsedModel(name) {
       const bytes = await resolveGlbExtensions(await res.arrayBuffer());
       const glb = parseGlb(bytes);
       const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
-      if (animations && animations.clips.length === 0) animations.clips = await libraryClips(name, animations.nodes);
+      if (animations && animations.clips.length === 0) {
+        animations.clips = await libraryClips(name, animations.nodes);
+        libraryRigs.add(name);
+      }
       return { url: url.href, glb, animations };
     })();
     parsedModels.set(name, entry);
@@ -1378,10 +1386,8 @@ function doodadVariant(base, kind, v) {
 async function build3d(gl, game) {
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
-  terrainMesh = { positions: terrain.positions, normals: terrain.normals, uvs: planarGroundUvs(terrain.positions), indices: terrain.indices, color: MAP_COLOR };
-  // The river's surface: flat quads over the water cells, drawn by the splat pass with the procedural water shader.
-  const water = waterSurface(mapBytes);
-  waterMesh = water.indices.length ? { ...water, color: MAP_COLOR } : null;
+  terrainMesh = terrainMeshOf(terrain);
+  waterMesh = waterMeshOf(mapBytes);
   // Splat layers, doodad and unit models are independent downloads: they start together, so the wait is the slowest
   // chain rather than the sum of the stages.
   const placements = readDoodads(mapBytes);
@@ -1431,11 +1437,89 @@ async function buildSplat(gl) {
     }));
     return { albedo: uploadTexture(gl, albedo), height: uploadTexture(gl, height) };
   }));
-  const control = controlMap(mapBytes);
+  const maps = splatMaps(mapBytes);
   return {
-    control, layers, width: control.width, height: control.height, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, tints: SPLAT_TINTS,
-    waterMap: waterMap(mapBytes), waterTint: SPLAT_WATER_TINT, gpu: null,
+    ...maps, layers, uvScale: GROUND_UV_PER_CELL, band: SPLAT_BAND, shade: SPLAT_SHADE, tints: SPLAT_TINTS,
+    waterTint: SPLAT_WATER_TINT, gpu: null,
   };
+}
+
+// The terrain mesh and the water quads, as the splat pass draws them. Shared by the first build and a hot reload.
+function terrainMeshOf(terrain) {
+  return { positions: terrain.positions, normals: terrain.normals, uvs: planarGroundUvs(terrain.positions), indices: terrain.indices, color: MAP_COLOR };
+}
+function waterMeshOf(bytes, surface = waterSurface) {
+  const water = surface(bytes);
+  return water.indices.length ? { ...water, color: MAP_COLOR } : null;
+}
+// The splat's control map and water map (the textures the splat pass samples), from the map bytes. A hot reload passes
+// the fresh tiles module as `tiles`.
+function splatMaps(bytes, tiles = { controlMap, waterMap }) {
+  const control = tiles.controlMap(bytes);
+  return { control, width: control.width, height: control.height, waterMap: tiles.waterMap(bytes) };
+}
+
+// Hot reload (hmr.js dispatches oscraft:hmr with the module url and its hook's fresh value). Each branch rebuilds only
+// the GPU data that module feeds; with no hook firing, nothing runs and the default path is unchanged.
+window.addEventListener("oscraft:hmr", (e) => {
+  const { url, value } = e.detail || {};
+  if (!value) return;
+  const file = url.slice(url.lastIndexOf("/") + 1);
+  hmrApply(file, url, value).catch((err) => console.error(`[hmr] ${file}: rebuild failed: ${err.message}`));
+});
+
+async function hmrApply(file, url, value) {
+  if (file === "terrain.js") return hmrTerrain(value);
+  if (file === "tiles.js") return hmrTiles(url);
+  if (file === "anim.js") return hmrAnim();
+  if (file === "hud.js") {
+    hud = value;
+    if (heroUi) heroUi.input = hud.input;
+    return;
+  }
+  if (file === "hud5.js") {
+    hud5 = value;
+    return;
+  }
+  if (file === "ui_inventory.js") {
+    const i = heroPanels.indexOf(inventoryPanel);
+    if (i >= 0) heroPanels[i] = value;
+    inventoryPanel = value;
+  }
+}
+
+// terrain.js: the value is the rebuilt terrain (map units). The mesh and the splat control map are rebuilt from it.
+function hmrTerrain(raw) {
+  const terrain = terrainInTiles(raw);
+  terrainTiles = terrain;
+  terrainMesh = terrainMeshOf(terrain);
+  if (splat) Object.assign(splat, splatMaps(mapBytes), { gpu: null });
+}
+
+// tiles.js: the bake's value is not held by play.js (no tile batches here); the splat maps and the water surface are
+// rebuilt from the fresh module, which the hook has already re-evaluated under a new query.
+async function hmrTiles(url) {
+  const fresh = await import(`${url}?v=${Date.now()}`);
+  waterMesh = waterMeshOf(mapBytes, fresh.waterSurface);
+  if (splat) Object.assign(splat, splatMaps(mapBytes, fresh), { gpu: null });
+}
+
+// anim.js: re-runs the retarget for every library-clipped rig, then points the unit meshes at the new clips and drops
+// the players that read the old ones (they are recreated on the next frame).
+async function hmrAnim() {
+  if (!localGame) return;
+  const clipsByName = new Map();
+  for (const name of libraryRigs) {
+    const parsed = await parsedModels.get(name);
+    parsed.animations.clips = await libraryClips(name, parsed.animations.nodes);
+    clipsByName.set(name, parsed.animations.clips);
+  }
+  const names = localGame.unit_model_names();
+  unitMeshes.forEach((mesh, type) => {
+    const clips = clipsByName.get(names[type]);
+    if (mesh && mesh.animation && clips) mesh.animation.clips = clips;
+  });
+  animators.clear();
 }
 
 const WORLD_STALL_MS = 15000;
@@ -1485,8 +1569,11 @@ async function main() {
     baseUrl: eventsBase === null ? undefined : eventsBase.replace(/\/$/, ""),
   });
   window.__modUi = modUi;
-  const heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId, input: hud ? hud.input : null };
-  if (hasHeroApi(localGame)) heroPanels.push(createShop(heroUi), createSkills(heroUi), createInventory(heroUi));
+  heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId, input: hud ? hud.input : null };
+  if (hasHeroApi(localGame)) {
+    inventoryPanel = createInventory(heroUi);
+    heroPanels.push(createShop(heroUi), createSkills(heroUi), inventoryPanel);
+  }
   const heroNames = liveHeroRoster(localGame);
   createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
   fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });

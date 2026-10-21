@@ -419,6 +419,37 @@ function keptDirtCells(grid, kinds) {
   return keep;
 }
 
+// Display edge fade: the splat's rock and water weights are averaged over the (2 * RAMP_SPAN + 1)^2 cells around each cell
+// and eased with a smoothstep, so every cliff and water edge spans several cells. The sim reads the grid, never these.
+const RAMP_SPAN = 2;
+const WATER_SHARE_LO = 0.25;
+function easeStep(t) {
+  const c = t < 0 ? 0 : t > 1 ? 1 : t;
+  return c * c * (3 - 2 * c);
+}
+// Mean of a per-cell value over the box of RAMP_SPAN cells around each cell (clipped at the map edge).
+function boxMean(grid, values) {
+  const { width: w, height: h } = grid;
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let sum = 0;
+      let n = 0;
+      for (let dy = -RAMP_SPAN; dy <= RAMP_SPAN; dy++) {
+        for (let dx = -RAMP_SPAN; dx <= RAMP_SPAN; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          sum += values[ny * w + nx];
+          n++;
+        }
+      }
+      out[y * w + x] = sum / n;
+    }
+  }
+  return out;
+}
+
 // Control map for a grid: { data: Uint8Array RGBA per cell, width, height }, each cell's channel at full weight.
 export function controlMap(bytes) {
   const grid = readGrid(bytes);
@@ -433,8 +464,20 @@ export function controlMap(bytes) {
     const ch = SPLAT_CHANNEL[kind];
     if (ch !== undefined) data[i * 4 + ch] = 255;
   }
-  // A ramp's lower cell is half its ground layer and half rock, so a ramp reads apart from the flat ground of its kind.
+  // Rock (cliff) weight fades over RAMP_SPAN cells: the share of wall cells around each cell, eased, moves weight from the
+  // ground channels to rock, so a cliff meets its ground along a gradual edge instead of a line. Display only.
   const rock = SPLAT_LAYERS.indexOf("rock");
+  const walls = new Float32Array(width * height);
+  for (let i = 0; i < walls.length; i++) if (isCliffLevelCell(grid, i)) walls[i] = 1;
+  const rockShare = boxMean(grid, walls);
+  for (let i = 0; i < walls.length; i++) {
+    const r = easeStep(2 * rockShare[i]);
+    if (r <= 0) continue;
+    const o = i * 4;
+    for (let c = 0; c < rock; c++) data[o + c] = Math.round(data[o + c] * (1 - r));
+    data[o + rock] = Math.round(255 * r + data[o + rock] * (1 - r));
+  }
+  // A ramp's lower cell is half its ground layer and half rock, so a ramp reads apart from the flat ground of its kind.
   for (const i of rampLowCells(grid)) {
     const ch = SPLAT_CHANNEL[splatKind(grid, i)];
     if (ch === undefined || ch >= rock) continue;
@@ -477,24 +520,18 @@ export function waterSurface(bytes) {
   }
   return { positions: new Float32Array(positions), normals: new Float32Array(normals), uvs: new Float32Array(uvs), indices: new Uint32Array(indices) };
 }
-// Water map for a grid: { data: Uint8Array one byte per cell, width, height }, 255 on water cells only. A water cell is a
-// blocked cell painted with water tile id 4 in the map (scenarios/moba/map.osd); nothing else takes water, so nearest
-// sampling keeps land and cliff cells dry.
+// Water map for a grid: { data: Uint8Array one byte per cell, width, height }. A water cell is a blocked cell painted with
+// water tile id 4 in the map (scenarios/moba/map.osd). The weight is the water share of the cells around each cell, eased,
+// so the river fades into its banks over RAMP_SPAN cells: deep water is 255, the shore ring is partly wet, and land
+// beyond the span is dry. The shader samples this map as a continuous weight.
 export function waterMap(bytes) {
   const grid = readGrid(bytes);
   const { width, height } = grid;
+  const wet = new Float32Array(width * height);
+  for (let i = 0; i < wet.length; i++) if (tileKind(grid, i) === "water") wet[i] = 1;
+  const share = boxMean(grid, wet);
   const data = new Uint8Array(width * height);
-  const isWater = (x, y) => x >= 0 && y >= 0 && x < width && y < height && tileKind(grid, y * width + x) === "water";
-  // The outer ring of a river is painted as water tiles too: only a water cell whose eight neighbours are water is wet
-  // (deep water). The shore ring stays dry, so its ground shows instead of the water.
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (!isWater(x, y)) continue;
-      let interior = true;
-      for (let dy = -1; dy <= 1 && interior; dy++) for (let dx = -1; dx <= 1; dx++) if (!isWater(x + dx, y + dy)) { interior = false; break; }
-      if (interior) data[y * width + x] = 255;
-    }
-  }
+  for (let i = 0; i < data.length; i++) data[i] = Math.round(255 * easeStep((share[i] - WATER_SHARE_LO) / (1 - WATER_SHARE_LO)));
   return { data, width, height };
 }
 // Rewrites one cell texel to a kind (the creep effect) and returns that texel for a sub-region upload.
