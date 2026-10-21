@@ -369,7 +369,7 @@ void main() {
   vec3 deep = vec3(0.04, 0.22, 0.30) * uWaterTint;
   vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
   // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
-  float alpha = mix(0.08, 0.2, depth);
+  float alpha = mix(0.14, 0.3, depth);
   vec3 water = mix(bed, body, alpha);
   // The sky reflection and the sun glint are the shine of deep water only: they fade out with depth, so the shallow shore
   // tiles stay matte. SPECULAR scales both: at 0.1 the shine is a tenth of its full strength.
