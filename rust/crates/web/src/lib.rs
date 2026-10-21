@@ -407,6 +407,13 @@ impl Game {
             .collect()
     }
 
+    /// UI events the pack queued since the last drain (game.ui_event, camera, message, banner, panel, sound), as a JSON
+    /// array of objects: {"kind": ..., ...}. The page renders them and decides nothing.
+    pub fn drain_ui(&mut self) -> String {
+        let bodies = self.host.take_ui();
+        format!("[{}]", bodies.iter().map(|b| format!("{{{b}}}")).collect::<Vec<_>>().join(","))
+    }
+
     /// Display effects queued by mods since the last drain, as a JSON array of objects with kind, x, y (fixed point),
     /// source, target, team, colour, duration, text, scale, name and value. The page draws them and decides nothing.
     pub fn drain_effects(&mut self) -> String {

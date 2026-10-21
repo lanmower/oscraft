@@ -61,6 +61,10 @@
     "custom": {}
   },
   "doubleTapMs": 350,
+  "dragSlopTiles": 0.25,
+  "pickRadius": 1.2,
+  "formationSpacing": 0.7,
+  "centreSeconds": 0.4,
   "dragSlopPx": 4,
   "teams": [
     0,

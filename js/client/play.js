@@ -193,11 +193,83 @@ function logModError(text) {
   if (text) console.error(`[mods] ${text}`);
 }
 
-// A pointer event reaches the pack's on_pointer as ground coordinates. Joined clients do not run the local sim.
+// Input goes to the pack. The page that runs the sim calls it directly; a joined page sends the same event to the host
+// as an ACTION frame, and the host hands it to the pack with the sender's seat (applyPeerAction).
+function sendInput(name, args) {
+  if (netState) {
+    if (session) session.broadcast(encodeFrame({ type: FRAME.ACTION, name, body: JSON.stringify(args) }));
+    return;
+  }
+  if (localGame) logModError(localGame.dispatch_action(name, JSON.stringify(args)));
+}
+
+// A ground event: the local sim's pointer export, or the pack's pointer action for a joined seat.
 function forwardPointer(kind, e) {
-  if (!localGame || netState || !renderer3d) return;
+  if (!renderer3d) return;
   const at = screenToWorld(e.clientX, e.clientY);
-  if (at) logModError(localGame.pointer(kind, at.x, at.z, e.button));
+  if (!at) return;
+  if (netState) sendInput("pointer", { kind, x: at.x, y: at.z, button: e.button });
+  else if (localGame) logModError(localGame.pointer(kind, at.x, at.z, e.button));
+}
+
+// A key event: the page names the key (lowercase, "space" for the bar), the modifiers and the ground under the pointer.
+function forwardKey(phase, e) {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+  const at = pointer && renderer3d ? screenToWorld(pointer.x, pointer.y) : null;
+  sendInput("key", {
+    key: e.key === " " ? "space" : e.key.toLowerCase(),
+    phase,
+    shift: e.shiftKey,
+    ctrl: e.ctrlKey,
+    alt: e.altKey,
+    meta: e.metaKey,
+    world: at ? { x: at.x, z: at.z } : { x: 0, z: 0 },
+  });
+}
+
+// The host hands a joined seat's input to the pack: the seat comes from the session, never from the frame.
+function applyPeerAction(peerPubkey, frame) {
+  const player = seating.seat(peerPubkey).you;
+  if (!localGame || player === SPECTATOR) return;
+  let args = null;
+  try { args = JSON.parse(frame.body); } catch { return; }
+  if (!args || typeof args !== "object") return;
+  args.player = player;
+  logModError(localGame.dispatch_action(frame.name, JSON.stringify(args)));
+}
+
+// UI events from the pack. The host's page renders its own and sends every event to the joined pages; each page
+// shows the events of its own seat (or of every seat, when the event names none).
+function routeUi(ev) {
+  const data = ev.data || {};
+  if (ev.kind === "feedback" || ev.kind === "action" || ev.kind === "view") {
+    if (data.player !== undefined && data.player !== myPlayer) return;
+    if (ev.kind === "feedback") {
+      if (data.kind === "selection") selectedId = data.ids[0] ?? -1;
+      if (data.kind === "refusal") document.body.dataset.lastRefusal = `cast_dropped ${data.reason}`;
+      window.dispatchEvent(new CustomEvent("moba:feedback", { detail: data }));
+    } else if (ev.kind === "action") {
+      window.dispatchEvent(new CustomEvent("moba:action", { detail: data }));
+    } else if (fogview) {
+      fogview.setEnabled(data.fog === true);
+    }
+    return;
+  }
+  if (window.__modUi) window.__modUi.push(ev);
+}
+
+// Each frame: the host takes the pack's UI events, renders them and sends them on; a seat change re-sends the setup.
+let setupSeat = null;
+function pumpUi() {
+  if (!localGame || netState) return;
+  if (setupSeat !== myPlayer) {
+    setupSeat = myPlayer;
+    logModError(localGame.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer })));
+  }
+  for (const ev of JSON.parse(localGame.drain_ui())) {
+    routeUi(ev);
+    if (peers.size > 0) session.broadcast(encodeFrame({ type: FRAME.UI, body: JSON.stringify(ev) }));
+  }
 }
 
 async function loadSim() {
@@ -211,6 +283,8 @@ async function loadSim() {
   // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
   const mods = await Promise.all((manifest.mods ?? []).map(async (name) => ({ name, text: await packText(name) })));
   logModError(game.load_mods(JSON.stringify(mods)));
+  // The pack's controls read the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
+  logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer })));
   // The lobby's picker lists the roster names on every page, so the rules text is read for them.
   const rulesText = manifest.rules ? await packText(manifest.rules) : "";
   heroRuleNames = heroNamesFromRules(rulesText);
@@ -814,7 +888,8 @@ const commands = {
 
 function bindInput() {
   canvas.addEventListener("pointerdown", (e) => {
-    drag = { x: e.clientX, y: e.clientY, moved: false };
+    // A left press is selection (the pack decides), so only the other buttons drag the view.
+    drag = e.button === 0 ? null : { x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
     forwardPointer("down", e);
   });
@@ -837,7 +912,6 @@ function bindInput() {
     drag = null;
     forwardPointer("up", e);
     if (e.button === 2) document.body.dataset.rightUp = `${wasDrag ? "drag" : "click"} hud=${!!hud} local=${myPlayer}`;
-    if (!wasDrag && hud) hud.onPointerUp(e);
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   window.addEventListener("keydown", (e) => {
@@ -847,9 +921,16 @@ function bindInput() {
       e.preventDefault();
       return;
     }
-    if (hud) hud.onKey(e.key, pointer);
+    // Plain keys (letters, digits, space, Tab, Escape) are the pack's; browser shortcuts with Ctrl or Meta keep their default.
+    if (e.key.length === 1 || e.key === " " || e.key === "Tab" || e.key === "Escape") {
+      if (!e.ctrlKey && !e.metaKey) e.preventDefault();
+    }
+    forwardKey("down", e);
   });
-  window.addEventListener("keyup", (e) => keysDown.delete(e.key));
+  window.addEventListener("keyup", (e) => {
+    keysDown.delete(e.key);
+    forwardKey("up", e);
+  });
   window.addEventListener("blur", () => keysDown.clear());
   window.addEventListener("pointermove", (e) => { pointer = { x: e.clientX, y: e.clientY }; });
   document.documentElement.addEventListener("pointerleave", () => { pointer = null; });
@@ -1277,6 +1358,14 @@ session.addEventListener("data", (e) => {
     console.error(`[wire] frame decode failed type=${frameTypeName(bytes[0]) ?? bytes[0]} from ${String(e.detail.peerPubkey).slice(0, 8)}: ${err.message}`);
     return;
   }
+  if (frame.type === FRAME.ACTION) {
+    if (hosting) applyPeerAction(e.detail.peerPubkey, frame);
+    return;
+  }
+  if (frame.type === FRAME.UI) {
+    if (!hosting) routeUi(JSON.parse(frame.body));
+    return;
+  }
   if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM || frame.type === FRAME.ATTACK_MOVE || frame.type === FRAME.CLASS_OVERRIDE || frame.type === FRAME.HOLD_OVERRIDE) {
     if (hosting) applyPeerCommand(e.detail.peerPubkey, frame);
     return;
@@ -1392,6 +1481,7 @@ function publishWitness() {
   document.body.dataset.drawCulled = String(renderer3d ? renderer3d.stats.culled : 0);
   document.body.dataset.drawCpuMs = renderer3d ? renderer3d.stats.frameCpuMs.toFixed(3) : "0";
   publishCommandCounts();
+  pumpUi();
   if (hud) hud.update();
   if (hud5) hud5.update();
   for (const panel of heroPanels) {
@@ -1825,10 +1915,8 @@ async function main() {
     grid: mapGrid,
     units: currentUnits,
     selected: () => selectedId,
-    select: (unitId) => { selectedId = unitId; },
     localPlayer: localPlayerId,
-    commands,
-    pick,
+    send: sendInput,
     toWorld: screenToWorld,
     toScreen: worldToScreen,
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
@@ -1842,6 +1930,7 @@ async function main() {
     localPlayer: localPlayerId,
     defaultDistance: () => cameraDistance,
     baseUrl: eventsBase === null ? undefined : eventsBase.replace(/\/$/, ""),
+    onBind: (bind) => sendInput("bind", bind),
   });
   window.__modUi = modUi;
   heroUi = { game: localGame, selected: () => selectedId, localPlayer: localPlayerId, input: hud ? hud.input : null };

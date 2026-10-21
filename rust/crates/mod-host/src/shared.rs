@@ -83,6 +83,18 @@ pub(crate) fn ui_panel(id: &str, spec: Option<(Option<String>, Option<String>, O
     })
 }
 
+/// A pack-named UI event: `{"kind":<kind>,"data":<payload>}`. The kind is a lowercase name; the payload must be a JSON object.
+pub(crate) fn ui_event(kind: &str, payload: &str) -> Result<String, String> {
+    if kind.is_empty() || kind.len() > 32 || !kind.bytes().all(|b| b.is_ascii_lowercase() || b == b'_') {
+        return Err(format!("invalid_event: kind {kind:?} must be a lowercase name of at most 32 bytes"));
+    }
+    let value: serde_json::Value = serde_json::from_str(payload).map_err(|e| format!("invalid_event: payload is not JSON: {e}"))?;
+    if !value.is_object() {
+        return Err("invalid_event: payload must be a JSON object".into());
+    }
+    Ok(format!(r#""kind":{},"data":{}"#, ui_json_string(kind), value))
+}
+
 pub(crate) fn ui_camera(player: i64, x: f64, y: f64, zoom: Option<f64>, seconds: Option<f64>) -> Result<String, String> {
     let zoom = zoom.unwrap_or(1.0);
     if !(zoom.is_finite() && zoom > 0.0) || !x.is_finite() || !y.is_finite() {

@@ -17,7 +17,7 @@ use piccolo::{
 };
 use sim::{
     controller_code, AbilitySpec, Catalog, FxEvent, ItemSpec, LoadError, Payout, Refusal, ItemRequest, ItemVerdict, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS,
-    MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, TICKS_PER_SECOND, VERDICT_TAKES,
+    MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, ORDER_HOLD, TICKS_PER_SECOND, VERDICT_TAKES,
 };
 
 use crate::shared::{self, amount_arg, fixed, player_arg, PRELUDE_SRC};
@@ -32,6 +32,7 @@ pub enum Cmd {
     Fx(FxEvent),
     Spawn { index: usize, x: i32, y: i32, owner: u8, route: i32 },
     Order { unit: usize, x: i32, y: i32 },
+    Hold { unit: usize },
     Damage { caster: usize, target: usize, dmg: i32 },
     Buff { unit: usize, kind: i32, ticks: i32 },
     Cast { unit: usize, slot: usize, target: i32, x: i32, y: i32 },
@@ -879,6 +880,14 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.cmds.push(Cmd::Order { unit, x, y });
         Ok(CallbackReturn::Return)
     });
+    // Holds a unit where it stands: it does not chase, and strikes only enemies in its reach (the sim's hold order).
+    native!(ctx, game, "cmd_hold", [sh], |c, s| {
+        let i = a(c, &s, 0)?;
+        let mut sh = sh.borrow_mut();
+        let unit = live_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::Hold { unit });
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "cmd_remove", [sh], |c, s| {
         let mut sh = sh.borrow_mut();
         let u = live_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
@@ -1531,6 +1540,15 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         let (x, y) = (num(c, s.get(1), 1)?, num(c, s.get(2), 2)?);
         let (zoom, seconds) = (num_opt(c, s.get(3), 3)?, num_opt(c, s.get(4), 4)?);
         let body = shared::ui_camera(player, x, y, zoom, seconds).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::Ui { body });
+        Ok(CallbackReturn::Return)
+    });
+    // A UI event of any kind a pack names, for the page to render: ui_event("feedback", '{"kind":"move",...}').
+    // The payload is a JSON object; the page reads it through the wasm Game's drain_ui.
+    native!(ctx, game, "ui_event", [sh], |c, s| {
+        let kind = text(c, s.get(0), 0)?;
+        let payload = text(c, s.get(1), 1)?;
+        let body = shared::ui_event(&kind, &payload).map_err(|m| fail(c, m))?;
         sh.borrow_mut().cmds.push(Cmd::Ui { body });
         Ok(CallbackReturn::Return)
     });
@@ -2538,6 +2556,9 @@ impl ModHost {
                 }
                 Cmd::AddStat { unit, code, delta } => sim.add_stat_bonus(unit, code, delta),
                 Cmd::Order { unit, x, y } if sim.alive(unit) => sim.order(unit, x, y),
+                Cmd::Hold { unit } if sim.alive(unit) => {
+                    let _ = sim.issue_order_kind(unit, ORDER_HOLD, 0, 0);
+                }
                 Cmd::Damage { caster, target, dmg } if sim.alive(caster) => {
                     let player = sim.player(caster);
                     sim.damage_target(caster as i32, player, dmg, target as i32);

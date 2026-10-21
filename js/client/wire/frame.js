@@ -1,12 +1,16 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16, SWAP_NOT_READY: 17, SWAP_READY: 18, SWAP_CANCEL: 19, PACK_FILE: 20, PACK_WANT: 21 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16, SWAP_NOT_READY: 17, SWAP_READY: 18, SWAP_CANCEL: 19, PACK_FILE: 20, PACK_WANT: 21, ACTION: 22, UI: 23 });
 
 // Matches the server's DEFAULT_MAX_UNITS (rust/crates/server/src/lib.rs): a STATE or DELTA may carry this many units.
 export const MAX_UNITS = 4096;
 export const MAX_SWAP_NAME_BYTES = 64;
 export const MAX_ROOM_BYTES = 64;
 export const MAX_MESSAGE_BYTES = 256;
+// A player's input for the pack's on_action (its name and JSON body), and a UI event the host's pack emitted (JSON body).
+export const MAX_ACTION_NAME_BYTES = 64;
+export const MAX_ACTION_BYTES = 4096;
+export const MAX_UI_BYTES = 8192;
 export const MAX_PLAYERS = 10;
 export const TEAM_SIZE = 5;
 export const MAX_OWNER_BYTES = 64;
@@ -374,6 +378,40 @@ const CODECS = {
       const len = r.u16();
       if (len > MAX_MESSAGE_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `message ${len} > ${MAX_MESSAGE_BYTES}`);
       return { code, message: text(r.take(len), 'message') };
+    },
+  },
+  // A joined player's input, for the host to hand to the pack: the action name and its JSON body.
+  [FRAME.ACTION]: {
+    size: (f) => 2 + 2 + utf8(f.name, MAX_ACTION_NAME_BYTES, 'name').length + 2 + utf8(f.body, MAX_ACTION_BYTES, 'body').length,
+    write(w, f) {
+      const name = utf8(f.name, MAX_ACTION_NAME_BYTES, 'name');
+      const body = utf8(f.body, MAX_ACTION_BYTES, 'body');
+      w.u16(name.length, 'nameLength');
+      w.raw(name);
+      w.u16(body.length, 'bodyLength');
+      w.raw(body);
+    },
+    read(r) {
+      const nameLen = r.u16();
+      if (nameLen > MAX_ACTION_NAME_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `name ${nameLen} > ${MAX_ACTION_NAME_BYTES}`);
+      const name = text(r.take(nameLen), 'name');
+      const bodyLen = r.u16();
+      if (bodyLen > MAX_ACTION_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `body ${bodyLen} > ${MAX_ACTION_BYTES}`);
+      return { name, body: text(r.take(bodyLen), 'body') };
+    },
+  },
+  // A UI event the host's pack emitted, for every page: its JSON body.
+  [FRAME.UI]: {
+    size: (f) => 2 + 2 + utf8(f.body, MAX_UI_BYTES, 'body').length,
+    write(w, f) {
+      const body = utf8(f.body, MAX_UI_BYTES, 'body');
+      w.u16(body.length, 'bodyLength');
+      w.raw(body);
+    },
+    read(r) {
+      const bodyLen = r.u16();
+      if (bodyLen > MAX_UI_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `body ${bodyLen} > ${MAX_UI_BYTES}`);
+      return { body: text(r.take(bodyLen), 'body') };
     },
   },
 };

@@ -17,9 +17,10 @@ const STYLE = `
 function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) ** 2; }
 
 // opts: root (parent element), renderer() (the render3d renderer or null), localPlayer() (number),
-// defaultDistance() (camera distance at zoom 1), baseUrl (server origin, optional), onSound(name) (optional).
+// defaultDistance() (camera distance at zoom 1), baseUrl (server origin, optional), onSound(name) (optional),
+// onBind({key, action} | {key, remove}) (optional).
 export function createModUi(opts) {
-  const { root, renderer, localPlayer, defaultDistance, baseUrl, onSound } = opts;
+  const { root, renderer, localPlayer, defaultDistance, baseUrl, onSound, onBind } = opts;
   const doc = root.ownerDocument;
   const style = doc.createElement("style");
   style.textContent = STYLE;
@@ -92,9 +93,9 @@ export function createModUi(opts) {
       if (!(ev.seconds > 0)) step(0);
     },
     sound(ev) { if (onSound) onSound(ev.name); },
-    // Key bindings a mod registers at runtime: the input layer (moba_input.js) listens for these on window.
-    bind(ev) { doc.defaultView.dispatchEvent(new doc.defaultView.CustomEvent("moba:bind", { detail: { key: ev.key, action: ev.action } })); },
-    unbind(ev) { doc.defaultView.dispatchEvent(new doc.defaultView.CustomEvent("moba:bind", { detail: { key: ev.key, remove: true } })); },
+    // Key bindings a mod registers at runtime go to the pack's controls (onBind hands them on).
+    bind(ev) { if (onBind) onBind({ key: ev.key, action: ev.action }); },
+    unbind(ev) { if (onBind) onBind({ key: ev.key, remove: true }); },
   };
 
   function step(dtS) {

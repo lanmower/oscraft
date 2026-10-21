@@ -1,19 +1,18 @@
-// MOBA HUD and controls. createHud builds the input layer (moba_input.js) and the panels: selection, minimap and
-// scoreboard. Text and key bindings come from moba_ui.json. update() refreshes them from the wasm Game each frame,
-// along with the winner banner and unit health bars. Left pointer and key input is handled by the input layer, so
-// onKey and the left-click part of onPointerUp are no-ops kept for play.js.
+// MOBA HUD. createHud builds the input capture (moba_input.js), the feedback layer and the panels: selection, minimap
+// and scoreboard. Text comes from moba_ui.json. Keys and ground clicks are the pack's (controls.lua): the HUD sends
+// its own actions (select, camera_to) through send(name, args). update() refreshes the HUD from the wasm Game each frame,
+// along with the winner banner and unit health bars.
 
 import { cellKind, voidMask } from "./tiles.js";
 import { UI } from "./pack_load.js";
 import { fill } from "./moba_select.js";
-import { createMobaInput, centreCamera } from "./moba_input.js";
+import { createMobaInput } from "./moba_input.js";
 import { createFeedback } from "./feedback.js";
 import { createMinimap } from "./ui_minimap.js";
 import { createSelectionPanel } from "./ui_selection.js";
 import { createScoreboard } from "./ui_scoreboard.js";
 
 const TICK_S = 1 / 16;
-const RIGHT_BUTTON = 2;
 const BAR_WIDTH_PX = 20;
 const BAR_HEIGHT_PX = 3;
 const BAR_LIFT_PX = 5;
@@ -48,8 +47,8 @@ function walkableLayer(grid) {
   return layer;
 }
 
-export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, select, localPlayer, commands, pick, toWorld, toScreen, playerColor }) {
-  hot.set("hud", { game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, select, localPlayer, commands, pick, toWorld, toScreen, playerColor });
+export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor }) {
+  hot.set("hud", { game, hudEl, winEl, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor });
   const maxHp = new Map();
   const barCtx = barCanvas.getContext("2d");
   const lanes = walkableLayer(grid);
@@ -64,7 +63,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
   const typeNames = typeof game.unit_model_names === "function" ? game.unit_model_names() : [];
   const unitName = (type) => typeNames[type] || UI.text.unitUnknown;
 
-  const input = createMobaInput({ game, units, localPlayer, pick, toWorld, toScreen, commands, isHero, select, config: UI });
+  const input = createMobaInput({ game, toWorld, toScreen, send, dragSlopPx: UI.dragSlopPx });
   const feedback = createFeedback({ toScreen, toWorld, units });
 
   function viewRect() {
@@ -89,7 +88,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     isHero,
     teams: UI.teams,
     viewRect,
-    centre: centreCamera,
+    centre: (x, z) => send("camera_to", { x, z }),
   });
   let selectionPanel = createSelectionPanel({ game, input, units, localPlayer, unitName, isHero });
   let scoreboard = createScoreboard({ game, units, localPlayer, unitName, isHero, teams: UI.teams });
@@ -168,18 +167,7 @@ export function createHud({ game, hudEl, winEl, minimapEl, barCanvas, mapSize, g
     return { gold, winner, hp };
   }
 
-  // Right-click is routed here by play.js (its pointer-up on the canvas); left clicks and drags never reach it.
-  function onPointerUp(e) {
-    if (e.button !== RIGHT_BUTTON) return false;
-    return input.commandAt(e);
-  }
-
-  // Keys are read by the input layer on window, so the page's key hook has nothing left to do.
-  function onKey() {
-    return false;
-  }
-
-  return { update, onPointerUp, onKey, drawBars, input };
+  return { update, drawBars, input };
 }
 
 // Hot-update hook (see hmr.js): re-runs createHud on the inputs of its last call. HUD and canvases are the same DOM
