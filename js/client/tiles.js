@@ -363,7 +363,7 @@ const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, wate
 // The water surface is procedural (render3d.js): the water map is one byte per cell, 255 on water cells.
 export const SPLAT_TEXTURES = Object.freeze({
   grass: Object.freeze(["textures/grass.jpg", "textures/grass_disp.jpg"]),
-  dirt: Object.freeze(["textures/dirt_earth_cc0_256.jpg", "textures/dirt_earth_cc0_256_disp.jpg"]),
+  dirt: Object.freeze(["textures/grass_b_cc0_256.jpg", "textures/grass_b_cc0_256_disp.jpg"]),
   lane: Object.freeze(["textures/lane_earth_cc0_256.jpg", "textures/lane_disp.jpg"]),
   rock: Object.freeze(["textures/rock.jpg", "textures/rock_disp.jpg"]),
 });
