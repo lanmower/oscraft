@@ -89,3 +89,18 @@ fn the_pack_sets_each_units_magic_keep_from_its_magic_resistance() {
     let want = (100 - base) * (100 - bonus) / 100;
     assert_eq!(sim.magic_keep_of(hero) as i64, want, "base {base}, bonus {bonus}");
 }
+
+#[test]
+fn the_pack_sets_each_units_damage_keep_and_response_keep() {
+    let host = seated_host();
+    let hero = seat_hero(&host);
+    let sim = host.sim();
+    let reduction = (sim.stat(hero, 30) as i64).clamp(-100, 100); // the damage reduction stat code (spell.rs S_DAMAGE_REDUCTION)
+    assert_eq!(sim.damage_keep_of(hero) as i64, 100 - reduction, "damage reduction {reduction}");
+    let want = match sim.response_of(hero) {
+        2 => 0, // immune
+        1 => sim.rule("reduced_response_pct").expect("the rules text sets the reduced response") as i64,
+        _ => 100,
+    };
+    assert_eq!(sim.response_keep_of(hero) as i64, want, "response kind {}", sim.response_of(hero));
+}

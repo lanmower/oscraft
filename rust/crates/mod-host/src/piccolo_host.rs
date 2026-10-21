@@ -1546,6 +1546,29 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, i64::from(sh.sim.magic_base_of(u)));
         Ok(CallbackReturn::Return)
     });
+    // game.set_damage_keep(unit, pct): the percent of every hit the unit keeps through its damage reduction stat (100 = full).
+    native!(ctx, game, "set_damage_keep", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let pct = i32::try_from(a(c, &s, 1)?).map_err(|_| fail(c, "damage keep out of range".into()))?;
+        sh.sim.set_damage_keep(u, pct);
+        Ok(CallbackReturn::Return)
+    });
+    // game.set_response_keep(unit, pct): the percent of every hit the unit keeps through its damage response (0 immune).
+    native!(ctx, game, "set_response_keep", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let pct = i32::try_from(a(c, &s, 1)?).map_err(|_| fail(c, "response keep out of range".into()))?;
+        sh.sim.set_response_keep(u, pct);
+        Ok(CallbackReturn::Return)
+    });
+    // game.response_of(unit): the damage response kind of the unit's type in the unit data (0 normal, 1 reduced, 2 immune).
+    native!(ctx, game, "response_of", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.response_of(u)));
+        Ok(CallbackReturn::Return)
+    });
     // game.class_override(unit): the target class a debug control or mod set for the unit (0..=3), -1 when none.
     native!(ctx, game, "class_override", [sh], |c, s| {
         let sh = sh.borrow();

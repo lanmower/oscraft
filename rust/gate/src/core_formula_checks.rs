@@ -2,11 +2,6 @@
 //! the public sim API.
 
 use crate::checks::fresh;
-use sim::fixed;
-
-fn near(got: i32, want: i32) -> bool {
-    (got - want).abs() <= 2
-}
 
 /// The level curve holds reference's 29 thresholds (levels 2 to 30), first at 230 xp, nondecreasing.
 pub fn xp_table(image: &[u8]) -> Result<(), String> {

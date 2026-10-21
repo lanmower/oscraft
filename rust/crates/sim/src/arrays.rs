@@ -165,6 +165,11 @@ pub struct Sim {
     pub(crate) miss_chance: Vec<i32>,
     /// Per-unit percent of magical damage kept (100 = the full hit), set by the pack from the unit's magic resistance.
     pub(crate) magic_keep: Vec<i32>,
+    /// Per-unit percent of every hit kept through its damage reduction stat (100 = the full hit), set by the pack.
+    pub(crate) damage_keep: Vec<i32>,
+    /// Per-unit percent of every hit kept through its damage response (0 immune, the rule's percent when reduced,
+    /// 100 normal), set by the pack.
+    pub(crate) response_keep: Vec<i32>,
     /// Ward expiry stamps. See timed_life.rs.
     pub(crate) expiry: crate::timed_life::ExpiryState,
     /// Saved order points for mods that send units away. See order_memory.rs.
@@ -364,6 +369,8 @@ impl Sim {
             speed_cap: vec![i32::MAX; cap],
             miss_chance: vec![0; cap],
             magic_keep: vec![100; cap],
+            damage_keep: vec![100; cap],
+            response_keep: vec![100; cap],
             expiry: crate::timed_life::ExpiryState::new(cap),
             order_memory: crate::order_memory::OrderMemory::new(cap),
             item_requests: Default::default(),
@@ -708,6 +715,8 @@ impl Sim {
         self.speed_cap[i] = i32::MAX;
         self.miss_chance[i] = 0;
         self.magic_keep[i] = 100;
+        self.damage_keep[i] = 100;
+        self.response_keep[i] = 100;
         self.killer[i] = -1;
         self.hitter_id[i * crate::combat::HITTER_SLOTS..(i + 1) * crate::combat::HITTER_SLOTS].fill(-1);
         self.type_of[i] = ty as i32;

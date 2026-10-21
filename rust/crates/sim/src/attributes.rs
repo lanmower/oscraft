@@ -73,12 +73,10 @@ pub struct AttrRules {
     pub aggro_hold_s: i32,
     /// Distance, in milli-units, at which a unit moves on to its next waypoint (waypoints.rs).
     pub waypoint_reach_milli: i32,
-    /// Percent of a hit a `reduced` damage response keeps (combat.rs inflict): 50 is half.
-    pub reduced_response_pct: i32,
 }
 
 /// Keys the engine must find in every rules text: a file without one is refused (`set_from_text` returns None).
-const REQUIRED_KEYS: &[&str] = &["waypoint_reach_milli", "reduced_response_pct"];
+const REQUIRED_KEYS: &[&str] = &["waypoint_reach_milli"];
 
 impl Default for AttrRules {
     fn default() -> Self {
@@ -86,9 +84,8 @@ impl Default for AttrRules {
             aggro_priority: false,
             channel_damage_interrupt: true,
             aggro_hold_s: 3,
-            // Neutral until a rules text sets them: a unit reaches a waypoint only on it, and a reduced response keeps the whole hit.
+            // Neutral until a rules text sets it: a unit reaches a waypoint only on it.
             waypoint_reach_milli: 0,
-            reduced_response_pct: 100,
         }
     }
 }
@@ -127,7 +124,6 @@ impl AttrRules {
                 }
                 "aggro_hold_s" => &mut next.aggro_hold_s,
                 "waypoint_reach_milli" => &mut next.waypoint_reach_milli,
-                "reduced_response_pct" => &mut next.reduced_response_pct,
                 _ => {
                     named.insert(key.to_string(), v);
                     continue;
@@ -138,7 +134,7 @@ impl AttrRules {
         if !REQUIRED_KEYS.iter().all(|k| seen.contains(k)) {
             return None;
         }
-        if next.aggro_hold_s < 0 || next.waypoint_reach_milli < 0 || !(0..=100).contains(&next.reduced_response_pct) {
+        if next.aggro_hold_s < 0 || next.waypoint_reach_milli < 0 {
             return None;
         }
         *self = next;

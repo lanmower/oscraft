@@ -205,6 +205,8 @@ impl Sim {
         h.i32s(&self.speed_cap);
         h.i32s(&self.miss_chance);
         h.i32s(&self.magic_keep);
+        h.i32s(&self.damage_keep);
+        h.i32s(&self.response_keep);
         h.bytes(&self.researched);
         h.i32s(&self.attributed.home_x);
         h.i32s(&self.attributed.home_y);

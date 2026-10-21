@@ -6,8 +6,6 @@ use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::*;
 
-const RESPONSE_REDUCED: u8 = 1;
-const RESPONSE_IMMUNE: u8 = 2;
 /// Kill events held between drains. Kills past this in one drain window are still tallied per unit.
 pub(crate) const KILL_QUEUE_CAP: usize = 256;
 /// Recent hitters remembered per unit. A mod reads them on the unit's death (take_recent_hitters).
@@ -154,7 +152,7 @@ impl Sim {
     /// Whether a weapon hit can reduce unit `j`'s life: not physically immune, not invulnerable,
     /// and not fully immune to damage.
     pub fn strike_lands(&self, j: usize) -> bool {
-        self.status_left(j, crate::status::PHYSICAL_IMMUNE) == 0 && !self.invulnerable(j) && self.response[j] != RESPONSE_IMMUNE
+        self.status_left(j, crate::status::PHYSICAL_IMMUNE) == 0 && !self.invulnerable(j) && self.response_keep_of(j) != 0
     }
 
     /// Whether unit `i` can hit unit `j` on the sim's own terms, ignoring reach: a living enemy of `i`
@@ -283,6 +281,36 @@ impl Sim {
         self.attr_def(i).map_or(0, |d| d.magic_resist)
     }
 
+    /// Sets the percent of every hit unit `i` keeps through its damage reduction stat (100 = the full hit). A dead or unknown unit changes nothing.
+    pub fn set_damage_keep(&mut self, i: usize, pct: i32) {
+        if i < self.n {
+            self.damage_keep[i] = pct;
+        }
+    }
+
+    /// The percent of every hit unit `i` keeps through its damage reduction stat; 100 when unknown.
+    pub fn damage_keep_of(&self, i: usize) -> i32 {
+        self.damage_keep.get(i).copied().unwrap_or(100)
+    }
+
+    /// Sets the percent of every hit unit `i` keeps through its damage response (0 immune, the rule's percent when reduced,
+    /// 100 otherwise). A dead or unknown unit changes nothing.
+    pub fn set_response_keep(&mut self, i: usize, pct: i32) {
+        if i < self.n {
+            self.response_keep[i] = pct;
+        }
+    }
+
+    /// The percent of every hit unit `i` keeps through its damage response; 100 when unknown.
+    pub fn response_keep_of(&self, i: usize) -> i32 {
+        self.response_keep.get(i).copied().unwrap_or(100)
+    }
+
+    /// The damage response kind of unit `i` from the unit data (0 normal, 1 reduced, 2 immune); 0 when unknown.
+    pub fn response_of(&self, i: usize) -> i32 {
+        if i < self.n { i32::from(self.response[i]) } else { 0 }
+    }
+
     /// Ability damage to unit `j` from unit `attacker` (-1 for none). An unknown unit is a no-op.
     pub(crate) fn hurt_by(&mut self, j: usize, dmg: i32, attacker: i32) {
         if j >= self.n {
@@ -322,10 +350,8 @@ impl Sim {
             dmg = (dmg as i64 * self.spell.ill_in[j] as i64 / 100) as i32;
         }
         if dmg > 0 {
-            let reduction = self.stat(j, crate::spell::S_DAMAGE_REDUCTION).clamp(-100, 100) as i64;
-            if reduction != 0 {
-                dmg = (dmg as i64 * (100 - reduction) / 100) as i32;
-            }
+            // The damage reduction stat and the damage response are percents the pack sets (unit_rules.lua).
+            dmg = (dmg as i64 * self.damage_keep[j] as i64 / 100) as i32;
             self.trig_hit[j] = 1;
             if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
                 self.remember_hitter(j, attacker);
@@ -334,11 +360,7 @@ impl Sim {
                 self.interrupt_channel(j);
             }
             self.last_hit[j] = self.ticks;
-            match self.response[j] {
-                RESPONSE_IMMUNE => dmg = 0,
-                RESPONSE_REDUCED => dmg = (dmg as i64 * self.attributed.rules.reduced_response_pct as i64 / 100) as i32,
-                _ => {}
-            }
+            dmg = (dmg as i64 * self.response_keep[j] as i64 / 100) as i32;
             dmg = self.mitigate_mech(j, dmg);
             dmg = self.absorb_shield(j, dmg);
         }

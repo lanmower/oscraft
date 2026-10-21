@@ -83,7 +83,6 @@ pub const S_ARMOR_X100: usize = 26;
 pub const S_CAST_RANGE: usize = 27;
 pub const S_CLEAVE_W0: usize = 28;
 pub const S_CLEAVE_W1: usize = 29;
-pub const S_DAMAGE_REDUCTION: usize = 30;
 
 pub const SCALED_SLOTS: usize = 6;
 pub const MOD_SLOTS: usize = 8;

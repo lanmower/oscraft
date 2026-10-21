@@ -34,7 +34,9 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 40 adds the four per-unit arrays the pack sets each tick after the strike target: the damage scale (the
 /// armour curve moved to the pack), the speed floor and cap, and the miss chance. Version 39 saves are refused.
 /// Version 41 adds the per-unit magical damage kept (the magic resistance moved to the pack). Version 40 saves are refused.
-const STATE_VERSION: u16 = 41;
+/// Version 42 adds the per-unit damage kept through the damage reduction stat and through the damage response (both moved
+/// to the pack). Version 41 saves are refused.
+const STATE_VERSION: u16 = 42;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -475,6 +477,8 @@ impl Sim {
         put_i32s(&mut w, &self.speed_cap);
         put_i32s(&mut w, &self.miss_chance);
         put_i32s(&mut w, &self.magic_keep);
+        put_i32s(&mut w, &self.damage_keep);
+        put_i32s(&mut w, &self.response_keep);
         w.extend_from_slice(&self.researched);
         w.extend_from_slice(&self.dests.id);
         w.extend_from_slice(&self.dests.step);
@@ -695,6 +699,8 @@ impl Sim {
         r.i32s_into(&mut next.speed_cap)?;
         r.i32s_into(&mut next.miss_chance)?;
         r.i32s_into(&mut next.magic_keep)?;
+        r.i32s_into(&mut next.damage_keep)?;
+        r.i32s_into(&mut next.response_keep)?;
         r.bytes_into(&mut next.researched)?;
         r.bytes_into(&mut next.dests.id)?;
         r.bytes_into(&mut next.dests.step)?;
