@@ -401,7 +401,7 @@ fn unit_spec_of(it: &mut SplitWhitespace) -> Option<UnitSpec> {
     let bounty = num(it)?;
     let weapon: Option<(i32, i32, i32)> = if num::<u8>(it)? == 0 { None } else { Some((num(it)?, num(it)?, num(it)?)) };
     let abilities = texts(it)?;
-    Some(UnitSpec { name, model, health, speed, radius, armor, shield, sight, filter, cost, bounty, weapon, abilities })
+    Some(UnitSpec { name, model, health, speed, radius, armor, shield, sight, filter, cost, reward: bounty, weapon, abilities })
 }
 
 fn item_spec_of(it: &mut SplitWhitespace) -> Option<ItemSpec> {
@@ -522,7 +522,7 @@ fn put_unit_spec(out: &mut String, s: &UnitSpec) {
     }
     put(out, s.filter);
     put(out, s.cost);
-    put(out, s.bounty);
+    put(out, s.reward);
     match s.weapon {
         None => put(out, 0),
         Some((a, b, c)) => {
@@ -1615,7 +1615,7 @@ mod tests {
                 sight: 6000,
                 filter: 0,
                 cost: 50,
-                bounty: 10,
+                reward: 10,
                 weapon: Some((10, 1000, 1)),
                 abilities: vec!["mod_zap".into()],
             },
