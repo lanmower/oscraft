@@ -15,7 +15,10 @@ use piccolo::{
     Callback, CallbackReturn, Closure, Context, Error, Executor, IntoValue, Lua, StashedExecutor, StashedFunction,
     Stack, StashedTable, Table, Value, Variadic,
 };
-use sim::{controller_code, AbilitySpec, Catalog, LoadError, Payout, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, TICKS_PER_SECOND};
+use sim::{
+    controller_code, AbilitySpec, Catalog, ItemSpec, LoadError, Payout, Refusal, Request, Sim, UpgradeSpec, Verdict, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS,
+    MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, TICKS_PER_SECOND, VERDICT_TAKES,
+};
 
 use crate::shared::{self, amount_arg, fixed, player_arg, PRELUDE_SRC};
 use crate::{EVENTS, MAX_UNITS};
@@ -129,6 +132,86 @@ struct Hooks {
     on_march: Option<StashedFunction>,
     on_check_win: Option<StashedFunction>,
     target_priority: Option<StashedFunction>,
+    // The store rule: on_buy(unit, item, state), on_sell(unit, slot, state), on_unstash(unit, slot, state),
+    // and on_deliver(caster, target, reach_milli, state), which runs a courier's own logic.
+    on_buy: Option<StashedFunction>,
+    on_sell: Option<StashedFunction>,
+    on_unstash: Option<StashedFunction>,
+    on_deliver: Option<StashedFunction>,
+}
+
+// A hook's result read as an owned value, so a verdict can be built after the Lua state is left.
+enum Own {
+    Nil,
+    Bool(bool),
+    Int(i64),
+    Str(String),
+    List(Vec<i64>),
+    Other,
+}
+
+fn own<'gc>(ctx: Context<'gc>, v: Value<'gc>) -> Own {
+    match v {
+        Value::Nil => Own::Nil,
+        Value::Boolean(b) => Own::Bool(b),
+        Value::Integer(n) => Own::Int(n),
+        Value::Number(n) if n.fract() == 0.0 && n.abs() < 9.2e18 => Own::Int(n as i64),
+        Value::String(s) => s.to_str().map_or(Own::Other, |t| Own::Str(t.to_owned())),
+        Value::Table(t) => {
+            let mut items = Vec::new();
+            for i in 1..=t.length() {
+                match t.get(ctx, i) {
+                    Value::Integer(n) => items.push(n),
+                    _ => return Own::Other,
+                }
+            }
+            Own::List(items)
+        }
+        _ => Own::Other,
+    }
+}
+
+// A whole number 0..=max from a hook's answer, as mlua's `whole` reads it.
+fn whole(v: &Own, max: i64) -> Option<i64> {
+    match v {
+        Own::Int(n) if (0..=max).contains(n) => Some(*n),
+        _ => None,
+    }
+}
+
+// The catalog items a purchase takes: at most VERDICT_TAKES valid item indices, or none (nil).
+fn parse_takes(v: &Own, items: usize) -> Option<[u32; VERDICT_TAKES]> {
+    let mut out = [NO_TAKE; VERDICT_TAKES];
+    match v {
+        Own::Nil => Some(out),
+        Own::List(list) => {
+            if list.len() > VERDICT_TAKES {
+                return None;
+            }
+            for (n, &x) in list.iter().enumerate() {
+                if x < 0 || x as usize >= items {
+                    return None;
+                }
+                out[n] = x as u32;
+            }
+            Some(out)
+        }
+        _ => None,
+    }
+}
+
+// The refusal a store hook's reason names (mlua's `denial`).
+fn denial(v: &Own) -> Refusal {
+    match v {
+        Own::Str(s) => match s.as_str() {
+            "no-shop" => Refusal::NoShop,
+            "cannot-afford" => Refusal::CannotAfford,
+            "inventory-full" => Refusal::InventoryFull,
+            "missing-component" => Refusal::MissingComponent,
+            _ => Refusal::NoItem,
+        },
+        _ => Refusal::NoItem,
+    }
 }
 
 // A hook's answer, reduced from a Lua value: nil, a boolean, an integer, or another type's name.
@@ -692,7 +775,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         t.set(c, "cost", i64::from(it.cost)).expect("item");
         t.set(c, "charges", i64::from(it.charges)).expect("item");
         t.set(c, "stack_max", i64::from(it.stack_max)).expect("item");
-        t.set(c, "shops", i64::from(it.shops)).expect("item");
+        t.set(c, "tags", i64::from(it.tags)).expect("item");
         t.set(c, "stock_max", i64::from(it.stock_max)).expect("item");
         t.set(c, "stock_initial", i64::from(it.stock_initial)).expect("item");
         t.set(c, "stock_time_s", i64::from(it.stock_time_s)).expect("item");
@@ -902,6 +985,62 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             fail(c, format!("invalid_controller: {controller} is not {}", MOD_CONTROLLERS.join(", ")))
         })?;
         sh.borrow_mut().cmds.push(Cmd::AddPlayer { player: p, controller });
+        Ok(CallbackReturn::Return)
+    });
+    // game.item(name, spec): defines a catalog item in this world at the call, as mlua does.
+    native!(ctx, game, "item", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let spec = table_arg(c, s.get(1), 1)?;
+        let int = |key: &str| field_int(c, spec, key, 0).and_then(fixed).map_err(|m| fail(c, m));
+        let def = ItemSpec {
+            name: name.clone(),
+            cost: int("cost")?,
+            armor: int("armor")?,
+            damage: int("damage")?,
+            health: int("health")?,
+            ability: field_text_opt(c, spec, "ability").map_err(|m| fail(c, m))?,
+        };
+        let index = sh.borrow_mut().sim.define_item(&def).map_err(|why| fail(c, format!("invalid_item: {name}: {why}")))?;
+        s.replace(c, index as i64);
+        Ok(CallbackReturn::Return)
+    });
+    // game.upgrade(name, spec): defines a research record in this world at the call, as mlua does.
+    native!(ctx, game, "upgrade", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let spec = table_arg(c, s.get(1), 1)?;
+        let mut sh = sh.borrow_mut();
+        let int = |key: &str, default: i64| field_int(c, spec, key, default).and_then(fixed).map_err(|m| fail(c, m));
+        let names = |key: &str| -> Result<Vec<String>, Error> {
+            match spec.get(c, key) {
+                Value::Nil => Ok(Vec::new()),
+                Value::Table(t) => {
+                    let mut out = Vec::new();
+                    for k in 1..=t.length() {
+                        out.push(text(c, t.get(c, k), k as usize - 1)?);
+                    }
+                    Ok(out)
+                }
+                _ => Err(fail(c, format!("bad_field: {key} must be a list"))),
+            }
+        };
+        let entry = table_arg(c, spec.get(c, "effect"), 1)?;
+        let field = |key: &str| field_int(c, entry, key, 0).and_then(fixed);
+        let kind = field_text(c, entry, "kind").map_err(|m| fail(c, m))?;
+        let txt = |key: &str| field_text(c, entry, key);
+        let effect = shared::effect_from(&sh.sim, &kind, &field, &txt).map_err(|m| fail(c, m))?;
+        let filter = u32::try_from(int("filter", 0)?).map_err(|_| fail(c, "invalid_upgrade: filter must not be negative".into()))?;
+        let def = UpgradeSpec {
+            name: name.clone(),
+            building: field_text(c, spec, "building").map_err(|m| fail(c, m))?,
+            time: int("time", 1)?,
+            cost: int("cost", 0)?,
+            gas: int("gas", 0)?,
+            effect,
+            filter,
+            requires: names("requires")?,
+            unlocks: names("unlocks")?,
+        };
+        sh.sim.define_upgrade(&def).map_err(|why| fail(c, format!("invalid_upgrade: {name}: {why}")))?;
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "cmd_damage", [sh], |c, s| {
@@ -1374,6 +1513,10 @@ impl ModHost {
                     on_march: None,
                     on_check_win: None,
                     target_priority: None,
+                    on_buy: None,
+                    on_sell: None,
+                    on_unstash: None,
+                    on_deliver: None,
                 })
             })
             .map_err(|e| e.to_string())?;
@@ -1401,6 +1544,10 @@ impl ModHost {
         hooks.on_march = named("on_march");
         hooks.on_check_win = named("on_check_win");
         hooks.target_priority = named("target_priority");
+        hooks.on_buy = named("on_buy");
+        hooks.on_sell = named("on_sell");
+        hooks.on_unstash = named("on_unstash");
+        hooks.on_deliver = named("on_deliver");
         self.hooks = Some(hooks);
         self.version += 1;
         Ok(())
@@ -1784,12 +1931,136 @@ impl ModHost {
     // Applies the queued commands in queue order. A command aimed at a unit that died since it
     // was queued does nothing.
     fn apply_commands(&mut self) {
-        let mut guard = self.sh.borrow_mut();
-        let sh = &mut *guard;
-        let local = std::mem::take(&mut sh.local);
-        let list = std::mem::take(&mut sh.cmds);
-        let (sim, ui) = (&mut sh.sim, &mut sh.ui);
+        let local = std::mem::take(&mut self.sh.borrow_mut().local);
+        let list = std::mem::take(&mut self.sh.borrow_mut().cmds);
         for cmd in local.into_iter().chain(list) {
+            self.apply_one(cmd);
+        }
+    }
+
+    // Applies one command, then answers the store requests it queued. Each verdict is applied before the
+    // next queued command, as the mlua host does. The borrow on the sim is released before any Lua runs.
+    fn apply_one(&mut self, cmd: Cmd) {
+        let requests = {
+            let mut guard = self.sh.borrow_mut();
+            let sh = &mut *guard;
+            if Self::apply_cmd(&mut sh.sim, &mut sh.ui, cmd) {
+                sh.applied += 1;
+            }
+            sh.sim.drain_requests()
+        };
+        self.settle(requests);
+    }
+
+    fn settle(&mut self, requests: Vec<Request>) {
+        for req in requests {
+            if let Some(verdict) = self.answer(&req) {
+                let more = {
+                    let mut guard = self.sh.borrow_mut();
+                    guard.sim.apply_verdict(&verdict);
+                    guard.sim.drain_requests()
+                };
+                self.settle(more);
+            }
+        }
+    }
+
+    // Answers one store request with the mod's rule. A deliver request runs the courier's logic and answers nothing.
+    fn answer(&mut self, req: &Request) -> Option<Verdict> {
+        let (buy, sell, unstash, deliver) = match self.hooks.as_ref() {
+            Some(h) => (h.on_buy.clone(), h.on_sell.clone(), h.on_unstash.clone(), h.on_deliver.clone()),
+            None => (None, None, None, None),
+        };
+        match *req {
+            Request::Buy { unit, item } => Some(match buy {
+                Some(f) => self.buy_verdict(&f, unit, item),
+                None => Verdict::Buy { unit, item, allow: false, deny: Refusal::NoItem, price: 0, takes: [NO_TAKE; VERDICT_TAKES] },
+            }),
+            Request::Sell { unit, slot } => Some(match sell {
+                Some(f) => self.sell_verdict(&f, unit, slot),
+                None => Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 },
+            }),
+            Request::Unstash { unit, slot } => Some(match unstash {
+                Some(f) => self.unstash_verdict(&f, unit, slot),
+                None => Verdict::Unstash { unit, slot, allow: false, deny: Refusal::NoItem },
+            }),
+            Request::Deliver { caster, target, reach_milli } => {
+                if let Some(f) = deliver {
+                    let args = vec![Arg::Int(caster as i64), Arg::Int(target as i64), Arg::Int(i64::from(reach_milli)), Arg::State];
+                    if let Err(e) = self.call(&f, args) {
+                        println!("ev=mod_hook_failed hook=on_deliver error={:?}", e);
+                    }
+                }
+                None
+            }
+        }
+    }
+
+    // on_buy(unit, item, state) returns true, price, takes or false, reason. A malformed answer or a Lua error refuses.
+    fn buy_verdict(&mut self, f: &StashedFunction, unit: usize, item: usize) -> Verdict {
+        let refuse = |deny| Verdict::Buy { unit, item, allow: false, deny, price: 0, takes: [NO_TAKE; VERDICT_TAKES] };
+        let items = self.sh.borrow().sim.catalog().items.len();
+        match self.call_own(f, vec![Arg::Int(unit as i64), Arg::Int(item as i64), Arg::State]) {
+            Ok(v) => match (&v[0], &v[1], &v[2]) {
+                (Own::Bool(true), price, takes) => match (whole(price, i64::from(i32::MAX)), parse_takes(takes, items)) {
+                    (Some(price), Some(takes)) => Verdict::Buy { unit, item, allow: true, deny: Refusal::NoItem, price: price as i32, takes },
+                    _ => refuse(Refusal::NoItem),
+                },
+                (_, reason, _) => refuse(denial(reason)),
+            },
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=on_buy error={:?}", e);
+                refuse(Refusal::NoItem)
+            }
+        }
+    }
+
+    // on_sell(unit, slot, state) returns true, refund or false, reason.
+    fn sell_verdict(&mut self, f: &StashedFunction, unit: usize, slot: usize) -> Verdict {
+        match self.call_own(f, vec![Arg::Int(unit as i64), Arg::Int(slot as i64), Arg::State]) {
+            Ok(v) => match (&v[0], &v[1]) {
+                (Own::Bool(true), refund) => match whole(refund, i64::from(i32::MAX)) {
+                    Some(refund) => Verdict::Sell { unit, slot, allow: true, deny: Refusal::NoItem, refund: refund as i32 },
+                    None => Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 },
+                },
+                (_, reason) => Verdict::Sell { unit, slot, allow: false, deny: denial(reason), refund: 0 },
+            },
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=on_sell error={:?}", e);
+                Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 }
+            }
+        }
+    }
+
+    // on_unstash(unit, slot, state) returns true or false, reason.
+    fn unstash_verdict(&mut self, f: &StashedFunction, unit: usize, slot: usize) -> Verdict {
+        match self.call_own(f, vec![Arg::Int(unit as i64), Arg::Int(slot as i64), Arg::State]) {
+            Ok(v) => match &v[0] {
+                Own::Bool(true) => Verdict::Unstash { unit, slot, allow: true, deny: Refusal::NoItem },
+                _ => Verdict::Unstash { unit, slot, allow: false, deny: denial(&v[1]) },
+            },
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=on_unstash error={:?}", e);
+                Verdict::Unstash { unit, slot, allow: false, deny: Refusal::NoItem }
+            }
+        }
+    }
+
+    // Runs a hook and reads its first three results as owned values (the store hooks' answers).
+    fn call_own(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<[Own; 3], String> {
+        let exec = self.start(f, args)?;
+        self.finish(&exec)?;
+        self.lua
+            .try_enter(|ctx| {
+                let (x, y, z) = ctx.fetch(&exec).take_result::<(Value, Value, Value)>(ctx)??;
+                Ok([own(ctx, x), own(ctx, y), own(ctx, z)])
+            })
+            .map_err(|e| e.to_string())
+    }
+
+    // Applies one command to the sim. False for a command this world does not apply (its count is not kept).
+    fn apply_cmd(sim: &mut Sim, ui: &mut Vec<String>, cmd: Cmd) -> bool {
+        {
             match cmd {
                 Cmd::Spawn { index, x, y, owner, route, .. } => {
                     sim.spawn_mod_unit(owner, index as u32, x, y, route);
@@ -1892,9 +2163,9 @@ impl ModHost {
                 Cmd::RestoreOrder { unit } => {
                     let _ = sim.restore_order(unit);
                 }
-                _ => continue,
+                _ => return false,
             }
-            sh.applied += 1;
+            true
         }
     }
 
