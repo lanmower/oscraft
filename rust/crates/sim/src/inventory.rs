@@ -32,7 +32,6 @@ pub(crate) const ITEM_FLAG_CONSUMABLE: u16 = 1;
 pub(crate) const ITEM_FLAG_NEUTRAL: u16 = 2;
 pub(crate) const ITEM_FLAG_NO_BUY: u16 = 4;
 pub(crate) const ITEM_FLAG_NO_SELL: u16 = 8;
-pub(crate) const ITEM_FLAG_ENHANCEMENT: u16 = 16;
 pub(crate) const ITEM_FLAG_MASK: u16 = 31;
 pub(crate) const NEUTRAL_TIERS: u8 = 5;
 
@@ -65,7 +64,6 @@ pub(crate) const STAT_CLEAVE_END_WIDTH: usize = 27;
 pub(crate) const STAT_BASH_CHANCE: usize = 28;
 pub(crate) const STAT_BASH_DURATION: usize = 29;
 pub(crate) const STAT_SPEED_PCT: usize = 30;
-pub(crate) const STAT_NIGHT_VISION: usize = 35;
 pub(crate) const STAT_SCEPTER: usize = 36;
 pub(crate) const STAT_SHARD: usize = 37;
 
@@ -292,7 +290,7 @@ impl Sim {
             self.armor[unit] = kept.armor + new.armor - old.armor;
             self.damage[unit] = kept.damage + new.damage - old.damage;
             self.period[unit] = (kept.period + new.period - old.period).max(1);
-            let mana_max = self.heroes.mana_max[unit];
+            let mana_max = self.attributed.mana_max[unit];
             self.energy[unit] = (kept.energy + new.energy - old.energy).clamp(0, mana_max);
         }
         out
@@ -385,7 +383,7 @@ impl Sim {
     /// item is spent. The death is not booked: no kill, bounty, experience or death count. True when the hero
     /// reincarnates.
     pub(crate) fn reincarnate(&mut self, j: usize) -> bool {
-        let Some((item, seconds)) = self.camps.reincarnate else {
+        let Some((item, seconds)) = self.groups.revive_item else {
             return false;
         };
         if !self.is_hero(j) {
@@ -396,10 +394,10 @@ impl Sim {
             return false;
         };
         self.consume_item_charge(j, slot);
-        self.heroes.waiting[j] = 2;
-        self.heroes.respawn_at[j] = self.ticks.wrapping_add(seconds.wrapping_mul(crate::TICKS_PER_SECOND as u32));
-        self.heroes.spot_x[j] = self.pos_x[j];
-        self.heroes.spot_y[j] = self.pos_y[j];
+        self.attributed.waiting[j] = 2;
+        self.attributed.respawn_at[j] = self.ticks.wrapping_add(seconds.wrapping_mul(crate::TICKS_PER_SECOND as u32));
+        self.attributed.spot_x[j] = self.pos_x[j];
+        self.attributed.spot_y[j] = self.pos_y[j];
         true
     }
 
@@ -447,7 +445,6 @@ mod best_only_tests {
             STAT_CLEAVE_END_WIDTH,
             STAT_BASH_CHANCE,
             STAT_BASH_DURATION,
-            STAT_NIGHT_VISION,
         ];
         let expected = old.iter().fold(0u64, |m, &k| m | (1u64 << k));
         assert_eq!(s.catalog().tune.best_only, expected);

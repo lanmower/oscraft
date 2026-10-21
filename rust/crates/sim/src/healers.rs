@@ -42,7 +42,7 @@ impl Sim {
 
     /// The first free healer slot, or None when all are running.
     pub(crate) fn free_healer(&self) -> Option<usize> {
-        (0..HEALER_SLOTS).find(|&k| self.healer_left[k] <= 0)
+        (0..HEALER_SLOTS).find(|&k| self.aura_left[k] <= 0)
     }
 
     /// Starts a healer for player `p` at a Q16.16 point: it pulses `amt` in `rad` every
@@ -63,37 +63,37 @@ impl Sim {
         let Some(k) = self.free_healer() else {
             return false;
         };
-        self.healer_target[k] = receiver;
-        self.healer_player[k] = p;
-        self.healer_amt[k] = amt;
-        self.healer_rad[k] = rad;
-        self.healer_period[k] = period;
-        self.healer_timer[k] = period;
-        self.healer_left[k] = life;
-        self.healer_x[k] = x;
-        self.healer_y[k] = y;
+        self.aura_target[k] = receiver;
+        self.aura_player[k] = p;
+        self.aura_amt[k] = amt;
+        self.aura_rad[k] = rad;
+        self.aura_period[k] = period;
+        self.aura_timer[k] = period;
+        self.aura_left[k] = life;
+        self.aura_x[k] = x;
+        self.aura_y[k] = y;
         true
     }
 
     /// Pulses every running healer whose period has elapsed, then counts its lifetime down.
     pub(crate) fn tick_healers(&mut self) {
         for k in 0..HEALER_SLOTS {
-            if self.healer_left[k] <= 0 {
+            if self.aura_left[k] <= 0 {
                 continue;
             }
-            self.healer_timer[k] -= 1;
-            if self.healer_timer[k] <= 0 {
-                let (p, amt, rad) = (self.healer_player[k], self.healer_amt[k], self.healer_rad[k]);
-                let (x, y) = (self.healer_x[k], self.healer_y[k]);
+            self.aura_timer[k] -= 1;
+            if self.aura_timer[k] <= 0 {
+                let (p, amt, rad) = (self.aura_player[k], self.aura_amt[k], self.aura_rad[k]);
+                let (x, y) = (self.aura_x[k], self.aura_y[k]);
                 if rad == 0 {
-                    let receiver = self.healer_target[k];
+                    let receiver = self.aura_target[k];
                     self.heal_target(p, amt, receiver);
                 } else {
                     self.heal_area(p, amt, rad, x, y);
                 }
-                self.healer_timer[k] = self.healer_period[k];
+                self.aura_timer[k] = self.aura_period[k];
             }
-            self.healer_left[k] -= 1;
+            self.aura_left[k] -= 1;
         }
     }
 }

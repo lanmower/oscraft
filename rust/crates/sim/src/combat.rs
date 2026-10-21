@@ -215,12 +215,6 @@ impl Sim {
             && self.strike_lands(j)
     }
 
-    /// The enemy unit auto-attack would strike for unit `i` this tick, if any: the taunt target when
-    /// one is set, else the best visible enemy in weapon reach by target class, then distance.
-    pub(crate) fn best_strike_target(&self, i: usize) -> Option<usize> {
-        self.pick_strike_target(i, false)
-    }
-
     /// The target unit `i` strikes this tick. With `strikeable` set, only an enemy that
     /// `can_strike_now` counts, so an enemy the hit cannot damage is never picked.
     pub(crate) fn pick_strike_target(&self, i: usize, strikeable: bool) -> Option<usize> {
@@ -452,7 +446,9 @@ impl Sim {
         if dmg >= self.hp[j] && self.status_left(j, crate::status::DEATH_PREVENTION) > 0 {
             dmg = (self.hp[j] - 1).max(0);
         }
+        let dealt = dmg.min(self.hp[j]).max(0);
         self.hp[j] = self.hp[j].wrapping_sub(dmg);
+        self.log_hit(attacker, j, dealt);
         if self.hp[j] <= 0 {
             let fell = self.alive[j] != 0;
             self.hp[j] = 0;
@@ -687,11 +683,11 @@ mod tests {
     /// gold delta and the rival side's resource delta. The engine pays neither: gold is the mod's.
     fn kill_both_ways(s: &mut Sim) -> (i32, i32) {
         let killer = creep(s, 0);
-        let gold_before = s.heroes.gold[killer];
+        let gold_before = s.attributed.gold[killer];
         let victim = creep(s, 1);
         s.inflict(victim, fixed::from_int(10000), killer as i32);
         assert!(!s.alive(victim), "a lethal blow must still kill the unit");
-        let killer_gold = s.heroes.gold[killer] - gold_before;
+        let killer_gold = s.attributed.gold[killer] - gold_before;
 
         let rival_before = s.resource_a(0);
         let neutral = creep(s, 1);

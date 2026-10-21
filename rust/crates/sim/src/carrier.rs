@@ -74,6 +74,6 @@ impl Sim {
         if self.alive[t] == 0 || self.hostile(self.player[caster], self.player[t]) {
             return;
         }
-        self.store.requests.push(ItemRequest::Carry { caster, target: t });
+        self.item_requests.requests.push(ItemRequest::Carry { caster, target: t });
     }
 }

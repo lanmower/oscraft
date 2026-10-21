@@ -1,0 +1,23 @@
+-- Skill levelling for the moba scenario, as mod code on the engine's rank mechanic. A unit's character
+-- level is game.level + 1, and it has one skill point per character level, less the ranks it has spent.
+-- The engine raises a slot's rank by one when the rule allows it; the level gate of each rank is the
+-- ability's data (game.skill_gate), read from scenarios/moba/abilities.osd.
+--
+-- Hook: on_skill_up(unit, slot, state) returns true to raise the rank, false to refuse it. The host
+-- calls it for every skill-up command before the engine applies it.
+-- Primitives used: game.level, game.skill_rank, game.skill_gate.
+
+-- Ability slots per unit, as the engine sizes them (sim/src/lib.rs ABILITY_SLOTS).
+local ABILITY_SLOTS = 8
+
+function on_skill_up(unit, slot, state)
+  local gate = game.skill_gate(unit, slot)
+  if gate == nil then return false end
+  local character_level = game.level(unit) + 1
+  local spent = 0
+  for s = 0, ABILITY_SLOTS - 1 do
+    spent = spent + game.skill_rank(unit, s)
+  end
+  if character_level - spent <= 0 then return false end
+  return character_level >= gate
+end

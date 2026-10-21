@@ -16,7 +16,7 @@ use piccolo::{
     Stack, StashedTable, Table, Value, Variadic,
 };
 use sim::{
-    controller_code, AbilitySpec, Catalog, ItemSpec, LoadError, Payout, Refusal, ItemRequest, ItemVerdict, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS,
+    controller_code, AbilitySpec, Catalog, FxEvent, ItemSpec, LoadError, Payout, Refusal, ItemRequest, ItemVerdict, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS,
     MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, TICKS_PER_SECOND, VERDICT_TAKES,
 };
 
@@ -29,6 +29,7 @@ const MAX_REGIONS: usize = 64;
 
 #[derive(Clone)]
 pub enum Cmd {
+    Fx(FxEvent),
     Spawn { index: usize, x: i32, y: i32, owner: u8, route: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
@@ -44,6 +45,8 @@ pub enum Cmd {
     GiveAbility { unit: usize, slot: usize, name: String },
     AddGold { player: u8, amount: i32 },
     AddUnitGold { unit: usize, amount: i32 },
+    AddXp { unit: usize, amount: u32 },
+    AddStat { unit: usize, code: usize, delta: i32 },
     RemoveUnit { unit: usize },
     GiveItem { unit: usize, item: usize, count: u32 },
     SetClassOverride { unit: usize, class: Option<u8> },
@@ -131,11 +134,15 @@ struct Hooks {
     // The mod's named hooks, when it defines them (the same names mlua looks up).
     on_unit_died: Option<StashedFunction>,
     on_cast: Option<StashedFunction>,
+    // on_hit(attacker, victim, dealt, state): each hit that dealt damage, attacker -1 for none.
+    on_hit: Option<StashedFunction>,
     on_march: Option<StashedFunction>,
     on_check_win: Option<StashedFunction>,
     target_priority: Option<StashedFunction>,
     // The one item-request rule: on_request(kind, unit, item, state), kind "acquire", "release", "take_out" or "carry".
     on_request: Option<StashedFunction>,
+    // The skill rule: on_skill_up(unit, slot, state) returns true to raise the rank, false to refuse it.
+    on_skill_up: Option<StashedFunction>,
 }
 
 // A hook's result read as an owned value, so a verdict can be built after the Lua state is left.
@@ -308,6 +315,19 @@ function env.cancel(name)
   end
   return false
 end
+-- game.timer(name, delay, action, period): fires action after delay ticks, then every period ticks when given.
+local function timer(name, delay, action, period)
+  if type(delay) ~= "number" or delay < 0 then error("timer_delay: " .. tostring(delay) .. " is negative", 2) end
+  if period ~= nil and (type(period) ~= "number" or period < 1) then error("timer_period: " .. tostring(period) .. " must be at least 1", 2) end
+  local due = clock() + (delay < 1 and 1 or delay)
+  for _, t in ipairs(timers) do
+    if t.name == name then t.due, t.action, t.period = due, action, period return end
+  end
+  if #timers >= 256 then error("timer_limit: at most 256 timers", 2) end
+  timers[#timers + 1] = { name = name, due = due, action = action, period = period }
+ end
+game.timer = timer
+game.cancel_timer = env.cancel
 local host = { define_region = env.define_region, unit_position = env.unit_position, in_region = env.in_region, region_bounds = env.region_bounds, map_size = env.map_size, schedule = env.schedule, cancel = env.cancel }
 install(game, { global = {}, player = {}, unit = {}, score = {} }, host, max_players)
 local function emit(event, ...)
@@ -328,7 +348,9 @@ local function fire_timers()
       if t.due <= now then hit = i break end
     end
     if not hit then return end
-    remove(timers, hit).action()
+    local t = remove(timers, hit)
+    if t.period then timers[#timers + 1] = { name = t.name, due = now + t.period, action = t.action, period = t.period } end
+    t.action()
   end
 end
 return emit, run_systems, fire_timers
@@ -365,14 +387,6 @@ fn num_opt<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<Option<f64
     }
 }
 
-fn text_opt<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<Option<String>, Error<'gc>> {
-    if matches!(v, Value::Nil) {
-        Ok(None)
-    } else {
-        text(ctx, v, i).map(Some)
-    }
-}
-
 // A table-valued argument, the spec of game.ability or game.panel.
 fn table_arg<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<Table<'gc>, Error<'gc>> {
     match v {
@@ -401,6 +415,33 @@ fn field_text_opt<'gc>(ctx: Context<'gc>, t: Table<'gc>, key: &str) -> Result<Op
         Value::Nil => Ok(None),
         _ => field_text(ctx, t, key).map(Some),
     }
+}
+
+// The display event game.effect names: its kind, its position in fixed point (x and y are world units) and the
+// optional params table. Absent params keep FxEvent's defaults.
+fn fx_event<'gc>(ctx: Context<'gc>, kind: &str, x: f64, y: f64, params: Value<'gc>) -> Result<FxEvent, String> {
+    if kind.is_empty() {
+        return Err("bad_argument: effect kind is empty".into());
+    }
+    let at = |v: f64| (v * sim::fixed::ONE as f64).round().clamp(i32::MIN as f64, i32::MAX as f64) as i32;
+    let mut e = FxEvent::new(kind, at(x), at(y));
+    match params {
+        Value::Nil => {}
+        Value::Table(t) => {
+            let int = |key: &str, default: i64| field_int(ctx, t, key, default).map(|v| v.clamp(i32::MIN as i64, i32::MAX as i64) as i32);
+            e.source = int("source", -1)?;
+            e.target = int("target", -1)?;
+            e.team = int("team", -1)?;
+            e.duration = int("duration", 0)?;
+            e.scale = int("scale", 0)?;
+            e.value = int("value", 0)?;
+            e.colour = field_text_opt(ctx, t, "colour")?.unwrap_or_default();
+            e.text = field_text_opt(ctx, t, "text")?.unwrap_or_default();
+            e.name = field_text_opt(ctx, t, "name")?.unwrap_or_default();
+        }
+        _ => return Err("bad_argument: effect params must be a table".into()),
+    }
+    Ok(e)
 }
 
 // One ability as a Lua table: its catalog name, timing, target rules and effects.
@@ -485,8 +526,185 @@ macro_rules! native {
     }};
 }
 
+// The unit, cast and command primitives the moba mod calls through game.*, bound as the mlua host binds them.
+// Each reads or sets one sim accessor, or queues a command; the timers are in the prelude.
+fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
+    native!(ctx, game, "level", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.level(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "character_level", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.character_level(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "net_worth", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.net_worth(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "xp_bounty", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.xp_bounty(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "deny_xp_pct", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.deny_xp_pct(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "assist_radius_milli", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.assist_radius_milli(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "upgrade_bits", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.upgrade_bits(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "alive", [sh], |c, s| {
+        let sh = sh.borrow();
+        let i = a(c, &s, 0)?;
+        let alive = usize::try_from(i).is_ok_and(|u| u < sh.sim.count() && sh.sim.alive(u));
+        s.replace(c, alive);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "attributes_x100", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let [x, y, z] = sh.sim.hero_attributes_x100(u);
+        s.replace(c, (i64::from(x), i64::from(y), i64::from(z)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "counter", [sh], |c, s| {
+        let (i, name) = (a(c, &s, 0)?, text(c, s.get(1), 1)?);
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        s.replace(c, sh.sim.counter(u, &name));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "set_counter", [sh], |c, s| {
+        let (i, name, value) = (a(c, &s, 0)?, text(c, s.get(1), 1)?, a(c, &s, 2)?);
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        sh.sim.set_counter(u, &name, value);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "hero_field", [sh], |c, s| {
+        let (i, name) = (a(c, &s, 0)?, text(c, s.get(1), 1)?);
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        match sh.sim.hero_field(u, &name) {
+            Some(v) => s.replace(c, i64::from(v)),
+            None => s.replace(c, ()),
+        }
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "set_upgrade_bit", [sh], |c, s| {
+        let (i, bit) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let on = matches!(s.get(2), Value::Boolean(true));
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let bit = u32::try_from(bit).map_err(|_| fail(c, format!("invalid_bit: {bit}")))?;
+        let took = sh.sim.set_upgrade_bit(u, bit, on).is_ok();
+        s.replace(c, took);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "enroll", [sh], |c, s| {
+        let (i, x, y) = (a(c, &s, 0)?, fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        sh.sim.enroll_hero(u, x, y);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "spawn", [sh], |c, s| {
+        let player = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let kind = match s.get(1) {
+            Value::Integer(n) => u32::try_from(n).ok(),
+            other => {
+                let name = text(c, other, 1)?;
+                sh.borrow().sim.catalog().unit_index(&name).map(|k| k as u32)
+            }
+        };
+        let (x, y) = (fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 3)?).map_err(|m| fail(c, m))?);
+        let spawned = kind.and_then(|k| sh.borrow_mut().sim.spawn_for(player, k, x, y));
+        match spawned {
+            Some(u) => s.replace(c, u as i64),
+            None => s.replace(c, ()),
+        }
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "teleport", [sh], |c, s| {
+        let (i, x, y) = (a(c, &s, 0)?, fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        let mut sh = sh.borrow_mut();
+        let u = live_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let took = sh.sim.teleport(u, x, y);
+        s.replace(c, took);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "timed_spawn", [sh], |c, s| {
+        let (caster, kind, life) = (a(c, &s, 0)?, a(c, &s, 1)?, a(c, &s, 2)?);
+        let (x, y) = (fixed(a(c, &s, 3)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 4)?).map_err(|m| fail(c, m))?);
+        let (Ok(kind), Ok(life)) = (i32::try_from(kind), i32::try_from(life)) else {
+            return Err(fail(c, "invalid_timed_spawn: kind or life out of i32 range".into()));
+        };
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, caster).map_err(|m| fail(c, m))?;
+        sh.sim.timed_spawn_effect(u, kind, life, x, y);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cast_point", [sh], |c, s| {
+        let sh = sh.borrow();
+        let (_, x, y) = sh.sim.last_cast(known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?);
+        s.replace(c, (i64::from(x), i64::from(y)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cast_target", [sh], |c, s| {
+        let sh = sh.borrow();
+        let (target, _, _) = sh.sim.last_cast(known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?);
+        match u32::try_from(target) {
+            Ok(t) => s.replace(c, i64::from(t)),
+            Err(_) => s.replace(c, ()),
+        }
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "map_size", [sh], |c, s| {
+        let sh = sh.borrow();
+        let g = sh.sim.grid();
+        s.replace(c, ((g.w as i64) << 16, (g.h as i64) << 16));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_add_xp", [sh], |c, s| {
+        let (unit, amount) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let mut sh = sh.borrow_mut();
+        let u = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let amount = u32::try_from(amount).map_err(|_| fail(c, format!("invalid_amount: {amount} is negative")))?;
+        sh.cmds.push(Cmd::AddXp { unit: u, amount });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_add_stat", [sh], |c, s| {
+        let (unit, code, delta) = (a(c, &s, 0)?, a(c, &s, 1)?, a(c, &s, 2)?);
+        let mut sh = sh.borrow_mut();
+        let u = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let code = usize::try_from(code).map_err(|_| fail(c, format!("invalid_stat: {code}")))?;
+        let delta = amount_arg(delta).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::AddStat { unit: u, code, delta });
+        Ok(CallbackReturn::Return)
+    });
+}
+
 fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
     let game = Table::new(&ctx);
+    bind_unit_primitives(ctx, game, sh);
 
     native!(ctx, env, "spawn_unit", [sh], |c, s| {
         let kind = text(c, s.get(0), 0)?;
@@ -891,6 +1109,26 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.cmds.push(Cmd::SkillUp { unit, slot });
         Ok(CallbackReturn::Return)
     });
+    // Rank of an ability slot, and the level gate of its next rank (nil when no tree or at max rank).
+    native!(ctx, game, "skill_rank", [sh], |c, s| {
+        let (i, slot) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let slot = usize::try_from(slot).ok().filter(|&v| v < ABILITY_SLOTS).ok_or_else(|| fail(c, format!("invalid_slot: {slot}")))?;
+        s.replace(c, i64::from(sh.sim.skill_rank(u, slot)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "skill_gate", [sh], |c, s| {
+        let (i, slot) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let slot = usize::try_from(slot).ok().filter(|&v| v < ABILITY_SLOTS).ok_or_else(|| fail(c, format!("invalid_slot: {slot}")))?;
+        match sh.sim.skill_next_gate(u, slot) {
+            Some(gate) => s.replace(c, i64::from(gate)),
+            None => s.replace(c, ()),
+        }
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "remove_player", [sh], |c, s| {
         let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
         sh.borrow_mut().cmds.push(Cmd::RemovePlayer { player: p });
@@ -1244,6 +1482,16 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.cmds.push(Cmd::AddUnitGold { unit: u, amount });
         Ok(CallbackReturn::Return)
     });
+    // game.effect(kind, x, y, params): queues a display event for the page, which decides nothing about it. x and y are
+    // world units, or 0 for an event anchored to a unit through params.source or params.target. params is an optional
+    // table of source, target, team, colour, duration, text, scale, name and value. Not hashed, not replayed.
+    native!(ctx, game, "effect", [sh], |c, s| {
+        let kind = text(c, s.get(0), 0)?;
+        let (x, y) = (num(c, s.get(1), 1)?, num(c, s.get(2), 2)?);
+        let event = fx_event(c, &kind, x, y, s.get(3)).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::Fx(event));
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "message", [sh], |c, s| {
         let (player, msg) = (a(c, &s, 0)?, text(c, s.get(1), 1)?);
         let seconds = num_opt(c, s.get(2), 2)?;
@@ -1418,6 +1666,10 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, list);
         Ok(CallbackReturn::Return)
     });
+    // The command primitives hero.lua calls bare (its header lists them), as host globals.
+    for name in ["cmd_add_gold", "cmd_add_stat", "cmd_add_unit_gold", "cmd_add_xp", "cmd_set_respawn"] {
+        env.set(ctx, name, game.get(ctx, name)).expect("bind bare command");
+    }
     env.set(ctx, "game", game).expect("bind game");
 }
 
@@ -1477,7 +1729,7 @@ fn mod_name(path: &Path) -> String {
 }
 
 pub struct ModHost {
-    lua: Lua,
+    lua: RefCell<Lua>,
     sh: Sh,
     state: StashedTable,
     hooks: Option<Hooks>,
@@ -1502,7 +1754,7 @@ impl ModHost {
             ctx.stash(t)
         });
         Ok(Self {
-            lua,
+            lua: RefCell::new(lua),
             sh: Rc::new(RefCell::new(Shared { sim, regions: Vec::new(), local: Vec::new(), cmds: Vec::new(), clock: 0, fired: 0, applied: 0, ui: Vec::new() })),
             state,
             hooks: None,
@@ -1521,7 +1773,7 @@ impl ModHost {
     pub fn load_source(&mut self, name: &str, src: &str) -> Result<(), String> {
         let sh = self.sh.clone();
         let (prelude, env) = self
-            .lua
+            .lua.borrow_mut()
             .try_enter(|ctx| {
                 let env = Table::new(&ctx);
                 for base in ["pcall", "error", "assert", "type", "tostring", "tonumber", "select", "pairs", "ipairs", "next"] {
@@ -1565,7 +1817,7 @@ impl ModHost {
             .map_err(|e| e.to_string())?;
         self.finish(&prelude)?;
         let hooks = self
-            .lua
+            .lua.borrow_mut()
             .try_enter(|ctx| {
                 let (emit, systems, timers) = ctx.fetch(&prelude).take_result::<(Value, Value, Value)>(ctx)??;
                 let (Value::Function(emit), Value::Function(systems), Value::Function(timers)) = (emit, systems, timers) else {
@@ -1577,38 +1829,42 @@ impl ModHost {
                     fire_timers: ctx.stash(timers),
                     on_unit_died: None,
                     on_cast: None,
+                    on_hit: None,
                     on_march: None,
                     on_check_win: None,
                     target_priority: None,
                     on_request: None,
+                    on_skill_up: None,
                 })
             })
             .map_err(|e| e.to_string())?;
         let exec = self
-            .lua
+            .lua.borrow_mut()
             .try_enter(|ctx| {
                 let closure = Closure::load_with_env(ctx, Some(name), src.as_bytes(), ctx.fetch(&env))?;
                 Ok(ctx.stash(Executor::start(ctx, closure.into(), ())))
             })
             .map_err(|e| e.to_string())?;
         self.run(&exec)?;
-        let defined = self.lua.enter(|ctx| matches!(ctx.fetch(&env).get(ctx, "on_tick"), Value::Function(_)));
+        let defined = self.lua.borrow_mut().enter(|ctx| matches!(ctx.fetch(&env).get(ctx, "on_tick"), Value::Function(_)));
         if !defined {
             return Err(format!("{name}: on_tick is not defined"));
         }
         let mut hooks = hooks;
-        let mut named = |key: &str| {
-            self.lua.enter(|ctx| match ctx.fetch(&env).get(ctx, ctx.intern(key.as_bytes())) {
+        let named = |key: &str| {
+            self.lua.borrow_mut().enter(|ctx| match ctx.fetch(&env).get(ctx, ctx.intern(key.as_bytes())) {
                 Value::Function(f) => Some(ctx.stash(f)),
                 _ => None,
             })
         };
         hooks.on_unit_died = named("on_unit_died");
         hooks.on_cast = named("on_cast");
+        hooks.on_hit = named("on_hit");
         hooks.on_march = named("on_march");
         hooks.on_check_win = named("on_check_win");
         hooks.target_priority = named("target_priority");
         hooks.on_request = named("on_request");
+        hooks.on_skill_up = named("on_skill_up");
         self.hooks = Some(hooks);
         self.version += 1;
         Ok(())
@@ -1702,7 +1958,7 @@ impl ModHost {
     /// The scalar fields a mod left in `state`, sorted, as `key=value` words: the same line mod_check
     /// prints after `mod-state` on the mlua host.
     pub fn state_line(&mut self) -> String {
-        let mut fields: Vec<String> = self.lua.enter(|ctx| {
+        let mut fields: Vec<String> = self.lua.borrow_mut().enter(|ctx| {
             ctx.fetch(&self.state)
                 .iter()
                 .filter_map(|(k, v)| {
@@ -1724,7 +1980,7 @@ impl ModHost {
 
     /// The integer a mod left in `state` under `key`; None when it is unset or not an integer.
     pub fn state_int(&self, key: &str) -> Option<i64> {
-        self.lua.enter(|ctx| match ctx.fetch(&self.state).get(ctx, ctx.intern(key.as_bytes())) {
+        self.lua.borrow_mut().enter(|ctx| match ctx.fetch(&self.state).get(ctx, ctx.intern(key.as_bytes())) {
             Value::Integer(v) => Some(v),
             _ => None,
         })
@@ -1732,7 +1988,7 @@ impl ModHost {
 
     /// The boolean a mod left in `state` under `key`; None when it is unset or not a boolean.
     pub fn state_bool(&self, key: &str) -> Option<bool> {
-        self.lua.enter(|ctx| match ctx.fetch(&self.state).get(ctx, ctx.intern(key.as_bytes())) {
+        self.lua.borrow_mut().enter(|ctx| match ctx.fetch(&self.state).get(ctx, ctx.intern(key.as_bytes())) {
             Value::Boolean(v) => Some(v),
             _ => None,
         })
@@ -1869,12 +2125,17 @@ impl ModHost {
     // acquisition, on_march for each destination request, on_cast for each cast that takes hold, and
     // on_check_win while no side has won. Every queue is taken each step, mod or not.
     fn dispatch(&mut self) -> Result<(), String> {
-        let (acquired, requests, casts) = {
+        let (acquired, requests, casts, hits) = {
             let mut sh = self.sh.borrow_mut();
-            (sh.sim.take_acquisitions(), sh.sim.take_destination_requests(), sh.sim.take_casts())
+            (sh.sim.take_acquisitions(), sh.sim.take_destination_requests(), sh.sim.take_casts(), sh.sim.take_hits())
         };
         let Some(h) = self.hooks.as_ref() else { return Ok(()) };
-        let (tp, march, cast, win) = (h.target_priority.clone(), h.on_march.clone(), h.on_cast.clone(), h.on_check_win.clone());
+        let (tp, march, cast, win, hit) = (h.target_priority.clone(), h.on_march.clone(), h.on_cast.clone(), h.on_check_win.clone(), h.on_hit.clone());
+        if let Some(f) = hit {
+            for h in hits {
+                self.call_on_hit(&f, h);
+            }
+        }
         if let Some(f) = tp {
             for (unit, target) in acquired {
                 self.call_target_priority(&f, unit, target);
@@ -1929,6 +2190,13 @@ impl ModHost {
     }
 
     // on_cast(caster, ability_name, state), with the ability's catalog name.
+    fn call_on_hit(&mut self, f: &StashedFunction, hit: sim::Hit) {
+        let args = vec![Arg::Int(i64::from(hit.attacker)), Arg::Int(i64::from(hit.victim)), Arg::Int(i64::from(hit.dealt)), Arg::State];
+        if let Err(e) = self.call_ret(f, args) {
+            println!("ev=mod_hook_failed hook=on_hit error={:?}", e);
+        }
+    }
+
     fn call_on_cast(&mut self, f: &StashedFunction, caster: usize, ability: usize) {
         let name = {
             let sh = self.sh.borrow();
@@ -1986,7 +2254,7 @@ impl ModHost {
     fn call_ret(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<(Ret, Ret), String> {
         let exec = self.start(f, args)?;
         self.finish(&exec)?;
-        self.lua
+        self.lua.borrow_mut()
             .try_enter(|ctx| {
                 let (x, y) = ctx.fetch(&exec).take_result::<(Value, Value)>(ctx)??;
                 Ok((Ret::of(x), Ret::of(y)))
@@ -1996,7 +2264,7 @@ impl ModHost {
 
     fn start(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<StashedExecutor, String> {
         let state = &self.state;
-        self.lua
+        self.lua.borrow_mut()
             .try_enter(|ctx| {
                 let values: Vec<Value> = args
                     .into_iter()
@@ -2027,15 +2295,33 @@ impl ModHost {
     // Applies one command, then answers the store requests it queued. Each verdict is applied before the
     // next queued command, as the mlua host does. The borrow on the sim is released before any Lua runs.
     fn apply_one(&mut self, cmd: Cmd) {
+        // A skill-up is applied only when the mod's on_skill_up rule allows it; no rule allows nothing.
+        let allowed = match cmd {
+            Cmd::SkillUp { unit, slot } => self.skill_allowed(unit, slot),
+            _ => true,
+        };
         let requests = {
             let mut guard = self.sh.borrow_mut();
             let sh = &mut *guard;
-            if Self::apply_cmd(&mut sh.sim, &mut sh.ui, cmd) {
+            if allowed && Self::apply_cmd(&mut sh.sim, &mut sh.ui, cmd) {
                 sh.applied += 1;
             }
             sh.sim.drain_requests()
         };
         self.settle(requests);
+    }
+
+    // on_skill_up(unit, slot, state) returns true or false. Without the hook a skill-up is allowed, so a
+    // mod with no skill rule keeps the engine's plain rank mechanic. A Lua error refuses.
+    fn skill_allowed(&mut self, unit: usize, slot: usize) -> bool {
+        let Some(f) = self.hooks.as_ref().and_then(|h| h.on_skill_up.clone()) else { return true };
+        match self.call_own(&f, vec![Arg::Int(unit as i64), Arg::Int(slot as i64), Arg::State]) {
+            Ok(v) => matches!(v[0], Own::Bool(true)),
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=on_skill_up error={:?}", e);
+                false
+            }
+        }
     }
 
     fn settle(&mut self, requests: Vec<ItemRequest>) {
@@ -2128,7 +2414,7 @@ impl ModHost {
     fn call_own(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<[Own; 3], String> {
         let exec = self.start(f, args)?;
         self.finish(&exec)?;
-        self.lua
+        self.lua.borrow_mut()
             .try_enter(|ctx| {
                 let (x, y, z) = ctx.fetch(&exec).take_result::<(Value, Value, Value)>(ctx)??;
                 Ok([own(ctx, x), own(ctx, y), own(ctx, z)])
@@ -2157,12 +2443,19 @@ impl ModHost {
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
                 Cmd::Ui { body } => ui.push(body),
+                Cmd::Fx(event) => {
+                    let _ = sim.push_fx(event);
+                }
                 Cmd::GiveAbility { unit, slot, name } => {
                     let _ = sim.give_ability(unit, slot, &name);
                 }
                 Cmd::AddUnitGold { unit, amount } => {
                     let _ = sim.add_unit_gold(unit, amount);
                 }
+                Cmd::AddXp { unit, amount } => {
+                    sim.add_xp(unit, amount);
+                }
+                Cmd::AddStat { unit, code, delta } => sim.add_stat_bonus(unit, code, delta),
                 Cmd::Order { unit, x, y } if sim.alive(unit) => sim.order(unit, x, y),
                 Cmd::Damage { caster, target, dmg } if sim.alive(caster) => {
                     let player = sim.player(caster);
@@ -2297,14 +2590,14 @@ impl ModHost {
 
     fn run(&mut self, executor: &StashedExecutor) -> Result<(), String> {
         self.finish(executor)?;
-        self.lua.try_enter(|ctx| ctx.fetch(executor).take_result::<()>(ctx)?).map_err(|e| e.to_string())
+        self.lua.borrow_mut().try_enter(|ctx| ctx.fetch(executor).take_result::<()>(ctx)?).map_err(|e| e.to_string())
     }
 
     // Steps `executor` until it holds a result for the caller to take.
     fn finish(&mut self, executor: &StashedExecutor) -> Result<(), String> {
         for _ in 0..MAX_STEPS {
             let mut fuel = Fuel::with(FUEL_PER_STEP);
-            if self.lua.enter(|ctx| ctx.fetch(executor).step(ctx, &mut fuel)) {
+            if self.lua.borrow_mut().enter(|ctx| ctx.fetch(executor).step(ctx, &mut fuel)) {
                 return Ok(());
             }
         }

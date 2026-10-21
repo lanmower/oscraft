@@ -870,7 +870,7 @@ impl Sim {
     }
 
     fn resource_effect(&mut self, caster: usize, j: usize, eff: Effect) {
-        let cap_of = |s: &Sim, u: usize| if s.is_hero(u) { s.heroes.mana_max[u] } else { i32::MAX };
+        let cap_of = |s: &Sim, u: usize| if s.is_hero(u) { s.attributed.mana_max[u] } else { i32::MAX };
         match eff.p1 {
             0 => {
                 let cap = cap_of(self, j);
@@ -1114,7 +1114,7 @@ impl Sim {
             self.speed[j] = self.speed[caster];
             self.spell.ill_out[j] = eff.p2.max(1);
             self.spell.ill_in[j] = eff.p3.max(1);
-            self.wards.expires[j] = self.ticks.wrapping_add(eff.p1.max(1) as u32);
+            self.expiry.expires[j] = self.ticks.wrapping_add(eff.p1.max(1) as u32);
             self.touch(j);
         }
     }

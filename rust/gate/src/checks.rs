@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use std::sync::Arc;
+
 
 use sim::{fixed, Refusal, Sim};
 
@@ -38,9 +38,9 @@ mod item_checks;
 mod ability_checks;
 
 pub const CHECKS: &[(&str, Check)] = &[
-    ("determinism-replay-hash", determinism_checks::moba_replay_hash),
-    ("determinism-save-load-hash", determinism_checks::moba_save_load_hash),
-    ("determinism-parity-hash", determinism_checks::moba_parity_hash),
+    ("determinism-replay-hash", determinism_checks::scenario_replay_hash),
+    ("determinism-save-load-hash", determinism_checks::scenario_save_load_hash),
+    ("determinism-parity-hash", determinism_checks::scenario_parity_hash),
     ("mechanic-unit-spawn", mechanic_checks::unit_spawn),
     ("mechanic-ability-use", mechanic_checks::ability_use),
     ("mechanic-economy-transfer", mechanic_checks::economy_transfer),
@@ -52,20 +52,20 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("mechanic-structure-damage", mechanic_checks::structure_damage),
     ("mechanic-win-trigger", mechanic_checks::win_trigger),
     ("mechanic-kill-bounty", mechanic_checks::kill_bounty),
-    ("mechanic-camp-respawn", mechanic_checks::camp_respawn),
-    ("mechanic-camp-leash", mechanic_checks::camp_leash),
-    ("mechanic-camp-roshan-aegis", mechanic_checks::camp_roshan_aegis),
-    ("mechanic-camp-rune-pickup", mechanic_checks::camp_rune_pickup),
-    ("hero-axe-level1", hero_checks::hero_axe_level1),
-    ("hero-axe-growth", hero_checks::hero_axe_growth),
-    ("hero-universal-damage", hero_checks::hero_universal_damage),
-    ("hero-roster", hero_checks::hero_roster),
+    ("mechanic-camp-respawn", mechanic_checks::spawn_group_respawn),
+    ("mechanic-camp-leash", mechanic_checks::spawn_group_leash),
+    ("mechanic-camp-roshan-aegis", mechanic_checks::spawn_group_roshan_aegis),
+    ("mechanic-camp-rune-pickup", mechanic_checks::spawn_group_rune_pickup),
+    ("hero-axe-level1", hero_checks::attributed_axe_level1),
+    ("hero-axe-growth", hero_checks::attributed_axe_growth),
+    ("hero-universal-damage", hero_checks::attributed_universal_damage),
+    ("hero-roster", hero_checks::attributed_roster),
     ("item-catalog", item_checks::item_catalog),
     ("item-recipe-buy", item_checks::item_recipe_buy),
     ("item-shop-rules", item_checks::item_shop_rules),
     ("item-stack-consume", item_checks::item_stack_consume),
     ("item-slots", item_checks::item_slots),
-    ("moba-match-end", mechanic_checks::moba_match_end),
+    ("moba-match-end", mechanic_checks::scenario_match_end),
     ("ability-axe-berserkers-call", ability_checks::axe_berserkers_call),
     ("ability-axe-battle-hunger", ability_checks::axe_battle_hunger),
     ("ability-axe-counter-helix", ability_checks::axe_counter_helix),
@@ -97,7 +97,7 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("ability-omniknight-guardian-angel", ability_checks::omniknight_guardian_angel),
     ("ability-talent-picks", ability_checks::talent_picks),
     ("ability-cast-walks-into-range", ability_checks::cast_walks_into_range),
-    ("ability-skill-level-gates", ability_checks::skill_level_gates),
+    ("ability-skill-gate-data", ability_checks::skill_gate_data),
     ("ability-dispel", ability_checks::spell_dispel),
     ("ability-illusions", ability_checks::spell_illusions),
     ("ability-phantom-lancer-illusions", ability_checks::phantom_lancer_illusions),
@@ -108,8 +108,8 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("ability-slardar-bash", ability_checks::slardar_bash),
     ("ability-vengeful-command-aura", ability_checks::vengeful_command_aura),
     ("ability-antimage-blink-and-mana-break", ability_checks::antimage_blink_and_mana_break),
-    ("moba-creeps", mechanic_checks::moba_creeps),
-    ("moba-lane", mechanic_checks::moba_lane),
+    ("moba-creeps", mechanic_checks::scenario_creeps),
+    ("moba-lane", mechanic_checks::scenario_lane),
     ("creep-stops-to-attack", mechanic_checks::creep_stops_to_attack),
     ("creep-strikes-creep-before-tower", mechanic_checks::creep_strikes_creep_before_tower),
     ("creep-crowded-cell-strikes-creep", mechanic_checks::creep_crowded_cell_strikes_creep),
@@ -120,17 +120,17 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("item-town-portal", item_checks::item_town_portal),
     ("item-aghanim-and-refresh", item_checks::item_aghanim_and_refresh),
     ("item-stat-stacking", item_checks::item_stat_stacking),
-    ("moba-idle-settle", mechanic_checks::moba_idle_settle),
-    ("moba-sync", mechanic_checks::moba_sync),
-    ("moba-objective", mechanic_checks::moba_objective),
-    ("moba-wave-composition", unit_checks::moba_wave_composition),
-    ("moba-siege-timing", unit_checks::moba_siege_timing),
-    ("moba-wave-upgrade", unit_checks::moba_wave_upgrade),
-    ("camp-roshan-window", unit_checks::camp_roshan_window),
-    ("camp-minute-refill", unit_checks::camp_minute_refill),
-    ("camp-first-spawn", unit_checks::camp_first_spawn),
-    ("camp-tormentor-timing", unit_checks::camp_tormentor_timing),
-    ("camp-pit-swap", unit_checks::camp_pit_swap),
+    ("moba-idle-settle", mechanic_checks::scenario_idle_settle),
+    ("moba-sync", mechanic_checks::scenario_sync),
+    ("moba-objective", mechanic_checks::scenario_objective),
+    ("moba-wave-composition", unit_checks::scenario_wave_composition),
+    ("moba-siege-timing", unit_checks::scenario_siege_timing),
+    ("moba-wave-upgrade", unit_checks::scenario_wave_upgrade),
+    ("camp-roshan-window", unit_checks::spawn_group_roshan_window),
+    ("camp-minute-refill", unit_checks::spawn_group_minute_refill),
+    ("camp-first-spawn", unit_checks::spawn_group_first_spawn),
+    ("camp-tormentor-timing", unit_checks::spawn_group_tormentor_timing),
+    ("camp-pit-swap", unit_checks::spawn_group_pit_swap),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP
@@ -259,7 +259,7 @@ pub fn data_dir() -> PathBuf {
 
 
 /// A named number of scenarios/moba/hero_rules.txt, the camp, rune and boss timings the moba mod owns.
-pub fn moba_rule(key: &str) -> Result<i32, String> {
+pub fn scenario_rule(key: &str) -> Result<i32, String> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba").join("hero_rules.txt");
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
     text.lines()

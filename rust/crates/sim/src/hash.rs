@@ -72,8 +72,8 @@ impl Sim {
         h.u32s(&self.unit_assists);
         h.i32s(&self.hitter_id);
         h.u32s(&self.hitter_tick);
-        h.bytes(&self.routes.id);
-        h.bytes(&self.routes.step);
+        h.bytes(&self.dests.id);
+        h.bytes(&self.dests.step);
         h.i32s(&self.aggro.target);
         h.u32s(&self.aggro.until);
         h.u32s(&self.aggro.invuln_until);
@@ -87,15 +87,15 @@ impl Sim {
         h.bytes(&self.chase.ret_kind);
         h.i32s(&self.chase.ret_x);
         h.i32s(&self.chase.ret_y);
-        h.u32s(&self.wards.expires);
+        h.u32s(&self.expiry.expires);
         h.bytes(&self.order_memory.set);
         h.i32s(&self.order_memory.x);
         h.i32s(&self.order_memory.y);
-        h.bytes(&self.camps.member);
-        h.i32s(&self.camps.anchor_x);
-        h.i32s(&self.camps.anchor_y);
-        h.bytes(&self.camps.waiting);
-        h.u32s(&self.camps.revive_at);
+        h.bytes(&self.groups.member);
+        h.i32s(&self.groups.anchor_x);
+        h.i32s(&self.groups.anchor_y);
+        h.bytes(&self.groups.waiting);
+        h.u32s(&self.groups.revive_at);
         h.bytes(&self.grid.flags);
         h.bytes(&self.grid.tiles);
         h.u64s(&[self.doodads.len() as u64]);
@@ -164,15 +164,15 @@ impl Sim {
         h.i32s(std::slice::from_ref(&self.winner));
         h.i32s(&self.buff_kind);
         h.i32s(&self.buff_left);
-        h.bytes(&self.healer_player);
-        h.i32s(&self.healer_left);
-        h.i32s(&self.healer_timer);
-        h.i32s(&self.healer_period);
-        h.i32s(&self.healer_amt);
-        h.i32s(&self.healer_rad);
-        h.i32s(&self.healer_x);
-        h.i32s(&self.healer_y);
-        h.i32s(&self.healer_target);
+        h.bytes(&self.aura_player);
+        h.i32s(&self.aura_left);
+        h.i32s(&self.aura_timer);
+        h.i32s(&self.aura_period);
+        h.i32s(&self.aura_amt);
+        h.i32s(&self.aura_rad);
+        h.i32s(&self.aura_x);
+        h.i32s(&self.aura_y);
+        h.i32s(&self.aura_target);
         h.bytes(&self.m_alive);
         h.i32s(&self.m_timer);
         h.i32s(&self.m_caster);
@@ -210,7 +210,7 @@ impl Sim {
             h.bytes(&v.to_le_bytes());
         }
         h.bytes(&self.controller);
-        h.bytes(&self.heroes.is_hero);
+        h.bytes(&self.attributed.is_attributed);
         if self.class_override.iter().any(|&c| c >= 0) {
             let bytes: Vec<u8> = self.class_override.iter().map(|&c| c as u8).collect();
             h.bytes(&bytes);
@@ -219,15 +219,15 @@ impl Sim {
             let bytes: Vec<u8> = self.hold_override.iter().map(|&c| c as u8).collect();
             h.bytes(&bytes);
         }
-        h.i32s(&self.heroes.home_x);
-        h.i32s(&self.heroes.home_y);
-        h.bytes(&self.heroes.waiting);
-        h.u32s(&self.heroes.respawn_at);
-        h.i32s(&self.heroes.gold);
-        h.i32s(&self.heroes.mana_max);
-        h.i32s(&self.heroes.spot_x);
-        h.i32s(&self.heroes.spot_y);
-        h.bytes(format!("{:?}{:?}", self.heroes.rules, self.heroes.defs).as_bytes());
+        h.i32s(&self.attributed.home_x);
+        h.i32s(&self.attributed.home_y);
+        h.bytes(&self.attributed.waiting);
+        h.u32s(&self.attributed.respawn_at);
+        h.i32s(&self.attributed.gold);
+        h.i32s(&self.attributed.mana_max);
+        h.i32s(&self.attributed.spot_x);
+        h.i32s(&self.attributed.spot_y);
+        h.bytes(format!("{:?}{:?}", self.attributed.rules, self.attributed.defs).as_bytes());
         h.u64s(&[
             self.stats.deaths as u64,
             self.stats.vision_refreshes as u64,

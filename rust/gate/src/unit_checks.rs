@@ -1,7 +1,7 @@
 //! Gate checks for the moba scenario's units and timers: lane waves, siege timing, barracks wave
 //! upgrades, neutral camp stacking and Roshan's respawn window. Each runs on the moba image.
 
-use crate::checks::{fresh, moba_rule, run_ticks, spawn, MAX_UNITS};
+use crate::checks::{fresh, scenario_rule, run_ticks, MAX_UNITS};
 use crate::mod_checks::{advance, read_int, start};
 use sim::{fixed, Sim};
 
@@ -71,7 +71,7 @@ game.timer("gate_kill_side1_towers", 1500, function()
 end, 1000000)
 "#;
 
-fn moba_image() -> Result<Vec<u8>, String> {
+fn scenario_image() -> Result<Vec<u8>, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))
 }
@@ -88,8 +88,8 @@ fn spawners(s: &Sim, kinds: &[&str]) -> i64 {
 /// Lane creep waves come from scenarios/moba/lanes.lua: each top and bottom lane spawner sends three melee and
 /// one ranged creep every 480 ticks from tick 1, and mid sends none. The mod's counts sum both sides,
 /// so the expected wave is the creep lane spawners in the image times the per-lane counts.
-pub fn moba_wave_composition(_image: &[u8]) -> Result<(), String> {
-    let image = moba_image()?;
+pub fn scenario_wave_composition(_image: &[u8]) -> Result<(), String> {
+    let image = scenario_image()?;
     let lanes = spawners(&fresh(&image)?, CREEP_LANES);
     let (want_melee, want_ranged) = (lanes * MELEE_PER_LANE, lanes * RANGED_PER_LANE);
     let (mut host, _mod) = start(&image, "waves-composition", WAVES_MOD)?;
@@ -112,8 +112,8 @@ pub fn moba_wave_composition(_image: &[u8]) -> Result<(), String> {
 
 /// Siege creeps come from the mod: every lane spawner (top, mid, bottom, both sides) sends one at tick
 /// 4800, and the first wave's size is the siege spawner count in the image.
-pub fn moba_siege_timing(_image: &[u8]) -> Result<(), String> {
-    let image = moba_image()?;
+pub fn scenario_siege_timing(_image: &[u8]) -> Result<(), String> {
+    let image = scenario_image()?;
     let want = spawners(&fresh(&image)?, ALL_LANES);
     let (mut host, _mod) = start(&image, "waves-siege", WAVES_MOD)?;
     let mut first = None;
@@ -142,8 +142,8 @@ pub fn moba_siege_timing(_image: &[u8]) -> Result<(), String> {
 /// kills the top lane's mirror tower at tick 500 (one lane upgrades) and every side-1 tower at tick 1500.
 /// Expected per wave: 3 melee and 1 ranged per upgraded lane (super), then 3 and 1 per creep lane of side 0
 /// (mega), with the creep lane count taken from the image.
-pub fn moba_wave_upgrade(_image: &[u8]) -> Result<(), String> {
-    let image = moba_image()?;
+pub fn scenario_wave_upgrade(_image: &[u8]) -> Result<(), String> {
+    let image = scenario_image()?;
     let owner_lanes = spawners(&fresh(&image)?, CREEP_LANES) / 2;
     let (mut host, _mod) = start(&image, "waves-upgrade", &format!("{WAVES_MOD}\n{UPGRADE_HARNESS}"))?;
     advance(&mut host, 490)?;
@@ -175,16 +175,16 @@ pub fn moba_wave_upgrade(_image: &[u8]) -> Result<(), String> {
 }
 
 /// Roshan respawns a random 8 to 11 minutes after death, never earlier or later.
-pub fn camp_roshan_window(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
+pub fn spawn_group_roshan_window(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&scenario_image()?)?;
     let boss = (0..MAX_UNITS)
         .filter(|&u| s.alive(u) && s.player(u) == 0xFF)
         .max_by_key(|&u| s.hp(u))
         .ok_or("moba image places no neutral unit")?;
     s.hurt(boss, fixed::from_int(10000));
     let died = s.ticks();
-    let min = (moba_rule("roshan_respawn_min_s")? as u32) * sim::TICKS_PER_SECOND as u32;
-    let max = min + (moba_rule("roshan_respawn_spread_s")? as u32) * sim::TICKS_PER_SECOND as u32;
+    let min = (scenario_rule("roshan_respawn_min_s")? as u32) * sim::TICKS_PER_SECOND as u32;
+    let max = min + (scenario_rule("roshan_respawn_spread_s")? as u32) * sim::TICKS_PER_SECOND as u32;
     let mut back = None;
     for _ in 0..max + 16 {
         s.tick();
@@ -203,12 +203,12 @@ pub fn camp_roshan_window(_image: &[u8]) -> Result<(), String> {
 
 /// A camp refills on whole-minute marks, and only when every unit of the camp is dead: a camp with a
 /// survivor stays as it is (the stacking rule).
-pub fn camp_minute_refill(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
-    run_ticks(&mut s, (moba_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32 + 1);
+pub fn spawn_group_minute_refill(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&scenario_image()?)?;
+    run_ticks(&mut s, (scenario_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32 + 1);
     let u = (0..MAX_UNITS).find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).ok_or("moba image places no neutral camp unit")?;
     let (hx, hy) = s.position_fixed(u);
-    let reach = fixed::from_milli(moba_rule("camp_clear_milli")?) as i64;
+    let reach = fixed::from_milli(scenario_rule("camp_clear_milli")?) as i64;
     let mates: Vec<usize> = (0..MAX_UNITS)
         .filter(|&k| {
             let (x, y) = s.position_fixed(k);
@@ -219,7 +219,7 @@ pub fn camp_minute_refill(_image: &[u8]) -> Result<(), String> {
     if mates.len() < 2 {
         return Err(format!("camp around unit {u} holds {} units, want at least 2", mates.len()));
     }
-    let mark = (moba_rule("camp_respawn_s")? as u32) * sim::TICKS_PER_SECOND as u32;
+    let mark = (scenario_rule("camp_respawn_s")? as u32) * sim::TICKS_PER_SECOND as u32;
     s.hurt(u, fixed::from_int(10000));
     run_ticks(&mut s, mark + 8);
     if s.alive(u) {
@@ -241,14 +241,14 @@ pub fn camp_minute_refill(_image: &[u8]) -> Result<(), String> {
 }
 
 /// Regular neutral camps are absent until 1:00; Roshan and the bounty runes are present from the start.
-pub fn camp_first_spawn(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
+pub fn spawn_group_first_spawn(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&scenario_image()?)?;
     let regular = |s: &Sim| (0..MAX_UNITS).filter(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).count();
     let boss = (0..MAX_UNITS).filter(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u) == Some("roshan")).count();
     if regular(&s) != 0 || boss == 0 {
         return Err(format!("at tick 0 {} camp units live and {boss} bosses, want 0 and at least 1", regular(&s)));
     }
-    let first = (moba_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32;
+    let first = (scenario_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32;
     run_ticks(&mut s, first - 4);
     if regular(&s) != 0 {
         return Err("a camp unit lived before 1:00".into());
@@ -263,8 +263,8 @@ pub fn camp_first_spawn(_image: &[u8]) -> Result<(), String> {
 }
 
 /// The Tormentor first spawns at 15:00, and returns 10 minutes after its death.
-pub fn camp_tormentor_timing(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
+pub fn spawn_group_tormentor_timing(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&scenario_image()?)?;
     let find = |s: &Sim| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some("tormentor"));
     if find(&s).is_some() {
         return Err("a Tormentor lives at tick 0".into());
@@ -296,8 +296,8 @@ pub fn camp_tormentor_timing(_image: &[u8]) -> Result<(), String> {
 
 /// From 15:00 Roshan walks to the pit of the day/night phase (top at night), and the Tormentor respawns at the
 /// Radiant corner at night and the Dire corner by day.
-pub fn camp_pit_swap(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&moba_image()?)?;
+pub fn spawn_group_pit_swap(_image: &[u8]) -> Result<(), String> {
+    let mut s = fresh(&scenario_image()?)?;
     let find = |s: &Sim, name: &str| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some(name));
     let cells = |s: &Sim, u: usize, x: i32, y: i32| {
         let (px, py) = s.position_fixed(u);

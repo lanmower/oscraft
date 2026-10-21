@@ -64,23 +64,23 @@ pub(crate) fn parse_routes(bytes: &[u8], (off, count): (usize, usize), w: usize,
 /// Per-unit route progress (the route id being followed, 0 for none, and the next waypoint index), and the
 /// transient log of destination requests.
 #[derive(Clone, Debug)]
-pub(crate) struct RouteState {
+pub(crate) struct DestState {
     pub(crate) id: Vec<u8>,
     pub(crate) step: Vec<u8>,
     /// (unit, player) pairs whose unit needs a destination since the host last drained the log.
     pub(crate) requests: Vec<(u32, u8)>,
 }
 
-impl RouteState {
-    pub(crate) fn new(cap: usize) -> RouteState {
-        RouteState { id: vec![0; cap], step: vec![0; cap], requests: Vec::new() }
+impl DestState {
+    pub(crate) fn new(cap: usize) -> DestState {
+        DestState { id: vec![0; cap], step: vec![0; cap], requests: Vec::new() }
     }
 }
 
 impl Sim {
     pub(crate) fn route_clear(&mut self, i: usize) {
-        self.routes.id[i] = 0;
-        self.routes.step[i] = 0;
+        self.dests.id[i] = 0;
+        self.dests.step[i] = 0;
     }
 
     fn route_point(&self, player: u8, id: u8, step: usize) -> Option<(i32, i32, bool)> {
@@ -89,41 +89,27 @@ impl Sim {
         Some((fixed::from_milli(x), fixed::from_milli(y), step + 1 == route.points.len()))
     }
 
-    /// Sends unit `j` of `player` along that player's route `id`. False when the player has no such route
-    /// or the first order is refused; the unit then keeps no route.
-    pub(crate) fn start_route(&mut self, j: usize, player: u8, id: u8) -> bool {
-        let Some((x, y, _)) = self.route_point(player, id, 0) else {
-            return false;
-        };
-        if self.issue_order_kind(j, ORDER_ATTACK_MOVE, x, y).is_err() {
-            return false;
-        }
-        self.routes.id[j] = id;
-        self.routes.step[j] = 0;
-        true
-    }
-
     /// Asks the host for a destination for unit `j` of `player`. The request is queued, not answered here.
     pub(crate) fn request_destination(&mut self, j: usize, player: u8) {
-        if self.routes.requests.len() < REQUEST_CAP {
-            self.routes.requests.push((j as u32, player));
+        if self.dests.requests.len() < REQUEST_CAP {
+            self.dests.requests.push((j as u32, player));
         }
     }
 
     /// Takes the destination requests since the last call, oldest first, as (unit, player).
     pub fn take_destination_requests(&mut self) -> Vec<(usize, u8)> {
-        std::mem::take(&mut self.routes.requests).into_iter().map(|(u, p)| (u as usize, p)).collect()
+        std::mem::take(&mut self.dests.requests).into_iter().map(|(u, p)| (u as usize, p)).collect()
     }
 
     /// Generic waypoint walker: advances unit `i` along its route: on reaching the current waypoint, the next
     /// one is ordered, or after the last the unit asks for a destination. A changed order ends the route. The
     /// walker carries no lane or content rule; which destination a request gets is the host's on_march.
     pub(crate) fn walk_waypoint(&mut self, i: usize) {
-        let id = self.routes.id[i];
+        let id = self.dests.id[i];
         if id == 0 {
             return;
         }
-        let step = self.routes.step[i] as usize;
+        let step = self.dests.step[i] as usize;
         let player = self.player[i];
         let Some((x, y, last)) = self.route_point(player, id, step) else {
             self.route_clear(i);
@@ -144,7 +130,7 @@ impl Sim {
         }
         if let Some((nx, ny, _)) = self.route_point(player, id, step + 1) {
             if self.issue_order_kind(i, ORDER_ATTACK_MOVE, nx, ny).is_ok() {
-                self.routes.step[i] = (step + 1) as u8;
+                self.dests.step[i] = (step + 1) as u8;
             }
         }
     }

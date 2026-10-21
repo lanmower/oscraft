@@ -419,7 +419,7 @@ impl Sim {
         if !self.is_hero(unit) {
             return false;
         }
-        self.heroes.gold[unit] = self.heroes.gold[unit].saturating_add(amount).max(0);
+        self.attributed.gold[unit] = self.attributed.gold[unit].saturating_add(amount).max(0);
         true
     }
 

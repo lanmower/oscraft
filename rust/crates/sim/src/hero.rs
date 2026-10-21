@@ -47,9 +47,9 @@ impl HeroDef {
                 "str" => d.base[0] = v,
                 "agi" => d.base[1] = v,
                 "int" => d.base[2] = v,
-                "attr_a_gain" => d.gain[0] = v,
-                "attr_b_gain" => d.gain[1] = v,
-                "attr_c_gain" => d.gain[2] = v,
+                "str_gain" => d.gain[0] = v,
+                "agi_gain" => d.gain[1] = v,
+                "int_gain" => d.gain[2] = v,
                 "mana" => d.mana = v,
                 "mana_regen" => d.mana_regen = v,
                 "hp_regen" => d.hp_regen = v,
@@ -182,13 +182,11 @@ impl HeroRules {
 
 /// Per-unit hero state, sized to the unit cap. Not included in the state hash or the save bytes.
 #[derive(Clone, Debug)]
-pub(crate) struct HeroState {
+pub(crate) struct AttributedState {
     pub(crate) rules: HeroRules,
     /// The named values of the rules text (every key the engine does not own), read by mods through `Sim::rule`.
     pub(crate) named: BTreeMap<String, i32>,
-    /// Named per-unit counters the mods keep (buyback cooldown and the like), by (unit, name).
-    pub(crate) counters: BTreeMap<(usize, String), i64>,
-    pub(crate) is_hero: Vec<u8>,
+    pub(crate) is_attributed: Vec<u8>,
     pub(crate) home_x: Vec<i32>,
     pub(crate) home_y: Vec<i32>,
     /// 0 alive, 1 dead awaiting the respawn the mod set (`u32::MAX` until it sets one), 2 reincarnating.
@@ -203,13 +201,12 @@ pub(crate) struct HeroState {
     pub(crate) defs: Vec<Option<HeroDef>>,
 }
 
-impl HeroState {
-    pub(crate) fn new(cap: usize) -> HeroState {
-        HeroState {
+impl AttributedState {
+    pub(crate) fn new(cap: usize) -> AttributedState {
+        AttributedState {
             rules: HeroRules::default(),
             named: BTreeMap::new(),
-            counters: BTreeMap::new(),
-            is_hero: vec![0; cap],
+            is_attributed: vec![0; cap],
             home_x: vec![0; cap],
             home_y: vec![0; cap],
             waiting: vec![0; cap],
@@ -235,8 +232,8 @@ impl Sim {
     /// Gives the already spawned unit `i` attributed state at the Q16.16 point (x, y): its home, its
     /// respawn and gold state, and its attribute stats. The mod's seat-pick spawn and map placements call this.
     pub(crate) fn attribute_unit(&mut self, i: usize, x: i32, y: i32) {
-        let h = &mut self.heroes;
-        h.is_hero[i] = 1;
+        let h = &mut self.attributed;
+        h.is_attributed[i] = 1;
         h.home_x[i] = x;
         h.home_y[i] = y;
         h.waiting[i] = 0;
@@ -255,13 +252,13 @@ impl Sim {
         if !self.is_hero(j) {
             return;
         }
-        self.heroes.waiting[j] = 1;
-        self.heroes.respawn_at[j] = u32::MAX;
+        self.attributed.waiting[j] = 1;
+        self.attributed.respawn_at[j] = u32::MAX;
     }
 
     /// A named value of the rules text (every `key=value` line the engine does not own), or None.
     pub fn rule(&self, key: &str) -> Option<i32> {
-        self.heroes.named.get(key).copied()
+        self.attributed.named.get(key).copied()
     }
 
     /// The xp a kill of unit `j` is worth, its assist radius in milli-units, and its denial xp percent,
@@ -280,12 +277,12 @@ impl Sim {
 
     /// A named counter of unit `i` the mods keep (`set_counter`); 0 when never set.
     pub fn counter(&self, i: usize, name: &str) -> i64 {
-        self.heroes.counters.get(&(i, name.to_string())).copied().unwrap_or(0)
+        self.counters.get(&(i, name.to_string())).copied().unwrap_or(0)
     }
 
     /// Sets the named counter of unit `i`.
     pub fn set_counter(&mut self, i: usize, name: &str, value: i64) {
-        self.heroes.counters.insert((i, name.to_string()), value);
+        self.counters.insert((i, name.to_string()), value);
     }
 
     /// A field of the `hero` line data of unit `i` by name: primary, str, agi, int, mana, mana_regen,
@@ -321,7 +318,7 @@ impl Sim {
         if k < 0 {
             return None;
         }
-        self.heroes.defs.get(k as usize).copied().flatten()
+        self.attributed.defs.get(k as usize).copied().flatten()
     }
 
     /// Strength, agility and intelligence of hero `i` in hundredths: the level-0 base plus the growth
@@ -344,7 +341,7 @@ impl Sim {
         if let Some(d) = self.hero_def(i) {
             return [0, 1, 2].map(|k| (d.base[k] as i64 + d.gain[k] as i64 * lvl) as i32);
         }
-        let r = self.heroes.rules;
+        let r = self.attributed.rules;
         let whole = [r.attr_a_base + r.attr_a_gain * lvl as i32, r.attr_b_base + r.attr_b_gain * lvl as i32, r.attr_c_base + r.attr_c_gain * lvl as i32];
         whole.map(|v| v * 100)
     }
@@ -394,8 +391,8 @@ impl Sim {
     /// Enrols unit `i` as a hero at (x, y): hero flags, home, gold and mana reset, passives and attribute
     /// stats applied, health full. The mod's seat-pick and placement rules call this through `game.enroll`.
     pub fn enroll_hero(&mut self, i: usize, x: i32, y: i32) {
-        let h = &mut self.heroes;
-        h.is_hero[i] = 1;
+        let h = &mut self.attributed;
+        h.is_attributed[i] = 1;
         h.home_x[i] = x;
         h.home_y[i] = y;
         h.waiting[i] = 0;
@@ -437,8 +434,8 @@ impl Sim {
             }
         }
         let mana_max = self.hero_max_mana(i);
-        let old_mana = self.heroes.mana_max[i];
-        self.heroes.mana_max[i] = mana_max;
+        let old_mana = self.attributed.mana_max[i];
+        self.attributed.mana_max[i] = mana_max;
         self.energy[i] = (self.energy[i] + (mana_max - old_mana)).clamp(0, mana_max);
         self.touch(i);
     }
@@ -454,7 +451,7 @@ impl Sim {
     pub(crate) fn resync_hero_mana(&mut self) {
         for i in 0..self.n {
             if self.is_hero(i) && self.alive(i) {
-                self.heroes.mana_max[i] = self.hero_max_mana(i);
+                self.attributed.mana_max[i] = self.hero_max_mana(i);
             }
         }
     }
@@ -462,7 +459,7 @@ impl Sim {
     /// Adds the mana of hero `i` for this tick. The whole mana gained is the difference of two floors of
     /// the running total, so a fraction of a point is never lost and no per-unit remainder is stored.
     fn regen_mana(&mut self, i: usize) {
-        let max = self.heroes.mana_max[i];
+        let max = self.attributed.mana_max[i];
         let rate = self.hero_mana_regen_x100(i) as i64;
         if rate <= 0 || self.energy[i] >= max {
             return;
@@ -476,11 +473,11 @@ impl Sim {
     }
 
     pub fn is_hero(&self, i: usize) -> bool {
-        self.heroes.is_hero.get(i).is_some_and(|&h| h != 0)
+        self.attributed.is_attributed.get(i).is_some_and(|&h| h != 0)
     }
 
     pub fn hero_rules(&self) -> HeroRules {
-        self.heroes.rules
+        self.attributed.rules
     }
 
     /// Loads the rules text: `hero <unit> key=value ...` lines set per-type hero data (the unit must
@@ -488,7 +485,7 @@ impl Sim {
     /// value for `rule`. False, nothing changed, on a bad line.
     pub fn set_hero_rules_text(&mut self, text: &str) -> bool {
         let mut rest = String::new();
-        let mut defs = self.heroes.defs.clone();
+        let mut defs = self.attributed.defs.clone();
         defs.resize(self.cat.units.len(), None);
         for line in text.lines() {
             let Some(body) = line.trim().strip_prefix("hero ") else {
@@ -502,14 +499,14 @@ impl Sim {
             };
             defs[k] = Some(d);
         }
-        let mut rules = self.heroes.rules;
+        let mut rules = self.attributed.rules;
         let Some(named) = rules.set_from_text(&rest) else {
             return false;
         };
-        self.heroes.rules = rules;
-        self.heroes.named = named;
-        self.heroes.defs = defs;
-        self.spell.damage_interrupts = self.heroes.rules.channel_damage_interrupt;
+        self.attributed.rules = rules;
+        self.attributed.named = named;
+        self.attributed.defs = defs;
+        self.spell.damage_interrupts = self.attributed.rules.channel_damage_interrupt;
         for i in 0..self.n {
             self.apply_hero_stats(i);
         }
@@ -518,7 +515,7 @@ impl Sim {
 
     /// Gold held by unit `i`; 0 for a unit with no gold state.
     pub fn unit_gold(&self, i: usize) -> i32 {
-        if self.is_hero(i) { self.heroes.gold[i] } else { 0 }
+        if self.is_hero(i) { self.attributed.gold[i] } else { 0 }
     }
 
     /// Ticks until dead hero `i` respawns; 0 when it is alive; -1 for a non-hero.
@@ -526,20 +523,20 @@ impl Sim {
         if !self.is_hero(i) {
             return -1;
         }
-        if self.heroes.waiting[i] == 0 {
+        if self.attributed.waiting[i] == 0 {
             return 0;
         }
-        self.heroes.respawn_at[i].saturating_sub(self.ticks) as i32
+        self.attributed.respawn_at[i].saturating_sub(self.ticks) as i32
     }
 
     /// Sets the respawn of dead hero `i` (the `set_respawn` primitive): `Some(s)` revives it `s` seconds
     /// from now at its home, `None` leaves it dead. Refused for a live unit, a non-hero, or a hero that is
     /// reincarnating (its aegis timer owns it).
     pub(crate) fn set_hero_respawn(&mut self, i: usize, delay_s: Option<u32>) -> Result<(), &'static str> {
-        if !self.is_hero(i) || self.alive(i) || self.heroes.waiting[i] != 1 {
+        if !self.is_hero(i) || self.alive(i) || self.attributed.waiting[i] != 1 {
             return Err("not a dead hero");
         }
-        self.heroes.respawn_at[i] = match delay_s {
+        self.attributed.respawn_at[i] = match delay_s {
             Some(s) => self.ticks.wrapping_add(s.saturating_mul(TICKS_PER_SECOND as u32)),
             None => u32::MAX,
         };
@@ -551,11 +548,11 @@ impl Sim {
     /// retries next tick.
     pub(crate) fn tick_respawns(&mut self) {
         for i in 0..self.n {
-            if self.heroes.waiting[i] != 0 && self.ticks >= self.heroes.respawn_at[i] {
-                let (x, y) = if self.heroes.waiting[i] == 2 {
-                    (self.heroes.spot_x[i], self.heroes.spot_y[i])
+            if self.attributed.waiting[i] != 0 && self.ticks >= self.attributed.respawn_at[i] {
+                let (x, y) = if self.attributed.waiting[i] == 2 {
+                    (self.attributed.spot_x[i], self.attributed.spot_y[i])
                 } else {
-                    (self.heroes.home_x[i], self.heroes.home_y[i])
+                    (self.attributed.home_x[i], self.attributed.home_y[i])
                 };
                 self.revive_at_point(i, x, y);
             }
@@ -584,10 +581,10 @@ impl Sim {
         self.xp_total[i] = xp;
         self.unit_kills[i] = kills;
         self.unit_deaths[i] = deaths;
-        self.heroes.mana_max[i] = 0;
+        self.attributed.mana_max[i] = 0;
         self.apply_hero_stats(i);
         self.hp[i] = self.hp_max[i];
-        self.heroes.waiting[i] = 0;
+        self.attributed.waiting[i] = 0;
         true
     }
 }

@@ -165,15 +165,23 @@ pub struct Sim {
     pub(crate) unit_kills: Vec<u32>,
     pub(crate) unit_deaths: Vec<u32>,
     /// Hero respawn, buyback and gold per unit. See hero.rs.
-    pub(crate) heroes: crate::hero::HeroState,
+    pub(crate) attributed: crate::hero::AttributedState,
+    /// Named per-unit counters the mods keep (a cooldown stamp and the like), by (unit, name). Not hashed or saved.
+    pub(crate) counters: std::collections::BTreeMap<(usize, String), i64>,
     /// Neutral camp home, leash and respawn timer per unit. See camp.rs.
-    pub(crate) camps: crate::camp::CampState,
+    pub(crate) groups: crate::camp::GroupState,
     /// Aggro targets, invulnerability, damage reduction and healing per unit. See aggro.rs.
     pub(crate) aggro: crate::aggro::AggroState,
     /// Route progress per unit and the destination request log. See route.rs.
-    pub(crate) routes: crate::route::RouteState,
+    pub(crate) dests: crate::route::DestState,
     /// Casts that took hold since the host last drained them, as (caster, ability). Transient. See rules.rs.
     pub(crate) cast_log: Vec<(u32, u16)>,
+    /// Target, x and y of the cast each unit last took hold with (target -1 for none). Transient, not hashed.
+    pub(crate) last_cast: Vec<(i32, i32, i32)>,
+    /// Display effects queued by mods since the host last drained them. Transient, not hashed. See fx.rs.
+    pub(crate) fx: Vec<crate::fx::FxEvent>,
+    /// Hits that dealt damage since the host last drained them. Transient, not hashed. See fx.rs.
+    pub(crate) hits: Vec<crate::fx::Hit>,
     /// Chase and return state of acquiring units. See acquire.rs.
     pub(crate) chase: crate::acquire::ChaseState,
     /// Acquire range per unit kind, milli-units, from the table in acquire.rs. Catalog-derived, not hashed.
@@ -183,10 +191,10 @@ pub struct Sim {
     /// Per-attacker attack-move hold set by a mod (-1 = the Rust rule, 0 = walk past foes, 1 = always hold).
     pub(crate) hold_override: Vec<i8>,
     /// Ward expiry stamps. See wards.rs.
-    pub(crate) wards: crate::wards::WardState,
+    pub(crate) expiry: crate::wards::ExpiryState,
     /// Saved order points for mods that send units away. See carrier.rs.
     pub(crate) order_memory: crate::carrier::OrderMemory,
-    pub(crate) store: crate::store::StoreState,
+    pub(crate) item_requests: crate::store::ItemRequestState,
     /// Spell modifiers, damage over time, zones, chains and illusions. See spell.rs.
     pub(crate) spell: crate::spell::SpellState,
     /// Assists credited to each unit, and its recent hitters (ASSIST_SLOTS per unit: the hitter's unit
@@ -201,15 +209,15 @@ pub struct Sim {
     /// The unit credited with each unit's latest death, -1 for none. Transient: not hashed or saved.
     pub(crate) killer: Vec<i32>,
 
-    pub(crate) healer_player: Vec<u8>,
-    pub(crate) healer_left: Vec<i32>,
-    pub(crate) healer_timer: Vec<i32>,
-    pub(crate) healer_period: Vec<i32>,
-    pub(crate) healer_amt: Vec<i32>,
-    pub(crate) healer_rad: Vec<i32>,
-    pub(crate) healer_x: Vec<i32>,
-    pub(crate) healer_y: Vec<i32>,
-    pub(crate) healer_target: Vec<i32>,
+    pub(crate) aura_player: Vec<u8>,
+    pub(crate) aura_left: Vec<i32>,
+    pub(crate) aura_timer: Vec<i32>,
+    pub(crate) aura_period: Vec<i32>,
+    pub(crate) aura_amt: Vec<i32>,
+    pub(crate) aura_rad: Vec<i32>,
+    pub(crate) aura_x: Vec<i32>,
+    pub(crate) aura_y: Vec<i32>,
+    pub(crate) aura_target: Vec<i32>,
 
     pub(crate) m_alive: Vec<u8>,
     pub(crate) m_timer: Vec<i32>,
@@ -388,18 +396,22 @@ impl Sim {
             xp_total: vec![0; cap],
             xp_curve,
             unit_kills: vec![0; cap],
-            heroes: crate::hero::HeroState::new(cap),
-            camps: crate::camp::CampState::new(cap),
+            attributed: crate::hero::AttributedState::new(cap),
+            counters: std::collections::BTreeMap::new(),
+            groups: crate::camp::GroupState::new(cap),
             aggro: crate::aggro::AggroState::new(cap),
-            routes: crate::route::RouteState::new(cap),
+            dests: crate::route::DestState::new(cap),
             cast_log: Vec::new(),
+            last_cast: vec![(-1, 0, 0); cap],
+            fx: Vec::new(),
+            hits: Vec::new(),
             chase: crate::acquire::ChaseState::new(cap),
             acquire,
             class_override: vec![-1; cap],
             hold_override: vec![-1; cap],
-            wards: crate::wards::WardState::new(cap),
+            expiry: crate::wards::ExpiryState::new(cap),
             order_memory: crate::carrier::OrderMemory::new(cap),
-            store: Default::default(),
+            item_requests: Default::default(),
             spell: crate::spell::SpellState::new(cap),
             unit_deaths: vec![0; cap],
             unit_assists: vec![0; cap],
@@ -408,15 +420,15 @@ impl Sim {
             kill_queue: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
             payouts: Vec::with_capacity(crate::combat::KILL_QUEUE_CAP),
             killer: vec![-1; cap],
-            healer_player: vec![0; HEALER_SLOTS],
-            healer_left: vec![0; HEALER_SLOTS],
-            healer_timer: vec![0; HEALER_SLOTS],
-            healer_period: vec![1; HEALER_SLOTS],
-            healer_amt: vec![0; HEALER_SLOTS],
-            healer_rad: vec![0; HEALER_SLOTS],
-            healer_x: vec![0; HEALER_SLOTS],
-            healer_y: vec![0; HEALER_SLOTS],
-            healer_target: vec![-1; HEALER_SLOTS],
+            aura_player: vec![0; HEALER_SLOTS],
+            aura_left: vec![0; HEALER_SLOTS],
+            aura_timer: vec![0; HEALER_SLOTS],
+            aura_period: vec![1; HEALER_SLOTS],
+            aura_amt: vec![0; HEALER_SLOTS],
+            aura_rad: vec![0; HEALER_SLOTS],
+            aura_x: vec![0; HEALER_SLOTS],
+            aura_y: vec![0; HEALER_SLOTS],
+            aura_target: vec![-1; HEALER_SLOTS],
             m_alive: vec![0; MISSILE_CAP],
             m_timer: vec![0; MISSILE_CAP],
             log_tick: vec![0; ORDER_LOG_CAP],
@@ -719,11 +731,11 @@ impl Sim {
         self.pos_y[i] = y;
         self.tgt_x[i] = x;
         self.tgt_y[i] = y;
-        self.camps.clear(i);
+        self.groups.clear(i);
         self.aggro_clear(i);
         self.route_clear(i);
         self.chase_clear(i);
-        self.wards.expires[i] = 0;
+        self.expiry.expires[i] = 0;
         self.order_memory.clear(i);
         self.spell.clear_unit(i);
         self.vel_x[i] = 0;

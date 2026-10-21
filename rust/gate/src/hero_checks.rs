@@ -5,7 +5,7 @@
 use crate::checks::{fresh, kind};
 use sim::{fixed, Sim};
 
-fn moba_with_rules() -> Result<Sim, String> {
+fn scenario_with_rules() -> Result<Sim, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
     let mut s = fresh(&image)?;
@@ -44,8 +44,8 @@ fn q16(x100: i64) -> i64 {
 
 /// Axe at level 1 (reference ruleset 6.88g): strength 25, agility 20, intelligence 18; health 150 + 22 x 25; armour 0 + 20/6;
 /// damage 26 (2d3 + 25 = 26 average) + 25 strength; attack period 1.7 s; mana 100 + 12 x 18.
-pub fn hero_axe_level1(_image: &[u8]) -> Result<(), String> {
-    let mut s = moba_with_rules()?;
+pub fn attributed_axe_level1(_image: &[u8]) -> Result<(), String> {
+    let mut s = scenario_with_rules()?;
     let h = spawn_attributed(&mut s, "axe")?;
     if s.hero_attributes(h) != [25, 20, 18] {
         return Err(format!("axe attributes {:?} want [25, 20, 18]", s.hero_attributes(h)));
@@ -64,8 +64,8 @@ pub fn hero_axe_level1(_image: &[u8]) -> Result<(), String> {
 
 /// One level of growth (reference ruleset 6.88g): axe strength 25 + 2.5, agility 20 + 2.2, intelligence 18 + 1.6; health gains 22 per
 /// strength point and the wounded fraction is kept as a flat amount.
-pub fn hero_axe_growth(_image: &[u8]) -> Result<(), String> {
-    let mut s = moba_with_rules()?;
+pub fn attributed_axe_growth(_image: &[u8]) -> Result<(), String> {
+    let mut s = scenario_with_rules()?;
     let h = spawn_attributed(&mut s, "axe")?;
     let first = s.xp_curve()[0];
     let gained = s.add_xp(h, first);
@@ -85,16 +85,16 @@ pub fn hero_axe_growth(_image: &[u8]) -> Result<(), String> {
 }
 
 /// Universal marci at level 1 (strength 23, agility 20, intelligence 19): damage 31 + 0.7 x 62.
-pub fn hero_universal_damage(_image: &[u8]) -> Result<(), String> {
-    let mut s = moba_with_rules()?;
+pub fn attributed_universal_damage(_image: &[u8]) -> Result<(), String> {
+    let mut s = scenario_with_rules()?;
     let h = spawn_attributed(&mut s, "marci")?;
     near("marci damage", s.damage_of(h), q16(3100 + (2300 + 2000 + 1900) * 70 / 100))?;
     Ok(())
 }
 
 /// Every enabled reference hero is in the catalog with its own hero line.
-pub fn hero_roster(_image: &[u8]) -> Result<(), String> {
-    let mut s = moba_with_rules()?;
+pub fn attributed_roster(_image: &[u8]) -> Result<(), String> {
+    let mut s = scenario_with_rules()?;
     let mut with_def = 0;
     for name in ["antimage", "axe", "crystal_maiden", "zuus", "nevermore", "pudge", "invoker", "largo"] {
         let h = spawn_attributed(&mut s, name)?;

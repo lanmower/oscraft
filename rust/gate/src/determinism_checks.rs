@@ -10,12 +10,12 @@ const SAVE_TICK: u32 = 300;
 const PARITY_TICKS: u32 = 1000;
 const SCRIPT_SEED: u64 = 11;
 
-fn moba_image() -> Result<Vec<u8>, String> {
+fn scenario_image() -> Result<Vec<u8>, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))
 }
 
-fn heroes(s: &Sim) -> Vec<usize> {
+fn attributed_units(s: &Sim) -> Vec<usize> {
     (0..MAX_UNITS).filter(|&i| s.alive(i) && s.kind_name(i) == Some("hero")).collect()
 }
 
@@ -53,7 +53,7 @@ fn drive(s: &mut Sim, from: u32, to: u32, hs: &[usize]) {
 
 fn run_hash(image: &[u8], ticks: u32) -> Result<u64, String> {
     let mut s = scripted(image)?;
-    let hs = heroes(&s);
+    let hs = attributed_units(&s);
     if hs.len() < 10 {
         return Err(format!("moba scenario has {} heroes, want at least 10", hs.len()));
     }
@@ -62,8 +62,8 @@ fn run_hash(image: &[u8], ticks: u32) -> Result<u64, String> {
 }
 
 /// Two independent runs of the same ten-hero command list end with one state hash.
-pub fn moba_replay_hash(_image: &[u8]) -> Result<(), String> {
-    let image = moba_image()?;
+pub fn scenario_replay_hash(_image: &[u8]) -> Result<(), String> {
+    let image = scenario_image()?;
     let (a, b) = (run_hash(&image, SCRIPT_TICKS)?, run_hash(&image, SCRIPT_TICKS)?);
     if a != b {
         return Err(format!("first={a:016x} second={b:016x} after {SCRIPT_TICKS} ticks"));
@@ -73,10 +73,10 @@ pub fn moba_replay_hash(_image: &[u8]) -> Result<(), String> {
 }
 
 /// Saving at SAVE_TICK, loading into a fresh sim and continuing matches the uninterrupted run.
-pub fn moba_save_load_hash(_image: &[u8]) -> Result<(), String> {
-    let image = moba_image()?;
+pub fn scenario_save_load_hash(_image: &[u8]) -> Result<(), String> {
+    let image = scenario_image()?;
     let mut straight = scripted(&image)?;
-    let hs = heroes(&straight);
+    let hs = attributed_units(&straight);
     if hs.len() < 10 {
         return Err(format!("moba scenario has {} heroes, want at least 10", hs.len()));
     }
@@ -99,8 +99,8 @@ pub fn moba_save_load_hash(_image: &[u8]) -> Result<(), String> {
 
 /// Prints the state hash of the fixed 1000-tick run as `determinism-parity hash=...` for the CI
 /// job that compares gate output across operating systems.
-pub fn moba_parity_hash(_image: &[u8]) -> Result<(), String> {
-    let hash = run_hash(&moba_image()?, PARITY_TICKS)?;
+pub fn scenario_parity_hash(_image: &[u8]) -> Result<(), String> {
+    let hash = run_hash(&scenario_image()?, PARITY_TICKS)?;
     println!("determinism-parity ticks={PARITY_TICKS} hash={hash:016x}");
     Ok(())
 }

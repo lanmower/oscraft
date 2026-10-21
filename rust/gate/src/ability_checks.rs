@@ -153,7 +153,7 @@ fn near(what: &str, got: f64, want: f64, tol: f64) -> Result<(), String> {
     Ok(())
 }
 
-fn rank_one_hero(w: &mut World, name: &str, level: u32, abilities: &[&str]) -> Result<usize, String> {
+fn rank_one_unit(w: &mut World, name: &str, level: u32, abilities: &[&str]) -> Result<usize, String> {
     let h = w.hero(name, 0, 0, 0)?;
     w.level_up(h, level);
     for a in abilities {
@@ -165,7 +165,7 @@ fn rank_one_hero(w: &mut World, name: &str, level: u32, abilities: &[&str]) -> R
 /// Berserker's Call: enemies in 315 units are taunted for 2.1 s and the caster gains 12 armour for as long.
 pub fn axe_berserkers_call(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let axe = rank_one_hero(&mut w, "axe", 6, &["axe_berserkers_call"])?;
+    let axe = rank_one_unit(&mut w, "axe", 6, &["axe_berserkers_call"])?;
     let near_enemy = w.creep(1, 3, 0)?;
     let far_enemy = w.creep(1, 9, 0)?;
     w.cast(axe, "axe_berserkers_call", -1, 0, 0)?;
@@ -188,7 +188,7 @@ pub fn axe_berserkers_call(_image: &[u8]) -> Result<(), String> {
 /// Battle Hunger: 12 pure damage a second for 12 s and an 18 percent slow; pure damage ignores magic resistance.
 pub fn axe_battle_hunger(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let axe = rank_one_hero(&mut w, "axe", 1, &["axe_battle_hunger"])?;
+    let axe = rank_one_unit(&mut w, "axe", 1, &["axe_battle_hunger"])?;
     let target = w.creep(1, 4, 0)?;
     let before = w.hp(target);
     w.cast(axe, "axe_battle_hunger", target as i32, 0, 0)?;
@@ -208,7 +208,7 @@ pub fn axe_battle_hunger(_image: &[u8]) -> Result<(), String> {
 /// Counter Helix: every 7th attack taken spins for 100 pure damage in 275 units.
 pub fn axe_counter_helix(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let axe = rank_one_hero(&mut w, "axe", 1, &["axe_counter_helix"])?;
+    let axe = rank_one_unit(&mut w, "axe", 1, &["axe_counter_helix"])?;
     let a = w.creep(1, 1, 0)?;
     let b = w.creep(1, 0, 3)?;
     let before = w.hp(b);
@@ -228,7 +228,7 @@ pub fn axe_counter_helix(_image: &[u8]) -> Result<(), String> {
 /// healthy target survives and grants nothing.
 pub fn axe_culling_blade(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let axe = rank_one_hero(&mut w, "axe", 6, &["axe_culling_blade"])?;
+    let axe = rank_one_unit(&mut w, "axe", 6, &["axe_culling_blade"])?;
     let weak = w.creep(1, 2, 0)?;
     w.s.hurt(weak, fixed::from_int(400));
     w.cast(axe, "axe_culling_blade", weak as i32, 0, 0)?;
@@ -239,7 +239,7 @@ pub fn axe_culling_blade(_image: &[u8]) -> Result<(), String> {
         return Err(format!("kill bonus speed {} armour {} want 20 and 10", w.s.stat_value(axe, S_SPEED_PCT), w.s.stat_value(axe, S_ARMOR)));
     }
     let mut w = world()?;
-    let axe = rank_one_hero(&mut w, "axe", 6, &["axe_culling_blade"])?;
+    let axe = rank_one_unit(&mut w, "axe", 6, &["axe_culling_blade"])?;
     let healthy = w.creep(1, 2, 0)?;
     w.cast(axe, "axe_culling_blade", healthy as i32, 0, 0)?;
     near("healthy creep after the blade", w.hp(healthy), 550.0 - 275.0, 1.0)?;
@@ -253,7 +253,7 @@ pub fn axe_culling_blade(_image: &[u8]) -> Result<(), String> {
 /// 30 attack speed slow; a unit without resistance takes all 110.
 pub fn crystal_nova(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let cm = rank_one_hero(&mut w, "crystal_maiden", 1, &["crystal_maiden_crystal_nova"])?;
+    let cm = rank_one_unit(&mut w, "crystal_maiden", 1, &["crystal_maiden_crystal_nova"])?;
     let hero = w.hero("antimage", 1, 5, 0)?;
     let creep = w.creep(1, 5, 2)?;
     let (h0, c0) = (w.hp(hero), w.hp(creep));
@@ -271,7 +271,7 @@ pub fn crystal_nova(_image: &[u8]) -> Result<(), String> {
 /// Frostbite: roots and disarms for 1.5 s and deals 100 magical damage a second in 0.25 s steps.
 pub fn crystal_frostbite(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let cm = rank_one_hero(&mut w, "crystal_maiden", 1, &["crystal_maiden_frostbite"])?;
+    let cm = rank_one_unit(&mut w, "crystal_maiden", 1, &["crystal_maiden_frostbite"])?;
     let target = w.creep(1, 4, 0)?;
     let before = w.hp(target);
     w.cast(cm, "crystal_maiden_frostbite", target as i32, 0, 0)?;
@@ -288,7 +288,7 @@ pub fn crystal_frostbite(_image: &[u8]) -> Result<(), String> {
 /// Brilliance Aura: allies gain mana regeneration, the caster and those near her three times as much.
 pub fn crystal_brilliance_aura(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let cm = rank_one_hero(&mut w, "crystal_maiden", 1, &["crystal_maiden_brilliance_aura"])?;
+    let cm = rank_one_unit(&mut w, "crystal_maiden", 1, &["crystal_maiden_brilliance_aura"])?;
     let ally = w.hero("axe", 0, 6, 0)?;
     w.run(4);
     if w.s.stat_value(cm, S_SLOT_13) != 120 || w.s.stat_value(ally, S_SLOT_13) != 120 {
@@ -300,7 +300,7 @@ pub fn crystal_brilliance_aura(_image: &[u8]) -> Result<(), String> {
 /// Freezing Field: a 10 s channel of pulses on random spots of a ring around the caster; a stun ends it early.
 pub fn crystal_freezing_field(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let cm = rank_one_hero(&mut w, "crystal_maiden", 6, &["crystal_maiden_freezing_field"])?;
+    let cm = rank_one_unit(&mut w, "crystal_maiden", 6, &["crystal_maiden_freezing_field"])?;
     let mut ring = Vec::new();
     for k in 0..12 {
         let (dx, dy) = [(7, 0), (5, 5), (0, 7), (-5, 5), (-7, 0), (-5, -5), (0, -7), (5, -5), (8, 2), (-8, -2), (2, 8), (-2, -8)][k];
@@ -324,7 +324,7 @@ pub fn crystal_freezing_field(_image: &[u8]) -> Result<(), String> {
         return Err("the channel outlived 10 s".into());
     }
     let mut w = world()?;
-    let cm = rank_one_hero(&mut w, "crystal_maiden", 6, &["crystal_maiden_freezing_field"])?;
+    let cm = rank_one_unit(&mut w, "crystal_maiden", 6, &["crystal_maiden_freezing_field"])?;
     w.cast(cm, "crystal_maiden_freezing_field", -1, 0, 0)?;
     w.run(10);
     w.s.apply_status(cm, STUN, 20, fixed::ONE);
@@ -337,7 +337,7 @@ pub fn crystal_freezing_field(_image: &[u8]) -> Result<(), String> {
 /// Storm Bolt: 80 magical damage and a 1 s stun in 250 units of the target.
 pub fn sven_storm_bolt(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let sven = rank_one_hero(&mut w, "sven", 1, &["sven_storm_bolt"])?;
+    let sven = rank_one_unit(&mut w, "sven", 1, &["sven_storm_bolt"])?;
     let a = w.creep(1, 5, 0)?;
     let b = w.creep(1, 5, 3)?;
     let far = w.creep(1, 5, 8)?;
@@ -355,7 +355,7 @@ pub fn sven_storm_bolt(_image: &[u8]) -> Result<(), String> {
 /// Great Cleave: 60 percent of the hit to enemies in a cone behind the victim and none to those beside or behind the attacker.
 pub fn sven_great_cleave(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let sven = rank_one_hero(&mut w, "sven", 1, &["sven_great_cleave"])?;
+    let sven = rank_one_unit(&mut w, "sven", 1, &["sven_great_cleave"])?;
     w.s.clear_status(sven, DISARM);
     if w.s.stat_value(sven, S_CLEAVE) != 60 {
         return Err(format!("cleave percent {} want 60", w.s.stat_value(sven, S_CLEAVE)));
@@ -377,7 +377,7 @@ pub fn sven_great_cleave(_image: &[u8]) -> Result<(), String> {
 /// Warcry and God's Strength: allies in 700 units gain 5 armour and 6 percent speed; God's Strength adds 110 percent of base damage.
 pub fn sven_buffs(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let sven = rank_one_hero(&mut w, "sven", 6, &["sven_warcry", "sven_gods_strength"])?;
+    let sven = rank_one_unit(&mut w, "sven", 6, &["sven_warcry", "sven_gods_strength"])?;
     let ally = w.hero("axe", 0, 8, 0)?;
     let base = fixed::to_int(w.s.damage_of(sven));
     w.cast(sven, "sven_warcry", -1, 0, 0)?;
@@ -399,7 +399,7 @@ pub fn sven_buffs(_image: &[u8]) -> Result<(), String> {
 /// Blade Fury: 5 s of spell immunity and 85 magical damage a second to enemies in 260 units, in 3 tick pulses.
 pub fn juggernaut_blade_fury(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let jug = rank_one_hero(&mut w, "juggernaut", 1, &["juggernaut_blade_fury"])?;
+    let jug = rank_one_unit(&mut w, "juggernaut", 1, &["juggernaut_blade_fury"])?;
     let near_enemy = w.creep(1, 2, 0)?;
     let far_enemy = w.creep(1, 8, 0)?;
     w.cast(jug, "juggernaut_blade_fury", -1, 0, 0)?;
@@ -420,7 +420,7 @@ pub fn juggernaut_blade_fury(_image: &[u8]) -> Result<(), String> {
 /// Healing Ward: a ward for 18 s that heals allies in 400 units 2 percent of their health a second.
 pub fn juggernaut_healing_ward(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let jug = rank_one_hero(&mut w, "juggernaut", 1, &["juggernaut_healing_ward"])?;
+    let jug = rank_one_unit(&mut w, "juggernaut", 1, &["juggernaut_healing_ward"])?;
     let ally = w.hero("axe", 0, 3, 0)?;
     w.s.hurt(ally, fixed::from_int(200));
     let before = w.hp(ally);
@@ -441,7 +441,7 @@ pub fn juggernaut_healing_ward(_image: &[u8]) -> Result<(), String> {
 /// Blade Dance: 35 percent chance of a 140 percent critical strike.
 pub fn juggernaut_blade_dance(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let jug = rank_one_hero(&mut w, "juggernaut", 1, &["juggernaut_blade_dance"])?;
+    let jug = rank_one_unit(&mut w, "juggernaut", 1, &["juggernaut_blade_dance"])?;
     w.s.clear_status(jug, DISARM);
     if w.s.stat_value(jug, S_CRIT_CHANCE) != 35 || w.s.stat_value(jug, S_CRIT_MULT) != 140 {
         return Err(format!("crit {} percent x{} want 35 and 140", w.s.stat_value(jug, S_CRIT_CHANCE), w.s.stat_value(jug, S_CRIT_MULT)));
@@ -467,7 +467,7 @@ pub fn juggernaut_blade_dance(_image: &[u8]) -> Result<(), String> {
 /// Omnislash: a blink to the target, invulnerability for 3 s and a strike on a nearby enemy every 9 ticks.
 pub fn juggernaut_omni_slash(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let jug = rank_one_hero(&mut w, "juggernaut", 6, &["juggernaut_omni_slash"])?;
+    let jug = rank_one_unit(&mut w, "juggernaut", 6, &["juggernaut_omni_slash"])?;
     let a = w.creep(1, 6, 0)?;
     let b = w.creep(1, 8, 2)?;
     w.cast(jug, "juggernaut_omni_slash", a as i32, 0, 0)?;
@@ -490,7 +490,7 @@ pub fn juggernaut_omni_slash(_image: &[u8]) -> Result<(), String> {
 /// Arc Lightning: 105 magical damage to the target, then bouncing to the nearest unit every 0.25 s, 5 more times.
 pub fn zeus_arc_lightning(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let zeus = rank_one_hero(&mut w, "zuus", 1, &["zuus_arc_lightning"])?;
+    let zeus = rank_one_unit(&mut w, "zuus", 1, &["zuus_arc_lightning"])?;
     let line: Vec<usize> = (0..4).map(|k| w.creep(1, 3 + 4 * k, 0)).collect::<Result<_, _>>()?;
     w.cast(zeus, "zuus_arc_lightning", line[0] as i32, 0, 0)?;
     near("first target at once", 550.0 - w.hp(line[0]), 105.0, 0.6)?;
@@ -506,7 +506,7 @@ pub fn zeus_arc_lightning(_image: &[u8]) -> Result<(), String> {
 /// Lightning Bolt: 140 magical damage and a 0.35 s stun.
 pub fn zeus_lightning_bolt(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let zeus = rank_one_hero(&mut w, "zuus", 1, &["zuus_lightning_bolt"])?;
+    let zeus = rank_one_unit(&mut w, "zuus", 1, &["zuus_lightning_bolt"])?;
     let target = w.creep(1, 5, 0)?;
     w.cast(zeus, "zuus_lightning_bolt", target as i32, 0, 0)?;
     w.run(5);
@@ -520,7 +520,7 @@ pub fn zeus_lightning_bolt(_image: &[u8]) -> Result<(), String> {
 /// Thundergod's Wrath: 275 magical damage to every enemy hero in the world and to nothing else.
 pub fn zeus_thundergods_wrath(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let zeus = rank_one_hero(&mut w, "zuus", 6, &["zuus_thundergods_wrath"])?;
+    let zeus = rank_one_unit(&mut w, "zuus", 6, &["zuus_thundergods_wrath"])?;
     let hero = w.hero("antimage", 1, 10, 10)?;
     let creep = w.creep(1, 10, -10)?;
     let ally = w.hero("axe", 0, -10, -10)?;
@@ -537,7 +537,7 @@ pub fn zeus_thundergods_wrath(_image: &[u8]) -> Result<(), String> {
 /// Shrapnel: three charges, a zone after 1.2 s that deals 30 magical damage a second and slows, a charge back every 35 s.
 pub fn sniper_shrapnel(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let sniper = rank_one_hero(&mut w, "sniper", 1, &["sniper_shrapnel"])?;
+    let sniper = rank_one_unit(&mut w, "sniper", 1, &["sniper_shrapnel"])?;
     let target = w.creep(1, 10, 0)?;
     let (x, y) = w.at(10, 0);
     w.s.grant_energy(sniper, 1000).map_err(|r| r.name().to_string())?;
@@ -567,7 +567,7 @@ pub fn sniper_shrapnel(_image: &[u8]) -> Result<(), String> {
 /// Headshot: 40 percent of attacks add 20 physical damage.
 pub fn sniper_headshot(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let sniper = rank_one_hero(&mut w, "sniper", 1, &["sniper_headshot"])?;
+    let sniper = rank_one_unit(&mut w, "sniper", 1, &["sniper_headshot"])?;
     w.s.clear_status(sniper, DISARM);
     let target = w.creep(1, 4, 0)?;
     w.s.set_health(target, fixed::from_int(30_000), fixed::from_int(30_000));
@@ -588,7 +588,7 @@ pub fn sniper_headshot(_image: &[u8]) -> Result<(), String> {
 /// Take Aim: 160 units of attack range at once, 75 more while active.
 pub fn sniper_take_aim(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let sniper = rank_one_hero(&mut w, "sniper", 1, &["sniper_take_aim"])?;
+    let sniper = rank_one_unit(&mut w, "sniper", 1, &["sniper_take_aim"])?;
     if w.s.stat_value(sniper, S_RANGE) != 2500 {
         return Err(format!("passive range {} want 2500 milli (160 units)", w.s.stat_value(sniper, S_RANGE)));
     }
@@ -606,7 +606,7 @@ pub fn sniper_take_aim(_image: &[u8]) -> Result<(), String> {
 /// Assassinate: a 2 s cast point, then 300 magical damage.
 pub fn sniper_assassinate(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let sniper = rank_one_hero(&mut w, "sniper", 6, &["sniper_assassinate"])?;
+    let sniper = rank_one_unit(&mut w, "sniper", 6, &["sniper_assassinate"])?;
     let target = w.hero("antimage", 1, 9, 0)?;
     let before = w.hp(target);
     let slot = w.s.ability_slot(sniper, "sniper_assassinate").ok_or("no assassinate")?;
@@ -624,7 +624,7 @@ pub fn sniper_assassinate(_image: &[u8]) -> Result<(), String> {
 /// Impale: a line 140 units wide; units on it take 105 magical damage and are stunned, units off it are not.
 pub fn lion_impale(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let lion = rank_one_hero(&mut w, "lion", 1, &["lion_impale"])?;
+    let lion = rank_one_unit(&mut w, "lion", 1, &["lion_impale"])?;
     let on_near = w.creep(1, 4, 0)?;
     let on_far = w.creep(1, 11, 0)?;
     let off = w.creep(1, 6, 3)?;
@@ -646,7 +646,7 @@ pub fn lion_impale(_image: &[u8]) -> Result<(), String> {
 /// Hex: the target cannot attack or cast and crawls at 120 for 2 s.
 pub fn lion_voodoo(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let lion = rank_one_hero(&mut w, "lion", 1, &["lion_voodoo"])?;
+    let lion = rank_one_unit(&mut w, "lion", 1, &["lion_voodoo"])?;
     let target = w.hero("axe", 1, 5, 0)?;
     w.level_up(target, 1);
     w.learn(target, "axe_battle_hunger", 1)?;
@@ -664,7 +664,7 @@ pub fn lion_voodoo(_image: &[u8]) -> Result<(), String> {
 /// Mana Drain: mana moves from the target to the caster every 2 ticks until the target leaves 1100 units.
 pub fn lion_mana_drain(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let lion = rank_one_hero(&mut w, "lion", 1, &["lion_mana_drain"])?;
+    let lion = rank_one_unit(&mut w, "lion", 1, &["lion_mana_drain"])?;
     let target = w.hero("crystal_maiden", 1, 6, 0)?;
     w.s.spend_energy(lion, w.s.mana_of(lion) - 10).map_err(|r| r.name().to_string())?;
     let (t0, l0) = (w.s.mana_of(target), w.s.mana_of(lion));
@@ -686,7 +686,7 @@ pub fn lion_mana_drain(_image: &[u8]) -> Result<(), String> {
 /// Finger of Death: 600 magical damage.
 pub fn lion_finger_of_death(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let lion = rank_one_hero(&mut w, "lion", 6, &["lion_finger_of_death"])?;
+    let lion = rank_one_unit(&mut w, "lion", 6, &["lion_finger_of_death"])?;
     let target = w.hero("antimage", 1, 6, 0)?;
     let before = w.hp(target);
     w.cast(lion, "lion_finger_of_death", target as i32, 0, 0)?;
@@ -697,7 +697,7 @@ pub fn lion_finger_of_death(_image: &[u8]) -> Result<(), String> {
 /// Purification: heals the target 90 and deals 90 pure damage to enemies within 260 units of it.
 pub fn omniknight_purification(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let omni = rank_one_hero(&mut w, "omniknight", 1, &["omniknight_purification"])?;
+    let omni = rank_one_unit(&mut w, "omniknight", 1, &["omniknight_purification"])?;
     let ally = w.hero("axe", 0, 3, 0)?;
     let enemy = w.creep(1, 4, 0)?;
     let far = w.creep(1, 9, 0)?;
@@ -716,7 +716,7 @@ pub fn omniknight_purification(_image: &[u8]) -> Result<(), String> {
 /// Martyr: 8 health regeneration and 60 magic resistance for 5 s on an ally.
 pub fn omniknight_martyr(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let omni = rank_one_hero(&mut w, "omniknight", 1, &["omniknight_martyr"])?;
+    let omni = rank_one_unit(&mut w, "omniknight", 1, &["omniknight_martyr"])?;
     let ally = w.hero("axe", 0, 3, 0)?;
     w.cast(omni, "omniknight_martyr", ally as i32, 0, 0)?;
     w.run(5);
@@ -733,7 +733,7 @@ pub fn omniknight_martyr(_image: &[u8]) -> Result<(), String> {
 /// Guardian Angel: allies in 700 units take no physical damage for 4 s, spells still hurt.
 pub fn omniknight_guardian_angel(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let omni = rank_one_hero(&mut w, "omniknight", 6, &["omniknight_guardian_angel"])?;
+    let omni = rank_one_unit(&mut w, "omniknight", 6, &["omniknight_guardian_angel"])?;
     let ally = w.hero("axe", 0, 4, 0)?;
     w.cast(omni, "omniknight_guardian_angel", -1, 0, 0)?;
     if w.s.status_left(ally, PHYSICAL_IMMUNITY) != 64 {
@@ -754,7 +754,7 @@ pub fn omniknight_guardian_angel(_image: &[u8]) -> Result<(), String> {
 /// host talent primitives to be tested; this check covers what the bits do.
 pub fn talent_picks(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let axe = rank_one_hero(&mut w, "axe", 9, &["axe_battle_hunger"])?;
+    let axe = rank_one_unit(&mut w, "axe", 9, &["axe_battle_hunger"])?;
     w.level_up(axe, 15);
     w.s.set_upgrade_bit(axe, 2, true).map_err(|r| r.name().to_string())?;
     w.s.set_upgrade_bit(axe, 4, true).map_err(|r| r.name().to_string())?;
@@ -776,7 +776,7 @@ pub fn talent_picks(_image: &[u8]) -> Result<(), String> {
 /// Casting out of range walks the caster into range and casts there.
 pub fn cast_walks_into_range(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let axe = rank_one_hero(&mut w, "axe", 1, &["axe_battle_hunger"])?;
+    let axe = rank_one_unit(&mut w, "axe", 1, &["axe_battle_hunger"])?;
     w.s.clear_status(axe, DISARM);
     let target = w.creep(1, 13, 0)?;
     let mana = w.s.mana_of(axe);
@@ -791,21 +791,27 @@ pub fn cast_walks_into_range(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// Skill ranks come at levels 1, 3, 5 and 7 for a basic ability and 6, 12 and 18 for an ultimate.
-pub fn skill_level_gates(_image: &[u8]) -> Result<(), String> {
+/// The engine's rank mechanic: the level gates come from the ability data (basic abilities gate at
+/// levels 1, 3, 5 and 7, ultimates at 6, 12 and 18), and the engine raises a rank with no level check.
+/// The gate rule itself is scenarios/moba/skills.lua, which the engine does not run here.
+pub fn skill_gate_data(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
     let axe = w.hero("axe", 0, 0, 0)?;
-    w.level_up(axe, 2);
     let slot = w.s.ability_slot(axe, "axe_battle_hunger").ok_or("axe holds no battle hunger")?;
-    w.s.skill_up(axe, slot).map_err(|r| r.name().to_string())?;
-    if w.s.skill_up(axe, slot).is_ok() {
-        return Err("rank 2 of a basic ability was learned at level 2".into());
+    if w.s.skill_next_gate(axe, slot) != Some(1) {
+        return Err(format!("first rank of a basic ability gates at {:?}, expected Some(1)", w.s.skill_next_gate(axe, slot)));
     }
-    w.level_up(axe, 3);
     w.s.skill_up(axe, slot).map_err(|r| r.name().to_string())?;
+    if w.s.skill_next_gate(axe, slot) != Some(3) {
+        return Err("second rank of a basic ability should gate at level 3".into());
+    }
     let ult = w.s.ability_slot(axe, "axe_culling_blade").ok_or("axe holds no culling blade")?;
-    if w.s.skill_up(axe, ult).is_ok() {
-        return Err("the ultimate was learned before level 6".into());
+    if w.s.skill_next_gate(axe, ult) != Some(6) {
+        return Err("first rank of an ultimate should gate at level 6".into());
+    }
+    w.s.skill_up(axe, ult).map_err(|r| r.name().to_string())?;
+    if w.s.skill_next_gate(axe, ult) != Some(12) {
+        return Err("second rank of an ultimate should gate at level 12".into());
     }
     Ok(())
 }
@@ -862,7 +868,7 @@ pub fn spell_illusions(_image: &[u8]) -> Result<(), String> {
     let hero = w.hero("axe", 0, 0, 0)?;
     custom(&mut w, hero, 7, "test_mirror", 0, &[(27, 2, 64, 50, 300)])?;
     let kind = w.s.unit_type(hero);
-    let foe = w.creep(1, 12, 0)?;
+    let _foe = w.creep(1, 12, 0)?;
     let slot = w.s.ability_slot(hero, "test_mirror").ok_or("no mirror")?;
     if !w.s.cast_ability(hero, slot, -1, 0, 0) {
         return Err(format!("cast refused: {}", w.s.stats.last_refusal.name()));
@@ -885,7 +891,7 @@ pub fn spell_illusions(_image: &[u8]) -> Result<(), String> {
 /// Spirit Lance: 100 magical damage, a 14 percent slow and an illusion for 3.5 s; Juxtapose conjures one on 40 percent of attacks.
 pub fn phantom_lancer_illusions(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let pl = rank_one_hero(&mut w, "phantom_lancer", 6, &["phantom_lancer_spirit_lance", "phantom_lancer_juxtapose"])?;
+    let pl = rank_one_unit(&mut w, "phantom_lancer", 6, &["phantom_lancer_spirit_lance", "phantom_lancer_juxtapose"])?;
     let target = w.hero("antimage", 1, 5, 0)?;
     let before = w.hp(target);
     w.cast(pl, "phantom_lancer_spirit_lance", target as i32, 0, 0)?;
@@ -917,7 +923,7 @@ pub fn phantom_lancer_illusions(_image: &[u8]) -> Result<(), String> {
 /// Shallow Grave: an ally cannot die for 4 s, a lethal blow leaves 1 hit point.
 pub fn dazzle_shallow_grave(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let dz = rank_one_hero(&mut w, "dazzle", 1, &["dazzle_shallow_grave"])?;
+    let dz = rank_one_unit(&mut w, "dazzle", 1, &["dazzle_shallow_grave"])?;
     let ally = w.hero("axe", 0, 4, 0)?;
     w.cast(dz, "dazzle_shallow_grave", ally as i32, 0, 0)?;
     w.s.hurt(ally, fixed::from_int(20_000));
@@ -935,7 +941,7 @@ pub fn dazzle_shallow_grave(_image: &[u8]) -> Result<(), String> {
 /// Dragon Slave: 65 magical damage along a line; Light Strike Array: a 0.5 s delay, then 80 damage and a stun in 250 units.
 pub fn lina_slave_and_array(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let lina = rank_one_hero(&mut w, "lina", 3, &["lina_dragon_slave", "lina_light_strike_array"])?;
+    let lina = rank_one_unit(&mut w, "lina", 3, &["lina_dragon_slave", "lina_light_strike_array"])?;
     let on = w.creep(1, 6, 0)?;
     let off = w.creep(1, 6, 4)?;
     let (x, y) = w.at(8, 0);
@@ -961,7 +967,7 @@ pub fn lina_slave_and_array(_image: &[u8]) -> Result<(), String> {
 /// Frost Nova: 80 area damage to everyone in 200 units plus 40 to the target, and a slow; Chain Frost bounces.
 pub fn lich_nova_and_chain(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let lich = rank_one_hero(&mut w, "lich", 6, &["lich_frost_nova", "lich_chain_frost"])?;
+    let lich = rank_one_unit(&mut w, "lich", 6, &["lich_frost_nova", "lich_chain_frost"])?;
     let target = w.creep(1, 5, 0)?;
     let near_one = w.creep(1, 5, 2)?;
     w.cast(lich, "lich_frost_nova", target as i32, 0, 0)?;
@@ -971,7 +977,7 @@ pub fn lich_nova_and_chain(_image: &[u8]) -> Result<(), String> {
         return Err("no frost nova slow".into());
     }
     let mut w = world()?;
-    let lich = rank_one_hero(&mut w, "lich", 6, &["lich_chain_frost"])?;
+    let lich = rank_one_unit(&mut w, "lich", 6, &["lich_chain_frost"])?;
     let line: Vec<usize> = (0..3).map(|k| w.creep(1, 3 + 4 * k, 0)).collect::<Result<_, _>>()?;
     for &u in &line {
         w.s.set_health(u, fixed::from_int(9000), fixed::from_int(9000));
@@ -988,7 +994,7 @@ pub fn lich_nova_and_chain(_image: &[u8]) -> Result<(), String> {
 /// Ravage: every enemy in 1250 units is stunned for 2 s and takes 275; Kraken Shell cuts damage taken 15 percent.
 pub fn tidehunter_ravage_and_shell(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let tide = rank_one_hero(&mut w, "tidehunter", 6, &["tidehunter_ravage", "tidehunter_kraken_shell"])?;
+    let tide = rank_one_unit(&mut w, "tidehunter", 6, &["tidehunter_ravage", "tidehunter_kraken_shell"])?;
     let foes: Vec<usize> = (0..3).map(|k| w.creep(1, 4 + 3 * k, 0)).collect::<Result<_, _>>()?;
     if w.s.stat_value(tide, 30) != 15 {
         return Err(format!("kraken shell reduction {} want 15", w.s.stat_value(tide, 30)));
@@ -1009,7 +1015,7 @@ pub fn tidehunter_ravage_and_shell(_image: &[u8]) -> Result<(), String> {
 /// Bash: every third attack adds 35 physical damage and a 1 s stun.
 pub fn slardar_bash(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let slardar = rank_one_hero(&mut w, "slardar", 1, &["slardar_bash"])?;
+    let slardar = rank_one_unit(&mut w, "slardar", 1, &["slardar_bash"])?;
     w.s.clear_status(slardar, DISARM);
     let target = w.creep(1, 1, 0)?;
     w.s.set_health(target, fixed::from_int(30_000), fixed::from_int(30_000));
@@ -1030,7 +1036,7 @@ pub fn slardar_bash(_image: &[u8]) -> Result<(), String> {
 /// Command Aura: allies in 1200 units gain 10 base damage, the caster a quarter of that.
 pub fn vengeful_command_aura(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let vs = rank_one_hero(&mut w, "vengefulspirit", 1, &["vengefulspirit_command_aura"])?;
+    let vs = rank_one_unit(&mut w, "vengefulspirit", 1, &["vengefulspirit_command_aura"])?;
     let ally = w.hero("axe", 0, 5, 0)?;
     w.run(4);
     if w.s.stat_value(ally, S_DAMAGE) != 10 || w.s.stat_value(vs, S_DAMAGE) != 3 {
@@ -1042,7 +1048,7 @@ pub fn vengeful_command_aura(_image: &[u8]) -> Result<(), String> {
 /// Blink: moves the caster to the cast point, at most the cast range (875 units); Mana Break burns 25 mana and deals 65 percent of it.
 pub fn antimage_blink_and_mana_break(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
-    let am = rank_one_hero(&mut w, "antimage", 1, &["antimage_blink"])?;
+    let am = rank_one_unit(&mut w, "antimage", 1, &["antimage_blink"])?;
     let (x0, y0) = w.s.position_fixed(am);
     let (tx, ty) = w.at(-20, 0);
     w.cast(am, "antimage_blink", -1, tx, ty)?;
@@ -1050,7 +1056,7 @@ pub fn antimage_blink_and_mana_break(_image: &[u8]) -> Result<(), String> {
     near("blink distance in cells", fixed::to_float(x0 - x1), 875.0 * 15.625 / 1000.0, 0.3)?;
     let _ = y0;
     let mut w = world()?;
-    let am = rank_one_hero(&mut w, "antimage", 1, &["antimage_mana_break"])?;
+    let am = rank_one_unit(&mut w, "antimage", 1, &["antimage_mana_break"])?;
     w.s.clear_status(am, DISARM);
     let victim = w.hero("crystal_maiden", 1, 1, 0)?;
     w.s.apply_status(victim, DISARM, 1_000_000, fixed::ONE);

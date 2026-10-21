@@ -43,7 +43,7 @@ pub enum ItemVerdict {
 }
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct StoreState {
+pub(crate) struct ItemRequestState {
     pub(crate) requests: Vec<ItemRequest>,
 }
 
@@ -60,7 +60,7 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         }
-        self.store.requests.push(ItemRequest::Acquire { unit: i, item });
+        self.item_requests.requests.push(ItemRequest::Acquire { unit: i, item });
         true
     }
 
@@ -77,7 +77,7 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         }
-        self.store.requests.push(ItemRequest::Release { unit: i, slot });
+        self.item_requests.requests.push(ItemRequest::Release { unit: i, slot });
         true
     }
 
@@ -92,7 +92,7 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         }
-        self.store.requests.push(ItemRequest::TakeOut { unit: i, slot });
+        self.item_requests.requests.push(ItemRequest::TakeOut { unit: i, slot });
         true
     }
 
@@ -114,7 +114,7 @@ impl Sim {
 
     /// Takes the queued requests, in the order they were queued.
     pub fn drain_requests(&mut self) -> Vec<ItemRequest> {
-        std::mem::take(&mut self.store.requests)
+        std::mem::take(&mut self.item_requests.requests)
     }
 
     /// Applies a mod's verdict on an item request. Refusals, each changing nothing: NoSlot for a dead unit or
@@ -383,9 +383,9 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         }
-        self.wards.casting_slot = slot as i32;
+        self.expiry.casting_slot = slot as i32;
         let cast = self.cast_index(i, ability as usize, Slot::Item(key), target, x, y);
-        self.wards.casting_slot = -1;
+        self.expiry.casting_slot = -1;
         let untouched = (self.inv_kind[key], self.inv_count[key]) == held;
         if cast && untouched && def.is_some_and(|d| d.flags & ITEM_FLAG_CONSUMABLE != 0) {
             self.consume_item_charge(i, slot);

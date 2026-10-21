@@ -96,7 +96,7 @@ impl Sim {
         if forced >= 0 {
             return forced as u8;
         }
-        if !self.heroes.rules.aggro_priority {
+        if !self.attributed.rules.aggro_priority {
             return 0;
         }
         let hero_j = self.is_hero(j);
@@ -123,7 +123,7 @@ impl Sim {
     /// Called when `attacker` damages `victim`. A hero hitting an enemy hero makes every armed
     /// non-hero unit on the victim's side that reaches the victim target the attacker.
     pub(crate) fn aggro_on_hit(&mut self, victim: usize, attacker: usize) {
-        if !self.heroes.rules.aggro_priority
+        if !self.attributed.rules.aggro_priority
             || victim == attacker
             || !self.is_hero(victim)
             || !self.is_hero(attacker)
@@ -131,7 +131,7 @@ impl Sim {
         {
             return;
         }
-        let hold = (self.heroes.rules.aggro_hold_s * TICKS_PER_SECOND) as u32;
+        let hold = (self.attributed.rules.aggro_hold_s * TICKS_PER_SECOND) as u32;
         let side = self.player[victim];
         for u in 0..self.n {
             if self.alive[u] == 0 || self.damage[u] <= 0 || self.is_hero(u) || self.player[u] != side {

@@ -97,7 +97,7 @@ impl Sim {
         // A hand-ordered attack-move unit within one tick of its point steers straight at it: the flow field
         // has no stop, so following it would carry the unit past the point. Routed units keep the field.
         let remaining2 = dx as i64 * dx as i64 + dy as i64 * dy as i64;
-        let hand_attack_move = self.order_kind[i] == ORDER_ATTACK_MOVE && self.routes.id[i] == 0;
+        let hand_attack_move = self.order_kind[i] == ORDER_ATTACK_MOVE && self.dests.id[i] == 0;
         let field = self.cur_field.filter(|_| !(hand_attack_move && remaining2 <= speed as i64 * speed as i64));
         if let Some(slot) = field {
             if let Some((fx, fy)) = self.paths.field(slot).dir_fixed(cx, cy) {
@@ -148,7 +148,7 @@ impl Sim {
                         continue;
                     }
                     let mut sx = self.pos_x[i].wrapping_sub(self.pos_x[j]);
-                    let mut sy = self.pos_y[i].wrapping_sub(self.pos_y[j]);
+                    let sy = self.pos_y[i].wrapping_sub(self.pos_y[j]);
                     if sx == 0 && sy == 0 {
                         // Units on one point split along x: the lower index moves left.
                         sx = if i < j { -1 } else { 1 };
@@ -413,7 +413,14 @@ impl Sim {
                 self.move_fixed(i, wx, wy);
             }
             None => {
-                self.move_fixed(i, x, y);
+                // The flow field carries the unit to a walkable goal only, so an unwalkable stop point is replaced by
+                // the nearest walkable cell to it.
+                let (ax, ay) = if self.flying[i] != 0 || self.grid.walkable(to.0, to.1) {
+                    (x, y)
+                } else {
+                    self.grid.nearest_walkable(to.0, to.1, 8).map(astar::cell_centre).unwrap_or((x, y))
+                };
+                self.move_fixed(i, ax, ay);
                 self.routed[i] = 1;
             }
         }

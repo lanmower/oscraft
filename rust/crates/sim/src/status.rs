@@ -8,12 +8,9 @@
 
 use crate::arrays::Sim;
 use crate::fixed;
-use crate::loader::Effect;
+
 
 pub(crate) const EFFECT_STUN: u16 = 11;
-pub(crate) const EFFECT_SLOW: u16 = 12;
-pub(crate) const EFFECT_SILENCE: u16 = 13;
-pub(crate) const EFFECT_ROOT: u16 = 14;
 pub(crate) const EFFECT_INVISIBILITY: u16 = 15;
 /// Effect kinds the data format defines for statuses are the codes `EFFECT_STUN..=EFFECT_INVISIBILITY`.
 pub(crate) const STATUS_KINDS: usize = 14;
@@ -93,7 +90,7 @@ impl Sim {
     pub(crate) fn effective_speed(&self, i: usize) -> i32 {
         if self.status_left(i, HEX) > 0 {
             let own = self.spell.hex_speed.get(i).copied().unwrap_or(0);
-            return fixed::from_milli(if own > 0 { own } else { self.heroes.rules.hex_speed_milli });
+            return fixed::from_milli(if own > 0 { own } else { self.attributed.rules.hex_speed_milli });
         }
         let mul = self.slow_multiplier(i);
         let boosted = (self.speed[i] as i64 + self.stat(i, crate::spell::S_SPEED) as i64 * fixed::ONE as i64 / 1000)
@@ -107,7 +104,7 @@ impl Sim {
             k if k >= 0 => fixed::from_milli(self.cat.units[k as usize].speed),
             _ => 0,
         };
-        let rules = self.heroes.rules;
+        let rules = self.attributed.rules;
         let cap = (rules.move_speed_max * SPEED_POINT_Q16).max(type_base);
         let floor = (rules.move_speed_min * SPEED_POINT_Q16).min(self.speed[i]);
         speed.clamp(floor, cap)
@@ -139,22 +136,6 @@ impl Sim {
             self.status_left[i * STATUS_KINDS + k] = 0;
         }
         self.slow_mul[i] = SLOW_NONE;
-    }
-
-    /// Applies one status effect record to its receiver `target`. Parameters: p0 duration in ticks;
-    /// slow also reads p1, the speed multiplier (Q16). A receiver that is no unit changes nothing.
-    pub(crate) fn status_effect(&mut self, eff: Effect, target: i32) {
-        if target < 0 || target as usize >= self.n {
-            return;
-        }
-        let kind = match eff.kind {
-            EFFECT_STUN => STUN,
-            EFFECT_SLOW => SLOW,
-            EFFECT_SILENCE => SILENCE,
-            EFFECT_ROOT => ROOT,
-            _ => INVISIBLE,
-        };
-        self.apply_status(target as usize, kind, eff.p0, eff.p1);
     }
 
     /// Counts every status down one tick; a dead unit loses all of them.

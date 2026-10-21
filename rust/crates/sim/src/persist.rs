@@ -21,7 +21,9 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 33 drops the courier and store-stock sections: a carrier's walk and a store's stock are mod
 /// state now, and the sim keeps only the saved order point per unit (carrier.rs). Saves of any other
 /// version, older ones included, are refused with `BadVersion`.
-const STATE_VERSION: u16 = 34;
+/// Version 35 renames the genre-named sections to neutral ones (attributed units, groups, dests, expiry,
+/// item_requests, aura) and drops the skill-point rule from the engine: the layout is unchanged.
+const STATE_VERSION: u16 = 35;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -366,11 +368,11 @@ impl Sim {
         w.extend_from_slice(&self.blocked);
         w.extend_from_slice(&self.routed);
         w.extend_from_slice(&self.order_kind);
-        w.extend_from_slice(&self.camps.member);
-        put_i32s(&mut w, &self.camps.anchor_x);
-        put_i32s(&mut w, &self.camps.anchor_y);
-        w.extend_from_slice(&self.camps.waiting);
-        put_u32s(&mut w, &self.camps.revive_at);
+        w.extend_from_slice(&self.groups.member);
+        put_i32s(&mut w, &self.groups.anchor_x);
+        put_i32s(&mut w, &self.groups.anchor_y);
+        w.extend_from_slice(&self.groups.waiting);
+        put_u32s(&mut w, &self.groups.revive_at);
         put_i32s(&mut w, &self.patrol_x);
         put_i32s(&mut w, &self.patrol_y);
         put_i32s(&mut w, &self.amount);
@@ -398,15 +400,15 @@ impl Sim {
         put_u64(&mut w, self.winner as i64 as u64);
         put_i32s(&mut w, &self.buff_kind);
         put_i32s(&mut w, &self.buff_left);
-        w.extend_from_slice(&self.healer_player);
-        put_i32s(&mut w, &self.healer_left);
-        put_i32s(&mut w, &self.healer_timer);
-        put_i32s(&mut w, &self.healer_period);
-        put_i32s(&mut w, &self.healer_amt);
-        put_i32s(&mut w, &self.healer_rad);
-        put_i32s(&mut w, &self.healer_x);
-        put_i32s(&mut w, &self.healer_y);
-        put_i32s(&mut w, &self.healer_target);
+        w.extend_from_slice(&self.aura_player);
+        put_i32s(&mut w, &self.aura_left);
+        put_i32s(&mut w, &self.aura_timer);
+        put_i32s(&mut w, &self.aura_period);
+        put_i32s(&mut w, &self.aura_amt);
+        put_i32s(&mut w, &self.aura_rad);
+        put_i32s(&mut w, &self.aura_x);
+        put_i32s(&mut w, &self.aura_y);
+        put_i32s(&mut w, &self.aura_target);
         w.extend_from_slice(&self.m_alive);
         put_i32s(&mut w, &self.m_timer);
         put_i32s(&mut w, &self.m_caster);
@@ -482,20 +484,20 @@ impl Sim {
         put_u32s(&mut w, &self.xp_total);
         put_u32s(&mut w, &self.unit_kills);
         put_u32s(&mut w, &self.unit_deaths);
-        w.extend_from_slice(&self.heroes.is_hero);
-        put_i32s(&mut w, &self.heroes.home_x);
-        put_i32s(&mut w, &self.heroes.home_y);
-        w.extend_from_slice(&self.heroes.waiting);
-        put_u32s(&mut w, &self.heroes.respawn_at);
-        put_i32s(&mut w, &self.heroes.gold);
-        put_i32s(&mut w, &self.heroes.mana_max);
-        put_i32s(&mut w, &self.heroes.spot_x);
-        put_i32s(&mut w, &self.heroes.spot_y);
+        w.extend_from_slice(&self.attributed.is_attributed);
+        put_i32s(&mut w, &self.attributed.home_x);
+        put_i32s(&mut w, &self.attributed.home_y);
+        w.extend_from_slice(&self.attributed.waiting);
+        put_u32s(&mut w, &self.attributed.respawn_at);
+        put_i32s(&mut w, &self.attributed.gold);
+        put_i32s(&mut w, &self.attributed.mana_max);
+        put_i32s(&mut w, &self.attributed.spot_x);
+        put_i32s(&mut w, &self.attributed.spot_y);
         put_u32s(&mut w, &self.unit_assists);
         put_i32s(&mut w, &self.hitter_id);
         put_u32s(&mut w, &self.hitter_tick);
-        w.extend_from_slice(&self.routes.id);
-        w.extend_from_slice(&self.routes.step);
+        w.extend_from_slice(&self.dests.id);
+        w.extend_from_slice(&self.dests.step);
         put_i32s(&mut w, &self.aggro.target);
         put_u32s(&mut w, &self.aggro.until);
         put_u32s(&mut w, &self.aggro.invuln_until);
@@ -509,7 +511,7 @@ impl Sim {
         w.extend_from_slice(&self.chase.ret_kind);
         put_i32s(&mut w, &self.chase.ret_x);
         put_i32s(&mut w, &self.chase.ret_y);
-        put_u32s(&mut w, &self.wards.expires);
+        put_u32s(&mut w, &self.expiry.expires);
         w.extend_from_slice(&self.order_memory.set);
         put_i32s(&mut w, &self.order_memory.x);
         put_i32s(&mut w, &self.order_memory.y);
@@ -538,9 +540,9 @@ impl Sim {
 
         let mut next = Sim::with_catalog(self.cap, Grid::open(w, h), self.cat.clone());
         next.xp_curve = self.xp_curve.clone();
-        next.heroes = crate::hero::HeroState::new(cap);
-        next.heroes.rules = self.heroes.rules;
-        next.heroes.defs = self.heroes.defs.clone();
+        next.attributed = crate::hero::AttributedState::new(cap);
+        next.attributed.rules = self.attributed.rules;
+        next.attributed.defs = self.attributed.defs.clone();
         next.n = r.u64()? as usize;
         next.head = r.u64()? as usize;
         next.ticks = r.u32()?;
@@ -612,11 +614,11 @@ impl Sim {
         r.bytes_into(&mut next.blocked)?;
         r.bytes_into(&mut next.routed)?;
         r.bytes_into(&mut next.order_kind)?;
-        r.bytes_into(&mut next.camps.member)?;
-        r.i32s_into(&mut next.camps.anchor_x)?;
-        r.i32s_into(&mut next.camps.anchor_y)?;
-        r.bytes_into(&mut next.camps.waiting)?;
-        r.u32s_into(&mut next.camps.revive_at)?;
+        r.bytes_into(&mut next.groups.member)?;
+        r.i32s_into(&mut next.groups.anchor_x)?;
+        r.i32s_into(&mut next.groups.anchor_y)?;
+        r.bytes_into(&mut next.groups.waiting)?;
+        r.u32s_into(&mut next.groups.revive_at)?;
         r.i32s_into(&mut next.patrol_x)?;
         r.i32s_into(&mut next.patrol_y)?;
         r.i32s_into(&mut next.amount)?;
@@ -644,15 +646,15 @@ impl Sim {
         next.winner = r.u64()? as i64 as i32;
         r.i32s_into(&mut next.buff_kind)?;
         r.i32s_into(&mut next.buff_left)?;
-        r.bytes_into(&mut next.healer_player)?;
-        r.i32s_into(&mut next.healer_left)?;
-        r.i32s_into(&mut next.healer_timer)?;
-        r.i32s_into(&mut next.healer_period)?;
-        r.i32s_into(&mut next.healer_amt)?;
-        r.i32s_into(&mut next.healer_rad)?;
-        r.i32s_into(&mut next.healer_x)?;
-        r.i32s_into(&mut next.healer_y)?;
-        r.i32s_into(&mut next.healer_target)?;
+        r.bytes_into(&mut next.aura_player)?;
+        r.i32s_into(&mut next.aura_left)?;
+        r.i32s_into(&mut next.aura_timer)?;
+        r.i32s_into(&mut next.aura_period)?;
+        r.i32s_into(&mut next.aura_amt)?;
+        r.i32s_into(&mut next.aura_rad)?;
+        r.i32s_into(&mut next.aura_x)?;
+        r.i32s_into(&mut next.aura_y)?;
+        r.i32s_into(&mut next.aura_target)?;
         r.bytes_into(&mut next.m_alive)?;
         r.i32s_into(&mut next.m_timer)?;
         r.i32s_into(&mut next.m_caster)?;
@@ -739,20 +741,20 @@ impl Sim {
         r.u32s_into(&mut next.xp_total)?;
         r.u32s_into(&mut next.unit_kills)?;
         r.u32s_into(&mut next.unit_deaths)?;
-        r.bytes_into(&mut next.heroes.is_hero)?;
-        r.i32s_into(&mut next.heroes.home_x)?;
-        r.i32s_into(&mut next.heroes.home_y)?;
-        r.bytes_into(&mut next.heroes.waiting)?;
-        r.u32s_into(&mut next.heroes.respawn_at)?;
-        r.i32s_into(&mut next.heroes.gold)?;
-        r.i32s_into(&mut next.heroes.mana_max)?;
-        r.i32s_into(&mut next.heroes.spot_x)?;
-        r.i32s_into(&mut next.heroes.spot_y)?;
+        r.bytes_into(&mut next.attributed.is_attributed)?;
+        r.i32s_into(&mut next.attributed.home_x)?;
+        r.i32s_into(&mut next.attributed.home_y)?;
+        r.bytes_into(&mut next.attributed.waiting)?;
+        r.u32s_into(&mut next.attributed.respawn_at)?;
+        r.i32s_into(&mut next.attributed.gold)?;
+        r.i32s_into(&mut next.attributed.mana_max)?;
+        r.i32s_into(&mut next.attributed.spot_x)?;
+        r.i32s_into(&mut next.attributed.spot_y)?;
         r.u32s_into(&mut next.unit_assists)?;
         r.i32s_into(&mut next.hitter_id)?;
         r.u32s_into(&mut next.hitter_tick)?;
-        r.bytes_into(&mut next.routes.id)?;
-        r.bytes_into(&mut next.routes.step)?;
+        r.bytes_into(&mut next.dests.id)?;
+        r.bytes_into(&mut next.dests.step)?;
         r.i32s_into(&mut next.aggro.target)?;
         r.u32s_into(&mut next.aggro.until)?;
         r.u32s_into(&mut next.aggro.invuln_until)?;
@@ -766,7 +768,7 @@ impl Sim {
         r.bytes_into(&mut next.chase.ret_kind)?;
         r.i32s_into(&mut next.chase.ret_x)?;
         r.i32s_into(&mut next.chase.ret_y)?;
-        r.u32s_into(&mut next.wards.expires)?;
+        r.u32s_into(&mut next.expiry.expires)?;
         {
             r.bytes_into(&mut next.order_memory.set)?;
             r.i32s_into(&mut next.order_memory.x)?;

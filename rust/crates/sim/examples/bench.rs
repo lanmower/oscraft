@@ -43,7 +43,7 @@ fn main() {
                     continue;
                 }
                 for slot in 0..ABILITY_SLOTS {
-                    if sim.skill_points(h) > 0 {
+                    if sim.skill_next_gate(h, slot).is_some_and(|gate| gate <= sim.character_level(h)) {
                         let _ = sim.skill_up(h, slot);
                     }
                 }

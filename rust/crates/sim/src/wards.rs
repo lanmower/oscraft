@@ -9,16 +9,16 @@ use crate::arrays::Sim;
 use crate::inventory::INV_SLOTS;
 
 #[derive(Clone, Debug)]
-pub(crate) struct WardState {
+pub(crate) struct ExpiryState {
     /// Tick at which each ward expires; 0 for a unit that is not a ward.
     pub(crate) expires: Vec<u32>,
     /// Inventory slot being cast during `use_item`, -1 otherwise. Transient: not hashed or saved.
     pub(crate) casting_slot: i32,
 }
 
-impl WardState {
-    pub(crate) fn new(cap: usize) -> WardState {
-        WardState { expires: vec![0; cap], casting_slot: -1 }
+impl ExpiryState {
+    pub(crate) fn new(cap: usize) -> ExpiryState {
+        ExpiryState { expires: vec![0; cap], casting_slot: -1 }
     }
 }
 
@@ -28,20 +28,20 @@ impl Sim {
         if i >= self.n || self.alive[i] == 0 {
             return 0;
         }
-        self.wards.expires[i].saturating_sub(self.ticks)
+        self.expiry.expires[i].saturating_sub(self.ticks)
     }
 
     /// Places unit type `kind` for the caster's player at (x, y) with a lifetime of `life` ticks. A full unit
     /// table or a point the unit does not fit places nothing and keeps the caster's item.
-    pub(crate) fn timed_spawn_effect(&mut self, caster: usize, kind: i32, life: i32, x: i32, y: i32) {
+    pub fn timed_spawn_effect(&mut self, caster: usize, kind: i32, life: i32, x: i32, y: i32) {
         let p = self.player[caster];
         let Some(j) = self.spawn_for(p, kind as u32, x, y) else {
             return;
         };
         self.stats.summoned += 1;
-        self.wards.expires[j] = self.ticks.wrapping_add(life.max(1) as u32);
+        self.expiry.expires[j] = self.ticks.wrapping_add(life.max(1) as u32);
         self.inherit_ranks(caster, j);
-        let slot = self.wards.casting_slot;
+        let slot = self.expiry.casting_slot;
         if slot >= 0 {
             self.consume_charge(caster, slot as usize);
         }
@@ -63,7 +63,7 @@ impl Sim {
     /// Per tick: every timed unit past its expiry is removed without bounty.
     pub(crate) fn tick_timed_life(&mut self) {
         for i in 0..self.n {
-            let at = self.wards.expires[i];
+            let at = self.expiry.expires[i];
             if at != 0 && self.alive[i] != 0 && self.ticks >= at {
                 self.hp[i] = 0;
                 self.alive[i] = 0;

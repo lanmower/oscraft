@@ -18,7 +18,7 @@ struct Moba {
     host: ModHost,
 }
 
-fn moba() -> Result<Moba, String> {
+fn scenario() -> Result<Moba, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
     let mut host = ModHost::new(&image).map_err(|e| format!("ModHost::new: {e:?}"))?;
@@ -123,7 +123,7 @@ fn want(what: &str, got: i64, want: i64) -> Result<(), String> {
 /// Costs and recipe shapes of items.txt: a basic item, a two-part recipe, a four-part recipe, a
 /// consumable with charges, a secret-shop item and a neutral item.
 pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
-    let m = moba()?;
+    let m = scenario()?;
     let s = m.sim();
     let cat = s.catalog();
     for (name, cost) in [("blink", 2250), ("black_king_bar", 4050), ("tpscroll", 100), ("tango", 90), ("clarity", 60), ("flask", 100), ("ward_sentry", 50), ("platemail", 1400), ("blade_mail", 2200), ("force_staff", 2250)] {
@@ -150,7 +150,7 @@ pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
 /// A recipe consumes the components held and charges the cost less theirs; its bonuses apply; selling
 /// returns half the cost.
 pub fn item_recipe_buy(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 5000)?;
     let (hammer, axe, bkb) = (item(&m.sim(), "mithril_hammer")?, item(&m.sim(), "ogre_axe")?, item(&m.sim(), "black_king_bar")?);
     let damage = m.sim().damage_of(h);
@@ -179,7 +179,7 @@ pub fn item_recipe_buy(_image: &[u8]) -> Result<(), String> {
 /// A missing component is paid for in gold; a secret-shop item is refused at a home shop; a purchase
 /// beyond the gold held is refused.
 pub fn item_shop_rules(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 3000)?;
     let (hammer, bkb, plate) = (item(&m.sim(), "mithril_hammer")?, item(&m.sim(), "black_king_bar")?, item(&m.sim(), "platemail")?);
     if m.buy(h, plate) {
@@ -209,7 +209,7 @@ pub fn item_shop_rules(_image: &[u8]) -> Result<(), String> {
 
 /// A stackable item joins the stack of its kind and a consumable loses a charge per use.
 pub fn item_stack_consume(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 2000)?;
     let tango = item(&m.sim(), "tango")?;
     let faerie = item(&m.sim(), "faerie_fire")?;
@@ -242,7 +242,7 @@ fn sim_kind(index: usize) -> u32 {
 
 /// The neutral slot takes only a neutral item and a neutral item sits nowhere else among the main slots.
 pub fn item_slots(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 1000)?;
     let cup = item(&m.sim(), "kobold_cup")?;
     let blink = item(&m.sim(), "blink")?;
@@ -279,7 +279,7 @@ pub fn item_stat_names(_image: &[u8]) -> Result<(), String> {
 
 /// Stats that do not stack take the best item; the others add up.
 pub fn item_stat_stacking(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 20000)?;
     let (crit, plate) = (item(&m.sim(), "lesser_crit")?, item(&m.sim(), "chainmail")?);
     for _ in 0..2 {
@@ -297,7 +297,7 @@ pub fn item_stat_stacking(_image: &[u8]) -> Result<(), String> {
 /// The stock is the store rule's (store.lua): a purchase is refused while the stock is out, and a unit
 /// arrives once the restock time has passed.
 pub fn item_stock(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 0)?;
     let ward = item(&m.sim(), "ward_observer")?;
     m.sim().add_resources(0, 1000, 0);
@@ -326,7 +326,7 @@ fn kill(m: &Moba, h: usize) {
 /// A hero dying with the Aegis returns in 5 seconds where it fell, without a death booked and without the
 /// Aegis; the next death sends it home after the respawn timer, and its items and their bonuses come back.
 pub fn item_aegis_and_death(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 5000)?;
     let (sword, aegis) = (item(&m.sim(), "broadsword")?, item(&m.sim(), "aegis")?);
     if !m.buy(h, sword) || !m.sim().inventory_add(h, sim_kind(aegis), 1) {
@@ -384,7 +384,7 @@ fn guard(m: &mut Moba, h: usize) -> Result<(), String> {
 /// A town portal scroll channels for 3 seconds and lands the hero beside a friendly tower; it cannot target
 /// an enemy tower; the scroll is spent.
 pub fn item_town_portal(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 1000)?;
     let scroll = item(&m.sim(), "tpscroll")?;
     let find = |s: &Sim, player: u8| {
@@ -440,7 +440,7 @@ pub fn item_town_portal(_image: &[u8]) -> Result<(), String> {
 /// Aghanim's Scepter gives the hero its scepter upgrade while carried; the Shard is spent on use and keeps
 /// the shard upgrade; a Refresher Orb resets the cooldowns of the hero's items except its own.
 pub fn item_aghanim_and_refresh(_image: &[u8]) -> Result<(), String> {
-    let mut m = moba()?;
+    let mut m = scenario()?;
     let h = shopper(&m, 20000)?;
     let (scepter, shard, blink, refresher) = (item(&m.sim(), "ultimate_scepter")?, item(&m.sim(), "aghanims_shard")?, item(&m.sim(), "blink")?, item(&m.sim(), "refresher")?);
     if !m.buy(h, scepter) {
