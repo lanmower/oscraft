@@ -363,7 +363,7 @@ const ARM_CHAIN = ['leftShoulder', 'leftUpperArm', 'leftLowerArm', 'leftHand', '
 const ARM_BONES = new Set(ARM_CHAIN);
 // Roll of each hand about its own finger axis (local Y), applied after the solve. The delta solve keeps the rig's rest
 // palm, which faces the back of the hand toward the body; this turns the palm toward the thigh and down.
-const HAND_ROLL = { leftHand: Math.PI / 2, rightHand: -Math.PI / 2 };
+const HAND_ROLL = { leftHand: -Math.PI / 2, rightHand: Math.PI / 2 };
 const SAMPLE_TRACK = new Float32Array(4);
 const ARM_PAIR = new Float32Array(8);
 const ARM_OUT = new Float32Array(4);
