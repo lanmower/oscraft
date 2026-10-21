@@ -67,6 +67,9 @@ void main() {
     float hz = waveH((p + vec2(0.0, e)) * sc, t) - waveH((p - vec2(0.0, e)) * sc, t);
     slope += vec2(hx, hz) / (2.0 * e) * 0.35 / sc * w;
   }
+  float soft = clamp(1.0 - (length(uEye - vWorld) - 20.0) / 80.0, 0.35, 1.0);
+  // Fades the ripple amplitude, refraction and caustic with the view distance: full strength near the camera, about 0.35 far off.
+  slope *= soft;
   vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   vec3 V = normalize(uEye - vec3(p.x, vWorld.y, p.y));
@@ -78,14 +81,14 @@ void main() {
   vec3 deep = vec3(0.04, 0.22, 0.30) * uWaterTint;
   vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
   // Refraction: the bed is seen through the surface, so it is sampled at a small offset driven by the surface normal
-  // (0.3 world units: enough to bend the bed under the ripples, too little to smear the ground texture). The caustic
+  // (a small offset: enough to bend the bed under the ripples, too little to smear the ground texture). The caustic
   // light is laid on that refracted bed as high-contrast bands, so the bending reads as light through the water.
-  vec2 refr = n.xz * 0.01875;
+  vec2 refr = n.xz * 0.01875 * soft;
   vec3 bedR = bedAt(p + refr, vWorld.y, vNormal);
   // Caustic from the isotropic ripple sum, not one plane wave, so no single direction is traced across the pool.
   float caustic = 0.5 + 0.5 * clamp(waveH((p + refr) * 3.0, t) / 1.1, -1.0, 1.0);
   caustic = smoothstep(0.6, 0.95, caustic);
-  bedR *= 1.0 + 0.35 * caustic;
+  bedR *= 1.0 + 0.35 * caustic * soft;
   // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
   float alpha = mix(0.18, 0.38, depth);
   vec3 water = mix(bedR, body, alpha);
