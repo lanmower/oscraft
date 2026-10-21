@@ -12,10 +12,11 @@ case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) exe=.exe ;; esac
 
 root_src=$(cd "$(dirname "$0")/../.." && pwd)/js/client
 mkdir -p "$dest"
+dest=$(cd "$dest" && pwd) # the POSIX form, which GNU tar on Windows handles; cd also fails here if the directory is absent
 [ -z "$(ls -A "$dest")" ] || fail "destination $dest is not empty"
-# The archive comes in on stdin: GNU tar on Windows reads a "D:" file name as a remote host.
-tar -C "$dest" -xzf - < "$archive"
 cd "$dest"
+# The archive comes in on stdin: GNU tar on Windows reads a "D:" file name as a remote host.
+tar -xzf - < "$archive"
 [ -f MANIFEST.sha256 ] || fail "archive has no MANIFEST.sha256"
 
 members=0
