@@ -252,11 +252,12 @@ const SHADERS = typeof document === "undefined" ? null : await loadShaders("");
 
 // The water ripple height field: a greyscale rock height map (512 px, repeats). If it does not load, the water keeps its
 // analytic ripples (the shader falls back on uRippleOn).
-const RIPPLE_URL = new URL("./textures/rock024_disp.jpg", import.meta.url);
 const RIPPLE_BITMAP = typeof document === "undefined" ? null : await loadRippleBitmap();
 async function loadRippleBitmap() {
   try {
-    const res = await fetch(RIPPLE_URL.href);
+    // The texture is named by the pack (manifest.assets.textures.rockDisp); pack_load reads the pack only in the browser.
+    const { assetUrl } = await import("./pack_load.js");
+    const res = await fetch(assetUrl("textures.rockDisp"));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await createImageBitmap(await res.blob());
   } catch (err) {

@@ -3,7 +3,7 @@
 // state and exchanges it with the rest of the room: each accepted change is announced on window
 // event "oscraft:lobby" (detail = {state, action}); remote changes arrive on "oscraft:lobby-msg"
 // (detail = action, carrying its own playerId). The transport is whoever dispatches those events.
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 import { fill } from "./moba_select.js";
 
 export const TEAM_SIZE = 5;

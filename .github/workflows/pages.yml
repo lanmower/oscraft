@@ -37,8 +37,8 @@ jobs:
         with:
           path: |
             rust/crates/web/site/pkg
-            rust/crates/web/site/map.bin
-            rust/crates/web/site/moba.bin
+            scenarios/moba/moba.osdt
+            scenarios/duel-routes/duel-routes.osdt
           key: page-build-v1-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/crates/**', 'scenarios/**', '.github/workflows/pages.yml') }}
 
       - uses: dtolnay/rust-toolchain@stable
@@ -63,8 +63,8 @@ jobs:
           set -euo pipefail
           cargo build -p mapexport
           wasm-pack build crates/web --target web --out-dir site/pkg
-          target/debug/mapexport crates/web/site/map.bin ../scenarios/moba
-          target/debug/mapexport crates/web/site/moba.bin ../scenarios/moba
+          target/debug/mapexport ../scenarios/moba ../scenarios/moba/moba.osdt
+          target/debug/mapexport ../scenarios/duel-routes ../scenarios/duel-routes/duel-routes.osdt
 
       - name: Lay out the site
         working-directory: ${{ github.workspace }}
@@ -74,9 +74,7 @@ jobs:
           cp -r js/client _site/js/client
           rm -rf _site/js/client/pkg && cp -r rust/crates/web/site/pkg _site/js/client/pkg
           rm -f _site/js/client/pkg/.gitignore
-          cp rust/crates/web/site/map.bin _site/js/client/map.bin
-          cp rust/crates/web/site/moba.bin _site/js/client/moba.bin
-          cp scenarios/moba/hero_rules.txt _site/js/client/hero_rules.txt
+          cp -r scenarios _site/scenarios
           mkdir -p _site/js/client/models
           cp rust/crates/web/site/assets/units/*.glb _site/js/client/models/
           cp -r mods _site/mods
@@ -87,9 +85,7 @@ jobs:
           test -f _site/version.json
           test -f _site/js/client/play.html
           test -f _site/js/client/play.js
-          test -f _site/js/client/map.bin
-          test -f _site/js/client/moba.bin
-          test -f _site/js/client/hero_rules.txt
+          test -f _site/scenarios/moba/moba.osdt
           printf '<meta http-equiv="refresh" content="0; url=js/client/play.html">\n' > _site/index.html
           test -f _site/js/client/pkg/web.js
           test -f _site/js/client/pkg/web_bg.wasm

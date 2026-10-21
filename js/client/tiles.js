@@ -134,7 +134,7 @@ export function fitModel(glb, size) {
 export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: "lane", water: "water", cliff: "cliff" });
 // Texture file per material name (CC0, see NOTICE.md). A material's kinds share one texture; the ground and water materials
 // repeat over the map in world space (GROUND_KINDS), while the others stretch once over each tile through the model's UVs.
-export const TILE_TEXTURES = Object.freeze({ ground: "textures/ground.jpg", lane: "textures/lane.jpg", cliff: "textures/cliff.jpg", water: "textures/water.jpg" });
+export const TILE_TEXTURES = Object.freeze({ ground: "ground", lane: "lane", cliff: "cliff", water: "water" });
 // Kinds drawn with a repeating texture (ground and water): their cells split by position modulo the texture period, so each
 // split shares one instanced draw and still lands on the right part of the texture. A river is one continuous surface.
 export const GROUND_KINDS = Object.freeze(Object.keys(TILE_MATERIALS).filter((kind) => ["ground", "water"].includes(TILE_MATERIALS[kind])));
@@ -362,10 +362,10 @@ export const SPLAT_LAYERS = Object.freeze(["grass", "dirt", "lane", "rock"]);
 const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 1 });
 // The water surface is procedural (render3d.js): the water map is one byte per cell, 255 on water cells.
 export const SPLAT_TEXTURES = Object.freeze({
-  grass: Object.freeze(["textures/grass.jpg", "textures/grass_disp.jpg"]),
-  dirt: Object.freeze(["textures/grass_b_cc0_256.jpg", "textures/grass_b_cc0_256_disp.jpg"]),
-  lane: Object.freeze(["textures/lane_earth_cc0_256.jpg", "textures/lane_disp.jpg"]),
-  rock: Object.freeze(["textures/rock024_color.jpg", "textures/rock024_disp.jpg"]),
+  grass: Object.freeze(["grass", "grassDisp"]),
+  dirt: Object.freeze(["dirt", "dirtDisp"]),
+  lane: Object.freeze(["laneEarth", "laneDisp"]),
+  rock: Object.freeze(["rock", "rockDisp"]),
 });
 // Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
 export function isSplatKind(kind) {

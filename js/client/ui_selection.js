@@ -2,7 +2,7 @@
 // an ability row. Each ability slot shows its key, name, mana cost, rank pips and a cooldown overlay, and carries a
 // data-state (ready, cooldown, unlearned, empty) that drives its look. With several units selected, a grid of tiles lists
 // the group; a click on one selects it alone. Labels come from moba_ui.json; keys come from the same file.
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 import { cooldownTicks } from "./moba_select.js";
 
 const TICK_S = 1 / 16;

@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "name": "duel-routes",
+  "version": "1.0.0",
+  "map": "map.osd",
+  "data": [
+    "0_names.osd", "abilities.osd", "behaviours.osd", "economy.osd", "map.osd", "tuning.osd", "units.osd", "units_extra.osd"
+  ],
+  "image": "duel-routes.osdt",
+  "mods": [],
+  "rules": null,
+  "tables": [],
+  "fixtures": [],
+  "ui": "moba_ui.json",
+  "effects": "moba_ui.json",
+  "assets": {
+    "root": "../../js/client",
+    "textures": {
+      "ground": "textures/ground.jpg",
+      "lane": "textures/lane.jpg",
+      "cliff": "textures/cliff.jpg",
+      "water": "textures/water.jpg",
+      "grass": "textures/grass.jpg",
+      "grassDisp": "textures/grass_disp.jpg",
+      "dirt": "textures/grass_b_cc0_256.jpg",
+      "dirtDisp": "textures/grass_b_cc0_256_disp.jpg",
+      "laneEarth": "textures/lane_earth_cc0_256.jpg",
+      "laneDisp": "textures/lane_disp.jpg",
+      "rock": "textures/rock024_color.jpg",
+      "rockDisp": "textures/rock024_disp.jpg"
+    },
+    "models": "models",
+    "catalogue": "assets.json",
+    "doodads": "doodads.json",
+    "doodadSizes": "doodad_sizes.json",
+    "anim": "anim/library.json",
+    "animMaps": "anim/maps"
+  }
+}

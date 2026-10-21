@@ -2,7 +2,7 @@
 // read once from Game.item_catalog_json; Buy calls Game.buy for the selected local hero (the sim refuses it out of shop
 // reach). A card is marked affordable or short of gold, and the header shows the gold the hero holds. Toggled by the
 // shop action (B and P in moba_ui.json) that the input layer dispatches as "moba:action".
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 import { fill } from "./moba_select.js";
 
 const STYLE = `

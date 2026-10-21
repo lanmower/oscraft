@@ -3,7 +3,7 @@
 // ui_scoreboard.js. The top strip lists heroes only: folded it shows each side's kills and one dot per hero
 // (green alive, red dead); a click on the panel expands the hero rows.
 
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 import { fill } from "./moba_select.js";
 
 export const SCOREBOARD_ROWS = 10;

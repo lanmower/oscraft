@@ -6,7 +6,7 @@ import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import UI from "./moba_ui.json" with { type: "json" };
+import { assetJson, assetRel, assetUrl, manifest, packJson, packText, packUrl, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
@@ -75,8 +75,8 @@ const statusEl = document.getElementById("status");
 const canvas = document.getElementById("view");
 const room = location.hash.slice(1) || "lobby";
 const pkgUrl = new URL(document.body.dataset.pkg, location.href).href;
-// The #moba page loads the moba scenario image, the default page loads the duel map image.
-const mapUrl = new URL(location.hash === "#moba" ? "moba.bin" : document.body.dataset.map, location.href).href;
+// The map image and rules come from the pack (pack_load.js); mapUrl is set when the sim loads.
+let mapUrl = null;
 
 let mapGrid = null;
 // The WebGL2 renderer and its orbit camera; created once the WebGL2 context exists.
@@ -188,23 +188,16 @@ function failStart(err) {
   setStatus(`start failed: ${message}`);
 }
 
-async function fetchJson(name) {
-  const res = await fetch(new URL(name, location.href));
-  if (!res.ok) throw new Error(`${name} HTTP ${res.status}`);
-  return res.json();
-}
-
 async function loadSim() {
   const mod = await import(/* @vite-ignore */ pkgUrl);
   await mod.default();
+  mapUrl = packUrl(manifest.image);
   const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
   mapBytes = image;
   setMapSize(readGrid(image));
   const game = new mod.Game(image);
   // The lobby's picker lists the roster names on every page, so the rules text is read for them.
-  const rulesRes = await fetch(new URL("hero_rules.txt", location.href));
-  if (!rulesRes.ok) throw new Error(`hero_rules.txt HTTP ${rulesRes.status}`);
-  const rulesText = await rulesRes.text();
+  const rulesText = manifest.rules ? await packText(manifest.rules) : "";
   heroRuleNames = heroNamesFromRules(rulesText);
   // Fog of war is on for every page, moba included: enemies outside the local team's vision stay hidden.
   game.set_fog(true);
@@ -240,14 +233,14 @@ function skinnedRig(animations, glb, fit) {
 // Humanoid clip library (anim/library.json, extracted from the spoint animation set). Shared by every rig.
 let animLibrary = null;
 function humanoidLibrary() {
-  if (!animLibrary) animLibrary = fetch(new URL("anim/library.json", location.href)).then((r) => r.json()).catch((error) => { animLibrary = null; throw error; });
+  if (!animLibrary) animLibrary = assetJson("anim").catch((error) => { animLibrary = null; throw error; });
   return animLibrary;
 }
 
 // A rig without embedded clips is animated from the humanoid library through its bone map (anim/maps/<model>.json).
 // A rig with no map, or a map that fails to load, is an error for that model: it is never drawn in its rest pose.
 async function libraryClips(name, nodes) {
-  const [map, library] = await Promise.all([fetchJson(`anim/maps/${name}.json`), humanoidLibrary()]);
+  const [map, library] = await Promise.all([packJson(assetRel("animMaps", `${name}.json`)), humanoidLibrary()]);
   return retargetLibrary(library, map, nodes);
 }
 // Rig names that take their clips from the library (see parsedModel): the ones a hot reload re-retargets.
@@ -260,7 +253,7 @@ function parsedModel(name) {
   let entry = parsedModels.get(name);
   if (!entry) {
     entry = (async () => {
-      const url = new URL(`models/${name}.glb`, location.href);
+      const url = new URL(assetUrl("models", `${name}.glb`), location.href);
       const res = await fetch(url);
       if (!res.ok) throw new Error(`models/${name}.glb HTTP ${res.status}`);
       const bytes = await resolveGlbExtensions(await res.arrayBuffer());
@@ -299,7 +292,7 @@ async function fetchModel(name, size) {
 // scripts/doodad-sizes.mjs also states).
 async function loadModels(game) {
   if (typeof game.unit_model_names !== "function") throw new Error("the wasm build has no unit_model_names export");
-  const sizes = await fetchJson("doodad_sizes.json");
+  const sizes = await assetJson("doodadSizes");
   // Heroes (player-controlled unit types) are drawn at HERO_DRAW_SCALE times their fitted size: the owner's intended hero size is twice the fit.
   const heroFlags = typeof game.unit_flags === "function" ? game.unit_flags() : [];
   const typeNames = typeof game.unit_type_names === "function" ? game.unit_type_names() : [];
@@ -325,7 +318,7 @@ async function loadModels(game) {
 // an entry; doodads.json maps every kind to its GLB path. A placed kind whose model or footprint is missing is recorded
 // on the page and its placements are not drawn.
 async function loadDoodadModels(usedKinds) {
-  const [catalogue, paths, footprints] = await Promise.all([fetchJson("assets.json"), fetchJson("doodads.json"), fetchJson("doodad_sizes.json")]);
+  const [catalogue, paths, footprints] = await Promise.all([assetJson("catalogue"), assetJson("doodads"), assetJson("doodadSizes")]);
   const toStem = (file) => file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "");
   const modelName = (id) => {
     const file = catalogue.items.find((item) => item.id === id && item.kind === "model")?.path;
@@ -387,7 +380,7 @@ function maxY(positions) {
 // The ranged attack's projectile: the arrow model, fitted to the footprint doodad_sizes.json gives it. Required: a
 // failed arrow stops the start rather than drawing the projectile as something else.
 async function loadArrowMesh(gl) {
-  const footprints = await fetchJson("doodad_sizes.json");
+  const footprints = await assetJson("doodadSizes");
   if (footprints.arrow === undefined) throw new Error("model arrow: no footprint in doodad_sizes.json");
   return toMesh(gl, await fetchModel("arrow", footprints.arrow), [1, 1, 1]);
 }
@@ -1498,7 +1491,8 @@ async function build3d(gl, game) {
 // A layer texture that does not load throws, naming the layer: the splat ground is required.
 async function buildSplat(gl) {
   const layers = await Promise.all(SPLAT_LAYERS.map(async (name) => {
-    const [albedo, height] = await Promise.all(SPLAT_TEXTURES[name].map(async (uri) => {
+    const [albedo, height] = await Promise.all(SPLAT_TEXTURES[name].map(async (key) => {
+      const uri = assetUrl(key);
       const image = await loadBaseColorImage({ uri }, location.href);
       if (!image) throw new Error(`splat layer ${name} texture ${uri} did not load`);
       return image;

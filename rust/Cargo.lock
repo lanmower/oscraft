@@ -946,6 +946,7 @@ name = "mapexport"
 version = "0.1.0"
 dependencies = [
  "osdt-data",
+ "serde_json",
 ]
 
 [[package]]
@@ -985,6 +986,7 @@ version = "0.0.0"
 dependencies = [
  "osdt-data",
  "piccolo",
+ "serde_json",
  "sim",
 ]
 

@@ -1,7 +1,7 @@
 // Pure MOBA selection, control groups, key resolution and cooldown maths. No DOM: the input layer (moba_input.js)
 // and the node check (moba_select_check.mjs) both run it. Units carry sx, sy (client pixels) for box selection.
 
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 
 // Every control the layer exposes; each must have a binding in moba_ui.json (checked by moba_select_check.mjs).
 export const CONTROL_ACTIONS = UI.controlActions;

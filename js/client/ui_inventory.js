@@ -2,7 +2,7 @@
 // backpack, one neutral) beside a nine-slot stash. Item names come from Game.item_catalog_json, slots from
 // Game.inventory_json. Click an inventory slot to sell it, click a stash slot to move it into the inventory (both need a
 // shop in reach). A filled slot shows its item name and the full name on hover; an empty one is dimmed.
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 
 const STYLE = `
 #ui-inv{display:flex;gap:12px;align-items:flex-start;height:100%;box-sizing:border-box;color:var(--text);font:var(--t-label)/1.2 var(--font)}

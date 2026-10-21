@@ -39,10 +39,14 @@ pub fn generate(src_dir: &Path) -> Result<Vec<u8>> {
         .into_iter()
         .filter(|path| path.extension().is_some_and(|ext| ext == "osd"))
         .collect();
+    generate_files(&files)
+}
 
+/// Evaluates the given `.osd` files in the order given (a pack's manifest `data` list), then returns the encoded image.
+pub fn generate_files(files: &[PathBuf]) -> Result<Vec<u8>> {
     let globals = builtins::globals();
     let collector = Collector::default();
-    for path in &files {
+    for path in files {
         let source = std::fs::read_to_string(path)
             .with_context(|| format!("reading {}", path.display()))?;
         eval_file(&collector, &globals, &path.display().to_string(), source)?;

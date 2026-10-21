@@ -5,6 +5,7 @@
 // Basis transcoder and uploads compressed mip levels when the device has a compressed format, else RGBA.
 
 import { loadBasis, ktx2Size, transcodeKtx2 } from './decoders.js';
+import { assetJson } from './pack_load.js';
 
 const RASTER_URI = /\.(png|jpe?g)$/i;
 
@@ -12,7 +13,7 @@ const RASTER_URI = /\.(png|jpe?g)$/i;
 // requests it, so no 404 is logged and the raster is used directly.
 let shippedKtx2 = null;
 function shippedKtx2Paths() {
-  shippedKtx2 ??= fetch(new URL('assets.json', location.href)).then((r) => r.json())
+  shippedKtx2 ??= assetJson('catalogue')
     .then((catalogue) => (catalogue.items || []).map((item) => item.path).filter((p) => typeof p === 'string' && p.endsWith('.ktx2')))
     .catch(() => []);
   return shippedKtx2;

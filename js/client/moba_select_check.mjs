@@ -1,7 +1,7 @@
 // Node check for the MOBA selection logic and its bindings: run with `node js/client/moba_select_check.mjs`.
 // Synthetic units carry screen positions; heroes are a set of ids. Exits 1 on the first failed assertion.
 import assert from "node:assert/strict";
-import UI from "./moba_ui.json" with { type: "json" };
+import UI from "../../scenarios/moba/moba_ui.json" with { type: "json" };
 import {
   boxSelect, clickSelect, ownIds, ControlGroups, resolveKey, cooldownTicks, formationPoints,
   mergeConfig, fill, teamOf, CONTROL_ACTIONS, targetSpec, refusalText,

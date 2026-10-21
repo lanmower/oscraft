@@ -6,7 +6,7 @@
 // 2D overlay canvas. Gameplay state is only read, never changed: attack targets are not in the sim, so an attack
 // is attributed on the client to the nearest enemy that started a strike within ATTACK_WINDOW_S of the hit.
 import { translation } from "./render3d.js";
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 
 const TEAM_RING_RADIUS = 0.8;
 const SELECT_RING_RADIUS = 1.1;

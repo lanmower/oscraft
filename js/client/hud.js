@@ -4,7 +4,7 @@
 // onKey and the left-click part of onPointerUp are no-ops kept for play.js.
 
 import { cellKind, voidMask } from "./tiles.js";
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 import { fill } from "./moba_select.js";
 import { createMobaInput, centreCamera } from "./moba_input.js";
 import { createFeedback } from "./feedback.js";

@@ -1,7 +1,7 @@
 // Scoreboard, toggled by the scoreboard key (Tab, from moba_ui.json) through the moba:action event. Two team blocks, each
 // with a header row and one row per player: hero, level, kills, deaths, assists and gold, read from Game.post_game_json
 // and the player's hero. The local player's row is highlighted.
-import UI from "./moba_ui.json" with { type: "json" };
+import { UI } from "./pack_load.js";
 
 const STYLE = `
 #ui-score{position:fixed;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);min-width:520px;max-width:90vw;box-sizing:border-box;background:var(--panel-strong);border:1px solid var(--edge);border-radius:6px;color:var(--text);font:var(--t-body)/1.3 var(--font);padding:12px 16px;pointer-events:none}
