@@ -1466,7 +1466,7 @@ async function main() {
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
-  hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: localPlayerId });
+  hud5 = createHud5({ game: localGame, units: currentUnits, selected: () => selectedId, localPlayer: localPlayerId, isHero: (id) => localGame !== null && isHeroUnit(id), heroUnits: simUnits });
   const eventsBase = params.get("events");
   const modUi = createModUi({
     root: document.body,
