@@ -51,7 +51,9 @@ pub struct Options {
     pub shed: bool,
     pub ticks: Option<u64>,
     pub mod_path: Option<PathBuf>,
+    #[cfg(feature = "crash-probes")]
     pub test_panic_tick: Option<u64>,
+    #[cfg(feature = "crash-probes")]
     pub test_panic_mod_tick: Option<u64>,
     pub site: Option<PathBuf>,
     pub replay_dir: Option<PathBuf>,
@@ -72,6 +74,7 @@ pub fn run() -> Result<(), String> {
     if let Some(path) = &opts.mod_path {
         let image_path = opts.data.as_ref().ok_or("--mod needs --data: the mod host runs on the catalog image")?;
         let image = mods::load_image(image_path).map_err(|e| format!("--data {}: {e}", image_path.display()))?;
+        #[cfg(feature = "crash-probes")]
         if let Some(tick) = opts.test_panic_mod_tick {
             link.arm_test_panic(tick);
         }
@@ -91,6 +94,7 @@ pub fn run() -> Result<(), String> {
             std::fs::create_dir_all(dir).map_err(|e| format!("--replay-dir {}: {e}", dir.display()))?;
             room.set_replay_file(&dir.join(format!("{}.replay", room.name)))?;
         }
+        #[cfg(feature = "crash-probes")]
         if let Some(tick) = opts.test_panic_tick {
             room.arm_test_panic(tick);
         }
@@ -212,7 +216,9 @@ pub fn parse_args() -> Result<Options, String> {
         shed: true,
         ticks: None,
         mod_path: None,
+        #[cfg(feature = "crash-probes")]
         test_panic_tick: None,
+        #[cfg(feature = "crash-probes")]
         test_panic_mod_tick: None,
         site: None,
         replay_dir: None,
@@ -244,7 +250,9 @@ pub fn parse_args() -> Result<Options, String> {
             }
             "--ticks" => opts.ticks = Some(parse_num(&value, &flag)?),
             "--mod" => opts.mod_path = Some(PathBuf::from(value)),
+            #[cfg(feature = "crash-probes")]
             "--test-panic-tick" => opts.test_panic_tick = Some(parse_num(&value, &flag)?),
+            #[cfg(feature = "crash-probes")]
             "--test-panic-mod-tick" => opts.test_panic_mod_tick = Some(parse_num(&value, &flag)?),
             "--site" => opts.site = Some(PathBuf::from(value)),
             "--replay-dir" => opts.replay_dir = Some(PathBuf::from(value)),

@@ -75,6 +75,7 @@ pub struct Room {
     staged: Mutex<Option<(u64, Sim, String)>>,
     clock: Mutex<Clock>,
     #[cfg(any(test, feature = "server-tests"))]
+    #[cfg(any(test, feature = "crash-probes"))]
     test_panic_at: AtomicU64,
     gold_by_mod: AtomicBool,
 }
@@ -174,6 +175,7 @@ impl Room {
             feed: Mutex::new(None),
             ui: Mutex::new(UiLog::default()),
             #[cfg(any(test, feature = "server-tests"))]
+            #[cfg(any(test, feature = "crash-probes"))]
             test_panic_at: AtomicU64::new(0),
             gold_by_mod: AtomicBool::new(false),
             staged: Mutex::new(None),
@@ -274,15 +276,15 @@ impl Room {
     }
 
     /// Arms the test-only panic at `tick`. Only test builds and the server-tests feature carry it; a release build ignores it.
-    #[cfg(any(test, feature = "server-tests"))]
+    #[cfg(any(test, feature = "crash-probes"))]
     pub fn arm_test_panic(&self, tick: u64) {
         self.test_panic_at.store(tick + 1, Ordering::Relaxed);
     }
 
-    #[cfg(not(any(test, feature = "server-tests")))]
+    #[cfg(not(any(test, feature = "crash-probes")))]
     pub fn arm_test_panic(&self, _tick: u64) {}
 
-    #[cfg(any(test, feature = "server-tests"))]
+    #[cfg(any(test, feature = "crash-probes"))]
     fn fire_test_panic(&self, tick: u64) {
         if self.test_panic_at.load(Ordering::Relaxed) == tick + 1 {
             self.test_panic_at.store(0, Ordering::Relaxed);
@@ -290,7 +292,7 @@ impl Room {
         }
     }
 
-    #[cfg(not(any(test, feature = "server-tests")))]
+    #[cfg(not(any(test, feature = "crash-probes")))]
     fn fire_test_panic(&self, _tick: u64) {}
 
     // Logs the state hashes a dead hash worker took with it. The recording is already marked incomplete.

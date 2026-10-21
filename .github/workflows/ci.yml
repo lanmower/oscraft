@@ -88,7 +88,8 @@ jobs:
           version: v0.15.0
 
       - name: Build every workspace binary
-        run: cargo build --workspace
+        # crash-probes compiles in the --test-panic-* knobs that the crash probes below arm; release builds leave them out.
+        run: cargo build --workspace --features server/crash-probes
 
       - name: Build the page wasm and export the map image
         run: |

@@ -27,16 +27,19 @@ pub struct ModLink {
     payouts: Mutex<Vec<Payout>>,
     // Deaths that did not fit the payout queue cap; they move into the queue as it drains, in order.
     payout_carry: Mutex<Vec<Payout>>,
+    #[cfg(any(test, feature = "crash-probes"))]
     test_panic_at: AtomicU64,
     image: Mutex<Option<Vec<u8>>>,
     gold_by_mod: AtomicBool,
 }
 
 impl ModLink {
+    #[cfg(any(test, feature = "crash-probes"))]
     pub fn arm_test_panic(&self, tick: u64) {
         self.test_panic_at.store(tick + 1, Ordering::Relaxed);
     }
 
+    #[cfg(any(test, feature = "crash-probes"))]
     fn take_test_panic(&self, tick: u64) -> bool {
         if self.test_panic_at.load(Ordering::Relaxed) != tick + 1 {
             return false;
@@ -159,6 +162,7 @@ fn drive(host: &mut ModHost, link: &ModLink, budget: Duration) {
         if next > now {
             thread::sleep(next - now);
         }
+        #[cfg(any(test, feature = "crash-probes"))]
         if link.take_test_panic(ticks) {
             panic!("test-only panic armed by --test-panic-mod-tick fired at tick {}", ticks);
         }

@@ -16,3 +16,5 @@ mod-host = { path = "../mod-host" }
 default = ["server-tests"]
 # Tests that load game data through the server's mod loader. The web crate includes replay.rs without this feature.
 server-tests = []
+# Test-only crash knobs (--test-panic-tick, --test-panic-mod-tick). Off in default builds; CI enables it for its crash probes.
+crash-probes = []
