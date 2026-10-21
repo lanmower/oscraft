@@ -12,7 +12,7 @@ const ZIP = /\.zip$/i;
 // ---- pack paths and file types ----
 
 export const TEXT_EXTENSIONS = Object.freeze([".lua", ".osd", ".json", ".txt", ".tsv"]);
-export const ASSET_EXTENSIONS = Object.freeze([".png", ".jpg", ".jpeg", ".webp", ".glb", ".gltf", ".bin", ".ogg", ".wav", ".ktx2"]);
+export const ASSET_EXTENSIONS = Object.freeze([".png", ".jpg", ".jpeg", ".webp", ".glb", ".gltf", ".bin", ".ogg", ".wav", ".ktx2", ".osdt"]);
 const REFUSED = /\.(m?js|html?|wasm|ts|cjs|map)$/i;
 
 // A pack path is relative, slash-separated, without "..", a leading slash, a backslash or an empty segment.
@@ -133,6 +133,70 @@ export async function readZip(buffer) {
   return { files, skipped };
 }
 
+// Reads a pack file the user picked (.zip, .tar.gz or .tgz) into { files, skipped }, as the readers above do.
+export async function readPackFile(file) {
+  if (!TAR_GZ.test(file.name) && !ZIP.test(file.name)) throw new Error(`${file.name}: a pack is a .zip, .tar.gz or .tgz`);
+  if (!TAR_GZ.test(file.name)) return readZip(await file.arrayBuffer());
+  const gunzipped = new Response(file.stream().pipeThrough(new DecompressionStream("gzip")));
+  return { files: readTar(new Uint8Array(await gunzipped.arrayBuffer())), skipped: [] };
+}
+
+// The manifest of a pack read into `files` (a Map): it must be schema 1. Used by the lobby before it starts a game.
+export function manifestOf(files) {
+  const raw = files.get("manifest.json");
+  if (raw === undefined) throw new Error("pack has no manifest.json");
+  const parsed = JSON.parse(typeof raw === "string" ? raw : lenient.decode(raw));
+  if (parsed.schema !== 1) throw new Error(`manifest schema ${parsed.schema} is not 1`);
+  return parsed;
+}
+
+// ---- stash: the pack the lobby loaded, kept in IndexedDB for the page it starts (?stashed=1). One pack at a time. ----
+
+const STASH_DB = "oscraft-packs";
+const STASH_STORE = "packs";
+const STASH_KEY = "pending";
+const STASHED = new URLSearchParams(location.search).has("stashed");
+
+function openStash() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(STASH_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STASH_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Keeps `files` (a Map of pack path -> string or bytes) for the next page load.
+export async function stashPack(files) {
+  const db = await openStash();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STASH_STORE, "readwrite");
+      tx.objectStore(STASH_STORE).put(files, STASH_KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error("pack stash aborted"));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function takeStash() {
+  const db = await openStash();
+  try {
+    const files = await new Promise((resolve, reject) => {
+      const req = db.transaction(STASH_STORE, "readonly").objectStore(STASH_STORE).get(STASH_KEY);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    if (!(files instanceof Map)) throw new Error("no loaded pack is stashed");
+    return files;
+  } finally {
+    db.close();
+  }
+}
+
 // Reads a folder picked with <input webkitdirectory> (File objects with webkitRelativePath). The first path segment is the
 // folder's own name and is dropped, so the manifest sits at the root of the pack.
 export async function readFileList(list) {
@@ -212,7 +276,8 @@ function openDirectory(url) {
 }
 
 const archiveUrl = new URL(PACK_PARAM, SITE_ROOT);
-const source = TAR_GZ.test(PACK_PARAM) ? await openTarGz(archiveUrl)
+const source = STASHED ? fromFiles(await takeStash())
+  : TAR_GZ.test(PACK_PARAM) ? await openTarGz(archiveUrl)
   : ZIP.test(PACK_PARAM) ? await openZip(archiveUrl)
   : openDirectory(new URL(PACK_PARAM.replace(/\/?$/, "/"), SITE_ROOT));
 

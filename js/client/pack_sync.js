@@ -29,6 +29,11 @@ export function changeFrames(change, blobs) {
   return chunkFrames(change.path, bytes, hash);
 }
 
+// Every file of a pack as PACK_FILE frames, for a peer that joins: it holds the same bytes the host does.
+export function packStateFrames(pack, blobs) {
+  return pack.paths().flatMap((path) => changeFrames({ path, bytes: pack.get(path) }, blobs));
+}
+
 // The receiving side: `pack` is the peer's Pack. accept(frame) returns one of
 //   { kind: "wait" }                 a chunk of a file not yet complete;
 //   { kind: "want", hash, name }     a reference: send PACK_WANT with this hash to the host;

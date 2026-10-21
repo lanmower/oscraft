@@ -6,7 +6,7 @@ import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import { assetJson, assetRel, assetUrl, manifest, packJson, packText, packUrl, UI } from "./pack_load.js";
+import { assetJson, assetRel, assetUrl, manifest, manifestOf, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
@@ -18,7 +18,7 @@ import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals 
 import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { createLobby, heroKindsFor, heroNamesFromRules } from "./lobby.js";
-import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, swapGate, swapIsNew } from "./swap_protocol.js";
+import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, packSwapKind, swapGate, swapIsNew } from "./swap_protocol.js";
 import { createFogView } from "./fogview.js";
 import { installDebugApi } from "./debug_api.js";
 import { createShop } from "./ui_shop.js";
@@ -28,7 +28,7 @@ import { createFx } from "./fx.js";
 import { createModUi } from "./modui.js";
 import { Pack } from "./pack.js";
 import { createPackEditor } from "./pack_editor.js";
-import { changeFrames, chunkFrames, createPackReceiver } from "./pack_sync.js";
+import { changeFrames, chunkFrames, createPackReceiver, packStateFrames } from "./pack_sync.js";
 
 // Map size comes from the loaded map image (loadSim); these are the fallbacks before a map is read.
 let W = 32;
@@ -1034,10 +1034,145 @@ function openPackEditor() {
   packEditor.open();
 }
 
+// A saved change goes two ways. Its files go to the peers as PACK_FILE frames; then the host's own sim takes the change at a
+// swap tick, the same tick the peers take it: a Lua file reloads the mod set, a data file or the manifest swaps the map
+// image (both through the image swap: SWAP, the readiness gate and applyDueSwap). An asset applies at once.
 function publishPackChanges(changes) {
   if (!hosting) throw new Error("only the host may save the pack");
   for (const change of changes) for (const frame of changeFrames(change, packBlobs)) session.broadcast(encodeFrame(frame));
+  for (const change of changes) if (!change.deleted && packKindOf(change.path) === null) applyPackAsset(change.path);
+  queuePackSwaps(changes);
   setStatus(`pack: sent ${changes.length} change(s) to peers`);
+}
+
+// The pack's manifest as the pack now holds it (the page's own when the pack holds none). A bad manifest throws.
+function currentManifest() {
+  const raw = pack.get("manifest.json");
+  if (raw === undefined) return manifest;
+  return JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw));
+}
+
+// The swap kind of a pack file (see packSwapKind): the map image the manifest names is the data swap's image.
+function packKindOf(file) {
+  let image = manifest.image;
+  try { image = currentManifest().image ?? image; } catch { /* a bad manifest keeps the page's image name */ }
+  return packSwapKind(file, image);
+}
+
+// A pack file's text: the pack's copy, or the page's own when the pack does not hold it.
+async function packFileText(name) {
+  const held = pack.get(name);
+  if (held === undefined) return packText(name);
+  return typeof held === "string" ? held : new TextDecoder().decode(held);
+}
+
+// The bytes a swap of `kind` applies, the same on the host and on every peer: the Lua mod set as load_mods takes it
+// (lua), or the map image named by the manifest (data). A peer checks these bytes against the announced hash.
+async function packSwapBytes(kind) {
+  if (kind === "lua") {
+    const mods = await Promise.all((currentManifest().mods ?? []).map(async (name) => ({ name, text: await packFileText(name) })));
+    return new TextEncoder().encode(JSON.stringify(mods));
+  }
+  const name = currentManifest().image;
+  const held = pack.get(name);
+  if (held !== undefined) return typeof held === "string" ? new TextEncoder().encode(held) : held.slice();
+  return new Uint8Array(await packBytes(name));
+}
+
+// Pack swaps waiting for their turn: one swap is pending at a time, so the kinds one save changes are announced in turn.
+const packSwapQueue = [];
+
+function queuePackSwaps(changes) {
+  const mods = currentManifest().mods ?? [];
+  const queued = new Set();
+  for (const change of changes) {
+    const kind = packKindOf(change.path);
+    if (kind === null || queued.has(kind)) continue;
+    if (kind === "lua" && !mods.includes(change.path)) continue; // a Lua file the mods do not load changes nothing
+    queued.add(kind);
+    packSwapQueue.push({ kind, file: change.path });
+  }
+}
+
+// Host: announces the next queued pack swap when none is pending or being announced. Called once per sim tick.
+function drainPackSwapQueue() {
+  if (pendingSwap || swapFetching || !localGame || packSwapQueue.length === 0) return;
+  const next = packSwapQueue.shift();
+  announcePackSwap(next.kind, next.file);
+}
+
+// Host half of a pack swap: builds the bytes from the host's own pack, then announces the swap tick exactly as an image swap.
+async function announcePackSwap(kind, file) {
+  swapFetching = true;
+  try {
+    const bytes = await packSwapBytes(kind);
+    const hash = fnv1a32(bytes);
+    const tick = localGame.ticks() + SWAP_LEAD_TICKS;
+    session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, hash, file }));
+    pendingSwap = { tick, hash, file, kind, url: null, value: null, image: bytes, error: null, ready: Promise.resolve(bytes), deferrals: 0, readyPeers: new Set(), decided: false };
+    console.log(`[pack] ${file}: ${kind} swap at tick ${tick} (hash ${hash.toString(16)})`);
+  } catch (err) {
+    console.error(`[pack] ${file}: swap not announced, not applied: ${err.message}`);
+    lastSwapResult = { tick: localGame.ticks(), file, ok: false, carried: null, refused: null, error: err.message, readiness: "failed", deferred: false, deferrals: 0 };
+  } finally {
+    swapFetching = false;
+  }
+}
+
+// A pack asset applies at once: a model that is loaded is parsed again on its next use (by its base name), and a texture is
+// read again when it next loads. Anything holding the old bytes is the page's own cache to drop.
+function applyPackAsset(path) {
+  const base = path.replace(/^.*\//, "").replace(/\.glb$/i, "");
+  if (/\.glb$/i.test(path)) parsedModels.delete(base);
+  console.log(`[pack] asset ${path} applied at once`);
+  window.dispatchEvent(new CustomEvent("oscraft:pack-asset", { detail: { path } }));
+}
+
+// Start from a loaded pack: the lobby reads a pack file (pack_load.js), checks its manifest, stashes it and loads this page
+// again on the stash, so the match runs that pack. `hostRoom` makes the new page the room's host (?host=1); otherwise the
+// game is local to this page until the room is hosted.
+function startFromLoadedPack(hostRoom) {
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.accept = ".zip,.tar.gz,.tgz";
+  picker.addEventListener("change", async () => {
+    const file = picker.files[0];
+    if (!file) return;
+    try {
+      setStatus(`pack ${file.name}: reading`);
+      const { files, skipped } = await readPackFile(file);
+      const loaded = manifestOf(files);
+      await stashPack(files);
+      const next = new URL(location.href);
+      next.searchParams.set("stashed", "1");
+      if (hostRoom) next.searchParams.set("host", "1");
+      else next.searchParams.delete("host");
+      console.log(`[pack] ${loaded.name} ${loaded.version ?? ""}: ${files.size} files${skipped.length ? `, skipped ${skipped.join(", ")}` : ""}`);
+      location.href = next.href;
+    } catch (err) {
+      setStatus(`pack not started: ${err.message}`);
+    }
+  });
+  picker.click();
+}
+
+// The lobby's "start from loaded pack" buttons: a local game and a hosted one. The lobby redraws its children on every
+// change, so the bar is put back into the lobby section after each redraw (and hides with it).
+function mountPackStart() {
+  const lobbyEl = document.getElementById("lobby");
+  if (!lobbyEl) return;
+  const bar = document.createElement("div");
+  bar.className = "pack-start";
+  for (const [label, hostRoom] of [["start from loaded pack", false], ["host from loaded pack", true]]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.addEventListener("click", () => startFromLoadedPack(hostRoom));
+    bar.append(button);
+  }
+  const put = () => { if (bar.parentNode !== lobbyEl) lobbyEl.append(bar); };
+  new MutationObserver(put).observe(lobbyEl, { childList: true });
+  put();
 }
 
 function handlePackFrame(sender, frame) {
@@ -1051,7 +1186,10 @@ function handlePackFrame(sender, frame) {
   const out = packReceiver.accept(frame);
   if (out.kind === "want") { sendTo(hostKey, encodeFrame({ type: FRAME.PACK_WANT, hash: out.hash })); return; }
   if (out.kind === "refused") console.warn(`[pack] refused: ${out.reason}`);
-  if (out.kind === "applied") console.log(`[pack] ${out.path} ${out.deleted ? "deleted" : "updated"}`);
+  if (out.kind === "applied") {
+    console.log(`[pack] ${out.path} ${out.deleted ? "deleted" : "updated"}`);
+    if (!out.deleted && packKindOf(out.path) === null) applyPackAsset(out.path);
+  }
 }
 
 function onLobbyStart(state) {
@@ -1176,6 +1314,7 @@ function startHost() {
   let hostTick = restoredAt > 0 ? restoredAt : 0;
   const hostStep = () => {
     logModError(localGame.tick());
+    drainPackSwapQueue();
     hostSwapGate();
     applyDueSwap();
     advanceTickClock(simUnits());
@@ -1344,6 +1483,8 @@ session.addEventListener("peer-open", (e) => {
     autoSeat(key);
     encoder.keyframe();
     sendRoster(key);
+    // A joining peer takes the host's pack as it stands, so its copy matches the bytes the swaps are checked against.
+    for (const frame of packStateFrames(pack, packBlobs)) sendTo(key, encodeFrame(frame));
   } else {
     try { sendTo(e.detail.peerPubkey, encodeFrame({ type: FRAME.JOIN, lastTick: lastAppliedTick })); } catch { /* the host asks again on the next join */ }
   }
@@ -1398,9 +1539,10 @@ session.addEventListener("data", (e) => {
     const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
     if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
     if (!swapIsNew(lastApplied ? lastApplied.tick : null, frame.tick)) { refuseSwap(`tick ${frame.tick} is not after the applied tick ${lastApplied.tick}`, e.detail.peerPubkey, frame.file); return; }
-    const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
+    const kind = packKindOf(frame.file);
+    const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, kind, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
     pendingSwap = swap;
-    prefetchSwapImage(swap);
+    prefetchSwapImage(swap, kind === null ? fetchMapImage : () => packSwapBytes(kind));
     return;
   }
   if (frame.type === FRAME.SWAP_READY) {
@@ -1710,13 +1852,13 @@ function applyDataSwap(due) {
 }
 
 // A swap name is a plain module file name: letters, digits, _ . - and a .js or .mjs ending, with no slash, query or "..".
-const SWAP_FILE = /^[A-Za-z0-9_.-]+\.m?js$/;
+const SWAP_FILE = /^[A-Za-z0-9_.-]+\.(m?js|lua|osd|osdt|json|tsv|txt)$/;
 
 // Why a SWAP announcement must be ignored, or null when it may be applied: only the host announces one, and the name must be a plain module file.
 function swapRefusal(sender, file) {
   if (hosting) return "this page is the host";
   if (hostKey === null || sender !== hostKey) return `sender ${String(sender).slice(0, 8)} is not the host`;
-  if (typeof file !== "string" || !SWAP_FILE.test(file) || file.includes("..")) return `file name ${JSON.stringify(file)} is not a plain .js or .mjs name`;
+  if (typeof file !== "string" || !SWAP_FILE.test(file) || file.includes("..")) return `file name ${JSON.stringify(file)} is not a plain module, Lua or data file name`;
   return null;
 }
 
@@ -1749,9 +1891,9 @@ async function peerReloadModule(file, url) {
 }
 
 // A peer's verified fetch of a swap image: the record's image is set once the bytes match the announced hash, its error otherwise.
-function prefetchSwapImage(swap) {
+function prefetchSwapImage(swap, source = fetchMapImage) {
   if (!peerFetch || peerFetch.hash !== swap.hash) {
-    const promise = fetchMapImage().then((bytes) => {
+    const promise = source().then((bytes) => {
       const got = fnv1a32(bytes);
       if (got !== swap.hash) throw new Error(`image hash ${got.toString(16)} is not the host's ${swap.hash.toString(16)}`);
       return bytes;
@@ -1834,13 +1976,25 @@ function applyDueSwap() {
     return;
   }
   lastApplied = { tick: due.tick, hash: due.hash, file: due.file };
+  if (due.kind === "lua") return applyLuaSwap(due);
   applyDataSwap(due);
+  if (due.kind === "data") return;
   if (!due.value) {
     // A peer re-imports the named module at the swap tick, as the host did, and runs its hook.
     peerReloadModule(due.file, due.url).catch((err) => console.error(`[hmr] ${due.file}: peer reload failed: ${err.message}`));
     return;
   }
   hmrApply(due.file, due.url, due.value).catch((err) => console.error(`[hmr] ${due.file}: swap failed: ${err.message}`));
+}
+
+// A Lua swap at its tick: the pack's mod set loads again on this peer (load_mods). A set that fails to build keeps the
+// last good set, and the error is logged and reported as the swap's result.
+function applyLuaSwap(due) {
+  const tick = localGame.ticks();
+  const error = localGame.load_mods(new TextDecoder().decode(due.image)) || "";
+  logModError(error);
+  lastSwapResult = { tick, file: due.file, ok: !error, carried: null, refused: null, error: error || null, readiness: error ? "failed" : "ready", deferred: false, deferrals: due.deferrals };
+  console.log(`[swap] ${due.file} at tick ${tick}: ${error ? `mods kept, reload failed: ${error}` : "mods reloaded"}`);
 }
 
 async function hmrApply(file, url, value) {
@@ -1950,6 +2104,7 @@ async function main() {
   }
   const heroNames = liveHeroRoster(localGame);
   createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
+  mountPackStart();
   fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
   window.__fogView = fogview;
   const packButton = document.createElement("button");

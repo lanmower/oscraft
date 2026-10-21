@@ -26,3 +26,13 @@ export function swapGate(ticks, pending, peers) {
   for (const key of peers) if (!pending.readyPeers.has(key)) return pending.deferrals < SWAP_MAX_DEFERS ? "defer" : "cancel";
   return "commit";
 }
+
+// What a SWAP names, by its file: "lua" (the pack's Lua mod set reloads), "data" (the map image swaps: the manifest, the
+// map image named by `image`, and the pack's data files), or null (a hot-reloaded page module, or an asset, which applies
+// at once and never swaps).
+export function packSwapKind(file, image = null) {
+  if (image !== null && file === image) return "data";
+  if (/\.lua$/i.test(file)) return "lua";
+  if (file === "manifest.json" || /\.(osd|json|tsv|txt)$/i.test(file)) return "data";
+  return null;
+}
