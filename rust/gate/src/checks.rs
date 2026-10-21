@@ -258,7 +258,7 @@ pub fn data_dir() -> PathBuf {
 }
 
 
-/// A named number of scenarios/moba/hero_rules.txt, the camp, rune and boss timings the moba mod owns.
+/// A named number of scenarios/moba/hero_rules.txt, the camp, rune and boss timings the scenario mod owns.
 pub fn scenario_rule(key: &str) -> Result<i32, String> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba").join("hero_rules.txt");
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;

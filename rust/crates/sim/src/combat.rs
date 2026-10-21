@@ -705,7 +705,7 @@ mod tests {
         assert_eq!(rival_gold, 0, "no engine payout to the rival side");
         s.set_payout_owner(true);
         let (killer_gold, rival_gold) = kill_both_ways(&mut s);
-        assert_eq!(killer_gold, 0, "no hero bounty while a mod owns gold");
+        assert_eq!(killer_gold, 0, "no unit bounty while a mod owns gold");
         assert_eq!(rival_gold, 0, "no rival payout while a mod owns gold");
 
         let saved = s.save_state();
@@ -834,37 +834,37 @@ mod tests {
         let image = osdt_data::generate(&scenario).expect("moba image");
         let mut s = load(&image, CAP).expect("moba sim");
         s.set_fog(false);
-        let hero = unit_named(&mut s, 0, "antimage");
-        let (hx, hy) = s.position_fixed(hero);
-        s.attribute_unit(hero, hx, hy);
-        s.energy[hero] = 100_000;
+        let attributed = unit_named(&mut s, 0, "antimage");
+        let (hx, hy) = s.position_fixed(attributed);
+        s.attribute_unit(attributed, hx, hy);
+        s.energy[attributed] = 100_000;
         let item = crate::inventory::item_kind(s.catalog().item_index("blink").expect("blink item"));
-        assert!(s.inventory_add(hero, item, 1), "the hero takes the blink");
-        let base = hero * crate::inventory::INV_SLOTS;
+        assert!(s.inventory_add(attributed, item, 1), "the unit takes the blink");
+        let base = attributed * crate::inventory::INV_SLOTS;
         let slot = (0..crate::inventory::MAIN_SLOTS).find(|&k| s.inv_kind[base + k] == item).expect("item slot");
         let far_x = hx + fixed::from_int(40);
-        assert!(!s.use_item(hero, slot, -1, far_x, hy), "a point 40 cells away is beyond the blink's range");
+        assert!(!s.use_item(attributed, slot, -1, far_x, hy), "a point 40 cells away is beyond the blink's range");
         assert_eq!(s.stats.last_refusal, crate::rules::Refusal::MoveRange, "the refusal names the cast range");
         assert_eq!(s.inv_count[base + slot], 1, "a refused item cast spends no charge");
     }
 
-    /// A consumable spends one charge per successful use, and a second use while the hero lacks energy is refused.
+    /// A consumable spends one charge per successful use, and a second use while the unit lacks energy is refused.
     #[test]
     fn consumable_use_spends_a_charge_and_refuses_reuse_in_cooldown() {
         let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
         let image = osdt_data::generate(&scenario).expect("moba image");
         let mut s = load(&image, CAP).expect("moba sim");
         s.set_fog(false);
-        let hero = unit_named(&mut s, 0, "antimage");
-        let (hx, hy) = s.position_fixed(hero);
-        s.attribute_unit(hero, hx, hy);
+        let attributed = unit_named(&mut s, 0, "antimage");
+        let (hx, hy) = s.position_fixed(attributed);
+        s.attribute_unit(attributed, hx, hy);
         let item = crate::inventory::item_kind(s.catalog().item_index("faerie_fire").expect("faerie fire item"));
-        assert!(s.inventory_add(hero, item, 2), "the hero takes two charges");
-        let base = hero * crate::inventory::INV_SLOTS;
+        assert!(s.inventory_add(attributed, item, 2), "the unit takes two charges");
+        let base = attributed * crate::inventory::INV_SLOTS;
         let slot = (0..crate::inventory::MAIN_SLOTS).find(|&k| s.inv_kind[base + k] == item).expect("item slot");
-        assert!(s.use_item(hero, slot, hero as i32, 0, 0), "the first use casts");
+        assert!(s.use_item(attributed, slot, attributed as i32, 0, 0), "the first use casts");
         assert_eq!(s.inv_count[base + slot], 1, "one charge is spent");
-        assert!(!s.use_item(hero, slot, hero as i32, 0, 0), "a second use inside the cooldown is refused");
+        assert!(!s.use_item(attributed, slot, attributed as i32, 0, 0), "a second use inside the cooldown is refused");
         assert_eq!(s.stats.last_refusal, crate::rules::Refusal::Cooldown, "the second use is refused for the item cooldown");
         assert_eq!(s.inv_count[base + slot], 1, "a refused use spends no charge");
     }

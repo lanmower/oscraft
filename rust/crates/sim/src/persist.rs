@@ -11,17 +11,17 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-/// Version 16 adds the destroyed-trigger flags and the declared winner. Version 32 drops the glyph timers and adds per-unit healing. Older saves are refused.
+/// Version 16 adds the destroyed-trigger flags and the declared winner. Version 32 drops the team aura timers and adds per-unit healing. Older saves are refused.
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
-/// Version 27 adds the hero per-unit state (respawn, buyback, gold, mana cap, spot) and the assist
+/// Version 27 adds the attributed-unit state (respawn, buyback, gold, mana cap, spot) and the assist
 /// tallies and recent hitters. Version 30 adds the per-slot spawn generation and the generation each sticky
 /// strike target was struck under, so a reused slot never hands its old occupant's target to the new unit.
 /// Version 31 adds the chase and return state of acquiring units (acquire.rs).
 /// Version 33 drops the courier and store-stock sections: a carrier's walk and a store's stock are mod
 /// state now, and the sim keeps only the saved order point per unit (carrier.rs). Saves of any other
 /// version, older ones included, are refused with `BadVersion`.
-/// Version 35 renames the genre-named sections to neutral ones (attributed units, groups, dests, expiry,
+/// Version 35 renames the sections to neutral names (attributed units, groups, dests, expiry,
 /// item_requests, aura) and drops the skill-point rule from the engine: the layout is unchanged.
 const STATE_VERSION: u16 = 35;
 
@@ -540,7 +540,7 @@ impl Sim {
 
         let mut next = Sim::with_catalog(self.cap, Grid::open(w, h), self.cat.clone());
         next.xp_curve = self.xp_curve.clone();
-        next.attributed = crate::hero::AttributedState::new(cap);
+        next.attributed = crate::attributes::AttributedState::new(cap);
         next.attributed.rules = self.attributed.rules;
         next.attributed.defs = self.attributed.defs.clone();
         next.n = r.u64()? as usize;
@@ -781,7 +781,7 @@ impl Sim {
             return Err(StateError::Length);
         }
         next.rebucket();
-        next.resync_hero_mana();
+        next.resync_unit_mana();
         *self = next;
         Ok(())
     }

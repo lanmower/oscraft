@@ -20,7 +20,7 @@ fn rival_base(sim: &Sim, h: usize) -> Option<usize> {
 
 fn foe_attributed(sim: &Sim, h: usize) -> Option<usize> {
     let p = sim.player(h);
-    (0..sim.count()).find(|&j| sim.alive(j) && sim.is_hero(j) && sim.player(j) != NEUTRAL && sim.hostile(p, sim.player(j)))
+    (0..sim.count()).find(|&j| sim.alive(j) && sim.is_attributed(j) && sim.player(j) != NEUTRAL && sim.hostile(p, sim.player(j)))
 }
 
 fn main() {
@@ -31,9 +31,9 @@ fn main() {
     let image = osdt_data::generate(Path::new(dir)).expect("compile scenario");
     let mut sim = sim::load(&image, 4096).expect("load scenario");
     if let Ok(rules) = std::fs::read_to_string(Path::new(dir).join("hero_rules.txt")) {
-        assert!(sim.set_hero_rules_text(&rules), "hero_rules.txt has a bad line");
+        assert!(sim.set_attr_rules_text(&rules), "hero_rules.txt has a bad line");
     }
-    let attributed: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_hero(i)).collect();
+    let attributed: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_attributed(i)).collect();
     let mut total = std::time::Duration::ZERO;
     let mut worst = std::time::Duration::ZERO;
     for t in 0..ticks {

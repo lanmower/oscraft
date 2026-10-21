@@ -40,7 +40,7 @@ local glyph_ready = {}   -- team -> tick it may glyph again
 
 local function threatened(structure, owner, x, y)
   for _, k in ipairs(game.units_near(x, y, RADIUS)) do
-    if k ~= structure and not game.is_structure(k) and not game.is_hero(k)
+    if k ~= structure and not game.is_structure(k) and not game.is_attributed(k)
       and unit_player(k) < 16 and game.hostile(owner, unit_player(k)) then
       return true
     end

@@ -1,4 +1,4 @@
-//! Gate checks for the hero ability mechanics on the moba scenario: damage types, damage over time, areas,
+//! Gate checks for the hero ability mechanics on the scenario scenario: damage types, damage over time, areas,
 //! chains, zones, channels with pulses, procs, passives, auras, statuses, charges, talents and casting from
 //! a distance. Each check casts a real reference ability from scenarios/moba/abilities_ruleset.osd and asserts a
 //! number computed by hand from hero_*.txt @282fad29f0f74504fad465c52d197fb61f4d612b.
@@ -27,7 +27,7 @@ const S_CRIT_CHANCE: usize = 6;
 const S_CRIT_MULT: usize = 7;
 const S_CLEAVE: usize = 8;
 
-/// The moba scenario with its hero rules, a high level cap and an open arena, centre in whole world units.
+/// The scenario scenario with its hero rules, a high level cap and an open arena, centre in whole world units.
 struct World {
     s: Sim,
     cx: i32,
@@ -36,10 +36,10 @@ struct World {
 
 fn world() -> Result<World, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
-    let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
+    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario scenario image: {e:#}"))?;
     let mut s = fresh(&image)?;
     let rules = std::fs::read_to_string(scenario.join("hero_rules.txt")).map_err(|e| e.to_string())?;
-    if !s.set_hero_rules_text(&rules) {
+    if !s.set_attr_rules_text(&rules) {
         return Err("hero_rules.txt has a bad line".into());
     }
     for u in 0..s.count() {
@@ -764,9 +764,9 @@ pub fn talent_picks(_image: &[u8]) -> Result<(), String> {
     w.run(5 + 17);
     near("battle hunger with the +8 talent", before - w.hp(target), 20.0, 1.0)?;
     w.level_up(axe, 20);
-    let strength = w.s.hero_attributes(axe)[0];
+    let strength = w.s.unit_attributes(axe)[0];
     w.s.set_upgrade_bit(axe, 6, true).map_err(|r| r.name().to_string())?;
-    let gained = w.s.hero_attributes(axe)[0] - strength;
+    let gained = w.s.unit_attributes(axe)[0] - strength;
     if gained != 15 {
         return Err(format!("the +15 strength talent added {gained}"));
     }
@@ -873,7 +873,7 @@ pub fn spell_illusions(_image: &[u8]) -> Result<(), String> {
     if !w.s.cast_ability(hero, slot, -1, 0, 0) {
         return Err(format!("cast refused: {}", w.s.stats.last_refusal.name()));
     }
-    let copies: Vec<usize> = (0..w.s.count()).filter(|&u| u != hero && w.s.alive(u) && w.s.player(u) == 0 && w.s.unit_type(u) == kind && !w.s.is_hero(u)).collect();
+    let copies: Vec<usize> = (0..w.s.count()).filter(|&u| u != hero && w.s.alive(u) && w.s.player(u) == 0 && w.s.unit_type(u) == kind && !w.s.is_attributed(u)).collect();
     if copies.len() != 2 {
         return Err(format!("{} illusions want 2", copies.len()));
     }
@@ -901,7 +901,7 @@ pub fn phantom_lancer_illusions(_image: &[u8]) -> Result<(), String> {
         return Err(format!("lance damage {lost:.2} want 75 plus at most a hit of the new illusion"));
     }
     let kind = w.s.unit_type(pl);
-    let copies = (0..w.s.count()).filter(|&u| u != pl && w.s.alive(u) && w.s.player(u) == 0 && w.s.unit_type(u) == kind && !w.s.is_hero(u)).count();
+    let copies = (0..w.s.count()).filter(|&u| u != pl && w.s.alive(u) && w.s.player(u) == 0 && w.s.unit_type(u) == kind && !w.s.is_attributed(u)).count();
     if copies != 1 {
         return Err(format!("{copies} illusions after the lance, want 1"));
     }

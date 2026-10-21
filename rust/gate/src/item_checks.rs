@@ -1,4 +1,4 @@
-//! Gate checks for reference items on the moba scenario: costs and recipes against items.txt
+//! Gate checks for reference items on the scenario scenario: costs and recipes against items.txt
 //! @282fad29f0f74504fad465c52d197fb61f4d612b, the recipe purchase rule, shops, stacks, slots,
 //! stat bonuses and consumables. The store rule is the mod's (scenarios/moba/store.lua): a trade is
 //! asked of the mod through the host, and its verdict is applied to the host's sim here.
@@ -12,7 +12,7 @@ use crate::checks::kind;
 
 const HOME_SHOP_DOODAD: u16 = 5;
 
-/// The moba scenario as a mod host: the host's sim is the world, and the store and courier rules are the
+/// The scenario scenario as a mod host: the host's sim is the world, and the store and courier rules are the
 /// mod's. Trades and deliveries are answered by the mod, and each answer is applied to the sim.
 struct Moba {
     host: ModHost,
@@ -20,10 +20,10 @@ struct Moba {
 
 fn scenario() -> Result<Moba, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
-    let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
+    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario scenario image: {e:#}"))?;
     let mut host = ModHost::new(&image).map_err(|e| format!("ModHost::new: {e:?}"))?;
     let rules = std::fs::read_to_string(scenario.join("hero_rules.txt")).map_err(|e| e.to_string())?;
-    if !host.sim().set_hero_rules_text(&rules) {
+    if !host.sim().set_attr_rules_text(&rules) {
         return Err("hero_rules.txt has a bad line".into());
     }
     host.sim().set_fog(false);
@@ -78,7 +78,7 @@ impl Moba {
 }
 
 fn item(s: &Sim, name: &str) -> Result<usize, String> {
-    s.catalog().item_index(name).ok_or_else(|| format!("moba scenario has no item {name}"))
+    s.catalog().item_index(name).ok_or_else(|| format!("scenario scenario has no item {name}"))
 }
 
 /// The slot of hero `h` that holds catalog item `index`, if one does.
@@ -96,7 +96,7 @@ fn held_slots(m: &Moba, h: usize) -> usize {
 fn shopper(m: &Moba, gold: i32) -> Result<usize, String> {
     let (k, x, y) = {
         let s = m.sim();
-        let shop = s.catalog().doodads.iter().find(|d| d.kind == HOME_SHOP_DOODAD).copied().ok_or("moba scenario has no shop doodad")?;
+        let shop = s.catalog().doodads.iter().find(|d| d.kind == HOME_SHOP_DOODAD).copied().ok_or("scenario scenario has no shop doodad")?;
         (kind(&s, "axe")?, fixed::from_milli(shop.x), fixed::from_milli(shop.y))
     };
     for dx in 1..40 {

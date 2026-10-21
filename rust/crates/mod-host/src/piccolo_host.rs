@@ -585,7 +585,7 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
     native!(ctx, game, "attributes_x100", [sh], |c, s| {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
-        let [x, y, z] = sh.sim.hero_attributes_x100(u);
+        let [x, y, z] = sh.sim.unit_attributes_x100(u);
         s.replace(c, (i64::from(x), i64::from(y), i64::from(z)));
         Ok(CallbackReturn::Return)
     });
@@ -603,11 +603,11 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         sh.sim.set_counter(u, &name, value);
         Ok(CallbackReturn::Return)
     });
-    native!(ctx, game, "hero_field", [sh], |c, s| {
+    native!(ctx, game, "attr_field", [sh], |c, s| {
         let (i, name) = (a(c, &s, 0)?, text(c, s.get(1), 1)?);
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
-        match sh.sim.hero_field(u, &name) {
+        match sh.sim.attr_field(u, &name) {
             Some(v) => s.replace(c, i64::from(v)),
             None => s.replace(c, ()),
         }
@@ -627,7 +627,7 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         let (i, x, y) = (a(c, &s, 0)?, fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
         let mut sh = sh.borrow_mut();
         let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
-        sh.sim.enroll_hero(u, x, y);
+        sh.sim.enroll_attributed(u, x, y);
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "spawn", [sh], |c, s| {
@@ -921,10 +921,10 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, sh.sim.is_structure(u));
         Ok(CallbackReturn::Return)
     });
-    native!(ctx, game, "is_hero", [sh], |c, s| {
+    native!(ctx, game, "is_attributed", [sh], |c, s| {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
-        s.replace(c, sh.sim.is_hero(u));
+        s.replace(c, sh.sim.is_attributed(u));
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "hostile", [sh], |c, s| {
@@ -1181,8 +1181,8 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.cmds.push(Cmd::GrantUpgrade { player: p, name });
         Ok(CallbackReturn::Return)
     });
-    // Spawn-group setters (sim camp.rs): set_group_leash(milli) is a load-time leash radius for every member;
-    // set_reincarnate_item(name, seconds) names the item that lets a dying hero reincarnate.
+    // Spawn-group setters (sim groups.rs): set_group_leash(milli) is a load-time leash radius for every member;
+    // set_reincarnate_item(name, seconds) names the item that lets a dying unit reincarnate.
     native!(ctx, game, "set_group_leash", [sh], |c, s| {
         let milli = u32::try_from(a(c, &s, 0)?).map_err(|_| fail(c, "invalid_leash: must not be negative".into()))?;
         sh.borrow_mut().sim.set_group_leash(milli);
@@ -2174,14 +2174,14 @@ impl ModHost {
         }
     }
 
-    // on_died(unit, killer, killer_player, bounty, victim_player, killer_hero), the handler then the triggers.
+    // on_died(unit, killer, killer_player, bounty, victim_player, killer_attributed), the handler then the triggers.
     // The commands the handlers queue here are the mod's own, so they move to `local` and apply before
     // the systems' commands, as the mlua host orders them.
     fn died(&mut self, d: &Death) -> Result<(), String> {
         let opt = |v: Option<i64>| v.map_or(Arg::Nil, Arg::Int);
         let before = self.sh.borrow().cmds.len();
-        // The sixth argument is whether the killer is a hero, as the mlua host passes it.
-        let killer_hero = d.killer.is_some_and(|k| self.sh.borrow().sim.is_hero(k as usize));
+        // The sixth argument is whether the killer is attributed, as the mlua host passes it.
+        let killer_attributed = d.killer.is_some_and(|k| self.sh.borrow().sim.is_attributed(k as usize));
         self.emit(
             "on_died",
             vec![
@@ -2190,7 +2190,7 @@ impl ModHost {
                 opt(d.killer_player.map(i64::from)),
                 Arg::Int(i64::from(d.bounty)),
                 Arg::Int(i64::from(d.victim_player)),
-                Arg::Bool(killer_hero),
+                Arg::Bool(killer_attributed),
             ],
         )?;
         for f in self.hook_fns(|h| &h.on_unit_died) {

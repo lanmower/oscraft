@@ -18,7 +18,7 @@ impl Sim {
         }
         self.xp_curve = curve.to_vec();
         for i in 0..self.n {
-            self.apply_hero_stats(i);
+            self.apply_attr_stats(i);
         }
         true
     }
@@ -48,7 +48,7 @@ impl Sim {
         self.xp_total[unit] = self.xp_total[unit].saturating_add(amount);
         let gained = self.level(unit) - before;
         if gained > 0 {
-            self.apply_hero_stats(unit);
+            self.apply_attr_stats(unit);
         }
         gained
     }

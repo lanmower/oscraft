@@ -1563,7 +1563,7 @@ fn load_data(path: &std::path::Path, max_units: usize) -> Result<Sim, String> {
     let mut sim = sim::load(&image, max_units).map_err(|e| format!("{e:?}"))?;
     match std::fs::read_to_string(path.join("hero_rules.txt")) {
         Ok(rules) => {
-            if !sim.set_hero_rules_text(&rules) {
+            if !sim.set_attr_rules_text(&rules) {
                 return Err("hero_rules.txt has a bad line".to_string());
             }
         }

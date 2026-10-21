@@ -104,7 +104,7 @@ impl Sim {
             Some(r) => (((r.hp_per_tick as i64 * fixed::ONE as i64) / 1000) as i32, r.delay as u32),
             None => (0, 0),
         };
-        let per_tick = base.saturating_add(self.hero_regen_per_tick(i));
+        let per_tick = base.saturating_add(self.unit_regen_per_tick(i));
         if per_tick <= 0 || self.hp[i] >= self.hp_max[i] {
             return;
         }

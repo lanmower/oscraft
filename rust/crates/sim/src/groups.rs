@@ -22,7 +22,7 @@ pub(crate) struct GroupState {
     pub(crate) revive_at: Vec<u32>,
     /// Leash radius per member, milli-units. 0 means no leash. Load-time setting, not hashed or saved.
     pub(crate) leash_milli: Vec<i32>,
-    /// Item that lets a dying hero reincarnate: (item kind, seconds the hero is gone). Load-time setting.
+    /// Item that lets a dying unit reincarnate: (item kind, seconds the unit is gone). Load-time setting.
     pub(crate) revive_item: Option<(u32, u32)>,
 }
 
@@ -50,7 +50,7 @@ impl GroupState {
 
 impl Sim {
     /// Marks live unit `i` as a group member whose home is its current point.
-    pub(crate) fn mark_camp(&mut self, i: usize) {
+    pub(crate) fn mark_group(&mut self, i: usize) {
         let c = &mut self.groups;
         c.member[i] = 1;
         c.anchor_x[i] = self.pos_x[i];
@@ -76,10 +76,10 @@ impl Sim {
 
     /// Sets the respawn timer of dead spawn-group member `i`: `Some(s)` respawns it `s` seconds from now, `None`
     /// leaves it dead (`Some(0)` respawns it at the next tick). A member that is not dead, or a unit outside a
-    /// spawn group, is refused. A hero goes to the hero respawn.
+    /// spawn group, is refused. A unit goes to the unit respawn.
     pub fn set_respawn(&mut self, i: usize, delay_s: Option<u32>) -> Result<(), &'static str> {
-        if self.is_hero(i) {
-            return self.set_hero_respawn(i, delay_s);
+        if self.is_attributed(i) {
+            return self.set_attributed_respawn(i, delay_s);
         }
         if !self.is_spawn_group_unit(i) || self.alive(i) {
             return Err("not a dead spawn-group unit");
@@ -111,7 +111,7 @@ impl Sim {
         }
     }
 
-    /// Names the item that lets a dying hero reincarnate and how long the hero is gone. A load-time mod setting;
+    /// Names the item that lets a dying unit reincarnate and how long the unit is gone. A load-time mod setting;
     /// an unknown item is refused.
     pub fn set_reincarnate_item(&mut self, name: &str, seconds: u32) -> Result<(), &'static str> {
         let k = self.cat.items.iter().position(|it| self.cat.name(it.name) == name).ok_or("unknown item")?;

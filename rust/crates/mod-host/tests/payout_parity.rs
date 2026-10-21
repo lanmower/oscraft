@@ -31,7 +31,7 @@ PAYOUT_OWNER = true
 function on_tick(state) end
 function on_died(unit, killer, killer_player, bounty, victim_player)
   game.cmd_add_unit_gold(unit, bounty)
-  game.cmd_add_gold(victim_player, (killer ~= nil and game.is_hero(killer)) and 1 or 0)
+  game.cmd_add_gold(victim_player, (killer ~= nil and game.is_attributed(killer)) and 1 or 0)
   game.cmd_add_gold(killer_player or 0, killer or -1)
 end
 "#;
@@ -42,7 +42,7 @@ fn on_died_receives_five_arguments_with_bounty() {
     host.load_source("probe", PROBE).expect("probe loads");
     let fed = host.feed_payout(&payout(7, 2, Some(3), Some(1), 55)).expect("fed");
     let lines: Vec<String> = fed.iter().map(show).collect();
-    println!("PARITY probe hero-kill {lines:?}");
+    println!("PARITY probe attributed-kill {lines:?}");
     assert_eq!(lines, ["unit_gold unit=7 amount=55", "gold player=2 amount=1", "gold player=1 amount=3"]);
     let fed = host.feed_payout(&payout(7, 2, None, None, 9)).expect("fed");
     let lines: Vec<String> = fed.iter().map(show).collect();
@@ -57,18 +57,18 @@ fn moba_match_pays_the_same_for_fixed_kills() {
     // kill_gold.lua is one file of the moba mod; the host needs an on_tick to load, so the test adds the empty one.
     let src = format!("{src}\nfunction on_tick(state) end\n");
     let mut host = ModHost::new(&image()).expect("host");
-    // The hero kill needs unit 20 to be a hero; seat picks enrol heroes (hero.lua), so the test enrols it here.
-    host.sim().enroll_hero(20, 0, 0);
+    // The attributed kill needs unit 20 to be attributed; seat picks enrol attributed units (hero.lua), so the test enrols it here.
+    host.sim().enroll_attributed(20, 0, 0);
     host.load_source("moba_match", &src).expect("moba_match loads");
     let kills = [
-        ("hero kill", payout(10, 2, Some(20), Some(0), 40)),
+        ("attributed kill", payout(10, 2, Some(20), Some(0), 40)),
         ("creep kill", payout(21, 1, Some(22), Some(1), 17)),
         ("attackerless", payout(30, 2, None, None, 30)),
         ("self kill", payout(31, 3, Some(31), Some(3), 12)),
         ("no bounty", payout(32, 0, Some(20), Some(0), 0)),
     ];
     let want: [&[&str]; 5] = [
-        // kill_gold.lua pays gold only; the hero xp share is hero.lua on_died, which this test does not load.
+        // kill_gold.lua pays gold only; the attributed xp share is hero.lua on_died, which this test does not load.
         &["unit_gold unit=20 amount=32", "gold player=0 amount=8"],
         &["gold player=1 amount=17"],
         &["gold player=1 amount=30"],

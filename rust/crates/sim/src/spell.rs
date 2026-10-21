@@ -1,4 +1,4 @@
-//! Spell mechanics shared by every hero ability: the AXTN extension record (cast range, cast point, pulse
+//! Spell mechanics shared by every unit ability: the AXTN extension record (cast range, cast point, pulse
 //! period, proc chance, rank-scaled parameters and scepter, shard and talent modifiers), per-unit stat
 //! modifiers (passive and timed), damage over time, areas, chains, zones, illusions, procs, auras and the
 //! attack modifiers (evasion, critical strikes, cleave, lifesteal, bash). Damage amounts of a typed hit
@@ -449,9 +449,9 @@ impl Sim {
         self.armor[i].wrapping_add(fixed::from_int(self.stat(i, S_ARMOR))).wrapping_add(hundredths)
     }
 
-    /// Magic resistance of unit `i` in percent: the hero's base and its bonus stacked multiplicatively.
+    /// Magic resistance of unit `i` in percent: the unit's base and its bonus stacked multiplicatively.
     pub(crate) fn magic_resist_pct(&self, i: usize) -> i32 {
-        let base = self.hero_def(i).map_or(0, |d| d.magic_resist) as i64;
+        let base = self.attr_def(i).map_or(0, |d| d.magic_resist) as i64;
         let bonus = self.stat(i, S_MAGIC_RESIST) as i64;
         let kept = (100 - base) * (100 - bonus) / 100;
         (100 - kept) as i32
@@ -870,7 +870,7 @@ impl Sim {
     }
 
     fn resource_effect(&mut self, caster: usize, j: usize, eff: Effect) {
-        let cap_of = |s: &Sim, u: usize| if s.is_hero(u) { s.attributed.mana_max[u] } else { i32::MAX };
+        let cap_of = |s: &Sim, u: usize| if s.is_attributed(u) { s.attributed.mana_max[u] } else { i32::MAX };
         match eff.p1 {
             0 => {
                 let cap = cap_of(self, j);
@@ -896,7 +896,7 @@ impl Sim {
     /// 2 allies without it, 3 anyone) plus 4 to centre on the caster and 8 for a line from the caster
     /// through the cast point (length: the cast range plus the ability's `line_extra`), p2 how many
     /// effects follow, p3 the required filter bits, with bits 16..23 a cap on targets taken nearest
-    /// first and bit 30 for heroes only.
+    /// first and bit 30 for units only.
     pub(crate) fn aoe_effects(&mut self, caster: usize, ai: usize, filter: u32, first: usize, tx: i32, ty: i32) {
         let eff = self.resolve_effect(caster, ai, first);
         let n = eff.p2 as usize;
@@ -920,7 +920,7 @@ impl Sim {
         let structure = 1u32 << 6;
         let wanted = eff.p3 as u32 & 0xFFF;
         let cap = ((eff.p3 as u32 >> 16) & 0xFF) as usize;
-        let heroes_only = eff.p3 as u32 & (1 << 30) != 0;
+        let attributed_only = eff.p3 as u32 & (1 << 30) != 0;
         let (lx, ly) = (tx.wrapping_sub(self.pos_x[caster]) as i64, ty.wrapping_sub(self.pos_y[caster]) as i64);
         let len = isqrt64((lx * lx + ly * ly) as u64).max(1) as i128;
         let reach = fixed::from_milli(self.cast_range_of(caster, ai) + self.ext_of(ai).line_extra) as i128;
@@ -940,7 +940,7 @@ impl Sim {
                 _ => true,
             };
             let kind_ok = if wanted == 0 { self.filter[j] & structure == 0 } else { self.filter[j] & wanted == wanted };
-            if !team_ok || !kind_ok || self.turned_away(caster, j) || (heroes_only && !self.is_hero(j)) {
+            if !team_ok || !kind_ok || self.turned_away(caster, j) || (attributed_only && !self.is_attributed(j)) {
                 continue;
             }
             if line {
@@ -1312,7 +1312,7 @@ impl Sim {
             }
         }
         if changed {
-            self.apply_hero_stats(i);
+            self.apply_attr_stats(i);
         }
     }
 

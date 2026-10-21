@@ -1,17 +1,17 @@
-//! Target priority, hero aggro, and the per-unit protection and healing state a mod sets. Roles come from unit filters,
-//! never from names: a structure is a unit carrying the structure filter, a hero is `Sim::is_hero`,
-//! anything else is a plain unit. Every rule is off until `HeroRules` turns it on.
+//! Target priority, unit aggro, and the per-unit protection and healing state a mod sets. Roles come from unit filters,
+//! never from names: a structure is a unit carrying the structure filter, a unit is `Sim::is_attributed`,
+//! anything else is a plain unit. Every rule is off until `AttrRules` turns it on.
 //!
-//! Priority (rule `aggro_priority`): a hero attacker keeps the nearest target. A plain-unit attacker
-//! prefers plain units over heroes over structures. An armed structure prefers the unit that hit an
-//! allied hero in its reach (the aggro target, held `aggro_hold_s`), then plain units, heroes,
+//! Priority (rule `aggro_priority`): a unit attacker keeps the nearest target. A plain-unit attacker
+//! prefers plain units over units over structures. An armed structure prefers the unit that hit an
+//! allied unit in its reach (the aggro target, held `aggro_hold_s`), then plain units, units,
 //! structures. Within one class the nearest target wins. UNVERIFIED: the class order and the hold
 //! time are recalled reference ruleset behaviour, not in the dump (SteamDatabase tracking repo
 //! @282fad29f0f74504fad465c52d197fb61f4d612b has no targeting keys).
 //!
 //! Damage reduction, invulnerability and healing are per-unit state a mod sets (`set_damage_reduction`,
 //! `set_invulnerable`, `set_healing`). The engine applies none of them by default. Any rule that decides
-//! when a unit is protected or healed (a structure's guard, a timed shield, a team's glyph) is mod code
+//! when a unit is protected or healed (a structure's guard, a timed shield, a team's team aura) is mod code
 //! that reads `units_near` or `filter_bits` and sets this state.
 //!
 //! Aggro and this per-unit state are sim state: hashed and saved with the rest.
@@ -99,34 +99,34 @@ impl Sim {
         if !self.attributed.rules.aggro_priority {
             return 0;
         }
-        let hero_j = self.is_hero(j);
+        let attr_j = self.is_attributed(j);
         let structure_j = self.is_structure(j);
-        if self.is_hero(i) {
+        if self.is_attributed(i) {
             return 0;
         }
-        let plain = !hero_j && !structure_j;
+        let plain = !attr_j && !structure_j;
         if self.is_structure(i) {
             if self.aggro.target[i] == j as i32 && self.ticks < self.aggro.until[i] {
                 return 0;
             }
-            return if plain { 1 } else if hero_j { 2 } else { 3 };
+            return if plain { 1 } else if attr_j { 2 } else { 3 };
         }
         if plain {
             0
-        } else if hero_j {
+        } else if attr_j {
             1
         } else {
             2
         }
     }
 
-    /// Called when `attacker` damages `victim`. A hero hitting an enemy hero makes every armed
-    /// non-hero unit on the victim's side that reaches the victim target the attacker.
+    /// Called when `attacker` damages `victim`. A unit hitting an enemy unit makes every armed
+    /// non-unit unit on the victim's side that reaches the victim target the attacker.
     pub(crate) fn aggro_on_hit(&mut self, victim: usize, attacker: usize) {
         if !self.attributed.rules.aggro_priority
             || victim == attacker
-            || !self.is_hero(victim)
-            || !self.is_hero(attacker)
+            || !self.is_attributed(victim)
+            || !self.is_attributed(attacker)
             || !self.hostile(self.player[victim], self.player[attacker])
         {
             return;
@@ -134,7 +134,7 @@ impl Sim {
         let hold = (self.attributed.rules.aggro_hold_s * TICKS_PER_SECOND) as u32;
         let side = self.player[victim];
         for u in 0..self.n {
-            if self.alive[u] == 0 || self.damage[u] <= 0 || self.is_hero(u) || self.player[u] != side {
+            if self.alive[u] == 0 || self.damage[u] <= 0 || self.is_attributed(u) || self.player[u] != side {
                 continue;
             }
             let reach = (self.range_sq[u] as i64) << fixed::SHIFT;

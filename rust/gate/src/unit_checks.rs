@@ -1,11 +1,11 @@
-//! Gate checks for the moba scenario's units and timers: lane waves, siege timing, barracks wave
-//! upgrades, neutral camp stacking and Roshan's respawn window. Each runs on the moba image.
+//! Gate checks for the scenario scenario's units and timers: lane waves, siege timing, barracks wave
+//! upgrades, neutral camp stacking and Roshan's respawn window. Each runs on the scenario image.
 
 use crate::checks::{fresh, scenario_rule, run_ticks, MAX_UNITS};
 use crate::mod_checks::{advance, read_int, start};
 use sim::{fixed, Sim};
 
-/// Lane wave logic under test: the moba scenario's wave mod, loaded into the mod host.
+/// Lane wave logic under test: the scenario scenario's wave mod, loaded into the mod host.
 const WAVES_MOD: &str = include_str!("../../../scenarios/moba/lanes.lua");
 /// Creeps per lane spawner per wave, as configured in scenarios/moba/lanes.lua (CREEP_OFFSETS: three
 /// melee, one ranged; creep lanes are top and bottom, mid sends none).
@@ -73,7 +73,7 @@ end, 1000000)
 
 fn scenario_image() -> Result<Vec<u8>, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
-    osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))
+    osdt_data::generate(&scenario).map_err(|e| format!("scenario scenario image: {e:#}"))
 }
 
 fn count_kind(s: &Sim, player: u8, name: &str) -> usize {
@@ -106,7 +106,7 @@ pub fn scenario_wave_composition(_image: &[u8]) -> Result<(), String> {
     if melee2 != want_melee {
         return Err(format!("second wave 480 ticks later spawned {melee2} melee creeps, want {want_melee}"));
     }
-    println!("moba wave composition ok melee_per_wave={want_melee} ranged_per_wave={want_ranged} interval_ticks=480");
+    println!("scenario wave composition ok melee_per_wave={want_melee} ranged_per_wave={want_ranged} interval_ticks=480");
     Ok(())
 }
 
@@ -133,7 +133,7 @@ pub fn scenario_siege_timing(_image: &[u8]) -> Result<(), String> {
     if most != want {
         return Err(format!("{most} siege creeps in the first siege wave, want {want} (one per lane spawner)"));
     }
-    println!("moba siege timing ok first_tick={t} per_wave={most}");
+    println!("scenario siege timing ok first_tick={t} per_wave={most}");
     Ok(())
 }
 
@@ -170,7 +170,7 @@ pub fn scenario_wave_upgrade(_image: &[u8]) -> Result<(), String> {
     if mega != MELEE_PER_LANE * owner_lanes || ranged_mega != RANGED_PER_LANE * owner_lanes {
         return Err(format!("with every enemy tower down the wave held {mega} mega melee and {ranged_mega} mega ranged creeps, want {} and {}", MELEE_PER_LANE * owner_lanes, RANGED_PER_LANE * owner_lanes));
     }
-    println!("moba wave upgrade ok super={melee} mega={mega} ranged_mega={ranged_mega}");
+    println!("scenario wave upgrade ok super={melee} mega={mega} ranged_mega={ranged_mega}");
     Ok(())
 }
 
@@ -180,7 +180,7 @@ pub fn spawn_group_roshan_window(_image: &[u8]) -> Result<(), String> {
     let boss = (0..MAX_UNITS)
         .filter(|&u| s.alive(u) && s.player(u) == 0xFF)
         .max_by_key(|&u| s.hp(u))
-        .ok_or("moba image places no neutral unit")?;
+        .ok_or("scenario image places no neutral unit")?;
     s.hurt(boss, fixed::from_int(10000));
     let died = s.ticks();
     let min = (scenario_rule("roshan_respawn_min_s")? as u32) * sim::TICKS_PER_SECOND as u32;
@@ -206,7 +206,7 @@ pub fn spawn_group_roshan_window(_image: &[u8]) -> Result<(), String> {
 pub fn spawn_group_minute_refill(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
     run_ticks(&mut s, (scenario_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32 + 1);
-    let u = (0..MAX_UNITS).find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).ok_or("moba image places no neutral camp unit")?;
+    let u = (0..MAX_UNITS).find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).ok_or("scenario image places no neutral camp unit")?;
     let (hx, hy) = s.position_fixed(u);
     let reach = fixed::from_milli(scenario_rule("camp_clear_milli")?) as i64;
     let mates: Vec<usize> = (0..MAX_UNITS)

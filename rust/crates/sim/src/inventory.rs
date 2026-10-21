@@ -266,23 +266,23 @@ impl Sim {
     }
 
     /// Runs `edit` on unit `unit`'s slots, then applies the change in item stat totals to the unit.
-    /// A hero's attribute-driven stats come from `apply_hero_stats`, which reads the item totals: it
+    /// A unit's attribute-driven stats come from `apply_attr_stats`, which reads the item totals: it
     /// runs before and after the edit and the unit takes the difference, so effects that raised its
     /// stats by other means stay. Every other stat moves by the difference of the totals.
     pub(crate) fn change_items<R>(&mut self, unit: usize, edit: impl FnOnce(&mut Sim) -> R) -> R {
         let before = self.item_totals(unit);
-        let hero = unit < self.n && self.is_hero(unit) && self.alive(unit) && self.type_of[unit] >= 0;
-        let kept = hero.then(|| self.derived_stats(unit));
-        if hero {
-            self.apply_hero_stats(unit);
+        let attributed = unit < self.n && self.is_attributed(unit) && self.alive(unit) && self.type_of[unit] >= 0;
+        let kept = attributed.then(|| self.derived_stats(unit));
+        if attributed {
+            self.apply_attr_stats(unit);
         }
-        let old = hero.then(|| self.derived_stats(unit));
+        let old = attributed.then(|| self.derived_stats(unit));
         let out = edit(self);
         let after = self.item_totals(unit);
-        self.apply_item_delta(unit, &before, &after, hero);
+        self.apply_item_delta(unit, &before, &after, attributed);
         self.sync_upgrades(unit, &before, &after);
         if let (Some(kept), Some(old)) = (kept, old) {
-            self.apply_hero_stats(unit);
+            self.apply_attr_stats(unit);
             let new = self.derived_stats(unit);
             let max = kept.hp_max + new.hp_max - old.hp_max;
             self.hp_max[unit] = max;
@@ -318,20 +318,20 @@ impl Sim {
 
     /// Applies the difference between two item totals. Stats the spell layer reads (armor, damage,
     /// speed, attack speed, evasion, resistances, lifesteal, spell amplification, cooldown reduction)
-    /// go into the unit's stat modifiers. Health, and attack range, go to their unit arrays; a hero's
-    /// health, mana and attributes come from `apply_hero_stats`, which reads the totals.
-    fn apply_item_delta(&mut self, i: usize, before: &ItemTotals, after: &ItemTotals, hero: bool) {
+    /// go into the unit's stat modifiers. Health, and attack range, go to their unit arrays; a unit's
+    /// health, mana and attributes come from `apply_attr_stats`, which reads the totals.
+    fn apply_item_delta(&mut self, i: usize, before: &ItemTotals, after: &ItemTotals, attributed: bool) {
         if i >= self.n || before == after {
             return;
         }
         for (stat, code) in ITEM_SMODS {
             let delta = after[stat] - before[stat];
-            if delta != 0 && (hero || stat != STAT_HEALTH) {
+            if delta != 0 && (attributed || stat != STAT_HEALTH) {
                 self.smod_add(i, code, delta);
             }
         }
         let d = |stat: usize| after[stat] - before[stat];
-        if !hero {
+        if !attributed {
             let health = fixed::from_int(d(STAT_HEALTH));
             self.hp_max[i] += health;
             self.hp[i] = if health >= 0 { self.hp[i] + health } else { self.hp[i].min(self.hp_max[i]) };
@@ -372,21 +372,21 @@ impl Sim {
             (self.stash_kind[base + s], self.stash_count[base + s]) = snap.stash[s];
             self.item_cd[base + s] = snap.cd[s];
         }
-        let hero = self.is_hero(i);
+        let attributed = self.is_attributed(i);
         let totals = self.item_totals(i);
-        self.apply_item_delta(i, &[0; ITEM_STAT_COUNT], &totals, hero);
+        self.apply_item_delta(i, &[0; ITEM_STAT_COUNT], &totals, attributed);
         self.sync_upgrades(i, &[0; ITEM_STAT_COUNT], &totals);
     }
 
-    /// A hero that dies holding the reincarnation item (a mod's `set_reincarnate_item`, the Aegis in the moba
+    /// A unit that dies holding the reincarnation item (a mod's `set_reincarnate_item`, the Aegis in the moba
     /// mod) comes back where it fell after the item's seconds, with full health and mana, and one charge of the
-    /// item is spent. The death is not booked: no kill, bounty, experience or death count. True when the hero
+    /// item is spent. The death is not booked: no kill, bounty, experience or death count. True when the unit
     /// reincarnates.
     pub(crate) fn reincarnate(&mut self, j: usize) -> bool {
         let Some((item, seconds)) = self.groups.revive_item else {
             return false;
         };
-        if !self.is_hero(j) {
+        if !self.is_attributed(j) {
             return false;
         }
         let base = j * INV_SLOTS;

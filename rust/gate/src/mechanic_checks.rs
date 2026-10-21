@@ -219,7 +219,7 @@ pub fn kill_bounty(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// A live neutral camp unit of the moba scenario, with the sim it lives in.
+/// A live neutral camp unit of the scenario scenario, with the sim it lives in.
 fn scenario_camp_unit() -> Result<(Sim, usize), String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
@@ -227,7 +227,7 @@ fn scenario_camp_unit() -> Result<(Sim, usize), String> {
     run_ticks(&mut s, (scenario_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32 + 1);
     let u = (0..MAX_UNITS)
         .find(|&u| s.alive(u) && s.player(u) == 0xFF && s.hp(u) > fixed::from_int(1) && s.hp(u) < fixed::from_int(5000))
-        .ok_or("moba image places no live neutral unit")?;
+        .ok_or("scenario image places no live neutral unit")?;
     Ok((s, u))
 }
 
@@ -301,7 +301,7 @@ pub fn spawn_group_rune_pickup(_image: &[u8]) -> Result<(), String> {
     let (mut s, _) = scenario_camp_unit()?;
     let rune = (0..MAX_UNITS)
         .find(|&u| s.alive(u) && s.player(u) == 0xFF && s.hp(u) == fixed::from_int(1))
-        .ok_or("moba image places no bounty rune")?;
+        .ok_or("scenario image places no bounty rune")?;
     let (rx, ry) = s.position_fixed(rune);
     let hero_kind = kind(&s, "hero")?;
     let hero = s
@@ -335,7 +335,7 @@ pub fn spawn_group_roshan_aegis(_image: &[u8]) -> Result<(), String> {
     let boss = (0..MAX_UNITS)
         .filter(|&u| s.alive(u) && s.player(u) == 0xFF)
         .max_by_key(|&u| s.hp(u))
-        .ok_or("moba image places no neutral unit")?;
+        .ok_or("scenario image places no neutral unit")?;
     let (bx, by) = s.position_fixed(boss);
     let hero = spawn(&mut s, 0, "hero", fixed::to_int(bx) + 1, fixed::to_int(by))?;
     let hp = s.hp(boss);
@@ -393,17 +393,17 @@ impl Drop for RemoveOnDrop {
 }
 fn scenario_image() -> Result<Vec<u8>, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
-    osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))
+    osdt_data::generate(&scenario).map_err(|e| format!("scenario scenario image: {e:#}"))
 }
 
 /// The bound on ticks from a base's destruction to a declared winner.
 const MATCH_TICK_LIMIT: u32 = 200;
 
-/// Destroying a side's only base ends the moba match with the rival as winner, within a bounded tick count.
+/// Destroying a side's only base ends the scenario match with the rival as winner, within a bounded tick count.
 pub fn scenario_match_end(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
     run_ticks(&mut s, 50);
-    let base = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("moba has no side 1 base")?;
+    let base = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("scenario has no side 1 base")?;
     if s.winner().is_some() {
         return Err("a winner was declared before any base fell".into());
     }
@@ -417,15 +417,15 @@ pub fn scenario_match_end(_image: &[u8]) -> Result<(), String> {
     if winner != 0 {
         return Err(format!("winner {winner} want 0, the side that is not side 1"));
     }
-    println!("moba match ok winner={winner} ticks={ticks}");
+    println!("scenario match ok winner={winner} ticks={ticks}");
     Ok(())
 }
 
 /// A creep ordered from its own base toward the rival base closes distance along the lane.
 pub fn scenario_creeps(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
-    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
-    let rival = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("moba has no side 1 base")?;
+    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("scenario has no side 0 base")?;
+    let rival = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("scenario has no side 1 base")?;
     let (ox, oy) = s.position_fixed(own);
     let (tx, ty) = s.position_fixed(rival);
     let k = kind(&s, "creep")?;
@@ -443,7 +443,7 @@ pub fn scenario_creeps(_image: &[u8]) -> Result<(), String> {
         return Err(format!("creep did not close on the rival base: squared distance {before} -> {after}"));
     }
     let progress = (before as f64).sqrt() - (after as f64).sqrt();
-    println!("moba creeps ok lane_progress={}", progress as i64);
+    println!("scenario creeps ok lane_progress={}", progress as i64);
     Ok(())
 }
 
@@ -451,7 +451,7 @@ pub fn scenario_creeps(_image: &[u8]) -> Result<(), String> {
 /// between them (rows 190 to 215) and stays on open cells, so passing this check means the route followed the lane.
 pub fn scenario_lane(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
-    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
+    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("scenario has no side 0 base")?;
     let (ox, oy) = s.position_fixed(own);
     let k = kind(&s, "creep")?;
     let creep = s.spawn_for(0, k, ox, oy).ok_or("spawn_for refused a creep at the side 0 base")?;
@@ -475,14 +475,14 @@ pub fn scenario_lane(_image: &[u8]) -> Result<(), String> {
             if !connector {
                 return Err("creep reached the north lane without walking the connector column".into());
             }
-            println!("moba lane ok ticks={t} connector=true");
+            println!("scenario lane ok ticks={t} connector=true");
             return Ok(());
         }
     }
     Err("creep did not reach the north lane point within 600 ticks".into())
 }
 
-/// Creep stats from the moba unit table (scenarios/moba/units.osd): speed and weapon reach in milli-tiles,
+/// Creep stats from the scenario unit table (scenarios/moba/units.osd): speed and weapon reach in milli-tiles,
 /// weapon period in ticks.
 const CREEP_SPEED_MILLI: i64 = 317;
 const CREEP_REACH_MILLI: i64 = 1562;
@@ -494,8 +494,8 @@ const CREEP_WEAPON_PERIOD: u32 = 16;
 /// is three weapon periods, so at least three strikes are attempted.
 pub fn creep_stops_to_attack(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
-    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("moba has no side 0 base")?;
-    let rival = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("moba has no side 1 base")?;
+    let own = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0 && s.kind_name(i) == Some("base")).ok_or("scenario has no side 0 base")?;
+    let rival = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("base")).ok_or("scenario has no side 1 base")?;
     let (ox, oy) = s.position_fixed(own);
     let (tx, ty) = s.position_fixed(rival);
     let k = kind(&s, "creep")?;
@@ -584,13 +584,13 @@ pub fn creep_stops_to_attack(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// The moba sim with its hero rules loaded. `aggro_priority` is off until those rules are set, so without them a
+/// The scenario sim with its hero rules loaded. `aggro_priority` is off until those rules are set, so without them a
 /// creep takes the nearest target, and a tower's body can be nearer than a creep.
 fn scenario_rules_sim() -> Result<Sim, String> {
     let mut s = fresh(&scenario_image()?)?;
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     let rules = std::fs::read_to_string(scenario.join("hero_rules.txt")).map_err(|e| e.to_string())?;
-    if !s.set_hero_rules_text(&rules) {
+    if !s.set_attr_rules_text(&rules) {
         return Err("hero_rules.txt has a bad line".into());
     }
     Ok(s)
@@ -608,7 +608,7 @@ fn open_cell(s: &Sim) -> Result<(i32, i32), String> {
             }
         }
     }
-    Err("the moba grid has no cell with four walkable neighbours".into())
+    Err("the scenario grid has no cell with four walkable neighbours".into())
 }
 
 /// Creep targeting, one friendly creep with an enemy creep and a tower each one tile away. A tile is one cell (the
@@ -730,7 +730,7 @@ fn open_block(s: &Sim) -> Result<(i32, i32), String> {
             }
         }
     }
-    Err("the moba grid has no cell with eight walkable neighbours".into())
+    Err("the scenario grid has no cell with eight walkable neighbours".into())
 }
 
 /// A crowded bucket cell keeps every unit. The friendly creep shares a one-tile cell with seven allied creeps,
@@ -780,7 +780,7 @@ pub fn creep_crowded_cell_strikes_creep(_image: &[u8]) -> Result<(), String> {
 /// flip between two lanes on successive ticks. Prints the x sequence in milli-tiles for the witness.
 pub fn scenario_idle_settle(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
-    let unit = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0).ok_or("moba has no side 0 unit")?;
+    let unit = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 0).ok_or("scenario has no side 0 unit")?;
     let mut xs = Vec::with_capacity(200);
     for _ in 0..200 {
         s.tick();
@@ -788,7 +788,7 @@ pub fn scenario_idle_settle(_image: &[u8]) -> Result<(), String> {
     }
     let milli: Vec<i64> = xs.iter().map(|&x| i64::from(x) * 1000 >> 16).collect();
     let max_step = xs.windows(2).map(|w| (i64::from(w[1]) - i64::from(w[0])).abs()).max().unwrap_or(0);
-    println!("moba idle max_step_milli={} x milli-tiles: {milli:?}", max_step * 1000 >> 16);
+    println!("scenario idle max_step_milli={} x milli-tiles: {milli:?}", max_step * 1000 >> 16);
     let step = i64::from(fixed::from_milli(20));
     let mut flips = 0usize;
     for w in xs.windows(3) {
@@ -804,7 +804,7 @@ pub fn scenario_idle_settle(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// Two sims loaded from the same moba image, given the same orders at the same ticks, end in the same state.
+/// Two sims loaded from the same scenario image, given the same orders at the same ticks, end in the same state.
 pub fn scenario_sync(_image: &[u8]) -> Result<(), String> {
     let image = scenario_image()?;
     let mut a = fresh(&image)?;
@@ -829,7 +829,7 @@ pub fn scenario_sync(_image: &[u8]) -> Result<(), String> {
     if diff != 0 || a.state_hash() != b.state_hash() {
         return Err(format!("peers disagree after {ticks} ticks: {diff} units differ"));
     }
-    println!("moba sync ok ticks={ticks} diff={diff}");
+    println!("scenario sync ok ticks={ticks} diff={diff}");
     Ok(())
 }
 
@@ -843,7 +843,7 @@ pub fn scenario_objective(_image: &[u8]) -> Result<(), String> {
             }
         }
     }
-    let target = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("tower")).ok_or("moba has no side 1 tower")?;
+    let target = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("tower")).ok_or("scenario has no side 1 tower")?;
     let (tx, ty) = s.position_fixed(target);
     let k = kind(&s, "creep")?;
     let creep = s.spawn_for(0, k, tx - fixed::from_int(4), ty).ok_or("spawn_for refused a creep beside the side 1 tower")?;
@@ -854,6 +854,6 @@ pub fn scenario_objective(_image: &[u8]) -> Result<(), String> {
     if after >= before {
         return Err(format!("side 0 creep did not hurt the side 1 tower: hp {before} -> {after}"));
     }
-    println!("moba objective ok hp={before}->{after}");
+    println!("scenario objective ok hp={before}->{after}");
     Ok(())
 }

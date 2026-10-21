@@ -214,7 +214,7 @@ const EFFECT_SHIELD_BONUS: u16 = 10;
 pub(crate) const EFFECT_STAT: u16 = 16;
 /// Places a ward unit: p0 unit type, p1 lifetime in ticks. See wards.rs.
 pub(crate) const EFFECT_TIMED_SPAWN: u16 = 17;
-/// Code 18 is retired (the team glyph became a mod rule, on_cast). It is refused as unsupported.
+/// Code 18 is retired (the team aura became a mod rule, on_cast). It is refused as unsupported.
 /// Carry a friendly unit: queues a request for the mod (carrier.rs). The mod owns what carrying means.
 pub(crate) const EFFECT_CARRY: u16 = 19;
 const EFFECT_VITAL_FRACTION: u16 = 9;

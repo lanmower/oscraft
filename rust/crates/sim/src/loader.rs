@@ -337,9 +337,9 @@ pub struct UnitExt {
     pub deny_pct: u8,
     /// Share of `xp_bounty` the enemies get when this unit is denied, percent.
     pub deny_xp_pct: u8,
-    /// Player-controlled (a hero): shares assist and kill xp.
+    /// Player-controlled (a unit): shares assist and kill xp.
     pub player_controlled: bool,
-    /// Xp shared by the killer and in-range heroes when this unit dies.
+    /// Xp shared by the killer and in-range units when this unit dies.
     pub xp_bounty: i32,
     /// Assist radius around this unit, fixed-point milli-units.
     pub assist_radius: i32,
@@ -1453,10 +1453,10 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
             return Err(LoadError::Range("placement refused: no slot, unknown unit or blocked cell"));
         };
         if p.player == NEUTRAL_PLAYER {
-            sim.mark_camp(i);
+            sim.mark_group(i);
         }
         if sim.cat.unit_ext.get(p.unit as usize).is_some_and(|e| e.player_controlled) {
-            sim.enroll_hero(i, p.x, p.y);
+            sim.enroll_attributed(i, p.x, p.y);
         }
     }
     for k in 0..sim.cat.starts.len() {

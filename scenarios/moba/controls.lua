@@ -83,7 +83,7 @@ end
 
 local function hero_selected(who)
   for _, id in ipairs(my_selected(who)) do
-    if game.is_hero(id) then return id end
+    if game.is_attributed(id) then return id end
   end
   return nil
 end
@@ -128,7 +128,7 @@ local function box_ids(who, x0, z0, x1, z1, additive)
     ux, uz = tile(ux), tile(uz)
     if ux >= lo(x0, x1) and ux <= hi(x0, x1) and uz >= lo(z0, z1) and uz <= hi(z0, z1) then
       inside[#inside + 1] = id
-      if game.is_hero(id) then heroes[#heroes + 1] = id end
+      if game.is_attributed(id) then heroes[#heroes + 1] = id end
     end
   end
   local picked = #heroes > 0 and heroes or inside

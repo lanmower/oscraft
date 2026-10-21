@@ -6,7 +6,7 @@ local HERO_RESPAWN_PER_LEVEL_S = 3
 local HERO_RESPAWN_CAP_S = 100
 
 function on_unit_died(unit, state)
-  if not game.is_hero(unit) then return nil end
+  if not game.is_attributed(unit) then return nil end
   local secs = HERO_RESPAWN_BASE_S + HERO_RESPAWN_PER_LEVEL_S * game.unit_level(unit)
   if secs > HERO_RESPAWN_CAP_S then secs = HERO_RESPAWN_CAP_S end
   return secs

@@ -1,4 +1,4 @@
-//! Gate checks for reference hero base stats on the moba scenario with its hero_rules.txt: attributes, growth,
+//! Gate checks for reference hero base stats on the scenario scenario with its hero_rules.txt: attributes, growth,
 //! health, mana, armour, damage and attack period for a strength hero (axe) and a universal hero (marci),
 //! each against numbers computed by hand from hero_*.txt @282fad29f0f74504fad465c52d197fb61f4d612b.
 
@@ -7,10 +7,10 @@ use sim::{fixed, Sim};
 
 fn scenario_with_rules() -> Result<Sim, String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
-    let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
+    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario scenario image: {e:#}"))?;
     let mut s = fresh(&image)?;
     let rules = std::fs::read_to_string(scenario.join("hero_rules.txt")).map_err(|e| e.to_string())?;
-    if !s.set_hero_rules_text(&rules) {
+    if !s.set_attr_rules_text(&rules) {
         return Err("hero_rules.txt has a bad line".into());
     }
     Ok(s)
@@ -21,7 +21,7 @@ fn spawn_attributed(s: &mut Sim, name: &str) -> Result<usize, String> {
     let base = kind(s, "base")?;
     let anchor = (0..s.count())
         .find(|&u| s.alive(u) && s.player(u) == 0 && s.unit_type(u) == base as i32)
-        .ok_or("moba scenario has no base for player 0")?;
+        .ok_or("scenario scenario has no base for player 0")?;
     let (x, y) = s.position_fixed(anchor);
     for dx in 8..60 {
         if let Some(h) = s.spawn_attributed(0, k, x + fixed::from_int(dx), y) {
@@ -47,8 +47,8 @@ fn q16(x100: i64) -> i64 {
 pub fn attributed_axe_level1(_image: &[u8]) -> Result<(), String> {
     let mut s = scenario_with_rules()?;
     let h = spawn_attributed(&mut s, "axe")?;
-    if s.hero_attributes(h) != [25, 20, 18] {
-        return Err(format!("axe attributes {:?} want [25, 20, 18]", s.hero_attributes(h)));
+    if s.unit_attributes(h) != [25, 20, 18] {
+        return Err(format!("axe attributes {:?} want [25, 20, 18]", s.unit_attributes(h)));
     }
     near("axe max health", s.hp_max(h), q16((150 + 22 * 25) * 100))?;
     near("axe armour", s.armor_of(h), q16(333))?;
@@ -56,8 +56,8 @@ pub fn attributed_axe_level1(_image: &[u8]) -> Result<(), String> {
     if s.period_of(h) != 23 {
         return Err(format!("axe attack period {} want 23 ticks", s.period_of(h)));
     }
-    if s.mana_of(h) != 100 + 12 * 18 || s.hero_max_mana(h) != 100 + 12 * 18 {
-        return Err(format!("axe mana {} max {} want {}", s.mana_of(h), s.hero_max_mana(h), 100 + 12 * 18));
+    if s.mana_of(h) != 100 + 12 * 18 || s.unit_max_mana(h) != 100 + 12 * 18 {
+        return Err(format!("axe mana {} max {} want {}", s.mana_of(h), s.unit_max_mana(h), 100 + 12 * 18));
     }
     Ok(())
 }
@@ -72,8 +72,8 @@ pub fn attributed_axe_growth(_image: &[u8]) -> Result<(), String> {
     if gained != 1 || s.level(h) != 1 {
         return Err(format!("{first} xp gave {gained} levels, level {}", s.level(h)));
     }
-    if s.hero_attributes_x100(h) != [2750, 2220, 1960] {
-        return Err(format!("axe attributes at level 2 {:?} want [2750, 2220, 1960]", s.hero_attributes_x100(h)));
+    if s.unit_attributes_x100(h) != [2750, 2220, 1960] {
+        return Err(format!("axe attributes at level 2 {:?} want [2750, 2220, 1960]", s.unit_attributes_x100(h)));
     }
     near("axe max health at level 2", s.hp_max(h), q16(15000 + 22 * 2750))?;
     near("axe armour at level 2", s.armor_of(h), q16(2220 / 6))?;
@@ -98,7 +98,7 @@ pub fn attributed_roster(_image: &[u8]) -> Result<(), String> {
     let mut with_def = 0;
     for name in ["antimage", "axe", "crystal_maiden", "zuus", "nevermore", "pudge", "invoker", "largo"] {
         let h = spawn_attributed(&mut s, name)?;
-        if s.hero_def(h).is_none() {
+        if s.attr_def(h).is_none() {
             return Err(format!("{name} has no hero line"));
         }
         with_def += 1;

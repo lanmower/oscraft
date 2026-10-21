@@ -142,7 +142,7 @@ end
 local function rune_pickup(k, r, now)
   local taker = nil
   for _, u in ipairs(game.units_near(r.hx, r.hy, cfg.pickup_fixed)) do
-    if game.is_hero(u) and unit_alive(u) and (taker == nil or u < taker) then taker = u end
+    if game.is_attributed(u) and unit_alive(u) and (taker == nil or u < taker) then taker = u end
   end
   if taker == nil then return end
   game.cmd_add_unit_gold(taker, cfg.rune_gold)

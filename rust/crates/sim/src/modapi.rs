@@ -414,9 +414,9 @@ impl Sim {
         true
     }
 
-    /// Adds `amount` (negative to take) to the gold of a hero unit. False when the unit is not a hero.
+    /// Adds `amount` (negative to take) to the gold of a unit unit. False when the unit is not a unit.
     pub fn add_unit_gold(&mut self, unit: usize, amount: i32) -> bool {
-        if !self.is_hero(unit) {
+        if !self.is_attributed(unit) {
             return false;
         }
         self.attributed.gold[unit] = self.attributed.gold[unit].saturating_add(amount).max(0);

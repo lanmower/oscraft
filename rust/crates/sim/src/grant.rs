@@ -1,4 +1,4 @@
-//! The `grant_upgrade` effect: the receiver (the caster when no unit is targeted) gains a hero upgrade for
+//! The `grant_upgrade` effect: the receiver (the caster when no unit is targeted) gains a unit upgrade for
 //! good, p0 0 for Aghanim's Scepter and 1 for Aghanim's Shard. An item holding either upgrade while carried
 //! gets the same result from its `scepter` and `shard` stats (see `change_items`).
 

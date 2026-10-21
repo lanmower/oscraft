@@ -8,14 +8,14 @@ PAYOUT_OWNER = true
 
 local TEAM_SHARE_PCT = 20
 
--- on_died(unit, killer, killer_player, bounty, victim_player, killer_hero): ids are the mod's world
--- or the room's, whichever fed the death; bounty and killer_hero come with the event.
+-- on_died(unit, killer, killer_player, bounty, victim_player, killer_attributed): ids are the mod's world
+-- or the room's, whichever fed the death; bounty and killer_attributed come with the event.
 game.trigger("on_died", {
   conditions = { function(_, _, _, bounty) return bounty > 0 end },
-  action = function(unit, killer, killer_player, bounty, victim_player, killer_hero)
+  action = function(unit, killer, killer_player, bounty, victim_player, killer_attributed)
     if killer ~= nil and killer ~= unit then
       local share = math.floor(bounty * TEAM_SHARE_PCT / 100)
-      if killer_hero then
+      if killer_attributed then
         game.cmd_add_unit_gold(killer, bounty - share)
         game.cmd_add_gold(killer_player, share)
         gold_text(unit, share)

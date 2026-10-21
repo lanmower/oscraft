@@ -137,7 +137,7 @@ pub struct Sim {
     pub(crate) item_cd: Vec<i32>,
     pub(crate) energy: Vec<i32>,
     pub(crate) abil_on: bool,
-    /// Set when a mod owns gold: the Rust kill payouts (hero bounty and rival resources) are skipped.
+    /// Set when a mod owns gold: the Rust kill payouts (unit bounty and rival resources) are skipped.
     pub(crate) payout_owner: bool,
 
     pub(crate) changed_at: Vec<u32>,
@@ -164,12 +164,12 @@ pub struct Sim {
     /// Kills credited to each unit, and deaths each unit suffered, reset when its slot is spawned.
     pub(crate) unit_kills: Vec<u32>,
     pub(crate) unit_deaths: Vec<u32>,
-    /// Hero respawn, buyback and gold per unit. See hero.rs.
-    pub(crate) attributed: crate::hero::AttributedState,
+    /// Unit respawn, buyback and gold per unit. See unit.rs.
+    pub(crate) attributed: crate::attributes::AttributedState,
     /// Named per-unit counters the mods keep (a cooldown stamp and the like), by (unit, name). Not hashed or saved.
     pub(crate) counters: std::collections::BTreeMap<(usize, String), i64>,
-    /// Neutral camp home, leash and respawn timer per unit. See camp.rs.
-    pub(crate) groups: crate::camp::GroupState,
+    /// Spawn-group home, leash and respawn timer per unit. See groups.rs.
+    pub(crate) groups: crate::groups::GroupState,
     /// Aggro targets, invulnerability, damage reduction and healing per unit. See aggro.rs.
     pub(crate) aggro: crate::aggro::AggroState,
     /// Route progress per unit and the destination request log. See route.rs.
@@ -396,9 +396,9 @@ impl Sim {
             xp_total: vec![0; cap],
             xp_curve,
             unit_kills: vec![0; cap],
-            attributed: crate::hero::AttributedState::new(cap),
+            attributed: crate::attributes::AttributedState::new(cap),
             counters: std::collections::BTreeMap::new(),
-            groups: crate::camp::GroupState::new(cap),
+            groups: crate::groups::GroupState::new(cap),
             aggro: crate::aggro::AggroState::new(cap),
             dests: crate::route::DestState::new(cap),
             cast_log: Vec::new(),
@@ -603,7 +603,7 @@ impl Sim {
         self.produce = on;
     }
 
-    /// Whether a mod owns gold. When true, kills pay no Rust bounty (hero share or rival resources).
+    /// Whether a mod owns gold. When true, kills pay no Rust bounty (unit share or rival resources).
     pub fn payout_owner(&self) -> bool {
         self.payout_owner
     }

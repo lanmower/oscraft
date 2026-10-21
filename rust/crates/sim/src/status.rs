@@ -18,7 +18,7 @@ pub(crate) const STATUS_KINDS: usize = 14;
 pub(crate) const SLOW_NONE: i32 = fixed::ONE;
 
 /// reference movement speed limits (550 maximum, 100 minimum; patch 7.38 notes) in Q16.16 per tick.
-/// Q16.16 per reference speed point. The speed limits and hex speed are `HeroRules` fields (hero_rules.txt).
+/// Q16.16 per reference speed point. The speed limits and hex speed are `AttrRules` fields (hero_rules.txt).
 pub(crate) const SPEED_POINT_Q16: i32 = 64;
 
 pub(crate) const STUN: usize = 0;

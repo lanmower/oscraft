@@ -3,8 +3,8 @@
 -- calls hero_on_tick and hero_on_cast, so this file defines no on_tick or on_cast of its own.
 --
 -- Primitives used: on_seat_pick (spawn and enrol), on_died (respawn policy, kill gold, xp share),
--- game.spawn, game.enroll, game.rule, game.is_hero, game.alive, game.level, game.net_worth, game.unit_gold,
--- game.attributes_x100, game.hero_field, game.xp_bounty, game.assist_radius_milli, game.deny_xp_pct,
+-- game.spawn, game.enroll, game.rule, game.is_attributed, game.alive, game.level, game.net_worth, game.unit_gold,
+-- game.attributes_x100, game.attr_field, game.xp_bounty, game.assist_radius_milli, game.deny_xp_pct,
 -- game.counter, game.set_counter, game.hostile, game.units_near, unit_player, unit_position,
 -- cmd_set_respawn, cmd_add_unit_gold, cmd_add_gold, cmd_add_xp, cmd_add_stat.
 
@@ -40,7 +40,7 @@ local function share_xp(victim, killer, victim_player, killer_player)
   if not denied then recipients[#recipients + 1] = killer end
   local x, y = unit_position(victim)
   for _, u in ipairs(game.units_near(x, y, milli_to_fixed(game.assist_radius_milli(victim)))) do
-    if u ~= victim and u ~= killer and game.alive(u) and game.is_hero(u) then
+    if u ~= victim and u ~= killer and game.alive(u) and game.is_attributed(u) then
       local side = unit_player(u)
       local on_side
       if denied then
@@ -63,14 +63,14 @@ end
 -- Respawn policy: base + per level seconds, capped. Kill gold and team share on a hero's death, and the xp share.
 function on_died(unit, killer, killer_player, bounty, victim_player)
   camp_died(unit, killer)
-  if game.is_hero(unit) then
+  if game.is_attributed(unit) then
     local secs = game.rule("respawn_base_s") + game.rule("respawn_per_level_s") * game.level(unit)
     local cap = game.rule("respawn_cap_s")
     if secs > cap then secs = cap end
     cmd_set_respawn(unit, secs)
   end
   if killer ~= nil and killer ~= unit then
-    if game.is_hero(unit) and killer_player ~= victim_player then
+    if game.is_attributed(unit) and killer_player ~= victim_player then
       local gold = game.rule("hero_kill_gold_base") + game.rule("hero_kill_gold_per_level") * game.level(unit)
       local share = math.floor(gold * game.rule("team_share_pct") / 100)
       cmd_add_unit_gold(killer, gold - share)
@@ -88,7 +88,7 @@ end
 
 function hero_on_cast(unit, ability, state)
   if ability ~= "buyback" then return end
-  if not game.is_hero(unit) or game.alive(unit) then return end
+  if not game.is_attributed(unit) or game.alive(unit) then return end
   if game.counter(unit, "buyback_ready") > (state.ticks or 0) then return end
   local cost = buyback_cost(unit)
   if game.unit_gold(unit) < cost then return end
@@ -117,7 +117,7 @@ end
 -- Attributes are hundredths (game.attributes_x100); the coefficients are hero_rules.txt values.
 local function attribute_bonuses(unit)
   local s, a, n = game.attributes_x100(unit)
-  local primary = game.hero_field(unit, "primary")
+  local primary = game.attr_field(unit, "primary")
   local damage_x100
   if primary == 0 then
     damage_x100 = s
@@ -147,7 +147,7 @@ function hero_on_tick(state)
   local now = state.ticks or 0
   local passive_turn = now % TICKS_PER_SECOND == 0
   for i = 0, get_unit_count() - 1 do
-    if game.is_hero(i) then
+    if game.is_attributed(i) then
       local alive = game.alive(i)
       if alive then attribute_bonuses(i) end
       if passive_turn then cmd_add_unit_gold(i, game.rule("passive_gold_per_s")) end
