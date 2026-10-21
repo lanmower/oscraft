@@ -62,7 +62,6 @@ export function readDoodads(bytes) {
 // incline between the surfaces on either side. Cells beside a full cliff level keep their own height, so cliff walls still
 // meet the surface where a full drop exists. The sim never reads this field (walkability is the BLOCKED flag, heights are
 // read from the map levels), so only the drawn surface changes.
-const FULL_CLIFF_CELLS = 2; // one 6.88 cliff level, as tiles.js CLIFF_LEVEL_CELLS
 const DISPLAY_RELAX_MAX_PASSES = 5000;
 const DISPLAY_RELAX_TOLERANCE = 1e-6;
 export function displayHeights(grid) {
@@ -85,12 +84,8 @@ export function displayHeights(grid) {
   // Every impassable cell (BLOCKED or cliff, as tiles.js cellKind reads it) keeps its committed height. Walkable cells beside
   // one are not pinned, so the slopes next to a barrier still smooth.
   for (let i = 0; i < n; i++) if (isImpassableCell(grid, i)) fixed[i] = 1;
-  for (let i = 0; i < n; i++) {
-    for (const j of neighbours(i)) {
-      const dh = Math.abs(shown[i] - shown[j]);
-      if (dh > 1e-9 && (dh >= FULL_CLIFF_CELLS - 1e-6 || isWaterCell(grid, i) || isWaterCell(grid, j))) fixed[i] = 1;
-    }
-  }
+  // No adjacency pinning: walkable cells beside a cliff or water relax like every other slope cell, so the drop fades
+  // across several cells on both sides (one ramp rule; a cliff's own committed height is the only sheer part).
   // A walkable slope cell relaxes even beside a pinned one: the pinned cells keep their committed heights (cliffs stay sheer,
   // water stays level), and the walkable pathways around them smooth out instead of stepping like hills.
   for (let i = 0; i < n; i++) {
