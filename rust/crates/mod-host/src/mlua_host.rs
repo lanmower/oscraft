@@ -213,7 +213,6 @@ struct Death {
     victim_player: u8,
     killer: Option<u32>,
     killer_player: Option<u8>,
-    killer_hero: bool,
     bounty: i32,
 }
 
@@ -2425,7 +2424,6 @@ impl ModHost {
                             victim_player: w.player(unit),
                             killer: killer.map(|k| k as u32),
                             killer_player: killer.map(|k| w.player(k)),
-                            killer_hero: killer.is_some_and(|k| w.is_hero(k)),
                             bounty: w.unit_bounty(unit),
                         }
                     };
@@ -2566,7 +2564,6 @@ impl ModHost {
             victim_player: p.victim_player,
             killer: p.killer,
             killer_player: p.killer_player,
-            killer_hero: p.killer_hero,
             bounty: p.bounty,
         };
         let before = self.cmds.borrow().len();
@@ -2672,9 +2669,9 @@ impl ModHost {
         let killer_player = d.killer_player.map(i64::from);
         let (victim, victim_player, bounty) = (i64::from(d.victim), i64::from(d.victim_player), i64::from(d.bounty));
         if let Some(h) = &hooks.on_died {
-            h.call::<()>((victim, killer, killer_player, bounty, victim_player, d.killer_hero))?;
+            h.call::<()>((victim, killer, killer_player, bounty, victim_player))?;
         }
-        hooks.fire.call::<()>(("on_died", victim, killer, killer_player, bounty, victim_player, d.killer_hero))
+        hooks.fire.call::<()>(("on_died", victim, killer, killer_player, bounty, victim_player))
     }
 
     pub fn lua(&self) -> &Lua {

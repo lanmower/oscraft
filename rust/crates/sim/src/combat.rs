@@ -47,7 +47,6 @@ pub struct Payout {
     pub victim_player: u8,
     pub killer: Option<u32>,
     pub killer_player: Option<u8>,
-    pub killer_hero: bool,
     pub bounty: i32,
 }
 /// Gold for the last hit on a hero: 125 + 8 per victim level (patch 7.31 notes; unchanged in later
@@ -409,7 +408,6 @@ impl Sim {
             victim_player: self.player[j],
             killer: killer.map(|k| k as u32),
             killer_player: killer.map(|k| self.player[k]),
-            killer_hero: killer.is_some_and(|k| self.is_hero(k)),
             bounty,
         });
     }
