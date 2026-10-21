@@ -341,6 +341,16 @@ function rotateVector(q, v) {
   return [r[0], r[1], r[2]];
 }
 
+// Post-multiplies every quaternion key in values (xyzw, flat) by a roll of `angle` about local Y, in place.
+function rollRotations(values, angle) {
+  const roll = [0, Math.sin(angle / 2), 0, Math.cos(angle / 2)];
+  for (let i = 0; i < values.length; i += 4) {
+    const q = quatMul([values[i], values[i + 1], values[i + 2], values[i + 3]], roll);
+    const len = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+    for (let c = 0; c < 4; c++) values[i + c] = q[c] / len;
+  }
+}
+
 // Re-expresses a humanoid library (js/client/anim/library.json) on one rig. map.bones maps each humanoid bone to the
 // rig's node name. Each rotation is carried through world space: the source motion is a delta on its rest pose, applied
 // to the rig's rest pose in the rig's own bone frame, so rigs whose bone axes differ still pose the same way.
@@ -351,6 +361,9 @@ function rotateVector(q, v) {
 const ARM_BLEND = 0.5;
 const ARM_CHAIN = ['leftShoulder', 'leftUpperArm', 'leftLowerArm', 'leftHand', 'rightShoulder', 'rightUpperArm', 'rightLowerArm', 'rightHand'];
 const ARM_BONES = new Set(ARM_CHAIN);
+// Roll of each hand about its own finger axis (local Y), applied after the solve. The delta solve keeps the rig's rest
+// palm, which faces the back of the hand toward the body; this turns the palm toward the thigh and down.
+const HAND_ROLL = { leftHand: Math.PI / 2, rightHand: -Math.PI / 2 };
 const SAMPLE_TRACK = new Float32Array(4);
 const ARM_PAIR = new Float32Array(8);
 const ARM_OUT = new Float32Array(4);
@@ -455,6 +468,11 @@ export function retargetLibrary(library, map, nodes) {
       if (ARM_BONES.has(channel.bone) && channel.path === 'rotation') deltaArm.set(frame.node, built);
       else channels.push(built);
     }
-    return { name: clip.name, duration: clip.duration, channels: channels.concat(armTracks(clip, channels, deltaArm)) };
+    const all = channels.concat(armTracks(clip, channels, deltaArm));
+    for (const built of all) {
+      const bone = Object.keys(HAND_ROLL).find((b) => boneNode(b) === built.node);
+      if (bone && built.path === 'rotation') rollRotations(built.values, HAND_ROLL[bone]);
+    }
+    return { name: clip.name, duration: clip.duration, channels: all };
   });
 }
