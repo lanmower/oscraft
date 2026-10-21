@@ -352,14 +352,18 @@ void main() {
   near /= 8.0; far /= 8.0;
   float depth = smoothstep(0.55, 1.0, far);
   float t = uTime;
-  // Ripples are RIPPLE_SCALE times finer than the raw wave pattern: the wave is sampled at p * RIPPLE_SCALE, the finite
-  // difference step shrinks by the same factor (so the wave-space step stays 0.15), and the slope is divided back by it
-  // so the ripple strength reads the same as before, only smaller on screen.
-  const float RIPPLE_SCALE = 4.0;
-  float e = 0.15 / RIPPLE_SCALE;
-  float hx = waveH((p + vec2(e, 0.0)) * RIPPLE_SCALE, t) - waveH((p - vec2(e, 0.0)) * RIPPLE_SCALE, t);
-  float hz = waveH((p + vec2(0.0, e)) * RIPPLE_SCALE, t) - waveH((p - vec2(0.0, e)) * RIPPLE_SCALE, t);
-  vec3 n = normalize(vec3(-hx / (2.0 * e) * 0.35 / RIPPLE_SCALE, 1.0, -hz / (2.0 * e) * 0.35 / RIPPLE_SCALE));
+  // Three ripple scales interfere: each samples the wave pattern at its own frequency and weight, so the sum never repeats
+  // on one regular grid. The slope of each scale is divided back by its frequency, so the strengths stay comparable.
+  vec2 slope = vec2(0.0);
+  for (int k = 0; k < 3; k++) {
+    float sc = k == 0 ? 2.6 : (k == 1 ? 4.0 : 6.8);
+    float w = k == 0 ? 0.5 : (k == 1 ? 1.0 : 0.6);
+    float e = 0.15 / sc;
+    float hx = waveH((p + vec2(e, 0.0)) * sc, t) - waveH((p - vec2(e, 0.0)) * sc, t);
+    float hz = waveH((p + vec2(0.0, e)) * sc, t) - waveH((p - vec2(0.0, e)) * sc, t);
+    slope += vec2(hx, hz) / (2.0 * e) * 0.35 / sc * w;
+  }
+  vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
   vec3 V = normalize(uEye - vec3(p.x, vWorld.y, p.y));
   float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, V), 0.0), 5.0);
   vec3 R = reflect(-V, n);
