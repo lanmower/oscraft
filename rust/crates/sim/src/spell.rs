@@ -20,7 +20,9 @@ const K_DISPEL: u16 = 24;
 const K_CHAIN: u16 = 25;
 const K_ZONE: u16 = 26;
 const K_ILLUSION: u16 = 27;
-const K_MANA: u16 = 28;
+/// The generic resource effect (p0 amount, p1 mode: 0 gain, 1 drain, 2 drain into the caster). Kind 28 is
+/// the number old replays carry for the effect once named mana; the number is unchanged, so they decode.
+pub(crate) const K_RESOURCE: u16 = 28;
 pub(crate) const K_IF_KILL: u16 = 29;
 const K_ATTACK: u16 = 30;
 
@@ -86,8 +88,6 @@ const MOD_CAST_POINT: u8 = 253;
 const MOD_CHARGE_RESTORE: u8 = 254;
 const COND_SCEPTER: u32 = 0;
 const COND_SHARD: u32 = 1;
-const COND_TALENT: u32 = 2;
-const TALENT_LEVELS: [u32; 4] = [10, 15, 20, 25];
 
 pub(crate) const TMOD_SLOTS: usize = 8;
 pub(crate) const DOT_SLOTS: usize = 4;
@@ -233,7 +233,7 @@ pub(crate) fn spell_effect_error(e: &Effect) -> Option<&'static str> {
         K_CHAIN => e.p0 >= 0 && e.p1 >= 0 && e.p2 >= 0 && (0..=3).contains(&e.p3),
         K_ZONE => e.p0 >= 0 && e.p1 >= 1 && e.p2 >= 1 && e.p3 >= 0,
         K_ILLUSION => (1..=8).contains(&e.p0) && e.p1 >= 1 && e.p2 >= 0 && e.p3 >= 0,
-        K_MANA => e.p0 >= 0 && (0..=2).contains(&e.p1),
+        K_RESOURCE => e.p0 >= 0 && (0..=2).contains(&e.p1),
         K_IF_KILL => (1..=16).contains(&e.p0),
         K_ATTACK => e.p0 >= 0,
         crate::teleport::K_TELEPORT => e.p0 >= 0,
@@ -721,7 +721,7 @@ impl Sim {
                     self.status_with_source(caster, j, eff.p0 as usize, eff.p1, crate::status::SLOW_NONE);
                 }
             }
-            crate::teleport::K_TELEPORT => self.teleport_effect(caster, eff, recv),
+            crate::teleport::K_TELEPORT => self.teleport_effect(caster, tx, ty),
             crate::refresh::K_REFRESH => self.refresh_effect(caster, eff),
             crate::grant::K_GRANT => self.grant_effect(caster, eff, recv),
             K_ATTACK => {
@@ -746,9 +746,9 @@ impl Sim {
             }
             K_ZONE => self.zone_start(caster, tx, ty, eff),
             K_ILLUSION => self.illusion_effect(caster, eff),
-            K_MANA => {
+            K_RESOURCE => {
                 if let Some(j) = recv {
-                    self.mana_effect(caster, j, eff);
+                    self.resource_effect(caster, j, eff);
                 }
             }
             _ => self.refuse(Refusal::EffectUnsupported),
@@ -869,7 +869,7 @@ impl Sim {
         self.touch(j);
     }
 
-    fn mana_effect(&mut self, caster: usize, j: usize, eff: Effect) {
+    fn resource_effect(&mut self, caster: usize, j: usize, eff: Effect) {
         let cap_of = |s: &Sim, u: usize| if s.is_hero(u) { s.heroes.mana_max[u] } else { i32::MAX };
         match eff.p1 {
             0 => {
@@ -1342,21 +1342,16 @@ impl Sim {
         self.refresh_passives(i);
     }
 
-    /// Chooses talent `side` (0 or 1) of tier `tier` (0..=3, levels 10, 15, 20, 25) for unit `i`.
-    /// Refusals, each changing nothing: a dead or unknown unit, tier or side is NoSlot; a character
-    /// level below the tier is SkillLevelGate; a tier already chosen is SkillMaxed.
-    pub fn choose_talent(&mut self, i: usize, tier: usize, side: usize) -> Result<(), Refusal> {
-        if i >= self.n || self.alive[i] == 0 || tier >= 4 || side >= 2 {
+    /// Sets or clears upgrade bit `bit` on unit `i` and refreshes its passives. The bits are data: 0 scepter,
+    /// 1 shard, 2..=9 the eight talent slots that abilities test. Which upgrade a choice sets, and the level or
+    /// one-per-tier rules, are mod code (scenarios/moba/talents.lua). A dead or unknown unit, or a bit past 9, is
+    /// NoSlot and changes nothing.
+    pub fn set_upgrade_bit(&mut self, i: usize, bit: u32, on: bool) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 || bit > 9 {
             return Err(self.reject(Refusal::NoSlot));
         }
-        if self.character_level(i) < TALENT_LEVELS[tier] {
-            return Err(self.reject(Refusal::SkillLevelGate));
-        }
-        let pair = 0b11 << (COND_TALENT + 2 * tier as u32);
-        if self.spell.upg[i] & pair != 0 {
-            return Err(self.reject(Refusal::SkillMaxed));
-        }
-        self.spell.upg[i] |= 1 << (COND_TALENT + 2 * tier as u32 + side as u32);
+        let mask = 1 << bit;
+        self.spell.upg[i] = if on { self.spell.upg[i] | mask } else { self.spell.upg[i] & !mask };
         self.refresh_passives(i);
         self.touch(i);
         Ok(())

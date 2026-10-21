@@ -58,6 +58,7 @@ local function glyph_covers(i)
 end
 
 function on_cast(unit, ability, state)
+  cast_spell(unit, ability)
   if ability ~= GLYPH_NAME then return end
   local p = unit_player(unit)
   if p >= 16 then return end
@@ -69,6 +70,7 @@ end
 
 function on_tick(state)
   ticks = ticks + 1
+  hero_on_tick(state)
   local scan = ticks % SCAN_EVERY == 0
   for i = 0, get_unit_count() - 1 do
     if unit_alive(i) then

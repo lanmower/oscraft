@@ -566,7 +566,7 @@ impl Sim {
                 }
             }
             EFFECT_STAT => self.stat_bonus(caster, target, eff.p0, eff.p1),
-            EFFECT_WARD => self.ward_effect(caster, eff.p0, eff.p1, tx, ty),
+            EFFECT_WARD => self.timed_spawn_effect(caster, eff.p0, eff.p1, tx, ty),
             EFFECT_DELIVER => self.deliver_effect(caster, target, eff.p0),
             EFFECT_STUN..=EFFECT_INVISIBILITY => self.status_effect_from(caster, eff, target),
             k if k >= crate::spell::FIRST_SPELL_KIND => self.spell_effect(caster, eff, tx, ty, target),

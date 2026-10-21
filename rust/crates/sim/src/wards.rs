@@ -1,7 +1,8 @@
-//! Wards: the `ward` effect places a unit of a catalog type at the cast point for its caster's
-//! player, and the unit expires after a lifetime in ticks. What a ward does comes from its unit
-//! data: sight gives vision, a detector radius reveals invisible units (see `Sim::detected`), health
-//! lets an enemy that sees it kill it. A ward item is consumed by the cast that places it.
+//! Timed spawns: the generic `timed_spawn` primitive places a unit of a catalog type at a point for its
+//! caster's player, and the unit expires after a lifetime in ticks, removed without bounty. Nothing here
+//! names a ward: what a placed unit does comes from its unit data (sight, detector radius, health), and
+//! which unit, where and for how long is a mod's choice (scenarios/moba spells.lua). The `ward` effect in
+//! data is a caller of this primitive. An item the cast consumes is named by the caller's inventory slot.
 //! Expiry stamps are sim state: hashed and saved with the rest.
 
 use crate::arrays::Sim;
@@ -22,17 +23,17 @@ impl WardState {
 }
 
 impl Sim {
-    /// Ticks left on ward `i`; 0 when it is no ward, dead, or unknown.
-    pub fn ward_left(&self, i: usize) -> u32 {
+    /// Ticks left on timed unit `i`; 0 when it has no lifetime, is dead, or is unknown.
+    pub fn timed_left(&self, i: usize) -> u32 {
         if i >= self.n || self.alive[i] == 0 {
             return 0;
         }
         self.wards.expires[i].saturating_sub(self.ticks)
     }
 
-    /// The `ward` effect: p0 unit type, p1 lifetime ticks. Places the ward for the caster's player at
-    /// (x, y); a full unit table or a point the unit does not fit places nothing and keeps the item.
-    pub(crate) fn ward_effect(&mut self, caster: usize, kind: i32, life: i32, x: i32, y: i32) {
+    /// Places unit type `kind` for the caster's player at (x, y) with a lifetime of `life` ticks. A full unit
+    /// table or a point the unit does not fit places nothing and keeps the caster's item.
+    pub(crate) fn timed_spawn_effect(&mut self, caster: usize, kind: i32, life: i32, x: i32, y: i32) {
         let p = self.player[caster];
         let Some(j) = self.spawn_for(p, kind as u32, x, y) else {
             return;
@@ -59,8 +60,8 @@ impl Sim {
         self.touch(i);
     }
 
-    /// Per tick: every ward past its expiry is removed without bounty.
-    pub(crate) fn tick_wards(&mut self) {
+    /// Per tick: every timed unit past its expiry is removed without bounty.
+    pub(crate) fn tick_timed_life(&mut self) {
         for i in 0..self.n {
             let at = self.wards.expires[i];
             if at != 0 && self.alive[i] != 0 && self.ticks >= at {

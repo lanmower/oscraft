@@ -110,9 +110,7 @@ impl Sim {
         mark = lap(System::Healers, mark);
         self.tick_projectiles();
         mark = lap(System::Projectiles, mark);
-        self.tick_heroes();
-        self.tick_camps();
-        self.tick_wards();
+        self.tick_timed_life();
         self.tick_spells();
         for i in 0..self.n {
             if self.alive[i] == 0 {
@@ -152,7 +150,7 @@ impl Sim {
                 self.vel_y[i] = 0;
             } else {
                 if !self.chasing(i) {
-                    self.tick_route(i);
+                    self.walk_waypoint(i);
                 }
                 self.route_for(i);
                 self.steer(i);

@@ -115,9 +115,10 @@ impl Sim {
         std::mem::take(&mut self.routes.requests).into_iter().map(|(u, p)| (u as usize, p)).collect()
     }
 
-    /// Advances unit `i` along its route: on reaching the current waypoint, the next one is ordered, or
-    /// after the last the unit asks for a destination. A changed order ends the route.
-    pub(crate) fn tick_route(&mut self, i: usize) {
+    /// Generic waypoint walker: advances unit `i` along its route: on reaching the current waypoint, the next
+    /// one is ordered, or after the last the unit asks for a destination. A changed order ends the route. The
+    /// walker carries no lane or content rule; which destination a request gets is the host's on_march.
+    pub(crate) fn walk_waypoint(&mut self, i: usize) {
         let id = self.routes.id[i];
         if id == 0 {
             return;
