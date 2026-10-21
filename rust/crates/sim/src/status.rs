@@ -21,8 +21,8 @@ pub(crate) const STATUS_KINDS: usize = 14;
 pub(crate) const SLOW_NONE: i32 = fixed::ONE;
 
 /// reference movement speed limits (550 maximum, 100 minimum; patch 7.38 notes) in Q16.16 per tick.
-pub(crate) const MOVE_SPEED_MAX_Q16: i32 = 550 * 64;
-pub(crate) const MOVE_SPEED_MIN_Q16: i32 = 100 * 64;
+/// Q16.16 per reference speed point. The speed limits and hex speed are `HeroRules` fields (hero_rules.txt).
+pub(crate) const SPEED_POINT_Q16: i32 = 64;
 
 pub(crate) const STUN: usize = 0;
 pub(crate) const SLOW: usize = 1;
@@ -44,8 +44,6 @@ pub const STATUS_NAMES: [&str; STATUS_KINDS] = [
     "stun", "slow", "silence", "root", "invisibility", "taunt", "hex", "disarm", "spell_immunity", "invulnerable", "break", "mute",
     "physical_immunity", "death_prevention",
 ];
-/// Movement speed of a hexed unit in milli-units per tick (140 reference units a second at the 15.625 scale).
-pub(crate) const HEX_SPEED_MILLI: i32 = 137;
 
 impl Sim {
     /// Ticks left on status `kind` (index into `STATUS_NAMES`) of unit `i`; 0 when none, unknown unit or kind.
@@ -95,7 +93,7 @@ impl Sim {
     pub(crate) fn effective_speed(&self, i: usize) -> i32 {
         if self.status_left(i, HEX) > 0 {
             let own = self.spell.hex_speed.get(i).copied().unwrap_or(0);
-            return fixed::from_milli(if own > 0 { own } else { HEX_SPEED_MILLI });
+            return fixed::from_milli(if own > 0 { own } else { self.heroes.rules.hex_speed_milli });
         }
         let mul = self.slow_multiplier(i);
         let boosted = (self.speed[i] as i64 + self.stat(i, crate::spell::S_SPEED) as i64 * fixed::ONE as i64 / 1000)
@@ -109,8 +107,9 @@ impl Sim {
             k if k >= 0 => fixed::from_milli(self.cat.units[k as usize].speed),
             _ => 0,
         };
-        let cap = MOVE_SPEED_MAX_Q16.max(type_base);
-        let floor = MOVE_SPEED_MIN_Q16.min(self.speed[i]);
+        let rules = self.heroes.rules;
+        let cap = (rules.move_speed_max * SPEED_POINT_Q16).max(type_base);
+        let floor = (rules.move_speed_min * SPEED_POINT_Q16).min(self.speed[i]);
         speed.clamp(floor, cap)
     }
 

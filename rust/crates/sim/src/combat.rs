@@ -55,13 +55,7 @@ pub struct Payout {
 }
 /// Gold for the last hit on a hero: 125 + 8 per victim level (patch 7.31 notes; unchanged in later
 /// notes). Assist gold is 15 + (50 + 0.037 * victim net worth) / assisting heroes (patch 7.40 notes).
-const HERO_KILL_GOLD_BASE: i32 = 125;
-const HERO_KILL_GOLD_PER_LEVEL: i32 = 8;
-const ASSIST_GOLD_BASE: i64 = 15;
-const ASSIST_GOLD_FLAT: i64 = 50;
-const ASSIST_NET_WORTH_PER_MILLE: i64 = 37;
-
-const HERO_BASE_MAGIC_RESIST_PCT: i64 = 25;
+// The hero gold, assist gold and base magic resistance values are `HeroRules` fields (hero_rules.txt).
 
 /// Armour reduction per armour point, Q16.16 (0.06): reference's physical damage multiplier is
 /// 1 - 0.06a / (1 + 0.06|a|), with no floor. Engine constant, not in the npc dump.
@@ -343,7 +337,7 @@ impl Sim {
     /// resist being the hero base of 25 percent (`hero_base` MagicalResistance; 0 for a
     /// non-hero). Ability damage is magical.
     fn magic_reduced(&self, j: usize, dmg: i32) -> i32 {
-        let resist = if self.is_hero(j) { HERO_BASE_MAGIC_RESIST_PCT } else { 0 };
+        let resist = if self.is_hero(j) { self.heroes.rules.base_magic_resist_pct as i64 } else { 0 };
         (dmg as i64 * (100 - resist) / 100) as i32
     }
 
@@ -373,7 +367,8 @@ impl Sim {
             return 0;
         }
         if self.is_hero(j) {
-            HERO_KILL_GOLD_BASE + HERO_KILL_GOLD_PER_LEVEL * self.character_level(j) as i32
+            let r = self.heroes.rules;
+            r.hero_kill_gold_base + r.hero_kill_gold_per_level * self.character_level(j) as i32
         } else {
             self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
         }
@@ -610,8 +605,9 @@ impl Sim {
         if helper_count == 0 || !self.is_hero(j) || !self.hostile(self.player[killer], self.player[j]) {
             return;
         }
-        let shared = (ASSIST_GOLD_FLAT * 1000 + self.hero_net_worth(j) as i64 * ASSIST_NET_WORTH_PER_MILLE) / 1000;
-        let each = (ASSIST_GOLD_BASE + shared / helper_count as i64) as i32;
+        let r = self.heroes.rules;
+        let shared = (r.assist_gold_flat as i64 * 1000 + self.hero_net_worth(j) as i64 * r.assist_net_worth_per_mille as i64) / 1000;
+        let each = (r.assist_gold_base as i64 + shared / helper_count as i64) as i32;
         for &u in &helpers[..helper_count] {
             self.heroes.gold[u] = self.heroes.gold[u].saturating_add(each);
         }

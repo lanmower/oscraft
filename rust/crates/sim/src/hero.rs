@@ -7,23 +7,11 @@ use crate::arrays::Sim;
 use crate::fixed;
 use crate::{ABILITY_SLOTS, TICKS_PER_SECOND};
 
-/// reference ruleset attribute coefficients (engine constants, absent from the npc dump; from the reference ruleset wiki
-/// Attributes page): 22 health and 0.1 health regeneration per strength, 1/6 armour and 1 attack speed
-/// per agility, 12 mana and 0.05 mana regeneration per intelligence, 1 damage per primary point (0.7 per
-/// point of every attribute for a universal hero). Attributes and per-hero data are hundredths.
-pub(crate) const HP_PER_STR: i32 = 22;
 /// Damage per strength point of an item bonus (a strength hero); a hero's own damage uses its primary attribute.
 pub(crate) const DAMAGE_PER_STR: i32 = 1;
-const MANA_PER_INT: i64 = 12;
-const ARMOUR_PER_AGI_DIV: i64 = 6;
-const HP_REGEN_PER_STR_X100: i64 = 10;
-const MANA_REGEN_PER_INT_X100: i64 = 5;
-const UNIVERSAL_DAMAGE_PCT: i64 = 70;
+/// Attribute coefficients (health per strength, armour per agility, mana per intelligence, universal damage
+/// share, buyback net worth share) are `HeroRules` fields read from hero_rules.txt. Attributes and per-hero data are hundredths.
 const MANA_BASE_DEFAULT: i32 = 75;
-/// Buyback cost is 200 + net worth / 13 (patch 7.29 notes), then 15 percent more (patch 7.36 notes).
-/// The 200 and the 15 percent are in `buyback_base` (230); the net worth share is here.
-const BUYBACK_NET_WORTH_DIV: i64 = 13;
-const BUYBACK_NET_WORTH_PCT: i64 = 115;
 
 /// Per hero type data of a `hero <unit> key=value ...` line in the rules text, written by
 /// scripts/gen-heroes.mjs from npc_heroes. Attributes, gains, armor, damage and mana regeneration are
@@ -102,7 +90,50 @@ pub struct HeroRules {
     pub backdoor_radius_milli: i32,
     pub backdoor_activation_s: i32,
     pub backdoor_regen_per_s: i32,
+    /// Hero kill gold: base + per level of the victim. Assist gold: base + (flat + net worth share) / helpers.
+    pub hero_kill_gold_base: i32,
+    pub hero_kill_gold_per_level: i32,
+    pub assist_gold_base: i32,
+    pub assist_gold_flat: i32,
+    pub assist_net_worth_per_mille: i32,
+    /// Buyback net worth share: net worth * pct / (100 * div).
+    pub buyback_net_worth_div: i32,
+    pub buyback_net_worth_pct: i32,
+    /// Magic resistance percent of every hero (combat.rs).
+    pub base_magic_resist_pct: i32,
+    /// Movement speed limits in reference speed points, and hexed movement speed in milli-units per tick.
+    pub move_speed_max: i32,
+    pub move_speed_min: i32,
+    pub hex_speed_milli: i32,
+    /// Attribute coefficients (see the attribute notes in hero_rules.txt).
+    pub hp_per_str: i32,
+    pub armour_per_agi_div: i32,
+    pub hp_regen_per_str_x100: i32,
+    pub mana_per_int: i32,
+    pub mana_regen_per_int_x100: i32,
+    pub universal_damage_pct: i32,
 }
+
+/// Keys every rules text must give: a file without one is refused (`set_from_text` returns false).
+const REQUIRED_KEYS: &[&str] = &[
+    "hero_kill_gold_base",
+    "hero_kill_gold_per_level",
+    "assist_gold_base",
+    "assist_gold_flat",
+    "assist_net_worth_per_mille",
+    "buyback_net_worth_div",
+    "buyback_net_worth_pct",
+    "base_magic_resist_pct",
+    "move_speed_max",
+    "move_speed_min",
+    "hex_speed_milli",
+    "hp_per_str",
+    "armour_per_agi_div",
+    "hp_regen_per_str_x100",
+    "mana_per_int",
+    "mana_regen_per_int_x100",
+    "universal_damage_pct",
+];
 
 impl Default for HeroRules {
     fn default() -> Self {
@@ -128,6 +159,24 @@ impl Default for HeroRules {
             backdoor_radius_milli: 7700,
             backdoor_activation_s: 15,
             backdoor_regen_per_s: 0,
+            // Before any rules text is loaded (a Sim that never reads hero_rules.txt) these keep the engine values.
+            hero_kill_gold_base: 125,
+            hero_kill_gold_per_level: 8,
+            assist_gold_base: 15,
+            assist_gold_flat: 50,
+            assist_net_worth_per_mille: 37,
+            buyback_net_worth_div: 13,
+            buyback_net_worth_pct: 115,
+            base_magic_resist_pct: 25,
+            move_speed_max: 550,
+            move_speed_min: 100,
+            hex_speed_milli: 137,
+            hp_per_str: 22,
+            armour_per_agi_div: 6,
+            hp_regen_per_str_x100: 10,
+            mana_per_int: 12,
+            mana_regen_per_int_x100: 5,
+            universal_damage_pct: 70,
         }
     }
 }
@@ -137,6 +186,7 @@ impl HeroRules {
     /// False, with the rules unchanged, on an unknown key, a bad number or an invalid value.
     pub fn set_from_text(&mut self, text: &str) -> bool {
         let mut next = *self;
+        let mut seen: Vec<&str> = Vec::new();
         for line in text.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
@@ -148,7 +198,9 @@ impl HeroRules {
             let Ok(v) = value.trim().parse::<i32>() else {
                 return false;
             };
-            let slot = match key.trim() {
+            let key = key.trim();
+            seen.push(key);
+            let slot = match key {
                 "respawn_base_s" => &mut next.respawn_base_s,
                 "respawn_per_level_s" => &mut next.respawn_per_level_s,
                 "respawn_cap_s" => &mut next.respawn_cap_s,
@@ -182,9 +234,29 @@ impl HeroRules {
                 "backdoor_radius_milli" => &mut next.backdoor_radius_milli,
                 "backdoor_activation_s" => &mut next.backdoor_activation_s,
                 "backdoor_regen_per_s" => &mut next.backdoor_regen_per_s,
+                "hero_kill_gold_base" => &mut next.hero_kill_gold_base,
+                "hero_kill_gold_per_level" => &mut next.hero_kill_gold_per_level,
+                "assist_gold_base" => &mut next.assist_gold_base,
+                "assist_gold_flat" => &mut next.assist_gold_flat,
+                "assist_net_worth_per_mille" => &mut next.assist_net_worth_per_mille,
+                "buyback_net_worth_div" => &mut next.buyback_net_worth_div,
+                "buyback_net_worth_pct" => &mut next.buyback_net_worth_pct,
+                "base_magic_resist_pct" => &mut next.base_magic_resist_pct,
+                "move_speed_max" => &mut next.move_speed_max,
+                "move_speed_min" => &mut next.move_speed_min,
+                "hex_speed_milli" => &mut next.hex_speed_milli,
+                "hp_per_str" => &mut next.hp_per_str,
+                "armour_per_agi_div" => &mut next.armour_per_agi_div,
+                "hp_regen_per_str_x100" => &mut next.hp_regen_per_str_x100,
+                "mana_per_int" => &mut next.mana_per_int,
+                "mana_regen_per_int_x100" => &mut next.mana_regen_per_int_x100,
+                "universal_damage_pct" => &mut next.universal_damage_pct,
                 _ => return false,
             };
             *slot = v;
+        }
+        if !REQUIRED_KEYS.iter().all(|k| seen.contains(k)) {
+            return false;
         }
         let valid = [
             next.respawn_base_s,
@@ -325,7 +397,8 @@ impl Sim {
             return 0;
         }
         let base = self.hero_def(i).map_or(MANA_BASE_DEFAULT, |d| d.mana) as i64;
-        (base + MANA_PER_INT * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MAX_MANA)
+        let per_int = self.heroes.rules.mana_per_int as i64;
+        (base + per_int * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MAX_MANA)
     }
 
     /// Mana regeneration of hero `i` in hundredths per second: the base plus 0.05 per intelligence point.
@@ -334,7 +407,8 @@ impl Sim {
             return 0;
         }
         let base = self.hero_def(i).map_or(0, |d| d.mana_regen) as i64;
-        (base + MANA_REGEN_PER_INT_X100 * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MANA_REGEN)
+        let per_int = self.heroes.rules.mana_regen_per_int_x100 as i64;
+        (base + per_int * self.hero_attributes_x100(i)[2] as i64 / 100) as i32 + self.stat(i, crate::spell::S_MANA_REGEN)
     }
 
     /// Armour of unit `i` (Q16.16), its damage per attack (Q16.16), its attack period in ticks and its
@@ -370,13 +444,14 @@ impl Sim {
         }
         let def = self.cat.units[self.type_of[i] as usize];
         let hd = self.hero_def(i);
+        let r = self.heroes.rules;
         let [s, a, n] = self.hero_attributes_x100(i).map(|v| v as i64);
         let q16 = |x100: i64| (x100 * fixed::ONE as i64 / 100) as i32;
         let old_max = self.hp_max[i];
-        let new_max = fixed::from_int(def.health + self.stat(i, crate::spell::S_HEALTH)).saturating_add(q16(HP_PER_STR as i64 * s));
+        let new_max = fixed::from_int(def.health + self.stat(i, crate::spell::S_HEALTH)).saturating_add(q16(r.hp_per_str as i64 * s));
         self.hp_max[i] = new_max;
         self.hp[i] = (self.hp[i] + (new_max - old_max)).clamp(0, new_max);
-        let armor_x100 = hd.map_or(def.armor as i64 * 100, |d| d.armor as i64) + a / ARMOUR_PER_AGI_DIV;
+        let armor_x100 = hd.map_or(def.armor as i64 * 100, |d| d.armor as i64) + a / r.armour_per_agi_div as i64;
         self.armor[i] = q16(armor_x100);
         if def.has_weapon() {
             let primary = hd.map_or(0, |d| d.primary);
@@ -384,7 +459,7 @@ impl Sim {
                 0 => s,
                 1 => a,
                 2 => n,
-                _ => (s + a + n) * UNIVERSAL_DAMAGE_PCT / 100,
+                _ => (s + a + n) * r.universal_damage_pct as i64 / 100,
             };
             let base = hd.map_or(0, |d| d.damage) as i64;
             let base = if base > 0 { base } else { def.weapon_damage as i64 * 100 };
@@ -406,7 +481,8 @@ impl Sim {
     /// Zero for a non-hero.
     pub(crate) fn hero_regen_per_tick(&self, i: usize) -> i32 {
         let s = self.hero_attributes_x100(i)[0] as i64;
-        let from_str = s * HP_REGEN_PER_STR_X100 * fixed::ONE as i64 / (100 * 100 * TICKS_PER_SECOND as i64);
+        let per_str = self.heroes.rules.hp_regen_per_str_x100 as i64;
+        let from_str = s * per_str * fixed::ONE as i64 / (100 * 100 * TICKS_PER_SECOND as i64);
         let from_stat = self.stat(i, crate::spell::S_HEALTH_REGEN) as i64 * fixed::ONE as i64 / (100 * TICKS_PER_SECOND as i64);
         (from_str + from_stat) as i32
     }
@@ -496,7 +572,7 @@ impl Sim {
             return -1;
         }
         let r = self.heroes.rules;
-        let net_worth_part = self.hero_net_worth(i) as i64 * BUYBACK_NET_WORTH_PCT / (100 * BUYBACK_NET_WORTH_DIV);
+        let net_worth_part = self.hero_net_worth(i) as i64 * r.buyback_net_worth_pct as i64 / (100 * r.buyback_net_worth_div as i64);
         r.buyback_base + r.buyback_per_level * self.level(i) as i32 + net_worth_part as i32
     }
 
