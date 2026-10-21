@@ -1,6 +1,6 @@
 {
- "count": 832,
- "total_bytes": 24457693,
+ "count": 835,
+ "total_bytes": 24840241,
  "items": [
   {
    "id": "rock",
@@ -1027,6 +1027,30 @@
    "path": "js/client/models/earthshaker-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 161400,
+   "role": "character"
+  },
+  {
+   "id": "faceless-void-skinned",
+   "kind": "model",
+   "path": "js/client/models/faceless-void-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 125180,
+   "role": "character"
+  },
+  {
+   "id": "gyrocopter-skinned",
+   "kind": "model",
+   "path": "js/client/models/gyrocopter-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 123636,
+   "role": "character"
+  },
+  {
+   "id": "lich-skinned",
+   "kind": "model",
+   "path": "js/client/models/lich-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 133732,
    "role": "character"
   },
   {
@@ -5884,7 +5908,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 39,
+  "character": 42,
   "creep": 5,
   "terrain": 7
  }

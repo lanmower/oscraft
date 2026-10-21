@@ -816,5 +816,8 @@
   "doom_bringer_skinned": "models/doom-bringer-skinned.glb",
   "dragon_knight_skinned": "models/dragon-knight-skinned.glb",
   "drow_ranger_skinned": "models/drow-ranger-skinned.glb",
-  "earthshaker_skinned": "models/earthshaker-skinned.glb"
+  "earthshaker_skinned": "models/earthshaker-skinned.glb",
+  "faceless_void_skinned": "models/faceless-void-skinned.glb",
+  "gyrocopter_skinned": "models/gyrocopter-skinned.glb",
+  "lich_skinned": "models/lich-skinned.glb"
 }
