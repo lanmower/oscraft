@@ -4,8 +4,7 @@
 -- listed copies taken, an item placed, a slot emptied or moved. kind is "acquire" (buy), "release" (sell),
 -- "take_out" (unstash) or "carry" (the courier walks to its receiver and hands over the stash).
 -- Item tags are data: items.osd declares item_tags({"home", "side", "secret"}) and marks each item with
--- tags=[...]. The bits below follow that declaration order. A host runs one mod file: combine this with
--- other moba mods into one file if they run together.
+-- tags=[...]. The bits below follow that declaration order.
 
 -- Tag bits, in the item_tags order of items.osd. An item with no tag sells nowhere.
 local TAG = { home = 1, side = 2, secret = 4 }
@@ -16,7 +15,8 @@ local DEPOT_TAG = { [5] = TAG.home, [9] = TAG.side, [10] = TAG.secret }
 -- Inventory slots 0..5 are main, 6..8 backpack, 9 the neutral slot (sim inventory.rs). Components are
 -- held in the first nine slots and the stash, never the neutral slot.
 local NEUTRAL_SLOT = 9
-local TICKS_PER_SECOND = 16
+local config = require("config")
+local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 
 -- Courier timing: a route refresh every REROUTE_TICKS, the distance from home that counts as home, and
 -- how close the courier must stand to its receiver to hand over the stash.
@@ -191,7 +191,7 @@ end
 
 -- The one rule the engine asks. Refusal reasons: "no-item", "out-of-reach", "cannot-afford",
 -- "inventory-full", "missing-component". A kind this file does not know is refused.
-function on_request(kind, unit, item, state)
+local function on_request(kind, unit, item, state)
   if kind == "acquire" then return acquire(unit, item, state) end
   if kind == "release" then return release(unit, item, state) end
   if kind == "take_out" then return take_out(unit, item, state) end
@@ -199,5 +199,4 @@ function on_request(kind, unit, item, state)
   return false, "no-item"
 end
 
-function on_tick(state)
-end
+return { on_request = on_request }

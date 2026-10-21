@@ -4,30 +4,18 @@
 
 #![cfg(feature = "build")]
 
-use std::path::Path;
-
 use mod_host::{build_image, ModHost};
 use serde_json::json;
 
-fn scenario() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba")
-}
+mod common;
+use common::scenario;
 
-// The moba pack as the page loads it: every manifest mod, in manifest order, then the setup the page sends.
+// The moba pack as the page loads it: the manifest root and the modules it reaches, then the setup the page sends.
 fn host_with_panels() -> ModHost {
     let image = build_image(&scenario()).expect("moba scenario builds an image");
     let mut host = ModHost::new(&image).expect("host");
     let read = |name: &str| std::fs::read_to_string(scenario().join(name)).expect(name);
-    let manifest: serde_json::Value = serde_json::from_str(&read("manifest.json")).expect("manifest json");
-    let mods: Vec<(String, String)> = manifest["mods"]
-        .as_array()
-        .expect("manifest mods list")
-        .iter()
-        .map(|m| {
-            let file = m.as_str().expect("mod file name");
-            (file.to_owned(), read(file))
-        })
-        .collect();
+    let mods = common::pack_mods(&scenario(), &common::pack_roots(&scenario()));
     host.load_mods(&mods).expect("moba mods load");
     let ui: serde_json::Value = serde_json::from_str(&read("moba_ui.json")).expect("ui json");
     host.dispatch_action("setup", &json!({ "ui": ui, "player": 0 })).expect("setup");

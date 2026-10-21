@@ -1,0 +1,15 @@
+-- The moba pack's root. It names the features in hook order and nothing else; each feature returns its own hooks.
+require("heroes")
+require("camps")
+require("lanes")
+require("store")
+require("talents")
+require("skills")
+require("spells")
+require("protection")
+require("win")
+require("effects")
+require("controls")
+require("panels")
+require("kill_gold")
+return {}

@@ -1,9 +1,10 @@
-//! Gate checks for reference items on the scenario scenario: costs and recipes against items.txt
+//! Gate checks for reference items on the moba scenario: costs and recipes against items.txt
 //! @282fad29f0f74504fad465c52d197fb61f4d612b, the recipe purchase rule, shops, stacks, slots,
 //! stat bonuses and consumables. The store rule is the mod's (scenarios/moba/store.lua): a trade is
 //! asked of the mod through the host, and its verdict is applied to the host's sim here.
 
 use std::cell::RefMut;
+use crate::checks::{role};
 
 use mod_host::ModHost;
 use sim::{fixed, Refusal, Sim};
@@ -12,21 +13,21 @@ use crate::checks::kind;
 
 const HOME_SHOP_DOODAD: u16 = 5;
 
-/// The scenario scenario as a mod host: the host's sim is the world, and the store and courier rules are the
+/// The moba scenario as a mod host: the host's sim is the world, and the store and courier rules are the
 /// mod's. Trades and deliveries are answered by the mod, and each answer is applied to the sim.
 struct Moba {
     host: ModHost,
 }
 
 fn scenario() -> Result<Moba, String> {
-    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
-    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario scenario image: {e:#}"))?;
+    let scenario = crate::checks::pack_dir();
+    let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
     let mut host = ModHost::new(&image).map_err(|e| format!("ModHost::new: {e:?}"))?;
-    let rules = std::fs::read_to_string(scenario.join("hero_rules.txt")).map_err(|e| e.to_string())?;
-    if !host.sim_mut().set_attr_rules_text(&rules) {
-        return Err("hero_rules.txt has a bad line".into());
+    let rules = std::fs::read_to_string(scenario.join(crate::checks::RULES_FILE)).map_err(|e| e.to_string())?;
+    if !host.sim().set_attr_rules_text(&rules) {
+        return Err("the pack rules file has a bad line".into());
     }
-    host.sim_mut().set_fog(false);
+    host.sim().set_fog(false);
     let store = std::fs::read_to_string(scenario.join("store.lua")).map_err(|e| e.to_string())?;
     host.load_source("store.lua", &store).map_err(|e| format!("store.lua: {e}"))?;
     Ok(Moba { host })
@@ -34,7 +35,7 @@ fn scenario() -> Result<Moba, String> {
 
 impl Moba {
     fn sim(&self) -> RefMut<'_, Sim> {
-        self.host.sim_mut()
+        self.host.sim()
     }
 
     /// Queues a purchase, has the mod answer it, and reports whether the item was bought.
@@ -78,7 +79,7 @@ impl Moba {
 }
 
 fn item(s: &Sim, name: &str) -> Result<usize, String> {
-    s.catalog().item_index(name).ok_or_else(|| format!("scenario scenario has no item {name}"))
+    s.catalog().item_index(name).ok_or_else(|| format!("moba scenario has no item {name}"))
 }
 
 /// The slot of hero `h` that holds catalog item `index`, if one does.
@@ -96,8 +97,8 @@ fn held_slots(m: &Moba, h: usize) -> usize {
 fn shopper(m: &Moba, gold: i32) -> Result<usize, String> {
     let (k, x, y) = {
         let s = m.sim();
-        let shop = s.catalog().doodads.iter().find(|d| d.kind == HOME_SHOP_DOODAD).copied().ok_or("scenario scenario has no shop doodad")?;
-        (kind(&s, "axe")?, fixed::from_milli(shop.x), fixed::from_milli(shop.y))
+        let shop = s.catalog().doodads.iter().find(|d| d.kind == HOME_SHOP_DOODAD).copied().ok_or("moba scenario has no shop doodad")?;
+        (kind(&s, role("hero.a")?)?, fixed::from_milli(shop.x), fixed::from_milli(shop.y))
     };
     for dx in 1..40 {
         for dy in [0, 3, -3] {
@@ -126,7 +127,7 @@ pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
     let m = scenario()?;
     let s = m.sim();
     let cat = s.catalog();
-    for (name, cost) in [("blink", 2250), ("black_king_bar", 4050), ("tpscroll", 100), ("tango", 90), ("clarity", 60), ("flask", 100), ("ward_sentry", 50), ("platemail", 1400), ("blade_mail", 2200), ("force_staff", 2250)] {
+    for (name, cost) in [(role("item.5")?, 2250), (role("item.3")?, 4050), (role("item.19")?, 100), (role("item.18")?, 90), (role("item.8")?, 60), (role("item.10")?, 100), (role("unit.ward_b")?, 50), (role("item.16")?, 1400), (role("item.4")?, 2200), (role("item.11")?, 2250)] {
         let it = &cat.items[item(&s, name)?];
         want(&format!("{name} cost"), it.cost as i64, cost)?;
     }
@@ -134,14 +135,14 @@ pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
         let it = &cat.items[item(&s, name)?];
         Ok(it.components.iter().filter(|&&c| c != 0xFFFF).map(|&c| cat.name(cat.items[c as usize].name)).collect())
     };
-    want("blade_mail parts", parts("blade_mail")?.len() as i64, 2)?;
-    if parts("black_king_bar")? != ["mithril_hammer", "ogre_axe"] {
-        return Err(format!("black_king_bar parts {:?}", parts("black_king_bar")?));
+    want("blade_mail parts", parts(role("item.4")?)?.len() as i64, 2)?;
+    if parts(role("item.3")?)? != [role("item.14")?, role("item.15")?] {
+        return Err(format!("black_king_bar parts {:?}", parts(role("item.3")?)?));
     }
-    let tango = &cat.items[item(&s, "tango")?];
+    let tango = &cat.items[item(&s, role("item.18")?)?];
     want("tango charges", tango.charges as i64, 3)?;
-    want("platemail tags", cat.items[item(&s, "platemail")?].tags as i64, 4)?;
-    let kobold = &cat.items[item(&s, "kobold_cup")?];
+    want("platemail tags", cat.items[item(&s, role("item.16")?)?].tags as i64, 4)?;
+    let kobold = &cat.items[item(&s, role("item.12")?)?];
     want("kobold_cup tier", kobold.tier as i64, 1)?;
     println!("item catalog ok items={}", cat.items.len());
     Ok(())
@@ -152,7 +153,7 @@ pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
 pub fn item_recipe_buy(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 5000)?;
-    let (hammer, axe, bkb) = (item(&m.sim(), "mithril_hammer")?, item(&m.sim(), "ogre_axe")?, item(&m.sim(), "black_king_bar")?);
+    let (hammer, axe, bkb) = (item(&m.sim(), role("item.14")?)?, item(&m.sim(), role("item.15")?)?, item(&m.sim(), role("item.3")?)?);
     let damage = m.sim().damage_of(h);
     if !m.buy(h, hammer) || !m.buy(h, axe) {
         return Err(format!("component purchases refused: {}", m.refusal()));
@@ -181,7 +182,7 @@ pub fn item_recipe_buy(_image: &[u8]) -> Result<(), String> {
 pub fn item_shop_rules(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 3000)?;
-    let (hammer, bkb, plate) = (item(&m.sim(), "mithril_hammer")?, item(&m.sim(), "black_king_bar")?, item(&m.sim(), "platemail")?);
+    let (hammer, bkb, plate) = (item(&m.sim(), role("item.14")?)?, item(&m.sim(), role("item.3")?)?, item(&m.sim(), role("item.16")?)?);
     if m.buy(h, plate) {
         return Err("platemail sold at a home shop".into());
     }
@@ -197,7 +198,7 @@ pub fn item_shop_rules(_image: &[u8]) -> Result<(), String> {
         return Err("recipe with one held component refused".into());
     }
     want("price with one component held", (gold - m.sim().resource_a(0)) as i64, 4050 - 1600)?;
-    let far = m.sim().spawn_attributed(0, kind(&m.sim(), "axe")?, fixed::from_int(1), fixed::from_int(1));
+    let far = m.sim().spawn_attributed(0, kind(&m.sim(), role("hero.a")?)?, fixed::from_int(1), fixed::from_int(1));
     if let Some(far) = far {
         if m.buy(far, hammer) {
             return Err("an item bought far from every shop".into());
@@ -211,8 +212,8 @@ pub fn item_shop_rules(_image: &[u8]) -> Result<(), String> {
 pub fn item_stack_consume(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 2000)?;
-    let tango = item(&m.sim(), "tango")?;
-    let faerie = item(&m.sim(), "faerie_fire")?;
+    let tango = item(&m.sim(), role("item.18")?)?;
+    let faerie = item(&m.sim(), role("item.9")?)?;
     m.buy(h, tango);
     m.buy(h, tango);
     let kind_id = sim_kind(tango);
@@ -244,8 +245,8 @@ fn sim_kind(index: usize) -> u32 {
 pub fn item_slots(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 1000)?;
-    let cup = item(&m.sim(), "kobold_cup")?;
-    let blink = item(&m.sim(), "blink")?;
+    let cup = item(&m.sim(), role("item.12")?)?;
+    let blink = item(&m.sim(), role("item.5")?)?;
     if m.buy(h, cup) {
         return Err("a neutral item was sold".into());
     }
@@ -281,7 +282,7 @@ pub fn item_stat_names(_image: &[u8]) -> Result<(), String> {
 pub fn item_stat_stacking(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 20000)?;
-    let (crit, plate) = (item(&m.sim(), "lesser_crit")?, item(&m.sim(), "chainmail")?);
+    let (crit, plate) = (item(&m.sim(), role("item.13")?)?, item(&m.sim(), role("item.7")?)?);
     for _ in 0..2 {
         if !m.buy(h, crit) || !m.buy(h, plate) {
             return Err(format!("purchase refused: {}", m.refusal()));
@@ -299,7 +300,7 @@ pub fn item_stat_stacking(_image: &[u8]) -> Result<(), String> {
 pub fn item_stock(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 0)?;
-    let ward = item(&m.sim(), "ward_observer")?;
+    let ward = item(&m.sim(), role("unit.ward_a")?)?;
     m.sim().add_resources(0, 1000, 0);
     if !m.buy(h, ward) || !m.buy(h, ward) {
         return Err(format!("stocked wards refused: {}", m.refusal()));
@@ -328,7 +329,7 @@ fn kill(m: &Moba, h: usize) {
 pub fn item_aegis_and_death(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 5000)?;
-    let (sword, aegis) = (item(&m.sim(), "broadsword")?, item(&m.sim(), "aegis")?);
+    let (sword, aegis) = (item(&m.sim(), role("item.6")?)?, item(&m.sim(), role("item.1")?)?);
     if !m.buy(h, sword) || !m.sim().inventory_add(h, sim_kind(aegis), 1) {
         return Err("could not equip the hero".into());
     }
@@ -386,9 +387,10 @@ fn guard(m: &mut Moba, h: usize) -> Result<(), String> {
 pub fn item_town_portal(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 1000)?;
-    let scroll = item(&m.sim(), "tpscroll")?;
+    let scroll = item(&m.sim(), role("item.19")?)?;
+    let r_unit_tower = role("unit.tower")?;
     let find = |s: &Sim, player: u8| {
-        (0..s.count()).find(|&u| s.alive(u) && s.player(u) == player && s.kind_name(u).is_some_and(|n| n.starts_with("tower")))
+        (0..s.count()).find(|&u| s.alive(u) && s.player(u) == player && s.kind_name(u).is_some_and(|n| n.starts_with(r_unit_tower)))
     };
     let (own, enemy) = (find(&m.sim(), 0).ok_or("no friendly tower")?, find(&m.sim(), 1).ok_or("no enemy tower")?);
     if !m.buy(h, scroll) {
@@ -442,7 +444,7 @@ pub fn item_town_portal(_image: &[u8]) -> Result<(), String> {
 pub fn item_aghanim_and_refresh(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
     let h = shopper(&m, 20000)?;
-    let (scepter, shard, blink, refresher) = (item(&m.sim(), "ultimate_scepter")?, item(&m.sim(), "aghanims_shard")?, item(&m.sim(), "blink")?, item(&m.sim(), "refresher")?);
+    let (scepter, shard, blink, refresher) = (item(&m.sim(), role("item.20")?)?, item(&m.sim(), role("item.2")?)?, item(&m.sim(), role("item.5")?)?, item(&m.sim(), role("item.17")?)?);
     if !m.buy(h, scepter) {
         return Err(format!("scepter refused: {}", m.refusal()));
     }

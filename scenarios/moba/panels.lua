@@ -1,9 +1,7 @@
 -- The moba panels, as mod code. Each panel is a widget tree (JSON, below) that the page draws with its generic widgets;
 -- this file decides what every panel shows and what its buttons do. The page only draws the trees and sends a button
--- press back as the "ui" action. The pack has one on_action and one on_tick shared by its chunks, so this file's entry
--- points have their own names: controls.lua's on_action calls panels_on_action for every action, and the panels refresh
--- on a periodic timer (game.timer), not on the shared on_tick.
---   panels_on_action(name, args)  "setup" (args.ui: moba_ui.json text, keys, teams; args.player the local seat; args.pubkey
+-- press back as the "ui" action. The panels refresh on a periodic timer (game.timer).
+--   on_action(name, args)  "setup" (args.ui: moba_ui.json text, keys, teams; args.player the local seat; args.pubkey
 --                                 the lobby owner of this page), "key" (the shop and scoreboard keys toggle their panels),
 --                                 "selection" (the local seat's selection, args.ids, sent by the page on every change),
 --                                 "ui" (a button press: args.call names the call, args.args holds its values)
@@ -14,7 +12,10 @@
 -- tone, tip, call, args). Tones are named by the page's stylesheet. The sandbox has no string library, so the JSON is
 -- built by hand.
 
-local TICKS_PER_SECOND = 16
+local config = require("config")
+local units = require("units")
+
+local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 local REFRESH_TICKS = 4
 local INVENTORY_SLOTS = 10
 local STASH_SLOTS = 9
@@ -32,7 +33,6 @@ local LOCAL = 0
 local OWNER = "local"
 local SEL = {}
 local OPEN = { shop = false, scoreboard = false }
-local SHOP_FILTER = ""
 local EXPANDED = false
 local HORN = nil
 local PEAK = {}
@@ -111,12 +111,6 @@ local function emit(id, slot, tree)
   end
 end
 
--- The engine names the hero test is_attributed in newer builds and is_hero in older ones; either answers the same.
-local function is_hero(id)
-  if game.is_attributed then return game.is_attributed(id) end
-  return game.is_hero(id)
-end
-
 local function team_of(p) return UI.teams[p + 1] or 0 end
 
 local function sides()
@@ -140,16 +134,13 @@ end
 
 -- The first selected unit of seat `who` that is one of its heroes, or nil.
 local function hero_of(who)
-  for _, id in ipairs(SEL) do
-    if unit_alive(id) and unit_player(id) == who and is_hero(id) then return id end
-  end
-  return nil
+  return units.hero_of(SEL, who)
 end
 
 -- The first living hero of player p, or nil.
 local function hero_unit(p)
   for _, id in ipairs(game.units(p)) do
-    if is_hero(id) then return id end
+    if units.is_hero(id) then return id end
   end
   return nil
 end
@@ -159,7 +150,7 @@ end
 local function update_heroes()
   local living = {}
   for _, id in ipairs(game.units()) do
-    if is_hero(id) then
+    if units.is_hero(id) then
       local p = unit_player(id)
       if living[p] == nil then living[p] = id end
     end
@@ -300,12 +291,6 @@ local function recipe_text(components)
   return join(names, " + ")
 end
 
--- The shop's name filter: an item shows when its name holds the typed text, ignoring case. An empty filter shows all.
-local function name_matches(name)
-  if SHOP_FILTER == "" then return true end
-  return game.str_find_ci(name, SHOP_FILTER) ~= nil
-end
-
 local function shop_tree()
   local hero = hero_of(LOCAL)
   local gold = game.gold(LOCAL)
@@ -314,7 +299,7 @@ local function shop_tree()
   while true do
     local def = game.item_info(i)
     if def == nil then break end
-    if def.tags ~= 0 and name_matches(def.name) then
+    if def.tags ~= 0 then
       local afford = #def.components > 0 or gold >= def.cost
       local kids = {
         label(def.name, "strong"),
@@ -329,8 +314,7 @@ local function shop_tree()
     end
     i = i + 1
   end
-  local filter = node("input", { S("value", SHOP_FILTER), S("text", TEXT.shop.filter or ""), S("call", "shop_filter") })
-  return panel(TEXT.shop.title .. "  " .. TEXT.goldLabel .. " " .. tostring(gold), { filter, grid(2, cards) })
+  return panel(TEXT.shop.title .. "  " .. TEXT.goldLabel .. " " .. tostring(gold), { grid(2, cards) })
 end
 
 local function skills_tree(hero)
@@ -423,7 +407,7 @@ local function select_tree()
     return box({ cell({ label(TEXT.noValue, "faint") }, { tone = "empty" }), label(TEXT.noSelection, "muted") }, "row")
   end
   local primary = sel[1]
-  local hero = is_hero(primary)
+  local hero = units.is_hero(primary)
   local hp = unit_hp(primary)
   local peak = math.max(PEAK[primary] or 0, hp)
   PEAK[primary] = peak
@@ -570,7 +554,7 @@ end
 local function lobby_started_event()
   local items = {}
   for _, s in ipairs(LOBBY.slots) do
-    items[#items + 1] = obj({ S("owner", s.owner or ""), S("pick", s.hero or "") })
+    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or "") })
   end
   game.ui_event("lobby", obj({ I("player", LOCAL), B("started", true), R("slots", arr(items)) }))
 end
@@ -741,17 +725,12 @@ local function ui_call(who, call, a)
   elseif call == "skill_up" then
     local hero = hero_of(who)
     if hero ~= nil then game.cmd_skill_up(hero, a.slot) end
-  elseif call == "shop_filter" then
-    -- The typed text, lower-cased. Text with a quote or a backslash would break the panel's JSON, so it is dropped.
-    local text = game.str_lower(a.text or "")
-    if game.str_find_ci(text, '"') ~= nil or game.str_find_ci(text, "\\") ~= nil then text = "" end
-    SHOP_FILTER = text
   elseif call == "claim" or call == "release" or call == "pick" or call == "ready" or call == "fill" or call == "start" then
     lobby_act(call, a)
   end
 end
 
-function panels_on_action(name, args, state)
+local function panels_on_action(name, args)
   if name == "setup" then
     UI = args.ui or {}
     TEXT = UI.text or {}
@@ -782,3 +761,5 @@ end
 
 -- Every REFRESH_TICKS ticks from the first tick: the panels that changed go out again.
 game.timer("panels", 1, refresh, REFRESH_TICKS)
+
+return { on_action = panels_on_action }

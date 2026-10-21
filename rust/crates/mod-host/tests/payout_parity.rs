@@ -9,6 +9,8 @@ use std::path::Path;
 use mod_host::{Cmd, ModHost};
 use mod_host::Death;
 
+mod common;
+
 fn image() -> Vec<u8> {
     let scenario = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
     mod_host::build_image(&scenario).expect("moba scenario builds an image")
@@ -52,17 +54,16 @@ fn on_died_receives_five_arguments_with_bounty() {
 #[test]
 fn moba_match_pays_the_same_for_fixed_kills() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
-    let src = ["effects.lua", "kill_gold.lua"].iter().map(|f| std::fs::read_to_string(dir.join(f)).expect("mod")).collect::<Vec<_>>().join("\n");
-    // kill_gold.lua is one file of the moba mod; the host needs an on_tick to load, so the test adds the empty one.
-    let src = format!("{src}\nfunction on_tick(state) end\n");
+    // The kill gold rule and the effects it shows, with the modules they require.
+    let mods = common::pack_mods(&dir, &["kill_gold.lua".to_owned(), "effects.lua".to_owned()]);
     let mut host = ModHost::new(&image()).expect("host");
     // The attributed kill needs unit 20 to be attributed; seat picks enrol attributed units (hero.lua), so the test enrols it here.
-    host.sim_mut().enroll_attributed(20, 0, 0);
+    host.sim().enroll_attributed(20, 0, 0);
     // Every player is its own team, so each pair of players is an enemy pair; a denial is an allied killer.
     for p in 0..4u8 {
-        host.sim_mut().set_team(p, p).expect("team");
+        host.sim().set_team(p, p).expect("team");
     }
-    host.load_source("moba_match", &src).expect("moba_match loads");
+    host.load_mods(&mods).expect("moba_match loads");
     let kills = [
         ("attributed kill", payout(10, 2, Some(20), Some(0), 40)),
         ("denied creep kill", payout(21, 1, Some(22), Some(1), 17)),

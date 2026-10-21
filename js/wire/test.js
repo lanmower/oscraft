@@ -120,7 +120,7 @@ assert.throws(() => encodeFrame({ type: FRAME.ROSTER, you: 0, team: 0, players: 
 
 // Lobby start -> START frame -> host seating -> ROSTER per peer, with a late join and a reconnect.
 const keys = Array.from({ length: 10 }, (_, p) => `peer${p}`.padEnd(64, 'k'));
-const started = { slots: keys.map((owner, slot) => ({ owner, pick: 'hero', ready: true })) };
+const started = { slots: keys.map((owner, slot) => ({ owner, hero: 'hero', ready: true })) };
 const sent = decodeFrame(encodeFrame(startFrame(started)));
 assert.equal(sent.seats.length, 10);
 const seating = createSeating();

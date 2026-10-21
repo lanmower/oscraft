@@ -1,4 +1,4 @@
-//! Gate checks for reference hero base stats on the moba scenario with its attr_rules.txt: attributes, growth,
+//! Gate checks for reference hero base stats on the moba scenario with its rules file: attributes, growth,
 //! health, mana, armour, damage and attack period for a strength hero (axe) and a universal hero (marci),
 //! each against numbers computed by hand from hero_*.txt @282fad29f0f74504fad465c52d197fb61f4d612b.
 
@@ -10,9 +10,9 @@ fn scenario_with_rules() -> Result<Sim, String> {
     let scenario = crate::checks::pack_dir();
     let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
     let mut s = fresh(&image)?;
-    let rules = std::fs::read_to_string(scenario.join("attr_rules.txt")).map_err(|e| e.to_string())?;
+    let rules = std::fs::read_to_string(scenario.join(crate::checks::RULES_FILE)).map_err(|e| e.to_string())?;
     if !s.set_attr_rules_text(&rules) {
-        return Err("attr_rules.txt has a bad line".into());
+        return Err("the pack rules file has a bad line".into());
     }
     Ok(s)
 }

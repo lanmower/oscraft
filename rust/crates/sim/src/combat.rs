@@ -342,7 +342,7 @@ impl Sim {
         if j >= self.n {
             return 0;
         }
-        self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.reward)
+        self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
     }
 
     /// Whether unit `i` may deny unit `j`: `j` is allied to `i` (not `i` itself) and its health is at

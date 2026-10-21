@@ -1,9 +1,7 @@
-// Visual feedback for orders: click markers (move and attack-move), attack rings on a target, the targeted-cast reticle
-// with its area ring, and a refusal line. The pack sends them as feedback events, which arrive on window as "pack:feedback"
-// CustomEvents. The colours are the pack's (ui.json colours.feedback). Every element is created once, pooled under
-// document.body, and never takes pointer input. draw() reads no DOM and writes a style property only when its value changed.
-// The layer is on unless window.__feedback.enabled is false or window.__fxOff is true.
-import { UI } from "./pack_load.js";
+// Visual feedback for MOBA orders: click markers (move green, attack-move red), attack rings on a target, the targeted-cast
+// reticle with its area ring, and a refusal line. Events arrive on window as "moba:feedback" CustomEvents. Every element is
+// created once, pooled under document.body, and never takes pointer input. draw() reads no DOM and writes a style property
+// only when its value changed. The layer is on unless window.__mobaFeedback.enabled is false or window.__fxOff is true.
 
 const MARKER_POOL = 12;
 const RING_POOL = 4;
@@ -12,7 +10,7 @@ const RING_MS = 2500;
 const REFUSAL_MS = 1200;
 const MARKER_PX = 28;
 const RING_PX = 40;
-const COLOUR = UI.colours.feedback;
+const COLOUR = { move: "#4caf50", attackMove: "#e53935", attack: "#e53935", reticle: "#ffeb3b" };
 
 const OVERLAY_CSS = "position:fixed;left:0;top:0;display:none;pointer-events:none;box-sizing:border-box;transform:translate(-50%,-50%);";
 
@@ -40,13 +38,13 @@ function ringCss(px, colour) {
   return `width:${px}px;height:${px}px;border:2px solid ${colour};border-radius:50%;`;
 }
 
-export function createFeedback({ toScreen, toWorld, units }) {
+export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   const now = () => performance.now();
   const markers = Array.from({ length: MARKER_POOL }, () => overlay("fx", ringCss(MARKER_PX, COLOUR.move) + "background:transparent;"));
   const rings = Array.from({ length: RING_POOL }, () => overlay("fx", ringCss(RING_PX, COLOUR.attack)));
   const reticle = overlay("reticle", `width:24px;height:24px;border:2px dashed ${COLOUR.reticle};border-radius:4px;color:${COLOUR.reticle};font:700 12px sans-serif;`);
   const area = overlay("area-ring", `border:2px solid ${COLOUR.reticle};border-radius:50%;background:rgba(255,235,59,0.08);`);
-  const refusal = overlay("refusal", `transform:translate(-50%,0);background:${COLOUR.refusalBg};color:${COLOUR.refusal};font:600 14px sans-serif;padding:6px 12px;border-radius:4px;white-space:nowrap;`);
+  const refusal = overlay("refusal", "transform:translate(-50%,0);background:rgba(0,0,0,0.7);color:#fff;font:600 14px sans-serif;padding:6px 12px;border-radius:4px;white-space:nowrap;");
   refusal.node.style.bottom = "12%";
   refusal.node.style.top = "";
   refusal.node.style.left = "50%";
@@ -58,6 +56,10 @@ export function createFeedback({ toScreen, toWorld, units }) {
   let refusalT0 = -1;
 
   function unitAt(id) {
+    if (heroOf) {
+      const h = heroOf(id);
+      if (h) return h;
+    }
     return units().find((u) => u.id === id);
   }
 
@@ -99,15 +101,15 @@ export function createFeedback({ toScreen, toWorld, units }) {
     }
   }
 
-  window.addEventListener("pack:feedback", (e) => onEvent(e.detail));
+  window.addEventListener("moba:feedback", (e) => onEvent(e.detail));
   window.addEventListener("pointermove", (e) => {
     armed.client = { x: e.clientX, y: e.clientY };
   });
 
-  if (!window.__feedback) window.__feedback = { enabled: true };
+  if (!window.__mobaFeedback) window.__mobaFeedback = { enabled: true };
 
   function enabled() {
-    return window.__feedback.enabled !== false && window.__fxOff !== true;
+    return window.__mobaFeedback.enabled !== false && window.__fxOff !== true;
   }
 
   function hideAll() {
@@ -204,7 +206,7 @@ export function createFeedback({ toScreen, toWorld, units }) {
   }
 
   function setEnabled(value) {
-    window.__feedback.enabled = value === true;
+    window.__mobaFeedback.enabled = value === true;
   }
 
   return { draw, destroy, setEnabled };

@@ -3,14 +3,11 @@
 
 #![cfg(feature = "build")]
 
-use std::path::Path;
-
 use mod_host::{build_image, ModHost};
 use serde_json::json;
 
-fn scenario() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba")
-}
+mod common;
+use common::scenario;
 
 // The first living unit of seat `player`, with its ground point in tiles.
 fn unit_of(host: &mut ModHost, player: u8) -> (usize, f64, f64) {
@@ -29,8 +26,7 @@ fn click_selects_and_right_click_orders_the_selection() {
     let image = build_image(&scenario()).expect("moba scenario builds an image");
     let mut host = ModHost::new(&image).expect("host");
     let ui: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(scenario().join("moba_ui.json")).expect("ui")).expect("ui json");
-    let src = std::fs::read_to_string(scenario().join("controls.lua")).expect("controls");
-    host.load_source("controls", &format!("{src}\nfunction on_tick(state) end\n")).expect("controls load");
+    host.load_mods(&common::pack_mods(&scenario(), &common::pack_roots(&scenario()))).expect("moba mods load");
     host.dispatch_action("setup", &json!({ "ui": ui, "player": 0 })).expect("setup");
 
     let (id, x, z) = unit_of(&mut host, 0);

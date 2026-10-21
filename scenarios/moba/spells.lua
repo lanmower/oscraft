@@ -1,11 +1,10 @@
--- Moba spells as mod code: the teleport landing ring and the ward caller. The engine offers generic
--- primitives only: game.teleport(unit, x, y) (move to a point if walkable, true when it took hold),
--- game.timed_spawn(caster, kind, life, x, y) (place a unit that expires after life ticks), and
--- game.cast_point(caster) / game.cast_target(caster). cast_spell(caster, ability_name) dispatches here; the moba
--- on_cast (protection.lua) calls it, since the mod shares one global on_cast.
+-- Moba spells as mod code: the teleport landing ring and the ward caller. The engine offers generic primitives only:
+-- game.teleport(unit, x, y) (move to a point if walkable, true when it took hold), game.timed_spawn(caster, kind, life,
+-- x, y) (place a unit that expires after life ticks), and game.cast_point(caster) / game.cast_target(caster). on_cast
+-- dispatches a cast that took hold by its ability name.
 
--- Landing ring for the town-portal style teleport: eight directions, widening by RING_STEP_MILLI per step
--- over RING_STEPS steps, measured from the receiver in milli-units.
+-- Landing ring for the town-portal style teleport: eight directions, widening by RING_STEP_MILLI per step over
+-- RING_STEPS steps, measured from the receiver in milli-units.
 local RING_DIRECTIONS = {
   { 1000, 0 }, { 707, 707 }, { 0, 1000 }, { -707, 707 },
   { -1000, 0 }, { -707, -707 }, { 0, -1000 }, { 707, -707 },
@@ -51,9 +50,11 @@ for name, ward in pairs(WARDS) do
   end
 end
 
-function cast_spell(caster, ability_name)
-  local handler = HANDLERS[ability_name]
-  if handler ~= nil then
-    handler(caster)
-  end
-end
+return {
+  on_cast = function(caster, ability_name)
+    local handler = HANDLERS[ability_name]
+    if handler ~= nil then
+      handler(caster)
+    end
+  end,
+}

@@ -17,10 +17,13 @@
 -- cmd_use_item, cmd_hold, cmd_skill_up, attack_move, camera. The sandbox has no string or table library, so the
 -- JSON below is built by hand.
 
-local FIX = 65536
+local config = require("config")
+local units = require("units")
+
+local FIX = config.FIX
 local TARGET_UNIT = 1
 local TARGET_POINT = 2
-local TICKS_PER_SECOND = 16
+local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 
 -- Defaults the page's ui data overrides in setup.
 local CFG = {
@@ -68,24 +71,17 @@ local function feedback(who, body)
   game.ui_event("feedback", '{"player":' .. tostring(who) .. "," .. body .. "}")
 end
 
-local function own(who, id)
-  return unit_alive(id) and unit_player(id) == who
-end
-
 -- The living own units of the selection, in selection order.
 local function my_selected(who)
   local out = {}
   for _, id in ipairs(st(who).sel) do
-    if own(who, id) then out[#out + 1] = id end
+    if units.own(id, who) then out[#out + 1] = id end
   end
   return out
 end
 
 local function hero_selected(who)
-  for _, id in ipairs(my_selected(who)) do
-    if game.is_attributed(id) then return id end
-  end
-  return nil
+  return units.hero_of(st(who).sel, who)
 end
 
 local function set_selection(who, ids)
@@ -301,7 +297,7 @@ local function recall(who, slot)
   s.recalled[slot] = now
   local alive = {}
   for _, id in ipairs(ids) do
-    if own(who, id) then alive[#alive + 1] = id end
+    if units.own(id, who) then alive[#alive + 1] = id end
   end
   set_selection(who, alive)
   if previous ~= nil and now - previous <= CFG.doubleTapTicks and alive[1] ~= nil then
@@ -445,10 +441,7 @@ end
 -- The actions this file answers, listed for the page's debug API (oscraft.debug.actions()).
 local ACTIONS = { "setup", "key", "pointer", "select", "skill_up", "bind", "camera_to", "view", "debug_actions" }
 
-function on_action(name, args, state)
-  -- The pack has one on_action: the panels and the talents answer their actions from here.
-  if panels_on_action then panels_on_action(name, args, state) end
-  if talents_on_action then talents_on_action(name, args, state) end
+local function on_action(name, args)
   if name == "debug_actions" then
     local out = "["
     for i, action in ipairs(ACTIONS) do
@@ -480,7 +473,9 @@ function on_action(name, args, state)
   end
 end
 
-function on_pointer(kind, x, y, button, state)
+local function on_pointer(kind, x, y, button)
   if kind == "move" then return end
   on_ground(LOCAL, kind, x, y, button)
 end
+
+return { on_action = on_action, on_pointer = on_pointer }

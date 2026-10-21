@@ -212,7 +212,7 @@ const EFFECT_USE_CALLDOWN: u16 = 8;
 const EFFECT_SHIELD_BONUS: u16 = 10;
 /// A flat stat bonus. p0 names the stat (see `modapi::STAT_NAMES`), p1 the amount.
 pub(crate) const EFFECT_STAT: u16 = 16;
-/// Places a timed unit: p0 unit type, p1 lifetime in ticks. See timed_life.rs.
+/// Places a ward unit: p0 unit type, p1 lifetime in ticks. See timed_life.rs.
 pub(crate) const EFFECT_TIMED_SPAWN: u16 = 17;
 /// Code 18 is retired (the team aura became a mod rule, on_cast). It is refused as unsupported.
 /// Carry a friendly unit: queues a request for the mod (order_memory.rs). The mod owns what carrying means.

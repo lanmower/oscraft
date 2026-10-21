@@ -1,8 +1,8 @@
 // Generic widget renderer. The pack sends a widget tree for each panel as the UI event "widget" ({player, id, slot, tree}),
 // or {player, id, remove: true} to close it; the lobby's start comes as "lobby". This file draws the tree into the page slot
 // it names and sends a button press back to the pack as the "ui" action ({call, args}). It decides nothing about the game:
-// what a panel shows, and what a button does, is the pack's (panels.lua).
-// A node: {t: "panel"|"box"|"label"|"bar"|"button"|"grid"|"cell"|"input", text, title, tone, value, max, cols, dir, call, args,
+// what a panel shows, and what a button does, is the pack's (scenarios/moba/panels.lua).
+// A node: {t: "panel"|"box"|"label"|"bar"|"button"|"grid"|"cell", text, title, tone, value, max, cols, dir, call, args,
 // disabled, tip, kids}. A tone becomes the class t-<tone>; the stylesheet below gives the tones their colours.
 
 // Page slots: the element a panel's slot names. Overlay slots ("top", "centre", "modal") are created on first use.
@@ -35,7 +35,6 @@ const STYLE = `
 .w-button{background:var(--ok-bg);color:var(--text);border:1px solid var(--ok);border-radius:3px;min-width:30px;padding:2px 6px;font:700 var(--t-label) var(--font);cursor:pointer}
 .w-button:hover:not(:disabled){background:var(--ok)}
 .w-button:disabled{background:var(--well-dim);color:var(--faint);border-color:var(--edge);cursor:default}
-.w-input{min-width:0;box-sizing:border-box;background:var(--well);color:var(--text);border:1px solid var(--edge);border-radius:3px;padding:2px 6px;font:var(--t-label) var(--font)}
 .w-grid{display:grid;gap:4px;align-content:start;min-width:0}
 .w-cell{position:relative;min-width:0;min-height:34px;border:1px solid var(--edge);border-radius:3px;background:var(--well);padding:3px 4px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:2px;overflow:hidden}
 .w-cell.clickable{cursor:pointer}
@@ -105,13 +104,6 @@ export function buildNode(n, send) {
       e.type = "button";
       e.disabled = n.disabled === true;
       if (n.call) e.onclick = () => send(n.call, n.args ?? {});
-      break;
-    case "input":
-      e = el("input", "w-input");
-      e.type = "text";
-      e.placeholder = n.text ?? "";
-      e.value = n.value ?? "";
-      if (n.call) e.onchange = () => send(n.call, { ...(n.args ?? {}), text: e.value });
       break;
     case "grid":
       e = el("div", "w-grid");

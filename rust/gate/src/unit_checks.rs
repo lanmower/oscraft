@@ -1,11 +1,12 @@
-//! Gate checks for the scenario scenario's units and timers: lane waves, siege timing, barracks wave
-//! upgrades, neutral camp stacking and Roshan's respawn window. Each runs on the scenario image.
+//! Gate checks for the moba scenario's units and timers: lane waves, siege timing, barracks wave
+//! upgrades, neutral camp stacking and Roshan's respawn window. Each runs on the moba image.
 
 use crate::checks::{fresh, scenario_rule, run_ticks, MAX_UNITS};
+use crate::checks::{role, fill_roles};
 use crate::mod_checks::{advance, read_int, start};
 use sim::{fixed, Sim};
 
-/// Lane wave logic under test: the scenario scenario's wave mod, loaded into the mod host.
+/// Lane wave logic under test: the moba scenario's wave mod, loaded into the mod host.
 const WAVES_MOD: &str = include_str!("../../../scenarios/moba/lanes.lua");
 /// Creeps per lane spawner per wave, as configured in scenarios/moba/lanes.lua (CREEP_OFFSETS: three
 /// melee, one ranged; creep lanes are top and bottom, mid sends none).
@@ -15,8 +16,12 @@ const RANGED_PER_LANE: i64 = 1;
 // 7.41 positions: the Scourge towers moved to their refmap.j uzig positions, see the commit that moved them).
 const SUPER_MELEE_TOP_LANE: i64 = 2;
 const SUPER_RANGED_TOP_LANE: i64 = 0;
-const CREEP_LANES: &[&str] = &["lane_spawner_top", "lane_spawner_bot"];
-const ALL_LANES: &[&str] = &["lane_spawner_top", "lane_spawner_mid", "lane_spawner_bot"];
+fn creep_lanes() -> Result<[&'static str; 2], String> {
+    Ok([role("unit.spawner_a")?, role("unit.spawner_c")?])
+}
+fn all_lanes() -> Result<[&'static str; 3], String> {
+    Ok([role("unit.spawner_a")?, role("unit.spawner_b")?, role("unit.spawner_c")?])
+}
 /// The mod's wave logic plus a test harness: per-kind spawn counts in the state, the top lane's
 /// mirror tower killed at tick 500, and every side-1 tower killed at tick 1500.
 const UPGRADE_HARNESS: &str = r#"
@@ -50,10 +55,10 @@ local function lanes_with_dead_mirror(owner)
 end
 function on_tick(state)
   base_on_tick(state)
-  state.melee_super = spawned["creep_super"] or 0
-  state.melee_mega = spawned["creep_mega"] or 0
-  state.ranged_super = spawned["creep_ranged_super"] or 0
-  state.ranged_mega = spawned["creep_ranged_mega"] or 0
+  state.melee_super = spawned[@role(unit.creep_b)] or 0
+  state.melee_mega = spawned[@role(unit.creep_c)] or 0
+  state.ranged_super = spawned[@role(unit.creep_d)] or 0
+  state.ranged_mega = spawned[@role(unit.creep_e)] or 0
   state.lanes_super = lanes_with_dead_mirror(0)
 end
 game.timer("gate_kill_top_mirror", 500, function()
@@ -72,8 +77,8 @@ end, 1000000)
 "#;
 
 fn scenario_image() -> Result<Vec<u8>, String> {
-    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
-    osdt_data::generate(&scenario).map_err(|e| format!("scenario scenario image: {e:#}"))
+    let scenario = crate::checks::pack_dir();
+    osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))
 }
 
 fn count_kind(s: &Sim, player: u8, name: &str) -> usize {
@@ -90,7 +95,7 @@ fn spawners(s: &Sim, kinds: &[&str]) -> i64 {
 /// so the expected wave is the creep lane spawners in the image times the per-lane counts.
 pub fn scenario_wave_composition(_image: &[u8]) -> Result<(), String> {
     let image = scenario_image()?;
-    let lanes = spawners(&fresh(&image)?, CREEP_LANES);
+    let lanes = spawners(&fresh(&image)?, &creep_lanes()?);
     let (want_melee, want_ranged) = (lanes * MELEE_PER_LANE, lanes * RANGED_PER_LANE);
     let (mut host, _mod) = start(&image, "waves-composition", WAVES_MOD)?;
     advance(&mut host, 2)?;
@@ -106,7 +111,7 @@ pub fn scenario_wave_composition(_image: &[u8]) -> Result<(), String> {
     if melee2 != want_melee {
         return Err(format!("second wave 480 ticks later spawned {melee2} melee creeps, want {want_melee}"));
     }
-    println!("scenario wave composition ok melee_per_wave={want_melee} ranged_per_wave={want_ranged} interval_ticks=480");
+    println!("moba wave composition ok melee_per_wave={want_melee} ranged_per_wave={want_ranged} interval_ticks=480");
     Ok(())
 }
 
@@ -114,7 +119,7 @@ pub fn scenario_wave_composition(_image: &[u8]) -> Result<(), String> {
 /// 4800, and the first wave's size is the siege spawner count in the image.
 pub fn scenario_siege_timing(_image: &[u8]) -> Result<(), String> {
     let image = scenario_image()?;
-    let want = spawners(&fresh(&image)?, ALL_LANES);
+    let want = spawners(&fresh(&image)?, &all_lanes()?);
     let (mut host, _mod) = start(&image, "waves-siege", WAVES_MOD)?;
     let mut first = None;
     let mut most = 0;
@@ -133,7 +138,7 @@ pub fn scenario_siege_timing(_image: &[u8]) -> Result<(), String> {
     if most != want {
         return Err(format!("{most} siege creeps in the first siege wave, want {want} (one per lane spawner)"));
     }
-    println!("scenario siege timing ok first_tick={t} per_wave={most}");
+    println!("moba siege timing ok first_tick={t} per_wave={most}");
     Ok(())
 }
 
@@ -144,8 +149,8 @@ pub fn scenario_siege_timing(_image: &[u8]) -> Result<(), String> {
 /// (mega), with the creep lane count taken from the image.
 pub fn scenario_wave_upgrade(_image: &[u8]) -> Result<(), String> {
     let image = scenario_image()?;
-    let owner_lanes = spawners(&fresh(&image)?, CREEP_LANES) / 2;
-    let (mut host, _mod) = start(&image, "waves-upgrade", &format!("{WAVES_MOD}\n{UPGRADE_HARNESS}"))?;
+    let owner_lanes = spawners(&fresh(&image)?, &creep_lanes()?) / 2;
+    let (mut host, _mod) = start(&image, "waves-upgrade", &format!("{WAVES_MOD}\n{}", fill_roles(UPGRADE_HARNESS)?))?;
     advance(&mut host, 490)?;
     let (super0, ranged_super0) = (read_int(&host, "melee_super")?, read_int(&host, "ranged_super")?);
     if super0 != 0 || ranged_super0 != 0 || read_int(&host, "melee_mega")? != 0 {
@@ -170,17 +175,17 @@ pub fn scenario_wave_upgrade(_image: &[u8]) -> Result<(), String> {
     if mega != MELEE_PER_LANE * owner_lanes || ranged_mega != RANGED_PER_LANE * owner_lanes {
         return Err(format!("with every enemy tower down the wave held {mega} mega melee and {ranged_mega} mega ranged creeps, want {} and {}", MELEE_PER_LANE * owner_lanes, RANGED_PER_LANE * owner_lanes));
     }
-    println!("scenario wave upgrade ok super={melee} mega={mega} ranged_mega={ranged_mega}");
+    println!("moba wave upgrade ok super={melee} mega={mega} ranged_mega={ranged_mega}");
     Ok(())
 }
 
 /// Roshan respawns a random 8 to 11 minutes after death, never earlier or later.
-pub fn spawn_group_roshan_window(_image: &[u8]) -> Result<(), String> {
+pub fn spawn_group_boss_window(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
     let boss = (0..MAX_UNITS)
         .filter(|&u| s.alive(u) && s.player(u) == 0xFF)
         .max_by_key(|&u| s.hp(u))
-        .ok_or("scenario image places no neutral unit")?;
+        .ok_or("moba image places no neutral unit")?;
     s.hurt(boss, fixed::from_int(10000));
     let died = s.ticks();
     let min = (scenario_rule("roshan_respawn_min_s")? as u32) * sim::TICKS_PER_SECOND as u32;
@@ -206,7 +211,7 @@ pub fn spawn_group_roshan_window(_image: &[u8]) -> Result<(), String> {
 pub fn spawn_group_minute_refill(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
     run_ticks(&mut s, (scenario_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32 + 1);
-    let u = (0..MAX_UNITS).find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).ok_or("scenario image places no neutral camp unit")?;
+    let u = (0..MAX_UNITS).find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).ok_or("moba image places no neutral camp unit")?;
     let (hx, hy) = s.position_fixed(u);
     let reach = fixed::from_milli(scenario_rule("camp_clear_milli")?) as i64;
     let mates: Vec<usize> = (0..MAX_UNITS)
@@ -244,7 +249,8 @@ pub fn spawn_group_minute_refill(_image: &[u8]) -> Result<(), String> {
 pub fn spawn_group_first_spawn(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
     let regular = |s: &Sim| (0..MAX_UNITS).filter(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).count();
-    let boss = (0..MAX_UNITS).filter(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u) == Some("roshan")).count();
+    let r_unit_boss = role("unit.boss")?;
+    let boss = (0..MAX_UNITS).filter(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u) == Some(r_unit_boss)).count();
     if regular(&s) != 0 || boss == 0 {
         return Err(format!("at tick 0 {} camp units live and {boss} bosses, want 0 and at least 1", regular(&s)));
     }
@@ -263,9 +269,10 @@ pub fn spawn_group_first_spawn(_image: &[u8]) -> Result<(), String> {
 }
 
 /// The Tormentor first spawns at 15:00, and returns 10 minutes after its death.
-pub fn spawn_group_tormentor_timing(_image: &[u8]) -> Result<(), String> {
+pub fn spawn_group_timed_boss_timing(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
-    let find = |s: &Sim| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some("tormentor"));
+    let r_unit_timed_boss = role("unit.timed_boss")?;
+    let find = |s: &Sim| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some(r_unit_timed_boss));
     if find(&s).is_some() {
         return Err("a Tormentor lives at tick 0".into());
     }
@@ -296,7 +303,7 @@ pub fn spawn_group_tormentor_timing(_image: &[u8]) -> Result<(), String> {
 
 /// From 15:00 Roshan walks to the pit of the day/night phase (top at night), and the Tormentor respawns at the
 /// Radiant corner at night and the Dire corner by day.
-pub fn spawn_group_pit_swap(_image: &[u8]) -> Result<(), String> {
+pub fn spawn_group_swap(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&scenario_image()?)?;
     let find = |s: &Sim, name: &str| (0..MAX_UNITS).find(|&u| s.alive(u) && s.kind_name(u) == Some(name));
     let cells = |s: &Sim, u: usize, x: i32, y: i32| {
@@ -304,7 +311,7 @@ pub fn spawn_group_pit_swap(_image: &[u8]) -> Result<(), String> {
         let (dx, dy) = (i64::from(px - fixed::from_milli(x)), i64::from(py - fixed::from_milli(y)));
         ((dx * dx + dy * dy) as f64).sqrt() / f64::from(fixed::ONE)
     };
-    let roshan = find(&s, "roshan").ok_or("no Roshan at tick 0")?;
+    let roshan = find(&s, role("unit.boss")?).ok_or("no Roshan at tick 0")?;
     let d0 = cells(&s, roshan, 207734, 206312);
     if d0 > 12.0 {
         return Err(format!("Roshan starts {d0:.0} cells from the bottom pit"));
@@ -317,7 +324,7 @@ pub fn spawn_group_pit_swap(_image: &[u8]) -> Result<(), String> {
     if d1 > 12.0 {
         return Err(format!("at 15:00 plus 1700 ticks Roshan stands {d1:.0} cells from the night pit"));
     }
-    let tormentor = find(&s, "tormentor").ok_or("no Tormentor after 15:00")?;
+    let tormentor = find(&s, role("unit.timed_boss")?).ok_or("no Tormentor after 15:00")?;
     let t0 = cells(&s, tormentor, 43500, 64500);
     if t0 > 4.0 {
         return Err(format!("the night Tormentor stands {t0:.0} cells from the Radiant corner"));
@@ -327,7 +334,7 @@ pub fn spawn_group_pit_swap(_image: &[u8]) -> Result<(), String> {
     s.hurt(tormentor, fixed::from_int(10000));
     s.hurt(tormentor, fixed::from_int(10000));
     run_ticks(&mut s, 9600 + 8);
-    let back = find(&s, "tormentor").ok_or("the Tormentor did not return")?;
+    let back = find(&s, role("unit.timed_boss")?).ok_or("the Tormentor did not return")?;
     let t1 = cells(&s, back, 284500, 260500);
     if t1 > 4.0 {
         return Err(format!("the day Tormentor stands {t1:.0} cells from the Dire corner"));

@@ -332,7 +332,7 @@ pub struct UnitExt {
     pub rally_x: i32,
     pub rally_y: i32,
     /// Gold paid to the killer when this unit is destroyed by an enemy.
-    pub reward: i32,
+    pub bounty: i32,
     /// Health percent at or below which an allied unit may deny this unit.
     pub deny_pct: u8,
     /// Share of `xp_bounty` the enemies get when this unit is denied, percent.
@@ -1202,7 +1202,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let burrow_ticks = xr.i32("ext burrow time")?;
         let rally_x = xr.i32("ext rally x")?;
         let rally_y = xr.i32("ext rally y")?;
-        let reward = xr.i32("ext reward")?;
+        let bounty = xr.i32("ext bounty")?;
         let deny_pct = xr.u8("ext deny pct")?;
         let deny_xp_pct = xr.u8("ext deny xp pct")?;
         let flags = xr.u8("ext flags")?;
@@ -1210,7 +1210,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let xp_bounty = xr.i32("ext xp bounty")?;
         let assist_radius = xr.i32("ext assist radius")?;
         let acquire = xr.u32("ext acquire")?;
-        if size > 2 || damage_type > 2 || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 || reward < 0 {
+        if size > 2 || damage_type > 2 || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 || bounty < 0 {
             return Err(LoadError::Range("unit extension outside its table"));
         }
         if deny_pct > 100 || deny_xp_pct > 100 || flags > 1 || xp_bounty < 0 || assist_radius < 0 {
@@ -1227,7 +1227,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             burrow_ticks,
             rally_x,
             rally_y,
-            reward,
+            bounty,
             deny_pct,
             deny_xp_pct,
             player_controlled: flags & 1 != 0,

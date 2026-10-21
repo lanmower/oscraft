@@ -12,7 +12,6 @@ float waveH(vec2 q, float t) {
   return h + 0.1 * sin(dot(q, vec2(0.8, 0.6)) * 1.8 + t * 0.4);
 }
 #include "shadow.glsl"
-#define GROUND_HEIGHT_BIAS 0.6
 uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
 uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
 uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
@@ -29,9 +28,9 @@ vec2 layerWarp(vec2 xz, float k) {
 }
 vec3 bedAt(vec2 xz, float y, vec3 n0) {
   vec4 w = texture(uControl, xz / uMapSize);
-  // Every layer weight is bilinear across the cell, the rock weight included: the control map already eases the rock weight
-  // over several cells, so the rock-to-ground edge is a ramp that the height textures bias (see rw below), not a cell step.
-  float cliffCell = w.w;
+  // Ground layer weights are bilinear across the cell. The rock (cliff) weight is the rock channel of the cell itself,
+  // read without filtering, so rock stays on cliff cells only.
+  float cliffCell = texelFetch(uControl, ivec2(floor(xz / uMapSize * vec2(textureSize(uControl, 0)))), 0).w;
   // The ground band is widened (twice the uniform) so the blends run over a longer height range.
   float bandW = 2.0 * uBand;
   vec2 uv0 = xz * uUvScale + layerWarp(xz, 0.0), uv1 = xz * uUvScale + layerWarp(xz, 1.0);
@@ -41,13 +40,11 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
   // The rock albedo is toned to the grass layer's mean brightness (rock024 averages 0.48, grass 0.34): 0.7 scale.
   vec3 c3 = texture(uAlb3, uv3).rgb * uLayerTint[3] * 0.7;
   vec4 d = vec4(texture(uDisp0, uv0).r, texture(uDisp1, uv1).r, texture(uDisp2, uv2).r, texture(uDisp3, uv3).r);
-  // Ground: grass, dirt and path, blended by their own control weights and the band on their heights.
-  // The ramp between two ground layers is biased by their height textures in the same units at every weight: a layer with a
-  // higher height wins the ramp, so a stone or a root shows through the edge instead of the edge following the cell grid.
+  // Ground: grass, dirt and lane, blended by their own control weights and the band on their heights.
   vec3 g = w.xyz;
-  vec3 score = g + (d.xyz - 0.5) * GROUND_HEIGHT_BIAS;
-  float gm = max(score.x, max(score.y, score.z));
-  vec3 gb = smoothstep(gm - bandW, gm, score) * g;
+  vec3 gh = g * (d.xyz + 0.5);
+  float gm = max(gh.x, max(gh.y, gh.z));
+  vec3 gb = smoothstep(gm - bandW, gm, gh) * g;
   float gs = gb.x + gb.y + gb.z;
   vec3 ground = gs > 1e-4 ? (gb.x * c0 + gb.y * c1 + gb.z * c2) / gs : (g.x * c0 + g.y * c1 + g.z * c2) / max(g.x + g.y + g.z, 1e-4);
   // Cliff: only cells whose rock channel is set take rock. The cutaway edge is biased by the rock024 height, and a flat

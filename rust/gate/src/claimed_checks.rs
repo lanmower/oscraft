@@ -2,6 +2,7 @@
 //! code path through the public sim, server and data APIs.
 
 use sim::{fixed, Sim, ORDER_ATTACK_MOVE};
+use crate::checks::{fill_roles};
 
 use mod_host::ModHost;
 
@@ -441,15 +442,15 @@ pub fn editor_terrain_tiles(image: &[u8]) -> Result<(), String> {
 const ABILITY_MOD: &str = r#"
 function on_tick(state)
   state.count = #list_abilities()
-  local info = ability_info("pulse_shot")
-  state.named = (info.name == "pulse_shot") and 1 or 0
+  local info = ability_info(@role(unit.hero.spell1))
+  state.named = (info.name == @role(unit.hero.spell1)) and 1 or 0
   local ok, err = pcall(ability_info, "no_such_ability")
   state.unknown = (not ok and tostring(err):find("unknown_ability", 1, true) ~= nil) and 1 or 0
 end
 "#;
 
 pub fn editor_abilities(image: &[u8]) -> Result<(), String> {
-    let host = run_mod(image, "editor-abilities", ABILITY_MOD, 1)?;
+    let host = run_mod(image, "editor-abilities", &fill_roles(ABILITY_MOD)?, 1)?;
     if state_int(&host, "count")? < 1 {
         return Err("list_abilities returned no abilities".to_string());
     }

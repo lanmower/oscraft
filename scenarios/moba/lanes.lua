@@ -1,15 +1,16 @@
--- Moba lane waves, as mod code. Every lane spawner (lane_spawner_top, _mid, _bot, one per side) sends creeps on
--- the lane route for its side. Top and bottom spawners send a creep wave every 480 ticks: three melee creeps and
--- one ranged creep, four spawns at x offsets 0, 0.7, 1.4 and 2.1 tiles. Every lane spawner sends a siege creep
--- every 4800 ticks from tick 4800, one more per lane from tick 28800 and a third from tick 57600.
--- A wave unit becomes its super kind once the enemy tower that mirrors its spawn point is dead,
--- and its mega kind once every enemy tower is dead. Dead units keep their slot, so the mirror
--- lookup also finds destroyed towers. Uses only the mod API.
+-- Moba lane waves and the march, as mod code. Every lane spawner (lane_spawner_top, _mid, _bot, one per side) sends
+-- creeps on the lane route for its side. Top and bottom spawners send a creep wave every 480 ticks: three melee creeps
+-- and one ranged creep, at x offsets 0, 0.7, 1.4 and 2.1 tiles. Every lane spawner sends a siege creep every 4800 ticks
+-- from tick 4800, one more per lane from tick 28800 and a third from tick 57600. A wave unit becomes its super kind once
+-- the enemy tower that mirrors its spawn point is dead, and its mega kind once every enemy tower is dead. Dead units keep
+-- their slot, so the mirror lookup also finds destroyed towers.
 --
--- This file defines the moba on_tick (the wave counters in the state). Kill gold is in kill_gold.lua and hero
--- respawn in hero_respawn.lua; each is a separate chunk that loads on its own.
+-- The march: a unit that needs a destination (a summon, or a unit that finished its route) walks to the nearest living
+-- hostile building (on_march). Route points stay data (routes.osd).
+local config = require("config")
+local units = require("units")
 
-local MILLI_TILE = math.floor(65536 / 1000)
+local MILLI_TILE = math.floor(config.FIX / 1000)
 local CREEP_PERIOD = 480
 local SIEGE_PERIOD = 4800
 local SIEGE_STARTS = { 4800, 28800, 57600 }
@@ -103,17 +104,33 @@ end
 for _, unit in ipairs(game.units()) do register_unit(unit) end
 for _, s in ipairs(lane_spawners) do start_lane(s) end
 
-local function mod_tick(state)
-  state.waves_total = spawned.total or 0
-  state.waves_base = spawned.base or 0
-  state.waves_super = spawned.super or 0
-  state.waves_mega = spawned.mega or 0
-  state.waves_creep = spawned.creep or 0
-  state.waves_creep_ranged = spawned.creep_ranged or 0
-  state.waves_siege = spawned.creep_siege or 0
-  state.waves_siege_upgraded = (spawned.creep_siege_super or 0) + (spawned.creep_siege_mega or 0)
-end
+return {
+  on_tick = function(state)
+    state.waves_total = spawned.total or 0
+    state.waves_base = spawned.base or 0
+    state.waves_super = spawned.super or 0
+    state.waves_mega = spawned.mega or 0
+    state.waves_creep = spawned.creep or 0
+    state.waves_creep_ranged = spawned.creep_ranged or 0
+    state.waves_siege = spawned.creep_siege or 0
+    state.waves_siege_upgraded = (spawned.creep_siege_super or 0) + (spawned.creep_siege_mega or 0)
+  end,
 
-function on_tick(state)
-  mod_tick(state)
-end
+  on_march = function(unit, player)
+    local ux, uy = unit_position(unit)
+    local best_x, best_y, best_d = nil, nil, nil
+    for k = 0, get_unit_count() - 1 do
+      if k ~= unit and unit_alive(k) and unit_player(k) < config.PLAYERS and units.hostile(player, unit_player(k))
+        and units.is_building(k) then
+        local x, y = unit_position(k)
+        local d = (x - ux) * (x - ux) + (y - uy) * (y - uy)
+        if best_d == nil or d < best_d then
+          best_x, best_y, best_d = x, y, d
+        end
+      end
+    end
+    if best_x ~= nil then
+      return best_x, best_y
+    end
+  end,
+}

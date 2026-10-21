@@ -188,7 +188,7 @@ pub struct Sim {
     pub(crate) class_override: Vec<i8>,
     /// Per-attacker attack-move hold set by a mod (-1 = the Rust rule, 0 = walk past foes, 1 = always hold).
     pub(crate) hold_override: Vec<i8>,
-    /// Timed-unit expiry stamps. See timed_life.rs.
+    /// Ward expiry stamps. See timed_life.rs.
     pub(crate) expiry: crate::timed_life::ExpiryState,
     /// Saved order points for mods that send units away. See order_memory.rs.
     pub(crate) order_memory: crate::order_memory::OrderMemory,

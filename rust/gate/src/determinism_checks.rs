@@ -1,8 +1,9 @@
-//! Determinism gate checks on the scenario scenario: a scripted ten-hero run hashes the same twice,
+//! Determinism gate checks on the moba scenario: a scripted ten-hero run hashes the same twice,
 //! a mid-run save and load rejoins the uninterrupted run, and a fixed 1000-tick run prints its
 //! hash so CI can compare it across operating systems.
 
 use crate::checks::{fresh, MAX_UNITS};
+use crate::checks::{role};
 use sim::{fixed, Sim};
 
 const SCRIPT_TICKS: u32 = 600;
@@ -11,12 +12,13 @@ const PARITY_TICKS: u32 = 1000;
 const SCRIPT_SEED: u64 = 11;
 
 fn scenario_image() -> Result<Vec<u8>, String> {
-    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
-    osdt_data::generate(&scenario).map_err(|e| format!("scenario scenario image: {e:#}"))
+    let scenario = crate::checks::pack_dir();
+    osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))
 }
 
-fn attributed_units(s: &Sim) -> Vec<usize> {
-    (0..MAX_UNITS).filter(|&i| s.alive(i) && s.kind_name(i) == Some("hero")).collect()
+fn attribute_units(s: &Sim) -> Result<Vec<usize>, String> {
+    let r_unit_hero = role("unit.hero")?;
+    Ok((0..MAX_UNITS).filter(|&i| s.alive(i) && s.kind_name(i) == Some(r_unit_hero)).collect())
 }
 
 /// The fixed command list: every hero gets a move at tick 0 and 200, and a cast on tick 100 and 400
@@ -53,9 +55,9 @@ fn drive(s: &mut Sim, from: u32, to: u32, hs: &[usize]) {
 
 fn run_hash(image: &[u8], ticks: u32) -> Result<u64, String> {
     let mut s = scripted(image)?;
-    let hs = attributed_units(&s);
+    let hs = attribute_units(&s)?;
     if hs.len() < 10 {
-        return Err(format!("scenario scenario has {} heroes, want at least 10", hs.len()));
+        return Err(format!("moba scenario has {} heroes, want at least 10", hs.len()));
     }
     drive(&mut s, 0, ticks, &hs);
     Ok(s.state_hash())
@@ -68,7 +70,7 @@ pub fn scenario_replay_hash(_image: &[u8]) -> Result<(), String> {
     if a != b {
         return Err(format!("first={a:016x} second={b:016x} after {SCRIPT_TICKS} ticks"));
     }
-    println!("scenario replay hash ok ticks={SCRIPT_TICKS} hash={a:016x}");
+    println!("moba replay hash ok ticks={SCRIPT_TICKS} hash={a:016x}");
     Ok(())
 }
 
@@ -76,9 +78,9 @@ pub fn scenario_replay_hash(_image: &[u8]) -> Result<(), String> {
 pub fn scenario_save_load_hash(_image: &[u8]) -> Result<(), String> {
     let image = scenario_image()?;
     let mut straight = scripted(&image)?;
-    let hs = attributed_units(&straight);
+    let hs = attribute_units(&straight)?;
     if hs.len() < 10 {
-        return Err(format!("scenario scenario has {} heroes, want at least 10", hs.len()));
+        return Err(format!("moba scenario has {} heroes, want at least 10", hs.len()));
     }
     drive(&mut straight, 0, SAVE_TICK, &hs);
     let bytes = straight.save_state();
@@ -93,7 +95,7 @@ pub fn scenario_save_load_hash(_image: &[u8]) -> Result<(), String> {
     if a != b {
         return Err(format!("uninterrupted={a:016x} resumed={b:016x} at tick {SCRIPT_TICKS}"));
     }
-    println!("scenario save-load hash ok save_tick={SAVE_TICK} ticks={SCRIPT_TICKS} hash={a:016x}");
+    println!("moba save-load hash ok save_tick={SAVE_TICK} ticks={SCRIPT_TICKS} hash={a:016x}");
     Ok(())
 }
 

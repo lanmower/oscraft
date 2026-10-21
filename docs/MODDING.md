@@ -92,13 +92,11 @@ The page renders what it drains and decides nothing about it. Controls, key bind
 
 ## Examples and gaps
 
-`mods/` holds example mods. Every one of them loads on the piccolo host: `rust/crates/mod-host/tests/example_mods.rs`
-loads each file and fails with the error text of any that does not. `bot_unit_example.lua` loads joined to
-`bot_lib.lua` (its header says so). The moba pack (`scenarios/moba/*.lua`) is the reference for a working pack.
+`mods/` holds example mods. Seven of them (`waves_example`, `killer`, `custom_unit`, `upgrade_tree_example`, `unit_queries`, `custom_item`, `custom_spell`) use names piccolo does not bind yet: `game.var`, `game.player_var`, `game.unit_var`, `game.region`, `game.region_center`, `game.score` and `game.add_score`. They do not load under piccolo until those names are bound. The moba pack (`scenarios/moba/*.lua`) is the working reference, and it uses only bound names.
 
 ## Known gaps
 
-None known. A chunk without `on_tick` is accepted (`1a0c2ccd`), and the moba manifest's helper files load.
+- `scenarios/moba/manifest.json` lists helper files that define no `on_tick` (`hero.lua`, `camp.lua`, `win.lua`, and others), while `protection.lua` defines the moba `on_tick`. Under the rule above the host refuses those helpers, so the moba pack does not load as listed until the host and the manifest agree on one `on_tick` rule.
 
 ## Debugging
 

@@ -1,32 +1,25 @@
--- Moba kill gold, as mod code. A unit with a bounty pays when it dies. A killing hero keeps the bounty less the team
--- share, and the killer's side gets the share. A killer that is not a hero (a creep) pays its whole bounty to its
--- side. An attackerless death pays the rival side's gold. A denial (the killer is allied to the victim) pays nothing.
--- Uses only the mod API.
+-- Moba kill gold, as mod code. A unit with a bounty pays it when it dies. A killing hero keeps the bounty less the team
+-- share, and the killer's side gets the share. A killer that is not a hero (a creep) pays its whole bounty to its side.
+-- An attackerless death pays the rival side's gold. A denial (the killer is allied to the victim) pays nothing.
+-- The payout is core/bounty.lua's; this file sets the rule.
+local bounty = require("bounty")
 
 local TEAM_SHARE_PCT = 20
 
--- on_died(unit, killer, killer_player, bounty, victim_player, killer_attributed): ids are the mod's world
--- or the room's, whichever fed the death; bounty and killer_attributed come with the event.
 game.trigger("on_died", {
-  conditions = { function(_, _, _, bounty) return bounty > 0 end },
-  action = function(unit, killer, killer_player, bounty, victim_player, killer_attributed)
+  conditions = { function(_, _, _, amount) return amount > 0 end },
+  action = function(unit, killer, killer_player, amount, victim_player, killer_attributed)
     if killer ~= nil and killer ~= unit then
       if not game.hostile(killer_player, victim_player) then return end
-      local share = math.floor(bounty * TEAM_SHARE_PCT / 100)
-      if killer_attributed then
-        game.cmd_add_unit_gold(killer, bounty - share)
-        game.cmd_add_gold(killer_player, share)
-        gold_text(unit, share)
-      else
-        game.cmd_add_gold(killer_player, bounty)
-        gold_text(unit, bounty)
-      end
+      bounty.pay({ unit = unit, side = killer_player, killer = killer, gold = amount, share_pct = TEAM_SHARE_PCT,
+        to_unit = killer_attributed, text = true })
       return
     end
     local rival = game.rival_of(victim_player)
     if rival ~= nil then
-      game.cmd_add_gold(rival, bounty)
-      gold_text(unit, bounty)
+      bounty.pay({ unit = unit, side = rival, gold = amount, text = true })
     end
   end,
 })
+
+return {}

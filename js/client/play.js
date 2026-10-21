@@ -15,7 +15,7 @@ import { createHud } from "./hud.js";
 import { createWidgets } from "./widgets.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
-import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, walkableBounds, waterMap, waterSurface } from "./tiles.js";
+import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, packSwapKind, swapGate, swapIsNew } from "./swap_protocol.js";
 import { createFogView } from "./fogview.js";
@@ -33,15 +33,16 @@ const CAMERA_DISTANCE_PER_TILE = 40 / 32;
 const CAMERA_MAX_PER_TILE = 1.6;
 const CAMERA_MAX_FLOOR = 120;
 const CAMERA_PLAY_DISTANCE = 70;
-// The start view: the pack's view event names the seat's unit, and the page centres the camera on it once it is in the sim.
-let pendingStartCentre = null;
+// The match opens on the local hero at this distance: close enough to read a hero, far enough to see its lane.
+const CAMERA_START_DISTANCE = 40;
+let pendingStartCentre = false;
 const CAMERA_FAR_PER_MAX = 2;
 const BACKGROUND = [0.114, 0.145, 0.173];
 const MAP_COLOR = [0.2, 0.28, 0.22];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const UNIT_HALF = 0.9;
-const CONTROLLED_DRAW_SCALE = UI.controlledDrawScale ?? 1;
+const HERO_DRAW_SCALE = UI.heroDrawScale ?? 1;
 const DOODAD_HALF = 0.5;
 const PICK_RADIUS = 1.2;
 const DRAG_SLOP_PX = 4;
@@ -89,7 +90,7 @@ const SHADOW_SIZE = 2048;
 const SPLAT_SHADE = [0.42, 0.68, 1.3];
 // Per-layer albedo tint, in SPLAT_LAYERS order. The sand (dirt) layer takes the dirt tint so it sits with the grass family;
 // the other layers keep their own colour.
-const SPLAT_TINTS = SPLAT_LAYERS.map((name) => (name === "dirt" ? UI.colours.terrain.dirt : [1, 1, 1]));
+const SPLAT_TINTS = SPLAT_LAYERS.map((name) => (name === "dirt" ? TILE_TINTS.dirt : [1, 1, 1]));
 // Water tint: multiplies the procedural water colour (1 leaves it as shaded).
 const SPLAT_WATER_TINT = [1, 1, 1];
 let terrainTiles = null;
@@ -97,7 +98,7 @@ let unitMeshes = [];
 let arrowMesh = null;
 const drawCounts = { terrain: 0, splat: 0, doodad: 0, unit: 0, animated: 0 };
 // Every asset that failed to load or build, by asset name (and the unit types with no model). Shown on the status line
-// and in body.dataset.assetError; a failed required asset (a controlled unit's model, the splat ground, the arrow) stops the start.
+// and in body.dataset.assetError; a failed required asset (a hero model, the splat ground, the arrow) stops the start.
 const assetErrors = new Map();
 // Unit instances drawn into the sun's shadow map this frame (the dynamic casters), published for the browser probe.
 let shadowUnitCount = 0;
@@ -261,11 +262,9 @@ function routeUi(ev) {
       // The pack's panels follow the selection: the page that runs the sim tells the pack what is selected.
       if (data.kind === "selection" && localGame && !netState) logModError(localGame.dispatch_action("selection", JSON.stringify({ player: data.player, ids: data.ids })));
       if (data.kind === "refusal") document.body.dataset.lastRefusal = `cast_dropped ${data.reason}`;
-      window.dispatchEvent(new CustomEvent("pack:feedback", { detail: data }));
+      window.dispatchEvent(new CustomEvent("moba:feedback", { detail: data }));
     } else if (ev.kind === "action") {
-      window.dispatchEvent(new CustomEvent("pack:action", { detail: data }));
-    } else if (data.centreOn !== undefined) {
-      pendingStartCentre = { id: data.centreOn, distance: data.distance };
+      window.dispatchEvent(new CustomEvent("moba:action", { detail: data }));
     } else if (fogview) {
       fogview.setEnabled(data.fog === true);
     }
@@ -301,7 +300,7 @@ async function loadSim() {
   logModError(game.load_mods(JSON.stringify(mods)));
   // The pack's controls read the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
   logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || "local" })));
-  // Fog of war is on for every page: enemies outside the local team's vision stay hidden.
+  // Fog of war is on for every page, moba included: enemies outside the local team's vision stay hidden.
   game.set_fog(true);
   return game;
 }
@@ -388,28 +387,28 @@ async function fetchModel(name, size) {
 }
 
 // One fitted model per unit type, indexed like the wasm unit_types export. A type with no model entry, or a model that
-// fails to load, is null: the unit type is then reported on the page once and not drawn. A controlled unit that has no model, or
-// whose model fails, throws, so the match does not start. A model with its own size in doodad_sizes.json (a large unit,
-// at controlled-unit heights) is fitted to it; every other unit is fitted to a controlled-unit footprint (UNIT_HALF, the design rule that
+// fails to load, is null: the unit type is then reported on the page once and not drawn. A hero that has no model, or
+// whose model fails, throws, so the match does not start. A model with its own size in doodad_sizes.json (Roshan,
+// at hero heights) is fitted to it; every other unit is fitted to a hero footprint (UNIT_HALF, the design rule that
 // scripts/doodad-sizes.mjs also states).
 async function loadModels(game) {
   if (typeof game.unit_model_names !== "function") throw new Error("the wasm build has no unit_model_names export");
   const sizes = await assetJson("doodadSizes");
-  // Controlled units (player-controlled unit types) are drawn at CONTROLLED_DRAW_SCALE times their fitted size: the owner's intended size is twice the fit.
-  const controlledFlags = typeof game.unit_flags === "function" ? game.unit_flags() : [];
+  // Heroes (player-controlled unit types) are drawn at HERO_DRAW_SCALE times their fitted size: the owner's intended hero size is twice the fit.
+  const heroFlags = typeof game.unit_flags === "function" ? game.unit_flags() : [];
   const typeNames = typeof game.unit_type_names === "function" ? game.unit_type_names() : [];
   return Promise.all(game.unit_model_names().map(async (name, type) => {
-    const controlled = controlledFlags[type] === 1;
+    const hero = heroFlags[type] === 1;
     if (!name) {
-      if (controlled) throw new Error(`unit ${typeNames[type] ?? type}: controlled unit has no model`);
+      if (hero) throw new Error(`unit ${typeNames[type] ?? type}: hero has no model`);
       recordAssetError(`unit ${typeNames[type] ?? type}`, new Error("has no model"));
       return null;
     }
-    const size = (sizes[name] ?? 2 * UNIT_HALF) * (controlled ? CONTROLLED_DRAW_SCALE : 1);
+    const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
     try {
       return await fetchModel(name, size);
     } catch (err) {
-      if (controlled) throw err;
+      if (hero) throw err;
       recordAssetError(name, err);
       return null;
     }
@@ -687,18 +686,11 @@ function tickShare() {
   return tickStampMs === null ? 0 : Math.min(1, Math.max(0, (performance.now() - tickStampMs) / SIM_TICK_MS));
 }
 
-// The unit as drawn this frame: model and health bar both read this, so they move together between ticks. The top height
-// follows the drawn ground, so a bar stays over its model up a slope.
 function drawnPosition(u) {
   const c = tickClock.get(u.id);
   if (!c || tickStampMs === null) return u;
   const a = tickShare();
-  return anchored({ ...u, x: c.px + (c.x - c.px) * a, z: c.pz + (c.z - c.pz) * a });
-}
-
-// The units the HUD's health bars and feedback read: the same drawn positions the models use this frame.
-function shownUnits() {
-  return currentUnits().map(drawnPosition);
+  return { ...u, x: c.px + (c.x - c.px) * a, z: c.pz + (c.z - c.pz) * a };
 }
 
 // Draws a collected unit list. The shadow pass (shadow = true) re-issues the same meshes with the light's matrix and
@@ -722,7 +714,7 @@ function emitUnitDraws(list, shadow) {
   return casters;
 }
 
-// Creep: sets one cell's ground kind (grass, dirt or path) by rewriting its control texel. Only that texel is uploaded;
+// Creep: sets one cell's ground kind (grass, dirt or lane) by rewriting its control texel. Only that texel is uploaded;
 // the terrain mesh and the tile batches are not rebuilt. Index is y * width + x in map cells.
 window.__setCellKind = (index, kind) => {
   if (!splat || !renderer3d) return false;
@@ -985,9 +977,13 @@ function sendRoster(peerPubkey) {
   sendTo(peerPubkey, encodeFrame(seating.roster(peerPubkey)));
 }
 
-// A player-controlled unit type (the map's data flag, unit_flags) is a controlled unit; the test is by type.
+function heroOf(slot) {
+  return simUnits().find((u) => u.player === slot && isHeroUnit(u.id)) || null;
+}
+
+// A player-controlled unit type (the map's data flag, unit_flags) is what the page calls a hero; the test is by type.
 let playerControlledTypes = null;
-function isControlledUnit(id) {
+function isHeroUnit(id) {
   const u = simUnits().find((v) => v.id === id);
   if (!u || typeof localGame.unit_flags !== "function") return false;
   playerControlledTypes ??= localGame.unit_flags();
@@ -999,7 +995,7 @@ function recordSeatPicks(seats) {
   spawnedSeats = seats.map(({ slot, pick }) => ({ slot, pick }));
 }
 
-// Applies a START (the lobby's own or a peer's): seats the players, lets the sim spawn the picked units and, on the host, tells every peer.
+// Applies a START (the lobby's own or a peer's): seats the players, spawns heroes and, on the host, tells every peer.
 function applyStart(frame) {
   seating.start(frame.seats);
   seatsExplicit = true;
@@ -1200,6 +1196,8 @@ function onLobbyStart(state) {
   const frame = startFrame(state);
   setStatus("lobby: match starting");
   if (!isGuest()) applyStart(frame);
+  // The match opens on the local hero: the frame loop centres the camera once that hero is in the sim.
+  pendingStartCentre = true;
   try { session.broadcast(encodeFrame(frame)); } catch { /* the frame is refused when a seat key is oversize */ }
 }
 
@@ -1275,7 +1273,7 @@ function saveSnapshot(tick) {
     localStorage.setItem(snapshotKey(), JSON.stringify(record));
     delete document.body.dataset.snapshotSkipped;
   } catch (e) {
-    // The match state can outgrow the origin quota; the room then runs without a restore point instead of throwing per save.
+    // The moba state can outgrow the origin quota; the room then runs without a restore point instead of throwing per save.
     if (e && e.name === "QuotaExceededError") { localStorage.removeItem(snapshotKey()); document.body.dataset.snapshotSkipped = String(tick); return; }
     throw e;
   }
@@ -1330,6 +1328,7 @@ function startHost() {
     if (window.__ciFrames && window.__ciFrames.length < 200) window.__ciFrames.push({ type: frame.type, bytes: bytes.byteLength });
     session.broadcast(bytes);
     if (hostTick % ROSTER_EVERY_TICKS === 0) {
+      refreshSeatStats();
       for (const key of peers) sendRoster(key);
     }
   };
@@ -1592,7 +1591,6 @@ session.addEventListener("data", (e) => {
   lastAppliedTick = frame.tick;
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp, type: u.kind })) };
   advanceTickClock(netState.units);
-  applyDueSwap();
   if (window.__ciRecv) recordTick(window.__ciRecv, frame.tick, [...netUnits.values()]);
 });
 
@@ -1718,12 +1716,12 @@ async function build3d(gl, game) {
   });
   doodadBatches = batchByMesh(placed);
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
-  // A controlled unit's mesh failure stops the start; any other unit's failure is recorded and that type is not drawn.
-  const controlledFlags = typeof game.unit_flags === "function" ? game.unit_flags() : [];
+  // A hero's mesh failure stops the start; any other unit's failure is recorded and that type is not drawn.
+  const heroFlags = typeof game.unit_flags === "function" ? game.unit_flags() : [];
   unitMeshes = await Promise.all((await unitFitsReady).map((f, type) => {
     if (!f) return null;
     const mesh = toMesh(gl, f, [1, 1, 1], { animated: true });
-    return controlledFlags[type] === 1 ? mesh : modelOrRecord(f.glbUrl, mesh);
+    return heroFlags[type] === 1 ? mesh : modelOrRecord(f.glbUrl, mesh);
   }));
   arrowMesh = await loadArrowMesh(gl);
 }
@@ -1818,7 +1816,7 @@ async function announceSwap(file, url, value) {
 // A missing or wrong image, or a refused load, is logged and the old Game stays in service. Called once per swap tick
 // (applyDueSwap guards the tick), so the Game's swap_data never runs twice for one swap.
 function applyDataSwap(due) {
-  const tick = swapClock();
+  const tick = localGame.ticks();
   const fail = (error) => {
     lastSwapResult = { tick, file: due.file, ok: false, carried: null, refused: null, error, readiness: due.error ? "failed" : "in-flight", deferred: false, deferrals: due.deferrals };
     console.error(`[swap] ${due.file} at tick ${tick}: data swap failed, previous data kept: ${error}`);
@@ -1939,16 +1937,10 @@ function failSwapNotReady(report, sender) {
   console.error(`[swap] ${file} at tick ${report.tick}: peer ${short} was not ready; swap failed`);
 }
 
-// The tick a pending swap is due against: a guest's sim is the host's frame stream (netTick), a host or local page runs its own.
-function swapClock() {
-  if (netState) return netTick;
-  return localGame ? localGame.ticks() : -1;
-}
-
 // Applies a pending swap once the sim reaches its tick. A peer without the verified image keeps its old data, logs it and
 // reports SWAP_NOT_READY. A swap tick this page already applied is never applied again.
 function applyDueSwap() {
-  if (!pendingSwap || !localGame || swapClock() < pendingSwap.tick) return;
+  if (!pendingSwap || !localGame || localGame.ticks() < pendingSwap.tick) return;
   const due = pendingSwap;
   pendingSwap = null;
   if (lastApplied && !swapIsNew(lastApplied.tick, due.tick)) {
@@ -2054,14 +2046,13 @@ async function main() {
     barCanvas: createBarCanvas(),
     mapSize: { w: W, h: H },
     grid: mapGrid,
-    units: shownUnits,
+    units: currentUnits,
     selected: () => selectedId,
     localPlayer: localPlayerId,
     send: sendInput,
     toWorld: screenToWorld,
     toScreen: worldToScreen,
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
-    isControlled: isControlledUnit,
   });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
   widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
@@ -2091,11 +2082,11 @@ async function main() {
     lastFrameMs = now;
     panByKeys(dtS);
     modUi.step(dtS);
-    if (pendingStartCentre !== null && renderer3d) {
-      const own = simUnits().find((u) => u.id === pendingStartCentre.id);
+    if (pendingStartCentre && renderer3d) {
+      const own = simUnits().find((u) => u.player === localPlayerId() && isHeroUnit(u.id));
       if (own) {
-        renderer3d.setCamera({ target: [own.x, groundAt(own.x, own.z), own.z], distance: Math.min(pendingStartCentre.distance, cameraMaxDistance) });
-        pendingStartCentre = null;
+        renderer3d.setCamera({ target: [own.x, groundAt(own.x, own.z), own.z], distance: Math.min(CAMERA_START_DISTANCE, cameraMaxDistance) });
+        pendingStartCentre = false;
       }
     }
     if (!netState && localGame && !hosting) {
@@ -2146,7 +2137,7 @@ installDebugApi({
     sendInput(name, args);
     return true;
   },
-  isControlled: (id) => localGame !== null && isControlledUnit(id),
+  isHero: (id) => localGame !== null && isHeroUnit(id),
   selected: () => (hud ? hud.input.selection() : selectedId === -1 ? [] : [selectedId]),
   select: (ids) => { if (hud) hud.input.setSelection(ids); else selectedId = ids[0] ?? -1; },
   pick: (world) => pick(world),
@@ -2190,7 +2181,7 @@ if (params.get("ci") === "1") {
   window.__ciInventory = (unitId) => JSON.parse(localGame.inventory_json(unitId)).slots;
   window.__ciTargetedSlot =(unitId) => { const list = JSON.parse(localGame.abilities_json(unitId)); const t = list.find((a) => (a.target === "unit" || a.target === "point") && a.slot < 4); return t ? t.slot : -1; };
   window.__ciHostile = (a, b) => localGame.hostile(a, b);
-  window.__ciIsControlled = (unitId) => isControlledUnit(unitId);
+  window.__ciIsHero = (unitId) => isHeroUnit(unitId);
   window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
   // Local cast for the probe: the sim cast and the effect the page draws for it, without a network session.
   window.__ciLocalCast = (unitId, slot, target, x, z) => localGame.cast(unitId, slot, target, x, z);
@@ -2229,13 +2220,13 @@ if (params.get("ci") === "1") {
   window.__ciKillSide = (player) => {
     for (const u of simUnits()) if (u.player === player) localGame.hurt(u.id, 10000);
   };
-  // Read-only: per START seat, the picked kind name and the catalog name of the unit the sim actually spawned for it.
-  window.__ciControlledNames = () => {
+  // Read-only: per START seat, the picked hero name and the catalog name of the unit the sim actually spawned for it.
+  window.__ciHeroNames = () => {
     const names = typeof localGame.unit_type_names === "function" ? localGame.unit_type_names() : [];
     return spawnedSeats.map(({ slot, pick }) => {
-      // The seat's controlled unit is the unit of the picked kind; the first controlled unit of the slot may be a map-placed unit of another type.
+      // The seat's hero is the unit of the picked kind; the first hero of the slot may be a map-placed unit of another type.
       const kind = names.indexOf(pick);
-      const u = simUnits().find((v) => v.player === slot && isControlledUnit(v.id) && v.type === kind) || null;
+      const u = simUnits().find((v) => v.player === slot && isHeroUnit(v.id) && v.type === kind) || null;
       return { slot, picked: pick, spawned: u ? names[u.type] ?? null : null };
     });
   };

@@ -5,19 +5,18 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { addRegion, deleteNear, exportOsd, kindAt, modelFromMap, paintKind, paintLevel, placeDoodad, placeSpawn, setDoodadKinds } from "./editor.js";
+import { addRegion, deleteNear, exportOsd, kindAt, modelFromMap, paintKind, paintLevel, placeDoodad, placeSpawn } from "./editor.js";
 import { readDoodads, readGrid } from "./terrain.js";
 import { cellKind } from "./tiles.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const tool = process.argv[2] || path.join(root, "rust/target/debug/osdt-data");
-setDoodadKinds(JSON.parse(fs.readFileSync(path.join(root, "scenarios", "moba", "moba_ui.json"), "utf8")).doodadKinds);
 const m = modelFromMap(new Uint8Array(fs.readFileSync(path.join(here, "map.bin"))));
 
 paintKind(m, 5, 5, "water", 2);
 paintKind(m, 20, 20, "cliff", 1);
-paintKind(m, 40, 10, "path", 1);
+paintKind(m, 40, 10, "lane", 1);
 paintKind(m, 8, 40, "dirt", 0);
 paintLevel(m, 10, 10, 4, 2);
 const doodad = placeDoodad(m, "tree", 12500, 14500);

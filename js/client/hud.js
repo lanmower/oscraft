@@ -1,9 +1,9 @@
-// Page HUD: the input capture (input.js), the feedback layer, the minimap and the unit health bars. Every panel's
-// content and every button is the pack's (panels.lua, drawn by widgets.js); keys and ground clicks are the
+// Page HUD: the input capture (moba_input.js), the feedback layer, the minimap and the unit health bars. Every panel's
+// content and every button is the pack's (scenarios/moba/panels.lua, drawn by widgets.js); keys and ground clicks are the
 // pack's (controls.lua). update() refreshes the page's own layers from the wasm Game each frame.
 
 import { cellKind, voidMask } from "./tiles.js";
-import { createInput } from "./input.js";
+import { createMobaInput } from "./moba_input.js";
 import { createFeedback } from "./feedback.js";
 import { createMinimap } from "./ui_minimap.js";
 import { UI } from "./pack_load.js";
@@ -11,6 +11,11 @@ import { UI } from "./pack_load.js";
 const BAR_WIDTH_PX = 20;
 const BAR_HEIGHT_PX = 3;
 const BAR_LIFT_PX = 5;
+
+const VOID_RGB = [20, 24, 28];
+const OPEN_RGB = [104, 124, 94];
+const ROCK_RGB = [58, 64, 70];
+const WATER_RGB = [48, 96, 150];
 
 // The map grid as a small canvas: void dark, walkable cells light, rock and cliff edges between, water where tiles say so.
 function walkableLayer(grid) {
@@ -21,23 +26,22 @@ function walkableLayer(grid) {
   const ctx = layer.getContext("2d");
   const pixels = ctx.createImageData(grid.width, grid.height);
   const empty = voidMask(grid);
-  const terrain = UI.colours.minimap.terrain;
   for (let i = 0; i < grid.width * grid.height; i++) {
     const kind = cellKind(grid.flags[i], grid.tiles[i]);
-    const rgb = empty[i] ? terrain.void : kind === "water" ? terrain.water : kind === "cliff" ? terrain.rock : terrain.open;
+    const rgb = empty[i] ? VOID_RGB : kind === "water" ? WATER_RGB : kind === "cliff" ? ROCK_RGB : OPEN_RGB;
     pixels.data.set([rgb[0], rgb[1], rgb[2], 255], i * 4);
   }
   ctx.putImageData(pixels, 0, 0);
   return layer;
 }
 
-export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor, isControlled }) {
-  hot.set("hud", { game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor, isControlled });
+export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor }) {
+  hot.set("hud", { game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor });
   const maxHp = new Map();
   const barCtx = barCanvas.getContext("2d");
   const walkable = walkableLayer(grid);
 
-  const input = createInput({ send, dragSlopPx: UI.dragSlopPx });
+  const input = createMobaInput({ game, toWorld, toScreen, send, dragSlopPx: UI.dragSlopPx });
   const feedback = createFeedback({ toScreen, toWorld, units });
 
   function viewRect() {
@@ -54,7 +58,7 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
   let minimap = createMinimap({
     canvas: minimapEl,
     mapSize,
-    walkable,
+    lanes: walkable,
     units,
     selected,
     localPlayer,
@@ -62,7 +66,6 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     teams: UI.teams,
     viewRect,
     centre: (x, z) => send("camera_to", { x, z }),
-    isControlled,
   });
   // A hot update of ui_minimap re-creates the minimap and dispatches it (see hmr.js).
   window.addEventListener("oscraft:hmr", (e) => {
@@ -88,9 +91,9 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
       const p = toScreen(u.x, u.z, u.top || 0);
       const x = p.x - BAR_WIDTH_PX / 2;
       const y = p.y - BAR_LIFT_PX;
-      barCtx.fillStyle = UI.colours.bars.back;
+      barCtx.fillStyle = "rgba(0,0,0,0.6)";
       barCtx.fillRect(x, y, BAR_WIDTH_PX, BAR_HEIGHT_PX);
-      barCtx.fillStyle = u.player === localPlayer() ? UI.colours.bars.own : UI.colours.bars.other;
+      barCtx.fillStyle = u.player === localPlayer() ? "#4caf50" : "#e53935";
       barCtx.fillRect(x, y, BAR_WIDTH_PX * Math.min(1, u.hp / max), BAR_HEIGHT_PX);
       drawn += 1;
     }

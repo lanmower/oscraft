@@ -3,7 +3,9 @@
 //! the reason it fails. A check whose API is not on the sim or mod-host public surface returns
 //! `missing API: <name>`, so the owning row stays unverified until that API is public.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 
 
@@ -12,6 +14,11 @@ use sim::{fixed, Refusal, Sim};
 use crate::{claimed_checks, mod_checks, sim_checks};
 
 pub const MAX_UNITS: usize = 1024;
+/// The pack the scenario checks read when GATE_PACK is unset, and the file that maps gate roles to its names.
+pub const DEFAULT_PACK: &str = "moba";
+pub const ROLE_FILE: &str = "gate_roles.txt";
+/// The pack's rules file: key=value numbers and the `attr` lines that set per-unit attributes.
+pub const RULES_FILE: &str = "attr_rules.txt";
 pub const RUN_TICKS: u32 = 2000;
 
 pub type Check = fn(&[u8]) -> Result<(), String>;
@@ -28,14 +35,14 @@ mod core_formula_checks;
 #[path = "unit_checks.rs"]
 mod unit_checks;
 
-#[path = "hero_checks.rs"]
-mod hero_checks;
+#[path = "attribute_checks.rs"]
+mod attribute_checks;
 
 #[path = "item_checks.rs"]
 mod item_checks;
 
-#[path = "ability_checks.rs"]
-mod ability_checks;
+#[path = "spell_checks.rs"]
+mod spell_checks;
 
 pub const CHECKS: &[(&str, Check)] = &[
     ("determinism-replay-hash", determinism_checks::scenario_replay_hash),
@@ -52,85 +59,85 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("mechanic-structure-damage", mechanic_checks::structure_damage),
     ("mechanic-win-trigger", mechanic_checks::win_trigger),
     ("mechanic-kill-bounty", mechanic_checks::kill_bounty),
-    ("mechanic-camp-respawn", mechanic_checks::spawn_group_respawn),
-    ("mechanic-camp-leash", mechanic_checks::spawn_group_leash),
-    ("mechanic-camp-roshan-aegis", mechanic_checks::spawn_group_roshan_aegis),
-    ("mechanic-camp-rune-pickup", mechanic_checks::spawn_group_rune_pickup),
-    ("hero-axe-level1", hero_checks::attributed_axe_level1),
-    ("hero-axe-growth", hero_checks::attributed_axe_growth),
-    ("hero-universal-damage", hero_checks::attributed_universal_damage),
-    ("hero-roster", hero_checks::attributed_roster),
+    ("mechanic-group-respawn", mechanic_checks::spawn_group_respawn),
+    ("mechanic-group-leash", mechanic_checks::spawn_group_leash),
+    ("mechanic-group-roshan-aegis", mechanic_checks::spawn_group_boss_aegis),
+    ("mechanic-group-rune-pickup", mechanic_checks::spawn_group_pickup),
+    ("attribute-level1", attribute_checks::attribute_level1),
+    ("attribute-growth", attribute_checks::attribute_growth),
+    ("attribute-universal-damage", attribute_checks::attribute_universal_damage),
+    ("attribute-roster", attribute_checks::attribute_roster),
     ("item-catalog", item_checks::item_catalog),
     ("item-recipe-buy", item_checks::item_recipe_buy),
     ("item-shop-rules", item_checks::item_shop_rules),
     ("item-stack-consume", item_checks::item_stack_consume),
     ("item-slots", item_checks::item_slots),
-    ("moba-match-end", mechanic_checks::scenario_match_end),
-    ("ability-axe-berserkers-call", ability_checks::axe_berserkers_call),
-    ("ability-axe-battle-hunger", ability_checks::axe_battle_hunger),
-    ("ability-axe-counter-helix", ability_checks::axe_counter_helix),
-    ("ability-axe-culling-blade", ability_checks::axe_culling_blade),
-    ("ability-crystal-nova", ability_checks::crystal_nova),
-    ("ability-crystal-frostbite", ability_checks::crystal_frostbite),
-    ("ability-crystal-brilliance-aura", ability_checks::crystal_brilliance_aura),
-    ("ability-crystal-freezing-field", ability_checks::crystal_freezing_field),
-    ("ability-sven-storm-bolt", ability_checks::sven_storm_bolt),
-    ("ability-sven-great-cleave", ability_checks::sven_great_cleave),
-    ("ability-sven-buffs", ability_checks::sven_buffs),
-    ("ability-juggernaut-blade-fury", ability_checks::juggernaut_blade_fury),
-    ("ability-juggernaut-healing-ward", ability_checks::juggernaut_healing_ward),
-    ("ability-juggernaut-blade-dance", ability_checks::juggernaut_blade_dance),
-    ("ability-juggernaut-omni-slash", ability_checks::juggernaut_omni_slash),
-    ("ability-zeus-arc-lightning", ability_checks::zeus_arc_lightning),
-    ("ability-zeus-lightning-bolt", ability_checks::zeus_lightning_bolt),
-    ("ability-zeus-thundergods-wrath", ability_checks::zeus_thundergods_wrath),
-    ("ability-sniper-shrapnel", ability_checks::sniper_shrapnel),
-    ("ability-sniper-headshot", ability_checks::sniper_headshot),
-    ("ability-sniper-take-aim", ability_checks::sniper_take_aim),
-    ("ability-sniper-assassinate", ability_checks::sniper_assassinate),
-    ("ability-lion-impale", ability_checks::lion_impale),
-    ("ability-lion-voodoo", ability_checks::lion_voodoo),
-    ("ability-lion-mana-drain", ability_checks::lion_mana_drain),
-    ("ability-lion-finger-of-death", ability_checks::lion_finger_of_death),
-    ("ability-omniknight-purification", ability_checks::omniknight_purification),
-    ("ability-omniknight-martyr", ability_checks::omniknight_martyr),
-    ("ability-omniknight-guardian-angel", ability_checks::omniknight_guardian_angel),
-    ("ability-talent-picks", ability_checks::talent_picks),
-    ("ability-cast-walks-into-range", ability_checks::cast_walks_into_range),
-    ("ability-skill-gate-data", ability_checks::skill_gate_data),
-    ("ability-dispel", ability_checks::spell_dispel),
-    ("ability-illusions", ability_checks::spell_illusions),
-    ("ability-phantom-lancer-illusions", ability_checks::phantom_lancer_illusions),
-    ("ability-dazzle-shallow-grave", ability_checks::dazzle_shallow_grave),
-    ("ability-lina-slave-and-array", ability_checks::lina_slave_and_array),
-    ("ability-lich-nova-and-chain", ability_checks::lich_nova_and_chain),
-    ("ability-tidehunter-ravage-and-shell", ability_checks::tidehunter_ravage_and_shell),
-    ("ability-slardar-bash", ability_checks::slardar_bash),
-    ("ability-vengeful-command-aura", ability_checks::vengeful_command_aura),
-    ("ability-antimage-blink-and-mana-break", ability_checks::antimage_blink_and_mana_break),
-    ("moba-creeps", mechanic_checks::scenario_creeps),
-    ("moba-lane", mechanic_checks::scenario_lane),
-    ("creep-stops-to-attack", mechanic_checks::creep_stops_to_attack),
-    ("creep-strikes-creep-before-tower", mechanic_checks::creep_strikes_creep_before_tower),
-    ("creep-crowded-cell-strikes-creep", mechanic_checks::creep_crowded_cell_strikes_creep),
-    ("creep-reused-slot-drops-stale-target", mechanic_checks::reused_slot_drops_stale_sticky_target),
+    ("scenario-match-end", mechanic_checks::scenario_match_end),
+    ("spell-a-2", spell_checks::spell_a_2),
+    ("spell-a-1", spell_checks::spell_a_1),
+    ("spell-a-3", spell_checks::spell_a_3),
+    ("spell-a-4", spell_checks::spell_a_4),
+    ("ability-crystal-nova", spell_checks::crystal_nova),
+    ("ability-crystal-frostbite", spell_checks::crystal_frostbite),
+    ("ability-crystal-brilliance-aura", spell_checks::crystal_brilliance_aura),
+    ("ability-crystal-freezing-field", spell_checks::crystal_freezing_field),
+    ("spell-b-3", spell_checks::spell_b_3),
+    ("spell-b-2", spell_checks::spell_b_2),
+    ("spell-b-4", spell_checks::spell_b_4),
+    ("spell-g-2", spell_checks::spell_g_2),
+    ("spell-g-3", spell_checks::spell_g_3),
+    ("spell-g-1", spell_checks::spell_g_1),
+    ("spell-g-4", spell_checks::spell_g_4),
+    ("ability-zeus-arc-lightning", spell_checks::zeus_arc_lightning),
+    ("ability-zeus-lightning-bolt", spell_checks::zeus_lightning_bolt),
+    ("ability-zeus-thundergods-wrath", spell_checks::zeus_thundergods_wrath),
+    ("spell-h-3", spell_checks::spell_h_3),
+    ("spell-h-2", spell_checks::spell_h_2),
+    ("spell-h-4", spell_checks::spell_h_4),
+    ("spell-h-1", spell_checks::spell_h_1),
+    ("spell-o-2", spell_checks::spell_o_2),
+    ("spell-o-4", spell_checks::spell_o_4),
+    ("spell-o-3", spell_checks::spell_o_3),
+    ("spell-o-1", spell_checks::spell_o_1),
+    ("spell-c-3", spell_checks::spell_c_3),
+    ("spell-c-2", spell_checks::spell_c_2),
+    ("spell-c-1", spell_checks::spell_c_1),
+    ("ability-talent-picks", spell_checks::talent_picks),
+    ("ability-cast-walks-into-range", spell_checks::cast_walks_into_range),
+    ("ability-skill-gate-data", spell_checks::skill_gate_data),
+    ("ability-dispel", spell_checks::spell_dispel),
+    ("ability-illusions", spell_checks::spell_illusions),
+    ("spell-i-2", spell_checks::spell_i_2),
+    ("spell-s-1", spell_checks::spell_s_1),
+    ("spell-r-1", spell_checks::spell_r_1),
+    ("spell-q-2", spell_checks::spell_q_2),
+    ("spell-d-2", spell_checks::spell_d_2),
+    ("spell-f-1", spell_checks::spell_f_1),
+    ("ability-vengeful-command-aura", spell_checks::vengeful_command_aura),
+    ("spell-l-1", spell_checks::spell_l_1),
+    ("scenario-creeps", mechanic_checks::scenario_units),
+    ("scenario-lane", mechanic_checks::scenario_route),
+    ("unit-stops-to-attack", mechanic_checks::unit_stops_to_attack),
+    ("unit-strikes-creep-before-tower", mechanic_checks::unit_strikes_unit_before_structure),
+    ("unit-crowded-cell-strikes-creep", mechanic_checks::unit_crowded_cell_strikes_unit),
+    ("unit-reused-slot-drops-stale-target", mechanic_checks::reused_slot_drops_stale_target),
     ("item-stat-names", item_checks::item_stat_names),
     ("item-stock", item_checks::item_stock),
     ("item-aegis-and-death", item_checks::item_aegis_and_death),
     ("item-town-portal", item_checks::item_town_portal),
     ("item-aghanim-and-refresh", item_checks::item_aghanim_and_refresh),
     ("item-stat-stacking", item_checks::item_stat_stacking),
-    ("moba-idle-settle", mechanic_checks::scenario_idle_settle),
-    ("moba-sync", mechanic_checks::scenario_sync),
-    ("moba-objective", mechanic_checks::scenario_objective),
-    ("moba-wave-composition", unit_checks::scenario_wave_composition),
-    ("moba-siege-timing", unit_checks::scenario_siege_timing),
-    ("moba-wave-upgrade", unit_checks::scenario_wave_upgrade),
-    ("camp-roshan-window", unit_checks::spawn_group_roshan_window),
-    ("camp-minute-refill", unit_checks::spawn_group_minute_refill),
-    ("camp-first-spawn", unit_checks::spawn_group_first_spawn),
-    ("camp-tormentor-timing", unit_checks::spawn_group_tormentor_timing),
-    ("camp-pit-swap", unit_checks::spawn_group_pit_swap),
+    ("scenario-idle-settle", mechanic_checks::scenario_idle_settle),
+    ("scenario-sync", mechanic_checks::scenario_sync),
+    ("scenario-objective", mechanic_checks::scenario_objective),
+    ("scenario-wave-composition", unit_checks::scenario_wave_composition),
+    ("scenario-siege-timing", unit_checks::scenario_siege_timing),
+    ("scenario-wave-upgrade", unit_checks::scenario_wave_upgrade),
+    ("group-roshan-window", unit_checks::spawn_group_boss_window),
+    ("group-minute-refill", unit_checks::spawn_group_minute_refill),
+    ("group-first-spawn", unit_checks::spawn_group_first_spawn),
+    ("group-tormentor-timing", unit_checks::spawn_group_timed_boss_timing),
+    ("group-pit-swap", unit_checks::spawn_group_swap),
     ("hash_stable_two_runs", hash_stable_two_runs),
     ("units_ge_map_spawns", units_ge_map_spawns),
     // CAP-MAP
@@ -253,20 +260,69 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("cloak-detection", claimed_checks::cloak_detection),
 ];
 
+/// The pack the scenario checks run against: scenarios/<GATE_PACK>, or the default pack.
+pub fn pack_dir() -> PathBuf {
+    let name = std::env::var("GATE_PACK").unwrap_or_else(|_| DEFAULT_PACK.to_string());
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join(name)
+}
+
+/// Lines of the pack's `gate_roles.txt`: `role = name`, the pack's own unit, spell or item for a role the checks name.
+fn role_table() -> &'static Result<BTreeMap<String, String>, String> {
+    static TABLE: OnceLock<Result<BTreeMap<String, String>, String>> = OnceLock::new();
+    TABLE.get_or_init(|| {
+        let path = pack_dir().join(ROLE_FILE);
+        let text = std::fs::read_to_string(&path).map_err(|e| format!("pack roles {}: {e}", path.display()))?;
+        Ok(text
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .filter_map(|l| l.split_once('='))
+            .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
+            .collect())
+    })
+}
+
+/// The pack's name for a gate role such as `unit.base` or `hero.a.s1`. A pack without the role fails the check.
+pub fn role(key: &str) -> Result<&'static str, String> {
+    match role_table() {
+        Ok(table) => table.get(key).map(String::as_str).ok_or_else(|| {
+            format!("pack {} lacks gate role {key}: add `{key} = <name>` to {ROLE_FILE}", pack_dir().display())
+        }),
+        Err(e) => Err(e.clone()),
+    }
+}
+
+/// Replaces each `@role(key)` in a Lua snippet with the pack's name for `key`, quoted.
+pub fn fill_roles(src: &str) -> Result<String, String> {
+    let mut out = String::new();
+    let mut rest = src;
+    while let Some(at) = rest.find("@role(") {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + 6..];
+        let end = after.find(')').ok_or("unclosed @role(")?;
+        out.push('"');
+        out.push_str(role(&after[..end])?);
+        out.push('"');
+        rest = &after[end + 1..];
+    }
+    out.push_str(rest);
+    Ok(out)
+}
+
 pub fn data_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("data")
 }
 
 
-/// A named number of scenarios/moba/hero_rules.txt, the camp, rune and boss timings the scenario mod owns.
+/// A named number of scenarios/moba/attr_rules.txt, the camp, rune and boss timings the moba mod owns.
 pub fn scenario_rule(key: &str) -> Result<i32, String> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba").join("hero_rules.txt");
+    let path = pack_dir().join(RULES_FILE);
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
     text.lines()
         .filter_map(|l| l.trim().split_once('='))
         .find(|(k, _)| k.trim() == key)
         .and_then(|(_, v)| v.trim().parse().ok())
-        .ok_or_else(|| format!("hero_rules.txt has no number {key}"))
+        .ok_or_else(|| format!("the pack rules file has no number {key}"))
 }
 
 /// A sim loaded from the generated image, with fog off so every unit is targetable.
