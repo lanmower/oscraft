@@ -1,7 +1,7 @@
 //! Lua 5.4 mod host. A mod is a chunk that defines `on_tick(state)`. The host owns
 //! `state` and the sim; a mod reload never resets them.
 
-use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, VmState};
+use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, Value, VmState};
 use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Payout, Refusal, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, TICKS_PER_SECOND};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
@@ -67,6 +67,8 @@ struct System {
 pub enum Cmd {
     SetClassOverride { unit: usize, class: Option<u8> },
     SetHoldOverride { unit: usize, hold: Option<bool> },
+    // A spawn-group unit's respawn timer: Some(s) respawns it s seconds from now, None leaves it dead.
+    SetRespawn { unit: usize, delay_s: Option<u32> },
     Spawn { handle: u32, index: usize, x: i32, y: i32, owner: u8, lane: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
@@ -144,6 +146,12 @@ struct Hooks {
     on_leave: Option<Function>,
     on_player_joined: Option<Function>,
     // Runs every trigger registered on the event name it is called with (game.trigger).
+    // on_unit_died(unit, state) returns the respawn decision for a dead unit: nil keeps the Rust timer,
+    // false leaves it dead, a number of seconds respawns it after that long.
+    on_unit_died: Option<Function>,
+    // target_priority(unit, candidates, state) returns the target class (0..3) for a unit that drew aggro;
+    // nil keeps the Rust rule, false clears an earlier class.
+    target_priority: Option<Function>,
     fire: Function,
     systems: Vec<System>,
     // Set by the mod's top-level `GOLD_BY_MOD = true`: the sim's kill payout belongs to the mod.
@@ -250,6 +258,9 @@ pub struct ModHost {
 // function of the same name, and game.trigger takes the same names. Editors list them.
 // on_tick is the event the host calls once per step with the state table (see run_on_tick).
 use crate::EVENTS;
+// The largest respawn delay on_unit_died may return, in seconds (one day).
+const MAX_RESPAWN_S: i64 = 86_400;
+
 
 // Every global bind_host and bind_game register on a mod environment. compile_src checks this
 // list against the environment both ways (check_host_globals), so a global cannot be registered
@@ -1601,6 +1612,8 @@ fn check_host_globals(env: &Table) -> mlua::Result<()> {
     Ok(())
 }
 
+        on_unit_died: env.get("on_unit_died")?,
+        target_priority: env.get("target_priority")?,
 fn mtime(path: &Path) -> std::io::Result<SystemTime> {
     fs::metadata(path)?.modified()
 }
@@ -1942,6 +1955,9 @@ impl ModHost {
                 Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
                 Cmd::AddHeroGold { unit, amount } => {
                     let _ = sim.add_hero_gold(unit, amount);
+                Cmd::SetRespawn { unit, delay_s } => {
+                    let _ = sim.set_respawn(unit, delay_s);
+                }
                 }
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
@@ -2046,8 +2062,13 @@ impl ModHost {
                     let before = self.cmds.borrow().len();
                     self.call_died(hooks, &death)?;
                     let own = self.cmds.borrow_mut().split_off(before);
+        // Taken every step, mod or not, so the sim's acquisition log never grows past its cap unread.
+        let acquired = self.world.borrow_mut().take_acquisitions();
                     self.local.borrow_mut().extend(own);
                 }
+        for (unit, target) in acquired {
+            self.call_target_priority(hooks, unit, target);
+        }
                 Pending::Enter { unit, region } => {
                     if let Some(name) = self.region_name(region) {
                         if let Some(h) = &hooks.on_enter {
@@ -2076,6 +2097,7 @@ impl ModHost {
     }
 
     /// Feeds one payable death of the room's sim to the mod's on_died, with the room's unit ids and
+                    self.call_unit_died(hooks, unit);
     /// the bounty (docs/MODDING.md, on_died). The commands the handlers queued are returned, not
     /// applied: their ids are the room's, so the room applies them to its own sim and this world
     /// is untouched.
@@ -2122,8 +2144,55 @@ impl ModHost {
         std::mem::take(&mut *self.forward.borrow_mut())
     }
 
+        self.call_unit_died(&m.hooks, p.victim as usize);
     pub fn state(&self) -> &Table {
         &self.state
+    }
+
+    // Calls on_unit_died for a dead unit and queues the respawn decision it returns. A hook that errors
+    // or returns a value outside the contract queues nothing (the Rust timer stands) and logs an event.
+    // The command goes through the same path as the other mod commands, so a replay reproduces it.
+    fn call_unit_died(&self, hooks: &Hooks, unit: usize) {
+        let Some(h) = &hooks.on_unit_died else { return };
+        let delay_s = match h.call::<Value>((unit as i64, self.state.clone())) {
+            Ok(Value::Nil) | Ok(Value::Boolean(true)) => return,
+            Ok(Value::Boolean(false)) => None,
+            Ok(Value::Integer(n)) if (0..=MAX_RESPAWN_S).contains(&n) => Some(n as u32),
+            Ok(Value::Number(n)) if (0.0..=MAX_RESPAWN_S as f64).contains(&n) => Some(n as u32),
+            Ok(other) => {
+                println!("ev=mod_hook_refused hook=on_unit_died value={:?}", other.type_name());
+                return;
+            }
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=on_unit_died error={:?}", e.to_string());
+                return;
+            }
+        };
+        self.cmds.borrow_mut().push(Cmd::SetRespawn { unit, delay_s });
+    }
+
+    // Calls target_priority for one aggro acquisition (unit drew aggro from target). A class 0..3 is queued
+    // as a class override, which applies to the unit's candidates; false clears it. Errors fall back to the Rust rule.
+    fn call_target_priority(&self, hooks: &Hooks, unit: usize, target: usize) {
+        let Some(h) = &hooks.target_priority else { return };
+        let candidates = match self.lua.create_sequence_from([target as i64]) {
+            Ok(t) => t,
+            Err(_) => return,
+        };
+        let class = match h.call::<Value>((unit as i64, candidates, self.state.clone())) {
+            Ok(Value::Nil) | Ok(Value::Boolean(true)) => return,
+            Ok(Value::Boolean(false)) => None,
+            Ok(Value::Integer(c)) if (0..=3).contains(&c) => Some(c as u8),
+            Ok(other) => {
+                println!("ev=mod_hook_refused hook=target_priority value={:?}", other.type_name());
+                return;
+            }
+            Err(e) => {
+                println!("ev=mod_hook_failed hook=target_priority error={:?}", e.to_string());
+                return;
+            }
+        };
+        self.cmds.borrow_mut().push(Cmd::SetClassOverride { unit, class });
     }
 
     /// Units the sim has spawned, including dead ones (`Sim::count`).
@@ -2453,3 +2522,59 @@ mod tests {
         }
     }
 }
+
+    // on_unit_died and target_priority queue commands only when the mod defines them and they return a value
+    // in the contract. A missing, erroring or out-of-contract hook queues nothing, so the Rust rule stands.
+    fn queued(host: &ModHost) -> Vec<Cmd> {
+        host.cmds.borrow().clone()
+    }
+
+    #[test]
+    fn on_unit_died_number_queues_a_respawn_and_false_leaves_the_unit_dead() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("r.lua", "function on_tick(state) end function on_unit_died(unit, state) return 7 end").expect("loads");
+        let m = host.mod_file.as_ref().expect("mod");
+        host.call_unit_died(&m.hooks, 3);
+        assert!(queued(&host).iter().any(|c| matches!(c, Cmd::SetRespawn { unit: 3, delay_s: Some(7) })));
+        host.cmds.borrow_mut().clear();
+        host.load_source("r.lua", "function on_tick(state) end function on_unit_died(unit, state) return false end").expect("loads");
+        let m = host.mod_file.as_ref().expect("mod");
+        host.call_unit_died(&m.hooks, 4);
+        assert!(queued(&host).iter().any(|c| matches!(c, Cmd::SetRespawn { unit: 4, delay_s: None })));
+    }
+
+    #[test]
+    fn removing_the_respawn_hook_or_an_erroring_one_restores_the_rust_timer() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("r.lua", "function on_tick(state) end function on_unit_died() error('boom') end").expect("loads");
+        let m = host.mod_file.as_ref().expect("mod");
+        host.call_unit_died(&m.hooks, 3);
+        assert!(queued(&host).is_empty(), "an erroring hook must queue nothing");
+        host.load_source("r.lua", "function on_tick(state) end function on_unit_died(unit, state) return 'soon' end").expect("loads");
+        let m = host.mod_file.as_ref().expect("mod");
+        host.call_unit_died(&m.hooks, 3);
+        assert!(queued(&host).is_empty(), "an out-of-contract value must queue nothing");
+        host.load_source("r.lua", "function on_tick(state) end").expect("loads");
+        let m = host.mod_file.as_ref().expect("mod");
+        host.call_unit_died(&m.hooks, 3);
+        assert!(queued(&host).is_empty(), "without the hook the Rust timer stands");
+    }
+
+    #[test]
+    fn target_priority_queues_a_class_override_and_false_clears_it() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        host.load_source("p.lua", "function on_tick(state) end function target_priority(unit, candidates, state) return 3 end").expect("loads");
+        let m = host.mod_file.as_ref().expect("mod");
+        host.call_target_priority(&m.hooks, 2, 5);
+        assert!(queued(&host).iter().any(|c| matches!(c, Cmd::SetClassOverride { unit: 2, class: Some(3) })));
+        host.cmds.borrow_mut().clear();
+        host.load_source("p.lua", "function on_tick(state) end function target_priority(unit, candidates, state) return false end").expect("loads");
+        let m = host.mod_file.as_ref().expect("mod");
+        host.call_target_priority(&m.hooks, 2, 5);
+        assert!(queued(&host).iter().any(|c| matches!(c, Cmd::SetClassOverride { unit: 2, class: None })));
+        host.cmds.borrow_mut().clear();
+        host.load_source("p.lua", "function on_tick(state) end function target_priority(unit, candidates, state) return 9 end").expect("loads");
+        let m = host.mod_file.as_ref().expect("mod");
+        host.call_target_priority(&m.hooks, 2, 5);
+        assert!(queued(&host).is_empty(), "a class outside 0..3 must queue nothing");
+    }

@@ -321,6 +321,25 @@ fn next_mark(now: u32, interval: u32) -> u32 {
 }
 
 impl Sim {
+    /// Whether slot `i` is a spawn-group unit (a placed unit the map marked as a camp member).
+    pub fn is_spawn_group_unit(&self, i: usize) -> bool {
+        self.camps.is_camp.get(i).is_some_and(|&v| v != 0)
+    }
+
+    /// Sets the respawn timer of dead spawn-group unit `i`, applied by a queued mod command: `Some(s)` respawns
+    /// it `s` seconds from now (the usual home-clear check still applies), `None` leaves it dead. A live unit or a
+    /// unit outside a spawn group is refused.
+    pub fn set_respawn(&mut self, i: usize, delay_s: Option<u32>) -> Result<(), &'static str> {
+        if !self.is_spawn_group_unit(i) || self.camps.waiting[i] == 0 {
+            return Err("not a dead spawn-group unit");
+        }
+        self.camps.respawn_at[i] = match delay_s {
+            Some(s) => self.ticks.wrapping_add(s.saturating_mul(TICKS_PER_SECOND as u32)),
+            None => u32::MAX,
+        };
+        Ok(())
+    }
+
     /// Sets one camp rule by name at load (a mod's `camp_rule(name, value)`). The names are the CampRules fields.
     pub fn set_camp_rule(&mut self, name: &str, value: u32) -> Result<(), &'static str> {
         let r = &mut self.camps.rules;
@@ -349,5 +368,29 @@ impl Sim {
             None => self.camps.timed.push((k, first_s, min_s, spread_s)),
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod respawn_decision_tests {
+    use crate::fixed;
+
+    // A queued respawn decision sets the dead spawn-group unit's timer; None leaves it dead; a live or
+    // non-group unit is refused and its timer is untouched.
+    #[test]
+    fn set_respawn_sets_the_timer_and_refuses_units_outside_a_dead_group() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let image = osdt_data::generate(&scenario).expect("duel-routes image");
+        let mut sim = crate::load(&image, 64).expect("duel-routes sim");
+        let kind = sim.catalog().unit_index("creep").expect("creep") as u32;
+        let u = sim.spawn_for(0, kind, fixed::from_int(5), fixed::from_int(5)).expect("unit");
+        assert!(sim.set_respawn(u, Some(3)).is_err(), "a unit outside a spawn group is refused");
+        sim.camps.is_camp[u] = 1;
+        assert!(sim.set_respawn(u, Some(3)).is_err(), "a live spawn-group unit is refused");
+        sim.camps.waiting[u] = 1;
+        sim.set_respawn(u, Some(3)).expect("dead group unit");
+        assert_eq!(sim.camps.respawn_at[u], sim.ticks().wrapping_add(3 * crate::TICKS_PER_SECOND as u32));
+        sim.set_respawn(u, None).expect("leave dead");
+        assert_eq!(sim.camps.respawn_at[u], u32::MAX);
     }
 }

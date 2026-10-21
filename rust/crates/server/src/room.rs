@@ -584,6 +584,12 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
                 }
                 Err(_) => refuse_out_of_range(unit),
             },
+            Cmd::SetRespawn { unit, delay_s } => match u32::try_from(unit) {
+                Ok(unit) => {
+                    rec.apply(sim, Command::CampRespawn { unit, delay_s: delay_s.unwrap_or(u32::MAX) });
+                }
+                Err(_) => refuse_out_of_range(unit),
+            },
             Cmd::SetHoldOverride { unit, hold } => {
                 let hold = match hold {
                     None => 255,

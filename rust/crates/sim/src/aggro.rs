@@ -46,7 +46,13 @@ pub(crate) struct AggroState {
     pub(crate) spawn_gen: Vec<u32>,
     /// The spawn generation of `strike`'s target at the moment it was struck.
     pub(crate) strike_gen: Vec<u32>,
+    /// (unit, target) pairs where `unit` drew aggro from `target` since the host last drained the log.
+    /// Transient: neither hashed nor saved. Capped so a run that never drains it stays bounded.
+    pub(crate) acquired: Vec<(u32, u32)>,
 }
+
+/// Most acquisitions the log holds between drains.
+const ACQUIRED_CAP: usize = 1024;
 
 impl AggroState {
     pub(crate) fn new(cap: usize) -> AggroState {
@@ -61,6 +67,7 @@ impl AggroState {
             strike: vec![-1; cap],
             spawn_gen: vec![0; cap],
             strike_gen: vec![0; cap],
+            acquired: Vec::new(),
         }
     }
 }
@@ -142,6 +149,9 @@ impl Sim {
             if dist2(self.pos_x[u], self.pos_y[u], self.pos_x[victim], self.pos_y[victim]) <= reach {
                 self.aggro.target[u] = attacker as i32;
                 self.aggro.until[u] = self.ticks.wrapping_add(hold);
+                if self.aggro.acquired.len() < ACQUIRED_CAP {
+                    self.aggro.acquired.push((u as u32, attacker as u32));
+                }
             }
         }
     }
@@ -252,6 +262,12 @@ impl Sim {
 }
 
 impl crate::arrays::Sim {
+    /// Takes the (unit, target) aggro acquisitions since the last call, oldest first. Read by a host that
+    /// runs a target-priority callback; a sim nobody drains only keeps the first ACQUIRED_CAP.
+    pub fn take_acquisitions(&mut self) -> Vec<(usize, usize)> {
+        std::mem::take(&mut self.aggro.acquired).into_iter().map(|(u, t)| (u as usize, t as usize)).collect()
+    }
+
     /// Sets the target class attacker `i` uses for every candidate (0..=3, the classes `target_class` ranks), or
     /// clears it with `None` so the Rust rule applies again. Applied by a queued mod command at the next tick.
     pub fn set_class_override(&mut self, i: usize, class: Option<u8>) -> Result<(), &'static str> {
