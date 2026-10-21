@@ -1,9 +1,22 @@
-//! The mod host on piccolo, a pure Rust Lua VM, for the wasip3 guest (no C objects). A mod runs in
-//! one environment table shared by a pack's chunks, run in manifest order, with the same game table (system, each, trigger, cmd_*, units,
+//! The mod host on piccolo, a pure Rust Lua VM, for the wasip3 guest (no C objects).
+//!
+//! A pack is a list of MODULES, one Lua file each, named by file stem (hero.lua is "hero"). Each
+//! module runs in its own environment with the game table (system, each, trigger, cmd_*, units,
 //! players, unit_kind, timer, region, var, score, ability, gold, victory and the UI calls), the same
-//! unit queries and the same event dispatch as the mlua host. The Lua half of var, region and timer
-//! is the source mlua runs (shared.rs). Not carried over: terrain, tile, doodad and unit, item and
-//! upgrade editing globals. A mod call runs under a step budget so a loop cannot stall the guest.
+//! unit queries and event dispatch as the mlua host. The Lua half of var, region and timer is the
+//! source mlua runs (shared.rs). A module is a chunk that returns a table of hooks, such as
+//! `return { on_died = function(u, s) ... end }`, and may call `require("<module>")` to use another
+//! module of its pack; `require` takes a string literal so the host can load modules in dependency
+//! order, a cycle is reported by name, and a module loads once and its returned table is cached.
+//! A chunk that returns nothing but defines global hook functions (the old style) still works: its
+//! globals are its hooks, and load reports count it as old style.
+//!
+//! Hooks are called per module, in the manifest's list order. A hook that raises a Lua error disables
+//! only that hook of that module and logs the error; the other modules keep running. A module that
+//! fails to load (compile, top-level error, a cycle or a missing require) keeps its last-known-good
+//! hooks when it loaded before, and is skipped and reported otherwise. Not carried over: terrain,
+//! tile, doodad and unit, item and upgrade editing globals. A mod call runs under a step budget so a
+//! loop cannot stall the guest.
 
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
@@ -334,8 +347,8 @@ game.timer = timer
 game.cancel_timer = env.cancel
 local host = { define_region = env.define_region, unit_position = env.unit_position, in_region = env.in_region, region_bounds = env.region_bounds, map_size = env.map_size, schedule = env.schedule, cancel = env.cancel }
 install(game, { global = {}, player = {}, unit = {}, score = {} }, host, max_players)
-local function emit(event, ...)
-  local handler = env[event]
+local function emit(handlers, event, ...)
+  local handler = handlers[event]
   if handler then handler(...) end
   fire(event, ...)
 end
@@ -1209,7 +1222,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.cmds.push(Cmd::GrantUpgrade { player: p, name });
         Ok(CallbackReturn::Return)
     });
-    // Spawn-group setters (sim groups.rs): set_group_leash(milli) is a load-time leash radius for every member;
+    // Spawn-group setters (sim spawn_groups.rs): set_group_leash(milli) is a load-time leash radius for every member;
     // set_reincarnate_item(name, seconds) names the item that lets a dying unit reincarnate.
     native!(ctx, game, "set_group_leash", [sh], |c, s| {
         let milli = u32::try_from(a(c, &s, 0)?).map_err(|_| fail(c, "invalid_leash: must not be negative".into()))?;
@@ -1850,12 +1863,111 @@ fn mod_name(path: &Path) -> String {
     path.file_stem().map_or_else(|| "mod".to_string(), |s| s.to_string_lossy().into_owned())
 }
 
+// The names a chunk requires with a string literal: `require("x")` or `require "x"`. A `--` comment
+// is skipped line by line, so a commented require adds no edge.
+fn requires_of(src: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for line in src.lines() {
+        let code = line.split("--").next().unwrap_or("");
+        let mut rest = code;
+        while let Some(at) = rest.find("require") {
+            let after_name = &rest[at + "require".len()..];
+            let word_start = !rest[..at].chars().next_back().is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '.');
+            let arg = after_name.trim_start();
+            let arg = arg.strip_prefix('(').unwrap_or(arg).trim_start();
+            if word_start {
+                if let Some(q) = arg.chars().next().filter(|c| *c == '"' || *c == '\'') {
+                    if let Some(end) = arg[1..].find(q) {
+                        out.push(arg[1..1 + end].to_owned());
+                    }
+                }
+            }
+            rest = after_name;
+        }
+    }
+    out
+}
+
+// Plans a pack's load: the order (each module after the modules it requires, else list order), the
+// failures known before any chunk runs (a duplicate or unknown module name, a require cycle, named
+// by the cycle), and each module's required module indices.
+fn plan_loads(names: &[String], mods: &[(String, String)]) -> (Vec<usize>, Vec<Option<String>>, Vec<Vec<usize>>) {
+    let n = names.len();
+    let mut failed: Vec<Option<String>> = vec![None; n];
+    let mut deps: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for i in 0..n {
+        if names[..i].contains(&names[i]) {
+            failed[i] = Some(format!("duplicate module {}", names[i]));
+        }
+        for req in requires_of(&mods[i].1) {
+            match names.iter().position(|m| *m == req) {
+                Some(d) if !deps[i].contains(&d) => deps[i].push(d),
+                Some(_) => {}
+                None => {
+                    failed[i].get_or_insert_with(|| format!("unknown_module: {req} is not a module of this pack"));
+                }
+            }
+        }
+    }
+    let mut state = vec![0u8; n];
+    let mut order = Vec::with_capacity(n);
+    for i in 0..n {
+        if state[i] == 0 {
+            visit_load(i, &deps, names, &mut state, &mut Vec::new(), &mut failed, &mut order);
+        }
+    }
+    (order, failed, deps)
+}
+
+fn visit_load(i: usize, deps: &[Vec<usize>], names: &[String], state: &mut [u8], stack: &mut Vec<usize>, failed: &mut [Option<String>], order: &mut Vec<usize>) {
+    state[i] = 1;
+    stack.push(i);
+    for &d in &deps[i] {
+        match state[d] {
+            0 => visit_load(d, deps, names, state, stack, failed, order),
+            1 => {
+                let at = stack.iter().position(|&x| x == d).unwrap_or(0);
+                let cycle: Vec<&str> = stack[at..].iter().map(|&x| names[x].as_str()).chain([names[d].as_str()]).collect();
+                let msg = format!("require_cycle: {}", cycle.join(" -> "));
+                for &x in &stack[at..] {
+                    failed[x].get_or_insert_with(|| msg.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+    stack.pop();
+    state[i] = 2;
+    order.push(i);
+}
+
+// One loaded module: its hooks, the table it returned (its globals, for an old-style file), and the hook
+// names that raised a Lua error and are off for this module.
+struct Module {
+    name: String,
+    hooks: Hooks,
+    handlers: StashedTable,
+    exports: Option<StashedTable>,
+    // The module's own environment, a peer of the other modules' for the read fallback (see new_env).
+    env: StashedTable,
+    off: Vec<String>,
+}
+
+// The environments of the pack's loaded modules, read on a global miss so an old-style file still
+// reads the functions another file defines (writes stay in the file's own environment).
+type Peers = Rc<RefCell<Vec<StashedTable>>>;
+
+// What `require` finds: a module that loaded, with its table (None for an old-style module, which requires as true).
+type Registry = Rc<RefCell<std::collections::HashMap<String, Option<StashedTable>>>>;
+
 pub struct ModHost {
     lua: RefCell<Lua>,
     sh: Sh,
     state: StashedTable,
-    // The loaded pack's hooks: one entry for the shared environment of every mod, empty when no mod is loaded.
-    hooks: Vec<Hooks>,
+    // The loaded pack's modules, in manifest order. Hooks are called in this order.
+    modules: Vec<Module>,
+    registry: Registry,
+    peers: Peers,
     version: u64,
     joined: Vec<usize>,
     snap: Vec<UnitSnap>,
@@ -1880,7 +1992,9 @@ impl ModHost {
             lua: RefCell::new(lua),
             sh: Rc::new(RefCell::new(Shared { sim, regions: Vec::new(), local: Vec::new(), cmds: Vec::new(), clock: 0, fired: 0, applied: 0, ui: Vec::new() })),
             state,
-            hooks: Vec::new(),
+            modules: Vec::new(),
+            registry: Rc::new(RefCell::new(std::collections::HashMap::new())),
+            peers: Rc::new(RefCell::new(Vec::new())),
             version: 0,
             joined: Vec::new(),
             snap: Vec::new(),
@@ -1897,29 +2011,69 @@ impl ModHost {
         self.load_mods(&[(name.to_owned(), src.to_owned())])
     }
 
-    /// Loads a set of mods, in order, into one environment shared by all of them, over this host's
-    /// sim. A later mod sees the globals an earlier one defined. Every mod is built before any takes
-    /// effect: when one fails, the sim, regions and queued commands go back as they were and the
-    /// previous set stays live. Returns the error text for the failing mod.
+    /// Loads a pack's modules: each `(file, source)` is one module, named by the file stem. Modules
+    /// load in require order (a module's literal `require` names load first), and the hooks run in
+    /// the list order. A module that fails to load (a compile or top-level error, a require cycle,
+    /// an unknown or failed require) keeps its last-known-good module when it loaded before, else is
+    /// skipped. Either way the other modules are live. The Err lists each failed module, including
+    /// one that kept its last-known-good version.
     pub fn load_mods(&mut self, mods: &[(String, String)]) -> Result<(), String> {
+        let names: Vec<String> = mods.iter().map(|(file, _)| mod_name(Path::new(file))).collect();
+        let (order, mut failed, deps) = plan_loads(&names, mods);
+        let mut old: Vec<Module> = std::mem::take(&mut self.modules);
+        self.registry.borrow_mut().clear();
+        self.peers.borrow_mut().clear();
+        let mut built: Vec<Option<Module>> = (0..mods.len()).map(|_| None).collect();
+        let mut errors = Vec::new();
+        for &i in &order {
+            let outcome = match failed[i].take() {
+                Some(e) => Err(e),
+                None => match deps[i].iter().find(|&&d| !self.registry.borrow().contains_key(&names[d])) {
+                    Some(&d) => Err(format!("requires {}, which did not load", names[d])),
+                    None => self.build_guarded(&names[i], &mods[i].1),
+                },
+            };
+            match outcome {
+                Ok(module) => {
+                    self.registry.borrow_mut().insert(names[i].clone(), module.exports.clone());
+                    self.peers.borrow_mut().push(module.env.clone());
+                    built[i] = Some(module);
+                }
+                Err(e) => {
+                    println!("ev=mod_load_failed module={} error={:?}", names[i], e);
+                    errors.push(format!("{}: {e}", names[i]));
+                    if let Some(p) = old.iter().position(|m| m.name == names[i]) {
+                        let kept = old.swap_remove(p);
+                        self.registry.borrow_mut().insert(names[i].clone(), kept.exports.clone());
+                        self.peers.borrow_mut().push(kept.env.clone());
+                        built[i] = Some(kept);
+                    }
+                }
+            }
+        }
+        self.modules = built.into_iter().flatten().collect();
+        self.version += 1;
+        if errors.is_empty() { Ok(()) } else { Err(errors.join("; ")) }
+    }
+
+    // Builds one module. A failed build puts the sim, regions and queued commands back as they were,
+    // so a module that fails to load leaves no trace in the world.
+    fn build_guarded(&mut self, name: &str, src: &str) -> Result<Module, String> {
         let (sim, regions, cmds, local) = {
             let sh = self.sh.borrow();
             (sh.sim.save_state(), sh.regions.clone(), sh.cmds.clone(), sh.local.clone())
         };
-        let built = match self.build_pack(mods) {
-            Ok(built) => built,
+        match self.build_module(name, src) {
+            Ok(m) => Ok(m),
             Err(e) => {
                 let mut sh = self.sh.borrow_mut();
                 sh.sim.load_state(&sim).map_err(|_| "the saved sim state did not load back".to_string())?;
                 sh.regions = regions;
                 sh.cmds = cmds;
                 sh.local = local;
-                return Err(e);
+                Err(e)
             }
-        };
-        self.hooks = built;
-        self.version += 1;
-        Ok(())
+        }
     }
 
     /// Replaces the sim this host advances (a data swap or a replay seek). Queued commands and events
@@ -1931,31 +2085,55 @@ impl ModHost {
         sh.local.clear();
     }
 
-    /// Runs on_action(name, args, state) of every mod that defines it. Commands it queues apply at the next advance.
+    /// Runs on_action(name, args, state) of every module that defines it. Commands it queues apply at the next advance.
     pub fn dispatch_action(&mut self, name: &str, args: &serde_json::Value) -> Result<(), String> {
-        for f in self.hook_fns(|h| &h.on_action) {
-            self.call(&f, vec![Arg::Text(name.to_owned()), Arg::Json(args.clone()), Arg::State])?;
+        for (i, f) in self.live_hooks("on_action", |h| h.on_action.clone()) {
+            let values = vec![Arg::Text(name.to_owned()), Arg::Json(args.clone()), Arg::State];
+            if let Err(e) = self.call(&f, values) {
+                self.hook_failed(i, "on_action", &e);
+            }
         }
         Ok(())
     }
 
-    /// Runs on_pointer(kind, x, y, button, state) of every mod that defines it. `kind` is "down", "up" or "move".
+    /// Runs on_pointer(kind, x, y, button, state) of every module that defines it. `kind` is "down", "up" or "move".
     pub fn pointer(&mut self, kind: &str, x: f64, y: f64, button: i64) -> Result<(), String> {
-        for f in self.hook_fns(|h| &h.on_pointer) {
-            self.call(&f, vec![Arg::Text(kind.to_owned()), Arg::Num(x), Arg::Num(y), Arg::Int(button), Arg::State])?;
+        for (i, f) in self.live_hooks("on_pointer", |h| h.on_pointer.clone()) {
+            let values = vec![Arg::Text(kind.to_owned()), Arg::Num(x), Arg::Num(y), Arg::Int(button), Arg::State];
+            if let Err(e) = self.call(&f, values) {
+                self.hook_failed(i, "on_pointer", &e);
+            }
         }
         Ok(())
     }
 
-    /// The hook `pick` names, from every loaded mod that defines it, in load order.
-    fn hook_fns(&self, pick: impl Fn(&Hooks) -> &Option<StashedFunction>) -> Vec<StashedFunction> {
-        self.hooks.iter().filter_map(|h| pick(h).clone()).collect()
+    /// The hook `pick` names, from each module that defines it and has not turned it off, in list order.
+    fn live_hooks(&self, key: &str, pick: impl Fn(&Hooks) -> Option<StashedFunction>) -> Vec<(usize, StashedFunction)> {
+        self.modules
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| !m.off.iter().any(|o| o == key))
+            .filter_map(|(i, m)| pick(&m.hooks).map(|f| (i, f)))
+            .collect()
     }
 
-    // The environment one pack shares: the game table and the host prelude's emit, run_systems and
-    // fire_timers over it. Named hooks are read after the chunks run, by name_hooks.
+    fn is_live(&self, i: usize, key: &str) -> bool {
+        self.modules.get(i).is_some_and(|m| !m.off.iter().any(|o| o == key))
+    }
+
+    // A hook of module `i` raised a Lua error: log it and turn that hook off for that module only.
+    fn hook_failed(&mut self, i: usize, hook: &str, error: &str) {
+        let Some(m) = self.modules.get_mut(i) else { return };
+        println!("ev=mod_hook_failed module={} hook={} error={:?}", m.name, hook, error);
+        m.off.push(hook.to_owned());
+    }
+
+    // The environment one module gets: the game table, the host prelude's emit, run_systems and
+    // fire_timers over it, and require. Named hooks are read after the chunk runs, by name_hooks.
     fn new_env(&mut self) -> Result<(Hooks, StashedTable), String> {
         let sh = self.sh.clone();
+        let registry = self.registry.clone();
+        let peers = self.peers.clone();
         let (prelude, env) = self
             .lua.borrow_mut()
             .try_enter(|ctx| {
@@ -1964,6 +2142,33 @@ impl ModHost {
                     env.set(ctx, base, ctx.globals().get(ctx, base))?;
                 }
                 bind(ctx, env, &sh);
+                let fallback = Callback::from_fn(&ctx, move |c, _, mut s| {
+                    let key = s.get(1);
+                    let mut found = Value::Nil;
+                    for peer in peers.borrow().iter() {
+                        found = c.fetch(peer).get(c, key);
+                        if !found.is_nil() {
+                            break;
+                        }
+                    }
+                    s.replace(c, found);
+                    Ok(CallbackReturn::Return)
+                });
+                let meta = Table::new(&ctx);
+                meta.set(ctx, "__index", fallback)?;
+                env.set_metatable(&ctx, Some(meta));
+                let require = Callback::from_fn(&ctx, move |c, _, mut s| {
+                    let name = text(c, s.get(0), 0)?;
+                    let found = registry.borrow().get(&name).cloned();
+                    let out = match found {
+                        Some(Some(t)) => Value::Table(c.fetch(&t)),
+                        Some(None) => Value::Boolean(true),
+                        None => return Err(fail(c, format!("unknown_module: {name} is not a module of this pack, or did not load"))),
+                    };
+                    s.replace(c, out);
+                    Ok(CallbackReturn::Return)
+                });
+                env.set(ctx, "require", require)?;
                 let known = Table::new(&ctx);
                 for (event, _) in EVENTS {
                     known.set(ctx, event, true)?;
@@ -2027,9 +2232,9 @@ impl ModHost {
         Ok((hooks, env))
     }
 
-    // Runs one chunk's top level in the pack's shared environment, so its definitions are visible to
-    // the chunks after it and to every hook.
-    fn run_chunk(&mut self, env: &StashedTable, name: &str, src: &str) -> Result<(), String> {
+    // Runs one chunk's top level in the module's environment. Returns the table the chunk returned, or
+    // None for an old-style chunk that returned nothing (its globals are its hooks).
+    fn run_chunk(&mut self, env: &StashedTable, name: &str, src: &str) -> Result<Option<StashedTable>, String> {
         let exec = self
             .lua.borrow_mut()
             .try_enter(|ctx| {
@@ -2037,14 +2242,22 @@ impl ModHost {
                 Ok(ctx.stash(Executor::start(ctx, closure.into(), ())))
             })
             .map_err(|e| e.to_string())?;
-        self.run(&exec)
+        self.finish(&exec)?;
+        self.lua.borrow_mut()
+            .try_enter(|ctx| {
+                let (first,) = ctx.fetch(&exec).take_result::<(Value,)>(ctx)??;
+                Ok(match first {
+                    Value::Table(t) => Some(ctx.stash(t)),
+                    _ => None,
+                })
+            })
+            .map_err(|e| e.to_string())
     }
 
-    // Fills the named hooks from the shared environment, once every chunk has run: each callback is
-    // the value the last chunk to define it left there.
-    fn name_hooks(&self, mut hooks: Hooks, env: &StashedTable) -> Hooks {
+    // Fills the named hooks from the module's handler table, once its chunk has run.
+    fn name_hooks(&self, mut hooks: Hooks, handlers: &StashedTable) -> Hooks {
         let named = |key: &str| {
-            self.lua.borrow_mut().enter(|ctx| match ctx.fetch(env).get(ctx, ctx.intern(key.as_bytes())) {
+            self.lua.borrow_mut().enter(|ctx| match ctx.fetch(handlers).get(ctx, ctx.intern(key.as_bytes())) {
                 Value::Function(f) => Some(ctx.stash(f)),
                 _ => None,
             })
@@ -2062,16 +2275,13 @@ impl ModHost {
         hooks
     }
 
-    // Runs the pack's chunks, in order, in one shared environment. An empty pack has no hooks.
-    fn build_pack(&mut self, mods: &[(String, String)]) -> Result<Vec<Hooks>, String> {
-        if mods.is_empty() {
-            return Ok(Vec::new());
-        }
+    // Runs one module's chunk in its own environment and reads its hooks.
+    fn build_module(&mut self, name: &str, src: &str) -> Result<Module, String> {
         let (hooks, env) = self.new_env()?;
-        for (name, src) in mods {
-            self.run_chunk(&env, name, src)?;
-        }
-        Ok(vec![self.name_hooks(hooks, &env)])
+        let exports = self.run_chunk(&env, name, src)?;
+        let handlers = exports.clone().unwrap_or_else(|| env.clone());
+        let hooks = self.name_hooks(hooks, &handlers);
+        Ok(Module { name: name.to_owned(), hooks, handlers, exports, env, off: Vec::new() })
     }
 
     /// Loads the mod file at `path` and remembers it, so `reload` can swap in later edits.
@@ -2245,16 +2455,18 @@ impl ModHost {
                 Pending::PlayerJoined(p) => self.emit("on_player_joined", vec![Arg::Int(p as i64)])?,
             }
         }
-        let systems: Vec<StashedFunction> = self.hooks.iter().map(|h| h.run_systems.clone()).collect();
-        for f in systems {
-            self.call(&f, Vec::new())?;
+        for (i, f) in self.live_hooks("run_systems", |h| Some(h.run_systems.clone())) {
+            if let Err(e) = self.call(&f, Vec::new()) {
+                self.hook_failed(i, "run_systems", &e);
+            }
         }
         self.apply_commands();
-        let timers: Vec<StashedFunction> = self.hooks.iter().map(|h| h.fire_timers.clone()).collect();
-        for f in timers {
-            self.call(&f, Vec::new())?;
+        for (i, f) in self.live_hooks("fire_timers", |h| Some(h.fire_timers.clone())) {
+            if let Err(e) = self.call(&f, Vec::new()) {
+                self.hook_failed(i, "fire_timers", &e);
+            }
         }
-        // emit calls on_tick only in the chunks that define it; the others are skipped.
+        // emit runs on_tick only in the modules that define it; the others are skipped.
         self.emit("on_tick", vec![Arg::State])?;
         Ok(())
     }
@@ -2265,7 +2477,7 @@ impl ModHost {
     /// piccolo runs its VM under a mutable borrow, so this differs from the native &self; the error is the
     /// piccolo host's String, not mlua::Error.
     pub fn feed_death(&mut self, death: &Death) -> Result<Vec<Cmd>, String> {
-        if self.hooks.is_empty() {
+        if self.modules.is_empty() {
             return Ok(Vec::new());
         }
         let before = self.sh.borrow().local.len();
@@ -2303,14 +2515,14 @@ impl ModHost {
                 Arg::Bool(killer_attributed),
             ],
         )?;
-        for f in self.hook_fns(|h| &h.on_unit_died) {
+        for (i, f) in self.live_hooks("on_unit_died", |h| h.on_unit_died.clone()) {
             match self.call_ret(&f, vec![Arg::Int(i64::from(d.victim)), Arg::State]) {
                 Ok((delay, _)) => {
                     if let Some(cmd) = respawn_of(delay) {
                         self.sh.borrow_mut().cmds.push(Cmd::SetRespawn { unit: d.victim as usize, delay_s: cmd });
                     }
                 }
-                Err(e) => println!("ev=mod_hook_failed hook=on_unit_died error={:?}", e),
+                Err(e) => self.hook_failed(i, "on_unit_died", &e),
             }
         }
         let mut sh = self.sh.borrow_mut();
@@ -2327,46 +2539,49 @@ impl ModHost {
             let mut sh = self.sh.borrow_mut();
             (sh.sim.take_acquisitions(), sh.sim.take_destination_requests(), sh.sim.take_casts(), sh.sim.take_hits())
         };
-        let hit = self.hook_fns(|h| &h.on_hit);
+        let hit = self.live_hooks("on_hit", |h| h.on_hit.clone());
         for h in hits {
-            for f in &hit {
-                self.call_on_hit(f, h);
+            for (i, f) in &hit {
+                self.call_on_hit(*i, f, h);
             }
         }
-        let tp = self.hook_fns(|h| &h.target_priority);
+        let tp = self.live_hooks("target_priority", |h| h.target_priority.clone());
         for (unit, target) in acquired {
-            for f in &tp {
-                self.call_target_priority(f, unit, target);
+            for (i, f) in &tp {
+                self.call_target_priority(*i, f, unit, target);
             }
         }
-        let march = self.hook_fns(|h| &h.on_march);
+        let march = self.live_hooks("on_march", |h| h.on_march.clone());
         for (unit, player) in requests {
-            for f in &march {
-                self.call_on_march(f, unit, player);
+            for (i, f) in &march {
+                self.call_on_march(*i, f, unit, player);
             }
         }
-        let cast = self.hook_fns(|h| &h.on_cast);
+        let cast = self.live_hooks("on_cast", |h| h.on_cast.clone());
         for (caster, ability) in casts {
-            for f in &cast {
-                self.call_on_cast(f, caster, ability);
+            for (i, f) in &cast {
+                self.call_on_cast(*i, f, caster, ability);
             }
         }
-        let win = self.hook_fns(|h| &h.on_check_win);
-        for f in &win {
+        let win = self.live_hooks("on_check_win", |h| h.on_check_win.clone());
+        for (i, f) in &win {
             if self.sh.borrow().sim.winner().is_some() {
                 break;
             }
-            self.call_on_check_win(f);
+            self.call_on_check_win(*i, f);
         }
         Ok(())
     }
 
     // target_priority(unit, candidates, state): a class 0..3 queues a class override, false clears it, nil or
     // true leaves the unit alone. A Lua error or a malformed answer is logged and queues nothing.
-    fn call_target_priority(&mut self, f: &StashedFunction, unit: usize, target: usize) {
+    fn call_target_priority(&mut self, i: usize, f: &StashedFunction, unit: usize, target: usize) {
+        if !self.is_live(i, "target_priority") {
+            return;
+        }
         let answer = match self.call_ret(f, vec![Arg::Int(unit as i64), Arg::List(vec![target as i64]), Arg::State]) {
             Ok((r, _)) => r,
-            Err(e) => return println!("ev=mod_hook_failed hook=target_priority error={:?}", e),
+            Err(e) => return self.hook_failed(i, "target_priority", &e),
         };
         let class = match answer {
             Ret::Nil | Ret::Bool(true) => return,
@@ -2379,7 +2594,10 @@ impl ModHost {
 
     // on_march(unit, player, state) returns the x and y of the point the unit walks to (fixed point). nil keeps
     // the unit where it stands. An error or a malformed answer queues nothing.
-    fn call_on_march(&mut self, f: &StashedFunction, unit: usize, player: u8) {
+    fn call_on_march(&mut self, i: usize, f: &StashedFunction, unit: usize, player: u8) {
+        if !self.is_live(i, "on_march") {
+            return;
+        }
         match self.call_ret(f, vec![Arg::Int(unit as i64), Arg::Int(i64::from(player)), Arg::State]) {
             Ok((Ret::Int(x), Ret::Int(y))) => match (i32::try_from(x), i32::try_from(y)) {
                 (Ok(x), Ok(y)) => self.sh.borrow_mut().cmds.push(Cmd::AttackMove { unit, x, y }),
@@ -2387,19 +2605,25 @@ impl ModHost {
             },
             Ok((Ret::Nil | Ret::Bool(false), _)) => {}
             Ok(_) => println!("ev=mod_hook_refused hook=on_march"),
-            Err(e) => println!("ev=mod_hook_failed hook=on_march error={:?}", e),
+            Err(e) => self.hook_failed(i, "on_march", &e),
         }
     }
 
     // on_cast(caster, ability_name, state), with the ability's catalog name.
-    fn call_on_hit(&mut self, f: &StashedFunction, hit: sim::Hit) {
+    fn call_on_hit(&mut self, i: usize, f: &StashedFunction, hit: sim::Hit) {
+        if !self.is_live(i, "on_hit") {
+            return;
+        }
         let args = vec![Arg::Int(i64::from(hit.attacker)), Arg::Int(i64::from(hit.victim)), Arg::Int(i64::from(hit.dealt)), Arg::State];
         if let Err(e) = self.call_ret(f, args) {
-            println!("ev=mod_hook_failed hook=on_hit error={:?}", e);
+            self.hook_failed(i, "on_hit", &e);
         }
     }
 
-    fn call_on_cast(&mut self, f: &StashedFunction, caster: usize, ability: usize) {
+    fn call_on_cast(&mut self, i: usize, f: &StashedFunction, caster: usize, ability: usize) {
+        if !self.is_live(i, "on_cast") {
+            return;
+        }
         let name = {
             let sh = self.sh.borrow();
             let cat = sh.sim.catalog();
@@ -2409,19 +2633,22 @@ impl ModHost {
             }
         };
         if let Err(e) = self.call_ret(f, vec![Arg::Int(caster as i64), Arg::Text(name), Arg::State]) {
-            println!("ev=mod_hook_failed hook=on_cast error={:?}", e);
+            self.hook_failed(i, "on_cast", &e);
         }
     }
 
     // on_check_win(state) returns the side that has won (0..MAX_PLAYERS), or nil or false while none has.
-    fn call_on_check_win(&mut self, f: &StashedFunction) {
+    fn call_on_check_win(&mut self, i: usize, f: &StashedFunction) {
+        if !self.is_live(i, "on_check_win") {
+            return;
+        }
         match self.call_ret(f, vec![Arg::State]) {
             Ok((Ret::Nil | Ret::Bool(false), _)) => {}
             Ok((Ret::Int(s), _)) if (0..MAX_PLAYERS as i64).contains(&s) => {
                 self.sh.borrow_mut().cmds.push(Cmd::DeclareSide { side: s as u8 });
             }
             Ok(_) => println!("ev=mod_hook_refused hook=on_check_win"),
-            Err(e) => println!("ev=mod_hook_failed hook=on_check_win error={:?}", e),
+            Err(e) => self.hook_failed(i, "on_check_win", &e),
         }
     }
 
@@ -2439,12 +2666,15 @@ impl ModHost {
         }
     }
 
+    // Runs `event` in every module that has not turned it off: the module's own handler for the event
+    // (its returned table's entry, or its global) and its triggers. An error turns that event off for that module.
     fn emit(&mut self, event: &str, args: Vec<Arg>) -> Result<(), String> {
-        let emits: Vec<StashedFunction> = self.hooks.iter().map(|h| h.emit.clone()).collect();
-        for f in emits {
-            let mut values = args.clone();
-            values.insert(0, Arg::Text(event.to_owned()));
-            self.call(&f, values)?;
+        for (i, f) in self.live_hooks(event, |h| Some(h.emit.clone())) {
+            let mut values = vec![Arg::Table(self.modules[i].handlers.clone()), Arg::Text(event.to_owned())];
+            values.extend(args.iter().cloned());
+            if let Err(e) = self.call(&f, values) {
+                self.hook_failed(i, event, &e);
+            }
         }
         Ok(())
     }
@@ -2474,6 +2704,7 @@ impl ModHost {
                 let values: Vec<Value> = args
                     .into_iter()
                     .map(|a| match a {
+                        Arg::Table(t) => Value::Table(ctx.fetch(&t)),
                         Arg::Int(i) => Value::Integer(i),
                         Arg::Bool(b) => Value::Boolean(b),
                         Arg::Nil => Value::Nil,
@@ -2521,11 +2752,11 @@ impl ModHost {
     // on_skill_up(unit, slot, state) returns true or false. Without the hook a skill-up is allowed, so a
     // mod with no skill rule keeps the engine's plain rank mechanic. A Lua error refuses.
     fn skill_allowed(&mut self, unit: usize, slot: usize) -> bool {
-        let Some(f) = self.hooks.iter().find_map(|h| h.on_skill_up.clone()) else { return true };
+        let Some((i, f)) = self.live_hooks("on_skill_up", |h| h.on_skill_up.clone()).into_iter().next() else { return true };
         match self.call_own(&f, vec![Arg::Int(unit as i64), Arg::Int(slot as i64), Arg::State]) {
             Ok(v) => matches!(v[0], Own::Bool(true)),
             Err(e) => {
-                println!("ev=mod_hook_failed hook=on_skill_up error={:?}", e);
+                self.hook_failed(i, "on_skill_up", &e);
                 false
             }
         }
@@ -2546,20 +2777,20 @@ impl ModHost {
 
     // Answers one item request with the mod's rule. A carry runs the carrier's logic and answers nothing.
     fn answer(&mut self, req: &ItemRequest) -> Option<ItemVerdict> {
-        let hook = self.hooks.iter().find_map(|h| h.on_request.clone());
+        let hook = self.live_hooks("on_request", |h| h.on_request.clone()).into_iter().next();
         match (*req, hook) {
-            (ItemRequest::Acquire { unit, item }, Some(f)) => Some(self.acquire_verdict(&f, unit, item)),
+            (ItemRequest::Acquire { unit, item }, Some((i, f))) => Some(self.acquire_verdict(i, &f, unit, item)),
             (ItemRequest::Acquire { unit, item }, None) => {
                 Some(ItemVerdict::Acquire { unit, item, allow: false, deny: Refusal::NoItem, debit: 0, takes: [NO_TAKE; VERDICT_TAKES] })
             }
-            (ItemRequest::Release { unit, slot }, Some(f)) => Some(self.release_verdict(&f, unit, slot)),
+            (ItemRequest::Release { unit, slot }, Some((i, f))) => Some(self.release_verdict(i, &f, unit, slot)),
             (ItemRequest::Release { unit, slot }, None) => Some(ItemVerdict::Release { unit, slot, allow: false, deny: Refusal::NoItem, credit: 0 }),
-            (ItemRequest::TakeOut { unit, slot }, Some(f)) => Some(self.take_out_verdict(&f, unit, slot)),
+            (ItemRequest::TakeOut { unit, slot }, Some((i, f))) => Some(self.take_out_verdict(i, &f, unit, slot)),
             (ItemRequest::TakeOut { unit, slot }, None) => Some(ItemVerdict::TakeOut { unit, slot, allow: false, deny: Refusal::NoItem }),
-            (ItemRequest::Carry { caster, target }, Some(f)) => {
+            (ItemRequest::Carry { caster, target }, Some((i, f))) => {
                 let args = vec![Arg::Text("carry".to_owned()), Arg::Int(caster as i64), Arg::Int(target as i64), Arg::State];
                 if let Err(e) = self.call(&f, args) {
-                    println!("ev=mod_hook_failed hook=on_request kind=carry error={:?}", e);
+                    self.hook_failed(i, "on_request", &e);
                 }
                 None
             }
@@ -2568,7 +2799,7 @@ impl ModHost {
     }
 
     // on_request("acquire", unit, item, state) returns true, debit, takes or false, reason. A malformed answer or a Lua error refuses.
-    fn acquire_verdict(&mut self, f: &StashedFunction, unit: usize, item: usize) -> ItemVerdict {
+    fn acquire_verdict(&mut self, i: usize, f: &StashedFunction, unit: usize, item: usize) -> ItemVerdict {
         let refuse = |deny| ItemVerdict::Acquire { unit, item, allow: false, deny, debit: 0, takes: [NO_TAKE; VERDICT_TAKES] };
         let items = self.sh.borrow().sim.catalog().items.len();
         match self.call_own(f, vec![Arg::Text("acquire".to_owned()), Arg::Int(unit as i64), Arg::Int(item as i64), Arg::State]) {
@@ -2580,14 +2811,14 @@ impl ModHost {
                 (_, reason, _) => refuse(denial(reason)),
             },
             Err(e) => {
-                println!("ev=mod_hook_failed hook=on_request kind=acquire error={:?}", e);
+                self.hook_failed(i, "on_request", &e);
                 refuse(Refusal::NoItem)
             }
         }
     }
 
     // on_request("release", unit, slot, state) returns true, credit or false, reason.
-    fn release_verdict(&mut self, f: &StashedFunction, unit: usize, slot: usize) -> ItemVerdict {
+    fn release_verdict(&mut self, i: usize, f: &StashedFunction, unit: usize, slot: usize) -> ItemVerdict {
         match self.call_own(f, vec![Arg::Text("release".to_owned()), Arg::Int(unit as i64), Arg::Int(slot as i64), Arg::State]) {
             Ok(v) => match (&v[0], &v[1]) {
                 (Own::Bool(true), credit) => match whole(credit, i64::from(i32::MAX)) {
@@ -2597,21 +2828,21 @@ impl ModHost {
                 (_, reason) => ItemVerdict::Release { unit, slot, allow: false, deny: denial(reason), credit: 0 },
             },
             Err(e) => {
-                println!("ev=mod_hook_failed hook=on_request kind=release error={:?}", e);
+                self.hook_failed(i, "on_request", &e);
                 ItemVerdict::Release { unit, slot, allow: false, deny: Refusal::NoItem, credit: 0 }
             }
         }
     }
 
     // on_request("take_out", unit, slot, state) returns true or false, reason.
-    fn take_out_verdict(&mut self, f: &StashedFunction, unit: usize, slot: usize) -> ItemVerdict {
+    fn take_out_verdict(&mut self, i: usize, f: &StashedFunction, unit: usize, slot: usize) -> ItemVerdict {
         match self.call_own(f, vec![Arg::Text("take_out".to_owned()), Arg::Int(unit as i64), Arg::Int(slot as i64), Arg::State]) {
             Ok(v) => match &v[0] {
                 Own::Bool(true) => ItemVerdict::TakeOut { unit, slot, allow: true, deny: Refusal::NoItem },
                 _ => ItemVerdict::TakeOut { unit, slot, allow: false, deny: denial(&v[1]) },
             },
             Err(e) => {
-                println!("ev=mod_hook_failed hook=on_request kind=take_out error={:?}", e);
+                self.hook_failed(i, "on_request", &e);
                 ItemVerdict::TakeOut { unit, slot, allow: false, deny: Refusal::NoItem }
             }
         }
@@ -2819,6 +3050,8 @@ impl ModHost {
 
 #[derive(Clone)]
 enum Arg {
+    // A module's handler table, the first argument of its emit.
+    Table(StashedTable),
     Int(i64),
     Bool(bool),
     Nil,

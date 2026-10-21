@@ -38,7 +38,7 @@ The host opens the pack editor from its menu (`js/client/pack_editor.js`). It ha
 
 ## Mods
 
-- Each file in `mods` is one Lua chunk. The host runs them in list order in one environment shared by all of them, over the match's sim, so a later chunk sees the globals an earlier one defined. `Game.load_mods` compiles every mod before any takes effect. If one fails, the last set that loaded stays in place and the error comes back to the page.
+- Each file in `mods` is one module, named by its file stem (`hero.lua` is `hero`). A module is a chunk that returns a table of hooks, such as `return { on_died = function(u, s) ... end }`, and may call `require("<module>")` to use another module of the same pack. `require` takes a string literal; a require cycle is an error that names the cycle. Each module runs in its own environment over the match's sim, loads once in require order, and its hooks run in list order. A hook that raises an error is turned off for that module only and the error is logged. A module that fails to load keeps its last-known-good version when it loaded before, else is skipped; `Game.load_mods` reports each failed module and the other modules stay live. A chunk that returns nothing and defines global hooks still works (the old style, for migration), and a global read falls through to the other modules' environments.
 - A load error names the file and line: `<file>:<line>: <message>`.
 - Each chunk must define a global `on_tick(state)`. The host refuses a chunk without one (`<file>: on_tick is not defined`). See Known gaps below.
 - `state` is the host's table of scalar fields, shared by the hooks. `state.ticks` is seeded by the host.
