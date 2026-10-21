@@ -35,6 +35,8 @@ local OPEN = { shop = false, scoreboard = false }
 local EXPANDED = false
 local HORN = nil
 local PEAK = {}
+-- The longest cooldown seen per unit and slot: the sweep's full length for an ability with no rank table.
+local COOLDOWN_FULL = {}
 local HEROES = {}
 local ROSTER = nil
 local LAST = {}
@@ -384,14 +386,22 @@ local function ability_cell(hero, key, abilities)
   if a == nil then return cell({ label(key.key, "faint") }, { tone = "empty" }) end
   local rank = game.skill_rank(hero, key.slot)
   local info = game.skill_info(hero, key.slot)
-  local cost = ability_info(a.name).energy
-  if info ~= nil and info.max_rank > 0 then cost = info.energies[math.max(rank, 1)] end
-  local kids = { label(key.key, "accent"), label(a.name, "strong"), label(tostring(cost), "mp") }
-  if info ~= nil and info.max_rank > 0 then kids[#kids + 1] = label(pips(rank, info.max_rank), "muted") end
+  local ranked = info ~= nil and info.max_rank > 0
+  local kids = { label(key.key, "accent"), label(a.name, "strong") }
+  if ranked then
+    kids[#kids + 1] = label(tostring(info.energies[math.max(rank, 1)]), "mp")
+    kids[#kids + 1] = label(pips(rank, info.max_rank), "muted")
+  end
   local tone = nil
   if a.cooldown > 0 then
     local tenths = math.floor(a.cooldown * 10 / TICKS_PER_SECOND)
     kids[#kids + 1] = label(tostring(math.floor(tenths / 10)) .. "." .. tostring(tenths - 10 * math.floor(tenths / 10)) .. TEXT.cooldownSuffix, "warn")
+    -- Cooldown sweep: the bar is the share of the cooldown still to run (ticks left over ticks in full).
+    local k = tostring(hero) .. ":" .. tostring(key.slot)
+    if a.cooldown > (COOLDOWN_FULL[k] or 0) then COOLDOWN_FULL[k] = a.cooldown end
+    local full = COOLDOWN_FULL[k]
+    if ranked and info.cooldowns[math.max(rank, 1)] ~= nil and info.cooldowns[math.max(rank, 1)] > 0 then full = info.cooldowns[math.max(rank, 1)] end
+    kids[#kids + 1] = bar(math.min(a.cooldown, full), full)
     tone = "muted"
   elseif rank == 0 then
     tone = "faint"
