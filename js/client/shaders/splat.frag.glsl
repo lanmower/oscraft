@@ -33,15 +33,21 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
   vec2 uv0 = xz * uUvScale + layerWarp(xz, 0.0), uv1 = xz * uUvScale + layerWarp(xz, 1.0);
   vec2 uv2 = xz * uUvScale + layerWarp(xz, 2.0), uv3 = xz * uUvScale + layerWarp(xz, 3.0);
   vec3 c0 = texture(uAlb0, uv0).rgb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv1).rgb * uLayerTint[1];
-  vec3 c2 = texture(uAlb2, uv2).rgb * uLayerTint[2]; vec3 c3 = texture(uAlb3, uv3).rgb * uLayerTint[3];
+  vec3 c2 = texture(uAlb2, uv2).rgb * uLayerTint[2];
+  // The rock albedo is toned to the grass layer's mean brightness (rock024 averages 0.48, grass 0.34): 0.7 scale.
+  vec3 c3 = texture(uAlb3, uv3).rgb * uLayerTint[3] * 0.7;
   vec4 d = vec4(texture(uDisp0, uv0).r, texture(uDisp1, uv1).r, texture(uDisp2, uv2).r, texture(uDisp3, uv3).r);
-  vec4 h = w * (d + 0.5);
-  float m = max(max(h.x, h.y), max(h.z, h.w));
-  vec4 b = max(h - (m - uBand), 0.0) * w;
-  float s = b.x + b.y + b.z + b.w;
-  vec3 mixed = (b.x * c0 + b.y * c1 + b.z * c2 + b.w * c3) / max(s, 1e-4);
-  vec3 plain = (w.x * c0 + w.y * c1 + w.z * c2 + w.w * c3) / max(w.x + w.y + w.z + w.w, 1e-4);
-  vec3 base = s > 1e-4 ? mixed : plain;
+  // Ground: grass, dirt and lane, blended by their own control weights and the band on their heights.
+  vec3 g = w.xyz;
+  vec3 gh = g * (d.xyz + 0.5);
+  float gm = max(gh.x, max(gh.y, gh.z));
+  vec3 gb = max(gh - (gm - uBand), 0.0) * g;
+  float gs = gb.x + gb.y + gb.z;
+  vec3 ground = gs > 1e-4 ? (gb.x * c0 + gb.y * c1 + gb.z * c2) / gs : (g.x * c0 + g.y * c1 + g.z * c2) / max(g.x + g.y + g.z, 1e-4);
+  // Cliff: only cells whose rock channel is set take rock. The cutaway edge is biased by the rock024 height, and a flat
+  // cell (rock channel 0) stays at 0 whatever its height, so rock never wins on flat ground.
+  float rw = clamp((w.w - 0.5) * 4.0 + (d.w - 0.5) * 0.8 + 0.5, 0.0, 1.0);
+  vec3 base = mix(ground, c3, rw);
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(n0), light), 0.0);
   float lit = uShade.x + uShade.y * diffuse * sunShadow(vec3(xz.x, y, xz.y), n0);
