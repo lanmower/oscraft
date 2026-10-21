@@ -238,7 +238,7 @@ const SUN_DIR = (() => { const s = [0.4, 1, 0.6]; const n = Math.hypot(...s); re
 const SHADOW_UNIT = 9;
 const SHADOW_DISTANCE = 400;
 // Unit-to-sun shadow sampling shared by the lit programs.
-const SHADOW_GLSL = `// Directional sun shadow from the shadow map: 3x3 percentage-closer filter with a slope-scaled bias. Outside the map,
+const SHADOW_GLSL = `// Directional sun shadow from the shadow map: bilinear percentage-closer filter with a slope-scaled bias. Outside the map,
 // and in the shadow pass itself (uShadowOn 0), the surface is lit.
 uniform mat4 uLightVP; uniform sampler2D uShadow; uniform float uShadowOn; uniform float uShadowTexel;
 float sunShadow(vec3 w, vec3 n) {
@@ -249,14 +249,16 @@ float sunShadow(vec3 w, vec3 n) {
   vec3 sun = vec3(0.4, 1.0, 0.6) / length(vec3(0.4, 1.0, 0.6));
   float facing = clamp(dot(normalize(n), sun), 0.0, 1.0);
   float bias = max(0.0009 * (1.0 - facing), 0.00025);
-  float lit = 0.0;
-  for (int y = -1; y <= 1; y++) {
-    for (int x = -1; x <= 1; x++) {
-      float d = texture(uShadow, s.xy + vec2(float(x), float(y)) * uShadowTexel).r;
-      lit += (s.z - bias > d) ? 0.0 : 1.0;
-    }
-  }
-  return lit / 9.0;
+  // Bilinear PCF: compare the four texels around s and blend by s's fractional position in the texel grid.
+  vec2 t = s.xy / uShadowTexel - 0.5;
+  vec2 f = fract(t);
+  vec2 c = (floor(t) + 0.5) * uShadowTexel;
+  float r = s.z - bias;
+  float a = (r > texture(uShadow, c).r) ? 0.0 : 1.0;
+  float b = (r > texture(uShadow, c + vec2(uShadowTexel, 0.0)).r) ? 0.0 : 1.0;
+  float e = (r > texture(uShadow, c + vec2(0.0, uShadowTexel)).r) ? 0.0 : 1.0;
+  float g = (r > texture(uShadow, c + vec2(uShadowTexel)).r) ? 0.0 : 1.0;
+  return mix(mix(a, b, f.x), mix(e, g, f.x), f.y);
 }
 `;
 
