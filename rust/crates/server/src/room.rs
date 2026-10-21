@@ -715,6 +715,29 @@ fn run_ticker(room: &Room, budget: Duration) {
     }
 }
 
+#[cfg(all(test, feature = "server-tests"))]
+mod swap_rebuild_tests {
+    use super::*;
+
+    // A data swap rebuilds the running match: replaying the recording onto fresh data reaches the live tick, and with
+    // the same data the rebuilt sim's state equals the live one.
+    #[test]
+    fn rebuilt_swap_reaches_the_live_tick_and_state() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let mut live = crate::mods::load_data(&scenario, 64).expect("live sim");
+        live.set_fog(false);
+        let mut rec = crate::replay::Recording::new("duel-routes", 64, &live);
+        for _ in 0..200 {
+            rec.tick(&mut live, false, false);
+        }
+        let mut fresh = crate::mods::load_data(&scenario, 64).expect("fresh sim");
+        fresh.set_fog(false);
+        rebuild_by_replay(&mut rec, &live, &mut fresh).expect("rebuild");
+        assert_eq!(fresh.ticks(), live.ticks());
+        assert_eq!(fresh.state_hash(), live.state_hash());
+    }
+}
+
 #[cfg(test)]
 mod carry_tests {
     use super::*;
