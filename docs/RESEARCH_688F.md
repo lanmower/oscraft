@@ -1,5 +1,7 @@
 # 6.88f proxy map data analysis
 
+> Historical: this note describes the MOBA-era design (the 6.88 reference map work). It is kept for the record, not as a description of the current generic engine.
+
 Source label: every value taken from the reference proxy repository (owner BEN-HUR5, repo name withheld) is labelled "6.88f proxy". The 6.88g archive (wc3maps.com) is behind a Cloudflare challenge and returns 403, so the proxy is the only reachable copy. Our values come from `scenarios/moba/*` in this repository (reference ruleset npc dump at SteamDatabase tracking repo @282fad29f0f74504fad465c52d197fb61f4d612b).
 
 Read method: `gh api repos/<proxy-owner>/<proxy-repo>/contents/<path>?ref=main` with the raw media type, parsed into scratch storage outside the repository.

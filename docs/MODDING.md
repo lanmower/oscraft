@@ -1,350 +1,102 @@
-# Modding: the Lua mod API
+# Packs and the Lua mod API
 
-A mod is one Lua chunk run by the mod host (`rust/crates/mod-host`). It reacts to events,
-registers triggers, and queues commands on the game. Mods use only the names below. The browser
-host runs them on piccolo, the only Lua runtime.
+The engine is generic. A game is a pack: a directory, a `.tar.gz` or a `.zip` with a `manifest.json` at its root. A pack holds its Lua mods, its data (`.osd`, `.json`, `.txt`, `.tsv`), the compiled map image and its assets. Nothing in the engine names a genre. `scenarios/moba` and `scenarios/duel-routes` are two packs that the same engine reads.
 
-Example mods: `mods/unit_bounty_example.lua`, `mods/structure_buff_example.lua`, `mods/waves_example.lua` (timer, region, variables,
-score, defeat), `mods/custom_spell.lua` (ability, gold, victory), `mods/custom_unit.lua` (unit),
-`mods/custom_item.lua` (item, buy, inventory), `mods/upgrade_tree_example.lua` (upgrades), `mods/killer.lua`
-(killer attribution, clock) and `mods/unit_queries.lua` (cooldown and ability queries, clock). CI
-runs them with `mod_check` and asserts the `mod-state` line they print. `mods/moba_match.lua` is the MOBA
-match mod (lane waves and kill gold in one file), described in [The MOBA match mod](#the-moba-match-mod-modsmoba_matchlua).
+The browser is the only build. `rust/crates/web` compiles the sim and the mod host to wasm, and the mod host runs the pack's Lua on piccolo (`rust/crates/mod-host`, feature `piccolo`), the only Lua runtime.
 
-## The file contract
+## Loading a pack
 
-- The chunk must define a global `on_tick(state)`. The host refuses a mod without it.
-- `state` is the host-owned table that persists across reloads. A mod may write fields to it.
-- Errors name the mod file and line: `<path>:<line>: <message>`.
-- Mod code runs under an instruction and memory budget. A call over either stops with
-  `instruction_limit` or `memory_limit`, and a script cannot catch those to keep running.
+- The page opens `play.html?package=<dir or archive>`. The default is `scenarios/moba` (`js/client/pack_load.js`). A directory, a `.tar.gz`/`.tgz` and a `.zip` go through the same reader.
+- The page reads only the paths the manifest names.
+- A pack holds no code the page runs. A `.js`, `.mjs`, `.cjs`, `.html`, `.wasm`, `.ts` or `.map` path is refused on load, on edit and on transfer.
+- `node scripts/pack-package.mjs <pkg-dir> <out-dir> [--build]` writes `<name>-<version>.tar.gz`. `--build` runs `mapexport` first, so the manifest's image is in the archive.
 
-## Events
+### Manifest
 
-A mod handles an event by defining a global function of the same name, or by registering a
-trigger on it. Both receive the same arguments. The host queues events in the step that sees them.
-
-| Event | Arguments | When |
-|---|---|---|
-| `on_spawned` | `unit` | a unit appears in the sim |
-| `on_attacked` | `unit` | a unit's hit points fall |
-| `on_died` | `unit, killer, killer_player, bounty, victim_player, killer_hero` | a unit goes from alive to dead; `killer` and `killer_player` are the unit and owner credited with the death, or `nil` when nothing is; `bounty` is the victim's `game.unit_bounty`; `victim_player` is the victim's owner; `killer_hero` is `true` when the killer is a hero |
-| `on_enter` | `region, unit` | a unit enters a named region |
-| `on_leave` | `region, unit` | a unit leaves a named region |
-| `on_player_joined` | `player` | the host reports a player joining (the host calls it, not the sim) |
-| `on_tick` | `state` | once per step, after the events above and the systems |
-
-`unit` is a unit handle (an integer). A dead unit is still a valid handle for `on_died`:
-`unit_player` and `game.unit_kind` accept it.
-
-`list_events()` returns this table at runtime, with the same names.
-
-**Contract change (on_died from a live room).** A live room feeds its own payable deaths to the mod's
-`on_died` (only while the mod sets `GOLD_BY_MOD = true`, which hands kill gold to the mod). In that feed the
-unit, killer and player arguments are the room's unit ids and owners, not the mod world's, and `bounty`,
-`victim_player` and `killer_hero` come from the room's sim. Only deaths the room pays are fed: a bounty
-above 0 that no denial (an allied unit landed the blow) cancels. Attackerless deaths arrive with
-`killer` and `killer_player` set to `nil`. Commands the handlers queue are applied by the room to its own sim,
-so `cmd_add_unit_gold` takes a room hero id there. The mod's own world still fires `on_died` for its own deaths
-with the same six arguments, and its gold stays in that world. A mod that uses only the first three
-arguments keeps working in both.
-
-## Triggers
-
-A trigger fires on one event. It has conditions and actions, WC3 style:
-
-```lua
-game.trigger("on_died", {
-  conditions = { function(unit) return game.unit_kind(unit) == "creep" end },
-  actions = { function(unit) --[[ ... ]] end },
-  -- action = f is a shorthand that appends one action.
-})
-```
-
-- `game.trigger(event, spec)` registers the trigger and returns its index on that event.
-  `event` must be one of the names in the Events table, or the call fails with `unknown_event`.
-  A trigger with no action fails with `invalid_trigger`.
-- Every condition must return a truthy value for the actions to run. Conditions run in order and
-  stop at the first falsy one.
-- Actions run in order, each with the event's arguments.
-- Triggers run after the mod's own global event function of the same name.
-- Triggers register at load time, usually at the top level of the chunk.
-
-## Game object
-
-All game calls are fields of the global `game`. Positions are Q16.16 fixed point (a whole tile
-coordinate `n` is `n * 65536`); values outside the i32 range are refused.
-
-### Commands
-
-Commands queue during a step and apply in the next step's command phase. A command issued from
-an event or trigger therefore takes effect one step later.
-
-| Call | Effect |
-|---|---|
-| `game.cmd_spawn(kind, x, y, owner, lane)` | spawn a unit of catalog name `kind` at `x, y` for player `owner` (default 0) in `lane` (default 0); returns its handle. Unknown kinds fail with `unknown_unit`. |
-| `game.cmd_order(unit, x, y)` | move `unit` to `x, y` |
-| `game.cmd_attack(attacker, target)` | attack `target` with `attacker` |
-| `game.cmd_damage(caster, target, dmg)` | deal `dmg` to `target` (i32) |
-| `game.cmd_buff(unit, kind, ticks)` | give `unit` the behaviour kind `kind` for `ticks` (positive i32) |
-| `game.cmd_cast(unit, slot, target, x, y)` | cast ability `slot` at a unit (`target`) or a point (`target = -1`) |
-| `game.cmd_skill_up(unit, slot)` | spend a skill point on ability `slot` (0..ABILITY_SLOTS); the sim refuses it without a point or at max rank |
-| `game.cmd_set_owner(unit, player)` | move `unit` to `player` (0..MAX_PLAYERS) |
-| `game.cmd_set_fog(on)` | turn fog of war on or off (a boolean) |
-| `game.set_team(player, team)` | put `player` on `team` (both 0..MAX_PLAYERS); players on one team are allied |
-| `game.alliance(a, b, kind)` | relate players `a` and `b` as `"enemy"`, `"ally"` or `"vision"` (allied with shared sight), both ways. Without `kind` it returns the current relation. |
-| `game.add_player(slot, controller)` | seat `"human"`, `"computer"` or `"open"` in player slot `slot` |
-| `game.remove_player(slot)` | empty `slot`: it becomes open, takes a team of its own and drops every alliance and shared sight; its units stay |
-| `game.cmd_grant_upgrade(player, name)` | complete upgrade `name` for `player` at no cost and time (see Upgrades) |
-| `game.cmd_order_handle`, `game.cmd_damage_handle`, `game.cmd_buff_handle` | the same commands, taking handles from `cmd_spawn` |
-
-Unit arguments of the commands must be living units when the command is queued. A dead or unknown
-handle fails the queueing call, not the step.
-
-### Queries
-
-| Call | Returns |
-|---|---|
-| `game.units(player)` | the living unit handles, in index order. Pass a player id to keep only that player's units, or `nil` for all. |
-| `game.players()` | a list of `{id, units, team, controller}` rows, one per player slot, with the count of living units each owns. |
-| `game.team(player)` | the team number of `player` |
-| `game.unit_kind(unit)` | the catalog name of the unit, or `nil`. Works on dead units. |
-| `game.unit_bounty(unit)` | the gold the unit is worth when destroyed: a hero's level-scaled bounty, or the catalog bounty of other units. `0` for no bounty. Read-only. |
-| `game.rival_of(player)` | the first player slot hostile to `player`, or `nil` when none is. Read-only. |
-| `game.time()` | the game clock: `ticks, seconds` since the match began (16 ticks to the second) |
-| `game.unit_cooldown(unit, slot)` | ticks left on ability `slot` of `unit`; 0 when ready |
-| `game.unit_level(unit)` | the unit's level in the sim's experience table (heroes gain levels). Read-only. |
-| `game.unit_abilities(unit)` | the unit's abilities as `{slot, name, cooldown}` rows, empty slots left out |
-| `game.unit_items(unit)` | the unit's inventory as `{slot, name, count, cooldown}` rows (the item's active ability cooldown), empty slots left out |
-| `game.each(comps, fn)` | runs `fn` over every living unit now, with a view of the named components |
-| `game.system(name, comps, fn)` | registers `fn` to run over every living unit each step. Names must be unique. |
-
-The host also provides these global functions, which are not in `game`:
-`unit_position`, `unit_hp`, `unit_player`, `unit_alive`, `get_unit_count`, `in_region`,
-`define_region`, `spawn_unit`, `order_unit`, `order_player`, `damage_unit`, `order_attack`,
-`buff_unit`, `map_size`, `schedule`, `cancel`, `list_abilities`, `ability_info`, `list_events`,
-`edit_terrain`, `set_tile`, `list_doodads`, `place_doodad`, `remove_doodad`.
-
-### Timers
-
-`game.timer(name, delay, action[, period])` runs `action()` after `delay` ticks (at least 1), and
-every `period` ticks after that when `period` is given. A timer of the same name is replaced.
-`game.cancel_timer(name)` stops it, also from inside its own action, and returns whether it was live.
-At most 256 timers. The older `schedule(name, delay, fn)` and `cancel(name)` are the one-shot form.
-
-### Regions
-
-`game.region(name, x0, y0, x1, y1[, {enter = f, leave = g}])` defines a named rectangle and
-registers `f(unit)` for `on_enter` and `g(unit)` for `on_leave` on it. `game.region_units(name)`
-returns the living units inside it now. At most 64 regions. `in_region(name, x, y)` tests a point.
-`game.map_size()` returns the map width and height as `width, height` in the fixed-point units `unit_position` uses (cells times 65536), so `map_size() - unit_position` is a valid mirror.
-
-### Variables and score
-
-Variables hold a number, string or boolean under a string key and survive a mod reload.
-Called with a value they set it, called without they read it (`nil` clears it).
-
-| Call | Scope |
-|---|---|
-| `game.var(key[, value])` | the whole game |
-| `game.player_var(player, key[, value])` | one player slot |
-| `game.unit_var(unit, key[, value])` | one unit handle (dead units keep theirs) |
-| `game.add_score(player, n)` / `game.score(player)` | a per-player tally the mod owns; it is not part of the sim state |
-
-### Abilities
-
-`game.ability(name, spec)` defines an ability in the catalog (or redefines the one of that name) and
-returns the name. `name` is a lowercase identifier. `spec` has `cooldown` and `energy` (ticks and
-points), `target` (`"none"`, `"unit"` or `"point"`), `filter` (unit filter mask) and `effects`, a
-list of `{kind = ...}` entries:
-
-| kind | fields |
-|---|---|
-| `damage`, `heal` | `amount`, `radius` (milli-units, 0 = the target only) |
-| `move` | `range` (milli-units) |
-| `buff` | `buff` (behaviour kind), `ticks` |
-| `spawn` | `unit` (catalog name), `dx`, `dy` (milli-units from the caster) |
-
-`game.cmd_give_ability(unit, slot, name)` puts the ability in a slot of a living unit; cast it
-with `game.cmd_cast`. An unknown kind fails with `unknown_effect`, a bad name with `invalid_ability`.
-
-### Units
-
-`game.unit(name, spec)` defines a unit kind in the catalog (or redefines the one of that name; units
-already alive keep the stats they spawned with) and returns the name. `name` is a lowercase
-identifier. `spec` fields, all numbers unless noted:
+`scenarios/moba/manifest.json` is the reference. Its fields:
 
 | field | meaning |
 |---|---|
-| `health` | hit points, whole units; required, above 0 |
-| `speed`, `radius`, `sight` | milli-units per tick, milli-units, milli-units (defaults 0, 500, 8000) |
-| `armor`, `shield` | whole units |
-| `cost` | gold the unit costs to train |
-| `bounty` | gold paid to the killer |
-| `filter` | unit filter mask (default 1, ground) |
-| `model` | model file the renderer draws it with (string) |
-| `weapon` | `{damage, range, period}`: whole units, milli-units, ticks (defaults 0, 1000, 16) |
-| `abilities` | list of ability names, at most 8, each already defined |
+| `schema` | must be `1` |
+| `name`, `version` | identity |
+| `map` | the map file `mapexport` reads |
+| `data` | the `.osd` files that compile into the image |
+| `image` | the compiled image, written by `mapexport <pack-dir> <pack-dir>/<image>` |
+| `mods` | the Lua files, in load order |
+| `rules` | a `key=value` text file; `game.rule(key)` reads it |
+| `tables`, `fixtures` | data tables and test fixtures |
+| `ui`, `effects` | JSON the page reads for controls and display |
+| `assets` | texture, model and catalogue paths, under `assets.root` |
 
-Spawn it with `game.cmd_spawn(name, x, y)`. A bad name or stat fails with `invalid_unit`.
+## Editing and sharing a pack
 
-### Items
+The host opens the pack editor from its menu (`js/client/pack_editor.js`). It has a file tree, a text editor for `.lua .osd .json .txt .tsv`, a drop zone for asset files, Save, and a `download pack (.zip)` link.
 
-`game.item(name, spec)` defines an item (or redefines the one of that name) and returns its catalog
-index, the number `game.cmd_buy(unit, item)` takes. `spec` has `cost`, the stat bonuses `armor`,
-`damage` and `health` (added to the holder when the item enters the inventory) and `ability`, the
-name of an already defined ability the item casts with `game.cmd_use_item`. A bad name or an
-unknown ability fails with `invalid_item`. Buying needs gold in the player pool and a shop in reach.
+- Only the host edits. A peer sees the same pack read-only.
+- Save sends each changed file to every peer as `PACK_FILE` frames (`pack_sync.js`). A file over 256 KiB travels by reference: the peer asks for it with `PACK_WANT`, by content hash.
+- A peer applies only the frames from the host.
 
-### Upgrades and tech trees
+## Mods
 
-`game.upgrade(name, spec)` defines an upgrade, a research a building runs, and returns the name.
-`spec` has `building` (the unit kind that researches it, required), `time` (ticks), `cost` and
-`gas`, `effect` (one `{kind = ...}` entry, required), `filter` (unit filter mask the effect applies
-to, 0 for every unit of the player), `requires` (upgrade names that must be complete first) and
-`unlocks` (unit kinds that cannot be trained until it is complete). The effect reaches the player's
-living units when the research completes and every matching unit built after.
-`game.cmd_grant_upgrade(player, name)` completes it for `player` at once, with no cost and no
-prerequisite check. Upgrade effects add to the receiving unit; besides the ability kinds there are
-`shield` (`amount`) and `stat` (`stat` is `damage`, `armor`, `health`, `speed` or `range`; `amount`
-in whole units, milli-units for `speed` and `range`). Both kinds work in abilities too. An unknown
-upgrade fails with `unknown_upgrade`, a bad definition with `invalid_upgrade`.
+- Each file in `mods` is one Lua chunk. The host gives each chunk its own environment over the match's sim, and runs them in list order. `Game.load_mods` compiles every mod before any takes effect. If one fails, the last set that loaded stays in place and the error comes back to the page.
+- A load error names the file and line: `<file>:<line>: <message>`.
+- Each chunk must define a global `on_tick(state)`. The host refuses a chunk without one (`<file>: on_tick is not defined`). See Known gaps below.
+- `state` is the host's table of scalar fields, shared by the hooks. `state.ticks` is seeded by the host.
+- A hook call runs under a budget of 2,500 VM steps. Over it, the call fails with `instruction_limit`.
+- Mod code has no file, network or OS access. The globals are `pcall`, `error`, `assert`, `type`, `tostring`, `tonumber`, `select`, `pairs`, `ipairs`, `next`, `math`, plus the `game` table and the host globals listed in [SCRIPTING.md](SCRIPTING.md).
 
-### Match result and gold
+## Hooks
 
-| Call | Effect |
-|---|---|
-| `game.victory(player)` | the team of `player` wins (command) |
-| `game.defeat(player)` | `player` loses: the team of its first hostile player wins (command) |
-| `game.winner()` | the winning team, or `nil` while the match runs |
-| `game.cmd_add_gold(player, n)` | add `n` (negative takes) to the player's gold pool |
-| `game.cmd_add_unit_gold(unit, n)` | the same for a hero unit's own gold |
-| `game.cmd_set_respawn(unit, s \| false)` | the respawn decision for a dead unit: seconds until it comes back at its home, or `false` to leave it dead. A dead hero keeps the engine timer until a mod sets one; `on_unit_died` returns the same value. A buyback is `cmd_add_unit_gold(unit, -cost)` then `cmd_set_respawn(unit, 0)` |
-| `game.gold(player)`, `game.unit_gold(unit)` | read them |
+A mod defines a hook as a global function. The engine calls each one that exists, in load order.
 
-The first winner stands; a later `victory` or `defeat` changes nothing.
-
-### Client UI and cinematics
-
-| Call | Effect |
-|---|---|
-| `game.message(player, text[, seconds])` | a line in the message log; `player` -1 reaches everyone; default 5 s |
-| `game.banner(text[, seconds])` | a large centred banner; default 4 s |
-| `game.panel(id, {title, text[, player]})` | a text panel keyed by `id`; calling again replaces it, `game.panel(id)` removes it |
-| `game.camera(player, x, y[, zoom[, seconds]])` | glide the render3d camera to the Q16.16 point at `zoom` (1 = default distance) over `seconds` (default 1) |
-| `game.sound(name)` | emit a sound event only; the client hook `onSound(name)` plays it |
-
-These queue commands like `game.victory`. The room stamps each with an id and tick and keeps the last 256.
-`GET /events?since=<id>` returns `{"seq":N,"events":[{"id","tick","kind",...}]}`; `js/client/modui.js` polls it
-when the client page is opened with `?events=<server origin>` and draws the log, banners, panels and camera moves.
-In-browser hosts call `window.__modUi.push(event)` with the same objects.
-
-### Key bindings, panels and HUD text (client)
-
-The MOBA controls read `js/client/moba_ui.json`: the key for each action (`keys`), the double-tap window, the
-team of each player slot (`teams`) and every HUD string (`text`, `{name}` placeholders). Replacing that file
-replaces the defaults.
-
-| Event (`GET /events` or `push`) | Effect |
-|---|---|
-| `{kind="bind", key="f", action="stop"}` | `f` runs the built-in action `stop` (also `attackMove`, `hold`, `scoreboard`, `shop`) |
-| `{kind="bind", key="f", action="<name>"}` | `f` dispatches `moba:action` with `{action: "custom", name: "<name>"}` for a mod's own listener |
-| `{kind="unbind", key="f"}` | removes a runtime bind |
-
-Key handling lives in `js/client/moba_input.js`; panels react to window events `moba:action` (`detail.action`
-is `shop`, `scoreboard`, `custom` or a built-in name). A mod that adds a panel listens for those events and draws
-its own DOM with `data-ui="<name>"` so clicks on it are not taken as ground clicks. The Lua call that emits
-`bind` and `unbind` (`game.bind`, `game.unbind`) is not in the Lua host yet; the client side accepts the events.
-A runtime change to the layer's settings: `window.dispatchEvent(new CustomEvent("moba:config", {detail: {...}}))`.
-
-## The MOBA match mod: `mods/moba_match.lua`
-
-One file carries the lane waves and the kill gold of the MOBA scenario. It has one `on_tick` and one
-`on_died` trigger. It uses the API above and the host globals `unit_position`, `unit_player` and `unit_alive`.
-
-Waves. Each `lane_spawner_top`, `lane_spawner_mid` and `lane_spawner_bot` unit sends creeps on the lane for its side.
-Top and bottom spawners send a wave every 480 ticks: three `creep` and one `creep_ranged`, at x offsets 0, 0.7, 1.4
-and 2.1 tiles. Mid sends no creep waves. Every lane spawner runs three siege timers, starting at ticks 4800, 28800
-and 57600, each repeating every 4800 ticks and spawning one `creep_siege`. A wave unit's kind follows the towers:
-`_super` once the enemy tower mirrored through the map centre is dead, `_mega` once every enemy tower is dead,
-otherwise the base kind. Dead towers keep their slot, so the mirror lookup still finds them. `on_tick` writes the
-counters `state.waves_total`, `waves_base`, `waves_super`, `waves_mega`, `waves_creep`, `waves_creep_ranged`,
-`waves_siege` and `waves_siege_upgraded` (the super and mega siege units together).
-
-Gold. `on_died` pays a unit whose `game.unit_bounty` is above 0.
-
-- A killer other than the dead unit: `bounty * 20 // 100` goes to `game.cmd_add_gold(killer_player, share)`, and the
-  rest to `game.cmd_add_unit_gold(killer, bounty - share)`.
-- No killer, or the unit killed itself: `game.rival_of(unit_player(unit))` gets the whole bounty through
-  `game.cmd_add_gold`, when the player has a rival.
-
-Commands from a trigger apply one step later. The team share is hard-coded: `TEAM_SHARE_PCT = 20` in the file. The
-Lua API does not expose `hero_rules`, so `team_share_pct` in `hero_rules.txt` does not change this mod.
-
-The `gold_by_mod` flag. It is a sim field (default off, saved and hashed) that makes the Rust kill payout in
-`pay_bounty` (`rust/crates/sim/src/combat.rs`) return before it pays, so with the flag on the mod is the only payer.
-A mod declares the top-level global `GOLD_BY_MOD = true`. Live rooms do not apply it: the room keeps the Rust
-payout, and the replay header carries `gold_by_mod 1` only when a room sets the flag itself. The Lua payout only
-sees kills in the mod's own world (`ModHost`), which the room does not feed.
-
-Known gaps:
-
-- A denied kill (an allied unit landed the blow) pays here. The Rust path skips it, and the mod cannot read denial.
-
-## Gap list against the map-editor modding of earlier RTS and arena games
-
-Status: done (in the API), partial (a piece exists), missing (not in the API).
-
-| Capability | Status | How |
+| hook | arguments | returns / effect |
 |---|---|---|
-| Events (unit spawn, attacked, died, enter, leave, player joined) | done | Events table, `game.trigger` |
-| Triggers with conditions and actions | done | `game.trigger` |
-| Timers, one-shot and periodic | done | `game.timer`, `game.cancel_timer` |
-| Regions with enter and leave events | done | `game.region`, `on_enter`, `on_leave` |
-| Variables, global, per player, per unit | done | `game.var`, `game.player_var`, `game.unit_var` |
-| Custom abilities with effects | done | `game.ability`, `game.cmd_give_ability` |
-| Victory and defeat | done | `game.victory`, `game.defeat`, `game.winner` |
-| Player gold and score | done | `game.cmd_add_gold`, `game.cmd_add_unit_gold`, `game.add_score` |
-| Items: buy, sell, use | done | `game.cmd_buy`, `cmd_sell`, `cmd_use_item` |
-| Fog of war toggle | done | `game.cmd_set_fog` |
-| Terrain, tiles, doodads placement | done | `edit_terrain`, `set_tile`, `place_doodad`, `remove_doodad` |
-| Spawn, order, attack, damage, buff, ownership | done | `game.cmd_*` |
-| Persistent state across reload | done | `state`, the variable stores |
-| Custom units (stats, weapons) | done | `game.unit`, `mods/custom_unit.lua` |
-| Custom items | done | `game.item`, `mods/custom_item.lua` |
-| Upgrades and tech trees | done | `game.upgrade`, `game.cmd_grant_upgrade`, `mods/upgrade_tree_example.lua` |
-| Teams, alliances, shared vision | done | `game.team`, `game.set_team`, `game.alliance`, `mods/team_rules_example.lua` |
-| Player slots: create, remove, controller type | done | `game.add_player`, `game.remove_player`, `game.players` |
-| Per-unit and per-player resource other than gold | missing | `resource_b` has no mod call |
-| Killer attribution in `on_died` | done | `on_died(unit, killer, killer_player)`, `mods/killer.lua` |
-| Unit and ability queries (hp, position, abilities of a unit) | done | `unit_hp`, `unit_position`, `game.unit_cooldown`, `game.unit_abilities`, `game.unit_items`, `mods/unit_queries.lua` |
-| Game clock query | done | `game.time`, `mods/killer.lua`, `mods/unit_queries.lua` |
-| Cinematics, camera moves | partial | `game.camera`, `game.banner`, streamed by `GET /events`, applied by `js/client/modui.js`; no letterbox |
-| UI messages, banners, text panels, sounds | partial | `game.message`, `game.banner`, `game.panel`, `game.sound` (event only), `mods/ui_demo.lua`; no multiboards or dialogs |
-| AI scripts for computer players | partial | behaviours in the catalog and `game.system` per-unit logic; no player-level AI hook |
-| Save and load game data across matches | missing | state ends with the match |
-| Asset import (models, sounds) | missing | the scenario build owns assets |
+| `on_tick` | `state` | once per step, after the events and the systems. Required. |
+| `on_spawned` | `unit` | a unit appears |
+| `on_attacked` | `unit` | a unit's hit points fall |
+| `on_died` | `unit, killer, killer_player, bounty, victim_player, killer_hero` | a unit dies; `killer` and `killer_player` are `nil` for an attackerless death |
+| `on_enter`, `on_leave` | `region, unit` | a unit enters or leaves a region from `define_region` |
+| `on_player_joined` | `player` | the host reports a seat taken |
+| `on_unit_died` | `unit, state` | returns the respawn seconds, `false` to leave the unit dead, or `nil` for the engine's timer |
+| `on_cast` | `caster, ability, state` | an ability is cast |
+| `on_hit` | `attacker, victim, dealt, state` | a hit lands |
+| `on_march` | `unit, player, state` | a unit with no destination asks for a point; return `x, y` in fixed point to order it there |
+| `on_check_win` | `state` | returns the side that wins, or `nil`/`false` for none |
+| `target_priority` | `unit, {target}, state` | returns a target class, or `nil`/`true` to keep the default |
+| `on_request` | `kind, unit, item, state` | item rule; `kind` is `acquire`, `release`, `take_out` or `carry`; returns true, or false and a reason |
+| `on_skill_up` | `unit, slot, state` | returns `true` to raise the rank, `false` to refuse |
+| `on_action` | `name, args, state` | called by the page's `dispatch_action(name, args)` |
+| `on_pointer` | `kind, x, y, button, state` | called by the page's `pointer(kind, x, y, button)`; `kind` is `down`, `up` or `move`; `x, y` are tile coordinates |
 
-## Backends
+`on_died` receives `killer_hero` as its sixth argument. A trigger registered with `game.trigger` runs after the global of the same name.
 
-- piccolo (browser host, `rust/crates/mod-host`): the event names (`EVENTS` in `rust/crates/mod-host/src/lib.rs`,
-  with the killer arguments of `on_died`), triggers, the `game` command table, `game.time`,
-  `game.unit_cooldown`, `game.unit_abilities` and `game.unit_items`, and the `game.unit`, `game.item`,
-  `game.upgrade` and `game.ability` definitions.
+## The page's entry points
 
-## Limits
+These are methods of the wasm `Game` (`rust/crates/web/src/lib.rs`). The page calls them; mods do not.
 
-- One step is one `advance`. A trigger or event that runs over the budget stops the step with
-  `instruction_limit`.
-- A mod has no file, network or OS access. The base library is the set copied into each
-  environment: `pcall`, `xpcall`, `error`, `assert`, `type`, `tostring`, `tonumber`, `select`,
-  `pairs`, `ipairs`, `next`, plus the host globals above.
+| method | what it does |
+|---|---|
+| `load_mods(json)` | loads `[{name, text}, ...]` in manifest order; returns `""` or the error |
+| `dispatch_action(name, args)` | runs `on_action` of each mod; `args` is a JSON string |
+| `pointer(kind, x, y, button)` | runs `on_pointer` of each mod |
+| `drain_ui()` | returns the UI objects queued since the last call, as a JSON array: `game.ui_event`, `camera`, `message`, `banner`, `panel`, `sound` |
+| `drain_effects()` | returns the display effects queued by `game.effect`, as a JSON array |
 
-## Asset pipeline: making models and textures load fast
+The page renders what it drains and decides nothing about it. Controls, key bindings and HUD text are pack data: the manifest's `ui` file and the mods that read it.
 
-A mod that ships GLB models or PNG and JPEG textures can run `scripts/assets/prep-ktx.mjs` to add lossless
-meshopt geometry and KTX2 textures. It needs the KTX-Software `toktx` binary, which is not in this repository.
-See [docs/ASSET_PIPELINE.md](ASSET_PIPELINE.md) for the download, the exact commands, and how to verify an output.
+## Checking a mod offline
+
+`mod_check [--fog on|off] <pack-dir> <mod.lua> [ticks]` builds the pack's image, loads one mod into it, runs the ticks (default 100), and prints one `mod-check` line. It exits 0 when the mod loads and every tick runs. Build it with `cargo build -p mod-host --bin mod_check`. Fog of war is on unless `--fog off`.
+
+`oscraft-lsp` gives editors diagnostics for `.osd` and `.lua` files over stdio.
+
+## Examples and gaps
+
+`mods/` holds example mods. Seven of them (`waves_example`, `killer`, `custom_unit`, `upgrade_tree_example`, `unit_queries`, `custom_item`, `custom_spell`) use names piccolo does not bind yet: `game.var`, `game.player_var`, `game.unit_var`, `game.region`, `game.region_center`, `game.score` and `game.add_score`. They do not load under piccolo until those names are bound. The moba pack (`scenarios/moba/*.lua`) is the working reference, and it uses only bound names.
+
+## Known gaps
+
+- `scenarios/moba/manifest.json` lists helper files that define no `on_tick` (`hero.lua`, `camp.lua`, `win.lua`, and others), while `protection.lua` defines the moba `on_tick`. Under the rule above the host refuses those helpers, so the moba pack does not load as listed until the host and the manifest agree on one `on_tick` rule.
 
 ## Debugging
 

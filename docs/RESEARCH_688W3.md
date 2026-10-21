@@ -1,5 +1,7 @@
 # reference map 6.88w3 map research
 
+> Historical: this note describes the MOBA-era design (the 6.88 reference map work). It is kept for the record, not as a description of the current generic engine.
+
 Source: "reference map 6.88w3" (internal version string "reference map 6.88w3", from refmap.wts STRING 50000). File: `reference map 6.88w3.w3x`, 22,729,587 bytes. Every value below is from this map unless it names a repo file.
 
 Extracted files live only under `/tmp/w3map` (not in the repo). Parsers: `/tmp/w3scripts`.

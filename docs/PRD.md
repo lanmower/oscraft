@@ -10,7 +10,9 @@ Status is as of main `62af78b0`. Each row names its acceptance witness: the line
 - **D4. Superseded CI runs.** Concurrency now cancels the older run on the same ref. Superseded shas get no verdict; the tip does.
 - **D5. wasip3 in the browser.** wasip3 cannot run in a browser without a transpile step, which breaks the buildless target. The browser keeps running `rust/crates/web`. Revisit only if you want the browser to run the guest.
 
-## A. MOBA (browser game)
+## A. Moba pack (match content)
+
+The rows below are the witnesses for the moba pack (`scenarios/moba`): its data and its Lua rules. The engine is generic, so a row that needs an engine change is in E.
 
 - **moba-kill-bounty**: a general bounty on a destroyed unit is paid to the opposing side's resource pool. Witness: `kill bounty ok gold_before=<n> gold_after=<n>`. Status: witnessed. Gate line `kill bounty ok gold_before=0 gold_after=25` in CI run 39021272353 (duel-routes job, success).
 - **moba-win-witness**: confirm `win trigger ok winner=<side>` in CI. Status: witnessed. Gate line `win trigger ok winner=0` in CI run 39021272353 (duel-routes job, success).
