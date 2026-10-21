@@ -9,13 +9,13 @@ use starlark::starlark_module;
 use starlark::values::{dict::UnpackDictEntries, list::UnpackList, none::NoneType};
 
 use crate::format::{
-    effect_params_valid, index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, CELL_RAMP, CLOAK_FLAGS, DAMAGE_RESPONSES,
-    DAMAGE_TYPES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
-    DOODAD_KINDS, MAX_ROUTE_ID, MAX_ROUTE_POINTS, ITEM_COMPONENTS, ITEM_FLAG_CONSUMABLE, ITEM_FLAG_ENHANCEMENT, ITEM_FLAG_NEUTRAL, ITEM_FLAG_NO_BUY,
-    ITEM_FLAG_NO_SELL, ITEM_SHOPS, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
+    effect_params_valid, index_of, NAME_LIST_MAX, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, CELL_RAMP, CLOAK_FLAGS, DAMAGE_RESPONSES,
+    DAMAGE_TYPES, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
+    MAX_ROUTE_ID, MAX_ROUTE_POINTS, ITEM_COMPONENTS, ITEM_FLAG_CONSUMABLE, ITEM_FLAG_ENHANCEMENT, ITEM_FLAG_NEUTRAL, ITEM_FLAG_NO_BUY,
+    ITEM_FLAG_NO_SELL, ITEM_TAG_LIMIT, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
 };
 use crate::model::{
-    AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw, TuneRaw,
+    AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, Names, PrereqRaw, TuneRaw,
     DoodadRaw, ItemRaw, ResearchRaw, RouteRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
 };
 
@@ -72,12 +72,43 @@ fn cell_value(value: i32) -> Result<u8> {
         .ok_or_else(|| anyhow!("grid cell value {value} is not a walkability bitfield (0..=3)"))
 }
 
-fn filter_mask(names: Option<UnpackList<String>>) -> Result<u32> {
+/// Index of `value` in a declared name list (scenario data). Refuses a name the list does not hold.
+fn list_index(list: &[String], value: &str, what: &str) -> Result<usize> {
+    list.iter()
+        .position(|v| v == value)
+        .ok_or_else(|| anyhow!("unknown {what} {value:?}; no declared {what} has that name"))
+}
+
+fn filter_mask(list: &[String], names: Option<UnpackList<String>>) -> Result<u32> {
     let mut mask = 0u32;
     for name in names.map(|list| list.items).unwrap_or_default() {
-        mask |= 1u32 << index_of(FILTERS, &name, "filter")?;
+        mask |= 1u32 << list_index(list, &name, "filter")?;
     }
     Ok(mask)
+}
+
+/// Stores a name list once. A list must name at least one entry, names must be unique and short enough for the
+/// one-byte length in the image.
+fn declare_list(slot: &mut Vec<String>, names: Vec<String>, what: &str) -> Result<()> {
+    if !slot.is_empty() {
+        bail!("{what} is declared twice");
+    }
+    if names.is_empty() {
+        bail!("{what} names no entries");
+    }
+    if names.len() > NAME_LIST_MAX {
+        bail!("{what} names more than {NAME_LIST_MAX} entries");
+    }
+    for (i, name) in names.iter().enumerate() {
+        if name.is_empty() || name.len() > 255 {
+            bail!("{what} entry {name:?} must be 1..=255 bytes");
+        }
+        if names[..i].contains(name) {
+            bail!("{what} lists {name:?} twice");
+        }
+    }
+    *slot = names;
+    Ok(())
 }
 
 #[starlark_module]
@@ -92,7 +123,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] ability: Option<&str>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<i32> {
-        let kind_code = index_of(EFFECT_KINDS, kind, "effect kind")?;
+        let kind_code = list_index(&collector(eval)?.names.borrow().effect_kinds, kind, "effect kind")?;
         let params = [p0.unwrap_or(0), p1.unwrap_or(0), p2.unwrap_or(0), p3.unwrap_or(0)];
         if !effect_params_valid(kind, params) {
             bail!("effect {kind:?} has out-of-range parameters {params:?}; see FORMAT.md effect table");
@@ -139,7 +170,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let abilities: Vec<String> = abilities.map(|list| list.items).unwrap_or_default();
-        let filter_bits = filter_mask(filters)?;
+        let filter_bits = filter_mask(&collector(eval)?.names.borrow().filter_names, filters)?;
         let weapon = match (weapon_damage, weapon_range_milli, weapon_period) {
             (None, None, None) => None,
             (Some(damage), Some(range_milli), Some(period)) => Some(WeaponRaw {
@@ -227,6 +258,45 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         Ok(NoneType)
     }
 
+    /// Declares the item tag names a scenario uses, once, before its items. A name's bit is its index.
+    fn stat_names(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.stat_names, names.items, "stat_names")?;
+        Ok(NoneType)
+    }
+
+    fn effect_kinds(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.effect_kinds, names.items, "effect_kinds")?;
+        Ok(NoneType)
+    }
+
+    fn filter_names(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.filter_names, names.items, "filter_names")?;
+        Ok(NoneType)
+    }
+
+    fn mod_conds(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.mod_conds, names.items, "mod_conds")?;
+        Ok(NoneType)
+    }
+
+    fn doodad_kinds(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.doodad_kinds, names.items, "doodad_kinds")?;
+        Ok(NoneType)
+    }
+
+    fn item_tags(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        if names.items.len() > ITEM_TAG_LIMIT {
+            bail!("item_tags: at most {ITEM_TAG_LIMIT} tags");
+        }
+        *collector(eval)?.item_tags.borrow_mut() = names.items;
+        Ok(NoneType)
+    }
+
     fn item(
         name: &str,
         cost: i32,
@@ -238,7 +308,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] enhancement: Option<bool>,
         #[starlark(require = named)] no_buy: Option<bool>,
         #[starlark(require = named)] no_sell: Option<bool>,
-        #[starlark(require = named)] shops: Option<UnpackList<String>>,
+        #[starlark(require = named)] tags: Option<UnpackList<String>>,
         #[starlark(require = named)] charges: Option<i32>,
         #[starlark(require = named)] stack_max: Option<i32>,
         #[starlark(require = named)] stock_max: Option<i32>,
@@ -270,9 +340,13 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
                 flags |= bit;
             }
         }
-        let mut shop_bits = 0;
-        for shop in shops.map(|list| list.items).unwrap_or_default() {
-            shop_bits |= 1 << index_of(ITEM_SHOPS, &shop, "item shop")?;
+        let declared = collector(eval)?.item_tags.borrow().clone();
+        let mut tag_bits = 0;
+        for tag in tags.map(|list| list.items).unwrap_or_default() {
+            let Some(bit) = declared.iter().position(|d| *d == tag) else {
+                bail!("item {name:?}: tag {tag:?} is not declared by item_tags");
+            };
+            tag_bits |= 1 << bit;
         }
         let tier = neutral_tier.unwrap_or(0);
         if !(0..=NEUTRAL_TIERS as i32).contains(&tier) {
@@ -286,7 +360,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             components,
             flags,
             tier,
-            shops: shop_bits,
+            tags: tag_bits,
             charges: charges.unwrap_or(0),
             stack_max: stack_max.unwrap_or(0),
             stock_max: stock_max.unwrap_or(0),
@@ -309,7 +383,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let target = index_of(TARGETS, target, "target")?;
-        let target_filters = filter_mask(target_filters)?;
+        let target_filters = filter_mask(&collector(eval)?.names.borrow().filter_names, target_filters)?;
         let pool = collector(eval)?;
         let pool_len = pool.effects.borrow().len();
         let mut handles = Vec::new();
@@ -478,7 +552,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let effect = usize::try_from(effect).map_err(|_| anyhow!("research {name:?} has an invalid effect handle"))?;
-        let applies = filter_mask(applies_to)?;
+        let applies = filter_mask(&collector(eval)?.names.borrow().filter_names, applies_to)?;
         collector(eval)?.researches.borrow_mut().push(ResearchRaw {
             name: name.to_owned(),
             building: building.to_owned(),
@@ -710,7 +784,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] rotation: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
-        let kind = index_of(DOODAD_KINDS, kind, "doodad kind")?;
+        let kind = list_index(&collector(eval)?.names.borrow().doodad_kinds, kind, "doodad kind")?;
         if id < 0 {
             bail!("doodad id {id} is negative");
         }

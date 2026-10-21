@@ -6,17 +6,13 @@ use crate::arrays::Sim;
 use crate::loader::{Doodad, CELL_MILLI};
 use crate::rules::Refusal;
 
-/// Number of doodad kinds the map format names: the length of `DOODAD_KINDS` in rust/crates/data/src/format.rs.
-/// Kind codes at or above it are refused at load and placement.
-pub const DOODAD_KIND_COUNT: u16 = 784;
-
 impl Sim {
     /// Places a doodad. Refused OffGrid when its position lies outside the map, its kind is at or above
-    /// `DOODAD_KIND_COUNT`, or its rotation is outside 0..1000. Refused DuplicateDoodad when its id is already placed.
+    /// the scenario's DKND list, or its rotation is outside 0..1000. Refused DuplicateDoodad when its id is already placed.
     pub fn place_doodad(&mut self, d: Doodad) -> Result<(), Refusal> {
         let w = self.grid.w as i64 * CELL_MILLI as i64;
         let h = self.grid.h as i64 * CELL_MILLI as i64;
-        if d.kind >= DOODAD_KIND_COUNT ||!(0..1000).contains(&d.rotation) || d.x < 0 || d.y < 0 || d.x as i64 >= w || d.y as i64 >= h {
+        if d.kind as usize >= self.cat.names.doodad_kinds.len() ||!(0..1000).contains(&d.rotation) || d.x < 0 || d.y < 0 || d.x as i64 >= w || d.y as i64 >= h {
             return Err(self.reject(Refusal::OffGrid));
         }
         if self.doodads.iter().any(|e| e.id == d.id) {

@@ -332,7 +332,7 @@ impl Sim {
             return own;
         }
         let items = self.item_attributes(i);
-        [0, 1, 2].map(|k| own[k] + (items[k] + self.stat(i, crate::spell::S_STRENGTH + k)) * 100)
+        [0, 1, 2].map(|k| own[k] + (items[k] + self.stat(i, crate::spell::S_SLOT_22 + k)) * 100)
     }
 
     /// Attributes of hero `i` before item bonuses, in hundredths.
@@ -355,22 +355,22 @@ impl Sim {
     }
 
     /// Max mana of hero `i`: its base mana plus 12 per intelligence point. Zero for a non-hero.
-    /// The base mana of hero `i` plus its S_MAX_MANA stat (the mod's intelligence bonus). Zero for a non-hero.
+    /// The base mana of hero `i` plus its S_SLOT_15 stat (the mod's intelligence bonus). Zero for a non-hero.
     pub fn hero_max_mana(&self, i: usize) -> i32 {
         if !self.is_hero(i) {
             return 0;
         }
         let base = self.hero_def(i).map_or(MANA_BASE_DEFAULT, |d| d.mana);
-        base + self.stat(i, crate::spell::S_MAX_MANA)
+        base + self.stat(i, crate::spell::S_SLOT_15)
     }
 
-    /// Mana regeneration of hero `i` in hundredths per second: the base regen plus its S_MANA_REGEN stat
+    /// Mana regeneration of hero `i` in hundredths per second: the base regen plus its S_SLOT_13 stat
     /// (the mod's intelligence bonus).
     pub fn hero_mana_regen_x100(&self, i: usize) -> i32 {
         if !self.is_hero(i) {
             return 0;
         }
-        self.hero_def(i).map_or(0, |d| d.mana_regen) + self.stat(i, crate::spell::S_MANA_REGEN)
+        self.hero_def(i).map_or(0, |d| d.mana_regen) + self.stat(i, crate::spell::S_SLOT_13)
     }
 
     /// Armour of unit `i` (Q16.16), its damage per attack (Q16.16), its attack period in ticks and its

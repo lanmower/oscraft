@@ -37,7 +37,7 @@ pub struct KillEvent {
     pub victim: u32,
     pub victim_player: u8,
 }
-/// One payable death, queued while a mod owns kill gold (`gold_by_mod`) and drained by the room, which
+/// One payable death, queued while a mod owns kill gold (`payout_owner`) and drained by the room, which
 /// feeds it to the mod's `on_died` with these room ids. `killer` and `killer_player` are `None` for an
 /// attackerless death (or a self-kill); `bounty` is the victim's bounty and is always positive.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -366,13 +366,13 @@ impl Sim {
     }
 
     /// Queues the destroyed unit's bounty as a `Payout` for the mod's on_died, which pays gold. The
-    /// engine pays nothing itself; the queue is only filled while a mod owns gold (`gold_by_mod`).
+    /// engine pays nothing itself; the queue is only filled while a mod owns gold (`payout_owner`).
     fn pay_bounty(&mut self, j: usize, attacker: i32) {
         let bounty = self.unit_bounty(j);
         if bounty <= 0 || self.was_denied(j, attacker) {
             return;
         }
-        if self.gold_by_mod {
+        if self.payout_owner {
             self.queue_payout(j, attacker, bounty);
         }
     }
@@ -463,7 +463,7 @@ impl Sim {
                 self.record_death(j, attacker);
                 self.pay_bounty(j, attacker);
                 self.hold_dead(j);
-                self.camp_died(j, attacker);
+                self.group_died(j);
             }
         }
     }
@@ -703,11 +703,11 @@ mod tests {
     #[test]
     fn kill_pays_nothing_in_the_engine_whether_or_not_a_mod_owns_gold() {
         let mut s = duel_sim();
-        assert!(!s.gold_by_mod(), "the flag defaults to off");
+        assert!(!s.payout_owner(), "the flag defaults to off");
         let (killer_gold, rival_gold) = kill_both_ways(&mut s);
         assert_eq!(killer_gold, 0, "no engine gold for the killer");
         assert_eq!(rival_gold, 0, "no engine payout to the rival side");
-        s.set_gold_by_mod(true);
+        s.set_payout_owner(true);
         let (killer_gold, rival_gold) = kill_both_ways(&mut s);
         assert_eq!(killer_gold, 0, "no hero bounty while a mod owns gold");
         assert_eq!(rival_gold, 0, "no rival payout while a mod owns gold");
@@ -715,7 +715,7 @@ mod tests {
         let saved = s.save_state();
         let mut restored = duel_sim();
         restored.load_state(&saved).expect("save with the flag loads");
-        assert!(restored.gold_by_mod(), "the flag survives a save and load");
+        assert!(restored.payout_owner(), "the flag survives a save and load");
     }
 
     /// A unit of catalog kind `name` for `player` on the first free walkable cell.

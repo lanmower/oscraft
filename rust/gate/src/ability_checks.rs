@@ -19,7 +19,7 @@ const S_DAMAGE: usize = 0;
 const S_ARMOR: usize = 1;
 const S_RANGE: usize = 4;
 const S_ATTACK_SPEED: usize = 12;
-const S_MANA_REGEN: usize = 13;
+const S_SLOT_13: usize = 13;
 const S_HEALTH_REGEN: usize = 14;
 const S_MAGIC_RESIST: usize = 11;
 const S_SPEED_PCT: usize = 19;
@@ -291,8 +291,8 @@ pub fn crystal_brilliance_aura(_image: &[u8]) -> Result<(), String> {
     let cm = rank_one_hero(&mut w, "crystal_maiden", 1, &["crystal_maiden_brilliance_aura"])?;
     let ally = w.hero("axe", 0, 6, 0)?;
     w.run(4);
-    if w.s.stat_value(cm, S_MANA_REGEN) != 120 || w.s.stat_value(ally, S_MANA_REGEN) != 120 {
-        return Err(format!("aura regen caster {} ally {} want 120 (0.4 x 3 per second)", w.s.stat_value(cm, S_MANA_REGEN), w.s.stat_value(ally, S_MANA_REGEN)));
+    if w.s.stat_value(cm, S_SLOT_13) != 120 || w.s.stat_value(ally, S_SLOT_13) != 120 {
+        return Err(format!("aura regen caster {} ally {} want 120 (0.4 x 3 per second)", w.s.stat_value(cm, S_SLOT_13), w.s.stat_value(ally, S_SLOT_13)));
     }
     Ok(())
 }

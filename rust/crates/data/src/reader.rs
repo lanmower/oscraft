@@ -24,6 +24,16 @@ struct Section {
     count: usize,
 }
 
+/// Decodes one name-list section (SNAM, EKND, FNAM, MCND, DKND). Refuses a list that is empty or malformed.
+fn name_list(image: &[u8], section: &Section, what: &str) -> Result<Vec<String>> {
+    let bytes = image
+        .get(section.offset..section.offset + section.count)
+        .ok_or_else(|| anyhow!("{what} runs past the end of the file"))?;
+    let names = decode_name_list(bytes).map_err(|e| anyhow!("{what}: {e}"))?;
+    ensure!(!names.is_empty(), "{what} names no entries");
+    Ok(names)
+}
+
 pub fn verify(image: &[u8]) -> Result<()> {
     ensure!(image.len() >= HEADER_LEN, "image shorter than the header");
     ensure!(image[0..4] == MAGIC, "bad magic");
@@ -81,6 +91,12 @@ pub fn verify(image: &[u8]) -> Result<()> {
     ensure!(image[tune_at] <= STRUCTURE_SCAN_MAX_CELLS, "TUNE structure scan cells out of range");
     ensure!((1..=TELEPORT_RING_MAX_POINTS).contains(&image[tune_at + 1]), "TUNE teleport ring points out of range");
     ensure!(image[tune_at + 2] >= 1, "TUNE teleport ring steps is 0");
+    let stat_names = name_list(image, &sections[23], "SNAM")?;
+    let effect_kinds = name_list(image, &sections[24], "EKND")?;
+    let filter_names = name_list(image, &sections[25], "FNAM")?;
+    let mod_conds = name_list(image, &sections[26], "MCND")?;
+    let doodad_kinds = name_list(image, &sections[27], "DKND")?;
+    ensure!(filter_names.len() <= FILTER_MASK_BITS as usize, "FNAM lists more names than the mask holds");
     for k in 0..XP_CURVE_LEN - 1 {
         let a = u32_at(image, tune_at + 12 + 4 * k)?;
         let b = u32_at(image, tune_at + 16 + 4 * k)?;
@@ -95,7 +111,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
         let ability = u16_at(image, at + 12)? as usize;
         ensure!(ability == NO_ABILITY as usize || ability < abil.count, "item {i} names ability {ability} out of range");
         ensure!(u16_at(image, at + 6)? & !ITEM_FLAG_MASK == 0, "item {i} sets an unknown flag");
-        ensure!(image[at + 14] <= NEUTRAL_TIERS && image[at + 15] <= ITEM_SHOP_MASK, "item {i} tier or shop out of range");
+        ensure!(image[at + 14] <= NEUTRAL_TIERS, "item {i} tier out of range");
         for c in 0..ITEM_COMPONENTS {
             let part = u16_at(image, at + 16 + 2 * c)? as usize;
             ensure!(part == NO_ABILITY as usize || part < i, "item {i} names component {part} not declared before it");
@@ -105,8 +121,8 @@ pub fn verify(image: &[u8]) -> Result<()> {
     for i in 0..efct.count {
         let at = efct.offset + i * EFCT_RECORD;
         let kind = u16_at(image, at)? as usize;
-        ensure!(kind <= MAX_EFFECT_KIND,"effect {i} code {kind} is above {MAX_EFFECT_KIND}");
-        let name = EFFECT_KINDS[kind];
+        ensure!(kind < effect_kinds.len(), "effect {i} code {kind} is above the EKND list");
+        let name = effect_kinds[kind].as_str();
         let params = [
             i32_at(image, at + 4)?,
             i32_at(image, at + 8)?,
@@ -124,7 +140,10 @@ pub fn verify(image: &[u8]) -> Result<()> {
         if name == "use_calldown" {
             ensure!((params[0] as usize) < abil.count, "effect {i} names an ability past the end of ABIL");
         }
-        if name == "spawn" || name == "ward" {
+        if name == "stat" || name == "timed_stat" {
+            ensure!((0..stat_names.len() as i32).contains(&params[0]), "effect {i} names a stat past SNAM");
+        }
+        if name == "spawn" {
             ensure!((params[0] as usize) < unit.count, "effect {i} names a unit past the end of UNIT");
         }
     }
@@ -159,7 +178,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
             let m = at + 160 + k * 12;
             if image[m] != 0 {
                 let (cond, effect) = (image[m + 1] as usize, image[m + 2]);
-                ensure!(cond < MOD_CONDS && image[m + 4] <= 1, "AXTN {i} modifier {k} cond or mode out of range");
+                ensure!(cond < mod_conds.len() && image[m + 4] <= 1, "AXTN {i} modifier {k} cond or mode out of range");
                 ensure!(
                     effect >= MOD_FIELD_FIRST || ((effect as usize) < effects && image[m + 3] < 4),
                     "AXTN {i} modifier {k} effect out of range"
@@ -298,7 +317,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
         let x = u32_at(image, at + 8)? as i64;
         let y = u32_at(image, at + 12)? as i64;
         let rotation = u32_at(image, at + 16)?;
-        ensure!(kind < DOODAD_KINDS.len(), "doodad {i} kind out of range");
+        ensure!(kind < doodad_kinds.len(), "doodad {i} kind out of range");
         ensure!(rotation < 1000, "doodad {i} rotation is 1000 or more");
         ensure!(doodad_ids.insert(id), "doodad id {id} repeats");
         ensure!(position_on_grid(x, y, width, height, cell_milli), "doodad {i} is off the grid");

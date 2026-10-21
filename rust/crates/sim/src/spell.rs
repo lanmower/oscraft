@@ -54,16 +54,16 @@ pub const S_CLEAVE_RADIUS: usize = 9;
 pub const S_LIFESTEAL: usize = 10;
 pub const S_MAGIC_RESIST: usize = 11;
 pub const S_ATTACK_SPEED: usize = 12;
-pub const S_MANA_REGEN: usize = 13;
+pub const S_SLOT_13: usize = 13;
 pub const S_HEALTH_REGEN: usize = 14;
-pub const S_MAX_MANA: usize = 15;
+pub const S_SLOT_15: usize = 15;
 pub const S_SPELL_AMP: usize = 16;
 pub const S_BASH_CHANCE: usize = 17;
 pub const S_BASH_TICKS: usize = 18;
 pub const S_SPEED_PCT: usize = 19;
 pub const S_CDR: usize = 20;
 pub const S_STATUS_RESIST: usize = 21;
-pub const S_STRENGTH: usize = 22;
+pub const S_SLOT_22: usize = 22;
 pub const S_SPELL_LIFESTEAL: usize = 25;
 pub const S_ARMOR_X100: usize = 26;
 pub const S_CAST_RANGE: usize = 27;
@@ -1316,7 +1316,7 @@ impl Sim {
         }
     }
 
-    /// Current value of stat `code` (see `STAT_COUNT`; the order of `data::format::STAT_NAMES`) on unit `i`: the
+    /// Current value of stat `code` (see `STAT_COUNT`; the order of the scenario's stat_names (SNAM) section) on unit `i`: the
     /// sum of its passive and timed modifiers. Zero for an unknown unit or code.
     pub fn stat_value(&self, i: usize, code: usize) -> i32 {
         if i < self.n && code < STAT_COUNT { self.stat(i, code) } else { 0 }

@@ -54,9 +54,9 @@ pub enum Refusal {
     NoSkillTree,
     NoSkillPoint,
     SkillMaxed,
-    SkillLevelGate,
+    LevelGate,
     NoItem,
-    NoShop,
+    OutOfReach,
     InventoryFull,
     MissingComponent,
     Stunned,
@@ -112,9 +112,9 @@ pub const ALL_REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::NoSkillTree,
     Refusal::NoSkillPoint,
     Refusal::SkillMaxed,
-    Refusal::SkillLevelGate,
+    Refusal::LevelGate,
     Refusal::NoItem,
-    Refusal::NoShop,
+    Refusal::OutOfReach,
     Refusal::InventoryFull,
     Refusal::MissingComponent,
     Refusal::Stunned,
@@ -170,9 +170,9 @@ impl Refusal {
             Refusal::NoSkillTree => "no-skill-tree",
             Refusal::NoSkillPoint => "no-skill-point",
             Refusal::SkillMaxed => "skill-maxed",
-            Refusal::SkillLevelGate => "skill-level-gate",
+            Refusal::LevelGate => "level-gate",
             Refusal::NoItem => "no-item",
-            Refusal::NoShop => "no-shop",
+            Refusal::OutOfReach => "out-of-reach",
             Refusal::InventoryFull => "inventory-full",
             Refusal::MissingComponent => "missing-component",
             Refusal::Stunned => "stunned",
@@ -213,10 +213,10 @@ const EFFECT_SHIELD_BONUS: u16 = 10;
 /// A flat stat bonus. p0 names the stat (see `modapi::STAT_NAMES`), p1 the amount.
 pub(crate) const EFFECT_STAT: u16 = 16;
 /// Places a ward unit: p0 unit type, p1 lifetime in ticks. See wards.rs.
-pub(crate) const EFFECT_WARD: u16 = 17;
+pub(crate) const EFFECT_TIMED_SPAWN: u16 = 17;
 /// Code 18 is retired (the team glyph became a mod rule, on_cast). It is refused as unsupported.
-/// Courier delivery to the receiver: p0 reach in milli-units. See courier.rs.
-pub(crate) const EFFECT_DELIVER: u16 = 19;
+/// Carry a friendly unit: queues a request for the mod (carrier.rs). The mod owns what carrying means.
+pub(crate) const EFFECT_CARRY: u16 = 19;
 const EFFECT_VITAL_FRACTION: u16 = 9;
 
 impl Sim {
@@ -566,8 +566,8 @@ impl Sim {
                 }
             }
             EFFECT_STAT => self.stat_bonus(caster, target, eff.p0, eff.p1),
-            EFFECT_WARD => self.timed_spawn_effect(caster, eff.p0, eff.p1, tx, ty),
-            EFFECT_DELIVER => self.deliver_effect(caster, target, eff.p0),
+            EFFECT_TIMED_SPAWN => self.timed_spawn_effect(caster, eff.p0, eff.p1, tx, ty),
+            EFFECT_CARRY => self.carry_effect(caster, target),
             EFFECT_STUN..=EFFECT_INVISIBILITY => self.status_effect_from(caster, eff, target),
             k if k >= crate::spell::FIRST_SPELL_KIND => self.spell_effect(caster, eff, tx, ty, target),
             EFFECT_ISSUE_ORDER => self.issue_order(caster, eff.p0, eff.p1, tx, ty, target),

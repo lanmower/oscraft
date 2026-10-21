@@ -138,7 +138,7 @@ pub struct Sim {
     pub(crate) energy: Vec<i32>,
     pub(crate) abil_on: bool,
     /// Set when a mod owns gold: the Rust kill payouts (hero bounty and rival resources) are skipped.
-    pub(crate) gold_by_mod: bool,
+    pub(crate) payout_owner: bool,
 
     pub(crate) changed_at: Vec<u32>,
     pub(crate) trig_hit: Vec<u8>,
@@ -371,7 +371,7 @@ impl Sim {
             item_cd: vec![0; cap * crate::inventory::INV_SLOTS],
             energy: vec![0; cap],
             abil_on: false,
-            gold_by_mod: false,
+            payout_owner: false,
             changed_at: vec![0; cap],
             trig_hit: vec![0; cap],
             trig_spawn: vec![0; cap],
@@ -592,12 +592,12 @@ impl Sim {
     }
 
     /// Whether a mod owns gold. When true, kills pay no Rust bounty (hero share or rival resources).
-    pub fn gold_by_mod(&self) -> bool {
-        self.gold_by_mod
+    pub fn payout_owner(&self) -> bool {
+        self.payout_owner
     }
 
-    pub fn set_gold_by_mod(&mut self, on: bool) {
-        self.gold_by_mod = on;
+    pub fn set_payout_owner(&mut self, on: bool) {
+        self.payout_owner = on;
     }
 
     pub fn add_resources(&mut self, p: u8, resource_a: i32, resource_b: i32) {

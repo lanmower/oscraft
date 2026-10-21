@@ -95,7 +95,7 @@ impl Game {
     /// live units the new data had no slot for. Refused when the image does not load; the match is unchanged then.
     pub fn swap_data(&mut self, image: &[u8]) -> Result<Vec<u32>, JsValue> {
         let mut fresh = sim::load(image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
-        fresh.set_gold_by_mod(self.sim.gold_by_mod());
+        fresh.set_payout_owner(self.sim.payout_owner());
         fresh.set_fog(self.sim.fog_on());
         let (carried, refused) = sim::carry_from(&self.sim, &mut fresh);
         self.rec.rebase(LIVE_IMAGE, MAX_UNITS, &fresh);
@@ -440,9 +440,9 @@ impl Game {
     }
 
     /// UI export: the item catalog as JSON `[{"id":index,"name","cost","armor","damage","health","flags",
-    /// "tier","shops","charges","stack","stats":{name:value,...},"components":[index,...],"target","radius"}]`
+    /// "tier","tags","charges","stack","stats":{name:value,...},"components":[index,...],"target","radius"}]`
     /// (`target` and `radius` describe the item's active ability, see `targeting`). `stats` lists
-    /// the non-zero bonuses; `shops` is the bit mask home 1, side 2, secret 4.
+    /// the non-zero bonuses; `tags` is the bit mask of the tags the scenario declared (item_tags), in declaration order.
     pub fn item_catalog_json(&self) -> String {
         let cat = self.sim.catalog();
         let rows: Vec<String> = cat
@@ -460,7 +460,7 @@ impl Game {
                     .collect();
                 let (target, radius) = targeting(cat, it.ability as usize);
                 format!(
-                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"flags\":{},\"tier\":{},\"shops\":{},\"charges\":{},\"stack\":{},\"stats\":{{{}}},\"components\":[{}],\"target\":\"{}\",\"radius\":{}}}",
+                    "{{\"id\":{},\"name\":{},\"cost\":{},\"armor\":{},\"damage\":{},\"health\":{},\"flags\":{},\"tier\":{},\"tags\":{},\"charges\":{},\"stack\":{},\"stats\":{{{}}},\"components\":[{}],\"target\":\"{}\",\"radius\":{}}}",
                     id,
                     json_str(cat.name(it.name)),
                     it.cost,
@@ -469,7 +469,7 @@ impl Game {
                     it.stats[2],
                     it.flags,
                     it.tier,
-                    it.shops,
+                    it.tags,
                     it.charges,
                     it.stack_max,
                     stats.join(","),

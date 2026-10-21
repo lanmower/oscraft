@@ -18,16 +18,10 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// tallies and recent hitters. Version 30 adds the per-slot spawn generation and the generation each sticky
 /// strike target was struck under, so a reused slot never hands its old occupant's target to the new unit.
 /// Version 31 adds the chase and return state of acquiring units (acquire.rs).
-/// Version 33 drops the courier and store-stock sections: a courier's walk and a store's stock are mod
-/// state now, and the sim keeps only the saved order point per unit (carrier.rs). Version 32 saves
-/// still load: their courier section is read and dropped (the phase codes below must hold), and their
-/// stock section is skipped. The courier phase codes were 0 idle, 1 outbound (walking to the
-/// receiver) and 2 returning home. Their names stay here so the codes keep their meaning.
+/// Version 33 drops the courier and store-stock sections: a carrier's walk and a store's stock are mod
+/// state now, and the sim keeps only the saved order point per unit (carrier.rs). Saves of any other
+/// version, older ones included, are refused with `BadVersion`.
 const STATE_VERSION: u16 = 33;
-const LEGACY_COURIER_VERSION: u16 = 32;
-const LEGACY_COURIER_RETURNING: u8 = 2;
-/// Teams a store kept stock for in version 32 (one per player slot).
-const STOCK_TEAMS: usize = MAX_PLAYERS;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -72,9 +66,9 @@ const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::NoSkillTree,
     Refusal::NoSkillPoint,
     Refusal::SkillMaxed,
-    Refusal::SkillLevelGate,
+    Refusal::LevelGate,
     Refusal::NoItem,
-    Refusal::NoShop,
+    Refusal::OutOfReach,
     Refusal::InventoryFull,
     Refusal::MissingComponent,
     Refusal::Stunned,
@@ -315,7 +309,7 @@ impl Sim {
         put_bool(&mut w, self.harvest);
         put_bool(&mut w, self.produce);
         put_bool(&mut w, self.abil_on);
-        put_bool(&mut w, self.gold_by_mod);
+        put_bool(&mut w, self.payout_owner);
 
         let s = &self.stats;
         put_u64(&mut w, s.deaths as u64);
@@ -372,11 +366,11 @@ impl Sim {
         w.extend_from_slice(&self.blocked);
         w.extend_from_slice(&self.routed);
         w.extend_from_slice(&self.order_kind);
-        w.extend_from_slice(&self.camps.is_camp);
-        put_i32s(&mut w, &self.camps.home_x);
-        put_i32s(&mut w, &self.camps.home_y);
+        w.extend_from_slice(&self.camps.member);
+        put_i32s(&mut w, &self.camps.anchor_x);
+        put_i32s(&mut w, &self.camps.anchor_y);
         w.extend_from_slice(&self.camps.waiting);
-        put_u32s(&mut w, &self.camps.respawn_at);
+        put_u32s(&mut w, &self.camps.revive_at);
         put_i32s(&mut w, &self.patrol_x);
         put_i32s(&mut w, &self.patrol_y);
         put_i32s(&mut w, &self.amount);
@@ -534,7 +528,7 @@ impl Sim {
             return Err(StateError::BadMagic);
         }
         let version = r.u16()?;
-        if version != STATE_VERSION && version != LEGACY_COURIER_VERSION {
+        if version != STATE_VERSION {
             return Err(StateError::BadVersion(version));
         }
         let cap = r.u32()? as usize;
@@ -558,7 +552,7 @@ impl Sim {
         next.harvest = r.bool()?;
         next.produce = r.bool()?;
         next.abil_on = r.bool()?;
-        next.gold_by_mod = r.bool()?;
+        next.payout_owner = r.bool()?;
 
         let mut st = Stats::default();
         st.deaths = r.u64()? as usize;
@@ -619,11 +613,11 @@ impl Sim {
         r.bytes_into(&mut next.blocked)?;
         r.bytes_into(&mut next.routed)?;
         r.bytes_into(&mut next.order_kind)?;
-        r.bytes_into(&mut next.camps.is_camp)?;
-        r.i32s_into(&mut next.camps.home_x)?;
-        r.i32s_into(&mut next.camps.home_y)?;
+        r.bytes_into(&mut next.camps.member)?;
+        r.i32s_into(&mut next.camps.anchor_x)?;
+        r.i32s_into(&mut next.camps.anchor_y)?;
         r.bytes_into(&mut next.camps.waiting)?;
-        r.u32s_into(&mut next.camps.respawn_at)?;
+        r.u32s_into(&mut next.camps.revive_at)?;
         r.i32s_into(&mut next.patrol_x)?;
         r.i32s_into(&mut next.patrol_y)?;
         r.i32s_into(&mut next.amount)?;
@@ -775,17 +769,7 @@ impl Sim {
         r.i32s_into(&mut next.chase.ret_x)?;
         r.i32s_into(&mut next.chase.ret_y)?;
         r.u32s_into(&mut next.wards.expires)?;
-        if version == LEGACY_COURIER_VERSION {
-            // Version 32 held the courier phases, targets, reach and home, and the store stock. They
-            // are read and dropped: the phase codes must be 0 (idle), 1 (outbound) or 2 (returning).
-            let phases = r.take(cap)?;
-            if phases.iter().any(|&p| p > LEGACY_COURIER_RETURNING) {
-                return Err(StateError::Length);
-            }
-            r.take(4 * 4 * cap)?;
-            let stock = STOCK_TEAMS * next.cat.items.len();
-            r.take(stock + 4 * stock)?;
-        } else {
+        {
             r.bytes_into(&mut next.order_memory.set)?;
             r.i32s_into(&mut next.order_memory.x)?;
             r.i32s_into(&mut next.order_memory.y)?;

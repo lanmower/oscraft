@@ -313,7 +313,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u32_le(&mut item, raw.cost);
         u16_le(&mut item, raw.ability);
         item.push(raw.tier);
-        item.push(raw.shops);
+        item.push(raw.tags);
         for component in raw.components {
             u16_le(&mut item, component);
         }
@@ -388,6 +388,14 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
     }
     debug_assert_eq!(tune_bytes.len(), TUNE_RECORD);
 
+    let name_bytes = [
+        encode_name_list(&catalog.names.stat_names),
+        encode_name_list(&catalog.names.effect_kinds),
+        encode_name_list(&catalog.names.filter_names),
+        encode_name_list(&catalog.names.mod_conds),
+        encode_name_list(&catalog.names.doodad_kinds),
+    ];
+    let [snam, ekna, fnam, mcnd, dkna] = name_bytes;
     let strs_len = strings.bytes.len();
     let grid_len = grid.len();
     let sections: Vec<([u8; 4], usize, usize, Vec<u8>)> = vec![
@@ -414,6 +422,11 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_AXTN, catalog.ext.len(), AXTN_RECORD, axtn),
         (TAG_ROUT, catalog.routes.len(), ROUT_RECORD, rout),
         (TAG_TUNE, 1, TUNE_RECORD, tune_bytes),
+        (TAG_SNAM, snam.len(), NAME_RECORD, snam),
+        (TAG_EKND, ekna.len(), NAME_RECORD, ekna),
+        (TAG_FNAM, fnam.len(), NAME_RECORD, fnam),
+        (TAG_MCND, mcnd.len(), NAME_RECORD, mcnd),
+        (TAG_DKND, dkna.len(), NAME_RECORD, dkna),
     ];
 
     let body_start = HEADER_LEN + sections.len() * SECTION_ENTRY_LEN;

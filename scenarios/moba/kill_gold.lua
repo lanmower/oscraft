@@ -2,9 +2,9 @@
 -- share, and the killer's side gets the share. A killer that is not a hero (a creep) pays its whole bounty to its
 -- side. An attackerless death pays the rival side's gold.
 --
--- GOLD_BY_MOD hands kill gold to this file: while it is set, the sim skips its Rust payout (pay_bounty).
+-- PAYOUT_OWNER hands kill gold to this file: while it is set, the sim skips its Rust payout (pay_bounty).
 -- Uses only the mod API.
-GOLD_BY_MOD = true
+PAYOUT_OWNER = true
 
 local TEAM_SHARE_PCT = 20
 

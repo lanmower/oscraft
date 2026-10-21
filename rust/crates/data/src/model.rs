@@ -195,8 +195,8 @@ pub struct ItemRaw {
     pub flags: u16,
     /// Neutral tier `1..=NEUTRAL_TIERS`, 0 for an item that is not a neutral drop.
     pub tier: i32,
-    /// Shops that sell the item (`ITEM_SHOP_MASK` bits); 0 sells nowhere.
-    pub shops: i32,
+    /// Tag bits the item carries (the tags the scenario declared with `item_tags`); 0 carries none.
+    pub tags: i32,
     /// Charges a purchase grants, and the most charges one slot holds (0 for a single unstackable item).
     pub charges: i32,
     pub stack_max: i32,
@@ -218,7 +218,7 @@ impl Default for ItemRaw {
             components: Vec::new(),
             flags: 0,
             tier: 0,
-            shops: 0,
+            tags: 0,
             charges: 0,
             stack_max: 0,
             stock_max: 0,
@@ -255,10 +255,22 @@ pub struct Grid {
     pub tiles: Vec<u8>,
 }
 
+/// Name lists a scenario declares (stat_names, effect_kinds, filter_names, mod_conds, doodad_kinds). A list's
+/// index is the code the image stores. Empty means the scenario did not declare it: validation refuses that.
+#[derive(Debug, Default, Clone)]
+pub struct Names {
+    pub stat_names: Vec<String>,
+    pub effect_kinds: Vec<String>,
+    pub filter_names: Vec<String>,
+    pub mod_conds: Vec<String>,
+    pub doodad_kinds: Vec<String>,
+}
+
 /// Lives in `Evaluator::extra`; builtins push into it while the .osd files run.
 /// Effect handles returned by `effect()` are indices into `effects`.
 #[derive(Default, ProvidesStaticType)]
 pub struct Collector {
+    pub names: RefCell<Names>,
     pub effects: RefCell<Vec<EffectRaw>>,
     pub units: RefCell<Vec<UnitRaw>>,
     pub abilities: RefCell<Vec<AbilityRaw>>,
@@ -275,6 +287,8 @@ pub struct Collector {
     pub damage_factors: RefCell<Vec<DamageFactorRaw>>,
     pub doodads: RefCell<Vec<DoodadRaw>>,
     pub items: RefCell<Vec<ItemRaw>>,
+    /// Tag names from `item_tags([...])`; a name's bit is its index here.
+    pub item_tags: RefCell<Vec<String>>,
     pub skills: RefCell<Vec<SkillRaw>>,
     pub ext: RefCell<crate::abilityext::ExtRaw>,
     pub grid: RefCell<Option<Grid>>,
@@ -494,7 +508,8 @@ pub struct Item {
     pub components: [u16; ITEM_COMPONENTS],
     pub flags: u16,
     pub tier: u8,
-    pub shops: u8,
+    /// Tag bits (see `ITEM_TAG_LIMIT`).
+    pub tags: u8,
     pub charges: u16,
     pub stack_max: u16,
     pub stock_max: u8,
@@ -513,7 +528,7 @@ impl Default for Item {
             components: [0; ITEM_COMPONENTS],
             flags: 0,
             tier: 0,
-            shops: 0,
+            tags: 0,
             charges: 0,
             stack_max: 0,
             stock_max: 0,
@@ -544,4 +559,5 @@ pub struct Catalog {
     pub damage_factors: Vec<DamageFactor>,
     pub grid: Grid,
     pub routes: Vec<Route>,
+    pub names: Names,
 }

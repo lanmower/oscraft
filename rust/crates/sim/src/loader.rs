@@ -4,7 +4,7 @@
 
 use crate::arrays::Sim;
 use crate::fixed;
-use crate::inventory::{ITEM_COMPONENTS, ITEM_FLAG_MASK, ITEM_STORE_MASK, ITEM_STAT_COUNT, NEUTRAL_TIERS};
+use crate::inventory::{ITEM_COMPONENTS, ITEM_FLAG_MASK, ITEM_STAT_COUNT, NEUTRAL_TIERS};
 use crate::pathfinding::Grid;
 use std::fmt;
 use std::path::Path;
@@ -23,8 +23,8 @@ const ABILITY_FILTER_BITS: u16 = 15;
 const CELL_BITS: u8 = 0b111;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 23] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT", b"TUNE"];
-const RECORD_SIZES: [usize; 23] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520, 128];
+const SECTION_TAGS: [&[u8; 4]; 28] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT", b"TUNE", b"SNAM", b"EKND", b"FNAM", b"MCND", b"DKND"];
+const RECORD_SIZES: [usize; 28] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520, 128, 1, 1, 1, 1, 1];
 /// Most teleport landing points a ring holds: the eight compass directions the teleport effect steps through.
 const TELEPORT_RING_MAX_POINTS: u8 = 8;
 /// Most cells a structure scan reaches past weapon range.
@@ -42,10 +42,9 @@ const EFFECT_VITAL_FRACTION: u16 = 9;
 const EFFECT_DAMAGE: u16 = 0;
 const EFFECT_HEAL: u16 = 1;
 
-const EFFECT_KINDS: u16 = 34;
 const EFFECT_STAT: u16 = 16;
-const EFFECT_WARD: u16 = 17;
-const EFFECT_DELIVER: u16 = 19;
+const EFFECT_TIMED_SPAWN: u16 = 17;
+const EFFECT_CARRY: u16 = 19;
 const EFFECT_SLOW: u16 = 12;
 const EFFECT_STATUS_DURATION: [u16; 4] = [11, 13, 14, 15];
 const EFFECT_ISSUE_ORDER: u16 = 5;
@@ -194,10 +193,6 @@ pub const FILTER_LIGHT: u32 = 1 << 7;
 pub const FILTER_MASSIVE: u32 = 1 << 8;
 pub const FILTER_WORKER: u32 = 1 << 9;
 pub const FILTER_ARMY: u32 = 1 << 10;
-pub const FILTER_BUILDING: u32 = 1 << 11;
-pub const FILTER_BARRACKS: u32 = 1 << 12;
-pub const FILTER_MELEE_RAX: u32 = 1 << 13;
-pub const FILTER_RANGED_RAX: u32 = 1 << 14;
 
 /// A starting unit from the PLCE section. Position is Q16.16, already converted from milli-units.
 #[derive(Clone, Copy, Debug, Default)]
@@ -407,7 +402,7 @@ pub struct DamageFactor {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Doodad {
     pub id: u32,
-    /// Indexes DOODAD_KINDS: 0 rock, 1 tree, 2 crystal, 3 debris, 4 base, 5 shop (home), 6 fountain, 7 lane, 8 camp, 9 side shop, 10 secret shop.
+    /// Indexes DOODAD_KINDS: 0 rock, 1 tree, 2 crystal, 3 debris, 4 base, 5 depot (home), 6 fountain, 7 lane, 8 camp, 9 side depot, 10 secret depot.
     pub kind: u16,
     /// Milli-units, on the map.
     pub x: i32,
@@ -430,8 +425,8 @@ pub struct Item {
     pub flags: u16,
     /// Neutral tier `1..=NEUTRAL_TIERS`, 0 for an item that is not a neutral drop.
     pub tier: u8,
-    /// Shops that sell the item: `STORE_HOME`, `STORE_SIDE`, `STORE_SECRET` bits.
-    pub shops: u8,
+    /// Tag bits the item carries (see the scenario's `item_tags`).
+    pub tags: u8,
     /// Charges one purchase grants, and the most one slot holds (0: a single unstackable item).
     pub charges: u16,
     pub stack_max: u16,
@@ -451,7 +446,7 @@ impl Default for Item {
             components: [0; ITEM_COMPONENTS],
             flags: 0,
             tier: 0,
-            shops: 0,
+            tags: 0,
             charges: 0,
             stack_max: 0,
             stock_max: 0,
@@ -465,6 +460,7 @@ impl Default for Item {
 /// The parsed data file. Read-only after load; the tick reads only numeric fields.
 #[derive(Clone, Debug, Default)]
 pub struct Catalog {
+    pub names: NameLists,
     pub strs: Vec<u8>,
     pub items: Vec<Item>,
     pub effects: Vec<Effect>,
@@ -628,8 +624,7 @@ fn effect_param_error(e: &Effect) -> Option<&'static str> {
         k if EFFECT_STATUS_DURATION.contains(&k) && e.p0 < 1 => Some("status duration"),
         EFFECT_STAT if !(0..crate::spell::STAT_COUNT as i32).contains(&e.p0) => Some("stat code"),
         k if k >= crate::spell::FIRST_SPELL_KIND => crate::spell::spell_effect_error(e),
-        EFFECT_WARD if e.p0 < 0 || e.p1 < 1 => Some("ward unit or lifetime"),
-        EFFECT_DELIVER if e.p0 < 0 => Some("deliver reach"),
+        EFFECT_TIMED_SPAWN if e.p0 < 0 || e.p1 < 1 => Some("ward unit or lifetime"),
         EFFECT_CREATE_HEALER if e.p0 < 0 || e.p1 < 0 || e.p2 < 1 || e.p3 < 1 => {
             Some("create_healer amount, radius, period or lifetime")
         }
@@ -691,6 +686,42 @@ fn read_skill(sr: &mut Reader<'_>, effects: &[Effect], first: usize, count: usiz
     Ok(Some(skill))
 }
 
+/// Name lists the scenario declares. A name's index is the code the image stores (effect kind, filter bit,
+/// stat slot, mod condition bit, doodad kind).
+#[derive(Debug, Default, Clone)]
+pub struct NameLists {
+    pub stat_names: Vec<String>,
+    pub effect_kinds: Vec<String>,
+    pub filter_names: Vec<String>,
+    pub mod_conds: Vec<String>,
+    pub doodad_kinds: Vec<String>,
+}
+
+/// Decodes one name-list section: each name is a length byte then its UTF-8 bytes. Refuses an empty section,
+/// a zero length, a name past the end, non-UTF-8 text and a repeated name.
+fn name_list(bytes: &[u8], (off, count): (usize, usize), what: &'static str) -> Result<Vec<String>, LoadError> {
+    let body = bytes.get(off..off + count).ok_or(LoadError::Section(what))?;
+    let mut names: Vec<String> = Vec::new();
+    let mut at = 0;
+    while at < body.len() {
+        let len = body[at] as usize;
+        if len == 0 {
+            return Err(LoadError::Section(what));
+        }
+        let text = body.get(at + 1..at + 1 + len).ok_or(LoadError::Section(what))?;
+        let name = std::str::from_utf8(text).map_err(|_| LoadError::Section(what))?;
+        if names.iter().any(|n| n == name) {
+            return Err(LoadError::Section(what));
+        }
+        names.push(name.to_owned());
+        at += 1 + len;
+    }
+    if names.is_empty() {
+        return Err(LoadError::Section(what));
+    }
+    Ok(names)
+}
+
 pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let mut r = Reader { buf: bytes, at: 0 };
     if r.take(4, "magic")? != &MAGIC[..] {
@@ -710,7 +741,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 23];
+    let mut sections = [(0usize, 0usize); 28];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -731,6 +762,19 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     }
     let body = |k: usize| sections[k];
 
+    // Name lists the scenario declares (SNAM, EKND, FNAM, MCND, DKND). A bad list refuses the map.
+    let names = NameLists {
+        stat_names: name_list(bytes, body(23), "SNAM")?,
+        effect_kinds: name_list(bytes, body(24), "EKND")?,
+        filter_names: name_list(bytes, body(25), "FNAM")?,
+        mod_conds: name_list(bytes, body(26), "MCND")?,
+        doodad_kinds: name_list(bytes, body(27), "DKND")?,
+    };
+    // The engine's stat slots (spell.rs STAT_COUNT) index SNAM, so the list must have exactly that many names.
+    if names.stat_names.len() != crate::spell::STAT_COUNT {
+        return Err(LoadError::Section("SNAM count differs from the engine's stat slots"));
+    }
+
     let (so, sl) = body(0);
     let strs = bytes[so..so + sl].to_vec();
 
@@ -739,7 +783,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let mut effects = Vec::with_capacity(ec);
     for _ in 0..ec {
         let kind = er.u16("effect kind")?;
-        if kind >= EFFECT_KINDS {
+        if kind as usize >= names.effect_kinds.len() {
             return Err(LoadError::Range("effect kind"));
         }
         er.skip(2, "effect reserved")?;
@@ -1292,7 +1336,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let x = ddr.i32("doodad x")?;
         let y = ddr.i32("doodad y")?;
         let rotation = ddr.i32("doodad rotation")?;
-        if kind >= crate::doodads::DOODAD_KIND_COUNT
+        if kind as usize >= names.doodad_kinds.len()
             || !(0..1000).contains(&rotation)
             || x < 0
             || y < 0
@@ -1316,7 +1360,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let cost = ir.i32("item cost")?;
         let ability = ir.u16("item ability")?;
         let tier = ir.u8("item tier")?;
-        let shops = ir.u8("item shops")?;
+        let tags = ir.u8("item tags")?;
         let mut components = [NO_INDEX; ITEM_COMPONENTS];
         for c in components.iter_mut() {
             *c = ir.u16("item component")?;
@@ -1340,7 +1384,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             components,
             flags,
             tier,
-            shops,
+            tags,
             charges,
             stack_max,
             stock_max,
@@ -1367,7 +1411,6 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if item.cost < 0
             || item.flags & !ITEM_FLAG_MASK != 0
             || item.tier > NEUTRAL_TIERS
-            || item.shops > ITEM_STORE_MASK
             || item.stock_initial > item.stock_max
             || !ability_ok
             || !components_ok
@@ -1380,6 +1423,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
 
     Ok((
         Catalog {
+            names,
             strs,
             items,
             effects,
@@ -1425,20 +1469,6 @@ pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
             sim.enroll_hero(i, p.x, p.y);
         }
     }
-    sim.camps.boss_kind = sim.cat.unit_index(crate::camp::ROSHAN_NAME).map(|k| k as u32);
-    sim.camps.rune_kind = sim.cat.unit_index(crate::camp::RUNE_NAME).map(|k| k as u32);
-    sim.camps.timed = crate::camp::TIMED_BOSSES
-        .iter()
-        .filter_map(|&(name, first, min, spread)| sim.cat.unit_index(name).map(|k| (k as u32, first, min, spread)))
-        .collect();
-    sim.collect_pit_markers();
-    sim.hold_first_camp_spawn();
-    sim.camps.reward_kind = sim
-        .cat
-        .items
-        .iter()
-        .position(|it| sim.cat.name(it.name) == crate::camp::AEGIS_NAME)
-        .map_or(0, |k| crate::inventory::item_kind(k));
     for k in 0..sim.cat.starts.len() {
         let s = sim.cat.starts[k];
         if sim.set_team(s.player, s.team).is_err() {

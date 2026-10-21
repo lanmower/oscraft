@@ -14,7 +14,7 @@ use crate::arrays::Sim;
 use crate::fixed;
 use crate::spell::{
     S_ATTACK_SPEED, S_CDR, S_DAMAGE, S_EVASION, S_LIFESTEAL, S_MAGIC_RESIST, S_SPEED, S_SPELL_AMP, S_SPELL_LIFESTEAL,
-    S_STATUS_RESIST, S_HEALTH, S_MAX_MANA, S_HEALTH_REGEN, S_MANA_REGEN, S_ARMOR_X100, S_CRIT_CHANCE, S_CRIT_MULT, S_CLEAVE,
+    S_STATUS_RESIST, S_HEALTH, S_SLOT_15, S_HEALTH_REGEN, S_SLOT_13, S_ARMOR_X100, S_CRIT_CHANCE, S_CRIT_MULT, S_CLEAVE,
     S_CLEAVE_RADIUS, S_CLEAVE_W0, S_CLEAVE_W1, S_BASH_CHANCE, S_BASH_TICKS, S_SPEED_PCT,
 };
 use crate::rules::catalog_index;
@@ -34,23 +34,20 @@ pub(crate) const ITEM_FLAG_NO_BUY: u16 = 4;
 pub(crate) const ITEM_FLAG_NO_SELL: u16 = 8;
 pub(crate) const ITEM_FLAG_ENHANCEMENT: u16 = 16;
 pub(crate) const ITEM_FLAG_MASK: u16 = 31;
-pub(crate) const ITEM_STORE_MASK: u8 = 7;
 pub(crate) const NEUTRAL_TIERS: u8 = 5;
-/// Seconds a reincarnating hero is gone (reincarnate_time of item_aegis, items.txt @282fad29f0f74504fad465c52d197fb61f4d612b).
-pub(crate) const REINCARNATE_S: i32 = 5;
 
 /// Indices into `Item::stats`, in the order of `ITEM_STATS` in the data crate.
-pub(crate) const STAT_ARMOR: usize = 0;
+pub(crate) const STAT_SLOT_0: usize = 0;
 pub(crate) const STAT_DAMAGE: usize = 1;
 pub(crate) const STAT_HEALTH: usize = 2;
-pub(crate) const STAT_MANA: usize = 3;
-pub(crate) const STAT_STRENGTH: usize = 4;
-pub(crate) const STAT_AGILITY: usize = 5;
-pub(crate) const STAT_INTELLIGENCE: usize = 6;
+pub(crate) const STAT_SLOT_3: usize = 3;
+pub(crate) const STAT_SLOT_4: usize = 4;
+pub(crate) const STAT_SLOT_5: usize = 5;
+pub(crate) const STAT_SLOT_6: usize = 6;
 pub(crate) const STAT_MOVE_SPEED: usize = 7;
 pub(crate) const STAT_ATTACK_SPEED: usize = 8;
 pub(crate) const STAT_HEALTH_REGEN: usize = 9;
-pub(crate) const STAT_MANA_REGEN: usize = 10;
+pub(crate) const STAT_SLOT_10: usize = 10;
 pub(crate) const STAT_MAGIC_RESIST: usize = 11;
 pub(crate) const STAT_EVASION: usize = 12;
 pub(crate) const STAT_SPELL_AMP: usize = 13;
@@ -106,7 +103,7 @@ struct Derived {
 
 /// Item stats that are stat modifiers of the spell layer, with the modifier each feeds.
 const ITEM_SMODS: [(usize, usize); 24] = [
-    (STAT_ARMOR, S_ARMOR_X100),
+    (STAT_SLOT_0, S_ARMOR_X100),
     (STAT_DAMAGE, S_DAMAGE),
     (STAT_MOVE_SPEED, S_SPEED),
     (STAT_ATTACK_SPEED, S_ATTACK_SPEED),
@@ -118,9 +115,9 @@ const ITEM_SMODS: [(usize, usize); 24] = [
     (STAT_STATUS_RESIST, S_STATUS_RESIST),
     (STAT_COOLDOWN_REDUCTION, S_CDR),
     (STAT_HEALTH, S_HEALTH),
-    (STAT_MANA, S_MAX_MANA),
+    (STAT_SLOT_3, S_SLOT_15),
     (STAT_HEALTH_REGEN, S_HEALTH_REGEN),
-    (STAT_MANA_REGEN, S_MANA_REGEN),
+    (STAT_SLOT_10, S_SLOT_13),
     (STAT_CRIT_CHANCE, S_CRIT_CHANCE),
     (STAT_CRIT_MULTIPLIER, S_CRIT_MULT),
     (STAT_CLEAVE, S_CLEAVE),
@@ -356,7 +353,7 @@ impl Sim {
     /// Whole attribute points the items of unit `i` add: strength, agility, intelligence.
     pub(crate) fn item_attributes(&self, i: usize) -> [i32; 3] {
         let t = self.item_totals(i);
-        [t[STAT_STRENGTH], t[STAT_AGILITY], t[STAT_INTELLIGENCE]]
+        [t[STAT_SLOT_4], t[STAT_SLOT_5], t[STAT_SLOT_6]]
     }
 
     /// The slots, stash and cooldowns of unit `i`, to restore after the unit is respawned in place.
@@ -383,21 +380,24 @@ impl Sim {
         self.sync_upgrades(i, &[0; ITEM_STAT_COUNT], &totals);
     }
 
-    /// A hero that dies holding the Aegis comes back where it fell after `REINCARNATE_S` seconds, with full
-    /// health and mana, and the Aegis is spent. The death is not booked: no kill, bounty, experience or
-    /// death count. True when the hero reincarnates.
+    /// A hero that dies holding the reincarnation item (a mod's `set_reincarnate_item`, the Aegis in the moba
+    /// mod) comes back where it fell after the item's seconds, with full health and mana, and one charge of the
+    /// item is spent. The death is not booked: no kill, bounty, experience or death count. True when the hero
+    /// reincarnates.
     pub(crate) fn reincarnate(&mut self, j: usize) -> bool {
-        let aegis = self.camps.reward_kind;
-        if aegis == 0 || !self.is_hero(j) {
+        let Some((item, seconds)) = self.camps.reincarnate else {
+            return false;
+        };
+        if !self.is_hero(j) {
             return false;
         }
         let base = j * INV_SLOTS;
-        let Some(slot) = (0..MAIN_SLOTS).find(|&s| self.inv_kind[base + s] == aegis && self.inv_count[base + s] > 0) else {
+        let Some(slot) = (0..MAIN_SLOTS).find(|&s| self.inv_kind[base + s] == item && self.inv_count[base + s] > 0) else {
             return false;
         };
         self.consume_item_charge(j, slot);
         self.heroes.waiting[j] = 2;
-        self.heroes.respawn_at[j] = self.ticks.wrapping_add((REINCARNATE_S * crate::TICKS_PER_SECOND) as u32);
+        self.heroes.respawn_at[j] = self.ticks.wrapping_add(seconds.wrapping_mul(crate::TICKS_PER_SECOND as u32));
         self.heroes.spot_x[j] = self.pos_x[j];
         self.heroes.spot_y[j] = self.pos_y[j];
         true

@@ -2,7 +2,7 @@
 //! `state` and the sim; a mod reload never resets them.
 
 use mlua::{Function, HookTriggers, Lua, RegistryKey, Table, Value, VmState};
-use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Payout, Refusal, Request, Sim, UnitSpec, UpgradeSpec, Verdict, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, TICKS_PER_SECOND, VERDICT_TAKES};
+use sim::{controller_code, AbilitySpec, Catalog, Doodad, Effect, ItemSpec, LoadError, Payout, Refusal, ItemRequest, ItemVerdict, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, TICKS_PER_SECOND, VERDICT_TAKES};
 use std::cell::{Cell, RefCell, RefMut};
 use std::fmt;
 use std::fs;
@@ -69,6 +69,8 @@ pub enum Cmd {
     SetHoldOverride { unit: usize, hold: Option<bool> },
     // A spawn-group unit's respawn timer: Some(s) respawns it s seconds from now, None leaves it dead.
     SetRespawn { unit: usize, delay_s: Option<u32> },
+    // A spawn-group member's home point (Q16.16): the point it walks back to past its leash and respawns at.
+    SetHome { unit: usize, x: i32, y: i32 },
     // A unit's invulnerability for `ticks` ticks from the apply, and its damage reduction in percent.
     SetInvulnerable { unit: usize, ticks: u32 },
     SetReduction { unit: usize, pct: u8 },
@@ -91,7 +93,7 @@ pub enum Cmd {
     Sell { unit: usize, slot: usize },
     Unstash { unit: usize, slot: usize },
     // A mod's answer to a trade request, applied as the sim applies it (store.rs).
-    Trade { verdict: Verdict },
+    Trade { verdict: ItemVerdict },
     // Moves every stash item of a unit into its free slots, with no trade check (a delivery).
     PackStash { unit: usize },
     // Saves a unit's order point, and orders the unit back to its saved point.
@@ -184,20 +186,17 @@ struct Hooks {
     on_enter: Option<Function>,
     on_leave: Option<Function>,
     on_player_joined: Option<Function>,
-    // The store rule. on_buy(unit, item, state) returns true, price, takes or false, reason;
-    // on_sell(unit, slot, state) returns true, refund or false, reason; on_unstash(unit, slot, state)
-    // returns true or false, reason. A reason is "no-item", "no-shop", "cannot-afford", "inventory-full"
-    // or "missing-component". A mod without a rule refuses that trade.
-    on_buy: Option<Function>,
-    on_sell: Option<Function>,
-    on_unstash: Option<Function>,
-    // on_deliver(caster, target, reach_milli, state) runs a courier's own logic. It returns nothing.
-    on_deliver: Option<Function>,
+    // The one item-request rule: on_request(kind, unit, item, state), kind one of "acquire", "release",
+    // "take_out" or "carry". acquire returns true, debit, takes or false, reason; release returns true, credit
+    // or false, reason; take_out returns true or false, reason; carry runs the mod's own logic and returns
+    // nothing. A reason is "no-item", "out-of-reach", "cannot-afford", "inventory-full" or "missing-component".
+    // A mod without the rule refuses each acquire, release and take_out.
+    on_request: Option<Function>,
     // Runs every trigger registered on the event name it is called with (game.trigger).
     fire: Function,
     systems: Vec<System>,
-    // Set by the mod's top-level `GOLD_BY_MOD = true`: the sim's kill payout belongs to the mod.
-    gold_by_mod: bool,
+    // Set by the mod's top-level `PAYOUT_OWNER = true` (or the retired `GOLD_BY_MOD`): the kill payout belongs to the mod.
+    payout_owner: bool,
 }
 
 struct ModFile {
@@ -292,7 +291,7 @@ pub struct ModHost {
     // forwarded: their unit indices belong to this world, not to the room.
     local: RefCell<Vec<Cmd>>,
     joined: Vec<usize>,
-    gold_by_mod: bool,
+    payout_owner: bool,
 }
 
 // The largest respawn delay on_unit_died may return, in seconds (one day).
@@ -1352,24 +1351,35 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(name)
         })?,
     )?;
-    // timed_boss(name, first_s, min_s, spread_s): a load-time setting of one timed boss's spawn timing (see camp.rs).
+    // Spawn-group setters (see camp.rs): set_group_leash(milli) is a load-time leash radius for every member;
+    // set_reincarnate_item(name, seconds) names the item that lets a dying hero reincarnate.
     let w = world.clone();
     game.set(
-        "timed_boss",
-        lua.create_function(move |_, (name, first, min, spread): (String, i64, i64, i64)| {
-            let to_u32 = |v: i64| u32::try_from(v).map_err(|_| mlua::Error::RuntimeError("invalid_timed_boss: times must not be negative".into()));
-            w.borrow_mut().set_timed_boss(&name, to_u32(first)?, to_u32(min)?, to_u32(spread)?).map_err(|why| mlua::Error::RuntimeError(format!("invalid_timed_boss: {name}: {why}")))
+        "set_group_leash",
+        lua.create_function(move |_, milli: i64| {
+            let milli = u32::try_from(milli).map_err(|_| mlua::Error::RuntimeError("invalid_leash: must not be negative".into()))?;
+            w.borrow_mut().set_group_leash(milli);
+            Ok(())
         })?,
     )?;
-    // camp_rule(name, value): a load-time setting of one camp, rune or pit timing or reach (see CampRules in camp.rs).
     let w = world.clone();
     game.set(
-        "camp_rule",
-        lua.create_function(move |_, (name, value): (String, i64)| {
-            let value = u32::try_from(value).map_err(|_| mlua::Error::RuntimeError("invalid_camp_rule: value must not be negative".into()))?;
-            w.borrow_mut().set_camp_rule(&name, value).map_err(|why| mlua::Error::RuntimeError(format!("invalid_camp_rule: {name}: {why}")))
+        "set_reincarnate_item",
+        lua.create_function(move |_, (name, seconds): (String, i64)| {
+            let seconds = u32::try_from(seconds).map_err(|_| mlua::Error::RuntimeError("invalid_reincarnate: seconds must not be negative".into()))?;
+            w.borrow_mut().set_reincarnate_item(&name, seconds).map_err(|why| mlua::Error::RuntimeError(format!("invalid_reincarnate: {name}: {why}")))
         })?,
     )?;
+    let w = world.clone();
+    game.set(
+        "is_spawn_group_unit",
+        lua.create_function(move |_, unit: i64| Ok(usize::try_from(unit).is_ok_and(|u| w.borrow().is_spawn_group_unit(u))))?,
+    )?;
+    let w = world.clone();
+    game.set("is_night", lua.create_function(move |_, ()| Ok(w.borrow().is_night()))?)?;
+    // game.rule(key): a named number of the rules text (hero_rules.txt key=value lines), or nil when unset.
+    let w = world.clone();
+    game.set("rule", lua.create_function(move |_, key: String| Ok(w.borrow().rule(&key).map(i64::from)))?)?;
     // acquire(name, game_units): a load-time setting of one unit's acquire range (see acquire.rs in the sim).
     let w = world.clone();
     game.set(
@@ -1529,7 +1539,7 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             t.set("cost", it.cost)?;
             t.set("charges", i64::from(it.charges))?;
             t.set("stack_max", i64::from(it.stack_max))?;
-            t.set("shops", i64::from(it.shops))?;
+            t.set("tags", i64::from(it.tags))?;
             t.set("stock_max", i64::from(it.stock_max))?;
             t.set("stock_initial", i64::from(it.stock_initial))?;
             t.set("stock_time_s", i64::from(it.stock_time_s))?;
@@ -1652,6 +1662,17 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
                 other => return Err(mlua::Error::RuntimeError(format!("invalid_respawn: {}", other.type_name()))),
             };
             buf.borrow_mut().push(Cmd::SetRespawn { unit: u, delay_s });
+            Ok(())
+        })?,
+    )?;
+    // game.cmd_set_home(unit, x, y): a spawn-group member's home point, fixed point as unit_position returns it.
+    // A dead member takes it at its respawn; a live one walks there past its leash.
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_set_home",
+        lua.create_function(move |_, (unit, x, y): (i64, i64, i64)| {
+            let u = known_unit(&w.borrow(), unit)?;
+            buf.borrow_mut().push(Cmd::SetHome { unit: u, x: fixed(x)?, y: fixed(y)? });
             Ok(())
         })?,
     )?;
@@ -1885,13 +1906,13 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
         on_enter: env.get("on_enter")?,
         on_leave: env.get("on_leave")?,
         on_player_joined: env.get("on_player_joined")?,
-        on_buy: env.get("on_buy")?,
-        on_sell: env.get("on_sell")?,
-        on_unstash: env.get("on_unstash")?,
-        on_deliver: env.get("on_deliver")?,
+        on_request: env.get("on_request")?,
         fire,
         systems: registered,
-        gold_by_mod: env.get::<Option<bool>>("GOLD_BY_MOD")?.unwrap_or(false),
+        payout_owner: match env.get::<Option<bool>>("PAYOUT_OWNER")? {
+            Some(on) => on,
+            None => env.get::<Option<bool>>("GOLD_BY_MOD")?.unwrap_or(false),
+        },
     })
 }
 
@@ -1964,7 +1985,7 @@ impl ModHost {
             forward: RefCell::new(Vec::new()),
             local: RefCell::new(Vec::new()),
             joined: Vec::new(),
-            gold_by_mod: false,
+            payout_owner: false,
         })
     }
 
@@ -1981,7 +2002,7 @@ impl ModHost {
     pub fn load(&mut self, path: &Path) -> mlua::Result<()> {
         self.spent.set(0);
         let hooks = compile(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, path).map_err(named)?;
-        self.gold_by_mod = hooks.gold_by_mod;
+        self.payout_owner = hooks.payout_owner;
         self.mod_file = Some(ModFile { path: path.to_path_buf(), mtime: mtime(path).map_err(io_err)?, hooks });
         self.staged = None;
         self.version += 1;
@@ -1993,7 +2014,7 @@ impl ModHost {
     pub fn load_source(&mut self, name: &str, src: &str) -> mlua::Result<()> {
         self.spent.set(0);
         let hooks = compile_src(&self.lua, &self.world, &self.regions, &self.timers, &self.clock, &self.cmds, name, src).map_err(named)?;
-        self.gold_by_mod = hooks.gold_by_mod;
+        self.payout_owner = hooks.payout_owner;
         self.mod_file = Some(ModFile { path: PathBuf::from(name), mtime: SystemTime::UNIX_EPOCH, hooks });
         self.staged = None;
         self.version += 1;
@@ -2240,6 +2261,9 @@ impl ModHost {
                 Cmd::SetRespawn { unit, delay_s } => {
                     let _ = sim.set_respawn(unit, delay_s);
                 }
+                Cmd::SetHome { unit, x, y } => {
+                    let _ = sim.set_group_home(unit, x, y);
+                }
                 Cmd::SetInvulnerable { unit, ticks } => {
                     let _ = sim.set_invulnerable(unit, ticks);
                 }
@@ -2463,7 +2487,7 @@ impl ModHost {
     /// Feeds a trade or courier request from the room to the mod (the room's sim queued it). Returns the
     /// commands the answer queued, for the room to apply. The same answer is applied to this world, so
     /// its mirror of the room stays in step; no request is re-answered.
-    pub fn feed_request(&self, req: &Request) -> Vec<Cmd> {
+    pub fn feed_request(&self, req: &ItemRequest) -> Vec<Cmd> {
         let before = self.cmds.borrow().len();
         let answer = self.answer(req);
         let mut fed = self.cmds.borrow_mut().split_off(before);
@@ -2474,81 +2498,69 @@ impl ModHost {
         fed
     }
 
-    // Answers one trade or courier request with the mod's rule. A trade's answer is its verdict. A mod
-    // with no rule for a trade refuses it, so nothing is bought by default. A deliver request has no
-    // verdict: its handler queues the courier's commands, which the caller collects.
-    fn answer(&self, req: &Request) -> Option<Cmd> {
-        let hooks = self.mod_file.as_ref().map(|m| &m.hooks);
-        match *req {
-            Request::Buy { unit, item } => {
-                let verdict = match hooks.and_then(|h| h.on_buy.clone()) {
-                    Some(f) => self.buy_verdict(&f, unit, item),
-                    None => Verdict::Buy { unit, item, allow: false, deny: Refusal::NoItem, price: 0, takes: [NO_TAKE; VERDICT_TAKES] },
-                };
-                Some(Cmd::Trade { verdict })
+    // Answers one item request with the mod's rule. An acquire, release or take_out is answered by its verdict; a
+    // mod with no rule refuses it, so nothing moves by default. A carry has no verdict: its handler queues the
+    // carrier's commands, which the caller collects.
+    fn answer(&self, req: &ItemRequest) -> Option<Cmd> {
+        let hook = self.mod_file.as_ref().and_then(|m| m.hooks.on_request.clone());
+        let verdict = match (*req, hook) {
+            (ItemRequest::Acquire { unit, item }, Some(f)) => self.acquire_verdict(&f, unit, item),
+            (ItemRequest::Acquire { unit, item }, None) => {
+                ItemVerdict::Acquire { unit, item, allow: false, deny: Refusal::NoItem, debit: 0, takes: [NO_TAKE; VERDICT_TAKES] }
             }
-            Request::Sell { unit, slot } => {
-                let verdict = match hooks.and_then(|h| h.on_sell.clone()) {
-                    Some(f) => self.sell_verdict(&f, unit, slot),
-                    None => Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 },
-                };
-                Some(Cmd::Trade { verdict })
-            }
-            Request::Unstash { unit, slot } => {
-                let verdict = match hooks.and_then(|h| h.on_unstash.clone()) {
-                    Some(f) => self.unstash_verdict(&f, unit, slot),
-                    None => Verdict::Unstash { unit, slot, allow: false, deny: Refusal::NoItem },
-                };
-                Some(Cmd::Trade { verdict })
-            }
-            Request::Deliver { caster, target, reach_milli } => {
-                if let Some(f) = hooks.and_then(|h| h.on_deliver.clone()) {
-                    if let Err(e) = f.call::<()>((caster as i64, target as i64, i64::from(reach_milli), self.state.clone())) {
-                        println!("ev=mod_hook_failed hook=on_deliver error={:?}", e.to_string());
+            (ItemRequest::Release { unit, slot }, Some(f)) => self.release_verdict(&f, unit, slot),
+            (ItemRequest::Release { unit, slot }, None) => ItemVerdict::Release { unit, slot, allow: false, deny: Refusal::NoItem, credit: 0 },
+            (ItemRequest::TakeOut { unit, slot }, Some(f)) => self.take_out_verdict(&f, unit, slot),
+            (ItemRequest::TakeOut { unit, slot }, None) => ItemVerdict::TakeOut { unit, slot, allow: false, deny: Refusal::NoItem },
+            (ItemRequest::Carry { caster, target }, hook) => {
+                if let Some(f) = hook {
+                    if let Err(e) = f.call::<()>(("carry", caster as i64, target as i64, self.state.clone())) {
+                        println!("ev=mod_hook_failed hook=on_request kind=carry error={:?}", e.to_string());
                     }
                 }
-                None
+                return None;
             }
-        }
+        };
+        Some(Cmd::Trade { verdict })
     }
 
-    fn buy_verdict(&self, f: &Function, unit: usize, item: usize) -> Verdict {
-        let refuse = |deny| Verdict::Buy { unit, item, allow: false, deny, price: 0, takes: [NO_TAKE; VERDICT_TAKES] };
+    fn acquire_verdict(&self, f: &Function, unit: usize, item: usize) -> ItemVerdict {
+        let refuse = |deny| ItemVerdict::Acquire { unit, item, allow: false, deny, debit: 0, takes: [NO_TAKE; VERDICT_TAKES] };
         let items = self.world.borrow().catalog().items.len();
-        match f.call::<(Value, Value, Value)>((unit as i64, item as i64, self.state.clone())) {
-            Ok((Value::Boolean(true), price, takes)) => match (whole(&price, i64::from(i32::MAX)), parse_takes(&takes, items)) {
-                (Some(price), Some(takes)) => Verdict::Buy { unit, item, allow: true, deny: Refusal::NoItem, price: price as i32, takes },
+        match f.call::<(Value, Value, Value)>(("acquire", unit as i64, item as i64, self.state.clone())) {
+            Ok((Value::Boolean(true), debit, takes)) => match (whole(&debit, i64::from(i32::MAX)), parse_takes(&takes, items)) {
+                (Some(debit), Some(takes)) => ItemVerdict::Acquire { unit, item, allow: true, deny: Refusal::NoItem, debit: debit as i32, takes },
                 _ => refuse(Refusal::NoItem),
             },
             Ok((_, reason, _)) => refuse(denial(&reason)),
             Err(e) => {
-                println!("ev=mod_hook_failed hook=on_buy error={:?}", e.to_string());
+                println!("ev=mod_hook_failed hook=on_request kind=acquire error={:?}", e.to_string());
                 refuse(Refusal::NoItem)
             }
         }
     }
 
-    fn sell_verdict(&self, f: &Function, unit: usize, slot: usize) -> Verdict {
-        match f.call::<(Value, Value)>((unit as i64, slot as i64, self.state.clone())) {
-            Ok((Value::Boolean(true), refund)) => match whole(&refund, i64::from(i32::MAX)) {
-                Some(refund) => Verdict::Sell { unit, slot, allow: true, deny: Refusal::NoItem, refund: refund as i32 },
-                None => Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 },
+    fn release_verdict(&self, f: &Function, unit: usize, slot: usize) -> ItemVerdict {
+        match f.call::<(Value, Value)>(("release", unit as i64, slot as i64, self.state.clone())) {
+            Ok((Value::Boolean(true), credit)) => match whole(&credit, i64::from(i32::MAX)) {
+                Some(credit) => ItemVerdict::Release { unit, slot, allow: true, deny: Refusal::NoItem, credit: credit as i32 },
+                None => ItemVerdict::Release { unit, slot, allow: false, deny: Refusal::NoItem, credit: 0 },
             },
-            Ok((_, reason)) => Verdict::Sell { unit, slot, allow: false, deny: denial(&reason), refund: 0 },
+            Ok((_, reason)) => ItemVerdict::Release { unit, slot, allow: false, deny: denial(&reason), credit: 0 },
             Err(e) => {
-                println!("ev=mod_hook_failed hook=on_sell error={:?}", e.to_string());
-                Verdict::Sell { unit, slot, allow: false, deny: Refusal::NoItem, refund: 0 }
+                println!("ev=mod_hook_failed hook=on_request kind=release error={:?}", e.to_string());
+                ItemVerdict::Release { unit, slot, allow: false, deny: Refusal::NoItem, credit: 0 }
             }
         }
     }
 
-    fn unstash_verdict(&self, f: &Function, unit: usize, slot: usize) -> Verdict {
-        match f.call::<(Value, Value)>((unit as i64, slot as i64, self.state.clone())) {
-            Ok((Value::Boolean(true), _)) => Verdict::Unstash { unit, slot, allow: true, deny: Refusal::NoItem },
-            Ok((_, reason)) => Verdict::Unstash { unit, slot, allow: false, deny: denial(&reason) },
+    fn take_out_verdict(&self, f: &Function, unit: usize, slot: usize) -> ItemVerdict {
+        match f.call::<(Value, Value)>(("take_out", unit as i64, slot as i64, self.state.clone())) {
+            Ok((Value::Boolean(true), _)) => ItemVerdict::TakeOut { unit, slot, allow: true, deny: Refusal::NoItem },
+            Ok((_, reason)) => ItemVerdict::TakeOut { unit, slot, allow: false, deny: denial(&reason) },
             Err(e) => {
-                println!("ev=mod_hook_failed hook=on_unstash error={:?}", e.to_string());
-                Verdict::Unstash { unit, slot, allow: false, deny: Refusal::NoItem }
+                println!("ev=mod_hook_failed hook=on_request kind=take_out error={:?}", e.to_string());
+                ItemVerdict::TakeOut { unit, slot, allow: false, deny: Refusal::NoItem }
             }
         }
     }
@@ -2678,9 +2690,9 @@ impl ModHost {
         &self.lua
     }
 
-    /// Whether the loaded mod declared `GOLD_BY_MOD = true`: its kill payout replaces the sim's.
-    pub fn gold_by_mod(&self) -> bool {
-        self.gold_by_mod
+    /// Whether the loaded mod declared `PAYOUT_OWNER = true`: its kill payout replaces the sim's.
+    pub fn payout_owner(&self) -> bool {
+        self.payout_owner
     }
 
     /// The commands `advance` applied to this world since the last take, in apply order, so a
@@ -2750,7 +2762,7 @@ fn parse_takes(v: &Value, items: usize) -> Option<[u32; VERDICT_TAKES]> {
 fn denial(v: &Value) -> Refusal {
     let Value::String(s) = v else { return Refusal::NoItem };
     match s.to_str().ok().as_deref() {
-        Some("no-shop") => Refusal::OutOfReach,
+        Some("out-of-reach") | Some("no-shop") => Refusal::OutOfReach,
         Some("cannot-afford") => Refusal::CannotAfford,
         Some("inventory-full") => Refusal::InventoryFull,
         Some("missing-component") => Refusal::MissingComponent,
@@ -3176,7 +3188,7 @@ mod tests {
     }
 
     // A moba-style store rule with no shops: every item costs 300 and takes nothing. It buys through the
-    // generic primitives only: game.cmd_buy queues the purchase, the sim asks on_buy, and the answer debits.
+    // generic primitives only: game.cmd_buy queues the purchase, the sim asks on_request("acquire"), and the answer debits.
     const FLAT_PRICE_STORE: &str = r#"
         local done = false
         function on_tick(state)
@@ -3185,13 +3197,13 @@ mod tests {
             game.cmd_buy(state.attacker, state.item)
           end
         end
-        function on_buy(unit, item, state)
-          return true, 300, {}
+        function on_request(kind, unit, item, state)
+          if kind == "acquire" then return true, 300, {} end
         end
     "#;
 
     // A purchase is decided by the mod: its price is debited, the item is placed, and a listed component is
-    // consumed. Without an on_buy the purchase is refused, so no mod means nothing is bought.
+    // consumed. Without an on_request rule the purchase is refused, so no mod means nothing is bought.
     #[test]
     fn a_moba_style_mod_reproduces_a_purchase_through_the_store_callback() {
         let mut host = host_with_creeps();
@@ -3208,7 +3220,7 @@ mod tests {
     }
 
     #[test]
-    fn a_mod_without_an_on_buy_rule_leaves_the_item_unbought() {
+    fn a_mod_without_an_on_request_rule_leaves_the_item_unbought() {
         let mut host = host_with_creeps();
         let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
         let blink = host.sim().catalog().item_index("blink").expect("moba has blink");
@@ -3232,7 +3244,7 @@ mod tests {
         host.state().set("item", blink as i64).expect("state");
         host.sim().add_resources(0, 1000, 0);
         assert!(host.sim().inventory_add(a, comp as u32 + 1, 1));
-        host.load_source("deny", "local done = false\nfunction on_tick(state)\n  if not done then done = true game.cmd_buy(state.attacker, state.item) end\nend\nfunction on_buy(unit, item, state) return false, \"no-shop\" end\n").expect("mod loads");
+        host.load_source("deny", "local done = false\nfunction on_tick(state)\n  if not done then done = true game.cmd_buy(state.attacker, state.item) end\nend\nfunction on_request(kind, unit, item, state) return false, \"out-of-reach\" end\n").expect("mod loads");
         for _ in 0..3 {
             host.advance(&host.state().clone()).expect("step");
         }
@@ -3240,7 +3252,7 @@ mod tests {
         assert_eq!(host.sim().stats.last_refusal, Refusal::OutOfReach, "the denial did not name its refusal");
         assert_eq!(host.sim().resource_a(0), 1000);
         // Now allowed, with the component listed: the component is consumed and the item placed.
-        host.load_source("take", "local done = false\nfunction on_tick(state)\n  if not done then done = true game.cmd_buy(state.attacker, state.item) end\nend\nfunction on_buy(unit, item, state) return true, 250, {state.comp} end\n").expect("mod loads");
+        host.load_source("take", "local done = false\nfunction on_tick(state)\n  if not done then done = true game.cmd_buy(state.attacker, state.item) end\nend\nfunction on_request(kind, unit, item, state) return true, 250, {state.comp} end\n").expect("mod loads");
         host.state().set("comp", comp as i64).expect("state");
         for _ in 0..3 {
             host.advance(&host.state().clone()).expect("step");
@@ -3382,7 +3394,7 @@ mod tests {
     // protection.lua defines on_tick.
     fn moba_mod_source() -> String {
         let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
-        ["protection.lua", "hero.lua", "march.lua", "win.lua"]
+        ["protection.lua", "hero.lua", "camp.lua", "march.lua", "win.lua"]
             .iter()
             .map(|f| std::fs::read_to_string(dir.join(f)).expect("moba mod file"))
             .collect::<Vec<_>>()

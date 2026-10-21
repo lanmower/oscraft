@@ -4,7 +4,7 @@ use std::str::{FromStr, SplitWhitespace};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
 
-use sim::{carry_from, AbilitySpec, Effect, ItemSpec, ORDER_HOLD, Refusal, Sim, StateError, UnitSpec, UpgradeSpec, Verdict, ALL_REFUSALS, NO_TAKE, VERDICT_TAKES};
+use sim::{carry_from, AbilitySpec, Effect, ItemSpec, ORDER_HOLD, Refusal, Sim, StateError, UnitSpec, UpgradeSpec, ItemVerdict, ALL_REFUSALS, NO_TAKE, VERDICT_TAKES};
 
 const TICKS_PER_SECOND: u32 = 16;
 
@@ -297,7 +297,7 @@ pub enum Command {
     Sell { unit: usize, slot: usize },
     Unstash { unit: usize, slot: usize },
     /// A mod's answer to a trade request (store.rs), applied as the sim applies it.
-    Trade { verdict: Verdict },
+    Trade { verdict: ItemVerdict },
     /// Moves every stash item of a unit into its free slots (a delivery).
     PackStash { unit: usize },
     /// Saves a unit's order point, and orders the unit back to its saved point.
@@ -431,29 +431,29 @@ fn put<T: std::fmt::Display>(out: &mut String, v: T) {
 }
 
 // A verdict as text: its kind (b buy, s sell, u unstash), then its unit, argument, allow, refusal index
-// (into ALL_REFUSALS) and the kind's fields: a buy's price and its takes, a sell's refund.
-fn put_verdict(out: &mut String, v: &Verdict) {
+// (into ALL_REFUSALS) and the kind's fields: a buy's debit and its takes, a sell's credit.
+fn put_item_verdict(out: &mut String, v: &ItemVerdict) {
     match *v {
-        Verdict::Buy { unit, item, allow, deny, price, takes } => {
+        ItemVerdict::Acquire { unit, item, allow, deny, debit, takes } => {
             put(out, "b");
             put(out, unit);
             put(out, item);
             put(out, u8::from(allow));
             put(out, ALL_REFUSALS.iter().position(|&r| r == deny).unwrap_or(0));
-            put(out, price);
+            put(out, debit);
             for t in takes {
                 put(out, t);
             }
         }
-        Verdict::Sell { unit, slot, allow, deny, refund } => {
+        ItemVerdict::Release { unit, slot, allow, deny, credit } => {
             put(out, "s");
             put(out, unit);
             put(out, slot);
             put(out, u8::from(allow));
             put(out, ALL_REFUSALS.iter().position(|&r| r == deny).unwrap_or(0));
-            put(out, refund);
+            put(out, credit);
         }
-        Verdict::Unstash { unit, slot, allow, deny } => {
+        ItemVerdict::TakeOut { unit, slot, allow, deny } => {
             put(out, "u");
             put(out, unit);
             put(out, slot);
@@ -463,22 +463,22 @@ fn put_verdict(out: &mut String, v: &Verdict) {
     }
 }
 
-fn decode_verdict(it: &mut SplitWhitespace) -> Option<Verdict> {
+fn decode_item_verdict(it: &mut SplitWhitespace) -> Option<ItemVerdict> {
     let kind: String = num(it)?;
     let (unit, slot_or_item): (usize, usize) = (num(it)?, num(it)?);
     let allow = num::<u8>(it)? != 0;
     let deny = *ALL_REFUSALS.get(num::<usize>(it)?)?;
     Some(match kind.as_str() {
         "b" => {
-            let price = num(it)?;
+            let debit = num(it)?;
             let mut takes = [NO_TAKE; VERDICT_TAKES];
             for t in takes.iter_mut() {
                 *t = num(it)?;
             }
-            Verdict::Buy { unit, item: slot_or_item, allow, deny, price, takes }
+            ItemVerdict::Acquire { unit, item: slot_or_item, allow, deny, debit, takes }
         }
-        "s" => Verdict::Sell { unit, slot: slot_or_item, allow, deny, refund: num(it)? },
-        "u" => Verdict::Unstash { unit, slot: slot_or_item, allow, deny },
+        "s" => ItemVerdict::Release { unit, slot: slot_or_item, allow, deny, credit: num(it)? },
+        "u" => ItemVerdict::TakeOut { unit, slot: slot_or_item, allow, deny },
         _ => return None,
     })
 }
@@ -730,7 +730,7 @@ impl Command {
                 "t"
             }
             Command::Trade { verdict } => {
-                put_verdict(&mut o, verdict);
+                put_item_verdict(&mut o, verdict);
                 "tr"
             }
             Command::PackStash { unit } => {
@@ -931,7 +931,7 @@ impl Command {
             "b" => Command::Buy { unit: num(it)?, item: num(it)? },
             "l" => Command::Sell { unit: num(it)?, slot: num(it)? },
             "t" => Command::Unstash { unit: num(it)?, slot: num(it)? },
-            "tr" => Command::Trade { verdict: decode_verdict(it)? },
+            "tr" => Command::Trade { verdict: decode_item_verdict(it)? },
             "pk" => Command::PackStash { unit: num(it)? },
             "sv" => Command::SaveOrder { unit: num(it)?, x: num(it)?, y: num(it)? },
             "ro" => Command::RestoreOrder { unit: num(it)? },
@@ -989,25 +989,25 @@ pub struct Segment {
     pub image: String,
     pub max_units: u32,
     pub init: u64,
-    /// Whether a mod owned the kill payout (`gold_by_mod`) at the segment's start; the header carries it.
-    pub gold_by_mod: bool,
+    /// Whether a mod owned the kill payout (`payout_owner`) at the segment's start; the header carries it.
+    pub payout_owner: bool,
 }
 
 impl Segment {
     fn of(start: u32, image: &str, max_units: usize, sim: &Sim) -> Segment {
-        Segment { start, image: image.to_string(), max_units: max_units as u32, init: sim.state_hash(), gold_by_mod: sim.gold_by_mod() }
+        Segment { start, image: image.to_string(), max_units: max_units as u32, init: sim.state_hash(), payout_owner: sim.payout_owner() }
     }
 }
 
 fn segment_line(s: &Segment) -> String {
-    format!("segment {} {} {:016x} {} {}", s.start, s.max_units, s.init, u8::from(s.gold_by_mod), s.image)
+    format!("segment {} {} {:016x} {} {}", s.start, s.max_units, s.init, u8::from(s.payout_owner), s.image)
 }
 
 /// The commands a sim run received, per tick, with the state hash every `CHECK_EVERY` ticks.
 /// Text format: a header (`oscraft-replay 3`, `image`, `max_units`, `init`), then one line per
 /// command `<tick> <code> <args>` and `chk <ticks> <hash>` lines. A `chk` line follows the tick
 /// that brought the sim to `<ticks>` and precedes the commands applied at that tick. A data swap
-/// adds `segment <start> <max_units> <init> <gold_by_mod> <image>` lines, one per swap.
+/// adds `segment <start> <max_units> <init> <payout_owner> <image>` lines, one per swap.
 pub struct Recording {
     segments: Vec<Segment>,
     cmds: Vec<(u32, Command)>,
@@ -1270,8 +1270,8 @@ impl Recording {
     fn render_to(&self, last: Option<(u32, u64)>) -> String {
         let first = &self.segments[0];
         let mut out = format!("{FORMAT_HEADER}\nimage {}\nmax_units {}\ninit {:016x}\n", first.image, first.max_units, first.init);
-        if first.gold_by_mod {
-            out.push_str("gold_by_mod 1\n");
+        if first.payout_owner {
+            out.push_str("payout_owner 1\n");
         }
         if let Some(t) = self.incomplete {
             out.push_str(&format!("incomplete {t}\n"));
@@ -1303,10 +1303,10 @@ impl Recording {
         out
     }
 
-    /// Sets `fresh` (a sim loaded from the recording's first image) to the header's `gold_by_mod`, which the
+    /// Sets `fresh` (a sim loaded from the recording's first image) to the header's `payout_owner`, which the
     /// init hash covers. Call it before `Replayer::new` or `Playback::new`.
     pub fn apply_header(&self, fresh: &mut Sim) {
-        fresh.set_gold_by_mod(self.segments[0].gold_by_mod);
+        fresh.set_payout_owner(self.segments[0].payout_owner);
     }
 
     pub fn parse(text: &str) -> Result<Recording, ReplayError> {
@@ -1318,7 +1318,7 @@ impl Recording {
             None => return Err(bad(0, "empty replay")),
         }
         // Segment 0 is the header; each `segment` line after it starts a later segment.
-        let mut segments = vec![Segment { start: 0, image: String::new(), max_units: 0, init: 0, gold_by_mod: false }];
+        let mut segments = vec![Segment { start: 0, image: String::new(), max_units: 0, init: 0, payout_owner: false }];
         let mut have_init = false;
         let mut cmds: Vec<(u32, Command)> = Vec::new();
         let mut checks: Vec<(u32, u64)> = Vec::new();
@@ -1326,7 +1326,8 @@ impl Recording {
         for (n, line) in lines {
             let mut it = line.split_whitespace();
             let first = it.next().unwrap_or_default();
-            let header = matches!(first, "image" | "max_units" | "init" | "gold_by_mod" | "incomplete");
+            // gold_by_mod is the retired name of payout_owner; old recordings still decode.
+            let header = matches!(first, "image" | "max_units" | "init" | "payout_owner" | "gold_by_mod" | "incomplete");
             if header && segments.len() > 1 {
                 return Err(bad(n, "a header line must come before the segments"));
             }
@@ -1337,7 +1338,7 @@ impl Recording {
             }
             match first {
                 "max_units" => head.max_units = num(&mut it).ok_or_else(|| bad(n, "max_units needs a number"))?,
-                "gold_by_mod" => head.gold_by_mod = num::<u8>(&mut it).ok_or_else(|| bad(n, "gold_by_mod needs 0 or 1"))? != 0,
+                "payout_owner" | "gold_by_mod" => head.payout_owner = num::<u8>(&mut it).ok_or_else(|| bad(n, "payout_owner needs 0 or 1"))? != 0,
                 "init" => {
                     head.init = it.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "init needs a hex hash"))?;
                     have_init = true;
@@ -1349,10 +1350,10 @@ impl Recording {
                     let start: u32 = f.next().and_then(|v| v.parse().ok()).ok_or_else(|| bad(n, "segment needs a start tick"))?;
                     let max_units: u32 = f.next().and_then(|v| v.parse().ok()).ok_or_else(|| bad(n, "segment needs max_units"))?;
                     let init = f.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "segment needs a hex hash"))?;
-                    let gold_by_mod = match f.next() {
+                    let payout_owner = match f.next() {
                         Some("0") => false,
                         Some("1") => true,
-                        _ => return Err(bad(n, "segment needs gold_by_mod 0 or 1")),
+                        _ => return Err(bad(n, "segment needs payout_owner 0 or 1")),
                     };
                     let image = f.next().filter(|s| !s.is_empty()).ok_or_else(|| bad(n, "segment needs an image"))?;
                     let last_start = segments[segments.len() - 1].start;
@@ -1365,7 +1366,7 @@ impl Recording {
                     if checks.last().is_some_and(|c| c.0 > start) {
                         return Err(bad(n, "a segment must start after the checks before it"));
                     }
-                    segments.push(Segment { start, image: image.to_string(), max_units, init, gold_by_mod });
+                    segments.push(Segment { start, image: image.to_string(), max_units, init, payout_owner });
                 }
                 "chk" => {
                     let t: u32 = num(&mut it).ok_or_else(|| bad(n, "chk needs a tick"))?;
@@ -1489,7 +1490,7 @@ impl Replayer {
         if let Some(next) = self.rec.segments.get(self.seg + 1) {
             if next.start == t {
                 let mut fresh = load(next).ok_or(ReplayError::NoSegmentData { tick: t })?;
-                fresh.set_gold_by_mod(next.gold_by_mod);
+                fresh.set_payout_owner(next.payout_owner);
                 carry_from(sim, &mut fresh);
                 let actual = fresh.state_hash();
                 if actual != next.init {

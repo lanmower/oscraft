@@ -7,7 +7,7 @@ use starlark::eval::Evaluator;
 use starlark::starlark_module;
 use starlark::values::{list::UnpackList, none::NoneType};
 
-use crate::format::{AXTN_FLAG_MASK, AXTN_MODS, AXTN_SCALED, MOD_CONDS, MOD_FIELD_FIRST, SKILL_RANKS};
+use crate::format::{AXTN_FLAG_MASK, AXTN_MODS, AXTN_SCALED, MOD_FIELD_FIRST, SKILL_RANKS};
 
 /// Scaled-entry "effect" values naming a header field: cast range, pulse period, proc chance.
 pub const SCALED_CAST_RANGE: u8 = 252;
@@ -238,7 +238,7 @@ pub fn ext_builtins(builder: &mut GlobalsBuilder) {
 }
 
 /// Resolves the collected extension records against the ability list and effect pool.
-pub fn resolve(raw: &ExtRaw, abilities: &[AbilityRaw], effects: &[EffectRaw]) -> Result<Vec<AbilityExt>> {
+pub fn resolve(raw: &ExtRaw, abilities: &[AbilityRaw], effects: &[EffectRaw], mod_conds: usize) -> Result<Vec<AbilityExt>> {
     let at = |name: &str| -> Result<usize> {
         abilities.iter().position(|a| a.name == name).ok_or_else(|| anyhow!("ability extension names unknown ability {name:?}"))
     };
@@ -292,7 +292,7 @@ pub fn resolve(raw: &ExtRaw, abilities: &[AbilityRaw], effects: &[EffectRaw]) ->
         let i = at(&m.ability)?;
         let count = abilities[i].effects.len() as i32;
         let field = m.effect >= MOD_FIELD_FIRST as i32;
-        if !(0..MOD_CONDS as i32).contains(&m.cond)
+        if !(0..mod_conds as i32).contains(&m.cond)
             || !(0..=1).contains(&m.mode)
             || (field && m.effect >= MOD_FIELD_FIRST as i32 + 5)
             || (!field && (m.effect < 0 || m.effect >= count))

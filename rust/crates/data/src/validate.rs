@@ -5,9 +5,9 @@ use std::collections::{HashMap, HashSet};
 use anyhow::{anyhow, bail, Result};
 
 use crate::format::{
-    move_cap_fits_grid, position_on_grid, CELL_BLOCKED, ACTION_USE_ABILITY, FILTER_MASK_BITS, CHANNEL_FLAG, CLOAK_MASK, EFFECT_KINDS, MAX_PLAYERS,
+    move_cap_fits_grid, position_on_grid, CELL_BLOCKED, ACTION_USE_ABILITY, FILTER_MASK_BITS, CHANNEL_FLAG, CLOAK_MASK, MAX_PLAYERS,
     NEUTRAL_PLAYER, NO_ABILITY, NO_UNIT, NORMAL_GATE, MAX_NORMAL_GATE, PLCE_FLAG_START, PLCE_FLAG_TEAM, PLCE_TEAM_SHIFT, Q16_ONE,
-    ITEM_COMPONENTS, ITEM_SHOP_MASK, SKILL_RANKS, ULTIMATE_GATES, ULTIMATE_RANKS, STRUCTURE_SCAN_MAX_CELLS, TELEPORT_RING_MAX_POINTS,
+    ITEM_COMPONENTS, ITEM_TAG_LIMIT, SKILL_RANKS, ULTIMATE_GATES, ULTIMATE_RANKS, STRUCTURE_SCAN_MAX_CELLS, TELEPORT_RING_MAX_POINTS,
     XP_CURVE_LEN,
 };
 use crate::model::{
@@ -51,7 +51,7 @@ fn bounded(what: &str, value: i32, max: u32) -> Result<u32> {
 }
 
 /// Checks one skill tree against its ability and the effects it names, then resolves it.
-fn check_skill(raw: &SkillRaw, ability: &AbilityRaw, effects: &[EffectRaw]) -> Result<Skill> {
+fn check_skill(raw: &SkillRaw, ability: &AbilityRaw, effects: &[EffectRaw], effect_kinds: &[String]) -> Result<Skill> {
     let ranks = raw.damage.len();
     if ranks == 0 || ranks > SKILL_RANKS {
         bail!("skill {:?} needs 1..={SKILL_RANKS} ranks, got {ranks}", raw.ability);
@@ -83,7 +83,7 @@ fn check_skill(raw: &SkillRaw, ability: &AbilityRaw, effects: &[EffectRaw]) -> R
         skill.energy[k] = unsigned("skill energy", raw.energy[k])? as i32;
     }
     let takes_amount = ability.effects.iter().any(|&h| {
-        matches!(EFFECT_KINDS.get(effects[h].kind).copied(), Some("damage") | Some("heal"))
+        matches!(effect_kinds.get(effects[h].kind).map(String::as_str), Some("damage") | Some("heal"))
     });
     if !takes_amount && skill.damage[..ranks].iter().any(|&d| d != 0) {
         bail!("skill {:?}: damage table is set but the ability has no damage or heal effect", raw.ability);
@@ -115,6 +115,19 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let unit_ext_raw = collector.unit_ext.into_inner();
     let channels_raw = collector.channels.into_inner();
     let ext_raw = collector.ext.into_inner();
+    let names = collector.names.into_inner();
+    // Every name list must be declared, and the sizes the image stores must fit.
+    if names.stat_names.is_empty() || names.effect_kinds.is_empty() || names.filter_names.is_empty()
+        || names.mod_conds.is_empty() || names.doodad_kinds.is_empty()
+    {
+        bail!("scenario must declare stat_names, effect_kinds, filter_names, mod_conds and doodad_kinds");
+    }
+    if names.filter_names.len() > FILTER_MASK_BITS as usize {
+        bail!("filter_names lists {} names; the mask holds {FILTER_MASK_BITS}", names.filter_names.len());
+    }
+    if names.mod_conds.len() > u8::MAX as usize {
+        bail!("mod_conds lists {} names; the image holds one byte per condition", names.mod_conds.len());
+    }
     let economy_raw = collector.economy.into_inner();
     let researches_raw = collector.researches.into_inner();
     let prereqs_raw = collector.prerequisites.into_inner();
@@ -200,7 +213,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         if skills_by_ability.contains_key(&index) {
             bail!("ability {:?} has more than one skill tree", raw.ability);
         }
-        let skill = check_skill(raw, &abilities_raw[index], &effects)?;
+        let skill = check_skill(raw, &abilities_raw[index], &effects, &names.effect_kinds)?;
         skills_by_ability.insert(index, skill);
     }
 
@@ -212,12 +225,16 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         let mut resolved = Vec::with_capacity(raw.effects.len());
         for &handle in &raw.effects {
             let effect = effects[handle];
-            let kind = EFFECT_KINDS
+            let kind = names
+                .effect_kinds
                 .get(effect.kind)
                 .ok_or_else(|| anyhow!("ability {:?} uses effect code {} above the registry", raw.name, effect.kind))?;
             let target = effect.params[0] as usize;
-            match *kind {
-                "spawn" | "ward" if target >= units_raw.len() => {
+            match kind.as_str() {
+                "stat" | "timed_stat" if !(0..names.stat_names.len() as i32).contains(&effect.params[0]) => {
+                    bail!("ability {:?}: stat code {} is not in stat_names", raw.name, effect.params[0])
+                }
+                "spawn" if target >= units_raw.len() => {
                     bail!("ability {:?}: spawn names unit index {target}, only {} units exist", raw.name, units_raw.len())
                 }
                 "spawn" if effect.params[3] & 0x3FFF_FFFF != 0 && !wave_spec_fits(effect.params[3] & 0x3FFF_FFFF, units_raw.len()) => {
@@ -277,7 +294,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         };
     }
 
-    let ext = crate::abilityext::resolve(&ext_raw, &abilities_raw, &effects)?;
+    let ext = crate::abilityext::resolve(&ext_raw, &abilities_raw, &effects, names.mod_conds.len())?;
 
     let mut units = Vec::with_capacity(units_raw.len());
     for raw in &units_raw {
@@ -624,7 +641,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             || raw.stock_max > i32::from(u8::MAX)
             || raw.stock_initial > raw.stock_max
             || (raw.stack_max > 0 && raw.charges > raw.stack_max)
-            || !(0..=i32::from(ITEM_SHOP_MASK)).contains(&raw.shops)
+            || !(0..(1 << ITEM_TAG_LIMIT)).contains(&raw.tags)
         {
             bail!("item {:?}: charges, stack or stock outside their ranges", raw.name);
         }
@@ -636,7 +653,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             components,
             flags: raw.flags,
             tier: raw.tier as u8,
-            shops: raw.shops as u8,
+            tags: raw.tags as u8,
             charges: raw.charges as u16,
             stack_max: raw.stack_max as u16,
             stock_max: raw.stock_max as u8,
@@ -647,6 +664,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     }
 
     Ok(Catalog {
+        names,
         items,
         doodads,
         units,

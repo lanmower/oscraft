@@ -234,7 +234,7 @@ impl Sim {
             None => self.intern(&spec.name),
         };
         let mut stats = [0; crate::inventory::ITEM_STAT_COUNT];
-        stats[crate::inventory::STAT_ARMOR] = spec.armor;
+        stats[crate::inventory::STAT_SLOT_0] = spec.armor;
         stats[crate::inventory::STAT_DAMAGE] = spec.damage;
         stats[crate::inventory::STAT_HEALTH] = spec.health;
         let item = Item {
@@ -242,7 +242,7 @@ impl Sim {
             cost: spec.cost,
             stats,
             ability,
-            shops: crate::inventory::ITEM_STORE_MASK,
+            tags: u8::MAX,
             components: [NO_INDEX; crate::inventory::ITEM_COMPONENTS],
             ..Item::default()
         };

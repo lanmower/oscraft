@@ -27,7 +27,7 @@ fn payout(victim: u32, victim_player: u8, killer: Option<u32>, killer_player: Op
 }
 
 const PROBE: &str = r#"
-GOLD_BY_MOD = true
+PAYOUT_OWNER = true
 function on_tick(state) end
 function on_died(unit, killer, killer_player, bounty, victim_player)
   game.cmd_add_unit_gold(unit, bounty)
