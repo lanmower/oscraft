@@ -1,5 +1,5 @@
 //! The mod host on piccolo, a pure Rust Lua VM, for the wasip3 guest (no C objects). A mod runs in
-//! its own environment table with the same game table (system, each, trigger, cmd_*, units,
+//! one environment table shared by a pack's chunks, run in manifest order, with the same game table (system, each, trigger, cmd_*, units,
 //! players, unit_kind, timer, region, var, score, ability, gold, victory and the UI calls), the same
 //! unit queries and the same event dispatch as the mlua host. The Lua half of var, region and timer
 //! is the source mlua runs (shared.rs). Not carried over: terrain, tile, doodad and unit, item and
@@ -1753,7 +1753,7 @@ pub struct ModHost {
     lua: RefCell<Lua>,
     sh: Sh,
     state: StashedTable,
-    // One entry per loaded mod, in load order. Each mod has its own environment and hooks; they share the sim.
+    // The loaded pack's hooks: one entry for the shared environment of every mod, empty when no mod is loaded.
     hooks: Vec<Hooks>,
     version: u64,
     joined: Vec<usize>,
@@ -1790,37 +1790,32 @@ impl ModHost {
         })
     }
 
-    /// Compiles the mod in `src`, named `name` in error messages, runs its top level in its own
+    /// Compiles the mod in `src`, named `name` in error messages, runs its top level in a fresh
     /// environment, and makes it the active version. Every hook is optional, on_tick included.
     pub fn load_source(&mut self, name: &str, src: &str) -> Result<(), String> {
-        let hooks = self.build_mod(name, src)?;
-        self.hooks = vec![hooks];
-        self.version += 1;
-        Ok(())
+        self.load_mods(&[(name.to_owned(), src.to_owned())])
     }
 
-    /// Loads a set of mods, in order, each in its own environment, sharing this host's sim. Every mod
-    /// is built before any takes effect: when one fails, the sim, regions and queued commands go back
-    /// as they were and the previous set stays live. Returns the error text for the failing mod.
+    /// Loads a set of mods, in order, into one environment shared by all of them, over this host's
+    /// sim. A later mod sees the globals an earlier one defined. Every mod is built before any takes
+    /// effect: when one fails, the sim, regions and queued commands go back as they were and the
+    /// previous set stays live. Returns the error text for the failing mod.
     pub fn load_mods(&mut self, mods: &[(String, String)]) -> Result<(), String> {
         let (sim, regions, cmds, local) = {
             let sh = self.sh.borrow();
             (sh.sim.save_state(), sh.regions.clone(), sh.cmds.clone(), sh.local.clone())
         };
-        let mut built = Vec::with_capacity(mods.len());
-        for (name, src) in mods {
-            match self.build_mod(name, src) {
-                Ok(hooks) => built.push(hooks),
-                Err(e) => {
-                    let mut sh = self.sh.borrow_mut();
-                    sh.sim.load_state(&sim).map_err(|_| "the saved sim state did not load back".to_string())?;
-                    sh.regions = regions;
-                    sh.cmds = cmds;
-                    sh.local = local;
-                    return Err(e);
-                }
+        let built = match self.build_pack(mods) {
+            Ok(built) => built,
+            Err(e) => {
+                let mut sh = self.sh.borrow_mut();
+                sh.sim.load_state(&sim).map_err(|_| "the saved sim state did not load back".to_string())?;
+                sh.regions = regions;
+                sh.cmds = cmds;
+                sh.local = local;
+                return Err(e);
             }
-        }
+        };
         self.hooks = built;
         self.version += 1;
         Ok(())
@@ -1856,7 +1851,9 @@ impl ModHost {
         self.hooks.iter().filter_map(|h| pick(h).clone()).collect()
     }
 
-    fn build_mod(&mut self, name: &str, src: &str) -> Result<Hooks, String> {
+    // The environment one pack shares: the game table and the host prelude's emit, run_systems and
+    // fire_timers over it. Named hooks are read after the chunks run, by name_hooks.
+    fn new_env(&mut self) -> Result<(Hooks, StashedTable), String> {
         let sh = self.sh.clone();
         let (prelude, env) = self
             .lua.borrow_mut()
@@ -1926,17 +1923,27 @@ impl ModHost {
                 })
             })
             .map_err(|e| e.to_string())?;
+        Ok((hooks, env))
+    }
+
+    // Runs one chunk's top level in the pack's shared environment, so its definitions are visible to
+    // the chunks after it and to every hook.
+    fn run_chunk(&mut self, env: &StashedTable, name: &str, src: &str) -> Result<(), String> {
         let exec = self
             .lua.borrow_mut()
             .try_enter(|ctx| {
-                let closure = Closure::load_with_env(ctx, Some(name), src.as_bytes(), ctx.fetch(&env))?;
+                let closure = Closure::load_with_env(ctx, Some(name), src.as_bytes(), ctx.fetch(env))?;
                 Ok(ctx.stash(Executor::start(ctx, closure.into(), ())))
             })
             .map_err(|e| e.to_string())?;
-        self.run(&exec)?;
-        let mut hooks = hooks;
+        self.run(&exec)
+    }
+
+    // Fills the named hooks from the shared environment, once every chunk has run: each callback is
+    // the value the last chunk to define it left there.
+    fn name_hooks(&self, mut hooks: Hooks, env: &StashedTable) -> Hooks {
         let named = |key: &str| {
-            self.lua.borrow_mut().enter(|ctx| match ctx.fetch(&env).get(ctx, ctx.intern(key.as_bytes())) {
+            self.lua.borrow_mut().enter(|ctx| match ctx.fetch(env).get(ctx, ctx.intern(key.as_bytes())) {
                 Value::Function(f) => Some(ctx.stash(f)),
                 _ => None,
             })
@@ -1951,7 +1958,19 @@ impl ModHost {
         hooks.on_skill_up = named("on_skill_up");
         hooks.on_action = named("on_action");
         hooks.on_pointer = named("on_pointer");
-        Ok(hooks)
+        hooks
+    }
+
+    // Runs the pack's chunks, in order, in one shared environment. An empty pack has no hooks.
+    fn build_pack(&mut self, mods: &[(String, String)]) -> Result<Vec<Hooks>, String> {
+        if mods.is_empty() {
+            return Ok(Vec::new());
+        }
+        let (hooks, env) = self.new_env()?;
+        for (name, src) in mods {
+            self.run_chunk(&env, name, src)?;
+        }
+        Ok(vec![self.name_hooks(hooks, &env)])
     }
 
     /// Loads the mod file at `path` and remembers it, so `reload` can swap in later edits.
