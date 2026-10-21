@@ -1,4 +1,4 @@
-// Hot reload for the graphics code, on only when the page was opened with ?hmr. Every 500 ms it checks the shader files
+// Hot reload for the graphics code: on for localhost and any page opened with ?hmr. Every 500 ms it checks the shader files
 // and the js/client modules that are loaded. A changed shader is recompiled in place on each live renderer, so the
 // match keeps running. A changed module is re-imported with a ?v= query; if its exports include hmrReload(mod), that
 // hook is called, otherwise the log says a page reload is needed.
@@ -107,4 +107,5 @@ function start() {
   console.log(`[hmr] watching ${SHADER_FILES.length} shader file(s) and the js/client modules every ${POLL_MS} ms`);
 }
 
-if (new URLSearchParams(location.search).has("hmr")) start();
+// On by default on localhost (the dev preview); the ?hmr query turns it on anywhere else.
+if (new URLSearchParams(location.search).has("hmr") || ["localhost", "127.0.0.1"].includes(location.hostname)) start();
