@@ -39,13 +39,15 @@ Systems and queries see only the components they name. Every unit view also carr
 | `game.players()` | one row per player slot, with its living unit count |
 | `game.team(player)` | the team of `player` |
 | `game.unit_kind(unit)` | the catalog name, or `nil`; works on dead units |
-| `game.unit_bounty(unit)` | the gold the unit is worth when destroyed |
+| `game.reward_unit(unit)` | the gold the unit is worth when destroyed (`unit_bounty` is a deprecated alias) |
 | `game.rival_of(player)` | the first player slot hostile to `player`, or `nil` |
 | `game.time()` | the match clock, in ticks and seconds (16 ticks a second) |
 | `game.unit_cooldown(unit, slot)` | ticks left on an ability slot; 0 when ready |
 | `game.unit_level(unit)` | the unit's level |
 | `game.unit_abilities(unit)` | ability rows `{slot, name, cooldown}` |
 | `game.unit_items(unit)` | item rows `{slot, name, count, cooldown}` |
+| `game.str_lower(s)` | `s` with its ASCII letters lowercased |
+| `game.str_find_ci(haystack, needle)` | the 1-based start of the first case-insensitive match, or `nil` |
 | `game.gold(player)`, `game.unit_gold(unit)` | gold of a player pool or of a unit |
 | `game.winner()` | the winning side, or `nil` while the match runs |
 | `game.rule(key)` | a value of the pack's `rules` file, or `nil` |

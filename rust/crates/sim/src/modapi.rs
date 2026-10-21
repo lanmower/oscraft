@@ -49,7 +49,7 @@ pub struct UnitSpec {
     pub sight: i32,
     pub filter: u32,
     pub cost: i32,
-    pub bounty: i32,
+    pub reward: i32,
     pub weapon: Option<(i32, i32, i32)>,
     pub abilities: Vec<String>,
 }
@@ -158,7 +158,7 @@ impl Sim {
         if !valid_ability_name(&spec.name) {
             return Err("invalid_name");
         }
-        if spec.health <= 0 || spec.speed < 0 || spec.radius < 0 || spec.armor < 0 || spec.shield < 0 || spec.sight < 0 || spec.cost < 0 || spec.bounty < 0 {
+        if spec.health <= 0 || spec.speed < 0 || spec.radius < 0 || spec.armor < 0 || spec.shield < 0 || spec.sight < 0 || spec.cost < 0 || spec.reward < 0 {
             return Err("negative_stat");
         }
         if spec.abilities.len() > ABILITY_SLOTS {
@@ -199,7 +199,7 @@ impl Sim {
             product: NO_INDEX,
             ..Unit::default()
         };
-        let ext = UnitExt { bounty: spec.bounty, ..UnitExt::default() };
+        let ext = UnitExt { reward: spec.reward, ..UnitExt::default() };
         match existing {
             Some(i) => {
                 self.cat.units[i] = unit;
@@ -435,7 +435,7 @@ impl Sim {
         if self.winner >= 0 || (player as usize) >= MAX_PLAYERS {
             return;
         }
-        if let Some(rival) = self.first_hostile_side(player) {
+        if let Some(rival) = self.rival_of(player) {
             self.winner = self.team[rival as usize] as i32;
         }
     }

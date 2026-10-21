@@ -267,7 +267,7 @@ impl Sim {
         self.cat.unit_ext.get(self.type_of.get(j).copied().unwrap_or(-1).max(0) as usize).map_or(0, |e| e.xp_bounty)
     }
 
-    pub fn assist_radius_milli(&self, j: usize) -> i32 {
+    pub fn xp_share_radius_milli(&self, j: usize) -> i32 {
         self.cat.unit_ext.get(self.type_of.get(j).copied().unwrap_or(-1).max(0) as usize).map_or(0, |e| e.assist_radius)
     }
 

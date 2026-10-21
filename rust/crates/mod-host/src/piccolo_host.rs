@@ -579,7 +579,7 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
     native!(ctx, game, "credit_radius_milli", [sh], |c, s| {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
-        s.replace(c, i64::from(sh.sim.assist_radius_milli(u)));
+        s.replace(c, i64::from(sh.sim.xp_share_radius_milli(u)));
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "upgrade_bits", [sh], |c, s| {
@@ -1196,7 +1196,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
         let slot = usize::try_from(slot).ok().filter(|&v| v < ABILITY_SLOTS).ok_or_else(|| fail(c, format!("invalid_slot: {slot}")))?;
-        s.replace(c, i64::from(sh.sim.ability_rank(u, slot)));
+        s.replace(c, i64::from(sh.sim.skill_rank(u, slot)));
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "skill_gate", [sh], |c, s| {
@@ -1204,7 +1204,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
         let slot = usize::try_from(slot).ok().filter(|&v| v < ABILITY_SLOTS).ok_or_else(|| fail(c, format!("invalid_slot: {slot}")))?;
-        match sh.sim.next_rank_gate(u, slot) {
+        match sh.sim.skill_next_gate(u, slot) {
             Some(gate) => s.replace(c, i64::from(gate)),
             None => s.replace(c, ()),
         }
@@ -1365,7 +1365,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             sight: int("sight", 8000)?,
             filter,
             cost: int("cost", 0)?,
-            bounty: int("bounty", 0)?,
+            reward: int("bounty", 0)?,
             weapon,
             abilities,
         };
@@ -1693,7 +1693,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
     native!(ctx, game, "rival_of", [sh], |c, s| {
         let player = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
         let sh = sh.borrow();
-        s.replace(c, sh.sim.first_hostile_side(player).map(i64::from));
+        s.replace(c, sh.sim.rival_of(player).map(i64::from));
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "time", [sh], |c, s| {
@@ -1763,7 +1763,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
         let slot = slot_of(slot, ABILITY_SLOTS).map_err(|m| fail(c, m))?;
-        match sh.sim.rank_tree(u, slot) {
+        match sh.sim.skill_tree(u, slot) {
             Some(k) => {
                 let t = Table::new(&c);
                 t.set(c, "max_rank", i64::from(k.max_rank)).expect("skill");
@@ -2965,7 +2965,7 @@ impl ModHost {
                     let _ = sim.set_hold_override(unit, hold);
                 }
                 Cmd::SkillUp { unit, slot } if sim.alive(unit) => {
-                    let _ = sim.rank_up(unit, slot);
+                    let _ = sim.skill_up(unit, slot);
                 }
                 Cmd::RemovePlayer { player } => {
                     let _ = sim.remove_player(player);
@@ -2997,7 +2997,7 @@ impl ModHost {
                 Cmd::SetHealing { unit, hp_per_s } => {
                     let _ = sim.set_healing(unit, hp_per_s);
                 }
-                Cmd::DeclareSide { side } => sim.declare_winner(side),
+                Cmd::DeclareSide { side } => sim.declare_side(side),
                 Cmd::AttackMove { unit, x, y } if sim.alive(unit) => {
                     let _ = sim.issue_order_kind(unit, sim::ORDER_ATTACK_MOVE, x, y);
                 }
