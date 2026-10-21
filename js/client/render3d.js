@@ -236,6 +236,7 @@ export const DEFAULT_SHADE = [0.3, 0.7, 1];
 // Sun direction (the same vector the shaders light by), the shadow map's texture unit, and how far the sun's eye sits.
 const SUN_DIR = (() => { const s = [0.4, 1, 0.6]; const n = Math.hypot(...s); return s.map((v) => v / n); })();
 const SHADOW_UNIT = 9;
+const RIPPLE_UNIT = 11;
 const SHADOW_DISTANCE = 400;
 // GLSL sources live in js/client/shaders/*.glsl. They are fetched once when this module loads (top-level await), so
 // createRenderer only compiles text that has arrived. A line `#include "name.glsl"` is replaced by that file, and
@@ -248,6 +249,21 @@ const PROGRAM_SHADERS = {
   splat: { vertex: "mesh.vert.glsl", fragment: "splat.frag.glsl" },
 };
 const SHADERS = typeof document === "undefined" ? null : await loadShaders("");
+
+// The water ripple height field: a greyscale rock height map (512 px, repeats). If it does not load, the water keeps its
+// analytic ripples (the shader falls back on uRippleOn).
+const RIPPLE_URL = new URL("./textures/rock024_disp.jpg", import.meta.url);
+const RIPPLE_BITMAP = typeof document === "undefined" ? null : await loadRippleBitmap();
+async function loadRippleBitmap() {
+  try {
+    const res = await fetch(RIPPLE_URL.href);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await createImageBitmap(await res.blob());
+  } catch (err) {
+    console.error(`render3d: ripple height texture failed to load, keeping the analytic ripples: ${err.message}`);
+    return null;
+  }
+}
 
 // query: "" for the page load; a cache-busting query when a hot reload re-fetches the files.
 async function loadShaders(query) {
@@ -361,6 +377,8 @@ function splatUniforms(gl, p) {
     lightVP: gl.getUniformLocation(p, "uLightVP"),
     shadow: gl.getUniformLocation(p, "uShadow"),
     shadowTexel: gl.getUniformLocation(p, "uShadowTexel"),
+    ripple: gl.getUniformLocation(p, "uRipple"),
+    rippleOn: gl.getUniformLocation(p, "uRippleOn"),
     alb: [0, 1, 2, 3].map((k) => gl.getUniformLocation(p, "uAlb" + k)),
     disp: [0, 1, 2, 3].map((k) => gl.getUniformLocation(p, "uDisp" + k)),
   };
@@ -392,7 +410,12 @@ export function createRenderer(gl) {
   // Filled in place by recompile, so the uniform objects keep their identity.
   const uni = meshUniforms(gl, program);
   const splatUni = splatUniforms(gl, splatProgram);
+  const rippleTex = RIPPLE_BITMAP ? makeRippleTexture(RIPPLE_BITMAP) : null;
   gl.uniform1i(uni.tex, 0);
+  gl.useProgram(splatProgram);
+  gl.uniform1i(splatUni.ripple, RIPPLE_UNIT);
+  gl.uniform1f(splatUni.rippleOn, rippleTex ? 1 : 0);
+  gl.useProgram(program);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
 
@@ -501,6 +524,10 @@ export function createRenderer(gl) {
       gl.uniform1f(locs.shadowTexel, 1 / shadowSize);
     }
     gl.uniform1f(locs.shadowOn, shadowOn && shadowTex ? 1 : 0);
+    if (name === "splat") {
+      gl.uniform1i(locs.ripple, RIPPLE_UNIT);
+      gl.uniform1f(locs.rippleOn, rippleTex ? 1 : 0);
+    }
   }
 
   const renderer = {
@@ -862,6 +889,11 @@ export function createRenderer(gl) {
     gl.activeTexture(gl.TEXTURE10);
     gl.bindTexture(gl.TEXTURE_2D, splat.gpu.waterMap);
     gl.uniform1i(splatUni.waterMap, 10);
+    if (rippleTex) {
+      gl.activeTexture(gl.TEXTURE0 + RIPPLE_UNIT);
+      gl.bindTexture(gl.TEXTURE_2D, rippleTex);
+      gl.activeTexture(gl.TEXTURE0);
+    }
     gl.uniform3fv(splatUni.waterTint, splat.waterTint);
     gl.uniform1f(splatUni.time, performance.now() / 1000);
     gl.uniform3f(splatUni.eye, eye[0], eye[1], eye[2]);
@@ -901,6 +933,22 @@ export function createRenderer(gl) {
     gl.bindTexture(gl.TEXTURE_2D, splat.gpu.control);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, index % w, Math.floor(index / w), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, texel);
     stats.texelUploads = (stats.texelUploads || 0) + 1;
+  }
+
+  // The ripple height field: 512 px, repeating, mipmapped. Bound on its own unit beside the shadow and water maps.
+  function makeRippleTexture(bitmap) {
+    const tex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + RIPPLE_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.activeTexture(gl.TEXTURE0);
+    return tex;
   }
 
   // A depth-only render target of `size` texels square. Returns null when the framebuffer is incomplete.

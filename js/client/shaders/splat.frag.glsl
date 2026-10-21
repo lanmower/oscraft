@@ -47,6 +47,14 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
   float lit = uShade.x + uShade.y * diffuse * sunShadow(vec3(xz.x, y, xz.y), n0);
   return base * uShade.z * lit;
 }
+// Ripple height from the rock height map when it is bound (uRippleOn 1), else the analytic waves. Each normal scale
+// reads the map through its own warped position (q) and scrolls it slowly along the flow, so the scales stay out of step.
+uniform sampler2D uRipple; uniform float uRippleOn;
+float rippleH(vec2 q, float t, float k) {
+  if (uRippleOn < 0.5) return waveH(q, t);
+  vec2 uv = q * 0.12 + t * 0.002 * vec2(0.8 + 0.1 * k, 0.6 - 0.1 * k);
+  return (texture(uRipple, uv).r - 0.5) * 2.0;
+}
 // Ripple sample position for one of the three normal scales: the scaled position plus its own slow warp (about 0.6 of
 // a ripple cell at peak), with a different phase and frequency per scale, so the scales drift out of step.
 vec2 ripplePos(vec2 x, float sc, float k) {
@@ -65,7 +73,7 @@ void main() {
   for (int k = 0; k < 8; k++) {
     float a = float(k) * 0.7853982;
     vec2 o = vec2(cos(a), sin(a));
-    near += texture(uWaterMap, (p + o * 1.2) / uMapSize).r;
+    near += texture(uWaterMap, (p + o * 2.5) / uMapSize).r;
     far += texture(uWaterMap, (p + o * 3.5) / uMapSize).r;
   }
   near /= 8.0; far /= 8.0;
@@ -78,8 +86,8 @@ void main() {
     float sc = k == 0 ? 3.4 : (k == 1 ? 5.0 : 6.8);
     float w = k == 0 ? 0.3 : (k == 1 ? 1.0 : 0.6);
     float e = 0.15 / sc;
-    float hx = waveH(ripplePos(p + vec2(e, 0.0), sc, float(k)), t) - waveH(ripplePos(p - vec2(e, 0.0), sc, float(k)), t);
-    float hz = waveH(ripplePos(p + vec2(0.0, e), sc, float(k)), t) - waveH(ripplePos(p - vec2(0.0, e), sc, float(k)), t);
+    float hx = rippleH(ripplePos(p + vec2(e, 0.0), sc, float(k)), t, float(k)) - rippleH(ripplePos(p - vec2(e, 0.0), sc, float(k)), t, float(k));
+    float hz = rippleH(ripplePos(p + vec2(0.0, e), sc, float(k)), t, float(k)) - rippleH(ripplePos(p - vec2(0.0, e), sc, float(k)), t, float(k));
     slope += vec2(hx, hz) / (2.0 * e) * 0.35 / sc * w;
   }
   float soft = clamp(1.0 - (length(uEye - vWorld) - 20.0) / 80.0, 0.35, 1.0);
@@ -117,6 +125,6 @@ void main() {
   // The water mask is warped on its own field (about 0.6 of a cell), so the shoreline cells do not repeat on a grid.
   vec2 pw = p + 0.6 * vec2(sin(p.y * 0.019 + 0.7 * sin(p.x * 0.023)), cos(p.x * 0.017 - 0.5 * sin(p.y * 0.029)));
   float wwW = texture(uWaterMap, pw / uMapSize).r;
-  float wet = smoothstep(0.97, 1.0, near) * wwW;
+  float wet = smoothstep(0.0, 1.0, near) * wwW;
   outColor = vec4(mix(bed, water, wet), 1.0);
 }
