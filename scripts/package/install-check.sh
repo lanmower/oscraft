@@ -13,7 +13,8 @@ case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) exe=.exe ;; esac
 root_src=$(cd "$(dirname "$0")/../.." && pwd)/js/client
 mkdir -p "$dest"
 [ -z "$(ls -A "$dest")" ] || fail "destination $dest is not empty"
-tar -C "$dest" -xzf "$archive"
+# The archive comes in on stdin: GNU tar on Windows reads a "D:" file name as a remote host.
+tar -C "$dest" -xzf - < "$archive"
 cd "$dest"
 [ -f MANIFEST.sha256 ] || fail "archive has no MANIFEST.sha256"
 
