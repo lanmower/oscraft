@@ -47,6 +47,13 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
   float lit = uShade.x + uShade.y * diffuse * sunShadow(vec3(xz.x, y, xz.y), n0);
   return base * uShade.z * lit;
 }
+// Ripple sample position for one of the three normal scales: the scaled position plus its own slow warp (about 0.6 of
+// a ripple cell at peak), with a different phase and frequency per scale, so the scales drift out of step.
+vec2 ripplePos(vec2 x, float sc, float k) {
+  vec2 warp = 0.6 * vec2(sin(x.y * (0.31 + 0.07 * k) + 1.7 * k + 0.8 * sin(x.x * (0.23 + 0.05 * k) + k)),
+                         cos(x.x * (0.29 - 0.04 * k) - 2.3 * k + 0.7 * sin(x.y * (0.27 + 0.06 * k) - k)));
+  return x * sc + warp;
+}
 void main() {
   vec2 p = vWorld.xz;
   vec3 bed = bedAt(p, vWorld.y, vNormal);
@@ -71,8 +78,8 @@ void main() {
     float sc = k == 0 ? 3.4 : (k == 1 ? 5.0 : 6.8);
     float w = k == 0 ? 0.3 : (k == 1 ? 1.0 : 0.6);
     float e = 0.15 / sc;
-    float hx = waveH((p + vec2(e, 0.0)) * sc, t) - waveH((p - vec2(e, 0.0)) * sc, t);
-    float hz = waveH((p + vec2(0.0, e)) * sc, t) - waveH((p - vec2(0.0, e)) * sc, t);
+    float hx = waveH(ripplePos(p + vec2(e, 0.0), sc, float(k)), t) - waveH(ripplePos(p - vec2(e, 0.0), sc, float(k)), t);
+    float hz = waveH(ripplePos(p + vec2(0.0, e), sc, float(k)), t) - waveH(ripplePos(p - vec2(0.0, e), sc, float(k)), t);
     slope += vec2(hx, hz) / (2.0 * e) * 0.35 / sc * w;
   }
   float soft = clamp(1.0 - (length(uEye - vWorld) - 20.0) / 80.0, 0.35, 1.0);
