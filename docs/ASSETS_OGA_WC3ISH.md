@@ -11,7 +11,7 @@ Source: https://opengameart.org/content/wc3-ish-mod (collection https://opengame
 
 Rejection reasons: attribution (CC-BY, OGA-BY) and share-alike or copyleft (CC-BY-SA, GPL) terms would require credits or licence notices in the shipped game; these are excluded so the shipped assets carry no attribution obligations. Dual-licence items that also offer CC0 are excluded to keep one unambiguous licence per asset.
 
-## Shipped models (js/client/models/oga)
+## Shipped models (scenarios/moba/assets/models/oga)
 
 Each is a single mesh and primitive (glb.js reads the first primitive only) with its colormap PNG embedded in the GLB (no external texture). Sizes are native metres; scale matches existing doodads (tree.glb 1.41 m tall, rock-a.glb 0.6 m).
 
@@ -28,7 +28,7 @@ Each is a single mesh and primitive (glb.js reads the first primitive only) with
 | oga_gate | structure | models/oga/gate.glb | Castle Kit (Kenney, CC0) | 0.15 x 0.91 x 0.66 m |
 | oga_tower_top | building | models/oga/tower-top.glb | Castle Kit (Kenney, CC0) | 1.00 x 1.35 x 1.00 m |
 
-Already shipped in js/client/models (same bytes, no new files): tree-large (Castle Kit), tree-high-round (Fantasy Town), rock-large (Fantasy Town), rocks-large (Castle Kit), lantern (Fantasy Town), stall-green (Fantasy Town), tower-base (Castle Kit), plus the earlier Kenney kit imports.
+Already shipped in scenarios/moba/assets/models (same bytes, no new files): tree-large (Castle Kit), tree-high-round (Fantasy Town), rock-large (Fantasy Town), rocks-large (Castle Kit), lantern (Fantasy Town), stall-green (Fantasy Town), tower-base (Castle Kit), plus the earlier Kenney kit imports.
 
 ## Not usable, and why
 

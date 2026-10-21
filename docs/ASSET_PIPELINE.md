@@ -34,14 +34,14 @@ cd scripts/assets && npm ci
 Inventory every GLB (reads only each file's JSON chunk):
 
 ```sh
-node scripts/assets/prep-ktx.mjs inventory js/client/models scripts/assets/glb-inventory.json
+node scripts/assets/prep-ktx.mjs inventory scenarios/moba/assets/models scripts/assets/glb-inventory.json
 ```
 
 Prepare a folder. GLBs and PNG or JPEG files are read from `<inDir>`, and the results go to `<outDir>`:
 
 ```sh
-node scripts/assets/prep-ktx.mjs prep js/client/models /tmp/out/models --toktx /path/to/toktx
-node scripts/assets/prep-ktx.mjs prep js/client/textures /tmp/out/textures --toktx /path/to/toktx
+node scripts/assets/prep-ktx.mjs prep scenarios/moba/assets/models /tmp/out/models --toktx /path/to/toktx
+node scripts/assets/prep-ktx.mjs prep scenarios/moba/assets/textures /tmp/out/textures --toktx /path/to/toktx
 ```
 
 Each `prep` run writes `<outDir>/manifest.json`, which records every file's input and output sizes, the
@@ -51,7 +51,7 @@ fails.
 Refresh the byte counts in an assets manifest from the files on disk:
 
 ```sh
-node scripts/assets/prep-ktx.mjs sync js/client/assets.json --root .
+node scripts/assets/prep-ktx.mjs sync scenarios/moba/assets/assets.json --root .
 ```
 
 `sync` keeps the file's indentation and recomputes `count` and `total_bytes`.
