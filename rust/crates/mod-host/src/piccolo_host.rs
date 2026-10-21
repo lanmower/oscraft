@@ -15,7 +15,7 @@ use piccolo::{
     Callback, CallbackReturn, Closure, Context, Error, Executor, IntoValue, Lua, StashedExecutor, StashedFunction,
     Stack, StashedTable, Table, Value, Variadic,
 };
-use sim::{AbilitySpec, Catalog, LoadError, Payout, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, TICKS_PER_SECOND};
+use sim::{AbilitySpec, Catalog, LoadError, Payout, Sim, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS, NO_COMPONENT, TICKS_PER_SECOND};
 
 use crate::shared::{self, amount_arg, fixed, player_arg, PRELUDE_SRC};
 use crate::{EVENTS, MAX_UNITS};
@@ -43,6 +43,21 @@ pub enum Cmd {
     AddUnitGold { unit: usize, amount: i32 },
     RemoveUnit { unit: usize },
     GiveItem { unit: usize, item: usize, count: u32 },
+    SetClassOverride { unit: usize, class: Option<u8> },
+    SetHoldOverride { unit: usize, hold: Option<bool> },
+    SkillUp { unit: usize, slot: usize },
+    RemovePlayer { player: u8 },
+    // A spawn-group unit's respawn timer: Some(s) respawns it s seconds from now, None leaves it dead.
+    SetRespawn { unit: usize, delay_s: Option<u32> },
+    SetInvulnerable { unit: usize, ticks: u32 },
+    SetReduction { unit: usize, pct: u8 },
+    SetHealing { unit: usize, hp_per_s: i32 },
+    DeclareSide { side: u8 },
+    AttackMove { unit: usize, x: i32, y: i32 },
+    SetTeam { player: u8, team: u8 },
+    PackStash { unit: usize },
+    SaveOrder { unit: usize, x: i32, y: i32 },
+    RestoreOrder { unit: usize },
     Victory { player: u8 },
     Defeat { player: u8 },
     // A client-facing UI event as a JSON object body, kept for the caller to stream (take_ui).
@@ -87,6 +102,8 @@ enum Pending {
 struct Shared {
     sim: Sim,
     regions: Vec<Region>,
+    // Commands from the mod's own handlers (on_died, on_unit_died), applied before `cmds` as mlua does.
+    local: Vec<Cmd>,
     cmds: Vec<Cmd>,
     clock: u64,
     fired: u64,
@@ -100,6 +117,43 @@ struct Hooks {
     emit: StashedFunction,
     run_systems: StashedFunction,
     fire_timers: StashedFunction,
+    // The mod's named hooks, when it defines them (the same names mlua looks up).
+    on_unit_died: Option<StashedFunction>,
+    on_cast: Option<StashedFunction>,
+    on_march: Option<StashedFunction>,
+    on_check_win: Option<StashedFunction>,
+    target_priority: Option<StashedFunction>,
+}
+
+// A hook's answer, reduced from a Lua value: nil, a boolean, an integer, or another type's name.
+#[derive(Clone, Copy)]
+enum Ret {
+    Nil,
+    Bool(bool),
+    Int(i64),
+    Other,
+}
+
+// The respawn decision on_unit_died returns, as cmd_set_respawn takes it: None when the hook leaves the unit
+// alone or answers with a value the decision does not take; Some(None) to leave it dead; Some(Some(s)) to respawn.
+fn respawn_of(r: Ret) -> Option<Option<u32>> {
+    match r {
+        Ret::Bool(false) => Some(None),
+        Ret::Int(n) if (0..=MAX_RESPAWN_S).contains(&n) => Some(Some(n as u32)),
+        _ => None,
+    }
+}
+
+impl Ret {
+    fn of(v: Value) -> Self {
+        match v {
+            Value::Nil => Ret::Nil,
+            Value::Boolean(b) => Ret::Bool(b),
+            Value::Integer(n) => Ret::Int(n),
+            Value::Number(n) if n.fract() == 0.0 => Ret::Int(n as i64),
+            _ => Ret::Other,
+        }
+    }
 }
 
 // The Lua half of the host, run once per mod load with (env, known events, rows, note_fired, clock,
@@ -291,6 +345,18 @@ fn ability_row<'gc>(ctx: Context<'gc>, cat: &Catalog, index: usize) -> Table<'gc
 
 fn known_unit(sim: &Sim, i: i64) -> Result<usize, String> {
     usize::try_from(i).ok().filter(|&u| u < sim.count()).ok_or_else(|| format!("invalid_unit: {i}"))
+}
+
+// The largest respawn delay a mod can ask for, in seconds (mlua's MAX_RESPAWN_S).
+const MAX_RESPAWN_S: i64 = 86_400;
+
+// A Lua sequence of `items`, indexed from 1.
+fn list_of<'gc>(ctx: Context<'gc>, items: impl Iterator<Item = i64>) -> Result<Table<'gc>, Error<'gc>> {
+    let out = Table::new(&ctx);
+    for (n, v) in items.enumerate() {
+        out.set(ctx, n as i64 + 1, v).expect("list");
+    }
+    Ok(out)
 }
 
 fn live_unit(sim: &Sim, i: i64) -> Result<usize, String> {
@@ -515,6 +581,227 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         let item = sh.sim.catalog().item_index(&name).ok_or_else(|| fail(c, format!("unknown_item: {name}")))?;
         let count = u32::try_from(count).ok().filter(|&n| n > 0).ok_or_else(|| fail(c, format!("invalid_count: {count} must be 1 or more")))?;
         sh.cmds.push(Cmd::GiveItem { unit: u, item, count });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "units_near", [sh], |c, s| {
+        let (x, y, r) = (
+            fixed(a(c, &s, 0)?).map_err(|m| fail(c, m))?,
+            fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?,
+            fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?,
+        );
+        let ids = sh.borrow().sim.units_near(x, y, r);
+        s.replace(c, list_of(c, ids.into_iter().map(|u| u as i64))?);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "is_structure", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, sh.sim.is_structure(u));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "is_hero", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, sh.sim.is_hero(u));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "hostile", [sh], |c, s| {
+        let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let q = player_arg(a(c, &s, 1)?).map_err(|m| fail(c, m))?;
+        s.replace(c, sh.borrow().sim.hostile(p, q));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "filter_bits", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.filter_bits(u)));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "team", [sh], |c, s| {
+        let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let team = sh.borrow().sim.team_of(p).map_or(Value::Nil, |t| Value::Integer(i64::from(t)));
+        s.replace(c, team);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "set_team", [sh], |c, s| {
+        let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let t = a(c, &s, 1)?;
+        let team = usize::try_from(t).ok().filter(|&t| t < MAX_PLAYERS).ok_or_else(|| fail(c, format!("invalid_team: {t} is outside 0..{MAX_PLAYERS}")))?;
+        sh.borrow_mut().cmds.push(Cmd::SetTeam { player: p, team: team as u8 });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "within", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let (x, y) = (fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        let reach = i32::try_from(a(c, &s, 3)?).map_err(|_| fail(c, "invalid_reach: out of i32 range".into()))?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        s.replace(c, sh.sim.within_reach(u, x, y, reach));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "doodads_near", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let reach = i32::try_from(a(c, &s, 1)?).map_err(|_| fail(c, "invalid_reach: out of i32 range".into()))?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        s.replace(c, list_of(c, sh.sim.doodads_near(u, reach).into_iter().map(i64::from))?);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "unit_stash", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let cat = sh.sim.catalog();
+        let out = Table::new(&c);
+        let mut n = 0i64;
+        for slot in 0..sh.sim.inventory_slots() {
+            let (kind, count) = sh.sim.stash_slot(u, slot);
+            let Some(item) = (kind as usize).checked_sub(1).and_then(|i| cat.items.get(i)) else { continue };
+            let row = Table::new(&c);
+            row.set(c, "slot", slot as i64).expect("row");
+            row.set(c, "item", i64::from(kind) - 1).expect("row");
+            row.set(c, "name", cat.name(item.name).to_owned()).expect("row");
+            row.set(c, "count", i64::from(count)).expect("row");
+            n += 1;
+            out.set(c, n, row).expect("row");
+        }
+        s.replace(c, out);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "item_info", [sh], |c, s| {
+        let item = a(c, &s, 0)?;
+        let sh = sh.borrow();
+        let cat = sh.sim.catalog();
+        let Some(it) = usize::try_from(item).ok().and_then(|i| cat.items.get(i)) else {
+            s.replace(c, Value::Nil);
+            return Ok(CallbackReturn::Return);
+        };
+        let t = Table::new(&c);
+        t.set(c, "name", cat.name(it.name).to_owned()).expect("item");
+        t.set(c, "cost", i64::from(it.cost)).expect("item");
+        t.set(c, "charges", i64::from(it.charges)).expect("item");
+        t.set(c, "stack_max", i64::from(it.stack_max)).expect("item");
+        t.set(c, "shops", i64::from(it.shops)).expect("item");
+        t.set(c, "stock_max", i64::from(it.stock_max)).expect("item");
+        t.set(c, "stock_initial", i64::from(it.stock_initial)).expect("item");
+        t.set(c, "stock_time_s", i64::from(it.stock_time_s)).expect("item");
+        t.set(c, "stock_start_s", i64::from(it.stock_start_s)).expect("item");
+        t.set(c, "components", list_of(c, it.components.iter().filter(|&&k| k != NO_COMPONENT).map(|&k| i64::from(k)))?).expect("item");
+        s.replace(c, t);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "set_damage_reduction", [sh], |c, s| {
+        let unit = usize::try_from(a(c, &s, 0)?).map_err(|_| fail(c, "invalid_unit".into()))?;
+        let pct = a(c, &s, 1)?;
+        let pct = u8::try_from(pct).ok().filter(|&p| p <= 100).ok_or_else(|| fail(c, format!("invalid_reduction: {pct} is outside 0..=100")))?;
+        sh.borrow_mut().cmds.push(Cmd::SetReduction { unit, pct });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "set_invulnerable", [sh], |c, s| {
+        let unit = usize::try_from(a(c, &s, 0)?).map_err(|_| fail(c, "invalid_unit".into()))?;
+        let t = a(c, &s, 1)?;
+        let ticks = u32::try_from(t).map_err(|_| fail(c, format!("invalid_ticks: {t}")))?;
+        sh.borrow_mut().cmds.push(Cmd::SetInvulnerable { unit, ticks });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "set_healing", [sh], |c, s| {
+        let unit = usize::try_from(a(c, &s, 0)?).map_err(|_| fail(c, "invalid_unit".into()))?;
+        let h = a(c, &s, 1)?;
+        let hp_per_s = i32::try_from(h).ok().filter(|&v| v >= 0).ok_or_else(|| fail(c, format!("invalid_healing: {h} is outside 0..=2147483647")))?;
+        sh.borrow_mut().cmds.push(Cmd::SetHealing { unit, hp_per_s });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "declare_side", [sh], |c, s| {
+        let side = a(c, &s, 0)?;
+        let side = u8::try_from(side).ok().filter(|&v| (v as usize) < MAX_PLAYERS).ok_or_else(|| fail(c, format!("invalid_side: {side} is outside 0..{MAX_PLAYERS}")))?;
+        sh.borrow_mut().cmds.push(Cmd::DeclareSide { side });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "attack_move", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let (x, y) = (fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        let mut sh = sh.borrow_mut();
+        let unit = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::AttackMove { unit, x, y });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_pack_stash", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let unit = live_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::PackStash { unit });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_save_order", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let (x, y) = (fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        let mut sh = sh.borrow_mut();
+        let unit = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::SaveOrder { unit, x, y });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_restore_order", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let unit = live_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::RestoreOrder { unit });
+        Ok(CallbackReturn::Return)
+    });
+    // game.cmd_set_respawn(unit, seconds | false): the respawn decision for a dead unit (false leaves it dead).
+    native!(ctx, game, "cmd_set_respawn", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let delay_s = match s.get(1) {
+            Value::Boolean(false) => None,
+            Value::Integer(n) if (0..=MAX_RESPAWN_S).contains(&n) => Some(n as u32),
+            other => return Err(fail(c, format!("invalid_respawn: {}", other.type_name()))),
+        };
+        let mut sh = sh.borrow_mut();
+        let unit = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::SetRespawn { unit, delay_s });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "set_target_class", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let class = a(c, &s, 1)?;
+        if !(0..=3).contains(&class) {
+            return Err(fail(c, format!("invalid_target_class: {class} is outside 0..=3")));
+        }
+        let mut sh = sh.borrow_mut();
+        let unit = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::SetClassOverride { unit, class: Some(class as u8) });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "clear_target_class", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let unit = live_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::SetClassOverride { unit, class: None });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "set_attack_hold", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let hold = s.get(1).to_bool();
+        let mut sh = sh.borrow_mut();
+        let unit = usize::try_from(unit).map_err(|_| fail(c, format!("invalid_unit: {unit}")))?;
+        sh.cmds.push(Cmd::SetHoldOverride { unit, hold: Some(hold) });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "clear_attack_hold", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let mut sh = sh.borrow_mut();
+        let unit = usize::try_from(unit).map_err(|_| fail(c, format!("invalid_unit: {unit}")))?;
+        sh.cmds.push(Cmd::SetHoldOverride { unit, hold: None });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_skill_up", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let slot = a(c, &s, 1)?;
+        let slot = usize::try_from(slot).ok().filter(|&v| v < ABILITY_SLOTS).ok_or_else(|| fail(c, format!("invalid_slot: {slot} is outside 0..{ABILITY_SLOTS}")))?;
+        let mut sh = sh.borrow_mut();
+        let unit = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::SkillUp { unit, slot });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "remove_player", [sh], |c, s| {
+        let p = player_arg(a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        sh.borrow_mut().cmds.push(Cmd::RemovePlayer { player: p });
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "cmd_damage", [sh], |c, s| {
@@ -910,7 +1197,7 @@ impl ModHost {
         });
         Ok(Self {
             lua,
-            sh: Rc::new(RefCell::new(Shared { sim, regions: Vec::new(), cmds: Vec::new(), clock: 0, fired: 0, applied: 0, ui: Vec::new() })),
+            sh: Rc::new(RefCell::new(Shared { sim, regions: Vec::new(), local: Vec::new(), cmds: Vec::new(), clock: 0, fired: 0, applied: 0, ui: Vec::new() })),
             state,
             hooks: None,
             version: 0,
@@ -978,7 +1265,16 @@ impl ModHost {
                 let (Value::Function(emit), Value::Function(systems), Value::Function(timers)) = (emit, systems, timers) else {
                     return Err(fail(ctx, "host prelude returned a non-function".into()));
                 };
-                Ok(Hooks { emit: ctx.stash(emit), run_systems: ctx.stash(systems), fire_timers: ctx.stash(timers) })
+                Ok(Hooks {
+                    emit: ctx.stash(emit),
+                    run_systems: ctx.stash(systems),
+                    fire_timers: ctx.stash(timers),
+                    on_unit_died: None,
+                    on_cast: None,
+                    on_march: None,
+                    on_check_win: None,
+                    target_priority: None,
+                })
             })
             .map_err(|e| e.to_string())?;
         let exec = self
@@ -993,6 +1289,18 @@ impl ModHost {
         if !defined {
             return Err(format!("{name}: on_tick is not defined"));
         }
+        let mut hooks = hooks;
+        let mut named = |key: &str| {
+            self.lua.enter(|ctx| match ctx.fetch(&env).get(ctx, ctx.intern(key.as_bytes())) {
+                Value::Function(f) => Some(ctx.stash(f)),
+                _ => None,
+            })
+        };
+        hooks.on_unit_died = named("on_unit_died");
+        hooks.on_cast = named("on_cast");
+        hooks.on_march = named("on_march");
+        hooks.on_check_win = named("on_check_win");
+        hooks.target_priority = named("target_priority");
         self.hooks = Some(hooks);
         self.version += 1;
         Ok(())
@@ -1019,9 +1327,9 @@ impl ModHost {
         }
         self.mod_file = Some((path.clone(), now));
         let src = std::fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
-        let (sim, regions, cmds) = {
+        let (sim, regions, cmds, local) = {
             let sh = self.sh.borrow();
-            (sh.sim.save_state(), sh.regions.clone(), sh.cmds.clone())
+            (sh.sim.save_state(), sh.regions.clone(), sh.cmds.clone(), sh.local.clone())
         };
         match self.load_source(&mod_name(&path), &src) {
             Ok(()) => Ok(true),
@@ -1030,6 +1338,7 @@ impl ModHost {
                 sh.sim.load_state(&sim).map_err(|_| "the saved sim state did not load back".to_string())?;
                 sh.regions = regions;
                 sh.cmds = cmds;
+                sh.local = local;
                 Err(e)
             }
         }
@@ -1131,6 +1440,7 @@ impl ModHost {
             sh.sim.tick();
         }
         self.collect();
+        self.dispatch()?;
         let pending = std::mem::take(&mut self.pending);
         for event in pending {
             match event {
@@ -1175,9 +1485,9 @@ impl ModHost {
             killer_hero: p.killer_hero,
             bounty: p.bounty,
         };
-        let before = self.sh.borrow().cmds.len();
+        let before = self.sh.borrow().local.len();
         self.died(&death)?;
-        Ok(self.sh.borrow_mut().cmds.split_off(before))
+        Ok(self.sh.borrow_mut().local.split_off(before))
     }
 
     fn death_of(&self, unit: usize, killer: Option<usize>) -> Death {
@@ -1193,8 +1503,11 @@ impl ModHost {
     }
 
     // on_died(unit, killer, killer_player, bounty, victim_player, killer_hero), the handler then the triggers.
+    // The commands the handlers queue here are the mod's own, so they move to `local` and apply before
+    // the systems' commands, as the mlua host orders them.
     fn died(&mut self, d: &Death) -> Result<(), String> {
         let opt = |v: Option<i64>| v.map_or(Arg::Nil, Arg::Int);
+        let before = self.sh.borrow().cmds.len();
         self.emit(
             "on_died",
             vec![
@@ -1205,7 +1518,111 @@ impl ModHost {
                 Arg::Int(i64::from(d.victim_player)),
                 Arg::Bool(d.killer_hero),
             ],
-        )
+        )?;
+        if let Some(f) = self.hooks.as_ref().and_then(|h| h.on_unit_died.clone()) {
+            match self.call_ret(&f, vec![Arg::Int(i64::from(d.victim)), Arg::State]) {
+                Ok((delay, _)) => {
+                    if let Some(cmd) = respawn_of(delay) {
+                        self.sh.borrow_mut().cmds.push(Cmd::SetRespawn { unit: d.victim as usize, delay_s: cmd });
+                    }
+                }
+                Err(e) => println!("ev=mod_hook_failed hook=on_unit_died error={:?}", e),
+            }
+        }
+        let mut sh = self.sh.borrow_mut();
+        let own = sh.cmds.split_off(before);
+        sh.local.extend(own);
+        Ok(())
+    }
+
+    // The hooks mlua dispatches each step, before the pending events: target_priority for each new aggro
+    // acquisition, on_march for each destination request, on_cast for each cast that takes hold, and
+    // on_check_win while no side has won. Every queue is taken each step, mod or not.
+    fn dispatch(&mut self) -> Result<(), String> {
+        let (acquired, requests, casts) = {
+            let mut sh = self.sh.borrow_mut();
+            (sh.sim.take_acquisitions(), sh.sim.take_destination_requests(), sh.sim.take_casts())
+        };
+        let Some(h) = self.hooks.as_ref() else { return Ok(()) };
+        let (tp, march, cast, win) = (h.target_priority.clone(), h.on_march.clone(), h.on_cast.clone(), h.on_check_win.clone());
+        if let Some(f) = tp {
+            for (unit, target) in acquired {
+                self.call_target_priority(&f, unit, target);
+            }
+        }
+        if let Some(f) = march {
+            for (unit, player) in requests {
+                self.call_on_march(&f, unit, player);
+            }
+        }
+        if let Some(f) = cast {
+            for (caster, ability) in casts {
+                self.call_on_cast(&f, caster, ability);
+            }
+        }
+        if let Some(f) = win {
+            if self.sh.borrow().sim.winner().is_none() {
+                self.call_on_check_win(&f);
+            }
+        }
+        Ok(())
+    }
+
+    // target_priority(unit, candidates, state): a class 0..3 queues a class override, false clears it, nil or
+    // true leaves the unit alone. A Lua error or a malformed answer is logged and queues nothing.
+    fn call_target_priority(&mut self, f: &StashedFunction, unit: usize, target: usize) {
+        let answer = match self.call_ret(f, vec![Arg::Int(unit as i64), Arg::List(vec![target as i64]), Arg::State]) {
+            Ok((r, _)) => r,
+            Err(e) => return println!("ev=mod_hook_failed hook=target_priority error={:?}", e),
+        };
+        let class = match answer {
+            Ret::Nil | Ret::Bool(true) => return,
+            Ret::Bool(false) => None,
+            Ret::Int(c) if (0..=3).contains(&c) => Some(c as u8),
+            _ => return println!("ev=mod_hook_refused hook=target_priority"),
+        };
+        self.sh.borrow_mut().cmds.push(Cmd::SetClassOverride { unit, class });
+    }
+
+    // on_march(unit, player, state) returns the x and y of the point the unit walks to (fixed point). nil keeps
+    // the unit where it stands. An error or a malformed answer queues nothing.
+    fn call_on_march(&mut self, f: &StashedFunction, unit: usize, player: u8) {
+        match self.call_ret(f, vec![Arg::Int(unit as i64), Arg::Int(i64::from(player)), Arg::State]) {
+            Ok((Ret::Int(x), Ret::Int(y))) => match (i32::try_from(x), i32::try_from(y)) {
+                (Ok(x), Ok(y)) => self.sh.borrow_mut().cmds.push(Cmd::AttackMove { unit, x, y }),
+                _ => println!("ev=mod_hook_refused hook=on_march value=out_of_range"),
+            },
+            Ok((Ret::Nil | Ret::Bool(false), _)) => {}
+            Ok(_) => println!("ev=mod_hook_refused hook=on_march"),
+            Err(e) => println!("ev=mod_hook_failed hook=on_march error={:?}", e),
+        }
+    }
+
+    // on_cast(caster, ability_name, state), with the ability's catalog name.
+    fn call_on_cast(&mut self, f: &StashedFunction, caster: usize, ability: usize) {
+        let name = {
+            let sh = self.sh.borrow();
+            let cat = sh.sim.catalog();
+            match cat.abilities.get(ability) {
+                Some(a) => cat.name(a.name).to_string(),
+                None => return,
+            }
+        };
+        if let Err(e) = self.call_ret(f, vec![Arg::Int(caster as i64), Arg::Text(name), Arg::State]) {
+            println!("ev=mod_hook_failed hook=on_cast error={:?}", e);
+        }
+    }
+
+    // on_check_win(state) returns the side that has won (0..MAX_PLAYERS), or nil or false while none has.
+    fn call_on_check_win(&mut self, f: &StashedFunction) {
+        match self.call_ret(f, vec![Arg::State]) {
+            Ok((Ret::Nil | Ret::Bool(false), _)) => {}
+            Ok((Ret::Int(s), _)) if (0..MAX_PLAYERS as i64).contains(&s) => {
+                self.sh.borrow_mut().cmds.push(Cmd::DeclareSide { side: s as u8 });
+            }
+            Ok(_) => println!("ev=mod_hook_refused hook=on_check_win"),
+            Err(e) => println!("ev=mod_hook_failed hook=on_check_win error={:?}", e),
+        }
     }
 
     /// Runs the event `name` with a unit argument through the mod's handler and triggers, as a
@@ -1230,9 +1647,26 @@ impl ModHost {
     }
 
     fn call(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<(), String> {
+        let exec = self.start(f, args)?;
+        self.run(&exec)
+    }
+
+    // Runs a hook and returns its first two results as Ret values, so a hook's answer can be read
+    // (on_march returns x and y). A Lua error is returned, for the caller to log and skip.
+    fn call_ret(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<(Ret, Ret), String> {
+        let exec = self.start(f, args)?;
+        self.finish(&exec)?;
+        self.lua
+            .try_enter(|ctx| {
+                let (x, y) = ctx.fetch(&exec).take_result::<(Value, Value)>(ctx)??;
+                Ok((Ret::of(x), Ret::of(y)))
+            })
+            .map_err(|e| e.to_string())
+    }
+
+    fn start(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<StashedExecutor, String> {
         let state = &self.state;
-        let exec = self
-            .lua
+        self.lua
             .try_enter(|ctx| {
                 let values: Vec<Value> = args
                     .into_iter()
@@ -1242,12 +1676,12 @@ impl ModHost {
                         Arg::Nil => Value::Nil,
                         Arg::Text(t) => t.into_value(ctx),
                         Arg::State => Value::Table(ctx.fetch(state)),
+                        Arg::List(items) => Value::Table(list_of(ctx, items.into_iter()).expect("list")),
                     })
                     .collect();
                 Ok(ctx.stash(Executor::start(ctx, ctx.fetch(f), Variadic(values))))
             })
-            .map_err(|e| e.to_string())?;
-        self.run(&exec)
+            .map_err(|e| e.to_string())
     }
 
     // Applies the queued commands in queue order. A command aimed at a unit that died since it
@@ -1255,9 +1689,10 @@ impl ModHost {
     fn apply_commands(&mut self) {
         let mut guard = self.sh.borrow_mut();
         let sh = &mut *guard;
+        let local = std::mem::take(&mut sh.local);
         let list = std::mem::take(&mut sh.cmds);
         let (sim, ui) = (&mut sh.sim, &mut sh.ui);
-        for cmd in list {
+        for cmd in local.into_iter().chain(list) {
             match cmd {
                 Cmd::Spawn { index, x, y, owner, route, .. } => {
                     sim.spawn_mod_unit(owner, index as u32, x, y, route);
@@ -1307,6 +1742,46 @@ impl ModHost {
                 }
                 Cmd::Unstash { unit, slot } if sim.alive(unit) => {
                     let _ = sim.unstash(unit, slot);
+                }
+                Cmd::SetClassOverride { unit, class } => {
+                    let _ = sim.set_class_override(unit, class);
+                }
+                Cmd::SetHoldOverride { unit, hold } => {
+                    let _ = sim.set_hold_override(unit, hold);
+                }
+                Cmd::SkillUp { unit, slot } if sim.alive(unit) => {
+                    let _ = sim.skill_up(unit, slot);
+                }
+                Cmd::RemovePlayer { player } => {
+                    let _ = sim.remove_player(player);
+                }
+                Cmd::SetRespawn { unit, delay_s } => {
+                    let _ = sim.set_respawn(unit, delay_s);
+                }
+                Cmd::SetInvulnerable { unit, ticks } => {
+                    let _ = sim.set_invulnerable(unit, ticks);
+                }
+                Cmd::SetReduction { unit, pct } => {
+                    let _ = sim.set_damage_reduction(unit, pct);
+                }
+                Cmd::SetHealing { unit, hp_per_s } => {
+                    let _ = sim.set_healing(unit, hp_per_s);
+                }
+                Cmd::DeclareSide { side } => sim.declare_side(side),
+                Cmd::AttackMove { unit, x, y } if sim.alive(unit) => {
+                    let _ = sim.issue_order_kind(unit, sim::ORDER_ATTACK_MOVE, x, y);
+                }
+                Cmd::SetTeam { player, team } => {
+                    let _ = sim.set_team(player, team);
+                }
+                Cmd::PackStash { unit } if sim.alive(unit) => {
+                    sim.pack_stash(unit);
+                }
+                Cmd::SaveOrder { unit, x, y } => {
+                    let _ = sim.save_order(unit, x, y);
+                }
+                Cmd::RestoreOrder { unit } => {
+                    let _ = sim.restore_order(unit);
                 }
                 _ => continue,
             }
@@ -1382,6 +1857,7 @@ enum Arg {
     Nil,
     Text(String),
     State,
+    List(Vec<i64>),
 }
 
 // One death as on_died receives it. Built from this world's own deaths, or from a room's payable
