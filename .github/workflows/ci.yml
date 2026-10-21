@@ -2433,6 +2433,8 @@ jobs:
           let amEnd = amStart;
           for (let i = 0; i < 80; i++) {
             amEnd = (await heroXZ()) || amEnd;
+            // Trace: every 4 s the hero's position and strike count, so a hold shows whether the hero strikes.
+            if (i % 8 === 0) console.log(`moba attack-move trace i=${i} pos=${amEnd.x.toFixed(2)},${amEnd.z.toFixed(2)} attacks=${await page.getAttribute("body", "data-attacks")} orders=${await page.getAttribute("body", "data-orders")}`);
             if (dTo(amEnd, point) <= 1) break;
             // A hero that has not left its start after 10 s is given the accepted attack-move once more: the order can be
             // accepted by the input layer while the sim has not yet started the walk (slow CI ticks).
