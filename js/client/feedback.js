@@ -96,6 +96,8 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
     } else if (d.kind === "refusal") {
       refusal.node.textContent = String(d.text);
       refusalT0 = t;
+      // Shown now, not on the next frame: a slow frame loop can otherwise miss the whole 1.2 s window.
+      put(refusal, "display", "block");
     }
   }
 
