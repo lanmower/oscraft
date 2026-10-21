@@ -275,7 +275,7 @@ impl Sim {
     }
 
     pub fn deny_xp_pct(&self, j: usize) -> i32 {
-        self.cat.unit_ext.get(self.type_of.get(j).copied().unwrap_or(-1).max(0) as usize).map_or(0, |e| e.deny_xp_pct)
+        self.cat.unit_ext.get(self.type_of.get(j).copied().unwrap_or(-1).max(0) as usize).map_or(0, |e| i32::from(e.deny_xp_pct))
     }
 
     /// A named counter of unit `i` the mods keep (`set_counter`); 0 when never set.
@@ -389,6 +389,23 @@ impl Sim {
 
     pub fn mana_of(&self, i: usize) -> i32 {
         self.energy.get(i).copied().unwrap_or(0)
+    }
+
+    /// Enrols unit `i` as a hero at (x, y): hero flags, home, gold and mana reset, passives and attribute
+    /// stats applied, health full. The mod's seat-pick and placement rules call this through `game.enroll`.
+    pub fn enroll_hero(&mut self, i: usize, x: i32, y: i32) {
+        let h = &mut self.heroes;
+        h.is_hero[i] = 1;
+        h.home_x[i] = x;
+        h.home_y[i] = y;
+        h.waiting[i] = 0;
+        h.respawn_at[i] = 0;
+        h.gold[i] = 0;
+        h.mana_max[i] = 0;
+        self.energy[i] = 0;
+        self.refresh_passives(i);
+        self.apply_hero_stats(i);
+        self.hp[i] = self.hp_max[i];
     }
 
     /// Recomputes the attribute-driven stats of live hero `i` from its catalog type and attributes:

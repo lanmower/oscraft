@@ -99,7 +99,7 @@ L.push("", `## Items (${by("item").length})`, "",
   "| Item | Cost | Stats | Active | Recipe | Shops | Tier | Charges | Stock | Flags |", "|---|---|---|---|---|---|---|---|---|---|");
 for (const c of by("item")) {
   const stats = c.kw.stats ? Object.entries(JSON.parse(c.kw.stats)).map(([k, v]) => `${k} ${v}`).join(", ") : "";
-  const shops = c.kw.shops ? JSON.parse(c.kw.shops).join("/") : "";
+  const shops = c.kw.tags ? JSON.parse(c.kw.tags).join("/") : "";
   const stock = c.kw.stock_max ? `${c.kw.stock_initial}/${c.kw.stock_max} per ${c.kw.stock_time_s} s` : "";
   L.push(`| ${unq(c.pos[0])} | ${c.pos[1]} | ${stats} | ${unq(c.kw.ability)} | ${c.kw.components ? JSON.parse(c.kw.components).join(" + ") : ""} | ${shops} | ${c.kw.neutral_tier ?? ""} | ${c.kw.charges ?? ""} | ${stock} | ${itemFlags(c)} |`);
 }

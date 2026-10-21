@@ -1,7 +1,7 @@
 //! Gate checks for the moba scenario's units and timers: lane waves, siege timing, barracks wave
 //! upgrades, neutral camp stacking and Roshan's respawn window. Each runs on the moba image.
 
-use crate::checks::{fresh, run_ticks, spawn, MAX_UNITS};
+use crate::checks::{fresh, moba_rule, run_ticks, spawn, MAX_UNITS};
 use crate::mod_checks::{advance, read_int, start};
 use sim::{fixed, Sim};
 
@@ -183,8 +183,8 @@ pub fn camp_roshan_window(_image: &[u8]) -> Result<(), String> {
         .ok_or("moba image places no neutral unit")?;
     s.hurt(boss, fixed::from_int(10000));
     let died = s.ticks();
-    let min = sim::ROSHAN_RESPAWN_MIN_S * sim::TICKS_PER_SECOND as u32;
-    let max = min + sim::ROSHAN_RESPAWN_SPREAD_S * sim::TICKS_PER_SECOND as u32;
+    let min = (moba_rule("roshan_respawn_min_s")? as u32) * sim::TICKS_PER_SECOND as u32;
+    let max = min + (moba_rule("roshan_respawn_spread_s")? as u32) * sim::TICKS_PER_SECOND as u32;
     let mut back = None;
     for _ in 0..max + 16 {
         s.tick();
@@ -205,10 +205,10 @@ pub fn camp_roshan_window(_image: &[u8]) -> Result<(), String> {
 /// survivor stays as it is (the stacking rule).
 pub fn camp_minute_refill(_image: &[u8]) -> Result<(), String> {
     let mut s = fresh(&moba_image()?)?;
-    run_ticks(&mut s, sim::CAMP_FIRST_SPAWN_S * sim::TICKS_PER_SECOND as u32 + 1);
+    run_ticks(&mut s, (moba_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32 + 1);
     let u = (0..MAX_UNITS).find(|&u| s.alive(u) && s.player(u) == 0xFF && s.kind_name(u).is_some_and(|n| n.starts_with("neutral_"))).ok_or("moba image places no neutral camp unit")?;
     let (hx, hy) = s.position_fixed(u);
-    let reach = fixed::from_milli(sim::CAMP_CLEAR_MILLI) as i64;
+    let reach = fixed::from_milli(moba_rule("camp_clear_milli")?) as i64;
     let mates: Vec<usize> = (0..MAX_UNITS)
         .filter(|&k| {
             let (x, y) = s.position_fixed(k);
@@ -219,7 +219,7 @@ pub fn camp_minute_refill(_image: &[u8]) -> Result<(), String> {
     if mates.len() < 2 {
         return Err(format!("camp around unit {u} holds {} units, want at least 2", mates.len()));
     }
-    let mark = sim::CAMP_RESPAWN_S * sim::TICKS_PER_SECOND as u32;
+    let mark = (moba_rule("camp_respawn_s")? as u32) * sim::TICKS_PER_SECOND as u32;
     s.hurt(u, fixed::from_int(10000));
     run_ticks(&mut s, mark + 8);
     if s.alive(u) {
@@ -248,7 +248,7 @@ pub fn camp_first_spawn(_image: &[u8]) -> Result<(), String> {
     if regular(&s) != 0 || boss == 0 {
         return Err(format!("at tick 0 {} camp units live and {boss} bosses, want 0 and at least 1", regular(&s)));
     }
-    let first = sim::CAMP_FIRST_SPAWN_S * sim::TICKS_PER_SECOND as u32;
+    let first = (moba_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32;
     run_ticks(&mut s, first - 4);
     if regular(&s) != 0 {
         return Err("a camp unit lived before 1:00".into());

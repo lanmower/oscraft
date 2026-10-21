@@ -1718,12 +1718,9 @@ mod changed_rules_replay {
             rec.tick(&mut src, false, false);
         }
         let text = rec.render(&src);
-        let run = |text: &str, first: Option<u32>| -> u64 {
+        let run = |text: &str| -> u64 {
             let mut fresh = load_data(&scenario, 64).expect("fresh sim");
             fresh.set_fog(false);
-            if let Some(v) = first {
-                fresh.set_camp_rule("first_spawn_s", v).expect("rule");
-            }
             let parsed = Recording::parse(text).expect("recording parses");
             let mut player = Replayer::new(parsed, &fresh).expect("replayer");
             while fresh.ticks() < player.end() {
@@ -1731,9 +1728,8 @@ mod changed_rules_replay {
             }
             fresh.state_hash()
         };
-        // Two replays of one recording under the same rule must agree. A rule set after load does not move the
-        // load-time camp holds, so the rule change here is not a sanity check of the rule's effect (see notes).
-        assert_eq!(run(&text, Some(30)), run(&text, Some(30)));
+        // Two replays of one recording must agree. The camp timings are mod rules (camp.lua), not a sim setter.
+        assert_eq!(run(&text), run(&text));
     }
 }
 

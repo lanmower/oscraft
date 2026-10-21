@@ -53,7 +53,6 @@ mod route;
 
 pub use arrays::{Sim, Stats};
 pub use carry::carry_from;
-pub use camp::{CAMP_FIRST_SPAWN_S, CAMP_CLEAR_MILLI, CAMP_LEASH_MILLI, CAMP_RESPAWN_S, ROSHAN_RESPAWN_MIN_S, ROSHAN_RESPAWN_SPREAD_S, RUNE_GOLD, RUNE_RESPAWN_S};
 pub use loader::{load, load_file, Catalog, Doodad, Effect, LoadError, Trigger};
 pub use modapi::{effect_kind, stat_code, target_code, AbilitySpec, ItemSpec, UnitSpec, UpgradeSpec, MOD_EFFECTS, STAT_NAMES};
 pub use diplomacy::{controller_code, CONTROLLER_COMPUTER, CONTROLLER_HUMAN, CONTROLLER_OPEN, MOD_ALLIANCES, MOD_CONTROLLERS};
@@ -61,7 +60,7 @@ pub use pathfinding::Grid;
 pub use persist::StateError;
 pub use combat::{armour_reduced, Payout};
 pub use rules::{Refusal, ALL_REFUSALS};
-pub use store::{Request, Verdict, NO_COMPONENT, NO_TAKE, VERDICT_TAKES};
+pub use store::{ItemRequest, ItemVerdict, NO_COMPONENT, NO_TAKE, VERDICT_TAKES};
 pub use status::STATUS_NAMES;
 pub use spell::{AbilityExt, STAT_COUNT};
 pub use inventory::ITEM_STATS;

@@ -31,7 +31,7 @@ PAYOUT_OWNER = true
 function on_tick(state) end
 function on_died(unit, killer, killer_player, bounty, victim_player)
   game.cmd_add_unit_gold(unit, bounty)
-  game.cmd_add_gold(victim_player, game.is_hero(killer) and 1 or 0)
+  game.cmd_add_gold(victim_player, (killer ~= nil and game.is_hero(killer)) and 1 or 0)
   game.cmd_add_gold(killer_player or 0, killer or -1)
 end
 "#;
@@ -53,7 +53,11 @@ fn on_died_receives_five_arguments_with_bounty() {
 #[test]
 fn moba_match_pays_the_same_for_fixed_kills() {
     let src = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba/kill_gold.lua")).expect("mod");
+    // kill_gold.lua is one file of the moba mod; the host needs an on_tick to load, so the test adds the empty one.
+    let src = format!("{src}\nfunction on_tick(state) end\n");
     let mut host = ModHost::new(&image()).expect("host");
+    // The hero kill needs unit 20 to be a hero; seat picks enrol heroes (hero.lua), so the test enrols it here.
+    host.sim().enroll_hero(20, 0, 0);
     host.load_source("moba_match", &src).expect("moba_match loads");
     let kills = [
         ("hero kill", payout(10, 2, Some(20), Some(0), 40)),
@@ -63,7 +67,8 @@ fn moba_match_pays_the_same_for_fixed_kills() {
         ("no bounty", payout(32, 0, Some(20), Some(0), 0)),
     ];
     let want: [&[&str]; 5] = [
-        &["unit_gold unit=20 amount=32", "gold player=0 amount=8", "other"],
+        // kill_gold.lua pays gold only; the hero xp share is hero.lua on_died, which this test does not load.
+        &["unit_gold unit=20 amount=32", "gold player=0 amount=8"],
         &["gold player=1 amount=17"],
         &["gold player=1 amount=30"],
         &["gold player=0 amount=12"],

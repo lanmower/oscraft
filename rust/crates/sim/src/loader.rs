@@ -10,7 +10,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 23;
+const VERSION: u16 = 24;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const PLACE_TEAM: u32 = 2;

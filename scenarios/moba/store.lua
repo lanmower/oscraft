@@ -1,32 +1,39 @@
--- Stores and couriers for the moba scenario, as mod code. The engine owns only the mechanics: a trade
--- is asked of this file (on_buy, on_sell, on_unstash), then the sim takes the listed copies, debits the
--- gold counter and places the item. A deliver request (on_deliver) starts a courier, which walks with
--- move-to-point orders and a timer per courier. Nothing here is in the engine.
--- A host runs one mod file: combine this with other moba mods into one file if they run together.
+-- The moba item rules, as mod code: the shop catalog and its prices, buying, selling and unstashing, and
+-- the courier's carry decision. The engine owns only generic item transfers. It asks this file
+-- on_request(kind, unit, item, state) and applies the answer: a debit or credit to the gold counter, the
+-- listed copies taken, an item placed, a slot emptied or moved. kind is "acquire" (buy), "release" (sell),
+-- "take_out" (unstash) or "carry" (the courier walks to its receiver and hands over the stash).
+-- Item tags are data: items.osd declares item_tags({"home", "side", "secret"}) and marks each item with
+-- tags=[...]. The bits below follow that declaration order. A host runs one mod file: combine this with
+-- other moba mods into one file if they run together.
 
--- Scenario data. The doodad kinds (DOODAD_KINDS indices) that stand as a store, and the store bit each
--- one stocks. Item `shops` masks use the same bits (items.osd: shops=["home", "side", "secret"]).
-local STORE_REACH_MILLI = 4000
-local STORE_BIT = { home = 1, side = 2, secret = 4 }
-local STORE_DOODAD = { [5] = STORE_BIT.home, [9] = STORE_BIT.side, [10] = STORE_BIT.secret }
+-- Tag bits, in the item_tags order of items.osd. An item with no tag sells nowhere.
+local TAG = { home = 1, side = 2, secret = 4 }
+-- The depot doodad kinds (DOODAD_KINDS indices) and the tag each one stocks: 5 depot (home), 9 side
+-- depot, 10 secret depot.
+local DEPOT_REACH_MILLI = 4000
+local DEPOT_TAG = { [5] = TAG.home, [9] = TAG.side, [10] = TAG.secret }
 -- Inventory slots 0..5 are main, 6..8 backpack, 9 the neutral slot (sim inventory.rs). Components are
 -- held in the first nine slots and the stash, never the neutral slot.
 local NEUTRAL_SLOT = 9
 local TICKS_PER_SECOND = 16
 
--- Courier timing: a route refresh every REROUTE_TICKS, and the distance from home that counts as home.
+-- Courier timing: a route refresh every REROUTE_TICKS, the distance from home that counts as home, and
+-- how close the courier must stand to its receiver to hand over the stash.
 local REROUTE_TICKS = 8
 local HOME_REACH_MILLI = 1000
+local COURIER_REACH_MILLI = 1000
 
 -- Stock of the items with a stock limit (stock_max > 0), per team: the units in stock and the tick the
 -- next unit arrives (0 when none is due). Restocks are counted when the stock is read. The stock is
 -- only counted when a purchase is allowed; a refusal the sim makes after that is not undone.
 local stock = {}
 
-local function stores_in_reach(unit)
+-- The tags of the depots in reach of a unit, as a mask.
+local function depot_tags_in_reach(unit)
   local mask = 0
-  for _, kind in ipairs(game.doodads_near(unit, STORE_REACH_MILLI)) do
-    mask = mask | (STORE_DOODAD[kind] or 0)
+  for _, kind in ipairs(game.doodads_near(unit, DEPOT_REACH_MILLI)) do
+    mask = mask | (DEPOT_TAG[kind] or 0)
   end
   return mask
 end
@@ -64,13 +71,12 @@ local function stock_of(team, item, def, now)
   return s
 end
 
--- The store rule for a purchase. The price is the cost less the components the buyer holds, claimed
--- one copy each (a missing component's own parts are claimed in its place), as the sim's rule always
--- was. The verdict lists the copies to take.
-function on_buy(unit, item, state)
+-- Acquire (buy). The price is the cost less the components the buyer holds, claimed one copy each (a
+-- missing component's own parts are claimed in its place). The answer lists the copies to take.
+local function acquire(unit, item, state)
   local def = game.item_info(item)
-  if def == nil or def.shops == 0 then return false, "no-item" end
-  if stores_in_reach(unit) & def.shops == 0 then return false, "no-shop" end
+  if def == nil or def.tags == 0 then return false, "no-item" end
+  if depot_tags_in_reach(unit) & def.tags == 0 then return false, "out-of-reach" end
   local now = game.time()
   local team = game.team(unit_player(unit))
   local s = nil
@@ -107,9 +113,9 @@ function on_buy(unit, item, state)
   return true, price, takes
 end
 
--- The sale rule: a store in reach pays half the cost per unit, rounded down, and takes the item.
-function on_sell(unit, slot, state)
-  if stores_in_reach(unit) == 0 then return false, "no-shop" end
+-- Release (sell). A depot in reach pays half the cost per unit, rounded down, and takes the item.
+local function release(unit, slot, state)
+  if depot_tags_in_reach(unit) == 0 then return false, "out-of-reach" end
   local held = nil
   for _, row in ipairs(game.unit_items(unit)) do
     if row.slot == slot then held = row end
@@ -121,14 +127,14 @@ function on_sell(unit, slot, state)
   return true, (def.cost * held.count) // (2 * units)
 end
 
--- The unstash rule: a stash item comes out only within reach of a store.
-function on_unstash(unit, slot, state)
-  if stores_in_reach(unit) == 0 then return false, "no-shop" end
+-- Take out (unstash). A stash item comes out only within reach of a depot.
+local function take_out(unit, slot, state)
+  if depot_tags_in_reach(unit) == 0 then return false, "out-of-reach" end
   return true
 end
 
--- Couriers. A courier walks to its receiver, hands over the receiver's stash on arrival, and walks
--- back to the point it left from. Its phase is mod state; the sim keeps only the saved point.
+-- Carry. A courier walks to its receiver, hands over the receiver's stash on arrival, and walks back to
+-- the point it left from. Its phase is mod state; the sim keeps only the saved point.
 local couriers = {}  -- caster unit -> { outbound, target, reach, home_x, home_y }
 
 local function courier_name(u)
@@ -165,9 +171,9 @@ local function courier_step(u)
   end
 end
 
--- The deliver request: `caster` is sent to `target`, and reach is in milli-units. A courier already
--- out keeps the point it left from.
-function on_deliver(caster, target, reach, state)
+-- The carry request: `caster` is sent to `target`, within COURIER_REACH_MILLI. A courier already out
+-- keeps the point it left from.
+local function carry(caster, target, reach, state)
   local c = couriers[caster]
   if c == nil then
     local hx, hy = unit_position(caster)
@@ -181,6 +187,16 @@ function on_deliver(caster, target, reach, state)
   local tx, ty = unit_position(target)
   game.cmd_order(caster, tx, ty)
   game.timer(courier_name(caster), 1, function() courier_step(caster) end, 1)
+end
+
+-- The one rule the engine asks. Refusal reasons: "no-item", "out-of-reach", "cannot-afford",
+-- "inventory-full", "missing-component". A kind this file does not know is refused.
+function on_request(kind, unit, item, state)
+  if kind == "acquire" then return acquire(unit, item, state) end
+  if kind == "release" then return release(unit, item, state) end
+  if kind == "take_out" then return take_out(unit, item, state) end
+  if kind == "carry" then return carry(unit, item, COURIER_REACH_MILLI, state) end
+  return false, "no-item"
 end
 
 function on_tick(state)

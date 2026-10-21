@@ -427,9 +427,9 @@ pub fn juggernaut_healing_ward(_image: &[u8]) -> Result<(), String> {
     let (x, y) = w.at(2, 0);
     w.cast(jug, "juggernaut_healing_ward", -1, x, y)?;
     w.run(0);
-    let ward = (0..w.s.count()).find(|&u| w.s.alive(u) && w.s.ward_left(u) > 0).ok_or("no ward was placed")?;
-    if w.s.ward_left(ward) < 287 {
-        return Err(format!("ward lifetime {} ticks want 288 (18 s)", w.s.ward_left(ward)));
+    let ward = (0..w.s.count()).find(|&u| w.s.alive(u) && w.s.timed_left(u) > 0).ok_or("no ward was placed")?;
+    if w.s.timed_left(ward) < 287 {
+        return Err(format!("ward lifetime {} ticks want 288 (18 s)", w.s.timed_left(ward)));
     }
     w.run(2);
     let healed = w.hp(ally) - before;
@@ -749,19 +749,15 @@ pub fn omniknight_guardian_angel(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// Talents: the level 10, 15, 20 and 25 picks of Axe change what they name, one pick per tier.
+/// Talents: the tier picks of Axe set the upgrade bits the abilities test (tier t side s is bit 2 + 2t + s). The
+/// choice rule (levels 10, 15, 20, 25, one side per tier) is mod code in scenarios/moba/talents.lua and needs the
+/// host talent primitives to be tested; this check covers what the bits do.
 pub fn talent_picks(_image: &[u8]) -> Result<(), String> {
     let mut w = world()?;
     let axe = rank_one_hero(&mut w, "axe", 9, &["axe_battle_hunger"])?;
-    if w.s.choose_talent(axe, 0, 0).is_ok() {
-        return Err("a level 10 talent was chosen at level 9".into());
-    }
     w.level_up(axe, 15);
-    w.s.choose_talent(axe, 0, 0).map_err(|r| r.name().to_string())?;
-    if w.s.choose_talent(axe, 0, 1).is_ok() {
-        return Err("both talents of a tier were chosen".into());
-    }
-    w.s.choose_talent(axe, 1, 0).map_err(|r| r.name().to_string())?;
+    w.s.set_upgrade_bit(axe, 2, true).map_err(|r| r.name().to_string())?;
+    w.s.set_upgrade_bit(axe, 4, true).map_err(|r| r.name().to_string())?;
     let target = w.creep(1, 4, 0)?;
     let before = w.hp(target);
     w.cast(axe, "axe_battle_hunger", target as i32, 0, 0)?;
@@ -769,7 +765,7 @@ pub fn talent_picks(_image: &[u8]) -> Result<(), String> {
     near("battle hunger with the +8 talent", before - w.hp(target), 20.0, 1.0)?;
     w.level_up(axe, 20);
     let strength = w.s.hero_attributes(axe)[0];
-    w.s.choose_talent(axe, 2, 0).map_err(|r| r.name().to_string())?;
+    w.s.set_upgrade_bit(axe, 6, true).map_err(|r| r.name().to_string())?;
     let gained = w.s.hero_attributes(axe)[0] - strength;
     if gained != 15 {
         return Err(format!("the +15 strength talent added {gained}"));

@@ -1,11 +1,11 @@
-//! Order memory, and the `deliver` effect's request. A mod that sends a unit away saves the unit's
+//! Order memory, and the `carry` effect's request. A mod that sends a unit away saves the unit's
 //! order point first and restores it when the unit comes back. The sim keeps only that point (a
-//! generic per-unit slot) and the request. What a courier is, how it walks and when it delivers is
-//! the mod's rule (scenarios/moba/store.lua), driven by `Request::Deliver` and move-to-point orders.
+//! generic per-unit slot) and the request. What carrying means, how a unit walks and when it hands
+//! over are the mod's rule (scenarios/moba/store.lua), driven by `ItemRequest::Carry` and move-to-point orders.
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
-use crate::store::Request;
+use crate::store::ItemRequest;
 
 /// Saved order points, one slot per unit. `set` is 1 when a point is saved.
 #[derive(Clone, Debug)]
@@ -64,9 +64,9 @@ impl Sim {
         dist2(self.pos_x[i], self.pos_y[i], x, y) <= reach * reach
     }
 
-    /// The `deliver` effect: `target` must be a living unit friendly to the caster, other than the
-    /// caster; anything else changes nothing. Queues the request for the mod (`Request::Deliver`).
-    pub(crate) fn deliver_effect(&mut self, caster: usize, target: i32, reach_milli: i32) {
+    /// The `carry` effect: `target` must be a living unit friendly to the caster, other than the
+    /// caster; anything else changes nothing. Queues the request for the mod (`ItemRequest::Carry`).
+    pub(crate) fn carry_effect(&mut self, caster: usize, target: i32) {
         if target < 0 || target as usize >= self.n || target as usize == caster {
             return;
         }
@@ -74,6 +74,6 @@ impl Sim {
         if self.alive[t] == 0 || self.hostile(self.player[caster], self.player[t]) {
             return;
         }
-        self.store.requests.push(Request::Deliver { caster, target: t, reach_milli });
+        self.store.requests.push(ItemRequest::Carry { caster, target: t });
     }
 }

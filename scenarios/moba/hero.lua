@@ -62,6 +62,7 @@ end
 
 -- Respawn policy: base + per level seconds, capped. Kill gold and team share on a hero's death, and the xp share.
 function on_died(unit, killer, killer_player, bounty, victim_player)
+  camp_died(unit, killer)
   if game.is_hero(unit) then
     local secs = game.rule("respawn_base_s") + game.rule("respawn_per_level_s") * game.level(unit)
     local cap = game.rule("respawn_cap_s")

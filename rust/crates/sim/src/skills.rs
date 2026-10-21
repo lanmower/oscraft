@@ -36,7 +36,7 @@ impl Sim {
     /// Spends one skill point to raise ability slot `slot` of unit `unit` by a rank. Refusals,
     /// each changing nothing: a dead or unknown unit or an empty slot is NoSlot; an ability with
     /// no skill tree is NoSkillTree; a unit with no free point is NoSkillPoint; an ability at its
-    /// max rank is SkillMaxed; a character level below the next rank's gate is SkillLevelGate.
+    /// max rank is SkillMaxed; a character level below the next rank's gate is LevelGate.
     pub fn skill_up(&mut self, unit: usize, slot: usize) -> Result<(), Refusal> {
         if unit >= self.n || self.alive[unit] == 0 || slot >= ABILITY_SLOTS {
             return Err(self.reject(Refusal::NoSlot));
@@ -58,7 +58,7 @@ impl Sim {
             return Err(self.reject(Refusal::NoSkillPoint));
         }
         if self.character_level(unit) < skill.gates[rank] as u32 {
-            return Err(self.reject(Refusal::SkillLevelGate));
+            return Err(self.reject(Refusal::LevelGate));
         }
         self.abil_rank[idx] = (rank + 1) as u8;
         self.refresh_passives(unit);

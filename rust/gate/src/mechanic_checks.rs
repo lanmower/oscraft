@@ -2,7 +2,7 @@
 //! asserts one postcondition through the public sim or mod-host API and names the mechanic,
 //! never a genre.
 
-use crate::checks::{fresh, kind, run_ticks, spawn, MAX_UNITS, RUN_TICKS};
+use crate::checks::{fresh, kind, moba_rule, run_ticks, spawn, MAX_UNITS, RUN_TICKS};
 use sim::{fixed, Sim};
 
 const ORDER_MOVE: u8 = 0;
@@ -224,7 +224,7 @@ fn moba_camp_unit() -> Result<(Sim, usize), String> {
     let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("moba");
     let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
     let mut s = fresh(&image)?;
-    run_ticks(&mut s, sim::CAMP_FIRST_SPAWN_S * sim::TICKS_PER_SECOND as u32 + 1);
+    run_ticks(&mut s, (moba_rule("camp_first_spawn_s")? as u32) * sim::TICKS_PER_SECOND as u32 + 1);
     let u = (0..MAX_UNITS)
         .find(|&u| s.alive(u) && s.player(u) == 0xFF && s.hp(u) > fixed::from_int(1) && s.hp(u) < fixed::from_int(5000))
         .ok_or("moba image places no live neutral unit")?;
@@ -235,7 +235,7 @@ fn moba_camp_unit() -> Result<(Sim, usize), String> {
 pub fn camp_respawn(_image: &[u8]) -> Result<(), String> {
     let (mut s, u) = moba_camp_unit()?;
     let home = s.position_fixed(u);
-    let clear_reach = fixed::from_milli(sim::CAMP_CLEAR_MILLI) as i64;
+    let clear_reach = fixed::from_milli(moba_rule("camp_clear_milli")?) as i64;
     let camp_mates: Vec<usize> = (0..MAX_UNITS)
         .filter(|&k| k != u && s.alive(k) && s.player(k) == 0xFF && {
             let (x, y) = s.position_fixed(k);
@@ -250,12 +250,12 @@ pub fn camp_respawn(_image: &[u8]) -> Result<(), String> {
     if s.alive(u) {
         return Err(format!("camp unit {u} survived a lethal hit"));
     }
-    let wait = sim::CAMP_RESPAWN_S as i32 * sim::TICKS_PER_SECOND;
+    let wait = moba_rule("camp_respawn_s")? * sim::TICKS_PER_SECOND;
     for _ in 0..wait - 4 {
         s.tick();
     }
     if s.alive(u) {
-        return Err(format!("camp unit {u} respawned before its {} s timer", sim::CAMP_RESPAWN_S));
+        return Err(format!("camp unit {u} respawned before its {} s timer", (moba_rule("camp_respawn_s")? as u32)));
     }
     for _ in 0..8 {
         s.tick();
@@ -274,7 +274,7 @@ pub fn camp_respawn(_image: &[u8]) -> Result<(), String> {
 pub fn camp_leash(_image: &[u8]) -> Result<(), String> {
     let (mut s, u) = moba_camp_unit()?;
     let (hx, hy) = s.position_fixed(u);
-    let leash = fixed::from_milli(sim::CAMP_LEASH_MILLI) as i64;
+    let leash = fixed::from_milli(moba_rule("camp_leash_milli")?) as i64;
     let dist2 = |s: &Sim| {
         let (x, y) = s.position_fixed(u);
         let (dx, dy) = ((x - hx) as i64, (y - hy) as i64);
@@ -287,7 +287,7 @@ pub fn camp_leash(_image: &[u8]) -> Result<(), String> {
         left |= dist2(&s) > leash * leash;
     }
     if !left {
-        return Err(format!("camp unit {u} never left its {} milli leash", sim::CAMP_LEASH_MILLI));
+        return Err(format!("camp unit {u} never left its {} milli leash", moba_rule("camp_leash_milli")?));
     }
     if dist2(&s) > leash * leash {
         return Err(format!("camp unit {u} did not walk back inside its leash"));
@@ -315,11 +315,11 @@ pub fn camp_rune_pickup(_image: &[u8]) -> Result<(), String> {
     let paid = s.unit_gold(hero) - gold;
     // One tick can land on a second boundary, which adds one passive gold per second of hero income.
     let passive_slack = 1;
-    if paid < sim::RUNE_GOLD || paid > sim::RUNE_GOLD + passive_slack {
-        return Err(format!("rune paid {paid} gold, want {} plus at most one passive tick", sim::RUNE_GOLD));
+    if paid < moba_rule("rune_gold")? || paid > moba_rule("rune_gold")? + passive_slack {
+        return Err(format!("rune paid {paid} gold, want {} plus at most one passive tick", moba_rule("rune_gold")?));
     }
     s.order(hero, rx - fixed::from_int(12), ry);
-    for _ in 0..sim::RUNE_RESPAWN_S as i32 * sim::TICKS_PER_SECOND + 8 {
+    for _ in 0..moba_rule("rune_respawn_s")? * sim::TICKS_PER_SECOND + 8 {
         s.tick();
     }
     if !s.alive(rune) {

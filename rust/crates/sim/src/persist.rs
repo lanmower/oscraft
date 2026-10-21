@@ -21,7 +21,7 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 33 drops the courier and store-stock sections: a carrier's walk and a store's stock are mod
 /// state now, and the sim keeps only the saved order point per unit (carrier.rs). Saves of any other
 /// version, older ones included, are refused with `BadVersion`.
-const STATE_VERSION: u16 = 33;
+const STATE_VERSION: u16 = 34;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -487,7 +487,6 @@ impl Sim {
         put_i32s(&mut w, &self.heroes.home_y);
         w.extend_from_slice(&self.heroes.waiting);
         put_u32s(&mut w, &self.heroes.respawn_at);
-        put_u32s(&mut w, &self.heroes.buyback_ready);
         put_i32s(&mut w, &self.heroes.gold);
         put_i32s(&mut w, &self.heroes.mana_max);
         put_i32s(&mut w, &self.heroes.spot_x);
@@ -745,7 +744,6 @@ impl Sim {
         r.i32s_into(&mut next.heroes.home_y)?;
         r.bytes_into(&mut next.heroes.waiting)?;
         r.u32s_into(&mut next.heroes.respawn_at)?;
-        r.u32s_into(&mut next.heroes.buyback_ready)?;
         r.i32s_into(&mut next.heroes.gold)?;
         r.i32s_into(&mut next.heroes.mana_max)?;
         r.i32s_into(&mut next.heroes.spot_x)?;

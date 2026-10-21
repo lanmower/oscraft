@@ -141,7 +141,7 @@ pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
     }
     let tango = &cat.items[item(&s, "tango")?];
     want("tango charges", tango.charges as i64, 3)?;
-    want("platemail shops", cat.items[item(&s, "platemail")?].shops as i64, 4)?;
+    want("platemail tags", cat.items[item(&s, "platemail")?].tags as i64, 4)?;
     let kobold = &cat.items[item(&s, "kobold_cup")?];
     want("kobold_cup tier", kobold.tier as i64, 1)?;
     println!("item catalog ok items={}", cat.items.len());

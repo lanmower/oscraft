@@ -223,7 +223,6 @@ impl Sim {
         h.i32s(&self.heroes.home_y);
         h.bytes(&self.heroes.waiting);
         h.u32s(&self.heroes.respawn_at);
-        h.u32s(&self.heroes.buyback_ready);
         h.i32s(&self.heroes.gold);
         h.i32s(&self.heroes.mana_max);
         h.i32s(&self.heroes.spot_x);

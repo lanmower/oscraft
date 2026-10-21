@@ -2,7 +2,7 @@
 //! generates from rust/data/*.osd, and returns Err with the reason it fails.
 
 use crate::checks::{fresh, kind, run_ticks, spawn};
-use sim::{fixed, Refusal};
+use sim::{fixed, Refusal, Sim};
 
 // ORDER_* in rust/crates/sim/src/lib.rs. They are not public, so the values are repeated here.
 const ORDER_MOVE: u8 = 0;
@@ -15,13 +15,15 @@ fn refused(what: &str, r: Refusal) -> String {
     format!("{what} refused: {}", r.name())
 }
 
-/// The bit the data crate's FILTERS list assigns to `name`, as the sim catalog stores it.
-fn filter_bit(name: &str) -> Result<u32, String> {
-    osdt_data::format::FILTERS
+/// The bit the scenario's filter_names list assigns to `name`, as the sim catalog stores it.
+fn filter_bit(s: &Sim, name: &str) -> Result<u32, String> {
+    s.catalog()
+        .names
+        .filter_names
         .iter()
-        .position(|f| *f == name)
+        .position(|f| f == name)
         .map(|i| 1u32 << i)
-        .ok_or_else(|| format!("FILTERS has no {name}"))
+        .ok_or_else(|| format!("filter_names has no {name}"))
 }
 
 pub fn load_map(image: &[u8]) -> Result<(), String> {
@@ -101,11 +103,12 @@ pub fn unit_classes(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
     let c = s.catalog();
     let bit = |name: &str| -> Result<u32, String> {
-        osdt_data::format::FILTERS
+        c.names
+            .filter_names
             .iter()
-            .position(|f| *f == name)
+            .position(|f| f == name)
             .map(|p| 1u32 << p)
-            .ok_or_else(|| format!("FILTERS has no {name}"))
+            .ok_or_else(|| format!("filter_names has no {name}"))
     };
     let (air, worker, structure) = (bit("air")?, bit("worker")?, bit("structure")?);
     for u in &c.units {
@@ -150,7 +153,7 @@ pub fn cast_ability(image: &[u8]) -> Result<(), String> {
 pub fn ability_target_filter(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
     let c = s.catalog();
-    let ground = filter_bit("ground")?;
+    let ground = filter_bit(&s, "ground")?;
     if !c.units.iter().any(|u| u.filter & ground == 0) {
         return Err("every catalog unit carries the ground filter, so no target filter can refuse one".into());
     }
@@ -281,7 +284,7 @@ pub fn produce_unit(image: &[u8]) -> Result<(), String> {
 
 pub fn harvest_resources(image: &[u8]) -> Result<(), String> {
     let s = fresh(image)?;
-    let worker = filter_bit("worker")?;
+    let worker = filter_bit(&s, "worker")?;
     if !s.catalog().units.iter().any(|u| u.filter & worker != 0) {
         return Err("catalog has no unit with the worker filter, so harvest_step never runs".into());
     }

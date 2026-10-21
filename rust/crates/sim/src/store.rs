@@ -1,8 +1,9 @@
-//! Stores: the sim's generic trade mechanics. A purchase, a sale and an unstash are requests the sim
-//! queues. A mod answers each one with a `Verdict` (its rule: what is for sale, the price, and which
-//! held copies a purchase consumes), and the sim applies the verdict. Applying it takes the listed
-//! copies, debits a per-player counter and places an item in a bank. Each refusal is a named
-//! `Refusal` and changes nothing. Nothing here says what a store sells or where: that is the mod's rule.
+//! Item transfers: the sim's generic mechanics. An acquire, a release, a take-out and a carry are
+//! requests the sim queues. A mod answers each acquire, release and take-out with an `ItemVerdict`
+//! (its rule: the amount to debit or credit a counter, and which held copies an acquire consumes), and
+//! the sim applies the verdict: it takes the listed copies, debits or credits a per-player counter and
+//! places an item in a bank. Each refusal is a named `Refusal` and changes nothing. Nothing here says
+//! what an item is bought or sold for, where, or what a carrier does: that is the mod's rule.
 
 use crate::arrays::Sim;
 use crate::fixed;
@@ -17,38 +18,39 @@ pub const VERDICT_TAKES: usize = ITEM_COMPONENTS;
 /// An unused component slot of an item.
 pub const NO_COMPONENT: u16 = crate::loader::NO_INDEX;
 
-/// A trade or effect the sim queues for the mod. The mod host drains the queue each tick.
+/// An item request the sim queues for the mod. The mod host drains the queue each tick. The mod's
+/// hook receives the kind as `acquire`, `release`, `take_out` or `carry`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Request {
-    /// Buy catalog item `item` for unit `unit`.
-    Buy { unit: usize, item: usize },
-    /// Sell the item in inventory slot `slot` of unit `unit`.
-    Sell { unit: usize, slot: usize },
+pub enum ItemRequest {
+    /// Acquire catalog item `item` for unit `unit`: the mod debits and names the copies it consumes.
+    Acquire { unit: usize, item: usize },
+    /// Release the item in inventory slot `slot` of unit `unit`: the mod names a credit.
+    Release { unit: usize, slot: usize },
     /// Move stash slot `slot` of unit `unit` into its inventory.
-    Unstash { unit: usize, slot: usize },
-    /// The deliver effect: `caster` was sent to `target`, which arrives within `reach_milli`.
-    Deliver { caster: usize, target: usize, reach_milli: i32 },
+    TakeOut { unit: usize, slot: usize },
+    /// Carry: `caster` was sent to `target`, a living friendly unit. The mod runs the carry itself.
+    Carry { caster: usize, target: usize },
 }
 
-/// A mod's answer to a trade request. An allowed purchase debits `price` and consumes the catalog
-/// items in `takes` (one held copy each, inventory first, then stash; `NO_TAKE` ends the list).
-/// An allowed sale credits `refund`. A denial names the refusal and changes nothing.
+/// A mod's answer to an item request. An allowed acquire debits `debit` and consumes the catalog
+/// items in `takes` (one held copy each, inventory first, then stash; `NO_TAKE` ends the list). An
+/// allowed release credits `credit`. A denial names the refusal and changes nothing.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Verdict {
-    Buy { unit: usize, item: usize, allow: bool, deny: Refusal, price: i32, takes: [u32; ITEM_COMPONENTS] },
-    Sell { unit: usize, slot: usize, allow: bool, deny: Refusal, refund: i32 },
-    Unstash { unit: usize, slot: usize, allow: bool, deny: Refusal },
+pub enum ItemVerdict {
+    Acquire { unit: usize, item: usize, allow: bool, deny: Refusal, debit: i32, takes: [u32; ITEM_COMPONENTS] },
+    Release { unit: usize, slot: usize, allow: bool, deny: Refusal, credit: i32 },
+    TakeOut { unit: usize, slot: usize, allow: bool, deny: Refusal },
 }
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct StoreState {
-    pub(crate) requests: Vec<Request>,
+    pub(crate) requests: Vec<ItemRequest>,
 }
 
 type Bank = [(u32, u32); INV_SLOTS];
 
 impl Sim {
-    /// Queues a purchase of catalog item `item` for unit `i`; the mod answers it. False when the unit
+    /// Queues an acquire of catalog item `item` for unit `i`; the mod answers it. False when the unit
     /// is dead (NoSlot), or the item is unknown or flagged no-buy (NoItem); nothing is queued then.
     pub fn buy_item(&mut self, i: usize, item: usize) -> bool {
         if !self.trade_unit_ok(i) {
@@ -58,11 +60,11 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         }
-        self.store.requests.push(Request::Buy { unit: i, item });
+        self.store.requests.push(ItemRequest::Acquire { unit: i, item });
         true
     }
 
-    /// Queues a sale of the item in inventory slot `slot` of unit `i`. False (nothing queued) for a dead
+    /// Queues a release of the item in inventory slot `slot` of unit `i`. False (nothing queued) for a dead
     /// unit, a bad slot (NoSlot) or an empty or no-sell slot (NoItem).
     pub fn sell_item(&mut self, i: usize, slot: usize) -> bool {
         if !self.trade_unit_ok(i) || slot >= INV_SLOTS {
@@ -75,11 +77,11 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         }
-        self.store.requests.push(Request::Sell { unit: i, slot });
+        self.store.requests.push(ItemRequest::Release { unit: i, slot });
         true
     }
 
-    /// Queues moving stash slot `slot` of unit `i` into its inventory. False (nothing queued) for a dead
+    /// Queues moving stash slot `slot` of unit `i` into its inventory (a take-out). False (nothing queued) for a dead
     /// unit or bad slot (NoSlot) or an empty stash slot (NoItem).
     pub fn unstash(&mut self, i: usize, slot: usize) -> bool {
         if !self.trade_unit_ok(i) || slot >= STASH_SLOTS {
@@ -90,13 +92,13 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         }
-        self.store.requests.push(Request::Unstash { unit: i, slot });
+        self.store.requests.push(ItemRequest::TakeOut { unit: i, slot });
         true
     }
 
     /// Puts `count` of catalog item `item` into the first empty stash slot of unit `i`. False for a dead
     /// or unknown unit, an unknown item, or a full stash. Stash items give no bonuses, so nothing else
-    /// changes. A mod or a test uses it to stage items for a delivery.
+    /// changes. A mod or a test uses it to stage items for a carry.
     pub fn stash_item(&mut self, i: usize, item: usize, count: u32) -> bool {
         if !self.trade_unit_ok(i) || item >= self.cat.items.len() || count == 0 {
             return false;
@@ -111,23 +113,23 @@ impl Sim {
     }
 
     /// Takes the queued requests, in the order they were queued.
-    pub fn drain_requests(&mut self) -> Vec<Request> {
+    pub fn drain_requests(&mut self) -> Vec<ItemRequest> {
         std::mem::take(&mut self.store.requests)
     }
 
-    /// Applies a mod's verdict on a trade. Refusals, each changing nothing: NoSlot for a dead unit or
-    /// bad slot; the verdict's own `deny`; NoItem for an unknown item or a negative price or refund;
+    /// Applies a mod's verdict on an item request. Refusals, each changing nothing: NoSlot for a dead unit or
+    /// bad slot; the verdict's own `deny`; NoItem for an unknown item or a negative debit or credit;
     /// MissingComponent when a listed copy is not held; CannotAfford; InventoryFull.
-    pub fn apply_verdict(&mut self, v: &Verdict) -> bool {
+    pub fn apply_verdict(&mut self, v: &ItemVerdict) -> bool {
         match *v {
-            Verdict::Buy { unit, item, allow, deny, price, takes } => self.apply_buy(unit, item, allow, deny, price, takes),
-            Verdict::Sell { unit, slot, allow, deny, refund } => self.apply_sell(unit, slot, allow, deny, refund),
-            Verdict::Unstash { unit, slot, allow, deny } => self.apply_unstash(unit, slot, allow, deny),
+            ItemVerdict::Acquire { unit, item, allow, deny, debit, takes } => self.apply_acquire(unit, item, allow, deny, debit, takes),
+            ItemVerdict::Release { unit, slot, allow, deny, credit } => self.apply_release(unit, slot, allow, deny, credit),
+            ItemVerdict::TakeOut { unit, slot, allow, deny } => self.apply_take_out(unit, slot, allow, deny),
         }
     }
 
     /// Moves every stash item of unit `i` into its free inventory slots, with no trade check. Returns
-    /// how many moved. A mod calls it when a unit's stash is delivered to it.
+    /// how many moved. A mod calls it when a unit's stash is handed over to it.
     pub fn pack_stash(&mut self, i: usize) -> usize {
         if !self.trade_unit_ok(i) {
             return 0;
@@ -205,7 +207,7 @@ impl Sim {
         }
     }
 
-    fn apply_buy(&mut self, i: usize, item: usize, allow: bool, deny: Refusal, price: i32, takes: [u32; ITEM_COMPONENTS]) -> bool {
+    fn apply_acquire(&mut self, i: usize, item: usize, allow: bool, deny: Refusal, debit: i32, takes: [u32; ITEM_COMPONENTS]) -> bool {
         if !self.trade_unit_ok(i) {
             return false;
         }
@@ -217,7 +219,7 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         };
-        if price < 0 {
+        if debit < 0 {
             self.refuse(Refusal::NoItem);
             return false;
         }
@@ -244,7 +246,7 @@ impl Sim {
             }
         }
         let p = self.player[i] as usize;
-        if self.resource_a[p] < price {
+        if self.resource_a[p] < debit {
             self.refuse(Refusal::CannotAfford);
             return false;
         }
@@ -253,12 +255,12 @@ impl Sim {
             self.refuse(Refusal::InventoryFull);
             return false;
         }
-        self.resource_a[p] -= price;
+        self.resource_a[p] -= debit;
         self.change_items(i, |sim| sim.write_banks(i, &inv, &stash));
         true
     }
 
-    fn apply_sell(&mut self, i: usize, slot: usize, allow: bool, deny: Refusal, refund: i32) -> bool {
+    fn apply_release(&mut self, i: usize, slot: usize, allow: bool, deny: Refusal, credit: i32) -> bool {
         if !self.trade_unit_ok(i) || slot >= INV_SLOTS {
             self.refuse(Refusal::NoSlot);
             return false;
@@ -268,12 +270,12 @@ impl Sim {
             return false;
         }
         let key = i * INV_SLOTS + slot;
-        if self.inv_count[key] == 0 || refund < 0 {
+        if self.inv_count[key] == 0 || credit < 0 {
             self.refuse(Refusal::NoItem);
             return false;
         }
         let p = self.player[i] as usize;
-        self.resource_a[p] += refund;
+        self.resource_a[p] += credit;
         self.change_items(i, |sim| {
             sim.inv_kind[key] = 0;
             sim.inv_count[key] = 0;
@@ -281,7 +283,7 @@ impl Sim {
         true
     }
 
-    fn apply_unstash(&mut self, i: usize, slot: usize, allow: bool, deny: Refusal) -> bool {
+    fn apply_take_out(&mut self, i: usize, slot: usize, allow: bool, deny: Refusal) -> bool {
         if !self.trade_unit_ok(i) || slot >= STASH_SLOTS {
             self.refuse(Refusal::NoSlot);
             return false;

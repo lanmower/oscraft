@@ -2680,10 +2680,12 @@ impl ModHost {
         let killer = d.killer.map(i64::from);
         let killer_player = d.killer_player.map(i64::from);
         let (victim, victim_player, bounty) = (i64::from(d.victim), i64::from(d.victim_player), i64::from(d.bounty));
+        // The sixth argument is whether the killer is a hero, so a mod pays the hero share without reading the sim.
+        let killer_hero = d.killer.is_some_and(|k| self.world.borrow().is_hero(k as usize));
         if let Some(h) = &hooks.on_died {
-            h.call::<()>((victim, killer, killer_player, bounty, victim_player))?;
+            h.call::<()>((victim, killer, killer_player, bounty, victim_player, killer_hero))?;
         }
-        hooks.fire.call::<()>(("on_died", victim, killer, killer_player, bounty, victim_player))
+        hooks.fire.call::<()>(("on_died", victim, killer, killer_player, bounty, victim_player, killer_hero))
     }
 
     pub fn lua(&self) -> &Lua {
