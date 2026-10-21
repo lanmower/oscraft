@@ -1,6 +1,6 @@
 # Units for the moba scenario. One unit(...) call per line. Declaration order sets unit indices:
 # hero 0, tower 1, base 2, creep 3, tender 4, objective 5, then the reference-style heroes 6 to 15 (five per side
-# in the lobby pool). Heroes append after the base units so existing indices do not move. model names a file in js/client/models.
+# in the lobby pool). Heroes append after the base units so existing indices do not move. model names a file in scenarios/moba/assets/models.
 unit("hero", 120, 303, 375, deny_pct=25,build_time=480, resource_a=0, capacity=1, abilities=["pulse_shot", "mend_field", "cleave_strike", "dash_step", "ward_shield"], filters=["ground", "armored", "army"], weapon_damage=37, weapon_range_milli=2344, weapon_period=26, sight_milli=28125, shield=0, defense=0, model="character-male-a")
 # Tower (T1): npc_units.txt @282fad29f0f74504fad465c52d197fb61f4d612b badguys_tower1_mid (StatusHealth 1800, ArmorPhysical 12, damage 88-92 midpoint 90, range 700, AttackRate 0.9 x 100 / BaseAttackSpeed 110 = 13 ticks, vision 1900). Scale: 1 reference unit = 15.625 milli. deny_pct 10 is the reference tower deny rule, not in the dump.
 unit("tower", 1800, 0, 2250, filters=["ground", "armored", "massive", "structure"], weapon_damage=90, weapon_range_milli=10938, weapon_period=13, sight_milli=29688, defense=12, model="tower-square-top-roof", deny_pct=10)

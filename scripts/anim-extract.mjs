@@ -3,7 +3,7 @@ import path from 'node:path';
 import { parseGlbAnimations } from '../js/client/glb.js';
 import { parentWorldRotation, restHips } from '../js/client/anim.js';
 
-const [source, target = 'js/client/anim/library.json'] = process.argv.slice(2);
+const [source, target = 'scenarios/moba/assets/anim/library.json'] = process.argv.slice(2);
 if (!source) throw new Error('usage: node scripts/anim-extract.mjs <spoint anim-lib.glb> [out.json]');
 
 const HUMANOID_SOURCE = {

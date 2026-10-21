@@ -32,8 +32,8 @@ for f in $(cd "$root_src" 2>/dev/null && ls *.js *.html 2>/dev/null) editor.html
   [ -s "js/client/$f" ] || fail "js/client/$f is missing or empty"
 done
 [ -n "$(ls mods/*.lua 2>/dev/null)" ] || fail "mods/ is missing or empty"
-[ -d js/client/textures ] || fail "js/client/textures is missing"
-[ -d js/client/models ] && [ -n "$(ls -A js/client/models)" ] || fail "js/client/models is missing or empty"
+[ -d scenarios/moba/assets/textures ] || fail "scenarios/moba/assets/textures is missing"
+[ -d scenarios/moba/assets/models ] && [ -n "$(ls -A scenarios/moba/assets/models)" ] || fail "scenarios/moba/assets/models is missing or empty"
 grep -q 'src="play.js"' js/client/play.html || fail "js/client/play.html does not load play.js"
 specs=$(grep -ho -E "[\"'][.][.]?/[^\"']+[\"']" js/client/play.js js/client/delta.js | tr -d "\"'" | sort -u)
 refs=$(grep -ho -E 'data-(pkg|map)="[^"]+"' js/client/play.html | sed -E 's/.*="(.*)"/\1/')

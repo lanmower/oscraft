@@ -351,7 +351,7 @@ function rollRotations(values, angle) {
   }
 }
 
-// Re-expresses a humanoid library (js/client/anim/library.json) on one rig. map.bones maps each humanoid bone to the
+// Re-expresses a humanoid library (scenarios/moba/assets/anim/library.json) on one rig. map.bones maps each humanoid bone to the
 // rig's node name. Each rotation is carried through world space: the source motion is a delta on its rest pose, applied
 // to the rig's rest pose in the rig's own bone frame, so rigs whose bone axes differ still pose the same way.
 // Translations are rotated the same way and scaled by the ratio of the rig's hips height to the source's. Bones the rig

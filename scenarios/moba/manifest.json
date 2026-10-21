@@ -22,7 +22,7 @@
   "ui": "moba_ui.json",
   "effects": "moba_ui.json",
   "assets": {
-    "root": "../../js/client",
+    "root": "assets",
     "textures": {
       "ground": "textures/ground.jpg",
       "path_road": "textures/lane.jpg",

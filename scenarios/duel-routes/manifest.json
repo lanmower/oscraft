@@ -14,7 +14,7 @@
   "ui": "ui.json",
   "effects": "ui.json",
   "assets": {
-    "root": "../../js/client",
+    "root": "../moba/assets",
     "textures": {
       "ground": "textures/ground.jpg",
       "lane": "textures/lane.jpg",

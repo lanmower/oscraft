@@ -1,5 +1,5 @@
 // Target size of every doodad kind, from the measured bounds of its GLB. This is the one place for the scale rule:
-// gen-reference-map.mjs writes the result to js/client/doodad_sizes.json, and play.js fits each model to its footprint.
+// gen-reference-map.mjs writes the result to scenarios/moba/assets/doodad_sizes.json, and play.js fits each model to its footprint.
 // The footprint is the larger X or Z side of the model's first mesh, in cells (one cell is one world unit, one 64-unit GridNav cell).
 import fs from "node:fs";
 import { roleOf } from "./doodad-roles.mjs";

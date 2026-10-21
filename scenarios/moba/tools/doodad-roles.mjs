@@ -1,4 +1,4 @@
-// Role of each shipped GLB model (js/client/models/<stem>.glb). Rules are checked in order; the first match wins,
+// Role of each shipped GLB model (scenarios/moba/assets/models/<stem>.glb). Rules are checked in order; the first match wins,
 // and a model matching none is a decoration. The kind name of a model is its stem with "-" turned into "_".
 export const ROLE_RULES = [
   ["character", /^(character-|hero|keeper|knight)/],

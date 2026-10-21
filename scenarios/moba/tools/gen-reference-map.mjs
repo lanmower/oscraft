@@ -276,7 +276,7 @@ const tileCount = (id) => tiles.reduce((a, v) => a + (v === id ? 1 : 0), 0);
 // walkability is unchanged. Every jungle tree cell (a blocked cell) gets a tree, so each blocked cell reads as a tree; bushes,
 // rocks and props sit on open cells. Nothing is placed on a lane cell or inside a base or tower footprint (structureZone);
 // lane rims stay open for bushes along the lane edges. Each role's models cycle in order.
-const modelsDir = new URL("../../../js/client/models/", import.meta.url);
+const modelsDir = new URL("../../assets/models/", import.meta.url);
 const { sizes: doodadFootprints, units: unitFootprints } = doodadSizes(modelsDir);
 const shippedStems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort().filter((stem) => doodadFootprints[stem] !== undefined);
 const ROLE_KINDS = {};
@@ -322,7 +322,7 @@ for (const t of towerRows) castleRing(cx(t.x), cy(t.y), footprintRadius(t.bounds
 // Trees go last so every building footprint is known. A tree is skipped whole when its fitted footprint (a square centred on
 // its cell) covers a lane cell, a base or tower zone, or a placed building; placement order is fixed, so the result is deterministic.
 // A kind is sized by the model doodads.json names for it (play.js reads the same file), falling back to its stem.
-const KIND_MODEL = JSON.parse(fs.readFileSync(new URL("../../../js/client/doodads.json", import.meta.url), "utf8"));
+const KIND_MODEL = JSON.parse(fs.readFileSync(new URL("../../assets/doodads.json", import.meta.url), "utf8"));
 const sizeOfKind = (kind) => doodadFootprints[(KIND_MODEL[kind] ?? "").replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") || kind.replace(/_/g, "-")] ?? 2 * 0.5;
 const footprintClear = (i, kind) => {
   const half = sizeOfKind(kind) / 2, x = i % N + 0.5, y = ((i / N) | 0) + 0.5;
@@ -339,7 +339,7 @@ if (fieldCells.length < scatterKinds.length) throw new Error(`field cells ${fiel
 scatterKinds.forEach((kind, k) => { const c = fieldCells[k * scatterStep]; if ((roleOf(kind.replace(/_/g, "-")) === "tree" || /stump|trunk|log/.test(kind)) && !footprintClear(c, kind)) return; cellDd(kind, [c % N, (c / N) | 0]); });
 treeCells.forEach((i) => { if (!clear(i)) return; const kind = pick("tree"); if (footprintClear(i, kind)) cellDd(kind, [i % N, (i / N) | 0]); });
 
-fs.writeFileSync(new URL("../../../js/client/doodad_sizes.json", import.meta.url), JSON.stringify({ ...doodadFootprints, ...unitFootprints }, null, 1) + "\n");
+fs.writeFileSync(new URL("../../assets/doodad_sizes.json", import.meta.url), JSON.stringify({ ...doodadFootprints, ...unitFootprints }, null, 1) + "\n");
 
 const thingLine = (t) => `spawn("${t.unit}", ${t.player}, ${mx(t.wx)}, ${my(t.wy)})`;
 const header = [

@@ -102,7 +102,7 @@ for (const full of names) {
 const kw = (s) => Object.entries(s).map(([k, v]) => `${k}=${v}`).join(" ");
 const statLine = (name, h) => `hero ${name} ${kw(h.stats)}`;
 
-// Heroes whose hy3d export ships as js/client/models/<name>.glb, keyed by hero id. This file rewrites
+// Heroes whose hy3d export ships as scenarios/moba/assets/models/<name>.glb, keyed by hero id. This file rewrites
 // units_heroes.osd whole, so a per-hero model set only in that file is reverted by the next run.
 const HY3D_MODEL = {
   abaddon: "abaddon-skinned",
