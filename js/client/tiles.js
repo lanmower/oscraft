@@ -131,10 +131,10 @@ export function fitModel(glb, size) {
 
 // Material per cell kind: the named texture a kind's batches bind, or null for the model's tint. Adding a surface is one
 // entry here; a kind mapped to "ground" is drawn with the repeating ground texture.
-export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: "lane", water: "water", cliff: "cliff" });
+export const TILE_MATERIALS = Object.freeze({ grass: "ground", dirt: "ground", lane: "path_road", water: "water", cliff: "cliff" });
 // Texture file per material name (CC0, see NOTICE.md). A material's kinds share one texture; the ground and water materials
 // repeat over the map in world space (GROUND_KINDS), while the others stretch once over each tile through the model's UVs.
-export const TILE_TEXTURES = Object.freeze({ ground: "ground", lane: "lane", cliff: "cliff", water: "water" });
+export const TILE_TEXTURES = Object.freeze({ ground: "ground", path_road: "path_road", cliff: "cliff", water: "water" });
 // Kinds drawn with a repeating texture (ground and water): their cells split by position modulo the texture period, so each
 // split shares one instanced draw and still lands on the right part of the texture. A river is one continuous surface.
 export const GROUND_KINDS = Object.freeze(Object.keys(TILE_MATERIALS).filter((kind) => ["ground", "water"].includes(TILE_MATERIALS[kind])));
@@ -362,10 +362,10 @@ export const SPLAT_LAYERS = Object.freeze(["grass", "dirt", "lane", "rock"]);
 const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 1 });
 // The water surface is procedural (render3d.js): the water map is one byte per cell, 255 on water cells.
 export const SPLAT_TEXTURES = Object.freeze({
-  grass: Object.freeze(["grass", "grassDisp"]),
-  dirt: Object.freeze(["dirt", "dirtDisp"]),
-  lane: Object.freeze(["laneEarth", "laneDisp"]),
-  rock: Object.freeze(["rock", "rockDisp"]),
+  grass: Object.freeze(["textures.grass", "textures.grassDisp"]),
+  dirt: Object.freeze(["textures.dirt", "textures.dirtDisp"]),
+  lane: Object.freeze(["textures.path_earth", "textures.path_earth_disp"]),
+  rock: Object.freeze(["textures.rock", "textures.rockDisp"]),
 });
 // Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
 export function isSplatKind(kind) {

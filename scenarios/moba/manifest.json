@@ -25,15 +25,15 @@
     "root": "../../js/client",
     "textures": {
       "ground": "textures/ground.jpg",
-      "lane": "textures/lane.jpg",
+      "path_road": "textures/lane.jpg",
       "cliff": "textures/cliff.jpg",
       "water": "textures/water.jpg",
       "grass": "textures/grass.jpg",
       "grassDisp": "textures/grass_disp.jpg",
       "dirt": "textures/grass_b_cc0_256.jpg",
       "dirtDisp": "textures/grass_b_cc0_256_disp.jpg",
-      "laneEarth": "textures/lane_earth_cc0_256.jpg",
-      "laneDisp": "textures/lane_disp.jpg",
+      "path_earth": "textures/lane_earth_cc0_256.jpg",
+      "path_earth_disp": "textures/lane_disp.jpg",
       "rock": "textures/rock024_color.jpg",
       "rockDisp": "textures/rock024_disp.jpg"
     },
