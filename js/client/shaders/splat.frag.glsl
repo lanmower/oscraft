@@ -28,8 +28,9 @@ vec2 layerWarp(vec2 xz, float k) {
 }
 vec3 bedAt(vec2 xz, float y, vec3 n0) {
   vec4 w = texture(uControl, xz / uMapSize);
-  // Cliff (rock) weight is read per cell, so a cliff edge stays hard while the ground layers blend.
-  w.w = texelFetch(uControl, ivec2(floor(xz / uMapSize * vec2(textureSize(uControl, 0)))), 0).w;
+  // Every layer weight is bilinear across the cell (no cell-aligned step), the rock weight included.
+  // The layer band is widened (twice the uniform) so the blends run over a longer height range.
+  float bandW = 2.0 * uBand;
   vec2 uv0 = xz * uUvScale + layerWarp(xz, 0.0), uv1 = xz * uUvScale + layerWarp(xz, 1.0);
   vec2 uv2 = xz * uUvScale + layerWarp(xz, 2.0), uv3 = xz * uUvScale + layerWarp(xz, 3.0);
   vec3 c0 = texture(uAlb0, uv0).rgb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv1).rgb * uLayerTint[1];
@@ -41,12 +42,12 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
   vec3 g = w.xyz;
   vec3 gh = g * (d.xyz + 0.5);
   float gm = max(gh.x, max(gh.y, gh.z));
-  vec3 gb = max(gh - (gm - uBand), 0.0) * g;
+  vec3 gb = smoothstep(gm - bandW, gm, gh) * g;
   float gs = gb.x + gb.y + gb.z;
   vec3 ground = gs > 1e-4 ? (gb.x * c0 + gb.y * c1 + gb.z * c2) / gs : (g.x * c0 + g.y * c1 + g.z * c2) / max(g.x + g.y + g.z, 1e-4);
   // Cliff: only cells whose rock channel is set take rock. The cutaway edge is biased by the rock024 height, and a flat
   // cell (rock channel 0) stays at 0 whatever its height, so rock never wins on flat ground.
-  float rw = clamp((w.w - 0.5) * 4.0 + (d.w - 0.5) * 0.8 + 0.5, 0.0, 1.0);
+  float rw = smoothstep(0.0, 1.0, (w.w - 0.5) * 2.5 + (d.w - 0.5) * 0.8 + 0.5);
   vec3 base = mix(ground, c3, rw);
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
   float diffuse = max(dot(normalize(n0), light), 0.0);
@@ -109,6 +110,10 @@ void main() {
   vec3 shallow = vec3(0.34, 0.62, 0.56) * uWaterTint;
   vec3 deep = vec3(0.04, 0.22, 0.30) * uWaterTint;
   vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
+  // Teal tint: stronger with depth, and more at grazing view angles (1 - dot(V, n)), so sharp angles read more teal.
+  float graze = clamp(1.0 - dot(V, n), 0.0, 1.0);
+  float teal = depth * (0.4 + 0.6 * graze);
+  body = mix(body, vec3(0.1, 0.6, 0.58) * (uShade.x + uShade.y * max(dot(n, light), 0.0)), teal * 0.6);
   // Refraction: the bed is seen through the surface, so it is sampled at a small offset driven by the surface normal
   // (a small offset: enough to bend the bed under the ripples, too little to smear the ground texture). The caustic
   // light is laid on that refracted bed as high-contrast bands, so the bending reads as light through the water.
