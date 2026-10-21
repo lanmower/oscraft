@@ -241,6 +241,7 @@ export function createMobaInput({ game, units, localPlayer, pick, toWorld, toScr
       return;
     }
     const act = resolveKey(cfg.keys, e.key, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, alt: e.altKey });
+    document.body.dataset.keyProbe = `${e.key}>${act ? `${act.action}:${act.slot ?? ""}` : "null"} armed=${armed ? `${armed.item ? "item" : "cast"}:${armed.slot}` : "none"}`;
     if (!act) return;
     e.preventDefault();
     const world = toWorld(pointer.x, pointer.y);
