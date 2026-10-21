@@ -19,14 +19,22 @@ uniform vec3 uShade; // ambient, diffuse, albedo gain
 uniform vec3 uLayerTint[4]; // per-layer albedo tint (the sand layer takes the dirt tint)
 uniform sampler2D uWaterMap; uniform vec3 uWaterTint; uniform float uTime; uniform vec3 uEye; // water: cell map, tint, clock, eye
 out vec4 outColor;
+// Per-layer UV warp, in tile units: a slow two-octave sine field over world space, with its own phase for each layer,
+// so the four tilings drift apart instead of lining up. Peak offset is about 0.6 of one texture tile.
+vec2 layerWarp(vec2 xz, float k) {
+  vec2 a = vec2(sin(xz.y * 0.011 + k * 1.3 + 0.8 * sin(xz.x * 0.017 + k)), cos(xz.x * 0.013 - k * 0.7 + 0.6 * sin(xz.y * 0.021 - k)));
+  vec2 b = vec2(sin(xz.x * 0.031 + xz.y * 0.007 + k * 2.1), cos(xz.y * 0.029 - xz.x * 0.005 + k * 1.9));
+  return 0.6 * (0.7 * a + 0.3 * b);
+}
 vec3 bedAt(vec2 xz, float y, vec3 n0) {
   vec4 w = texture(uControl, xz / uMapSize);
   // Cliff (rock) weight is read per cell, so a cliff edge stays hard while the ground layers blend.
   w.w = texelFetch(uControl, ivec2(floor(xz / uMapSize * vec2(textureSize(uControl, 0)))), 0).w;
-  vec2 uv = xz * uUvScale;
-  vec3 c0 = texture(uAlb0, uv).rgb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv).rgb * uLayerTint[1];
-  vec3 c2 = texture(uAlb2, uv).rgb * uLayerTint[2]; vec3 c3 = texture(uAlb3, uv).rgb * uLayerTint[3];
-  vec4 d = vec4(texture(uDisp0, uv).r, texture(uDisp1, uv).r, texture(uDisp2, uv).r, texture(uDisp3, uv).r);
+  vec2 uv0 = xz * uUvScale + layerWarp(xz, 0.0), uv1 = xz * uUvScale + layerWarp(xz, 1.0);
+  vec2 uv2 = xz * uUvScale + layerWarp(xz, 2.0), uv3 = xz * uUvScale + layerWarp(xz, 3.0);
+  vec3 c0 = texture(uAlb0, uv0).rgb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv1).rgb * uLayerTint[1];
+  vec3 c2 = texture(uAlb2, uv2).rgb * uLayerTint[2]; vec3 c3 = texture(uAlb3, uv3).rgb * uLayerTint[3];
+  vec4 d = vec4(texture(uDisp0, uv0).r, texture(uDisp1, uv1).r, texture(uDisp2, uv2).r, texture(uDisp3, uv3).r);
   vec4 h = w * (d + 0.5);
   float m = max(max(h.x, h.y), max(h.z, h.w));
   vec4 b = max(h - (m - uBand), 0.0) * w;
@@ -99,6 +107,9 @@ void main() {
   water += vec3(1.0, 0.97, 0.9) * glint * depth * SPECULAR;
   // Wet only where the neighbourhood is all water: a shore cell with land beside it stays dry ground, so the water does
   // not spill over the edge tiles.
-  float wet = smoothstep(0.97, 1.0, near) * ww;
+  // The water mask is warped on its own field (about 0.6 of a cell), so the shoreline cells do not repeat on a grid.
+  vec2 pw = p + 0.6 * vec2(sin(p.y * 0.019 + 0.7 * sin(p.x * 0.023)), cos(p.x * 0.017 - 0.5 * sin(p.y * 0.029)));
+  float wwW = texture(uWaterMap, pw / uMapSize).r;
+  float wet = smoothstep(0.97, 1.0, near) * wwW;
   outColor = vec4(mix(bed, water, wet), 1.0);
 }
