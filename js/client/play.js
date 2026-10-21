@@ -141,6 +141,8 @@ let seatsExplicit = false;
 let encoder = createStateEncoder();
 let myPlayer = 0;
 let lastAppliedTick = 0;
+// A module reload waiting for its swap tick: every peer applies it at the same tick the host announced (FRAME.SWAP).
+let pendingSwap = null;
 let rosterView = null;
 let heroKinds = new Map();
 let heroRuleNames = [];
@@ -1056,6 +1058,7 @@ function startHost() {
   let hostTick = restoredAt > 0 ? restoredAt : 0;
   const hostStep = () => {
     localGame.tick();
+    applyDueSwap();
     advanceTickClock(simUnits());
     hostTick += 1;
     if (hostTick % SNAPSHOT_EVERY_TICKS === 0) saveSnapshot(hostTick);
@@ -1243,6 +1246,11 @@ session.addEventListener("data", (e) => {
       encoder.keyframe();
       sendRoster(e.detail.peerPubkey);
     }
+    return;
+  }
+  if (frame.type === FRAME.SWAP) {
+    // A peer records the host's swap tick; the module reload itself is applied by the host's announced value, here or on reload.
+    pendingSwap = { tick: frame.tick, file: "", url: "", value: null };
     return;
   }
   if (frame.type === FRAME.START) {
@@ -1465,8 +1473,30 @@ window.addEventListener("oscraft:hmr", (e) => {
   const { url, value } = e.detail || {};
   if (!value) return;
   const file = url.slice(url.lastIndexOf("/") + 1);
+  if (hosting && localGame) {
+    // Announce the swap tick ahead so every peer applies the reload at the same tick, then apply it there.
+    const tick = localGame.ticks() + SWAP_LEAD_TICKS;
+    pendingSwap = { tick, file, url, value };
+    try { session.broadcast(encodeFrame({ type: FRAME.SWAP, tick })); } catch (err) { console.error(`[hmr] swap announce failed: ${err.message}`); }
+    console.log(`[hmr] ${file}: swap at tick ${tick}`);
+    return;
+  }
   hmrApply(file, url, value).catch((err) => console.error(`[hmr] ${file}: rebuild failed: ${err.message}`));
 });
+// Ticks between a swap announcement and its swap (the same lead the server uses for staged data reloads).
+const SWAP_LEAD_TICKS = 32;
+
+// Applies a pending swap once the sim reaches its tick. A failed rebuild is logged and the previous data stays in service.
+function applyDueSwap() {
+  if (!pendingSwap || !localGame || localGame.ticks() < pendingSwap.tick) return;
+  const due = pendingSwap;
+  pendingSwap = null;
+  if (!due.value) {
+    console.log(`[hmr] swap tick ${due.tick} reached: this peer keeps its data until its module reloads`);
+    return;
+  }
+  hmrApply(due.file, due.url, due.value).catch((err) => console.error(`[hmr] ${due.file}: swap failed: ${err.message}`));
+}
 
 async function hmrApply(file, url, value) {
   if (file === "terrain.js") return hmrTerrain(value);
@@ -1597,6 +1627,7 @@ async function main() {
       localTickAcc += dtS;
       while (localTickAcc >= SIM_TICK_S) {
         localGame.tick();
+        applyDueSwap();
         advanceTickClock(simUnits());
         localTickAcc -= SIM_TICK_S;
       }

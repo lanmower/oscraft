@@ -1,6 +1,6 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14 });
 
 export const MAX_UNITS = 1024;
 export const MAX_ROOM_BYTES = 64;
@@ -101,6 +101,12 @@ const CODECS = {
     read(r) { return { unitId: r.u32(), x: r.i32(), y: r.i32() }; },
   },
   // A hold order: the unit stops where it stands and attacks only what is in reach, until a move or attack replaces it.
+  // A data reload's swap tick: the tick at which every peer swaps to the new data (see the room's DATA_SWAP_LEAD_TICKS).
+  [FRAME.SWAP]: {
+    size: () => 2 + 4,
+    write(w, f) { w.u32(f.tick, 'tick'); },
+    read(r) { return { tick: r.u32() }; },
+  },
   [FRAME.HOLD]: {
     size: () => 2 + 4,
     write(w, f) { w.u32(f.unitId, 'unitId'); },
