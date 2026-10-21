@@ -78,20 +78,22 @@ void main() {
   vec3 shallow = vec3(0.34, 0.62, 0.56) * uWaterTint;
   vec3 deep = vec3(0.04, 0.22, 0.30) * uWaterTint;
   vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
-  // Refraction: only the caustic shimmer is shifted by the surface normal. The bed, control and water mask stay at the
-  // unshifted position: a world-unit offset on the ground lookups smeared the texture across the pool.
-  vec2 refr = n.xz * 0.8;
-  vec2 pr = p + refr;
+  // Refraction: the bed is seen through the surface, so it is sampled at a small offset driven by the surface normal
+  // (0.3 world units: enough to bend the bed under the ripples, too little to smear the ground texture). The caustic
+  // light is laid on that refracted bed as high-contrast bands, so the bending reads as light through the water.
+  vec2 refr = n.xz * 0.3;
+  vec3 bedR = bedAt(p + refr, vWorld.y, vNormal);
+  float caustic = 0.5 + 0.5 * sin(dot(p + refr, vec2(1.7, 1.1)) * 3.0 + t * 1.3);
+  caustic = smoothstep(0.6, 0.95, caustic);
+  bedR *= 1.0 + 0.7 * caustic;
   // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
   float alpha = mix(0.18, 0.38, depth);
-  vec3 water = mix(bed, body, alpha);
+  vec3 water = mix(bedR, body, alpha);
   // The sky reflection and the sun glint are the shine of deep water only: they fade out with depth, so the shallow shore
   // tiles stay matte. SPECULAR scales both: at 0.1 the shine is a tenth of its full strength.
   const float SPECULAR = 0.1;
   water = mix(water, sky, fres * 0.8 * depth * SPECULAR);
   water += vec3(1.0, 0.97, 0.9) * glint * depth * SPECULAR;
-  float caustic = 0.5 + 0.5 * sin(dot(pr, vec2(1.7, 1.1)) * 3.0 + t * 1.3);
-  water += vec3(0.6, 0.85, 0.8) * caustic * 0.1;
   // Wet only where the neighbourhood is all water: a shore cell with land beside it stays dry ground, so the water does
   // not spill over the edge tiles.
   float wet = smoothstep(0.97, 1.0, near) * ww;
