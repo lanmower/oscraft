@@ -361,10 +361,20 @@ impl Room {
             panic!("test-only panic armed by --test-panic-tick fired at tick {}", c.tick);
         }
         if let Some(mut sim) = lock(&self.staged).take() {
-            let (carried, refused) = carry_live_units(&c.sim, &mut sim);
-            let kept = keep_handles(&c.sim, &mut sim, &c.handles);
-            let at = c.sim.ticks();
-            c.rec.mark_incomplete(at);
+            // Rebuild the match on the new data by replaying the recording onto the fresh sim, so gold, kills, items
+            // and camp progress carry over. Falls back to carrying the live units when the replay cannot run.
+            let inner = &mut *c;
+            let rebuilt = rebuild_by_replay(&mut inner.rec, &inner.sim, &mut sim);
+            let (carried, refused, kept) = match rebuilt {
+                Ok(()) => (0, 0, c.handles.clone()),
+                Err(_) => {
+                    let (carried, refused) = carry_live_units(&c.sim, &mut sim);
+                    let kept = keep_handles(&c.sim, &mut sim, &c.handles);
+                    let at = c.sim.ticks();
+                    c.rec.mark_incomplete(at);
+                    (carried, refused, kept)
+                }
+            };
             c.sim = sim;
             c.handles = kept;
             crate::emit!(
@@ -700,4 +710,16 @@ mod carry_tests {
         assert!(carried > 0);
         assert_eq!(new.hp(i), 7, "a carried unit keeps its pre-swap health");
     }
+}
+
+// Rebuilds a running match on `fresh` (the new data) by replaying the room's recording onto it up to the live tick.
+// The recording is kept as it was; a failed replay leaves `fresh` unused and the caller carries the live units instead.
+fn rebuild_by_replay(rec: &mut crate::replay::Recording, live: &Sim, fresh: &mut Sim) -> Result<(), String> {
+    let text = rec.render(live);
+    let parsed = crate::replay::Recording::parse(&text).map_err(|e| format!("{e:?}"))?;
+    let mut player = crate::replay::Replayer::new(parsed, fresh).map_err(|e| format!("{e:?}"))?;
+    while fresh.ticks() < live.ticks() {
+        player.step(fresh).map_err(|e| format!("{e:?}"))?;
+    }
+    Ok(())
 }
