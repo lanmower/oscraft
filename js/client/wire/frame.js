@@ -10,7 +10,8 @@ export const MAX_MESSAGE_BYTES = 256;
 // A player's input for the pack's on_action (its name and JSON body), and a UI event the host's pack emitted (JSON body).
 export const MAX_ACTION_NAME_BYTES = 64;
 export const MAX_ACTION_BYTES = 4096;
-export const MAX_UI_BYTES = 8192;
+// A UI body is the pack's lobby or panel tree as JSON: the hero picker alone is about 13 KB. The length field is a u16.
+export const MAX_UI_BYTES = 65535;
 export const MAX_PLAYERS = 10;
 export const TEAM_SIZE = 5;
 export const MAX_OWNER_BYTES = 64;

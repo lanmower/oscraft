@@ -209,7 +209,8 @@ function logModError(text) {
 // Input goes to the pack. The page that runs the sim calls it directly; a joined page sends the same event to the host
 // as an ACTION frame, and the host hands it to the pack with the sender's seat (applyPeerAction).
 function sendInput(name, args) {
-  if (netState) {
+  // A joined page forwards its input from the lobby on, so a seat claimed there reaches the host before the match starts.
+  if (netState || (!hosting && peers.size > 0)) {
     if (session) session.broadcast(encodeFrame({ type: FRAME.ACTION, name, body: JSON.stringify(args) }));
     return;
   }
@@ -243,11 +244,13 @@ function forwardKey(phase, e) {
 // The host hands a joined seat's input to the pack: the seat comes from the session, never from the frame.
 function applyPeerAction(peerPubkey, frame) {
   const player = seating.seat(peerPubkey).you;
-  if (!localGame || player === SPECTATOR) return;
+  if (!localGame) return;
   let args = null;
   try { args = JSON.parse(frame.body); } catch { return; }
   if (!args || typeof args !== "object") return;
   args.player = player;
+  // The sender's key: a lobby seat is claimed under it, and a spectator claims one before it has a seat.
+  args.pubkey = peerPubkey;
   logModError(localGame.dispatch_action(frame.name, JSON.stringify(args)));
 }
 
@@ -385,6 +388,8 @@ function recoverGame(err, where) {
     finishGame(game, "[]");
     localGame = game;
     lastGoodSnapshot = captureSnapshot(game);
+    // A restarted host sends a full state next: a joined page may be ahead of the restored tick, and only a keyframe resyncs it.
+    if (hosting) encoder.keyframe();
     document.body.dataset.modsDisabledAt = String(snapshot.tick);
     setStatus(`mods disabled: restarted at tick=${snapshot.tick} after a failed ${where}`);
   } catch (restoreErr) {
@@ -1715,7 +1720,9 @@ session.addEventListener("data", (e) => {
   }
   if (hosting) return;
   if (frame.type !== FRAME.STATE && frame.type !== FRAME.DELTA) return;
-  if (frame.tick <= netTick) return;
+  // A full state replaces the whole state, so it is applied even at or below netTick: a restarted host rewinds to its snapshot.
+  // A delta must move the tick forward.
+  if (frame.tick <= netTick && frame.type !== FRAME.STATE) return;
   if (!applyFrame(netUnits, frame)) return;
   netTick = frame.tick;
   lastAppliedTick = frame.tick;

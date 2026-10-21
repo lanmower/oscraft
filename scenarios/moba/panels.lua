@@ -594,13 +594,15 @@ end
 -- One lobby action on the shared state: the rules of the hero select. Slots are 0-based in the calls, as the sim counts.
 local function lobby_act(call, a)
   local L = LOBBY
+  -- The sender: a joined page's key rides on its action (applyPeerAction); the host's own presses use OWNER.
+  local owner = a.pubkey or OWNER
   if L.started then
     L.error = "match-started"
     return
   end
   L.error = ""
   if call == "start" then
-    if L.host ~= OWNER then L.error = "not-host" return end
+    if L.host ~= owner then L.error = "not-host" return end
     if not all_ready() then L.error = "not-ready" return end
     L.started = true
     HEROES = {}
@@ -609,7 +611,7 @@ local function lobby_act(call, a)
     return
   end
   if call == "fill" then
-    if L.host ~= OWNER then L.error = "not-host" return end
+    if L.host ~= owner then L.error = "not-host" return end
     if not any_open() then L.error = "nothing-to-fill" return end
     if #ROSTER == 0 then L.error = "no-roster" return end
     for i = 1, SLOT_COUNT do
@@ -635,14 +637,14 @@ local function lobby_act(call, a)
   local s = L.slots[i]
   if call == "claim" then
     if s.owner ~= nil then L.error = "slot-taken" return end
-    if seated(OWNER) then L.error = "already-seated" return end
-    s.owner = OWNER
+    if seated(owner) then L.error = "already-seated" return end
+    s.owner = owner
     s.bot = false
-    if L.host == nil then L.host = OWNER end
+    if L.host == nil then L.host = owner end
   elseif call == "release" then
-    if s.owner ~= OWNER then L.error = "not-owner" return end
+    if s.owner ~= owner then L.error = "not-owner" return end
     s.owner, s.hero, s.ready, s.bot = nil, nil, false, false
-    if L.host == OWNER then
+    if L.host == owner then
       L.host = nil
       for _, other in ipairs(L.slots) do
         if other.owner ~= nil then
@@ -652,7 +654,7 @@ local function lobby_act(call, a)
       end
     end
   elseif call == "pick" then
-    if s.owner ~= OWNER then L.error = "not-owner" return end
+    if s.owner ~= owner then L.error = "not-owner" return end
     if s.ready then L.error = "ready-locked" return end
     local known = false
     for _, h in ipairs(ROSTER) do
@@ -661,7 +663,7 @@ local function lobby_act(call, a)
     if not known then L.error = "unknown-hero" return end
     s.hero = a.hero
   elseif call == "ready" then
-    if s.owner ~= OWNER then L.error = "not-owner" return end
+    if s.owner ~= owner then L.error = "not-owner" return end
     if a.ready and s.hero == nil then L.error = "no-hero" return end
     s.ready = a.ready == true
   end
@@ -778,7 +780,9 @@ local function panels_on_action(name, args)
   elseif name == "selection" then
     if args.player == nil or args.player == LOCAL then SEL = args.ids or {} end
   elseif name == "ui" then
-    ui_call(args.player or LOCAL, args.call, args.args or {})
+    local a = args.args or {}
+    a.pubkey = args.pubkey
+    ui_call(args.player or LOCAL, args.call, a)
   end
 end
 
