@@ -26,6 +26,9 @@ import { createSkills } from "./ui_skills.js";
 import { createInventory } from "./ui_inventory.js";
 import { createFx } from "./fx.js";
 import { createModUi } from "./modui.js";
+import { Pack } from "./pack.js";
+import { createPackEditor } from "./pack_editor.js";
+import { changeFrames, chunkFrames, createPackReceiver } from "./pack_sync.js";
 
 // Map size comes from the loaded map image (loadSim); these are the fallbacks before a map is read.
 let W = 32;
@@ -910,6 +913,47 @@ function endLobby() {
   window.dispatchEvent(new Event("oscraft:horn"));
 }
 
+// Pack editing. The host edits the pack in the editor; a saved change goes to every peer as PACK_FILE frames, and a peer
+// stores it in its own copy. Only the host sends pack files: a PACK_FILE from anyone else is ignored.
+let pack = new Pack();
+let packReceiver = createPackReceiver(pack);
+const packBlobs = new Map(); // hash -> { name, bytes } of the large files sent by reference
+let packEditor = null;
+
+function openPackEditor() {
+  if (packEditor) packEditor.dispose();
+  const root = document.createElement("div");
+  document.body.append(root);
+  packEditor = createPackEditor({
+    root,
+    pack,
+    canEdit: hosting,
+    onSave: publishPackChanges,
+    onLoad: (loaded) => { pack = loaded; packReceiver = createPackReceiver(pack); },
+  });
+  packEditor.open();
+}
+
+function publishPackChanges(changes) {
+  if (!hosting) throw new Error("only the host may save the pack");
+  for (const change of changes) for (const frame of changeFrames(change, packBlobs)) session.broadcast(encodeFrame(frame));
+  setStatus(`pack: sent ${changes.length} change(s) to peers`);
+}
+
+function handlePackFrame(sender, frame) {
+  if (frame.type === FRAME.PACK_WANT) {
+    const blob = hosting ? packBlobs.get(frame.hash) : undefined;
+    if (!blob) return;
+    for (const f of chunkFrames(blob.name, blob.bytes, frame.hash)) sendTo(sender, encodeFrame(f));
+    return;
+  }
+  if (hosting || sender !== hostKey) return;
+  const out = packReceiver.accept(frame);
+  if (out.kind === "want") { sendTo(hostKey, encodeFrame({ type: FRAME.PACK_WANT, hash: out.hash })); return; }
+  if (out.kind === "refused") console.warn(`[pack] refused: ${out.reason}`);
+  if (out.kind === "applied") console.log(`[pack] ${out.path} ${out.deleted ? "deleted" : "updated"}`);
+}
+
 function onLobbyStart(state) {
   const frame = startFrame(state);
   setStatus("lobby: match starting");
@@ -1234,6 +1278,10 @@ session.addEventListener("data", (e) => {
       encoder.keyframe();
       sendRoster(e.detail.peerPubkey);
     }
+    return;
+  }
+  if (frame.type === FRAME.PACK_FILE || frame.type === FRAME.PACK_WANT) {
+    handlePackFrame(e.detail.peerPubkey, frame);
     return;
   }
   if (frame.type === FRAME.SWAP) {
@@ -1795,6 +1843,12 @@ async function main() {
   createLobby({ playerId: auth.pubkey || "local", roster: heroNames, onStart: onLobbyStart });
   fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
   window.__fogView = fogview;
+  const packButton = document.createElement("button");
+  packButton.type = "button";
+  packButton.id = "pack-open";
+  packButton.textContent = "pack";
+  packButton.addEventListener("click", openPackEditor);
+  document.getElementById("ui-left").append(packButton);
   if (params.get("host") === "1") startHost();
   joinRoom();
 

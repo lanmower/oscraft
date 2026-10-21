@@ -50,6 +50,10 @@ const samples = [
   { type: FRAME.START, seats: [] },
   { type: FRAME.HELLO, room: '' },
   { type: FRAME.HELLO, room: 'lobby-ünïcode' },
+  { type: FRAME.PACK_FILE, name: 'scenarios/moba/hero.lua', hash: 0xdeadbeef, size: 3, offset: 0, flags: 0, bytes: new Uint8Array([1, 2, 3]) },
+  { type: FRAME.PACK_FILE, name: '', hash: 0, size: 0, offset: 0, flags: 0, bytes: new Uint8Array(0) },
+  { type: FRAME.PACK_FILE, name: 'big.png', hash: 7, size: 90000000, offset: 0, flags: 1, bytes: new Uint8Array(0) },
+  { type: FRAME.PACK_WANT, hash: 0xffffffff },
   { type: FRAME.ERROR, code: 0, message: '' },
   { type: FRAME.ERROR, code: 404, message: 'room not found' },
 ];
@@ -246,3 +250,10 @@ const types = typesSeen.size;
 assert.equal(types, Object.keys(FRAME).length, 'every frame type round-trips');
 console.log(`wire frames ok types=${types} roundtrip=${roundtrip}`);
 console.log('net ten ok players=10');
+
+// Pack frames: a chunk above the inline bound and a reference that carries bytes are refused on both sides.
+assert.throws(() => encodeFrame({ type: FRAME.PACK_FILE, name: 'a.lua', hash: 0, size: 1, offset: 0, flags: 0, bytes: new Uint8Array(16385) }), WireError);
+assert.throws(() => encodeFrame({ type: FRAME.PACK_FILE, name: 'a.png', hash: 0, size: 1, offset: 0, flags: 1, bytes: new Uint8Array(1) }), WireError);
+assert.throws(() => encodeFrame({ type: FRAME.PACK_FILE, name: 'x'.repeat(257), hash: 0, size: 0, offset: 0, flags: 0, bytes: new Uint8Array(0) }), WireError);
+expectReject(Uint8Array.from([FRAME.PACK_FILE, WIRE_VERSION, 0xff, 0x01]), 'COUNT_OUT_OF_RANGE', 'pack name above bound');
+console.log(`wire test: ${roundtrip} frames round-trip, ${typesSeen.size} types seen`);

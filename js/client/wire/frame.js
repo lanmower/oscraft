@@ -1,6 +1,6 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16, SWAP_NOT_READY: 17, SWAP_READY: 18, SWAP_CANCEL: 19 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16, SWAP_NOT_READY: 17, SWAP_READY: 18, SWAP_CANCEL: 19, PACK_FILE: 20, PACK_WANT: 21 });
 
 // Matches the server's DEFAULT_MAX_UNITS (rust/crates/server/src/lib.rs): a STATE or DELTA may carry this many units.
 export const MAX_UNITS = 4096;
@@ -12,6 +12,11 @@ export const TEAM_SIZE = 5;
 export const MAX_OWNER_BYTES = 64;
 export const MAX_PICK_BYTES = 32;
 export const SPECTATOR = 255;
+// Pack transfer: a file name is at most MAX_PACK_PATH_BYTES, one inline chunk at most MAX_PACK_CHUNK_BYTES.
+export const MAX_PACK_PATH_BYTES = 256;
+export const MAX_PACK_CHUNK_BYTES = 16384;
+export const PACK_FLAG_REF = 1;
+export const PACK_FLAG_DELETE = 2;
 
 const U32 = 0xffffffff;
 const I32_MIN = -0x80000000;
@@ -316,6 +321,45 @@ const CODECS = {
       if (len > MAX_ROOM_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `room ${len} > ${MAX_ROOM_BYTES}`);
       return { room: text(r.take(len), 'room') };
     },
+  },
+  // One piece of a pack file. A text or small asset travels as chunks (offset, bytes) of `size` total bytes; a large asset
+  // travels as a reference (PACK_FLAG_REF, no bytes) and the peer asks for the bytes by hash with PACK_WANT.
+  [FRAME.PACK_FILE]: {
+    size: (f) => 2 + 2 + encoder.encode(f.name).length + 4 + 4 + 4 + 1 + 2 + (f.bytes ? f.bytes.length : 0),
+    write(w, f) {
+      const name = utf8(f.name, MAX_PACK_PATH_BYTES, 'pack name');
+      const flags = f.flags | 0;
+      const data = f.bytes || new Uint8Array(0);
+      if (flags & PACK_FLAG_REF && data.length) throw new WireError('RANGE', 'a reference carries no bytes');
+      if (data.length > MAX_PACK_CHUNK_BYTES) throw new WireError('RANGE', `chunk is ${data.length} bytes, max ${MAX_PACK_CHUNK_BYTES}`);
+      w.u16(name.length, 'nameLength');
+      w.raw(name);
+      w.u32(f.hash, 'hash');
+      w.u32(f.size, 'size');
+      w.u32(f.offset, 'offset');
+      w.u8(flags, 'flags');
+      w.u16(data.length, 'chunkLength');
+      w.raw(data);
+    },
+    read(r) {
+      const nameLength = r.u16();
+      if (nameLength > MAX_PACK_PATH_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `pack name ${nameLength} > ${MAX_PACK_PATH_BYTES}`);
+      const name = text(r.take(nameLength), 'pack name');
+      const hash = r.u32();
+      const size = r.u32();
+      const offset = r.u32();
+      const flags = r.u8();
+      const len = r.u16();
+      if (len > MAX_PACK_CHUNK_BYTES) throw new WireError('COUNT_OUT_OF_RANGE', `chunk ${len} > ${MAX_PACK_CHUNK_BYTES}`);
+      if (flags & PACK_FLAG_REF && len) throw new WireError('RANGE', 'a reference carries no bytes');
+      return { name, hash, size, offset, flags, bytes: r.take(len).slice() };
+    },
+  },
+  // A peer asks the host for the bytes of a referenced pack file, by its hash.
+  [FRAME.PACK_WANT]: {
+    size: () => 2 + 4,
+    write(w, f) { w.u32(f.hash, 'hash'); },
+    read(r) { return { hash: r.u32() }; },
   },
   [FRAME.ERROR]: {
     size: (f) => 2 + 2 + 2 + utf8(f.message, MAX_MESSAGE_BYTES, 'message').length,
