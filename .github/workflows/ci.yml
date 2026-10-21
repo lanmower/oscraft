@@ -2530,6 +2530,7 @@ jobs:
           const rangeText = await page.evaluate(() => { const n = document.querySelector('[data-ui="refusal"]'); return n ? n.textContent : ""; });
           console.log(`moba range ok refusal="${rangeShown ? rangeText : ""}" area=${Number(areaShown)}`);
           console.log(`moba range diag lastRefusal=${await page.evaluate(() => document.body.dataset.lastRefusal || "none")} textLen=${rangeText.length} display=${await page.evaluate(() => { const n = document.querySelector('[data-ui="refusal"]'); return n ? n.style.display : "absent"; })}`);
+              console.log(`moba range probe arm=${await page.evaluate(() => document.body.dataset.armProbe || "none")} range=${await page.evaluate(() => document.body.dataset.rangeProbe || "none")}`);
           const counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));
           console.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);
           const draws = await page.evaluate(() => { const d = document.body.dataset; return { total: d.drawCalls, terrain: d.drawTerrain, splat: d.drawSplat, doodad: d.drawDoodad, unit: d.drawUnit, quad: d.drawQuad, animated: d.drawAnimated }; });
