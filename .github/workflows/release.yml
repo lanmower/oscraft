@@ -44,6 +44,9 @@ jobs:
       - name: Build the archive
         run: bash scripts/package/build.sh "$RUNNER_TEMP/pkg"
 
+      - name: Install-check the archive
+        run: bash scripts/package/install-check.sh "$RUNNER_TEMP"/pkg/oscraft-*.tar.gz "$RUNNER_TEMP/pkg-check"
+
       - name: Name and checksum the archive
         run: |
           set -euo pipefail

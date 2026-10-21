@@ -48,5 +48,7 @@ printf '%s\n' "$version" > "$stage/VERSION"
 done) > "$stage/MANIFEST.sha256"
 
 archive="$out/oscraft-$version.tar.gz"
-COPYFILE_DISABLE=1 tar -C "$stage" -czf "$archive" . # macOS tar would add ._ AppleDouble members the manifest does not list
+# Run from inside the stage with a colon-free archive name: GNU tar on Windows reads "D:..." as a remote host.
+# COPYFILE_DISABLE keeps macOS tar from adding ._ AppleDouble members the manifest does not list.
+(cd "$stage" && COPYFILE_DISABLE=1 tar -czf "../oscraft-$version.tar.gz" .)
 echo "package built archive=$archive version=$version members=$(wc -l < "$stage/MANIFEST.sha256")"
