@@ -2259,6 +2259,8 @@ if (params.get("ci") === "1") {
     swapRejections: () => swapRejections.slice(),
     lastSwap: () => (lastSwapResult ? { ...lastSwapResult } : null),
   });
+  // Health-bar probe: the positions the HUD draws this frame (interpolated) and the sim's tick positions, per unit id.
+  window.__ciBarProbe = () => ({ tick: tickStampMs, shown: shownUnits().map((u) => [u.id, u.x, u.z]), raw: currentUnits().map((u) => [u.id, u.x, u.z]) });
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 
