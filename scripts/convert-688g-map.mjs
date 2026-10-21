@@ -135,10 +135,19 @@ const Z_OFFSET = 384;
 const heightLevel = (z) => Math.max(0, Math.min(255, Math.round((z + Z_OFFSET) / Z_PER_LEVEL)));
 const HEIGHT_STEP_MILLI = Math.round((Z_PER_LEVEL / 64) * 1000);
 // Water comes from the W3E corner flags: bit 0x40 of a corner's ground byte marks its tile as water. A water cell takes the
-// water tile id below (its ground under the water is the riverbed); every other cell keeps its ground texture index.
+// water tile id below (its ground under the water is the riverbed). Every other cell takes its tile id from its ground
+// tileset name: the Cdrt and Cdrd dirt patches are the lane paths (packed earth), Cvin is the dirt, everything else is grass.
+// The index into the W3E tileset list is not a tile id, so the mapping goes through the tileset name.
 const WATER_TILE = 255;
+const GRASS_TILE = 0;
+const TILESET_TILE = Object.freeze({ Cdrt: 2, Cdrd: 2, Cvin: 3 });
 const isWaterCell = (cx, cy) => { const { i, j } = tileOf(cx, cy); return (corner(i, j).flags & 0x40) !== 0; };
-const tileId = (cx, cy) => (isWaterCell(cx, cy) ? WATER_TILE : corner(tileOf(cx, cy).i, tileOf(cx, cy).j).groundTexture);
+const tileId = (cx, cy) => {
+  if (isWaterCell(cx, cy)) return WATER_TILE;
+  const { i, j } = tileOf(cx, cy);
+  const name = terrain.tilesets[corner(i, j).groundTexture];
+  return TILESET_TILE[name] ?? GRASS_TILE;
+};
 
 const open = Array.from({ length: SIM }, (_, cy) => Array.from({ length: SIM }, (_, cx) => !cellBlocked(cx, cy)));
 const runs = (valueAt) => {
