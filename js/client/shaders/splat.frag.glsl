@@ -88,7 +88,7 @@ void main() {
   // Caustic from the isotropic ripple sum, not one plane wave, so no single direction is traced across the pool.
   float caustic = 0.5 + 0.5 * clamp(waveH((p + refr) * 3.0, t) / 1.1, -1.0, 1.0);
   caustic = smoothstep(0.6, 0.95, caustic);
-  bedR *= 1.0 + 0.35 * caustic * soft;
+  bedR *= 1.0 + 0.175 * caustic * soft;
   // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
   float alpha = mix(0.18, 0.38, depth);
   vec3 water = mix(bedR, body, alpha);
