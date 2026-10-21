@@ -77,8 +77,10 @@ fn moba_match_pays_the_same_for_fixed_kills() {
         // kill_gold.lua pays gold only; the attributed xp share is hero.lua on_died, which this test does not load.
         &["unit_gold unit=20 amount=32", "gold player=0 amount=8"],
         &[],
-        &["gold player=0 amount=30"],
-        &["gold player=0 amount=12"],
+        // Dota pays gold for kills by heroes only: an attackerless death earns nothing.
+        &[],
+        // A self kill earns nothing (Dota: only a hero's kill pays).
+        &[],
         &[],
     ];
     for ((name, p), want) in kills.iter().zip(want) {
