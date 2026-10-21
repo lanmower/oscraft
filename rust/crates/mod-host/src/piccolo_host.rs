@@ -628,6 +628,14 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         Ok(CallbackReturn::Return)
     });
     // game.add_credit(unit, n): adds n generic credits to a unit; the post-game row reports them as assists.
+    native!(ctx, game, "add_kill", [sh], |c, s| {
+        let (i, n) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let n = u32::try_from(n).map_err(|_| fail(c, "invalid_kill: must not be negative".into()))?;
+        sh.sim.add_kill(u, n);
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "add_credit", [sh], |c, s| {
         let (i, n) = (a(c, &s, 0)?, a(c, &s, 1)?);
         let mut sh = sh.borrow_mut();

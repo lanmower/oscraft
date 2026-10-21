@@ -121,6 +121,8 @@ return {
   -- A hero's kill: its gold (the killer keeps all but the team share), the assist credit and the xp share.
   on_died = function(unit, killer, killer_player, _, victim_player)
     if killer == nil or killer == unit then return end
+    -- The kill tally counts hero kills: a creep's kill is still a kill event for every mod, but not a hero's kill.
+    if units.is_hero(killer) and killer_player ~= victim_player then game.add_kill(killer, 1) end
     if units.is_hero(unit) and killer_player ~= victim_player then
       bounty.pay({ unit = unit, side = killer_player, killer = killer, gold = hero_gold(unit),
         share_pct = config.rule("team_share_pct"), to_unit = true })

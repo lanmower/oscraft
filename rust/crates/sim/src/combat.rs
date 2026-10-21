@@ -420,11 +420,6 @@ impl Sim {
         }
         let k = attacker as usize;
         self.killer[j] = attacker;
-        // The kill tally counts hero kills: a creep that ends a unit still books the death and the kill event (the mods
-        // see every kill), but the tally the scoreboard and the team strip read is credited only to an attributed killer.
-        if self.is_attributed(k) {
-            self.unit_kills[k] = self.unit_kills[k].saturating_add(1);
-        }
         if self.kill_queue.len() < KILL_QUEUE_CAP {
             self.kill_queue.push(KillEvent {
                 tick: self.ticks,
@@ -465,6 +460,14 @@ impl Sim {
             }
         }
         out
+    }
+
+    /// Adds `n` kills to unit `i`'s kill tally (saturating). Which kills count is the mod's rule (the pack counts hero kills);
+    /// the engine books the death and the kill event for every killer, and attaches no meaning to the tally.
+    pub fn add_kill(&mut self, i: usize, n: u32) {
+        if i < self.n {
+            self.unit_kills[i] = self.unit_kills[i].saturating_add(n);
+        }
     }
 
     /// Adds `n` generic credits to unit `i` (saturating): a per-unit tally a mod's rule keeps, such as
