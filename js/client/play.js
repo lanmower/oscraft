@@ -6,7 +6,7 @@ import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import { assetJson, assetRel, assetUrl, manifest, manifestOf, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
+import { assetJson, assetRel, assetUrl, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
@@ -296,7 +296,7 @@ async function loadSim() {
   setMapSize(readGrid(image));
   const game = new mod.Game(image);
   // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
-  const mods = await Promise.all((manifest.mods ?? []).map(async (name) => ({ name, text: await packText(name) })));
+  const mods = await moduleClosure(manifest, packText);
   logModError(game.load_mods(JSON.stringify(mods)));
   // The pack's controls read the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
   logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || "local" })));
@@ -1077,7 +1077,7 @@ async function packFileText(name) {
 // (lua), or the map image named by the manifest (data). A peer checks these bytes against the announced hash.
 async function packSwapBytes(kind) {
   if (kind === "lua") {
-    const mods = await Promise.all((currentManifest().mods ?? []).map(async (name) => ({ name, text: await packFileText(name) })));
+    const mods = await moduleClosure(currentManifest(), packFileText);
     return new TextEncoder().encode(JSON.stringify(mods));
   }
   const name = currentManifest().image;
@@ -1090,7 +1090,7 @@ async function packSwapBytes(kind) {
 const packSwapQueue = [];
 
 function queuePackSwaps(changes) {
-  const mods = currentManifest().mods ?? [];
+  const mods = modulePaths(currentManifest());
   const queued = new Set();
   for (const change of changes) {
     const kind = packKindOf(change.path);

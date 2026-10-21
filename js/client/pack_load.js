@@ -303,3 +303,28 @@ export const assetJson = async (key) => JSON.parse(await packText(assetRel(key))
 // The UI text and key bindings of the pack (moba_ui.json, or the pack's ui entry).
 export const UI = await packJson(manifest.ui);
 export const packName = manifest.name;
+
+// The module files of a pack's Lua: the modules the manifest maps (manifest.modules, stem to file), each named by its file.
+export function modulePaths(manifest) {
+  return Object.values(manifest.modules ?? {});
+}
+
+// The modules load_mods takes, as { name, text }: the root modules (manifest.mods) and every module they reach through
+// require("<stem>"), in the order they are reached. A require whose stem the manifest does not map is left out; the host
+// reports it. readText(file) gives a file's text.
+export async function moduleClosure(manifest, readText) {
+  const byStem = manifest.modules ?? {};
+  const out = [];
+  const seen = new Set();
+  const visit = async (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    const text = await readText(file);
+    out.push({ name: file, text });
+    for (const [, stem] of text.matchAll(/require\("([^"]+)"\)/g)) {
+      if (byStem[stem] !== undefined) await visit(byStem[stem]);
+    }
+  };
+  for (const root of manifest.mods ?? []) await visit(root);
+  return out;
+}
