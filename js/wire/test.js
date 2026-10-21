@@ -37,6 +37,8 @@ const samples = [
   { type: FRAME.USE_ITEM, unitId: 0xffffffff, slot: 5, target: 0x7fffffff, x: -0x80000000, y: 0x7fffffff },
   { type: FRAME.SWAP, tick: 0, hash: 0, file: "" },
   { type: FRAME.SWAP, tick: 0xffffffff, hash: 0xffffffff, file: "moba-units.lua" },
+  { type: FRAME.SWAP_NOT_READY, tick: 0, hash: 0 },
+  { type: FRAME.SWAP_NOT_READY, tick: 0xffffffff, hash: 0xffffffff },
   { type: FRAME.JOIN, lastTick: 0 },
   { type: FRAME.JOIN, lastTick: 0xffffffff },
   { type: FRAME.ROSTER, you: 255, team: 255, players: [] },
@@ -203,6 +205,10 @@ expectReject(Uint8Array.from([FRAME.SWAP, WIRE_VERSION, 1, 0, 0, 0, 0, 0, 0, 0, 
 // Bad UTF-8 in a string field is a WireError, not a TypeError.
 expectReject(Uint8Array.from([FRAME.HELLO, WIRE_VERSION, 1, 0xff]), 'BAD_UTF8', 'hello with invalid UTF-8');
 expectReject(Uint8Array.from([FRAME.ERROR, WIRE_VERSION, 0, 0, 1, 0, 0xc3]), 'BAD_UTF8', 'error message truncated mid-character');
+
+// A not-ready report is 10 bytes (type, version, tick, hash) and refuses a truncated body.
+assert.equal(encodeFrame({ type: FRAME.SWAP_NOT_READY, tick: 5, hash: 6 }).length, 10, 'not-ready report is 10 bytes');
+expectReject(Uint8Array.from([FRAME.SWAP_NOT_READY, WIRE_VERSION, 0, 0, 0, 5, 0, 0]), 'TRUNCATED', 'truncated not-ready report');
 
 const types = typesSeen.size;
 assert.equal(types, Object.keys(FRAME).length, 'every frame type round-trips');

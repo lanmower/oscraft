@@ -143,6 +143,10 @@ let myPlayer = 0;
 let lastAppliedTick = 0;
 // A module reload waiting for its swap tick: every peer applies it at the same tick the host announced (FRAME.SWAP).
 let pendingSwap = null;
+// The swap the host applied last, kept so a not-ready report for it can defer it (SWAP_DEFER_TICKS) and re-announce it.
+let lastAppliedSwap = null;
+// A peer's image fetch for the announced hash, reused when the host re-announces the same swap at a later tick.
+let peerFetch = null;
 // The pubkey of the host, learnt from its ROSTER (only the host sends one); only this peer may announce a swap.
 let hostKey = null;
 // The last swap announcements this page refused, kept for window.oscraft.swapRejections().
@@ -1284,13 +1288,14 @@ session.addEventListener("data", (e) => {
     // itself is applied by the host's announced value, here or on reload.
     const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
     if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
-    const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null };
+    const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
     pendingSwap = swap;
-    fetchMapImage().then((bytes) => {
-      const got = fnv1a32(bytes);
-      if (got !== swap.hash) swap.error = `image hash ${got.toString(16)} is not the host's ${swap.hash.toString(16)}`;
-      else swap.image = bytes;
-    }, (err) => { swap.error = err.message; });
+    prefetchSwapImage(swap);
+    return;
+  }
+  if (frame.type === FRAME.SWAP_NOT_READY) {
+    // A peer did not have the image at the swap tick; only the host acts on it (it defers the swap for everyone).
+    if (hosting) deferSwap(frame, e.detail.peerPubkey);
     return;
   }
   if (frame.type === FRAME.START) {
@@ -1522,6 +1527,9 @@ window.addEventListener("oscraft:hmr", (e) => {
 });
 // Ticks between a swap announcement and its swap (the same lead the server uses for staged data reloads).
 const SWAP_LEAD_TICKS = 32;
+// Ticks a host moves a swap by when a peer reports it not ready, and how many times one swap may move.
+const SWAP_DEFER_TICKS = 32;
+const SWAP_MAX_DEFERS = 3;
 // True while the host fetches the new image for an announcement; a second hot reload is refused until it is sent.
 let swapFetching = false;
 // The last data swap this page applied or failed, for window.oscraft.lastSwap() and getState().
@@ -1552,11 +1560,11 @@ async function announceSwap(file, url, value) {
     const tick = localGame.ticks() + SWAP_LEAD_TICKS;
     // Broadcast first: the host only keeps the swap if its peers were sent the announcement.
     session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, hash, file }));
-    pendingSwap = { tick, hash, file, url, value, image: bytes, error: null };
+    pendingSwap = { tick, hash, file, url, value, image: bytes, error: null, ready: Promise.resolve(bytes), deferrals: 0 };
     console.log(`[hmr] ${file}: swap at tick ${tick} (image hash ${hash.toString(16)})`);
   } catch (err) {
     console.error(`[hmr] ${file}: swap not announced, not applied: ${err.message}`);
-    lastSwapResult = { tick: localGame ? localGame.ticks() : 0, file, ok: false, carried: null, refused: null, error: err.message };
+    lastSwapResult = { tick: localGame ? localGame.ticks() : 0, file, ok: false, carried: null, refused: null, error: err.message, readiness: "failed", deferred: false };
   } finally {
     swapFetching = false;
   }
@@ -1567,14 +1575,14 @@ async function announceSwap(file, url, value) {
 function applyDataSwap(due) {
   const tick = localGame.ticks();
   const fail = (error) => {
-    lastSwapResult = { tick, file: due.file, ok: false, carried: null, refused: null, error };
+    lastSwapResult = { tick, file: due.file, ok: false, carried: null, refused: null, error, readiness: due.error ? "failed" : "in-flight", deferred: false, deferrals: due.deferrals };
     console.error(`[swap] ${due.file} at tick ${tick}: data swap failed, previous data kept: ${error}`);
   };
   if (due.error) return fail(due.error);
   if (!due.image) return fail("image not loaded on this peer by the swap tick");
   try {
     const [carried, refused] = localGame.swap_data(due.image);
-    lastSwapResult = { tick, file: due.file, ok: true, carried, refused, error: null };
+    lastSwapResult = { tick, file: due.file, ok: true, carried, refused, error: null, readiness: "ready", deferred: false, deferrals: due.deferrals };
     console.log(`[swap] ${due.file} at tick ${tick}: carried=${carried} refused=${refused}`);
   } catch (err) {
     fail(err && err.message ? err.message : String(err));
@@ -1620,11 +1628,48 @@ async function peerReloadModule(file, url) {
   window.dispatchEvent(new CustomEvent("oscraft:hmr", { detail: { url, value } }));
 }
 
+// A peer's verified fetch of a swap image: the record's image is set once the bytes match the announced hash, its error otherwise.
+function prefetchSwapImage(swap) {
+  if (!peerFetch || peerFetch.hash !== swap.hash) {
+    const promise = fetchMapImage().then((bytes) => {
+      const got = fnv1a32(bytes);
+      if (got !== swap.hash) throw new Error(`image hash ${got.toString(16)} is not the host's ${swap.hash.toString(16)}`);
+      return bytes;
+    });
+    peerFetch = { hash: swap.hash, promise };
+  }
+  swap.ready = peerFetch.promise;
+  swap.ready.then((bytes) => { swap.image = bytes; }, (err) => { swap.error = err.message; });
+}
+
+// Host half of a deferral: a peer missed the swap tick, so the swap moves SWAP_DEFER_TICKS later for everyone and the host
+// re-announces it. Only the host's current or last-applied swap with the reported tick and hash is deferred; SWAP_MAX_DEFERS caps it.
+function deferSwap(report, sender) {
+  let base = null;
+  if (pendingSwap && pendingSwap.tick === report.tick && pendingSwap.hash === report.hash) base = pendingSwap;
+  else if (!pendingSwap && lastAppliedSwap && lastAppliedSwap.tick === report.tick && lastAppliedSwap.hash === report.hash) base = lastAppliedSwap;
+  if (!base) return;
+  if (base.deferrals >= SWAP_MAX_DEFERS) { refuseSwap(`${base.file} at tick ${base.tick} still not ready on a peer after ${base.deferrals} deferrals`, sender, base.file); return; }
+  const tick = base.tick + SWAP_DEFER_TICKS;
+  pendingSwap = { ...base, tick, deferrals: base.deferrals + 1, error: null };
+  lastAppliedSwap = null;
+  session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, hash: base.hash, file: base.file }));
+  console.log(`[swap] ${base.file}: deferred from tick ${base.tick} to ${tick} (peer ${String(sender).slice(0, 8)} not ready)`);
+}
+
 // Applies a pending swap once the sim reaches its tick. A failed rebuild is logged and the previous data stays in service.
 function applyDueSwap() {
   if (!pendingSwap || !localGame || localGame.ticks() < pendingSwap.tick) return;
   const due = pendingSwap;
   pendingSwap = null;
+  if (!hosting && !due.image && !due.error) {
+    // Not ready at the tick: this peer applies nothing here, reports it, and waits for the host's re-announce.
+    lastSwapResult = { tick: localGame.ticks(), file: due.file, ok: false, carried: null, refused: null, error: "image not ready by the swap tick", readiness: "in-flight", deferred: true, deferrals: due.deferrals };
+    console.warn(`[swap] ${due.file} at tick ${due.tick}: image not ready, swap not applied here; reported to the host`);
+    session.broadcast(encodeFrame({ type: FRAME.SWAP_NOT_READY, tick: due.tick, hash: due.hash }));
+    return;
+  }
+  if (hosting) lastAppliedSwap = due;
   applyDataSwap(due);
   if (!due.value) {
     // A peer re-imports the named module at the swap tick, as the host did, and runs its hook.
