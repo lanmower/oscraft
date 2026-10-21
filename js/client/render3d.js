@@ -250,8 +250,8 @@ float sunShadow(vec3 w, vec3 n) {
   float facing = clamp(dot(normalize(n), sun), 0.0, 1.0);
   float bias = max(0.0009 * (1.0 - facing), 0.00025);
   // Bilinear PCF: compare the four texels around s and blend by s's fractional position in the texel grid.
-  // The kernel spacing is twice a texel, so the shadow edge blurs over twice the width.
-  float k = 2.0 * uShadowTexel;
+  // The kernel spacing is four texels, so the shadow edge blurs over four times the texel width (twice the previous blur).
+  float k = 4.0 * uShadowTexel;
   vec2 t = s.xy / k - 0.5;
   vec2 f = fract(t);
   vec2 c = (floor(t) + 0.5) * k;
