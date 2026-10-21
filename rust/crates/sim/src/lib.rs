@@ -49,7 +49,6 @@ mod aggro;
 mod timed_life;
 mod order_memory;
 mod spell;
-mod waves;
 mod waypoints;
 
 pub use arrays::{Sim, Stats};

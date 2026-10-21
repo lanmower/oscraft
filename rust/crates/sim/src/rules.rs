@@ -555,7 +555,8 @@ impl Sim {
                         self.pos_y[caster] + fixed::from_milli(eff.p2),
                     )
                 };
-                let kind = self.wave_kind(p, eff.p0 as u32, eff.p3, sx, sy);
+                // The spawn names its kind; a mod that wants upgraded waves chooses the kind itself (lanes.lua wave_kind).
+                let kind = eff.p0 as u32;
                 if let Some(j) = self.spawn_for(p, kind, sx, sy) {
                     self.stats.summoned += 1;
                     self.request_destination(j, p);
