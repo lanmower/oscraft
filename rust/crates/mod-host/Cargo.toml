@@ -5,26 +5,18 @@ edition = "2021"
 publish = false
 
 [features]
-default = ["build", "mlua"]
+default = ["build", "piccolo"]
 # Builds OSDT images from .osd sources; the wasip3 guest turns it off to keep starlark out of wasm.
 build = ["dep:osdt-data"]
-# The native host's mod VM: mlua over Lua 5.4 C objects.
-mlua = ["dep:mlua"]
-# The wasip3 guest's mod VM: piccolo, pure Rust. Exclusive with mlua.
+# The mod VM: piccolo, pure Rust. The native host and the wasip3 guest both run mods on it.
 piccolo = ["dep:piccolo"]
-
-[[bin]]
-name = "reload_harness"
-path = "src/bin/reload_harness.rs"
-required-features = ["build", "mlua"]
 
 [[bin]]
 name = "mod_check"
 path = "src/bin/mod_check.rs"
-required-features = ["build", "mlua"]
+required-features = ["build", "piccolo"]
 
 [dependencies]
-mlua = { version = "0.10", features = ["lua54", "vendored"], optional = true }
 piccolo = { version = "0.3.3", optional = true }
 sim = { path = "../sim" }
 osdt-data = { path = "../data", optional = true }

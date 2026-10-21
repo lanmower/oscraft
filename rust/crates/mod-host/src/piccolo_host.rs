@@ -1722,6 +1722,28 @@ impl ModHost {
         format!("mod-state {}", fields.join(" "))
     }
 
+    /// The integer a mod left in `state` under `key`; None when it is unset or not an integer.
+    pub fn state_int(&self, key: &str) -> Option<i64> {
+        self.lua.enter(|ctx| match ctx.fetch(&self.state).get(ctx, ctx.intern(key.as_bytes())) {
+            Value::Integer(v) => Some(v),
+            _ => None,
+        })
+    }
+
+    /// The boolean a mod left in `state` under `key`; None when it is unset or not a boolean.
+    pub fn state_bool(&self, key: &str) -> Option<bool> {
+        self.lua.enter(|ctx| match ctx.fetch(&self.state).get(ctx, ctx.intern(key.as_bytes())) {
+            Value::Boolean(v) => Some(v),
+            _ => None,
+        })
+    }
+
+    /// Answers one item request (a store or courier request the room queued) through the mod's rule,
+    /// and applies the verdict to this world so its mirror of the room stays in step.
+    pub fn feed_request(&mut self, req: &ItemRequest) {
+        self.settle(vec![*req]);
+    }
+
     /// The living unit handles, optionally only those `player` owns, in index order (game.units).
     pub fn units(&self, player: Option<u8>) -> Vec<usize> {
         let sh = self.sh.borrow();

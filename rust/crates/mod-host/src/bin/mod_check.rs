@@ -54,18 +54,19 @@ fn main() -> ExitCode {
         }
     };
     host.sim().set_fog(fog);
-    if let Err(e) = host.load(Path::new(&args[2])) {
+    if let Err(e) = host.load_file(Path::new(&args[2])) {
         println!("mod-check load-error {e}");
         return ExitCode::FAILURE;
     }
-    let state = host.state().clone();
     for tick in 1..=ticks {
-        if let Err(e) = host.advance(&state) {
+        if let Err(e) = host.advance() {
             println!("mod-check tick-error tick={tick} {e}");
             return ExitCode::FAILURE;
         }
     }
-    let units = host.unit_count();
+    let units = host.units(None).len();
+    // The scalar fields a mod left in `state`, so a CI step can assert what the mod did.
+    let state_line = host.state_line();
     let sim = host.sim();
     // Refusals by reason, most frequent first, so a mod that is refused shows which rule refuses it.
     let mut by_reason: Vec<(&str, usize)> = ALL_REFUSALS
@@ -87,18 +88,6 @@ fn main() -> ExitCode {
         sim.stats.casts_refused,
         sim.stats.last_refusal
     );
-    // The scalar fields a mod left in `state`, so a CI step can assert what the mod did.
-    let mut fields: Vec<String> = Vec::new();
-    for pair in host.state().clone().pairs::<String, mlua::Value>().flatten() {
-        match pair {
-            (k, mlua::Value::Integer(v)) => fields.push(format!("{k}={v}")),
-            (k, mlua::Value::Number(v)) => fields.push(format!("{k}={v}")),
-            (k, mlua::Value::Boolean(v)) => fields.push(format!("{k}={v}")),
-            (k, mlua::Value::String(v)) => fields.push(format!("{k}={}", v.to_string_lossy())),
-            _ => {}
-        }
-    }
-    fields.sort();
-    println!("mod-state {}", fields.join(" "));
+    println!("{state_line}");
     ExitCode::SUCCESS
 }

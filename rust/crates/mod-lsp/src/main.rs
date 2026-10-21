@@ -1,7 +1,7 @@
 //! Language server for mod files over stdio with Content-Length framing.
 //! `.osd` diagnostics are the engine validator's own error text, produced by
 //! `osdt_data::generate` on a staged copy of the document's directory.
-//! `.lua` diagnostics come from the mod host's load path (`ModHost::load`) on a
+//! `.lua` diagnostics come from the mod host's load path (`ModHost::load_file`) on a
 //! staged copy of the buffer, so a syntax or load error carries its line.
 //! Completion and hover read the engine builtin table from `osdt_data::builtins`
 //! (`.osd`) and the host globals table below (`.lua`).
@@ -240,7 +240,7 @@ struct LuaFailure {
     message: String,
 }
 
-/// Loads the buffer through the mod host, the same `ModHost::load` a mod takes
+/// Loads the buffer through the mod host, the same `ModHost::load_file` a mod takes
 /// at startup, from a staged copy named after the document.
 fn lua_check(doc: &Path, text: &str) -> std::result::Result<(), LuaFailure> {
     let name = doc.file_name().ok_or_else(|| LuaFailure {
@@ -260,7 +260,7 @@ fn lua_load(name: &OsStr, text: &str, scratch: &Path) -> std::result::Result<(),
     std::fs::write(&staged, text).map_err(|e| fail(e.to_string()))?;
     let image = osdt_data::generate(&data_dir()).map_err(|e| fail(format!("engine data: {e}")))?;
     let mut host = ModHost::new(&image).map_err(|e| fail(e.to_string()))?;
-    host.load(&staged).map_err(|e| locate(name, &e.to_string()))
+    host.load_file(&staged).map_err(|e| locate(name, &e.to_string()))
 }
 
 /// The engine's `.osd` sources: `OSCRAFT_DATA_DIR` when set, else the workspace's rust/data.
@@ -270,8 +270,8 @@ fn data_dir() -> PathBuf {
         .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data"))
 }
 
-/// Reads Lua's "<name>:<line>: <message>" for a chunk named after the file. mlua
-/// shortens long chunk names to "...<tail>", so the file name is matched, not the full path.
+/// Reads Lua's "<name>:<line>: <message>" for a chunk named after the file stem (the piccolo host names it so).
+/// so the file name is matched against the chunk name, not the full path.
 fn locate(name: &OsStr, text: &str) -> LuaFailure {
     let prefix = format!("{}:", name.to_string_lossy());
     if let Some(at) = text.find(&prefix) {

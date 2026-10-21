@@ -371,11 +371,10 @@ end
     let _guard = RemoveOnDrop(path.clone());
     std::fs::write(&path, src).map_err(|e| format!("write {}: {e}", path.display()))?;
     let mut host = mod_host::ModHost::new(image).map_err(|e| format!("ModHost::new: {e:?}"))?;
-    host.load(&path).map_err(|e| format!("mod load: {e}"))?;
-    let state = host.state().clone();
-    host.advance(&state).map_err(|e| format!("advance: {e}"))?;
-    let inside = host.state().get::<Option<bool>>("inside").map_err(|e| format!("state.inside: {e}"))?;
-    let outside = host.state().get::<Option<bool>>("outside").map_err(|e| format!("state.outside: {e}"))?;
+    host.load_file(&path).map_err(|e| format!("mod load: {e}"))?;
+    host.advance().map_err(|e| format!("advance: {e}"))?;
+    let inside = host.state_bool("inside");
+    let outside = host.state_bool("outside");
     if inside != Some(true) {
         return Err(format!("point inside the region reads {inside:?}"));
     }

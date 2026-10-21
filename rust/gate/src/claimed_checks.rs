@@ -404,21 +404,17 @@ fn run_mod(image: &[u8], name: &str, src: &str, frames: u32) -> Result<ModHost, 
     let path = std::env::temp_dir().join(format!("oscraft-gate-{name}.lua"));
     std::fs::write(&path, src).map_err(|e| format!("write {}: {e}", path.display()))?;
     let mut host = ModHost::new(image).map_err(|e| format!("ModHost::new: {e:?}"))?;
-    let loaded = host.load(&path);
+    let loaded = host.load_file(&path);
     let _ = std::fs::remove_file(&path);
     loaded.map_err(|e| format!("mod load: {e}"))?;
     for _ in 0..frames {
-        let state = host.state().clone();
-        host.advance(&state).map_err(|e| format!("advance: {e}"))?;
+        host.advance().map_err(|e| format!("advance: {e}"))?;
     }
     Ok(host)
 }
 
 fn state_int(host: &ModHost, key: &str) -> Result<i64, String> {
-    host.state()
-        .get::<Option<i64>>(key)
-        .map_err(|e| format!("state.{key}: {e}"))?
-        .ok_or_else(|| format!("mod never set state.{key}"))
+    host.state_int(key).ok_or_else(|| format!("mod never set state.{key}"))
 }
 
 const TERRAIN_MOD: &str = r#"

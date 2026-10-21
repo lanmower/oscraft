@@ -1,4 +1,4 @@
-//! What the mlua and piccolo mod hosts share: argument checks, the client UI event bodies, effect
+//! What the piccolo mod host and the mod tooling share: argument checks, the client UI event bodies, effect
 //! and ability building, and the Lua source of game.var, game.region, game.timer and the score
 //! tally. Errors are plain `name: detail` strings each backend wraps in its own error type.
 

@@ -1,5 +1,5 @@
 //! Mod-host gate checks. Each writes a Lua mod to the temp directory and drives it through
-//! mod_host::ModHost's public API: load, reload_if_changed, tick, advance, set_limits, state.
+//! mod_host::ModHost's public API: load_file, reload, advance, state_int, state_bool.
 
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -23,30 +23,23 @@ pub(crate) fn start(image: &[u8], name: &str, src: &str) -> Result<(ModHost, Tem
     let guard = TempMod(path.clone());
     std::fs::write(&path, src).map_err(|e| format!("write {}: {e}", path.display()))?;
     let mut host = ModHost::new(image).map_err(|e| format!("ModHost::new: {e:?}"))?;
-    host.load(&path).map_err(|e| format!("mod load: {e}"))?;
+    host.load_file(&path).map_err(|e| format!("mod load: {e}"))?;
     Ok((host, guard))
 }
 
 pub(crate) fn advance(host: &mut ModHost, frames: u32) -> Result<(), String> {
     for _ in 0..frames {
-        let state = host.state().clone();
-        host.advance(&state).map_err(|e| format!("advance: {e}"))?;
+        host.advance().map_err(|e| format!("advance: {e}"))?;
     }
     Ok(())
 }
 
 pub(crate) fn read_int(host: &ModHost, key: &str) -> Result<i64, String> {
-    host.state()
-        .get::<Option<i64>>(key)
-        .map_err(|e| format!("state.{key}: {e}"))?
-        .ok_or_else(|| format!("mod never set state.{key}"))
+    host.state_int(key).ok_or_else(|| format!("mod never set state.{key}"))
 }
 
 fn read_bool(host: &ModHost, key: &str) -> Result<bool, String> {
-    host.state()
-        .get::<Option<bool>>(key)
-        .map_err(|e| format!("state.{key}: {e}"))?
-        .ok_or_else(|| format!("mod never set state.{key}"))
+    host.state_bool(key).ok_or_else(|| format!("mod never set state.{key}"))
 }
 
 pub fn event_delivery(image: &[u8]) -> Result<(), String> {
@@ -114,10 +107,12 @@ pub fn lua_reload(image: &[u8]) -> Result<(), String> {
         .map_err(|e| format!("open mod: {e}"))?;
     file.set_modified(SystemTime::now() + Duration::from_secs(120))
         .map_err(|e| format!("set mtime: {e}"))?;
-    host.reload_if_changed();
+    if !host.reload().map_err(|e| format!("reload: {e}"))? {
+        return Err("reload did not see the edited mod".into());
+    }
     advance(&mut host, 1)?;
     if read_int(&host, "version")? != 2 {
-        return Err("reload_if_changed did not pick up the edited mod".into());
+        return Err("reload did not pick up the edited mod".into());
     }
     Ok(())
 }
@@ -133,16 +128,15 @@ pub fn lua_state(image: &[u8]) -> Result<(), String> {
 }
 
 pub fn lua_error_location(image: &[u8]) -> Result<(), String> {
-    let name = file_name("lua-error-location");
+    // The piccolo host names a chunk after the mod's file stem, so the location is "<stem>:<line>:".
     let src = "function on_tick(state)\n  local x = nil\n  state.v = x.field\nend\n";
-    let (host, _mod) = start(image, "lua-error-location", src)?;
-    let state = host.state().clone();
-    match host.tick(&state) {
+    let (mut host, _mod) = start(image, "lua-error-location", src)?;
+    match host.advance() {
         Ok(()) => Err("a runtime error in on_tick was not reported".into()),
         Err(e) => {
-            let want = format!("{name}:3:");
+            let want = "oscraft-gate-lua-error-location:3:";
             let msg = e.to_string();
-            if msg.contains(&want) {
+            if msg.contains(want) {
                 Ok(())
             } else {
                 Err(format!("error lacks {want}: {msg}"))
@@ -165,7 +159,7 @@ function on_tick(state)
 end
 "#;
     let (mut host, _mod) = start(image, "lua-host-api", src)?;
-    let before = host.unit_count() as i64;
+    let before = host.units(None).len() as i64;
     advance(&mut host, 1)?;
     let count = read_int(&host, "count")?;
     if count != before + 1 {
@@ -236,9 +230,8 @@ end
 pub fn lua_sandbox_limits(image: &[u8]) -> Result<(), String> {
     let src = "function on_tick(state)\n  local n = 0\n  while true do n = n + 1 end\nend\n";
     let (mut host, _mod) = start(image, "lua-sandbox-limits", src)?;
-    host.set_limits(100_000, 16 << 20).map_err(|e| format!("set_limits: {e}"))?;
-    let state = host.state().clone();
-    match host.tick(&state) {
+    // The piccolo host bounds every call by its fixed step and fuel budget; it reports the overrun as instruction_limit.
+    match host.advance() {
         Ok(()) => Err("an unbounded loop returned".into()),
         Err(e) if e.to_string().contains("instruction_limit") => Ok(()),
         Err(e) => Err(format!("stopped with: {e}")),

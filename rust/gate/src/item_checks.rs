@@ -38,16 +38,16 @@ impl Moba {
     }
 
     /// Queues a purchase, has the mod answer it, and reports whether the item was bought.
-    fn buy(&self, h: usize, item: usize) -> bool {
+    fn buy(&mut self, h: usize, item: usize) -> bool {
         self.trade(|s| s.buy_item(h, item))
     }
 
-    fn sell(&self, h: usize, slot: usize) -> bool {
+    fn sell(&mut self, h: usize, slot: usize) -> bool {
         self.trade(|s| s.sell_item(h, slot))
     }
 
     // A trade succeeded when it queued and no refusal was named by its answer.
-    fn trade(&self, queue: impl FnOnce(&mut Sim) -> bool) -> bool {
+    fn trade(&mut self, queue: impl FnOnce(&mut Sim) -> bool) -> bool {
         let queued = {
             let mut s = self.sim();
             s.stats.last_refusal = Refusal::Unset;
@@ -58,7 +58,7 @@ impl Moba {
     }
 
     /// Answers the sim's queued requests through the mod, as the room does.
-    fn settle(&self) {
+    fn settle(&mut self) {
         let reqs = self.sim().drain_requests();
         for r in reqs {
             self.host.feed_request(&r);
@@ -67,8 +67,7 @@ impl Moba {
 
     /// One step of the scenario: the mod's on_tick and the sim's tick, then the requests the step queued.
     fn tick(&mut self) -> Result<(), String> {
-        let state = self.host.state().clone();
-        self.host.advance(&state).map_err(|e| format!("mod step: {e}"))?;
+        self.host.advance().map_err(|e| format!("mod step: {e}"))?;
         self.settle();
         Ok(())
     }
@@ -151,7 +150,7 @@ pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
 /// A recipe consumes the components held and charges the cost less theirs; its bonuses apply; selling
 /// returns half the cost.
 pub fn item_recipe_buy(_image: &[u8]) -> Result<(), String> {
-    let m = moba()?;
+    let mut m = moba()?;
     let h = shopper(&m, 5000)?;
     let (hammer, axe, bkb) = (item(&m.sim(), "mithril_hammer")?, item(&m.sim(), "ogre_axe")?, item(&m.sim(), "black_king_bar")?);
     let damage = m.sim().damage_of(h);
@@ -180,7 +179,7 @@ pub fn item_recipe_buy(_image: &[u8]) -> Result<(), String> {
 /// A missing component is paid for in gold; a secret-shop item is refused at a home shop; a purchase
 /// beyond the gold held is refused.
 pub fn item_shop_rules(_image: &[u8]) -> Result<(), String> {
-    let m = moba()?;
+    let mut m = moba()?;
     let h = shopper(&m, 3000)?;
     let (hammer, bkb, plate) = (item(&m.sim(), "mithril_hammer")?, item(&m.sim(), "black_king_bar")?, item(&m.sim(), "platemail")?);
     if m.buy(h, plate) {
@@ -210,7 +209,7 @@ pub fn item_shop_rules(_image: &[u8]) -> Result<(), String> {
 
 /// A stackable item joins the stack of its kind and a consumable loses a charge per use.
 pub fn item_stack_consume(_image: &[u8]) -> Result<(), String> {
-    let m = moba()?;
+    let mut m = moba()?;
     let h = shopper(&m, 2000)?;
     let tango = item(&m.sim(), "tango")?;
     let faerie = item(&m.sim(), "faerie_fire")?;
@@ -243,7 +242,7 @@ fn sim_kind(index: usize) -> u32 {
 
 /// The neutral slot takes only a neutral item and a neutral item sits nowhere else among the main slots.
 pub fn item_slots(_image: &[u8]) -> Result<(), String> {
-    let m = moba()?;
+    let mut m = moba()?;
     let h = shopper(&m, 1000)?;
     let cup = item(&m.sim(), "kobold_cup")?;
     let blink = item(&m.sim(), "blink")?;
@@ -280,7 +279,7 @@ pub fn item_stat_names(_image: &[u8]) -> Result<(), String> {
 
 /// Stats that do not stack take the best item; the others add up.
 pub fn item_stat_stacking(_image: &[u8]) -> Result<(), String> {
-    let m = moba()?;
+    let mut m = moba()?;
     let h = shopper(&m, 20000)?;
     let (crit, plate) = (item(&m.sim(), "lesser_crit")?, item(&m.sim(), "chainmail")?);
     for _ in 0..2 {
@@ -441,7 +440,7 @@ pub fn item_town_portal(_image: &[u8]) -> Result<(), String> {
 /// Aghanim's Scepter gives the hero its scepter upgrade while carried; the Shard is spent on use and keeps
 /// the shard upgrade; a Refresher Orb resets the cooldowns of the hero's items except its own.
 pub fn item_aghanim_and_refresh(_image: &[u8]) -> Result<(), String> {
-    let m = moba()?;
+    let mut m = moba()?;
     let h = shopper(&m, 20000)?;
     let (scepter, shard, blink, refresher) = (item(&m.sim(), "ultimate_scepter")?, item(&m.sim(), "aghanims_shard")?, item(&m.sim(), "blink")?, item(&m.sim(), "refresher")?);
     if !m.buy(h, scepter) {
