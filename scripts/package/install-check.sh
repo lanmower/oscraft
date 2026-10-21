@@ -21,13 +21,14 @@ members=0
 checked=0
 while read -r want path; do
   members=$((members + 1))
+  path=${path#\*} # sha256sum on Windows marks binary-mode names with a leading *
   [ -f "$path" ] || fail "manifest member missing from archive: $path"
   if command -v sha256sum > /dev/null; then got=$(sha256sum "$path" | cut -d' ' -f1)
   else got=$(shasum -a 256 "$path" | cut -d' ' -f1); fi
   [ "$got" = "$want" ] || fail "sha256 mismatch for $path: manifest=$want actual=$got"
   checked=$((checked + 1))
 done < MANIFEST.sha256
-extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
+extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l | tr -d ' ')
 [ "$extra" -eq "$members" ] || fail "archive holds $extra files but manifest lists $members"
 
 [ -s "bin/oscraft-lsp$exe" ] || fail "bin/oscraft-lsp$exe is missing or empty"
@@ -35,6 +36,9 @@ extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
 for f in $(cd "$root_src" 2>/dev/null && ls *.js *.html 2>/dev/null) editor.html editor.js play.html play.js rooms.js ice.js delta.js wire/frame.js glb.js pkg/web.js pkg/web_bg.wasm; do
   [ -s "js/client/$f" ] || fail "js/client/$f is missing or empty"
 done
+# wasm-pack writes exactly these five files into the package (package.json included); nothing else may sit there.
+pkg_files=$(ls -A js/client/pkg | LC_ALL=C sort | tr '\n' ' ')
+[ "$pkg_files" = "package.json web.d.ts web.js web_bg.wasm web_bg.wasm.d.ts " ] || fail "js/client/pkg holds '$pkg_files', not the wasm-pack set"
 [ -s scenarios/moba/moba.osdt ] || fail "scenarios/moba/moba.osdt (the moba map image) is missing or empty"
 [ -s scenarios/duel-routes/duel-routes.osdt ] || fail "scenarios/duel-routes/duel-routes.osdt is missing or empty"
 [ -n "$(ls mods/*.lua 2>/dev/null)" ] || fail "mods/ is missing or empty"

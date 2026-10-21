@@ -48,5 +48,5 @@ printf '%s\n' "$version" > "$stage/VERSION"
 done) > "$stage/MANIFEST.sha256"
 
 archive="$out/oscraft-$version.tar.gz"
-tar -C "$stage" -czf "$archive" .
+COPYFILE_DISABLE=1 tar -C "$stage" -czf "$archive" . # macOS tar would add ._ AppleDouble members the manifest does not list
 echo "package built archive=$archive version=$version members=$(wc -l < "$stage/MANIFEST.sha256")"
