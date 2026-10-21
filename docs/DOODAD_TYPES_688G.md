@@ -7,7 +7,7 @@ Source: scenarios/moba/doodad-types-688g.tsv (57 unmatched types, 1330 records; 
 1. Family: grouped by the first letter of the code. The second-letter convention could not be checked against the archive, so families are lexical groups and do not drive any assignment.
 2. Context per type (scripts: the inference run, not committed): share of records within 2 cells of a lane route (routes.osd), median distance to a base spawn in cells, share of records within 1 cell of a tree record (baseline across all non-tree records: 0.09), and nearest-neighbour spacing in cells (clustering).
 3. Role: lane-edge (median lane distance <= 10 cells and >= 10% of records within 2 cells) gives rock; base-side (median base distance <= 35 cells) gives building; tree-side (>= 20% near trees) gives nature; otherwise prop.
-4. Model: the shipped kind of that role (its model role from scripts/doodad-roles.mjs) whose footprint in js/client/doodad_sizes.json is closest, in log scale, to the role target footprint times the mean record scale. Role targets: rock 1.5, nature 1.2, prop 1.0, building 6 cells.
+4. Model: the shipped kind of that role (its model role from scenarios/moba/tools/doodad-roles.mjs) whose footprint in js/client/doodad_sizes.json is closest, in log scale, to the role target footprint times the mean record scale. Role targets: rock 1.5, nature 1.2, prop 1.0, building 6 cells.
 5. Confidence: high = two or more signals; medium = one signal; low = no signal (default prop). Mean record scale is never a confidence signal.
 
 Exclusions kept: tree records are placed by the tree rule (unchanged). Non-tree records within 2 cells of a lane route are not placed (70 records); records within 8 cells of a base spawn are not placed (0 records). 1260 of 1330 records are placed.
@@ -115,5 +115,5 @@ Confidence: 2 high, 14 medium, 41 low. Most types have no context signal (their 
 ## Regeneration
 
 - the archive decoder removed in the rename commit writes doodad-types-688g.tsv and keeps the shipped_kind of each type across runs.
-- scripts/place-doodads-688g.mjs (called by the generator) appends the mapped doodad lines (id 10000 and up) to map.osd from doodads-688g.tsv, applying the lane and base exclusions in scripts/doodad-kinds.mjs.
+- scenarios/moba/tools/place-doodads-688g.mjs (called by the generator) appends the mapped doodad lines (id 10000 and up) to map.osd from doodads-688g.tsv, applying the lane and base exclusions in scenarios/moba/tools/doodad-kinds.mjs.
 - Full archive re-decode was not run here (no extracted refmap.* members in this environment). The placement stage was run from the committed decoded placements, which the generator also writes.

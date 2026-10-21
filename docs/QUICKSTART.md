@@ -50,5 +50,5 @@ cargo run -p mapexport -- crates/web/site/moba.bin ../scenarios/moba
 From the repo root:
 
 ```
-node scripts/gen-reference.mjs
+node scenarios/moba/tools/gen-reference.mjs
 ```

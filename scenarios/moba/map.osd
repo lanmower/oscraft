@@ -1,8 +1,8 @@
-# Dota 6.88g reference map, converted by scripts/convert-688g-map.mjs from the extracted map members.
+# Dota 6.88g reference map, converted by scenarios/moba/tools/convert-688g-map.mjs from the extracted map members.
 # World to grid: 1 source unit = 15.625 milli; the 16384-unit playable square sits at grid cell (35, 35) as a 256x256 sim block.
 # Walkable: no unwalkable pathing cell (bit 0x02) in the 2x2 pathing block of the sim cell. Outside the block: blocked.
 # Height: each sim cell bilinear over its tile's corners, z = (layer - 2) * 128 + ground offset, level = (z + 384) / 8, height_step 125 milli. Tile: ground texture of the tile's corner.
-# Doodads: tree records are placed here at their original positions; the other types are placed by scripts/place-doodads-688g.mjs from doodad-types-688g.tsv (shipped_kind).
+# Doodads: tree records are placed here at their original positions; the other types are placed by scenarios/moba/tools/place-doodads-688g.mjs from doodad-types-688g.tsv (shipped_kind).
 # Spawn lines are script-driven and kept as they were. Do not edit by hand; edit the script.
 grid(327, 327, cell_milli=1000, fill=1)
 height_step(125)

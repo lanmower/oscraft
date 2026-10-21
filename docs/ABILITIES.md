@@ -6,10 +6,10 @@ cooldown, mana, cast range, cast point, channel time, `AbilityValues` by level, 
 talents from `npc/npc_abilities.txt`. The heroes' ability values are not in `npc_abilities.txt` at this commit; they live in the
 per-hero files.
 
-`scripts/gen-abilities.mjs` reads those files and writes `scenarios/moba/abilities_ruleset.osd` and `units_summons.osd`;
-`scripts/ability-recipes.mjs` says which engine effect carries which reference key. A key a recipe does not name is listed in the
+`scenarios/moba/tools/gen-abilities.mjs` reads those files and writes `scenarios/moba/abilities_ruleset.osd` and `units_summons.osd`;
+`scenarios/moba/tools/ability-recipes.mjs` says which engine effect carries which reference key. A key a recipe does not name is listed in the
 generated file as `# <ability> unmodelled reference keys`, and a talent with no effect as `# <hero>: talents with no modelled effect`.
-Run `node scripts/gen-abilities.mjs` to regenerate. Scale: 1 reference unit = 15.625 milli, 16 ticks a second.
+Run `node scenarios/moba/tools/gen-abilities.mjs` to regenerate. Scale: 1 reference unit = 15.625 milli, 16 ticks a second.
 
 ## Heroes done
 
