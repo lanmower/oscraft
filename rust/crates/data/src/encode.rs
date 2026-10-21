@@ -110,7 +110,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u16_le(&mut unit_bytes, unit.capacity);
         u32_le(&mut unit_bytes, unit.filters);
         u32_le(&mut unit_bytes, unit.shield);
-        i32_le(&mut unit_bytes, unit.armor);
+        i32_le(&mut unit_bytes, unit.defense);
         i32_le(&mut unit_bytes, weapon_damage);
         u32_le(&mut unit_bytes, weapon_range);
         u32_le(&mut unit_bytes, weapon_period);
@@ -144,13 +144,13 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u32_le(&mut uext, ext.burrow_ticks);
         i32_le(&mut uext, ext.rally_dx);
         i32_le(&mut uext, ext.rally_dy);
-        u32_le(&mut uext, ext.bounty);
+        u32_le(&mut uext, ext.reward);
         uext.push(ext.deny_pct);
         uext.push(ext.deny_xp_pct);
         uext.push(ext.player_controlled as u8);
         pad(&mut uext, 1);
-        u32_le(&mut uext, ext.xp_bounty);
-        u32_le(&mut uext, ext.assist_radius);
+        u32_le(&mut uext, ext.xp_reward);
+        u32_le(&mut uext, ext.xp_share_radius);
         u32_le(&mut uext, ext.acquire);
         debug_assert_eq!(uext.len() - start, UEXT_RECORD);
     }

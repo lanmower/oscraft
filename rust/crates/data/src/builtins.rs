@@ -197,7 +197,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             weapon,
             sight_milli: sight_milli.unwrap_or(0),
             shield: shield.unwrap_or(0),
-            armor: defense.unwrap_or(0),
+            defense: defense.unwrap_or(0),
             damage_response,
             resource_kind,
             harvest: harvest.unwrap_or(0),
@@ -248,11 +248,11 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             burrow_ticks: burrow_ticks.unwrap_or(0),
             rally_dx: rally_dx.unwrap_or(0),
             rally_dy: rally_dy.unwrap_or(0),
-            bounty: reward.unwrap_or(0),
+            reward: reward.unwrap_or(0),
             deny_xp_pct: deny_xp_pct.unwrap_or(0),
             player_controlled: player_controlled.unwrap_or(false),
-            xp_bounty: xp_reward.unwrap_or(0),
-            assist_radius_milli: assist_radius_milli.unwrap_or(0),
+            xp_reward: xp_reward.unwrap_or(0),
+            xp_share_radius_milli: assist_radius_milli.unwrap_or(0),
             acquire: acquire.unwrap_or(0),
         });
         Ok(NoneType)

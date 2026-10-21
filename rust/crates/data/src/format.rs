@@ -166,7 +166,7 @@ pub const ULTIMATE_GATES: [i32; ULTIMATE_RANKS] = [6, 12, 18];
 pub const NORMAL_GATE: i32 = 1;
 /// Latest level gate of a non-ultimate rank (reference: 1, 3, 5, 7).
 pub const MAX_NORMAL_GATE: i32 = 30;
-/// Inventory slots each hero carries.
+/// Inventory slots each player-controlled unit carries.
 pub const ITEM_SLOTS: usize = 6;
 pub const GRID_HEADER_LEN: usize = 16;
 

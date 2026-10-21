@@ -36,7 +36,7 @@ pub struct UnitRaw {
     pub weapon: Option<WeaponRaw>,
     pub sight_milli: i32,
     pub shield: i32,
-    pub armor: i32,
+    pub defense: i32,
     pub damage_response: usize,
     pub resource_kind: usize,
     pub harvest: i32,
@@ -62,17 +62,17 @@ pub struct UnitExtRaw {
     pub burrow_ticks: i32,
     pub rally_dx: i32,
     pub rally_dy: i32,
-    pub bounty: i32,
+    pub reward: i32,
     /// Experience percent the enemies of this unit share when it is denied, 0..=100.
     pub deny_xp_pct: i32,
-    /// Whether the unit is player-controlled (a hero), which makes it eligible for assist and xp shares.
+    /// Whether the unit is player-controlled (a player-controlled unit), which makes it eligible for xp shares.
     pub player_controlled: bool,
     /// Acquire range in game units (0 for none): a creep with no hold order chases a visible enemy inside it.
     pub acquire: i32,
     /// Experience the killer side shares when this unit dies by an enemy.
-    pub xp_bounty: i32,
-    /// Assist radius around this unit, milli-units: heroes inside it share its kill or denial xp.
-    pub assist_radius_milli: i32,
+    pub xp_reward: i32,
+    /// XP share radius around this unit, milli-units: player-controlled units inside it share its kill or denial xp.
+    pub xp_share_radius_milli: i32,
 }
 
 #[derive(Debug)]
@@ -200,7 +200,7 @@ pub struct ItemRaw {
     /// Charges a purchase grants, and the most charges one slot holds (0 for a single unstackable item).
     pub charges: i32,
     pub stack_max: i32,
-    /// Shop stock: 0 max means unlimited; otherwise the starting stock, the seconds to restock one
+    /// Stock: 0 max means unlimited; otherwise the starting stock, the seconds to restock one
     /// unit and the seconds before the first restock begins.
     pub stock_max: i32,
     pub stock_initial: i32,
@@ -324,7 +324,7 @@ pub struct Unit {
     pub weapon: Option<Weapon>,
     pub sight: u32,
     pub shield: u32,
-    pub armor: i32,
+    pub defense: i32,
     pub damage_response: u8,
     pub resource_kind: u8,
     pub harvest: u32,
@@ -346,12 +346,12 @@ pub struct UnitExt {
     pub burrow_ticks: u32,
     pub rally_dx: i32,
     pub rally_dy: i32,
-    pub bounty: u32,
+    pub reward: u32,
     pub deny_pct: u8,
     pub deny_xp_pct: u8,
     pub player_controlled: bool,
-    pub xp_bounty: u32,
-    pub assist_radius: u32,
+    pub xp_reward: u32,
+    pub xp_share_radius: u32,
     /// Acquire range in game units (0 for none).
     pub acquire: u32,
 }

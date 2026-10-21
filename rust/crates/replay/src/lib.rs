@@ -1728,7 +1728,7 @@ mod changed_rules_replay {
             }
             fresh.state_hash()
         };
-        // Two replays of one recording must agree. The camp timings are mod rules (camp.lua), not a sim setter.
+        // Two replays of one recording must agree. The spawn timings are mod rules, not a sim setter.
         assert_eq!(run(&text), run(&text));
     }
 }
