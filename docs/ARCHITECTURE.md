@@ -100,7 +100,7 @@ Each kind of content, the steps a change to it needs, and why. Engine: read at r
 | Content | Class | Steps for a change | Reason |
 |---|---|---|---|
 | `mods/*.lua` mod source | Engine | Edit; copy to the deployed `mods/` (build.sh `cp -R mods`); hot reload or restart the room | mod-host reads the source at run time (`read_to_string` in `mlua_host.rs`, `piccolo_host.rs`) and hot reload swaps functions only |
-| Kill gold and team share in `mods/moba_match.lua` | Engine | Edit the file; copy to `mods/`; hot reload or restart the room | Lua pays the kill gold only while the sim flag `gold_by_mod` is set; no loader sets it at `369c3ba`, so the Rust payout (`pay_bounty`) also pays. The 20 percent share is hard-coded in the file |
+| Kill gold and team share in `scenarios/moba/kill_gold.lua` | Engine | Edit the file; copy to `mods/`; hot reload or restart the room | Lua pays the kill gold only while the sim flag `gold_by_mod` is set; no loader sets it at `369c3ba`, so the Rust payout (`pay_bounty`) also pays. The 20 percent share is hard-coded in the file |
 | `hero_rules.txt` | Engine | Edit; reload the room | `server/src/mods.rs` parses it when the mod directory loads; defaults apply to omitted keys |
 | `js/client/doodads.json`, `assets.json`, `assets/` models | Engine | None beyond the `js/client` copy in build.sh | Static files fetched by the page at run time, with a fallback when `assets.json` is absent |
 | `js/client/*.js` modules | Engine | None | ES modules through an import map, no bundler |
@@ -119,38 +119,20 @@ Counts: Engine 5 rows, Build-only 4 rows, Rust-only 4 rows.
 
 Classes: MOVE = rule logic moves to a Lua hook or scenario data. DATA = number or table content moves to `.osd` data. STAY = stays in Rust, reason given. Source: symbol inventory of `rust/crates/sim/src` at origin `855d02c`. Signatures were classified without reading every body where marked.
 
-| Rule | Where | Class | Reason |
+| Rule | Where now | Class | Reason |
 |---|---|---|---|
-| Camp leash, clear and first-spawn numbers | `camp.rs` `CAMP_LEASH_MILLI`, `CAMP_CLEAR_MILLI`, `CAMP_FIRST_SPAWN_S` | DATA | Plain numbers; move to `behaviour` data |
-| Camp respawn timing | `camp.rs` `respawns_free`, `respawn_camp` | MOVE | Rule logic; needs a Lua hook (`on_camp_cleared`) |
-| Aggro target priority | `aggro.rs` target selection | MOVE | Rule logic; needs a Lua target-priority hook |
-| Backdoor and glyph protection | `aggro.rs` `backdoor_protected`, `glyph_protects`, `glyph_cooldown_left` | MOVE | Rule logic; no Lua hook exists in `mods/` |
-| Backdoor period | `aggro.rs` `BACKDOOR_PERIOD` | DATA | Number |
-| Structure scan radius | `combat.rs` `STRUCTURE_SCAN_CELLS` | DATA | Number |
-| Damage response codes | `combat.rs` `RESPONSE_REDUCED`, `RESPONSE_IMMUNE` | STAY | Persisted and wire codes |
-| Courier state codes | `courier.rs` `IDLE`, `OUTBOUND`, `RETURNING` | STAY | Stored in state snapshots (`persist.rs` `STATE_VERSION`) |
-| Courier delivery rules | `courier.rs` (signatures only; body not yet read) | MOVE | Rule logic; needs a Lua hook |
-| Ward duration | `wards.rs` `ward_left` | DATA | Number |
-| Hero stat coefficients | `hero.rs` `MANA_PER_INT`, `ARMOUR_PER_AGI_DIV`, `HP_REGEN_PER_STR_X100` | DATA | Formula coefficients |
-| Buyback | `hero.rs` `buyback` | MOVE | Rule logic; needs a Lua hook |
-| Shop buy rules | `shop.rs` `buy_item` | MOVE | Rule logic; needs a Lua hook |
-| Shop doodad ids | `shop.rs` `SHOP_DOODAD_HOME`, `SHOP_DOODAD_SIDE` | DATA | Doodad ids belong in `.osd` data |
-| Item stats and recipes | `inventory.rs` `ITEM_STATS`, `ITEM_SMODS`, `BEST_ONLY` | DATA | Tables of content |
-| XP curve | `xp.rs` `xp_curve` | DATA | Table of content |
-| Gold grants on kill | `combat.rs` `pay_bounty`, `hero.rs` `hero_bounty` | MOVE | Lua payer exists in `mods/moba_match.lua` (`on_died`), behind the sim flag `gold_by_mod`; the Rust payout stays until a loader sets the flag. The XP grant is not moved |
-| Teleport ring | `teleport.rs` `RING_POINTS`, `RING_STEPS` | DATA | Numbers |
-| Spell, status and upgrade effect codes | `spell.rs` `K_DOT`, `K_STATUS`; `upgrades.rs` `EFFECT_*_CODE`; `status.rs` `STATUS_NAMES` | STAY | Dispatch keys shared with the Lua host ABI and persisted |
-| Refusal kinds | `rules.rs` `Refusal`, `REFUSAL_KINDS`, `ALL_REFUSALS` | STAY | Wire contract with clients and replay |
-| Route march rules | `route.rs` march logic | MOVE | Rule logic; route points are DATA |
-| Route record layout | `route.rs` `MAX_ROUTE_POINTS`, `ROUT_RECORD` | STAY | Fixed binary record layout |
-| Win and objective rules | `triggers.rs` `winner` | MOVE | Rule logic; needs a Lua hook |
-| Doodad kind list | `doodads.rs` `DOODAD_KIND_COUNT`; builtin list in `format.rs` | MOVE | Follow-up 1 below |
-| Determinism core | `fixed.rs`, `pathfinding.rs` cost constants, `lib.rs` `TICKS_PER_SECOND`, `DAY_TICKS`, `tick.rs` `System`, `SYSTEM_COUNT`, `COST_BUCKET_US` | STAY | Hashed fixed-point sim and scheduler order |
-| Serialization | `loader.rs` `MAGIC`, `VERSION`, `Trigger`, `LoadError`; `persist.rs` `MAGIC`, `STATE_VERSION`, `StateError` | STAY | OSDT and state formats |
-| Diplomacy controller codes | `diplomacy.rs` `CONTROLLER_*` | STAY | Wire codes |
-| Lua host ABI vocabulary | `modapi.rs` `MOD_EFFECTS`, `STAT_NAMES` | STAY | The host enumerates the effect and stat names it dispatches on |
+| Gold grants on kill | `scenarios/moba/kill_gold.lua` (`on_died`, `GOLD_BY_MOD`); engine `combat.rs` `pay_bounty` stays as the fallback while the flag is unset | MOVE | Rule logic in mod code |
+| Lane creep and siege waves | `scenarios/moba/lanes.lua` (`on_tick`, timers); engine `waves.rs` and the spawn command | MOVE | Rule logic in mod code |
+| Hero respawn time | `scenarios/moba/hero_respawn.lua` (`on_unit_died`) | MOVE | Rule logic in mod code |
+| Backdoor and glyph protection | `scenarios/moba/protection.lua` (`on_tick`, `on_cast`); no longer in the engine | MOVE | Rule logic in mod code |
+| Route march target | `scenarios/moba/march.lua` (`on_march`); engine `route.rs` keeps the route records | MOVE | Rule logic in mod code |
+| Win condition | `scenarios/moba/win.lua` (`on_check_win`); engine `triggers.rs` `winner` is the generic victory primitive | MOVE | Rule logic in mod code |
+| Shop buy and sell, courier delivery | `scenarios/moba/store.lua` (`on_buy`, `on_sell`, `on_unstash`, `on_deliver`); engine `store.rs` and `carrier.rs` keep the primitives | MOVE | Rule logic in mod code |
+| Camp respawn, aggro target priority, buyback | still engine: `camp.rs` `respawn_camp`, `aggro.rs`, `hero.rs` `buyback` | MOVE | Not yet moved; needs a hook or a command |
+| Camp leash and clear numbers, ward duration, XP curve, item tables | still engine constants and tables | DATA | Not yet moved to `.osd` data |
+| Determinism core, serialization, wire and dispatch codes | engine | STAY | Hashed or persisted formats |
 
-Counts: 28 rules: MOVE 10, DATA 9, STAY 9. No MOVE or DATA row is migrated yet. Blocked rows are in files another lane has uncommitted edits in (`camp.rs`, `aggro.rs`, `combat.rs`, `rules.rs`, `movement.rs`, `shop.rs`, `route.rs`, `lib.rs`, `loader.rs`).
+Current state: the scenario mod code covers kill gold, waves, hero respawn, protection, march, win and the store. Generic primitives (hooks, commands, `pay_bounty` fallback, `winner`, `route.rs`, `store.rs`) stay in the engine. The rows still in the engine are the MOVE rows marked not yet moved.
 
 Follow-ups for the MOVE and DATA rows:
 

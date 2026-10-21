@@ -52,7 +52,7 @@ fn on_died_receives_five_arguments_with_bounty() {
 
 #[test]
 fn moba_match_pays_the_same_for_fixed_kills() {
-    let src = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../mods/moba_match.lua")).expect("mod");
+    let src = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba/kill_gold.lua")).expect("mod");
     let mut host = ModHost::new(&image()).expect("host");
     host.load_source("moba_match", &src).expect("moba_match loads");
     let kills = [
