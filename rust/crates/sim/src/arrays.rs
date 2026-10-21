@@ -306,6 +306,7 @@ impl Sim {
         let doodads_init = cat.doodads.clone();
         let cat_digest = crate::hash::catalog_digest(&cat, &grid);
         let acquire = crate::acquire::per_kind(&cat);
+        let xp_curve = cat.tune.xp_curve.clone();
         let stock = crate::shop::StockState::new(&cat.items);
         let mut s = Sim {
             grid,
@@ -383,7 +384,7 @@ impl Sim {
             stash_kind: vec![0; cap * crate::inventory::INV_SLOTS],
             stash_count: vec![0; cap * crate::inventory::INV_SLOTS],
             xp_total: vec![0; cap],
-            xp_curve: crate::xp::DEFAULT_XP_CURVE.to_vec(),
+            xp_curve,
             unit_kills: vec![0; cap],
             heroes: crate::hero::HeroState::new(cap),
             camps: crate::camp::CampState::new(cap),

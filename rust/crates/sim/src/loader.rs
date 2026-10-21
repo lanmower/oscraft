@@ -10,7 +10,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 22;
+const VERSION: u16 = 23;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const PLACE_TEAM: u32 = 2;
@@ -23,8 +23,14 @@ const ABILITY_FILTER_BITS: u16 = 15;
 const CELL_BITS: u8 = 0b111;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 22] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT"];
-const RECORD_SIZES: [usize; 22] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520];
+const SECTION_TAGS: [&[u8; 4]; 23] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT", b"TUNE"];
+const RECORD_SIZES: [usize; 23] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520, 128];
+/// Most teleport landing points a ring holds: the eight compass directions the teleport effect steps through.
+const TELEPORT_RING_MAX_POINTS: u8 = 8;
+/// Most cells a structure scan reaches past weapon range.
+const STRUCTURE_SCAN_MAX_CELLS: u8 = 64;
+/// Cumulative xp thresholds in the level curve (TUNE section).
+pub const XP_CURVE_LEN: usize = 29;
 const SKILL_RANKS: usize = 4;
 const ULTIMATE_RANKS: u8 = 3;
 const ULTIMATE_GATES: [i32; ULTIMATE_RANKS as usize] = [6, 12, 18];
@@ -292,6 +298,21 @@ pub struct Start {
     pub y: i32,
 }
 
+/// Tuning values for the sim (TUNE, one record). Scenario data; every field is range-checked at load.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Tune {
+    /// Cells a unit's bucket scan reaches past its weapon range.
+    pub structure_scan_cells: u8,
+    /// Landing points on the teleport ring, at most 8.
+    pub teleport_ring_points: u8,
+    /// Widening steps of the teleport ring, at least 1.
+    pub teleport_ring_steps: u8,
+    /// Bit k set: item stat k takes the largest active value instead of the sum.
+    pub best_only: u64,
+    /// Cumulative xp at which levels 2 to 30 are reached, nondecreasing.
+    pub xp_curve: Vec<u32>,
+}
+
 /// Production economy for the map (ECON, one record).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Econ {
@@ -460,6 +481,8 @@ pub struct Catalog {
     pub limit: u32,
     pub starts: Vec<Start>,
     pub econ: Econ,
+    /// Tuning values read from the TUNE section (see `Tune`).
+    pub tune: Tune,
     pub unit_ext: Vec<UnitExt>,
     pub channels: Vec<Channel>,
     pub ext: Vec<crate::spell::AbilityExt>,
@@ -689,7 +712,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 22];
+    let mut sections = [(0usize, 0usize); 23];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -1094,6 +1117,41 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         }
     };
 
+    let (to, tc) = body(22);
+    if tc != 1 {
+        return Err(LoadError::Range("TUNE count is not 1"));
+    }
+    let tune = {
+        let mut tr = Reader { buf: bytes, at: to };
+        let structure_scan_cells = tr.u8("tune structure scan cells")?;
+        let teleport_ring_points = tr.u8("tune teleport ring points")?;
+        let teleport_ring_steps = tr.u8("tune teleport ring steps")?;
+        tr.skip(1, "tune reserved")?;
+        let mut mask = [0u8; 8];
+        mask.copy_from_slice(tr.take(8, "tune best only")?);
+        let best_only = u64::from_le_bytes(mask);
+        let mut xp_curve = Vec::with_capacity(XP_CURVE_LEN);
+        for _ in 0..XP_CURVE_LEN {
+            xp_curve.push(tr.u32("tune xp threshold")?);
+        }
+        if structure_scan_cells > STRUCTURE_SCAN_MAX_CELLS {
+            return Err(LoadError::Range("tune structure scan cells above its maximum"));
+        }
+        if teleport_ring_points == 0 || teleport_ring_points > TELEPORT_RING_MAX_POINTS {
+            return Err(LoadError::Range("tune teleport ring points outside 1..=8"));
+        }
+        if teleport_ring_steps == 0 {
+            return Err(LoadError::Range("tune teleport ring steps is 0"));
+        }
+        if best_only >> ITEM_STAT_COUNT != 0 {
+            return Err(LoadError::Range("tune best-only mask names a stat past the item stats"));
+        }
+        if !xp_curve.windows(2).all(|w| w[0] <= w[1]) {
+            return Err(LoadError::Range("tune xp curve is not nondecreasing"));
+        }
+        Tune { structure_scan_cells, teleport_ring_points, teleport_ring_steps, best_only, xp_curve }
+    };
+
     let (xo, xc) = body(11);
     if xc != units.len() {
         return Err(LoadError::Range("UEXT count is not the UNIT count"));
@@ -1337,6 +1395,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             limit,
             starts,
             econ,
+            tune,
             unit_ext,
             channels,
             ext,

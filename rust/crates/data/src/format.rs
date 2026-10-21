@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 22;
+pub const VERSION: u16 = 23;
 pub const PLCE_FLAG_START: u32 = 1;
 /// A start record that names its team: the team index sits in bits 8..16 of the flags.
 pub const PLCE_FLAG_TEAM: u32 = 2;
@@ -124,6 +124,7 @@ pub const TAG_ITEM: [u8; 4] = *b"ITEM";
 pub const TAG_SKIL: [u8; 4] = *b"SKIL";
 pub const TAG_AXTN: [u8; 4] = *b"AXTN";
 pub const TAG_ROUT: [u8; 4] = *b"ROUT";
+pub const TAG_TUNE: [u8; 4] = *b"TUNE";
 
 pub const STRS_RECORD: usize = 1;
 pub const EFCT_RECORD: usize = 20;
@@ -176,6 +177,15 @@ pub const MAX_ROUTE_POINTS: usize = 64;
 pub const MAX_ROUTE_LANE: i32 = 3;
 /// A route record: player u16, lane u16, count u16, reserved u16, then `MAX_ROUTE_POINTS` x/y pairs of u32 milli-units.
 pub const ROUT_RECORD: usize = 8 + MAX_ROUTE_POINTS * 8;
+/// Tuning record (TUNE, one record): structure scan cells u8, teleport ring points u8, teleport ring steps u8,
+/// reserved u8, best-only stat mask u64 (bit k is item stat k of `ITEM_STATS`), then `XP_CURVE_LEN` cumulative xp
+/// thresholds of u32, nondecreasing.
+pub const TUNE_RECORD: usize = 12 + XP_CURVE_LEN * 4;
+pub const XP_CURVE_LEN: usize = 29;
+/// Most teleport landing points one ring holds: the eight compass directions.
+pub const TELEPORT_RING_MAX_POINTS: u8 = 8;
+/// Most cells a structure scan may reach past weapon range.
+pub const STRUCTURE_SCAN_MAX_CELLS: u8 = 64;
 /// Rank-scaled effect parameters and conditional modifiers one ability may carry.
 pub const AXTN_SCALED: usize = 6;
 pub const AXTN_MODS: usize = 8;
@@ -199,7 +209,7 @@ pub const DOODAD_KINDS: &[&str] = &["rock", "tree", "crystal", "debris", "base",
 pub const GRID_HEADER_LEN: usize = 16;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
-pub const SECTIONS: [([u8; 4], usize); 22] = [
+pub const SECTIONS: [([u8; 4], usize); 23] = [
     (TAG_STRS, STRS_RECORD),
     (TAG_EFCT, EFCT_RECORD),
     (TAG_ABIL, ABIL_RECORD),
@@ -222,6 +232,7 @@ pub const SECTIONS: [([u8; 4], usize); 22] = [
     (TAG_SKIL, SKIL_RECORD),
     (TAG_AXTN, AXTN_RECORD),
     (TAG_ROUT, ROUT_RECORD),
+    (TAG_TUNE, TUNE_RECORD),
 ];
 
 pub fn index_of(list: &[&str], value: &str, what: &str) -> anyhow::Result<usize> {

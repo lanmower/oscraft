@@ -376,6 +376,18 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         debug_assert_eq!(axtn.len() - start, AXTN_RECORD);
     }
 
+    let tune = &catalog.tune;
+    let mut tune_bytes = Vec::with_capacity(TUNE_RECORD);
+    tune_bytes.push(tune.structure_scan_cells);
+    tune_bytes.push(tune.teleport_ring_points);
+    tune_bytes.push(tune.teleport_ring_steps);
+    pad(&mut tune_bytes, 1);
+    tune_bytes.extend_from_slice(&tune.best_only.to_le_bytes());
+    for &threshold in &tune.xp_curve {
+        u32_le(&mut tune_bytes, threshold);
+    }
+    debug_assert_eq!(tune_bytes.len(), TUNE_RECORD);
+
     let strs_len = strings.bytes.len();
     let grid_len = grid.len();
     let sections: Vec<([u8; 4], usize, usize, Vec<u8>)> = vec![
@@ -401,6 +413,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_SKIL, catalog.abilities.len(), SKIL_RECORD, skil),
         (TAG_AXTN, catalog.ext.len(), AXTN_RECORD, axtn),
         (TAG_ROUT, catalog.routes.len(), ROUT_RECORD, rout),
+        (TAG_TUNE, 1, TUNE_RECORD, tune_bytes),
     ];
 
     let body_start = HEADER_LEN + sections.len() * SECTION_ENTRY_LEN;

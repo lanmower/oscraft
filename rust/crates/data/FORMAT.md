@@ -1,7 +1,7 @@
-# OSDT data file, format version 20
+# OSDT data file, format version 23
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are
-little-endian. Version 20 adds the AXTN section (ability extension), effect kinds 20 to 30 and the spell stats and statuses below; it changes the `damage` and `heal` parameters (type in p2) and lets a non-ultimate rank gate be any level from 1 to 30. There is no padding between sections or records beyond the explicit
+little-endian. Version 23 adds the TUNE section (tuning values: structure scan, teleport ring, best-only item stats, level curve). Version 20 adds the AXTN section (ability extension), effect kinds 20 to 30 and the spell stats and statuses below; it changes the `damage` and `heal` parameters (type in p2) and lets a non-ultimate rank gate be any level from 1 to 30. There is no padding between sections or records beyond the explicit
 reserved bytes listed below. Version 14 adds a per-cell tile id to GRID and the DODA section for doodads. Version 13 adds a per-level resource_a and gas cost to UPGR, which grows from 16 to 24 bytes. Version 12 changed the GRID section to carry a per-cell height. Version 11 added the production, transport, channelling,
 combat and cloak/burrow parameters as new sections. Every record size from version 10
 is unchanged. A reader of an older version must reject the file.
@@ -513,6 +513,18 @@ Capacity: a unit charges its `capacity cost` (UNIT offset 38). Production is ref
 past the capacity cap. The cap is `capacity_base` plus the `capacity provided` of every
 completed provider, bounded by `capacity_max`. Queued production reserves its capacity,
 released on cancel.
+
+### TUNE (128 bytes, count 1)
+Tuning values the sim reads at load, set by the scenario's `tuning()` call. The map does not generate without it.
+
+| offset | size | field                                                              |
+|--------|------|--------------------------------------------------------------------|
+| 0      | 1    | structure scan cells past weapon range, `0..=64`                   |
+| 1      | 1    | teleport ring points, `1..=8`                                      |
+| 2      | 1    | teleport ring steps, `>= 1`                                        |
+| 3      | 1    | reserved, write 0                                                  |
+| 4      | 8    | best-only stat mask: bit k set for item stat k of `ITEM_STATS`     |
+| 12     | 116  | level curve: 29 cumulative xp thresholds of u32, nondecreasing     |
 
 ## DODA (20 bytes per record, count = doodad count)
 Decorative objects on the map. Doodads do not block movement; walkability is in GRID.

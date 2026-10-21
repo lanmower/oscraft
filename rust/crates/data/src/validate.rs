@@ -7,11 +7,12 @@ use anyhow::{anyhow, bail, Result};
 use crate::format::{
     move_cap_fits_grid, position_on_grid, CELL_BLOCKED, ACTION_USE_ABILITY, FILTER_MASK_BITS, CHANNEL_FLAG, CLOAK_MASK, EFFECT_KINDS, MAX_PLAYERS,
     NEUTRAL_PLAYER, NO_ABILITY, NO_UNIT, NORMAL_GATE, MAX_NORMAL_GATE, PLCE_FLAG_START, PLCE_FLAG_TEAM, PLCE_TEAM_SHIFT, Q16_ONE,
-    ITEM_COMPONENTS, ITEM_SHOP_MASK, SKILL_RANKS, ULTIMATE_GATES, ULTIMATE_RANKS,
+    ITEM_COMPONENTS, ITEM_SHOP_MASK, SKILL_RANKS, ULTIMATE_GATES, ULTIMATE_RANKS, STRUCTURE_SCAN_MAX_CELLS, TELEPORT_RING_MAX_POINTS,
+    XP_CURVE_LEN,
 };
 use crate::model::{
     Ability, AbilityRaw, Behaviour, Catalog, Channel, Collector, DamageFactor, Econ, Effect, EffectRaw, Prereq,
-    Research, Route, Skill, SkillRaw, Spawn, Unit, Doodad, Item, UnitExt, Upgrade, Weapon,
+    Research, Route, Skill, SkillRaw, Spawn, Unit, Doodad, Item, UnitExt, Upgrade, Weapon, Tune,
 };
 
 fn valid_name(name: &str) -> Result<()> {
@@ -118,6 +119,41 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let researches_raw = collector.researches.into_inner();
     let prereqs_raw = collector.prerequisites.into_inner();
     let damage_factors_raw = collector.damage_factors.into_inner();
+    let tuning_raw = collector
+        .tuning
+        .into_inner()
+        .ok_or_else(|| anyhow!("no tuning() declared in the scenario"))?;
+    let tune = {
+        let t = tuning_raw;
+        if t.xp_curve.len() != XP_CURVE_LEN {
+            bail!("tuning xp_curve has {} thresholds, expected {XP_CURVE_LEN}", t.xp_curve.len());
+        }
+        let xp_curve = t
+            .xp_curve
+            .iter()
+            .map(|&v| unsigned("tuning xp_curve threshold", v))
+            .collect::<Result<Vec<u32>>>()?;
+        if !xp_curve.windows(2).all(|w| w[0] <= w[1]) {
+            bail!("tuning xp_curve is not nondecreasing");
+        }
+        Tune {
+            structure_scan_cells: bounded("tuning structure_scan_cells", t.structure_scan_cells, STRUCTURE_SCAN_MAX_CELLS as u32)? as u8,
+            teleport_ring_points: {
+                if !(1..=TELEPORT_RING_MAX_POINTS as i32).contains(&t.teleport_ring_points) {
+                    bail!("tuning teleport_ring_points {} is outside 1..={TELEPORT_RING_MAX_POINTS}", t.teleport_ring_points);
+                }
+                t.teleport_ring_points as u8
+            },
+            teleport_ring_steps: {
+                if !(1..=u8::MAX as i32).contains(&t.teleport_ring_steps) {
+                    bail!("tuning teleport_ring_steps {} is outside 1..=255", t.teleport_ring_steps);
+                }
+                t.teleport_ring_steps as u8
+            },
+            best_only: t.best_only,
+            xp_curve,
+        }
+    };
     let cell_limit = match collector.cell_limit.into_inner() {
         Some(limit) => unsigned("limit per_cell", limit)?,
         None => 0,
@@ -623,6 +659,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         upgrades,
         cell_limit,
         econ,
+        tune,
         researches,
         prereqs,
         damage_factors,

@@ -15,7 +15,7 @@ use crate::format::{
     ITEM_FLAG_NO_SELL, ITEM_SHOPS, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
 };
 use crate::model::{
-    AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw,
+    AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw, TuneRaw,
     DoodadRaw, ItemRaw, ResearchRaw, RouteRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
 };
 
@@ -563,6 +563,36 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             capacity_max: capacity_max.unwrap_or(0),
             patch_yield: patch_yield.unwrap_or(0),
             geyser_yield: geyser_yield.unwrap_or(0),
+        });
+        Ok(NoneType)
+    }
+
+    /// The tuning values the sim reads from the TUNE section. Every value is required: a map without
+    /// them does not generate. `best_only` names item stats that take the largest value, not the sum.
+    fn tuning(
+        #[starlark(require = named)] structure_scan_cells: i32,
+        #[starlark(require = named)] teleport_ring_points: i32,
+        #[starlark(require = named)] teleport_ring_steps: i32,
+        #[starlark(require = named)] best_only: UnpackList<String>,
+        #[starlark(require = named)] xp_curve: UnpackList<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.tuning.borrow_mut();
+        if slot.is_some() {
+            bail!("tuning() may be called once per map");
+        }
+        let mut mask = 0u64;
+        for name in &best_only.items {
+            let k = index_of(ITEM_STATS, name, "item stat")?;
+            mask |= 1u64 << k;
+        }
+        *slot = Some(TuneRaw {
+            structure_scan_cells,
+            teleport_ring_points,
+            teleport_ring_steps,
+            best_only: mask,
+            xp_curve: xp_curve.items,
         });
         Ok(NoneType)
     }

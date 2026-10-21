@@ -14,9 +14,6 @@ pub(crate) const KILL_QUEUE_CAP: usize = 256;
 pub(crate) const ASSIST_SLOTS: usize = 4;
 /// Ticks after a hit within which the hitter is credited an assist on the victim's death.
 pub(crate) const ASSIST_WINDOW: u32 = 50;
-/// Cells a unit's bucket scan reaches past its weapon range. A structure is bucketed at its
-/// centre, which lies beyond its footprint edge, so the scan must reach past the edge to find it.
-const STRUCTURE_SCAN_CELLS: i32 = 3;
 
 /// One player's post-game tally, summed over the player's units.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -234,7 +231,8 @@ impl Sim {
         if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
             return None;
         }
-        let rc = (fixed::round(self.range_q[i]) + 1).clamp(1, 8) + STRUCTURE_SCAN_CELLS;
+        // A structure is bucketed at its centre, beyond its footprint edge: the scan reaches past the edge.
+        let rc = (fixed::round(self.range_q[i]) + 1).clamp(1, 8) + i32::from(self.cat.tune.structure_scan_cells);
         let cx = cell_of(self.pos_x[i]);
         let cy = cell_of(self.pos_y[i]);
         let (w, h) = (self.grid.w as i32, self.grid.h as i32);
@@ -973,5 +971,18 @@ mod tests {
         assert!(!s.use_item(hero, slot, hero as i32, 0, 0), "a second use inside the cooldown is refused");
         assert_eq!(s.stats.last_refusal, crate::rules::Refusal::Cooldown, "the second use is refused for the item cooldown");
         assert_eq!(s.inv_count[base + slot], 1, "a refused use spends no charge");
+    }
+}
+
+#[cfg(test)]
+mod structure_scan_tests {
+    /// The structure scan the duel scenario's TUNE section carries: 3 cells past weapon range, as the
+    /// constant was before the value moved into data.
+    #[test]
+    fn structure_scan_cells_loads_from_data_and_matches_old_constant() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let image = osdt_data::generate(&scenario).expect("duel-routes image");
+        let s = crate::load(&image, 1024).expect("duel-routes sim");
+        assert_eq!(s.catalog().tune.structure_scan_cells, 3);
     }
 }

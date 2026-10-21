@@ -75,6 +75,17 @@ pub fn verify(image: &[u8]) -> Result<()> {
     ensure!(u32_at(image, grid.offset + 12)? >= 1, "grid height step is 0");
     ensure!(limt.count == 1, "LIMT count must be 1");
     ensure!(econ.count == 1, "ECON count must be 1");
+    let tune = &sections[22];
+    ensure!(tune.count == 1, "TUNE count must be 1");
+    let tune_at = tune.offset;
+    ensure!(image[tune_at] <= STRUCTURE_SCAN_MAX_CELLS, "TUNE structure scan cells out of range");
+    ensure!((1..=TELEPORT_RING_MAX_POINTS).contains(&image[tune_at + 1]), "TUNE teleport ring points out of range");
+    ensure!(image[tune_at + 2] >= 1, "TUNE teleport ring steps is 0");
+    for k in 0..XP_CURVE_LEN - 1 {
+        let a = u32_at(image, tune_at + 12 + 4 * k)?;
+        let b = u32_at(image, tune_at + 16 + 4 * k)?;
+        ensure!(a <= b, "TUNE xp curve is not nondecreasing");
+    }
     ensure!(regn.count == unit.count, "REGN count differs from UNIT count");
     ensure!(uext.count == unit.count, "UEXT count differs from UNIT count");
     ensure!(achn.count == abil.count, "ACHN count differs from ABIL count");

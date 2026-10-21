@@ -75,21 +75,6 @@ pub(crate) const STAT_NIGHT_VISION: usize = 35;
 pub(crate) const STAT_SCEPTER: usize = 36;
 pub(crate) const STAT_SHARD: usize = 37;
 
-/// Stats that do not add up across items: a unit takes the largest value any active item gives.
-const BEST_ONLY: [usize; 11] = [
-    STAT_SCEPTER,
-    STAT_SHARD,
-    STAT_CRIT_CHANCE,
-    STAT_CRIT_MULTIPLIER,
-    STAT_CLEAVE,
-    STAT_CLEAVE_DISTANCE,
-    STAT_CLEAVE_START_WIDTH,
-    STAT_CLEAVE_END_WIDTH,
-    STAT_BASH_CHANCE,
-    STAT_BASH_DURATION,
-    STAT_NIGHT_VISION,
-];
-
 /// Names of the item stats, in `Item::stats` order (the data crate's `ITEM_STATS`).
 pub const ITEM_STATS: [&str; ITEM_STAT_COUNT] = [
     "armor", "damage", "health", "mana", "strength", "agility", "intelligence", "move_speed", "attack_speed",
@@ -279,7 +264,9 @@ impl Sim {
             }
             if let Some(def) = self.item_def(self.inv_kind[base + slot]) {
                 for (k, (total, stat)) in sum.iter_mut().zip(def.stats).enumerate() {
-                    *total = if BEST_ONLY.contains(&k) { (*total).max(stat) } else { total.saturating_add(stat) };
+                    // Stats in the scenario's best-only mask take the largest value; the rest add up.
+                    let best = k < 64 && (self.cat.tune.best_only >> k) & 1 != 0;
+                    *total = if best { (*total).max(stat) } else { total.saturating_add(stat) };
                 }
             }
         }
@@ -439,4 +426,33 @@ impl Sim {
 /// so the id is the item index plus one.
 pub(crate) fn item_kind(item: usize) -> u32 {
     item as u32 + 1
+}
+
+#[cfg(test)]
+mod best_only_tests {
+    use super::*;
+
+    /// The best-only mask the moba scenario's TUNE section carries names the same stats the sim took as
+    /// best-value before the list moved into data.
+    #[test]
+    fn best_only_mask_loads_from_data_and_matches_old_list() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
+        let image = osdt_data::generate(&scenario).expect("moba image");
+        let s = crate::load(&image, 1024).expect("moba sim");
+        let old = [
+            STAT_SCEPTER,
+            STAT_SHARD,
+            STAT_CRIT_CHANCE,
+            STAT_CRIT_MULTIPLIER,
+            STAT_CLEAVE,
+            STAT_CLEAVE_DISTANCE,
+            STAT_CLEAVE_START_WIDTH,
+            STAT_CLEAVE_END_WIDTH,
+            STAT_BASH_CHANCE,
+            STAT_BASH_DURATION,
+            STAT_NIGHT_VISION,
+        ];
+        let expected = old.iter().fold(0u64, |m, &k| m | (1u64 << k));
+        assert_eq!(s.catalog().tune.best_only, expected);
+    }
 }

@@ -81,6 +81,17 @@ pub struct ChannelRaw {
     pub duration: i32,
 }
 
+/// The `tuning()` call as written: values are checked in validate, names resolved in the builtin.
+#[derive(Debug, Default)]
+pub struct TuneRaw {
+    pub structure_scan_cells: i32,
+    pub teleport_ring_points: i32,
+    pub teleport_ring_steps: i32,
+    /// Bit k set for item stat k of `ITEM_STATS` that takes the best value rather than the sum.
+    pub best_only: u64,
+    pub xp_curve: Vec<i32>,
+}
+
 #[derive(Debug, Default)]
 pub struct EconRaw {
     pub patch_saturation: i32,
@@ -258,6 +269,7 @@ pub struct Collector {
     pub unit_ext: RefCell<Vec<UnitExtRaw>>,
     pub channels: RefCell<Vec<ChannelRaw>>,
     pub economy: RefCell<Option<EconRaw>>,
+    pub tuning: RefCell<Option<TuneRaw>>,
     pub researches: RefCell<Vec<ResearchRaw>>,
     pub prerequisites: RefCell<Vec<PrereqRaw>>,
     pub damage_factors: RefCell<Vec<DamageFactorRaw>>,
@@ -334,6 +346,16 @@ pub struct UnitExt {
 pub struct Channel {
     pub flags: u16,
     pub duration: u32,
+}
+
+/// Tuning values the sim reads from the TUNE section.
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct Tune {
+    pub structure_scan_cells: u8,
+    pub teleport_ring_points: u8,
+    pub teleport_ring_steps: u8,
+    pub best_only: u64,
+    pub xp_curve: Vec<u32>,
 }
 
 #[derive(Debug, Default)]
@@ -516,6 +538,7 @@ pub struct Catalog {
     pub doodads: Vec<Doodad>,
     pub cell_limit: u32,
     pub econ: Econ,
+    pub tune: Tune,
     pub researches: Vec<Research>,
     pub prereqs: Vec<Prereq>,
     pub damage_factors: Vec<DamageFactor>,
