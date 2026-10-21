@@ -58,10 +58,10 @@ fn moba_match_pays_the_same_for_fixed_kills() {
     let mods = common::pack_mods(&dir, &["kill_gold.lua".to_owned(), "effects.lua".to_owned()]);
     let mut host = ModHost::new(&image()).expect("host");
     // The attributed kill needs unit 20 to be attributed; seat picks enrol attributed units (hero.lua), so the test enrols it here.
-    host.sim().enroll_attributed(20, 0, 0);
+    host.sim_mut().enroll_attributed(20, 0, 0);
     // Every player is its own team, so each pair of players is an enemy pair; a denial is an allied killer.
     for p in 0..4u8 {
-        host.sim().set_team(p, p).expect("team");
+        host.sim_mut().set_team(p, p).expect("team");
     }
     host.load_mods(&mods).expect("moba_match loads");
     let kills = [

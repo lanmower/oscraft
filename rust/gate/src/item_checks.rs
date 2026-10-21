@@ -24,10 +24,10 @@ fn scenario() -> Result<Moba, String> {
     let image = osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))?;
     let mut host = ModHost::new(&image).map_err(|e| format!("ModHost::new: {e:?}"))?;
     let rules = std::fs::read_to_string(scenario.join(crate::checks::RULES_FILE)).map_err(|e| e.to_string())?;
-    if !host.sim().set_attr_rules_text(&rules) {
+    if !host.sim_mut().set_attr_rules_text(&rules) {
         return Err("the pack rules file has a bad line".into());
     }
-    host.sim().set_fog(false);
+    host.sim_mut().set_fog(false);
     let store = std::fs::read_to_string(scenario.join("store.lua")).map_err(|e| e.to_string())?;
     host.load_source("store.lua", &store).map_err(|e| format!("store.lua: {e}"))?;
     Ok(Moba { host })
@@ -35,7 +35,7 @@ fn scenario() -> Result<Moba, String> {
 
 impl Moba {
     fn sim(&self) -> RefMut<'_, Sim> {
-        self.host.sim()
+        self.host.sim_mut()
     }
 
     /// Queues a purchase, has the mod answer it, and reports whether the item was bought.

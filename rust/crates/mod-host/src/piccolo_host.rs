@@ -2327,8 +2327,13 @@ impl ModHost {
         self.version
     }
 
-    /// The sim this host advances, for a caller that commands or inspects units.
-    pub fn sim(&self) -> std::cell::RefMut<'_, Sim> {
+    /// The sim this host advances, read-only. Shared: a read may take it again while it is held (units() does).
+    pub fn sim(&self) -> std::cell::Ref<'_, Sim> {
+        std::cell::Ref::map(self.sh.borrow(), |s| &s.sim)
+    }
+
+    /// The sim this host advances, for a caller that commands it. Exclusive: take it for one statement, not across a read.
+    pub fn sim_mut(&self) -> std::cell::RefMut<'_, Sim> {
         std::cell::RefMut::map(self.sh.borrow_mut(), |s| &mut s.sim)
     }
 
@@ -2341,12 +2346,12 @@ impl ModHost {
     /// Spawns a unit of `kind` for player 0 at Q16.16 `x`, `y`. The unit's index, or None when
     /// the sim refuses the spawn.
     pub fn cmd_spawn(&mut self, kind: u32, x: i32, y: i32) -> Option<usize> {
-        self.sim().spawn(kind, x, y)
+        self.sim_mut().spawn(kind, x, y)
     }
 
     /// Fires the sim trigger `name` on `unit`; false when the unit or the trigger is unknown.
     pub fn fire_trigger(&mut self, unit: usize, name: &str) -> bool {
-        self.sim().fire_trigger(unit, name)
+        self.sim_mut().fire_trigger(unit, name)
     }
 
     /// The event names a mod can handle or trigger on, the same list the mlua backend serves.
