@@ -71,7 +71,8 @@ pub struct Room {
     shed: bool,
     feed: Mutex<Option<Arc<ModLink>>>,
     ui: Mutex<UiLog>,
-    staged: Mutex<Option<Sim>>,
+    /// A reloaded sim waiting for its swap tick: applied when the room's tick reaches the first value.
+    staged: Mutex<Option<(u64, Sim)>>,
     clock: Mutex<Clock>,
     test_panic_at: AtomicU64,
     gold_by_mod: AtomicBool,
@@ -260,7 +261,8 @@ impl Room {
             ));
         }
         sim.set_gold_by_mod(self.gold_by_mod.load(Ordering::Relaxed));
-        *lock(&self.staged) = Some(sim);
+        let swap_at = self.tick_now() + DATA_SWAP_LEAD_TICKS;
+        *lock(&self.staged) = Some((swap_at, sim));
         Ok(())
     }
 
@@ -360,7 +362,14 @@ impl Room {
         if self.take_test_panic(c.tick) {
             panic!("test-only panic armed by --test-panic-tick fired at tick {}", c.tick);
         }
-        if let Some(mut sim) = lock(&self.staged).take() {
+        let due = {
+            let mut slot = lock(&self.staged);
+            match slot.as_ref() {
+                Some((at, _)) if c.tick >= *at => slot.take(),
+                _ => None,
+            }
+        };
+        if let Some((_, mut sim)) = due {
             // Rebuild the match on the new data by replaying the recording onto the fresh sim, so gold, kills, items
             // and camp progress carry over. Falls back to carrying the live units when the replay cannot run.
             let inner = &mut *c;
@@ -731,3 +740,6 @@ fn rebuild_by_replay(rec: &mut crate::replay::Recording, live: &Sim, fresh: &mut
     }
     Ok(())
 }
+
+// Ticks between a staged data reload and its swap: long enough for every peer to receive the swap tick first.
+pub const DATA_SWAP_LEAD_TICKS: u64 = 32;
