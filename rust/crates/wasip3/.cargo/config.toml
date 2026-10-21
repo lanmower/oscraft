@@ -1,3 +1,7 @@
-# getrandom 0.3 has no wasip3 backend; ahash reaches it through piccolo. lib.rs supplies its entropy.
+# getrandom 0.3 reads the host's random for ahash, piccolo's hash seed; the wasi host's random is not
+# deterministic. lib.rs supplies a fixed-seed stream for both the wasip2 guest (the one that builds) and wasip3.
+[target.wasm32-wasip2]
+rustflags = ["--cfg", "getrandom_backend=\"custom\""]
+
 [target.wasm32-wasip3]
 rustflags = ["--cfg", "getrandom_backend=\"custom\""]

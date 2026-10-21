@@ -65,6 +65,8 @@ const ROSTER_EVERY_TICKS = 10;
 const U16_MAX = 0xffff;
 
 const params = new URLSearchParams(location.search);
+// ?nomods=1 loads the page without the pack's Lua mods. A restart that cannot restore its snapshot reloads with it.
+const noMods = params.get("nomods") === "1";
 const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
 const namespace = params.get("ns") || "oscraft";
 const statusEl = document.getElementById("status");
@@ -118,6 +120,20 @@ let netState = null;
 let casts = 0;
 let attacks = 0;
 let localGame = null;
+// The sim as one stable object for the HUD and the fog view, which hold it for the whole match: a restart replaces
+// localGame, and this forwards each call to whichever Game is live.
+const liveGame = new Proxy({}, {
+  get(_, name) {
+    const game = localGame;
+    if (!game) return undefined;
+    const value = game[name];
+    return typeof value === "function" ? value.bind(game) : value;
+  },
+});
+// The wasm module (its Game class), the pack's rules text, and the restore point the tick path rebuilds from.
+let wasmModule = null;
+let rulesText = "";
+let lastGoodSnapshot = null;
 let hud = null;
 let widgets = null;
 let packStartMounted = false;
@@ -287,24 +303,116 @@ function pumpUi() {
   }
 }
 
-async function loadSim() {
-  const mod = await import(/* @vite-ignore */ pkgUrl);
-  await mod.default();
-  mapUrl = packUrl(manifest.image);
-  const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
-  mapBytes = image;
-  setMapSize(readGrid(image));
-  const game = new mod.Game(image);
-  // The pack's rules text (attr_rules.txt) applies before any mod loads: the engine's rule keys and the named values mods read.
-  logModError(game.set_attr_rules(await packText(manifest.rules)));
-  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
-  const mods = await moduleClosure(manifest, packText);
-  logModError(game.load_mods(JSON.stringify(mods)));
-  // The pack's controls read the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
+// A Game over the map, with the pack's rules text applied. The rules (attr_rules.txt: the engine's rule keys and the named
+// values mods read) come before any mod loads.
+function newGame() {
+  const game = new wasmModule.Game(mapBytes);
+  logModError(game.set_attr_rules(rulesText));
+  return game;
+}
+
+// Loads the mods into a Game (`modsJson`, "[]" for none), then the controls' setup and the fog of war. The controls read
+// the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
+function finishGame(game, modsJson) {
+  logModError(game.load_mods(modsJson));
   logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || "local" })));
   // Fog of war is on for every page, moba included: enemies outside the local team's vision stay hidden.
   game.set_fog(true);
   return game;
+}
+
+async function loadSim() {
+  const mod = await import(/* @vite-ignore */ pkgUrl);
+  await mod.default();
+  wasmModule = mod;
+  mapUrl = packUrl(manifest.image);
+  const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
+  mapBytes = image;
+  setMapSize(readGrid(image));
+  rulesText = await packText(manifest.rules);
+  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
+  // ?nomods=1 loads none.
+  const mods = noMods ? [] : await moduleClosure(manifest, packText);
+  const game = finishGame(newGame(), JSON.stringify(mods));
+  lastGoodSnapshot = captureSnapshot(game);
+  if (noMods) document.body.dataset.nomods = "1";
+  return game;
+}
+
+// The sim's save bytes with their tick: the restore point. The sim is only read.
+function captureSnapshot(game) {
+  return { tick: game.ticks(), bytes: game.save_state() };
+}
+
+function sameBytes(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+// Restore points are taken every this many sim ticks (the first is at load).
+const RESTORE_POINT_EVERY_TICKS = 16;
+// Restarts with no good tick between them. Past this the sim stops: a restart that traps again on every tick would
+// otherwise restore the snapshot every frame and never get past the tick that fails.
+const MAX_RESTARTS_IN_A_ROW = 3;
+let restartsInARow = 0;
+
+// The tick path's Game threw. A native panic in the wasm module ends its call as a trap (panic=abort), and that Game is
+// not usable after it. The page logs the failure, rebuilds the Game from the last good snapshot with the pack's mods
+// disabled (load_mods of an empty list), and goes on. A snapshot that cannot be restored reloads the page with
+// ?nomods=1; with ?nomods=1 already set, the sim stops, and the status line says so.
+function recoverGame(err, where) {
+  const reason = err && err.message ? err.message : String(err);
+  const snapshot = lastGoodSnapshot;
+  // The dead Game is dropped before anything else reads it: logModError reads the tick from localGame.
+  localGame = null;
+  restartsInARow += 1;
+  if (restartsInARow > MAX_RESTARTS_IN_A_ROW) {
+    logModError(`${where} failed (${reason}) again after ${MAX_RESTARTS_IN_A_ROW} restarts with no good tick between; the game stops`);
+    setStatus(`game stopped: ${MAX_RESTARTS_IN_A_ROW} restarts in a row failed (${reason})`);
+    return;
+  }
+  logModError(`${where} failed (${reason}); restarting ${snapshot ? `from the snapshot at tick ${snapshot.tick}` : "with no snapshot"} with the pack's mods disabled`);
+  try {
+    if (!snapshot) throw new Error("no snapshot to restore");
+    // The dead Game is not freed: freeing it would call into the module whose call ended mid-way.
+    const game = newGame();
+    game.load_state(snapshot.bytes);
+    // The check is the save bytes: the restored sim must save back to the snapshot's bytes. The state hash is not used here:
+    // a Game restarted with the mods off does not reproduce the live game's hash (measured in the browser), though its save
+    // bytes round-trip exactly.
+    if (!sameBytes(game.save_state(), snapshot.bytes)) throw new Error("the restored sim does not save back to the snapshot's bytes");
+    finishGame(game, "[]");
+    localGame = game;
+    lastGoodSnapshot = captureSnapshot(game);
+    document.body.dataset.modsDisabledAt = String(snapshot.tick);
+    setStatus(`mods disabled: restarted at tick=${snapshot.tick} after a failed ${where}`);
+  } catch (restoreErr) {
+    const message = restoreErr && restoreErr.message ? restoreErr.message : String(restoreErr);
+    logModError(`restart failed: ${message}`);
+    if (!noMods) {
+      const next = new URL(location.href);
+      next.searchParams.set("nomods", "1");
+      location.replace(next.href);
+      return;
+    }
+    setStatus(`game stopped: the restart failed (${message})`);
+  }
+}
+
+// One sim tick on the live Game. Returns false when the tick threw and the Game was restarted (recoverGame), so the
+// caller skips that tick's follow-up. A good tick keeps the restore point current. Everything the tick path calls on the
+// Game is inside the try: a throw that escaped the frame loop would stop its requestAnimationFrame chain.
+function stepSim(where) {
+  try {
+    logModError(localGame.tick());
+    if (localGame.ticks() % RESTORE_POINT_EVERY_TICKS === 0) lastGoodSnapshot = captureSnapshot(localGame);
+    restartsInARow = 0;
+  } catch (err) {
+    recoverGame(err, where);
+    return false;
+  }
+  return true;
 }
 
 // The map's grid sets the playfield: orbit origin, default and maximum camera distance scale with its larger side.
@@ -502,7 +610,8 @@ function anchored(u) {
 function currentUnits() {
   if (netState) return netState.units.map(anchored);
   const out = simUnits();
-  return fogview ? fogview.filter(out) : out;
+  // With no live Game (a restart that failed under ?nomods=1 stops the sim) there is nothing to filter.
+  return fogview && localGame ? fogview.filter(out) : out;
 }
 
 // Every living unit of the local sim, unfiltered by fog: the host's view for seats, stats and command ownership.
@@ -1326,9 +1435,16 @@ function startHost() {
   hosting = true;
   encoder = createStateEncoder();
   const restoredAt = restoreSnapshot();
+  // The restore point follows the sim the room now runs on, not the one the page loaded.
+  lastGoodSnapshot = captureSnapshot(localGame);
   let hostTick = restoredAt > 0 ? restoredAt : 0;
   const hostStep = () => {
-    logModError(localGame.tick());
+    if (!localGame) return;
+    if (!stepSim("host tick")) {
+      // A restart rewinds the sim to its snapshot; the host's tick count follows it.
+      if (localGame) hostTick = localGame.ticks();
+      return;
+    }
     drainPackSwapQueue();
     hostSwapGate();
     applyDueSwap();
@@ -2057,12 +2173,12 @@ async function main() {
   setStatus("loading world assets");
   const stalled = setTimeout(() => setStatus(`loading world assets: still pending after ${WORLD_STALL_MS / 1000} s, check the network`), WORLD_STALL_MS);
   try {
-    await build3d(gl, localGame);
+    await build3d(gl, liveGame);
   } finally {
     clearTimeout(stalled);
   }
   hud = createHud({
-    game: localGame,
+    game: liveGame,
     minimapEl: document.getElementById("minimap"),
     barCanvas: createBarCanvas(),
     mapSize: { w: W, h: H },
@@ -2087,7 +2203,7 @@ async function main() {
     onBind: (bind) => sendInput("bind", bind),
   });
   window.__modUi = modUi;
-  fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
+  fogview = createFogView({ game: liveGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
   window.__fogView = fogview;
   const packButton = document.createElement("button");
   packButton.type = "button";
@@ -2112,15 +2228,18 @@ async function main() {
     }
     if (!netState && localGame && !hosting) {
       localTickAcc += dtS;
-      while (localTickAcc >= SIM_TICK_S) {
-        logModError(localGame.tick());
-        applyDueSwap();
-        advanceTickClock(simUnits());
+      while (localTickAcc >= SIM_TICK_S && localGame) {
+        if (stepSim("tick")) {
+          applyDueSwap();
+          advanceTickClock(simUnits());
+        }
         localTickAcc -= SIM_TICK_S;
       }
     }
-    drawWorld3d();
-    fogview.draw();
+    if (localGame) {
+      drawWorld3d();
+      fogview.draw();
+    }
     publishWitness();
     requestAnimationFrame(frame);
   }

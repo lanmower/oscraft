@@ -16,6 +16,10 @@ path = "src/lib.rs"
 name = "oscraft_wasip3"
 path = "src/main.rs"
 
+[features]
+# Test builds only: a mod whose source carries a `-- wasip3-fault: panic|spin` line makes the guest trap or spin.
+fault-injection = []
+
 [dependencies]
 sim = { path = "../sim" }
 mod-host = { path = "../mod-host", default-features = false, features = ["piccolo"] }

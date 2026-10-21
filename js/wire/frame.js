@@ -2,7 +2,8 @@ export const WIRE_VERSION = 1;
 
 export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16, SWAP_NOT_READY: 17, SWAP_READY: 18, SWAP_CANCEL: 19, PACK_FILE: 20, PACK_WANT: 21, ACTION: 22, UI: 23 });
 
-// Matches the server's DEFAULT_MAX_UNITS (rust/crates/server/src/lib.rs): a STATE or DELTA may carry this many units.
+// The most units a STATE or DELTA may carry, and the most ids a DELTA may remove. decodeFrame refuses a larger count with
+// COUNT_OUT_OF_RANGE; encodeFrame checks only the u16 count field (65535), so it can build a frame that peers refuse.
 export const MAX_UNITS = 4096;
 export const MAX_SWAP_NAME_BYTES = 64;
 export const MAX_ROOM_BYTES = 64;
