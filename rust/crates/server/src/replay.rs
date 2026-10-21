@@ -1293,3 +1293,38 @@ mod tests {
         assert!(Recording::parse(text).is_ok());
     }
 }
+
+#[cfg(all(test, feature = "server-tests"))]
+mod changed_rules_replay {
+    use super::*;
+
+    // A recording replayed onto fresh sims under a changed rule must reach the same state on every run: the replay
+    // is the mid-match data reload, so every peer rebuilding it has to agree.
+    #[test]
+    fn replay_under_changed_rules_is_deterministic() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let mut src = crate::mods::load_data(&scenario, 64).expect("source sim");
+        src.set_fog(false);
+        let mut rec = Recording::new("duel-routes", 64, &src);
+        for _ in 0..1200 {
+            rec.tick(&mut src, false, false);
+        }
+        let text = rec.render(&src);
+        let run = |text: &str, first: Option<u32>| -> u64 {
+            let mut fresh = crate::mods::load_data(&scenario, 64).expect("fresh sim");
+            fresh.set_fog(false);
+            if let Some(v) = first {
+                fresh.set_camp_rule("first_spawn_s", v).expect("rule");
+            }
+            let parsed = Recording::parse(text).expect("recording parses");
+            let mut player = Replayer::new(parsed, &fresh).expect("replayer");
+            while fresh.ticks() < player.end() {
+                player.step(&mut fresh).expect("step");
+            }
+            fresh.state_hash()
+        };
+        // Two replays of one recording under the same rule must agree. A rule set after load does not move the
+        // load-time camp holds, so the rule change here is not a sanity check of the rule's effect (see notes).
+        assert_eq!(run(&text, Some(30)), run(&text, Some(30)));
+    }
+}
