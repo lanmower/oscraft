@@ -114,6 +114,6 @@ Confidence: 2 high, 14 medium, 41 low. Most types have no context signal (their 
 
 ## Regeneration
 
-- the archive decoder removed in the rename commit writes doodad-types-688g.tsv and keeps the shipped_kind of each type across runs.
-- scenarios/moba/tools/place-doodads-688g.mjs (called by the generator) appends the mapped doodad lines (id 10000 and up) to map.osd from doodads-688g.tsv, applying the lane and base exclusions in scenarios/moba/tools/doodad-kinds.mjs.
-- Full archive re-decode was not run here (no extracted refmap.* members in this environment). The placement stage was run from the committed decoded placements, which the generator also writes.
+- scenarios/moba/tools/convert-688g-map.mjs (run with `--src <extract dir>`) writes doodad-types-688g.tsv and keeps the shipped_kind of each type across runs, reading the prior table first.
+- scenarios/moba/tools/place-doodads-688g.mjs (called by convert-688g-map.mjs) replaces the mapped doodad lines (id 10000 and up) in map.osd with lines built from doodads-688g.tsv and doodad-types-688g.tsv, applying the lane and base exclusions in scenarios/moba/tools/doodad-kinds.mjs.
+- Full archive re-decode was not run here (no extracted refmap.* members in this environment). The placement stage was run from the committed decoded placements, which convert-688g-map.mjs also writes.

@@ -17,8 +17,6 @@ const HELP = [
   "oscraft.setAttackHold(unitId, hold)     true always holds on attack-move, false never holds, null restores the Rust rule. Returns the accept",
   "oscraft.setShadows(bool)                sun shadow pass on or off (renderer setShadows)",
   "oscraft.setFog(bool)                    fog-of-war overlay and fog unit filter on or off (render side only; the sim's fog rule is unchanged)",
-  "oscraft.setTerrain('splat' | 'tiles')   terrain mode; reloads the page with ?terrain= (boot-time switch)",
-  "oscraft.setRenderer('webgl')    renderer (the only one); reloads the page",
   "oscraft.debug.actions()         the pack's controls.lua actions (asked through debug_actions); null without a local sim",
   "oscraft.debug.effects()         the last 64 display effects the page drained from the sim (read-only copy)",
   "oscraft.debug.modErrors()       the mod error log of this page, newest last: [{tick, text}] (read-only copy)",
@@ -166,27 +164,7 @@ export function createDebugApi(hooks) {
     setFog(on) {
       return hooks.setFog(Boolean(on));
     },
-
-    setTerrain(mode) {
-      if (mode !== "splat" && mode !== "tiles") return false;
-      reloadWith("terrain", mode === "tiles" ? "tiles" : null);
-      return true;
-    },
-
-    setRenderer(kind) {
-      if (kind !== "webgl") return false;
-      reloadWith("renderer", null);
-      return true;
-    },
   };
-
-  // The boot-time switches (?renderer, ?terrain) are read once at load, so changing them is a reload with the new query.
-  function reloadWith(name, value) {
-    const url = new URL(location.href);
-    if (value === null) url.searchParams.delete(name);
-    else url.searchParams.set(name, value);
-    location.assign(url.href);
-  }
 
   return api;
 }

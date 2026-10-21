@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 24;
+pub const VERSION: u16 = 25;
 pub const PLCE_FLAG_START: u32 = 1;
 /// A start record that names its team: the team index sits in bits 8..16 of the flags.
 pub const PLCE_FLAG_TEAM: u32 = 2;
@@ -40,9 +40,6 @@ pub const FILTER_MASK_BITS: u32 = 15;
 pub const FILTER_ALL: u32 = (1 << FILTER_MASK_BITS) - 1;
 pub const DAMAGE_RESPONSES: &[&str] = &["normal", "reduced", "immune"];
 pub const RESOURCE_KINDS: &[&str] = &["none", "resource_a", "gas"];
-pub const UPGRADE_TARGET_KINDS: &[&str] = &["unit", "ability"];
-pub const UPGRADE_APPLY: &[&str] = &["new_only", "existing"];
-pub const UPGRADE_STACKING: &[&str] = &["replace", "add", "refuse"];
 pub const DAMAGE_TYPES: &[&str] = &["normal", "concussive", "explosive"];
 pub const SIZE_CATEGORIES: &[&str] = &["small", "medium", "large"];
 pub const CLOAK_FLAGS: &[&str] = &["cloaked", "burrowable", "detector_required"];
@@ -63,7 +60,6 @@ pub const TAG_UABL: [u8; 4] = *b"UABL";
 pub const TAG_UNIT: [u8; 4] = *b"UNIT";
 pub const TAG_BHVR: [u8; 4] = *b"BHVR";
 pub const TAG_PLCE: [u8; 4] = *b"PLCE";
-pub const TAG_UPGR: [u8; 4] = *b"UPGR";
 pub const TAG_REGN: [u8; 4] = *b"REGN";
 pub const TAG_LIMT: [u8; 4] = *b"LIMT";
 pub const TAG_ECON: [u8; 4] = *b"ECON";
@@ -98,7 +94,6 @@ pub const UABL_RECORD: usize = 2;
 pub const UNIT_RECORD: usize = 86;
 pub const BHVR_RECORD: usize = 16;
 pub const PLCE_RECORD: usize = 16;
-pub const UPGR_RECORD: usize = 24;
 pub const REGN_RECORD: usize = 12;
 pub const LIMT_RECORD: usize = 4;
 pub const ECON_RECORD: usize = 32;
@@ -171,7 +166,7 @@ pub const ITEM_SLOTS: usize = 6;
 pub const GRID_HEADER_LEN: usize = 16;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
-pub const SECTIONS: [([u8; 4], usize); 28] = [
+pub const SECTIONS: [([u8; 4], usize); 27] = [
     (TAG_STRS, STRS_RECORD),
     (TAG_EFCT, EFCT_RECORD),
     (TAG_ABIL, ABIL_RECORD),
@@ -179,7 +174,6 @@ pub const SECTIONS: [([u8; 4], usize); 28] = [
     (TAG_UNIT, UNIT_RECORD),
     (TAG_BHVR, BHVR_RECORD),
     (TAG_PLCE, PLCE_RECORD),
-    (TAG_UPGR, UPGR_RECORD),
     (TAG_REGN, REGN_RECORD),
     (TAG_LIMT, LIMT_RECORD),
     (TAG_ECON, ECON_RECORD),

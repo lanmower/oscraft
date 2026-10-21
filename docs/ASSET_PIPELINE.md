@@ -4,7 +4,7 @@
 GLBs get lossless `EXT_meshopt_compression` geometry and `KHR_texture_basisu` KTX2 base-colour images. Each
 raster image becomes a `.ktx2` file. The client loader reads both forms: `js/client/glb.js` and
 `js/client/glb_resolve.js` decode meshopt, and `js/client/texture.js` decodes KTX2 through the vendored Basis
-transcoder.
+transcoder (`js/client/vendor/three/libs/basis`).
 
 The script runs offline once its dependencies are installed. It makes no network call.
 
@@ -54,7 +54,7 @@ Refresh the byte counts in an assets manifest from the files on disk:
 node scripts/assets/prep-ktx.mjs sync scenarios/moba/assets/assets.json --root .
 ```
 
-`sync` keeps the file's indentation and recomputes `count` and `total_bytes`.
+`sync` rewrites each item's `bytes` from the file on disk, keeps the file's indentation, and recomputes `count` and `total_bytes`.
 
 ## The exact toktx commands
 
@@ -115,19 +115,18 @@ ktx validate out.ktx2
 
 ## The naming gate
 
-CI (`.github/workflows/ci.yml`, the job step "count reference-game terms in the tree") runs `git grep -iE`
-over tracked files for four reference-game terms and fails when any appears. That check matches bytes, so a
-binary KTX2 or GLB can trip it by chance, because supercompressed data is effectively random. The script checks
-every output for those four terms, case-insensitively, at byte level. When one matches, it re-encodes that image
-with `--qlevel` raised by 4 and `--zcmp` lowered by 1, up to six times. It fails the run if none of the six passes
-the check. The manifest records the `shift` used for each image.
+The script carries the naming gate's four reference-game terms (`NAMING_TERMS` in `prep-ktx.mjs`; see [NAMING.md](NAMING.md)).
+It checks every output for them, case-insensitively, at byte level, because supercompressed data is effectively
+random and can match by chance. When one matches, it re-encodes that image with `--qlevel` raised by 4 and `--zcmp`
+lowered by 1, up to six times. It fails the run if none of the six passes the check. The manifest records the
+`shift` used for each image. No CI job runs this check; the script is the only place it is enforced.
 
 ## Loader behaviour
 
 - **GLB images:** `js/client/glb.js` reads `KHR_texture_basisu`, and `js/client/texture.js` decodes `image/ktx2`.
 - **Raster URIs:** `loadBaseColorImage` in `js/client/texture.js` tries the `.ktx2` sibling of a PNG or JPEG
-  URI first and falls back to the raster file when the sibling is missing. Splat layers and tile textures use
-  this path, so they load KTX2 without any caller change.
+  URI first, when the asset catalogue (`assets.json`) lists that sibling, and falls back to the raster file
+  otherwise. Splat layers and tile textures use this path, so they load KTX2 without any caller change.
 
 ## Verifying an output
 

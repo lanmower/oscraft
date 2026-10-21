@@ -1,6 +1,6 @@
 # reference map 6.88g refmap.j: function index and literal facts
 
-Source: `refmap.j` extracted from `reference map 6.88g.w3x` (3,065,090 bytes, 102,278 lines). The text is obfuscated (random identifiers, locals reused for unrelated values), so behaviour below is read from bodies, not names. No JASS interpreter was run. Line numbers are 1-based in `refmap.j`.
+Source: `refmap.j` extracted from `reference map 6.88g.w3x` (external, not in the repo; 3,065,090 bytes, 102,278 lines). The text is obfuscated (random identifiers, locals reused for unrelated values), so behaviour below is read from bodies, not names. No JASS interpreter was run. Line numbers are 1-based in `refmap.j`.
 
 Method: a Node text scan finds each `function ... endfunction` pair (4,503 functions) and counts the natives each body calls. A function is tagged with a direct effect when its body calls a unit, timer, stock, time, hero or tech native. Tags are counts of native use, not proof of intent. Hand-read rows are marked as such.
 
@@ -1147,7 +1147,7 @@ Columns: function, lines, tags. Generated from the scan, not hand-read. Use sect
 - Time-of-day scale: `.5` (100918 in `main`, before start); `.625` (30035 in `PRE`, at game start, overrides `.5`).
 - Time of day set to `0` in `USX` (51480) when its flag is set. Not a start value.
 - Suspend time of day `false` at start (100917, 30034). Map init is `main`.
-- Clock length is not in the map. The script sets a rate, not a day or night duration. Our sim keeps 300 s day and 300 s night (`rust/crates/sim/src/lib.rs:70-71`); the map does not state those, so they stay as is.
+- Clock length is not in the map. The script sets a rate, not a day or night duration. Our pack keeps 300 s day and 300 s night (`scenarios/moba/attr_rules.txt` lines 79-80, `day_s` and `night_s`, read by `scenarios/moba/clock.lua`); the map does not state those, so they stay as is.
 
 ### 2.2 Timers (literal intervals)
 
@@ -1176,17 +1176,17 @@ Columns: function, lines, tags. Generated from the scan, not hand-read. Use sect
 
 - Lane wave: per run of `JAE` (30 s), the lane units spawn once per branch. The per-run count is not literal; it comes from the branch structure at 26227-26296.
 - Extra spawn block every 7th run (`wT`, 26297 on). Count not literal.
-- Siege: no literal 300 s or 4800-tick period in the script. Our `SIEGE_STARTS` and `SIEGE_PERIOD` (4800 ticks) are not stated by the map (see `docs/CONVERGENCE_688G.md` section 8).
+- Siege: no literal 300 s or 4800-tick period in the script. Our `SIEGE_STARTS` and `SIEGE_PERIOD` (4800 ticks, `scenarios/moba/lanes.lua` lines 18-19) are not stated by the map (see `docs/CONVERGENCE_688G.md` section 8).
 
 ## 3. Decisions for our data
 
 | Literal (line) | Our data | Result |
 | --- | --- | --- |
-| Wave period 30 s (30050, 26201) | `scenarios/moba/waves.osd` line 11: `creep_wave_*` period 480 ticks (30 s at 16 ticks/s) | Matches. No change. |
-| First wave at game start (30051 `TriggerExecute`) | `waves.osd` creep abilities with no initial cooldown | Matches. No change. |
+| Wave period 30 s (30050, 26201) | `scenarios/moba/lanes.lua` line 17 `CREEP_PERIOD` = 480 ticks (30 s at 16 ticks/s); `scenarios/moba/waves.osd` line 11 `creep_wave_*` also 480 | Matches. No change. |
+| First wave at game start (30051 `TriggerExecute`) | `scenarios/moba/lanes.lua` line 92 starts the creep timer at tick 1; `waves.osd` creep abilities have no initial cooldown | Matches. No change. |
 | 210 s extra block (26201, 26297) | none | Units `umtw`/`u00R` not identified and not a stated siege period. Needs the interpreter or unit identity. Not set. |
-| Siege 5 min (none in script) | `waves.osd` lines 12-14, 4800 ticks | Not stated by the script. Kept unchanged. |
-| Start time of day 6.0 and scale .625 (30033, 30035) | no start clock in `scenarios/moba`; day and night lengths are rust constants | No data field. Not changed. The rust sim is not in this lane. |
+| Siege 5 min (none in script) | `scenarios/moba/lanes.lua` lines 18-19, 4800 ticks (`waves.osd` lines 12-14 match) | Not stated by the script. Kept unchanged. |
+| Start time of day 6.0 and scale .625 (30033, 30035) | no start clock in `scenarios/moba` (day and night lengths are the pack rules `day_s` and `night_s`) | No start-clock data field. Not changed. The rust sim is not in this lane. |
 | Creep camp filter on (100920) | no data field | Not changed. |
 | Tech swaps every 450 s (26536-26545) | no data field for periodic tech | Not changed. Needs a data home. |
 | Starting gold, lumber, level | not literal | Needs the interpreter (runtime and save string). |
@@ -1200,4 +1200,4 @@ Values set in data: none. Every literal that the script states directly either a
 
 - The identity of `umtw`, `u00R` and `n137`.
 - The effect of `KKE`, `G0V`, `G1V`, `PXE`, `JXE` (bodies not read).
-- Whether the 30 s handler's lane branches match `waves.osd` lane splits (needs `JRE` read).
+- Whether the 30 s handler's lane branches match the `scenarios/moba/lanes.lua` lane splits (needs `JRE` read).

@@ -3,8 +3,7 @@
 //! A pack is a list of MODULES, one Lua file each, named by file stem (hero.lua is "hero"). Each
 //! module runs in its own environment with the game table (system, each, trigger, cmd_*, units,
 //! players, unit_kind, timer, region, var, score, ability, gold, victory and the UI calls), the same
-//! unit queries and event dispatch as the mlua host. The Lua half of var, region and timer is the
-//! source mlua runs (shared.rs). A module is a chunk that returns a table of hooks, such as
+//! unit queries and event dispatch. The Lua half of var, region and timer is the source the host runs (shared.rs). A module is a chunk that returns a table of hooks, such as
 //! `return { on_died = function(u, s) ... end }`, and may call `require("<module>")` to use another
 //! module of its pack; `require` takes a string literal so the host can load modules in dependency
 //! order, a cycle is reported by name, and a module loads once and its returned table is cached.
@@ -18,7 +17,9 @@
 //! tile and doodad editing globals. A mod call runs under a step budget so a
 //! loop cannot stall the guest.
 
+use std::any::Any;
 use std::cell::RefCell;
+use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::SystemTime;
@@ -38,6 +39,32 @@ use crate::{EVENTS, MAX_UNITS};
 
 const FUEL_PER_STEP: i32 = 4096;
 const MAX_STEPS: u32 = 2_500;
+// The most Lua memory the host holds, all modules together (piccolo's gc-arena total allocation). See memory_check.
+const MEMORY_CAP: usize = 256 << 20;
+// Every hook key a module can have: the names a failed hook is switched off by (`off`), and the names retire turns off.
+const HOOK_KEYS: &[&str] = &[
+    "on_spawned",
+    "on_attacked",
+    "on_died",
+    "on_enter",
+    "on_leave",
+    "on_player_joined",
+    "on_tick",
+    "on_behaviour",
+    "run_systems",
+    "fire_timers",
+    "on_unit_died",
+    "on_cast",
+    "on_cast_request",
+    "on_proc",
+    "on_hit",
+    "on_march",
+    "on_check_win",
+    "on_request",
+    "on_skill_up",
+    "on_action",
+    "on_pointer",
+];
 const MAX_REGIONS: usize = 64;
 // The owner of mineral patches and geysers, the sim's neutral player (loader.rs NEUTRAL_PLAYER).
 const NEUTRAL_OWNER: u8 = 0xFF;
@@ -141,9 +168,11 @@ enum Pending {
 struct Shared {
     sim: Sim,
     regions: Vec<Region>,
-    // Commands from the mod's own handlers (on_died, on_unit_died), applied before `cmds` as mlua does.
+    // Commands from the mod's own handlers (on_died, on_unit_died), applied before `cmds`.
     local: Vec<Cmd>,
     cmds: Vec<Cmd>,
+    // The distinct counter names mods have set in this sim (bounded by MAX_COUNTER_NAMES).
+    counter_names: std::collections::HashSet<String>,
     clock: u64,
     fired: u64,
     applied: u64,
@@ -391,6 +420,44 @@ fn fail<'gc>(ctx: Context<'gc>, msg: String) -> Error<'gc> {
     Error::from_value(msg.into_value(ctx))
 }
 
+// A Rust panic in a native body, the VM or a sim call a hook made is caught where it starts and becomes an error, so
+// the hook is switched off and the host keeps advancing. Under panic = abort (the wasm guest) nothing unwinds to catch.
+fn panic_text(p: &(dyn Any + Send)) -> String {
+    if let Some(s) = p.downcast_ref::<&str>() {
+        return (*s).to_owned();
+    }
+    p.downcast_ref::<String>().cloned().unwrap_or_else(|| "non-string panic payload".to_owned())
+}
+
+// The body of one native: a panic in it is a Lua error naming the panic.
+fn guard_native<'gc, R>(c: Context<'gc>, body: impl FnOnce() -> Result<R, Error<'gc>>) -> Result<R, Error<'gc>> {
+    match panic::catch_unwind(AssertUnwindSafe(body)) {
+        Ok(r) => r,
+        Err(p) => Err(fail(c, format!("native_panic: {}", panic_text(&*p)))),
+    }
+}
+
+// Runs host or VM code that may panic; a panic is an Err with its message, for the caller to log as a hook failure.
+fn guarded<T>(what: &str, body: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
+    match panic::catch_unwind(AssertUnwindSafe(body)) {
+        Ok(r) => r,
+        Err(p) => Err(format!("panic_in_{what}: {}", panic_text(&*p))),
+    }
+}
+
+// Removes every entry of a table, so the values it held can be collected.
+fn clear_table<'gc>(ctx: Context<'gc>, t: Table<'gc>) {
+    let mut keys = Vec::new();
+    let mut key = Value::Nil;
+    while let piccolo::table::NextValue::Found { key: k, .. } = t.next(key) {
+        keys.push(k);
+        key = k;
+    }
+    for k in keys {
+        let _ = t.set(ctx, k, Value::Nil);
+    }
+}
+
 fn int<'gc>(ctx: Context<'gc>, v: Value<'gc>, i: usize) -> Result<i64, Error<'gc>> {
     v.to_integer().ok_or_else(|| fail(ctx, format!("bad_argument: argument {} must be an integer", i + 1)))
 }
@@ -454,6 +521,10 @@ fn fx_event<'gc>(ctx: Context<'gc>, kind: &str, x: f64, y: f64, params: Value<'g
     if kind.is_empty() {
         return Err("bad_argument: effect kind is empty".into());
     }
+    // A NaN or infinite position would clamp to 0 silently; it is refused instead.
+    if !x.is_finite() || !y.is_finite() {
+        return Err(format!("bad_argument: effect position {x}, {y} must be finite"));
+    }
     let at = |v: f64| v.round().clamp(i32::MIN as f64, i32::MAX as f64) as i32;
     let mut e = FxEvent::new(kind, at(x), at(y));
     match params {
@@ -465,6 +536,9 @@ fn fx_event<'gc>(ctx: Context<'gc>, kind: &str, x: f64, y: f64, params: Value<'g
             e.team = int("team", -1)?;
             e.duration = int("duration", 0)?;
             e.scale = int("scale", 0)?;
+            if e.duration < 0 || e.scale < 0 {
+                return Err("bad_field: effect duration and scale must not be negative".into());
+            }
             e.value = int("value", 0)?;
             e.colour = field_text_opt(ctx, t, "colour")?.unwrap_or_default();
             e.text = field_text_opt(ctx, t, "text")?.unwrap_or_default();
@@ -579,6 +653,35 @@ fn slot_of(slot: i64, limit: usize) -> Result<usize, String> {
     usize::try_from(slot).ok().filter(|&s| s < limit).ok_or_else(|| format!("invalid_slot: {slot} is outside 0..{limit}"))
 }
 
+// The most catalog entries of one kind a mod may add. A new name past this is refused; a redefinition is not. Each define
+// keeps its entry for the life of the world and re-hashes the catalog, so an unbounded stream of new names is a freeze.
+const MAX_DEFINED_KINDS: usize = 4_096;
+// The sim keeps one counter value per (unit, name), so a mod's counter names are bounded in count and length.
+const MAX_COUNTER_NAMES: usize = 256;
+const MAX_COUNTER_NAME_BYTES: usize = 64;
+
+fn definition_room(known: bool, count: usize, what: &str) -> Result<(), String> {
+    if known || count < MAX_DEFINED_KINDS {
+        Ok(())
+    } else {
+        Err(format!("definition_limit: at most {MAX_DEFINED_KINDS} {what} in one catalog"))
+    }
+}
+
+fn note_counter_name(names: &mut std::collections::HashSet<String>, name: &str) -> Result<(), String> {
+    if name.len() > MAX_COUNTER_NAME_BYTES {
+        return Err(format!("invalid_counter: name is over {MAX_COUNTER_NAME_BYTES} bytes"));
+    }
+    if names.contains(name) {
+        return Ok(());
+    }
+    if names.len() >= MAX_COUNTER_NAMES {
+        return Err(format!("counter_limit: at most {MAX_COUNTER_NAMES} counter names"));
+    }
+    names.insert(name.to_owned());
+    Ok(())
+}
+
 fn buff_args(kind: i64, ticks: i64) -> Result<(i32, i32), String> {
     let kind = i32::try_from(kind).map_err(|_| format!("invalid_buff: kind {kind} out of i32 range"))?;
     let ticks = i32::try_from(ticks).ok().filter(|&t| t > 0).ok_or_else(|| format!("invalid_buff: ticks {ticks} must be a positive i32"))?;
@@ -595,12 +698,12 @@ fn target_of(sim: &Sim, target: i64) -> Result<i32, String> {
 }
 
 // Declares a global or game-table function. `[names]` are the Rc handles the body captures; the
-// body reads arguments with a(n) and returns through ret or Ok(CallbackReturn::Return).
+// body reads arguments with a(n) and returns through ret or Ok(CallbackReturn::Return). The body runs under guard_native.
 macro_rules! native {
     ($ctx:ident, $table:ident, $name:literal, [$($cap:ident),*], |$c:ident, $s:ident| $body:block) => {{
         $(#[allow(unused_variables)] let $cap = $cap.clone();)*
         #[allow(unused_mut, unused_variables)]
-        let callback = Callback::from_fn(&$ctx, move |$c, _, mut $s| $body);
+        let callback = Callback::from_fn(&$ctx, move |$c, _, mut $s| guard_native($c, || $body));
         $table.set($ctx, $name, callback).expect("bind native");
     }};
 }
@@ -680,6 +783,7 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         let (i, name, value) = (a(c, &s, 0)?, text(c, s.get(1), 1)?, a(c, &s, 2)?);
         let mut sh = sh.borrow_mut();
         let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        note_counter_name(&mut sh.counter_names, &name).map_err(|m| fail(c, m))?;
         sh.sim.set_counter(u, &name, value);
         Ok(CallbackReturn::Return)
     });
@@ -782,6 +886,9 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
     native!(ctx, game, "timed_spawn", [sh], |c, s| {
         let (caster, kind, life) = (a(c, &s, 0)?, a(c, &s, 1)?, a(c, &s, 2)?);
         let (x, y) = (fixed(a(c, &s, 3)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 4)?).map_err(|m| fail(c, m))?);
+        if life < 0 {
+            return Err(fail(c, format!("invalid_timed_spawn: life {life} must not be negative")));
+        }
         let (Ok(kind), Ok(life)) = (i32::try_from(kind), i32::try_from(life)) else {
             return Err(fail(c, "invalid_timed_spawn: kind or life out of i32 range".into()));
         };
@@ -1635,6 +1742,11 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             weapon,
             abilities,
         };
+        {
+            let sh = sh.borrow();
+            let cat = sh.sim.catalog();
+            definition_room(cat.unit_index(&name).is_some(), cat.units.len(), "units").map_err(|m| fail(c, m))?;
+        }
         sh.borrow_mut().sim.define_unit(&def).map_err(|why| fail(c, format!("invalid_unit: {name}: {why}")))?;
         s.replace(c, name);
         Ok(CallbackReturn::Return)
@@ -1652,6 +1764,12 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             health: int("health")?,
             ability: field_text_opt(c, spec, "ability").map_err(|m| fail(c, m))?,
         };
+        {
+            let sh = sh.borrow();
+            let cat = sh.sim.catalog();
+            let known = cat.items.iter().any(|it| cat.name(it.name) == name);
+            definition_room(known, cat.items.len(), "items").map_err(|m| fail(c, m))?;
+        }
         let index = sh.borrow_mut().sim.define_item(&def).map_err(|why| fail(c, format!("invalid_item: {name}: {why}")))?;
         s.replace(c, index as i64);
         Ok(CallbackReturn::Return)
@@ -1692,6 +1810,11 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             requires: names("requires")?,
             unlocks: names("unlocks")?,
         };
+        {
+            let cat = sh.sim.catalog();
+            let known = cat.research.iter().any(|r| cat.name(r.name) == name);
+            definition_room(known, cat.research.len(), "upgrades").map_err(|m| fail(c, m))?;
+        }
         sh.sim.define_upgrade(&def).map_err(|why| fail(c, format!("invalid_upgrade: {name}: {why}")))?;
         Ok(CallbackReturn::Return)
     });
@@ -1795,6 +1918,11 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         }
         let target = field_text_opt(c, spec, "target").map_err(|m| fail(c, m))?;
         let (target, cooldown, energy, filter) = (|| shared::ability_args(target.as_deref(), int("cooldown")?, int("energy")?, int("filter")?))().map_err(|m| fail(c, m))?;
+        {
+            let cat = sh.sim.catalog();
+            let known = cat.abilities.iter().any(|a| cat.name(a.name) == name);
+            definition_room(known, cat.abilities.len(), "abilities").map_err(|m| fail(c, m))?;
+        }
         sh.sim
             .define_ability(AbilitySpec { name: &name, cooldown, energy, target, filter, effects })
             .map_err(|why| fail(c, format!("invalid_ability: {name}: {why}")))?;
@@ -2285,6 +2413,13 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
     for name in ["cmd_add_gold", "cmd_add_stat", "cmd_add_unit_gold", "cmd_add_xp", "cmd_set_respawn"] {
         env.set(ctx, name, game.get(ctx, name)).expect("bind bare command");
     }
+    // Test only: a native that panics, so the containment test can show a panic in a native is a hook failure. Not in a
+    // release build.
+    #[cfg(test)]
+    native!(ctx, env, "fault_panic", [], |c, s| {
+        let _ = (c, &s);
+        panic!("fault injected by the containment test")
+    });
     env.set(ctx, "game", game).expect("bind game");
 }
 
@@ -2470,7 +2605,17 @@ impl ModHost {
         });
         Ok(Self {
             lua: RefCell::new(lua),
-            sh: Rc::new(RefCell::new(Shared { sim, regions: Vec::new(), local: Vec::new(), cmds: Vec::new(), clock: 0, fired: 0, applied: 0, ui: Vec::new() })),
+            sh: Rc::new(RefCell::new(Shared {
+                sim,
+                regions: Vec::new(),
+                local: Vec::new(),
+                cmds: Vec::new(),
+                counter_names: Default::default(),
+                clock: 0,
+                fired: 0,
+                applied: 0,
+                ui: Vec::new(),
+            })),
             state,
             modules: Vec::new(),
             registry: Rc::new(RefCell::new(std::collections::HashMap::new())),
@@ -2543,7 +2688,7 @@ impl ModHost {
             let sh = self.sh.borrow();
             (sh.sim.save_state(), sh.regions.clone(), sh.cmds.clone(), sh.local.clone())
         };
-        match self.build_module(name, src) {
+        match guarded("load", || self.build_module(name, src)) {
             Ok(m) => Ok(m),
             Err(e) => {
                 let mut sh = self.sh.borrow_mut();
@@ -2563,6 +2708,7 @@ impl ModHost {
         sh.sim = sim;
         sh.cmds.clear();
         sh.local.clear();
+        sh.counter_names.clear();
     }
 
     /// The hooks a mod's failure switched off, as "module:hook". Empty while every hook runs.
@@ -2607,10 +2753,21 @@ impl ModHost {
     }
 
     // A hook of module `i` raised a Lua error: log it and turn that hook off for that module only.
+    // A memory breach retires the module (see retire): the memory is what the module holds, so its data goes too.
     fn hook_failed(&mut self, i: usize, hook: &str, error: &str) {
         let Some(m) = self.modules.get_mut(i) else { return };
         println!("ev=mod_hook_failed module={} hook={} error={:?}", m.name, hook, error);
         m.off.push(hook.to_owned());
+        if error.starts_with("memory_limit") {
+            println!("ev=mod_retired module={} reason=memory_limit", m.name);
+            // retire runs Lua and a collection; a panic there is logged and the host goes on.
+            if let Err(e) = guarded("retire", || {
+                self.retire(i);
+                Ok(())
+            }) {
+                println!("ev=mod_retire_failed module={i} error={e:?}");
+            }
+        }
     }
 
     // The environment one module gets: the game table, the host prelude's emit, run_systems and
@@ -2628,30 +2785,34 @@ impl ModHost {
                 }
                 bind(ctx, env, &sh);
                 let fallback = Callback::from_fn(&ctx, move |c, _, mut s| {
-                    let key = s.get(1);
-                    let mut found = Value::Nil;
-                    for peer in peers.borrow().iter() {
-                        found = c.fetch(peer).get(c, key);
-                        if !found.is_nil() {
-                            break;
+                    guard_native(c, || {
+                        let key = s.get(1);
+                        let mut found = Value::Nil;
+                        for peer in peers.borrow().iter() {
+                            found = c.fetch(peer).get(c, key);
+                            if !found.is_nil() {
+                                break;
+                            }
                         }
-                    }
-                    s.replace(c, found);
-                    Ok(CallbackReturn::Return)
+                        s.replace(c, found);
+                        Ok(CallbackReturn::Return)
+                    })
                 });
                 let meta = Table::new(&ctx);
                 meta.set(ctx, "__index", fallback)?;
                 env.set_metatable(&ctx, Some(meta));
                 let require = Callback::from_fn(&ctx, move |c, _, mut s| {
-                    let name = text(c, s.get(0), 0)?;
-                    let found = registry.borrow().get(&name).cloned();
-                    let out = match found {
-                        Some(Some(t)) => Value::Table(c.fetch(&t)),
-                        Some(None) => Value::Boolean(true),
-                        None => return Err(fail(c, format!("unknown_module: {name} is not a module of this pack, or did not load"))),
-                    };
-                    s.replace(c, out);
-                    Ok(CallbackReturn::Return)
+                    guard_native(c, || {
+                        let name = text(c, s.get(0), 0)?;
+                        let found = registry.borrow().get(&name).cloned();
+                        let out = match found {
+                            Some(Some(t)) => Value::Table(c.fetch(&t)),
+                            Some(None) => Value::Boolean(true),
+                            None => return Err(fail(c, format!("unknown_module: {name} is not a module of this pack, or did not load"))),
+                        };
+                        s.replace(c, out);
+                        Ok(CallbackReturn::Return)
+                    })
                 });
                 env.set(ctx, "require", require)?;
                 let known = Table::new(&ctx);
@@ -2661,27 +2822,33 @@ impl ModHost {
                 let rows_fn = {
                     let sh = sh.clone();
                     Callback::from_fn(&ctx, move |c, _, mut s| {
-                        let comps = match s.get(0) {
-                            Value::Table(t) => t,
-                            _ => return Err(fail(c, "bad_argument: comps must be a list".into())),
-                        };
-                        let out = rows(c, &sh.borrow().sim, comps)?;
-                        s.replace(c, out);
-                        Ok(CallbackReturn::Return)
+                        guard_native(c, || {
+                            let comps = match s.get(0) {
+                                Value::Table(t) => t,
+                                _ => return Err(fail(c, "bad_argument: comps must be a list".into())),
+                            };
+                            let out = rows(c, &sh.borrow().sim, comps)?;
+                            s.replace(c, out);
+                            Ok(CallbackReturn::Return)
+                        })
                     })
                 };
                 let note = {
                     let sh = sh.clone();
-                    Callback::from_fn(&ctx, move |_, _, _| {
-                        sh.borrow_mut().fired += 1;
-                        Ok(CallbackReturn::Return)
+                    Callback::from_fn(&ctx, move |c, _, _| {
+                        guard_native(c, || {
+                            sh.borrow_mut().fired += 1;
+                            Ok(CallbackReturn::Return)
+                        })
                     })
                 };
                 let clock = {
                     let sh = sh.clone();
                     Callback::from_fn(&ctx, move |c, _, mut s| {
-                        s.replace(c, sh.borrow().clock as i64);
-                        Ok(CallbackReturn::Return)
+                        guard_native(c, || {
+                            s.replace(c, sh.borrow().clock as i64);
+                            Ok(CallbackReturn::Return)
+                        })
                     })
                 };
                 let closure = Closure::load(ctx, Some("host-prelude"), prelude().as_bytes())?;
@@ -3184,44 +3351,51 @@ impl ModHost {
         Ok(())
     }
 
+    // Every hook call runs under guarded: a panic anywhere in it (the VM, a native, the sim) is an Err for the caller to log.
     fn call(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<(), String> {
-        let exec = self.start(f, args)?;
-        self.run(&exec)
+        guarded("hook", || {
+            let exec = self.start(f, args)?;
+            self.run(&exec)
+        })
     }
 
     // Runs a hook and returns its first two results as Ret values, so a hook's answer can be read
     // (on_march returns x and y). A Lua error is returned, for the caller to log and skip.
     fn call_ret(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<(Ret, Ret), String> {
-        let exec = self.start(f, args)?;
-        self.finish(&exec)?;
-        self.lua.borrow_mut()
-            .try_enter(|ctx| {
-                let (x, y) = ctx.fetch(&exec).take_result::<(Value, Value)>(ctx)??;
-                Ok((Ret::of(x), Ret::of(y)))
-            })
-            .map_err(|e| e.to_string())
+        guarded("hook", || {
+            let exec = self.start(f, args)?;
+            self.finish(&exec)?;
+            self.lua.borrow_mut()
+                .try_enter(|ctx| {
+                    let (x, y) = ctx.fetch(&exec).take_result::<(Value, Value)>(ctx)??;
+                    Ok((Ret::of(x), Ret::of(y)))
+                })
+                .map_err(|e| e.to_string())
+        })
     }
 
     fn start(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<StashedExecutor, String> {
-        let state = &self.state;
-        self.lua.borrow_mut()
-            .try_enter(|ctx| {
-                let values: Vec<Value> = args
-                    .into_iter()
-                    .map(|a| match a {
-                        Arg::Table(t) => Value::Table(ctx.fetch(&t)),
-                        Arg::Int(i) => Value::Integer(i),
-                        Arg::Bool(b) => Value::Boolean(b),
-                        Arg::Nil => Value::Nil,
-                        Arg::Text(t) => t.into_value(ctx),
-                        Arg::Num(n) => Value::Number(n),
-                        Arg::State => Value::Table(ctx.fetch(state)),
-                        Arg::Json(j) => json_value(ctx, &j),
-                    })
-                    .collect();
-                Ok(ctx.stash(Executor::start(ctx, ctx.fetch(f), Variadic(values))))
-            })
-            .map_err(|e| e.to_string())
+        guarded("start", || {
+            let state = &self.state;
+            self.lua.borrow_mut()
+                .try_enter(|ctx| {
+                    let values: Vec<Value> = args
+                        .into_iter()
+                        .map(|a| match a {
+                            Arg::Table(t) => Value::Table(ctx.fetch(&t)),
+                            Arg::Int(i) => Value::Integer(i),
+                            Arg::Bool(b) => Value::Boolean(b),
+                            Arg::Nil => Value::Nil,
+                            Arg::Text(t) => t.into_value(ctx),
+                            Arg::Num(n) => Value::Number(n),
+                            Arg::State => Value::Table(ctx.fetch(state)),
+                            Arg::Json(j) => json_value(ctx, &j),
+                        })
+                        .collect();
+                    Ok(ctx.stash(Executor::start(ctx, ctx.fetch(f), Variadic(values))))
+                })
+                .map_err(|e| e.to_string())
+        })
     }
 
     // Applies the queued commands in queue order. A command aimed at a unit that died since it
@@ -3230,7 +3404,13 @@ impl ModHost {
         let local = std::mem::take(&mut self.sh.borrow_mut().local);
         let list = std::mem::take(&mut self.sh.borrow_mut().cmds);
         for cmd in local.into_iter().chain(list) {
-            self.apply_one(cmd);
+            // A panic applying one command drops that command and is logged; the rest of the batch and the step still run.
+            if let Err(e) = guarded("command", || {
+                self.apply_one(cmd);
+                Ok(())
+            }) {
+                println!("ev=mod_command_failed error={e:?}");
+            }
         }
     }
 
@@ -3394,14 +3574,16 @@ impl ModHost {
 
     // Runs a hook and reads its first three results as owned values (the store hooks' answers).
     fn call_own(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<[Own; 3], String> {
-        let exec = self.start(f, args)?;
-        self.finish(&exec)?;
-        self.lua.borrow_mut()
-            .try_enter(|ctx| {
-                let (x, y, z) = ctx.fetch(&exec).take_result::<(Value, Value, Value)>(ctx)??;
-                Ok([own(ctx, x), own(ctx, y), own(ctx, z)])
-            })
-            .map_err(|e| e.to_string())
+        guarded("hook", || {
+            let exec = self.start(f, args)?;
+            self.finish(&exec)?;
+            self.lua.borrow_mut()
+                .try_enter(|ctx| {
+                    let (x, y, z) = ctx.fetch(&exec).take_result::<(Value, Value, Value)>(ctx)??;
+                    Ok([own(ctx, x), own(ctx, y), own(ctx, z)])
+                })
+                .map_err(|e| e.to_string())
+        })
     }
 
     // Applies one command to the sim. False for a command this world does not apply (its count is not kept).
@@ -3582,18 +3764,58 @@ impl ModHost {
 
     fn run(&mut self, executor: &StashedExecutor) -> Result<(), String> {
         self.finish(executor)?;
-        self.lua.borrow_mut().try_enter(|ctx| ctx.fetch(executor).take_result::<()>(ctx)?).map_err(|e| e.to_string())
+        guarded("hook", || self.lua.borrow_mut().try_enter(|ctx| ctx.fetch(executor).take_result::<()>(ctx)?).map_err(|e| e.to_string()))
     }
 
-    // Steps `executor` until it holds a result for the caller to take.
+    // Steps `executor` until it holds a result for the caller to take. Every step is FUEL_PER_STEP instructions, and a call
+    // over MAX_STEPS steps is an Err, so no hook runs forever. After each step the Lua memory cap is checked, and a panic
+    // inside a step is an Err: the caller turns either into a hook failure.
     fn finish(&mut self, executor: &StashedExecutor) -> Result<(), String> {
         for _ in 0..MAX_STEPS {
             let mut fuel = Fuel::with(FUEL_PER_STEP);
-            if self.lua.borrow_mut().enter(|ctx| ctx.fetch(executor).step(ctx, &mut fuel)) {
+            let done = guarded("vm", || Ok(self.lua.borrow_mut().enter(|ctx| ctx.fetch(executor).step(ctx, &mut fuel))))?;
+            guarded("memory", || self.memory_check())?;
+            if done {
                 return Ok(());
             }
         }
         Err(format!("instruction_limit: over {MAX_STEPS} steps in one call"))
+    }
+
+    // The Lua memory check. piccolo's gc-arena metrics count every allocation of the one Lua state, so the cap is for
+    // all modules together. Over the cap, a full collection runs first, so garbage is not blamed on a module; still over,
+    // the error names the cap, and hook_failed retires the module whose hook was running.
+    fn memory_check(&self) -> Result<(), String> {
+        let mut lua = self.lua.borrow_mut();
+        if lua.total_memory() <= MEMORY_CAP {
+            return Ok(());
+        }
+        lua.gc_collect();
+        let used = lua.total_memory();
+        if used <= MEMORY_CAP {
+            return Ok(());
+        }
+        Err(format!("memory_limit: {used} bytes of Lua memory in use, over the {MEMORY_CAP} byte cap"))
+    }
+
+    // Switches every hook of module `i` off and empties its tables, so the memory they held is collected and the other
+    // modules keep the room.
+    fn retire(&mut self, i: usize) {
+        let Some(m) = self.modules.get_mut(i) else { return };
+        for &hook in HOOK_KEYS {
+            if !m.off.iter().any(|o| o == hook) {
+                m.off.push(hook.to_owned());
+            }
+        }
+        let mut tables = vec![m.env.clone(), m.handlers.clone()];
+        tables.extend(m.exports.clone());
+        let mut lua = self.lua.borrow_mut();
+        lua.enter(|ctx| {
+            for t in &tables {
+                clear_table(ctx, ctx.fetch(t));
+            }
+        });
+        lua.gc_collect();
     }
 }
 
@@ -3646,4 +3868,34 @@ pub struct Death {
     pub killer: Option<u32>,
     pub killer_player: Option<u8>,
     pub bounty: i32,
+}
+
+// The containment of a native's panic is tested here, not in tests/: the test-only native `fault_panic` is bound only in
+// this crate's own test build (see bind).
+#[cfg(all(test, feature = "build"))]
+mod containment {
+    use std::path::Path;
+
+    use crate::ModHost;
+
+    fn host() -> ModHost {
+        let scenario = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
+        let image = crate::build_image(&scenario).expect("moba scenario builds an image");
+        ModHost::new(&image).expect("host")
+    }
+
+    #[test]
+    fn a_panicking_native_is_a_hook_failure_and_the_host_keeps_advancing() {
+        let mut host = host();
+        let panicker: (String, String) = ("panicker.lua".into(), "return { on_tick = function(state) fault_panic() end }".into());
+        let steady: (String, String) = ("steady.lua".into(), "return { on_tick = function(state) state.steady = (state.steady or 0) + 1 end }".into());
+        host.load_mods(&[panicker, steady]).expect("both load");
+        for _ in 0..3 {
+            host.advance().expect("the panic is contained: the host keeps advancing");
+        }
+        // The RefCell guard the host holds was released on unwind: the sim is borrowable again.
+        let _ = host.sim().count();
+        assert_eq!(host.state_int("steady"), Some(3), "the other module ran on every tick");
+        assert!(host.disabled_hooks().contains(&"panicker:on_tick".to_string()), "the panicking hook is off: {:?}", host.disabled_hooks());
+    }
 }

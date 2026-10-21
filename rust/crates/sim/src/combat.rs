@@ -257,7 +257,7 @@ impl Sim {
     }
 
     /// The catalog bounty of unit `j` when destroyed. Zero for an unknown unit. The kill rule (mod code)
-    /// reads it through `game.unit_bounty`; the engine pays nothing.
+    /// reads it from the death record its on_died hook receives; the engine pays nothing.
     pub fn unit_bounty(&self, j: usize) -> i32 {
         if j >= self.n {
             return 0;

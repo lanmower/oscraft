@@ -229,19 +229,6 @@ impl Default for ItemRaw {
     }
 }
 
-#[derive(Debug)]
-pub struct UpgradeRaw {
-    pub name: String,
-    pub target_kind: usize,
-    pub target: String,
-    pub level: i32,
-    pub apply: usize,
-    pub stacking: usize,
-    pub effect: usize,
-    pub resource_a_per_level: i32,
-    pub gas_per_level: i32,
-}
-
 /// Map grid, built by `grid()` and painted by `paint()`. Also the validated form.
 /// Each cell byte is a walkability bitfield (see `format::CELL_*`).
 #[derive(Debug, Default)]
@@ -276,7 +263,6 @@ pub struct Collector {
     pub abilities: RefCell<Vec<AbilityRaw>>,
     pub behaviours: RefCell<Vec<BehaviourRaw>>,
     pub spawns: RefCell<Vec<SpawnRaw>>,
-    pub upgrades: RefCell<Vec<UpgradeRaw>>,
     pub cell_limit: RefCell<Option<i32>>,
     pub unit_ext: RefCell<Vec<UnitExtRaw>>,
     pub channels: RefCell<Vec<ChannelRaw>>,
@@ -475,19 +461,6 @@ pub struct Route {
     pub points: Vec<(u32, u32)>,
 }
 
-#[derive(Debug)]
-pub struct Upgrade {
-    pub name: String,
-    pub target_kind: u8,
-    pub target: u16,
-    pub level: u8,
-    pub apply: u8,
-    pub stacking: u8,
-    pub effect: Effect,
-    pub resource_a_per_level: u32,
-    pub gas_per_level: u32,
-}
-
 #[derive(Debug, Default)]
 pub struct Doodad {
     pub id: u32,
@@ -549,7 +522,6 @@ pub struct Catalog {
     pub ext: Vec<crate::abilityext::AbilityExt>,
     pub behaviours: Vec<Behaviour>,
     pub spawns: Vec<Spawn>,
-    pub upgrades: Vec<Upgrade>,
     pub doodads: Vec<Doodad>,
     pub cell_limit: u32,
     pub econ: Econ,

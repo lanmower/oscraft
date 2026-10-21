@@ -1,4 +1,4 @@
-//! Writes the map image a pack loads. Run from rust/: `cargo run -p mapexport -- <package-dir> <out.bin>`.
+//! Writes the map image a pack loads. Run from rust/: `cargo run -p mapexport -- <package-dir> <out.osdt>`.
 //! The package's manifest.json lists its .osd files in load order (the `data` list); they compile into one image,
 //! the same bytes the spike and gate load.
 
@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 fn main() {
     let mut args = std::env::args().skip(1);
-    let usage = "usage: mapexport <package-dir> <out.bin>";
+    let usage = "usage: mapexport <package-dir> <out.osdt>";
     let dir = PathBuf::from(args.next().expect(usage));
     let out = args.next().expect(usage);
     let manifest_path = dir.join("manifest.json");

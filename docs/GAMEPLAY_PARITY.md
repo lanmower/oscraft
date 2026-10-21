@@ -1,6 +1,6 @@
 # Gameplay parity list
 
-Parity with the gameplay list means every GP row is covered by a CAP row whose gate check passes on CI. A row marked MISSING has no covering CAP row in docs/CAPABILITIES.md (read from remote main). Coverage here is a mapping check; CAP rows marked `claimed` are not yet verified by a passing gate, and CAP rows whose gate reads `none (gate removed)` have no gate at all.
+Parity with the gameplay list means every GP row is covered by a CAP row whose gate check passes when `oscraft-gate` runs. No CI job runs `oscraft-gate`. A row marked MISSING has no covering CAP row in docs/CAPABILITIES.md (read from remote main). Coverage here is a mapping check; CAP rows marked `claimed` are not yet verified by a passing gate, and CAP rows whose gate reads `none (gate removed)` have no gate at all.
 
 Sources (read through the fetch port; mechanics restated in our own words, no page text or tables copied, no reference numbers used):
 - broodwar.live mechanics wiki, https://broodwar.live/wiki/mechanics/ (worker-management, attack-mechanics, damage-types, armor-types, economy, resources, supply, splash-damage, cloaking-detection, fog-of-war, terrain, transport, game-speed, building-placement, control-groups)
@@ -164,10 +164,10 @@ What a mod of the reference-game style can do, in our terms.
 | GP-MOD-14 | A mod authors custom abilities in a graphical editor. | CAP-ABIL-6 |
 | GP-MOD-15 | A mod authors custom triggers and events in a graphical editor. | CAP-EVT-4 |
 | GP-MOD-16 | A mod authors custom terrain tiles and doodads in an editor. | CAP-MAP-10 |
-| GP-MOD-17 | A mod shows custom UI panels and dialogs. Headless servers refuse this; the refusal name is pending in code. | CAP-PRES-3 |
-| GP-MOD-18 | A mod plays custom sounds. Headless servers refuse this; the refusal name is pending in code. | CAP-PRES-2 |
-| GP-MOD-19 | A mod drives the viewer's camera. Headless servers refuse this; the refusal name is pending in code. | CAP-PRES-1 |
-| GP-MOD-20 | A mod posts custom chat messages. Headless servers refuse this; the refusal name is pending in code. | CAP-PRES-4 |
+| GP-MOD-17 | A mod shows custom UI panels and dialogs. The headless sim names a refusal for this. | CAP-PRES-3 |
+| GP-MOD-18 | A mod plays custom sounds. The headless sim names a refusal for this. | CAP-PRES-2 |
+| GP-MOD-19 | A mod drives the viewer's camera. The headless sim names a refusal for this. | CAP-PRES-1 |
+| GP-MOD-20 | A mod posts custom chat messages. The headless sim names a refusal for this. | CAP-PRES-4 |
 | GP-MOD-21 | A mod's persistent state survives a save and load of the match. | CAP-PERS-3 |
 | GP-MOD-22 | A map author writes terrain and placement into a versioned map data image. | CAP-PERS-2 |
 | GP-MOD-23 | A map author places neutral objects and start positions through the map data. | CAP-MAP-11 |
@@ -175,17 +175,15 @@ What a mod of the reference-game style can do, in our terms.
 
 ---
 
-# Section B: general game-server additions (SRV)
+# Section B: general engine additions
 
-What a general game server needs beyond the gameplay list.
+What the engine needs beyond the gameplay list: replay, persistence, determinism and packaging.
 
 | id | mechanic | CAP |
 |---|---|---|
 | GP-REP-1 | Every order accepted during a match is recorded with its tick, so the match can be replayed. | CAP-DET-4 |
 | GP-REP-2 | Replaying a recording reproduces the same state hashes as the original match. | CAP-DET-3 |
 | GP-REP-3 | A replay can be played at a chosen speed, paused, and seeked. | CAP-DET-5 |
-| GP-SPEC-1 | A spectator receives a read-only snapshot of the match state and cannot issue orders. | CAP-SRV-1 |
-| GP-SPEC-2 | A spectator receives only the changes since its last tick instead of the full state. | CAP-SRV-4 |
 | GP-PERS-1 | A live match can be saved and loaded with its state. | CAP-PERS-3 |
 | GP-PERS-2 | A loaded save continues with the same state hashes as uninterrupted play. | CAP-PERS-4 |
 | GP-PERS-3 | Map data is written to a versioned image and read back unchanged. | CAP-PERS-2 |
@@ -195,13 +193,7 @@ What a general game server needs beyond the gameplay list.
 | GP-DET-4 | The same mod and the same state reproduce the same hashes in every run. | CAP-DET-3 |
 | GP-PKG-1 | A mod ships as a versioned package that the host checks before loading. | CAP-PERS-5 |
 | GP-PKG-2 | A map image is refused when its format version does not match the reader. | CAP-PERS-1 |
-| GP-HOST-1 | One process hosts several rooms, each with its own state. | CAP-SRV-5 |
 | GP-HOST-2 | Each room advances at a fixed tick rate on its own ticker. | CAP-TIME-1 |
-| GP-HOST-3 | Process and room counters are exposed for monitoring. | CAP-SRV-6 |
-| GP-ORD-1 | Remote clients submit orders over HTTP with a player index and coordinates. | CAP-SRV-3 |
-| GP-ORD-2 | Order intake is rate-limited per player. | CAP-ORD-6 |
-| GP-ORD-3 | Order intake checks authorization before an order is applied. | CAP-ORD-6 |
-| GP-ORD-4 | A malformed order or out-of-bounds coordinate is rejected before it reaches the simulation. | CAP-ORD-1 |
 
 ## Control citations
 
@@ -222,6 +214,6 @@ Each row names its source. A row is confirmed only when a 6.88 page or patch not
 
 ## Wave creep acquire (decision)
 
-Wave creeps now chase an enemy inside their acquire range and then resume the route. The chase is mod code in `scenarios/moba/lanes.lua` (game.acquire_of, game.order_of, game.issue_order, game.chase_get, game.chase_set); the Rust version at commit b92f8a9 was `rust/crates/sim/src/acquire.rs`. Acquire ranges come from the 6.88 creep unit data: creep Ghoul 500, creep_ranged Necromancer 600, creep_siege Meat Wagon 800. Structures are excluded as creep acquire targets; the 6.88 data does not say this, so it is a judgement call made to keep matches from stalling.
+Wave creeps now chase an enemy inside their acquire range and then resume the route. The acquire scan, the chase and the return to the saved order are pack rules in `scenarios/moba/lanes.lua` (wave_creep_acquire; game.acquire_of, game.order_of, game.issue_order, game.chase_get, game.chase_set). The sim keeps only the acquire data and the chase storage, in `rust/crates/sim/src/acquire.rs`. Acquire ranges come from the 6.88 creep unit data: creep Ghoul 500, creep_ranged Necromancer 600, creep_siege Meat Wagon 800. Structures are excluded as creep acquire targets; the 6.88 data does not say this, so it is a judgement call made to keep matches from stalling.
 
 Measured shift on the 3600-tick match (b92f8a9 against its parent): non-hero kills side 0 to 1 went from 43 to 36, side 1 to 0 from 72 to 70, and the win tick from 28655 to 18953. The shift is kept as the intended behaviour. Revisit it only with a new 6.88 source for creep targeting.

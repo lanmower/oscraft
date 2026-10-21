@@ -1,4 +1,4 @@
-# OSDT data file, format version 24
+# OSDT data file, format version 25
 
 Binary image written by `osdt-data` and read by the sim crate. All integers are little-endian. There is no padding between sections or records beyond the explicit reserved bytes listed below. A reader rejects any other version: a reader of an older version must reject the file.
 
@@ -9,12 +9,12 @@ The layout is fixed by this file and by `src/format.rs`. The content is not: nam
 | offset | size | field                                              |
 |--------|------|----------------------------------------------------|
 | 0      | 4    | magic `OSDT` (0x4F 0x53 0x44 0x54)                  |
-| 4      | 2    | version, `24`                                      |
+| 4      | 2    | version, `25`                                      |
 | 6      | 2    | header length, `16`                                 |
-| 8      | 4    | section count, `28`                                |
+| 8      | 4    | section count, `27`                                |
 | 12     | 4    | total file length in bytes                          |
 
-A reader rejects the file on a magic mismatch, an unknown version, a section count other than `28`, or a total length that does not equal the file size.
+A reader rejects the file on a magic mismatch, an unknown version, a section count other than `27`, or a total length that does not equal the file size.
 
 ## Section table (16 bytes per entry, immediately after the header)
 
@@ -36,7 +36,6 @@ Sections appear in this order, and the reader requires all twenty-eight tags:
 | `UNIT` | 86          | unit records                                       |
 | `BHVR` | 16          | behaviour records                                  |
 | `PLCE` | 16          | placement records                                  |
-| `UPGR` | 24          | upgrade records                                    |
 | `REGN` | 12          | one per unit; count = unit count                   |
 | `LIMT` | 4           | always 1                                           |
 | `ECON` | 32          | always 1                                           |
@@ -83,7 +82,7 @@ Concatenated name bytes. No terminator.
 | 12     | 4    | param 2, i32                                                |
 | 16     | 4    | param 3, i32                                                |
 
-Effects are stored contiguously: first the effects of each ability in ability order, then one effect per upgrade (UPGR order), then one effect per research (RSCH order).
+Effects are stored contiguously: first the effects of each ability in ability order, then one effect per research (RSCH order).
 
 Parameters are plain `i32` integers. Fractions are Q16 (`65536` = 1.0). Radii and distances are milli-units. Durations, periods and lifetimes are game ticks and must be integers. Unused parameters are written 0 and not read. What each parameter means is defined by the effect kind's behaviour in the sim and the scenario that names it.
 
@@ -229,20 +228,6 @@ A building runs one research at a time. The research effect applies to every mat
 | 0      | 4    | shield regeneration per tick, `>= 0`                         |
 | 4      | 4    | delay after the last hit before regeneration starts, ticks, `>= 0` |
 | 8      | 4    | health regeneration per tick, `>= 0`                         |
-
-### UPGR (24 bytes per record)
-| offset | size | field                                                             |
-|--------|------|-------------------------------------------------------------------|
-| 0      | 4    | name offset (upgrade id)                                          |
-| 4      | 2    | name length                                                       |
-| 6      | 1    | target kind: index into `UPGRADE_TARGET_KINDS`                    |
-| 7      | 1    | level, `1..=255`                                                  |
-| 8      | 1    | applies to: index into `UPGRADE_APPLY`                            |
-| 9      | 1    | stacking rule: index into `UPGRADE_STACKING`                      |
-| 10     | 2    | target index: `UNIT` index for kind 0, `ABIL` index for kind 1    |
-| 12     | 4    | effect index into `EFCT` (the upgrade's effect slot)              |
-| 16     | 4    | resource_a cost per level, `>= 0`                                 |
-| 20     | 4    | gas cost per level, `>= 0`                                        |
 
 ### LIMT (4 bytes, count 1)
 | offset | size | field                                                          |
@@ -408,18 +393,16 @@ These lists are fixed in `format.rs`. A code is the zero-based index. Changing o
 - Damage types (`UEXT`, `DMGF`): `normal`, `concussive`, `explosive`
 - Size categories: `small`, `medium`, `large`
 - Cloak flags: `cloaked`, `burrowable`, `detector_required`
-- Upgrade target kinds: `unit`, `ability`; apply: `new_only`, `existing`; stacking: `replace`, `add`, `refuse`
 - Requirement kinds: `unit`, `research`
 - Tile ids (`GRID`): `0..=255`, author-defined; the sim maps each id to terrain and art.
 
 ## Rules for readers
 
 - Read every field at its offset. Reserved bytes are written 0 and ignored on read.
-- Bounds-check every index (`EFCT`, `UABL`, `ABIL`, `UNIT`, `RSCH`, `UPGR` targets, `STRS`, `EKND`, `DKND`, `FNAM`, `MCND`) against its section or list.
+- Bounds-check every index (`EFCT`, `UABL`, `ABIL`, `UNIT`, `RSCH`, `STRS`, `EKND`, `DKND`, `FNAM`, `MCND`) against its section or list.
 - Reject an index whose code is past its fixed list above, and an effect kind past the `EKND` list.
 - Reject a PLCE record whose unit index is past `UNIT` (unless it is a start, which carries `0xFFFF`), whose player is neither `0..=15` nor `0xFFFF`, whose position is outside the grid extent, or whose flags have bits other than 0, 1 and the team byte set.
 - Reject two start records for the same player.
-- Reject an UPGR record with a level of `0` or a target index past its section.
 - Reject a PREQ record with a kind above `1` or an index past its section.
 - Reject an RSCH record whose building is past `UNIT` or whose effect is past `EFCT`.
 - Reject a UEXT record with a size category or damage type past its list, cloak flags above `0b111`, or a miss chance above `65536`.

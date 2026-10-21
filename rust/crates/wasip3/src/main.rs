@@ -5,8 +5,20 @@ fn main() -> std::io::Result<()> {
     wasip3_guest::run(stdin.lock(), stdout.lock())
 }
 
+// The driver reports a failure as one stderr line and exits non-zero; it does not panic on a guest's failure.
 #[cfg(not(target_arch = "wasm32"))]
-fn main() -> Result<(), String> {
+fn main() -> std::process::ExitCode {
+    match cli() {
+        Ok(()) => std::process::ExitCode::SUCCESS,
+        Err(reason) => {
+            eprintln!("oscraft_wasip3: {reason}");
+            std::process::ExitCode::FAILURE
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn cli() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let path = args.first().ok_or("usage: oscraft_wasip3 <guest.wasm> [image.osdt [mod-image.osdt]]")?;
     let bytes = std::fs::read(path).map_err(|e| format!("read guest {path}: {e}"))?;
@@ -31,6 +43,12 @@ mod host {
     /// The commands the native host sends after the image. Each reply is one stdout line.
     const COMMANDS: &[&str] = &["tick 10", "ticks", "unit-count", "mod-load"];
     const MOD_LOADED: &str = "ok mod-load wasip3-test";
+
+    /// The fuel one guest exchange may burn (wasmtime charges about one unit per wasm instruction). The guest runs under
+    /// it, so a runaway loop in the guest ends the exchange as a named error instead of holding the driver forever.
+    /// Not measured: the component could not be built where this was written. 1e11 is a guess with a wide margin over a
+    /// 300-step scenario run; a legitimate exchange that trips it fails loudly with fuel_exhausted, and this is the number to raise.
+    const GUEST_FUEL: u64 = 100_000_000_000;
 
     struct State {
         ctx: WasiCtx,
@@ -107,6 +125,24 @@ mod host {
         Ok((fired.parse().map_err(|e| format!("fired: {e}"))?, applied.parse().map_err(|e| format!("applied: {e}"))?))
     }
 
+    /// The engine every guest runs on: the async component model, with fuel metered so a run can be bounded.
+    fn engine() -> Result<Engine, String> {
+        let mut config = Config::new();
+        config.wasm_component_model_async(true);
+        config.consume_fuel(true);
+        Engine::new(&config).map_err(|e| format!("engine: {e:#}"))
+    }
+
+    /// The one-line reason a guest call failed. Fuel exhaustion and a trap are named (a guest panic is a trap, since the
+    /// wasm build aborts on panic); any other error prints as it came.
+    fn guest_reason(e: &wasmtime::Error) -> String {
+        match e.downcast_ref::<wasmtime::Trap>() {
+            Some(wasmtime::Trap::OutOfFuel) => format!("fuel_exhausted: the guest used its {GUEST_FUEL} fuel budget"),
+            Some(trap) => format!("trap: {trap}"),
+            None => format!("{e:#}"),
+        }
+    }
+
     /// Runs the guest component on the image at `image_path`, sends `commands` over stdin, and
     /// returns the reply lines.
     fn exchange(guest: &str, image_path: &str, commands: &[&str]) -> Result<Vec<String>, String> {
@@ -118,9 +154,7 @@ mod host {
             input.push(b'\n');
         }
         let stdout = MemoryOutputPipe::new(1 << 20);
-        let mut config = Config::new();
-        config.wasm_component_model_async(true);
-        let engine = Engine::new(&config).map_err(|e| format!("engine: {e:#}"))?;
+        let engine = engine()?;
         let component = Component::from_file(&engine, guest).map_err(|e| format!("component {guest}: {e:#}"))?;
         let mut linker = Linker::<State>::new(&engine);
         wasmtime_wasi::p3::add_to_linker(&mut linker).map_err(|e| format!("linker: {e:#}"))?;
@@ -129,13 +163,46 @@ mod host {
         let mut builder = WasiCtx::builder();
         builder.stdin(MemoryInputPipe::new(input)).stdout(stdout.clone());
         let mut store = Store::new(&engine, State { ctx: builder.build(), table: ResourceTable::default() });
+        store.set_fuel(GUEST_FUEL).map_err(|e| format!("fuel: {e:#}"))?;
         let runtime = tokio::runtime::Runtime::new().map_err(|e| format!("tokio: {e}"))?;
         let result = runtime.block_on(async {
             let command = Command::instantiate_async(&mut store, &component, &linker).await?;
             store.run_concurrent(async move |store| command.wasi_cli_run().call_run(store).await).await?
         });
-        result.map_err(|e| format!("guest run: {e:#}"))?.map_err(|()| "guest exited with an error".to_string())?;
+        let outcome = result.map_err(|e| format!("guest run: {}", guest_reason(&e)))?;
+        outcome.map_err(|()| "guest exited with an error".to_string())?;
         let out = String::from_utf8(stdout.contents().to_vec()).map_err(|e| format!("stdout utf8: {e}"))?;
         Ok(out.lines().map(str::to_owned).collect())
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::{engine, guest_reason};
+        use wasmtime::{Instance, Module, Store};
+
+        // Calls export `name` of the module `wat` with `fuel` units; the failure as the driver reports it.
+        fn call(wat: &str, name: &str, fuel: u64) -> Result<(), String> {
+            let engine = engine()?;
+            let module = Module::new(&engine, wat).map_err(|e| format!("module: {e:#}"))?;
+            let mut store = Store::new(&engine, ());
+            store.set_fuel(fuel).map_err(|e| format!("fuel: {e:#}"))?;
+            let instance = Instance::new(&mut store, &module, &[]).map_err(|e| guest_reason(&e))?;
+            let func = instance.get_typed_func::<(), ()>(&mut store, name).map_err(|e| format!("export: {e:#}"))?;
+            func.call(&mut store, ()).map_err(|e| guest_reason(&e))
+        }
+
+        #[test]
+        fn a_runaway_guest_loop_runs_out_of_fuel_and_is_an_error() {
+            let spin = r#"(module (func (export "spin") (loop $l (br $l))))"#;
+            let reason = call(spin, "spin", 1_000_000).expect_err("a loop that never returns must not return");
+            assert!(reason.starts_with("fuel_exhausted"), "{reason}");
+        }
+
+        #[test]
+        fn a_guest_trap_is_an_error_naming_the_trap() {
+            let boom = r#"(module (func (export "boom") unreachable))"#;
+            let reason = call(boom, "boom", 1_000_000).expect_err("a trap must be an error");
+            assert!(reason.starts_with("trap:"), "{reason}");
+        }
     }
 }

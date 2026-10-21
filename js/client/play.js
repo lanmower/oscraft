@@ -6,7 +6,7 @@ import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import { assetJson, assetRel, assetUrl, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
+import { assetJson, assetRel, assetUrl, fetchRetrying, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
@@ -357,7 +357,7 @@ function parsedModel(name) {
   if (!entry) {
     entry = (async () => {
       const url = new URL(assetUrl("models", `${name}.glb`), location.href);
-      const res = await fetch(url);
+      const res = await fetchRetrying(url);
       if (!res.ok) throw new Error(`models/${name}.glb HTTP ${res.status}`);
       const bytes = await resolveGlbExtensions(await res.arrayBuffer());
       const glb = parseGlb(bytes);

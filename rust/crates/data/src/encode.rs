@@ -180,33 +180,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         debug_assert_eq!(plce.len() - start, PLCE_RECORD);
     }
 
-    // Upgrade effects follow the ability effects in EFCT, one slot per upgrade.
-    let mut upgr = Vec::new();
-    for upgrade in &catalog.upgrades {
-        let effect_index = efct_count;
-        u16_le(&mut efct, upgrade.effect.kind);
-        pad(&mut efct, 2);
-        for param in upgrade.effect.params {
-            i32_le(&mut efct, param);
-        }
-        efct_count += 1;
-
-        let (name_off, name_len) = strings.intern(&upgrade.name);
-        let start = upgr.len();
-        u32_le(&mut upgr, name_off);
-        u16_le(&mut upgr, name_len);
-        upgr.push(upgrade.target_kind);
-        upgr.push(upgrade.level);
-        upgr.push(upgrade.apply);
-        upgr.push(upgrade.stacking);
-        u16_le(&mut upgr, upgrade.target);
-        u32_le(&mut upgr, effect_index);
-        u32_le(&mut upgr, upgrade.resource_a_per_level);
-        u32_le(&mut upgr, upgrade.gas_per_level);
-        debug_assert_eq!(upgr.len() - start, UPGR_RECORD);
-    }
-
-    // Research effects follow the upgrade effects, one slot per research.
+    // Research effects follow the ability effects in EFCT, one slot per research.
     let mut rsch = Vec::new();
     for research in &catalog.researches {
         let effect_index = efct_count;
@@ -406,7 +380,6 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         (TAG_UNIT, catalog.units.len(), UNIT_RECORD, unit_bytes),
         (TAG_BHVR, catalog.behaviours.len(), BHVR_RECORD, bhvr),
         (TAG_PLCE, catalog.spawns.len(), PLCE_RECORD, plce),
-        (TAG_UPGR, catalog.upgrades.len(), UPGR_RECORD, upgr),
         (TAG_REGN, catalog.units.len(), REGN_RECORD, regn),
         (TAG_LIMT, 1, LIMT_RECORD, limt),
         (TAG_ECON, 1, ECON_RECORD, econ_bytes),

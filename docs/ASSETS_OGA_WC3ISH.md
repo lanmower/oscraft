@@ -13,7 +13,7 @@ Rejection reasons: attribution (CC-BY, OGA-BY) and share-alike or copyleft (CC-B
 
 ## Shipped models (scenarios/moba/assets/models/oga)
 
-Each is a single mesh and primitive (glb.js reads the first primitive only) with its colormap PNG embedded in the GLB (no external texture). Sizes are native metres; scale matches existing doodads (tree.glb 1.41 m tall, rock-a.glb 0.6 m).
+Each is a single mesh and primitive (glb.js reads the first primitive only). Six embed their colormap PNG in the GLB (fence, gate, snowman, tower-top, tree-fantasy, tree-snow); rock-flat.glb refers to an external KTX2 texture (`scenarios/moba/assets/models/Textures/rock-color.ktx2`); cactus, stump and tree-pine-small have no texture and use a flat base colour. Sizes are native metres; scale matches existing doodads (tree.glb 1.41 m tall, rock-a.glb 0.39 m tall).
 
 | doodad key | role | file | source pack | size |
 |---|---|---|---|---|

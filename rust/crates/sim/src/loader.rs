@@ -1,4 +1,4 @@
-//! Reads the OSDT data file, format version 2, exactly as
+//! Reads the OSDT data file, format version 25, exactly as
 //! rust/crates/data/FORMAT.md states it. Every integer is little-endian;
 //! reserved bytes are skipped on read; every index is bounds-checked.
 
@@ -10,7 +10,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 24;
+const VERSION: u16 = 25;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const PLACE_TEAM: u32 = 2;
@@ -23,8 +23,8 @@ const ABILITY_FILTER_BITS: u16 = 15;
 const CELL_BITS: u8 = 0b111;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 28] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"UPGR", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT", b"TUNE", b"SNAM", b"EKND", b"FNAM", b"MCND", b"DKND"];
-const RECORD_SIZES: [usize; 28] = [1, 20, 32, 2, 86, 16, 16, 24, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520, 128, 1, 1, 1, 1, 1];
+const SECTION_TAGS: [&[u8; 4]; 27] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT", b"TUNE", b"SNAM", b"EKND", b"FNAM", b"MCND", b"DKND"];
+const RECORD_SIZES: [usize; 27] = [1, 20, 32, 2, 86, 16, 16, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520, 128, 1, 1, 1, 1, 1];
 /// Most teleport landing points a ring holds: the eight compass directions the teleport effect steps through.
 const TELEPORT_RING_MAX_POINTS: u8 = 8;
 /// Most cells a structure scan reaches past weapon range.
@@ -242,29 +242,6 @@ impl Behaviour {
     }
 }
 
-/// An upgrade record: one level of an upgrade. Records with the same name share a group,
-/// which is the index of the first record of that name.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Upgrade {
-    pub name: Name,
-    /// 0 unit, 1 ability.
-    pub target_kind: u8,
-    pub level: u8,
-    /// 0 new units only, 1 existing units too.
-    pub applies: u8,
-    /// 0 replace, 1 add, 2 refuse if present.
-    pub stacking: u8,
-    /// UNIT index for kind 0, ABIL index for kind 1.
-    pub target: u16,
-    /// Index into EFCT.
-    pub effect: u32,
-    /// Resource A charged per level: reaching level n costs n times this.
-    pub resource_a_per_level: i32,
-    /// Gas charged per level: reaching level n costs n times this.
-    pub gas_per_level: i32,
-    pub group: u32,
-}
-
 /// Regeneration of one unit kind, per tick: shield and health, and the ticks to wait after a hit.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Regen {
@@ -459,7 +436,6 @@ pub struct Catalog {
     pub units: Vec<Unit>,
     pub behaviours: Vec<Behaviour>,
     pub placements: Vec<Placement>,
-    pub upgrades: Vec<Upgrade>,
     /// One per unit kind, in UNIT order.
     pub regen: Vec<Regen>,
     /// Most units one grid cell may hold at once; 0 = no limit.
@@ -731,7 +707,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 28];
+    let mut sections = [(0usize, 0usize); 27];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -754,11 +730,11 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
 
     // Name lists the scenario declares (SNAM, EKND, FNAM, MCND, DKND). A bad list refuses the map.
     let names = NameLists {
-        stat_names: name_list(bytes, body(23), "SNAM")?,
-        effect_kinds: name_list(bytes, body(24), "EKND")?,
-        filter_names: name_list(bytes, body(25), "FNAM")?,
-        mod_conds: name_list(bytes, body(26), "MCND")?,
-        doodad_kinds: name_list(bytes, body(27), "DKND")?,
+        stat_names: name_list(bytes, body(22), "SNAM")?,
+        effect_kinds: name_list(bytes, body(23), "EKND")?,
+        filter_names: name_list(bytes, body(24), "FNAM")?,
+        mod_conds: name_list(bytes, body(25), "MCND")?,
+        doodad_kinds: name_list(bytes, body(26), "DKND")?,
     };
     // The engine's stat slots (spell.rs STAT_COUNT) index SNAM, so the list must have exactly that many names.
     if names.stat_names.len() != crate::spell::STAT_COUNT {
@@ -792,7 +768,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
 
     let (ao, ac) = body(2);
     let mut ar = Reader { buf: bytes, at: ao };
-    let (so, sc) = body(19);
+    let (so, sc) = body(18);
     if sc != ac {
         return Err(LoadError::Section("skill count"));
     }
@@ -964,7 +940,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         behaviours.push(Behaviour { name, trigger, action, param, ability });
     }
 
-    let (go, gl) = body(17);
+    let (go, gl) = body(16);
     if gl < GRID_HEADER {
         return Err(LoadError::Truncated("GRID header"));
     }
@@ -1037,57 +1013,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         placements.push(Placement { unit, player: owner, x, y });
     }
 
-    let (uo, uc) = body(7);
-    let mut ur = Reader { buf: bytes, at: uo };
-    let mut upgrades: Vec<Upgrade> = Vec::with_capacity(uc);
-    for _ in 0..uc {
-        let name = ur.name("upgrade name")?;
-        let target_kind = ur.u8("upgrade target kind")?;
-        let level = ur.u8("upgrade level")?;
-        let applies = ur.u8("upgrade applies to")?;
-        let stacking = ur.u8("upgrade stacking")?;
-        let target = ur.u16("upgrade target")?;
-        let effect = ur.u32("upgrade effect")?;
-        let resource_a_per_level = ur.i32("upgrade resource_a per level")?;
-        let gas_per_level = ur.i32("upgrade gas per level")?;
-        if resource_a_per_level < 0 || gas_per_level < 0 {
-            return Err(LoadError::Range("upgrade cost below zero"));
-        }
-        if name.offset as usize + name.len as usize > strs.len() {
-            return Err(LoadError::Range("upgrade name outside STRS"));
-        }
-        if target_kind > 1 || level == 0 || applies > 1 || stacking > 2 {
-            return Err(LoadError::Range("upgrade code outside its table"));
-        }
-        let target_ok = if target_kind == 0 { (target as usize) < units.len() } else { (target as usize) < abilities.len() };
-        if !target_ok || effect as usize >= effects.len() {
-            return Err(LoadError::Range("upgrade target or effect index"));
-        }
-        upgrades.push(Upgrade {
-            name,
-            target_kind,
-            level,
-            applies,
-            stacking,
-            target,
-            effect,
-            resource_a_per_level,
-            gas_per_level,
-            group: 0,
-        });
-    }
-    let groups: Vec<u32> = {
-        let names: Vec<&[u8]> = upgrades
-            .iter()
-            .map(|u| &strs[u.name.offset as usize..u.name.offset as usize + u.name.len as usize])
-            .collect();
-        (0..names.len()).map(|k| (0..=k).find(|&j| names[j] == names[k]).unwrap_or(k) as u32).collect()
-    };
-    for (u, g) in upgrades.iter_mut().zip(groups) {
-        u.group = g;
-    }
-
-    let (ro, rc) = body(8);
+    let (ro, rc) = body(7);
     if rc != units.len() {
         return Err(LoadError::Range("REGN count is not the UNIT count"));
     }
@@ -1103,13 +1029,13 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         regen.push(Regen { shield_per_tick, delay, hp_per_tick });
     }
 
-    let (lo, lc) = body(9);
+    let (lo, lc) = body(8);
     if lc != LIMT_COUNT {
         return Err(LoadError::Range("LIMT count is not 1"));
     }
     let limit = Reader { buf: bytes, at: lo }.u32("cell unit limit")?;
 
-    let (eco, ecn) = body(10);
+    let (eco, ecn) = body(9);
     if ecn != 1 {
         return Err(LoadError::Range("ECON count is not 1"));
     }
@@ -1149,7 +1075,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         }
     };
 
-    let (to, tc) = body(22);
+    let (to, tc) = body(21);
     if tc != 1 {
         return Err(LoadError::Range("TUNE count is not 1"));
     }
@@ -1184,7 +1110,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         Tune { structure_scan_cells, teleport_ring_points, teleport_ring_steps, best_only, xp_curve }
     };
 
-    let (xo, xc) = body(11);
+    let (xo, xc) = body(10);
     if xc != units.len() {
         return Err(LoadError::Range("UEXT count is not the UNIT count"));
     }
@@ -1237,7 +1163,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         });
     }
 
-    let (ach, achn) = body(12);
+    let (ach, achn) = body(11);
     if achn != abilities.len() {
         return Err(LoadError::Range("ACHN count is not the ABIL count"));
     }
@@ -1254,10 +1180,10 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         channels.push(Channel { channelled, duration });
     }
 
-    let routes = crate::waypoints::parse_waypoints(bytes, body(21), w, h, &grid.flags)?;
-    let ext = crate::spell::parse_ext(bytes, body(20), &abilities, &effects)?;
+    let routes = crate::waypoints::parse_waypoints(bytes, body(20), w, h, &grid.flags)?;
+    let ext = crate::spell::parse_ext(bytes, body(19), &abilities, &effects)?;
 
-    let (rso, rsc) = body(13);
+    let (rso, rsc) = body(12);
     let mut rsr = Reader { buf: bytes, at: rso };
     let mut research = Vec::with_capacity(rsc);
     for _ in 0..rsc {
@@ -1278,7 +1204,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         research.push(Research { name, building, time, resource_a, gas, effect, applies_mask, to_new: false });
     }
 
-    let (pqo, pqc) = body(14);
+    let (pqo, pqc) = body(13);
     let mut pqr = Reader { buf: bytes, at: pqo };
     let mut prereqs = Vec::with_capacity(pqc);
     for _ in 0..pqc {
@@ -1302,7 +1228,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         prereqs.push(Prereq { target_kind, requirement_kind, target, requirement });
     }
 
-    let (dmo, dmc) = body(15);
+    let (dmo, dmc) = body(14);
     let mut dmr = Reader { buf: bytes, at: dmo };
     let mut damage_factors = Vec::with_capacity(dmc);
     for _ in 0..dmc {
@@ -1316,7 +1242,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         damage_factors.push(DamageFactor { damage_type, size, factor });
     }
 
-    let (dd, ddc) = body(16);
+    let (dd, ddc) = body(15);
     let mut ddr = Reader { buf: bytes, at: dd };
     let mut doodads: Vec<Doodad> = Vec::with_capacity(ddc);
     for _ in 0..ddc {
@@ -1341,7 +1267,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         doodads.push(Doodad { id, kind, x, y, rotation });
     }
 
-    let (io, ic) = body(18);
+    let (io, ic) = body(17);
     let mut ir = Reader { buf: bytes, at: io };
     let mut items: Vec<Item> = Vec::with_capacity(ic);
     for _ in 0..ic {
@@ -1422,7 +1348,6 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             units,
             behaviours,
             placements,
-            upgrades,
             regen,
             limit,
             starts,

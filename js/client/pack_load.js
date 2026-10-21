@@ -262,12 +262,29 @@ async function openArchive(url) {
   return fromFiles(files);
 }
 
+// A fetch that retries a transient server answer (502, 503, 504, or a network error) a few times with a growing pause,
+// so one busy moment at the host does not stop a match from starting. Any other answer is final.
+const TRANSIENT_STATUS = new Set([502, 503, 504]);
+const RETRY_PAUSES_MS = [400, 1000, 2000];
+export async function fetchRetrying(url, init) {
+  for (let attempt = 0; ; attempt++) {
+    let res = null;
+    try {
+      res = await fetch(url, init);
+    } catch (error) {
+      if (attempt >= RETRY_PAUSES_MS.length) throw error;
+    }
+    if (res && !(TRANSIENT_STATUS.has(res.status) && attempt < RETRY_PAUSES_MS.length)) return res;
+    await new Promise((resolve) => setTimeout(resolve, RETRY_PAUSES_MS[attempt]));
+  }
+}
+
 function openDirectory(url) {
   return {
     has: null,
     url: (rel) => new URL(rel, url).href,
     bytes: async (rel) => {
-      const res = await fetch(new URL(rel, url));
+      const res = await fetchRetrying(new URL(rel, url));
       if (!res.ok) throw new Error(`pack file ${rel} HTTP ${res.status}`);
       return res.arrayBuffer();
     },

@@ -65,14 +65,14 @@ The comparison has no bound pairs. No hero, creep, tower, barracks or item in th
 
 | Category | Repo entries | MATCH | DIFFERENT | MISSING |
 |---|---|---|---|---|
-| 16 shipped heroes (units_heroes.osd) | 16 | 0 | 0 | 16 |
+| Hero units, one per enabled reference hero (units_heroes.osd) | 127 | 0 | 0 | 127 |
 | Hero unit rows, all (units_heroes.osd) | 254 | 0 | 0 | 254 |
-| Creeps, towers, barracks, neutrals (units.osd, units_extra.osd, neutral.osd) | 77 + 73 + 89 | 0 | 0 | 239 |
-| Items (items.osd) | 426 | 0 | 0 | 426 |
+| Creeps, towers, barracks, neutrals (units.osd unit lines, units_extra.osd unit_extra lines, neutral.osd neutral spawns) | 82 + 64 + 84 | 0 | 0 | 230 |
+| Items (items.osd) | 313 | 0 | 0 | 313 |
 | Abilities (abilities.osd, abilities_ruleset.osd) | 65 + 349 | 0 | 0 | 414 |
 | Wave spawns (waves.osd) | 6 | 0 | 0 | 6 |
 
-Repo files referenced by the request that are not in the repo: `mods/moba_match.lua`. `mods/moba_waves.lua` exists and is the wave script the spawn file names.
+Repo files referenced by the request that are not in the repo: `mods/moba_match.lua` and `mods/moba_waves.lua`. The lane wave code is `scenarios/moba/lanes.lua`; `scenarios/moba/waves.osd` names no script.
 
 ## Top differences
 

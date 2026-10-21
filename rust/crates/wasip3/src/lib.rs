@@ -110,14 +110,14 @@ fn reply(host: &mut ModHost, line: &str) -> Result<String, String> {
             Ok(format!("ok mod-step fired={fired} applied={applied}"))
         }
         "mod-state" => Ok(format!("ok {}", host.state_line())),
-        _ => sim_reply(&mut host.sim(), name, words),
+        _ => sim_reply(&mut host.sim_mut(), name, words),
     }
 }
 
 // Kills the first living unit of `kind` with a hit from a living unit of another player, so the
 // death reaches the mod at the next mod-step like any in-game kill.
 fn kill_first(host: &mut ModHost, kind: &str) -> Result<usize, String> {
-    let mut sim = host.sim();
+    let mut sim = host.sim_mut();
     let target = (0..sim.count()).find(|&i| sim.alive(i) && sim.kind_name(i) == Some(kind)).ok_or_else(|| format!("no living {kind}"))?;
     let owner = sim.player(target);
     let caster = (0..sim.count()).find(|&i| sim.alive(i) && sim.player(i) != owner).ok_or("no opposing unit to strike with")?;
@@ -202,6 +202,10 @@ fn unit_of<'a>(sim: &Sim, words: &mut impl Iterator<Item = &'a str>) -> Result<u
 
 // A mod source travels as lowercase hex so it fits one whitespace-free command line.
 fn unhex(hex: &str) -> Result<String, String> {
+    // The slices below cut at byte offsets, which panics inside a multi-byte character: non-ASCII is refused first.
+    if !hex.is_ascii() {
+        return Err("mod source hex is not ASCII".into());
+    }
     if hex.len() % 2 != 0 {
         return Err("mod source hex has odd length".into());
     }

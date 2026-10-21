@@ -947,6 +947,7 @@ name = "mod-host"
 version = "0.0.0"
 dependencies = [
  "piccolo",
+ "serde_json",
  "sim",
 ]
 

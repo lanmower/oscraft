@@ -536,9 +536,6 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         });
     }
 
-    // Upgrades are Lua research records now (game.upgrade); the catalog keeps no upgrade rows.
-    let upgrades = Vec::new();
-
     let mut doodads = Vec::with_capacity(doodads_raw.len());
     let mut doodad_ids = HashSet::new();
     for raw in &doodads_raw {
@@ -643,7 +640,6 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         ext,
         behaviours,
         spawns,
-        upgrades,
         cell_limit,
         econ,
         tune,
