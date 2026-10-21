@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createSeating, createStateEncoder, applyFrame, startFrame } from '../client/delta.js';
 import { emptyLobby, heroKindsFor, heroNamesFromRules, reduceLobby } from '../client/lobby.js';
+import { swapGate, swapIsNew } from '../client/swap_protocol.js';
 
 const ROSTER = ['hero', 'antimage', 'axe'];
 import { FRAME, SPECTATOR, WIRE_VERSION, WireError, encodeFrame, decodeFrame, frameTypeName } from './frame.js';
@@ -39,6 +40,10 @@ const samples = [
   { type: FRAME.SWAP, tick: 0xffffffff, hash: 0xffffffff, file: "moba-units.lua" },
   { type: FRAME.SWAP_NOT_READY, tick: 0, hash: 0 },
   { type: FRAME.SWAP_NOT_READY, tick: 0xffffffff, hash: 0xffffffff },
+  { type: FRAME.SWAP_READY, tick: 0, hash: 0 },
+  { type: FRAME.SWAP_READY, tick: 0xffffffff, hash: 0xffffffff },
+  { type: FRAME.SWAP_CANCEL, tick: 0, hash: 0 },
+  { type: FRAME.SWAP_CANCEL, tick: 0xffffffff, hash: 0xffffffff },
   { type: FRAME.JOIN, lastTick: 0 },
   { type: FRAME.JOIN, lastTick: 0xffffffff },
   { type: FRAME.ROSTER, you: 255, team: 255, players: [] },
@@ -209,6 +214,33 @@ expectReject(Uint8Array.from([FRAME.ERROR, WIRE_VERSION, 0, 0, 1, 0, 0xc3]), 'BA
 // A not-ready report is 10 bytes (type, version, tick, hash) and refuses a truncated body.
 assert.equal(encodeFrame({ type: FRAME.SWAP_NOT_READY, tick: 5, hash: 6 }).length, 10, 'not-ready report is 10 bytes');
 expectReject(Uint8Array.from([FRAME.SWAP_NOT_READY, WIRE_VERSION, 0, 0, 0, 5, 0, 0]), 'TRUNCATED', 'truncated not-ready report');
+
+// A ready report and a cancel are 10 bytes each, and refuse a truncated body.
+assert.equal(encodeFrame({ type: FRAME.SWAP_READY, tick: 5, hash: 6 }).length, 10, 'ready report is 10 bytes');
+assert.deepStrictEqual(({ ...decodeFrame(encodeFrame({ type: FRAME.SWAP_READY, tick: 40, hash: 0xabcdef01 })) }), { type: FRAME.SWAP_READY, tick: 40, hash: 0xabcdef01, version: WIRE_VERSION }, 'ready report round-trips');
+expectReject(Uint8Array.from([FRAME.SWAP_READY, WIRE_VERSION, 0, 0, 0, 5, 0, 0]), 'TRUNCATED', 'truncated ready report');
+expectReject(Uint8Array.from([FRAME.SWAP_CANCEL, WIRE_VERSION, 0, 0, 0, 5]), 'TRUNCATED', 'truncated cancel');
+
+// A duplicate SWAP is ignored: the second frame names a tick the peer already applied, so it does not apply again.
+const dupSwap = decodeFrame(encodeFrame({ type: FRAME.SWAP, tick: 100, hash: 0x1234, file: 'terrain.js' }));
+let lastApplied = null;
+const appliedTicks = [];
+for (const f of [dupSwap, { ...dupSwap }, { ...dupSwap, tick: 99 }, { ...dupSwap, tick: 132 }]) {
+  if (swapIsNew(lastApplied, f.tick)) { appliedTicks.push(f.tick); lastApplied = f.tick; }
+}
+assert.deepStrictEqual(appliedTicks, [100, 132], 'a repeated or older SWAP tick is ignored, a later one applies');
+assert.equal(swapIsNew(null, 0), true, 'the first swap always applies');
+assert.equal(swapIsNew(100, 100), false, 'the applied tick itself is not applied twice');
+
+// The host's gate: commit once every connected peer is ready, defer or cancel after the gate tick, and never before it.
+const peersSet = new Set(['a', 'b']);
+const pendingSwap = { tick: 100, deferrals: 0, readyPeers: new Set(['a']) };
+assert.equal(swapGate(91, pendingSwap, peersSet), 'wait', 'no decision before the gate tick T-8');
+assert.equal(swapGate(92, pendingSwap, peersSet), 'defer', 'a missing peer at T-8 moves the swap');
+pendingSwap.readyPeers.add('b');
+assert.equal(swapGate(99, pendingSwap, peersSet), 'commit', 'every peer ready commits the swap');
+assert.equal(swapGate(92, { tick: 100, deferrals: 3, readyPeers: new Set() }, peersSet), 'cancel', 'a fourth miss cancels the swap');
+assert.equal(swapGate(92, { tick: 100, deferrals: 0, readyPeers: new Set() }, new Set()), 'commit', 'no connected peers commits at the gate');
 
 const types = typesSeen.size;
 assert.equal(types, Object.keys(FRAME).length, 'every frame type round-trips');

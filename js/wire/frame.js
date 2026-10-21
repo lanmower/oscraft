@@ -1,6 +1,6 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16, SWAP_NOT_READY: 17 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16, SWAP_NOT_READY: 17, SWAP_READY: 18, SWAP_CANCEL: 19 });
 
 // Matches the server's DEFAULT_MAX_UNITS (rust/crates/server/src/lib.rs): a STATE or DELTA may carry this many units.
 export const MAX_UNITS = 4096;
@@ -141,6 +141,19 @@ const CODECS = {
   // A peer's report that it did not have the swap image by the swap tick, so it did not apply the swap there. The host
   // answers by deferring the swap (a SWAP frame with a later tick). The tick and hash name the swap it refers to.
   [FRAME.SWAP_NOT_READY]: {
+    size: () => 2 + 4 + 4,
+    write(w, f) { w.u32(f.tick, 'tick'); w.u32(f.hash, 'hash'); },
+    read(r) { return { tick: r.u32(), hash: r.u32() }; },
+  },
+  // A peer's report that it holds the verified swap image for this tick and hash; the host commits the swap only once
+  // every connected peer has sent one. Sent to the host, and sent again for each re-announce of the swap.
+  [FRAME.SWAP_READY]: {
+    size: () => 2 + 4 + 4,
+    write(w, f) { w.u32(f.tick, 'tick'); w.u32(f.hash, 'hash'); },
+    read(r) { return { tick: r.u32(), hash: r.u32() }; },
+  },
+  // The host's cancel of a swap it could not commit: every peer drops the pending swap with this tick and hash.
+  [FRAME.SWAP_CANCEL]: {
     size: () => 2 + 4 + 4,
     write(w, f) { w.u32(f.tick, 'tick'); w.u32(f.hash, 'hash'); },
     read(r) { return { tick: r.u32(), hash: r.u32() }; },
