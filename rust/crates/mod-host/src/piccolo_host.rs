@@ -41,6 +41,8 @@ pub enum Cmd {
     GiveAbility { unit: usize, slot: usize, name: String },
     AddGold { player: u8, amount: i32 },
     AddUnitGold { unit: usize, amount: i32 },
+    RemoveUnit { unit: usize },
+    GiveItem { unit: usize, item: usize, count: u32 },
     Victory { player: u8 },
     Defeat { player: u8 },
     // A client-facing UI event as a JSON object body, kept for the caller to stream (take_ui).
@@ -496,6 +498,23 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         let mut sh = sh.borrow_mut();
         let unit = live_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
         sh.cmds.push(Cmd::Order { unit, x, y });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_remove", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let u = live_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        sh.cmds.push(Cmd::RemoveUnit { unit: u });
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "cmd_give_item", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let name = text(c, s.get(1), 1)?;
+        let count = a(c, &s, 2)?;
+        let mut sh = sh.borrow_mut();
+        let u = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let item = sh.sim.catalog().item_index(&name).ok_or_else(|| fail(c, format!("unknown_item: {name}")))?;
+        let count = u32::try_from(count).ok().filter(|&n| n > 0).ok_or_else(|| fail(c, format!("invalid_count: {count} must be 1 or more")))?;
+        sh.cmds.push(Cmd::GiveItem { unit: u, item, count });
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "cmd_damage", [sh], |c, s| {
