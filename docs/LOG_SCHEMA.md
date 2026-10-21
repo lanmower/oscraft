@@ -22,7 +22,7 @@ Columns: `Event` is the `ev=` name, `Variant` the `Ev` variant, `Emitted from` t
 | `mod_cmds` | ModCmds | room.rs | room, tick, applied | optional |
 | `mod_cmds_dropped` | ModCmdsDropped | mods.rs | count | optional |
 | `mod_unit_bound` | ModUnitBound | room.rs | handle, unit | optional |
-| `mod_unit_refused` | ModUnitRefused | room.rs | handle, reason | optional |
+| `mod_unit_refused` | ModUnitRefused | room.rs | handle, unit, reason | optional |
 | `mod_reload_staged` | ModReloadStaged | mods.rs | - | optional |
 | `mod_reload_failed` | ModReloadFailed | mods.rs | error | required |
 | `mod_image_reloaded` | ModImageReloaded | mods.rs | bytes | optional |

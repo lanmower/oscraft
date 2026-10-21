@@ -25,6 +25,8 @@ pub struct ModLink {
     cmds: Mutex<Vec<Cmd>>,
     // Payable deaths of the room's sim, waiting for the mod thread to feed them to on_died.
     payouts: Mutex<Vec<Payout>>,
+    // Deaths that did not fit the payout queue cap; they move into the queue as it drains, in order.
+    payout_carry: Mutex<Vec<Payout>>,
     test_panic_at: AtomicU64,
     image: Mutex<Option<Vec<u8>>>,
     gold_by_mod: AtomicBool,
@@ -65,18 +67,28 @@ impl ModLink {
         queue.extend(cmds.into_iter().take(room));
     }
 
-    /// Queues the room's payable deaths for the mod's on_died. Taken in order, at most the queue cap.
+    /// Queues the room's payable deaths for the mod's on_died, in order. The queue holds at most the cap;
+    /// the rest waits in the carry and moves into the queue as the mod thread takes from it, so no payout
+    /// is lost. The event's count is the number of deaths still waiting in the carry.
     pub fn push_payouts(&self, deaths: Vec<Payout>) {
         let mut queue = self.payouts.lock().unwrap_or_else(|p| p.into_inner());
-        let room = MOD_CMD_QUEUE_CAP.saturating_sub(queue.len());
-        if deaths.len() > room {
-            crate::emit!(Ev::ModCmdsDropped, count = deaths.len() - room);
+        let mut carry = self.payout_carry.lock().unwrap_or_else(|p| p.into_inner());
+        carry.extend(deaths);
+        let room = MOD_CMD_QUEUE_CAP.saturating_sub(queue.len()).min(carry.len());
+        queue.extend(carry.drain(..room));
+        if !carry.is_empty() {
+            crate::emit!(Ev::ModCmdsDropped, count = carry.len());
         }
-        queue.extend(deaths.into_iter().take(room));
     }
 
+    // Takes the whole queue and refills it from the carry, up to the cap.
     fn take_payouts(&self) -> Vec<Payout> {
-        std::mem::take(&mut *self.payouts.lock().unwrap_or_else(|p| p.into_inner()))
+        let mut queue = self.payouts.lock().unwrap_or_else(|p| p.into_inner());
+        let mut carry = self.payout_carry.lock().unwrap_or_else(|p| p.into_inner());
+        let taken = std::mem::take(&mut *queue);
+        let n = MOD_CMD_QUEUE_CAP.min(carry.len());
+        queue.extend(carry.drain(..n));
+        taken
     }
 
     pub fn stage_image(&self, image: Vec<u8>) {
@@ -200,10 +212,16 @@ pub fn load_data(path: &Path, max_units: usize) -> Result<sim::Sim, String> {
     }
     let image = mod_host::build_image(path)?;
     let mut sim = sim::load(&image, max_units).map_err(|e| format!("{e:?}"))?;
-    if let Ok(rules) = fs::read_to_string(path.join("hero_rules.txt")) {
-        if !sim.set_hero_rules_text(&rules) {
-            return Err("hero_rules.txt has a bad line".to_string());
+    // A missing hero_rules.txt keeps the defaults; an unreadable or bad one is an error, so a reload
+    // keeps the image in service (the last-known-good rules) and the caller logs the reason.
+    match fs::read_to_string(path.join("hero_rules.txt")) {
+        Ok(rules) => {
+            if !sim.set_hero_rules_text(&rules) {
+                return Err("hero_rules.txt has a bad line".to_string());
+            }
         }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(format!("hero_rules.txt cannot be read: {e}")),
     }
     Ok(sim)
 }
@@ -240,21 +258,21 @@ pub fn watch_image(dir: PathBuf, link: Weak<ModLink>) {
     });
 }
 
-// Polls the .osd files of a data directory. A change is rebuilt and validated off the tick path and
+// Polls the .osd files and hero_rules.txt of a data directory. A change is rebuilt and validated off the tick path and
 // staged on the room, which swaps it in at its next tick. A failed rebuild is logged and the image in
 // service stays. The thread ends when the room is dropped.
 pub fn watch_data(room: Weak<Room>, dir: PathBuf, max_units: usize) {
     thread::spawn(move || {
-        let mut seen = star_files(&dir);
+        let mut seen = data_files(&dir);
         loop {
             thread::sleep(DATA_POLL);
             let Some(live) = room.upgrade() else { return };
-            let now = star_files(&dir);
+            let now = data_files(&dir);
             if now == seen {
                 continue;
             }
             seen = now;
-            let staged = load_data(&dir, max_units).and_then(|sim| live.stage_data(sim));
+            let staged = load_data(&dir, max_units).and_then(|sim| live.stage_data(sim, &dir.display().to_string()));
             if let Err(error) = staged {
                 crate::emit!(Ev::DataReloadFailed, room = live.name, error = error);
             }
@@ -263,6 +281,17 @@ pub fn watch_data(room: Weak<Room>, dir: PathBuf, max_units: usize) {
 }
 
 type StarFiles = Vec<(PathBuf, Option<SystemTime>, u64)>;
+
+// The files whose change reloads a data directory: its .osd files and hero_rules.txt.
+fn data_files(dir: &Path) -> StarFiles {
+    let mut files = star_files(dir);
+    let rules = dir.join("hero_rules.txt");
+    if let Ok(meta) = fs::metadata(&rules) {
+        files.push((rules, meta.modified().ok(), meta.len()));
+        files.sort();
+    }
+    files
+}
 
 fn star_files(dir: &Path) -> StarFiles {
     let Ok(entries) = fs::read_dir(dir) else { return Vec::new() };
@@ -276,4 +305,75 @@ fn star_files(dir: &Path) -> StarFiles {
         .collect();
     files.sort();
     files
+}
+
+#[cfg(all(test, feature = "server-tests"))]
+mod tests {
+    use super::*;
+
+    fn payout(victim: u32) -> Payout {
+        Payout { tick: 0, victim, victim_player: 0, killer: None, killer_player: None, killer_hero: false, bounty: 1 }
+    }
+
+    // A fresh copy of the duel-routes scenario's .osd files in its own temp dir.
+    fn copy_scenario(name: &str) -> PathBuf {
+        let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let dst = std::env::temp_dir().join(format!("mods-test-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dst);
+        fs::create_dir_all(&dst).expect("temp dir");
+        for entry in fs::read_dir(&src).expect("scenario dir") {
+            let path = entry.expect("entry").path();
+            if path.extension().is_some_and(|ext| ext == "osd") {
+                fs::copy(&path, dst.join(path.file_name().expect("name"))).expect("copy osd");
+            }
+        }
+        dst
+    }
+
+    // Deaths past the queue cap wait in the carry and reach the mod in order; none is dropped.
+    #[test]
+    fn payouts_past_the_queue_cap_are_carried_and_delivered_in_order() {
+        let link = ModLink::default();
+        let total = MOD_CMD_QUEUE_CAP as u32 + 10;
+        link.push_payouts((0..total).map(payout).collect());
+        assert_eq!(link.payouts.lock().expect("queue").len(), MOD_CMD_QUEUE_CAP, "the queue must stay bounded");
+        let first = link.take_payouts();
+        assert_eq!(first.len(), MOD_CMD_QUEUE_CAP);
+        let second = link.take_payouts();
+        let victims: Vec<u32> = first.iter().chain(second.iter()).map(|p| p.victim).collect();
+        assert_eq!(victims, (0..total).collect::<Vec<u32>>(), "a payout was dropped or reordered");
+        assert!(link.take_payouts().is_empty());
+    }
+
+    // An unreadable hero_rules.txt and a bad rule line are both refused, so a reload keeps the image in service.
+    #[test]
+    fn unreadable_or_bad_hero_rules_are_refused_and_a_missing_file_keeps_defaults() {
+        let dir = copy_scenario("rules-read");
+        fs::create_dir_all(dir.join("hero_rules.txt")).expect("rules as a directory");
+        let err = load_data(&dir, 64).err().expect("an unreadable rules file is refused");
+        assert!(err.contains("cannot be read"), "wrong error: {err}");
+        fs::remove_dir(dir.join("hero_rules.txt")).expect("remove");
+
+        fs::write(dir.join("hero_rules.txt"), "hero no_such_unit 1\n").expect("write bad rules");
+        let err = load_data(&dir, 64).err().expect("a bad rule line is refused");
+        assert!(err.contains("bad line"), "wrong error: {err}");
+
+        fs::remove_file(dir.join("hero_rules.txt")).expect("remove");
+        assert!(load_data(&dir, 64).is_ok(), "a missing rules file keeps the defaults");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    // The watcher's file set includes hero_rules.txt, so creating or editing it counts as a change.
+    #[test]
+    fn the_data_watch_set_includes_hero_rules_so_an_edit_is_seen() {
+        let dir = copy_scenario("rules-watch");
+        let before = data_files(&dir);
+        assert!(!before.iter().any(|(p, _, _)| p.ends_with("hero_rules.txt")));
+        fs::write(dir.join("hero_rules.txt"), "# rules\n").expect("write rules");
+        let created = data_files(&dir);
+        assert_ne!(before, created, "creating hero_rules.txt was not seen");
+        fs::write(dir.join("hero_rules.txt"), "# rules, edited\n").expect("edit rules");
+        assert_ne!(created, data_files(&dir), "editing hero_rules.txt was not seen");
+        let _ = fs::remove_dir_all(&dir);
+    }
 }

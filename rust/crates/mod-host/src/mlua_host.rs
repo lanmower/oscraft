@@ -975,13 +975,16 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(())
         })?,
     )?;
-    let buf = cmds.clone();
+    let (w, buf) = (world.clone(), cmds.clone());
     // set_target_class(unit, class) / clear_target_class(unit): queued, applied at the next tick start.
     game.set(
         "set_target_class",
         lua.create_function(move |_, (unit, class): (i64, i64)| {
-            let class = u8::try_from(class).map_err(|_| mlua::Error::RuntimeError("invalid_target_class: class must be 0..=3".into()))?;
-            buf.borrow_mut().push(Cmd::SetClassOverride { unit: unit as usize, class: Some(class) });
+            if !(0..=3).contains(&class) {
+                return Err(mlua::Error::RuntimeError(format!("invalid_target_class: {class} is outside 0..=3")));
+            }
+            let u = live_unit(&w.borrow(), unit)?;
+            buf.borrow_mut().push(Cmd::SetClassOverride { unit: u, class: Some(class as u8) });
             Ok(())
         })?,
     )?;
@@ -2240,6 +2243,32 @@ mod tests {
         host.advance(&host.state().clone()).expect("step");
         let unsupported = host.sim().stats.refused_by[sim::Refusal::ActionUnsupported as usize];
         assert_eq!(unsupported, 0, "a behaviour was refused as unsupported");
+    }
+
+    // set_target_class accepts only the four classes 0..=3 and only a live unit; anything else is a Lua error
+    // raised from on_tick, and nothing is queued for the sim.
+    #[test]
+    fn set_target_class_refuses_classes_outside_0_to_3_and_dead_or_unknown_units() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker");
+        for (unit, class, want) in [(a, 4, "invalid_target_class"), (a, -1, "invalid_target_class"), (9_999_999, 1, "invalid_unit")] {
+            host.load_source("klass", &format!("function on_tick(state) game.set_target_class({unit}, {class}) end\n")).expect("mod loads");
+            let err = host.advance(&host.state().clone()).expect_err("the call must be refused");
+            assert!(err.to_string().contains(want), "wrong error for ({unit}, {class}): {err}");
+        }
+        host.advance(&host.state().clone()).ok();
+        assert!(host.take_commands().iter().all(|c| !matches!(c, Cmd::SetClassOverride { .. })), "a refused call queued a class override");
+    }
+
+    #[test]
+    fn set_target_class_accepts_0_to_3_on_a_live_unit() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        host.load_source("klass", &format!("function on_tick(state) game.set_target_class({a}, 3) end\n")).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        let applied = host.take_commands().into_iter().any(|c| matches!(c, Cmd::SetClassOverride { unit, class: Some(3) } if unit == a));
+        assert!(applied, "the class override was not applied to the live unit");
     }
 
     #[test]
