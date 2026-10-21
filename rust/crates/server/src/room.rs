@@ -633,6 +633,12 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
             Cmd::GiveAbility { unit, slot, name } => {
                 rec.apply(sim, Command::GiveAbility { unit, slot, name });
             }
+            Cmd::RemoveUnit { unit } => {
+                rec.apply(sim, Command::Remove { unit });
+            }
+            Cmd::GiveItem { unit, item, count } => {
+                rec.apply(sim, Command::GiveItem { unit, item, count });
+            }
             Cmd::AddGold { player, amount } => {
                 rec.apply(sim, Command::AddGold { player, amount });
             }

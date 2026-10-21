@@ -1248,6 +1248,12 @@ impl ModHost {
                 }
                 Cmd::SetFog { on } => sim.set_fog(on),
                 Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
+                Cmd::RemoveUnit { unit } => {
+                    sim.remove_unit(unit);
+                }
+                Cmd::GiveItem { unit, item, count } => {
+                    let _ = sim.grant_item(unit, item, count);
+                }
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
                 Cmd::Ui { body } => ui.push(body),

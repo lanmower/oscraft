@@ -323,6 +323,10 @@ pub enum Command {
     DefineUpgrade { spec: UpgradeSpec },
     GrantUpgrade { player: u8, name: String },
     GiveAbility { unit: usize, slot: usize, name: String },
+    /// A mod's removal of a living unit (the sim's remove_unit).
+    Remove { unit: usize },
+    /// A mod's grant of `count` of catalog item `item` to a living unit (the sim's grant_item).
+    GiveItem { unit: usize, item: usize, count: u32 },
     AddGold { player: u8, amount: i32 },
     AddHeroGold { unit: usize, amount: i32 },
     Victory { player: u8 },
@@ -563,6 +567,8 @@ impl Command {
                 None => false,
             },
             Command::GiveAbility { unit, slot, name } => sim.give_ability(*unit, *slot, name),
+            Command::Remove { unit } => sim.remove_unit(*unit),
+            Command::GiveItem { unit, item, count } => sim.grant_item(*unit, *item, *count),
             Command::AddGold { player, amount } => {
                 sim.add_resources(*player, *amount, 0);
                 true
@@ -756,6 +762,16 @@ impl Command {
                 put_text(&mut o, name);
                 "ga"
             }
+            Command::Remove { unit } => {
+                put(&mut o, unit);
+                "rm"
+            }
+            Command::GiveItem { unit, item, count } => {
+                put(&mut o, unit);
+                put(&mut o, item);
+                put(&mut o, count);
+                "gi"
+            }
             Command::AddGold { player, amount } => {
                 put(&mut o, player);
                 put(&mut o, amount);
@@ -831,6 +847,8 @@ impl Command {
             "dr" => Command::DefineUpgrade { spec: upgrade_spec_of(it)? },
             "gu" => Command::GrantUpgrade { player: num(it)?, name: text(it)? },
             "ga" => Command::GiveAbility { unit: num(it)?, slot: num(it)?, name: text(it)? },
+            "rm" => Command::Remove { unit: num(it)? },
+            "gi" => Command::GiveItem { unit: num(it)?, item: num(it)?, count: num(it)? },
             "ag" => Command::AddGold { player: num(it)?, amount: num(it)? },
             "ah" => Command::AddHeroGold { unit: num(it)?, amount: num(it)? },
             "vw" => Command::Victory { player: num(it)? },

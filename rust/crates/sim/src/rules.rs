@@ -738,3 +738,15 @@ impl Sim {
         dist2(self.pos_x[a], self.pos_y[a], x, y) <= rad * rad
     }
 }
+
+impl Sim {
+    /// Puts `count` of catalog item `item` into living unit `unit`'s inventory, through the same slot rules as a
+    /// purchase (top up a stack, else the first empty main slot). False, with nothing changed, for an unknown
+    /// item, a dead or unknown unit, or full slots.
+    pub fn grant_item(&mut self, unit: usize, item: usize, count: u32) -> bool {
+        if item >= self.cat.items.len() || !self.alive(unit) {
+            return false;
+        }
+        self.inventory_add(unit, item as u32 + 1, count)
+    }
+}

@@ -98,6 +98,10 @@ pub enum Cmd {
     DefineUpgrade { spec: UpgradeSpec },
     GrantUpgrade { player: u8, name: String },
     GiveAbility { unit: usize, slot: usize, name: String },
+    // Takes a living unit off the map (the sim's remove_unit); a dead or unknown unit changes nothing.
+    RemoveUnit { unit: usize },
+    // Puts `count` of catalog item `item` into a living unit's inventory (the sim's grant_item).
+    GiveItem { unit: usize, item: usize, count: u32 },
     AddGold { player: u8, amount: i32 },
     AddHeroGold { unit: usize, amount: i32 },
     Victory { player: u8 },
@@ -1427,6 +1431,27 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
     )?;
     let (w, buf) = (world.clone(), cmds.clone());
     game.set(
+        "cmd_remove",
+        lua.create_function(move |_, unit: i64| {
+            let u = live_unit(&w.borrow(), unit)?;
+            buf.borrow_mut().push(Cmd::RemoveUnit { unit: u });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
+        "cmd_give_item",
+        lua.create_function(move |_, (unit, name, count): (i64, String, i64)| {
+            let sim = w.borrow();
+            let u = live_unit(&sim, unit)?;
+            let item = sim.catalog().item_index(&name).ok_or_else(|| mlua::Error::RuntimeError(format!("unknown_item: {name}")))?;
+            let count = u32::try_from(count).ok().filter(|&c| c > 0).ok_or_else(|| mlua::Error::RuntimeError(format!("invalid_count: {count} must be 1 or more")))?;
+            buf.borrow_mut().push(Cmd::GiveItem { unit: u, item, count });
+            Ok(())
+        })?,
+    )?;
+    let (w, buf) = (world.clone(), cmds.clone());
+    game.set(
         "cmd_give_ability",
         lua.create_function(move |_, (unit, slot, name): (i64, i64, String)| {
             let sim = w.borrow();
@@ -2021,6 +2046,12 @@ impl ModHost {
                 Cmd::GiveAbility { unit, slot, name } => {
                     let _ = sim.give_ability(unit, slot, &name);
                 }
+                Cmd::RemoveUnit { unit } => {
+                    sim.remove_unit(unit);
+                }
+                Cmd::GiveItem { unit, item, count } => {
+                    let _ = sim.grant_item(unit, item, count);
+                }
                 Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
                 Cmd::AddHeroGold { unit, amount } => {
                     let _ = sim.add_hero_gold(unit, amount);
@@ -2347,6 +2378,45 @@ mod tests {
         }
         let after = gap(&host.sim());
         assert!(before > 15.0 && after < 5.0, "the attacker did not close on the target: {before:.2} -> {after:.2} tiles");
+    }
+
+    // A mod's game.cmd_remove takes the unit off the map through the command path; without the mod it stays alive.
+    #[test]
+    fn cmd_remove_takes_the_unit_off_the_map_and_no_mod_leaves_it() {
+        let mut host = host_with_creeps();
+        let b = host.state().get::<i64>("target").expect("target") as usize;
+        host.advance(&host.state().clone()).expect("step without a mod");
+        assert!(host.sim().alive(b), "a unit with no mod loaded must stay alive");
+        host.load_source("remove", r#"
+            function on_tick(state)
+              if unit_alive(state.target) then game.cmd_remove(state.target) end
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        assert!(!host.sim().alive(b), "game.cmd_remove did not remove the unit");
+    }
+
+    // game.cmd_give_item puts a catalog item into a living unit's inventory through the sim's slot rules.
+    #[test]
+    fn cmd_give_item_adds_the_item_to_the_unit_and_rejects_an_unknown_one() {
+        let mut host = host_with_creeps();
+        let a = host.state().get::<i64>("attacker").expect("attacker") as usize;
+        let kind = host.sim().catalog().item_index("blink").expect("moba has blink") as u32 + 1;
+        host.load_source("give", r#"
+            function on_tick(state)
+              game.cmd_give_item(state.attacker, "blink", 1)
+            end
+        "#).expect("mod loads");
+        host.advance(&host.state().clone()).expect("queue");
+        host.advance(&host.state().clone()).expect("apply");
+        assert_eq!(host.sim().inventory_count(a, kind), 1, "the item was not granted");
+        let err = host.load_source("bad", r#"
+            function on_tick(state)
+              game.cmd_give_item(state.attacker, "no_such_item", 1)
+            end
+        "#).and_then(|_| host.advance(&host.state().clone()));
+        assert!(err.is_err(), "an unknown item name must be a named error");
     }
 
     // With fog on, the side 0 creep cannot see the side 1 creep 22 tiles away, so the sim refuses the attack.
