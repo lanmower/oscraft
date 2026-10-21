@@ -66,6 +66,7 @@ struct System {
 #[derive(Clone)]
 pub enum Cmd {
     SetClassOverride { unit: usize, class: Option<u8> },
+    SetHoldOverride { unit: usize, hold: Option<bool> },
     Spawn { handle: u32, index: usize, x: i32, y: i32, owner: u8, lane: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
@@ -985,6 +986,23 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
         })?,
     )?;
     let buf = cmds.clone();
+    // set_attack_hold(unit, bool) / clear_attack_hold(unit): queued, applied at the next tick start.
+    game.set(
+        "set_attack_hold",
+        lua.create_function(move |_, (unit, hold): (i64, bool)| {
+            buf.borrow_mut().push(Cmd::SetHoldOverride { unit: unit as usize, hold: Some(hold) });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "clear_attack_hold",
+        lua.create_function(move |_, unit: i64| {
+            buf.borrow_mut().push(Cmd::SetHoldOverride { unit: unit as usize, hold: None });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
     game.set(
         "clear_target_class",
         lua.create_function(move |_, unit: i64| {
@@ -1892,6 +1910,9 @@ impl ModHost {
                 Cmd::SetFog { on } => sim.set_fog(on),
                 Cmd::SetClassOverride { unit, class } => {
                     let _ = sim.set_class_override(unit, class);
+                }
+                Cmd::SetHoldOverride { unit, hold } => {
+                    let _ = sim.set_hold_override(unit, hold);
                 }
                 Cmd::SetTeam { player, team } => {
                     let _ = sim.set_team(player, team);

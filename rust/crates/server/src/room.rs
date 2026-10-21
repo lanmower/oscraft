@@ -558,6 +558,14 @@ pub fn apply_mod_commands(sim: &mut Sim, rec: &mut Recording, handles: &mut Hash
             Cmd::SetClassOverride { unit, class } => {
                 rec.apply(sim, Command::ClassOverride { unit: unit as u32, class: class.unwrap_or(255) });
             }
+            Cmd::SetHoldOverride { unit, hold } => {
+                let hold = match hold {
+                    None => 255,
+                    Some(true) => 1,
+                    Some(false) => 0,
+                };
+                rec.apply(sim, Command::HoldOverride { unit: unit as u32, hold });
+            }
             Cmd::DefineAbility { name, cooldown, energy, target, filter, effects } => {
                 rec.apply(sim, Command::DefineAbility { name, cooldown, energy, target, filter, effects });
             }

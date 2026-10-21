@@ -178,6 +178,8 @@ pub struct Sim {
     pub(crate) acquire: Vec<i32>,
     /// Per-attacker target class set by a mod (-1 = the Rust rule). Mod-set state, hashed only when a value is set.
     pub(crate) class_override: Vec<i8>,
+    /// Per-attacker attack-move hold set by a mod (-1 = the Rust rule, 0 = walk past foes, 1 = always hold).
+    pub(crate) hold_override: Vec<i8>,
     /// Ward expiry stamps. See wards.rs.
     pub(crate) wards: crate::wards::WardState,
     /// Courier delivery state. See courier.rs.
@@ -390,6 +392,7 @@ impl Sim {
             chase: crate::acquire::ChaseState::new(cap),
             acquire,
             class_override: vec![-1; cap],
+            hold_override: vec![-1; cap],
             wards: crate::wards::WardState::new(cap),
             couriers: crate::courier::CourierState::new(cap),
             stock,

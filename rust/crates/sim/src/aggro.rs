@@ -289,3 +289,19 @@ mod override_tests {
         assert!(sim.set_class_override(a, Some(9)).is_err());
     }
 }
+
+impl crate::arrays::Sim {
+    /// Sets attacker `i`'s attack-move hold: `Some(true)` always holds on an attack-move, `Some(false)` never does,
+    /// `None` restores the Rust rule (hold only while a strikeable foe is in reach).
+    pub fn set_hold_override(&mut self, i: usize, hold: Option<bool>) -> Result<(), &'static str> {
+        if i >= self.n {
+            return Err("unknown unit");
+        }
+        self.hold_override[i] = match hold {
+            None => -1,
+            Some(true) => 1,
+            Some(false) => 0,
+        };
+        Ok(())
+    }
+}

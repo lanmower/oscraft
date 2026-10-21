@@ -221,6 +221,10 @@ impl Sim {
             let bytes: Vec<u8> = self.class_override.iter().map(|&c| c as u8).collect();
             h.bytes(&bytes);
         }
+        if self.hold_override.iter().any(|&c| c >= 0) {
+            let bytes: Vec<u8> = self.hold_override.iter().map(|&c| c as u8).collect();
+            h.bytes(&bytes);
+        }
         h.i32s(&self.heroes.home_x);
         h.i32s(&self.heroes.home_y);
         h.bytes(&self.heroes.waiting);

@@ -193,7 +193,11 @@ impl Sim {
     /// reach: it holds its position and strikes instead of walking past, and its route order resumes
     /// once that target dies or leaves reach. An enemy it cannot damage does not hold it.
     pub(crate) fn engaged(&self, i: usize) -> bool {
-        self.order_kind[i] == ORDER_ATTACK_MOVE && self.pick_strike_target(i, true).is_some()
+        match self.hold_override[i] {
+            0 => false,
+            1 => self.order_kind[i] == ORDER_ATTACK_MOVE,
+            _ => self.order_kind[i] == ORDER_ATTACK_MOVE && self.pick_strike_target(i, true).is_some(),
+        }
     }
 
     /// Whether a weapon hit can reduce unit `j`'s life: not physically immune, not invulnerable,
