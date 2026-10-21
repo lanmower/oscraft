@@ -91,11 +91,11 @@ export function displayHeights(grid) {
       if (dh > 1e-9 && (dh >= FULL_CLIFF_CELLS - 1e-6 || isWaterCell(grid, i) || isWaterCell(grid, j))) fixed[i] = 1;
     }
   }
-  // A slope cell relaxes only when no neighbour is pinned, so the committed heights at a barrier stay where they are.
+  // A walkable slope cell relaxes even beside a pinned one: the pinned cells keep their committed heights (cliffs stay sheer,
+  // water stays level), and the walkable pathways around them smooth out instead of stepping like hills.
   for (let i = 0; i < n; i++) {
     if (fixed[i]) continue;
     const list = neighbours(i);
-    if (list.some((j) => fixed[j])) continue;
     if (list.some((j) => Math.abs(shown[i] - shown[j]) > 1e-9)) relax[i] = 1;
   }
   const active = [];
