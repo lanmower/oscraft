@@ -564,7 +564,7 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         s.replace(c, i64::from(sh.sim.net_worth(u)));
         Ok(CallbackReturn::Return)
     });
-    native!(ctx, game, "xp_bounty", [sh], |c, s| {
+    native!(ctx, game, "reward_xp", [sh], |c, s| {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
         s.replace(c, i64::from(sh.sim.xp_bounty(u)));
@@ -576,7 +576,7 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         s.replace(c, i64::from(sh.sim.deny_xp_pct(u)));
         Ok(CallbackReturn::Return)
     });
-    native!(ctx, game, "assist_radius_milli", [sh], |c, s| {
+    native!(ctx, game, "credit_radius_milli", [sh], |c, s| {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
         s.replace(c, i64::from(sh.sim.assist_radius_milli(u)));
@@ -739,9 +739,37 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
     });
 }
 
+// Text helpers for packs. The sandbox has no string library, so case folding and a plain find come from the
+// host. Case is ASCII only, as the C locale's string.lower; the find index is 1-based, as string.find's.
+fn bind_text_helpers<'gc>(ctx: Context<'gc>, game: Table<'gc>) {
+    // game.str_lower(s): s with its ASCII letters lower-cased.
+    native!(ctx, game, "str_lower", [], |c, s| {
+        let src = text(c, s.get(0), 0)?;
+        s.replace(c, src.to_ascii_lowercase());
+        Ok(CallbackReturn::Return)
+    });
+    // game.str_find_ci(haystack, needle): the 1-based index where needle first occurs, ASCII case ignored, or nil.
+    // An empty needle is found at 1.
+    native!(ctx, game, "str_find_ci", [], |c, s| {
+        let (hay, needle) = (text(c, s.get(0), 0)?, text(c, s.get(1), 1)?);
+        let at = find_ci(hay.as_bytes(), needle.as_bytes());
+        s.replace(c, at.map_or(Value::Nil, |i| ((i + 1) as i64).into_value(c)));
+        Ok(CallbackReturn::Return)
+    });
+}
+
+// The first index of needle in hay, ASCII letters compared without case; an empty needle is at 0.
+fn find_ci(hay: &[u8], needle: &[u8]) -> Option<usize> {
+    if needle.is_empty() {
+        return Some(0);
+    }
+    hay.windows(needle.len()).position(|w| w.eq_ignore_ascii_case(needle))
+}
+
 fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
     let game = Table::new(&ctx);
     bind_unit_primitives(ctx, game, sh);
+    bind_text_helpers(ctx, game);
 
     native!(ctx, env, "spawn_unit", [sh], |c, s| {
         let kind = text(c, s.get(0), 0)?;
@@ -1655,7 +1683,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, sh.sim.kind_name(u).map(str::to_owned));
         Ok(CallbackReturn::Return)
     });
-    native!(ctx, game, "unit_bounty", [sh], |c, s| {
+    native!(ctx, game, "reward_unit", [sh], |c, s| {
         let i = a(c, &s, 0)?;
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
@@ -1804,6 +1832,11 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
     // The command primitives hero.lua calls bare (its header lists them), as host globals.
     for name in ["cmd_add_gold", "cmd_add_stat", "cmd_add_unit_gold", "cmd_add_xp", "cmd_set_respawn"] {
         env.set(ctx, name, game.get(ctx, name)).expect("bind bare command");
+    }
+    // The genre-named spellings of the three renamed bindings, kept for one release so packs written against
+    // them still load. Remove after one release.
+    for (old, new) in [("xp_bounty", "reward_xp"), ("assist_radius_milli", "credit_radius_milli"), ("unit_bounty", "reward_unit")] {
+        game.set(ctx, old, game.get(ctx, new)).expect("bind old binding name");
     }
     env.set(ctx, "game", game).expect("bind game");
 }
