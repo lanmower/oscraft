@@ -688,6 +688,7 @@ jobs:
           import selectors
           import socket
           import sys
+          import time
 
           port, cap = int(sys.argv[1]), int(sys.argv[2])
           conns = 1000
@@ -696,10 +697,15 @@ jobs:
           for s in socks:
               sel.register(s, selectors.EVENT_READ)
           refused = eof = 0
+          # Settle window shorter than the server's 5 s idle read timeout: an admitted idle socket is
+          # still open here. A quiet-window drain would wait past that timeout, count the server's EOFs
+          # as closed, and measure alive = 0 even with the cap raised.
+          settle = time.monotonic() + 2.0
           while True:
-              events = sel.select(timeout=2.0)
-              if not events:
+              remaining = settle - time.monotonic()
+              if remaining <= 0:
                   break
+              events = sel.select(timeout=remaining)
               for key, _ in events:
                   sel.unregister(key.fileobj)
                   data = key.fileobj.recv(256)
