@@ -151,7 +151,8 @@ return {
 
   -- A hero's kill: its gold (the killer keeps all but the team share), the assist credit and the xp share.
   on_died = function(unit, killer, killer_player, _, victim_player)
-    if killer == nil or killer == unit or aegis.reincarnating(unit) then return end
+    -- A killer that died in the same step can take no xp or gold (the host refuses a dead unit): the kill-gold rule pays its side.
+    if killer == nil or killer == unit or aegis.reincarnating(unit) or not game.alive(killer) then return end
     -- The kill tally counts hero kills: a creep's kill is still a kill event for every mod, but not a hero's kill.
     if units.is_hero(killer) and killer_player ~= victim_player then game.add_kill(killer, 1) end
     if units.is_hero(unit) and killer_player ~= victim_player then
