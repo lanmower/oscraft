@@ -2401,6 +2401,49 @@ if (params.get("ci") === "1") {
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
 
+// Localhost dev: the host's running match takes an edited pack text file in place. Each watched file (the Lua modules, the
+// data, the rules, the UI and the tables the manifest names) is fetched every PACK_WATCH_MS and hashed; a changed one goes
+// through publishPackChanges, the pack editor's save path: peers get the file, and the swap applies it at a shared tick (Lua
+// reloads the mod set, data swaps the map), as a saved edit does. Only on localhost: a deployed page is not watched.
+const PACK_WATCH_MS = 1000;
+const PACK_WATCH_TEXT = /\.(lua|osd|json|tsv|txt)$/i;
+let packWatchSeen = null; // path -> content hash, recorded on the first check (no change is sent for it)
+let packWatchBusy = false;
+
+function watchedPackPaths() {
+  const m = manifest;
+  const list = [...modulePaths(m), ...(m.data ?? []), ...(m.tables ?? []), m.rules, m.ui, "manifest.json"];
+  return [...new Set(list.filter((p) => typeof p === "string" && PACK_WATCH_TEXT.test(p)))];
+}
+
+async function checkPackWatch() {
+  if (packWatchBusy || !hosting || !localGame || !manifest) return;
+  packWatchBusy = true;
+  try {
+    packWatchSeen ??= new Map();
+    const changes = [];
+    for (const rel of watchedPackPaths()) {
+      const res = await fetch(packUrl(rel), { cache: "no-store" });
+      if (!res.ok) continue;
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      const hash = fnv1a32(bytes);
+      const prev = packWatchSeen.get(rel);
+      packWatchSeen.set(rel, hash);
+      if (prev !== undefined && prev !== hash) changes.push({ path: rel, bytes, hash });
+    }
+    if (changes.length > 0) {
+      console.log(`[pack] ${changes.map((c) => c.path).join(", ")}: changed on disk, sent to the match`);
+      publishPackChanges(changes);
+    }
+  } catch (err) {
+    console.error(`[pack] watch failed: ${err.message}`);
+  } finally {
+    packWatchBusy = false;
+  }
+}
+
+if (["localhost", "127.0.0.1"].includes(location.hostname)) setInterval(checkPackWatch, PACK_WATCH_MS);
+
 main().catch((err) => {
   const message = err && err.message ? err.message : String(err);
   document.body.dataset.error = message;
