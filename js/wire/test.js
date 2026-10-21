@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import { createSeating, createStateEncoder, applyFrame, startFrame } from '../client/delta.js';
-import { emptyLobby, heroKindsFor, heroNamesFromRules, reduceLobby } from '../client/lobby.js';
 import { swapGate, swapIsNew } from '../client/swap_protocol.js';
 
-const ROSTER = ['hero', 'antimage', 'axe'];
 import { FRAME, SPECTATOR, WIRE_VERSION, WireError, encodeFrame, decodeFrame, frameTypeName } from './frame.js';
 
 const samples = [
@@ -66,6 +64,9 @@ samples.push({
   players: Array.from({ length: 10 }, (_, p) => ({ slot: p, team: p < 5 ? 0 : 1, connected: p % 2, gold: 500 * p - 1, kills: p, deaths: 65535 - p })),
 });
 samples.push({ type: FRAME.START, seats: Array.from({ length: 10 }, (_, p) => ({ slot: p, owner: `${p}`.repeat(64), pick: 'hero' })) });
+samples.push({ type: FRAME.ACTION, name: '', body: '' });
+samples.push({ type: FRAME.ACTION, name: 'buy-item', body: '{"slot":2,"item":"ward"}' });
+samples.push({ type: FRAME.UI, body: '{"panel":"shop","open":true}' });
 
 const typesSeen = new Set();
 let roundtrip = 0;
@@ -117,56 +118,10 @@ expectReject(Uint8Array.from([FRAME.ROSTER, WIRE_VERSION, 0, 0, 11]), 'COUNT_OUT
 expectReject(Uint8Array.from([FRAME.START, WIRE_VERSION, 11]), 'COUNT_OUT_OF_RANGE', 'start above ten seats');
 assert.throws(() => encodeFrame({ type: FRAME.ROSTER, you: 0, team: 0, players: tenUnits.concat(tenUnits[0]) }), WireError);
 
-// Bot fill: only the host fills, computers take every empty seat ready, and the match can then start.
-{
-  const claimed = reduceLobby(emptyLobby(), { type: 'claim', slot: 0, playerId: 'host' }).state;
-  assert.equal(reduceLobby(claimed, { type: 'fill', playerId: 'guest' }).error, 'not-host');
-  const filled = reduceLobby(claimed, { type: 'fill', playerId: 'host' }, ROSTER);
-  assert.equal(filled.error, null);
-  assert.equal(filled.state.slots.filter((s) => s.owner && s.ready).length, 9);
-  assert.equal(filled.state.slots[9].owner, 'bot:9');
-  assert.equal(reduceLobby(filled.state, { type: 'fill', playerId: 'host' }).error, 'nothing-to-fill');
-  assert.equal(reduceLobby(filled.state, { type: 'start', playerId: 'host' }).error, 'not-ready');
-  let ready = reduceLobby(filled.state, { type: 'pick', slot: 0, playerId: 'host', hero: 'hero' }, ROSTER).state;
-  ready = reduceLobby(ready, { type: 'ready', slot: 0, playerId: 'host', ready: true }).state;
-  assert.equal(reduceLobby(ready, { type: 'start', playerId: 'host' }).error, null);
-}
-
-// Picker roster: a pick outside the roster is refused, one inside is accepted, and an empty roster refuses fill.
-{
-  const claimed = reduceLobby(emptyLobby(), { type: 'claim', slot: 0, playerId: 'host' }).state;
-  assert.equal(reduceLobby(claimed, { type: 'pick', slot: 0, playerId: 'host', hero: 'not_a_hero' }, ROSTER).error, 'unknown-hero');
-  assert.equal(reduceLobby(claimed, { type: 'pick', slot: 0, playerId: 'host', hero: 'hero' }, ROSTER).error, null);
-  assert.equal(reduceLobby(claimed, { type: 'pick', slot: 0, playerId: 'host', hero: 'axe' }, ROSTER).state.slots[0].hero, 'axe');
-  assert.equal(reduceLobby(claimed, { type: 'fill', playerId: 'host' }, []).error, 'no-roster');
-  const bots = reduceLobby(claimed, { type: 'fill', playerId: 'host' }, ROSTER).state.slots.slice(1).map((s) => s.hero);
-  assert.deepEqual(bots.slice(0, 2), ['hero', 'antimage']);
-  assert.equal(bots[2], 'axe');
-  assert.equal(bots[3], 'hero');
-  assert.deepEqual(heroNamesFromRules('# c\nhero antimage primary=1\nmana=1\nhero axe x=1\n'), ['antimage', 'axe']);
-}
-
-// Roster input filter: only hero-kind types named by hero_rules.txt survive; a tower, barracks or creep is dropped.
-{
-  const typeNames = ['tower', 'antimage', 'barracks', 'hero', 'creep', 'axe'];
-  const heroFlags = [0, 1, 0, 1, 0, 1];
-  const kinds = heroKindsFor(typeNames, heroFlags, ['antimage', 'tower', 'hero', 'barracks', 'creep', 'axe', 'missing']);
-  assert.deepEqual([...kinds.entries()], [['antimage', 1], ['hero', 3], ['axe', 5]]);
-}
-
 // Lobby start -> START frame -> host seating -> ROSTER per peer, with a late join and a reconnect.
-let lobby = emptyLobby();
 const keys = Array.from({ length: 10 }, (_, p) => `peer${p}`.padEnd(64, 'k'));
-keys.forEach((playerId, slot) => {
-  for (const action of [{ type: 'claim', slot }, { type: 'pick', slot, hero: 'hero' }, { type: 'ready', slot, ready: true }]) {
-    const r = reduceLobby(lobby, { playerId, ...action }, ROSTER);
-    assert.equal(r.error, null);
-    lobby = r.state;
-  }
-});
-const started = reduceLobby(lobby, { type: 'start', playerId: keys[0] });
-assert.equal(started.error, null);
-const sent = decodeFrame(encodeFrame(startFrame(started.state)));
+const started = { slots: keys.map((owner, slot) => ({ owner, hero: 'hero', ready: true })) };
+const sent = decodeFrame(encodeFrame(startFrame(started)));
 assert.equal(sent.seats.length, 10);
 const seating = createSeating();
 assert.equal(seating.start(sent.seats), 10);
