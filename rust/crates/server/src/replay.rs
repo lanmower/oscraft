@@ -302,7 +302,11 @@ pub enum Command {
     /// A mod's attack-move hold for a unit (255 = clear, 0 = never hold, 1 = always hold).
     HoldOverride { unit: u32, hold: u8 },
     /// A mod's respawn decision for a dead spawn-group unit: seconds until it respawns (u32::MAX = leave it dead).
-    CampRespawn { unit: u32, delay_s: u32 },
+    SetRespawn { unit: u32, delay_s: u32 },
+    /// A mod's invulnerability for a unit, in ticks from the apply.
+    Invulnerable { unit: u32, ticks: u32 },
+    /// A mod's damage reduction for a unit, in percent (0..=100).
+    Reduction { unit: u32, pct: u8 },
     Cadence { paths: bool, vision: bool },
     /// A mod spawn for `owner` in `lane` (0 when the mod names none). `lane` is recorded for the mod, not read by the sim.
     Spawn { handle: u32, index: u32, x: i32, y: i32, owner: u8, lane: i32 },
@@ -522,14 +526,16 @@ impl Command {
                 };
                 sim.set_hold_override(*unit as usize, hold).is_ok()
             }
+            Command::SetRespawn { unit, delay_s } => {
+                let delay = (*delay_s != u32::MAX).then_some(*delay_s);
+                sim.set_respawn(*unit as usize, delay).is_ok()
+            }
+            Command::Invulnerable { unit, ticks } => sim.set_invulnerable(*unit as usize, *ticks).is_ok(),
+            Command::Reduction { unit, pct } => sim.set_damage_reduction(*unit as usize, *pct).is_ok(),
             Command::Cadence { .. } => true,
             Command::Spawn { index, x, y, owner, lane, .. } => sim.spawn_mod_unit(*owner, *index, *x, *y, *lane).is_some(),
             Command::Damage { caster, target, dmg } => {
                 let player = sim.player(*caster);
-            Command::CampRespawn { unit, delay_s } => {
-                let delay = (*delay_s != u32::MAX).then_some(*delay_s);
-                sim.set_respawn(*unit as usize, delay).is_ok()
-            }
                 sim.damage_target(*caster as i32, player, *dmg, *target as i32);
                 true
             }
@@ -652,17 +658,27 @@ impl Command {
                 put(&mut o, *hold);
                 "ho"
             }
+            Command::SetRespawn { unit, delay_s } => {
+                put(&mut o, *unit);
+                put(&mut o, *delay_s);
+                "rs"
+            }
+            Command::Invulnerable { unit, ticks } => {
+                put(&mut o, *unit);
+                put(&mut o, *ticks);
+                "iv"
+            }
+            Command::Reduction { unit, pct } => {
+                put(&mut o, *unit);
+                put(&mut o, *pct);
+                "rd"
+            }
             Command::Cadence { paths, vision } => {
                 put(&mut o, u8::from(*paths));
                 put(&mut o, u8::from(*vision));
                 "k"
             }
             Command::Spawn { handle, index, x, y, owner, lane } => {
-            Command::CampRespawn { unit, delay_s } => {
-                put(&mut o, *unit);
-                put(&mut o, *delay_s);
-                "rs"
-            }
                 put(&mut o, handle);
                 put(&mut o, index);
                 put(&mut o, x);
@@ -790,6 +806,9 @@ impl Command {
             "f" => Command::Fog { on: num::<u8>(it)? != 0 },
             "co" => Command::ClassOverride { unit: num(it)?, class: num(it)? },
             "ho" => Command::HoldOverride { unit: num(it)?, hold: num(it)? },
+            "rs" => Command::SetRespawn { unit: num(it)?, delay_s: num(it)? },
+            "iv" => Command::Invulnerable { unit: num(it)?, ticks: num(it)? },
+            "rd" => Command::Reduction { unit: num(it)?, pct: num(it)? },
             "k" => Command::Cadence { paths: num::<u8>(it)? != 0, vision: num::<u8>(it)? != 0 },
             "sp" => Command::Spawn { handle: num(it)?, index: num(it)?, x: num(it)?, y: num(it)?, owner: num_or(it, 0)?, lane: num_or(it, 0)? },
             "dm" => Command::Damage { caster: num(it)?, target: num(it)?, dmg: num(it)? },
@@ -806,7 +825,6 @@ impl Command {
                 target: num(it)?,
                 filter: num(it)?,
                 effects: effects_of(it)?,
-            "rs" => Command::CampRespawn { unit: num(it)?, delay_s: num(it)? },
             },
             "du" => Command::DefineUnit { spec: unit_spec_of(it)? },
             "di" => Command::DefineItem { spec: item_spec_of(it)? },

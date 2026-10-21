@@ -112,7 +112,6 @@ impl Sim {
         mark = lap(System::Projectiles, mark);
         self.tick_heroes();
         self.tick_camps();
-        self.tick_aggro();
         self.tick_wards();
         self.tick_spells();
         self.tick_couriers();

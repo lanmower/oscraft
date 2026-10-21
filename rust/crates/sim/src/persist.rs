@@ -496,7 +496,8 @@ impl Sim {
         w.extend_from_slice(&self.routes.step);
         put_i32s(&mut w, &self.aggro.target);
         put_u32s(&mut w, &self.aggro.until);
-        put_u32s(&mut w, &self.aggro.creep_seen);
+        put_u32s(&mut w, &self.aggro.invuln_until);
+        w.extend_from_slice(&self.aggro.reduce_pct);
         put_u32s(&mut w, &self.aggro.glyph_until);
         put_u32s(&mut w, &self.aggro.glyph_ready);
         put_u32s(&mut w, &self.aggro.glyph_need);
@@ -760,7 +761,8 @@ impl Sim {
         r.bytes_into(&mut next.routes.step)?;
         r.i32s_into(&mut next.aggro.target)?;
         r.u32s_into(&mut next.aggro.until)?;
-        r.u32s_into(&mut next.aggro.creep_seen)?;
+        r.u32s_into(&mut next.aggro.invuln_until)?;
+        r.bytes_into(&mut next.aggro.reduce_pct)?;
         r.u32s_into(&mut next.aggro.glyph_until)?;
         r.u32s_into(&mut next.aggro.glyph_ready)?;
         r.u32s_into(&mut next.aggro.glyph_need)?;

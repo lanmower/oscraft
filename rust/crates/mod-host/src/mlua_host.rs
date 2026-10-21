@@ -69,6 +69,9 @@ pub enum Cmd {
     SetHoldOverride { unit: usize, hold: Option<bool> },
     // A spawn-group unit's respawn timer: Some(s) respawns it s seconds from now, None leaves it dead.
     SetRespawn { unit: usize, delay_s: Option<u32> },
+    // A unit's invulnerability for `ticks` ticks from the apply, and its damage reduction in percent.
+    SetInvulnerable { unit: usize, ticks: u32 },
+    SetReduction { unit: usize, pct: u8 },
     Spawn { handle: u32, index: usize, x: i32, y: i32, owner: u8, lane: i32 },
     Order { unit: usize, x: i32, y: i32 },
     Damage { caster: usize, target: usize, dmg: i32 },
@@ -142,16 +145,16 @@ struct Hooks {
     on_spawned: Option<Function>,
     on_attacked: Option<Function>,
     on_died: Option<Function>,
-    on_enter: Option<Function>,
-    on_leave: Option<Function>,
-    on_player_joined: Option<Function>,
-    // Runs every trigger registered on the event name it is called with (game.trigger).
     // on_unit_died(unit, state) returns the respawn decision for a dead unit: nil keeps the Rust timer,
     // false leaves it dead, a number of seconds respawns it after that long.
     on_unit_died: Option<Function>,
     // target_priority(unit, candidates, state) returns the target class (0..3) for a unit that drew aggro;
     // nil keeps the Rust rule, false clears an earlier class.
     target_priority: Option<Function>,
+    on_enter: Option<Function>,
+    on_leave: Option<Function>,
+    on_player_joined: Option<Function>,
+    // Runs every trigger registered on the event name it is called with (game.trigger).
     fire: Function,
     systems: Vec<System>,
     // Set by the mod's top-level `GOLD_BY_MOD = true`: the sim's kill payout belongs to the mod.
@@ -254,13 +257,13 @@ pub struct ModHost {
     gold_by_mod: bool,
 }
 
+// The largest respawn delay on_unit_died may return, in seconds (one day).
+const MAX_RESPAWN_S: i64 = 86_400;
+
 // The events a mod handles, each with the Lua arguments it receives. A mod defines a global
 // function of the same name, and game.trigger takes the same names. Editors list them.
 // on_tick is the event the host calls once per step with the state table (see run_on_tick).
 use crate::EVENTS;
-// The largest respawn delay on_unit_died may return, in seconds (one day).
-const MAX_RESPAWN_S: i64 = 86_400;
-
 
 // Every global bind_host and bind_game register on a mod environment. compile_src checks this
 // list against the environment both ways (check_host_globals), so a global cannot be registered
@@ -1148,6 +1151,63 @@ fn bind_game(lua: &Lua, env: &Table, world: &Shared, cmds: &Cmds, systems: &Syst
             Ok(sim.rival_of(side).map(i64::from))
         })?,
     )?;
+    // Protection queries and commands for a mod's own rules (a structure's backdoor, a timed shield).
+    // Positions and radii are fixed point, as unit_position returns them.
+    let w = world.clone();
+    game.set(
+        "units_near",
+        lua.create_function(move |lua, (x, y, radius): (i64, i64, i64)| {
+            let (x, y, radius) = (fixed(x)?, fixed(y)?, fixed(radius)?);
+            let ids: Vec<i64> = w.borrow().units_near(x, y, radius).into_iter().map(|u| u as i64).collect();
+            lua.create_sequence_from(ids)
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "is_structure",
+        lua.create_function(move |_, i: i64| {
+            let sim = w.borrow();
+            Ok(sim.is_structure(known_unit(&sim, i)?))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "is_hero",
+        lua.create_function(move |_, i: i64| {
+            let sim = w.borrow();
+            Ok(sim.is_hero(known_unit(&sim, i)?))
+        })?,
+    )?;
+    let w = world.clone();
+    game.set(
+        "hostile",
+        lua.create_function(move |_, (a, b): (i64, i64)| {
+            let (a, b) = (player_arg(a)?, player_arg(b)?);
+            Ok(w.borrow().hostile(a, b))
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "set_damage_reduction",
+        lua.create_function(move |_, (unit, pct): (i64, i64)| {
+            let unit = usize::try_from(unit).map_err(|_| invalid_unit(unit))?;
+            let pct = u8::try_from(pct).ok().filter(|&p| p <= 100).ok_or_else(|| {
+                mlua::Error::RuntimeError(format!("invalid_reduction: {pct} is outside 0..=100"))
+            })?;
+            buf.borrow_mut().push(Cmd::SetReduction { unit, pct });
+            Ok(())
+        })?,
+    )?;
+    let buf = cmds.clone();
+    game.set(
+        "set_invulnerable",
+        lua.create_function(move |_, (unit, ticks): (i64, i64)| {
+            let unit = usize::try_from(unit).map_err(|_| invalid_unit(unit))?;
+            let ticks = u32::try_from(ticks).map_err(|_| mlua::Error::RuntimeError(format!("invalid_ticks: {ticks}")))?;
+            buf.borrow_mut().push(Cmd::SetInvulnerable { unit, ticks });
+            Ok(())
+        })?,
+    )?;
     let (w, buf) = (world.clone(), cmds.clone());
     game.set(
         "ability",
@@ -1587,6 +1647,8 @@ fn compile_src(lua: &Lua, world: &Shared, regions: &Regions, timers: &Timers, cl
         on_spawned: env.get("on_spawned")?,
         on_attacked: env.get("on_attacked")?,
         on_died: env.get("on_died")?,
+        on_unit_died: env.get("on_unit_died")?,
+        target_priority: env.get("target_priority")?,
         on_enter: env.get("on_enter")?,
         on_leave: env.get("on_leave")?,
         on_player_joined: env.get("on_player_joined")?,
@@ -1612,8 +1674,6 @@ fn check_host_globals(env: &Table) -> mlua::Result<()> {
     Ok(())
 }
 
-        on_unit_died: env.get("on_unit_died")?,
-        target_priority: env.get("target_priority")?,
 fn mtime(path: &Path) -> std::io::Result<SystemTime> {
     fs::metadata(path)?.modified()
 }
@@ -1930,6 +1990,15 @@ impl ModHost {
                 Cmd::SetHoldOverride { unit, hold } => {
                     let _ = sim.set_hold_override(unit, hold);
                 }
+                Cmd::SetRespawn { unit, delay_s } => {
+                    let _ = sim.set_respawn(unit, delay_s);
+                }
+                Cmd::SetInvulnerable { unit, ticks } => {
+                    let _ = sim.set_invulnerable(unit, ticks);
+                }
+                Cmd::SetReduction { unit, pct } => {
+                    let _ = sim.set_damage_reduction(unit, pct);
+                }
                 Cmd::SetTeam { player, team } => {
                     let _ = sim.set_team(player, team);
                 }
@@ -1955,9 +2024,6 @@ impl ModHost {
                 Cmd::AddGold { player, amount } => sim.add_resources(player, amount, 0),
                 Cmd::AddHeroGold { unit, amount } => {
                     let _ = sim.add_hero_gold(unit, amount);
-                Cmd::SetRespawn { unit, delay_s } => {
-                    let _ = sim.set_respawn(unit, delay_s);
-                }
                 }
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
@@ -2031,8 +2097,13 @@ impl ModHost {
     }
 
     fn dispatch(&self) -> mlua::Result<()> {
+        // Taken every step, mod or not, so the sim's acquisition log never grows past its cap unread.
+        let acquired = self.world.borrow_mut().take_acquisitions();
         let Some(m) = self.mod_file.as_ref() else { return Ok(()) };
         let hooks = &m.hooks;
+        for (unit, target) in acquired {
+            self.call_target_priority(hooks, unit, target);
+        }
         for &event in self.pending.iter() {
             match event {
                 Pending::Spawned { unit } => {
@@ -2061,14 +2132,10 @@ impl ModHost {
                     };
                     let before = self.cmds.borrow().len();
                     self.call_died(hooks, &death)?;
+                    self.call_unit_died(hooks, unit);
                     let own = self.cmds.borrow_mut().split_off(before);
-        // Taken every step, mod or not, so the sim's acquisition log never grows past its cap unread.
-        let acquired = self.world.borrow_mut().take_acquisitions();
                     self.local.borrow_mut().extend(own);
                 }
-        for (unit, target) in acquired {
-            self.call_target_priority(hooks, unit, target);
-        }
                 Pending::Enter { unit, region } => {
                     if let Some(name) = self.region_name(region) {
                         if let Some(h) = &hooks.on_enter {
@@ -2097,7 +2164,6 @@ impl ModHost {
     }
 
     /// Feeds one payable death of the room's sim to the mod's on_died, with the room's unit ids and
-                    self.call_unit_died(hooks, unit);
     /// the bounty (docs/MODDING.md, on_died). The commands the handlers queued are returned, not
     /// applied: their ids are the room's, so the room applies them to its own sim and this world
     /// is untouched.
@@ -2113,40 +2179,9 @@ impl ModHost {
         };
         let before = self.cmds.borrow().len();
         let result = self.call_died(&m.hooks, &death);
+        self.call_unit_died(&m.hooks, p.victim as usize);
         let fed = self.cmds.borrow_mut().split_off(before);
         result.map(|()| fed)
-    }
-
-    // Calls the on_died hook and every on_died trigger with the same arguments.
-    fn call_died(&self, hooks: &Hooks, d: &Death) -> mlua::Result<()> {
-        let killer = d.killer.map(i64::from);
-        let killer_player = d.killer_player.map(i64::from);
-        let (victim, victim_player, bounty) = (i64::from(d.victim), i64::from(d.victim_player), i64::from(d.bounty));
-        if let Some(h) = &hooks.on_died {
-            h.call::<()>((victim, killer, killer_player, bounty, victim_player, d.killer_hero))?;
-        }
-        hooks.fire.call::<()>(("on_died", victim, killer, killer_player, bounty, victim_player, d.killer_hero))
-    }
-
-    pub fn lua(&self) -> &Lua {
-        &self.lua
-    }
-
-    /// Whether the loaded mod declared `GOLD_BY_MOD = true`: its kill payout replaces the sim's.
-    pub fn gold_by_mod(&self) -> bool {
-        self.gold_by_mod
-    }
-
-    /// The commands `advance` applied to this world since the last take, in apply order, so a
-    /// caller that forwards them (the server room) applies the same changes to its own sim.
-    /// Commands queued by on_tick or a timer are applied, and so taken, by the next advance.
-    pub fn take_commands(&mut self) -> Vec<Cmd> {
-        std::mem::take(&mut *self.forward.borrow_mut())
-    }
-
-        self.call_unit_died(&m.hooks, p.victim as usize);
-    pub fn state(&self) -> &Table {
-        &self.state
     }
 
     // Calls on_unit_died for a dead unit and queues the respawn decision it returns. A hook that errors
@@ -2193,6 +2228,37 @@ impl ModHost {
             }
         };
         self.cmds.borrow_mut().push(Cmd::SetClassOverride { unit, class });
+    }
+
+    // Calls the on_died hook and every on_died trigger with the same arguments.
+    fn call_died(&self, hooks: &Hooks, d: &Death) -> mlua::Result<()> {
+        let killer = d.killer.map(i64::from);
+        let killer_player = d.killer_player.map(i64::from);
+        let (victim, victim_player, bounty) = (i64::from(d.victim), i64::from(d.victim_player), i64::from(d.bounty));
+        if let Some(h) = &hooks.on_died {
+            h.call::<()>((victim, killer, killer_player, bounty, victim_player, d.killer_hero))?;
+        }
+        hooks.fire.call::<()>(("on_died", victim, killer, killer_player, bounty, victim_player, d.killer_hero))
+    }
+
+    pub fn lua(&self) -> &Lua {
+        &self.lua
+    }
+
+    /// Whether the loaded mod declared `GOLD_BY_MOD = true`: its kill payout replaces the sim's.
+    pub fn gold_by_mod(&self) -> bool {
+        self.gold_by_mod
+    }
+
+    /// The commands `advance` applied to this world since the last take, in apply order, so a
+    /// caller that forwards them (the server room) applies the same changes to its own sim.
+    /// Commands queued by on_tick or a timer are applied, and so taken, by the next advance.
+    pub fn take_commands(&mut self) -> Vec<Cmd> {
+        std::mem::take(&mut *self.forward.borrow_mut())
+    }
+
+    pub fn state(&self) -> &Table {
+        &self.state
     }
 
     /// Units the sim has spawned, including dead ones (`Sim::count`).
@@ -2521,7 +2587,6 @@ mod tests {
             assert!(err.to_string().contains(why), "{call}: wrong error: {err}");
         }
     }
-}
 
     // on_unit_died and target_priority queue commands only when the mod defines them and they return a value
     // in the contract. A missing, erroring or out-of-contract hook queues nothing, so the Rust rule stands.
@@ -2578,3 +2643,27 @@ mod tests {
         host.call_target_priority(&m.hooks, 2, 5);
         assert!(queued(&host).is_empty(), "a class outside 0..3 must queue nothing");
     }
+
+    // scenarios/moba/protection.lua sets a structure's damage reduction once no hostile plain unit has
+    // been within reach for the activation time, and sends nothing when no mod is loaded.
+    #[test]
+    fn moba_protection_sends_the_reduction_after_the_activation_time() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        let src = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba/protection.lua")).expect("protection mod");
+        host.load_source("protection", &src).expect("protection loads");
+        for _ in 0..(16 * 16 + 8) {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        let cmds = host.take_commands();
+        assert!(cmds.iter().any(|c| matches!(c, Cmd::SetReduction { pct: 50, .. })), "a structure with no threat for 15 seconds must be reduced");
+    }
+
+    #[test]
+    fn no_mod_sends_no_reduction() {
+        let mut host = ModHost::new(&moba_image()).expect("moba image loads");
+        for _ in 0..20 {
+            host.advance(&host.state().clone()).expect("step");
+        }
+        assert!(host.take_commands().iter().all(|c| !matches!(c, Cmd::SetReduction { .. })));
+    }
+}

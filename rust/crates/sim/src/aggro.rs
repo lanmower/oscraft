@@ -9,11 +9,9 @@
 //! time are recalled reference ruleset behaviour, not in the dump (SteamDatabase tracking repo
 //! @282fad29f0f74504fad465c52d197fb61f4d612b has no targeting keys).
 //!
-//! Backdoor protection (rule `backdoor_reduction_pct`): a structure with no hostile armed plain unit
-//! within `backdoor_radius_milli` for `backdoor_activation_s` takes reduced damage and regenerates
-//! `backdoor_regen_per_s`. Verified from npc_abilities.txt `backdoor_protection`: radius 900,
-//! activation_time 15, regen_rate 90. UNVERIFIED: the damage reduction (not in the dump) and the
-//! radius scale into sim milli-units (900 reference units x tower range 6000/700).
+//! Damage reduction and invulnerability are per-unit state a mod sets (`set_damage_reduction`,
+//! `set_invulnerable`). The engine applies no reduction by default. Any rule that decides when a unit
+//! is protected (a structure's backdoor, a timed shield) is mod code that reads `units_near` and sets this state.
 //!
 //! Glyph: the `glyph` effect makes every friendly unit of the caster's team whose filter holds all
 //! `need` bits and none of the `skip` bits take no damage for a duration, then locks the team out for
@@ -27,14 +25,14 @@ use crate::loader::FILTER_STRUCTURE;
 use crate::rules::Refusal;
 use crate::{MAX_PLAYERS, TICKS_PER_SECOND};
 
-/// Ticks between backdoor scans.
-const BACKDOOR_PERIOD: u32 = 4;
-
 #[derive(Clone, Debug)]
 pub(crate) struct AggroState {
     pub(crate) target: Vec<i32>,
     pub(crate) until: Vec<u32>,
-    pub(crate) creep_seen: Vec<u32>,
+    /// Invulnerable (takes no damage) while the tick is below this, set by a mod.
+    pub(crate) invuln_until: Vec<u32>,
+    /// Percent of incoming damage removed per unit (0..=100), set by a mod.
+    pub(crate) reduce_pct: Vec<u8>,
     pub(crate) glyph_until: Vec<u32>,
     pub(crate) glyph_ready: Vec<u32>,
     pub(crate) glyph_need: Vec<u32>,
@@ -59,7 +57,8 @@ impl AggroState {
         AggroState {
             target: vec![-1; cap],
             until: vec![0; cap],
-            creep_seen: vec![0; cap],
+            invuln_until: vec![0; cap],
+            reduce_pct: vec![0; cap],
             glyph_until: vec![0; MAX_PLAYERS],
             glyph_ready: vec![0; MAX_PLAYERS],
             glyph_need: vec![0; MAX_PLAYERS],
@@ -79,7 +78,8 @@ impl Sim {
         self.aggro.until[i] = 0;
         self.aggro.strike[i] = -1;
         self.aggro.spawn_gen[i] = self.aggro.spawn_gen[i].wrapping_add(1);
-        self.aggro.creep_seen[i] = self.ticks;
+        self.aggro.invuln_until[i] = 0;
+        self.aggro.reduce_pct[i] = 0;
     }
 
     /// The unit unit `i` last struck, -1 when none or when that slot has been spawned into since.
@@ -94,7 +94,7 @@ impl Sim {
         if i < self.n && self.ticks < self.aggro.until[i] { self.aggro.target[i] } else { -1 }
     }
 
-    pub(crate) fn is_structure(&self, i: usize) -> bool {
+    pub fn is_structure(&self, i: usize) -> bool {
         self.filter[i] & FILTER_STRUCTURE != 0
     }
 
@@ -156,27 +156,18 @@ impl Sim {
         }
     }
 
-    /// Whether structure `j` is under backdoor protection now.
-    pub fn backdoor_protected(&self, j: usize) -> bool {
-        let r = self.heroes.rules;
-        if r.backdoor_reduction_pct <= 0 || j >= self.n || !self.is_structure(j) {
-            return false;
-        }
-        let quiet = self.ticks.wrapping_sub(self.aggro.creep_seen[j]);
-        quiet >= (r.backdoor_activation_s * TICKS_PER_SECOND) as u32
-    }
-
-    /// Damage `dmg` to unit `j` after backdoor reduction and the glyph.
+    /// Damage `dmg` to unit `j` after the glyph, the mod's invulnerability and the mod's damage reduction.
+    /// With no mod state set this returns `dmg`.
     pub(crate) fn mitigate_mech(&self, j: usize, dmg: i32) -> i32 {
         if dmg <= 0 {
             return dmg;
         }
-        if self.glyph_protects(j) {
+        if self.glyph_protects(j) || self.ticks < self.aggro.invuln_until.get(j).copied().unwrap_or(0) {
             return 0;
         }
-        if self.backdoor_protected(j) {
-            let keep = 100 - self.heroes.rules.backdoor_reduction_pct as i64;
-            return (dmg as i64 * keep / 100) as i32;
+        let pct = self.aggro.reduce_pct.get(j).copied().unwrap_or(0) as i64;
+        if pct > 0 {
+            return (dmg as i64 * (100 - pct) / 100) as i32;
         }
         dmg
     }
@@ -218,50 +209,36 @@ impl Sim {
             }
         }
     }
-
-    /// Per tick: refresh backdoor stamps on a cadence and regenerate protected structures each second.
-    pub(crate) fn tick_aggro(&mut self) {
-        let r = self.heroes.rules;
-        if r.backdoor_reduction_pct <= 0 {
-            return;
-        }
-        let scan = self.ticks % BACKDOOR_PERIOD == 0;
-        let regen = r.backdoor_regen_per_s > 0 && self.ticks % TICKS_PER_SECOND as u32 == 0;
-        if !scan && !regen {
-            return;
-        }
-        let rad = fixed::from_milli(r.backdoor_radius_milli);
-        let mut buf = std::mem::take(&mut self.scratch);
-        for j in 0..self.n {
-            if self.alive[j] == 0 || !self.is_structure(j) {
-                continue;
-            }
-            if scan {
-                let count = self.gather(self.pos_x[j], self.pos_y[j], rad, &mut buf);
-                let owner = self.player[j];
-                let near = buf[..count].iter().any(|&k| {
-                    let k = k as usize;
-                    self.alive[k] != 0
-                        && self.damage[k] > 0
-                        && !self.is_hero(k)
-                        && !self.is_structure(k)
-                        && self.hostile(owner, self.player[k])
-                });
-                if near {
-                    self.aggro.creep_seen[j] = self.ticks;
-                }
-            }
-            if regen && self.backdoor_protected(j) && self.hp[j] < self.hp_max[j] {
-                let heal = fixed::from_int(r.backdoor_regen_per_s);
-                self.hp[j] = self.hp[j].saturating_add(heal).min(self.hp_max[j]);
-                self.touch(j);
-            }
-        }
-        self.scratch = buf;
-    }
 }
 
 impl crate::arrays::Sim {
+    /// Makes unit `i` invulnerable for `ticks` ticks from now (a mod's command). Refused for a unit past the cap.
+    pub fn set_invulnerable(&mut self, i: usize, ticks: u32) -> Result<(), &'static str> {
+        if i >= self.n {
+            return Err("unknown unit");
+        }
+        self.aggro.invuln_until[i] = self.ticks.wrapping_add(ticks);
+        Ok(())
+    }
+
+    /// Sets the percent of damage unit `i` takes removed (0 clears it, 100 takes none). Above 100 is refused.
+    pub fn set_damage_reduction(&mut self, i: usize, pct: u8) -> Result<(), &'static str> {
+        if i >= self.n {
+            return Err("unknown unit");
+        }
+        if pct > 100 {
+            return Err("reduction out of range");
+        }
+        self.aggro.reduce_pct[i] = pct;
+        Ok(())
+    }
+
+    /// The living units (any owner) whose position lies within `radius` of (`x`, `y`), all in fixed point.
+    pub fn units_near(&self, x: i32, y: i32, radius: i32) -> Vec<usize> {
+        let r2 = (radius.max(0) as i64) * (radius.max(0) as i64);
+        (0..self.n).filter(|&k| self.alive[k] != 0 && dist2(self.pos_x[k], self.pos_y[k], x, y) <= r2).collect()
+    }
+
     /// Takes the (unit, target) aggro acquisitions since the last call, oldest first. Read by a host that
     /// runs a target-priority callback; a sim nobody drains only keeps the first ACQUIRED_CAP.
     pub fn take_acquisitions(&mut self) -> Vec<(usize, usize)> {
@@ -338,5 +315,29 @@ impl crate::arrays::Sim {
             Some(&h) if h >= 0 => Some(h == 1),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod protection_state_tests {
+    use crate::fixed;
+
+    // The Rust default takes no protection; a mod's reduction and invulnerability change the damage, and clearing it restores the default.
+    #[test]
+    fn default_takes_full_damage_and_mod_state_changes_it() {
+        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
+        let image = osdt_data::generate(&scenario).expect("duel-routes image");
+        let mut sim = crate::load(&image, 64).expect("duel-routes sim");
+        let kind = sim.catalog().unit_index("creep").expect("creep") as u32;
+        let u = sim.spawn_for(0, kind, fixed::from_int(5), fixed::from_int(5)).expect("unit");
+        assert_eq!(sim.mitigate_mech(u, 100), 100, "no mod state: full damage");
+        sim.set_damage_reduction(u, 50).expect("reduction");
+        assert_eq!(sim.mitigate_mech(u, 100), 50, "a 50 percent reduction halves the damage");
+        sim.set_damage_reduction(u, 0).expect("clear");
+        assert_eq!(sim.mitigate_mech(u, 100), 100, "clearing the reduction restores full damage");
+        assert!(sim.set_damage_reduction(u, 101).is_err());
+        sim.set_invulnerable(u, 5).expect("invulnerable");
+        assert_eq!(sim.mitigate_mech(u, 100), 0, "invulnerable takes no damage");
+        assert_eq!(sim.units_near(fixed::from_int(5), fixed::from_int(5), fixed::from_int(1)), vec![u]);
     }
 }

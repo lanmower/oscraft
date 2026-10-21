@@ -76,7 +76,8 @@ impl Sim {
         h.bytes(&self.routes.step);
         h.i32s(&self.aggro.target);
         h.u32s(&self.aggro.until);
-        h.u32s(&self.aggro.creep_seen);
+        h.u32s(&self.aggro.invuln_until);
+        h.bytes(&self.aggro.reduce_pct);
         h.u32s(&self.aggro.glyph_until);
         h.u32s(&self.aggro.glyph_ready);
         h.u32s(&self.aggro.glyph_need);
