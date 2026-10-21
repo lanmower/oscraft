@@ -368,12 +368,17 @@ void main() {
   vec3 shallow = vec3(0.34, 0.62, 0.56) * uWaterTint;
   vec3 deep = vec3(0.04, 0.22, 0.30) * uWaterTint;
   vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
-  float alpha = mix(0.55, 0.92, depth); // the riverbed shows through the shallows
+  // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
+  float alpha = mix(0.2, 0.42, depth);
   vec3 water = mix(bed, body, alpha);
   // The sky reflection and the sun glint are the shine of deep water only: they fade out with depth, so the shallow shore
   // tiles stay matte.
   water = mix(water, sky, fres * 0.8 * depth);
   water += vec3(1.0, 0.97, 0.9) * glint * depth;
+  // Refraction: a shimmer in the bed seen through the surface, shifted by the surface normal so it moves with the ripples.
+  vec2 refr = n.xz * 0.6;
+  float caustic = 0.5 + 0.5 * sin(dot(p + refr, vec2(1.7, 1.1)) * 3.0 + t * 1.3);
+  water += vec3(0.6, 0.85, 0.8) * caustic * 0.07;
   // Wet only where the neighbourhood is all water: a shore cell with land beside it stays dry ground, so the water does
   // not spill over the edge tiles.
   float wet = smoothstep(0.97, 1.0, near) * ww;
