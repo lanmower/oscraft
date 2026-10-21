@@ -17,7 +17,7 @@ fn every_module_loads_and_runs_300_ticks() {
 
     let image = build_image(&scenario).expect("moba scenario builds an image");
     let mut host = ModHost::new(&image).expect("host");
-    assert!(host.sim().set_attr_rules_text(&common::pack_rules(&scenario)), "the pack's rules file loads");
+    assert!(host.sim_mut().set_attr_rules_text(&common::pack_rules(&scenario)), "the pack's rules file loads");
     host.load_mods(&mods).unwrap_or_else(|e| panic!("moba mods failed to load: {e}"));
     for tick in 0..300 {
         host.advance().unwrap_or_else(|e| panic!("tick {tick} failed: {e}"));
