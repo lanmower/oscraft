@@ -365,7 +365,7 @@ export const SPLAT_TEXTURES = Object.freeze({
   grass: Object.freeze(["textures/grass.jpg", "textures/grass_disp.jpg"]),
   dirt: Object.freeze(["textures/grass_b_cc0_256.jpg", "textures/grass_b_cc0_256_disp.jpg"]),
   lane: Object.freeze(["textures/lane_earth_cc0_256.jpg", "textures/lane_disp.jpg"]),
-  rock: Object.freeze(["textures/rock.jpg", "textures/rock_disp.jpg"]),
+  rock: Object.freeze(["textures/rock024_color.jpg", "textures/rock024_disp.jpg"]),
 });
 // Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
 export function isSplatKind(kind) {
@@ -421,7 +421,7 @@ function keptDirtCells(grid, kinds) {
 
 // Display edge fade: the splat's rock and water weights are averaged over the (2 * RAMP_SPAN + 1)^2 cells around each cell
 // and eased with a smoothstep, so every cliff and water edge spans several cells. The sim reads the grid, never these.
-const RAMP_SPAN = 2;
+const RAMP_SPAN = 4;
 const WATER_SHARE_LO = 0.25;
 function easeStep(t) {
   const c = t < 0 ? 0 : t > 1 ? 1 : t;
