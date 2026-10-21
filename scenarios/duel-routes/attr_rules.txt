@@ -10,6 +10,9 @@ hex_speed_milli=137
 # damage response keeps (half; combat.rs inflict). Required engine keys.
 armour_per_point_q16=3932
 reduced_response_pct=50
+waypoint_reach_milli=3000
+speed_point_q16=64
+melee_range_q16=32768
 # The day and night clock (scenarios/duel-routes/clock.lua): day and night last 300 s each, as in the moba pack.
 day_s=300
 night_s=300

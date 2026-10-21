@@ -502,8 +502,8 @@ async function fetchModel(name, size) {
 }
 
 // One fitted model per unit type, indexed like the wasm unit_types export. A type with no model entry, or a model that
-// fails to load, is null: the unit type is then reported on the page once and not drawn. A hero that has no model, or
-// whose model fails, throws, so the match does not start. A model with its own size in doodad_sizes.json (Roshan,
+// fails to load, is null: the unit type is then reported on the page once and not drawn. A hero whose model file fails
+// throws, so the match does not start; a hero type with no model is recorded, and refused when it draws. A model with its own size in doodad_sizes.json (Roshan,
 // at hero heights) is fitted to it; every other unit is fitted to a hero footprint (UNIT_HALF, the design rule that
 // scripts/doodad-sizes.mjs also states).
 async function loadModels(game) {
@@ -515,8 +515,9 @@ async function loadModels(game) {
   return Promise.all(game.unit_model_names().map(async (name, type) => {
     const hero = heroFlags[type] === 1;
     if (!name) {
-      if (hero) throw new Error(`unit ${typeNames[type] ?? type}: hero has no model`);
-      recordAssetError(`unit ${typeNames[type] ?? type}`, new Error("has no model"));
+      // A hero with no model is not in the pick list, so it is not an asset failure here; a unit of its type is refused
+      // and reported when it draws (reportMissingModel). Any other unit type with no model is recorded now.
+      if (!hero) recordAssetError(`unit ${typeNames[type] ?? type}`, new Error("has no model"));
       return null;
     }
     const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
@@ -1115,12 +1116,14 @@ function isHeroUnit(id) {
 
 // Records each START seat's pick. The sim's Lua spawn rule places the picked unit; the page does not spawn it.
 function recordSeatPicks(seats) {
-  spawnedSeats = seats.map(({ slot, pick }) => ({ slot, pick }));
+  spawnedSeats = seats.map(({ slot, pick, owner }) => ({ slot, pick, owner }));
   // The host's sim spawns each seat's picked hero at the seat's start (heroes.lua seat_pick, routed by controls.lua).
+  // A bot seat's owner is "bot:<n>": the sim drives its hero (bots.lua).
   if (!localGame) return;
-  for (const { slot, pick } of spawnedSeats) {
+  for (const { slot, pick, owner } of spawnedSeats) {
     if (!pick) continue;
-    logModError(localGame.dispatch_action("seat_pick", JSON.stringify({ player: slot, hero: pick })));
+    const bot = String(owner || "").startsWith("bot:");
+    logModError(localGame.dispatch_action("seat_pick", JSON.stringify({ player: slot, hero: pick, bot })));
   }
 }
 

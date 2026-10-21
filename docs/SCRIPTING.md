@@ -143,7 +143,7 @@ Commands queue during a step and apply in step 5. Unit arguments must be living 
 
 ## Teams, damage and rules
 
-`game.set_team(player, team)`, `game.alliance(a, b[, kind])`, `game.add_player(slot, controller)`, `game.remove_player(slot)`, `game.set_damage_reduction`, `game.set_healing`, `game.set_attack_hold`, `game.set_reincarnate_item`, `game.victory(player)` makes the player's team the winner. `game.defeat(player)` is a no-op (the sim's `declare_defeat`); the loss rule is `scenarios/moba/win.lua`, which returns the winning side from `on_check_win`. Each one's arguments are in `piccolo_host.rs` beside its binding.
+`game.set_team(player, team)`, `game.alliance(a, b[, kind])`, `game.add_player(slot, controller)`, `game.remove_player(slot)`, `game.set_damage_reduction`, `game.set_healing`, `game.set_attack_hold`, `game.victory(player)` makes the player's team the winner. `game.defeat(player)` is a no-op (the sim's `declare_defeat`); the loss rule is `scenarios/moba/win.lua`, which returns the winning side from `on_check_win`. Each one's arguments are in `piccolo_host.rs` beside its binding.
 
 The calls below act when they run, not in the command phase: `game.set_aggro(unit, attacker, hold_ticks)`, `game.issue_order(unit, kind, x, y)` (false when refused), `game.chase_set(unit, target, kind, x, y)`, `game.set_skill_rank(unit, slot, rank)`, `game.refresh_attr_stats(unit)`, `game.spawn_neutral(kind, x, y)` (returns the id, or nil), `game.set_resources(player, gold, gas)`, `game.set_research_bit(player, name, on)`, `game.apply_research(name, unit)`, `game.set_upgrade_bit(unit, bit, on)`, `game.add_kill(unit, n)`, and `game.add_credit(unit, n)` (the post-game row reports credits as assists).
 
@@ -160,9 +160,17 @@ These also change the sim when they run, not in the command phase.
 | `game.enroll(unit, x, y)` | enrols the unit at the point with its attribute stats and passives, health full |
 | `game.hide_unit(unit)` | takes a live unit out of play without a death; returns whether it did |
 | `game.unhide_unit(unit, x, y)` | puts a hidden unit back at the Q16.16 point; returns whether it did |
+| `game.revive_at(unit, x, y)` | puts a dead attributed unit back at the Q16.16 point with full health, mana and items; false for a live or non-attributed unit, or a full cell |
 | `game.acquire(name, range)` | sets the acquire range of a unit kind, in game units |
 | `game.set_counter(unit, name, value)` | sets a named counter the mod keeps on the unit |
 | `game.set_stat_bounds(stat, lo, hi)` | holds a stat within bounds when a cast cost or attack period reads it; returns whether it was set |
+| `game.armour_of(unit)` | the unit's effective armour in Q16.16 (base and bonuses); 0 when unknown |
+| `game.set_armour_scale(unit, scale)` | the damage scale (Q16.16) of the unit: the damage it takes is multiplied by it. `unit_rules.lua` sets it each tick from the armour curve |
+| `game.set_speed_bounds(unit, floor, cap)` | holds the unit's effective speed (Q16.16 per tick) between floor and cap. `unit_rules.lua` sets it each tick from the speed limits |
+| `game.unit_speed(unit)` | the unit's base speed in Q16.16 per tick, before slows, boosts and bounds; 0 when unknown |
+| `game.type_speed(unit)` | the speed of the unit's type in the unit data, in milli-units per tick; 0 when unknown |
+| `game.set_miss_chance(unit, chance)` | the chance (Q16.16) a shot by the unit misses; 0 means it cannot miss |
+| `game.unit_miss_chance(unit)` | the miss chance (Q16.16) the unit data gives the unit's type; 0 when unknown |
 | `game.set_status_flags(name, bits)` | sets the flags of a named status; returns whether they were set |
 | `game.clear_status(unit, name)` | clears one named status counter of the unit |
 | `game.clear_timed_mods(unit, buffs)` | clears the unit's timed modifiers: its buffs when `buffs` is nonzero, the others otherwise |

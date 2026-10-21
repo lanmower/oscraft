@@ -501,13 +501,6 @@ impl Sim {
         self.armor[i].wrapping_add(fixed::from_int(self.stat(i, S_ARMOR))).wrapping_add(hundredths)
     }
 
-    /// Magic resistance of unit `i` in percent: the unit's base and its bonus stacked multiplicatively.
-    pub(crate) fn magic_resist_pct(&self, i: usize) -> i32 {
-        let base = self.attr_def(i).map_or(0, |d| d.magic_resist) as i64;
-        let bonus = self.stat(i, S_MAGIC_RESIST) as i64;
-        let kept = (100 - base) * (100 - bonus) / 100;
-        (100 - kept) as i32
-    }
 
     /// Ticks between attacks of unit `i`: its base period scaled by bonus attack speed (held within the pack's bounds).
     pub(crate) fn attack_period(&self, i: usize) -> i32 {
@@ -683,8 +676,8 @@ impl Sim {
             }
         }
         dmg = match dtype {
-            1 => crate::combat::armour_reduced(dmg, self.eff_armor(j), self.armour_k()),
-            2 => (dmg as i64 * (100 - self.magic_resist_pct(j) as i64) / 100) as i32,
+            1 => self.armour_scaled(dmg, j),
+            2 => self.magic_scaled(dmg, j),
             _ => dmg,
         };
         let before = self.hp[j];
@@ -1171,7 +1164,7 @@ impl Sim {
         if crit > 0 && self.roll_pct(crit) {
             raw = (raw as i64 * self.stat(i, S_CRIT_MULT).max(100) as i64 / 100) as i32;
         }
-        let mut dmg = self.scale_hit(crate::combat::armour_reduced(raw, self.eff_armor(b), self.armour_k()), i, b);
+        let mut dmg = self.scale_hit(self.armour_scaled(raw, b), i, b);
         if self.is_illusion(i) {
             dmg = (dmg as i64 * self.spell.ill_out[i] as i64 / 100) as i32;
         }
@@ -1222,7 +1215,7 @@ impl Sim {
                 continue;
             }
             let part = (raw as i64 * pct as i64 / 100) as i32;
-            let dmg = crate::combat::armour_reduced(part, self.eff_armor(j), self.armour_k());
+            let dmg = self.armour_scaled(part, j);
             self.inflict(j, dmg, i as i32);
         }
     }

@@ -33,20 +33,24 @@ buyback_net_worth_div=13
 buyback_net_worth_pct=115
 # Base magic resistance percent of every hero (combat.rs magic_reduced).
 base_magic_resist_pct=25
-# Movement speed limits in reference speed points (1 point = 64 Q16.16 per tick; status.rs effective_speed), and the
-# movement speed of a hexed unit in milli-units per tick.
+# Movement speed limits in reference speed points (1 point = speed_point_q16 Q16.16 per tick). The pack holds each unit
+# between them (scenarios/moba/unit_rules.lua).
 move_speed_max=550
 move_speed_min=100
-hex_speed_milli=137
 # Cast and attack caps, held by spells.lua on the sim's stats: the cooldown reduction cap in percent, and the total attack
 # speed range in percent (100 plus the attack speed bonus).
 cdr_cap_pct=90
 attack_speed_min_pct=20
 attack_speed_max_pct=700
-# Armour reduction per armour point, Q16.16 (0.06; combat.rs armour_reduced), and the percent of a hit a `reduced`
+# Armour reduction per armour point, Q16.16 (0.06; scenarios/moba/unit_rules.lua), and the percent of a hit a `reduced`
 # damage response keeps (half; combat.rs inflict). Engine balance values, read by the sim as typed rules.
 armour_per_point_q16=3932
 reduced_response_pct=50
+# Distance at which a unit moves on to its next waypoint (milli-units); the reference speed point in Q16.16; the melee
+# range (Q16.16, half a tile): a melee shot never misses (unit_rules.lua).
+waypoint_reach_milli=3000
+speed_point_q16=64
+melee_range_q16=32768
 # Attribute coefficients (the attribute rules): health per strength, damage per universal share, armour per agility divisor,
 # health and mana regeneration per strength and intelligence (hundredths), mana per intelligence, universal damage percent.
 hp_per_attr_a=22

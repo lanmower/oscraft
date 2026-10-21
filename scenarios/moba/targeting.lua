@@ -47,7 +47,8 @@ end
 -- Every armed non-unit unit on the victim's side that reaches the victim takes the attacker as its aggro target for
 -- aggro_hold_s seconds. Runs for each hit between two heroes of hostile sides.
 function targeting.aggro_redirect(attacker, victim)
-  if config.rule("aggro_priority") ~= 1 or attacker == victim then return end
+  -- The host passes attacker -1 when a hit has no unit behind it: there is nothing to redirect to.
+  if attacker < 0 or config.rule("aggro_priority") ~= 1 or attacker == victim then return end
   if not units.is_hero(victim) or not units.is_hero(attacker) then return end
   local side = unit_player(victim)
   if not units.hostile(side, unit_player(attacker)) then return end

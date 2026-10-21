@@ -25,6 +25,9 @@
     "init.lua"
   ],
   "modules": {
+    "aegis": "aegis.lua",
+    "bot_lib": "bot_lib.lua",
+    "bots": "bots.lua",
     "bounty": "core/bounty.lua",
     "camps": "camps.lua",
     "clock": "clock.lua",
@@ -47,6 +50,7 @@
     "talents": "talents.lua",
     "targeting": "targeting.lua",
     "taunt": "taunt.lua",
+    "unit_rules": "unit_rules.lua",
     "units": "shared/units.lua",
     "upgrades": "upgrades.lua",
     "win": "win.lua",

@@ -354,29 +354,6 @@ impl Sim {
         self.apply_item_delta(i, &[0; ITEM_STAT_COUNT], &totals, attributed);
     }
 
-    /// A unit that dies holding the reincarnation item (a mod's `set_reincarnate_item`, e.g. the pack's
-    /// aegis) comes back where it fell after the item's seconds, with full health and mana, and one charge of the
-    /// item is spent. The death is not booked: no kill, bounty, experience or death count. True when the unit
-    /// reincarnates.
-    pub(crate) fn reincarnate(&mut self, j: usize) -> bool {
-        let Some((item, seconds)) = self.groups.revive_item else {
-            return false;
-        };
-        if !self.is_attributed(j) {
-            return false;
-        }
-        let base = j * INV_SLOTS;
-        let Some(slot) = (0..MAIN_SLOTS).find(|&s| self.inv_kind[base + s] == item && self.inv_count[base + s] > 0) else {
-            return false;
-        };
-        self.consume_item_charge(j, slot);
-        self.attributed.waiting[j] = 2;
-        self.attributed.respawn_at[j] = self.ticks.wrapping_add(seconds.wrapping_mul(crate::TICKS_PER_SECOND as u32));
-        self.attributed.spot_x[j] = self.pos_x[j];
-        self.attributed.spot_y[j] = self.pos_y[j];
-        true
-    }
-
     /// Spends one charge of the item in inventory slot `slot` of unit `i`; an emptied slot loses
     /// the item and its stat bonuses. The caller checks the slot is in range and holds an item.
     pub fn consume_item_charge(&mut self, i: usize, slot: usize) {

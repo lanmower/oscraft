@@ -54,7 +54,6 @@ pub use modapi::{effect_kind, stat_code, target_code, AbilitySpec, ItemSpec, Uni
 pub use diplomacy::{controller_code, CONTROLLER_COMPUTER, CONTROLLER_HUMAN, CONTROLLER_OPEN, MOD_ALLIANCES, MOD_CONTROLLERS};
 pub use pathfinding::Grid;
 pub use persist::StateError;
-pub use combat::armour_reduced;
 pub use rules::{Refusal, ALL_REFUSALS};
 pub use store::{ItemRequest, ItemVerdict, NO_COMPONENT, NO_TAKE, VERDICT_TAKES};
 pub use status::STATUS_NAMES;
@@ -89,7 +88,6 @@ pub(crate) const KIND_GEYSER: u8 = 2;
 pub(crate) const LAYER_GROUND: u8 = 1;
 pub(crate) const LAYER_AIR: u8 = 2;
 
-pub(crate) const MELEE_RANGE: i32 = fixed::ONE / 2;
 
 pub(crate) const ORDER_MOVE: u8 = 0;
 pub(crate) const ORDER_STOP: u8 = 1;

@@ -369,7 +369,9 @@ pub fn spell_b_2(_image: &[u8]) -> Result<(), String> {
     let rear = w.creep(1, -2, 0)?;
     let raw = w.s.damage_of(sven);
     w.s.order_attack(sven, target).map_err(|r| format!("order_attack: {}", r.name()))?;
-    let want = fixed::to_float(sim::armour_reduced(raw * 60 / 100, w.s.armor_of(behind), w.s.attr_rules().armour_per_point_q16));
+    // The victim takes the damage scale the pack set for it (1.0 with no pack loaded, as here).
+    let scaled = ((raw * 60 / 100) as i64 * w.s.armour_scale_of(behind) as i64 / 65536) as i32;
+    let want = fixed::to_float(scaled);
     near("cone victim", 550.0 - w.hp(behind), want, 0.3)?;
     if w.hp(aside) < 549.9 || w.hp(rear) < 549.9 {
         return Err("a unit outside the cone took cleave damage".into());

@@ -156,6 +156,15 @@ pub struct Sim {
     pub(crate) hold_override: Vec<i8>,
     /// Per-attacker strike target set by a mod (-1 = none). Hashed only when a value is set.
     pub(crate) strike_target: Vec<i32>,
+    /// Per-unit damage scale (Q16.16) the pack sets each tick from the unit's armour: damage taken is multiplied by it.
+    pub(crate) armour_scale: Vec<i32>,
+    /// Per-unit speed bounds (Q16.16) the pack sets: effective speed is held between floor and cap.
+    pub(crate) speed_floor: Vec<i32>,
+    pub(crate) speed_cap: Vec<i32>,
+    /// Per-unit miss chance (Q16.16) of its shots, set by the pack; 0 means its shots cannot miss.
+    pub(crate) miss_chance: Vec<i32>,
+    /// Per-unit percent of magical damage kept (100 = the full hit), set by the pack from the unit's magic resistance.
+    pub(crate) magic_keep: Vec<i32>,
     /// Ward expiry stamps. See timed_life.rs.
     pub(crate) expiry: crate::timed_life::ExpiryState,
     /// Saved order points for mods that send units away. See order_memory.rs.
@@ -350,6 +359,11 @@ impl Sim {
             class_override: vec![-1; cap],
             hold_override: vec![-1; cap],
             strike_target: vec![-1; cap],
+            armour_scale: vec![fixed::ONE; cap],
+            speed_floor: vec![0; cap],
+            speed_cap: vec![i32::MAX; cap],
+            miss_chance: vec![0; cap],
+            magic_keep: vec![100; cap],
             expiry: crate::timed_life::ExpiryState::new(cap),
             order_memory: crate::order_memory::OrderMemory::new(cap),
             item_requests: Default::default(),
@@ -689,6 +703,11 @@ impl Sim {
         self.unit_deaths[i] = 0;
         self.unit_credits[i] = 0;
         self.strike_target[i] = -1;
+        self.armour_scale[i] = fixed::ONE;
+        self.speed_floor[i] = 0;
+        self.speed_cap[i] = i32::MAX;
+        self.miss_chance[i] = 0;
+        self.magic_keep[i] = 100;
         self.killer[i] = -1;
         self.hitter_id[i * crate::combat::HITTER_SLOTS..(i + 1) * crate::combat::HITTER_SLOTS].fill(-1);
         self.type_of[i] = ty as i32;

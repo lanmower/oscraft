@@ -634,6 +634,11 @@ fn known_unit(sim: &Sim, i: i64) -> Result<usize, String> {
     usize::try_from(i).ok().filter(|&u| u < sim.count()).ok_or_else(|| format!("invalid_unit: {i}"))
 }
 
+// A raw Q16.16 value a mod passes as an integer (no whole-unit scaling, unlike `fixed`).
+fn raw_q16(v: i64) -> Result<i32, String> {
+    i32::try_from(v).map_err(|_| format!("q16 value out of range: {v}"))
+}
+
 // A player index for a diplomacy question: a match player, or the neutral player (255), which the sim treats as an
 // enemy of every player. Anything past a byte is refused.
 fn diplomacy_player(p: i64) -> Result<u8, String> {
@@ -1472,6 +1477,75 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, sh.sim.set_stat_bounds(code, lo, hi));
         Ok(CallbackReturn::Return)
     });
+    // game.set_armour_scale(unit, scale): the damage scale (Q16.16) of the unit, multiplying the damage it takes. The pack
+    // sets it each tick from the unit's armour (scenarios/moba/unit_rules.lua).
+    native!(ctx, game, "set_armour_scale", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let scale = raw_q16(a(c, &s, 1)?).map_err(|m| fail(c, m))?;
+        sh.sim.set_armour_scale(u, scale);
+        Ok(CallbackReturn::Return)
+    });
+    // game.armour_of(unit): the unit's effective armour in Q16.16 (base, bonuses included); 0 when unknown.
+    native!(ctx, game, "armour_of", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.eff_armour_of(u)));
+        Ok(CallbackReturn::Return)
+    });
+    // game.set_speed_bounds(unit, floor, cap): holds the unit's effective speed (Q16.16 per tick) between floor and cap.
+    native!(ctx, game, "set_speed_bounds", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let (floor, cap) = (raw_q16(a(c, &s, 1)?).map_err(|m| fail(c, m))?, raw_q16(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        sh.sim.set_speed_bounds(u, floor, cap);
+        Ok(CallbackReturn::Return)
+    });
+    // game.unit_speed(unit): the unit's base speed in Q16.16 per tick, before slows, boosts and bounds; 0 when unknown.
+    native!(ctx, game, "unit_speed", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.base_speed_of(u)));
+        Ok(CallbackReturn::Return)
+    });
+    // game.type_speed(unit): the speed the unit's type has in the unit data, in milli-units per tick; 0 when unknown.
+    native!(ctx, game, "type_speed", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.type_speed_milli(u)));
+        Ok(CallbackReturn::Return)
+    });
+    // game.set_miss_chance(unit, chance): the chance (Q16.16) that a shot by the unit misses; 0 means it cannot miss.
+    native!(ctx, game, "set_miss_chance", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let chance = raw_q16(a(c, &s, 1)?).map_err(|m| fail(c, m))?;
+        sh.sim.set_miss_chance(u, chance);
+        Ok(CallbackReturn::Return)
+    });
+    // game.unit_miss_chance(unit): the miss chance (Q16.16) the unit data gives the unit's type; 0 when unknown.
+    native!(ctx, game, "unit_miss_chance", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.data_miss_chance(u)));
+        Ok(CallbackReturn::Return)
+    });
+    // game.set_magic_keep(unit, pct): the percent of magical damage the unit keeps (100 = the full hit). The pack sets it
+    // each tick from the unit's magic resistance (scenarios/moba/unit_rules.lua).
+    native!(ctx, game, "set_magic_keep", [sh], |c, s| {
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let pct = i32::try_from(a(c, &s, 1)?).map_err(|_| fail(c, "magic keep out of range".into()))?;
+        sh.sim.set_magic_keep(u, pct);
+        Ok(CallbackReturn::Return)
+    });
+    // game.magic_base(unit): the base magic resistance, in percent, of the unit's type in the unit data; 0 when unknown.
+    native!(ctx, game, "magic_base", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.magic_base_of(u)));
+        Ok(CallbackReturn::Return)
+    });
     // game.class_override(unit): the target class a debug control or mod set for the unit (0..=3), -1 when none.
     native!(ctx, game, "class_override", [sh], |c, s| {
         let sh = sh.borrow();
@@ -1603,13 +1677,6 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.borrow_mut().cmds.push(Cmd::RemovePlayer { player: p });
         Ok(CallbackReturn::Return)
     });
-    // Spawn-group setter (sim spawn_groups.rs): set_reincarnate_item(name, seconds) names the item that lets a dying unit reincarnate.
-    native!(ctx, game, "set_reincarnate_item", [sh], |c, s| {
-        let name = text(c, s.get(0), 0)?;
-        let seconds = u32::try_from(a(c, &s, 1)?).map_err(|_| fail(c, "invalid_reincarnate: seconds must not be negative".into()))?;
-        sh.borrow_mut().sim.set_reincarnate_item(&name, seconds).map_err(|why| fail(c, format!("invalid_reincarnate: {name}: {why}")))?;
-        Ok(CallbackReturn::Return)
-    });
     native!(ctx, game, "is_spawn_group_unit", [sh], |c, s| {
         let sh = sh.borrow();
         let unit = usize::try_from(a(c, &s, 0)?).ok().is_some_and(|u| sh.sim.is_spawn_group_unit(u));
@@ -1645,13 +1712,14 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.borrow_mut().sim.set_clock(night, cycle);
         Ok(CallbackReturn::Return)
     });
-    // game.consume_item_charge(unit, slot): spends one charge of the item in inventory slot `slot` of a live unit (a ward's
-    // cast spends its item this way, once it is placed). Returns false, changing nothing, for an empty or unknown slot.
+    // game.consume_item_charge(unit, slot): spends one charge of the item in inventory slot `slot` of a unit, alive or dead
+    // (a ward's cast spends its item once it is placed; the pack's aegis spends its charge as its holder dies). Returns false,
+    // changing nothing, for an empty or unknown slot.
     native!(ctx, game, "consume_item_charge", [sh], |c, s| {
         let unit = a(c, &s, 0)?;
         let slot = a(c, &s, 1)?;
         let mut sh = sh.borrow_mut();
-        let u = live_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
         let held = usize::try_from(slot).ok().filter(|&k| k < sh.sim.inventory_slots() && sh.sim.inventory_slot(u, k).0 != 0);
         match held {
             Some(k) => {
@@ -2132,6 +2200,18 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, back);
         Ok(CallbackReturn::Return)
     });
+    // game.revive_at(unit, x, y): puts a dead attributed unit back at the Q16.16 point with full health, mana and items (sim
+    // revive_at_point, the respawn's own revive). False, changing nothing, for a live unit, a unit that is not attributed,
+    // or a cell that cannot take it; the caller retries.
+    native!(ctx, game, "revive_at", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let (x, y) = (fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        let back = !sh.sim.alive(u) && sh.sim.is_attributed(u) && sh.sim.revive_at_point(u, x, y);
+        s.replace(c, back);
+        Ok(CallbackReturn::Return)
+    });
     // game.walkable(x, y): whether the grid cell under the Q16.16 point is walkable by ground units.
     native!(ctx, game, "walkable", [sh], |c, s| {
         let (x, y) = (fixed(a(c, &s, 0)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?);
@@ -2412,6 +2492,8 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             let row = Table::new(&c);
             row.set(c, "name", cat.name(unit.name).to_owned()).expect("kind");
             row.set(c, "player_controlled", cat.unit_ext.get(k).is_some_and(|e| e.player_controlled)).expect("kind");
+            // The model file the unit draws with; "" when it has none (the page then refuses to draw it).
+            row.set(c, "model", cat.name(unit.model).to_owned()).expect("kind");
             out.set(c, k as i64 + 1, row).expect("kind");
         }
         s.replace(c, out);
@@ -3118,6 +3200,11 @@ impl ModHost {
             sh.clock += 1;
             sh.sim.tick();
         }
+        // The mods read the sim tick as state.ticks; it is set here, every step, so it is never the seed 0.
+        let tick = self.sh.borrow().sim.ticks();
+        self.lua.borrow_mut().enter(|ctx| {
+            ctx.fetch(&self.state).set(ctx, "ticks", i64::from(tick)).expect("set state.ticks");
+        });
         self.collect();
         self.dispatch()?;
         let pending = std::mem::take(&mut self.pending);
@@ -3924,5 +4011,17 @@ mod containment {
         let _ = host.sim().count();
         assert_eq!(host.state_int("steady"), Some(3), "the other module ran on every tick");
         assert!(host.disabled_hooks().contains(&"panicker:on_tick".to_string()), "the panicking hook is off: {:?}", host.disabled_hooks());
+    }
+
+    #[test]
+    fn state_ticks_is_the_sim_tick_on_every_step() {
+        let mut host = host();
+        let clock: (String, String) = ("clock.lua".into(), "return { on_tick = function(state) state.seen = state.ticks end }".into());
+        host.load_mods(&[clock]).expect("loads");
+        for _ in 0..5 {
+            host.advance().expect("advances");
+        }
+        assert_eq!(host.state_int("seen"), Some(i64::from(host.sim().ticks())), "state.ticks follows the sim, not the seed 0");
+        assert!(host.state_int("seen").unwrap_or(0) > 0, "state.ticks has moved off 0");
     }
 }

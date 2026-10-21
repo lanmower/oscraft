@@ -3,6 +3,7 @@
 -- An attackerless death pays the rival side's gold. A denial (the killer is allied to the victim) pays nothing.
 -- The payout is core/bounty.lua's; this file sets the rule.
 local bounty = require("bounty")
+local aegis = require("aegis")
 
 local TEAM_SHARE_PCT = 20
 local NEUTRAL = 255 -- the neutral player (the sim's NEUTRAL_PLAYER)
@@ -21,6 +22,7 @@ end
 game.trigger("on_died", {
   conditions = { function(_, _, _, amount) return amount > 0 end },
   action = function(unit, killer, killer_player, amount, victim_player, killer_attributed)
+    if aegis.reincarnating(unit) then return end
     if killer ~= nil and killer ~= unit then
       -- The neutral player (255) pays no side: a camp creep that kills pays nothing.
       if killer_player == NEUTRAL or not game.hostile(killer_player, victim_player) then return end

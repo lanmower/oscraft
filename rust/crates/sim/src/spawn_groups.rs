@@ -3,7 +3,7 @@
 //! `cmd_set_respawn` from a mod), then respawns at its home when the timer runs out (`tick_groups`).
 //! Which units form a group, when each one is due, the leash (a member past its radius is ordered home),
 //! what a death pays and the pit swap are mod code (the pack's camps.lua). Home and timer are sim state:
-//! hashed and saved. The reincarnation item is a load-time mod setting, neither hashed nor saved.
+//! hashed and saved.
 
 use crate::arrays::Sim;
 
@@ -20,8 +20,6 @@ pub(crate) struct GroupState {
     /// 1 while a member is dead and held for a respawn decision; the unit respawns once `revive_at` passes.
     pub(crate) waiting: Vec<u8>,
     pub(crate) revive_at: Vec<u32>,
-    /// Item that lets a dying unit reincarnate: (item kind, seconds the unit is gone). Load-time setting.
-    pub(crate) revive_item: Option<(u32, u32)>,
 }
 
 impl GroupState {
@@ -32,7 +30,6 @@ impl GroupState {
             anchor_y: vec![0; cap],
             waiting: vec![0; cap],
             revive_at: vec![0; cap],
-            revive_item: None,
         }
     }
 
@@ -117,13 +114,6 @@ impl Sim {
         Ok(())
     }
 
-    /// Names the item that lets a dying unit reincarnate and how long the unit is gone. A load-time mod setting;
-    /// an unknown item is refused.
-    pub fn set_reincarnate_item(&mut self, name: &str, seconds: u32) -> Result<(), &'static str> {
-        let k = self.cat.items.iter().position(|it| self.cat.name(it.name) == name).ok_or("unknown item")?;
-        self.groups.revive_item = Some((crate::inventory::item_kind(k), seconds));
-        Ok(())
-    }
 }
 
 #[cfg(test)]

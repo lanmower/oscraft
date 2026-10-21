@@ -112,7 +112,6 @@ pub const CHECKS: &[(&str, Check)] = &[
     ("unit-crowded-cell-strikes-creep", mechanic_checks::unit_crowded_cell_strikes_unit),
     ("unit-reused-slot-drops-stale-target", mechanic_checks::reused_slot_drops_stale_target),
     ("item-stat-names", item_checks::item_stat_names),
-    ("item-aegis-and-death", item_checks::item_aegis_and_death),
     ("item-town-portal", item_checks::item_town_portal),
     ("item-aghanim-and-refresh", item_checks::item_aghanim_and_refresh),
     ("item-stat-stacking", item_checks::item_stat_stacking),
@@ -160,8 +159,6 @@ pub const CHECKS: &[(&str, Check)] = &[
     // CAP-SHLD
     ("shield-absorbs", sim_checks::shield_absorbs),
     ("shield-bonus", shield_bonus_zero_noop),
-    ("armour-reduces", armour_reduces_damage),
-    ("core-armour-formula", core_formula_checks::armour_formula),
     ("core-xp-table", core_formula_checks::xp_table),
     ("vital-fraction", vital_fraction_zero_noop),
     // CAP-PLR
@@ -418,21 +415,6 @@ fn shield_bonus_zero_noop(image: &[u8]) -> Result<(), String> {
     s.shield_bonus(u, u as i32, 0);
     if s.state_hash() != before {
         return Err("zero shield bonus changed state".to_string());
-    }
-    Ok(())
-}
-
-fn armour_reduces_damage(image: &[u8]) -> Result<(), String> {
-    let reduced = sim::armour_reduced(10, sim::fixed::from_int(3), scenario_rule("armour_per_point_q16")?);
-    if !(0..=10).contains(&reduced) {
-        return Err(format!("armour_reduced(10, 3) = {reduced}, outside 0..=10"));
-    }
-    let mut s = fresh(image)?;
-    let u = first_unit(&s)?;
-    let before = s.hp(u);
-    s.hurt(u, 0);
-    if s.hp(u) != before {
-        return Err("zero hurt changed hp".to_string());
     }
     Ok(())
 }

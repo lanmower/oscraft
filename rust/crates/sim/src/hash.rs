@@ -200,6 +200,11 @@ impl Sim {
         if self.strike_target.iter().any(|&c| c >= 0) {
             h.i32s(&self.strike_target);
         }
+        h.i32s(&self.armour_scale);
+        h.i32s(&self.speed_floor);
+        h.i32s(&self.speed_cap);
+        h.i32s(&self.miss_chance);
+        h.i32s(&self.magic_keep);
         h.bytes(&self.researched);
         h.i32s(&self.attributed.home_x);
         h.i32s(&self.attributed.home_y);
@@ -207,8 +212,6 @@ impl Sim {
         h.u32s(&self.attributed.respawn_at);
         h.i32s(&self.attributed.gold);
         h.i32s(&self.attributed.mana_max);
-        h.i32s(&self.attributed.spot_x);
-        h.i32s(&self.attributed.spot_y);
         h.bytes(format!("{:?}{:?}", self.attributed.rules, self.attributed.defs).as_bytes());
         h.u64s(&[
             self.stats.deaths as u64,

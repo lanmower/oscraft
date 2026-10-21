@@ -71,24 +71,14 @@ pub struct AttrRules {
     /// Whether any damage ends a channel (1, the default) or only a stun, hex or silence does (0, as in reference).
     pub channel_damage_interrupt: bool,
     pub aggro_hold_s: i32,
-    /// Movement speed limits in reference speed points, and hexed movement speed in milli-units per tick.
-    pub move_speed_max: i32,
-    pub move_speed_min: i32,
-    pub hex_speed_milli: i32,
-    /// Armour reduction per armour point, Q16.16 (combat.rs armour_reduced): 3932 is 0.06.
-    pub armour_per_point_q16: i32,
+    /// Distance, in milli-units, at which a unit moves on to its next waypoint (waypoints.rs).
+    pub waypoint_reach_milli: i32,
     /// Percent of a hit a `reduced` damage response keeps (combat.rs inflict): 50 is half.
     pub reduced_response_pct: i32,
 }
 
 /// Keys the engine must find in every rules text: a file without one is refused (`set_from_text` returns None).
-const REQUIRED_KEYS: &[&str] = &[
-    "move_speed_max",
-    "move_speed_min",
-    "hex_speed_milli",
-    "armour_per_point_q16",
-    "reduced_response_pct",
-];
+const REQUIRED_KEYS: &[&str] = &["waypoint_reach_milli", "reduced_response_pct"];
 
 impl Default for AttrRules {
     fn default() -> Self {
@@ -96,12 +86,8 @@ impl Default for AttrRules {
             aggro_priority: false,
             channel_damage_interrupt: true,
             aggro_hold_s: 3,
-            // Before any rules text is loaded (a Sim that never reads a rules text) these keep the engine values.
-            move_speed_max: 550,
-            move_speed_min: 100,
-            hex_speed_milli: 137,
-            // Neutral until a rules text sets them: no armour reduction, and a reduced response keeps the whole hit.
-            armour_per_point_q16: 0,
+            // Neutral until a rules text sets them: a unit reaches a waypoint only on it, and a reduced response keeps the whole hit.
+            waypoint_reach_milli: 0,
             reduced_response_pct: 100,
         }
     }
@@ -140,10 +126,7 @@ impl AttrRules {
                     continue;
                 }
                 "aggro_hold_s" => &mut next.aggro_hold_s,
-                "move_speed_max" => &mut next.move_speed_max,
-                "move_speed_min" => &mut next.move_speed_min,
-                "hex_speed_milli" => &mut next.hex_speed_milli,
-                "armour_per_point_q16" => &mut next.armour_per_point_q16,
+                "waypoint_reach_milli" => &mut next.waypoint_reach_milli,
                 "reduced_response_pct" => &mut next.reduced_response_pct,
                 _ => {
                     named.insert(key.to_string(), v);
@@ -155,7 +138,7 @@ impl AttrRules {
         if !REQUIRED_KEYS.iter().all(|k| seen.contains(k)) {
             return None;
         }
-        if next.aggro_hold_s < 0 || next.armour_per_point_q16 < 0 || !(0..=100).contains(&next.reduced_response_pct) {
+        if next.aggro_hold_s < 0 || next.waypoint_reach_milli < 0 || !(0..=100).contains(&next.reduced_response_pct) {
             return None;
         }
         *self = next;
@@ -172,14 +155,11 @@ pub(crate) struct AttributedState {
     pub(crate) is_attributed: Vec<u8>,
     pub(crate) home_x: Vec<i32>,
     pub(crate) home_y: Vec<i32>,
-    /// 0 alive, 1 dead awaiting the respawn the mod set (`u32::MAX` until it sets one), 2 reincarnating.
+    /// 0 alive, 1 dead awaiting the respawn the mod set (`u32::MAX` until it sets one).
     pub(crate) waiting: Vec<u8>,
     pub(crate) respawn_at: Vec<u32>,
     pub(crate) gold: Vec<i32>,
     pub(crate) mana_max: Vec<i32>,
-    /// Where a reincarnating unit (waiting 2) comes back, milli-units Q16.16 like a unit position.
-    pub(crate) spot_x: Vec<i32>,
-    pub(crate) spot_y: Vec<i32>,
     /// Unit data by catalog unit index; `None` for a type with no `unit` line (global attribute rules apply).
     pub(crate) defs: Vec<Option<AttrDef>>,
 }
@@ -196,8 +176,6 @@ impl AttributedState {
             respawn_at: vec![0; cap],
             gold: vec![0; cap],
             mana_max: vec![0; cap],
-            spot_x: vec![0; cap],
-            spot_y: vec![0; cap],
             defs: Vec::new(),
         }
     }
@@ -247,9 +225,7 @@ impl Sim {
             "aggro_priority" => Some(i32::from(r.aggro_priority)),
             "channel_damage_interrupt" => Some(i32::from(r.channel_damage_interrupt)),
             "aggro_hold_s" => Some(r.aggro_hold_s),
-            "move_speed_max" => Some(r.move_speed_max),
-            "move_speed_min" => Some(r.move_speed_min),
-            "hex_speed_milli" => Some(r.hex_speed_milli),
+            "waypoint_reach_milli" => Some(r.waypoint_reach_milli),
             _ => self.attributed.named.get(key).copied(),
         }
     }
@@ -485,8 +461,7 @@ impl Sim {
     }
 
     /// Sets the respawn of dead unit `i` (the `set_respawn` primitive): `Some(s)` revives it `s` seconds
-    /// from now at its home, `None` leaves it dead. Refused for a live unit, a non-unit, or a unit that is
-    /// reincarnating (its item timer owns it).
+    /// from now at its home, `None` leaves it dead. Refused for a live unit or a non-unit.
     pub(crate) fn set_attributed_respawn(&mut self, i: usize, delay_s: Option<u32>) -> Result<(), &'static str> {
         if !self.is_attributed(i) || self.alive(i) || self.attributed.waiting[i] != 1 {
             return Err("not a dead attributed");
@@ -498,17 +473,12 @@ impl Sim {
         Ok(())
     }
 
-    /// Per tick: the respawn timer of each dead unit once it has run out (a revive at its home, or at its
-    /// reincarnation spot), and the mana regeneration of each living unit. A revive blocked by a full cell
-    /// retries next tick.
+    /// Per tick: the respawn timer of each dead unit once it has run out (a revive at its home), and the mana
+    /// regeneration of each living unit. A revive blocked by a full cell retries next tick.
     pub(crate) fn tick_respawns(&mut self) {
         for i in 0..self.n {
             if self.attributed.waiting[i] != 0 && self.ticks >= self.attributed.respawn_at[i] {
-                let (x, y) = if self.attributed.waiting[i] == 2 {
-                    (self.attributed.spot_x[i], self.attributed.spot_y[i])
-                } else {
-                    (self.attributed.home_x[i], self.attributed.home_y[i])
-                };
+                let (x, y) = (self.attributed.home_x[i], self.attributed.home_y[i]);
                 self.revive_at_point(i, x, y);
             }
             if self.is_attributed(i) && self.alive(i) {

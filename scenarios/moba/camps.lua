@@ -42,7 +42,6 @@ local function read_config()
     roshan_spread_s = config.rule("roshan_respawn_spread_s"),
     tormentor_first_s = config.rule("tormentor_first_s"),
     tormentor_respawn_s = config.rule("tormentor_respawn_s"),
-    aegis_s = config.rule("aegis_reincarnate_s"),
   }
   c.clear_fixed = config.milli(c.clear_milli)
   c.leash_fixed = config.milli(c.leash_milli)
@@ -77,11 +76,10 @@ local POLICY = {
   tormentor = { free = true, due = function(now) return now + cfg.tormentor_respawn_s * TPS end },
 }
 
--- Setup on the first tick: pit markers, reincarnation, and every member's role. A regular camp creep and
+-- Setup on the first tick: pit markers and every member's role. A regular camp creep and
 -- the Tormentor are held off the map until their first spawn, so they are removed and their respawn is set due.
 local function setup(now)
   cfg = read_config()
-  game.set_reincarnate_item("aegis", cfg.aegis_s)
   local n = get_unit_count()
   for k = 0, n - 1 do
     local name = game.unit_kind(k)

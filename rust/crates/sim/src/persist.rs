@@ -29,7 +29,12 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 37 adds the per-unit strike target and the research bits (the mod-owned research state).
 /// Version 36 drops the kill-payout flag (the mod owns kill gold) and renames the assist tally to
 /// the generic per-unit credits a mod's rule adds (`add_credit`).
-const STATE_VERSION: u16 = 38;
+/// Version 39 drops the respawn spot of a reincarnating hero (`spot_x`, `spot_y`): the aegis move keeps the spot in
+/// the pack, so the layout after `mana_max` no longer carries those two arrays. Version 38 saves are refused.
+/// Version 40 adds the four per-unit arrays the pack sets each tick after the strike target: the damage scale (the
+/// armour curve moved to the pack), the speed floor and cap, and the miss chance. Version 39 saves are refused.
+/// Version 41 adds the per-unit magical damage kept (the magic resistance moved to the pack). Version 40 saves are refused.
+const STATE_VERSION: u16 = 41;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -461,12 +466,15 @@ impl Sim {
         put_u32s(&mut w, &self.attributed.respawn_at);
         put_i32s(&mut w, &self.attributed.gold);
         put_i32s(&mut w, &self.attributed.mana_max);
-        put_i32s(&mut w, &self.attributed.spot_x);
-        put_i32s(&mut w, &self.attributed.spot_y);
         put_u32s(&mut w, &self.unit_credits);
         put_i32s(&mut w, &self.hitter_id);
         put_u32s(&mut w, &self.hitter_tick);
         put_i32s(&mut w, &self.strike_target);
+        put_i32s(&mut w, &self.armour_scale);
+        put_i32s(&mut w, &self.speed_floor);
+        put_i32s(&mut w, &self.speed_cap);
+        put_i32s(&mut w, &self.miss_chance);
+        put_i32s(&mut w, &self.magic_keep);
         w.extend_from_slice(&self.researched);
         w.extend_from_slice(&self.dests.id);
         w.extend_from_slice(&self.dests.step);
@@ -678,12 +686,15 @@ impl Sim {
         r.u32s_into(&mut next.attributed.respawn_at)?;
         r.i32s_into(&mut next.attributed.gold)?;
         r.i32s_into(&mut next.attributed.mana_max)?;
-        r.i32s_into(&mut next.attributed.spot_x)?;
-        r.i32s_into(&mut next.attributed.spot_y)?;
         r.u32s_into(&mut next.unit_credits)?;
         r.i32s_into(&mut next.hitter_id)?;
         r.u32s_into(&mut next.hitter_tick)?;
         r.i32s_into(&mut next.strike_target)?;
+        r.i32s_into(&mut next.armour_scale)?;
+        r.i32s_into(&mut next.speed_floor)?;
+        r.i32s_into(&mut next.speed_cap)?;
+        r.i32s_into(&mut next.miss_chance)?;
+        r.i32s_into(&mut next.magic_keep)?;
         r.bytes_into(&mut next.researched)?;
         r.bytes_into(&mut next.dests.id)?;
         r.bytes_into(&mut next.dests.step)?;

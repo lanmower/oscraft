@@ -226,61 +226,6 @@ pub fn item_stat_stacking(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-fn kill(m: &Moba, h: usize) {
-    m.sim().hurt(h, i32::MAX / 2);
-}
-
-/// A hero dying with the Aegis returns in 5 seconds where it fell, without a death booked and without the
-/// Aegis; the next death sends it home after the respawn timer, and its items and their bonuses come back.
-pub fn item_aegis_and_death(_image: &[u8]) -> Result<(), String> {
-    let mut m = scenario()?;
-    let h = shopper(&m, 5000)?;
-    let (sword, aegis) = (item(&m.sim(), role("item.6")?)?, item(&m.sim(), role("item.1")?)?);
-    if !m.buy(h, sword) || !m.sim().inventory_add(h, sim_kind(aegis), 1) {
-        return Err("could not equip the hero".into());
-    }
-    let damage = m.sim().damage_of(h);
-    let spot = m.sim().position_fixed(h);
-    kill(&m, h);
-    if m.sim().alive(h) {
-        return Err("hero survived lethal damage".into());
-    }
-    for _ in 0..4 * sim::TICKS_PER_SECOND {
-        m.tick()?;
-    }
-    if m.sim().alive(h) {
-        return Err("hero reincarnated before 5 seconds".into());
-    }
-    for _ in 0..2 * sim::TICKS_PER_SECOND {
-        m.tick()?;
-    }
-    if !m.sim().alive(h) {
-        return Err("hero did not reincarnate".into());
-    }
-    want("deaths booked", m.sim().deaths_of(h) as i64, 0)?;
-    want("aegis left", m.sim().inventory_count(h, sim_kind(aegis)) as i64, 0)?;
-    let now = m.sim().position_fixed(h);
-    if (now.0 - spot.0).abs() > fixed::ONE || (now.1 - spot.1).abs() > fixed::ONE {
-        return Err(format!("reincarnated at {now:?}, died at {spot:?}"));
-    }
-    want("damage after reincarnating", m.sim().damage_of(h) as i64, damage as i64)?;
-    let hp_max = m.sim().hp_max(h);
-    kill(&m, h);
-    let mut waited = 0;
-    while !m.sim().alive(h) && waited < 70 * sim::TICKS_PER_SECOND {
-        m.tick()?;
-        waited += 1;
-    }
-    if !m.sim().alive(h) {
-        return Err("hero did not respawn after the timer".into());
-    }
-    want("deaths booked after the second death", m.sim().deaths_of(h) as i64, 1)?;
-    want("health after respawning", m.sim().hp_max(h) as i64, hp_max as i64)?;
-    want("sword kept through death", m.sim().inventory_count(h, sim_kind(sword)) as i64, 1)?;
-    want("damage after respawning", m.sim().damage_of(h) as i64, damage as i64)?;
-    Ok(())
-}
-
 /// One tick with the hero topped up, so a stray creep cannot interrupt the channel under test.
 fn guard(m: &mut Moba, h: usize) -> Result<(), String> {
     let max = m.sim().hp_max(h);

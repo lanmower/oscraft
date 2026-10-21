@@ -540,10 +540,12 @@ local function scoreboard_tree()
   return panel(TEXT.scoreboardTitle, kids)
 end
 
+-- The heroes a seat can pick: the player-controlled kinds that have a model. A hero with no model is not offered (it
+-- would not draw), so the pick list holds only heroes that can play; the page still fails loudly on one that is drawn.
 local function roster_names()
   local out = {}
   for _, k in ipairs(game.unit_kinds()) do
-    if k.player_controlled then out[#out + 1] = k.name end
+    if k.player_controlled and k.model ~= "" then out[#out + 1] = k.name end
   end
   return out
 end

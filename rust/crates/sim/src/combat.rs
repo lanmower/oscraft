@@ -22,23 +22,48 @@ pub struct KillEvent {
     pub victim: u32,
     pub victim_player: u8,
 }
-/// Weapon damage after armour, in the units `damage` is given in (whole units or Q16.16). `armour`
-/// is Q16.16, as stored on every unit, and `k` the reduction per armour point in Q16.16 (the attr
-/// rules' armour_per_point_q16, 0.06 in the moba rules). Armour `a` scales damage by
-/// `1 - k*a / (1 + k*|a|)`, so armour never reaches zero and negative armour raises damage.
-/// Never below zero.
-pub fn armour_reduced(damage: i32, armour: i32, k: i32) -> i32 {
-    let k = k as i64;
-    let ka = (k * armour as i64) >> fixed::SHIFT;
-    let reduction = (ka << fixed::SHIFT) / (fixed::ONE as i64 + ka.abs());
-    let factor = fixed::ONE as i64 - reduction;
-    ((damage as i64 * factor) >> fixed::SHIFT).clamp(0, i32::MAX as i64) as i32
-}
-
 impl Sim {
-    /// The armour reduction per armour point (Q16.16) the attr rules set, the `k` of `armour_reduced`.
-    pub(crate) fn armour_k(&self) -> i32 {
-        self.attributed.rules.armour_per_point_q16
+    /// Weapon or ability damage after the target's armour scale (Q16.16, set by the pack each tick: see
+    /// `set_armour_scale`), in the units `damage` is given in. Never below zero.
+    pub(crate) fn armour_scaled(&self, damage: i32, target: usize) -> i32 {
+        ((damage as i64 * self.armour_scale[target] as i64) >> fixed::SHIFT).clamp(0, i32::MAX as i64) as i32
+    }
+
+    /// Sets the damage scale (Q16.16) of unit `i`: its damage taken is multiplied by it. A dead or unknown unit changes nothing.
+    pub fn set_armour_scale(&mut self, i: usize, scale: i32) {
+        if i < self.n {
+            self.armour_scale[i] = scale;
+        }
+    }
+
+    /// The damage scale of unit `i` (Q16.16); ONE when unknown.
+    pub fn armour_scale_of(&self, i: usize) -> i32 {
+        self.armour_scale.get(i).copied().unwrap_or(fixed::ONE)
+    }
+
+    /// The effective armour of unit `i` in Q16.16 (its base armour and bonuses), 0 when unknown.
+    pub fn eff_armour_of(&self, i: usize) -> i32 {
+        if i < self.n { self.eff_armor(i) } else { 0 }
+    }
+
+    /// Sets the miss chance (Q16) of unit `i`'s shots. Zero means its shots cannot miss. A dead or unknown unit changes nothing.
+    pub fn set_miss_chance(&mut self, i: usize, chance: i32) {
+        if i < self.n {
+            self.miss_chance[i] = chance;
+        }
+    }
+
+    /// The miss chance (Q16) of unit `i`'s shots as the pack set it; 0 when unknown.
+    pub fn miss_chance_of(&self, i: usize) -> i32 {
+        self.miss_chance.get(i).copied().unwrap_or(0)
+    }
+
+    /// The miss chance (Q16) the unit data gives unit `i`'s type; 0 when unknown. The pack reads it to set `miss_chance`.
+    pub fn data_miss_chance(&self, i: usize) -> i32 {
+        if i >= self.n {
+            return 0;
+        }
+        self.cat.unit_ext.get(self.type_of[i] as usize).map_or(0, |e| e.miss_chance)
     }
 
     /// Final damage factor (Q16) for a weapon hit by unit `attacker` on unit `target`: the DMGF
@@ -60,13 +85,12 @@ impl Sim {
         ((dmg as i64 * self.final_factor(attacker, target) as i64) >> fixed::SHIFT) as i32
     }
 
-    /// Whether a ranged shot by unit `i` misses. A shot is ranged when its weapon reaches past
-    /// melee range. The chance is the UEXT miss chance (Q16), rolled on the sim's RNG, which advances
-    /// once per ranged shot. The format has no high-ground or cover rule, so the chance applies to
-    /// every ranged shot.
+    /// Whether a shot by unit `i` misses: the miss chance (Q16) the pack set for it, rolled on the sim's RNG,
+    /// which advances once per shot made with a positive chance. Zero means the shot cannot miss (the pack
+    /// sets it to zero for melee weapons).
     pub fn misses(&mut self, i: usize) -> bool {
-        let chance = self.cat.unit_ext.get(self.type_of[i] as usize).map_or(0, |e| e.miss_chance);
-        if chance <= 0 || self.range_q[i] <= MELEE_RANGE {
+        let chance = self.miss_chance[i];
+        if chance <= 0 {
             return false;
         }
         self.rng = self.rng.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
@@ -230,11 +254,33 @@ impl Sim {
         self.hurt_by(j, dmg, -1);
     }
 
-    /// Ability damage after the magic resistance of unit `j` (`magic_resist_pct`, from its type data).
+    /// Ability damage after the magic resistance of unit `j`: the percent of it the pack set `j` to keep.
     /// Ability damage is magical.
     fn magic_reduced(&self, j: usize, dmg: i32) -> i32 {
-        let resist = self.magic_resist_pct(j) as i64;
-        (dmg as i64 * (100 - resist) / 100) as i32
+        self.magic_scaled(dmg, j)
+    }
+
+    /// Magical damage after the magic resistance of `target`: the percent it keeps (`set_magic_keep`), truncated.
+    pub(crate) fn magic_scaled(&self, dmg: i32, target: usize) -> i32 {
+        (dmg as i64 * self.magic_keep[target] as i64 / 100) as i32
+    }
+
+    /// Sets the percent of magical damage unit `i` keeps (100 = the full hit; the pack sets it from the unit's magic
+    /// resistance). A dead or unknown unit changes nothing.
+    pub fn set_magic_keep(&mut self, i: usize, pct: i32) {
+        if i < self.n {
+            self.magic_keep[i] = pct;
+        }
+    }
+
+    /// The percent of magical damage unit `i` keeps; 100 when unknown.
+    pub fn magic_keep_of(&self, i: usize) -> i32 {
+        self.magic_keep.get(i).copied().unwrap_or(100)
+    }
+
+    /// The base magic resistance (percent) of unit `i`'s type in the unit data; 0 when unknown.
+    pub fn magic_base_of(&self, i: usize) -> i32 {
+        self.attr_def(i).map_or(0, |d| d.magic_resist)
     }
 
     /// Ability damage to unit `j` from unit `attacker` (-1 for none). An unknown unit is a no-op.
@@ -308,7 +354,7 @@ impl Sim {
             self.alive[j] = 0;
             self.trig_death[j] = 1;
             self.stats.deaths += 1;
-            if fell && !self.is_illusion(j) && !self.reincarnate(j) {
+            if fell && !self.is_illusion(j) {
                 self.record_death(j, attacker);
                 self.hold_dead(j);
                 self.group_died(j);

@@ -40,6 +40,8 @@ end
 #[test]
 fn on_died_receives_five_arguments_with_bounty() {
     let mut host = ModHost::new(&image()).expect("host");
+    // The attributed killer is unit 3, a player 1 hero; the map places no hero, so the test enrols it as one.
+    host.sim_mut().enroll_attributed(3, 1, 0);
     host.load_source("probe", PROBE).expect("probe loads");
     let fed = host.feed_death(&payout(7, 2, Some(3), Some(1), 55)).expect("fed");
     let lines: Vec<String> = fed.iter().map(show).collect();

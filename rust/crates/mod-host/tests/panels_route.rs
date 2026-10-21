@@ -21,6 +21,8 @@ fn host_with_panels() -> ModHost {
     host.load_mods(&mods).expect("moba mods load");
     let ui: serde_json::Value = serde_json::from_str(&read("moba_ui.json")).expect("ui json");
     host.dispatch_action("setup", &json!({ "ui": ui, "player": 0 })).expect("setup");
+    // The map places no hero: seat 0 gets its hero from the lobby's pick, as in a match.
+    host.dispatch_action("seat_pick", &json!({ "player": 0, "hero": "antimage" })).expect("seat_pick");
     host
 }
 

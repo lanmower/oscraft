@@ -7,6 +7,7 @@ local respawn = require("respawn")
 local counter = require("counter")
 local store = require("store")
 local xp = require("xp")
+local aegis = require("aegis")
 
 local TICKS = config.TICKS_PER_SECOND
 
@@ -137,6 +138,10 @@ return {
   -- A seat's pick from the lobby's start: spawn the picked hero at the seat's start point and enrol it. Dispatched by the
   -- page for each seat that picked a hero (controls.lua routes the "seat_pick" action here).
   seat_pick = function(player, hero_kind)
+    -- A seat spawns its hero once: the page can apply the same start more than once, and a repeat must not add a second hero.
+    for _, id in ipairs(game.units(player)) do
+      if units.is_hero(id) then return end
+    end
     local start = game.seat_start(player)
     if start == nil then return end
     local unit = game.spawn(player, hero_kind, start.x, start.y)
@@ -146,7 +151,7 @@ return {
 
   -- A hero's kill: its gold (the killer keeps all but the team share), the assist credit and the xp share.
   on_died = function(unit, killer, killer_player, _, victim_player)
-    if killer == nil or killer == unit then return end
+    if killer == nil or killer == unit or aegis.reincarnating(unit) then return end
     -- The kill tally counts hero kills: a creep's kill is still a kill event for every mod, but not a hero's kill.
     if units.is_hero(killer) and killer_player ~= victim_player then game.add_kill(killer, 1) end
     if units.is_hero(unit) and killer_player ~= victim_player then
@@ -160,6 +165,8 @@ return {
   -- A dead hero's respawn time, by its level.
   on_unit_died = function(unit)
     if not units.is_hero(unit) then return nil end
+    -- A hero held by the aegis returns by it, not by the respawn timer: it stays dead.
+    if aegis.reincarnating(unit) then return false end
     return respawn.linear(xp.level_of(unit), "respawn_base_s", "respawn_per_level_s", "respawn_cap_s")
   end,
 
@@ -180,9 +187,10 @@ return {
   on_tick = function(state)
     local now = state.ticks or 0
     local passive_turn = now % TICKS == 0
+    -- A dead hero earns no passive gold: the host refuses gold for a dead unit (buyback is its way back in).
     for i = 0, get_unit_count() - 1 do
-      if units.is_hero(i) then
-        if game.alive(i) then attribute_bonuses(i) end
+      if units.is_hero(i) and game.alive(i) then
+        attribute_bonuses(i)
         if passive_turn then game.cmd_add_unit_gold(i, config.rule("passive_gold_per_s")) end
       end
     end
