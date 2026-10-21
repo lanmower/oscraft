@@ -55,7 +55,7 @@ void main() {
   }
   near /= 8.0; far /= 8.0;
   float depth = smoothstep(0.55, 1.0, far);
-  float t = 3.0 * uTime;
+  float t = 6.0 * uTime;
   // Three ripple scales interfere: each samples the wave pattern at its own frequency and weight, so the sum never repeats
   // on one regular grid. The slope of each scale is divided back by its frequency, so the strengths stay comparable.
   vec2 slope = vec2(0.0);
@@ -88,7 +88,7 @@ void main() {
   // Caustic from the isotropic ripple sum, not one plane wave, so no single direction is traced across the pool.
   float caustic = 0.5 + 0.5 * clamp(waveH((p + refr) * 3.0, t) / 1.1, -1.0, 1.0);
   caustic = smoothstep(0.6, 0.95, caustic);
-  bedR *= 1.0 + 0.175 * caustic * soft;
+  bedR *= 1.0 + 0.1225 * caustic * soft;
   // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
   float alpha = mix(0.18, 0.38, depth);
   vec3 water = mix(bedR, body, alpha);
