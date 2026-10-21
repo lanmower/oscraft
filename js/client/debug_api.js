@@ -12,6 +12,9 @@ const HELP = [
   "oscraft.getState()                      tick, localPlayer, hero, units, selected, renderer, frame counters, terrain mode, fog, shadows",
   "oscraft.selectUnit(id)                  select one of the visible units through the input layer",
   "oscraft.issueOrder(id, kind, x, y)      kind 'move' to (x, y); 'stop' in place; 'attack' an enemy unit picked at (x, y). Returns the sim's accept",
+  "oscraft.getOverrides(unitId)            {classOverride: 0..3 | null, holdOverride: true | false | null}: the mod-set target class and attack-move hold; null without a local sim",
+  "oscraft.setClassOverride(unitId, cls)   cls 0..3 sets the unit's target class, null clears it; a guest sends it to the host. Returns the accept",
+  "oscraft.setAttackHold(unitId, hold)     true always holds on attack-move, false never holds, null restores the Rust rule. Returns the accept",
   "oscraft.setShadows(bool)                sun shadow pass on or off (renderer setShadows)",
   "oscraft.setFog(bool)                    fog-of-war overlay and fog unit filter on or off (render side only; the sim's fog rule is unchanged)",
   "oscraft.setTerrain('splat' | 'tiles')   terrain mode; reloads the page with ?terrain= (boot-time switch)",
@@ -116,6 +119,27 @@ export function createDebugApi(hooks) {
         return hooks.attack(id, target.id);
       }
       return false;
+    },
+
+    getOverrides(unitId) {
+      const o = hooks.overrides(unitId);
+      if (!o) return null;
+      return {
+        classOverride: o.classOverride < 0 ? null : o.classOverride,
+        holdOverride: o.holdOverride < 0 ? null : o.holdOverride === 1,
+      };
+    },
+
+    setClassOverride(unitId, cls) {
+      if (!unitById(unitId)) return false;
+      if (cls !== null && !(Number.isInteger(cls) && cls >= 0 && cls <= 3)) return false;
+      return Boolean(hooks.setClassOverride(unitId, cls === null ? -1 : cls));
+    },
+
+    setAttackHold(unitId, hold) {
+      if (!unitById(unitId)) return false;
+      if (hold !== null && typeof hold !== "boolean") return false;
+      return Boolean(hooks.setAttackHold(unitId, hold === null ? -1 : hold ? 1 : 0));
     },
 
     setShadows(on) {

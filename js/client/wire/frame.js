@@ -1,6 +1,6 @@
 export const WIRE_VERSION = 1;
 
-export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14 });
+export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16 });
 
 export const MAX_UNITS = 1024;
 export const MAX_ROOM_BYTES = 64;
@@ -121,6 +121,18 @@ const CODECS = {
     size: () => 2 + 4,
     write(w, f) { w.u32(f.unitId, 'unitId'); },
     read(r) { return { unitId: r.u32() }; },
+  },
+  // A debug override of a unit's target class: 0..3, or 255 to clear it back to the Rust rule.
+  [FRAME.CLASS_OVERRIDE]: {
+    size: () => 2 + 4 + 1,
+    write(w, f) { w.u32(f.unitId, 'unitId'); w.u8(f.class, 'class'); },
+    read(r) { return { unitId: r.u32(), class: r.u8() }; },
+  },
+  // A debug override of a unit's attack-move hold: 0 never holds, 1 always holds, 255 clears it back to the Rust rule.
+  [FRAME.HOLD_OVERRIDE]: {
+    size: () => 2 + 4 + 1,
+    write(w, f) { w.u32(f.unitId, 'unitId'); w.u8(f.hold, 'hold'); },
+    read(r) { return { unitId: r.u32(), hold: r.u8() }; },
   },
   // An item use: slot is the inventory index, target the unit id (-1 for none), x and y the point it aims at.
   [FRAME.USE_ITEM]: {

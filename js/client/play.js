@@ -784,6 +784,14 @@ const commands = {
     if (ok) { casts += 1; publishCommandCounts(); }
     return ok;
   },
+  // Debug overrides of a unit's target class and attack-move hold (-1 clears; see the wasm Game's set_class_override).
+  // They are not orders, so they do not count toward the order or cast counters.
+  classOverride(unitId, cls) {
+    return netState ? (session.broadcast(sendClassOverride(unitId, cls)), true) : localGame.set_class_override(unitId, cls);
+  },
+  holdOverride(unitId, hold) {
+    return netState ? (session.broadcast(sendHoldOverride(unitId, hold)), true) : localGame.set_hold_override(unitId, hold);
+  },
 };
 
 function bindInput() {
@@ -991,6 +999,12 @@ function applyPeerCommand(peerPubkey, command) {
     if (ok) countRemote("remoteCasts");
     return ok;
   }
+  if (command.type === FRAME.CLASS_OVERRIDE) {
+    return localGame.set_class_override(command.unitId, command.class === 255 ? -1 : command.class);
+  }
+  if (command.type === FRAME.HOLD_OVERRIDE) {
+    return localGame.set_hold_override(command.unitId, command.hold === 255 ? -1 : command.hold);
+  }
   const ok = localGame.attack(command.unitId, command.targetId);
   if (!ok) document.body.dataset.lastRefusal = `attack_refused unit=${command.unitId}`;
   if (ok) countRemote("remoteAttacks");
@@ -1130,6 +1144,15 @@ function sendHold(unitId) {
   return encodeFrame({ type: FRAME.HOLD, unitId });
 }
 
+// The wire carries 255 for a cleared override; the sim-facing value is -1.
+function sendClassOverride(unitId, cls) {
+  return encodeFrame({ type: FRAME.CLASS_OVERRIDE, unitId, class: cls < 0 ? 255 : cls });
+}
+
+function sendHoldOverride(unitId, hold) {
+  return encodeFrame({ type: FRAME.HOLD_OVERRIDE, unitId, hold: hold < 0 ? 255 : hold });
+}
+
 function sendUseItem(unitId, slot, target, x, z) {
   return encodeFrame({ type: FRAME.USE_ITEM, unitId, slot, target, x: Math.round(x), y: Math.round(z) });
 }
@@ -1236,7 +1259,7 @@ let netTick = -1;
 session.addEventListener("data", (e) => {
   let frame = null;
   try { frame = decodeFrame(new Uint8Array(e.detail.data)); } catch { return; }
-  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM || frame.type === FRAME.ATTACK_MOVE) {
+  if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM || frame.type === FRAME.ATTACK_MOVE || frame.type === FRAME.CLASS_OVERRIDE || frame.type === FRAME.HOLD_OVERRIDE) {
     if (hosting) applyPeerCommand(e.detail.peerPubkey, frame);
     return;
   }
@@ -1680,6 +1703,9 @@ installDebugApi({
   pick: (world) => pick(world),
   order: (id, x, z) => commands.order(id, x, z),
   attack: (id, targetId) => commands.attack(id, targetId),
+  overrides: (id) => (localGame ? { classOverride: localGame.class_override(id), holdOverride: localGame.hold_override(id) } : null),
+  setClassOverride: (id, cls) => commands.classOverride(id, cls),
+  setAttackHold: (id, hold) => commands.holdOverride(id, hold),
   drawCounts: () => ({ ...drawCounts }),
   terrainMode: () => "heightfield",
   shadowsOn: () => shadowsEnabled,

@@ -282,9 +282,12 @@ mod override_tests {
         let a = sim.spawn_for(0, kind, fixed::from_int(5), fixed::from_int(5)).expect("attacker");
         let b = sim.spawn_for(1, kind, fixed::from_int(6), fixed::from_int(5)).expect("target");
         let rust = sim.target_class(a, b);
+        assert_eq!(sim.class_override_of(a), None);
         sim.set_class_override(a, Some(3)).expect("override");
+        assert_eq!(sim.class_override_of(a), Some(3));
         assert_eq!(sim.target_class(a, b), 3);
         sim.set_class_override(a, None).expect("clear");
+        assert_eq!(sim.class_override_of(a), None);
         assert_eq!(sim.target_class(a, b), rust);
         assert!(sim.set_class_override(a, Some(9)).is_err());
     }
@@ -303,5 +306,21 @@ impl crate::arrays::Sim {
             Some(false) => 0,
         };
         Ok(())
+    }
+
+    /// The class override set on attacker `i`, or `None` when the Rust rule applies. Read-only, for debug views.
+    pub fn class_override_of(&self, i: usize) -> Option<u8> {
+        match self.class_override.get(i) {
+            Some(&c) if c >= 0 => Some(c as u8),
+            _ => None,
+        }
+    }
+
+    /// The attack-move hold override of attacker `i`, or `None` when the Rust rule applies. Read-only, for debug views.
+    pub fn hold_override_of(&self, i: usize) -> Option<bool> {
+        match self.hold_override.get(i) {
+            Some(&h) if h >= 0 => Some(h == 1),
+            _ => None,
+        }
     }
 }

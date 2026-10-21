@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 #[allow(dead_code)]
 #[path = "../../server/src/replay.rs"]
 mod replay;
-use replay::{Recording, Replayer};
+use replay::{Command, Recording, Replayer};
 
 /// The unit cap the gate uses, so the browser and the parity checks load the same limits.
 const MAX_UNITS: usize = 1024;
@@ -148,6 +148,38 @@ impl Game {
     /// Returns false when the sim refuses the order (dead or unknown unit, stunned).
     pub fn hold(&mut self, unit: u32) -> bool {
         self.sim.issue_order_kind(unit as usize, sim::ORDER_HOLD, 0, 0).is_ok()
+    }
+
+    /// Debug view: the target class a mod set on unit `unit` (0..=3), or -1 when the Rust rule applies.
+    pub fn class_override(&self, unit: u32) -> i32 {
+        self.sim.class_override_of(unit as usize).map_or(-1, i32::from)
+    }
+
+    /// Debug view: the attack-move hold a mod set on unit `unit` (1 always holds, 0 never), or -1 when the Rust rule applies.
+    pub fn hold_override(&self, unit: u32) -> i32 {
+        self.sim.hold_override_of(unit as usize).map_or(-1, i32::from)
+    }
+
+    /// Sets unit `unit`'s target class to `class` (0..=3), or clears it with -1. The change goes through the replay
+    /// command the mods use, so a recording and the peers that replay it see the same change. False when the sim refuses it.
+    pub fn set_class_override(&mut self, unit: u32, class: i32) -> bool {
+        let class = match class {
+            -1 => 255,
+            0..=254 => class as u8,
+            _ => return false,
+        };
+        Command::ClassOverride { unit, class }.apply(&mut self.sim)
+    }
+
+    /// Sets unit `unit`'s attack-move hold: 1 always holds, 0 never holds, -1 restores the Rust rule.
+    /// Same replay command path as `set_class_override`. False when the sim refuses it.
+    pub fn set_hold_override(&mut self, unit: u32, hold: i32) -> bool {
+        let hold = match hold {
+            -1 => 255,
+            0 | 1 => hold as u8,
+            _ => return false,
+        };
+        Command::HoldOverride { unit, hold }.apply(&mut self.sim)
     }
 
     /// Name of the sim's most recent refusal (`Refusal` variant), for the page's refusal witness.

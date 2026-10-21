@@ -1313,6 +1313,34 @@ mod tests {
         let text = "oscraft-replay 1\nimage data\nmax_units 4096\ninit 0000000000000000\nchk 0 0000000000000000\n0 o 1 2 3\n";
         assert!(Recording::parse(text).is_ok());
     }
+
+    // The override commands (debug calls and mods alike) are written with their short codes, read back as the same
+    // commands, and replaying the text reaches the live state. 255 is the clear value for both.
+    #[test]
+    fn override_commands_round_trip_through_the_text() {
+        let mut sim = data();
+        let mut rec = Recording::new("data", 4096, &sim);
+        let unit = (0..4096).find(|&i| sim.alive(i)).expect("a live unit") as u32;
+        rec.apply(&mut sim, Command::ClassOverride { unit, class: 2 });
+        rec.apply(&mut sim, Command::HoldOverride { unit, hold: 1 });
+        rec.tick(&mut sim, true, true);
+        rec.apply(&mut sim, Command::HoldOverride { unit, hold: 0 });
+        rec.apply(&mut sim, Command::ClassOverride { unit, class: 255 });
+        rec.apply(&mut sim, Command::HoldOverride { unit, hold: 255 });
+        rec.tick(&mut sim, true, true);
+        let text = rec.render(&sim);
+        assert!(text.lines().any(|l| l.ends_with(&format!(" co {unit} 2"))));
+        assert!(text.lines().any(|l| l.ends_with(&format!(" ho {unit} 1"))));
+        assert!(text.lines().any(|l| l.ends_with(&format!(" ho {unit} 0"))));
+        assert!(text.lines().any(|l| l.ends_with(&format!(" co {unit} 255"))));
+        assert!(text.lines().any(|l| l.ends_with(&format!(" ho {unit} 255"))));
+        let parsed = Recording::parse(&text).expect("parse");
+        assert_eq!(parsed.command_count(), 5);
+        let mut fresh = data();
+        let mut play = Replayer::new(parsed, &fresh).expect("start");
+        let played = play.run_to_end(&mut fresh).expect("playback");
+        assert_eq!(played, sim.state_hash());
+    }
 }
 
 #[cfg(all(test, feature = "server-tests"))]
