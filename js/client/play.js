@@ -1826,6 +1826,7 @@ function doodadVariant(base, kind, v) {
 // Builds the 3D world from the staged assets: the terrain mesh from map.bin, doodads at their placements with
 // their GLB models, and unit models from the sim's model names. Each unit type keeps a model, or null when it has none.
 async function build3d(gl, game) {
+  renderGl = gl;
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
   terrainMesh = terrainMeshOf(terrain);
@@ -2416,6 +2417,65 @@ if (params.get("ci") === "1") {
 // data, the rules, the UI and the tables the manifest names) is fetched every PACK_WATCH_MS and hashed; a changed one goes
 // through publishPackChanges, the pack editor's save path: peers get the file, and the swap applies it at a shared tick (Lua
 // reloads the mod set, data swaps the map), as a saved edit does. Only on localhost: a deployed page is not watched.
+// Localhost dev: a changed unit model (models/<name>.glb) reloads in place on this page. A model is not sim state, so every
+// page reloads its own copy and nothing is synced to the peers. The unit meshes of the changed type are rebuilt, and their
+// cached meshes and animators are dropped so the next frame draws the new model. Doodad models are not reloaded yet: their
+// batches are built once at load.
+const MODEL_WATCH_MS = 2000;
+let renderGl = null; // the WebGL2 context build3d draws with, kept for a model reload
+let modelWatchSig = new Map(); // glb url -> signature at the last check
+let modelWatchBusy = false;
+
+async function checkModelWatch() {
+  if (modelWatchBusy || !localGame || !renderGl) return;
+  modelWatchBusy = true;
+  try {
+    const names = [...new Set(localGame.unit_model_names().filter((n) => n))];
+    for (const name of names) {
+      const url = new URL(assetUrl("models", `${name}.glb`), location.href).href;
+      let sig;
+      try {
+        const head = await fetch(url, { method: "HEAD", cache: "no-store" });
+        if (!head.ok) continue;
+        sig = [head.headers.get("etag"), head.headers.get("last-modified"), head.headers.get("content-length")].join("|");
+      } catch {
+        continue;
+      }
+      const prev = modelWatchSig.get(url);
+      modelWatchSig.set(url, sig);
+      if (prev !== undefined && prev !== sig) await reloadUnitModel(name);
+    }
+  } catch (err) {
+    console.error(`[model] watch failed: ${err.message}`);
+  } finally {
+    modelWatchBusy = false;
+  }
+}
+
+async function reloadUnitModel(name) {
+  parsedModels.delete(name);
+  const names = localGame.unit_model_names();
+  const heroFlags = typeof localGame.unit_flags === "function" ? localGame.unit_flags() : [];
+  const sizes = await assetJson("doodadSizes");
+  for (let type = 0; type < names.length; type++) {
+    if (names[type] !== name) continue;
+    const hero = heroFlags[type] === 1;
+    const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
+    try {
+      const fitted = await fetchModel(name, size);
+      unitMeshes[type] = await toMesh(renderGl, fitted, [1, 1, 1], { animated: true });
+    } catch (err) {
+      console.error(`[model] ${name} for unit type ${type} kept the old model: ${err.message}`);
+      continue;
+    }
+    for (const key of [...unitMeshCache.keys()]) if (key.startsWith(`${type}:`)) unitMeshCache.delete(key);
+    for (const key of [...animators.keys()]) if (key.endsWith(`:${type}`)) animators.delete(key);
+    console.log(`[model] ${name} reloaded in place for unit type ${type}`);
+  }
+}
+
+if (["localhost", "127.0.0.1"].includes(location.hostname)) setInterval(checkModelWatch, MODEL_WATCH_MS);
+
 // Localhost dev, host with no peers connected: a changed wasm build (pkg/web_bg.wasm) replaces the running module in place.
 // The sim is saved, the new module is imported and initialised, and a Game of the new module takes the saved state and the
 // mods. Mod-owned Lua state (timers, counters) starts again, since a save holds only the sim. Peers would have to load the
