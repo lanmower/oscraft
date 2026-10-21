@@ -76,6 +76,20 @@ vec2 ripplePos(vec2 x, float sc, float k) {
                          cos(x.x * (0.29 - 0.04 * k) - 2.3 * k + 0.7 * sin(x.y * (0.27 + 0.06 * k) - k)));
   return x * sc + warp;
 }
+// The ripple slope at q: the three ripple scales interfere, each sampled at its own frequency and weight, so the sum never
+// repeats on one regular grid. The slope of each scale is divided back by its frequency, so the strengths stay comparable.
+vec2 rippleSlope(vec2 q, float t) {
+  vec2 slope = vec2(0.0);
+  for (int k = 0; k < 3; k++) {
+    float sc = k == 0 ? 3.4 : (k == 1 ? 5.0 : 6.8);
+    float w = k == 0 ? 0.3 : (k == 1 ? 1.0 : 0.6);
+    float e = 0.15 / sc;
+    float hx = rippleH(ripplePos(q + vec2(e, 0.0), sc, float(k)), t, float(k)) - rippleH(ripplePos(q - vec2(e, 0.0), sc, float(k)), t, float(k));
+    float hz = rippleH(ripplePos(q + vec2(0.0, e), sc, float(k)), t, float(k)) - rippleH(ripplePos(q - vec2(0.0, e), sc, float(k)), t, float(k));
+    slope += vec2(hx, hz) / (2.0 * e) * 0.35 / sc * w;
+  }
+  return slope;
+}
 void main() {
   vec2 p = vWorld.xz;
   vec3 bed = bedAt(p, vWorld.y, vNormal);
@@ -93,19 +107,9 @@ void main() {
   near /= 8.0; far /= 8.0;
   float depth = smoothstep(0.55, 1.0, far);
   float t = 48.0 * uTime;
-  // Three ripple scales interfere: each samples the wave pattern at its own frequency and weight, so the sum never repeats
-  // on one regular grid. The slope of each scale is divided back by its frequency, so the strengths stay comparable.
-  vec2 slope = vec2(0.0);
-  for (int k = 0; k < 3; k++) {
-    float sc = k == 0 ? 3.4 : (k == 1 ? 5.0 : 6.8);
-    float w = k == 0 ? 0.3 : (k == 1 ? 1.0 : 0.6);
-    float e = 0.15 / sc;
-    float hx = rippleH(ripplePos(p + vec2(e, 0.0), sc, float(k)), t, float(k)) - rippleH(ripplePos(p - vec2(e, 0.0), sc, float(k)), t, float(k));
-    float hz = rippleH(ripplePos(p + vec2(0.0, e), sc, float(k)), t, float(k)) - rippleH(ripplePos(p - vec2(0.0, e), sc, float(k)), t, float(k));
-    slope += vec2(hx, hz) / (2.0 * e) * 0.35 / sc * w;
-  }
+  vec2 slope = rippleSlope(p, t);
   float soft = clamp(1.0 - (length(uEye - vWorld) - 20.0) / 80.0, 0.35, 1.0);
-  // Fades the ripple amplitude, refraction and caustic with the view distance: full strength near the camera, about 0.35 far off.
+  // Fades the ripple amplitude and the refraction with the view distance: full strength near the camera, about 0.35 far off.
   slope *= soft;
   vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
   vec3 light = normalize(vec3(0.4, 1.0, 0.6));
@@ -121,15 +125,11 @@ void main() {
   float graze = clamp(1.0 - dot(V, n), 0.0, 1.0);
   float teal = depth * (0.4 + 0.6 * graze);
   body = mix(body, vec3(0.1, 0.6, 0.58) * (uShade.x + uShade.y * max(dot(n, light), 0.0)), teal * 0.6);
-  // Refraction: the bed is seen through the surface, so it is sampled at a small offset driven by the surface normal
-  // (a small offset: enough to bend the bed under the ripples, too little to smear the ground texture). The caustic
-  // light is laid on that refracted bed as high-contrast bands, so the bending reads as light through the water.
-  vec2 refr = n.xz * 0.12;
+  // Refraction: the bed is seen through the surface, so it is sampled at a small offset that follows the ripple slope at
+  // half the spatial frequency of the surface ripples (p * 0.5), so the bending comes in broader waves. The gain doubles
+  // to keep the bend the size it was. A small offset: enough to bend the bed under the ripples, too little to smear the ground.
+  vec2 refr = -rippleSlope(p * 0.5, t) * soft * 0.24;
   vec3 bedR = bedAt(p + refr, vWorld.y, vNormal);
-  // Caustic from the isotropic ripple sum, not one plane wave, so no single direction is traced across the pool.
-  float caustic = 0.5 + 0.5 * clamp(rippleH((p + refr) * 3.0, t, 0.0) / 1.1, -1.0, 1.0);
-  caustic = smoothstep(0.6, 0.95, caustic);
-  bedR *= 1.0 + 0.1225 * caustic * soft;
   // The water is transparent everywhere: the riverbed shows through the shallows and, less, the deep water.
   float alpha = mix(0.18, 0.38, depth);
   vec3 water = mix(bedR, body, alpha);
