@@ -27,11 +27,12 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let dir = args.get(1).map(String::as_str).unwrap_or("../scenarios/moba");
     let ticks: u32 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(6000);
-    // The scenario directory compiles from its .osd sources, then its attribute rules file (if any) applies.
+    // The scenario directory compiles from its .osd sources, then the rules file its manifest names applies.
     let image = osdt_data::generate(Path::new(dir)).expect("compile scenario");
     let mut sim = sim::load(&image, 4096).expect("load scenario");
-    if let Ok(rules) = std::fs::read_to_string(Path::new(dir).join("hero_rules.txt")) {
-        assert!(sim.set_attr_rules_text(&rules), "hero_rules.txt has a bad line");
+    if let Some(file) = osdt_data::rules_path(Path::new(dir)).expect("manifest") {
+        let rules = std::fs::read_to_string(&file).expect("rules file");
+        assert!(sim.set_attr_rules_text(&rules), "{} has a bad line", file.display());
     }
     let attributed: Vec<usize> = (0..sim.count()).filter(|&i| sim.is_attributed(i)).collect();
     let mut total = std::time::Duration::ZERO;

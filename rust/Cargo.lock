@@ -1131,6 +1131,7 @@ name = "osdt-data"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "serde_json",
  "starlark",
 ]
 

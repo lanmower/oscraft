@@ -337,7 +337,7 @@ pub struct UnitExt {
     pub deny_pct: u8,
     /// Share of `xp_bounty` the enemies get when this unit is denied, percent.
     pub deny_xp_pct: u8,
-    /// Player-controlled (a unit): shares assist and kill xp.
+    /// Player-controlled (a unit): shares the kill xp rule's credit (mod code).
     pub player_controlled: bool,
     /// Xp shared by the killer and in-range units when this unit dies.
     pub xp_bounty: i32,
@@ -392,7 +392,7 @@ pub struct DamageFactor {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Doodad {
     pub id: u32,
-    /// Indexes DOODAD_KINDS: 0 rock, 1 tree, 2 crystal, 3 debris, 4 base, 5 depot (home), 6 fountain, 7 lane, 8 camp, 9 side depot, 10 secret depot.
+    /// Indexes DOODAD_KINDS: 0 rock, 1 tree, 2 crystal, 3 debris, 4 base, 5 depot (home), 6 fountain, 7 route marker, 8 spawn group, 9 side depot, 10 secret depot.
     pub kind: u16,
     /// Milli-units, on the map.
     pub x: i32,

@@ -2,7 +2,7 @@
 //! whose spawn point is its home. A member past its leash radius walks home. A dead member waits until
 //! its respawn timer is set (`set_respawn`, a `cmd_set_respawn` from a mod), then respawns at its home.
 //! Which units form a group, when each one is due, what a death pays and the pit swap are mod code
-//! (scenarios/moba/camp.lua). Home and timer are sim state: hashed and saved. The leash radius and the
+//! (the pack's spawn-group script). Home and timer are sim state: hashed and saved. The leash radius and the
 //! reincarnation item are load-time mod settings and are neither hashed nor saved.
 
 use crate::arrays::Sim;

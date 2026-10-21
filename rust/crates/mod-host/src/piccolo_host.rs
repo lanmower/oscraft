@@ -16,7 +16,7 @@ use piccolo::{
     Stack, StashedTable, Table, Value, Variadic,
 };
 use sim::{
-    controller_code, AbilitySpec, Catalog, FxEvent, ItemSpec, LoadError, Payout, Refusal, ItemRequest, ItemVerdict, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS,
+    controller_code, AbilitySpec, Catalog, FxEvent, ItemSpec, LoadError, Refusal, ItemRequest, ItemVerdict, Sim, UnitSpec, UpgradeSpec, ABILITY_SLOTS, ITEM_SLOTS, MAX_PLAYERS,
     MOD_ALLIANCES, MOD_CONTROLLERS, NO_COMPONENT, NO_TAKE, ORDER_HOLD, TICKS_PER_SECOND, VERDICT_TAKES,
 };
 
@@ -601,6 +601,26 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         let mut sh = sh.borrow_mut();
         let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
         sh.sim.set_counter(u, &name, value);
+        Ok(CallbackReturn::Return)
+    });
+    // game.take_recent_hitters(unit, window_ticks): the unit ids that hit `unit` within the window, forgotten
+    // after; the mod's death rule reads them for the assist credit.
+    native!(ctx, game, "take_recent_hitters", [sh], |c, s| {
+        let (i, window) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let window = u32::try_from(window).map_err(|_| fail(c, "invalid_window: ticks must not be negative".into()))?;
+        let ids = sh.sim.take_recent_hitters(u, window);
+        s.replace(c, list_of(c, ids.into_iter().map(i64::from))?);
+        Ok(CallbackReturn::Return)
+    });
+    // game.add_credit(unit, n): adds n generic credits to a unit; the post-game row reports them as assists.
+    native!(ctx, game, "add_credit", [sh], |c, s| {
+        let (i, n) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let mut sh = sh.borrow_mut();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let n = u32::try_from(n).map_err(|_| fail(c, "invalid_credit: must not be negative".into()))?;
+        sh.sim.add_credit(u, n);
         Ok(CallbackReturn::Return)
     });
     native!(ctx, game, "attr_field", [sh], |c, s| {
@@ -1208,7 +1228,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, unit);
         Ok(CallbackReturn::Return)
     });
-    // game.rule(key): a named number of the rules text (hero_rules.txt key=value lines), or nil when unset.
+    // game.rule(key): a named number of the rules text (attr_rules.txt key=value lines), or nil when unset.
     native!(ctx, game, "rule", [sh], |c, s| {
         let key = text(c, s.get(0), 0)?;
         match sh.borrow().sim.rule(&key) {
@@ -2239,24 +2259,17 @@ impl ModHost {
         Ok(())
     }
 
-    /// Feeds one payable death of a room's sim to the mod's on_died, with the room's unit ids and the
-    /// bounty, as the native host does. The commands the handlers queued are returned, not applied:
-    /// their ids are the room's, so the room applies them and this world is untouched. The receiver
-    /// is &mut self because piccolo runs its VM under a mutable borrow, so this differs from the
-    /// native &self; the error is the piccolo host's String, not mlua::Error.
-    pub fn feed_payout(&mut self, p: &Payout) -> Result<Vec<Cmd>, String> {
+    /// Feeds one death of a room's sim to the mod's on_died, with the room's unit ids and the bounty, as
+    /// the native host does. The commands the handlers queued are returned, not applied: their ids are the
+    /// room's, so the room applies them and this world is untouched. The receiver is &mut self because
+    /// piccolo runs its VM under a mutable borrow, so this differs from the native &self; the error is the
+    /// piccolo host's String, not mlua::Error.
+    pub fn feed_death(&mut self, death: &Death) -> Result<Vec<Cmd>, String> {
         if self.hooks.is_empty() {
             return Ok(Vec::new());
         }
-        let death = Death {
-            victim: p.victim,
-            victim_player: p.victim_player,
-            killer: p.killer,
-            killer_player: p.killer_player,
-            bounty: p.bounty,
-        };
         let before = self.sh.borrow().local.len();
-        self.died(&death)?;
+        self.died(death)?;
         Ok(self.sh.borrow_mut().local.split_off(before))
     }
 
@@ -2845,12 +2858,11 @@ fn json_value<'gc>(ctx: Context<'gc>, v: &serde_json::Value) -> Value<'gc> {
     }
 }
 
-// One death as on_died receives it. Built from this world's own deaths, or from a room's payable
-// death (feed_payout). Field meanings match sim::Payout.
-struct Death {
-    victim: u32,
-    victim_player: u8,
-    killer: Option<u32>,
-    killer_player: Option<u8>,
-    bounty: i32,
+/// One death as on_died receives it. Built from this world's own deaths, or from a room's death (feed_death).
+pub struct Death {
+    pub victim: u32,
+    pub victim_player: u8,
+    pub killer: Option<u32>,
+    pub killer_player: Option<u8>,
+    pub bounty: i32,
 }

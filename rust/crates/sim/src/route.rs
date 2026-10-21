@@ -103,7 +103,7 @@ impl Sim {
 
     /// Generic waypoint walker: advances unit `i` along its route: on reaching the current waypoint, the next
     /// one is ordered, or after the last the unit asks for a destination. A changed order ends the route. The
-    /// walker carries no lane or content rule; which destination a request gets is the host's on_march.
+    /// walker carries no path or content rule; which destination a request gets is the host's on_march.
     pub(crate) fn walk_waypoint(&mut self, i: usize) {
         let id = self.dests.id[i];
         if id == 0 {

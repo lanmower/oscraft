@@ -378,8 +378,8 @@ impl Sim {
         self.sync_upgrades(i, &[0; ITEM_STAT_COUNT], &totals);
     }
 
-    /// A unit that dies holding the reincarnation item (a mod's `set_reincarnate_item`, the Aegis in the moba
-    /// mod) comes back where it fell after the item's seconds, with full health and mana, and one charge of the
+    /// A unit that dies holding the reincarnation item (a mod's `set_reincarnate_item`, e.g. the pack's
+    /// aegis) comes back where it fell after the item's seconds, with full health and mana, and one charge of the
     /// item is spent. The death is not booked: no kill, bounty, experience or death count. True when the unit
     /// reincarnates.
     pub(crate) fn reincarnate(&mut self, j: usize) -> bool {
@@ -430,13 +430,13 @@ mod best_only_tests {
     // The stat slot the old best-only list named for night vision. The engine no longer names it; the data carries it.
     const STAT_NIGHT_VISION: usize = 35;
 
-    /// The best-only mask the moba scenario's TUNE section carries names the same stats the sim took as
+    /// The best-only mask the pack's TUNE section carries names the same stats the sim took as
     /// best-value before the list moved into data.
     #[test]
     fn best_only_mask_loads_from_data_and_matches_old_list() {
-        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
-        let image = osdt_data::generate(&scenario).expect("moba image");
-        let s = crate::load(&image, 1024).expect("moba sim");
+        let scenario = crate::test_pack_dir();
+        let image = osdt_data::generate(&scenario).expect("pack image");
+        let s = crate::load(&image, 1024).expect("pack sim");
         let old = [
             STAT_SCEPTER,
             STAT_SHARD,

@@ -618,7 +618,7 @@ impl Sim {
 
     /// Typed spell damage to unit `j` from `caster`: 1 physical (armour), 2 magical (resistance), 3 pure,
     /// each scaled by the caster's spell amplification. `amount` is whole hit points. Returns true when
-    /// the hit killed. Other lane rules (shield, invulnerability, illusion intake) live in `inflict`.
+    /// the hit killed. Other hit rules (shield, invulnerability, illusion intake) live in `inflict`.
     pub(crate) fn spell_damage(&mut self, caster: i32, j: usize, amount: i32, dtype: i32) -> bool {
         self.spell.kill_flag = false;
         if amount <= 0 || j >= self.n || self.alive[j] == 0 {
@@ -1344,7 +1344,7 @@ impl Sim {
 
     /// Sets or clears upgrade bit `bit` on unit `i` and refreshes its passives. The bits are data: 0 scepter,
     /// 1 shard, 2..=9 the eight talent slots that abilities test. Which upgrade a choice sets, and the level or
-    /// one-per-tier rules, are mod code (scenarios/moba/talents.lua). A dead or unknown unit, or a bit past 9, is
+    /// one-per-tier rules, are mod code (the pack's talents.lua). A dead or unknown unit, or a bit past 9, is
     /// NoSlot and changes nothing.
     pub fn set_upgrade_bit(&mut self, i: usize, bit: u32, on: bool) -> Result<(), Refusal> {
         if i >= self.n || self.alive[i] == 0 || bit > 9 {

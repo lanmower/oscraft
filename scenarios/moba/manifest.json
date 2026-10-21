@@ -13,7 +13,7 @@
     "effects.lua", "hero.lua", "hero_respawn.lua", "camp.lua", "kill_gold.lua", "lanes.lua", "march.lua", "protection.lua",
     "skills.lua", "spells.lua", "store.lua", "talents.lua", "win.lua", "panels.lua", "controls.lua"
   ],
-  "rules": "hero_rules.txt",
+  "rules": "attr_rules.txt",
   "tables": [
     "abilities_688g.tsv", "creeps_688g.tsv", "doodad-assets.tsv", "doodad-types-688g.tsv", "doodads-688g.tsv",
     "doodads-legacy-dropped.tsv", "heroes_688g.tsv", "slot-models.tsv", "starts-688g.tsv"

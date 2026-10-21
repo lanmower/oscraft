@@ -1,8 +1,8 @@
 //! Attributed units: per-type attribute data (three attributes with a base and a growth each, the
 //! primary attribute, mana, regeneration, armour, damage and base attack time) and the stats those
 //! attributes drive. The engine rules are read from a `key=value` text file by `Sim::set_attr_rules_text`
-//! (scenarios/moba/hero_rules.txt). Every other `key=value` line of that file is a named number that
-//! the mod reads through `Sim::rule`: the respawn, buyback, gold and xp numbers live there, not here.
+//! (the pack's attr_rules.txt, named by its manifest). Every other `key=value` line of that file is a named number that
+//! the mod reads through `Sim::rule`: the respawn, buy-back, gold and xp numbers live there, not here.
 //! A dead attributed unit waits for a respawn decision (`set_respawn`, from the mod's on_died)
 //! and comes back through `revive_at_point`.
 
@@ -13,7 +13,7 @@ use crate::fixed;
 use crate::{ABILITY_SLOTS, TICKS_PER_SECOND};
 
 /// Attribute coefficients (health per attribute a, armour per attribute b, mana per attribute c, universal
-/// damage share) are `AttrRules` fields read from hero_rules.txt. Attributes and per-unit data are hundredths.
+/// damage share) are `AttrRules` fields read from the rules text. Attributes and per-unit data are hundredths.
 const MANA_BASE_DEFAULT: i32 = 75;
 
 /// Per unit type attribute data of a `unit <unit> key=value ...` line in the rules text, written by
@@ -101,7 +101,7 @@ impl Default for AttrRules {
             aggro_priority: false,
             channel_damage_interrupt: true,
             aggro_hold_s: 3,
-            // Before any rules text is loaded (a Sim that never reads hero_rules.txt) these keep the engine values.
+            // Before any rules text is loaded (a Sim that never reads a rules text) these keep the engine values.
             move_speed_max: 550,
             move_speed_min: 100,
             hex_speed_milli: 137,
@@ -488,7 +488,7 @@ impl Sim {
         let mut defs = self.attributed.defs.clone();
         defs.resize(self.cat.units.len(), None);
         for line in text.lines() {
-            let Some(body) = line.trim().strip_prefix("hero ") else {
+            let Some(body) = line.trim().strip_prefix("attr ") else {
                 rest.push_str(line);
                 rest.push('\n');
                 continue;
@@ -531,7 +531,7 @@ impl Sim {
 
     /// Sets the respawn of dead unit `i` (the `set_respawn` primitive): `Some(s)` revives it `s` seconds
     /// from now at its home, `None` leaves it dead. Refused for a live unit, a non-unit, or a unit that is
-    /// reincarnating (its aegis timer owns it).
+    /// reincarnating (its item timer owns it).
     pub(crate) fn set_attributed_respawn(&mut self, i: usize, delay_s: Option<u32>) -> Result<(), &'static str> {
         if !self.is_attributed(i) || self.alive(i) || self.attributed.waiting[i] != 1 {
             return Err("not a dead attributed");

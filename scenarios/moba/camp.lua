@@ -5,7 +5,7 @@
 -- the whole-minute clock and stacking rule, rune gold, the aegis reward and the pit swap.
 --
 -- Numbers are the camp_*, rune_*, pit_swap_s, roshan_*, tormentor_* and aegis_reincarnate_s lines of
--- scenarios/moba/hero_rules.txt, read through game.rule when the first tick runs.
+-- scenarios/moba/attr_rules.txt, read through game.rule when the first tick runs.
 --
 -- This file defines no on_tick and no on_died of its own (the moba chunk has one of each). protection.lua's on_tick
 -- calls camp_tick(state), and hero.lua's on_died calls camp_died(unit, killer).
@@ -33,7 +33,7 @@ local seed = 2654435761  -- deterministic stream for the Roshan respawn spread
 
 local function camp_rule(key)
   local v = game.rule(key)
-  assert(v ~= nil, "camp rule missing from hero_rules.txt: " .. key)
+  assert(v ~= nil, "camp rule missing from attr_rules.txt: " .. key)
   return v
 end
 

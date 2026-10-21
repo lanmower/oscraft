@@ -10,10 +10,8 @@ const RESPONSE_REDUCED: u8 = 1;
 const RESPONSE_IMMUNE: u8 = 2;
 /// Kill events held between drains. Kills past this in one drain window are still tallied per unit.
 pub(crate) const KILL_QUEUE_CAP: usize = 256;
-/// Recent hitters remembered per unit for assist credit.
-pub(crate) const ASSIST_SLOTS: usize = 4;
-/// Ticks after a hit within which the hitter is credited an assist on the victim's death.
-pub(crate) const ASSIST_WINDOW: u32 = 50;
+/// Recent hitters remembered per unit. A mod reads them on the unit's death (take_recent_hitters).
+pub(crate) const HITTER_SLOTS: usize = 4;
 
 /// One player's post-game tally, summed over the player's units.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -37,19 +35,6 @@ pub struct KillEvent {
     pub victim: u32,
     pub victim_player: u8,
 }
-/// One payable death, queued while a mod owns kill gold (`payout_owner`) and drained by the room, which
-/// feeds it to the mod's `on_died` with these room ids. `killer` and `killer_player` are `None` for an
-/// attackerless death (or a self-kill); `bounty` is the victim's bounty and is always positive.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Payout {
-    pub tick: u32,
-    pub victim: u32,
-    pub victim_player: u8,
-    pub killer: Option<u32>,
-    pub killer_player: Option<u8>,
-    pub bounty: i32,
-}
-
 /// Armour reduction per armour point, Q16.16 (0.06): reference's physical damage multiplier is
 /// 1 - 0.06a / (1 + 0.06|a|), with no floor. Engine constant, not in the npc dump.
 const ARMOUR_PER_POINT_Q16: i64 = 3932;
@@ -351,44 +336,13 @@ impl Sim {
         self.stats.ability_damage = self.stats.ability_damage.wrapping_add(before - self.hp[j]);
     }
 
-    /// The catalog bounty of unit `j` when destroyed. Zero for an unknown unit.
+    /// The catalog bounty of unit `j` when destroyed. Zero for an unknown unit. The kill rule (mod code)
+    /// reads it through `game.unit_bounty`; the engine pays nothing.
     pub fn unit_bounty(&self, j: usize) -> i32 {
         if j >= self.n {
             return 0;
         }
         self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
-    }
-
-    /// Queues the destroyed unit's bounty as a `Payout` for the mod's on_died, which pays gold. The
-    /// engine pays nothing itself; the queue is only filled while a mod owns gold (`payout_owner`).
-    fn pay_bounty(&mut self, j: usize, attacker: i32) {
-        let bounty = self.unit_bounty(j);
-        if bounty <= 0 || self.was_denied(j, attacker) {
-            return;
-        }
-        if self.payout_owner {
-            self.queue_payout(j, attacker, bounty);
-        }
-    }
-
-    fn queue_payout(&mut self, j: usize, attacker: i32, bounty: i32) {
-        if self.payouts.len() >= KILL_QUEUE_CAP {
-            return;
-        }
-        let killer = (attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j).then_some(attacker as usize);
-        self.payouts.push(Payout {
-            tick: self.ticks,
-            victim: j as u32,
-            victim_player: self.player[j],
-            killer: killer.map(|k| k as u32),
-            killer_player: killer.map(|k| self.player[k]),
-            bounty,
-        });
-    }
-
-    /// Takes the payable deaths queued since the last drain, oldest first.
-    pub fn drain_payouts(&mut self) -> Vec<Payout> {
-        self.payouts.drain(..).collect()
     }
 
     /// Whether unit `i` may deny unit `j`: `j` is allied to `i` (not `i` itself) and its health is at
@@ -399,14 +353,6 @@ impl Sim {
         }
         let pct = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.deny_pct as i64);
         pct > 0 && self.hp[j] as i64 * 100 <= self.hp_max[j] as i64 * pct
-    }
-
-    /// Whether the death of unit `j` to `attacker` was a denial: an allied unit landed the blow.
-    fn was_denied(&self, j: usize, attacker: i32) -> bool {
-        attacker >= 0
-            && (attacker as usize) < self.n
-            && attacker as usize != j
-            && !self.hostile(self.player[attacker as usize], self.player[j])
     }
 
     /// The damage path shared by weapons and abilities: damage response, then shield,
@@ -457,7 +403,6 @@ impl Sim {
             self.stats.deaths += 1;
             if fell && !self.is_illusion(j) && !self.reincarnate(j) {
                 self.record_death(j, attacker);
-                self.pay_bounty(j, attacker);
                 self.hold_dead(j);
                 self.group_died(j);
             }
@@ -468,16 +413,14 @@ impl Sim {
     /// queues the event for `drain_kill_events`.
     pub(crate) fn record_death(&mut self, j: usize, attacker: i32) {
         self.unit_deaths[j] = self.unit_deaths[j].saturating_add(1);
-        let base = j * ASSIST_SLOTS;
         if attacker < 0 || attacker as usize >= self.n || attacker as usize == j {
             self.killer[j] = -1;
-            self.hitter_id[base..base + ASSIST_SLOTS].fill(-1);
+            self.hitter_id[j * HITTER_SLOTS..(j + 1) * HITTER_SLOTS].fill(-1);
             return;
         }
         let k = attacker as usize;
         self.killer[j] = attacker;
         self.unit_kills[k] = self.unit_kills[k].saturating_add(1);
-        self.credit_assists(j, k);
         if self.kill_queue.len() < KILL_QUEUE_CAP {
             self.kill_queue.push(KillEvent {
                 tick: self.ticks,
@@ -491,8 +434,8 @@ impl Sim {
 
     /// Remembers that unit `hitter` hit unit `j` now, reusing its slot or the oldest slot.
     fn remember_hitter(&mut self, j: usize, hitter: i32) {
-        let base = j * ASSIST_SLOTS;
-        let slots = base..base + ASSIST_SLOTS;
+        let base = j * HITTER_SLOTS;
+        let slots = base..base + HITTER_SLOTS;
         let slot = slots
             .clone()
             .find(|&s| self.hitter_id[s] == hitter)
@@ -502,20 +445,29 @@ impl Sim {
         self.hitter_tick[slot] = self.ticks;
     }
 
-    /// Credits an assist to each recent hitter of dead unit `j` that shares the killer's side and
-    /// is not the killer, then forgets the hitters. The assist gold is the mod's (on_died).
-    fn credit_assists(&mut self, j: usize, killer: usize) {
-        let base = j * ASSIST_SLOTS;
-        let side = self.player[killer];
-        for s in base..base + ASSIST_SLOTS {
+    /// The recent hitters of unit `j` whose last hit is at most `window` ticks old, oldest slot order, and
+    /// forgets all of them. A mod's death rule reads this on the victim's death (the assist credit).
+    pub fn take_recent_hitters(&mut self, j: usize, window: u32) -> Vec<u32> {
+        if j >= self.n {
+            return Vec::new();
+        }
+        let base = j * HITTER_SLOTS;
+        let mut out = Vec::new();
+        for s in base..base + HITTER_SLOTS {
             let id = self.hitter_id[s];
             self.hitter_id[s] = -1;
-            if id < 0 || id as usize == killer || id as usize >= self.n || self.player[id as usize] != side {
-                continue;
+            if id >= 0 && (id as usize) < self.n && self.ticks.wrapping_sub(self.hitter_tick[s]) <= window {
+                out.push(id as u32);
             }
-            if self.ticks.wrapping_sub(self.hitter_tick[s]) <= ASSIST_WINDOW {
-                self.unit_assists[id as usize] = self.unit_assists[id as usize].saturating_add(1);
-            }
+        }
+        out
+    }
+
+    /// Adds `n` generic credits to unit `i` (saturating): a per-unit tally a mod's rule keeps, such as
+    /// the assist count the post-game screen shows. The engine attaches no meaning to it.
+    pub fn add_credit(&mut self, i: usize, n: u32) {
+        if i < self.n {
+            self.unit_credits[i] = self.unit_credits[i].saturating_add(n);
         }
     }
 
@@ -531,7 +483,7 @@ impl Sim {
         (self.unit_gold(j) as i64 + items).min(i32::MAX as i64) as i32
     }
 
-    /// Each player's post-game tally: kills, deaths, assists, gold, xp and held items, summed over
+    /// Each player's post-game tally: kills, deaths, credits (the assist count), gold, xp and held items, summed over
     /// that player's unit slots. Dead units keep their tallies until their slot is respawned.
     pub fn post_game(&self) -> Vec<PlayerTally> {
         (0..self.player_count())
@@ -549,7 +501,7 @@ impl Sim {
                 for i in (0..self.n).filter(|&i| self.player[i] == player) {
                     tally.kills = tally.kills.saturating_add(self.unit_kills[i]);
                     tally.deaths = tally.deaths.saturating_add(self.unit_deaths[i]);
-                    tally.assists = tally.assists.saturating_add(self.unit_assists[i]);
+                    tally.assists = tally.assists.saturating_add(self.unit_credits[i]);
                     tally.xp = tally.xp.saturating_add(self.xp_total[i]);
                     let slots = i * crate::inventory::INV_SLOTS;
                     tally.items.extend(
@@ -697,21 +649,26 @@ mod tests {
     }
 
     #[test]
-    fn kill_pays_nothing_in_the_engine_whether_or_not_a_mod_owns_gold() {
+    fn kill_pays_nothing_in_the_engine() {
         let mut s = duel_sim();
-        assert!(!s.payout_owner(), "the flag defaults to off");
         let (killer_gold, rival_gold) = kill_both_ways(&mut s);
         assert_eq!(killer_gold, 0, "no engine gold for the killer");
         assert_eq!(rival_gold, 0, "no engine payout to the rival side");
-        s.set_payout_owner(true);
-        let (killer_gold, rival_gold) = kill_both_ways(&mut s);
-        assert_eq!(killer_gold, 0, "no unit bounty while a mod owns gold");
-        assert_eq!(rival_gold, 0, "no rival payout while a mod owns gold");
+    }
 
-        let saved = s.save_state();
-        let mut restored = duel_sim();
-        restored.load_state(&saved).expect("save with the flag loads");
-        assert!(restored.payout_owner(), "the flag survives a save and load");
+    /// The recent hitters of a victim are read once, in slot order, and a credit added to a hitter shows in its
+    /// player's post-game assists.
+    #[test]
+    fn recent_hitters_are_read_once_and_credits_show_in_the_tally() {
+        let mut s = duel_sim();
+        let (hitter, other, victim) = (creep(&mut s, 0), creep(&mut s, 0), creep(&mut s, 1));
+        s.inflict(victim, fixed::from_int(1), hitter as i32);
+        s.inflict(victim, fixed::from_int(1), other as i32);
+        assert_eq!(s.take_recent_hitters(victim, 50), vec![hitter as u32, other as u32]);
+        assert!(s.take_recent_hitters(victim, 50).is_empty(), "the hitters are forgotten once read");
+        s.add_credit(hitter, 2);
+        s.add_credit(hitter, 1);
+        assert_eq!(s.post_game()[0].assists, 3, "the credits are the player's assists");
     }
 
     /// A unit of catalog kind `name` for `player` on the first free walkable cell.
@@ -830,9 +787,9 @@ mod tests {
     /// An item cast at a point beyond its cast range is refused as move-range and spends no charge.
     #[test]
     fn item_cast_beyond_its_range_is_refused_as_move_range() {
-        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
-        let image = osdt_data::generate(&scenario).expect("moba image");
-        let mut s = load(&image, CAP).expect("moba sim");
+        let scenario = crate::test_pack_dir();
+        let image = osdt_data::generate(&scenario).expect("pack image");
+        let mut s = load(&image, CAP).expect("pack sim");
         s.set_fog(false);
         let attributed = unit_named(&mut s, 0, "antimage");
         let (hx, hy) = s.position_fixed(attributed);
@@ -851,9 +808,9 @@ mod tests {
     /// A consumable spends one charge per successful use, and a second use while the unit lacks energy is refused.
     #[test]
     fn consumable_use_spends_a_charge_and_refuses_reuse_in_cooldown() {
-        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
-        let image = osdt_data::generate(&scenario).expect("moba image");
-        let mut s = load(&image, CAP).expect("moba sim");
+        let scenario = crate::test_pack_dir();
+        let image = osdt_data::generate(&scenario).expect("pack image");
+        let mut s = load(&image, CAP).expect("pack sim");
         s.set_fog(false);
         let attributed = unit_named(&mut s, 0, "antimage");
         let (hx, hy) = s.position_fixed(attributed);

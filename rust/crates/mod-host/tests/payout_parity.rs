@@ -7,7 +7,7 @@
 use std::path::Path;
 
 use mod_host::{Cmd, ModHost};
-use sim::Payout;
+use mod_host::Death;
 
 fn image() -> Vec<u8> {
     let scenario = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
@@ -22,12 +22,11 @@ fn show(c: &Cmd) -> String {
     }
 }
 
-fn payout(victim: u32, victim_player: u8, killer: Option<u32>, killer_player: Option<u8>, bounty: i32) -> Payout {
-    Payout { tick: 0, victim, victim_player, killer, killer_player, bounty }
+fn payout(victim: u32, victim_player: u8, killer: Option<u32>, killer_player: Option<u8>, bounty: i32) -> Death {
+    Death { victim, victim_player, killer, killer_player, bounty }
 }
 
 const PROBE: &str = r#"
-PAYOUT_OWNER = true
 function on_tick(state) end
 function on_died(unit, killer, killer_player, bounty, victim_player)
   game.cmd_add_unit_gold(unit, bounty)
@@ -40,11 +39,11 @@ end
 fn on_died_receives_five_arguments_with_bounty() {
     let mut host = ModHost::new(&image()).expect("host");
     host.load_source("probe", PROBE).expect("probe loads");
-    let fed = host.feed_payout(&payout(7, 2, Some(3), Some(1), 55)).expect("fed");
+    let fed = host.feed_death(&payout(7, 2, Some(3), Some(1), 55)).expect("fed");
     let lines: Vec<String> = fed.iter().map(show).collect();
     println!("PARITY probe attributed-kill {lines:?}");
     assert_eq!(lines, ["unit_gold unit=7 amount=55", "gold player=2 amount=1", "gold player=1 amount=3"]);
-    let fed = host.feed_payout(&payout(7, 2, None, None, 9)).expect("fed");
+    let fed = host.feed_death(&payout(7, 2, None, None, 9)).expect("fed");
     let lines: Vec<String> = fed.iter().map(show).collect();
     println!("PARITY probe attackerless {lines:?}");
     assert_eq!(lines, ["unit_gold unit=7 amount=9", "gold player=2 amount=0", "gold player=0 amount=-1"]);
@@ -59,10 +58,14 @@ fn moba_match_pays_the_same_for_fixed_kills() {
     let mut host = ModHost::new(&image()).expect("host");
     // The attributed kill needs unit 20 to be attributed; seat picks enrol attributed units (hero.lua), so the test enrols it here.
     host.sim().enroll_attributed(20, 0, 0);
+    // Every player is its own team, so each pair of players is an enemy pair; a denial is an allied killer.
+    for p in 0..4u8 {
+        host.sim().set_team(p, p).expect("team");
+    }
     host.load_source("moba_match", &src).expect("moba_match loads");
     let kills = [
         ("attributed kill", payout(10, 2, Some(20), Some(0), 40)),
-        ("creep kill", payout(21, 1, Some(22), Some(1), 17)),
+        ("denied creep kill", payout(21, 1, Some(22), Some(1), 17)),
         ("attackerless", payout(30, 2, None, None, 30)),
         ("self kill", payout(31, 3, Some(31), Some(3), 12)),
         ("no bounty", payout(32, 0, Some(20), Some(0), 0)),
@@ -70,13 +73,13 @@ fn moba_match_pays_the_same_for_fixed_kills() {
     let want: [&[&str]; 5] = [
         // kill_gold.lua pays gold only; the attributed xp share is hero.lua on_died, which this test does not load.
         &["unit_gold unit=20 amount=32", "gold player=0 amount=8"],
-        &["gold player=1 amount=17"],
-        &["gold player=1 amount=30"],
+        &[],
+        &["gold player=0 amount=30"],
         &["gold player=0 amount=12"],
         &[],
     ];
     for ((name, p), want) in kills.iter().zip(want) {
-        let fed = host.feed_payout(p).expect("fed");
+        let fed = host.feed_death(p).expect("fed");
         // Display effects (effects.lua's gold_text and the like) show as "other"; this test compares gold only.
         let mut lines: Vec<String> = fed.iter().map(show).collect();
         lines.retain(|l| l != "other");

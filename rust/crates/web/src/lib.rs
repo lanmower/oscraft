@@ -140,7 +140,6 @@ impl Game {
     /// live units the new data had no slot for. Refused when the image does not load; the match is unchanged then.
     pub fn swap_data(&mut self, image: &[u8]) -> Result<Vec<u32>, JsValue> {
         let mut fresh = sim::load(image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
-        fresh.set_payout_owner(self.host.sim().payout_owner());
         fresh.set_fog(self.host.sim().fog_on());
         let (carried, refused) = sim::carry_from(&self.host.sim(), &mut fresh);
         self.rec.rebase(LIVE_IMAGE, MAX_UNITS, &fresh);

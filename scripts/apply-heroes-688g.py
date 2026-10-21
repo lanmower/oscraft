@@ -1,4 +1,4 @@
-# Applies scenarios/moba/heroes_688g.tsv to units_heroes.osd and the hero lines of hero_rules.txt.
+# Applies scenarios/moba/heroes_688g.tsv to units_heroes.osd and the hero lines of attr_rules.txt.
 # Heroes absent from the TSV keep their current lines. Scale: WC3 units to milli is 15.625 (sight, range, radius),
 # speed is milli per tick at 16 ticks per second, weapon period is ticks. Run: python3 -I scripts/apply-heroes-688g.py
 import csv, re, sys
@@ -39,10 +39,10 @@ def hero_line(line):
               ("agi_gain", v["agi_gain"]), ("int", v["int"]), ("int_gain", v["int_gain"]), ("mana", v["mana"]),
               ("mana_regen", v["mana_regen"]), ("hp_regen", v["hp_regen"]), ("armor", v["armor"]),
               ("mr", old.get("mr", "25")), ("bat", v["bat"]), ("damage", v["damage"])]
-    return f"hero {m.group(1)} " + " ".join(f"{k}={x}" for k, x in fields)
+    return f"attr {m.group(1)} " + " ".join(f"{k}={x}" for k, x in fields)
 
 units = ROOT / "units_heroes.osd"
 units.write_text("\n".join(unit_line(l, None) for l in units.read_text().split("\n")))
-rules = ROOT / "hero_rules.txt"
+rules = ROOT / "attr_rules.txt"
 rules.write_text("\n".join(hero_line(l) for l in rules.read_text().split("\n")))
 print(f"applied {len(by_id)} heroes", file=sys.stderr)

@@ -1,7 +1,7 @@
 //! Timed spawns: the generic `timed_spawn` primitive places a unit of a catalog type at a point for its
 //! caster's player, and the unit expires after a lifetime in ticks, removed without bounty. Nothing here
 //! names a ward: what a placed unit does comes from its unit data (sight, detector radius, health), and
-//! which unit, where and for how long is a mod's choice (scenarios/moba spells.lua). The `ward` effect in
+//! which unit, where and for how long is a mod's choice (the pack's spells.lua). The `ward` effect in
 //! data is a caller of this primitive. An item the cast consumes is named by the caller's inventory slot.
 //! Expiry stamps are sim state: hashed and saved with the rest.
 

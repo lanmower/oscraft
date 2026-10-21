@@ -1,9 +1,9 @@
 -- Hero rules for the moba scenario, as mod code on generic primitives. The numbers are named values from
--- scenarios/moba/hero_rules.txt, read through game.rule(key). Part of the moba chunk: protection.lua
+-- scenarios/moba/attr_rules.txt, read through game.rule(key). Part of the moba chunk: protection.lua
 -- calls hero_on_tick and hero_on_cast, so this file defines no on_tick or on_cast of its own.
 --
--- Primitives used: on_seat_pick (spawn and enrol), on_died (respawn policy, kill gold, xp share),
--- game.spawn, game.enroll, game.rule, game.is_attributed, game.alive, game.level, game.net_worth, game.unit_gold,
+-- Primitives used: on_seat_pick (spawn and enrol), on_died (respawn policy, kill gold, xp share, assist credit),
+-- game.spawn, game.enroll, game.rule, game.take_recent_hitters, game.add_credit, game.is_attributed, game.alive, game.level, game.net_worth, game.unit_gold,
 -- game.attributes_x100, game.attr_field, game.xp_bounty, game.assist_radius_milli, game.deny_xp_pct,
 -- game.counter, game.set_counter, game.hostile, game.units_near, unit_player, unit_position,
 -- cmd_set_respawn, cmd_add_unit_gold, cmd_add_gold, cmd_add_xp, cmd_add_stat.
@@ -60,7 +60,20 @@ local function share_xp(victim, killer, victim_player, killer_player)
   end
 end
 
--- Respawn policy: base + per level seconds, capped. Kill gold and team share on a hero's death, and the xp share.
+-- Assist credit: each recent hitter of the victim on the killer's side, other than the killer, gets one credit.
+-- The hitters within ASSIST_WINDOW_TICKS of the death are read once and forgotten.
+local ASSIST_WINDOW_TICKS = 50
+
+local function credit_assists(victim, killer, killer_player)
+  for _, h in ipairs(game.take_recent_hitters(victim, ASSIST_WINDOW_TICKS)) do
+    if h ~= killer and unit_player(h) == killer_player then
+      game.add_credit(h, 1)
+    end
+  end
+end
+
+-- Respawn policy: base + per level seconds, capped. Kill gold and team share on a hero's death, the xp share, and the
+-- assist credit.
 function on_died(unit, killer, killer_player, bounty, victim_player)
   camp_died(unit, killer)
   if game.is_attributed(unit) then
@@ -76,6 +89,7 @@ function on_died(unit, killer, killer_player, bounty, victim_player)
       cmd_add_unit_gold(killer, gold - share)
       cmd_add_gold(killer_player, share)
     end
+    credit_assists(unit, killer, killer_player)
     share_xp(unit, killer, victim_player, killer_player)
   end
 end
@@ -114,7 +128,7 @@ end
 
 -- The attribute-to-stat rules: strength gives health, health regen and the universal or strength damage;
 -- agility gives armour, attack speed and the agility damage; intelligence gives mana and mana regen.
--- Attributes are hundredths (game.attributes_x100); the coefficients are hero_rules.txt values.
+-- Attributes are hundredths (game.attributes_x100); the coefficients are attr_rules.txt values.
 local function attribute_bonuses(unit)
   local s, a, n = game.attributes_x100(unit)
   local primary = game.attr_field(unit, "primary")

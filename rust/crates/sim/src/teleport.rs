@@ -1,5 +1,5 @@
 //! The `teleport` effect: the caster moves to the cast point if the point is walkable. The engine knows
-//! nothing about landing rings, receivers or town portals: a mod that wants a landing ring (scenarios/moba
+//! nothing about landing rings, receivers or town portals: a mod that wants a landing ring (the pack's
 //! spells.lua) tries points around its receiver with `Sim::teleport` through the host, and the first that
 //! takes hold is the landing. This effect is the generic move-to-point primitive.
 

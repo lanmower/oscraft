@@ -58,13 +58,13 @@ impl Sim {
 mod tests {
     use crate::{load, Sim};
 
-    /// The level curve the moba scenario's TUNE section carries must match the thresholds the sim
+    /// The level curve the pack's TUNE section carries must match the thresholds the sim
     /// used before the curve moved into data.
     #[test]
     fn xp_curve_loads_from_data_and_matches_old_constant() {
-        let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("moba");
-        let image = osdt_data::generate(&scenario).expect("moba image");
-        let s: Sim = load(&image, 1024).expect("moba sim");
+        let scenario = crate::test_pack_dir();
+        let image = osdt_data::generate(&scenario).expect("pack image");
+        let s: Sim = load(&image, 1024).expect("pack sim");
         let expected: [u32; 29] = [
             230, 600, 1080, 1660, 2260, 2980, 3730, 4620, 5550, 6520, 7530, 8580, 9805, 11055, 12330, 13630, 14955, 16455,
             18045, 19645, 21495, 23595, 25945, 28545, 31395, 34495, 37895, 41595, 45595,

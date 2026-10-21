@@ -33,7 +33,7 @@ def keep(line):
 units = ROOT / "units.osd"
 text = [unit_line(l) for l in units.read_text().split("\n") if keep(l)]
 units.write_text("\n".join(text))
-for name in ("units_extra.osd", "hero_rules.txt"):
+for name in ("units_extra.osd", "attr_rules.txt"):
     path = ROOT / name
     path.write_text("\n".join(l for l in path.read_text().split("\n") if keep(l)))
 print(f"applied {len(by_id)} creep rows, dropped {len(DROP)} placeholders", file=sys.stderr)

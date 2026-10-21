@@ -60,7 +60,7 @@ pub use modapi::{effect_kind, stat_code, target_code, AbilitySpec, ItemSpec, Uni
 pub use diplomacy::{controller_code, CONTROLLER_COMPUTER, CONTROLLER_HUMAN, CONTROLLER_OPEN, MOD_ALLIANCES, MOD_CONTROLLERS};
 pub use pathfinding::Grid;
 pub use persist::StateError;
-pub use combat::{armour_reduced, Payout};
+pub use combat::armour_reduced;
 pub use rules::{Refusal, ALL_REFUSALS};
 pub use store::{ItemRequest, ItemVerdict, NO_COMPONENT, NO_TAKE, VERDICT_TAKES};
 pub use status::STATUS_NAMES;
@@ -68,6 +68,14 @@ pub use spell::{AbilityExt, STAT_COUNT};
 pub use inventory::ITEM_STATS;
 
 pub const TICKS_PER_SECOND: i32 = 16;
+
+/// The shipped pack the unit tests load (scenarios/<name>), the one place its directory name is written.
+#[cfg(test)]
+pub(crate) fn test_pack_dir() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join(TEST_PACK)
+}
+#[cfg(test)]
+const TEST_PACK: &str = "moba";
 pub(crate) const BUCKET_CAP: usize = 8;
 pub(crate) const VIS_SCALE: i32 = 2;
 pub(crate) const VIS_PERIOD: u32 = 8;

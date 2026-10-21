@@ -42,6 +42,17 @@ pub fn generate(src_dir: &Path) -> Result<Vec<u8>> {
     generate_files(&files)
 }
 
+/// The rules file a pack names in its manifest's `rules` key, resolved in the pack directory. None when the
+/// manifest names no file (or the pack has no manifest).
+pub fn rules_path(src_dir: &Path) -> Result<Option<PathBuf>> {
+    let manifest = src_dir.join("manifest.json");
+    let Ok(text) = std::fs::read_to_string(&manifest) else {
+        return Ok(None);
+    };
+    let value: serde_json::Value = serde_json::from_str(&text).with_context(|| format!("parsing {}", manifest.display()))?;
+    Ok(value["rules"].as_str().map(|file| src_dir.join(file)))
+}
+
 /// Evaluates the given `.osd` files in the order given (a pack's manifest `data` list), then returns the encoded image.
 pub fn generate_files(files: &[PathBuf]) -> Result<Vec<u8>> {
     let globals = builtins::globals();

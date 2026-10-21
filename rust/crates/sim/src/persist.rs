@@ -14,16 +14,18 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 16 adds the destroyed-trigger flags and the declared winner. Version 32 drops the team aura timers and adds per-unit healing. Older saves are refused.
 /// Version 17 adds the item inventory and item cooldowns. Version 19 adds the stash bank. Older saves are refused.
 /// Version 22 adds the day and night clock. Version 23 adds the status countdowns and slow multiplier.
-/// Version 27 adds the attributed-unit state (respawn, buyback, gold, mana cap, spot) and the assist
+/// Version 27 adds the attributed-unit state (respawn, gold, mana cap, spot) and the credit
 /// tallies and recent hitters. Version 30 adds the per-slot spawn generation and the generation each sticky
 /// strike target was struck under, so a reused slot never hands its old occupant's target to the new unit.
 /// Version 31 adds the chase and return state of acquiring units (acquire.rs).
-/// Version 33 drops the courier and store-stock sections: a carrier's walk and a store's stock are mod
+/// Version 33 drops the carrier and store-stock sections: a carrier's walk and a store's stock are mod
 /// state now, and the sim keeps only the saved order point per unit (carrier.rs). Saves of any other
 /// version, older ones included, are refused with `BadVersion`.
 /// Version 35 renames the sections to neutral names (attributed units, groups, dests, expiry,
 /// item_requests, aura) and drops the skill-point rule from the engine: the layout is unchanged.
-const STATE_VERSION: u16 = 35;
+/// Version 36 drops the kill-payout flag (the mod owns kill gold) and renames the assist tally to
+/// the generic per-unit credits a mod's rule adds (`add_credit`).
+const STATE_VERSION: u16 = 36;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -311,7 +313,6 @@ impl Sim {
         put_bool(&mut w, self.harvest);
         put_bool(&mut w, self.produce);
         put_bool(&mut w, self.abil_on);
-        put_bool(&mut w, self.payout_owner);
 
         let s = &self.stats;
         put_u64(&mut w, s.deaths as u64);
@@ -493,7 +494,7 @@ impl Sim {
         put_i32s(&mut w, &self.attributed.mana_max);
         put_i32s(&mut w, &self.attributed.spot_x);
         put_i32s(&mut w, &self.attributed.spot_y);
-        put_u32s(&mut w, &self.unit_assists);
+        put_u32s(&mut w, &self.unit_credits);
         put_i32s(&mut w, &self.hitter_id);
         put_u32s(&mut w, &self.hitter_tick);
         w.extend_from_slice(&self.dests.id);
@@ -553,7 +554,6 @@ impl Sim {
         next.harvest = r.bool()?;
         next.produce = r.bool()?;
         next.abil_on = r.bool()?;
-        next.payout_owner = r.bool()?;
 
         let mut st = Stats::default();
         st.deaths = r.u64()? as usize;
@@ -750,7 +750,7 @@ impl Sim {
         r.i32s_into(&mut next.attributed.mana_max)?;
         r.i32s_into(&mut next.attributed.spot_x)?;
         r.i32s_into(&mut next.attributed.spot_y)?;
-        r.u32s_into(&mut next.unit_assists)?;
+        r.u32s_into(&mut next.unit_credits)?;
         r.i32s_into(&mut next.hitter_id)?;
         r.u32s_into(&mut next.hitter_tick)?;
         r.bytes_into(&mut next.dests.id)?;

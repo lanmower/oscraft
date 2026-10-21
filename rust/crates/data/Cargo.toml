@@ -15,3 +15,4 @@ path = "src/main.rs"
 [dependencies]
 starlark = "=0.14.2"
 anyhow = "=1.0.104"
+serde_json = "1"

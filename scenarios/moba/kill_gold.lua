@@ -1,10 +1,7 @@
 -- Moba kill gold, as mod code. A unit with a bounty pays when it dies. A killing hero keeps the bounty less the team
 -- share, and the killer's side gets the share. A killer that is not a hero (a creep) pays its whole bounty to its
--- side. An attackerless death pays the rival side's gold.
---
--- PAYOUT_OWNER hands kill gold to this file: while it is set, the sim skips its Rust payout (pay_bounty).
+-- side. An attackerless death pays the rival side's gold. A denial (the killer is allied to the victim) pays nothing.
 -- Uses only the mod API.
-PAYOUT_OWNER = true
 
 local TEAM_SHARE_PCT = 20
 
@@ -14,6 +11,7 @@ game.trigger("on_died", {
   conditions = { function(_, _, _, bounty) return bounty > 0 end },
   action = function(unit, killer, killer_player, bounty, victim_player, killer_attributed)
     if killer ~= nil and killer ~= unit then
+      if not game.hostile(killer_player, victim_player) then return end
       local share = math.floor(bounty * TEAM_SHARE_PCT / 100)
       if killer_attributed then
         game.cmd_add_unit_gold(killer, bounty - share)

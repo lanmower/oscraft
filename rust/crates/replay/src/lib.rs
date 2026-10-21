@@ -272,6 +272,8 @@ impl Playback {
 }
 
 pub const FORMAT_HEADER: &str = "oscraft-replay 3";
+/// The retired fourth field of a `segment` line (see `Recording`).
+const RETIRED_FLAG: u8 = 0;
 // Version 1 held orders, casts, items, fog and cadence only; it still parses, and its records are a subset of version 2.
 const FORMAT_HEADER_V1: &str = "oscraft-replay 1";
 // Version 2 has one segment; version 3 adds `segment` lines for data swaps.
@@ -989,25 +991,25 @@ pub struct Segment {
     pub image: String,
     pub max_units: u32,
     pub init: u64,
-    /// Whether a mod owned the kill payout (`payout_owner`) at the segment's start; the header carries it.
-    pub payout_owner: bool,
 }
 
 impl Segment {
     fn of(start: u32, image: &str, max_units: usize, sim: &Sim) -> Segment {
-        Segment { start, image: image.to_string(), max_units: max_units as u32, init: sim.state_hash(), payout_owner: sim.payout_owner() }
+        Segment { start, image: image.to_string(), max_units: max_units as u32, init: sim.state_hash() }
     }
 }
 
 fn segment_line(s: &Segment) -> String {
-    format!("segment {} {} {:016x} {} {}", s.start, s.max_units, s.init, u8::from(s.payout_owner), s.image)
+    format!("segment {} {} {:016x} {} {}", s.start, s.max_units, s.init, RETIRED_FLAG, s.image)
 }
 
 /// The commands a sim run received, per tick, with the state hash every `CHECK_EVERY` ticks.
 /// Text format: a header (`oscraft-replay 3`, `image`, `max_units`, `init`), then one line per
 /// command `<tick> <code> <args>` and `chk <ticks> <hash>` lines. A `chk` line follows the tick
 /// that brought the sim to `<ticks>` and precedes the commands applied at that tick. A data swap
-/// adds `segment <start> <max_units> <init> <payout_owner> <image>` lines, one per swap.
+/// adds `segment <start> <max_units> <init> <retired 0> <image>` lines, one per swap. The fourth field of a
+/// segment line and the `payout_owner` header line are retired (the sim has no kill-payout flag); they
+/// are written as 0 and read and ignored, so the layout of format 3 is unchanged.
 pub struct Recording {
     segments: Vec<Segment>,
     cmds: Vec<(u32, Command)>,
@@ -1270,9 +1272,6 @@ impl Recording {
     fn render_to(&self, last: Option<(u32, u64)>) -> String {
         let first = &self.segments[0];
         let mut out = format!("{FORMAT_HEADER}\nimage {}\nmax_units {}\ninit {:016x}\n", first.image, first.max_units, first.init);
-        if first.payout_owner {
-            out.push_str("payout_owner 1\n");
-        }
         if let Some(t) = self.incomplete {
             out.push_str(&format!("incomplete {t}\n"));
         }
@@ -1303,11 +1302,8 @@ impl Recording {
         out
     }
 
-    /// Sets `fresh` (a sim loaded from the recording's first image) to the header's `payout_owner`, which the
-    /// init hash covers. Call it before `Replayer::new` or `Playback::new`.
-    pub fn apply_header(&self, fresh: &mut Sim) {
-        fresh.set_payout_owner(self.segments[0].payout_owner);
-    }
+    /// Kept for callers that set up a fresh sim from a recording. The header carries no sim setting now.
+    pub fn apply_header(&self, _fresh: &mut Sim) {}
 
     pub fn parse(text: &str) -> Result<Recording, ReplayError> {
         let bad = |line: usize, why: &str| ReplayError::Parse { line, why: why.to_string() };
@@ -1318,7 +1314,7 @@ impl Recording {
             None => return Err(bad(0, "empty replay")),
         }
         // Segment 0 is the header; each `segment` line after it starts a later segment.
-        let mut segments = vec![Segment { start: 0, image: String::new(), max_units: 0, init: 0, payout_owner: false }];
+        let mut segments = vec![Segment { start: 0, image: String::new(), max_units: 0, init: 0 }];
         let mut have_init = false;
         let mut cmds: Vec<(u32, Command)> = Vec::new();
         let mut checks: Vec<(u32, u64)> = Vec::new();
@@ -1326,7 +1322,7 @@ impl Recording {
         for (n, line) in lines {
             let mut it = line.split_whitespace();
             let first = it.next().unwrap_or_default();
-            // gold_by_mod is the retired name of payout_owner; old recordings still decode.
+            // payout_owner and gold_by_mod are the retired kill-payout flag; old recordings still decode.
             let header = matches!(first, "image" | "max_units" | "init" | "payout_owner" | "gold_by_mod" | "incomplete");
             if header && segments.len() > 1 {
                 return Err(bad(n, "a header line must come before the segments"));
@@ -1338,7 +1334,7 @@ impl Recording {
             }
             match first {
                 "max_units" => head.max_units = num(&mut it).ok_or_else(|| bad(n, "max_units needs a number"))?,
-                "payout_owner" | "gold_by_mod" => head.payout_owner = num::<u8>(&mut it).ok_or_else(|| bad(n, "payout_owner needs 0 or 1"))? != 0,
+                "payout_owner" | "gold_by_mod" => {}
                 "init" => {
                     head.init = it.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "init needs a hex hash"))?;
                     have_init = true;
@@ -1350,11 +1346,10 @@ impl Recording {
                     let start: u32 = f.next().and_then(|v| v.parse().ok()).ok_or_else(|| bad(n, "segment needs a start tick"))?;
                     let max_units: u32 = f.next().and_then(|v| v.parse().ok()).ok_or_else(|| bad(n, "segment needs max_units"))?;
                     let init = f.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "segment needs a hex hash"))?;
-                    let payout_owner = match f.next() {
-                        Some("0") => false,
-                        Some("1") => true,
-                        _ => return Err(bad(n, "segment needs payout_owner 0 or 1")),
-                    };
+                    match f.next() {
+                        Some("0") | Some("1") => {}
+                        _ => return Err(bad(n, "segment needs the retired 0 or 1 field")),
+                    }
                     let image = f.next().filter(|s| !s.is_empty()).ok_or_else(|| bad(n, "segment needs an image"))?;
                     let last_start = segments[segments.len() - 1].start;
                     if start <= last_start {
@@ -1366,7 +1361,7 @@ impl Recording {
                     if checks.last().is_some_and(|c| c.0 > start) {
                         return Err(bad(n, "a segment must start after the checks before it"));
                     }
-                    segments.push(Segment { start, image: image.to_string(), max_units, init, payout_owner });
+                    segments.push(Segment { start, image: image.to_string(), max_units, init });
                 }
                 "chk" => {
                     let t: u32 = num(&mut it).ok_or_else(|| bad(n, "chk needs a tick"))?;
@@ -1490,7 +1485,6 @@ impl Replayer {
         if let Some(next) = self.rec.segments.get(self.seg + 1) {
             if next.start == t {
                 let mut fresh = load(next).ok_or(ReplayError::NoSegmentData { tick: t })?;
-                fresh.set_payout_owner(next.payout_owner);
                 carry_from(sim, &mut fresh);
                 let actual = fresh.state_hash();
                 if actual != next.init {
@@ -1555,20 +1549,17 @@ impl Replayer {
 
 #[cfg(test)]
 fn load_data(path: &std::path::Path, max_units: usize) -> Result<Sim, String> {
-    // The directory branch of the loader the server ran: compile the .osd sources, then the attribute rules file if any.
+    // The directory branch of the loader the server ran: compile the .osd sources, then the rules file the manifest names.
     if !path.is_dir() {
         return sim::load_file(path, max_units).map_err(|e| format!("{e:?}"));
     }
     let image = osdt_data::generate(path).map_err(|e| format!("{e:#}"))?;
     let mut sim = sim::load(&image, max_units).map_err(|e| format!("{e:?}"))?;
-    match std::fs::read_to_string(path.join("hero_rules.txt")) {
-        Ok(rules) => {
-            if !sim.set_attr_rules_text(&rules) {
-                return Err("hero_rules.txt has a bad line".to_string());
-            }
+    if let Some(rules_file) = osdt_data::rules_path(path).map_err(|e| format!("{e:#}"))? {
+        let rules = std::fs::read_to_string(&rules_file).map_err(|e| format!("{} cannot be read: {e}", rules_file.display()))?;
+        if !sim.set_attr_rules_text(&rules) {
+            return Err(format!("{} has a bad line", rules_file.display()));
         }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => return Err(format!("hero_rules.txt cannot be read: {e}")),
     }
     Ok(sim)
 }

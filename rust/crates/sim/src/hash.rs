@@ -44,7 +44,7 @@ impl Sim {
     pub fn state_hash(&self) -> u64 {
         let mut h = Fnv(0xcbf2_9ce4_8422_2325);
         h.u64s(&[self.cat_digest, self.cap as u64]);
-        h.bytes(&[self.abil_on as u8, self.fog as u8, self.harvest as u8, self.produce as u8, self.payout_owner as u8]);
+        h.bytes(&[self.abil_on as u8, self.fog as u8, self.harvest as u8, self.produce as u8]);
         let mut pool = Vec::new();
         crate::persist::pool_bytes(&self.paths, &mut pool);
         h.bytes(&pool);
@@ -69,7 +69,7 @@ impl Sim {
         h.u32s(&self.xp_curve);
         h.u32s(&self.unit_kills);
         h.u32s(&self.unit_deaths);
-        h.u32s(&self.unit_assists);
+        h.u32s(&self.unit_credits);
         h.i32s(&self.hitter_id);
         h.u32s(&self.hitter_tick);
         h.bytes(&self.dests.id);

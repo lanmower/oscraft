@@ -115,8 +115,8 @@ L.push("", "## Behaviours", "", "| Name | Trigger | Action | Ability |", "|---|-
 for (const c of by("behaviour"))
   L.push(`| ${unq(c.pos[0])} | ${unq(c.kw.trigger)} | ${unq(c.kw.action)} | ${unq(c.kw.ability ?? c.kw.tag)} |`);
 
-const rules = readFileSync(join(dir, "hero_rules.txt"), "utf8").split("\n").filter((l) => /^\w+=/.test(l));
-L.push("", "## Hero rules", "", "From `hero_rules.txt`. All UNVERIFIED placeholders.", "", "| Key | Value |", "|---|---|");
+const rules = readFileSync(join(dir, "attr_rules.txt"), "utf8").split("\n").filter((l) => /^\w+=/.test(l));
+L.push("", "## Hero rules", "", "From `attr_rules.txt`. All UNVERIFIED placeholders.", "", "| Key | Value |", "|---|---|");
 for (const r of rules) { const [k, v] = r.split("="); L.push(`| ${k} | ${v} |`); }
 
 const spawns = by("spawn"), neutral = spawns.filter((c) => c.pos[1] === "-1");

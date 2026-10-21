@@ -1,6 +1,6 @@
 //! Ability ranks. The engine holds one rank per ability slot and raises it by one when asked.
 //! Which slot may be raised, how many points a unit has and the level gate of each rank are the
-//! mod's rule (scenarios/moba/skills.lua, the on_skill_up hook), so this file has no point count
+//! mod's rule (the pack's skills.lua, the on_skill_up hook), so this file has no point count
 //! or gate of its own. A learned rank sets the ability's energy cost and cooldown, and its damage
 //! when the ability has a damage or heal effect.
 

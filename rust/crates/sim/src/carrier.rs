@@ -1,7 +1,7 @@
 //! Order memory, and the `carry` effect's request. A mod that sends a unit away saves the unit's
 //! order point first and restores it when the unit comes back. The sim keeps only that point (a
 //! generic per-unit slot) and the request. What carrying means, how a unit walks and when it hands
-//! over are the mod's rule (scenarios/moba/store.lua), driven by `ItemRequest::Carry` and move-to-point orders.
+//! over are the mod's rule (the pack's store.lua), driven by `ItemRequest::Carry` and move-to-point orders.
 
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
