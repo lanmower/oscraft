@@ -25,7 +25,7 @@ end
 
 -- Milli-units to Q16.16 (65536 per unit, milli-units are 1/1000), as protection.lua does.
 local function milli_to_fixed(milli)
-  return milli * 65536 // 1000
+  return math.floor(milli * 65536 / 1000)
 end
 
 -- Xp share of a kill, as the engine shared it: an enemy kill gives the victim's xp bounty to the killer
@@ -34,7 +34,7 @@ end
 local function share_xp(victim, killer, victim_player, killer_player)
   local denied = killer_player == victim_player
   local pool = game.xp_bounty(victim)
-  if denied then pool = pool * game.deny_xp_pct(victim) // 100 end
+  if denied then pool = math.floor(pool * game.deny_xp_pct(victim) / 100) end
   if pool <= 0 then return end
   local recipients = {}
   if not denied then recipients[#recipients + 1] = killer end
@@ -53,7 +53,7 @@ local function share_xp(victim, killer, victim_player, killer_player)
   end
   local count = #recipients
   if count == 0 then return end
-  local share = pool // count
+  local share = math.floor(pool / count)
   local rest = pool - share * count
   for idx, u in ipairs(recipients) do
     cmd_add_xp(u, share + (idx == 1 and rest or 0))
@@ -72,7 +72,7 @@ function on_died(unit, killer, killer_player, bounty, victim_player)
   if killer ~= nil and killer ~= unit then
     if game.is_hero(unit) and killer_player ~= victim_player then
       local gold = game.rule("hero_kill_gold_base") + game.rule("hero_kill_gold_per_level") * game.level(unit)
-      local share = gold * game.rule("team_share_pct") // 100
+      local share = math.floor(gold * game.rule("team_share_pct") / 100)
       cmd_add_unit_gold(killer, gold - share)
       cmd_add_gold(killer_player, share)
     end
@@ -82,7 +82,7 @@ end
 
 -- Buyback: cost is base + per level + net worth share; cooldown is a per-unit counter.
 local function buyback_cost(unit)
-  local nw = game.net_worth(unit) * game.rule("buyback_net_worth_pct") // (100 * game.rule("buyback_net_worth_div"))
+  local nw = math.floor(game.net_worth(unit) * game.rule("buyback_net_worth_pct") / (100 * game.rule("buyback_net_worth_div")))
   return game.rule("buyback_base") + game.rule("buyback_per_level") * game.level(unit) + nw
 end
 
@@ -126,25 +126,35 @@ local function attribute_bonuses(unit)
   elseif primary == 2 then
     damage_x100 = n
   else
-    damage_x100 = (s + a + n) * game.rule("universal_damage_pct") // 100
+    damage_x100 = math.floor((s + a + n) * game.rule("universal_damage_pct") / 100)
   end
-  set_bonus(unit, S_HEALTH, game.rule("hp_per_attr_a") * s // 100)
-  set_bonus(unit, S_HEALTH_REGEN, game.rule("hp_regen_per_attr_a_x100") * s // 100)
-  set_bonus(unit, S_DAMAGE, damage_x100 // 100)
-  set_bonus(unit, S_ARMOR_X100, a // game.rule("armour_per_attr_b_div"))
-  set_bonus(unit, S_ATTACK_SPEED, a // 100)
-  set_bonus(unit, S_MAX_MANA, game.rule("mana_per_attr_c") * n // 100)
-  set_bonus(unit, S_MANA_REGEN, game.rule("mana_regen_per_attr_c_x100") * n // 100)
+  set_bonus(unit, S_HEALTH, math.floor(game.rule("hp_per_attr_a") * s / 100))
+  set_bonus(unit, S_HEALTH_REGEN, math.floor(game.rule("hp_regen_per_attr_a_x100") * s / 100))
+  set_bonus(unit, S_DAMAGE, math.floor(damage_x100 / 100))
+  set_bonus(unit, S_ARMOR_X100, math.floor(a / game.rule("armour_per_attr_b_div")))
+  set_bonus(unit, S_ATTACK_SPEED, math.floor(a / 100))
+  set_bonus(unit, S_MAX_MANA, math.floor(game.rule("mana_per_attr_c") * n / 100))
+  set_bonus(unit, S_MANA_REGEN, math.floor(game.rule("mana_regen_per_attr_c_x100") * n / 100))
 end
 
--- Per tick: the attribute bonuses of each living hero; passive gold each second for every hero.
+-- The level and life each hero had at the last tick, for the level-up and respawn effects.
+local seen_level = {}
+local seen_alive = {}
+
+-- Per tick: the attribute bonuses of each living hero; passive gold each second for every hero; the level-up and
+-- respawn effects (effects.lua).
 function hero_on_tick(state)
   local now = state.ticks or 0
   local passive_turn = now % TICKS_PER_SECOND == 0
   for i = 0, get_unit_count() - 1 do
     if game.is_hero(i) then
-      if game.alive(i) then attribute_bonuses(i) end
+      local alive = game.alive(i)
+      if alive then attribute_bonuses(i) end
       if passive_turn then cmd_add_unit_gold(i, game.rule("passive_gold_per_s")) end
+      local level = game.level(i)
+      level_effects(i, level, seen_level[i], alive, seen_alive[i])
+      seen_level[i] = level
+      seen_alive[i] = alive
     end
   end
 end

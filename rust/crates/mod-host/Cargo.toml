@@ -9,7 +9,7 @@ default = ["build", "piccolo"]
 # Builds OSDT images from .osd sources; the wasip3 guest turns it off to keep starlark out of wasm.
 build = ["dep:osdt-data"]
 # The mod VM: piccolo, pure Rust. The native host and the wasip3 guest both run mods on it.
-piccolo = ["dep:piccolo"]
+piccolo = ["dep:piccolo", "dep:serde_json"]
 
 [[bin]]
 name = "mod_check"
@@ -18,5 +18,6 @@ required-features = ["build", "piccolo"]
 
 [dependencies]
 piccolo = { version = "0.3.3", optional = true }
+serde_json = { version = "1", optional = true }
 sim = { path = "../sim" }
 osdt-data = { path = "../data", optional = true }

@@ -5,7 +5,7 @@
 use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::status::{EFFECT_INVISIBILITY, EFFECT_STUN};
-use crate::loader::{Effect, FILTER_WORKER};
+use crate::loader::Effect;
 use crate::*;
 
 /// Why a cast was not applied.
@@ -356,6 +356,7 @@ impl Sim {
         }
 
         self.stats.casts += 1;
+        self.last_cast[i] = (target, x, y);
         if self.cast_log.len() < CAST_LOG_CAP {
             self.cast_log.push((i as u32, ai as u16));
         }
@@ -615,6 +616,11 @@ impl Sim {
         std::mem::take(&mut self.cast_log).into_iter().map(|(u, a)| (u as usize, a as usize)).collect()
     }
 
+    /// The target, x and y of the cast unit `i` last took hold with; a target of -1 names no unit.
+    pub fn last_cast(&self, i: usize) -> (i32, i32, i32) {
+        self.last_cast.get(i).copied().unwrap_or((-1, 0, 0))
+    }
+
     /// Whether a unit may take a spell or attack. `required` is a filter mask; every
     /// bit must be present on the unit. A zero mask is always met.
     /// Ticks left in unit `i`'s channel, or 0 when it is not channelling.
@@ -629,11 +635,6 @@ impl Sim {
 
     pub(crate) fn meets_filter(&self, j: usize, required: u32) -> bool {
         j < self.n && self.filter[j] & required == required
-    }
-
-    /// Workers are the only units the harvester may gather with.
-    pub(crate) fn is_worker(&self, j: usize) -> bool {
-        j < self.n && self.filter[j] & FILTER_WORKER != 0
     }
 
     /// Starts channelling ability `ai` of unit `i` toward (x, y) and `target`: the caster holds
@@ -718,11 +719,6 @@ impl Sim {
         }
     }
 
-    /// Squared distance helper kept beside the rules that use it.
-    pub(crate) fn within(&self, a: usize, x: i32, y: i32, rad: i32) -> bool {
-        let rad = rad as i64;
-        dist2(self.pos_x[a], self.pos_y[a], x, y) <= rad * rad
-    }
 }
 
 impl Sim {

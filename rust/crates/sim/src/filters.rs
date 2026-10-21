@@ -5,8 +5,4 @@
 use crate::arrays::Sim;
 
 impl Sim {
-    /// Whether unit `j` may be the target of an effect that requires `required`.
-    pub(crate) fn target_allowed(&self, j: usize, required: u32) -> bool {
-        self.meets_filter(j, required)
-    }
 }

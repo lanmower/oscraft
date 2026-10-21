@@ -44,7 +44,6 @@ const EFFECT_HEAL: u16 = 1;
 
 const EFFECT_STAT: u16 = 16;
 const EFFECT_TIMED_SPAWN: u16 = 17;
-const EFFECT_CARRY: u16 = 19;
 const EFFECT_SLOW: u16 = 12;
 const EFFECT_STATUS_DURATION: [u16; 4] = [11, 13, 14, 15];
 const EFFECT_ISSUE_ORDER: u16 = 5;
@@ -181,18 +180,9 @@ impl Unit {
     }
 }
 
-/// Filter bit positions, from FORMAT.md.
-pub const FILTER_GROUND: u32 = 1 << 0;
 pub const FILTER_AIR: u32 = 1 << 1;
-pub const FILTER_ARMORED: u32 = 1 << 2;
-pub const FILTER_BIOLOGICAL: u32 = 1 << 3;
-pub const FILTER_MECHANICAL: u32 = 1 << 4;
-pub const FILTER_PSIONIC: u32 = 1 << 5;
 pub const FILTER_STRUCTURE: u32 = 1 << 6;
-pub const FILTER_LIGHT: u32 = 1 << 7;
-pub const FILTER_MASSIVE: u32 = 1 << 8;
 pub const FILTER_WORKER: u32 = 1 << 9;
-pub const FILTER_ARMY: u32 = 1 << 10;
 
 /// A starting unit from the PLCE section. Position is Q16.16, already converted from milli-units.
 #[derive(Clone, Copy, Debug, Default)]

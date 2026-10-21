@@ -54,15 +54,15 @@ local function read_config()
     aegis_s = camp_rule("aegis_reincarnate_s"),
   }
   c.ticks_per_second = 16  -- the sim's TICKS_PER_SECOND
-  c.clear_fixed = c.clear_milli * FIXED // 1000
-  c.pickup_fixed = c.pickup_milli * FIXED // 1000
+  c.clear_fixed = math.floor(c.clear_milli * FIXED / 1000)
+  c.pickup_fixed = math.floor(c.pickup_milli * FIXED / 1000)
   return c
 end
 
 -- The first multiple of interval_s whole minutes (or whatever interval) strictly after now, in ticks.
 local function next_mark(now, interval_s)
   local iv = interval_s * cfg.ticks_per_second
-  return (now // iv + 1) * iv
+  return (math.floor(now / iv) + 1) * iv
 end
 
 local function roll(span)

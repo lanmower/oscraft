@@ -13,6 +13,7 @@ mod combat;
 mod filters;
 mod acquire;
 mod fog;
+mod fx;
 mod harvest;
 mod healers;
 mod hash;
@@ -53,6 +54,7 @@ mod route;
 
 pub use arrays::{Sim, Stats};
 pub use carry::carry_from;
+pub use fx::{FxEvent, Hit, FX_CAP};
 pub use loader::{load, load_file, Catalog, Doodad, Effect, LoadError, Trigger};
 pub use modapi::{effect_kind, stat_code, target_code, AbilitySpec, ItemSpec, UnitSpec, UpgradeSpec, MOD_EFFECTS, STAT_NAMES};
 pub use diplomacy::{controller_code, CONTROLLER_COMPUTER, CONTROLLER_HUMAN, CONTROLLER_OPEN, MOD_ALLIANCES, MOD_CONTROLLERS};

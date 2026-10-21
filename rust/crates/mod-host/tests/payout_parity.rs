@@ -52,7 +52,8 @@ fn on_died_receives_five_arguments_with_bounty() {
 
 #[test]
 fn moba_match_pays_the_same_for_fixed_kills() {
-    let src = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba/kill_gold.lua")).expect("mod");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
+    let src = ["effects.lua", "kill_gold.lua"].iter().map(|f| std::fs::read_to_string(dir.join(f)).expect("mod")).collect::<Vec<_>>().join("\n");
     // kill_gold.lua is one file of the moba mod; the host needs an on_tick to load, so the test adds the empty one.
     let src = format!("{src}\nfunction on_tick(state) end\n");
     let mut host = ModHost::new(&image()).expect("host");
@@ -76,7 +77,9 @@ fn moba_match_pays_the_same_for_fixed_kills() {
     ];
     for ((name, p), want) in kills.iter().zip(want) {
         let fed = host.feed_payout(p).expect("fed");
-        let lines: Vec<String> = fed.iter().map(show).collect();
+        // Display effects (effects.lua's gold_text and the like) show as "other"; this test compares gold only.
+        let mut lines: Vec<String> = fed.iter().map(show).collect();
+        lines.retain(|l| l != "other");
         println!("PARITY payout {name} {lines:?}");
         assert_eq!(lines, want, "{name}");
     }

@@ -143,6 +143,9 @@ struct Hooks {
     on_request: Option<StashedFunction>,
     // The skill rule: on_skill_up(unit, slot, state) returns true to raise the rank, false to refuse it.
     on_skill_up: Option<StashedFunction>,
+    // on_action(name, args, state): a player action from the page. on_pointer(kind, x, y, button, state): a pointer event.
+    on_action: Option<StashedFunction>,
+    on_pointer: Option<StashedFunction>,
 }
 
 // A hook's result read as an owned value, so a verdict can be built after the Lua state is left.
@@ -417,13 +420,13 @@ fn field_text_opt<'gc>(ctx: Context<'gc>, t: Table<'gc>, key: &str) -> Result<Op
     }
 }
 
-// The display event game.effect names: its kind, its position in fixed point (x and y are world units) and the
+// The display event game.effect names: its kind, its position (x and y in fixed point, as unit_position returns them) and the
 // optional params table. Absent params keep FxEvent's defaults.
 fn fx_event<'gc>(ctx: Context<'gc>, kind: &str, x: f64, y: f64, params: Value<'gc>) -> Result<FxEvent, String> {
     if kind.is_empty() {
         return Err("bad_argument: effect kind is empty".into());
     }
-    let at = |v: f64| (v * sim::fixed::ONE as f64).round().clamp(i32::MIN as f64, i32::MAX as f64) as i32;
+    let at = |v: f64| v.round().clamp(i32::MIN as f64, i32::MAX as f64) as i32;
     let mut e = FxEvent::new(kind, at(x), at(y));
     match params {
         Value::Nil => {}
@@ -1483,7 +1486,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         Ok(CallbackReturn::Return)
     });
     // game.effect(kind, x, y, params): queues a display event for the page, which decides nothing about it. x and y are
-    // world units, or 0 for an event anchored to a unit through params.source or params.target. params is an optional
+    // fixed point, or 0 for an event anchored to a unit through params.source or params.target. params is an optional
     // table of source, target, team, colour, duration, text, scale, name and value. Not hashed, not replayed.
     native!(ctx, game, "effect", [sh], |c, s| {
         let kind = text(c, s.get(0), 0)?;
@@ -1732,7 +1735,8 @@ pub struct ModHost {
     lua: RefCell<Lua>,
     sh: Sh,
     state: StashedTable,
-    hooks: Option<Hooks>,
+    // One entry per loaded mod, in load order. Each mod has its own environment and hooks; they share the sim.
+    hooks: Vec<Hooks>,
     version: u64,
     joined: Vec<usize>,
     snap: Vec<UnitSnap>,
@@ -1757,7 +1761,7 @@ impl ModHost {
             lua: RefCell::new(lua),
             sh: Rc::new(RefCell::new(Shared { sim, regions: Vec::new(), local: Vec::new(), cmds: Vec::new(), clock: 0, fired: 0, applied: 0, ui: Vec::new() })),
             state,
-            hooks: None,
+            hooks: Vec::new(),
             version: 0,
             joined: Vec::new(),
             snap: Vec::new(),
@@ -1771,12 +1775,76 @@ impl ModHost {
     /// Compiles the mod in `src`, named `name` in error messages, runs its top level in its own
     /// environment, and makes it the active version. The mod must define on_tick.
     pub fn load_source(&mut self, name: &str, src: &str) -> Result<(), String> {
+        let hooks = self.build_mod(name, src)?;
+        self.hooks = vec![hooks];
+        self.version += 1;
+        Ok(())
+    }
+
+    /// Loads a set of mods, in order, each in its own environment, sharing this host's sim. Every mod
+    /// is built before any takes effect: when one fails, the sim, regions and queued commands go back
+    /// as they were and the previous set stays live. Returns the error text for the failing mod.
+    pub fn load_mods(&mut self, mods: &[(String, String)]) -> Result<(), String> {
+        let (sim, regions, cmds, local) = {
+            let sh = self.sh.borrow();
+            (sh.sim.save_state(), sh.regions.clone(), sh.cmds.clone(), sh.local.clone())
+        };
+        let mut built = Vec::with_capacity(mods.len());
+        for (name, src) in mods {
+            match self.build_mod(name, src) {
+                Ok(hooks) => built.push(hooks),
+                Err(e) => {
+                    let mut sh = self.sh.borrow_mut();
+                    sh.sim.load_state(&sim).map_err(|_| "the saved sim state did not load back".to_string())?;
+                    sh.regions = regions;
+                    sh.cmds = cmds;
+                    sh.local = local;
+                    return Err(e);
+                }
+            }
+        }
+        self.hooks = built;
+        self.version += 1;
+        Ok(())
+    }
+
+    /// Replaces the sim this host advances (a data swap or a replay seek). Queued commands and events
+    /// of the old sim are dropped; the mods stay loaded.
+    pub fn set_sim(&mut self, sim: Sim) {
+        let mut sh = self.sh.borrow_mut();
+        sh.sim = sim;
+        sh.cmds.clear();
+        sh.local.clear();
+    }
+
+    /// Runs on_action(name, args, state) of every mod that defines it. Commands it queues apply at the next advance.
+    pub fn dispatch_action(&mut self, name: &str, args: &serde_json::Value) -> Result<(), String> {
+        for f in self.hook_fns(|h| &h.on_action) {
+            self.call(&f, vec![Arg::Text(name.to_owned()), Arg::Json(args.clone()), Arg::State])?;
+        }
+        Ok(())
+    }
+
+    /// Runs on_pointer(kind, x, y, button, state) of every mod that defines it. `kind` is "down", "up" or "move".
+    pub fn pointer(&mut self, kind: &str, x: f64, y: f64, button: i64) -> Result<(), String> {
+        for f in self.hook_fns(|h| &h.on_pointer) {
+            self.call(&f, vec![Arg::Text(kind.to_owned()), Arg::Num(x), Arg::Num(y), Arg::Int(button), Arg::State])?;
+        }
+        Ok(())
+    }
+
+    /// The hook `pick` names, from every loaded mod that defines it, in load order.
+    fn hook_fns(&self, pick: impl Fn(&Hooks) -> &Option<StashedFunction>) -> Vec<StashedFunction> {
+        self.hooks.iter().filter_map(|h| pick(h).clone()).collect()
+    }
+
+    fn build_mod(&mut self, name: &str, src: &str) -> Result<Hooks, String> {
         let sh = self.sh.clone();
         let (prelude, env) = self
             .lua.borrow_mut()
             .try_enter(|ctx| {
                 let env = Table::new(&ctx);
-                for base in ["pcall", "error", "assert", "type", "tostring", "tonumber", "select", "pairs", "ipairs", "next"] {
+                for base in ["pcall", "error", "assert", "type", "tostring", "tonumber", "select", "pairs", "ipairs", "next", "math"] {
                     env.set(ctx, base, ctx.globals().get(ctx, base))?;
                 }
                 bind(ctx, env, &sh);
@@ -1835,6 +1903,8 @@ impl ModHost {
                     target_priority: None,
                     on_request: None,
                     on_skill_up: None,
+                    on_action: None,
+                    on_pointer: None,
                 })
             })
             .map_err(|e| e.to_string())?;
@@ -1865,9 +1935,9 @@ impl ModHost {
         hooks.target_priority = named("target_priority");
         hooks.on_request = named("on_request");
         hooks.on_skill_up = named("on_skill_up");
-        self.hooks = Some(hooks);
-        self.version += 1;
-        Ok(())
+        hooks.on_action = named("on_action");
+        hooks.on_pointer = named("on_pointer");
+        Ok(hooks)
     }
 
     /// Loads the mod file at `path` and remembers it, so `reload` can swap in later edits.
@@ -2041,13 +2111,13 @@ impl ModHost {
                 Pending::PlayerJoined(p) => self.emit("on_player_joined", vec![Arg::Int(p as i64)])?,
             }
         }
-        if let Some(h) = &self.hooks {
-            let f = h.run_systems.clone();
+        let systems: Vec<StashedFunction> = self.hooks.iter().map(|h| h.run_systems.clone()).collect();
+        for f in systems {
             self.call(&f, Vec::new())?;
         }
         self.apply_commands();
-        if let Some(h) = &self.hooks {
-            let f = h.fire_timers.clone();
+        let timers: Vec<StashedFunction> = self.hooks.iter().map(|h| h.fire_timers.clone()).collect();
+        for f in timers {
             self.call(&f, Vec::new())?;
         }
         self.emit("on_tick", vec![Arg::State])?;
@@ -2060,7 +2130,7 @@ impl ModHost {
     /// is &mut self because piccolo runs its VM under a mutable borrow, so this differs from the
     /// native &self; the error is the piccolo host's String, not mlua::Error.
     pub fn feed_payout(&mut self, p: &Payout) -> Result<Vec<Cmd>, String> {
-        if self.hooks.is_none() {
+        if self.hooks.is_empty() {
             return Ok(Vec::new());
         }
         let death = Death {
@@ -2105,7 +2175,7 @@ impl ModHost {
                 Arg::Bool(killer_hero),
             ],
         )?;
-        if let Some(f) = self.hooks.as_ref().and_then(|h| h.on_unit_died.clone()) {
+        for f in self.hook_fns(|h| &h.on_unit_died) {
             match self.call_ret(&f, vec![Arg::Int(i64::from(d.victim)), Arg::State]) {
                 Ok((delay, _)) => {
                     if let Some(cmd) = respawn_of(delay) {
@@ -2129,32 +2199,36 @@ impl ModHost {
             let mut sh = self.sh.borrow_mut();
             (sh.sim.take_acquisitions(), sh.sim.take_destination_requests(), sh.sim.take_casts(), sh.sim.take_hits())
         };
-        let Some(h) = self.hooks.as_ref() else { return Ok(()) };
-        let (tp, march, cast, win, hit) = (h.target_priority.clone(), h.on_march.clone(), h.on_cast.clone(), h.on_check_win.clone(), h.on_hit.clone());
-        if let Some(f) = hit {
-            for h in hits {
-                self.call_on_hit(&f, h);
+        let hit = self.hook_fns(|h| &h.on_hit);
+        for h in hits {
+            for f in &hit {
+                self.call_on_hit(f, h);
             }
         }
-        if let Some(f) = tp {
-            for (unit, target) in acquired {
-                self.call_target_priority(&f, unit, target);
+        let tp = self.hook_fns(|h| &h.target_priority);
+        for (unit, target) in acquired {
+            for f in &tp {
+                self.call_target_priority(f, unit, target);
             }
         }
-        if let Some(f) = march {
-            for (unit, player) in requests {
-                self.call_on_march(&f, unit, player);
+        let march = self.hook_fns(|h| &h.on_march);
+        for (unit, player) in requests {
+            for f in &march {
+                self.call_on_march(f, unit, player);
             }
         }
-        if let Some(f) = cast {
-            for (caster, ability) in casts {
-                self.call_on_cast(&f, caster, ability);
+        let cast = self.hook_fns(|h| &h.on_cast);
+        for (caster, ability) in casts {
+            for f in &cast {
+                self.call_on_cast(f, caster, ability);
             }
         }
-        if let Some(f) = win {
-            if self.sh.borrow().sim.winner().is_none() {
-                self.call_on_check_win(&f);
+        let win = self.hook_fns(|h| &h.on_check_win);
+        for f in &win {
+            if self.sh.borrow().sim.winner().is_some() {
+                break;
             }
+            self.call_on_check_win(f);
         }
         Ok(())
     }
@@ -2237,11 +2311,14 @@ impl ModHost {
         }
     }
 
-    fn emit(&mut self, event: &str, mut args: Vec<Arg>) -> Result<(), String> {
-        let Some(h) = &self.hooks else { return Ok(()) };
-        let f = h.emit.clone();
-        args.insert(0, Arg::Text(event.to_owned()));
-        self.call(&f, args)
+    fn emit(&mut self, event: &str, args: Vec<Arg>) -> Result<(), String> {
+        let emits: Vec<StashedFunction> = self.hooks.iter().map(|h| h.emit.clone()).collect();
+        for f in emits {
+            let mut values = args.clone();
+            values.insert(0, Arg::Text(event.to_owned()));
+            self.call(&f, values)?;
+        }
+        Ok(())
     }
 
     fn call(&mut self, f: &StashedFunction, args: Vec<Arg>) -> Result<(), String> {
@@ -2273,8 +2350,10 @@ impl ModHost {
                         Arg::Bool(b) => Value::Boolean(b),
                         Arg::Nil => Value::Nil,
                         Arg::Text(t) => t.into_value(ctx),
+                        Arg::Num(n) => Value::Number(n),
                         Arg::State => Value::Table(ctx.fetch(state)),
                         Arg::List(items) => Value::Table(list_of(ctx, items.into_iter()).expect("list")),
+                        Arg::Json(j) => json_value(ctx, &j),
                     })
                     .collect();
                 Ok(ctx.stash(Executor::start(ctx, ctx.fetch(f), Variadic(values))))
@@ -2314,7 +2393,7 @@ impl ModHost {
     // on_skill_up(unit, slot, state) returns true or false. Without the hook a skill-up is allowed, so a
     // mod with no skill rule keeps the engine's plain rank mechanic. A Lua error refuses.
     fn skill_allowed(&mut self, unit: usize, slot: usize) -> bool {
-        let Some(f) = self.hooks.as_ref().and_then(|h| h.on_skill_up.clone()) else { return true };
+        let Some(f) = self.hooks.iter().find_map(|h| h.on_skill_up.clone()) else { return true };
         match self.call_own(&f, vec![Arg::Int(unit as i64), Arg::Int(slot as i64), Arg::State]) {
             Ok(v) => matches!(v[0], Own::Bool(true)),
             Err(e) => {
@@ -2339,7 +2418,7 @@ impl ModHost {
 
     // Answers one item request with the mod's rule. A carry runs the carrier's logic and answers nothing.
     fn answer(&mut self, req: &ItemRequest) -> Option<ItemVerdict> {
-        let hook = self.hooks.as_ref().and_then(|h| h.on_request.clone());
+        let hook = self.hooks.iter().find_map(|h| h.on_request.clone());
         match (*req, hook) {
             (ItemRequest::Acquire { unit, item }, Some(f)) => Some(self.acquire_verdict(&f, unit, item)),
             (ItemRequest::Acquire { unit, item }, None) => {
@@ -2443,8 +2522,10 @@ impl ModHost {
                 Cmd::Victory { player } => sim.declare_victory(player),
                 Cmd::Defeat { player } => sim.declare_defeat(player),
                 Cmd::Ui { body } => ui.push(body),
+                // A display event is not a command: it is queued for the page and not counted as applied.
                 Cmd::Fx(event) => {
                     let _ = sim.push_fx(event);
+                    return false;
                 }
                 Cmd::GiveAbility { unit, slot, name } => {
                     let _ = sim.give_ability(unit, slot, &name);
@@ -2605,13 +2686,45 @@ impl ModHost {
     }
 }
 
+#[derive(Clone)]
 enum Arg {
     Int(i64),
     Bool(bool),
     Nil,
     Text(String),
+    Num(f64),
     State,
     List(Vec<i64>),
+    // A JSON value (a page action's arguments), passed as a Lua table.
+    Json(serde_json::Value),
+}
+
+// The Lua value of a JSON value: arrays become 1-based lists, objects become tables keyed by name.
+fn json_value<'gc>(ctx: Context<'gc>, v: &serde_json::Value) -> Value<'gc> {
+    use serde_json::Value as J;
+    match v {
+        J::Null => Value::Nil,
+        J::Bool(b) => Value::Boolean(*b),
+        J::Number(n) => match n.as_i64() {
+            Some(i) => Value::Integer(i),
+            None => Value::Number(n.as_f64().unwrap_or(0.0)),
+        },
+        J::String(s) => Value::String(ctx.intern(s.as_bytes())),
+        J::Array(items) => {
+            let t = Table::new(&ctx);
+            for (i, item) in items.iter().enumerate() {
+                t.set(ctx, i as i64 + 1, json_value(ctx, item)).expect("json list");
+            }
+            Value::Table(t)
+        }
+        J::Object(map) => {
+            let t = Table::new(&ctx);
+            for (k, item) in map {
+                t.set(ctx, ctx.intern(k.as_bytes()), json_value(ctx, item)).expect("json object");
+            }
+            Value::Table(t)
+        }
+    }
 }
 
 // One death as on_died receives it. Built from this world's own deaths, or from a room's payable

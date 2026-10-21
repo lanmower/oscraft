@@ -427,6 +427,9 @@ pub(crate) fn item_kind(item: usize) -> u32 {
 mod best_only_tests {
     use super::*;
 
+    // The stat slot the old best-only list named for night vision. The engine no longer names it; the data carries it.
+    const STAT_NIGHT_VISION: usize = 35;
+
     /// The best-only mask the moba scenario's TUNE section carries names the same stats the sim took as
     /// best-value before the list moved into data.
     #[test]
@@ -445,6 +448,7 @@ mod best_only_tests {
             STAT_CLEAVE_END_WIDTH,
             STAT_BASH_CHANCE,
             STAT_BASH_DURATION,
+            STAT_NIGHT_VISION,
         ];
         let expected = old.iter().fold(0u64, |m, &k| m | (1u64 << k));
         assert_eq!(s.catalog().tune.best_only, expected);

@@ -14,16 +14,21 @@ game.trigger("on_died", {
   conditions = { function(_, _, _, bounty) return bounty > 0 end },
   action = function(unit, killer, killer_player, bounty, victim_player, killer_hero)
     if killer ~= nil and killer ~= unit then
-      local share = bounty * TEAM_SHARE_PCT // 100
+      local share = math.floor(bounty * TEAM_SHARE_PCT / 100)
       if killer_hero then
         game.cmd_add_unit_gold(killer, bounty - share)
         game.cmd_add_gold(killer_player, share)
+        gold_text(unit, share)
       else
         game.cmd_add_gold(killer_player, bounty)
+        gold_text(unit, bounty)
       end
       return
     end
     local rival = game.rival_of(victim_player)
-    if rival ~= nil then game.cmd_add_gold(rival, bounty) end
+    if rival ~= nil then
+      game.cmd_add_gold(rival, bounty)
+      gold_text(unit, bounty)
+    end
   end,
 })

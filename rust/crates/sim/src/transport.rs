@@ -3,7 +3,7 @@
 
 use crate::arrays::{cell_of, Sim};
 use crate::rules::Refusal;
-use crate::*;
+
 
 /// Capacity a unit takes in a transport, by its UEXT size category: small 1, medium 2, large 4.
 fn size_units(size: u8) -> i32 {

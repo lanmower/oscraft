@@ -15,7 +15,7 @@ use crate::format::{
     ITEM_FLAG_NO_SELL, ITEM_TAG_LIMIT, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS, UPGRADE_APPLY, UPGRADE_STACKING, UPGRADE_TARGET_KINDS,
 };
 use crate::model::{
-    AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, Names, PrereqRaw, TuneRaw,
+    AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw, TuneRaw,
     DoodadRaw, ItemRaw, ResearchRaw, RouteRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, UpgradeRaw, WeaponRaw,
 };
 

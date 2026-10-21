@@ -208,7 +208,7 @@ return function(game, vars, host, max_players)
   end
   function game.region_center(name)
     local x0, y0, x1, y1 = host.region_bounds(name)
-    return (x0 + x1) // 2, (y0 + y1) // 2
+    return math.floor((x0 + x1) / 2), math.floor((y0 + y1) / 2)
   end
   function game.region_units(name)
     local inside = {}

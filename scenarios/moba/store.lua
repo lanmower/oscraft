@@ -124,7 +124,7 @@ local function release(unit, slot, state)
   local def = game.item_info(held.item)
   local units = def.charges
   if units < 1 then units = 1 end
-  return true, (def.cost * held.count) // (2 * units)
+  return true, math.floor((def.cost * held.count) / (2 * units))
 end
 
 -- Take out (unstash). A stash item comes out only within reach of a depot.

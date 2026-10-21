@@ -9,7 +9,7 @@
 -- This file defines the moba on_tick (the wave counters in the state). Kill gold is in kill_gold.lua and hero
 -- respawn in hero_respawn.lua; each is a separate chunk that loads on its own.
 
-local MILLI_TILE = 65536 // 1000
+local MILLI_TILE = math.floor(65536 / 1000)
 local CREEP_PERIOD = 480
 local SIEGE_PERIOD = 4800
 local SIEGE_STARTS = { 4800, 28800, 57600 }
