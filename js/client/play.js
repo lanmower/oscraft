@@ -1201,6 +1201,7 @@ async function packFileText(name) {
 // The bytes a swap of `kind` applies, the same on the host and on every peer: the Lua mod set as load_mods takes it
 // (lua), or the map image named by the manifest (data). A peer checks these bytes against the announced hash.
 async function packSwapBytes(kind) {
+  if (kind === "rules") return new TextEncoder().encode(await packFileText(currentManifest().rules));
   if (kind === "lua") {
     const mods = await moduleClosure(currentManifest(), packFileText);
     return new TextEncoder().encode(JSON.stringify(mods));
@@ -2105,6 +2106,7 @@ function applyDueSwap() {
   }
   lastApplied = { tick: due.tick, hash: due.hash, file: due.file };
   if (due.kind === "lua") return applyLuaSwap(due);
+  if (due.kind === "rules") return applyRulesSwap(due);
   applyDataSwap(due);
   if (due.kind === "data") return;
   if (!due.value) {
@@ -2123,6 +2125,15 @@ function applyLuaSwap(due) {
   logModError(error);
   lastSwapResult = { tick, file: due.file, ok: !error, carried: null, refused: null, error: error || null, readiness: error ? "failed" : "ready", deferred: false, deferrals: due.deferrals };
   console.log(`[swap] ${due.file} at tick ${tick}: ${error ? `mods kept, reload failed: ${error}` : "mods reloaded"}`);
+}
+
+// A rules swap at its tick: the attribute rules text reloads on this peer (set_attr_rules). A text the rules refuse keeps the last good rules.
+function applyRulesSwap(due) {
+  const tick = localGame.ticks();
+  const error = localGame.set_attr_rules(new TextDecoder().decode(due.image)) || "";
+  logModError(error);
+  lastSwapResult = { tick, file: due.file, ok: !error, carried: null, refused: null, error: error || null, readiness: error ? "failed" : "ready", deferred: false, deferrals: due.deferrals };
+  console.log(`[swap] ${due.file} at tick ${tick}: ${error ? `rules kept, reload failed: ${error}` : "rules reloaded"}`);
 }
 
 async function hmrApply(file, url, value) {
