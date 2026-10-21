@@ -181,7 +181,8 @@ impl Sim {
                 return;
             }
         }
-        let Some(b) = self.best_strike_target(i) else {
+        let attack_move = self.order_kind[i] == ORDER_ATTACK_MOVE;
+        let Some(b) = self.pick_strike_target(i, attack_move) else {
             self.aggro.strike[i] = -1;
             return;
         };
@@ -194,16 +195,44 @@ impl Sim {
         self.strike(i, b);
     }
 
-    /// True when unit `i` is on an attack-move order and an enemy is in weapon reach: it holds its
-    /// position and strikes instead of walking past, and its route order resumes once the target
-    /// dies or leaves reach.
+    /// True when unit `i` is on an attack-move order and an enemy it can strike now is in weapon
+    /// reach: it holds its position and strikes instead of walking past, and its route order resumes
+    /// once that target dies or leaves reach. An enemy it cannot damage does not hold it.
     pub(crate) fn engaged(&self, i: usize) -> bool {
-        self.order_kind[i] == ORDER_ATTACK_MOVE && self.best_strike_target(i).is_some()
+        self.order_kind[i] == ORDER_ATTACK_MOVE && self.pick_strike_target(i, true).is_some()
+    }
+
+    /// Whether a weapon hit can reduce unit `j`'s life: not physically immune, not invulnerable,
+    /// and not fully immune to damage.
+    fn strike_lands(&self, j: usize) -> bool {
+        self.status_left(j, crate::status::PHYSICAL_IMMUNE) == 0 && !self.invulnerable(j) && self.response[j] != RESPONSE_IMMUNE
+    }
+
+    /// Whether unit `i` can strike unit `j` now: the same conditions `order_attack` checks (a living
+    /// hostile or deniable enemy on a layer `i` hits, visible and targetable, in weapon reach) plus
+    /// a hit that lands.
+    fn can_strike_now(&self, i: usize, j: usize) -> bool {
+        let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
+        i != j
+            && self.alive[j] != 0
+            && self.damage[i] > 0
+            && (self.hostile(self.player[i], self.player[j]) || self.deniable(i, j))
+            && (self.targets[i] & self.layer_of(j)) != 0
+            && self.visible(self.player[i], j)
+            && self.targetable(self.player[i], j)
+            && self.strike_measure(i, j).1 <= reach
+            && self.strike_lands(j)
     }
 
     /// The enemy unit auto-attack would strike for unit `i` this tick, if any: the taunt target when
     /// one is set, else the best visible enemy in weapon reach by target class, then distance.
     pub(crate) fn best_strike_target(&self, i: usize) -> Option<usize> {
+        self.pick_strike_target(i, false)
+    }
+
+    /// The target unit `i` strikes this tick. With `strikeable` set, only an enemy that
+    /// `can_strike_now` counts, so an enemy the hit cannot damage is never picked.
+    pub(crate) fn pick_strike_target(&self, i: usize, strikeable: bool) -> Option<usize> {
         if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
             return None;
         }
@@ -239,6 +268,9 @@ impl Sim {
                     if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) || !self.targetable(self.player[i], j) {
                         continue;
                     }
+                    if strikeable && !self.strike_lands(j) {
+                        continue;
+                    }
                     let class = self.target_class(i, j);
                     if j as i32 == current {
                         current_class = Some(class);
@@ -257,7 +289,9 @@ impl Sim {
             }
         }
         if let Some(t) = self.taunt_target(i) {
-            best = t as i64;
+            if !strikeable || self.can_strike_now(i, t) {
+                best = t as i64;
+            }
         }
         (best >= 0).then_some(best as usize)
     }
@@ -862,6 +896,31 @@ mod tests {
         for &foe in &foes {
             assert!(!s.alive(foe), "attack-move must kill each enemy it meets on the route");
         }
+    }
+
+    /// An attack-move unit holds only for a foe it can strike now. A foe in reach that cannot be
+    /// damaged (physically immune) must not hold the hunter: it keeps walking to its point.
+    #[test]
+    fn attack_move_walks_past_a_foe_it_cannot_strike() {
+        let mut s = duel_sim();
+        let (x0, y) = open_run(&s, 16).expect("a 16-cell walkable run");
+        let hunter = unit_named(&mut s, 0, "skirmisher");
+        assert!(s.set_position(hunter, fixed::from_int(x0), fixed::from_int(y)));
+        let foe = creep(&mut s, 1);
+        assert!(s.set_position(foe, fixed::from_int(x0 + 2), fixed::from_int(y)));
+        s.apply_status(foe, crate::status::PHYSICAL_IMMUNE, 100_000, crate::status::SLOW_NONE);
+        let (gx, gy) = (fixed::from_int(x0 + 14), fixed::from_int(y));
+        assert!(s.issue_order_kind(hunter, crate::ORDER_ATTACK_MOVE, gx, gy).is_ok());
+        let mut arrived = false;
+        for _ in 0..3000 {
+            s.tick();
+            let (px, py) = s.position_fixed(hunter);
+            if (px - gx).abs() <= fixed::ONE && (py - gy).abs() <= fixed::ONE {
+                arrived = true;
+                break;
+            }
+        }
+        assert!(arrived, "attack-move must not hold for a foe it cannot strike");
     }
 
     /// Using an item from an empty slot is refused and changes nothing.
