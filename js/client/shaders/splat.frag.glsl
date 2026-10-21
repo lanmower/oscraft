@@ -106,7 +106,7 @@ void main() {
   // Refraction: the bed is seen through the surface, so it is sampled at a small offset driven by the surface normal
   // (a small offset: enough to bend the bed under the ripples, too little to smear the ground texture). The caustic
   // light is laid on that refracted bed as high-contrast bands, so the bending reads as light through the water.
-  vec2 refr = n.xz * 0.06;
+  vec2 refr = n.xz * 0.12;
   vec3 bedR = bedAt(p + refr, vWorld.y, vNormal);
   // Caustic from the isotropic ripple sum, not one plane wave, so no single direction is traced across the pool.
   float caustic = 0.5 + 0.5 * clamp(rippleH((p + refr) * 3.0, t, 0.0) / 1.1, -1.0, 1.0);
