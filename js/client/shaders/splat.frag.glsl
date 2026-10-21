@@ -61,8 +61,8 @@ void main() {
   // on one regular grid. The slope of each scale is divided back by its frequency, so the strengths stay comparable.
   vec2 slope = vec2(0.0);
   for (int k = 0; k < 3; k++) {
-    float sc = k == 0 ? 2.6 : (k == 1 ? 4.0 : 6.8);
-    float w = k == 0 ? 0.5 : (k == 1 ? 1.0 : 0.6);
+    float sc = k == 0 ? 3.4 : (k == 1 ? 5.0 : 6.8);
+    float w = k == 0 ? 0.3 : (k == 1 ? 1.0 : 0.6);
     float e = 0.15 / sc;
     float hx = waveH((p + vec2(e, 0.0)) * sc, t) - waveH((p - vec2(e, 0.0)) * sc, t);
     float hz = waveH((p + vec2(0.0, e)) * sc, t) - waveH((p - vec2(0.0, e)) * sc, t);
@@ -80,7 +80,7 @@ void main() {
   vec3 body = mix(shallow, deep, depth) * (uShade.x + uShade.y * max(dot(n, light), 0.0));
   // Refraction: the surface shifts what is seen through it, by the surface normal, so the bed and the water mask both
   // read at the refracted point. The shimmer in the bed moves with the ripples.
-  vec2 refr = n.xz * 1.2;
+  vec2 refr = n.xz * 0.8;
   vec2 pr = p + refr;
   vec3 bedR = bedAt(pr, vWorld.y, vNormal);
   float wwR = texture(uWaterMap, pr / uMapSize).r;
@@ -93,7 +93,7 @@ void main() {
   water = mix(water, sky, fres * 0.8 * depth * SPECULAR);
   water += vec3(1.0, 0.97, 0.9) * glint * depth * SPECULAR;
   float caustic = 0.5 + 0.5 * sin(dot(pr, vec2(1.7, 1.1)) * 3.0 + t * 1.3);
-  water += vec3(0.6, 0.85, 0.8) * caustic * 0.14;
+  water += vec3(0.6, 0.85, 0.8) * caustic * 0.1;
   // Wet only where the neighbourhood is all water: a shore cell with land beside it stays dry ground, so the water does
   // not spill over the edge tiles.
   float wet = smoothstep(0.97, 1.0, near) * wwR;
