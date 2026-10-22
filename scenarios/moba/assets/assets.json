@@ -1,6 +1,6 @@
 {
- "count": 930,
- "total_bytes": 73791005,
+ "count": 934,
+ "total_bytes": 74136997,
  "items": [
   {
    "id": "rock",
@@ -6659,6 +6659,38 @@
    "path": "models/fish-green.glb",
    "placed_by": "doodads.json",
    "bytes": 83936,
+   "role": "prop"
+  },
+  {
+   "id": "broken-column",
+   "kind": "model",
+   "path": "models/broken-column.glb",
+   "placed_by": "doodads.json",
+   "bytes": 61124,
+   "role": "prop"
+  },
+  {
+   "id": "grave-peasant",
+   "kind": "model",
+   "path": "models/grave-peasant.glb",
+   "placed_by": "doodads.json",
+   "bytes": 38124,
+   "role": "prop"
+  },
+  {
+   "id": "fire-pit-with-pig",
+   "kind": "model",
+   "path": "models/fire-pit-with-pig.glb",
+   "placed_by": "doodads.json",
+   "bytes": 159440,
+   "role": "prop"
+  },
+  {
+   "id": "tombstone",
+   "kind": "model",
+   "path": "models/tombstone.glb",
+   "placed_by": "doodads.json",
+   "bytes": 87304,
    "role": "prop"
   }
  ],

@@ -916,5 +916,9 @@
   "banner_tutorial_orc": "models/banner-tutorial-orc.glb",
   "lily_pads_floating": "models/lily-pads-floating.glb",
   "ltrc": "models/ltrc.glb",
-  "fish_green": "models/fish-green.glb"
+  "fish_green": "models/fish-green.glb",
+  "broken_column": "models/broken-column.glb",
+  "grave_peasant": "models/grave-peasant.glb",
+  "fire_pit_with_pig": "models/fire-pit-with-pig.glb",
+  "tombstone": "models/tombstone.glb"
 }

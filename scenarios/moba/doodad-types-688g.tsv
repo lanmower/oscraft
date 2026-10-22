@@ -36,13 +36,13 @@ CRrk	6			cart_high	inferred prop from cluster; confidence medium
 LOo2	6		Banner Tutorial Orc	banner_tutorial_orc	name from Doodads.slk + WorldEditStrings.txt (Banner Tutorial Orc); interim kind until its own model exists
 ZWfs	6		Fish Green	fish_green	name from Doodads.slk + WorldEditStrings.txt (Fish Green); interim kind until its own model exists
 AWfs	6		Fish	fish	name from Doodads.slk + WorldEditStrings.txt (Fish); interim kind until its own model exists
-LOpg	6		Grave Peasant	grave	name from Doodads.slk + WorldEditStrings.txt (Grave Peasant); interim kind until its own model exists
+LOpg	6		Grave Peasant	grave_peasant	name from Doodads.slk + WorldEditStrings.txt (Grave Peasant); interim kind until its own model exists
 CSbl	5		Blocks Ruined	brick_wall	name from Doodads.slk + WorldEditStrings.txt (Blocks Ruined); interim kind until its own model exists
 NOfp	4		Fire Pit	campfire_pit	name from Doodads.slk + WorldEditStrings.txt (Fire Pit); interim kind until its own model exists
-NOfg	3		Fire Pit with Pig	campfire_pit	name from Doodads.slk + WorldEditStrings.txt (Fire Pit with Pig); interim kind until its own model exists
+NOfg	3		Fire Pit with Pig	fire_pit_with_pig	name from Doodads.slk + WorldEditStrings.txt (Fire Pit with Pig); interim kind until its own model exists
 LOlp	3		Post Lantern	lantern	name from Doodads.slk + WorldEditStrings.txt (Post Lantern); interim kind until its own model exists
-NOtb	3		Tombstone	gravestone_cross	name from Doodads.slk + WorldEditStrings.txt (Tombstone); interim kind until its own model exists
-ASbc	3		Broken Column	column	name from Doodads.slk + WorldEditStrings.txt (Broken Column); interim kind until its own model exists
+NOtb	3		Tombstone	tombstone	name from Doodads.slk + WorldEditStrings.txt (Tombstone); interim kind until its own model exists
+ASbc	3		Broken Column	broken_column	name from Doodads.slk + WorldEditStrings.txt (Broken Column); interim kind until its own model exists
 NRfs	2		Fissure	rock_flat	name from Doodads.slk + WorldEditStrings.txt (Fissure); interim kind until its own model exists
 IOst	2			fountain	inferred building from base; confidence medium
 LPwh	2			grass_large	inferred nature from tree; confidence medium
