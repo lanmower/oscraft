@@ -176,7 +176,8 @@ doodad_kinds([
     "wheelchair_power_deluxe", "windmill", "windmill_low", "wood_structure", "wood_support", "workbench",
     "workbench_anvil", "workbench_grind",
     "flowers", "remains_scorched", "skull_pile", "torch", "torch_glowing",
-    "mushrooms", "cattail", "banner_tutorial_orc", "lily_pads_floating", "ltrc", "fish_green"
+    "mushrooms", "cattail", "banner_tutorial_orc", "lily_pads_floating", "ltrc", "fish_green",
+    "broken_column", "grave_peasant", "fire_pit_with_pig", "tombstone"
 ])
 
 item_tags(["home", "side", "secret"])
