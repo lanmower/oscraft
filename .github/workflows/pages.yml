@@ -121,7 +121,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
-          node scripts/pack-package.mjs scenarios/moba _site/packs --build
+          # No --build: the Export step above already wrote scenarios/moba/moba.osdt, and mapexport is deterministic
+          # (two runs give the same bytes), so re-running it here only repeats that work.
+          node scripts/pack-package.mjs scenarios/moba _site/packs
           node scripts/pack-latest.mjs _site/packs
           test -f _site/packs/latest.json
           cat _site/packs/latest.json
