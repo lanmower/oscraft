@@ -20,6 +20,7 @@ import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLA
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, packSwapKind, swapGate, swapIsNew } from "./swap_protocol.js";
 import { createFogView } from "./fogview.js";
+import { createVoices } from "./audio.js";
 import { installDebugApi } from "./debug_api.js";
 import { createFx } from "./fx.js";
 import { createModUi } from "./modui.js";
@@ -115,6 +116,7 @@ let doodadBatches = [];
 let placedDoodads = [];
 // Scenery that is behaviour, not a mesh (bats, birds, flies, bubbles, smoke, mist): particle emitters seeded from placedDoodads.
 let ambientFx = null;
+let voices = null;
 let ambientSeeded = false;
 let doodadByKindState = [];
 const doodadModelNames = [];
@@ -2392,6 +2394,7 @@ async function main() {
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
   if (renderer3d) ambientFx = createAmbientFx({ renderer: renderer3d, groundAt });
+  if (renderer3d) voices = createVoices({ url: packUrl });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
   widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
   // A pack image node names a path inside the pack; resolve it the same way every other pack file is.
@@ -2478,6 +2481,8 @@ installDebugApi({
     return debugReply && Array.isArray(debugReply.actions) ? [...debugReply.actions] : null;
   },
   effects: () => (fx ? fx.recentEffects() : null),
+  voices: () => (voices ? voices.heroes() : null),
+  playVoice: (hero, event) => (voices ? voices.play(hero, event) : Promise.resolve(false)),
   modErrors: () => modErrorLog.map((e) => ({ ...e })),
   swap: () => ({
     applied: lastSwapResult ? { ...lastSwapResult } : null,
