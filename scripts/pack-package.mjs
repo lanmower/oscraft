@@ -44,7 +44,14 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..")
 const manifest = JSON.parse(fs.readFileSync(path.join(pkgDir, "manifest.json"), "utf8"));
 if (manifest.schema !== 1) throw new Error(`manifest schema ${manifest.schema} is not 1`);
 
-const ALLOWED = new Set([".lua", ".osd", ".json", ".txt", ".osdt", ".glb", ".png", ".jpg", ".jpeg", ".ktx2"]);
+// The extensions js/client/pack_load.js reads as a pack file, plus .tsv for the manifest's tables.
+// The two lists have to agree: this script refuses anything it does not list, so a file the reader
+// accepts but this set omits breaks the pack build, and one it writes that the reader refuses would
+// be dead weight in the archive. Audio is here because the voices directory is a pack asset.
+const ALLOWED = new Set([
+  ".lua", ".osd", ".json", ".txt", ".tsv", ".osdt",
+  ".png", ".jpg", ".jpeg", ".webp", ".glb", ".gltf", ".bin", ".ogg", ".wav", ".ktx2",
+]);
 const checkKind = (rel) => {
   const ext = path.extname(rel).toLowerCase();
   if (!ALLOWED.has(ext)) throw new Error(`${rel}: a pack holds Lua, data and assets only (extension ${ext || "none"})`);
