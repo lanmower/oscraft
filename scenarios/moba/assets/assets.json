@@ -1,6 +1,6 @@
 {
- "count": 895,
- "total_bytes": 62699809,
+ "count": 905,
+ "total_bytes": 68546521,
  "items": [
   {
    "id": "rock",
@@ -6380,6 +6380,86 @@
    "placed_by": "doodads.json",
    "bytes": 1269844,
    "role": "character"
+  },
+  {
+   "id": "shadow-shaman-skinned",
+   "kind": "model",
+   "path": "models/shadow-shaman-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 563152,
+   "role": "character"
+  },
+  {
+   "id": "skywrath-mage-skinned",
+   "kind": "model",
+   "path": "models/skywrath-mage-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 541176,
+   "role": "character"
+  },
+  {
+   "id": "storm-spirit-skinned",
+   "kind": "model",
+   "path": "models/storm-spirit-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 500444,
+   "role": "character"
+  },
+  {
+   "id": "templar-assassin-skinned",
+   "kind": "model",
+   "path": "models/templar-assassin-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 578476,
+   "role": "character"
+  },
+  {
+   "id": "tidehunter-skinned",
+   "kind": "model",
+   "path": "models/tidehunter-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 524188,
+   "role": "character"
+  },
+  {
+   "id": "tinker-skinned",
+   "kind": "model",
+   "path": "models/tinker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 612036,
+   "role": "character"
+  },
+  {
+   "id": "troll-warlord-skinned",
+   "kind": "model",
+   "path": "models/troll-warlord-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 590192,
+   "role": "character"
+  },
+  {
+   "id": "tuskarr-skinned",
+   "kind": "model",
+   "path": "models/tuskarr-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 886016,
+   "role": "character"
+  },
+  {
+   "id": "undying-skinned",
+   "kind": "model",
+   "path": "models/undying-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 532724,
+   "role": "character"
+  },
+  {
+   "id": "vengeful-spirit-skinned",
+   "kind": "model",
+   "path": "models/vengeful-spirit-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 518308,
+   "role": "character"
   }
  ],
  "roles": {
@@ -6388,7 +6468,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 102,
+  "character": 112,
   "creep": 5,
   "terrain": 7
  }

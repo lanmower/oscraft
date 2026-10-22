@@ -881,5 +881,15 @@
   "neutral_elder_jungle_stalker_skinned": "models/neutral-elder-jungle-stalker-skinned.glb",
   "neutral_enraged_wildkin_skinned": "models/neutral-enraged-wildkin-skinned.glb",
   "depot": "models/stall.glb",
-  "secret_depot": "models/stall.glb"
+  "secret_depot": "models/stall.glb",
+  "shadow_shaman_skinned": "models/shadow-shaman-skinned.glb",
+  "skywrath_mage_skinned": "models/skywrath-mage-skinned.glb",
+  "storm_spirit_skinned": "models/storm-spirit-skinned.glb",
+  "templar_assassin_skinned": "models/templar-assassin-skinned.glb",
+  "tidehunter_skinned": "models/tidehunter-skinned.glb",
+  "tinker_skinned": "models/tinker-skinned.glb",
+  "troll_warlord_skinned": "models/troll-warlord-skinned.glb",
+  "tuskarr_skinned": "models/tuskarr-skinned.glb",
+  "undying_skinned": "models/undying-skinned.glb",
+  "vengeful_spirit_skinned": "models/vengeful-spirit-skinned.glb"
 }
