@@ -73,6 +73,83 @@ const skeleton = (doc) => {
   return out.join(";");
 };
 
+// quantize() stores POSITION as normalized int16 and leaves each accessor's min/max in raw int units, so a reader
+// sees 32767 where the model's extent is about 2. The library has no accessor bounds setter, so the bounds are
+// rewritten in the GLB's JSON chunk after writing: chunk lengths are read from each chunk header, and the binary
+// chunk is copied byte for byte.
+const NORMALIZE_DIVISOR = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 };
+
+function glbChunks(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const total = view.getUint32(8, true);
+  let json = null;
+  let bin = null;
+  for (let at = 12; at + 8 <= total;) {
+    const length = view.getUint32(at, true);
+    const type = view.getUint32(at + 4, true);
+    const start = at + 8;
+    if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(new Uint8Array(bytes.buffer, bytes.byteOffset + start, length)));
+    else if (type === 0x004e4942) bin = bytes.subarray(start, start + length);
+    at = start + length;
+  }
+  return { json, bin };
+}
+
+function buildGlb(json, bin) {
+  let jsonBytes = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPad = (4 - (jsonBytes.length % 4)) % 4;
+  if (jsonPad) jsonBytes = Buffer.concat([jsonBytes, Buffer.alloc(jsonPad, 0x20)]);
+  const binPad = (4 - (bin.length % 4)) % 4;
+  const binBytes = binPad ? Buffer.concat([Buffer.from(bin), Buffer.alloc(binPad)]) : Buffer.from(bin);
+  const total = 12 + 8 + jsonBytes.length + 8 + binBytes.length;
+  const head = Buffer.alloc(12);
+  head.writeUInt32LE(0x46546c67, 0);
+  head.writeUInt32LE(2, 4);
+  head.writeUInt32LE(total, 8);
+  const jsonHead = Buffer.alloc(8);
+  jsonHead.writeUInt32LE(jsonBytes.length, 0);
+  jsonHead.writeUInt32LE(0x4e4f534a, 4);
+  const binHead = Buffer.alloc(8);
+  binHead.writeUInt32LE(binBytes.length, 0);
+  binHead.writeUInt32LE(0x004e4942, 4);
+  return Buffer.concat([head, jsonHead, jsonBytes, binHead, binBytes]);
+}
+
+// Rewrites each quantized POSITION accessor's min/max in dequantized float space. doc supplies the attribute data
+// (the binary chunk holds it compressed), and its meshes and primitives keep the order of the written JSON.
+function withFloatPositionBounds(bytes, doc) {
+  const { json, bin } = glbChunks(bytes);
+  if (!json || !bin) return bytes;
+  const docMeshes = doc.getRoot().listMeshes();
+  let changed = false;
+  (json.meshes ?? []).forEach((mesh, mi) => {
+    (mesh.primitives ?? []).forEach((prim, pi) => {
+      const index = prim.attributes?.POSITION;
+      if (index === undefined) return;
+      const accessor = json.accessors?.[index];
+      const attribute = docMeshes[mi]?.listPrimitives()[pi]?.getAttribute('POSITION');
+      if (!accessor || !attribute || !accessor.normalized) return;
+      const divisor = NORMALIZE_DIVISOR[accessor.componentType];
+      if (!divisor) return;
+      const data = attribute.getArray();
+      const min = [Infinity, Infinity, Infinity];
+      const max = [-Infinity, -Infinity, -Infinity];
+      for (let i = 0; i < data.length; i += 3) {
+        for (let c = 0; c < 3; c++) {
+          const value = data[i + c] / divisor;
+          if (value < min[c]) min[c] = value;
+          if (value > max[c]) max[c] = value;
+        }
+      }
+      if (min.some((v) => !Number.isFinite(v)) || max.some((v) => !Number.isFinite(v))) return;
+      accessor.min = min;
+      accessor.max = max;
+      changed = true;
+    });
+  });
+  return changed ? buildGlb(json, bin) : bytes;
+}
+
 let prepared = 0;
 let skippedDone = 0;
 let skippedNoGain = 0;
@@ -104,7 +181,7 @@ for (const file of targets) {
   doc.createExtension(EXTMeshoptCompression)
     .setRequired(true)
     .setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE });
-  const out = Buffer.from(await io.writeBinary(doc));
+  const out = withFloatPositionBounds(Buffer.from(await io.writeBinary(doc)), doc);
   if (skeleton(doc) !== was) {
     console.error(`${rel}: skipped, the primitive structure changed`);
     skippedUnsafe += 1;

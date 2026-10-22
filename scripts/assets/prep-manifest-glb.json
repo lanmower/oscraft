@@ -5845,6 +5845,34 @@
       "afterBytes": 189548,
       "unchanged": true,
       "at": "2026-10-22T12:34:40.194Z"
+    },
+    "scenarios/moba/assets/models/flowers.glb": {
+      "sha256": "043ab88913c8a68058272ded77818e6ba12c31bc5b9a9fd0b10c2f61ea899bad",
+      "bytes": 49552,
+      "afterBytes": 49552,
+      "unchanged": true,
+      "at": "2026-10-22T17:03:59.696Z"
+    },
+    "scenarios/moba/assets/models/flowers-zpfw.glb": {
+      "sha256": "043ab88913c8a68058272ded77818e6ba12c31bc5b9a9fd0b10c2f61ea899bad",
+      "bytes": 79112,
+      "afterBytes": 49552,
+      "source": "786c5555878c6e0009cf2fd5fcbd08aa8ed82b5f1dfbd67da971d57a579b7ff6",
+      "at": "2026-10-22T16:41:13.042Z"
+    },
+    "scenarios/moba/assets/models/remains-scorched.glb": {
+      "sha256": "bb1f8a7c6bdef4976bac8d288b7d0af18cb03c23f6457f24cd735b91ffad678d",
+      "bytes": 710780,
+      "afterBytes": 396824,
+      "source": "e034269c43fc804b48a3085cc1fb6483fa1dc2cf553e940c89ace3a452edbb7d",
+      "at": "2026-10-22T16:48:46.821Z"
+    },
+    "scenarios/moba/assets/models/torch.glb": {
+      "sha256": "e16d20ab87cd47f63a84d12fc2f34ec495d27f288440dcfdf02eded7b5aa9f15",
+      "bytes": 81844,
+      "afterBytes": 49976,
+      "source": "39aac468eea00ce2e237134e3d844ceb73a2c2ac69353d31a59d7b0094b9398b",
+      "at": "2026-10-22T16:48:46.995Z"
     }
   }
 }
