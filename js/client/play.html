@@ -6,11 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>oscraft net client</title>
   <script type="importmap">
-  {
+{
     "imports": {
       "wireweave": "./vendor/wireweave/src/index.js",
-      "nostr-tools": "https://cdn.jsdelivr.net/npm/nostr-tools@2.10.0/+esm",
-      "xstate": "https://cdn.jsdelivr.net/npm/xstate@5.19.0/+esm"
+      "wireweave/": "./vendor/wireweave/src/",
+      "nostr-tools": "./vendor/nostr-tools/index.js",
+      "xstate": "./vendor/xstate/index.js"
     }
   }
   </script>
@@ -19,13 +20,10 @@
        every module and the wasm start with the document's first byte. The wasm needs crossorigin:
        the glue fetches it with fetch(), whose default mode is cors, and a preload without the
        attribute is a no-cors request that the fetch cannot reuse.
-       The first three are the import map's CDN entries: another origin, so they also cost a DNS
-       lookup and a TLS handshake. preconnect starts that handshake with the document, and
-       modulepreload starts the download, instead of both waiting for play.js to be parsed.
+       The import map's entries are vendored under ./vendor by scripts/vendor-cdn.mjs, so nothing on
+       this page comes from another origin: no second DNS lookup or TLS handshake, and the modules
+       are hinted here with the rest instead of being discovered after play.js is parsed.
        scripts/check-modulepreload.mjs keeps this list equal to the graph play.js and rooms.js reach. -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/nostr-tools@2.10.0/+esm">
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/xstate@5.19.0/+esm">
   <link rel="modulepreload" href="./ambient_fx.js">
   <link rel="modulepreload" href="./anim.js">
   <link rel="modulepreload" href="./audio.js">
@@ -52,6 +50,30 @@
   <link rel="modulepreload" href="./texture.js">
   <link rel="modulepreload" href="./tiles.js">
   <link rel="modulepreload" href="./ui_minimap.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/index.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-ciphers-0.5.3-aes.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-ciphers-0.5.3-chacha.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-ciphers-0.5.3-utils.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-curves-1.2.0-secp256k1.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-crypto.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-hkdf.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-hmac.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-sha256.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-utils.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.2-crypto.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.2-hmac.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.2-sha256.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.2-utils.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/scure-base-1.1.1.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/auth.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/data.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/debug.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/dtag.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/frame.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/fsm.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/relay-pool.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/safe-storage.js">
+  <link rel="modulepreload" href="./vendor/xstate/index.js">
   <link rel="modulepreload" href="./widgets.js">
   <link rel="modulepreload" href="./wire/frame.js">
   <link rel="preload" href="./pkg/web_bg.wasm" as="fetch" crossorigin>

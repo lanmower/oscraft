@@ -3,879 +3,1229 @@
   "size": 128,
   "files": {
     "scenarios/moba/assets/icons/abilities/cleave_strike.png": {
-      "sha256": "861fbd0f0529e79a22f07f56c03a1929cb199a4aa6b48ba73a5dbd63ebf3bf96",
-      "bytes": 49554,
-      "afterBytes": 15688,
-      "source": "baa93ffeaabe3c04f836b5f06c19bbc01b26edae818426185babff628458e9d1",
-      "at": "2026-10-22T21:20:07.795Z"
+      "sha256": "74e3e07af338fd8060fcb05256be797613e0f269230c2f327085e5b83b3bec61",
+      "bytes": 16219,
+      "afterBytes": 16219,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.842Z"
     },
     "scenarios/moba/assets/icons/abilities/courier_deliver.png": {
-      "sha256": "f7964b7ff5bc87fa569b6fec25cf6f054b191dccce1a44b88b811bb22f79cd31",
-      "bytes": 55034,
-      "afterBytes": 14527,
-      "source": "d3acb75cdf69f2300b25964718d0b7c104622228ec2d0b047f0f347068dc5e92",
-      "at": "2026-10-22T21:20:07.814Z"
+      "sha256": "c159d23defb6a10af9fbac668458d138b8d6756f495b6eb8fd33c00814bdf065",
+      "bytes": 16356,
+      "afterBytes": 16356,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.842Z"
     },
     "scenarios/moba/assets/icons/abilities/creep_wave.png": {
-      "sha256": "143afbb9fd072cb636ca45739c2e32c7deccd2f62003c5cad91c9a0e416dd4cb",
-      "bytes": 56678,
-      "afterBytes": 16163,
-      "source": "42879e5ff21e70cab28644008057f09b605f593ba672857cf7eccabd739f3aef",
-      "at": "2026-10-22T21:20:07.832Z"
+      "sha256": "8761ce31e1351de0942030003ff8b63b94a37d6205110d1c7a6cc136b4f4ac0d",
+      "bytes": 17827,
+      "afterBytes": 17827,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.843Z"
     },
     "scenarios/moba/assets/icons/abilities/dash_step.png": {
-      "sha256": "e4e030b7032bcf670736ed9f5a6f3168ffe3025f6b95e216db4fda9576f2015c",
-      "bytes": 65492,
-      "afterBytes": 16235,
-      "source": "d61c166f8ba768073a64538811d750424749d390463966f0c4d9d51e5aff796a",
-      "at": "2026-10-22T21:20:07.850Z"
+      "sha256": "338522c1f789de9063589f3678368f3a0a6febdf1ab415da4596050b788153a3",
+      "bytes": 20842,
+      "afterBytes": 20842,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.844Z"
     },
     "scenarios/moba/assets/icons/abilities/entangle.png": {
-      "sha256": "45845d4d156958d2f3e57f473c9019a3c38b0ad3e5f1d25482918f0c59451796",
-      "bytes": 64312,
-      "afterBytes": 16758,
-      "source": "614d1d7008ac29e2375dfc3891ac9c1918f5a2612ce48c1a0f5cb8f80e335e13",
-      "at": "2026-10-22T21:20:07.868Z"
+      "sha256": "e2dc1894eb4abc215c297acc890a54dfedc51ffcd393de62bd09675767c5de3c",
+      "bytes": 20274,
+      "afterBytes": 20274,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.844Z"
     },
     "scenarios/moba/assets/icons/abilities/frost_slow.png": {
-      "sha256": "fd3d9985a7fd1b12a10704b3a12af107c3bc17329833edb1c53c4d6f78f241f6",
-      "bytes": 56379,
-      "afterBytes": 15533,
-      "source": "d1e6cf99f46075de648c0217a4197a7af8e5bdfc6a65cee7ff79177894746c0d",
-      "at": "2026-10-22T21:20:07.884Z"
+      "sha256": "183e6c641f153fc8f640fad9b3d7614aa7aac90fcfb95c39073feaf7cc45efd5",
+      "bytes": 18005,
+      "afterBytes": 18005,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.846Z"
     },
     "scenarios/moba/assets/icons/abilities/glyph_of_fortification.png": {
-      "sha256": "c8ff13c945d759a298cf6964a84f0eb9e636d280cb851af5072792f61addc2d9",
-      "bytes": 32807,
-      "afterBytes": 14285,
-      "source": "fec64cbad889e1f4c1ed03b04fd54905e6abbc22248f4147896ef79c448ddac4",
-      "at": "2026-10-22T21:20:07.897Z"
+      "sha256": "c2aa78343e4d5596dab44e478e8ae97ceb98edfafc9cbb5877ca2f91b86b0ee2",
+      "bytes": 12288,
+      "afterBytes": 12288,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.847Z"
     },
     "scenarios/moba/assets/icons/abilities/hex_silence.png": {
-      "sha256": "e41b55ca8a81951406e2835457ab4a3871078e03eb31bb3d955101e968841118",
-      "bytes": 47087,
-      "afterBytes": 13084,
-      "source": "1366a77aa6d41f2431869a810a0f09cdaed59984ac7cc969635782326332b395",
-      "at": "2026-10-22T21:20:07.909Z"
+      "sha256": "3ba38cf176e23e9356d7db75f4ef8938ce5feed32a480bdebee55f4a314da9e9",
+      "bytes": 15073,
+      "afterBytes": 15073,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.848Z"
     },
     "scenarios/moba/assets/icons/abilities/mend_field.png": {
-      "sha256": "a2be7eab643190ecef6424ff245c8a2bad15334f47285f1974feb71c3e310934",
-      "bytes": 50039,
-      "afterBytes": 14603,
-      "source": "5dc2d9474553887d1a68d605fda8be5928befa16f8ecdbdd86d6f236b27141dc",
-      "at": "2026-10-22T21:20:07.925Z"
+      "sha256": "12fc52f38529ec571076e749e34f28bfe6ece90bfdb0104c3134291180b59b01",
+      "bytes": 15672,
+      "afterBytes": 15672,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.850Z"
     },
     "scenarios/moba/assets/icons/abilities/place_observer.png": {
-      "sha256": "4a752f2cf9b9e30df27ef733ab40bd92eab07dde0a173ba7846b22f92656dc7b",
-      "bytes": 59832,
-      "afterBytes": 14953,
-      "source": "16417c4a7886a220913121636166e0209555671a4a57d208923310e66026a29a",
-      "at": "2026-10-22T21:20:07.943Z"
+      "sha256": "9f6b7bb6fe3f04caff16835d49bc4d8b775b04a7cd4967c834882e5e81071aa9",
+      "bytes": 17878,
+      "afterBytes": 17878,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.851Z"
     },
     "scenarios/moba/assets/icons/abilities/place_sentry.png": {
-      "sha256": "3d4e3c419a8b61737af33cdf90caa43c38c9caa2e0a557962660fa47f2b02132",
-      "bytes": 57009,
-      "afterBytes": 15892,
-      "source": "6a952619a029dc29e6f6b3cec69645b81fd3a4d927f4bb66e605a0cbc877d28d",
-      "at": "2026-10-22T21:20:07.960Z"
+      "sha256": "115087c33efdaef2f40b601337e13fd23a7dfe9ead153354e87c80ab58b680cd",
+      "bytes": 18055,
+      "afterBytes": 18055,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.851Z"
     },
     "scenarios/moba/assets/icons/abilities/pulse_shot.png": {
-      "sha256": "f25ce3d79f36f3ea87e564a4bf4359b76c61a841e880f945c6f9ee81f93fce19",
-      "bytes": 59242,
-      "afterBytes": 16282,
-      "source": "82205c6352db31c9e847a909902f4e1c5db255a9a94cbb51a9c627bf917ee3ca",
-      "at": "2026-10-22T21:20:07.977Z"
+      "sha256": "4397056600916f3bcd836257e843c657fcc35be8bc5c2f4a966439d21aa3487a",
+      "bytes": 17604,
+      "afterBytes": 17604,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.851Z"
     },
     "scenarios/moba/assets/icons/abilities/smoke_veil.png": {
-      "sha256": "ae5305b7f158a86b1d1ea35d543e662d2010a3189036cefb2b40835dbdb73068",
-      "bytes": 50998,
-      "afterBytes": 16044,
-      "source": "9768123f27d0e4020cba917b4dfdec49df1435b549142a34329dcc611be8d032",
-      "at": "2026-10-22T21:20:07.994Z"
+      "sha256": "42b29e278d8c08b4ec945f34f3cc9ae5cfbad889cd648070363859536d2923f8",
+      "bytes": 16801,
+      "afterBytes": 16801,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.852Z"
     },
     "scenarios/moba/assets/icons/abilities/stun_bolt.png": {
-      "sha256": "54b3898b75ccd11a4900c7be433a479bcb8a23fe171dea10f392f14f9181857f",
-      "bytes": 67006,
-      "afterBytes": 19058,
-      "source": "c05c074ea006825705858dca15b6924f9b83a5a076b5c64775c6fc581bbc088f",
-      "at": "2026-10-22T21:20:08.010Z"
+      "sha256": "9c50d2930cc154b0753dcfa4b0bead1306ef3ca215362b5a51aea4425a966c7c",
+      "bytes": 20519,
+      "afterBytes": 20519,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.853Z"
     },
     "scenarios/moba/assets/icons/abilities/ward_shield.png": {
-      "sha256": "0808b6a8e646b7b23227af0a2feed58b573e7779b849df9f34e0b7265ee4d94d",
-      "bytes": 59041,
-      "afterBytes": 18774,
-      "source": "13c76acbc68a14ff3a1dd926f9124a0580984167606b35dfefc28ac99e9e46a2",
-      "at": "2026-10-22T21:20:08.024Z"
+      "sha256": "ce4da2e86ae6425dde91204f659746b6183114fe7a03896e00e211330660292b",
+      "bytes": 19020,
+      "afterBytes": 19020,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.855Z"
     },
     "scenarios/moba/assets/icons/heroes/abaddon-skinned.png": {
-      "sha256": "e4539a8a8d2562389982550d4db9a0531974ec8bc8cca26aa954df25b06fe775",
-      "bytes": 63877,
-      "afterBytes": 16185,
-      "source": "187d0ccbed7733b913129593c3d44819c1b92128217b69491c04228f80ee602f",
-      "at": "2026-10-22T21:20:08.032Z"
+      "sha256": "d79b8760f16b0c76300838a9b4f54deb4c595b1642b466455ecce77294e6da10",
+      "bytes": 18030,
+      "afterBytes": 18030,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.856Z"
     },
     "scenarios/moba/assets/icons/heroes/alchemist-skinned.png": {
-      "sha256": "4cc58a3dfeee534061031061b7508f07853c5d093fd5d5696b60714f20508118",
-      "bytes": 70339,
-      "afterBytes": 17310,
-      "source": "ec0f1ed657305da7c7748b2a60e221955662a62d91cf3d7c695278ec89a9ca7f",
-      "at": "2026-10-22T21:20:08.041Z"
+      "sha256": "e5447d1264e1ccaeadfc30c97478492b501c76f98f979452f9ae0b2baf7533b5",
+      "bytes": 20047,
+      "afterBytes": 20047,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.856Z"
     },
     "scenarios/moba/assets/icons/heroes/ancient-apparition-skinned.png": {
-      "sha256": "759a0936e32f2492cbe78036f736555bebdd6afc726178bd7842f511640f97ce",
-      "bytes": 71760,
-      "afterBytes": 18124,
-      "source": "7e8a4d646357f456dc5e7df641fcf0158c38abe0448db3311f2f82c15e2e06db",
-      "at": "2026-10-22T21:20:08.048Z"
+      "sha256": "cfef15e6592e2dd6b46564e0eca8eacd8d9f2c55af62b8f1150ec8c534997d94",
+      "bytes": 20606,
+      "afterBytes": 20606,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.857Z"
     },
     "scenarios/moba/assets/icons/heroes/anti-mage-skinned.png": {
-      "sha256": "239616279777822d12af56fcf49ce1fa239c5765b93b064ec96d119e5835f78e",
-      "bytes": 73526,
-      "afterBytes": 18645,
-      "source": "78ce9cb53370cfcdd8a409962c3a7ef76cc2b8cab248028fcefda7585d95d46f",
-      "at": "2026-10-22T21:20:08.056Z"
+      "sha256": "46507fbb5647a90f3d83c5f75e1e8f0ceb58001edc3129209d6f065b49e3da76",
+      "bytes": 21324,
+      "afterBytes": 21324,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.857Z"
     },
     "scenarios/moba/assets/icons/heroes/arc-warden-skinned.png": {
-      "sha256": "fabf4184446bf823f20806039172b1a8f653491539a8d6adfdb59bca614abbd7",
-      "bytes": 56519,
-      "afterBytes": 14620,
-      "source": "0f18a206c65d255bbd4e75bab904122af1375062dfc0e7c0cacfc9bd939c3824",
-      "at": "2026-10-22T21:20:08.064Z"
+      "sha256": "42136f47daa9fac55946402970f12e9786d560583c763e4f3b7df6d86d1f5eb1",
+      "bytes": 16381,
+      "afterBytes": 16381,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.857Z"
     },
     "scenarios/moba/assets/icons/heroes/axe-skinned.png": {
-      "sha256": "ade94f9a809e639469100090674042cd97b615c640b67d0bb53d37ef88fdaea0",
-      "bytes": 55687,
-      "afterBytes": 13210,
-      "source": "640e8480923d0063f8224647b656b7f6e64a788db38701ba665c9134b60bc8b6",
-      "at": "2026-10-22T21:20:08.070Z"
+      "sha256": "c33567ecd328b8c27221b84c460087dc732cf776673c901a5a0c11aa44bd0df6",
+      "bytes": 16492,
+      "afterBytes": 16492,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.857Z"
     },
     "scenarios/moba/assets/icons/heroes/bane-elemental-skinned.png": {
-      "sha256": "17e91e33e8fa063a733cadbabf686ff8efd10010833fb1d93d9b9a7e6043d3a7",
-      "bytes": 50418,
-      "afterBytes": 12690,
-      "source": "858d36d9ea4314c4db19a37ec267c1c4f064c984e29cabccaa5e804c3b004e58",
-      "at": "2026-10-22T21:20:08.077Z"
+      "sha256": "080d23895ee6d2fb6782313c937b683d1ecba26e64742c8a09acb0586f2ef015",
+      "bytes": 14995,
+      "afterBytes": 14995,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.858Z"
     },
     "scenarios/moba/assets/icons/heroes/batrider-skinned.png": {
-      "sha256": "f07bc3f2675965ce6891aa0a663e86687a06178384fcf79b3e904bf0b0fc10ec",
-      "bytes": 69512,
-      "afterBytes": 16555,
-      "source": "1057311b53d7e414185e11b35cc5f1dfd301cb0d989aaa236579053745a2f796",
-      "at": "2026-10-22T21:20:08.085Z"
+      "sha256": "1d5c9809421758688e168c8dea5353b231a0566422d866850f4ea916ba59b64a",
+      "bytes": 19733,
+      "afterBytes": 19733,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.858Z"
     },
     "scenarios/moba/assets/icons/heroes/beastmaster-skinned.png": {
-      "sha256": "82b424333f388d1e92926c7fbe5a56e58cfb5807b755c6040660e22bb18bb9b5",
-      "bytes": 64359,
-      "afterBytes": 15475,
-      "source": "698f96e19b319b5f2d21b1d46150d045e8cb6599667dc41b7bdcafb14fb089b2",
-      "at": "2026-10-22T21:20:08.092Z"
+      "sha256": "453001fefd123e8c1c4ba83cb610a2f36a683376b367acef676b55818900bce0",
+      "bytes": 18780,
+      "afterBytes": 18780,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.859Z"
     },
     "scenarios/moba/assets/icons/heroes/bloodseeker-skinned.png": {
-      "sha256": "2b7b4a088f778d156b26daff86c7fc3ae239a037615c1ec1b7fc750b8ca6be4d",
-      "bytes": 60464,
-      "afterBytes": 15337,
-      "source": "15b06d810d0960c8106f18fa09627297c2e9d7f71935e84a2e6a77c7ffede17b",
-      "at": "2026-10-22T21:20:08.100Z"
+      "sha256": "30e1026e2f95e897383db35a2b198dd610da1470e42e41bf7b012e789d0790ce",
+      "bytes": 17764,
+      "afterBytes": 17764,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.859Z"
     },
     "scenarios/moba/assets/icons/heroes/bounty-hunter-skinned.png": {
-      "sha256": "a4719f1da30462ee45fca76df02e73e82822d8da43316f11c1897bdfaf59f245",
-      "bytes": 61110,
-      "afterBytes": 15264,
-      "source": "1170968df9190e32cbfe0262dad084f9fb3ddc9afe30566abbc2e9f9f7e2d7a8",
-      "at": "2026-10-22T21:20:08.109Z"
+      "sha256": "9e66f36dcbab38cce328b7bc57696635ce0e40b5b0a8c776a457467a2a8826fc",
+      "bytes": 17359,
+      "afterBytes": 17359,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.859Z"
     },
     "scenarios/moba/assets/icons/heroes/bristleback-skinned.png": {
-      "sha256": "3050fd41e231b00f40a10c2dc20e4da86629bb50bcbddbecf4ec75c7f01f8c67",
-      "bytes": 57813,
-      "afterBytes": 15127,
-      "source": "482ec0b54ae21d8edbcdace5495aa023090fb14441128597d9ebbc8e77cb329b",
-      "at": "2026-10-22T21:20:08.117Z"
+      "sha256": "86cb8d8f896b794b628a9b5c3241beace8ae41a13e8503e2216d68bcc6b65bee",
+      "bytes": 16924,
+      "afterBytes": 16924,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.859Z"
     },
     "scenarios/moba/assets/icons/heroes/broodmother-skinned.png": {
-      "sha256": "2079706dd8892645fbaddbbe19a2b3b942b97eaeebcfeb3b591e796f7216305f",
-      "bytes": 58917,
-      "afterBytes": 14996,
-      "source": "4d3ec0c22d5b776d7263b3f397c72ab270a6568a848bd138bb77967c8d721948",
-      "at": "2026-10-22T21:20:08.126Z"
+      "sha256": "d0042dcb69f3702c61528f07a1cc000614a00cf79564ebec4471a3998b2ebb1a",
+      "bytes": 17128,
+      "afterBytes": 17128,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.859Z"
     },
     "scenarios/moba/assets/icons/heroes/chaos-knight-skinned.png": {
-      "sha256": "6136ee4ba56440aad796b2238c863ece1197bfa665b5501d606c947daa7cd270",
-      "bytes": 53936,
-      "afterBytes": 14218,
-      "source": "9f748b4c0a7ea13990d57af6788460f0c50684ceae49acd3d53e9588ad97174f",
-      "at": "2026-10-22T21:20:08.133Z"
+      "sha256": "24f1b02182235e17d45353ca8775aa385867577c99e647031e85ecb5bca21cb1",
+      "bytes": 15673,
+      "afterBytes": 15673,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.860Z"
     },
     "scenarios/moba/assets/icons/heroes/crystal-maiden-skinned.png": {
-      "sha256": "f3c04a2948509cff5c555a60b039801dd13f609d89ff4de03e27cc89febbe319",
-      "bytes": 46624,
-      "afterBytes": 12448,
-      "source": "763d34ae1463a0b0e3d663270429c4d290107be226cc4eed82c501c66b74f27e",
-      "at": "2026-10-22T21:20:08.140Z"
+      "sha256": "bd5b5cab03555e0476b9c84c579eff5db1b00f823145cf50dd00713e0b61b836",
+      "bytes": 13930,
+      "afterBytes": 13930,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.860Z"
     },
     "scenarios/moba/assets/icons/heroes/dark-seer-skinned.png": {
-      "sha256": "16a388358f9df8c5ae1f1d5943648aae7f4a6bd60f78a1511f800e35871532ad",
-      "bytes": 54125,
-      "afterBytes": 14273,
-      "source": "3d86e5cef72e3fe03ab7c81aab97b5fd2dddb11afd67769c27529906cc0f1934",
-      "at": "2026-10-22T21:20:08.147Z"
+      "sha256": "1a3bc04a029ca753210531be6199a0917967a65f262b2ff636feb1cd9d05d5af",
+      "bytes": 15807,
+      "afterBytes": 15807,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.860Z"
     },
     "scenarios/moba/assets/icons/heroes/death-prophet-skinned.png": {
-      "sha256": "b535dbac22aac4dcee2ecabb10b6e541ce9601c587c6d5350fc8ccf96eb934a2",
-      "bytes": 55740,
-      "afterBytes": 15087,
-      "source": "f9a1319e4de173272dae28c528f0dd4685a13eaa57007e95cfe9a7ee788119a7",
-      "at": "2026-10-22T21:20:08.155Z"
+      "sha256": "27fc2aa82101e81482a3ea093f4c9aa7cb8120678cd8deba4bd413008011f51c",
+      "bytes": 16423,
+      "afterBytes": 16423,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.860Z"
     },
     "scenarios/moba/assets/icons/heroes/disruptor-skinned.png": {
-      "sha256": "4703d511981c81d3ab62383ff670cd9de81e5bb4b531c0fe6008eda0f3913068",
-      "bytes": 73931,
-      "afterBytes": 18017,
-      "source": "6c39b17c34b5bd6ab71db84b1eee433a8db07df50d65b52171d3d45eb5ebe8f6",
-      "at": "2026-10-22T21:20:08.163Z"
+      "sha256": "1d423c51a794934c4b6dcc71963df4d06982eb2b971516232594282e06110ce8",
+      "bytes": 21065,
+      "afterBytes": 21065,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.861Z"
     },
     "scenarios/moba/assets/icons/heroes/doom-bringer-skinned.png": {
-      "sha256": "705aa8d029d4d6e43a7664d6b9162a9e43813dd33592811825fdc3010cb2b392",
-      "bytes": 54833,
-      "afterBytes": 14089,
-      "source": "4b493f707d141e42f87b0ced529fdf1b89031242b033e4f836b3e37a2ddaf51c",
-      "at": "2026-10-22T21:20:08.171Z"
+      "sha256": "f290f0e436f3b3643e8cd56dcd7ce0860c5881e6d223466000c8054357daa3f4",
+      "bytes": 16268,
+      "afterBytes": 16268,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.861Z"
     },
     "scenarios/moba/assets/icons/heroes/dragon-knight-skinned.png": {
-      "sha256": "ec86b149227641c784332b4d5d1a640baa4d2cf58643cd89b0eb1011f339379a",
-      "bytes": 62289,
-      "afterBytes": 16088,
-      "source": "e3db296cd2559f6d39712319bc442255078afca207e1b1345d75a0ff1a22e638",
-      "at": "2026-10-22T21:20:08.178Z"
+      "sha256": "0f28d88743a0ee6f9398a36304f9c8ac0051deadb2a9996738f4452ec1e187ab",
+      "bytes": 17692,
+      "afterBytes": 17692,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.861Z"
     },
     "scenarios/moba/assets/icons/heroes/drow-ranger-skinned.png": {
-      "sha256": "aa7faf2e2f7c9eccb75bfdf9c428c4197d879cecb7a3e9cbbe0be94e528988d9",
-      "bytes": 56433,
-      "afterBytes": 14431,
-      "source": "beec2d34bc9edbe836f649196c336011c4f0ec03c6226c832ec64ec71d5aa81a",
-      "at": "2026-10-22T21:20:08.186Z"
+      "sha256": "eefd2ec445afbc404a5bfb6a12321c8d0c4ec589f65497a28e1e8408050dc909",
+      "bytes": 16316,
+      "afterBytes": 16316,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.862Z"
     },
     "scenarios/moba/assets/icons/heroes/earth-spirit-skinned.png": {
-      "sha256": "422537b806e3057bbc796f83ed394281f8eefa4bd490fbb4bfd2e73d317bda5f",
-      "bytes": 70715,
-      "afterBytes": 17756,
-      "source": "ab10b05d23d8ba57e45633d073040e95183bc5bb97fe3fb8e25037a25702b2c2",
-      "at": "2026-10-22T21:20:08.195Z"
+      "sha256": "f79659ab07aa8fc2e52551d08a202f4b8fb1271f4b4fab1021afcfc9027e9a06",
+      "bytes": 20405,
+      "afterBytes": 20405,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.862Z"
     },
     "scenarios/moba/assets/icons/heroes/earthshaker-skinned.png": {
-      "sha256": "36c99ada4b042415b9d8236065f9c47bcd1992bbe9ce36ae3dc90ffee0eb9280",
-      "bytes": 85454,
-      "afterBytes": 20515,
-      "source": "c41bc27567a850ce298240ee10386ff7e2130ac95b231ec23e3ee187c3284051",
-      "at": "2026-10-22T21:20:08.204Z"
+      "sha256": "eb23e8d347260af90adb003331e3be8761611f1304bad87df21a2a2f62e78190",
+      "bytes": 24011,
+      "afterBytes": 24011,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.862Z"
     },
     "scenarios/moba/assets/icons/heroes/ember-spirit-skinned.png": {
-      "sha256": "bdebc7567b0cedc7f3412b06def68b160c3cba95dafbb8ffa6a41e6d3f5a2e57",
-      "bytes": 56238,
-      "afterBytes": 13458,
-      "source": "02eb39d1b774e5b2b7645d6458c90f0cc9169f6ee785c07f8eebff7da40dd260",
-      "at": "2026-10-22T21:20:08.212Z"
+      "sha256": "6a566e8d256fecd5854ebcef03c82e53c6930e0cb1a21e429d1ce67c0f4c9392",
+      "bytes": 16045,
+      "afterBytes": 16045,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.862Z"
     },
     "scenarios/moba/assets/icons/heroes/enchantress-skinned.png": {
-      "sha256": "5c6ac49baa1f49f28e5da52402202babbc7db260d383f021394ae1998ae5f6dc",
-      "bytes": 58200,
-      "afterBytes": 14611,
-      "source": "5b8501069a604fa11e1d5c17cb84d20640a161ac7c146e122397ac733d8eb947",
-      "at": "2026-10-22T21:20:08.219Z"
+      "sha256": "9aecbe6d21938bb8c440c2fccf53dd4409d25de3a0db640ae033983bec54e34b",
+      "bytes": 17074,
+      "afterBytes": 17074,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.863Z"
     },
     "scenarios/moba/assets/icons/heroes/enigma-skinned.png": {
-      "sha256": "d68d0ccbf3f3299eb38a532095eb8c03efcc7213ba28af5d1f0ce259cab156bf",
-      "bytes": 57244,
-      "afterBytes": 14501,
-      "source": "1296cf7fb540660295c6422410ac5f03c8115fd9ba8655094ad996ec0798a99e",
-      "at": "2026-10-22T21:20:08.228Z"
+      "sha256": "6a4a59e2055559b591ef14506d0930e9677e7112fc51ac7d5f93ecc018989a2e",
+      "bytes": 16358,
+      "afterBytes": 16358,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.863Z"
     },
     "scenarios/moba/assets/icons/heroes/faceless-void-skinned.png": {
-      "sha256": "ae03da4648c660a382a330ecfdfd3a3d58fe376ab8b81bd3e51160a234ab4df9",
-      "bytes": 51992,
-      "afterBytes": 14279,
-      "source": "7e25265e4b6711da9fba667f832d03dcc2f799de479ef3b0c57037e7b733de67",
-      "at": "2026-10-22T21:20:08.235Z"
+      "sha256": "48a262ddf84e687bea04a48ddaa8f00691955da5204259da96f54f1f90b3fc70",
+      "bytes": 15289,
+      "afterBytes": 15289,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.863Z"
     },
     "scenarios/moba/assets/icons/heroes/gyrocopter-skinned.png": {
-      "sha256": "5cee43f2dcbc0e38db98a64d7c79833518a25682b50b4ca3fb4000053d5ede8c",
-      "bytes": 32221,
-      "afterBytes": 8344,
-      "source": "83369774531444d4f9bd037fad43181f444a73ab98db8124610a306b31bb4718",
-      "at": "2026-10-22T21:20:08.242Z"
+      "sha256": "fa7618d2670aa7e926e6dcf5243130bcb23db07b4fc052b549ec296093f4e067",
+      "bytes": 9332,
+      "afterBytes": 9332,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.863Z"
     },
     "scenarios/moba/assets/icons/heroes/invoker-skinned.png": {
-      "sha256": "e67cf35d9d6849dbd72cf0e1823f77096dfaf6216479f17e0c82907a1aae254c",
-      "bytes": 71809,
-      "afterBytes": 18685,
-      "source": "69533f9d3903e6aaef793c98f6948ccd5fc6a8a44ccd722ab0292a440341ad10",
-      "at": "2026-10-22T21:20:08.250Z"
+      "sha256": "a20fe6d423552e38485b64a3768c163f85b032e95a4cb73f1b66bd96cf143534",
+      "bytes": 20634,
+      "afterBytes": 20634,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.864Z"
     },
     "scenarios/moba/assets/icons/heroes/juggernaut-skinned.png": {
-      "sha256": "9faef075d6a2b95ed4faabc27b883304b76f96652baddf89753fd9ebce646500",
-      "bytes": 83795,
-      "afterBytes": 20094,
-      "source": "d0516a1c55919de75f702e719d6039991feafa352c03ebb675a00c0edf071189",
-      "at": "2026-10-22T21:20:08.259Z"
+      "sha256": "3ecd8bab962d21dd2630133d446f1df6182cff19b5dad20c1f279fca0491059f",
+      "bytes": 24386,
+      "afterBytes": 24386,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.864Z"
     },
     "scenarios/moba/assets/icons/heroes/keeper-of-the-light-skinned.png": {
-      "sha256": "7e720669c42dc40b576fa787fc77828d18190e03ef157d4314152c4e3ec7ff2a",
-      "bytes": 60051,
-      "afterBytes": 14620,
-      "source": "59a335d2ee60e90df12f40d03ebf06004df172d292194530c667df5c7f185743",
-      "at": "2026-10-22T21:20:08.267Z"
+      "sha256": "d9831047e850c1fab388d3ed47ca381259ab626a2fa517a57fa7cb2a2a53968b",
+      "bytes": 17019,
+      "afterBytes": 17019,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.864Z"
     },
     "scenarios/moba/assets/icons/heroes/legion-commander-skinned.png": {
-      "sha256": "29a36e459767b8a26fbd8861e2bacfaaf3e82fefd318279d39146ec8f844058f",
-      "bytes": 63044,
-      "afterBytes": 15178,
-      "source": "3a37d3ae29a394dcaa4e38af46d1ba76003edac102654d0b235d73a7ebb42ea5",
-      "at": "2026-10-22T21:20:08.274Z"
+      "sha256": "992d6da543acb9b5c0c8c568e715f6da2d8f90df154c121b01a003811ea84dec",
+      "bytes": 17924,
+      "afterBytes": 17924,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.864Z"
     },
     "scenarios/moba/assets/icons/heroes/lich-skinned.png": {
-      "sha256": "1234b3583eb03e4a16c410bc8f521fa43a35f3c2c599b8dc6afbb30deda6f7ed",
-      "bytes": 61488,
-      "afterBytes": 15645,
-      "source": "e74d60917c48f551a807a051b40d417f8e428efef3f3511a0a30dac0ea629037",
-      "at": "2026-10-22T21:20:08.281Z"
+      "sha256": "31b5bc95815a5062444b146bd8dc55eb19191c7efd6fcb8203224b0affedc9de",
+      "bytes": 17658,
+      "afterBytes": 17658,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.865Z"
     },
     "scenarios/moba/assets/icons/heroes/lifestealer-skinned.png": {
-      "sha256": "3030da4dd1aa5df84a5f32f4afeaad179b200e7f5e4d595d203c50d08543542e",
-      "bytes": 72567,
-      "afterBytes": 17961,
-      "source": "7ed3a20537e775ead848335ab4e86367643569422978638f0d7742739d53cb2a",
-      "at": "2026-10-22T21:20:08.289Z"
+      "sha256": "f49b7dade7a37ff8bb71f52605eab9758ab513321c7bb89fbff0bad4ec2345fc",
+      "bytes": 20995,
+      "afterBytes": 20995,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.865Z"
     },
     "scenarios/moba/assets/icons/heroes/lone-druid-skinned.png": {
-      "sha256": "fcb2bb85af014ab8e00e284691ca382f578bf149183e6bfafe745c76d7c261b8",
-      "bytes": 65413,
-      "afterBytes": 16401,
-      "source": "bbf14a86fcfbd0398456bfb4eace9ac7707012fe1f0ccc149d27a5603b997fc9",
-      "at": "2026-10-22T21:20:08.298Z"
+      "sha256": "caab588ecafdc85a1baf918e2733219e98e0a8b48f3bcae5d1e87c1885797f04",
+      "bytes": 19257,
+      "afterBytes": 19257,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.865Z"
     },
     "scenarios/moba/assets/icons/heroes/magnataur-skinned.png": {
-      "sha256": "e9e6e32c9bdf784ada7ca843122d4c90011cf7079ea2fee564531e1ae4766811",
-      "bytes": 87944,
-      "afterBytes": 20452,
-      "source": "bdd087e49befdd5d01f2343e22b647282e9db252966778e8293ed414915d4bd9",
-      "at": "2026-10-22T21:20:08.306Z"
+      "sha256": "faa8664f4e044b080c834aa7605eaabc56f8e3e587cd6e063c88cafaeacff933",
+      "bytes": 25858,
+      "afterBytes": 25858,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.865Z"
     },
     "scenarios/moba/assets/icons/heroes/morphling-skinned.png": {
-      "sha256": "cc05126f886723803a6688b93f79711d46748c09e7813c92c83d97c163ec0f6e",
-      "bytes": 57732,
-      "afterBytes": 14148,
-      "source": "c573b129aadf794a8f1a30c5915020ba22e1127fb2bf8d657ee2b58095174ace",
-      "at": "2026-10-22T21:20:08.314Z"
+      "sha256": "c193b55c8eb7c4634f2a03137592e9ac9419ec2dbc756141144679f392366678",
+      "bytes": 16650,
+      "afterBytes": 16650,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.866Z"
     },
     "scenarios/moba/assets/icons/heroes/naga-siren-skinned.png": {
-      "sha256": "76b43e0b8d81ca0545e0b57f1849f1579014549bf43d46b24243d3784eb96b30",
-      "bytes": 51050,
-      "afterBytes": 13917,
-      "source": "34f291792817c3961cf5b0fab15db7ea990ecea21f938db1a24b459b92584a17",
-      "at": "2026-10-22T21:20:08.321Z"
+      "sha256": "33e484a07946309eb07879144ccf4907f04fa181de34590765516f746e3d54d0",
+      "bytes": 15217,
+      "afterBytes": 15217,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.866Z"
     },
     "scenarios/moba/assets/icons/heroes/necrolyte-skinned.png": {
-      "sha256": "52a00bb56722a67eea9ffc22cdbd233581877e6cf2fb71d4c216fdfd3706ec76",
-      "bytes": 58701,
-      "afterBytes": 14968,
-      "source": "145a5d6e16c63722e9cda746418fdb4fc8ecac3ae0d4dba23c671eb336bfa965",
-      "at": "2026-10-22T21:20:08.329Z"
+      "sha256": "b7f07a589c698f790dc2e2d9f221723fffcd90a3a9b3d91e561f6a9e399ffde9",
+      "bytes": 17088,
+      "afterBytes": 17088,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.866Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-alpha-wolf-skinned.png": {
-      "sha256": "acef96c97e182d3bbad3b00f82e0f08a61de172ba285ae301d908f91da69e5bf",
-      "bytes": 61841,
-      "afterBytes": 14618,
-      "source": "a9b88fff95ba37c48efeae4e3e2f4cea7166b4c5f680b9a53055537e9e02ffdc",
-      "at": "2026-10-22T21:20:08.338Z"
+      "sha256": "a799062dbfa541a7a9481782f913f2a5189df27d65163af4a55b75461703f4f8",
+      "bytes": 18943,
+      "afterBytes": 18943,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.866Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-big-thunder-lizard-skinned.png": {
-      "sha256": "a42e4c04ead9ac0e7e543a46da6128c7ca431951c6fc554a2f4a05c55350bda2",
-      "bytes": 63034,
-      "afterBytes": 13285,
-      "source": "7e96b479c71598825487bc501e4c3223d458745fcc02645bf71083fa42491ece",
-      "at": "2026-10-22T21:20:08.347Z"
+      "sha256": "b9ecab216befc455b910cd57e9904874ac8b53791f3690f501f1d4dacbce0983",
+      "bytes": 18329,
+      "afterBytes": 18329,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.867Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-black-dragon-skinned.png": {
-      "sha256": "ae8e6f63b893ae04fa5b2f31e8cf86177a7e0c8e79abbe842466d618d287c6a5",
-      "bytes": 64575,
-      "afterBytes": 17939,
-      "source": "8e120141368ec74b706dfe10f1c04fd61f0e5be5f6f981eb85225a911b472126",
-      "at": "2026-10-22T21:20:08.356Z"
+      "sha256": "d81b5db55e652df2cf09c36208998861d6990b524391930948f764b2ce9c187f",
+      "bytes": 20027,
+      "afterBytes": 20027,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.867Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-black-drake-skinned.png": {
-      "sha256": "4616ab070e81f693ed73b469a788817049c853aa7d8cf0673ec05696d574f532",
-      "bytes": 42831,
-      "afterBytes": 12974,
-      "source": "af8675d6125c273a89ee9b3ec4bf31006f775fa6670e511340adf7eba6a7a2ad",
-      "at": "2026-10-22T21:20:08.364Z"
+      "sha256": "5ae0633ce657ab653f6f4a42bc6dc9f7ccb4d1b7934d01e55f4ac59a03663a4b",
+      "bytes": 13714,
+      "afterBytes": 13714,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.867Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-centaur-khan-skinned.png": {
-      "sha256": "52a4fc38fba044d23b301112debdd13713c2a3c42ca148889fac8f3b44d802d4",
-      "bytes": 54831,
-      "afterBytes": 13229,
-      "source": "354958aa73cd0f710fd3f1b09979616c44bfdca20ca4dab73338cb038599795c",
-      "at": "2026-10-22T21:20:08.371Z"
+      "sha256": "776499ff00e8cdbe88fc0f0eebf6d1848c577616a831c6fe1a0c748a8ee11e47",
+      "bytes": 15877,
+      "afterBytes": 15877,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.867Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-centaur-outrunner-skinned.png": {
-      "sha256": "6d89758888f6df15fbcd1a602345e69aec2a407d36828cc19c71ff73a5e6427d",
-      "bytes": 61234,
-      "afterBytes": 14511,
-      "source": "120cc0b515292b0ec86f4d6e9640f92d29abc1e707c04b878f1a9f408bf5cdb9",
-      "at": "2026-10-22T21:20:08.378Z"
+      "sha256": "2a77e93cd277d8cb92dde5d7942a6d91d54b0963e88b849e902ee3a529704576",
+      "bytes": 17851,
+      "afterBytes": 17851,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.868Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-dark-troll-skinned.png": {
-      "sha256": "d970b61ed63bd14e1beda2d9fbea2a0bdb6d9af2952637b2be30e8e634c63137",
-      "bytes": 65340,
-      "afterBytes": 16173,
-      "source": "e0b0d8f791a19ec508ba170c48f3369cdee59c15eab4bf54690a066ad4e9b289",
-      "at": "2026-10-22T21:20:08.387Z"
+      "sha256": "26210b11293b08f49bc9e728dc43871fe4ba99825fd42a4536543b0ed9fb3542",
+      "bytes": 19296,
+      "afterBytes": 19296,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.868Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-dark-troll-warlord-skinned.png": {
-      "sha256": "45a989ef13397e0ca4d2f89e9c48e3689bd494cc7ba001bc405c33f1f0a42a60",
-      "bytes": 73240,
-      "afterBytes": 17694,
-      "source": "3e4980a86bee2aca847aa04278fd6c1691ae5c0dcb6b74a410862704ab55766f",
-      "at": "2026-10-22T21:20:08.395Z"
+      "sha256": "3ca5c3fefd0a7642c294ed97f309d3b18bad216a7b828adb7c1ac0e15fe490b0",
+      "bytes": 21136,
+      "afterBytes": 21136,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.868Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-elder-jungle-stalker-skinned.png": {
-      "sha256": "0b275148e1760d7f7f2f25fadb0973be613d4c26583d3efef3773707fbafa82b",
-      "bytes": 64284,
-      "afterBytes": 15627,
-      "source": "16ef303057a6e97c943e66dcacf72a00cec26ed2c689a37fd25619979289045a",
-      "at": "2026-10-22T21:20:08.402Z"
+      "sha256": "1c3d73109d1d9e1595698bf92a33af13dd441eb972303400f63c6d4de7306fae",
+      "bytes": 18550,
+      "afterBytes": 18550,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.868Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-enraged-wildkin-skinned.png": {
-      "sha256": "1a30a28b19c7c62395571da619e1a48acb6bb93247715264e12194e46a488d0a",
-      "bytes": 71444,
-      "afterBytes": 17342,
-      "source": "97c317b66e1f773a620ebfcf647cbf8546f0ee4d6002ff6fc76216810c4a0409",
-      "at": "2026-10-22T21:20:08.412Z"
+      "sha256": "1d8e15c258584824c05c0134fd5f2557664d0b9113ffa44e2963d31e34b14e5b",
+      "bytes": 20946,
+      "afterBytes": 20946,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.868Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-fel-beast-skinned.png": {
-      "sha256": "9b2a92c4852c6d4c086d5531e6b4acb01f03f6fdf219bcf0af210002504fed9e",
-      "bytes": 57908,
-      "afterBytes": 14086,
-      "source": "5bb47bc34c76a1a900c430a481e18cda3b711f92d89585f55e9871b947c555f9",
-      "at": "2026-10-22T21:20:08.420Z"
+      "sha256": "c81e17ad56dc351318392b0602d5eb11c9f6565e59277fa39e2aba495614d9d2",
+      "bytes": 17515,
+      "afterBytes": 17515,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.869Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-forest-troll-berserker-skinned.png": {
-      "sha256": "d4ca8318ea1b1a89c9f74fdb8f24c5c896828819534635a1a7a6cf1807f0e165",
-      "bytes": 78570,
-      "afterBytes": 18563,
-      "source": "645a785097c69ee53fbdc12fb461a64e1b94c59c5b0b567ba53db8ca10dce9b8",
-      "at": "2026-10-22T21:20:08.427Z"
+      "sha256": "bef368b7b33756ba689319b03d5a041da30a3679d0d5dc02a4b5bdac7ddf7b55",
+      "bytes": 22736,
+      "afterBytes": 22736,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.869Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-forest-troll-high-priest-skinned.png": {
-      "sha256": "1f29a010671e12be9b519234bad12fac8e2464aeef39e7943c56e63deb855b33",
-      "bytes": 58353,
-      "afterBytes": 14832,
-      "source": "088024aaff1f731dfb1e75485e2018451870af59ef275cd062af677abacb9c08",
-      "at": "2026-10-22T21:20:08.435Z"
+      "sha256": "96abff6766fbbd5670da6486e97541c4a7db426a526e05e96eafb774923e4052",
+      "bytes": 16744,
+      "afterBytes": 16744,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.869Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-frostbitten-golem-skinned.png": {
-      "sha256": "fa0fc5a1a3e02834cbde45c0038dc72fc29515093ea2ced9f1e682a1b7a18928",
-      "bytes": 56034,
-      "afterBytes": 13914,
-      "source": "8d9518597460ba9c32225005f04e590cbf9ee55147c7a0e01bd870bf0a9b79cc",
-      "at": "2026-10-22T21:20:08.443Z"
+      "sha256": "4529fbc1ebcda8a7c177a4745a655567c7b94d1cae67ea20abc326db816176f8",
+      "bytes": 16320,
+      "afterBytes": 16320,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.869Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-furbolg-champion-skinned.png": {
-      "sha256": "25b11d537e7e9e294dc8a1256ff61e9091a51ff0180edcbec5e6ded2b90ae21e",
-      "bytes": 87690,
-      "afterBytes": 20727,
-      "source": "47d1a9997dd2bdd3fa9dd3aa9eb63b1088c8012dbdfd8d09c19273977a0f33fe",
-      "at": "2026-10-22T21:20:08.452Z"
+      "sha256": "3000873744a438f6c7b6acc83345c093c9cb28b1c868a8ed92c91d286bbd400a",
+      "bytes": 24932,
+      "afterBytes": 24932,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.870Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-furbolg-ursa-warrior-skinned.png": {
-      "sha256": "54b74e44b7f3808e1bfdd7204d2affad976311e4f4bd87b014ab00c0789b5a22",
-      "bytes": 82369,
-      "afterBytes": 19134,
-      "source": "ffd3a5d9349833c7733210eb82b01fb63303565da2f285128a0d2e7e0b69f9b7",
-      "at": "2026-10-22T21:20:08.461Z"
+      "sha256": "c2fa9e9eb5b723d9bdf46644ed0b8e67866b20c5dc070a31e84bf472c796a32f",
+      "bytes": 23191,
+      "afterBytes": 23191,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.870Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-ghost-skinned.png": {
-      "sha256": "b86fd10d6215ff76eae82fe72575978270a1f988004cec25a24e6753bce5fddb",
-      "bytes": 45763,
-      "afterBytes": 12614,
-      "source": "d1da14073a285e402239ab8e36558214cad9ac13b1fbb356589c48d2f60518ec",
-      "at": "2026-10-22T21:20:08.470Z"
+      "sha256": "c229d86a95efd7270df71076101dcb030b9eb6fc3d8ce00de3e8139a3485b546",
+      "bytes": 14379,
+      "afterBytes": 14379,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.870Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-giant-wolf-skinned.png": {
-      "sha256": "3a9c5b56e73dd37d7c106abb4182e23c9c9ec4a3d50a0b4c196e687046cf3e09",
-      "bytes": 79023,
-      "afterBytes": 17217,
-      "source": "e5fe408c94264598ab40c008e6af08eddf159e364a073dd73d0ed61457b400f7",
-      "at": "2026-10-22T21:20:08.479Z"
+      "sha256": "70bf81dfd890d8a88067a81f90069641983b8e1eb916bebb638f49ed124b4330",
+      "bytes": 22964,
+      "afterBytes": 22964,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.870Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-gnoll-assassin-skinned.png": {
-      "sha256": "616bd2f3af9f9ec32fe794d973a687a8ffbc42d154c16f25dcc6335cec8ee708",
-      "bytes": 66666,
-      "afterBytes": 16952,
-      "source": "0eeb60b0d5dc03a70d33bc7aae7cb1311f6793a71695178d228fc109b7ceca34",
-      "at": "2026-10-22T21:20:08.487Z"
+      "sha256": "f52e5c3db430beb383555711b81144aeab1b5052c193f5bfb356f8943a8a3e11",
+      "bytes": 19518,
+      "afterBytes": 19518,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.870Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-granite-golem-skinned.png": {
-      "sha256": "51f97772a9c8ffc394fc8e7ce6a8cba42d3fd4cda9081e9cade98e4263ab1b4b",
-      "bytes": 61536,
-      "afterBytes": 15298,
-      "source": "d2499c7955021e1498482d91e4db4a0f40d4eae829ce8166df1fad397b24202b",
-      "at": "2026-10-22T21:20:08.497Z"
+      "sha256": "43b6f5673007c671d643bb3293f7f217796fff50ca392787f065c7b55c25fefa",
+      "bytes": 18977,
+      "afterBytes": 18977,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.871Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-harpy-scout-skinned.png": {
-      "sha256": "5404f29aeb457706f1126cce6f67633e669b60046d3321ea15972b23ef1fbea9",
-      "bytes": 63533,
-      "afterBytes": 14952,
-      "source": "2fd8fb06f6e3568a16194da2bb51b384256c3a2d56722ff2020ebc302c9f64a5",
-      "at": "2026-10-22T21:20:08.505Z"
+      "sha256": "1174bd98ae52bd27ffb257b64183a38a1f699bf2dc2908d939fbbe257fc92fb6",
+      "bytes": 18088,
+      "afterBytes": 18088,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.871Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-harpy-storm-skinned.png": {
-      "sha256": "67963a832248eaecd99555365bb133cc9dd2ead0faa5ce47e604a19d4c300bbc",
-      "bytes": 52585,
-      "afterBytes": 13147,
-      "source": "aad095a39a620358ea773814c7a2b739fc537b5e46466b1e560a33efb3f83fda",
-      "at": "2026-10-22T21:20:08.513Z"
+      "sha256": "5f85b7efd2b25f75b165d84b7287637db9d137e2dd4c191587c7b0f8bfe0a7ac",
+      "bytes": 15031,
+      "afterBytes": 15031,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.871Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-ice-shaman-skinned.png": {
-      "sha256": "c809538b122638345451c0278c01142435053a524b694ed1f75d3d98b05ed136",
-      "bytes": 50083,
-      "afterBytes": 12657,
-      "source": "76c8b743e481a849f70195b541a9de8e2717902102c7f256b61f54b84dfbfedb",
-      "at": "2026-10-22T21:20:08.521Z"
+      "sha256": "61171274f08d34b4a38a46a591ca4eec6d784d20d5f829e3acbcfba96b7c01aa",
+      "bytes": 14597,
+      "afterBytes": 14597,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.871Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-jungle-stalker-skinned.png": {
-      "sha256": "39a7938ae8bfc6187c4235e77a9768b706c228d0634d501460cd4cbe351ee4e8",
-      "bytes": 61097,
-      "afterBytes": 15314,
-      "source": "5fc2afb9503f4d8876f9ab6329f32b86e2b6c592ed147bf6c7f30102818d86b1",
-      "at": "2026-10-22T21:20:08.529Z"
+      "sha256": "196d84ae7c114a180d41e5e46613ae5c4bb3cb2247a781651258d4bda5fb8669",
+      "bytes": 17265,
+      "afterBytes": 17265,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.871Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-kobold-skinned.png": {
-      "sha256": "9e95692600fb7b35f02cabd5d069ff1952ecab91d464056649c23f54994e8b00",
-      "bytes": 63310,
-      "afterBytes": 15168,
-      "source": "420ef92398065f38fce24af422efb05497a08d00f644c2bac7fc9078424e3e6d",
-      "at": "2026-10-22T21:20:08.535Z"
+      "sha256": "e1f25c0d991cb75a893bb0fc6c25daa2dc0d5ac23a8616560c8f05ca8bfccb4f",
+      "bytes": 17938,
+      "afterBytes": 17938,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.872Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-kobold-taskmaster-skinned.png": {
-      "sha256": "f3be718a9607878df53ac867ba84d7c3c0bd8b471c97a53156ee546ef73375f6",
-      "bytes": 78005,
-      "afterBytes": 18482,
-      "source": "1677ecba1963131f6de35ea905c64714d83eaf6b98f52d68eb8169e161a2279d",
-      "at": "2026-10-22T21:20:08.544Z"
+      "sha256": "98fdd82a6785c4c87453fc84781e622d6c7e7ce6dad39ba0c47153ce60d98dd1",
+      "bytes": 22314,
+      "afterBytes": 22314,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.872Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-kobold-tunneler-skinned.png": {
-      "sha256": "c66c57b7c59a668ed595e76a228e190224bda80a291f95818b75c540f1f78245",
-      "bytes": 77460,
-      "afterBytes": 18263,
-      "source": "33b2451f2126a05085e561e5e7e48cacc35ee95dddbf9bec26cae32e45a9af41",
-      "at": "2026-10-22T21:20:08.553Z"
+      "sha256": "2fc79d78578a69bd2b33ae470a0cee3ce8ce58732f233d5846e7da7b66c85f0e",
+      "bytes": 22292,
+      "afterBytes": 22292,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.872Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-mud-golem-skinned.png": {
-      "sha256": "359dfd0d1e48ea78b4a530b5d7d960299b7299856f44c8df58a29a1756123f0e",
-      "bytes": 63111,
-      "afterBytes": 15593,
-      "source": "6831e3b12a65f4e9d66f24ba9a832e4412ff75a05eda1edd49d816c2121d2e46",
-      "at": "2026-10-22T21:20:08.560Z"
+      "sha256": "2a8847514bdb074fdbf14904e342a7bb43c336264550830d8f019caf88e224a2",
+      "bytes": 18732,
+      "afterBytes": 18732,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.872Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-ogre-magi-skinned.png": {
-      "sha256": "c7bb178efec6d5f7f23573a9e3745c1bd605d76fd2b3c944009997c393baabb8",
-      "bytes": 77435,
-      "afterBytes": 17742,
-      "source": "9dfac1dbfda6bf149b87cbcc9483c5dfd9048744cfcff004a79032476bf67d9f",
-      "at": "2026-10-22T21:20:08.569Z"
+      "sha256": "9364949bd08240ca2e787f1910521e5e30705a8104601846ce48645e9b4a8b8e",
+      "bytes": 21722,
+      "afterBytes": 21722,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.872Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-ogre-mauler-skinned.png": {
-      "sha256": "0e265a9d255c785d92e7e234c90ac5077a538c9cf0b33d1e21f2c2faf3b476a4",
-      "bytes": 66715,
-      "afterBytes": 15884,
-      "source": "58b3ba3bd01a6dee2d5d215a4becd15d0caa8409d6dc1fc24d57bcb9d9dbb067",
-      "at": "2026-10-22T21:20:08.578Z"
+      "sha256": "20d59931bf8f0a6e86c89c67278bcc827cb8af51da275f6b8cb2f05710ebd3df",
+      "bytes": 19973,
+      "afterBytes": 19973,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.873Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-prowler-acolyte-skinned.png": {
-      "sha256": "d5aef339a28f34ee6d896f81a91e711a3ad5eba3a2bc83bb411415d0fb27637a",
-      "bytes": 62185,
-      "afterBytes": 15184,
-      "source": "5c023cf96e82b295202d7f64cf6fdc9dd8ea876ac2a915e89634e82c78b3f632",
-      "at": "2026-10-22T21:20:08.586Z"
+      "sha256": "906a5e9b191862507969ff6fd218ce1db3e693f86b2febdcb97f93fe329547c3",
+      "bytes": 17998,
+      "afterBytes": 17998,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.873Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-prowler-shaman-skinned.png": {
-      "sha256": "5a5c26db31178b95671a7180a1d04a28aac9406e131b16b17b7e62f0bc34cc1d",
-      "bytes": 56675,
-      "afterBytes": 14478,
-      "source": "46a08a88f2f77d4275350f1dba7a6afe9a6dba5ecc4fe274923a24be69bd3c64",
-      "at": "2026-10-22T21:20:08.594Z"
+      "sha256": "b0322040ea0700f4072bf97bdffb15609bc6e82f7b265f9618d29edbb5d4dc2a",
+      "bytes": 16450,
+      "afterBytes": 16450,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.873Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-rock-golem-skinned.png": {
-      "sha256": "d24a0f36b41f19a1018f9ff6483d648c4f023647016879bcc6c5eb804689bbb3",
-      "bytes": 80007,
-      "afterBytes": 17477,
-      "source": "fc0231a259acf344c0999c8b08324083d08b19c7b9e5409195b486d648fcb076",
-      "at": "2026-10-22T21:20:08.604Z"
+      "sha256": "5d9965c528172bbb6f3876b30ee9de7d53f2e2a03d90f7be0493280b19ddc611",
+      "bytes": 23464,
+      "afterBytes": 23464,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.873Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-satyr-hellcaller-skinned.png": {
-      "sha256": "1647047f338203ff318dcfb70186b22f700034e7518809e4ad35bd00fcb658b5",
-      "bytes": 55625,
-      "afterBytes": 13427,
-      "source": "388f67e9c5e643be448b5119666d76ebe7df4a464e0f60e840f58692f779b76b",
-      "at": "2026-10-22T21:20:08.612Z"
+      "sha256": "12312f633485c59f4d4df074654f450b55db72792c20716b3891cb00f80eedc4",
+      "bytes": 16178,
+      "afterBytes": 16178,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.873Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-satyr-soulstealer-skinned.png": {
-      "sha256": "57a838f8349456046bab4529eb1d3c9ca4f783219af4e8df1abe1c6b628580cd",
-      "bytes": 53611,
-      "afterBytes": 13633,
-      "source": "7a5babf8c144c1694fa834bf6173c42b9d9093b23a0f3e1b09f6ef42013c2b58",
-      "at": "2026-10-22T21:20:08.621Z"
+      "sha256": "eaed153d0e0a08f2d19ae2b1b277e1990e8dd89d49702bae82ebae4f0ee6e91d",
+      "bytes": 15419,
+      "afterBytes": 15419,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.874Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-satyr-trickster-skinned.png": {
-      "sha256": "bc97b7142c1ddb0b6c36154f169264305c9e8f9e8f33249a2c5ff2557fee4ff3",
-      "bytes": 50930,
-      "afterBytes": 13498,
-      "source": "1fb7f8be53341e06307bbd1317f4bce75ae65a4cc450d28f1bc2acb128e68485",
-      "at": "2026-10-22T21:20:08.628Z"
+      "sha256": "e342fb011f71a8ed05058e88b922f7332e98b894274369bba12b687c570b9c00",
+      "bytes": 15091,
+      "afterBytes": 15091,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.874Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-small-thunder-lizard-skinned.png": {
-      "sha256": "bc064a204eb9655a3d422d9a30d74e063f1d2d33e0ffcbda53dee72fac2cf5f1",
-      "bytes": 4125,
-      "afterBytes": 1431,
-      "source": "058a751a8f9bafd389c6233cfad6d4e529f0e6f08588f5cd2d0223da3def141e",
-      "at": "2026-10-22T21:20:08.634Z"
+      "sha256": "a4375810ed1a5d50b2fefb0816f72e0e7b8ea8471568580373e80dd1e11f5893",
+      "bytes": 1394,
+      "afterBytes": 1394,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.874Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-warpine-raider-skinned.png": {
-      "sha256": "2cb33bee9549111d787b7efae1824f5a8e97b3a6b15dfe65ffb72bdc70daa436",
-      "bytes": 67331,
-      "afterBytes": 16087,
-      "source": "749cd7aaa13ab20b06e15f61135ca766a5524854daafa9b456624da1ca611186",
-      "at": "2026-10-22T21:20:08.641Z"
+      "sha256": "be32ecf8910abaa3ffc6484d225083d2a9fcde6338ec7173eb8beee05a171252",
+      "bytes": 19155,
+      "afterBytes": 19155,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.874Z"
     },
     "scenarios/moba/assets/icons/heroes/neutral-wildkin-skinned.png": {
-      "sha256": "0972421c139725a2b480eabc72a44d44d6c8f02e72127b090f9b2c9560274751",
-      "bytes": 53788,
-      "afterBytes": 14183,
-      "source": "e920aa454ab79f152a713380d0499f1522abd58c05686850887c4b3f65799017",
-      "at": "2026-10-22T21:20:08.649Z"
+      "sha256": "ef93ac07d51144b872cae745a3e3a395d1c9d7d33a12be171d90d800ac98a849",
+      "bytes": 16494,
+      "afterBytes": 16494,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.874Z"
     },
     "scenarios/moba/assets/icons/heroes/night-stalker-skinned.png": {
-      "sha256": "7fc21063f5a1f0348f9a637138f725c772b00b589a5185152ade590f6679abd0",
-      "bytes": 63249,
-      "afterBytes": 15362,
-      "source": "01f2d40dd4e928d63b4fb02e8eb907fb2fc8fdce88eb87169c590974d93e99ff",
-      "at": "2026-10-22T21:20:08.655Z"
+      "sha256": "4255633e3209a796c2fae99f062254fbb705bc050ce68dca53affc83e9e5ec85",
+      "bytes": 18251,
+      "afterBytes": 18251,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.875Z"
     },
     "scenarios/moba/assets/icons/heroes/obsidian-destroyer-skinned.png": {
-      "sha256": "c40941e536d30965033fb5c8933fb951abbef6a1aa1d3e3970affda961ff7952",
-      "bytes": 62671,
-      "afterBytes": 16447,
-      "source": "3e040ff1db19aec78a46c48823b51193d1dbe59b52a237861f85c47c07634311",
-      "at": "2026-10-22T21:20:08.663Z"
+      "sha256": "d411343254a8dfac8a303b31a391fdacacd009def7b4e43916e33e4feaa1047b",
+      "bytes": 18853,
+      "afterBytes": 18853,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.875Z"
     },
     "scenarios/moba/assets/icons/heroes/ogre-magi-skinned.png": {
-      "sha256": "5911bea746131f9f44b2171a029bf24f4beba64645c959f4bc05c5c5885fc2d1",
-      "bytes": 86972,
-      "afterBytes": 19866,
-      "source": "c491246ca8e6fabb48d3571fd6bd31d44c3dc94120574b8141182250fe5f686d",
-      "at": "2026-10-22T21:20:08.672Z"
+      "sha256": "58fed7ba2f3e573ce1a54fcbde3828a25cd5f641656a42d136111aa218c4bca0",
+      "bytes": 24406,
+      "afterBytes": 24406,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.875Z"
     },
     "scenarios/moba/assets/icons/heroes/omniknight-skinned.png": {
-      "sha256": "1606841fc919b05a9f88618dcf6abf26f6afa7b63d07a0f0956a347004ab3a87",
-      "bytes": 65590,
-      "afterBytes": 16510,
-      "source": "0de5a72af5ef3f74a5618e5e4c3fadbfcff861de7a84885327b3b9782067dbd4",
-      "at": "2026-10-22T21:20:08.680Z"
+      "sha256": "93f7148b7cfb715f2db47166d1a8ea42dab796bb0bf61f47a4380cbf7b9049bb",
+      "bytes": 18913,
+      "afterBytes": 18913,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.875Z"
     },
     "scenarios/moba/assets/icons/heroes/oracle-skinned.png": {
-      "sha256": "6b20e380afc511a9ffd387fa0a2cdc04e5df052f5a7a67e44dea8fab2aaf8987",
-      "bytes": 66232,
-      "afterBytes": 16412,
-      "source": "a0a4686cae4ea83e2f34ce5885f5d44e1cb11c52ab3772739805447271c5bcb2",
-      "at": "2026-10-22T21:20:08.688Z"
+      "sha256": "2c6585e933a736f830a5c0d143000535aed6b273666bb92f7a0e4f083090b080",
+      "bytes": 18742,
+      "afterBytes": 18742,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.876Z"
     },
     "scenarios/moba/assets/icons/heroes/pandaren-brewmaster-skinned.png": {
-      "sha256": "0b89b3dd67a04689ffe66345a96caa52dcf4e648a2f1ffca023bd4c10ff944bd",
-      "bytes": 80546,
-      "afterBytes": 18435,
-      "source": "380077d966b6b8f89a488656ac2fc4a94af78bb71091800f82d685392879787f",
-      "at": "2026-10-22T21:20:08.697Z"
+      "sha256": "009dc94bd648d000aef64032b382c1c1605f7103ec74d283c6d5c8784d16e945",
+      "bytes": 22824,
+      "afterBytes": 22824,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.876Z"
     },
     "scenarios/moba/assets/icons/heroes/phantom-assassin-skinned.png": {
-      "sha256": "44fa885aa0bcdbab0df675b3d2d0d853c9fdfa2fc5733d8a25a4fd81955ad9ea",
-      "bytes": 58051,
-      "afterBytes": 14992,
-      "source": "c4b91a1e48d8f93bcf45cc5d33e37372f7c90aecd02e42d63d381eb119133299",
-      "at": "2026-10-22T21:20:08.704Z"
+      "sha256": "86a4e325d94491024fce90563f06f234d50ebdf786824e4f818bbe379b0e3015",
+      "bytes": 17009,
+      "afterBytes": 17009,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.876Z"
     },
     "scenarios/moba/assets/icons/heroes/phantom-lancer-skinned.png": {
-      "sha256": "6e9cca8f74ab5a4a490b04927ab9903c95d11d5139e7b852a4bd8c8238bdfeb3",
-      "bytes": 67593,
-      "afterBytes": 16808,
-      "source": "3b06dbe7ce6436406216eaf44e751872392541157385e925f0c626238d42202a",
-      "at": "2026-10-22T21:20:08.712Z"
+      "sha256": "cf573c86f9e47f7b5045b7efaccc621733604369889fe45ac587cdcf94a9e50c",
+      "bytes": 19472,
+      "afterBytes": 19472,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.876Z"
     },
     "scenarios/moba/assets/icons/heroes/phoenix-skinned.png": {
-      "sha256": "5a1ec4f9255922099abee89ba7b9e2a4712ec34ecd3cba2e87895cea0ad140a9",
-      "bytes": 62539,
-      "afterBytes": 14401,
-      "source": "73c0736b4df62645ced5909de5c004343e9c1b313d654eecc1df5cecbdfdc1ee",
-      "at": "2026-10-22T21:20:08.720Z"
+      "sha256": "19d6a3d660309b0fb39e3e7e3bcf1520579fd5716d12a422dc25f5a97244713f",
+      "bytes": 17978,
+      "afterBytes": 17978,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.876Z"
     },
     "scenarios/moba/assets/icons/heroes/queen-of-pain-skinned.png": {
-      "sha256": "9def70b51d5b0160936006886b3e03c7d1d9d3f765664ebfdb4d1690d94e242c",
-      "bytes": 50108,
-      "afterBytes": 13534,
-      "source": "4dccc62634d400232a5772ece926bfba5a81bd49977344de3c3b2a054916bc70",
-      "at": "2026-10-22T21:20:08.728Z"
+      "sha256": "29aabb24278daaa06c4b06d4e7e55f18c2b4670d0434f2eb97da59bf134f208a",
+      "bytes": 14651,
+      "afterBytes": 14651,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.877Z"
     },
     "scenarios/moba/assets/icons/heroes/roshan-skinned.png": {
-      "sha256": "19c76ad735ee4067927397784bb5e4f525093b15ecd739133106e9c16a29a7b3",
-      "bytes": 63299,
-      "afterBytes": 15232,
-      "source": "b3c63774a5601452ff516833719fabb6aa722a0a1d7ae623dc2c8f88eea089b3",
-      "at": "2026-10-22T21:20:08.736Z"
+      "sha256": "549cfe9ea2f3e6de923853523dde0aaab83074332c3714c296e42d80e21a7ff0",
+      "bytes": 17956,
+      "afterBytes": 17956,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.877Z"
     },
     "scenarios/moba/assets/icons/heroes/sand-king-skinned.png": {
-      "sha256": "8b08b971ee47d2fec905c077f564d48f2b72da0a916c590fc7c45ff0ff75fb3a",
-      "bytes": 61042,
-      "afterBytes": 15339,
-      "source": "86f5abdb0115bf95e12351a6af3f7c1bacdfb810f0edbac3c12f5eee5855a7a9",
-      "at": "2026-10-22T21:20:08.744Z"
+      "sha256": "866ada5eb2a0cc5edd280aa771ef3a16f1483a269b01ed47bdded8636dd67e7f",
+      "bytes": 18396,
+      "afterBytes": 18396,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.877Z"
     },
     "scenarios/moba/assets/icons/heroes/shadow-demon-skinned.png": {
-      "sha256": "9f079b078a06ee96939fb256b2290f26fcf6dfc74d0b3ea3e888340bf0b1d258",
-      "bytes": 44906,
-      "afterBytes": 12549,
-      "source": "fdae47f7f2531add2c5b8b45cd9efd7a846957e5d4ea6fa1677d5493be2e1e80",
-      "at": "2026-10-22T21:20:08.754Z"
+      "sha256": "1143c147254c1fe1fd35809a3ff86f9e771e05f4bc734ecd3fd6658a6f4ce43e",
+      "bytes": 13689,
+      "afterBytes": 13689,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.877Z"
     },
     "scenarios/moba/assets/icons/heroes/shadow-shaman-skinned.png": {
-      "sha256": "59f40fd2f8824da12ec470131c7f2ee60288434aa9984b2343360c2ba4b6aad0",
-      "bytes": 71137,
-      "afterBytes": 18092,
-      "source": "bf9513710de1dd28eeb6d75e0a72c5ec1bcc2316de4bd5d35911d141fab20163",
-      "at": "2026-10-22T21:20:08.762Z"
+      "sha256": "f5b443b824debf8bd80f255be638abeb853a99c690b840f1f3881c25f7f449a4",
+      "bytes": 20625,
+      "afterBytes": 20625,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.878Z"
     },
     "scenarios/moba/assets/icons/heroes/silencer-skinned.png": {
-      "sha256": "074f72d2d5cdcbdc2cda3f9b73c392e3322d6b89ea2e7cd0f42952fb0b1e9a4e",
-      "bytes": 53292,
-      "afterBytes": 13824,
-      "source": "56f24cac230a0765fb1421d14d07c817b4d6c7bcc180aae3144e44274096ccf4",
-      "at": "2026-10-22T21:20:08.770Z"
+      "sha256": "25afaa598d3ab1c7b161b43132964dd51e187b8e965f6ebb58f460f8a18844ba",
+      "bytes": 15487,
+      "afterBytes": 15487,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.878Z"
     },
     "scenarios/moba/assets/icons/heroes/skeleton-king-skinned.png": {
-      "sha256": "2fca742ebdc810de38f9091a254da2de032c0aef56c61767e0e6845eb60b8572",
-      "bytes": 45060,
-      "afterBytes": 12159,
-      "source": "edc65c5c700f391a5c7f4829ce01020ba4857fa1c53b9d6c9b008182e9d82b6a",
-      "at": "2026-10-22T21:20:08.777Z"
+      "sha256": "c157c9729e8ef6f94bd4ba8313bbe37dcbeaeefdb6dae0c9349926cbba69e6c3",
+      "bytes": 13312,
+      "afterBytes": 13312,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.878Z"
     },
     "scenarios/moba/assets/icons/heroes/skywrath-mage-skinned.png": {
-      "sha256": "938cbf87df527696177cc72ec81998e181af784a78d3aaf30edf60d2b759ae61",
-      "bytes": 71471,
-      "afterBytes": 17893,
-      "source": "c841a497cd741a8e798bf60418eb00bceebc4884f67394a3c8bac16392626f57",
-      "at": "2026-10-22T21:20:08.786Z"
+      "sha256": "c8fbc8fdbb787486ba13da480730758355c3295250fbe984b8b4c8c642a4b92e",
+      "bytes": 20375,
+      "afterBytes": 20375,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.878Z"
     },
     "scenarios/moba/assets/icons/heroes/spectre-skinned.png": {
-      "sha256": "d966e9dc79ae07f73424ecc97ff4b2a17ef4adfe43d9f619b79f2b8cafab55cc",
-      "bytes": 56272,
-      "afterBytes": 14516,
-      "source": "f2c1dbd1d469d5d9908cacf05f176fd2143bc591ac79449a51acbe4ab0a7e7f3",
-      "at": "2026-10-22T21:20:08.793Z"
+      "sha256": "fd38381f193e35c241e7735959ed7737f282fb2ff4cf764824679718d28291e2",
+      "bytes": 16088,
+      "afterBytes": 16088,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.878Z"
     },
     "scenarios/moba/assets/icons/heroes/spiritbreaker-skinned.png": {
-      "sha256": "bf8235255f63cde0892f0252a5d594ccd19365d1f7b2555fc7caed5d55f34867",
-      "bytes": 65207,
-      "afterBytes": 15277,
-      "source": "f0de094cea6fc505bf2fd2d10c330572637dbdc26f566f596918f35640ba0433",
-      "at": "2026-10-22T21:20:08.801Z"
+      "sha256": "2c3826d76d7f87a62e5e4e832f9c77aad199536655ceafae3398bb6a95dd6455",
+      "bytes": 18564,
+      "afterBytes": 18564,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.879Z"
     },
     "scenarios/moba/assets/icons/heroes/storm-spirit-skinned.png": {
-      "sha256": "9d5b54a1c633011acece067e92593ba0e02f7bd14ad112ec007aac31cfe81045",
-      "bytes": 65089,
-      "afterBytes": 16590,
-      "source": "937bf91dac64876ab9df6c344178f424ff1b0bb3be290769c4ecb4563938f3ed",
-      "at": "2026-10-22T21:20:08.809Z"
+      "sha256": "3fb3d556ba09e5dc03934e2167c8060baee5502c108ba86dbcf025faa1760e95",
+      "bytes": 18655,
+      "afterBytes": 18655,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.879Z"
     },
     "scenarios/moba/assets/icons/heroes/templar-assassin-skinned.png": {
-      "sha256": "f4476060df42f34f5c6879b6a8288568553bbe692dea3c8e25ae34d029216742",
-      "bytes": 57087,
-      "afterBytes": 14593,
-      "source": "f898580ae08b6a876792664d8ad5440574d0bd09d5cbd16a2a092d0d4b71f79b",
-      "at": "2026-10-22T21:20:08.816Z"
+      "sha256": "cc8afcea998847f0b02ba2b7909d90bcea2414f4357fb2fecea8d71efb045f6e",
+      "bytes": 16620,
+      "afterBytes": 16620,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.879Z"
     },
     "scenarios/moba/assets/icons/heroes/tidehunter-skinned.png": {
-      "sha256": "1f9b6ab7b032d90ba6b98ccc11ecff1fec9ebcffdb352c543609fcb9c025d47e",
-      "bytes": 54736,
-      "afterBytes": 13283,
-      "source": "a5bee76c86c1a128615c8ed325fb92021a1c8d7471aadd2e8e9658c9c7c0929a",
-      "at": "2026-10-22T21:20:08.824Z"
+      "sha256": "a30c41fe0b4c80dfc6d5904e343ccb74449d378c9aeba55aa2e7616fdfc5c056",
+      "bytes": 15887,
+      "afterBytes": 15887,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.879Z"
     },
     "scenarios/moba/assets/icons/heroes/tinker-skinned.png": {
-      "sha256": "f017e3e8a60d72ca1826636cfea30decbfb2b5ac3cd97816f73f7da43b7f05c1",
-      "bytes": 81585,
-      "afterBytes": 17828,
-      "source": "9789bd807d32690558849e483fde7752774f4e4e6776063422fa15dd9a06fd7b",
-      "at": "2026-10-22T21:20:08.832Z"
+      "sha256": "e9fa530600bcdb0c6827a2b7e48ff392afa3c407845112ec6b66a44ae3e298b8",
+      "bytes": 22752,
+      "afterBytes": 22752,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.880Z"
     },
     "scenarios/moba/assets/icons/heroes/troll-warlord-skinned.png": {
-      "sha256": "37e4352fbe484e3cedeb88d7295965e8bba7ae243ca633dd9a1c07b637bec034",
-      "bytes": 78157,
-      "afterBytes": 19139,
-      "source": "99e282ce3c7ad55e2881121c84641727b4c2178e3984f5a26338dbfe57abb7aa",
-      "at": "2026-10-22T21:20:08.842Z"
+      "sha256": "ace35499087281cf9354aade6940d6c73a252071a9eccaf5fdb665c0ce8db5d9",
+      "bytes": 22222,
+      "afterBytes": 22222,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.880Z"
     },
     "scenarios/moba/assets/icons/heroes/tuskarr-skinned.png": {
-      "sha256": "aca2fb4dd4c2da241d608e576641f2b3f175e2ba71303a40d730af166f4a9c83",
-      "bytes": 65842,
-      "afterBytes": 16065,
-      "source": "b33f5fb09a842fbc92810f37422dcd4deff5615fa0661b27fcb28e8f8d674dec",
-      "at": "2026-10-22T21:20:08.851Z"
+      "sha256": "340d544a6f785d231d4273b54deb74af39dfe99acf6cbcb5455c730bcba50036",
+      "bytes": 19626,
+      "afterBytes": 19626,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.880Z"
     },
     "scenarios/moba/assets/icons/heroes/undying-skinned.png": {
-      "sha256": "77dc7e01fe38d38341f4cb4835623bc61ccc89fa5cb139c8fb48a9ede5a37a43",
-      "bytes": 58207,
-      "afterBytes": 14772,
-      "source": "0dffa864b2e6aa6f69593ed0269244f9a8e940c04d78c392472f66d84c59218b",
-      "at": "2026-10-22T21:20:08.859Z"
+      "sha256": "8fa465482be627d2f10854016b1e977d20e069fcdacf200b56460dead72ee968",
+      "bytes": 16925,
+      "afterBytes": 16925,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.880Z"
     },
     "scenarios/moba/assets/icons/heroes/vengeful-spirit-skinned.png": {
-      "sha256": "fda11e2a41a62fd61e1e961ed75e15c9fc6528f675f899dad9e5ce429fd795ec",
-      "bytes": 60069,
-      "afterBytes": 15369,
-      "source": "a2ddeb6be82992f38d2cb6d9118c53df9fc9c6bee24663aefd5355d55cd4d2ee",
-      "at": "2026-10-22T21:20:08.867Z"
+      "sha256": "3be368d7cb6fe7d3f2c7a77fd8255a3aeb0325985f2db3a344be965b04ab7580",
+      "bytes": 17882,
+      "afterBytes": 17882,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.881Z"
     },
     "scenarios/moba/assets/icons/heroes/venomancer-skinned.png": {
-      "sha256": "d0ce883506dfc4b11757d246f39f1e652ea8ed423e960b4822706bf9c740c8a3",
-      "bytes": 52951,
-      "afterBytes": 12874,
-      "source": "f780d81292a5614d932020e42e2f2975ef8df997a9fa0700ba766e5293b4fc4c",
-      "at": "2026-10-22T21:20:08.874Z"
+      "sha256": "ae788a0b5b7808c1e20cda9208a084e47a22e0bc7681e23e99e5304e5b6cb9b3",
+      "bytes": 15302,
+      "afterBytes": 15302,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.881Z"
     },
     "scenarios/moba/assets/icons/heroes/warlock-skinned.png": {
-      "sha256": "b347a7a71ce742e9b1fbf933ea5d0922b580ccc6957b94c5c93b06b7f9daa96b",
-      "bytes": 68890,
-      "afterBytes": 17655,
-      "source": "0d693ec7cdde8cf5c38d81baaa897924271d48b75789c783da6e61c90581b80f",
-      "at": "2026-10-22T21:20:08.883Z"
+      "sha256": "4f0f669028f015d6afcf748fa8576aa28a79b788db98401427d9e1d23d19497a",
+      "bytes": 19858,
+      "afterBytes": 19858,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.881Z"
     },
     "scenarios/moba/assets/icons/heroes/windrunner-skinned.png": {
-      "sha256": "002349f10910665ec7415fe436f74f88136482bfa06c350bce6e13c04e60242b",
-      "bytes": 52288,
-      "afterBytes": 13052,
-      "source": "6c10fabb3859ac3277287219f43b4616739dcb6a8654e29e0090ee6ae963cde5",
-      "at": "2026-10-22T21:20:08.890Z"
+      "sha256": "c6e6cfd91b748c3311ff795f5511c4cf6a59157cabdbe7d04c9b6e6a13ba60dc",
+      "bytes": 15108,
+      "afterBytes": 15108,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.881Z"
     },
     "scenarios/moba/assets/icons/heroes/winter-wyvern-skinned.png": {
-      "sha256": "6335be64b766b6e7c11e6a985d17f4bd32a8c7e6ae3e8cedfd89d52e519d95bd",
-      "bytes": 63058,
-      "afterBytes": 16092,
-      "source": "ea34df8332790f797cdb31380c9e01f6f5afedcb2a76ce01871d89f7ae768a55",
-      "at": "2026-10-22T21:20:08.896Z"
+      "sha256": "91a609ff724c4504c91e2e6e97ee646942e53b2fd8075ecb671638318344e7d0",
+      "bytes": 18287,
+      "afterBytes": 18287,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.882Z"
     },
     "scenarios/moba/assets/icons/heroes/witch-doctor-skinned.png": {
-      "sha256": "058a14f04d778fbd3985b9c10f8e8025e17b9f719a46cbde686e2d2d42039ed7",
-      "bytes": 56239,
-      "afterBytes": 13866,
-      "source": "fe6c530d27237288c19838359ac6755b360cf43fea792350d7e6ce9493c33361",
-      "at": "2026-10-22T21:20:08.905Z"
+      "sha256": "9bf5264c2a5711a1f3eb358fb468e0ee11f9f4c32f0bbd163193a18a8ed56f14",
+      "bytes": 16417,
+      "afterBytes": 16417,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.882Z"
+    },
+    "scenarios/moba/assets/icons/abilities/arcane_lift.png": {
+      "sha256": "1f661b18b26074a24ac4cf9f9cb0d4054149da50020c4bb7927992fab29067c2",
+      "bytes": 17963,
+      "afterBytes": 17963,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.840Z"
+    },
+    "scenarios/moba/assets/icons/abilities/bastion_mend.png": {
+      "sha256": "cb114dd115a73c20e7e0fe24e3f3db96ba731b74f3c902a872ba9532ae8e99d8",
+      "bytes": 17200,
+      "afterBytes": 17200,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.840Z"
+    },
+    "scenarios/moba/assets/icons/abilities/blade_dance.png": {
+      "sha256": "56bcd0bf7f7de383ddc5b8cbefc759829c6d94477a4b835ddac64d795d0d6da8",
+      "bytes": 17981,
+      "afterBytes": 17981,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.841Z"
+    },
+    "scenarios/moba/assets/icons/abilities/briar_heal.png": {
+      "sha256": "0c71b755f73aa26020e445c6b722b005bbc2216ad08ad0279cd923aecc6c58b6",
+      "bytes": 21925,
+      "afterBytes": 21925,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.841Z"
+    },
+    "scenarios/moba/assets/icons/abilities/bulwark_stance.png": {
+      "sha256": "e075493b6c3aa82f43bb94c1b77b36dedb0c8a2cc3fe27be62582f5c601bda84",
+      "bytes": 19134,
+      "afterBytes": 19134,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.841Z"
+    },
+    "scenarios/moba/assets/icons/abilities/chain_storm.png": {
+      "sha256": "9d82f1ba0fd708502402485fd8ffd868cd87426ea86f607d84fc48677214b9b8",
+      "bytes": 20435,
+      "afterBytes": 20435,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.842Z"
+    },
+    "scenarios/moba/assets/icons/abilities/crush_step.png": {
+      "sha256": "2af9f4165dffde9a1e5555b392f4fb41dce813c2c6c8d3f472b1030519c42755",
+      "bytes": 18563,
+      "afterBytes": 18563,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.843Z"
+    },
+    "scenarios/moba/assets/icons/abilities/death_glide.png": {
+      "sha256": "4aaaba020d6d53b6358962e994a926bbcdadb5fe7478e0182ac0ebae88f47898",
+      "bytes": 18559,
+      "afterBytes": 18559,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.844Z"
+    },
+    "scenarios/moba/assets/icons/abilities/ember_bolt.png": {
+      "sha256": "4fcd0f8843b188c730df6732838777e6ff1e3218bd5fd1e20129d15f530851c2",
+      "bytes": 17394,
+      "afterBytes": 17394,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.844Z"
+    },
+    "scenarios/moba/assets/icons/abilities/ember_wave.png": {
+      "sha256": "f859adb9254803caa01be51d355e07834261fbd0e894ee6e55af1baa11c6fc4b",
+      "bytes": 20265,
+      "afterBytes": 20265,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.844Z"
+    },
+    "scenarios/moba/assets/icons/abilities/evade_step.png": {
+      "sha256": "c8760bd8bef9e1b6ce690475a6efc66da8ec3583cec7a8ba3f054c6fab94685e",
+      "bytes": 17109,
+      "afterBytes": 17109,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.845Z"
+    },
+    "scenarios/moba/assets/icons/abilities/flame_leap.png": {
+      "sha256": "f0fc59d2ca88b43b606533a5606cbf491e50398db35eb45d6e700ed3a1555d1a",
+      "bytes": 19695,
+      "afterBytes": 19695,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.845Z"
+    },
+    "scenarios/moba/assets/icons/abilities/frost_bolt.png": {
+      "sha256": "384ab008d218ed5636ee9ecee6fb9dd597ea8c84852d2b39f5ff32db14dd7cf6",
+      "bytes": 14777,
+      "afterBytes": 14777,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.845Z"
+    },
+    "scenarios/moba/assets/icons/abilities/frost_nova.png": {
+      "sha256": "c0392cf95eca688bca4473f1b0204380ab25de7535b531b3a0f410568dc00455",
+      "bytes": 21057,
+      "afterBytes": 21057,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.845Z"
+    },
+    "scenarios/moba/assets/icons/abilities/frost_shield.png": {
+      "sha256": "ed14f3436c3c5b1e6f90f29b77601172a155685fa8112066081d230fa07379ca",
+      "bytes": 22317,
+      "afterBytes": 22317,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.846Z"
+    },
+    "scenarios/moba/assets/icons/abilities/gale_mark.png": {
+      "sha256": "b54bc2aaadf28e8f52af92cd1b40e4c22fb5d69e8154b88f2d3ff63babbbbe62",
+      "bytes": 16296,
+      "afterBytes": 16296,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.846Z"
+    },
+    "scenarios/moba/assets/icons/abilities/gale_shot.png": {
+      "sha256": "806bc401433a3339064eaab10fcd00b8a1cec0342b61f24fbdc95fd3251668d2",
+      "bytes": 19851,
+      "afterBytes": 19851,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.846Z"
+    },
+    "scenarios/moba/assets/icons/abilities/glacial_storm.png": {
+      "sha256": "4ba01e5f7de9730104ec9e6168738de5f394947af0e90b32f3a5f6203d49db6e",
+      "bytes": 19081,
+      "afterBytes": 19081,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.847Z"
+    },
+    "scenarios/moba/assets/icons/abilities/gust_step.png": {
+      "sha256": "1841cca87d5ba2108deb2f79d9b4f437a919e2fe6040fff177b2c4ad467e13de",
+      "bytes": 19007,
+      "afterBytes": 19007,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.847Z"
+    },
+    "scenarios/moba/assets/icons/abilities/hawk_eye.png": {
+      "sha256": "c9942bed8a758bb695880ee2458f03abb807956eab0391133b0fbef2aab0750d",
+      "bytes": 20070,
+      "afterBytes": 20070,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.847Z"
+    },
+    "scenarios/moba/assets/icons/abilities/hurricane.png": {
+      "sha256": "8481add95614a66f7a19a4cf2bdfc5bed08c3e386f54788936ee16e8411ce05e",
+      "bytes": 16625,
+      "afterBytes": 16625,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.848Z"
+    },
+    "scenarios/moba/assets/icons/abilities/ice_ring.png": {
+      "sha256": "701860a0a1096f3c5a53d0f4654e53acbeab1843da200509254afc167f4acd99",
+      "bytes": 21584,
+      "afterBytes": 21584,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.848Z"
+    },
+    "scenarios/moba/assets/icons/abilities/inferno_storm.png": {
+      "sha256": "31d059253fe9930095f8454f952a8b34473a38db872de1a47eef7ddab05896eb",
+      "bytes": 22993,
+      "afterBytes": 22993,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.848Z"
+    },
+    "scenarios/moba/assets/icons/abilities/iron_charge.png": {
+      "sha256": "a7074e534d03b7efd423f6fdba2e3deb766e6da5349fbcbabfd716349e311750",
+      "bytes": 20207,
+      "afterBytes": 20207,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.848Z"
+    },
+    "scenarios/moba/assets/icons/abilities/iron_guard.png": {
+      "sha256": "fe1db424c671550457ae08e8ebfa906fc1bff8dcb83a5f2fb2c9453008d98d46",
+      "bytes": 20216,
+      "afterBytes": 20216,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.849Z"
+    },
+    "scenarios/moba/assets/icons/abilities/iron_roar.png": {
+      "sha256": "ed2f356b76eee296a722068eaedc5fead28ec27c88c7a85f85b7970aaaeef6c1",
+      "bytes": 19050,
+      "afterBytes": 19050,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.849Z"
+    },
+    "scenarios/moba/assets/icons/abilities/iron_slam.png": {
+      "sha256": "11dfede49287354243656f95d96f10a2f2c52236280162907b85eb9999dd27b8",
+      "bytes": 17374,
+      "afterBytes": 17374,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.849Z"
+    },
+    "scenarios/moba/assets/icons/abilities/iron_titan.png": {
+      "sha256": "a8f22a711d023d6f851507a61a1f5dd86fd108193c5c1e61091e332196c1cb7b",
+      "bytes": 16230,
+      "afterBytes": 16230,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.850Z"
+    },
+    "scenarios/moba/assets/icons/abilities/kindle_aura.png": {
+      "sha256": "6b7621392d3e3d95d21946ebe9df34d8cd718ec8331a97e591772961319ad473",
+      "bytes": 22675,
+      "afterBytes": 22675,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.850Z"
+    },
+    "scenarios/moba/assets/icons/abilities/last_wall.png": {
+      "sha256": "941230c449c11e9ec0da4e9d574bcf03989302d10e05551766959396e6bd6de9",
+      "bytes": 21307,
+      "afterBytes": 21307,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.850Z"
+    },
+    "scenarios/moba/assets/icons/abilities/piercing_volley.png": {
+      "sha256": "6c98342f1fa4f2182c7d190262dc5a5d9718df9ed14bb5052b6da5e887b1b435",
+      "bytes": 17731,
+      "afterBytes": 17731,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.851Z"
+    },
+    "scenarios/moba/assets/icons/abilities/rapid_fire.png": {
+      "sha256": "69ab9dc16ae8a8661b6697f9b2645673fdcb4cbdff6cb7a76b48ea68c993aece",
+      "bytes": 22933,
+      "afterBytes": 22933,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.851Z"
+    },
+    "scenarios/moba/assets/icons/abilities/root_step.png": {
+      "sha256": "f9b20163941928ba728a9c6383fe5654722c0a12e8a8a93d5318a164e44d2a62",
+      "bytes": 17755,
+      "afterBytes": 17755,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.852Z"
+    },
+    "scenarios/moba/assets/icons/abilities/shade_strike.png": {
+      "sha256": "1f4cfae503a190f7c89325a9f47773dd07e883b7e66fbe464b9334732e31dd1b",
+      "bytes": 17009,
+      "afterBytes": 17009,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.852Z"
+    },
+    "scenarios/moba/assets/icons/abilities/shadow_mark.png": {
+      "sha256": "5747ba313d1fae16532676dfe90a971a4e14857066c5f0993eb63f6429f92fd4",
+      "bytes": 21882,
+      "afterBytes": 21882,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.852Z"
+    },
+    "scenarios/moba/assets/icons/abilities/smoke_step.png": {
+      "sha256": "3960c9347fabb425c1ed0eb976a664fd589051403d8e047c85b4ee83b866b6ea",
+      "bytes": 24206,
+      "afterBytes": 24206,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.852Z"
+    },
+    "scenarios/moba/assets/icons/abilities/spark_bolt.png": {
+      "sha256": "d76d066b59c6b2282cb24ce72ea032a5f6f84ec8253c345cfe958a4b46f9cde2",
+      "bytes": 19213,
+      "afterBytes": 19213,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.853Z"
+    },
+    "scenarios/moba/assets/icons/abilities/storm_rain.png": {
+      "sha256": "8c23f1f529c0d37499d69bfd098430442bf0126b517d8ab27f726060238b8e21",
+      "bytes": 21143,
+      "afterBytes": 21143,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.853Z"
+    },
+    "scenarios/moba/assets/icons/abilities/storm_sky.png": {
+      "sha256": "57f9d62c3be4821386365eb043b3ad9f0cafb6ff40f77b32d180ded94e585389",
+      "bytes": 20361,
+      "afterBytes": 20361,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.853Z"
+    },
+    "scenarios/moba/assets/icons/abilities/swift_arrow.png": {
+      "sha256": "34dae2f56d86398ee7496ea0da96918932ca385f52b19b711ccf552ef516921a",
+      "bytes": 18829,
+      "afterBytes": 18829,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.853Z"
+    },
+    "scenarios/moba/assets/icons/abilities/taunt_cry.png": {
+      "sha256": "8f17afa9c1a299d2c65fcd29df114f9fb348ed61644632b9c4359fffb11a68f0",
+      "bytes": 18255,
+      "afterBytes": 18255,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.854Z"
+    },
+    "scenarios/moba/assets/icons/abilities/thorn_hide.png": {
+      "sha256": "f5e148e61e7d45570e65d1e3568b815bc34598260a715dacbe1ce66f92ff2f96",
+      "bytes": 16784,
+      "afterBytes": 16784,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.854Z"
+    },
+    "scenarios/moba/assets/icons/abilities/tide_mend.png": {
+      "sha256": "fb8faefe4288ff607d8c4fedaeecfa66fb9a82830ff398b3bdcc1b55fb9142b9",
+      "bytes": 20976,
+      "afterBytes": 20976,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.854Z"
+    },
+    "scenarios/moba/assets/icons/abilities/tide_ward.png": {
+      "sha256": "81a84ff6758dfd500373158f578877ddc31b521a6219026fc81860a1d0af90c6",
+      "bytes": 19449,
+      "afterBytes": 19449,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.854Z"
+    },
+    "scenarios/moba/assets/icons/abilities/tide_wave.png": {
+      "sha256": "6e861a1fd78a2d04a3932722c160fe70ee9cd1deda234388bb2ce2196e646e43",
+      "bytes": 18801,
+      "afterBytes": 18801,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.855Z"
+    },
+    "scenarios/moba/assets/icons/abilities/tsunami.png": {
+      "sha256": "7dc078e820dfaa1ac41599e4e6f9f8076880eaeceda32413d3bba2e955a4c6f4",
+      "bytes": 20726,
+      "afterBytes": 20726,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.855Z"
+    },
+    "scenarios/moba/assets/icons/abilities/undertow.png": {
+      "sha256": "915ed68c0f12849f4fa302af5fe95192130e6dc96066bdf7be3b7c0a691c4cc4",
+      "bytes": 20224,
+      "afterBytes": 20224,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.855Z"
+    },
+    "scenarios/moba/assets/icons/abilities/vine_pull.png": {
+      "sha256": "2c809c42a1bbd3904ee1d6380389ee5642ef72418bb42b30fa4a3c53b80e7dc2",
+      "bytes": 19190,
+      "afterBytes": 19190,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.855Z"
+    },
+    "scenarios/moba/assets/icons/abilities/wild_growth.png": {
+      "sha256": "d26f3b67cf4ac4728e87a5655ea5d46966c36a3acd7ccd926fc721f96bba43a4",
+      "bytes": 15703,
+      "afterBytes": 15703,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.856Z"
+    },
+    "scenarios/moba/assets/icons/abilities/wind_shield.png": {
+      "sha256": "c83c11ce2563f4a9e1e48bd90d08b6203ba29790de2c78ccec6bb2aa70b9a69a",
+      "bytes": 18696,
+      "afterBytes": 18696,
+      "unchanged": true,
+      "at": "2026-10-22T21:43:11.856Z"
     }
   }
 }

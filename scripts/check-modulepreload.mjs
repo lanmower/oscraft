@@ -38,16 +38,32 @@ const entries = [...html.matchAll(/<script\b[^>]*\btype\s*=\s*"module"[^>]*\bsrc
 const hinted = [...html.matchAll(/<link\b[^>]*\brel\s*=\s*"modulepreload"[^>]*\bhref\s*=\s*"([^"]+)"/g)]
   .map((m) => m[1].replace(/^\.\//, ""));
 
-// The import map: bare specifier -> URL. Read from the page, so a version bump there is picked up here.
+// The import map: bare specifier -> URL, and a key ending in "/" is a prefix mapping that maps the
+// rest of the specifier onto it. Read from the page, so a version bump there is picked up here.
 const importMap = JSON.parse(
   html.match(/<script\b[^>]*\btype\s*=\s*"importmap"[^>]*>([\s\S]*?)<\/script>/)?.[1] ?? '{"imports":{}}',
 ).imports ?? {};
 
+// Resolves a bare specifier the way the browser does: an exact key first, then the longest prefix key.
+const resolveSpec = (spec) => {
+  if (typeof importMap[spec] === "string") return importMap[spec];
+  const prefixes = Object.keys(importMap).filter((k) => k.endsWith("/") && spec.startsWith(k));
+  if (prefixes.length === 0) return null;
+  const key = prefixes.sort((a, b) => b.length - a.length)[0];
+  const tail = importMap[key];
+  if (!/^(\.{1,2}\/|https?:\/\/)/.test(tail)) return null;
+  return tail + spec.slice(key.length);
+};
+
 const preconnected = [...html.matchAll(/<link\b[^>]*\brel\s*=\s*"preconnect"[^>]*\bhref\s*=\s*"([^"]+)"/g)]
   .map((m) => m[1]);
 
-// A static import or re-export: `import ... from "x"`, `import "x"`, `export ... from "x"`.
-const STATIC = /^\s*(?:import|export)\s(?:[^"']*?\bfrom\s*)?["']([^"']+)["']/gm;
+// A static import or re-export, in source or in a bundled module. Bundles are one long line with no
+// space after `import`, so the two shapes are matched anywhere rather than anchored at a line start:
+// `... from "x"` (import, export, and `export ... from`) and `import "x"`. A dynamic import() is
+// neither, which is what makes it a deliberate deferral.
+const FROM = /\bfrom\s*["']([^"']+)["']/g;
+const BARE_IMPORT = /\bimport\s*["']([^"']+)["']/g;
 
 const reachable = new Set();
 const bare = new Set();
@@ -60,25 +76,36 @@ const walk = (file) => {
   } catch {
     return; // a path the loader resolves elsewhere (bare specifier, vendor file); not hinted here
   }
-  STATIC.lastIndex = 0;
-  let m;
-  while ((m = STATIC.exec(src))) {
-    const spec = m[1];
-    if (!spec.startsWith(".")) { bare.add(spec); continue; } // resolved through the import map below
-    const rel = path.normalize(path.join(path.dirname(file), spec)).split(path.sep).join("/");
-    if (rel.startsWith("..")) continue;
-    walk(rel);
+  for (const re of [FROM, BARE_IMPORT]) {
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(src))) {
+      const spec = m[1];
+      if (!spec.startsWith(".")) { bare.add(spec); continue; } // resolved through the import map below
+      const rel = path.normalize(path.join(path.dirname(file), spec)).split(path.sep).join("/");
+      if (rel.startsWith("..")) continue;
+      walk(rel);
+    }
   }
 };
 for (const entry of entries) walk(entry);
 for (const entry of entries) reachable.delete(entry);
 
+// Import-map entries that resolve to a file beside the page are walked into the graph too: the
+// browser reaches them only after it has parsed play.js, so they need the same hint as the rest.
+// A bare specifier with no import-map entry is not hinted: the page cannot load it anyway, and
+// naming it here would be a guess.
+const mapped = [...bare].map(resolveSpec).filter((url) => typeof url === "string");
+const localMapped = mapped.filter((url) => url.startsWith("./")).map((url) => url.replace(/^\.\//, ""));
+for (const entry of localMapped) walk(entry);
+for (const entry of entries) reachable.delete(entry);
+
 const listed = [...reachable].sort();
 const fix = process.argv.includes("--fix");
 
-// Cross-origin modules, with the origins they need. A bare specifier with no import-map entry is not
-// hinted: the page cannot load it anyway, and naming it here would be a guess.
-const remoteUrls = [...bare].map((spec) => importMap[spec]).filter((url) => typeof url === "string" && /^https?:\/\//.test(url));
+// Cross-origin modules and the origins they need: a second origin costs a DNS lookup and a TLS
+// handshake before the download, so each wants a preconnect as well as a modulepreload.
+const remoteUrls = mapped.filter((url) => /^https?:\/\//.test(url));
 const remoteOrigins = [...new Set(remoteUrls.map((url) => new URL(url).origin))].sort();
 
 const missing = listed.filter((f) => !hinted.includes(f));
@@ -86,8 +113,13 @@ const missing = listed.filter((f) => !hinted.includes(f));
 const stale = hinted.filter((f) => !listed.includes(f) && !remoteUrls.includes(f));
 const missingRemote = remoteUrls.filter((u) => !hinted.includes(u));
 const missingOrigins = remoteOrigins.filter((o) => !preconnected.includes(o));
+// A preconnect to an origin nothing is fetched from any more: it opens a socket the page then wastes.
+const staleOrigins = preconnected.filter((o) => !remoteOrigins.includes(o));
 
-if (missing.length === 0 && stale.length === 0 && missingRemote.length === 0 && missingOrigins.length === 0) {
+const clean =
+  missing.length === 0 && stale.length === 0 && missingRemote.length === 0 &&
+  missingOrigins.length === 0 && staleOrigins.length === 0;
+if (clean) {
   console.log(
     `modulepreload ok entries=${entries.length} hinted=${hinted.length}` +
       ` remote=${remoteUrls.length} origins=${remoteOrigins.length}`,
@@ -96,11 +128,12 @@ if (missing.length === 0 && stale.length === 0 && missingRemote.length === 0 && 
 }
 
 const show = (label, files) => `${label}:\n${files.map((f) => `  ${f}`).join("\n")}`;
-console.error(`modulepreload drift (${missing.length} missing, ${stale.length} stale, ${missingRemote.length} remote, ${missingOrigins.length} origins)`);
+console.error(`modulepreload drift (${missing.length} missing, ${stale.length} stale, ${missingRemote.length} remote, ${missingOrigins.length} origins, ${staleOrigins.length} stale origins)`);
 if (missing.length) console.error(show("imported but not hinted", missing));
 if (stale.length) console.error(show("hinted but not imported", stale));
 if (missingRemote.length) console.error(show("import-map module not preloaded", missingRemote));
 if (missingOrigins.length) console.error(show("origin not preconnected", missingOrigins));
+if (staleOrigins.length) console.error(show("preconnected but nothing is fetched from it", staleOrigins));
 
 if (!fix) {
   console.error("\nrun with --fix to rewrite js/client/play.html");

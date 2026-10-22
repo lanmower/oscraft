@@ -1,7 +1,13 @@
 // Net client: WebGL2 map and unit view. Map and units come from the same assets as the browser
 // page (map.bin and the wasm sim pkg). Joins a wireweave DataSession room named by the URL hash.
 // There is no fallback path: a missing or failed asset is shown on the page (see recordAssetError), never drawn as something else.
-import { createDataSession, createFSM, NostrAuth, RelayPool } from "wireweave";
+// Not the wireweave barrel: it re-exports every module it has, 30 files and 233 KB, and this page
+// uses four symbols. The import map maps the wireweave/ prefix to the library's source, so these four
+// pull 51 KB across eight modules. Change the map, not these lines, if that layout ever moves.
+import { createDataSession } from "wireweave/data.js";
+import { createFSM } from "wireweave/fsm.js";
+import { NostrAuth } from "wireweave/auth.js";
+import { RelayPool } from "wireweave/relay-pool.js";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { createAmbientFx, AMBIENT_KINDS } from "./ambient_fx.js";
@@ -2400,7 +2406,13 @@ async function main() {
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
   widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
   // A pack image node names a path inside the pack; resolve it the same way every other pack file is.
-  setImageSrcResolver((src) => packUrl(src.replace(/^\.?\//, "")));
+  // An icon path is resolved under the asset root instead, because that is where the icons live and a
+  // panel should not have to know the root's name: it writes "icons/heroes/<model>.png" and stops.
+  setImageSrcResolver((src) => {
+    const rel = src.replace(/^\.?\//, "");
+    const key = manifest.assets?.icons;
+    return key && rel.startsWith(`${key}/`) ? assetUrl(key, rel.slice(key.length + 1)) : packUrl(rel);
+  });
   const eventsBase = params.get("events");
   const modUi = createModUi({
     root: document.body,
