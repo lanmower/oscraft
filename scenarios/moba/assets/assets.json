@@ -1,6 +1,6 @@
 {
- "count": 924,
- "total_bytes": 73324225,
+ "count": 925,
+ "total_bytes": 73441269,
  "items": [
   {
    "id": "rock",
@@ -6611,6 +6611,14 @@
    "path": "models/torch-glowing.glb",
    "placed_by": "doodads.json",
    "bytes": 46560,
+   "role": "prop"
+  },
+  {
+   "id": "mushrooms",
+   "kind": "model",
+   "path": "models/mushrooms.glb",
+   "placed_by": "doodads.json",
+   "bytes": 117044,
    "role": "prop"
   }
  ],

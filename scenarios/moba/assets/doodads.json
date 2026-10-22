@@ -910,5 +910,6 @@
   "remains_scorched": "models/remains-scorched.glb",
   "torch": "models/torch.glb",
   "skull_pile": "models/skull-pile.glb",
-  "torch_glowing": "models/torch-glowing.glb"
+  "torch_glowing": "models/torch-glowing.glb",
+  "mushrooms": "models/mushrooms.glb"
 }

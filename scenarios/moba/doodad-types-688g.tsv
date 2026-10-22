@@ -20,7 +20,7 @@ LOic	17		Corpse Impaled	debris_wood	name from Doodads.slk + WorldEditStrings.txt
 NObt	15		Bats	patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Bats); interim kind until its own model exists
 ZRrk	13			campfire_stand	inferred prop from cluster; confidence medium
 LOsm	12		Smoke Smudge	patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Smoke Smudge); interim kind until its own model exists
-CPms	12		Mushrooms	plant	name from Doodads.slk + WorldEditStrings.txt (Mushrooms); interim kind until its own model exists
+CPms	12		Mushrooms	mushrooms	name from Doodads.slk + WorldEditStrings.txt (Mushrooms); interim kind until its own model exists
 AObd	11		Birds	patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Birds); interim kind until its own model exists
 ARrk	10		Rocks	rock	name from Doodads.slk + WorldEditStrings.txt (Rocks); interim kind until its own model exists
 LOfl	9		Flies	patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Flies); interim kind until its own model exists

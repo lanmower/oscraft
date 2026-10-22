@@ -779,5 +779,6 @@
  "remains-scorched": 0.864,
  "torch": 0.099,
  "skull-pile": 0.864,
- "torch-glowing": 0.09
+ "torch-glowing": 0.09,
+ "mushrooms": 0.363
 }
