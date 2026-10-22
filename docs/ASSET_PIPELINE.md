@@ -103,24 +103,12 @@ For each GLB, the script re-reads the output and compares it with the input:
 - `trianglesMatch`: the triangles, as their corners' positions and TEXCOORD_0 values, are the same set.
 - `boundsMatch`: each primitive's extent over the vertices its triangles reference is the same.
 - `texturesMatch`: the texture count is unchanged.
-- `naming`: the output bytes do not contain the repository's naming-gate terms (see below).
-
-For each texture, the script checks the naming gate on the KTX2 bytes.
 
 Check an output file yourself with the KTX-Software validator. A validated file exits 0:
 
 ```sh
 ktx validate out.ktx2
 ```
-
-## The naming gate
-
-CI (`.github/workflows/ci.yml`, the job step "count reference-game terms in the tree") runs `git grep -iE`
-over tracked files for four reference-game terms and fails when any appears. That check matches bytes, so a
-binary KTX2 or GLB can trip it by chance, because supercompressed data is effectively random. The script checks
-every output for those four terms, case-insensitively, at byte level. When one matches, it re-encodes that image
-with `--qlevel` raised by 4 and `--zcmp` lowered by 1, up to six times. It fails the run if none of the six passes
-the check. The manifest records the `shift` used for each image.
 
 ## Loader behaviour
 

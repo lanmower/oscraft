@@ -23,9 +23,6 @@ import { MeshoptEncoder, MeshoptDecoder } from 'meshoptimizer';
 
 const run = promisify(execFile);
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg']);
-// The naming gate's reference-game terms (ci.yml, "count reference-game terms in the tree"), matched
-// case-insensitively on bytes. A KTX2 payload that matches is re-encoded with a shifted quality setting.
-const NAMING_TERMS = ['st' + 'arcraft', 'sc' + '2', 'blizz' + 'ard', 'gal' + 'axy'].map((text) => Buffer.from(text));
 // Data-map file names: height maps are encoded linear with ETC1S, normal and material maps linear with UASTC.
 const HEIGHT_MAP_NAME = /_(disp|displacement|height)$/i;
 const DATA_MAP_NAME = /_(normal|normals|rough|metal|occlusion|ao)$/i;
@@ -34,7 +31,6 @@ const ETC1S_QLEVEL = 192;
 const ETC1S_CLEVEL = 2;
 const UASTC_LEVEL = 2;
 const ZCMP_LEVEL = 18;
-const MAX_NAMING_SHIFTS = 6;
 
 function parseArgs(argv) {
   const positional = [];
@@ -46,31 +42,22 @@ function parseArgs(argv) {
   return { positional, flags };
 }
 
-function hasNamingTerm(bytes) {
-  const lower = Buffer.from(Buffer.from(bytes).toString('latin1').toLowerCase(), 'latin1');
-  return NAMING_TERMS.some((term) => lower.includes(term));
-}
-
-// `shift` moves the encoder quality so a payload that trips the naming gate gets different bytes.
-async function encodeKtx2(toktx, inputPath, outputPath, { linear, uastc, shift }) {
+async function encodeKtx2(toktx, inputPath, outputPath, { linear, uastc }) {
   const args = ['--t2', '--genmipmap', '--assign_oetf', linear ? 'linear' : 'srgb'];
-  if (uastc) args.push('--encode', 'uastc', '--uastc', String(UASTC_LEVEL), '--zcmp', String(ZCMP_LEVEL - shift));
-  else args.push('--encode', 'etc1s', '--qlevel', String(ETC1S_QLEVEL + shift * 4), '--clevel', String(ETC1S_CLEVEL));
+  if (uastc) args.push('--encode', 'uastc', '--uastc', String(UASTC_LEVEL), '--zcmp', String(ZCMP_LEVEL));
+  else args.push('--encode', 'etc1s', '--qlevel', String(ETC1S_QLEVEL), '--clevel', String(ETC1S_CLEVEL));
   await run(toktx, [...args, outputPath, inputPath], { maxBuffer: 1 << 26 });
   return readFile(outputPath);
 }
 
-// Encodes image bytes to KTX2 and returns { bytes, shift }. Each call gets a unique temp name, so parallel jobs
-// that share a texture never write the same input file.
+// Encodes image bytes to KTX2. Each call gets a unique temp name, so parallel jobs that share a texture
+// never write the same input file.
 async function encodeImage(toktx, workDir, bytes, mime, settings) {
   const unique = randomUUID();
   const input = join(workDir, `${unique}${mime === 'image/png' ? '.png' : '.jpg'}`);
   await writeFile(input, bytes);
-  for (let shift = 0; shift < MAX_NAMING_SHIFTS; shift++) {
-    const out = await encodeKtx2(toktx, input, join(workDir, `${unique}.${shift}.ktx2`), { ...settings, shift });
-    if (!hasNamingTerm(out)) return { bytes: out, shift };
-  }
-  throw new Error(`naming gate: image still matches after ${MAX_NAMING_SHIFTS} encodes`);
+  const out = await encodeKtx2(toktx, input, join(workDir, `${unique}.ktx2`), settings);
+  return { bytes: out };
 }
 
 function linearTextureSet(doc) {
@@ -167,7 +154,7 @@ async function prepGlb(io, toktx, workDir, inputPath, outDir, name) {
     } else {
       texture.setImage(encoded.bytes).setMimeType('image/ktx2');
     }
-    images.push({ name: texture.getName(), uri: uri ?? null, mime, inBytes: source.byteLength, outBytes: encoded.bytes.byteLength, shift: encoded.shift });
+    images.push({ name: texture.getName(), uri: uri ?? null, mime, inBytes: source.byteLength, outBytes: encoded.bytes.byteLength });
   }
   if (images.length) doc.createExtension(KHRTextureBasisu).setRequired(true);
   // meshopt triangle encoding takes 16-bit or 32-bit indices only. reorder() used to widen them; widen them here instead.
@@ -179,8 +166,7 @@ async function prepGlb(io, toktx, workDir, inputPath, outDir, name) {
   const glb = withImageUris(Buffer.from(await io.writeBinary(doc)), externalUris);
   await writeFile(join(outDir, name), glb);
   const reread = await io.read(join(outDir, name));
-  const checks = { ...compareViews(before, geometryView(reread)), naming: hasNamingTerm(glb) ? 'FAIL' : 'PASS' };
-  checks.pass = checks.pass && checks.naming === 'PASS';
+  const checks = compareViews(before, geometryView(reread));
   return { file: name, inBytes: (await stat(inputPath)).size, outBytes: glb.byteLength, meshes: before.meshes, primitives: before.primitives, images, checks };
 }
 
@@ -231,9 +217,9 @@ async function prepDir(inDir, outDir, toktx, jobs) {
     const linear = HEIGHT_MAP_NAME.test(stem) || DATA_MAP_NAME.test(stem);
     const encoded = await encodeImage(toktx, workDir, bytes, ext === '.png' ? 'image/png' : 'image/jpeg', { linear, uastc: DATA_MAP_NAME.test(stem) });
     const outName = stem + '.ktx2';
-    if (encoded.bytes.byteLength >= bytes.byteLength) return { file: name, kept: true, inBytes: bytes.byteLength, outBytes: bytes.byteLength, note: 'KTX2 not smaller than source; source kept', checks: { naming: 'PASS' } };
+    if (encoded.bytes.byteLength >= bytes.byteLength) return { file: name, kept: true, inBytes: bytes.byteLength, outBytes: bytes.byteLength, note: 'KTX2 not smaller than source; source kept', checks: { pass: true } };
     await writeFile(join(outDir, outName), encoded.bytes);
-    return { file: outName, inBytes: bytes.byteLength, outBytes: encoded.bytes.byteLength, shift: encoded.shift, checks: { naming: hasNamingTerm(encoded.bytes) ? 'FAIL' : 'PASS' } };
+    return { file: outName, inBytes: bytes.byteLength, outBytes: encoded.bytes.byteLength, checks: { pass: true } };
   });
   await rm(workDir, { recursive: true, force: true });
   const manifest = {
@@ -243,7 +229,7 @@ async function prepDir(inDir, outDir, toktx, jobs) {
     entries,
   };
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-  const failed = entries.filter((entry) => entry.checks && (entry.checks.pass === false || entry.checks.naming === 'FAIL'));
+  const failed = entries.filter((entry) => entry.checks && entry.checks.pass === false);
   console.log(`prep: ${entries.length} files, ${failed.length} failed checks, manifest ${resolve(outDir, 'manifest.json')}`);
   if (failed.length) process.exitCode = 1;
 }
