@@ -175,6 +175,7 @@ doodad_kinds([
     "weapon_bow", "weapon_spear", "weapon_sword", "wheel", "wheelchair", "wheelchair_deluxe", "wheelchair_power",
     "wheelchair_power_deluxe", "windmill", "windmill_low", "wood_structure", "wood_support", "workbench",
     "workbench_anvil", "workbench_grind",
+    "flowers", "remains_scorched", "skull_pile", "torch", "torch_glowing"
 ])
 
 item_tags(["home", "side", "secret"])
