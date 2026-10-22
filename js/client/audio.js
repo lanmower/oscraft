@@ -4,6 +4,8 @@
 // Nothing here is required to run a match: with no manifest, play() does nothing. That keeps the pack
 // playable while the voices are being generated.
 
+// `url` resolves a path inside the pack's voices directory: the caller owns that root, so this module
+// never names one and a pack without voices is never probed.
 export function createVoices({ url, audioContext = null }) {
   let manifest = null;
   let ctx = audioContext;
@@ -13,7 +15,7 @@ export function createVoices({ url, audioContext = null }) {
   async function loadManifest() {
     if (manifest !== null) return manifest;
     try {
-      const res = await fetch(url("voices/manifest.json"));
+      const res = await fetch(url("manifest.json"));
       if (!res.ok) throw new Error(`manifest HTTP ${res.status}`);
       manifest = await res.json();
     } catch {
@@ -60,7 +62,7 @@ export function createVoices({ url, audioContext = null }) {
     const ac = context();
     if (!ac) return false;
     if (ac.state === "suspended") await ac.resume().catch(() => {});
-    const buf = await bufferFor(`voices/${rel}`);
+    const buf = await bufferFor(rel);
     if (!buf) return false;
     const previous = active.get(hero);
     if (previous) { try { previous.stop(); } catch { /* already ended */ } }

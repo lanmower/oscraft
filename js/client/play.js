@@ -2394,7 +2394,9 @@ async function main() {
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
   if (renderer3d) ambientFx = createAmbientFx({ renderer: renderer3d, groundAt });
-  if (renderer3d) voices = createVoices({ url: packUrl });
+  // The voices directory is a pack asset like models or textures: the pack names it, so a pack with
+  // no voices is never probed and one that puts them elsewhere still resolves.
+  if (renderer3d && manifest.assets?.voices) voices = createVoices({ url: (rel) => assetUrl("voices", rel) });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
   widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
   // A pack image node names a path inside the pack; resolve it the same way every other pack file is.

@@ -95,6 +95,7 @@
     "doodads": "doodads.json",
     "doodadSizes": "doodad_sizes.json",
     "anim": "anim/library.json",
-    "animMaps": "anim/maps"
+    "animMaps": "anim/maps",
+    "voices": "voices"
   }
 }
