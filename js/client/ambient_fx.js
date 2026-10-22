@@ -27,6 +27,10 @@ export const AMBIENT_KINDS = {
   ZWbg: "bubbles",
   LOsm: "smoke",
   CObl: "mist",
+  LOth: "flame",
+  LOtz: "flame",
+  NOfp: "flame",
+  NOfg: "embers",
 };
 
 // Per kind: particles per emitter, the radius they roam, their height above the ground, their body size, and the colour
@@ -38,9 +42,13 @@ const KINDS = {
   bubbles: { count: 5, spread: 0.28, height: 0.4, size: 0.055, life: 2.8, color: [0.66, 0.88, 0.94], alpha: 0.55 },
   smoke: { count: 4, spread: 0.45, height: 0.6, size: 0.42, life: 5.5, color: [0.27, 0.26, 0.25], alpha: 0.40 },
   mist: { count: 4, spread: 1.6, height: 0.25, size: 0.55, life: 7.0, color: [0.36, 0.44, 0.38], alpha: 0.22 },
+  flame: { count: 5, spread: 0.10, height: 0.55, size: 0.075, life: 0.9, color: [1.0, 0.62, 0.22], alpha: 0.95 },
+  embers: { count: 6, spread: 0.22, height: 1.1, size: 0.030, life: 2.4, color: [1.0, 0.45, 0.12], alpha: 0.85 },
 };
 
-const CAP = 512;
+// Every emitter wants count particles at once. Full placement of the six scenery kinds wants 566, and adding flame
+// on the torches and fire pits brings it to 861, so the pool has to hold that or distant emitters silently get none.
+const CAP = 1024;
 const TAU = Math.PI * 2;
 
 function glowMesh(positions, indices) {
@@ -129,6 +137,26 @@ const BEHAVIOUR = {
     p.sx = p.sz = k.size * 2.2 * roll;
     p.sy = k.size * 0.25;
   },
+  flame(p, k, u, dt, ground) {
+    // A tongue that licks upward, tapering as it climbs and flickering on two beats so the rhythm is irregular.
+    p.phase += dt * 3.0;
+    const flick = 0.75 + 0.25 * Math.sin(p.t * 11 + p.seed) * Math.sin(p.t * 4.3 + p.seed * 1.7);
+    p.x = p.ex + Math.cos(p.seed) * k.spread + p.windX * p.t * 0.5;
+    p.z = p.ez + Math.sin(p.seed) * k.spread + p.windZ * p.t * 0.5;
+    p.y = ground(p.x, p.z) + k.height * u * flick;
+    const taper = 1 - 0.65 * u;
+    p.sx = p.sz = k.size * taper * (0.8 + 0.3 * flick);
+    p.sy = k.size * (1.4 - 0.5 * u) * flick;
+  },
+  embers(p, k, u, dt, ground) {
+    // Sparks that leave the fire, spread as they rise, slow, then gutter out in the last part of their life.
+    p.phase += dt * 1.4;
+    p.x = p.ex + Math.cos(p.seed) * k.spread * (0.3 + u) + p.windX * p.t;
+    p.z = p.ez + Math.sin(p.seed) * k.spread * (0.3 + u) + p.windZ * p.t;
+    p.y = ground(p.x, p.z) + k.height * u * (1.4 - 0.4 * u);
+    const gutter = u > 0.6 ? Math.max(0, 1 - (u - 0.6) / 0.4) : 1;
+    p.sx = p.sy = p.sz = k.size * gutter * (0.7 + 0.5 * Math.sin(p.t * 17 + p.seed));
+  },
 };
 
 // Fade in and out so particles do not pop: 0 at birth and death, 1 across the middle.
@@ -184,18 +212,20 @@ export function createAmbientFx({ renderer, groundAt }) {
 
   // Advances every live particle. A particle past its life is reborn at its emitter, so each swarm persists.
   function update(dt) {
+    // A long frame (a backgrounded tab, a stall) must not teleport a swarm, so the step is clamped.
+    const step = Math.min(Math.max(dt, 0), 0.05);
     for (let i = 0; i < CAP; i++) {
       const p = pool[i];
       if (!p.live) continue;
       const k = KINDS[p.kind];
-      p.t += dt;
+      p.t += step;
       if (p.t >= p.dur) {
         p.t = 0;
         p.dur = k.life * rand(0.7, 1.3);
         p.radial = Math.random();
         p.seed = rand(0, TAU);
       }
-      BEHAVIOUR[p.kind](p, k, p.t / p.dur, dt, ground);
+      BEHAVIOUR[p.kind](p, k, p.t / p.dur, step, ground);
     }
   }
 
