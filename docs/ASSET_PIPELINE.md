@@ -45,8 +45,7 @@ node scripts/assets/prep-ktx.mjs prep scenarios/moba/assets/textures /tmp/out/te
 ```
 
 Each `prep` run writes `<outDir>/manifest.json`, which records every file's input and output sizes, the
-texture encodings, the naming-gate result and, for GLBs, the geometry checks. It exits nonzero when any check
-fails.
+texture encodings and, for GLBs, the geometry checks. It exits nonzero when any check fails.
 
 Refresh the byte counts in an assets manifest from the files on disk:
 
@@ -120,7 +119,7 @@ ktx validate out.ktx2
 ## Verifying an output
 
 1. `ktx validate` on every `.ktx2` file: exit 0.
-2. `manifest.json`: every entry's `checks.pass` is `true` and `checks.naming` is `PASS`.
+2. `manifest.json`: every entry's `checks.pass` is `true`.
 3. Load the GLB through the client loader (`resolveGlbExtensions` then `parseGlb`) and check its bounds and
    index count against the original. The client's Basis transcoder can decode the KTX2 base colour to RGBA for a
    colour comparison.
