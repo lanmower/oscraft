@@ -1516,7 +1516,11 @@ function countRemote(name) {
   document.body.dataset[name] = String(Number(document.body.dataset[name] || 0) + 1);
 }
 
-const SNAPSHOT_EVERY_TICKS = 50;
+// A snapshot is the whole sim state, base64 in localStorage: measured at about 5 MB for the moba pack,
+// which takes a noticeable synchronous write and sits at the origin quota. Snapshot far less often than
+// every tick, and skip one that has grown past the cap rather than stall the host's tick.
+const SNAPSHOT_EVERY_TICKS = 600;
+const SNAPSHOT_MAX_CHARS = 2 * 1024 * 1024;
 
 function snapshotKey() {
   return `oscraft:snapshot:${namespace}:${room}`;
@@ -1528,8 +1532,13 @@ function saveSnapshot(tick) {
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   const record = { tick, hash: localGame.state_hash().toString(), bytes: btoa(binary), seats: seating.export() };
+  const text = JSON.stringify(record);
+  if (text.length > SNAPSHOT_MAX_CHARS) {
+    document.body.dataset.snapshotTooLarge = String(text.length);
+    return;
+  }
   try {
-    localStorage.setItem(snapshotKey(), JSON.stringify(record));
+    localStorage.setItem(snapshotKey(), text);
     delete document.body.dataset.snapshotSkipped;
   } catch (e) {
     // The moba state can outgrow the origin quota; the room then runs without a restore point instead of throwing per save.
