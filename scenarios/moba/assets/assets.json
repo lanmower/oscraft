@@ -1,6 +1,6 @@
 {
- "count": 905,
- "total_bytes": 68546521,
+ "count": 916,
+ "total_bytes": 70370097,
  "items": [
   {
    "id": "rock",
@@ -6460,6 +6460,94 @@
    "placed_by": "doodads.json",
    "bytes": 518308,
    "role": "character"
+  },
+  {
+   "id": "shadow-demon-skinned",
+   "kind": "model",
+   "path": "models/shadow-demon-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 138832,
+   "role": "character"
+  },
+  {
+   "id": "venomancer-skinned",
+   "kind": "model",
+   "path": "models/venomancer-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 136640,
+   "role": "character"
+  },
+  {
+   "id": "warlock-skinned",
+   "kind": "model",
+   "path": "models/warlock-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 181488,
+   "role": "character"
+  },
+  {
+   "id": "windrunner-skinned",
+   "kind": "model",
+   "path": "models/windrunner-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 137892,
+   "role": "character"
+  },
+  {
+   "id": "winter-wyvern-skinned",
+   "kind": "model",
+   "path": "models/winter-wyvern-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 193860,
+   "role": "character"
+  },
+  {
+   "id": "neutral-warpine-raider-skinned",
+   "kind": "model",
+   "path": "models/neutral-warpine-raider-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 214120,
+   "role": "character"
+  },
+  {
+   "id": "neutral-prowler-acolyte-skinned",
+   "kind": "model",
+   "path": "models/neutral-prowler-acolyte-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 169184,
+   "role": "character"
+  },
+  {
+   "id": "neutral-prowler-shaman-skinned",
+   "kind": "model",
+   "path": "models/neutral-prowler-shaman-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 186808,
+   "role": "character"
+  },
+  {
+   "id": "neutral-granite-golem-skinned",
+   "kind": "model",
+   "path": "models/neutral-granite-golem-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 132380,
+   "role": "character"
+  },
+  {
+   "id": "neutral-ice-shaman-skinned",
+   "kind": "model",
+   "path": "models/neutral-ice-shaman-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 142824,
+   "role": "character"
+  },
+  {
+   "id": "neutral-frostbitten-golem-skinned",
+   "kind": "model",
+   "path": "models/neutral-frostbitten-golem-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 189548,
+   "role": "character"
   }
  ],
  "roles": {
@@ -6468,7 +6556,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 112,
+  "character": 123,
   "creep": 5,
   "terrain": 7
  }

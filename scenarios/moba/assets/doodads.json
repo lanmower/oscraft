@@ -891,5 +891,16 @@
   "troll_warlord_skinned": "models/troll-warlord-skinned.glb",
   "tuskarr_skinned": "models/tuskarr-skinned.glb",
   "undying_skinned": "models/undying-skinned.glb",
-  "vengeful_spirit_skinned": "models/vengeful-spirit-skinned.glb"
+  "vengeful_spirit_skinned": "models/vengeful-spirit-skinned.glb",
+  "shadow_demon_skinned": "models/shadow-demon-skinned.glb",
+  "venomancer_skinned": "models/venomancer-skinned.glb",
+  "warlock_skinned": "models/warlock-skinned.glb",
+  "windrunner_skinned": "models/windrunner-skinned.glb",
+  "winter_wyvern_skinned": "models/winter-wyvern-skinned.glb",
+  "neutral_warpine_raider_skinned": "models/neutral-warpine-raider-skinned.glb",
+  "neutral_prowler_acolyte_skinned": "models/neutral-prowler-acolyte-skinned.glb",
+  "neutral_prowler_shaman_skinned": "models/neutral-prowler-shaman-skinned.glb",
+  "neutral_granite_golem_skinned": "models/neutral-granite-golem-skinned.glb",
+  "neutral_ice_shaman_skinned": "models/neutral-ice-shaman-skinned.glb",
+  "neutral_frostbitten_golem_skinned": "models/neutral-frostbitten-golem-skinned.glb"
 }
