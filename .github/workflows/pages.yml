@@ -167,3 +167,30 @@ jobs:
       # Pages caches for minutes after a deploy; compare.mjs retries with a bounded backoff, then prints the table and fails.
       - name: Compare the live page with the build
         run: node scripts/observe/compare.mjs expected "${{ steps.deployment.outputs.page_url }}" --expect-sha "${{ github.sha }}" --attempts 6 --backoff 10
+
+  # Witness for first draw on the built site: the same artifact the deploy publishes, timed in headless Chromium.
+  # Runs beside the deploy and does not gate it; a red run here is a perf regression to fix, not a deploy failure.
+  first-draw:
+    name: first draw of the built page
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/perf
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the pinned Playwright and Chromium
+        run: |
+          set -euo pipefail
+          npm install --prefix scripts/perf --no-save playwright@1.47.2
+          npx --yes playwright@1.47.2 install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-expected
+          path: site
+      - name: Time the first frame of the built page
+        run: node scripts/perf/first-draw.mjs site --loads=3 --ceiling-ms=10000
