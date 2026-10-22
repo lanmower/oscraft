@@ -902,5 +902,8 @@
   "neutral_prowler_shaman_skinned": "models/neutral-prowler-shaman-skinned.glb",
   "neutral_granite_golem_skinned": "models/neutral-granite-golem-skinned.glb",
   "neutral_ice_shaman_skinned": "models/neutral-ice-shaman-skinned.glb",
-  "neutral_frostbitten_golem_skinned": "models/neutral-frostbitten-golem-skinned.glb"
+  "neutral_frostbitten_golem_skinned": "models/neutral-frostbitten-golem-skinned.glb",
+  "neutral_big_thunder_lizard_skinned": "models/neutral-big-thunder-lizard-skinned.glb",
+  "neutral_small_thunder_lizard_skinned": "models/neutral-small-thunder-lizard-skinned.glb",
+  "witch_doctor_skinned": "models/witch-doctor-skinned.glb"
 }

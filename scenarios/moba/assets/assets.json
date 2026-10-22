@@ -1,6 +1,6 @@
 {
- "count": 916,
- "total_bytes": 70370097,
+ "count": 919,
+ "total_bytes": 72289537,
  "items": [
   {
    "id": "rock",
@@ -6548,6 +6548,30 @@
    "placed_by": "doodads.json",
    "bytes": 189548,
    "role": "character"
+  },
+  {
+   "id": "neutral-big-thunder-lizard-skinned",
+   "kind": "model",
+   "path": "models/neutral-big-thunder-lizard-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 893388,
+   "role": "character"
+  },
+  {
+   "id": "neutral-small-thunder-lizard-skinned",
+   "kind": "model",
+   "path": "models/neutral-small-thunder-lizard-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 730464,
+   "role": "character"
+  },
+  {
+   "id": "witch-doctor-skinned",
+   "kind": "model",
+   "path": "models/witch-doctor-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 295588,
+   "role": "character"
   }
  ],
  "roles": {
@@ -6556,7 +6580,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 123,
+  "character": 126,
   "creep": 5,
   "terrain": 7
  }
