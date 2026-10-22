@@ -1,6 +1,6 @@
 {
  "count": 934,
- "total_bytes": 74136997,
+ "total_bytes": 50638189,
  "items": [
   {
    "id": "rock",
@@ -55,7 +55,7 @@
    "kind": "model",
    "path": "models/fountain-round.glb",
    "placed_by": "doodads.json",
-   "bytes": 44544,
+   "bytes": 41764,
    "role": "prop"
   },
   {
@@ -660,7 +660,7 @@
    "kind": "model",
    "path": "models/cart-high.glb",
    "role": "prop",
-   "bytes": 43444
+   "bytes": 42548
   },
   {
    "id": "cart",
@@ -702,7 +702,7 @@
    "kind": "model",
    "path": "models/catwalk-stairs.glb",
    "role": "structure",
-   "bytes": 42392
+   "bytes": 38480
   },
   {
    "id": "catwalk-straight",
@@ -730,49 +730,49 @@
    "kind": "model",
    "path": "models/character-female-a.glb",
    "role": "character",
-   "bytes": 150756
+   "bytes": 100240
   },
   {
    "id": "character-female-b",
    "kind": "model",
    "path": "models/character-female-b.glb",
    "role": "character",
-   "bytes": 143272
+   "bytes": 96172
   },
   {
    "id": "character-female-c",
    "kind": "model",
    "path": "models/character-female-c.glb",
    "role": "character",
-   "bytes": 143588
+   "bytes": 95980
   },
   {
    "id": "character-female-d",
    "kind": "model",
    "path": "models/character-female-d.glb",
    "role": "character",
-   "bytes": 146136
+   "bytes": 97536
   },
   {
    "id": "character-female-e",
    "kind": "model",
    "path": "models/character-female-e.glb",
    "role": "character",
-   "bytes": 140684
+   "bytes": 94344
   },
   {
    "id": "character-female-f",
    "kind": "model",
    "path": "models/character-female-f.glb",
    "role": "character",
-   "bytes": 144580
+   "bytes": 97040
   },
   {
    "id": "character-ghost",
    "kind": "model",
    "path": "models/character-ghost.glb",
    "role": "creep",
-   "bytes": 82668
+   "bytes": 64108
   },
   {
    "id": "character-human",
@@ -786,63 +786,63 @@
    "kind": "model",
    "path": "models/character-keeper.glb",
    "role": "character",
-   "bytes": 170472
+   "bytes": 112388
   },
   {
    "id": "character-male-a",
    "kind": "model",
    "path": "models/character-male-a.glb",
    "role": "character",
-   "bytes": 139860
+   "bytes": 94136
   },
   {
    "id": "character-male-b",
    "kind": "model",
    "path": "models/character-male-b.glb",
    "role": "character",
-   "bytes": 139492
+   "bytes": 93760
   },
   {
    "id": "character-male-c",
    "kind": "model",
    "path": "models/character-male-c.glb",
    "role": "character",
-   "bytes": 147344
+   "bytes": 98244
   },
   {
    "id": "character-male-d",
    "kind": "model",
    "path": "models/character-male-d.glb",
    "role": "character",
-   "bytes": 140076
+   "bytes": 94012
   },
   {
    "id": "character-male-e",
    "kind": "model",
    "path": "models/character-male-e.glb",
    "role": "character",
-   "bytes": 137860
+   "bytes": 92744
   },
   {
    "id": "character-male-f",
    "kind": "model",
    "path": "models/character-male-f.glb",
    "role": "character",
-   "bytes": 141468
+   "bytes": 94912
   },
   {
    "id": "character-orc",
    "kind": "model",
    "path": "models/character-orc.glb",
    "role": "creep",
-   "bytes": 120976
+   "bytes": 83384
   },
   {
    "id": "roshan-skinned",
    "kind": "model",
    "path": "models/roshan-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 1789776,
+   "bytes": 1789820,
    "role": "character"
   },
   {
@@ -850,7 +850,7 @@
    "kind": "model",
    "path": "models/roshan-lowpoly.glb",
    "placed_by": "doodads.json",
-   "bytes": 1732544,
+   "bytes": 1732592,
    "role": "character"
   },
   {
@@ -858,7 +858,7 @@
    "kind": "model",
    "path": "models/abaddon-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 165476,
+   "bytes": 165524,
    "role": "character"
   },
   {
@@ -866,7 +866,7 @@
    "kind": "model",
    "path": "models/alchemist-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 136068,
+   "bytes": 136116,
    "role": "character"
   },
   {
@@ -874,7 +874,7 @@
    "kind": "model",
    "path": "models/ancient-apparition-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 182376,
+   "bytes": 182388,
    "role": "character"
   },
   {
@@ -882,7 +882,7 @@
    "kind": "model",
    "path": "models/anti-mage-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 145772,
+   "bytes": 145820,
    "role": "character"
   },
   {
@@ -890,7 +890,7 @@
    "kind": "model",
    "path": "models/axe-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 150640,
+   "bytes": 150688,
    "role": "character"
   },
   {
@@ -898,7 +898,7 @@
    "kind": "model",
    "path": "models/bane-elemental-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 141060,
+   "bytes": 141104,
    "role": "character"
   },
   {
@@ -906,7 +906,7 @@
    "kind": "model",
    "path": "models/batrider-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 157228,
+   "bytes": 157272,
    "role": "character"
   },
   {
@@ -914,7 +914,7 @@
    "kind": "model",
    "path": "models/beastmaster-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 215452,
+   "bytes": 215496,
    "role": "character"
   },
   {
@@ -922,7 +922,7 @@
    "kind": "model",
    "path": "models/bloodseeker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 182604,
+   "bytes": 182652,
    "role": "character"
   },
   {
@@ -930,7 +930,7 @@
    "kind": "model",
    "path": "models/bounty-hunter-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 153956,
+   "bytes": 154004,
    "role": "character"
   },
   {
@@ -938,7 +938,7 @@
    "kind": "model",
    "path": "models/arc-warden-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 140512,
+   "bytes": 140556,
    "role": "character"
   },
   {
@@ -946,7 +946,7 @@
    "kind": "model",
    "path": "models/broodmother-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 164768,
+   "bytes": 164816,
    "role": "character"
   },
   {
@@ -954,7 +954,7 @@
    "kind": "model",
    "path": "models/chaos-knight-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 133184,
+   "bytes": 133232,
    "role": "character"
   },
   {
@@ -962,7 +962,7 @@
    "kind": "model",
    "path": "models/bristleback-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 156704,
+   "bytes": 156752,
    "role": "character"
   },
   {
@@ -970,7 +970,7 @@
    "kind": "model",
    "path": "models/crystal-maiden-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 100864,
+   "bytes": 100912,
    "role": "character"
   },
   {
@@ -978,7 +978,7 @@
    "kind": "model",
    "path": "models/dark-seer-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 112848,
+   "bytes": 112892,
    "role": "character"
   },
   {
@@ -986,7 +986,7 @@
    "kind": "model",
    "path": "models/death-prophet-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 174996,
+   "bytes": 175044,
    "role": "character"
   },
   {
@@ -994,7 +994,7 @@
    "kind": "model",
    "path": "models/disruptor-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 174816,
+   "bytes": 174864,
    "role": "character"
   },
   {
@@ -1002,7 +1002,7 @@
    "kind": "model",
    "path": "models/doom-bringer-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 116160,
+   "bytes": 116204,
    "role": "character"
   },
   {
@@ -1010,7 +1010,7 @@
    "kind": "model",
    "path": "models/dragon-knight-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 155568,
+   "bytes": 155616,
    "role": "character"
   },
   {
@@ -1018,7 +1018,7 @@
    "kind": "model",
    "path": "models/drow-ranger-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 161372,
+   "bytes": 161420,
    "role": "character"
   },
   {
@@ -1026,7 +1026,7 @@
    "kind": "model",
    "path": "models/earthshaker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 161400,
+   "bytes": 161448,
    "role": "character"
   },
   {
@@ -1034,7 +1034,7 @@
    "kind": "model",
    "path": "models/faceless-void-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 125180,
+   "bytes": 125228,
    "role": "character"
   },
   {
@@ -1042,7 +1042,7 @@
    "kind": "model",
    "path": "models/gyrocopter-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 123636,
+   "bytes": 123684,
    "role": "character"
   },
   {
@@ -1050,7 +1050,7 @@
    "kind": "model",
    "path": "models/lich-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 133732,
+   "bytes": 133780,
    "role": "character"
   },
   {
@@ -1058,7 +1058,7 @@
    "kind": "model",
    "path": "models/earth-spirit-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 1129108,
+   "bytes": 498976,
    "role": "character"
   },
   {
@@ -1066,7 +1066,7 @@
    "kind": "model",
    "path": "models/ember-spirit-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 586380,
+   "bytes": 254360,
    "role": "character"
   },
   {
@@ -1074,7 +1074,7 @@
    "kind": "model",
    "path": "models/enchantress-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 710904,
+   "bytes": 292676,
    "role": "character"
   },
   {
@@ -1082,7 +1082,7 @@
    "kind": "model",
    "path": "models/enigma-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 498460,
+   "bytes": 217056,
    "role": "character"
   },
   {
@@ -1090,7 +1090,7 @@
    "kind": "model",
    "path": "models/invoker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 498500,
+   "bytes": 219140,
    "role": "character"
   },
   {
@@ -1098,7 +1098,7 @@
    "kind": "model",
    "path": "models/juggernaut-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 841248,
+   "bytes": 354672,
    "role": "character"
   },
   {
@@ -1106,7 +1106,7 @@
    "kind": "model",
    "path": "models/keeper-of-the-light-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 449484,
+   "bytes": 201788,
    "role": "character"
   },
   {
@@ -1114,7 +1114,7 @@
    "kind": "model",
    "path": "models/legion-commander-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 433272,
+   "bytes": 187744,
    "role": "character"
   },
   {
@@ -1122,7 +1122,7 @@
    "kind": "model",
    "path": "models/lifestealer-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 591332,
+   "bytes": 249768,
    "role": "character"
   },
   {
@@ -1130,7 +1130,7 @@
    "kind": "model",
    "path": "models/lone-druid-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 607156,
+   "bytes": 254296,
    "role": "character"
   },
   {
@@ -1138,7 +1138,7 @@
    "kind": "model",
    "path": "models/magnataur-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 667820,
+   "bytes": 278424,
    "role": "character"
   },
   {
@@ -1146,7 +1146,7 @@
    "kind": "model",
    "path": "models/morphling-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 393944,
+   "bytes": 173024,
    "role": "character"
   },
   {
@@ -1154,7 +1154,7 @@
    "kind": "model",
    "path": "models/naga-siren-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 633448,
+   "bytes": 272112,
    "role": "character"
   },
   {
@@ -1162,7 +1162,7 @@
    "kind": "model",
    "path": "models/neutral-alpha-wolf-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 618156,
+   "bytes": 259404,
    "role": "character"
   },
   {
@@ -1170,7 +1170,7 @@
    "kind": "model",
    "path": "models/neutral-black-dragon-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 840368,
+   "bytes": 357712,
    "role": "character"
   },
   {
@@ -1178,7 +1178,7 @@
    "kind": "model",
    "path": "models/neutral-black-drake-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 429180,
+   "bytes": 183456,
    "role": "character"
   },
   {
@@ -1186,7 +1186,7 @@
    "kind": "model",
    "path": "models/neutral-centaur-khan-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 440900,
+   "bytes": 190176,
    "role": "character"
   },
   {
@@ -1194,7 +1194,7 @@
    "kind": "model",
    "path": "models/neutral-centaur-outrunner-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 772376,
+   "bytes": 325448,
    "role": "character"
   },
   {
@@ -1202,7 +1202,7 @@
    "kind": "model",
    "path": "models/neutral-dark-troll-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 518080,
+   "bytes": 218780,
    "role": "character"
   },
   {
@@ -1210,7 +1210,7 @@
    "kind": "model",
    "path": "models/neutral-dark-troll-warlord-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 574464,
+   "bytes": 238300,
    "role": "character"
   },
   {
@@ -1218,7 +1218,7 @@
    "kind": "model",
    "path": "models/neutral-fel-beast-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 402508,
+   "bytes": 172076,
    "role": "character"
   },
   {
@@ -1226,7 +1226,7 @@
    "kind": "model",
    "path": "models/neutral-forest-troll-berserker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 643324,
+   "bytes": 263568,
    "role": "character"
   },
   {
@@ -1234,7 +1234,7 @@
    "kind": "model",
    "path": "models/neutral-forest-troll-high-priest-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 587892,
+   "bytes": 251924,
    "role": "character"
   },
   {
@@ -1242,7 +1242,7 @@
    "kind": "model",
    "path": "models/neutral-furbolg-champion-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 709836,
+   "bytes": 294444,
    "role": "character"
   },
   {
@@ -1250,7 +1250,7 @@
    "kind": "model",
    "path": "models/neutral-furbolg-ursa-warrior-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 760488,
+   "bytes": 325544,
    "role": "character"
   },
   {
@@ -1258,7 +1258,7 @@
    "kind": "model",
    "path": "models/neutral-ghost-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 1060752,
+   "bytes": 476576,
    "role": "character"
   },
   {
@@ -1266,7 +1266,7 @@
    "kind": "model",
    "path": "models/neutral-giant-wolf-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 772180,
+   "bytes": 316356,
    "role": "character"
   },
   {
@@ -1274,7 +1274,7 @@
    "kind": "model",
    "path": "models/neutral-gnoll-assassin-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 545556,
+   "bytes": 228276,
    "role": "character"
   },
   {
@@ -1282,7 +1282,7 @@
    "kind": "model",
    "path": "models/neutral-harpy-scout-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 637488,
+   "bytes": 272680,
    "role": "character"
   },
   {
@@ -1290,7 +1290,7 @@
    "kind": "model",
    "path": "models/neutral-harpy-storm-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 635360,
+   "bytes": 271620,
    "role": "character"
   },
   {
@@ -1298,7 +1298,7 @@
    "kind": "model",
    "path": "models/neutral-jungle-stalker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 775132,
+   "bytes": 317992,
    "role": "character"
   },
   {
@@ -1306,7 +1306,7 @@
    "kind": "model",
    "path": "models/neutral-kobold-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 983332,
+   "bytes": 446820,
    "role": "character"
   },
   {
@@ -1314,7 +1314,7 @@
    "kind": "model",
    "path": "models/neutral-kobold-taskmaster-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 633360,
+   "bytes": 271468,
    "role": "character"
   },
   {
@@ -1322,7 +1322,7 @@
    "kind": "model",
    "path": "models/neutral-kobold-tunneler-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 711028,
+   "bytes": 298696,
    "role": "character"
   },
   {
@@ -1330,7 +1330,7 @@
    "kind": "model",
    "path": "models/neutral-mud-golem-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 505544,
+   "bytes": 212196,
    "role": "character"
   },
   {
@@ -1338,7 +1338,7 @@
    "kind": "model",
    "path": "models/neutral-ogre-magi-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 619304,
+   "bytes": 262220,
    "role": "character"
   },
   {
@@ -1346,7 +1346,7 @@
    "kind": "model",
    "path": "models/neutral-ogre-mauler-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 651664,
+   "bytes": 291268,
    "role": "character"
   },
   {
@@ -1354,7 +1354,7 @@
    "kind": "model",
    "path": "models/neutral-rock-golem-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 556324,
+   "bytes": 241232,
    "role": "character"
   },
   {
@@ -1362,7 +1362,7 @@
    "kind": "model",
    "path": "models/neutral-satyr-hellcaller-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 484328,
+   "bytes": 208320,
    "role": "character"
   },
   {
@@ -1370,7 +1370,7 @@
    "kind": "model",
    "path": "models/neutral-satyr-soulstealer-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 703904,
+   "bytes": 321620,
    "role": "character"
   },
   {
@@ -1378,7 +1378,7 @@
    "kind": "model",
    "path": "models/neutral-satyr-trickster-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 778260,
+   "bytes": 364712,
    "role": "character"
   },
   {
@@ -1386,7 +1386,7 @@
    "kind": "model",
    "path": "models/neutral-wildkin-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 380212,
+   "bytes": 165624,
    "role": "character"
   },
   {
@@ -1394,7 +1394,7 @@
    "kind": "model",
    "path": "models/night-stalker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 604000,
+   "bytes": 256392,
    "role": "character"
   },
   {
@@ -1402,7 +1402,7 @@
    "kind": "model",
    "path": "models/obsidian-destroyer-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 542368,
+   "bytes": 230392,
    "role": "character"
   },
   {
@@ -1410,7 +1410,7 @@
    "kind": "model",
    "path": "models/ogre-magi-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 582428,
+   "bytes": 253968,
    "role": "character"
   },
   {
@@ -1418,7 +1418,7 @@
    "kind": "model",
    "path": "models/omniknight-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 512960,
+   "bytes": 217928,
    "role": "character"
   },
   {
@@ -1426,7 +1426,7 @@
    "kind": "model",
    "path": "models/oracle-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 446756,
+   "bytes": 193380,
    "role": "character"
   },
   {
@@ -1434,7 +1434,7 @@
    "kind": "model",
    "path": "models/pandaren-brewmaster-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 643984,
+   "bytes": 269636,
    "role": "character"
   },
   {
@@ -1442,7 +1442,7 @@
    "kind": "model",
    "path": "models/phantom-assassin-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 510348,
+   "bytes": 218976,
    "role": "character"
   },
   {
@@ -1450,7 +1450,7 @@
    "kind": "model",
    "path": "models/phantom-lancer-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 476988,
+   "bytes": 209052,
    "role": "character"
   },
   {
@@ -1458,7 +1458,7 @@
    "kind": "model",
    "path": "models/phoenix-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 626492,
+   "bytes": 282964,
    "role": "character"
   },
   {
@@ -1466,7 +1466,7 @@
    "kind": "model",
    "path": "models/queen-of-pain-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 422152,
+   "bytes": 184048,
    "role": "character"
   },
   {
@@ -1474,7 +1474,7 @@
    "kind": "model",
    "path": "models/sand-king-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 520068,
+   "bytes": 223000,
    "role": "character"
   },
   {
@@ -1482,7 +1482,7 @@
    "kind": "model",
    "path": "models/silencer-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 392768,
+   "bytes": 169720,
    "role": "character"
   },
   {
@@ -1490,7 +1490,7 @@
    "kind": "model",
    "path": "models/skeleton-king-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 755500,
+   "bytes": 324596,
    "role": "character"
   },
   {
@@ -1498,7 +1498,7 @@
    "kind": "model",
    "path": "models/spectre-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 620156,
+   "bytes": 269192,
    "role": "character"
   },
   {
@@ -1506,7 +1506,7 @@
    "kind": "model",
    "path": "models/spiritbreaker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 535816,
+   "bytes": 239004,
    "role": "character"
   },
   {
@@ -1514,21 +1514,21 @@
    "kind": "model",
    "path": "models/character-skeleton.glb",
    "role": "creep",
-   "bytes": 142368
+   "bytes": 96772
   },
   {
    "id": "character-vampire",
    "kind": "model",
    "path": "models/character-vampire.glb",
    "role": "creep",
-   "bytes": 171864
+   "bytes": 113068
   },
   {
    "id": "character-zombie",
    "kind": "model",
    "path": "models/character-zombie.glb",
    "role": "creep",
-   "bytes": 171668
+   "bytes": 112860
   },
   {
    "id": "chest",
@@ -1962,14 +1962,14 @@
    "kind": "model",
    "path": "models/corridor-corner.glb",
    "role": "structure",
-   "bytes": 44776
+   "bytes": 39944
   },
   {
    "id": "corridor-end",
    "kind": "model",
    "path": "models/corridor-end.glb",
    "role": "structure",
-   "bytes": 84404
+   "bytes": 62304
   },
   {
    "id": "corridor-intersection",
@@ -1983,28 +1983,28 @@
    "kind": "model",
    "path": "models/corridor-junction.glb",
    "role": "structure",
-   "bytes": 36744
+   "bytes": 35580
   },
   {
    "id": "corridor-transition",
    "kind": "model",
    "path": "models/corridor-transition.glb",
    "role": "structure",
-   "bytes": 139856
+   "bytes": 94236
   },
   {
    "id": "corridor-wide-corner",
    "kind": "model",
    "path": "models/corridor-wide-corner.glb",
    "role": "structure",
-   "bytes": 98328
+   "bytes": 70252
   },
   {
    "id": "corridor-wide-end",
    "kind": "model",
    "path": "models/corridor-wide-end.glb",
    "role": "structure",
-   "bytes": 147312
+   "bytes": 99576
   },
   {
    "id": "corridor-wide-intersection",
@@ -2018,21 +2018,21 @@
    "kind": "model",
    "path": "models/corridor-wide-junction.glb",
    "role": "structure",
-   "bytes": 57412
+   "bytes": 47988
   },
   {
    "id": "corridor-wide",
    "kind": "model",
    "path": "models/corridor-wide.glb",
    "role": "structure",
-   "bytes": 98904
+   "bytes": 71820
   },
   {
    "id": "corridor",
    "kind": "model",
    "path": "models/corridor.glb",
    "role": "structure",
-   "bytes": 57212
+   "bytes": 47040
   },
   {
    "id": "crane-lift",
@@ -2242,7 +2242,7 @@
    "kind": "model",
    "path": "models/electricity-pole-wide.glb",
    "role": "structure",
-   "bytes": 38756
+   "bytes": 35672
   },
   {
    "id": "electricity-pole",
@@ -2263,7 +2263,7 @@
    "kind": "model",
    "path": "models/electricity-side-wide.glb",
    "role": "structure",
-   "bytes": 38764
+   "bytes": 35412
   },
   {
    "id": "electricity-side",
@@ -2466,7 +2466,7 @@
    "kind": "model",
    "path": "models/fountain-round-detail.glb",
    "role": "prop",
-   "bytes": 70564
+   "bytes": 56328
   },
   {
    "id": "fountain-square-detail",
@@ -2529,7 +2529,7 @@
    "kind": "model",
    "path": "models/grave-border.glb",
    "role": "prop",
-   "bytes": 38680
+   "bytes": 37248
   },
   {
    "id": "grave",
@@ -2879,7 +2879,7 @@
    "kind": "model",
    "path": "models/lightpost-all.glb",
    "role": "structure",
-   "bytes": 45220
+   "bytes": 41184
   },
   {
    "id": "lightpost-double",
@@ -2991,7 +2991,7 @@
    "kind": "model",
    "path": "models/oopi.glb",
    "role": "prop",
-   "bytes": 54636
+   "bytes": 46560
   },
   {
    "id": "overhang",
@@ -3278,7 +3278,7 @@
    "kind": "model",
    "path": "models/platform.glb",
    "role": "structure",
-   "bytes": 43936
+   "bytes": 39608
   },
   {
    "id": "poles-horizontal",
@@ -4167,49 +4167,49 @@
    "kind": "model",
    "path": "models/room-corner.glb",
    "role": "prop",
-   "bytes": 230796
+   "bytes": 144664
   },
   {
    "id": "room-large-variation",
    "kind": "model",
    "path": "models/room-large-variation.glb",
    "role": "prop",
-   "bytes": 505516
+   "bytes": 294692
   },
   {
    "id": "room-large",
    "kind": "model",
    "path": "models/room-large.glb",
    "role": "prop",
-   "bytes": 511016
+   "bytes": 299232
   },
   {
    "id": "room-small-variation",
    "kind": "model",
    "path": "models/room-small-variation.glb",
    "role": "prop",
-   "bytes": 248140
+   "bytes": 153876
   },
   {
    "id": "room-small",
    "kind": "model",
    "path": "models/room-small.glb",
    "role": "prop",
-   "bytes": 222164
+   "bytes": 139788
   },
   {
    "id": "room-wide-variation",
    "kind": "model",
    "path": "models/room-wide-variation.glb",
    "role": "prop",
-   "bytes": 420820
+   "bytes": 249692
   },
   {
    "id": "room-wide",
    "kind": "model",
    "path": "models/room-wide.glb",
    "role": "prop",
-   "bytes": 350796
+   "bytes": 210340
   },
   {
    "id": "scanner-high",
@@ -4349,14 +4349,14 @@
    "kind": "model",
    "path": "models/siege-catapult-demolished.glb",
    "role": "prop",
-   "bytes": 35916
+   "bytes": 35268
   },
   {
    "id": "siege-catapult",
    "kind": "model",
    "path": "models/siege-catapult.glb",
    "role": "prop",
-   "bytes": 46840
+   "bytes": 46712
   },
   {
    "id": "siege-ram-demolished",
@@ -4370,21 +4370,21 @@
    "kind": "model",
    "path": "models/siege-ram.glb",
    "role": "prop",
-   "bytes": 55528
+   "bytes": 53768
   },
   {
    "id": "siege-tower-demolished",
    "kind": "model",
    "path": "models/siege-tower-demolished.glb",
    "role": "building",
-   "bytes": 51688
+   "bytes": 45300
   },
   {
    "id": "siege-tower",
    "kind": "model",
    "path": "models/siege-tower.glb",
    "role": "building",
-   "bytes": 64056
+   "bytes": 55852
   },
   {
    "id": "siege-trebuchet-demolished",
@@ -4398,7 +4398,7 @@
    "kind": "model",
    "path": "models/siege-trebuchet.glb",
    "role": "prop",
-   "bytes": 74408
+   "bytes": 66728
   },
   {
    "id": "sign-highway-detailed",
@@ -4559,7 +4559,7 @@
    "kind": "model",
    "path": "models/stairs-wide.glb",
    "role": "structure",
-   "bytes": 145120
+   "bytes": 96388
   },
   {
    "id": "stairs-wood-handrail",
@@ -4580,7 +4580,7 @@
    "kind": "model",
    "path": "models/stairs.glb",
    "role": "structure",
-   "bytes": 142216
+   "bytes": 94328
   },
   {
    "id": "stall-bench",
@@ -4832,7 +4832,7 @@
    "kind": "model",
    "path": "models/template-corner.glb",
    "role": "prop",
-   "bytes": 41692
+   "bytes": 38160
   },
   {
    "id": "template-detail",
@@ -4846,7 +4846,7 @@
    "kind": "model",
    "path": "models/template-floor-big.glb",
    "role": "prop",
-   "bytes": 45444
+   "bytes": 40396
   },
   {
    "id": "template-floor-detail-a",
@@ -5994,7 +5994,7 @@
    "kind": "model",
    "path": "models/water-tower.glb",
    "role": "building",
-   "bytes": 60860
+   "bytes": 47784
   },
   {
    "id": "watermill-wide",
@@ -6057,14 +6057,14 @@
    "kind": "model",
    "path": "models/wheelchair-power-deluxe.glb",
    "role": "prop",
-   "bytes": 49740
+   "bytes": 43940
   },
   {
    "id": "wheelchair-power",
    "kind": "model",
    "path": "models/wheelchair-power.glb",
    "role": "prop",
-   "bytes": 41932
+   "bytes": 39388
   },
   {
    "id": "wheelchair",
@@ -6183,7 +6183,7 @@
    "kind": "model",
    "path": "models/oga/tree-fantasy.glb",
    "placed_by": "doodads.json",
-   "bytes": 29360,
+   "bytes": 19960,
    "role": "tree"
   },
   {
@@ -6191,7 +6191,7 @@
    "kind": "model",
    "path": "models/oga/tree-snow.glb",
    "placed_by": "doodads.json",
-   "bytes": 47288,
+   "bytes": 28192,
    "role": "tree"
   },
   {
@@ -6199,7 +6199,7 @@
    "kind": "model",
    "path": "models/oga/tree-pine-small.glb",
    "placed_by": "doodads.json",
-   "bytes": 6704,
+   "bytes": 4492,
    "role": "tree"
   },
   {
@@ -6215,7 +6215,7 @@
    "kind": "model",
    "path": "models/oga/snowman.glb",
    "placed_by": "doodads.json",
-   "bytes": 59296,
+   "bytes": 32528,
    "role": "prop"
   },
   {
@@ -6223,7 +6223,7 @@
    "kind": "model",
    "path": "models/oga/stump.glb",
    "placed_by": "doodads.json",
-   "bytes": 9564,
+   "bytes": 5600,
    "role": "prop"
   },
   {
@@ -6231,7 +6231,7 @@
    "kind": "model",
    "path": "models/oga/cactus.glb",
    "placed_by": "doodads.json",
-   "bytes": 9668,
+   "bytes": 5640,
    "role": "prop"
   },
   {
@@ -6239,7 +6239,7 @@
    "kind": "model",
    "path": "models/oga/fence.glb",
    "placed_by": "doodads.json",
-   "bytes": 18836,
+   "bytes": 15160,
    "role": "prop"
   },
   {
@@ -6247,7 +6247,7 @@
    "kind": "model",
    "path": "models/oga/gate.glb",
    "placed_by": "doodads.json",
-   "bytes": 21424,
+   "bytes": 13120,
    "role": "structure"
   },
   {
@@ -6255,7 +6255,7 @@
    "kind": "model",
    "path": "models/oga/tower-top.glb",
    "placed_by": "doodads.json",
-   "bytes": 18840,
+   "bytes": 12456,
    "role": "building"
   },
   {
@@ -6362,7 +6362,7 @@
    "kind": "model",
    "path": "models/necrolyte-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 633940,
+   "bytes": 263604,
    "role": "character"
   },
   {
@@ -6370,7 +6370,7 @@
    "kind": "model",
    "path": "models/neutral-elder-jungle-stalker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 990644,
+   "bytes": 432524,
    "role": "character"
   },
   {
@@ -6378,7 +6378,7 @@
    "kind": "model",
    "path": "models/neutral-enraged-wildkin-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 1269844,
+   "bytes": 564616,
    "role": "character"
   },
   {
@@ -6386,7 +6386,7 @@
    "kind": "model",
    "path": "models/shadow-shaman-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 563152,
+   "bytes": 243824,
    "role": "character"
   },
   {
@@ -6394,7 +6394,7 @@
    "kind": "model",
    "path": "models/skywrath-mage-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 541176,
+   "bytes": 233896,
    "role": "character"
   },
   {
@@ -6402,7 +6402,7 @@
    "kind": "model",
    "path": "models/storm-spirit-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 500444,
+   "bytes": 214196,
    "role": "character"
   },
   {
@@ -6410,7 +6410,7 @@
    "kind": "model",
    "path": "models/templar-assassin-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 578476,
+   "bytes": 247752,
    "role": "character"
   },
   {
@@ -6418,7 +6418,7 @@
    "kind": "model",
    "path": "models/tidehunter-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 524188,
+   "bytes": 223292,
    "role": "character"
   },
   {
@@ -6426,7 +6426,7 @@
    "kind": "model",
    "path": "models/tinker-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 612036,
+   "bytes": 251424,
    "role": "character"
   },
   {
@@ -6434,7 +6434,7 @@
    "kind": "model",
    "path": "models/troll-warlord-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 590192,
+   "bytes": 242028,
    "role": "character"
   },
   {
@@ -6442,7 +6442,7 @@
    "kind": "model",
    "path": "models/tuskarr-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 886016,
+   "bytes": 370748,
    "role": "character"
   },
   {
@@ -6450,7 +6450,7 @@
    "kind": "model",
    "path": "models/undying-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 532724,
+   "bytes": 225660,
    "role": "character"
   },
   {
@@ -6458,7 +6458,7 @@
    "kind": "model",
    "path": "models/vengeful-spirit-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 518308,
+   "bytes": 219024,
    "role": "character"
   },
   {
@@ -6466,7 +6466,7 @@
    "kind": "model",
    "path": "models/shadow-demon-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 138832,
+   "bytes": 592496,
    "role": "character"
   },
   {
@@ -6474,7 +6474,7 @@
    "kind": "model",
    "path": "models/venomancer-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 136640,
+   "bytes": 577716,
    "role": "character"
   },
   {
@@ -6482,7 +6482,7 @@
    "kind": "model",
    "path": "models/warlock-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 181488,
+   "bytes": 535312,
    "role": "character"
   },
   {
@@ -6490,7 +6490,7 @@
    "kind": "model",
    "path": "models/windrunner-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 137892,
+   "bytes": 545152,
    "role": "character"
   },
   {
@@ -6498,7 +6498,7 @@
    "kind": "model",
    "path": "models/winter-wyvern-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 193860,
+   "bytes": 624368,
    "role": "character"
   },
   {
@@ -6506,7 +6506,7 @@
    "kind": "model",
    "path": "models/neutral-warpine-raider-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 214120,
+   "bytes": 531620,
    "role": "character"
   },
   {
@@ -6514,7 +6514,7 @@
    "kind": "model",
    "path": "models/neutral-prowler-acolyte-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 169184,
+   "bytes": 535488,
    "role": "character"
   },
   {
@@ -6522,7 +6522,7 @@
    "kind": "model",
    "path": "models/neutral-prowler-shaman-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 186808,
+   "bytes": 658740,
    "role": "character"
   },
   {
@@ -6530,7 +6530,7 @@
    "kind": "model",
    "path": "models/neutral-granite-golem-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 132380,
+   "bytes": 515600,
    "role": "character"
   },
   {
@@ -6538,7 +6538,7 @@
    "kind": "model",
    "path": "models/neutral-ice-shaman-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 142824,
+   "bytes": 504736,
    "role": "character"
   },
   {
@@ -6546,7 +6546,7 @@
    "kind": "model",
    "path": "models/neutral-frostbitten-golem-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 189548,
+   "bytes": 566924,
    "role": "character"
   },
   {
@@ -6554,7 +6554,7 @@
    "kind": "model",
    "path": "models/neutral-big-thunder-lizard-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 893388,
+   "bytes": 408984,
    "role": "character"
   },
   {
@@ -6562,7 +6562,7 @@
    "kind": "model",
    "path": "models/neutral-small-thunder-lizard-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 730464,
+   "bytes": 322896,
    "role": "character"
   },
   {
@@ -6570,7 +6570,7 @@
    "kind": "model",
    "path": "models/witch-doctor-skinned.glb",
    "placed_by": "doodads.json",
-   "bytes": 295588,
+   "bytes": 569700,
    "role": "character"
   },
   {
@@ -6578,7 +6578,7 @@
    "kind": "model",
    "path": "models/flowers.glb",
    "placed_by": "doodads.json",
-   "bytes": 49552,
+   "bytes": 49600,
    "role": "prop"
   },
   {
@@ -6586,7 +6586,7 @@
    "kind": "model",
    "path": "models/remains-scorched.glb",
    "placed_by": "doodads.json",
-   "bytes": 396824,
+   "bytes": 396872,
    "role": "prop"
   },
   {
@@ -6594,7 +6594,7 @@
    "kind": "model",
    "path": "models/torch.glb",
    "placed_by": "doodads.json",
-   "bytes": 49976,
+   "bytes": 50020,
    "role": "prop"
   },
   {
