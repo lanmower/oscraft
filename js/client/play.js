@@ -1791,6 +1791,12 @@ session.addEventListener("data", (e) => {
     const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
     if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
     if (!swapIsNew(lastApplied ? lastApplied.tick : null, frame.tick)) { refuseSwap(`tick ${frame.tick} is not after the applied tick ${lastApplied.tick}`, e.detail.peerPubkey, frame.file); return; }
+    // A second announce for a different swap would replace the first before it applies, and this peer would then apply
+    // a module the host never applied at that tick. The same tick and hash is the host re-announcing: that is kept.
+    if (pendingSwap && !(pendingSwap.tick === frame.tick && pendingSwap.hash === frame.hash)) {
+      refuseSwap(`swap already pending for ${pendingSwap.file} at tick ${pendingSwap.tick}`, e.detail.peerPubkey, frame.file);
+      return;
+    }
     const kind = packKindOf(frame.file);
     const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, kind, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
     pendingSwap = swap;
