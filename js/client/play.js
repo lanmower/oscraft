@@ -601,9 +601,23 @@ function unitModelPump() {
 function queueUnitModel(type, ahead = false) {
   if (!renderGl || type < 0 || type === undefined) return;
   if (unitMeshes[type] !== undefined || unitModelJobs.has(type) || unitModelQueue.includes(type)) return;
+  // A type that has just come into view goes to the front of the queue rather than starting alongside it: the queue
+  // still runs at most UNIT_MODEL_CONCURRENCY at once, so twenty newly visible types cannot burst into twenty fetches.
   if (ahead) unitModelQueue.unshift(type);
   else unitModelQueue.push(type);
   unitModelPump();
+}
+
+// Work that needs the world on screen but not the first frame: the frame loop runs it once, after its first draw, so
+// none of it competes with getting that frame up.
+let deferredUntilDrawn = null;
+function deferUntilDrawn(work) {
+  deferredUntilDrawn = work;
+}
+function runDeferredUntilDrawn() {
+  const work = deferredUntilDrawn;
+  deferredUntilDrawn = null;
+  if (work) work();
 }
 
 // Every type the first frame did not need, called once the world is up: the roster arrives while the player is
@@ -1954,9 +1968,17 @@ async function build3d(gl, game) {
   doodadBatches = batchByMesh(placed);
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
   await unitFitsReady;
-  // The rest of the roster, now that the world is up: it arrives four models at a time while the match draws.
-  queueUnitModelBacklog();
-  arrowMesh = await loadArrowMesh(gl);
+  // Nothing below is needed to draw the first frame, so it waits until that frame is on screen: the rest of the
+  // roster, four models at a time, and the arrow, which only matters once something fires a projectile.
+  deferUntilDrawn(() => {
+    queueUnitModelBacklog();
+    loadArrowMesh(gl).then(
+      (mesh) => {
+        arrowMesh = mesh;
+      },
+      (err) => recordAssetError("model arrow", err),
+    );
+  });
 }
 
 // Splat ground: the control map from the grid and each layer's albedo and height textures, in SPLAT_LAYERS order.
@@ -2352,6 +2374,7 @@ async function main() {
     if (localGame) {
       drawWorld3d();
       fogview.draw();
+      runDeferredUntilDrawn();
     }
     if (ambientFx) {
       if (!ambientSeeded && placedDoodads.length) {
