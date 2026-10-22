@@ -1,6 +1,6 @@
 {
- "count": 925,
- "total_bytes": 73441269,
+ "count": 930,
+ "total_bytes": 73791005,
  "items": [
   {
    "id": "rock",
@@ -6619,6 +6619,46 @@
    "path": "models/mushrooms.glb",
    "placed_by": "doodads.json",
    "bytes": 117044,
+   "role": "prop"
+  },
+  {
+   "id": "cattail",
+   "kind": "model",
+   "path": "models/cattail.glb",
+   "placed_by": "doodads.json",
+   "bytes": 76916,
+   "role": "prop"
+  },
+  {
+   "id": "banner-tutorial-orc",
+   "kind": "model",
+   "path": "models/banner-tutorial-orc.glb",
+   "placed_by": "doodads.json",
+   "bytes": 98548,
+   "role": "prop"
+  },
+  {
+   "id": "lily-pads-floating",
+   "kind": "model",
+   "path": "models/lily-pads-floating.glb",
+   "placed_by": "doodads.json",
+   "bytes": 52708,
+   "role": "prop"
+  },
+  {
+   "id": "ltrc",
+   "kind": "model",
+   "path": "models/ltrc.glb",
+   "placed_by": "doodads.json",
+   "bytes": 37628,
+   "role": "prop"
+  },
+  {
+   "id": "fish-green",
+   "kind": "model",
+   "path": "models/fish-green.glb",
+   "placed_by": "doodads.json",
+   "bytes": 83936,
    "role": "prop"
   }
  ],

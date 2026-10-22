@@ -26,15 +26,15 @@ ARrk	10		Rocks	rock	name from Doodads.slk + WorldEditStrings.txt (Rocks); interi
 LOfl	9		Flies	patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Flies); interim kind until its own model exists
 JOgr	9			campfire_stand	inferred prop from cluster; confidence medium
 LObz	7			iron_fence_border_gate	inferred prop from cluster; confidence medium
-LPfp	7		Lily Pads Floating	grass	name from Doodads.slk + WorldEditStrings.txt (Lily Pads Floating); interim kind until its own model exists
+LPfp	7		Lily Pads Floating	lily_pads_floating	name from Doodads.slk + WorldEditStrings.txt (Lily Pads Floating); interim kind until its own model exists
 VOfl	6			fountain	inferred building from base+cluster; confidence high
 LOh1	6			rocks	inferred rock from lane; confidence medium
-CPct	6		Cattail	plant	name from Doodads.slk + WorldEditStrings.txt (Cattail); interim kind until its own model exists
-LTrc	6			plant	name from Doodads.slk + WorldEditStrings.txt (unnamed); interim kind until its own model exists
+CPct	6		Cattail	cattail	name from Doodads.slk + WorldEditStrings.txt (Cattail); interim kind until its own model exists
+LTrc	6			ltrc	name from Doodads.slk + WorldEditStrings.txt (unnamed); interim kind until its own model exists
 NOfl	6		Fence	fence	name from Doodads.slk + WorldEditStrings.txt (Fence); interim kind until its own model exists
 CRrk	6			cart_high	inferred prop from cluster; confidence medium
-LOo2	6		Banner Tutorial Orc	banner	name from Doodads.slk + WorldEditStrings.txt (Banner Tutorial Orc); interim kind until its own model exists
-ZWfs	6		Fish Green	fish	name from Doodads.slk + WorldEditStrings.txt (Fish Green); interim kind until its own model exists
+LOo2	6		Banner Tutorial Orc	banner_tutorial_orc	name from Doodads.slk + WorldEditStrings.txt (Banner Tutorial Orc); interim kind until its own model exists
+ZWfs	6		Fish Green	fish_green	name from Doodads.slk + WorldEditStrings.txt (Fish Green); interim kind until its own model exists
 AWfs	6		Fish	fish	name from Doodads.slk + WorldEditStrings.txt (Fish); interim kind until its own model exists
 LOpg	6		Grave Peasant	grave	name from Doodads.slk + WorldEditStrings.txt (Grave Peasant); interim kind until its own model exists
 CSbl	5		Blocks Ruined	brick_wall	name from Doodads.slk + WorldEditStrings.txt (Blocks Ruined); interim kind until its own model exists

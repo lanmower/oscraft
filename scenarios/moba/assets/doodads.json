@@ -911,5 +911,10 @@
   "torch": "models/torch.glb",
   "skull_pile": "models/skull-pile.glb",
   "torch_glowing": "models/torch-glowing.glb",
-  "mushrooms": "models/mushrooms.glb"
+  "mushrooms": "models/mushrooms.glb",
+  "cattail": "models/cattail.glb",
+  "banner_tutorial_orc": "models/banner-tutorial-orc.glb",
+  "lily_pads_floating": "models/lily-pads-floating.glb",
+  "ltrc": "models/ltrc.glb",
+  "fish_green": "models/fish-green.glb"
 }
