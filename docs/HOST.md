@@ -55,7 +55,14 @@ The page sets these on `<body>`, for the browser tests and for debugging:
 - The wasm package and the map images are not in git. `.github/workflows/pages.yml` builds them from source on each push to `main` (`wasm-pack build crates/web --target web --out-dir site/pkg` and `mapexport` for each pack), lays out the site, and deploys it to GitHub Pages.
 - The site root is the Pages URL. `index.html` redirects to `js/client/play.html`.
 - The page loads the pack's map from its manifest's `image` (`scenarios/moba/moba.osdt`, built by `mapexport`).
-- The same workflow packs the moba pack into `packs/<name>-<version>.tar.gz` with a `packs/latest.json` that names it.
+- The same workflow packs the moba game into one gzip stream, `packs/<name>-<version>.tar.gz`. Streams
+  larger than `--part-size` MiB (25 by default) are published as numbered pieces
+  (`…tar.gz.part00`, `part01`, …) plus a `…tar.gz.parts.json` index, because one file tens of
+  megabytes across sits near GitHub's 100 MB per-file ceiling and grows with every model that lands.
+  The pieces are byte ranges of that one stream, so joining them in index order gives back the
+  archive; `?pack=` reads the index when it is there and the whole file when it is not, so a pack
+  small enough to publish whole and the file picker both keep working.
+- `packs/latest.json` names the archive, its size and sha256 and, when it was split, its parts.
 - After the deploy, `scripts/observe/compare.mjs` fetches the live page and compares it with the built tree (`--expect-sha`).
 
 ## Node guest

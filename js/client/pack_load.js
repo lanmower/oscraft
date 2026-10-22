@@ -254,10 +254,46 @@ async function openFetched(url) {
   return res;
 }
 
+// A pack published as pieces: <archive>.parts.json sits beside it and names them in order. The pieces
+// are byte ranges of one gzip stream, so joining them gives back the single archive and nothing below
+// this function has to know the pack was split. Returns null when no index is there, which is the case
+// for a pack small enough to publish whole and for any archive that predates the split.
+async function openSplitArchive(url, name) {
+  const indexUrl = `${url}.parts.json`;
+  const res = await fetchRetrying(indexUrl);
+  if (!res.ok) return null;
+  const index = await res.json();
+  if (index?.schema !== 1 || !Array.isArray(index.parts) || index.parts.length === 0) {
+    throw new Error(`${indexUrl}: not a pack parts index`);
+  }
+  const pieces = await Promise.all(
+    index.parts.map(async (part) => {
+      const res = await fetchRetrying(new URL(part.file, indexUrl).href);
+      if (!res.ok) throw new Error(`pack part ${part.file} HTTP ${res.status}`);
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (bytes.length !== part.size) throw new Error(`pack part ${part.file}: ${bytes.length} bytes, index says ${part.size}`);
+      return bytes;
+    }),
+  );
+  const joined = new Uint8Array(pieces.reduce((n, piece) => n + piece.length, 0));
+  let at = 0;
+  for (const piece of pieces) {
+    joined.set(piece, at);
+    at += piece.length;
+  }
+  if (Number.isInteger(index.size) && joined.length !== index.size) {
+    throw new Error(`${index.archive}: the parts join to ${joined.length} bytes, the index says ${index.size}`);
+  }
+  const { files } = await readPackFile(new File([joined], name));
+  return fromFiles(files);
+}
+
 // An archive URL becomes a File named after its last path segment, so readPackFile reads it as the file picker's file would be.
 async function openArchive(url) {
-  const res = await openFetched(url);
   const name = decodeURIComponent(new URL(url).pathname.split("/").pop());
+  const split = await openSplitArchive(url, name);
+  if (split) return split;
+  const res = await openFetched(url);
   const { files } = await readPackFile(new File([await res.blob()], name));
   return fromFiles(files);
 }

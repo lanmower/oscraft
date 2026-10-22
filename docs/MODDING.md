@@ -9,7 +9,7 @@ The browser is the only build. `rust/crates/web` compiles the sim and the mod ho
 - The page opens `play.html?package=<dir or archive>` (`pack=` is the same). The default is `scenarios/moba` (`js/client/pack_load.js`). A directory, a `.tar.gz`/`.tgz` and a `.zip` go through the same reader.
 - The page reads only the paths the manifest names.
 - A pack holds no code the page runs. A `.js`, `.mjs`, `.cjs`, `.html`, `.wasm`, `.ts` or `.map` path is refused on load, on edit and on transfer.
-- `node scripts/pack-package.mjs <package-dir> <out-dir> [--build]` writes `<name>-<version>.tar.gz`. `--build` runs `mapexport` first, so the manifest's image is in the archive.
+- `node scripts/pack-package.mjs <package-dir> <out-dir> [--build] [--part-size=<MiB>]` writes `<name>-<version>.tar.gz`. `--build` runs `mapexport` first, so the manifest's image is in the archive. An archive larger than `--part-size` MiB (25 by default) is published as numbered pieces plus a `<archive>.parts.json` index; see [HOST.md](HOST.md).
 
 ### Manifest
 

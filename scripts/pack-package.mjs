@@ -1,21 +1,41 @@
 #!/usr/bin/env node
-// Packs one game package (a directory with manifest.json at its root) into a single <name>-<version>.tar.gz.
-// Usage: node scripts/pack-package.mjs <package-dir> <out-dir> [--build]
-//   --build  runs mapexport first to write the manifest's image (the compiled map) into the package
+// Packs one game package (a directory with manifest.json at its root) into a <name>-<version>.tar.gz.
+// Usage: node scripts/pack-package.mjs <package-dir> <out-dir> [--build] [--part-size=<MiB>]
+//   --build           runs mapexport first to write the manifest's image (the compiled map) into the package
+//   --part-size=<MiB> largest part to publish, default 25 (see PART_BYTES below)
+//
+// The archive is one gzip stream. When it is larger than one part it is published as numbered pieces
+// plus a <archive>.parts.json index, because a single file tens of megabytes across is a poor thing
+// to hand GitHub Pages: it sits near GitHub's 100 MB per-file ceiling, it is too big for the edge
+// cache to hold comfortably, and the models keep growing. The pieces are byte ranges of that one
+// stream, so joining them in order gives back exactly the archive the loader already reads; no piece
+// is a valid archive on its own. A pack that fits in one part is written whole, as it always was.
 // The pack holds only what the manifest names: Lua (.lua), data (.osd, .json, .txt), the compiled image and assets.
 // Files the manifest names outside the package are copied in: assets under assets/ (the asset root is rewritten to
 // "assets"), other files under external/. The archive's manifest.json is the rewritten one, so one loader reads both.
 import { execFileSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import zlib from "node:zlib";
 
+// 25 MiB. A quarter of GitHub's 100 MB per-file ceiling, small enough that the Pages edge cache is
+// happy to hold a piece, and large enough that a pack this size is two or three fetches rather than
+// dozens. Override per pack with --part-size=<MiB>.
+const DEFAULT_PART_MB = 25;
+const sha256 = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
+
 const args = process.argv.slice(2);
 const build = args.includes("--build");
-const [pkgArg, outArg] = args.filter((a) => a !== "--build");
+const partFlag = args.find((a) => a.startsWith("--part-size="));
+const partMb = Number(partFlag ? partFlag.slice("--part-size=".length) : DEFAULT_PART_MB);
+if (!Number.isFinite(partMb) || partMb < 1) throw new Error(`--part-size must be a number of MiB, got ${partFlag}`);
+const PART_BYTES = Math.floor(partMb * 1024 * 1024);
+const positional = args.filter((a) => a !== "--build" && !a.startsWith("--part-size="));
+const [pkgArg, outArg] = positional;
 if (!pkgArg || !outArg) {
-  console.error("usage: node scripts/pack-package.mjs <package-dir> <out-dir> [--build]");
+  console.error("usage: node scripts/pack-package.mjs <package-dir> <out-dir> [--build] [--part-size=<MiB>]");
   process.exit(2);
 }
 const pkgDir = path.resolve(pkgArg);
@@ -118,7 +138,36 @@ for (const [name, data] of entries) {
 blocks.push(Buffer.alloc(1024));
 const tar = Buffer.concat(blocks);
 fs.mkdirSync(outDir, { recursive: true });
-const dest = path.join(outDir, `${manifest.name}-${manifest.version}.tar.gz`);
-fs.writeFileSync(dest, zlib.gzipSync(tar, { level: 9 }));
+const gz = zlib.gzipSync(tar, { level: 9 });
+const archive = `${manifest.name}-${manifest.version}.tar.gz`;
+
+if (gz.length <= PART_BYTES) {
+  fs.writeFileSync(path.join(outDir, archive), gz);
+  console.log(`packed ${entries.length} files into ${archive} (${gz.length} bytes, one part)`);
+} else {
+  const count = Math.ceil(gz.length / PART_BYTES);
+  const width = Math.max(2, String(count - 1).length);
+  const parts = [];
+  for (let i = 0; i < count; i += 1) {
+    const slice = gz.subarray(i * PART_BYTES, Math.min((i + 1) * PART_BYTES, gz.length));
+    const file = `${archive}.part${String(i).padStart(width, "0")}`;
+    fs.writeFileSync(path.join(outDir, file), slice);
+    parts.push({ file, size: slice.length, sha256: sha256(slice) });
+  }
+  const index = {
+    schema: 1,
+    name: manifest.name,
+    version: manifest.version,
+    archive,
+    partBytes: PART_BYTES,
+    size: gz.length,
+    sha256: sha256(gz),
+    parts,
+  };
+  fs.writeFileSync(path.join(outDir, `${archive}.parts.json`), `${JSON.stringify(index, null, 2)}\n`);
+  const biggest = Math.max(...parts.map((p) => p.size));
+  console.log(
+    `packed ${entries.length} files into ${archive} (${gz.length} bytes) as ${count} parts of at most ${biggest} bytes`,
+  );
+}
 fs.rmSync(stage, { recursive: true, force: true });
-console.log(`packed ${entries.length} files into ${dest}`);
