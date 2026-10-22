@@ -47,6 +47,8 @@ local HEAL_ITEM = "flask"
 local BLINK_ITEM = "blink"
 
 local LANE_OF_SEAT = { "top", "mid", "bot", "mid", "top" }
+-- A lane's route id in routes.osd (route(player, id, ...)): top 1, mid 2, bot 3.
+local LANE_ROUTE = { top = 1, mid = 2, bot = 3 }
 -- Catalog index and gold cost of each purchase, in the order a bot buys them.
 local SHOPPING = { { 2, 200 }, { 6, 350 }, { 0, 150 }, { 1, 150 }, { 7, 300 }, { 10, 600 } }
 
@@ -314,7 +316,26 @@ function Bot.retreat(bot, hero, team)
   game.cmd_order(hero, fx, fy)
 end
 
+-- Walks the bot's lane: the map's route for its side and lane (routes.osd), from the route point nearest the hero to the
+-- next one. Past the route's last point, or with no route, it heads for the enemy base.
 function Bot.walk_lane(bot, hero, team)
+  local route = LANE_ROUTE[bot.lane]
+  local n = route and route_len(team, route) or 0
+  if n > 0 then
+    local hx, hy = unit_position(hero)
+    local near, near_d = 0, math.huge
+    for step = 0, n - 1 do
+      local px, py = route_point(team, route, step)
+      local d = distance_tiles(hx, hy, px, py)
+      if d < near_d then near, near_d = step, d end
+    end
+    if near + 1 < n then
+      local wx, wy = route_point(team, route, near + 1)
+      Bot.stats.walks = Bot.stats.walks + 1
+      game.cmd_order(hero, wx, wy)
+      return
+    end
+  end
   local x, y = enemy_base(bot.slot)
   if x == nil then return end
   Bot.stats.walks = Bot.stats.walks + 1

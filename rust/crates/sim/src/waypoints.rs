@@ -87,6 +87,16 @@ impl Sim {
         Some((fixed::from_milli(x), fixed::from_milli(y), step + 1 == route.points.len()))
     }
 
+    /// The number of points of route `id` for `player`, or 0 when the map has no such route.
+    pub fn route_len(&self, player: u8, id: u8) -> usize {
+        self.cat.routes.iter().find(|r| r.player == player as u16 && r.id == id as u16).map_or(0, |r| r.points.len())
+    }
+
+    /// Point `step` of route `id` for `player`, in fixed-point units; (0, 0) past its end.
+    pub fn route_point(&self, player: u8, id: u8, step: usize) -> (i32, i32) {
+        self.waypoint_at(player, id, step).map_or((0, 0), |(x, y, _)| (x, y))
+    }
+
     /// Asks the host for a destination for unit `j` of `player`. The request is queued, not answered here.
     pub(crate) fn request_destination(&mut self, j: usize, player: u8) {
         if self.dests.requests.len() < REQUEST_CAP {

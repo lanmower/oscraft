@@ -1101,6 +1101,26 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, (x as i64, y as i64));
         Ok(CallbackReturn::Return)
     });
+    // game.route_len(player, route): how many points the map's route has for that player; 0 when there is none.
+    native!(ctx, env, "route_len", [sh], |c, s| {
+        let (p, id) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let player = u8::try_from(p).map_err(|_| fail(c, "invalid_route: player out of range".into()))?;
+        let id = u8::try_from(id).map_err(|_| fail(c, "invalid_route: route out of range".into()))?;
+        let sh = sh.borrow();
+        s.replace(c, sh.sim.route_len(player, id) as i64);
+        Ok(CallbackReturn::Return)
+    });
+    // game.route_point(player, route, step): point `step` of the route as x, y in fixed-point units.
+    native!(ctx, env, "route_point", [sh], |c, s| {
+        let (p, id, step) = (a(c, &s, 0)?, a(c, &s, 1)?, a(c, &s, 2)?);
+        let player = u8::try_from(p).map_err(|_| fail(c, "invalid_route: player out of range".into()))?;
+        let id = u8::try_from(id).map_err(|_| fail(c, "invalid_route: route out of range".into()))?;
+        let step = usize::try_from(step).map_err(|_| fail(c, "invalid_route: step out of range".into()))?;
+        let sh = sh.borrow();
+        let (x, y) = sh.sim.route_point(player, id, step);
+        s.replace(c, (x as i64, y as i64));
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, env, "unit_hp", [sh], |c, s| {
         let i = a(c, &s, 0)?;
         let sh = sh.borrow();
