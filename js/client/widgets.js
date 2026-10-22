@@ -81,6 +81,15 @@ function el(tag, className, text) {
 const percent = (value, max) => (max > 0 ? Math.max(0, Math.min(100, (100 * (value || 0)) / max)) : 0);
 
 // One node as DOM. Buttons and clickable cells send their call through `send`.
+// The URL a pack image resolves to: an absolute or data URL as written, otherwise a path inside the pack
+// through the page's asset URL builder when one is installed.
+let srcResolver = (src) => src;
+export function setImageSrcResolver(fn) { srcResolver = fn; }
+function resolveSrc(src) {
+  if (/^(https?:|data:|blob:)/.test(src)) return src;
+  return srcResolver(src);
+}
+
 export function buildNode(n, send) {
   let e;
   switch (n.t) {
@@ -109,6 +118,26 @@ export function buildNode(n, send) {
       e = el("div", "w-grid");
       e.style.gridTemplateColumns = `repeat(${Math.max(1, n.cols || 1)}, minmax(0, auto))`;
       break;
+    case "image": {
+      // A pack image: n.src is a path inside the pack, resolved by the page's assetUrl. Kept square and
+      // drawn at n.size CSS pixels on a side (default 64); icons are authored 256x256 and scaled down.
+      e = el("div", "w-image");
+      const px = Math.max(1, Math.min(512, n.size || 64));
+      e.style.width = `${px}px`;
+      e.style.height = `${px}px`;
+      if (n.src) {
+        const img = document.createElement("img");
+        img.src = resolveSrc(n.src);
+        img.width = px;
+        img.height = px;
+        img.alt = n.alt ?? "";
+        img.loading = "lazy";
+        img.draggable = false;
+        img.onerror = () => { img.remove(); };
+        e.append(img);
+      }
+      break;
+    }
     case "cell":
       e = el("div", n.call ? "w-cell clickable" : "w-cell");
       if (n.call) e.onclick = () => send(n.call, n.args ?? {});

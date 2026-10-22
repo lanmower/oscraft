@@ -13,7 +13,7 @@ import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor 
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
-import { createWidgets } from "./widgets.js";
+import { createWidgets, setImageSrcResolver } from "./widgets.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
 import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
@@ -302,12 +302,16 @@ function routeUi(ev) {
 }
 
 // Each frame: the host takes the pack's UI events, renders them and sends them on; a seat change re-sends the setup.
+// Fallback owner id when the Nostr key is not ready at setup. Two pages must never share one: the lobby
+// keys its slots by owner, so a shared fallback makes every page look like the same player (one seated
+// owner, and every claim refused as already-seated).
+const LOCAL_OWNER_ID = "local-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(36);
 let setupSeat = null;
 function pumpUi() {
   if (!localGame || netState) return;
   if (setupSeat !== myPlayer) {
     setupSeat = myPlayer;
-    logModError(localGame.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || "local" })));
+    logModError(localGame.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || LOCAL_OWNER_ID })));
   }
   for (const ev of JSON.parse(localGame.drain_ui())) {
     routeUi(ev);
@@ -327,7 +331,7 @@ function newGame() {
 // the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
 function finishGame(game, modsJson) {
   logModError(game.load_mods(modsJson));
-  logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || "local" })));
+  logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || LOCAL_OWNER_ID })));
   // Fog of war is on for every page, moba included: enemies outside the local team's vision stay hidden.
   game.set_fog(true);
   return game;
@@ -2390,6 +2394,8 @@ async function main() {
   if (renderer3d) ambientFx = createAmbientFx({ renderer: renderer3d, groundAt });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
   widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
+  // A pack image node names a path inside the pack; resolve it the same way every other pack file is.
+  setImageSrcResolver((src) => packUrl(src.replace(/^\.?\//, "")));
   const eventsBase = params.get("events");
   const modUi = createModUi({
     root: document.body,
