@@ -152,9 +152,16 @@ export function createWidgets({ send }) {
       }
       return;
     }
-    const entry = open || { host: hostFor(data.slot), root: el("div", "w-root") };
+    const entry = open || { host: hostFor(data.slot), root: el("div", "w-root"), sig: null };
     entry.root.dataset.id = id;
-    entry.root.replaceChildren(buildNode(data.tree, send));
+    // Rebuilding the panel drops the old nodes. A pack that re-emits its panel every tick therefore
+    // destroyed each button between mousedown and mouseup, so presses never landed. Rebuild only when
+    // the tree really changed.
+    const sig = JSON.stringify(data.tree);
+    if (entry.sig !== sig) {
+      entry.root.replaceChildren(buildNode(data.tree, send));
+      entry.sig = sig;
+    }
     if (!entry.root.isConnected) entry.host.appendChild(entry.root);
     if (HIDE_WHEN_EMPTY.has(entry.host.id)) entry.host.hidden = false;
     roots.set(id, entry);
