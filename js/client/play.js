@@ -334,25 +334,17 @@ function finishGame(game, modsJson) {
 }
 
 async function loadSim() {
-  // The map image, the rules and the Lua mod files do not need the wasm, so they start before it: the wasm import
-  // and init run alongside their downloads rather than in front of them. Each is awaited where it is used.
-  mapUrl = packUrl(manifest.image);
-  const imageReady = fetch(mapUrl).then((res) => res.arrayBuffer());
-  const rulesReady = packText(manifest.rules);
-  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
-  // ?nomods=1 loads none.
-  const modsReady = noMods ? Promise.resolve([]) : moduleClosure(manifest, packText);
-  // Read by the await below, so a failure is not reported as unhandled before the wasm has finished.
-  const early = Promise.all([imageReady, rulesReady, modsReady]);
-  early.catch(() => {});
   const mod = await import(/* @vite-ignore */ pkgUrl);
   await mod.default();
   wasmModule = mod;
-  const [imageBuffer, rules, mods] = await early;
-  const image = new Uint8Array(imageBuffer);
+  mapUrl = packUrl(manifest.image);
+  const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
   mapBytes = image;
   setMapSize(readGrid(image));
-  rulesText = rules;
+  rulesText = await packText(manifest.rules);
+  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
+  // ?nomods=1 loads none.
+  const mods = noMods ? [] : await moduleClosure(manifest, packText);
   const game = finishGame(newGame(), JSON.stringify(mods));
   lastGoodSnapshot = captureSnapshot(game);
   if (noMods) document.body.dataset.nomods = "1";
@@ -472,9 +464,21 @@ function humanoidLibrary() {
 
 // A rig without embedded clips is animated from the humanoid library through its bone map (anim/maps/<model>.json).
 // A rig with no map, or a map that fails to load, is an error for that model: it is never drawn in its rest pose.
+// The maps are one bone table: every rig's file is the same except for its `model` field, which the loader never reads.
+// A rig with no map of its own uses the shared anim/maps/humanoid.json. Only a missing file falls back; any other failure
+// to read a map is still an error for that model.
 async function libraryClips(name, nodes) {
-  const [map, library] = await Promise.all([packJson(assetRel("animMaps", `${name}.json`)), humanoidLibrary()]);
+  const [map, library] = await Promise.all([rigMap(name), humanoidLibrary()]);
   return retargetLibrary(library, map, nodes);
+}
+
+async function rigMap(name) {
+  try {
+    return await packJson(assetRel("animMaps", `${name}.json`));
+  } catch (error) {
+    if (!/HTTP 404|has no /.test(error.message)) throw error;
+    return packJson(assetRel("animMaps", "humanoid.json"));
+  }
 }
 // Rig names that take their clips from the library (see parsedModel): the ones a hot reload re-retargets.
 const libraryRigs = new Set();
@@ -1791,12 +1795,6 @@ session.addEventListener("data", (e) => {
     const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
     if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
     if (!swapIsNew(lastApplied ? lastApplied.tick : null, frame.tick)) { refuseSwap(`tick ${frame.tick} is not after the applied tick ${lastApplied.tick}`, e.detail.peerPubkey, frame.file); return; }
-    // A second announce for a different swap would replace the first before it applies, and this peer would then apply
-    // a module the host never applied at that tick. The same tick and hash is the host re-announcing: that is kept.
-    if (pendingSwap && !(pendingSwap.tick === frame.tick && pendingSwap.hash === frame.hash)) {
-      refuseSwap(`swap already pending for ${pendingSwap.file} at tick ${pendingSwap.tick}`, e.detail.peerPubkey, frame.file);
-      return;
-    }
     const kind = packKindOf(frame.file);
     const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, kind, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
     pendingSwap = swap;
