@@ -70,7 +70,7 @@ unit("tinker", 150, 298, 375, build_time=480, resource_a=0, capacity=1, filters=
 unit_extra("tinker", player_controlled=True, deny_xp_pct=0)
 unit("sniper", 120, 278, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=16, weapon_range_milli=8594, weapon_period=27, sight_milli=28125, defense=0, model="", deny_pct=0)
 unit_extra("sniper", player_controlled=True, deny_xp_pct=0)
-unit("necrolyte", 150, 283, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=24, weapon_range_milli=8594, weapon_period=27, sight_milli=28125, defense=1, model="", deny_pct=0)
+unit("necrolyte", 150, 283, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=24, weapon_range_milli=8594, weapon_period=27, sight_milli=28125, defense=1, model="necrolyte-skinned", deny_pct=0)
 unit_extra("necrolyte", player_controlled=True, deny_xp_pct=0)
 unit("warlock", 150, 288, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=27, weapon_range_milli=9375, weapon_period=27, sight_milli=28125, defense=2, model="", deny_pct=0)
 unit_extra("warlock", player_controlled=True, deny_xp_pct=0)
