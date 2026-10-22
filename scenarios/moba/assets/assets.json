@@ -1,6 +1,6 @@
 {
- "count": 922,
- "total_bytes": 72785889,
+ "count": 924,
+ "total_bytes": 73324225,
  "items": [
   {
    "id": "rock",
@@ -6595,6 +6595,22 @@
    "path": "models/torch.glb",
    "placed_by": "doodads.json",
    "bytes": 49976,
+   "role": "prop"
+  },
+  {
+   "id": "skull-pile",
+   "kind": "model",
+   "path": "models/skull-pile.glb",
+   "placed_by": "doodads.json",
+   "bytes": 491776,
+   "role": "prop"
+  },
+  {
+   "id": "torch-glowing",
+   "kind": "model",
+   "path": "models/torch-glowing.glb",
+   "placed_by": "doodads.json",
+   "bytes": 46560,
    "role": "prop"
   }
  ],

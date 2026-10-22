@@ -908,5 +908,7 @@
   "witch_doctor_skinned": "models/witch-doctor-skinned.glb",
   "flowers": "models/flowers.glb",
   "remains_scorched": "models/remains-scorched.glb",
-  "torch": "models/torch.glb"
+  "torch": "models/torch.glb",
+  "skull_pile": "models/skull-pile.glb",
+  "torch_glowing": "models/torch-glowing.glb"
 }

@@ -12,9 +12,9 @@ NTtc	38	tree		tree	script tree rule (pU)
 AOsr	36		Remains Scorched	remains_scorched	name from Doodads.slk + WorldEditStrings.txt (Remains Scorched); interim kind until its own model exists
 APtv	35			grass_large	inferred nature from tree; confidence medium
 LOth	30		Torch	torch	name from Doodads.slk + WorldEditStrings.txt (Torch); interim kind until its own model exists
-LOsk	29		Skull Pile	grave	name from Doodads.slk + WorldEditStrings.txt (Skull Pile); interim kind until its own model exists
+LOsk	29		Skull Pile	skull_pile	name from Doodads.slk + WorldEditStrings.txt (Skull Pile); interim kind until its own model exists
 AOnt	26			rocks	inferred rock from lane; confidence medium
-LOtz	22		Torch Glowing	lantern_candle	name from Doodads.slk + WorldEditStrings.txt (Torch Glowing); interim kind until its own model exists
+LOtz	22		Torch Glowing	torch_glowing	name from Doodads.slk + WorldEditStrings.txt (Torch Glowing); interim kind until its own model exists
 LWw0	18			catwalk_junction	inferred prop from cluster; confidence medium
 LOic	17		Corpse Impaled	debris_wood	name from Doodads.slk + WorldEditStrings.txt (Corpse Impaled); interim kind until its own model exists
 NObt	15		Bats	patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Bats); interim kind until its own model exists
