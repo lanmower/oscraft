@@ -30,5 +30,6 @@ fn only_heroes_with_a_model_are_offered() {
     let heroes = host.state_int("heroes").expect("hero count");
     let offered = host.state_int("offered").expect("offered count");
     assert!(heroes > offered, "some heroes have no model: {heroes} heroes, {offered} offered");
-    assert_eq!(offered, 25, "the skinned heroes are the ones offered");
+    // 25 skinned heroes, plus the 28 wired from the hy3d batch (units_heroes.osd model fields).
+    assert_eq!(offered, 53, "the skinned heroes are the ones offered");
 }

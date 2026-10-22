@@ -1,6 +1,6 @@
 {
- "count": 835,
- "total_bytes": 24840241,
+ "count": 892,
+ "total_bytes": 59805381,
  "items": [
   {
    "id": "rock",
@@ -1051,6 +1051,462 @@
    "path": "models/lich-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 133732,
+   "role": "character"
+  },
+  {
+   "id": "earth-spirit-skinned",
+   "kind": "model",
+   "path": "models/earth-spirit-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 1129108,
+   "role": "character"
+  },
+  {
+   "id": "ember-spirit-skinned",
+   "kind": "model",
+   "path": "models/ember-spirit-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 586380,
+   "role": "character"
+  },
+  {
+   "id": "enchantress-skinned",
+   "kind": "model",
+   "path": "models/enchantress-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 710904,
+   "role": "character"
+  },
+  {
+   "id": "enigma-skinned",
+   "kind": "model",
+   "path": "models/enigma-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 498460,
+   "role": "character"
+  },
+  {
+   "id": "invoker-skinned",
+   "kind": "model",
+   "path": "models/invoker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 498500,
+   "role": "character"
+  },
+  {
+   "id": "juggernaut-skinned",
+   "kind": "model",
+   "path": "models/juggernaut-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 841248,
+   "role": "character"
+  },
+  {
+   "id": "keeper-of-the-light-skinned",
+   "kind": "model",
+   "path": "models/keeper-of-the-light-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 449484,
+   "role": "character"
+  },
+  {
+   "id": "legion-commander-skinned",
+   "kind": "model",
+   "path": "models/legion-commander-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 433272,
+   "role": "character"
+  },
+  {
+   "id": "lifestealer-skinned",
+   "kind": "model",
+   "path": "models/lifestealer-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 591332,
+   "role": "character"
+  },
+  {
+   "id": "lone-druid-skinned",
+   "kind": "model",
+   "path": "models/lone-druid-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 607156,
+   "role": "character"
+  },
+  {
+   "id": "magnataur-skinned",
+   "kind": "model",
+   "path": "models/magnataur-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 667820,
+   "role": "character"
+  },
+  {
+   "id": "morphling-skinned",
+   "kind": "model",
+   "path": "models/morphling-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 393944,
+   "role": "character"
+  },
+  {
+   "id": "naga-siren-skinned",
+   "kind": "model",
+   "path": "models/naga-siren-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 633448,
+   "role": "character"
+  },
+  {
+   "id": "neutral-alpha-wolf-skinned",
+   "kind": "model",
+   "path": "models/neutral-alpha-wolf-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 618156,
+   "role": "character"
+  },
+  {
+   "id": "neutral-black-dragon-skinned",
+   "kind": "model",
+   "path": "models/neutral-black-dragon-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 840368,
+   "role": "character"
+  },
+  {
+   "id": "neutral-black-drake-skinned",
+   "kind": "model",
+   "path": "models/neutral-black-drake-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 429180,
+   "role": "character"
+  },
+  {
+   "id": "neutral-centaur-khan-skinned",
+   "kind": "model",
+   "path": "models/neutral-centaur-khan-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 440900,
+   "role": "character"
+  },
+  {
+   "id": "neutral-centaur-outrunner-skinned",
+   "kind": "model",
+   "path": "models/neutral-centaur-outrunner-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 772376,
+   "role": "character"
+  },
+  {
+   "id": "neutral-dark-troll-skinned",
+   "kind": "model",
+   "path": "models/neutral-dark-troll-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 518080,
+   "role": "character"
+  },
+  {
+   "id": "neutral-dark-troll-warlord-skinned",
+   "kind": "model",
+   "path": "models/neutral-dark-troll-warlord-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 574464,
+   "role": "character"
+  },
+  {
+   "id": "neutral-fel-beast-skinned",
+   "kind": "model",
+   "path": "models/neutral-fel-beast-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 402508,
+   "role": "character"
+  },
+  {
+   "id": "neutral-forest-troll-berserker-skinned",
+   "kind": "model",
+   "path": "models/neutral-forest-troll-berserker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 643324,
+   "role": "character"
+  },
+  {
+   "id": "neutral-forest-troll-high-priest-skinned",
+   "kind": "model",
+   "path": "models/neutral-forest-troll-high-priest-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 587892,
+   "role": "character"
+  },
+  {
+   "id": "neutral-furbolg-champion-skinned",
+   "kind": "model",
+   "path": "models/neutral-furbolg-champion-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 709836,
+   "role": "character"
+  },
+  {
+   "id": "neutral-furbolg-ursa-warrior-skinned",
+   "kind": "model",
+   "path": "models/neutral-furbolg-ursa-warrior-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 760488,
+   "role": "character"
+  },
+  {
+   "id": "neutral-ghost-skinned",
+   "kind": "model",
+   "path": "models/neutral-ghost-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 1060752,
+   "role": "character"
+  },
+  {
+   "id": "neutral-giant-wolf-skinned",
+   "kind": "model",
+   "path": "models/neutral-giant-wolf-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 772180,
+   "role": "character"
+  },
+  {
+   "id": "neutral-gnoll-assassin-skinned",
+   "kind": "model",
+   "path": "models/neutral-gnoll-assassin-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 545556,
+   "role": "character"
+  },
+  {
+   "id": "neutral-harpy-scout-skinned",
+   "kind": "model",
+   "path": "models/neutral-harpy-scout-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 637488,
+   "role": "character"
+  },
+  {
+   "id": "neutral-harpy-storm-skinned",
+   "kind": "model",
+   "path": "models/neutral-harpy-storm-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 635360,
+   "role": "character"
+  },
+  {
+   "id": "neutral-jungle-stalker-skinned",
+   "kind": "model",
+   "path": "models/neutral-jungle-stalker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 775132,
+   "role": "character"
+  },
+  {
+   "id": "neutral-kobold-skinned",
+   "kind": "model",
+   "path": "models/neutral-kobold-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 983332,
+   "role": "character"
+  },
+  {
+   "id": "neutral-kobold-taskmaster-skinned",
+   "kind": "model",
+   "path": "models/neutral-kobold-taskmaster-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 633360,
+   "role": "character"
+  },
+  {
+   "id": "neutral-kobold-tunneler-skinned",
+   "kind": "model",
+   "path": "models/neutral-kobold-tunneler-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 711028,
+   "role": "character"
+  },
+  {
+   "id": "neutral-mud-golem-skinned",
+   "kind": "model",
+   "path": "models/neutral-mud-golem-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 505544,
+   "role": "character"
+  },
+  {
+   "id": "neutral-ogre-magi-skinned",
+   "kind": "model",
+   "path": "models/neutral-ogre-magi-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 619304,
+   "role": "character"
+  },
+  {
+   "id": "neutral-ogre-mauler-skinned",
+   "kind": "model",
+   "path": "models/neutral-ogre-mauler-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 651664,
+   "role": "character"
+  },
+  {
+   "id": "neutral-rock-golem-skinned",
+   "kind": "model",
+   "path": "models/neutral-rock-golem-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 556324,
+   "role": "character"
+  },
+  {
+   "id": "neutral-satyr-hellcaller-skinned",
+   "kind": "model",
+   "path": "models/neutral-satyr-hellcaller-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 484328,
+   "role": "character"
+  },
+  {
+   "id": "neutral-satyr-soulstealer-skinned",
+   "kind": "model",
+   "path": "models/neutral-satyr-soulstealer-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 703904,
+   "role": "character"
+  },
+  {
+   "id": "neutral-satyr-trickster-skinned",
+   "kind": "model",
+   "path": "models/neutral-satyr-trickster-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 778260,
+   "role": "character"
+  },
+  {
+   "id": "neutral-wildkin-skinned",
+   "kind": "model",
+   "path": "models/neutral-wildkin-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 380212,
+   "role": "character"
+  },
+  {
+   "id": "night-stalker-skinned",
+   "kind": "model",
+   "path": "models/night-stalker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 604000,
+   "role": "character"
+  },
+  {
+   "id": "obsidian-destroyer-skinned",
+   "kind": "model",
+   "path": "models/obsidian-destroyer-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 542368,
+   "role": "character"
+  },
+  {
+   "id": "ogre-magi-skinned",
+   "kind": "model",
+   "path": "models/ogre-magi-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 582428,
+   "role": "character"
+  },
+  {
+   "id": "omniknight-skinned",
+   "kind": "model",
+   "path": "models/omniknight-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 512960,
+   "role": "character"
+  },
+  {
+   "id": "oracle-skinned",
+   "kind": "model",
+   "path": "models/oracle-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 446756,
+   "role": "character"
+  },
+  {
+   "id": "pandaren-brewmaster-skinned",
+   "kind": "model",
+   "path": "models/pandaren-brewmaster-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 643984,
+   "role": "character"
+  },
+  {
+   "id": "phantom-assassin-skinned",
+   "kind": "model",
+   "path": "models/phantom-assassin-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 510348,
+   "role": "character"
+  },
+  {
+   "id": "phantom-lancer-skinned",
+   "kind": "model",
+   "path": "models/phantom-lancer-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 476988,
+   "role": "character"
+  },
+  {
+   "id": "phoenix-skinned",
+   "kind": "model",
+   "path": "models/phoenix-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 626492,
+   "role": "character"
+  },
+  {
+   "id": "queen-of-pain-skinned",
+   "kind": "model",
+   "path": "models/queen-of-pain-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 422152,
+   "role": "character"
+  },
+  {
+   "id": "sand-king-skinned",
+   "kind": "model",
+   "path": "models/sand-king-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 520068,
+   "role": "character"
+  },
+  {
+   "id": "silencer-skinned",
+   "kind": "model",
+   "path": "models/silencer-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 392768,
+   "role": "character"
+  },
+  {
+   "id": "skeleton-king-skinned",
+   "kind": "model",
+   "path": "models/skeleton-king-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 755500,
+   "role": "character"
+  },
+  {
+   "id": "spectre-skinned",
+   "kind": "model",
+   "path": "models/spectre-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 620156,
+   "role": "character"
+  },
+  {
+   "id": "spiritbreaker-skinned",
+   "kind": "model",
+   "path": "models/spiritbreaker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 535816,
    "role": "character"
   },
   {
@@ -5908,7 +6364,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 42,
+  "character": 99,
   "creep": 5,
   "terrain": 7
  }
