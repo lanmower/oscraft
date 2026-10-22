@@ -427,24 +427,34 @@ function easeStep(t) {
   const c = t < 0 ? 0 : t > 1 ? 1 : t;
   return c * c * (3 - 2 * c);
 }
-// Mean of a per-cell value over the box of RAMP_SPAN cells around each cell (clipped at the map edge).
+// Mean of a per-cell value over the box of RAMP_SPAN cells around each cell (clipped at the map edge). The box is
+// separable: a running sum along each row, then along each column over those row sums. It visits the same cells and
+// divides by the same count, so the mean is the brute-force box mean up to floating-point rounding of the sums, and
+// the splat and water maps built from it are byte-identical (checked on the moba map).
 function boxMean(grid, values) {
   const { width: w, height: h } = grid;
-  const out = new Float32Array(w * h);
+  const rows = new Float64Array(w * h);
   for (let y = 0; y < h; y++) {
+    const base = y * w;
+    let run = 0;
+    for (let x = 0; x <= RAMP_SPAN && x < w; x++) run += values[base + x];
     for (let x = 0; x < w; x++) {
+      rows[base + x] = run;
+      const add = x + RAMP_SPAN + 1;
+      const drop = x - RAMP_SPAN;
+      if (add < w) run += values[base + add];
+      if (drop >= 0) run -= values[base + drop];
+    }
+  }
+  const out = new Float32Array(w * h);
+  for (let x = 0; x < w; x++) {
+    const cx = Math.min(w - 1, x + RAMP_SPAN) - Math.max(0, x - RAMP_SPAN) + 1;
+    for (let y = 0; y < h; y++) {
+      const y0 = Math.max(0, y - RAMP_SPAN);
+      const y1 = Math.min(h - 1, y + RAMP_SPAN);
       let sum = 0;
-      let n = 0;
-      for (let dy = -RAMP_SPAN; dy <= RAMP_SPAN; dy++) {
-        for (let dx = -RAMP_SPAN; dx <= RAMP_SPAN; dx++) {
-          const nx = x + dx;
-          const ny = y + dy;
-          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-          sum += values[ny * w + nx];
-          n++;
-        }
-      }
-      out[y * w + x] = sum / n;
+      for (let yy = y0; yy <= y1; yy++) sum += rows[yy * w + x];
+      out[y * w + x] = sum / (cx * (y1 - y0 + 1));
     }
   }
   return out;
