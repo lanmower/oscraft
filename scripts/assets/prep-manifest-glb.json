@@ -5873,6 +5873,27 @@
       "afterBytes": 49976,
       "source": "39aac468eea00ce2e237134e3d844ceb73a2c2ac69353d31a59d7b0094b9398b",
       "at": "2026-10-22T16:48:46.995Z"
+    },
+    "scenarios/moba/assets/models/skull-pile.glb": {
+      "sha256": "61f80dcf30569ab496ad75a72022cd72035f68f46ce732c0642f4f61c1abddf9",
+      "bytes": 917440,
+      "afterBytes": 491776,
+      "source": "c4fd5176b76a6dcf9fe5fc5dc3b86bfac6d12f51d9998f697e45d51a72352a6c",
+      "at": "2026-10-22T17:08:26.332Z"
+    },
+    "scenarios/moba/assets/models/torch-glowing.glb": {
+      "sha256": "09663dbbc314e45ee465e71c8aa61e8d14a1406db2d659b5610453a7a057bf86",
+      "bytes": 77700,
+      "afterBytes": 46560,
+      "source": "2497755afd8f4669f082ef51f4578f35e5f1b00be262bc18a3d58824c6bdf160",
+      "at": "2026-10-22T17:08:26.491Z"
+    },
+    "scenarios/moba/assets/models/mushrooms.glb": {
+      "sha256": "b99f81a3c067435b32422d56ee0f0aed4b71fc60c3c2053aacca4e0b204c0d7a",
+      "bytes": 195032,
+      "afterBytes": 117044,
+      "source": "353aabd284130f7a100f0bdaa91354672a5f5fbdcc0259d32a6c140d7292e1bb",
+      "at": "2026-10-22T17:38:05.878Z"
     }
   }
 }
