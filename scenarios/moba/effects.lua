@@ -10,7 +10,14 @@
 local units = require("units")
 local xp = require("xp")
 
+local FIXED = 65536  -- the sim's Q16.16 scale: one world unit is 65536 fixed-point units
 local MELEE_RANGE_RAW = 170394  -- 2.6 world units in fixed point (65536 per unit), the reach of a melee strike
+
+-- A fixed-point quantity as a whole number, for text the player reads. on_hit reports damage in fixed
+-- point, so showing it raw prints 655360 where the hit was 10.
+local function whole(v)
+  return math.floor(v / FIXED + 0.5)
+end
 local SPELL = "spell"
 local seen_level = {}  -- hero -> its level at the last tick
 local seen_alive = {}  -- hero -> whether it lived at the last tick
@@ -31,7 +38,7 @@ game.trigger("on_died", {
 
 return {
   on_hit = function(attacker, victim, dealt)
-    game.effect("damage_text", 0, 0, { target = victim, text = "-" .. tostring(dealt) })
+    game.effect("damage_text", 0, 0, { target = victim, text = "-" .. tostring(whole(dealt)) })
     game.effect("hit_flash", 0, 0, { target = victim })
     if attacker < 0 or attacker == victim then return end
     if in_melee_reach(attacker, victim) then
