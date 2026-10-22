@@ -905,5 +905,8 @@
   "neutral_frostbitten_golem_skinned": "models/neutral-frostbitten-golem-skinned.glb",
   "neutral_big_thunder_lizard_skinned": "models/neutral-big-thunder-lizard-skinned.glb",
   "neutral_small_thunder_lizard_skinned": "models/neutral-small-thunder-lizard-skinned.glb",
-  "witch_doctor_skinned": "models/witch-doctor-skinned.glb"
+  "witch_doctor_skinned": "models/witch-doctor-skinned.glb",
+  "flowers": "models/flowers.glb",
+  "remains_scorched": "models/remains-scorched.glb",
+  "torch": "models/torch.glb"
 }

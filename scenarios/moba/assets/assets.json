@@ -1,6 +1,6 @@
 {
- "count": 919,
- "total_bytes": 72289537,
+ "count": 922,
+ "total_bytes": 72785889,
  "items": [
   {
    "id": "rock",
@@ -6572,6 +6572,30 @@
    "placed_by": "doodads.json",
    "bytes": 295588,
    "role": "character"
+  },
+  {
+   "id": "flowers",
+   "kind": "model",
+   "path": "models/flowers.glb",
+   "placed_by": "doodads.json",
+   "bytes": 49552,
+   "role": "prop"
+  },
+  {
+   "id": "remains-scorched",
+   "kind": "model",
+   "path": "models/remains-scorched.glb",
+   "placed_by": "doodads.json",
+   "bytes": 396824,
+   "role": "prop"
+  },
+  {
+   "id": "torch",
+   "kind": "model",
+   "path": "models/torch.glb",
+   "placed_by": "doodads.json",
+   "bytes": 49976,
+   "role": "prop"
   }
  ],
  "roles": {
