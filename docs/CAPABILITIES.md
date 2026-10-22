@@ -1,10 +1,10 @@
-# Capabilities: parity checklist for mods on the oscraft server
+# Capabilities: parity checklist for mods on the oscraft engine
 
 Measure: a capability is at parity when its row is `implemented` and its gate check passes with placed units. Presentation rows count as parity when they are `unsupported-headless` with a named refusal.
 
 Status values: `implemented`, `partial`, `stub` (no code), `unsupported-headless`.
-`claimed` means the code is on main and the gate check has not yet passed; `implemented` means the gate passed on CI.
-Paths are relative to `rust/crates/` unless shown otherwise. Gate names are planned checks; no gate check exists yet (`rust/crates/gate/src/main.rs` is a placeholder).
+`claimed` means the code is on main and the gate check has not yet passed; `implemented` means the row's gate check is registered in `rust/gate`. No CI job runs `oscraft-gate`, so no CI run backs any status.
+Paths are relative to `rust/crates/` unless shown otherwise. Gate names are checks in `rust/gate/src/` (`checks.rs`, run from `main.rs`); the checks for rules now in Lua were removed from `rust/gate`, and their rows read `none (gate removed)`.
 
 ## Map and terrain
 
@@ -26,14 +26,14 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
-| CAP-UNIT-1 | Spawn a unit of a catalog kind for a player at fixed-point coordinates | implemented | sim/src/arrays.rs (spawn, spawn_for); mod-host/src/lib.rs (spawn_unit) | gate:spawn-units |
+| CAP-UNIT-1 | Spawn a unit of a catalog kind for a player at fixed-point coordinates | implemented | sim/src/arrays.rs (spawn, spawn_for); mod-host/src/piccolo_host.rs (spawn_unit native) | gate:spawn-units |
 | CAP-UNIT-2 | Read a unit's position, hp, owner and alive state | implemented | sim/src/arrays.rs (position_fixed, hp, player, alive) | gate:unit-stats-read |
 | CAP-UNIT-3 | Load a unit catalog with per-kind stats | implemented | sim/src/loader.rs (load, unit_index) | gate:catalog-load |
 | CAP-UNIT-4 | Classify units as worker, structure, air or projectile | implemented | sim/src/loader.rs (is_worker, is_structure, is_air, is_projectile) | gate:unit-classes |
 | CAP-UNIT-5 | Let air units cross terrain that ground units cannot cross | claimed | none | gate:air-terrain-crossing |
 | CAP-UNIT-6 | Refuse ground-only weapons against air targets | claimed | none | gate:ground-only-air-refusal |
-| CAP-UNIT-7 | Load ground units into a transport up to a size-based capacity and unload them | claimed | none | gate:transport-load |
-| CAP-UNIT-8 | Unload loaded units at a chosen point, including behind enemy lines | claimed | none | gate:transport-unload-point |
+| CAP-UNIT-7 | Load ground units into a transport up to a size-based capacity and unload them | claimed | scenarios/duel-routes/transport.lua (load_unit) | none (gate removed) |
+| CAP-UNIT-8 | Unload loaded units at a chosen point, including behind enemy lines | claimed | scenarios/duel-routes/transport.lua (unload_transport_at) | none (gate removed) |
 
 ## Abilities and effects
 
@@ -55,21 +55,19 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 | CAP-BEH-3 | Remove a behaviour from a unit through an effect | implemented | sim/src/buffs.rs (remove_behaviour); sim/src/rules.rs | gate:remove-behaviour |
 | CAP-BEH-4 | Declare behaviours with a trigger (idle, attacked, spawned, ability_ready) in data | implemented | data/src/model.rs (trigger), data/src/builtins.rs; no evaluator in sim | gate:behaviour-declared |
 | CAP-BEH-5 | Fire behaviour triggers during the tick | implemented | sim/src/behaviours.rs (fire_triggers), sim/src/tick.rs | gate:behaviour-trigger-fires |
-| CAP-BEH-6 | Raise a class-wide stat in levels, with each level costing more than the last | claimed | sim/src/upgrades.rs (complete_upgrade charges level x per-level cost), sim/src/loader.rs (UPGR v13 cost fields) | gate:upgrade-levels |
-| CAP-BEH-7 | Stack upgrade levels separately for each unit class | claimed | sim/src/upgrades.rs (records stack per target kind and index; rule 1 adds, rule 2 refuses) | gate:upgrade-stacking |
-| CAP-BEH-8 | Apply upgrades to units already on the field, not only to new units | claimed | sim/src/upgrades.rs (complete_upgrade applies to existing units when applies-to is 1; apply_upgrades_to_new for new units) | gate:upgrade-applies-existing |
+| CAP-BEH-6 | Raise a class-wide stat in levels, with each level costing more than the last | claimed | mods/upgrades.lua (level n costs n x cost_per_level) | none (gate removed) |
+| CAP-BEH-7 | Stack upgrade levels separately for each unit class | claimed | mods/upgrades.lua (stacking "add" and "once") | none (gate removed) |
+| CAP-BEH-8 | Apply upgrades to units already on the field, not only to new units | claimed | mods/upgrades.lua (game.apply_research per unit, existing and new) | none (gate removed) |
 | CAP-BEH-9 | Apply a stated stacking rule to buffs of the same kind | claimed | sim/src/buffs.rs (apply_buff: same kind refreshes its duration) | gate:buff-stacking-rule |
 
 ## Orders and pathing
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
-| CAP-ORD-1 | Parse and bounds-check a player order body (player, x, y) | implemented | server/src/order.rs (parse_order) | gate:order-parse |
 | CAP-ORD-2 | Issue a move order to a set of units | implemented | sim/src/arrays.rs (order, order_all); sim/src/movement.rs (issue_order) | gate:issue-move |
 | CAP-ORD-3 | Steer and integrate unit movement each tick | implemented | sim/src/movement.rs (steer, integrate) | gate:move-units-tick |
 | CAP-ORD-4 | Path to a goal with shared flow fields | implemented | sim/src/pathfinding.rs (request, field, step, ready_count, cap) | gate:path-to-goal |
 | CAP-ORD-5 | Stop, attack-move, patrol and hold orders | implemented | sim/src/movement.rs (issue_order_kind, advance_patrol), sim/src/tick.rs | gate:order-kinds |
-| CAP-ORD-6 | Rate-limit and authorize orders per player | implemented | server/src/order.rs (rate, authorized, take) | gate:order-rate-limit |
 | CAP-ORD-7 | Push colliding units apart instead of letting them overlap | claimed | sim/src/movement.rs (separation from neighbours within radius sum) | gate:unit-collision |
 | CAP-ORD-8 | Limit how many units pass narrow or blocked cells at once | claimed | sim/src/limits.rs (cell_has_room), sim/src/movement.rs (integrate waits on a full cell), sim/src/arrays.rs (spawn_for refuses CellFull) | gate:narrow-passage-limit |
 
@@ -77,21 +75,21 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
-| CAP-PROD-1 | Produce a unit from a building over time | implemented | sim/src/production.rs (produce_step) | gate:produce-unit |
-| CAP-PROD-2 | Gather resource_a and resource_b through harvest steps | implemented | sim/src/harvest.rs (harvest_step, retarget_scan, arrived); sim/src/arrays.rs (add_resources, resource_a, resource_b) | gate:harvest-resources |
-| CAP-PROD-3 | Deduct production costs before starting a unit | implemented | sim/src/arrays.rs (add_resources); deduction path not confirmed | gate:spend-resources |
-| CAP-PROD-4 | Cancel a queued unit with refund | implemented | none | gate:cancel-production |
-| CAP-PROD-5 | Scale patch income with workers up to a saturation count | claimed | none | gate:worker-saturation |
-| CAP-PROD-6 | Gate gas harvesting on an extractor building with a per-geyser saturation count | claimed | none | gate:geyser-extraction |
-| CAP-PROD-7 | Set a fixed opening resource amount and opening worker count per start | claimed | none | gate:opening-resources |
-| CAP-PROD-8 | Set a fixed mineral patch and geyser count per base from map data | claimed | none | gate:base-resource-nodes |
-| CAP-PROD-9 | Charge a fixed capacity per unit and refuse production past the capacity cap | claimed | none | gate:capacity-cap |
-| CAP-PROD-10 | Raise the capacity cap with providers, bounded by a per-race maximum | claimed | none | gate:capacity-providers |
-| CAP-PROD-11 | Reserve capacity when production is queued and release it on cancel | claimed | none | gate:capacity-reservation |
-| CAP-PROD-12 | Move a newly finished unit to the building's rally point | claimed | none | gate:rally-point |
-| CAP-PROD-13 | Require prerequisite buildings or research before a unit, building or upgrade can be made | claimed | none | gate:tech-prerequisites |
-| CAP-PROD-14 | Run one research at a time per building for a fixed time at a resource cost | claimed | none | gate:research-queue |
-| CAP-PROD-15 | Apply completed research to every matching unit at once | claimed | none | gate:research-applies-all |
+| CAP-PROD-1 | Produce a unit from a building over time | implemented | scenarios/duel-routes/production.lua (train) | none (gate removed) |
+| CAP-PROD-2 | Gather resource_a and resource_b through harvest steps | implemented | scenarios/duel-routes/harvest.lua (worker gather and deposit); sim/src/arrays.rs (add_resources, resource_a, resource_b) | none (gate removed) |
+| CAP-PROD-3 | Deduct production costs before starting a unit | implemented | scenarios/duel-routes/production.lua (cost paid at the start); sim/src/arrays.rs (add_resources) | none (gate removed) |
+| CAP-PROD-4 | Cancel a queued unit with refund | implemented | scenarios/duel-routes/production.lua (cancel_train) | none (gate removed) |
+| CAP-PROD-5 | Scale patch income with workers up to a saturation count | claimed | scenarios/duel-routes/harvest.lua (saturation-stretched gather time) | none (gate removed) |
+| CAP-PROD-6 | Gate gas harvesting on an extractor building with a per-geyser saturation count | claimed | scenarios/duel-routes/harvest.lua (gas from a geyser a structure covers) | none (gate removed) |
+| CAP-PROD-7 | Set a fixed opening resource amount and opening worker count per start | claimed | scenarios/duel-routes/economy_start.lua (opening gold, gas and workers) | none (gate removed) |
+| CAP-PROD-8 | Set a fixed mineral patch and geyser count per base from map data | claimed | scenarios/duel-routes/economy_start.lua (patch row and geyser column) | none (gate removed) |
+| CAP-PROD-9 | Charge a fixed capacity per unit and refuse production past the capacity cap | claimed | scenarios/duel-routes/production.lua (capacity cap) | none (gate removed) |
+| CAP-PROD-10 | Raise the capacity cap with providers, bounded by a per-race maximum | claimed | scenarios/duel-routes/production.lua (capacity providers, bounded by the maximum) | none (gate removed) |
+| CAP-PROD-11 | Reserve capacity when production is queued and release it on cancel | claimed | scenarios/duel-routes/production.lua (trains in progress hold capacity; cancel releases it) | none (gate removed) |
+| CAP-PROD-12 | Move a newly finished unit to the building's rally point | claimed | scenarios/duel-routes/production.lua (rally offset) | none (gate removed) |
+| CAP-PROD-13 | Require prerequisite buildings or research before a unit, building or upgrade can be made | claimed | scenarios/duel-routes/production.lua (prerequisites) | none (gate removed) |
+| CAP-PROD-14 | Run one research at a time per building for a fixed time at a resource cost | claimed | scenarios/duel-routes/production.lua (research, one at a time per building) | none (gate removed) |
+| CAP-PROD-15 | Apply completed research to every matching unit at once | claimed | scenarios/duel-routes/production.lua (research effect on completion) | none (gate removed) |
 
 ## Combat and damage
 
@@ -121,60 +119,49 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
-| CAP-PLR-1 | Own units by player index (16 players) | implemented | sim/src/arrays.rs (player); server/src/order.rs (ORDER_PLAYERS) | gate:player-ownership |
-| CAP-PLR-2 | Report per-player unit presence and resources | implemented | server/src/room.rs (player_has_units, stats); server/src/main.rs (resources) | gate:player-resources |
+| CAP-PLR-1 | Own units by player index (16 players) | implemented | sim/src/arrays.rs (player) | gate:player-ownership |
+| CAP-PLR-2 | Report per-player unit presence and resources | implemented | mod-host/src/piccolo_host.rs (players, resources natives) | gate:player-resources |
 | CAP-PLR-3 | Alliances and team-based target filtering | implemented | sim/src/arrays.rs (set_alliance, set_team, hostile) | gate:alliance-filter |
 
 ## Regions, triggers and events
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
-| CAP-EVT-1 | Define rectangular regions on the map | implemented | none | gate:region-define |
-| CAP-EVT-2 | Fire trigger zones on unit enter and leave | implemented | none | gate:trigger-zone |
-| CAP-EVT-3 | Deliver game events (spawned, attacked, died) to scripts | implemented | none | gate:event-delivery |
+| CAP-EVT-1 | Define rectangular regions on the map | implemented | mod-host/src/piccolo_host.rs (define_region, in_region natives) | gate:region-define |
+| CAP-EVT-2 | Fire trigger zones on unit enter and leave | implemented | mod-host/src/piccolo_host.rs (on_enter, on_leave hooks) | gate:trigger-zone |
+| CAP-EVT-3 | Deliver game events (spawned, attacked, died) to scripts | implemented | mod-host/src/lib.rs (EVENTS) | gate:event-delivery |
 | CAP-EVT-4 | Author custom triggers and events in a graphical editor | claimed | none | gate:editor-triggers |
 
 ## Timers and scheduling
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
-| CAP-TIME-1 | Advance the sim at a fixed tick rate | implemented | sim/src/tick.rs (tick); server/src/room.rs (spawn_ticker) | gate:tick-rate |
+| CAP-TIME-1 | Advance the sim at a fixed tick rate | implemented | sim/src/tick.rs (tick); js/client/play.js (fixed-step loop calls localGame.tick) | gate:tick-rate |
 | CAP-TIME-2 | Per-unit cooldowns and timers | implemented | sim/src/tick.rs (tick_cooldowns); sim/src/arrays.rs (wtimer, healer_timer) | gate:cooldown-expires |
-| CAP-TIME-3 | Named delayed actions scheduled by mods | implemented | none | gate:scheduled-action |
+| CAP-TIME-3 | Named delayed actions scheduled by mods | implemented | mod-host/src/piccolo_host.rs (env.schedule, env.cancel in the Lua prelude) | gate:scheduled-action |
 
 ## Script runtime (Lua)
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
-| CAP-LUA-1 | Load a mod file into a fresh environment and bind on_tick | implemented | mod-host/src/lib.rs (load, compile) | gate:lua-load |
-| CAP-LUA-2 | Reload the mod when its file changes | implemented | mod-host/src/lib.rs (reload_if_changed) | gate:lua-reload |
-| CAP-LUA-3 | Keep a state table across ticks | implemented | mod-host/src/lib.rs (state, tick) | gate:lua-state |
-| CAP-LUA-4 | Report script errors with path and line | implemented | mod-host/src/lib.rs (compile, error format) | gate:lua-error-location |
-| CAP-LUA-5 | Host functions spawn_unit and get_unit_count | implemented | mod-host/src/lib.rs (bind_host) | gate:lua-host-api |
-| CAP-LUA-6 | Host functions for orders, damage, buffs and queries | implemented | none beyond spawn_unit and get_unit_count | gate:lua-host-api-full |
-| CAP-LUA-7 | Instruction and memory limits for mod scripts | implemented | none | gate:lua-sandbox-limits |
-
-## Server surface
-
-| id | capability | status | provider | gate |
-|---|---|---|---|---|
-| CAP-SRV-1 | Return the room snapshot with GET /state | implemented | server/src/main.rs (route, serve_state) | gate:http-state |
-| CAP-SRV-2 | Return the unit and ability catalog with GET /catalog | implemented | server/src/main.rs (serve_catalog) | gate:http-catalog |
-| CAP-SRV-3 | Accept player orders with POST /order under auth and rate limit | implemented | server/src/main.rs (serve_order); server/src/order.rs | gate:http-order |
-| CAP-SRV-4 | Return changes since a tick with GET /delta | implemented | server/src/main.rs (serve_delta returns delta_unsupported) | gate:http-delta |
-| CAP-SRV-5 | Serve several rooms per process (--room, --max-rooms) | implemented | server/src/main.rs (parse_args, rooms) | gate:multi-room |
-| CAP-SRV-6 | Report process and room stats with GET /resources | implemented | server/src/main.rs (resources) | gate:http-resources |
+| CAP-LUA-1 | Load a mod file into a fresh environment and bind on_tick | implemented | mod-host/src/piccolo_host.rs (ModHost::load_file, run_chunk) | gate:lua-load |
+| CAP-LUA-2 | Reload the mod when its file changes | implemented | mod-host/src/piccolo_host.rs (ModHost::reload) | gate:lua-reload |
+| CAP-LUA-3 | Keep a state table across ticks | implemented | mod-host/src/lib.rs (the host owns `state`; reloads keep it) | gate:lua-state |
+| CAP-LUA-4 | Report script errors with path and line | implemented | mod-host/src/piccolo_host.rs (run_chunk; chunk named by file stem) | gate:lua-error-location |
+| CAP-LUA-5 | Host functions spawn_unit and get_unit_count | implemented | mod-host/src/piccolo_host.rs (spawn_unit and get_unit_count natives) | gate:lua-host-api |
+| CAP-LUA-6 | Host functions for orders, damage, buffs and queries | implemented | mod-host/src/piccolo_host.rs (cmd_order, cmd_damage, cmd_buff, unit_hp and other natives) | gate:lua-host-api-full |
+| CAP-LUA-7 | Instruction and memory limits for mod scripts | implemented | mod-host/src/piccolo_host.rs (FUEL_PER_STEP, MAX_STEPS, MEMORY_CAP) | gate:lua-sandbox-limits |
 
 ## Determinism and state hashing
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
 | CAP-DET-1 | Fixed-point (Q16.16) arithmetic for sim math | implemented | sim/src/fixed.rs | gate:fixed-math |
-| CAP-DET-2 | FNV-1a state hash over sim state | implemented | sim/src/hash.rs (state_hash); mod-host/src/lib.rs (state_hash) | gate:state-hash-stable |
-| CAP-DET-3 | Identical mod and state reproduce identical hashes across runs | implemented | sim/src/hash.rs (catalog digest, modes, flow-field pool, grid tiles, doodads), sim/src/arrays.rs (cat_digest fixed at load), sim/src/rules.rs (seeded RNG only) | gate:replay-hash-equal |
+| CAP-DET-2 | FNV-1a state hash over sim state | implemented | sim/src/hash.rs (state_hash) | gate:state-hash-stable |
+| CAP-DET-3 | Identical mod and state reproduce identical hashes across runs | implemented | sim/src/hash.rs (catalog digest, modes, flow-field pool, grid tiles, doodads), sim/src/arrays.rs (cat_digest fixed at load), sim/src/arrays.rs (seed, rng) | gate:replay-hash-equal |
 | CAP-DET-4 | Record every accepted order with its tick so a match can be replayed | claimed | sim/src/arrays.rs (record_order, order_record), sim/src/movement.rs (issue_order_kind), sim/src/persist.rs, sim/src/hash.rs | gate:order-recording |
 | CAP-DET-5 | Play a replay at a chosen speed, paused, or seeked | claimed | none | gate:replay-playback-controls |
-| CAP-DET-6 | Advance lockstep clients by exchanging per-tick inputs and comparing state hashes | claimed | none | gate:lockstep-input-exchange |
+| CAP-DET-6 | Advance lockstep clients by exchanging per-tick inputs and comparing state hashes | claimed | none | gate:lockstep-input-exchange (no check in rust/gate) |
 
 ## Persistence of map data
 
@@ -190,7 +177,7 @@ Paths are relative to `rust/crates/` unless shown otherwise. Gate names are plan
 
 | id | capability | status | provider | gate |
 |---|---|---|---|---|
-| CAP-PRES-1 | Camera control | unsupported-headless | refusal name not yet in code | gate:presentation-refusal |
-| CAP-PRES-2 | Sound playback | unsupported-headless | refusal name not yet in code | gate:presentation-refusal |
-| CAP-PRES-3 | UI panels and dialogs | unsupported-headless | refusal name not yet in code | gate:presentation-refusal |
-| CAP-PRES-4 | Chat messages | unsupported-headless | refusal name not yet in code | gate:presentation-refusal |
+| CAP-PRES-1 | Camera control | unsupported-headless | sim/src/rules.rs (Refusal::CameraUnsupported) | gate:presentation-refusal |
+| CAP-PRES-2 | Sound playback | unsupported-headless | sim/src/rules.rs (Refusal::SoundUnsupported) | gate:presentation-refusal |
+| CAP-PRES-3 | UI panels and dialogs | unsupported-headless | sim/src/rules.rs (Refusal::UiPanelUnsupported) | gate:presentation-refusal |
+| CAP-PRES-4 | Chat messages | unsupported-headless | sim/src/rules.rs (Refusal::ChatUnsupported) | gate:presentation-refusal |

@@ -75,8 +75,17 @@ async function reloadModule(url) {
       console.error(`[hmr] ${url} hook failed: ${err.message}`);
     }
   } else {
-    console.log(`[hmr] ${url} changed: no hook, a page reload is needed to apply it`);
+    // Without a hook the change cannot be bound in place: the modules that import this one keep the old instance. The page
+    // reloads to apply it (the match restarts). Changes that land together share one reload.
+    console.log(`[hmr] ${url} changed: no hook, reloading the page to apply it`);
+    scheduleReload();
   }
+}
+
+let reloadTimer = null;
+function scheduleReload() {
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => location.reload(), 300);
 }
 
 async function poll() {

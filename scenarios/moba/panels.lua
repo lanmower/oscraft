@@ -14,6 +14,7 @@
 
 local config = require("config")
 local units = require("units")
+local xp = require("xp")
 
 local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 local REFRESH_TICKS = 4
@@ -194,7 +195,7 @@ local function hud_tree()
   local hp = nil
   if primary ~= nil then hp = unit_hp(primary) end
   local hp_text = TEXT.noValue
-  if hp ~= nil and hp >= 0 then hp_text = tostring(hp) end
+  if hp ~= nil and hp >= 0 then hp_text = tostring(math.floor(hp / config.FIX)) end
   return box({
     label(TEXT.hud.hp .. " " .. hp_text),
     label(TEXT.hud.gold .. " " .. tostring(game.gold(LOCAL))),
@@ -202,11 +203,38 @@ local function hud_tree()
   }, "row")
 end
 
+-- The post-game rows, one per seat that has a start: kills, deaths, assists (the unit credits), gold (the seat's
+-- resource A), xp and the item kinds held, each summed over the seat's unit slots. A dead unit keeps its tallies until
+-- its slot respawns, so every unit slot counts. The item list is read only when with_items is set.
+local function post_game_rows(with_items)
+  local rows, by_player = {}, {}
+  for p = 0, config.PLAYERS - 1 do
+    if game.seat_start(p) ~= nil then
+      local row = { player = p, kills = 0, deaths = 0, assists = 0, gold = game.gold(p), xp = 0, items = {} }
+      rows[#rows + 1] = row
+      by_player[p] = row
+    end
+  end
+  for u = 0, get_unit_count() - 1 do
+    local row = by_player[unit_player(u)]
+    if row ~= nil then
+      row.kills = row.kills + game.kills_of(u)
+      row.deaths = row.deaths + game.deaths_of(u)
+      row.assists = row.assists + game.credits_of(u)
+      row.xp = row.xp + game.xp(u)
+      if with_items then
+        for _, it in ipairs(game.unit_items(u)) do row.items[#row.items + 1] = it.item end
+      end
+    end
+  end
+  return rows
+end
+
 local function win_tree()
   local side = game.winner()
   if side == nil or side < 0 then return nil end
   local kids = { label(TEXT.winner.prefix .. " " .. tostring(side) .. " " .. TEXT.winner.suffix, "accent") }
-  for _, row in ipairs(game.post_game()) do
+  for _, row in ipairs(post_game_rows(true)) do
     local items = #row.items
     kids[#kids + 1] = label("P" .. tostring(row.player) .. "  " .. TEXT.post.kills .. " " .. tostring(row.kills) ..
       "  " .. TEXT.post.deaths .. " " .. tostring(row.deaths) .. "  " .. TEXT.post.assists .. " " .. tostring(row.assists) ..
@@ -220,7 +248,7 @@ end
 -- the hero rows when expanded.
 local function team_tree()
   local kills = {}
-  for _, row in ipairs(game.post_game()) do
+  for _, row in ipairs(post_game_rows(false)) do
     local side = team_of(row.player)
     kills[side] = (kills[side] or 0) + row.kills
   end
@@ -318,7 +346,7 @@ local function shop_tree()
 end
 
 local function skills_tree(hero)
-  local level = game.character_level(hero)
+  local level = xp.character_level(hero)
   local spent = 0
   for s = 0, ABILITY_SLOTS - 1 do spent = spent + game.skill_rank(hero, s) end
   local points = level - spent
@@ -359,14 +387,18 @@ local function skills_tree(hero)
   return panel(TEXT.skills.title, kids)
 end
 
--- Ability keys in slot order: {key, slot} from setup's cast map.
+-- Ability keys in slot order: {key, slot} from setup's cast map. The swap goes through a local, one assignment at a
+-- time: the host's Lua VM evaluates a multiple assignment (a, b = b, a) with the first target already written, which
+-- duplicated entries in the bar.
 local function cast_keys()
   local list = {}
   for key, slot in pairs(KEYS.cast or {}) do list[#list + 1] = { key = key, slot = slot } end
   for i = 2, #list do
     local j = i
     while j > 1 and list[j - 1].slot > list[j].slot do
-      list[j - 1], list[j] = list[j], list[j - 1]
+      local held = list[j - 1]
+      list[j - 1] = list[j]
+      list[j] = held
       j = j - 1
     end
   end
@@ -413,10 +445,10 @@ local function select_tree()
   PEAK[primary] = peak
   local name = game.unit_kind(primary) or TEXT.unitUnknown
   local face = TEXT.noValue
-  if hero then face = "L" .. tostring(game.character_level(primary)) end
+  if hero then face = "L" .. tostring(xp.character_level(primary)) end
   local info = {
     label(name, "accent"),
-    label(TEXT.healthLabel .. " " .. tostring(hp) .. "/" .. tostring(peak)),
+    label(TEXT.healthLabel .. " " .. tostring(math.floor(hp / config.FIX)) .. "/" .. tostring(math.floor(peak / config.FIX))),
     bar(math.max(hp, 0), peak, "hp"),
   }
   if hero then
@@ -477,7 +509,7 @@ local function inventory_tree()
 end
 
 local function scoreboard_tree()
-  local rows = game.post_game()
+  local rows = post_game_rows(false)
   local kids = {}
   for _, side in ipairs(sides()) do
     local cells = {}
@@ -490,7 +522,7 @@ local function scoreboard_tree()
         local level = TEXT.noValue
         if hero ~= nil then
           name = game.unit_kind(hero) or TEXT.noValue
-          level = tostring(game.character_level(hero))
+          level = tostring(xp.character_level(hero))
         end
         local tone = me and "me" or nil
         cells[#cells + 1] = label("P" .. tostring(row.player) .. (me and " *" or ""), tone)
@@ -508,10 +540,12 @@ local function scoreboard_tree()
   return panel(TEXT.scoreboardTitle, kids)
 end
 
+-- The heroes a seat can pick: the player-controlled kinds that have a model. A hero with no model is not offered (it
+-- would not draw), so the pick list holds only heroes that can play; the page still fails loudly on one that is drawn.
 local function roster_names()
   local out = {}
   for _, k in ipairs(game.unit_kinds()) do
-    if k.player_controlled then out[#out + 1] = k.name end
+    if k.player_controlled and k.model ~= "" then out[#out + 1] = k.name end
   end
   return out
 end
@@ -562,13 +596,15 @@ end
 -- One lobby action on the shared state: the rules of the hero select. Slots are 0-based in the calls, as the sim counts.
 local function lobby_act(call, a)
   local L = LOBBY
+  -- The sender: a joined page's key rides on its action (applyPeerAction); the host's own presses use OWNER.
+  local owner = a.pubkey or OWNER
   if L.started then
     L.error = "match-started"
     return
   end
   L.error = ""
   if call == "start" then
-    if L.host ~= OWNER then L.error = "not-host" return end
+    if L.host ~= owner then L.error = "not-host" return end
     if not all_ready() then L.error = "not-ready" return end
     L.started = true
     HEROES = {}
@@ -577,7 +613,7 @@ local function lobby_act(call, a)
     return
   end
   if call == "fill" then
-    if L.host ~= OWNER then L.error = "not-host" return end
+    if L.host ~= owner then L.error = "not-host" return end
     if not any_open() then L.error = "nothing-to-fill" return end
     if #ROSTER == 0 then L.error = "no-roster" return end
     for i = 1, SLOT_COUNT do
@@ -603,14 +639,14 @@ local function lobby_act(call, a)
   local s = L.slots[i]
   if call == "claim" then
     if s.owner ~= nil then L.error = "slot-taken" return end
-    if seated(OWNER) then L.error = "already-seated" return end
-    s.owner = OWNER
+    if seated(owner) then L.error = "already-seated" return end
+    s.owner = owner
     s.bot = false
-    if L.host == nil then L.host = OWNER end
+    if L.host == nil then L.host = owner end
   elseif call == "release" then
-    if s.owner ~= OWNER then L.error = "not-owner" return end
+    if s.owner ~= owner then L.error = "not-owner" return end
     s.owner, s.hero, s.ready, s.bot = nil, nil, false, false
-    if L.host == OWNER then
+    if L.host == owner then
       L.host = nil
       for _, other in ipairs(L.slots) do
         if other.owner ~= nil then
@@ -620,7 +656,7 @@ local function lobby_act(call, a)
       end
     end
   elseif call == "pick" then
-    if s.owner ~= OWNER then L.error = "not-owner" return end
+    if s.owner ~= owner then L.error = "not-owner" return end
     if s.ready then L.error = "ready-locked" return end
     local known = false
     for _, h in ipairs(ROSTER) do
@@ -629,7 +665,7 @@ local function lobby_act(call, a)
     if not known then L.error = "unknown-hero" return end
     s.hero = a.hero
   elseif call == "ready" then
-    if s.owner ~= OWNER then L.error = "not-owner" return end
+    if s.owner ~= owner then L.error = "not-owner" return end
     if a.ready and s.hero == nil then L.error = "no-hero" return end
     s.ready = a.ready == true
   end
@@ -746,7 +782,9 @@ local function panels_on_action(name, args)
   elseif name == "selection" then
     if args.player == nil or args.player == LOCAL then SEL = args.ids or {} end
   elseif name == "ui" then
-    ui_call(args.player or LOCAL, args.call, args.args or {})
+    local a = args.args or {}
+    a.pubkey = args.pubkey
+    ui_call(args.player or LOCAL, args.call, a)
   end
 end
 

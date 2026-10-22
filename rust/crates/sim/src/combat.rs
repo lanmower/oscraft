@@ -2,29 +2,14 @@
 //! damage response, then absorbed by its shield, then taken from life. Ability
 //! damage goes through the same path, minus the armour.
 
-use crate::arrays::{dist2, cell_of, Sim};
+use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::*;
 
-const RESPONSE_REDUCED: u8 = 1;
-const RESPONSE_IMMUNE: u8 = 2;
 /// Kill events held between drains. Kills past this in one drain window are still tallied per unit.
 pub(crate) const KILL_QUEUE_CAP: usize = 256;
 /// Recent hitters remembered per unit. A mod reads them on the unit's death (take_recent_hitters).
 pub(crate) const HITTER_SLOTS: usize = 4;
-
-/// One player's post-game tally, summed over the player's units.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlayerTally {
-    pub player: u8,
-    pub kills: u32,
-    pub deaths: u32,
-    pub assists: u32,
-    pub gold: i32,
-    pub xp: u32,
-    /// Item kinds held (non-empty inventory slots), in unit then slot order.
-    pub items: Vec<u32>,
-}
 
 /// One kill: unit `killer` (of `killer_player`) destroyed unit `victim` (of `victim_player`) at `tick`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,23 +20,50 @@ pub struct KillEvent {
     pub victim: u32,
     pub victim_player: u8,
 }
-/// Armour reduction per armour point, Q16.16 (0.06): reference's physical damage multiplier is
-/// 1 - 0.06a / (1 + 0.06|a|), with no floor. Engine constant, not in the npc dump.
-const ARMOUR_PER_POINT_Q16: i64 = 3932;
-
-/// Weapon damage after armour, in the units `damage` is given in (whole units or Q16.16). `armour`
-/// is Q16.16, as stored on every unit. Armour `a` scales damage by `1 - k*a / (1 + k*|a|)` with
-/// `k` = ARMOUR_PER_POINT_Q16, so armour never reaches zero and negative armour raises damage.
-/// Never below zero.
-pub fn armour_reduced(damage: i32, armour: i32) -> i32 {
-    let k = ARMOUR_PER_POINT_Q16;
-    let ka = (k * armour as i64) >> fixed::SHIFT;
-    let reduction = (ka << fixed::SHIFT) / (fixed::ONE as i64 + ka.abs());
-    let factor = fixed::ONE as i64 - reduction;
-    ((damage as i64 * factor) >> fixed::SHIFT).clamp(0, i32::MAX as i64) as i32
-}
-
 impl Sim {
+    /// Weapon or ability damage after the target's armour scale (Q16.16, set by the pack each tick: see
+    /// `set_armour_scale`), in the units `damage` is given in. Never below zero.
+    pub(crate) fn armour_scaled(&self, damage: i32, target: usize) -> i32 {
+        ((damage as i64 * self.armour_scale[target] as i64) >> fixed::SHIFT).clamp(0, i32::MAX as i64) as i32
+    }
+
+    /// Sets the damage scale (Q16.16) of unit `i`: its damage taken is multiplied by it. A dead or unknown unit changes nothing.
+    pub fn set_armour_scale(&mut self, i: usize, scale: i32) {
+        if i < self.n {
+            self.armour_scale[i] = scale;
+        }
+    }
+
+    /// The damage scale of unit `i` (Q16.16); ONE when unknown.
+    pub fn armour_scale_of(&self, i: usize) -> i32 {
+        self.armour_scale.get(i).copied().unwrap_or(fixed::ONE)
+    }
+
+    /// The effective armour of unit `i` in Q16.16 (its base armour and bonuses), 0 when unknown.
+    pub fn eff_armour_of(&self, i: usize) -> i32 {
+        if i < self.n { self.eff_armor(i) } else { 0 }
+    }
+
+    /// Sets the miss chance (Q16) of unit `i`'s shots. Zero means its shots cannot miss. A dead or unknown unit changes nothing.
+    pub fn set_miss_chance(&mut self, i: usize, chance: i32) {
+        if i < self.n {
+            self.miss_chance[i] = chance;
+        }
+    }
+
+    /// The miss chance (Q16) of unit `i`'s shots as the pack set it; 0 when unknown.
+    pub fn miss_chance_of(&self, i: usize) -> i32 {
+        self.miss_chance.get(i).copied().unwrap_or(0)
+    }
+
+    /// The miss chance (Q16) the unit data gives unit `i`'s type; 0 when unknown. The pack reads it to set `miss_chance`.
+    pub fn data_miss_chance(&self, i: usize) -> i32 {
+        if i >= self.n {
+            return 0;
+        }
+        self.cat.unit_ext.get(self.type_of[i] as usize).map_or(0, |e| e.miss_chance)
+    }
+
     /// Final damage factor (Q16) for a weapon hit by unit `attacker` on unit `target`: the DMGF
     /// record for the attacker's weapon damage type and the target's size category, or 1.0 when
     /// no record applies.
@@ -71,13 +83,12 @@ impl Sim {
         ((dmg as i64 * self.final_factor(attacker, target) as i64) >> fixed::SHIFT) as i32
     }
 
-    /// Whether a ranged shot by unit `i` misses. A shot is ranged when its weapon reaches past
-    /// melee range. The chance is the UEXT miss chance (Q16), rolled on the sim's RNG, which advances
-    /// once per ranged shot. The format has no high-ground or cover rule, so the chance applies to
-    /// every ranged shot.
+    /// Whether a shot by unit `i` misses: the miss chance (Q16) the pack set for it, rolled on the sim's RNG,
+    /// which advances once per shot made with a positive chance. Zero means the shot cannot miss (the pack
+    /// sets it to zero for melee weapons).
     pub fn misses(&mut self, i: usize) -> bool {
-        let chance = self.cat.unit_ext.get(self.type_of[i] as usize).map_or(0, |e| e.miss_chance);
-        if chance <= 0 || self.range_q[i] <= MELEE_RANGE {
+        let chance = self.miss_chance[i];
+        if chance <= 0 {
             return false;
         }
         self.rng = self.rng.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
@@ -85,10 +96,9 @@ impl Sim {
         roll < chance
     }
 
-    /// Whether unit `j` is hidden from enemies: cloaked, or burrowed.
+    /// Whether unit `j` is hidden from enemies: cloaked.
     fn hidden(&self, j: usize) -> bool {
-        let cloaked = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(false, |e| e.cloak & 1 != 0);
-        cloaked || self.burrowed[j] != 0
+        self.cat.unit_ext.get(self.type_of[j] as usize).map_or(false, |e| e.cloak & 1 != 0)
     }
 
     /// Whether one of player `p`'s own units with a detector radius reaches unit `j`.
@@ -111,38 +121,8 @@ impl Sim {
         !self.hidden(j) || self.detected(p, j)
     }
 
-    /// Starts unit `i` burrowing for its UEXT burrow time; a zero time burrows at once. Only a
-    /// unit with the can-burrow flag may burrow. Refusals change nothing: a dead or unknown unit
-    /// is NoTarget; a unit that cannot burrow, or is already burrowed or burrowing, is InvalidOrderTarget.
-    pub fn burrow_unit(&mut self, i: usize) -> Result<(), Refusal> {
-        if i >= self.n || self.alive[i] == 0 {
-            return Err(self.reject(Refusal::NoTarget));
-        }
-        let ext = self.cat.unit_ext.get(self.type_of[i] as usize).copied().unwrap_or_default();
-        if ext.cloak & 2 == 0 || self.burrowed[i] != 0 || self.burrow_left[i] > 0 {
-            return Err(self.reject(Refusal::InvalidOrderTarget));
-        }
-        if ext.burrow_ticks <= 0 {
-            self.burrowed[i] = 1;
-        } else {
-            self.burrow_left[i] = ext.burrow_ticks;
-        }
-        self.touch(i);
-        Ok(())
-    }
-
-    /// Counts down a burrow in progress on unit `i`; the unit is burrowed when it ends.
-    pub(crate) fn burrow_step(&mut self, i: usize) {
-        if self.burrow_left[i] > 0 {
-            self.burrow_left[i] -= 1;
-            if self.burrow_left[i] == 0 {
-                self.burrowed[i] = 1;
-                self.touch(i);
-            }
-        }
-    }
-
-    /// Auto-attack: nearest visible enemy on a layer this weapon may hit, within range.
+    /// Auto-attack: strikes the target the mod commanded for this tick (`strike_target`) when it is still
+    /// a living hostile enemy in weapon reach. Nothing commanded means no strike.
     pub(crate) fn attack(&mut self, i: usize) {
         if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
             return;
@@ -153,13 +133,9 @@ impl Sim {
                 return;
             }
         }
-        let attack_move = self.order_kind[i] == ORDER_ATTACK_MOVE;
-        let Some(b) = self.pick_strike_target(i, attack_move) else {
-            self.aggro.strike[i] = -1;
+        let Some(b) = self.commanded_strike(i) else {
             return;
         };
-        self.aggro.strike[i] = b as i32;
-        self.aggro.strike_gen[i] = self.aggro.spawn_gen[b];
         self.cooldown[i] = self.attack_period(i);
         if self.misses(i) {
             return;
@@ -167,104 +143,78 @@ impl Sim {
         self.strike(i, b);
     }
 
-    /// True when unit `i` is on an attack-move order and an enemy it can strike now is in weapon
-    /// reach: it holds its position and strikes instead of walking past, and its route order resumes
-    /// once that target dies or leaves reach. An enemy it cannot damage does not hold it.
+    /// True when the mod holds attack-move unit `i` in place (`set_hold_override` set to true): it stays on
+    /// its tile and strikes what the mod commanded. The pack decides the hold each tick; no hold is the default.
     pub(crate) fn engaged(&self, i: usize) -> bool {
-        match self.hold_override[i] {
-            0 => false,
-            1 => self.order_kind[i] == ORDER_ATTACK_MOVE,
-            _ => self.order_kind[i] == ORDER_ATTACK_MOVE && self.pick_strike_target(i, true).is_some(),
-        }
+        self.hold_override[i] == 1 && self.order_kind[i] == ORDER_ATTACK_MOVE
     }
 
     /// Whether a weapon hit can reduce unit `j`'s life: not physically immune, not invulnerable,
     /// and not fully immune to damage.
-    fn strike_lands(&self, j: usize) -> bool {
-        self.status_left(j, crate::status::PHYSICAL_IMMUNE) == 0 && !self.invulnerable(j) && self.response[j] != RESPONSE_IMMUNE
+    pub fn strike_lands(&self, j: usize) -> bool {
+        self.status_left(j, crate::status::PHYSICAL_IMMUNE) == 0 && !self.invulnerable(j) && self.response_keep_of(j) != 0
     }
 
-    /// Whether unit `i` can strike unit `j` now: the same conditions `order_attack` checks (a living
-    /// hostile or deniable enemy on a layer `i` hits, visible and targetable, in weapon reach) plus
-    /// a hit that lands.
-    fn can_strike_now(&self, i: usize, j: usize) -> bool {
-        let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
+    /// Whether unit `i` can hit unit `j` on the sim's own terms, ignoring reach: a living enemy of `i`
+    /// (hostile by diplomacy) on a layer `i` hits, visible and targetable. The mod chooses the target.
+    pub fn can_target(&self, i: usize, j: usize) -> bool {
         i != j
+            && i < self.n
+            && j < self.n
             && self.alive[j] != 0
-            && self.damage[i] > 0
-            && (self.hostile(self.player[i], self.player[j]) || self.deniable(i, j))
+            && self.hostile(self.player[i], self.player[j])
             && (self.targets[i] & self.layer_of(j)) != 0
             && self.visible(self.player[i], j)
             && self.targetable(self.player[i], j)
-            && self.strike_measure(i, j).1 <= reach
-            && self.strike_lands(j)
     }
 
-    /// The target unit `i` strikes this tick. With `strikeable` set, only an enemy that
-    /// `can_strike_now` counts, so an enemy the hit cannot damage is never picked.
-    pub(crate) fn pick_strike_target(&self, i: usize, strikeable: bool) -> Option<usize> {
+    /// Whether unit `i` can strike unit `j` now: `can_target`, a unit that deals damage, and `j` in weapon reach.
+    fn strike_ready(&self, i: usize, j: usize) -> bool {
+        let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
+        self.damage[i] > 0 && self.can_target(i, j) && self.strike_measure(i, j).1 <= reach
+    }
+
+    /// Whether unit `i` may strike unit `j` this tick: not stunned or disarmed, and `strike_ready` (a weapon,
+    /// a targetable living enemy in reach). The strike choice itself is the pack's; this is the sim's test of it.
+    pub fn can_strike(&self, i: usize, j: usize) -> bool {
+        !self.stunned(i) && !self.disarmed(i) && self.strike_ready(i, j)
+    }
+
+    /// Weapon damage and reach of unit `i`, fixed point: (damage, range). Damage is 0 for a unit with no weapon.
+    pub fn weapon(&self, i: usize) -> (i32, i32) {
+        (self.damage[i], self.range_q[i])
+    }
+
+    /// The enemy unit `i` is set to strike each tick, -1 for none (see `set_strike_target`).
+    pub fn strike_of(&self, i: usize) -> i32 {
+        self.strike_target[i]
+    }
+
+    /// The enemy unit `i` strikes this tick: the target the mod commanded (`strike_target`), when it is
+    /// still `strike_ready`. A unit with no damage, stunned or disarmed strikes nothing.
+    fn commanded_strike(&self, i: usize) -> Option<usize> {
         if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
             return None;
         }
-        // A structure is bucketed at its centre, beyond its footprint edge: the scan reaches past the edge.
-        let rc = (fixed::round(self.range_q[i]) + 1).clamp(1, 8) + i32::from(self.cat.tune.structure_scan_cells);
-        let cx = cell_of(self.pos_x[i]);
-        let cy = cell_of(self.pos_y[i]);
-        let (w, h) = (self.grid.w as i32, self.grid.h as i32);
-        let mut best = -1i64;
-        let mut best_class = u8::MAX;
-        let reach_d2 = (self.range_sq[i] as i64) << fixed::SHIFT;
-        let mut best_d2 = reach_d2;
-        let current = self.sticky_strike(i);
-        let mut current_class = None;
-        for oy in -rc..=rc {
-            for ox in -rc..=rc {
-                let nx = cx + ox;
-                let ny = cy + oy;
-                if nx < 0 || ny < 0 || nx >= w || ny >= h {
-                    continue;
-                }
-                let cell = (ny * w + nx) as usize;
-                for j in self.bucket_members(cell) {
-                    if j == i || self.alive[j] == 0 {
-                        continue;
-                    }
-                    let d2 = self.strike_measure(i, j).1;
-                    if d2 > reach_d2 {
-                        continue;
-                    }
-                    if !self.hostile(self.player[i], self.player[j]) && !self.deniable(i, j) {
-                        continue;
-                    }
-                    if (self.targets[i] & self.layer_of(j)) == 0 || !self.visible(self.player[i], j) || !self.targetable(self.player[i], j) {
-                        continue;
-                    }
-                    if strikeable && !self.strike_lands(j) {
-                        continue;
-                    }
-                    let class = self.target_class(i, j);
-                    if j as i32 == current {
-                        current_class = Some(class);
-                    }
-                    if class < best_class || (class == best_class && d2 <= best_d2) {
-                        best = j as i64;
-                        best_class = class;
-                        best_d2 = d2;
-                    }
-                }
-            }
+        let t = self.strike_target[i];
+        if t < 0 || t as usize >= self.n {
+            return None;
         }
-        if let Some(class) = current_class {
-            if class <= best_class {
-                best = current as i64;
-            }
+        let j = t as usize;
+        self.strike_ready(i, j).then_some(j)
+    }
+
+    /// Sets the enemy unit `i` strikes each tick: unit `target`, or -1 for none (any negative value is
+    /// none). The mod sets it every tick; a target that dies, turns allied or leaves reach is not struck.
+    pub fn set_strike_target(&mut self, i: usize, target: i32) -> Result<(), &'static str> {
+        if i >= self.n {
+            return Err("invalid_unit");
         }
-        if let Some(t) = self.taunt_target(i) {
-            if !strikeable || self.can_strike_now(i, t) {
-                best = t as i64;
-            }
+        if target >= self.n as i32 {
+            return Err("invalid_target");
         }
-        (best >= 0).then_some(best as usize)
+        self.strike_target[i] = target.max(-1);
+        Ok(())
     }
 
     /// Orders unit `i` to strike unit `target` through the weapon path (cooldown, armour,
@@ -282,15 +232,7 @@ impl Sim {
         if self.disarmed(i) {
             return Err(self.reject(Refusal::Stunned));
         }
-        let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
-        let in_reach = i != target
-            && self.damage[i] > 0
-            && (self.hostile(self.player[i], self.player[target]) || self.deniable(i, target))
-            && (self.targets[i] & self.layer_of(target)) != 0
-            && self.visible(self.player[i], target)
-            && self.targetable(self.player[i], target)
-            && self.strike_measure(i, target).1 <= reach;
-        if !in_reach {
+        if !self.strike_ready(i, target) {
             return Err(self.reject(Refusal::InvalidOrderTarget));
         }
         if self.cooldown[i] > 1 {
@@ -310,11 +252,63 @@ impl Sim {
         self.hurt_by(j, dmg, -1);
     }
 
-    /// Ability damage after the magic resistance of unit `j` (`magic_resist_pct`, from its type data).
+    /// Ability damage after the magic resistance of unit `j`: the percent of it the pack set `j` to keep.
     /// Ability damage is magical.
     fn magic_reduced(&self, j: usize, dmg: i32) -> i32 {
-        let resist = self.magic_resist_pct(j) as i64;
-        (dmg as i64 * (100 - resist) / 100) as i32
+        self.magic_scaled(dmg, j)
+    }
+
+    /// Magical damage after the magic resistance of `target`: the percent it keeps (`set_magic_keep`), truncated.
+    pub(crate) fn magic_scaled(&self, dmg: i32, target: usize) -> i32 {
+        (dmg as i64 * self.magic_keep[target] as i64 / 100) as i32
+    }
+
+    /// Sets the percent of magical damage unit `i` keeps (100 = the full hit; the pack sets it from the unit's magic
+    /// resistance). A dead or unknown unit changes nothing.
+    pub fn set_magic_keep(&mut self, i: usize, pct: i32) {
+        if i < self.n {
+            self.magic_keep[i] = pct;
+        }
+    }
+
+    /// The percent of magical damage unit `i` keeps; 100 when unknown.
+    pub fn magic_keep_of(&self, i: usize) -> i32 {
+        self.magic_keep.get(i).copied().unwrap_or(100)
+    }
+
+    /// The base magic resistance (percent) of unit `i`'s type in the unit data; 0 when unknown.
+    pub fn magic_base_of(&self, i: usize) -> i32 {
+        self.attr_def(i).map_or(0, |d| d.magic_resist)
+    }
+
+    /// Sets the percent of every hit unit `i` keeps through its damage reduction stat (100 = the full hit). A dead or unknown unit changes nothing.
+    pub fn set_damage_keep(&mut self, i: usize, pct: i32) {
+        if i < self.n {
+            self.damage_keep[i] = pct;
+        }
+    }
+
+    /// The percent of every hit unit `i` keeps through its damage reduction stat; 100 when unknown.
+    pub fn damage_keep_of(&self, i: usize) -> i32 {
+        self.damage_keep.get(i).copied().unwrap_or(100)
+    }
+
+    /// Sets the percent of every hit unit `i` keeps through its damage response (0 immune, the rule's percent when reduced,
+    /// 100 otherwise). A dead or unknown unit changes nothing.
+    pub fn set_response_keep(&mut self, i: usize, pct: i32) {
+        if i < self.n {
+            self.response_keep[i] = pct;
+        }
+    }
+
+    /// The percent of every hit unit `i` keeps through its damage response; 100 when unknown.
+    pub fn response_keep_of(&self, i: usize) -> i32 {
+        self.response_keep.get(i).copied().unwrap_or(100)
+    }
+
+    /// The damage response kind of unit `i` from the unit data (0 normal, 1 reduced, 2 immune); 0 when unknown.
+    pub fn response_of(&self, i: usize) -> i32 {
+        if i < self.n { i32::from(self.response[i]) } else { 0 }
     }
 
     /// Ability damage to unit `j` from unit `attacker` (-1 for none). An unknown unit is a no-op.
@@ -337,22 +331,12 @@ impl Sim {
     }
 
     /// The catalog bounty of unit `j` when destroyed. Zero for an unknown unit. The kill rule (mod code)
-    /// reads it through `game.unit_bounty`; the engine pays nothing.
+    /// reads it from the death record its on_died hook receives; the engine pays nothing.
     pub fn unit_bounty(&self, j: usize) -> i32 {
         if j >= self.n {
             return 0;
         }
         self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.bounty)
-    }
-
-    /// Whether unit `i` may deny unit `j`: `j` is allied to `i` (not `i` itself) and its health is at
-    /// or below its deny threshold, `deny_pct` percent of max health. A zero threshold never denies.
-    pub(crate) fn deniable(&self, i: usize, j: usize) -> bool {
-        if i == j || self.alive[j] == 0 || self.hostile(self.player[i], self.player[j]) {
-            return false;
-        }
-        let pct = self.cat.unit_ext.get(self.type_of[j] as usize).map_or(0, |e| e.deny_pct as i64);
-        pct > 0 && self.hp[j] as i64 * 100 <= self.hp_max[j] as i64 * pct
     }
 
     /// The damage path shared by weapons and abilities: damage response, then shield,
@@ -366,10 +350,8 @@ impl Sim {
             dmg = (dmg as i64 * self.spell.ill_in[j] as i64 / 100) as i32;
         }
         if dmg > 0 {
-            let reduction = self.stat(j, crate::spell::S_DAMAGE_REDUCTION).clamp(-100, 100) as i64;
-            if reduction != 0 {
-                dmg = (dmg as i64 * (100 - reduction) / 100) as i32;
-            }
+            // The damage reduction stat and the damage response are percents the pack sets (unit_rules.lua).
+            dmg = (dmg as i64 * self.damage_keep[j] as i64 / 100) as i32;
             self.trig_hit[j] = 1;
             if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
                 self.remember_hitter(j, attacker);
@@ -378,16 +360,9 @@ impl Sim {
                 self.interrupt_channel(j);
             }
             self.last_hit[j] = self.ticks;
-            match self.response[j] {
-                RESPONSE_IMMUNE => dmg = 0,
-                RESPONSE_REDUCED => dmg /= 2,
-                _ => {}
-            }
+            dmg = (dmg as i64 * self.response_keep[j] as i64 / 100) as i32;
             dmg = self.mitigate_mech(j, dmg);
             dmg = self.absorb_shield(j, dmg);
-            if attacker >= 0 && (attacker as usize) < self.n {
-                self.aggro_on_hit(j, attacker as usize);
-            }
         }
         if dmg >= self.hp[j] && self.status_left(j, crate::status::DEATH_PREVENTION) > 0 {
             dmg = (self.hp[j] - 1).max(0);
@@ -401,7 +376,7 @@ impl Sim {
             self.alive[j] = 0;
             self.trig_death[j] = 1;
             self.stats.deaths += 1;
-            if fell && !self.is_illusion(j) && !self.reincarnate(j) {
+            if fell && !self.is_illusion(j) {
                 self.record_death(j, attacker);
                 self.hold_dead(j);
                 self.group_died(j);
@@ -409,8 +384,9 @@ impl Sim {
         }
     }
 
-    /// Books the death of unit `j`, and when `attacker` names another unit credits it a kill and
-    /// queues the event for `drain_kill_events`.
+    /// Books the death of unit `j`: the death count, and the killer the on_died hook is fed (`attacker`, or -1).
+    /// When `attacker` names another unit, the kill event is queued for `drain_kill_events`. The sim credits
+    /// nothing: the kill tally and every reward are the pack's (game.add_kill, on_died).
     pub(crate) fn record_death(&mut self, j: usize, attacker: i32) {
         self.unit_deaths[j] = self.unit_deaths[j].saturating_add(1);
         if attacker < 0 || attacker as usize >= self.n || attacker as usize == j {
@@ -444,22 +420,36 @@ impl Sim {
         self.hitter_tick[slot] = self.ticks;
     }
 
-    /// The recent hitters of unit `j` whose last hit is at most `window` ticks old, oldest slot order, and
-    /// forgets all of them. A mod's death rule reads this on the victim's death (the assist credit).
-    pub fn take_recent_hitters(&mut self, j: usize, window: u32) -> Vec<u32> {
+    /// The recent hitters of unit `j` whose last hit is at most `window` ticks old, in slot order. The record is kept:
+    /// a rule that reads it before the assist credit (the kill split) uses this, and take_recent_hitters forgets it.
+    pub fn recent_hitters(&self, j: usize, window: u32) -> Vec<u32> {
         if j >= self.n {
             return Vec::new();
         }
         let base = j * HITTER_SLOTS;
-        let mut out = Vec::new();
-        for s in base..base + HITTER_SLOTS {
-            let id = self.hitter_id[s];
-            self.hitter_id[s] = -1;
-            if id >= 0 && (id as usize) < self.n && self.ticks.wrapping_sub(self.hitter_tick[s]) <= window {
-                out.push(id as u32);
-            }
+        (base..base + HITTER_SLOTS)
+            .filter_map(|s| {
+                let id = self.hitter_id[s];
+                (id >= 0 && (id as usize) < self.n && self.ticks.wrapping_sub(self.hitter_tick[s]) <= window).then_some(id as u32)
+            })
+            .collect()
+    }
+
+    /// The recent hitters of unit `j` whose last hit is at most `window` ticks old, oldest slot order, and
+    /// forgets all of them. A mod's death rule reads this on the victim's death (the assist credit).
+    pub fn take_recent_hitters(&mut self, j: usize, window: u32) -> Vec<u32> {
+        let out = self.recent_hitters(j, window);
+        if j < self.n {
+            let base = j * HITTER_SLOTS;
+            self.hitter_id[base..base + HITTER_SLOTS].fill(-1);
         }
         out
+    }
+
+    /// A hit of `dmg` on unit `j` by unit `attacker`, booked as the combat path books it (the hitter is remembered for
+    /// the death rules). The mod host's tests use this to set up who damaged a unit.
+    pub fn hit_by(&mut self, j: usize, dmg: i32, attacker: i32) {
+        self.inflict(j, dmg, attacker);
     }
 
     /// Adds `n` kills to unit `i`'s kill tally (saturating). Which kills count is the mod's rule (the pack counts hero kills);
@@ -478,48 +468,9 @@ impl Sim {
         }
     }
 
-    /// Gold held by unit `j` plus the cost of the items in its inventory and stash (the net worth
-    /// the mod's gold rules read through `game.net_worth`).
-    pub fn net_worth(&self, j: usize) -> i32 {
-        let slots = j * crate::inventory::INV_SLOTS..(j + 1) * crate::inventory::INV_SLOTS;
-        let items: i64 = slots
-            .flat_map(|s| [(self.inv_kind[s], self.inv_count[s]), (self.stash_kind[s], self.stash_count[s])])
-            .filter(|&(kind, count)| kind != 0 && count > 0)
-            .map(|(kind, count)| self.cat.items.get(kind as usize - 1).map_or(0, |it| it.cost as i64) * count as i64)
-            .sum();
-        (self.unit_gold(j) as i64 + items).min(i32::MAX as i64) as i32
-    }
-
-    /// Each player's post-game tally: kills, deaths, credits (the assist count), gold, xp and held items, summed over
-    /// that player's unit slots. Dead units keep their tallies until their slot is respawned.
-    pub fn post_game(&self) -> Vec<PlayerTally> {
-        (0..self.player_count())
-            .map(|p| {
-                let player = p as u8;
-                let mut tally = PlayerTally {
-                    player,
-                    kills: 0,
-                    deaths: 0,
-                    assists: 0,
-                    gold: self.resource_a(player),
-                    xp: 0,
-                    items: Vec::new(),
-                };
-                for i in (0..self.n).filter(|&i| self.player[i] == player) {
-                    tally.kills = tally.kills.saturating_add(self.unit_kills[i]);
-                    tally.deaths = tally.deaths.saturating_add(self.unit_deaths[i]);
-                    tally.assists = tally.assists.saturating_add(self.unit_credits[i]);
-                    tally.xp = tally.xp.saturating_add(self.xp_total[i]);
-                    let slots = i * crate::inventory::INV_SLOTS;
-                    tally.items.extend(
-                        (slots..slots + crate::inventory::INV_SLOTS)
-                            .filter(|&s| self.inv_kind[s] != 0 && self.inv_count[s] > 0)
-                            .map(|s| self.inv_kind[s]),
-                    );
-                }
-                tally
-            })
-            .collect()
+    /// The generic credits unit `i` holds (`add_credit`); zero for an unknown index.
+    pub fn credits_of(&self, i: usize) -> u32 {
+        self.unit_credits.get(i).copied().unwrap_or(0)
     }
 
     /// Takes the kill events queued since the last drain, oldest first. The wasm layer drains once per tick.
@@ -663,8 +614,7 @@ mod tests {
         assert_eq!(rival_gold, 0, "no engine payout to the rival side");
     }
 
-    /// The recent hitters of a victim are read once, in slot order, and a credit added to a hitter shows in its
-    /// player's post-game assists.
+    /// The recent hitters of a victim are read once, in slot order, and a credit added to a hitter is kept on that unit.
     #[test]
     fn recent_hitters_are_read_once_and_credits_show_in_the_tally() {
         let mut s = duel_sim();
@@ -675,7 +625,19 @@ mod tests {
         assert!(s.take_recent_hitters(victim, 50).is_empty(), "the hitters are forgotten once read");
         s.add_credit(hitter, 2);
         s.add_credit(hitter, 1);
-        assert_eq!(s.post_game()[0].assists, 3, "the credits are the player's assists");
+        assert_eq!(s.credits_of(hitter), 3, "the credits add up on the unit that holds them");
+    }
+
+    /// The recent hitters can be read and kept for a second read; taking them forgets them.
+    #[test]
+    fn recent_hitters_read_without_forgetting_until_taken() {
+        let mut s = duel_sim();
+        let (hitter, victim) = (creep(&mut s, 0), creep(&mut s, 1));
+        s.hit_by(victim, 1, hitter as i32);
+        assert_eq!(s.recent_hitters(victim, 50), vec![hitter as u32]);
+        assert_eq!(s.recent_hitters(victim, 50), vec![hitter as u32], "a read keeps the hitters");
+        assert_eq!(s.take_recent_hitters(victim, 50), vec![hitter as u32]);
+        assert!(s.recent_hitters(victim, 50).is_empty(), "taking the hitters forgets them");
     }
 
     /// A unit of catalog kind `name` for `player` on the first free walkable cell.
@@ -708,77 +670,11 @@ mod tests {
         assert!(s.set_position(rival, hx, hy));
         let rival_hp = s.hp(rival);
         for _ in 0..50 {
+            assert!(s.set_strike_target(holder, rival as i32).is_ok());
             s.tick();
         }
         assert!(s.hp(rival) < rival_hp || !s.alive(rival), "a held unit must strike an enemy in its reach");
         assert_eq!(s.position_fixed(holder), (hx, hy), "striking from a hold must not move the unit");
-    }
-
-    /// First cell `(x, y)` of a walkable run `len` cells long on one row.
-    fn open_run(s: &Sim, len: i32) -> Option<(i32, i32)> {
-        let (w, h) = (s.grid().w as i32, s.grid().h as i32);
-        (0..h)
-            .flat_map(|y| (0..w - len).map(move |x| (x, y)))
-            .find(|&(x, y)| (0..len).all(|k| s.grid().walkable(x + k, y)))
-    }
-
-    /// Attack-move walks to its point through a line of enemies: it strikes each one met on the
-    /// way, resumes travel after each kill, and stops at the point once no enemy is left.
-    #[test]
-    fn attack_move_reaches_point_through_enemies_and_stops_there() {
-        let mut s = duel_sim();
-        let (x0, y) = open_run(&s, 16).expect("a 16-cell walkable run");
-        let hunter = unit_named(&mut s, 0, "skirmisher");
-        assert!(s.set_position(hunter, fixed::from_int(x0), fixed::from_int(y)));
-        let foes: Vec<usize> = [5, 8]
-            .iter()
-            .map(|&k| {
-                let foe = creep(&mut s, 1);
-                assert!(s.set_position(foe, fixed::from_int(x0 + k), fixed::from_int(y)));
-                foe
-            })
-            .collect();
-        let (gx, gy) = (fixed::from_int(x0 + 14), fixed::from_int(y));
-        assert!(s.issue_order_kind(hunter, crate::ORDER_ATTACK_MOVE, gx, gy).is_ok());
-        let mut arrived = false;
-        for _ in 0..3000 {
-            s.tick();
-            let (px, py) = s.position_fixed(hunter);
-            if (px - gx).abs() <= fixed::ONE && (py - gy).abs() <= fixed::ONE {
-                arrived = true;
-                break;
-            }
-        }
-        assert!(arrived, "attack-move must travel to its point");
-        assert!(s.alive(hunter), "the hunter must survive the route");
-        for &foe in &foes {
-            assert!(!s.alive(foe), "attack-move must kill each enemy it meets on the route");
-        }
-    }
-
-    /// An attack-move unit holds only for a foe it can strike now. A foe in reach that cannot be
-    /// damaged (physically immune) must not hold the hunter: it keeps walking to its point.
-    #[test]
-    fn attack_move_walks_past_a_foe_it_cannot_strike() {
-        let mut s = duel_sim();
-        let (x0, y) = open_run(&s, 16).expect("a 16-cell walkable run");
-        let hunter = unit_named(&mut s, 0, "skirmisher");
-        assert!(s.set_position(hunter, fixed::from_int(x0), fixed::from_int(y)));
-        let foe = creep(&mut s, 1);
-        assert!(s.set_position(foe, fixed::from_int(x0 + 2), fixed::from_int(y)));
-        s.apply_status(foe, crate::status::PHYSICAL_IMMUNE, 100_000, crate::status::SLOW_NONE);
-        let (gx, gy) = (fixed::from_int(x0 + 14), fixed::from_int(y));
-        assert!(s.issue_order_kind(hunter, crate::ORDER_ATTACK_MOVE, gx, gy).is_ok());
-        let mut arrived = false;
-        for _ in 0..3000 {
-            s.tick();
-            let (px, py) = s.position_fixed(hunter);
-            if (px - gx).abs() <= fixed::ONE && (py - gy).abs() <= fixed::ONE {
-                arrived = true;
-                break;
-            }
-        }
-        assert!(arrived, "attack-move must not hold for a foe it cannot strike");
     }
 
     /// Using an item from an empty slot is refused and changes nothing.
@@ -789,27 +685,6 @@ mod tests {
         let before = s.hp(unit);
         assert!(!s.use_item(unit, 0, -1, 0, 0), "an empty slot has no item to use");
         assert_eq!(s.hp(unit), before, "a refused item use changes no unit state");
-    }
-
-    /// An item cast at a point beyond its cast range is refused as move-range and spends no charge.
-    #[test]
-    fn item_cast_beyond_its_range_is_refused_as_move_range() {
-        let scenario = crate::test_pack_dir();
-        let image = osdt_data::generate(&scenario).expect("pack image");
-        let mut s = load(&image, CAP).expect("pack sim");
-        s.set_fog(false);
-        let attributed = unit_named(&mut s, 0, "antimage");
-        let (hx, hy) = s.position_fixed(attributed);
-        s.attribute_unit(attributed, hx, hy);
-        s.energy[attributed] = 100_000;
-        let item = crate::inventory::item_kind(s.catalog().item_index("blink").expect("blink item"));
-        assert!(s.inventory_add(attributed, item, 1), "the unit takes the blink");
-        let base = attributed * crate::inventory::INV_SLOTS;
-        let slot = (0..crate::inventory::MAIN_SLOTS).find(|&k| s.inv_kind[base + k] == item).expect("item slot");
-        let far_x = hx + fixed::from_int(40);
-        assert!(!s.use_item(attributed, slot, -1, far_x, hy), "a point 40 cells away is beyond the blink's range");
-        assert_eq!(s.stats.last_refusal, crate::rules::Refusal::MoveRange, "the refusal names the cast range");
-        assert_eq!(s.inv_count[base + slot], 1, "a refused item cast spends no charge");
     }
 
     /// A consumable spends one charge per successful use, and a second use while the unit lacks energy is refused.

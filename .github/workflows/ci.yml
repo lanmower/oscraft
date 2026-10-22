@@ -1,6 +1,6 @@
 name: ci
 
-# Runs on every push to main and on demand: the Rust workspace tests (sim, mod host, replay, server, the moba pack
+# Runs on every push to main and on demand: the Rust workspace tests (sim, mod host, replay, the moba pack
 # and the example mods) and the wire codec round-trip. Pages deploys are in pages.yml.
 on:
   push:

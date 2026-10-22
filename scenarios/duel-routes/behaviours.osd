@@ -1,3 +1,4 @@
 # Behaviour definitions for the duel-routes scenario. behaviour(name, trigger, action, param=, ability=)
 behaviour("guard_patrol", trigger="idle", action="use_ability", param=0, ability="pulse_shot")
-behaviour("answer_attack", trigger="attacked", action="attack_nearest", param=0)
+# answer_attack (attack_nearest) is removed: its Lua equivalent is scenarios/moba/targeting.lua on_attacked.
+# This scenario loads no mods, so it has no retaliation.

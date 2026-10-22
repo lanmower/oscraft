@@ -6,7 +6,7 @@ Edit, stage, reload. No GitHub Pages deploy per change.
 
     scripts/dev/stage.sh
 
-Builds the mapexport maps and, when the wasm pkg is missing (or `WASM=1`), runs wasm-pack. It lays the site out at `.dev-site/` exactly as `.github/workflows/pages.yml` does (`js/client`, `js/client/pkg`, `map.bin`, `moba.bin`, `hero_rules.txt`, `models/*.glb`, `mods/`). Rerun after editing Rust or scenario data; plain JS, HTML and CSS edits only need a reload of the staged copy, so re-stage or copy `js/client` into `.dev-site/js/client`.
+Runs `mapexport` on the `moba` and `duel-routes` packs, and runs wasm-pack when the package is missing or `WASM=1` is set. It lays the site out at `.dev-site/` the way `.github/workflows/pages.yml` does: `js/client` (with `js/client/pkg`), `scenarios/` (with each pack's `.osdt` image and the moba models), `mods/`, `version.json` and an `index.html` that redirects to `js/client/play.html`.
 
 Needs cargo, and wasm-pack plus the `wasm32-unknown-unknown` target for the pkg step.
 
@@ -14,32 +14,24 @@ Needs cargo, and wasm-pack plus the `wasm32-unknown-unknown` target for the pkg 
 
     node scripts/dev/serve.mjs
 
-Serves `.dev-site` on `http://localhost:8790` (127.0.0.1 only, no-store headers, built-in Node modules only). Stop it with Ctrl-C.
+Serves `.dev-site` on `http://localhost:8790` (127.0.0.1 only, no-store headers, built-in Node modules only). Pass a directory to serve another staged site. Stop it with Ctrl-C.
 
-## Crawl the lobby (engine=cdp)
+## Watch JS, HTML and CSS
 
-With `scripts/dev/serve.mjs` running, dispatch a `crawl` body (the cdp engine drives a headful Chrome, one window per project root):
+    node scripts/dev/hot-sync.mjs .dev-site
 
-    engine=cdp
-    session=dev
-    http://localhost:8790/js/client/play.html#moba
-    wait=6000
-    console
-
-The `console` step reports messages captured by the crawl session, and an empty list means no errors were seen after navigation.
+Copies `js/client` and `scenarios/moba` into the target directory as they change, so a reload shows the edit. The wasm package and the map images are not rebuilt; rebuild them with `stage.sh` when `rust/` or the scenario data changes. Without an argument the target is `../oscraft-site`.
 
 ## Fast path
 
-- JS, HTML or CSS only: edit, copy `js/client` into `.dev-site/js/client` and reload. No cargo run is needed, and `stage.sh` is not needed.
+- JS, HTML or CSS only: edit, then reload. `hot-sync.mjs` copies the change, or copy `js/client` into `.dev-site/js/client` by hand. No cargo run is needed.
 - Rust, mods or scenario data: run `scripts/dev/stage.sh` (it reruns mapexport; wasm-pack runs only when the pkg is missing or `WASM=1`), then reload.
-- One Rust test: `cargo test -p <crate> <filter>` inside `rust/`, with `<crate>` from `rust/crates/`.
-- CI on a push runs every job except when every changed file is a root-level `*.md`. A `docs/` change still runs every job, because `static-probes` and the log-schema check read `docs/`.
-- The slowest CI path is the browser probes (`browser-direct`, `browser-two-peers`, `browser-probes`). Their Chromium install is cached per Playwright version and runs once per job. Check a probe's own step time in `gh run view --json jobs` before changing its waits.
-- The parity gate (`oscraft-gate`) runs once per OS in `check`, `check-linux`; `duel-routes` reads the `check-linux` output, not a second run.
+- One Rust test: `cargo test -p <package> <filter>` inside `rust/`, with `<package>` the package name in `rust/crates/*/Cargo.toml` (for example `sim`, `mod-host` or `osdt-data`).
+- CI runs on every push to `main` and on demand, with two jobs: `rust` (`cargo test --workspace` in `rust/`) and `wire` (`node test.js` in `js/wire`). `.github/workflows/pages.yml` builds and deploys the site on each push to `main`. See [HOST.md](HOST.md#loading-and-deployment).
 
 ## Live debugging
 
-Every page load exposes `window.oscraft` (no flag, no per-frame cost). Open `js/client/play.html#moba` in a browser and use the console. Camera `x` and `y` are world x and z (ground coordinates). `oscraft.help()` prints the list.
+Every page load exposes `window.oscraft` (no flag, no per-frame cost). Open `js/client/play.html#moba` in a browser and use the console. Check the console for errors after navigation. Camera `x` and `y` are world x and z (ground coordinates). `oscraft.help()` prints the list.
 
     oscraft.setCamera({ x: 44, y: 48, distance: 46, yaw: 0.6, pitch: 0.9 })   // clamped by the mouse's own limits
     oscraft.getCamera()
@@ -48,6 +40,6 @@ Every page load exposes `window.oscraft` (no flag, no per-frame cost). Open `js/
     oscraft.issueOrder(hero.id, 'move', hero.x - 3, hero.z)                  // 'move', 'stop', or 'attack' at (x, y)
     oscraft.centreOn(hero.id)
     oscraft.setShadows(false); oscraft.setFog(false)                         // fog is render-side only
-    oscraft.setTerrain('tiles'); oscraft.setRenderer('tsl')                  // reload with ?terrain= / ?renderer=
+    oscraft.debug.run('view', { fog: false })                                // a pack action, as the page dispatches it
 
-Orders go through the same command path the mouse takes, so the sim sees a real order and its refusal lands in `document.body.dataset.lastRefusal`. `window.__ci*` probes still need `?ci=1`.
+Orders go through the same command path the mouse takes, so the sim sees a real order and its refusal lands in `document.body.dataset.lastRefusal`. The `window.__ci*` probes need `?ci=1`. The pack's Lua state is under `oscraft.debug` ([MODDING.md](MODDING.md#debugging)).

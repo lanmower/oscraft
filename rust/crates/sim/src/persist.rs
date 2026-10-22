@@ -1,11 +1,11 @@
 //! Save and load of live sim state as bytes. A save holds every field the state hash covers,
-//! plus the fog reveals, the mode flags and the counters, so a load followed by state_hash
+//! plus the day and night clock, the mode flags and the counters, so a load followed by state_hash
 //! gives the hash the save was taken at. Not saved: the catalog (the caller loads the same map
 //! first) and the bucket planes and scratch (rebuilt by the tick). The flow-field pool is saved
 //! in full, solver frontiers included, so a loaded run continues exactly as an uninterrupted one.
 //! Layout is little-endian with fixed field order; this version is independent of the map format.
 
-use crate::arrays::{Reveal, Sim, Stats};
+use crate::arrays::{Sim, Stats};
 use crate::pathfinding::{Field, Grid, Pool};
 use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
@@ -23,9 +23,20 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// version, older ones included, are refused with `BadVersion`.
 /// Version 35 renames the sections to neutral names (attributed units, groups, dests, expiry,
 /// item_requests, aura) and drops the skill-point rule from the engine: the layout is unchanged.
+/// Version 38 moves the game clock to the pack (a night flag and the day cycle as plain storage), drops the reveal
+/// list, the burrow state and the walk-cast pending slots, and adds the status flags, the stat bounds and the
+/// per-unit strike target and research bits.
+/// Version 37 adds the per-unit strike target and the research bits (the mod-owned research state).
 /// Version 36 drops the kill-payout flag (the mod owns kill gold) and renames the assist tally to
 /// the generic per-unit credits a mod's rule adds (`add_credit`).
-const STATE_VERSION: u16 = 36;
+/// Version 39 drops the respawn spot of a reincarnating hero (`spot_x`, `spot_y`): the aegis move keeps the spot in
+/// the pack, so the layout after `mana_max` no longer carries those two arrays. Version 38 saves are refused.
+/// Version 40 adds the four per-unit arrays the pack sets each tick after the strike target: the damage scale (the
+/// armour curve moved to the pack), the speed floor and cap, and the miss chance. Version 39 saves are refused.
+/// Version 41 adds the per-unit magical damage kept (the magic resistance moved to the pack). Version 40 saves are refused.
+/// Version 42 adds the per-unit damage kept through the damage reduction stat and through the damage response (both moved
+/// to the pack). Version 41 saves are refused.
+const STATE_VERSION: u16 = 42;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -306,23 +317,15 @@ impl Sim {
         put_u64(&mut w, self.n as u64);
         put_u64(&mut w, self.head as u64);
         put_u32(&mut w, self.ticks);
-        put_u32(&mut w, self.day_clock);
+        put_bool(&mut w, self.night);
+        put_u32s(&mut w, &self.day_cycle);
         put_u64(&mut w, self.rng);
-        put_i32(&mut w, self.scan_left);
         put_bool(&mut w, self.fog);
-        put_bool(&mut w, self.harvest);
-        put_bool(&mut w, self.produce);
         put_bool(&mut w, self.abil_on);
 
         let s = &self.stats;
         put_u64(&mut w, s.deaths as u64);
         put_u64(&mut w, s.vision_refreshes as u64);
-        put_u64(&mut w, s.harvested as u64);
-        put_u64(&mut w, s.trained as u64);
-        put_u64(&mut w, s.trains_refused as u64);
-        w.push(s.last_train_refusal as u8);
-        put_u64(&mut w, s.retargets as u64);
-        put_u64(&mut w, s.retargets_deferred as u64);
         put_u64(&mut w, s.casts as u64);
         put_u64(&mut w, s.casts_refused as u64);
         for c in s.refused_by {
@@ -331,7 +334,6 @@ impl Sim {
         w.push(s.last_refusal as u8);
         put_u64(&mut w, s.buffs_dropped as u64);
         put_u64(&mut w, s.summoned as u64);
-        put_u64(&mut w, s.reveals_dropped as u64);
         put_u64(&mut w, s.missiles_lost as u64);
         put_i32(&mut w, s.ability_damage);
 
@@ -362,7 +364,6 @@ impl Sim {
         put_i32s(&mut w, &self.type_of);
         put_u32s(&mut w, &self.filter);
         w.extend_from_slice(&self.response);
-        put_i32s(&mut w, &self.product);
         w.extend_from_slice(&self.flying);
         w.extend_from_slice(&self.targets);
         w.extend_from_slice(&self.kind);
@@ -377,15 +378,6 @@ impl Sim {
         put_i32s(&mut w, &self.patrol_x);
         put_i32s(&mut w, &self.patrol_y);
         put_i32s(&mut w, &self.amount);
-        w.extend_from_slice(&self.wstate);
-        put_i32s(&mut w, &self.wtarget);
-        put_i32s(&mut w, &self.wtimer);
-        put_i32s(&mut w, &self.carry);
-        w.extend_from_slice(&self.carry_kind);
-        put_i32s(&mut w, &self.harvest_amt);
-        put_i32s(&mut w, &self.trainee);
-        put_i32s(&mut w, &self.train_left);
-        w.extend_from_slice(&self.train_hold);
         put_i32s(&mut w, &self.resource_a);
         put_i32s(&mut w, &self.resource_b);
         put_i32s(&mut w, &self.abil_idx);
@@ -421,17 +413,11 @@ impl Sim {
         w.extend_from_slice(&self.seen);
         put_i32s(&mut w, &self.seen_x);
         put_i32s(&mut w, &self.seen_y);
-        w.extend_from_slice(&self.researched);
-        put_i32s(&mut w, &self.research_left);
-        put_i32s(&mut w, &self.research_rec);
-        put_i32s(&mut w, &self.loaded_into);
         put_i32s(&mut w, &self.channel_left);
         put_i32s(&mut w, &self.channel_ai);
         put_i32s(&mut w, &self.channel_x);
         put_i32s(&mut w, &self.channel_y);
         put_i32s(&mut w, &self.channel_target);
-        w.extend_from_slice(&self.burrowed);
-        put_i32s(&mut w, &self.burrow_left);
         put_i32s(&mut w, &self.status_left);
         put_i32s(&mut w, &self.slow_mul);
 
@@ -446,19 +432,9 @@ impl Sim {
             w.extend_from_slice(&v.to_le_bytes());
         }
         w.extend_from_slice(&self.controller);
-        for r in &self.reveals {
-            w.push(r.p);
-            put_i32(&mut w, r.x0);
-            put_i32(&mut w, r.y0);
-            put_i32(&mut w, r.x1);
-            put_i32(&mut w, r.y1);
-            put_i32(&mut w, r.until);
-            put_bool(&mut w, r.live);
-        }
         for &t in &self.last_hit {
             put_u32(&mut w, t);
         }
-        w.extend_from_slice(&self.upg_done);
         put_u64(&mut w, self.doodads.len() as u64);
         for d in &self.doodads {
             put_u32(&mut w, d.id);
@@ -492,11 +468,18 @@ impl Sim {
         put_u32s(&mut w, &self.attributed.respawn_at);
         put_i32s(&mut w, &self.attributed.gold);
         put_i32s(&mut w, &self.attributed.mana_max);
-        put_i32s(&mut w, &self.attributed.spot_x);
-        put_i32s(&mut w, &self.attributed.spot_y);
         put_u32s(&mut w, &self.unit_credits);
         put_i32s(&mut w, &self.hitter_id);
         put_u32s(&mut w, &self.hitter_tick);
+        put_i32s(&mut w, &self.strike_target);
+        put_i32s(&mut w, &self.armour_scale);
+        put_i32s(&mut w, &self.speed_floor);
+        put_i32s(&mut w, &self.speed_cap);
+        put_i32s(&mut w, &self.miss_chance);
+        put_i32s(&mut w, &self.magic_keep);
+        put_i32s(&mut w, &self.damage_keep);
+        put_i32s(&mut w, &self.response_keep);
+        w.extend_from_slice(&self.researched);
         w.extend_from_slice(&self.dests.id);
         w.extend_from_slice(&self.dests.step);
         put_i32s(&mut w, &self.aggro.target);
@@ -504,11 +487,7 @@ impl Sim {
         put_u32s(&mut w, &self.aggro.invuln_until);
         w.extend_from_slice(&self.aggro.reduce_pct);
         put_i32s(&mut w, &self.aggro.heal);
-        put_i32s(&mut w, &self.aggro.strike);
-        put_u32s(&mut w, &self.aggro.strike_gen);
-        put_u32s(&mut w, &self.aggro.spawn_gen);
         put_i32s(&mut w, &self.chase.target);
-        put_u32s(&mut w, &self.chase.target_gen);
         w.extend_from_slice(&self.chase.ret_kind);
         put_i32s(&mut w, &self.chase.ret_x);
         put_i32s(&mut w, &self.chase.ret_y);
@@ -547,23 +526,15 @@ impl Sim {
         next.n = r.u64()? as usize;
         next.head = r.u64()? as usize;
         next.ticks = r.u32()?;
-        next.day_clock = r.u32()? % (DAY_TICKS + NIGHT_TICKS);
+        next.night = r.bool()?;
+        r.u32s_into(&mut next.day_cycle)?;
         next.rng = r.u64()?;
-        next.scan_left = r.i32()?;
         next.fog = r.bool()?;
-        next.harvest = r.bool()?;
-        next.produce = r.bool()?;
         next.abil_on = r.bool()?;
 
         let mut st = Stats::default();
         st.deaths = r.u64()? as usize;
         st.vision_refreshes = r.u64()? as usize;
-        st.harvested = r.u64()? as usize;
-        st.trained = r.u64()? as usize;
-        st.trains_refused = r.u64()? as usize;
-        st.last_train_refusal = refusal(r.u8()?)?;
-        st.retargets = r.u64()? as usize;
-        st.retargets_deferred = r.u64()? as usize;
         st.casts = r.u64()? as usize;
         st.casts_refused = r.u64()? as usize;
         for k in 0..REFUSAL_KINDS {
@@ -572,7 +543,6 @@ impl Sim {
         st.last_refusal = refusal(r.u8()?)?;
         st.buffs_dropped = r.u64()? as usize;
         st.summoned = r.u64()? as usize;
-        st.reveals_dropped = r.u64()? as usize;
         st.missiles_lost = r.u64()? as usize;
         st.ability_damage = r.i32()?;
         next.stats = st;
@@ -607,7 +577,6 @@ impl Sim {
         r.i32s_into(&mut next.type_of)?;
         r.u32s_into(&mut next.filter)?;
         r.bytes_into(&mut next.response)?;
-        r.i32s_into(&mut next.product)?;
         r.bytes_into(&mut next.flying)?;
         r.bytes_into(&mut next.targets)?;
         r.bytes_into(&mut next.kind)?;
@@ -622,15 +591,6 @@ impl Sim {
         r.i32s_into(&mut next.patrol_x)?;
         r.i32s_into(&mut next.patrol_y)?;
         r.i32s_into(&mut next.amount)?;
-        r.bytes_into(&mut next.wstate)?;
-        r.i32s_into(&mut next.wtarget)?;
-        r.i32s_into(&mut next.wtimer)?;
-        r.i32s_into(&mut next.carry)?;
-        r.bytes_into(&mut next.carry_kind)?;
-        r.i32s_into(&mut next.harvest_amt)?;
-        r.i32s_into(&mut next.trainee)?;
-        r.i32s_into(&mut next.train_left)?;
-        r.bytes_into(&mut next.train_hold)?;
         r.i32s_into(&mut next.resource_a)?;
         r.i32s_into(&mut next.resource_b)?;
         r.i32s_into(&mut next.abil_idx)?;
@@ -666,17 +626,11 @@ impl Sim {
         r.bytes_into(&mut next.seen)?;
         r.i32s_into(&mut next.seen_x)?;
         r.i32s_into(&mut next.seen_y)?;
-        r.bytes_into(&mut next.researched)?;
-        r.i32s_into(&mut next.research_left)?;
-        r.i32s_into(&mut next.research_rec)?;
-        r.i32s_into(&mut next.loaded_into)?;
         r.i32s_into(&mut next.channel_left)?;
         r.i32s_into(&mut next.channel_ai)?;
         r.i32s_into(&mut next.channel_x)?;
         r.i32s_into(&mut next.channel_y)?;
         r.i32s_into(&mut next.channel_target)?;
-        r.bytes_into(&mut next.burrowed)?;
-        r.i32s_into(&mut next.burrow_left)?;
         r.i32s_into(&mut next.status_left)?;
         r.i32s_into(&mut next.slow_mul)?;
 
@@ -692,20 +646,8 @@ impl Sim {
         }
         crate::fog::bump_vision_generation();
         r.bytes_into(&mut next.controller)?;
-        for k in 0..REVEAL_CAP {
-            next.reveals[k] = Reveal {
-                p: r.u8()?,
-                x0: r.i32()?,
-                y0: r.i32()?,
-                x1: r.i32()?,
-                y1: r.i32()?,
-                until: r.i32()?,
-                live: r.bool()?,
-            };
-        }
 
         r.u32s_into(&mut next.last_hit)?;
-        r.bytes_into(&mut next.upg_done)?;
         let doodad_count = r.u64()? as usize;
         if doodad_count > bytes.len() / 18 {
             return Err(StateError::Length);
@@ -748,11 +690,18 @@ impl Sim {
         r.u32s_into(&mut next.attributed.respawn_at)?;
         r.i32s_into(&mut next.attributed.gold)?;
         r.i32s_into(&mut next.attributed.mana_max)?;
-        r.i32s_into(&mut next.attributed.spot_x)?;
-        r.i32s_into(&mut next.attributed.spot_y)?;
         r.u32s_into(&mut next.unit_credits)?;
         r.i32s_into(&mut next.hitter_id)?;
         r.u32s_into(&mut next.hitter_tick)?;
+        r.i32s_into(&mut next.strike_target)?;
+        r.i32s_into(&mut next.armour_scale)?;
+        r.i32s_into(&mut next.speed_floor)?;
+        r.i32s_into(&mut next.speed_cap)?;
+        r.i32s_into(&mut next.miss_chance)?;
+        r.i32s_into(&mut next.magic_keep)?;
+        r.i32s_into(&mut next.damage_keep)?;
+        r.i32s_into(&mut next.response_keep)?;
+        r.bytes_into(&mut next.researched)?;
         r.bytes_into(&mut next.dests.id)?;
         r.bytes_into(&mut next.dests.step)?;
         r.i32s_into(&mut next.aggro.target)?;
@@ -760,11 +709,7 @@ impl Sim {
         r.u32s_into(&mut next.aggro.invuln_until)?;
         r.bytes_into(&mut next.aggro.reduce_pct)?;
         r.i32s_into(&mut next.aggro.heal)?;
-        r.i32s_into(&mut next.aggro.strike)?;
-        r.u32s_into(&mut next.aggro.strike_gen)?;
-        r.u32s_into(&mut next.aggro.spawn_gen)?;
         r.i32s_into(&mut next.chase.target)?;
-        r.u32s_into(&mut next.chase.target_gen)?;
         r.bytes_into(&mut next.chase.ret_kind)?;
         r.i32s_into(&mut next.chase.ret_x)?;
         r.i32s_into(&mut next.chase.ret_y)?;

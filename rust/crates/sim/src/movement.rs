@@ -461,7 +461,6 @@ impl Sim {
         }
         self.order_kind[i] = kind;
         self.routed[i] = 0;
-        self.cancel_pending_cast(i);
         self.interrupt_channel(i);
         self.touch(i);
         self.record_order(i);
@@ -496,11 +495,8 @@ impl Sim {
         true
     }
 
-    /// The destination unit `i` was last ordered to, after the grid clamp. None for an unknown index.
-    pub fn order_target(&self, i: usize) -> Option<(i32, i32)> {
-        if i >= self.n {
-            return None;
-        }
-        Some((self.tgt_x[i], self.tgt_y[i]))
+    /// The order kind unit `i` is on (ORDER_MOVE, ORDER_ATTACK_MOVE, ORDER_HOLD, ...) and its destination, fixed point.
+    pub fn order_of(&self, i: usize) -> (u8, i32, i32) {
+        (self.order_kind[i], self.tgt_x[i], self.tgt_y[i])
     }
 }

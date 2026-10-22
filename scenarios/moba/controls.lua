@@ -20,6 +20,7 @@
 local config = require("config")
 local units = require("units")
 local heroes = require("heroes")
+local bots = require("bots")
 
 local FIX = config.FIX
 local TARGET_UNIT = 1
@@ -465,6 +466,7 @@ local function on_action(name, args)
     skill_up(args.player or LOCAL, args.slot)
   elseif name == "seat_pick" then
     heroes.seat_pick(args.player, args.hero)
+    if args.bot then bots.seat(args.player) end
   elseif name == "bind" then
     if args.remove then CFG.custom[args.key] = nil else CFG.custom[args.key] = args.action end
   elseif name == "camera_to" then

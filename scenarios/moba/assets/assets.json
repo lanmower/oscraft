@@ -1510,30 +1510,6 @@
    "role": "character"
   },
   {
-   "id": "necrolyte-skinned",
-   "kind": "model",
-   "path": "models/necrolyte-skinned.glb",
-   "placed_by": "doodads.json",
-   "bytes": 633940,
-   "role": "character"
-  },
-  {
-   "id": "neutral-elder-jungle-stalker-skinned",
-   "kind": "model",
-   "path": "models/neutral-elder-jungle-stalker-skinned.glb",
-   "placed_by": "doodads.json",
-   "bytes": 990644,
-   "role": "character"
-  },
-  {
-   "id": "neutral-enraged-wildkin-skinned",
-   "kind": "model",
-   "path": "models/neutral-enraged-wildkin-skinned.glb",
-   "placed_by": "doodads.json",
-   "bytes": 1269844,
-   "role": "character"
-  },
-  {
    "id": "character-skeleton",
    "kind": "model",
    "path": "models/character-skeleton.glb",
@@ -6380,6 +6356,30 @@
    "placed_by": "rock-role GLB models in scenarios/moba/assets/models (external image, KHR_texture_basisu)",
    "bytes": 239741,
    "role": "rock"
+  },
+  {
+   "id": "necrolyte-skinned",
+   "kind": "model",
+   "path": "models/necrolyte-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 633940,
+   "role": "character"
+  },
+  {
+   "id": "neutral-elder-jungle-stalker-skinned",
+   "kind": "model",
+   "path": "models/neutral-elder-jungle-stalker-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 990644,
+   "role": "character"
+  },
+  {
+   "id": "neutral-enraged-wildkin-skinned",
+   "kind": "model",
+   "path": "models/neutral-enraged-wildkin-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 1269844,
+   "role": "character"
   }
  ],
  "roles": {

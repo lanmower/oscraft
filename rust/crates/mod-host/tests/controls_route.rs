@@ -26,6 +26,8 @@ fn click_selects_and_right_click_orders_the_selection() {
     let image = build_image(&scenario()).expect("moba scenario builds an image");
     let mut host = ModHost::new(&image).expect("host");
     let ui: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(scenario().join("moba_ui.json")).expect("ui")).expect("ui json");
+    let rules = std::fs::read_to_string(scenario().join("attr_rules.txt")).expect("rules");
+    assert!(host.sim_mut().set_attr_rules_text(&rules), "the pack's rules file loads");
     host.load_mods(&common::pack_mods(&scenario(), &common::pack_roots(&scenario()))).expect("moba mods load");
     host.dispatch_action("setup", &json!({ "ui": ui, "player": 0 })).expect("setup");
 

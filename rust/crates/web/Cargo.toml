@@ -7,6 +7,10 @@ description = "Browser build of the deterministic sim: a wasm-bindgen Game over 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# Test build only: a mod whose source has `-- wasip3-fault: panic at <tick>` traps the wasm at that sim tick. Off by default.
+fault-injection = ["mod-host/fault-injection"]
+
 [dependencies]
 sim = { path = "../sim" }
 replay = { path = "../replay" }

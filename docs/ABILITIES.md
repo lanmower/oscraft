@@ -18,20 +18,20 @@ Juxtapose), dazzle (Poison Touch and Shallow Grave), lina (Dragon Slave, Light S
 Frost Shield, Chain Frost), tidehunter (Gush, Kraken Shell, Ravage), slardar (all four), antimage (Mana Break, Blink, Counterspell) and vengefulspirit (Magic Missile,
 Wave of Terror, Command Aura): the abilities, the
 generic talents (`<hero>_talents`) and the unique talents wherever the key they change is modelled. Slots: basics, then the
-ultimate, then the talent modifiers. The other 120 roster heroes in `units_heroes.osd` have no abilities yet.
+ultimate, then the talent modifiers. The other 111 of the 127 roster heroes in `units_heroes.osd` have no abilities yet.
 Not done: Phantom Lancer's Doppelganger and Phantom Rush, Dazzle's Shadow Wave and Weave and the ultimate that moves the soul,
 Anti-Mage's Mana Void, Lina's Fiery Soul, Lich's Sinister Gaze, Tidehunter's Anchor Smash (its radius is not in the dump), Vengeful Spirit's Nether Swap.
 
 ## Mechanics added to the engine
 
 Effect kinds `dot`, `status`, `timed_stat`, `aoe`, `dispel`, `chain`, `zone`, `illusion`, `mana`, `if_kill`, `attack` and typed
-`damage` (physical, magical, pure) and `heal` (whole hit points, percent of maximum); see `rust/crates/data/FORMAT.md`. Around them:
+`damage` (physical, magical, pure) and `heal` (whole hit points, percent of maximum). The kind names are the `effect_kinds` list of `scenarios/moba/0_names.osd`, and their parameter checks are in `rust/crates/data/src/format.rs`. Around them:
 
 - Rank scaling of any effect parameter, cooldown, mana, cast range, proc chance and period; scepter, shard and eight talent
-  modifiers per ability (`AXTN`); talents picked at levels 10, 15, 20, 25 (`Sim::choose_talent`); skill gates 1, 3, 5, 7 and 6, 12, 18.
+  modifiers per ability (`AXTN`); talents picked at levels 10, 15, 20, 25 (`choose_talent` in `scenarios/moba/talents.lua`); skill gates 1, 3, 5, 7 and 6, 12, 18.
 - Cast point (the caster is held, a stun ends it), cast range with walking into range, charges, passive stat abilities, auras,
   procs on attack and when attacked (by chance or every Nth hit), channels that pulse (random ring) and end by stun, silence or
-  hex rather than damage (`channel_damage_interrupt=0` in `hero_rules.txt`).
+  hex rather than damage (`channel_damage_interrupt=0` in `attr_rules.txt`).
 - Illusions (`illusion`), dispels (`dispel`), summons (`ward` with an aura on the placed unit), blinks (`move`).
 - Statuses: taunt, hex, disarm, spell immunity, invulnerable, break, mute, physical immunity, death prevention.
 - Attack modifiers from stats: evasion, critical strike, cleave (a cone), lifesteal, bash, attack speed, range, magic resistance,
@@ -57,4 +57,4 @@ Effect kinds `dot`, `status`, `timed_stat`, `aoe`, `dispel`, `chain`, `zone`, `i
   gives only the damage reduction, Chain Frost has no slow, Kraken Shell has no damage-triggered cleanse.
 - Anti-Mage: Mana Break burns the flat mana only, Counterspell gives the magic resistance without reflecting spells, Blink has no minimum range.
 - Spell immunity pierce comes from the ability's own flag (`SpellImmunityType`); dispel strength is a mask, not reference types.
-- Gate checks: `rust/gate/src/ability_checks.rs`, run alone with `GATE_ONLY=ability- cargo run -p oscraft-gate`.
+- Gate checks: the `*_checks.rs` files in `rust/gate/src`. `GATE_ONLY=<text> cargo run -p oscraft-gate` runs only the checks whose names contain the text.

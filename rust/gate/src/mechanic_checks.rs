@@ -115,22 +115,22 @@ pub fn inventory_slots(image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn xp_level_up(image: &[u8]) -> Result<(), String> {
+/// Xp is a per-unit counter: gains accumulate and saturate at the top of u32. What the xp means (levels on the
+/// curve) is the mod's rule, so only the storage is checked here.
+pub fn xp_accumulates(image: &[u8]) -> Result<(), String> {
     let mut s = fresh(image)?;
     let u = spawn(&mut s, 0, "skirmisher", 10, 10)?;
-    let curve = s.xp_curve().to_vec();
-    let first = *curve.first().ok_or("xp curve is empty")?;
-    if s.level(u) != 0 {
-        return Err(format!("new unit starts at level {}", s.level(u)));
+    if s.xp(u) != 0 {
+        return Err(format!("new unit holds {} xp, want 0", s.xp(u)));
     }
-    if s.add_xp(u, first - 1) != 0 || s.level(u) != 0 {
-        return Err(format!("xp {} below the first threshold {first} levelled up", first - 1));
+    s.add_xp(u, 100);
+    s.add_xp(u, 250);
+    if s.xp(u) != 350 {
+        return Err(format!("gains of 100 and 250 left {} xp, want 350", s.xp(u)));
     }
-    if s.add_xp(u, 1) != 1 || s.level(u) != 1 || s.xp(u) != first {
-        return Err(format!("reaching {first} xp: level {} xp {}", s.level(u), s.xp(u)));
-    }
-    if !s.set_xp_curve(&[10, 20]) || s.set_xp_curve(&[20, 10]) || s.xp_curve() != [10, 20] {
-        return Err("a nondecreasing curve was refused or a decreasing one replaced the curve".into());
+    s.add_xp(u, u32::MAX);
+    if s.xp(u) != u32::MAX {
+        return Err(format!("a gain past u32::MAX left {} xp, want saturation at {}", s.xp(u), u32::MAX));
     }
     Ok(())
 }
@@ -176,47 +176,6 @@ pub fn structure_damage(_image: &[u8]) -> Result<(), String> {
         return Err(format!("beacon hp {before} -> {after} with an enemy skirmisher in weapon range"));
     }
     println!("structure damage ok hp_before={before} hp_after={after}");
-    Ok(())
-}
-
-/// Destroying every tagged structure of one side declares the other side the winner. The side-1
-/// beacons of the duel-routes scenario carry the structure tag; the last one standing decides it.
-pub fn win_trigger(_image: &[u8]) -> Result<(), String> {
-    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("duel-routes");
-    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
-    let mut s = fresh(&image)?;
-    let mut tagged: Vec<usize> = (0..MAX_UNITS).filter(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some("beacon")).collect();
-    let last = tagged.pop().ok_or("scenario has no side 1 structure")?;
-    for &i in &tagged {
-        s.hurt(i, fixed::from_int(10000));
-    }
-    run_ticks(&mut s, 1);
-    if s.winner().is_some() {
-        return Err("a winner was declared while a tagged structure of side 1 still stands".into());
-    }
-    s.hurt(last, fixed::from_int(10000));
-    run_ticks(&mut s, 1);
-    let winner = s.winner().ok_or("no winner after every tagged structure of side 1 was destroyed")?;
-    if winner != 0 {
-        return Err(format!("winner {winner} want 0, the side that is not side 1"));
-    }
-    println!("win trigger ok winner={winner}");
-    Ok(())
-}
-
-/// Destroying a creep pays its bounty into the rival side's resource pool at once.
-pub fn kill_bounty(_image: &[u8]) -> Result<(), String> {
-    let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("scenarios").join("duel-routes");
-    let image = osdt_data::generate(&scenario).map_err(|e| format!("scenario image: {e:#}"))?;
-    let mut s = fresh(&image)?;
-    let creep = spawn(&mut s, 1, role("unit.creep")?, 30, 20)?;
-    let gold_before = s.resource_a(0);
-    s.hurt(creep, fixed::from_int(10000));
-    let gold_after = s.resource_a(0);
-    if gold_after - gold_before != 25 {
-        return Err(format!("creep bounty paid {} want 25", gold_after - gold_before));
-    }
-    println!("kill bounty ok gold_before={gold_before} gold_after={gold_after}");
     Ok(())
 }
 
@@ -268,32 +227,6 @@ pub fn spawn_group_respawn(_image: &[u8]) -> Result<(), String> {
         return Err(format!("camp unit {u} respawned at {:?} not home {home:?}", s.position_fixed(u)));
     }
     println!("camp respawn ok unit={u} after={} ticks", wait);
-    Ok(())
-}
-
-/// A camp unit ordered past its leash walks back to within it.
-pub fn spawn_group_leash(_image: &[u8]) -> Result<(), String> {
-    let (mut s, u) = scenario_group_unit()?;
-    let (hx, hy) = s.position_fixed(u);
-    let leash = fixed::from_milli(scenario_rule("camp_leash_milli")?) as i64;
-    let dist2 = |s: &Sim| {
-        let (x, y) = s.position_fixed(u);
-        let (dx, dy) = ((x - hx) as i64, (y - hy) as i64);
-        dx * dx + dy * dy
-    };
-    s.order(u, hx + fixed::from_int(30), hy);
-    let mut left = false;
-    for _ in 0..800 {
-        s.tick();
-        left |= dist2(&s) > leash * leash;
-    }
-    if !left {
-        return Err(format!("camp unit {u} never left its {} milli leash", scenario_rule("camp_leash_milli")?));
-    }
-    if dist2(&s) > leash * leash {
-        return Err(format!("camp unit {u} did not walk back inside its leash"));
-    }
-    println!("camp leash ok unit={u}");
     Ok(())
 }
 
@@ -395,32 +328,6 @@ impl Drop for RemoveOnDrop {
 fn scenario_image() -> Result<Vec<u8>, String> {
     let scenario = crate::checks::pack_dir();
     osdt_data::generate(&scenario).map_err(|e| format!("moba scenario image: {e:#}"))
-}
-
-/// The bound on ticks from a base's destruction to a declared winner.
-const MATCH_TICK_LIMIT: u32 = 200;
-
-/// Destroying a side's only base ends the moba match with the rival as winner, within a bounded tick count.
-pub fn scenario_match_end(_image: &[u8]) -> Result<(), String> {
-    let mut s = fresh(&scenario_image()?)?;
-    run_ticks(&mut s, 50);
-    let r_unit_base = role("unit.base")?;
-    let base = (0..MAX_UNITS).find(|&i| s.alive(i) && s.player(i) == 1 && s.kind_name(i) == Some(r_unit_base)).ok_or("moba has no side 1 base")?;
-    if s.winner().is_some() {
-        return Err("a winner was declared before any base fell".into());
-    }
-    s.hurt(base, fixed::from_int(10000));
-    let mut ticks = 0;
-    while s.winner().is_none() && ticks < MATCH_TICK_LIMIT {
-        s.tick();
-        ticks += 1;
-    }
-    let winner = s.winner().ok_or(format!("no winner within {MATCH_TICK_LIMIT} ticks of the base falling"))?;
-    if winner != 0 {
-        return Err(format!("winner {winner} want 0, the side that is not side 1"));
-    }
-    println!("moba match ok winner={winner} ticks={ticks}");
-    Ok(())
 }
 
 /// A creep ordered from its own base toward the rival base closes distance along the lane.

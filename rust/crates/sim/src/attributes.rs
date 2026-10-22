@@ -1,20 +1,18 @@
 //! Attributed units: per-type attribute data (three attributes with a base and a growth each, the
-//! primary attribute, mana, regeneration, armour, damage and base attack time) and the stats those
-//! attributes drive. The engine rules are read from a `key=value` text file by `Sim::set_attr_rules_text`
-//! (the pack's attr_rules.txt, named by its manifest). Every other `key=value` line of that file is a named number that
-//! the mod reads through `Sim::rule`: the respawn, buy-back, gold and xp numbers live there, not here.
-//! A dead attributed unit waits for a respawn decision (`set_respawn`, from the mod's on_died)
-//! and comes back through `revive_at_point`.
+//! primary attribute, mana, regeneration, armour, damage and base attack time) stored per unit type,
+//! and the sim-side application of the stat bonuses a mod sets (`add_stat_bonus`). The mod decides every
+//! derived stat (scenarios/moba/heroes.lua); the engine stores those numbers and applies them.
+//! The engine rules are read from a `key=value` text file by `Sim::set_attr_rules_text` (the pack's
+//! attr_rules.txt, named by its manifest). Every other `key=value` line of that file is a named number that
+//! the mod reads through `Sim::rule`: the respawn, buy-back, gold, xp and attribute coefficient numbers live there.
+//! A dead attributed unit waits for the respawn the mod sets (`set_respawn`, from the mod's on_died) and comes
+//! back through `revive_at_point`; with no respawn set it stays dead.
 
 use std::collections::BTreeMap;
 
 use crate::arrays::Sim;
 use crate::fixed;
 use crate::{ABILITY_SLOTS, TICKS_PER_SECOND};
-
-/// Attribute coefficients (health per attribute a, armour per attribute b, mana per attribute c, universal
-/// damage share) are `AttrRules` fields read from the rules text. Attributes and per-unit data are hundredths.
-const MANA_BASE_DEFAULT: i32 = 75;
 
 /// Per unit type attribute data of a `unit <unit> key=value ...` line in the rules text, written by
 /// scripts/gen-units.mjs from npc_heroes. Attributes, gains, armor, damage and mana regeneration are
@@ -38,7 +36,7 @@ pub struct AttrDef {
 
 impl AttrDef {
     fn from_pairs(rest: &str) -> Option<AttrDef> {
-        let mut d = AttrDef { mana: MANA_BASE_DEFAULT, ..AttrDef::default() };
+        let mut d = AttrDef::default();
         for pair in rest.split_whitespace() {
             let (k, v) = pair.split_once('=')?;
             let v: i32 = v.parse().ok()?;
@@ -68,43 +66,26 @@ impl AttrDef {
 /// The engine's own rule values. Copyable; the named values of the rules text live beside it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AttrRules {
-    /// Attributes at level 0, then the growth per level. UNVERIFIED growth values: placeholders.
-    pub attr_a_base: i32,
-    pub attr_b_base: i32,
-    pub attr_c_base: i32,
-    pub attr_a_gain: i32,
-    pub attr_b_gain: i32,
-    pub attr_c_gain: i32,
     /// Target priority and aggro (aggro.rs): 1 turns it on. Hold time of a drawn aggro target, seconds.
     pub aggro_priority: bool,
     /// Whether any damage ends a channel (1, the default) or only a stun, hex or silence does (0, as in reference).
     pub channel_damage_interrupt: bool,
     pub aggro_hold_s: i32,
-    /// Movement speed limits in reference speed points, and hexed movement speed in milli-units per tick.
-    pub move_speed_max: i32,
-    pub move_speed_min: i32,
-    pub hex_speed_milli: i32,
+    /// Distance, in milli-units, at which a unit moves on to its next waypoint (waypoints.rs).
+    pub waypoint_reach_milli: i32,
 }
 
 /// Keys the engine must find in every rules text: a file without one is refused (`set_from_text` returns None).
-const REQUIRED_KEYS: &[&str] = &["move_speed_max", "move_speed_min", "hex_speed_milli"];
+const REQUIRED_KEYS: &[&str] = &["waypoint_reach_milli"];
 
 impl Default for AttrRules {
     fn default() -> Self {
         AttrRules {
-            attr_a_base: 0,
-            attr_b_base: 0,
-            attr_c_base: 0,
-            attr_a_gain: 2,
-            attr_b_gain: 1,
-            attr_c_gain: 1,
             aggro_priority: false,
             channel_damage_interrupt: true,
             aggro_hold_s: 3,
-            // Before any rules text is loaded (a Sim that never reads a rules text) these keep the engine values.
-            move_speed_max: 550,
-            move_speed_min: 100,
-            hex_speed_milli: 137,
+            // Neutral until a rules text sets it: a unit reaches a waypoint only on it.
+            waypoint_reach_milli: 0,
         }
     }
 }
@@ -127,12 +108,6 @@ impl AttrRules {
             let key = key.trim();
             seen.push(key);
             let slot = match key {
-                "attr_a_base" => &mut next.attr_a_base,
-                "attr_b_base" => &mut next.attr_b_base,
-                "attr_c_base" => &mut next.attr_c_base,
-                "attr_a_gain" => &mut next.attr_a_gain,
-                "attr_b_gain" => &mut next.attr_b_gain,
-                "attr_c_gain" => &mut next.attr_c_gain,
                 "channel_damage_interrupt" => {
                     if !(0..=1).contains(&v) {
                         return None;
@@ -148,9 +123,7 @@ impl AttrRules {
                     continue;
                 }
                 "aggro_hold_s" => &mut next.aggro_hold_s,
-                "move_speed_max" => &mut next.move_speed_max,
-                "move_speed_min" => &mut next.move_speed_min,
-                "hex_speed_milli" => &mut next.hex_speed_milli,
+                "waypoint_reach_milli" => &mut next.waypoint_reach_milli,
                 _ => {
                     named.insert(key.to_string(), v);
                     continue;
@@ -161,18 +134,7 @@ impl AttrRules {
         if !REQUIRED_KEYS.iter().all(|k| seen.contains(k)) {
             return None;
         }
-        let valid = [
-            next.attr_a_base,
-            next.attr_b_base,
-            next.attr_c_base,
-            next.attr_a_gain,
-            next.attr_b_gain,
-            next.attr_c_gain,
-            next.aggro_hold_s,
-        ]
-        .iter()
-        .all(|&v| v >= 0);
-        if !valid {
+        if next.aggro_hold_s < 0 || next.waypoint_reach_milli < 0 {
             return None;
         }
         *self = next;
@@ -189,14 +151,11 @@ pub(crate) struct AttributedState {
     pub(crate) is_attributed: Vec<u8>,
     pub(crate) home_x: Vec<i32>,
     pub(crate) home_y: Vec<i32>,
-    /// 0 alive, 1 dead awaiting the respawn the mod set (`u32::MAX` until it sets one), 2 reincarnating.
+    /// 0 alive, 1 dead awaiting the respawn the mod set (`u32::MAX` until it sets one).
     pub(crate) waiting: Vec<u8>,
     pub(crate) respawn_at: Vec<u32>,
     pub(crate) gold: Vec<i32>,
     pub(crate) mana_max: Vec<i32>,
-    /// Where a reincarnating unit (waiting 2) comes back, milli-units Q16.16 like a unit position.
-    pub(crate) spot_x: Vec<i32>,
-    pub(crate) spot_y: Vec<i32>,
     /// Unit data by catalog unit index; `None` for a type with no `unit` line (global attribute rules apply).
     pub(crate) defs: Vec<Option<AttrDef>>,
 }
@@ -213,8 +172,6 @@ impl AttributedState {
             respawn_at: vec![0; cap],
             gold: vec![0; cap],
             mana_max: vec![0; cap],
-            spot_x: vec![0; cap],
-            spot_y: vec![0; cap],
             defs: Vec::new(),
         }
     }
@@ -256,9 +213,17 @@ impl Sim {
         self.attributed.respawn_at[j] = u32::MAX;
     }
 
-    /// A named value of the rules text (every `key=value` line the engine does not own), or None.
+    /// A value of the rules text, or None. The engine's own keys read from the typed rules (booleans as 0 or 1);
+    /// every other `key=value` line is a named value.
     pub fn rule(&self, key: &str) -> Option<i32> {
-        self.attributed.named.get(key).copied()
+        let r = &self.attributed.rules;
+        match key {
+            "aggro_priority" => Some(i32::from(r.aggro_priority)),
+            "channel_damage_interrupt" => Some(i32::from(r.channel_damage_interrupt)),
+            "aggro_hold_s" => Some(r.aggro_hold_s),
+            "waypoint_reach_milli" => Some(r.waypoint_reach_milli),
+            _ => self.attributed.named.get(key).copied(),
+        }
     }
 
     /// The xp a kill of unit `j` is worth, its assist radius in milli-units, and its denial xp percent,
@@ -285,8 +250,8 @@ impl Sim {
         self.counters.insert((i, name.to_string()), value);
     }
 
-    /// A field of the `unit` line data of unit `i` by name: primary, str, agi, int, mana, mana_regen,
-    /// hp_regen, armor, mr, bat or damage. None for a unit with no unit line or an unknown name.
+    /// A field of the `unit` line data of unit `i` by name: primary, str, agi, int, str_gain, agi_gain, int_gain,
+    /// mana, mana_regen, hp_regen, armor, mr, bat or damage. None for a unit with no unit line or an unknown name.
     pub fn attr_field(&self, i: usize, name: &str) -> Option<i32> {
         let d = self.attr_def(i)?;
         Some(match name {
@@ -294,6 +259,9 @@ impl Sim {
             "str" => d.base[0],
             "agi" => d.base[1],
             "int" => d.base[2],
+            "str_gain" => d.gain[0],
+            "agi_gain" => d.gain[1],
+            "int_gain" => d.gain[2],
             "mana" => d.mana,
             "mana_regen" => d.mana_regen,
             "hp_regen" => d.hp_regen,
@@ -321,43 +289,13 @@ impl Sim {
         self.attributed.defs.get(k as usize).copied().flatten()
     }
 
-    /// Strength, agility and intelligence of unit `i` in hundredths: the level-0 base plus the growth
-    /// per level (level 1 is zero levels gained). All zero for a non-unit.
-    pub fn unit_attributes_x100(&self, i: usize) -> [i32; 3] {
-        let own = self.own_attributes_x100(i);
-        if !self.is_attributed(i) {
-            return own;
-        }
-        let items = self.item_attributes(i);
-        [0, 1, 2].map(|k| own[k] + (items[k] + self.stat(i, crate::spell::S_SLOT_22 + k)) * 100)
-    }
-
-    /// Attributes of unit `i` before item bonuses, in hundredths.
-    fn own_attributes_x100(&self, i: usize) -> [i32; 3] {
-        if !self.is_attributed(i) {
-            return [0; 3];
-        }
-        let lvl = self.level(i) as i64;
-        if let Some(d) = self.attr_def(i) {
-            return [0, 1, 2].map(|k| (d.base[k] as i64 + d.gain[k] as i64 * lvl) as i32);
-        }
-        let r = self.attributed.rules;
-        let whole = [r.attr_a_base + r.attr_a_gain * lvl as i32, r.attr_b_base + r.attr_b_gain * lvl as i32, r.attr_c_base + r.attr_c_gain * lvl as i32];
-        whole.map(|v| v * 100)
-    }
-
-    /// Whole-point strength, agility and intelligence of unit `i`. All zero for a non-unit.
-    pub fn unit_attributes(&self, i: usize) -> [i32; 3] {
-        self.unit_attributes_x100(i).map(|v| v / 100)
-    }
-
-    /// Max mana of unit `i`: its base mana plus 12 per intelligence point. Zero for a non-unit.
-    /// The base mana of unit `i` plus its S_SLOT_15 stat (the mod's intelligence bonus). Zero for a non-unit.
+    /// Max mana of unit `i`: the base mana of its unit line plus its S_SLOT_15 stat (the mod's mana bonus, set
+    /// by the pack's heroes.lua). Zero for a non-unit.
     pub fn unit_max_mana(&self, i: usize) -> i32 {
         if !self.is_attributed(i) {
             return 0;
         }
-        let base = self.attr_def(i).map_or(MANA_BASE_DEFAULT, |d| d.mana);
+        let base = self.attr_def(i).map_or(0, |d| d.mana);
         base + self.stat(i, crate::spell::S_SLOT_15)
     }
 
@@ -405,8 +343,8 @@ impl Sim {
         self.hp[i] = self.hp_max[i];
     }
 
-    /// Recomputes the attribute-driven stats of live unit `i` from its catalog type and attributes:
-    /// max health, mana, damage, armour and attack period. Health and mana move by the change in max,
+    /// Recomputes the stats of live unit `i` from its catalog type, its unit line and the stat bonuses the mod set
+    /// (heroes.lua derives those bonuses from attributes): max health, mana, damage, armour and attack period. Health and mana move by the change in max,
     /// so a level-up adds the gain and a death-free unit keeps its wounds. A non-unit or dead unit is
     /// left alone; revive and spawn apply it once the unit is alive.
     pub(crate) fn apply_attr_stats(&mut self, i: usize) {
@@ -446,7 +384,7 @@ impl Sim {
         from_stat as i32
     }
 
-    /// Recomputes every living unit's tracked max mana from its level and items without touching its
+    /// Recomputes every living unit's tracked max mana from its unit line and mana stat without touching its
     /// mana. A loaded state keeps the energy it saved but has no tracker.
     pub(crate) fn resync_unit_mana(&mut self) {
         for i in 0..self.n {
@@ -518,20 +456,8 @@ impl Sim {
         if self.is_attributed(i) { self.attributed.gold[i] } else { 0 }
     }
 
-    /// Ticks until dead unit `i` respawns; 0 when it is alive; -1 for a non-unit.
-    pub fn respawn_left(&self, i: usize) -> i32 {
-        if !self.is_attributed(i) {
-            return -1;
-        }
-        if self.attributed.waiting[i] == 0 {
-            return 0;
-        }
-        self.attributed.respawn_at[i].saturating_sub(self.ticks) as i32
-    }
-
     /// Sets the respawn of dead unit `i` (the `set_respawn` primitive): `Some(s)` revives it `s` seconds
-    /// from now at its home, `None` leaves it dead. Refused for a live unit, a non-unit, or a unit that is
-    /// reincarnating (its item timer owns it).
+    /// from now at its home, `None` leaves it dead. Refused for a live unit or a non-unit.
     pub(crate) fn set_attributed_respawn(&mut self, i: usize, delay_s: Option<u32>) -> Result<(), &'static str> {
         if !self.is_attributed(i) || self.alive(i) || self.attributed.waiting[i] != 1 {
             return Err("not a dead attributed");
@@ -543,17 +469,12 @@ impl Sim {
         Ok(())
     }
 
-    /// Per tick: the respawn timer of each dead unit once it has run out (a revive at its home, or at its
-    /// reincarnation spot), and the mana regeneration of each living unit. A revive blocked by a full cell
-    /// retries next tick.
+    /// Per tick: the respawn timer of each dead unit once it has run out (a revive at its home), and the mana
+    /// regeneration of each living unit. A revive blocked by a full cell retries next tick.
     pub(crate) fn tick_respawns(&mut self) {
         for i in 0..self.n {
             if self.attributed.waiting[i] != 0 && self.ticks >= self.attributed.respawn_at[i] {
-                let (x, y) = if self.attributed.waiting[i] == 2 {
-                    (self.attributed.spot_x[i], self.attributed.spot_y[i])
-                } else {
-                    (self.attributed.home_x[i], self.attributed.home_y[i])
-                };
+                let (x, y) = (self.attributed.home_x[i], self.attributed.home_y[i]);
                 self.revive_at_point(i, x, y);
             }
             if self.is_attributed(i) && self.alive(i) {
@@ -586,5 +507,42 @@ impl Sim {
         self.hp[i] = self.hp_max[i];
         self.attributed.waiting[i] = 0;
         true
+    }
+
+    /// Re-derives the attribute stats of unit `i` (max health, mana, damage, armour, attack period) from its
+    /// catalog type, unit line and stat bonuses, as a spawn or the mod's level-up does. An unknown index changes nothing.
+    pub fn refresh_attr_stats(&mut self, i: usize) {
+        if i < self.n {
+            self.apply_attr_stats(i);
+        }
+    }
+
+    /// Sets the base attack period of live unit `i` to `ticks`, before the attack-speed bonus. False for a dead
+    /// or unknown unit or a period that is not positive, which changes nothing.
+    pub fn set_base_period(&mut self, i: usize, ticks: i32) -> bool {
+        if !self.alive(i) || ticks <= 0 {
+            return false;
+        }
+        self.period[i] = ticks;
+        self.touch(i);
+        true
+    }
+
+    /// Sets ability slot `slot` of live unit `unit` to `rank`, clamped to the ability's max rank, with no level
+    /// gate. Returns the rank held, or None for a dead unit, an empty slot or an ability with no rank tree.
+    pub fn set_skill_rank(&mut self, unit: usize, slot: usize, rank: u8) -> Option<u8> {
+        let tree = self.rank_tree(unit, slot)?;
+        let rank = (rank as usize).min(tree.max_rank as usize) as u8;
+        self.abil_rank[unit * ABILITY_SLOTS + slot] = rank;
+        self.refresh_passives(unit);
+        Some(rank)
+    }
+
+    /// The unit that applied the taunt on unit `i`, while the taunt is active and that unit is alive; None otherwise.
+    pub fn taunter_of(&self, i: usize) -> Option<usize> {
+        if i >= self.n || self.status_left(i, crate::status::TAUNT) <= 0 {
+            return None;
+        }
+        usize::try_from(self.spell.taunter[i]).ok().filter(|&t| self.alive(t))
     }
 }

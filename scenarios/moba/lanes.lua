@@ -11,6 +11,9 @@ local config = require("config")
 local units = require("units")
 
 local MILLI_TILE = math.floor(config.FIX / 1000)
+-- Ticks between acquire scans of one unit (the sim's ACQUIRE_PERIOD) and the hold order code (the sim's ORDER_HOLD).
+local ACQUIRE_PERIOD = 4
+local ORDER_HOLD = 4
 local CREEP_PERIOD = 480
 local SIEGE_PERIOD = 4800
 local SIEGE_STARTS = { 4800, 28800, 57600 }
@@ -104,8 +107,78 @@ end
 for _, unit in ipairs(game.units()) do register_unit(unit) end
 for _, s in ipairs(lane_spawners) do start_lane(s) end
 
+
+-- Wave creep acquire. A unit with an acquire range (data: unit_extra acquire=) and no hold order scans for a hostile,
+-- targetable, non-structure enemy inside that range on its own phase of ACQUIRE_PERIOD ticks, and chases it. A
+-- chasing unit steers to its target while the target lives, stays hostile and stays inside the range; then it
+-- returns to the order it had before the chase. The chase is sim state (game.chase_set, game.chase_get).
+
+local ACQUIRE_PERIOD = 4
+
+
+local function within(a, b, range)
+  local ax, ay = unit_position(a)
+  local bx, by = unit_position(b)
+  local dx, dy = ax - bx, ay - by
+  return dx * dx + dy * dy <= range * range
+end
+
+
+-- Nearest hostile, targetable enemy that is not a structure, inside `range` (milli-units) of unit `u`; lowest id on a
+-- tie; nil when none.
+local function nearest_creep_target(u, range)
+  local ux, uy = unit_position(u)
+  local best, best_d
+  for _, j in ipairs(units.units_near(ux, uy, config.milli(range))) do
+    if j ~= u and not units.is_structure(j) and units.hostile(unit_player(u), unit_player(j)) and game.can_target(u, j) then
+      local jx, jy = unit_position(j)
+      local dx, dy = jx - ux, jy - uy
+      local d = dx * dx + dy * dy
+      if best == nil or d < best_d then best, best_d = j, d end
+    end
+  end
+  return best
+end
+
+
+local function wave_creep_step(u, range, now)
+  local kind, dx, dy = game.order_of(u)
+  local target, ret_kind, ret_x, ret_y = game.chase_get(u)
+  if target >= 0 then
+    if kind == ORDER_HOLD then
+      game.chase_set(u, -1, 0, 0, 0)
+      return
+    end
+    if not unit_alive(target) or not units.hostile(unit_player(u), unit_player(target))
+        or not within(u, target, config.milli(range)) then
+      game.chase_set(u, -1, 0, 0, 0)
+      game.issue_order(u, ret_kind, ret_x, ret_y)
+      return
+    end
+    local tx, ty = unit_position(target)
+    if dx ~= tx or dy ~= ty then game.attack_move(u, tx, ty) end
+    return
+  end
+  if kind == ORDER_HOLD or (now + u) % ACQUIRE_PERIOD ~= 0 then return end
+  local t = nearest_creep_target(u, range)
+  if t == nil then return end
+  game.chase_set(u, t, kind, dx, dy)
+  local tx, ty = unit_position(t)
+  game.attack_move(u, tx, ty)
+end
+
+
+local function wave_creep_acquire(now)
+  for u = 0, get_unit_count() - 1 do
+    local range = game.acquire_of(u)
+    if range > 0 and unit_alive(u) then wave_creep_step(u, range, now) end
+  end
+end
+
+
 return {
   on_tick = function(state)
+    wave_creep_acquire(game.ticks())
     state.waves_total = spawned.total or 0
     state.waves_base = spawned.base or 0
     state.waves_super = spawned.super or 0

@@ -8,6 +8,7 @@
 
 use crate::arrays::Sim;
 use crate::fixed;
+use crate::spell::{STATUS_ENDS_CHANNEL, STATUS_SETS_SPEED};
 
 
 pub(crate) const EFFECT_STUN: u16 = 11;
@@ -17,13 +18,8 @@ pub(crate) const STATUS_KINDS: usize = 14;
 /// Q16 speed multiplier of an unslowed unit.
 pub(crate) const SLOW_NONE: i32 = fixed::ONE;
 
-/// reference movement speed limits (550 maximum, 100 minimum; patch 7.38 notes) in Q16.16 per tick.
-/// Q16.16 per reference speed point. The speed limits and hex speed are `AttrRules` fields (the rules text).
-pub(crate) const SPEED_POINT_Q16: i32 = 64;
-
 pub(crate) const STUN: usize = 0;
 pub(crate) const SLOW: usize = 1;
-pub(crate) const SILENCE: usize = 2;
 pub(crate) const ROOT: usize = 3;
 pub(crate) const INVISIBLE: usize = 4;
 pub(crate) const TAUNT: usize = 5;
@@ -31,8 +27,6 @@ pub(crate) const HEX: usize = 6;
 pub(crate) const DISARM: usize = 7;
 pub(crate) const SPELL_IMMUNE: usize = 8;
 pub(crate) const INVULNERABLE: usize = 9;
-pub(crate) const BREAK: usize = 10;
-pub(crate) const MUTE: usize = 11;
 pub(crate) const PHYSICAL_IMMUNE: usize = 12;
 pub(crate) const DEATH_PREVENTION: usize = 13;
 
@@ -60,10 +54,6 @@ impl Sim {
         self.status_left(i, STUN) > 0
     }
 
-    pub(crate) fn silenced(&self, i: usize) -> bool {
-        self.status_left(i, SILENCE) > 0 || self.status_left(i, HEX) > 0
-    }
-
     /// Clears one status counter of unit `i`.
     pub fn clear_status(&mut self, i: usize, kind: usize) {
         if i < self.n && kind < STATUS_KINDS {
@@ -83,14 +73,16 @@ impl Sim {
         self.status_left(i, INVISIBLE) > 0
     }
 
-    /// Unit `i`'s speed after its slow, in the same Q16.16 units as `speed`, held to reference's limits:
-    /// at most 550 (or the unit type's own base when that is higher) and at least 100 for a unit
-    /// that can move (or its own speed when that is lower). One reference speed point is 64 in Q16.16
-    /// (1 reference unit = 15.625 milli, 16 ticks per second).
+    /// Unit `i`'s speed after its slow, in the same Q16.16 units as `speed`, held to the speed bounds the pack
+    /// set for it (`set_speed_bounds`; no bounds until it does). A unit under a status that sets speed moves at
+    /// the speed that effect gave it (the effect's own parameter).
     pub(crate) fn effective_speed(&self, i: usize) -> i32 {
-        if self.status_left(i, HEX) > 0 {
+        let sets_speed = (0..STATUS_KINDS).any(|k| self.status_left(i, k) > 0 && self.status_flag(k) & STATUS_SETS_SPEED != 0);
+        if sets_speed {
             let own = self.spell.hex_speed.get(i).copied().unwrap_or(0);
-            return fixed::from_milli(if own > 0 { own } else { self.attributed.rules.hex_speed_milli });
+            if own > 0 {
+                return fixed::from_milli(own);
+            }
         }
         let mul = self.slow_multiplier(i);
         let boosted = (self.speed[i] as i64 + self.stat(i, crate::spell::S_SPEED) as i64 * fixed::ONE as i64 / 1000)
@@ -100,14 +92,33 @@ impl Sim {
         if self.speed[i] <= 0 {
             return speed;
         }
-        let type_base = match self.type_of[i] {
-            k if k >= 0 => fixed::from_milli(self.cat.units[k as usize].speed),
-            _ => 0,
-        };
-        let rules = self.attributed.rules;
-        let cap = (rules.move_speed_max * SPEED_POINT_Q16).max(type_base);
-        let floor = (rules.move_speed_min * SPEED_POINT_Q16).min(self.speed[i]);
-        speed.clamp(floor, cap)
+        speed.max(self.speed_floor[i]).min(self.speed_cap[i])
+    }
+
+    /// Sets the speed bounds (Q16.16) of unit `i`: its effective speed is held between `floor` and `cap`. A dead or unknown unit changes nothing.
+    pub fn set_speed_bounds(&mut self, i: usize, floor: i32, cap: i32) {
+        if i < self.n {
+            self.speed_floor[i] = floor;
+            self.speed_cap[i] = cap;
+        }
+    }
+
+    /// The speed bounds (floor, cap) of unit `i` in Q16.16; no bounds when unknown.
+    pub fn speed_bounds_of(&self, i: usize) -> (i32, i32) {
+        (self.speed_floor.get(i).copied().unwrap_or(0), self.speed_cap.get(i).copied().unwrap_or(i32::MAX))
+    }
+
+    /// The base speed of unit `i` in Q16.16 (before slows, boosts and bounds); 0 when unknown.
+    pub fn base_speed_of(&self, i: usize) -> i32 {
+        self.speed.get(i).copied().unwrap_or(0)
+    }
+
+    /// The speed of unit `i`'s type in milli-units, from the unit data; 0 when unknown.
+    pub fn type_speed_milli(&self, i: usize) -> i32 {
+        if i >= self.n {
+            return 0;
+        }
+        usize::try_from(self.type_of[i]).ok().and_then(|k| self.cat.units.get(k)).map_or(0, |u| u.speed)
     }
 
     /// Gives unit `i` status `kind` for `ticks` ticks, keeping the longer of the held and new
@@ -124,7 +135,7 @@ impl Sim {
             self.slow_mul[i] = if held { self.slow_mul[i].min(mul) } else { mul };
         }
         self.status_left[at] = self.status_left[at].max(ticks);
-        if kind == STUN {
+        if self.status_flag(kind) & STATUS_ENDS_CHANNEL != 0 {
             self.interrupt_channel(i);
         }
         self.touch(i);

@@ -4,6 +4,7 @@
 // The wasm package and the map images are not rebuilt here: they change only when rust/ changes (rebuild with
 // wasm-pack and mapexport, then copy them into the target).
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,6 +29,20 @@ function copyOne(rel) {
   fs.copyFileSync(src, dst);
 }
 
+// The map image is built from the pack's data files, so a change to one rebuilds the image in the target with mapexport. The
+// page's watcher sees the new image and swaps it into a running match (a data swap).
+function rebuildImage() {
+  const exe = path.join(root, "rust", "target", "debug", "mapexport");
+  if (!fs.existsSync(exe)) {
+    console.error(`hot-sync: mapexport is not built (${exe}); the map image was not rebuilt`);
+    return;
+  }
+  const scenario = path.join(target, "scenarios", "moba");
+  const r = spawnSync(exe, [scenario, path.join(scenario, "moba.osdt")], { encoding: "utf8" });
+  if (r.status !== 0) console.error(`hot-sync: mapexport FAIL: ${(r.stderr || "").trim()}`);
+  else console.log(`hot-sync: map image rebuilt (${(r.stdout || "").trim()})`);
+}
+
 function flush() {
   const t0 = Date.now();
   const files = [...pending.keys()];
@@ -39,6 +54,7 @@ function flush() {
       console.error(`hot-sync FAIL ${rel}: ${err.message}`);
     }
   }
+  if (files.some((rel) => rel.startsWith("scenarios/moba/") && /\.(osd|tsv|json|txt)$/.test(rel))) rebuildImage();
   console.log(`hot-sync ${files.length} file(s) in ${Date.now() - t0} ms: ${files.slice(0, 3).join(", ")}${files.length > 3 ? " ..." : ""}`);
 }
 

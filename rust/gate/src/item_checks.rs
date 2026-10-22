@@ -1,5 +1,5 @@
 //! Gate checks for reference items on the moba scenario: costs and recipes against items.txt
-//! @282fad29f0f74504fad465c52d197fb61f4d612b, the recipe purchase rule, shops, stacks, slots,
+//! @282fad29f0f74504fad465c52d197fb61f4d612b, stacks, slots,
 //! stat bonuses and consumables. The store rule is the mod's (scenarios/moba/store.lua): a trade is
 //! asked of the mod through the host, and its verdict is applied to the host's sim here.
 
@@ -88,11 +88,6 @@ fn slot_of(m: &Moba, h: usize, index: usize) -> Option<usize> {
     (0..s.inventory_slots()).find(|&k| s.inventory_slot(h, k).0 == sim_kind(index))
 }
 
-fn held_slots(m: &Moba, h: usize) -> usize {
-    let s = m.sim();
-    (0..s.inventory_slots()).filter(|&k| s.inventory_slot(h, k).0 != 0).count()
-}
-
 /// A hero of player 0 beside a home shop with `gold` to spend.
 fn shopper(m: &Moba, gold: i32) -> Result<usize, String> {
     let (k, x, y) = {
@@ -148,66 +143,6 @@ pub fn item_catalog(_image: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-/// A recipe consumes the components held and charges the cost less theirs; its bonuses apply; selling
-/// returns half the cost.
-pub fn item_recipe_buy(_image: &[u8]) -> Result<(), String> {
-    let mut m = scenario()?;
-    let h = shopper(&m, 5000)?;
-    let (hammer, axe, bkb) = (item(&m.sim(), role("item.14")?)?, item(&m.sim(), role("item.15")?)?, item(&m.sim(), role("item.3")?)?);
-    let damage = m.sim().damage_of(h);
-    if !m.buy(h, hammer) || !m.buy(h, axe) {
-        return Err(format!("component purchases refused: {}", m.refusal()));
-    }
-    want("gold after components", m.sim().resource_a(0) as i64, 5000 - 1600 - 1000)?;
-    if !m.buy(h, bkb) {
-        return Err(format!("recipe purchase refused: {}", m.refusal()));
-    }
-    want("gold after recipe", m.sim().resource_a(0) as i64, 5000 - 4050)?;
-    want("held items", held_slots(&m, h) as i64, 1)?;
-    want("damage bonus", m.sim().item_bonus(h, "damage") as i64, 24)?;
-    want("strength damage", ((m.sim().damage_of(h) - damage) / fixed::ONE) as i64, 10)?;
-    let gold = m.sim().resource_a(0);
-    let slot = (0..m.sim().inventory_slots()).find(|&k| m.sim().inventory_slot(h, k).0 != 0).ok_or("no item held")?;
-    if !m.sell(h, slot) {
-        return Err("sell refused beside the shop".into());
-    }
-    want("sell refund", (m.sim().resource_a(0) - gold) as i64, 4050 / 2)?;
-    want("damage after selling", m.sim().damage_of(h) as i64, damage as i64)?;
-    println!("item recipe buy ok");
-    Ok(())
-}
-
-/// A missing component is paid for in gold; a secret-shop item is refused at a home shop; a purchase
-/// beyond the gold held is refused.
-pub fn item_shop_rules(_image: &[u8]) -> Result<(), String> {
-    let mut m = scenario()?;
-    let h = shopper(&m, 3000)?;
-    let (hammer, bkb, plate) = (item(&m.sim(), role("item.14")?)?, item(&m.sim(), role("item.3")?)?, item(&m.sim(), role("item.16")?)?);
-    if m.buy(h, plate) {
-        return Err("platemail sold at a home shop".into());
-    }
-    if m.buy(h, bkb) {
-        return Err("a 4050 gold item bought with 3000 gold".into());
-    }
-    if !m.buy(h, hammer) {
-        return Err("mithril hammer refused".into());
-    }
-    m.sim().add_resources(0, 5000, 0);
-    let gold = m.sim().resource_a(0);
-    if !m.buy(h, bkb) {
-        return Err("recipe with one held component refused".into());
-    }
-    want("price with one component held", (gold - m.sim().resource_a(0)) as i64, 4050 - 1600)?;
-    let far = m.sim().spawn_attributed(0, kind(&m.sim(), role("hero.a")?)?, fixed::from_int(1), fixed::from_int(1));
-    if let Some(far) = far {
-        if m.buy(far, hammer) {
-            return Err("an item bought far from every shop".into());
-        }
-    }
-    println!("item shop rules ok");
-    Ok(())
-}
-
 /// A stackable item joins the stack of its kind and a consumable loses a charge per use.
 pub fn item_stack_consume(_image: &[u8]) -> Result<(), String> {
     let mut m = scenario()?;
@@ -247,9 +182,6 @@ pub fn item_slots(_image: &[u8]) -> Result<(), String> {
     let h = shopper(&m, 1000)?;
     let cup = item(&m.sim(), role("item.12")?)?;
     let blink = item(&m.sim(), role("item.5")?)?;
-    if m.buy(h, cup) {
-        return Err("a neutral item was sold".into());
-    }
     if !m.sim().inventory_add(h, sim_kind(cup), 1) {
         return Err("a neutral item was refused by inventory_add".into());
     }
@@ -291,87 +223,6 @@ pub fn item_stat_stacking(_image: &[u8]) -> Result<(), String> {
     want("crit chance of two crits", m.sim().item_bonus(h, "crit_chance") as i64, 30)?;
     want("damage of two crits", m.sim().item_bonus(h, "damage") as i64, 64)?;
     want("armor of two chainmails", m.sim().item_bonus(h, "armor") as i64, 800)?;
-    Ok(())
-}
-
-/// Observer wards come from a shared team stock: two at the start, one more every 135 seconds up to four.
-/// The stock is the store rule's (store.lua): a purchase is refused while the stock is out, and a unit
-/// arrives once the restock time has passed.
-pub fn item_stock(_image: &[u8]) -> Result<(), String> {
-    let mut m = scenario()?;
-    let h = shopper(&m, 0)?;
-    let ward = item(&m.sim(), role("unit.ward_a")?)?;
-    m.sim().add_resources(0, 1000, 0);
-    if !m.buy(h, ward) || !m.buy(h, ward) {
-        return Err(format!("stocked wards refused: {}", m.refusal()));
-    }
-    if m.buy(h, ward) {
-        return Err("a ward was sold out of stock".into());
-    }
-    if m.sim().stats.last_refusal != Refusal::NoItem {
-        return Err(format!("a sold-out ward was refused as {}, not no-item", m.refusal()));
-    }
-    for _ in 0..135 * sim::TICKS_PER_SECOND + sim::TICKS_PER_SECOND {
-        m.tick()?;
-    }
-    if !m.buy(h, ward) {
-        return Err(format!("no ward after the restock time: {}", m.refusal()));
-    }
-    Ok(())
-}
-
-fn kill(m: &Moba, h: usize) {
-    m.sim().hurt(h, i32::MAX / 2);
-}
-
-/// A hero dying with the Aegis returns in 5 seconds where it fell, without a death booked and without the
-/// Aegis; the next death sends it home after the respawn timer, and its items and their bonuses come back.
-pub fn item_aegis_and_death(_image: &[u8]) -> Result<(), String> {
-    let mut m = scenario()?;
-    let h = shopper(&m, 5000)?;
-    let (sword, aegis) = (item(&m.sim(), role("item.6")?)?, item(&m.sim(), role("item.1")?)?);
-    if !m.buy(h, sword) || !m.sim().inventory_add(h, sim_kind(aegis), 1) {
-        return Err("could not equip the hero".into());
-    }
-    let damage = m.sim().damage_of(h);
-    let spot = m.sim().position_fixed(h);
-    kill(&m, h);
-    if m.sim().alive(h) {
-        return Err("hero survived lethal damage".into());
-    }
-    for _ in 0..4 * sim::TICKS_PER_SECOND {
-        m.tick()?;
-    }
-    if m.sim().alive(h) {
-        return Err("hero reincarnated before 5 seconds".into());
-    }
-    for _ in 0..2 * sim::TICKS_PER_SECOND {
-        m.tick()?;
-    }
-    if !m.sim().alive(h) {
-        return Err("hero did not reincarnate".into());
-    }
-    want("deaths booked", m.sim().deaths_of(h) as i64, 0)?;
-    want("aegis left", m.sim().inventory_count(h, sim_kind(aegis)) as i64, 0)?;
-    let now = m.sim().position_fixed(h);
-    if (now.0 - spot.0).abs() > fixed::ONE || (now.1 - spot.1).abs() > fixed::ONE {
-        return Err(format!("reincarnated at {now:?}, died at {spot:?}"));
-    }
-    want("damage after reincarnating", m.sim().damage_of(h) as i64, damage as i64)?;
-    let hp_max = m.sim().hp_max(h);
-    kill(&m, h);
-    let mut waited = 0;
-    while !m.sim().alive(h) && waited < 70 * sim::TICKS_PER_SECOND {
-        m.tick()?;
-        waited += 1;
-    }
-    if !m.sim().alive(h) {
-        return Err("hero did not respawn after the timer".into());
-    }
-    want("deaths booked after the second death", m.sim().deaths_of(h) as i64, 1)?;
-    want("health after respawning", m.sim().hp_max(h) as i64, hp_max as i64)?;
-    want("sword kept through death", m.sim().inventory_count(h, sim_kind(sword)) as i64, 1)?;
-    want("damage after respawning", m.sim().damage_of(h) as i64, damage as i64)?;
     Ok(())
 }
 

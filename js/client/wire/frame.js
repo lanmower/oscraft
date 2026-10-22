@@ -2,7 +2,7 @@ export const WIRE_VERSION = 1;
 
 export const FRAME = Object.freeze({ ORDER: 1, STATE: 2, HELLO: 3, ERROR: 4, DELTA: 5, CAST: 6, ATTACK: 7, ROSTER: 8, JOIN: 9, START: 10, HOLD: 11, USE_ITEM: 12, ATTACK_MOVE: 13, SWAP: 14, CLASS_OVERRIDE: 15, HOLD_OVERRIDE: 16, SWAP_NOT_READY: 17, SWAP_READY: 18, SWAP_CANCEL: 19, PACK_FILE: 20, PACK_WANT: 21, ACTION: 22, UI: 23 });
 
-// Matches the server's DEFAULT_MAX_UNITS (rust/crates/server/src/lib.rs): a STATE or DELTA may carry this many units.
+// The most units a STATE or DELTA may carry (js/wire/frame.js MAX_UNITS): decodeFrame refuses a larger count.
 export const MAX_UNITS = 4096;
 export const MAX_SWAP_NAME_BYTES = 64;
 export const MAX_ROOM_BYTES = 64;
@@ -10,7 +10,8 @@ export const MAX_MESSAGE_BYTES = 256;
 // A player's input for the pack's on_action (its name and JSON body), and a UI event the host's pack emitted (JSON body).
 export const MAX_ACTION_NAME_BYTES = 64;
 export const MAX_ACTION_BYTES = 4096;
-export const MAX_UI_BYTES = 8192;
+// A UI body is the pack's lobby or panel tree as JSON: the hero picker alone is about 13 KB. The length field is a u16.
+export const MAX_UI_BYTES = 65535;
 export const MAX_PLAYERS = 10;
 export const TEAM_SIZE = 5;
 export const MAX_OWNER_BYTES = 64;

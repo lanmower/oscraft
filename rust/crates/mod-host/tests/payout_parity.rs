@@ -40,6 +40,8 @@ end
 #[test]
 fn on_died_receives_five_arguments_with_bounty() {
     let mut host = ModHost::new(&image()).expect("host");
+    // The attributed killer is unit 3, a player 1 hero; the map places no hero, so the test enrols it as one.
+    host.sim_mut().enroll_attributed(3, 1, 0);
     host.load_source("probe", PROBE).expect("probe loads");
     let fed = host.feed_death(&payout(7, 2, Some(3), Some(1), 55)).expect("fed");
     let lines: Vec<String> = fed.iter().map(show).collect();
@@ -75,8 +77,10 @@ fn moba_match_pays_the_same_for_fixed_kills() {
         // kill_gold.lua pays gold only; the attributed xp share is hero.lua on_died, which this test does not load.
         &["unit_gold unit=20 amount=32", "gold player=0 amount=8"],
         &[],
-        &["gold player=0 amount=30"],
-        &["gold player=0 amount=12"],
+        // Dota pays gold for kills by heroes only: an attackerless death earns nothing.
+        &[],
+        // A self kill earns nothing (Dota: only a hero's kill pays).
+        &[],
         &[],
     ];
     for ((name, p), want) in kills.iter().zip(want) {

@@ -1,36 +1,48 @@
 #!/usr/bin/env bash
-# Unpacks an archive into an empty directory, checks every member against MANIFEST.sha256,
-# then runs oscraftd from that directory and drives oscraft-lsp over stdio.
+# Unpacks an archive into an empty directory and checks it without starting a server: every member against
+# MANIFEST.sha256, the client's imports and page references resolve inside the archive, the moba and duel-routes map
+# images and the wasm package are present and non-empty, and bin/oscraft-lsp starts, answers initialize and exits.
 # Usage: scripts/package/install-check.sh <archive.tar.gz> <empty-dir>
 set -euo pipefail
 archive=$(realpath "${1:?usage: install-check.sh <archive> <empty-dir>}")
 dest=${2:?usage: install-check.sh <archive> <empty-dir>}
-addr=${OSCRAFT_CHECK_ADDR:-127.0.0.1:18477}
 fail() { echo "FAIL: $*" >&2; exit 1; }
+exe=""
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) exe=.exe ;; esac
 
 root_src=$(cd "$(dirname "$0")/../.." && pwd)/js/client
 mkdir -p "$dest"
+dest=$(cd "$dest" && pwd) # the POSIX form, which GNU tar on Windows handles; cd also fails here if the directory is absent
 [ -z "$(ls -A "$dest")" ] || fail "destination $dest is not empty"
-tar -C "$dest" -xzf "$archive"
 cd "$dest"
+# The archive comes in on stdin: GNU tar on Windows reads a "D:" file name as a remote host.
+tar -xzf - < "$archive"
 [ -f MANIFEST.sha256 ] || fail "archive has no MANIFEST.sha256"
 
 members=0
 checked=0
 while read -r want path; do
   members=$((members + 1))
+  path=${path#\*} # sha256sum on Windows marks binary-mode names with a leading *
   [ -f "$path" ] || fail "manifest member missing from archive: $path"
   if command -v sha256sum > /dev/null; then got=$(sha256sum "$path" | cut -d' ' -f1)
   else got=$(shasum -a 256 "$path" | cut -d' ' -f1); fi
   [ "$got" = "$want" ] || fail "sha256 mismatch for $path: manifest=$want actual=$got"
   checked=$((checked + 1))
 done < MANIFEST.sha256
-extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l)
+extra=$(find . -type f ! -name MANIFEST.sha256 | wc -l | tr -d ' ')
 [ "$extra" -eq "$members" ] || fail "archive holds $extra files but manifest lists $members"
+
+[ -s "bin/oscraft-lsp$exe" ] || fail "bin/oscraft-lsp$exe is missing or empty"
 [ -s js/client/play.js ] || fail "js/client/play.js is missing or empty"
-for f in $(cd "$root_src" 2>/dev/null && ls *.js *.html 2>/dev/null) editor.html editor.js play.html play.js rooms.js ice.js delta.js wire/frame.js glb.js map.bin pkg/web.js pkg/web_bg.wasm; do
+for f in $(cd "$root_src" 2>/dev/null && ls *.js *.html 2>/dev/null) editor.html editor.js play.html play.js rooms.js ice.js delta.js wire/frame.js glb.js pkg/web.js pkg/web_bg.wasm; do
   [ -s "js/client/$f" ] || fail "js/client/$f is missing or empty"
 done
+# wasm-pack writes exactly these five files into the package (package.json included); nothing else may sit there.
+pkg_files=$(ls -A js/client/pkg | LC_ALL=C sort | tr '\n' ' ')
+[ "$pkg_files" = "package.json web.d.ts web.js web_bg.wasm web_bg.wasm.d.ts " ] || fail "js/client/pkg holds '$pkg_files', not the wasm-pack set"
+[ -s scenarios/moba/moba.osdt ] || fail "scenarios/moba/moba.osdt (the moba map image) is missing or empty"
+[ -s scenarios/duel-routes/duel-routes.osdt ] || fail "scenarios/duel-routes/duel-routes.osdt is missing or empty"
 [ -n "$(ls mods/*.lua 2>/dev/null)" ] || fail "mods/ is missing or empty"
 [ -d scenarios/moba/assets/textures ] || fail "scenarios/moba/assets/textures is missing"
 [ -d scenarios/moba/assets/models ] && [ -n "$(ls -A scenarios/moba/assets/models)" ] || fail "scenarios/moba/assets/models is missing or empty"
@@ -50,24 +62,15 @@ while IFS= read -r ref; do
 done <<< "$refs"
 [ "$imports" -ge 1 ] || fail "no relative import or page reference was found to check"
 
-server_pid=
-cleanup() { [ -n "$server_pid" ] && kill "$server_pid" 2>/dev/null || true; }
-trap cleanup EXIT
-log="$dest/server.log"
-./bin/oscraftd --addr "$addr" --room ci --data "$dest/data" --site "$dest/site" > "$log" 2>&1 &
-server_pid=$!
-for _ in $(seq 1 120); do curl -sf "http://$addr/state" > /dev/null 2>&1 && break; sleep 0.5; done
-curl -sf "http://$addr/state" | jq -e '.units | numbers' > /dev/null || { cat "$log" >&2; fail "oscraftd did not serve /state from the unpacked archive"; }
-curl -sf "http://$addr/site/" > /dev/null || fail "oscraftd did not serve /site/ from the unpacked archive"
-
+# The language server reads frames on stdin and exits on the exit notification; timeout is a backstop where it exists.
 frame() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
+lsp() { if command -v timeout > /dev/null; then timeout 30 "$@"; else "$@"; fi; }
 lsp_out=$({
   frame '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
   frame '{"jsonrpc":"2.0","id":2,"method":"shutdown"}'
   frame '{"jsonrpc":"2.0","method":"exit"}'
-} | timeout 30 ./bin/oscraft-lsp) || fail "oscraft-lsp did not start and exit cleanly"
+} | lsp "./bin/oscraft-lsp$exe") || fail "oscraft-lsp did not start and exit cleanly"
 printf '%s' "$lsp_out" | grep -q '"capabilities"' || fail "oscraft-lsp initialize reply has no capabilities"
 
-echo "package install ok members=$members sha256_checked=$checked"
 echo "client imports ok=$imports"
-echo "package install ok members=$members sha256_checked=$checked client=ok pkg=ok map=ok"
+echo "package install ok members=$members sha256_checked=$checked client=ok pkg=ok map=ok lsp=ok"

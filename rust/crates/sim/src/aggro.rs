@@ -1,13 +1,10 @@
-//! Target priority, unit aggro, and the per-unit protection and healing state a mod sets. Roles come from unit filters,
+//! Unit aggro and the per-unit protection and healing state a mod sets. Roles come from unit filters,
 //! never from names: a structure is a unit carrying the structure filter, a unit is `Sim::is_attributed`,
-//! anything else is a plain unit. Every rule is off until `AttrRules` turns it on.
+//! anything else is a plain unit.
 //!
-//! Priority (rule `aggro_priority`): a unit attacker keeps the nearest target. A plain-unit attacker
-//! prefers plain units over units over structures. An armed structure prefers the unit that hit an
-//! allied unit in its reach (the aggro target, held `aggro_hold_s`), then plain units, units,
-//! structures. Within one class the nearest target wins. UNVERIFIED: the class order and the hold
-//! time are recalled reference ruleset behaviour, not in the dump (SteamDatabase tracking repo
-//! @282fad29f0f74504fad465c52d197fb61f4d612b has no targeting keys).
+//! The target-priority order, the aggro redirect an armed structure takes when an allied unit is hit, and the
+//! wave-creep acquire and chase are pack rules (scenarios/moba/targeting.lua and lanes.lua). The sim keeps only
+//! their state: the class override, the aggro target and its hold, the chase storage and the fired behaviours.
 //!
 //! Damage reduction, invulnerability and healing are per-unit state a mod sets (`set_damage_reduction`,
 //! `set_invulnerable`, `set_healing`). The engine applies none of them by default. Any rule that decides
@@ -17,7 +14,6 @@
 //! Aggro and this per-unit state are sim state: hashed and saved with the rest.
 
 use crate::arrays::{dist2, Sim};
-use crate::fixed;
 use crate::loader::FILTER_STRUCTURE;
 use crate::TICKS_PER_SECOND;
 
@@ -31,20 +27,41 @@ pub(crate) struct AggroState {
     pub(crate) reduce_pct: Vec<u8>,
     /// Healing per second per unit (fixed-point life), set by a mod. Applied every tick while the unit lives.
     pub(crate) heal: Vec<i32>,
-    /// The enemy each unit last auto-attacked, -1 for none. Kept while it lives and stays in reach.
-    pub(crate) strike: Vec<i32>,
-    /// Spawn generation of each slot, bumped by every spawn into it. A sticky target is only that same
-    /// spawn while its generation still matches, so a reused slot never hands the new unit its old target.
-    pub(crate) spawn_gen: Vec<u32>,
-    /// The spawn generation of `strike`'s target at the moment it was struck.
-    pub(crate) strike_gen: Vec<u32>,
-    /// (unit, target) pairs where `unit` drew aggro from `target` since the host last drained the log.
-    /// Transient: neither hashed nor saved. Capped so a run that never drains it stays bounded.
-    pub(crate) acquired: Vec<(u32, u32)>,
+    /// Behaviours fired since the host last drained them (`take_fired`). Transient: neither hashed nor saved.
+    /// Capped so a run that never drains it stays bounded.
+    pub(crate) fired: Vec<Fired>,
 }
 
-/// Most acquisitions the log holds between drains.
-const ACQUIRED_CAP: usize = 1024;
+/// Most fired behaviours the queue holds between drains.
+pub(crate) const FIRED_CAP: usize = 1024;
+
+/// One behaviour that fired on a unit, for the pack to answer. `slot` is the ability slot that holds `ability`
+/// (-1 for none), and `target_kind` is the ability's target kind code (`TARGET_*`), 0 when there is no ability.
+#[derive(Clone, Copy, Debug)]
+pub struct Fired {
+    pub unit: u32,
+    pub trigger: u8,
+    pub action: u8,
+    pub ability: i32,
+    pub slot: i32,
+    pub target_kind: u8,
+}
+
+impl Fired {
+    /// The trigger the behaviour fired on, by the name a mod declares it with.
+    pub fn trigger_name(&self) -> &'static str {
+        crate::loader::Trigger::from_code(self.trigger).map_or("", |t| t.name())
+    }
+
+    /// The action the behaviour takes, by the name a mod declares it with.
+    pub fn action_name(&self) -> &'static str {
+        match self.action {
+            crate::ACTION_FLEE => "flee",
+            crate::ACTION_USE_ABILITY => "use_ability",
+            _ => "",
+        }
+    }
+}
 
 impl AggroState {
     pub(crate) fn new(cap: usize) -> AggroState {
@@ -54,31 +71,19 @@ impl AggroState {
             invuln_until: vec![0; cap],
             reduce_pct: vec![0; cap],
             heal: vec![0; cap],
-            strike: vec![-1; cap],
-            spawn_gen: vec![0; cap],
-            strike_gen: vec![0; cap],
-            acquired: Vec::new(),
+            fired: Vec::new(),
         }
     }
 }
 
 impl Sim {
-    /// Resets the per-unit aggro state of a freshly spawned slot `i` and starts a new spawn generation for it.
+    /// Resets the per-unit aggro state of a freshly spawned slot `i`.
     pub(crate) fn aggro_clear(&mut self, i: usize) {
         self.aggro.target[i] = -1;
         self.aggro.until[i] = 0;
-        self.aggro.strike[i] = -1;
-        self.aggro.spawn_gen[i] = self.aggro.spawn_gen[i].wrapping_add(1);
         self.aggro.invuln_until[i] = 0;
         self.aggro.reduce_pct[i] = 0;
         self.aggro.heal[i] = 0;
-    }
-
-    /// The unit unit `i` last struck, -1 when none or when that slot has been spawned into since.
-    pub(crate) fn sticky_strike(&self, i: usize) -> i32 {
-        let s = self.aggro.strike[i];
-        let same_spawn = s >= 0 && self.aggro.strike_gen[i] == self.aggro.spawn_gen[s as usize];
-        if same_spawn { s } else { -1 }
     }
 
     /// The unit that last drew aggro from unit `i` and has not yet lapsed, -1 for none.
@@ -90,63 +95,6 @@ impl Sim {
         self.filter[i] & FILTER_STRUCTURE != 0
     }
 
-    /// Priority class of target `j` for attacker `i`; lower is preferred.
-    pub(crate) fn target_class(&self, i: usize, j: usize) -> u8 {
-        let forced = self.class_override[i];
-        if forced >= 0 {
-            return forced as u8;
-        }
-        if !self.attributed.rules.aggro_priority {
-            return 0;
-        }
-        let attr_j = self.is_attributed(j);
-        let structure_j = self.is_structure(j);
-        if self.is_attributed(i) {
-            return 0;
-        }
-        let plain = !attr_j && !structure_j;
-        if self.is_structure(i) {
-            if self.aggro.target[i] == j as i32 && self.ticks < self.aggro.until[i] {
-                return 0;
-            }
-            return if plain { 1 } else if attr_j { 2 } else { 3 };
-        }
-        if plain {
-            0
-        } else if attr_j {
-            1
-        } else {
-            2
-        }
-    }
-
-    /// Called when `attacker` damages `victim`. A unit hitting an enemy unit makes every armed
-    /// non-unit unit on the victim's side that reaches the victim target the attacker.
-    pub(crate) fn aggro_on_hit(&mut self, victim: usize, attacker: usize) {
-        if !self.attributed.rules.aggro_priority
-            || victim == attacker
-            || !self.is_attributed(victim)
-            || !self.is_attributed(attacker)
-            || !self.hostile(self.player[victim], self.player[attacker])
-        {
-            return;
-        }
-        let hold = (self.attributed.rules.aggro_hold_s * TICKS_PER_SECOND) as u32;
-        let side = self.player[victim];
-        for u in 0..self.n {
-            if self.alive[u] == 0 || self.damage[u] <= 0 || self.is_attributed(u) || self.player[u] != side {
-                continue;
-            }
-            let reach = (self.range_sq[u] as i64) << fixed::SHIFT;
-            if dist2(self.pos_x[u], self.pos_y[u], self.pos_x[victim], self.pos_y[victim]) <= reach {
-                self.aggro.target[u] = attacker as i32;
-                self.aggro.until[u] = self.ticks.wrapping_add(hold);
-                if self.aggro.acquired.len() < ACQUIRED_CAP {
-                    self.aggro.acquired.push((u as u32, attacker as u32));
-                }
-            }
-        }
-    }
 
     /// Damage `dmg` to unit `j` after the mod's invulnerability and the mod's damage reduction.
     /// With no mod state set this returns `dmg`.
@@ -222,14 +170,20 @@ impl crate::arrays::Sim {
         (0..self.n).filter(|&k| self.alive[k] != 0 && dist2(self.pos_x[k], self.pos_y[k], x, y) <= r2).collect()
     }
 
-    /// Takes the (unit, target) aggro acquisitions since the last call, oldest first. Read by a host that
-    /// runs a target-priority callback; a sim nobody drains only keeps the first ACQUIRED_CAP.
-    pub fn take_acquisitions(&mut self) -> Vec<(usize, usize)> {
-        std::mem::take(&mut self.aggro.acquired).into_iter().map(|(u, t)| (u as usize, t as usize)).collect()
+    /// Makes unit `target` the unit `i` draws aggro toward for `hold` ticks from now (a mod's aggro redirect).
+    pub fn set_aggro(&mut self, i: usize, target: usize, hold: u32) {
+        self.aggro.target[i] = target as i32;
+        self.aggro.until[i] = self.ticks.saturating_add(hold);
+    }
+
+    /// Takes the behaviours fired since the last call, oldest first. The host hands each one to the pack's
+    /// `on_behaviour` hook, which chooses the action; a sim nobody drains only keeps the first FIRED_CAP.
+    pub fn take_fired(&mut self) -> Vec<Fired> {
+        std::mem::take(&mut self.aggro.fired)
     }
 
     /// Sets the target class attacker `i` uses for every candidate (0..=3, the classes `target_class` ranks), or
-    /// clears it with `None` so the Rust rule applies again. Applied by a queued mod command at the next tick.
+    /// clears it with `None` so the pack's own choice applies again. Applied by a queued mod command at the next tick.
     pub fn set_class_override(&mut self, i: usize, class: Option<u8>) -> Result<(), &'static str> {
         if i >= self.n {
             return Err("unknown unit");
@@ -247,31 +201,27 @@ impl crate::arrays::Sim {
 mod override_tests {
     use crate::fixed;
 
-    // A mod's class override is read before the Rust rule and cleared back to it.
+    // A mod's class override is stored per attacker, set and cleared, and out-of-range classes are refused.
     #[test]
-    fn class_override_takes_precedence_and_clears() {
+    fn class_override_is_stored_and_clears() {
         let scenario = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("..").join("scenarios").join("duel-routes");
         let image = osdt_data::generate(&scenario).expect("duel-routes image");
         let mut sim = crate::load(&image, 64).expect("duel-routes sim");
         sim.set_fog(false);
         let kind = sim.catalog().unit_index("creep").expect("creep") as u32;
         let a = sim.spawn_for(0, kind, fixed::from_int(5), fixed::from_int(5)).expect("attacker");
-        let b = sim.spawn_for(1, kind, fixed::from_int(6), fixed::from_int(5)).expect("target");
-        let rust = sim.target_class(a, b);
         assert_eq!(sim.class_override_of(a), None);
         sim.set_class_override(a, Some(3)).expect("override");
         assert_eq!(sim.class_override_of(a), Some(3));
-        assert_eq!(sim.target_class(a, b), 3);
         sim.set_class_override(a, None).expect("clear");
         assert_eq!(sim.class_override_of(a), None);
-        assert_eq!(sim.target_class(a, b), rust);
         assert!(sim.set_class_override(a, Some(9)).is_err());
     }
 }
 
 impl crate::arrays::Sim {
-    /// Sets attacker `i`'s attack-move hold: `Some(true)` always holds on an attack-move, `Some(false)` never does,
-    /// `None` restores the Rust rule (hold only while a strikeable foe is in reach).
+    /// Sets attacker `i`'s attack-move hold: `Some(true)` holds it in place while it is on an attack-move (the pack
+    /// sets it while a foe it can strike is in reach), `Some(false)` lets it walk on, `None` clears it (no hold).
     pub fn set_hold_override(&mut self, i: usize, hold: Option<bool>) -> Result<(), &'static str> {
         if i >= self.n {
             return Err("unknown unit");
@@ -284,7 +234,7 @@ impl crate::arrays::Sim {
         Ok(())
     }
 
-    /// The class override set on attacker `i`, or `None` when the Rust rule applies. Read-only, for debug views.
+    /// The class override set on attacker `i`, or `None` when none is set. Read-only, for debug views.
     pub fn class_override_of(&self, i: usize) -> Option<u8> {
         match self.class_override.get(i) {
             Some(&c) if c >= 0 => Some(c as u8),
@@ -292,7 +242,7 @@ impl crate::arrays::Sim {
         }
     }
 
-    /// The attack-move hold override of attacker `i`, or `None` when the Rust rule applies. Read-only, for debug views.
+    /// The attack-move hold set on attacker `i`, or `None` when none is set. Read-only, for debug views.
     pub fn hold_override_of(&self, i: usize) -> Option<bool> {
         match self.hold_override.get(i) {
             Some(&h) if h >= 0 => Some(h == 1),

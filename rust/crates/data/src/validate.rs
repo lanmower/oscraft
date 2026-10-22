@@ -12,7 +12,7 @@ use crate::format::{
 };
 use crate::model::{
     Ability, AbilityRaw, Behaviour, Catalog, Channel, Collector, DamageFactor, Econ, Effect, EffectRaw, Prereq,
-    Research, Route, Skill, SkillRaw, Spawn, Unit, Doodad, Item, UnitExt, Upgrade, Weapon, Tune,
+    Research, Route, Skill, SkillRaw, Spawn, Unit, Doodad, Item, UnitExt, Weapon, Tune,
 };
 
 fn valid_name(name: &str) -> Result<()> {
@@ -107,7 +107,6 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let abilities_raw = collector.abilities.into_inner();
     let behaviours_raw = collector.behaviours.into_inner();
     let spawns_raw = collector.spawns.into_inner();
-    let upgrades_raw = collector.upgrades.into_inner();
     let doodads_raw = collector.doodads.into_inner();
     let routes_raw = collector.routes.into_inner();
     let items_raw = collector.items.into_inner();
@@ -194,7 +193,6 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
     let ability_index = name_index("ability", abilities_raw.iter().map(|a| a.name.as_str()))?;
     let unit_index = name_index("unit", units_raw.iter().map(|u| u.name.as_str()))?;
     name_index("behaviour", behaviours_raw.iter().map(|b| b.name.as_str()))?;
-    name_index("upgrade", upgrades_raw.iter().map(|u| u.name.as_str()))?;
     let research_index = name_index("research", researches_raw.iter().map(|r| r.name.as_str()))?;
     for (handle, unit, ability) in &ext_raw.effect_refs {
         if let Some(name) = unit {
@@ -538,38 +536,6 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         });
     }
 
-    let mut upgrades = Vec::with_capacity(upgrades_raw.len());
-    for raw in &upgrades_raw {
-        let effect = *effects
-            .get(raw.effect)
-            .ok_or_else(|| anyhow!("upgrade {:?} names an unknown effect handle", raw.name))?;
-        let target = match raw.target_kind {
-            0 => unit_index
-                .get(&raw.target)
-                .ok_or_else(|| anyhow!("upgrade {:?} targets unknown unit {:?}", raw.name, raw.target))?,
-            _ => ability_index
-                .get(&raw.target)
-                .ok_or_else(|| anyhow!("upgrade {:?} targets unknown ability {:?}", raw.name, raw.target))?,
-        };
-        if !(1..=255).contains(&raw.level) {
-            bail!("upgrade {:?} level {} is outside 1..=255", raw.name, raw.level);
-        }
-        upgrades.push(Upgrade {
-            name: raw.name.clone(),
-            target_kind: raw.target_kind as u8,
-            target: *target as u16,
-            level: raw.level as u8,
-            apply: raw.apply as u8,
-            stacking: raw.stacking as u8,
-            resource_a_per_level: unsigned("upgrade resource_a per level", raw.resource_a_per_level)?,
-            gas_per_level: unsigned("upgrade gas per level", raw.gas_per_level)?,
-            effect: Effect {
-                kind: effect.kind as u16,
-                params: effect.params,
-            },
-        });
-    }
-
     let mut doodads = Vec::with_capacity(doodads_raw.len());
     let mut doodad_ids = HashSet::new();
     for raw in &doodads_raw {
@@ -674,7 +640,6 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
         ext,
         behaviours,
         spawns,
-        upgrades,
         cell_limit,
         econ,
         tune,

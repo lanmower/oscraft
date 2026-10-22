@@ -1,7 +1,7 @@
 //! Per-player fog on a grid of VIS_SCALE-wide cells, rebuilt every VIS_PERIOD
-//! ticks, plus script reveal rectangles stamped on top of every rebuild.
+//! ticks. Night sight is the unit's sight divided by the pack's `night_sight_divisor`.
 
-use crate::arrays::{cell_of, Reveal, Sim};
+use crate::arrays::{cell_of, Sim};
 use crate::fixed;
 use crate::*;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -20,20 +20,9 @@ impl Sim {
         VISION_GENERATION.load(Ordering::Relaxed)
     }
 
-    pub fn reveal_area(&mut self, p: u8, x0: i32, y0: i32, x1: i32, y1: i32, until: i32) {
-        if (p as usize) >= MAX_PLAYERS {
-            return;
-        }
-        let (x0, x1) = if x1 < x0 { (x1, x0) } else { (x0, x1) };
-        let (y0, y1) = if y1 < y0 { (y1, y0) } else { (y0, y1) };
-        for k in 0..REVEAL_CAP {
-            if !self.reveals[k].live {
-                self.reveals[k] = Reveal { p, x0, y0, x1, y1, until, live: true };
-                self.has_seer[p as usize] = true;
-                return;
-            }
-        }
-        self.stats.reveals_dropped += 1;
+    /// The divisor of a unit's sight at night, from the pack's rules (`night_sight_divisor`); 1, no reduction, when unset.
+    fn night_sight_divisor(&self) -> i32 {
+        self.rule("night_sight_divisor").unwrap_or(1).max(1)
     }
 
     pub(crate) fn refresh_vision(&mut self) {
@@ -41,6 +30,7 @@ impl Sim {
         bump_vision_generation();
         let vc = self.vcells;
         let night = self.is_night();
+        let night_div = self.night_sight_divisor();
         for p in 0..MAX_PLAYERS {
             if self.has_seer[p] {
                 self.vis[p * vc..(p + 1) * vc].fill(0);
@@ -54,7 +44,7 @@ impl Sim {
             if p >= MAX_PLAYERS {
                 continue;
             }
-            let r = if night { self.sight_cells[i] / 2 } else { self.sight_cells[i] };
+            let r = if night { self.sight_cells[i] / night_div } else { self.sight_cells[i] };
             if r <= 0 {
                 continue;
             }
@@ -84,7 +74,6 @@ impl Sim {
                 }
             }
         }
-        self.stamp_reveals();
         self.remember_seen();
     }
 
@@ -115,35 +104,6 @@ impl Sim {
         }
         let k = p as usize * self.cap + i;
         (self.seen[k] != 0).then(|| (self.seen_x[k], self.seen_y[k]))
-    }
-
-    fn stamp_reveals(&mut self) {
-        for k in 0..REVEAL_CAP {
-            let r = self.reveals[k];
-            if !r.live {
-                continue;
-            }
-            if r.until != 0 && self.ticks as i32 >= r.until {
-                self.reveals[k].live = false;
-                continue;
-            }
-            let p = r.p as usize;
-            if p >= MAX_PLAYERS {
-                self.reveals[k].live = false;
-                continue;
-            }
-            let base = p * self.vcells;
-            let cx0 = clamp_cell(fixed::to_int(r.x0) / VIS_SCALE, self.vw);
-            let cx1 = clamp_cell(fixed::to_int(r.x1) / VIS_SCALE, self.vw);
-            let cy0 = clamp_cell(fixed::to_int(r.y0) / VIS_SCALE, self.vh);
-            let cy1 = clamp_cell(fixed::to_int(r.y1) / VIS_SCALE, self.vh);
-            for y in cy0..=cy1 {
-                let row = base + (y * self.vw) as usize;
-                for x in cx0..=cx1 {
-                    self.vis[row + x as usize] = 1;
-                }
-            }
-        }
     }
 
     /// Player `p`'s visible cells (own plus shared allies) as one byte per cell, row-major over
@@ -195,8 +155,4 @@ impl Sim {
         self.vis[p as usize * self.vcells + at] != 0
             || (0..MAX_PLAYERS).any(|q| shared & (1 << q) != 0 && self.vis[q * self.vcells + at] != 0)
     }
-}
-
-fn clamp_cell(v: i32, n: i32) -> i32 {
-    v.clamp(0, n - 1)
 }

@@ -6,7 +6,7 @@ import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import { assetJson, assetRel, assetUrl, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
+import { assetJson, assetRel, assetUrl, fetchRetrying, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
@@ -65,6 +65,8 @@ const ROSTER_EVERY_TICKS = 10;
 const U16_MAX = 0xffff;
 
 const params = new URLSearchParams(location.search);
+// ?nomods=1 loads the page without the pack's Lua mods. A restart that cannot restore its snapshot reloads with it.
+const noMods = params.get("nomods") === "1";
 const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
 const namespace = params.get("ns") || "oscraft";
 const statusEl = document.getElementById("status");
@@ -107,6 +109,11 @@ const unitTransform = new Float32Array(16);
 const worldVp = new Float32Array(16);
 // Doodads grouped per mesh into static instance batches, and the per-frame batches of unskinned units per mesh.
 let doodadBatches = [];
+// Doodads kept for a model reload: the placed entries (kind code, tint variant, meshes, transform), each kind's loaded meshes,
+// and each kind's GLB names ({ high, low }) from loadDoodadModels.
+let placedDoodads = [];
+let doodadByKindState = [];
+const doodadModelNames = [];
 const unitBatches = new Map();
 const MOVE_EPS = 1e-4;
 const MAX_FRAME_DT_S = 0.1;
@@ -118,6 +125,20 @@ let netState = null;
 let casts = 0;
 let attacks = 0;
 let localGame = null;
+// The sim as one stable object for the HUD and the fog view, which hold it for the whole match: a restart replaces
+// localGame, and this forwards each call to whichever Game is live.
+const liveGame = new Proxy({}, {
+  get(_, name) {
+    const game = localGame;
+    if (!game) return undefined;
+    const value = game[name];
+    return typeof value === "function" ? value.bind(game) : value;
+  },
+});
+// The wasm module (its Game class), the pack's rules text, and the restore point the tick path rebuilds from.
+let wasmModule = null;
+let rulesText = "";
+let lastGoodSnapshot = null;
 let hud = null;
 let widgets = null;
 let packStartMounted = false;
@@ -193,7 +214,8 @@ function logModError(text) {
 // Input goes to the pack. The page that runs the sim calls it directly; a joined page sends the same event to the host
 // as an ACTION frame, and the host hands it to the pack with the sender's seat (applyPeerAction).
 function sendInput(name, args) {
-  if (netState) {
+  // A joined page forwards its input from the lobby on, so a seat claimed there reaches the host before the match starts.
+  if (netState || (!hosting && peers.size > 0)) {
     if (session) session.broadcast(encodeFrame({ type: FRAME.ACTION, name, body: JSON.stringify(args) }));
     return;
   }
@@ -227,11 +249,13 @@ function forwardKey(phase, e) {
 // The host hands a joined seat's input to the pack: the seat comes from the session, never from the frame.
 function applyPeerAction(peerPubkey, frame) {
   const player = seating.seat(peerPubkey).you;
-  if (!localGame || player === SPECTATOR) return;
+  if (!localGame) return;
   let args = null;
   try { args = JSON.parse(frame.body); } catch { return; }
   if (!args || typeof args !== "object") return;
   args.player = player;
+  // The sender's key: a lobby seat is claimed under it, and a spectator claims one before it has a seat.
+  args.pubkey = peerPubkey;
   logModError(localGame.dispatch_action(frame.name, JSON.stringify(args)));
 }
 
@@ -287,22 +311,118 @@ function pumpUi() {
   }
 }
 
-async function loadSim() {
-  const mod = await import(/* @vite-ignore */ pkgUrl);
-  await mod.default();
-  mapUrl = packUrl(manifest.image);
-  const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
-  mapBytes = image;
-  setMapSize(readGrid(image));
-  const game = new mod.Game(image);
-  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
-  const mods = await moduleClosure(manifest, packText);
-  logModError(game.load_mods(JSON.stringify(mods)));
-  // The pack's controls read the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
+// A Game over the map, with the pack's rules text applied. The rules (attr_rules.txt: the engine's rule keys and the named
+// values mods read) come before any mod loads.
+function newGame() {
+  const game = new wasmModule.Game(mapBytes);
+  logModError(game.set_attr_rules(rulesText));
+  return game;
+}
+
+// Loads the mods into a Game (`modsJson`, "[]" for none), then the controls' setup and the fog of war. The controls read
+// the UI data (bind table, refusal text, timings) and the local seat once, here and on a seat change.
+function finishGame(game, modsJson) {
+  logModError(game.load_mods(modsJson));
   logModError(game.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || "local" })));
   // Fog of war is on for every page, moba included: enemies outside the local team's vision stay hidden.
   game.set_fog(true);
   return game;
+}
+
+async function loadSim() {
+  const mod = await import(/* @vite-ignore */ pkgUrl);
+  await mod.default();
+  wasmModule = mod;
+  mapUrl = packUrl(manifest.image);
+  const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
+  mapBytes = image;
+  setMapSize(readGrid(image));
+  rulesText = await packText(manifest.rules);
+  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
+  // ?nomods=1 loads none.
+  const mods = noMods ? [] : await moduleClosure(manifest, packText);
+  const game = finishGame(newGame(), JSON.stringify(mods));
+  lastGoodSnapshot = captureSnapshot(game);
+  if (noMods) document.body.dataset.nomods = "1";
+  return game;
+}
+
+// The sim's save bytes with their tick: the restore point. The sim is only read.
+function captureSnapshot(game) {
+  return { tick: game.ticks(), bytes: game.save_state() };
+}
+
+function sameBytes(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+// Restore points are taken every this many sim ticks (the first is at load).
+const RESTORE_POINT_EVERY_TICKS = 16;
+// Restarts with no good tick between them. Past this the sim stops: a restart that traps again on every tick would
+// otherwise restore the snapshot every frame and never get past the tick that fails.
+const MAX_RESTARTS_IN_A_ROW = 3;
+let restartsInARow = 0;
+
+// The tick path's Game threw. A native panic in the wasm module ends its call as a trap (panic=abort), and that Game is
+// not usable after it. The page logs the failure, rebuilds the Game from the last good snapshot with the pack's mods
+// disabled (load_mods of an empty list), and goes on. A snapshot that cannot be restored reloads the page with
+// ?nomods=1; with ?nomods=1 already set, the sim stops, and the status line says so.
+function recoverGame(err, where) {
+  const reason = err && err.message ? err.message : String(err);
+  const snapshot = lastGoodSnapshot;
+  // The dead Game is dropped before anything else reads it: logModError reads the tick from localGame.
+  localGame = null;
+  restartsInARow += 1;
+  if (restartsInARow > MAX_RESTARTS_IN_A_ROW) {
+    logModError(`${where} failed (${reason}) again after ${MAX_RESTARTS_IN_A_ROW} restarts with no good tick between; the game stops`);
+    setStatus(`game stopped: ${MAX_RESTARTS_IN_A_ROW} restarts in a row failed (${reason})`);
+    return;
+  }
+  logModError(`${where} failed (${reason}); restarting ${snapshot ? `from the snapshot at tick ${snapshot.tick}` : "with no snapshot"} with the pack's mods disabled`);
+  try {
+    if (!snapshot) throw new Error("no snapshot to restore");
+    // The dead Game is not freed: freeing it would call into the module whose call ended mid-way.
+    const game = newGame();
+    game.load_state(snapshot.bytes);
+    // The check is the save bytes: the restored sim must save back to the snapshot's bytes. The state hash is not used here:
+    // a Game restarted with the mods off does not reproduce the live game's hash (measured in the browser), though its save
+    // bytes round-trip exactly.
+    if (!sameBytes(game.save_state(), snapshot.bytes)) throw new Error("the restored sim does not save back to the snapshot's bytes");
+    finishGame(game, "[]");
+    localGame = game;
+    lastGoodSnapshot = captureSnapshot(game);
+    // A restarted host sends a full state next: a joined page may be ahead of the restored tick, and only a keyframe resyncs it.
+    if (hosting) encoder.keyframe();
+    document.body.dataset.modsDisabledAt = String(snapshot.tick);
+    setStatus(`mods disabled: restarted at tick=${snapshot.tick} after a failed ${where}`);
+  } catch (restoreErr) {
+    const message = restoreErr && restoreErr.message ? restoreErr.message : String(restoreErr);
+    logModError(`restart failed: ${message}`);
+    if (!noMods) {
+      const next = new URL(location.href);
+      next.searchParams.set("nomods", "1");
+      location.replace(next.href);
+      return;
+    }
+    setStatus(`game stopped: the restart failed (${message})`);
+  }
+}
+
+// One sim tick on the live Game. Returns false when the tick threw and the Game was restarted (recoverGame), so the
+// caller skips that tick's follow-up. A good tick keeps the restore point current. Everything the tick path calls on the
+// Game is inside the try: a throw that escaped the frame loop would stop its requestAnimationFrame chain.
+function stepSim(where) {
+  try {
+    logModError(localGame.tick());
+    if (localGame.ticks() % RESTORE_POINT_EVERY_TICKS === 0) lastGoodSnapshot = captureSnapshot(localGame);
+    restartsInARow = 0;
+  } catch (err) {
+    recoverGame(err, where);
+    return false;
+  }
+  return true;
 }
 
 // The map's grid sets the playfield: orbit origin, default and maximum camera distance scale with its larger side.
@@ -355,7 +475,7 @@ function parsedModel(name) {
   if (!entry) {
     entry = (async () => {
       const url = new URL(assetUrl("models", `${name}.glb`), location.href);
-      const res = await fetch(url);
+      const res = await fetchRetrying(url);
       if (!res.ok) throw new Error(`models/${name}.glb HTTP ${res.status}`);
       const bytes = await resolveGlbExtensions(await res.arrayBuffer());
       const glb = parseGlb(bytes);
@@ -387,8 +507,8 @@ async function fetchModel(name, size) {
 }
 
 // One fitted model per unit type, indexed like the wasm unit_types export. A type with no model entry, or a model that
-// fails to load, is null: the unit type is then reported on the page once and not drawn. A hero that has no model, or
-// whose model fails, throws, so the match does not start. A model with its own size in doodad_sizes.json (Roshan,
+// fails to load, is null: the unit type is then reported on the page once and not drawn. A hero whose model file fails
+// throws, so the match does not start; a hero type with no model is recorded, and refused when it draws. A model with its own size in doodad_sizes.json (Roshan,
 // at hero heights) is fitted to it; every other unit is fitted to a hero footprint (UNIT_HALF, the design rule that
 // scripts/doodad-sizes.mjs also states).
 async function loadModels(game) {
@@ -400,8 +520,9 @@ async function loadModels(game) {
   return Promise.all(game.unit_model_names().map(async (name, type) => {
     const hero = heroFlags[type] === 1;
     if (!name) {
-      if (hero) throw new Error(`unit ${typeNames[type] ?? type}: hero has no model`);
-      recordAssetError(`unit ${typeNames[type] ?? type}`, new Error("has no model"));
+      // A hero with no model is not in the pick list, so it is not an asset failure here; a unit of its type is refused
+      // and reported when it draws (reportMissingModel). Any other unit type with no model is recorded now.
+      if (!hero) recordAssetError(`unit ${typeNames[type] ?? type}`, new Error("has no model"));
       return null;
     }
     const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
@@ -436,6 +557,7 @@ async function loadDoodadModels(usedKinds) {
       return { high: null, low: null };
     }
     const lowName = modelName(`${kind}-low`);
+    doodadModelNames[code] = { high: name, low: lowName ?? null };
     const load = (model) => {
       if (sizeOf(model) === undefined) {
         recordAssetError(model, new Error("no footprint in doodad_sizes.json"));
@@ -500,7 +622,8 @@ function anchored(u) {
 function currentUnits() {
   if (netState) return netState.units.map(anchored);
   const out = simUnits();
-  return fogview ? fogview.filter(out) : out;
+  // With no live Game (a restart that failed under ?nomods=1 stops the sim) there is nothing to filter.
+  return fogview && localGame ? fogview.filter(out) : out;
 }
 
 // Every living unit of the local sim, unfiltered by fog: the host's view for seats, stats and command ownership.
@@ -999,12 +1122,14 @@ function isHeroUnit(id) {
 
 // Records each START seat's pick. The sim's Lua spawn rule places the picked unit; the page does not spawn it.
 function recordSeatPicks(seats) {
-  spawnedSeats = seats.map(({ slot, pick }) => ({ slot, pick }));
+  spawnedSeats = seats.map(({ slot, pick, owner }) => ({ slot, pick, owner }));
   // The host's sim spawns each seat's picked hero at the seat's start (heroes.lua seat_pick, routed by controls.lua).
+  // A bot seat's owner is "bot:<n>": the sim drives its hero (bots.lua).
   if (!localGame) return;
-  for (const { slot, pick } of spawnedSeats) {
+  for (const { slot, pick, owner } of spawnedSeats) {
     if (!pick) continue;
-    logModError(localGame.dispatch_action("seat_pick", JSON.stringify({ player: slot, hero: pick })));
+    const bot = String(owner || "").startsWith("bot:");
+    logModError(localGame.dispatch_action("seat_pick", JSON.stringify({ player: slot, hero: pick, bot })));
   }
 }
 
@@ -1082,6 +1207,7 @@ async function packFileText(name) {
 // The bytes a swap of `kind` applies, the same on the host and on every peer: the Lua mod set as load_mods takes it
 // (lua), or the map image named by the manifest (data). A peer checks these bytes against the announced hash.
 async function packSwapBytes(kind) {
+  if (kind === "rules") return new TextEncoder().encode(await packFileText(currentManifest().rules));
   if (kind === "lua") {
     const mods = await moduleClosure(currentManifest(), packFileText);
     return new TextEncoder().encode(JSON.stringify(mods));
@@ -1324,9 +1450,16 @@ function startHost() {
   hosting = true;
   encoder = createStateEncoder();
   const restoredAt = restoreSnapshot();
+  // The restore point follows the sim the room now runs on, not the one the page loaded.
+  lastGoodSnapshot = captureSnapshot(localGame);
   let hostTick = restoredAt > 0 ? restoredAt : 0;
   const hostStep = () => {
-    logModError(localGame.tick());
+    if (!localGame) return;
+    if (!stepSim("host tick")) {
+      // A restart rewinds the sim to its snapshot; the host's tick count follows it.
+      if (localGame) hostTick = localGame.ticks();
+      return;
+    }
     drainPackSwapQueue();
     hostSwapGate();
     applyDueSwap();
@@ -1597,7 +1730,9 @@ session.addEventListener("data", (e) => {
   }
   if (hosting) return;
   if (frame.type !== FRAME.STATE && frame.type !== FRAME.DELTA) return;
-  if (frame.tick <= netTick) return;
+  // A full state replaces the whole state, so it is applied even at or below netTick: a restarted host rewinds to its snapshot.
+  // A delta must move the tick forward.
+  if (frame.tick <= netTick && frame.type !== FRAME.STATE) return;
   if (!applyFrame(netUnits, frame)) return;
   netTick = frame.tick;
   lastAppliedTick = frame.tick;
@@ -1697,6 +1832,7 @@ function doodadVariant(base, kind, v) {
 // Builds the 3D world from the staged assets: the terrain mesh from map.bin, doodads at their placements with
 // their GLB models, and unit models from the sim's model names. Each unit type keeps a model, or null when it has none.
 async function build3d(gl, game) {
+  renderGl = gl;
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
   terrainMesh = terrainMeshOf(terrain);
@@ -1710,10 +1846,11 @@ async function build3d(gl, game) {
   const unitFitsReady = loadModels(game);
   // The splat ground is the default floor: a layer that does not build stops the start (buildSplat throws).
   splat = await splatReady;
-  const doodadByKind = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
+  doodadByKindState = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
     base: high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null,
     lowBase: low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null,
   })));
+  const doodadByKind = doodadByKindState;
   const s = 1 / terrain.cellMilli;
   const placed = placements.flatMap((p) => {
     const kind = doodadByKind[p.kind];
@@ -1725,8 +1862,9 @@ async function build3d(gl, game) {
     const variant = Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length);
     const mesh = doodadVariant(kind.base, p.kind, variant);
     const lowMesh = kind.lowBase ? doodadVariant(kind.lowBase, `${p.kind}-low`, variant) : null;
-    return [{ mesh, lowMesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
+    return [{ kind: p.kind, variant, mesh, lowMesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
   });
+  placedDoodads = placed;
   doodadBatches = batchByMesh(placed);
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
   // A hero's mesh failure stops the start; any other unit's failure is recorded and that type is not drawn.
@@ -1977,6 +2115,7 @@ function applyDueSwap() {
   }
   lastApplied = { tick: due.tick, hash: due.hash, file: due.file };
   if (due.kind === "lua") return applyLuaSwap(due);
+  if (due.kind === "rules") return applyRulesSwap(due);
   applyDataSwap(due);
   if (due.kind === "data") return;
   if (!due.value) {
@@ -1995,6 +2134,15 @@ function applyLuaSwap(due) {
   logModError(error);
   lastSwapResult = { tick, file: due.file, ok: !error, carried: null, refused: null, error: error || null, readiness: error ? "failed" : "ready", deferred: false, deferrals: due.deferrals };
   console.log(`[swap] ${due.file} at tick ${tick}: ${error ? `mods kept, reload failed: ${error}` : "mods reloaded"}`);
+}
+
+// A rules swap at its tick: the attribute rules text reloads on this peer (set_attr_rules). A text the rules refuse keeps the last good rules.
+function applyRulesSwap(due) {
+  const tick = localGame.ticks();
+  const error = localGame.set_attr_rules(new TextDecoder().decode(due.image)) || "";
+  logModError(error);
+  lastSwapResult = { tick, file: due.file, ok: !error, carried: null, refused: null, error: error || null, readiness: error ? "failed" : "ready", deferred: false, deferrals: due.deferrals };
+  console.log(`[swap] ${due.file} at tick ${tick}: ${error ? `rules kept, reload failed: ${error}` : "rules reloaded"}`);
 }
 
 async function hmrApply(file, url, value) {
@@ -2055,12 +2203,12 @@ async function main() {
   setStatus("loading world assets");
   const stalled = setTimeout(() => setStatus(`loading world assets: still pending after ${WORLD_STALL_MS / 1000} s, check the network`), WORLD_STALL_MS);
   try {
-    await build3d(gl, localGame);
+    await build3d(gl, liveGame);
   } finally {
     clearTimeout(stalled);
   }
   hud = createHud({
-    game: localGame,
+    game: liveGame,
     minimapEl: document.getElementById("minimap"),
     barCanvas: createBarCanvas(),
     mapSize: { w: W, h: H },
@@ -2085,7 +2233,7 @@ async function main() {
     onBind: (bind) => sendInput("bind", bind),
   });
   window.__modUi = modUi;
-  fogview = createFogView({ game: localGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
+  fogview = createFogView({ game: liveGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
   window.__fogView = fogview;
   const packButton = document.createElement("button");
   packButton.type = "button";
@@ -2110,15 +2258,18 @@ async function main() {
     }
     if (!netState && localGame && !hosting) {
       localTickAcc += dtS;
-      while (localTickAcc >= SIM_TICK_S) {
-        logModError(localGame.tick());
-        applyDueSwap();
-        advanceTickClock(simUnits());
+      while (localTickAcc >= SIM_TICK_S && localGame) {
+        if (stepSim("tick")) {
+          applyDueSwap();
+          advanceTickClock(simUnits());
+        }
         localTickAcc -= SIM_TICK_S;
       }
     }
-    drawWorld3d();
-    fogview.draw();
+    if (localGame) {
+      drawWorld3d();
+      fogview.draw();
+    }
     publishWitness();
     requestAnimationFrame(frame);
   }
@@ -2269,6 +2420,204 @@ if (params.get("ci") === "1") {
   window.__ciBarProbe = () => ({ tick: tickStampMs, shown: shownUnits().map((u) => [u.id, u.x, u.z]), raw: currentUnits().map((u) => [u.id, u.x, u.z]) });
   window.__ciDebug = () => [...session.peers.values()].map((p) => ({ ice: p.pc?.iceConnectionState, conn: p.pc?.connectionState, remoteMdns: (p.pc?.remoteDescription?.sdp || '').split('.local').length - 1 }));
 }
+
+// Localhost dev: the host's running match takes an edited pack text file in place. Each watched file (the Lua modules, the
+// data, the rules, the UI and the tables the manifest names) is fetched every PACK_WATCH_MS and hashed; a changed one goes
+// through publishPackChanges, the pack editor's save path: peers get the file, and the swap applies it at a shared tick (Lua
+// reloads the mod set, data swaps the map), as a saved edit does. Only on localhost: a deployed page is not watched.
+// Localhost dev: a changed unit model (models/<name>.glb) reloads in place on this page. A model is not sim state, so every
+// page reloads its own copy and nothing is synced to the peers. The unit meshes of the changed type are rebuilt, and their
+// cached meshes and animators are dropped so the next frame draws the new model. Doodad models are not reloaded yet: their
+// batches are built once at load.
+const MODEL_WATCH_MS = 2000;
+let renderGl = null; // the WebGL2 context build3d draws with, kept for a model reload
+let modelWatchSig = new Map(); // glb url -> signature at the last check
+let modelWatchBusy = false;
+
+async function checkModelWatch() {
+  if (modelWatchBusy || !localGame || !renderGl) return;
+  modelWatchBusy = true;
+  try {
+    const names = [...new Set([...localGame.unit_model_names(), ...doodadModelNames.flatMap((n) => (n ? [n.high, n.low] : []))].filter((n) => n))];
+    for (const name of names) {
+      const url = new URL(assetUrl("models", `${name}.glb`), location.href).href;
+      let sig;
+      try {
+        const head = await fetch(url, { method: "HEAD", cache: "no-store" });
+        if (!head.ok) continue;
+        sig = [head.headers.get("etag"), head.headers.get("last-modified"), head.headers.get("content-length")].join("|");
+      } catch {
+        continue;
+      }
+      const prev = modelWatchSig.get(url);
+      modelWatchSig.set(url, sig);
+      if (prev !== undefined && prev !== sig) {
+        await reloadUnitModel(name);
+        await reloadDoodadModel(name);
+      }
+    }
+  } catch (err) {
+    console.error(`[model] watch failed: ${err.message}`);
+  } finally {
+    modelWatchBusy = false;
+  }
+}
+
+// Rebuilds the doodad kinds that draw the named GLB (high or low detail) and re-batches the placed doodads. The old GPU
+// buffers of the replaced batches are not freed yet.
+async function reloadDoodadModel(name) {
+  const sizes = await assetJson("doodadSizes");
+  for (let code = 0; code < doodadModelNames.length; code++) {
+    const names = doodadModelNames[code];
+    if (!names) continue;
+    const high = names.high === name;
+    const low = names.low === name;
+    if (!high && !low) continue;
+    parsedModels.delete(name);
+    let mesh;
+    try {
+      mesh = await toMesh(renderGl, await fetchModel(name, sizes[name]), DOODAD_TINT);
+    } catch (err) {
+      console.error(`[model] doodad ${name} kept the old model: ${err.message}`);
+      continue;
+    }
+    const slot = doodadByKindState[code];
+    if (high) {
+      slot.base = mesh;
+      for (const key of [...doodadVariants.keys()]) if (key.startsWith(`${code}:`)) doodadVariants.delete(key);
+    } else {
+      slot.lowBase = mesh;
+      for (const key of [...doodadVariants.keys()]) if (key.startsWith(`${code}-low:`)) doodadVariants.delete(key);
+    }
+    for (const e of placedDoodads) {
+      if (e.kind !== code) continue;
+      if (high) e.mesh = doodadVariant(slot.base, code, e.variant);
+      else e.lowMesh = slot.lowBase ? doodadVariant(slot.lowBase, `${code}-low`, e.variant) : null;
+    }
+    doodadBatches = batchByMesh(placedDoodads);
+    console.log(`[model] doodad ${name} reloaded in place for kind ${code}`);
+  }
+}
+
+async function reloadUnitModel(name) {
+  parsedModels.delete(name);
+  const names = localGame.unit_model_names();
+  const heroFlags = typeof localGame.unit_flags === "function" ? localGame.unit_flags() : [];
+  const sizes = await assetJson("doodadSizes");
+  for (let type = 0; type < names.length; type++) {
+    if (names[type] !== name) continue;
+    const hero = heroFlags[type] === 1;
+    const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
+    try {
+      const fitted = await fetchModel(name, size);
+      unitMeshes[type] = await toMesh(renderGl, fitted, [1, 1, 1], { animated: true });
+    } catch (err) {
+      console.error(`[model] ${name} for unit type ${type} kept the old model: ${err.message}`);
+      continue;
+    }
+    for (const key of [...unitMeshCache.keys()]) if (key.startsWith(`${type}:`)) unitMeshCache.delete(key);
+    for (const key of [...animators.keys()]) if (key.endsWith(`:${type}`)) animators.delete(key);
+    console.log(`[model] ${name} reloaded in place for unit type ${type}`);
+  }
+}
+
+if (["localhost", "127.0.0.1"].includes(location.hostname)) setInterval(checkModelWatch, MODEL_WATCH_MS);
+
+// Localhost dev, host with no peers connected: a changed wasm build (pkg/web_bg.wasm) replaces the running module in place.
+// The sim is saved, the new module is imported and initialised, and a Game of the new module takes the saved state and the
+// mods. Mod-owned Lua state (timers, counters) starts again, since a save holds only the sim. Peers would have to load the
+// same binary at the same tick; with peers connected the new build is only reported, not swapped in.
+const WASM_WATCH_MS = 2000;
+let wasmWatchSig = null; // the build's signature at the first check, and after each attempt
+let wasmWatchBusy = false;
+
+async function checkWasmWatch() {
+  if (wasmWatchBusy || !hosting || !localGame) return;
+  // Built as a concatenation: the page-asset discovery of the Pages check reads literal ".wasm" names as root files.
+  const wasmUrl = new URL("web_bg" + ".wasm", pkgUrl).href;
+  let sig;
+  try {
+    const head = await fetch(wasmUrl, { method: "HEAD", cache: "no-store" });
+    if (!head.ok) return;
+    sig = [head.headers.get("etag"), head.headers.get("last-modified"), head.headers.get("content-length")].join("|");
+  } catch {
+    return;
+  }
+  if (wasmWatchSig === null) { wasmWatchSig = sig; return; }
+  if (sig === wasmWatchSig) return;
+  if (peers.size > 0) {
+    console.warn("[wasm] a new build is on disk; peers are connected, so it is not swapped in");
+    return;
+  }
+  wasmWatchBusy = true;
+  try {
+    await swapWasm(wasmUrl);
+  } catch (err) {
+    console.error(`[wasm] swap failed, the running module stays: ${err.message}`);
+  } finally {
+    wasmWatchSig = sig; // one attempt per build: a failed build is not retried every tick
+    wasmWatchBusy = false;
+  }
+}
+
+async function swapWasm(wasmUrl) {
+  const saved = localGame.save_state();
+  const fresh = await import(/* @vite-ignore */ `${pkgUrl}?v=${Date.now()}`);
+  await fresh.default({ module_or_path: fetch(`${wasmUrl}?v=${Date.now()}`, { cache: "no-store" }) });
+  const game = new fresh.Game(mapBytes);
+  logModError(game.set_attr_rules(rulesText));
+  game.load_state(saved);
+  if (!sameBytes(game.save_state(), saved)) throw new Error("the new module does not save back the same state");
+  finishGame(game, JSON.stringify(noMods ? [] : await moduleClosure(manifest, packText)));
+  wasmModule = fresh;
+  localGame = game;
+  lastGoodSnapshot = captureSnapshot(game);
+  setStatus(`wasm: the build changed on disk; swapped in at tick ${game.ticks()}`);
+  console.log(`[wasm] swapped the running module in at tick ${game.ticks()}`);
+}
+
+if (["localhost", "127.0.0.1"].includes(location.hostname)) setInterval(checkWasmWatch, WASM_WATCH_MS);
+
+const PACK_WATCH_MS = 1000;
+const PACK_WATCH_TEXT = /\.(lua|osd|json|tsv|txt)$/i;
+let packWatchSeen = null; // path -> content hash, recorded on the first check (no change is sent for it)
+let packWatchBusy = false;
+
+function watchedPackPaths() {
+  const m = manifest;
+  const list = [...modulePaths(m), ...(m.data ?? []), ...(m.tables ?? []), m.rules, m.ui, "manifest.json"];
+  // The map image is binary but watched too: its change is a data swap (hot-sync rebuilds it from the data files).
+  const text = list.filter((p) => typeof p === "string" && PACK_WATCH_TEXT.test(p));
+  return [...new Set([...text, m.image].filter((p) => typeof p === "string"))];
+}
+
+async function checkPackWatch() {
+  if (packWatchBusy || !hosting || !localGame || !manifest) return;
+  packWatchBusy = true;
+  try {
+    packWatchSeen ??= new Map();
+    const changes = [];
+    for (const rel of watchedPackPaths()) {
+      const res = await fetch(packUrl(rel), { cache: "no-store" });
+      if (!res.ok) continue;
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      const hash = fnv1a32(bytes);
+      const prev = packWatchSeen.get(rel);
+      packWatchSeen.set(rel, hash);
+      if (prev !== undefined && prev !== hash) changes.push({ path: rel, bytes, hash });
+    }
+    if (changes.length > 0) {
+      console.log(`[pack] ${changes.map((c) => c.path).join(", ")}: changed on disk, sent to the match`);
+      publishPackChanges(changes);
+    }
+  } catch (err) {
+    console.error(`[pack] watch failed: ${err.message}`);
+  } finally {
+    packWatchBusy = false;
+  }
+}
+
+if (["localhost", "127.0.0.1"].includes(location.hostname)) setInterval(checkPackWatch, PACK_WATCH_MS);
 
 main().catch((err) => {
   const message = err && err.message ? err.message : String(err);

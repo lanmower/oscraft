@@ -1,4 +1,4 @@
-//! Reference reader: checks an image against FORMAT.md v11 before it is written.
+//! Reference reader: checks an image against FORMAT.md before it is written.
 //! The sim crate has its own loader; this one guards the generator's output.
 
 use anyhow::{anyhow, ensure, Result};
@@ -63,17 +63,16 @@ pub fn verify(image: &[u8]) -> Result<()> {
     let uabl = &sections[3];
     let unit = &sections[4];
     let plce = &sections[6];
-    let upgr = &sections[7];
-    let regn = &sections[8];
-    let limt = &sections[9];
-    let econ = &sections[10];
-    let uext = &sections[11];
-    let achn = &sections[12];
-    let rsch = &sections[13];
-    let preq = &sections[14];
-    let dmgf = &sections[15];
-    let doda = &sections[16];
-    let grid = &sections[17];
+    let regn = &sections[7];
+    let limt = &sections[8];
+    let econ = &sections[9];
+    let uext = &sections[10];
+    let achn = &sections[11];
+    let rsch = &sections[12];
+    let preq = &sections[13];
+    let dmgf = &sections[14];
+    let doda = &sections[15];
+    let grid = &sections[16];
 
     let width = u32_at(image, grid.offset)?;
     let height = u32_at(image, grid.offset + 4)?;
@@ -85,17 +84,17 @@ pub fn verify(image: &[u8]) -> Result<()> {
     ensure!(u32_at(image, grid.offset + 12)? >= 1, "grid height step is 0");
     ensure!(limt.count == 1, "LIMT count must be 1");
     ensure!(econ.count == 1, "ECON count must be 1");
-    let tune = &sections[22];
+    let tune = &sections[21];
     ensure!(tune.count == 1, "TUNE count must be 1");
     let tune_at = tune.offset;
     ensure!(image[tune_at] <= STRUCTURE_SCAN_MAX_CELLS, "TUNE structure scan cells out of range");
     ensure!((1..=TELEPORT_RING_MAX_POINTS).contains(&image[tune_at + 1]), "TUNE teleport ring points out of range");
     ensure!(image[tune_at + 2] >= 1, "TUNE teleport ring steps is 0");
-    let stat_names = name_list(image, &sections[23], "SNAM")?;
-    let effect_kinds = name_list(image, &sections[24], "EKND")?;
-    let filter_names = name_list(image, &sections[25], "FNAM")?;
-    let mod_conds = name_list(image, &sections[26], "MCND")?;
-    let doodad_kinds = name_list(image, &sections[27], "DKND")?;
+    let stat_names = name_list(image, &sections[22], "SNAM")?;
+    let effect_kinds = name_list(image, &sections[23], "EKND")?;
+    let filter_names = name_list(image, &sections[24], "FNAM")?;
+    let mod_conds = name_list(image, &sections[25], "MCND")?;
+    let doodad_kinds = name_list(image, &sections[26], "DKND")?;
     ensure!(filter_names.len() <= FILTER_MASK_BITS as usize, "FNAM lists more names than the mask holds");
     for k in 0..XP_CURVE_LEN - 1 {
         let a = u32_at(image, tune_at + 12 + 4 * k)?;
@@ -105,7 +104,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
     ensure!(regn.count == unit.count, "REGN count differs from UNIT count");
     ensure!(uext.count == unit.count, "UEXT count differs from UNIT count");
     ensure!(achn.count == abil.count, "ACHN count differs from ABIL count");
-    let item = &sections[18];
+    let item = &sections[17];
     for i in 0..item.count {
         let at = item.offset + i * ITEM_RECORD;
         let ability = u16_at(image, at + 12)? as usize;
@@ -157,7 +156,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(u16_at(image, at + 18)? as u32 & !FILTER_ALL == 0, "ability {i} filter mask uses reserved bits");
     }
 
-    let axtn = &sections[20];
+    let axtn = &sections[19];
     ensure!(axtn.count == abil.count, "AXTN count differs from ABIL count");
     for i in 0..axtn.count {
         let at = axtn.offset + i * AXTN_RECORD;
@@ -260,23 +259,6 @@ pub fn verify(image: &[u8]) -> Result<()> {
         );
     }
 
-    for i in 0..upgr.count {
-        let at = upgr.offset + i * UPGR_RECORD;
-        let target_kind = image[at + 6] as usize;
-        let level = image[at + 7];
-        let apply = image[at + 8] as usize;
-        let stacking = image[at + 9] as usize;
-        let target = u16_at(image, at + 10)? as usize;
-        let effect = u32_at(image, at + 12)? as usize;
-        ensure!(target_kind < UPGRADE_TARGET_KINDS.len(), "upgrade {i} target kind out of range");
-        ensure!(level >= 1, "upgrade {i} level is 0");
-        ensure!(apply < UPGRADE_APPLY.len(), "upgrade {i} applies-to out of range");
-        ensure!(stacking < UPGRADE_STACKING.len(), "upgrade {i} stacking rule out of range");
-        let target_count = if target_kind == 0 { unit.count } else { abil.count };
-        ensure!(target < target_count, "upgrade {i} target past its section");
-        ensure!(effect < efct.count, "upgrade {i} effect past EFCT");
-    }
-
     for i in 0..rsch.count {
         let at = rsch.offset + i * RSCH_RECORD;
         let building = u16_at(image, at + 6)? as usize;
@@ -323,7 +305,7 @@ pub fn verify(image: &[u8]) -> Result<()> {
         ensure!(position_on_grid(x, y, width, height, cell_milli), "doodad {i} is off the grid");
     }
 
-    let rout = &sections[21];
+    let rout = &sections[20];
     let mut route_keys = std::collections::HashSet::new();
     let walkable_at = |x: i64, y: i64| -> bool {
         let cell = image[grid.offset + GRID_HEADER_LEN + (y / cell_milli as i64) as usize * width as usize + (x / cell_milli as i64) as usize];

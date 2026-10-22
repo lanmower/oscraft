@@ -17,4 +17,21 @@ function bounty.pay(p)
   return side_gold
 end
 
+-- split{unit, gold, recipients, text}: the reward is shared equally by the recipient units, the first taking the rest
+-- of the division. text shows each share as floating text over the victim.
+function bounty.split(p)
+  local n = #p.recipients
+  if n == 0 or p.gold <= 0 then return 0 end
+  local share = math.floor(p.gold / n)
+  local rest = p.gold - share * n
+  for idx, u in ipairs(p.recipients) do
+    local amount = share + (idx == 1 and rest or 0)
+    game.cmd_add_unit_gold(u, amount)
+    if p.text and amount > 0 then
+      game.effect("gold_text", 0, 0, { target = p.unit, text = "+" .. tostring(amount), colour = "gold" })
+    end
+  end
+  return p.gold
+end
+
 return bounty

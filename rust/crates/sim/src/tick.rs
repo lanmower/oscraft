@@ -1,5 +1,5 @@
 //! One simulation tick. Order: buckets, fog cadence, flow fields, buffs, projectiles,
-//! then per unit upkeep, economy, routing, steering, integration and attack.
+//! then per unit upkeep, routing, steering, integration and attack.
 //!
 //! Each top-level system's wall-clock cost is recorded into a fixed histogram of
 //! atomics, one row per `System`. Recording is observational only: it never feeds
@@ -94,7 +94,6 @@ impl Sim {
         self.in_tick = true;
         self.rebucket();
         mark = lap(System::Rebucket, mark);
-        self.scan_left = RETARGET_BUDGET;
         if run_vision && self.fog && self.ticks % VIS_PERIOD == 0 {
             self.refresh_vision();
         }
@@ -112,6 +111,7 @@ impl Sim {
         mark = lap(System::Projectiles, mark);
         self.tick_timed_life();
         self.tick_respawns();
+        self.tick_groups();
         self.tick_spells();
         for i in 0..self.n {
             if self.alive[i] == 0 {
@@ -137,15 +137,6 @@ impl Sim {
                 self.vel_y[i] = 0;
                 continue;
             }
-            self.research_step(i);
-            self.burrow_step(i);
-            if self.harvest && self.kind[i] == KIND_WORKER {
-                self.harvest_step(i);
-            }
-            if self.produce && self.kind[i] == KIND_PRODUCER {
-                self.produce_step(i);
-            }
-            self.acquire_step(i);
             if self.order_kind[i] == ORDER_HOLD || self.engaged(i) {
                 self.vel_x[i] = 0;
                 self.vel_y[i] = 0;
@@ -168,7 +159,6 @@ impl Sim {
         lap(System::Units, mark);
         self.in_tick = false;
         self.ticks = self.ticks.wrapping_add(1);
-        self.day_clock = (self.day_clock + 1) % (DAY_TICKS + NIGHT_TICKS);
     }
 
     /// Counts down every ability and item cooldown on unit `i`.

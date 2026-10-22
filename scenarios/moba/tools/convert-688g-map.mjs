@@ -192,7 +192,8 @@ const startLines = starts.map((s, k) => {
   return `start(${k}, ${x}, ${y}, team=${k % 2})`;
 });
 const script = fs.readFileSync(path.join(src, "script.txt"), "latin1");
-const spawnLines = legacyLines.filter((l) => l.startsWith("spawn(") && !l.startsWith('spawn("base"'));
+// The map places no hero: each seat's picked hero is spawned by the lobby's pick (heroes.lua seat_pick), so a hero spawn line is dropped.
+const spawnLines = legacyLines.filter((l) => l.startsWith("spawn(") && !l.startsWith('spawn("base"') && !l.startsWith('spawn("hero"'));
 const shopLines = legacyLines.filter((l) => /^doodad\(\d+, "(shop|side_shop|secret_shop)"/.test(l));
 
 // Ancients: the literal create calls in the script for the two ancient codes; the side convention sets the player.

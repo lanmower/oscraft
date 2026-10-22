@@ -8,7 +8,7 @@ use crate::arrays::{dist2, Sim};
 use crate::fixed;
 use crate::loader::{Effect, LoadError};
 use crate::rules::{Refusal, Slot};
-use crate::status::{DISARM, HEX, INVULNERABLE, MUTE, PHYSICAL_IMMUNE, SPELL_IMMUNE, TAUNT};
+use crate::status::{DISARM, HEX, INVULNERABLE, PHYSICAL_IMMUNE, SPELL_IMMUNE};
 use crate::*;
 
 pub(crate) const FIRST_SPELL_KIND: u16 = 20;
@@ -16,10 +16,11 @@ const K_DOT: u16 = 20;
 const K_STATUS: u16 = 21;
 const K_TIMED_STAT: u16 = 22;
 pub(crate) const K_AOE: u16 = 23;
-const K_DISPEL: u16 = 24;
+// Kind 24 (dispel) is retired: the pack's on_cast handler clears statuses, damage over time and modifiers. A retired
+// kind refuses as unsupported.
 const K_CHAIN: u16 = 25;
 const K_ZONE: u16 = 26;
-const K_ILLUSION: u16 = 27;
+// Kind 27 (illusion) is retired: the pack spawns the images (`spawn_image`) from on_cast or on_proc.
 /// The generic resource effect (p0 amount, p1 mode: 0 gain, 1 drain, 2 drain into the caster). Kind 28 is
 /// the number old replays carry for the effect once named mana; the number is unchanged, so they decode.
 pub(crate) const K_RESOURCE: u16 = 28;
@@ -36,9 +37,23 @@ pub const FLAG_GROUND_PULSE: u16 = 32;
 pub const FLAG_COUNTED: u16 = 64;
 /// The ability is castable, but its `stat` effects are passive: applied by rank, skipped on a cast.
 pub const FLAG_PASSIVE_STATS: u16 = 128;
-pub const FLAG_ALLY_ONLY: u16 = 256;
-pub const FLAG_ENEMY_ONLY: u16 = 512;
 const FLAG_MASK: u16 = 1023;
+
+/// Status flags the pack sets per status kind (`set_status_flags`); the engine reads them and names no status.
+/// The status ends the unit's channel.
+pub const STATUS_ENDS_CHANNEL: i32 = 1;
+/// The status is not turned away by the receiver's spell immunity.
+pub const STATUS_PIERCES_IMMUNITY: i32 = 2;
+/// The status ignores the receiver's status resistance.
+pub const STATUS_NO_RESIST: i32 = 4;
+/// The caster is recorded as the receiver's taunter (`game.taunter` reads it).
+pub const STATUS_RECORDS_SOURCE: i32 = 8;
+/// The effect's parameter 2 is the receiver's speed (milli-units per tick) while the status holds.
+pub const STATUS_SETS_SPEED: i32 = 16;
+/// The unit's passive procs do not fire while the status holds.
+pub const STATUS_BLOCKS_PROCS: i32 = 32;
+/// Most passive procs the sim keeps between host drains.
+const PROC_LOG_CAP: usize = 1024;
 
 pub const STAT_COUNT: usize = 31;
 pub const S_DAMAGE: usize = 0;
@@ -63,13 +78,11 @@ pub const S_BASH_TICKS: usize = 18;
 pub const S_SPEED_PCT: usize = 19;
 pub const S_CDR: usize = 20;
 pub const S_STATUS_RESIST: usize = 21;
-pub const S_SLOT_22: usize = 22;
 pub const S_SPELL_LIFESTEAL: usize = 25;
 pub const S_ARMOR_X100: usize = 26;
 pub const S_CAST_RANGE: usize = 27;
 pub const S_CLEAVE_W0: usize = 28;
 pub const S_CLEAVE_W1: usize = 29;
-pub const S_DAMAGE_REDUCTION: usize = 30;
 
 pub const SCALED_SLOTS: usize = 6;
 pub const MOD_SLOTS: usize = 8;
@@ -86,8 +99,6 @@ const MOD_ENERGY: u8 = 251;
 const MOD_RANGE: u8 = 252;
 const MOD_CAST_POINT: u8 = 253;
 const MOD_CHARGE_RESTORE: u8 = 254;
-const COND_SCEPTER: u32 = 0;
-const COND_SHARD: u32 = 1;
 
 pub(crate) const TMOD_SLOTS: usize = 8;
 pub(crate) const DOT_SLOTS: usize = 4;
@@ -229,16 +240,13 @@ pub(crate) fn spell_effect_error(e: &Effect) -> Option<&'static str> {
         K_STATUS => (0..crate::status::STATUS_KINDS as i32).contains(&e.p0) && e.p1 >= 1,
         K_TIMED_STAT => (0..STAT_COUNT as i32).contains(&e.p0) && e.p2 >= 1 && (0..=1).contains(&e.p3),
         K_AOE => e.p0 >= 0 && (0..=31).contains(&e.p1) && (0..=16).contains(&e.p2) && e.p3 >= 0,
-        K_DISPEL => (1..=7).contains(&e.p0),
         K_CHAIN => e.p0 >= 0 && e.p1 >= 0 && e.p2 >= 0 && (0..=3).contains(&e.p3),
         K_ZONE => e.p0 >= 0 && e.p1 >= 1 && e.p2 >= 1 && e.p3 >= 0,
-        K_ILLUSION => (1..=8).contains(&e.p0) && e.p1 >= 1 && e.p2 >= 0 && e.p3 >= 0,
         K_RESOURCE => e.p0 >= 0 && (0..=2).contains(&e.p1),
         K_IF_KILL => (1..=16).contains(&e.p0),
         K_ATTACK => e.p0 >= 0,
         crate::point_move::K_POINT_MOVE => e.p0 >= 0,
         crate::refresh::K_REFRESH => (1..=3).contains(&e.p0),
-        crate::grant::K_GRANT => (0..=1).contains(&e.p0),
         _ => true,
     };
     (!ok).then_some("spell effect parameters")
@@ -290,10 +298,10 @@ pub(crate) struct SpellState {
     pub(crate) hex_speed: Vec<i32>,
     pub(crate) hits_taken: Vec<i32>,
     pub(crate) hits_made: Vec<i32>,
-    pub(crate) pend_slot: Vec<i32>,
-    pub(crate) pend_target: Vec<i32>,
-    pub(crate) pend_x: Vec<i32>,
-    pub(crate) pend_y: Vec<i32>,
+    /// Per status kind: the `STATUS_*` flags the pack set (0 for none).
+    pub(crate) status_flags: Vec<i32>,
+    /// Per stat: the lower and upper bound (two entries each) the sim holds it within for a cast cost or an attack period.
+    pub(crate) stat_bounds: Vec<i32>,
     /// Transient: the ability a running effect belongs to, the kill flag of the last damage, the
     /// pierce flag of the running ability. Not hashed or saved.
     pub(crate) cur_ai: i32,
@@ -304,6 +312,8 @@ pub(crate) struct SpellState {
     pub(crate) rank_override: i32,
     /// Whether any damage ends a channel (the legacy rule); reference ends it by stun, silence or hex only.
     pub(crate) damage_interrupts: bool,
+    /// Passive procs fired since the host last took them, as (owner, ability index). Transient, like the cast log.
+    pub(crate) proc_log: Vec<(u32, u16)>,
 }
 
 impl SpellState {
@@ -350,33 +360,31 @@ impl SpellState {
             hex_speed: vec![0; cap],
             hits_taken: vec![0; cap],
             hits_made: vec![0; cap],
-            pend_slot: vec![-1; cap],
-            pend_target: vec![-1; cap],
-            pend_x: vec![0; cap],
-            pend_y: vec![0; cap],
+            status_flags: vec![0; crate::status::STATUS_KINDS],
+            stat_bounds: (0..STAT_COUNT).flat_map(|_| [i32::MIN, i32::MAX]).collect(),
             cur_ai: -1,
             cur_eff: 0,
             kill_flag: false,
             pierce: false,
             rank_override: 0,
             damage_interrupts: true,
+            proc_log: Vec::new(),
         }
     }
 
     /// Every saved table, in a fixed order, for the state hash and the save bytes.
-    pub(crate) fn tables(&self) -> [&Vec<i32>; 45] {
+    pub(crate) fn tables(&self) -> [&Vec<i32>; 43] {
         [
             &self.upg, &self.smod, &self.applied, &self.tmod_code, &self.tmod_amt, &self.tmod_left, &self.tmod_key,
             &self.dot_src, &self.dot_key, &self.dot_amt, &self.dot_period, &self.dot_left, &self.dot_next, &self.dot_type,
             &self.zone_left, &self.zone_caster, &self.zone_ai, &self.zone_x, &self.zone_y, &self.zone_period,
             &self.zone_next, &self.zone_delay, &self.zone_rank, &self.zone_follow, &self.charge_n, &self.charge_t, &self.chain_left, &self.chain_caster, &self.chain_cur, &self.chain_prev,
             &self.chain_dmg, &self.chain_radius, &self.chain_type, &self.chain_wait, &self.chain_delay, &self.ill_out,
-            &self.ill_in, &self.taunter, &self.hex_speed, &self.hits_taken, &self.hits_made, &self.pend_slot, &self.pend_target,
-            &self.pend_x, &self.pend_y,
+            &self.ill_in, &self.taunter, &self.hex_speed, &self.hits_taken, &self.hits_made, &self.status_flags, &self.stat_bounds,
         ]
     }
 
-    pub(crate) fn tables_mut(&mut self) -> [&mut Vec<i32>; 45] {
+    pub(crate) fn tables_mut(&mut self) -> [&mut Vec<i32>; 43] {
         [
             &mut self.upg, &mut self.smod, &mut self.applied, &mut self.tmod_code, &mut self.tmod_amt, &mut self.tmod_left,
             &mut self.tmod_key, &mut self.dot_src, &mut self.dot_key, &mut self.dot_amt, &mut self.dot_period,
@@ -385,7 +393,7 @@ impl SpellState {
             &mut self.zone_delay, &mut self.zone_rank, &mut self.zone_follow, &mut self.charge_n, &mut self.charge_t, &mut self.chain_left, &mut self.chain_caster, &mut self.chain_cur, &mut self.chain_prev,
             &mut self.chain_dmg, &mut self.chain_radius, &mut self.chain_type, &mut self.chain_wait,
             &mut self.chain_delay, &mut self.ill_out, &mut self.ill_in, &mut self.taunter, &mut self.hex_speed,
-            &mut self.hits_taken, &mut self.hits_made, &mut self.pend_slot, &mut self.pend_target, &mut self.pend_x, &mut self.pend_y,
+            &mut self.hits_taken, &mut self.hits_made, &mut self.status_flags, &mut self.stat_bounds,
         ]
     }
 
@@ -401,7 +409,6 @@ impl SpellState {
         self.hex_speed[i] = 0;
         self.hits_taken[i] = 0;
         self.hits_made[i] = 0;
-        self.pend_slot[i] = -1;
         self.charge_n[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].fill(-1);
         self.charge_t[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].fill(0);
     }
@@ -425,7 +432,8 @@ impl SpellState {
 }
 
 impl Sim {
-    pub(crate) fn stat(&self, i: usize, code: usize) -> i32 {
+    /// The current stat bonus of unit `i` for stat code `code` (the S_ codes above); 0 when unset.
+    pub fn stat(&self, i: usize, code: usize) -> i32 {
         self.spell.smod.get(i * STAT_COUNT + code).copied().unwrap_or(0)
     }
 
@@ -436,6 +444,49 @@ impl Sim {
             self.range_sq[i] = fixed::mul(self.range_q[i], self.range_q[i]);
         }
         self.touch(i);
+    }
+
+    /// Stat `code` of unit `i`, held within the bounds the pack set for it (`set_stat_bounds`).
+    fn bounded_stat(&self, i: usize, code: usize) -> i32 {
+        let (lo, hi) = (self.spell.stat_bounds[2 * code], self.spell.stat_bounds[2 * code + 1]);
+        self.stat(i, code).clamp(lo, hi)
+    }
+
+    /// Sets the bounds stat `code` is held within when a cast cost or an attack period reads it. False, with nothing
+    /// changed, for an unknown stat or bounds that cross.
+    pub fn set_stat_bounds(&mut self, code: usize, lo: i32, hi: i32) -> bool {
+        if code >= STAT_COUNT || lo > hi {
+            return false;
+        }
+        self.spell.stat_bounds[2 * code] = lo;
+        self.spell.stat_bounds[2 * code + 1] = hi;
+        true
+    }
+
+    /// Whether a status the pack flags as blocking procs holds on unit `i`.
+    fn proc_blocked(&self, i: usize) -> bool {
+        (0..crate::status::STATUS_KINDS).any(|k| self.status_flag(k) & STATUS_BLOCKS_PROCS != 0 && self.status_left(i, k) > 0)
+    }
+
+    /// The `STATUS_*` flags of status kind `code` (0 for an unknown kind).
+    pub(crate) fn status_flag(&self, code: usize) -> i32 {
+        self.spell.status_flags.get(code).copied().unwrap_or(0)
+    }
+
+    /// Sets the `STATUS_*` flags of status kind `kind`. False, with nothing changed, for an unknown kind.
+    pub fn set_status_flags(&mut self, kind: usize, bits: i32) -> bool {
+        match self.spell.status_flags.get_mut(kind) {
+            Some(flags) => {
+                *flags = bits;
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// The status kind the engine names `name`, or None.
+    pub fn status_index(&self, name: &str) -> Option<usize> {
+        crate::status::STATUS_NAMES.iter().position(|&n| n == name)
     }
 
     /// Weapon damage of unit `i` with its stat modifiers, Q16.16.
@@ -449,17 +500,10 @@ impl Sim {
         self.armor[i].wrapping_add(fixed::from_int(self.stat(i, S_ARMOR))).wrapping_add(hundredths)
     }
 
-    /// Magic resistance of unit `i` in percent: the unit's base and its bonus stacked multiplicatively.
-    pub(crate) fn magic_resist_pct(&self, i: usize) -> i32 {
-        let base = self.attr_def(i).map_or(0, |d| d.magic_resist) as i64;
-        let bonus = self.stat(i, S_MAGIC_RESIST) as i64;
-        let kept = (100 - base) * (100 - bonus) / 100;
-        (100 - kept) as i32
-    }
 
-    /// Ticks between attacks of unit `i`: its base period scaled by bonus attack speed (20 to 700 total).
+    /// Ticks between attacks of unit `i`: its base period scaled by bonus attack speed (held within the pack's bounds).
     pub(crate) fn attack_period(&self, i: usize) -> i32 {
-        let total = (100 + self.stat(i, S_ATTACK_SPEED)).clamp(20, 700) as i64;
+        let total = (100 + self.bounded_stat(i, S_ATTACK_SPEED)).max(1) as i64;
         ((self.period[i] as i64 * 100 / total) as i32).max(1)
     }
 
@@ -505,10 +549,6 @@ impl Sim {
 
     pub(crate) fn disarmed(&self, i: usize) -> bool {
         self.status_left(i, DISARM) > 0 || self.hexed(i)
-    }
-
-    pub(crate) fn muted(&self, i: usize) -> bool {
-        self.status_left(i, MUTE) > 0
     }
 
     /// Whether a hostile spell of the running ability is turned away by the receiver's spell immunity.
@@ -599,7 +639,7 @@ impl Sim {
     pub(crate) fn cast_costs(&self, caster: usize, ai: usize, energy: i32, cooldown: i32) -> (i32, i32) {
         let energy = self.ability_field(caster, ai, MOD_ENERGY, energy).max(0);
         let cooldown = self.ability_field(caster, ai, MOD_COOLDOWN, cooldown).max(0);
-        let cdr = self.stat(caster, S_CDR).clamp(0, 90) as i64;
+        let cdr = self.bounded_stat(caster, S_CDR) as i64;
         (energy, (cooldown as i64 * (100 - cdr) / 100) as i32)
     }
 
@@ -635,8 +675,8 @@ impl Sim {
             }
         }
         dmg = match dtype {
-            1 => crate::combat::armour_reduced(dmg, self.eff_armor(j)),
-            2 => (dmg as i64 * (100 - self.magic_resist_pct(j) as i64) / 100) as i32,
+            1 => self.armour_scaled(dmg, j),
+            2 => self.magic_scaled(dmg, j),
             _ => dmg,
         };
         let before = self.hp[j];
@@ -714,16 +754,17 @@ impl Sim {
                 }
             }
             K_STATUS => {
-                if let Some(j) = recv.filter(|&j| !self.turned_away(caster, j)) {
-                    if eff.p0 as usize == HEX {
+                let code = eff.p0 as usize;
+                let pierce = self.status_flag(code) & STATUS_PIERCES_IMMUNITY != 0;
+                if let Some(j) = recv.filter(|&j| pierce || !self.turned_away(caster, j)) {
+                    if self.status_flag(code) & STATUS_SETS_SPEED != 0 {
                         self.spell.hex_speed[j] = eff.p2;
                     }
-                    self.status_with_source(caster, j, eff.p0 as usize, eff.p1, crate::status::SLOW_NONE);
+                    self.status_with_source(caster, j, code, eff.p1, crate::status::SLOW_NONE);
                 }
             }
             crate::point_move::K_POINT_MOVE => self.point_move_effect(caster, tx, ty),
             crate::refresh::K_REFRESH => self.refresh_effect(caster, eff),
-            crate::grant::K_GRANT => self.grant_effect(caster, eff, recv),
             K_ATTACK => {
                 if let Some(j) = recv.filter(|&j| j != caster && self.hostile(self.player[caster], self.player[j])) {
                     self.strike_pct(caster, j, eff.p0);
@@ -734,18 +775,12 @@ impl Sim {
                     self.timed_stat(j, eff);
                 }
             }
-            K_DISPEL => {
-                if let Some(j) = recv {
-                    self.dispel(j, eff.p0);
-                }
-            }
             K_CHAIN => {
                 if let Some(j) = recv.filter(|&j| !self.turned_away(caster, j)) {
                     self.chain_start(caster, j, eff);
                 }
             }
             K_ZONE => self.zone_start(caster, tx, ty, eff),
-            K_ILLUSION => self.illusion_effect(caster, eff),
             K_RESOURCE => {
                 if let Some(j) = recv {
                     self.resource_effect(caster, j, eff);
@@ -755,32 +790,33 @@ impl Sim {
         }
     }
 
-    /// Applies status `code` to `j`, remembering the caster for a taunt; status resistance shortens it.
+    /// Applies status `code` to `j` from `caster`. A status the pack flags as piercing immunity is not turned away.
     pub(crate) fn status_effect_from(&mut self, caster: usize, eff: Effect, target: i32) {
         if target < 0 || target as usize >= self.n {
             return;
         }
         let j = target as usize;
         let code = (eff.kind as usize).saturating_sub(11);
-        if code == crate::status::INVISIBLE {
-            self.apply_status(j, code, eff.p0, eff.p1);
-        } else if !self.turned_away(caster, j) {
+        if self.status_flag(code) & STATUS_PIERCES_IMMUNITY != 0 || !self.turned_away(caster, j) {
             self.status_with_source(caster, j, code, eff.p0, eff.p1);
         }
     }
 
+    /// Applies status `code` to `j` for `ticks` from `caster`. The status's flags decide whether resistance applies,
+    /// whether the caster is recorded as the taunter, and whether the receiver's channel ends.
     pub(crate) fn status_with_source(&mut self, caster: usize, j: usize, code: usize, ticks: i32, mul: i32) {
+        let flags = self.status_flag(code);
         let hostile = self.hostile(self.player[caster], self.player[j]);
-        let resist = if hostile { self.stat(j, S_STATUS_RESIST).clamp(0, 100) as i64 } else { 0 };
+        let resist = if hostile && flags & STATUS_NO_RESIST == 0 { self.stat(j, S_STATUS_RESIST).clamp(0, 100) as i64 } else { 0 };
         let ticks = (ticks as i64 * (100 - resist) / 100) as i32;
         if ticks <= 0 {
             return;
         }
-        if code == TAUNT {
+        if flags & STATUS_RECORDS_SOURCE != 0 {
             self.spell.taunter[j] = caster as i32;
         }
         self.apply_status(j, code, ticks, mul);
-        if code == HEX {
+        if flags & STATUS_ENDS_CHANNEL != 0 {
             self.interrupt_channel(j);
         }
     }
@@ -837,34 +873,25 @@ impl Sim {
         self.smod_add(j, code, amount);
     }
 
-    /// Removes effects from `j`: mask bit 1 timed buffs, bit 2 debuffs (slow, silence, root, taunt, disarm,
-    /// mute, break and damage over time), bit 4 stuns and hexes as well.
-    pub(crate) fn dispel(&mut self, j: usize, mask: i32) {
-        use crate::status::{BREAK, ROOT, SILENCE, SLOW, STUN};
-        if mask & 2 != 0 {
-            for s in [SLOW, SILENCE, ROOT, TAUNT, DISARM, MUTE, BREAK] {
-                self.clear_status(j, s);
-            }
-            if mask & 4 != 0 {
-                self.clear_status(j, STUN);
-                self.clear_status(j, HEX);
-            }
-            for k in j * DOT_SLOTS..(j + 1) * DOT_SLOTS {
-                self.spell.dot_left[k] = 0;
-            }
-        }
+    /// Clears the timed modifiers of unit `j`: the buffs (amount above zero) when `buffs`, the others otherwise.
+    pub fn clear_timed_mods(&mut self, j: usize, buffs: bool) {
         for k in j * TMOD_SLOTS..(j + 1) * TMOD_SLOTS {
             let code = self.spell.tmod_code[k];
-            if code < 0 {
+            if code < 0 || (self.spell.tmod_amt[k] > 0) != buffs {
                 continue;
             }
-            let positive = self.spell.tmod_amt[k] > 0;
-            if (positive && mask & 1 != 0) || (!positive && mask & 2 != 0) {
-                let amt = self.spell.tmod_amt[k];
-                self.smod_add(j, code as usize, -amt);
-                self.spell.tmod_code[k] = -1;
-                self.spell.tmod_left[k] = 0;
-            }
+            let amt = self.spell.tmod_amt[k];
+            self.smod_add(j, code as usize, -amt);
+            self.spell.tmod_code[k] = -1;
+            self.spell.tmod_left[k] = 0;
+        }
+        self.touch(j);
+    }
+
+    /// Ends every damage over time on unit `j`.
+    pub fn clear_dots(&mut self, j: usize) {
+        for k in j * DOT_SLOTS..(j + 1) * DOT_SLOTS {
+            self.spell.dot_left[k] = 0;
         }
         self.touch(j);
     }
@@ -1087,36 +1114,27 @@ impl Sim {
 
     // ---- illusions ----
 
-    fn illusion_effect(&mut self, caster: usize, eff: Effect) {
-        let kind = self.type_of[caster];
-        if kind < 0 {
-            return;
+    /// Spawns one image of unit `caster` at (x, y): a unit of the caster's kind and owner that copies the caster's
+    /// health, damage, armour and speed, lives `life` ticks, deals `out` percent and takes `inc` percent of the damage
+    /// it would. The pack chooses the count, the positions and the values. None when the caster has no kind or no slot
+    /// is free.
+    pub fn spawn_image(&mut self, caster: usize, x: i32, y: i32, life: i32, out: i32, inc: i32) -> Option<usize> {
+        if caster >= self.n || self.type_of[caster] < 0 {
+            return None;
         }
-        let ring = fixed::from_milli(1600);
+        let kind = self.type_of[caster] as u32;
         let player = self.player[caster];
-        for n in 0..eff.p0 {
-            let (dx, dy) = match n % 8 {
-                0 => (ring, 0),
-                1 => (-ring, 0),
-                2 => (0, ring),
-                3 => (0, -ring),
-                4 => (ring, ring),
-                5 => (-ring, -ring),
-                6 => (ring, -ring),
-                _ => (-ring, ring),
-            };
-            let (x, y) = (self.pos_x[caster] + dx, self.pos_y[caster] + dy);
-            let Some(j) = self.spawn_for(player, kind as u32, x, y) else { continue };
-            self.hp_max[j] = self.hp_max[caster];
-            self.hp[j] = self.hp_max[caster];
-            self.damage[j] = self.damage[caster];
-            self.armor[j] = self.armor[caster];
-            self.speed[j] = self.speed[caster];
-            self.spell.ill_out[j] = eff.p2.max(1);
-            self.spell.ill_in[j] = eff.p3.max(1);
-            self.expiry.expires[j] = self.ticks.wrapping_add(eff.p1.max(1) as u32);
-            self.touch(j);
-        }
+        let j = self.spawn_for(player, kind, x, y)?;
+        self.hp_max[j] = self.hp_max[caster];
+        self.hp[j] = self.hp_max[caster];
+        self.damage[j] = self.damage[caster];
+        self.armor[j] = self.armor[caster];
+        self.speed[j] = self.speed[caster];
+        self.spell.ill_out[j] = out.max(1);
+        self.spell.ill_in[j] = inc.max(1);
+        self.expiry.expires[j] = self.ticks.wrapping_add(life.max(1) as u32);
+        self.touch(j);
+        Some(j)
     }
 
     pub(crate) fn is_illusion(&self, j: usize) -> bool {
@@ -1145,7 +1163,7 @@ impl Sim {
         if crit > 0 && self.roll_pct(crit) {
             raw = (raw as i64 * self.stat(i, S_CRIT_MULT).max(100) as i64 / 100) as i32;
         }
-        let mut dmg = self.scale_hit(crate::combat::armour_reduced(raw, self.eff_armor(b)), i, b);
+        let mut dmg = self.scale_hit(self.armour_scaled(raw, b), i, b);
         if self.is_illusion(i) {
             dmg = (dmg as i64 * self.spell.ill_out[i] as i64 / 100) as i32;
         }
@@ -1196,7 +1214,7 @@ impl Sim {
                 continue;
             }
             let part = (raw as i64 * pct as i64 / 100) as i32;
-            let dmg = crate::combat::armour_reduced(part, self.eff_armor(j));
+            let dmg = self.armour_scaled(part, j);
             self.inflict(j, dmg, i as i32);
         }
     }
@@ -1236,7 +1254,7 @@ impl Sim {
     }
 
     fn run_procs(&mut self, owner: usize, other: usize, flag: u16, target: i32) {
-        if self.stunned(owner) || self.alive[owner] == 0 {
+        if self.proc_blocked(owner) || self.alive[owner] == 0 {
             return;
         }
         let (sources, count) = self.passive_sources(owner);
@@ -1274,6 +1292,9 @@ impl Sim {
             self.set_cooldown(slot, cooldown);
             let at = if flag == FLAG_PROC_ATTACKED { owner } else { other };
             let (x, y) = (self.pos_x[at], self.pos_y[at]);
+            if self.spell.proc_log.len() < PROC_LOG_CAP {
+                self.spell.proc_log.push((owner as u32, ai as u16));
+            }
             self.run_effects(owner, ai, x, y, target);
         }
     }
@@ -1316,32 +1337,6 @@ impl Sim {
         }
     }
 
-    /// Current value of stat `code` (see `STAT_COUNT`; the order of the scenario's stat_names (SNAM) section) on unit `i`: the
-    /// sum of its passive and timed modifiers. Zero for an unknown unit or code.
-    pub fn stat_value(&self, i: usize, code: usize) -> i32 {
-        if i < self.n && code < STAT_COUNT { self.stat(i, code) } else { 0 }
-    }
-
-    /// The ability slot of unit `i` holding the ability called `name`.
-    pub fn ability_slot(&self, i: usize, name: &str) -> Option<usize> {
-        (0..ABILITY_SLOTS).find(|&slot| self.ability_in_slot(i, slot).is_some_and(|a| self.cat.name(self.cat.abilities[a].name) == name))
-    }
-
-    /// Whether unit `i` is walking into range to finish a cast.
-    pub fn cast_pending(&self, i: usize) -> bool {
-        self.spell.pend_slot.get(i).is_some_and(|&s| s >= 0)
-    }
-
-    /// Sets upgrade bit 0 (scepter) or 1 (shard) on unit `i`, and refreshes its passives.
-    pub fn grant_upgrade(&mut self, i: usize, shard: bool, on: bool) {
-        if i >= self.n {
-            return;
-        }
-        let bit = if shard { COND_SHARD } else { COND_SCEPTER };
-        self.spell.upg[i] = if on { self.spell.upg[i] | (1 << bit) } else { self.spell.upg[i] & !(1 << bit) };
-        self.refresh_passives(i);
-    }
-
     /// Sets or clears upgrade bit `bit` on unit `i` and refreshes its passives. The bits are data: 0 scepter,
     /// 1 shard, 2..=9 the eight talent slots that abilities test. Which upgrade a choice sets, and the level or
     /// one-per-tier rules, are mod code (the pack's talents.lua). A dead or unknown unit, or a bit past 9, is
@@ -1378,8 +1373,6 @@ impl Sim {
             self.tick_tmods(i);
             self.tick_dots(i);
             self.tick_auras(i);
-            self.tick_taunt(i);
-            self.tick_pending(i);
         }
     }
 
@@ -1436,34 +1429,6 @@ impl Sim {
             let (x, y) = (self.pos_x[i], self.pos_y[i]);
             self.run_effects(i, ai, x, y, i as i32);
         }
-    }
-
-    fn tick_taunt(&mut self, i: usize) {
-        if self.status_left(i, TAUNT) <= 0 {
-            return;
-        }
-        let t = self.spell.taunter[i];
-        if t < 0 || (t as usize) >= self.n || self.alive[t as usize] == 0 {
-            return;
-        }
-        self.tgt_x[i] = self.pos_x[t as usize];
-        self.tgt_y[i] = self.pos_y[t as usize];
-        self.order_kind[i] = ORDER_MOVE;
-        self.routed[i] = 0;
-    }
-
-    /// The unit `i` must attack while taunted, when it stands in weapon reach.
-    pub(crate) fn taunt_target(&self, i: usize) -> Option<usize> {
-        if self.status_left(i, TAUNT) <= 0 {
-            return None;
-        }
-        let t = self.spell.taunter[i];
-        if t < 0 || (t as usize) >= self.n || self.alive[t as usize] == 0 {
-            return None;
-        }
-        let t = t as usize;
-        let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
-        (dist2(self.pos_x[i], self.pos_y[i], self.pos_x[t], self.pos_y[t]) <= reach).then_some(t)
     }
 
     // ---- charges ----
@@ -1523,87 +1488,55 @@ impl Sim {
         }
     }
 
-    /// Charges held by ability slot `slot` of unit `i`; -1 when the slot has no charges or has not started them.
-    pub fn charges_of(&self, i: usize, slot: usize) -> i32 {
-        if i >= self.n || slot >= ABILITY_SLOTS {
-            return -1;
-        }
-        self.spell.charge_n[i * ABILITY_SLOTS + slot]
-    }
-
     // ---- walking into cast range ----
 
-    /// Parks a cast that is out of range: the unit walks toward the target and casts on arrival.
-    pub(crate) fn begin_pending_cast(&mut self, i: usize, slot: usize, target: i32, x: i32, y: i32) {
-        self.spell.pend_slot[i] = slot as i32;
-        self.spell.pend_target[i] = target;
-        self.spell.pend_x[i] = x;
-        self.spell.pend_y[i] = y;
-        self.tgt_x[i] = x;
-        self.tgt_y[i] = y;
-        self.order_kind[i] = ORDER_MOVE;
-        self.routed[i] = 0;
+    // ---- cast gate primitives: the pack's on_cast_request decides with them ----
+
+    /// The skill slot of unit `i` whose ability is named `name`; None when it holds no such ability.
+    pub fn ability_slot(&self, i: usize, name: &str) -> Option<usize> {
+        (0..ABILITY_SLOTS).find(|&slot| self.ability_in_slot(i, slot).is_some_and(|a| self.cat.name(self.cat.abilities[a].name) == name))
+    }
+
+    /// Adds `amount` energy to unit `i` (saturating), a plain state write for tests. Refusals, each changing
+    /// nothing: a dead or unknown unit is NoTarget; an amount of zero or less is Energy.
+    pub fn grant_energy(&mut self, i: usize, amount: i32) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        if amount <= 0 {
+            return Err(self.reject(Refusal::Energy));
+        }
+        self.energy[i] = self.energy[i].saturating_add(amount);
         self.touch(i);
+        Ok(())
     }
 
-    pub(crate) fn cancel_pending_cast(&mut self, i: usize) {
-        if let Some(v) = self.spell.pend_slot.get_mut(i) {
-            *v = -1;
-        }
+    /// The flags (`FLAG_*`), target filter mask and target kind of catalog ability `ai`; None for an unknown index.
+    pub fn ability_gate(&self, ai: usize) -> Option<(u16, u32, u8)> {
+        let ability = self.cat.abilities.get(ai)?;
+        Some((self.ext_of(ai).flags, ability.filter as u32, ability.target))
     }
 
-    fn tick_pending(&mut self, i: usize) {
-        let slot = self.spell.pend_slot[i];
-        if slot < 0 {
-            return;
-        }
-        if self.stunned(i) || self.hexed(i) {
-            self.spell.pend_slot[i] = -1;
-            return;
-        }
-        let ai = self.abil_idx[i * ABILITY_SLOTS + slot as usize];
-        if ai < 0 {
-            self.spell.pend_slot[i] = -1;
-            return;
-        }
-        let (target, mut x, mut y) = (self.spell.pend_target[i], self.spell.pend_x[i], self.spell.pend_y[i]);
-        if target >= 0 {
-            let t = target as usize;
-            if t >= self.n || self.alive[t] == 0 {
-                self.spell.pend_slot[i] = -1;
-                return;
-            }
-            x = self.pos_x[t];
-            y = self.pos_y[t];
-            self.tgt_x[i] = x;
-            self.tgt_y[i] = y;
-        }
-        let range = fixed::from_milli(self.cast_range_of(i, ai as usize)) as i64;
-        if dist2(self.pos_x[i], self.pos_y[i], x, y) <= range * range {
-            self.spell.pend_slot[i] = -1;
-            self.tgt_x[i] = self.pos_x[i];
-            self.tgt_y[i] = self.pos_y[i];
-            self.cast_ability(i, slot as usize, target, x, y);
-        }
+    /// Whether a cast of catalog ability `ai` by unit `i` at (x, y) is within its cast range (always so for none).
+    pub fn cast_in_range(&self, i: usize, ai: usize, x: i32, y: i32) -> bool {
+        !self.out_of_cast_range(i, ai, x, y)
     }
 
-    /// Gives each skilled ability of the placed unit `j` the rank its placer holds in the running ability.
-    pub(crate) fn inherit_ranks(&mut self, caster: usize, j: usize) {
-        if self.spell.cur_ai < 0 {
-            return;
+    /// The catalog ability the active item in inventory slot `slot` of unit `unit` names: None for an empty or
+    /// inactive slot, or for an item with no active ability (the slot rule `use_item` applies).
+    pub fn item_ability_at(&self, unit: usize, slot: usize) -> Option<usize> {
+        use crate::loader::NO_INDEX;
+        if unit >= self.n || slot >= crate::inventory::INV_SLOTS || !crate::inventory::slot_active(slot) {
+            return None;
         }
-        let rank = self.rank_of(caster, self.spell.cur_ai as usize);
-        for slot in 0..ABILITY_SLOTS {
-            let k = j * ABILITY_SLOTS + slot;
-            let ai = self.abil_idx[k];
-            if ai < 0 {
-                continue;
-            }
-            if let Some(skill) = self.cat.abilities[ai as usize].skill {
-                self.abil_rank[k] = rank.min(skill.max_rank as usize) as u8;
-            }
-        }
-        self.refresh_passives(j);
+        let key = unit * crate::inventory::INV_SLOTS + slot;
+        let ability = self.item_def(self.inv_kind[key]).map(|d| d.ability)?;
+        (ability != NO_INDEX).then_some(ability as usize)
+    }
+
+    /// Takes the passive procs fired since the last call, oldest first, as (owner, ability index).
+    pub fn take_procs(&mut self) -> Vec<(usize, usize)> {
+        std::mem::take(&mut self.spell.proc_log).into_iter().map(|(u, a)| (u as usize, a as usize)).collect()
     }
 
     /// Whether the cast point (x, y) is farther from unit `i` than the cast range of ability `ai`.

@@ -6,18 +6,18 @@ Trigger key: `timer` = driven by a clock or sleep, `event` = driven by a game ev
 
 Our implementation is written fresh in `mods/bot_lib.lua` and uses only the mod API. Nothing from the script is copied into the repo.
 
-Units: the script's ranges are in its own units, 64 to a map cell (`cells(units) = units * 15.625 / 1000`, the same conversion the blink check in `rust/gate/src/ability_checks.rs` uses). The sim runs 16 ticks to the second.
+Units: the script's ranges are in its own units, 64 to a map cell (`cells(units) = units * 15.625 / 1000`, the same conversion the blink distance check in `rust/gate/src/spell_checks.rs` uses). The sim runs 16 ticks to the second.
 
 ## 1. Hero AI loop (`N9F`, 87046-90408)
 
 | Rule | Source | Trigger | Our status |
 | --- | --- | --- | --- |
 | The hero loop runs every 0.1 s per hero. | 87062 `TriggerSleepAction(.1)` | timer | Done: a decision every 2 ticks (`Bot.DECIDE_EVERY`), 0.125 s, the whole-tick count nearest 0.1 s at 16 ticks a second. |
-| Retreat when HP is below 40% and HP is below 300 + 30 x level. | 5425-5427 `ME7`, used at 87101 | state | Done: `Bot.think` retreats below 40% and below 300 + 30 x `game.unit_level`; recovers at 80%. |
-| Engage only at level above 3, HP above 70%, and the AI flag set. | 87121 | state | Done for enemy heroes. The AI flag is set on every bot slot, so it is not checked. Creep last hits are not gated, so a level-1 hero still last-hits (the probe witness needs this). |
+| Retreat when HP is below 40% and HP is below 300 + 30 x level. | 5425-5427 `ME7`, used at 87101 | state | Done: `Bot.think` retreats below 40% and below 300 + 30 x the hero's level (`unit_level`, section 7); recovers at 80%. |
+| Engage only at level above 3, HP above 70%, and the AI flag set. | 87121 | state | Done for enemy heroes. The AI flag is set on every bot slot, so it is not checked. Creep last hits are not gated, so a level-1 hero still last-hits . |
 | Look for an enemy hero within 800 (`K7`), else a creep within 1100 (`Kl`), then engage. | 87122-87125 | state | Done: `search_target`, 12.5 cells for a hero, 17.2 cells for a creep. |
 | Engage only when at most 2 enemies are within 750 and none is in `Q77`. | 87131 | state | Partly: at most 2 within 750 (11.7 cells) is done. The `Q77` test is not applied: its body is not read (section 6). |
-| Retarget within 600 only when a candidate has less HP. While the target is above 50% HP, the candidate's HP plus 20 x its level must be below the target's HP; otherwise a plain HP comparison. | 87137-87145 | state | Done: `retarget`, 9.4 cells, with the level term from `game.unit_level`. |
+| Retarget within 600 only when a candidate has less HP. While the target is above 50% HP, the candidate's HP plus 20 x its level must be below the target's HP; otherwise a plain HP comparison. | 87137-87145 | state | Done: `retarget`, 9.4 cells, with the level term from `unit_level` (section 7). |
 | Disengage at level 6 and above when out of 1500 range, or when own HP% + 20 is below the target's HP%. | 87158-87160 | state | Done for hero targets: 23.4 cells and the HP% rule. Creep targets are not disengaged. |
 | Disengage below level 6 when out of 750 range, or when own HP% - 20 is below the target's HP%. | 87154-87157 | state | Done for hero targets: 11.7 cells and the HP% rule. Creep targets are not disengaged. |
 | A hero target with HP above 50% triggers a search within 700 for another unit. | 87147-87150 | state | Done: `retarget` searches 10.9 cells around a hero target above 50%. |
@@ -67,5 +67,5 @@ These are already matched by `scenarios/moba/waves.osd` (see `docs/MAP_SCRIPT_68
 
 ## 7. Mod API used
 
-- `game.unit_level(unit)` (added for the level terms above) reads the sim's experience table. It is read-only.
+- The level is not a game call: `game.unit_level` was removed. The level is `xp.level_of` (and `xp.character_level`, the level plus one) in `scenarios/moba/shared/xp.lua`, which counts the `xp_curve` thresholds the unit's xp has reached. `unit_level` in `mods/bot_lib.lua` carries a copy of that rule, because the bot chunk cannot require `shared/xp.lua`. It reads `game.xp(unit)` and `game.xp_curve()`, both read-only.
 - Blink uses the existing `game.cmd_use_item(unit, slot, -1, x, y)`, the same path as the item blink in `rust/gate/src/item_checks.rs`. No new cast or sim mechanic was added.

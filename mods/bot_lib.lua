@@ -1,6 +1,6 @@
 -- Bot library: the decision logic of a computer-controlled hero, written only against the mod API.
 -- A mod is one chunk, so CI joins this file ahead of mods/bot_unit_example.lua (cat bot_lib.lua bot_unit_example.lua > bots.lua).
--- Uses game.units, game.unit_kind, game.unit_abilities, game.unit_cooldown, game.unit_level, game.unit_items,
+-- Uses game.units, game.unit_kind, game.unit_abilities, game.unit_cooldown, game.xp, game.xp_curve, game.unit_items,
 -- game.gold, game.team, game.time, game.cmd_order, game.cmd_attack, game.cmd_cast, game.cmd_use_item,
 -- game.cmd_buy, unit_position, unit_hp and unit_alive.
 
@@ -62,6 +62,17 @@ local function distance_tiles(ax, ay, bx, by)
 end
 
 local function whole_hp(unit) return unit_hp(unit) / TILE end
+
+-- The level of a unit: the count of the xp curve's thresholds its xp has reached. This file is one chunk with its
+-- seat file and cannot require shared/xp.lua, so it carries its own copy of the rule.
+local function unit_level(unit)
+  local have = game.xp(unit)
+  local level = 0
+  for _, threshold in ipairs(game.xp_curve()) do
+    if threshold <= have then level = level + 1 end
+  end
+  return level
+end
 
 -- Health percent against the most HP this unit has shown; the mod API exposes no max HP.
 local seen_max_hp = {}
@@ -146,7 +157,7 @@ end
 -- Engage gate for enemy heroes (87121, 87131): above level 3, HP above 70%, at most 2 enemies within 750.
 -- The AI flag is set on every bot slot, so it is not checked. The unnamed test on 87131 (Q77) is not read.
 local function may_engage(hero, enemies)
-  if game.unit_level(hero) <= ENGAGE_MIN_LEVEL then return false end
+  if unit_level(hero) <= ENGAGE_MIN_LEVEL then return false end
   if hp_pct(hero) <= ENGAGE_MIN_PCT then return false end
   local near = 0
   for _, unit in ipairs(enemies) do
@@ -169,7 +180,7 @@ local function retarget(hero, target, enemies)
       local hp = whole_hp(unit)
       local wins
       if tpct > HERO_SEARCH_PCT then
-        wins = hp + ENEMY_LEVEL_HP * game.unit_level(unit) < target_hp
+        wins = hp + ENEMY_LEVEL_HP * unit_level(unit) < target_hp
       else
         wins = hp < target_hp
       end
@@ -184,7 +195,7 @@ end
 local function disengage(hero, target)
   if game.unit_kind(target) ~= "hero" then return false end
   local far, gap
-  if game.unit_level(hero) >= DISENGAGE_LEVEL then
+  if unit_level(hero) >= DISENGAGE_LEVEL then
     far, gap = FAR_HIGH, DISENGAGE_GAP
   else
     far, gap = FAR_LOW, -DISENGAGE_GAP
@@ -310,7 +321,7 @@ function Bot.think(bot, units, ticks)
   local pct = hp_pct(hero)
   local hp = whole_hp(hero)
   if bot.retreating and pct >= RECOVER_FRACTION * 100 then bot.retreating = false end
-  if not bot.retreating and pct < RETREAT_PCT and hp < RETREAT_HP + RETREAT_HP_PER_LEVEL * game.unit_level(hero) then
+  if not bot.retreating and pct < RETREAT_PCT and hp < RETREAT_HP + RETREAT_HP_PER_LEVEL * unit_level(hero) then
     bot.retreating = true
   end
   if bot.retreating then

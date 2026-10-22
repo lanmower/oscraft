@@ -1,6 +1,6 @@
 # reference map 6.88g: convergence report
 
-Subject: `/workspace/oscraft/reference map 6.88g.w3x` (reference map 6.88g), compared with the MOBA scenario data in `scenarios/moba/`. Every value below is labelled reference map 6.88g. Section 7 records the one data change applied so far (66 matched heroes); everything else in sections 1 to 6 is still a comparison, not an edit.
+Subject: `/workspace/oscraft/reference map 6.88g.w3x` (reference map 6.88g; external, not in the repo), compared with the MOBA scenario data in `scenarios/moba/`. Every value below is labelled reference map 6.88g. Sections 7 and 8 (Applied) record the data changes applied so far (69 matched heroes; 32 neutral and Roshan rows); everything else in sections 1 to 6 is still a comparison, not an edit.
 
 Our `scenarios/moba/*.osd` stats are generated from reference ruleset `npc_units.txt` and `items.txt` (SteamDatabase dump), not from 6.88g. Every comparison below is therefore a cross-game check of the same concept, not a 6.88g-to-6.88g diff.
 
@@ -8,7 +8,7 @@ Our `scenarios/moba/*.osd` stats are generated from reference ruleset `npc_units
 
 - File size: 41,467,779 bytes. MPQ format version 1, header at offset 0, sector size 4096, hash table 65,536 entries, block table 2,328 valid blocks.
 - Member names: the `(listfile)` member lists 2,326 names. Hashing every listed name (and the standard candidates) against the hash table resolves all 2,328 valid blocks: 2,326 listed names plus `(listfile)` and `(attributes)`. No block is unnamed. libmpq's member iterator also yields exactly 2,328 names.
-- Readers: libmpq 0.8.1 (ctypes binding over libmpq.so, in `/tmp/mpq688-scripts/venv`) and a stdlib reader (`/tmp/mpq688-analysis/mpqr.py`). Both read the `(listfile)` (98,070 B, plain `\r\n` list). Five members use PKWARE implode (`refmap.w3a`, `refmap.wts`, `refmap.w3h`, `NEW_LOADSCREEN.dds`, `SlowTarget.mdl`); the stdlib reader cannot decode them, libmpq reads all five. 40 `Units\*Func.txt` and `Units\*Strings.txt` members are zero-length (csize 0) and are rejected by libmpq with format error -7. Extracted: 2,288 members with content plus 40 zero-length members.
+- Readers: libmpq 0.8.1 (ctypes binding over libmpq.so, in the scratch venv `/tmp/mpq688-scripts/venv`, not kept) and a stdlib reader (scratch script `/tmp/mpq688-analysis/mpqr.py`, not kept). Both read the `(listfile)` (98,070 B, plain `\r\n` list). Five members use PKWARE implode (`refmap.w3a`, `refmap.wts`, `refmap.w3h`, `NEW_LOADSCREEN.dds`, `SlowTarget.mdl`); the stdlib reader cannot decode them, libmpq reads all five. 40 `Units\*Func.txt` and `Units\*Strings.txt` members are zero-length (csize 0) and are rejected by libmpq with format error -7. Extracted: 2,288 members with content plus 40 zero-length members.
 - StormLib, w3x2lni and ObjectEditor were not built or installed: libmpq and the stdlib reader were sufficient.
 - Standard members present: `refmap.w3i` (796 B), `refmap.w3e` (116,568 B), `refmap.doo` (259,494 B), `refmapUnits.doo` (246 B), `refmap.w3a` (15,336 B), `refmap.w3b` (2,636 B), `refmap.w3d` (5,355 B), `refmap.w3h` (37 B), `refmap.wts` (20,067 B), `refmap.wpm` (262,160 B), `refmap.shd` (262,144 B), `refmap.wct` (310 B), `refmap.wtg` (567 B), `refmap.w3c` (8 B), `refmap.w3r` (8 B), `refmap.j` (3,065,090 B), `refmapMisc.txt` (1,860 B), `refmapSkin.txt` (2,006 B), `refmapImported\templates.toc`.
 - Unit, item and ability data are in SLK overrides: `Units\UnitData.slk` (355,210 B), `Units\UnitBalance.slk` (430,025 B), `Units\UnitWeapons.slk` (164,892 B), `Units\UnitAbilities.slk` (114,678 B), `Units\AbilityData.slk` (715,863 B), `Units\UpgradeData.slk` (19,481 B), `units\ItemData.slk` (240,297 B). The lowercase `units\` spelling is also in the archive.
@@ -209,8 +209,8 @@ Decisions, each with its reason:
 - Canonical row per hero name: the balance rows whose `Primary` is STR, AGI or INT and whose name matches our hero id after lowercasing and stripping non-alphanumerics. Among duplicate rows, the most frequent stat tuple wins, then a non-`TX` id (the `TX` prefix marks duplicated test or skin copies). Reason: duplicates carry identical stats, so the choice only fixes the id, not the value.
 - Scale (unchanged from `scenarios/moba/tools/gen-heroes.mjs`): 1 reference unit = 15.625 milli; move speed milli per tick = spd x 15.625 / 16; attack period ticks = bat x 16; sight and range milli = reference units x 15.625; radius = collision x 15.625. Reason: the sim already uses this scale for the reference ruleset values, so the 6.88g numbers are expressed in the same model.
 - Weapon damage: `dmgplus1 + dice1 x (sides1 + 1) / 2` (average of the dice roll). Reason: the sim models one damage number, so the 6.88g dice average is the closest expressible value (min and max are a gap, see below).
-- Armour: the balance `def` base only. Reason: the sim adds agility to armour itself (gate: `q16(agi/6)`), so adding it here would double count.
-- Hit points: the balance `HP` field is used as `health`. Reason: the sim adds strength on top of this base, as it did for the reference ruleset values.
+- Armour: the balance `def` base only. Reason: the pack adds agility to armour itself (`scenarios/moba/heroes.lua`, divisor `armour_per_attr_b_div` = 6 in `scenarios/moba/attr_rules.txt`), so adding it here would double count.
+- Hit points: the balance `HP` field is used as `health`. Reason: the pack (`scenarios/moba/heroes.lua`) adds strength on top of this base, as it did for the reference ruleset values.
 - Mana and regeneration: `mana0` for mana, `regenMana` and `regenHP` per second (hundredths) for `mana_regen` and `hp_regen`.
 
 Counts for heroes:
@@ -220,7 +220,7 @@ Counts for heroes:
 | Our hero units | 127 | `units_heroes.osd` |
 | Matched to a 6.88g canonical row, values applied | 69 | `scenarios/moba/heroes_688g.tsv`, applied by `scripts/apply-heroes-688g.py` |
 | Unresolved, left at the reference ruleset values | 58 | see gaps: the name exists only on `h0xx`/`n0xx` rows with `Primary` `_` (no playable stat row found) |
-| Dropped (no 6.88g hero) | 10 | `ironhide`, `swiftbow`, `stormcaller`, `bulwark`, `shadeblade`, `emberlord`, `gale_archer`, `frostmage`, `tidecaller`, `thornwarden`: no 6.88g name, dropped by `scripts/apply-creeps-688g.py`. `hero` is kept as the generic player-hero kind |
+| Dropped (no 6.88g hero) | 10 | `ironhide`, `swiftbow`, `stormcaller`, `bulwark`, `shadeblade`, `emberlord`, `gale_archer`, `frostmage`, `tidecaller`, `thornwarden`: no 6.88g name, the DROP set of `scripts/apply-creeps-688g.py` (the ten lines are still in `units.osd`, see section 9). `hero` is kept as the generic player-hero kind |
 | Added (6.88g hero we lack) | 0 | not attempted in this pass |
 
 Gaps the sim cannot express (not invented):
@@ -230,39 +230,39 @@ Gaps the sim cannot express (not invented):
 - Projectile speed for ranged heroes is not in the SLK rows read here.
 - Magic resistance: 6.88g has no field; `mr=25` is kept from the reference ruleset block.
 - Hero bounty (level-based in 6.88g) is not in `unit_extra`; kept at 0.
-- The sim's per-strength health (22) and per-intelligence mana (12) factors are the reference ruleset constants; 6.88g's factors are not in the SLK rows.
+- The pack's per-strength health (`hp_per_attr_a` = 22) and per-intelligence mana (`mana_per_attr_c` = 12) factors are the reference ruleset constants (`scenarios/moba/attr_rules.txt`); 6.88g's factors are not in the SLK rows.
 
 Gate changes (`rust/gate`), each for an old value:
 
-- `hero_axe_level1` and `hero_axe_growth` (`rust/gate/src/hero_checks.rs`): Axe now has AGI 20 (was 18), health base 150 (was 120), damage 26 (was 33), mana base 100 (was 75), growth 2.5/2.2/1.6 (was 2.7/1.7/1.6). Reason: the expectations were the reference ruleset values; they now carry the 6.88g numbers.
-- `phantom_lancer_illusions` (`rust/gate/src/ability_checks.rs`): the victim spawns one unit away instead of two. Reason: 6.88g Phantom Lancer has a 128 range (melee), and the old placement is out of range. The check is about illusions, not range.
+- `hero_axe_level1` and `hero_axe_growth` (`rust/gate/src/hero_checks.rs`, no longer in the tree): Axe now has AGI 20 (was 18), health base 150 (was 120), damage 26 (was 33), mana base 100 (was 75), growth 2.5/2.2/1.6 (was 2.7/1.7/1.6). Reason: the expectations were the reference ruleset values; they now carry the 6.88g numbers.
+- `phantom_lancer_illusions` (`rust/gate/src/ability_checks.rs`, no longer in the tree): the victim spawns one unit away instead of two. Reason: 6.88g Phantom Lancer has a 128 range (melee), and the old placement is out of range. The check is about illusions, not range.
 
-Verification (local): `osdt-data` loads `scenarios/moba`; `mod_check` on `moba_attack.lua` passes; `oscraft-gate` passes 197 of 197; `oscraft-gate mpq` passes. `moba_match` exits 1 with `no winner by tick=40000` both before and after this change (HEAD baseline gives the same line), so it is a pre-existing condition, not a regression. Superseded: on origin main `fa6862f`, `moba_match ../scenarios/moba 40000` exits 0 with `winner=0 tick=29089` (section 8).
+Verification (local, at that pass; `moba_match` is no longer in the tree): `osdt-data` loads `scenarios/moba`; `mod_check` on `moba_attack.lua` passes; `oscraft-gate` passes 197 of 197; `oscraft-gate mpq` passes. `moba_match` exits 1 with `no winner by tick=40000` both before and after this change (HEAD baseline gives the same line), so it is a pre-existing condition, not a regression. Superseded: on origin main `fa6862f`, `moba_match ../scenarios/moba 40000` exits 0 with `winner=0 tick=29089` (section 8).
 
 Not done in this pass (the rest of the brief): creeps and neutrals in `units.osd` and `units_extra.osd` (77 rows), the 61 unresolved heroes, and every ability in `abilities.osd` and `abilities_ruleset.osd` (AbilityData `Cool1`, `Cost1`, `Rng1`, `Area1`, `Dur1`, `DataA1`..`DataI1` per level, read by the effect model). The ability mapping needs the `effect` model in `rust/crates/data/src/builtins.rs` matched per kind before values can be written.
 
 ## 8. Wave, siege, start, day/night and buyback timing (this pass)
 
-Line numbers are in the extracted `refmap.j` (`/tmp/mpq688/out`), unless marked "ours".
+Line numbers are in the extracted `refmap.j` (a scratch extract of that pass, not kept), unless marked "ours".
 
 Changed: nothing. Every map-sourced value below either matches our data or has no value in the map to compare with.
 
 Map values:
 
 - Creep wave cadence: 30 s periodic. `TriggerRegisterTimerEventPeriodic(xR,30.)` at line 30050, with `TriggerExecute(xR)` at line 30051, so the first wave fires at game start. Action `JAE` (line 26200, bound at line 101660). `JAE` spawns through `JRE` with raw ids `u001`, `n12Q`, `ugho` and `u002`, `unec`, `n12R`, chosen by flags. Every seventh execution (`ModuloInteger(GetTriggerExecCount(xR),7)==0`) calls `H5E` at line 26201. `H5E` only writes stats, so the seventh-wave rule is an upgrade hook, not a spawn change.
-- Ours: `mods/moba_waves.lua` `CREEP_PERIOD = 480` ticks. At `TICKS_PER_SECOND = 16` (`rust/crates/sim/src/lib.rs:65`) that is 30 s. Match. The first creep is at game timer 1 tick, which is the start, so it matches the map's immediate `TriggerExecute`.
-- Siege timing: NOT FOUND in the map. No trigger in this pass fires a siege or name-based siege spawn. Our `SIEGE_STARTS = {4800, 28800, 57600}` (`mods/moba_waves.lua` line 13, 5, 30 and 60 min at 16 ticks/s) and `SIEGE_PERIOD = 4800` have no map source here. The 5-minute value is a public description, not map-sourced, and is kept unchanged.
+- Ours: `scenarios/moba/lanes.lua` `CREEP_PERIOD = 480` ticks (line 17). At `TICKS_PER_SECOND = 16` (`rust/crates/sim/src/lib.rs:64`) that is 30 s. Match. The first creep is at game timer 1 tick, which is the start, so it matches the map's immediate `TriggerExecute`.
+- Siege timing: NOT FOUND in the map. No trigger in this pass fires a siege or name-based siege spawn. Our `SIEGE_STARTS = {4800, 28800, 57600}` (`scenarios/moba/lanes.lua` line 19, 5, 30 and 60 min at 16 ticks/s) and `SIEGE_PERIOD = 4800` (line 18) have no map source here. The 5-minute value is a public description, not map-sourced, and is kept unchanged.
 - Game-start timer: `TimerStart(CreateTimer(),0xB4,false,function POE)` at line 30036 is a one-shot 180 s (`0xB4`) that sets flag `Oo=true` (`POE` at lines 30013-30016). The flag's consumers are not decoded. The countdown before start is `TimerStart(SA,TA+1,false,null)` at line 36638 (`RZX`). `TA` is a global `90` (line 791), reassigned to `0x96` = 150 (line 37252, `I9X`), `0xB4` = 180 (line 39444), `90` (lines 37852, 39662) and `'x'` = 120 (line 40408). The value in effect at start is not resolved, so no countdown length is claimed.
-- Day and night: `SetTimeOfDayScale(.625)` at line 30035, and the start is dawn with `SetFloatGameState(GAME_STATE_TIME_OF_DAY,6.)` at line 30033. The map stores a rate, not a day or night length in seconds. Length is NOT in the map. Ours: `DAY_TICKS = 300 * 16` and `NIGHT_TICKS = 300 * 16` (`rust/crates/sim/src/lib.rs:70-71`, 5 min each). These are unsourced from the map and kept unchanged.
-- Buyback cooldown: NOT FOUND. No buyback timer or cooldown value is in the map. The `UnitResetCooldown` calls at lines 26211-26220 and 3735-3745 reset unit cooldowns, not buyback. Ours: `BUYBACK_NET_WORTH_DIV = 13` (`rust/crates/sim/src/hero.rs:25`) is a cost divisor. There is no cooldown constant to compare.
+- Day and night: `SetTimeOfDayScale(.625)` at line 30035, and the start is dawn with `SetFloatGameState(GAME_STATE_TIME_OF_DAY,6.)` at line 30033. The map stores a rate, not a day or night length in seconds. Length is NOT in the map. Ours: `day_s=300` and `night_s=300` (`scenarios/moba/attr_rules.txt` lines 79-80, read by `scenarios/moba/clock.lua` as 300 * 16 ticks each, 5 min each). These are unsourced from the map and kept unchanged.
+- Buyback cooldown: NOT FOUND. No buyback timer or cooldown value is in the map. The `UnitResetCooldown` calls at lines 26211-26220 and 3735-3745 reset unit cooldowns, not buyback. Ours: `buyback_net_worth_div=13` (`scenarios/moba/attr_rules.txt` line 32, used by `scenarios/moba/heroes.lua`) is a cost divisor. There is no cooldown constant to compare.
 - Other map timers, unmatched to a repo value: 450 s periodic `oR` (line 30052, action `JTE` at line 26536, which swaps tech research counts); 75 s one-shot `rR` (line 101706, action `JUE`); 2669 s one-shot `vR` (line 30053, action `HSE` at line 26000, increments `Ji`); 849 s one-shot `eR` (line 30054, action `HTE` at line 26003, increments `ji`). These are not matched to our wave, siege or day data.
 
-Repo sources that are not map data: `scenarios/moba/waves.osd` holds only lane spawner placements. The wave cadence is in `mods/moba_waves.lua`, not in `waves.osd`. `rust/crates/sim/src/camp.rs` `CAMP_FIRST_SPAWN_S = 60` is a neutral-camp value, not a wave value, so it is not compared.
+Repo sources that are not map data: `scenarios/moba/waves.osd` holds the lane spawner placements and the wave ability definitions (`creep_wave_*` and `siege_wave_*`, periods 480 and 4800 ticks). The wave cadence that spawns is in `scenarios/moba/lanes.lua`. `camp_first_spawn_s=60` (`scenarios/moba/attr_rules.txt` line 66) is a neutral-camp value, not a wave value, so it is not compared.
 
 Verification on origin main `fa6862f` (fresh clone):
 
 - `oscraft-gate` (rust, release): `gate: 203 checks, 0 failed`.
-- `moba_match ../scenarios/moba 40000` (rust, release): exit 0, `winner=0 tick=29089`, replay hash `35358641158f53c0`. This is the result that holds on current main. The earlier `no winner by tick=40000` and the `winner=0 tick=29089` reports came from different builds.
+- `moba_match ../scenarios/moba 40000` (rust, release; no longer in the tree): exit 0, `winner=0 tick=29089`, replay hash `35358641158f53c0`. This was the result on `fa6862f`. The earlier `no winner by tick=40000` and the `winner=0 tick=29089` reports came from different builds.
 
 ## 8. Applied: neutral creeps and Roshan
 

@@ -130,6 +130,34 @@ const HY3D_MODEL = {
   earthshaker: "earthshaker-skinned",
   crystal_maiden: "crystal-maiden-skinned",
   dark_seer: "dark-seer-skinned",
+  earth_spirit: "earth-spirit-skinned",
+  ember_spirit: "ember-spirit-skinned",
+  enchantress: "enchantress-skinned",
+  enigma: "enigma-skinned",
+  invoker: "invoker-skinned",
+  juggernaut: "juggernaut-skinned",
+  keeper_of_the_light: "keeper-of-the-light-skinned",
+  legion_commander: "legion-commander-skinned",
+  life_stealer: "lifestealer-skinned",
+  lone_druid: "lone-druid-skinned",
+  magnataur: "magnataur-skinned",
+  morphling: "morphling-skinned",
+  naga_siren: "naga-siren-skinned",
+  night_stalker: "night-stalker-skinned",
+  obsidian_destroyer: "obsidian-destroyer-skinned",
+  ogre_magi: "ogre-magi-skinned",
+  omniknight: "omniknight-skinned",
+  oracle: "oracle-skinned",
+  brewmaster: "pandaren-brewmaster-skinned",
+  phantom_assassin: "phantom-assassin-skinned",
+  phantom_lancer: "phantom-lancer-skinned",
+  phoenix: "phoenix-skinned",
+  queenofpain: "queen-of-pain-skinned",
+  sand_king: "sand-king-skinned",
+  silencer: "silencer-skinned",
+  skeleton_king: "skeleton-king-skinned",
+  spectre: "spectre-skinned",
+  spirit_breaker: "spiritbreaker-skinned",
 };
 
 const osd = [
@@ -138,7 +166,8 @@ const osd = [
   "# mana, health regeneration, armor, magic resistance and base attack time are the `attr` lines of attr_rules.txt. Abilities are filled by the ability data.",
   "# Fixed: radius 375 = HULL_SIZE_HERO 24 units (hull sizes are engine constants, not in the dump: UNVERIFIED).",
   ...heroes.flatMap((h) => {
-    const model = HY3D_MODEL[h.id] ?? (h.female ? "character-female-a" : "character-male-a");
+    // No default model: a hero with no skinned model is written with an empty one, and the page refuses to start a match with it.
+    const model = HY3D_MODEL[h.id] ?? "";
     return [
       `unit("${h.id}", ${h.health}, ${h.speed}, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=${Math.round(h.stats.damage / 100)}, weapon_range_milli=${h.range}, weapon_period=${h.period}, sight_milli=${h.sight}, armor=${Math.round(h.stats.armor / 100)}, model="${model}", deny_pct=0)`,
       `unit_extra("${h.id}", player_controlled=True, deny_xp_pct=0)`,

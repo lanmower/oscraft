@@ -1,7 +1,7 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 24;
+pub const VERSION: u16 = 25;
 pub const PLCE_FLAG_START: u32 = 1;
 /// A start record that names its team: the team index sits in bits 8..16 of the flags.
 pub const PLCE_FLAG_TEAM: u32 = 2;
@@ -33,16 +33,13 @@ pub const Q16_ONE: i32 = 65536;
 
 pub const TARGETS: &[&str] = &["none", "unit", "point"];
 pub const TRIGGERS: &[&str] = &["idle", "attacked", "spawned", "ability_ready", "destroyed"];
-// Retired names keep their index so old images decode the same; a behaviour naming one is refused.
-pub const ACTIONS: &[&str] = &["attack_nearest", "flee", "use_ability", "retired_declare_winner"];
-pub const ACTION_USE_ABILITY: usize = 2;
+// The sim queues each fired behaviour with its action code; the pack chooses what the action does.
+pub const ACTIONS: &[&str] = &["flee", "use_ability"];
+pub const ACTION_USE_ABILITY: usize = 1;
 pub const FILTER_MASK_BITS: u32 = 15;
 pub const FILTER_ALL: u32 = (1 << FILTER_MASK_BITS) - 1;
 pub const DAMAGE_RESPONSES: &[&str] = &["normal", "reduced", "immune"];
 pub const RESOURCE_KINDS: &[&str] = &["none", "resource_a", "gas"];
-pub const UPGRADE_TARGET_KINDS: &[&str] = &["unit", "ability"];
-pub const UPGRADE_APPLY: &[&str] = &["new_only", "existing"];
-pub const UPGRADE_STACKING: &[&str] = &["replace", "add", "refuse"];
 pub const DAMAGE_TYPES: &[&str] = &["normal", "concussive", "explosive"];
 pub const SIZE_CATEGORIES: &[&str] = &["small", "medium", "large"];
 pub const CLOAK_FLAGS: &[&str] = &["cloaked", "burrowable", "detector_required"];
@@ -63,7 +60,6 @@ pub const TAG_UABL: [u8; 4] = *b"UABL";
 pub const TAG_UNIT: [u8; 4] = *b"UNIT";
 pub const TAG_BHVR: [u8; 4] = *b"BHVR";
 pub const TAG_PLCE: [u8; 4] = *b"PLCE";
-pub const TAG_UPGR: [u8; 4] = *b"UPGR";
 pub const TAG_REGN: [u8; 4] = *b"REGN";
 pub const TAG_LIMT: [u8; 4] = *b"LIMT";
 pub const TAG_ECON: [u8; 4] = *b"ECON";
@@ -98,7 +94,6 @@ pub const UABL_RECORD: usize = 2;
 pub const UNIT_RECORD: usize = 86;
 pub const BHVR_RECORD: usize = 16;
 pub const PLCE_RECORD: usize = 16;
-pub const UPGR_RECORD: usize = 24;
 pub const REGN_RECORD: usize = 12;
 pub const LIMT_RECORD: usize = 4;
 pub const ECON_RECORD: usize = 32;
@@ -171,7 +166,7 @@ pub const ITEM_SLOTS: usize = 6;
 pub const GRID_HEADER_LEN: usize = 16;
 
 /// Section tags and record sizes in the order FORMAT.md requires.
-pub const SECTIONS: [([u8; 4], usize); 28] = [
+pub const SECTIONS: [([u8; 4], usize); 27] = [
     (TAG_STRS, STRS_RECORD),
     (TAG_EFCT, EFCT_RECORD),
     (TAG_ABIL, ABIL_RECORD),
@@ -179,7 +174,6 @@ pub const SECTIONS: [([u8; 4], usize); 28] = [
     (TAG_UNIT, UNIT_RECORD),
     (TAG_BHVR, BHVR_RECORD),
     (TAG_PLCE, PLCE_RECORD),
-    (TAG_UPGR, UPGR_RECORD),
     (TAG_REGN, REGN_RECORD),
     (TAG_LIMT, LIMT_RECORD),
     (TAG_ECON, ECON_RECORD),
@@ -277,7 +271,6 @@ pub fn effect_params_valid(kind: &str, p: [i32; 4]) -> bool {
         "if_kill" => (1..=16).contains(&p0),
         "attack" => p0 >= 0,
         "refresh" => (1..=3).contains(&p0),
-        "grant_upgrade" => (0..=1).contains(&p0),
         "stun" | "silence" | "root" | "invisibility" => p0 >= 1,
         "slow" => p0 >= 1 && (0..=Q16_ONE).contains(&p1),
         _ => true,

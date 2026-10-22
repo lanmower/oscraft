@@ -1,20 +1,37 @@
-# rust/ mod-runtime spike
+# rust/ workspace
 
-A contract proof for the Lua 5.4 mod runtime, not a port of the simulation. It embeds Lua through `mlua` (vendored, no system Lua) and proves:
+The Rust side of oscraft: the deterministic simulation, the data compiler, the mod host and the tools. All of it is one Cargo workspace (`rust/Cargo.toml`).
 
-1. A host loads a mod chunk into a fresh environment and calls `on_tick(state)` once per tick.
-2. Hot reload: the mtime is polled between ticks. A reload replaces only the functions. The host-owned `state` table survives. A reload that fails to compile keeps the old functions and reports `<file>:<line>`.
-3. Host functions `spawn_unit(kind, x, y)` and `get_unit_count()` run against the sim: `spawn_unit` resolves the unit name with the sim catalog and calls `Sim::spawn`, and `get_unit_count` reads `Sim::count`. The catalog is the OSDT image built from `rust/data` at startup. Positions are Q16.16 `i32`.
-4. Determinism: 2000 ticks run twice from identical state, and both FNV-1a hashes of the final state must match.
-5. A Lua line hook counts the lines executed in one `on_tick`.
-6. A runtime error in `on_tick` is reported with file and line, and the tick loop continues.
+## Run the tests
 
-## Run
+From `rust/`:
 
 ```
-cargo run -p oscraft-spike
+cargo test --workspace
 ```
 
-From `rust/`. CI runs the same command in the `check` jobs of `.github/workflows/ci.yml`, on Linux, Windows and macOS. The determinism hash is printed in the log.
+This is the `rust` job in `.github/workflows/ci.yml`. Run one crate's tests with `cargo test -p <package> <filter>`, using a package name from the table below.
 
-The reload demo writes its mod versions to the system temp directory. It does not touch `spike/mods/unit_mod.lua`, which is the file the determinism and hook runs load.
+## Crates
+
+Package names are from each `rust/crates/*/Cargo.toml`.
+
+| Package | Path | What it is |
+| --- | --- | --- |
+| `sim` | `crates/sim` | The deterministic simulation: Q16.16 fixed point, struct-of-arrays state, the fixed tick, and the engine mechanics and primitives mods call. |
+| `osdt-data` | `crates/data` | Compiles a pack's `.osd` files into the OSDT image. Layout in `crates/data/FORMAT.md`. |
+| `mod-host` | `crates/mod-host` | The mod host: the piccolo Lua VM, the natives packs call, and the hook dispatch. Binary `mod_check`. |
+| `web` | `crates/web` | The wasm build the browser page loads (`js/client/pkg`). |
+| `mapexport` | `crates/mapexport` | Writes a pack's map image: `mapexport <pack-dir> <out.bin>`. |
+| `oscraft-lsp` | `crates/mod-lsp` | Language server for `.osd` and `.lua` files, over stdio. |
+| `replay` | `crates/replay` | Replay files: the recorded command log and its playback. |
+| `mpq` | `crates/mpq` | MPQ archive reader. |
+| `oscraft-relay` | `crates/relay` | A small Nostr relay for local tests. |
+| `wasip3-guest` | `crates/wasip3` | WASI component guest for the mod host. Excluded from the workspace. |
+
+`rust/gate` (package `oscraft-gate`) is a workspace member too: the check suite that runs against the sim and the packs.
+
+## Two engine rules
+
+- The crates hold mechanics only. The sim, the data format and the host provide primitives; they carry no game rules and no genre tables.
+- The game is Lua and data in `scenarios/` (the packs, with their `.osd` data and Lua modules) and `mods/` (example mods). Change a rule there, not in Rust.

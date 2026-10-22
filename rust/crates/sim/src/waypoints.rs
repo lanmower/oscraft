@@ -13,8 +13,6 @@ use crate::*;
 const ROUT_RECORD: usize = 8 + MAX_WAYPOINTS * 8;
 pub const MAX_WAYPOINTS: usize = 64;
 pub const MAX_ROUTE_ID: u16 = 3;
-/// Distance to a waypoint, in milli-units, at which a unit moves on to the next one.
-pub const WAYPOINT_REACH_MILLI: i32 = 3000;
 /// Destination requests the log holds between drains. A host that drains every step never reaches it.
 const REQUEST_CAP: usize = 1024;
 
@@ -119,7 +117,7 @@ impl Sim {
             self.waypoint_clear(i);
             return;
         }
-        let reach = fixed::from_milli(WAYPOINT_REACH_MILLI) as i64;
+        let reach = fixed::from_milli(self.attributed.rules.waypoint_reach_milli) as i64;
         if dist2(self.pos_x[i], self.pos_y[i], x, y) > reach * reach {
             return;
         }

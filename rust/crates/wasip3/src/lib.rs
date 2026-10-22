@@ -1,7 +1,7 @@
 //! The sim as a WASIp3 guest. Stdin: a u32 little-endian image length, the OSDT image bytes, then
 //! one command per line. Stdout: one reply line per command.
 //! Command names are the WIT exports of rust/crates/wasip3/wit/sim-component.wit. COMMANDS lists
-//! them once; ci.yml's host-api job fails when this list and the WIT exports differ.
+//! them once. No CI job checks it against the WIT, so keep the two in step by hand.
 
 use std::io::{self, BufRead, Write};
 
@@ -90,6 +90,8 @@ fn reply(host: &mut ModHost, line: &str) -> Result<String, String> {
         "mod-source" => {
             let which = words.next().ok_or("mod name missing")?;
             let src = unhex(words.next().ok_or("mod source missing")?)?;
+            #[cfg(feature = "fault-injection")]
+            fault_marker(&src);
             host.load_source(which, &src).map_err(|e| format!("mod-source {which}: {e}"))?;
             Ok(format!("ok mod-source {which}"))
         }
@@ -110,14 +112,14 @@ fn reply(host: &mut ModHost, line: &str) -> Result<String, String> {
             Ok(format!("ok mod-step fired={fired} applied={applied}"))
         }
         "mod-state" => Ok(format!("ok {}", host.state_line())),
-        _ => sim_reply(&mut host.sim(), name, words),
+        _ => sim_reply(&mut host.sim_mut(), name, words),
     }
 }
 
 // Kills the first living unit of `kind` with a hit from a living unit of another player, so the
 // death reaches the mod at the next mod-step like any in-game kill.
 fn kill_first(host: &mut ModHost, kind: &str) -> Result<usize, String> {
-    let mut sim = host.sim();
+    let mut sim = host.sim_mut();
     let target = (0..sim.count()).find(|&i| sim.alive(i) && sim.kind_name(i) == Some(kind)).ok_or_else(|| format!("no living {kind}"))?;
     let owner = sim.player(target);
     let caster = (0..sim.count()).find(|&i| sim.alive(i) && sim.player(i) != owner).ok_or("no opposing unit to strike with")?;
@@ -200,8 +202,28 @@ fn unit_of<'a>(sim: &Sim, words: &mut impl Iterator<Item = &'a str>) -> Result<u
     Ok(unit)
 }
 
+// Test builds only (--features fault-injection): a mod whose source has one of these lines makes the guest trap or spin
+// while it loads, so the driver's guest-failure path runs for real. The loop is a Rust loop, not Lua, so the Lua step
+// budget never sees it: only the wasm fuel budget ends it. A normal build ignores the markers.
+#[cfg(feature = "fault-injection")]
+fn fault_marker(src: &str) {
+    for line in src.lines() {
+        match line.trim() {
+            "-- wasip3-fault: panic" => panic!("fault injected by a mod in the fault-injection build"),
+            "-- wasip3-fault: spin" => loop {
+                std::hint::black_box(());
+            },
+            _ => {}
+        }
+    }
+}
+
 // A mod source travels as lowercase hex so it fits one whitespace-free command line.
 fn unhex(hex: &str) -> Result<String, String> {
+    // The slices below cut at byte offsets, which panics inside a multi-byte character: non-ASCII is refused first.
+    if !hex.is_ascii() {
+        return Err("mod source hex is not ASCII".into());
+    }
     if hex.len() % 2 != 0 {
         return Err("mod source hex has odd length".into());
     }
