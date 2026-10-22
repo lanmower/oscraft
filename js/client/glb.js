@@ -58,6 +58,8 @@ export function writeGlb(json, bin) {
 
 const VERTEX_TYPE = 'VEC3';
 
+const LITTLE_ENDIAN = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+
 function readAccessor(gltf, bin, index, expectedType) {
   const accessor = gltf.accessors[index];
   if (accessor.type !== expectedType) throw new Error(`glb: accessor ${index} is ${accessor.type}, expected ${expectedType}`);
@@ -67,6 +69,12 @@ function readAccessor(gltf, bin, index, expectedType) {
   if (!Type || !width) throw new Error(`glb: unsupported accessor ${accessor.componentType} ${accessor.type}`);
   const stride = view.byteStride || Type.BYTES_PER_ELEMENT * width;
   const base = (view.byteOffset || 0) + (accessor.byteOffset || 0);
+  // Fast path: packed, aligned, little-endian data is the same bytes as the typed array, so one copy replaces a
+  // DataView read per component. Big-endian hosts and strided or unaligned data take the component loop below.
+  const at = bin.byteOffset + base;
+  if (LITTLE_ENDIAN && stride === Type.BYTES_PER_ELEMENT * width && at % Type.BYTES_PER_ELEMENT === 0) {
+    return new Type(bin.buffer, at, accessor.count * width).slice();
+  }
   const out = new Type(accessor.count * width);
   const raw = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
   for (let i = 0; i < accessor.count; i++) {
