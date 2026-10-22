@@ -879,5 +879,7 @@
   "spiritbreaker_skinned": "models/spiritbreaker-skinned.glb",
   "necrolyte_skinned": "models/necrolyte-skinned.glb",
   "neutral_elder_jungle_stalker_skinned": "models/neutral-elder-jungle-stalker-skinned.glb",
-  "neutral_enraged_wildkin_skinned": "models/neutral-enraged-wildkin-skinned.glb"
+  "neutral_enraged_wildkin_skinned": "models/neutral-enraged-wildkin-skinned.glb",
+  "depot": "models/stall.glb",
+  "secret_depot": "models/stall.glb"
 }
