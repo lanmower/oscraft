@@ -26,8 +26,17 @@ jobs:
           workspaces: rust -> target
           shared-key: rust-workspace
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Install cargo-nextest (pinned to 0.9.149)
+        run: |
+          set -euo pipefail
+          curl -LsSf https://get.nexte.st/0.9.149/linux | tar zxf - -C "$HOME/.cargo/bin"
+          cargo nextest --version
+      # cargo test runs one test binary at a time. nextest runs every test in parallel: measured on
+      # this tree, the suite goes from about 160 s of test execution to about 60 s, because the
+      # slowest single test (mod-host moba_ticks, 57 s) is most of the serial cost. The workspace
+      # has no doctests, so nothing is lost by not running cargo test.
       - name: Test the workspace
-        run: cargo test --workspace
+        run: cargo nextest run --workspace
 
   wire:
     name: wire codec round-trip
@@ -41,3 +50,16 @@ jobs:
       - name: Round-trip every frame type
         working-directory: js/wire
         run: node test.js
+
+  # Runs beside the two-minute rust job, so it costs no wall time.
+  static:
+    name: static client checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the page's module preload hints
+        run: node scripts/check-modulepreload.mjs

@@ -14,6 +14,39 @@
     }
   }
   </script>
+  <!-- The page's whole module graph and the sim binary. Without these the browser discovers the
+       imports one level at a time and reaches the 1.5 MB wasm last, after every script has run;
+       with them all 26 modules and the wasm start with the document's first byte. The wasm needs
+       crossorigin: the glue fetches it with fetch(), whose default mode is cors, and a preload
+       without the attribute is a no-cors request that the fetch cannot reuse.
+       scripts/check-modulepreload.mjs keeps this list equal to the graph play.js and rooms.js reach. -->
+  <link rel="modulepreload" href="./anim.js">
+  <link rel="modulepreload" href="./debug_api.js">
+  <link rel="modulepreload" href="./decoders.js">
+  <link rel="modulepreload" href="./delta.js">
+  <link rel="modulepreload" href="./feedback.js">
+  <link rel="modulepreload" href="./fogview.js">
+  <link rel="modulepreload" href="./fx.js">
+  <link rel="modulepreload" href="./glb.js">
+  <link rel="modulepreload" href="./glb_resolve.js">
+  <link rel="modulepreload" href="./hud.js">
+  <link rel="modulepreload" href="./ice.js">
+  <link rel="modulepreload" href="./moba_input.js">
+  <link rel="modulepreload" href="./moba_select.js">
+  <link rel="modulepreload" href="./modui.js">
+  <link rel="modulepreload" href="./pack.js">
+  <link rel="modulepreload" href="./pack_editor.js">
+  <link rel="modulepreload" href="./pack_load.js">
+  <link rel="modulepreload" href="./pack_sync.js">
+  <link rel="modulepreload" href="./render3d.js">
+  <link rel="modulepreload" href="./swap_protocol.js">
+  <link rel="modulepreload" href="./terrain.js">
+  <link rel="modulepreload" href="./texture.js">
+  <link rel="modulepreload" href="./tiles.js">
+  <link rel="modulepreload" href="./ui_minimap.js">
+  <link rel="modulepreload" href="./widgets.js">
+  <link rel="modulepreload" href="./wire/frame.js">
+  <link rel="preload" href="./pkg/web_bg.wasm" as="fetch" crossorigin>
   <style>
     /* Shared tokens for every HUD panel: one palette, one type scale, one set of states. */
     :root {
