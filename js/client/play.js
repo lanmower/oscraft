@@ -4,6 +4,7 @@
 import { createDataSession, createFSM, NostrAuth, RelayPool } from "wireweave";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
+import { createAmbientFx, AMBIENT_KINDS } from "./ambient_fx.js";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { assetJson, assetRel, assetUrl, fetchRetrying, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
@@ -112,6 +113,9 @@ let doodadBatches = [];
 // Doodads kept for a model reload: the placed entries (kind code, tint variant, meshes, transform), each kind's loaded meshes,
 // and each kind's GLB names ({ high, low }) from loadDoodadModels.
 let placedDoodads = [];
+// Scenery that is behaviour, not a mesh (bats, birds, flies, bubbles, smoke, mist): particle emitters seeded from placedDoodads.
+let ambientFx = null;
+let ambientSeeded = false;
 let doodadByKindState = [];
 const doodadModelNames = [];
 const unitBatches = new Map();
@@ -2299,6 +2303,7 @@ async function main() {
     toScreen: worldToScreen,
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
+  if (renderer3d) ambientFx = createAmbientFx({ renderer: renderer3d, groundAt });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
   widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
   const eventsBase = params.get("events");
@@ -2347,6 +2352,14 @@ async function main() {
     if (localGame) {
       drawWorld3d();
       fogview.draw();
+    }
+    if (ambientFx) {
+      if (!ambientSeeded && placedDoodads.length) {
+        for (const d of placedDoodads) if (AMBIENT_KINDS[d.kind]) ambientFx.addEmitter(d.transform[12], d.transform[14], AMBIENT_KINDS[d.kind]);
+        ambientSeeded = true;
+      }
+      ambientFx.update(dtS);
+      ambientFx.draw();
     }
     publishWitness();
     requestAnimationFrame(frame);

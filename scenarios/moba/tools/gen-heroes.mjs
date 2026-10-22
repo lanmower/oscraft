@@ -159,6 +159,16 @@ const HY3D_MODEL = {
   spectre: "spectre-skinned",
   spirit_breaker: "spiritbreaker-skinned",
   necrolyte: "necrolyte-skinned",
+  storm_spirit: "storm-spirit-skinned",
+  vengefulspirit: "vengeful-spirit-skinned",
+  shadow_shaman: "shadow-shaman-skinned",
+  tidehunter: "tidehunter-skinned",
+  tinker: "tinker-skinned",
+  templar_assassin: "templar-assassin-skinned",
+  undying: "undying-skinned",
+  troll_warlord: "troll-warlord-skinned",
+  skywrath_mage: "skywrath-mage-skinned",
+  tusk: "tuskarr-skinned",
 };
 
 const osd = [
