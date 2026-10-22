@@ -64,8 +64,14 @@ const missing = [];
 for (const [hero, entry] of Object.entries(heroes)) {
   if (!entry || typeof entry !== "object") continue;
   const events = {};
-  for (const [event, rel] of Object.entries(entry)) {
-    if (event === "voice_ref" || typeof rel !== "string") continue;
+  for (const [key, rel] of Object.entries(entry)) {
+    if (key === "voice_ref" || typeof rel !== "string") continue;
+    // A generated line may come in variants: "attack_0" .. "attack_3" are four different lines for one
+    // event, so a hero never repeats itself. The catalogue keeps the bare event and the variant index;
+    // audio.js picks among the variants when it plays.
+    const split = key.match(/^(.*)_(\d+)$/);
+    const event = split ? split[1] : key;
+    const variant = split ? Number(split[2]) : 0;
     const source = resolveFile(base, rel);
     if (!source) { missing.push(`${hero}/${event}: ${rel}`); continue; }
     const file = path.basename(rel);
@@ -78,15 +84,18 @@ for (const [hero, entry] of Object.entries(heroes)) {
     }
     const packRel = path.posix.join(hero, file);
     wanted.add(path.relative(voicesDir, target).split(path.sep).join("/"));
-    events[event] = packRel;
+    // The runtime manifest keeps the key the pipeline used, suffixed key and all: that is what lets the
+    // page pick among the variants instead of seeing one line per event.
+    events[key] = packRel;
     items.push({
-      id: `voice.${hero}.${event}`,
+      id: `voice.${hero}.${key}`,
       kind: "audio",
       path: path.posix.join("voices", packRel),
       bytes: bytes.length,
       role: "voice",
       hero,
       event,
+      variant,
       voice_ref: entry.voice_ref ?? null,
       placed_by: "voices/manifest.json",
     });
@@ -95,7 +104,26 @@ for (const [hero, entry] of Object.entries(heroes)) {
   if (Object.keys(events).length) runtime[hero] = { ...events, ...(entry.voice_ref ? { voice_ref: entry.voice_ref } : {}) };
 }
 
-fs.writeFileSync(path.join(voicesDir, "manifest.json"), `${JSON.stringify(runtime, null, 2)}\n`);
+// A run imports one pipeline manifest, and a pack is built from more than one: the first 70 heroes came
+// in one batch and the rest in another. So the runtime manifest already there is merged in, hero by
+// hero, and the new batch wins any key both name. Without that, importing the second batch would prune
+// every file of the first.
+const runtimePath = path.join(voicesDir, "manifest.json");
+if (fs.existsSync(runtimePath)) {
+  for (const [hero, events] of Object.entries(JSON.parse(fs.readFileSync(runtimePath, "utf8")))) {
+    if (runtime[hero]) runtime[hero] = { ...events, ...runtime[hero] };
+    else runtime[hero] = events;
+  }
+}
+
+// Every file the merged manifest names is kept, so pruning never removes a batch that came in earlier.
+for (const events of Object.values(runtime)) {
+  for (const [event, rel] of Object.entries(events)) {
+    if (event !== "voice_ref") wanted.add(rel);
+  }
+}
+
+fs.writeFileSync(runtimePath, `${JSON.stringify(runtime, null, 2)}\n`);
 
 // A re-import that swaps format (WAV to Opus, say) leaves the old files beside the new ones, where
 // nothing names them and the site still ships them. Every file under the voices directory the new

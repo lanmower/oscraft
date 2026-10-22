@@ -49,6 +49,20 @@ export function createVoices({ url, audioContext = null }) {
     }
   }
 
+// The line to play for one hero event. A hero may have several lines per event, named "<event>_0",
+// "<event>_1", ... in the manifest: different lines, not different takes, so one is picked at random
+// and a hero does not say the same thing twice. A hero with a single line keeps that shape too.
+function lineFor(hero, event) {
+  const direct = hero[event];
+  if (direct) return direct;
+  const variants = [];
+  for (const key of Object.keys(hero)) {
+    if (key.startsWith(`${event}_`) && /^\d+$/.test(key.slice(event.length + 1))) variants.push(key);
+  }
+  if (variants.length === 0) return null;
+  return hero[variants[Math.floor(Math.random() * variants.length)]];
+}
+
   // Plays one hero's line for one event (spawn, attack, ability, death). Resolves true when a line was
   // started. Overlapping calls for the same hero cut the previous one, so a burst of attacks does not
   // stack into noise.
@@ -57,7 +71,7 @@ export function createVoices({ url, audioContext = null }) {
   async function play(hero, event) {
     const m = await loadManifest();
     if (!m || !m[hero]) return false;
-    const rel = m[hero]?.[event];
+    const rel = lineFor(m[hero], event);
     if (!rel) return false;
     const ac = context();
     if (!ac) return false;
