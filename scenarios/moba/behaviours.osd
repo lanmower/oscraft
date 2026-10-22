@@ -5,7 +5,3 @@ behaviour("guard_patrol", trigger="idle", action="use_ability", param=0, ability
 # (fired_action) handles use_ability only, so no idle strike is wired yet.
 # The win condition is not a behaviour: scenarios/moba/win.lua (on_check_win) declares the side that outlives the buildings.
 # Passives: each stat ability is cast once when its hero spawns (its cooldown keeps it from being recast).
-behaviour("passive_iron_guard", trigger="spawned", action="use_ability", param=0, ability="iron_guard")
-behaviour("passive_hawk_eye", trigger="spawned", action="use_ability", param=0, ability="hawk_eye")
-behaviour("passive_rapid_fire", trigger="spawned", action="use_ability", param=0, ability="rapid_fire")
-behaviour("passive_thorn_hide", trigger="spawned", action="use_ability", param=0, ability="thorn_hide")
