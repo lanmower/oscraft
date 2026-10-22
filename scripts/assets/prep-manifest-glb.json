@@ -2,11 +2,11 @@
   "schema": 1,
   "files": {
     "scenarios/moba/assets/models/abaddon-skinned.glb": {
-      "sha256": "1157272013d8b0e7877eaaca18059f469be84a8fd589ecf798a027005c0a5c58",
-      "bytes": 165476,
-      "afterBytes": 165476,
+      "sha256": "71213c2d52d306bc6fff3113a41b975d7b8fc5718b0a573e753b5bc3b624ca51",
+      "bytes": 165524,
+      "afterBytes": 165524,
       "unchanged": true,
-      "at": "2026-10-22T07:41:38.715Z"
+      "at": "2026-10-22T20:57:00.159Z"
     },
     "scenarios/moba/assets/models/aid-cane-blind.glb": {
       "sha256": "85f3949721079d103f100ce77e19653763e7d6fb6060e822e574a6941d15b8a4",
@@ -79,11 +79,11 @@
       "at": "2026-10-22T07:41:38.748Z"
     },
     "scenarios/moba/assets/models/alchemist-skinned.glb": {
-      "sha256": "0302c1ea7d8d6ca5c52669b21359bec1bb5c999c4e6478933a3ac61f3c47ce6a",
-      "bytes": 136068,
-      "afterBytes": 136068,
+      "sha256": "c671c4c5453b650f0f916c53b5640ac60a38abf96c085f679f1fc28d160010f0",
+      "bytes": 136116,
+      "afterBytes": 136116,
       "unchanged": true,
-      "at": "2026-10-22T07:41:38.789Z"
+      "at": "2026-10-22T20:57:00.210Z"
     },
     "scenarios/moba/assets/models/altar-stone.glb": {
       "sha256": "d7bfad5665b36f96a44dffdb6e86fd0f6b8de1a61ab3c8de19458ce419989036",
@@ -100,25 +100,25 @@
       "at": "2026-10-22T07:41:38.796Z"
     },
     "scenarios/moba/assets/models/ancient-apparition-skinned.glb": {
-      "sha256": "ac82d9c7be7d355ea660aa43bda161354e30538f5edb2bab96ff8aabe444975b",
-      "bytes": 182376,
-      "afterBytes": 182376,
+      "sha256": "9fe699e0dc1e92f41e70cebf2a3e95cb387fb6b280d005711cff886ba43cd482",
+      "bytes": 182388,
+      "afterBytes": 182388,
       "unchanged": true,
-      "at": "2026-10-22T07:41:38.843Z"
+      "at": "2026-10-22T20:57:00.262Z"
     },
     "scenarios/moba/assets/models/anti-mage-skinned.glb": {
-      "sha256": "934ad1cb5e1264f73092537dd324db6a1a8891f85476a6d74ea1986b5ce55be9",
-      "bytes": 145772,
-      "afterBytes": 145772,
+      "sha256": "6d3e192d089d4eda4e8b84ff52de9d61d81863abfdd8bc6a51cff40a01cc4d19",
+      "bytes": 145820,
+      "afterBytes": 145820,
       "unchanged": true,
-      "at": "2026-10-22T07:41:38.878Z"
+      "at": "2026-10-22T20:57:00.299Z"
     },
     "scenarios/moba/assets/models/arc-warden-skinned.glb": {
-      "sha256": "4f1a8b6afb9d9aa1406e4ac6afdb3d65b9416a927a97f1d5e5753048572b6aac",
-      "bytes": 140512,
-      "afterBytes": 140512,
+      "sha256": "1c0c10d3016aea303a2cc87f2533880c9e2af8bda4771d084477975dd8e555de",
+      "bytes": 140556,
+      "afterBytes": 140556,
       "unchanged": true,
-      "at": "2026-10-22T07:41:38.912Z"
+      "at": "2026-10-22T20:57:00.334Z"
     },
     "scenarios/moba/assets/models/arrow-basic-rounded.glb": {
       "sha256": "844229a51c64ad9af97835abafebf7fdb92f26a675e68dabfcaaa2046bc50810",
@@ -149,11 +149,11 @@
       "at": "2026-10-22T07:41:38.920Z"
     },
     "scenarios/moba/assets/models/axe-skinned.glb": {
-      "sha256": "e0860de8a5d3e306972f4eb9531ef1687fda8da531c31a68354114d0f6737900",
-      "bytes": 150640,
-      "afterBytes": 150640,
+      "sha256": "c70b1294f48ca96df2be1203d400ac597344e7f35c83bd7fdfa11c47b173d444",
+      "bytes": 150688,
+      "afterBytes": 150688,
       "unchanged": true,
-      "at": "2026-10-22T07:41:38.957Z"
+      "at": "2026-10-22T20:57:00.373Z"
     },
     "scenarios/moba/assets/models/balcony-wall-fence.glb": {
       "sha256": "70e72c1835a3a173257415c603f9641f31e157568d94095e2735d76089542715",
@@ -170,11 +170,11 @@
       "at": "2026-10-22T07:41:38.962Z"
     },
     "scenarios/moba/assets/models/bane-elemental-skinned.glb": {
-      "sha256": "ee4c73ede1c530a7934f7ce222f12347f7ceaf9af831b0adf1041cb1053cfe21",
-      "bytes": 141060,
-      "afterBytes": 141060,
+      "sha256": "8bdded61d94d138ebcbf3251a04b7de034388879b3e3c84a701b8d237a803d5d",
+      "bytes": 141104,
+      "afterBytes": 141104,
       "unchanged": true,
-      "at": "2026-10-22T07:41:38.995Z"
+      "at": "2026-10-22T20:57:00.409Z"
     },
     "scenarios/moba/assets/models/banner-green.glb": {
       "sha256": "11e870ed79d92e98ad504ab83cb8fb1413bf11c92a541a115bee762f3062d294",
@@ -212,18 +212,18 @@
       "at": "2026-10-22T07:41:39.006Z"
     },
     "scenarios/moba/assets/models/batrider-skinned.glb": {
-      "sha256": "64b89702794636317c88a066525bd0e14011c186e9d3654b6f9a0c629c997da0",
-      "bytes": 157228,
-      "afterBytes": 157228,
+      "sha256": "8749b770b2979e898371502285c11560b37d3a2f599baceae275eb999671f437",
+      "bytes": 157272,
+      "afterBytes": 157272,
       "unchanged": true,
-      "at": "2026-10-22T07:41:39.044Z"
+      "at": "2026-10-22T20:57:00.450Z"
     },
     "scenarios/moba/assets/models/beastmaster-skinned.glb": {
-      "sha256": "764c5ab51bf13a0daf3c15d4c7c15f46a3d75a3447d3607653c076414273448d",
-      "bytes": 215452,
-      "afterBytes": 215452,
+      "sha256": "295084bf50833b2c148610a4226d6440786c30c4f9b02b2ec96465b270a3be65",
+      "bytes": 215496,
+      "afterBytes": 215496,
       "unchanged": true,
-      "at": "2026-10-22T07:41:39.096Z"
+      "at": "2026-10-22T20:57:00.506Z"
     },
     "scenarios/moba/assets/models/bedroll-frame.glb": {
       "sha256": "b37d43558b4b6af636fb2f617c50bd65f13e54c35763c6b03a42f9ed97f98f69",
@@ -268,11 +268,11 @@
       "at": "2026-10-22T07:41:39.107Z"
     },
     "scenarios/moba/assets/models/bloodseeker-skinned.glb": {
-      "sha256": "a8626c3c23faa4fa673bfd5bdf89d6d3734d67b833d93034e064da5c680f86ee",
-      "bytes": 182604,
-      "afterBytes": 182604,
+      "sha256": "91dd531d3c80937ad8e7a9d6fcebe90e21dd3952ae8ff6f65764f7ef13b6c1a4",
+      "bytes": 182652,
+      "afterBytes": 182652,
       "unchanged": true,
-      "at": "2026-10-22T07:41:39.154Z"
+      "at": "2026-10-22T20:57:00.555Z"
     },
     "scenarios/moba/assets/models/border-pillar.glb": {
       "sha256": "d44644691eeb969b391d08120b42f4c98488cae65a9277a36abb8296fc7cac5f",
@@ -296,11 +296,11 @@
       "at": "2026-10-22T07:41:39.158Z"
     },
     "scenarios/moba/assets/models/bounty-hunter-skinned.glb": {
-      "sha256": "f901f2be75c54a30d80a5d776eb9331c38b7fc504e751f458c41a619339bacbb",
-      "bytes": 153956,
-      "afterBytes": 153956,
+      "sha256": "f9ee0dd628b4a99b9fdf2ad679631b445f9295f7e993e497c4c3f23dbe42e3b9",
+      "bytes": 154004,
+      "afterBytes": 154004,
       "unchanged": true,
-      "at": "2026-10-22T07:41:39.194Z"
+      "at": "2026-10-22T20:57:00.592Z"
     },
     "scenarios/moba/assets/models/box-large-open.glb": {
       "sha256": "41228f1abf8dd9c6c2c8c58f4ebfb523468246004cdff9338d5c2c745542fce4",
@@ -422,18 +422,18 @@
       "at": "2026-10-22T07:41:39.224Z"
     },
     "scenarios/moba/assets/models/bristleback-skinned.glb": {
-      "sha256": "f4c6a974b9b27f2602157ea641015e6dcdfe8a40c8137b5971d36c386589aebf",
-      "bytes": 156704,
-      "afterBytes": 156704,
+      "sha256": "9f62598114d37cbff9b441221c6bf1a4497840454d889fee63f84a9c58c0b5c1",
+      "bytes": 156752,
+      "afterBytes": 156752,
       "unchanged": true,
-      "at": "2026-10-22T07:41:39.263Z"
+      "at": "2026-10-22T20:57:00.634Z"
     },
     "scenarios/moba/assets/models/broodmother-skinned.glb": {
-      "sha256": "9e3d63dbc9b015a9644c729b46791a62dce35c995d2a3b53e400932a405e8fa1",
-      "bytes": 164768,
-      "afterBytes": 164768,
+      "sha256": "34d55857913af54e99d69a2bd34442fec3a2a6277d698dd79cd3f8ee0c8ac8ee",
+      "bytes": 164816,
+      "afterBytes": 164816,
       "unchanged": true,
-      "at": "2026-10-22T07:41:39.305Z"
+      "at": "2026-10-22T20:57:00.677Z"
     },
     "scenarios/moba/assets/models/bucket.glb": {
       "sha256": "e78be61bbccd1190ba27433d45dfc98d40db9e2d22d167d8c412a52fee6d53a0",
@@ -527,11 +527,11 @@
       "at": "2026-10-22T07:41:39.473Z"
     },
     "scenarios/moba/assets/models/cart-high.glb": {
-      "sha256": "1677cf2379862b654dfc2acc575b1e1e79c2b813fd1290638f9cf43209528a6d",
-      "bytes": 43444,
-      "afterBytes": 42480,
-      "source": "ad4491fe96a16c936d1b728fba32d6a6bce81bb32f657f052d8d28ead5fd76a1",
-      "at": "2026-10-22T07:41:39.479Z"
+      "sha256": "de8c6934e80b2df607d0bb393bba5c3b1737c5811175878124430da0157d4540",
+      "bytes": 42548,
+      "afterBytes": 42544,
+      "source": "0dac3b0b6dd01eebbd254213ed81c8355986cd00f671d0ce0534865df1179edb",
+      "at": "2026-10-22T20:57:00.859Z"
     },
     "scenarios/moba/assets/models/cart.glb": {
       "sha256": "bdaaa4cbc8fb214eeac2b02f4daff7e6fd768e07312555b91b39615010c72c3a",
@@ -569,11 +569,11 @@
       "at": "2026-10-22T07:41:39.497Z"
     },
     "scenarios/moba/assets/models/catwalk-stairs.glb": {
-      "sha256": "a70a1ec6e5da74bf1ca035b21d16b757307175d15a733ecd7ebd3c36c764321a",
-      "bytes": 42392,
-      "afterBytes": 38436,
-      "source": "0fae42533a291f459765227d34fa4cf46ef9bfb40a71c43814d58886a33786eb",
-      "at": "2026-10-22T07:41:39.501Z"
+      "sha256": "c8797d650e5a9372a9f91bd20e73e3816c745f32a033225d308c9734ae78b688",
+      "bytes": 38480,
+      "afterBytes": 38480,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:00.865Z"
     },
     "scenarios/moba/assets/models/catwalk-straight.glb": {
       "sha256": "6852e88421ec781454b9d600f89f110d8813cdaba9d3893e55880a0c10416771",
@@ -590,137 +590,137 @@
       "at": "2026-10-22T07:41:39.505Z"
     },
     "scenarios/moba/assets/models/chaos-knight-skinned.glb": {
-      "sha256": "fd4dd9bd883fbde47f07a8ccf7874fe27d7010eb74860c0a662c0554eb5f7d61",
-      "bytes": 133184,
-      "afterBytes": 133184,
+      "sha256": "ce753dbf8d8f2e6a27b165eb7d928e9af5e2e6b774cd6cf817b831de404f06a7",
+      "bytes": 133232,
+      "afterBytes": 133232,
       "unchanged": true,
-      "at": "2026-10-22T07:41:39.538Z"
+      "at": "2026-10-22T20:57:00.907Z"
     },
     "scenarios/moba/assets/models/character-female-a.glb": {
-      "sha256": "f5bab729287f33108430302862673961635ea10e2516519c7fdd4dcd588acbb3",
-      "bytes": 150756,
-      "afterBytes": 100148,
-      "source": "21a773f226e6e3c58602fafc45cb48a27381d524ebe9f39cc08108b918c234ce",
-      "at": "2026-10-22T07:41:39.578Z"
+      "sha256": "eccf6796fb8119e5853affeed4267932e3fb8b016d62f1cb328a8adea7102c7f",
+      "bytes": 100240,
+      "afterBytes": 100240,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:00.953Z"
     },
     "scenarios/moba/assets/models/character-female-b.glb": {
-      "sha256": "a326c3484eac2148e457b1d6a03ad8a4bbc4cf31cf3f9402923e569ea99c0d9b",
-      "bytes": 143272,
-      "afterBytes": 96084,
-      "source": "e9d7575c4cf148be7438e62b9952c86d71e9d1cefe600a3b29f750a95f08bf18",
-      "at": "2026-10-22T07:41:39.597Z"
+      "sha256": "2ad0ea4f959a8eccf9a616e4885a3ce3ea041bc8f93d99332211792e8ee8af69",
+      "bytes": 96172,
+      "afterBytes": 96172,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:00.980Z"
     },
     "scenarios/moba/assets/models/character-female-c.glb": {
-      "sha256": "bf92cf4d552e5406c73ba750e6809800a983480644d405335794f57406a0307f",
-      "bytes": 143588,
-      "afterBytes": 95888,
-      "source": "fbb2ffc55f94f6a03e9e8b301077bb22128f6760238dea66e77508d892cd9dd4",
-      "at": "2026-10-22T07:41:39.614Z"
+      "sha256": "2aff6f6b4f2b9be7315357e7386d87f7fdf26b1347608d7df4d732d43b3cf48e",
+      "bytes": 95980,
+      "afterBytes": 95980,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:00.999Z"
     },
     "scenarios/moba/assets/models/character-female-d.glb": {
-      "sha256": "49103bec75be0211e4e8aa33fc4aa4a5a1ad3c7f3967ca4f1a3b112c8a27e872",
-      "bytes": 146136,
-      "afterBytes": 97444,
-      "source": "12ce16bf86053f339e351bbdb3c038f6bc05431457e92a364da21b98d9604958",
-      "at": "2026-10-22T07:41:39.633Z"
+      "sha256": "e75f1cc594fda5a6e932d13d0d9ff81ae41ae5afb31a148306c254893d45bc76",
+      "bytes": 97536,
+      "afterBytes": 97536,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.019Z"
     },
     "scenarios/moba/assets/models/character-female-e.glb": {
-      "sha256": "9056cfc504d6b8eef247c23dfddf6376c2c0427cea380969f1e36e9e9b31bd3e",
-      "bytes": 140684,
-      "afterBytes": 94256,
-      "source": "d96f78eeb61412ab27afe19d17c631f032a5b2b5e216feeb5f2d4105e2cf92ba",
-      "at": "2026-10-22T07:41:39.652Z"
+      "sha256": "ee8b3e0517088c5b494e783146ad661b15c53dece6126203e1f71446cc061d6c",
+      "bytes": 94344,
+      "afterBytes": 94344,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.036Z"
     },
     "scenarios/moba/assets/models/character-female-f.glb": {
-      "sha256": "a7a859a62fb67033fb36bf12b71455c4618ca9d96045cb9c23d0ce0146aae6ea",
-      "bytes": 144580,
-      "afterBytes": 96948,
-      "source": "2c45a5c0732c1fe1657d2dbd2881f49988b8c9a6947b5f149522ea8ea22d9466",
-      "at": "2026-10-22T07:41:39.673Z"
+      "sha256": "db545ece5a023dd3daf94c51464e409b58da121a46aa8d0ecd927ce3e59af66d",
+      "bytes": 97040,
+      "afterBytes": 97040,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.054Z"
     },
     "scenarios/moba/assets/models/character-ghost.glb": {
-      "sha256": "1c558168928ba6cd52a4b9b68d0e18c0afe286cc2396110ac6ea18b460f9ae1e",
-      "bytes": 82668,
-      "afterBytes": 63976,
-      "source": "f08a0d5b7432776676eb4dc0057e16f65884517864660c2af7799fae10c7d1f1",
-      "at": "2026-10-22T07:41:39.683Z"
+      "sha256": "0594e7eb8b065146245b48d0310d2f15a0ffc4347e3ce9259d0577a20ab97437",
+      "bytes": 64108,
+      "afterBytes": 64108,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.064Z"
     },
     "scenarios/moba/assets/models/character-keeper.glb": {
-      "sha256": "6e785651ac5b868ae465eec557c672b3e2967808d9a947f315dcea47dcec344f",
-      "bytes": 170472,
-      "afterBytes": 112120,
-      "source": "e5b1bf3bc467cc6a6d5edfd0a57349f2732ebce5da91f4598ce4ecc9d2aed73d",
-      "at": "2026-10-22T07:41:39.715Z"
+      "sha256": "0a874adffbbda13c8c13a44682ad324c66fd0e8ca8eabf89d72c9685efb6ce85",
+      "bytes": 112388,
+      "afterBytes": 112172,
+      "source": "3589af97adbde6338bc40ef8dddee82a4feb937eb84f7e14bdc190cd29dc8bb7",
+      "at": "2026-10-22T20:57:01.098Z"
     },
     "scenarios/moba/assets/models/character-male-a.glb": {
-      "sha256": "f93c701a57ff2a756a99a43e89e35126b0c7f29f3249c7f8894867656a3c7557",
-      "bytes": 139860,
-      "afterBytes": 94044,
-      "source": "b6ee53d77b228159d9bdab6f6faffc6179524759eec3766f435043bea399869c",
-      "at": "2026-10-22T07:41:39.735Z"
+      "sha256": "ea990a6e26bddfb68683f92bff743198f7c7e8ddf9cf6eebee47001c11272988",
+      "bytes": 94136,
+      "afterBytes": 94136,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.115Z"
     },
     "scenarios/moba/assets/models/character-male-b.glb": {
-      "sha256": "567b717f8bf684bf1a82c1d7db4ebf41ab5e6e9e087c350676817e39fbe9643b",
-      "bytes": 139492,
-      "afterBytes": 93668,
-      "source": "55079e4afb27ce787cfb3713230500d9fd9dd4cf0f900548e250539f02c18afa",
-      "at": "2026-10-22T07:41:39.753Z"
+      "sha256": "b5ea78e719dce99e9add8c9610370f8297263cc1c9b1a81cfc600d19bf0ba181",
+      "bytes": 93760,
+      "afterBytes": 93760,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.134Z"
     },
     "scenarios/moba/assets/models/character-male-c.glb": {
-      "sha256": "df373c2aec384561544e08194089462288094b44a30e765ec592ee61857bcb92",
-      "bytes": 147344,
-      "afterBytes": 98152,
-      "source": "c65aef577dc1176020668e2e766182ab367083e1e727348f8f8b401594918b11",
-      "at": "2026-10-22T07:41:39.775Z"
+      "sha256": "85a9dee1f34d8305eb2bab244bd222beee39f5c57d752b4329615c2ac17af854",
+      "bytes": 98244,
+      "afterBytes": 98244,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.152Z"
     },
     "scenarios/moba/assets/models/character-male-d.glb": {
-      "sha256": "84e8b6061b1ef4bdfd4ed472f0b3dd9239a646e8d1145383359f4278caad39d2",
-      "bytes": 140076,
-      "afterBytes": 93924,
-      "source": "fe41b841959022d4f0bbecabe9bcd152198b7c52ce8671eea5c172f8153c02dc",
-      "at": "2026-10-22T07:41:39.795Z"
+      "sha256": "495b65491b8fb3559f9d5e2ace5e1b6ad5cc20f1b97bd737e0961db81457a649",
+      "bytes": 94012,
+      "afterBytes": 94012,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.175Z"
     },
     "scenarios/moba/assets/models/character-male-e.glb": {
-      "sha256": "b30ab15f58d5adc7b64f1b8c5df1b8db6056fa771fe135a564857a6267e6c0b8",
-      "bytes": 137860,
-      "afterBytes": 92652,
-      "source": "64fd5a53d8e4080421653cf1767bd49e2bb1e9f1b92b7dd8f270db7bb181ad7a",
-      "at": "2026-10-22T07:41:39.815Z"
+      "sha256": "2bae7c5e9d19b96d2ddf3f94bc6d7c2852e32f59bae9c951593435b4b235b259",
+      "bytes": 92744,
+      "afterBytes": 92744,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.194Z"
     },
     "scenarios/moba/assets/models/character-male-f.glb": {
-      "sha256": "c02df79edda638fc55516b33424812ea10d97f1083d9d34de0367142ebb4b603",
-      "bytes": 141468,
-      "afterBytes": 94824,
-      "source": "77510b7e9e53a282fe74e6f70717b718d0ab23e9d35834c82dfb0ff03f29a3a1",
-      "at": "2026-10-22T07:41:39.831Z"
+      "sha256": "3aa258e33562636a58cd2cdb60b6fd62a64cde7adeb056f5c8d1eaa8504e18da",
+      "bytes": 94912,
+      "afterBytes": 94912,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.211Z"
     },
     "scenarios/moba/assets/models/character-orc.glb": {
-      "sha256": "70cc89542a91a4484317815991f6c8bd9308209d2bfd62098aa1248e6ef5f262",
-      "bytes": 120976,
-      "afterBytes": 83292,
-      "source": "b30b47ba89b9da297ef00cf2f3cd28b44c986a1c01e57a3aa41156f56a517859",
-      "at": "2026-10-22T07:41:39.843Z"
+      "sha256": "4bb7e2de57246d29140f78eb0f34dc6438ba157548015653765d945fe28b141d",
+      "bytes": 83384,
+      "afterBytes": 83384,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.226Z"
     },
     "scenarios/moba/assets/models/character-skeleton.glb": {
-      "sha256": "bf30d6cbb3b652a2760da622f1803bd8dcd6130f71c8768535c41fea51b8658e",
-      "bytes": 142368,
-      "afterBytes": 96508,
-      "source": "42f5611403e0d8a588a01230e62822679b3fbf0b67e06e81e0c77ba7ab8b792e",
-      "at": "2026-10-22T07:41:39.859Z"
+      "sha256": "ff04c618ea2fbcfdaea50fc10df631b548828558180f4ce497bb60e4cf04d637",
+      "bytes": 96772,
+      "afterBytes": 96772,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.241Z"
     },
     "scenarios/moba/assets/models/character-vampire.glb": {
-      "sha256": "42ad8d3408db7441d0a4705c2bd545447d4d89b175799b4272eaf6a1f107496c",
-      "bytes": 171864,
-      "afterBytes": 112808,
-      "source": "0e2abc63cf0f32188b1111d1d2a2914a5de82382753a9963c5db70c901495029",
-      "at": "2026-10-22T07:41:39.872Z"
+      "sha256": "abe6f2fb3145357b58a9c4b5e7dc703f01e2810a9699a39147416969071ed81d",
+      "bytes": 113068,
+      "afterBytes": 112852,
+      "source": "481f3699c4f5795026c351261c03559705956d6ee4d035a2150299f0e9d23cc6",
+      "at": "2026-10-22T20:57:01.258Z"
     },
     "scenarios/moba/assets/models/character-zombie.glb": {
-      "sha256": "74ed34d0afa998207712fed13b36bac3808b8401e197d7523ebd6abe88749e55",
-      "bytes": 171668,
-      "afterBytes": 112588,
-      "source": "8844086a53ec8e401a0fba3aaaa3c746411923644dcbbdbf731fae254b448a0a",
-      "at": "2026-10-22T07:41:39.886Z"
+      "sha256": "ef142bc1faf4496908d8266182f22fb84a18b99673c5cb3a29f9dd57bd4816e2",
+      "bytes": 112860,
+      "afterBytes": 112648,
+      "source": "36b05bdc7656a0c4d5fe1cc30dc3f731ca50816812e82b634f06d1670a27a8e8",
+      "at": "2026-10-22T20:57:01.275Z"
     },
     "scenarios/moba/assets/models/chest.glb": {
       "sha256": "910e2ea901ff57e600f7dda7230c320048222edf5733b179a34ea43fa8170fc0",
@@ -1136,18 +1136,18 @@
       "at": "2026-10-22T07:41:40.008Z"
     },
     "scenarios/moba/assets/models/corridor-corner.glb": {
-      "sha256": "ff071ec3e2a2f71f92ea699a0a7d31e838573cad5fc952dca5ae5c799966848d",
-      "bytes": 44776,
-      "afterBytes": 39900,
-      "source": "aa7080ece9dc7fd22c0db2c069047a8f3eb22e876bc3696bf6ab4126918644b1",
-      "at": "2026-10-22T07:41:40.013Z"
+      "sha256": "69f60e858776307861dbb1586e369ac634815e46fd96f7ca66c620e6f22ca9a7",
+      "bytes": 39944,
+      "afterBytes": 39944,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.289Z"
     },
     "scenarios/moba/assets/models/corridor-end.glb": {
-      "sha256": "ab9a3dfb79ae3eadf337e74332030ff0efcb38f0335d1604b45487d214e47bfa",
-      "bytes": 84404,
-      "afterBytes": 62260,
-      "source": "799a6daab593c93a97e7a367357943f0d6cd4f58788f71a0fbd58dbec3fbae4a",
-      "at": "2026-10-22T07:41:40.019Z"
+      "sha256": "90eb94e13189f77f5523a29d20ca64b3b83937c38be7c439e0552ca72dc0e239",
+      "bytes": 62304,
+      "afterBytes": 62304,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.295Z"
     },
     "scenarios/moba/assets/models/corridor-intersection.glb": {
       "sha256": "0ef863af72057a5e3ce99c555492634c2cef4a3a23150cb3a6c82e0a8e6fcfea",
@@ -1157,32 +1157,32 @@
       "at": "2026-10-22T07:41:40.022Z"
     },
     "scenarios/moba/assets/models/corridor-junction.glb": {
-      "sha256": "0b7ae2dbfded4051eb2a97e0eb8f3c7c909a9d3141a262e599dfc23d8a29f8e9",
-      "bytes": 36744,
-      "afterBytes": 35540,
-      "source": "21d09e7e462e8b8d929a801fc8a5c64e6c88de9586b444e41f0823c20437706f",
-      "at": "2026-10-22T07:41:40.026Z"
+      "sha256": "af9a183f50714fbfaba2b7b5488fa821d9534c9b8c9df2939ddf18227412246f",
+      "bytes": 35580,
+      "afterBytes": 35580,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.300Z"
     },
     "scenarios/moba/assets/models/corridor-transition.glb": {
-      "sha256": "d534a00ba7fbfaf1ece3a7c0083c9f95c86c4480d00c31c3c2ed9e12e6f2c549",
-      "bytes": 139856,
-      "afterBytes": 94224,
-      "source": "b4441e9eb38eab0c05bd6582e3ea4bf081883f5fc53bb63577cc2159a133cb06",
-      "at": "2026-10-22T07:41:40.038Z"
+      "sha256": "a1327b4bffaabb5f8174f18be8e51c73fdb70c93dc7422195c3992e1ee89e4e0",
+      "bytes": 94236,
+      "afterBytes": 94236,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.310Z"
     },
     "scenarios/moba/assets/models/corridor-wide-corner.glb": {
-      "sha256": "3695d02e24727dfc6165281647bde1e3724d1db367de8807d00f9c6909cdeb08",
-      "bytes": 98328,
-      "afterBytes": 70244,
-      "source": "1160a2be90ed3497cc53012cf0edde9c6b7fff3a9d9dbd23e09a9765970c29e6",
-      "at": "2026-10-22T07:41:40.047Z"
+      "sha256": "0cf8cfe9306ea680cb9d4d3cbd0b00b63595d877f5a77619b13974209c8b2d7b",
+      "bytes": 70252,
+      "afterBytes": 70252,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.319Z"
     },
     "scenarios/moba/assets/models/corridor-wide-end.glb": {
-      "sha256": "7a157a7173c4dade41e2b5730ff45c57054a5c390323e15f95fc76aa48acdac8",
-      "bytes": 147312,
-      "afterBytes": 99532,
-      "source": "595930589f6508196a32c579af8f56305d28eaeff5d4a36dcaaa8576b463bf35",
-      "at": "2026-10-22T07:41:40.059Z"
+      "sha256": "a885a9ca3165bcf8275d99177bb0c6e4529ea108db872aff38ee69460d79d6bc",
+      "bytes": 99576,
+      "afterBytes": 99576,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.332Z"
     },
     "scenarios/moba/assets/models/corridor-wide-intersection.glb": {
       "sha256": "abd4edae34d641cde826b4ddb845ea7a3af45737b65c1224aef41938d5d9be6c",
@@ -1192,25 +1192,25 @@
       "at": "2026-10-22T07:41:40.062Z"
     },
     "scenarios/moba/assets/models/corridor-wide-junction.glb": {
-      "sha256": "52945ed190c844de0e2acc54d771e38d35eabc30fd6c68c91c808c46e24fa2f4",
-      "bytes": 57412,
-      "afterBytes": 47944,
-      "source": "5976b1755af56ba435368c5b39c0388e3105124d17432487f9ede629d3d5ca22",
-      "at": "2026-10-22T07:41:40.068Z"
+      "sha256": "3e9db0753439564da02fbe38bee3b1fd8dd96fa15c50a494e3a533a263419947",
+      "bytes": 47988,
+      "afterBytes": 47988,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.337Z"
     },
     "scenarios/moba/assets/models/corridor-wide.glb": {
-      "sha256": "c8f4b4a9fad1f810874c383aedaa128052acef1b6e8c1ff13e22d225b06c4fea",
-      "bytes": 98904,
-      "afterBytes": 71776,
-      "source": "0020ffe99035c15ab3f5e880e6a925b544e6c5866b5c939a81738fef2bb0f73b",
-      "at": "2026-10-22T07:41:40.077Z"
+      "sha256": "fcd0c974f9507548f8ccf44ac5741782a159ed280616db754fee3d059d83998e",
+      "bytes": 71820,
+      "afterBytes": 71820,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.346Z"
     },
     "scenarios/moba/assets/models/corridor.glb": {
-      "sha256": "76ee9943990d89fcd0ca8237e97330de83affcd5693bd7371955f4a4378abae4",
-      "bytes": 57212,
-      "afterBytes": 46996,
-      "source": "5fa3bbebeec88f3065c8295132dedfeb43a35466805862ba63a91fb3adcb0c72",
-      "at": "2026-10-22T07:41:40.082Z"
+      "sha256": "84b7f3f863a1c447a525a074f718397a5556ff5efa71dd2b54c8ea123f650fc3",
+      "bytes": 47040,
+      "afterBytes": 47040,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.351Z"
     },
     "scenarios/moba/assets/models/crane-lift.glb": {
       "sha256": "4ff566e6eef582ddb8aa2f01c05f368a37dabc658d1c28f2fbac5fef59bf1652",
@@ -1318,25 +1318,25 @@
       "at": "2026-10-22T07:41:40.117Z"
     },
     "scenarios/moba/assets/models/crystal-maiden-skinned.glb": {
-      "sha256": "fe341bdd84f08a437a938b90dbaa0b351dd34922d1955c1d33e4ed2d7e4bd052",
-      "bytes": 100864,
-      "afterBytes": 100864,
+      "sha256": "74100b8fa0da3b1a428cb0f29152204dea1b928f56bc16bb6aaae83a9e34052d",
+      "bytes": 100912,
+      "afterBytes": 100912,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.137Z"
+      "at": "2026-10-22T20:57:01.382Z"
     },
     "scenarios/moba/assets/models/dark-seer-skinned.glb": {
-      "sha256": "7ebd43ec9ab6f7b9cb2289501f268be4008ff8ca1141d22e6d76b3221df90b13",
-      "bytes": 112848,
-      "afterBytes": 112848,
+      "sha256": "b15d5615acc2067422ffd297be047a9936b341ff9a277d1009d795cddebde137",
+      "bytes": 112892,
+      "afterBytes": 112892,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.164Z"
+      "at": "2026-10-22T20:57:01.417Z"
     },
     "scenarios/moba/assets/models/death-prophet-skinned.glb": {
-      "sha256": "b0853747dfec606f00a92da12e9c29097d89aaed742ff930a061fbdf969959d1",
-      "bytes": 174996,
-      "afterBytes": 174996,
+      "sha256": "bc77928f688633b45e38b742a7802b85cbaeeb3d4e872869050d4f3741959677",
+      "bytes": 175044,
+      "afterBytes": 175044,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.217Z"
+      "at": "2026-10-22T20:57:01.471Z"
     },
     "scenarios/moba/assets/models/debris-wood.glb": {
       "sha256": "64a246a7c6976386f58d95d5d6208ed32ae60ad7ed5cbfc64f674e0c5906d00b",
@@ -1395,18 +1395,18 @@
       "at": "2026-10-22T07:41:40.237Z"
     },
     "scenarios/moba/assets/models/disruptor-skinned.glb": {
-      "sha256": "a25d8fab5e840459b8e0e62b32684a517f78ef28e4a5467a8b4ee8abc8539422",
-      "bytes": 174816,
-      "afterBytes": 174816,
+      "sha256": "58516585a37eae78ff061151facb54c96ac492b3f0013930092c209d642458c5",
+      "bytes": 174864,
+      "afterBytes": 174864,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.278Z"
+      "at": "2026-10-22T20:57:01.526Z"
     },
     "scenarios/moba/assets/models/doom-bringer-skinned.glb": {
-      "sha256": "9ae52d73e9db8abeadcd1a87a381c996cd86ebd9eb8a4f93d5b4aaadd088274e",
-      "bytes": 116160,
-      "afterBytes": 116160,
+      "sha256": "030f78f834763598e4e67c0f9cff0a72e225f47143a4387a72dcb9abf137a892",
+      "bytes": 116204,
+      "afterBytes": 116204,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.304Z"
+      "at": "2026-10-22T20:57:01.559Z"
     },
     "scenarios/moba/assets/models/door-wide-closed.glb": {
       "sha256": "23754fb0f95ae06952e0eeb3a63fdf2d6b8d17d795ac23a790950cbe209ddb63",
@@ -1437,18 +1437,18 @@
       "at": "2026-10-22T07:41:40.310Z"
     },
     "scenarios/moba/assets/models/dragon-knight-skinned.glb": {
-      "sha256": "6760480fba28212bed8092bdd010b6d7172e2a5375fcb855e5cec7aa478b014d",
-      "bytes": 155568,
-      "afterBytes": 155568,
+      "sha256": "74a70a1f9abe5e982285733655a5dcd9cf0c1d086d4ef8cfeb30c8913bdedb7d",
+      "bytes": 155616,
+      "afterBytes": 155616,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.346Z"
+      "at": "2026-10-22T20:57:01.605Z"
     },
     "scenarios/moba/assets/models/drow-ranger-skinned.glb": {
-      "sha256": "7260e52f8651024eaace0bb0793211d42c17190bdbaa12c27e73372026077298",
-      "bytes": 161372,
-      "afterBytes": 161372,
+      "sha256": "c909067ac6af56a8796a232e4cd7902d3c234661ffa36678db35ad2317eb99d9",
+      "bytes": 161420,
+      "afterBytes": 161420,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.388Z"
+      "at": "2026-10-22T20:57:01.654Z"
     },
     "scenarios/moba/assets/models/dumpster.glb": {
       "sha256": "29f661470e8cfa7fffa0b24438aa4295e3d62af0708ae9b20b477e77d8bd3a05",
@@ -1458,18 +1458,18 @@
       "at": "2026-10-22T07:41:40.393Z"
     },
     "scenarios/moba/assets/models/earth-spirit-skinned.glb": {
-      "sha256": "074435f89ab8f30727e96fbb32a8b8bfadfc44715905186a1dcb050aa363d915",
-      "bytes": 1129108,
-      "afterBytes": 499480,
-      "source": "97d77fa6fd8077b7825facc3d80e3b832e0e09427e478b02c509785c50081e0c",
-      "at": "2026-10-22T07:41:40.534Z"
+      "sha256": "e905d24d1e566ecadac889bc02ec1f398265f69d536c055cf719da0647d10cef",
+      "bytes": 498976,
+      "afterBytes": 498960,
+      "source": "b9a1ee6f591b01184ac7c030c83f927843525e30b468ca4555b614ed5bbc007d",
+      "at": "2026-10-22T20:57:01.809Z"
     },
     "scenarios/moba/assets/models/earthshaker-skinned.glb": {
-      "sha256": "3ec44cd1b5b31f9ff7c8989c39677cd34b802e2614053ea8a30708e31d89da39",
-      "bytes": 161400,
-      "afterBytes": 161400,
+      "sha256": "916e2d94c27f07611a9b7e3ccd90e7ae83bd34ee8345033dc8966320825b174f",
+      "bytes": 161448,
+      "afterBytes": 161448,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.573Z"
+      "at": "2026-10-22T20:57:01.866Z"
     },
     "scenarios/moba/assets/models/electricity-pole-single.glb": {
       "sha256": "39fcb05265c7d4a7341eafdef365d26785063c14f73b69a1313adb5b41bbbc0b",
@@ -1479,11 +1479,11 @@
       "at": "2026-10-22T07:41:40.575Z"
     },
     "scenarios/moba/assets/models/electricity-pole-wide.glb": {
-      "sha256": "01678d094586c7ccea493a5ff5ad494547ec7d5bd80f8e940a8d88e2ba5cca07",
-      "bytes": 38756,
-      "afterBytes": 35620,
-      "source": "37675b17a68ea983c3ae37a6ae737a7df0f6ac8391efaa4f6e3bd5fae261aecc",
-      "at": "2026-10-22T07:41:40.579Z"
+      "sha256": "2064ace0143eca4753f29c871ec9326e23d24b92d7207dde9f9705979d88e069",
+      "bytes": 35672,
+      "afterBytes": 35672,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.871Z"
     },
     "scenarios/moba/assets/models/electricity-pole.glb": {
       "sha256": "3f832668b22f43db08399488bc5c723bf76f3eb33a952a45b22e06c3a86552cf",
@@ -1500,11 +1500,11 @@
       "at": "2026-10-22T07:41:40.584Z"
     },
     "scenarios/moba/assets/models/electricity-side-wide.glb": {
-      "sha256": "ff0493a6c40d48c1aa943fc249c743cd88e601dd1a86729a5f274b93b354f520",
-      "bytes": 38764,
-      "afterBytes": 35364,
-      "source": "faddb8bd013dfb776a687155f397ad2eb3a0bc7362b1b8b5e19bbcbaad135c6d",
-      "at": "2026-10-22T07:41:40.587Z"
+      "sha256": "c31736b66e57c96eebec6cd74146ad0caede9b5b3874caaa77f6ecc123c3b18c",
+      "bytes": 35412,
+      "afterBytes": 35412,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:01.875Z"
     },
     "scenarios/moba/assets/models/electricity-side.glb": {
       "sha256": "11cbc07a40df0d2e190b1498bf39a5997e9164970fc0ec66fe9ec53a4becc5b3",
@@ -1528,32 +1528,32 @@
       "at": "2026-10-22T07:41:40.594Z"
     },
     "scenarios/moba/assets/models/ember-spirit-skinned.glb": {
-      "sha256": "a1b43edc6df2fef3c265cb45413cc245ef0c12e3e47b88d232d4695bb4b8f8fb",
-      "bytes": 586380,
-      "afterBytes": 254484,
-      "source": "3e72f70381d3c541cf978837506655141fb4782acbd75744924d441598500f4a",
-      "at": "2026-10-22T07:41:40.658Z"
+      "sha256": "1f22286f4ca05ee4d4ed73852ad0b188d7809406ae2f73945f68ebdc190ad94c",
+      "bytes": 254360,
+      "afterBytes": 254240,
+      "source": "5d9295e98299788f27bc0074528f8a2717c14ed9e549fbef2d4a2a121be71bac",
+      "at": "2026-10-22T20:57:01.941Z"
     },
     "scenarios/moba/assets/models/enchantress-skinned.glb": {
-      "sha256": "d52892b0bc4ba5a9a94f94d12c9f62bfa25f7d13a8fffef45436bc55f9f6126f",
-      "bytes": 710904,
-      "afterBytes": 292912,
-      "source": "a8bba9ecba0123f646fe87aaace4d2850b3769e20967e12a3a67e8f88a46c3b7",
-      "at": "2026-10-22T07:41:40.734Z"
+      "sha256": "7f42e59cbad988b8f371e88558996f4fce3b5a5214d61bc46864760b9102661d",
+      "bytes": 292676,
+      "afterBytes": 291684,
+      "source": "ec59ee29859cced7c7f7d710cf92e08d5403b39c03b9b7d16f82e235e41a7c22",
+      "at": "2026-10-22T20:57:02.020Z"
     },
     "scenarios/moba/assets/models/enigma-skinned.glb": {
-      "sha256": "ff48ae7beb458c84179e2ca05ed247133cc6e2ec66ed13bb92128f342a58abed",
-      "bytes": 498460,
-      "afterBytes": 217264,
-      "source": "70b0daf993a04dc881c36490597a111a16f4beea7b8d4c3455bba4248f789ec0",
-      "at": "2026-10-22T07:41:40.785Z"
+      "sha256": "652a6e8f2a1cbc834f1858ae1b68f541897a34ed836a8ff81e013d75f7cd4fdc",
+      "bytes": 217056,
+      "afterBytes": 216340,
+      "source": "cc58188544b99358b526cafff1dfc090107e7cda7c137b72ed8a3d82e177fa1c",
+      "at": "2026-10-22T20:57:02.079Z"
     },
     "scenarios/moba/assets/models/faceless-void-skinned.glb": {
-      "sha256": "db079659f8413ac7b7a67a39c850ddcc2255fa3eb5d43462d66c99eab385eae8",
-      "bytes": 125180,
-      "afterBytes": 125180,
+      "sha256": "f66f5cf734e9a79979d01cf2005f49b17e91ec9c3cbb5f0635504d980ac0a6d1",
+      "bytes": 125228,
+      "afterBytes": 125228,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.812Z"
+      "at": "2026-10-22T20:57:02.113Z"
     },
     "scenarios/moba/assets/models/fence-broken.glb": {
       "sha256": "a0326cbf52786c2a0311f63e1a791d83c6853c90344f354992773cdfd0567f61",
@@ -1738,18 +1738,18 @@
       "at": "2026-10-22T07:41:40.863Z"
     },
     "scenarios/moba/assets/models/fountain-round-detail.glb": {
-      "sha256": "3e8c7dbf61cb6e47f12780d41488439b7d36296bc9f6c161459ac097208cfedb",
-      "bytes": 70564,
-      "afterBytes": 56300,
-      "source": "27ae57737e2e5393206bc05302b38cf1d6321544a5aeaf77590fb6544ec4309f",
-      "at": "2026-10-22T07:41:40.869Z"
+      "sha256": "0a480ae68f41eea3fe66ada9ea4804a4abd47d33fc771138695ad74fa1979f6e",
+      "bytes": 56328,
+      "afterBytes": 56328,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:02.129Z"
     },
     "scenarios/moba/assets/models/fountain-round.glb": {
-      "sha256": "27463f42df237e16601273999e7d81bd3c861edd2171b1434cd0b79e1c81c4e0",
-      "bytes": 44544,
-      "afterBytes": 41768,
-      "source": "44f01337dbdaf9362b042a4e200eaf810c2e4c9cdd054e62e2e3fab9bca0b124",
-      "at": "2026-10-22T07:41:40.874Z"
+      "sha256": "85f6910ddd3c0113006f943b582c41313036d15fc398ee1214d23daf874fe536",
+      "bytes": 41764,
+      "afterBytes": 41764,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:02.134Z"
     },
     "scenarios/moba/assets/models/fountain-square-detail.glb": {
       "sha256": "54900c8f28cc9df0e55b234f49dcb415aa48d21c6c5d83b2270928585104d535",
@@ -1808,11 +1808,11 @@
       "at": "2026-10-22T07:41:40.898Z"
     },
     "scenarios/moba/assets/models/grave-border.glb": {
-      "sha256": "1042a94d8233dd2348346842403882bbc8c7a6c00b4d04d83087a758ed70beff",
-      "bytes": 38680,
-      "afterBytes": 37204,
-      "source": "8d9aebb06c874a94a7ae4a17e3591904ba41bb4a4c242c52c771fa188d8e13bc",
-      "at": "2026-10-22T07:41:40.901Z"
+      "sha256": "294dcf72104ecd337206aa8e343199dd03044131a4e391d645c68ee953883cdd",
+      "bytes": 37248,
+      "afterBytes": 37248,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:02.140Z"
     },
     "scenarios/moba/assets/models/grave.glb": {
       "sha256": "d7a44e9cfa531ddfea47e2b14fc7dfad70214cbf374970129d8991a8ea492d7a",
@@ -1899,11 +1899,11 @@
       "at": "2026-10-22T07:41:40.921Z"
     },
     "scenarios/moba/assets/models/gyrocopter-skinned.glb": {
-      "sha256": "1e9ded8a47638c67e8597a106a8cc5e8deb9e63c28e9b15b6ee2413b1fab9e3d",
-      "bytes": 123636,
-      "afterBytes": 123636,
+      "sha256": "06908c96e40fca05f9099328f617b92a6af173759b2c81e4bcfd381dc4307ccd",
+      "bytes": 123684,
+      "afterBytes": 123684,
       "unchanged": true,
-      "at": "2026-10-22T07:41:40.952Z"
+      "at": "2026-10-22T20:57:02.180Z"
     },
     "scenarios/moba/assets/models/hay-bale-bundled.glb": {
       "sha256": "bab93180b7e9b024135993095eca2effe41e21f597c8c406c000c166d67c70a4",
@@ -2018,11 +2018,11 @@
       "at": "2026-10-22T07:41:40.977Z"
     },
     "scenarios/moba/assets/models/invoker-skinned.glb": {
-      "sha256": "38269691e1e6f421e3dea07a1b4ec1a970b1a9f8efe00a3263e54fcddcf2cd2c",
-      "bytes": 498500,
-      "afterBytes": 219636,
-      "source": "733e083371d91dee3c876e16c07d94e709ebdc7031f2cbb6bba9df96ca4c63d4",
-      "at": "2026-10-22T07:41:41.032Z"
+      "sha256": "5d2e5b20165da6e237b34d24409811096a929eed17660a6c9ab348a03118e05d",
+      "bytes": 219140,
+      "afterBytes": 218592,
+      "source": "e1592eb721e51a666abf680750e08bb48af4b03d8e9799b3a71721af4f23b695",
+      "at": "2026-10-22T20:57:02.236Z"
     },
     "scenarios/moba/assets/models/iron-fence-bar.glb": {
       "sha256": "4f2e4847798500ac24571aea9bfca4fe53203aea4ec2b570dce6416fd0627b36",
@@ -2081,18 +2081,18 @@
       "at": "2026-10-22T07:41:41.052Z"
     },
     "scenarios/moba/assets/models/juggernaut-skinned.glb": {
-      "sha256": "771ad19510a0bc4042552d21640ec57878f2da7daa4fb1064617910bc6b908e4",
-      "bytes": 841248,
-      "afterBytes": 355036,
-      "source": "0b57dfc128a2452c402c50791501e48db08eced08a957190e72f82452e0d04ad",
-      "at": "2026-10-22T07:41:41.142Z"
+      "sha256": "eb21b1ae29aed251aa0f133fc74f70d031791a66b72b19ba765b05b085188485",
+      "bytes": 354672,
+      "afterBytes": 353572,
+      "source": "d5bdb46a85884156242ab41483aa83fa9d48c752ecde14d9dd64f8c90a4c9602",
+      "at": "2026-10-22T20:57:02.336Z"
     },
     "scenarios/moba/assets/models/keeper-of-the-light-skinned.glb": {
-      "sha256": "65810334e785f61b94a23d9945f576fba21a4b8f15adefbdd42010bc61ca986a",
-      "bytes": 449484,
-      "afterBytes": 202000,
-      "source": "6551f57b270c822f1f3cd9238dd044577a3e4e6b53741946845b629824d187bc",
-      "at": "2026-10-22T07:41:41.190Z"
+      "sha256": "1e0fde2d048f45a0e0e7368b75d92f2eae8e01f074fb08cd3d6ef7a17bc27395",
+      "bytes": 201788,
+      "afterBytes": 201448,
+      "source": "c1665d5ff731d1acc7f532496b2081b4960a1a6d1ab5b0e0d3ed77d1a9244ab1",
+      "at": "2026-10-22T20:57:02.399Z"
     },
     "scenarios/moba/assets/models/key.glb": {
       "sha256": "f1036b9ce0e42b90f798445f068ca0446fc37e72de6d330658c6f7f7bdea08d2",
@@ -2130,11 +2130,11 @@
       "at": "2026-10-22T07:41:41.200Z"
     },
     "scenarios/moba/assets/models/legion-commander-skinned.glb": {
-      "sha256": "2363261a6fa630dde8c78881d5867b4760a3f3482e72f4e4baaf2f6c58af840a",
-      "bytes": 433272,
-      "afterBytes": 188296,
-      "source": "bc91d24d2f81f1a3696069ffd3c80162c6997e977deb4363e71c1a8f885cc8ce",
-      "at": "2026-10-22T07:41:41.243Z"
+      "sha256": "782f2d900f6524d707c34d894da387b11b616e6120caba05b0c9c8863b6e519a",
+      "bytes": 187744,
+      "afterBytes": 187204,
+      "source": "7ce9989e10bf7cd1c1dc4e8fed3c74114702aabdb0618ecbbea90d61ea3abfd1",
+      "at": "2026-10-22T20:57:02.448Z"
     },
     "scenarios/moba/assets/models/lever-double.glb": {
       "sha256": "ef10267edf82cd4d6d1ca4a724188d70d29cfc8c4577e9e49ad19dc97f06ab32",
@@ -2151,18 +2151,18 @@
       "at": "2026-10-22T07:41:41.248Z"
     },
     "scenarios/moba/assets/models/lich-skinned.glb": {
-      "sha256": "c46803e5fd239e04daa5f32abfa774dc2c23431db13e9218ee95cbcbcef11bc7",
-      "bytes": 133732,
-      "afterBytes": 133732,
+      "sha256": "723d905609f408637820e91f1851b74ad2b53526be99a457c0e90c473ea3de09",
+      "bytes": 133780,
+      "afterBytes": 133780,
       "unchanged": true,
-      "at": "2026-10-22T07:41:41.278Z"
+      "at": "2026-10-22T20:57:02.487Z"
     },
     "scenarios/moba/assets/models/lifestealer-skinned.glb": {
-      "sha256": "a036654bdb21f6a99d7fc80bcd443ce83d66ecb8ba3a7c0a1880c79a3742593f",
-      "bytes": 591332,
-      "afterBytes": 250064,
-      "source": "57e1ea48b7a6bfd62a7648f06cc895a7ba5ff4e733c2bc2ea3b6115b667b76d5",
-      "at": "2026-10-22T07:41:41.342Z"
+      "sha256": "389169803edc54c5e7d26bdb533a7de44a710ab034a0300703df5d1a017488f2",
+      "bytes": 249768,
+      "afterBytes": 249308,
+      "source": "cf44ee2b16fbba2a949c66f4d55bdd67110f0c036cf415b24f9a4f044b64e095",
+      "at": "2026-10-22T20:57:02.557Z"
     },
     "scenarios/moba/assets/models/light-curved-cross.glb": {
       "sha256": "fc4608c61c909011a34decd097d755c2b6cff5f8f9e3ebcc5ed5ea19c9d948fe",
@@ -2207,11 +2207,11 @@
       "at": "2026-10-22T07:41:41.354Z"
     },
     "scenarios/moba/assets/models/lightpost-all.glb": {
-      "sha256": "3e831fba7d70783e2c10aec2a373f72427c371bb0cda18328106680e9490d350",
-      "bytes": 45220,
-      "afterBytes": 41140,
-      "source": "d84b160b858d798e21043ee445a108d8c8553d1d5fa0df66e57f72c244638668",
-      "at": "2026-10-22T07:41:41.358Z"
+      "sha256": "9764496ba84e7ca9a919426c58b5775c3c67a16b012ef1edb3658daca4b89251",
+      "bytes": 41184,
+      "afterBytes": 41184,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:02.563Z"
     },
     "scenarios/moba/assets/models/lightpost-double.glb": {
       "sha256": "5ccce4495fe45ce0fd5e6472abae3f95bdb2d74682059aa0f28fcad8374fd85e",
@@ -2228,11 +2228,11 @@
       "at": "2026-10-22T07:41:41.364Z"
     },
     "scenarios/moba/assets/models/lone-druid-skinned.glb": {
-      "sha256": "cc06e8892489de9662a22b40d68c6b20100d851216183fee4a5600d34ff8710f",
-      "bytes": 607156,
-      "afterBytes": 254416,
-      "source": "244ec482b0bf8aa04d3af63d1093b0d57c32f29fb143c17d2c23a87c3d1e677d",
-      "at": "2026-10-22T07:41:41.425Z"
+      "sha256": "680bb4a515c484c513b75708aaf9429ac26445407d8ea949b4b4e082e1e5a98e",
+      "bytes": 254296,
+      "afterBytes": 254296,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:02.633Z"
     },
     "scenarios/moba/assets/models/machine-bed.glb": {
       "sha256": "62ac63d87f9f595f5a6bda5483a491c711796b3daeacb849e958956d09b27c3d",
@@ -2270,11 +2270,11 @@
       "at": "2026-10-22T07:41:41.446Z"
     },
     "scenarios/moba/assets/models/magnataur-skinned.glb": {
-      "sha256": "bbe261554af6bb3ca711cff8f7ef66b168795f1cbffc7c7e47fd55673359aac0",
-      "bytes": 667820,
-      "afterBytes": 278592,
-      "source": "11765bf84c4b80783eb89a785f54f884174742960cc15a88b8a1cbf606bae4f8",
-      "at": "2026-10-22T07:41:41.515Z"
+      "sha256": "ae63cf804ef61eb9fe109d1fb4a549f033026a398b460826eba1e4bce0f85a34",
+      "bytes": 278424,
+      "afterBytes": 277632,
+      "source": "c568bd4848eef6e3a7684662c8d6a2e36e3b67f9f2bc759ed63518ed5d9c846c",
+      "at": "2026-10-22T20:57:02.720Z"
     },
     "scenarios/moba/assets/models/metal-gate.glb": {
       "sha256": "1313e017bf81d9da9ec64b6ac3b67f708658a4e8a534385e8c93bd765e5865a0",
@@ -2319,256 +2319,256 @@
       "at": "2026-10-22T07:41:41.528Z"
     },
     "scenarios/moba/assets/models/morphling-skinned.glb": {
-      "sha256": "797a2f95b88c9fbb074c1bbaaedc5d47b6b42397ee055ee58f9811846931f836",
-      "bytes": 393944,
-      "afterBytes": 172956,
-      "source": "55398ac0a25070b1d1e2f9a2101a682c4ad759ca920bd3fe0a2e274c2a56e265",
-      "at": "2026-10-22T07:41:41.568Z"
+      "sha256": "a435ee39c853c7c35289e62cd35144fe3c70b5532ce197e94f82c3d239e3af3e",
+      "bytes": 173024,
+      "afterBytes": 171732,
+      "source": "4e2af04ab54d5173f55564df951d35f6e01a5141823b9f675dd0c51b8827d2c3",
+      "at": "2026-10-22T20:57:02.767Z"
     },
     "scenarios/moba/assets/models/naga-siren-skinned.glb": {
-      "sha256": "39116aca824c808832b639b4acd52cc89ed8ec12e9bd95a564f91cd6d96de906",
-      "bytes": 633448,
-      "afterBytes": 272456,
-      "source": "1d77667ee48478534f9c1d8b3feecea4dfef64d798d5f6ea7d0cfed815b4c8a4",
-      "at": "2026-10-22T07:41:41.640Z"
+      "sha256": "fc8365fae491a8b2f22acc142f5706598f0c85cfbff9eb8ecdd30980d6002721",
+      "bytes": 272112,
+      "afterBytes": 272112,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:02.843Z"
     },
     "scenarios/moba/assets/models/necrolyte-skinned.glb": {
-      "sha256": "847ac5021eb8f2052a87a42a640265ea6944c975a8bcfe1cc120fbed2d9d1b7a",
-      "bytes": 633940,
-      "afterBytes": 264020,
-      "source": "ace3336037903e6550792291845cd23b0e3552040ea8f0545beb9900da5a0aaa",
-      "at": "2026-10-22T07:41:41.705Z"
+      "sha256": "19848b14396bf12911150c83f7502189d121fa719485cb4bbe52af75c9690b11",
+      "bytes": 263604,
+      "afterBytes": 263152,
+      "source": "a8b9439ba032c09aa37ae7c940d6138171fc46084d00cae841c0adff6ad33c60",
+      "at": "2026-10-22T20:57:02.921Z"
     },
     "scenarios/moba/assets/models/neutral-alpha-wolf-skinned.glb": {
-      "sha256": "471dce1ab4d798b72a0cab21671846d7d9a1c7abccb0362038c530094addb5a4",
-      "bytes": 618156,
-      "afterBytes": 259908,
-      "source": "dffe298181433b959480d340621a2ee0b0c11927e9264d74082cf60289273f33",
-      "at": "2026-10-22T07:41:41.774Z"
+      "sha256": "303af4bd9ead571b515348058895316ac47d7a6f9235b1496d1784b41ffec124",
+      "bytes": 259404,
+      "afterBytes": 258812,
+      "source": "f26470d43f121f2b1874b1f634bae1ab69eaf8629c567c8b9a0a33315b16335d",
+      "at": "2026-10-22T20:57:03.000Z"
     },
     "scenarios/moba/assets/models/neutral-black-dragon-skinned.glb": {
-      "sha256": "d27f08ae60411f0078b5970cd97926c7373bad4b34b0f026ccce25078c9beb79",
-      "bytes": 840368,
-      "afterBytes": 358292,
-      "source": "4073647fe7a949b40daae934eb9a52d832a0be63899f183b89913cdc01873b1d",
-      "at": "2026-10-22T07:41:41.865Z"
+      "sha256": "e097cc1c267234afdc2bb560c636f7180a086465f35ca35791d477d8950dabc7",
+      "bytes": 357712,
+      "afterBytes": 357556,
+      "source": "fb33812b5656e646384e657c221cb39302a2d986def18029c46507352a21de1d",
+      "at": "2026-10-22T20:57:03.223Z"
     },
     "scenarios/moba/assets/models/neutral-black-drake-skinned.glb": {
-      "sha256": "d45acbd67ee44891428b90ee5614e02cde9023a59a905a49a514a5568e42113f",
-      "bytes": 429180,
-      "afterBytes": 184116,
-      "source": "8b248aead3b4ca1f93dd4373a76eb4c58d1bc3f84114cb714800d5eeb240b80c",
-      "at": "2026-10-22T07:41:41.912Z"
+      "sha256": "197512df0a2d3e9af2e3d95c9a409cff47ac6db527d083e6da7e491ee9c5cd9a",
+      "bytes": 183456,
+      "afterBytes": 183312,
+      "source": "5040d6e5d7133295e0b9e2576fdfb662e8dc2f03304f7721a03e665b18ebb953",
+      "at": "2026-10-22T20:57:03.288Z"
     },
     "scenarios/moba/assets/models/neutral-centaur-khan-skinned.glb": {
-      "sha256": "f61952aa0a54313f1e625e2b5ffa3f3107c22fc1ee2983dea5a119c249ddb449",
-      "bytes": 440900,
-      "afterBytes": 190376,
-      "source": "e5a4642b6a1ecca66cbe206f5695379c53648de31cd9b506438518da58958e54",
-      "at": "2026-10-22T07:41:41.960Z"
+      "sha256": "9769104607818344b8b12ad0517c02781262f267fbb2a4bd866bf41b7edd3fd4",
+      "bytes": 190176,
+      "afterBytes": 189600,
+      "source": "87c59f5ceccbee0a33abd82a0baf18e7dd8d1797b76bd4a8645ee3412831c7ab",
+      "at": "2026-10-22T20:57:03.340Z"
     },
     "scenarios/moba/assets/models/neutral-centaur-outrunner-skinned.glb": {
-      "sha256": "8e2e42dca24414969a0ac33b54cc7c3e151a493aba6ef7c2b9c32daa5c55c6e9",
-      "bytes": 772376,
-      "afterBytes": 325680,
-      "source": "8637aa595fd241ad7c663ae1caf0978252c446d0fc467359faf2453b09bf3c54",
-      "at": "2026-10-22T07:41:42.044Z"
+      "sha256": "bf2c4217832c58eba8d4286e4b6332e5de5a136514b2b31d58d771b28c79174c",
+      "bytes": 325448,
+      "afterBytes": 324700,
+      "source": "f0147be4027087b30aa23e5d8964823936134d74bba85fe93ce8597f3afee8da",
+      "at": "2026-10-22T20:57:03.430Z"
     },
     "scenarios/moba/assets/models/neutral-dark-troll-skinned.glb": {
-      "sha256": "9bc748af8295ba026b3e1819d705ba422596772470e6997bd10a386b2ede2091",
-      "bytes": 518080,
-      "afterBytes": 218928,
-      "source": "6efd8d8b4ec5ff559b730a45e39337a4ce2c8c7da7fc7c86f72c7ad5f0844654",
-      "at": "2026-10-22T07:41:42.096Z"
+      "sha256": "a2dcd8d1c54668d6feaf8ac7e6df6fdb1a17925c828fa0d5c021b3bb8371447c",
+      "bytes": 218780,
+      "afterBytes": 217948,
+      "source": "28774cf90f09e7aa0ec45289ff85fccc0c6d4e9cf945e48c1ae99324058a5773",
+      "at": "2026-10-22T20:57:03.488Z"
     },
     "scenarios/moba/assets/models/neutral-dark-troll-warlord-skinned.glb": {
-      "sha256": "45781f50e44a1465a635a064ff93b33cab21d1c0274ca84062863950b5333a9c",
-      "bytes": 574464,
-      "afterBytes": 239004,
-      "source": "b1abb8d18e62c3ed6f3a42105f87e109c9b21edf9170f7bc1566b6a4b0d16a90",
-      "at": "2026-10-22T07:41:42.160Z"
+      "sha256": "8b15e160d15bfae3d27c67a717c688828b918c2bef0fb47acffea75358ec28c8",
+      "bytes": 238300,
+      "afterBytes": 238300,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:03.557Z"
     },
     "scenarios/moba/assets/models/neutral-elder-jungle-stalker-skinned.glb": {
-      "sha256": "61d78c621ca016fa36f6e0b6dbf67227e237e0561fbdd78db78bf8085a73e4b1",
-      "bytes": 990644,
-      "afterBytes": 432772,
-      "source": "ee649929588aec5074d4666b7bf9ea41721049e7cb22b2b219ca3e7e8dfca1d2",
-      "at": "2026-10-22T07:41:42.270Z"
+      "sha256": "ce5f64747bc17cc3773a1d3138d0878a57900cb41cd6137d5f2193adca00d2d1",
+      "bytes": 432524,
+      "afterBytes": 431808,
+      "source": "dec18c7a99925dc85a6ecff9dbe5b21127a2618a53d02d29295044c37174d6fa",
+      "at": "2026-10-22T20:57:03.685Z"
     },
     "scenarios/moba/assets/models/neutral-enraged-wildkin-skinned.glb": {
-      "sha256": "9f23ac945c190b0fb9d5190eba3ea15cc926deeaeab2f883dd40602e17f2bddc",
-      "bytes": 1269844,
-      "afterBytes": 565224,
-      "source": "35bf9b5581aaf55e5eb8d22aea56220353cc6535e846f7360d673b30be294d21",
-      "at": "2026-10-22T07:41:42.419Z"
+      "sha256": "e30f494a332b069ef9787ade195d3b2ad1b8e97d14b3bc8cd4ea306bdcaa9ba5",
+      "bytes": 564616,
+      "afterBytes": 564224,
+      "source": "65823e80839803285b670a4c89c1e93f8e2a174ffaf5da1918d7f25888be81cd",
+      "at": "2026-10-22T20:57:03.865Z"
     },
     "scenarios/moba/assets/models/neutral-fel-beast-skinned.glb": {
-      "sha256": "ddd832153aeb795bf47760ef17a55be01eab6541bc845d56d64ac08099ad0b19",
-      "bytes": 402508,
-      "afterBytes": 172348,
-      "source": "b528fe3aa2ab3b6843fa092e2652e7138097d844ba3d94b4bc748c375e845f8d",
-      "at": "2026-10-22T07:41:42.459Z"
+      "sha256": "3892dd1b853ec25ca419fb1fd8e51dcff00b3bae7762aba64ac374b59bfd82c0",
+      "bytes": 172076,
+      "afterBytes": 171392,
+      "source": "8575254991fec1db953c3f7a4423847cf896fb5b0f14272ede9eb18adafcca4d",
+      "at": "2026-10-22T20:57:03.923Z"
     },
     "scenarios/moba/assets/models/neutral-forest-troll-berserker-skinned.glb": {
-      "sha256": "ca77d752b5ddea1112e88075ea317c72fd746012ca18090fd38931bac928c43b",
-      "bytes": 643324,
-      "afterBytes": 264008,
-      "source": "0779fd58b4f9a39e3ae56fbff08efe69d083039414c02804d38bff0a251bf59c",
-      "at": "2026-10-22T07:41:42.529Z"
+      "sha256": "b5537c19809072bddf11855cab6855b19ad350a6e2311288d17d8f5013333ae6",
+      "bytes": 263568,
+      "afterBytes": 263408,
+      "source": "acfb56d4e2815e3f206e1e263ce1a6cd1eddf7e7c27f29c5c3fd1304bfc807a9",
+      "at": "2026-10-22T20:57:03.997Z"
     },
     "scenarios/moba/assets/models/neutral-forest-troll-high-priest-skinned.glb": {
-      "sha256": "7cb138f0f7d699b428c3dd02241d980e3d4b487d1b8209bf15b93ee9d345f3c1",
-      "bytes": 587892,
-      "afterBytes": 251712,
-      "source": "e2353918d72f44e827b468be226858af88820a28b28fc7f5815128ed9ad9d64c",
-      "at": "2026-10-22T07:41:42.589Z"
+      "sha256": "db04aaa5110fcc1bf4794a375c08d9b925e65f338eaa40be69aaff03a2b904be",
+      "bytes": 251924,
+      "afterBytes": 250952,
+      "source": "ba196314754589f1d0e8f5320eb9f3c1bc8ccf41eaa86043abf955576fd04ac9",
+      "at": "2026-10-22T20:57:04.066Z"
     },
     "scenarios/moba/assets/models/neutral-furbolg-champion-skinned.glb": {
-      "sha256": "3d7baafe2a315b970fa1cdfcb610adc5804214f70efbd03ae240427b8fec1823",
-      "bytes": 709836,
-      "afterBytes": 294688,
-      "source": "19ccd3d2cec88b2a3eb3ab931b56d79f4eb638fd55680a318b0cd0b137fa9dd4",
-      "at": "2026-10-22T07:41:42.664Z"
+      "sha256": "d684d91acdc14da647396a4019ced9ee5434a3f0cedcd5a2445518bbfd6fe8e6",
+      "bytes": 294444,
+      "afterBytes": 293960,
+      "source": "370f3f62b79f90cc664b7062cab7f95688baa392484062d2f54d867ce82e6510",
+      "at": "2026-10-22T20:57:04.228Z"
     },
     "scenarios/moba/assets/models/neutral-furbolg-ursa-warrior-skinned.glb": {
-      "sha256": "90bbc91f8a8b3188d48c2eaf5ea21bbb8c216391d465c8e808a9d3a5c8bcd97c",
-      "bytes": 760488,
-      "afterBytes": 325696,
-      "source": "793bb01d1788971d08f73360a91d09631da0ae5a676f84c58d0e0b47b8994beb",
-      "at": "2026-10-22T07:41:42.741Z"
+      "sha256": "527ae03b6dc31cc9d551fdfa4e62b0950cd09b038347bd0a054c8eea82dce571",
+      "bytes": 325544,
+      "afterBytes": 324296,
+      "source": "106b2cc1852d38338cdeec7915ee9c5ad7eaaaa831b959f07b0db586b23a6e6e",
+      "at": "2026-10-22T20:57:04.318Z"
     },
     "scenarios/moba/assets/models/neutral-ghost-skinned.glb": {
-      "sha256": "9682afdef8deded023ed081f8c98b71a0fdce300bdffeb6e724f80766a2d2353",
-      "bytes": 1060752,
-      "afterBytes": 477216,
-      "source": "62be2ae27588a0a82213f96f3062c01da2a8e7867d87fc74dd67a6ff7a2e145a",
-      "at": "2026-10-22T07:41:42.874Z"
+      "sha256": "bb48f83629725897163986851d8c260c983504488b00b64f8b574dd7dba0d8de",
+      "bytes": 476576,
+      "afterBytes": 476360,
+      "source": "446f7ac4154bbba49d1cffc6e92cb4d9a64de29a38bea05ff69e1a8260d982b7",
+      "at": "2026-10-22T20:57:04.463Z"
     },
     "scenarios/moba/assets/models/neutral-giant-wolf-skinned.glb": {
-      "sha256": "d1b18ea74ddc7518fe1d5e607aaa670944995f8577b4671cbc987672f2f857d9",
-      "bytes": 772180,
-      "afterBytes": 316648,
-      "source": "30502a90a73967635408f1ecf6e91844ac7566d705bd7be28a231989f81cb8b9",
-      "at": "2026-10-22T07:41:42.950Z"
+      "sha256": "e1346964af3c10e9c11a0d2a9739d2a57cbf0f69b1ccbd23ba64dbc25446167d",
+      "bytes": 316356,
+      "afterBytes": 316252,
+      "source": "67660d97bf452f6ccda9740314f4f55c117be1e4578495c591d707517363f077",
+      "at": "2026-10-22T20:57:04.565Z"
     },
     "scenarios/moba/assets/models/neutral-gnoll-assassin-skinned.glb": {
-      "sha256": "48457ac56a12ad910e9b2b1c5721abb57fbc6176f1c54e2f5ed692e4b72a36f7",
-      "bytes": 545556,
-      "afterBytes": 228328,
-      "source": "f59e30ecb7841eabf12a2d7e3d5c339bcb3d89c1111d3e4709c3ed6963b8a377",
-      "at": "2026-10-22T07:41:43.005Z"
+      "sha256": "6a10ea3c504472f55c06aa550fb9b8529d4333bba25e9093434291d61518c003",
+      "bytes": 228276,
+      "afterBytes": 227444,
+      "source": "2d3539b3c474554cfb50c7006cf99f9471d01384df4bf925b609930f7161f624",
+      "at": "2026-10-22T20:57:04.628Z"
     },
     "scenarios/moba/assets/models/neutral-harpy-scout-skinned.glb": {
-      "sha256": "583285dde4b3ea63f1328bfd3a1c67908c12026b67a2480dca3ab0cdd1b1eef8",
-      "bytes": 637488,
-      "afterBytes": 273012,
-      "source": "4ce2b0889e6970d7d6b5a11d146c1b573f2de8884842d9aef400901352192800",
-      "at": "2026-10-22T07:41:43.079Z"
+      "sha256": "624057c783fc82ccbc4dc731d280a5a11c30fdacc193a7dbc85f3fa99cec4446",
+      "bytes": 272680,
+      "afterBytes": 271908,
+      "source": "e2254f8fcdfc365d2a8d7786b6958d9e9afa38c27b5e0b744616bf780db89036",
+      "at": "2026-10-22T20:57:04.780Z"
     },
     "scenarios/moba/assets/models/neutral-harpy-storm-skinned.glb": {
-      "sha256": "8804a205e5b72150936914085cedd28ea55c6ad5eef3e870520f1f252cc433ee",
-      "bytes": 635360,
-      "afterBytes": 271888,
-      "source": "5727224f6af3c994c15a680641a9152a089f4f33e4ac0407e550468f76db2a24",
-      "at": "2026-10-22T07:41:43.144Z"
+      "sha256": "69a9d10b25f1b87014cf29c52afb905fbd05742c94ebbfd471dfbdbdd15d4a42",
+      "bytes": 271620,
+      "afterBytes": 271036,
+      "source": "2445cedf5cc995bc3ad137b635e66bb7bdcae6858ab18ee34b5b1c2981d85cc5",
+      "at": "2026-10-22T20:57:04.859Z"
     },
     "scenarios/moba/assets/models/neutral-jungle-stalker-skinned.glb": {
-      "sha256": "14c504bd38614ab205f6b60fbc8d12c1304a0df455031b2fe9aad20056215470",
-      "bytes": 775132,
-      "afterBytes": 318320,
-      "source": "403a66fd5c0294a28c8d2e4432bc2cea5535448c3aa61c25f7071c3738230d37",
-      "at": "2026-10-22T07:41:43.228Z"
+      "sha256": "79cd11b6c0ff9a0ff3abaefdb7bf18036852fef429dd9a05715eb35bfc3a1c7f",
+      "bytes": 317992,
+      "afterBytes": 317324,
+      "source": "d0ee8cdbbf68f65341d4e10fc5dd18edfd76d62bf77371b0d933f06703ab03dd",
+      "at": "2026-10-22T20:57:05.020Z"
     },
     "scenarios/moba/assets/models/neutral-kobold-skinned.glb": {
-      "sha256": "b66ca3799c5d7bef6ea74527a1e9a2bd82c8b23327858069d968a80537d36ba4",
-      "bytes": 983332,
-      "afterBytes": 447204,
-      "source": "9334d62cab58b99dc9903b7856400926db65e34c1811cc20f423a52ca6536eaf",
-      "at": "2026-10-22T07:41:43.346Z"
+      "sha256": "96dfcd534c95702aef2dc87f2600dd6ad3708493f2df154fa3385aa71402fa87",
+      "bytes": 446820,
+      "afterBytes": 446820,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:05.159Z"
     },
     "scenarios/moba/assets/models/neutral-kobold-taskmaster-skinned.glb": {
-      "sha256": "8b96c771e0c1a56bbbd34f2846cc7a3c255063073a2deeba42995ca816a6a17f",
-      "bytes": 633360,
-      "afterBytes": 271752,
-      "source": "f7ef45d1ef587a636b578c022a4a6893df8ead17fc1bcf53beae12e117fa8285",
-      "at": "2026-10-22T07:41:43.420Z"
+      "sha256": "7bc883cb8d968b7f9b2835e684f71f54bf06ac970562c27c27d3e81e6b35ca6e",
+      "bytes": 271468,
+      "afterBytes": 271108,
+      "source": "c4c48b44b33ec5a7c8f768788121ab9004b0bf3605b7c0f12c88e955989ec0f2",
+      "at": "2026-10-22T20:57:05.242Z"
     },
     "scenarios/moba/assets/models/neutral-kobold-tunneler-skinned.glb": {
-      "sha256": "421833e83b78ba35b81cdfdfbe5cbf3bdf141b3955984bf94afca0c216359068",
-      "bytes": 711028,
-      "afterBytes": 298944,
-      "source": "7da4e2a3df815122e73704844a698a9f9823e7ee4e525dd7f280702e391f96bf",
-      "at": "2026-10-22T07:41:43.496Z"
+      "sha256": "57345c8fa0b9a29e4ee63c285fd6615f6c6ddf8f8a11027efb7a3ed887c392fd",
+      "bytes": 298696,
+      "afterBytes": 297480,
+      "source": "ce930207ad8eb16ef51ecffb88c424696da61080fdd4f54458b145b4ea6a637f",
+      "at": "2026-10-22T20:57:05.332Z"
     },
     "scenarios/moba/assets/models/neutral-mud-golem-skinned.glb": {
-      "sha256": "0801f37f855a05ecacd4270a2834739f3f2a1fc1b2a84e065980eeecf37b5362",
-      "bytes": 505544,
-      "afterBytes": 212200,
-      "source": "72adb1ec20bfd38417267c1330cb792a87d68de86de7cb5bdb9e88a6b5ff3c37",
-      "at": "2026-10-22T07:41:43.551Z"
+      "sha256": "cf6add572461025b0b1d03cfdc54b8acb7098e93cba255c8599e1b54151dfc1a",
+      "bytes": 212196,
+      "afterBytes": 211324,
+      "source": "c46afd95505d10a7b03319f8061b30db82b6c7e0a6c31adae8daad2472ef9861",
+      "at": "2026-10-22T20:57:05.389Z"
     },
     "scenarios/moba/assets/models/neutral-ogre-magi-skinned.glb": {
-      "sha256": "408a7a87ea57715865777127f61241234615498196a0c669b7cca0dcc69b1b0d",
-      "bytes": 619304,
-      "afterBytes": 262368,
-      "source": "ac0d98090903ca9fab3052a6304dcfe34997fd0b5af3afdbe8462784a7fbe7d0",
-      "at": "2026-10-22T07:41:43.612Z"
+      "sha256": "1a95015b3aec17d313a18d20cd0dadd251c25ae61a7a24ffe41885e8bc5d483c",
+      "bytes": 262220,
+      "afterBytes": 261704,
+      "source": "29877e59f3578dbc86cc857cf7477560502293bed3a4b2956726fb9aa5a24125",
+      "at": "2026-10-22T20:57:05.465Z"
     },
     "scenarios/moba/assets/models/neutral-ogre-mauler-skinned.glb": {
-      "sha256": "b6865e8a84d45940c2d4e4e5b28ade0e427ebae172b70137bb91ec3b93892c10",
-      "bytes": 651664,
-      "afterBytes": 291132,
-      "source": "deac07cf3fffd1386045ccfca7c103152a06e2b5ea2fd27013a1a6f2b39c9d49",
-      "at": "2026-10-22T07:41:43.681Z"
+      "sha256": "e31b98348748fcbb3c92d59564b2647a84a9a329ae30b83f300d76e17b2752d4",
+      "bytes": 291268,
+      "afterBytes": 290976,
+      "source": "34d2ef8bff11b0a75c6881613b4f012d71d54a1d88406fed6cc46c4c71c8db1d",
+      "at": "2026-10-22T20:57:05.545Z"
     },
     "scenarios/moba/assets/models/neutral-rock-golem-skinned.glb": {
-      "sha256": "68e445c843612f010a12c834b473007d8148331edec51c113fdad9833fa4479e",
-      "bytes": 556324,
-      "afterBytes": 241884,
-      "source": "ba78018cfd66021872a50eac22f734a3b6324ae205652e198ca66b43206cc410",
-      "at": "2026-10-22T07:41:43.748Z"
+      "sha256": "0717d655be370a63aa4fdb4b6d526fdd81da18d08380f941a781a2bfc87f13a6",
+      "bytes": 241232,
+      "afterBytes": 241132,
+      "source": "3c72a675c1452ba23ccba461bad88c0264f1414c8f70e544d03507688f8a892e",
+      "at": "2026-10-22T20:57:05.776Z"
     },
     "scenarios/moba/assets/models/neutral-satyr-hellcaller-skinned.glb": {
-      "sha256": "d2eb710eed7ba545d7c4a98bf350c7742c3c1b231383844b651fc0ff9a81a6bc",
-      "bytes": 484328,
-      "afterBytes": 209152,
-      "source": "bdacbb159824637dded5eb2c0340cb5bdc252f81398afa84bc5bf3123b39a340",
-      "at": "2026-10-22T07:41:43.796Z"
+      "sha256": "0056ef2b0bbe4c6b0cea75af1073ffd126b6dc40a5a58e1cdb14807e823860c0",
+      "bytes": 208320,
+      "afterBytes": 208320,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:05.833Z"
     },
     "scenarios/moba/assets/models/neutral-satyr-soulstealer-skinned.glb": {
-      "sha256": "ebf996847d8113eccb13f604ed0f586f63137141e52a5ac4c23c8b85a13a21a3",
-      "bytes": 703904,
-      "afterBytes": 322148,
-      "source": "686dd866815bc86e3a3ee541f15614ae310e1b5658f6b27366e2614201a1883d",
-      "at": "2026-10-22T07:41:43.869Z"
+      "sha256": "3348628f136a91502ee0acb02b625156a34a458e63e48c74ce7c071216d720bc",
+      "bytes": 321620,
+      "afterBytes": 321544,
+      "source": "0ae661495608ee2284b8879d5dcb2d43a5dd49a23834e4758ccbf59a109f5e38",
+      "at": "2026-10-22T20:57:05.920Z"
     },
     "scenarios/moba/assets/models/neutral-satyr-trickster-skinned.glb": {
-      "sha256": "d55f4c49848d3d29fddcf8f42140c31e51819e6326b91e6203fe707e6c81ee3d",
-      "bytes": 778260,
-      "afterBytes": 365540,
-      "source": "ae79e183396d6d605d02a56f30ab8cda20c713d7b5514eab8b318141f7dc93cb",
-      "at": "2026-10-22T07:41:43.966Z"
+      "sha256": "b7340d2092df06a7635a8da924cefc642b90d454d8306834ba83b6dccfb7b7e4",
+      "bytes": 364712,
+      "afterBytes": 364356,
+      "source": "e13160364a24ba4d16865bdafc4b36aa28822c6e0732142238a0c1cebeab34cb",
+      "at": "2026-10-22T20:57:06.026Z"
     },
     "scenarios/moba/assets/models/neutral-wildkin-skinned.glb": {
-      "sha256": "b4d62fb2e2a6850f6f294e129bc232be969e51c3acd8a163876e77218f6bc271",
-      "bytes": 380212,
-      "afterBytes": 165644,
-      "source": "5a8cfb3b0364cf5325be5b039bd1b10874cb58372140ef1522246f3e255d0d7f",
-      "at": "2026-10-22T07:41:44.004Z"
+      "sha256": "587c23c13d6397475d7cd9cdb5cd744517b369e9a309b04479cc9e1c97a4ca92",
+      "bytes": 165624,
+      "afterBytes": 165536,
+      "source": "ae54f56d61219b3a79d867b8970ea21daa272bb6dd91746eb2af20ac8f240f18",
+      "at": "2026-10-22T20:57:06.248Z"
     },
     "scenarios/moba/assets/models/night-stalker-skinned.glb": {
-      "sha256": "fc4d19c56d494c856119d94db55a258371aef0f6151b7790a09e9752507abfe6",
-      "bytes": 604000,
-      "afterBytes": 256928,
-      "source": "88cbd8b72b16fa6345253e60bf308dd824ffe20b0358c12ddb0cefcd29605734",
-      "at": "2026-10-22T07:41:44.067Z"
+      "sha256": "a18bd818e8d35c28f8a5514ab87d444530d4fa11e1794d1927da9a6f7900d33b",
+      "bytes": 256392,
+      "afterBytes": 256356,
+      "source": "8749b07c357c29f30d3736c412fa35776570939d8444b7104688b060e44c2b0d",
+      "at": "2026-10-22T20:57:06.322Z"
     },
     "scenarios/moba/assets/models/obsidian-destroyer-skinned.glb": {
-      "sha256": "5793fb8b98913a8695090924c476f9018f1d0b6341306d02ee9d5366d5299c2b",
-      "bytes": 542368,
-      "afterBytes": 230416,
-      "source": "bd1392401cd8e012847e14c4ce37c529d3cc3b076fec43a56d435ef0b0a87581",
-      "at": "2026-10-22T07:41:44.128Z"
+      "sha256": "2c22ce0da9c738e7bfc6d01d96da3ac80d78cda6a7946d17c7b2799a1871fe81",
+      "bytes": 230392,
+      "afterBytes": 229572,
+      "source": "63c077b2ab9c6aac4b9f0b441ae87750c82fc12f68166b8eaf139f08904d04fe",
+      "at": "2026-10-22T20:57:06.383Z"
     },
     "scenarios/moba/assets/models/oga/cactus.glb": {
       "sha256": "2d18a9fb10b5270c844483a7fcbf378416f630225e756dd7ebf4377a68a01134",
@@ -2641,32 +2641,32 @@
       "at": "2026-10-22T07:41:44.144Z"
     },
     "scenarios/moba/assets/models/ogre-magi-skinned.glb": {
-      "sha256": "56d6392c8b8270c0dee797b57eaed37b3d36f1c6fdec8fec39cc98a6f636004a",
-      "bytes": 582428,
-      "afterBytes": 254448,
-      "source": "907d1ca1536b05494e853e16ca78369abdf2e84fb293ccd00f9eb5f727533c4d",
-      "at": "2026-10-22T07:41:44.201Z"
+      "sha256": "a20dc96527b0f67840aeb3523407a6f386ad36a68ae588da7b6ab9c3fbd9bad0",
+      "bytes": 253968,
+      "afterBytes": 253940,
+      "source": "6c7dc1b01e0c9c3519cdf40a39d02d74415e06ac97492391e807f12724678d49",
+      "at": "2026-10-22T20:57:06.464Z"
     },
     "scenarios/moba/assets/models/omniknight-skinned.glb": {
-      "sha256": "7df5578f7618cb74651cf0a33cfe22485c4ff398bdd5e3634bce5acd6e8e1b93",
-      "bytes": 512960,
-      "afterBytes": 218076,
-      "source": "947b274047ff471055ba4ba1624b67b08dadef5059be4d8bd9528243ec67cb2a",
-      "at": "2026-10-22T07:41:44.256Z"
+      "sha256": "01d448c459e2c3ed22d82b58ffef0fd5eb925396f8d473070ef3e524dc8243f2",
+      "bytes": 217928,
+      "afterBytes": 216900,
+      "source": "8dd629eeb3ce950ab849433933ebe261f73fe733b96b7066cbee93079e89844c",
+      "at": "2026-10-22T20:57:06.522Z"
     },
     "scenarios/moba/assets/models/oopi.glb": {
-      "sha256": "00c93f9bf062db7798960344b1fac672da27bc97c0eabfbfab7fa0b727023eb1",
-      "bytes": 54636,
-      "afterBytes": 46516,
-      "source": "42191f68f3ab5158a83d53bd2d4f74318ceb587359a13b7c002ca55408322e36",
-      "at": "2026-10-22T07:41:44.261Z"
+      "sha256": "0aae571640f294224eb0d440f1dc49d887254a97f9acc0b9280f24b74717091b",
+      "bytes": 46560,
+      "afterBytes": 46560,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:06.528Z"
     },
     "scenarios/moba/assets/models/oracle-skinned.glb": {
-      "sha256": "997ceb254e56c312311ec6446835f727e7f1352928de9991ba2d2f189b716b40",
-      "bytes": 446756,
-      "afterBytes": 193372,
-      "source": "159bfe540cbf99561fb2a9fbc141a5461cda749c86652644b7484053794fdcba",
-      "at": "2026-10-22T07:41:44.305Z"
+      "sha256": "db636d1c7e19fa0fb0af24b36b58d5ffdb610bfc5eebaeb57cb5d0a1557cb8a4",
+      "bytes": 193380,
+      "afterBytes": 192928,
+      "source": "f4716f4daac269c320dd72adfa40083ca00e5eed9490bfcc726f420b7206d2a1",
+      "at": "2026-10-22T20:57:06.580Z"
     },
     "scenarios/moba/assets/models/overhang.glb": {
       "sha256": "530c60579dc660e53b54c1e4bc461fbb4d2c032cb5dbb442e8b97c6b0c75bf3c",
@@ -2676,11 +2676,11 @@
       "at": "2026-10-22T07:41:44.307Z"
     },
     "scenarios/moba/assets/models/pandaren-brewmaster-skinned.glb": {
-      "sha256": "08475e70e5154ae78332e7413ad9e08c6e17f5a1ab6c07516790de3c72ff3629",
-      "bytes": 643984,
-      "afterBytes": 269900,
-      "source": "c30c821766d8a8a9767653369ef67d4c94117a94814ff4dd432b809890bca40a",
-      "at": "2026-10-22T07:41:44.371Z"
+      "sha256": "fb4bd87c0e7c35fcfa7ea9cabf41369f3eaeedfc8eb32a3ab698821e8e3e03c5",
+      "bytes": 269636,
+      "afterBytes": 267640,
+      "source": "d5a200ea089004554107041d2861e5b9998190bb636887d3a9e25fa58845697c",
+      "at": "2026-10-22T20:57:06.657Z"
     },
     "scenarios/moba/assets/models/patch-dirt.glb": {
       "sha256": "f9d992185f1bfeccb28642db6ea2822f75afc5eb067a098c86b27bcbb9e30334",
@@ -2704,25 +2704,25 @@
       "at": "2026-10-22T07:41:44.379Z"
     },
     "scenarios/moba/assets/models/phantom-assassin-skinned.glb": {
-      "sha256": "0d791c90c33cafa7e62b393f24c20a760ca2afc098bae1c1af6519c8841060fd",
-      "bytes": 510348,
-      "afterBytes": 219480,
-      "source": "ea42b1e9f960e4efe3771304051aa5d7d645b8dfcf9e09e938f22e8a5a626c9f",
-      "at": "2026-10-22T07:41:44.429Z"
+      "sha256": "d0e2ccc55a5595cf40734a795e4925b8d14cfbf6159bb7c0d22b30eebd474031",
+      "bytes": 218976,
+      "afterBytes": 218372,
+      "source": "057c50151af5d28beff09d177b625aad41fb16060a25129fa8aa667d0751ced5",
+      "at": "2026-10-22T20:57:06.714Z"
     },
     "scenarios/moba/assets/models/phantom-lancer-skinned.glb": {
-      "sha256": "cb46e25bbc264e2fb5737812a931079ba9866ee402de30d0fc21f47d7d67189e",
-      "bytes": 476988,
-      "afterBytes": 209380,
-      "source": "e415ecbe849e91bb411a7a74f342edd3cec7e394b31bb4621c4a1ecf8a663282",
-      "at": "2026-10-22T07:41:44.477Z"
+      "sha256": "31e296a39d0d556ab3ad79052b791dd3032ff1b0df3ab57aaa355a013e977a6f",
+      "bytes": 209052,
+      "afterBytes": 208700,
+      "source": "0452df35f4562db42caf1107e0b47a7663343d4cdc0456155a8e5e8d5e31979a",
+      "at": "2026-10-22T20:57:06.767Z"
     },
     "scenarios/moba/assets/models/phoenix-skinned.glb": {
-      "sha256": "c91ffd2f3735f6fa0d64004f19012ad7343ccbdf0bb6e09343ac2e86ba3ccf40",
-      "bytes": 626492,
-      "afterBytes": 283228,
-      "source": "691f84f4cf89e68f04272968879ea796db11c108448bfb8096ff5ccf88de25fb",
-      "at": "2026-10-22T07:41:44.551Z"
+      "sha256": "0dc922b035f068fc92333f0d538f21d966b3b545bc70173b1a9f323e3bf5df8b",
+      "bytes": 282964,
+      "afterBytes": 282292,
+      "source": "c6702fd976fbcb3ceffd1368f3d12e4e034f6cc308bab27a750e3f68f6ae13eb",
+      "at": "2026-10-22T20:57:06.857Z"
     },
     "scenarios/moba/assets/models/pillar-large.glb": {
       "sha256": "6ed76ea39f17cd3f1d2b7a5315fdb9af98e4e1cae0c1fda8b7d06b62d61d78b3",
@@ -2914,11 +2914,11 @@
       "at": "2026-10-22T07:41:44.645Z"
     },
     "scenarios/moba/assets/models/platform.glb": {
-      "sha256": "5f6f1210ee215327fb6c0702fddbf62e239f1a411d4fccc5176e9c1cc99c2070",
-      "bytes": 43936,
-      "afterBytes": 39596,
-      "source": "09cd5f4fc4bd1457030ddf6762ca64121ceba471dd2ce01a535f7934bc52d2e8",
-      "at": "2026-10-22T07:41:44.649Z"
+      "sha256": "d15400cb673a6f2919969a13efcad1f9c5b795af1cbf8482dccd4b66a068af90",
+      "bytes": 39608,
+      "afterBytes": 39608,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:06.893Z"
     },
     "scenarios/moba/assets/models/poles-horizontal.glb": {
       "sha256": "97d2f87b39b07740438c822fe9007c1d62daaaeaf1b5b6e51639563b62f6bed4",
@@ -2977,11 +2977,11 @@
       "at": "2026-10-22T07:41:44.667Z"
     },
     "scenarios/moba/assets/models/queen-of-pain-skinned.glb": {
-      "sha256": "90714203bb5cc27336f565996d0f5068da2d307835ae3dda9989df8e5c061cb3",
-      "bytes": 422152,
-      "afterBytes": 184780,
-      "source": "0d97b696977cb1cc5d307ccd59ac16ffae4105a82b4395825e298361ef611116",
-      "at": "2026-10-22T07:41:44.711Z"
+      "sha256": "7eed6943e166640570d6d21fa8267ff50d8488c47690854645c8db74b2d14aae",
+      "bytes": 184048,
+      "afterBytes": 183724,
+      "source": "00511a307218d97542bcf687ad1ad1c5125161dfa3f36efe0bfb811107b0d2b2",
+      "at": "2026-10-22T20:57:06.943Z"
     },
     "scenarios/moba/assets/models/resource-planks.glb": {
       "sha256": "509822771e99b238d24a0775536163db6c8dedd99a456c2e62f9790e2cdacf28",
@@ -3768,74 +3768,74 @@
       "at": "2026-10-22T07:41:44.913Z"
     },
     "scenarios/moba/assets/models/room-corner.glb": {
-      "sha256": "d7b46d8c13533004e4ccd09636ac7d85fa14e044c3b5b26c48d1e1e4e207129c",
-      "bytes": 230796,
-      "afterBytes": 144656,
-      "source": "c214fd3f01679d8bcd26e6cf3c5575045bfa10628717849b52d7f80c69fa8f92",
-      "at": "2026-10-22T07:41:44.929Z"
+      "sha256": "7460680644592f920de8d2be908185f69373f31389c0f48bba6a289219b1b6d2",
+      "bytes": 144664,
+      "afterBytes": 144664,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.046Z"
     },
     "scenarios/moba/assets/models/room-large-variation.glb": {
-      "sha256": "7ea6a3407010fd019165893ad927ccc8ea6ab506d201519168eb90df768da7bb",
-      "bytes": 505516,
-      "afterBytes": 294648,
-      "source": "fb7b2c9e16645c7a10fbea1b7314360835fe93e7f5132d3180e2a7caba22761f",
-      "at": "2026-10-22T07:41:44.961Z"
+      "sha256": "14e074bfa26e260ba4d80eaf731bfa5879b4efbe6c208743af51faa2fdf0832d",
+      "bytes": 294692,
+      "afterBytes": 294692,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.082Z"
     },
     "scenarios/moba/assets/models/room-large.glb": {
-      "sha256": "0c163a0cb4885a2cac847c581e27153fa28ec829be7c86dc4fca8185ab68778a",
-      "bytes": 511016,
-      "afterBytes": 299188,
-      "source": "5897da16d166c56efc044f37ec173f337da69b65032c22e0a197bd74473d347c",
-      "at": "2026-10-22T07:41:44.994Z"
+      "sha256": "337c009ee914008e298970d5ca69a2a47edc5946d976dfa300e4abfd88d1bc4d",
+      "bytes": 299232,
+      "afterBytes": 299232,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.117Z"
     },
     "scenarios/moba/assets/models/room-small-variation.glb": {
-      "sha256": "1f6e85c162f862b07d39458e8e630e07cfc62c07ac424073168b699240457e63",
-      "bytes": 248140,
-      "afterBytes": 153864,
-      "source": "75c206b611c33224365a484897ca38bb26f0f023d467ba9edcaa632fe78b68a1",
-      "at": "2026-10-22T07:41:45.012Z"
+      "sha256": "cc246354decf171d156d4a1cb57675c42f46e10bac8b16ead7a53c6be6c91b7a",
+      "bytes": 153876,
+      "afterBytes": 153876,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.134Z"
     },
     "scenarios/moba/assets/models/room-small.glb": {
-      "sha256": "525a9bd483ef624ca24a3e1bde02871907d76e4f749f417193d27e6f8bbd40b7",
-      "bytes": 222164,
-      "afterBytes": 139776,
-      "source": "1d3acdb0340463555a5d99cac562a0e5ef19dee5f6623525760e64d85cf2b567",
-      "at": "2026-10-22T07:41:45.027Z"
+      "sha256": "4f9da5a24832c30b79331d374c64219c6af166c848edab757313d9cd1453e536",
+      "bytes": 139788,
+      "afterBytes": 139788,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.153Z"
     },
     "scenarios/moba/assets/models/room-wide-variation.glb": {
-      "sha256": "234e01da2b5d8214235037b6f0933f78f9a303704c2cc2293511198620e81dc1",
-      "bytes": 420820,
-      "afterBytes": 249644,
-      "source": "718c1abdc471c4db156ef5cccbbf46d69b69ee112a91c13f7f7bd1bc64f4b705",
-      "at": "2026-10-22T07:41:45.056Z"
+      "sha256": "9f21faf02f999e19c51da5acf7771da18c709cca8276fa12fd29a79131301248",
+      "bytes": 249692,
+      "afterBytes": 249692,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.186Z"
     },
     "scenarios/moba/assets/models/room-wide.glb": {
-      "sha256": "d1d690dc7bc0eff209fc5e766fc9e644b3a977cff1a0d96fce401a36d3831f84",
-      "bytes": 350796,
-      "afterBytes": 210292,
-      "source": "0833d182967ebd3feabd5efc56eaf71a170b4460db6b9694a7107d3375d478e0",
-      "at": "2026-10-22T07:41:45.081Z"
+      "sha256": "f3bfb6f997dfdd02f3ca7cebcc893862bca6d9a78f8dbacf62922d3020add0ee",
+      "bytes": 210340,
+      "afterBytes": 210340,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.212Z"
     },
     "scenarios/moba/assets/models/roshan-lowpoly.glb": {
-      "sha256": "57c89889b5609e3e03552b749fdb39254f491ad5604b15a51846c2b782be8e80",
-      "bytes": 1732544,
-      "afterBytes": 1732544,
+      "sha256": "ae1a73039bb393e3a141bde1744304973e5b7ac452f6bfc4a031139e3af5e86d",
+      "bytes": 1732592,
+      "afterBytes": 1732592,
       "unchanged": true,
-      "at": "2026-10-22T07:41:45.109Z"
+      "at": "2026-10-22T20:57:07.248Z"
     },
     "scenarios/moba/assets/models/roshan-skinned.glb": {
-      "sha256": "374b94633cef077742431209ff0964f6be62f406a99496a54a426adad7ce4774",
-      "bytes": 1789776,
-      "afterBytes": 1789776,
+      "sha256": "1030338162664ca3a4d436c0c7c651759587c979d8e87c5f550fe05d1368cc6e",
+      "bytes": 1789820,
+      "afterBytes": 1789820,
       "unchanged": true,
-      "at": "2026-10-22T07:41:45.178Z"
+      "at": "2026-10-22T20:57:07.335Z"
     },
     "scenarios/moba/assets/models/sand-king-skinned.glb": {
-      "sha256": "8b99eb4d879d988134914fc3f799b8d10c746bbcb074bd8762f886892496acac",
-      "bytes": 520068,
-      "afterBytes": 222880,
-      "source": "51829bb3a5cd0698c68edff3034dfdbfe2f4c21defafbdda4de23bedb53a4512",
-      "at": "2026-10-22T07:41:45.236Z"
+      "sha256": "b29566e6a795470cd4147bdb4e9acf8419a35307f4c92484459949bdf277c8dc",
+      "bytes": 223000,
+      "afterBytes": 222216,
+      "source": "cb073f4645aa85be69c8506ceb848ab73a0bd2fefe9f540f2118ebdb0cf2f2df",
+      "at": "2026-10-22T20:57:07.395Z"
     },
     "scenarios/moba/assets/models/scanner-high.glb": {
       "sha256": "926addfe26420ddfe5dab7b1d434888c072ebaf82c55794be5839d2c0ebed484",
@@ -3908,11 +3908,11 @@
       "at": "2026-10-22T07:41:45.252Z"
     },
     "scenarios/moba/assets/models/shadow-shaman-skinned.glb": {
-      "sha256": "5ce95bbd437c0c017faf333a731bdd082d7be03d740ed3d846f9ccddaf77ab99",
-      "bytes": 563152,
-      "afterBytes": 244412,
-      "source": "758b8ed33fea37f95f6fb7444dd44ef76f23703bbbbcb8f5923e95f8acaa0b50",
-      "at": "2026-10-22T07:41:45.309Z"
+      "sha256": "92a511fbe7fcc1bd09036015acff45b28a7867c0b652752a82f227292d9ceb16",
+      "bytes": 243824,
+      "afterBytes": 243644,
+      "source": "6b6755ce58fe9d2940056ee67985c861e2ac477d09ae6206371d3c8580829278",
+      "at": "2026-10-22T20:57:07.539Z"
     },
     "scenarios/moba/assets/models/shield-rectangle.glb": {
       "sha256": "8913c2438e3dafae2762896be738b76ed835cdb9d8e1a5193d3bc8daeec21d52",
@@ -3971,18 +3971,18 @@
       "at": "2026-10-22T07:41:45.334Z"
     },
     "scenarios/moba/assets/models/siege-catapult-demolished.glb": {
-      "sha256": "a75b51faab5ca61f67d4c78f36e083c6043bfbce6621435041992113e715adcb",
-      "bytes": 35916,
-      "afterBytes": 35220,
-      "source": "0a91ccac36d89dca11a426e01571adb0e69e0898e47de46e6eeb5b0de3aa36b2",
-      "at": "2026-10-22T07:41:45.338Z"
+      "sha256": "44ee1ff5738c841b6674cf83cd2cd77768f4e679c546308d446abe98dad5d1b3",
+      "bytes": 35268,
+      "afterBytes": 35268,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.551Z"
     },
     "scenarios/moba/assets/models/siege-catapult.glb": {
-      "sha256": "55422a800a1910fbed46c1956c4553c59c5087615f524231b2bc23c65cc7c0ac",
-      "bytes": 46840,
-      "afterBytes": 46572,
-      "source": "f060c16627f8871b77d4bb729718ab22dc54412c4da91cb070b499cc1cc490ce",
-      "at": "2026-10-22T07:41:45.344Z"
+      "sha256": "906b4a34c33fa12bc08b8564a67c6a3c392a81332e6cf7e29d8b56edcab7825e",
+      "bytes": 46712,
+      "afterBytes": 46712,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.557Z"
     },
     "scenarios/moba/assets/models/siege-ram-demolished.glb": {
       "sha256": "9df6a59e74ee8f4dfbed939b215f127f935e3b0b365493b4e4842082cbfd967e",
@@ -3992,25 +3992,25 @@
       "at": "2026-10-22T07:41:45.347Z"
     },
     "scenarios/moba/assets/models/siege-ram.glb": {
-      "sha256": "2532adc660a0686962f382e29c3c58fea79cfa5be733f0b63d3c099c6713f58d",
-      "bytes": 55528,
-      "afterBytes": 53600,
-      "source": "9a9e2231468037efc56b8c2efc1a67a711a19ba57feadc7ba10adfc3ea792940",
-      "at": "2026-10-22T07:41:45.354Z"
+      "sha256": "bad86ba5120eec831e5a4b422de6782d814fded3dc7acb5b4be1b27da7bd9978",
+      "bytes": 53768,
+      "afterBytes": 53768,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.565Z"
     },
     "scenarios/moba/assets/models/siege-tower-demolished.glb": {
-      "sha256": "040523762938c656a53ac562a01456cbebc027f887f09099ca7b4f0cfe94b767",
-      "bytes": 51688,
-      "afterBytes": 45256,
-      "source": "810c5c8a034c1097cd6ec76039501beee81321a3fd79dbe864069c40063da654",
-      "at": "2026-10-22T07:41:45.359Z"
+      "sha256": "d9fb5619aaa9edc8d2b0dfab085cd083f2035c15bfbe25e85c3c7ab35e68c54a",
+      "bytes": 45300,
+      "afterBytes": 45292,
+      "source": "9cbeb43437f4f5d88527c77120e48228ef67e05b352e5c57dd070afa4d85d666",
+      "at": "2026-10-22T20:57:07.572Z"
     },
     "scenarios/moba/assets/models/siege-tower.glb": {
-      "sha256": "f342f0846af2ae201b01823153f02666187d3a9d9ef729c519a385aa8ed22198",
-      "bytes": 64056,
-      "afterBytes": 55756,
-      "source": "f26da1dfbb0828a72329d4205f4140404b5d4174dd6b11045facff8355471c21",
-      "at": "2026-10-22T07:41:45.367Z"
+      "sha256": "3e63029c58d2c3ab15ba680cd32d9eefb20337532f001973374117786a74d857",
+      "bytes": 55852,
+      "afterBytes": 55852,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.581Z"
     },
     "scenarios/moba/assets/models/siege-trebuchet-demolished.glb": {
       "sha256": "ef49ecc2580a279203eb84e2495ccbcd182c014313e176425156f8926ee03a18",
@@ -4020,11 +4020,11 @@
       "at": "2026-10-22T07:41:45.370Z"
     },
     "scenarios/moba/assets/models/siege-trebuchet.glb": {
-      "sha256": "6d24ee90c1fba3aadff87de603a2adcef7342bbf480fe1470bfb72e787bf5d8a",
-      "bytes": 74408,
-      "afterBytes": 66412,
-      "source": "c7672b8854aad5e89aabcea2917afdb95054713152c537b2adedb44d8f9ec249",
-      "at": "2026-10-22T07:41:45.379Z"
+      "sha256": "650bcf8c9aa1495c842a11261aad9ebc8ea2b81ef139a154537850e37ddb7b32",
+      "bytes": 66728,
+      "afterBytes": 66728,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.591Z"
     },
     "scenarios/moba/assets/models/sign-highway-detailed.glb": {
       "sha256": "5f0d7dccee2b59a7bdc96ddffe8dbae441fed3a9fb4ef04ddff246395ee74e68",
@@ -4062,39 +4062,39 @@
       "at": "2026-10-22T07:41:45.391Z"
     },
     "scenarios/moba/assets/models/silencer-skinned.glb": {
-      "sha256": "3f34cc26f0f1f7311c39fbe509039524a27811cf9cfe5544ab4a4427c1d082f2",
-      "bytes": 392768,
-      "afterBytes": 170168,
-      "source": "caf9f234c8c8a502c8e3e379d06e083661ce13194d0a4e7cf88e3ced488365a1",
-      "at": "2026-10-22T07:41:45.431Z"
+      "sha256": "433b529c81e96a06ea4622337a81880af3a8ae7f1d3118b953298f2db722ef40",
+      "bytes": 169720,
+      "afterBytes": 169016,
+      "source": "0814b3205a8580e24a91ef501c9439e1d8f7c6f032e799ec8a5051394b5833f7",
+      "at": "2026-10-22T20:57:07.636Z"
     },
     "scenarios/moba/assets/models/skeleton-king-skinned.glb": {
-      "sha256": "118e3a32aa8b9a1244f4259dacf28763fa2ff905a2c3b78d3b6b217136e56e89",
-      "bytes": 755500,
-      "afterBytes": 325348,
-      "source": "ca36af78de81d1398a96c8711321493f620d75991014b43e6aaacc1702fecb04",
-      "at": "2026-10-22T07:41:45.512Z"
+      "sha256": "07d9316084eadaf6790c92c342d1117aeb556cf8fa6c9734db6d4af6f6008189",
+      "bytes": 324596,
+      "afterBytes": 324312,
+      "source": "20a7a5d2e6b732632ece7337bf5421ebd26366598a6a746f1b1e05fc2551bec4",
+      "at": "2026-10-22T20:57:07.728Z"
     },
     "scenarios/moba/assets/models/skywrath-mage-skinned.glb": {
-      "sha256": "ba0dd3b5f95683c60808c9778ba5818d844e29fca1e22256c13938484bb24f82",
-      "bytes": 541176,
-      "afterBytes": 234520,
-      "source": "1e57961adc041c5683ede931f6fe2d3e6af1f1eb18ae1135b043672b25514e1b",
-      "at": "2026-10-22T07:41:45.574Z"
+      "sha256": "b001f13c1cbe6c7597609a18f9cb2252916ce463ff27db1aad9035fd410049a8",
+      "bytes": 233896,
+      "afterBytes": 233896,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.793Z"
     },
     "scenarios/moba/assets/models/spectre-skinned.glb": {
-      "sha256": "1c52f0d8539ace70772a9b05c016a441f65da5df52e959db2adab072b649f303",
-      "bytes": 620156,
-      "afterBytes": 269504,
-      "source": "9645601b7a8cf204db4e60a5b1e6e7bdc38e39b6478f963f1b45c022a1dc5e83",
-      "at": "2026-10-22T07:41:45.658Z"
+      "sha256": "71154c8a358999598cdedf5441c349e9dc99b6da5ff5e5762bc46aa98141b242",
+      "bytes": 269192,
+      "afterBytes": 268444,
+      "source": "90d3f8638bb1fad45997ae85a773a463dcbbd80d27ff114cf978ac316566d4a0",
+      "at": "2026-10-22T20:57:07.896Z"
     },
     "scenarios/moba/assets/models/spiritbreaker-skinned.glb": {
-      "sha256": "abda710763d027da55fbe85637cfe20a17d3a68933b3f41ba5bbe8455782c51d",
-      "bytes": 535816,
-      "afterBytes": 239832,
-      "source": "d94f7766cd7cc052faa91d2b476759c0332526834d697f2f6647333c2e45ea15",
-      "at": "2026-10-22T07:41:45.718Z"
+      "sha256": "cd1f179fd4483d4231780062062f9b8edfa947c1fd79bdb06d8df193aa57f04a",
+      "bytes": 239004,
+      "afterBytes": 238704,
+      "source": "12359c0a5b35905983a1b3f938a0945875a0b1dfcd1cdd62350bb45cf1064765",
+      "at": "2026-10-22T20:57:07.958Z"
     },
     "scenarios/moba/assets/models/stairs-full-corner-inner.glb": {
       "sha256": "7ce312ddb0316f31064d6fe1d869f539dbb5bea4c2e48a6c63f72641a1e9c53b",
@@ -4181,11 +4181,11 @@
       "at": "2026-10-22T07:41:45.736Z"
     },
     "scenarios/moba/assets/models/stairs-wide.glb": {
-      "sha256": "64d3549c36ed6908d7e42c51af846a8cf0acec42fefa34508b37eb4280b63948",
-      "bytes": 145120,
-      "afterBytes": 96348,
-      "source": "f97b0fd809a561cc68078f1c17a04654ff77f5a55a2f1636299c9498e4627294",
-      "at": "2026-10-22T07:41:45.746Z"
+      "sha256": "cda59e307ecb4008141bfc272179e195f192dd111046580210bca9ae41c7d727",
+      "bytes": 96388,
+      "afterBytes": 96388,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.971Z"
     },
     "scenarios/moba/assets/models/stairs-wood-handrail.glb": {
       "sha256": "d70d08861fe86e8e9e5ee4fe72ba81d579b66bd3d96a4304393071c85a89ee5c",
@@ -4202,11 +4202,11 @@
       "at": "2026-10-22T07:41:45.751Z"
     },
     "scenarios/moba/assets/models/stairs.glb": {
-      "sha256": "cd5aaaf0c77fb6fd129943ba39d14c0e35995c63058edb2bfbd3d4809e170c73",
-      "bytes": 142216,
-      "afterBytes": 94288,
-      "source": "dafb9cae6d1cd85fc51e463e0c7a306efca5d9802427e4406c9c34711ff91780",
-      "at": "2026-10-22T07:41:45.761Z"
+      "sha256": "a1f04168ca52ee00369df169cbc9839a8318df4d095c52c52fcc9896c696aa57",
+      "bytes": 94328,
+      "afterBytes": 94328,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.985Z"
     },
     "scenarios/moba/assets/models/stall-bench.glb": {
       "sha256": "663dcd06de4827513774919672ae0d55773d8c7962ed048b33233f83a82c332a",
@@ -4279,11 +4279,11 @@
       "at": "2026-10-22T07:41:45.782Z"
     },
     "scenarios/moba/assets/models/storm-spirit-skinned.glb": {
-      "sha256": "70cacbb8e6bbd03b797b9c6551a7caa6bc02c3548de19d2c290f44363729abe6",
-      "bytes": 500444,
-      "afterBytes": 214532,
-      "source": "9e599bda5e205c9ec013ef52a4e7097391765397b9ca62d241f4b78adcde0ec4",
-      "at": "2026-10-22T07:41:45.832Z"
+      "sha256": "3c34a82344292b530c9d6b2a37c7af4b41c33ccbb8a131420bad33d2768f9cc1",
+      "bytes": 214196,
+      "afterBytes": 214196,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:08.043Z"
     },
     "scenarios/moba/assets/models/structure-canvas.glb": {
       "sha256": "cf4a2a3b081c99ff6dfd15b151f09184cf0cd21c5130cbc6ad51cb64cff0bb3a",
@@ -4468,18 +4468,18 @@
       "at": "2026-10-22T07:41:45.880Z"
     },
     "scenarios/moba/assets/models/templar-assassin-skinned.glb": {
-      "sha256": "c9abe5801d2624b6fa8c197fd68d7da45409113eccdcb940f04ead866c373d07",
-      "bytes": 578476,
-      "afterBytes": 248276,
-      "source": "13f3b9620660cee589f016d455084763d317eb531224e685bdf3adcf50bbd4c7",
-      "at": "2026-10-22T07:41:45.936Z"
+      "sha256": "0f8bf96a8ac0843f34880e84445316bf5268e4100ef4b9d29ae73052447ea2be",
+      "bytes": 247752,
+      "afterBytes": 247752,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:08.111Z"
     },
     "scenarios/moba/assets/models/template-corner.glb": {
-      "sha256": "d7d70fa52f54f8e9e85217d49d7e084538257417827c8e49f15fb659e8e7ccbf",
-      "bytes": 41692,
-      "afterBytes": 38116,
-      "source": "935e7aab20d6d3d7090eb7238ca2bb9d886b1d3f43ad492cc852d5dde2faf624",
-      "at": "2026-10-22T07:41:45.940Z"
+      "sha256": "01ecfcbe728c394a504711251e19323aa2808d6db34d0ef1f7cc021a89aa5af4",
+      "bytes": 38160,
+      "afterBytes": 38160,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:08.115Z"
     },
     "scenarios/moba/assets/models/template-detail.glb": {
       "sha256": "3536ca11f83f2956cac62ea8454a370bf4519d39c8340ad414898be471bbd941",
@@ -4489,11 +4489,11 @@
       "at": "2026-10-22T07:41:45.942Z"
     },
     "scenarios/moba/assets/models/template-floor-big.glb": {
-      "sha256": "b0d64f458db811af6c2d299a3fefbda724790cbec5d710040f7acebd3c7cb105",
-      "bytes": 45444,
-      "afterBytes": 40392,
-      "source": "71b0fed2b4e452104499f4d998916390fc3b0000fb05b7acceac5c54e9008d73",
-      "at": "2026-10-22T07:41:45.946Z"
+      "sha256": "0977e55b4704a2d71c4436e1f4d0c199861d679e5f3736f89774732c190462b8",
+      "bytes": 40396,
+      "afterBytes": 40396,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:08.120Z"
     },
     "scenarios/moba/assets/models/template-floor-detail-a.glb": {
       "sha256": "3d02ea2ba20524fc5abf675dcebff6fce19cac0763ba861a4b0ab2081c05c862",
@@ -4601,11 +4601,11 @@
       "at": "2026-10-22T07:41:45.976Z"
     },
     "scenarios/moba/assets/models/tidehunter-skinned.glb": {
-      "sha256": "f68cfc48b9d487b49c9d244c12f8bcc8e1454eddacacb736be85cffc3d4d6fb8",
-      "bytes": 524188,
-      "afterBytes": 223772,
-      "source": "d87d00aaf9710f22fa06e11c4b0387d70b875deec20ec554e197a3ca283b4f6e",
-      "at": "2026-10-22T07:41:46.030Z"
+      "sha256": "eb34db53441b249df459b8f09a68d35db80c0875098d6e361442692df9e2d03a",
+      "bytes": 223292,
+      "afterBytes": 222680,
+      "source": "d2533a20781af606dfbb63f0beb1b6dbdbee0f93eb703d0c47a9792f9679250e",
+      "at": "2026-10-22T20:57:08.186Z"
     },
     "scenarios/moba/assets/models/tile-high.glb": {
       "sha256": "ab3d97089970228b768fa45b2a3cdf873cb6316b02905e54c05ed4eefd2c3fcf",
@@ -4636,11 +4636,11 @@
       "at": "2026-10-22T07:41:46.035Z"
     },
     "scenarios/moba/assets/models/tinker-skinned.glb": {
-      "sha256": "a5782419b8782b6815fc9c128a063d1848949a8f9d2d4b10aad5a01b7bd7eacc",
-      "bytes": 612036,
-      "afterBytes": 251932,
-      "source": "23d41e41f4018c9bdf205d53963e492c4de13a36216fb9fad72856c9e0cae916",
-      "at": "2026-10-22T07:41:46.101Z"
+      "sha256": "dd76d0414659fd3342753f3ba7c99abbf9c87398959ca5f88c79e4bd223e6524",
+      "bytes": 251424,
+      "afterBytes": 251028,
+      "source": "fec9345a91b65c0d7155fb992a6c7d5119cc410c04110328410b5b3138a609cd",
+      "at": "2026-10-22T20:57:08.255Z"
     },
     "scenarios/moba/assets/models/tool-axe-upgraded.glb": {
       "sha256": "af275465923a12acfb38c9a519fb83df0a1098ee9975212911ae7b24cd77311c",
@@ -5049,11 +5049,11 @@
       "at": "2026-10-22T07:41:46.194Z"
     },
     "scenarios/moba/assets/models/troll-warlord-skinned.glb": {
-      "sha256": "537f688c206d8e4799daf8a050fb086840ea5d600d1b1ad6b347fb302685d433",
-      "bytes": 590192,
-      "afterBytes": 242620,
-      "source": "48da326d70dd03b68bcd6f04f247361d02e30119c4858f4abdf910e681534829",
-      "at": "2026-10-22T07:41:46.254Z"
+      "sha256": "2a3e97ae0a58212d87f63d1b3071665435c1a697ff1e0915def99f1391455b21",
+      "bytes": 242028,
+      "afterBytes": 241884,
+      "source": "2b3b23e71f341c28c7400ffe42f07f5a8108f2f155886431ddc44e5183b31466",
+      "at": "2026-10-22T20:57:08.335Z"
     },
     "scenarios/moba/assets/models/trunk-long.glb": {
       "sha256": "3fbb6b1d1b42f9d36b83ae71e0b417f30ed7604445b367dd7f8c07ad105474f7",
@@ -5070,18 +5070,18 @@
       "at": "2026-10-22T07:41:46.261Z"
     },
     "scenarios/moba/assets/models/tuskarr-skinned.glb": {
-      "sha256": "8b90209f3700e69c56e6b499b09201ec6e7e5b013c984058f2998c4575614fe5",
-      "bytes": 886016,
-      "afterBytes": 371128,
-      "source": "eeb3c82392caac6cb2b776c0b5b02e7c5c4e53b7e9818205448535e98a8d1fbc",
-      "at": "2026-10-22T07:41:46.352Z"
+      "sha256": "da09f8af2f00eb0dd3c2da5c4bdb416caec6f9111f26a3dc9938531d944c5927",
+      "bytes": 370748,
+      "afterBytes": 369884,
+      "source": "0d61eac38a9c720b4286496a6f8858af5667a501890c25ff62d8a3524312f524",
+      "at": "2026-10-22T20:57:08.441Z"
     },
     "scenarios/moba/assets/models/undying-skinned.glb": {
-      "sha256": "612b17d21712a4331c30c16a3583eeff314786fef664d38d6bb89a849a5f4f09",
-      "bytes": 532724,
-      "afterBytes": 226204,
-      "source": "c9621724ced0f71fb94de23d2fa05a81426b88a2c321c73e6ecd0eecad61ce09",
-      "at": "2026-10-22T07:41:46.411Z"
+      "sha256": "5ba776f6a84c38b26c9aa7b121aeb2121b0c843e31e1802d683bcde3c5e60966",
+      "bytes": 225660,
+      "afterBytes": 224816,
+      "source": "ff3be7fba4f6ae99f3c5fd05b155d17e4fb560d606ba194b81936649faba815c",
+      "at": "2026-10-22T20:57:08.508Z"
     },
     "scenarios/moba/assets/models/urn-round.glb": {
       "sha256": "e1052399a28d918c43fea4f302901d2502aedb5f3792af4b4f4ec2fe3b884f0c",
@@ -5098,11 +5098,11 @@
       "at": "2026-10-22T07:41:46.416Z"
     },
     "scenarios/moba/assets/models/vengeful-spirit-skinned.glb": {
-      "sha256": "4a793fb7b9d9b0a85f41aec63c813bee8fbff66a469dae38d6693a596bc57989",
-      "bytes": 518308,
-      "afterBytes": 219572,
-      "source": "47fef0d951ed49d8143c1eae80dc18987e490bd10d1925fc885063bd39caca35",
-      "at": "2026-10-22T07:41:46.469Z"
+      "sha256": "2a2bb59dfbba6332de6e907c57b91589dd7318c293133dc84ed0b761e85f1467",
+      "bytes": 219024,
+      "afterBytes": 218948,
+      "source": "6808fa65f9565fac7480c422ebe773e573e55532bd06c0b19f4dd983464c1cdb",
+      "at": "2026-10-22T20:57:08.570Z"
     },
     "scenarios/moba/assets/models/wall-arch-top-detail.glb": {
       "sha256": "16d549111286a75a7852874f76d9632afed6f995aa24caa6634262fb6f848c5d",
@@ -5637,11 +5637,11 @@
       "at": "2026-10-22T07:41:46.587Z"
     },
     "scenarios/moba/assets/models/water-tower.glb": {
-      "sha256": "0086567e1c83b47fe05d29b8b02ca38a0d0432e2db5dcfa21c96c10dc58f5643",
-      "bytes": 60860,
-      "afterBytes": 47740,
-      "source": "8d386879bb54d11a067f7ed83c296bc01e71d4cae609ffff5a89f447b38a5622",
-      "at": "2026-10-22T07:41:46.591Z"
+      "sha256": "7993a67406c390a2c56ce5f1edd67f2021f218c6555f08da48ef89ebebb4dfef",
+      "bytes": 47784,
+      "afterBytes": 47784,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:08.733Z"
     },
     "scenarios/moba/assets/models/watermill-wide.glb": {
       "sha256": "160419908bce65230212804b1caaf828a3c2eb4f088100227957d6816c470351",
@@ -5700,18 +5700,18 @@
       "at": "2026-10-22T07:41:46.610Z"
     },
     "scenarios/moba/assets/models/wheelchair-power-deluxe.glb": {
-      "sha256": "fecf927bd5b304bec549ebd0959cbc3a32cc7711bc5b2f3c5b75153dc284ff50",
-      "bytes": 49740,
-      "afterBytes": 43896,
-      "source": "86a1cac7bab00704907b79becbdaf1b4be315caf4bb1e346e0124c4f17b7d85e",
-      "at": "2026-10-22T07:41:46.614Z"
+      "sha256": "fdb5c8c5a0571fa8a46bc871e75384a73f6d6ea2350b7f1ce7e92c5e959cdd3b",
+      "bytes": 43940,
+      "afterBytes": 43940,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:08.738Z"
     },
     "scenarios/moba/assets/models/wheelchair-power.glb": {
-      "sha256": "bbb7fb0f8e9bdfa3bebb1eff3a534a13d9722c0d7d420401b83862532e46cb5a",
-      "bytes": 41932,
-      "afterBytes": 39344,
-      "source": "af08a4910dd1af49adb8c195492945c978e085a3f388f004ed3dd6592d839229",
-      "at": "2026-10-22T07:41:46.618Z"
+      "sha256": "ae520e5530f9c0489230c9e84b55bcf42281a1511674e1e2db7b8bc6c54f4e18",
+      "bytes": 39388,
+      "afterBytes": 39388,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:08.742Z"
     },
     "scenarios/moba/assets/models/wheelchair.glb": {
       "sha256": "0c93e9a3a3292f4165b6474a5527534630da9aae3226f8b48959367c20de7a83",
@@ -5770,88 +5770,88 @@
       "at": "2026-10-22T07:41:46.639Z"
     },
     "scenarios/moba/assets/models/shadow-demon-skinned.glb": {
-      "sha256": "e48a4792d1211959d1c11590ba731fe3683910c1b0676ba690c98247dbad5665",
-      "bytes": 138832,
-      "afterBytes": 138832,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:39.796Z"
+      "sha256": "f9f7e63e1353d4218cf1798090970fcc3f203a6159aa759d665db067462d5c09",
+      "bytes": 592496,
+      "afterBytes": 256468,
+      "source": "318323fe1b62428eeebe6075a36b1c5e8f6ab46d628266f369edf9649d34bedc",
+      "at": "2026-10-22T20:57:07.475Z"
     },
     "scenarios/moba/assets/models/venomancer-skinned.glb": {
-      "sha256": "dd923b4e3fd0e9ef6e6cc54f0885eb28d6f1af270ed57f69b8ea221924cbbbbe",
-      "bytes": 136640,
-      "afterBytes": 136640,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:39.838Z"
+      "sha256": "9468e46d226fa9f24a570f16c7f4fb8c939eb888e6efd8632d7569463bf511a1",
+      "bytes": 577716,
+      "afterBytes": 260712,
+      "source": "49252ba5393c33dbbbfba55fd8653930d87f0db3e8d92f2be20639179d6f1f5f",
+      "at": "2026-10-22T20:57:08.643Z"
     },
     "scenarios/moba/assets/models/warlock-skinned.glb": {
-      "sha256": "3a624ffb3318e7bd531f08ff7205143e31537a8590cd343df7ded9e4065108ad",
-      "bytes": 181488,
-      "afterBytes": 181488,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:39.909Z"
+      "sha256": "cd24c8732d39b0df89665b528de4c02b3a0c5452353457b5cf63f3cf82fb1e60",
+      "bytes": 535312,
+      "afterBytes": 226348,
+      "source": "6489437daa4d832cfc8da1171535c9e719e807b518cdbf228328e5fe81ab8dc2",
+      "at": "2026-10-22T20:57:08.726Z"
     },
     "scenarios/moba/assets/models/windrunner-skinned.glb": {
-      "sha256": "5af0aca837ae3550a76eac41fb9fb6932fcfa009e3de51cd18d52cda38cabfc7",
-      "bytes": 137892,
-      "afterBytes": 137892,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:39.946Z"
+      "sha256": "0e7a23610c7eca335e8de0dce93ef03767383dfb520643a0336061d5bb083727",
+      "bytes": 545152,
+      "afterBytes": 238280,
+      "source": "f68c3910c5cdc364448d8160d1865186b2170d824a33c609aca80d2e9e445531",
+      "at": "2026-10-22T20:57:08.814Z"
     },
     "scenarios/moba/assets/models/winter-wyvern-skinned.glb": {
-      "sha256": "92ce25054dde8bf8e0258e9ea5b7573437e911163288ec9741d28b2b9b02066a",
-      "bytes": 193860,
-      "afterBytes": 193860,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:39.985Z"
+      "sha256": "cb068f2f5fb25dd7b607a5a5625ad3610c556ea7a232788391e826a9f0aa13ae",
+      "bytes": 624368,
+      "afterBytes": 261192,
+      "source": "7caaa9e15719ea550c049195c3785cf47a7dbae9bb03d56503355ed0092dd6df",
+      "at": "2026-10-22T20:57:08.901Z"
     },
     "scenarios/moba/assets/models/neutral-warpine-raider-skinned.glb": {
-      "sha256": "0f93f44f2e5a2099e3d6056ed31051fafe69a0d37c42bf7850620fe1bef27da4",
-      "bytes": 214120,
-      "afterBytes": 214120,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:40.029Z"
+      "sha256": "7a6e3f5c22627496662d43ea58cf4b915379a0ff2c51e34d0a0d2669d2b56f77",
+      "bytes": 531620,
+      "afterBytes": 229448,
+      "source": "adf61388258e6b0c82301b8909635dd3a764dcbd3a19e77b888febaeaf26f8a4",
+      "at": "2026-10-22T20:57:06.191Z"
     },
     "scenarios/moba/assets/models/neutral-prowler-acolyte-skinned.glb": {
-      "sha256": "d103f989db49488403512629330e46d76b8ae3bb03b0e2a491458ff421fe99aa",
-      "bytes": 169184,
-      "afterBytes": 169184,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:40.064Z"
+      "sha256": "374081af66b4b6b41dbd5fcaf374221fe74b68c16fc3f44353acdf0be420cad1",
+      "bytes": 535488,
+      "afterBytes": 229184,
+      "source": "bfd7c80ccd3c8f72657260b64bddfb8d197e7b801dabae0064a5e646b71e39e7",
+      "at": "2026-10-22T20:57:05.619Z"
     },
     "scenarios/moba/assets/models/neutral-prowler-shaman-skinned.glb": {
-      "sha256": "ba9faba97d848c19169c80db9c9eb4bfd5c9a97b8d1f59463441a7d22a04c494",
-      "bytes": 186808,
-      "afterBytes": 186808,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:40.104Z"
+      "sha256": "a83e1792ea16d947aacab862ab9b8b26ec084d1062915f605f07e58e601cf7fa",
+      "bytes": 658740,
+      "afterBytes": 277684,
+      "source": "f810d6a76f14ff9b5b1054cf3c8a8c32c9dbc06d8053dda36e29be105d2ed996",
+      "at": "2026-10-22T20:57:05.704Z"
     },
     "scenarios/moba/assets/models/neutral-granite-golem-skinned.glb": {
-      "sha256": "34cd027424a482a7349174e26b2b68724b02a256cbea24066e3e9d33ab0e1cda",
-      "bytes": 132380,
-      "afterBytes": 132380,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:40.131Z"
+      "sha256": "8c600d26f406c6f764419c524d07e3a2a3a3db2373f799e0227c5fcb7be3bc5d",
+      "bytes": 515600,
+      "afterBytes": 212704,
+      "source": "e10c604ba357b780d55c7e876bb0ff43e211078f4e59b9daef4123a53e575a02",
+      "at": "2026-10-22T20:57:04.698Z"
     },
     "scenarios/moba/assets/models/neutral-ice-shaman-skinned.glb": {
-      "sha256": "33b982583f73d0eb8bd7b9d06e493c1fe392f68170346b28acb6d763bff45a21",
-      "bytes": 142824,
-      "afterBytes": 142824,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:40.157Z"
+      "sha256": "9d4c6cacde491f24aad0d2ffb0821866ccf1768e02663e2091e37078626175ae",
+      "bytes": 504736,
+      "afterBytes": 220444,
+      "source": "6ab92ebfb2e09bc8d0dc6d92f4aa3cf30844254459ab998b9b25305a5680980e",
+      "at": "2026-10-22T20:57:04.924Z"
     },
     "scenarios/moba/assets/models/neutral-frostbitten-golem-skinned.glb": {
-      "sha256": "f56c5be8622566f367f92804a06516c4293b3dc3415877b766c99fedb4f44f04",
-      "bytes": 189548,
-      "afterBytes": 189548,
-      "unchanged": true,
-      "at": "2026-10-22T12:34:40.194Z"
+      "sha256": "b0c0a63ef72fcd71feb6029566a234bb201e574a6e876f70d7e0fc7138123ba9",
+      "bytes": 566924,
+      "afterBytes": 235736,
+      "source": "656a90b996f18499b9525d74b4b3be38f5476b4ad3f5d87c32ed419aedacedac",
+      "at": "2026-10-22T20:57:04.140Z"
     },
     "scenarios/moba/assets/models/flowers.glb": {
-      "sha256": "043ab88913c8a68058272ded77818e6ba12c31bc5b9a9fd0b10c2f61ea899bad",
-      "bytes": 49552,
-      "afterBytes": 49552,
+      "sha256": "17e951357c6694067b98c105ffbd62edaf5d1cc2cd7d80c751e24fd4d1b52fa5",
+      "bytes": 49600,
+      "afterBytes": 49600,
       "unchanged": true,
-      "at": "2026-10-22T17:03:59.696Z"
+      "at": "2026-10-22T20:57:02.121Z"
     },
     "scenarios/moba/assets/models/flowers-zpfw.glb": {
       "sha256": "043ab88913c8a68058272ded77818e6ba12c31bc5b9a9fd0b10c2f61ea899bad",
@@ -5861,18 +5861,18 @@
       "at": "2026-10-22T16:41:13.042Z"
     },
     "scenarios/moba/assets/models/remains-scorched.glb": {
-      "sha256": "bb1f8a7c6bdef4976bac8d288b7d0af18cb03c23f6457f24cd735b91ffad678d",
-      "bytes": 710780,
-      "afterBytes": 396824,
-      "source": "e034269c43fc804b48a3085cc1fb6483fa1dc2cf553e940c89ace3a452edbb7d",
-      "at": "2026-10-22T16:48:46.821Z"
+      "sha256": "c22664b520a9c0f035562265b6a695d421def03cd34447508c51711cb4f53d6c",
+      "bytes": 396872,
+      "afterBytes": 396872,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:07.010Z"
     },
     "scenarios/moba/assets/models/torch.glb": {
-      "sha256": "e16d20ab87cd47f63a84d12fc2f34ec495d27f288440dcfdf02eded7b5aa9f15",
-      "bytes": 81844,
-      "afterBytes": 49976,
-      "source": "39aac468eea00ce2e237134e3d844ceb73a2c2ac69353d31a59d7b0094b9398b",
-      "at": "2026-10-22T16:48:46.995Z"
+      "sha256": "b90d20d329e23c9d410c02871716a1917d5fa38169565b1a84b88ae76f93a7b0",
+      "bytes": 50020,
+      "afterBytes": 50020,
+      "unchanged": true,
+      "at": "2026-10-22T20:57:08.263Z"
     },
     "scenarios/moba/assets/models/skull-pile.glb": {
       "sha256": "61f80dcf30569ab496ad75a72022cd72035f68f46ce732c0642f4f61c1abddf9",
@@ -5894,6 +5894,629 @@
       "afterBytes": 117044,
       "source": "353aabd284130f7a100f0bdaa91354672a5f5fbdcc0259d32a6c140d7292e1bb",
       "at": "2026-10-22T17:38:05.878Z"
+    },
+    "scenarios/moba/assets/models/cattail.glb": {
+      "sha256": "d245e1899d262421b41b15dc31ca7eb6ffbd80a813b977e1ddc02027af97f17f",
+      "bytes": 131336,
+      "afterBytes": 76916,
+      "source": "b5827fa686efa246f1513f7b9bed80651e51e2d713016bf1cd06e78eb53af09b",
+      "at": "2026-10-22T18:26:42.983Z"
+    },
+    "scenarios/moba/assets/models/banner-tutorial-orc.glb": {
+      "sha256": "31d96950639edcbc4c3461e0b6cccbbd649176f8dfa4a21644459f27540bcfb9",
+      "bytes": 158988,
+      "afterBytes": 98548,
+      "source": "713fc39ae01929056844540bd112c6e99976150b7634e81b2c13e7d5d29a7c3b",
+      "at": "2026-10-22T18:26:43.195Z"
+    },
+    "scenarios/moba/assets/models/lily-pads-floating.glb": {
+      "sha256": "1389941f9fa3d4e06bec8fcf152d68d386099cad05724d30d06b2c460fb6fc1c",
+      "bytes": 86044,
+      "afterBytes": 52708,
+      "source": "a3c74076006d406c6748b5c56dc3afc616302f07c34e30251e7af379cff91ee0",
+      "at": "2026-10-22T18:26:43.396Z"
+    },
+    "scenarios/moba/assets/models/ltrc.glb": {
+      "sha256": "b37e3b6eb4e57cd53da6918f36224b6e1fe1bff61a5d73684eda6a39b87f5fd6",
+      "bytes": 55116,
+      "afterBytes": 37628,
+      "source": "8da2bd5b8a94ca6e889e8bad1b96f45168902a8966a035a640abe85697a9ab56",
+      "at": "2026-10-22T18:26:43.602Z"
+    },
+    "scenarios/moba/assets/models/fish-green.glb": {
+      "sha256": "68d47d30fa41e0c140f0147e14774ad1533909792f814ad06d86341086d465a6",
+      "bytes": 137088,
+      "afterBytes": 83936,
+      "source": "0c62c78bc30dce77826ece8d501ec31d5492eed1a28d957e5dc15e2e211c6c80",
+      "at": "2026-10-22T18:26:43.823Z"
+    },
+    "scenarios/moba/assets/models/broken-column.glb": {
+      "sha256": "915e342f98550ccf02df70a95a5d7294b4db014b8d101c728da27b6b67eae8a8",
+      "bytes": 97956,
+      "afterBytes": 61124,
+      "source": "1ee4e500b4549139c4602a43eefbb540fb5658a198c4e78ef6657bd0a2c4aada",
+      "at": "2026-10-22T19:18:32.415Z"
+    },
+    "scenarios/moba/assets/models/grave-peasant.glb": {
+      "sha256": "c72fbb854193f50a1219400906a1fd25c33e0d58067df0697ab3b4acfaa84015",
+      "bytes": 58940,
+      "afterBytes": 38124,
+      "source": "1e4e730c8148abfc05a3637bffa1281b53e11c187d984298e31ba7f73491dac4",
+      "at": "2026-10-22T19:18:32.586Z"
+    },
+    "scenarios/moba/assets/models/fire-pit-with-pig.glb": {
+      "sha256": "cf7d67baa23fc5ca6bb8e1db421d841798ca304a4fc30d1389a7e9f8f3296d1c",
+      "bytes": 280816,
+      "afterBytes": 159440,
+      "source": "c5f8349d715ee07ec00ac8756d31db1db045bbe161779d3b1d3e948cce71fc66",
+      "at": "2026-10-22T19:18:32.780Z"
+    },
+    "scenarios/moba/assets/models/tombstone.glb": {
+      "sha256": "29d99550cf111cb9b08bc503a39be8afa420a28113a173c156b19e63bbee4e93",
+      "bytes": 142432,
+      "afterBytes": 87304,
+      "source": "21992cfb8ef0c817f37cd2fabc11124fe94cbe6af4c363f6c25d61f803e8d81c",
+      "at": "2026-10-22T19:18:32.956Z"
+    },
+    "../../tmp/pk-out/enchantress.glb": {
+      "sha256": "5a0de2459ce19ce40e09ff5a860e6e09b385d61261cc4dddab99226c8cb094ca",
+      "bytes": 220632,
+      "afterBytes": 112400,
+      "source": "288b590fdf5ff34efbcdbdbe04e6ac073e3cb72bac36ec98920d9d6a3734238b",
+      "at": "2026-10-22T19:40:31.182Z"
+    },
+    "../../tmp/rp-final/earth_spirit.glb": {
+      "sha256": "b9a1ee6f591b01184ac7c030c83f927843525e30b468ca4555b614ed5bbc007d",
+      "bytes": 1081384,
+      "afterBytes": 498976,
+      "source": "a81a3a79bcff8b7f8443296da2db7003f3c8757d6168b82abec2172a10250db7",
+      "at": "2026-10-22T19:46:03.622Z"
+    },
+    "../../tmp/rp-final/ember_spirit.glb": {
+      "sha256": "5d9295e98299788f27bc0074528f8a2717c14ed9e549fbef2d4a2a121be71bac",
+      "bytes": 558168,
+      "afterBytes": 254360,
+      "source": "4854a7a26372d608e679be3e5fcfa988fbcd34635b66b2592fbe68bfa60f7edd",
+      "at": "2026-10-22T19:46:03.876Z"
+    },
+    "../../tmp/rp-final/enchantress.glb": {
+      "sha256": "ec59ee29859cced7c7f7d710cf92e08d5403b39c03b9b7d16f82e235e41a7c22",
+      "bytes": 700136,
+      "afterBytes": 292676,
+      "source": "21cf096d9130ba467c8e3d840fb81126499f3995f1c3b0aef85dc9061781cc19",
+      "at": "2026-10-22T19:46:04.154Z"
+    },
+    "../../tmp/rp-final/enigma.glb": {
+      "sha256": "cc58188544b99358b526cafff1dfc090107e7cda7c137b72ed8a3d82e177fa1c",
+      "bytes": 473180,
+      "afterBytes": 217056,
+      "source": "6542e5d6a730b73593ecfd15dec32ab688f6ec5e3a6bf358844348856127dcde",
+      "at": "2026-10-22T19:46:04.399Z"
+    },
+    "../../tmp/rp-final/invoker.glb": {
+      "sha256": "e1592eb721e51a666abf680750e08bb48af4b03d8e9799b3a71721af4f23b695",
+      "bytes": 486568,
+      "afterBytes": 219140,
+      "source": "04df6d0bac22a6dfbb33dad13e819510cadf519ea49b173d6be90ceda3497625",
+      "at": "2026-10-22T19:46:04.649Z"
+    },
+    "../../tmp/rp-final/juggernaut.glb": {
+      "sha256": "d5bdb46a85884156242ab41483aa83fa9d48c752ecde14d9dd64f8c90a4c9602",
+      "bytes": 840744,
+      "afterBytes": 354672,
+      "source": "8e3862773b43f2875b31e9bd8392f0c0bc2601ccf67caa93ff096a2f508baf83",
+      "at": "2026-10-22T19:46:04.954Z"
+    },
+    "../../tmp/rp-final/keeper_of_the_light.glb": {
+      "sha256": "c1665d5ff731d1acc7f532496b2081b4960a1a6d1ab5b0e0d3ed77d1a9244ab1",
+      "bytes": 427464,
+      "afterBytes": 201788,
+      "source": "e71aff3d61a3f7837fd16d03c07bda87d9b0b0c5fb8e7cad1af2317aeb14265c",
+      "at": "2026-10-22T19:46:05.193Z"
+    },
+    "../../tmp/rp-final/legion_commander.glb": {
+      "sha256": "7ce9989e10bf7cd1c1dc4e8fed3c74114702aabdb0618ecbbea90d61ea3abfd1",
+      "bytes": 413972,
+      "afterBytes": 187744,
+      "source": "1d5b568445f515df0ec36a874ff4655690343408bee3332806d0b3d111012d84",
+      "at": "2026-10-22T19:46:05.430Z"
+    },
+    "../../tmp/rp-final/lifestealer.glb": {
+      "sha256": "cf44ee2b16fbba2a949c66f4d55bdd67110f0c036cf415b24f9a4f044b64e095",
+      "bytes": 570336,
+      "afterBytes": 249768,
+      "source": "eeae49a109d9f7c8b5fcfb6634ca8a5b72814d0dec834b7b35f40d0a7f7a6690",
+      "at": "2026-10-22T19:46:05.684Z"
+    },
+    "../../tmp/rp-final/lone_druid.glb": {
+      "sha256": "680bb4a515c484c513b75708aaf9429ac26445407d8ea949b4b4e082e1e5a98e",
+      "bytes": 583552,
+      "afterBytes": 254296,
+      "source": "230a78fbaf7a7efb57da76c618bd66496288a58f9c71327fb3006ec7b42cd0e5",
+      "at": "2026-10-22T19:46:05.961Z"
+    },
+    "../../tmp/rp-final/magnataur.glb": {
+      "sha256": "c568bd4848eef6e3a7684662c8d6a2e36e3b67f9f2bc759ed63518ed5d9c846c",
+      "bytes": 644788,
+      "afterBytes": 278424,
+      "source": "05fa0294f9775bcd5eecde8f1ace70088c346708c39f1a15d1b934e713a214e2",
+      "at": "2026-10-22T19:46:06.252Z"
+    },
+    "../../tmp/rp-final/morphling.glb": {
+      "sha256": "4e2af04ab54d5173f55564df951d35f6e01a5141823b9f675dd0c51b8827d2c3",
+      "bytes": 384516,
+      "afterBytes": 173024,
+      "source": "723de3f4dfac89f9cf0ee249454617eaf4cc900ee4a90aab02597dad9ac3458f",
+      "at": "2026-10-22T19:46:06.500Z"
+    },
+    "../../tmp/rp-final/naga_siren.glb": {
+      "sha256": "fc8365fae491a8b2f22acc142f5706598f0c85cfbff9eb8ecdd30980d6002721",
+      "bytes": 613204,
+      "afterBytes": 272112,
+      "source": "1317d61ffd1f9fda48342146c4518a98ba79bb1d8fa1a64e1b2082c405c23c62",
+      "at": "2026-10-22T19:46:06.763Z"
+    },
+    "../../tmp/rp-final/necrolyte.glb": {
+      "sha256": "a8b9439ba032c09aa37ae7c940d6138171fc46084d00cae841c0adff6ad33c60",
+      "bytes": 604820,
+      "afterBytes": 263604,
+      "source": "8ae9a09547c3498c4019f7048966fb48a6fdd2d8f46c0ce2ea08439aa5a179d3",
+      "at": "2026-10-22T19:46:07.038Z"
+    },
+    "../../tmp/rp-final/neutral_alpha_wolf.glb": {
+      "sha256": "f26470d43f121f2b1874b1f634bae1ab69eaf8629c567c8b9a0a33315b16335d",
+      "bytes": 594964,
+      "afterBytes": 259404,
+      "source": "ca8d9095baa0e908745a63e7ec3ecfd5e1b38ccff422a0264ef6c686f99748d7",
+      "at": "2026-10-22T19:46:07.311Z"
+    },
+    "../../tmp/rp-final/neutral_big_thunder_lizard.glb": {
+      "sha256": "366b26233de19c7c3c8d0b77f9707caf87b4a97616372b8f13507f0acb7eeb71",
+      "bytes": 866024,
+      "afterBytes": 408984,
+      "source": "63beb5bcf9c1e5ae4135cdc431f64dad4b88039fecd408629366bdc620917b7d",
+      "at": "2026-10-22T19:46:07.617Z"
+    },
+    "../../tmp/rp-final/neutral_black_dragon.glb": {
+      "sha256": "fb33812b5656e646384e657c221cb39302a2d986def18029c46507352a21de1d",
+      "bytes": 813044,
+      "afterBytes": 357712,
+      "source": "cb9eb99abe570f37d277feceb996bd9e6b5686f94d6b807f7e9327b9301d3e0e",
+      "at": "2026-10-22T19:46:07.920Z"
+    },
+    "../../tmp/rp-final/neutral_black_drake.glb": {
+      "sha256": "5040d6e5d7133295e0b9e2576fdfb662e8dc2f03304f7721a03e665b18ebb953",
+      "bytes": 416172,
+      "afterBytes": 183456,
+      "source": "2e662defafb1747e6db8fd104faddaa8aaa7bf48acc4d8ec0f9921a60125f347",
+      "at": "2026-10-22T19:46:08.161Z"
+    },
+    "../../tmp/rp-final/neutral_centaur_khan.glb": {
+      "sha256": "87c59f5ceccbee0a33abd82a0baf18e7dd8d1797b76bd4a8645ee3412831c7ab",
+      "bytes": 429060,
+      "afterBytes": 190176,
+      "source": "00a99f09db69f487b713c0ff8b4ac88ea36cc075c49d2411f4c30f855c8619c2",
+      "at": "2026-10-22T19:46:08.424Z"
+    },
+    "../../tmp/rp-final/neutral_centaur_outrunner.glb": {
+      "sha256": "f0147be4027087b30aa23e5d8964823936134d74bba85fe93ce8597f3afee8da",
+      "bytes": 748304,
+      "afterBytes": 325448,
+      "source": "3a7044a5298b92612f823bdf9ac4160a45cd8ec76aac60b0010b26987cb6088d",
+      "at": "2026-10-22T19:46:08.726Z"
+    },
+    "../../tmp/rp-final/neutral_dark_troll.glb": {
+      "sha256": "28774cf90f09e7aa0ec45289ff85fccc0c6d4e9cf945e48c1ae99324058a5773",
+      "bytes": 510172,
+      "afterBytes": 218780,
+      "source": "8bd857a785585173c9e283c4b8c5f451c78e6371809f8578e03e8191f06fb551",
+      "at": "2026-10-22T19:46:08.993Z"
+    },
+    "../../tmp/rp-final/neutral_dark_troll_warlord.glb": {
+      "sha256": "8b15e160d15bfae3d27c67a717c688828b918c2bef0fb47acffea75358ec28c8",
+      "bytes": 565804,
+      "afterBytes": 238300,
+      "source": "641ab7a2cf81116d9e263477e477bea7d230936ea195d5befcc7beda2e37fe85",
+      "at": "2026-10-22T19:46:09.257Z"
+    },
+    "../../tmp/rp-final/neutral_elder_jungle_stalker.glb": {
+      "sha256": "dec18c7a99925dc85a6ecff9dbe5b21127a2618a53d02d29295044c37174d6fa",
+      "bytes": 951064,
+      "afterBytes": 432524,
+      "source": "a3b2699cbfaadc953f60bcf54e4c24a9a9b3089a4bce695a380c3967aebcfc06",
+      "at": "2026-10-22T19:46:09.558Z"
+    },
+    "../../tmp/rp-final/neutral_enraged_wildkin.glb": {
+      "sha256": "65823e80839803285b670a4c89c1e93f8e2a174ffaf5da1918d7f25888be81cd",
+      "bytes": 1224008,
+      "afterBytes": 564616,
+      "source": "87bddc6cbe3ce38f5bfde9b02b8221269e463a03b2627fed0493502bcf876aeb",
+      "at": "2026-10-22T19:46:09.907Z"
+    },
+    "../../tmp/rp-final/neutral_fel_beast.glb": {
+      "sha256": "8575254991fec1db953c3f7a4423847cf896fb5b0f14272ede9eb18adafcca4d",
+      "bytes": 395528,
+      "afterBytes": 172076,
+      "source": "eb70d8fde218874307ae7eb4142bc41aa500ee7e9b6ea319e0386dc4579c580e",
+      "at": "2026-10-22T19:46:10.149Z"
+    },
+    "../../tmp/rp-final/neutral_forest_troll_berserker.glb": {
+      "sha256": "acfb56d4e2815e3f206e1e263ce1a6cd1eddf7e7c27f29c5c3fd1304bfc807a9",
+      "bytes": 633072,
+      "afterBytes": 263568,
+      "source": "cf97776aa7460c64ca3e69667e20aea0de02396e6ff2627e09a91ac72436a389",
+      "at": "2026-10-22T19:46:10.423Z"
+    },
+    "../../tmp/rp-final/neutral_forest_troll_high_priest.glb": {
+      "sha256": "ba196314754589f1d0e8f5320eb9f3c1bc8ccf41eaa86043abf955576fd04ac9",
+      "bytes": 577228,
+      "afterBytes": 251924,
+      "source": "6a92c15bac38bc2dc1f31205f17354634e82fbbd5b27271996e3cc6869916b17",
+      "at": "2026-10-22T19:46:10.680Z"
+    },
+    "../../tmp/rp-final/neutral_furbolg_champion.glb": {
+      "sha256": "370f3f62b79f90cc664b7062cab7f95688baa392484062d2f54d867ce82e6510",
+      "bytes": 698408,
+      "afterBytes": 294444,
+      "source": "b8824bf2986fc909fe3a5406f842b187918c4b2972fd917fd48ff5ca05c86ac4",
+      "at": "2026-10-22T19:46:10.953Z"
+    },
+    "../../tmp/rp-final/neutral_furbolg_ursa_warrior.glb": {
+      "sha256": "106b2cc1852d38338cdeec7915ee9c5ad7eaaaa831b959f07b0db586b23a6e6e",
+      "bytes": 733636,
+      "afterBytes": 325544,
+      "source": "e80d4fbb417578e469fe7b6760d6917562558ed7e044f75379387788a520e154",
+      "at": "2026-10-22T19:46:11.223Z"
+    },
+    "../../tmp/rp-final/neutral_ghost.glb": {
+      "sha256": "446f7ac4154bbba49d1cffc6e92cb4d9a64de29a38bea05ff69e1a8260d982b7",
+      "bytes": 997636,
+      "afterBytes": 476576,
+      "source": "0b5588cbd5417d5445a3aac83423d1d043cdfde956e99e456b763a14bd02b544",
+      "at": "2026-10-22T19:46:11.555Z"
+    },
+    "../../tmp/rp-final/neutral_giant_wolf.glb": {
+      "sha256": "67660d97bf452f6ccda9740314f4f55c117be1e4578495c591d707517363f077",
+      "bytes": 770364,
+      "afterBytes": 316356,
+      "source": "cc600926c13c5b3775e77a5a8dce0acd7dbf36e85adeace080ded16108d21052",
+      "at": "2026-10-22T19:46:11.820Z"
+    },
+    "../../tmp/rp-final/neutral_gnoll_assassin.glb": {
+      "sha256": "2d3539b3c474554cfb50c7006cf99f9471d01384df4bf925b609930f7161f624",
+      "bytes": 534800,
+      "afterBytes": 228276,
+      "source": "5f1eb165ee1ba6d5e4e832ba750a94ee8f952853fe5fca878621399994802e2f",
+      "at": "2026-10-22T19:46:12.065Z"
+    },
+    "../../tmp/rp-final/neutral_harpy_scout.glb": {
+      "sha256": "e2254f8fcdfc365d2a8d7786b6958d9e9afa38c27b5e0b744616bf780db89036",
+      "bytes": 611132,
+      "afterBytes": 272680,
+      "source": "1b98cf6d22db7989b3d51020100445c84b39f327afeca862f971ce20b67ed862",
+      "at": "2026-10-22T19:46:12.341Z"
+    },
+    "../../tmp/rp-final/neutral_harpy_storm.glb": {
+      "sha256": "2445cedf5cc995bc3ad137b635e66bb7bdcae6858ab18ee34b5b1c2981d85cc5",
+      "bytes": 613348,
+      "afterBytes": 271620,
+      "source": "3f666fde74508133d3e01f3f9b34f05445fd62b8060cb7b8c9f0b579000ee30d",
+      "at": "2026-10-22T19:46:12.609Z"
+    },
+    "../../tmp/rp-final/neutral_jungle_stalker.glb": {
+      "sha256": "d0ee8cdbbf68f65341d4e10fc5dd18edfd76d62bf77371b0d933f06703ab03dd",
+      "bytes": 773440,
+      "afterBytes": 317992,
+      "source": "c417ed6c0ac9e5c7330778bea2cb0f8296f68b0ee3c22da7165f1e03016db339",
+      "at": "2026-10-22T19:46:12.885Z"
+    },
+    "../../tmp/rp-final/neutral_kobold.glb": {
+      "sha256": "96dfcd534c95702aef2dc87f2600dd6ad3708493f2df154fa3385aa71402fa87",
+      "bytes": 953340,
+      "afterBytes": 446820,
+      "source": "85722cc261e77cbc76812d7d2bb99bcdc35a7a3fcaa9feb8d9ca3632db329bba",
+      "at": "2026-10-22T19:46:13.201Z"
+    },
+    "../../tmp/rp-final/neutral_kobold_taskmaster.glb": {
+      "sha256": "c4c48b44b33ec5a7c8f768788121ab9004b0bf3605b7c0f12c88e955989ec0f2",
+      "bytes": 620756,
+      "afterBytes": 271468,
+      "source": "9ea4ebf361bd48f982fd00d61a13a49bbb813b22e8afedd99f266f0bf4baf3e8",
+      "at": "2026-10-22T19:46:13.471Z"
+    },
+    "../../tmp/rp-final/neutral_kobold_tunneler.glb": {
+      "sha256": "ce930207ad8eb16ef51ecffb88c424696da61080fdd4f54458b145b4ea6a637f",
+      "bytes": 684956,
+      "afterBytes": 298696,
+      "source": "c337de5cb228b9c568e7b6c903c351ceac6c8ea843d4d736849474de0e11c3b5",
+      "at": "2026-10-22T19:46:13.747Z"
+    },
+    "../../tmp/rp-final/neutral_mud_golem.glb": {
+      "sha256": "c46afd95505d10a7b03319f8061b30db82b6c7e0a6c31adae8daad2472ef9861",
+      "bytes": 499292,
+      "afterBytes": 212196,
+      "source": "257bea16f92549b62cabcf0b35b1f50ce33a6c0ab4e7e5b6c75a5a560061702b",
+      "at": "2026-10-22T19:46:13.993Z"
+    },
+    "../../tmp/rp-final/neutral_ogre_magi.glb": {
+      "sha256": "29877e59f3578dbc86cc857cf7477560502293bed3a4b2956726fb9aa5a24125",
+      "bytes": 599380,
+      "afterBytes": 262220,
+      "source": "bc7262d7c75d2a6234fc872af9c1b6869aa449b9f30f721d8c968599ba132530",
+      "at": "2026-10-22T19:46:14.251Z"
+    },
+    "../../tmp/rp-final/neutral_ogre_mauler.glb": {
+      "sha256": "34d2ef8bff11b0a75c6881613b4f012d71d54a1d88406fed6cc46c4c71c8db1d",
+      "bytes": 626528,
+      "afterBytes": 291268,
+      "source": "bc56ddd3a8c0f3a428f3e71e14d1b94570db200fc8a888b67dc42473c55aecc8",
+      "at": "2026-10-22T19:46:14.527Z"
+    },
+    "../../tmp/rp-final/neutral_rock_golem.glb": {
+      "sha256": "3c72a675c1452ba23ccba461bad88c0264f1414c8f70e544d03507688f8a892e",
+      "bytes": 545524,
+      "afterBytes": 241232,
+      "source": "b28f4043d41ae78d74208763cc7eeaa286dd48f3f66337e7ae4b8173b96218d8",
+      "at": "2026-10-22T19:46:14.768Z"
+    },
+    "../../tmp/rp-final/neutral_satyr_hellcaller.glb": {
+      "sha256": "0056ef2b0bbe4c6b0cea75af1073ffd126b6dc40a5a58e1cdb14807e823860c0",
+      "bytes": 469684,
+      "afterBytes": 208320,
+      "source": "3da7e8a754c35ffe69d58e0b2542a44be282efa41cba9161284d35eb73aefaf6",
+      "at": "2026-10-22T19:46:15.007Z"
+    },
+    "../../tmp/rp-final/neutral_satyr_soulstealer.glb": {
+      "sha256": "0ae661495608ee2284b8879d5dcb2d43a5dd49a23834e4758ccbf59a109f5e38",
+      "bytes": 679860,
+      "afterBytes": 321620,
+      "source": "a0cfc77ad5441113e986bfe86ba212945ac3e45d7e47416c3fa38d5e3e0f6446",
+      "at": "2026-10-22T19:46:15.292Z"
+    },
+    "../../tmp/rp-final/neutral_satyr_trickster.glb": {
+      "sha256": "e13160364a24ba4d16865bdafc4b36aa28822c6e0732142238a0c1cebeab34cb",
+      "bytes": 749212,
+      "afterBytes": 364712,
+      "source": "1064a4ff5fe7898d7b8383bd1e69fa7600f3da69f3104d89c9f367a93e5dc42c",
+      "at": "2026-10-22T19:46:15.586Z"
+    },
+    "../../tmp/rp-final/neutral_small_thunder_lizard.glb": {
+      "sha256": "c8735f31c9d52351b9e85c5c627093c85982b5697e2d829ccadd383ce955b51a",
+      "bytes": 703152,
+      "afterBytes": 322896,
+      "source": "9865bb141879e15b29bf5fc48ad634a803ac02ce1e8eb4329d3b01a418e492d0",
+      "at": "2026-10-22T19:46:15.865Z"
+    },
+    "../../tmp/rp-final/neutral_wildkin.glb": {
+      "sha256": "ae54f56d61219b3a79d867b8970ea21daa272bb6dd91746eb2af20ac8f240f18",
+      "bytes": 371396,
+      "afterBytes": 165624,
+      "source": "0974aa79d792262d92f35a377371569b6b8f2f06a0aa945ff710a9ced4af62ff",
+      "at": "2026-10-22T19:46:16.099Z"
+    },
+    "../../tmp/rp-final/night_stalker.glb": {
+      "sha256": "8749b07c357c29f30d3736c412fa35776570939d8444b7104688b060e44c2b0d",
+      "bytes": 576688,
+      "afterBytes": 256392,
+      "source": "5811be2b8879b6ada444186a0493751e34a82c099968ad3ff0624b27b6537eaa",
+      "at": "2026-10-22T19:46:16.363Z"
+    },
+    "../../tmp/rp-final/obsidian_destroyer.glb": {
+      "sha256": "63c077b2ab9c6aac4b9f0b441ae87750c82fc12f68166b8eaf139f08904d04fe",
+      "bytes": 516108,
+      "afterBytes": 230392,
+      "source": "598b50b4a0eac2bfaace1348934f2cb4c57b5faf1b824a91c01378616c3c29bd",
+      "at": "2026-10-22T19:46:16.620Z"
+    },
+    "../../tmp/rp-final/ogre_magi.glb": {
+      "sha256": "6c7dc1b01e0c9c3519cdf40a39d02d74415e06ac97492391e807f12724678d49",
+      "bytes": 562864,
+      "afterBytes": 253968,
+      "source": "57c0e31ac5056b90d97d7af1950cf8d26f2283cbbf6835805503f48eda5dba1b",
+      "at": "2026-10-22T19:46:16.880Z"
+    },
+    "../../tmp/rp-final/omniknight.glb": {
+      "sha256": "8dd629eeb3ce950ab849433933ebe261f73fe733b96b7066cbee93079e89844c",
+      "bytes": 489792,
+      "afterBytes": 217928,
+      "source": "f1d376f02d2346f1bcdfd0648cfd9fde1092044d1f8eb4b9b48eef732cef4ae8",
+      "at": "2026-10-22T19:46:17.131Z"
+    },
+    "../../tmp/rp-final/oracle.glb": {
+      "sha256": "f4716f4daac269c320dd72adfa40083ca00e5eed9490bfcc726f420b7206d2a1",
+      "bytes": 431208,
+      "afterBytes": 193380,
+      "source": "4f5ae4f23082a094a04cf075a6c087227efd481796f32af6fbd3fdf1b8643641",
+      "at": "2026-10-22T19:46:17.385Z"
+    },
+    "../../tmp/rp-final/pandaren_brewmaster.glb": {
+      "sha256": "d5a200ea089004554107041d2861e5b9998190bb636887d3a9e25fa58845697c",
+      "bytes": 627748,
+      "afterBytes": 269636,
+      "source": "a154e2b0453101d5244fb5e8d64e1a49d5b231d1994ad7d805562c05f8c33b6c",
+      "at": "2026-10-22T19:46:17.644Z"
+    },
+    "../../tmp/rp-final/phantom_assassin.glb": {
+      "sha256": "057c50151af5d28beff09d177b625aad41fb16060a25129fa8aa667d0751ced5",
+      "bytes": 483088,
+      "afterBytes": 218976,
+      "source": "c72e8fdc1188ac3f5e5208364267db18146d2c40d90522be5ecb5c51385cd6f4",
+      "at": "2026-10-22T19:46:17.889Z"
+    },
+    "../../tmp/rp-final/phantom_lancer.glb": {
+      "sha256": "0452df35f4562db42caf1107e0b47a7663343d4cdc0456155a8e5e8d5e31979a",
+      "bytes": 458440,
+      "afterBytes": 209052,
+      "source": "56650e46c0e48d93775002ea7d3628010f6a516562ab2dfbeb57d9547aa6678d",
+      "at": "2026-10-22T19:46:18.134Z"
+    },
+    "../../tmp/rp-final/phoenix.glb": {
+      "sha256": "c6702fd976fbcb3ceffd1368f3d12e4e034f6cc308bab27a750e3f68f6ae13eb",
+      "bytes": 599896,
+      "afterBytes": 282964,
+      "source": "c162b53ad3264ba810672f432c7916adf628129905d4fc79e9704b89b76e0cff",
+      "at": "2026-10-22T19:46:18.388Z"
+    },
+    "../../tmp/rp-final/queen_of_pain.glb": {
+      "sha256": "00511a307218d97542bcf687ad1ad1c5125161dfa3f36efe0bfb811107b0d2b2",
+      "bytes": 403352,
+      "afterBytes": 184048,
+      "source": "e05e4b9e6dc519705d4054eb557fa52e76dd66659e4f236cfc27c1cb54f57d87",
+      "at": "2026-10-22T19:46:18.632Z"
+    },
+    "../../tmp/rp-final/sand_king.glb": {
+      "sha256": "cb073f4645aa85be69c8506ceb848ab73a0bd2fefe9f540f2118ebdb0cf2f2df",
+      "bytes": 496692,
+      "afterBytes": 223000,
+      "source": "8a0903a6dfb2073b1f60cbe5a365bfdf5f0f185586fc300322099f48437bdded",
+      "at": "2026-10-22T19:46:18.889Z"
+    },
+    "../../tmp/rp-final/shadow_shaman.glb": {
+      "sha256": "6b6755ce58fe9d2940056ee67985c861e2ac477d09ae6206371d3c8580829278",
+      "bytes": 544736,
+      "afterBytes": 243824,
+      "source": "008016fe64ccc4bafbd2109d7b35e84aa754c4d239bbf489c543243edb282bd4",
+      "at": "2026-10-22T19:46:19.160Z"
+    },
+    "../../tmp/rp-final/silencer.glb": {
+      "sha256": "0814b3205a8580e24a91ef501c9439e1d8f7c6f032e799ec8a5051394b5833f7",
+      "bytes": 381716,
+      "afterBytes": 169720,
+      "source": "ac8711d3db1360579fc6f3ed15b1dbe6ed6364d16a8c5f687e244f901aa049fc",
+      "at": "2026-10-22T19:46:19.411Z"
+    },
+    "../../tmp/rp-final/skeleton_king.glb": {
+      "sha256": "20a7a5d2e6b732632ece7337bf5421ebd26366598a6a746f1b1e05fc2551bec4",
+      "bytes": 724892,
+      "afterBytes": 324596,
+      "source": "e0b4d7b6998aac10caa70ca1cfeb0915908232503f2a620e5d217b0a4a54d68c",
+      "at": "2026-10-22T19:46:19.702Z"
+    },
+    "../../tmp/rp-final/skywrath_mage.glb": {
+      "sha256": "b001f13c1cbe6c7597609a18f9cb2252916ce463ff27db1aad9035fd410049a8",
+      "bytes": 521044,
+      "afterBytes": 233896,
+      "source": "5b1a4a7479fa04f0c2a2c1c3efab0e85a4720e2cbaead4fdb779f30d12849556",
+      "at": "2026-10-22T19:46:19.942Z"
+    },
+    "../../tmp/rp-final/spectre.glb": {
+      "sha256": "90d3f8638bb1fad45997ae85a773a463dcbbd80d27ff114cf978ac316566d4a0",
+      "bytes": 587084,
+      "afterBytes": 269192,
+      "source": "1fad93de7eb4bab78bb0cd5d809385d458b3bd6fa0f6dcf125123528b18f588e",
+      "at": "2026-10-22T19:46:20.202Z"
+    },
+    "../../tmp/rp-final/spiritbreaker.glb": {
+      "sha256": "12359c0a5b35905983a1b3f938a0945875a0b1dfcd1cdd62350bb45cf1064765",
+      "bytes": 517276,
+      "afterBytes": 239004,
+      "source": "3abbb85fce54044a88a4936fc1ab28f775903140263912c6005195755afb6723",
+      "at": "2026-10-22T19:46:20.459Z"
+    },
+    "../../tmp/rp-final/storm_spirit.glb": {
+      "sha256": "3c34a82344292b530c9d6b2a37c7af4b41c33ccbb8a131420bad33d2768f9cc1",
+      "bytes": 477156,
+      "afterBytes": 214196,
+      "source": "dde6f6afb227624a6813631fd62877540b0a812ac21c4df05ef6e0159aa7ada5",
+      "at": "2026-10-22T19:46:20.704Z"
+    },
+    "../../tmp/rp-final/templar_assassin.glb": {
+      "sha256": "0f8bf96a8ac0843f34880e84445316bf5268e4100ef4b9d29ae73052447ea2be",
+      "bytes": 550288,
+      "afterBytes": 247752,
+      "source": "5abeaf226069d83ad8db96f89b7ceabff3f0d75fa2f503c9c134e3c68782c36f",
+      "at": "2026-10-22T19:46:20.954Z"
+    },
+    "../../tmp/rp-final/tidehunter.glb": {
+      "sha256": "d2533a20781af606dfbb63f0beb1b6dbdbee0f93eb703d0c47a9792f9679250e",
+      "bytes": 502792,
+      "afterBytes": 223292,
+      "source": "9fb75089d327326d2333f33724e4bae7093fd2e5ebaefb27eefcbf0c4f580235",
+      "at": "2026-10-22T19:46:21.201Z"
+    },
+    "../../tmp/rp-final/tinker.glb": {
+      "sha256": "fec9345a91b65c0d7155fb992a6c7d5119cc410c04110328410b5b3138a609cd",
+      "bytes": 589768,
+      "afterBytes": 251424,
+      "source": "4f60c1964abb51c0b56e1a444ae2374c0f9f52b6b778a3df5d5dd20be83398b2",
+      "at": "2026-10-22T19:46:21.459Z"
+    },
+    "../../tmp/rp-final/troll_warlord.glb": {
+      "sha256": "2b3b23e71f341c28c7400ffe42f07f5a8108f2f155886431ddc44e5183b31466",
+      "bytes": 568260,
+      "afterBytes": 242028,
+      "source": "efb87a3bbc7c24ba4706012da4559c2fc2e057b9678b4d0b5167ba0d7bd21fff",
+      "at": "2026-10-22T19:46:21.706Z"
+    },
+    "../../tmp/rp-final/tuskarr.glb": {
+      "sha256": "0d61eac38a9c720b4286496a6f8858af5667a501890c25ff62d8a3524312f524",
+      "bytes": 885504,
+      "afterBytes": 370748,
+      "source": "9a4191daed21db5fb7515b4664163b5d8d746d9ee0fb34d4ac4e5271ab20d0ad",
+      "at": "2026-10-22T19:46:22.010Z"
+    },
+    "../../tmp/rp-final/undying.glb": {
+      "sha256": "ff3be7fba4f6ae99f3c5fd05b155d17e4fb560d606ba194b81936649faba815c",
+      "bytes": 508440,
+      "afterBytes": 225660,
+      "source": "7c5702d82e5905730ddbd9b1d6fdb1542db6987aaebfc4f3cc6fd1dc084758fb",
+      "at": "2026-10-22T19:46:22.258Z"
+    },
+    "../../tmp/rp-final/vengeful_spirit.glb": {
+      "sha256": "6808fa65f9565fac7480c422ebe773e573e55532bd06c0b19f4dd983464c1cdb",
+      "bytes": 495296,
+      "afterBytes": 219024,
+      "source": "70f9259d19cec106d30d8e3c3ed85a6623843a07f6fa9b92607b0415eeaff4c5",
+      "at": "2026-10-22T19:46:22.506Z"
+    },
+    "scenarios/moba/assets/models/neutral-big-thunder-lizard-skinned.glb": {
+      "sha256": "c8cf6ed86d5a03ee6d9985bb4f316b0b6cbea66c40a9232aa2212e82d1f777f5",
+      "bytes": 408984,
+      "afterBytes": 408084,
+      "source": "366b26233de19c7c3c8d0b77f9707caf87b4a97616372b8f13507f0acb7eeb71",
+      "at": "2026-10-22T20:57:03.120Z"
+    },
+    "scenarios/moba/assets/models/neutral-small-thunder-lizard-skinned.glb": {
+      "sha256": "38047cc21a31b71e12a3c48147f3fa4d01eeebf092c1f76e53630c6ac3a653a9",
+      "bytes": 322896,
+      "afterBytes": 321756,
+      "source": "c8735f31c9d52351b9e85c5c627093c85982b5697e2d829ccadd383ce955b51a",
+      "at": "2026-10-22T20:57:06.126Z"
+    },
+    "scenarios/moba/assets/models/witch-doctor-skinned.glb": {
+      "sha256": "aca64e11df89496b946028e1521ef46487bf87b9ca860f9a5d12dbfd86f3e2f1",
+      "bytes": 569700,
+      "afterBytes": 249892,
+      "source": "b871722f2b48ed9ac9d8ed5ae7252276a7edc95095b41358dcdd4f667473286e",
+      "at": "2026-10-22T20:57:08.976Z"
+    },
+    "scenarios/moba/assets/models/post-sign.glb": {
+      "sha256": "55235c07f1e71dcd301b0be0bc52df0c18da95a8007bd44b57eb9b74a0164c5d",
+      "bytes": 61900,
+      "afterBytes": 40216,
+      "source": "8e07bac889d5533e7265a5f1bcc717486f41067c67d4ebfa9795a450fbb5cb8d",
+      "at": "2026-10-22T20:57:27.690Z"
+    },
+    "scenarios/moba/assets/models/rowboat-destroyed.glb": {
+      "sha256": "ee35729f206e72b71040e904b5d94466d6b3406378da16c150e2cc02ac87ee26",
+      "bytes": 187288,
+      "afterBytes": 105480,
+      "source": "66823cc8c0d5665ef3f65c8ede3b82893d4891692c918fb46c659d8419d7f3f3",
+      "at": "2026-10-22T20:57:27.911Z"
+    },
+    "scenarios/moba/assets/models/ship-destroyed.glb": {
+      "sha256": "bb2c7caa895273a70a4d9be1cae16ff02d7a4af1cbc760623a828fe94f91c2b0",
+      "bytes": 92760,
+      "afterBytes": 58424,
+      "source": "9f909abc3971ff308aed646fbbb7216ecfb0e8a31d27120311def1ac313b2bba",
+      "at": "2026-10-22T20:57:28.106Z"
+    },
+    "scenarios/moba/assets/models/standard.glb": {
+      "sha256": "b49f0959a995e012182dd5c469240b9a91f6e7f8112333ae2ebf3e3290c1ef18",
+      "bytes": 122168,
+      "afterBytes": 71044,
+      "source": "90e492d923c9a8d376b00bd772d09ff5a10858a03d9af9eaa0275f9950a935cb",
+      "at": "2026-10-22T20:57:28.315Z"
     }
   }
 }

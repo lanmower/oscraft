@@ -183,7 +183,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Playwright and its Chromium are a pinned version and do not change between runs: installed once and
+      # restored from this cache, so the job spends its time timing the page instead of downloading a browser.
+      - id: playwright
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            scripts/perf/node_modules
+          key: playwright-v1-${{ runner.os }}-1.47.2
       - name: Install the pinned Playwright and Chromium
+        if: steps.playwright.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           npm install --prefix scripts/perf --no-save playwright@1.47.2

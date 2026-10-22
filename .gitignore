@@ -92,4 +92,6 @@ build/
 
 # Asset prep dependencies (npm ci in scripts/assets, see docs/ASSET_PIPELINE.md)
 scripts/assets/node_modules
+# The first-draw witness's pinned Playwright (npm install in scripts/perf).
+scripts/perf/node_modules
 scenarios/*/*.osdt

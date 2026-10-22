@@ -31,7 +31,12 @@ const server = http.createServer((req, res) => {
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
+// CHROMIUM_PATH runs the timing against a browser already on the machine instead of the one Playwright
+// downloads, so the script works without that download. CI leaves it unset and uses the pinned browser.
+const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM_PATH || undefined,
+  args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
+});
 const times = [];
 try {
   for (let i = 0; i < loads; i += 1) {
@@ -46,7 +51,9 @@ try {
       null,
       { timeout: 120000, polling: 100 },
     ).then(() => Date.now() - started, () => null);
-    const startError = await page.evaluate(() => document.body.dataset.startError || null);
+    // A load that never drew its first frame may also have torn the page down, so read the start error
+    // through the same guard: one bad load reports once and the run continues to the next.
+    const startError = await page.evaluate(() => document.body.dataset.startError || null).catch(() => "page closed");
     if (drawn === null || startError) {
       console.error(`load ${i + 1}: no first frame (startError=${startError}) errors=${errors.slice(0, 3).join(" | ")}`);
       process.exitCode = 1;
