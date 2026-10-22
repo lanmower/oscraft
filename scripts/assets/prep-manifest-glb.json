@@ -5768,6 +5768,83 @@
       "afterBytes": 16320,
       "unchanged": true,
       "at": "2026-10-22T07:41:46.639Z"
+    },
+    "scenarios/moba/assets/models/shadow-demon-skinned.glb": {
+      "sha256": "e48a4792d1211959d1c11590ba731fe3683910c1b0676ba690c98247dbad5665",
+      "bytes": 138832,
+      "afterBytes": 138832,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:39.796Z"
+    },
+    "scenarios/moba/assets/models/venomancer-skinned.glb": {
+      "sha256": "dd923b4e3fd0e9ef6e6cc54f0885eb28d6f1af270ed57f69b8ea221924cbbbbe",
+      "bytes": 136640,
+      "afterBytes": 136640,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:39.838Z"
+    },
+    "scenarios/moba/assets/models/warlock-skinned.glb": {
+      "sha256": "3a624ffb3318e7bd531f08ff7205143e31537a8590cd343df7ded9e4065108ad",
+      "bytes": 181488,
+      "afterBytes": 181488,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:39.909Z"
+    },
+    "scenarios/moba/assets/models/windrunner-skinned.glb": {
+      "sha256": "5af0aca837ae3550a76eac41fb9fb6932fcfa009e3de51cd18d52cda38cabfc7",
+      "bytes": 137892,
+      "afterBytes": 137892,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:39.946Z"
+    },
+    "scenarios/moba/assets/models/winter-wyvern-skinned.glb": {
+      "sha256": "92ce25054dde8bf8e0258e9ea5b7573437e911163288ec9741d28b2b9b02066a",
+      "bytes": 193860,
+      "afterBytes": 193860,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:39.985Z"
+    },
+    "scenarios/moba/assets/models/neutral-warpine-raider-skinned.glb": {
+      "sha256": "0f93f44f2e5a2099e3d6056ed31051fafe69a0d37c42bf7850620fe1bef27da4",
+      "bytes": 214120,
+      "afterBytes": 214120,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:40.029Z"
+    },
+    "scenarios/moba/assets/models/neutral-prowler-acolyte-skinned.glb": {
+      "sha256": "d103f989db49488403512629330e46d76b8ae3bb03b0e2a491458ff421fe99aa",
+      "bytes": 169184,
+      "afterBytes": 169184,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:40.064Z"
+    },
+    "scenarios/moba/assets/models/neutral-prowler-shaman-skinned.glb": {
+      "sha256": "ba9faba97d848c19169c80db9c9eb4bfd5c9a97b8d1f59463441a7d22a04c494",
+      "bytes": 186808,
+      "afterBytes": 186808,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:40.104Z"
+    },
+    "scenarios/moba/assets/models/neutral-granite-golem-skinned.glb": {
+      "sha256": "34cd027424a482a7349174e26b2b68724b02a256cbea24066e3e9d33ab0e1cda",
+      "bytes": 132380,
+      "afterBytes": 132380,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:40.131Z"
+    },
+    "scenarios/moba/assets/models/neutral-ice-shaman-skinned.glb": {
+      "sha256": "33b982583f73d0eb8bd7b9d06e493c1fe392f68170346b28acb6d763bff45a21",
+      "bytes": 142824,
+      "afterBytes": 142824,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:40.157Z"
+    },
+    "scenarios/moba/assets/models/neutral-frostbitten-golem-skinned.glb": {
+      "sha256": "f56c5be8622566f367f92804a06516c4293b3dc3415877b766c99fedb4f44f04",
+      "bytes": 189548,
+      "afterBytes": 189548,
+      "unchanged": true,
+      "at": "2026-10-22T12:34:40.194Z"
     }
   }
 }
