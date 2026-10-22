@@ -282,7 +282,11 @@ impl Sim {
         let cat_digest = crate::hash::catalog_digest(&cat, &grid);
         let acquire = crate::acquire::per_kind(&cat);
         let xp_curve = cat.tune.xp_curve.clone();
-        
+        // The economy's opening resources: what every seat holds before it has earned anything. They are
+        // data (economy(...)), so a scenario that declares none opens on nothing, as it did before.
+        let opening_resource_a = cat.econ.opening_resource_a;
+        let opening_gas = cat.econ.opening_gas;
+
         let mut s = Sim {
             grid,
             doodads: doodads_init,
@@ -438,6 +442,12 @@ impl Sim {
             day_cycle: [0; 3],
             stats: Stats::default(),
         };
+        // Every seat opens on the economy's opening resources. They are per-player state, so a save
+        // and load carries them and the state hash covers them.
+        for p in 0..MAX_PLAYERS {
+            s.resource_a[p] = opening_resource_a;
+            s.resource_b[p] = opening_gas;
+        }
         s.rebucket();
         s
     }
