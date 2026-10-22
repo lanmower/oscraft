@@ -506,34 +506,107 @@ async function fetchModel(name, size) {
   }
 }
 
-// One fitted model per unit type, indexed like the wasm unit_types export. A type with no model entry, or a model that
-// fails to load, is null: the unit type is then reported on the page once and not drawn. A hero whose model file fails
-// throws, so the match does not start; a hero type with no model is recorded, and refused when it draws. A model with its own size in doodad_sizes.json (Roshan,
-// at hero heights) is fitted to it; every other unit is fitted to a hero footprint (UNIT_HALF, the design rule that
-// scripts/doodad-sizes.mjs also states).
-async function loadModels(game) {
+// One fitted model per unit type, indexed like the wasm unit_types export. Only the types the first frame draws are
+// awaited; the rest are queued and installed as they arrive, so a match starts on the models it can see instead of on
+// the whole roster (measured on the live page: every character model was fetched before the first tick, 38.5 MB and
+// three minutes). unitMeshes[type] is undefined until its model arrives, null for a type with no model or a model that
+// failed, and the mesh otherwise. A hero model that fails while it is awaited stops the start, as it always has; one
+// that fails in the background is only recorded, because the match is already running by then. A model with its own
+// size in doodad_sizes.json (Roshan, at hero heights) is fitted to it; every other unit is fitted to a hero footprint
+// (UNIT_HALF, the design rule that scripts/doodad-sizes.mjs also states).
+async function loadModels(game, neededTypes) {
   if (typeof game.unit_model_names !== "function") throw new Error("the wasm build has no unit_model_names export");
-  const sizes = await assetJson("doodadSizes");
-  // Heroes (player-controlled unit types) are drawn at HERO_DRAW_SCALE times their fitted size: the owner's intended hero size is twice the fit.
-  const heroFlags = typeof game.unit_flags === "function" ? game.unit_flags() : [];
-  const typeNames = typeof game.unit_type_names === "function" ? game.unit_type_names() : [];
-  return Promise.all(game.unit_model_names().map(async (name, type) => {
-    const hero = heroFlags[type] === 1;
-    if (!name) {
-      // A hero with no model is not in the pick list, so it is not an asset failure here; a unit of its type is refused
-      // and reported when it draws (reportMissingModel). Any other unit type with no model is recorded now.
-      if (!hero) recordAssetError(`unit ${typeNames[type] ?? type}`, new Error("has no model"));
-      return null;
-    }
-    const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
-    try {
-      return await fetchModel(name, size);
-    } catch (err) {
-      if (hero) throw err;
-      recordAssetError(name, err);
-      return null;
-    }
-  }));
+  unitMeshes = new Array(game.unit_model_names().length);
+  await Promise.all([...neededTypes].map((type) => requestUnitModel(type)));
+}
+
+// Read once: buildUnitMesh asks per type, and a request each would be one round trip per unit type.
+let doodadSizesReady = null;
+const doodadSizes = () => (doodadSizesReady ??= assetJson("doodadSizes"));
+
+// Fetches, fits and uploads one unit type's model. Heroes (player-controlled unit types) are drawn at HERO_DRAW_SCALE
+// times their fitted size: the owner's intended hero size is twice the fit.
+async function buildUnitMesh(type) {
+  const names = localGame.unit_model_names();
+  const name = names[type];
+  const hero = (typeof localGame.unit_flags === "function" ? localGame.unit_flags() : [])[type] === 1;
+  const typeNames = typeof localGame.unit_type_names === "function" ? localGame.unit_type_names() : [];
+  if (!name) {
+    // A hero with no model is not in the pick list, so it is not an asset failure here; a unit of its type is refused
+    // and reported when it draws (reportMissingModel). Any other unit type with no model is recorded now.
+    if (!hero) recordAssetError(`unit ${typeNames[type] ?? type}`, new Error("has no model"));
+    return null;
+  }
+  const sizes = await doodadSizes();
+  const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
+  const fitted = hero ? await fetchModel(name, size) : await modelOrRecord(name, fetchModel(name, size));
+  if (!fitted) return null;
+  // A hero's mesh failure stops the start; any other unit's failure is recorded and that type is not drawn.
+  const mesh = toMesh(renderGl, fitted, [1, 1, 1], { animated: true });
+  return hero ? await mesh : await modelOrRecord(fitted.glbUrl, mesh);
+}
+
+// The queue the rest of the roster drains through: at most this many models in flight, so eighty files do not crowd
+// out the match's own traffic and the player's input.
+const UNIT_MODEL_CONCURRENCY = 4;
+const unitModelJobs = new Map();
+let unitModelQueue = [];
+let unitModelRunning = 0;
+
+// Starts one type's model, once: the promise is shared, so a type the draw loop asks for twice is fetched once. A
+// failed model leaves null at its index, so the draw loop reports it and stops asking.
+function requestUnitModel(type) {
+  let job = unitModelJobs.get(type);
+  if (!job) {
+    job = buildUnitMesh(type).then(
+      (mesh) => {
+        setUnitMesh(type, mesh);
+        return mesh;
+      },
+      (err) => {
+        setUnitMesh(type, null);
+        throw err;
+      },
+    );
+    unitModelJobs.set(type, job);
+  }
+  return job;
+}
+
+function setUnitMesh(type, mesh) {
+  unitMeshes[type] = mesh;
+  // The per-colour cache keeps a copy of the old entry, so a model that arrives late has to be re-cached.
+  for (const key of [...unitMeshCache.keys()]) if (key.startsWith(`${type}:`)) unitMeshCache.delete(key);
+}
+
+function unitModelPump() {
+  while (unitModelRunning < UNIT_MODEL_CONCURRENCY && unitModelQueue.length > 0) {
+    const type = unitModelQueue.shift();
+    unitModelRunning += 1;
+    requestUnitModel(type)
+      .catch((err) => recordAssetError(`unit ${type}`, err))
+      .finally(() => {
+        unitModelRunning -= 1;
+        unitModelPump();
+      });
+  }
+}
+
+// Queues a type that has no model yet. `ahead` puts it in front of the backlog, which is what a unit that has just
+// come into view wants; the backlog is appended in type order.
+function queueUnitModel(type, ahead = false) {
+  if (!renderGl || type < 0 || type === undefined) return;
+  if (unitMeshes[type] !== undefined || unitModelJobs.has(type) || unitModelQueue.includes(type)) return;
+  if (ahead) unitModelQueue.unshift(type);
+  else unitModelQueue.push(type);
+  unitModelPump();
+}
+
+// Every type the first frame did not need, called once the world is up: the roster arrives while the player is
+// already looking at the map rather than before they see anything at all.
+function queueUnitModelBacklog() {
+  const names = localGame.unit_model_names();
+  for (let type = 0; type < names.length; type += 1) if (names[type]) queueUnitModel(type);
 }
 
 // Doodads: one fitted model per kind code (DODA kind). The asset catalogue (assets.json) names a kind's GLB when it has
@@ -759,6 +832,12 @@ function collectUnitDraws(units, dt) {
   for (const entry of animators.values()) entry.seen = false;
   for (const raw of units) {
     const u = drawnPosition(raw);
+    // A type whose model has not arrived yet is not a failure: it is fetched now, ahead of the backlog, and its
+    // units are drawn from the frame its model lands on.
+    if (unitMeshes[u.type] === undefined) {
+      queueUnitModel(u.type, true);
+      continue;
+    }
     if (!unitMeshes[u.type]) {
       reportMissingModel(u.type);
       continue;
@@ -1841,9 +1920,12 @@ async function build3d(gl, game) {
   // chain rather than the sum of the stages.
   const placements = readDoodads(mapBytes);
   const usedKinds = new Set(placements.map((p) => p.kind));
+  // The unit types the first frame draws: fog cuts the roster down to what is near the start, so this is a handful of
+  // types rather than every hero and neutral in the pack. The match waits for these and nothing else.
+  const neededTypes = new Set(currentUnits().map((u) => u.type).filter((t) => t >= 0));
   const splatReady = buildSplat(gl);
   const doodadModelsReady = loadDoodadModels(usedKinds);
-  const unitFitsReady = loadModels(game);
+  const unitFitsReady = loadModels(game, neededTypes);
   // The splat ground is the default floor: a layer that does not build stops the start (buildSplat throws).
   splat = await splatReady;
   doodadByKindState = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
@@ -1867,13 +1949,9 @@ async function build3d(gl, game) {
   placedDoodads = placed;
   doodadBatches = batchByMesh(placed);
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
-  // A hero's mesh failure stops the start; any other unit's failure is recorded and that type is not drawn.
-  const heroFlags = typeof game.unit_flags === "function" ? game.unit_flags() : [];
-  unitMeshes = await Promise.all((await unitFitsReady).map((f, type) => {
-    if (!f) return null;
-    const mesh = toMesh(gl, f, [1, 1, 1], { animated: true });
-    return heroFlags[type] === 1 ? mesh : modelOrRecord(f.glbUrl, mesh);
-  }));
+  await unitFitsReady;
+  // The rest of the roster, now that the world is up: it arrives four models at a time while the match draws.
+  queueUnitModelBacklog();
   arrowMesh = await loadArrowMesh(gl);
 }
 
