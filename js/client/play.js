@@ -640,7 +640,9 @@ async function loadDoodadModels(usedKinds) {
   // Each model is fitted to its footprint in cells from doodad_sizes.json (scripts/doodad-sizes.mjs).
   const sizeOf = (name) => footprints[name];
   // Only kinds the map places are fetched; an unplaced kind keeps an empty entry, so indices still match the kind codes.
-  return Promise.all(DOODAD_KINDS.map(async (kind, code) => {
+  // One promise per kind, not a Promise.all: the caller waits for the kinds it wants when it wants them, so scenery
+  // can be placed a kind at a time instead of all at once before the first frame.
+  return DOODAD_KINDS.map(async (kind, code) => {
     if (usedKinds && !usedKinds.has(code)) return { high: null, low: null };
     const name = modelName(kind) ?? (paths[kind] ? toStem(paths[kind]) : null);
     if (!name) {
@@ -658,7 +660,7 @@ async function loadDoodadModels(usedKinds) {
     };
     const [high, low] = await Promise.all([load(name), lowName ? load(lowName) : null]);
     return { high, low };
-  }));
+  });
 }
 
 // Records a model that fails and resolves to null, so only that asset is missing from the page.
@@ -1926,6 +1928,29 @@ function doodadVariant(base, kind, v) {
   return doodadVariants.get(key);
 }
 
+// Adds one doodad kind's placements once its model has loaded, and re-batches the placed doodads. The batches are
+// rebuilt from the whole list, because batchByMesh groups placements by mesh: a kind that arrives later joins the
+// same batches as the kinds already standing next to it.
+function addDoodadKind(code, base, lowBase, list) {
+  if (!base || !list) return;
+  const s = 1 / terrainTiles.cellMilli;
+  for (const p of list) {
+    const x = p.x * s;
+    const z = p.y * s;
+    const angle = (p.rotation / 1000) * 2 * Math.PI + placementHash(p.x, p.y, 1) * 2 * Math.PI;
+    const k = 0.85 + 0.3 * placementHash(p.x, p.y, 2);
+    const variant = Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length);
+    placedDoodads.push({
+      kind: p.kind,
+      variant,
+      mesh: doodadVariant(base, p.kind, variant),
+      lowMesh: lowBase ? doodadVariant(lowBase, `${p.kind}-low`, variant) : null,
+      transform: multiply(multiply(translation(x, groundY(terrainTiles, x, z), z), rotationY(angle)), scaling(k, k, k)),
+    });
+  }
+  doodadBatches = batchByMesh(placedDoodads);
+}
+
 // Builds the 3D world from the staged assets: the terrain mesh from map.bin, doodads at their placements with
 // their GLB models, and unit models from the sim's model names. Each unit type keeps a model, or null when it has none.
 async function build3d(gl, game) {
@@ -1938,34 +1963,28 @@ async function build3d(gl, game) {
   // chain rather than the sum of the stages.
   const placements = readDoodads(mapBytes);
   const usedKinds = new Set(placements.map((p) => p.kind));
+  // Placements grouped by kind, so a kind can be placed the moment its model arrives.
+  const placementsByKind = new Map();
+  for (const p of placements) {
+    const list = placementsByKind.get(p.kind);
+    if (list) list.push(p);
+    else placementsByKind.set(p.kind, [p]);
+  }
   // The unit types the first frame draws: fog cuts the roster down to what is near the start, so this is a handful of
   // types rather than every hero and neutral in the pack. The match waits for these and nothing else.
   const neededTypes = new Set(currentUnits().map((u) => u.type).filter((t) => t >= 0));
   const splatReady = buildSplat(gl);
-  const doodadModelsReady = loadDoodadModels(usedKinds);
+  // Awaited only for the catalogue, doodads.json and the footprints: what it returns is one pending promise per kind,
+  // and those are left to the deferred pass below.
+  const doodadKindsReady = await loadDoodadModels(usedKinds);
   const unitFitsReady = loadModels(game, neededTypes);
   // The splat ground is the default floor: a layer that does not build stops the start (buildSplat throws).
   splat = await splatReady;
-  doodadByKindState = await Promise.all((await doodadModelsReady).map(async ({ high, low }) => ({
-    base: high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null,
-    lowBase: low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null,
-  })));
-  const doodadByKind = doodadByKindState;
-  const s = 1 / terrain.cellMilli;
-  const placed = placements.flatMap((p) => {
-    const kind = doodadByKind[p.kind];
-    if (!kind?.base) return [];
-    const x = p.x * s;
-    const z = p.y * s;
-    const angle = (p.rotation / 1000) * 2 * Math.PI + placementHash(p.x, p.y, 1) * 2 * Math.PI;
-    const k = 0.85 + 0.3 * placementHash(p.x, p.y, 2);
-    const variant = Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length);
-    const mesh = doodadVariant(kind.base, p.kind, variant);
-    const lowMesh = kind.lowBase ? doodadVariant(kind.lowBase, `${p.kind}-low`, variant) : null;
-    return [{ kind: p.kind, variant, mesh, lowMesh, transform: multiply(multiply(translation(x, groundY(terrain, x, z), z), rotationY(angle)), scaling(k, k, k)) }];
-  });
-  placedDoodads = placed;
-  doodadBatches = batchByMesh(placed);
+  // Scenery is not the first frame's business: the ground and the units in view are, so the kinds are placed from the
+  // deferred pass below as their models land.
+  doodadByKindState = new Array(DOODAD_KINDS.length).fill(null);
+  placedDoodads = [];
+  doodadBatches = [];
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
   await unitFitsReady;
   // Nothing below is needed to draw the first frame, so it waits until that frame is on screen: the rest of the
@@ -1978,6 +1997,19 @@ async function build3d(gl, game) {
       },
       (err) => recordAssetError("model arrow", err),
     );
+    // Scenery: a kind's placements go down as its model lands, so the map fills in behind a match that is already
+    // running instead of holding it up.
+    for (let code = 0; code < doodadKindsReady.length; code += 1) {
+      if (!usedKinds.has(code)) continue;
+      doodadKindsReady[code]
+        .then(async ({ high, low }) => {
+          const base = high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null;
+          const lowBase = low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null;
+          doodadByKindState[code] = { base, lowBase };
+          addDoodadKind(code, base, lowBase, placementsByKind.get(code));
+        })
+        .catch((err) => recordAssetError(`doodad ${code}`, err));
+    }
   });
 }
 
@@ -2596,6 +2628,7 @@ async function reloadDoodadModel(name) {
       continue;
     }
     const slot = doodadByKindState[code];
+    if (!slot || !slot.base) continue; // a kind whose model has not arrived yet has nothing to replace
     if (high) {
       slot.base = mesh;
       for (const key of [...doodadVariants.keys()]) if (key.startsWith(`${code}:`)) doodadVariants.delete(key);
