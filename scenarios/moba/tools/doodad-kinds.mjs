@@ -3,7 +3,10 @@
 // A record is not placed when it sits on a lane route (within LANE_CELL_MILLI of a route segment) or inside a base
 // footprint (within BASE_CELL_MILLI of a base spawn). Tree records are placed by gen-w3-map.mjs, not here.
 export const MAPPED_ID_BASE = 10000;
-export const LANE_CELL_MILLI = 2000;
+// A mapped doodad is placed where the reference map actually put it. The lane margin used to drop any record
+// within two cells of a route, which cost 144 placements (trees, shrubs, flowers) and left the lanes barer than
+// the original. Doodads are scenery and do not block movement, so nothing is excluded for being near a lane.
+export const LANE_CELL_MILLI = 0;
 export const BASE_CELL_MILLI = 8000;
 
 export function parseRoutes(routesText) {
