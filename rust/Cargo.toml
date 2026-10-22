@@ -6,3 +6,16 @@ exclude = ["crates/wasip3"]
 # piccolo 0.3.3 with the RawTable grow and multiple-assignment fixes; see vendor/piccolo/README.md.
 [patch.crates-io]
 piccolo = { path = "vendor/piccolo" }
+
+# The suite's wall time is one test, mod-host's moba_ticks: 1200 ticks of the real moba pack through the
+# sim and the Lua VM. Unoptimized that is 47 s; the other 73 tests take 6 s between them. Optimizing only
+# the four crates on that path brings the test phase to 6 s without paying to optimize the whole
+# dependency tree, which measured no cheaper overall (98 s against 102 s) because it doubled the build.
+[profile.test.package.sim]
+opt-level = 2
+[profile.test.package.piccolo]
+opt-level = 2
+[profile.test.package.mod-host]
+opt-level = 2
+[profile.test.package.osdt-data]
+opt-level = 2

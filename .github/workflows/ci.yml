@@ -40,6 +40,11 @@ jobs:
       # this tree, the suite goes from about 160 s of test execution to about 60 s, because the
       # slowest single test (mod-host moba_ticks, 57 s) is most of the serial cost. The workspace
       # has no doctests, so nothing is lost by not running cargo test.
+      #
+      # moba_ticks is slow because an unoptimized sim is slow, so rust/Cargo.toml optimizes the four
+      # crates on that path under [profile.test]: 1200 ticks at opt-level 0 is 47 s and at 2 is 4.6 s.
+      # Optimizing the whole tree instead measured no cheaper overall (98 s against 102 s) because it
+      # doubles the build, and per-package is the only shape that wins. With it, the job is about 29 s.
       - name: Test the workspace
         run: cargo nextest run --workspace
 
