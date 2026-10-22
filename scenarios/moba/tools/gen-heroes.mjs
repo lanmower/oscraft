@@ -158,6 +158,7 @@ const HY3D_MODEL = {
   skeleton_king: "skeleton-king-skinned",
   spectre: "spectre-skinned",
   spirit_breaker: "spiritbreaker-skinned",
+  necrolyte: "necrolyte-skinned",
 };
 
 const osd = [
