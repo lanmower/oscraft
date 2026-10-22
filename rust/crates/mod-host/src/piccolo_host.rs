@@ -811,6 +811,17 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         s.replace(c, list_of(c, ids.into_iter().map(i64::from))?);
         Ok(CallbackReturn::Return)
     });
+    // game.recent_hitters(unit, window_ticks): the same ids as take_recent_hitters, and the record is kept. The kill split
+    // reads them before the assist credit takes them.
+    native!(ctx, game, "recent_hitters", [sh], |c, s| {
+        let (i, window) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, i).map_err(|m| fail(c, m))?;
+        let window = u32::try_from(window).map_err(|_| fail(c, "invalid_window: ticks must not be negative".into()))?;
+        let ids = sh.sim.recent_hitters(u, window);
+        s.replace(c, list_of(c, ids.into_iter().map(i64::from))?);
+        Ok(CallbackReturn::Return)
+    });
     // game.add_credit(unit, n): adds n generic credits to a unit; the post-game row reports them as assists.
     native!(ctx, game, "add_kill", [sh], |c, s| {
         let (i, n) = (a(c, &s, 0)?, a(c, &s, 1)?);

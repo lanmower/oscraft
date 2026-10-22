@@ -12,6 +12,9 @@ buyback_per_level=0
 buyback_cooldown_s=480
 passive_gold_per_s=1
 team_share_pct=20
+# A hero killed by enemy creeps or an enemy tower: the enemy heroes that damaged it within this many seconds share the kill
+# gold (Dota, Liquipedia's Gold page: "in the last 20 seconds"); heroes.lua reads it.
+kill_window_s=20
 # Mechanics read by sim/src/aggro.rs (backdoor values live in scenarios/moba/protection.lua). Verified from SteamDatabase tracking repo
 # @282fad29f0f74504fad465c52d197fb61f4d612b source/scripts/npc/npc_abilities.txt backdoor_protection:
 # radius 900, activation_time 15, regen_rate 90. The radius is 900 reference units scaled by the tower range

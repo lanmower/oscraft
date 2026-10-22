@@ -178,6 +178,7 @@ These also change the sim when they run, not in the command phase.
 | `game.consume_item_charge(unit, slot)` | spends one charge of the item in the inventory slot; returns `false`, changing nothing, for an empty slot |
 | `game.take_amount(unit, want)` | takes up to `want` resource from the unit; returns what it took |
 | `game.take_recent_hitters(unit, window)` | returns the ids of the unit's recent hitters within `window` ticks, and forgets them |
+| `game.recent_hitters(unit, window)` | the same ids, and the record is kept; the kill split reads it before the assist credit takes it |
 | `game.add_resources(player, gold, gas)` | adds gold and gas to the player; negative amounts take them |
 | `game.set_clock(night, ticks_into_cycle, day_ticks, night_ticks)` | stores the day and night clock the pack computes for this tick |
 | `spawn_unit(kind, x, y)` | spawns a catalog unit by name at the Q16.16 point; does nothing for an unknown name |

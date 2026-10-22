@@ -10,6 +10,7 @@ local xp = require("xp")
 local aegis = require("aegis")
 
 local TICKS = config.TICKS_PER_SECOND
+local NEUTRAL = 255 -- the neutral player (the sim's NEUTRAL_PLAYER)
 
 -- Stat codes (sim/src/spell.rs): S_DAMAGE 0, S_HEALTH 2, S_ATTACK_SPEED 12, S_MANA_REGEN 13,
 -- S_HEALTH_REGEN 14, S_MAX_MANA 15, S_ARMOR_X100 26.
@@ -63,6 +64,29 @@ end
 
 local function hero_gold(unit)
   return config.rule("hero_kill_gold_base") + config.rule("hero_kill_gold_per_level") * xp.level_of(unit)
+end
+
+-- The kill gold of a hero that dies to an enemy creep or tower (Dota, the Hero kills rule of the Gold page): the enemy
+-- heroes that damaged it within kill_window_s share it, one damager taking all of it and several splitting it equally.
+-- With no enemy hero among its damagers, the living enemy heroes share it. The record is read here, before the assist
+-- credit takes it.
+local function creep_kill_gold(unit, victim_player)
+  local damagers = {}
+  for _, h in ipairs(game.recent_hitters(unit, config.rule("kill_window_s") * TICKS)) do
+    if units.is_hero(h) and game.alive(h) and units.hostile(unit_player(h), victim_player) then
+      damagers[#damagers + 1] = h
+    end
+  end
+  local recipients = damagers
+  if #damagers == 0 then
+    recipients = {}
+    for i = 0, get_unit_count() - 1 do
+      if units.is_hero(i) and game.alive(i) and units.hostile(unit_player(i), victim_player) then
+        recipients[#recipients + 1] = i
+      end
+    end
+  end
+  bounty.split({ unit = unit, gold = hero_gold(unit), recipients = recipients, text = true })
 end
 
 -- Buyback: base + per level + a share of net worth; the cooldown is a per-unit counter.
@@ -151,13 +175,25 @@ return {
 
   -- A hero's kill: its gold (the killer keeps all but the team share), the assist credit and the xp share.
   on_died = function(unit, killer, killer_player, _, victim_player)
-    -- A killer that died in the same step can take no xp or gold (the host refuses a dead unit): the kill-gold rule pays its side.
-    if killer == nil or killer == unit or aegis.reincarnating(unit) or not game.alive(killer) then return end
+    if killer == nil or killer == unit or aegis.reincarnating(unit) then return end
+    local hero_victim = units.is_hero(unit) and killer_player ~= victim_player
+    -- A killer that died in the same step takes no xp, assist or hero-kill gold (the host refuses a dead unit). A creep or
+    -- tower killer's kill still pays the living enemy heroes, since they are the ones paid.
+    if not game.alive(killer) then
+      if hero_victim and not units.is_hero(killer) and killer_player ~= NEUTRAL then creep_kill_gold(unit, victim_player) end
+      game.take_recent_hitters(unit, 0) -- the death is over: forget its hitters, as the assist credit does on a live killer's death
+      return
+    end
     -- The kill tally counts hero kills: a creep's kill is still a kill event for every mod, but not a hero's kill.
     if units.is_hero(killer) and killer_player ~= victim_player then game.add_kill(killer, 1) end
-    if units.is_hero(unit) and killer_player ~= victim_player then
-      bounty.pay({ unit = unit, side = killer_player, killer = killer, gold = hero_gold(unit),
-        share_pct = config.rule("team_share_pct"), to_unit = true })
+    if hero_victim then
+      if units.is_hero(killer) then
+        bounty.pay({ unit = unit, side = killer_player, killer = killer, gold = hero_gold(unit),
+          share_pct = config.rule("team_share_pct"), to_unit = true })
+      elseif killer_player ~= NEUTRAL then
+        -- Neutral camp creeps pay no hero gold (Dota pays a hero's death to enemy creeps and towers only).
+        creep_kill_gold(unit, victim_player)
+      end
     end
     credit_assists(unit, killer, killer_player)
     share_xp(unit, killer, victim_player, killer_player)

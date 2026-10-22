@@ -420,22 +420,36 @@ impl Sim {
         self.hitter_tick[slot] = self.ticks;
     }
 
-    /// The recent hitters of unit `j` whose last hit is at most `window` ticks old, oldest slot order, and
-    /// forgets all of them. A mod's death rule reads this on the victim's death (the assist credit).
-    pub fn take_recent_hitters(&mut self, j: usize, window: u32) -> Vec<u32> {
+    /// The recent hitters of unit `j` whose last hit is at most `window` ticks old, in slot order. The record is kept:
+    /// a rule that reads it before the assist credit (the kill split) uses this, and take_recent_hitters forgets it.
+    pub fn recent_hitters(&self, j: usize, window: u32) -> Vec<u32> {
         if j >= self.n {
             return Vec::new();
         }
         let base = j * HITTER_SLOTS;
-        let mut out = Vec::new();
-        for s in base..base + HITTER_SLOTS {
-            let id = self.hitter_id[s];
-            self.hitter_id[s] = -1;
-            if id >= 0 && (id as usize) < self.n && self.ticks.wrapping_sub(self.hitter_tick[s]) <= window {
-                out.push(id as u32);
-            }
+        (base..base + HITTER_SLOTS)
+            .filter_map(|s| {
+                let id = self.hitter_id[s];
+                (id >= 0 && (id as usize) < self.n && self.ticks.wrapping_sub(self.hitter_tick[s]) <= window).then_some(id as u32)
+            })
+            .collect()
+    }
+
+    /// The recent hitters of unit `j` whose last hit is at most `window` ticks old, oldest slot order, and
+    /// forgets all of them. A mod's death rule reads this on the victim's death (the assist credit).
+    pub fn take_recent_hitters(&mut self, j: usize, window: u32) -> Vec<u32> {
+        let out = self.recent_hitters(j, window);
+        if j < self.n {
+            let base = j * HITTER_SLOTS;
+            self.hitter_id[base..base + HITTER_SLOTS].fill(-1);
         }
         out
+    }
+
+    /// A hit of `dmg` on unit `j` by unit `attacker`, booked as the combat path books it (the hitter is remembered for
+    /// the death rules). The mod host's tests use this to set up who damaged a unit.
+    pub fn hit_by(&mut self, j: usize, dmg: i32, attacker: i32) {
+        self.inflict(j, dmg, attacker);
     }
 
     /// Adds `n` kills to unit `i`'s kill tally (saturating). Which kills count is the mod's rule (the pack counts hero kills);
@@ -612,6 +626,18 @@ mod tests {
         s.add_credit(hitter, 2);
         s.add_credit(hitter, 1);
         assert_eq!(s.credits_of(hitter), 3, "the credits add up on the unit that holds them");
+    }
+
+    /// The recent hitters can be read and kept for a second read; taking them forgets them.
+    #[test]
+    fn recent_hitters_read_without_forgetting_until_taken() {
+        let mut s = duel_sim();
+        let (hitter, victim) = (creep(&mut s, 0), creep(&mut s, 1));
+        s.hit_by(victim, 1, hitter as i32);
+        assert_eq!(s.recent_hitters(victim, 50), vec![hitter as u32]);
+        assert_eq!(s.recent_hitters(victim, 50), vec![hitter as u32], "a read keeps the hitters");
+        assert_eq!(s.take_recent_hitters(victim, 50), vec![hitter as u32]);
+        assert!(s.recent_hitters(victim, 50).is_empty(), "taking the hitters forgets them");
     }
 
     /// A unit of catalog kind `name` for `player` on the first free walkable cell.

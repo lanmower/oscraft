@@ -1,7 +1,8 @@
 -- Moba kill gold, as mod code, 1:1 with Dota: gold comes from kills by heroes. A unit with a bounty pays it when a hero kills
--- it: the killing hero keeps the bounty less the team share, and its side gets the share. A kill by a creep, a tower or
--- nothing at all (an attackerless death) earns no gold, and neither does a denial (the killer is allied to the victim).
--- The payout is core/bounty.lua's; this file sets the rule.
+-- it: the killing hero keeps the bounty less the team share, and its side gets the share. A creep or tower killing a
+-- creep (or a building) earns no gold, and neither does an attackerless death or a denial (the killer is allied to the
+-- victim). A hero killed by a creep or a tower pays the enemy heroes in heroes.lua. The payout is core/bounty.lua's; this
+-- file sets the rule.
 local bounty = require("bounty")
 local aegis = require("aegis")
 
