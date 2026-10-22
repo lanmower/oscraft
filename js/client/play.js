@@ -334,17 +334,25 @@ function finishGame(game, modsJson) {
 }
 
 async function loadSim() {
+  // The map image, the rules and the Lua mod files do not need the wasm, so they start before it: the wasm import
+  // and init run alongside their downloads rather than in front of them. Each is awaited where it is used.
+  mapUrl = packUrl(manifest.image);
+  const imageReady = fetch(mapUrl).then((res) => res.arrayBuffer());
+  const rulesReady = packText(manifest.rules);
+  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
+  // ?nomods=1 loads none.
+  const modsReady = noMods ? Promise.resolve([]) : moduleClosure(manifest, packText);
+  // Read by the await below, so a failure is not reported as unhandled before the wasm has finished.
+  const early = Promise.all([imageReady, rulesReady, modsReady]);
+  early.catch(() => {});
   const mod = await import(/* @vite-ignore */ pkgUrl);
   await mod.default();
   wasmModule = mod;
-  mapUrl = packUrl(manifest.image);
-  const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
+  const [imageBuffer, rules, mods] = await early;
+  const image = new Uint8Array(imageBuffer);
   mapBytes = image;
   setMapSize(readGrid(image));
-  rulesText = await packText(manifest.rules);
-  // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
-  // ?nomods=1 loads none.
-  const mods = noMods ? [] : await moduleClosure(manifest, packText);
+  rulesText = rules;
   const game = finishGame(newGame(), JSON.stringify(mods));
   lastGoodSnapshot = captureSnapshot(game);
   if (noMods) document.body.dataset.nomods = "1";
