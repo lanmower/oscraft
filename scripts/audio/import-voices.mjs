@@ -59,6 +59,7 @@ fs.mkdirSync(voicesDir, { recursive: true });
 const runtime = {};
 let added = 0;
 let copied = 0;
+const wanted = new Set(["manifest.json"]);
 const missing = [];
 for (const [hero, entry] of Object.entries(heroes)) {
   if (!entry || typeof entry !== "object") continue;
@@ -76,6 +77,7 @@ for (const [hero, entry] of Object.entries(heroes)) {
       copied += 1;
     }
     const packRel = path.posix.join(hero, file);
+    wanted.add(path.relative(voicesDir, target).split(path.sep).join("/"));
     events[event] = packRel;
     items.push({
       id: `voice.${hero}.${event}`,
@@ -94,14 +96,37 @@ for (const [hero, entry] of Object.entries(heroes)) {
 }
 
 fs.writeFileSync(path.join(voicesDir, "manifest.json"), `${JSON.stringify(runtime, null, 2)}\n`);
+
+// A re-import that swaps format (WAV to Opus, say) leaves the old files beside the new ones, where
+// nothing names them and the site still ships them. Every file under the voices directory the new
+// manifest does not name is dropped, and the directories it empties go with them.
+const prune = (dir) => {
+  let removed = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      removed += prune(abs);
+      if (fs.readdirSync(abs).length === 0) fs.rmdirSync(abs);
+      continue;
+    }
+    const rel = path.relative(voicesDir, abs).split(path.sep).join("/");
+    if (wanted.has(rel)) continue;
+    fs.unlinkSync(abs);
+    removed += 1;
+  }
+  return removed;
+};
+const pruned = prune(voicesDir);
+
 catalog.items = items;
 catalog.count = items.length;
 catalog.total_bytes = items.reduce((n, i) => n + (Number(i?.bytes) || 0), 0);
 fs.writeFileSync(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`);
 
+const audioBytes = items.reduce((n, i) => n + (i.kind === "audio" ? Number(i.bytes) || 0 : 0), 0);
 console.log(
   `imported ${added} voice lines for ${Object.keys(runtime).length} heroes into ${path.relative(process.cwd(), voicesDir)}` +
-    ` (${copied} file(s) copied, ${(catalog.total_bytes / 1048576).toFixed(1)} MiB of audio in the catalogue)`,
+    ` (${copied} copied, ${pruned} dropped, ${(audioBytes / 1048576).toFixed(1)} MiB of audio)`,
 );
 if (missing.length) {
   console.error(`${missing.length} manifest entries point at a missing file:`);
