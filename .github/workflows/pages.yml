@@ -98,6 +98,9 @@ jobs:
           rm -rf _site/js/client/pkg && cp -r rust/crates/web/site/pkg _site/js/client/pkg
           rm -f _site/js/client/pkg/.gitignore
           cp -r scenarios _site/scenarios
+          # The generators under a scenario's tools/ are not pack files -- refusedPath rejects .mjs --
+          # so they are dead weight on the page and source nobody needs to download.
+          rm -rf _site/scenarios/*/tools
           mkdir -p _site/scenarios/moba/assets/models
           cp rust/crates/web/site/assets/units/*.glb _site/scenarios/moba/assets/models/
           cp -r mods _site/mods
