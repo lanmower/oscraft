@@ -1,6 +1,6 @@
 {
- "count": 934,
- "total_bytes": 50638189,
+ "count": 938,
+ "total_bytes": 50913353,
  "items": [
   {
    "id": "rock",
@@ -6691,6 +6691,38 @@
    "path": "models/tombstone.glb",
    "placed_by": "doodads.json",
    "bytes": 87304,
+   "role": "prop"
+  },
+  {
+   "id": "post-sign",
+   "kind": "model",
+   "path": "models/post-sign.glb",
+   "placed_by": "doodads.json",
+   "bytes": 40216,
+   "role": "prop"
+  },
+  {
+   "id": "rowboat-destroyed",
+   "kind": "model",
+   "path": "models/rowboat-destroyed.glb",
+   "placed_by": "doodads.json",
+   "bytes": 105480,
+   "role": "prop"
+  },
+  {
+   "id": "ship-destroyed",
+   "kind": "model",
+   "path": "models/ship-destroyed.glb",
+   "placed_by": "doodads.json",
+   "bytes": 58424,
+   "role": "prop"
+  },
+  {
+   "id": "standard",
+   "kind": "model",
+   "path": "models/standard.glb",
+   "placed_by": "doodads.json",
+   "bytes": 71044,
    "role": "prop"
   }
  ],

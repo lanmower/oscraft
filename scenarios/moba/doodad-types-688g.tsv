@@ -49,10 +49,10 @@ LPwh	2			grass_large	inferred nature from tree; confidence medium
 ZWbg	2		Bubbles	patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Bubbles); interim kind until its own model exists
 LOgr	2		Grave	grave	name from Doodads.slk + WorldEditStrings.txt (Grave); interim kind until its own model exists
 CPlp	2		Lily Pad	grass	name from Doodads.slk + WorldEditStrings.txt (Lily Pad); interim kind until its own model exists
-OOsd	2		Standard	banner	name from Doodads.slk + WorldEditStrings.txt (Standard); interim kind until its own model exists
-LOsp	1		Post Sign	signpost_single	name from Doodads.slk + WorldEditStrings.txt (Post Sign); interim kind until its own model exists
-NWrd	1		Rowboat Destroyed	debris_wood	name from Doodads.slk + WorldEditStrings.txt (Rowboat Destroyed); interim kind until its own model exists
-NWsd	1		Ship Destroyed	debris_wood	name from Doodads.slk + WorldEditStrings.txt (Ship Destroyed); interim kind until its own model exists
+OOsd	2		Standard	standard	name from Doodads.slk + WorldEditStrings.txt (Standard); interim kind until its own model exists
+LOsp	1		Post Sign	post_sign	name from Doodads.slk + WorldEditStrings.txt (Post Sign); interim kind until its own model exists
+NWrd	1		Rowboat Destroyed	rowboat_destroyed	name from Doodads.slk + WorldEditStrings.txt (Rowboat Destroyed); interim kind until its own model exists
+NWsd	1		Ship Destroyed	ship_destroyed	name from Doodads.slk + WorldEditStrings.txt (Ship Destroyed); interim kind until its own model exists
 LOca	1		Cauldron with heads	pot	name from Doodads.slk + WorldEditStrings.txt (Cauldron with heads); interim kind until its own model exists
 NSct	1		Crypt	crypt	name from Doodads.slk + WorldEditStrings.txt (Crypt); interim kind until its own model exists
 ZWsf	1		Fish School	fish	name from Doodads.slk + WorldEditStrings.txt (Fish School); interim kind until its own model exists

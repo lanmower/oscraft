@@ -920,5 +920,9 @@
   "broken_column": "models/broken-column.glb",
   "grave_peasant": "models/grave-peasant.glb",
   "fire_pit_with_pig": "models/fire-pit-with-pig.glb",
-  "tombstone": "models/tombstone.glb"
+  "tombstone": "models/tombstone.glb",
+  "post_sign": "models/post-sign.glb",
+  "rowboat_destroyed": "models/rowboat-destroyed.glb",
+  "ship_destroyed": "models/ship-destroyed.glb",
+  "standard": "models/standard.glb"
 }

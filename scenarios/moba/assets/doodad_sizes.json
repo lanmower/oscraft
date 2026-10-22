@@ -789,5 +789,9 @@
  "broken-column": 0.282,
  "grave-peasant": 3.365,
  "fire-pit-with-pig": 1.323,
- "tombstone": 0.276
+ "tombstone": 0.276,
+ "post-sign": 0.251,
+ "rowboat-destroyed": 0.864,
+ "ship-destroyed": 0.746,
+ "standard": 0.231
 }

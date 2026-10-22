@@ -177,7 +177,7 @@ doodad_kinds([
     "workbench_anvil", "workbench_grind",
     "flowers", "remains_scorched", "skull_pile", "torch", "torch_glowing",
     "mushrooms", "cattail", "banner_tutorial_orc", "lily_pads_floating", "ltrc", "fish_green",
-    "broken_column", "grave_peasant", "fire_pit_with_pig", "tombstone"
-])
+    "broken_column", "grave_peasant", "fire_pit_with_pig", "tombstone",
+    "post_sign", "rowboat_destroyed", "ship_destroyed", "standard"])
 
 item_tags(["home", "side", "secret"])
