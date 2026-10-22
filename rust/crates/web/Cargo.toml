@@ -24,3 +24,11 @@ wasm-bindgen = "0.2"
 getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
 getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
 
+# wasm-pack runs wasm-opt with -O alone, and that validator refuses the bulk-memory instructions
+# (memory.copy, memory.fill) LLVM emits once the release profile is size-optimised in pages.yml:
+# "Bulk memory operations require bulk memory [--enable-bulk-memory]". Every browser that runs this
+# page has supported bulk memory for years, so only the validator needs telling. The args replace
+# wasm-pack's defaults, which is why -O is repeated here.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O", "--enable-bulk-memory", "--enable-sign-ext", "--enable-mutable-globals", "--enable-nontrapping-float-to-int"]
+
