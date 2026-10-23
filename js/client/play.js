@@ -1741,7 +1741,9 @@ relayPool.subscribe("oscraft-rooms", [{ kinds: [ROOM_KIND], "#t": [ROOM_TAG] }],
   announcedRooms.set(tagValue("room"), { createdAt: event.created_at, players: Number(tagValue("players")) || 1 });
   pruneRooms();
 });
-announceRoom();
+// The first announce signs an event (Schnorr, on this thread), so it waits for an idle slot after first paint.
+const whenIdle = globalThis.requestIdleCallback ?? ((f) => setTimeout(f, 0));
+whenIdle(announceRoom);
 setInterval(announceRoom, ROOM_ANNOUNCE_S * 1000);
 setInterval(pruneRooms, ROOM_PRUNE_MS);
 // ?ice=<JSON list of stun entries> replaces the default STUN list. Relay test mode (?relay=) keeps no ICE servers unless ?ice is given.
