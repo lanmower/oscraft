@@ -1021,5 +1021,6 @@
   "tiny_skinned": "models/tiny-skinned.glb",
   "tower_skinned": "models/tower-skinned.glb",
   "tower_t3_skinned": "models/tower-t3-skinned.glb",
-  "tower_t4_skinned": "models/tower-t4-skinned.glb"
+  "tower_t4_skinned": "models/tower-t4-skinned.glb",
+  "tower_t2_skinned": "models/tower-t2-skinned.glb"
 }
