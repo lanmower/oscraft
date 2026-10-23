@@ -95,12 +95,12 @@ fn the_ability_bar_has_one_cell_per_key_with_its_slots_ability() {
     let want: Vec<(String, Option<String>)> = cast.iter().map(|(key, slot)| (key.clone(), slots[*slot].clone())).collect();
     assert_eq!(bar, want, "each key shows the ability in its slot");
 
-    // The antimage's slots are mana break, blink, counterspell, talents; the bar names them under q, w, e, r, and t is empty.
+    // The antimage's slots are mana break, blink, counterspell, talents; the bar names them under q, w, e, r.
     let names: Vec<Option<&str>> = bar.iter().map(|(_, name)| name.as_deref()).collect();
     assert_eq!(
         names,
-        vec![Some("antimage_mana_break"), Some("antimage_blink"), Some("antimage_counterspell"), Some("antimage_talents"), None],
-        "the bar reads q w e r t as the hero's slots 0 to 4"
+        vec![Some("antimage_mana_break"), Some("antimage_blink"), Some("antimage_counterspell"), Some("antimage_talents")],
+        "the bar reads q w e r as the hero's slots 0 to 3"
     );
 
     let mut shown: Vec<&str> = names.iter().flatten().copied().collect();
