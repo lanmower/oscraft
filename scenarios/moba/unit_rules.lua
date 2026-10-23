@@ -64,18 +64,33 @@ local function speed_bounds(u)
   return math.min(SPEED_MIN * SPEED_POINT, own), math.max(SPEED_MAX * SPEED_POINT, type_base)
 end
 
+-- The last value each setter received for each unit. A setter is called only when its value moved, so a unit whose
+-- rules are unchanged costs no native calls on a tick.
+local applied = {}
+
+-- Sets one field through its setter when the value differs from the last one applied to the unit.
+local function set_once(u, key, value, setter, ...)
+  local rec = applied[u]
+  if not rec then rec = {}; applied[u] = rec end
+  if rec[key] == value then return end
+  rec[key] = value
+  setter(u, value, ...)
+end
+
 return {
   on_tick = function(state)
     for _, u in ipairs(game.units(nil)) do
-      game.set_armour_scale(u, armour_scale(game.armour_of(u)))
-      game.set_magic_keep(u, magic_keep(u))
-      game.set_damage_keep(u, damage_keep(u))
-      game.set_response_keep(u, response_keep(u))
+      set_once(u, "armour", armour_scale(game.armour_of(u)), game.set_armour_scale)
+      set_once(u, "magic", magic_keep(u), game.set_magic_keep)
+      set_once(u, "damage", damage_keep(u), game.set_damage_keep)
+      set_once(u, "response", response_keep(u), game.set_response_keep)
       local floor, cap = speed_bounds(u)
-      game.set_speed_bounds(u, floor, cap)
+      set_once(u, "speed", floor .. ":" .. cap, function(unit)
+        game.set_speed_bounds(unit, floor, cap)
+      end)
       -- The shot's reach decides whether it can miss: a melee weapon's shots never do.
       local _, range = game.weapon(u)
-      game.set_miss_chance(u, range <= MELEE and 0 or game.unit_miss_chance(u))
+      set_once(u, "miss", range <= MELEE and 0 or game.unit_miss_chance(u), game.set_miss_chance)
     end
   end,
 }
