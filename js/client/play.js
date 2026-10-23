@@ -346,17 +346,27 @@ function finishGame(game, modsJson) {
 }
 
 async function loadSim() {
+  // Everything the wasm needs is fetched while the wasm itself is still loading. The map image (608 KB), the rules and
+  // the pack's Lua used to be fetched only after `await mod.default()` returned, so they were serial with the wasm
+  // download and instantiation instead of overlapping them.
+  const imagePending = fetch(packUrl(manifest.image)).then((res) => res.arrayBuffer());
+  const rulesPending = packText(manifest.rules);
+  const modsPending = noMods ? Promise.resolve([]) : moduleClosure(manifest, packText);
+  // A rejection is reported where each is awaited below; these keep a wasm failure from making them unhandled.
+  imagePending.catch(() => {});
+  rulesPending.catch(() => {});
+  modsPending.catch(() => {});
   const mod = await import(/* @vite-ignore */ pkgUrl);
   await mod.default();
   wasmModule = mod;
   mapUrl = packUrl(manifest.image);
-  const image = new Uint8Array(await (await fetch(mapUrl)).arrayBuffer());
+  const image = new Uint8Array(await imagePending);
   mapBytes = image;
   setMapSize(readGrid(image));
-  rulesText = await packText(manifest.rules);
+  rulesText = await rulesPending;
   // The pack's Lua mods run in the sim, in manifest order; a mod that fails to load keeps the sim and is logged.
   // ?nomods=1 loads none.
-  const mods = noMods ? [] : await moduleClosure(manifest, packText);
+  const mods = await modsPending;
   const game = finishGame(newGame(), JSON.stringify(mods));
   lastGoodSnapshot = captureSnapshot(game);
   if (noMods) document.body.dataset.nomods = "1";
