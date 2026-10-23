@@ -174,7 +174,23 @@ end
 
 -- A ground order: a move, or an attack-move when attack is set. Clicking an enemy attacks it either way. Units keep
 -- formation spots around the point, so they do not stack.
-local function order_selected(who, x, z, enemy, attack)
+-- Orders waiting behind a unit's current one (shift-queued), by unit id. The head is issued when the unit goes idle
+-- (game.order_of reports ORDER_STOP), so a queue is a mod rule: the sim keeps one order per unit and its state
+-- hash is unchanged. Issued in ascending id order, so every peer applies the same commands.
+local QUEUE = {}
+local ORDER_STOP = 1
+
+local function issue(id, o)
+  if o.enemy ~= nil then
+    game.cmd_attack(id, o.enemy)
+  elseif o.attack then
+    game.attack_move(id, fx(o.x), fx(o.z))
+  else
+    game.cmd_order(id, fx(o.x), fx(o.z))
+  end
+end
+
+local function order_selected(who, x, z, enemy, attack, queued)
   local ids = my_selected(who)
   if #ids == 0 then return false end
   if enemy ~= nil then
@@ -185,16 +201,18 @@ local function order_selected(who, x, z, enemy, attack)
   end
   local spacing = CFG.formationSpacing
   for i, id in ipairs(ids) do
-    if enemy ~= nil then
-      game.cmd_attack(id, enemy.id)
+    local o = { x = x, z = z, attack = attack, enemy = enemy and enemy.id or nil }
+    if enemy == nil then
+      o.x = x + ((i - 1) % 3 - 1) * spacing
+      o.z = z + math.floor((i - 1) / 3) * spacing
+    end
+    if queued then
+      local q = QUEUE[id] or {}
+      q[#q + 1] = o
+      QUEUE[id] = q
     else
-      local sx = x + ((i - 1) % 3 - 1) * spacing
-      local sz = z + math.floor((i - 1) / 3) * spacing
-      if attack then
-        game.attack_move(id, fx(sx), fx(sz))
-      else
-        game.cmd_order(id, fx(sx), fx(sz))
-      end
+      QUEUE[id] = nil
+      issue(id, o)
     end
   end
   return true
@@ -426,7 +444,7 @@ local function on_ground(who, kind, x, y, button)
     end
     s.attack_next = false
     local hit = pick(x, y)
-    order_selected(who, x, y, is_enemy(who, hit) and hit or nil, false)
+    order_selected(who, x, y, is_enemy(who, hit) and hit or nil, false, p.shift)
     return
   end
   if p.button ~= 0 then return end
@@ -441,7 +459,7 @@ local function on_ground(who, kind, x, y, button)
   local hit = pick(x, y)
   if s.attack_next then
     s.attack_next = false
-    order_selected(who, x, y, is_enemy(who, hit) and hit or nil, true)
+    order_selected(who, x, y, is_enemy(who, hit) and hit or nil, true, p.shift)
     return
   end
   set_selection(who, click_ids(who, hit, p.shift))
@@ -502,4 +520,21 @@ local function on_pointer(kind, x, y, button)
   on_ground(LOCAL, kind, x, y, button)
 end
 
-return { on_action = on_action, on_pointer = on_pointer }
+-- Issues the next queued order of each idle unit, in the order game.units lists them (the same on every peer).
+local function on_tick()
+  for _, id in ipairs(game.units(nil)) do
+    local q = QUEUE[id]
+    if q ~= nil then
+      if #q == 0 or not game.alive(id) then
+        QUEUE[id] = nil
+      elseif game.order_of(id) == ORDER_STOP then
+        local o = q[1]
+        for k = 1, #q - 1 do q[k] = q[k + 1] end
+        q[#q] = nil
+        issue(id, o)
+      end
+    end
+  end
+end
+
+return { on_action = on_action, on_pointer = on_pointer, on_tick = on_tick }
