@@ -1,6 +1,6 @@
 {
- "count": 3069,
- "total_bytes": 97875040,
+ "count": 3070,
+ "total_bytes": 98350676,
  "items": [
   {
    "id": "rock",
@@ -7299,6 +7299,14 @@
    "path": "models/melee-creep-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 915808,
+   "role": "character"
+  },
+  {
+   "id": "viper-skinned",
+   "kind": "model",
+   "path": "models/viper-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 475636,
    "role": "character"
   },
   {
@@ -31908,7 +31916,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 217,
+  "character": 218,
   "creep": 5,
   "terrain": 7
  }
