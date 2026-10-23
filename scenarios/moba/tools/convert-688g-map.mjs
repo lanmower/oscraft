@@ -194,7 +194,11 @@ const startLines = starts.map((s, k) => {
 const script = fs.readFileSync(path.join(src, "script.txt"), "latin1");
 // The map places no hero: each seat's picked hero is spawned by the lobby's pick (heroes.lua seat_pick), so a hero spawn line is dropped.
 const spawnLines = legacyLines.filter((l) => l.startsWith("spawn(") && !l.startsWith('spawn("base"') && !l.startsWith('spawn("hero"'));
-const shopLines = legacyLines.filter((l) => /^doodad\(\d+, "(shop|side_shop|secret_shop)"/.test(l));
+// The shops. The committed lines name the doodad_kinds entries (5 depot, 9 side_depot, 10 secret_depot,
+// see 0_names.osd), which is what store.lua keys its depot tags on; the older names are kept so a line
+// written either way survives. The pattern used to match only shop/side_shop/secret_shop, none of which
+// any line in the map uses, so every regeneration dropped all four shops and left the map with none.
+const shopLines = legacyLines.filter((l) => /^doodad\(\d+, "(depot|side_depot|secret_depot|shop|side_shop|secret_shop)"/.test(l));
 
 // Ancients: the literal create calls in the script for the two ancient codes; the side convention sets the player.
 const ANCIENT_SIDES = { etol: 0, unpl: 1 };
