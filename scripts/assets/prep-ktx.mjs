@@ -265,6 +265,12 @@ async function syncManifest(manifestPath, root) {
   manifest.total_bytes = manifest.items.reduce((n, item) => n + item.bytes, 0);
   await writeFile(manifestPath, JSON.stringify(manifest, null, indent) + '\n');
   console.log(`sync: ${manifest.count} items, total_bytes ${manifest.total_bytes}`);
+  // The page reads the shipped KTX2 paths from ktx2.json beside the catalogue, so it never has to download the
+  // ~787 KB catalogue to find them. Rewriting it here keeps the two in step.
+  const ktx2 = [...new Set(manifest.items.map((item) => item.path).filter((p) => typeof p === 'string' && p.endsWith('.ktx2')))].sort();
+  const ktx2Path = join(dirname(manifestPath), 'ktx2.json');
+  await writeFile(ktx2Path, JSON.stringify(ktx2, null, indent) + '\n');
+  console.log(`sync: ${ktx2.length} ktx2 paths written to ${ktx2Path}`);
 }
 
 const { positional, flags } = parseArgs(process.argv.slice(2));

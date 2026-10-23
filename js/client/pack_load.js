@@ -351,7 +351,21 @@ export const assetUrl = (key, file = "") => source.url(assetRel(key, file));
 export const packBytes = (rel) => source.bytes(rel);
 export const packText = async (rel) => new TextDecoder().decode(await packBytes(rel));
 export const packJson = async (rel) => JSON.parse(await packText(rel));
-export const assetJson = async (key) => JSON.parse(await packText(assetRel(key)));
+// Asset metadata is small and asked for at several sites (doodadSizes at five), so the fetched text is cached: in a
+// directory pack every call would otherwise be its own round trip, and in an archive pack its own decode. Only asset
+// entries are cached, never arbitrary pack files: the models are ~38 MB, and caching those would hold the whole pack
+// in memory. The parse is still per call, so a caller cannot mutate another caller's copy.
+const assetTextCache = new Map();
+
+export const assetJson = async (key) => {
+  const rel = assetRel(key);
+  let text = assetTextCache.get(rel);
+  if (text === undefined) {
+    text = await packText(rel);
+    assetTextCache.set(rel, text);
+  }
+  return JSON.parse(text);
+};
 
 // The UI text and key bindings of the pack (moba_ui.json, or the pack's ui entry).
 export const UI = await packJson(manifest.ui);

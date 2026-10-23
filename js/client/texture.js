@@ -9,13 +9,13 @@ import { assetJson } from './pack_load.js';
 
 const RASTER_URI = /\.(png|jpe?g)$/i;
 
-// The KTX2 files the build ships, read once from the asset catalogue. A raster whose sibling is not listed never
-// requests it, so no 404 is logged and the raster is used directly.
+// The KTX2 files the build ships: a list of paths in ktx2.json, written by scripts/assets/prep-ktx.mjs when it syncs
+// the catalogue. A raster whose sibling is not listed never requests it, so no 404 is logged and the raster is used
+// directly. The list is a few hundred bytes; the full asset catalogue it was read from is ~787 KB, which is not worth
+// downloading on every page load to learn eleven filenames.
 let shippedKtx2 = null;
 function shippedKtx2Paths() {
-  shippedKtx2 ??= assetJson('catalogue')
-    .then((catalogue) => (catalogue.items || []).map((item) => item.path).filter((p) => typeof p === 'string' && p.endsWith('.ktx2')))
-    .catch(() => []);
+  shippedKtx2 ??= assetJson("ktx2").catch(() => []);
   return shippedKtx2;
 }
 

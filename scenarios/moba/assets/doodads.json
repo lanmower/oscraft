@@ -3,6 +3,8 @@
   "tree": "models/tree.glb",
   "crystal": "models/resource-stone.glb",
   "debris": "models/barrel.glb",
+  "rocks-low": "models/rocks-low.glb",
+  "windmill-low": "models/windmill-low.glb",
   "base": "models/building-a.glb",
   "shop": "models/stall.glb",
   "fountain": "models/fountain-round.glb",

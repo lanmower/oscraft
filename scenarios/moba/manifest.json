@@ -92,6 +92,7 @@
     },
     "models": "models",
     "catalogue": "assets.json",
+    "ktx2": "ktx2.json",
     "doodads": "doodads.json",
     "doodadSizes": "doodad_sizes.json",
     "anim": "anim/library.json",

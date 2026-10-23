@@ -664,12 +664,12 @@ function queueUnitModelBacklog() {
 // an entry; doodads.json maps every kind to its GLB path. A placed kind whose model or footprint is missing is recorded
 // on the page and its placements are not drawn.
 async function loadDoodadModels(usedKinds) {
-  const [catalogue, paths, footprints] = await Promise.all([assetJson("catalogue"), assetJson("doodads"), assetJson("doodadSizes")]);
+  const [paths, footprints] = await Promise.all([assetJson("doodads"), assetJson("doodadSizes")]);
   const toStem = (file) => file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "");
-  const modelName = (id) => {
-    const file = catalogue.items.find((item) => item.id === id && item.kind === "model")?.path;
-    return file ? toStem(file) : null;
-  };
+  // doodads.json alone names every kind's model, including its low-detail variant. The asset catalogue
+  // (assets.json, ~787 KB) used to be fetched for this and agreed with doodads.json on all 784 kinds, so it is
+  // no longer downloaded: a kind's model comes from one 49 KB file instead of two.
+  const modelName = (id) => (paths[id] ? toStem(paths[id]) : null);
   // Each model is fitted to its footprint in cells from doodad_sizes.json (scripts/doodad-sizes.mjs).
   const sizeOf = (name) => footprints[name];
   // Only kinds the map places are fetched; an unplaced kind keeps an empty entry, so indices still match the kind codes.
@@ -679,7 +679,7 @@ async function loadDoodadModels(usedKinds) {
     if (usedKinds && !usedKinds.has(code)) return { high: null, low: null };
     const name = modelName(kind) ?? (paths[kind] ? toStem(paths[kind]) : null);
     if (!name) {
-      recordAssetError(`doodad ${kind}`, new Error("no model path in assets.json or doodads.json"));
+      recordAssetError(`doodad ${kind}`, new Error("no model path in doodads.json"));
       return { high: null, low: null };
     }
     const lowName = modelName(`${kind}-low`);
@@ -2030,10 +2030,11 @@ async function build3d(gl, game) {
   // types rather than every hero and neutral in the pack. The match waits for these and nothing else.
   const neededTypes = new Set(currentUnits().map((u) => u.type).filter((t) => t >= 0));
   const splatReady = buildSplat(gl);
-  // Awaited only for the catalogue, doodads.json and the footprints: what it returns is one pending promise per kind,
-  // and those are left to the deferred pass below.
-  const doodadKindsReady = await loadDoodadModels(usedKinds);
+  // The unit models the first frame draws start first, because they are what that frame waits on. The scenery
+  // catalogue (assets.json ~787 KB, doodads.json, the footprints) only names scenery models, and scenery is placed
+  // from the deferred pass below, so it is fetched alongside the unit models rather than ahead of them.
   const unitFitsReady = loadModels(game, neededTypes);
+  const doodadKindsReady = loadDoodadModels(usedKinds);
   // The splat ground is the default floor: a layer that does not build stops the start (buildSplat throws).
   splat = await splatReady;
   // Scenery is not the first frame's business: the ground and the units in view are, so the kinds are placed from the
@@ -2054,18 +2055,21 @@ async function build3d(gl, game) {
       (err) => recordAssetError("model arrow", err),
     );
     // Scenery: a kind's placements go down as its model lands, so the map fills in behind a match that is already
-    // running instead of holding it up.
-    for (let code = 0; code < doodadKindsReady.length; code += 1) {
-      if (!usedKinds.has(code)) continue;
-      doodadKindsReady[code]
-        .then(async ({ high, low }) => {
-          const base = high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null;
-          const lowBase = low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null;
-          doodadByKindState[code] = { base, lowBase };
-          addDoodadKind(code, base, lowBase, placementsByKind.get(code));
-        })
-        .catch((err) => recordAssetError(`doodad ${code}`, err));
-    }
+    // running instead of holding it up. The catalogue fetch is awaited here, in the deferred pass, so it never held
+    // the first frame up.
+    doodadKindsReady.then((kinds) => {
+      for (let code = 0; code < kinds.length; code += 1) {
+        if (!usedKinds.has(code)) continue;
+        kinds[code]
+          .then(async ({ high, low }) => {
+            const base = high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null;
+            const lowBase = low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null;
+            doodadByKindState[code] = { base, lowBase };
+            addDoodadKind(code, base, lowBase, placementsByKind.get(code));
+          })
+          .catch((err) => recordAssetError(`doodad ${code}`, err));
+      }
+    }, (err) => recordAssetError("doodad kinds", err));
   });
 }
 

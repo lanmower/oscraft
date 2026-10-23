@@ -1,0 +1,13 @@
+[
+  "models/Textures/colormap.ktx2",
+  "models/Textures/rock-color.ktx2",
+  "textures/cliff.ktx2",
+  "textures/grass.ktx2",
+  "textures/grass_b_cc0_256.ktx2",
+  "textures/grass_b_cc0_256_disp.ktx2",
+  "textures/ground.ktx2",
+  "textures/lane.ktx2",
+  "textures/lane_earth_cc0_256.ktx2",
+  "textures/rock.ktx2",
+  "textures/water.ktx2"
+]
