@@ -9,8 +9,8 @@ unit_extra("base", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verifie
 unit_extra("objective", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("tender", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
 unit_extra("hero", player_controlled=True, deny_xp_pct=0)
-# Roshan bounty: 245 gold (midpoint of 200-290) and 400 xp, source as above. assist_radius_milli UNVERIFIED.
-unit_extra("roshan", reward=245, xp_reward=400, assist_radius_milli=23438)
+# Roshan bounty: 6.88g [n00L] bountydice 5, bountysides 51, bountyplus 145 = 5d51+145, mean 275 gold (range 150-400; the engine takes one value). 400 xp, source as above. assist_radius_milli UNVERIFIED.
+unit_extra("roshan", reward=275, xp_reward=400, assist_radius_milli=23438)
 # Wards: bounty 100 gold and 100 xp from observer_wards (sentry copies it, UNVERIFIED). Sentry detector radius 1050 x 15.625 = 16406 milli (item_ward_sentry true_sight_range).
 unit_extra("observer_ward", reward=100, xp_reward=100, deny_xp_pct=0)
 unit_extra("sentry_ward", reward=100, xp_reward=100, deny_xp_pct=0, detector_radius=16406)
