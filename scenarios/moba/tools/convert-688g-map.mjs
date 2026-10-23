@@ -3,6 +3,7 @@
 // Output: map.osd (terrain paint lines, ramps, open cells, script-driven spawns, mapped doodads), doodads-688g.tsv,
 // doodad-types-688g.tsv and starts-688g.tsv. Unit and item tables are not converted here.
 // Usage: node scenarios/moba/tools/convert-688g-map.mjs --src <extract dir> [--out scenarios/moba]
+//        [--z-offset 384] [--label "Dota 6.88g reference map"]
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -131,7 +132,11 @@ const cellZ = (cx, cy) => {
   return (1 - fx) * (1 - t) * at(i, j + 1) + fx * (1 - t) * at(i + 1, j + 1) + (1 - fx) * t * at(i, j) + fx * t * at(i + 1, j);
 };
 const Z_PER_LEVEL = 8;
-const Z_OFFSET = 384;
+// The offset that makes a map's lowest corner read as level 0. It differs per source: 384 was
+// calibrated for 6.88g, whose lowest level is 14 rather than 0, so it is NOT -min(cornerZ) there
+// (that would shift the shipped map by about 14 levels). A source whose corners run below -384
+// needs an explicit --z-offset. The default is the 6.88g value, so 6.88g output is unchanged.
+const Z_OFFSET = Number(opt("--z-offset", "384"));
 const heightLevel = (z) => Math.max(0, Math.min(255, Math.round((z + Z_OFFSET) / Z_PER_LEVEL)));
 const HEIGHT_STEP_MILLI = Math.round((Z_PER_LEVEL / 64) * 1000);
 // Water comes from the W3E corner flags: bit 0x40 of a corner's ground byte marks its tile as water. A water cell takes the
@@ -189,7 +194,9 @@ const legacyLines = fs.readFileSync(path.join(outDir, "map.osd"), "utf8").split(
 // Names are the source's trigger-string keys, so the committed table carries the neutral key slot<id> instead.
 const startLines = starts.map((s, k) => {
   const [x, y] = toMilli(s.x, s.y);
-  return `start(${k}, ${x}, ${y}, team=${k % 2})`;
+  // Teams are the halves of the player list, not its parity: alternating would put both teams in
+  // one corner.
+  return `start(${k}, ${x}, ${y}, team=${k < starts.length / 2 ? 0 : 1})`;
 });
 const script = fs.readFileSync(path.join(src, "script.txt"), "latin1");
 // The map places no hero: each seat's picked hero is spawned by the lobby's pick (heroes.lua seat_pick), so a hero spawn line is dropped.
@@ -221,7 +228,7 @@ const treeLines = doodads.filter((d) => treeCodes.has(d.type)).map((d, k) => {
 });
 
 const header = [
-  "# Dota 6.88g reference map, converted by scenarios/moba/tools/convert-688g-map.mjs from the extracted map members.",
+  `# ${opt("--label", "Dota 6.88g reference map")}, converted by scenarios/moba/tools/convert-688g-map.mjs from the extracted map members.`,
   "# World to grid: 1 source unit = 15.625 milli; the 16384-unit playable square sits at grid cell (35, 35) as a 256x256 sim block.",
   "# Walkable: no unwalkable pathing cell (bit 0x02) in the 2x2 pathing block of the sim cell. Outside the block: blocked.",
   `# Height: each sim cell bilinear over its tile's corners, z = (layer - 2) * 128 + ground offset, level = (z + 384) / 8, height_step ${HEIGHT_STEP_MILLI} milli. Tile: ground texture of the tile's corner.`,
