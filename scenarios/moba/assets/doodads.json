@@ -882,8 +882,8 @@
   "necrolyte_skinned": "models/necrolyte-skinned.glb",
   "neutral_elder_jungle_stalker_skinned": "models/neutral-elder-jungle-stalker-skinned.glb",
   "neutral_enraged_wildkin_skinned": "models/neutral-enraged-wildkin-skinned.glb",
-  "depot": "models/stall.glb",
-  "secret_depot": "models/stall.glb",
+  "depot": "models/depot-skinned.glb",
+  "secret_depot": "models/secret-depot-skinned.glb",
   "shadow_shaman_skinned": "models/shadow-shaman-skinned.glb",
   "skywrath_mage_skinned": "models/skywrath-mage-skinned.glb",
   "storm_spirit_skinned": "models/storm-spirit-skinned.glb",
@@ -1010,5 +1010,16 @@
   "torch-glowing_skinned": "models/torch-glowing-skinned.glb",
   "torch_skinned": "models/torch-skinned.glb",
   "visage_skinned": "models/visage-skinned.glb",
-  "mirana_skinned": "models/mirana-skinned.glb"
+  "mirana_skinned": "models/mirana-skinned.glb",
+  "barracks_melee_skinned": "models/barracks-melee-skinned.glb",
+  "barracks_ranged_skinned": "models/barracks-ranged-skinned.glb",
+  "base_skinned": "models/base-skinned.glb",
+  "depot_skinned": "models/depot-skinned.glb",
+  "secret_depot_skinned": "models/secret-depot-skinned.glb",
+  "sniper_skinned": "models/sniper-skinned.glb",
+  "sven_skinned": "models/sven-skinned.glb",
+  "tiny_skinned": "models/tiny-skinned.glb",
+  "tower_skinned": "models/tower-skinned.glb",
+  "tower_t3_skinned": "models/tower-t3-skinned.glb",
+  "tower_t4_skinned": "models/tower-t4-skinned.glb"
 }

@@ -1,6 +1,6 @@
 {
- "count": 3054,
- "total_bytes": 91000956,
+ "count": 3065,
+ "total_bytes": 95331924,
  "items": [
   {
    "id": "rock",
@@ -7179,6 +7179,94 @@
    "path": "models/mirana-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 143800,
+   "role": "character"
+  },
+  {
+   "id": "barracks-melee-skinned",
+   "kind": "model",
+   "path": "models/barracks-melee-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 277028,
+   "role": "character"
+  },
+  {
+   "id": "barracks-ranged-skinned",
+   "kind": "model",
+   "path": "models/barracks-ranged-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 256748,
+   "role": "character"
+  },
+  {
+   "id": "base-skinned",
+   "kind": "model",
+   "path": "models/base-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 294420,
+   "role": "character"
+  },
+  {
+   "id": "depot-skinned",
+   "kind": "model",
+   "path": "models/depot-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 270444,
+   "role": "character"
+  },
+  {
+   "id": "secret-depot-skinned",
+   "kind": "model",
+   "path": "models/secret-depot-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 429996,
+   "role": "character"
+  },
+  {
+   "id": "sniper-skinned",
+   "kind": "model",
+   "path": "models/sniper-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 376424,
+   "role": "character"
+  },
+  {
+   "id": "sven-skinned",
+   "kind": "model",
+   "path": "models/sven-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 692412,
+   "role": "character"
+  },
+  {
+   "id": "tiny-skinned",
+   "kind": "model",
+   "path": "models/tiny-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 444716,
+   "role": "character"
+  },
+  {
+   "id": "tower-skinned",
+   "kind": "model",
+   "path": "models/tower-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 461732,
+   "role": "character"
+  },
+  {
+   "id": "tower-t3-skinned",
+   "kind": "model",
+   "path": "models/tower-t3-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 434440,
+   "role": "character"
+  },
+  {
+   "id": "tower-t4-skinned",
+   "kind": "model",
+   "path": "models/tower-t4-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 392608,
    "role": "character"
   },
   {
@@ -31788,7 +31876,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 202,
+  "character": 213,
   "creep": 5,
   "terrain": 7
  }
