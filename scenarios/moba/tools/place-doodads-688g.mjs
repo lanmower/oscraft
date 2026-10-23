@@ -23,7 +23,12 @@ const kinds = parseTypeTable(fs.readFileSync(path.join(dir, typeTableName), "utf
 const records = fs.readFileSync(path.join(dir, placementsName), "utf8").trim().split("\n").slice(1).map((l) => {
   const c = l.split("\t");
   const [x, y] = toMilli(Number(c[2]), Number(c[3]));
-  return { type: c[0], x, y };
+  // Column 6 is the 6.88g per-instance scale (scale_x; all three axes are uniform). The builtin
+  // takes thousandths, so 1.10 -> 1100. A missing or non-positive value leaves the record
+  // scaleless and the line omits scale, which the loader reads as 1000.
+  const rawScale = Math.round(Number(c[6]) * 1000);
+  const scale = Number.isFinite(rawScale) && rawScale > 0 && rawScale <= 100000 ? rawScale : undefined;
+  return { type: c[0], x, y, scale };
 });
 const mapOsdPath = path.join(dir, "map.osd");
 const mapLines = fs.readFileSync(mapOsdPath, "utf8").split("\n");

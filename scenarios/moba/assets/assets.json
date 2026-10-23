@@ -1,6 +1,6 @@
 {
- "count": 3053,
- "total_bytes": 90857156,
+ "count": 3054,
+ "total_bytes": 91000956,
  "items": [
   {
    "id": "rock",
@@ -7171,6 +7171,14 @@
    "path": "models/visage-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 486208,
+   "role": "character"
+  },
+  {
+   "id": "mirana-skinned",
+   "kind": "model",
+   "path": "models/mirana-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 143800,
    "role": "character"
   },
   {
@@ -31780,7 +31788,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 201,
+  "character": 202,
   "creep": 5,
   "terrain": 7
  }

@@ -46,7 +46,12 @@ export function mappedDoodadLines(records, kinds, { bases, routes }) {
     const onLane = routes.some((pts) => pts.some((p, i) => i + 1 < pts.length && segDist(r.x, r.y, p, pts[i + 1]) <= LANE_CELL_MILLI));
     if (onLane) { excludedLane++; return; }
     if (bases.some(([bx, by]) => Math.hypot(r.x - bx, r.y - by) <= BASE_CELL_MILLI)) { excludedBase++; return; }
-    lines.push(`doodad(${MAPPED_ID_BASE + k}, "${kind}", ${r.x}, ${r.y})`);
+    // scale is thousandths (1000 = 1.0) and defaults to 1000 when omitted, so only emit it when
+    // the record actually deviates. The 6.88g archive scales per instance; the three axes are
+    // uniform, so one factor is enough.
+    const s = Number(r.scale);
+    const suffix = Number.isFinite(s) && s > 0 && Math.round(s) !== 1000 ? `, scale=${Math.round(s)}` : "";
+    lines.push(`doodad(${MAPPED_ID_BASE + k}, "${kind}", ${r.x}, ${r.y}${suffix})`);
   });
   return { lines, excludedLane, excludedBase };
 }

@@ -1009,5 +1009,6 @@
   "tombstone_skinned": "models/tombstone-skinned.glb",
   "torch-glowing_skinned": "models/torch-glowing-skinned.glb",
   "torch_skinned": "models/torch-skinned.glb",
-  "visage_skinned": "models/visage-skinned.glb"
+  "visage_skinned": "models/visage-skinned.glb",
+  "mirana_skinned": "models/mirana-skinned.glb"
 }
