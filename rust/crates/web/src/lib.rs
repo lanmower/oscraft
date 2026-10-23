@@ -194,6 +194,15 @@ impl Game {
             .collect()
     }
 
+    /// The living unit's attack period in ticks, in the same order as `unit_ids()`: how long one swing takes, so a
+    /// page can play an attack clip at the rate the unit actually attacks. 0 when it has no weapon.
+    pub fn unit_periods(&self) -> Vec<i32> {
+        (0..self.host.sim().count())
+            .filter(|&i| self.host.sim().alive(i))
+            .map(|i| self.host.sim().period_of(i))
+            .collect()
+    }
+
     /// Hit points of the living units, in whole points, in the same order as `unit_ids()`.
     pub fn unit_hps(&self) -> Vec<i32> {
         (0..self.host.sim().count())

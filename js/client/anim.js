@@ -140,11 +140,13 @@ export class AnimationPlayer {
     return clip.name;
   }
 
-  // Plays the clip for a unit state: attack, walk or idle, falling back to idle when absent.
+  // Plays the clip for a unit state: attack, walk or idle, falling back to idle when absent. Every state loops:
+  // an attack repeats for as long as the unit is attacking, and jointsFor sets the rate so one loop of the attack
+  // clip lasts exactly one attack period, so a fast attacker swings fast instead of holding its last pose.
   playState(state) {
     const wanted = STATE_CLIPS[chooseState(state)];
     for (const name of wanted) {
-      const played = this.play(name, { loop: chooseState(state) !== 'attack' });
+      const played = this.play(name, { loop: true });
       if (played) return played;
     }
     return this.play('idle');

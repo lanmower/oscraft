@@ -762,9 +762,11 @@ function simUnits() {
   const hps = typeof localGame.unit_hps === "function" ? localGame.unit_hps() : null;
   // Older wasm builds lack unit_attacking; their units never report an attack clip.
   const attacking = typeof localGame.unit_attacking === "function" ? localGame.unit_attacking() : null;
+  // Attack period in ticks, so an attack clip can be played at the rate the unit actually attacks.
+  const periods = typeof localGame.unit_periods === "function" ? localGame.unit_periods() : null;
   const out = [];
   for (let i = 0; i < ids.length; i++) {
-    out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1, attacking: attacking ? attacking[i] === 1 : false }));
+    out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1, attacking: attacking ? attacking[i] === 1 : false, period: periods ? periods[i] : 0 }));
   }
   return out;
 }
@@ -831,10 +833,17 @@ function jointsFor(u, mesh, dt) {
   entry.seen = true;
   entry.player.playState({ attacking: Boolean(u.attacking), moving });
   // A walk or run cycle plays at the unit's speed over the gait's own speed, so its feet keep pace with the ground.
+  // An attack plays once per attack period: the clip's own duration over the period the sim gives for this unit, so
+  // a faster attacker (items, abilities) swings faster instead of animating at the clip's fixed pace.
   const clip = entry.player.clip;
   if (clip && entry.cycle[clip.name] === undefined) entry.cycle[clip.name] = cycleSpeed(nodes, fit, clip);
   const cycle = clip ? entry.cycle[clip.name] : 0;
-  entry.player.rate = moving && !u.attacking && cycle > 0 ? Math.min(RATE_MAX, Math.max(RATE_MIN, entry.speed / cycle)) : 1;
+  const attackSeconds = u.attacking && u.period > 0 ? u.period * SIM_TICK_S : 0;
+  entry.player.rate = moving && !u.attacking && cycle > 0
+    ? Math.min(RATE_MAX, Math.max(RATE_MIN, entry.speed / cycle))
+    : attackSeconds > 0
+      ? Math.min(RATE_MAX, Math.max(RATE_MIN, clip.duration / attackSeconds))
+      : 1;
   entry.player.update(dt);
   return jointMatrices(nodes, skin, entry.player.pose() ?? EMPTY_POSE, fit, entry.joints);
 }
