@@ -1,6 +1,6 @@
 {
- "count": 3071,
- "total_bytes": 99018516,
+ "count": 3072,
+ "total_bytes": 99580404,
  "items": [
   {
    "id": "rock",
@@ -7315,6 +7315,14 @@
    "path": "models/ranged-creep-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 667840,
+   "role": "character"
+  },
+  {
+   "id": "riki-skinned",
+   "kind": "model",
+   "path": "models/riki-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 561888,
    "role": "character"
   },
   {
@@ -31924,7 +31932,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 219,
+  "character": 220,
   "creep": 5,
   "terrain": 7
  }
