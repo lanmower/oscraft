@@ -32,6 +32,14 @@ const typesPath = flag("types", "/workspace/hy3d/output/map-diff/doodad-types-w3
 const NAMED = {
   LPwb: { kind: "hay_bale", why: "a bundle of wheat, read from the editor strings" },
 };
+// Codes 6.88g mapped by inference from where they clustered, where the editor strings give a
+// different answer. Direct evidence beats a guess: a glowing brazier is not a gate, and a long fence
+// is not a fountain. A code with no declared kind for its meaning is dropped instead of stretched.
+const OVERRIDE = {
+  LObz: { kind: "torch_glowing", why: "glowing brazier (\u70bd\u70ed\u7684\u706b\u76c6) from the editor strings; 6.88g inferred iron_fence_border_gate" },
+  VOfl: { kind: "fence", why: "long fence (\u957f\u7bf1\u7b06) from the editor strings; 6.88g inferred fountain" },
+  LWw0: { kind: "", why: "waterfall (\u7011\u5e03) from the editor strings, but no declared kind is a waterfall; dropped rather than shipped as the catwalk 6.88g inferred" },
+};
 // The custom block, as the map's doodad table resolves it: each is a variant of another code. The
 // value is a rawcode, not a kind name, so it is looked up in the kinds below and ships as whatever
 // that code already ships as -- D00B is a ZPsh variant and ships as bench, because ZPsh ships as bench.
@@ -54,14 +62,23 @@ const g = new Map(rows(path.join(dir, "doodad-types-688g.tsv")).map((r) => [r.ty
 // What each code ships as: the 6.88g answer where there is one, plus the codes identified by name.
 const kindOf = new Map([...g].map(([t, r]) => [t, r.tree_rule === "tree" ? "" : r.shipped_kind]));
 for (const [code, named] of Object.entries(NAMED)) kindOf.set(code, named.kind);
+// An override also changes what a variant of that code ships as, so it goes into the lookup too.
+for (const [code, o] of Object.entries(OVERRIDE)) kindOf.set(code, o.kind);
 
 const out = ["type\tcount\ttree_rule\tname\tshipped_kind\treason"];
 let reused = 0;
 let fromParent = 0;
 let namedCount = 0;
+let overridden = 0;
 let unresolved = 0;
 let trees = 0;
 for (const r of w3) {
+  const override = OVERRIDE[r.type];
+  if (override) {
+    if (override.kind) { overridden += 1; out.push([r.type, r.count, "", "", override.kind, override.why].join("\t")); }
+    else { unresolved += 1; out.push([r.type, r.count, "", "", "", override.why].join("\t")); }
+    continue;
+  }
   const prior = g.get(r.type);
   if (prior && prior.tree_rule === "tree") {
     trees += 1;
@@ -93,6 +110,6 @@ for (const r of w3) {
 const target = path.join(dir, "doodad-types-w3.tsv");
 fs.writeFileSync(target, out.join("\n") + "\n");
 console.log(
-  `${w3.length} codes: ${reused} reused from 6.88g, ${namedCount} identified by name, ${fromParent} from the custom-code parent map, ` +
+  `${w3.length} codes: ${reused} reused from 6.88g, ${namedCount} identified by name, ${overridden} corrected from the editor strings, ${fromParent} from the custom-code parent map, ` +
     `${trees} trees (kept from 6.88g), ${unresolved} unresolved\nwritten to ${target}`,
 );

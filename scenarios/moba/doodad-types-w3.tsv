@@ -10,7 +10,7 @@ APtv	94			grass_large	6.88g mapped this code to grass_large
 ARrk	79		Rocks	rock	6.88g mapped this code to rock
 ZPfw	78		Flowers	flowers	6.88g mapped this code to flowers
 CPms	64		Mushrooms	mushrooms	6.88g mapped this code to mushrooms
-LWw0	56			catwalk_junction	6.88g mapped this code to catwalk_junction
+LWw0	56				waterfall (瀑布) from the editor strings, but no declared kind is a waterfall; dropped rather than shipped as the catwalk 6.88g inferred
 LOth	54		Torch	torch	6.88g mapped this code to torch
 B00H	40				unresolved: no name in either map's doodad table, so its placements are dropped
 B00D	34				unresolved: no name in either map's doodad table, so its placements are dropped
@@ -32,7 +32,7 @@ CSbl	11		Blocks Ruined	blocks_ruined	6.88g mapped this code to blocks_ruined
 D00A	11				unresolved: no name in either map's doodad table, so its placements are dropped
 LOfl	10		Flies	patch_dirt	6.88g mapped this code to patch_dirt
 D001	10			brazier_skull	custom code: a AObr variant, which ships as brazier_skull
-D002	10			fountain	custom code: a VOfl variant, which ships as fountain
+D002	10			fence	custom code: a VOfl variant, which ships as fence
 LOpg	10		Grave Peasant	grave_peasant	6.88g mapped this code to grave_peasant
 AWlp	9				unresolved: no name in either map's doodad table, so its placements are dropped
 D00C	8			hay_bale	custom code: a LPwb variant, which ships as hay_bale
@@ -47,7 +47,7 @@ AOnt	6			rocks	6.88g mapped this code to rocks
 D007	6			post_lantern	custom code: a LOlp variant, which ships as post_lantern
 NOfp	5		Fire Pit	fire_pit	6.88g mapped this code to fire_pit
 CPct	5		Cattail	cattail	6.88g mapped this code to cattail
-LObz	4			iron_fence_border_gate	6.88g mapped this code to iron_fence_border_gate
+LObz	4			torch_glowing	glowing brazier (炽热的火盆) from the editor strings; 6.88g inferred iron_fence_border_gate
 LOic	4		Corpse Impaled	debris_wood	6.88g mapped this code to debris_wood
 CObo	4				unresolved: no name in either map's doodad table, so its placements are dropped
 B00B	4				unresolved: no name in either map's doodad table, so its placements are dropped
@@ -77,7 +77,7 @@ NWsd	1		Ship Destroyed	ship_destroyed	6.88g mapped this code to ship_destroyed
 COhs	1				unresolved: no name in either map's doodad table, so its placements are dropped
 LOsc	1		Corpse Sitting	coffin	6.88g mapped this code to coffin
 D00M	1				unresolved: no name in either map's doodad table, so its placements are dropped
-VOfl	1			fountain	6.88g mapped this code to fountain
+VOfl	1			fence	long fence (长篱笆) from the editor strings; 6.88g inferred fountain
 B00E	1				unresolved: no name in either map's doodad table, so its placements are dropped
 ASpr	1				unresolved: no name in either map's doodad table, so its placements are dropped
 LSwm	1				unresolved: no name in either map's doodad table, so its placements are dropped
