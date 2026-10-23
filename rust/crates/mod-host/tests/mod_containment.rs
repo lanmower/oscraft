@@ -68,18 +68,28 @@ fn an_infinite_loop_in_each_other_hook_is_bounded() {
     host.load_mods(&mods(&[("spin_all.lua", spin)])).expect("loads");
     let caster = ability_unit(&mut host);
     let kind = host.sim().unit_type(caster) as u32;
+    let player = host.sim().player(caster);
+    // The victim has to be an enemy, not merely another player: the map assigns teams, and two players of the same
+    // team are allies, so a hit on them never reaches on_hit. Falls back to a start whose player is hostile.
     let victim = {
-        let found = (0..host.sim().count()).find(|&u| u != caster && host.sim().alive(u));
+        let found = (0..host.sim().count())
+            .find(|&u| u != caster && host.sim().alive(u) && host.sim().hostile(player, host.sim().player(u)));
         match found {
             Some(u) => u,
             None => {
-                let start = host.sim().catalog().starts.iter().find(|s| s.player == 1).map(|s| (s.x, s.y)).expect("player 1 has a start");
-                let spawned = host.sim_mut().spawn_for(1, kind, start.0, start.1);
+                let start = host
+                    .sim()
+                    .catalog()
+                    .starts
+                    .iter()
+                    .find(|s| host.sim().hostile(player, s.player))
+                    .map(|s| (s.player, s.x, s.y))
+                    .expect("a start belongs to a player hostile to the caster");
+                let spawned = host.sim_mut().spawn_for(start.0, kind, start.1, start.2);
                 spawned.expect("a victim spawns")
             }
         }
     };
-    let player = host.sim().player(caster);
     host.sim_mut().damage_target(caster as i32, player, 100, victim as i32);
     host.advance().expect("the hit tick completes");
     assert!(is_disabled(&host, "spin_all:on_hit"), "on_hit is off: {:?}", host.disabled_hooks());
