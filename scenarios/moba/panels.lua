@@ -86,6 +86,32 @@ local function button(text, call, args, disabled)
   return node("button", with({ S("text", text), S("call", call), R("args", args or "{}") }, disabled and B("disabled", true) or nil))
 end
 local function grid(cols, kids) return node("grid", { I("cols", cols), R("kids", arr(kids)) }) end
+-- A pack image. The page resolves the src and drops the node when the file is not there, so an icon
+-- that has not been generated yet costs nothing and never shows a broken frame.
+local function image(src, size, alt)
+  return node("image", with({ S("src", src), I("size", size or 64) }, alt and S("alt", alt) or nil))
+end
+
+-- Hero name -> the model it draws with, so a panel can name the icon that goes with it: the icons are
+-- authored per model (icons/heroes/<model>.png), not per hero name.
+local HERO_MODEL = nil
+local function hero_model(name)
+  if HERO_MODEL == nil then
+    HERO_MODEL = {}
+    for _, k in ipairs(game.unit_kinds()) do
+      if k.player_controlled and k.model ~= "" then HERO_MODEL[k.name] = k.model end
+    end
+  end
+  return HERO_MODEL[name]
+end
+
+-- The hero's icon, or nil when this hero has no model and so no icon was authored for it.
+local function hero_icon(name, size)
+  local model = hero_model(name)
+  if model == nil then return nil end
+  return image("icons/heroes/" .. model .. ".png", size or 48, name)
+end
+
 local function cell(kids, opts)
   opts = opts or {}
   local f = {}
@@ -455,7 +481,8 @@ local function select_tree()
     info[#info + 1] = label(TEXT.manaLabel .. " " .. tostring(game.max_mana(primary)))
     info[#info + 1] = bar(game.mana(primary), game.max_mana(primary), "mp")
   end
-  local kids = { box({ cell({ label(face, "accent") }, { tone = "face" }), box(info, "col") }, "row") }
+  local portrait = hero and hero_icon(name, 56) or nil
+  local kids = { box({ cell(with({ label(face, "accent") }, portrait), { tone = "face" }), box(info, "col") }, "row") }
   if hero and unit_player(primary) == LOCAL then
     local abilities = {}
     for _, a in ipairs(game.unit_abilities(primary)) do abilities[a.slot] = a end
@@ -686,8 +713,9 @@ local function lobby_seat(i)
       heroes[#heroes + 1] = button(text, "pick", obj({ I("slot", slot0), S("hero", h) }), s.ready)
     end
     local ready_text = s.ready and TEXT.lobby.unready or TEXT.lobby.ready
+    local picked = s.hero and hero_icon(s.hero, 48) or nil
     return box({
-      label(head .. " " .. (s.hero or TEXT.lobby.pickHero), "strong"),
+      box(with({ label(head .. " " .. (s.hero or TEXT.lobby.pickHero), "strong") }, picked), "row"),
       grid(4, heroes),
       box({
         button(ready_text, "ready", obj({ I("slot", slot0), B("ready", not s.ready) }), not s.ready and s.hero == nil),
