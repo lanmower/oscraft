@@ -1,6 +1,6 @@
 {
- "count": 3067,
- "total_bytes": 96236260,
+ "count": 3068,
+ "total_bytes": 96959232,
  "items": [
   {
    "id": "rock",
@@ -7283,6 +7283,14 @@
    "path": "models/treant-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 612280,
+   "role": "character"
+  },
+  {
+   "id": "ursa-skinned",
+   "kind": "model",
+   "path": "models/ursa-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 722972,
    "role": "character"
   },
   {
@@ -31892,7 +31900,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 215,
+  "character": 216,
   "creep": 5,
   "terrain": 7
  }
