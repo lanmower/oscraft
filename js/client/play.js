@@ -1825,6 +1825,18 @@ session.addEventListener("data", (e) => {
     const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
     if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
     if (!swapIsNew(lastApplied ? lastApplied.tick : null, frame.tick)) { refuseSwap(`tick ${frame.tick} is not after the applied tick ${lastApplied.tick}`, e.detail.peerPubkey, frame.file); return; }
+    // A second announce while one is still pending used to replace pendingSwap silently: the first
+    // image was dropped mid-fetch and this page would apply only the later one, while the host, which
+    // refuses a second announce of its own, applied the earlier tick. Refuse instead and say so, so
+    // the host fails this swap for everyone rather than having peers apply different modules.
+    if (pendingSwap) {
+      refuseSwap(`swap already pending for ${pendingSwap.file} at tick ${pendingSwap.tick}, so ${frame.file} at tick ${frame.tick} is refused`, e.detail.peerPubkey, frame.file);
+      if (!hosting && hostKey !== null) {
+        try { sendTo(hostKey, encodeFrame({ type: FRAME.SWAP_NOT_READY, tick: frame.tick, hash: frame.hash })); }
+        catch (err) { console.warn(`[swap] not-ready report not sent: ${err.message}`); }
+      }
+      return;
+    }
     const kind = packKindOf(frame.file);
     const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, kind, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
     pendingSwap = swap;
