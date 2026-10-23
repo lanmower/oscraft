@@ -1,6 +1,6 @@
 {
- "count": 3070,
- "total_bytes": 98350676,
+ "count": 3071,
+ "total_bytes": 99018516,
  "items": [
   {
    "id": "rock",
@@ -7307,6 +7307,14 @@
    "path": "models/viper-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 475636,
+   "role": "character"
+  },
+  {
+   "id": "ranged-creep-skinned",
+   "kind": "model",
+   "path": "models/ranged-creep-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 667840,
    "role": "character"
   },
   {
@@ -31916,7 +31924,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 218,
+  "character": 219,
   "creep": 5,
   "terrain": 7
  }

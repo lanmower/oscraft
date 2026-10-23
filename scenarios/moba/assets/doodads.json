@@ -1026,5 +1026,6 @@
   "treant_skinned": "models/treant-skinned.glb",
   "ursa_skinned": "models/ursa-skinned.glb",
   "melee_creep_skinned": "models/melee-creep-skinned.glb",
-  "viper_skinned": "models/viper-skinned.glb"
+  "viper_skinned": "models/viper-skinned.glb",
+  "ranged_creep_skinned": "models/ranged-creep-skinned.glb"
 }
