@@ -210,6 +210,13 @@ const HY3D_MODEL = {
   sven: "sven-skinned",
   tiny: "tiny-skinned",
   visage: "visage-skinned",
+  abyssal_underlord: "abyssal-underlord-skinned",
+  dark_willow: "dark-willow-skinned",
+  elder_titan: "elder-titan-skinned",
+  monkey_king: "monkey-king-skinned",
+  nyx_assassin: "nyx-assassin-skinned",
+  primal_beast: "primal-beast-skinned",
+  treant: "treant-skinned",
 };
 
 const osd = [

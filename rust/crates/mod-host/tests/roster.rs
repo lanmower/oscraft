@@ -32,6 +32,6 @@ fn only_heroes_with_a_model_are_offered() {
     assert!(heroes > offered, "some heroes have no model: {heroes} heroes, {offered} offered");
     // 25 skinned heroes, plus the 29 and then 10 from the hy3d batches, plus the 6 wired in 3cc15e20
     // (windrunner, witch_doctor, warlock, venomancer, shadow_demon, winter_wyvern) — units_heroes.osd
-    // model fields. Rises again as the 57 heroes still without a model are generated and wired.
-    assert_eq!(offered, 111, "the skinned heroes are the ones offered");
+    // model fields. Rises again as the 9 heroes still without a model are generated and wired.
+    assert_eq!(offered, 118, "the skinned heroes are the ones offered");
 }
