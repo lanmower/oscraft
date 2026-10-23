@@ -793,5 +793,13 @@
  "post-sign": 0.251,
  "rowboat-destroyed": 0.864,
  "ship-destroyed": 0.746,
- "standard": 0.231
+ "standard": 0.231,
+ "brazier-skull": 0.194,
+ "lily-pad": 1.298,
+ "blocks-ruined": 0.35,
+ "cauldron-with-heads": 0.334,
+ "post-lantern": 0.103,
+ "fire-pit": 1.296,
+ "fissure": 0.157,
+ "fish-school": 0.237
 }

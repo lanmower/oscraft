@@ -178,6 +178,7 @@ doodad_kinds([
     "flowers", "remains_scorched", "skull_pile", "torch", "torch_glowing",
     "mushrooms", "cattail", "banner_tutorial_orc", "lily_pads_floating", "ltrc", "fish_green",
     "broken_column", "grave_peasant", "fire_pit_with_pig", "tombstone",
-    "post_sign", "rowboat_destroyed", "ship_destroyed", "standard"])
+    "post_sign", "rowboat_destroyed", "ship_destroyed", "standard",
+    "brazier_skull", "lily_pad", "blocks_ruined", "cauldron_with_heads", "post_lantern", "fire_pit", "fissure", "fish_school"])
 
 item_tags(["home", "side", "secret"])

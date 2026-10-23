@@ -924,5 +924,13 @@
   "post_sign": "models/post-sign.glb",
   "rowboat_destroyed": "models/rowboat-destroyed.glb",
   "ship_destroyed": "models/ship-destroyed.glb",
-  "standard": "models/standard.glb"
+  "standard": "models/standard.glb",
+  "brazier_skull": "models/brazier-skull.glb",
+  "lily_pad": "models/lily-pad.glb",
+  "blocks_ruined": "models/blocks-ruined.glb",
+  "cauldron_with_heads": "models/cauldron-with-heads.glb",
+  "post_lantern": "models/post-lantern.glb",
+  "fire_pit": "models/fire-pit.glb",
+  "fissure": "models/fissure.glb",
+  "fish_school": "models/fish-school.glb"
 }
