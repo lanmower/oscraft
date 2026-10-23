@@ -234,6 +234,22 @@ local function cast_now(hero, slot, target, x, z)
   game.cmd_cast(hero, slot, target, fx(x), fx(z))
 end
 
+-- A cast the sim would refuse for range, refused here instead so the page can say why: cmd_cast only
+-- queues the command and never answers, so a refusal the sim makes reaches nobody. cast_range is milli
+-- (one reference unit is 15.625 milli) and positions are Q16.16. An ability that declares no range is
+-- never refused here -- the sim decides those.
+local function out_of_range(hero, name, x, z, target)
+  local ext = ability_ext(name)
+  local reach = ext and ext.cast_range or 0
+  if reach <= 0 then return false end
+  local hx, hz = unit_position(hero)
+  local tx, tz = fx(x), fx(z)
+  if target ~= nil and target >= 0 then tx, tz = unit_position(target) end
+  local dx, dz = tx - hx, tz - hz
+  local limit = config.milli(reach)
+  return dx * dx + dz * dz > limit * limit
+end
+
 -- A cast key: a point or unit ability arms until the next left click; any other casts at once at the pointer.
 local function cast_key(who, slot, wx, wz)
   local hero = hero_selected(who)
@@ -249,6 +265,7 @@ local function cast_key(who, slot, wx, wz)
     return arm(who, { item = false, slot = slot, kind = "point", radius = 0 })
   end
   local hit = pick(wx, wz)
+  if out_of_range(hero, a.name, wx, wz, hit and hit.id or -1) then return refuse(who, "range") end
   cast_now(hero, slot, hit and hit.id or -1, wx, wz)
 end
 
@@ -283,6 +300,8 @@ local function resolve_armed(who, x, z)
     return
   end
   if ability_of(hero, a.slot) == nil then return refuse(who, "noAbility") end
+  local named = ability_of(hero, a.slot)
+  if out_of_range(hero, named.name, x, z, hit and hit.id or -1) then return refuse(who, "range") end
   cast_now(hero, a.slot, hit and hit.id or -1, x, z)
 end
 

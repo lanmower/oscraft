@@ -1151,6 +1151,27 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         Ok(CallbackReturn::Return)
     });
 
+    // The per-ability extension, so a mod can refuse a cast the sim would refuse instead of asking and
+    // hearing nothing: cast_range is the distance the caster must already be within, cast_point the hold
+    // before the ability fires, charges how many casts it holds. Zero where the ability declares none.
+    native!(ctx, env, "ability_ext", [sh], |c, s| {
+        let name = text(c, s.get(0), 0)?;
+        let sh = sh.borrow();
+        let cat = sh.sim.catalog();
+        let index = cat.abilities.iter().position(|a| cat.name(a.name) == name).ok_or_else(|| fail(c, format!("unknown_ability: {name}")))?;
+        let ext = cat.ext.get(index).copied().unwrap_or_default();
+        let t = Table::new(&c);
+        t.set(c, "cast_range", i64::from(ext.cast_range)).expect("row");
+        t.set(c, "cast_point", i64::from(ext.cast_point)).expect("row");
+        t.set(c, "period", i64::from(ext.period)).expect("row");
+        t.set(c, "chance", i64::from(ext.chance)).expect("row");
+        t.set(c, "charges", i64::from(ext.charges)).expect("row");
+        t.set(c, "charge_restore", i64::from(ext.charge_restore)).expect("row");
+        t.set(c, "flags", i64::from(ext.flags)).expect("row");
+        s.replace(c, t);
+        Ok(CallbackReturn::Return)
+    });
+
     native!(ctx, game, "cmd_spawn", [sh], |c, s| {
         let kind = text(c, s.get(0), 0)?;
         let (x, y) = (fixed(a(c, &s, 1)?).map_err(|m| fail(c, m))?, fixed(a(c, &s, 2)?).map_err(|m| fail(c, m))?);
