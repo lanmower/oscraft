@@ -251,6 +251,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u32_le(&mut doda, doodad.x);
         u32_le(&mut doda, doodad.y);
         u32_le(&mut doda, doodad.rotation);
+        u32_le(&mut doda, doodad.scale);
         debug_assert_eq!(doda.len() - start, DODA_RECORD);
     }
 

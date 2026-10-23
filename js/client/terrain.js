@@ -4,7 +4,8 @@
 const HEADER_LEN = 16;
 const SECTION_ENTRY_LEN = 16;
 const GRID_HEADER_LEN = 16;
-const DODA_RECORD = 20;
+// id u32, kind u16, pad u16, x u32, y u32, rotation u32, scale u32 (thousandths; 1000 is 1.0)
+const DODA_RECORD = 24;
 // Ground texture repeats: one 128px tile covers four cells, so the shipped ground patch stays readable at unit scale.
 export const GROUND_UV_PER_CELL = 0.25;
 
@@ -50,6 +51,7 @@ export function readDoodads(bytes) {
       x: view.getUint32(at + 8, true),
       y: view.getUint32(at + 12, true),
       rotation: view.getUint32(at + 16, true),
+      scale: view.getUint32(at + 20, true),
     });
   }
   return placements;

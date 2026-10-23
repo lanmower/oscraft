@@ -1,7 +1,8 @@
 //! Layout constants and registries shared with the sim loader. See FORMAT.md.
 
 pub const MAGIC: [u8; 4] = *b"OSDT";
-pub const VERSION: u16 = 25;
+// 26 adds the per-instance scale of a doodad (doodad(..., scale=<milli>)), which the 6.88g records carry.
+pub const VERSION: u16 = 26;
 pub const PLCE_FLAG_START: u32 = 1;
 /// A start record that names its team: the team index sits in bits 8..16 of the flags.
 pub const PLCE_FLAG_TEAM: u32 = 2;
@@ -102,7 +103,7 @@ pub const ACHN_RECORD: usize = 8;
 pub const RSCH_RECORD: usize = 32;
 pub const PREQ_RECORD: usize = 8;
 pub const DMGF_RECORD: usize = 8;
-pub const DODA_RECORD: usize = 20;
+pub const DODA_RECORD: usize = 24;
 pub const GRID_RECORD: usize = 1;
 pub const ITEM_RECORD: usize = 192;
 /// Recipe components one item may name.

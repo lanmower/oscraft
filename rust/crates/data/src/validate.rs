@@ -554,6 +554,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             x: raw.x as u32,
             y: raw.y as u32,
             rotation: raw.rotation as u32,
+            scale: raw.scale as u32,
         });
     }
 

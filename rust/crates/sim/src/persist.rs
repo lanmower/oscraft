@@ -36,7 +36,8 @@ const MAGIC: &[u8; 4] = b"OSSV";
 /// Version 41 adds the per-unit magical damage kept (the magic resistance moved to the pack). Version 40 saves are refused.
 /// Version 42 adds the per-unit damage kept through the damage reduction stat and through the damage response (both moved
 /// to the pack). Version 41 saves are refused.
-const STATE_VERSION: u16 = 42;
+// 43 adds a doodad's per-instance scale to the saved state.
+const STATE_VERSION: u16 = 43;
 
 /// Every refusal in discriminant order, so a saved code maps back to its variant.
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
@@ -442,6 +443,7 @@ impl Sim {
             put_i32(&mut w, d.x);
             put_i32(&mut w, d.y);
             put_i32(&mut w, d.rotation);
+            put_i32(&mut w, d.scale);
         }
         put_u64(&mut w, self.log_len as u64);
         put_u64(&mut w, self.log_dropped);
@@ -649,7 +651,7 @@ impl Sim {
 
         r.u32s_into(&mut next.last_hit)?;
         let doodad_count = r.u64()? as usize;
-        if doodad_count > bytes.len() / 18 {
+        if doodad_count > bytes.len() / 22 {
             return Err(StateError::Length);
         }
         next.doodads = Vec::with_capacity(doodad_count);
@@ -659,7 +661,8 @@ impl Sim {
             let x = r.i32()?;
             let y = r.i32()?;
             let rotation = r.i32()?;
-            next.doodads.push(crate::loader::Doodad { id, kind, x, y, rotation });
+            let scale = r.i32()?;
+            next.doodads.push(crate::loader::Doodad { id, kind, x, y, rotation, scale });
         }
         let log_len = r.u64()? as usize;
         if log_len > ORDER_LOG_CAP {

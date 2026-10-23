@@ -10,7 +10,7 @@ use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 25;
+const VERSION: u16 = 26;
 const NEUTRAL_PLAYER: u8 = 0xFF;
 const PLACE_START: u32 = 1;
 const PLACE_TEAM: u32 = 2;
@@ -24,7 +24,8 @@ const CELL_BITS: u8 = 0b111;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 27] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT", b"TUNE", b"SNAM", b"EKND", b"FNAM", b"MCND", b"DKND"];
-const RECORD_SIZES: [usize; 27] = [1, 20, 32, 2, 86, 16, 16, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520, 12 + XP_CURVE_LEN * 4, 1, 1, 1, 1, 1];
+// Index 15 is the doodad table: 24 bytes since v26 added its per-instance scale.
+const RECORD_SIZES: [usize; 27] = [1, 20, 32, 2, 86, 16, 16, 12, 4, 32, 48, 8, 32, 8, 8, 24, 1, 192, 72, 256, 520, 12 + XP_CURVE_LEN * 4, 1, 1, 1, 1, 1];
 /// Most teleport landing points a ring holds: the eight compass directions the teleport effect steps through.
 const TELEPORT_RING_MAX_POINTS: u8 = 8;
 /// Most cells a structure scan reaches past weapon range.
@@ -376,6 +377,8 @@ pub struct Doodad {
     pub y: i32,
     /// Milli-turns, 0..1000.
     pub rotation: i32,
+    /// Uniform scale in thousandths: 1000 is 1.0 (the 6.88g records carry one per placement).
+    pub scale: i32,
 }
 
 /// An item (ITEM). The bonuses are added to the buyer's stats when the item enters the inventory;
@@ -1252,8 +1255,10 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let x = ddr.i32("doodad x")?;
         let y = ddr.i32("doodad y")?;
         let rotation = ddr.i32("doodad rotation")?;
+        let scale = ddr.i32("doodad scale")?;
         if kind as usize >= names.doodad_kinds.len()
             || !(0..1000).contains(&rotation)
+            || !(1..=100000).contains(&scale)
             || x < 0
             || y < 0
             || x as i64 >= w as i64 * CELL_MILLI as i64
@@ -1264,7 +1269,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if doodads.iter().any(|d| d.id == id) {
             return Err(LoadError::Range("doodad id repeats"));
         }
-        doodads.push(Doodad { id, kind, x, y, rotation });
+        doodads.push(Doodad { id, kind, x, y, rotation, scale });
     }
 
     let (io, ic) = body(17);

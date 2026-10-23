@@ -2003,7 +2003,9 @@ function addDoodadKind(code, base, lowBase, list) {
     const x = p.x * s;
     const z = p.y * s;
     const angle = (p.rotation / 1000) * 2 * Math.PI + placementHash(p.x, p.y, 1) * 2 * Math.PI;
-    const k = 0.85 + 0.3 * placementHash(p.x, p.y, 2);
+    // Per-instance scale from the 6.88g record (thousandths, 1000 is 1.0). It replaces the hash jitter
+    // that stood in for it: 88% of the records are not 1.0, so the data carries the variation itself.
+    const k = (p.scale > 0 ? p.scale : 1000) / 1000;
     const variant = Math.floor(placementHash(p.x, p.y, 3) * DOODAD_TINTS.length);
     placedDoodads.push({
       kind: p.kind,

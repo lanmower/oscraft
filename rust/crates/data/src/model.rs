@@ -141,6 +141,8 @@ pub struct DoodadRaw {
     pub x: i32,
     pub y: i32,
     pub rotation: i32,
+    /// Uniform scale in thousandths: 1000 is 1.0. The 6.88g records carry one per placement.
+    pub scale: i32,
 }
 
 #[derive(Debug)]
@@ -468,6 +470,8 @@ pub struct Doodad {
     pub x: u32,
     pub y: u32,
     pub rotation: u32,
+    /// Uniform scale in thousandths: 1000 is 1.0.
+    pub scale: u32,
 }
 
 #[derive(Debug)]

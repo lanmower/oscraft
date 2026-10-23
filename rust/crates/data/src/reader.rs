@@ -299,8 +299,10 @@ pub fn verify(image: &[u8]) -> Result<()> {
         let x = u32_at(image, at + 8)? as i64;
         let y = u32_at(image, at + 12)? as i64;
         let rotation = u32_at(image, at + 16)?;
+        let scale = u32_at(image, at + 20)?;
         ensure!(kind < doodad_kinds.len(), "doodad {i} kind out of range");
         ensure!(rotation < 1000, "doodad {i} rotation is 1000 or more");
+        ensure!(scale > 0 && scale <= 100000, "doodad {i} scale {scale} is out of range");
         ensure!(doodad_ids.insert(id), "doodad id {id} repeats");
         ensure!(position_on_grid(x, y, width, height, cell_milli), "doodad {i} is off the grid");
     }

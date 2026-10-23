@@ -749,11 +749,17 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         x: i32,
         y: i32,
         #[starlark(require = named)] rotation: Option<i32>,
+        #[starlark(require = named)] scale: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let kind = list_index(&collector(eval)?.names.borrow().doodad_kinds, kind, "doodad kind")?;
         if id < 0 {
             bail!("doodad id {id} is negative");
+        }
+        // Scale is in thousandths, so 1100 is 1.10: the unit the 6.88g doo records use.
+        let scale = scale.unwrap_or(1000);
+        if scale <= 0 || scale > 100000 {
+            bail!("doodad id {id} scale {scale} is out of range: 1..100000 thousandths");
         }
         collector(eval)?.doodads.borrow_mut().push(DoodadRaw {
             id,
@@ -761,6 +767,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             x,
             y,
             rotation: rotation.unwrap_or(0),
+            scale,
         });
         Ok(NoneType)
     }
