@@ -6,7 +6,7 @@ D00B	287			bench	custom code: a ZPsh variant, which ships as bench
 ZPsh	197			bench	6.88g mapped this code to bench
 CObl	145		Blighted Mist	patch_dirt	6.88g mapped this code to patch_dirt
 CRrk	94			cart_high	6.88g mapped this code to cart_high
-APtv	94			grass_large	6.88g mapped this code to grass_large
+APtv	94			hedge	thorny vines from the English editor strings; no vine kind is declared, so hedge is the nearest declared kind (6.88g inferred grass_large)
 ARrk	79		Rocks	rock	6.88g mapped this code to rock
 ZPfw	78		Flowers	flowers	6.88g mapped this code to flowers
 CPms	64		Mushrooms	mushrooms	6.88g mapped this code to mushrooms
@@ -43,7 +43,7 @@ APct	7				unresolved: no name in either map's doodad table, so its placements ar
 CRfs	7				unresolved: no name in either map's doodad table, so its placements are dropped
 LPwh	7			grass_large	6.88g mapped this code to grass_large
 AObd	6		Birds	patch_dirt	6.88g mapped this code to patch_dirt
-AOnt	6			rocks	6.88g mapped this code to rocks
+AOnt	6			lantern	totem lantern from the English editor strings; 6.88g inferred rocks
 D007	6			post_lantern	custom code: a LOlp variant, which ships as post_lantern
 NOfp	5		Fire Pit	fire_pit	6.88g mapped this code to fire_pit
 CPct	5		Cattail	cattail	6.88g mapped this code to cattail

@@ -36,6 +36,11 @@ const NAMED = {
 // different answer. Direct evidence beats a guess: a glowing brazier is not a gate, and a long fence
 // is not a fountain. A code with no declared kind for its meaning is dropped instead of stretched.
 const OVERRIDE = {
+  APms: { kind: "mushrooms", why: "mushrooms from the English editor strings; 6.88g inferred grass_large" },
+  AOnt: { kind: "lantern", why: "totem lantern from the English editor strings; 6.88g inferred rocks" },
+  APtv: { kind: "hedge", why: "thorny vines from the English editor strings; no vine kind is declared, so hedge is the nearest declared kind (6.88g inferred grass_large)" },
+  AOgs: { kind: "", why: "statue from the English editor strings, but no statue kind is declared; dropped rather than shipped as the fountain 6.88g inferred" },
+
   LObz: { kind: "torch_glowing", why: "glowing brazier (\u70bd\u70ed\u7684\u706b\u76c6) from the editor strings; 6.88g inferred iron_fence_border_gate" },
   VOfl: { kind: "fence", why: "long fence (\u957f\u7bf1\u7b06) from the editor strings; 6.88g inferred fountain" },
   LWw0: { kind: "", why: "waterfall (\u7011\u5e03) from the editor strings, but no declared kind is a waterfall; dropped rather than shipped as the catwalk 6.88g inferred" },
