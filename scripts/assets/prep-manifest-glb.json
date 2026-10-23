@@ -6517,6 +6517,62 @@
       "afterBytes": 71044,
       "source": "90e492d923c9a8d376b00bd772d09ff5a10858a03d9af9eaa0275f9950a935cb",
       "at": "2026-10-22T20:57:28.315Z"
+    },
+    "scenarios/moba/assets/models/brazier-skull.glb": {
+      "sha256": "5289707e19aa1e8bb323c5650ba307c55f95385d6eeddecdd7f6079c9de6838c",
+      "bytes": 406464,
+      "afterBytes": 240244,
+      "source": "4eaf921c7dae9a8f23067f551ee3af8533ffed0f01d0cbb747332e6d01e9c72c",
+      "at": "2026-10-23T04:53:15.761Z"
+    },
+    "scenarios/moba/assets/models/lily-pad.glb": {
+      "sha256": "c6137b0fac9f952bc4b823eb75226d03dd23a096e09d1dcfe7f8368cf62d5cff",
+      "bytes": 190808,
+      "afterBytes": 118056,
+      "source": "e9d04639fecdef6e9e3439d4296436ac55d4d3fd8862ab72e059fe282c4c18b2",
+      "at": "2026-10-23T04:53:15.928Z"
+    },
+    "scenarios/moba/assets/models/blocks-ruined.glb": {
+      "sha256": "7f3b283c691525f533073c57cd73dba4be700ee63dbcd037e83d77ec24f177c4",
+      "bytes": 272684,
+      "afterBytes": 165484,
+      "source": "653db8059138741d266675407ea41c33e767d597ffe892735440ce409572b51a",
+      "at": "2026-10-23T04:53:16.104Z"
+    },
+    "scenarios/moba/assets/models/cauldron-with-heads.glb": {
+      "sha256": "b50e5c259bd8fba9b798f8fb55e3057112f6aa15011637af014a1cddb807b2f7",
+      "bytes": 296684,
+      "afterBytes": 177844,
+      "source": "1bf68565c88d071c3db0259c2294c4df24db8a8d28788d779223535624da9f30",
+      "at": "2026-10-23T04:53:16.271Z"
+    },
+    "scenarios/moba/assets/models/post-lantern.glb": {
+      "sha256": "4da3e6f02820cae7772ab6c5dd64fe7f57ffbbf67da5782f49eb763a5dfbc49f",
+      "bytes": 88428,
+      "afterBytes": 53164,
+      "source": "49653507992fc78612a3cb8c16ca4f2a50ba8ee483a50832ba20be1faa92d6c6",
+      "at": "2026-10-23T04:53:16.431Z"
+    },
+    "scenarios/moba/assets/models/fire-pit.glb": {
+      "sha256": "8a0f07090e3b9e86b443b03057a9b722c3dae677f84d5ffd7fee75f9146aeca8",
+      "bytes": 422268,
+      "afterBytes": 229488,
+      "source": "6fbbaf5c277112a12cade5c5016c7fc49ee7be8591ec3dd5a0b128373dcadef0",
+      "at": "2026-10-23T04:53:16.599Z"
+    },
+    "scenarios/moba/assets/models/fissure.glb": {
+      "sha256": "cb9690d408d0113666043078ecdd7a5965ce6d4a750798284c7e5b69060fa388",
+      "bytes": 92108,
+      "afterBytes": 55000,
+      "source": "4f045bcac8b5e7b032ee01b1ee89d39564aa7707123f1aaf7fc77ee30761d7dc",
+      "at": "2026-10-23T04:53:16.751Z"
+    },
+    "scenarios/moba/assets/models/fish-school.glb": {
+      "sha256": "7b6f9d8c18ac6d8bae82c5187e0ecbee38274ca9f65171c71e364e253b75025e",
+      "bytes": 118788,
+      "afterBytes": 74152,
+      "source": "65b8053911c3e7748d7b01aded727ca5a70539c7d38664192fe714fd0f5b2876",
+      "at": "2026-10-23T04:53:16.902Z"
     }
   }
 }

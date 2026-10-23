@@ -1,0 +1,1390 @@
+** PLANNED FOR AFTER DOTA PARITY WORK **
+
+# 6.88 Brainrot: Complete Game Bible
+
+Oct 19, 2026 · @Admin
+
+This bible specifies a complete 5v5 MOBA on the 6.88c rule set, with the Brainrot remix layered on top. Every system below has a number, a rule and a reason.
+
+## 1. Scope
+
+The baseline is a classic MOBA rule set. Every system is either part of this baseline or listed as a Brainrot original.
+
+| Core rules | Brainrot originals |
+| --- | --- |
+| Level cap 25 | Clout (signature resource) |
+| Ultimates unlock at 6, 11, 16 | Go Viral |
+| Four abilities, three attributes | Stan (creep buff) |
+| Lanes, towers, barracks, Ancient | Ratio (death transfer) |
+| Roshan-analog objective with Aegis-analog | Repost chain |
+| Courier, shops, wards, day/night | Rebrand (buyback) |
+| Scepter-style ultimate upgrade | Go Private (glyph) |
+| Attribute stat rules | The Trend and Screenshot |
+| Gold, XP, bounties | Parasocial tether |
+
+Remix policy: a Brainrot original may only sit in the slot of a 6.88c system (see section 2). It may add a decision. It may not add a new resource that nobody can read. Numbers marked verify are set in the balance pass.
+
+## 2. Vision and pillars
+
+6.88 Brainrot is a caricature MOBA. Every hero, item and creep is drawn to be read at a glance, and rewards a second look. The game runs on a classic MOBA decision set. The jokes ride on top of it.
+
+Four rules every system must pass:
+
+1. **Readable.** A player can tell what a unit or item does from its silhouette and color, without reading text.
+2. **Decisive.** Each system creates a choice with a cost on each side.
+3. **Mapped.** Each system holds the job of a classic system (table below). A system needs a classic job to earn its place.
+4. **Off the read path.** Jokes live in tooltips, announcers, idle animations and marginalia. They never hide a gameplay signal.
+
+| Classic job | Brainrot system | Decision it creates |
+| --- | --- | --- |
+| Last hitting | Engagement farming: +1 Clout when in enemy hero vision | Farm in fog for gold, or in sight for gold, Clout and risk |
+| Denying | Ratio deny: takes 0.5 Clout from the nearest enemy hero watching the creep | Contest the creep for gold, or drain enemy Clout |
+| Vision and wards | Audience: enemy heroes give Clout. Enemy wards reveal, earn nothing. | Warding reveals the enemy at no Clout cost |
+| Creep wave pressure | Stan: allied creeps inside Reach gain damage and armor | Stand with the wave to push, or rotate and lose the buff |
+| Map pressure, rotation | Go Viral: 20 s spike with global reveal | Spend the spike on a siege, or hold it as a threat |
+| Roshan and Aegis | The Trend and Screenshot | Contest the pit, or trade it for towers |
+| Patch meta | Trend modifiers, rotating each patch | Draft and itemize for the modifier |
+| Teamfight chain | Repost chain | Group to chain the buff, or spread against AoE |
+| Comeback gold | Ratio transfer on death | A leader cannot take risky fights for free |
+| Glyph | Go Private: buildings invulnerable 5 s, 5 min cooldown | Timing of the emergency button in a siege |
+| Buyback | Rebrand: costs gold, resets Clout to 0 | Respawn now with no Clout, or wait with Clout intact |
+| Support tether | Parasocial tether: 20% of an ally's Clout is shared | Stan the carry for safety, or the roamer for pressure |
+
+## 3. Core loop and win condition
+
+Two teams of five. Each team defends a base, a set of lanes, and an Ancient. Destroying the enemy Ancient wins the match.
+
+### Lanes and structures
+
+| Structure | Per side | Rule |
+| --- | --- | --- |
+| Tier 1 tower | 3 (one per lane) | Armor aura for allied heroes: +1 |
+| Tier 2 tower | 3 | Armor aura: +3. Invulnerable until its T1 falls. |
+| Tier 3 tower | 3 | Armor aura: +3. Damage equal to T2. |
+| Tier 4 towers | 2 (at the Ancient) | Invulnerable until both T3s on the lane fall |
+| Barracks | 6 (melee and ranged, per lane) | A lane with its barracks down spawns Super creeps |
+| All six barracks down | n/a | Mega creeps spawn for both lanes until a barracks respawns |
+| Ancient | 1 | Invulnerable until both T4s fall. Destroying it wins. |
+
+- Tower HP: T1 1,300, T2 1,600, T3 1,600, T4 2,200. Gold per tower: 160, 200, 240, 280.
+- Towers regenerate and take reduced damage when no enemy creeps are nearby (backdoor protection).
+- Glyph of Fortification (Go Private, see section 11): makes all team buildings invulnerable for 5 s. Cooldown 5 min. It refreshes when a T1 falls.
+
+### Creep waves
+
+- A wave spawns every 30 s: three melee and one ranged per lane.
+- A siege creep joins every fifth wave.
+- Creeps upgrade every 7.5 min: +12 HP and +2 gold per upgrade.
+- Aggro: attacking an enemy hero draws nearby creeps for 2.5 s, with a 2.5 s cooldown.
+
+### Match flow
+
+1. Draft (section 14). Players spawn at the Fountain. Creeps spawn at 0:00.
+2. Laning, 0:00 to about 10:00. Farm, deny, trade, ward.
+3. Rotations and objectives. The Trend opens at about 10:00 (section 12).
+4. Pushing. Break T1s, then T2s and T3s, then barracks.
+5. Ancient. The team that breaks the Ancient wins.
+
+Surrender rule: at 30 minutes, a team can vote to surrender with 4 of 5 players agreeing. Voting resets after each failed vote, and a vote is open once per 5 minutes.
+
+## 4. Map
+
+The map is two halves split by a river. Each half holds three lanes, a jungle and a base.
+
+### Bases
+
+- **Morning Feed** (ally): light value, sunrise palette. The river is the Feed, with slow caustics.
+- **Late Night Feed** (enemy): dark value, screen glow.
+- Each base holds the Fountain, a main shop at the Fountain, one Secret Shop, two Side Shops (one per lane), and a Trending Pit.
+
+### Lanes
+
+Three lanes per team: top, mid and bottom. Lane assignment by role is in section 14. Side Shops sit at the lane mouths and sell basic components (Blight Stone, Wind Lace equivalents).
+
+### River
+
+- The river splits the map. It holds the two rune spots and the Trend pit.
+- Two rune spots on the river. Runes spawn every 2 min (section 12).
+- Shallow crossings let heroes cross the river at fixed points only.
+
+### Jungle
+
+Each team has a primary and a secondary jungle.
+
+| Jungle | Camps | Stack rule |
+| --- | --- | --- |
+| Primary | 2 hard, 2 medium, 1 small | Pulled camps respawn on the minute |
+| Secondary | 1 hard, 1 ancient | Ancients are magic-resistant, not spell-immune (see section 12) |
+| Near Secret Shop | 1 hard | Guards the Secret Shop approach |
+
+Jungle creature names are in section 12.
+
+### Structure list
+
+Towers, barracks, Ancient and Fountain are in section 3. Shops are in section 11. Wards are in section 13.
+
+### Map props and marginalia
+
+Out-of-bounds marginalia (ten static vignettes) sit on the map edge. They never block movement and never hide a unit. Full list in section 18.
+
+## 5. Economy
+
+There are three currencies: gold (spent), XP (levels), and Clout (section 6, a Brainrot original). Gold is split into reliable gold (kills, towers, Roshan-analog, bounties) and unreliable gold (creep income). Dying loses only unreliable gold.
+
+### Gold
+
+| Source | Value | Notes |
+| --- | --- | --- |
+| Starting gold | 600 | Fixed value |
+| Passive income | 1 gold per second | Gold each second alive |
+| Creep last hit | Per creep, by type | Stats in section 12 |
+| Hero kill | 110 + streak bounty + level × 9.9 | Reliable |
+| Assist, AoE share | 1 hero: 150 + 6L · 2: 100 + 5L · 3: 40 + 4L · 4: 25 + 3L · 5: 20 + 3L | L is the victim's level. Shared across heroes in range. |
+| Streak bounty | 60 up to 480 at a long streak | Ends on death |
+| Tower | Team gold per tier (about 160, 200, 240, 280) | Denied tower = 50%. |
+| Observer Ward kill | 100 gold, 25 XP | Enemy ward, section 13 |
+
+### Death and respawn
+
+- **Death cost:** 30 × hero level, taken from unreliable gold.
+- **Respawn:** 5 + 3.8 × level seconds (8.8 s at level 1, 100 s at level 25).
+- **Ratio on death:** the victim loses 50% of Clout (section 6), split among killers and assists.
+
+### Buyback (Rebrand)
+
+- **Cost:** 100 + 1.5 × level² + 0.25 × game seconds. Spends reliable gold first.
+- **Effect:** a Rebrand resets Clout to 0 and ends the respawn timer early.
+- **Penalty:** no unreliable gold until the normal respawn timer would have ended. 25% of the skipped timer is added to the next death.
+- **Cooldown:** 6 min (360 s).
+
+### Experience
+
+Hero kill XP: 100, 120, 140, 160, 180 for levels 1 to 5, then 100 more per level. Shared among heroes in range. Denied lane creeps give 50% of their XP to the enemy team. Neutral-denied creeps give 35%.
+
+Total XP to reach each level (cumulative, lookup values):
+
+| Level | Total XP | Level | Total XP |
+| --- | --- | --- | --- |
+| 2 | 200 | 15 | 11,900 |
+| 5 | 1,400 | 20 | 20,900 |
+| 10 | 5,400 | 25 | 32,400 |
+
+### Clock
+
+- Creeps spawn at 0:00.
+- Neutrals spawn at 0:30 and every minute after.
+- Runes spawn every 2 min.
+- The Trend opens at about 10:00.
+- Bounty runes spawn at the river at game start, four in total.
+
+## 6. Clout
+
+Clout is the signature resource. A hero earns Clout only while an enemy hero can see them. It is the reason to stay in the open, and the reason to be ratioed when you are.
+
+### Earning Clout
+
+| Action | Clout | Condition |
+| --- | --- | --- |
+| Last hit | +1 | Inside enemy hero vision |
+| Deny | +0.5 | Taken from the nearest enemy hero, while that hero sees the creep |
+| Hero kill | +10 | None |
+| Assist | +4 | None |
+| Tower damage | +1 per 100 damage | While an enemy hero sees the tower |
+| Enemy ward | 0 | Reveals the warded area, earns nothing |
+| Any action unseen | 0 | Gold and XP still earned |
+
+### Clout rules
+
+| Rule | Value |
+| --- | --- |
+| Reach radius | 300 + 3 × Clout, capped at 600 |
+| Stan | Allied creeps inside Reach: +20% damage, +2 armor |
+| Go Viral threshold | 100 Clout |
+| Go Viral duration | 20 s |
+| Go Viral effects | Reach +200; lane spawns +1 melee creep per wave; caster revealed on the global minimap |
+| Clout after Go Viral | 25 |
+| Ratio on death | Victim loses 50% of Clout, split among killer and assists |
+| Decay | Above 50 Clout: −1 every 10 s while unseen for those 10 s |
+| Cap on Ratio | At most 200 Clout moves in one death |
+
+### Clout states
+
+Each hero is in one of four states at any time. The state sets what the rest of the map can see.
+
+1. **Quiet.** Below 50 Clout, no enemy vision. Earns gold and XP only.
+2. **LIVE.** An enemy hero has the hero in vision. The violet LIVE dot shows on the portrait. Clout is earned.
+3. **Viral.** At 100 Clout. Go Viral is active for 20 s. The hero is revealed on the global minimap.
+4. **Ratioed.** Death. Clout transfers to the killer and assists. The hero returns to Quiet at spawn.
+
+Rebrand (buyback) resets a hero to Quiet at 0 Clout.
+
+### Design rules
+
+- Clout is never a stat. It never adds damage or armor directly. Its only effects are Reach, Go Viral and Stan.
+- Clout is never shared between teams. The ally tether (section 7) shares a fraction of an ally's Clout, and only with that ally.
+- Clout is shown as one number on the top bar, abbreviated (1.2K) and exact on hover.
+
+## 7. Heroes and attributes
+
+Every hero has three attributes, a primary attribute, and a base stat block. Heroes level to 25.
+
+### Attributes
+
+| Attribute | Per point | Notes |
+| --- | --- | --- |
+| Strength | +20 max HP, +0.1 HP regen | Melee durability |
+| Agility | +1 attack speed, +1/7 armor | Armor per point is 1/7 |
+| Intelligence | +12 max mana, +0.05 mana regen, +1% spell amp per 16 INT | Spell amp is additive with item amp |
+
+Primary attribute: +1 damage per point of the primary attribute. There is no Universal attribute.
+
+### Base stats
+
+| Stat | Value |
+| --- | --- |
+| Base HP | 200 |
+| Base mana | 50 |
+| Base movement speed | 300 |
+| Maximum movement speed | 522 |
+| Melee attack range | 150 |
+| Ranged attack range | 500 default, 300 to 700 |
+| Base attack time (BAT) | 1.7 melee, 1.5 ranged |
+| Turn rate | 0.6 s |
+| Magic resistance | 25% base |
+
+Each hero can override the base attack time and turn rate. These two values define the hero's feel.
+
+### Level
+
+- Level cap: 25. Level comes from XP (section 5).
+- Ability points: one per level, plus the ultimate unlock rule.
+- Ultimates unlock at levels 6, 11 and 16. They max at level 3.
+- Standard abilities max at level 4.
+- Level 25 is the final level. There is no stat skill for leftover points.
+
+### Respawn
+
+Heroes respawn at their Fountain. Respawn time is 5 + 3.8 × level seconds (section 5). Heroes spawn with full health and mana.
+
+### Hero shape
+
+Every hero is one of three silhouettes: circle (support), square (durable), triangle (aggressive or mobile). Hero archetype, silhouette and shape language are in section 17.
+
+## 8. Combat rules
+
+### Damage types
+
+| Type | Reduced by | Blocked by |
+| --- | --- | --- |
+| Physical | Armor | Evasion, miss chance |
+| Magical | Magic resistance | Spell immunity |
+| Pure | Nothing | Nothing |
+| HP removal | Nothing | Spell immunity only |
+
+### Armor and magic resistance
+
+- Physical damage multiplier: 1 − (0.06 × A) / (1 + 0.06 × |A|), where A is armor. Negative armor amplifies damage.
+- Magic resistance: heroes start at 25%. Each source multiplies. Two sources at 25% each give 1 − 0.75 × 0.75 = 43.75%.
+
+### Attack speed
+
+- Attacks per second = (100 + bonus attack speed) / (BAT × 100).
+- Total attack speed is capped at 600.
+- Attack animation: attack point, then backswing. Animation canceling is allowed.
+
+### Evasion and miss
+
+- Evasion uses pseudo-random distribution, checked on impact.
+- Miss chance (for example, uphill attacks) is separate from evasion.
+- True strike ignores evasion. Sources: specific items and the Hot Take archetype.
+
+### Lifesteal and amplification
+
+- Attack lifesteal: items and the Lion-line abilities.
+- Spell lifesteal: one item only.
+- Spell amplification: Intelligence (section 7) plus one item.
+- Cooldown reduction: one item and one rune only.
+
+### Disables
+
+| Disable | Effect | Break rule |
+| --- | --- | --- |
+| Stun | No actions or movement | Stun cannot be broken |
+| Hex | Transforms the target | Dispelled by strong dispel |
+| Silence | No abilities, items still work | Strong dispel removes it |
+| Root | No movement, abilities work | Dispelled by basic dispel |
+| Sleep | Stun that breaks on damage | Breaks on any damage |
+| Taunt | Forced to attack the source | Lasts its duration |
+| Disarm | No attacks, abilities work | Dispelled by basic dispel |
+| Fear | Forced to move away | Lasts its duration |
+| Cyclone | Airborne, no actions | Stun-equivalent, dispelled by strong dispel |
+
+Rules:
+
+- Hard disable cap: 3 hard disables per team in any 10 s window. A fourth is shortened to 0.5 s.
+- Purge: basic dispel removes most buffs and root. Strong dispel removes hex, silence and cyclone.
+- Spell immunity blocks magical damage and disables, not pure damage or HP removal.
+
+### Repost chain (Brainrot original)
+
+A hard disable or ultimate that lands on an enemy starts a repost chain.
+
+| Property | Value |
+| --- | --- |
+| Trigger | Hard disable or ultimate lands on an enemy |
+| Radius | 600 |
+| Stack effect | +8% attack speed or spell amp per stack |
+| Spread | Any ally who damages the target passes a stack to allies within 600 of them |
+| Max stacks | 5 |
+| Decay | 4 s |
+
+Stacks show as dotted arcs between heroes. Repost arcs are capped at five on screen.
+
+## 9. Launch hero kits
+
+Twenty-four launch heroes, two per archetype. Each has four abilities: three basic and one ultimate. The name in parentheses is the original hero. Ultimates unlock at 6, 11 and 16.
+
+### Ability value tiers
+
+Every ability uses one of these tiers. Each hero's abilities are sized to them, with the archetype modifiers in section 21 added on top.
+
+| Ability type | Level 1 | Level 2 | Level 3 | Level 4 | Cooldown (L1 to L4) | Mana (L1 to L4) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ability 1, damage | 80 | 160 | 240 | 320 | 10, 9, 8, 7 s | 60, 70, 80, 90 |
+| Ability 2, control or utility | 2.0 s | 2.5 s | 3.0 s | 3.5 s | 12, 11, 10, 9 s | 70, 80, 90, 100 |
+| Ability 3, aura or passive | 300 radius | 350 radius | 400 radius | 450 radius | 14, 12, 10, 8 s | 0 (passive) or 50 |
+| Ultimate (unlocks at 6, 11, 16) | 250 damage | 400 damage | 550 damage | n/a (max 3) | 100, 85, 70 s | 150, 200, 250 |
+
+Notes:
+
+- Ultimates have three levels. Each level unlocks at 6, 11 and 16.
+- Stun and root durations scale with the ability 2 table. Status resistance (section 21) reduces them.
+- Damage numbers are base values. Attribute scaling and item bonuses are added on top.
+
+| Hero (original) | Archetype | Ability 1 | Ability 2 | Ability 3 | Ultimate |
+| --- | --- | --- | --- | --- | --- |
+| Based Fiend (Shadow Fiend) | Influencer | Quote Post (Raze): three-hit burst, damage scales with Clout | Follower Count (Necromastery): stacks when a nearby enemy dies | Vibes Aura (Presence of the Dark Lord): reduces nearby enemy armor | Viral Thread (Requiem of Souls): lines of damage that feed Go Viral |
+| Long-Form Creator (Sniper) | Influencer | Thread (Shrapnel): area that damages and slows | Pinned Reply (Headshot): next attack deals bonus damage | Attention Span (Take Aim): extra attack range | Breaking News (Assassinate): long-range strike |
+| Lurk Mode (Riki) | Lurker | Unseen Mention (Backstab): strikes from behind while unseen | Dark Mode (Smoke Screen): cloud that blinds enemies | Cold Open (Blink Strike): blinks to a target and attacks | Ghost Post (Tricks of the Trade): invisible strike sequence |
+| Retargeting (Bounty Hunter) | Lurker | Lead Magnet (Shuriken Toss): ranged toss with slow | Cold Outreach (Jinada): next attack deals bonus damage | Stealth Mode (Shadow Walk): brief invisibility while moving | Track (Track): reveals an enemy, gold on hit |
+| Who Asked (Invoker) | Reply Guy | Cold Read (Cold Snap): freezes the target | Off the Record (Ghost Walk): fades, briefly invulnerable | Wall of Text (Ice Wall): blocks a path | Hot Take Drop (Sun Strike): delayed global damage |
+| Well Actually (Lion) | Reply Guy | Citation Needed (Earth Spike): slows and damages | Hard Correction (Hex): turns the target into a sheep | Drain Thread (Mana Drain): drains mana while channeling | Finger of Death (Finger of Death): must cite a source to cast |
+| Mage of Argument (Anti-Mage) | Algorithm-Pilled Carry | Rebuttal (Mana Break): damage per attack and mana drain | Quick Reply (Blink): short teleport | Spell Shield (Spell Shield): blocks spell damage | Void Post (Mana Void): damage scales with missing mana |
+| Sovereign of Vibes (Juggernaut) | Algorithm-Pilled Carry | Keyboard Smash (Blade Fury): spins and damages nearby enemies | Get Well Soon (Healing Ward): heals allies in radius | Blade Dance (Blade Dance): chance to critically strike | Doomscroll (Omnislash): rapid strikes that jump between enemies |
+| Frost Feed (Crystal Maiden) | Doomscroller | Frost Feed (Crystal Nova): area damage and slow | Hold Still (Frostbite): roots and damages over time | Dark Mode Aura (Arcane Aura): mana regen for allies | Load More (Freezing Field): area nuke around the hero |
+| Dragon Scroll (Lina) | Doomscroller | Dragon Scroll (Dragon Slave): line of damage | Flash Feed (Light Strike Array): delayed stun in an area | Hype Meter (Fiery Soul): attack speed and movement stacks | Viral Clip (Laguna Blade): single-target burst |
+| Read Receipt (Dazzle) | Notification Support | Seen Receipt (Poison Touch): damage over time | Shallow Grave (Shallow Grave): protects an ally from death briefly | Push Notification (Shadow Wave): bounces to nearby units | Bad Vibes (Bad Juju): reduces enemy armor |
+| Mentions (Omniknight) | Notification Support | Purification: damage to enemies, heal to allies | Dismiss (Repel): immunity to selected debuffs | Pinned (Degen Aura): damages enemies in an area | Likes (Guardian Angel): briefly invulnerable allies |
+| Moderator (Tidehunter) | Moderator | Warning (Gush): slows and damages | Appeal (Kraken Shell): damage reduction on cooldown | Strike (Anchor Smash): area damage | Lockdown (Ravage): delayed area stun |
+| Ban Hammer (Sven) | Moderator | Storm Hammer (Storm Hammer): stuns and damages | Remove (Great Cleave): cleave on attacks | Notice (Warcry): armor and speed for allies | Escalate (God's Strength): damage increase |
+| Anonymous Poster (Phantom Assassin) | Ghost Account | Anonymous Dagger (Stifling Dagger): slows and damages | Rephrase (Phantom Strike): teleports to a target | Anon Mode (Blur): evasion and stealth | Final Post (Coup de Grace): chance for critical damage |
+| Ban Evader (Meepo) | Ghost Account | Fresh Account (Earthbind): roots an area | New Account (Poof): teleports to a clone | Sock Puppet (Geostrike): damages and slows | Alt Accounts (Divided We Stand): clones fight on their own |
+| Hot Take (Earthshaker) | Hot Take | Breaking Ground (Fissure): line of damage and stun | Thread Totem (Enchant Totem): empowers attacks | Follow-Up (Aftershock): stun and damage around the hero | Echo Chamber (Echo Slam): damage scales with nearby enemies |
+| Yell at Clouds (Axe) | Hot Take | Yell at Clouds (Berserker's Call): taunts enemies in range | Engagement (Battle Hunger): slow and damage over time | Clapback (Counter Helix): damage when attacked | Cancel (Culling Blade): instant kill below a health threshold |
+| Mods (Techies) | Archivist | Warning (Land Mines): area traps with damage | Locked Thread (Stasis Trap): holds and reveals enemies | Jump (Blast Off!): leaping strike with damage | Temp Ban (Remote Mines): remote detonation that disables |
+| Hook Guy (Pudge) | Archivist | Pulled Into Thread (Meat Hook): hooks a target | Stale (Rot): damage over time and slow in an area | Stacks (Flesh Heap): gains strength with kills | Edit (Dismember): channel damage and pull |
+| Looping Clip (Puck) | Parasocial | Illusory Orb (Illusory Orb): projectile | Scheduled Post (Waning Rift): damage around the hero | Ghosting (Phase Shift): brief evasion while moving | Looping Clip (Dream Coil): stuns until the clip ends |
+| Comeback Tour (Wraith King) | Parasocial | Teaser (Wraithfire Blast): line damage and burn | Engagement Bait (Vampiric Spirit): lifesteal aura | Crit Bait (Mortal Strike): critical strikes | Reincarnation (Reincarnation): revives on death |
+| Touch Grass (Nature's Prophet) | Touch-Grass Hermit | Fresh Air (Sprout): roots an area | Leave the House (Teleportation): teleports to allies | Sunlight (Nature's Call): summons treants | Go Outside (Wrath of Nature): damage to enemies |
+| Turf Warden (Treant Protector) | Touch-Grass Hermit | Ent Camouflage (Nature's Guise): invisibility in trees | Leech Seed (Leech Seed): drains enemy health | Wood Shield (Living Armor): shields an ally | Root Network (Overgrowth): roots and damages nearby enemies |
+
+Notes:
+
+- Anonymous Dagger (Phantom Assassin, Ability 1) keeps its name. It throws a dagger.
+- Anon Mode (Phantom Assassin, Ability 3) is the invisibility effect, formerly Anonymous Mode. The item Anon Mask (section 11) is separate.
+- Talent trees are in section 21.
+
+## 10. Remaining hero kits
+
+The 87 heroes outside the launch set. Each has three abilities and an ultimate, as in section 9. Kits are drafts for the balance pass. Each one is checked against its archetype budget (section 19).
+
+| Hero (original) | Archetype | Ability 1 | Ability 2 | Ability 3 | Ultimate |
+| --- | --- | --- | --- | --- | --- |
+| Appeals Court (Abaddon) | Moderator | Mist Shield: absorbs damage for an ally | Appeal Review: heals the shielded ally | Deny Ticket: slows nearby enemies | Final Ruling: ally untargetable for 3 s |
+| Growth Hacker (Alchemist) | Algorithm | Acid Test: damages and slows a target | Beta Launch: random stat boost for the team | Pivot: swaps two cooldowns | Viral Experiment: bonus gold per kill for 60 s |
+| Old Forum Poster (Ancient Apparition) | Ghost | Ice Post: frost damage and slow | Cold Reply: delayed ping that damages on return | Hunt the Thread: marks a spot to stun | Eternal Thread: next death replays in 4 s |
+| Bad Night (Bane) | Notification | Nightmare: sleeps a target, damages on wake | Brain Sap: drains a nearby enemy's health | Enfeeble: lowers enemy damage | Fiend's Grip: holds a target and damages over time |
+| Rideshare Guy (Batrider) | Hot Take | Sticky Ride: burns an area | Flame Dash: dashes and burns a path | Ride Along: carries an ally | Flaming Lasso: pulls an enemy into the fire |
+| Community Manager (Beastmaster) | Notification | Wild Roar: stuns and slows nearby enemies | Call of the Wild: summons a scouting hawk | Animal Companion: summons a charging boar | Primal Roar: rallies allies with speed |
+| Bleeding Heart (Bloodseeker) | Hot Take | Rupture: damage over time that grows with movement | Blood Rage: attack speed bonus | Blood Bath: area damage on an enemy | Sanguine Post: reveals and drains a target |
+| Cold Brew Account (Brewmaster) | Moderator | Thunder Clap: stuns and damages | Cinder Brew: fire area | Storm Brew: pushes enemies back | Brew Up: summons clones of self |
+| Angry Reply (Bristleback) | Reply Guy | Goo Spray: slows and stacks | Quill Spray: damages on attack | Bristle Back: reflects damage | Warpath: bonus damage per hit taken |
+| Spawn Farm (Broodmother) | Ghost | Spawn Spiderlings: summons spiderlings | Spin Web: builds a slowing web | Incapacitating Bite: poisons a target | Insatiable Hunger: heals from spider kills |
+| Free Range (Centaur Warrunner) | Moderator | Hoof Stomp: stuns nearby enemies | Double Edge: charges and damages | Retaliate: reflects damage when hit | Stampede: charges every enemy in a line |
+| Unhinged Knight (Chaos Knight) | Hot Take | Chaos Bolt: damages a random enemy | Reality Rift: slows an enemy | Chaos Strike: critical hits that heal | Phantasm: summons attacking illusions |
+| Hall Monitor (Chen) | Notification | Penitence: slows and damages | Holy Persuasion: converts a creep to an ally | Hand of God: heals an ally | Test of Faith: temporary sanctuary |
+| Skeleton Account (Clinkz) | Ghost | Strafe: rapid attacks while moving | Searing Arrows: fire damage on attacks | Skeleton Walk: stealth while moving | Burning Army: summons attacking skeletons |
+| Deadline Bot (Clockwerk) | Moderator | Rocket Flare: reveals and damages nearby | Hookshot: pulls a target in | Power Cogs: pushes enemies away | Battery Assault: stuns everything in radius |
+| Night Owl (Dark Seer) | Lurker | Surge: dashes forward | Ion Shell: damages enemies that approach | Vacuum: pulls enemies to a point | Replica Wall: a wall of copies blocks the path |
+| Doomer (Death Prophet) | Doomscroller | Crypt Swarm: summons slowing bugs | Silence: silences an area | Spirit Siphon: drains health over time | Exorcism: spirits strike enemies in range |
+| Parental Controls (Disruptor) | Moderator | Static Storm: damages and silences an area | Kinetic Field: pushes enemies away | Glimpse: reveals a target's path | Thunder Strike: repeated lightning |
+| Doom Thread (Doom) | Moderator | Devour: consumes a creep for health | Scorched Earth: fire damage over time | Infernal Blade: burns and stuns | Doom: silences and damages a target until it dies |
+| Dragon Admin (Dragon Knight) | Moderator | Breathe Fire: cone of fire | Dragon Tail: stuns and knocks back | Dragon Blood: armor and regen | Elder Dragon Form: bigger, stronger attacks |
+| Golden Hour (Drow Ranger) | Influencer | Frost Arrows: slows on hit | Gust: knocks back in a line | Multishot: fires many arrows | Marksmanship: chance for critical strikes |
+| Rock Star (Earth Spirit) | Influencer | Boulder Smash: rolls a rock | Rolling Boulder: rolls along a line | Geomagnetic Grip: pulls rocks at enemies | Magnetic Storm: damages and stuns a zone |
+| Lore Keeper (Elder Titan) | Archivist | Astral Spirit: sends a spirit ahead | Earth Splitter: fissure across the map | Echo Stomp: stuns and damages | Natural Order: reduces nearby enemy armor |
+| Spicy Take (Ember Spirit) | Hot Take | Searing Chains: roots and damages | Sleight of Fist: dashes through enemies | Flame Guard: fire shield | Fire Remnant: leaves a dashing clone |
+| Sweet Talker (Enchantress) | Notification | Impetus: bonus damage on attacks | Untouchable: evasion | Enchant: turns a creep into an ally | Nature's Attendants: heals allies over time |
+| Conspiracy Theorist (Enigma) | Archivist | Malefice: stuns and damages | Demonic Conversion: converts a creep | Midnight Pulse: damages a zone over time | Black Hole: pulls enemies to a point |
+| Unskippable Ad (Faceless Void) | Moderator | Time Walk: jumps back to an earlier position | Time Dilation: slows enemies | Time Lock: chance to stun on attack | Chronosphere: freezes a zone |
+| Drone Footage (Gyrocopter) | Archivist | Rocket Barrage: fires rockets | Homing Missile: stuns on hit | Flak Cannon: damages nearby enemies | Call Down: rockets fall over a zone |
+| Burnout (Huskar) | Hot Take | Inner Fire: burns a target | Burning Spear: damage and burn per attack | Berserker's Blood: attack speed from health loss | Life Break: charges with a heal |
+| Wisp Ghostwriter (Io) | Notification | Tether: links to an ally and shares heals | Spirits: orbs that damage | Relocate: teleports an ally | Overcharge: boosts attack speed and damage |
+| Dual Monitor (Jakiro) | Archivist | Dual Breath: fire and ice breath | Liquid Fire: burns a zone | Liquid Frost: slows a zone | Macropyre: sustained fire in a line |
+| Lighting Director (Keeper of the Light) | Influencer | Illuminate: beam of light | Blinding Light: blinds in an area | Chakra Magic: restores mana | Spirit Form: fast flight, heals on pass |
+| Captain Obvious (Kunkka) | Reply Guy | Torrent: water wave that stuns | Tidebringer: strikes and slows | X Marks the Spot: marks a target | Ghostship: sails through enemies, damaging them |
+| Team Lead (Legion Commander) | Moderator | Overwhelming Odds: damage that grows with nearby allies | Press the Attack: dashes and damages | Moment of Courage: lifesteal and damage reduction | Duel: one-on-one with a target |
+| Lag Spike (Leshrac) | Doomscroller | Split Earth: stuns and damages | Diabolic Edict: damages a zone | Lightning Storm: bounces damage | Pulse Nova: silences and damages nearby |
+| Tenured Lich (Lich) | Archivist | Frost Blast: damages and slows | Ice Armor: armor and slow aura | Chain Frost: bounces between enemies | Sinister Gaze: takes control of a creep |
+| Comment Leech (Lifestealer) | Parasocial | Rage: fast attacks with lifesteal | Feast: lifesteal per attack | Open Wounds: slows and damages | Infest: hides in an enemy and heals from it |
+| Off-Grid Forester (Lone Druid) | Hermit | Summon Bear: bear attacks alongside | Rabid: bear gains attack speed | Spirit Bear: regen and spells | True Form: transforms into a stronger form |
+| Moonlight Creator (Luna) | Influencer | Lucent Beam: stuns and damages | Moon Glaive: bounces between enemies | Lunar Blessing: damages nearby enemies | Eclipse: repeated light rays over a window |
+| Pack Account (Lycan) | Ghost | Summon Wolves: wolves attack | Feral Impulse: bonus damage to wolves | Shapeshift: becomes a werewolf | Howl: boosts all allies |
+| Strong Opinion (Magnus) | Moderator | Shockwave: damages a line | Empower: boosts an ally's damage | Skewer: charges and pulls | Reverse Polarity: pulls enemies together and stuns |
+| Ghoster (Medusa) | Lurker | Split Shot: arrows in several directions | Mystic Snake: bounces and damages | Mana Shield: absorbs damage with mana | Stone Gaze: briefly petrifies enemies |
+| Moonlight Fan (Mirana) | Parasocial | Sacred Arrow: stuns in a line | Leap: leaps and grants attack speed | Moonlight: grants a shadow to an ally | Starfall: damages all nearby enemies |
+| Glow-Up (Morphling) | Influencer | Waveform: dashes and damages | Adaptive Strike: damage scales with stats | Attribute Shift: swaps strength and agility | Replicate: copies an enemy's ability |
+| Sea Siren (Naga Siren) | Parasocial | Ensnare: holds an enemy | Rip Tide: damages and slows | Song of the Siren: sleeps an area | Mirror Image: creates illusions |
+| Old Thread Revival (Necrophos) | Ghost | Death Pulse: damages enemies, heals allies | Heartstopper Aura: damage over time | Sadist: sacrifices health for damage | Reaper's Scythe: delayed kill on low-health enemies |
+| Night Shift (Night Stalker) | Lurker | Void: stuns and damages | Hunter in the Night: attack speed at night | Darkness: reduces vision | Crippling Fear: fears and slows enemies |
+| Stealth Spam (Nyx Assassin) | Lurker | Impale: stuns in a line | Mind Control: controls a creep | Spiked Carapace: reflects damage | Vendetta: invisible fast strike |
+| Dual Management (Ogre Magi) | Notification | Fireblast: stuns and damages | Ignite: burns an enemy | Bloodlust: boosts an ally's attack speed | Multicast: casts spells twice |
+| Forecaster (Oracle) | Archivist | False Promise: delays damage | Purifying Flames: heals an ally, damages an enemy | Fate's Edict: blocks damage | Fortune's End: damages and stuns |
+| Hype Engine (Outworld Destroyer) | Hot Take | Arcane Orb: projectile that gains damage | Astral Imprisonment: holds an enemy | Essence Aura: mana regen | Sanity's Eclipse: damage scales with enemy mana |
+| Multi-Accounter (Phantom Lancer) | Ghost | Spirit Lance: slows and damages | Doppelganger: creates illusions | Phantom Edge: blinks to a target | Juxtapose: creates more illusions |
+| Comeback Story (Phoenix) | Parasocial | Icarus Dive: dashes and burns | Fire Spirits: orbs that damage | Sun Ray: channeled beam that heals an ally | Supernova: revives on death |
+| Late Night Poster (Pugna) | Doomscroller | Nether Blast: area damage | Decrepify: ghosts an ally, untargetable | Nether Ward: magic damage on spells | Life Drain: drains an enemy into an ally |
+| Screamer (Queen of Pain) | Hot Take | Shadow Strike: damage and damage over time | Blink: teleports to a point | Sonic Wave: damages in a cone | Scream of Pain: damages and pushes all in range |
+| Static Account (Razor) | Hot Take | Static Link: lightning chains to an enemy | Storm Surge: speed boost | Eye of the Storm: damage aura with armor | Plasma Field: damages enemies in an area |
+| Plagiarist (Rubick) | Ghost | Telekinesis: lifts and throws | Fade Bolt: damages nearby | Arcane Supremacy: spell amplification | Spell Steal: copies an enemy's spell |
+| Desert Mod (Sand King) | Moderator | Burrowstrike: burrows and damages | Sand Storm: damages in an area | Caustic Finale: damages on the burst | Epicenter: repeated damage waves |
+| Shadow Admin (Shadow Demon) | Lurker | Disruption: holds an enemy, copies its image | Soul Catcher: bonus damage | Shadow Poison: damage over time | Demonic Purge: stuns and slows |
+| Shadow Agent (Shadow Shaman) | Ghost | Ether Shock: lightning damage | Hex: transforms an enemy | Shackles: holds enemies | Mass Serpent Ward: summons serpents |
+| Shh (Silencer) | Moderator | Curse of the Silent: silences an area | Glaives of Wisdom: attacks grant mana | Last Word: stuns silenced enemies | Global Silence: silences all in an area |
+| Undead Brand (Skeleton King) | Ghost | Hellfire Blast: damage and slow | Vampiric Aura: lifesteal | Mortal Strike: bonus critical damage | Reincarnation: revives on death |
+| Storm Ad (Skywrath Mage) | Hot Take | Ancient Seal: silences a target | Mystic Flare: area damage | Arcane Bolt: damages and slows | Concussive Shot: slows and damages |
+| Big Spender (Slardar) | Moderator | Slithereen Crush: stuns an area | Bash: chance to stun | Amplify Damage: targets take more damage | Corrosive Haze: reduces armor |
+| Dropped Connection (Slark) | Lurker | Dark Pact: damage and self-heal | Pounce: leaps and stuns | Essence Shift: steals stats | Shadow Dance: stealth and heals |
+| Haunted Profile (Spectre) | Ghost | Dispersion: reflects damage | Spectral Dagger: moves and damages | Desolate: bonus damage when alone | Haunt: illusions attack |
+| Content Cop (Spirit Breaker) | Moderator | Charge of Darkness: charge and stun | Greater Bash: stuns | Nether Strike: teleports and kills | Bulldoze: charges through all enemies |
+| Storm Chaser (Storm Spirit) | Hot Take | Static Remnant: charged explosion | Electric Vortex: pulls enemies | Overload: bonus attack damage | Ball Lightning: fast travel |
+| Refined Reply (Templar Assassin) | Lurker | Refraction: damage shield | Meld: bonus critical damage | Psionic Trap: creates a trap | Trap Pursuit: reveals and damages trapped enemies |
+| Hot Mess (Terrorblade) | Hot Take | Reflection: illusion swap | Conjure Image: creates illusions | Metamorphosis: transforms and damages | Sunder: swaps health with an enemy |
+| Lumberjack Take (Timbersaw) | Hot Take | Whirling Death: damages an area | Timber Chain: pulls a chain | Reactive Armor: armor per hit taken | Chakram: returns in an arc |
+| Gadget Guy (Tinker) | Archivist | Laser: damages and blinds | Rearm: resets cooldowns | Heat-Seeking Missile: homing | March of the Machines: summons turrets |
+| Small Creator (Tiny) | Influencer | Avalanche: area damage | Toss: throws a target | Tree Grab: extends attack range | Grow: gains health and damage |
+| Bait Lord (Troll Warlord) | Reply Guy | Berserker's Shout: attack speed | Whirling Axes: spinning damage | Fervor: bonus critical chance | Battle Trance: attack speed for allies |
+| Ice Cream Truck (Tusk) | Notification | Ice Shards: damages in a line | Snowball: rolls and damages | Tag Team: an ally joins the attack | Walrus Punch: stuns and damages |
+| Unkillable Thread (Undying) | Moderator | Decay: slows and damages | Soul Rip: drains creeps | Tombstone: summons zombies | Flesh Golem: damage aura |
+| Teddy Bear Mode (Ursa) | Hot Take | Earthshock: stuns | Overpower: attack speed | Fury Swipes: stacking damage | Enrage: damage reduction |
+| Grudge Holder (Vengeful Spirit) | Parasocial | Magic Missile: stuns | Wave of Terror: reduces armor | Vengeful Aura: boosts damage | Nether Swap: swaps positions |
+| Toxic Positivity (Venomancer) | Notification | Venomous Gale: slows and damages | Poison Sting: damage over time | Plague Ward: summons a ward | Poison Nova: explosion of damage |
+| Reviewer Two (Viper) | Archivist | Poison Attack: damage over time | Nethertoxin: amplifies damage | Corrosive Skin: damages attackers | Viper Strike: slows and damages |
+| Mood Board (Visage) | Influencer | Grave Chill: slows | Soul Assumption: damage | Gravekeeper's Cloak: shield | Summon Familiars: familiars attack |
+| Ritual Scheduler (Warlock) | Ghost | Shadow Word: heals or damages | Upheaval: drains an enemy | Chaotic Offering: summons a golem | Fatal Bonds: links and damages |
+| Doomlooper (Weaver) | Lurker | The Swarm: summons bugs | Shukuchi: blinks | Geminate Attack: double attack | Time Lapse: rewinds a target's position |
+| Wind Vlog (Windranger) | Influencer | Shackleshot: pulls a target | Powershot: fires an arrow | Windrun: evasion | Focus Fire: attacks a target |
+| Snow Day (Winter Wyvern) | Notification | Arctic Burn: damage over time and slow | Splinter Blast: damage | Cold Embrace: heals an ally | Winter's Curse: charms enemies |
+| Vibe Coach (Witch Doctor) | Notification | Paralyzing Cask: bounces between enemies | Voodoo Restoration: heal aura | Maledict: damage | Death Ward: channel strike |
+| Thunder Reply (Zeus) | Hot Take | Arc Lightning: chains between enemies | Lightning Bolt: stuns | Static Field: damage aura | Nimbus: summons a storm |
+
+## 11. Items
+
+### Inventory
+
+- Six item slots, plus a six-slot stash. Backpack: three slots, see section 21.
+- Consumables stack. Stock-limited items have a restock timer (Observer Ward, Smoke, Tome, Infused Raindrops).
+- Sell-back: full refund within 10 s of purchase, 50% after that. Aegis-analog and Cheese-analog cannot be sold.
+- Drop-on-death items: Rapier and Gem. Their holder drops them on death, visible to all.
+- Items that take an active use a shared item cooldown per item, not per hero.
+
+### Component tree
+
+Twelve components. Tier 1 and Tier 2 components combine into finished items. Tier 3 and Tier 4 finished items combine finished items with components.
+
+| Component | Tier | Effect |
+| --- | --- | --- |
+| Cheap Dagger | 1 | Bonus damage |
+| Drafted Note | 1 | Bonus mana |
+| Sticky Note | 1 | Ward component (vision) |
+| Hot Sauce Bottle | 1 | Small heal |
+| Ring Light | 1 | Vision radius +50 |
+| Envelope | 1 | Courier speed +10% |
+| Old Hoodie | 1 | Bonus armor |
+| Rubber Duck | 2 | Attack speed |
+| Burner Phone | 2 | Spell amplification |
+| Charger | 2 | Mana regeneration |
+| Cold Brew | 2 | Health regeneration |
+| Tripod | 2 | Attack range |
+
+Finished items by tier (built from the components):
+
+- **Tier 1:** Lurker Cam (Sticky Note + Ring Light), Dust of Receipts (Drafted Note + Sticky Note), Hot Sauce (Hot Sauce Bottle + Drafted Note), Link in Bio Scroll (Envelope + Old Hoodie), Envelope With Legs (Envelope + Sticky Note), Magic Enthusiast (Drafted Note + Hot Sauce Bottle).
+- **Tier 2:** Spoiler Tag, Ragequit Dagger, Gem of Subtext, Bottle of Copium, Smoke of Deniability, Mindfulness, Snack Tango, Ambient Focus, Boots of Scrolling, Anon Mask.
+- **Tier 3:** Participation Trophy, Heart of Brainrot, Sleep Mode, Reply All, Co-Working Space, Rescheduled, Pro Plan, Dunk, Heavenly Feedback, Ghost Mode, Drain Blade.
+- **Tier 4:** Refresh Page, Rapier Unironic, Dark Mode Shield, Spotlight, Sponsored Style, Monetized, Sheep Check.
+
+Cost bands (to set in the balance pass):
+
+| Tier | Cost band (gold) |
+| --- | --- |
+| Component 1 | 75 to 150 |
+| Component 2 | 200 to 300 |
+| Finished tier 1 | 300 to 500 |
+| Finished tier 2 | 600 to 1,000 |
+| Finished tier 3 | 1,400 to 2,400 |
+| Finished tier 4 | 3,000 to 6,000 |
+
+### Item roster
+
+Every item maps to a classic original by function. Renamed items are marked.
+
+| Brainrot item | Original hero item | Function | Flavor |
+| --- | --- | --- | --- |
+| Ragequit Dagger | Blink Dagger | Blink, short disengage | Logs off from your current position. |
+| Participation Trophy | Aegis of the Immortal | One revive at the Fountain | Everyone gets one. |
+| Refresh Page | Refresher Orb | Resets all cooldowns | Results may vary. |
+| Rapier, Unironic | Divine Rapier | High-value item, drops on death | Dropped on death. Visible to all. |
+| Gem of Subtext | Gem of True Sight | Reveals invisible units and wards | Reads between the lines. |
+| Bottle of Copium | Bottle | Restores HP and mana over time | You are fine for 10 seconds afterward. |
+| Heart of Brainrot | Heart of Tarrasque | Large HP pool. Nearby allies gain 5% less Clout. | Your allies are slightly less sure of themselves. |
+| Lurker Cam | Observer Ward | Vision. Enemies see the reveal, earn no Clout. | Watching, not posting. |
+| Spoiler Tag | Sentry Ward | True sight ward | Reveals what is hidden. Also what is coming. |
+| Dust of Receipts | Dust of Appearance | Reveals invisible units in radius | The proof is in the dust. |
+| Smoke of Deniability | Smoke of Deceit | Invisibility cloud for allies | Nothing happened here. |
+| Snack Tango | Tango | Heals, restores trees | Responsibly sourced. |
+| Ambient Focus | Clarity | Restores mana over time | A gentle reminder to keep going. |
+| Hot Sauce | Faerie Fire | Instant heal | Not for beginners. |
+| Link in Bio Scroll | Town Portal Scroll | Teleports to base | Stay a while. |
+| Boots of Scrolling | Boots of Speed | Movement speed | Infinite scroll, finite boots. |
+| Sleep Mode | Power Treads | Toggles attribute and movement | Switch modes. Never fully off. |
+| Dark Mode Shield | Black King Bar | Brief spell immunity | Works everywhere. |
+| Reply All | Blade Mail | Reflects damage | Everyone sees what you said. |
+| Co-Working Space | Mekansm | Heal aura for the team | Good vibes, shared desk. |
+| **Anon Mask** | Shadow Blade (renamed from Anonymous Blade) | Fade, invisibility on use | Nobody knows who did this. |
+| Spotlight | Radiance | Burns nearby enemies | Everyone is looking. |
+| Sponsored Style | Manta Style | Creates illusions | Duplicates you. Disclosed. |
+| Rescheduled | Eul's Scepter | Disables and displaces | Moved to a later time. |
+| Pro Plan | Aghanim's Scepter (upgrade item) | Upgrades one ability or ultimate per hero | Upgrade unlocked. |
+| Monetized | Hand of Midas | Converts creep kills to gold | Gold from creeps. Also from attention. |
+| Sheep Check | Sheepstick | Hex on the target | Deliberate. Sheepish. |
+| Dunk | Orchid Malevolence | Silence and bonus damage | Silenced. Still right. |
+| Heavenly Feedback | Heaven's Halberd | Disarms and slows | Feedback delivered in person. |
+| Magic Enthusiast | Magic Wand | Heals and grants magic resistance | Charges from every spell. |
+| Ghost Mode | Phase Boots | Phases through units while moving | Not here. Not now. |
+| Envelope With Legs | Courier | Delivers items to base | Late. Always. |
+
+Design notes:
+
+- Anon Mask replaces Anonymous Blade. It is an invisibility item (Shadow Blade analog). It is not a blink, and the name now matches the function.
+- The PA ability Anonymous Dagger keeps its name, since it throws a dagger.
+- Pro Plan is the one ultimate upgrade per hero. It is the Scepter analog, and is named for what it does.
+- Attack-modifier stacking rules are simplified. Orbs do not stack, which keeps the rule simple.
+
+### Stats and costs
+
+| Item | Cost (gold) | Effect |
+| --- | --- | --- |
+| Cheap Dagger | 100 | +12 damage |
+| Drafted Note | 90 | +25 mana, +0.5 mana regen |
+| Sticky Note | 75 | Ward component. Reveal radius +300 |
+| Hot Sauce Bottle | 50 | Heal 120 instantly |
+| Ring Light | 75 | Vision radius +50 |
+| Envelope | 80 | Courier speed +10% |
+| Old Hoodie | 90 | +2 armor |
+| Rubber Duck | 225 | +10% attack speed |
+| Burner Phone | 200 | +6% spell amplification |
+| Charger | 225 | +2 mana regen |
+| Cold Brew | 200 | +2 HP regen |
+| Tripod | 200 | +75 attack range |
+| Lurker Cam | 65 | Observer ward, 6 min, 2 stock, 4 max |
+| Dust of Receipts | 80 | Reveals invisible units in 900 radius for 3 s |
+| Hot Sauce | 150 | Heal 300 instantly |
+| Link in Bio Scroll | 120 | Teleport to base after a 3 s channel |
+| Envelope With Legs | 150 | Courier speed +25% |
+| Magic Enthusiast | 300 | Heal 120 on spell cast, +8% magic resistance |
+| Spoiler Tag | 75 | Sentry ward, true sight 900, 6 min |
+| Ragequit Dagger | 900 | Blink 1,100 range, 12 s cooldown, +20 damage |
+| Gem of Subtext | 800 | True sight 900 radius, drops on death |
+| Bottle of Copium | 800 | Restores 60 HP and mana per second for 12 s |
+| Smoke of Deniability | 700 | Group invisibility 6 s, 11 min restock |
+| Mindfulness | 700 | +3 HP regen, +1 mana regen |
+| Snack Tango | 750 | Heal 115 over 16 s |
+| Ambient Focus | 650 | +1.5 mana regen, +1 armor |
+| Boots of Scrolling | 600 | +80 move speed |
+| Anon Mask | 800 | Fade for 5 s on use, 90 s cooldown, +20 damage |
+| Participation Trophy | 1,600 | Revive at the Fountain once, 5 min |
+| Heart of Brainrot | 2,400 | +600 HP, +5 HP regen. Nearby allies gain 5% less Clout |
+| Sleep Mode | 1,500 | Toggle between attribute and movement bonuses |
+| Reply All | 1,800 | Reflects 35% of damage taken for 4 s |
+| Co-Working Space | 2,000 | Heal aura 150 radius, 4 HP per second |
+| Rescheduled | 1,800 | Disable 1.5 s, displace 250, 7 s cooldown |
+| Pro Plan | 2,200 | Upgrades one ability or ultimate per hero (Scepter analog) |
+| Dunk | 1,800 | Silence 4 s, +40 damage |
+| Heavenly Feedback | 1,800 | Disarm 2 s, slow 20% |
+| Ghost Mode | 1,600 | Move through units while moving |
+| Refresh Page | 5,000 | Resets all cooldowns, 280 s cooldown |
+| Rapier, Unironic | 6,000 | +200 damage. Drops on death, visible to all |
+| Dark Mode Shield | 4,500 | Spell immunity 4 s |
+| Spotlight | 4,200 | Aura burns nearby enemies for 150 per second |
+| Sponsored Style | 4,000 | Two illusions for 15 s |
+| Monetized | 3,500 | Creep kills give +25% gold |
+| Sheep Check | 3,000 | Hex 3 s, 15 s cooldown |
+| Lite Plan | 1,400 | Adds one second effect to a basic ability (section 21) |
+
+Costs set the tier bands in the component tree. Costs are final for v1 and change only in the balance pass.
+
+## 12. Neutrals, runes, The Trend and Screenshot
+
+### Jungle camps
+
+Camp types: small, medium, hard and ancient. Ancients are magic-resistant (not spell-immune).
+
+| Creature | Camp type | Notes |
+| --- | --- | --- |
+| Bots | Small | Mirrors the Morning Feed palette |
+| Spam | Small | Fast, low HP |
+| Shill | Medium | Casts a slowing aura |
+| Troll-Bridge | Hard | Blocks a bridge crossing until killed |
+| Old Forum Thread | Ancient | Long-lived creature, magic-resistant |
+| Hot Mic, Echo Chamber, Thread Sprite, Bio Bot, Viral Golem, Cancel Mob, Ratio Hound | Mixed | Stats in section 19 |
+
+Stacking:
+
+- A camp respawns on the minute if its spawn box is empty.
+- Pulling a camp out at about :53 to :55 stacks an extra camp for the next minute.
+- Pulling a camp into the lane resets the lane's creep equilibrium.
+
+### Runes
+
+Six runes, two spawn spots on the river, respawn every 2 min.
+
+| Rune | Effect | Duration |
+| --- | --- | --- |
+| Power Hour | Double damage | 40 s |
+| Dank Memes (Haste) | Movement speed boost | 25 s |
+| Dank Memes (Illusion) | Spawns an illusion of self | 40 s |
+| Dank Memes (Invisibility) | Invisibility until it attacks or casts | 30 s |
+| Dank Memes (Regeneration) | Heal over time | 20 s |
+| Bounty | Gold and XP on pickup | One-time |
+
+Bounty runes spawn at the river at game start. Four in total. They give gold and XP, and the initial bounty gives no XP. The Algorithm Rune (section 21) makes seven runes.
+
+### The Trend (Roshan analog)
+
+A faceless boss built from stacked trending banners.
+
+| Property | Value |
+| --- | --- |
+| HP | 8,000, plus 175 per minute |
+| Magic resistance | 55% |
+| Respawn | 8 to 11 min, random |
+| Reward | Gold and XP. The killing team picks one of two rotating modifiers for 4 min. The killer takes the Screenshot. |
+| Screenshot | One revive at the Fountain after a 3 s rewind clip. Expires 5 min after pickup. |
+
+### Trend modifiers
+
+Eight modifiers rotate each patch. Two are offered per kill. Examples:
+
+| Modifier | Effect |
+| --- | --- |
+| Challenge | +10% move speed for 3 s after each cast |
+| Unboxing | −15% item cooldowns |
+| Pool of 6 to 8 | Rotates each patch |
+
+The modifier shows on the minimap timer and as a team-colored HUD filter for its duration.
+
+### Screenshot
+
+The Screenshot is held by one hero. The Screenshot expires 5 min after pickup. A hero holding it at the Fountain can revive once. The revive replays the death as a rewound clip. The Screenshot is the Aegis analog (Participation Trophy, section 11).
+
+## 13. Vision and fog
+
+Vision decides what the enemy can see, and therefore what they can take. Under Brainrot, enemy vision is also the source of your Clout. Vision is the most-used system in the game.
+
+### Wards
+
+| Ward | Brainrot name | Cost | Duration | Stock | Function |
+| --- | --- | --- | --- | --- | --- |
+| Observer Ward | Lurker Cam | 65 gold | 6 min | Start 2, max 4, restock 150 s | Vision. Enemies see the reveal and earn no Clout. |
+| Sentry Ward | Spoiler Tag | 75 gold | 6 min | Shares a slot with Lurker Cam | True sight. Reveals invisible units and wards. |
+
+- Killing an enemy ward gives 100 gold and 25 XP.
+- Enemy wards reveal the area but earn their owner no Clout.
+- Towers give true sight at 700 range.
+
+### Reveal tools
+
+| Tool | Brainrot name | Effect |
+| --- | --- | --- |
+| Gem | Gem of Subtext | True sight carried by one hero. Drops on death. |
+| Dust | Dust of Receipts | Reveals invisible units in a radius |
+| Smoke | Smoke of Deniability | Group invisibility, hidden on the minimap until near an enemy hero or tower. Restock 11 min. |
+
+### Vision states
+
+- **LIVE:** an enemy hero sees you. Clout is earned. The LIVE dot shows on your portrait.
+- **Hidden:** no enemy hero sees you. No Clout is earned.
+- **Revealed:** an enemy ward or reveal tool shows your position. No Clout is earned.
+
+The LIVE dot is violet with a white ring. It is never red (red means damage).
+
+### Day and night
+
+- The day and night cycle runs 4 min day, 4 min night.
+- At night, vision radius drops for every hero. Some heroes have night abilities (Night Shift, Lurk Mode).
+- The clock is shown on the minimap as a sun or moon.
+
+### Fog rules
+
+- Clout uses enemy hero vision only. Enemy creeps, towers and wards do not count.
+- A stealthed hero is revealed by true sight, reveal tools and any enemy hero within 300 range.
+- Invisibility from items and abilities is broken when the hero attacks, casts or takes damage (per item).
+
+## 14. Draft and modes
+
+The draft is the first decision of the match. It sets the hero pool, the lane plan and the item plan.
+
+### Game modes
+
+| Mode | Use | Rule |
+| --- | --- | --- |
+| Captains Mode | Ranked and main | Two captains ban and pick in turn. 30 s per pick, 130 s bonus time per team. |
+| All Pick | Casual | Each player picks freely. No bans. |
+| Random Draft | Casual | Heroes drawn from a 50-hero pool. |
+| Single Draft | Casual | Each player picks from a random 10-hero set. |
+| Ranked All Pick | Ranked | Each player nominates a hero, then half the nominated heroes are banned at random. |
+
+### Captains Mode order
+
+Ten bans and ten picks, alternating by team. The order (final order):
+
+1. Ban: 1st, 2nd, 1st, 2nd
+2. Pick: 1st, 2nd, 2nd, 1st
+3. Ban: 2nd, 1st, 2nd, 1st
+4. Pick: 2nd, 1st, 2nd, 1st
+5. Ban: 2nd, 1st
+6. Pick: 1st, 2nd
+
+### Roles
+
+| Position | Role | Lane | Notes |
+| --- | --- | --- | --- |
+| 1 | Carry | Safe lane | Clout carry or late-game damage |
+| 2 | Mid | Mid | Highest-impact solo lane |
+| 3 | Offlane | Off lane | Initiator, tank or disruptor |
+| 4 | Roamer | Safe lane, with carry | Soft support, gank pressure |
+| 5 | Hard support | Safe lane, with carry | Vision, protection, Stan support |
+
+Jungler is a viable role for heroes with camp-clearing kits (Lifestealer, Touch-Grass Hermit, Lurker archetype). A jungler is a position choice, not a sixth slot.
+
+### Archetype lanes
+
+Lane preference by archetype. This is guidance for the draft UI, not a restriction.
+
+- Carry: Algorithm-Pilled Carry, Influencer, Doomscroller
+- Mid: Doomscroller, Ghost Account, Hot Take
+- Offlane: Moderator, Hot Take
+- Roamer: Lurker, Reply Guy, Parasocial
+- Hard support: Notification Support, Archivist
+
+### Ban phase
+
+- Bans are hidden until the phase ends, then revealed together.
+- A banned hero cannot be picked by either team for the match.
+- Pick and ban rates are tracked for balance (section 19).
+
+### Pick screen
+
+The pick screen is titled "Draft your content plan." It shows the archetype role icon on every hero, and the Trend modifier for the match once it is known.
+
+## 15. Roster and archetypes
+
+111 heroes across twelve archetypes. Each row gives the Brainrot name, the original hero, archetype, attribute, range and signature gag.
+
+### Archetypes
+
+| # | Archetype | Role | Shape | Accent | Silhouette hook | Gag template |
+| --- | --- | --- | --- | --- | --- | --- |
+| 01 | The Influencer | Clout carry | Inverted triangle | Warm peach, violet trim | Ring-light halo disk | Composure under absurd conditions |
+| 02 | The Lurker | Assassin, vision denial | Tall thin triangle, hunched | Desaturated slate | Oversized hood | Never LIVE, suspiciously proud of it |
+| 03 | The Reply Guy | Harasser, zoner | Forward diagonal | Mustard | Raised index finger | Corrects everything, including own abilities |
+| 04 | The Algorithm-Pilled Carry | Late-game carry | Rigid vertical rectangle | Cold teal | Chart-line spine plate | Optimizes everything, enjoys nothing |
+| 05 | The Doomscroller | Ranged nuker | Long stooped horizontal | Night blue | Paper scroll trailing to the floor | Abilities load more |
+| 06 | The Notification Support | Healer, buffer | Small circle | Soft green-cyan | Badge dot over head | Means well, interrupts constantly |
+| 07 | The Moderator | Tank, initiator | Big square | Grey with team color | Gavel-shaped stamp | Bureaucratic calm while doing violence |
+| 08 | The Ghost Account | Illusionist, summoner | Stacked circles, opaque | Pale lavender | Blank default avatar head | Zero posts, 40k followers |
+| 09 | The Hot Take | Burst initiator | Sharp triangle | Desaturated ember | Megaphone shoulder | Every opinion at emergency volume |
+| 10 | The Archivist | Utility, zone control | Wide rectangle | Sepia | Filing-cabinet backpack | Has receipts for everything |
+| 11 | The Parasocial | Tethered support, dueler | Two linked circles | Rose | Framed photo of the enemy carry | Insists they are close friends |
+| 12 | The Touch-Grass Hermit | Jungler, sustain | Rounded mound | Moss green | Wearing actual turf | Offline, smug, healthier |
+
+Each variant differs from the others in at least two of: body proportion, prop silhouette, primary value group. A hooded Lurker, a Lurker in a collar and a Lurker in a blanket fort share an archetype and read as three heroes.
+
+### Roster
+
+| # | Brainrot | Original hero | Archetype | Attr | Range | Signature gag |
+| --- | --- | --- | --- | --- | --- | --- |
+| 001 | Appeals Court | Abaddon | Moderator | Str | Melee | Reviews the appeal for a very long time. |
+| 002 | Growth Hacker | Alchemist | Algorithm | Str | Melee | Monetizes every experiment. |
+| 003 | Old Forum Poster | Ancient Apparition | Ghost | Int | Ranged | Joined in 2006. Still explaining. |
+| 004 | Mage of Argument | Anti-Mage | Algorithm | Agi | Melee | Has a rebuttal for every hit. |
+| 005 | Yell at Clouds | Axe | Hot Take | Str | Melee | Loud enough to reach the next thread. |
+| 006 | Bad Night | Bane | Notification | Int | Ranged | Sends it at 3 a.m. Nobody asked. |
+| 007 | Rideshare Guy | Batrider | Hot Take | Int | Ranged | Always mid-trip, always mid-take. |
+| 008 | Community Manager | Beastmaster | Notification | Str | Melee | Thousands of followers, zero posts. |
+| 009 | Bleeding Heart | Bloodseeker | Hot Take | Agi | Melee | Sincere, and it stings. |
+| 010 | Retargeting | Bounty Hunter | Lurker | Agi | Melee | Has been following you since the lobby. |
+| 011 | Cold Brew Account | Brewmaster | Moderator | Str | Melee | Wants a moment to step outside. |
+| 012 | Angry Reply | Bristleback | Reply Guy | Str | Melee | Quotes every hit it takes. |
+| 013 | Spawn Farm | Broodmother | Ghost | Agi | Melee | Ever-growing spiderlings, no nap. |
+| 014 | Free Range | Centaur Warrunner | Moderator | Str | Melee | Gallops into every thread. |
+| 015 | Unhinged Knight | Chaos Knight | Hot Take | Str | Melee | Shows up unannounced. |
+| 016 | Hall Monitor | Chen | Notification | Int | Melee | Keeps things civil, technically. |
+| 017 | Skeleton Account | Clinkz | Ghost | Agi | Ranged | Dead account, still active. |
+| 018 | Deadline Bot | Clockwerk | Moderator | Str | Melee | Ticks loudly until the deadline. |
+| 019 | Frost Feed | Crystal Maiden | Doomscroller | Int | Ranged | Scrolls quietly, freezes everything. |
+| 020 | Night Owl | Dark Seer | Lurker | Str | Melee | Hears the notification first. |
+| 021 | Read Receipt | Dazzle | Notification | Int | Ranged | Knows exactly when you saw it. |
+| 022 | Doomer | Death Prophet | Doomscroller | Int | Ranged | Has already read the ending. |
+| 023 | Parental Controls | Disruptor | Moderator | Int | Ranged | Disables everything, politely. |
+| 024 | Doom Thread | Doom | Moderator | Str | Melee | Final message: lol. |
+| 025 | Dragon Admin | Dragon Knight | Moderator | Str | Melee | Has the power to unpin. |
+| 026 | Golden Hour | Drow Ranger | Influencer | Agi | Ranged | Always lit. |
+| 027 | Rock Star | Earth Spirit | Influencer | Int | Melee | Rolls onto the stage. |
+| 028 | Hot Take | Earthshaker | Hot Take | Str | Melee | Every opinion at emergency volume. |
+| 029 | Lore Keeper | Elder Titan | Archivist | Str | Melee | Remembers everything. |
+| 030 | Spicy Take | Ember Spirit | Hot Take | Agi | Melee | Flares on first contact. |
+| 031 | Sweet Talker | Enchantress | Notification | Int | Ranged | Compliments you before the spell. |
+| 032 | Conspiracy Theorist | Enigma | Archivist | Int | Ranged | Has a theory about the map. |
+| 033 | Unskippable Ad | Faceless Void | Moderator | Agi | Melee | Cannot be skipped. |
+| 034 | Drone Footage | Gyrocopter | Archivist | Agi | Ranged | Overhead view for everyone. |
+| 035 | Burnout | Huskar | Hot Take | Int | Ranged | Overcommitted to the bit. |
+| 036 | Who Asked | Invoker | Reply Guy | Int | Ranged | Nobody asked. |
+| 037 | Wisp Ghostwriter | Io | Notification | Int | Ranged | Writes your replies for you. |
+| 038 | Dual Monitor | Jakiro | Archivist | Int | Ranged | Two screens, one opinion. |
+| 039 | Sovereign of Vibes | Juggernaut | Algorithm | Agi | Melee | Fully committed to the vibe. |
+| 040 | Lighting Director | Keeper of the Light | Influencer | Int | Ranged | Always finds the right angle. |
+| 041 | Captain Obvious | Kunkka | Reply Guy | Str | Melee | States the obvious at full volume. |
+| 042 | Team Lead | Legion Commander | Moderator | Str | Melee | Sends per my last message. |
+| 043 | Lag Spike | Leshrac | Doomscroller | Int | Ranged | Arrives mid-fight, unannounced. |
+| 044 | Tenured Lich | Lich | Archivist | Int | Ranged | Refuses to leave the department. |
+| 045 | Comment Leech | Lifestealer | Parasocial | Agi | Melee | Lives off your engagement. |
+| 046 | Dragon Scroll | Lina | Doomscroller | Int | Ranged | Refreshes until the feed goes quiet. |
+| 047 | Well Actually | Lion | Reply Guy | Int | Ranged | Corrects its own abilities. |
+| 048 | Off-Grid Forester | Lone Druid | Hermit | Str | Melee | Has a bear. Has no signal. |
+| 049 | Moonlight Creator | Luna | Influencer | Agi | Ranged | Golden hour on a schedule. |
+| 050 | Pack Account | Lycan | Ghost | Str | Melee | Every wolf has its own account. |
+| 051 | Strong Opinion | Magnus | Moderator | Str | Melee | Pushes the thread up for everyone. |
+| 052 | Ghoster | Medusa | Lurker | Agi | Ranged | Read your message. Said nothing. |
+| 053 | Ban Evader | Meepo | Ghost | Agi | Melee | Has four accounts. All of them are it. |
+| 054 | Moonlight Fan | Mirana | Parasocial | Agi | Ranged | Waits by the stage door. |
+| 055 | Glow-Up | Morphling | Influencer | Agi | Melee | Before and after, in three seconds. |
+| 056 | Sea Siren | Naga Siren | Parasocial | Agi | Melee | Sings directly to your team. |
+| 057 | Touch Grass | Nature's Prophet | Hermit | Int | Ranged | Outside. Smug about it. |
+| 058 | Old Thread Revival | Necrophos | Ghost | Str | Melee | Bumped a 2014 thread. |
+| 059 | Night Shift | Night Stalker | Lurker | Str | Melee | Clocks in when it gets dark. |
+| 060 | Stealth Spam | Nyx Assassin | Lurker | Str | Melee | Sends it from a fresh account. |
+| 061 | Dual Management | Ogre Magi | Notification | Int | Melee | Two opinions, one person. |
+| 062 | Mentions | Omniknight | Notification | Str | Melee | Pings everyone, mostly by accident. |
+| 063 | Forecaster | Oracle | Archivist | Int | Ranged | Already knows what you will say. |
+| 064 | Hype Engine | Outworld Destroyer | Hot Take | Int | Ranged | Turns thoughts into content. |
+| 065 | Anonymous Poster | Phantom Assassin | Ghost | Agi | Melee | Name revealed on death. |
+| 066 | Multi-Accounter | Phantom Lancer | Ghost | Agi | Melee | Ten accounts, one bio. |
+| 067 | Comeback Story | Phoenix | Parasocial | Int | Ranged | Burns out, returns as content. |
+| 068 | Looping Clip | Puck | Parasocial | Int | Ranged | Plays it again. And again. |
+| 069 | Hook Guy | Pudge | Archivist | Str | Melee | Hooks first, asks questions later. |
+| 070 | Late Night Poster | Pugna | Doomscroller | Int | Ranged | Only active at 3 a.m. |
+| 071 | Screamer | Queen of Pain | Hot Take | Int | Ranged | Loudest in the thread. |
+| 072 | Static Account | Razor | Hot Take | Agi | Melee | Always shocked. |
+| 073 | Lurk Mode | Riki | Lurker | Agi | Melee | Never LIVE. Suspiciously proud of it. |
+| 074 | Plagiarist | Rubick | Ghost | Int | Ranged | Credit: none given. |
+| 075 | Desert Mod | Sand King | Moderator | Str | Melee | Shows up and buries the thread. |
+| 076 | Shadow Admin | Shadow Demon | Lurker | Int | Ranged | Hides in the mod logs. |
+| 077 | Based Fiend | Shadow Fiend | Influencer | Agi | Ranged | Quote-posts its own kills. |
+| 078 | Shadow Agent | Shadow Shaman | Ghost | Int | Ranged | Recruits invisible helpers. |
+| 079 | Shh | Silencer | Moderator | Int | Ranged | Put simply: no. |
+| 080 | Undead Brand | Skeleton King | Ghost | Str | Melee | Rebrands every week. |
+| 081 | Storm Ad | Skywrath Mage | Hot Take | Int | Ranged | Cannot be skipped. |
+| 082 | Big Spender | Slardar | Moderator | Str | Melee | Has the bigger wallet. |
+| 083 | Dropped Connection | Slark | Lurker | Agi | Melee | Gone, then back. |
+| 084 | Long-Form Creator | Sniper | Influencer | Agi | Ranged | The thread goes on for twelve minutes. |
+| 085 | Haunted Profile | Spectre | Ghost | Agi | Melee | Haunts your recommendations. |
+| 086 | Content Cop | Spirit Breaker | Moderator | Str | Melee | Charges through the comments. |
+| 087 | Storm Chaser | Storm Spirit | Hot Take | Int | Ranged | Arrives by weather. |
+| 088 | Ban Hammer | Sven | Moderator | Str | Melee | Gavel-shaped stamp, all day. |
+| 089 | Mods | Techies | Archivist | Int | Ranged | Warnings have a three-day cooldown. |
+| 090 | Refined Reply | Templar Assassin | Lurker | Agi | Ranged | Replies with traps. |
+| 091 | Hot Mess | Terrorblade | Hot Take | Agi | Ranged | Escalates with every bad choice. |
+| 092 | Moderator | Tidehunter | Moderator | Str | Melee | Bureaucratic calm while doing violence. |
+| 093 | Lumberjack Take | Timbersaw | Hot Take | Str | Melee | Cuts to the point. |
+| 094 | Gadget Guy | Tinker | Archivist | Int | Ranged | Shipped a beta. |
+| 095 | Small Creator | Tiny | Influencer | Str | Melee | Huge personality, tiny bio. |
+| 096 | Turf Warden | Treant Protector | Hermit | Str | Melee | Wears the outdoors. |
+| 097 | Bait Lord | Troll Warlord | Reply Guy | Agi | Melee | Gets the reaction. |
+| 098 | Ice Cream Truck | Tusk | Notification | Str | Melee | Rolls up with a snowball. |
+| 099 | Unkillable Thread | Undying | Moderator | Str | Melee | Nobody can finish this thread. |
+| 100 | Teddy Bear Mode | Ursa | Hot Take | Agi | Melee | Cute until it isn't. |
+| 101 | Grudge Holder | Vengeful Spirit | Parasocial | Agi | Ranged | Remembers the 2016 loss. |
+| 102 | Toxic Positivity | Venomancer | Notification | Int | Ranged | Everything is great, until it isn't. |
+| 103 | Reviewer Two | Viper | Archivist | Agi | Ranged | Reviews everything. Buys nothing. |
+| 104 | Mood Board | Visage | Influencer | Int | Ranged | Pinned aesthetic. |
+| 105 | Ritual Scheduler | Warlock | Ghost | Int | Ranged | Calendar full. |
+| 106 | Doomlooper | Weaver | Lurker | Agi | Melee | Shows up twice. |
+| 107 | Wind Vlog | Windranger | Influencer | Int | Ranged | Vlogs from a moving car. |
+| 108 | Snow Day | Winter Wyvern | Notification | Int | Ranged | Cancels everything. |
+| 109 | Vibe Coach | Witch Doctor | Notification | Int | Ranged | Prescribes positive energy. |
+| 110 | Comeback Tour | Wraith King | Parasocial | Str | Melee | Announces a return every two minutes. |
+| 111 | Thunder Reply | Zeus | Hot Take | Int | Ranged | Smites the thread. |
+
+Roster gaps (verify before lock): Underlord is roster entry 112, defined in section 21.
+
+## 16. Humor and tone
+
+The register is deadpan, corporate and analytics. One image carries two readings. The second reading rewards a deliberate look.
+
+### Rules
+
+1. Jokes target observed behavior: posting, reposting, ratios, moderation.
+2. Jokes never sit on the gameplay read path. A signal (LIVE, Stan, Go Viral, Ratio) is always readable without its joke.
+3. Voice is calm and under-acted. Nothing shouts except the Hot Take archetype, and that is also a joke.
+4. Gags are frequency-controlled. The player can turn every gag off.
+
+### Gags
+
+| # | Gag | System | Trigger | Fade or opt-out |
+| --- | --- | --- | --- | --- |
+| 01 | Loading fold-in: two outer panels slide together, revealing the first Trend modifier. Caption: What is everyone talking about this match? | The Trend | Every load | Skippable. Static in Reduced Motion. |
+| 02 | Stan signs: hand-lettered signs held by buffed creeps, naming the buffing hero with a misspelling that rotates each match | Stan and Reach | Zoom or spectator camera | Signs stay. Misspelling rotates. |
+| 03 | Via shrinkage: each Repost link adds a small via tag. By the fifth link the original is too small to read. | Repost | Chain of 3 or more | Spectator and hover only |
+| 04 | Death recap as analytics: header Your post was ratioed. Killers listed as Top replies. Line: Engagement redistributed: 50%. | Ratio | Death | Standard damage table first. Header toggleable. |
+| 05 | Rebrand nameplate: hero name followed by a small grey formerly tag | Rebrand | Buyback | 3 s, nameplate only |
+| 06 | Go Private blinds: windows show the padlock and the blinds drop. One slat stays bent open. | Go Private | Activation | Cosmetic. The padlock is the read. |
+| 07 | Stale Trend husk: the expired modifier's costume lies in the pit until the Trend respawns | The Trend | Kill | Fades on respawn |
+| 08 | Out-of-bounds margins: a creep sits on grass with eyes closed. A lone tree carries a no signal glyph. | Map edge | Camera at edge | Static and silent |
+| 09 | Item flavor lines in deadpan (section 11) | Items | Tooltip hover | Hidden in compact tooltips |
+| 10 | Analytics idle: a hero who is not LIVE and has stood still for 8 s glances at a grey rectangle, then puts it away | Absence of LIVE | 8 s idle while unseen | Max once per 60 s. Never while LIVE. |
+| 11 | Recommended banner: appears on a lane the algorithm favors, reading Recommended for you, with Based on your activity in small print | Lane notice | Lane selection | Small print |
+| 12 | Courier failure: a faded speech bubble with an ellipsis that never resolves | Courier | Courier death | Fades in 4 s |
+| 13 | Tower rubble: a sign on the debris reads This thread has been locked. | Towers | Tower death | Removed at +2 min |
+| 14 | Victory and defeat fold: click and hold reveals the losing Original Post as \[deleted\] | Original Post | End screen | Requires a click. Clean stats view is the default. |
+| 15 | Go Viral shadow counter: the hero's own shadow shows a ticking follower count | Go Viral | Activation | Self and allies only. Reduced opacity. |
+
+### Announcer lines
+
+| Event | Line |
+| --- | --- |
+| First blood | First reply. |
+| Kill streak, three | This is going around. |
+| Kill streak, five | Trending. |
+| Clout reaches 100 | The algorithm noticed. |
+| Ratio on death | Ratioed. |
+| Tower destroyed | Thread locked. |
+| Screenshot revive | Everyone gets one. |
+| Rebrand | Under new management. |
+| The Trend killed | Trending number one. |
+| Original Post destroyed | Post deleted. |
+| Victory screen | Your post performed well. |
+| Defeat screen | Your post has been archived. |
+
+Each event has a pool of three to five lines. The Plain announcer option uses the same events with plain lines.
+
+### Settings
+
+| Setting | Effect |
+| --- | --- |
+| Gag frequency: Full | All gags |
+| Gag frequency: Reduced | Marginalia and tooltips kept. Voice quips and animated gags removed. |
+| Gag frequency: Off | None |
+| Plain announcer | Announcer uses the plain register |
+| Analytics framing | Toggles the death-recap header |
+| Reduced motion | Removes the loading fold-in animation and screen shake |
+
+## 17. Presentation and readability
+
+Every gameplay signal passes three tests: it reads in grayscale, at gameplay zoom, and at minimap size.
+
+### Size targets
+
+| Element | Author size | Minimum display | Test |
+| --- | --- | --- | --- |
+| Ability icon | 128 × 128 PNG | 32 px | Motif identifiable in grayscale. Fills 60 to 75% of frame. Bottom-right 25% clear for cooldown numbers. |
+| Item icon | 88 × 64 PNG; 176 × 128 master | 44 × 32 | One object, ¾ view, rim light, no text |
+| Status icon | 64 × 64 | 18 px | Single glyph in system color with 2 px dark outline |
+| Minimap hero icon | 32 × 32 (64 master) | 16 px | Head-only caricature reads as a solid silhouette |
+| Hero model | Gameplay zoom, 60 to 90 px tall |  | Silhouette identifies hero and facing, 90% or better in a blind test |
+| Value groups |  |  | At least 3 per hero. Head and prop at least 30% luminance delta from body. |
+| UI text contrast |  |  | 4.5:1 or better on HUD panels |
+| Status glyph against health bar |  |  | 3:1 or better |
+| Cast point | 0.2 to 0.5 s |  | Anticipation pose readable top-down. Unique per ability. |
+| Death animation | 2.0 s or less |  |  |
+| AoE telegraph | Team-colored decal |  | Outline at true radius. Fill at 25% opacity or less. |
+
+### Hero shape language
+
+| Shape | Meaning | Detail zone |
+| --- | --- | --- |
+| Circle | Support, friendly | Head, shoulders and signature prop carry about 70% of detail and saturation. Lower body is low-saturation rest. |
+| Square | Durable | Same detail rule. Chest and shoulders carry the read. |
+| Triangle | Aggressive, mobile | Silhouette point (weapon, hood, hair) carries the read. |
+
+### Color system
+
+| Meaning | Color | Notes |
+| --- | --- | --- |
+| Ally team, Morning Feed | #2E8BFF | Light-value structures. Teams also differ in value. |
+| Enemy team, Late Night Feed | #FF8A1F | Dark-value structures |
+| Self | White and gold outline | Yellow health bar |
+| Clout, all Clout UI and VFX | #A35CFF | Reserved for Clout only |
+| LIVE | Violet dot, white ring | Never red |
+| Damage and danger | #D9534F | Flashing elements stay below R/(R+G+B) of 0.8 |
+| Heal and buff | #3DDC97 | Paired with an upward chevron |
+| Debuff | Shape only | Inverted chevron |
+
+Rules:
+
+- Every color signal carries a shape. Ally creeps have rounded hoods. Enemy creeps have angular hoods.
+- Colorblind presets: deuteranopia, protanopia, tritanopia, and a custom picker.
+- Red is never used for a non-damage signal. LIVE and Clout are never red.
+
+### UI
+
+- Top bar: Clout bar and follower count. Abbreviated 1.2K and 3.4M, exact on hover.
+- Scoreboard: K, D, A, Clout, Net Worth. Tooltips: Engagement and Impressions.
+- Tooltips: mechanical text first, italic flavor second. 14 px minimum.
+- Cursor: four states (default, attack, ability target, invalid). 32 × 32.
+- Minimap: Trend timer and Go Viral overlays.
+
+## 18. Asset manifest and audio
+
+Launch counts assume 24 heroes and four abilities each. Full-roster counts (111 heroes) are in brackets.
+
+### Heroes
+
+| Asset | Per hero | Launch \[Full\] | Format |
+| --- | --- | --- | --- |
+| Model with LOD1 and LOD2 | 3 | 72 \[336\] | FBX or glTF. LOD0 12 to 18k tris, LOD1 50%, LOD2 25%. 2048² diffuse and mask. |
+| Animations | About 16: idle ×2, idle gag, run, haste run, attack ×2, cast ×4, channel, death, spawn, Rebrand respawn, victory | 384 \[1,792\] | FBX, 30 fps |
+| HUD portrait | 1 | 24 \[112\] | 256 × 256 PNG |
+| Loading and promo art | 1 | 24 \[112\] | 1920 × 1080 and 1080 × 1920 |
+| Minimap icon | 1 | 24 \[112\] | 32 × 32 PNG |
+| Pick-screen pose | 1 | 24 \[112\] | Engine scene |
+| Voice lines | About 60 | 1,440 \[6,720\] | 48 kHz WAV, −16 LUFS, subtitled |
+
+### Abilities and status
+
+| Asset | Launch \[Full\] | Format |
+| --- | --- | --- |
+| Ability icons | 96 \[448\] | 128 × 128 PNG |
+| Cast VFX | 96 \[448\] | Particle, 512² flipbook |
+| Impact VFX | 96 \[448\] | Particle, peak 0.4 s or less |
+| Ground telegraphs (about 40% of abilities) | About 38 \[about 180\] | Team-colored decal |
+| Clout status icons | 9 | 64 × 64 |
+| Generic status icons | 12 | 64 × 64 |
+| Trend modifier icons | 8 | 64 × 64, plus 256 × 256 banner |
+
+Clout status icons: Reach (concentric arcs), Stan (raised sign), Go Viral (spike with ring timer), Ratio (split circle), LIVE (filled dot with ring), Repost stacks 1 to 5 (curved double arrow with pips), Screenshot (corner brackets), Go Private (padlock with timer ring), Rebrand (circular arrow around a blank tag).
+
+### Items
+
+| Asset | Count | Format |
+| --- | --- | --- |
+| Item icons | 40 | 88 × 64 PNG, 176 × 128 master |
+| World models, shop and drop | 15 | 500 to 2,000 tris, 512² texture |
+| Active and consumable VFX | 30 | Particle. On-use pop 0.3 s or less. |
+| Shop NPC, The Plug | 1, with 6 animations | Hero-grade |
+
+Item icon style: one object, ¾ top-down view, three value groups, warm key light top left, cool rim light, 2 px dark outline, no text. Consumables sit on a circular plinth. Actives carry a violet edge glow. Passives do not.
+
+### Neutrals, objectives, map
+
+| Asset | Count | Notes |
+| --- | --- | --- |
+| The Trend base model | 1 | Faceless boss built from stacked banners |
+| The Trend costumes | 8 | Swappable modifier meshes. Silhouette stays constant. |
+| The Trend animations | 5 | Idle, three attacks, enrage, death, respawn |
+| Trend death husks | 8 | One per modifier. Desaturated, no health bar. |
+| Trend announcement banners | 8 | 1920 × 200 |
+| Screenshot pickup and revive | 2 | One model, one VFX |
+| The Trending Pit | 1 | Recessed amphitheater with marginal props |
+| Bases | 2 | Morning Feed and Late Night Feed |
+| Terrain kits and props | 3 kits, 120 props | Lanes, jungle, river |
+| Towers (Moderators) | 8 | Four tiers across two teams. Tier read by size and stacked stamps. |
+| Barracks (Drafts) | 4 | Melee and ranged, two teams |
+| Original Post | 2 | Pinned post-card monolith. Ends on a \[deleted\] placeholder. |
+| Runes | 6 | Each a unique shape |
+| Wards | 4 | Lurker Cam and Spoiler Tag, two teams. Placed and revealed states. |
+| Couriers | 2 | Envelope on legs, plus flying upgrade |
+| Out-of-bounds marginalia | 10 | Static vignettes |
+
+### Creeps
+
+| Asset | Count | Notes |
+| --- | --- | --- |
+| Melee, ranged, siege, two teams | 6 | Allies rounded hood. Enemies angular hood. |
+| Stan-buffed overlays | 6 | Raised sign and violet trim |
+| Mega creeps (Mainstream) | 6 | +25% scale, gold trim, original seal emblem |
+| Jungle camp creatures | 12 | Bots, Spam, Shill, Troll-Bridge, Old Forum Thread, and others |
+| Creep animations | 180 | Six per model: idle, walk, attack, death, Stan cheer, spawn |
+
+### Interface
+
+| Screen or element | Count | Copy |
+| --- | --- | --- |
+| HUD frame | 1, plus 2 colorblind skins | None |
+| Clout bar and follower count | 1 | Clout |
+| LIVE dot | 1 | LIVE. Slow pulse, 1 Hz or below. |
+| Scoreboard | 1 | K, D, A, Clout, Net Worth |
+| Pick and ban screen | 1 | Draft your content plan |
+| Loading screen | 1 template, 24 dioramas | What is everyone talking about this match? |
+| Victory and defeat | 2 | Your post performed well. / Your post has been archived. |
+| Shop | 1 | The Plug |
+| Chat wheel | 1 wheel, 16 phrases | Seen. / Posting this. / Muted, respectfully. / Ward the river pls. |
+| Settings | 1 | Gag frequency, reduced motion, flash limiter, colorblind presets, subtitle size and background |
+| Tooltips | About 600 | Mechanical text first. Italic flavor second. |
+| Announcer strings | About 40 | Section 16 |
+
+### Effects
+
+| Effect | Specification |
+| --- | --- |
+| Go Viral glow, 20 s | Steady violet rim light. Slow upward particles. Shadow counter. |
+| Ratio record-scratch | Clout bar halves. Violet arc from corpse to killers. 0.3 s desaturation on the victim's screen. |
+| Repost arcs | Ally-blue dotted arc with violet core and via tags. At most 5 drawn. |
+| Trend banner | Slides from top, 2 s |
+| Go Private | Padlock decal, 5 s ring timer, blinds |
+| Screenshot revive | 3 s rewind clip. Corner brackets snap in. Soft white fade. |
+| Rebrand respawn | Blank tag becomes name stamp, 1 s |
+
+### Audio
+
+| Category | Count | Direction |
+| --- | --- | --- |
+| Announcer stingers | 40 | Deadpan, calm, corporate |
+| Clout SFX | 8 | Gain tick, Go Viral start and end, Ratio scratch, LIVE on and off, Repost link, Rebrand |
+| Trend SFX | 10 | Spawn, modifier reveal, attacks, death, Screenshot pickup and revive |
+| UI SFX | 40 | Click, hover, purchase, error, pick, ban, ready |
+| Ambient beds | 5 | Two bases, river, jungle, pit. Sound only, no music. |
+| Hero voice | About 60 per hero | Deadpan and under-acted |
+
+### Totals (launch)
+
+Heroes 552. Hero voice 1,440. Abilities 326. Status icons 29. Items about 100. Neutrals and objectives 33. Map about 160. Creeps 210. Interface 25 screens and about 700 strings. Audio, non-voice 103. No music in the game. Total about 3,000 assets and about 700 strings. Counts are estimates until the asset list is locked.
+
+## 19. Balance and QA
+
+Every hero plays against the others in fights. Each archetype has a fixed power budget, one hard counter and one soft counter. Hero numbers are set from these budgets.
+
+### Archetype budgets
+
+| Archetype | Role | Early power | Late power | Disable budget | Strong against | Weak against | Hard counter |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Influencer | Clout carry | Low | High | Low | Parasocial, Hermit | Moderator, Notification | Moderator, Lurker |
+| Lurker | Assassin, vision denial | High | Medium | Low | Influencer | Archivist, Notification | Archivist |
+| Reply Guy | Harasser, zoner | Medium | Medium | Medium | Notification | Moderator | Moderator |
+| Algorithm-Pilled Carry | Late-game carry | Low | High | Low | Doomscroller | Hot Take, Lurker | Hot Take |
+| Doomscroller | Ranged nuker | High | Medium | Low | Algorithm-Pilled Carry | Lurker, Moderator | Lurker |
+| Notification Support | Healer, buffer | Medium | Medium | Medium | Reply Guy | Hot Take, Doomscroller | Hot Take |
+| Moderator | Tank, initiator | Medium | Medium | High | Influencer, Algorithm-Pilled Carry, Parasocial | Ghost Account, Archivist | Ghost Account |
+| Ghost Account | Illusionist, summoner | Medium | High | Low | Moderator | Archivist, Hot Take | Archivist |
+| Hot Take | Burst initiator | High | Low | High | Notification Support, Hermit | Moderator | Moderator |
+| Archivist | Utility, zone control | Medium | High | Medium | Lurker, Ghost Account | Doomscroller | Doomscroller |
+| Parasocial | Tethered support, dueler | Medium | Medium | Medium | Influencer | Hot Take | Hot Take |
+| Touch-Grass Hermit | Jungler, sustain | Low | High | Low | Hot Take | Lurker, Archivist | Lurker |
+
+### Fight rules
+
+| Rule | Value |
+| --- | --- |
+| Power budget | Total stats and ability points fixed by archetype tier, then shifted within ±10% by attribute and range |
+| Hard disable cap | 3 per team in any 10 s window. A fourth is shortened to 0.5 s. |
+| Counter coverage | Every hero has one hard counter and one soft counter, drawn from the table above |
+| Ratio ceiling | At most 50% of Clout moves, and at most 200 Clout in total per death |
+| Go Viral limit | One Go Viral active per team at a time |
+| Repost cap | Five stacks per target. Stacks from one source do not stack twice. |
+
+### Stat sheet
+
+- HP, damage, armor and mana are set to the archetype tier.
+- Attack time (BAT) and turn rate are set per hero, and are the main tool for a hero's feel.
+- Movement speed is capped at 522.
+
+### Balance process
+
+| Stage | Measure | Action |
+| --- | --- | --- |
+| Stat sheet | Power budget per hero | Set HP, damage, armor and mana to the archetype tier |
+| Bracket test | Win rate by archetype, by bracket | Retune any archetype outside 47 to 53% |
+| Matchup test | Win rate for each hard counter pair | Retune any pair outside 45 to 55% |
+| Pick and ban test | Pick rate and ban rate per hero | Retune any hero above 3× the average pick or ban rate |
+| Snowball check | Comeback rate after a 10,000 gold deficit | Adjust Ratio and decay if comebacks fall below 10% |
+
+### QA gates
+
+A build passes QA when:
+
+1. Every hero renders at gameplay zoom, and passes the blind silhouette test.
+2. Every ability has a cast point, an impact effect and a telegraph (where the table calls for one).
+3. Every item's tooltip reads without its flavor line.
+4. Every signal (LIVE, Stan, Go Viral, Ratio, Repost) reads in grayscale and under each colorblind preset.
+5. Gag frequency settings remove every gag listed in section 16, and nothing else.
+6. The 10,000 gold snowball check and the bracket test are inside their targets on the current patch.
+
+## 20. Open questions, sources and decisions
+
+### Decisions made
+
+| # | Decision | Reason |
+| --- | --- | --- |
+| 1 | Anonymous Blade item renamed Anon Mask. The PA ability Anonymous Dagger keeps its name. The PA invisibility ability is renamed Anon Mode. | Anon Mask names an invisibility item. Dagger names a dagger. |
+| 2 | Pro Plan is the one ultimate upgrade per hero (Scepter analog). | Clear name for an upgrade item |
+| 3 | Orbs do not stack. | Keeps attack modifiers simple |
+| 4 | Clout is the only audience resource. | Keeps one readable currency |
+| 5 | Seven runes, Algorithm Rune included. | Readable rune pool |
+| 6 | Roster is 112, Underlord included. | Matches the roster target |
+
+### Open questions
+
+1. Confirm the Anon Mask read. If Anonymous Dagger was meant as the item name, the item name changes instead.
+2. Starting gold: 600.
+3. Passive gold rate: 1 gold per second.
+4. Buyback cooldown: 6 minutes.
+5. Tower HP and gold are set in sections 3 and 5.
+6. Rune durations are set in section 12.
+7. Captains Mode order is set in section 14.
+8. Day and night length: 4 min each.
+9. Trend HP and magic resistance are set in section 12.
+10. Ranked All Pick keeps its random ban step.
+11. Underlord is in the launch roster.
+
+### Sources
+
+Reference pages for the classic rules. Numbers are set in the balance pass.
+
+- Liquipedia, Gold: https://liquipedia.net/dota2/Gold
+- Liquipedia, Time of Day: https://liquipedia.net/dota2/Time\_of\_Day
+- Liquipedia, Observer and Sentry Wards: https://liquipedia.net/dota2/Observer\_and\_Sentry\_Wards
+
+Numbers marked verify came from memory of 2016 values or the research summary, and were not confirmed from these pages.
+
+## 21. Systems added back
+
+These systems were left out of the earlier draft. They are part of the game. Each one has rules and numbers below.
+
+### Talent trees
+
+Four talent tiers per hero, unlocked at levels 10, 15, 20 and 25. Each tier offers two choices, written as left / right. The launch heroes are listed below. Heroes outside the launch set use the same pattern: one tier choice improves a basic ability, and one improves the ultimate or the hero's core stat, sized to the tiers in section 9.
+
+| Hero | Level 10 | Level 15 | Level 20 | Level 25 |
+| --- | --- | --- | --- | --- |
+| Based Fiend | +2 Clout per kill / Quote Post radius +100 | Follower Count cap +5 / Vibes Aura −2 armor | Viral Thread +2 s / Quote Post hits a third time | Go Viral at 80 Clout / Follower Count survives death |
+| Long-Form Creator | Thread slows +10% / Pinned Reply damage +50 | Attention Span +150 range / Breaking News cooldown −20 s | Thread lasts a second longer / Pinned Reply stacks on reapply | Breaking News marks targets for allies / +1 Clout per second while seen |
+| Lurk Mode | Unseen Mention +25% damage / Dark Mode radius +50 | Cold Open cooldown −3 s / Ghost Post +1 s invisible | Unseen Mention refreshes on kill / Dark Mode slows | Ghost Post earns no Clout / LIVE hidden for 10 s after each kill |
+| Retargeting | Lead Magnet bounces once / Cold Outreach +30 damage | Stealth Mode +1 s / Track pays +10 gold | Track reveals for 4 s / Lead Magnet briefly stuns | Each tracked enemy gets a Spoiler Tag / Cold Outreach resets Stealth Mode |
+| Who Asked | Cold Read slows +15% / Off the Record cooldown −4 s | Wall of Text +1 s / Hot Take Drop radius +100 | Cold Read freezes for 0.5 s / Off the Record heals 10% | Hot Take Drop marks the target for 2 s / Enemies silenced for 1 s on cast |
+| Well Actually | Citation Needed hits one more target / Hard Correction +1 s | Drain Thread amplifies damage / Corrected targets lose attack speed | Citation Needed slows +20% / Finger of Death +200 damage | Attacks on casters deal bonus damage / One correction per fight costs no mana |
+| Mage of Argument | Rebuttal +10 damage / Quick Reply cooldown −2 s | Spell Shield +1 s / Void Post radius +50 | Rebuttal heals 5% / Quick Reply leaves an afterimage for 40 damage | Void Post hits twice / Mana regen doubles above 50 Clout |
+| Sovereign of Vibes | Keyboard Smash +40 damage / Get Well Soon +50 heal | Blade Dance crit chance +5% / Doomscroll adds one hit | Keyboard Smash lifesteal 10% / +1 Clout per ally healed | Doomscroll resets on kill / Allies gain +10% move speed near you |
+| Frost Feed | Frost Feed slows +10% / Hold Still +1 s | Dark Mode Aura +1 mana regen / Load More cooldown −15 s | Frost Feed leaves a puddle / Hold Still deals +50% damage | Load More fires on every second cast / Frost Feed hits Clout heroes for +10% |
+| Dragon Scroll | Dragon Scroll adds a line / Flash Feed +0.3 s stun | Hype Meter cap +2 / Viral Clip cooldown −20 s | Dragon Scroll burns / Flash Feed refreshes Hype Meter | Viral Clip bonus damage to Clout above 50 / Dragon Scroll ignores armor |
+| Read Receipt | Seen Receipt +2 damage over time / Shallow Grave +1 s | Push Notification +1 bounce / Bad Vibes −2 armor | Seen Receipt spreads on death / Shallow Grave heals 20% | Bad Vibes becomes Worse Vibes / Reveals enemies' last known location for 3 s |
+| Mentions | Purification heals +20 / Dismiss cooldown −5 s | Pinned radius +100 / Likes lasts +1 s | Purification deals double damage to Clout heroes / Dismiss also removes Stan | Likes shared to all allies in radius / Pinned never expires while an ally stands in it |
+| Moderator | Warning slows +1 s / Appeal shield +50 | Strike radius +50 / Lockdown +0.5 s | Appeal reflects 10% / Warning marks the target for allies | Lockdown stuns on death / 1 Clout per 200 damage absorbed |
+| Ban Hammer | Storm Hammer +1 stun / Remove cleave +20% | Notice armor +2 / Escalate +5% damage | Remove applies Warning / Storm Hammer resets on kill | Escalate grows +2% per cast / Target earns no Clout for 10 s |
+| Anonymous Poster | Anonymous Dagger slows +10% / Rephrase cooldown −2 s | Anon Mode +1 s / Final Post crit +50% | Rephrase leaves a decoy / Anonymous Dagger does not reveal you | Final Post kills give double Clout / Name hidden on death recap |
+| Ban Evader | Fresh Account radius +50 / New Account range +100 | Sock Puppet +20 damage / Alt Accounts adds a clone | Fresh Account roots +0.5 s / Clones gain 10% damage | Clones earn half Clout / Ban Evader respawns once as a clone |
+| Hot Take | Breaking Ground +100 length / Thread Totem +10% attack speed | Follow-Up stun +0.3 s / Echo Chamber adds a target | Breaking Ground stuns 0.5 s / Thread Totem heals allies | Echo Chamber is global / Follow-Up victims revealed for 2 s |
+| Yell at Clouds | Yell lasts +1 s / Engagement slows +5% | Clapback reflects 10% / Cancel threshold +5% | Engagement spreads / Yell cooldown −10 s | Cancel grants Clout / Clapback deals +40 damage |
+| Mods | Warning radius +30 / Locked Thread +0.5 s | Jump range +100 / Temp Ban +1 s | Warnings hold 2 charges / Locked Thread reveals a Clout pulse | Temp Ban detonates on death / Warnings show as LIVE to enemies for 2 s |
+| Hook Guy | Meat Hook stun +1 s / Rot damage +10 | Stacks cap +5 / Edit channel −0.5 s | Flesh Heap heals / Rot spreads to nearby enemies | Meat Hook pulls a second target / Edit steals 5% of target Clout |
+| Looping Clip | Illusory Orb +10% speed / Ghosting +1 s | Scheduled Post +50 damage / Looping Clip stun +0.5 s | Illusory Orb returns / Ghosting leaves a copy | Looping Clip repeats once if the target dies / Looping Clip extends for allied Clout |
+| Comeback Tour | Teaser range +100 / Engagement Bait heal +5% | Crit Bait chance +10% / Reincarnation timer −2 s | Teaser burn +5 / Engagement Bait spreads | Reincarnation keeps 50% of Clout / Death recap header reads Return confirmed |
+| Touch Grass | Fresh Air radius +50 / Leave the House cooldown −5 s | Sunlight adds a treant / Go Outside range +200 | Fresh Air roots +0.5 s / Treants heal allies | Go Outside pays Clout / +2% health regen while no enemy sees you |
+| Turf Warden | Ent Camouflage +1 s / Leech Seed drains +10% | Wood Shield +50 / Root Network +0.5 s | Leech Seed spreads / Ent Camouflage works while moving | Root Network reflects damage / Allies in trees gain 10% move speed |
+
+### Talent sets for every hero
+
+Every hero gets the talent set of its archetype below. Launch heroes use the named choices above. Other heroes use these, with their own ability names.
+
+| Archetype | Level 10 | Level 15 | Level 20 | Level 25 |
+| --- | --- | --- | --- | --- |
+| Influencer | +2 Clout per kill / Ability radius +100 | Clout cap +5 / Aura −2 armor | Ultimate +2 s / Extra hit on ability 1 | Go Viral at 80 Clout / Survive death once |
+| Lurker | Unseen damage +25% / Radius +50 | Ability 3 cooldown −3 s / Invisibility +1 s | Refresh on kill / Aura slows | No Clout from ultimate / Hidden 10 s after kill |
+| Reply Guy | Slow +15% / Cooldown −4 s | Stun +1 s / Radius +100 | Freeze 0.5 s / Heal 10% | Mark 2 s / Silence 1 s on cast |
+| Algorithm-Pilled Carry | Damage +10 / Cooldown −2 s | Shield +1 s / Radius +50 | Heal 5% / Afterimage for 40 damage | Hit twice / Mana regen doubles above 50 Clout |
+| Doomscroller | Slow +10% / Root +1 s | Mana regen +1 / Cooldown −15 s | Puddle on ground / Damage +50% | Every second cast / +10% vs Clout heroes |
+| Notification Support | Damage over time +2 / Shield +1 s | Bounce +1 / Armor −2 | Spreads on death / Heal 20% | Worse effect / Reveal 3 s |
+| Moderator | Slow +1 s / Shield +50 | Radius +50 / Stun +0.5 s | Reflect 10% / Mark for allies | Stun on death / 1 Clout per 200 damage absorbed |
+| Ghost Account | Slow +10% / Cooldown −2 s | Stealth +1 s / Crit +50% | Leaves a decoy / Not revealed | Double Clout / Name hidden on death |
+| Hot Take | Length +100 / Attack speed +10% | Stun +0.3 s / Extra target | Stun 0.5 s / Heal allies | Global / Reveal 2 s |
+| Archivist | Radius +30 / Duration +0.5 s | Range +100 / Duration +1 s | Two charges / Reveals a Clout pulse | Detonates on death / LIVE for 2 s |
+| Parasocial | Speed +10% / Duration +1 s | Damage +50 / Stun +0.5 s | Orb returns / Leaves a copy | Repeats on death / Extends for allied Clout |
+| Touch-Grass Hermit | Radius +50 / Cooldown −5 s | Treant +1 / Range +200 | Root +0.5 s / Treants heal | Clout from Go Outside / Regen +2% unseen |
+
+### Backpack
+
+Three backpack slots, indexed 7 to 9. Backpack items give their passive stats. Active items do not work from the backpack. Sell-back rules match the inventory.
+
+### Neutral items
+
+- One neutral item slot per hero. It sits outside the six inventory slots and the backpack.
+- Neutral items drop from jungle camps. A hero gets one choice of two. A new neutral replaces the old one.
+- Tier timings: tier 1 from 7:00, tier 2 from 17:00, tier 3 from 27:00, tier 4 from 37:00.
+
+| Tier | Source | Items (choose one of three) |
+| --- | --- | --- |
+| 1 | Small camps | Thread Pin: +10 damage. Crumb Pouch: +1.5 HP regen. Bot Badge: +8% spell amplification. |
+| 2 | Medium camps | Echo Ring: 8% attack lifesteal. Stan Sign: allied creeps in Reach gain +5% damage. Hot Mic: 15% chance on attack to silence for 0.6 s. |
+| 3 | Hard camps | Viral Bell: 10% chance on attack to heal 60 HP. Ratio Cloak: 8% damage reduction above 50 Clout. Cancel Mask: +6% magic resistance, +50 max mana. |
+| 4 | Old Forum Thread | Eternal Thread: +150 HP, +20 damage, 10% faster cooldowns. Vintage Post: active, 2 s reveal and 1.5 s stun in 400 radius, 60 s cooldown. Long Tail: +25% Clout gain. |
+
+### Shrines
+
+- Two shrines per team, one at each river crossing next to the team's safe lane. Available from 0:00.
+- Active: heals all allies within 500 radius for 14% of max HP per second, for 5 s.
+- Cooldown 45 s, shared per shrine.
+
+### Lite Plan (Aghanim's Shard analog)
+
+- Cost 1,400 gold. Built from Pro Plan and Rubber Duck.
+- Adds one second effect to a basic ability on the holder. The effect is set per hero in section 9.
+- Stacks with Pro Plan.
+
+### Effigies
+
+- Fifteen Effigy buildings per base. Each has 500 HP, no armor and a 5 gold bounty.
+- Effigies do not count toward tiers or the win condition. Creeps do not target them.
+
+### Attribute Bonus
+
+- A fifth skill. It takes unspent ability points, after the four skills and the ultimate are maxed.
+- Each point gives +2 to all three attributes. Maximum 10 points.
+
+### Team Scan
+
+- Reveals enemy heroes within 900 radius for 8 s.
+- Shared team cooldown of 270 s. Any hero on the team can cast it.
+
+### Status resistance
+
+- Base 0%. Items and talents add it.
+- Reduces the duration of stuns, silences, roots, hexes, fear and taunts. Cap 50%.
+
+### Algorithm Rune (Arcane rune analog)
+
+- Spawns with the other runes on the river. Lasts 50 s.
+- While held: cooldowns −30%, mana costs −40%.
+
+### Cheese
+
+- The Trend drops Cheese on its second kill and every kill after.
+- Cheese cannot be sold. Use it to restore 2,500 HP and 1,000 mana over 4 s. One Cheese per drop.
+
+### Underlord (roster entry 112)
+
+- **Name:** Pit Boss. Archetype: Moderator. Attribute: Strength. Range: Melee.
+- **Gag:** Runs the pit. Has never been to it.
+- **Ability 1, Pit Post:** area trap in 400 radius that roots and damages.
+- **Ability 2, Atrophy Feed:** aura that damages nearby enemies, growing by 10% per second in combat.
+- **Ability 3, Gate Crash:** places a gate at a point. Allies who step through teleport to the other gate.
+- **Ultimate, Dark Rift:** teleports an ally to a point, then damages enemies around the arrival.
