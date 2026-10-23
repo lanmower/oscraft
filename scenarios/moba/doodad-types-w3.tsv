@@ -1,0 +1,101 @@
+type	count	tree_rule	name	shipped_kind	reason
+ATtr	1141	tree		tree	script tree rule (pU) (6.88g tree layer kept)
+NTtw	756	tree		tree	script tree rule (pU) (6.88g tree layer kept)
+CTtr	495	tree		tree	script tree rule (pU) (6.88g tree layer kept)
+D00B	287			bench	custom code: a ZPsh variant, which 6.88g ships as bench
+ZPsh	197			bench	6.88g mapped this code to bench
+CObl	145		Blighted Mist	patch_dirt	6.88g mapped this code to patch_dirt
+CRrk	94			cart_high	6.88g mapped this code to cart_high
+APtv	94			grass_large	6.88g mapped this code to grass_large
+ARrk	79		Rocks	rock	6.88g mapped this code to rock
+ZPfw	78		Flowers	flowers	6.88g mapped this code to flowers
+CPms	64		Mushrooms	mushrooms	6.88g mapped this code to mushrooms
+LWw0	56			catwalk_junction	6.88g mapped this code to catwalk_junction
+LOth	54		Torch	torch	6.88g mapped this code to torch
+B00H	40				unresolved: no name in either map's doodad table, so its placements are dropped
+B00D	34				unresolved: no name in either map's doodad table, so its placements are dropped
+D006	34			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+D000	33			fence	custom code: a NOfl variant, which 6.88g ships as fence
+YTlb	30			bench	6.88g mapped this code to bench
+JTtw	20				unresolved: no name in either map's doodad table, so its placements are dropped
+LPwb	20				unresolved: no name in either map's doodad table, so its placements are dropped
+B008	19				unresolved: no name in either map's doodad table, so its placements are dropped
+D009	15			patch_dirt	custom code: a AObd variant, which 6.88g ships as patch_dirt
+ZWbg	15		Bubbles	patch_dirt	6.88g mapped this code to patch_dirt
+AOsr	14		Remains Scorched	remains_scorched	6.88g mapped this code to remains_scorched
+LOsk	14		Skull Pile	skull_pile	6.88g mapped this code to skull_pile
+YTfb	14				unresolved: no name in either map's doodad table, so its placements are dropped
+NObt	12		Bats	patch_dirt	6.88g mapped this code to patch_dirt
+OTip	12				unresolved: no name in either map's doodad table, so its placements are dropped
+LOlp	11		Post Lantern	post_lantern	6.88g mapped this code to post_lantern
+CSbl	11		Blocks Ruined	blocks_ruined	6.88g mapped this code to blocks_ruined
+D00A	11				unresolved: no name in either map's doodad table, so its placements are dropped
+LOfl	10		Flies	patch_dirt	6.88g mapped this code to patch_dirt
+D001	10			brazier_skull	custom code: a AObr variant, which 6.88g ships as brazier_skull
+D002	10			fountain	custom code: a VOfl variant, which 6.88g ships as fountain
+LOpg	10		Grave Peasant	grave_peasant	6.88g mapped this code to grave_peasant
+AWlp	9				unresolved: no name in either map's doodad table, so its placements are dropped
+D00C	8				unresolved: no name in either map's doodad table, so its placements are dropped
+CPlp	8		Lily Pad	lily_pad	6.88g mapped this code to lily_pad
+CSbr	8				unresolved: no name in either map's doodad table, so its placements are dropped
+NOtb	8		Tombstone	tombstone	6.88g mapped this code to tombstone
+APct	7				unresolved: no name in either map's doodad table, so its placements are dropped
+CRfs	7				unresolved: no name in either map's doodad table, so its placements are dropped
+LPwh	7			grass_large	6.88g mapped this code to grass_large
+AObd	6		Birds	patch_dirt	6.88g mapped this code to patch_dirt
+AOnt	6			rocks	6.88g mapped this code to rocks
+D007	6			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+NOfp	5		Fire Pit	fire_pit	6.88g mapped this code to fire_pit
+CPct	5		Cattail	cattail	6.88g mapped this code to cattail
+LObz	4			iron_fence_border_gate	6.88g mapped this code to iron_fence_border_gate
+LOic	4		Corpse Impaled	debris_wood	6.88g mapped this code to debris_wood
+CObo	4				unresolved: no name in either map's doodad table, so its placements are dropped
+B00B	4				unresolved: no name in either map's doodad table, so its placements are dropped
+NOfl	3		Fence	fence	6.88g mapped this code to fence
+ZWfs	3		Fish Green	fish_green	6.88g mapped this code to fish_green
+ZWsw	3				unresolved: no name in either map's doodad table, so its placements are dropped
+LOsh	3				unresolved: no name in either map's doodad table, so its placements are dropped
+LPcr	3				unresolved: no name in either map's doodad table, so its placements are dropped
+NOfg	3		Fire Pit with Pig	fire_pit_with_pig	6.88g mapped this code to fire_pit_with_pig
+YOec	3				unresolved: no name in either map's doodad table, so its placements are dropped
+D00J	2				unresolved: no name in either map's doodad table, so its placements are dropped
+D00K	2				unresolved: no name in either map's doodad table, so its placements are dropped
+NOft	2				unresolved: no name in either map's doodad table, so its placements are dropped
+OOgr	2				unresolved: no name in either map's doodad table, so its placements are dropped
+ZObz	2				unresolved: no name in either map's doodad table, so its placements are dropped
+IWbg	2				unresolved: no name in either map's doodad table, so its placements are dropped
+D00F	2			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+D00D	2			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+D00R	2			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+D00I	2				unresolved: no name in either map's doodad table, so its placements are dropped
+D003	2			bench	custom code: a ZPsh variant, which 6.88g ships as bench
+D005	2			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+B00C	1				unresolved: no name in either map's doodad table, so its placements are dropped
+D00N	1				unresolved: no name in either map's doodad table, so its placements are dropped
+AWfs	1		Fish	fish	6.88g mapped this code to fish
+NWsd	1		Ship Destroyed	ship_destroyed	6.88g mapped this code to ship_destroyed
+COhs	1				unresolved: no name in either map's doodad table, so its placements are dropped
+LOsc	1		Corpse Sitting	coffin	6.88g mapped this code to coffin
+D00M	1				unresolved: no name in either map's doodad table, so its placements are dropped
+VOfl	1			fountain	6.88g mapped this code to fountain
+B00E	1				unresolved: no name in either map's doodad table, so its placements are dropped
+ASpr	1				unresolved: no name in either map's doodad table, so its placements are dropped
+LSwm	1				unresolved: no name in either map's doodad table, so its placements are dropped
+LOct	1				unresolved: no name in either map's doodad table, so its placements are dropped
+D008	1			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+D00E	1			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+ASbr	1				unresolved: no name in either map's doodad table, so its placements are dropped
+LOt1	1				unresolved: no name in either map's doodad table, so its placements are dropped
+DOtp	1				unresolved: no name in either map's doodad table, so its placements are dropped
+D004	1			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+LOca	1		Cauldron with heads	cauldron_with_heads	6.88g mapped this code to cauldron_with_heads
+D00O	1				unresolved: no name in either map's doodad table, so its placements are dropped
+NSct	1		Crypt	crypt	6.88g mapped this code to crypt
+NWrd	1		Rowboat Destroyed	rowboat_destroyed	6.88g mapped this code to rowboat_destroyed
+LOgr	1		Grave	grave	6.88g mapped this code to grave
+D00H	1			post_lantern	custom code: a LOlp variant, which 6.88g ships as post_lantern
+NOgv	1				unresolved: no name in either map's doodad table, so its placements are dropped
+D00L	1				unresolved: no name in either map's doodad table, so its placements are dropped
+D00P	1				unresolved: no name in either map's doodad table, so its placements are dropped
+D00Q	1				unresolved: no name in either map's doodad table, so its placements are dropped
+LOsp	1		Post Sign	post_sign	6.88g mapped this code to post_sign
