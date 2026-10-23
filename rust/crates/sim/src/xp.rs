@@ -40,9 +40,9 @@ mod tests {
         let scenario = crate::test_pack_dir();
         let image = osdt_data::generate(&scenario).expect("pack image");
         let s: Sim = load(&image, 1024).expect("pack sim");
-        let expected: [u32; 29] = [
-            230, 600, 1080, 1660, 2260, 2980, 3730, 4620, 5550, 6520, 7530, 8580, 9805, 11055, 12330, 13630, 14955, 16455,
-            18045, 19645, 21495, 23595, 25945, 28545, 31395, 34495, 37895, 41595, 45595,
+        let expected: [u32; 24] = [
+            200, 500, 900, 1400, 2000, 2600, 3200, 4400, 5400, 6000, 8200, 9000, 10400, 11900, 13500, 15200, 17000, 18900,
+            20900, 23000, 25200, 27500, 29900, 32400,
         ];
         assert_eq!(s.xp_curve(), &expected[..]);
         assert_eq!(s.catalog().tune.xp_curve, expected.to_vec());

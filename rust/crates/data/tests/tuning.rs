@@ -24,7 +24,7 @@ fn scratch(name: &str, tuning: Option<&str>) -> PathBuf {
     dir
 }
 
-const XP: &str = "230, 600, 1080, 1660, 2260, 2980, 3730, 4620, 5550, 6520, 7530, 8580, 9805, 11055, 12330, 13630, 14955, 16455, 18045, 19645, 21495, 23595, 25945, 28545, 31395, 34495, 37895, 41595, 45595";
+const XP: &str = "200, 500, 900, 1400, 2000, 2600, 3200, 4400, 5400, 6000, 8200, 9000, 10400, 11900, 13500, 15200, 17000, 18900, 20900, 23000, 25200, 27500, 29900, 32400";
 
 fn tuning(points: i32, steps: i32, xp: &str) -> String {
     format!("tuning(structure_scan_cells=3, teleport_ring_points={points}, teleport_ring_steps={steps}, best_only=[], xp_curve=[{xp}])\n")

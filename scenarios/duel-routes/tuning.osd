@@ -5,7 +5,7 @@
 #   their centre, beyond the footprint edge).
 # teleport_ring_points / teleport_ring_steps: landing ring for the teleport effect, directions and widening steps.
 # best_only: item stats that take the largest value any active item gives, instead of the sum.
-# xp_curve: cumulative xp at which character levels 2 to 30 are reached (level 1 needs none). UNVERIFIED: the
+# xp_curve: cumulative xp at which character levels 2 to 25 are reached (level 1 needs none). UNVERIFIED: the
 #   reference table is an engine constant absent from the npc dump; recalled, and the 720 and 750 steps to levels
 #   7 and 8 match the patch 7.21 notes.
 tuning(
@@ -13,5 +13,5 @@ tuning(
     teleport_ring_points=8,
     teleport_ring_steps=6,
     best_only=["scepter", "shard", "crit_chance", "crit_multiplier", "cleave", "cleave_distance", "cleave_start_width", "cleave_end_width", "bash_chance", "bash_duration", "night_vision"],
-    xp_curve=[230, 600, 1080, 1660, 2260, 2980, 3730, 4620, 5550, 6520, 7530, 8580, 9805, 11055, 12330, 13630, 14955, 16455, 18045, 19645, 21495, 23595, 25945, 28545, 31395, 34495, 37895, 41595, 45595],
+    xp_curve=[200, 500, 900, 1400, 2000, 2600, 3200, 4400, 5400, 6000, 8200, 9000, 10400, 11900, 13500, 15200, 17000, 18900, 20900, 23000, 25200, 27500, 29900, 32400],
 )

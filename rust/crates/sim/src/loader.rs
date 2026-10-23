@@ -24,13 +24,13 @@ const CELL_BITS: u8 = 0b111;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
 const SECTION_TAGS: [&[u8; 4]; 27] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT", b"TUNE", b"SNAM", b"EKND", b"FNAM", b"MCND", b"DKND"];
-const RECORD_SIZES: [usize; 27] = [1, 20, 32, 2, 86, 16, 16, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520, 128, 1, 1, 1, 1, 1];
+const RECORD_SIZES: [usize; 27] = [1, 20, 32, 2, 86, 16, 16, 12, 4, 32, 48, 8, 32, 8, 8, 20, 1, 192, 72, 256, 520, 12 + XP_CURVE_LEN * 4, 1, 1, 1, 1, 1];
 /// Most teleport landing points a ring holds: the eight compass directions the teleport effect steps through.
 const TELEPORT_RING_MAX_POINTS: u8 = 8;
 /// Most cells a structure scan reaches past weapon range.
 const STRUCTURE_SCAN_MAX_CELLS: u8 = 64;
 /// Cumulative xp thresholds in the level curve (TUNE section).
-pub const XP_CURVE_LEN: usize = 29;
+pub const XP_CURVE_LEN: usize = 24;
 const SKILL_RANKS: usize = 4;
 const ULTIMATE_RANKS: u8 = 3;
 const ULTIMATE_GATES: [i32; ULTIMATE_RANKS as usize] = [6, 12, 18];

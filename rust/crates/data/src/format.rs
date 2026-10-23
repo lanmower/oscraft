@@ -141,7 +141,7 @@ pub const ROUT_RECORD: usize = 8 + MAX_ROUTE_POINTS * 8;
 /// reserved u8, best-only stat mask u64 (bit k is item stat k of `ITEM_STATS`), then `XP_CURVE_LEN` cumulative xp
 /// thresholds of u32, nondecreasing.
 pub const TUNE_RECORD: usize = 12 + XP_CURVE_LEN * 4;
-pub const XP_CURVE_LEN: usize = 29;
+pub const XP_CURVE_LEN: usize = 24;
 /// Most teleport landing points one ring holds: the eight compass directions.
 pub const TELEPORT_RING_MAX_POINTS: u8 = 8;
 /// Most cells a structure scan may reach past weapon range.
