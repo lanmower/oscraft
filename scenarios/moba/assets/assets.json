@@ -1,6 +1,6 @@
 {
- "count": 3066,
- "total_bytes": 95623980,
+ "count": 3067,
+ "total_bytes": 96236260,
  "items": [
   {
    "id": "rock",
@@ -7275,6 +7275,14 @@
    "path": "models/tower-t2-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 292056,
+   "role": "character"
+  },
+  {
+   "id": "treant-skinned",
+   "kind": "model",
+   "path": "models/treant-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 612280,
    "role": "character"
   },
   {
@@ -31884,7 +31892,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 214,
+  "character": 215,
   "creep": 5,
   "terrain": 7
  }
