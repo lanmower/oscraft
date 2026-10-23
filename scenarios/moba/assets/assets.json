@@ -1,6 +1,6 @@
 {
- "count": 3068,
- "total_bytes": 96959232,
+ "count": 3069,
+ "total_bytes": 97875040,
  "items": [
   {
    "id": "rock",
@@ -7291,6 +7291,14 @@
    "path": "models/ursa-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 722972,
+   "role": "character"
+  },
+  {
+   "id": "melee-creep-skinned",
+   "kind": "model",
+   "path": "models/melee-creep-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 915808,
    "role": "character"
   },
   {
@@ -31900,7 +31908,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 216,
+  "character": 217,
   "creep": 5,
   "terrain": 7
  }

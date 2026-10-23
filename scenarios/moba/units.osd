@@ -7,7 +7,7 @@ unit("tower", 1800, 0, 2250, filters=["ground", "armored", "massive", "structure
 # Base (Ancient): npc_units.txt @282fad29f0f74504fad465c52d197fb61f4d612b badguys_fort (StatusHealth 4500, StatusHealthRegen 12, ArmorPhysical 23, vision 2600). The ancient does not attack.
 unit("base", 4500, 0, 2250, filters=["ground", "armored", "massive", "structure", "building"], abilities=["glyph_of_fortification"], sight_milli=40625, defense=23, health_regen=750, model="base-skinned", deny_pct=0)
 # Melee lane creep: npc_units.txt @282fad29f0f74504fad465c52d197fb61f4d612b creep_badguys_melee (health 550, regen 0.5, armor 2, damage 19-23 midpoint 21, range 100, rate 1.0 s, speed 325, vision 750, ring radius 45).
-unit("creep", 550, 317, 250, filters=["ground", "light", "army"], weapon_damage=21, weapon_range_milli=1562, weapon_period=16, sight_milli=11719, defense=2, health_regen=31, model="character-skeleton", deny_pct=50)
+unit("creep", 550, 317, 250, filters=["ground", "light", "army"], weapon_damage=21, weapon_range_milli=1562, weapon_period=16, sight_milli=11719, defense=2, health_regen=31, model="melee-creep-skinned", deny_pct=50)
 unit("tender", 40, 2800, 350, deny_pct=50,build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="resource_a", harvest=5, model="character-female-a")
 unit("objective", 800, 1000, 900, filters=["ground", "armored", "massive", "structure"], sight_milli=6000, model="pillar-obelisk", deny_pct=50)
 # Roshan: npc_units.txt @282fad29f0f74504fad465c52d197fb61f4d612b roshan (health 6000, regen 20, armor 30, damage 75, rate 2.0 s, range 150, speed 270, vision 1400, ring radius 110). Magic resistance 55 and his abilities are not modelled. Appended late so unit indices hold.
