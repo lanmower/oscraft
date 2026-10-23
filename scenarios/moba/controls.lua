@@ -36,6 +36,8 @@ local CFG = {
   dragSlop = 0.25,
   pickRadius = 1.2,
   formationSpacing = 0.7,
+  -- A move order is done once its unit is this close to the destination (world units).
+  arriveRadius = 0.5,
   centreSeconds = 0.4,
 }
 local LOCAL = 0
@@ -520,6 +522,14 @@ local function on_pointer(kind, x, y, button)
   on_ground(LOCAL, kind, x, y, button)
 end
 
+-- A unit is idle when it stands on a stop order, or on a move that has reached its destination. A move keeps its
+-- kind on arrival, so the arrival test is the only signal the sim gives for it.
+local function idle(id)
+  local kind, tx, ty = game.order_of(id)
+  if kind == ORDER_STOP then return true end
+  return game.within(id, tx, ty, fx(CFG.arriveRadius))
+end
+
 -- Issues the next queued order of each idle unit, in the order game.units lists them (the same on every peer).
 local function on_tick()
   for _, id in ipairs(game.units(nil)) do
@@ -527,7 +537,7 @@ local function on_tick()
     if q ~= nil then
       if #q == 0 or not game.alive(id) then
         QUEUE[id] = nil
-      elseif game.order_of(id) == ORDER_STOP then
+      elseif idle(id) then
         local o = q[1]
         for k = 1, #q - 1 do q[k] = q[k + 1] end
         q[#q] = nil
