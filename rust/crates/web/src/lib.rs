@@ -500,6 +500,15 @@ impl Game {
             .collect()
     }
 
+    /// Living units' filter bits (a mask over FILTERS indices), one per unit in `units()` order. The page
+    /// tests bit 11 (2048) to tell a building from a unit, the mask `scenarios/moba/shared/units.lua` uses.
+    pub fn unit_filter_bits(&self) -> Vec<u32> {
+        (0..self.host.sim().count())
+            .filter(|&i| self.host.sim().alive(i))
+            .map(|i| self.host.sim().filter_bits(i))
+            .collect()
+    }
+
     /// The model file each catalog unit type draws with, indexed by type index. Empty when none.
     pub fn unit_model_names(&self) -> Vec<String> {
         let world = self.host.sim();
