@@ -41,6 +41,13 @@ function writeMuted(on) {
   }
 }
 
+// The voices of the page's pack: the object createVoices made most recently. fx.js speaks a hero's event from the
+// sim's display effects through it, so the pack's object need not be passed down to the effects.
+let packPlayer = null;
+export function packVoices() {
+  return packPlayer;
+}
+
 // `url` resolves a path inside the pack's voices directory: the caller owns that root, so this module
 // never names one and a pack without voices is never probed.
 export function createVoices({ url, audioContext = null }) {
@@ -166,8 +173,10 @@ export function createVoices({ url, audioContext = null }) {
     return volume;
   }
 
-  return {
+  const voices = {
     play,
+    // Lines audible right now, one per hero at most.
+    playing: () => active.size,
     // The heroes that have voices, for the debug surface.
     async heroes() {
       const m = await loadManifest();
@@ -179,4 +188,6 @@ export function createVoices({ url, audioContext = null }) {
     volume: () => volume,
     setVolume,
   };
+  packPlayer = voices;
+  return voices;
 }

@@ -7,6 +7,7 @@
 // renderer's drawMesh with the additive blend mode (mesh.blend = "add", mesh.alpha); numbers are drawn on a 2D overlay.
 import { translation } from "./render3d.js";
 import { UI } from "./pack_load.js";
+import { packVoices } from "./audio.js";
 
 const FIXED_ONE = 65536;
 const TEAM_RING_RADIUS = 0.8;
@@ -28,6 +29,21 @@ const PRUNE_EVERY = 120;
 const durOf = (e) => e.dur;
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const WHITE = [1, 1, 1];
+// Hero voice lines: the effect, the unit field that speaks it, and the voice event. melee_hit names no source, so a
+// melee strike has no speaker here. respawn_ring fires when a dead hero comes back; a match start has no such event.
+// Only the local seat's own hero speaks (the owner check in cueVoice). gap is the least time between one hero's lines:
+// attack_arrow fires on every arrow, so attack lines are spaced far more widely than the other events.
+const VOICE_GAP_MS = 1500;
+const VOICE_ATTACK_GAP_MS = 8000;
+const VOICE_CUES = new Map([
+  ["attack_arrow", { event: "attack", speaker: "source", gap: VOICE_ATTACK_GAP_MS }],
+  ["cast_ring", { event: "ability", speaker: "source", gap: VOICE_GAP_MS }],
+  ["cast_burst", { event: "ability", speaker: "source", gap: VOICE_GAP_MS }],
+  ["spell_orb", { event: "ability", speaker: "source", gap: VOICE_GAP_MS }],
+  ["kill_burst", { event: "death", speaker: "target", gap: VOICE_GAP_MS }],
+  ["respawn_ring", { event: "spawn", speaker: "target", gap: VOICE_GAP_MS }],
+]);
+const VOICE_LINES_MAX = 3; // lines fetched or playing at once
 const CAP_RINGS = 48;
 const CAP_PARTICLES = 160;
 const CAP_PROJECTILES = 48;
@@ -155,7 +171,7 @@ function setFlag(name, value) {
   window.dispatchEvent(new CustomEvent("moba:flag", { detail: { name, on } }));
 }
 
-export function createFx({ renderer, game, toScreen, groundAt, playerColor, selected, arrow = () => null }) {
+export function createFx({ renderer, game, toScreen, groundAt, playerColor, selected, arrow = () => null, localPlayer = () => null }) {
   const thin = ringMesh(0.88);
   const thick = ringMesh(0.6);
   const octa = octaMesh();
@@ -307,11 +323,63 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   // The last drained events, kept for the debug API (oscraft.debug.effects()); the queue itself is drained once.
   const RECENT_EFFECTS = 64;
   const recent = [];
+
+  // The catalog name of a unit type (its hero's name in the voice manifest), read once per game.
+  let namesGame = null;
+  let typeNames = [];
+  function typeNameOf(type) {
+    const g = game();
+    if (g !== namesGame) {
+      namesGame = g;
+      typeNames = typeof g.unit_type_names === "function" ? g.unit_type_names() : [];
+    }
+    return typeNames[type] ?? null;
+  }
+
+  // The heroes with a voice line, read from the pack's manifest on the first cue. Cues before it arrives are not spoken.
+  let voicedHeroes = null;
+  let voicedLoading = false;
+  function heroesWithVoice() {
+    const voices = packVoices();
+    if (voicedHeroes === null && voices && !voicedLoading) {
+      voicedLoading = true;
+      voices.heroes().then((names) => { voicedHeroes = new Set(names); });
+    }
+    return voicedHeroes;
+  }
+
+  // Lines being fetched, and when each hero's last line started. A cue is dropped past a hero's gap or past
+  // VOICE_LINES_MAX lines, so a fight does not stack into noise. Mute is checked first, so a muted page does no work.
+  const cuePending = new Set();
+  const cueStarted = new Map();
+  function cueVoice(e) {
+    const cue = VOICE_CUES.get(e.kind);
+    if (!cue) return;
+    const speaker = e[cue.speaker];
+    if (!(speaker >= 0)) return;
+    const voices = packVoices();
+    if (!voices || voices.isMuted()) return;
+    const seen = unitsById.get(speaker) ?? lastSeen.get(speaker);
+    if (!seen || seen.player !== localPlayer()) return;
+    const hero = typeNameOf(seen.type);
+    const heroes = heroesWithVoice();
+    if (!hero || !heroes || !heroes.has(hero)) return;
+    if (cuePending.has(hero) || cuePending.size + voices.playing() >= VOICE_LINES_MAX) return;
+    const last = cueStarted.get(hero);
+    if (last !== undefined && performance.now() - last < cue.gap) return;
+    cuePending.add(hero);
+    voices.play(hero, cue.event).then((started) => {
+      cuePending.delete(hero);
+      if (started) cueStarted.set(hero, performance.now());
+    });
+  }
+
   function drainEvents() {
     const g = game();
     if (typeof g.drain_effects !== "function") return;
     for (const e of JSON.parse(g.drain_effects())) {
       spawnEvent(e);
+      cueVoice(e);
       recent.push(e);
       if (recent.length > RECENT_EFFECTS) recent.shift();
     }
@@ -326,6 +394,8 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     rec.x = u.x;
     rec.z = u.z;
     rec.top = u.top ?? 1;
+    rec.type = u.type;
+    rec.player = u.player;
     rec.frame = frameNo;
   }
 
