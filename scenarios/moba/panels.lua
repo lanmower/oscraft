@@ -37,7 +37,6 @@ local LOCAL = 0
 local OWNER = "local"
 local SEL = {}
 local OPEN = { shop = false, scoreboard = false }
-local EXPANDED = false
 local HORN = nil
 local PEAK = {}
 -- The longest cooldown seen per unit and slot: the sweep's full length for an ability with no rank table.
@@ -276,8 +275,8 @@ local function win_tree()
   return box(kids, "col")
 end
 
--- The team strip: each side's kills and one dot per hero (green alive, red dead), the gold of each seat in play, and
--- the hero rows when expanded.
+-- The top strip, Dota's format: each side's kills with the match clock between them. Heroes and seat gold are on the
+-- Tab scoreboard (scoreboard_tree).
 local function team_tree()
   local kills = {}
   for _, row in ipairs(post_game_rows(false)) do
@@ -285,42 +284,11 @@ local function team_tree()
     kills[side] = (kills[side] or 0) + row.kills
   end
   local kids = {}
-  for _, side in ipairs(sides()) do
-    local dots = {}
-    for p = 0, #UI.teams - 1 do
-      local h = HEROES[p]
-      if h ~= nil and team_of(p) == side then
-        local name = game.unit_kind(h.id) or TEXT.noValue
-        dots[#dots + 1] = cell({}, { tone = h.state == "alive" and "ok" or "bad", tip = name .. " " .. h.state })
-      end
-    end
-    kids[#kids + 1] = box({
-      label(TEXT.teamLabel .. " " .. tostring(side), "team" .. tostring(side)),
-      label(TEXT.killsLabel .. " " .. tostring(kills[side] or 0), "muted"),
-      box(dots, "row"),
-    }, "row")
+  for i, side in ipairs(sides()) do
+    if i == 2 then kids[#kids + 1] = label(clock_text(), "muted") end
+    kids[#kids + 1] = label(TEXT.killsLabel .. " " .. tostring(kills[side] or 0), "team" .. tostring(side))
   end
-  local gold = {}
-  for p = 0, #UI.teams - 1 do
-    if #game.units(p) > 0 then gold[#gold + 1] = label(TEXT.teamGold.team .. " " .. tostring(p) .. " " .. TEXT.teamGold.gold .. " " .. tostring(game.gold(p)), "gold") end
-  end
-  kids[#kids + 1] = box(gold, "row")
-  kids[#kids + 1] = button(TEXT.teamRows, "team_rows", "{}")
-  if EXPANDED then
-    local cells = {}
-    for _, h in ipairs(TEXT.heroRowHeaders) do cells[#cells + 1] = label(h, "muted") end
-    for p = 0, #UI.teams - 1 do
-      local h = HEROES[p]
-      if h ~= nil then
-        cells[#cells + 1] = label(game.unit_kind(h.id) or TEXT.noValue)
-        cells[#cells + 1] = label(tostring(team_of(p)))
-        cells[#cells + 1] = label(h.state, h.state == "alive" and "ok" or "bad")
-        cells[#cells + 1] = label(tostring(h.hp))
-      end
-    end
-    kids[#kids + 1] = grid(4, cells)
-  end
-  return box(kids, "col")
+  return box(kids, "row")
 end
 
 -- The shop tags of an item: the bit of each name in UI.shopNames (items.osd's item_tags order), read by division.
@@ -811,9 +779,7 @@ local function key_in(list, key)
 end
 
 local function ui_call(who, call, a)
-  if call == "team_rows" then
-    EXPANDED = not EXPANDED
-  elseif call == "buy" then
+  if call == "buy" then
     local hero = hero_of(who)
     if hero ~= nil then game.cmd_buy(hero, a.item) end
   elseif call == "sell" then

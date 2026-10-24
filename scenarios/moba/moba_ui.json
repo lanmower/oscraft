@@ -104,17 +104,6 @@
     },
     "teamLabel": "Team",
     "killsLabel": "kills",
-    "teamGold": {
-      "team": "team",
-      "gold": "gold"
-    },
-    "teamRows": "hero rows",
-    "heroRowHeaders": [
-      "hero",
-      "team",
-      "state",
-      "hp"
-    ],
     "shop": {
       "title": "Shop"
     },
