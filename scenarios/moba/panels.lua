@@ -220,7 +220,7 @@ local function clock_text()
   return tostring(minutes) .. ":" .. tostring(secs)
 end
 
--- The HUD line: the primary selected unit's hp, the local seat's gold and the match clock.
+-- The HUD line: the primary selected unit's hp and the local seat's gold. The match clock is on the top strip (team_tree).
 local function hud_tree()
   local primary = alive_selection()[1]
   local hp = nil
@@ -230,7 +230,6 @@ local function hud_tree()
   return box({
     label(TEXT.hud.hp .. " " .. hp_text),
     label(TEXT.hud.gold .. " " .. tostring(game.gold(LOCAL))),
-    label(TEXT.hud.time .. " " .. clock_text()),
   }, "row")
 end
 

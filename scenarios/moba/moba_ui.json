@@ -79,8 +79,7 @@
   "text": {
     "hud": {
       "hp": "hp",
-      "gold": "gold",
-      "time": "time"
+      "gold": "gold"
     },
     "preMatch": "pre-match",
     "noValue": "-",
