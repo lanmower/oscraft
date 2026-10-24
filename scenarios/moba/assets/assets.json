@@ -1,6 +1,6 @@
 {
- "count": 3087,
- "total_bytes": 105727580,
+ "count": 3091,
+ "total_bytes": 106815724,
  "items": [
   {
    "id": "rock",
@@ -7443,6 +7443,38 @@
    "path": "models/tree-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 244216,
+   "role": "character"
+  },
+  {
+   "id": "catwalk-junction-skinned",
+   "kind": "model",
+   "path": "models/catwalk-junction-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 306276,
+   "role": "character"
+  },
+  {
+   "id": "debris-wood-skinned",
+   "kind": "model",
+   "path": "models/debris-wood-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 314604,
+   "role": "character"
+  },
+  {
+   "id": "iron-fence-border-gate-skinned",
+   "kind": "model",
+   "path": "models/iron-fence-border-gate-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 245396,
+   "role": "character"
+  },
+  {
+   "id": "rock-skinned",
+   "kind": "model",
+   "path": "models/rock-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 221868,
    "role": "character"
   },
   {
@@ -32052,7 +32084,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 235,
+  "character": 239,
   "creep": 5,
   "terrain": 7
  }
