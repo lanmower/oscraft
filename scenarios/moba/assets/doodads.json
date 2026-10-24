@@ -133,7 +133,7 @@
   "chimney_medium": "models/chimney-medium.glb",
   "chimney_small": "models/chimney-small.glb",
   "chimney_top": "models/chimney-top.glb",
-  "coffin": "models/coffin.glb",
+  "coffin": "models/coffin-skinned.glb",
   "coffin_old": "models/coffin-old.glb",
   "cog_a": "models/cog-a.glb",
   "cog_b": "models/cog-b.glb",
@@ -203,7 +203,7 @@
   "cross": "models/cross.glb",
   "cross_column": "models/cross-column.glb",
   "cross_wood": "models/cross-wood.glb",
-  "crypt": "models/crypt.glb",
+  "crypt": "models/crypt-skinned.glb",
   "crypt_a": "models/crypt-a.glb",
   "crypt_b": "models/crypt-b.glb",
   "crypt_door": "models/crypt-door.glb",
@@ -1052,5 +1052,7 @@
   "fence_skinned": "models/fence-skinned.glb",
   "fish_skinned": "models/fish-skinned.glb",
   "grave_skinned": "models/grave-skinned.glb",
-  "tall_tree_skinned": "models/tall-tree-skinned.glb"
+  "tall_tree_skinned": "models/tall-tree-skinned.glb",
+  "coffin_skinned": "models/coffin-skinned.glb",
+  "crypt_skinned": "models/crypt-skinned.glb"
 }

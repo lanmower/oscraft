@@ -1,6 +1,6 @@
 {
- "count": 3096,
- "total_bytes": 108376728,
+ "count": 3098,
+ "total_bytes": 109051604,
  "items": [
   {
    "id": "rock",
@@ -7515,6 +7515,22 @@
    "path": "models/tall-tree-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 420288,
+   "role": "character"
+  },
+  {
+   "id": "coffin-skinned",
+   "kind": "model",
+   "path": "models/coffin-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 278596,
+   "role": "character"
+  },
+  {
+   "id": "crypt-skinned",
+   "kind": "model",
+   "path": "models/crypt-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 396280,
    "role": "character"
   },
   {
@@ -32124,7 +32140,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 244,
+  "character": 246,
   "creep": 5,
   "terrain": 7
  }
