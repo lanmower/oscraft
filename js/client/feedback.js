@@ -30,8 +30,7 @@ function put(item, prop, value) {
 }
 
 function place(item, screen) {
-  put(item, "left", `${Math.round(screen.x)}px`);
-  put(item, "top", `${Math.round(screen.y)}px`);
+  put(item, "transform", `translate(${Number(screen.x).toFixed(2)}px,${Number(screen.y).toFixed(2)}px) translate(-50%,-50%)`);
 }
 
 function ringCss(px, colour) {
@@ -55,12 +54,15 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   const armed = { on: false, slot: -1, radius: 0, targetKind: "", client: null, world: null };
   let refusalT0 = -1;
 
+  let frameUnits = null;
+
   function unitAt(id) {
     if (heroOf) {
       const h = heroOf(id);
       if (h) return h;
     }
-    return units().find((u) => u.id === id);
+    if (!frameUnits) frameUnits = units();
+    return frameUnits.find((u) => u.id === id);
   }
 
   function onEvent(d) {
@@ -176,8 +178,8 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
       return;
     }
     put(area, "display", "block");
-    put(area, "width", `${Math.round(2 * px)}px`);
-    put(area, "height", `${Math.round(2 * px)}px`);
+    put(area, "width", `${(2 * px).toFixed(2)}px`);
+    put(area, "height", `${(2 * px).toFixed(2)}px`);
     place(area, c);
   }
 
@@ -187,6 +189,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   }
 
   function draw() {
+    frameUnits = null;
     const on = enabled();
     if (!on) {
       if (wasOn) hideAll();
