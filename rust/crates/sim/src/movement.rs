@@ -84,6 +84,64 @@ impl Sim {
         self.paths.request(self.player[i] as i32, gx, gy)
     }
 
+    // Push away from same-layer neighbours closer than the sum of radii, as a velocity. Shared by steering (so a
+    // moving unit flows around others) and by separate() (so a unit that has stopped still keeps its space).
+    fn separation(&self, i: usize) -> (i32, i32) {
+        let (gw, gh) = (self.grid.w as i32, self.grid.h as i32);
+        let cx = cell_of(self.pos_x[i]);
+        let cy = cell_of(self.pos_y[i]);
+        let mut vx = 0i32;
+        let mut vy = 0i32;
+        for oy in -1..=1i32 {
+            for ox in -1..=1i32 {
+                let nx = cx + ox;
+                let ny = cy + oy;
+                if nx < 0 || ny < 0 || nx >= gw || ny >= gh {
+                    continue;
+                }
+                let cell = (ny * gw + nx) as usize;
+                for j in self.bucket_members(cell) {
+                    if j == i || self.alive[j] == 0 || self.flying[j] != self.flying[i] {
+                        continue;
+                    }
+                    let mut sx = self.pos_x[i].wrapping_sub(self.pos_x[j]);
+                    let sy = self.pos_y[i].wrapping_sub(self.pos_y[j]);
+                    if sx == 0 && sy == 0 {
+                        // Units on one point split along x: the lower index moves left.
+                        sx = if i < j { -1 } else { 1 };
+                    }
+                    let sd2 = sx as i64 * sx as i64 + sy as i64 * sy as i64;
+                    let min_d = self.radius[i].wrapping_add(self.radius[j]) as i64;
+                    let md2 = min_d * min_d;
+                    if sd2 < md2 {
+                        // Each unit takes half the overlap along the line between centres, so a pair meets at
+                        // contact in one tick instead of overshooting into a two-point oscillation.
+                        let d = (fixed::sqrt((sd2 >> SHIFT) as i32) as i64).max(1);
+                        let half = (min_d - d) / 8;
+                        vx = vx.wrapping_add((sx as i64 * half / d) as i32);
+                        vy = vy.wrapping_add((sy as i64 * half / d) as i32);
+                    }
+                }
+            }
+        }
+        (vx, vy)
+    }
+
+    // Separation for a unit that is not steering: one that has stopped to fight or is on hold. Without this such a
+    // unit keeps whatever position it arrived at and stands inside its neighbours, which is most visible with wave
+    // creeps, since they stop to fight and pile onto one another.
+    pub(crate) fn separate(&mut self, i: usize) {
+        if self.rooted(i) {
+            self.vel_x[i] = 0;
+            self.vel_y[i] = 0;
+            return;
+        }
+        let (vx, vy) = self.separation(i);
+        self.vel_x[i] = vx;
+        self.vel_y[i] = vy;
+        self.integrate(i);
+    }
+
     pub(crate) fn steer(&mut self, i: usize) {
         let dx = self.tgt_x[i].wrapping_sub(self.pos_x[i]);
         let dy = self.tgt_y[i].wrapping_sub(self.pos_y[i]);
@@ -134,39 +192,9 @@ impl Sim {
         }
 
         // Separation from same-layer neighbours closer than the sum of radii.
-        let (gw, gh) = (self.grid.w as i32, self.grid.h as i32);
-        for oy in -1..=1i32 {
-            for ox in -1..=1i32 {
-                let nx = cx + ox;
-                let ny = cy + oy;
-                if nx < 0 || ny < 0 || nx >= gw || ny >= gh {
-                    continue;
-                }
-                let cell = (ny * gw + nx) as usize;
-                for j in self.bucket_members(cell) {
-                    if j == i || self.alive[j] == 0 || self.flying[j] != self.flying[i] {
-                        continue;
-                    }
-                    let mut sx = self.pos_x[i].wrapping_sub(self.pos_x[j]);
-                    let sy = self.pos_y[i].wrapping_sub(self.pos_y[j]);
-                    if sx == 0 && sy == 0 {
-                        // Units on one point split along x: the lower index moves left.
-                        sx = if i < j { -1 } else { 1 };
-                    }
-                    let sd2 = sx as i64 * sx as i64 + sy as i64 * sy as i64;
-                    let min_d = self.radius[i].wrapping_add(self.radius[j]) as i64;
-                    let md2 = min_d * min_d;
-                    if sd2 < md2 {
-                        // Each unit takes half the overlap along the line between centres, so a pair meets at
-                        // contact in one tick instead of overshooting into a two-point oscillation.
-                        let d = (fixed::sqrt((sd2 >> SHIFT) as i32) as i64).max(1);
-                        let half = (min_d - d) / 8;
-                        vx = vx.wrapping_add((sx as i64 * half / d) as i32);
-                        vy = vy.wrapping_add((sy as i64 * half / d) as i32);
-                    }
-                }
-            }
-        }
+        let (sx, sy) = self.separation(i);
+        vx = vx.wrapping_add(sx);
+        vy = vy.wrapping_add(sy);
 
         // Cap the combined velocity at the unit's speed.
         let vmag2 = vx as i64 * vx as i64 + vy as i64 * vy as i64;

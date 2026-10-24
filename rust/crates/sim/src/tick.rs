@@ -138,8 +138,9 @@ impl Sim {
                 continue;
             }
             if self.order_kind[i] == ORDER_HOLD || self.engaged(i) {
-                self.vel_x[i] = 0;
-                self.vel_y[i] = 0;
+                // Stopped, but not stacked: a unit that is fighting or holding still keeps its space from its
+                // neighbours. Separation used to live only in steer(), so anyone who stopped sat inside them.
+                self.separate(i);
             } else {
                 if !self.chasing(i) {
                     self.walk_waypoint(i);
