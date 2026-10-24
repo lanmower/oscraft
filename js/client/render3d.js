@@ -213,8 +213,9 @@ export function panCamera(cam, dxPx, dyPx, viewportHeightPx) {
   const k = (2 * cam.distance * Math.tan(cam.fovY / 2)) / Math.max(1, viewportHeightPx);
   const right = [Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)];
   const forward = [-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)];
+  const groundPerPxY = k / Math.sin(cam.pitch);
   for (let i = 0; i < 3; i++) {
-    cam.target[i] += (-right[i] * dxPx + forward[i] * dyPx) * k;
+    cam.target[i] += -right[i] * dxPx * k + forward[i] * dyPx * groundPerPxY;
   }
   return clampTarget(cam);
 }
