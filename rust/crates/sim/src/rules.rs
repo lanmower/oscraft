@@ -547,6 +547,19 @@ impl Sim {
     pub fn spawn_mod_unit(&mut self, player: u8, kind: u32, x: i32, y: i32, route: i32) -> Option<usize> {
         let unit = self.spawn_for(player, kind, x, y)?;
         if route != 0 {
+            // Follow the named lane: record the route and order its first waypoint, so walk_waypoint
+            // advances the unit along it and only asks the host for a destination after the last point.
+            // Without this the route id was thrown away and every wave fell through to on_march, whose
+            // nearest-hostile-building rule sends all three lanes the same way.
+            let id = route as u8;
+            if let Some((wx, wy, _)) = self.waypoint_at(player, id, 0) {
+                if self.issue_order_kind(unit, ORDER_ATTACK_MOVE, wx, wy).is_ok() {
+                    self.dests.id[unit] = id;
+                    self.dests.step[unit] = 0;
+                    return Some(unit);
+                }
+            }
+            // No such route for this player: fall back to the host's choice of destination.
             self.request_destination(unit, player);
         }
         Some(unit)

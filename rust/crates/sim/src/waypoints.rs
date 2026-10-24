@@ -81,7 +81,7 @@ impl Sim {
         self.dests.step[i] = 0;
     }
 
-    fn waypoint_at(&self, player: u8, id: u8, step: usize) -> Option<(i32, i32, bool)> {
+    pub(crate) fn waypoint_at(&self, player: u8, id: u8, step: usize) -> Option<(i32, i32, bool)> {
         let route = self.cat.routes.iter().find(|r| r.player == player as u16 && r.id == id as u16)?;
         let (x, y) = *route.points.get(step)?;
         Some((fixed::from_milli(x), fixed::from_milli(y), step + 1 == route.points.len()))
