@@ -277,7 +277,14 @@ const tileCount = (id) => tiles.reduce((a, v) => a + (v === id ? 1 : 0), 0);
 // rocks and props sit on open cells. Nothing is placed on a lane cell or inside a base or tower footprint (structureZone);
 // lane rims stay open for bushes along the lane edges. Each role's models cycle in order.
 const modelsDir = new URL("../../assets/models/", import.meta.url);
-const { sizes: doodadFootprints, units: unitFootprints } = doodadSizes(modelsDir);
+// Generated props carry the same -skinned suffix as the character exports, so the footprint pass needs the set of models
+// doodads.json actually places: those get a footprint, the character exports still do not.
+const placedDoodadStems = new Set(
+  Object.values(JSON.parse(fs.readFileSync(new URL("../../assets/doodads.json", import.meta.url), "utf8")))
+    .filter((v) => typeof v === "string" && v.endsWith(".glb"))
+    .map((v) => v.slice(v.lastIndexOf("/") + 1, -4)),
+);
+const { sizes: doodadFootprints, units: unitFootprints } = doodadSizes(modelsDir, placedDoodadStems);
 const shippedStems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort().filter((stem) => doodadFootprints[stem] !== undefined);
 const ROLE_KINDS = {};
 for (const stem of shippedStems) (ROLE_KINDS[roleOf(stem)] ??= []).push(kindOf(stem));

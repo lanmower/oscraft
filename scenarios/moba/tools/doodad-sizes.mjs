@@ -36,12 +36,16 @@ export function firstPrimitiveBounds(file) {
 
 // Returns { sizes: model stem -> footprint in cells, heroHeight, bounds: stem -> measured bounds, units: unit stem -> footprint }.
 // Models with no sane bounds are left out. A unit footprint keeps the model's own proportions at its target height, unclamped.
-export function doodadSizes(modelsDir) {
+// `doodadStems` are the models doodads.json points at. A -skinned model is normally a hy3d character export that the sim
+// draws as a unit, and those are skipped — but generated props (tree-skinned, bench-skinned, ...) also carry the suffix and
+// ARE placed as doodads, so a -skinned model that doodads.json references gets a footprint like any other prop.
+export function doodadSizes(modelsDir, doodadStems = null) {
   const stems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort();
   const bounds = {};
   for (const stem of stems) {
+    const skinnedButNotADoodad = UNIT_ONLY.test(stem) && !doodadStems?.has(stem);
     const b = firstPrimitiveBounds(new URL(stem + ".glb", modelsDir));
-    if (b && b.foot > 0 && b.foot <= MAX_NATIVE && b.h <= MAX_NATIVE && !UNIT_ONLY.test(stem)) bounds[stem] = b;
+    if (b && b.foot > 0 && b.foot <= MAX_NATIVE && b.h <= MAX_NATIVE && !skinnedButNotADoodad) bounds[stem] = b;
   }
   const hero = bounds[HERO_STEM];
   if (!hero || hero.h <= 0) throw new Error("hero reference model missing or flat: " + HERO_STEM);
