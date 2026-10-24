@@ -10,8 +10,11 @@ export const ROLE_RULES = [
   ["rock", /^(rock|rocks|stones?$|stones-|resource-|gate-rock|debris-|gravestone-debris)/],
   ["effect", /^(indicator|arrow|blade|cone$)/],
   ["item", /^(aid|bottle|box|bucket|coin|key|chest|fish|food|bread|candle|book|cog|lever|button|coffin)/],
-  ["prop", /^(lantern|lightpost|light|campfire|fire-|traffic|electricity|construction|crane|banner|flag|stall|cart|barrel|bedroll|bench|chair|dumpster|hay|ladder|conveyor|hopper|machine|chimney|catwalk|oopi|fence|iron-fence|metal-|overhang|door|gate|cross)/],
-  ["building", /^(tower|building|wall|structure|template|brick-wall|balcony|crypt|stairs|siege|bridge|column|pillar|altar|water-tower|corridor|shop|fountain|tent|road|grave|border-pillar)/],
+  // Torches, posts, braziers, standards and tombstones are wall or ground props at waist height. They used to fall through
+  // to decoration, whose 0.35-cell floor drew them as trinkets (the torches were 54 placements at that floor).
+  ["prop", /^(lantern|lightpost|light|campfire|fire-|traffic|electricity|construction|crane|banner|flag|stall|cart|barrel|bedroll|bench|chair|dumpster|hay|ladder|conveyor|hopper|machine|chimney|catwalk|oopi|fence|iron-fence|metal-|overhang|door|gate|cross|torch|post-|brazier|standard|tombstone)/],
+  // Broken columns and ruined blocks are structures, not debris: "broken" and "ruined" fell through to decoration.
+  ["building", /^(tower|building|wall|structure|template|brick-wall|balcony|crypt|stairs|siege|bridge|column|pillar|altar|water-tower|corridor|shop|fountain|tent|road|grave|border-pillar|broken-column|blocks-ruined)/],
 ];
 
 export function roleOf(stem) {
