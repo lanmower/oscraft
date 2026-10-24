@@ -23,12 +23,12 @@ const STYLE = `
 #ui-centre{left:50%;top:50%;transform:translate(-50%,-50%)}
 #ui-banner{top:14%;left:50%;transform:translateX(-50%)}
 #ui-modal{left:50%;top:50%;transform:translate(-50%,-50%);width:min(960px,96vw);max-height:96vh;overflow:auto;box-sizing:border-box;pointer-events:auto}
-.w-root{display:flex;flex-direction:column;gap:4px;min-width:0;box-sizing:border-box;color:var(--text);font:var(--t-label)/1.25 var(--font)}
+.w-root{display:flex;flex-direction:column;gap:6px;min-width:0;box-sizing:border-box;color:var(--text);font:var(--t-label)/1.25 var(--font)}
 .w-root>.w-panel{background:var(--panel);border:1px solid var(--edge);border-radius:6px;padding:8px 10px}
 .w-panel{display:flex;flex-direction:column;gap:4px;min-width:0}
-.w-panel>h4{margin:0 0 4px;font-size:var(--t-title);color:var(--accent)}
+.w-panel>h4{margin:0;font-size:var(--t-title);color:var(--accent)}
 .w-box{display:flex;flex-direction:column;gap:3px;min-width:0}
-.w-box.row{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px}
+.w-box.row{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px}
 .w-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .w-bar{height:8px;min-width:40px;background:var(--well);border-radius:2px;overflow:hidden}
 .w-bar i{display:block;height:100%;background:var(--bar,var(--accent))}
