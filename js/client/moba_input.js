@@ -36,6 +36,7 @@ export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
 
   // The pack resolves a click on release, so a rectangle sent on every ground press is current when a double-click resolves.
   function onDown(e) {
+    box = null;
     if (e.button !== 0 || !isGround(e.target)) return;
     press = { x: e.clientX, y: e.clientY, moved: false };
     send("viewport", viewRect());
@@ -53,10 +54,18 @@ export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
     box = null;
   }
 
+  // The browser cancels a press it takes as a pan (a touch drag) and sends no pointerup, so the press and box end here.
+  function onCancel() {
+    press = null;
+    box = null;
+    draw();
+  }
+
   window.addEventListener("moba:feedback", onFeedback);
   window.addEventListener("pointerdown", onDown);
   window.addEventListener("pointermove", onMove);
   window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onCancel);
 
   function draw() {
     if (!box) {
@@ -86,6 +95,7 @@ export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
     window.removeEventListener("pointerdown", onDown);
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
     overlay.remove();
   }
 
