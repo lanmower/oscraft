@@ -81,7 +81,8 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
   }
 
   // let, not const: a hot update of ui_minimap hands its new minimap to this HUD (see the oscraft:hmr listener below).
-  let minimap = createMinimap({
+  // A HUD rebuild keeps the latest minimap: the base module's createMinimap would bring back the pre-edit code.
+  let minimap = hot.get("hud-minimap") ?? createMinimap({
     canvas: minimapEl,
     mapSize,
     lanes: walkable,
@@ -93,10 +94,14 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     viewRect,
     centre: (x, z) => send("camera_to", { x, z }),
   });
+  hot.set("hud-minimap", minimap);
   // A hot update of ui_minimap re-creates the minimap and dispatches it (see hmr.js).
   window.addEventListener("oscraft:hmr", (e) => {
     const { url, value } = e.detail;
-    if (value && url.endsWith("/ui_minimap.js")) minimap = value;
+    if (value && url.endsWith("/ui_minimap.js")) {
+      minimap = value;
+      hot.set("hud-minimap", value);
+    }
   });
 
   function trackedMaxHp(id, hp) {
