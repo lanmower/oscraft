@@ -1259,7 +1259,11 @@ function bindInput() {
     keysDown.delete(e.key);
     forwardKey("up", e);
   });
-  window.addEventListener("blur", () => keysDown.clear());
+  // The keyup of a held modifier never arrives after a blur (alt-tab), so a keyup with no modifiers releases them in the pack.
+  window.addEventListener("blur", () => {
+    keysDown.clear();
+    forwardKey("up", { key: "Shift", shiftKey: false, ctrlKey: false, altKey: false, metaKey: false });
+  });
   window.addEventListener("pointermove", (e) => { pointer = { x: e.clientX, y: e.clientY }; });
   document.documentElement.addEventListener("pointerleave", () => { pointer = null; });
   canvas.addEventListener("wheel", (e) => {
