@@ -795,9 +795,11 @@ function simUnits() {
   const attacking = typeof localGame.unit_attacking === "function" ? localGame.unit_attacking() : null;
   // Attack period in ticks, so an attack clip can be played at the rate the unit actually attacks.
   const periods = typeof localGame.unit_periods === "function" ? localGame.unit_periods() : null;
+  // The unit each one is swinging at this tick (-1 for none), so an attacker turns to face it. Older wasm builds lack it.
+  const strikes = typeof localGame.unit_strike_target === "function" ? localGame.unit_strike_target() : null;
   const out = [];
   for (let i = 0; i < ids.length; i++) {
-    out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1, attacking: attacking ? attacking[i] === 1 : false, period: periods ? periods[i] : 0 }));
+    out.push(anchored({ id: ids[i], x: flat[3 * i], z: flat[3 * i + 1], player: flat[3 * i + 2], type: types ? types[i] : -1, hp: hps ? hps[i] : -1, attacking: attacking ? attacking[i] === 1 : false, period: periods ? periods[i] : 0, strikeAt: strikes ? strikes[i] : -1 }));
   }
   return out;
 }
@@ -840,7 +842,7 @@ const SPEED_EASE = 8;
 function wrapAngle(a) {
   return ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
 }
-function jointsFor(u, mesh, dt) {
+function jointsFor(u, mesh, dt, target = null) {
   const key = `${u.id}:${u.type}`;
   let entry = animators.get(key);
   if (!entry) {
@@ -849,12 +851,14 @@ function jointsFor(u, mesh, dt) {
     animators.set(key, entry);
   }
   const { nodes, skin, fit } = mesh.animation;
-  // Heading comes from the draw-side step since the last frame; an attacking unit keeps its heading (no target is exposed).
+  // Heading comes from the draw-side step since the last frame. A unit swinging at a target faces that target instead, so
+  // an attacker turns to the enemy rather than keeping the heading it had before the fight.
   const dx = u.x - entry.x;
   const dz = u.z - entry.z;
   const step = Math.hypot(dx, dz);
   const moving = step > MOVE_EPS;
-  if (moving) entry.heading = Math.atan2(dx, dz);
+  if (target) entry.heading = Math.atan2(target.x - u.x, target.z - u.z);
+  else if (moving) entry.heading = Math.atan2(dx, dz);
   const turn = wrapAngle(entry.heading - entry.yaw);
   entry.yaw += turn * Math.min(1, dt * TURN_RATE);
   // Draw-side speed, eased so one frame's jitter does not change the clip's rate.
@@ -923,6 +927,8 @@ function collectUnitDraws(units, dt) {
   const clips = [];
   const yaws = [];
   for (const entry of animators.values()) entry.seen = false;
+  // Each unit's drawn position this frame, so an attacker faces its target where the target is drawn.
+  const drawnAt = new Map(units.map((raw) => { const p = drawnPosition(raw); return [p.id, p]; }));
   for (const raw of units) {
     const u = drawnPosition(raw);
     // A type whose model has not arrived yet is not a failure: it is fetched now, ahead of the backlog, and its
@@ -945,7 +951,8 @@ function collectUnitDraws(units, dt) {
     }
     const transform = new Float32Array(translation(u.x, groundAt(u.x, u.z), u.z, unitTransform));
     if (mesh.animation) {
-      const joints = jointsFor(u, mesh, dt);
+      const target = u.attacking && u.strikeAt >= 0 ? drawnAt.get(u.strikeAt) ?? null : null;
+      const joints = jointsFor(u, mesh, dt, target);
       const entry = animators.get(`${u.id}:${u.type}`);
       const facing = new Float32Array(multiply(translation(u.x, groundAt(u.x, u.z), u.z), rotationY(entry.yaw)));
       list.push({ kind: "unit", mesh, transform: facing, joints });
