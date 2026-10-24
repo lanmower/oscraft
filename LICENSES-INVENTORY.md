@@ -42,3 +42,20 @@ The tree on main (125 blobs) has no SC2 or vendor asset files: no `.sc2`, `.s2ma
 
 - Acceptance reading: `Storm` as a literal substring also matches `StormLib`, a third-party MIT project. After this change the owned crates contain no `vendor`, `StarCraft`, `SC2`, `Galaxy`, `GameData`, `Mo'PaQ` or vendor `Storm` identifiers; the remaining `StormLib` hits are rows 10 and 11.
 - Owner decision pending: docs/NAMING.md rule 5 deletes the MPQ reader and the `mpq` crate. That deletion touches the workspace manifest and rust/gate, which this row does not own.
+
+## Third-party art: item icons (CC0)
+
+Source: "Fantasy RPG Icons" pack, https://www.freegameassets.com/fantasy-rpg-icons (2,044 icons, 512 PNG previews).
+Licence: CC0 1.0 Universal. The site states "Free CC0 game assets: 3D models, icons, crests and textures." for these packs.
+Effect: public-domain dedication. No attribution required, no share-alike, commercial use permitted, no restriction on redistribution.
+
+| # | Path | Source | Licence | Disposition |
+|---|---|---|---|---|
+| 1 | scenarios/moba/assets/icons/items/*.png (313 files) | freegameassets.com Fantasy RPG Icons | CC0 | used |
+
+Provenance and the per-item mapping are kept in the hy3d project at
+output/fga-icons/ (ITEMS.txt, ALL-SLUGS.txt, MAP.json) alongside the untouched 512 px downloads.
+
+The 313 items are covered by 127 distinct icons; Dota-specific names (radiance, butterfly, yasha, ...) have no
+counterpart in a generic RPG set and are assigned by category (weapon, armour, consumable, magic) so every item
+has an icon. Swapping any of them is a one-line change in the mapping.
