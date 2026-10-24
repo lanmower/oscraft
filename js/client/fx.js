@@ -3,7 +3,7 @@
 // geometry and colours the pack gives that kind (UI.effects in the scenario's moba_ui.json). Nothing here decides which
 // effect shows: that is a mod rule. Team and selection rings are drawn for every unit, since they show state, not events.
 // Every effect lives in a fixed-capacity pool of preallocated slots: a spawn past the cap is dropped, an expired slot is
-// swap-removed, and nothing allocates per frame except the overlay's text draw. Glow meshes are drawn through the
+// swap-removed, and nothing allocates per frame except the sim's event parse and the overlay's text draw. Glow meshes are drawn through the
 // renderer's drawMesh with the additive blend mode (mesh.blend = "add", mesh.alpha); numbers are drawn on a 2D overlay.
 import { translation } from "./render3d.js";
 import { UI } from "./pack_load.js";
@@ -21,7 +21,11 @@ const DEFAULT_FLOAT_S = 1.1;
 const DEFAULT_RISE_PX = 48;
 const DEFAULT_TEXT_PX = 16;
 const DEFAULT_FLASH_S = 0.18;
+const DEFAULT_RING_S = 0.6;
 const COST_SMOOTHING = 0.05;
+const LAST_SEEN_FRAMES = 600;
+const PRUNE_EVERY = 120;
+const durOf = (e) => e.dur;
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const WHITE = [1, 1, 1];
 const CAP_RINGS = 48;
@@ -168,7 +172,10 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   // Each unit's position at its last frame, kept after it dies so an effect on a dead unit still lands where it fell.
   const lastSeen = new Map();
   const draw = { n: 0 };
-  let unitsById = new Map();
+  const unitsById = new Map();
+  let frameNo = 0;
+  let fontPx = 0;
+  let overlayInked = false;
   // Smoothed CPU milliseconds the effect pass takes per frame (not the GPU cost of its draws).
   let costMs = 0;
 
@@ -237,7 +244,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     p.colourName = colourName;
     p.color = rgbOf(colourOf(colourName));
     p.arrow = kind.model === "arrow";
-    p.speed = kind.speed ?? DEFAULT_PROJECTILE_SPEED;
+    p.speed = kind.speed > 0 ? kind.speed : DEFAULT_PROJECTILE_SPEED;
     p.arrive = kind.arrive ?? [];
   }
 
@@ -246,7 +253,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     const c = colourOf(colourName);
     switch (kind.renderer) {
       case "ring":
-        addRing(at.x, at.z, kind.r0, kind.r1, kind.seconds, rgbOf(c), kind.mesh === "thick" ? thick : thin);
+        addRing(at.x, at.z, kind.r0, kind.r1, kind.seconds ?? DEFAULT_RING_S, rgbOf(c), kind.mesh === "thick" ? thick : thin);
         break;
       case "burst":
         burst(at.x, kind.lift ?? DEFAULT_LIFT, at.z, rgbOf(c), kind.count ?? DEFAULT_COUNT, kind.speed ?? DEFAULT_SPEED, kind.seconds ?? DEFAULT_BURST_S);
@@ -313,22 +320,27 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   function remember(u) {
     let rec = lastSeen.get(u.id);
     if (!rec) {
-      rec = { x: 0, z: 0, top: 0 };
+      rec = { x: 0, z: 0, top: 0, frame: 0 };
       lastSeen.set(u.id, rec);
     }
     rec.x = u.x;
     rec.z = u.z;
     rec.top = u.top ?? 1;
+    rec.frame = frameNo;
   }
 
+  // Drops the positions of units not seen for LAST_SEEN_FRAMES, so the map follows the living, not every id ever seen.
+  function forgetStale() {
+    for (const [id, rec] of lastSeen) {
+      if (frameNo - rec.frame > LAST_SEEN_FRAMES) lastSeen.delete(id);
+    }
+  }
+
+  // Ages every live effect by dt, then removes those that reached their lifetime, so none is drawn past its end.
   function advance(dt) {
-    sweep(rings, (e) => e.dur);
-    sweep(flashes, (e) => e.dur);
-    sweep(floats, (e) => e.dur);
     for (let i = 0; i < rings.count; i++) rings.slots[i].t += dt;
     for (let i = 0; i < flashes.count; i++) flashes.slots[i].t += dt;
     for (let i = 0; i < floats.count; i++) floats.slots[i].t += dt;
-    sweep(particles, (e) => e.dur);
     for (let i = 0; i < particles.count; i++) {
       const p = particles.slots[i];
       p.t += dt;
@@ -337,6 +349,10 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
       p.z += p.vz * dt;
       p.vy -= 6 * dt;
     }
+    sweep(rings, durOf);
+    sweep(flashes, durOf);
+    sweep(floats, durOf);
+    sweep(particles, durOf);
     for (let i = projectiles.count - 1; i >= 0; i--) {
       const p = projectiles.slots[i];
       const live = p.targetId >= 0 ? (unitsById.get(p.targetId) ?? lastSeen.get(p.targetId)) : null;
@@ -412,15 +428,25 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
       overlay.height = h;
       overlay.style.width = `${window.innerWidth}px`;
       overlay.style.height = `${window.innerHeight}px`;
+      fontPx = 0;
+    }
+    if (floats.count === 0) {
+      if (overlayInked) ctx.clearRect(0, 0, w, h);
+      overlayInked = false;
+      return;
     }
     ctx.clearRect(0, 0, w, h);
-    if (floats.count === 0) return;
+    overlayInked = true;
     ctx.textAlign = "center";
     for (let i = 0; i < floats.count; i++) {
       const f = floats.slots[i];
       const k = f.t / f.dur;
       const p = toScreen(f.x, f.z, f.y);
-      ctx.font = `bold ${Math.round(f.px * dpr)}px sans-serif`;
+      const size = Math.round(f.px * dpr);
+      if (size !== fontPx) {
+        fontPx = size;
+        ctx.font = `bold ${size}px sans-serif`;
+      }
       ctx.globalAlpha = 1 - k * k;
       ctx.lineWidth = 3 * dpr;
       ctx.strokeStyle = "rgba(0,0,0,0.8)";
@@ -437,7 +463,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   // are drawn (glow meshes blend over the scene).
   function frame(units, dt) {
     const t0 = performance.now();
-    unitsById = new Map();
+    unitsById.clear();
     for (const u of units) {
       unitsById.set(u.id, u);
       remember(u);
@@ -446,6 +472,8 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     advance(dt);
     drawGlow(units);
     drawNumbers();
+    frameNo += 1;
+    if (frameNo % PRUNE_EVERY === 0) forgetStale();
     costMs += ((performance.now() - t0) - costMs) * COST_SMOOTHING;
   }
 
