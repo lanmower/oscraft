@@ -194,14 +194,16 @@ export function createMinimap({ canvas, mapSize, lanes, units, selected, localPl
   const onPointerMove = (e) => {
     if (pressed) centreAt(e);
   };
-  const onPointerUp = () => { pressed = false; };
+  const onPointerEnd = () => { pressed = false; };
   canvas.addEventListener("pointerdown", onPointerDown);
   canvas.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("pointerup", onPointerEnd);
+  window.addEventListener("pointercancel", onPointerEnd);
   LIVE_CANVAS_DISPOSERS.set(canvas, () => {
     canvas.removeEventListener("pointerdown", onPointerDown);
     canvas.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointerup", onPointerEnd);
+    window.removeEventListener("pointercancel", onPointerEnd);
   });
 
   return { draw };
