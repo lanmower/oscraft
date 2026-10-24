@@ -1,6 +1,6 @@
 {
- "count": 3100,
- "total_bytes": 109527204,
+ "count": 3101,
+ "total_bytes": 110244140,
  "items": [
   {
    "id": "rock",
@@ -7547,6 +7547,14 @@
    "path": "models/vampire-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 231936,
+   "role": "character"
+  },
+  {
+   "id": "zombie-skinned",
+   "kind": "model",
+   "path": "models/zombie-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 716936,
    "role": "character"
   },
   {
@@ -32156,7 +32164,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 248,
+  "character": 249,
   "creep": 5,
   "terrain": 7
  }
