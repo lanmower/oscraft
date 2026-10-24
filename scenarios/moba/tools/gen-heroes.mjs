@@ -217,6 +217,9 @@ const HY3D_MODEL = {
   nyx_assassin: "nyx-assassin-skinned",
   primal_beast: "primal-beast-skinned",
   treant: "treant-skinned",
+  riki: "riki-skinned",
+  ursa: "ursa-skinned",
+  viper: "viper-skinned",
 };
 
 const osd = [
