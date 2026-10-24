@@ -194,6 +194,15 @@ impl Game {
             .collect()
     }
 
+    /// The unit index each living unit is commanded to strike this tick, in the same order as `unit_ids()`: -1 when it
+    /// strikes nothing. A page turns an attacker to face its target while it swings.
+    pub fn unit_strike_target(&self) -> Vec<i32> {
+        (0..self.host.sim().count())
+            .filter(|&i| self.host.sim().alive(i))
+            .map(|i| self.host.sim().commanded_strike_index(i))
+            .collect()
+    }
+
     /// The living unit's attack period in ticks, in the same order as `unit_ids()`: how long one swing takes, so a
     /// page can play an attack clip at the rate the unit actually attacks. 0 when it has no weapon.
     pub fn unit_periods(&self) -> Vec<i32> {

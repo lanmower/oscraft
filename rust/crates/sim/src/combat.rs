@@ -204,6 +204,12 @@ impl Sim {
         self.strike_ready(i, j).then_some(j)
     }
 
+    /// The unit index unit `i` is commanded to strike this tick, or -1 when it strikes nothing. Read-only: a page
+    /// turns an attacker to face this target while it swings. It changes no state, so the hash is unaffected.
+    pub fn commanded_strike_index(&self, i: usize) -> i32 {
+        self.commanded_strike(i).map_or(-1, |j| j as i32)
+    }
+
     /// Sets the enemy unit `i` strikes each tick: unit `target`, or -1 for none (any negative value is
     /// none). The mod sets it every tick; a target that dies, turns allied or leaves reach is not struck.
     pub fn set_strike_target(&mut self, i: usize, target: i32) -> Result<(), &'static str> {
