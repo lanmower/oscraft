@@ -1142,7 +1142,7 @@ function pick(world) {
 
 // Client pixel of the world point (x, y, z), y defaulting to the ground: the inverse of screenToWorld. Points behind the camera map far off screen.
 function worldToScreen(x, z, y = 0) {
-  const clip = worldClip(x, z, y);
+  const clip = worldClip(x, z, y === 0 ? groundAt(x, z) : y);
   if (clip[3] <= 0) return { x: -1e6, y: -1e6 };
   return {
     x: ((clip[0] / clip[3] + 1) / 2) * window.innerWidth,
