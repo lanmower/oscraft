@@ -19,6 +19,7 @@ import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor 
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
+import { createMinimap } from "./ui_minimap.js";
 import { createWidgets, setImageSrcResolver } from "./widgets.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readDoodads, readGrid, vertexNormals } from "./terrain.js";
@@ -96,6 +97,26 @@ const SPLAT_BAND = 0.4;
 // Sun shadows: one setting. ?shadows=0 turns the shadow map off (no shadow pass, no sampling).
 const SHADOW_ON = params.get("shadows") !== "0";
 const SHADOW_SIZE = 2048;
+// Ambient particles: one setting, kept across loads. ?ambient=0 starts with the layer off; the key flips it in a match.
+const AMBIENT_OFF_KEY = "oscraft.ambientOff";
+function readStoredFlag(key) {
+  try { return localStorage.getItem(key) === "1"; } catch { return false; }
+}
+function writeStoredFlag(key, on) {
+  try { localStorage.setItem(key, on ? "1" : "0"); } catch { /* a full or blocked store keeps the choice for this page only */ }
+}
+let ambientOff = params.get("ambient") === "0" || readStoredFlag(AMBIENT_OFF_KEY);
+// Two switches the keyboard owns: the ambient particle layer and the voice lines. Both are a look, not a rule, so both
+// are the page's own state, and both are published on the body for the browser probe.
+function toggleAmbient() {
+  ambientOff = !ambientOff;
+  writeStoredFlag(AMBIENT_OFF_KEY, ambientOff);
+  if (ambientFx) ambientFx.setEnabled(!ambientOff);
+  document.body.dataset.ambient = ambientOff ? "off" : "on";
+}
+function toggleMute() {
+  document.body.dataset.muted = voices && voices.toggleMute() ? "1" : "0";
+}
 // Ground lighting: ambient, diffuse and albedo gain. The gain lifts the owner's darker albedo to lit terrain.
 const SPLAT_SHADE = [0.42, 0.68, 1.3];
 // Per-layer albedo tint, in SPLAT_LAYERS order. The sand (dirt) layer takes the dirt tint so it sits with the grass family;
@@ -1214,6 +1235,11 @@ function bindInput() {
     if (e.key.length === 1 || e.key === " " || e.key === "Tab" || e.key === "Escape") {
       if (!e.ctrlKey && !e.metaKey) e.preventDefault();
     }
+    // Two keys are the page's own, not the pack's: m mutes the voice lines, g switches the ambient particle layer.
+    if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === "m") toggleMute();
+      else if (e.key === "g") toggleAmbient();
+    }
     forwardKey("down", e);
   });
   window.addEventListener("keyup", (e) => {
@@ -1265,6 +1291,27 @@ function isHeroUnit(id) {
   if (!u || typeof localGame.unit_flags !== "function") return false;
   playerControlledTypes ??= localGame.unit_flags();
   return playerControlledTypes[u.type] === 1;
+}
+
+// A building is bit 2048 of the unit's filter mask: unit_filter_bits, one entry per living unit in unit_ids() order.
+// An older wasm build has no such export, so nothing is marked rather than guessed from a type name.
+const BUILDING_BIT = 2048;
+function isBuildingUnit(id) {
+  if (!localGame || typeof localGame.unit_filter_bits !== "function") return false;
+  const ids = localGame.unit_ids();
+  const bits = localGame.unit_filter_bits();
+  const at = ids.indexOf(id);
+  return at >= 0 && (bits[at] & BUILDING_BIT) !== 0;
+}
+
+// The minimap draws a building mark only when its caller names one, and createHud names none: the page re-creates the
+// panel from the inputs ui_minimap recorded and hands it to the HUD on that module's own hot-update event, which is the
+// channel hud.js listens on to swap the draw() it calls each frame.
+function installBuildingMinimap() {
+  const args = globalThis.__oscraftHot?.get("ui-minimap");
+  if (!args) return;
+  const minimap = createMinimap({ ...args, isBuilding: (id) => isBuildingUnit(id) });
+  window.dispatchEvent(new CustomEvent("oscraft:hmr", { detail: { url: "js/client/ui_minimap.js", value: minimap } }));
 }
 
 // Records each START seat's pick. The sim's Lua spawn rule places the picked unit; the page does not spawn it.
@@ -2435,7 +2482,9 @@ async function main() {
     toScreen: worldToScreen,
     playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0],
   });
-  if (renderer3d) ambientFx = createAmbientFx({ renderer: renderer3d, groundAt });
+  installBuildingMinimap();
+  if (renderer3d) ambientFx = createAmbientFx({ renderer: renderer3d, groundAt, enabled: !ambientOff });
+  document.body.dataset.ambient = ambientOff ? "off" : "on";
   // The voices directory is a pack asset like models or textures: the pack names it, so a pack with
   // no voices is never probed and one that puts them elsewhere still resolves.
   if (renderer3d && manifest.assets?.voices) voices = createVoices({ url: (rel) => assetUrl("voices", rel) });
