@@ -1059,5 +1059,9 @@
   "vampire_skinned": "models/vampire-skinned.glb",
   "zombie_skinned": "models/zombie-skinned.glb",
   "pillar-rock-2_skinned": "models/pillar-rock-2-skinned.glb",
-  "pillar-rock-4_skinned": "models/pillar-rock-4-skinned.glb"
+  "pillar-rock-4_skinned": "models/pillar-rock-4-skinned.glb",
+  "pillar-rock-1_skinned": "models/pillar-rock-1-skinned.glb",
+  "pillar-rock-3_skinned": "models/pillar-rock-3-skinned.glb",
+  "pillar-rock-5_skinned": "models/pillar-rock-5-skinned.glb",
+  "pillar-rock-6_skinned": "models/pillar-rock-6-skinned.glb"
 }

@@ -1,6 +1,6 @@
 {
- "count": 3103,
- "total_bytes": 110875384,
+ "count": 3107,
+ "total_bytes": 111846912,
  "items": [
   {
    "id": "rock",
@@ -7571,6 +7571,38 @@
    "path": "models/pillar-rock-4-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 394104,
+   "role": "character"
+  },
+  {
+   "id": "pillar-rock-1-skinned",
+   "kind": "model",
+   "path": "models/pillar-rock-1-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 225800,
+   "role": "character"
+  },
+  {
+   "id": "pillar-rock-3-skinned",
+   "kind": "model",
+   "path": "models/pillar-rock-3-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 305592,
+   "role": "character"
+  },
+  {
+   "id": "pillar-rock-5-skinned",
+   "kind": "model",
+   "path": "models/pillar-rock-5-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 231904,
+   "role": "character"
+  },
+  {
+   "id": "pillar-rock-6-skinned",
+   "kind": "model",
+   "path": "models/pillar-rock-6-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 208232,
    "role": "character"
   },
   {
@@ -32180,7 +32212,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 251,
+  "character": 255,
   "creep": 5,
   "terrain": 7
  }
