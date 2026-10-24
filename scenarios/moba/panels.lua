@@ -22,6 +22,8 @@ local REFRESH_TICKS = 4
 -- 7.00. Extras go to the stash or a courier, so anything beyond these six is not a carried slot.
 local INVENTORY_SLOTS = 6
 local STASH_SLOTS = 9
+-- Inventory slot 9 is the neutral slot: a recipe component is never held there (store.lua, sim inventory.rs).
+local NEUTRAL_SLOT = 9
 local ABILITY_SLOTS = 8
 local TEAM_SIZE = 5
 -- Lobby seats (5 a side), not inventory: a slot here holds a player or a bot and its chosen hero.
@@ -318,6 +320,32 @@ local function recipe_text(components)
   return join(names, " + ")
 end
 
+-- The price the engine charges this hero for an item (store.lua acquire): the cost less the components its held copies
+-- cover, each held copy claimed once and a missing component's own parts claimed in its place. The buy button and the
+-- purchase read the same price, so the button is enabled exactly when the purchase is accepted.
+local function net_price(unit, item, def)
+  local pool = {}
+  for _, row in ipairs(game.unit_items(unit)) do
+    if row.slot ~= NEUTRAL_SLOT then pool[row.item] = (pool[row.item] or 0) + row.count end
+  end
+  for _, row in ipairs(game.unit_stash(unit)) do
+    pool[row.item] = (pool[row.item] or 0) + row.count
+  end
+  local function claim(c)
+    local saved = 0
+    for _, part in ipairs(game.item_info(c).components) do
+      if (pool[part] or 0) > 0 then
+        pool[part] = pool[part] - 1
+        saved = saved + game.item_info(part).cost
+      else
+        saved = saved + claim(part)
+      end
+    end
+    return saved
+  end
+  return def.cost - claim(item)
+end
+
 local function shop_tree()
   local hero = hero_of(LOCAL)
   local gold = game.gold(LOCAL)
@@ -327,7 +355,8 @@ local function shop_tree()
     local def = game.item_info(i)
     if def == nil then break end
     if def.tags ~= 0 then
-      local afford = #def.components > 0 or gold >= def.cost
+      local price = hero ~= nil and net_price(hero, i, def) or def.cost
+      local afford = gold >= price
       local kids = {
         label(def.name, "strong"),
         label(tostring(def.cost) .. TEXT.costSuffix, afford and "gold" or "bad"),
