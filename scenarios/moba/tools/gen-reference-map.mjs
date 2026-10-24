@@ -277,12 +277,21 @@ const tileCount = (id) => tiles.reduce((a, v) => a + (v === id ? 1 : 0), 0);
 // rocks and props sit on open cells. Nothing is placed on a lane cell or inside a base or tower footprint (structureZone);
 // lane rims stay open for bushes along the lane edges. Each role's models cycle in order.
 const modelsDir = new URL("../../assets/models/", import.meta.url);
-// Generated props carry the same -skinned suffix as the character exports, so the footprint pass needs the set of models
-// doodads.json actually places: those get a footprint, the character exports still do not.
+// Generated props carry the same -skinned suffix as the character exports, so the footprint pass needs the set
+// of models doodads.json actually places. A -skinned model that a unit table names is a character: it is sized
+// by the unit rule (2 * UNIT_HALF, or UNIT_HEIGHT_IN_HEROES) and must NOT get a doodad footprint, or it draws
+// at the decoration role's target height and comes out about four times too small.
+const unitModelsNamed = new Set();
+for (const file of fs.readdirSync(new URL("../", import.meta.url)).filter((f) => f.endsWith(".osd"))) {
+  for (const m of fs.readFileSync(new URL(file, import.meta.url), "utf8").matchAll(/^unit\("[^"]+"[^\n]*model="([^"]+)"/gm)) {
+    unitModelsNamed.add(m[1]);
+  }
+}
 const placedDoodadStems = new Set(
   Object.values(JSON.parse(fs.readFileSync(new URL("../../assets/doodads.json", import.meta.url), "utf8")))
     .filter((v) => typeof v === "string" && v.endsWith(".glb"))
-    .map((v) => v.slice(v.lastIndexOf("/") + 1, -4)),
+    .map((v) => v.slice(v.lastIndexOf("/") + 1, -4))
+    .filter((stem) => !(stem.endsWith("-skinned") && unitModelsNamed.has(stem))),
 );
 const { sizes: doodadFootprints, units: unitFootprints } = doodadSizes(modelsDir, placedDoodadStems);
 const shippedStems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort().filter((stem) => doodadFootprints[stem] !== undefined);
