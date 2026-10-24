@@ -730,6 +730,7 @@ impl Sim {
         }
         next.rebucket();
         next.resync_unit_mana();
+        next.item_gen = self.item_gen.iter().map(|g| g.wrapping_add(1)).collect();
         *self = next;
         Ok(())
     }

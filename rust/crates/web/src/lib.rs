@@ -220,6 +220,15 @@ impl Game {
             .collect()
     }
 
+    /// The item generation of each living unit, in the same order as `unit_ids()`: it moves when the unit's inventory
+    /// or stash changes, so a reader can skip re-reading the items while it holds still.
+    pub fn unit_item_gen(&self) -> Vec<u32> {
+        (0..self.host.sim().count())
+            .filter(|&i| self.host.sim().alive(i))
+            .map(|i| self.host.sim().item_generation(i))
+            .collect()
+    }
+
     /// Orders unit `unit` to walk to tile (x, y). Returns false when the sim refuses the order.
     pub fn order_move(&mut self, unit: u32, x: f32, y: f32) -> bool {
         // sim's ORDER_MOVE (movement order kind 0); the sim keeps that constant crate-private.

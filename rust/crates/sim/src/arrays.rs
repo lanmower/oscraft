@@ -121,6 +121,8 @@ pub struct Sim {
     /// inventory is full, and `unstash` moves one back. See inventory.rs.
     pub(crate) stash_kind: Vec<u32>,
     pub(crate) stash_count: Vec<u32>,
+    /// Per unit, counts every change to its inventory or stash. Not hashed or saved. See `item_generation`.
+    pub(crate) item_gen: Vec<u32>,
     /// Experience per unit; the level is derived from the curve. See xp.rs.
     pub(crate) xp_total: Vec<u32>,
     /// Cumulative xp thresholds for levels 1.. Set by the caller and not saved, like the catalog.
@@ -336,6 +338,7 @@ impl Sim {
             abil_cd: vec![0; cap * ABILITY_SLOTS],
             abil_rank: vec![0; cap * ABILITY_SLOTS],
             item_cd: vec![0; cap * crate::inventory::INV_SLOTS],
+            item_gen: vec![0; cap],
             energy: vec![0; cap],
             abil_on: false,
             changed_at: vec![0; cap],

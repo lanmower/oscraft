@@ -16,6 +16,11 @@
 //! hooks when it loaded before, and is skipped and reported otherwise. Not carried over: terrain,
 //! tile and doodad editing globals. A mod call runs under a step budget so a
 //! loop cannot stall the guest.
+//!
+//! Change signal: `unit_item_gen(unit)` returns a unit's item generation, which moves on every change to its
+//! inventory or stash (equip, unequip, move, stack, unstash, respawn). A module compares it between ticks to skip
+//! re-reading `unit_items` or `unit_stash` while the items hold still. It is not a tick stamp and never changes
+//! on its own.
 
 use std::any::Any;
 use std::cell::RefCell;
@@ -2501,6 +2506,13 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             list.set(c, n, row).expect("row");
         }
         s.replace(c, list);
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "unit_item_gen", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        s.replace(c, i64::from(sh.sim.item_generation(u)));
         Ok(CallbackReturn::Return)
     });
     // The skill tree of ability slot `slot` of unit `unit`: max_rank, and per rank the level gate, damage, cooldown and

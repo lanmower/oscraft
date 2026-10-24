@@ -203,6 +203,19 @@ impl Sim {
         true
     }
 
+    /// How many times unit `unit`'s inventory or stash has changed. Read it twice to learn whether the items
+    /// moved, without reading the slots. Not hashed or saved: a load moves it on (persist.rs), so a cache keyed on
+    /// it refreshes. 0 for an out-of-range unit.
+    pub fn item_generation(&self, unit: usize) -> u32 {
+        self.item_gen.get(unit).copied().unwrap_or(0)
+    }
+
+    pub(crate) fn bump_item_gen(&mut self, unit: usize) {
+        if let Some(g) = self.item_gen.get_mut(unit) {
+            *g = g.wrapping_add(1);
+        }
+    }
+
     /// Empties a unit's slots. Called when the unit spawns.
     pub(crate) fn inventory_clear(&mut self, unit: usize) {
         let base = unit * INV_SLOTS;
@@ -211,6 +224,7 @@ impl Sim {
             self.inv_count[at] = 0;
             self.item_cd[at] = 0;
         }
+        self.bump_item_gen(unit);
     }
 
     /// Empties a unit's stash bank. Called when the unit spawns.
@@ -220,6 +234,7 @@ impl Sim {
             self.stash_kind[at] = 0;
             self.stash_count[at] = 0;
         }
+        self.bump_item_gen(unit);
     }
 
     /// The kind and count in one stash slot. Kind 0 means empty; an out-of-range read is empty.
@@ -271,6 +286,7 @@ impl Sim {
         }
         let old = attributed.then(|| self.derived_stats(unit));
         let out = edit(self);
+        self.bump_item_gen(unit);
         let after = self.item_totals(unit);
         self.apply_item_delta(unit, &before, &after, attributed);
         if let (Some(kept), Some(old)) = (kept, old) {
@@ -349,6 +365,7 @@ impl Sim {
             (self.stash_kind[base + s], self.stash_count[base + s]) = snap.stash[s];
             self.item_cd[base + s] = snap.cd[s];
         }
+        self.bump_item_gen(i);
         let attributed = self.is_attributed(i);
         let totals = self.item_totals(i);
         self.apply_item_delta(i, &[0; ITEM_STAT_COUNT], &totals, attributed);

@@ -3,7 +3,7 @@
 -- Bit 0 is the scepter, bit 1 the shard; talents.lua owns bits 2..=9.
 --
 -- Uses game.set_upgrade_bit(unit, bit, on), game.units(), game.unit_items(unit) (the active-slot items
--- of a unit, each with name and count) and the on_cast and on_tick hooks.
+-- of a unit, each with name and count), game.unit_item_gen(unit) and the on_cast and on_tick hooks.
 
 local SCEPTER_BIT = 0
 local SHARD_BIT = 1
@@ -23,6 +23,8 @@ local HELD_BITS = { SCEPTER_BIT }
 
 -- held[unit][bit] is true while the unit carries an item that sets the bit, as on_tick last saw it.
 local held = {}
+-- seen[unit] is the item generation held[unit] was read at: the items are scanned again only when it moves.
+local seen = {}
 
 local function carried_bits(unit)
   local bits = {}
@@ -43,16 +45,23 @@ return {
     local live = {}
     for _, unit in ipairs(game.units()) do
       live[unit] = true
-      local now = carried_bits(unit)
-      local before = held[unit] or {}
-      for _, bit in ipairs(HELD_BITS) do
-        local has, had = now[bit] == true, before[bit] == true
-        if has ~= had then game.set_upgrade_bit(unit, bit, has) end
+      local gen = game.unit_item_gen(unit)
+      if held[unit] == nil or seen[unit] ~= gen then
+        local now = carried_bits(unit)
+        local before = held[unit] or {}
+        for _, bit in ipairs(HELD_BITS) do
+          local has, had = now[bit] == true, before[bit] == true
+          if has ~= had then game.set_upgrade_bit(unit, bit, has) end
+        end
+        held[unit] = now
+        seen[unit] = gen
       end
-      held[unit] = now
     end
     for unit in pairs(held) do
-      if not live[unit] then held[unit] = nil end
+      if not live[unit] then
+        held[unit] = nil
+        seen[unit] = nil
+      end
     end
   end,
 }

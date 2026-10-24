@@ -541,6 +541,19 @@ local function inventory_tree()
   }, "row")
 end
 
+local inventory_cache = {}
+
+-- The inventory tree is a function of the hero, its items and its stash: it is rebuilt only when the hero or the
+-- hero's item generation moves.
+local function inventory_tree_cached()
+  local hero = hero_of(LOCAL)
+  local gen = hero ~= nil and game.unit_item_gen(hero) or nil
+  if gen ~= nil and inventory_cache.hero == hero and inventory_cache.gen == gen then return inventory_cache.tree end
+  local tree = inventory_tree()
+  inventory_cache = { hero = hero, gen = gen, tree = tree }
+  return tree
+end
+
 local function scoreboard_tree()
   local rows = post_game_rows(false)
   local kids = {}
@@ -786,7 +799,7 @@ local function emit_all()
   emit("shop", "right", OPEN.shop and shop_tree() or nil)
   local hero = hero_of(LOCAL)
   emit("skills", "left", hero ~= nil and skills_tree(hero) or nil)
-  emit("inventory", "bar-mid", inventory_tree())
+  emit("inventory", "bar-mid", inventory_tree_cached())
   emit("select", "bar-left", select_tree())
 end
 
@@ -826,6 +839,7 @@ local function panels_on_action(name, args)
     LOCAL = args.player or LOCAL
     OWNER = args.pubkey or OWNER
     LAST = {}
+    inventory_cache = {}
   elseif name == "key" then
     if args.phase == "down" and (args.player == nil or args.player == LOCAL) then
       if key_in(KEYS.shop, args.key) then OPEN.shop = not OPEN.shop end
