@@ -3,7 +3,9 @@
 export const ROLE_RULES = [
   ["character", /^(character-|hero|keeper|knight)/],
   ["prop", /^(stump|trunk|tree-trunk|tree-autumn-trunk|tree-log)/], // cut trunks and logs are stumps, sized as props, not as trees
-  ["tree", /^(tree|plant|pine)/],
+  // "tall-tree" must match: it is the model the map places for the plain "tree" kind, and missing it
+  // made it fall through to decoration, which sized the 3475 placed trees as if they were trinkets.
+  ["tree", /^(tree|plant|pine|tall-tree|tree_skinned|dead-tree)/],
   ["nature", /^(grass|patch-|hedge|bush|flower|mushroom|ground-hills)/],
   ["rock", /^(rock|rocks|stones?$|stones-|resource-|gate-rock|debris-|gravestone-debris)/],
   ["effect", /^(indicator|arrow|blade|cone$)/],

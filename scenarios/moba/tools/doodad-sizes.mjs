@@ -8,7 +8,10 @@ const UNIT_HALF = 0.9; // play.js UNIT_HALF: a unit model is fitted to 2 * UNIT_
 const HERO_STEM = "character-male-a"; // human-scale reference: the height play.js draws for it, from the same first-mesh fit.
 // Target height per role, in hero heights. Trees tower over a hero, buildings over a tower base, props and items stay near waist height.
 // Upright models keep their own proportions: the scale comes from the target height, so crown width follows the model.
-export const ROLE_HEIGHT_IN_HEROES = { tree: 5, building: 2.5, prop: 0.75, nature: 0.4, rock: 0.23, item: 0.25, decoration: 0.5, character: 1 };
+export const ROLE_HEIGHT_IN_HEROES = { tree: 5, building: 3, prop: 0.9, nature: 0.5, rock: 0.35, item: 0.3, decoration: 0.7, character: 1 };
+// A floor per role, in cells, so a model whose proportions make it narrow is never drawn as a sliver. A tall thin tree
+// is scaled by height and can otherwise come out a few tenths of a cell wide, which reads as missing rather than small.
+export const ROLE_FOOTPRINT_MIN = { tree: 1.2, building: 1.5, prop: 0.5, nature: 0.4, rock: 0.25, item: 0.2, decoration: 0.35, character: 0.6 };
 export const SCATTER_ROLES = new Set(["tree", "nature", "rock", "prop", "item", "decoration"]);
 const FLAT_RATIO = 0.3; // a model under 0.3 of its footprint in height is flat (ground patch, log, fountain basin).
 const FLAT_FOOTPRINT_PER_TARGET = 2;
@@ -56,7 +59,7 @@ export function doodadSizes(modelsDir, doodadStems = null) {
     const targetHeight = (ROLE_HEIGHT_IN_HEROES[role] ?? ROLE_HEIGHT_IN_HEROES.decoration) * heroHeight;
     const flat = b.h / b.foot < FLAT_RATIO;
     const footprint = (flat ? FLAT_FOOTPRINT_PER_TARGET * targetHeight : targetHeight * b.foot / b.h) * (stem.startsWith("fountain-") ? FOUNTAIN_FOOTPRINT_SCALE : 1);
-    sizes[stem] = Math.round(Math.min(FOOTPRINT_MAX, Math.max(FOOTPRINT_MIN, footprint)) * 1000) / 1000;
+    sizes[stem] = Math.round(Math.min(FOOTPRINT_MAX, Math.max(FOOTPRINT_MIN, footprint, ROLE_FOOTPRINT_MIN[role] ?? 0)) * 1000) / 1000;
   }
   const units = {};
   for (const [stem, heroes] of Object.entries(UNIT_HEIGHT_IN_HEROES)) {
