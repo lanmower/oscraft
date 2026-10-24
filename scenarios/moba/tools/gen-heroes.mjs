@@ -220,6 +220,12 @@ const HY3D_MODEL = {
   riki: "riki-skinned",
   ursa: "ursa-skinned",
   viper: "viper-skinned",
+  techies: "techies-skinned",
+  terrorblade: "terrorblade-skinned",
+  void_spirit: "void-spirit-skinned",
+  weaver: "weaver-skinned",
+  wisp: "wisp-skinned",
+  zuus: "zuus-skinned",
 };
 
 const osd = [

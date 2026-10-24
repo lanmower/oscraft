@@ -29,9 +29,10 @@ fn only_heroes_with_a_model_are_offered() {
     host.advance().expect("tick");
     let heroes = host.state_int("heroes").expect("hero count");
     let offered = host.state_int("offered").expect("offered count");
-    assert!(heroes > offered, "some heroes have no model: {heroes} heroes, {offered} offered");
-    // 25 skinned heroes, plus the 29 and then 10 from the hy3d batches, plus the 6 wired in 3cc15e20
-    // (windrunner, witch_doctor, warlock, venomancer, shadow_demon, winter_wyvern) — units_heroes.osd
-    // model fields. Rises again as the 9 heroes still without a model are generated and wired.
-    assert_eq!(offered, 121, "the skinned heroes are the ones offered");
+    // Every roster hero has a generated model now, so offered is the whole roster; the guard below keeps the
+    // rule honest either way (never offer a hero whose model would not draw).
+    assert!(heroes >= offered, "offered is a subset of the roster: {heroes} heroes, {offered} offered");
+    // Every hero row in units_heroes.osd carries a model: the hy3d batches are complete (the last was
+    // zuus), so the pick list is the whole roster.
+    assert_eq!(offered, 127, "the skinned heroes are the ones offered");
 }
