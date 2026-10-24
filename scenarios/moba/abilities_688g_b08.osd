@@ -1,41 +1,47 @@
-# 6.88g hero abilities, batch 08 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
-# alchemist 6.88g A1NI Unstable Concoction
-ability("alchemist_unstable_concoction", 256, 120, "none", [])
-# alchemist 6.88g A0IL Acid Spray
-ability("alchemist_acid_spray", 352, 130, "none", [])
-# alchemist 6.88g A0O3 Goblin's Greed
-ability("alchemist_goblin_s_greed", 0, 0, "none", [])
-# alchemist 6.88g ANcr Chemical Rage
-ability("alchemist_chemical_rage", 720, 50, "none", [])
-# invoker 6.88g A21Y Invoke
-ability("invoker_invoke", 352, 20, "none", [])
-# invoker 6.88g A21X Wex
-ability("invoker_wex", 0, 0, "none", [])
-# invoker 6.88g A21W Quas
-ability("invoker_quas", 0, 0, "none", [])
-# invoker 6.88g A21V Exort
-ability("invoker_exort", 0, 0, "none", [])
-# silencer 6.88g A0LZ Glaives of Wisdom
-ability("silencer_glaives_of_wisdom", 0, 15, "none", [])
-# silencer 6.88g A2NT Last Word
-ability("silencer_last_word", 480, 115, "none", [])
-# silencer 6.88g A14L Curse of the Silent
-ability("silencer_curse_of_the_silent", 320, 75, "none", [])
-# silencer 6.88g A0L3 Global Silence
-ability("silencer_global_silence", 2080, 250, "none", [])
-# obsidian_destroyer 6.88g A0OK Sanity's Eclipse
-ability("obsidian_destroyer_sanity_s_eclipse", 2560, 175, "none", [])
-# obsidian_destroyer 6.88g A0OJ Astral Imprisonment
-ability("obsidian_destroyer_astral_imprisonment", 288, 120, "none", [])
-# obsidian_destroyer 6.88g A0OI Arcane Orb
-ability("obsidian_destroyer_arcane_orb", 0, 100, "none", [])
-# obsidian_destroyer 6.88g A0IF Essence Aura
-ability("obsidian_destroyer_essence_aura", 0, 0, "none", [])
-# brewmaster 6.88g A06M Thunder Clap
-ability("brewmaster_thunder_clap", 208, 90, "none", [])
-# brewmaster 6.88g Acdh Drunken Haze
-ability("brewmaster_drunken_haze", 128, 50, "none", [])
-# brewmaster 6.88g A0MX Drunken Brawler
-ability("brewmaster_drunken_brawler", 0, 0, "none", [])
-# brewmaster 6.88g A0MQ Primal Split
-ability("brewmaster_primal_split", 2240, 125, "none", [])
+# 6.88g hero abilities, batch 08 of 12. Heroes: beastmaster, dawnbreaker, faceless_void, legion_commander, monkey_king, phantom_assassin, sand_king, techies, visage.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# beastmaster 6.88g A0OO Call of the Wild
+ability("beastmaster_call_of_the_wild", 640, 15, "none", [])
+# beastmaster 6.88g A0O1 Wild Axes
+ability("beastmaster_wild_axes", 208, 120, "none", [])
+# beastmaster 6.88g A0BD Inner Beast
+ability("beastmaster_inner_beast", 0, 0, "none", [])
+# beastmaster 6.88g A0O2 Primal Roar
+ability("beastmaster_primal_roar", 1280, 150, "none", [])
+# to fill (no 6.88g ability rows yet): dawnbreaker
+# faceless_void 6.88g A081 Time Lock
+ability("faceless_void_time_lock", 0, 0, "none", [])
+# faceless_void 6.88g A0CZ Backtrack
+ability("faceless_void_backtrack", 0, 0, "none", [])
+# faceless_void 6.88g A0LK Time Walk
+ability("faceless_void_time_walk", 304, 90, "none", [])
+# faceless_void 6.88g A0J1 Chronosphere
+ability("faceless_void_chronosphere", 2080, 150, "none", [])
+# legion_commander 6.88g A2CI Duel
+ability("legion_commander_duel", 800, 75, "none", [])
+# legion_commander 6.88g A2EY Moment of Courage
+ability("legion_commander_moment_of_courage", 0, 0, "none", [])
+# legion_commander 6.88g A2J2 Press The Attack
+ability("legion_commander_press_the_attack", 256, 110, "none", [])
+# legion_commander 6.88g A2JB Overwhelming Odds
+ability("legion_commander_overwhelming_odds", 240, 100, "none", [])
+# to fill (no 6.88g ability rows yet): monkey_king
+# phantom_assassin 6.88g A0YM Stifling Dagger
+ability("phantom_assassin_stifling_dagger", 96, 30, "none", [])
+# phantom_assassin 6.88g A0PL Phantom Strike
+ability("phantom_assassin_phantom_strike", 224, 50, "none", [])
+# phantom_assassin 6.88g A03P Blur
+ability("phantom_assassin_blur", 0, 0, "none", [])
+# phantom_assassin 6.88g A03Q Coup de grace
+ability("phantom_assassin_coup_de_grace", 0, 0, "none", [])
+# sand_king 6.88g A06R Epicenter
+ability("sand_king_epicenter", 2240, 175, "none", [])
+# sand_king 6.88g A0H0 Sand Storm
+ability("sand_king_sand_storm", 640, 60, "none", [])
+# sand_king 6.88g A06O Burrowstrike
+ability("sand_king_burrowstrike", 176, 110, "none", [])
+# sand_king 6.88g A0FA Caustic Finale
+ability("sand_king_caustic_finale", 0, 0, "none", [])
+# to fill (no 6.88g ability rows yet): techies
+# to fill (no 6.88g ability rows yet): visage

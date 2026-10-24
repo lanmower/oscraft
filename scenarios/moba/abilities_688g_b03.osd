@@ -1,41 +1,48 @@
-# 6.88g hero abilities, batch 03 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
-# enigma 6.88g A0I7 Malefice
-ability("enigma_malefice", 240, 110, "none", [])
-# enigma 6.88g A180 Demonic Conversion
-ability("enigma_demonic_conversion", 560, 170, "none", [])
-# enigma 6.88g A0B1 Midnight Pulse
-ability("enigma_midnight_pulse", 560, 95, "none", [])
-# enigma 6.88g A1BX Black Hole
-ability("enigma_black_hole", 3200, 275, "none", [])
-# tinker 6.88g A065 Rearm
-ability("tinker_rearm", 0, 125, "none", [])
-# tinker 6.88g A049 Laser
-ability("tinker_laser", 224, 95, "none", [])
-# tinker 6.88g A05E Heat Seeking Missile
-ability("tinker_heat_seeking_missile", 400, 120, "none", [])
-# tinker 6.88g A0BQ March of the Machines
-ability("tinker_march_of_the_machines", 560, 145, "none", [])
-# necrolyte 6.88g A067 Reaper's Scythe
-ability("necrolyte_reaper_s_scythe", 1600, 175, "none", [])
-# necrolyte 6.88g A05V Death Pulse
-ability("necrolyte_death_pulse", 128, 125, "none", [])
-# necrolyte 6.88g A060 Sadist
-ability("necrolyte_sadist", 0, 0, "none", [])
-# necrolyte 6.88g A01N Heartstopper Aura
-ability("necrolyte_heartstopper_aura", 0, 0, "none", [])
-# warlock 6.88g A0J5 Fatal Bonds
-ability("warlock_fatal_bonds", 400, 120, "none", [])
-# warlock 6.88g A0AS Shadow Word
-ability("warlock_shadow_word", 256, 90, "none", [])
-# warlock 6.88g A06P Upheaval
-ability("warlock_upheaval", 800, 100, "none", [])
-# warlock 6.88g S008 Rain of Chaos
-ability("warlock_rain_of_chaos", 2640, 200, "none", [])
-# beastmaster 6.88g A0OO Call of the Wild
-ability("beastmaster_call_of_the_wild", 640, 15, "none", [])
-# beastmaster 6.88g A0O1 Wild Axes
-ability("beastmaster_wild_axes", 208, 120, "none", [])
-# beastmaster 6.88g A0BD Inner Beast
-ability("beastmaster_inner_beast", 0, 0, "none", [])
-# beastmaster 6.88g A0O2 Primal Roar
-ability("beastmaster_primal_roar", 1280, 150, "none", [])
+# 6.88g hero abilities, batch 03 of 12. Heroes: alchemist, chaos_knight, earthshaker, jakiro, marci, nyx_assassin, rattletrap, slark, tusk, witch_doctor.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# alchemist 6.88g A1NI Unstable Concoction
+ability("alchemist_unstable_concoction", 256, 120, "none", [])
+# alchemist 6.88g A0IL Acid Spray
+ability("alchemist_acid_spray", 352, 130, "none", [])
+# alchemist 6.88g A0O3 Goblin's Greed
+ability("alchemist_goblin_s_greed", 0, 0, "none", [])
+# alchemist 6.88g ANcr Chemical Rage
+ability("alchemist_chemical_rage", 720, 50, "none", [])
+# chaos_knight 6.88g A03O Phantasm
+ability("chaos_knight_phantasm", 2240, 125, "none", [])
+# chaos_knight 6.88g A03N Chaos Strike
+ability("chaos_knight_chaos_strike", 0, 0, "none", [])
+# chaos_knight 6.88g A0RW Reality Rift
+ability("chaos_knight_reality_rift", 384, 50, "none", [])
+# chaos_knight 6.88g A055 Chaos Bolt
+ability("chaos_knight_chaos_bolt", 160, 140, "none", [])
+# earthshaker 6.88g A0DH Echo Slam
+ability("earthshaker_echo_slam", 2400, 145, "none", [])
+# earthshaker 6.88g A0DL Enchant Totem
+ability("earthshaker_enchant_totem", 80, 35, "none", [])
+# earthshaker 6.88g A0SK Fissure
+ability("earthshaker_fissure", 240, 125, "none", [])
+# earthshaker 6.88g A0DJ Aftershock
+ability("earthshaker_aftershock", 0, 0, "none", [])
+# to fill (no 6.88g ability rows yet): jakiro
+# to fill (no 6.88g ability rows yet): marci
+# to fill (no 6.88g ability rows yet): nyx_assassin
+# to fill (no 6.88g ability rows yet): rattletrap
+# to fill (no 6.88g ability rows yet): slark
+# tusk 6.88g A1YO Ice Shards
+ability("tusk_ice_shards", 288, 100, "none", [])
+# tusk 6.88g A1YQ Walrus Punch
+ability("tusk_walrus_punch", 320, 50, "none", [])
+# tusk 6.88g A1S7 Snowball
+ability("tusk_snowball", 336, 75, "none", [])
+# tusk 6.88g A1YR Frozen Sigil
+ability("tusk_frozen_sigil", 800, 75, "none", [])
+# witch_doctor 6.88g A0NO Maledict
+ability("witch_doctor_maledict", 320, 120, "none", [])
+# witch_doctor 6.88g A0NM Paralyzing Cask
+ability("witch_doctor_paralyzing_cask", 320, 110, "none", [])
+# witch_doctor 6.88g A0NT Death Ward
+ability("witch_doctor_death_ward", 1280, 200, "none", [])
+# witch_doctor 6.88g A0NE Voodoo Restoration
+ability("witch_doctor_voodoo_restoration", 0, 10, "none", [])

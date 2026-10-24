@@ -1,4 +1,40 @@
-# 6.88g hero abilities, batch 09 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# 6.88g hero abilities, batch 09 of 12. Heroes: bloodseeker, death_prophet, furion, leshrac, morphling, phoenix, shadow_demon, templar_assassin, void_spirit.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# bloodseeker 6.88g A0LH Rupture
+ability("bloodseeker_rupture", 960, 150, "none", [])
+# bloodseeker 6.88g A0I8 Strygwyr's Thirst
+ability("bloodseeker_strygwyr_s_thirst", 0, 0, "none", [])
+# bloodseeker 6.88g A2X9 Bloodrage
+ability("bloodseeker_bloodrage", 192, 0, "none", [])
+# bloodseeker 6.88g A2X8 Blood Rite
+ability("bloodseeker_blood_rite", 464, 100, "none", [])
+# death_prophet 6.88g A02C Witchcraft
+ability("death_prophet_witchcraft", 0, 0, "none", [])
+# death_prophet 6.88g A02M Carrion Swarm
+ability("death_prophet_carrion_swarm", 128, 105, "none", [])
+# death_prophet 6.88g A0P6 Silence 0
+ability("death_prophet_silence_0", 0, 80, "none", [])
+# death_prophet 6.88g A073 Exorcism
+ability("death_prophet_exorcism", 2320, 200, "none", [])
+# to fill (no 6.88g ability rows yet): furion
+# to fill (no 6.88g ability rows yet): leshrac
+# morphling 6.88g A0G6 Adaptive Strike
+ability("morphling_adaptive_strike", 160, 100, "none", [])
+# morphling 6.88g A0G8 Replicate
+ability("morphling_replicate", 1280, 25, "none", [])
+# morphling 6.88g A0KX Morph
+ability("morphling_morph", 16, 0, "none", [])
+# morphling 6.88g A0FN Waveform
+ability("morphling_waveform", 176, 140, "none", [])
+# phoenix 6.88g A35E Fire Spirits Learn
+ability("phoenix_fire_spirits_learn", 0, 0, "none", [])
+# phoenix 6.88g A1RK Supernova
+ability("phoenix_supernova", 1760, 200, "none", [])
+# phoenix 6.88g A1YY Sun Ray
+ability("phoenix_sun_ray", 320, 100, "none", [])
+# phoenix 6.88g A1RJ Icarus Dive
+ability("phoenix_icarus_dive", 576, 0, "none", [])
 # shadow_demon 6.88g A1S4 Shadow Poison
 ability("shadow_demon_shadow_poison", 40, 40, "none", [])
 # shadow_demon 6.88g A1S8 Disruption
@@ -7,35 +43,12 @@ ability("shadow_demon_disruption", 400, 120, "none", [])
 ability("shadow_demon_demonic_purge", 800, 200, "none", [])
 # shadow_demon 6.88g A1SB Soul Catcher
 ability("shadow_demon_soul_catcher", 208, 50, "none", [])
-# lone_druid 6.88g A0A5 Summon Spirit Bear
-ability("lone_druid_summon_spirit_bear", 1920, 75, "none", [])
-# lone_druid 6.88g A0A8 Synergy
-ability("lone_druid_synergy", 0, 0, "none", [])
-# lone_druid 6.88g A1EF Rabid
-ability("lone_druid_rabid", 480, 50, "none", [])
-# lone_druid 6.88g A0AG True Form
-ability("lone_druid_true_form", 0, 25, "none", [])
-# chaos_knight 6.88g A03O Phantasm
-ability("chaos_knight_phantasm", 2240, 125, "none", [])
-# chaos_knight 6.88g A03N Chaos Strike
-ability("chaos_knight_chaos_strike", 0, 0, "none", [])
-# chaos_knight 6.88g A0RW Reality Rift
-ability("chaos_knight_reality_rift", 384, 50, "none", [])
-# chaos_knight 6.88g A055 Chaos Bolt
-ability("chaos_knight_chaos_bolt", 160, 140, "none", [])
-# ogre_magi 6.88g A011 Ignite
-ability("ogre_magi_ignite", 240, 95, "none", [])
-# ogre_magi 6.88g A04W Fireblast
-ability("ogre_magi_fireblast", 192, 75, "none", [])
-# ogre_magi 6.88g A083 Bloodlust
-ability("ogre_magi_bloodlust", 320, 75, "none", [])
-# ogre_magi 6.88g A088 Multi Cast
-ability("ogre_magi_multi_cast", 0, 0, "none", [])
-# undying 6.88g A15S Decay
-ability("undying_decay", 160, 70, "none", [])
-# undying 6.88g A0R5 Soul Rip
-ability("undying_soul_rip", 384, 100, "none", [])
-# undying 6.88g A15V Tombstone
-ability("undying_tombstone", 960, 120, "none", [])
-# undying 6.88g A15J Flesh Golem
-ability("undying_flesh_golem", 1200, 100, "none", [])
+# templar_assassin 6.88g A0RP Psionic Trap
+ability("templar_assassin_psionic_trap", 176, 15, "none", [])
+# templar_assassin 6.88g A0RO Psi Blades
+ability("templar_assassin_psi_blades", 0, 0, "none", [])
+# templar_assassin 6.88g A1EA Refraction
+ability("templar_assassin_refraction", 272, 0, "none", [])
+# templar_assassin 6.88g A0RV Meld
+ability("templar_assassin_meld", 96, 50, "none", [])
+# to fill (no 6.88g ability rows yet): void_spirit

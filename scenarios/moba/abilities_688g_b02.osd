@@ -1,41 +1,62 @@
-# 6.88g hero abilities, batch 02 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
-# sand_king 6.88g A06R Epicenter
-ability("sand_king_epicenter", 2240, 175, "none", [])
-# sand_king 6.88g A0H0 Sand Storm
-ability("sand_king_sand_storm", 640, 60, "none", [])
-# sand_king 6.88g A06O Burrowstrike
-ability("sand_king_burrowstrike", 176, 110, "none", [])
-# sand_king 6.88g A0FA Caustic Finale
-ability("sand_king_caustic_finale", 0, 0, "none", [])
-# storm_spirit 6.88g A14R Electric Vortex
-ability("storm_spirit_electric_vortex", 336, 85, "none", [])
-# storm_spirit 6.88g A14P Static Remnant
-ability("storm_spirit_static_remnant", 56, 0, "none", [])
-# storm_spirit 6.88g A14O Ball Lightning
-ability("storm_spirit_ball_lightning", 0, 0, "none", [])
-# storm_spirit 6.88g A0QW Overload
-ability("storm_spirit_overload", 0, 0, "none", [])
-# windrunner 6.88g A12P Focus Fire
-ability("windrunner_focus_fire", 960, 75, "none", [])
-# windrunner 6.88g A12K Powershot
-ability("windrunner_powershot", 144, 90, "none", [])
-# windrunner 6.88g A14I Windrunner
-ability("windrunner_windrunner", 240, 0, "none", [])
-# windrunner 6.88g A12J Shackleshot
-ability("windrunner_shackleshot", 192, 90, "none", [])
-# shadow_shaman 6.88g A00P Shackles
-ability("shadow_shaman_shackles", 160, 140, "none", [])
-# shadow_shaman 6.88g A0RX Voodoo
-ability("shadow_shaman_voodoo", 208, 110, "none", [])
-# shadow_shaman 6.88g A010 Ether Shock
-ability("shadow_shaman_ether_shock", 128, 95, "none", [])
-# shadow_shaman 6.88g A00H Mass Serpent Ward
-ability("shadow_shaman_mass_serpent_ward", 1920, 200, "none", [])
-# witch_doctor 6.88g A0NO Maledict
-ability("witch_doctor_maledict", 320, 120, "none", [])
-# witch_doctor 6.88g A0NM Paralyzing Cask
-ability("witch_doctor_paralyzing_cask", 320, 110, "none", [])
-# witch_doctor 6.88g A0NT Death Ward
-ability("witch_doctor_death_ward", 1280, 200, "none", [])
-# witch_doctor 6.88g A0NE Voodoo Restoration
-ability("witch_doctor_voodoo_restoration", 0, 10, "none", [])
+# 6.88g hero abilities, batch 02 of 12. Heroes: abyssal_underlord, centaur, earth_spirit, invoker, magnataur, night_stalker, queenofpain, skywrath_mage, troll_warlord, wisp.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# to fill (no 6.88g ability rows yet): abyssal_underlord
+# to fill (no 6.88g ability rows yet): centaur
+# earth_spirit 6.88g A2TJ Rolling Boulder
+ability("earth_spirit_rolling_boulder", 256, 50, "none", [])
+# earth_spirit 6.88g A2QI Geomagnetic Grip
+ability("earth_spirit_geomagnetic_grip", 208, 100, "none", [])
+# earth_spirit 6.88g A2UU Boulder Smash
+ability("earth_spirit_boulder_smash", 352, 100, "none", [])
+# earth_spirit 6.88g A2TI Magnetize
+ability("earth_spirit_magnetize", 1600, 100, "none", [])
+# invoker 6.88g A21Y Invoke
+ability("invoker_invoke", 352, 20, "none", [])
+# invoker 6.88g A21X Wex
+ability("invoker_wex", 0, 0, "none", [])
+# invoker 6.88g A21W Quas
+ability("invoker_quas", 0, 0, "none", [])
+# invoker 6.88g A21V Exort
+ability("invoker_exort", 0, 0, "none", [])
+# magnataur 6.88g A02S Shockwave
+ability("magnataur_shockwave", 160, 90, "none", [])
+# magnataur 6.88g A037 Empower
+ability("magnataur_empower", 128, 30, "none", [])
+# magnataur 6.88g A1RD Skewer
+ability("magnataur_skewer", 480, 80, "none", [])
+# magnataur 6.88g A29L Reverse Polarity
+ability("magnataur_reverse_polarity", 1920, 200, "none", [])
+# night_stalker 6.88g A086 Hunter in the Night
+ability("night_stalker_hunter_in_the_night", 0, 0, "none", [])
+# night_stalker 6.88g A08E Crippling Fear
+ability("night_stalker_crippling_fear", 0, 0, "none", [])
+# night_stalker 6.88g A03K Darkness
+ability("night_stalker_darkness", 2560, 0, "none", [])
+# night_stalker 6.88g A02H Void
+ability("night_stalker_void", 128, 80, "none", [])
+# queenofpain 6.88g A0Q7 Shadow Strike QoP
+ability("queenofpain_shadow_strike_qop", 256, 110, "none", [])
+# queenofpain 6.88g A0ME Blink
+ability("queenofpain_blink", 240, 60, "none", [])
+# queenofpain 6.88g A04A Scream of Pain
+ability("queenofpain_scream_of_pain", 112, 110, "none", [])
+# queenofpain 6.88g A28R Sonic Wave
+ability("queenofpain_sonic_wave", 1920, 200, "none", [])
+# skywrath_mage 6.88g A2BE Arcane Bolt
+ability("skywrath_mage_arcane_bolt", 80, 70, "none", [])
+# skywrath_mage 6.88g A2HN Ancient Seal
+ability("skywrath_mage_ancient_seal", 224, 80, "none", [])
+# skywrath_mage 6.88g A2BG Mystic Flare
+ability("skywrath_mage_mystic_flare", 960, 350, "none", [])
+# skywrath_mage 6.88g A2IT Concussive Shot
+ability("skywrath_mage_concussive_shot", 288, 95, "none", [])
+# troll_warlord 6.88g A0BE Berserker Rage
+ability("troll_warlord_berserker_rage", 0, 0, "none", [])
+# troll_warlord 6.88g A21L Whirling Axes
+ability("troll_warlord_whirling_axes", 0, 0, "none", [])
+# troll_warlord 6.88g A0O0 Fervor
+ability("troll_warlord_fervor", 0, 0, "none", [])
+# troll_warlord 6.88g A1EJ Battle Trance
+ability("troll_warlord_battle_trance", 480, 75, "none", [])
+# to fill (no 6.88g ability rows yet): wisp

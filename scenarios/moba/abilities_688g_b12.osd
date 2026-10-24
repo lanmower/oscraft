@@ -1,41 +1,47 @@
-# 6.88g hero abilities, batch 12 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
-# earth_spirit 6.88g A2TJ Rolling Boulder
-ability("earth_spirit_rolling_boulder", 256, 50, "none", [])
-# earth_spirit 6.88g A2QI Geomagnetic Grip
-ability("earth_spirit_geomagnetic_grip", 208, 100, "none", [])
-# earth_spirit 6.88g A2UU Boulder Smash
-ability("earth_spirit_boulder_smash", 352, 100, "none", [])
-# earth_spirit 6.88g A2TI Magnetize
-ability("earth_spirit_magnetize", 1600, 100, "none", [])
-# phoenix 6.88g A35E Fire Spirits Learn
-ability("phoenix_fire_spirits_learn", 0, 0, "none", [])
-# phoenix 6.88g A1RK Supernova
-ability("phoenix_supernova", 1760, 200, "none", [])
-# phoenix 6.88g A1YY Sun Ray
-ability("phoenix_sun_ray", 320, 100, "none", [])
-# phoenix 6.88g A1RJ Icarus Dive
-ability("phoenix_icarus_dive", 576, 0, "none", [])
-# oracle 6.88g A2TF False Promise
-ability("oracle_false_promise", 1440, 200, "none", [])
-# oracle 6.88g A2QT Fortune's End
-ability("oracle_fortune_s_end", 240, 130, "none", [])
-# oracle 6.88g A2T5 Fate's Edict
-ability("oracle_fate_s_edict", 192, 50, "none", [])
-# oracle 6.88g A2SG Purifying Flames
-ability("oracle_purifying_flames", 36, 50, "none", [])
-# winter_wyvern 6.88g A2LA Splinter Blast
-ability("winter_wyvern_splinter_blast", 112, 120, "none", [])
-# winter_wyvern 6.88g A2LB Cold Embrace
-ability("winter_wyvern_cold_embrace", 272, 75, "none", [])
-# winter_wyvern 6.88g A0Z0 Winter's Curse
-ability("winter_wyvern_winter_s_curse", 1760, 250, "none", [])
-# winter_wyvern 6.88g A2NE Arctic Siege
-ability("winter_wyvern_arctic_siege", 800, 120, "none", [])
-# arc_warden 6.88g A2LL Spark Wraith
-ability("arc_warden_spark_wraith", 64, 100, "none", [])
-# arc_warden 6.88g A2LM Magnetic Field
-ability("arc_warden_magnetic_field", 800, 110, "none", [])
-# arc_warden 6.88g A2M0 Tempest Double
-ability("arc_warden_tempest_double", 1040, 0, "none", [])
-# arc_warden 6.88g A2M1 Flux
-ability("arc_warden_flux", 320, 75, "none", [])
+# 6.88g hero abilities, batch 12 of 12. Heroes: bristleback, dragon_knight, hoodwink, luna, necrolyte, pudge, silencer, tiny, windrunner.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# bristleback 6.88g A0FV Warpath
+ability("bristleback_warpath", 0, 0, "none", [])
+# bristleback 6.88g A0M3 Bristleback
+ability("bristleback_bristleback", 0, 0, "none", [])
+# bristleback 6.88g A0GP Quill Spray
+ability("bristleback_quill_spray", 48, 35, "none", [])
+# bristleback 6.88g A0FW Viscous Nasal Goo
+ability("bristleback_viscous_nasal_goo", 24, 30, "none", [])
+# dragon_knight 6.88g A03G Elder Dragon Form
+ability("dragon_knight_elder_dragon_form", 1840, 50, "none", [])
+# dragon_knight 6.88g A03F Breathe Fire
+ability("dragon_knight_breathe_fire", 192, 100, "none", [])
+# dragon_knight 6.88g A2AI Dragon Tail
+ability("dragon_knight_dragon_tail", 0, 0, "none", [])
+# dragon_knight 6.88g A0CL Dragon Blood
+ability("dragon_knight_dragon_blood", 0, 0, "none", [])
+# to fill (no 6.88g ability rows yet): hoodwink
+# to fill (no 6.88g ability rows yet): luna
+# necrolyte 6.88g A067 Reaper's Scythe
+ability("necrolyte_reaper_s_scythe", 1600, 175, "none", [])
+# necrolyte 6.88g A05V Death Pulse
+ability("necrolyte_death_pulse", 128, 125, "none", [])
+# necrolyte 6.88g A060 Sadist
+ability("necrolyte_sadist", 0, 0, "none", [])
+# necrolyte 6.88g A01N Heartstopper Aura
+ability("necrolyte_heartstopper_aura", 0, 0, "none", [])
+# to fill (no 6.88g ability rows yet): pudge
+# silencer 6.88g A0LZ Glaives of Wisdom
+ability("silencer_glaives_of_wisdom", 0, 15, "none", [])
+# silencer 6.88g A2NT Last Word
+ability("silencer_last_word", 480, 115, "none", [])
+# silencer 6.88g A14L Curse of the Silent
+ability("silencer_curse_of_the_silent", 320, 75, "none", [])
+# silencer 6.88g A0L3 Global Silence
+ability("silencer_global_silence", 2080, 250, "none", [])
+# to fill (no 6.88g ability rows yet): tiny
+# windrunner 6.88g A12P Focus Fire
+ability("windrunner_focus_fire", 960, 75, "none", [])
+# windrunner 6.88g A12K Powershot
+ability("windrunner_powershot", 144, 90, "none", [])
+# windrunner 6.88g A14I Windrunner
+ability("windrunner_windrunner", 240, 0, "none", [])
+# windrunner 6.88g A12J Shackleshot
+ability("windrunner_shackleshot", 192, 90, "none", [])

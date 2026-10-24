@@ -1,41 +1,40 @@
-# 6.88g hero abilities, batch 05 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
-# phantom_assassin 6.88g A0YM Stifling Dagger
-ability("phantom_assassin_stifling_dagger", 96, 30, "none", [])
-# phantom_assassin 6.88g A0PL Phantom Strike
-ability("phantom_assassin_phantom_strike", 224, 50, "none", [])
-# phantom_assassin 6.88g A03P Blur
-ability("phantom_assassin_blur", 0, 0, "none", [])
-# phantom_assassin 6.88g A03Q Coup de grace
-ability("phantom_assassin_coup_de_grace", 0, 0, "none", [])
-# templar_assassin 6.88g A0RP Psionic Trap
-ability("templar_assassin_psionic_trap", 176, 15, "none", [])
-# templar_assassin 6.88g A0RO Psi Blades
-ability("templar_assassin_psi_blades", 0, 0, "none", [])
-# templar_assassin 6.88g A1EA Refraction
-ability("templar_assassin_refraction", 272, 0, "none", [])
-# templar_assassin 6.88g A0RV Meld
-ability("templar_assassin_meld", 96, 50, "none", [])
-# dragon_knight 6.88g A03G Elder Dragon Form
-ability("dragon_knight_elder_dragon_form", 1840, 50, "none", [])
-# dragon_knight 6.88g A03F Breathe Fire
-ability("dragon_knight_breathe_fire", 192, 100, "none", [])
-# dragon_knight 6.88g A2AI Dragon Tail
-ability("dragon_knight_dragon_tail", 0, 0, "none", [])
-# dragon_knight 6.88g A0CL Dragon Blood
-ability("dragon_knight_dragon_blood", 0, 0, "none", [])
-# life_stealer 6.88g A0SW Infest
-ability("life_stealer_infest", 1600, 50, "none", [])
-# life_stealer 6.88g A0SS Feast
-ability("life_stealer_feast", 0, 0, "none", [])
-# life_stealer 6.88g A2TT Rage
-ability("life_stealer_rage", 256, 75, "none", [])
-# life_stealer 6.88g A194 Open Wounds
-ability("life_stealer_open_wounds", 384, 110, "none", [])
-# dark_seer 6.88g A0QK Wall of Replica
-ability("dark_seer_wall_of_replica", 1600, 125, "none", [])
-# dark_seer 6.88g A0R7 Surge
-ability("dark_seer_surge", 192, 20, "none", [])
-# dark_seer 6.88g A0QG Ion Shell
-ability("dark_seer_ion_shell", 144, 70, "none", [])
-# dark_seer 6.88g A0QE Vacuum
-ability("dark_seer_vacuum", 448, 100, "none", [])
+# 6.88g hero abilities, batch 05 of 12. Heroes: arc_warden, clinkz, ember_spirit, kez, medusa, ogre_magi, riki, spectre, ursa.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# arc_warden 6.88g A2LL Spark Wraith
+ability("arc_warden_spark_wraith", 64, 100, "none", [])
+# arc_warden 6.88g A2LM Magnetic Field
+ability("arc_warden_magnetic_field", 800, 110, "none", [])
+# arc_warden 6.88g A2M0 Tempest Double
+ability("arc_warden_tempest_double", 1040, 0, "none", [])
+# arc_warden 6.88g A2M1 Flux
+ability("arc_warden_flux", 320, 75, "none", [])
+# to fill (no 6.88g ability rows yet): clinkz
+# ember_spirit 6.88g A2H0 Sleight of Fist
+ability("ember_spirit_sleight_of_fist", 480, 50, "none", [])
+# ember_spirit 6.88g A2H3 Searing Chains
+ability("ember_spirit_searing_chains", 224, 110, "none", [])
+# ember_spirit 6.88g A2HS Flame Guard
+ability("ember_spirit_flame_guard", 560, 80, "none", [])
+# ember_spirit 6.88g A2JK Fire Remnant Learning
+ability("ember_spirit_fire_remnant_learning", 0, 0, "none", [])
+# to fill (no 6.88g ability rows yet): kez
+# to fill (no 6.88g ability rows yet): medusa
+# ogre_magi 6.88g A011 Ignite
+ability("ogre_magi_ignite", 240, 95, "none", [])
+# ogre_magi 6.88g A04W Fireblast
+ability("ogre_magi_fireblast", 192, 75, "none", [])
+# ogre_magi 6.88g A083 Bloodlust
+ability("ogre_magi_bloodlust", 320, 75, "none", [])
+# ogre_magi 6.88g A088 Multi Cast
+ability("ogre_magi_multi_cast", 0, 0, "none", [])
+# to fill (no 6.88g ability rows yet): riki
+# spectre 6.88g A0FX Desolate
+ability("spectre_desolate", 0, 0, "none", [])
+# spectre 6.88g A0NA Dispersion
+ability("spectre_dispersion", 0, 0, "none", [])
+# spectre 6.88g A0HW Spectral Dagger
+ability("spectre_spectral_dagger", 256, 130, "none", [])
+# spectre 6.88g A0H9 Haunt
+ability("spectre_haunt", 2240, 150, "none", [])
+# to fill (no 6.88g ability rows yet): ursa

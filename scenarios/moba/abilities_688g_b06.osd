@@ -1,4 +1,22 @@
-# 6.88g hero abilities, batch 06 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# 6.88g hero abilities, batch 06 of 12. Heroes: bane, dark_seer, enchantress, kunkka, meepo, oracle, ringmaster, spirit_breaker, venomancer.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# bane 6.88g A02Q Fiend's Grip
+ability("bane_fiend_s_grip", 1600, 200, "none", [])
+# bane 6.88g A0GK Brain Sap
+ability("bane_brain_sap", 224, 70, "none", [])
+# bane 6.88g A2OI Enfeeble
+ability("bane_enfeeble", 128, 95, "none", [])
+# bane 6.88g A04Y Nightmare
+ability("bane_nightmare", 256, 165, "none", [])
+# dark_seer 6.88g A0QK Wall of Replica
+ability("dark_seer_wall_of_replica", 1600, 125, "none", [])
+# dark_seer 6.88g A0R7 Surge
+ability("dark_seer_surge", 192, 20, "none", [])
+# dark_seer 6.88g A0QG Ion Shell
+ability("dark_seer_ion_shell", 144, 70, "none", [])
+# dark_seer 6.88g A0QE Vacuum
+ability("dark_seer_vacuum", 448, 100, "none", [])
 # enchantress 6.88g A0DX Enchant
 ability("enchantress_enchant", 480, 65, "none", [])
 # enchantress 6.88g A01B Nature's Attendants
@@ -7,35 +25,30 @@ ability("enchantress_nature_s_attendants", 720, 125, "none", [])
 ability("enchantress_untouchable", 0, 0, "none", [])
 # enchantress 6.88g A0DY Impetus
 ability("enchantress_impetus", 0, 55, "none", [])
-# night_stalker 6.88g A086 Hunter in the Night
-ability("night_stalker_hunter_in_the_night", 0, 0, "none", [])
-# night_stalker 6.88g A08E Crippling Fear
-ability("night_stalker_crippling_fear", 0, 0, "none", [])
-# night_stalker 6.88g A03K Darkness
-ability("night_stalker_darkness", 2560, 0, "none", [])
-# night_stalker 6.88g A02H Void
-ability("night_stalker_void", 128, 80, "none", [])
-# broodmother 6.88g A0WQ Insatiable Hunger
-ability("broodmother_insatiable_hunger", 720, 100, "none", [])
-# broodmother 6.88g A0BK Incapacitating Bite
-ability("broodmother_incapacitating_bite", 0, 0, "none", [])
-# broodmother 6.88g A0BH Spawn Spiderlings
-ability("broodmother_spawn_spiderlings", 160, 120, "none", [])
-# broodmother 6.88g A0BG Spin Web
-ability("broodmother_spin_web", 0, 50, "none", [])
-# bounty_hunter 6.88g A1IQ Jinada
-ability("bounty_hunter_jinada", 0, 0, "none", [])
-# bounty_hunter 6.88g A07A Wind Walk
-ability("bounty_hunter_wind_walk", 240, 50, "none", [])
-# bounty_hunter 6.88g A004 Shuriken Toss
-ability("bounty_hunter_shuriken_toss", 160, 120, "none", [])
-# bounty_hunter 6.88g A0B4 Track
-ability("bounty_hunter_track", 64, 50, "none", [])
-# batrider 6.88g A1EL Sticky Napalm
-ability("batrider_sticky_napalm", 48, 20, "none", [])
-# batrider 6.88g A19V Flamebreak
-ability("batrider_flamebreak", 224, 110, "none", [])
-# batrider 6.88g A19Z Firefly
-ability("batrider_firefly", 640, 100, "none", [])
-# batrider 6.88g A19O Flaming Lasso
-ability("batrider_flaming_lasso", 1440, 225, "none", [])
+# to fill (no 6.88g ability rows yet): kunkka
+# to fill (no 6.88g ability rows yet): meepo
+# oracle 6.88g A2TF False Promise
+ability("oracle_false_promise", 1440, 200, "none", [])
+# oracle 6.88g A2QT Fortune's End
+ability("oracle_fortune_s_end", 240, 130, "none", [])
+# oracle 6.88g A2T5 Fate's Edict
+ability("oracle_fate_s_edict", 192, 50, "none", [])
+# oracle 6.88g A2SG Purifying Flames
+ability("oracle_purifying_flames", 36, 50, "none", [])
+# to fill (no 6.88g ability rows yet): ringmaster
+# spirit_breaker 6.88g A1P8 Charge of Darkness
+ability("spirit_breaker_charge_of_darkness", 0, 100, "none", [])
+# spirit_breaker 6.88g A0G4 Nether Strike
+ability("spirit_breaker_nether_strike", 1280, 125, "none", [])
+# spirit_breaker 6.88g A0G5 Greater Bash
+ability("spirit_breaker_greater_bash", 0, 0, "none", [])
+# spirit_breaker 6.88g A0ES Empowering Haste
+ability("spirit_breaker_empowering_haste", 192, 0, "none", [])
+# venomancer 6.88g A173 Venomous Gale
+ability("venomancer_venomous_gale", 352, 125, "none", [])
+# venomancer 6.88g A0MY Poison Sting
+ability("venomancer_poison_sting", 0, 0, "none", [])
+# venomancer 6.88g A0MS Plague Ward
+ability("venomancer_plague_ward", 80, 20, "none", [])
+# venomancer 6.88g A013 Poison Nova
+ability("venomancer_poison_nova", 2240, 200, "none", [])

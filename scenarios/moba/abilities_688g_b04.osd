@@ -1,41 +1,40 @@
-# 6.88g hero abilities, batch 04 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
-# queenofpain 6.88g A0Q7 Shadow Strike QoP
-ability("queenofpain_shadow_strike_qop", 256, 110, "none", [])
-# queenofpain 6.88g A0ME Blink
-ability("queenofpain_blink", 240, 60, "none", [])
-# queenofpain 6.88g A04A Scream of Pain
-ability("queenofpain_scream_of_pain", 112, 110, "none", [])
-# queenofpain 6.88g A28R Sonic Wave
-ability("queenofpain_sonic_wave", 1920, 200, "none", [])
-# venomancer 6.88g A173 Venomous Gale
-ability("venomancer_venomous_gale", 352, 125, "none", [])
-# venomancer 6.88g A0MY Poison Sting
-ability("venomancer_poison_sting", 0, 0, "none", [])
-# venomancer 6.88g A0MS Plague Ward
-ability("venomancer_plague_ward", 80, 20, "none", [])
-# venomancer 6.88g A013 Poison Nova
-ability("venomancer_poison_nova", 2240, 200, "none", [])
-# faceless_void 6.88g A081 Time Lock
-ability("faceless_void_time_lock", 0, 0, "none", [])
-# faceless_void 6.88g A0CZ Backtrack
-ability("faceless_void_backtrack", 0, 0, "none", [])
-# faceless_void 6.88g A0LK Time Walk
-ability("faceless_void_time_walk", 304, 90, "none", [])
-# faceless_void 6.88g A0J1 Chronosphere
-ability("faceless_void_chronosphere", 2080, 150, "none", [])
-# skeleton_king 6.88g XX04 Hellfire Blast
-ability("skeleton_king_hellfire_blast", 128, 140, "none", [])
-# skeleton_king 6.88g XX09 Mortal Strike
-ability("skeleton_king_mortal_strike", 0, 0, "none", [])
-# skeleton_king 6.88g AUav Vampiric Aura
-ability("skeleton_king_vampiric_aura", 0, 0, "none", [])
-# skeleton_king 6.88g A01Y Reincarnation Leoric
-ability("skeleton_king_reincarnation_leoric", 4160, 160, "none", [])
-# death_prophet 6.88g A02C Witchcraft
-ability("death_prophet_witchcraft", 0, 0, "none", [])
-# death_prophet 6.88g A02M Carrion Swarm
-ability("death_prophet_carrion_swarm", 128, 105, "none", [])
-# death_prophet 6.88g A0P6 Silence 0
-ability("death_prophet_silence_0", 0, 80, "none", [])
-# death_prophet 6.88g A073 Exorcism
-ability("death_prophet_exorcism", 2320, 200, "none", [])
+# 6.88g hero abilities, batch 04 of 12. Heroes: ancient_apparition, chen, elder_titan, keeper_of_the_light, mars, obsidian_destroyer, razor, snapfire, undying.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# ancient_apparition 6.88g A1HS Ice Vortex
+ability("ancient_apparition_ice_vortex", 64, 80, "none", [])
+# ancient_apparition 6.88g A1MG Cold Feet
+ability("ancient_apparition_cold_feet", 240, 150, "none", [])
+# ancient_apparition 6.88g A1MI Ice Blast
+ability("ancient_apparition_ice_blast", 640, 100, "none", [])
+# ancient_apparition 6.88g A1HQ Chilling Touch
+ability("ancient_apparition_chilling_touch", 800, 110, "none", [])
+# to fill (no 6.88g ability rows yet): chen
+# to fill (no 6.88g ability rows yet): elder_titan
+# keeper_of_the_light 6.88g A085 Illuminate
+ability("keeper_of_the_light_illuminate", 160, 150, "none", [])
+# keeper_of_the_light 6.88g A10X Mana Leak
+ability("keeper_of_the_light_mana_leak", 256, 75, "none", [])
+# keeper_of_the_light 6.88g A2XQ Spirit Form
+ability("keeper_of_the_light_spirit_form", 0, 200, "none", [])
+# keeper_of_the_light 6.88g A112 Chakra Magic
+ability("keeper_of_the_light_chakra_magic", 304, 25, "none", [])
+# to fill (no 6.88g ability rows yet): mars
+# obsidian_destroyer 6.88g A0OK Sanity's Eclipse
+ability("obsidian_destroyer_sanity_s_eclipse", 2560, 175, "none", [])
+# obsidian_destroyer 6.88g A0OJ Astral Imprisonment
+ability("obsidian_destroyer_astral_imprisonment", 288, 120, "none", [])
+# obsidian_destroyer 6.88g A0OI Arcane Orb
+ability("obsidian_destroyer_arcane_orb", 0, 100, "none", [])
+# obsidian_destroyer 6.88g A0IF Essence Aura
+ability("obsidian_destroyer_essence_aura", 0, 0, "none", [])
+# to fill (no 6.88g ability rows yet): razor
+# to fill (no 6.88g ability rows yet): snapfire
+# undying 6.88g A15S Decay
+ability("undying_decay", 160, 70, "none", [])
+# undying 6.88g A0R5 Soul Rip
+ability("undying_soul_rip", 384, 100, "none", [])
+# undying 6.88g A15V Tombstone
+ability("undying_tombstone", 960, 120, "none", [])
+# undying 6.88g A15J Flesh Golem
+ability("undying_flesh_golem", 1200, 100, "none", [])

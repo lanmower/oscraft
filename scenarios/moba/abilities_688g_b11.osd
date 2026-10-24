@@ -1,41 +1,54 @@
-# 6.88g hero abilities, batch 11 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
-# bristleback 6.88g A0FV Warpath
-ability("bristleback_warpath", 0, 0, "none", [])
-# bristleback 6.88g A0M3 Bristleback
-ability("bristleback_bristleback", 0, 0, "none", [])
-# bristleback 6.88g A0GP Quill Spray
-ability("bristleback_quill_spray", 48, 35, "none", [])
-# bristleback 6.88g A0FW Viscous Nasal Goo
-ability("bristleback_viscous_nasal_goo", 24, 30, "none", [])
-# tusk 6.88g A1YO Ice Shards
-ability("tusk_ice_shards", 288, 100, "none", [])
-# tusk 6.88g A1YQ Walrus Punch
-ability("tusk_walrus_punch", 320, 50, "none", [])
-# tusk 6.88g A1S7 Snowball
-ability("tusk_snowball", 336, 75, "none", [])
-# tusk 6.88g A1YR Frozen Sigil
-ability("tusk_frozen_sigil", 800, 75, "none", [])
-# skywrath_mage 6.88g A2BE Arcane Bolt
-ability("skywrath_mage_arcane_bolt", 80, 70, "none", [])
-# skywrath_mage 6.88g A2HN Ancient Seal
-ability("skywrath_mage_ancient_seal", 224, 80, "none", [])
-# skywrath_mage 6.88g A2BG Mystic Flare
-ability("skywrath_mage_mystic_flare", 960, 350, "none", [])
-# skywrath_mage 6.88g A2IT Concussive Shot
-ability("skywrath_mage_concussive_shot", 288, 95, "none", [])
-# legion_commander 6.88g A2CI Duel
-ability("legion_commander_duel", 800, 75, "none", [])
-# legion_commander 6.88g A2EY Moment of Courage
-ability("legion_commander_moment_of_courage", 0, 0, "none", [])
-# legion_commander 6.88g A2J2 Press The Attack
-ability("legion_commander_press_the_attack", 256, 110, "none", [])
-# legion_commander 6.88g A2JB Overwhelming Odds
-ability("legion_commander_overwhelming_odds", 240, 100, "none", [])
-# ember_spirit 6.88g A2H0 Sleight of Fist
-ability("ember_spirit_sleight_of_fist", 480, 50, "none", [])
-# ember_spirit 6.88g A2H3 Searing Chains
-ability("ember_spirit_searing_chains", 224, 110, "none", [])
-# ember_spirit 6.88g A2HS Flame Guard
-ability("ember_spirit_flame_guard", 560, 80, "none", [])
-# ember_spirit 6.88g A2JK Fire Remnant Learning
-ability("ember_spirit_fire_remnant_learning", 0, 0, "none", [])
+# 6.88g hero abilities, batch 11 of 12. Heroes: brewmaster, doom_bringer, gyrocopter, lone_druid, naga_siren, puck, shredder, tinker, weaver.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# brewmaster 6.88g A06M Thunder Clap
+ability("brewmaster_thunder_clap", 208, 90, "none", [])
+# brewmaster 6.88g Acdh Drunken Haze
+ability("brewmaster_drunken_haze", 128, 50, "none", [])
+# brewmaster 6.88g A0MX Drunken Brawler
+ability("brewmaster_drunken_brawler", 0, 0, "none", [])
+# brewmaster 6.88g A0MQ Primal Split
+ability("brewmaster_primal_split", 2240, 125, "none", [])
+# doom_bringer 6.88g A094 LVL? Death
+ability("doom_bringer_lvl_death", 112, 110, "none", [])
+# doom_bringer 6.88g A35D Devour
+ability("doom_bringer_devour", 0, 0, "none", [])
+# doom_bringer 6.88g A1OP Scorched Earth
+ability("doom_bringer_scorched_earth", 880, 60, "none", [])
+# doom_bringer 6.88g A0MU Doom Basic
+ability("doom_bringer_doom_basic", 2000, 150, "none", [])
+# gyrocopter 6.88g A1SO Rocket Barrage
+ability("gyrocopter_rocket_barrage", 112, 90, "none", [])
+# gyrocopter 6.88g A1SQ Homing Missile
+ability("gyrocopter_homing_missile", 320, 120, "none", [])
+# gyrocopter 6.88g A229 Flak Cannon
+ability("gyrocopter_flak_cannon", 480, 50, "none", [])
+# gyrocopter 6.88g A1T5 Call Down
+ability("gyrocopter_call_down", 880, 125, "none", [])
+# lone_druid 6.88g A0A5 Summon Spirit Bear
+ability("lone_druid_summon_spirit_bear", 1920, 75, "none", [])
+# lone_druid 6.88g A0A8 Synergy
+ability("lone_druid_synergy", 0, 0, "none", [])
+# lone_druid 6.88g A1EF Rabid
+ability("lone_druid_rabid", 480, 50, "none", [])
+# lone_druid 6.88g A0AG True Form
+ability("lone_druid_true_form", 0, 25, "none", [])
+# naga_siren 6.88g A2KU Rip Tide
+ability("naga_siren_rip_tide", 160, 80, "none", [])
+# naga_siren 6.88g A24D Ensnare
+ability("naga_siren_ensnare", 192, 90, "none", [])
+# naga_siren 6.88g A063 Mirror Image
+ability("naga_siren_mirror_image", 640, 70, "none", [])
+# naga_siren 6.88g A07U Song of the Siren
+ability("naga_siren_song_of_the_siren", 2880, 100, "none", [])
+# to fill (no 6.88g ability rows yet): puck
+# to fill (no 6.88g ability rows yet): shredder
+# tinker 6.88g A065 Rearm
+ability("tinker_rearm", 0, 125, "none", [])
+# tinker 6.88g A049 Laser
+ability("tinker_laser", 224, 95, "none", [])
+# tinker 6.88g A05E Heat Seeking Missile
+ability("tinker_heat_seeking_missile", 400, 120, "none", [])
+# tinker 6.88g A0BQ March of the Machines
+ability("tinker_march_of_the_machines", 560, 145, "none", [])
+# to fill (no 6.88g ability rows yet): weaver
