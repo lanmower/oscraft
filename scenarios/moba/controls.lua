@@ -325,6 +325,11 @@ local function cast_key(who, slot, wx, wz)
   if info.target == TARGET_POINT then
     return arm(who, { item = false, slot = slot, kind = "point", radius = 0 })
   end
+  if wx == nil then
+    local ux, uz = unit_position(hero)
+    cast_now(hero, slot, -1, ux, uz)
+    return
+  end
   local hit = pick(wx, wz)
   if out_of_range(hero, a.name, wx, wz, hit and hit.id or -1) then return refuse(who, "range") end
   cast_now(hero, slot, hit and hit.id or -1, wx, wz)
@@ -434,7 +439,8 @@ local function on_key(who, a)
   end
   local action, arg = resolve_key(a.key, { ctrl = s.held.ctrl, shift = s.held.shift, alt = s.held.alt })
   if action == nil then return end
-  local wx, wz = a.world.x, a.world.z
+  local wx, wz = nil, nil
+  if a.world ~= nil then wx, wz = a.world.x, a.world.z end
   if s.armed ~= nil and (action == "cast" or action == "item") and arg == s.armed.slot and (action == "item") == s.armed.item then
     disarm(who)
     return
