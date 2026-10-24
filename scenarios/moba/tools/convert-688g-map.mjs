@@ -194,9 +194,14 @@ const legacyLines = fs.readFileSync(path.join(outDir, "map.osd"), "utf8").split(
 // Names are the source's trigger-string keys, so the committed table carries the neutral key slot<id> instead.
 const startLines = starts.map((s, k) => {
   const [x, y] = toMilli(s.x, s.y);
-  // Teams are the halves of the player list, not its parity: alternating would put both teams in
-  // one corner.
-  return `start(${k}, ${x}, ${y}, team=${k < starts.length / 2 ? 0 : 1})`;
+  // Teams alternate by index, which gives five slots a side AND puts the two sides' owners on
+  // opposite teams. The halves of the player list (first five vs last five, which is what the 6.88g
+  // force masks say) cannot be used here: oscraft's two sides are player 0 and player 1 — they own
+  // the buildings, the couriers and all six lane spawners — so putting both on team 0 leaves nothing
+  // hostile. With halves, on_march finds no hostile building, every creep wave idles where it
+  // spawned, towers never fire and no side can win. Do not "fix" this back to halves without also
+  // moving the side-1 buildings and spawners off player 1.
+  return `start(${k}, ${x}, ${y}, team=${k % 2})`;
 });
 const script = fs.readFileSync(path.join(src, "script.txt"), "latin1");
 // The map places no hero: each seat's picked hero is spawned by the lobby's pick (heroes.lua seat_pick), so a hero spawn line is dropped.
