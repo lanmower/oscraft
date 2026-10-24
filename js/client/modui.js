@@ -12,6 +12,10 @@ const STYLE = `
 .modui-panels { position: absolute; left: 8px; top: 60px; display: flex; flex-direction: column; gap: 6px; max-width: 30vw; }
 .modui-panel { padding: 6px 10px; background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.3); border-radius: 4px; white-space: pre-wrap; }
 .modui-panel b { display: block; margin-bottom: 2px; }
+@media (max-width: 600px) {
+.modui-log { left: auto; right: 8px; bottom: 128px; max-width: 46vw; }
+.modui-panels { top: auto; bottom: 128px; max-width: 46vw; max-height: 30vh; overflow: hidden; }
+}
 `;
 
 function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) ** 2; }
@@ -26,7 +30,7 @@ export function createModUi(opts) {
   style.textContent = STYLE;
   const el = doc.createElement("div");
   el.className = "modui";
-  el.innerHTML = '<div class="modui-panels"></div><div class="modui-log"></div>';
+  el.innerHTML = '<div class="modui-panels" aria-live="polite"></div><div class="modui-log" role="log"></div>';
   el.prepend(style);
   root.appendChild(el);
   const logEl = el.querySelector(".modui-log");

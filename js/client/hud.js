@@ -40,6 +40,9 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
   const maxHp = new Map();
   const barCtx = barCanvas.getContext("2d");
   const walkable = walkableLayer(grid);
+  // The minimap is a pointer control (a click moves the camera), so it names itself for tooltips and assistive tech.
+  if (!minimapEl.title) minimapEl.title = "Minimap: click to move the camera";
+  minimapEl.setAttribute("aria-label", minimapEl.title);
 
   const input = createMobaInput({ game, toWorld, toScreen, send, dragSlopPx: UI.dragSlopPx });
   const feedback = createFeedback({ toScreen, toWorld, units });
@@ -80,9 +83,14 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
   }
 
   function drawBars(list) {
-    barCanvas.width = window.innerWidth;
-    barCanvas.height = window.innerHeight;
-    barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    // Assigning a canvas size clears and reallocates it, so the size is set only when the window changed.
+    if (barCanvas.width !== w || barCanvas.height !== h) {
+      barCanvas.width = w;
+      barCanvas.height = h;
+    }
+    barCtx.clearRect(0, 0, w, h);
     let drawn = 0;
     for (const u of list) {
       if (typeof u.hp !== "number" || u.hp < 0) continue;
@@ -100,6 +108,15 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     return drawn;
   }
 
+  // The HUD runs every frame, so a body data value is written only when it changed.
+  const shown = {};
+  function publish(key, value) {
+    const text = String(value);
+    if (shown[key] === text) return;
+    shown[key] = text;
+    document.body.dataset[key] = text;
+  }
+
   function update() {
     const list = units();
     const hasGame = game && typeof game.gold === "function";
@@ -111,13 +128,12 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     const dots = minimap.draw(list);
     input.draw();
     feedback.draw();
-    const body = document.body.dataset;
-    body.gold = String(gold);
-    body.winner = String(winner);
-    body.hp = String(hp);
-    body.bars = String(bars);
-    body.minimap = String(dots);
-    body.selected = String(input.selection().length);
+    publish("gold", gold);
+    publish("winner", winner);
+    publish("hp", hp);
+    publish("bars", bars);
+    publish("minimap", dots);
+    publish("selected", input.selection().length);
     return { gold, winner, hp };
   }
 

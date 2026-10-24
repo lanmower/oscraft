@@ -39,6 +39,12 @@ const STYLE = `
 .w-cell{position:relative;min-width:0;min-height:34px;border:1px solid var(--edge);border-radius:3px;background:var(--well);padding:3px 4px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:2px;overflow:hidden}
 .w-cell.clickable{cursor:pointer}
 .w-cell.clickable:hover{border-color:var(--hover-edge);background:var(--well-hi)}
+.w-cell.clickable:focus-visible,.w-button:focus-visible,.w-panel-toggle:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+.w-panel-toggle{display:block;width:100%;margin:0;padding:0;border:0;background:none;color:var(--accent);font:inherit;font-size:var(--t-title);font-weight:700;text-align:left;cursor:pointer}
+.w-panel-toggle::before{content:"- "}
+.w-panel-toggle[aria-expanded="false"]::before{content:"+ "}
+.w-panel-body{display:flex;flex-direction:column;gap:4px;min-width:0}
+.w-panel-body[hidden]{display:none}
 .w-cell.t-empty{background:var(--well-dim);border-style:dashed;opacity:.55}
 .w-cell.t-active{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
 .w-cell.t-face{width:56px;min-height:56px;align-items:center}
@@ -61,6 +67,12 @@ const STYLE = `
 .w-bar.t-hp{--bar:var(--hp)}
 .w-bar.t-mp{--bar:var(--mp)}
 .w-root .w-bar{min-height:4px}
+@media (max-width: 600px){
+#ui-left{max-height:calc(100vh - 136px);overflow-y:auto}
+#ui-right{max-height:calc(100vh - 473px);overflow-y:auto}
+#ui-bar-mid .w-cell{min-height:26px}
+.w-panel-toggle{min-height:30px}
+}
 `;
 
 function ensureStyle() {
@@ -90,7 +102,36 @@ function resolveSrc(src) {
   return srcResolver(src);
 }
 
-export function buildNode(n, send) {
+// Phones fold the panels of the side columns. `panel` ({id, slot}) is passed for a panel's root node only.
+const PHONE = typeof matchMedia === "function" ? matchMedia("(max-width: 600px)") : null;
+const FOLDABLE_SLOTS = new Set(["left", "right"]);
+const FOLDED_AT_START = new Set(["left"]);
+const folded = new Map(); // panel id -> folded; the user's choice survives a rebuild
+
+function foldablePanel(n, send, panel) {
+  if (!folded.has(panel.id)) folded.set(panel.id, FOLDED_AT_START.has(panel.slot));
+  const startFolded = folded.get(panel.id);
+  const toggle = el("button", "w-panel-toggle", n.title);
+  toggle.type = "button";
+  toggle.setAttribute("aria-expanded", String(!startFolded));
+  const body = el("div", "w-panel-body");
+  body.hidden = startFolded;
+  for (const kid of n.kids ?? []) body.append(buildNode(kid, send));
+  toggle.onclick = () => {
+    const nowFolded = !body.hidden;
+    body.hidden = nowFolded;
+    folded.set(panel.id, nowFolded);
+    toggle.setAttribute("aria-expanded", String(!nowFolded));
+  };
+  const head = el("h4");
+  head.append(toggle);
+  const section = el("section", "w-panel w-foldable");
+  section.append(head, body);
+  return section;
+}
+
+export function buildNode(n, send, panel = null) {
+  if (n.t === "panel" && panel && n.title && PHONE?.matches && FOLDABLE_SLOTS.has(panel.slot)) return foldablePanel(n, send, panel);
   let e;
   switch (n.t) {
     case "panel":
@@ -112,6 +153,7 @@ export function buildNode(n, send) {
       e = el("button", "w-button", n.text ?? "");
       e.type = "button";
       e.disabled = n.disabled === true;
+      if (n.tip) e.setAttribute("aria-label", n.tip);
       if (n.call) e.onclick = () => send(n.call, n.args ?? {});
       break;
     case "grid":
@@ -140,7 +182,17 @@ export function buildNode(n, send) {
     }
     case "cell":
       e = el("div", n.call ? "w-cell clickable" : "w-cell");
-      if (n.call) e.onclick = () => send(n.call, n.args ?? {});
+      if (n.call) {
+        // A clickable cell is a control: it takes focus, announces as a button, and answers Enter and Space as a click.
+        e.tabIndex = 0;
+        e.setAttribute("role", "button");
+        e.onclick = () => send(n.call, n.args ?? {});
+        e.onkeydown = (ev) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          e.click();
+        };
+      }
       break;
     default:
       e = el("div", "w-unknown");
@@ -167,7 +219,12 @@ function hostFor(slot) {
 
 export function createWidgets({ send }) {
   ensureStyle();
-  const roots = new Map(); // panel id -> { host, root }
+  const roots = new Map(); // panel id -> { host, root, sig, tree, panel }
+
+  // Crossing the phone width changes which panels fold, so every open panel is drawn again.
+  PHONE?.addEventListener?.("change", () => {
+    for (const entry of roots.values()) entry.root.replaceChildren(buildNode(entry.tree, send, entry.panel));
+  });
 
   // Draws one panel's tree, or closes it when the event has no tree.
   function apply(data) {
@@ -181,14 +238,16 @@ export function createWidgets({ send }) {
       }
       return;
     }
-    const entry = open || { host: hostFor(data.slot), root: el("div", "w-root"), sig: null };
+    const entry = open || { host: hostFor(data.slot), root: el("div", "w-root"), sig: null, tree: null, panel: null };
     entry.root.dataset.id = id;
+    entry.panel = { id, slot: data.slot };
     // Rebuilding the panel drops the old nodes. A pack that re-emits its panel every tick therefore
     // destroyed each button between mousedown and mouseup, so presses never landed. Rebuild only when
     // the tree really changed.
     const sig = JSON.stringify(data.tree);
     if (entry.sig !== sig) {
-      entry.root.replaceChildren(buildNode(data.tree, send));
+      entry.tree = data.tree;
+      entry.root.replaceChildren(buildNode(data.tree, send, entry.panel));
       entry.sig = sig;
     }
     if (!entry.root.isConnected) entry.host.appendChild(entry.root);

@@ -85,8 +85,11 @@ end
 local function bar(value, max, tone)
   return node("bar", with({ I("value", value), I("max", max) }, tone and S("tone", tone) or nil))
 end
-local function button(text, call, args, disabled)
-  return node("button", with({ S("text", text), S("call", call), R("args", args or "{}") }, disabled and B("disabled", true) or nil))
+local function button(text, call, args, disabled, tip)
+  local f = { S("text", text), S("call", call), R("args", args or "{}") }
+  if disabled then f[#f + 1] = B("disabled", true) end
+  if tip then f[#f + 1] = S("tip", tip) end
+  return node("button", f)
 end
 local function grid(cols, kids) return node("grid", { I("cols", cols), R("kids", arr(kids)) }) end
 -- A pack image. The page resolves the src and drops the node when the file is not there, so an icon
@@ -397,7 +400,7 @@ local function skills_tree(hero)
     end
     kids[#kids + 1] = box({
       box({ label(a.name, "strong"), label(row_pips, "accent"), label(gate_text, "muted") }, "col"),
-      button("+", "skill_up", obj({ I("slot", a.slot) }), not ready),
+      button("+", "skill_up", obj({ I("slot", a.slot) }), not ready, TEXT.skills.up),
     }, "row")
   end
   kids[#kids + 1] = label(TEXT.skills.talents, "faint")
@@ -409,7 +412,7 @@ local function skills_tree(hero)
     for side = 0, 1 do
       local on = (side == 0 and picked % 2 == 1) or (side == 1 and picked >= 2)
       row[#row + 1] = button(on and "[x]" or "+", "talent",
-        obj({ I("unit", hero), I("tier", tier - 1), I("side", side) }), picked ~= 0 or level < need)
+        obj({ I("unit", hero), I("tier", tier - 1), I("side", side) }), picked ~= 0 or level < need, TEXT.skills.talent)
     end
     kids[#kids + 1] = box(row, "row")
   end
@@ -533,7 +536,7 @@ local function inventory_tree()
     end
   end
   return box({
-    box({ label(TEXT.inventoryLabel, "faint"), grid(5, main) }, "col"),
+    box({ label(TEXT.inventoryLabel, "faint"), grid(3, main) }, "col"),
     box({ label(TEXT.stashLabel, "faint"), grid(3, stash) }, "col"),
   }, "row")
 end
@@ -701,12 +704,19 @@ local function lobby_act(call, a)
   end
 end
 
+-- The tone of a seat's state: open (faint), seated but not ready (warn), ready (ok). owner_text and readySuffix say the same in words.
+local function seat_tone(s)
+  if s.owner == nil then return "faint" end
+  if s.ready then return "ok" end
+  return "warn"
+end
+
 local function lobby_seat(i)
   local s = LOBBY.slots[i]
   local slot0 = i - 1
   local head = TEXT.lobby.slotWord .. " " .. tostring(i) .. ": " .. owner_text(s)
   if s.owner == nil then
-    return box({ label(head, "muted"), button(TEXT.lobby.claim, "claim", obj({ I("slot", slot0) }), seated(OWNER)) }, "row")
+    return box({ label(head, seat_tone(s)), button(TEXT.lobby.claim, "claim", obj({ I("slot", slot0) }), seated(OWNER)) }, "row")
   end
   if s.owner == OWNER then
     local heroes = {}
@@ -718,7 +728,7 @@ local function lobby_seat(i)
     local ready_text = s.ready and TEXT.lobby.unready or TEXT.lobby.ready
     local picked = s.hero and hero_icon(s.hero, 48) or nil
     return box({
-      box(with({ label(head .. " " .. (s.hero or TEXT.lobby.pickHero), "strong") }, picked), "row"),
+      box(with({ label(head .. " " .. (s.hero or TEXT.lobby.pickHero), seat_tone(s)) }, picked), "row"),
       grid(4, heroes),
       box({
         button(ready_text, "ready", obj({ I("slot", slot0), B("ready", not s.ready) }), not s.ready and s.hero == nil),
@@ -728,7 +738,7 @@ local function lobby_seat(i)
   end
   local tail = ""
   if s.ready then tail = TEXT.lobby.readySuffix end
-  return box({ label(head .. " " .. (s.hero or TEXT.lobby.noHero) .. tail, "muted") }, "row")
+  return box({ label(head .. " " .. (s.hero or TEXT.lobby.noHero) .. tail, seat_tone(s)) }, "row")
 end
 
 local function lobby_tree()
