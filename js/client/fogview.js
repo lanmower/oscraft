@@ -42,6 +42,9 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
   const builtSample = new Float64Array(12);
   let builtW = -1;
   let builtH = -1;
+  let mapExtentTiles = null;
+  const voidQuad = new Float64Array(16);
+  const voidCut = new Float64Array(24);
 
   // Re-reads the visible plane only when the wasm generation or the viewer changed. A change marks the layer
   // stale only when it touches a cell that was on screen at the last rebuild, or when the fog count crosses zero.
@@ -276,6 +279,50 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     stats.rebuildMs += performance.now() - t0;
   }
 
+  // The map's extent in tiles, from the live sim's map_size(); until a Game is bound, or without one, the vision
+  // grid's own extent stands in.
+  function mapExtent() {
+    if (mapExtentTiles) return mapExtentTiles;
+    if (typeof game.map_size === "function") {
+      const size = game.map_size();
+      mapExtentTiles = [Number(size[0]), Number(size[1])];
+      return mapExtentTiles;
+    }
+    if (!supported) return null;
+    const dims2 = game.vision_dims();
+    return [dims2[0] * dims2[2], dims2[1] * dims2[2]];
+  }
+
+  // Opaque black over everything outside the map rectangle (unexplored void). The map's ground rectangle is
+  // projected, cut at the near plane, and filled even-odd against the whole canvas, so cells and screen areas
+  // beyond the map are covered while the fog inside it is left untouched.
+  function drawVoid(cssW, cssH) {
+    const extent = mapExtent();
+    if (!extent || !(extent[0] > 0) || !(extent[1] > 0)) return;
+    const [mw, mh] = extent;
+    const corners = [[0, 0], [mw, 0], [mw, mh], [0, mh]];
+    for (let n = 0; n < 4; n++) {
+      const [x, z] = corners[n];
+      const c = toClip(x, z, groundAt(x, z));
+      for (let k = 0; k < 4; k++) voidQuad[n * 4 + k] = c[k];
+    }
+    const m = clipToNear(voidQuad, 4, voidCut);
+    const path = new Path2D();
+    path.rect(0, 0, cssW, cssH);
+    if (m >= 3) {
+      for (let n = 0; n < m; n++) {
+        const w = voidCut[n * 4 + 3];
+        const px = ((voidCut[n * 4] / w + 1) / 2) * cssW;
+        const py = ((1 - voidCut[n * 4 + 1] / w) / 2) * cssH;
+        if (n === 0) path.moveTo(px, py);
+        else path.lineTo(px, py);
+      }
+      path.closePath();
+    }
+    ctx.fillStyle = "#000";
+    ctx.fill(path, "evenodd");
+  }
+
   // Night tint first, then the cached fog layer as one scaled blit: no per-cell work runs on a frame.
   function draw() {
     const t0 = performance.now();
@@ -299,6 +346,7 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
       ensureLayer(window.innerWidth, window.innerHeight);
       ctx.drawImage(layer, 0, 0, window.innerWidth, window.innerHeight);
     }
+    drawVoid(window.innerWidth, window.innerHeight);
     stats.drawMs += performance.now() - t0;
   }
 
