@@ -1,6 +1,6 @@
 {
- "count": 3072,
- "total_bytes": 99580404,
+ "count": 3074,
+ "total_bytes": 100597208,
  "items": [
   {
    "id": "rock",
@@ -7323,6 +7323,22 @@
    "path": "models/riki-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 561888,
+   "role": "character"
+  },
+  {
+   "id": "siege-creep-skinned",
+   "kind": "model",
+   "path": "models/siege-creep-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 609448,
+   "role": "character"
+  },
+  {
+   "id": "super-creep-skinned",
+   "kind": "model",
+   "path": "models/super-creep-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 407356,
    "role": "character"
   },
   {
@@ -31932,7 +31948,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 220,
+  "character": 222,
   "creep": 5,
   "terrain": 7
  }
