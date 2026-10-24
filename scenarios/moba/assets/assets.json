@@ -1,6 +1,6 @@
 {
- "count": 3078,
- "total_bytes": 102481628,
+ "count": 3079,
+ "total_bytes": 102955692,
  "items": [
   {
    "id": "rock",
@@ -7371,6 +7371,14 @@
    "path": "models/void-spirit-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 501888,
+   "role": "character"
+  },
+  {
+   "id": "wisp-skinned",
+   "kind": "model",
+   "path": "models/wisp-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 474064,
    "role": "character"
   },
   {
@@ -31980,7 +31988,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 226,
+  "character": 227,
   "creep": 5,
   "terrain": 7
  }
