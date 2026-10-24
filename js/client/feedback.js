@@ -78,6 +78,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
       m.pinned = d.kind === "attackMove" && Array.isArray(d.ids) && d.ids.length > 0;
       m.ids = m.pinned ? d.ids : null;
       m.node.style.borderColor = d.kind === "move" ? COLOUR.move : COLOUR.attackMove;
+      m.node.style.borderRadius = d.kind === "move" ? "50%" : "0";
     } else if (d.kind === "attack") {
       for (const o of markers) o.pinned = false;
       const r = rings[nextRing];
