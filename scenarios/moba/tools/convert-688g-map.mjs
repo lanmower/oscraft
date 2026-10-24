@@ -145,7 +145,10 @@ const HEIGHT_STEP_MILLI = Math.round((Z_PER_LEVEL / 64) * 1000);
 // The index into the W3E tileset list is not a tile id, so the mapping goes through the tileset name.
 const WATER_TILE = 255;
 const GRASS_TILE = 0;
-const TILESET_TILE = Object.freeze({ Cdrt: 2, Cdrd: 2, Cvin: 3 });
+// 6.88g uses nine ground textures. Ids from the client: lane 2, dirt 3, water 255, and the
+// six added kinds 4..9 (meadow, litter, vine on the grass layer; cracked on rock over grass;
+// track on lane; cobble on dirt). Anything unnamed still falls back to grass.
+const TILESET_TILE = Object.freeze({ Cdrt: 2, Cdrd: 2, Cvin: 3, Cgrs: 4, Clvg: 5, Zvin: 6, Crck: 7, Ndrd: 8, Zbks: 9 });
 const isWaterCell = (cx, cy) => { const { i, j } = tileOf(cx, cy); return (corner(i, j).flags & 0x40) !== 0; };
 const tileId = (cx, cy) => {
   if (isWaterCell(cx, cy)) return WATER_TILE;
