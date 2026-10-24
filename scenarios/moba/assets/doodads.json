@@ -1,6 +1,6 @@
 {
   "rock": "models/rock-skinned.glb",
-  "tree": "models/tree-skinned.glb",
+  "tree": "models/tall-tree-skinned.glb",
   "crystal": "models/resource-stone.glb",
   "debris": "models/barrel.glb",
   "rocks-low": "models/rocks-low.glb",
@@ -240,7 +240,7 @@
   "fence_fortified": "models/fence-fortified.glb",
   "fence_gate": "models/fence-gate.glb",
   "fire_basket": "models/fire-basket.glb",
-  "fish": "models/fish.glb",
+  "fish": "models/fish-skinned.glb",
   "fish_large": "models/fish-large.glb",
   "flag": "models/flag.glb",
   "flag_banner_long": "models/flag-banner-long.glb",
@@ -268,7 +268,7 @@
   "gate_rock": "models/gate-rock.glb",
   "grass": "models/grass.glb",
   "grass_large": "models/grass-large-skinned.glb",
-  "grave": "models/grave.glb",
+  "grave": "models/grave-skinned.glb",
   "grave_border": "models/grave-border.glb",
   "gravestone_bevel": "models/gravestone-bevel.glb",
   "gravestone_broken": "models/gravestone-broken.glb",
@@ -1049,5 +1049,8 @@
   "iron_fence_border_gate_skinned": "models/iron-fence-border-gate-skinned.glb",
   "rock_skinned": "models/rock-skinned.glb",
   "cart_high_skinned": "models/cart-high-skinned.glb",
-  "fence_skinned": "models/fence-skinned.glb"
+  "fence_skinned": "models/fence-skinned.glb",
+  "fish_skinned": "models/fish-skinned.glb",
+  "grave_skinned": "models/grave-skinned.glb",
+  "tall_tree_skinned": "models/tall-tree-skinned.glb"
 }

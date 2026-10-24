@@ -1,6 +1,6 @@
 {
- "count": 3093,
- "total_bytes": 107438508,
+ "count": 3096,
+ "total_bytes": 108376728,
  "items": [
   {
    "id": "rock",
@@ -7491,6 +7491,30 @@
    "path": "models/fence-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 244204,
+   "role": "character"
+  },
+  {
+   "id": "fish-skinned",
+   "kind": "model",
+   "path": "models/fish-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 266244,
+   "role": "character"
+  },
+  {
+   "id": "grave-skinned",
+   "kind": "model",
+   "path": "models/grave-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 251688,
+   "role": "character"
+  },
+  {
+   "id": "tall-tree-skinned",
+   "kind": "model",
+   "path": "models/tall-tree-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 420288,
    "role": "character"
   },
   {
@@ -32100,7 +32124,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 241,
+  "character": 244,
   "creep": 5,
   "terrain": 7
  }
