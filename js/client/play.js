@@ -1945,11 +1945,15 @@ session.addEventListener("data", (e) => {
     const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
     if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
     if (!swapIsNew(lastApplied ? lastApplied.tick : null, frame.tick)) { refuseSwap(`tick ${frame.tick} is not after the applied tick ${lastApplied.tick}`, e.detail.peerPubkey, frame.file); return; }
-    // A second announce while one is still pending used to replace pendingSwap silently: the first
-    // image was dropped mid-fetch and this page would apply only the later one, while the host, which
-    // refuses a second announce of its own, applied the earlier tick. Refuse instead and say so, so
-    // the host fails this swap for everyone rather than having peers apply different modules.
-    if (pendingSwap) {
+    const kind = packKindOf(frame.file);
+    const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, kind, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
+    // The host's deferred re-announce (hostSwapGate) names the same file and hash at a later tick. It takes the pending
+    // record's place and reuses the image already in flight (prefetchSwapImage), so this peer swaps at the tick the host
+    // holds. Refusing it kept the first tick here while the host cancelled the moved one.
+    const reannounce = pendingSwap !== null && pendingSwap.file === frame.file && pendingSwap.hash === frame.hash && frame.tick > pendingSwap.tick;
+    // Any other second announce while one is pending is refused: replacing pendingSwap would drop the first image mid-fetch,
+    // while the host, which refuses a second announce of its own, applied the earlier tick.
+    if (pendingSwap && !reannounce) {
       refuseSwap(`swap already pending for ${pendingSwap.file} at tick ${pendingSwap.tick}, so ${frame.file} at tick ${frame.tick} is refused`, e.detail.peerPubkey, frame.file);
       if (!hosting && hostKey !== null) {
         try { sendTo(hostKey, encodeFrame({ type: FRAME.SWAP_NOT_READY, tick: frame.tick, hash: frame.hash })); }
@@ -1957,8 +1961,6 @@ session.addEventListener("data", (e) => {
       }
       return;
     }
-    const kind = packKindOf(frame.file);
-    const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, kind, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
     pendingSwap = swap;
     prefetchSwapImage(swap, kind === null ? fetchMapImage : () => packSwapBytes(kind));
     return;
