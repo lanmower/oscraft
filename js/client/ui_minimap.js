@@ -38,6 +38,7 @@ function mix(h, v) {
 export function createMinimap({ canvas, mapSize, lanes, units, selected, localPlayer, playerColor, teams, viewRect, centre, isHero = () => false, isBuilding = () => false }) {
   hot.set("ui-minimap", { canvas, mapSize, lanes, units, selected, localPlayer, playerColor, teams, viewRect, centre, isHero, isBuilding });
   canvas.dataset.ui = "minimap";
+  LIVE_CANVAS_DISPOSERS.get(canvas)?.();
   let fittedWidth = -1;
   function fit() {
     if (canvas.width === fittedWidth) return;
@@ -183,15 +184,23 @@ export function createMinimap({ canvas, mapSize, lanes, units, selected, localPl
   }
 
   let pressed = false;
-  canvas.addEventListener("pointerdown", (e) => {
+  const onPointerDown = (e) => {
     pressed = true;
     e.stopPropagation();
     centreAt(e);
-  });
-  canvas.addEventListener("pointermove", (e) => {
+  };
+  const onPointerMove = (e) => {
     if (pressed) centreAt(e);
+  };
+  const onPointerUp = () => { pressed = false; };
+  canvas.addEventListener("pointerdown", onPointerDown);
+  canvas.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", onPointerUp);
+  LIVE_CANVAS_DISPOSERS.set(canvas, () => {
+    canvas.removeEventListener("pointerdown", onPointerDown);
+    canvas.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
   });
-  window.addEventListener("pointerup", () => { pressed = false; });
 
   return { draw };
 }
@@ -199,6 +208,8 @@ export function createMinimap({ canvas, mapSize, lanes, units, selected, localPl
 // Hot-update hook (see hmr.js): re-runs createMinimap on the inputs of its last call. The canvas is kept; the returned
 // panel's draw() replaces the one hud.js holds.
 const hot = (globalThis.__oscraftHot ??= new Map());
+// Keyed by canvas and kept on globalThis, so a hot-reloaded module instance removes the listeners the previous one added.
+const LIVE_CANVAS_DISPOSERS = (globalThis.__oscraftMinimapDisposers ??= new WeakMap());
 export function hmrReload() {
   const args = hot.get("ui-minimap");
   return args ? createMinimap(args) : null;
