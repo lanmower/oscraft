@@ -95,6 +95,66 @@ function targeting.fired_action(unit, trigger, action, ability, slot, target_kin
 end
 
 
+-- One tick reads every living unit's position once and buckets the living by the cell they stand in, so a choice
+-- reads only the cells its reach covers instead of asking the sim for a table of every living unit: one such table
+-- per unit per tick is the pack's heaviest per-tick cost. The cells hold the same candidates in another order, so
+-- the choice names the lowest id itself where the sim's own list used to break a tie by the order it came back in.
+local CELL = 262144                    -- the side of a bucket square, in fixed point
+local PX, PY = {}, {}                  -- the position of each living unit, as this tick read it
+local GRID = {}                        -- cell column -> cell row -> the living ids standing in that cell
+local BUCKETS_FOR = -1                 -- the tick the buckets were built for
+
+-- Buckets the living units by cell, once a tick. Only a step moves a unit, so the tick's own read is the scan's.
+local function bucket_units()
+  local tick = game.ticks()
+  if tick == BUCKETS_FOR then return end
+  BUCKETS_FOR = tick
+  GRID = {}
+  for u = 0, get_unit_count() - 1 do
+    if unit_alive(u) then
+      local x, y = unit_position(u)
+      PX[u], PY[u] = x, y
+      local cx, cy = math.floor(x / CELL), math.floor(y / CELL)
+      local col = GRID[cx]
+      if col == nil then col = {} GRID[cx] = col end
+      local cell = col[cy]
+      if cell == nil then cell = {} col[cy] = cell end
+      cell[#cell + 1] = u
+    end
+  end
+end
+
+-- The target `unit` takes out of the cells its reach covers: the sim's own terms (can_target) and the class order
+-- decide who may be struck, the nearest within a class wins, and the lowest id wins a tie of class and distance.
+local function best_in_reach(unit, x, y, range, aggro)
+  range = math.max(range, 0)
+  local r2, best, best_class, best_d = range * range, -1, nil, nil
+  local cx0, cx1 = math.floor((x - range) / CELL), math.floor((x + range) / CELL)
+  local cy0, cy1 = math.floor((y - range) / CELL), math.floor((y + range) / CELL)
+  for cx = cx0, cx1 do
+    local col = GRID[cx]
+    if col ~= nil then
+      for cy = cy0, cy1 do
+        local cell = col[cy]
+        if cell ~= nil then
+          for _, j in ipairs(cell) do
+            local dx, dy = PX[j] - x, PY[j] - y
+            local d = dx * dx + dy * dy
+            if d <= r2 and game.can_target(unit, j) then
+              local class = targeting.target_class_order(unit, j, aggro == j)
+              if best_class == nil or class < best_class
+                or (class == best_class and (d < best_d or (d == best_d and j < best))) then
+                best, best_class, best_d = j, class, d
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  return best
+end
+
 -- The enemy `unit` strikes this tick, -1 for none. A unit that deals no damage strikes nothing. A taunter in reach is
 -- struck first; then the enemy struck last while it stays valid (sticky); otherwise the best class in reach
 -- (target_class_order), the nearest within a class, the lowest id on a tie.
@@ -106,20 +166,8 @@ function targeting.strike_choice(unit)
   local last = game.strike_of(unit)
   if last >= 0 and unit_alive(last) and within(unit, last, range) and game.can_target(unit, last) then return last end
   local x, y = unit_position(unit)
-  local aggro = game.aggro_target(unit)
-  local best, best_class, best_d = -1, nil, nil
-  for _, j in ipairs(units.units_near(x, y, range)) do
-    if game.can_target(unit, j) then
-      local class = targeting.target_class_order(unit, j, aggro == j)
-      local jx, jy = unit_position(j)
-      local dx, dy = jx - x, jy - y
-      local d = dx * dx + dy * dy
-      if best_class == nil or class < best_class or (class == best_class and d < best_d) then
-        best, best_class, best_d = j, class, d
-      end
-    end
-  end
-  return best
+  bucket_units()
+  return best_in_reach(unit, x, y, range, game.aggro_target(unit))
 end
 
 

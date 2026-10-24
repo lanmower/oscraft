@@ -580,12 +580,18 @@ local function idle(id)
   return game.within(id, tx, ty, fx(CFG.arriveRadius))
 end
 
--- Issues the next queued order of each idle unit, in the order game.units lists them (the same on every peer).
+-- Issues the next queued order of each idle unit, in ascending id order (the order game.units lists them, so every
+-- peer applies the same commands). Only a unit with a queue can take one, so the tick walks those ids instead of
+-- building the whole unit list every tick: a queue is empty on most ticks, and then the sim is asked for nothing.
 local function on_tick()
-  for _, id in ipairs(game.units(nil)) do
+  if next(QUEUE) == nil then return end
+  local ids = {}
+  for id in pairs(QUEUE) do ids[#ids + 1] = id end
+  table.sort(ids)
+  for _, id in ipairs(ids) do
     local q = QUEUE[id]
-    if q ~= nil then
-      if #q == 0 or not game.alive(id) then
+    if q ~= nil and game.alive(id) then
+      if #q == 0 then
         QUEUE[id] = nil
       elseif idle(id) then
         local o = q[1]
