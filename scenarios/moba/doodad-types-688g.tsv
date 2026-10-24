@@ -4,7 +4,7 @@ NTtw	1470	tree		tree	script tree rule (pU)
 ZPsh	419			rocks|debris_wood|mushrooms|cattail|flowers|grass_large	unnamed in every 6.88g table; footprint match to bench was a guess, so records spread over small prop kinds
 CTtr	400	tree		tree	script tree rule (pU)
 ZPfw	165			flowers	name from Doodads.slk + WorldEditStrings.txt (Flowers); interim kind until its own model exists
-YTpb	109			rocks|debris_wood|blocks_ruined|catwalk_junction	unnamed in every 6.88g table; guessed fountain from base-clustering, so records spread over prop kinds
+YTpb	109				UNVERIFIED: the 6.88g tables name no role for YTpb, so no kind is shipped and its 109 placements are withheld. Lead only, not 6.88g data: sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/destructable.ini:12153 [YTpb] name WESTRING_DEST_PATHBLOCKER, file Doodads\Terrain\LOSBlocker. The engine does not block paths for doodads (tools/doodad-kinds.mjs: doodads never block movement).
 CObl	88			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Blighted Mist); interim kind until its own model exists
 APms	78			grass_large	inferred nature from tree; confidence medium
 YTlb	48			rocks|debris_wood|cattail	unnamed; spread over small prop kinds
