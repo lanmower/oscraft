@@ -275,7 +275,7 @@ function forwardKey(phase, e) {
     ctrl: e.ctrlKey,
     alt: e.altKey,
     meta: e.metaKey,
-    world: at ? { x: at.x, z: at.z } : { x: 0, z: 0 },
+    ...(at ? { world: { x: at.x, z: at.z } } : {}),
   });
 }
 
