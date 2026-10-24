@@ -10,7 +10,9 @@
 //   - a code 6.88g also has keeps that map's answer, including its tree rule;
 //   - the D00x custom block resolves to a parent kind read from the map's own doodad table, so a
 //     lantern variant ships as a lantern rather than as nothing;
-//   - a code neither map names is left blank with its reason, and its placements are dropped rather
+//   - a code a public table names is cited in its reason (see IDENTIFIED): it ships only when a
+//     declared kind means the same object, and a destructable is never placed as a doodad;
+//   - a code no source names is marked UNVERIFIED in its reason, and its placements are dropped rather
 //     than shipped as a guess.
 //
 // Trees are marked as trees so the placer skips them: the tree layer carries the terrain's blocked
@@ -19,18 +21,35 @@ import fs from "node:fs";
 import path from "node:path";
 
 const args = process.argv.slice(2);
+const KNOWN = new Set(["dir", "types"]);
+for (const a of args) if (a.startsWith("--") && !KNOWN.has(a.slice(2).split("=")[0])) throw new Error(`unknown argument ${a}; use --dir <dir> and --types <file>`);
+// Each option takes its value as `--name value` or `--name=value`; a bare `--name` is refused rather than
+// falling back to the default path.
 const flag = (name, fallback) => {
+  const i = args.indexOf(`--${name}`);
+  if (i >= 0) {
+    if (!args[i + 1] || args[i + 1].startsWith("--")) throw new Error(`--${name} needs a value`);
+    return args[i + 1];
+  }
   const hit = args.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 };
 const dir = flag("dir", "scenarios/moba");
 const typesPath = flag("types", "/workspace/hy3d/output/map-diff/doodad-types-w3.tsv");
+// Public identities. A WESTRING key is the doodad.ini `name`; its English text is the WorldEditStrings line of
+// the cited copy. Line numbers are of the sumneko/w3x2lni enUS-1.27.1 prebuilt/Melee tables (blob c695b3af).
+const INI = "sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee";
+const WES = "Crainax/War3Lib fdf/WorldEditStrings.txt";
+const cite = (key, text, textLine, iniLine) => `${text} (WESTRING_DOOD_${key}, ${WES}:${textLine}; ${INI}/doodad.ini:${iniLine})`;
+const destructable = (key, iniLine) => `destructable, not a doodad (WESTRING_DEST_${key}, ${INI}/destructable.ini:${iniLine}); its placements are dropped`;
 
 // Codes the target map has and 6.88g never did, identified by name rather than by a 6.88g row. Each
 // ships as the declared kind that already means the same thing, so nothing new is invented: a bundle
 // of wheat is a hay bale.
 const NAMED = {
   LPwb: { kind: "hay_bale", why: "a bundle of wheat, read from the editor strings" },
+  AWlp: { kind: "lily_pad", why: `same object as 6.88g CPlp (Lily Pad): ${cite("APLP", "Lily Pads", 2799, 1401)}` },
+  APct: { kind: "cattail", why: `same object as 6.88g CPct (Cattail): ${cite("APCT", "Cattail", 2798, 521)}` },
 };
 // Codes 6.88g mapped by inference from where they clustered, where the editor strings give a
 // different answer. Direct evidence beats a guess: a glowing brazier is not a gate, and a long fence
@@ -56,6 +75,33 @@ const PARENT = {
   D00N: "DOtb", D00O: "DOtb", D00P: "DOtb", D00Q: "DOtb",
 };
 
+// Codes a public table names but no declared kind means: identified and dropped, with the source in the reason.
+const IDENTIFIED = {
+  CSbr: cite("ASBR", "Rubble", 2819, 2881),
+  ASbr: cite("ASBR", "Rubble", 2819, 761),
+  CRfs: cite("BRFS", "Fissure", 2829, 2681),
+  CObo: cite("NOBK", "Obelisk Broken", 2938, 2281),
+  ZWsw: cite("ZWSW", "Seaweed", 3201, 18561),
+  LOsh: cite("LOSH", "Head on Spear", 2879, 7281),
+  LPcr: cite("LPCR", "Corn", 2842, 7881),
+  YOec: cite("YOEC", "Crates Empty", 2976, 13441),
+  NOft: cite("NOFT", "Fire Pit Trashed", 2950, 9201),
+  OOgr: cite("OOGR", "Flame Grate", 3336, 10401),
+  ZObz: cite("ZOBR", "Ruins Brazier", 3105, 16841),
+  IWbg: cite("IWBG", "Bubbles Steam", 3204, 5401),
+  COhs: cite("APHS", "Stump Hollow", 2802, 2361),
+  ASpr: cite("ASPR", "Pier", 2817, 801),
+  LSwm: cite("LSWM", "Windmill", 2909, 8761),
+  LOct: cite("LOCT", "Cage Trashed", 2863, 6641),
+  LOt1: cite("LOT1", "Trash", 2885, 7521),
+  DOtp: cite("DOTP", "Pile of Treasure", 3072, 3761),
+  NOgv: cite("NOGV", "Grave Stone", 2944, 9241),
+  DOtb: cite("DOTB", "Table", 3083, 3681),
+  OTip: destructable("INVISIBLE_PLATFORM", 7673),
+  JTtw: destructable("DALARAN_RUINS_TREE_WALL", 4145),
+  YTfb: destructable("PATHBLOCKER_BOTH", 11929),
+};
+
 const rows = (p) => {
   const [header, ...rest] = fs.readFileSync(p, "utf8").trim().split("\n").map((l) => l.split("\t"));
   const col = Object.fromEntries(header.map((h, i) => [h, i]));
@@ -75,13 +121,14 @@ let reused = 0;
 let fromParent = 0;
 let namedCount = 0;
 let overridden = 0;
-let unresolved = 0;
+let identifiedOnly = 0;
+let unverified = 0;
 let trees = 0;
 for (const r of w3) {
   const override = OVERRIDE[r.type];
   if (override) {
     if (override.kind) { overridden += 1; out.push([r.type, r.count, "", "", override.kind, override.why].join("\t")); }
-    else { unresolved += 1; out.push([r.type, r.count, "", "", "", override.why].join("\t")); }
+    else { identifiedOnly += 1; out.push([r.type, r.count, "", "", "", override.why].join("\t")); }
     continue;
   }
   const prior = g.get(r.type);
@@ -108,13 +155,21 @@ for (const r of w3) {
     out.push([r.type, r.count, "", "", parentKind, `custom code: a ${parentCode} variant, which ships as ${parentKind}`].join("\t"));
     continue;
   }
-  unresolved += 1;
-  out.push([r.type, r.count, "", "", "", "unresolved: no name in either map's doodad table, so its placements are dropped"].join("\t"));
+  const identity = IDENTIFIED[r.type];
+  if (identity) { identifiedOnly += 1; out.push([r.type, r.count, "", "", "", identity].join("\t")); continue; }
+  if (parentCode) {
+    const parentText = IDENTIFIED[parentCode] ? `${parentCode} is ${IDENTIFIED[parentCode]}` : `${parentCode} is UNVERIFIED`;
+    if (IDENTIFIED[parentCode]) identifiedOnly += 1; else unverified += 1;
+    out.push([r.type, r.count, "", "", "", `custom code: a ${parentCode} variant; ${parentText}, which has no declared kind, so dropped`].join("\t"));
+    continue;
+  }
+  unverified += 1;
+  out.push([r.type, r.count, "", "", "", "UNVERIFIED: no name in the 6.88g table, the w3x2lni doodad or destructable tables, or the WorldEditStrings lookup; its placements are dropped"].join("\t"));
 }
 
 const target = path.join(dir, "doodad-types-w3.tsv");
 fs.writeFileSync(target, out.join("\n") + "\n");
 console.log(
   `${w3.length} codes: ${reused} reused from 6.88g, ${namedCount} identified by name, ${overridden} corrected from the editor strings, ${fromParent} from the custom-code parent map, ` +
-    `${trees} trees (kept from 6.88g), ${unresolved} unresolved\nwritten to ${target}`,
+    `${trees} trees (kept from 6.88g), ${identifiedOnly} identified with no declared kind, ${unverified} UNVERIFIED\nwritten to ${target}`,
 );

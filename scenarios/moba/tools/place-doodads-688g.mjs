@@ -1,19 +1,30 @@
 // Re-places the mapped (non-tree) doodad types into scenarios/moba/map.osd from the decoded placements
 // (doodads-688g.tsv) and the type table (doodad-types-688g.tsv). Tree lines are left as gen-w3-map.mjs wrote them.
-// Usage: node scenarios/moba/tools/place-doodads-688g.mjs [--dir scenarios/moba]
+// Usage: node scenarios/moba/tools/place-doodads-688g.mjs [--dir scenarios/moba] [--dry-run]
 import fs from "node:fs";
 import path from "node:path";
 import { MAPPED_ID_BASE, parseRoutes, parseBases, parseTypeTable, mappedDoodadLines } from "./doodad-kinds.mjs";
 
 const args = process.argv.slice(2);
-const dir = args.includes("--dir") ? args[args.indexOf("--dir") + 1] : "scenarios/moba";
-// Which map's decoded placements to place, and which type table identifies them: the defaults are the
-// 6.88g pair the map was built from, and --types doodad-types-w3.tsv with --placements doodads-w3.tsv
-// places the 6.88w3 target instead.
+const KNOWN = new Set(["dir", "types", "placements", "dry-run"]);
+for (const a of args) if (a.startsWith("--") && !KNOWN.has(a.slice(2).split("=")[0])) throw new Error(`unknown argument ${a}; use --dir <dir>, --types=<file>, --placements=<file>, --dry-run`);
+// Each option takes its value as `--name value` or `--name=value`; a bare `--name` is refused rather than
+// falling back to the default map, which the run would otherwise overwrite.
 const opt = (name, fallback) => {
+  const i = args.indexOf(`--${name}`);
+  if (i >= 0) {
+    if (!args[i + 1] || args[i + 1].startsWith("--")) throw new Error(`--${name} needs a value`);
+    return args[i + 1];
+  }
   const hit = args.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 };
+const dir = opt("dir", "scenarios/moba");
+// --dry-run prints the placement counts and writes nothing: a witness runs this form.
+const dryRun = args.includes("--dry-run");
+// Which map's decoded placements to place, and which type table identifies them: the defaults are the
+// 6.88g pair the map was built from, and --types=doodad-types-w3.tsv with --placements=doodads-w3.tsv
+// places the 6.88w3 target instead.
 const placementsName = opt("placements", "doodads-688g.tsv");
 const typeTableName = opt("types", "doodad-types-688g.tsv");
 const GX = 35, GY = 35, UNIT_MILLI = 1000 / 64;
@@ -39,5 +50,5 @@ const { lines, excludedLane, excludedBase } = mappedDoodadLines(records, kinds, 
 const isMapped = (l) => { const m = l.match(/^doodad\((\d+),/); return m && Number(m[1]) >= MAPPED_ID_BASE; };
 const body = mapLines.filter((l) => !isMapped(l));
 while (body.length && body[body.length - 1] === "") body.pop();
-fs.writeFileSync(mapOsdPath, [...body, ...lines, ""].join("\n"));
-console.log(JSON.stringify({ source: placementsName, types: typeTableName, mappedTypes: kinds.size, records: records.length, placed: lines.length, excludedLane, excludedBase }));
+if (!dryRun) fs.writeFileSync(mapOsdPath, [...body, ...lines, ""].join("\n"));
+console.log(JSON.stringify({ dryRun, source: placementsName, types: typeTableName, mappedTypes: kinds.size, records: records.length, placed: lines.length, excludedLane, excludedBase }));
