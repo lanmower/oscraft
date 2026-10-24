@@ -30,7 +30,7 @@ import { createFogView } from "./fogview.js";
 import { createVoices } from "./audio.js";
 import { installDebugApi } from "./debug_api.js";
 import { createFx } from "./fx.js";
-import { createModUi } from "./modui.js";
+import { createModUi, setMatchUnderWay } from "./modui.js";
 import { Pack } from "./pack.js";
 import { createPackEditor } from "./pack_editor.js";
 import { changeFrames, chunkFrames, createPackReceiver, packStateFrames } from "./pack_sync.js";
@@ -1343,6 +1343,9 @@ function applyStart(frame) {
 
 function endLobby() {
   document.getElementById("ui-modal")?.remove();
+  // The lobby panel is one signal the mod and pack controls use to know a match has started; this is the
+  // other, and it also covers a start that had no lobby at all.
+  setMatchUnderWay(true);
 }
 
 // Pack editing. The host edits the pack in the editor; a saved change goes to every peer as PACK_FILE frames, and a peer

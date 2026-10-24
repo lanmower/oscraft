@@ -3,6 +3,7 @@
 // Save hands the changed files to onSave(changes) (see play.js, which sends them to every peer as PACK_FILE frames).
 import { isText, normalizePath, readFileList, readZip, refusedPath } from "./pack_load.js";
 import { Pack, writeZip } from "./pack.js";
+import { matchUnderWay, watchMatchStart } from "./modui.js";
 
 // Builds the editor inside `root` for `pack` (a Pack). Returns { setPack, close }.
 export function createPackEditor({ root, pack, canEdit = false, onSave = () => {}, onLoad = () => {} }) {
@@ -29,6 +30,12 @@ export function createPackEditor({ root, pack, canEdit = false, onSave = () => {
     status,
   ]);
   root.append(panel);
+
+  // The editor is one of the controls of starting a game, so it opens before a match and is hidden
+  // once one is under way (the gate is in modui.js: the lobby going away, or body.dataset.match).
+  // Only hiding is driven here: a closed editor stays closed, and nothing about saving changes, so a
+  // mod or pack file saved before the start still swaps in when its tick comes.
+  const stopMatchWatch = watchMatchStart((underWay) => { if (underWay) panel.hidden = true; });
 
   function setStatus(text) { status.textContent = text; }
 
@@ -123,8 +130,8 @@ export function createPackEditor({ root, pack, canEdit = false, onSave = () => {
   refreshTree();
   return {
     setPack(next) { current = next; selected = null; editor.value = ""; refreshTree(); },
-    open() { panel.hidden = false; },
-    dispose() { panel.remove(); },
+    open() { panel.hidden = matchUnderWay(); },
+    dispose() { stopMatchWatch(); panel.remove(); },
     close() { panel.hidden = true; },
     get pack() { return current; },
   };

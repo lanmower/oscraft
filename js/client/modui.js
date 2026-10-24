@@ -20,6 +20,57 @@ const STYLE = `
 
 function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) ** 2; }
 
+// ---- pre-match gate ---------------------------------------------------------------------------
+// The mod and pack controls belong to starting a game: they show while the lobby is up and go away
+// once a match is under way. The page already publishes the start, and this module reads it instead
+// of being told. Two things mark it: the players are seated (body.dataset.seated, set by applyStart
+// on the host and on a local start) and the lobby is dropped (#ui-modal, the "modal" slot widgets.js
+// makes for the lobby the pack emits, removed by endLobby on the START frame, which is the only mark
+// a guest gets). A lobby that was never seen does not count as gone, so a page with no lobby keeps
+// its controls rather than losing them.
+// Hook for play.js (the lane that owns it): in endLobby(), beside the #ui-modal remove, say it
+// outright with setMatchUnderWay(true), or set document.body.dataset.match = "1". Everything above is
+// derived, so the gate already works without that call; the hook is the explicit mark for a page that
+// starts a match with no lobby at all. setMatchUnderWay(false) brings the controls back for the next
+// lobby. Saving a pack or mod file is independent of this gate: it is the swap machinery that reloads
+// them, not this overlay.
+const MATCH_KEY = "match";
+const matchListeners = new Set();
+let lobbySeen = false;
+let matchObserver = null;
+
+export function matchUnderWay() {
+  const body = typeof document === "undefined" ? null : document.body;
+  if (!body) return false;
+  const lobby = document.getElementById("ui-modal");
+  if (lobby) lobbySeen = true;
+  if (body.dataset[MATCH_KEY] === "1" || body.dataset.seated !== undefined) return true;
+  return lobbySeen && !lobby;
+}
+
+export function setMatchUnderWay(on) {
+  const body = typeof document === "undefined" ? null : document.body;
+  if (body) body.dataset[MATCH_KEY] = on ? "1" : "0";
+}
+
+// Calls onChange(underWay) on every change; the returned function stops that listener. The first
+// caller starts one observer on body (its child list, plus the two flags above) shared by every
+// caller, so watching costs one observer per page however many panels ask.
+export function watchMatchStart(onChange) {
+  if (typeof onChange === "function") matchListeners.add(onChange);
+  if (!matchObserver && typeof document !== "undefined" && document.body) {
+    let last = matchUnderWay();
+    matchObserver = new MutationObserver(() => {
+      const now = matchUnderWay();
+      if (now === last) return;
+      last = now;
+      for (const fn of matchListeners) fn(now);
+    });
+    matchObserver.observe(document.body, { childList: true, attributes: true, attributeFilter: ["data-match", "data-seated"] });
+  }
+  return () => { if (typeof onChange === "function") matchListeners.delete(onChange); };
+}
+
 // opts: root (parent element), renderer() (the render3d renderer or null), localPlayer() (number),
 // defaultDistance() (camera distance at zoom 1), baseUrl (server origin, optional), onSound(name) (optional),
 // onBind({key, action} | {key, remove}) (optional).
@@ -43,6 +94,16 @@ export function createModUi(opts) {
   let poller = null;
 
   const mine = (ev) => ev.player === undefined || ev.player < 0 || ev.player === localPlayer();
+
+  // The control that opens the mod/pack editor belongs to the lobby: hide it once a match is under
+  // way and bring it back for the next one. play.js appends #pack-open to #ui-left after this module
+  // is built, so each change looks it up again instead of caching it here.
+  const applyMatchGate = (underWay) => {
+    const button = doc.getElementById("pack-open");
+    if (button) button.hidden = underWay;
+  };
+  const stopMatchWatch = watchMatchStart(applyMatchGate);
+  applyMatchGate(matchUnderWay());
 
   function later(fn, seconds) {
     const h = setTimeout(() => { timers.delete(h); fn(); }, seconds * 1000);
@@ -139,6 +200,7 @@ export function createModUi(opts) {
   if (baseUrl !== undefined) poller = setInterval(poll, POLL_MS);
 
   function dispose() {
+    stopMatchWatch();
     if (poller) clearInterval(poller);
     for (const h of timers) clearTimeout(h);
     el.remove();
