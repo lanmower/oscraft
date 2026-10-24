@@ -17,9 +17,19 @@ export const TILE_MODELS = Object.freeze({
   ramp: Object.freeze(["tile-slant"]),
 });
 // Tint for every kind drawn without a texture (the editor draws all kinds with it; play draws a textured kind in white).
-export const TILE_TINTS = Object.freeze({ grass: [1, 1, 1], dirt: [1.92, 1.36, 1.35], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55] });
-// Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass.
-export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 255 });
+export const TILE_TINTS = Object.freeze({
+  grass: [1, 1, 1], dirt: [1.92, 1.36, 1.35], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55],
+  // The six source ground textures. Meadow is a cooler green than the fall-through grass, litter is yellow-green leaf
+  // litter, vine is a deep green, cracked is a rocky grey, track is pale packed earth, cobble is a cool stone grey.
+  meadow: [0.94, 1.05, 0.9], litter: [1.08, 1, 0.7], vine: [0.74, 0.95, 0.78],
+  cracked: [0.88, 0.86, 0.82], track: [0.88, 0.82, 0.7], cobble: [0.8, 0.79, 0.76],
+});
+// Author-defined GRID tile ids that select a flat kind; every other unblocked cell is grass. Ids 4..9 keep the six
+// source ground textures apart: 0 stays the fall-through grass, 2 and 3 are the lane and dirt, 255 is water.
+export const TILE_IDS = Object.freeze({ lane: 2, dirt: 3, water: 255, meadow: 4, litter: 5, vine: 6, cracked: 7, track: 8, cobble: 9 });
+// The 6.88g ground texture codes and the tile id the client paints for each: the table to read the exact ids back from.
+// The converter (scenarios/moba/tools/convert-688g-map.mjs) writes these ids into the GRID tile bytes.
+export const TILESET_TILE = Object.freeze({ Cgrs: 4, Clvg: 5, Zvin: 6, Crck: 7, Ndrd: 8, Zbks: 9, Cdrt: 2, Cdrd: 2, Cvin: 3 });
 export const VOID_REACH = 2;
 const CLIFF_BIT = 2;
 const BLOCKED_BIT = 1;
@@ -37,6 +47,12 @@ export function cellKind(flags, tile) {
   if (flags & BLOCKED_BIT) return "cliff";
   if (tile === TILE_IDS.lane) return "lane";
   if (tile === TILE_IDS.dirt) return "dirt";
+  if (tile === TILE_IDS.meadow) return "meadow";
+  if (tile === TILE_IDS.litter) return "litter";
+  if (tile === TILE_IDS.vine) return "vine";
+  if (tile === TILE_IDS.cracked) return "cracked";
+  if (tile === TILE_IDS.track) return "track";
+  if (tile === TILE_IDS.cobble) return "cobble";
   return "grass";
 }
 
@@ -359,7 +375,13 @@ export function bakeEdges(grid, models, empty, { ramps = true } = {}) {
 // cliff cells. SPLAT_TEXTURES gives each layer [albedo, height] files (CC0, see NOTICE.md).
 export const SPLAT_LAYERS = Object.freeze(["grass", "dirt", "lane", "rock"]);
 // Water cells take the dirt layer as the riverbed the water is drawn over (the shader shows it through the shallows).
-const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 1 });
+// The channel each kind writes. The six ground kinds reuse the four existing layers: meadow, litter and vine take grass,
+// cobble takes dirt, track takes lane, and cracked takes rock. No new texture file backs any of them.
+const SPLAT_CHANNEL = Object.freeze({ grass: 0, dirt: 1, lane: 2, cliff: 3, water: 1, meadow: 0, litter: 0, vine: 0, cobble: 1, track: 2, cracked: 3 });
+// Cracked ground: the share of the rock channel its cells take, grass taking the rest. The splat shader thresholds the
+// rock channel (a smoothstep over 0.35..0.65 of the cell's rock weight, biased by the rock height texture), so a share
+// under 1 breaks the rock into patches over grass instead of paving the cell: raise it for bare rock, lower it for stones.
+export const CRACKED_ROCK_SHARE = 0.42;
 // The water surface is procedural (render3d.js): the water map is one byte per cell, 255 on water cells.
 export const SPLAT_TEXTURES = Object.freeze({
   grass: Object.freeze(["textures.grass", "textures.grassDisp"]),
@@ -369,7 +391,8 @@ export const SPLAT_TEXTURES = Object.freeze({
 });
 // Cell kinds whose ground is splatted (a channel below the rock channel): their tile batches are not baked.
 export function isSplatKind(kind) {
-  return kind === "water" || (SPLAT_CHANNEL[kind] !== undefined && SPLAT_CHANNEL[kind] < SPLAT_LAYERS.indexOf("rock"));
+  // Cracked writes the rock channel but is ground, not a cliff face, so it is splatted and not baked like a cliff tile.
+  return kind === "water" || kind === "cracked" || (SPLAT_CHANNEL[kind] !== undefined && SPLAT_CHANNEL[kind] < SPLAT_LAYERS.indexOf("rock"));
 }
 // A cell is at a full cliff level when one of its side edges is a wall: a drop of a full cliff level, or any drop beside water.
 // Slopes (smaller drops) are not walls.
@@ -472,7 +495,11 @@ export function controlMap(bytes) {
     let kind = kinds[i];
     if (kind === "dirt" && !keptDirt[i]) kind = "grass";
     const ch = SPLAT_CHANNEL[kind];
-    if (ch !== undefined) data[i * 4 + ch] = 255;
+    if (ch === undefined) continue;
+    // Cracked ground is rocks over grass: grass at full weight and the rock channel at CRACKED_ROCK_SHARE, so the budget
+    // below leaves the rest of the cell to grass and the shader's rock threshold shows rock only where its height is high.
+    if (kind === "cracked") data[i * 4 + SPLAT_CHANNEL.grass] = 255;
+    data[i * 4 + ch] = kind === "cracked" ? Math.round(255 * CRACKED_ROCK_SHARE) : 255;
   }
   // Ground ramp: grass, dirt and path weights average over the box of RAMP_SPAN cells, so each ground layer fades into its
   // neighbours over several cells instead of stepping on a cell edge. The splat shader biases that fade by each layer's
