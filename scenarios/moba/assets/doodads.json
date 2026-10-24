@@ -1033,5 +1033,6 @@
   "super_creep_skinned": "models/super-creep-skinned.glb",
   "techies_skinned": "models/techies-skinned.glb",
   "terrorblade_skinned": "models/terrorblade-skinned.glb",
-  "weaver_skinned": "models/weaver-skinned.glb"
+  "weaver_skinned": "models/weaver-skinned.glb",
+  "void_spirit_skinned": "models/void-spirit-skinned.glb"
 }
