@@ -1,5 +1,5 @@
 // Minimap, the right block of the bottom bar: the map's walkable layer (lanes light, rock and water dark), units, buildings
-// and the camera's ground rectangle. Own unit and selection are white; allies are their player colour with a ring; enemies
+// and the camera's ground rectangle. Own units are white and the selected unit is yellow, as in the world view; allies are their player colour with a ring; enemies
 // their player colour; unowned (neutral) units a fixed grey. Buildings are larger plain squares. The panel repaints at most
 // every REDRAW_MS, and only when a unit, the camera, the selection or the canvas size changed. A press or drag on the
 // minimap moves the camera to that map point.
@@ -9,6 +9,7 @@ const SIZE = { hero: 5, own: 5, creep: 3, building: 7 };
 const NEUTRAL_PLAYER = 255;
 const NEUTRAL_FILL = "#c2c8ce";
 const OWN_FILL = "#ffffff";
+const SELECTED_FILL = "#f2d84c";
 const ALLY_RING = "#7cc7ff";
 const HERO_OUTLINE = "#0b0f13";
 const CAMERA_UNDER = "rgba(0,0,0,.7)";
@@ -75,7 +76,7 @@ export function createMinimap({ canvas, mapSize, lanes, units, selected, localPl
   }
 
   function fillFor(u, me, active) {
-    if (u.id === active) return OWN_FILL;
+    if (u.id === active) return SELECTED_FILL;
     if (u.player === NEUTRAL_PLAYER) return NEUTRAL_FILL;
     if (u.player === me) return OWN_FILL;
     return playerFill(u.player);
