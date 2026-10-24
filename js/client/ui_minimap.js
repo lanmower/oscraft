@@ -5,7 +5,7 @@
 // minimap moves the camera to that map point.
 import { teamOf } from "./moba_select.js";
 
-const SIZE = { hero: 5, creep: 3, building: 7 };
+const SIZE = { hero: 5, own: 5, creep: 3, building: 7 };
 const NEUTRAL_PLAYER = 255;
 const NEUTRAL_FILL = "#c2c8ce";
 const OWN_FILL = "#ffffff";
@@ -20,7 +20,8 @@ const HERO_BIT = 1;
 const BUILDING_BIT = 2;
 
 function sizeFor(own, hero) {
-  return own || hero ? SIZE.hero : SIZE.creep;
+  if (hero) return SIZE.hero;
+  return own ? SIZE.own : SIZE.creep;
 }
 
 export function dotSize({ own, hero }) {
