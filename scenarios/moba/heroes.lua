@@ -21,6 +21,45 @@ local ASSIST_WINDOW_TICKS = 50
 local buyback_ready = counter.sim("buyback_ready")
 local applied = {}  -- unit -> { code -> the stat bonus last sent }
 
+-- The rules attribute_bonuses reads for every living hero on every tick. A rule never moves, so each is read once,
+-- at load, instead of once per hero per tick.
+local HP_PER_ATTR_A = config.rule("hp_per_attr_a")
+local HP_REGEN_PER_ATTR_A_X100 = config.rule("hp_regen_per_attr_a_x100")
+local UNIVERSAL_DAMAGE_PCT = config.rule("universal_damage_pct")
+local ARMOUR_PER_ATTR_B_DIV = config.rule("armour_per_attr_b_div")
+local MANA_BASE_DEFAULT = config.rule("mana_base_default")
+local MANA_PER_ATTR_C = config.rule("mana_per_attr_c")
+local MANA_REGEN_PER_ATTR_C_X100 = config.rule("mana_regen_per_attr_c_x100")
+local PASSIVE_GOLD_PER_S = config.rule("passive_gold_per_s")
+
+-- A unit's level is the count of curve thresholds its xp has reached, so it moves only when the xp does: the curve is
+-- walked again on a gain, not for every hero on every tick.
+local level_xp, level_seen = {}, {}
+local function level_of(unit)
+  local have = game.xp(unit)
+  local seen = level_xp[unit]
+  if seen ~= nil and seen == have then return level_seen[unit] end
+  level_xp[unit] = have
+  local level = xp.level_of(unit)
+  level_seen[unit] = level
+  return level
+end
+
+-- The heroes, in unit order. A unit is only ever added (the sim never drops one), so a new hero always raises the unit
+-- count: the scan that finds them runs again only when the count moves, not on every tick.
+local hero_ids, hero_count = {}, -1
+local function heroes()
+  local count = get_unit_count()
+  if count ~= hero_count then
+    hero_count = count
+    hero_ids = {}
+    for i = 0, count - 1 do
+      if units.is_hero(i) then hero_ids[#hero_ids + 1] = i end
+    end
+  end
+  return hero_ids
+end
+
 -- Xp share of a kill: an enemy kill gives the victim's xp bounty to the killer and to each allied hero in the victim's
 -- assist radius, split evenly with the rest to the first. A denial (the killer is the victim's ally) gives deny_pct of
 -- the bounty to each enemy hero in the radius.
@@ -63,7 +102,7 @@ local function credit_assists(victim, killer, killer_player)
 end
 
 local function hero_gold(unit)
-  return config.rule("hero_kill_gold_base") + config.rule("hero_kill_gold_per_level") * xp.level_of(unit)
+  return config.rule("hero_kill_gold_base") + config.rule("hero_kill_gold_per_level") * level_of(unit)
 end
 
 -- The kill gold of a hero that dies to an enemy creep or tower (Dota, the Hero kills rule of the Gold page): the enemy
@@ -92,7 +131,7 @@ end
 -- Buyback: base + per level + a share of net worth; the cooldown is a per-unit counter.
 local function buyback_cost(unit)
   local nw = math.floor(store.net_worth(unit) * config.rule("buyback_net_worth_pct") / (100 * config.rule("buyback_net_worth_div")))
-  return config.rule("buyback_base") + config.rule("buyback_per_level") * xp.level_of(unit) + nw
+  return config.rule("buyback_base") + config.rule("buyback_per_level") * level_of(unit) + nw
 end
 
 -- The stat bonus of unit `unit` for `code` last sent, so each tick sends only the change.
@@ -119,15 +158,17 @@ local ATTRIBUTES = {
 
 -- Strength, agility and intelligence of a unit in hundredths: the base plus the gain per xp level (the unit line's
 -- values), then the item bonus and the stat bonus, which are whole points.
+-- A unit's attributes, kept in one table this file owns: this runs for every living hero on every tick, so it builds
+-- nothing.
+local ATTRIBUTE_VALUES = { 0, 0, 0 }
 local function unit_attributes(unit)
-  local level = xp.level_of(unit)
-  local out = {}
+  local level = level_of(unit)
   for k, attr in ipairs(ATTRIBUTES) do
     local base = game.attr_field(unit, attr.field) or 0
     local gain = game.attr_field(unit, attr.field .. "_gain") or 0
-    out[k] = base + gain * level + (game.item_bonus(unit, attr.item) + game.stat_value(unit, attr.code)) * 100
+    ATTRIBUTE_VALUES[k] = base + gain * level + (game.item_bonus(unit, attr.item) + game.stat_value(unit, attr.code)) * 100
   end
-  return out[1], out[2], out[3]
+  return ATTRIBUTE_VALUES[1], ATTRIBUTE_VALUES[2], ATTRIBUTE_VALUES[3]
 end
 
 -- The attribute-to-stat rules: strength gives health, health regen and the universal or strength damage;
@@ -144,18 +185,18 @@ local function attribute_bonuses(unit)
   elseif primary == 2 then
     damage_x100 = n
   else
-    damage_x100 = math.floor((s + a + n) * config.rule("universal_damage_pct") / 100)
+    damage_x100 = math.floor((s + a + n) * UNIVERSAL_DAMAGE_PCT / 100)
   end
-  set_bonus(unit, S_HEALTH, math.floor(config.rule("hp_per_attr_a") * s / 100))
-  set_bonus(unit, S_HEALTH_REGEN, math.floor(config.rule("hp_regen_per_attr_a_x100") * s / 100))
+  set_bonus(unit, S_HEALTH, math.floor(HP_PER_ATTR_A * s / 100))
+  set_bonus(unit, S_HEALTH_REGEN, math.floor(HP_REGEN_PER_ATTR_A_X100 * s / 100))
   set_bonus(unit, S_DAMAGE, math.floor(damage_x100 / 100))
-  set_bonus(unit, S_ARMOR_X100, math.floor(a / config.rule("armour_per_attr_b_div")))
+  set_bonus(unit, S_ARMOR_X100, math.floor(a / ARMOUR_PER_ATTR_B_DIV))
   set_bonus(unit, S_ATTACK_SPEED, math.floor(a / 100))
   -- A unit with no unit line in the rules has no base mana of its own: it takes the pack's default mana.
   local mana_default = 0
-  if game.attr_field(unit, "mana") == nil then mana_default = config.rule("mana_base_default") end
-  set_bonus(unit, S_MAX_MANA, mana_default + math.floor(config.rule("mana_per_attr_c") * n / 100))
-  set_bonus(unit, S_MANA_REGEN, math.floor(config.rule("mana_regen_per_attr_c_x100") * n / 100))
+  if game.attr_field(unit, "mana") == nil then mana_default = MANA_BASE_DEFAULT end
+  set_bonus(unit, S_MAX_MANA, mana_default + math.floor(MANA_PER_ATTR_C * n / 100))
+  set_bonus(unit, S_MANA_REGEN, math.floor(MANA_REGEN_PER_ATTR_C_X100 * n / 100))
 end
 
 return {
@@ -204,7 +245,7 @@ return {
     if not units.is_hero(unit) then return nil end
     -- A hero held by the aegis returns by it, not by the respawn timer: it stays dead.
     if aegis.reincarnating(unit) then return false end
-    return respawn.linear(xp.level_of(unit), "respawn_base_s", "respawn_per_level_s", "respawn_cap_s")
+    return respawn.linear(level_of(unit), "respawn_base_s", "respawn_per_level_s", "respawn_cap_s")
   end,
 
   -- Buyback: a dead hero with the gold and the cooldown ready returns at once.
@@ -225,10 +266,10 @@ return {
     local now = state.ticks or 0
     local passive_turn = now % TICKS == 0
     -- A dead hero earns no passive gold: the host refuses gold for a dead unit (buyback is its way back in).
-    for i = 0, get_unit_count() - 1 do
-      if units.is_hero(i) and game.alive(i) then
+    for _, i in ipairs(heroes()) do
+      if game.alive(i) then
         attribute_bonuses(i)
-        if passive_turn then game.cmd_add_unit_gold(i, config.rule("passive_gold_per_s")) end
+        if passive_turn then game.cmd_add_unit_gold(i, PASSIVE_GOLD_PER_S) end
       end
     end
   end,

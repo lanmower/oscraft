@@ -21,6 +21,22 @@ end
 local SPELL = "spell"
 local seen_level = {}  -- hero -> its level at the last tick
 local seen_alive = {}  -- hero -> whether it lived at the last tick
+local seen_xp = {}  -- hero -> the xp its level was last read from
+
+-- The heroes, in unit order. A unit is only ever added (the sim never drops one), so a new hero always raises the unit
+-- count: the scan that finds them runs again only when the count moves, not on every tick.
+local hero_ids, hero_count = {}, -1
+local function heroes()
+  local count = get_unit_count()
+  if count ~= hero_count then
+    hero_count = count
+    hero_ids = {}
+    for i = 0, count - 1 do
+      if units.is_hero(i) then hero_ids[#hero_ids + 1] = i end
+    end
+  end
+  return hero_ids
+end
 
 -- True when units a and b stand within melee reach of each other.
 local function in_melee_reach(a, b)
@@ -63,22 +79,28 @@ return {
   end,
 
   on_tick = function()
-    for i = 0, get_unit_count() - 1 do
-      if units.is_hero(i) then
-        local level, alive = xp.level_of(i), game.alive(i)
-        local before_level, was_alive = seen_level[i], seen_alive[i]
-        if before_level ~= nil and level > before_level then
-          game.effect("level_ring", 0, 0, { target = i, colour = "level" })
-          game.effect("level_burst", 0, 0, { target = i, colour = "level" })
-          game.effect("level_up", 0, 0, { target = i })
-        end
-        if alive and was_alive == false then
-          game.effect("respawn_ring", 0, 0, { target = i, colour = "respawn" })
-          game.effect("respawn_burst", 0, 0, { target = i, colour = "respawn" })
-        end
-        seen_level[i] = level
-        seen_alive[i] = alive
+    for _, i in ipairs(heroes()) do
+      -- The level is the count of curve thresholds the unit's xp has reached, so it moves only when the xp does: the
+      -- curve is walked again on a gain, not for every hero on every tick.
+      local have = game.xp(i)
+      local level = seen_level[i]
+      if seen_xp[i] ~= have then
+        seen_xp[i] = have
+        level = xp.level_of(i)
       end
+      local alive = game.alive(i)
+      local before_level, was_alive = seen_level[i], seen_alive[i]
+      if before_level ~= nil and level > before_level then
+        game.effect("level_ring", 0, 0, { target = i, colour = "level" })
+        game.effect("level_burst", 0, 0, { target = i, colour = "level" })
+        game.effect("level_up", 0, 0, { target = i })
+      end
+      if alive and was_alive == false then
+        game.effect("respawn_ring", 0, 0, { target = i, colour = "respawn" })
+        game.effect("respawn_burst", 0, 0, { target = i, colour = "respawn" })
+      end
+      seen_level[i] = level
+      seen_alive[i] = alive
     end
   end,
 }

@@ -77,6 +77,17 @@ local function set_once(u, key, value, setter, ...)
   setter(u, value, ...)
 end
 
+-- Sets the speed bounds when either bound moved. The two numbers are cached as they are, so a tick builds neither a
+-- string to compare them nor a closure to send them.
+local function set_bounds(u, floor, cap)
+  local rec = applied[u]
+  if not rec then rec = {}; applied[u] = rec end
+  if rec.floor == floor and rec.cap == cap then return end
+  rec.floor = floor
+  rec.cap = cap
+  game.set_speed_bounds(u, floor, cap)
+end
+
 return {
   on_tick = function(state)
     for _, u in ipairs(game.units(nil)) do
@@ -85,9 +96,7 @@ return {
       set_once(u, "damage", damage_keep(u), game.set_damage_keep)
       set_once(u, "response", response_keep(u), game.set_response_keep)
       local floor, cap = speed_bounds(u)
-      set_once(u, "speed", floor .. ":" .. cap, function(unit)
-        game.set_speed_bounds(unit, floor, cap)
-      end)
+      set_bounds(u, floor, cap)
       -- The shot's reach decides whether it can miss: a melee weapon's shots never do.
       local _, range = game.weapon(u)
       set_once(u, "miss", range <= MELEE and 0 or game.unit_miss_chance(u), game.set_miss_chance)
