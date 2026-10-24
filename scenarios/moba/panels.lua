@@ -18,10 +18,13 @@ local xp = require("xp")
 
 local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 local REFRESH_TICKS = 4
-local INVENTORY_SLOTS = 10
+-- Six inventory slots, the DotA 1 count verified against the 6.88g map. There is no backpack: that is Dota 2
+-- 7.00. Extras go to the stash or a courier, so anything beyond these six is not a carried slot.
+local INVENTORY_SLOTS = 6
 local STASH_SLOTS = 9
 local ABILITY_SLOTS = 8
 local TEAM_SIZE = 5
+-- Lobby seats (5 a side), not inventory: a slot here holds a player or a bot and its chosen hero.
 local SLOT_COUNT = 10
 local GROUP_TILES = 12
 local TALENT_FIRST_BIT = 2
