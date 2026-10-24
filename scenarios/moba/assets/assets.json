@@ -1,6 +1,6 @@
 {
- "count": 3074,
- "total_bytes": 100597208,
+ "count": 3075,
+ "total_bytes": 101014124,
  "items": [
   {
    "id": "rock",
@@ -7339,6 +7339,14 @@
    "path": "models/super-creep-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 407356,
+   "role": "character"
+  },
+  {
+   "id": "techies-skinned",
+   "kind": "model",
+   "path": "models/techies-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 416916,
    "role": "character"
   },
   {
@@ -31948,7 +31956,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 222,
+  "character": 223,
   "creep": 5,
   "terrain": 7
  }
