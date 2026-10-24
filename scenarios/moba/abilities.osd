@@ -79,3 +79,488 @@ ability("clinkz_wind_walk", 320, 0, "none", [effect("timed_stat", p0=19, p1=6, p
 # So the ability has no effect and no energy cost, and its gates are the engine default of 1.
 ability("clinkz_death_pact", 720, 0, "none", [])
 skill("clinkz_death_pact", ultimate=False, gates=[1, 1, 1], damage=[0, 0, 0], cooldown=[720, 560, 400], energy=[0, 0, 0])
+
+# 6.88g hero abilities for units_heroes.osd (drain-b-1). Source: reference map 6.88g, the heroAbilList of each hero unit (unit.ini)
+# and its AbilityData row (abilities_688g_perlevel.tsv). Cooldown is level-1 ticks (seconds x 16) and energy is level-1 mana.
+# Attribute Bonus (A0NR) is skipped: the pack carries hero attributes in attr_rules.txt. Effects are empty: UNVERIFIED, because 6.88g
+# Data fields are not mapped to engine effects (abilities_688g_perlevel.tsv header). Each is a learnable name with no effect yet.
+# bane 6.88g A02Q Fiend's Grip
+ability("bane_fiend_s_grip", 1600, 200, "none", [])
+# bane 6.88g A0GK Brain Sap
+ability("bane_brain_sap", 224, 70, "none", [])
+# bane 6.88g A2OI Enfeeble
+ability("bane_enfeeble", 128, 95, "none", [])
+# bane 6.88g A04Y Nightmare
+ability("bane_nightmare", 256, 165, "none", [])
+# bloodseeker 6.88g A0LH Rupture
+ability("bloodseeker_rupture", 960, 150, "none", [])
+# bloodseeker 6.88g A0I8 Strygwyr's Thirst
+ability("bloodseeker_strygwyr_s_thirst", 0, 0, "none", [])
+# bloodseeker 6.88g A2X9 Bloodrage
+ability("bloodseeker_bloodrage", 192, 0, "none", [])
+# bloodseeker 6.88g A2X8 Blood Rite
+ability("bloodseeker_blood_rite", 464, 100, "none", [])
+# drow_ranger 6.88g A2WF Gust
+ability("drow_ranger_gust", 208, 90, "none", [])
+# drow_ranger 6.88g A2O2 Trueshot Aura
+ability("drow_ranger_trueshot_aura", 1920, 0, "none", [])
+# drow_ranger 6.88g A026 Frost Arrows
+ability("drow_ranger_frost_arrows", 0, 12, "none", [])
+# drow_ranger 6.88g A0VC Marksmanship
+ability("drow_ranger_marksmanship", 0, 0, "none", [])
+# earthshaker 6.88g A0DH Echo Slam
+ability("earthshaker_echo_slam", 2400, 145, "none", [])
+# earthshaker 6.88g A0DL Enchant Totem
+ability("earthshaker_enchant_totem", 80, 35, "none", [])
+# earthshaker 6.88g A0SK Fissure
+ability("earthshaker_fissure", 240, 125, "none", [])
+# earthshaker 6.88g A0DJ Aftershock
+ability("earthshaker_aftershock", 0, 0, "none", [])
+# morphling 6.88g A0G6 Adaptive Strike
+ability("morphling_adaptive_strike", 160, 100, "none", [])
+# morphling 6.88g A0G8 Replicate
+ability("morphling_replicate", 1280, 25, "none", [])
+# morphling 6.88g A0KX Morph
+ability("morphling_morph", 16, 0, "none", [])
+# morphling 6.88g A0FN Waveform
+ability("morphling_waveform", 176, 140, "none", [])
+# sand_king 6.88g A06R Epicenter
+ability("sand_king_epicenter", 2240, 175, "none", [])
+# sand_king 6.88g A0H0 Sand Storm
+ability("sand_king_sand_storm", 640, 60, "none", [])
+# sand_king 6.88g A06O Burrowstrike
+ability("sand_king_burrowstrike", 176, 110, "none", [])
+# sand_king 6.88g A0FA Caustic Finale
+ability("sand_king_caustic_finale", 0, 0, "none", [])
+# storm_spirit 6.88g A14R Electric Vortex
+ability("storm_spirit_electric_vortex", 336, 85, "none", [])
+# storm_spirit 6.88g A14P Static Remnant
+ability("storm_spirit_static_remnant", 56, 0, "none", [])
+# storm_spirit 6.88g A14O Ball Lightning
+ability("storm_spirit_ball_lightning", 0, 0, "none", [])
+# storm_spirit 6.88g A0QW Overload
+ability("storm_spirit_overload", 0, 0, "none", [])
+# windrunner 6.88g A12P Focus Fire
+ability("windrunner_focus_fire", 960, 75, "none", [])
+# windrunner 6.88g A12K Powershot
+ability("windrunner_powershot", 144, 90, "none", [])
+# windrunner 6.88g A14I Windrunner
+ability("windrunner_windrunner", 240, 0, "none", [])
+# windrunner 6.88g A12J Shackleshot
+ability("windrunner_shackleshot", 192, 90, "none", [])
+# shadow_shaman 6.88g A00P Shackles
+ability("shadow_shaman_shackles", 160, 140, "none", [])
+# shadow_shaman 6.88g A0RX Voodoo
+ability("shadow_shaman_voodoo", 208, 110, "none", [])
+# shadow_shaman 6.88g A010 Ether Shock
+ability("shadow_shaman_ether_shock", 128, 95, "none", [])
+# shadow_shaman 6.88g A00H Mass Serpent Ward
+ability("shadow_shaman_mass_serpent_ward", 1920, 200, "none", [])
+# witch_doctor 6.88g A0NO Maledict
+ability("witch_doctor_maledict", 320, 120, "none", [])
+# witch_doctor 6.88g A0NM Paralyzing Cask
+ability("witch_doctor_paralyzing_cask", 320, 110, "none", [])
+# witch_doctor 6.88g A0NT Death Ward
+ability("witch_doctor_death_ward", 1280, 200, "none", [])
+# witch_doctor 6.88g A0NE Voodoo Restoration
+ability("witch_doctor_voodoo_restoration", 0, 10, "none", [])
+# enigma 6.88g A0I7 Malefice
+ability("enigma_malefice", 240, 110, "none", [])
+# enigma 6.88g A180 Demonic Conversion
+ability("enigma_demonic_conversion", 560, 170, "none", [])
+# enigma 6.88g A0B1 Midnight Pulse
+ability("enigma_midnight_pulse", 560, 95, "none", [])
+# enigma 6.88g A1BX Black Hole
+ability("enigma_black_hole", 3200, 275, "none", [])
+# tinker 6.88g A065 Rearm
+ability("tinker_rearm", 0, 125, "none", [])
+# tinker 6.88g A049 Laser
+ability("tinker_laser", 224, 95, "none", [])
+# tinker 6.88g A05E Heat Seeking Missile
+ability("tinker_heat_seeking_missile", 400, 120, "none", [])
+# tinker 6.88g A0BQ March of the Machines
+ability("tinker_march_of_the_machines", 560, 145, "none", [])
+# necrolyte 6.88g A067 Reaper's Scythe
+ability("necrolyte_reaper_s_scythe", 1600, 175, "none", [])
+# necrolyte 6.88g A05V Death Pulse
+ability("necrolyte_death_pulse", 128, 125, "none", [])
+# necrolyte 6.88g A060 Sadist
+ability("necrolyte_sadist", 0, 0, "none", [])
+# necrolyte 6.88g A01N Heartstopper Aura
+ability("necrolyte_heartstopper_aura", 0, 0, "none", [])
+# warlock 6.88g A0J5 Fatal Bonds
+ability("warlock_fatal_bonds", 400, 120, "none", [])
+# warlock 6.88g A0AS Shadow Word
+ability("warlock_shadow_word", 256, 90, "none", [])
+# warlock 6.88g A06P Upheaval
+ability("warlock_upheaval", 800, 100, "none", [])
+# warlock 6.88g S008 Rain of Chaos
+ability("warlock_rain_of_chaos", 2640, 200, "none", [])
+# beastmaster 6.88g A0OO Call of the Wild
+ability("beastmaster_call_of_the_wild", 640, 15, "none", [])
+# beastmaster 6.88g A0O1 Wild Axes
+ability("beastmaster_wild_axes", 208, 120, "none", [])
+# beastmaster 6.88g A0BD Inner Beast
+ability("beastmaster_inner_beast", 0, 0, "none", [])
+# beastmaster 6.88g A0O2 Primal Roar
+ability("beastmaster_primal_roar", 1280, 150, "none", [])
+# queenofpain 6.88g A0Q7 Shadow Strike QoP
+ability("queenofpain_shadow_strike_qop", 256, 110, "none", [])
+# queenofpain 6.88g A0ME Blink
+ability("queenofpain_blink", 240, 60, "none", [])
+# queenofpain 6.88g A04A Scream of Pain
+ability("queenofpain_scream_of_pain", 112, 110, "none", [])
+# queenofpain 6.88g A28R Sonic Wave
+ability("queenofpain_sonic_wave", 1920, 200, "none", [])
+# venomancer 6.88g A173 Venomous Gale
+ability("venomancer_venomous_gale", 352, 125, "none", [])
+# venomancer 6.88g A0MY Poison Sting
+ability("venomancer_poison_sting", 0, 0, "none", [])
+# venomancer 6.88g A0MS Plague Ward
+ability("venomancer_plague_ward", 80, 20, "none", [])
+# venomancer 6.88g A013 Poison Nova
+ability("venomancer_poison_nova", 2240, 200, "none", [])
+# faceless_void 6.88g A081 Time Lock
+ability("faceless_void_time_lock", 0, 0, "none", [])
+# faceless_void 6.88g A0CZ Backtrack
+ability("faceless_void_backtrack", 0, 0, "none", [])
+# faceless_void 6.88g A0LK Time Walk
+ability("faceless_void_time_walk", 304, 90, "none", [])
+# faceless_void 6.88g A0J1 Chronosphere
+ability("faceless_void_chronosphere", 2080, 150, "none", [])
+# skeleton_king 6.88g XX04 Hellfire Blast
+ability("skeleton_king_hellfire_blast", 128, 140, "none", [])
+# skeleton_king 6.88g XX09 Mortal Strike
+ability("skeleton_king_mortal_strike", 0, 0, "none", [])
+# skeleton_king 6.88g AUav Vampiric Aura
+ability("skeleton_king_vampiric_aura", 0, 0, "none", [])
+# skeleton_king 6.88g A01Y Reincarnation Leoric
+ability("skeleton_king_reincarnation_leoric", 4160, 160, "none", [])
+# death_prophet 6.88g A02C Witchcraft
+ability("death_prophet_witchcraft", 0, 0, "none", [])
+# death_prophet 6.88g A02M Carrion Swarm
+ability("death_prophet_carrion_swarm", 128, 105, "none", [])
+# death_prophet 6.88g A0P6 Silence 0
+ability("death_prophet_silence_0", 0, 80, "none", [])
+# death_prophet 6.88g A073 Exorcism
+ability("death_prophet_exorcism", 2320, 200, "none", [])
+# phantom_assassin 6.88g A0YM Stifling Dagger
+ability("phantom_assassin_stifling_dagger", 96, 30, "none", [])
+# phantom_assassin 6.88g A0PL Phantom Strike
+ability("phantom_assassin_phantom_strike", 224, 50, "none", [])
+# phantom_assassin 6.88g A03P Blur
+ability("phantom_assassin_blur", 0, 0, "none", [])
+# phantom_assassin 6.88g A03Q Coup de grace
+ability("phantom_assassin_coup_de_grace", 0, 0, "none", [])
+# templar_assassin 6.88g A0RP Psionic Trap
+ability("templar_assassin_psionic_trap", 176, 15, "none", [])
+# templar_assassin 6.88g A0RO Psi Blades
+ability("templar_assassin_psi_blades", 0, 0, "none", [])
+# templar_assassin 6.88g A1EA Refraction
+ability("templar_assassin_refraction", 272, 0, "none", [])
+# templar_assassin 6.88g A0RV Meld
+ability("templar_assassin_meld", 96, 50, "none", [])
+# dragon_knight 6.88g A03G Elder Dragon Form
+ability("dragon_knight_elder_dragon_form", 1840, 50, "none", [])
+# dragon_knight 6.88g A03F Breathe Fire
+ability("dragon_knight_breathe_fire", 192, 100, "none", [])
+# dragon_knight 6.88g A2AI Dragon Tail
+ability("dragon_knight_dragon_tail", 0, 0, "none", [])
+# dragon_knight 6.88g A0CL Dragon Blood
+ability("dragon_knight_dragon_blood", 0, 0, "none", [])
+# life_stealer 6.88g A0SW Infest
+ability("life_stealer_infest", 1600, 50, "none", [])
+# life_stealer 6.88g A0SS Feast
+ability("life_stealer_feast", 0, 0, "none", [])
+# life_stealer 6.88g A2TT Rage
+ability("life_stealer_rage", 256, 75, "none", [])
+# life_stealer 6.88g A194 Open Wounds
+ability("life_stealer_open_wounds", 384, 110, "none", [])
+# dark_seer 6.88g A0QK Wall of Replica
+ability("dark_seer_wall_of_replica", 1600, 125, "none", [])
+# dark_seer 6.88g A0R7 Surge
+ability("dark_seer_surge", 192, 20, "none", [])
+# dark_seer 6.88g A0QG Ion Shell
+ability("dark_seer_ion_shell", 144, 70, "none", [])
+# dark_seer 6.88g A0QE Vacuum
+ability("dark_seer_vacuum", 448, 100, "none", [])
+# enchantress 6.88g A0DX Enchant
+ability("enchantress_enchant", 480, 65, "none", [])
+# enchantress 6.88g A01B Nature's Attendants
+ability("enchantress_nature_s_attendants", 720, 125, "none", [])
+# enchantress 6.88g A0DW Untouchable
+ability("enchantress_untouchable", 0, 0, "none", [])
+# enchantress 6.88g A0DY Impetus
+ability("enchantress_impetus", 0, 55, "none", [])
+# night_stalker 6.88g A086 Hunter in the Night
+ability("night_stalker_hunter_in_the_night", 0, 0, "none", [])
+# night_stalker 6.88g A08E Crippling Fear
+ability("night_stalker_crippling_fear", 0, 0, "none", [])
+# night_stalker 6.88g A03K Darkness
+ability("night_stalker_darkness", 2560, 0, "none", [])
+# night_stalker 6.88g A02H Void
+ability("night_stalker_void", 128, 80, "none", [])
+# broodmother 6.88g A0WQ Insatiable Hunger
+ability("broodmother_insatiable_hunger", 720, 100, "none", [])
+# broodmother 6.88g A0BK Incapacitating Bite
+ability("broodmother_incapacitating_bite", 0, 0, "none", [])
+# broodmother 6.88g A0BH Spawn Spiderlings
+ability("broodmother_spawn_spiderlings", 160, 120, "none", [])
+# broodmother 6.88g A0BG Spin Web
+ability("broodmother_spin_web", 0, 50, "none", [])
+# bounty_hunter 6.88g A1IQ Jinada
+ability("bounty_hunter_jinada", 0, 0, "none", [])
+# bounty_hunter 6.88g A07A Wind Walk
+ability("bounty_hunter_wind_walk", 240, 50, "none", [])
+# bounty_hunter 6.88g A004 Shuriken Toss
+ability("bounty_hunter_shuriken_toss", 160, 120, "none", [])
+# bounty_hunter 6.88g A0B4 Track
+ability("bounty_hunter_track", 64, 50, "none", [])
+# batrider 6.88g A1EL Sticky Napalm
+ability("batrider_sticky_napalm", 48, 20, "none", [])
+# batrider 6.88g A19V Flamebreak
+ability("batrider_flamebreak", 224, 110, "none", [])
+# batrider 6.88g A19Z Firefly
+ability("batrider_firefly", 640, 100, "none", [])
+# batrider 6.88g A19O Flaming Lasso
+ability("batrider_flaming_lasso", 1440, 225, "none", [])
+# spectre 6.88g A0FX Desolate
+ability("spectre_desolate", 0, 0, "none", [])
+# spectre 6.88g A0NA Dispersion
+ability("spectre_dispersion", 0, 0, "none", [])
+# spectre 6.88g A0HW Spectral Dagger
+ability("spectre_spectral_dagger", 256, 130, "none", [])
+# spectre 6.88g A0H9 Haunt
+ability("spectre_haunt", 2240, 150, "none", [])
+# doom_bringer 6.88g A094 LVL? Death
+ability("doom_bringer_lvl_death", 112, 110, "none", [])
+# doom_bringer 6.88g A35D Devour
+ability("doom_bringer_devour", 0, 0, "none", [])
+# doom_bringer 6.88g A1OP Scorched Earth
+ability("doom_bringer_scorched_earth", 880, 60, "none", [])
+# doom_bringer 6.88g A0MU Doom Basic
+ability("doom_bringer_doom_basic", 2000, 150, "none", [])
+# ancient_apparition 6.88g A1HS Ice Vortex
+ability("ancient_apparition_ice_vortex", 64, 80, "none", [])
+# ancient_apparition 6.88g A1MG Cold Feet
+ability("ancient_apparition_cold_feet", 240, 150, "none", [])
+# ancient_apparition 6.88g A1MI Ice Blast
+ability("ancient_apparition_ice_blast", 640, 100, "none", [])
+# ancient_apparition 6.88g A1HQ Chilling Touch
+ability("ancient_apparition_chilling_touch", 800, 110, "none", [])
+# spirit_breaker 6.88g A1P8 Charge of Darkness
+ability("spirit_breaker_charge_of_darkness", 0, 100, "none", [])
+# spirit_breaker 6.88g A0G4 Nether Strike
+ability("spirit_breaker_nether_strike", 1280, 125, "none", [])
+# spirit_breaker 6.88g A0G5 Greater Bash
+ability("spirit_breaker_greater_bash", 0, 0, "none", [])
+# spirit_breaker 6.88g A0ES Empowering Haste
+ability("spirit_breaker_empowering_haste", 192, 0, "none", [])
+# gyrocopter 6.88g A1SO Rocket Barrage
+ability("gyrocopter_rocket_barrage", 112, 90, "none", [])
+# gyrocopter 6.88g A1SQ Homing Missile
+ability("gyrocopter_homing_missile", 320, 120, "none", [])
+# gyrocopter 6.88g A229 Flak Cannon
+ability("gyrocopter_flak_cannon", 480, 50, "none", [])
+# gyrocopter 6.88g A1T5 Call Down
+ability("gyrocopter_call_down", 880, 125, "none", [])
+# alchemist 6.88g A1NI Unstable Concoction
+ability("alchemist_unstable_concoction", 256, 120, "none", [])
+# alchemist 6.88g A0IL Acid Spray
+ability("alchemist_acid_spray", 352, 130, "none", [])
+# alchemist 6.88g A0O3 Goblin's Greed
+ability("alchemist_goblin_s_greed", 0, 0, "none", [])
+# alchemist 6.88g ANcr Chemical Rage
+ability("alchemist_chemical_rage", 720, 50, "none", [])
+# invoker 6.88g A21Y Invoke
+ability("invoker_invoke", 352, 20, "none", [])
+# invoker 6.88g A21X Wex
+ability("invoker_wex", 0, 0, "none", [])
+# invoker 6.88g A21W Quas
+ability("invoker_quas", 0, 0, "none", [])
+# invoker 6.88g A21V Exort
+ability("invoker_exort", 0, 0, "none", [])
+# silencer 6.88g A0LZ Glaives of Wisdom
+ability("silencer_glaives_of_wisdom", 0, 15, "none", [])
+# silencer 6.88g A2NT Last Word
+ability("silencer_last_word", 480, 115, "none", [])
+# silencer 6.88g A14L Curse of the Silent
+ability("silencer_curse_of_the_silent", 320, 75, "none", [])
+# silencer 6.88g A0L3 Global Silence
+ability("silencer_global_silence", 2080, 250, "none", [])
+# obsidian_destroyer 6.88g A0OK Sanity's Eclipse
+ability("obsidian_destroyer_sanity_s_eclipse", 2560, 175, "none", [])
+# obsidian_destroyer 6.88g A0OJ Astral Imprisonment
+ability("obsidian_destroyer_astral_imprisonment", 288, 120, "none", [])
+# obsidian_destroyer 6.88g A0OI Arcane Orb
+ability("obsidian_destroyer_arcane_orb", 0, 100, "none", [])
+# obsidian_destroyer 6.88g A0IF Essence Aura
+ability("obsidian_destroyer_essence_aura", 0, 0, "none", [])
+# brewmaster 6.88g A06M Thunder Clap
+ability("brewmaster_thunder_clap", 208, 90, "none", [])
+# brewmaster 6.88g Acdh Drunken Haze
+ability("brewmaster_drunken_haze", 128, 50, "none", [])
+# brewmaster 6.88g A0MX Drunken Brawler
+ability("brewmaster_drunken_brawler", 0, 0, "none", [])
+# brewmaster 6.88g A0MQ Primal Split
+ability("brewmaster_primal_split", 2240, 125, "none", [])
+# shadow_demon 6.88g A1S4 Shadow Poison
+ability("shadow_demon_shadow_poison", 40, 40, "none", [])
+# shadow_demon 6.88g A1S8 Disruption
+ability("shadow_demon_disruption", 400, 120, "none", [])
+# shadow_demon 6.88g A31F Demonic Purge
+ability("shadow_demon_demonic_purge", 800, 200, "none", [])
+# shadow_demon 6.88g A1SB Soul Catcher
+ability("shadow_demon_soul_catcher", 208, 50, "none", [])
+# lone_druid 6.88g A0A5 Summon Spirit Bear
+ability("lone_druid_summon_spirit_bear", 1920, 75, "none", [])
+# lone_druid 6.88g A0A8 Synergy
+ability("lone_druid_synergy", 0, 0, "none", [])
+# lone_druid 6.88g A1EF Rabid
+ability("lone_druid_rabid", 480, 50, "none", [])
+# lone_druid 6.88g A0AG True Form
+ability("lone_druid_true_form", 0, 25, "none", [])
+# chaos_knight 6.88g A03O Phantasm
+ability("chaos_knight_phantasm", 2240, 125, "none", [])
+# chaos_knight 6.88g A03N Chaos Strike
+ability("chaos_knight_chaos_strike", 0, 0, "none", [])
+# chaos_knight 6.88g A0RW Reality Rift
+ability("chaos_knight_reality_rift", 384, 50, "none", [])
+# chaos_knight 6.88g A055 Chaos Bolt
+ability("chaos_knight_chaos_bolt", 160, 140, "none", [])
+# ogre_magi 6.88g A011 Ignite
+ability("ogre_magi_ignite", 240, 95, "none", [])
+# ogre_magi 6.88g A04W Fireblast
+ability("ogre_magi_fireblast", 192, 75, "none", [])
+# ogre_magi 6.88g A083 Bloodlust
+ability("ogre_magi_bloodlust", 320, 75, "none", [])
+# ogre_magi 6.88g A088 Multi Cast
+ability("ogre_magi_multi_cast", 0, 0, "none", [])
+# undying 6.88g A15S Decay
+ability("undying_decay", 160, 70, "none", [])
+# undying 6.88g A0R5 Soul Rip
+ability("undying_soul_rip", 384, 100, "none", [])
+# undying 6.88g A15V Tombstone
+ability("undying_tombstone", 960, 120, "none", [])
+# undying 6.88g A15J Flesh Golem
+ability("undying_flesh_golem", 1200, 100, "none", [])
+# disruptor 6.88g A1SU Kinetic Field
+ability("disruptor_kinetic_field", 208, 70, "none", [])
+# disruptor 6.88g A1TV Thunder Strike
+ability("disruptor_thunder_strike", 192, 130, "none", [])
+# disruptor 6.88g A1SW Glimpse
+ability("disruptor_glimpse", 960, 100, "none", [])
+# disruptor 6.88g A1U6 Static Storm
+ability("disruptor_static_storm", 1440, 125, "none", [])
+# naga_siren 6.88g A2KU Rip Tide
+ability("naga_siren_rip_tide", 160, 80, "none", [])
+# naga_siren 6.88g A24D Ensnare
+ability("naga_siren_ensnare", 192, 90, "none", [])
+# naga_siren 6.88g A063 Mirror Image
+ability("naga_siren_mirror_image", 640, 70, "none", [])
+# naga_siren 6.88g A07U Song of the Siren
+ability("naga_siren_song_of_the_siren", 2880, 100, "none", [])
+# keeper_of_the_light 6.88g A085 Illuminate
+ability("keeper_of_the_light_illuminate", 160, 150, "none", [])
+# keeper_of_the_light 6.88g A10X Mana Leak
+ability("keeper_of_the_light_mana_leak", 256, 75, "none", [])
+# keeper_of_the_light 6.88g A2XQ Spirit Form
+ability("keeper_of_the_light_spirit_form", 0, 200, "none", [])
+# keeper_of_the_light 6.88g A112 Chakra Magic
+ability("keeper_of_the_light_chakra_magic", 304, 25, "none", [])
+# troll_warlord 6.88g A0BE Berserker Rage
+ability("troll_warlord_berserker_rage", 0, 0, "none", [])
+# troll_warlord 6.88g A21L Whirling Axes
+ability("troll_warlord_whirling_axes", 0, 0, "none", [])
+# troll_warlord 6.88g A0O0 Fervor
+ability("troll_warlord_fervor", 0, 0, "none", [])
+# troll_warlord 6.88g A1EJ Battle Trance
+ability("troll_warlord_battle_trance", 480, 75, "none", [])
+# magnataur 6.88g A02S Shockwave
+ability("magnataur_shockwave", 160, 90, "none", [])
+# magnataur 6.88g A037 Empower
+ability("magnataur_empower", 128, 30, "none", [])
+# magnataur 6.88g A1RD Skewer
+ability("magnataur_skewer", 480, 80, "none", [])
+# magnataur 6.88g A29L Reverse Polarity
+ability("magnataur_reverse_polarity", 1920, 200, "none", [])
+# bristleback 6.88g A0FV Warpath
+ability("bristleback_warpath", 0, 0, "none", [])
+# bristleback 6.88g A0M3 Bristleback
+ability("bristleback_bristleback", 0, 0, "none", [])
+# bristleback 6.88g A0GP Quill Spray
+ability("bristleback_quill_spray", 48, 35, "none", [])
+# bristleback 6.88g A0FW Viscous Nasal Goo
+ability("bristleback_viscous_nasal_goo", 24, 30, "none", [])
+# tusk 6.88g A1YO Ice Shards
+ability("tusk_ice_shards", 288, 100, "none", [])
+# tusk 6.88g A1YQ Walrus Punch
+ability("tusk_walrus_punch", 320, 50, "none", [])
+# tusk 6.88g A1S7 Snowball
+ability("tusk_snowball", 336, 75, "none", [])
+# tusk 6.88g A1YR Frozen Sigil
+ability("tusk_frozen_sigil", 800, 75, "none", [])
+# skywrath_mage 6.88g A2BE Arcane Bolt
+ability("skywrath_mage_arcane_bolt", 80, 70, "none", [])
+# skywrath_mage 6.88g A2HN Ancient Seal
+ability("skywrath_mage_ancient_seal", 224, 80, "none", [])
+# skywrath_mage 6.88g A2BG Mystic Flare
+ability("skywrath_mage_mystic_flare", 960, 350, "none", [])
+# skywrath_mage 6.88g A2IT Concussive Shot
+ability("skywrath_mage_concussive_shot", 288, 95, "none", [])
+# legion_commander 6.88g A2CI Duel
+ability("legion_commander_duel", 800, 75, "none", [])
+# legion_commander 6.88g A2EY Moment of Courage
+ability("legion_commander_moment_of_courage", 0, 0, "none", [])
+# legion_commander 6.88g A2J2 Press The Attack
+ability("legion_commander_press_the_attack", 256, 110, "none", [])
+# legion_commander 6.88g A2JB Overwhelming Odds
+ability("legion_commander_overwhelming_odds", 240, 100, "none", [])
+# ember_spirit 6.88g A2H0 Sleight of Fist
+ability("ember_spirit_sleight_of_fist", 480, 50, "none", [])
+# ember_spirit 6.88g A2H3 Searing Chains
+ability("ember_spirit_searing_chains", 224, 110, "none", [])
+# ember_spirit 6.88g A2HS Flame Guard
+ability("ember_spirit_flame_guard", 560, 80, "none", [])
+# ember_spirit 6.88g A2JK Fire Remnant Learning
+ability("ember_spirit_fire_remnant_learning", 0, 0, "none", [])
+# earth_spirit 6.88g A2TJ Rolling Boulder
+ability("earth_spirit_rolling_boulder", 256, 50, "none", [])
+# earth_spirit 6.88g A2QI Geomagnetic Grip
+ability("earth_spirit_geomagnetic_grip", 208, 100, "none", [])
+# earth_spirit 6.88g A2UU Boulder Smash
+ability("earth_spirit_boulder_smash", 352, 100, "none", [])
+# earth_spirit 6.88g A2TI Magnetize
+ability("earth_spirit_magnetize", 1600, 100, "none", [])
+# phoenix 6.88g A35E Fire Spirits Learn
+ability("phoenix_fire_spirits_learn", 0, 0, "none", [])
+# phoenix 6.88g A1RK Supernova
+ability("phoenix_supernova", 1760, 200, "none", [])
+# phoenix 6.88g A1YY Sun Ray
+ability("phoenix_sun_ray", 320, 100, "none", [])
+# phoenix 6.88g A1RJ Icarus Dive
+ability("phoenix_icarus_dive", 576, 0, "none", [])
+# oracle 6.88g A2TF False Promise
+ability("oracle_false_promise", 1440, 200, "none", [])
+# oracle 6.88g A2QT Fortune's End
+ability("oracle_fortune_s_end", 240, 130, "none", [])
+# oracle 6.88g A2T5 Fate's Edict
+ability("oracle_fate_s_edict", 192, 50, "none", [])
+# oracle 6.88g A2SG Purifying Flames
+ability("oracle_purifying_flames", 36, 50, "none", [])
+# winter_wyvern 6.88g A2LA Splinter Blast
+ability("winter_wyvern_splinter_blast", 112, 120, "none", [])
+# winter_wyvern 6.88g A2LB Cold Embrace
+ability("winter_wyvern_cold_embrace", 272, 75, "none", [])
+# winter_wyvern 6.88g A0Z0 Winter's Curse
+ability("winter_wyvern_winter_s_curse", 1760, 250, "none", [])
+# winter_wyvern 6.88g A2NE Arctic Siege
+ability("winter_wyvern_arctic_siege", 800, 120, "none", [])
+# arc_warden 6.88g A2LL Spark Wraith
+ability("arc_warden_spark_wraith", 64, 100, "none", [])
+# arc_warden 6.88g A2LM Magnetic Field
+ability("arc_warden_magnetic_field", 800, 110, "none", [])
+# arc_warden 6.88g A2M0 Tempest Double
+ability("arc_warden_tempest_double", 1040, 0, "none", [])
+# arc_warden 6.88g A2M1 Flux
+ability("arc_warden_flux", 320, 75, "none", [])
