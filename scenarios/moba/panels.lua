@@ -672,7 +672,7 @@ local function lobby_act(call, a)
     if L.host == owner then
       L.host = nil
       for _, other in ipairs(L.slots) do
-        if other.owner ~= nil then
+        if other.owner ~= nil and not other.bot then
           L.host = other.owner
           break
         end
