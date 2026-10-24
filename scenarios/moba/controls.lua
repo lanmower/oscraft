@@ -368,7 +368,8 @@ end
 
 local function skill_up(who, slot)
   local hero = hero_selected(who)
-  if hero ~= nil then game.cmd_skill_up(hero, slot) end
+  if hero == nil then return refuse(who, "noHero") end
+  game.cmd_skill_up(hero, slot)
 end
 
 local function recall(who, slot)
