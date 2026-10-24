@@ -3,6 +3,8 @@
 // context until createRenderer(gl) is called.
 
 const PITCH_LIMIT = Math.PI / 2 - 0.01;
+// Half of fovY (PI/3): a lower pitch puts the top screen edge at or above the horizon, so it no longer meets the ground.
+const PITCH_MIN = Math.PI / 6 + 0.01;
 const WORLD_UP = [0, 1, 0];
 const IDENTITY_16 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 // Every helper below takes an optional `out` and writes into it; callers on a hot path pass their own scratch.
@@ -193,7 +195,7 @@ export function meshReach(mesh) {
 // Screen-space deltas in pixels; yaw and pitch are radians per pixel.
 export function orbitCamera(cam, dxPx, dyPx, radiansPerPx = 0.005) {
   cam.yaw -= dxPx * radiansPerPx;
-  cam.pitch = Math.min(PITCH_LIMIT, Math.max(-PITCH_LIMIT, cam.pitch + dyPx * radiansPerPx));
+  cam.pitch = Math.min(PITCH_LIMIT, Math.max(PITCH_MIN, cam.pitch + dyPx * radiansPerPx));
   return cam;
 }
 
