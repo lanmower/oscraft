@@ -172,8 +172,7 @@
         "bad-slot": "that seat does not exist",
         "match-started": "the match has already started",
         "nothing-to-fill": "every seat already has a player or a bot",
-        "no-roster": "no heroes are available to fill the seats",
-        "not-owner": "that seat belongs to another player"
+        "no-roster": "no heroes are available to fill the seats"
       }
     },
     "refusals": {

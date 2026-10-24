@@ -1,15 +1,15 @@
 -- The moba panels, as mod code. Each panel is a widget tree (JSON, below) that the page draws with its generic widgets;
 -- this file decides what every panel shows and what its buttons do. The page only draws the trees and sends a button
 -- press back as the "ui" action. The panels refresh on a periodic timer (game.timer).
---   on_action(name, args)  "setup" (args.ui: moba_ui.json text, keys, teams; args.player the local seat; args.pubkey
+--   on_action(name, args)  "setup" (args.ui: the parsed moba_ui.json object, with text, keys and teams; args.player the local seat; args.pubkey
 --                                 the lobby owner of this page), "key" (the shop and scoreboard keys toggle their panels),
 --                                 "selection" (the local seat's selection, args.ids, sent by the page on every change),
 --                                 "ui" (a button press: args.call names the call, args.args holds its values)
 -- A panel goes out as game.ui_event("widget", {player, id, slot, tree}); a closed one as {player, id, remove}. The
 -- lobby's start goes out as game.ui_event("lobby", {player, started, slots}) and the page starts the match from it.
--- A node is {"t": "panel"|"box"|"label"|"bar"|"button"|"grid"|"cell", ...}: panel (title, kids), box (dir "row" or "col",
+-- A node is {"t": "panel"|"box"|"label"|"bar"|"button"|"grid"|"cell"|"image", ...}: panel (title, kids), box (dir "row" or "col",
 -- kids), label (text, tone), bar (value, max, tone), button (text, call, args, disabled), grid (cols, kids), cell (kids,
--- tone, tip, call, args). Tones are named by the page's stylesheet. The sandbox has no string library, so the JSON is
+-- tone, tip, call, args), image (src, size, alt). Tones are named by the page's stylesheet. The sandbox has no string library, so the JSON is
 -- built by hand.
 
 local config = require("config")
