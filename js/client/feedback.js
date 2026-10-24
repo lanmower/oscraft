@@ -98,6 +98,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
       armed.on = false;
       armed.world = null;
     } else if (d.kind === "refusal") {
+      if (!enabled()) return;
       refusal.node.textContent = String(d.text);
       refusalT0 = t;
       // Shown now, not on the next frame: a slow frame loop can otherwise miss the whole 1.2 s window.
