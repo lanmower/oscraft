@@ -95,7 +95,7 @@
   "candle": "models/candle.glb",
   "candle_multiple": "models/candle-multiple.glb",
   "cart": "models/cart.glb",
-  "cart_high": "models/cart-high.glb",
+  "cart_high": "models/cart-high-skinned.glb",
   "catwalk_corner": "models/catwalk-corner.glb",
   "catwalk_cross": "models/catwalk-cross.glb",
   "catwalk_junction": "models/catwalk-junction-skinned.glb",
@@ -232,7 +232,7 @@
   "electricity_side_wide": "models/electricity-side-wide.glb",
   "electricity_wires": "models/electricity-wires.glb",
   "electricity_wires_wide": "models/electricity-wires-wide.glb",
-  "fence": "models/fence.glb",
+  "fence": "models/fence-skinned.glb",
   "fence_broken": "models/fence-broken.glb",
   "fence_curved": "models/fence-curved.glb",
   "fence_damaged": "models/fence-damaged.glb",
@@ -1047,5 +1047,7 @@
   "catwalk_junction_skinned": "models/catwalk-junction-skinned.glb",
   "debris_wood_skinned": "models/debris-wood-skinned.glb",
   "iron_fence_border_gate_skinned": "models/iron-fence-border-gate-skinned.glb",
-  "rock_skinned": "models/rock-skinned.glb"
+  "rock_skinned": "models/rock-skinned.glb",
+  "cart_high_skinned": "models/cart-high-skinned.glb",
+  "fence_skinned": "models/fence-skinned.glb"
 }
