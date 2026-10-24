@@ -1,6 +1,6 @@
 {
- "count": 3076,
- "total_bytes": 101514080,
+ "count": 3077,
+ "total_bytes": 101979740,
  "items": [
   {
    "id": "rock",
@@ -7355,6 +7355,14 @@
    "path": "models/terrorblade-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 499956,
+   "role": "character"
+  },
+  {
+   "id": "weaver-skinned",
+   "kind": "model",
+   "path": "models/weaver-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 465660,
    "role": "character"
   },
   {
@@ -31964,7 +31972,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 224,
+  "character": 225,
   "creep": 5,
   "terrain": 7
  }

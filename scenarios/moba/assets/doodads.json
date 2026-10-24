@@ -1032,5 +1032,6 @@
   "siege_creep_skinned": "models/siege-creep-skinned.glb",
   "super_creep_skinned": "models/super-creep-skinned.glb",
   "techies_skinned": "models/techies-skinned.glb",
-  "terrorblade_skinned": "models/terrorblade-skinned.glb"
+  "terrorblade_skinned": "models/terrorblade-skinned.glb",
+  "weaver_skinned": "models/weaver-skinned.glb"
 }
