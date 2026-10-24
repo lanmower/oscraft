@@ -626,6 +626,16 @@ local function lobby_started_event()
   game.ui_event("lobby", obj({ I("player", LOCAL), B("started", true), R("slots", arr(items)) }))
 end
 
+-- The seats before the match starts, after each lobby change: whether each seat is ready and which hero's model it
+-- will play. The page parses a readied hero's model now, so the match starts without waiting on the download.
+local function lobby_seats_event()
+  local items = {}
+  for _, s in ipairs(LOBBY.slots) do
+    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true), S("model", s.hero and hero_model(s.hero) or "") })
+  end
+  game.ui_event("lobby", obj({ I("player", LOCAL), B("started", false), R("slots", arr(items)) }))
+end
+
 -- One lobby action on the shared state: the rules of the hero select. Slots are 0-based in the calls, as the sim counts.
 local function lobby_act(call, a)
   local L = LOBBY
@@ -804,6 +814,7 @@ local function ui_call(who, call, a)
     if hero ~= nil then game.cmd_skill_up(hero, a.slot) end
   elseif call == "claim" or call == "release" or call == "pick" or call == "ready" or call == "fill" or call == "start" then
     lobby_act(call, a)
+    if call ~= "start" then lobby_seats_event() end
   end
 end
 

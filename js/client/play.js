@@ -308,8 +308,10 @@ function routeUi(ev) {
     return;
   }
   if (ev.kind === "lobby") {
+    // Before the start, the seats say who is ready: each readied hero's model is parsed now, so the match starts without a wait.
+    if (!data.started) { preloadReadyHeroes(data.slots); return; }
     // The lobby's start comes from the page that runs the sim: it starts the match from the seats the pack gives.
-    if (data.player === myPlayer && data.started && !netState) onLobbyStart({ slots: data.slots });
+    if (data.player === myPlayer && !netState) onLobbyStart({ slots: data.slots });
     return;
   }
   if (ev.kind === "feedback" || ev.kind === "action" || ev.kind === "view") {
@@ -1558,6 +1560,15 @@ function handlePackFrame(sender, frame) {
   }
 }
 
+// A readied seat's hero model is fetched and parsed while the lobby is still open (parsedModel caches it by name, so the
+// unit mesh built at the start reuses it). A failed preload is logged here and retried when the unit first draws.
+function preloadReadyHeroes(slots) {
+  for (const s of slots ?? []) {
+    if (!s.ready || !s.model) continue;
+    parsedModel(s.model).catch((err) => console.warn(`[lobby] preload ${s.model}: ${err.message}`));
+  }
+}
+
 function onLobbyStart(state) {
   const frame = startFrame(state);
   setStatus("lobby: match starting");
@@ -2756,7 +2767,7 @@ async function main() {
   // The voices directory is a pack asset like models or textures: the pack names it, so a pack with
   // no voices is never probed and one that puts them elsewhere still resolves.
   if (renderer3d && manifest.assets?.voices) voices = createVoices({ url: (rel) => assetUrl("voices", rel) });
-  if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh });
+  if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor: (player) => PLAYER_COLORS[player] || PLAYER_COLORS[0], selected: () => selectedId, arrow: () => arrowMesh, localPlayer: localPlayerId });
   widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
   // A pack image node names a path inside the pack; resolve it the same way every other pack file is.
   // An icon path is resolved under the asset root instead, because that is where the icons live and a
@@ -2796,6 +2807,8 @@ async function main() {
       const own = simUnits().find((u) => u.player === localPlayerId() && isHeroUnit(u.id));
       if (own) {
         renderer3d.setCamera({ target: [own.x, groundAt(own.x, own.z), own.z], distance: Math.min(CAMERA_START_DISTANCE, cameraMaxDistance) });
+        // The match opens with the local hero selected, as the camera opens on it.
+        if (hud) hud.input.setSelection([own.id]); else selectedId = own.id;
         pendingStartCentre = false;
       }
     }
