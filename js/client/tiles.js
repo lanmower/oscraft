@@ -494,9 +494,13 @@ export function controlMap(bytes) {
   const kinds = new Array(width * height);
   for (let i = 0; i < width * height; i++) kinds[i] = splatKind(grid, i);
   const keptDirt = keptDirtCells(grid, kinds);
+  // The grass variant weight (litter and vine cells): a separate byte per cell, since the RGBA control texel is full. The
+  // splat shader samples it at 1.68x the main grass scale, so these cells read as a second grass rather than the same one.
+  const variant = new Uint8Array(width * height);
   for (let i = 0; i < width * height; i++) {
     let kind = kinds[i];
     if (kind === "dirt" && !keptDirt[i]) kind = "grass";
+    if (kind === "litter" || kind === "vine") variant[i] = 255;
     const ch = SPLAT_CHANNEL[kind];
     if (ch === undefined) continue;
     // Cracked ground is rocks over grass: grass at full weight and the rock channel at CRACKED_ROCK_SHARE, so the budget
@@ -550,7 +554,7 @@ export function controlMap(bytes) {
     data[i * 4 + ch] = 128;
     data[i * 4 + rock] = 127;
   }
-  return { data, width, height };
+  return { data, width, height, variant: { data: variant, width, height } };
 }
 // The water surface: one flat quad per water cell, raised from the riverbed toward the bank (60% of the drop to the lowest
 // land neighbour, or a small lift where no land touches it). Positions are in cell units, like the terrain after scaling.
