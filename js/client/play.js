@@ -1276,8 +1276,27 @@ function autoSeat(peerPubkey) {
 }
 
 function sendTo(peerPubkey, bytes) {
-  if (typeof session.send === "function") session.send(peerPubkey, bytes);
-  else session.broadcast(bytes);
+  if (typeof session.send === "function") return session.send(peerPubkey, bytes);
+  session.broadcast(bytes);
+  return true;
+}
+
+// wireweave's send() returns false on a closed or missing channel instead of throwing, so a failed JOIN is
+// detected from that result and retried a few times while the peer is still connected.
+function sendJoin(hostKey, attempt = 0) {
+  if (sendTo(hostKey, encodeFrame({ type: FRAME.JOIN, lastTick: lastAppliedTick })) !== false) return;
+  console.warn(`[net] JOIN to ${String(hostKey).slice(0, 8)} not sent (attempt ${attempt + 1})`);
+  if (attempt < JOIN_RETRIES) setTimeout(() => { if (peers.has(hostKey)) sendJoin(hostKey, attempt + 1); }, JOIN_RETRY_MS * (attempt + 1));
+}
+
+// A guest with no baseline asks the host for a full frame: the host answers a JOIN with encoder.keyframe().
+// Asks are spaced by KEYFRAME_ASK_MS, since every delta arriving before the keyframe would otherwise send one.
+function askForKeyframe(hostKey) {
+  awaitingKeyframe = true;
+  if (Date.now() - keyframeAskedAt < KEYFRAME_ASK_MS) return;
+  keyframeAskedAt = Date.now();
+  console.warn(`[net] delta from ${String(hostKey).slice(0, 8)} has no baseline; asking for a keyframe`);
+  sendJoin(hostKey);
 }
 
 function sendRoster(peerPubkey) {
@@ -1844,7 +1863,7 @@ session.addEventListener("peer-open", (e) => {
     // A joining peer takes the host's pack as it stands, so its copy matches the bytes the swaps are checked against.
     for (const frame of packStateFrames(pack, packBlobs)) sendTo(key, encodeFrame(frame));
   } else {
-    try { sendTo(e.detail.peerPubkey, encodeFrame({ type: FRAME.JOIN, lastTick: lastAppliedTick })); } catch { /* the host asks again on the next join */ }
+    sendJoin(e.detail.peerPubkey);
   }
   reconnectAttempt = 0;
   setStatus(`peer-open ${String(e.detail.peerPubkey).slice(0, 8)}`);
@@ -1855,11 +1874,17 @@ session.addEventListener("peer-close", (e) => {
   setStatus(`peer-close ${String(e.detail.peerPubkey).slice(0, 8)}`);
   if (peers.size === 0) {
     netTick = -1;
+    awaitingKeyframe = true;
     scheduleReconnect();
   }
 });
 const netUnits = new Map();
 let netTick = -1;
+const JOIN_RETRIES = 4;
+const JOIN_RETRY_MS = 250;
+const KEYFRAME_ASK_MS = 1000;
+let keyframeAskedAt = 0;
+let awaitingKeyframe = false;
 session.addEventListener("data", (e) => {
   let frame = null;
   const bytes = new Uint8Array(e.detail.data);
@@ -1958,7 +1983,11 @@ session.addEventListener("data", (e) => {
   // A full state replaces the whole state, so it is applied even at or below netTick: a restarted host rewinds to its snapshot.
   // A delta must move the tick forward.
   if (frame.tick <= netTick && frame.type !== FRAME.STATE) return;
-  if (!applyFrame(netUnits, frame)) return;
+  if ((frame.type === FRAME.DELTA && awaitingKeyframe) || !applyFrame(netUnits, frame)) {
+    askForKeyframe(e.detail.peerPubkey);
+    return;
+  }
+  awaitingKeyframe = false;
   netTick = frame.tick;
   lastAppliedTick = frame.tick;
   netState = { tick: frame.tick, units: [...netUnits.values()].map((u) => ({ id: u.id, x: u.x / WIRE_SCALE, z: u.y / WIRE_SCALE, player: u.player, hp: u.hp, type: u.kind })) };
