@@ -157,7 +157,24 @@
       "fillBots": "Fill with bots",
       "startMatch": "Start match",
       "readyWord": "ready",
-      "refusedWord": "refused"
+      "refusedWord": "refused",
+      "refusedGeneric": "that action is not allowed right now",
+      "refusals": {
+        "not-host": "only the host can do that",
+        "not-ready": "every seat must be ready before the match can start",
+        "not-owner": "that seat belongs to another player",
+        "slot-taken": "that seat is already taken",
+        "already-seated": "you already hold a seat",
+        "ready-locked": "unready the seat before changing its hero",
+        "unknown-hero": "that hero is not in the roster",
+        "hero-held": "another seat already has that hero",
+        "no-hero": "pick a hero before readying",
+        "bad-slot": "that seat does not exist",
+        "match-started": "the match has already started",
+        "nothing-to-fill": "every seat already has a player or a bot",
+        "no-roster": "no heroes are available to fill the seats",
+        "not-owner": "that seat belongs to another player"
+      }
     },
     "refusals": {
       "cooldown": "on cooldown",

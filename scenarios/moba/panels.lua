@@ -776,7 +776,10 @@ local function lobby_tree()
     if s.owner and s.ready then ready = ready + 1 end
   end
   local status = tostring(ready) .. "/" .. tostring(SLOT_COUNT) .. " " .. TEXT.lobby.readyWord
-  if LOBBY.error ~= "" then status = status .. " (" .. TEXT.lobby.refusedWord .. ": " .. LOBBY.error .. ")" end
+  if LOBBY.error ~= "" then
+    local why = TEXT.lobby.refusals[LOBBY.error] or TEXT.lobby.refusedGeneric
+    status = status .. " (" .. TEXT.lobby.refusedWord .. ": " .. why .. ")"
+  end
   local host = LOBBY.host == OWNER
   return panel(TEXT.lobby.title, {
     box(teams, "row"),
