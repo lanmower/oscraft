@@ -582,6 +582,19 @@ impl Sim {
             return Err(self.reject(Refusal::InvalidTeam));
         }
         self.team[p as usize] = team;
+        // Teammates share vision: a teammate's detectors reveal to the whole team, as in Dota. Shared vision is the
+        // `vision` field, which is what detected() and the fog read; hostility is team/alliance, so this does not
+        // make anyone an ally or an enemy that was not one already. The pair is cleared with players of other
+        // teams, because every player starts on team 0 and would otherwise keep sharing with everyone.
+        for q in 0..MAX_PLAYERS {
+            if self.team[q] == team {
+                self.vision[p as usize] |= 1 << q;
+                self.vision[q] |= 1 << p as usize;
+            } else {
+                self.vision[p as usize] &= !(1 << q);
+                self.vision[q] &= !(1 << p as usize);
+            }
+        }
         Ok(())
     }
 

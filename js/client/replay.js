@@ -116,7 +116,9 @@ function frame(now) {
         const due = Math.min(MAX_TICKS_PER_FRAME, Math.floor(state.carry));
         state.carry -= due;
         if (due > 0) g.replay_step(due);
-        if (g.ticks() >= state.end) state.playing = false;
+        // Stop at victory as well as at the end of the recording: once a side has won there is no
+        // more match to play back, and the recording can run on past it.
+        if (g.ticks() >= state.end || g.winner() >= 0) state.playing = false;
       }
     } catch (e) {
       fail(e);

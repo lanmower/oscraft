@@ -426,6 +426,12 @@ function recoverGame(err, where) {
   }
 }
 
+// Whether the match is decided: a side has won. Once it is, nothing steps the sim any more — the local tick loop and the
+// host's both stop, so the world holds on the winning frame instead of running on with an ancient already down.
+function decided() {
+  return typeof localGame?.winner === "function" && localGame.winner() >= 0;
+}
+
 // One sim tick on the live Game. Returns false when the tick threw and the Game was restarted (recoverGame), so the
 // caller skips that tick's follow-up. A good tick keeps the restore point current. Everything the tick path calls on the
 // Game is inside the try: a throw that escaped the frame loop would stop its requestAnimationFrame chain.
@@ -1604,7 +1610,8 @@ function startHost() {
   lastGoodSnapshot = captureSnapshot(localGame);
   let hostTick = restoredAt > 0 ? restoredAt : 0;
   const hostStep = () => {
-    if (!localGame) return;
+    // A decided match stops the host's clock too: no more ticks, no more state to send.
+    if (!localGame || decided()) return;
     if (!stepSim("host tick")) {
       // A restart rewinds the sim to its snapshot; the host's tick count follows it.
       if (localGame) hostTick = localGame.ticks();
@@ -2475,9 +2482,9 @@ async function main() {
         pendingStartCentre = false;
       }
     }
-    if (!netState && localGame && !hosting) {
+    if (!netState && localGame && !hosting && !decided()) {
       localTickAcc += dtS;
-      while (localTickAcc >= SIM_TICK_S && localGame) {
+      while (localTickAcc >= SIM_TICK_S && localGame && !decided()) {
         if (stepSim("tick")) {
           applyDueSwap();
           advanceTickClock(simUnits());
