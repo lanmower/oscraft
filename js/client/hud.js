@@ -49,7 +49,9 @@ function walkableLayer(grid) {
 
 export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor }) {
   hot.set("hud", { game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor });
-  const maxHp = new Map();
+  // The largest hp seen per unit survives a HUD rebuild, so a hot reload does not redraw damaged units at full bars.
+  const maxHp = hot.get("hud-maxhp") ?? new Map();
+  hot.set("hud-maxhp", maxHp);
   const barCtx = barCanvas.getContext("2d");
   const walkable = walkableLayer(grid);
   // The minimap is a pointer control (a click moves the camera), so it names itself for tooltips and assistive tech.
