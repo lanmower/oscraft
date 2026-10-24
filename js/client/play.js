@@ -51,7 +51,7 @@ const MAP_COLOR = [0.2, 0.28, 0.22];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const UNIT_HALF = 0.9;
-const HERO_DRAW_SCALE = UI.heroDrawScale ?? 1;
+let HERO_DRAW_SCALE = UI.heroDrawScale ?? 1;
 const DOODAD_HALF = 0.5;
 const PICK_RADIUS = 1.2;
 const DRAG_SLOP_PX = 4;
@@ -60,7 +60,7 @@ let orbitOrigin = [W / 2, 0, H / 2];
 let cameraBounds = null;
 let cameraDistance = Math.min(CAMERA_PLAY_DISTANCE, CAMERA_DISTANCE_PER_TILE * Math.max(W, H));
 let cameraMaxDistance = Math.max(CAMERA_MAX_FLOOR, CAMERA_MAX_PER_TILE * Math.max(W, H));
-const DOODAD_KINDS = UI.doodadKinds ?? [];
+let DOODAD_KINDS = UI.doodadKinds ?? [];
 const EDGE_PX = 16;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_CAP_MS = 16000;
@@ -586,7 +586,11 @@ async function loadModels(game, neededTypes) {
 
 // Read once: buildUnitMesh asks per type, and a request each would be one round trip per unit type.
 let doodadSizesReady = null;
-const doodadSizes = () => (doodadSizesReady ??= assetJson("doodadSizes"));
+// Asset JSON a hot reload read again, by pack key. pack_load.js caches each asset's text for the page's life, so every
+// asset read in this file goes through assetNow, which prefers the re-read copy.
+const hotAssets = new Map();
+const assetNow = (key) => (hotAssets.has(key) ? Promise.resolve(hotAssets.get(key)) : assetJson(key));
+const doodadSizes = () => (doodadSizesReady ??= assetNow("doodadSizes"));
 
 // Fetches, fits and uploads one unit type's model. Heroes (player-controlled unit types) are drawn at HERO_DRAW_SCALE
 // times their fitted size: the owner's intended hero size is twice the fit.
@@ -691,7 +695,7 @@ function queueUnitModelBacklog() {
 // an entry; doodads.json maps every kind to its GLB path. A placed kind whose model or footprint is missing is recorded
 // on the page and its placements are not drawn.
 async function loadDoodadModels(usedKinds) {
-  const [paths, footprints] = await Promise.all([assetJson("doodads"), assetJson("doodadSizes")]);
+  const [paths, footprints] = await Promise.all([assetNow("doodads"), assetNow("doodadSizes")]);
   const toStem = (file) => file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "");
   // doodads.json alone names every kind's model, including its low-detail variant. The asset catalogue
   // (assets.json, ~787 KB) used to be fetched for this and agreed with doodads.json on all 784 kinds, so it is
@@ -756,7 +760,7 @@ function maxY(positions) {
 // The ranged attack's projectile: the arrow model, fitted to the footprint doodad_sizes.json gives it. Required: a
 // failed arrow stops the start rather than drawing the projectile as something else.
 async function loadArrowMesh(gl) {
-  const footprints = await assetJson("doodadSizes");
+  const footprints = await assetNow("doodadSizes");
   if (footprints.arrow === undefined) throw new Error("model arrow: no footprint in doodad_sizes.json");
   return toMesh(gl, await fetchModel("arrow", footprints.arrow), [1, 1, 1]);
 }
@@ -1438,10 +1442,10 @@ function drainPackSwapQueue() {
 }
 
 // Host half of a pack swap: builds the bytes from the host's own pack, then announces the swap tick exactly as an image swap.
-async function announcePackSwap(kind, file) {
+async function announcePackSwap(kind, file, override = null) {
   swapFetching = true;
   try {
-    const bytes = await packSwapBytes(kind);
+    const bytes = override ?? (await packSwapBytes(kind));
     const hash = fnv1a32(bytes);
     const tick = localGame.ticks() + SWAP_LEAD_TICKS;
     session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, hash, file }));
@@ -2075,6 +2079,49 @@ function addDoodadKind(code, base, lowBase, list) {
   doodadBatches = batchByMesh(placedDoodads);
 }
 
+// Placements grouped by kind code.
+function groupByKind(placements) {
+  const byKind = new Map();
+  for (const p of placements) {
+    const list = byKind.get(p.kind);
+    if (list) list.push(p);
+    else byKind.set(p.kind, [p]);
+  }
+  return byKind;
+}
+
+// Places each placed kind's doodads once its model has loaded, one kind at a time, so the map fills in behind a running
+// match. kinds is loadDoodadModels' list: one promise per kind code.
+function placeDoodadKinds(gl, usedKinds, placementsByKind, kinds) {
+  for (let code = 0; code < kinds.length; code += 1) {
+    if (!usedKinds.has(code)) continue;
+    kinds[code]
+      .then(async ({ high, low }) => {
+        const base = high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null;
+        const lowBase = low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null;
+        doodadByKindState[code] = { base, lowBase };
+        addDoodadKind(code, base, lowBase, placementsByKind.get(code));
+      })
+      .catch((err) => recordAssetError(`doodad ${code}`, err));
+  }
+}
+
+// Re-places every doodad of the current map from the doodads.json and doodad_sizes.json the pack holds now. Models already
+// parsed are refitted without a download; the old meshes and their variants are dropped with the batches they filled.
+async function rebuildDoodads() {
+  if (!renderGl || !localGame || !mapBytes) return;
+  const placements = readDoodads(mapBytes);
+  const usedKinds = new Set(placements.map((p) => p.kind));
+  doodadVariants.clear();
+  doodadModelNames.length = 0;
+  doodadByKindState = new Array(DOODAD_KINDS.length).fill(null);
+  placedDoodads = [];
+  doodadBatches = [];
+  const kinds = await loadDoodadModels(usedKinds);
+  placeDoodadKinds(renderGl, usedKinds, groupByKind(placements), kinds);
+  console.log(`[hmr] doodads: ${usedKinds.size} kind(s) re-placed in place`);
+}
+
 // Builds the 3D world from the staged assets: the terrain mesh from map.bin, doodads at their placements with
 // their GLB models, and unit models from the sim's model names. Each unit type keeps a model, or null when it has none.
 async function build3d(gl, game) {
@@ -2088,12 +2135,7 @@ async function build3d(gl, game) {
   const placements = readDoodads(mapBytes);
   const usedKinds = new Set(placements.map((p) => p.kind));
   // Placements grouped by kind, so a kind can be placed the moment its model arrives.
-  const placementsByKind = new Map();
-  for (const p of placements) {
-    const list = placementsByKind.get(p.kind);
-    if (list) list.push(p);
-    else placementsByKind.set(p.kind, [p]);
-  }
+  const placementsByKind = groupByKind(placements);
   // The unit types the first frame draws: fog cuts the roster down to what is near the start, so this is a handful of
   // types rather than every hero and neutral in the pack. The match waits for these and nothing else.
   const neededTypes = new Set(currentUnits().map((u) => u.type).filter((t) => t >= 0));
@@ -2125,19 +2167,7 @@ async function build3d(gl, game) {
     // Scenery: a kind's placements go down as its model lands, so the map fills in behind a match that is already
     // running instead of holding it up. The catalogue fetch is awaited here, in the deferred pass, so it never held
     // the first frame up.
-    doodadKindsReady.then((kinds) => {
-      for (let code = 0; code < kinds.length; code += 1) {
-        if (!usedKinds.has(code)) continue;
-        kinds[code]
-          .then(async ({ high, low }) => {
-            const base = high ? await modelOrRecord(high.glbUrl, toMesh(gl, high, DOODAD_TINT)) : null;
-            const lowBase = low ? await modelOrRecord(low.glbUrl, toMesh(gl, low, DOODAD_TINT)) : null;
-            doodadByKindState[code] = { base, lowBase };
-            addDoodadKind(code, base, lowBase, placementsByKind.get(code));
-          })
-          .catch((err) => recordAssetError(`doodad ${code}`, err));
-      }
-    }, (err) => recordAssetError("doodad kinds", err));
+    doodadKindsReady.then((kinds) => placeDoodadKinds(gl, usedKinds, placementsByKind, kinds), (err) => recordAssetError("doodad kinds", err));
   });
 }
 
@@ -2172,13 +2202,26 @@ function waterMeshOf(bytes, surface = waterSurface) {
 // the fresh tiles module as `tiles`.
 function splatMaps(bytes, tiles = { controlMap, waterMap }) {
   const control = tiles.controlMap(bytes);
-  return { control, width: control.width, height: control.height, waterMap: tiles.waterMap(bytes) };
+  return { control, variant: control.variant, width: control.width, height: control.height, waterMap: tiles.waterMap(bytes) };
 }
 
-// Hot reload (hmr.js dispatches oscraft:hmr with the module url and its hook's fresh value). Each branch rebuilds only
-// the GPU data that module feeds; with no hook firing, nothing runs and the default path is unchanged.
+// Hot reload. The companion watcher dispatches oscraft:hmr with { url, kind, value } and this listener routes on kind before
+// anything is applied: asset, lua, map and model rebuild in place (hmrInPlace), wasm is a scheduled reload, and only a module
+// event (kind "module", or none from an older watcher) applies its hook's value. A value on any other kind is never applied.
 window.addEventListener("oscraft:hmr", (e) => {
-  const { url, value } = e.detail || {};
+  const { url, kind, value } = e.detail || {};
+  if (kind === "asset" || kind === "lua" || kind === "map" || kind === "model") {
+    hmrInPlace(kind, url).catch((err) => console.error(`[hmr] ${kind} ${url}: rebuild failed: ${err.message}`));
+    return;
+  }
+  if (kind === "wasm") {
+    scheduleWasmReload(url);
+    return;
+  }
+  if (kind && kind !== "module") {
+    if (kind !== "shader") console.warn(`[hmr] ${url}: kind "${kind}" has no handler on this page; nothing applied`);
+    return;
+  }
   if (!value) return;
   const file = url.slice(url.lastIndexOf("/") + 1);
   if (hosting && localGame) {
@@ -2187,6 +2230,191 @@ window.addEventListener("oscraft:hmr", (e) => {
   }
   hmrApply(file, url, value).catch((err) => console.error(`[hmr] ${file}: rebuild failed: ${err.message}`));
 });
+
+// Rebuilds one in-place kind on this page (asset, lua, map or model). Nothing here reloads the page.
+async function hmrInPlace(kind, url) {
+  const file = decodeURIComponent(new URL(url, location.href).pathname.split("/").pop());
+  if (kind === "asset") return hmrAsset(file);
+  if (kind === "lua") return hmrLua(url);
+  if (kind === "map") return hmrMap(file);
+  return hmrModel(file);
+}
+
+// The pack asset key (manifest.assets) a file name is listed under, or null.
+function assetKeyOf(file) {
+  return Object.keys(manifest.assets).find((key) => manifest.assets[key] === file) ?? null;
+}
+
+// Reads a pack asset again from its pack URL with no cache; assetNow serves the re-read copy from then on.
+async function rereadAsset(key) {
+  const rel = assetRel(key);
+  const res = await fetch(packUrl(rel), { cache: "no-store" });
+  if (!res.ok) throw new Error(`${rel} HTTP ${res.status}`);
+  hotAssets.set(key, JSON.parse(await res.text()));
+}
+
+// Asset files. doodad_sizes.json and doodads.json re-place the doodads and refit the unit models in place; moba_ui.json
+// refills the UI. ktx2.json and assets.json have no in-place rebuild, and the log names what is needed.
+async function hmrAsset(file) {
+  if (file === manifest.ui) return hmrUi();
+  const key = assetKeyOf(file);
+  if (key === "doodadSizes") {
+    await rereadAsset(key);
+    doodadSizesReady = null;
+    await rebuildDoodads();
+    await refitUnits();
+    console.log(`[hmr] ${file}: footprints re-read; doodads and unit models refitted in place`);
+    return;
+  }
+  if (key === "doodads") {
+    await rereadAsset(key);
+    await rebuildDoodads();
+    console.log(`[hmr] ${file}: kind models re-read; doodads re-placed in place`);
+    return;
+  }
+  if (key === "ktx2") {
+    console.warn(`[hmr] ${file}: not applied in place. texture.js keeps its shipped KTX2 list (shippedKtx2) for the page's life; texture.js must drop that cache when ktx2.json changes.`);
+    return;
+  }
+  if (key === "catalogue") {
+    console.log(`[hmr] ${file}: nothing to rebuild, no page code reads the asset catalogue (doodads.json names every kind's model)`);
+    return;
+  }
+  console.log(`[hmr] ${file}: not a pack asset this page reads; nothing to rebuild`);
+}
+
+// moba_ui.json: pack_load.js exports one UI object that every reader holds, so it is refilled in place. The HUD is rebuilt from
+// its own hook; a change to doodadKinds re-places the doodads and a change to heroDrawScale refits the units. fx.js reads
+// UI.effects once at its load, so an effect change is named as needing fx.js to re-read it.
+async function hmrUi() {
+  const before = { scale: UI.heroDrawScale, kinds: JSON.stringify(UI.doodadKinds), effects: JSON.stringify(UI.effects) };
+  const res = await fetch(packUrl(manifest.ui), { cache: "no-store" });
+  if (!res.ok) throw new Error(`${manifest.ui} HTTP ${res.status}`);
+  const next = JSON.parse(await res.text());
+  for (const key of Object.keys(UI)) delete UI[key];
+  Object.assign(UI, next);
+  HERO_DRAW_SCALE = UI.heroDrawScale ?? 1;
+  DOODAD_KINDS = UI.doodadKinds ?? [];
+  await rebuildHud();
+  if (before.kinds !== JSON.stringify(UI.doodadKinds)) await rebuildDoodads();
+  if (before.scale !== UI.heroDrawScale) await refitUnits();
+  if (before.effects !== JSON.stringify(UI.effects)) console.warn(`[hmr] ${manifest.ui}: UI.effects changed, not applied in place; fx.js must re-read it (it reads UI.effects once at load)`);
+  console.log(`[hmr] ${manifest.ui}: UI refilled, HUD rebuilt`);
+}
+
+// The HUD rebuilt through the hud module's hook: a fresh import re-runs createHud on the inputs of its last build, and the HUD
+// it returns takes over as a hot-reloaded hud.js does. The stashed grid follows the current map.
+async function rebuildHud() {
+  const args = globalThis.__oscraftHot?.get("hud");
+  if (!args) return;
+  args.grid = mapGrid;
+  const url = new URL("./hud.js", import.meta.url).href;
+  const mod = await import(`${url}?v=${Date.now()}`);
+  const value = mod.hmrReload(mod);
+  if (value) await hmrApply("hud.js", url, value);
+}
+
+// Unit models refitted to the footprints in doodad_sizes.json, from the GLBs already parsed (no download).
+async function refitUnits() {
+  if (!renderGl || !localGame) return;
+  for (const name of new Set(localGame.unit_model_names())) if (name) await reloadUnitModel(name, false);
+}
+
+// A swapped map image rebuilds the 3D world in place: the grid, the terrain and water meshes, the splat maps and the doodads.
+// The sim's units keep their state; the HUD takes the new grid.
+async function rebuildWorld(bytes) {
+  mapBytes = bytes;
+  setMapSize(readGrid(bytes));
+  const terrain = terrainInTiles(buildTerrain(bytes));
+  terrainTiles = terrain;
+  terrainMesh = terrainMeshOf(terrain);
+  waterMesh = waterMeshOf(bytes);
+  if (splat) Object.assign(splat, splatMaps(bytes), { gpu: null });
+  await rebuildDoodads();
+  await rebuildHud();
+  console.log("[swap] map image applied: terrain, water, splat and doodads rebuilt in place");
+}
+
+// map.osd: the page cannot regenerate moba.osdt (mapexport, run by scripts/dev/hot-sync.mjs), so a changed source is named. A
+// fresh moba.osdt is read; on a host a changed image is announced as a data swap, and each peer rebuilds its world when the swap
+// applies. A guest waits for the host's swap.
+async function hmrMap(file) {
+  if (file.endsWith(".osd")) console.warn(`[hmr] ${file} changed: moba.osdt must be regenerated from it by mapexport (scripts/dev/hot-sync.mjs); the page cannot build the image`);
+  if (!hosting || !localGame) return;
+  const bytes = await fetchMapImage();
+  if (fnv1a32(bytes) === fnv1a32(mapBytes)) {
+    console.log(`[hmr] ${manifest.image}: the served image is the one this match runs; no swap`);
+    return;
+  }
+  if (pendingSwap || swapFetching) {
+    console.warn(`[hmr] ${manifest.image}: a swap is already pending; the new image is announced on the next change`);
+    return;
+  }
+  announcePackSwap("data", manifest.image, bytes);
+}
+
+// A changed pack file on the host goes through the pack editor's save path, once per content change (the hashes checkPackWatch
+// keeps): peers get the file, and a Lua file reloads the mod set at the shared swap tick. A guest waits for the host's swap.
+async function hmrLua(url) {
+  const rel = watchedPackRel(url);
+  if (rel === null) {
+    console.warn(`[hmr] ${url}: not a file of the pack's mods, data or UI; nothing swapped`);
+    return;
+  }
+  if (!hosting || !localGame) {
+    console.log(`[hmr] ${rel}: the host applies a changed mod at a shared tick`);
+    return;
+  }
+  if (await publishIfChanged(rel)) console.log(`[hmr] ${rel}: sent to the match; the mod set reloads at the swap tick`);
+}
+
+// Fetches one watched pack file with no cache and, when its bytes differ from the last recorded hash, publishes it through the pack
+// editor's save path. checkPackWatch keeps the same hashes, so a change is sent once however many watchers see it.
+async function publishIfChanged(rel) {
+  const res = await fetch(packUrl(rel), { cache: "no-store" });
+  if (!res.ok) throw new Error(`${rel} HTTP ${res.status}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const hash = fnv1a32(bytes);
+  packWatchSeen ??= new Map();
+  const prev = packWatchSeen.get(rel);
+  packWatchSeen.set(rel, hash);
+  if (prev === hash) return false;
+  publishPackChanges([{ path: rel, bytes, hash }]);
+  return true;
+}
+
+// The watched pack path a hot-reload URL names, matched by its served path.
+function watchedPackRel(url) {
+  const path = new URL(url, location.href).pathname;
+  const rels = watchedPackPaths();
+  return rels.find((rel) => new URL(packUrl(rel), location.href).pathname === path) ?? rels.find((rel) => path.endsWith(`/${rel}`)) ?? null;
+}
+
+// A changed GLB this page has loaded: its unit or doodad model is fetched again and its meshes replaced, keeping the units and the
+// placed doodads. Models are not sim state, so every page reloads its own copy.
+async function hmrModel(file) {
+  const name = file.replace(/\.glb$/i, "");
+  if (!localGame || !renderGl) {
+    console.log(`[hmr] ${file}: no game on this page yet; the model loads with it`);
+    return;
+  }
+  const unit = localGame.unit_model_names().includes(name);
+  const doodad = doodadModelNames.some((n) => n && (n.high === name || n.low === name));
+  if (!unit && !doodad) {
+    console.log(`[hmr] ${file}: not loaded on this page; nothing to replace`);
+    return;
+  }
+  if (unit) await reloadUnitModel(name);
+  if (doodad) await reloadDoodadModel(name);
+}
+
+// A changed wasm build is not swapped in place: the page reloads to load it. Changes that land together share one reload.
+let wasmReloadTimer = null;
+function scheduleWasmReload(url) {
+  console.log(`[hmr] ${url}: wasm build changed; reloading the page to load it`);
+  clearTimeout(wasmReloadTimer);
+  wasmReloadTimer = setTimeout(() => location.reload(), 300);
+}
 // True while the host fetches the new image for an announcement; a second hot reload is refused until it is sent.
 let swapFetching = false;
 // The last data swap this page applied or failed, for window.oscraft.lastSwap() and getState().
@@ -2242,6 +2470,7 @@ function applyDataSwap(due) {
     const [carried, refused] = localGame.swap_data(due.image);
     lastSwapResult = { tick, file: due.file, ok: true, carried, refused, error: null, readiness: "ready", deferred: false, deferrals: due.deferrals };
     console.log(`[swap] ${due.file} at tick ${tick}: carried=${carried} refused=${refused}`);
+    if (fnv1a32(due.image) !== fnv1a32(mapBytes)) rebuildWorld(due.image).catch((err) => console.error(`[swap] ${due.file}: world rebuild failed: ${err.message}`));
   } catch (err) {
     fail(err && err.message ? err.message : String(err));
   }
@@ -2755,7 +2984,7 @@ async function checkModelWatch() {
 // Rebuilds the doodad kinds that draw the named GLB (high or low detail) and re-batches the placed doodads. The old GPU
 // buffers of the replaced batches are not freed yet.
 async function reloadDoodadModel(name) {
-  const sizes = await assetJson("doodadSizes");
+  const sizes = await assetNow("doodadSizes");
   for (let code = 0; code < doodadModelNames.length; code++) {
     const names = doodadModelNames[code];
     if (!names) continue;
@@ -2789,11 +3018,11 @@ async function reloadDoodadModel(name) {
   }
 }
 
-async function reloadUnitModel(name) {
-  parsedModels.delete(name);
+async function reloadUnitModel(name, fresh = true) {
+  if (fresh) parsedModels.delete(name);
   const names = localGame.unit_model_names();
   const heroFlags = typeof localGame.unit_flags === "function" ? localGame.unit_flags() : [];
-  const sizes = await assetJson("doodadSizes");
+  const sizes = await assetNow("doodadSizes");
   for (let type = 0; type < names.length; type++) {
     if (names[type] !== name) continue;
     const hero = heroFlags[type] === 1;

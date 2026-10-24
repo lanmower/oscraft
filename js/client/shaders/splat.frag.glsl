@@ -13,12 +13,16 @@ float waveH(vec2 q, float t) {
 }
 #include "shadow.glsl"
 #define GROUND_HEIGHT_BIAS 0.6
+// Grass variant: the main grass frequency times 1.68 (finer), with 1.1 times the main warp amplitude.
+#define VARIANT_UV_SCALE 1.68
+#define VARIANT_WARP 1.1
 uniform sampler2D uControl; uniform vec2 uMapSize; uniform float uUvScale; uniform float uBand;
 uniform sampler2D uAlb0; uniform sampler2D uAlb1; uniform sampler2D uAlb2; uniform sampler2D uAlb3;
 uniform sampler2D uDisp0; uniform sampler2D uDisp1; uniform sampler2D uDisp2; uniform sampler2D uDisp3;
 uniform vec3 uShade; // ambient, diffuse, albedo gain
 uniform vec3 uLayerTint[4]; // per-layer albedo tint (the sand layer takes the dirt tint)
 uniform sampler2D uWaterMap; uniform vec3 uWaterTint; uniform float uTime; uniform vec3 uEye; // water: cell map, tint, clock, eye
+uniform sampler2D uVariant; uniform float uVariantOn; // grass variant weight (R8 per cell), and 0 when the map marks no variant
 out vec4 outColor;
 // Per-layer UV warp, in tile units: a slow two-octave sine field over world space, with its own phase for each layer,
 // so the four tilings drift apart instead of lining up. Peak offset is about 0.6 of one texture tile.
@@ -36,11 +40,20 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
   float bandW = 2.0 * uBand;
   vec2 uv0 = xz * uUvScale + layerWarp(xz, 0.0), uv1 = xz * uUvScale + layerWarp(xz, 1.0);
   vec2 uv2 = xz * uUvScale + layerWarp(xz, 2.0), uv3 = xz * uUvScale + layerWarp(xz, 3.0);
-  vec3 c0 = texture(uAlb0, uv0).rgb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv1).rgb * uLayerTint[1];
+  vec3 grassAlb = texture(uAlb0, uv0).rgb; float grassDisp = texture(uDisp0, uv0).r;
+  // Grass variant (litter and vine cells): the grass albedo and height again, at the variant scale and warp on its own phase.
+  // The variant map weights it, so cells it does not mark keep the main grass exactly.
+  if (uVariantOn > 0.5) {
+    vec2 uvV = xz * uUvScale * VARIANT_UV_SCALE + VARIANT_WARP * layerWarp(xz, 4.0);
+    float vv = texture(uVariant, xz / uMapSize).r;
+    grassAlb = mix(grassAlb, texture(uAlb0, uvV).rgb, vv);
+    grassDisp = mix(grassDisp, texture(uDisp0, uvV).r, vv);
+  }
+  vec3 c0 = grassAlb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv1).rgb * uLayerTint[1];
   vec3 c2 = texture(uAlb2, uv2).rgb * uLayerTint[2];
   // The rock albedo is toned to the grass layer's mean brightness (rock024 averages 0.48, grass 0.34): 0.7 scale.
   vec3 c3 = texture(uAlb3, uv3).rgb * uLayerTint[3] * 0.7;
-  vec4 d = vec4(texture(uDisp0, uv0).r, texture(uDisp1, uv1).r, texture(uDisp2, uv2).r, texture(uDisp3, uv3).r);
+  vec4 d = vec4(grassDisp, texture(uDisp1, uv1).r, texture(uDisp2, uv2).r, texture(uDisp3, uv3).r);
   // Ground: grass, dirt and lane, blended by their own control weights and the band on their heights.
   // The ramp between two ground layers is biased by their height textures in the same units at every weight: a layer with a
   // higher height wins the ramp, so a stone or a root shows through the edge instead of the edge following the cell grid.

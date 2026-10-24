@@ -237,6 +237,10 @@ export const DEFAULT_SHADE = [0.3, 0.7, 1];
 const SUN_DIR = (() => { const s = [0.4, 1, 0.6]; const n = Math.hypot(...s); return s.map((v) => v / n); })();
 const SHADOW_UNIT = 9;
 const RIPPLE_UNIT = 11;
+// The grass variant weight map (one byte per cell) sits on the next free unit. A splat with no variant map binds a 1x1 zero map.
+const VARIANT_UNIT = 12;
+const NO_VARIANT = { width: 1, height: 1, data: new Uint8Array(1) };
+const ZERO_TEXEL = new Uint8Array(1);
 const SHADOW_DISTANCE = 400;
 // GLSL sources live in js/client/shaders/*.glsl. They are fetched once when this module loads (top-level await), so
 // createRenderer only compiles text that has arrived. A line `#include "name.glsl"` is replaced by that file, and
@@ -369,6 +373,8 @@ function splatUniforms(gl, p) {
     time: gl.getUniformLocation(p, "uTime"),
     eye: gl.getUniformLocation(p, "uEye"),
     waterTint: gl.getUniformLocation(p, "uWaterTint"),
+    variant: gl.getUniformLocation(p, "uVariant"),
+    variantOn: gl.getUniformLocation(p, "uVariantOn"),
     shadowOn: gl.getUniformLocation(p, "uShadowOn"),
     viewProj: gl.getUniformLocation(p, "uViewProj"),
     model: gl.getUniformLocation(p, "uModel"),
@@ -843,8 +849,8 @@ export function createRenderer(gl) {
   }
 
   // Splat ground: one draw of the terrain mesh. splat = { control: {data, width, height}, layers: [{albedo, height}] x4,
-  // waterMap: {data, width, height}, waterTint, width, height (map size in cells), uvScale,
-  // band, gpu }; the control and water textures are created on first draw and kept.
+  // waterMap: {data, width, height}, variant: {data, width, height} (optional grass variant weight), waterTint, width, height
+  // (map size in cells), uvScale, band, gpu }; the control, water and variant textures are created on first draw and kept.
   function controlTexture(control) {
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
@@ -858,9 +864,9 @@ export function createRenderer(gl) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, control.width, control.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, control.data);
     return tex;
   }
-  // The water weight map: one byte per cell (R8), read by the splat shader's water blend. Linear filtering blends the
-  // water edge across a cell; nearest filtering cut it at cell boundaries, which showed as squares under the surface.
-  function waterTexture(map) {
+  // One byte per cell (R8): the water weight map and the grass variant weight map. Linear filtering blends each edge across
+  // a cell; nearest filtering cut the water edge at cell boundaries, which showed as squares under the surface.
+  function r8Texture(map) {
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -874,7 +880,11 @@ export function createRenderer(gl) {
   }
   function drawSplat(mesh, splat) {
     if (!splat.gpu) {
-      splat.gpu = { control: controlTexture(splat.control), waterMap: waterTexture(splat.waterMap) };
+      const variant = splat.variant || NO_VARIANT;
+      splat.gpu = {
+        control: controlTexture(splat.control), waterMap: r8Texture(splat.waterMap),
+        variant: r8Texture(variant), variantOn: !!splat.variant && splat.variant.data.some((v) => v > 0),
+      };
       casterGen += 1;
     }
     const buf = upload(mesh);
@@ -890,6 +900,10 @@ export function createRenderer(gl) {
     gl.activeTexture(gl.TEXTURE10);
     gl.bindTexture(gl.TEXTURE_2D, splat.gpu.waterMap);
     gl.uniform1i(splatUni.waterMap, 10);
+    gl.activeTexture(gl.TEXTURE0 + VARIANT_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, splat.gpu.variant);
+    gl.uniform1i(splatUni.variant, VARIANT_UNIT);
+    gl.uniform1f(splatUni.variantOn, splat.gpu.variantOn ? 1 : 0);
     if (rippleTex) {
       gl.activeTexture(gl.TEXTURE0 + RIPPLE_UNIT);
       gl.bindTexture(gl.TEXTURE_2D, rippleTex);
@@ -930,6 +944,13 @@ export function createRenderer(gl) {
   function updateSplatCell(splat, index, texel) {
     if (!splat.gpu) return;
     const w = splat.control.width;
+    // Creep sets a plain ground kind, never a grass variant, so the cell's variant weight clears with its texel.
+    if (splat.variant) {
+      splat.variant.data[index] = 0;
+      gl.activeTexture(gl.TEXTURE0 + VARIANT_UNIT);
+      gl.bindTexture(gl.TEXTURE_2D, splat.gpu.variant);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, index % w, Math.floor(index / w), 1, 1, gl.RED, gl.UNSIGNED_BYTE, ZERO_TEXEL);
+    }
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, splat.gpu.control);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, index % w, Math.floor(index / w), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, texel);
