@@ -503,32 +503,22 @@ function humanoidLibrary() {
   return animLibrary;
 }
 
-// A rig without embedded clips is animated from the humanoid library through its bone map (anim/maps/<model>.json).
-// A rig with no map, or a map that fails to load, is an error for that model: it is never drawn in its rest pose.
-// The maps are one bone table: every rig's file is the same except for its `model` field, which the loader never reads.
-// A rig with no map of its own uses the shared anim/maps/humanoid.json. Only a missing file falls back; any other failure
-// to read a map is still an error for that model.
+// Every rig takes its clips from the humanoid library through the shared humanoid bone map (anim/maps/humanoid.json).
+// A rig whose bones are not humanoid is refused by name: animating it with the shared map would skip its bones silently
+// and draw it in its rest pose.
 async function libraryClips(name, nodes) {
-  const [map, library] = await Promise.all([rigMap(name, nodes), humanoidLibrary()]);
-  return retargetLibrary(library, map.map, nodes);
+  const [map, library] = await Promise.all([humanoidBoneMap(name, nodes), humanoidLibrary()]);
+  return retargetLibrary(library, map, nodes);
 }
 
-// The rig's own map, or the shared humanoid map when it has none. The shared map is only used for a rig whose bones
-// actually are humanoid: a body with other bones (a thunder lizard) would otherwise animate with its bones silently
-// skipped, which is the rest-pose drawing the rule forbids. Such a rig is refused here, by name.
-async function rigMap(name, nodes) {
-  try {
-    return { map: await packJson(assetRel("animMaps", `${name}.json`)) };
-  } catch (error) {
-    if (!/HTTP 404|has no /.test(error.message)) throw error;
-    const map = await packJson(assetRel("animMaps", "humanoid.json"));
-    const names = new Set(nodes.map((node) => node.name).filter(Boolean));
-    const resolved = Object.values(map.bones).filter((bone) => names.has(bone)).length;
-    if (!names.has(map.bones.hips) || resolved < Object.keys(map.bones).length * 0.8) {
-      throw new Error(`rig ${name} has no animation map and its bones are not humanoid (${resolved}/${Object.keys(map.bones).length} found)`);
-    }
-    return { map };
+async function humanoidBoneMap(name, nodes) {
+  const map = await packJson(assetRel("animMaps", "humanoid.json"));
+  const names = new Set(nodes.map((node) => node.name).filter(Boolean));
+  const resolved = Object.values(map.bones).filter((bone) => names.has(bone)).length;
+  if (!names.has(map.bones.hips) || resolved < Object.keys(map.bones).length * 0.8) {
+    throw new Error(`rig ${name} has bones that are not humanoid (${resolved}/${Object.keys(map.bones).length} found)`);
   }
+  return map;
 }
 // Rig names that take their clips from the library (see parsedModel): the ones a hot reload re-retargets.
 const libraryRigs = new Set();
