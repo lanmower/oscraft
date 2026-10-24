@@ -68,11 +68,13 @@ const STYLE = `
 .w-bar.t-mp{--bar:var(--mp)}
 .w-root .w-bar{min-height:4px}
 @media (max-width: 600px){
-#ui-left{max-height:calc(100vh - 136px);overflow-y:auto}
+#ui-left{max-height:calc(100vh - 170px);overflow-y:auto}
 #ui-right{max-height:calc(100vh - 473px);overflow-y:auto}
 #ui-bar-mid .w-cell{min-height:26px}
 .w-panel-toggle{min-height:30px}
-#ui-modal{top:272px;transform:translateX(-50%);max-height:calc(100vh - 400px)}
+#ui-top .w-box:has(> .t-gold){display:grid;grid-template-columns:1fr 1fr;column-gap:4px}
+#ui-top .t-gold{font-size:8px}
+#ui-modal{top:auto;bottom:124px;transform:translateX(-50%);max-height:calc(100vh - 400px)}
 }
 `;
 
