@@ -7,10 +7,20 @@ import { createMobaInput } from "./moba_input.js";
 import { createFeedback } from "./feedback.js";
 import { createMinimap } from "./ui_minimap.js";
 import { UI } from "./pack_load.js";
+import { teamOf } from "./moba_select.js";
 
 const BAR_WIDTH_PX = 20;
 const BAR_HEIGHT_PX = 3;
 const BAR_LIFT_PX = 5;
+const OWN_BAR_RGB = "#4caf50";
+const ALLY_BAR_RGB = "#3f8fd2";
+const ENEMY_BAR_RGB = "#e53935";
+
+// Own units are green, a teammate's blue, and everything else red. Neutral units have no team (teamOf gives -1).
+function barColour(player, me, myTeam) {
+  if (player === me) return OWN_BAR_RGB;
+  return myTeam >= 0 && teamOf(UI.teams, player) === myTeam ? ALLY_BAR_RGB : ENEMY_BAR_RGB;
+}
 
 const VOID_RGB = [20, 24, 28];
 const OPEN_RGB = [104, 124, 94];
@@ -103,6 +113,8 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     }
     barCtx.clearRect(0, 0, w, h);
     let drawn = 0;
+    const me = localPlayer();
+    const myTeam = teamOf(UI.teams, me);
     for (const u of list) {
       if (typeof u.hp !== "number" || u.hp < 0) continue;
       const max = trackedMaxHp(u.id, u.hp);
@@ -112,7 +124,7 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
       const y = p.y - BAR_LIFT_PX;
       barCtx.fillStyle = "rgba(0,0,0,0.6)";
       barCtx.fillRect(x, y, BAR_WIDTH_PX, BAR_HEIGHT_PX);
-      barCtx.fillStyle = u.player === localPlayer() ? "#4caf50" : "#e53935";
+      barCtx.fillStyle = barColour(u.player, me, myTeam);
       barCtx.fillRect(x, y, BAR_WIDTH_PX * Math.min(1, u.hp / max), BAR_HEIGHT_PX);
       drawn += 1;
     }
