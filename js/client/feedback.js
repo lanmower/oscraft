@@ -91,6 +91,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
       armed.slot = d.slot;
       armed.radius = d.radius > 0 ? d.radius : 0;
       armed.targetKind = d.targetKind || "";
+      if (!armed.client) armed.client = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       reticle.node.textContent = String(d.slot);
     } else if (d.kind === "targetEnd") {
       armed.on = false;
