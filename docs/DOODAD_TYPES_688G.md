@@ -31,7 +31,7 @@ Exclusions kept: tree records are placed by the tree rule (unchanged). Non-tree 
 |---|---|---|---|---|---|---|
 | ZPsh | 419 | prop | cluster | bench | 0.994 | medium |
 | ZPfw | 165 | prop | none | bench | 0.994 | low |
-| YTpb | 109 | UNVERIFIED | none | UNVERIFIED (not placed) | - | UNVERIFIED |
+| YTpb | 109 | building | base+cluster | fountain | 4 | high |
 | CObl | 88 | prop | none | bench | 0.994 | low |
 | APms | 78 | nature | tree | grass_large | 0.691 | medium |
 | YTlb | 48 | prop | cluster | bench | 0.994 | medium |
