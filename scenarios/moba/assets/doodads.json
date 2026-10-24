@@ -1035,5 +1035,6 @@
   "terrorblade_skinned": "models/terrorblade-skinned.glb",
   "weaver_skinned": "models/weaver-skinned.glb",
   "void_spirit_skinned": "models/void-spirit-skinned.glb",
-  "wisp_skinned": "models/wisp-skinned.glb"
+  "wisp_skinned": "models/wisp-skinned.glb",
+  "zuus_skinned": "models/zuus-skinned.glb"
 }

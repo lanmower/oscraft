@@ -1,6 +1,6 @@
 {
- "count": 3079,
- "total_bytes": 102955692,
+ "count": 3080,
+ "total_bytes": 103620364,
  "items": [
   {
    "id": "rock",
@@ -7379,6 +7379,14 @@
    "path": "models/wisp-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 474064,
+   "role": "character"
+  },
+  {
+   "id": "zuus-skinned",
+   "kind": "model",
+   "path": "models/zuus-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 664672,
    "role": "character"
   },
   {
@@ -31988,7 +31996,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 227,
+  "character": 228,
   "creep": 5,
   "terrain": 7
  }
