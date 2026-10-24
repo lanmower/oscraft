@@ -1233,7 +1233,8 @@ function bindInput() {
   canvas.addEventListener("pointerup", (e) => {
     const wasDrag = drag && drag.moved;
     drag = null;
-    forwardPointer("up", e);
+    // A drag that moved orbits or pans the view: its release is not a click, so the pack takes none.
+    if (!wasDrag) forwardPointer("up", e);
     if (e.button === 2) document.body.dataset.rightUp = `${wasDrag ? "drag" : "click"} hud=${!!hud} local=${myPlayer}`;
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
