@@ -1,6 +1,6 @@
 {
- "count": 3075,
- "total_bytes": 101014124,
+ "count": 3076,
+ "total_bytes": 101514080,
  "items": [
   {
    "id": "rock",
@@ -7347,6 +7347,14 @@
    "path": "models/techies-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 416916,
+   "role": "character"
+  },
+  {
+   "id": "terrorblade-skinned",
+   "kind": "model",
+   "path": "models/terrorblade-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 499956,
    "role": "character"
   },
   {
@@ -31956,7 +31964,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 223,
+  "character": 224,
   "creep": 5,
   "terrain": 7
  }
