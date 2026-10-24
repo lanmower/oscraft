@@ -1,11 +1,11 @@
 // Minimap, the right block of the bottom bar: the map's walkable layer (lanes light, rock and water dark), units, buildings
 // and the camera's ground rectangle. Own units are white and the selected unit is yellow, as in the world view; allies are their player colour with a ring; enemies
-// their player colour; unowned (neutral) units a fixed grey. Buildings are larger plain squares. The panel repaints at most
+// their player colour; unowned (neutral) units a fixed grey. Buildings are plain squares, smaller than a hero dot. The panel repaints at most
 // every REDRAW_MS, and only when a unit, the camera, the selection or the canvas size changed. A press or drag on the
 // minimap moves the camera to that map point.
 import { teamOf } from "./moba_select.js";
 
-const SIZE = { hero: 5, own: 5, creep: 3, building: 7 };
+const SIZE = { hero: 8, own: 5, creep: 3, building: 7 };
 const NEUTRAL_PLAYER = 255;
 const NEUTRAL_FILL = "#c2c8ce";
 const OWN_FILL = "#ffffff";
