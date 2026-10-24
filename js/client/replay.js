@@ -8,6 +8,8 @@ const FOLLOW_RADIUS_PX = 18;
 const PLAYER_COLORS = ["#3a7bd5", "#d5543a", "#3ab26b", "#b23ab2", "#d5b33a", "#3ab2b2", "#d58a3a", "#7a3ad5", "#a5a5a5", "#d53a7a"];
 const NEUTRAL_PLAYER = 255;
 const NEUTRAL_COLOR = "#8a8f94";
+const TEXT_ENTRY = "input, select, textarea, [contenteditable]";
+const KEY_HINT = "space play/pause   k pause   p play   , . step   f fit";
 
 const params = new URLSearchParams(location.search);
 const $ = (id) => document.getElementById(id);
@@ -16,17 +18,61 @@ const ctx = canvas.getContext("2d");
 const statusEl = $("status");
 const seekEl = $("seek");
 const speedEl = $("speed");
+const tickEl = $("tick");
 
-const state = { game: null, end: 0, playing: false, seekTo: null, carry: 0, last: 0, follow: null, camera: { cx: 0, cy: 0, scale: 10 }, map: [32, 24], error: "" };
+const state = { game: null, end: 0, loaded: false, playing: false, seekTo: null, carry: 0, last: 0, follow: null, camera: { cx: 0, cy: 0, scale: 10 }, map: [32, 24], error: "", shownKey: "" };
+
+const ready = () => state.loaded && !state.error;
 
 function say(text) {
   statusEl.textContent = text;
 }
 
+function syncControls() {
+  const on = ready();
+  $("play").disabled = !on || state.playing;
+  $("pause").disabled = !on || !state.playing;
+  seekEl.disabled = !on;
+}
+
+function setPlaying(on) {
+  state.playing = on && ready();
+  state.carry = 0;
+  state.shownKey = "";
+  syncControls();
+}
+
 function fail(e) {
   state.error = String(e && e.message ? e.message : e);
-  state.playing = false;
+  setPlaying(false);
   say("error: " + state.error);
+}
+
+function play() {
+  if (!ready()) return;
+  if (state.game.ticks() >= state.end) state.seekTo = 0;
+  setPlaying(true);
+}
+
+function pause() {
+  setPlaying(false);
+}
+
+function step(delta) {
+  if (!ready()) return;
+  setPlaying(false);
+  const g = state.game;
+  const target = Math.max(0, Math.min(state.end, g.ticks() + delta));
+  if (target === g.ticks()) return;
+  if (delta === 1) {
+    try {
+      g.replay_step(1);
+    } catch (e) {
+      fail(e);
+    }
+  } else {
+    state.seekTo = target;
+  }
 }
 
 function fitCamera() {
@@ -49,6 +95,30 @@ function toScreen(x, y) {
 function fromScreen(px, py) {
   const c = state.camera;
   return [(px - canvas.clientWidth / 2) / c.scale + c.cx, (py - canvas.clientHeight / 2) / c.scale + c.cy];
+}
+
+function showStatus(g, unitCount) {
+  if (!state.loaded) return;
+  const ticks = g.ticks();
+  const winner = g.winner();
+  const incomplete = g.replay_incomplete();
+  const speed = speedEl.value;
+  const key = [ticks, winner, incomplete, speed, state.playing, state.error].join("|");
+  if (key === state.shownKey) return;
+  state.shownKey = key;
+  const mode = state.playing ? "playing" : ticks >= state.end ? "ended" : "paused";
+  const lines = [
+    `${mode}, speed ${speed}x`,
+    `tick ${ticks} / ${state.end}  hash ${g.state_hash().toString(16).padStart(16, "0")}`,
+    `observer: ${unitCount} units, no fog`,
+  ];
+  if (winner >= 0) lines.push(`winner: side ${winner} won the match`);
+  if (incomplete >= 0) lines.push(`incomplete from tick ${incomplete}`);
+  if (state.error) lines.push(`error: ${state.error}`);
+  lines.push(KEY_HINT);
+  say(lines.join("\n"));
+  seekEl.value = ticks;
+  tickEl.textContent = `${ticks} / ${state.end}`;
 }
 
 function draw() {
@@ -91,34 +161,27 @@ function draw() {
       ctx.fillText(String(hps[i]), sx + radius + 2, sy + 3);
     }
   }
-  const winner = g.winner();
-  say(
-    `tick ${g.ticks()} / ${state.end}  hash ${g.state_hash().toString(16).padStart(16, "0")}\nobserver: ${ids.length} units, no fog` +
-      (winner >= 0 ? `\nwinner: side ${winner}` : "") +
-      (g.replay_incomplete() >= 0 ? `\nincomplete from tick ${g.replay_incomplete()}` : "") +
-      (state.error ? `\nerror: ${state.error}` : "")
-  );
-  seekEl.value = g.ticks();
-  $("tick").textContent = `${g.ticks()} / ${state.end}`;
+  showStatus(g, ids.length);
 }
 
 function frame(now) {
   const dt = Math.min(0.25, (now - state.last) / 1000);
   state.last = now;
   const g = state.game;
-  if (g && !state.error) {
+  if (g && ready()) {
     try {
       if (state.seekTo !== null) {
         g.replay_seek(state.seekTo);
         state.seekTo = null;
       } else if (state.playing) {
+        const wonBefore = g.winner() >= 0;
         state.carry += dt * TICKS_PER_SECOND * Number(speedEl.value);
         const due = Math.min(MAX_TICKS_PER_FRAME, Math.floor(state.carry));
         state.carry -= due;
         if (due > 0) g.replay_step(due);
-        // Stop at victory as well as at the end of the recording: once a side has won there is no
-        // more match to play back, and the recording can run on past it.
-        if (g.ticks() >= state.end || g.winner() >= 0) state.playing = false;
+        // Playback stops at the first victory and at the end of the recording. A replay already past
+        // its victory (reached by a seek) plays on when play is pressed, so the controls keep working.
+        if (g.ticks() >= state.end || (!wonBefore && g.winner() >= 0)) setPlaying(false);
       }
     } catch (e) {
       fail(e);
@@ -140,13 +203,15 @@ async function open(text) {
   state.end = g.replay_load(text);
   state.map = Array.from(g.map_size());
   seekEl.max = state.end;
-  for (const id of ["play", "pause", "seek"]) $(id).disabled = false;
-  state.playing = false;
-  state.carry = 0;
+  state.loaded = true;
+  state.seekTo = null;
+  setPlaying(false);
   fitCamera();
 }
 
 async function start() {
+  for (const o of speedEl.options) o.textContent = `${o.value}x`;
+  syncControls();
   resize();
   const pkg = new URL(document.body.dataset.pkg, location.href).href;
   await init(pkg.replace(/web\.js$/, "web_bg.wasm"));
@@ -159,7 +224,7 @@ async function start() {
     const r = await fetch(source);
     if (!r.ok) throw new Error(`${source}: ${r.status}`);
     await open(await r.text());
-    state.playing = params.get("autoplay") !== "0";
+    setPlaying(params.get("autoplay") !== "0");
   } else {
     say("choose a .replay file (or ?replay=URL to any static .replay file)");
   }
@@ -174,13 +239,8 @@ $("file").addEventListener("change", async (e) => {
     fail(err);
   }
 });
-$("play").addEventListener("click", () => {
-  if (state.game.ticks() >= state.end) state.seekTo = 0;
-  state.playing = true;
-});
-$("pause").addEventListener("click", () => {
-  state.playing = false;
-});
+$("play").addEventListener("click", play);
+$("pause").addEventListener("click", pause);
 seekEl.addEventListener("input", () => {
   state.seekTo = Number(seekEl.value);
 });
@@ -239,10 +299,21 @@ canvas.addEventListener(
 );
 addEventListener("resize", resize);
 addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target instanceof Element && e.target.closest(TEXT_ENTRY)) return;
   if (e.key === " ") {
-    state.playing = !state.playing;
     e.preventDefault();
-  } else if (e.key === "f") fitCamera();
+    if (e.repeat) return;
+    if (e.target instanceof HTMLButtonElement) e.target.blur();
+    if (state.playing) pause();
+    else play();
+  } else if (e.key === "p") play();
+  else if (e.key === "k") pause();
+  else if (e.key === "ArrowRight" || e.key === ".") step(1);
+  else if (e.key === "ArrowLeft" || e.key === ",") step(-1);
+  else if (e.key === "f") fitCamera();
+  else return;
+  e.preventDefault();
 });
 
 start().then(() => requestAnimationFrame(frame)).catch(fail);

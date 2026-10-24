@@ -241,6 +241,7 @@ function startPage() {
   let model = newModel(32, 32);
   let meshes = new Map();
   let dirty = true;
+  let redraw = true;
   let regionStart = null;
   const markers = { doodad: cubeMesh([0.85, 0.7, 0.2]), region: cubeMesh([0.8, 0.2, 0.8]), spawn: [0, 1, 2, 3].map((p) => cubeMesh([[0.9, 0.2, 0.2], [0.2, 0.4, 0.9], [0.2, 0.8, 0.3], [0.9, 0.8, 0.2]][p])), neutral: cubeMesh([0.7, 0.7, 0.7]) };
 
@@ -255,12 +256,14 @@ function startPage() {
     cam.maxDistance = cam.distance * 4;
     cam.far = cam.maxDistance * 2;
     dirty = true;
+    regionStart = null;
     $("status").textContent = `${model.width}x${model.height} cells, ${model.doodads.length} doodads`;
   };
   const rebuild = () => { meshes = kindMeshes(model); dirty = false; };
   const status = (text) => { $("status").textContent = text; };
 
   const apply = (x, z) => {
+    redraw = true;
     const cx = Math.floor(x);
     const cy = Math.floor(z);
     const tool = $("tool").value;
@@ -293,12 +296,13 @@ function startPage() {
     const dy = e.clientY - drag.y;
     drag.x = e.clientX;
     drag.y = e.clientY;
+    redraw = true;
     if (drag.button === 2) orbitCamera(cam, dx, dy);
     else if (drag.button === 1 || e.shiftKey) panCamera(cam, dx, dy, canvas.height);
     else if (drag.button === 0 && ["paint", "height"].includes($("tool").value)) { const p = at(e); if (p) apply(p.x, p.z); }
   });
   canvas.addEventListener("pointerup", () => { drag = null; });
-  canvas.addEventListener("wheel", (e) => { e.preventDefault(); zoomCamera(cam, e.deltaY); }, { passive: false });
+  canvas.addEventListener("wheel", (e) => { e.preventDefault(); redraw = true; zoomCamera(cam, e.deltaY); }, { passive: false });
 
   $("open").addEventListener("change", async (e) => {
     const f = e.target.files[0];
@@ -311,12 +315,14 @@ function startPage() {
     a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
     a.download = "map.osd";
     a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     status(`exported ${text.split("\n").length - 1} lines`);
   });
   $("new").addEventListener("click", () => {
     model = newModel(Number($("new-w").value), Number($("new-h").value));
     cam.target = [model.width / 2, 0, model.height / 2];
     dirty = true;
+    regionStart = null;
   });
 
   const drawBox = (mesh, xCell, zCell, size, height) => {
@@ -329,8 +335,10 @@ function startPage() {
   const frame = () => {
     const w = Math.floor(canvas.clientWidth * devicePixelRatio);
     const h = Math.floor(canvas.clientHeight * devicePixelRatio);
-    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-    if (dirty) rebuild();
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; redraw = true; }
+    if (dirty) { rebuild(); redraw = true; }
+    if (!redraw) { requestAnimationFrame(frame); return; }
+    redraw = false;
     renderer.setCamera({ ...cam, aspect: aspect() });
     renderer.beginFrame();
     for (const mesh of meshes.values()) renderer.drawMesh(mesh, null);
