@@ -147,6 +147,7 @@
       .pack-start { display: flex; gap: 4px; margin-top: 6px; }
     }
     #minimap { display: block; border-radius: 3px; cursor: crosshair; background: #1a2129; }
+    #centre-hero { width: 100%; margin-top: 4px; font: var(--t-label) var(--font); }
     #win { position: fixed; z-index: 3; left: 50%; top: 40%; transform: translate(-50%, -50%); padding: 16px 24px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 6px; font-size: var(--t-head); font-weight: 700; color: var(--accent); }
   </style>
 </head>
@@ -155,6 +156,7 @@
   <div id="ui-left">
     <div id="status">connecting</div>
     <div id="hud"></div>
+    <button id="centre-hero" type="button">Centre on hero</button>
     <a href="editor.html">map editor</a>
   </div>
   <div id="ui-right">

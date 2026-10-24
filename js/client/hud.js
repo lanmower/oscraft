@@ -47,6 +47,17 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
   const input = createMobaInput({ game, toWorld, toScreen, send, dragSlopPx: UI.dragSlopPx });
   const feedback = createFeedback({ toScreen, toWorld, units });
 
+  // Phones hide the minimap and have no right-drag or Space, so this visible button glides the camera to the local hero.
+  // onclick (not addEventListener) replaces the handler on each hot rebuild instead of stacking one per rebuild.
+  const centreButton = document.getElementById("centre-hero");
+  if (centreButton) {
+    centreButton.onclick = () => {
+      const flags = typeof game.unit_flags === "function" ? game.unit_flags() : null;
+      const hero = flags && units().find((u) => u.player === localPlayer() && flags[u.type] === 1);
+      if (hero) send("camera_to", { x: hero.x, z: hero.z });
+    };
+  }
+
   function viewRect() {
     const corners = [[0, 0], [window.innerWidth, 0], [0, window.innerHeight], [window.innerWidth, window.innerHeight]].map(([x, y]) => toWorld(x, y));
     return {
