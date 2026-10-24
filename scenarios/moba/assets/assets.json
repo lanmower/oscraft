@@ -1,6 +1,6 @@
 {
- "count": 3101,
- "total_bytes": 110244140,
+ "count": 3103,
+ "total_bytes": 110875384,
  "items": [
   {
    "id": "rock",
@@ -7555,6 +7555,22 @@
    "path": "models/zombie-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 716936,
+   "role": "character"
+  },
+  {
+   "id": "pillar-rock-2-skinned",
+   "kind": "model",
+   "path": "models/pillar-rock-2-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 237140,
+   "role": "character"
+  },
+  {
+   "id": "pillar-rock-4-skinned",
+   "kind": "model",
+   "path": "models/pillar-rock-4-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 394104,
    "role": "character"
   },
   {
@@ -32164,7 +32180,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 249,
+  "character": 251,
   "creep": 5,
   "terrain": 7
  }

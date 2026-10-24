@@ -1057,5 +1057,7 @@
   "crypt_skinned": "models/crypt-skinned.glb",
   "courier_skinned": "models/courier-skinned.glb",
   "vampire_skinned": "models/vampire-skinned.glb",
-  "zombie_skinned": "models/zombie-skinned.glb"
+  "zombie_skinned": "models/zombie-skinned.glb",
+  "pillar-rock-2_skinned": "models/pillar-rock-2-skinned.glb",
+  "pillar-rock-4_skinned": "models/pillar-rock-4-skinned.glb"
 }
