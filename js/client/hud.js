@@ -12,6 +12,8 @@ import { teamOf } from "./moba_select.js";
 const BAR_WIDTH_PX = 20;
 const BAR_HEIGHT_PX = 3;
 const BAR_LIFT_PX = 5;
+const SELECTED_BAR_WIDTH_PX = 28;
+const SELECTED_BAR_HEIGHT_PX = 5;
 const OWN_BAR_RGB = "#4caf50";
 const ALLY_BAR_RGB = "#3f8fd2";
 const ENEMY_BAR_RGB = "#e53935";
@@ -115,17 +117,25 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     let drawn = 0;
     const me = localPlayer();
     const myTeam = teamOf(UI.teams, me);
+    const selectedIds = new Set(input.selection());
     for (const u of list) {
       if (typeof u.hp !== "number" || u.hp < 0) continue;
       const max = trackedMaxHp(u.id, u.hp);
       if (max <= 0) continue;
       const p = toScreen(u.x, u.z, u.top || 0);
-      const x = p.x - BAR_WIDTH_PX / 2;
+      const picked = selectedIds.has(u.id);
+      const width = picked ? SELECTED_BAR_WIDTH_PX : BAR_WIDTH_PX;
+      const height = picked ? SELECTED_BAR_HEIGHT_PX : BAR_HEIGHT_PX;
+      const x = p.x - width / 2;
       const y = p.y - BAR_LIFT_PX;
       barCtx.fillStyle = "rgba(0,0,0,0.6)";
-      barCtx.fillRect(x, y, BAR_WIDTH_PX, BAR_HEIGHT_PX);
+      barCtx.fillRect(x, y, width, height);
       barCtx.fillStyle = barColour(u.player, me, myTeam);
-      barCtx.fillRect(x, y, BAR_WIDTH_PX * Math.min(1, u.hp / max), BAR_HEIGHT_PX);
+      barCtx.fillRect(x, y, width * Math.min(1, u.hp / max), height);
+      if (picked) {
+        barCtx.strokeStyle = "#ffffff";
+        barCtx.strokeRect(x - 0.5, y - 0.5, width + 1, height + 1);
+      }
       drawn += 1;
     }
     return drawn;
