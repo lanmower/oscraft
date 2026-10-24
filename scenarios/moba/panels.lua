@@ -50,7 +50,7 @@ local LAST = {}
 local function new_lobby()
   local slots = {}
   for i = 1, SLOT_COUNT do slots[i] = { owner = nil, hero = nil, ready = false, bot = false } end
-  return { host = nil, started = false, slots = slots, error = "" }
+  return { host = nil, started = false, worldReady = false, slots = slots, error = "" }
 end
 local LOBBY = new_lobby()
 
@@ -655,8 +655,14 @@ local function lobby_act(call, a)
     return
   end
   L.error = ""
+  if call == "world_ready" then
+    if owner ~= OWNER then L.error = "not-host" return end
+    L.worldReady = true
+    return
+  end
   if call == "start" then
     if L.host ~= owner then L.error = "not-host" return end
+    if not L.worldReady then L.error = "world-loading" return end
     if not all_ready() then L.error = "not-ready" return end
     L.started = true
     HEROES = {}
@@ -786,7 +792,7 @@ local function lobby_tree()
     label(status, "muted"),
     box({
       button(TEXT.lobby.fillBots, "fill", "{}", not (host and any_open())),
-      button(TEXT.lobby.startMatch, "start", "{}", not (host and all_ready())),
+      button(LOBBY.worldReady and TEXT.lobby.startMatch or TEXT.lobby.loadingWorld, "start", "{}", not (host and all_ready() and LOBBY.worldReady)),
     }, "row"),
   })
 end
@@ -825,9 +831,10 @@ local function ui_call(who, call, a)
   elseif call == "skill_up" then
     local hero = hero_of(who)
     if hero ~= nil then game.cmd_skill_up(hero, a.slot) end
-  elseif call == "claim" or call == "release" or call == "pick" or call == "ready" or call == "fill" or call == "start" then
+  elseif call == "claim" or call == "release" or call == "pick" or call == "ready" or call == "fill" or call == "start" or call == "world_ready" then
     lobby_act(call, a)
     if call ~= "start" then lobby_seats_event() end
+    if call == "world_ready" then emit("lobby", "modal", lobby_tree()) end
   end
 end
 

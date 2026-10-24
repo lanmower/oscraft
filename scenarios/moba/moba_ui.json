@@ -156,11 +156,13 @@
       "pickHero": "pick a hero",
       "fillBots": "Fill with bots",
       "startMatch": "Start match",
+      "loadingWorld": "loading world assets",
       "readyWord": "ready",
       "refusedWord": "refused",
       "refusedGeneric": "that action is not allowed right now",
       "refusals": {
         "not-host": "only the host can do that",
+        "world-loading": "the world is still loading",
         "not-ready": "every seat must be ready before the match can start",
         "not-owner": "that seat belongs to another player",
         "slot-taken": "that seat is already taken",

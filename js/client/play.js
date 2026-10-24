@@ -2739,11 +2739,8 @@ async function main() {
   // A download that never settles would otherwise leave the status on its initial "connecting" text.
   setStatus("loading world assets");
   const stalled = setTimeout(() => setStatus(`loading world assets: still pending after ${WORLD_STALL_MS / 1000} s, check the network`), WORLD_STALL_MS);
-  try {
-    await build3d(gl, liveGame);
-  } finally {
-    clearTimeout(stalled);
-  }
+  // The world builds in the background: the HUD, lobby and frame loop below run now, and world draws wait for worldBuilt.
+  const worldReady = build3d(gl, liveGame).finally(() => clearTimeout(stalled));
   hud = createHud({
     game: liveGame,
     minimapEl: document.getElementById("minimap"),
@@ -2795,6 +2792,7 @@ async function main() {
   if (params.get("host") === "1") startHost();
   joinRoom();
 
+  let worldBuilt = false;
   function frame(now) {
     const dtS = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
     lastFrameMs = now;
@@ -2819,12 +2817,12 @@ async function main() {
         localTickAcc -= SIM_TICK_S;
       }
     }
-    if (localGame) {
+    if (localGame && worldBuilt) {
       drawWorld3d();
       fogview.draw();
       runDeferredUntilDrawn();
     }
-    if (ambientFx) {
+    if (ambientFx && worldBuilt) {
       if (!ambientSeeded && placedDoodads.length) {
         for (const d of placedDoodads) if (AMBIENT_KINDS[d.kind]) ambientFx.addEmitter(d.transform[12], d.transform[14], AMBIENT_KINDS[d.kind]);
         ambientSeeded = true;
@@ -2836,8 +2834,18 @@ async function main() {
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  setStatus("local preview");
-  document.body.dataset.ready = "1";
+  worldReady.then(() => {
+    worldBuilt = true;
+    document.body.dataset.worldBuilt = "1";
+    // Only the host page reports the world; the lobby Start waits for it.
+    if (hosting) sendInput("ui", { call: "world_ready", args: {} });
+    setStatus("local preview");
+    document.body.dataset.ready = "1";
+  }).catch((err) => {
+    const message = err && err.message ? err.message : String(err);
+    document.body.dataset.error = message;
+    failStart(err);
+  });
 }
 
 // Live debug API (window.oscraft) on every load, with no per-frame work; see debug_api.js for each call's effect.
