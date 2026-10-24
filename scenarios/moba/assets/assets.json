@@ -1,6 +1,6 @@
 {
- "count": 3080,
- "total_bytes": 103620364,
+ "count": 3087,
+ "total_bytes": 105727580,
  "items": [
   {
    "id": "rock",
@@ -7387,6 +7387,62 @@
    "path": "models/zuus-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 664672,
+   "role": "character"
+  },
+  {
+   "id": "bench-skinned",
+   "kind": "model",
+   "path": "models/bench-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 250876,
+   "role": "character"
+  },
+  {
+   "id": "campfire-stand-skinned",
+   "kind": "model",
+   "path": "models/campfire-stand-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 223616,
+   "role": "character"
+  },
+  {
+   "id": "fountain-skinned",
+   "kind": "model",
+   "path": "models/fountain-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 248820,
+   "role": "character"
+  },
+  {
+   "id": "grass-large-skinned",
+   "kind": "model",
+   "path": "models/grass-large-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 677592,
+   "role": "character"
+  },
+  {
+   "id": "patch-dirt-skinned",
+   "kind": "model",
+   "path": "models/patch-dirt-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 215100,
+   "role": "character"
+  },
+  {
+   "id": "rocks-skinned",
+   "kind": "model",
+   "path": "models/rocks-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 246996,
+   "role": "character"
+  },
+  {
+   "id": "tree-skinned",
+   "kind": "model",
+   "path": "models/tree-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 244216,
    "role": "character"
   },
   {
@@ -31996,7 +32052,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 228,
+  "character": 235,
   "creep": 5,
   "terrain": 7
  }
