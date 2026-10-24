@@ -41,8 +41,13 @@ export function mappedDoodadLines(records, kinds, { bases, routes }) {
   const lines = [];
   let excludedLane = 0, excludedBase = 0;
   records.forEach((r, k) => {
-    const kind = kinds.get(r.type);
-    if (!kind) return;
+    const mapped = kinds.get(r.type);
+    if (!mapped) return;
+    // A type the archive does not name cannot be matched to one kind honestly. Its placements
+    // are still real, so instead of drawing hundreds of one guessed prop, spread the records
+    // round-robin over the listed kinds (shipped_kind "a|b|c"). A single name still means one kind.
+    const parts = String(mapped).split("|").map((x) => x.trim()).filter(Boolean);
+    const kind = parts.length > 1 ? parts[k % parts.length] : parts[0];
     const onLane = routes.some((pts) => pts.some((p, i) => i + 1 < pts.length && segDist(r.x, r.y, p, pts[i + 1]) <= LANE_CELL_MILLI));
     if (onLane) { excludedLane++; return; }
     if (bases.some(([bx, by]) => Math.hypot(r.x - bx, r.y - by) <= BASE_CELL_MILLI)) { excludedBase++; return; }
