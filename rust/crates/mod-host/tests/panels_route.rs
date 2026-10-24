@@ -51,7 +51,7 @@ fn hud_and_lobby_are_sent_on_the_first_refresh() {
     let ui = host.take_ui();
     let hud = panel(&ui, "hud").expect("the hud panel is sent");
     assert!(hud.contains("\"slot\":\"hud\"") && hud.contains("\"player\":0"), "hud names its slot and seat: {hud}");
-    assert!(hud.contains("gold ") && hud.contains("pre-match"), "hud shows gold and the pre-match clock: {hud}");
+    assert!(hud.contains("gold "), "hud shows gold; the match clock is on the top strip: {hud}");
     let lobby = panel(&ui, "lobby").expect("the lobby is sent before the horn");
     assert!(lobby.contains("Hero select") && lobby.contains("Fill with bots"), "lobby tree: {lobby}");
 }
