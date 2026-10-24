@@ -597,7 +597,9 @@ local function on_tick()
   end
   for _, id in ipairs(ids) do
     local q = QUEUE[id]
-    if q ~= nil and game.alive(id) then
+    if q ~= nil and not game.alive(id) then
+      QUEUE[id] = nil
+    elseif q ~= nil then
       if #q == 0 then
         QUEUE[id] = nil
       elseif idle(id) then
