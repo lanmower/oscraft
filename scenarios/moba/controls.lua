@@ -586,8 +586,15 @@ end
 local function on_tick()
   if next(QUEUE) == nil then return end
   local ids = {}
-  for id in pairs(QUEUE) do ids[#ids + 1] = id end
-  table.sort(ids)
+  -- The sandbox has no table library, so the ids are kept in ascending order by insertion.
+  for id in pairs(QUEUE) do
+    local j = #ids + 1
+    while j > 1 and ids[j - 1] > id do
+      ids[j] = ids[j - 1]
+      j = j - 1
+    end
+    ids[j] = id
+  end
   for _, id in ipairs(ids) do
     local q = QUEUE[id]
     if q ~= nil and game.alive(id) then
