@@ -483,6 +483,9 @@ function boxMean(grid, values) {
   return out;
 }
 
+// Water rock: a water cell's rock weight is its wet box-mean (the share of water around it), eased from this value up to 1
+// (all water). A bank puts land across its box and holds the mean below this value, so only the deep middle takes rock.
+const WATER_ROCK_WET_LO = 0.9;
 // Control map for a grid: { data: Uint8Array RGBA per cell, width, height }, each cell's channel at full weight.
 export function controlMap(bytes) {
   const grid = readGrid(bytes);
@@ -522,13 +525,19 @@ export function controlMap(bytes) {
     for (let c = 0; c < ground; c++) data[o + c] = Math.round((budget * groundShare[c][i]) / total);
   }
   // Rock (cliff) weight fades over RAMP_SPAN cells: the share of wall cells around each cell, eased, moves weight from the
-  // ground channels to rock, so a cliff meets its ground along a gradual edge instead of a line. Display only.
+  // ground channels to rock, so a cliff meets its ground along a gradual edge instead of a line. Display only. A water cell
+  // takes rock from its wet box-mean instead (WATER_ROCK_WET_LO), so the rock stands in the middle of a river and not on its banks.
   const rock = SPLAT_LAYERS.indexOf("rock");
   const walls = new Float32Array(width * height);
   for (let i = 0; i < walls.length; i++) if (isCliffLevelCell(grid, i)) walls[i] = 1;
   const rockShare = boxMean(grid, boxMean(grid, walls));
+  const wet = new Float32Array(width * height);
+  for (let i = 0; i < wet.length; i++) if (kinds[i] === "water") wet[i] = 1;
+  const wetShare = boxMean(grid, wet);
   for (let i = 0; i < walls.length; i++) {
-    const r = easeStep(2 * rockShare[i]);
+    const r = kinds[i] === "water"
+      ? easeStep((wetShare[i] - WATER_ROCK_WET_LO) / (1 - WATER_ROCK_WET_LO))
+      : easeStep(2 * rockShare[i]);
     if (r <= 0) continue;
     const o = i * 4;
     for (let c = 0; c < rock; c++) data[o + c] = Math.round(data[o + c] * (1 - r));
