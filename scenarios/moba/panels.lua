@@ -686,6 +686,9 @@ local function lobby_act(call, a)
       if h == a.hero then known = true end
     end
     if not known then L.error = "unknown-hero" return end
+    for j, other in ipairs(L.slots) do
+      if j ~= i and other.hero == a.hero then L.error = "hero-held" return end
+    end
     s.hero = a.hero
   elseif call == "ready" then
     if s.owner ~= owner then L.error = "not-owner" return end
