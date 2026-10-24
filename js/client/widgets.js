@@ -72,6 +72,7 @@ const STYLE = `
 #ui-right{max-height:calc(100vh - 473px);overflow-y:auto}
 #ui-bar-mid .w-cell{min-height:26px}
 .w-panel-toggle{min-height:30px}
+#ui-modal{top:272px;transform:translateX(-50%);max-height:calc(100vh - 400px)}
 }
 `;
 
