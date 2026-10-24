@@ -1054,5 +1054,7 @@
   "grave_skinned": "models/grave-skinned.glb",
   "tall_tree_skinned": "models/tall-tree-skinned.glb",
   "coffin_skinned": "models/coffin-skinned.glb",
-  "crypt_skinned": "models/crypt-skinned.glb"
+  "crypt_skinned": "models/crypt-skinned.glb",
+  "courier_skinned": "models/courier-skinned.glb",
+  "vampire_skinned": "models/vampire-skinned.glb"
 }

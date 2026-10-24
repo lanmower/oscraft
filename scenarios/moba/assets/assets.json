@@ -1,6 +1,6 @@
 {
- "count": 3098,
- "total_bytes": 109051604,
+ "count": 3100,
+ "total_bytes": 109527204,
  "items": [
   {
    "id": "rock",
@@ -7531,6 +7531,22 @@
    "path": "models/crypt-skinned.glb",
    "placed_by": "doodads.json",
    "bytes": 396280,
+   "role": "character"
+  },
+  {
+   "id": "courier-skinned",
+   "kind": "model",
+   "path": "models/courier-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 243664,
+   "role": "character"
+  },
+  {
+   "id": "vampire-skinned",
+   "kind": "model",
+   "path": "models/vampire-skinned.glb",
+   "placed_by": "doodads.json",
+   "bytes": 231936,
    "role": "character"
   },
   {
@@ -32140,7 +32156,7 @@
   "prop": 256,
   "structure": 353,
   "building": 107,
-  "character": 246,
+  "character": 248,
   "creep": 5,
   "terrain": 7
  }
