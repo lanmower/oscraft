@@ -8,6 +8,7 @@
 --   on_action("skill_up", a)   raise ability slot a.slot of the local seat's hero
 --   on_action("bind", args)    a runtime key bind: args.key with args.action, or args.remove = true
 --   on_action("camera_to", a)  glide the camera to the ground point (a.x, a.z), e.g. a click on the minimap
+--   on_action("viewport", a)   the ground rectangle the page shows: a.x0, a.z0, a.x1, a.z1 in tiles (double-click)
 --   on_action("view", args)    the view toggles: args.fog (true or false); the page applies the reply
 --   on_pointer(kind, x, y, button, state)  the local seat's ground event; kind "down", "up" or "move"; x, y in tiles
 -- Every seat has its own selection, control groups, target arm and press. Feedback is sent out as UI events that
@@ -154,6 +155,41 @@ local function click_ids(who, hit, additive)
   return out
 end
 
+-- Double-click: the same own unit clicked twice within the double-tap window. The first click has already selected
+-- it, so the second click is the one that selects its whole kind.
+local function is_double_click(who, hit)
+  local s = st(who)
+  local now = game.time()
+  local last = s.lastClick
+  if hit == nil then
+    s.lastClick = nil
+    return false
+  end
+  s.lastClick = { id = hit.id, tick = now }
+  return hit.player == who and last ~= nil and last.id == hit.id and now - last.tick <= CFG.doubleTapTicks
+end
+
+-- The page sends the ground rectangle it shows (action "viewport", tiles). Until it has sent one, nothing is off screen.
+local function on_screen(who, id)
+  local v = st(who).view
+  if v == nil then return true end
+  local ux, uz = unit_position(id)
+  ux, uz = tile(ux), tile(uz)
+  return ux >= v.x0 and ux <= v.x1 and uz >= v.z0 and uz <= v.z1
+end
+
+-- The living units of seat `who` that have the kind of unit `id` and are on screen, in unit order.
+local function same_kind_on_screen(who, id)
+  local kind = game.unit_kind(id)
+  if kind == nil then return { id } end
+  local out = {}
+  for _, u in ipairs(game.units(who)) do
+    if game.unit_kind(u) == kind and on_screen(who, u) then out[#out + 1] = u end
+  end
+  return out
+end
+
+
 local function refuse(who, reason)
   local text = CFG.refusals[reason] or CFG.refusals.refused or reason
   feedback(who, '"kind":"refusal","reason":' .. json_str(reason) .. ',"text":' .. json_str(text))
@@ -220,15 +256,20 @@ local function order_selected(who, x, z, enemy, attack, queued)
   return true
 end
 
+-- Stop and hold replace the order, so they also drop the shift-queued orders behind it.
 local function stop_selected(who)
   for _, id in ipairs(my_selected(who)) do
+    QUEUE[id] = nil
     local ux, uz = unit_position(id)
     game.cmd_order(id, ux, uz)
   end
 end
 
 local function hold_selected(who)
-  for _, id in ipairs(my_selected(who)) do game.cmd_hold(id) end
+  for _, id in ipairs(my_selected(who)) do
+    QUEUE[id] = nil
+    game.cmd_hold(id)
+  end
 end
 
 local function centre_on(who, id)
@@ -459,9 +500,14 @@ local function on_ground(who, kind, x, y, button)
     return
   end
   local hit = pick(x, y)
+  local double = is_double_click(who, hit)
   if s.attack_next then
     s.attack_next = false
     order_selected(who, x, y, is_enemy(who, hit) and hit or nil, true, p.shift)
+    return
+  end
+  if double and not p.shift then
+    set_selection(who, same_kind_on_screen(who, hit.id))
     return
   end
   set_selection(who, click_ids(who, hit, p.shift))
@@ -480,7 +526,7 @@ local function setup(args)
 end
 
 -- The actions this file answers, listed for the page's debug API (oscraft.debug.actions()).
-local ACTIONS = { "setup", "key", "pointer", "select", "skill_up", "bind", "camera_to", "view", "debug_actions" }
+local ACTIONS = { "setup", "key", "pointer", "select", "ui", "skill_up", "seat_pick", "bind", "camera_to", "view", "viewport", "debug_actions" }
 
 local function on_action(name, args)
   if name == "debug_actions" then
@@ -495,12 +541,16 @@ local function on_action(name, args)
   elseif name == "key" then
     on_key(args.player or LOCAL, args)
   elseif name == "pointer" then
-    on_ground(args.player, args.kind, args.x, args.y, args.button)
+    on_ground(args.player or LOCAL, args.kind, args.x, args.y, args.button)
   elseif name == "select" then
     set_selection(args.player or LOCAL, args.ids or {})
   elseif name == "ui" then
     -- A panel's button press (panels.lua owns the panels): the selection tiles select through here.
     if args.call == "select" and args.args ~= nil then set_selection(args.player or LOCAL, args.args.ids or {}) end
+  elseif name == "viewport" then
+    if args.x0 and args.z0 and args.x1 and args.z1 then
+      st(args.player or LOCAL).view = { x0 = args.x0, z0 = args.z0, x1 = args.x1, z1 = args.z1 }
+    end
   elseif name == "skill_up" then
     skill_up(args.player or LOCAL, args.slot)
   elseif name == "seat_pick" then

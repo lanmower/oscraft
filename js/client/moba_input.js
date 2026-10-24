@@ -22,9 +22,23 @@ export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
     if (e.detail && e.detail.kind === "selection") selection = [...e.detail.ids];
   }
 
+  // The ground rectangle the window shows, in tiles (the corners hud.js maps for the minimap).
+  function viewRect() {
+    const corners = [[0, 0], [window.innerWidth, 0], [0, window.innerHeight], [window.innerWidth, window.innerHeight]]
+      .map(([x, y]) => toWorld(x, y));
+    return {
+      x0: Math.min(...corners.map((c) => c.x)),
+      z0: Math.min(...corners.map((c) => c.z)),
+      x1: Math.max(...corners.map((c) => c.x)),
+      z1: Math.max(...corners.map((c) => c.z)),
+    };
+  }
+
+  // The pack resolves a click on release, so a rectangle sent on every ground press is current when a double-click resolves.
   function onDown(e) {
     if (e.button !== 0 || !isGround(e.target)) return;
     press = { x: e.clientX, y: e.clientY, moved: false };
+    send("viewport", viewRect());
   }
 
   function onMove(e) {
