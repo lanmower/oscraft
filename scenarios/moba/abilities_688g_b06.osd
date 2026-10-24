@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 06 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# enchantress 6.88g A0DX Enchant
+ability("enchantress_enchant", 480, 65, "none", [])
+# enchantress 6.88g A01B Nature's Attendants
+ability("enchantress_nature_s_attendants", 720, 125, "none", [])
+# enchantress 6.88g A0DW Untouchable
+ability("enchantress_untouchable", 0, 0, "none", [])
+# enchantress 6.88g A0DY Impetus
+ability("enchantress_impetus", 0, 55, "none", [])
+# night_stalker 6.88g A086 Hunter in the Night
+ability("night_stalker_hunter_in_the_night", 0, 0, "none", [])
+# night_stalker 6.88g A08E Crippling Fear
+ability("night_stalker_crippling_fear", 0, 0, "none", [])
+# night_stalker 6.88g A03K Darkness
+ability("night_stalker_darkness", 2560, 0, "none", [])
+# night_stalker 6.88g A02H Void
+ability("night_stalker_void", 128, 80, "none", [])
+# broodmother 6.88g A0WQ Insatiable Hunger
+ability("broodmother_insatiable_hunger", 720, 100, "none", [])
+# broodmother 6.88g A0BK Incapacitating Bite
+ability("broodmother_incapacitating_bite", 0, 0, "none", [])
+# broodmother 6.88g A0BH Spawn Spiderlings
+ability("broodmother_spawn_spiderlings", 160, 120, "none", [])
+# broodmother 6.88g A0BG Spin Web
+ability("broodmother_spin_web", 0, 50, "none", [])
+# bounty_hunter 6.88g A1IQ Jinada
+ability("bounty_hunter_jinada", 0, 0, "none", [])
+# bounty_hunter 6.88g A07A Wind Walk
+ability("bounty_hunter_wind_walk", 240, 50, "none", [])
+# bounty_hunter 6.88g A004 Shuriken Toss
+ability("bounty_hunter_shuriken_toss", 160, 120, "none", [])
+# bounty_hunter 6.88g A0B4 Track
+ability("bounty_hunter_track", 64, 50, "none", [])
+# batrider 6.88g A1EL Sticky Napalm
+ability("batrider_sticky_napalm", 48, 20, "none", [])
+# batrider 6.88g A19V Flamebreak
+ability("batrider_flamebreak", 224, 110, "none", [])
+# batrider 6.88g A19Z Firefly
+ability("batrider_firefly", 640, 100, "none", [])
+# batrider 6.88g A19O Flaming Lasso
+ability("batrider_flaming_lasso", 1440, 225, "none", [])

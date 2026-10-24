@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 07 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# spectre 6.88g A0FX Desolate
+ability("spectre_desolate", 0, 0, "none", [])
+# spectre 6.88g A0NA Dispersion
+ability("spectre_dispersion", 0, 0, "none", [])
+# spectre 6.88g A0HW Spectral Dagger
+ability("spectre_spectral_dagger", 256, 130, "none", [])
+# spectre 6.88g A0H9 Haunt
+ability("spectre_haunt", 2240, 150, "none", [])
+# doom_bringer 6.88g A094 LVL? Death
+ability("doom_bringer_lvl_death", 112, 110, "none", [])
+# doom_bringer 6.88g A35D Devour
+ability("doom_bringer_devour", 0, 0, "none", [])
+# doom_bringer 6.88g A1OP Scorched Earth
+ability("doom_bringer_scorched_earth", 880, 60, "none", [])
+# doom_bringer 6.88g A0MU Doom Basic
+ability("doom_bringer_doom_basic", 2000, 150, "none", [])
+# ancient_apparition 6.88g A1HS Ice Vortex
+ability("ancient_apparition_ice_vortex", 64, 80, "none", [])
+# ancient_apparition 6.88g A1MG Cold Feet
+ability("ancient_apparition_cold_feet", 240, 150, "none", [])
+# ancient_apparition 6.88g A1MI Ice Blast
+ability("ancient_apparition_ice_blast", 640, 100, "none", [])
+# ancient_apparition 6.88g A1HQ Chilling Touch
+ability("ancient_apparition_chilling_touch", 800, 110, "none", [])
+# spirit_breaker 6.88g A1P8 Charge of Darkness
+ability("spirit_breaker_charge_of_darkness", 0, 100, "none", [])
+# spirit_breaker 6.88g A0G4 Nether Strike
+ability("spirit_breaker_nether_strike", 1280, 125, "none", [])
+# spirit_breaker 6.88g A0G5 Greater Bash
+ability("spirit_breaker_greater_bash", 0, 0, "none", [])
+# spirit_breaker 6.88g A0ES Empowering Haste
+ability("spirit_breaker_empowering_haste", 192, 0, "none", [])
+# gyrocopter 6.88g A1SO Rocket Barrage
+ability("gyrocopter_rocket_barrage", 112, 90, "none", [])
+# gyrocopter 6.88g A1SQ Homing Missile
+ability("gyrocopter_homing_missile", 320, 120, "none", [])
+# gyrocopter 6.88g A229 Flak Cannon
+ability("gyrocopter_flak_cannon", 480, 50, "none", [])
+# gyrocopter 6.88g A1T5 Call Down
+ability("gyrocopter_call_down", 880, 125, "none", [])

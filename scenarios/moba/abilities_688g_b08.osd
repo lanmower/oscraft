@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 08 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# alchemist 6.88g A1NI Unstable Concoction
+ability("alchemist_unstable_concoction", 256, 120, "none", [])
+# alchemist 6.88g A0IL Acid Spray
+ability("alchemist_acid_spray", 352, 130, "none", [])
+# alchemist 6.88g A0O3 Goblin's Greed
+ability("alchemist_goblin_s_greed", 0, 0, "none", [])
+# alchemist 6.88g ANcr Chemical Rage
+ability("alchemist_chemical_rage", 720, 50, "none", [])
+# invoker 6.88g A21Y Invoke
+ability("invoker_invoke", 352, 20, "none", [])
+# invoker 6.88g A21X Wex
+ability("invoker_wex", 0, 0, "none", [])
+# invoker 6.88g A21W Quas
+ability("invoker_quas", 0, 0, "none", [])
+# invoker 6.88g A21V Exort
+ability("invoker_exort", 0, 0, "none", [])
+# silencer 6.88g A0LZ Glaives of Wisdom
+ability("silencer_glaives_of_wisdom", 0, 15, "none", [])
+# silencer 6.88g A2NT Last Word
+ability("silencer_last_word", 480, 115, "none", [])
+# silencer 6.88g A14L Curse of the Silent
+ability("silencer_curse_of_the_silent", 320, 75, "none", [])
+# silencer 6.88g A0L3 Global Silence
+ability("silencer_global_silence", 2080, 250, "none", [])
+# obsidian_destroyer 6.88g A0OK Sanity's Eclipse
+ability("obsidian_destroyer_sanity_s_eclipse", 2560, 175, "none", [])
+# obsidian_destroyer 6.88g A0OJ Astral Imprisonment
+ability("obsidian_destroyer_astral_imprisonment", 288, 120, "none", [])
+# obsidian_destroyer 6.88g A0OI Arcane Orb
+ability("obsidian_destroyer_arcane_orb", 0, 100, "none", [])
+# obsidian_destroyer 6.88g A0IF Essence Aura
+ability("obsidian_destroyer_essence_aura", 0, 0, "none", [])
+# brewmaster 6.88g A06M Thunder Clap
+ability("brewmaster_thunder_clap", 208, 90, "none", [])
+# brewmaster 6.88g Acdh Drunken Haze
+ability("brewmaster_drunken_haze", 128, 50, "none", [])
+# brewmaster 6.88g A0MX Drunken Brawler
+ability("brewmaster_drunken_brawler", 0, 0, "none", [])
+# brewmaster 6.88g A0MQ Primal Split
+ability("brewmaster_primal_split", 2240, 125, "none", [])

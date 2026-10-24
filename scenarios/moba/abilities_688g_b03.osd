@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 03 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# enigma 6.88g A0I7 Malefice
+ability("enigma_malefice", 240, 110, "none", [])
+# enigma 6.88g A180 Demonic Conversion
+ability("enigma_demonic_conversion", 560, 170, "none", [])
+# enigma 6.88g A0B1 Midnight Pulse
+ability("enigma_midnight_pulse", 560, 95, "none", [])
+# enigma 6.88g A1BX Black Hole
+ability("enigma_black_hole", 3200, 275, "none", [])
+# tinker 6.88g A065 Rearm
+ability("tinker_rearm", 0, 125, "none", [])
+# tinker 6.88g A049 Laser
+ability("tinker_laser", 224, 95, "none", [])
+# tinker 6.88g A05E Heat Seeking Missile
+ability("tinker_heat_seeking_missile", 400, 120, "none", [])
+# tinker 6.88g A0BQ March of the Machines
+ability("tinker_march_of_the_machines", 560, 145, "none", [])
+# necrolyte 6.88g A067 Reaper's Scythe
+ability("necrolyte_reaper_s_scythe", 1600, 175, "none", [])
+# necrolyte 6.88g A05V Death Pulse
+ability("necrolyte_death_pulse", 128, 125, "none", [])
+# necrolyte 6.88g A060 Sadist
+ability("necrolyte_sadist", 0, 0, "none", [])
+# necrolyte 6.88g A01N Heartstopper Aura
+ability("necrolyte_heartstopper_aura", 0, 0, "none", [])
+# warlock 6.88g A0J5 Fatal Bonds
+ability("warlock_fatal_bonds", 400, 120, "none", [])
+# warlock 6.88g A0AS Shadow Word
+ability("warlock_shadow_word", 256, 90, "none", [])
+# warlock 6.88g A06P Upheaval
+ability("warlock_upheaval", 800, 100, "none", [])
+# warlock 6.88g S008 Rain of Chaos
+ability("warlock_rain_of_chaos", 2640, 200, "none", [])
+# beastmaster 6.88g A0OO Call of the Wild
+ability("beastmaster_call_of_the_wild", 640, 15, "none", [])
+# beastmaster 6.88g A0O1 Wild Axes
+ability("beastmaster_wild_axes", 208, 120, "none", [])
+# beastmaster 6.88g A0BD Inner Beast
+ability("beastmaster_inner_beast", 0, 0, "none", [])
+# beastmaster 6.88g A0O2 Primal Roar
+ability("beastmaster_primal_roar", 1280, 150, "none", [])

@@ -1,0 +1,45 @@
+# 6.88g hero abilities, batch 01 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# 6.88g hero abilities for units_heroes.osd (drain-b-1). Source: reference map 6.88g, the heroAbilList of each hero unit (unit.ini)
+# and its AbilityData row (abilities_688g_perlevel.tsv). Cooldown is level-1 ticks (seconds x 16) and energy is level-1 mana.
+# Attribute Bonus (A0NR) is skipped: the pack carries hero attributes in attr_rules.txt. Effects are empty: UNVERIFIED, because 6.88g
+# Data fields are not mapped to engine effects (abilities_688g_perlevel.tsv header). Each is a learnable name with no effect yet.
+# bane 6.88g A02Q Fiend's Grip
+ability("bane_fiend_s_grip", 1600, 200, "none", [])
+# bane 6.88g A0GK Brain Sap
+ability("bane_brain_sap", 224, 70, "none", [])
+# bane 6.88g A2OI Enfeeble
+ability("bane_enfeeble", 128, 95, "none", [])
+# bane 6.88g A04Y Nightmare
+ability("bane_nightmare", 256, 165, "none", [])
+# bloodseeker 6.88g A0LH Rupture
+ability("bloodseeker_rupture", 960, 150, "none", [])
+# bloodseeker 6.88g A0I8 Strygwyr's Thirst
+ability("bloodseeker_strygwyr_s_thirst", 0, 0, "none", [])
+# bloodseeker 6.88g A2X9 Bloodrage
+ability("bloodseeker_bloodrage", 192, 0, "none", [])
+# bloodseeker 6.88g A2X8 Blood Rite
+ability("bloodseeker_blood_rite", 464, 100, "none", [])
+# drow_ranger 6.88g A2WF Gust
+ability("drow_ranger_gust", 208, 90, "none", [])
+# drow_ranger 6.88g A2O2 Trueshot Aura
+ability("drow_ranger_trueshot_aura", 1920, 0, "none", [])
+# drow_ranger 6.88g A026 Frost Arrows
+ability("drow_ranger_frost_arrows", 0, 12, "none", [])
+# drow_ranger 6.88g A0VC Marksmanship
+ability("drow_ranger_marksmanship", 0, 0, "none", [])
+# earthshaker 6.88g A0DH Echo Slam
+ability("earthshaker_echo_slam", 2400, 145, "none", [])
+# earthshaker 6.88g A0DL Enchant Totem
+ability("earthshaker_enchant_totem", 80, 35, "none", [])
+# earthshaker 6.88g A0SK Fissure
+ability("earthshaker_fissure", 240, 125, "none", [])
+# earthshaker 6.88g A0DJ Aftershock
+ability("earthshaker_aftershock", 0, 0, "none", [])
+# morphling 6.88g A0G6 Adaptive Strike
+ability("morphling_adaptive_strike", 160, 100, "none", [])
+# morphling 6.88g A0G8 Replicate
+ability("morphling_replicate", 1280, 25, "none", [])
+# morphling 6.88g A0KX Morph
+ability("morphling_morph", 16, 0, "none", [])
+# morphling 6.88g A0FN Waveform
+ability("morphling_waveform", 176, 140, "none", [])

@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 05 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# phantom_assassin 6.88g A0YM Stifling Dagger
+ability("phantom_assassin_stifling_dagger", 96, 30, "none", [])
+# phantom_assassin 6.88g A0PL Phantom Strike
+ability("phantom_assassin_phantom_strike", 224, 50, "none", [])
+# phantom_assassin 6.88g A03P Blur
+ability("phantom_assassin_blur", 0, 0, "none", [])
+# phantom_assassin 6.88g A03Q Coup de grace
+ability("phantom_assassin_coup_de_grace", 0, 0, "none", [])
+# templar_assassin 6.88g A0RP Psionic Trap
+ability("templar_assassin_psionic_trap", 176, 15, "none", [])
+# templar_assassin 6.88g A0RO Psi Blades
+ability("templar_assassin_psi_blades", 0, 0, "none", [])
+# templar_assassin 6.88g A1EA Refraction
+ability("templar_assassin_refraction", 272, 0, "none", [])
+# templar_assassin 6.88g A0RV Meld
+ability("templar_assassin_meld", 96, 50, "none", [])
+# dragon_knight 6.88g A03G Elder Dragon Form
+ability("dragon_knight_elder_dragon_form", 1840, 50, "none", [])
+# dragon_knight 6.88g A03F Breathe Fire
+ability("dragon_knight_breathe_fire", 192, 100, "none", [])
+# dragon_knight 6.88g A2AI Dragon Tail
+ability("dragon_knight_dragon_tail", 0, 0, "none", [])
+# dragon_knight 6.88g A0CL Dragon Blood
+ability("dragon_knight_dragon_blood", 0, 0, "none", [])
+# life_stealer 6.88g A0SW Infest
+ability("life_stealer_infest", 1600, 50, "none", [])
+# life_stealer 6.88g A0SS Feast
+ability("life_stealer_feast", 0, 0, "none", [])
+# life_stealer 6.88g A2TT Rage
+ability("life_stealer_rage", 256, 75, "none", [])
+# life_stealer 6.88g A194 Open Wounds
+ability("life_stealer_open_wounds", 384, 110, "none", [])
+# dark_seer 6.88g A0QK Wall of Replica
+ability("dark_seer_wall_of_replica", 1600, 125, "none", [])
+# dark_seer 6.88g A0R7 Surge
+ability("dark_seer_surge", 192, 20, "none", [])
+# dark_seer 6.88g A0QG Ion Shell
+ability("dark_seer_ion_shell", 144, 70, "none", [])
+# dark_seer 6.88g A0QE Vacuum
+ability("dark_seer_vacuum", 448, 100, "none", [])

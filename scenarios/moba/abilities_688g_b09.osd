@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 09 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# shadow_demon 6.88g A1S4 Shadow Poison
+ability("shadow_demon_shadow_poison", 40, 40, "none", [])
+# shadow_demon 6.88g A1S8 Disruption
+ability("shadow_demon_disruption", 400, 120, "none", [])
+# shadow_demon 6.88g A31F Demonic Purge
+ability("shadow_demon_demonic_purge", 800, 200, "none", [])
+# shadow_demon 6.88g A1SB Soul Catcher
+ability("shadow_demon_soul_catcher", 208, 50, "none", [])
+# lone_druid 6.88g A0A5 Summon Spirit Bear
+ability("lone_druid_summon_spirit_bear", 1920, 75, "none", [])
+# lone_druid 6.88g A0A8 Synergy
+ability("lone_druid_synergy", 0, 0, "none", [])
+# lone_druid 6.88g A1EF Rabid
+ability("lone_druid_rabid", 480, 50, "none", [])
+# lone_druid 6.88g A0AG True Form
+ability("lone_druid_true_form", 0, 25, "none", [])
+# chaos_knight 6.88g A03O Phantasm
+ability("chaos_knight_phantasm", 2240, 125, "none", [])
+# chaos_knight 6.88g A03N Chaos Strike
+ability("chaos_knight_chaos_strike", 0, 0, "none", [])
+# chaos_knight 6.88g A0RW Reality Rift
+ability("chaos_knight_reality_rift", 384, 50, "none", [])
+# chaos_knight 6.88g A055 Chaos Bolt
+ability("chaos_knight_chaos_bolt", 160, 140, "none", [])
+# ogre_magi 6.88g A011 Ignite
+ability("ogre_magi_ignite", 240, 95, "none", [])
+# ogre_magi 6.88g A04W Fireblast
+ability("ogre_magi_fireblast", 192, 75, "none", [])
+# ogre_magi 6.88g A083 Bloodlust
+ability("ogre_magi_bloodlust", 320, 75, "none", [])
+# ogre_magi 6.88g A088 Multi Cast
+ability("ogre_magi_multi_cast", 0, 0, "none", [])
+# undying 6.88g A15S Decay
+ability("undying_decay", 160, 70, "none", [])
+# undying 6.88g A0R5 Soul Rip
+ability("undying_soul_rip", 384, 100, "none", [])
+# undying 6.88g A15V Tombstone
+ability("undying_tombstone", 960, 120, "none", [])
+# undying 6.88g A15J Flesh Golem
+ability("undying_flesh_golem", 1200, 100, "none", [])

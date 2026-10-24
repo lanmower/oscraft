@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 11 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# bristleback 6.88g A0FV Warpath
+ability("bristleback_warpath", 0, 0, "none", [])
+# bristleback 6.88g A0M3 Bristleback
+ability("bristleback_bristleback", 0, 0, "none", [])
+# bristleback 6.88g A0GP Quill Spray
+ability("bristleback_quill_spray", 48, 35, "none", [])
+# bristleback 6.88g A0FW Viscous Nasal Goo
+ability("bristleback_viscous_nasal_goo", 24, 30, "none", [])
+# tusk 6.88g A1YO Ice Shards
+ability("tusk_ice_shards", 288, 100, "none", [])
+# tusk 6.88g A1YQ Walrus Punch
+ability("tusk_walrus_punch", 320, 50, "none", [])
+# tusk 6.88g A1S7 Snowball
+ability("tusk_snowball", 336, 75, "none", [])
+# tusk 6.88g A1YR Frozen Sigil
+ability("tusk_frozen_sigil", 800, 75, "none", [])
+# skywrath_mage 6.88g A2BE Arcane Bolt
+ability("skywrath_mage_arcane_bolt", 80, 70, "none", [])
+# skywrath_mage 6.88g A2HN Ancient Seal
+ability("skywrath_mage_ancient_seal", 224, 80, "none", [])
+# skywrath_mage 6.88g A2BG Mystic Flare
+ability("skywrath_mage_mystic_flare", 960, 350, "none", [])
+# skywrath_mage 6.88g A2IT Concussive Shot
+ability("skywrath_mage_concussive_shot", 288, 95, "none", [])
+# legion_commander 6.88g A2CI Duel
+ability("legion_commander_duel", 800, 75, "none", [])
+# legion_commander 6.88g A2EY Moment of Courage
+ability("legion_commander_moment_of_courage", 0, 0, "none", [])
+# legion_commander 6.88g A2J2 Press The Attack
+ability("legion_commander_press_the_attack", 256, 110, "none", [])
+# legion_commander 6.88g A2JB Overwhelming Odds
+ability("legion_commander_overwhelming_odds", 240, 100, "none", [])
+# ember_spirit 6.88g A2H0 Sleight of Fist
+ability("ember_spirit_sleight_of_fist", 480, 50, "none", [])
+# ember_spirit 6.88g A2H3 Searing Chains
+ability("ember_spirit_searing_chains", 224, 110, "none", [])
+# ember_spirit 6.88g A2HS Flame Guard
+ability("ember_spirit_flame_guard", 560, 80, "none", [])
+# ember_spirit 6.88g A2JK Fire Remnant Learning
+ability("ember_spirit_fire_remnant_learning", 0, 0, "none", [])

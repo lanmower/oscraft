@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 02 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# sand_king 6.88g A06R Epicenter
+ability("sand_king_epicenter", 2240, 175, "none", [])
+# sand_king 6.88g A0H0 Sand Storm
+ability("sand_king_sand_storm", 640, 60, "none", [])
+# sand_king 6.88g A06O Burrowstrike
+ability("sand_king_burrowstrike", 176, 110, "none", [])
+# sand_king 6.88g A0FA Caustic Finale
+ability("sand_king_caustic_finale", 0, 0, "none", [])
+# storm_spirit 6.88g A14R Electric Vortex
+ability("storm_spirit_electric_vortex", 336, 85, "none", [])
+# storm_spirit 6.88g A14P Static Remnant
+ability("storm_spirit_static_remnant", 56, 0, "none", [])
+# storm_spirit 6.88g A14O Ball Lightning
+ability("storm_spirit_ball_lightning", 0, 0, "none", [])
+# storm_spirit 6.88g A0QW Overload
+ability("storm_spirit_overload", 0, 0, "none", [])
+# windrunner 6.88g A12P Focus Fire
+ability("windrunner_focus_fire", 960, 75, "none", [])
+# windrunner 6.88g A12K Powershot
+ability("windrunner_powershot", 144, 90, "none", [])
+# windrunner 6.88g A14I Windrunner
+ability("windrunner_windrunner", 240, 0, "none", [])
+# windrunner 6.88g A12J Shackleshot
+ability("windrunner_shackleshot", 192, 90, "none", [])
+# shadow_shaman 6.88g A00P Shackles
+ability("shadow_shaman_shackles", 160, 140, "none", [])
+# shadow_shaman 6.88g A0RX Voodoo
+ability("shadow_shaman_voodoo", 208, 110, "none", [])
+# shadow_shaman 6.88g A010 Ether Shock
+ability("shadow_shaman_ether_shock", 128, 95, "none", [])
+# shadow_shaman 6.88g A00H Mass Serpent Ward
+ability("shadow_shaman_mass_serpent_ward", 1920, 200, "none", [])
+# witch_doctor 6.88g A0NO Maledict
+ability("witch_doctor_maledict", 320, 120, "none", [])
+# witch_doctor 6.88g A0NM Paralyzing Cask
+ability("witch_doctor_paralyzing_cask", 320, 110, "none", [])
+# witch_doctor 6.88g A0NT Death Ward
+ability("witch_doctor_death_ward", 1280, 200, "none", [])
+# witch_doctor 6.88g A0NE Voodoo Restoration
+ability("witch_doctor_voodoo_restoration", 0, 10, "none", [])

@@ -1,0 +1,41 @@
+# 6.88g hero abilities, batch 10 of 12. Moved out of abilities.osd; learnable names, effects UNVERIFIED (see abilities_688g_perlevel.tsv).
+# disruptor 6.88g A1SU Kinetic Field
+ability("disruptor_kinetic_field", 208, 70, "none", [])
+# disruptor 6.88g A1TV Thunder Strike
+ability("disruptor_thunder_strike", 192, 130, "none", [])
+# disruptor 6.88g A1SW Glimpse
+ability("disruptor_glimpse", 960, 100, "none", [])
+# disruptor 6.88g A1U6 Static Storm
+ability("disruptor_static_storm", 1440, 125, "none", [])
+# naga_siren 6.88g A2KU Rip Tide
+ability("naga_siren_rip_tide", 160, 80, "none", [])
+# naga_siren 6.88g A24D Ensnare
+ability("naga_siren_ensnare", 192, 90, "none", [])
+# naga_siren 6.88g A063 Mirror Image
+ability("naga_siren_mirror_image", 640, 70, "none", [])
+# naga_siren 6.88g A07U Song of the Siren
+ability("naga_siren_song_of_the_siren", 2880, 100, "none", [])
+# keeper_of_the_light 6.88g A085 Illuminate
+ability("keeper_of_the_light_illuminate", 160, 150, "none", [])
+# keeper_of_the_light 6.88g A10X Mana Leak
+ability("keeper_of_the_light_mana_leak", 256, 75, "none", [])
+# keeper_of_the_light 6.88g A2XQ Spirit Form
+ability("keeper_of_the_light_spirit_form", 0, 200, "none", [])
+# keeper_of_the_light 6.88g A112 Chakra Magic
+ability("keeper_of_the_light_chakra_magic", 304, 25, "none", [])
+# troll_warlord 6.88g A0BE Berserker Rage
+ability("troll_warlord_berserker_rage", 0, 0, "none", [])
+# troll_warlord 6.88g A21L Whirling Axes
+ability("troll_warlord_whirling_axes", 0, 0, "none", [])
+# troll_warlord 6.88g A0O0 Fervor
+ability("troll_warlord_fervor", 0, 0, "none", [])
+# troll_warlord 6.88g A1EJ Battle Trance
+ability("troll_warlord_battle_trance", 480, 75, "none", [])
+# magnataur 6.88g A02S Shockwave
+ability("magnataur_shockwave", 160, 90, "none", [])
+# magnataur 6.88g A037 Empower
+ability("magnataur_empower", 128, 30, "none", [])
+# magnataur 6.88g A1RD Skewer
+ability("magnataur_skewer", 480, 80, "none", [])
+# magnataur 6.88g A29L Reverse Polarity
+ability("magnataur_reverse_polarity", 1920, 200, "none", [])
