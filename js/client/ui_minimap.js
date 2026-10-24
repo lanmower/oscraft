@@ -25,10 +25,6 @@ function sizeFor(own, hero) {
   return own ? SIZE.own : SIZE.creep;
 }
 
-export function dotSize({ own, hero }) {
-  return sizeFor(own, hero);
-}
-
 function clamp01(f) {
   return f < 0 ? 0 : f > 1 ? 1 : f;
 }
@@ -37,8 +33,8 @@ function mix(h, v) {
   return Math.imul(h ^ (v | 0), 16777619);
 }
 
-export function createMinimap({ canvas, mapSize, lanes, units, selected, localPlayer, playerColor, teams, viewRect, centre, isHero = () => false, isBuilding = () => false }) {
-  hot.set("ui-minimap", { canvas, mapSize, lanes, units, selected, localPlayer, playerColor, teams, viewRect, centre, isHero, isBuilding });
+export function createMinimap({ canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, isHero = () => false, isBuilding = () => false }) {
+  hot.set("ui-minimap", { canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, isHero, isBuilding });
   canvas.dataset.ui = "minimap";
   LIVE_CANVAS_DISPOSERS.get(canvas)?.();
   let fittedWidth = -1;
