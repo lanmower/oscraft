@@ -4,6 +4,10 @@
 # to fill (no 6.88g ability rows yet): abyssal_underlord
 # to fill (no 6.88g ability rows yet): centaur
 # earth_spirit 6.88g A2TJ Rolling Boulder
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 28 rows, 0 mapped, 28 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A0Q7 Shadow Strike QoP 移动速度减少=0.2 (perlevel.tsv:1030) -> slow; A0Q7 Shadow Strike QoP 初始伤害=50 (perlevel.tsv:1030) -> damage.
+# UNVERIFIED rows (no effect set): A2TJ A2QI A2UU A2TI A21Y A21X A21W A21V A02S A037 A1RD A29L A086 A08E A03K A02H A0Q7 A0ME A04A A28R A2BE A2HN A2BG A2IT A0BE A21L A0O0 A1EJ.
 ability("earth_spirit_rolling_boulder", 256, 50, "none", [])
 # earth_spirit 6.88g A2QI Geomagnetic Grip
 ability("earth_spirit_geomagnetic_grip", 208, 100, "none", [])

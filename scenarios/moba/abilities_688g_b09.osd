@@ -2,6 +2,9 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # bloodseeker 6.88g A0LH Rupture
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 24 rows, 0 mapped, 24 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A0LH A0I8 A2X9 A2X8 A02C A02M A0P6 A073 A0G6 A0G8 A0KX A0FN A35E A1RK A1YY A1RJ A1S4 A1S8 A31F A1SB A0RP A0RO A1EA A0RV.
 ability("bloodseeker_rupture", 960, 150, "none", [])
 # bloodseeker 6.88g A0I8 Strygwyr's Thirst
 ability("bloodseeker_strygwyr_s_thirst", 0, 0, "none", [])

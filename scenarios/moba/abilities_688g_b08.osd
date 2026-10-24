@@ -2,6 +2,10 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # beastmaster 6.88g A0OO Call of the Wild
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 20 rows, 0 mapped, 20 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A0O2 Primal Roar 伤害=200 (perlevel.tsv:271) -> damage.
+# UNVERIFIED rows (no effect set): A0OO A0O1 A0BD A0O2 A081 A0CZ A0LK A0J1 A2CI A2EY A2J2 A2JB A0YM A0PL A03P A03Q A06R A0H0 A06O A0FA.
 ability("beastmaster_call_of_the_wild", 640, 15, "none", [])
 # beastmaster 6.88g A0O1 Wild Axes
 ability("beastmaster_wild_axes", 208, 120, "none", [])

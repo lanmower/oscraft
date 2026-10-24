@@ -2,6 +2,9 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # bounty_hunter 6.88g A1IQ Jinada
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 20 rows, 0 mapped, 20 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A1IQ A07A A004 A0B4 A1SU A1TV A1SW A1U6 A0SW A0SS A2TT A194 A00P A0RX A010 A00H A0J5 A0AS A06P S008.
 ability("bounty_hunter_jinada", 0, 0, "none", [])
 # bounty_hunter 6.88g A07A Wind Walk
 ability("bounty_hunter_wind_walk", 240, 50, "none", [])

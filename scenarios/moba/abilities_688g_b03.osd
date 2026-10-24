@@ -2,6 +2,10 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # alchemist 6.88g A1NI Unstable Concoction
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 20 rows, 0 mapped, 20 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A0DH Echo Slam 目标伤害=160 (perlevel.tsv:754) -> damage.
+# UNVERIFIED rows (no effect set): A1NI A0IL A0O3 ANcr A03O A03N A0RW A055 A0DH A0DL A0SK A0DJ A1YO A1YQ A1S7 A1YR A0NO A0NM A0NT A0NE.
 ability("alchemist_unstable_concoction", 256, 120, "none", [])
 # alchemist 6.88g A0IL Acid Spray
 ability("alchemist_acid_spray", 352, 130, "none", [])

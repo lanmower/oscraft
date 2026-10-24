@@ -7,6 +7,10 @@
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # to fill (no 6.88g ability rows yet): abaddon
 # broodmother 6.88g A0WQ Insatiable Hunger
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 16 rows, 0 mapped, 16 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A026 Frost Arrows 移动速度减少(%)=0.15 (perlevel.tsv:56) -> slow.
+# UNVERIFIED rows (no effect set): A0WQ A0BK A0BH A0BG A2WF A2O2 A026 A0VC XX04 XX09 AUav A01Y A2LA A2LB A0Z0 A2NE.
 ability("broodmother_insatiable_hunger", 720, 100, "none", [])
 # broodmother 6.88g A0BK Incapacitating Bite
 ability("broodmother_incapacitating_bite", 0, 0, "none", [])

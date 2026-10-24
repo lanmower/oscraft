@@ -2,6 +2,10 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # bane 6.88g A02Q Fiend's Grip
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 24 rows, 0 mapped, 24 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A04Y Nightmare 无敌时间=1 (perlevel.tsv:1092) -> status:invulnerable; A0DX Enchant 降低移动速度(%)=0.2 (perlevel.tsv:1064) -> slow; A0MY Poison Sting 移动速度减少(%)=0.1 (perlevel.tsv:234) -> slow.
+# UNVERIFIED rows (no effect set): A02Q A0GK A2OI A04Y A0QK A0R7 A0QG A0QE A0DX A01B A0DW A0DY A2TF A2QT A2T5 A2SG A1P8 A0G4 A0G5 A0ES A173 A0MY A0MS A013.
 ability("bane_fiend_s_grip", 1600, 200, "none", [])
 # bane 6.88g A0GK Brain Sap
 ability("bane_brain_sap", 224, 70, "none", [])

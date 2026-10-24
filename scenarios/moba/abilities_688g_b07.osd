@@ -2,6 +2,9 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # batrider 6.88g A1EL Sticky Napalm
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 12 rows, 0 mapped, 12 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A1EL A19V A19Z A19O A0I7 A180 A0B1 A1BX A14R A14P A14O A0QW.
 ability("batrider_sticky_napalm", 48, 20, "none", [])
 # batrider 6.88g A19V Flamebreak
 ability("batrider_flamebreak", 224, 110, "none", [])

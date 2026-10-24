@@ -2,6 +2,10 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # brewmaster 6.88g A06M Thunder Clap
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 24 rows, 0 mapped, 24 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): Acdh Drunken Haze 移动速度减少(%)=0.14 (perlevel.tsv:59) -> slow.
+# UNVERIFIED rows (no effect set): A06M Acdh A0MX A0MQ A094 A35D A1OP A0MU A1SO A1SQ A229 A1T5 A0A5 A0A8 A1EF A0AG A2KU A24D A063 A07U A065 A049 A05E A0BQ.
 ability("brewmaster_thunder_clap", 208, 90, "none", [])
 # brewmaster 6.88g Acdh Drunken Haze
 ability("brewmaster_drunken_haze", 128, 50, "none", [])

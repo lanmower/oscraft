@@ -2,6 +2,9 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # arc_warden 6.88g A2LL Spark Wraith
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 16 rows, 0 mapped, 16 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A2LL A2LM A2M0 A2M1 A2H0 A2H3 A2HS A2JK A011 A04W A083 A088 A0FX A0NA A0HW A0H9.
 ability("arc_warden_spark_wraith", 64, 100, "none", [])
 # arc_warden 6.88g A2LM Magnetic Field
 ability("arc_warden_magnetic_field", 800, 110, "none", [])

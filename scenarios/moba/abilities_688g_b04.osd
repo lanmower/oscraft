@@ -2,6 +2,9 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # ancient_apparition 6.88g A1HS Ice Vortex
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 16 rows, 0 mapped, 16 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A1HS A1MG A1MI A1HQ A085 A10X A2XQ A112 A0OK A0OJ A0OI A0IF A15S A0R5 A15V A15J.
 ability("ancient_apparition_ice_vortex", 64, 80, "none", [])
 # ancient_apparition 6.88g A1MG Cold Feet
 ability("ancient_apparition_cold_feet", 240, 150, "none", [])

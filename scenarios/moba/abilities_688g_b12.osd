@@ -2,6 +2,10 @@
 # Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
 # archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
 # bristleback 6.88g A0FV Warpath
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 20 rows, 0 mapped, 20 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A03F Breathe Fire 伤害=90 (perlevel.tsv:273) -> damage.
+# UNVERIFIED rows (no effect set): A0FV A0M3 A0GP A0FW A03G A03F A2AI A0CL A067 A05V A060 A01N A0LZ A2NT A14L A0L3 A12P A12K A14I A12J.
 ability("bristleback_warpath", 0, 0, "none", [])
 # bristleback 6.88g A0M3 Bristleback
 ability("bristleback_bristleback", 0, 0, "none", [])
