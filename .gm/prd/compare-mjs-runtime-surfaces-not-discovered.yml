@@ -1,0 +1,23 @@
+id: compare-mjs-runtime-surfaces-not-discovered
+subject: compare.mjs verifies only the ES-module graph; runtime-fetched packs, scenario mods, and assets are never compared live
+description: 'scripts/observe/compare.mjs discovers js/client/play.html then walks src/data-* attrs, relative ESM imports, and .wasm strings -- so version.json, pkg wasm, and js modules are verified byte-for-byte against the deployed Pages site. But everything the page fetches at runtime is invisible: scenarios/moba/manifest.json and the whole Lua mod chain (.<-loaded by string), moba_ui.json, attr_rules.txt, packs/latest.json and its chunks, icon atlases, GLB/KTX2 assets, shaders, props.json. A Pages deploy could ship a stale or partial content tree and the gate still prints ''all artifacts match''. Extend discovery to the runtime-fetched surface so the close gate covers every byte the page would request.'
+acceptance_criteria: compare.mjs's path set provably includes each runtime-fetched category above (manifest-declared files, packs latest.json + chunks, icon atlases, assets, shaders, scenario Lua) and the compare against the deployed Pages site comes back all-match after the next deploy; a spot-check proves the checker FAILS when one such file differs (negative test, e.g. tampered local copy)
+witness_plan: Separate-session witness runs the extended compare.mjs against main with the newest site-expected artifact and confirms at least one runtime-surface class is exercised by a deliberate mismatch file
+session_id: drain-pages
+owner: drain-pages
+status: pending
+note: >-
+  Drain 2026-10-27 (main, no gm transport): discovery extended in
+  scripts/observe/lib.mjs for shaders (new URL("./shaders/") + .glsl
+  literals), the scenario pack index scenarios/<name>/assets/packs/index.json
+  and every file it names (icon atlas webp/ktx2, character pack chunks), and
+  assetRel/assetUrl keys such as animMaps that the catalogue does not list;
+  compare.mjs gained --probe <category>, which proves a class is checked by
+  finding a path of that class that matches the live site and then tampering
+  with it. Witness evidence: 9 classes detected (manifest, lua, pack-index,
+  atlas, pack, shader, asset, catalog, scene-texture), logs kept in
+  .gm/probe-out/*.log; packs/latest.json cannot discriminate locally because
+  its build timestamp already differs from the deployed copy. Blocking fact:
+  gm-mcp is not available in this session (no gm_codemode, prd-resolve or
+  ledger dispatch), so no ledger dispatch id exists to close on; re-run the
+  probe loop under a gm session to close this row.

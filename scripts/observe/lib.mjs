@@ -24,7 +24,10 @@ export function readJson(readText) {
 // Rows a scenario manifest adds: everything the page fetches from the
 // scenario directory at runtime (data tables, image, mods, ui json, rules
 // and the asset catalogue paths). Paths resolve against the manifest's dir.
-async function discoverScenario(dir, manifest, found, readJsonAt) {
+// `assetRefs` are the (key, file) pairs the page passes to assetRel/assetUrl,
+// which walk manifest.assets by dotted key; those resolve through the same
+// root the page uses, so an asset key no catalogue lists (animMaps) is caught.
+async function discoverScenario(dir, manifest, found, readJsonAt, assetRefs = []) {
   const add = (rel) => {
     if (typeof rel === "string" && rel) found.add(resolveFrom(`${dir}/x`, rel));
   };
@@ -39,6 +42,14 @@ async function discoverScenario(dir, manifest, found, readJsonAt) {
   }
   const assets = manifest.assets ?? {};
   const root = assets.root ?? ".";
+  // assetRel walks manifest.assets by dotted key and prefixes assets.root,
+  // so the page fetches assets/anim/maps/humanoid.json from a manifest field
+  // (animMaps) that names a directory only; resolve it the same way it does.
+  for (const [key, file] of assetRefs) {
+    let value = assets;
+    for (const part of key.split(".")) value = value?.[part];
+    if (typeof value === "string") add(`${root}/${value}${file ? `/${file}` : ""}`);
+  }
   for (const v of Object.values(assets.textures ?? {})) add(`${root}/${v}`);
   for (const k of ["catalogue", "ktx2", "props", "propSizes", "anim"]) add(`${root}/${assets[k]}`);
   // The catalogue lists every shipped asset path (models, textures, icons,
@@ -49,6 +60,17 @@ async function discoverScenario(dir, manifest, found, readJsonAt) {
   }
   const ktx2 = await readJsonAt(`${dir}/${root}/${assets.ktx2 ?? ""}`);
   if (Array.isArray(ktx2)) for (const v of ktx2) add(`${root}/${v}`);
+  // The scenario's own pack index is fetched by the page itself
+  // (play.js packIndex -> <assets root>/packs/index.json) and nothing in the
+  // manifest names it: it is the only route to the icon atlases (one webp and
+  // one ktx2 per category) and to every character pack chunk the page reads by
+  // name. `packs` holds every file build-packs.mjs wrote into that directory.
+  const packIndexRel = `${root}/packs/index.json`;
+  add(packIndexRel);
+  const packIndex = await readJsonAt(`${dir}/${packIndexRel}`);
+  if (packIndex && typeof packIndex === "object") {
+    for (const file of Object.keys(packIndex.packs ?? {})) add(`${root}/packs/${file}`);
+  }
 }
 
 export async function discover(readText, page = "js/client/play.html") {
@@ -72,6 +94,17 @@ export async function discover(readText, page = "js/client/play.html") {
     texts.set(rel, text);
     for (const m of text.matchAll(/(?:from\s+|import\s*\(\s*)["'](\.{1,2}\/[^"']+)["']/g)) queue.push(resolveFrom(rel, m[1]));
     for (const m of text.matchAll(/["'`]([^"'`\s]+\.wasm)["'`]/g)) queue.push(resolveFrom(rel, m[1]));
+    // Shader sources are fetched at runtime, never imported. render3d.js
+    // resolves them against a directory it builds with
+    // new URL("./shaders/", import.meta.url), so a bare "mesh.vert.glsl" in
+    // that file belongs to that directory, not to the module's own dir.
+    const shaderDirs = [...text.matchAll(/new\s+URL\(\s*["']([^"']*\/)["']\s*,\s*import\.meta\.url\s*\)/g)].map((m) => resolveFrom(rel, m[1]));
+    for (const m of text.matchAll(/["'`]([^"'`\s]+\.glsl)["'`]/g)) {
+      const spec = m[1];
+      if (spec.includes("/")) queue.push(resolveFrom(rel, spec));
+      else if (shaderDirs.length) for (const dir of shaderDirs) queue.push(resolveFrom(`${dir}x`, spec));
+      else queue.push(resolveFrom(rel, spec));
+    }
   }
   // Runtime surfaces. The pack loader takes its base dir from the `pack`
   // query param (default literal in pack_load.js) and fetches
@@ -103,10 +136,14 @@ export async function discover(readText, page = "js/client/play.html") {
   const parts = latest.parts ?? [];
   if (latest.file && parts.length === 0) found.add(resolveFrom("packs/x", latest.file));
   for (const part of parts) if (part?.file) found.add(resolveFrom("packs/x", part.file));
+  const assetRefs = [];
+  for (const text of texts.values()) {
+    for (const m of text.matchAll(/asset(?:Rel|Url)\(\s*["']([^"']+)["']\s*(?:,\s*["']([^"']*)["'])?\s*\)/g)) assetRefs.push([m[1], m[2] ?? ""]);
+  }
   const manifests = [...found].filter((rel) => /manifest\.json$/.test(rel));
   for (const rel of manifests) {
     const dir = rel.replace(/\/manifest\.json$/, "");
-    await discoverScenario(dir, await readJsonAt(rel), found, readJsonAt);
+    await discoverScenario(dir, await readJsonAt(rel), found, readJsonAt, assetRefs);
   }
   return [...found].sort();
 }

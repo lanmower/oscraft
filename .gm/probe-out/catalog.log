@@ -1,0 +1,2 @@
+probe catalog: scenarios/moba/assets/assets.json matched live, then tampered -> MISMATCH
+RESULT: probe detected (catalog)

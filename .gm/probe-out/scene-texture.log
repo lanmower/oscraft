@@ -1,0 +1,2 @@
+probe scene-texture: scenarios/moba/assets/models/Textures/colormap.ktx2 matched live, then tampered -> MISMATCH
+RESULT: probe detected (scene-texture)

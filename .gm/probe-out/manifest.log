@@ -1,0 +1,2 @@
+probe manifest: scenarios/moba/manifest.json matched live, then tampered -> MISMATCH
+RESULT: probe detected (manifest)

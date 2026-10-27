@@ -1,0 +1,10 @@
+ARTIFACT                LOCAL         LIVE          RESULT
+----------------------  ------------  ------------  --------------------------
+js/client/gui_flow.js   cc468f69c402  -             HTTP 404
+js/client/play.js       3773ece385e5  28b0c2733aac  MISMATCH
+js/client/podium.js     4a395740e9fe  -             HTTP 404
+js/client/version.json  4de6f223bc3e  fe1a4ac64d14  MISMATCH want=53f8204706eb
+packs/latest.json       cfedd1409037  fa09ffb6f87d  MISMATCH
+version.json            4de6f223bc3e  fe1a4ac64d14  MISMATCH want=53f8204706eb
+
+RESULT: 8 difference(s) of 3458 paths

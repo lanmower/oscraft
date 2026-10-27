@@ -10,6 +10,22 @@ const opt = (args, name, dflt) => {
   return i >= 0 ? args[i + 1] : dflt;
 };
 
+// Negative-check categories: `--probe <category>` tampers with one discovered
+// path of that kind and requires the compare to report MISMATCH for it, which
+// is how the gate is proven to fail when a shipped file differs.
+const PROBE = {
+  manifest: (r) => /manifest\.json$/.test(r),
+  lua: (r) => r.endsWith(".lua"),
+  "pack-index": (r) => /\/packs\/index\.json$/.test(r),
+  atlas: (r) => /\/packs\/[^/]+\.(webp|ktx2)$/.test(r),
+  pack: (r) => /\/packs\/character\/.*\.bin$/.test(r),
+  latest: (r) => r === "packs/latest.json",
+  shader: (r) => r.endsWith(".glsl"),
+  asset: (r) => /\.(glb|jpg|ogg)$/.test(r),
+  "scene-texture": (r) => /\.(ktx2|png)$/.test(r) && !r.includes("/packs/"),
+  catalog: (r) => /(?:^|\/)assets\.json$/.test(r),
+};
+
 function readLocal(dir) {
   return async (rel) => {
     try {
@@ -66,7 +82,9 @@ async function pass(paths, local, base, expectSha) {
     }
     // A green run covers thousands of paths; print only the differences.
     if (result !== "match") rows.push([rel, localSha ? localSha.slice(0, 12) : "-", liveSha ? liveSha.slice(0, 12) : "-", result]);
-    if (rel.endsWith(".bin") && l && liveOk) {
+    // map-stats applies to OSDT images only: discovery now also reaches the
+    // character pack chunks, which are OSPK archives, not map images.
+    if (rel.endsWith(".bin") && l && liveOk && !statsOf(l).parse_error) {
       const a = statsOf(l);
       const b = statsOf(r.buf);
       for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
@@ -81,10 +99,10 @@ async function pass(paths, local, base, expectSha) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const valueSlots = new Set(["--expect-sha", "--attempts", "--backoff"].map((f) => args.indexOf(f)).filter((i) => i >= 0).map((i) => i + 1));
+  const valueSlots = new Set(["--expect-sha", "--attempts", "--backoff", "--probe"].map((f) => args.indexOf(f)).filter((i) => i >= 0).map((i) => i + 1));
   const [dir, base] = args.filter((a, i) => !a.startsWith("--") && !valueSlots.has(i));
   if (!dir || !base) {
-    console.error("usage: compare.mjs <local-site-dir> <base-url> [--expect-sha sha] [--attempts n] [--backoff s]");
+    console.error("usage: compare.mjs <local-site-dir> <base-url> [--expect-sha sha] [--attempts n] [--backoff s] [--probe category]");
     process.exit(2);
   }
   const expectSha = opt(args, "--expect-sha");
@@ -97,6 +115,40 @@ async function main() {
   });
   const localBuf = new Map();
   for (const rel of paths) localBuf.set(rel, await local(rel));
+  const probeCat = opt(args, "--probe");
+  if (probeCat) {
+    const pred = PROBE[probeCat];
+    if (!pred) {
+      console.error(`--probe: unknown category "${probeCat}"; known: ${Object.keys(PROBE).join(", ")}`);
+      process.exit(2);
+    }
+    const candidates = paths.filter((p) => pred(p) && localBuf.get(p)?.length);
+    if (!candidates.length) {
+      console.error(`--probe: no discovered path in category ${probeCat}`);
+      process.exit(2);
+    }
+    // A negative check only proves detection when the untouched file matches
+    // the live copy first, so walk candidates until one agrees with the site.
+    const base0 = normBase(base);
+    let rel = null;
+    for (const cand of candidates.slice(0, 25)) {
+      const before = await pass([cand], localBuf, base0, expectSha);
+      if (before.rows.length === 0) { rel = cand; break; }
+    }
+    if (!rel) {
+      console.error(`--probe: every ${probeCat} candidate already differs from the live site; cannot discriminate`);
+      process.exit(2);
+    }
+    const original = localBuf.get(rel);
+    localBuf.set(rel, Buffer.concat([original, Buffer.from("\nprobe\n")]));
+    const out = await pass([rel], localBuf, base0, expectSha);
+    localBuf.set(rel, original);
+    const row = out.rows.find((r) => r[0] === rel);
+    const detected = row !== undefined && row[3].startsWith("MISMATCH");
+    console.log(`probe ${probeCat}: ${rel} matched live, then tampered -> ${row ? row[3] : "match"}`);
+    console.log(detected ? `RESULT: probe detected (${probeCat})` : `RESULT: probe NOT detected (${probeCat})`);
+    process.exit(detected ? 0 : 1);
+  }
   let last;
   for (let n = 1; n <= attempts; n++) {
     last = await pass(paths, localBuf, normBase(base), expectSha);

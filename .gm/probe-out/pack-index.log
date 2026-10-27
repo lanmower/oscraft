@@ -1,0 +1,2 @@
+probe pack-index: scenarios/moba/assets/packs/index.json matched live, then tampered -> MISMATCH
+RESULT: probe detected (pack-index)

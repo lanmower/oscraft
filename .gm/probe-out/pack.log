@@ -1,0 +1,2 @@
+probe pack: scenarios/moba/assets/packs/character/abaddon.bf6a3c1e8a89f1eb.bin matched live, then tampered -> MISMATCH
+RESULT: probe detected (pack)
