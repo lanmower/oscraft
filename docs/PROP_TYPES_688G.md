@@ -115,5 +115,6 @@ Confidence: 2 high, 14 medium, 41 low. Most types have no context signal (their 
 ## Regeneration
 
 - scenarios/moba/tools/convert-688g-map.mjs (run with `--src <extract dir>`) writes prop-types-688g.tsv and keeps the shipped_kind of each type across runs, reading the prior table first.
-- scenarios/moba/tools/place-props-688g.mjs (called by convert-688g-map.mjs) replaces the mapped prop lines (id 10000 and up) in map.osd with lines built from props-688g.tsv and prop-types-688g.tsv, applying the lane and base exclusions in scenarios/moba/tools/prop-kinds.mjs.
+- scenarios/moba/tools/place-props-688g.mjs (called by convert-688g-map.mjs) replaces the mapped prop lines (ids 10000..19999) in map.osd with lines built from props-688g.tsv and prop-types-688g.tsv, applying the lane and base exclusions in scenarios/moba/tools/prop-kinds.mjs.
+- scenarios/moba/tools/place-pillars.mjs (called by convert-688g-map.mjs after place-props-688g.mjs) writes the cliff pillar props (ids 20000 and up) from scenarios/moba/pillar-cells.tsv, produced by scenarios/moba/tools/pillar-cells.mjs (one candidate per 4x4 block: an impassable cliff cell whose rise to an open neighbour is 8 or more). It also adds any missing pillar-rock-*-skinned footprint to assets/prop_sizes.json, keeping every existing entry.
 - Full archive re-decode was not run here (no extracted refmap.* members in this environment). The placement stage was run from the committed decoded placements, which convert-688g-map.mjs also writes.

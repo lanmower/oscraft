@@ -226,6 +226,8 @@ const typeRows = [...typeCounts].sort((a, b) => b[1] - a[1]).map(([type, n]) => 
 fs.writeFileSync(path.join(outDir, "prop-types-688g.tsv"), ["type\tcount\ttree_rule\tname\tshipped_kind\treason", ...typeRows].join("\n") + "\n");
 
 execFileSync(process.execPath, [fileURLToPath(new URL("./place-props-688g.mjs", import.meta.url)), "--dir", outDir], { stdio: "inherit" });
+execFileSync(process.execPath, [fileURLToPath(new URL("./pillar-cells.mjs", import.meta.url))], { stdio: "inherit" });
+execFileSync(process.execPath, [fileURLToPath(new URL("./place-pillars.mjs", import.meta.url))], { stdio: "inherit" });
 
 const waterCells = Array.from({ length: SIM * SIM }, (_, k) => isWaterCell(k % SIM, Math.floor(k / SIM))).filter(Boolean).length;
 console.log(JSON.stringify({

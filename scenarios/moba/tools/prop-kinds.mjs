@@ -1,4 +1,5 @@
 export const MAPPED_ID_BASE = 10000;
+export const PILLAR_ID_BASE = 20000;
 export const LANE_CELL_MILLI = 0;
 export const BASE_CELL_MILLI = 8000;
 

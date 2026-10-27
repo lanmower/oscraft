@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { MAPPED_ID_BASE, parseRoutes, parseBases, parseTypeTable, mappedPropLines } from "./prop-kinds.mjs";
+import { MAPPED_ID_BASE, PILLAR_ID_BASE, parseRoutes, parseBases, parseTypeTable, mappedPropLines } from "./prop-kinds.mjs";
 
 const args = process.argv.slice(2);
 const KNOWN = new Set(["dir", "types", "placements", "dry-run"]);
@@ -35,7 +35,7 @@ const bases = parseBases(mapLines.join("\n"));
 const routes = parseRoutes(fs.readFileSync(path.join(dir, "routes.osd"), "utf8"));
 const { lines, excludedLane, excludedBase } = mappedPropLines(records, kinds, { bases, routes });
 
-const isMapped = (l) => { const m = l.match(/^prop\((\d+),/); return m && Number(m[1]) >= MAPPED_ID_BASE; };
+const isMapped = (l) => { const m = l.match(/^prop\((\d+),/); return m && Number(m[1]) >= MAPPED_ID_BASE && Number(m[1]) < PILLAR_ID_BASE; };
 const body = mapLines.filter((l) => !isMapped(l));
 while (body.length && body[body.length - 1] === "") body.pop();
 if (!dryRun) fs.writeFileSync(mapOsdPath, [...body, ...lines, ""].join("\n"));
