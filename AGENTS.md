@@ -99,11 +99,13 @@ Comments are not kept in source: durable facts live here and names carry intent.
 - Sim never reads display data (terrain heights, weight maps). Cliffs (tiles.js): a drop of one 6.88 cliff level (128 z) or more is a wall; a drop beside water is never a ramp. Load gate (load_gate.js) never opens on a timeout; ice.js STUN only. Older wasm lacks some exports (page degrades, never guesses); Building = bit 2048 of filter mask. props.json alone names prop models.
 - play.js: failed assets are recorded (`recordAssetError`), no fallback drawing; flags `?nomods=1`, `?shadows=0`, `?ambient=0`, `?relay=`, `?host=1`, `?hmr`; `window.__fxOff` is the CI probe for effect frame cost.
 - `recoverGame`: a wasm trap leaves the Game unusable; rebuild from the last snapshot with mods off; over `MAX_RESTARTS_IN_A_ROW` stops the sim; unrestorable snapshot reloads `?nomods=1`. All tick-path Game calls stay inside the try or the rAF chain dies.
+- `js/client/play.js` live stage marks land on `window.__stageMarks` (build3d timing trail); the splat KTX2 texture path relies on `decoders.loadBasis()` warmed at module init. First frame draws the terrain, water and splat; unit meshes stream in through the deferred pump (`queueUnitModelBacklog`, UNIT_MODEL_CONCURRENCY 4) and `collectUnitDraws` re-queues any type it meets unbuilt.
 - Swaps (swap_protocol.js): only the host announces and sends PACK_FILE; commit at T when every peer is ready, else re-announce up to `SWAP_MAX_DEFERS`, then cancel; a peer without the image keeps its old Game.
 - Hot reload (hmr.js, `/__hmr` SSE): a module exports `hmrReload(mod)` running on the NEW instance (inputs on `globalThis.__oscraftHot`); no hook reloads the page; the wasm path concatenates ".wasm" (the Pages check reads literal ".wasm" names as root files).
 - Packs (pack.js, pack_load.js, pack_sync.js): no code the page runs (.js .mjs .html .wasm .ts refused). Icons ship as one atlas per category through `build-packs.mjs`.
 - CLIs: `node js/host/guest.js [--ticks=N] [--reps=N] [--peers=1,8,32]` prints RESULT: PASS|FAIL (exit 0, 1, 3 on codec error); `node js/client/editor-check.mjs [osdt-data dir]` edits map.bin, exports map.osd.
 - mods/: one chunk per mod, so CI joins `bot_lib.lua` before `bot_unit_example.lua` (`bot_probe.lua` appended); bot_lib cannot require shared/xp.lua. Script-unit map cell is 64.
+- `scripts/gamesparks-bootstrap.mjs` may rewrite the moba manifest's `gamesparks` block when run; manifest `data[]` stays OSDT-only (`scripts/check-manifest-data.mjs` gates it).
 
 ## Scripts, generators, assets
 
