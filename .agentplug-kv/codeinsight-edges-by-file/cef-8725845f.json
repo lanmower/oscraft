@@ -1,0 +1,1 @@
+{"edges":[["new","to_owned",25],["new","new",31],["new","new",33],["new","new",35],["push_fx","len",51],["push_fx","push",54],["take_fx","take",59],["log_hit","len",63],["log_hit","push",64],["take_hits","take",69]],"path":"rust/crates/sim/src/fx.rs"}

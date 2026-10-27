@@ -1,0 +1,1 @@
+{"chunks":[{"ch":2242715767,"emb":null,"key":"ci-8a8ecd63-365ebbda-0","kind":"function_item","le":13,"ls":7,"name":"inflate"}],"commit_overview":null,"digest_hash":2030658006,"hash":912178138,"mtime_ms":1793107797786.0,"path":"rust/crates/mpq/src/bzip2.rs","size":311,"skipped_no_embed":1,"v":7}

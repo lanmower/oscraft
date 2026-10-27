@@ -1,0 +1,1 @@
+{"edges":[["createFrameTimer","now",1],["tick","now",6],["tick","push",8],["tick","shift",9],["summary","sort",15],["summary","reduce",16],["summary","min",17],["summary","floor",17]],"path":"js/client/frame_timer.js"}

@@ -46,7 +46,20 @@ function statsOf(buf) {
 }
 
 async function pass(paths, local, base, expectSha) {
-  const get = liveGet(base, Date.now());
+  const request = liveGet(base, Date.now());
+  // Pages answers 503/429 when a full-catalogue pass bursts at it, and a
+  // dropped connection surfaces as status 0: retry those on the spot rather
+  // than fail (or re-run) an attempt over thousands of otherwise identical
+  // paths. A real 404 or a mismatch is returned at once.
+  const transient = (s) => s === 503 || s === 429 || s === 0;
+  const get = async (rel) => {
+    let r = await request(rel);
+    for (let i = 0; i < 3 && transient(r.status); i++) {
+      await new Promise((res) => setTimeout(res, 500 * (i + 1)));
+      r = await request(rel);
+    }
+    return r;
+  };
   const live = new Map();
   // The extended path set runs into the thousands (asset catalogue); a
   // bounded batch keeps the fetch fan-out sane against Pages.

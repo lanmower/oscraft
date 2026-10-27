@@ -1,0 +1,1 @@
+{"edges":[["free_missile","position",7],["free_missile","iter",7],["launch_missile","free_missile",11],["launch_missile","max",15],["launch_missile","from_milli",15],["launch_missile","abs",16],["launch_missile","abs",17],["launch_missile","clamp",18],["tick_projectiles","live_at",40],["tick_projectiles","apply_effects",42]],"path":"rust/crates/sim/src/projectiles.rs"}

@@ -1,0 +1,1 @@
+{"chunks":[{"ch":2167597803,"emb":null,"key":"ci-77dba01a-34c1fe07-0","kind":"function_item","le":21,"ls":9,"name":"a_loop_over_the_sim_can_read_it_again_in_its_body"}],"commit_overview":null,"digest_hash":141268860,"hash":885128711,"mtime_ms":1793107797784.0,"path":"rust/crates/mod-host/tests/sim_reads.rs","size":620,"skipped_no_embed":1,"v":7}

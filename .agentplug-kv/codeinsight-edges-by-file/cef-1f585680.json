@@ -1,0 +1,1 @@
+{"edges":[["zlib","with_capacity",8],["zlib","len",8],["zlib","map_err",9],["zlib","read_to_end",9],["zlib","new",9]],"path":"rust/crates/mpq/src/inflate.rs"}

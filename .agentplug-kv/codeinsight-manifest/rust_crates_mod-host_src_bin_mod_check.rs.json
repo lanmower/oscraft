@@ -1,0 +1,1 @@
+{"chunks":[{"ch":1171128550,"emb":null,"key":"ci-f696e203-18f944be-0","kind":"function_item","le":87,"ls":8,"name":"main"}],"commit_overview":null,"digest_hash":187955453,"hash":418989246,"mtime_ms":1793107797782.0,"path":"rust/crates/mod-host/src/bin/mod_check.rs","size":2716,"skipped_no_embed":1,"v":7}

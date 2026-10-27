@@ -1,0 +1,1 @@
+{"edges":[["cell_has_room","cell_of",9],["cell_has_room","cell_of",9],["cell_has_room","count",10],["cell_has_room","filter",10],["cell_has_room","cell_of",11],["cell_has_room","cell_of",11]],"path":"rust/crates/sim/src/limits.rs"}

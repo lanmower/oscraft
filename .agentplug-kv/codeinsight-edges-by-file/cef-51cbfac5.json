@@ -1,0 +1,1 @@
+{"edges":[["wall_effect","isqrt64",14],["wall_effect","refuse",16],["wall_effect","from_milli",19],["wall_effect","max",25],["wall_effect","cell_of",32],["wall_effect","cell_of",32],["wall_effect","add_blocker",37]],"path":"rust/crates/sim/src/wall.rs"}

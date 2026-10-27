@@ -1,0 +1,1 @@
+{"edges":[["inflate","new",8],["inflate","map_err",9],["inflate","read_to_end",9],["inflate","new",9]],"path":"rust/crates/mpq/src/bzip2.rs"}
