@@ -25,6 +25,15 @@ const server = http.createServer((req, res) => {
   if (!file.startsWith(siteDir + path.sep) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end(); return; }
   const type = contentType(file);
   const headers = { "content-type": type, "cache-control": "no-store" };
+  if (req.method === "HEAD") {
+    // wasm watcher polls HEADs; answer headers-only so they cost no bytes
+    headers["content-length"] = String(fs.statSync(file).size);
+    headers["etag"] = `"${fs.statSync(file).size}"`;
+    headers["last-modified"] = new Date(fs.statSync(file).mtimeMs).toUTCString();
+    res.writeHead(200, headers);
+    res.end();
+    return;
+  }
   if (isCompressible(type) && /\bgzip\b/.test(req.headers["accept-encoding"] ?? "")) {
     if (!gzipped.has(file)) gzipped.set(file, zlib.gzipSync(fs.readFileSync(file), { level: 6 }));
     const body = gzipped.get(file);
