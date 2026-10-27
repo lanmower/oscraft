@@ -51,9 +51,19 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (err) => errors.push(err.message));
+    // Durable phase split: boot game (wasm+mods), boot world (asset build begins),
+    // local preview (worldReady resolved; the first frame follows). Times are relative to the goto start.
+    const phases = { startedAt: 0, game: null, world: null, preview: null, relaysAlive: null };
+    page.on("console", (m) => {
+      const at = phases.startedAt ? Date.now() - phases.startedAt : null;
+      if (m.text() === "[boot] game") phases.game = at;
+      if (m.text() === "[boot] world") phases.world = at;
+      if (m.text() === "[play] local preview") phases.preview = at;
+    });
     const sentBefore = sentBytes;
     perFile = new Map();
     const started = Date.now();
+    phases.startedAt = started;
     await page.goto(`${base}/js/client/play.html?host=1&nocache=${started}#moba`, { waitUntil: "domcontentloaded" });
     const drawn = await page.waitForFunction(
       () => document.body.dataset.worldBuilt === "1" || (window.oscraft && window.oscraft.getState && window.oscraft.getState().frame && window.oscraft.getState().frame.drawCalls > 0),
@@ -66,7 +76,7 @@ try {
       process.exitCode = 1;
     } else {
       times.push(drawn);
-      console.log(`first-draw load=${i + 1} ms=${drawn} transferred-bytes=${sentBytes - sentBefore} requests=${perFile.size}`);
+      console.log(`first-draw load=${i + 1} ms=${drawn} transferred-bytes=${sentBytes - sentBefore} requests=${perFile.size} game=${phases.game ?? "?"} world=${phases.world ?? "?"} preview=${phases.preview ?? "?"}`);
       for (const [rel, bytes] of [...perFile].sort((a, b) => b[1] - a[1]).slice(0, 6)) console.log(`  load=${i + 1} ${bytes} ${rel}`);
     }
     await context.close();
