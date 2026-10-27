@@ -1,3 +1,7 @@
+# derived config caches are nested git repos: staging one as a gitlink without
+# a .gitmodules url makes every CI checkout fail on submodule update
+/.gm/config-source-cache-default/
+
 # stray timestamp files
 2026-10-27T14:00:00Z
 2026-10-27T15:25:00Z
