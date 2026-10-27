@@ -121,7 +121,7 @@ function toggleMute() {
   document.body.dataset.muted = voices && voices.toggleMute() ? "1" : "0";
 }
 const SPLAT_SHADE = [0.42, 0.68, 1.3];
-const SPLAT_TINTS = SPLAT_LAYERS.map((name) => (name === "dirt" ? TILE_TINTS.dirt : [1, 1, 1]));
+const SPLAT_TINTS = SPLAT_LAYERS.map((name) => (name === "dirt" ? TILE_TINTS.dirt : name === "grass" ? TILE_TINTS.grass : [1, 1, 1]));
 const SPLAT_WATER_TINT = [1, 1, 1];
 let terrainTiles = null;
 let unitMeshes = [];
