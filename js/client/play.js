@@ -5,7 +5,7 @@ import { RelayPool } from "wireweave/relay-pool.js";
 import * as NostrTools from "nostr-tools";
 import * as xstate from "xstate";
 import { createAmbientFx, AMBIENT_KINDS } from "./ambient_fx.js";
-import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, SPECTATOR } from "./wire/frame.js";
+import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, TEAM_SIZE, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { assetJson, assetRel, assetUrl, fetchRetrying, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
@@ -30,6 +30,8 @@ import { createFogView } from "./fogview.js";
 import { packCameraRules } from "./camera_rules.js";
 import { createZoomKeys } from "./zoom_keys.js";
 import { createDraftClock } from "./draft_clock.js";
+import { createGuiFlow } from "./gui_flow.js";
+import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
 import { createSfx, createVoices } from "./audio.js";
 import { installDebugApi } from "./debug_api.js";
 import { createFx } from "./fx.js";
@@ -319,6 +321,9 @@ function applyPeerAction(peerPubkey, frame) {
 
 let debugReply = null;
 let draftClock = null;
+let guiFlow = null;
+let podium = createPodium();
+let flowCameraSaved = null;
 
 function routeUi(ev) {
   const data = ev.data || {};
@@ -960,6 +965,25 @@ function syncDeadProps() {
   propBatches = batchByMesh(placedProps.filter((d) => !gone.has(d.id)));
 }
 
+function podiumUnitDraws() {
+  const list = [];
+  for (const e of podium.entries) {
+    const base = unitMeshes[e.type];
+    if (base === undefined) { queueUnitModel(e.type, true); continue; }
+    if (!base) continue;
+    const color = playerColor(e.slot ?? (e.team * TEAM_SIZE));
+    list.push({ kind: "podium", mesh: unitMeshFor(e.type, color), transform: podiumTransform(e), joints: null });
+  }
+  return list;
+}
+
+function podiumTransform(e) {
+  return new Float32Array(multiply(
+    multiply(translation(e.x, e.y + podium.plinthHeight, e.z), rotationY(e.facing)),
+    scaling(e.scale ?? 1, e.scale ?? 1, e.scale ?? 1),
+  ));
+}
+
 function drawWorld3d() {
   syncDeadProps();
   drawCounts.terrain = 0;
@@ -970,9 +994,13 @@ function drawWorld3d() {
   const now = performance.now();
   const dt = lastDrawMs === null ? 0 : Math.min((now - lastDrawMs) / 1000, MAX_FRAME_DT_S);
   lastDrawMs = now;
+  if (podium.active) {
+    const cam = podiumCameraStep(podium, dt * 1000);
+    if (cam) renderer3d.setCamera({ target: cam.target, distance: cam.distance, yaw: cam.yaw, pitch: cam.pitch });
+  }
   renderer3d.beginFrame(BACKGROUND);
   const units = currentUnits();
-  const unitDraws = collectUnitDraws(units, dt);
+  const unitDraws = podium.active ? podiumUnitDraws() : collectUnitDraws(units, dt);
   const shadow = renderer3d.beginShadowPass ? renderer3d.beginShadowPass() : null;
   shadowUnitCount = 0;
   if (shadow) {
@@ -984,6 +1012,11 @@ function drawWorld3d() {
     Object.assign(drawCounts, counted);
   }
   drawGround3d();
+  if (podium.active && podium.plinth) {
+    const plinthMesh = { ...podium.plinth, color: [0.32, 0.38, 0.5] };
+    for (const t of podiumPlinthTransforms(podium)) renderer3d.drawMesh(plinthMesh, t);
+    drawCounts.prop += podium.entries.length;
+  }
   emitUnitDraws(unitDraws, false);
   if (fx && window.__fxOff !== true) fx.frame(units, dt);
   renderer3d.endFrame();
@@ -1263,6 +1296,107 @@ function applyStart(frame) {
 function endLobby() {
   document.getElementById("ui-modal")?.remove();
   setMatchUnderWay(true);
+}
+
+// The pre-match flow: fullscreen team pick, then hero pick, then the
+// podium scene while the load gate streams models, until goLive. Solo and
+// host pages own it; peer pages keep the frame-driven path (a later row
+// gives guests the same overlay driven from host frames). The mod draft
+// modes (?cm/?cd/...) and CI probes (?flow=0) keep the original lobby.
+const FLOW_OFF = () => params.get("flow") === "0";
+
+function startFlowMatch(hero) {
+  if (!localGame || gate.phase !== PHASE.LOBBY || guiFlow?.team?.() == null) return;
+  const team = guiFlow.team();
+  const roster = flowRoster;
+  if (typeof hero.type !== "number" || !localGame.unit_type_names()[hero.type]) return;
+  const pickName = (type) => localGame.unit_type_names()[type];
+  const mine = hero.type;
+  const botPool = roster.filter((h) => h.name !== hero.name);
+  const slots = new Array(MAX_PLAYERS);
+  let botAt = 0;
+  for (let slot = 0; slot < MAX_PLAYERS; slot += 1) {
+    const slotTeam = slot < TEAM_SIZE ? 0 : 1;
+    if (slotTeam === team && slot === team * TEAM_SIZE) {
+      slots[slot] = { slot, owner: auth.pubkey || LOCAL_OWNER_ID, pick: pickName(mine) };
+      continue;
+    }
+    const bot = botPool.length ? botPool[botAt % botPool.length] : roster[0];
+    botAt += 1;
+    slots[slot] = { slot, owner: `bot:flow${slot}`, pick: pickName(bot.type) };
+  }
+  onLobbyStart({ slots });
+  // Podium scene: both teams' heroes stand facing each other at map centre,
+  // while the load gate streams the unit meshes they draw from.
+  guiFlow.setPicks([0, 1].map((side) => slots.filter((s) => (s.slot < TEAM_SIZE ? 0 : 1) === side).map((s) => {
+    const entry = roster.find((h) => pickName(h.type) === s.pick);
+    return typeof s.pick === "string" && entry ? entry.name : s.pick;
+  })));
+  const centre = [W / 2, 0, H / 2];
+  podiumScene(podium, slots.map((s) => {
+    const entry = roster.find((h) => pickName(h.type) === s.pick);
+    return { team: s.slot < TEAM_SIZE ? 0 : 1, type: entry ? entry.type : 0, slot: s.slot };
+  }), { centre, groundY: (x, z) => groundAt(x, z) });
+  flowCameraSaved = {
+    target: [...renderer3d.camera.target],
+    distance: renderer3d.camera.distance,
+    yaw: renderer3d.camera.yaw,
+    pitch: renderer3d.camera.pitch,
+  };
+}
+
+let flowRoster = [];
+
+function heroRosterNames(heroIconNames) {
+  const models = typeof localGame?.unit_model_names === "function" ? localGame.unit_model_names() : [];
+  const flags = typeof localGame?.unit_flags === "function" ? localGame.unit_flags() : [];
+  // Model name -> unit type: the roster draws icon names, the match spawns
+  // by type, so both sides of that pair travel with every entry.
+  const heroTypes = new Map();
+  for (let type = 0; type < models.length; type += 1) if (flags[type] === 1 && models[type]) heroTypes.set(models[type], type);
+  const roster = heroIconNames
+    .map((name) => ({ name, type: heroTypes.get(name) }))
+    .filter((hero) => hero.type !== undefined);
+  return roster.length ? roster : [...heroTypes].map(([name, type]) => ({ name, type }));
+}
+
+// main() fills this with its local packIndex/loadPackImage accessors,
+// since mountGuiFlow is declared before they exist in any scope.
+let flowAssets = null;
+
+async function mountGuiFlow() {
+  if (FLOW_OFF() || isPeerPage() || !flowAssets) return;
+  const { packIndex: pIndex, loadPackImage: loadImage } = flowAssets;
+  const index = await pIndex();
+  const iconNames = index?.atlases?.heroes?.icons
+    ? Object.keys(index.atlases.heroes.icons).map((rel) => rel.replace(/^icons\//, "").replace(/\.png$/, "")).filter(Boolean)
+    : [];
+  flowRoster = heroRosterNames(iconNames);
+  const byName = new Map(flowRoster.map((name) => [name, null]));
+  guiFlow = createGuiFlow({
+    root: document.body,
+    teamNames: ["The Sentinel", "The Scourge"],
+    rosterHeroes: () => flowRoster.map((hero) => ({ name: hero.name, type: hero.type })),
+    iconUrl: (hero) => byName.get(hero.name) ?? null,
+    onHero: (hero) => startFlowMatch(hero.name),
+  });
+  (async () => {
+    const atlas = (await pIndex())?.atlases?.heroes ?? null;
+    for (const name of flowRoster.map((r) => r.name)) {
+      const rel = `icons/heroes/${name}.png`;
+      if (atlas?.icons[rel]) byName.set(name, await loadImage(rel).then((url) => {
+        console.log(`[flow] icon ${rel} -> ${url ? "ok" : "null"}`);
+        // The hero grid may already be rendered: fill its img in place.
+        const img = document.querySelector(`#gui-flow .flow-hero[data-hero="${CSS.escape(name)}"] img`);
+        if (url && img) { img.hidden = false; img.src = url; }
+        return url;
+      }).catch((err) => {
+        console.warn(`[flow] hero icon ${rel} failed: ${err?.message ?? err}`);
+        return null;
+      }));
+    }
+  })();
+  window.__oscraftFlow = guiFlow;
 }
 
 let pack = new Pack();
@@ -1633,6 +1767,13 @@ function maybeOpenGate() {
 function goLive(why) {
   const waitedMs = gate.beganAt > 0 ? Math.round(performance.now() - gate.beganAt) : 0;
   if (!gate.open()) return;
+  // Match ready: the podium ends and the gameplay camera comes back.
+  if (podium.active) {
+    podium.active = false;
+    if (flowCameraSaved) renderer3d.setCamera(flowCameraSaved);
+    flowCameraSaved = null;
+  }
+  guiFlow?.hide();
   clearInterval(loadTimer);
   loadRun += 1;
   syncPhase();
@@ -2935,6 +3076,8 @@ async function main() {
     const icon = rel.slice(key.length + 1);
     return packImageUrl(rel).then((url) => url ?? assetUrl(key, icon));
   });
+  flowAssets = { packIndex, loadPackImage };
+  mountGuiFlow();
   renderBootHeroes(manifest.assets?.icons ?? "icons", packImageUrl);
   const sfx = manifest.assets?.sounds ? createSfx({ url: (rel) => assetUrl("sounds", rel) }) : null;
   const eventsBase = params.get("events");
@@ -3095,9 +3238,8 @@ installDebugApi({
     return true;
   },
 });
-
 if (params.get("ci") === "1") {
-  window.__ciPeers = () => peers.size;
+    window.__ciPeers = () => peers.size;
   window.__ciFrames = [];
   window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, modeled: !!unitMeshes[u.type] }));
   window.__ciRoster = () => simUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type }));

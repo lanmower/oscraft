@@ -32,7 +32,12 @@ function statsOf(buf) {
 async function pass(paths, local, base, expectSha) {
   const get = liveGet(base, Date.now());
   const live = new Map();
-  await Promise.all(paths.map(async (rel) => live.set(rel, await get(rel))));
+  // The extended path set runs into the thousands (asset catalogue); a
+  // bounded batch keeps the fetch fan-out sane against Pages.
+  const BATCH = 32;
+  for (let i = 0; i < paths.length; i += BATCH) {
+    await Promise.all(paths.slice(i, i + BATCH).map(async (rel) => live.set(rel, await get(rel))));
+  }
   const rows = [];
   const statRows = [];
   let bad = 0;
@@ -59,7 +64,8 @@ async function pass(paths, local, base, expectSha) {
         bad++;
       }
     }
-    rows.push([rel, localSha ? localSha.slice(0, 12) : "-", liveSha ? liveSha.slice(0, 12) : "-", result]);
+    // A green run covers thousands of paths; print only the differences.
+    if (result !== "match") rows.push([rel, localSha ? localSha.slice(0, 12) : "-", liveSha ? liveSha.slice(0, 12) : "-", result]);
     if (rel.endsWith(".bin") && l && liveOk) {
       const a = statsOf(l);
       const b = statsOf(r.buf);
@@ -106,7 +112,7 @@ async function main() {
     console.log("\nmap-stats, local vs live:");
     console.log(table(["FIELD", "LOCAL", "LIVE", "DIFF"], last.statRows));
   }
-  console.log(last.bad === 0 ? "\nRESULT: all artifacts match" : `\nRESULT: ${last.bad} difference(s)`);
+  console.log(last.bad === 0 ? `\nRESULT: all artifacts match (${paths.length} paths)` : `\nRESULT: ${last.bad} difference(s) of ${paths.length} paths`);
   process.exit(last.bad === 0 ? 0 : 1);
 }
 
