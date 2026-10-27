@@ -1,6 +1,6 @@
 {
- "count": 3109,
- "total_bytes": 79767244,
+ "count": 3110,
+ "total_bytes": 79890932,
  "items": [
   {
    "id": "rock",
@@ -32220,6 +32220,14 @@
    "variant": 3,
    "voice_ref": "pd_act_robot",
    "placed_by": "voices/manifest.json"
+  },
+  {
+   "id": "corpse-impaled",
+   "kind": "model",
+   "path": "models/corpse-impaled.glb",
+   "placed_by": "props.json",
+   "bytes": 123688,
+   "role": "prop"
   }
  ],
  "roles": {

@@ -16,7 +16,7 @@ LOsk	29			skull_pile	name from Doodads.slk + WorldEditStrings.txt (Skull Pile); 
 AOnt	26			rocks	inferred rock from lane; confidence medium
 LOtz	22			torch_glowing	name from Doodads.slk + WorldEditStrings.txt (Torch Glowing); interim kind until its own model exists
 LWw0	18			catwalk_junction	inferred prop from cluster; confidence medium
-LOic	17			debris_wood	name from Doodads.slk + WorldEditStrings.txt (Corpse Impaled); interim kind until its own model exists
+LOic	17			corpse_impaled	name from Doodads.slk + WorldEditStrings.txt (Corpse Impaled); interim kind until its own model exists
 NObt	15			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Bats); interim kind until its own model exists
 ZRrk	13			campfire_stand	inferred prop from cluster; confidence medium
 LOsm	12			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Smoke Smudge); interim kind until its own model exists

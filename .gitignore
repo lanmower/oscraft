@@ -8,3 +8,8 @@
 2026-10-27T15:30:00Z
 2026-10-27T15:35:00Z
 2026-10-27T15:45:00Z
+
+# dependency installs and generated build output
+node_modules/
+target/
+.dev-site/

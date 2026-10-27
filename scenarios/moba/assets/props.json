@@ -1065,5 +1065,6 @@
   "pillar-rock-4-skinned": "models/pillar-rock-4-skinned.glb",
   "pillar-rock-5-skinned": "models/pillar-rock-5-skinned.glb",
   "pillar-rock-6-skinned": "models/pillar-rock-6-skinned.glb",
-  "tender_skinned": "models/tender-skinned.glb"
+  "tender_skinned": "models/tender-skinned.glb",
+  "corpse_impaled": "models/corpse-impaled.glb"
 }
