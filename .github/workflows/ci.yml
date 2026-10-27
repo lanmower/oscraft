@@ -28,6 +28,8 @@ jobs:
         run: node scripts/check-debug-gate.mjs
       - name: Check every pack require resolves to a manifest module that exists and every pack Lua file is listed
         run: node scenarios/moba/tools/check-modules.mjs
+      - name: Check every scenario manifest data entry is an .osd/.tsv in its scenario dir
+        run: node scripts/check-manifest-data.mjs
       - name: Check the map's pathing is the derived 6.88g pathing, every anchor is open and each lane connects the bases
         run: node scenarios/moba/tools/check-pathing.mjs
       - name: Check the 6.88g shop tables map to items, shops_688g.lua is the generator output and the store reads it
