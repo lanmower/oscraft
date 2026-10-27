@@ -19,6 +19,12 @@ import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, me
 import { buildTerrain, GROUND_UV_PER_CELL, readProps, readGrid, vertexNormals } from "./terrain.js";
 import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
+import { loadBasis } from "./decoders.js";
+
+// The texture transcoder is on the splat layer's critical path (every KTX2 sibling
+// texture waits on it); memoized, so warming it here while the page's other modules
+// and the wasm image download trade off compile and network time pays for itself.
+const basisWarm = loadBasis();
 import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, packSwapKind, swapGate, swapIsNew } from "./swap_protocol.js";
 import { createFogView } from "./fogview.js";
 import { packCameraRules } from "./camera_rules.js";
@@ -542,12 +548,6 @@ async function fetchModel(name, size) {
   } catch (err) {
     throw new Error(`model ${name}: ${err && err.message ? err.message : err}`);
   }
-}
-
-async function loadModels(game, neededTypes) {
-  if (typeof game.unit_model_names !== "function") throw new Error("the wasm build has no unit_model_names export");
-  unitMeshes = new Array(game.unit_model_names().length);
-  await Promise.all([...neededTypes].map((type) => tallyAsset(requestUnitModel(type))));
 }
 
 let propSizesReady = null;
@@ -2275,23 +2275,34 @@ async function rebuildProps() {
 
 async function build3d(gl, game) {
   renderGl = gl;
+  const marks = (globalThis.__stageMarks ??= []);
+  const mark = (name) => marks.push([name, performance.now()]);
+  window.__stageMarks = marks;
+  mark("build3d:begin");
   const terrain = terrainInTiles(buildTerrain(mapBytes));
   terrainTiles = terrain;
   terrainMesh = terrainMeshOf(terrain);
+  mark("build3d:terrain");
   waterMesh = waterMeshOf(mapBytes);
+  mark("build3d:water");
   const placements = readProps(mapBytes);
+  mark("build3d:props");
   const usedKinds = new Set(placements.map((p) => p.kind));
   const placementsByKind = groupByKind(placements);
   const neededTypes = new Set(currentUnits().map((u) => u.type).filter((t) => t >= 0));
   bootHeroTypes = chooseBootHeroes(neededTypes);
   const splatReady = buildSplat(gl);
-  const unitFitsReady = loadModels(game, neededTypes);
+  splatReady.then(() => mark("build3d:splat"));
+  // Unit meshes no longer sit on the first-frame critical path: the established
+  // queue fits every type after the first frame at UNIT_MODEL_CONCURRENCY, and
+  // collectUnitDraws queue-flags any type a draw passes through un-requested.
   splat = await splatReady;
+  mark("build3d:after-splat");
   propByKindState = new Array(PROP_KINDS.length).fill(null);
   placedProps = [];
   propBatches = [];
   if (renderer3d.setShadows) renderer3d.setShadows({ enabled: SHADOW_ON, size: SHADOW_SIZE, center: [terrain.width / 2, 0, terrain.height / 2], halfExtent: Math.max(terrain.width, terrain.height) / 2 + 4 });
-  await unitFitsReady;
+  mark("build3d:end");
   deferUntilDrawn(() => {
     const propKindsReady = loadPropModels(usedKinds);
     queueUnitModelBacklog();
