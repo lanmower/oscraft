@@ -176,6 +176,8 @@ prop_kinds([
     "broken_column", "grave_peasant", "fire_pit_with_pig", "tombstone",
     "post_sign", "rowboat_destroyed", "ship_destroyed", "standard",
     "brazier_skull", "lily_pad", "blocks_ruined", "cauldron_with_heads", "post_lantern", "fire_pit", "fissure", "fish_school", "pillar-rock-1-skinned", "pillar-rock-2-skinned", "pillar-rock-3-skinned", "pillar-rock-4-skinned", "pillar-rock-5-skinned", "pillar-rock-6-skinned",
-    "corpse_impaled"])
+    "corpse_impaled",
+    "ancient_of_lore_lowpoly", "ancient_of_war_lowpoly", "ancient_of_wonders_lowpoly", "ancient_protector_lowpoly", "crypt_lowpoly", "fountain_of_health_lowpoly", "frozen_throne_lowpoly", "goblin_merchant_lowpoly", "moon_well_lowpoly", "orc_voodoo_lounge_lowpoly", "spirit_tower_lowpoly", "temple_of_the_damned_lowpoly", "tree_of_life_lowpoly", "ziggurat_lowpoly"
+    ])
 
 item_tags(["home", "side", "secret"])

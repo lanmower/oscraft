@@ -861,5 +861,19 @@
  "pillar-rock-4-skinned": 2.222,
  "pillar-rock-5-skinned": 2.328,
  "pillar-rock-6-skinned": 1.5,
- "corpse-impaled": 0.35
+ "corpse-impaled": 0.35,
+ "ancient-of-lore-lowpoly": 1.21,
+ "ancient-of-war-lowpoly": 0.565,
+ "ancient-of-wonders-lowpoly": 0.662,
+ "ancient-protector-lowpoly": 0.45,
+ "crypt-lowpoly": 2.471,
+ "fountain-of-health-lowpoly": 2.127,
+ "frozen-throne-lowpoly": 0.496,
+ "goblin-merchant-lowpoly": 0.734,
+ "moon-well-lowpoly": 0.679,
+ "orc-voodoo-lounge-lowpoly": 0.537,
+ "spirit-tower-lowpoly": 1.21,
+ "temple-of-the-damned-lowpoly": 0.415,
+ "tree-of-life-lowpoly": 4,
+ "ziggurat-lowpoly": 0.82
 }
