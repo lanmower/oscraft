@@ -21,3 +21,15 @@ note: >-
   gm-mcp is not available in this session (no gm_codemode, prd-resolve or
   ledger dispatch), so no ledger dispatch id exists to close on; re-run the
   probe loop under a gm session to close this row.
+acceptance_evidence: >-
+  Both acceptance criteria now have live witnesses. (1) All-match after the
+  deploy: pages run 40590994883 (sha 53d27340) deploy job printed "RESULT:
+  all artifacts match (3459 paths)", its compare running the extended
+  discovery against the freshly deployed site; pages run 40591164388 on
+  a13321b0 and ci run 40591072289 (page smoke, static, HERO_PRIMARY and sale
+  gates) are green too. (2) Negative test: .gm/probe-out/*.log, ten --probe
+  categories run against the deployed site, each finding a path of its class
+  that matched live first and then reporting MISMATCH for the tampered copy
+  (manifest, lua, pack-index, atlas, pack, shader, asset, catalog,
+  scene-texture); packs/latest.json already differs locally by its build
+  timestamp, so it cannot discriminate outside CI.
