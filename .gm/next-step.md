@@ -1,7 +1,7 @@
 # Next step
 
-Phase: JTBD
-Updated: 1793110679887
+Phase: THINSLICE
+Updated: 1792902529819
 
 ---
 
@@ -189,8 +189,8 @@ Any uncertainty about the next move (drift, a gate denial, a silent stretch in a
 Transition: SESSION_ID threaded AND spool reachable: dispatch `instruction` with `{"prompt":"<user request>"}` so plugkit derives orient_nouns; later same-chain dispatches may use empty body.
 
 
-# Jobs To Be Done - Clayton Christensen
+# Thin Vertical Slice - Alistair Cockburn
 
-Principle `JTBD`. Apply "Jobs To Be Done - Clayton Christensen" to the work this node stands on. Entered from any neighbour that leads here; left to any neighbour it links to. Its place in a walk is set by the work it applies to, not a bucket.
+Principle `THINSLICE`. Apply it to the work this node stands on. Entered from any neighbour that leads here, left to any neighbour it links to; its place in a walk is decided by the work it applies to, not by a bucket.
 
 The walk is recorded by the transition that leaves this node.

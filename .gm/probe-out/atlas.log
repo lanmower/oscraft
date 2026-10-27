@@ -1,2 +1,0 @@
-probe atlas: scenarios/moba/assets/packs/heroes.07c890845382b001.ktx2 matched live, then tampered -> MISMATCH
-RESULT: probe detected (atlas)

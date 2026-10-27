@@ -1,2 +1,0 @@
-probe lua: scenarios/moba/ability_fx.lua matched live, then tampered -> MISMATCH
-RESULT: probe detected (lua)

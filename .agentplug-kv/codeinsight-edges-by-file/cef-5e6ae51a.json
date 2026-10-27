@@ -1,1 +1,1 @@
-{"edges":[],"path":"scripts/gamesparks-bootstrap.mjs"}
+{"edges":[["<module>","parse",7],["<module>","readFileSync",7],["<module>","toISOString",10],["<module>","writeFileSync",11],["<module>","stringify",11],["<module>","log",12],["<module>","log",14]],"path":"scripts/gamesparks-bootstrap.mjs"}

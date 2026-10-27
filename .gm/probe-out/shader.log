@@ -1,2 +1,0 @@
-probe shader: js/client/shaders/mesh.frag.glsl matched live, then tampered -> MISMATCH
-RESULT: probe detected (shader)

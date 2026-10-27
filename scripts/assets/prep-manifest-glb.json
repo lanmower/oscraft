@@ -6062,6 +6062,13 @@
       "afterBytes": 74152,
       "source": "65b8053911c3e7748d7b01aded727ca5a70539c7d38664192fe714fd0f5b2876",
       "at": "2026-10-23T04:53:16.902Z"
+    },
+    "scenarios/moba/assets/models/corpse-impaled.glb": {
+      "sha256": "81bdf707d6aa642d648d19cd9f9b4db1faea33b233754efe84bc07f4e2a8efc2",
+      "bytes": 220300,
+      "afterBytes": 123688,
+      "source": "52ea63ba74e44f6d0ded72b066ad2ff67f72b7ba91df8c7ac0e27f7db5052619",
+      "at": "2026-10-27T21:17:00.543Z"
     }
   }
 }

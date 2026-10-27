@@ -1,2 +1,0 @@
-probe asset: scenarios/moba/assets/models/abaddon-skinned.glb matched live, then tampered -> MISMATCH
-RESULT: probe detected (asset)
