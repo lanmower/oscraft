@@ -36,8 +36,7 @@
     "waves.osd",
     "abilities_688g_creeps.osd",
     "units_super_creeps.osd",
-    "units_courier_skins.osd",
-    "scripts/gamesparks-bootstrap.mjs"
+    "units_courier_skins.osd"
   ],
   "image": "moba.osdt",
   "mods": [
