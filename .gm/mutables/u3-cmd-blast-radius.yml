@@ -1,0 +1,5 @@
+id: u3-cmd-blast-radius
+value: Every constructor/match of Cmd (tests, reload_harness.rs, server) - answers the blast radius of changing Cmd::Spawn/Order fields.
+status: unknown
+row: gap-mod-unit-id-mapping
+session_id: gm-oscraft-sc2-alt-1-m11

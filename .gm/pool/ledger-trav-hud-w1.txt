@@ -1,0 +1,8 @@
+done trav-hud-client-DADA_CRIT_USE_NIELSEN
+done trav-hud-client-DADA_NIELSEN
+done trav-hud-client-DADA_CRIT_USE_KRUG
+done trav-hud-client-DADA_KALBAG
+done trav-hud-client-DADA_GESTALT
+done trav-hud-client-DADA_VH
+done trav-hud-client-LAMPORT
+done trav-hud-client-ILLEGAL

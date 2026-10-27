@@ -1,0 +1,6 @@
+id: gm-ci-verbs-wasm-trap
+subject: 'gm ci-status and ci-log verbs trap in the guest: ''wasm trap: cannot block a synchronous task before returning'''
+description: 'From drain-hy3d-findings-14: gm.ci_status and gm.ci_log (and the hyphen spelling) return error_code none with the wasm trap ''cannot block a synchronous task before returning'' from wasm function 36 backtrace, consistently for several calls after a successful ci-status earlier in the same session (dispatches 1792929501415-7058-5af745d525af1c5b, 1792929566269-5033-27b81d095797a37f, 1792929644493-5087-9506f1b1c61fc886). Workaround used: gh api repos/<repo>/actions/runs?head_sha=<sha> and gh run view --log-failed. Acceptance: ci-status and ci-log answer on a full sha without the trap; a regression case is reproduced by a live dispatch; the fix is in gm-mcp.'
+session_id: drain-hy3d-findings-14
+owner: drain-hy3d-findings-14
+status: pending

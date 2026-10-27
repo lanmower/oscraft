@@ -1,0 +1,4 @@
+id: gap-winner-u2-served-tick-entry
+value: 'U2: which entry point advances a served Room''s sim ticks, so GET /state changes after start?'
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

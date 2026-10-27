@@ -1,0 +1,16 @@
+# Tuning values the sim reads from the TUNE section. A change here is a data edit: the engine reloads it
+# with the rest of the scenario. Every value must be present; a missing or out-of-range value refuses the map.
+#
+# structure_scan_cells: cells a unit's bucket scan reaches past its weapon range (structures are bucketed at
+#   their centre, beyond the footprint edge).
+# teleport_ring_points / teleport_ring_steps: landing ring for the teleport effect, directions and widening steps.
+# best_only: item stats that take the largest value any active item gives, instead of the sum.
+# xp_curve: cumulative xp at which character levels 2 to 25 are reached (level 1 needs none). UNVERIFIED: the
+#   6.88g data holds no experience table; these values are recalled, not read from it.
+tuning(
+    structure_scan_cells=3,
+    teleport_ring_points=8,
+    teleport_ring_steps=6,
+    best_only=["scepter", "shard", "crit_chance", "crit_multiplier", "cleave", "cleave_distance", "cleave_start_width", "cleave_end_width", "bash_chance", "bash_duration", "night_vision"],
+    xp_curve=[200, 500, 900, 1400, 2000, 2600, 3200, 4400, 5400, 6000, 8200, 9000, 10400, 11900, 13500, 15200, 17000, 18900, 20900, 23000, 25200, 27500, 29900, 32400],
+)

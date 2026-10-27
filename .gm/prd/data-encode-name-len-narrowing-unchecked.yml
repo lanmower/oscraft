@@ -1,0 +1,12 @@
+id: data-encode-name-len-narrowing-unchecked
+subject: Image encoding narrows name and string lengths with as u8 and as u16 and no check
+description: rust/crates/data/src/format.rs:204 name.len() as u8 in encode_name_list; rust/crates/data/src/encode.rs:19 text.len() as u16 in Strings.intern, :263 route.points.len() as u16. validate.rs bounds some counts (:127,:220,:302) but not name byte length or route points; a 256-byte name or 65536-byte string would wrap and write a corrupt image that reader.rs may still accept.
+acceptance_criteria: Each narrowing is checked (try_from with a named bail) or validate.rs refuses the over-long value before encode runs; mapexport on an oversized name exits with a message.
+witness_plan: 'Native: mapexport over a scratch pack with a 300-byte name (out of tree), expect a refusal, not an image.'
+session_id: survey-sim-8
+owner: survey-sim-8
+status: pending
+notes:
+- ts: 2026-10-25T08:58:01.571Z
+  session_id: drain-rust-9
+  note: claimed by drain-rust-9

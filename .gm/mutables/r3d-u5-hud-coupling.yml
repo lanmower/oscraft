@@ -1,0 +1,4 @@
+id: r3d-u5-hud-coupling
+value: Does js/client/hud.js depend on the local 2D createRenderer or its return value (play.js:123-144)?
+session_id: gm-orch-13-wire
+status: unknown

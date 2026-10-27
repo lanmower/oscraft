@@ -1,0 +1,13 @@
+id: ui-status-line-mixes-debug-and-fatal-text
+subject: '#status shows per-order debug lines and hashes, and the next write erases fatal errors'
+description: 'js/client/play.js:1163 setStatus(''order move unit..''), :1908 peer-open, :1682 state_hash vs :225 ''assets failed to load'', :419 ''game stopped''; play.html:157 #status role=status aria-live=polite. Symptom: players read telemetry; a fatal ''game stopped'' is overwritten by the next order line; screen readers announce every order. Acceptance: separate sticky error region from a debug channel (behind ?debug), live region announces errors only. Witness: stop game then order; error text remains.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T20:36:27.718Z
+  session_id: hud-start-1
+  note: 'hud-start-1: status line is one short line; telemetry goes to console and oscraft.statusLog(); fatal lines pinned in #fatal until dismissed. Witness: verify-ui-status-line-mixes-debug-and-fatal-text dispatches 1792959128550-199-2897691f7611dff1 (pinned asset errors, short line) and 1792960522677-227-6cda075b56a413c9 (pinned before dismiss, cleared after).'
+- ts: 2026-10-25T20:55:30.494Z
+  session_id: hud-start-1
+  note: 'hud-start-1 BLOCKER (publish): publish_on_origin fails at its origin-main fetch (fetch_failed, ''terminated by SIGTERM'' at the 300 s deadline); 4 publish attempts and 4 plain git fetch origin runs hang on this host (github.com smart-HTTP fetch stalls; gh api and git ls-remote succeed). Local work is complete and witnessed; nothing is pushed. Clearing action: a git fetch of origin main that completes from this host. Commit plan waits on it: play.js world_ready (row lobby-start-world-ready-never-fires-headful), play.js+play.html boot card (ui-loading-experience-text-only), play.js+debug_api.js status (ui-status-line-mixes-debug-and-fatal-text), play.js relay retry (relay-drop-retry-backoff), modui.js guard (ui-modui-poll-overlaps-duplicates-events), play.html phone modal (ui-phone-lobby-overflows).'

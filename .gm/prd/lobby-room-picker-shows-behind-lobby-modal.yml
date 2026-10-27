@@ -1,0 +1,8 @@
+id: lobby-room-picker-shows-behind-lobby-modal
+subject: Pre-match room picker (#rooms) shows behind the lobby modal
+description: 'From hud-lobby-1 (lobby visual row lobby-visual-gaps-seen-in-screenshot). js/client/play.html draws the room picker #rooms in the top-right column (style block near line 131, markup beside it). It is visible behind the all-pick lobby modal before a match starts, which reads as clutter and competes with the modal''s bottom bar. Owner lane hud-start-1 owns play.html and play.js: hide or dim #rooms while the lobby modal (#ui-modal, role dialog) is mounted, and show it again when the modal closes. This row is a request to that owner; no edit was made by hud-lobby-1.'
+acceptance_criteria: 'At a 1057x499 and a 1280x720 viewport with the lobby modal mounted and no join, the #rooms picker is not visible behind the modal. Witness: a browser screenshot in a verify session, plus the modal still open and the picker back after the modal closes.'
+witness_plan: 'Browser lane screenshot of the lobby at 1057x499 with computed display or visibility of #rooms recorded.'
+owner: hud-start-1
+session_id: hud-lobby-1
+status: pending

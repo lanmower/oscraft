@@ -1,0 +1,5 @@
+id: u5-two-peer-ci
+value: 'U5: is any CI job on main exercising encodeFrame/decodeFrame across two peers (read .github/workflows)?'
+status: unknown
+row: net-e2e-two-peers-blocker-gm-oscraft-sc2-alt-1-e2e1
+session_id: gm-orch-2-13

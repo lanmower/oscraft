@@ -1,0 +1,5 @@
+id: gap-lobby-room-select-u4
+row: gap-lobby-room-select
+text: Does the hash survive reload and drive play.js room (line 45) on the same relay namespace?
+session_id: mcp-codemode-1184-1792267460011
+status: unknown

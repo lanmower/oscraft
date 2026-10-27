@@ -1,0 +1,4 @@
+id: server-rejected-edit-version
+value: 'Server: does a rejected mod edit leave /mod-version and /mod-events unchanged?'
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-b2

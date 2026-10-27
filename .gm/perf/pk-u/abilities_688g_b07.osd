@@ -1,0 +1,44 @@
+# 6.88g hero abilities, batch 07 of 12. Heroes: batrider, dark_willow, enigma, largo, mirana, pangolier, rubick, storm_spirit, viper.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# batrider 6.88g A1EL Sticky Napalm
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 12 rows, 0 mapped, 12 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A1EL A19V A19Z A19O A0I7 A180 A0B1 A1BX A14R A14P A14O A0QW.
+ability("batrider_sticky_napalm", 48, 20, "none", [])
+# batrider 6.88g A19V Flamebreak
+ability("batrider_flamebreak", 224, 110, "none", [])
+# batrider 6.88g A19Z Firefly
+ability("batrider_firefly", 640, 100, "none", [])
+# batrider 6.88g A19O Flaming Lasso
+ability("batrider_flaming_lasso", 1440, 225, "none", [])
+# dark_willow: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# enigma 6.88g A0I7 Malefice
+ability("enigma_malefice", 240, 110, "none", [])
+# enigma 6.88g A180 Demonic Conversion
+ability("enigma_demonic_conversion", 560, 170, "none", [])
+# enigma 6.88g A0B1 Midnight Pulse
+ability("enigma_midnight_pulse", 560, 95, "none", [])
+# enigma 6.88g A1BX Black Hole
+ability("enigma_black_hole", 3200, 275, "none", [])
+# largo: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# mirana: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# pangolier: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# rubick: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# storm_spirit 6.88g A14R Electric Vortex
+ability("storm_spirit_electric_vortex", 336, 85, "none", [])
+# storm_spirit 6.88g A14P Static Remnant
+ability("storm_spirit_static_remnant", 56, 0, "none", [])
+# storm_spirit 6.88g A14O Ball Lightning
+ability("storm_spirit_ball_lightning", 0, 0, "none", [])
+# storm_spirit 6.88g A0QW Overload
+ability("storm_spirit_overload", 0, 0, "none", [])
+# content-abilities-120-heroes-missing (drain-heroes-shard-2): rows for heroes whose 6.88g identity is resolved (heroes_688g.tsv or the identity agreement pass). Effects [] on every row: UNVERIFIED.
+# viper 6.88g A1A3 Nethertoxin
+ability("viper_nethertoxin", 0, 0, "none", [])
+# viper 6.88g A080 Viper Strike
+ability("viper_viper_strike", 1120, 125, "none", [])
+# viper 6.88g A09V Poison Attack
+ability("viper_poison_attack", 0, 20, "none", [])
+# viper 6.88g A0MM Corrosive Skin
+ability("viper_corrosive_skin", 0, 0, "none", [])

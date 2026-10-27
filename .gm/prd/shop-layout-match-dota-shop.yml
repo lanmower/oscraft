@@ -1,0 +1,13 @@
+id: shop-layout-match-dota-shop
+subject: 'Shop: same UI type and layout as the reference shop (categories, item grid, pinned items, stash bar)'
+description: 'From the user (reference image: /tmp/claude-1000/-workspace-oscraft/ae11e202-cce0-4209-9bd5-c888cd58dc0a/images/6.png, read it with the Read tool): the shop screens should have the same UI type and layout. Reference: a right-side panel with a dense grid of item icons, sectioned by tier down the left edge (Starting items, Early, Mid, Late), a Pinned items strip under the grid, a component tree for the selected item (base components feeding the recipe), and a Grab all / Stash bar at the bottom. Ownership: scenarios/moba/panels.lua shop_tree and moba_ui.json shop keys; widgets.js only through the existing generic kinds (grid, regions, portraits, rows). Tiers come from the 6.88g item data (cost bands), not invented: if 6.88g does not give a tier for an item, put it in a flagged UNVERIFIED section. Acceptance: CI green on ci and pages; the shop opens in the same layout as the reference (sections, grid, pinned, stash bar); the buy, sell, unstash calls keep working. Visual check left to the browser lane.'
+session_id: mcp-codemode-3368056-1792927932714-14
+owner: mcp-codemode-3368056-1792927932714-14
+status: pending
+notes:
+- ts: 2026-10-25T11:41:43.530Z
+  session_id: drain-shop-13
+  note: 'Published 74beada7 (scenarios/moba/panels.lua shop_tree and helpers, scenarios/moba/moba_ui.json shop keys). ci green. pages red on the first-draw ceiling, a pre-existing main failure: blocked_by pages-first-draw-ceiling-runner-variance. Witness 1792928223713-5564-74d51ce8a632d96 (verify session): PASS, 313 item rows, tier bands 47/42/48/61, 115 with no positive 6.88g cost in UNVERIFIED. Layout built: tier sections down the panel, UNVERIFIED section, pinned placeholder, stash bar (unstash cells). Not built: component tree for a selected item, Grab all, pin state; filed as shop-pins-component-tree-grab-all. Tier source: items.osd item cost (6.88g ItemCost); band edges 500/1500/3000 are a layout choice, not in 6.88g (flagged). Visual layout check left to the browser lane.'
+- ts: 2026-10-26T05:26:52.983Z
+  session_id: hud-match-witness
+  note: 'Witness 1792992066613-5494-9aa12906d52194e6 (desktop): the right panel opens from the Shop button with a Starting items section, Buy/Pin/Recipe cards and a Grab all control. Open: the reference''s left tier rail and dense icon grid are not built, and the pinned strip and stash bar sit below the 508px viewport.'

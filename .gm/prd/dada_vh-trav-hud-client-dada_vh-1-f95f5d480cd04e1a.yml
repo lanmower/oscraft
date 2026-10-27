@@ -1,0 +1,21 @@
+id: DADA_VH-trav-hud-client-DADA_VH-1
+subject: 'World unit bars ignore selection: the selected unit''s health bar is drawn the same as every other unit''s'
+description: 'Surface: js/client/hud.js. Principle DADA_VH (visual hierarchy, Arnheim/Dondis): the most important element should be the dominant one. drawBars (hud.js:85-109) draws every unit''s health bar at the same BAR_WIDTH_PX=20 by BAR_HEIGHT_PX=3 (hud.js:11-12), coloured only by ownership (hud.js:104). The selected unit is a parameter (hud.js:38) and is read only for the minimap (hud.js:66) and the selection count publish (hud.js:136); drawBars never reads it. The unit the player is acting on therefore carries no more weight on the map than any creep bar. Distinct from DADA_CRAP-trav-minimap-camera-1 (minimap fill) and DADA_CRIT_USE_KRUG-trav-hud-client-DADA_CRIT_USE_KRUG-1 (bar colour).'
+acceptance_criteria: A selected unit's world health bar is drawn larger, heavier or with a distinct marker than an unselected unit's bar at the same zoom, inside drawBars.
+witness_plan: codesearch literal 'selected' on js/client/hud.js shows a read inside drawBars; a live browser capture with one unit selected shows its bar distinct from a creep bar in the same frame.
+session_id: trav-hud-client-DADA_VH
+owner: trav-hud-client-DADA_VH
+status: pending
+notes:
+- ts: 2026-10-24T16:41:28.872Z
+  session_id: triage-hud-client-1
+  note: 'Kept. Verified at origin/main d821e361 (hud.js blob f77feb76): drawBars hud.js:85-109 reads no selection; its fill is ownership only (hud.js:104). The selected parameter is at hud.js:38, passed to the minimap at hud.js:66, and read for the selection count publish at hud.js:136 only. No other map cue in the HUD scope: render3d.js (blob d2af8571) has 0 matches for ''selected'' and for ring/highlight/outline/marker; feedback.js (blob b3ec8f00) has 0 matches for ''select''; moba_input.js draws only the drag box. Observable: the selected unit''s HP bar is drawn identically to every creep bar.'
+- ts: 2026-10-24T17:22:50.636Z
+  session_id: drain-gui-hud-client-1
+  note: 'Published ca149888 (selected unit bar 28x5 with white outline). CI failure is outside this change: mod-host panels_route hud_and_lobby_are_sent_on_the_first_refresh expects pre-match in the hud panel, removed by a21e626e. Witness not taken: needs a live match; blocked_by lobby-disabled-when-one-relay-503 (pending).'
+- ts: 2026-10-25T02:17:39.485Z
+  session_id: drain-hud-shard-2
+  note: 'Witness blocked, pending. Fix ca149888 is on origin tip 7f68d3bc (hud.js:15-16 selected 28x5 bar, :133-135 selection read, :144 outline). The witness needs a live match with a selected unit to compare bar geometry. Same lobby blocker as KRUG-1 (dispatches 1792893379641-6032-d4a1013203af39e5, 1792893505217-6111-fdd3423b2490b315). Clearing action: a match reaching pre-match with a selectable unit.'
+- ts: 2026-10-25T06:09:35.128Z
+  session_id: drain-browser-4
+  note: 'Not driven: needs a live match. Live witness blocked: gm browser verb claims the dispatch and never writes its out-file (5 tries, gm-mcp 0.2.302 and 0.2.305, bodies with and without gm_session_id, about:blank included); each holds the state lane until the 600 s watchdog. Clearing action: fix the browser executor in the agentplug runner.'

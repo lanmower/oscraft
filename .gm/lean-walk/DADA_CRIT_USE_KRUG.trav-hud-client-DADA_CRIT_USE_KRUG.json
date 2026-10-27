@@ -1,0 +1,46 @@
+{
+  "node": "DADA_CRIT_USE_KRUG",
+  "applied": false,
+  "changes": [],
+  "witness": "codesearch literal '#e53935' over js/client/hud.js (dispatch 1792858467784-4519-10f2c7dc433ef1df) returned hud.js:104; no edit made",
+  "prd_ids": [
+    "DADA_CRIT_USE_KRUG-trav-hud-client-DADA_CRIT_USE_KRUG-1",
+    "DADA_CRIT_USE_KRUG-trav-hud-client-DADA_CRIT_USE_KRUG-2"
+  ],
+  "unknown_ids": [],
+  "next_choice": {
+    "to": null,
+    "why": "depth limit: depth 0 equals max_depth 0"
+  },
+  "links_offered": [
+    "DADA_CRIT_PROV_DEBORD",
+    "DADA_CRIT_PROV_SHKLOVSKY",
+    "DADA_KRUG",
+    "DADA_NORMAN"
+  ],
+  "link_taken": null,
+  "session": "trav-hud-client-DADA_CRIT_USE_KRUG",
+  "witness_dispatch_ids": [
+    "1792858467784-4519-10f2c7dc433ef1df",
+    "1792858468019-4520-b156cce4fd3c7669",
+    "1792858452267-4476-2d3f376ac4925d8",
+    "1792858468954-4522-877e452dde641de6",
+    "1792858514752-4607-5dacf7379af756a3"
+  ],
+  "verified_by": null,
+  "verified_dispatch_ids": [],
+  "findings": [
+    {
+      "prd_id": "DADA_CRIT_USE_KRUG-trav-hud-client-DADA_CRIT_USE_KRUG-1",
+      "owner": "trav-hud-client-DADA_CRIT_USE_KRUG",
+      "disposition": "accept"
+    },
+    {
+      "prd_id": "DADA_CRIT_USE_KRUG-trav-hud-client-DADA_CRIT_USE_KRUG-2",
+      "owner": "trav-hud-client-DADA_CRIT_USE_KRUG",
+      "disposition": "accept"
+    }
+  ],
+  "inspector": null,
+  "caveat": "js/client and scenarios/moba are 4 ahead, 9 behind upstream 2d3cc5769e9c; codesearch stale_tree, upstream tip unchecked"
+}

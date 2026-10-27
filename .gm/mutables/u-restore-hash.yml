@@ -1,0 +1,5 @@
+id: u-restore-hash
+row: gap-net-host-resume
+question: Does wasm Game::new(image) reproduce the pre-restart game_state_hash exactly?
+session_id: gm-orch-2-9
+status: unknown

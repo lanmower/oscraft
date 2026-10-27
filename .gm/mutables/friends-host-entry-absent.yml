@@ -1,0 +1,4 @@
+id: friends-host-entry-absent
+value: Does play.js host=1 make the page own the sim and announce the room, and is host=1 absent from docs/FRIENDS.md?
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

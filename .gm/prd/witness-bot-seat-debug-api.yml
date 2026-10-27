@@ -1,0 +1,12 @@
+id: witness-bot-seat-debug-api
+subject: Debug API seats bots and starts a match for an in-match witness, localhost only
+description: oscraft.debug has run(name,args), which needs gate.live, so the lobby cannot be driven through it. Add oscraft.lobby(call, args) that sends one lobby ui call (claim with slot, fill, pick, start) exactly as the lobby buttons do, refused unless location.hostname is localhost or 127.0.0.1. Witness rows (ui-*, shop-*, dada-crit) need a live match without clicking Claim, Fill, Start or joining a room.
+acceptance_criteria: On a localhost page with ?host=1, oscraft.lobby('claim',{slot:0}), oscraft.lobby('fill',{}), oscraft.lobby('start',{}) seats the host, fills bots and starts the match; the same call on a non-local hostname returns false.
+witness_plan: Serve the CI-built site on 127.0.0.1, run the three calls through the browser verb eval step, screenshot the match before and after.
+session_id: hud-match-witness
+owner: hud-match-witness
+status: pending
+references:
+- ts: 2026-10-26T05:16:03.530Z
+  session_id: hud-match-witness
+  note: '{"url":"https://developer.mozilla.org/en-US/docs/Web/API/Location/hostname","repo":"","path":"","sha":"","why":"The localhost-only guard compares location.hostname with localhost and 127.0.0.1, so a remote page is refused.","license":"unknown"}'

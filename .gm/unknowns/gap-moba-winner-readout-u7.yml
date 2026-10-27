@@ -1,0 +1,5 @@
+id: gap-moba-winner-readout-u7
+row: gap-moba-winner-readout
+question: Does adding a winner field to the /state JSON require a PROTOCOL_VERSION bump or break http_state_ok (gate checks.rs:383)?
+session_id: gm-oscraft-w1-16
+status: unknown

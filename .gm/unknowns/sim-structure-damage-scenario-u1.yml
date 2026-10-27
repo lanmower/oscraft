@@ -1,0 +1,5 @@
+row: sim-structure-damage-scenario
+id: sim-structure-damage-scenario-u1
+text: Does the idle skirmisher's pulse_shot behaviour select the beacon structure as a target within weapon range?
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

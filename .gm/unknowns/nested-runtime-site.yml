@@ -1,0 +1,4 @@
+status: unknown
+id: nested-runtime-site
+value: 'Which code starts the nested runtime on the instruction path: the gm-mcp handler named by the row, or agentplug-host block_on_component?'
+session_id: drain-gm-4

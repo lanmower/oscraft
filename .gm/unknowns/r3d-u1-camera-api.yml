@@ -1,0 +1,4 @@
+id: r3d-u1-camera-api
+value: Does render3d.js export orbit/pan/zoom and a perspective setCamera, and what are their signatures (render3d.js:254-313)?
+session_id: gm-orch-13-wire
+status: unknown

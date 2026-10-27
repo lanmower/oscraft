@@ -1,0 +1,60 @@
+# 6.88g hero abilities, batch 09 of 12. Heroes: bloodseeker, death_prophet, furion, leshrac, morphling, phoenix, shadow_demon, templar_assassin, void_spirit.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# bloodseeker 6.88g A0LH Rupture
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 24 rows, 0 mapped, 24 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A0LH A0I8 A2X9 A2X8 A02C A02M A0P6 A073 A0G6 A0G8 A0KX A0FN A35E A1RK A1YY A1RJ A1S4 A1S8 A31F A1SB A0RP A0RO A1EA A0RV.
+ability("bloodseeker_rupture", 960, 150, "none", [])
+# bloodseeker 6.88g A0I8 Strygwyr's Thirst
+ability("bloodseeker_strygwyr_s_thirst", 0, 0, "none", [])
+# bloodseeker 6.88g A2X9 Bloodrage
+ability("bloodseeker_bloodrage", 192, 0, "none", [])
+# bloodseeker 6.88g A2X8 Blood Rite
+ability("bloodseeker_blood_rite", 464, 100, "none", [])
+# death_prophet 6.88g A02C Witchcraft
+ability("death_prophet_witchcraft", 0, 0, "none", [])
+# death_prophet 6.88g A02M Carrion Swarm
+ability("death_prophet_carrion_swarm", 128, 105, "none", [])
+# death_prophet 6.88g A0P6 Silence 0
+ability("death_prophet_silence_0", 0, 80, "none", [])
+# death_prophet 6.88g A073 Exorcism
+ability("death_prophet_exorcism", 2320, 200, "none", [])
+# furion: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# leshrac: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# morphling 6.88g A0G6 Adaptive Strike
+ability("morphling_adaptive_strike", 160, 100, "none", [])
+# morphling 6.88g A0G8 Replicate
+ability("morphling_replicate", 1280, 25, "none", [])
+# morphling 6.88g A0KX Morph
+ability("morphling_morph", 16, 0, "none", [])
+# morphling 6.88g A0FN Waveform
+ability("morphling_waveform", 176, 140, "none", [])
+# phoenix 6.88g A35E Fire Spirits Learn
+ability("phoenix_fire_spirits_learn", 0, 0, "none", [])
+# phoenix 6.88g A1RK Supernova
+ability("phoenix_supernova", 1760, 200, "none", [])
+# phoenix 6.88g A1YY Sun Ray
+ability("phoenix_sun_ray", 320, 100, "none", [])
+# phoenix 6.88g A1RJ Icarus Dive
+ability("phoenix_icarus_dive", 576, 0, "none", [])
+# shadow_demon 6.88g A1S4 Shadow Poison
+ability("shadow_demon_shadow_poison", 40, 40, "none", [])
+# shadow_demon 6.88g A1S8 Disruption
+ability("shadow_demon_disruption", 400, 120, "none", [])
+# shadow_demon 6.88g A31F Demonic Purge
+ability("shadow_demon_demonic_purge", 800, 200, "none", [])
+# shadow_demon 6.88g A1SB Soul Catcher
+ability("shadow_demon_soul_catcher", 208, 50, "none", [])
+# templar_assassin 6.88g A0RP Psionic Trap
+ability("templar_assassin_psionic_trap", 176, 15, "none", [])
+# templar_assassin 6.88g A0RO Psi Blades
+ability("templar_assassin_psi_blades", 0, 0, "none", [])
+# templar_assassin 6.88g A1EA Refraction
+ability("templar_assassin_refraction", 272, 0, "none", [])
+# templar_assassin 6.88g A0RV Meld
+ability("templar_assassin_meld", 96, 50, "none", [])
+# void_spirit: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# content-abilities-120-heroes-missing (drain-heroes-shard-2): rows for heroes whose 6.88g identity is resolved (heroes_688g.tsv or the identity agreement pass). Effects [] on every row: UNVERIFIED.
+# Heroes added to this batch (identity pending, absent from its header): lina.
+# lina: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).

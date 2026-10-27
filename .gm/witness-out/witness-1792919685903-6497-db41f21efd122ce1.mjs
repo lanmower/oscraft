@@ -1,0 +1,8 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const cp=require('child_process'),fs=require('fs'),path=require('path'),os=require('os');const R='/workspace/oscraft';const sh=(c)=>cp.execSync(c,{cwd:R,encoding:'utf8',maxBuffer:1<<26,shell:'/bin/bash'});const ok=(c,m)=>{if(!c){console.log('RESULT: FAIL '+m);process.exit(1)}};const done=(m)=>console.log('RESULT: PASS '+m);
+const RUN_PAGES='40179272563',RUN_CI='40179272561';
+const jobs=(run)=>JSON.parse(sh('gh run view '+run+' --repo lanmower/oscraft --json jobs')).jobs;
+const serve=(args)=>new Promise((res)=>{const p=cp.spawn('node',[R+'/scripts/dev/serve.mjs',...args],{cwd:R});let b='';p.stdout.on('data',d=>{b+=d;const m=b.match(/http:\/\/localhost:(\d+)\/js/);if(m)res({p,port:m[1]})});});
+const get=async(u,m='GET')=>{const r=await fetch(u,{method:m});return r};
+(async()=>{try{const a=await serve([R+'/.dev-site-none']);const b=await serve([R+'/.dev-site-none']);ok(a.port!==b.port,'same port');const probe=R+'/mods/dr9-probe.txt';fs.writeFileSync(probe,'one');const t0=Date.now();const ra=await (await get('http://localhost:'+a.port+'/mods/dr9-probe.txt')).text();fs.writeFileSync(probe,'two');const ra2=await (await get('http://localhost:'+a.port+'/mods/dr9-probe.txt')).text();const rb2=await (await get('http://localhost:'+b.port+'/mods/dr9-probe.txt')).text();fs.unlinkSync(probe);a.p.kill();b.p.kill();ok(ra==='one'&&ra2==='two'&&rb2==='two','edit not reflected '+ra+ra2+rb2);done('two servers on ports '+a.port+' and '+b.port+', an edit reflected in '+(Date.now()-t0)+' ms by both');}catch(e){console.log('RESULT: FAIL '+e.message);process.exit(1)}})()

@@ -1,0 +1,50 @@
+# 6.88g hero abilities, batch 10 of 12. Heroes: bounty_hunter, disruptor, grimstroke, life_stealer, muerta, primal_beast, shadow_shaman, terrorblade, warlock.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# bounty_hunter 6.88g A1IQ Jinada
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 20 rows, 0 mapped, 20 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A1IQ A07A A004 A0B4 A1SU A1TV A1SW A1U6 A0SW A0SS A2TT A194 A00P A0RX A010 A00H A0J5 A0AS A06P S008.
+ability("bounty_hunter_jinada", 0, 0, "none", [])
+# bounty_hunter 6.88g A07A Wind Walk
+ability("bounty_hunter_wind_walk", 240, 50, "none", [])
+# bounty_hunter 6.88g A004 Shuriken Toss
+ability("bounty_hunter_shuriken_toss", 160, 120, "none", [])
+# bounty_hunter 6.88g A0B4 Track
+ability("bounty_hunter_track", 64, 50, "none", [])
+# disruptor 6.88g A1SU Kinetic Field
+ability("disruptor_kinetic_field", 208, 70, "none", [])
+# disruptor 6.88g A1TV Thunder Strike
+ability("disruptor_thunder_strike", 192, 130, "none", [])
+# disruptor 6.88g A1SW Glimpse
+ability("disruptor_glimpse", 960, 100, "none", [])
+# disruptor 6.88g A1U6 Static Storm
+ability("disruptor_static_storm", 1440, 125, "none", [])
+# grimstroke: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# life_stealer 6.88g A0SW Infest
+ability("life_stealer_infest", 1600, 50, "none", [])
+# life_stealer 6.88g A0SS Feast
+ability("life_stealer_feast", 0, 0, "none", [])
+# life_stealer 6.88g A2TT Rage
+ability("life_stealer_rage", 256, 75, "none", [])
+# life_stealer 6.88g A194 Open Wounds
+ability("life_stealer_open_wounds", 384, 110, "none", [])
+# muerta: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# primal_beast: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# shadow_shaman 6.88g A00P Shackles
+ability("shadow_shaman_shackles", 160, 140, "none", [])
+# shadow_shaman 6.88g A0RX Voodoo
+ability("shadow_shaman_voodoo", 208, 110, "none", [])
+# shadow_shaman 6.88g A010 Ether Shock
+ability("shadow_shaman_ether_shock", 128, 95, "none", [])
+# shadow_shaman 6.88g A00H Mass Serpent Ward
+ability("shadow_shaman_mass_serpent_ward", 1920, 200, "none", [])
+# terrorblade: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# warlock 6.88g A0J5 Fatal Bonds
+ability("warlock_fatal_bonds", 400, 120, "none", [])
+# warlock 6.88g A0AS Shadow Word
+ability("warlock_shadow_word", 256, 90, "none", [])
+# warlock 6.88g A06P Upheaval
+ability("warlock_upheaval", 800, 100, "none", [])
+# warlock 6.88g S008 Rain of Chaos
+ability("warlock_rain_of_chaos", 2640, 200, "none", [])

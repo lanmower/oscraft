@@ -1,0 +1,10 @@
+id: regions-swipe-position-lost-on-rebuild
+subject: 'regions swipe: the shown group resets to the first when the panel rebuilds'
+description: 'From the widgets lane (c9896529): regions.swipe does not restore the scroll position when the panel rebuilds, so on a phone the lobby jumps back to the first attribute group on every refresh. Fix in js/client/widgets.js: keep the shown index per panel id across rebuilds (the widgets lane already keeps focus and scroll across rebuilds for other kinds, 9b066657). Acceptance: CI green; a rebuild leaves the swiped group in view. Witness: browser lane when a phone-width viewport step exists, else code reading plus CI.'
+session_id: mcp-codemode-3036736-1792921514978-24
+owner: mcp-codemode-3036736-1792921514978-24
+status: pending
+notes:
+- ts: 2026-10-25T19:23:30.384Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open.'

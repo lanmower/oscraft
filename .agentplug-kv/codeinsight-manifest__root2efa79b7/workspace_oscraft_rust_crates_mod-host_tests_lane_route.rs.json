@@ -1,0 +1,1 @@
+{"chunks":[{"ch":794387053,"emb":null,"key":"ci-f0295a2-3c6a5483-0","kind":"function_item","le":38,"ls":24,"name":"the_lane_routes_are_readable_and_start_at_the_side_base"}],"commit_overview":null,"digest_hash":1956493317,"hash":1013601411,"mtime_ms":1792650617272.0,"path":"workspace/oscraft/rust/crates/mod-host/tests/lane_route.rs","size":1581,"skipped_no_embed":1,"v":7}

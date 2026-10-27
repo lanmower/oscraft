@@ -1,0 +1,5 @@
+id: u2-load-state-full
+text: 'Does Sim::load_state restore unit count and all unit arrays so a rejected reload leaves count unchanged (read from persist.rs: full hash state; live check is the harness line).'
+row: gap-reload-rollback-restores-sim-state
+session_id: mcp-codemode-266435-1792153181013
+status: unknown

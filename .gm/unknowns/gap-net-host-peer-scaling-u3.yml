@@ -1,0 +1,4 @@
+id: gap-net-host-peer-scaling-u3
+subject: What committed ratio threshold of cost(32 peers)/cost(1 peer) does the row accept; no value is in the row text, so it comes from the U2 baseline.
+session_id: gm-oscraft-w1-14
+status: unknown

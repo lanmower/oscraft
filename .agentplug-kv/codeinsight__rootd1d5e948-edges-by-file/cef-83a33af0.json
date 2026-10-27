@@ -1,0 +1,1 @@
+{"edges":[["toolsDir","resolve",5],["toolsDir","trim",5],["toolsDir","join",5],["toolsDir","homedir",5],["agentplugDir","resolve",9],["agentplugDir","trim",9],["agentplugDir","join",9],["agentplugDir","homedir",9],["leasesDir","join",13],["leasesDir","agentplugDir",13],["spoolDirOf","join",17]],"path":"workspace/gm/gm-mcp/src/paths.js"}

@@ -1,0 +1,19 @@
+id: ui-loading-experience-text-only
+subject: Loading shows only a status string; the screen is blank dark until the world builds
+description: 'js/client/play.js:2766-2767 setStatus(''loading world assets'') with a 10 s stall message; play.html canvas background #1d252c, no progress, no splash, lobby Start button text ''loading world assets''. Symptom: first draw wait (84% idle per memory) looks hung. Acceptance: visible overlay with stage names (modules, wasm, world assets, relays) and elapsed time, hidden at first draw; failure shows the reason. Witness: throttled-network load shows overlay, then gone by worldReady.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T09:21:09.351Z
+  session_id: drain-client-10
+  note: claimed by drain-client-10
+- ts: 2026-10-25T09:28:16.589Z
+  session_id: drain-client-10
+  note: 'published b1c97739ffdba76b9a81f3b47068188c18e5ec66: #boot overlay (stage modules/wasm/world assets + elapsed s, hidden at worldReady, failure reason shown). No new downloads. Open: needs browser look; CI+pages pending at note time.'
+- ts: 2026-10-25T20:36:24.779Z
+  session_id: hud-start-1
+  note: 'hud-start-1: #boot is now a loading card (stages modules/game/world/lobby, progress bar with done/total world assets, hero portraits, stall note), visible from first paint and hidden at worldReady. Witness: verify-ui-loading-experience-text-only dispatches 1792958331123-175-745c19674e64df8f (4 s loading), 1792958401608-177-30d13588c695c187 (50 s throttled, 1 of 23 done), 1792958457328-179-7361997d9431a744 (hidden, worldBuilt=1).'
+- ts: 2026-10-25T20:55:27.473Z
+  session_id: hud-start-1
+  note: 'hud-start-1 BLOCKER (publish): publish_on_origin fails at its origin-main fetch (fetch_failed, ''terminated by SIGTERM'' at the 300 s deadline); 4 publish attempts and 4 plain git fetch origin runs hang on this host (github.com smart-HTTP fetch stalls; gh api and git ls-remote succeed). Local work is complete and witnessed; nothing is pushed. Clearing action: a git fetch of origin main that completes from this host. Commit plan waits on it: play.js world_ready (row lobby-start-world-ready-never-fires-headful), play.js+play.html boot card (ui-loading-experience-text-only), play.js+debug_api.js status (ui-status-line-mixes-debug-and-fatal-text), play.js relay retry (relay-drop-retry-backoff), modui.js guard (ui-modui-poll-overlaps-duplicates-events), play.html phone modal (ui-phone-lobby-overflows).'

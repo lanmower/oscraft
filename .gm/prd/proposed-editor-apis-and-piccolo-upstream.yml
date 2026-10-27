@@ -1,0 +1,7 @@
+id: proposed-editor-apis-and-piccolo-upstream
+subject: 'Proposed: editor host APIs (edit_terrain, set_tile, list_abilities, list_events) and upstreaming the vendored piccolo fix'
+description: From hy3d's consolidated gap list. The editor capabilities CAP-MAP-10, CAP-ABIL-6 and CAP-EVT-4 are stubs; edit_terrain, set_tile, list_abilities and list_events are unimplemented (the gate rows were removed from the claims in the docs fix). The vendored piccolo fix in 6e453dc9 (missing call arguments read stale stack values) should go upstream. Proposed, not approved.
+acceptance_criteria: 'The four host APIs are implemented or the capabilities stay unclaimed, the piccolo fix is proposed upstream, and CI is green on the pushed sha. Owner: hy3d (proposed).'
+owner: hy3d
+session_id: mcp-codemode-1158174-1792947532444-1
+status: pending

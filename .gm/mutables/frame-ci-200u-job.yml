@@ -1,0 +1,4 @@
+id: frame-ci-200u-job
+value: Does the existing CI bytes measurement (.github/workflows/ci.yml near line 2106, browser-two-peers) run a 200-unit case, or is a new 200-unit CI job needed?
+status: unknown
+session_id: gm-oscraft-w1-12

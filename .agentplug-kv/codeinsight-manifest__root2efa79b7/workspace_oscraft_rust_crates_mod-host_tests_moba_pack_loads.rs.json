@@ -1,0 +1,1 @@
+{"chunks":[{"ch":3453587290,"emb":null,"key":"ci-33baf71d-bd4aa38d-0","kind":"function_item","le":25,"ls":11,"name":"every_module_loads_and_runs_300_ticks"}],"commit_overview":null,"digest_hash":548475969,"hash":3175785357,"mtime_ms":1792596319733.0,"path":"workspace/oscraft/rust/crates/mod-host/tests/moba_pack_loads.rs","size":1164,"skipped_no_embed":1,"v":7}

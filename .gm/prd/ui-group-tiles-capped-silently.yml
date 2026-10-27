@@ -1,0 +1,22 @@
+id: ui-group-tiles-capped-silently
+subject: A selection over 12 units shows 12 tiles and no hint that more are selected
+description: 'scenarios/moba/panels.lua:31 GROUP_TILES=12, loop at :498. Symptom: units 13+ have no tile and no count. Acceptance: a ''+N'' label (count from #sel) when truncated, or the grid grows. Witness: select 15 units, panel shows +3.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T09:20:44.141Z
+  session_id: drain-panels-10
+  note: claimed by drain-panels-10
+- ts: 2026-10-25T09:42:39.464Z
+  session_id: drain-panels-10
+  note: 'bed7addd: +N tile when #sel>12; browser look needed; open'
+- ts: 2026-10-25T20:48:40.173Z
+  session_id: hud-match-1
+  note: 'Done in scratch commit: pager (group_page), GROUP_PAGE, count label ''N selected'', 12 tiles per page. Blocker: no live match is reachable in a browser without Claim, Fill, Start or a room join, all forbidden by the owner. Owner to approve a local route (fixture or bot seating that clicks none of those) to witness the in-match behaviour.'
+- ts: 2026-10-25T21:14:44.325Z
+  session_id: hud-match-1
+  note: 'Published b2682bdd on origin/main (scenarios/moba/panels.lua, scenarios/moba/moba_ui.json). CI on that sha: static client checks success; build the page wasm and maps and built page smoke fail the same way as the parent 1d7f2547 (pre-existing, row ci-red-mapexport-lycan-wolf-1-on-main). Row stays open until its in-match witness.'
+- ts: 2026-10-26T05:26:51.957Z
+  session_id: hud-match-witness
+  note: 'Not witnessed: the pager needs more than 12 own units selected and the witness match has one own unit. Open.'

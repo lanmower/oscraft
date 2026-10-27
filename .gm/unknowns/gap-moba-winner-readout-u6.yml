@@ -1,0 +1,5 @@
+id: gap-moba-winner-readout-u6
+row: gap-moba-winner-readout
+question: Does Room::snapshot (server room.rs) carry anything the sim winner can join, and how does Room reach its Sim?
+session_id: gm-oscraft-w1-16
+status: unknown

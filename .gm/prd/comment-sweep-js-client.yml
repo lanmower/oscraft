@@ -1,0 +1,6 @@
+id: comment-sweep-js-client
+subject: Comment sweep for js/client (play.js 3227 lines, hmr.js, delta.js, ice.js, render3d.js, ...)
+description: 'js/client/*.js (not vendor or pkg). e.g. hmr.js:1-20 is a 20-line contract comment; ice.js:2-3, play.js reconnect and host loop. Acceptance per invariant: each comment becomes self-explanatory naming or a small function, facts that cannot be code move to AGENTS.md after being checked as true, and no behaviour changes (check-modulepreload passes, first-draw median unchanged). Witness: codesearch comments_only count for the group.'
+session_id: survey-infra-8
+owner: survey-infra-8
+status: pending

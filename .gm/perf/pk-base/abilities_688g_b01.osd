@@ -1,0 +1,71 @@
+# 6.88g hero abilities, batch 01 of 12. Heroes: abaddon, broodmother, drow_ranger, huskar, lycan, nevermore, pugna, skeleton_king, treant, winter_wyvern.
+# 6.88g hero abilities for units_heroes.osd (drain-b-1). Source: reference map 6.88g, the heroAbilList of each hero unit (unit.ini)
+# and its AbilityData row (abilities_688g_perlevel.tsv). Cooldown is level-1 ticks (seconds x 16) and energy is level-1 mana.
+# Attribute Bonus (A0NR) is skipped: the pack carries hero attributes in attr_rules.txt. Effects are empty: UNVERIFIED, because 6.88g
+# Data fields are not mapped to engine effects (abilities_688g_perlevel.tsv header). Each is a learnable name with no effect yet.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# abaddon: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# broodmother 6.88g A0WQ Insatiable Hunger
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 16 rows, 0 mapped, 16 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A026 Frost Arrows 移动速度减少(%)=0.15 (perlevel.tsv:56) -> slow.
+# UNVERIFIED rows (no effect set): A0WQ A0BK A0BH A0BG A2WF A2O2 A026 A0VC XX04 XX09 AUav A01Y A2LA A2LB A0Z0 A2NE.
+ability("broodmother_insatiable_hunger", 720, 100, "none", [])
+# broodmother 6.88g A0BK Incapacitating Bite
+ability("broodmother_incapacitating_bite", 0, 0, "none", [])
+# broodmother 6.88g A0BH Spawn Spiderlings
+ability("broodmother_spawn_spiderlings", 160, 120, "none", [])
+# broodmother 6.88g A0BG Spin Web
+ability("broodmother_spin_web", 0, 50, "none", [])
+# drow_ranger 6.88g A2WF Gust
+ability("drow_ranger_gust", 208, 90, "none", [])
+# drow_ranger 6.88g A2O2 Trueshot Aura
+ability("drow_ranger_trueshot_aura", 1920, 0, "none", [])
+# drow_ranger 6.88g A026 Frost Arrows
+ability("drow_ranger_frost_arrows", 0, 12, "none", [])
+# drow_ranger 6.88g A0VC Marksmanship
+ability("drow_ranger_marksmanship", 0, 0, "none", [])
+# nevermore: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# pugna: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# skeleton_king 6.88g XX04 Hellfire Blast
+ability("skeleton_king_hellfire_blast", 128, 140, "none", [])
+# skeleton_king 6.88g XX09 Mortal Strike
+ability("skeleton_king_mortal_strike", 0, 0, "none", [])
+# skeleton_king 6.88g AUav Vampiric Aura
+ability("skeleton_king_vampiric_aura", 0, 0, "none", [])
+# skeleton_king 6.88g A01Y Reincarnation Leoric
+ability("skeleton_king_reincarnation_leoric", 4160, 160, "none", [])
+# winter_wyvern 6.88g A2LA Splinter Blast
+ability("winter_wyvern_splinter_blast", 112, 120, "none", [])
+# winter_wyvern 6.88g A2LB Cold Embrace
+ability("winter_wyvern_cold_embrace", 272, 75, "none", [])
+# winter_wyvern 6.88g A0Z0 Winter's Curse
+ability("winter_wyvern_winter_s_curse", 1760, 250, "none", [])
+# winter_wyvern 6.88g A2NE Arctic Siege
+ability("winter_wyvern_arctic_siege", 800, 120, "none", [])
+# content-abilities-120-heroes-missing (drain-heroes-shard-2): rows for heroes whose 6.88g identity is resolved (heroes_688g.tsv or the identity agreement pass). Effects [] on every row: UNVERIFIED.
+# huskar 6.88g A0QR Life Break
+ability("huskar_life_break", 192, 0, "none", [])
+# huskar 6.88g A0QQ Berserker's Blood
+ability("huskar_berserker_s_blood", 0, 0, "none", [])
+# huskar 6.88g A0QN Burning Spear
+ability("huskar_burning_spear", 0, 0, "none", [])
+# huskar 6.88g A0QP Inner Vitality
+ability("huskar_inner_vitality", 352, 170, "none", [])
+# lycan 6.88g A03E Feral Impulse
+ability("lycan_feral_impulse", 0, 0, "none", [])
+# lycan 6.88g A0ZF Howl
+ability("lycan_howl", 800, 15, "none", [])
+# lycan 6.88g A093 Shapeshift
+ability("lycan_shapeshift", 1920, 100, "none", [])
+# lycan 6.88g A03D Summon Wolves
+ability("lycan_summon_wolves", 0, 145, "none", [])
+# treant 6.88g A07Z Overgrowth
+ability("treant_overgrowth", 1120, 150, "none", [])
+# treant 6.88g A2ML Living Armor
+ability("treant_living_armor", 512, 50, "none", [])
+# treant 6.88g A26N Leech Seed
+ability("treant_leech_seed", 256, 100, "none", [])
+# treant 6.88g Z008 Nature's Guise
+ability("treant_nature_s_guise", 8, 0, "none", [])

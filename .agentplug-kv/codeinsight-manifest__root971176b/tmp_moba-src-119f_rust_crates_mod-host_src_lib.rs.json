@@ -1,0 +1,1 @@
+{"chunks":[{"ch":3951692048,"emb":null,"key":"ci-a47eaa58-4bbc8bb2-0","kind":"function_item","le":30,"ls":28,"name":"build_image"}],"commit_overview":null,"digest_hash":372758747,"hash":1270647730,"mtime_ms":1792350461000.0,"path":"tmp/moba-src-119f/rust/crates/mod-host/src/lib.rs","size":1584,"skipped_no_embed":1,"v":7}

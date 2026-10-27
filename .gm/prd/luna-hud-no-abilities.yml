@@ -1,0 +1,6 @@
+id: luna-hud-no-abilities
+subject: 'Luna''s HUD lists no abilities: her unit row exists but no hero_abilities list is attached (narrowed from abaddon-and-underlord-abilities-blank-hud)'
+description: 'Narrowed defect from abaddon-and-underlord-abilities-blank-hud (its two named heroes now have unit rows and hero_abilities lists at origin). The same gap remains for luna: live check on origin cfead9ce (verify session, scan of every scenarios/moba .osd): unit rows 1, hero_abilities absent. From hy3d live note 2026-10-25 12:20Z: luna''s HUD also lists no abilities. Ownership: the hero-ability conversion lane (abilities_688g_b0*.osd, gen-abilities recipe). Data only: 6.88g supplies the identity or it does not; where it is silent, the list stays UNVERIFIED and is not filled from Dota 2. Acceptance: every hero unit row has a hero_abilities list whose names each have one ability row; a witness scan on the head sha shows it; the HUD check is for the browser lane.'
+session_id: drain-hy3d-findings-14
+owner: drain-hy3d-findings-14
+status: pending

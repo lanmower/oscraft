@@ -1,0 +1,1 @@
+state bytes full=3812 delta_avg=52 ratio=0.0136

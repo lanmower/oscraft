@@ -1,0 +1,4 @@
+id: gap-room-thread-supervisor-F3
+subject: Is there a ticker-side test-only panic trigger (analogue of mods.rs take_test_panic) that CI or a witness can arm without a mod?
+session_id: gm-orch-1-3
+status: unknown

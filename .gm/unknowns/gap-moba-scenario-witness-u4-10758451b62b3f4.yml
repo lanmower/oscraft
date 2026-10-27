@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-U4
+row: gap-moba-scenario-witness
+question: Is the scripted order path a data-only fixture (no genre names in rust engine code under the moba checks)?
+session_id: gm-orch-1-7
+status: unknown

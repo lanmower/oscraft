@@ -1,0 +1,1 @@
+{"dispatch_id":"1793133179524-4260-24ca46b62b0a26d5","verb":"bash","fingerprint":"566d746e404afcdd","exit_code":0,"gate_drift":false,"gate_id":null,"predicate":null,"prd_open_count":174,"mutable_open_count":221,"quality":1.0,"ts":1793133179721,"reply_sha256":"07cddb2a0cee28470a60810e1547c435f54753f0c16c6f6db2e0882c279bb9d4","failure_class":"ok","policy_id":"pi0-default"}

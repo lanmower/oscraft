@@ -1,0 +1,4 @@
+id: pos-read-precedes-order
+value: from read taken after bound line and before refused line (order at age 20) is pre-order; guard refused line absent at read
+status: unknown
+session_id: mcp-codemode-266435-1792154934229

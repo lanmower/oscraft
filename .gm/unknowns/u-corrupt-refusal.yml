@@ -1,0 +1,5 @@
+id: u-corrupt-refusal
+row: gap-net-host-resume
+question: Does a missing or corrupt snapshot produce an explicit refusal line instead of an empty room?
+session_id: gm-orch-2-9
+status: unknown

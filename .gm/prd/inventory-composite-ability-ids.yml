@@ -1,0 +1,6 @@
+id: inventory-composite-ability-ids
+subject: abilities-inventory.tsv has two comma-joined ability ids that merge two abilities
+description: 'scenarios/moba/abilities-inventory.tsv carries jakiro_liquid_fire,jakiro_liquid_ice and troll_warlord_whirling_axes_ranged,troll_warlord_whirling_axes_melee as single ability ids. Each id names two abilities, so neither matches an ability() row and neither gets an icon. Split each into its two ids in the inventory, add the ability rows, and match the icons to the split ids. Witness: each split id appears in abilities-inventory.tsv and in an ability() row or an UNVERIFIED note.'
+session_id: heroes-inv-1
+owner: heroes-inv-1
+status: pending

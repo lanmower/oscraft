@@ -1,0 +1,16 @@
+id: content-688g-ability-effect-mapping
+subject: 6.88g hero ability values have no label-to-effect-kind mapping
+description: 'abilities_688g_perlevel.tsv holds the 6.88g per-level values (cool_s, cost, dur_s, DataA to DataI) for 569 hero ability ids. scenarios/moba/abilities.osd applies only the Clinkz cooldowns (Strafe, Skeleton Walk, and Death Pact from drain-a-1 commit 0ce365c4a0f47226391b36d590e49c1c645f989f). The rest has no mapping from each ability''s DataX label to an effect kind (kinds are validated in rust/crates/data/src/format.rs and validate.rs, e.g. stat, timed_stat, damage, heal, buff, spawn, move, carry, slow, stun, silence, root, invisibility). Blocks the ability part of content-creep-neutral-ability-pass and overlaps content-abilities-120-heroes-missing. Unknown: the label-to-kind map per ability. Witness: one 6.88g ability with a damage label encodes through an effect kind and the mod-host cargo test prints 24 ok lines, 53 passed. Probe dispatch: 1792849759845-2688-10ccfd2f09e3fb5d.'
+session_id: drain-a-1
+owner: drain-a-1
+status: pending
+notes:
+- ts: 2026-10-24T17:21:03.708Z
+  session_id: drain-688g-effects-1
+  note: 'drain-688g-effects-1 (commit f9e73c09): 0 of 240 hero-ability rows mapped; all 240 left effects empty and UNVERIFIED with the list in each batch header. Blocking fact: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型 1/2/3/9); an effect needs its ability target (perlevel.tsv:7-9). Nine rows name a kind (damage 伤害/初始伤害/目标伤害, slow 移动速度减少, stun, spawn, invulnerable 无敌时间) with a level-1 value; each still needs the target code, so none is encodable. Witness of the header edit: ci-status on f9e73c09 (pending at this note; read again).'
+- ts: 2026-10-24T17:36:05.093Z
+  session_id: drain-688g-effects-1
+  note: 'blocked_by: content-688g-target-code-legend (no legend for 目标类型 codes in the 6.88g data; an effect needs its target). Publish: commit f9e73c0912f9191ce6948d09a0fa987231bce5d5 (parent 43d4b5c4), 12 batch files, header-only (ability() lines unchanged; 240 of 240 still effects []). CI run 40115591675 (ci) completed failure on workspace tests: mod-host panels_route hud_and_lobby_are_sent_on_the_first_refresh, the same failure as parent run 40115559832, so the red is pre-existing (row ci-main-workspace-tests-hud-lobby-first-refresh).'
+- ts: 2026-10-25T16:00:21.578Z
+  session_id: heroes-inv-1
+  note: 'heroes-inv-1: the Dota 2 ability rows for the 15 non-6.88g heroes (scenarios/moba/abilities_dota2_15.osd) and the 6.88g rows filed as heroes-688g-ability-rows-missing keep effects [] and are UNVERIFIED for the same blocker.'

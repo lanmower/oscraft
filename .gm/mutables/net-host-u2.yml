@@ -1,0 +1,5 @@
+row: net-node-host-wireweave
+id: net-host-u2
+question: Does the current docs/HOST.md or ci.yml still expect a Node host, or is js/host the retired state (live read of docs/HOST.md:55-70)?
+session_id: gm-oscraft-w1-03
+status: unknown

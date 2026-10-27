@@ -1,0 +1,5 @@
+run	2026-10-27T11:27:40Z
+camps-gate-rect	pending
+data-encode-name-len-narrowing-unchecked	pending
+mod-env-math-random-unverified	pending
+hero-acronym-ci-guard-max-three-letters	pending

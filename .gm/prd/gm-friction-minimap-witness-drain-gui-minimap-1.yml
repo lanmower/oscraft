@@ -1,0 +1,15 @@
+id: gm-friction-minimap-witness-drain-gui-minimap-1
+subject: 'gm verbs: nested max_chars, cdp object ids, and a stale localhost server slowed live witnesses'
+description: 'Found while witnessing ui_minimap rows (session drain-gui-minimap-1). (1) gm_codemode passes its outer max_chars to nested fs_read/browser calls that omit one, so replies were cut mid-file (fs_read of a 7 KB file returned 159 lines). (2) cdp DOMDebugger.getEventListeners needs a fresh objectId per call; a Runtime.evaluate objectId from an earlier call is refused (''Could not find object''). Use Runtime.evaluate with includeCommandLineAPI and getEventListeners in one call. (3) The dev server at 127.0.0.1:8790 served a pre-edit ui_minimap.js (7079 bytes) while the working tree held the edit, so localhost witnesses ran stale code; witnesses went through raw.githubusercontent at the pushed sha instead. (4) ci-status counts the Pages workflow jobs in job_counts, so a ci workflow that is green can read pending or failure. Witness: each item reproduces with one call; fix in gm-mcp verbs and skills/gm docs.'
+session_id: drain-gui-minimap-1
+owner: drain-gui-minimap-1
+status: pending
+notes:
+- ts: 2026-10-25T06:01:37.638Z
+  session_id: mcp-codemode-1190666-1792907984747-122
+  note: |-
+    drain-gm-4 executor report (STATUS: blocked on items 1 and 4; item 2 pass; item 3 filed).
+    (1) codemode nested max_chars: NOT published. Fix edited in gm-mcp/src/codemode.js (ENVELOPE_KEYS loop skips max_chars), then reverted. Queued: write_queue gm-mcp row. Blocker: gm-mcp checkout 41 commits behind origin/main with foreign uncommitted hunks; src change needs BUNDLE_VERSION bump (check-version-bump gate, origin 0.2.305); default publish base conflicts on src/bundle-version.js; publish_base origin/main reverts upstream lines in dispatch.js. Served gm-mcp 0.2.302, installed 0.2.305: MCP restart needed. No witness yet.
+    (2) cdp getEventListeners doc: PASS. Pushed 8926c76ecdf88a6aa24e460acea7f07d7d2e3b79 (gm main, Row line, author lanmower). CI run 40166306820 success. Witness: codesearch dispatch 1792907565677-5279-15a85e6fa7d21b54 (line 551 local, 553 origin); fs_read dispatch 1792907566460-5280-47cadf65650ec16a; both in .gm/exec-spool/.dispatch-ledger.json. Served source_sha 8c618c875c668f1a5269fa4af290ba4a1fdda56e != 8926c76 after 9 min; the doc witness reads the repo file and needs no served build.
+    (3) stale localhost dev server: FILED as row oscraft-dev-site-serves-pre-edit-minimap-js (prd_add, oscraft). No gm-side cause found: codesearch of /workspace/gm finds no 8790 server; oscraft docs/DEVELOPMENT.md:17 and QUICKSTART serve .dev-site staged by stage.sh.
+    (4) ci-status job_counts Pages jobs: NOT published, same blocker as (1). Queued: write_queue gm-mcp. Fix: gm-mcp/src/dispatch.js withCiStatusRepo sets ignore_workflows default ['Deploy GH Pages','gh-pages'] (gm repo Pages run name is gh-pages, from .github/workflows/gh-pages.yml). No witness yet.

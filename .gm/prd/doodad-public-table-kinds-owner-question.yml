@@ -1,0 +1,12 @@
+id: doodad-public-table-kinds-owner-question
+subject: 'Owner question: may doodad kinds from public tables ship?'
+description: 'The owner directed that the map must not lose placements, so 9400c259 (which withheld 24 kinds and dropped 558 placements) was reverted in 0c71b08b. The 6.88g-only rule still says a value 6.88g does not give should not be filled from another source. That tension is open: kinds from public tables currently ship again. The owner decides whether they stay, go, or are marked UNVERIFIED while still shipping.'
+acceptance_criteria: The owner records a decision on whether kinds from public tables ship; the doodad data follows that decision.
+witness_plan: A count of shipped kinds and placements before and after the decision, from origin's data.
+session_id: mcp-codemode-877171-1792904712792-222
+owner: mcp-codemode-877171-1792904712792-222
+status: pending
+notes:
+- ts: 2026-10-25T10:09:11.513Z
+  session_id: mcp-codemode-3115989-1792922950003-5
+  note: 'Owner decision (user): maximise parity with the 6.88g reference. Ship the public-table kinds.'

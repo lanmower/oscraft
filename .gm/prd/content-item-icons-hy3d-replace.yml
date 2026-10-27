@@ -1,0 +1,6 @@
+id: content-item-icons-hy3d-replace
+subject: Replace placeholder item icons with 6.88g-matching art via hy3d
+description: 'scenarios/moba/assets/icons/ITEM-SOURCES.tsv marks all 313 item icons PLACEHOLDER (CC0 pack, name-picked, e.g. reaver->ancestor-totem, broadsword->arcane-wand). Request hy3d icons per item; 6.88g art not in repo (UNVERIFIED). Acceptance: replaced icons listed in ITEM-SOURCES.tsv without the placeholder mark.'
+session_id: mcp-codemode-2804130-1792919090730-160
+owner: mcp-codemode-2804130-1792919090730-160
+status: pending

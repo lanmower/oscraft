@@ -1,0 +1,3 @@
+blocker gap-mod-spawn-read-race-blocker-gm-oscraft-w1-15: the before-read race is refuted
+witness: .gm/witness/gap-mod-spawn-read-race-refuted.txt sha256=6627582df56a3aa21a2e2ea56a7d3110d9faa4c1791dd50b75512f3464057389
+parent gap-mod-spawn-read-race closed as refuted; no edit required

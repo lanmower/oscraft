@@ -1,0 +1,20 @@
+id: ui-widget-rebuild-drops-focus-and-scroll
+subject: A changed panel tree replaces all children, so keyboard focus and scroll position reset
+description: 'js/client/widgets.js:349,373 root.replaceChildren on any sig change. Symptom: while tabbed on a lobby or shop control, the next tick''s change (clock, gold) loses focus and scrolls the hero grid/shop to the top. Acceptance: focus and scrollTop of .w-region/.w-panel survive an update (keyed diff or restore by data-id path). Witness: focus a hero tile, change another seat, document.activeElement unchanged.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T08:59:10.591Z
+  session_id: drain-ui-widgets-9
+  note: claimed by drain-ui-widgets-9
+- ts: 2026-10-25T09:00:56.549Z
+  session_id: drain-ui-widgets-9
+  note: edit published; witness needs a browser look (a11y tree / focus / 390px screenshot), left open
+- ts: 2026-10-25T19:23:33.174Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open.'
+references:
+- ts: 2026-10-26T05:23:32.310Z
+  session_id: hud-match-witness
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/js/client/widgets.js","repo":"","path":"","sha":"","why":"The widget tree update path that keeps a focused control across a rebuild.","license":"unknown"}'

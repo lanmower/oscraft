@@ -1,0 +1,6 @@
+id: gm-dir-screenshot-clutter-no-sweep
+subject: Probe screenshots and result json pile up under .gm with no sweep verb
+description: 'Evidence: .gm holds dozens of aclick-*.png (~440 KB each), ci-fail-2d9d.txt, codesearch-result-*.json, and witness-log.md. Ask: browser screenshots default to a spool tmp dir with TTL sweep, plus a gm-clean verb.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

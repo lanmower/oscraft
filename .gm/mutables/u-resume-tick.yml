@@ -1,0 +1,5 @@
+id: u-resume-tick
+row: gap-net-host-resume
+question: Does a reconnecting wireweave peer resume at snapshot.tick, and which frame carries the state hash?
+session_id: gm-orch-2-9
+status: unknown

@@ -1,0 +1,276 @@
+-- Heroes, as mod code: a seat's spawn, the respawn time and buyback, the attribute bonuses, passive gold, and the gold,
+-- xp share and assist credit of a hero's kill. The numbers are rules (shared/config.lua reads them).
+local config = require("config")
+local units = require("units")
+local bounty = require("bounty")
+local respawn = require("respawn")
+local counter = require("counter")
+local store = require("store")
+local xp = require("xp")
+local aegis = require("aegis")
+
+local TICKS = config.TICKS_PER_SECOND
+local NEUTRAL = 255 -- the neutral player (the sim's NEUTRAL_PLAYER)
+
+-- Stat codes (sim/src/spell.rs): S_DAMAGE 0, S_HEALTH 2, S_ATTACK_SPEED 12, S_MANA_REGEN 13,
+-- S_HEALTH_REGEN 14, S_MAX_MANA 15, S_ARMOR_X100 26.
+local S_DAMAGE, S_HEALTH, S_ATTACK_SPEED = 0, 2, 12
+local S_MANA_REGEN, S_HEALTH_REGEN, S_MAX_MANA, S_ARMOR_X100 = 13, 14, 15, 26
+
+local ASSIST_WINDOW_TICKS = 50
+local buyback_ready = counter.sim("buyback_ready")
+local applied = {}  -- unit -> { code -> the stat bonus last sent }
+
+-- The rules attribute_bonuses reads for every living hero on every tick. A rule never moves, so each is read once,
+-- at load, instead of once per hero per tick.
+local HP_PER_ATTR_A = config.rule("hp_per_attr_a")
+local HP_REGEN_PER_ATTR_A_X100 = config.rule("hp_regen_per_attr_a_x100")
+local UNIVERSAL_DAMAGE_PCT = config.rule("universal_damage_pct")
+local ARMOUR_PER_ATTR_B_DIV = config.rule("armour_per_attr_b_div")
+local MANA_BASE_DEFAULT = config.rule("mana_base_default")
+local MANA_PER_ATTR_C = config.rule("mana_per_attr_c")
+local MANA_REGEN_PER_ATTR_C_X100 = config.rule("mana_regen_per_attr_c_x100")
+local PASSIVE_GOLD_PER_S = config.rule("passive_gold_per_s")
+
+-- A unit's level is the count of curve thresholds its xp has reached, so it moves only when the xp does: the curve is
+-- walked again on a gain, not for every hero on every tick.
+local level_xp, level_seen = {}, {}
+local function level_of(unit)
+  local have = game.xp(unit)
+  local seen = level_xp[unit]
+  if seen ~= nil and seen == have then return level_seen[unit] end
+  level_xp[unit] = have
+  local level = xp.level_of(unit)
+  level_seen[unit] = level
+  return level
+end
+
+-- The heroes, in unit order. A unit is only ever added (the sim never drops one), so a new hero always raises the unit
+-- count: the scan that finds them runs again only when the count moves, not on every tick.
+local hero_ids, hero_count = {}, -1
+local function heroes()
+  local count = get_unit_count()
+  if count ~= hero_count then
+    hero_count = count
+    hero_ids = {}
+    for i = 0, count - 1 do
+      if units.is_hero(i) then hero_ids[#hero_ids + 1] = i end
+    end
+  end
+  return hero_ids
+end
+
+-- Xp share of a kill: an enemy kill gives the victim's xp bounty to the killer and to each allied hero in the victim's
+-- assist radius, split evenly with the rest to the first. A denial (the killer is the victim's ally) gives deny_pct of
+-- the bounty to each enemy hero in the radius.
+local function share_xp(victim, killer, victim_player, killer_player)
+  local denied = killer_player == victim_player
+  local pool = game.xp_bounty(victim)
+  if denied then pool = math.floor(pool * game.deny_xp_pct(victim) / 100) end
+  if pool <= 0 then return end
+  local recipients = {}
+  if not denied then recipients[#recipients + 1] = killer end
+  local x, y = unit_position(victim)
+  for _, u in ipairs(units.units_near(x, y, config.milli(game.assist_radius_milli(victim)))) do
+    if u ~= victim and u ~= killer and game.alive(u) and units.is_hero(u) then
+      local side = unit_player(u)
+      local on_side
+      if denied then
+        on_side = units.hostile(side, victim_player)
+      else
+        on_side = not units.hostile(side, killer_player)
+      end
+      if on_side then recipients[#recipients + 1] = u end
+    end
+  end
+  local count = #recipients
+  if count == 0 then return end
+  local share = math.floor(pool / count)
+  local rest = pool - share * count
+  for idx, u in ipairs(recipients) do
+    game.cmd_add_xp(u, share + (idx == 1 and rest or 0))
+  end
+end
+
+-- Assist credit: each recent hitter of the victim on the killer's side, other than the killer, gets one credit.
+local function credit_assists(victim, killer, killer_player)
+  for _, h in ipairs(game.take_recent_hitters(victim, ASSIST_WINDOW_TICKS)) do
+    if h ~= killer and unit_player(h) == killer_player then
+      game.add_credit(h, 1)
+    end
+  end
+end
+
+local function hero_gold(unit)
+  return config.rule("hero_kill_gold_base") + config.rule("hero_kill_gold_per_level") * level_of(unit)
+end
+
+-- The kill gold of a hero that dies to an enemy creep or tower (Dota, the Hero kills rule of the Gold page): the enemy
+-- heroes that damaged it within kill_window_s share it, one damager taking all of it and several splitting it equally.
+-- With no enemy hero among its damagers, the living enemy heroes share it. The record is read here, before the assist
+-- credit takes it.
+local function creep_kill_gold(unit, victim_player)
+  local damagers = {}
+  for _, h in ipairs(game.recent_hitters(unit, config.rule("kill_window_s") * TICKS)) do
+    if units.is_hero(h) and game.alive(h) and units.hostile(unit_player(h), victim_player) then
+      damagers[#damagers + 1] = h
+    end
+  end
+  local recipients = damagers
+  if #damagers == 0 then
+    recipients = {}
+    for i = 0, get_unit_count() - 1 do
+      if units.is_hero(i) and game.alive(i) and units.hostile(unit_player(i), victim_player) then
+        recipients[#recipients + 1] = i
+      end
+    end
+  end
+  bounty.split({ unit = unit, gold = hero_gold(unit), recipients = recipients, text = true })
+end
+
+-- Buyback: base + per level + a share of net worth; the cooldown is a per-unit counter.
+local function buyback_cost(unit)
+  local nw = math.floor(store.net_worth(unit) * config.rule("buyback_net_worth_pct") / (100 * config.rule("buyback_net_worth_div")))
+  return config.rule("buyback_base") + config.rule("buyback_per_level") * level_of(unit) + nw
+end
+
+-- The stat bonus of unit `unit` for `code` last sent, so each tick sends only the change.
+local function set_bonus(unit, code, target)
+  local a = applied[unit]
+  if a == nil then
+    a = {}
+    applied[unit] = a
+  end
+  local prev = a[code] or 0
+  if target ~= prev then
+    game.cmd_add_stat(unit, code, target - prev)
+    a[code] = target
+  end
+end
+
+-- Each attribute's unit line field (attr_field, and its gain per level under the name with "_gain"), its ITEM_STATS name
+-- for the item bonus, and its stat code (the attribute slots are 22 + k; sim/src/spell.rs S_SLOT_22).
+local ATTRIBUTES = {
+  { field = "str", item = "strength", code = 22 },
+  { field = "agi", item = "agility", code = 23 },
+  { field = "int", item = "intelligence", code = 24 },
+}
+
+-- Strength, agility and intelligence of a unit in hundredths: the base plus the gain per xp level (the unit line's
+-- values), then the item bonus and the stat bonus, which are whole points.
+-- A unit's attributes, kept in one table this file owns: this runs for every living hero on every tick, so it builds
+-- nothing.
+local ATTRIBUTE_VALUES = { 0, 0, 0 }
+local function unit_attributes(unit)
+  local level = level_of(unit)
+  for k, attr in ipairs(ATTRIBUTES) do
+    local base = game.attr_field(unit, attr.field) or 0
+    local gain = game.attr_field(unit, attr.field .. "_gain") or 0
+    ATTRIBUTE_VALUES[k] = base + gain * level + (game.item_bonus(unit, attr.item) + game.stat_value(unit, attr.code)) * 100
+  end
+  return ATTRIBUTE_VALUES[1], ATTRIBUTE_VALUES[2], ATTRIBUTE_VALUES[3]
+end
+
+-- The attribute-to-stat rules: strength gives health, health regen and the universal or strength damage;
+-- agility gives armour, attack speed and the agility damage; intelligence gives mana and mana regen.
+-- Attributes are hundredths (unit_attributes); the coefficients are rules.
+local function attribute_bonuses(unit)
+  local s, a, n = unit_attributes(unit)
+  local primary = game.attr_field(unit, "primary")
+  local damage_x100
+  if primary == 0 then
+    damage_x100 = s
+  elseif primary == 1 then
+    damage_x100 = a
+  elseif primary == 2 then
+    damage_x100 = n
+  else
+    damage_x100 = math.floor((s + a + n) * UNIVERSAL_DAMAGE_PCT / 100)
+  end
+  set_bonus(unit, S_HEALTH, math.floor(HP_PER_ATTR_A * s / 100))
+  set_bonus(unit, S_HEALTH_REGEN, math.floor(HP_REGEN_PER_ATTR_A_X100 * s / 100))
+  set_bonus(unit, S_DAMAGE, math.floor(damage_x100 / 100))
+  set_bonus(unit, S_ARMOR_X100, math.floor(a / ARMOUR_PER_ATTR_B_DIV))
+  set_bonus(unit, S_ATTACK_SPEED, math.floor(a / 100))
+  -- A unit with no unit line in the rules has no base mana of its own: it takes the pack's default mana.
+  local mana_default = 0
+  if game.attr_field(unit, "mana") == nil then mana_default = MANA_BASE_DEFAULT end
+  set_bonus(unit, S_MAX_MANA, mana_default + math.floor(MANA_PER_ATTR_C * n / 100))
+  set_bonus(unit, S_MANA_REGEN, math.floor(MANA_REGEN_PER_ATTR_C_X100 * n / 100))
+end
+
+return {
+  -- A seat's pick from the lobby's start: spawn the picked hero at the seat's start point and enrol it. Dispatched by the
+  -- page for each seat that picked a hero (controls.lua routes the "seat_pick" action here).
+  seat_pick = function(player, hero_kind)
+    -- A seat spawns its hero once: the page can apply the same start more than once, and a repeat must not add a second hero.
+    for _, id in ipairs(game.units(player)) do
+      if units.is_hero(id) then return end
+    end
+    local start = game.seat_start(player)
+    if start == nil then return end
+    local unit = game.spawn(player, hero_kind, start.x, start.y)
+    if unit == nil then return end
+    game.enroll(unit, start.x, start.y)
+  end,
+
+  -- A hero's kill: its gold (the killer keeps all but the team share), the assist credit and the xp share.
+  on_died = function(unit, killer, killer_player, _, victim_player)
+    if killer == nil or killer == unit or aegis.reincarnating(unit) then return end
+    local hero_victim = units.is_hero(unit) and killer_player ~= victim_player
+    -- A killer that died in the same step takes no xp, assist or hero-kill gold (the host refuses a dead unit). A creep or
+    -- tower killer's kill still pays the living enemy heroes, since they are the ones paid.
+    if not game.alive(killer) then
+      if hero_victim and not units.is_hero(killer) and killer_player ~= NEUTRAL then creep_kill_gold(unit, victim_player) end
+      game.take_recent_hitters(unit, 0) -- the death is over: forget its hitters, as the assist credit does on a live killer's death
+      return
+    end
+    -- The kill tally counts hero kills: a creep's kill is still a kill event for every mod, but not a hero's kill.
+    if units.is_hero(killer) and killer_player ~= victim_player then game.add_kill(killer, 1) end
+    if hero_victim then
+      if units.is_hero(killer) then
+        bounty.pay({ unit = unit, side = killer_player, killer = killer, gold = hero_gold(unit),
+          share_pct = config.rule("team_share_pct"), to_unit = true })
+      elseif killer_player ~= NEUTRAL then
+        -- Neutral camp creeps pay no hero gold (Dota pays a hero's death to enemy creeps and towers only).
+        creep_kill_gold(unit, victim_player)
+      end
+    end
+    credit_assists(unit, killer, killer_player)
+    share_xp(unit, killer, victim_player, killer_player)
+  end,
+
+  -- A dead hero's respawn time, by its level.
+  on_unit_died = function(unit)
+    if not units.is_hero(unit) then return nil end
+    -- A hero held by the aegis returns by it, not by the respawn timer: it stays dead.
+    if aegis.reincarnating(unit) then return false end
+    return respawn.linear(level_of(unit), "respawn_base_s", "respawn_per_level_s", "respawn_cap_s")
+  end,
+
+  -- Buyback: a dead hero with the gold and the cooldown ready returns at once.
+  on_cast = function(unit, ability, state)
+    if ability ~= "buyback" then return end
+    if not units.is_hero(unit) or game.alive(unit) then return end
+    local ticks = state.ticks or 0
+    if not buyback_ready.ready(unit, ticks) then return end
+    local cost = buyback_cost(unit)
+    if game.unit_gold(unit) < cost then return end
+    game.cmd_add_unit_gold(unit, -cost)
+    game.cmd_set_respawn(unit, 0)
+    buyback_ready.arm(unit, ticks + config.rule("buyback_cooldown_s") * TICKS)
+  end,
+
+  -- Each second, passive gold for every hero; each tick, the attribute bonuses of each living hero.
+  on_tick = function(state)
+    local now = state.ticks or 0
+    local passive_turn = now % TICKS == 0
+    -- A dead hero earns no passive gold: the host refuses gold for a dead unit (buyback is its way back in).
+    for _, i in ipairs(heroes()) do
+      if game.alive(i) then
+        attribute_bonuses(i)
+        if passive_turn then game.cmd_add_unit_gold(i, PASSIVE_GOLD_PER_S) end
+      end
+    end
+  end,
+}

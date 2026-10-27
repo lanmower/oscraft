@@ -1,0 +1,110 @@
+name: ci
+
+# Runs on every push to main: the static client checks and the browser smoke of the built page (lobby mounts, no
+# console errors, no 404 on hero icons). The tests run on demand in tests.yml; the Pages build, deploy and first-draw
+# gate run in pages.yml.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: static client checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The vendored wireweave is a submodule and part of the page's module graph, so the hint check
+      # needs it: without it the graph it walks is four files short and the committed hints look stale.
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the page's module preload hints
+        run: node scripts/check-modulepreload.mjs
+      - name: Check the effect data agree (kinds, schools, renderers)
+        run: node scenarios/moba/tools/check-fx.mjs
+      - name: Check every roster hero has a 1 to 3 letter unique acronym
+        run: node scripts/check-acronyms.mjs
+
+  # The built page, headless: the lobby mounts, the page raises no uncaught error or console error (a failed connection to
+  # an external relay is the network, not the page), and every hero icon the lobby asks for loads. The site is the Pages
+  # build from the same cache keys, so a warm cache makes this job a layout and a browser run.
+  browser-smoke:
+    name: built page smoke - lobby mounts, no console errors, hero icons load
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - id: pkg
+        uses: actions/cache@v4
+        with:
+          path: rust/crates/web/site/pkg
+          key: page-pkg-v2-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/rust-toolchain.toml', 'rust/crates/**', '.github/workflows/pages.yml') }}
+      - id: maps
+        uses: actions/cache@v4
+        with:
+          path: |
+            scenarios/moba/moba.osdt
+            scenarios/duel-routes/duel-routes.osdt
+          key: page-maps-v2-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/rust-toolchain.toml', 'rust/crates/**', 'scenarios/**') }}
+      - name: Install the pinned Rust toolchain
+        if: steps.pkg.outputs.cache-hit != 'true' || steps.maps.outputs.cache-hit != 'true'
+        working-directory: rust
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        if: steps.pkg.outputs.cache-hit != 'true' || steps.maps.outputs.cache-hit != 'true'
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+      - uses: jetli/wasm-pack-action@v0.4.0
+        if: steps.pkg.outputs.cache-hit != 'true'
+        with:
+          version: v0.15.0
+      - name: Build the page wasm
+        if: steps.pkg.outputs.cache-hit != 'true'
+        working-directory: rust
+        env:
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: s
+          CARGO_PROFILE_RELEASE_LTO: true
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        run: wasm-pack build crates/web --target web --out-dir site/pkg
+      - name: Export the maps
+        if: steps.maps.outputs.cache-hit != 'true'
+        working-directory: rust
+        run: |
+          set -euo pipefail
+          cargo build -p mapexport
+          target/debug/mapexport ../scenarios/moba ../scenarios/moba/moba.osdt
+          target/debug/mapexport ../scenarios/duel-routes ../scenarios/duel-routes/duel-routes.osdt
+      - name: Lay out the site
+        run: bash scripts/layout-site.sh _site "$GITHUB_REF_NAME" "$GITHUB_RUN_ID"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: playwright
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            scripts/perf/node_modules
+          key: playwright-v1-${{ runner.os }}-1.47.2
+      - name: Install the pinned Playwright and Chromium
+        if: steps.playwright.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          npm install --prefix scripts/perf --no-save playwright@1.47.2
+          npx --yes playwright@1.47.2 install --with-deps chromium
+      - name: Smoke the built page
+        run: node scripts/perf/page-smoke.mjs _site

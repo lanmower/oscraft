@@ -1,0 +1,23 @@
+{
+  "base_tree": "224558f29e5eb773788cbbb0fbd4c51b24cd9e92",
+  "tree": [
+    {
+      "path": "rust/crates/server/src/room.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "643c58857c2065ae45931c729fc6edd47c9bbf8f"
+    },
+    {
+      "path": "rust/crates/server/src/lib.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c5910e5bd50aa3affed52fff0fbe800993c65dd6"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ed7f5313fd8ca7c12539e1f83c568ae81dc66019"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+id: comment-sweep-rust-crates
+subject: Comment sweep for rust/crates (sim, mod-host, web, relay, replay, mapexport)
+description: 'rust/crates/**/src. Acceptance as the invariant: comments become code or AGENTS.md lines, workspace tests via nextest stay green. Witness: ci-status on the pushing sha.'
+session_id: survey-infra-8
+owner: survey-infra-8
+status: pending

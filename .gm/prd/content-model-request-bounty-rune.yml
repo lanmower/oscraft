@@ -1,0 +1,6 @@
+id: content-model-request-bounty-rune
+subject: 'hy3d model request: bounty rune'
+description: 'hy3d request: bounty rune model to replace the placeholder ''coin'' (scenarios/moba/units.osd bounty_rune, scenarios/moba/slot-models.tsv). Rune health 1 and radius 300 stay UNVERIFIED until 6.88g data supplies them. Acceptance: model in assets.json, units.osd and slot-models.tsv point at it.'
+session_id: mcp-codemode-2804130-1792919090730-160
+owner: mcp-codemode-2804130-1792919090730-160
+status: pending

@@ -1,0 +1,5 @@
+id: moba-glb-units-u1
+subject: Which unit model names does the moba catalog emit via unit_model_names, and do the matching js/client/models/<name>.glb files exist?
+row: moba-glb-units
+session_id: gm-orch-2-2
+status: unknown

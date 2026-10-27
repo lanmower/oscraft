@@ -1,0 +1,1 @@
+{"chunks":[{"ch":366059019,"emb":null,"key":"ci-8b721d9d-90287585-0","kind":"function_item","le":14,"ls":7,"name":"xp_table"}],"commit_overview":null,"digest_hash":1535910513,"hash":2418570629,"mtime_ms":1792647748026.0,"path":"workspace/oscraft/rust/gate/src/core_formula_checks.rs","size":575,"skipped_no_embed":1,"v":7}

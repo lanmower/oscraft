@@ -1,0 +1,85 @@
+{
+  "candidates_unfiled": [
+    {
+      "id": "sel-two-sources",
+      "claim": "selection read from two stores: selectedId (number, -1) and hud.input.selection (array)",
+      "cites": [
+        "js/client/hud.js:136",
+        "js/client/moba_input.js:12",
+        "js/client/play.js:2757",
+        "js/client/play.js:2811",
+        "js/client/play.js:2878"
+      ],
+      "verdict": "refuted",
+      "checked": "origin/main d821e361; controls.lua blob 2aa888a2, moba_input.js blob 97140f4b, play.js blob 1a9fd395",
+      "reason": "Both stores are fed by the pack's selection feedback. controls.lua:102 (set_selection) emits feedback kind selection on every change; play.js:320 writes selectedId and moba_input.js:22 writes its selection from that echo. moba_input.js:104-106 sets the local selection first, so the only gap is the round trip before the echo. Principle-only: no divergence was shown to be player-visible."
+    },
+    {
+      "id": "absent-game-sentinel",
+      "claim": "no game or no primary publishes valid-looking values gold 0, winner -1, hp -1",
+      "cites": [
+        "js/client/hud.js:123",
+        "js/client/hud.js:124",
+        "js/client/hud.js:126"
+      ],
+      "verdict": "refuted",
+      "checked": "origin/main d821e361; hud.js blob f77feb76; play.js blob 1a9fd395",
+      "reason": "The sentinels reach only document.body.dataset (hud.js:117 publish). The HUD's visible values come from the pack's panels, not these fields. A whole-project codesearch for data-gold, dataset.gold, dataset.winner, dataset.hp and data-hp returned 0 matches (complete true), so nothing reads them. No symptom."
+    },
+    {
+      "id": "maxhp-inferred",
+      "claim": "bar max inferred from observed hp, never lowered or pruned; game exports no max hp",
+      "cites": [
+        "js/client/hud.js:40",
+        "js/client/hud.js:80",
+        "js/client/hud.js:81",
+        "rust/crates/web/src/lib.rs:293"
+      ],
+      "verdict": "merged",
+      "merged_into": "LAMPORT-trav-hud-client-LAMPORT-2",
+      "reason": "Same file and symptom as the open row LAMPORT-trav-hud-client-LAMPORT-2. Its evidence was added to that row with prd-note. lib.rs:293 unit_hp returns hit points only (blob 9a7d960a); a codesearch of lib.rs for max shows no hit-point maximum export."
+    },
+    {
+      "id": "hmr-null-hud",
+      "claim": "hmrReload may return null; play.js assigns hud from it without a visible guard (unverified)",
+      "cites": [
+        "js/client/hud.js:148",
+        "js/client/play.js:2692",
+        "js/client/play.js:2693"
+      ],
+      "verdict": "refuted",
+      "checked": "origin/main d821e361; hud.js blob f77feb76; play.js blob 1a9fd395",
+      "reason": "hmrReload returns null only when hot 'hud' is unset, and hud.js:39 sets that key on every createHud, so a null value can only replace a hud that was already null. The hud-value write (play.js:2697 in the current blob, 2693 before the +4 shift) is reached only from rebuildHud behind `if (value)` (play.js:2365) or the hot-apply paths, which carry the same value. Every other hud read is guarded: play.js:2061 `if (hud) hud.update()` and the `hud ?` selection accessors. No observable effect."
+    }
+  ],
+  "held": [
+    {
+      "claim": "hud.js is the single writer of the body dataset keys it publishes",
+      "cites": [
+        "js/client/hud.js:117"
+      ]
+    },
+    {
+      "claim": "shown cache cannot diverge: only the current HUD is updated",
+      "cites": [
+        "js/client/play.js:2057"
+      ]
+    },
+    {
+      "claim": "widgets aria-expanded and body.hidden come from one value",
+      "cites": [
+        "js/client/widgets.js:119",
+        "js/client/widgets.js:121",
+        "js/client/widgets.js:125",
+        "js/client/widgets.js:127"
+      ]
+    },
+    {
+      "claim": "hidden attribute wins over display rules",
+      "cites": [
+        "js/client/play.html:113",
+        "js/client/play.html:168"
+      ]
+    }
+  ]
+}

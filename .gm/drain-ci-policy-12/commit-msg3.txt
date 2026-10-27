@@ -1,0 +1,7 @@
+Smoke every local response and wait for the hero icons
+
+The browser smoke names the URL of every local 4xx or 5xx, so a broken asset shows in the log instead of as a
+bare console line, and it waits for the lobby hero icons whatever else it found. favicon.ico and external
+relay or STUN failures are not page assets and are not counted.
+
+Row: ci-browser-probe-steps-absent-blocker-drain-g-1

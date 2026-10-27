@@ -1,0 +1,74 @@
+# 6.88g hero abilities, batch 03 of 12. Heroes: alchemist, chaos_knight, earthshaker, jakiro, marci, nyx_assassin, rattletrap, slark, tusk, witch_doctor.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# alchemist 6.88g A1NI Unstable Concoction
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 20 rows, 0 mapped, 20 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A0DH Echo Slam 目标伤害=160 (perlevel.tsv:754) -> damage.
+# UNVERIFIED rows (no effect set): A1NI A0IL A0O3 ANcr A03O A03N A0RW A055 A0DH A0DL A0SK A0DJ A1YO A1YQ A1S7 A1YR A0NO A0NM A0NT A0NE.
+ability("alchemist_unstable_concoction", 256, 120, "none", [])
+# alchemist 6.88g A0IL Acid Spray
+ability("alchemist_acid_spray", 352, 130, "none", [])
+# alchemist 6.88g A0O3 Goblin's Greed
+ability("alchemist_goblin_s_greed", 0, 0, "none", [])
+# alchemist 6.88g ANcr Chemical Rage
+ability("alchemist_chemical_rage", 720, 50, "none", [])
+# chaos_knight 6.88g A03O Phantasm
+ability("chaos_knight_phantasm", 2240, 125, "none", [])
+# chaos_knight 6.88g A03N Chaos Strike
+ability("chaos_knight_chaos_strike", 0, 0, "none", [])
+# chaos_knight 6.88g A0RW Reality Rift
+ability("chaos_knight_reality_rift", 384, 50, "none", [])
+# chaos_knight 6.88g A055 Chaos Bolt
+ability("chaos_knight_chaos_bolt", 160, 140, "none", [])
+# earthshaker 6.88g A0DH Echo Slam
+ability("earthshaker_echo_slam", 2400, 145, "none", [])
+# earthshaker 6.88g A0DL Enchant Totem
+ability("earthshaker_enchant_totem", 80, 35, "none", [])
+# earthshaker 6.88g A0SK Fissure
+ability("earthshaker_fissure", 240, 125, "none", [])
+# earthshaker 6.88g A0DJ Aftershock
+ability("earthshaker_aftershock", 0, 0, "none", [])
+# marci: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# nyx_assassin: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# tusk 6.88g A1YO Ice Shards
+ability("tusk_ice_shards", 288, 100, "none", [])
+# tusk 6.88g A1YQ Walrus Punch
+ability("tusk_walrus_punch", 320, 50, "none", [])
+# tusk 6.88g A1S7 Snowball
+ability("tusk_snowball", 336, 75, "none", [])
+# tusk 6.88g A1YR Frozen Sigil
+ability("tusk_frozen_sigil", 800, 75, "none", [])
+# witch_doctor 6.88g A0NO Maledict
+ability("witch_doctor_maledict", 320, 120, "none", [])
+# witch_doctor 6.88g A0NM Paralyzing Cask
+ability("witch_doctor_paralyzing_cask", 320, 110, "none", [])
+# witch_doctor 6.88g A0NT Death Ward
+ability("witch_doctor_death_ward", 1280, 200, "none", [])
+# witch_doctor 6.88g A0NE Voodoo Restoration
+ability("witch_doctor_voodoo_restoration", 0, 10, "none", [])
+# content-abilities-120-heroes-missing (drain-heroes-shard-2): rows for heroes whose 6.88g identity is resolved (heroes_688g.tsv or the identity agreement pass). Effects [] on every row: UNVERIFIED.
+# rattletrap 6.88g A0Z8 Hookshot
+ability("rattletrap_hookshot", 1120, 150, "none", [])
+# rattletrap 6.88g A0Z6 Rocket Flare
+ability("rattletrap_rocket_flare", 320, 50, "none", [])
+# rattletrap 6.88g A0Z5 Power Cog
+ability("rattletrap_power_cog", 240, 50, "none", [])
+# rattletrap 6.88g A0Z4 Battery Assault
+ability("rattletrap_battery_assault", 512, 75, "none", [])
+# jakiro 6.88g A0O7 Dual Breath
+ability("jakiro_dual_breath", 160, 135, "none", [])
+# jakiro 6.88g A0O6 Ice Path
+ability("jakiro_ice_path", 192, 90, "none", [])
+# jakiro 6.88g A2VO Liquid Fire Research
+ability("jakiro_liquid_fire_research", 0, 0, "none", [])
+# jakiro 6.88g A0O5 Macropyre
+ability("jakiro_macropyre", 960, 220, "none", [])
+# slark 6.88g A1IM Dark Pact
+ability("slark_dark_pact", 144, 60, "none", [])
+# slark 6.88g A1HR Essence Shift
+ability("slark_essence_shift", 0, 0, "none", [])
+# slark 6.88g A1IN Shadow Dance
+ability("slark_shadow_dance", 960, 120, "none", [])
+# slark 6.88g A1J7 Pounce
+ability("slark_pounce", 304, 75, "none", [])

@@ -1,0 +1,12 @@
+id: doodad-to-prop-rename-is-half-applied-across-tools-data-and-docs
+subject: doodad-to-prop rename is half applied across tools, data and docs
+description: |-
+  - Both families exist in `scenarios/moba/tools/`: `place-doodads-688g.mjs`, `doodad-kinds.mjs`, `doodad-roles.mjs`, `doodad-sizes.mjs` beside `place-props-688g.mjs`, `prop-kinds.mjs`, `prop-roles.mjs`, `prop-sizes.mjs`.
+  - `docs/PROP_TYPES_688G.md` says `place-props-688g.mjs` is called by `convert-688g-map.mjs`, but `scenarios/moba/tools/convert-688g-map.mjs:228` execFileSync's `place-doodads-688g.mjs`.
+  - `assets/doodads.json` and `assets/doodad_sizes.json` remain as dead byte-identical twins of `assets/props.json` and `assets/prop_sizes.json` (same byte size, different inode, older mtime); `manifest.json` binds only the props pair, and no reader cites the doodad pair.
+  - An external placement tool therefore has two plausible targets and the wrong one fails silently.
+acceptance_criteria: 'One family remains: every retained doodad-named file has a file:line reader citation, every reference names the live file, and assets/doodads.json plus assets/doodad_sizes.json are deleted or proven read; the moba page and the 688g map conversion both run with no missing-file error.'
+witness_plan: codesearch each retained name for its reader citation; confirm no doodads.json path is reachable from manifest.json; build/load the moba page plus the 688g conversion with no missing-file error.
+status: pending
+session_id: mcp-codemode-3556962-1793124624616-139
+owner: mcp-codemode-3556962-1793124624616-139

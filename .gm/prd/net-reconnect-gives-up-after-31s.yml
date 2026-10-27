@@ -1,0 +1,22 @@
+id: net-reconnect-gives-up-after-31s
+subject: Client reconnect stops after 6 attempts (about 31 s), has no jitter and ignores the browser online event
+description: 'js/client/play.js:1737-1746, constants RECONNECT_BASE_MS 1000, CAP 16000, MAX_ATTEMPTS 6; counter resets only at line 1907 after a join. Symptom: a laptop that sleeps or a relay outage longer than half a minute strands the player on ''reconnect gave up; reload to retry''; simultaneous peers retry in lockstep. Acceptance: full-jitter backoff, retry on window online and on visibilitychange, give-up only after a long bound, status shows next retry. Witness: CDP offline for 60 s then online rejoins without reload.'
+session_id: survey-infra-8
+owner: survey-infra-8
+status: pending
+notes:
+- ts: 2026-10-25T08:59:16.093Z
+  session_id: drain-infra-9
+  note: claimed by drain-infra-9
+- ts: 2026-10-25T09:12:21.848Z
+  session_id: drain-infra-9
+  note: 'drain-infra-9: not taken; primary file js/client/play.js is dirty in the shared tree under another lane.'
+- ts: 2026-10-25T09:13:22.778Z
+  session_id: drain-infra-9
+  note: 'drain-infra-9: not taken; its file js/client/play.js is dirty in the shared tree under another lane.'
+- ts: 2026-10-25T09:21:13.369Z
+  session_id: drain-client-10
+  note: claimed by drain-client-10
+- ts: 2026-10-25T09:28:23.019Z
+  session_id: drain-client-10
+  note: 'published b1c97739ffdba76b9a81f3b47068188c18e5ec66: full-jitter backoff cap 30s, give-up after 30 min, retry on online and visibilitychange. Open: CDP offline 60s witness needs a browser.'

@@ -1,0 +1,68 @@
+slot	chosen_model	why	alternatives	previous_model
+hero	character-male-a	hero slot: first male hero, keeps the existing model	character-male-b, character-male-c	character-male-a
+tower	tower-square-top-roof	tier 1 tower: roofed square tower	tower-square-top	tower-square
+base	building-b	ancient: largest building class in the pack	building-l	building-f
+creep	melee-creep-skinned	lane creep: skinned build (units.osd model)	character-zombie	character-skeleton
+tender	character-female-a	support hero, female build	character-female-b	character-female-a
+objective	pillar-obelisk	objective pillar (kept)	column	pillar-obelisk
+roshan	roshan-skinned	Roshan: rigged hy3d build (28 joints, KTX2 base colour, 256 px)	roshan-lowpoly	character-orc
+bounty_rune	coin	bounty rune: coin pickup (PLACEHOLDER prop; hy3d request row content-model-request-bounty-rune)	key	pillar-obelisk
+observer_ward	candle	observer ward: small light (PLACEHOLDER prop; hy3d request row content-model-request-observer-ward)	candle-multiple	pillar-obelisk
+sentry_ward	candle-multiple	sentry ward: group of lights (PLACEHOLDER prop; hy3d request row content-model-request-sentry-ward)	lantern	pillar-obelisk
+courier	courier-skinned	courier: skinned build (units.osd model)	character-keeper	character-skeleton
+creep_ranged	ranged-creep-skinned	lane creep: skinned build (units.osd model)	character-human	character-skeleton
+creep_siege	siege-creep-skinned	lane creep: skinned build (units.osd model)	character-zombie	character-skeleton
+creep_super	super-creep-skinned	lane creep: skinned build (units.osd model)	character-skeleton	character-skeleton
+creep_ranged_super	ghost-skinned	lane creep: skinned build (units.osd model)	character-human	character-skeleton
+creep_siege_super	vampire-skinned	lane creep: skinned build (units.osd model)	character-orc	character-skeleton
+creep_mega	zombie-skinned	lane creep: skinned build (units.osd model)	character-skeleton	character-skeleton
+creep_ranged_mega	ghost-skinned	lane creep: skinned build (units.osd model)	character-human	character-skeleton
+creep_siege_mega	vampire-skinned	lane creep: skinned build (units.osd model)	character-orc	character-skeleton
+tower_t2	tower-square-mid	tier 2 tower: mid section	tower-square-mid-windows	tower-square
+tower_t3	tower-square-top-roof-high	tier 3 tower: tall roof	tower-hexagon-top	tower-square
+tower_t4	tower-hexagon-top	tier 4 tower: hexagonal top	tower-square-top-roof-rounded	tower-square
+barracks_melee	building-d	melee barracks: plain block	building-h	building-f
+barracks_ranged	building-k	ranged barracks: windowed block	building-l	building-f
+outpost	tower-hexagon-base	watch outpost: small hexagonal base	tower-base	tower-square
+neutral_kobold	neutral-kobold-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_kobold_tunneler	neutral-kobold-tunneler-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_kobold_taskmaster	neutral-kobold-taskmaster-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_centaur_outrunner	neutral-centaur-outrunner-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_centaur_khan	neutral-centaur-khan-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_fel_beast	neutral-fel-beast-skinned	neutral: own skinned build (units.osd model)	character-skeleton	character-skeleton
+neutral_furbolg_champion	neutral-furbolg-champion-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_furbolg_ursa_warrior	neutral-furbolg-ursa-warrior-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_warpine_raider	neutral-warpine-raider-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_mud_golem	neutral-mud-golem-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_ogre_mauler	neutral-ogre-mauler-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_ogre_magi	neutral-ogre-magi-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_giant_wolf	neutral-giant-wolf-skinned	neutral: own skinned build (units.osd model)	character-skeleton	character-skeleton
+neutral_alpha_wolf	neutral-alpha-wolf-skinned	neutral: own skinned build (units.osd model)	character-skeleton	character-skeleton
+neutral_wildkin	neutral-wildkin-skinned	neutral: own skinned build (units.osd model)	character-skeleton	character-skeleton
+neutral_enraged_wildkin	neutral-enraged-wildkin-skinned	neutral: own skinned build (units.osd model)	character-skeleton	character-skeleton
+neutral_satyr_soulstealer	neutral-satyr-soulstealer-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_satyr_hellcaller	neutral-satyr-hellcaller-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_satyr_trickster	neutral-satyr-trickster-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_jungle_stalker	neutral-jungle-stalker-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_elder_jungle_stalker	neutral-elder-jungle-stalker-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_prowler_acolyte	neutral-prowler-acolyte-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_prowler_shaman	neutral-prowler-shaman-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_rock_golem	neutral-rock-golem-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_granite_golem	neutral-granite-golem-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_ice_shaman	neutral-ice-shaman-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_frostbitten_golem	neutral-frostbitten-golem-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_big_thunder_lizard	neutral-big-thunder-lizard-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_small_thunder_lizard	neutral-small-thunder-lizard-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_gnoll_assassin	neutral-gnoll-assassin-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_ghost	neutral-ghost-skinned	neutral: own skinned build (units.osd model)	character-vampire	character-skeleton
+neutral_dark_troll	neutral-dark-troll-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_dark_troll_warlord	neutral-dark-troll-warlord-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_forest_troll_berserker	neutral-forest-troll-berserker-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_forest_troll_high_priest	neutral-forest-troll-high-priest-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_harpy_scout	neutral-harpy-scout-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_harpy_storm	neutral-harpy-storm-skinned	neutral: own skinned build (units.osd model)	character-human	character-skeleton
+neutral_black_drake	neutral-black-drake-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+neutral_black_dragon	neutral-black-dragon-skinned	neutral: own skinned build (units.osd model)	character-zombie	character-skeleton
+lane_spawner_top	pillar-obelisk	lane spawner marker (kept)	pillar-stone	pillar-obelisk
+lane_spawner_mid	pillar-obelisk	lane spawner marker (kept)	pillar-stone	pillar-obelisk
+lane_spawner_bot	pillar-obelisk	lane spawner marker (kept)	pillar-stone	pillar-obelisk

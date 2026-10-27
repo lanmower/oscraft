@@ -1,0 +1,8 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const cp=require('child_process'),fs=require('fs'),path=require('path'),os=require('os');const R='/workspace/oscraft';const sh=(c)=>cp.execSync(c,{cwd:R,encoding:'utf8',maxBuffer:1<<26,shell:'/bin/bash'});const ok=(c,m)=>{if(!c){console.log('RESULT: FAIL '+m);process.exit(1)}};const done=(m)=>console.log('RESULT: PASS '+m);
+const RUN_PAGES='40179272563',RUN_CI='40179272561';
+const jobs=(run)=>JSON.parse(sh('gh run view '+run+' --repo lanmower/oscraft --json jobs')).jobs;
+const serve=(args)=>new Promise((res)=>{const p=cp.spawn('node',[R+'/scripts/dev/serve.mjs',...args],{cwd:R});let b='';p.stdout.on('data',d=>{b+=d;const m=b.match(/http:\/\/localhost:(\d+)\/js/);if(m)res({p,port:m[1]})});});
+const get=async(u,m='GET')=>{const r=await fetch(u,{method:m});return r};
+(async()=>{try{const a=await serve([R+'/.dev-site-none']);const body=Buffer.from(await (await get('http://localhost:'+a.port+'/js/client/ui_minimap.js')).arrayBuffer());a.p.kill();const tree=fs.readFileSync(R+'/js/client/ui_minimap.js');const h=(b)=>require('crypto').createHash('sha256').update(b).digest('hex');ok(h(body)===h(tree),'served differs from tree');done('served '+body.length+' bytes sha256 '+h(body).slice(0,12)+' == working tree');}catch(e){console.log('RESULT: FAIL '+e.message);process.exit(1)}})()

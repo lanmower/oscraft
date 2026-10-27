@@ -1,0 +1,12 @@
+id: rename-doodad-to-prop
+subject: Rename every doodad word to prop across the repository
+description: 'The user asked to rename every occurrence of the word doodad to prop on origin main: file and directory names, Rust, JS and Lua identifiers, JSON and TSV headers and values, generator scripts, docs (docs/*.md, AGENTS.md), comments and CI workflow text. Case variants map as doodad->prop, doodads->props, Doodad->Prop, Doodads->Props, DOODAD->PROP, DOODADS->PROPS. Exceptions: literals that name an external file or must match an external format byte for byte (6.88g map paths, MPQ or Warcraft III format keys), listed with path:line and reason. Wire, hash and saved-snapshot names that change serialised layout bump the state version the way the repo already does, and the commit body says so. Behaviour stays identical; only names change. Scratch clone /config/tmp/prop-rename, publish via publish_on_origin, CI witness read with ci-status on the pushed sha.'
+acceptance_criteria: Zero occurrences of doodad (any case) remain in tracked files except the listed exceptions. Local static checks (Rust and JS static checks and scripts/check-*.mjs) pass in the scratch copy. Any hashed or saved layout change bumps the state version and the commit body says so. Commit by lanmower with the Row trailer; ci-status on the pushed sha is green.
+witness_plan: Codesearch literal case-insensitive over the published tree shows only the listed exceptions. ci-status read for the full pushed sha.
+session_id: prop-rename-2
+owner: prop-rename-2
+status: pending
+notes:
+- ts: 2026-10-25T21:28:45.409Z
+  session_id: prop-rename-2
+  note: Published 5d2b9e6341a6c3c4b1f1013c7259aee7f74e3c6b on origin/main (base b2682bddb1351844598c4c20248efaaa8a96676e). Occurrences doodad 7510 before, 130 after (all external WC3 literals). State version 54 to 55. CI runs 40235550507 pending at publish time; row stays open until a separate verifier session reads ci-status green for this sha.

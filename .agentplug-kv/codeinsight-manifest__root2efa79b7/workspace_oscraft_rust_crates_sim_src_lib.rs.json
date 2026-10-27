@@ -1,0 +1,1 @@
+{"chunks":[{"ch":2461538727,"emb":null,"key":"ci-7d682939-4933b8c5-0","kind":"function_item","le":69,"ls":67,"name":"test_pack_dir"}],"commit_overview":null,"digest_hash":2136636586,"hash":1228126405,"mtime_ms":1792647748016.0,"path":"workspace/oscraft/rust/crates/sim/src/lib.rs","size":3140,"skipped_no_embed":1,"v":7}

@@ -1,0 +1,4 @@
+id: gap-winner-u1-scenario-room-winner
+value: 'U1: does a Room built from a scenario image (RoomConfig.data) declare a winner after ticks (win_on_base_loss)?'
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

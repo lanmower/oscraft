@@ -1,0 +1,4 @@
+ev=ticker_died thread=ticker reason="test-only panic armed by --test-panic-tick fired at tick 20"
+ev=ticker_restarted thread=ticker restarts=1
+supervisor ok died=1 restarted=1 tick 21 -> 35 (bound 2 s)
+RESULT: PASS exit=0

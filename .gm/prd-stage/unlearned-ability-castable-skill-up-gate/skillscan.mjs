@@ -1,0 +1,18 @@
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+const repo = 'lanmower/oscraft';
+const gh = (args) => execFileSync('gh', ['api', ...args], { encoding: 'utf8', maxBuffer: 1 << 26 }).trim();
+const raw = (p, ref) => execFileSync('gh', ['api', `repos/${repo}/contents/${p}?ref=${ref}`, '-H', 'Accept: application/vnd.github.raw'], { encoding: 'utf8', maxBuffer: 1 << 26 });
+const head = gh([`repos/${repo}/git/refs/heads/main`, '--jq', '.object.sha']);
+const names = JSON.parse(gh([`repos/${repo}/contents/scenarios/moba?ref=${head}`])).filter((f) => f.name.endsWith('.osd')).map((f) => f.name);
+const all = names.map((n) => raw(`scenarios/moba/${n}`, head)).join('\n');
+const abilityDefs = new Set([...all.matchAll(/^ability\("([^"]+)"/gm)].map((m) => m[1]));
+const skillDefs = new Set([...all.matchAll(/^skill\("([^"]+)"/gm)].map((m) => m[1]));
+const refd = new Set();
+for (const m of all.matchAll(/hero_abilities\("[^"]+",\s*\[([^\]]*)\]/g)) for (const x of m[1].matchAll(/"([^"]+)"/g)) refd.add(x[1]);
+for (const m of all.matchAll(/abilities=\[([^\]]*)\]/g)) for (const x of m[1].matchAll(/"([^"]+)"/g)) refd.add(x[1]);
+const noSkill = [...refd].filter((a) => abilityDefs.has(a) && !skillDefs.has(a));
+const undefinedRef = [...refd].filter((a) => !abilityDefs.has(a));
+console.log('HEAD', head, 'OSD', names.length, 'ability_defs', abilityDefs.size, 'skill_defs', skillDefs.size, 'referenced', refd.size);
+console.log('REFERENCED_WITH_NO_SKILL_ROW', noSkill.length, noSkill.slice(0, 60).join(','));
+console.log('REFERENCED_UNDEFINED', undefinedRef.length, undefinedRef.slice(0, 20).join(','));

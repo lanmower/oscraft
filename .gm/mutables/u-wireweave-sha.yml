@@ -1,0 +1,5 @@
+id: u-wireweave-sha
+subject: Which wireweave git sha is available to pin in js/client/package.json, and does the github dependency resolve in CI?
+session_id: gm-orch-1-10
+row: net-webgl-client
+status: unknown

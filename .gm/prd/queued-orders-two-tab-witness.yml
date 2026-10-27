@@ -1,0 +1,8 @@
+id: queued-orders-two-tab-witness
+subject: Two-tab resync witness for shift-queued orders not run
+description: 'The per-unit order queue in the sim (rust/crates/sim/src/order_queue.rs, STATE_VERSION 44) was published on origin/main at 2fe55295. Its two-tab witness (queue a shift move on tab A, force a keyframe resync on tab B mid-queue, compare the issued orders) was not run. The browser lease was free (browser_lease_status held:false), but the page has no queue read-back (the wasm exports are order_queue_push and order_queue_clear only) and no keyframe-resync trigger, and earlier browser runs never returned (rows controls-queued-orders-outside-sim-state notes: drain-browser-4, drain-gui-controls-1).'
+acceptance_criteria: 'Two browser tabs in one match: after a shift-queued move on one tab and a forced keyframe resync on the other mid-queue, both tabs issue the same order sequence, witnessed by a dispatch from a session other than the resolver.'
+witness_plan: Add a queue-length read-back and a keyframe-resync trigger for the page (export or debug hook), drive two tabs through one match with the browser verb (cdp engine), compare the order sequences, and witness from a separate SESSION_ID.
+status: pending
+session_id: drain-orders-12
+owner: drain-orders-12

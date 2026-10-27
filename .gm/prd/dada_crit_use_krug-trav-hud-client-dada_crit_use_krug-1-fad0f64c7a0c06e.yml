@@ -1,0 +1,22 @@
+id: DADA_CRIT_USE_KRUG-trav-hud-client-DADA_CRIT_USE_KRUG-1
+subject: Allied units draw the enemy-red health bar, so a teammate reads as hostile at first sight
+description: 'js/client/hud.js:104 colours a unit bar green only when u.player === localPlayer(); every other unit, including an allied hero, gets #e53935 (enemy red). js/client/ui_minimap.js:124 already separates allies with teamOf(teams, u.player) === myTeam, so the minimap and the bars disagree about the same unit. Principle: Krug, a HUD control or readout must be obvious at first use without thinking. Evidence: codesearch literal ''#e53935'' over js/client/hud.js (dispatch 1792858467784-4519-10f2c7dc433ef1df) returned hud.js:104; fs_read ui_minimap.js:116-132 (dispatch 1792858468019-4520-b156cce4fd3c7669) shows the ally test at line 124. Caveat: js/client is 4 ahead and 9 behind upstream 2d3cc5769e9c; stale_tree, so upstream tip is unchecked.'
+acceptance_criteria: In a team match, an allied non-local unit's bar uses a different colour from an enemy's, and the bar colour rule uses the same team test as the minimap (teamOf). Close stale only with a live refutation on the working tree or upstream tip showing this already holds.
+witness_plan: codesearch literal '#e53935' over js/client/hud.js after reconciling to upstream; in a live two-team match read the bar fill for an allied unit and an enemy unit and confirm they differ.
+status: pending
+disposition: open
+owner: trav-hud-client-DADA_CRIT_USE_KRUG
+session_id: trav-hud-client-DADA_CRIT_USE_KRUG
+notes:
+- ts: 2026-10-24T16:41:07.636Z
+  session_id: triage-hud-client-1
+  note: 'Kept. Verified at origin/main d821e361: hud.js:104 `barCtx.fillStyle = u.player === localPlayer() ? "#4caf50" : "#e53935";` (hud.js blob f77feb76). ui_minimap.js:124 `const ally = !neutral && !own && myTeam >= 0 && teamOf(teams, u.player) === myTeam;` (blob 64a423bd). Observable: in a team match an allied unit''s health bar is drawn enemy red, while the minimap marks the same ally with a ring.'
+- ts: 2026-10-24T17:22:50.171Z
+  session_id: drain-gui-hud-client-1
+  note: 'Published 02c918bc (hud.js barColour: own green, teammate blue, enemy red, team via teamOf(UI.teams)). CI cancelled by a later push. Witness not taken: needs a live match; blocked_by lobby-disabled-when-one-relay-503 (pending).'
+- ts: 2026-10-25T02:17:37.399Z
+  session_id: drain-hud-shard-2
+  note: 'Witness blocked, pending. Fix 02c918bc is on origin tip 7f68d3bc (hud.js:18-25 teammate test via teamOf). The witness needs a live two-team match to sample ally and enemy bar fill. Lobby stayed at 0/10 ready with ''loading world assets'' after fill-with-bots and host-from-loaded-pack (dispatches 1792893379641-6032-d4a1013203af39e5, 1792893505217-6111-fdd3423b2490b315). Clearing action: a match reaching pre-match with allied and enemy units.'
+- ts: 2026-10-25T06:09:34.744Z
+  session_id: drain-browser-4
+  note: 'Not driven: needs a live match. Live witness blocked: gm browser verb claims the dispatch and never writes its out-file (5 tries, gm-mcp 0.2.302 and 0.2.305, bodies with and without gm_session_id, about:blank included); each holds the state lane until the 600 s watchdog. Clearing action: fix the browser executor in the agentplug runner.'

@@ -1,0 +1,24 @@
+id: panels-hero-primary-688g-rows-missing
+subject: HERO_PRIMARY in panels.lua has 69 of 127 heroes; 55 heroes with a 6.88g primary attribute are shown as group 0
+description: 'scenarios/moba/panels.lua HERO_PRIMARY is a copy of heroes_688g.tsv column 4, but only 69 heroes have a row. At origin/main bb2f5bfa8a the TSV has 127 heroes: 69 present rows agree with the TSV exactly (Lua value = TSV value + 1, Lua 1 strength, 2 agility, 3 intelligence; TSV 0 strength, 1 agility, 2 intelligence), 55 heroes with TSV 0-2 are missing, and 3 heroes (abaddon, furion, visage) have TSV 3, which the three-column scheme cannot express. A hero without a row is group 0 and shown as UNVERIFIED, so the lobby marks 55 heroes UNVERIFIED although 6.88g gives their primary. The four heroes hy3d named (dazzle, nyx_assassin, techies, wisp) are among the 55. Mapping for the 55: dazzle 3, nyx_assassin 2, techies 3, wisp 1. Owner question: the three TSV=3 heroes stay group 0 until the user says what group 3 means in this UI (universal or a fourth column). This row does not decide it.'
+acceptance_criteria: 'HERO_PRIMARY holds one row per hero in heroes_688g.tsv for every TSV value 0-2, each equal to TSV+1, with the 69 existing rows unchanged. The three TSV=3 heroes are left at group 0 with a comment that names their 6.88g value. The lobby shows no 6.88g-valued hero as UNVERIFIED for its primary. Witness: ci-status green on the pushed sha, and a browser lobby look that reads the group for dazzle and wisp.'
+owner: panels-lane
+origin: node-traversal
+session_id: mcp-codemode-3368056-1792929528884-79
+status: pending
+notes:
+- ts: 2026-10-25T12:45:46.016Z
+  session_id: mcp-codemode-4042325-1792932345809-2
+  note: '2026-10-25 12:45Z published b25e1571 on main: HERO_PRIMARY adds 40 heroes (6.88g value 0-2, Lua = TSV + 1). Corrected count: 109 heroes have a 6.88g value 0-2, 69 were present, so 40 were missing (the earlier 55 counted the 15 heroes with an empty primary). Still group 0, UNVERIFIED: abaddon, furion, visage (6.88g value 3) and 15 heroes absent from 6.88g (dark_willow, dawnbreaker, grimstroke, hoodwink, kez, largo, marci, mars, monkey_king, muerta, pangolier, primal_beast, ringmaster, snapfire, void_spirit). CI for b25e1571 pending; witness not yet read.'
+- ts: 2026-10-25T13:49:19.257Z
+  session_id: mcp-codemode-45985-1792936157947-8
+  note: '2026-10-25 13:40Z published bb62008d on main: abaddon = 1 (STR), furion = 3 (INT), visage = 3 (INT), from the 6.88g unit.ini primary field in output/688g-data/hero-base.tsv. heroes_688g.tsv column 4 carries 3 for these three, which is not a 6.88g primary value (the column is 0 strength, 1 agility, 2 intelligence for the other 109 heroes; it agrees with hero-base on all 109). Heroes absent from 6.88g (15, hero-not-in-688g.tsv) stay at group 0, UNVERIFIED: no 6.88g primary exists to take. Witness: CI on bb62008d and a lobby look that reads the groups.'
+- ts: 2026-10-25T16:00:31.265Z
+  session_id: heroes-inv-1
+  note: 'heroes-inv-1: the 15 non-6.88g heroes get HERO_PRIMARY entries, each with its Dota 2 AttributePrimary source on the line: strength dawnbreaker, largo, mars, primal_beast; agility hoodwink, kez, monkey_king; intelligence dark_willow, grimstroke, muerta, ringmaster. Universal heroes (DOTA_ATTRIBUTE_ALL: marci, pangolier, snapfire, void_spirit) stay out, group 0, like the TSV=3 heroes. The group 3 owner question is still open.'
+- ts: 2026-10-25T16:20:47.579Z
+  session_id: heroes-inv-1
+  note: 'heroes-inv-1: published HERO_PRIMARY entries for 11 of the 15 non-6.88g heroes and their heroes_688g.tsv column 4 values in commit 3b882222. That commit''s CI failed the smoke job at mapexport (the osd damage rule), fixed in eceec096, green. Roster categories at origin d93f299a: strength 41, agility 38, intelligence 44, group 0 = 4 (marci, pangolier, snapfire, void_spirit: Dota 2 DOTA_ATTRIBUTE_ALL, not expressible in the three-column lobby).'
+- ts: 2026-10-25T19:02:40.386Z
+  session_id: univ-place-1
+  note: 'Blocked before publish: the shallow clone of lanmower/oscraft to /config/tmp/univ-place never completed. Tried: gm git-clone mode=shallow x2 (clone_failed; dispatch 1792953231960-1508502-b4b3a7c933a18aea and 1792953424325-1508502-f3c4e0b5b83a3cda); git clone --depth 1 in the host shell (no output, killed at 300 s); gh repo clone --depth 1 x4 (unexpected disconnect while reading sideband packet, invalid index-pack output). gh api reaches GitHub (repo size 381413 KB); curl to https://github.com hangs. Nothing committed or pushed. /config/tmp/sfx-6881 is untouched. Next route: rerun the shallow clone when the pack fetch completes, then apply the two hunks and publish with publish_base = the clone HEAD.'

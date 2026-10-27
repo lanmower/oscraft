@@ -1,0 +1,5 @@
+id: engine-license-clean-replacements-u4
+subject: 'U4 consumers: does rust/gate (mpq_roundtrip.rs, main.rs) match any mpq error string or doc text, so error-string edits would break gate?'
+row: engine-license-clean-replacements
+session_id: gm-oscraft-sc2-alt-1-p3
+status: unknown

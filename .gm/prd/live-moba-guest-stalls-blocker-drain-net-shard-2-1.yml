@@ -1,0 +1,6 @@
+id: live-moba-guest-stalls-blocker-drain-net-shard-2-1
+subject: 'Blocked: a fresh host cannot start a moba match on the live Pages build'
+description: 'Blocks live-moba-guest-stalls and moba-guest-silent-after-peer-close. On #moba a fresh isolated host reads 0/10 ready (refused: that seat is already taken) in a shared room (dispatch 1792893832606-6364-b251a08b581cd67b); Fill with bots and Start match do not change the lobby (dispatch 1792894102606-6537-91e0422ae695861c). After the seat claim and a hero pick (antimage) the Start match control is no longer rendered. Clearing action: a lobby path on Pages that starts a match from one host, then the guest tick read at #moba.'
+session_id: drain-net-shard-2
+owner: drain-net-shard-2
+status: pending

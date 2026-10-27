@@ -1,0 +1,8 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const cp=require('child_process'),fs=require('fs'),path=require('path'),os=require('os');const R='/workspace/oscraft';const sh=(c)=>cp.execSync(c,{cwd:R,encoding:'utf8',maxBuffer:1<<26,shell:'/bin/bash'});const ok=(c,m)=>{if(!c){console.log('RESULT: FAIL '+m);process.exit(1)}};const done=(m)=>console.log('RESULT: PASS '+m);
+const RUN_PAGES='40179272563',RUN_CI='40179272561';
+const jobs=(run)=>JSON.parse(sh('gh run view '+run+' --repo lanmower/oscraft --json jobs')).jobs;
+const serve=(args)=>new Promise((res)=>{const p=cp.spawn('node',[R+'/scripts/dev/serve.mjs',...args],{cwd:R});let b='';p.stdout.on('data',d=>{b+=d;const m=b.match(/http:\/\/localhost:(\d+)\/js/);if(m)res({p,port:m[1]})});});
+const get=async(u,m='GET')=>{const r=await fetch(u,{method:m});return r};
+(async()=>{try{const a=await serve([R+'/.dev-site-none','--port=0']);const base='http://localhost:'+a.port;const t={};for(const [u,want] of [['/js/client/shaders/'+fs.readdirSync(R+'/js/client/shaders')[0],'text/plain'],['/scenarios/moba/assets/voices/abaddon/000.ogg','audio/ogg'],['/scenarios/moba/moba.osdt','application/octet-stream'],['/scenarios/moba/manifest.json','application/json']]){const r=await get(base+u,'HEAD');t[u]=r.status+' '+r.headers.get('content-type');ok(r.status===200&&r.headers.get('content-type').startsWith(want),u+' '+t[u])}a.p.kill();ok(/from "\.\.\/dev\/mime\.mjs"/.test(fs.readFileSync(R+'/scripts/perf/first-draw.mjs','utf8')),'first-draw not on mime module');done(JSON.stringify(t));}catch(e){console.log('RESULT: FAIL '+e.message);process.exit(1)}})()

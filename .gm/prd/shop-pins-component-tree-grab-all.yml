@@ -1,0 +1,16 @@
+id: shop-pins-component-tree-grab-all
+subject: 'Shop: pin state, selected-item component tree and Grab all (residuals of shop-layout-match-dota-shop)'
+description: 'The reference shop has a pinned-items strip, a component tree for the selected item, and a Grab all action beside Stash. shop_tree renders a pinned placeholder and a stash bar only. Needs: a select-item call and a pin call handled in on_action (scenarios/moba/panels.lua, outside shop_tree), and a grab-all call that takes every stash slot out. Ownership: panels.lua on_action and store.lua. Acceptance: pins persist per hero; the selected item''s recipe tree renders from its components; Grab all unstashes every slot; buy, sell and unstash keep working.'
+session_id: drain-shop-13
+owner: drain-shop-13
+status: pending
+notes:
+- ts: 2026-10-25T20:48:44.055Z
+  session_id: hud-match-1
+  note: 'Done in scratch: Pin per card and pinned strip (PINS per hero kind), Recipe tree of the picked item (SHOP_PICK), Grab all (grab_all, stash slots taken descending). Blocker: no live match is reachable in a browser without Claim, Fill, Start or a room join, all forbidden by the owner. Owner to approve a local route (fixture or bot seating that clicks none of those) to witness the in-match behaviour.'
+- ts: 2026-10-25T21:14:57.229Z
+  session_id: hud-match-1
+  note: 'Published b2682bdd on origin/main (scenarios/moba/panels.lua, scenarios/moba/moba_ui.json). CI on that sha: static client checks success; build the page wasm and maps and built page smoke fail the same way as the parent 1d7f2547 (pre-existing, row ci-red-mapexport-lycan-wolf-1-on-main). Row stays open until its in-match witness.'
+- ts: 2026-10-26T05:26:54.044Z
+  session_id: hud-match-witness
+  note: 'Recipe, Pin and Grab all controls are present (witness 1792992066613-5494-9aa12906d52194e6). Open: pin persistence per hero and the grab-all unstash are not exercised.'

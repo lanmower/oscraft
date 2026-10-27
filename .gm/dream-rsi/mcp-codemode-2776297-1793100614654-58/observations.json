@@ -1,0 +1,1 @@
+{"dispatch_id":"1793100614744-4625-75b413ba48bc6938","verb":"phase-status","fingerprint":"7a833625d6cd4da9","exit_code":0,"gate_drift":false,"gate_id":null,"predicate":null,"prd_open_count":172,"mutable_open_count":221,"quality":0.5,"ts":1793100614831,"reply_sha256":"f48d260cee2eb278e63649bf7c9b994c68bb80ad885cd1b55e248aa5eaa0ca3f","failure_class":"ok","policy_id":"pi0-default"}

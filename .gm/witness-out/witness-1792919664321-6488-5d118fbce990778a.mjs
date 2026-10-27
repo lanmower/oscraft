@@ -1,0 +1,8 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const cp=require('child_process'),fs=require('fs'),path=require('path'),os=require('os');const R='/workspace/oscraft';const sh=(c)=>cp.execSync(c,{cwd:R,encoding:'utf8',maxBuffer:1<<26,shell:'/bin/bash'});const ok=(c,m)=>{if(!c){console.log('RESULT: FAIL '+m);process.exit(1)}};const done=(m)=>console.log('RESULT: PASS '+m);
+const RUN_PAGES='40179272563',RUN_CI='40179272561';
+const jobs=(run)=>JSON.parse(sh('gh run view '+run+' --repo lanmower/oscraft --json jobs')).jobs;
+const serve=(args)=>new Promise((res)=>{const p=cp.spawn('node',[R+'/scripts/dev/serve.mjs',...args],{cwd:R});let b='';p.stdout.on('data',d=>{b+=d;const m=b.match(/http:\/\/localhost:(\d+)\/js/);if(m)res({p,port:m[1]})});});
+const get=async(u,m='GET')=>{const r=await fetch(u,{method:m});return r};
+(async()=>{try{const j=jobs(RUN_PAGES);const f=(n)=>j.find(x=>x.name===n);const d=f('publish the built page to GitHub Pages'),w=f('wire codec round-trip'),s=f('static client checks');ok(d&&w&&s,'jobs missing');ok(Date.parse(d.startedAt)>=Date.parse(w.completedAt)&&Date.parse(d.startedAt)>=Date.parse(s.completedAt),'deploy started before gates ended');ok(w.conclusion==='success'&&s.conclusion==='success','gates not green');ok(/needs: \[build, gate-wire, gate-static\]/.test(fs.readFileSync(R+'/.github/workflows/pages.yml','utf8')),'needs line absent');done('deploy started '+d.startedAt+' after gates '+w.completedAt+' and '+s.completedAt);}catch(e){console.log('RESULT: FAIL '+e.message);process.exit(1)}})()

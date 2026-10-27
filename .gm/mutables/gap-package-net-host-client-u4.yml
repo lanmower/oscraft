@@ -1,0 +1,5 @@
+id: gap-package-net-host-client-u4
+subject: Does a real build.sh run produce an archive whose MANIFEST covers js/client and passes install-check.sh?
+question: live build.sh run into a temp dir then install-check.sh on the archive
+session_id: gm-orch-1-4
+status: unknown

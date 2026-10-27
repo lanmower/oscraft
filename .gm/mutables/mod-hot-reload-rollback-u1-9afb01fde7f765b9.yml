@@ -1,0 +1,5 @@
+id: mod-hot-reload-rollback-U1
+row: mod-hot-reload-rollback
+text: 'advance applies a staged reload before on_tick: after reload() returns Ok(true), the next advance() runs the new on_tick (closed by CI check line ''reload-check value-changed ok'')'
+session_id: mcp-codemode-1132-1792148667657
+status: unknown

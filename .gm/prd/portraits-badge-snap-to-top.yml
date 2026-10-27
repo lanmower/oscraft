@@ -1,0 +1,13 @@
+id: portraits-badge-snap-to-top
+subject: 'Portrait badge: snap the acronym to the top of the tile, icons occupy the bottom'
+description: 'From the user: the acronym badge should sit at the top of the tile because the icon occupies the bottom. Today (159d02fd, widgets.js portraits kind) the badge is centred behind the icon. Change: anchor the badge to the top edge of the tile, horizontally centred, in capitals, sized to fit the tile width (three letters must not clip), the icon drawn at the bottom and not overlapping the badge. Keep the optional badge/text/tone fields and the no-badge rendering unchanged. Ownership: js/client/widgets.js only. Acceptance: CI green on the pushed sha; screenshot of the lobby grid shows badges at the top of every tile. Witness: browser lane screenshot after deploy.'
+session_id: mcp-codemode-3036736-1792921154020-1
+owner: mcp-codemode-3036736-1792921154020-1
+status: pending
+notes:
+- ts: 2026-10-25T09:44:57.232Z
+  session_id: drain-badge-top-10
+  note: 'published c9896529d37d; ci and pages green. Open: screenshot witness left to the browser lane.'
+- ts: 2026-10-25T19:23:23.296Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open.'

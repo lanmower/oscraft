@@ -1,0 +1,5 @@
+id: gap-tick-overrun-action-U4
+row: gap-tick-overrun-action
+question: U4 Do oscraftd flags --ci room, --ticks and --tick-budget-us parse and print tick-overrun and tick-shed lines as the witness expects?
+session_id: gm-orch-2-7-r3
+status: unknown

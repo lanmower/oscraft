@@ -1,0 +1,58 @@
+# 6.88g hero abilities, batch 04 of 12. Heroes: ancient_apparition, chen, elder_titan, keeper_of_the_light, mars, obsidian_destroyer, razor, snapfire, undying.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# ancient_apparition 6.88g A1HS Ice Vortex
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 16 rows, 0 mapped, 16 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# UNVERIFIED rows (no effect set): A1HS A1MG A1MI A1HQ A085 A10X A2XQ A112 A0OK A0OJ A0OI A0IF A15S A0R5 A15V A15J.
+ability("ancient_apparition_ice_vortex", 64, 80, "none", [])
+# ancient_apparition 6.88g A1MG Cold Feet
+ability("ancient_apparition_cold_feet", 240, 150, "none", [])
+# ancient_apparition 6.88g A1MI Ice Blast
+ability("ancient_apparition_ice_blast", 640, 100, "none", [])
+# ancient_apparition 6.88g A1HQ Chilling Touch
+ability("ancient_apparition_chilling_touch", 800, 110, "none", [])
+# elder_titan: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# keeper_of_the_light 6.88g A085 Illuminate
+ability("keeper_of_the_light_illuminate", 160, 150, "none", [])
+# keeper_of_the_light 6.88g A10X Mana Leak
+ability("keeper_of_the_light_mana_leak", 256, 75, "none", [])
+# keeper_of_the_light 6.88g A2XQ Spirit Form
+ability("keeper_of_the_light_spirit_form", 0, 200, "none", [])
+# keeper_of_the_light 6.88g A112 Chakra Magic
+ability("keeper_of_the_light_chakra_magic", 304, 25, "none", [])
+# mars: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# obsidian_destroyer 6.88g A0OK Sanity's Eclipse
+ability("obsidian_destroyer_sanity_s_eclipse", 2560, 175, "none", [])
+# obsidian_destroyer 6.88g A0OJ Astral Imprisonment
+ability("obsidian_destroyer_astral_imprisonment", 288, 120, "none", [])
+# obsidian_destroyer 6.88g A0OI Arcane Orb
+ability("obsidian_destroyer_arcane_orb", 0, 100, "none", [])
+# obsidian_destroyer 6.88g A0IF Essence Aura
+ability("obsidian_destroyer_essence_aura", 0, 0, "none", [])
+# snapfire: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# undying 6.88g A15S Decay
+ability("undying_decay", 160, 70, "none", [])
+# undying 6.88g A0R5 Soul Rip
+ability("undying_soul_rip", 384, 100, "none", [])
+# undying 6.88g A15V Tombstone
+ability("undying_tombstone", 960, 120, "none", [])
+# undying 6.88g A15J Flesh Golem
+ability("undying_flesh_golem", 1200, 100, "none", [])
+# content-abilities-120-heroes-missing (drain-heroes-shard-2): rows for heroes whose 6.88g identity is resolved (heroes_688g.tsv or the identity agreement pass). Effects [] on every row: UNVERIFIED.
+# razor 6.88g A1E7 Plasma Field
+ability("razor_plasma_field", 224, 125, "none", [])
+# razor 6.88g A1DP Static Link
+ability("razor_static_link", 512, 50, "none", [])
+# razor 6.88g A1E6 Unstable Current
+ability("razor_unstable_current", 0, 0, "none", [])
+# razor 6.88g A1AO Eye of the Storm
+ability("razor_eye_of_the_storm", 1280, 100, "none", [])
+# chen 6.88g A0LV Test of Faith
+ability("chen_test_of_faith", 256, 90, "none", [])
+# chen 6.88g A28T Holy Persuasion
+ability("chen_holy_persuasion", 480, 100, "none", [])
+# chen 6.88g A0LT Hand of God
+ability("chen_hand_of_god", 2560, 200, "none", [])
+# chen 6.88g A0KM Penitence
+ability("chen_penitence", 224, 100, "none", [])

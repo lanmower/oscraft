@@ -1,0 +1,5 @@
+row: fx-pool-counts-debug-hook
+id: fx-u1-cause-no-fx-hook
+question: 'Is oscraft.debug.fx absent because installDebugApi in play.js (origin line 2954-2975) passes no fx hook and debug_api.js has no fx entry? Probe: createDebugApi with hooks lacking fx, list debug keys.'
+session_id: drain-hy3d-findings-14
+status: unknown

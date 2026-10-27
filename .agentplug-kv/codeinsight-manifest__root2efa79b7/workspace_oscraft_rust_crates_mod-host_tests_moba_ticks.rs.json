@@ -1,0 +1,1 @@
+{"chunks":[{"ch":3450490353,"emb":null,"key":"ci-dfa678af-5ddd8947-0","kind":"function_item","le":27,"ls":13,"name":"the_moba_pack_plays_without_a_hook_switched_off"}],"commit_overview":null,"digest_hash":2941228627,"hash":1574799687,"mtime_ms":1792647748011.0,"path":"workspace/oscraft/rust/crates/mod-host/tests/moba_ticks.rs","size":1377,"skipped_no_embed":1,"v":7}

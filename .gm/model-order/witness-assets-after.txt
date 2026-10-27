@@ -1,0 +1,16 @@
+witness-assets-after.txt
+Build: AFTER, tree /config/tmp/model-order, stage /config/tmp/mo-stage-after2, served from /config/tmp/model-order on pages.oscraft.localhost:38279 (stopped after the read).
+Load: http://pages.oscraft.localhost:38279/js/client/play.html#moba, one isolated fresh context, Network.setCacheDisabled on, eval read 30 s after navigation.
+worldBuilt: set (body.dataset.worldBuilt = "1"), phase = lobby at the read. Earlier probes in this session saw worldBuilt by 10 s, so the 20 s after worldBuilt condition holds by that inference; no separate timestamp was taken.
+body.dataset.assetError: null
+body.dataset.error: null
+Asset-error list: empty.
+Resource Timing entries with responseStatus >= 400 or 0: 0 (buffer holds 250 entries; the page made 528 requests, so this check covers only the first 250).
+CDP network: 528 requests, 0 failed.
+Console errors by message (1 total):
+  [mods] init: unknown_module: treant is not a module of this pack (js/client/play.js:263) x1
+Console warnings (1 total):
+  [wireweave] Using the bundled default TURN servers ... x1
+Failed to fetch: 0. ERR_ codes: 0.
+Note: the treant error is the manifest omission that remains after the night_stalker patch (scenarios/moba/init.lua:6 requires treant; no treant entry in scenarios/moba/manifest.json).
+Browser: window opened under cwd /config/tmp/model-order and closed with browser_reset (reset: true). The /workspace/oscraft window was not used or reset.

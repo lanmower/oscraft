@@ -1,0 +1,59 @@
+# 6.88g hero abilities, batch 12 of 12. Heroes: bristleback, dragon_knight, hoodwink, luna, necrolyte, pudge, silencer, tiny, windrunner.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# bristleback 6.88g A0FV Warpath
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 20 rows, 0 mapped, 20 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A03F Breathe Fire 伤害=90 (perlevel.tsv:273) -> damage.
+# UNVERIFIED rows (no effect set): A0FV A0M3 A0GP A0FW A03G A03F A2AI A0CL A067 A05V A060 A01N A0LZ A2NT A14L A0L3 A12P A12K A14I A12J.
+ability("bristleback_warpath", 0, 0, "none", [])
+# bristleback 6.88g A0M3 Bristleback
+ability("bristleback_bristleback", 0, 0, "none", [])
+# bristleback 6.88g A0GP Quill Spray
+ability("bristleback_quill_spray", 48, 35, "none", [])
+# bristleback 6.88g A0FW Viscous Nasal Goo
+ability("bristleback_viscous_nasal_goo", 24, 30, "none", [])
+# dragon_knight 6.88g A03G Elder Dragon Form
+ability("dragon_knight_elder_dragon_form", 1840, 50, "none", [])
+# dragon_knight 6.88g A03F Breathe Fire
+ability("dragon_knight_breathe_fire", 192, 100, "none", [])
+# dragon_knight 6.88g A2AI Dragon Tail
+ability("dragon_knight_dragon_tail", 0, 0, "none", [])
+# dragon_knight 6.88g A0CL Dragon Blood
+ability("dragon_knight_dragon_blood", 0, 0, "none", [])
+# hoodwink: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# necrolyte 6.88g A067 Reaper's Scythe
+ability("necrolyte_reaper_s_scythe", 1600, 175, "none", [])
+# necrolyte 6.88g A05V Death Pulse
+ability("necrolyte_death_pulse", 128, 125, "none", [])
+# necrolyte 6.88g A060 Sadist
+ability("necrolyte_sadist", 0, 0, "none", [])
+# necrolyte 6.88g A01N Heartstopper Aura
+ability("necrolyte_heartstopper_aura", 0, 0, "none", [])
+# pudge: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# silencer 6.88g A0LZ Glaives of Wisdom
+ability("silencer_glaives_of_wisdom", 0, 15, "none", [])
+# silencer 6.88g A2NT Last Word
+ability("silencer_last_word", 480, 115, "none", [])
+# silencer 6.88g A14L Curse of the Silent
+ability("silencer_curse_of_the_silent", 320, 75, "none", [])
+# silencer 6.88g A0L3 Global Silence
+ability("silencer_global_silence", 2080, 250, "none", [])
+# tiny: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# windrunner 6.88g A12P Focus Fire
+ability("windrunner_focus_fire", 960, 75, "none", [])
+# windrunner 6.88g A12K Powershot
+ability("windrunner_powershot", 144, 90, "none", [])
+# windrunner 6.88g A14I Windrunner
+ability("windrunner_windrunner", 240, 0, "none", [])
+# windrunner 6.88g A12J Shackleshot
+ability("windrunner_shackleshot", 192, 90, "none", [])
+# content-abilities-120-heroes-missing (drain-heroes-shard-2): rows for heroes whose 6.88g identity is resolved (heroes_688g.tsv or the identity agreement pass). Effects [] on every row: UNVERIFIED.
+# luna 6.88g A062 Lunar Blessing
+ability("luna_lunar_blessing", 0, 0, "none", [])
+# luna 6.88g A042 Lucent Beam
+ability("luna_lucent_beam", 96, 90, "none", [])
+# luna 6.88g A054 Eclipse
+ability("luna_eclipse", 2240, 150, "none", [])
+# luna 6.88g A041 Moon Glaive
+ability("luna_moon_glaive", 0, 0, "none", [])

@@ -1,0 +1,10 @@
+id: fx-buff-api
+subject: Expose a unit's active buffs to mods (rust/mod-host and sim)
+description: 'Owner: oscraft. The sim holds buff_kind/buff_left, BUFF_SLOTS=4 per unit (rust/crates/sim/src/buffs.rs) but no Lua native reads them. Add game.unit_buffs(unit) or a per-unit buff list returning kind and remaining ticks, without allocating per call beyond the returned table, and keep it out of the state hash. Needed by fx-buff-visuals.'
+owner: oscraft
+session_id: mcp-codemode-2799623-1792918376300-3
+status: pending
+notes:
+- ts: 2026-10-25T08:58:02.677Z
+  session_id: drain-rust-9
+  note: claimed by drain-rust-9

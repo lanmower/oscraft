@@ -1,0 +1,5 @@
+row: OUSTERHOUTC-gm-orch-1-16-1
+id: OUSTERHOUTC-gm-orch-1-16-1-u1
+question: Does node --check js/client/delta.js pass on the current tree before the edit?
+session_id: gm-orch-1-20
+status: unknown

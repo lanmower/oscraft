@@ -1,0 +1,33 @@
+{
+  "node": "DADA_NIELSEN",
+  "applied": false,
+  "changes": [],
+  "witness": "codesearch 'refusal' on js/client/feedback.js (1792858226287-3856-7a57ba02c105e42); draw() gate 'if (!on)' :194 (1792858361676-4228-8be9a52433ec7da0)",
+  "prd_ids": [
+    "dada_nielsen-trav-feedback-1"
+  ],
+  "unknown_ids": [],
+  "next_choice": {
+    "to": null,
+    "why": "none, lane order"
+  },
+  "links_offered": [],
+  "link_taken": null,
+  "session": "trav-feedback",
+  "witness_dispatch_ids": [
+    "1792858226287-3856-7a57ba02c105e42",
+    "1792858361263-4225-a341199babc676a8",
+    "1792858361676-4228-8be9a52433ec7da0",
+    "1792858362093-4230-5e5f243343b4eb66"
+  ],
+  "verified_by": null,
+  "verified_dispatch_ids": [],
+  "findings": [
+    {
+      "prd_id": "dada_nielsen-trav-feedback-1",
+      "owner": "trav-feedback",
+      "disposition": "accept"
+    }
+  ],
+  "inspector": null
+}

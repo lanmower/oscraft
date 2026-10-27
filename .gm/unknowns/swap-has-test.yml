@@ -1,0 +1,4 @@
+id: swap-has-test
+value: Is any test covering Room::step data swap (stage_data then step) present and run by cargo test in rust/crates/server?
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

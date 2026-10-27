@@ -1,0 +1,26 @@
+id: ui-portraits-tone-field-dropped
+subject: Portraits items carry no tone, so held heroes lost the faint tone when the acronym badge replaced the name
+description: 'js/client/widgets.js portraitGrid: item.tone is never applied as t-<tone>. Acceptance: an item with tone adds class t-<tone> to its cell and t-faint dims the icon; documented in the portraits field list. Witness: ci-status green on pushed sha plus a ledger witness from verify session (look at pixels needs browser, left open if so).'
+session_id: drain-ui-widgets-9
+owner: drain-ui-widgets-9
+status: pending
+notes:
+- ts: 2026-10-25T08:59:25.855Z
+  session_id: drain-ui-widgets-9
+  note: claimed by drain-ui-widgets-9
+- ts: 2026-10-25T09:01:06.975Z
+  session_id: drain-ui-widgets-9
+  note: edit published; witness needs a browser look (a11y tree / focus / 390px screenshot), left open
+- ts: 2026-10-25T09:20:36.222Z
+  session_id: drain-panels-10
+  note: claimed by drain-panels-10
+- ts: 2026-10-25T09:42:41.074Z
+  session_id: drain-panels-10
+  note: 'bed7addd: panels.lua sends tone=faint on held hero tiles; widgets.js applies t-faint; browser look needed; open'
+- ts: 2026-10-25T19:23:25.874Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open.'
+references:
+- ts: 2026-10-26T05:23:31.316Z
+  session_id: hud-match-witness
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/js/client/widgets.js","repo":"","path":"","sha":"","why":"portraitGrid applies item.tone as a t-<tone> class, the fix this row witnesses.","license":"unknown"}'

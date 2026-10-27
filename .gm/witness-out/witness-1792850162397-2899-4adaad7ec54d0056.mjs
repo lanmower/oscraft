@@ -1,0 +1,3 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+require('fs').appendFileSync('.gm/witness-log.md', "swap-announce-overwrites-pending | exit 0 | RESULT: PASS (overwrite refuted on the working tree; deferred re-announce path open, row reopened as swap-deferred-reannounce-diverges) | 2026-10-24T13:48Z | dispatch 1792849692634-2630-7b0033f27f6344b7 (session verify-swap-announce-overwrites-pending)\n");console.log('appended');

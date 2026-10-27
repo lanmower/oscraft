@@ -1,0 +1,4 @@
+id: u-serve-state-fields
+value: what fields serve_state (rust/crates/server/src/lib.rs:369-398) emits today, and which must stay byte-compatible for ci.yml .units consumers
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

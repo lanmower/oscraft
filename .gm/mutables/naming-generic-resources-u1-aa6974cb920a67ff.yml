@@ -1,0 +1,5 @@
+id: naming-generic-resources:u1
+subject: Which loader reads rust/data/*/economy.star and units.star keys (opening_minerals, supply_base, supply_max, supply=, minerals_per_level) and does it match them by name?
+row: naming-generic-resources
+session_id: gm-orch-1-1
+status: unknown

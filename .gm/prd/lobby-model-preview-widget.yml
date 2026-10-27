@@ -1,0 +1,20 @@
+id: lobby-model-preview-widget
+subject: 'Widgets: a model kind that shows a portrait until its model is loaded, then a 3D preview; updates on oscraft:model-loaded without rebuilding the lobby'
+description: 'From the user: show each loaded model in the UI, for the local pick and for the other players'' picks, as soon as it is loaded. Design: a generic model widget kind in js/client/widgets.js (name by what it shows; no genre names). It takes a model name and a portrait src; it draws the portrait until window event oscraft:model-loaded arrives for that model (see lobby-preload-picked-models-and-announce), then mounts a small WebGL preview (reuse render3d''s mesh build for a parsed model; add the preview to js/client/render3d.js). It updates its own canvas only, so the lobby does not rebuild (the flashing fix lobby-modal-reemitted-every-refresh-flashes-hero-grid depends on this). Ownership: js/client/widgets.js and js/client/render3d.js. Then scenarios/moba/panels.lua hero card and seat cards use the kind, after the flashing row publishes (re-read origin first; another lane is editing panels.lua). Acceptance: CI green on ci and pages; a picked hero shows its portrait then its 3D preview; other seats show theirs when loaded; no full lobby re-render on load (witness in the browser lane).'
+session_id: mcp-codemode-3368056-1792927494827-9
+owner: mcp-codemode-3368056-1792927494827-9
+status: pending
+references:
+- ts: 2026-10-25T11:25:49.673Z
+  session_id: drain-modelview-13
+  note: '{"url":"https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent","repo":"","path":"","sha":"","why":"The oscraft:model-loaded contract is a window CustomEvent whose detail carries {model}; the widget listens with addEventListener and reads event.detail.","license":"CC-BY-SA-2.5"}'
+- ts: 2026-10-25T11:25:50.356Z
+  session_id: drain-modelview-13
+  note: '{"url":"https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener","repo":"","path":"","sha":"","why":"Listener registration and removal for the one event the widget waits on, so an unmounted widget can detach its listener.","license":"CC-BY-SA-2.5"}'
+notes:
+- ts: 2026-10-25T11:38:55.092Z
+  session_id: drain-modelview-13
+  note: 'Step 1 published f356dd23d58f76c629456c313c848fcbea488db5 (js/client/widgets.js, js/client/render3d.js). CI ci: 2/2 success. CI pages: first draw of the built page fails the 10000 ms ceiling (median 11772), the same as parent 6d8e7388, a preload-lane play.js commit; evidence noted on lobby-preload-picked-models-and-announce. Row stays open: step 2 (scenarios/moba/panels.lua) waits for lobby-modal-reemitted-every-refresh-flashes-hero-grid, still pending. blocked_by: lobby-modal-reemitted-every-refresh-flashes-hero-grid. Visual check (portrait then 3D preview, no lobby re-render on load) is left to the browser lane. Witness of step 1 content: git_show dispatch 1792928333698-5611-3e7cba534aa91bb3 (session verify-lobby-model-preview-widget).'
+- ts: 2026-10-25T19:23:28.528Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open. Panel part (hero_picture model node in hero card and seats) staged uncommitted in /config/tmp/hud-lobby, not pushed.'

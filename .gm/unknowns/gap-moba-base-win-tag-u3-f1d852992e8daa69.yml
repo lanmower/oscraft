@@ -1,0 +1,4 @@
+id: gap-moba-base-win-tag:u3
+question: Does the sim declare_winner with tag=building actually pick the rival side when the last building of a side dies (triggers.rs:50-131)?
+session_id: mcp-codemode-1184-1792267460011
+status: unknown

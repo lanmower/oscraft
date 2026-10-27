@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-F5
+question: Does any CI job currently compile or load rust/data/moba?
+row: gap-moba-scenario-witness
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

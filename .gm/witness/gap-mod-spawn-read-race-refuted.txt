@@ -1,0 +1,5 @@
+hypothesis REFUTED: the mod-spawn before-read races the mod's first-tick spawn
+baseline (no --mod, as ci.yml 909-915): before=30 run1 30 run2 30 run3
+mod server (--mod, as ci.yml 917): first read=30, read after 2s=31, ev=mod_tick tick=1, ev=mod_unit_bound handle=1 unit=30
+code: room.rs:303-306 applies mod cmds only when feed attached (lib.rs:83 attach_mod_feed under --mod); step() applies queued cmds at the tick boundary, so a spawn is read only after the tick that queues it
+RESULT: PASS (refutation holds; before-read is a no-mod baseline)

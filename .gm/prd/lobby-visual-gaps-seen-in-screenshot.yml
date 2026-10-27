@@ -1,0 +1,13 @@
+id: lobby-visual-gaps-seen-in-screenshot
+subject: 'Game-start lobby: right hero card and bottom bar not visible; old room panel shows behind the modal'
+description: 'Witness: screenshot .gm/shots/lobby-visual-9.png (verify-lobby-visual-9, dispatch 1792913805507-5265-622d603cd993baeb), viewport 1057x499 (no raw viewport step), lobby mounted after 25 s with no join. Seen: a Hero select modal, Team A and Team B seat strips with Claim buttons, Strength and Agility portrait rows with hero names. Not seen: the Intelligence row, the right hero card (portrait, stat bars, Lock In, Random) and the bottom bar (team composition, status, Fill with bots, Start match); the modal scrolls at this height. Also seen behind the modal: the old room panel (room moba, join) and the hp HUD, which reads as clutter. Acceptance: confirm the three regions at a taller viewport (a witness at 1280x720 needs the raw viewport line, held until the CDP timeout fix is served), and hide or dim the pre-match room panel while the lobby modal is up. Ownership: scenarios/moba/panels.lua (lobby_tree) and js/client/modui.js or play.html for the panel hiding.'
+session_id: mcp-codemode-2493963-1792913823447-8
+owner: mcp-codemode-2493963-1792913823447-8
+status: pending
+notes:
+- ts: 2026-10-25T09:01:09.424Z
+  session_id: drain-ui-panels-9
+  note: 'claimed by drain-ui-panels-9. Open: needs a browser look at a taller viewport and its panel-hiding fix is in js/client/modui.js or play.html, not my files.'
+- ts: 2026-10-25T19:23:15.065Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open.'

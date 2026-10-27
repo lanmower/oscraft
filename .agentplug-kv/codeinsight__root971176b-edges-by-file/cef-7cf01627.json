@@ -1,0 +1,1 @@
+{"edges":[["set_xp_curve","all",24],["set_xp_curve","windows",24],["set_xp_curve","to_vec",27],["set_xp_curve","apply_hero_stats",29],["level","xp",45],["level","count",46],["level","take_while",46],["level","iter",46],["add_xp","level",55],["add_xp","saturating_add",56],["add_xp","level",57],["add_xp","apply_hero_stats",59]],"path":"tmp/moba-src-119f/rust/crates/sim/src/xp.rs"}

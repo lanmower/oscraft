@@ -1,0 +1,8 @@
+Move the test jobs to an on-demand workflow
+
+The Rust workspace tests, the wasm32 and wasip3 compile, the native and wasm state-hash parity, the map export
+determinism check and the wire codec round-trip move from ci.yml to tests.yml, which runs on workflow_dispatch only.
+ci.yml keeps the static client checks; pages.yml drops its wire gate and keeps the static gate, the deploy and the
+first-draw gate. Test sources stay in git.
+
+Row: ci-tests-on-demand-speed-decision

@@ -1,0 +1,6 @@
+id: gm-prd-blocker-row-proliferation
+subject: Blocker rows duplicate their parents (-blocker-drain-* suffix) instead of annotating them
+description: 'Evidence: content-hero-conversions-unresolved has 2 blocker children; content-tree-layer-not-converged, live-moba-guest-stalls, live-swap-verify-2-setup, perf-lua-per-tick-setters 1 each. Ask: a prd-note kind blocker on the parent that records the one blocking fact and keeps the parent pending.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

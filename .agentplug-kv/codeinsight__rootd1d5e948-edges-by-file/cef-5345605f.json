@@ -1,0 +1,1 @@
+{"edges":[["<module>","join",5],["<module>","dirname",5],["<module>","fileURLToPath",5],["<module>","join",6],["<module>","join",7],["<module>","readdirSync",10],["<module>","endsWith",11],["<module>","copyFileSync",12],["<module>","join",12],["<module>","join",12],["<module>","log",15]],"path":"workspace/gm/scripts/sync-prose.mjs"}

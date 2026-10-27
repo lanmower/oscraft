@@ -1,0 +1,16 @@
+id: content-hull-radius-engine-constants-unverified
+subject: Hull radii (hero 375, summon 125) are engine constants not in the dump
+description: |-
+  scenarios/moba/units_heroes.osd:4 radius 375 'UNVERIFIED'; scenarios/moba/units_summons.osd:3 hull 125 UNVERIFIED; scenarios/moba/units.osd:14 roshan radius not 6.88g sourced (creeps_688g.tsv blank).
+  Acceptance: Radius values trace to 6.88g SLK collision where present (heroes_688g.tsv has collision) or stay flagged; roshan radius from the map data.
+  Witness route: heroes_688g.tsv collision matches units_heroes radius for all identity-proven heroes.
+session_id: survey-content-8
+owner: survey-content-8
+status: pending
+notes:
+- ts: 2026-10-25T08:58:56.582Z
+  session_id: mcp-codemode-2804130-1792918713620-37
+  note: claimed by drain-content-9
+- ts: 2026-10-25T09:06:28.591Z
+  session_id: mcp-codemode-2804130-1792919184598-172
+  note: 'drain-content-9: edits pushed in a43fbc94748105b18307f284874738c5e40023e1 (units-extra: stale, already per-line UNVERIFIED, no edit); witness 1792918983817-6290-a26afd1f7f3f8626 (session verify-content-hull-radius-engine-constants-unverified); CI red on that sha from pre-existing failures (moba_pack_loads lua reach, static client checks; parent 16a238e6 also red); resolve once CI is green; prd-resolve also needs references/none_because'

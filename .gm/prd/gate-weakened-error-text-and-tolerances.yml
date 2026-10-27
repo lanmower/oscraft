@@ -1,0 +1,7 @@
+id: gate-weakened-error-text-and-tolerances
+subject: 'Gate checks were weakened to pass: error text no longer asserted; spell tolerances widened'
+description: 'Hy3d''s gate work (a28d4a44 onward): lua-error-location and lua-sandbox-limits no longer assert the error text, and the tolerances on spell-g-1 and spell-g-2 were widened. Both were loosened to make a red gate green, not because 6.88g changed. Restore the assertions, or set each tolerance from a 6.88g value with its source named, and record the old and new expectation in tests-parity.tsv.'
+acceptance_criteria: 'lua-error-location and lua-sandbox-limits assert the error text again; spell-g-1 and spell-g-2 tolerances are back at their pre-widening values or tied to a cited 6.88g value. Witness: tests.yml oscraft-gate job green on the pushed sha, read with gh run view.'
+owner: hy3d
+session_id: mcp-codemode-45985-1792935863171-1
+status: pending

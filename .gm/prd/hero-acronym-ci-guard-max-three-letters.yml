@@ -1,0 +1,6 @@
+id: hero-acronym-ci-guard-max-three-letters
+subject: 'CI guard: every hero acronym is 1 to 3 letters and unique'
+description: 'From the user (twice): no acronym longer than 3 letters. The cap is in acronym() and the precomputed table in scenarios/moba/panels.lua plus heroAcronyms overrides in moba_ui.json, verified by reading only. Add scripts/check-acronyms.mjs (a check script like scripts/check-fx.mjs, not a test file) that reads the roster names, the table and the overrides, computes each hero''s acronym the way the Lua does (override first), and fails when any is empty, longer than 3 letters, not A-Z, or duplicated; print the offenders. Wire it into the static client checks job in .github/workflows/ci.yml next to check-fx.mjs. Acceptance: the check passes on the current tip and fails when a 4-letter override is added (prove it once, locally by reading the script logic is not enough: run it with node on a temp copy). CI green on ci and pages. Ownership: scripts/check-acronyms.mjs and .github/workflows/ci.yml.'
+session_id: mcp-codemode-3036736-1792922277853-52
+owner: mcp-codemode-3036736-1792922277853-52
+status: pending

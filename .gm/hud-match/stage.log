@@ -1,0 +1,6 @@
+wrote 812849 bytes to /config/tmp/hud-match/scenarios/moba/moba.osdt
+wrote 18433 bytes to /config/tmp/hud-match/scenarios/duel-routes/duel-routes.osdt
+asset packs: 170 character, 1 item, 42589399 bytes -> /config/tmp/hud-match/.dev-site/scenarios/moba/assets/packs
+laid out /config/tmp/hud-match/.dev-site sha=ce0e8419c54f1b0a9292aadaa132ae581986d17f ref=local size=226476KiB
+serve: node scripts/dev/serve.mjs /config/tmp/hud-match/.dev-site
+STAGE_EXIT=0

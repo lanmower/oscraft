@@ -1,0 +1,4 @@
+id: r3d-u3-terrain-output
+value: What does buildTerrain(bytes) (terrain.js:58) return, and does readDoodads (terrain.js:40) return placements with model ids and transforms?
+session_id: gm-orch-13-wire
+status: unknown

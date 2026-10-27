@@ -1,0 +1,8 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const cp=require('child_process'),fs=require('fs'),path=require('path'),os=require('os');const R='/workspace/oscraft';const sh=(c)=>cp.execSync(c,{cwd:R,encoding:'utf8',maxBuffer:1<<26,shell:'/bin/bash'});const ok=(c,m)=>{if(!c){console.log('RESULT: FAIL '+m);process.exit(1)}};const done=(m)=>console.log('RESULT: PASS '+m);
+const RUN_PAGES='40179272563',RUN_CI='40179272561';
+const jobs=(run)=>JSON.parse(sh('gh run view '+run+' --repo lanmower/oscraft --json jobs')).jobs;
+const serve=(args)=>new Promise((res)=>{const p=cp.spawn('node',[R+'/scripts/dev/serve.mjs',...args],{cwd:R});let b='';p.stdout.on('data',d=>{b+=d;const m=b.match(/http:\/\/localhost:(\d+)\/js/);if(m)res({p,port:m[1]})});});
+const get=async(u,m='GET')=>{const r=await fetch(u,{method:m});return r};
+(async()=>{try{const d=fs.mkdtempSync(os.tmpdir()+'/dr9 sp ');fs.mkdirSync(d+'/scripts');fs.copyFileSync(R+'/scripts/check-modulepreload.mjs',d+'/scripts/check-modulepreload.mjs');sh('cp -r js/client "'+d+'/js-client" && mkdir -p "'+d+'/js" && mv "'+d+'/js-client" "'+d+'/js/client"');let out;try{out=cp.execSync('node scripts/check-modulepreload.mjs',{cwd:d,encoding:'utf8'})}catch(e){out='EXIT '+e.status+' '+e.stdout+e.stderr}ok(/modulepreload ok/.test(out),out);ok(!/import\.meta\.url\)\.pathname/.test(sh('cat scripts/*.mjs scripts/assets/*.mjs')),'pathname form remains');fs.rmSync(d,{recursive:true,force:true});done('exit 0 from a path with a space: '+out.trim());}catch(e){console.log('RESULT: FAIL '+e.message);process.exit(1)}})()

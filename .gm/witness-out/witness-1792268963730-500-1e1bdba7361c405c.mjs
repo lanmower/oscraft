@@ -1,0 +1,12 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const fs=require('fs');const cp=require('child_process');
+const ts=new Date().toISOString();
+const sha=cp.execSync('git rev-parse 68a30ade320fc8fd304c2e21e9bef7bf1f79c827',{encoding:'utf8'}).trim();
+const removed=cp.execSync('git show --name-status --format= 68a30ade320fc8fd304c2e21e9bef7bf1f79c827 -- js/host',{encoding:'utf8'}).split('\n').filter(Boolean);
+const doc=fs.readFileSync('docs/HOST.md','utf8').split('\n')[61]||'';
+const ok = removed.length>0 && removed.every(l=>l.startsWith('D')) && /Retired/.test(fs.readFileSync('docs/HOST.md','utf8'));
+const result = ok ? 'RESULT: REFUTED' : 'RESULT: FAIL';
+const line='witness=net-node-host-wireweave-blocker-premise; exit='+(ok?0:1)+'; js_host_deleted_files='+removed.length+'; commit='+sha.slice(0,10)+'; doc_line62='+doc.trim()+'; '+result+'; utc='+ts;
+fs.appendFileSync('.gm/witness-log.md', line+'\n');
+console.log(line);

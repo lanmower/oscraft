@@ -1,0 +1,1 @@
+{"dispatch_id":"1793045293784-4720-9286ea116e65ab04","verb":"task-stop","fingerprint":"6fa7da61a62e91a0","exit_code":0,"gate_drift":false,"gate_id":null,"predicate":null,"prd_open_count":173,"mutable_open_count":221,"quality":0.5,"ts":1793045293851,"reply_sha256":"9485cacc249d6151060ec62d6a9dd531825a24118f1f1d53ee946f5f74a4cdcd","failure_class":"ok","policy_id":"pi0-default"}

@@ -1,0 +1,73 @@
+# 6.88g hero abilities, batch 11 of 12. Heroes: brewmaster, doom_bringer, gyrocopter, lone_druid, naga_siren, puck, shredder, tinker, weaver.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# brewmaster 6.88g A06M Thunder Clap
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 24 rows, 0 mapped, 24 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): Acdh Drunken Haze 移动速度减少(%)=0.14 (perlevel.tsv:59) -> slow.
+# UNVERIFIED rows (no effect set): A06M Acdh A0MX A0MQ A094 A35D A1OP A0MU A1SO A1SQ A229 A1T5 A0A5 A0A8 A1EF A0AG A2KU A24D A063 A07U A065 A049 A05E A0BQ.
+ability("brewmaster_thunder_clap", 208, 90, "none", [])
+# brewmaster 6.88g Acdh Drunken Haze
+ability("brewmaster_drunken_haze", 128, 50, "none", [])
+# brewmaster 6.88g A0MX Drunken Brawler
+ability("brewmaster_drunken_brawler", 0, 0, "none", [])
+# brewmaster 6.88g A0MQ Primal Split
+ability("brewmaster_primal_split", 2240, 125, "none", [])
+# doom_bringer 6.88g A094 LVL? Death
+ability("doom_bringer_lvl_death", 112, 110, "none", [])
+# doom_bringer 6.88g A35D Devour
+ability("doom_bringer_devour", 0, 0, "none", [])
+# doom_bringer 6.88g A1OP Scorched Earth
+ability("doom_bringer_scorched_earth", 880, 60, "none", [])
+# doom_bringer 6.88g A0MU Doom Basic
+ability("doom_bringer_doom_basic", 2000, 150, "none", [])
+# gyrocopter 6.88g A1SO Rocket Barrage
+ability("gyrocopter_rocket_barrage", 112, 90, "none", [])
+# gyrocopter 6.88g A1SQ Homing Missile
+ability("gyrocopter_homing_missile", 320, 120, "none", [])
+# gyrocopter 6.88g A229 Flak Cannon
+ability("gyrocopter_flak_cannon", 480, 50, "none", [])
+# gyrocopter 6.88g A1T5 Call Down
+ability("gyrocopter_call_down", 880, 125, "none", [])
+# lone_druid 6.88g A0A5 Summon Spirit Bear
+ability("lone_druid_summon_spirit_bear", 1920, 75, "none", [])
+# lone_druid 6.88g A0A8 Synergy
+ability("lone_druid_synergy", 0, 0, "none", [])
+# lone_druid 6.88g A1EF Rabid
+ability("lone_druid_rabid", 480, 50, "none", [])
+# lone_druid 6.88g A0AG True Form
+ability("lone_druid_true_form", 0, 25, "none", [])
+# naga_siren 6.88g A2KU Rip Tide
+ability("naga_siren_rip_tide", 160, 80, "none", [])
+# naga_siren 6.88g A24D Ensnare
+ability("naga_siren_ensnare", 192, 90, "none", [])
+# naga_siren 6.88g A063 Mirror Image
+ability("naga_siren_mirror_image", 640, 70, "none", [])
+# naga_siren 6.88g A07U Song of the Siren
+ability("naga_siren_song_of_the_siren", 2880, 100, "none", [])
+# tinker 6.88g A065 Rearm
+ability("tinker_rearm", 0, 125, "none", [])
+# tinker 6.88g A049 Laser
+ability("tinker_laser", 224, 95, "none", [])
+# tinker 6.88g A05E Heat Seeking Missile
+ability("tinker_heat_seeking_missile", 400, 120, "none", [])
+# tinker 6.88g A0BQ March of the Machines
+ability("tinker_march_of_the_machines", 560, 145, "none", [])
+# weaver: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# content-abilities-120-heroes-missing (drain-heroes-shard-2): rows for heroes whose 6.88g identity is resolved (heroes_688g.tsv or the identity agreement pass). Effects [] on every row: UNVERIFIED.
+# puck 6.88g A0S8 Dream Coil
+ability("puck_dream_coil", 1200, 100, "none", [])
+# puck 6.88g A0SC Waning Rift
+ability("puck_waning_rift", 256, 100, "none", [])
+# puck 6.88g A0SB Phase Shift
+ability("puck_phase_shift", 96, 0, "none", [])
+# puck 6.88g A0S9 Illusory Orb
+ability("puck_illusory_orb", 176, 150, "none", [])
+# shredder 6.88g A2FK Whirling Death
+ability("shredder_whirling_death", 96, 70, "none", [])
+# shredder 6.88g A2E3 Timber Chain
+ability("shredder_timber_chain", 64, 60, "none", [])
+# shredder 6.88g A2E4 Reactive Armor
+ability("shredder_reactive_armor", 0, 0, "none", [])
+# shredder 6.88g A2E5 Chakram
+ability("shredder_chakram", 128, 100, "none", [])

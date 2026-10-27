@@ -16,3 +16,10 @@
 node_modules/
 target/
 .dev-site/
+
+# browser profiles, CDP session captures and scratch probes: local only
+/.gm/browser-lease/
+/.gm/browser-cdp-sessions/
+/.gm/browser-cdp-capture/
+/.gm/crawl-cdp-sessions/
+/.inspect/

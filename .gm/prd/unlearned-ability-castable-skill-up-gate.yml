@@ -1,0 +1,14 @@
+id: unlearned-ability-castable-skill-up-gate
+subject: 'An ability that is not learned can be cast: check the skill-up gate in the sim and the controls'
+description: 'From hy3d''s live check: one cast went through for an ability that had not been learned, so skill_up may not gate casts. Check the sim (rust/crates/sim: the cast path and the ability level check) and the mod''s cast call (scenarios/moba/controls.lua, targeting.lua). Expected: a cast at level 0 is refused with a typed reason (ability not learned) and the cast does not start. Fix at the gate that is missing. Ownership: rust/crates/sim cast path and scenarios/moba/controls.lua or targeting.lua (only the gate). Acceptance: a level-0 cast is refused in a native test or a CI check (no new test file: use the existing parity or sim check), CI green on ci, tests (on demand workflow) and pages; the state hash for existing scenarios is unchanged unless the gate changes a recorded cast (say which).'
+session_id: mcp-codemode-3368056-1792928497185-16
+owner: mcp-codemode-3368056-1792928497185-16
+status: pending
+references:
+- ts: 2026-10-25T12:16:05.604Z
+  session_id: drain-hy3d-findings-14
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/rust/crates/sim/src/rules.rs","repo":"lanmower/oscraft","path":"rust/crates/sim/src/rules.rs","sha":"","why":"The sim cast gate (cast_index) that refuses NotLearned for an ability with a skill row at rank 0; the row''s gate is this function and its skill-less branch.","license":"unknown"}'
+notes:
+- ts: 2026-10-25T12:16:06.404Z
+  session_id: mcp-codemode-3711826-1792930565457-43
+  note: 'drain-hy3d-findings-14 (cause found, live): cast_index (rust/crates/sim/src/rules.rs:254-334) refuses NotLearned only when ability.skill is Some and rank is 0; spell.rs:1316 treats a skill-less ability as learned by design. At origin 71707fd8, 76 abilities referenced by unit abilities lists or hero_abilities have no skill(...) row (scan dispatch 1792930518851-5316-943babcf73690a40, session verify-unlearned-ability-castable-skill-up-gate; e.g. windrunner_powershot, tinker_laser, warlock_shadow_word, plus talents and glyph_of_fortification and courier_deliver). Their level-0 casts pass the sim gate: this is the real gameplay bug. Fix options: (a) give each hero ability its 6.88g skill row so the existing gate refuses it (data, conversion lane; UNVERIFIED where 6.88g is silent); (b) a sim learnable flag for skill-less hero abilities (sim change; base abilities such as courier_deliver and talents rely on skill-less = learned, so the flag must be per ability). Witness: a level-0 refusal of one listed ability in a CI check (no local build, no browser). Not closed this run: the fix needs a sim change that the CI gate must witness.'

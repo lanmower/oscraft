@@ -1,0 +1,134 @@
+warning: use of deprecated module `std::i32`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/compiler/lexer.rs:2:16
+  |
+2 |     char, fmt, i32, i64,
+  |                ^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/compiler/lexer.rs:2:21
+  |
+2 |     char, fmt, i32, i64,
+  |                     ^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:120:46
+    |
+120 |     math.set(ctx, "huge", Value::Number(f64::INFINITY)).unwrap();
+    |                                              ^^^^^^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:140:51
+    |
+140 |                     .try_fold(Value::Number(-f64::INFINITY), |max, entry| {
+    |                                                   ^^^^^^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:163:50
+    |
+163 |                     .try_fold(Value::Number(f64::INFINITY), |max, entry| {
+    |                                                  ^^^^^^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/table/raw.rs:1:28
+  |
+1 | use std::{fmt, hash::Hash, i64, mem};
+  |                            ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:302:32
+    |
+302 |                 if max == i64::MAX {
+    |                                ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:307:33
+    |
+307 |                     return i64::MAX;
+    |                                 ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:311:32
+    |
+311 |                     max = i64::MAX;
+    |                                ^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/table/table.rs:3:5
+  |
+3 |     i64, mem,
+  |     ^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/value.rs:1:21
+  |
+1 | use std::{f64, fmt, i64, io, string::String as StdString};
+  |                     ^^^
+
+warning: irrefutable `if let` pattern
+   --> vendor/piccolo/src/conversion.rs:221:28
+    |
+221 |                         if let Ok(i) = <$i>::try_from(i) {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+240 | impl_int_from!(i64, u64, i32, u32, i16, u16, i8, u8);
+    | ---------------------------------------------------- in this macro invocation
+    |
+    = note: this pattern will always match, so the `if let` is useless
+    = help: consider replacing the `if let` with a `let`
+    = note: `#[warn(irrefutable_let_patterns)]` on by default
+    = note: this warning originates in the macro `impl_int_from` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> vendor/piccolo/src/stack.rs:78:9
+   |
+78 |         &mut self,
+   |         ^^^^^^^^^ the lifetime is elided here
+79 |         range: R,
+80 |     ) -> vec::Drain<Value<'gc>, MetricsAlloc<'gc>> {
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+80 |     ) -> vec::Drain<'_, Value<'gc>, MetricsAlloc<'gc>> {
+   |                     +++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> vendor/piccolo/src/thread/thread.rs:206:9
+    |
+206 |         &self,
+    |         ^^^^^ the lifetime is elided here
+...
+209 |     ) -> Result<RefMut<ThreadState<'gc>>, BadThreadMode> {
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+209 |     ) -> Result<RefMut<'_, ThreadState<'gc>>, BadThreadMode> {
+    |                        +++
+
+warning: `piccolo` (lib) generated 14 warnings (run `cargo fix --lib -p piccolo` to apply 2 suggestions)
+   Compiling mod-host v0.0.0 (/workspace/oscraft/rust/crates/mod-host)
+error[E0599]: no method named `queue_order` found for struct `Sim` in the current scope
+    --> crates/mod-host/src/piccolo_host.rs:1739:25
+     |
+1739 |         let ok = sh.sim.queue_order(u, kind, x, y, target).is_ok();
+     |                         ^^^^^^^^^^^ method not found in `Sim`
+
+error[E0599]: no method named `queue_clear` found for struct `Sim` in the current scope
+    --> crates/mod-host/src/piccolo_host.rs:1747:25
+     |
+1747 |         let ok = sh.sim.queue_clear(u);
+     |                         ^^^^^^^^^^^ method not found in `Sim`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `mod-host` (lib) due to 2 previous errors
+
+real	0m1.355s
+user	0m0.730s
+sys	0m0.353s
+exit=101

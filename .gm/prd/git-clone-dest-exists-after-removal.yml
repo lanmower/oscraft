@@ -1,0 +1,12 @@
+id: git-clone-dest-exists-after-removal
+subject: git-clone reports dest_exists for a dest removed just before the call
+description: 'After rm -rf of /config/tmp/prop-pack (confirmed absent by ls, dispatch 1792952196873), git-clone with dest prop-pack returned dest_exists (dispatch 1792952197975); an earlier call (1792952162474) after a rm reported the same. The verb''s existence check does not see the removal. Route: check the verb''s dest existence test in gm-mcp.'
+acceptance_criteria: git-clone into a dest removed in the same session clones; a refusal names the real existing path.
+witness_plan: 'rm -rf a dest, then git-clone into it with mode shallow; dispatch id from a verify- session shows ok: true and .git/shallow present.'
+session_id: prop-pack-2
+owner: prop-pack-2
+status: pending
+notes:
+- ts: 2026-10-25T18:34:10.782Z
+  session_id: prop-pack-2
+  note: 'Evidence (prop-pack-2): git-clone with dest prop-pack refused dest_exists (dispatch 1792952197975) right after rm -rf, which was confirmed by ls (1792952196873). After the refusal, /config/tmp/prop-pack held only .gm and .agentplug (ls 1792952859364), so the dest_exists preflight creates the gm project dirs in dest before it refuses. Fix: the preflight must not create dest, and must test for an existing git repo or non-empty dir, not gm runtime dirs.'

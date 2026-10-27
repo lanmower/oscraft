@@ -1,0 +1,5 @@
+id: floor-textured-ground-gm-orch-23-U1
+subject: Are terrain.uvs from terrainInTiles(buildTerrain(mapBytes)) planar (x,z) or atlas UVs? (js/client/play.js:1262-1264)
+body: Are terrain.uvs from terrainInTiles(buildTerrain(mapBytes)) planar (x,z) or atlas UVs? (js/client/play.js:1262-1264)
+session_id: oscraft-1-1
+status: unknown

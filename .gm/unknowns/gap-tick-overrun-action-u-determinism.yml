@@ -1,0 +1,4 @@
+id: gap-tick-overrun-action-u-determinism
+value: Skipping paths.tick on shed ticks does not break existing replay/hash tests in rust/crates/sim or server
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

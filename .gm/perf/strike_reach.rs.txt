@@ -1,0 +1,20 @@
+    // game.strike_reach(unit, range): the enemies `unit` can strike this tick on the sim's terms (can_target) whose centre
+    // lies within `range` (raw Q16.16) of it, as a flat list of unit index and squared distance pairs in index order.
+    native!(ctx, game, "strike_reach", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        let range = i64::from(raw_q16(a(c, &s, 1)?).map_err(|m| fail(c, m))?.max(0));
+        let (ux, uy) = sh.sim.position_fixed(u);
+        let r2 = range * range;
+        let mut pairs = Vec::new();
+        for j in 0..sh.sim.count() {
+            let (jx, jy) = sh.sim.position_fixed(j);
+            let (dx, dy) = (i64::from(jx) - i64::from(ux), i64::from(jy) - i64::from(uy));
+            let d2 = dx * dx + dy * dy;
+            if d2 <= r2 && sh.sim.can_target(u, j) {
+                pairs.push((j as i64, d2));
+            }
+        }
+        s.replace(c, list_of(c, pairs.into_iter().flat_map(|(j, d2)| [j, d2]))?);
+        Ok(CallbackReturn::Return)
+    });

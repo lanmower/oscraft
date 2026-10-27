@@ -1,0 +1,3 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const r=require('child_process'); const head=r.execSync('git -C /workspace/oscraft rev-parse HEAD',{encoding:'utf8'}).trim(); const out=r.spawnSync('bash',['/tmp/gm-probe-17/probe.sh'],{encoding:'utf8',maxBuffer:1<<26,timeout:570000}); const body=out.stdout+out.stderr; require('fs').mkdirSync('/tmp/gm-probe-17/out',{recursive:true}); require('fs').writeFileSync('/tmp/gm-probe-17/out/witness-'+head.slice(0,8)+'.txt', body); return 'head='+head+'\nexit='+out.status+'\n'+body.split('\n').filter(l=>l.startsWith('RESULT:')).join('\n');

@@ -1,0 +1,4 @@
+id: u-witness-same-tick
+value: whether the witness can compare reconstructed records against live sim records at the same tick without a fabricated pass
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

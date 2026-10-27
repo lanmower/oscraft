@@ -1,0 +1,8 @@
+id: ui-phone-shop-panel-clipped-left-edge
+subject: 'At 390x844 the right-side shop panel is clipped on its left edge: the heading reads ''hop gold 1007'' and the first card reads ''ad...'', so the shop is wider than the phone viewport.'
+description: Witness 1792992097232-5497-bf21c3d674f41f2b (after screenshot).
+acceptance_criteria: At 390x844 the shop panel sits inside the viewport on its left edge, with its heading and first card fully visible.
+witness_plan: Set device metrics 390x844 DPR 2 in the browser verb, open the shop with the top-strip Shop button, screenshot and check the panel rect left >= 0.
+session_id: hud-match-witness
+owner: hud-match-witness
+status: pending

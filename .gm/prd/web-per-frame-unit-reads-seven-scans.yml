@@ -1,0 +1,18 @@
+id: web-per-frame-unit-reads-seven-scans
+subject: The page reads unit state through seven separate exports that each rescan every unit
+description: rust/crates/web/src/lib.rs:182-239 unit_ids, unit_attacking, unit_strike_target, unit_periods, unit_hps, unit_max_hps, unit_item_gen each loop 0..count with alive() and borrow the host; a frame calls them together with units(). Cost grows with unit count times seven plus seven wasm boundary allocations of Vec per frame.
+acceptance_criteria: One export returns the living units' packed columns (or a struct of typed arrays) in one pass; js/client reads that instead of the seven, with unchanged on-screen results.
+witness_plan: 'Browser: frame time via the existing perf witness before and after on a 600-unit moba; node: parity of returned arrays against the seven old exports.'
+session_id: survey-sim-8
+owner: survey-sim-8
+status: pending
+notes:
+- ts: 2026-10-25T08:58:26.080Z
+  session_id: drain-rust-9
+  note: claimed by drain-rust-9
+- ts: 2026-10-25T09:21:15.105Z
+  session_id: drain-client-10
+  note: claimed by drain-client-10
+- ts: 2026-10-25T09:28:54.269Z
+  session_id: drain-client-10
+  note: 'drain-client-10: not taken; the fix is a new rust/crates/web export plus js reads, rust lane drain-rust-9 holds the claim; js side follows once the combined export lands.'

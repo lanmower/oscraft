@@ -1,0 +1,9 @@
+   Compiling drain-d-1-witness v0.0.0 (/workspace/oscraft/.gm/witness/drain-d-1)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.80s
+     Running `/workspace/oscraft/rust/target/debug/drain-d-1-witness`
+
+thread '<unnamed>' (2649423) panicked at /config/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/piccolo-0.3.3/src/table/raw.rs:235:30:
+all keys must be live when table is grown
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ev=mod_hook_failed module=controls hook=on_action error="panic_in_vm: all keys must be live when table is grown"
+mirror left-click ui events: 0

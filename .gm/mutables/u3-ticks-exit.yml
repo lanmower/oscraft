@@ -1,0 +1,4 @@
+id: u3-ticks-exit
+value: oscraftd --ticks N exits on its own so the quiet self-check run returns
+status: unknown
+session_id: mcp-codemode-266435-1792156099234

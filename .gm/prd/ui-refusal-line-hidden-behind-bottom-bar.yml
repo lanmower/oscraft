@@ -1,0 +1,23 @@
+id: ui-refusal-line-hidden-behind-bottom-bar
+subject: The refusal line (bottom:12%) sits under the 160px bottom bar and has no z-index
+description: 'js/client/feedback.js:47 refusal.node.style.bottom = ''12%''; bar is z-index:2 in play.html:133. At 1080px 12% is 130px < 160px bar; on phones 80px < 120px. Symptom: ''no mana'' / ''on cooldown'' text is partly or fully hidden. Acceptance: placed above the bar using --bar-h and z-index above it. Witness: trigger a refusal, bounding rect fully above #ui-bar.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T09:28:39.901Z
+  session_id: drain-client-10
+  note: 'b1c97739ffdba76b9a81f3b47068188c18e5ec66: feedback.js bottom uses var(--bar-h,160px)+12px with z-index 5; play.html now defines --bar-h. bounding-rect witness needs a browser.'
+- ts: 2026-10-25T23:00:30.491Z
+  session_id: hud-match-2
+  note: Close commit on origin/main (see ids below); prd-resolve refused with close_commit_required because the shared checkout /workspace/oscraft main is 1 commit ahead (66aca026, unpushed) and 398 behind origin, with another lane's uncommitted edits in render3d.js, widgets.js and scripts/dev/stage.sh. The store reads the close from that checkout's history, so the close lands when that lane consolidates. Witness is in the commit trailers and the dispatch id given here. Close commit 31ee27f3 on origin/main.
+- ts: 2026-10-26T05:26:58.012Z
+  session_id: hud-match-witness
+  note: Not witnessed in this run. Open.
+references:
+- ts: 2026-10-25T19:02:42.426Z
+  session_id: hud-match-2
+  note: '{"url":"https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html","repo":"w3c/wcag","path":"","sha":"","why":"Status messages such as refusals are announced through a role=status, aria-live=polite region, which the message line uses.","license":"unknown"}'
+- ts: 2026-10-25T19:02:45.025Z
+  session_id: hud-match-2
+  note: '{"url":"https://developer.mozilla.org/en-US/docs/Web/CSS/transition","repo":"mdn/content","path":"","sha":"","why":"The line fades by a CSS opacity transition after its hold time, then the node is removed.","license":"unknown"}'

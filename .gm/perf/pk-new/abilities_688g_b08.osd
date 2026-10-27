@@ -1,0 +1,51 @@
+# 6.88g hero abilities, batch 08 of 12. Heroes: beastmaster, dawnbreaker, faceless_void, legion_commander, monkey_king, phantom_assassin, sand_king, techies, visage.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# beastmaster 6.88g A0OO Call of the Wild
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 20 rows, 0 mapped, 20 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A0O2 Primal Roar 伤害=200 (perlevel.tsv:271) -> damage.
+# UNVERIFIED rows (no effect set): A0OO A0O1 A0BD A0O2 A081 A0CZ A0LK A0J1 A2CI A2EY A2J2 A2JB A0YM A0PL A03P A03Q A06R A0H0 A06O A0FA.
+ability("beastmaster_call_of_the_wild", 640, 15, "none", [])
+# beastmaster 6.88g A0O1 Wild Axes
+ability("beastmaster_wild_axes", 208, 120, "none", [])
+# beastmaster 6.88g A0BD Inner Beast
+ability("beastmaster_inner_beast", 0, 0, "none", [])
+# beastmaster 6.88g A0O2 Primal Roar
+ability("beastmaster_primal_roar", 1280, 150, "none", [])
+# dawnbreaker: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# faceless_void 6.88g A081 Time Lock
+ability("faceless_void_time_lock", 0, 0, "none", [])
+# faceless_void 6.88g A0CZ Backtrack
+ability("faceless_void_backtrack", 0, 0, "none", [])
+# faceless_void 6.88g A0LK Time Walk
+ability("faceless_void_time_walk", 304, 90, "none", [])
+# faceless_void 6.88g A0J1 Chronosphere
+ability("faceless_void_chronosphere", 2080, 150, "none", [])
+# legion_commander 6.88g A2CI Duel
+ability("legion_commander_duel", 800, 75, "none", [])
+# legion_commander 6.88g A2EY Moment of Courage
+ability("legion_commander_moment_of_courage", 0, 0, "none", [])
+# legion_commander 6.88g A2J2 Press The Attack
+ability("legion_commander_press_the_attack", 256, 110, "none", [])
+# legion_commander 6.88g A2JB Overwhelming Odds
+ability("legion_commander_overwhelming_odds", 240, 100, "none", [])
+# monkey_king: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# phantom_assassin 6.88g A0YM Stifling Dagger
+ability("phantom_assassin_stifling_dagger", 96, 30, "none", [])
+# phantom_assassin 6.88g A0PL Phantom Strike
+ability("phantom_assassin_phantom_strike", 224, 50, "none", [])
+# phantom_assassin 6.88g A03P Blur
+ability("phantom_assassin_blur", 0, 0, "none", [])
+# phantom_assassin 6.88g A03Q Coup de grace
+ability("phantom_assassin_coup_de_grace", 0, 0, "none", [])
+# sand_king 6.88g A06R Epicenter
+ability("sand_king_epicenter", 2240, 175, "none", [])
+# sand_king 6.88g A0H0 Sand Storm
+ability("sand_king_sand_storm", 640, 60, "none", [])
+# sand_king 6.88g A06O Burrowstrike
+ability("sand_king_burrowstrike", 176, 110, "none", [])
+# sand_king 6.88g A0FA Caustic Finale
+ability("sand_king_caustic_finale", 0, 0, "none", [])
+# techies: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# visage: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).

@@ -1,0 +1,22 @@
+## stdout
+irst frame of the built page	2026-10-27T21:27:58.3683361Z   load=1 180832 scenarios/moba/assets/packs/heroes.a0b48a019c44d7d5.webp
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:27:58.3684541Z   load=1 83992 scenarios/moba/assets/textures/grass.ktx2
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:27:58.3685581Z   load=1 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:10.7914950Z first-draw load=2 ms=12174 transferred-bytes=2881611 requests=180 game=276 world=6551 preview=11871
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:10.7917906Z   load=2 936428 scenarios/moba/moba.osdt
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:10.7919403Z   load=2 481658 js/client/pkg/web_bg.wasm
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:10.7920785Z   load=2 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:10.7922005Z   load=2 180832 scenarios/moba/assets/packs/heroes.a0b48a019c44d7d5.webp
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:10.7923448Z   load=2 83992 scenarios/moba/assets/textures/grass.ktx2
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:10.7924927Z   load=2 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.1965928Z first-draw load=3 ms=10066 transferred-bytes=2881611 requests=180 game=235 world=4107 preview=9744
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.1967899Z   load=3 936428 scenarios/moba/moba.osdt
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.1973504Z   load=3 481658 js/client/pkg/web_bg.wasm
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.2001098Z   load=3 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.2003722Z   load=3 180832 scenarios/moba/assets/packs/heroes.a0b48a019c44d7d5.webp
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.2004979Z   load=3 83992 scenarios/moba/assets/textures/grass.ktx2
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.2037506Z   load=3 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.2947695Z first-draw median-ms=11481 loads=3 ceiling-ms=10000 over
+first draw of the built page	Time the first frame of the built page	2026-10-27T21:28:21.3063265Z ##[error]Process completed with exit code 1.
+
+

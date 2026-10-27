@@ -1,0 +1,12 @@
+id: lobby-flash-idle-repaint-source
+subject: 'Lobby hero grid still flashes with no idle lobby modal re-emit: locate the repaint source'
+description: 'Split from lobby-modal-reemitted-every-refresh-flashes-hero-grid, whose premise is refuted: emit() in scenarios/moba/panels.lua (140-144) already sends a widget only when its serialized tree changes, and an idle lobby''s trees are constant (clock_text returns TEXT.preMatch before HORN is set). The flash therefore comes from another source. Candidates to separate by count: (a) a client rebuild of the lobby on oscraft:model-loaded or the preload path (js/client; see lobby-preload-picked-models-and-announce and lobby-model-preview-widget); (b) a non-lobby panel whose tree changes per tick while the lobby is idle (select, inventory, win, controls, scoreboard, shop). Ownership: the file that holds the named source.'
+acceptance_criteria: A live count over 10 s of an idle lobby, per widget id and per window event, names each source that fires while idle with its file:line. The owning lane removes the named source. The browser lane confirms the grid stops flashing and clicks land on a hero.
+witness_plan: A verifier session (not the resolver's) observes an idle lobby for 10 s with no input and counts game.ui_event widget calls per id and oscraft:* window events. Zero server widget events while the page still rebuilds the grid means the source is client-side (js/client); any nonzero per-id count names the panel to fix.
+session_id: drain-lobby-flash-13
+owner: drain-lobby-flash-13
+status: pending
+notes:
+- ts: 2026-10-25T19:23:12.344Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open.'

@@ -1,0 +1,4 @@
+id: gap-moba-base-win-tag:u2
+question: Is the win-tag contract (docs/SCENARIOS.md:26, tag= in builtins.rs:268) on origin/main, not only local HEAD?
+session_id: mcp-codemode-1184-1792267460011
+status: unknown

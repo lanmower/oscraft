@@ -1,0 +1,5 @@
+id: moba-glb-units-u2
+subject: Does parseGlb (js/client/glb.js:68-81) parse each shipped js/client/models GLB without throwing under Node?
+row: moba-glb-units
+session_id: gm-orch-2-2
+status: unknown

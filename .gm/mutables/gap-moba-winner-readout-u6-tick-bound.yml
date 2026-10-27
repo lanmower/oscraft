@@ -1,0 +1,4 @@
+id: gap-moba-winner-readout-u6-tick-bound
+subject: moba match tick bound is a literal MATCH_TICK_LIMIT=200 (mechanic_checks.rs:261), not derived from the .osd files as the witness plan requires
+session_id: gm-orch-1-6
+status: unknown

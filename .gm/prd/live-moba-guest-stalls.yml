@@ -1,0 +1,10 @@
+id: live-moba-guest-stalls
+session_id: live-swap-verify
+subject: Live moba guest stalls at tick 810 with no peer frames
+description: 'Verification of the mid-match data swap on https://lanmower.github.io/oscraft/js/client/play.html#moba (main 0fd7d47, Pages run 39578209874 success). Host tab (?host=1#moba) advances its tick (276 -> 503) and shows peers 0/1 (local) flapping. Guest tab (#moba) joins, reaches peers 1 (net) and 10 hero dots, but its tick stays at 810 across polls spanning more than 10 s and status flips to peers 0 (net). Console shows only the wireweave connecting warning, no errors. Screenshot at /tmp/swapverify/guest.png. Host shows 0 hud5 hero dots while guest shows 10. Step 2 (data swap) not run: the live page has no oscraftd link and the browser swap path is hmr.js module-change only (localhost or ?hmr), so it cannot be triggered on the Pages build without a deploy.'
+status: pending
+owner: live-swap-verify
+notes:
+- ts: 2026-10-25T04:06:11.485Z
+  session_id: drain-net-3
+  note: Waits on lobby-start-world-ready-never-fires-headful (panels lane row, pending at 77168a44). Re-check deferred per row. Blocked.

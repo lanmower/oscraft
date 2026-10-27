@@ -1,0 +1,1 @@
+state_hash=321bdcd02a0cb622 ticks=4800

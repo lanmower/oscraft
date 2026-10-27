@@ -1,0 +1,4 @@
+id: u1-remote-spawn-callers
+value: remote callers of spawn_ticker and mods::spawn outside rust/crates/server; signatures must stay
+status: unknown
+session_id: mcp-codemode-266435-1792156099234

@@ -1,0 +1,101 @@
+type	count	tree_rule	name	shipped_kind	reason
+ATtr	1141	tree		tree	script tree rule (pU) (6.88g tree layer kept)
+NTtw	756	tree		tree	script tree rule (pU) (6.88g tree layer kept)
+CTtr	495	tree		tree	script tree rule (pU) (6.88g tree layer kept)
+D00B	287			rocks|debris_wood|mushrooms|cattail|flowers|grass_large	UNVERIFIED (6.88g silent): custom code: a ZPsh variant, which ships as rocks|debris_wood|mushrooms|cattail|flowers|grass_large
+ZPsh	197			rocks|debris_wood|mushrooms|cattail|flowers|grass_large	6.88g mapped this code to rocks|debris_wood|mushrooms|cattail|flowers|grass_large
+CObl	145			patch_dirt	6.88g mapped this code to patch_dirt
+CRrk	94			cart_high	6.88g mapped this code to cart_high
+APtv	94			hedge	UNVERIFIED (6.88g silent): thorny vines from the English editor strings; no vine kind is declared, so hedge is the nearest declared kind (6.88g inferred grass_large)
+ARrk	79			rock	6.88g mapped this code to rock
+ZPfw	78			flowers	6.88g mapped this code to flowers
+CPms	64			mushrooms	6.88g mapped this code to mushrooms
+LWw0	56				UNVERIFIED (6.88g silent): waterfall (瀑布) from the editor strings, but no declared kind is a waterfall; dropped rather than shipped as the catwalk 6.88g inferred
+LOth	54			torch	6.88g mapped this code to torch
+B00H	40				UNVERIFIED: no name in the 6.88g table, the w3x2lni doodad or destructable tables, or the WorldEditStrings lookup; its placements are dropped
+B00D	34				UNVERIFIED: no name in the 6.88g table, the w3x2lni doodad or destructable tables, or the WorldEditStrings lookup; its placements are dropped
+D006	34			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+D000	33			fence	UNVERIFIED (6.88g silent): custom code: a NOfl variant, which ships as fence
+YTlb	30			rocks|debris_wood|cattail	6.88g mapped this code to rocks|debris_wood|cattail
+JTtw	20				UNVERIFIED (6.88g silent): destructable, not a doodad (WESTRING_DEST_DALARAN_RUINS_TREE_WALL, sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/destructable.ini:4145); its placements are dropped
+LPwb	20			hay_bale	UNVERIFIED (6.88g silent): a bundle of wheat, read from the editor strings
+B008	19				UNVERIFIED: no name in the 6.88g table, the w3x2lni doodad or destructable tables, or the WorldEditStrings lookup; its placements are dropped
+D009	15			patch_dirt	UNVERIFIED (6.88g silent): custom code: a AObd variant, which ships as patch_dirt
+ZWbg	15			patch_dirt	6.88g mapped this code to patch_dirt
+AOsr	14			remains_scorched	6.88g mapped this code to remains_scorched
+LOsk	14			skull_pile	6.88g mapped this code to skull_pile
+YTfb	14				UNVERIFIED (6.88g silent): destructable, not a doodad (WESTRING_DEST_PATHBLOCKER_BOTH, sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/destructable.ini:11929); its placements are dropped
+NObt	12			patch_dirt	6.88g mapped this code to patch_dirt
+OTip	12				UNVERIFIED (6.88g silent): destructable, not a doodad (WESTRING_DEST_INVISIBLE_PLATFORM, sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/destructable.ini:7673); its placements are dropped
+LOlp	11			post_lantern	6.88g mapped this code to post_lantern
+CSbl	11			blocks_ruined	6.88g mapped this code to blocks_ruined
+D00A	11				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+LOfl	10			patch_dirt	6.88g mapped this code to patch_dirt
+D001	10			brazier_skull	UNVERIFIED (6.88g silent): custom code: a AObr variant, which ships as brazier_skull
+D002	10			fence	UNVERIFIED (6.88g silent): custom code: a VOfl variant, which ships as fence
+LOpg	10			grave_peasant	6.88g mapped this code to grave_peasant
+AWlp	9			lily_pad	UNVERIFIED (6.88g silent): same object as 6.88g CPlp (Lily Pad): Lily Pads (WESTRING_DOOD_APLP, Crainax/War3Lib fdf/WorldEditStrings.txt:2799; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:1401)
+D00C	8			hay_bale	UNVERIFIED (6.88g silent): custom code: a LPwb variant, which ships as hay_bale
+CPlp	8			lily_pad	6.88g mapped this code to lily_pad
+CSbr	8				UNVERIFIED (6.88g silent): Rubble (WESTRING_DOOD_ASBR, Crainax/War3Lib fdf/WorldEditStrings.txt:2819; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:2881)
+NOtb	8			tombstone	6.88g mapped this code to tombstone
+APct	7			cattail	UNVERIFIED (6.88g silent): same object as 6.88g CPct (Cattail): Cattail (WESTRING_DOOD_APCT, Crainax/War3Lib fdf/WorldEditStrings.txt:2798; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:521)
+CRfs	7				UNVERIFIED (6.88g silent): Fissure (WESTRING_DOOD_BRFS, Crainax/War3Lib fdf/WorldEditStrings.txt:2829; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:2681)
+LPwh	7			grass_large	6.88g mapped this code to grass_large
+AObd	6			patch_dirt	6.88g mapped this code to patch_dirt
+AOnt	6			lantern	UNVERIFIED (6.88g silent): totem lantern from the English editor strings; 6.88g inferred rocks
+D007	6			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+NOfp	5			fire_pit	6.88g mapped this code to fire_pit
+CPct	5			cattail	6.88g mapped this code to cattail
+LObz	4			torch_glowing	UNVERIFIED (6.88g silent): glowing brazier (炽热的火盆) from the editor strings; 6.88g inferred iron_fence_border_gate
+LOic	4			debris_wood	6.88g mapped this code to debris_wood
+CObo	4				UNVERIFIED (6.88g silent): Obelisk Broken (WESTRING_DOOD_NOBK, Crainax/War3Lib fdf/WorldEditStrings.txt:2938; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:2281)
+B00B	4				UNVERIFIED: no name in the 6.88g table, the w3x2lni doodad or destructable tables, or the WorldEditStrings lookup; its placements are dropped
+NOfl	3			fence	6.88g mapped this code to fence
+ZWfs	3			fish_green	6.88g mapped this code to fish_green
+ZWsw	3				UNVERIFIED (6.88g silent): Seaweed (WESTRING_DOOD_ZWSW, Crainax/War3Lib fdf/WorldEditStrings.txt:3201; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:18561)
+LOsh	3				UNVERIFIED (6.88g silent): Head on Spear (WESTRING_DOOD_LOSH, Crainax/War3Lib fdf/WorldEditStrings.txt:2879; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:7281)
+LPcr	3				UNVERIFIED (6.88g silent): Corn (WESTRING_DOOD_LPCR, Crainax/War3Lib fdf/WorldEditStrings.txt:2842; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:7881)
+NOfg	3			fire_pit_with_pig	6.88g mapped this code to fire_pit_with_pig
+YOec	3				UNVERIFIED (6.88g silent): Crates Empty (WESTRING_DOOD_YOEC, Crainax/War3Lib fdf/WorldEditStrings.txt:2976; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:13441)
+D00J	2				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+D00K	2				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+NOft	2				UNVERIFIED (6.88g silent): Fire Pit Trashed (WESTRING_DOOD_NOFT, Crainax/War3Lib fdf/WorldEditStrings.txt:2950; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:9201)
+OOgr	2				UNVERIFIED (6.88g silent): Flame Grate (WESTRING_DOOD_OOGR, Crainax/War3Lib fdf/WorldEditStrings.txt:3336; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:10401)
+ZObz	2				UNVERIFIED (6.88g silent): Ruins Brazier (WESTRING_DOOD_ZOBR, Crainax/War3Lib fdf/WorldEditStrings.txt:3105; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:16841)
+IWbg	2				UNVERIFIED (6.88g silent): Bubbles Steam (WESTRING_DOOD_IWBG, Crainax/War3Lib fdf/WorldEditStrings.txt:3204; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:5401)
+D00F	2			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+D00D	2			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+D00R	2			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+D00I	2				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+D003	2			rocks|debris_wood|mushrooms|cattail|flowers|grass_large	UNVERIFIED (6.88g silent): custom code: a ZPsh variant, which ships as rocks|debris_wood|mushrooms|cattail|flowers|grass_large
+D005	2			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+B00C	1				UNVERIFIED: no name in the 6.88g table, the w3x2lni doodad or destructable tables, or the WorldEditStrings lookup; its placements are dropped
+D00N	1				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+AWfs	1			fish	6.88g mapped this code to fish
+NWsd	1			ship_destroyed	6.88g mapped this code to ship_destroyed
+COhs	1				UNVERIFIED (6.88g silent): Stump Hollow (WESTRING_DOOD_APHS, Crainax/War3Lib fdf/WorldEditStrings.txt:2802; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:2361)
+LOsc	1			coffin	6.88g mapped this code to coffin
+D00M	1				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+VOfl	1			fence	UNVERIFIED (6.88g silent): long fence (长篱笆) from the editor strings; 6.88g inferred fountain
+B00E	1				UNVERIFIED: no name in the 6.88g table, the w3x2lni doodad or destructable tables, or the WorldEditStrings lookup; its placements are dropped
+ASpr	1				UNVERIFIED (6.88g silent): Pier (WESTRING_DOOD_ASPR, Crainax/War3Lib fdf/WorldEditStrings.txt:2817; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:801)
+LSwm	1				UNVERIFIED (6.88g silent): Windmill (WESTRING_DOOD_LSWM, Crainax/War3Lib fdf/WorldEditStrings.txt:2909; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:8761)
+LOct	1				UNVERIFIED (6.88g silent): Cage Trashed (WESTRING_DOOD_LOCT, Crainax/War3Lib fdf/WorldEditStrings.txt:2863; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:6641)
+D008	1			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+D00E	1			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+ASbr	1				UNVERIFIED (6.88g silent): Rubble (WESTRING_DOOD_ASBR, Crainax/War3Lib fdf/WorldEditStrings.txt:2819; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:761)
+LOt1	1				UNVERIFIED (6.88g silent): Trash (WESTRING_DOOD_LOT1, Crainax/War3Lib fdf/WorldEditStrings.txt:2885; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:7521)
+DOtp	1				UNVERIFIED (6.88g silent): Pile of Treasure (WESTRING_DOOD_DOTP, Crainax/War3Lib fdf/WorldEditStrings.txt:3072; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3761)
+D004	1			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+LOca	1			cauldron_with_heads	6.88g mapped this code to cauldron_with_heads
+D00O	1				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+NSct	1			crypt	6.88g mapped this code to crypt
+NWrd	1			rowboat_destroyed	6.88g mapped this code to rowboat_destroyed
+LOgr	1			grave	6.88g mapped this code to grave
+D00H	1			post_lantern	UNVERIFIED (6.88g silent): custom code: a LOlp variant, which ships as post_lantern
+NOgv	1				UNVERIFIED (6.88g silent): Grave Stone (WESTRING_DOOD_NOGV, Crainax/War3Lib fdf/WorldEditStrings.txt:2944; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:9241)
+D00L	1				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+D00P	1				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+D00Q	1				UNVERIFIED (6.88g silent): custom code: a DOtb variant; DOtb is Table (WESTRING_DOOD_DOTB, Crainax/War3Lib fdf/WorldEditStrings.txt:3083; sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee/doodad.ini:3681), which has no declared kind, so dropped
+LOsp	1			post_sign	6.88g mapped this code to post_sign

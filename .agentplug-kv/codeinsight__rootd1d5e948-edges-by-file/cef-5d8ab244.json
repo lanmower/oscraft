@@ -1,0 +1,1 @@
+{"edges":[["<module>","fileURLToPath",7],["<module>","dirname",8],["<module>","dirname",8],["buildBundle","build",11],["buildBundle","join",12],["buildBundle","stringify",18],["buildBundle","join",20],["<module>","resolve",25],["<module>","buildBundle",25]],"path":"workspace/gm/gm-mcp/scripts/build.mjs"}

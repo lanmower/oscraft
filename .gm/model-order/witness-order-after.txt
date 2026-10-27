@@ -1,0 +1,6 @@
+witness-order-after.txt (AFTER, /config/tmp/model-order, stage /config/tmp/mo-stage-after2, host pages.oscraft.localhost:35897)
+STATUS: NOT MEASURED. Stopped before the pick: the lobby roster never drew.
+Console (every fresh load, 1 error): [mods] init: unknown_module: treant is not a module of this pack (js/client/play.js:263).
+Cause: scenarios/moba/init.lua:5-6 requires night_stalker then treant; scenarios/moba/manifest.json modules has night_stalker (already first entry) and no treant entry.
+Probe (isolated context, Network.setCacheDisabled, #moba, 20 s): body phase=lobby, ready=1, worldBuilt=1; no .w-root widget elements; #ui-right holds the room bar only (8 descendants); no hero tiles in DOM or accessibility tree (Canvas nodes only).
+No request-order data: no pick was made. Staging exit 0; serve healthy (200) before stop.

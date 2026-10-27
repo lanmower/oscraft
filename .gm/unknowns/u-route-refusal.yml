@@ -1,0 +1,4 @@
+id: u-route-refusal
+value: whether a new route passes protocol_refusal and the route match at lib.rs:277, and whether a gate check is needed to witness it
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

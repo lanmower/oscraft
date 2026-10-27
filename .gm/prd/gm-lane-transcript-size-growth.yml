@@ -1,0 +1,6 @@
+id: gm-lane-transcript-size-growth
+subject: Lane transcripts grow with unbounded verb replies, so lanes run out before closing a row
+description: 'Evidence: 46 pending rows including several -blocker-drain-* rows; gm-tooling-concurrency-witness-item3-failed. Ask: lane-friendly default reply cap, spill-to-file over 4 KB with a one-line pointer, lane-budget hint in the row.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

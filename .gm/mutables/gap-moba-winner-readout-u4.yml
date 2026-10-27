@@ -1,0 +1,5 @@
+id: gap-moba-winner-readout-u4
+subject: 'U4: does scenarios/moba declare the winner on base loss (win_on_base_loss) in the .osd source, and do bases carry the building tag?'
+row: gap-moba-winner-readout
+session_id: gm-orch-1-6
+status: unknown

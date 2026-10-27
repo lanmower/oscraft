@@ -1,0 +1,6 @@
+id: moba-damage-table-not-in-manifest
+subject: scenarios/moba/damage_table.osd is tracked but not listed in manifest.json
+description: 'scenarios/moba/damage_table.osd declares every damage_factor(attack type, size, Q16) row for the pack, but scenarios/moba/manifest.json data does not list it, so mapexport and the loader never read it: the moba catalog ships zero DMGF rows while rust/crates/sim/src/combat.rs reads catalog.damage_factors. Same defect class as ci-red-mapexport-lycan-wolf-1-on-main (a data file absent from the manifest). Deciding this needs the 6.88g damage table: either list the file in manifest.json data (it changes the map image, so the gate and any balance reference must be re-read) or delete it as a stale reference table. Owner: scenarios/moba/manifest.json and scenarios/moba/damage_table.osd.'
+session_id: drain-lycan-wolf-r2
+owner: drain-lycan-wolf-r2
+status: pending

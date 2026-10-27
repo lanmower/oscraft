@@ -1,0 +1,4 @@
+id: gap-tick-overrun-action-u2
+text: 'Does Room::step''s order drain loop already honour any cap? Answers: step drains all try_recv orders uncapped (room.rs), so a per-tick cap must be added and the remainder kept queued.'
+session_id: gm-oscraft-sc2-alt-1-o1
+status: unknown

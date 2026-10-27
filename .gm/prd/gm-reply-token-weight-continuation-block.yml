@@ -1,0 +1,6 @@
+id: gm-reply-token-weight-continuation-block
+subject: Every reply repeats a continuation block and long folded titles
+description: 'Evidence: a prd-list page of 10 rows returns ~2.4 KB with continuation, reminder, checklist_uri each call. Ask: continuation only on change or request, compact id|title lines, and nested-call max_chars honoured.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

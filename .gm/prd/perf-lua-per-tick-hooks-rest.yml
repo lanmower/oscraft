@@ -1,0 +1,6 @@
+id: perf-lua-per-tick-hooks-rest
+subject: 'Remaining per-tick Lua hooks after the strike_reach change: upgrades scan, heroes bonuses, panels rebuild'
+description: 'After 3a09b208 the moba pack still runs per-tick work outside the target choice: upgrades.lua walks game.units() and reads unit_item_gen per unit each tick (gated by a seen cache, but the walk runs), heroes.lua runs attribute_bonuses each tick (setter gated), and panels.lua rebuilds the hud and skills trees every 4 ticks before the diff. Not re-measured. Measure each hook with the doubling ablation on a snapshot copy of scenarios/moba (parity_hash, 4800 ticks, cpu seconds, hash must not change), then change only the hooks that cost more than about 0.2 ms per tick. Witness: parity_hash state hash identical and a before/after cpu number in the row note.'
+session_id: drain-perf-setters-12
+owner: drain-perf-setters-12
+status: pending

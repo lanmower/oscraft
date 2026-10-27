@@ -1,0 +1,15 @@
+name: ci
+
+# Runs on every push to main: the static client checks and the browser smoke of the built page (lobby mounts, no
+# console errors, no 404 on hero icons). The tests run on demand in tests.yml; the Pages build, deploy and first-draw
+# gate run in pages.yml.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:

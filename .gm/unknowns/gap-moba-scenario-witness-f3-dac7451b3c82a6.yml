@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-F3
+question: Which loader reads rust/data/moba/*.star, and does it accept the .star format through the generic path?
+row: gap-moba-scenario-witness
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

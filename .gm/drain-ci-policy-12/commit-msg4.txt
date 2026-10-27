@@ -1,0 +1,7 @@
+Serve the browser smoke under a name that is not localhost
+
+The smoke served the site on 127.0.0.1, so hmr.js ran as it does on localhost and asked the server for
+/__hmr, which a static site does not have. It now maps a non-local name to the server, as the live page is
+served, so the dev reload stays off and the smoke sees what a player sees.
+
+Row: ci-browser-probe-steps-absent-blocker-drain-g-1

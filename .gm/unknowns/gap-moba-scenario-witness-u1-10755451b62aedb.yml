@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-U1
+row: gap-moba-scenario-witness
+question: Does the gate binary print "moba objective ok hp=a->b" with exit 0 on this tree (live run, gpu-free)?
+session_id: gm-orch-1-7
+status: unknown

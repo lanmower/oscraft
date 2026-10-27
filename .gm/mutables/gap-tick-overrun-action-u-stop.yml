@@ -1,0 +1,4 @@
+id: gap-tick-overrun-action-u-stop
+value: Under a fixed sustained overload the overrun counter stops climbing once shedding engages, within a bounded window
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

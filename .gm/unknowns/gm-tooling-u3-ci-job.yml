@@ -1,0 +1,4 @@
+id: gm-tooling-u3-ci-job
+value: 'U3: is there a gm CI job in /workspace/gm covering supply_exhausted and the single CI read'
+status: unknown
+session_id: mcp-codemode-1030-1792262103218

@@ -1,0 +1,4 @@
+id: premise-stale-on-head
+value: 'U4: Is the row premise (no shedding) stale on HEAD, confirmed by a run rather than reading?'
+status: unknown
+session_id: gm-oscraft-w1-08

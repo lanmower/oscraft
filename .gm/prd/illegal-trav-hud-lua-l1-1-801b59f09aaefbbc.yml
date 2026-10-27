@@ -1,0 +1,22 @@
+id: ILLEGAL-trav-hud-lua-L1-1
+subject: Lobby host can be handed to a bot seat, leaving the lobby unable to fill or start
+description: 'scenarios/moba/panels.lua:672 fill gives open seats owner ''bot:<n>'' with bot=true. release (panels.lua:706-709) reassigns L.host to the first other seat owner without excluding bot seats (L.host = other.owner at 709). Once the host is a bot owner nothing reassigns it: claim sets host only when nil (panels.lua:688), and fill and start require L.host to equal the sender (panels.lua:650, 659). Writes to L.host are only at 52, 688, 706 and 709.'
+acceptance_criteria: After the host leaves while bot seats are filled, a human page can still fill or start the lobby; L.host is never a bot owner.
+witness_plan: 'Live lobby: host claims a seat, fills bots, releases the seat; a remaining human page''s fill or start must succeed after the fix, and returns not-host before it.'
+session_id: mcp-codemode-3011630-1792858600590-84
+owner: mcp-codemode-3011630-1792858600590-84
+status: pending
+notes:
+- ts: 2026-10-24T16:26:34.998Z
+  session_id: trav-hud-lua
+  note: 'Line correction against the current working tree (panels.lua is 869 lines and moved during the walk): bot owner assignment at panels.lua:654; host set at panels.lua:669; not-host gates at panels.lua:631 and :640; release hand-over at panels.lua:702-709, with L.host = other.owner at :709. The :650, :659, :672 and :688 numbers in this row predate the current tree.'
+- ts: 2026-10-25T04:26:53.799Z
+  session_id: drain-lobby-3
+  note: 'drain-lobby-3: witness deferred. Blocked on row lobby-start-world-ready-never-fires-headful (Start cannot enable on the live page yet). Status: pending.'
+- ts: 2026-10-25T06:09:34.360Z
+  session_id: drain-browser-4
+  note: 'Not driven: waits on lobby-start-world-ready-never-fires-headful. Live witness blocked: gm browser verb claims the dispatch and never writes its out-file (5 tries, gm-mcp 0.2.302 and 0.2.305, bodies with and without gm_session_id, about:blank included); each holds the state lane until the 600 s watchdog. Clearing action: fix the browser executor in the agentplug runner.'
+witness_request:
+  ts_ms: 1792895146749
+  requested_by: drain-panels-shard-2
+  note: 'Blocked on a live witness. Fix 7436d919 is on origin. Single-page live run (dispatch session verify-ILLEGAL-trav-hud-lua-L1-1): seat claimed, bots filled, Leave released the seat with peers 0, and the seat re-claimed. A decisive host check needs Start (host, all ready, worldReady) or Fill (host and an open seat) enabled: Fill needs a second human seat and two isolated pages do not share lobby state; Start stays ''loading world assets'' because worldReady never fires (__rendererInfo null after about 40 min, headful Chrome). Clearing action: a world build that reports ready in the live headful lane, or a two-peer lobby that syncs lobby state.'

@@ -1,0 +1,5 @@
+id: naming-generic-resources:u3
+subject: Does the CI gate (ci.yml:2151-2153) need its check text renamed to keep the same meaning once the data keys change?
+row: naming-generic-resources
+session_id: gm-orch-1-1
+status: unknown

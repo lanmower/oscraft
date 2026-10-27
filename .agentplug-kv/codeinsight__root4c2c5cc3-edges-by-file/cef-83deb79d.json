@@ -1,0 +1,1 @@
+{"edges":[["place_doodad","contains",19],["place_doodad","reject",20],["place_doodad","any",22],["place_doodad","iter",22],["place_doodad","reject",23],["place_doodad","push",25],["remove_doodad","position",31],["remove_doodad","iter",31],["remove_doodad","remove",32],["remove_doodad","reject",33]],"path":"tmp/oscraft-fix/rust/crates/sim/src/doodads.rs"}

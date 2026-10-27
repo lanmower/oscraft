@@ -1,0 +1,196 @@
+[INFO]: 🎯  Checking for the Wasm target...
+[INFO]: 🌀  Compiling to Wasm...
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling wasm-bindgen-shared v0.2.129
+   Compiling rustversion v1.0.23
+   Compiling bumpalo v3.20.3
+   Compiling cfg-if v1.0.5
+   Compiling once_cell v1.21.4
+   Compiling zerocopy v0.8.63
+   Compiling slab v0.4.12
+   Compiling pin-project-lite v0.2.17
+   Compiling futures-task v0.3.34
+   Compiling futures-core v0.3.34
+   Compiling getrandom v0.3.4
+   Compiling version_check v0.9.5
+   Compiling zmij v1.0.23
+   Compiling serde_core v1.0.229
+   Compiling allocator-api2 v0.2.21
+   Compiling futures-util v0.3.34
+   Compiling anyhow v1.0.104
+   Compiling thiserror v1.0.69
+   Compiling ahash v0.8.12
+   Compiling serde_json v1.0.154
+   Compiling sptr v0.3.2
+   Compiling sim v0.1.0 (/config/tmp/hud-match/rust/crates/sim)
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling wasm-bindgen v0.2.129
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+warning: constant `S_DENY_MARK` is never used
+  --> crates/sim/src/spell.rs:67:11
+   |
+67 | pub const S_DENY_MARK: usize = 30;
+   |           ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+
+   Compiling replay v0.1.0 (/config/tmp/hud-match/rust/crates/replay)
+   Compiling synstructure v0.13.2
+   Compiling thiserror-impl v1.0.69
+   Compiling gc-arena-derive v0.5.3
+   Compiling ppv-lite86 v0.2.21
+   Compiling wasm-bindgen-macro-support v0.2.129
+   Compiling wasm-bindgen-macro v0.2.129
+   Compiling js-sys v0.3.106
+   Compiling hashbrown v0.14.5
+   Compiling gc-arena v0.5.3
+   Compiling getrandom v0.2.17
+   Compiling rand_core v0.6.4
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling piccolo v0.3.3 (/config/tmp/hud-match/rust/vendor/piccolo)
+warning: use of deprecated module `std::i32`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/compiler/lexer.rs:2:16
+  |
+2 |     char, fmt, i32, i64,
+  |                ^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/compiler/lexer.rs:2:21
+  |
+2 |     char, fmt, i32, i64,
+  |                     ^^^
+
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:120:46
+    |
+120 |     math.set(ctx, "huge", Value::Number(f64::INFINITY)).unwrap();
+    |                                              ^^^^^^^^
+
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:140:51
+    |
+140 |                     .try_fold(Value::Number(-f64::INFINITY), |max, entry| {
+    |                                                   ^^^^^^^^
+
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:163:50
+    |
+163 |                     .try_fold(Value::Number(f64::INFINITY), |max, entry| {
+    |                                                  ^^^^^^^^
+
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/table/raw.rs:1:28
+  |
+1 | use std::{fmt, hash::Hash, i64, mem};
+  |                            ^^^
+
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:302:32
+    |
+302 |                 if max == i64::MAX {
+    |                                ^^^
+
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:307:33
+    |
+307 |                     return i64::MAX;
+    |                                 ^^^
+
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:311:32
+    |
+311 |                     max = i64::MAX;
+    |                                ^^^
+
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/table/table.rs:3:5
+  |
+3 |     i64, mem,
+  |     ^^^
+
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/value.rs:1:21
+  |
+1 | use std::{f64, fmt, i64, io, string::String as StdString};
+  |                     ^^^
+
+
+warning: irrefutable `if let` pattern
+   --> vendor/piccolo/src/conversion.rs:221:28
+    |
+221 |                         if let Ok(i) = <$i>::try_from(i) {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+240 | impl_int_from!(i64, u64, i32, u32, i16, u16, i8, u8);
+    | ---------------------------------------------------- in this macro invocation
+    |
+    = note: this pattern will always match, so the `if let` is useless
+    = help: consider replacing the `if let` with a `let`
+    = note: `#[warn(irrefutable_let_patterns)]` on by default
+    = note: this warning originates in the macro `impl_int_from` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> vendor/piccolo/src/stack.rs:78:9
+   |
+78 |         &mut self,
+   |         ^^^^^^^^^ the lifetime is elided here
+79 |         range: R,
+80 |     ) -> vec::Drain<Value<'gc>, MetricsAlloc<'gc>> {
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+80 |     ) -> vec::Drain<'_, Value<'gc>, MetricsAlloc<'gc>> {
+   |                     +++
+
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> vendor/piccolo/src/thread/thread.rs:206:9
+    |
+206 |         &self,
+    |         ^^^^^ the lifetime is elided here
+...
+209 |     ) -> Result<RefMut<ThreadState<'gc>>, BadThreadMode> {
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+209 |     ) -> Result<RefMut<'_, ThreadState<'gc>>, BadThreadMode> {
+    |                        +++
+
+
+   Compiling mod-host v0.0.0 (/config/tmp/hud-match/rust/crates/mod-host)
+   Compiling web v0.1.0 (/config/tmp/hud-match/rust/crates/web)
+    Finished `release` profile [optimized] target(s) in 1m 14s
+[INFO]: ⬇️  Installing wasm-bindgen...
+[INFO]: Optimizing wasm binaries with `wasm-opt`...
+[INFO]: Optional fields missing from Cargo.toml: 'repository', 'license'. These are not necessary, but recommended
+[INFO]: ✨   Done in 2m 03s
+[INFO]: 📦   Your wasm pkg is ready to publish at crates/web/site/pkg.
+wrote 812849 bytes to /config/tmp/hud-match/scenarios/moba/moba.osdt
+wrote 18433 bytes to /config/tmp/hud-match/scenarios/duel-routes/duel-routes.osdt
+asset packs: 170 character, 1 item, 42589399 bytes -> /config/tmp/hud-match/.dev-site/scenarios/moba/assets/packs
+layout-site: missing js/client/vendor/wireweave/src/index.js
+STAGE_EXIT=1

@@ -1,0 +1,5 @@
+id: gap-wasip2-sim-surface-blocker-gm-oscraft-sc2-alt-1-p11
+question: Is the wasip2 premise false on the tree (wasip2 crate absent, ModHost::load_source present at mod-host lib.rs:986)?
+answer_probe: Read rust/crates/wasip2/Cargo.toml fails; load_source at lib.rs:986 exists
+session_id: gm-orch-3-9
+status: unknown

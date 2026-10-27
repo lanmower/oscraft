@@ -1,0 +1,6 @@
+id: gm-closed-row-record-outside-commit-body
+subject: Closed-row records live only in gitignored .gm/prd-log.jsonl (892 KB), not in commit bodies
+description: 'Evidence: .gm/prd-log.jsonl 892379 bytes, gitignored; rows closed by lanes that never wrote Row:/Witness: into a commit body lose their record on a fresh clone. Ask: prd-resolve emits the Row/Witness/Status trailer text for the closing commit, and a verb checks a closed id has a trailer in git log.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

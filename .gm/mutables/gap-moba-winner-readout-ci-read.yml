@@ -1,0 +1,5 @@
+id: gap-moba-winner-readout-ci-read
+row: gap-moba-winner-readout
+question: 'Acceptance clause 2: the moba CI job (.github/workflows/ci.yml ~2528-2529) must read the served winner (GET /state winner field or an ev= line), not only the gate in-process line. Not yet wired.'
+session_id: gm-oscraft-w1-16
+status: unknown

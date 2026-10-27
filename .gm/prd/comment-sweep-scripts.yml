@@ -1,0 +1,6 @@
+id: comment-sweep-scripts
+subject: Comment sweep of scripts/, .github, scenarios (not assets)
+description: 'Convert or move every comment; notes in AGENTS.md Area notes: scripts'
+session_id: drain-scripts
+owner: drain-scripts
+status: pending

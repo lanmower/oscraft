@@ -1,0 +1,1 @@
+{"chunks":[{"ch":3942570435,"emb":null,"key":"ci-fc13e03f-979e8131-0","kind":"function_item","le":93,"ls":11,"name":"main"}],"commit_overview":null,"digest_hash":1733974024,"hash":2543747377,"mtime_ms":1792596319732.0,"path":"workspace/oscraft/rust/crates/mod-host/src/bin/mod_check.rs","size":3317,"skipped_no_embed":1,"v":7}

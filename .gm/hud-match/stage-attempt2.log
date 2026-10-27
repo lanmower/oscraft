@@ -1,0 +1,39 @@
+Error: `cargo metadata` exited with an error: info: syncing channel updates for 1.99.0-x86_64-unknown-linux-gnu
+info: latest update on 2026-10-01 for version 1.99.0 (b940084d7 2026-09-28)
+info: recovering from a partially installed toolchain
+info: removing previous version of component rustc
+info: removing previous version of component cargo
+info: removing previous version of component rust-std
+info: removing previous version of component rust-docs
+info: removing previous version of component rustfmt
+info: removing previous version of component clippy
+info: downloading 7 components
+info: rolling back changes
+error: could not rename 'component' file from '/data/cache/rustup/tmp/bzzxp8edb6o7pc66_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/etc': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/sti5eklh_5pb18j4_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/share': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/0z6pgnpb9zulji5r_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/share/doc': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/tg_h7s70cxf3bw_i_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/share/zsh': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/r58tq2nvthhisgp6_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/share/man': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/yhlfz8uoevu7ll_o_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/lib/rustlib/wasm32-unknown-unknown': Directory not empty (os error 39)
+error: failed to install component: 'rust-std-x86_64-unknown-linux-gnu', detected conflict: 'lib/rustlib/x86_64-unknown-linux-gnu/lib/libaddr2line-df57c875825aae11.rlib'
+
+Caused by: `cargo metadata` exited with an error: info: syncing channel updates for 1.99.0-x86_64-unknown-linux-gnu
+info: latest update on 2026-10-01 for version 1.99.0 (b940084d7 2026-09-28)
+info: recovering from a partially installed toolchain
+info: removing previous version of component rustc
+info: removing previous version of component cargo
+info: removing previous version of component rust-std
+info: removing previous version of component rust-docs
+info: removing previous version of component rustfmt
+info: removing previous version of component clippy
+info: downloading 7 components
+info: rolling back changes
+error: could not rename 'component' file from '/data/cache/rustup/tmp/bzzxp8edb6o7pc66_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/etc': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/sti5eklh_5pb18j4_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/share': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/0z6pgnpb9zulji5r_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/share/doc': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/tg_h7s70cxf3bw_i_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/share/zsh': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/r58tq2nvthhisgp6_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/share/man': Directory not empty (os error 39)
+error: could not rename 'component' file from '/data/cache/rustup/tmp/yhlfz8uoevu7ll_o_dir/bk' to '/data/cache/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/lib/rustlib/wasm32-unknown-unknown': Directory not empty (os error 39)
+error: failed to install component: 'rust-std-x86_64-unknown-linux-gnu', detected conflict: 'lib/rustlib/x86_64-unknown-linux-gnu/lib/libaddr2line-df57c875825aae11.rlib'
+
+STAGE_EXIT=1

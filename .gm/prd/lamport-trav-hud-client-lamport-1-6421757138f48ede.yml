@@ -1,0 +1,22 @@
+id: LAMPORT-trav-hud-client-LAMPORT-1
+subject: After a hud.js hot reload the HUD minimap runs the pre-edit ui_minimap.js code, so the final state depends on edit order
+description: 'Fact. js/client/hud.js:61 createMinimap is called through the static import of ui_minimap.js, which resolves to the base module instance. js/client/hmr.js:24-27 re-imports a changed module with ?v= and does not rebind importers, so the base instance stays on pre-edit code. ui_minimap.js:202-204 hmrReload returns createMinimap from the new instance, and hud.js:74-77 takes that value. But hud.js:146-149 hmrReload rebuilds the whole HUD through createHud (hud.js:38), which calls createMinimap again from the base instance and replaces the hot-updated minimap. Result: a ui_minimap.js edit followed by a hud.js edit leaves the old minimap code live; the reverse order ends correct. Causal-order defect: a later update applies an older module version. Related but distinct: SLAP-trav-minimap-camera-1 (listener stacking on the same canvas).'
+acceptance_criteria: After a ui_minimap.js hot update followed by a hud.js hot update, the minimap in use is the new ui_minimap.js code, the same as the reverse edit order. The rebuilt HUD does not take its minimap from the base import once hud.js has been hot-reloaded.
+witness_plan: 'Live localhost page with ?hmr: add a visible marker to the minimap draw in ui_minimap.js, save it, then save hud.js; the marker must still show. Repeat in reverse order. Codesearch js/client/hud.js for the createMinimap call that the fix changes, with the dispatch id.'
+lean_node: LAMPORT
+session_id: trav-hud-client-LAMPORT
+owner: trav-hud-client-LAMPORT
+status: pending
+notes:
+- ts: 2026-10-24T16:41:32.150Z
+  session_id: triage-hud-client-1
+  note: 'Kept (maintainer-visible, dev hot reload). Verified at origin/main d821e361: hud.js:8 static import of ui_minimap.js; hud.js:61 createMinimap; hud.js:74-77 oscraft:hmr listener swaps in the hot minimap; hud.js:146-149 hmrReload calls createHud (hud.js:38), which calls createMinimap again from the base import. ui_minimap.js:202-204 hmrReload. Correction: the re-import with ?v= is hmr.js:35-40 (reloadModule), not 24-27 (which are constants and the queue). Observable: after a hud.js hot reload the minimap runs the pre-edit ui_minimap.js code, so the result depends on edit order.'
+- ts: 2026-10-24T17:22:52.885Z
+  session_id: drain-gui-hud-client-1
+  note: 'Published 43fe4e58 (hud rebuild reuses globalThis hot-minimap, key hud-minimap). Witness not taken: needs a live localhost ?hmr page with a match; blocked_by lobby-disabled-when-one-relay-503 (pending) and no local build.'
+- ts: 2026-10-25T02:17:40.203Z
+  session_id: drain-hud-shard-2
+  note: 'Witness blocked, pending. Fix 43fe4e58 is on origin tip 7f68d3bc (hud.js:87 hot.get(''hud-minimap'') ?? createMinimap). The witness needs a localhost ?hmr page: hmr.js runs only on localhost, and the Pages build has no hot reload. Clearing action: a localhost static server for js/client, a marker edit in ui_minimap.js, then a hud.js save read through gm browser.'
+- ts: 2026-10-25T04:26:46.841Z
+  session_id: drain-hud-3
+  note: 'drain-hud-3: witness still blocked. A localhost ?hmr page is the only route (hmr.js runs only on localhost; the Pages build has no hot reload), and no live Pages route exercises a hud.js hot reload. Clearing action: a localhost static serve of js/client with a ?hmr page, read through gm browser. Left pending; no local serve used as the gate.'

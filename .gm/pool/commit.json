@@ -1,0 +1,15 @@
+{
+  "message": "server: /state serves a unit's x and y by query; ci: mod-unit-map reads the room unit before the order and after it, and passes only when x or y differs",
+  "tree": "a1ba93e0dae2a20f62f101964b7613ea04e12bbf",
+  "parents": [
+    "f7c535fbd8bd6529a5ffeaedd04adbf172873625"
+  ],
+  "author": {
+    "name": "lanmower",
+    "email": "657315+lanmower@users.noreply.github.com"
+  },
+  "committer": {
+    "name": "lanmower",
+    "email": "657315+lanmower@users.noreply.github.com"
+  }
+}

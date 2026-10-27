@@ -1,0 +1,8 @@
+id: preload-hint-unused-first-load
+subject: Preload hints reported as unused within seconds of load (gh-pages console)
+description: 'Coordinator report: the live console said a resource was preloaded with link preload but not used within a few seconds. Local headful runs (a 25 s capture and a 15 s performance-entry check) show no such warning, every modulepreload hint (57, checker green) and the wasm preload (as=fetch crossorigin) has one consumed resource entry, and no duplicate fetch. The exact URL from the gh-pages console is needed to pick the hint to remove or fix its as value.'
+acceptance_criteria: The named resource is either removed from play.html or consumed on first load, and scripts/check-modulepreload.mjs stays green.
+witness_plan: Headful load of the gh-pages-equivalent layout; read console warnings for 15 s and check the named URL in performance entries.
+owner: hud-start-1
+session_id: hud-start-1
+status: pending

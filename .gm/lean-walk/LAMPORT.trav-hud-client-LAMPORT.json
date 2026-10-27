@@ -1,0 +1,49 @@
+{
+  "node": "LAMPORT",
+  "applied": false,
+  "changes": [],
+  "witness": "fs_read hud.js 1-149 (1792859046148-6057-afb55904b3e0c1b4); codesearch hud.js regex (1792859050694-6060-74e972e08229044b); callers createHud (1792859095191-6091-91204334da67af81); callers hmrReload (1792859097951-6092-be7641aa0897647d); fs_read hmr.js 1-70 (1792859120150-6131-6f2aec087ee1b848); codesearch ui_minimap.js hmrReload (1792859161873-6180-a894f72e6905093a); fs_read ui_minimap.js 196-205 (1792859204424-6213-bbefb4399922f2e0)",
+  "prd_ids": [
+    "LAMPORT-trav-hud-client-LAMPORT-1",
+    "LAMPORT-trav-hud-client-LAMPORT-2"
+  ],
+  "unknown_ids": [],
+  "next_choice": {
+    "to": "none",
+    "why": "max_depth 0 reached; depth limit"
+  },
+  "links_offered": [
+    "DBC",
+    "INVARIANTRUN"
+  ],
+  "link_taken": null,
+  "session": "trav-hud-client-LAMPORT",
+  "witness_dispatch_ids": [
+    "1792859046148-6057-afb55904b3e0c1b4",
+    "1792859050694-6060-74e972e08229044b",
+    "1792859095191-6091-91204334da67af81",
+    "1792859097951-6092-be7641aa0897647d",
+    "1792859120150-6131-6f2aec087ee1b848",
+    "1792859161873-6180-a894f72e6905093a",
+    "1792859204424-6213-bbefb4399922f2e0"
+  ],
+  "verified_by": null,
+  "verified_dispatch_ids": [],
+  "findings": [
+    {
+      "prd_id": "LAMPORT-trav-hud-client-LAMPORT-1",
+      "owner": "trav-hud-client-LAMPORT",
+      "disposition": "accept"
+    },
+    {
+      "prd_id": "LAMPORT-trav-hud-client-LAMPORT-2",
+      "owner": "trav-hud-client-LAMPORT",
+      "disposition": "accept"
+    }
+  ],
+  "inspector": null,
+  "cycle": {
+    "dispatch_id": "1792859287989-6286-40694653ab31449d",
+    "status": "replayed"
+  }
+}

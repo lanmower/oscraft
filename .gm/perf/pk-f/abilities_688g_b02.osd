@@ -1,0 +1,81 @@
+# 6.88g hero abilities, batch 02 of 12. Heroes: abyssal_underlord, centaur, earth_spirit, invoker, magnataur, night_stalker, queenofpain, skywrath_mage, troll_warlord, wisp.
+# Rows below are the 6.88g learnable names moved from abilities.osd unchanged (cooldown and energy at level 1 from the
+# archive). Effects are empty until the batch fills them. Each hero's slot order is its line in units_heroes.osd.
+# abyssal_underlord: UNVERIFIED, identity pending content-hero-conversions-unresolved (6.88g abilities not applied).
+# earth_spirit 6.88g A2TJ Rolling Boulder
+# Effect mapping (content-688g-ability-effect-mapping, drain-688g-effects-1): 28 rows, 0 mapped, 28 UNVERIFIED with effects empty.
+# Why 0 mapped: abilities_688g_perlevel.tsv gives no effect kind for any label and no legend for its numeric target codes (目标类型), which an effect needs with its ability target. perlevel.tsv:7-9 says applying an ability needs its effect encoding.
+# Kind-named labels with a level-1 value, left UNVERIFIED (encoding needs the target code): A0Q7 Shadow Strike QoP 移动速度减少=0.2 (perlevel.tsv:1030) -> slow; A0Q7 Shadow Strike QoP 初始伤害=50 (perlevel.tsv:1030) -> damage.
+# UNVERIFIED rows (no effect set): A2TJ A2QI A2UU A2TI A21Y A21X A21W A21V A02S A037 A1RD A29L A086 A08E A03K A02H A0Q7 A0ME A04A A28R A2BE A2HN A2BG A2IT A0BE A21L A0O0 A1EJ.
+ability("earth_spirit_rolling_boulder", 256, 50, "none", [])
+# earth_spirit 6.88g A2QI Geomagnetic Grip
+ability("earth_spirit_geomagnetic_grip", 208, 100, "none", [])
+# earth_spirit 6.88g A2UU Boulder Smash
+ability("earth_spirit_boulder_smash", 352, 100, "none", [])
+# earth_spirit 6.88g A2TI Magnetize
+ability("earth_spirit_magnetize", 1600, 100, "none", [])
+# invoker 6.88g A21Y Invoke
+ability("invoker_invoke", 352, 20, "none", [])
+# invoker 6.88g A21X Wex
+ability("invoker_wex", 0, 0, "none", [])
+# invoker 6.88g A21W Quas
+ability("invoker_quas", 0, 0, "none", [])
+# invoker 6.88g A21V Exort
+ability("invoker_exort", 0, 0, "none", [])
+# magnataur 6.88g A02S Shockwave
+ability("magnataur_shockwave", 160, 90, "none", [])
+# magnataur 6.88g A037 Empower
+ability("magnataur_empower", 128, 30, "none", [])
+# magnataur 6.88g A1RD Skewer
+ability("magnataur_skewer", 480, 80, "none", [])
+# magnataur 6.88g A29L Reverse Polarity
+ability("magnataur_reverse_polarity", 1920, 200, "none", [])
+# night_stalker 6.88g A086 Hunter in the Night
+ability("night_stalker_hunter_in_the_night", 0, 0, "none", [])
+# night_stalker 6.88g A08E Crippling Fear
+ability("night_stalker_crippling_fear", 0, 0, "none", [])
+# night_stalker 6.88g A03K Darkness
+ability("night_stalker_darkness", 2560, 0, "none", [])
+# night_stalker 6.88g A02H Void
+ability("night_stalker_void", 128, 80, "none", [])
+# queenofpain 6.88g A0Q7 Shadow Strike QoP
+ability("queenofpain_shadow_strike_qop", 256, 110, "none", [])
+# queenofpain 6.88g A0ME Blink
+ability("queenofpain_blink", 240, 60, "none", [])
+# queenofpain 6.88g A04A Scream of Pain
+ability("queenofpain_scream_of_pain", 112, 110, "none", [])
+# queenofpain 6.88g A28R Sonic Wave
+ability("queenofpain_sonic_wave", 1920, 200, "none", [])
+# skywrath_mage 6.88g A2BE Arcane Bolt
+ability("skywrath_mage_arcane_bolt", 80, 70, "none", [])
+# skywrath_mage 6.88g A2HN Ancient Seal
+ability("skywrath_mage_ancient_seal", 224, 80, "none", [])
+# skywrath_mage 6.88g A2BG Mystic Flare
+ability("skywrath_mage_mystic_flare", 960, 350, "none", [])
+# skywrath_mage 6.88g A2IT Concussive Shot
+ability("skywrath_mage_concussive_shot", 288, 95, "none", [])
+# troll_warlord 6.88g A0BE Berserker Rage
+ability("troll_warlord_berserker_rage", 0, 0, "none", [])
+# troll_warlord 6.88g A21L Whirling Axes
+ability("troll_warlord_whirling_axes", 0, 0, "none", [])
+# troll_warlord 6.88g A0O0 Fervor
+ability("troll_warlord_fervor", 0, 0, "none", [])
+# troll_warlord 6.88g A1EJ Battle Trance
+ability("troll_warlord_battle_trance", 480, 75, "none", [])
+# content-abilities-120-heroes-missing (drain-heroes-shard-2): rows for heroes whose 6.88g identity is resolved (heroes_688g.tsv or the identity agreement pass). Effects [] on every row: UNVERIFIED.
+# wisp 6.88g A1T8 Spirits
+ability("wisp_spirits", 320, 120, "none", [])
+# wisp 6.88g A35G Tether learn
+ability("wisp_tether_learn", 0, 0, "none", [])
+# wisp 6.88g A1TB Relocate
+ability("wisp_relocate", 1440, 100, "none", [])
+# wisp 6.88g A28Q Overcharge
+ability("wisp_overcharge", 32, 0, "none", [])
+# centaur 6.88g A2ON Double Edge
+ability("centaur_double_edge", 128, 0, "none", [])
+# centaur 6.88g A00V Retaliation
+ability("centaur_retaliation", 0, 0, "none", [])
+# centaur 6.88g A00S Hoof Stomp
+ability("centaur_hoof_stomp", 208, 130, "none", [])
+# centaur 6.88g A2O6 Stampede
+ability("centaur_stampede", 1440, 0, "none", [])

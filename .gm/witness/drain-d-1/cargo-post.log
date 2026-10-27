@@ -1,0 +1,312 @@
+warning: use of deprecated module `std::i32`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/compiler/lexer.rs:2:16
+  |
+2 |     char, fmt, i32, i64,
+  |                ^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/compiler/lexer.rs:2:21
+  |
+2 |     char, fmt, i32, i64,
+  |                     ^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:120:46
+    |
+120 |     math.set(ctx, "huge", Value::Number(f64::INFINITY)).unwrap();
+    |                                              ^^^^^^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:140:51
+    |
+140 |                     .try_fold(Value::Number(-f64::INFINITY), |max, entry| {
+    |                                                   ^^^^^^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> vendor/piccolo/src/stdlib/math.rs:163:50
+    |
+163 |                     .try_fold(Value::Number(f64::INFINITY), |max, entry| {
+    |                                                  ^^^^^^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/table/raw.rs:1:28
+  |
+1 | use std::{fmt, hash::Hash, i64, mem};
+  |                            ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:297:32
+    |
+297 |                 if max == i64::MAX {
+    |                                ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:302:33
+    |
+302 |                     return i64::MAX;
+    |                                 ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> vendor/piccolo/src/table/raw.rs:306:32
+    |
+306 |                     max = i64::MAX;
+    |                                ^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/table/table.rs:3:5
+  |
+3 |     i64, mem,
+  |     ^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> vendor/piccolo/src/value.rs:1:21
+  |
+1 | use std::{f64, fmt, i64, io, string::String as StdString};
+  |                     ^^^
+
+warning: irrefutable `if let` pattern
+   --> vendor/piccolo/src/conversion.rs:221:28
+    |
+221 |                         if let Ok(i) = <$i>::try_from(i) {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+240 | impl_int_from!(i64, u64, i32, u32, i16, u16, i8, u8);
+    | ---------------------------------------------------- in this macro invocation
+    |
+    = note: this pattern will always match, so the `if let` is useless
+    = help: consider replacing the `if let` with a `let`
+    = note: `#[warn(irrefutable_let_patterns)]` on by default
+    = note: this warning originates in the macro `impl_int_from` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> vendor/piccolo/src/stack.rs:78:9
+   |
+78 |         &mut self,
+   |         ^^^^^^^^^ the lifetime is elided here
+79 |         range: R,
+80 |     ) -> vec::Drain<Value<'gc>, MetricsAlloc<'gc>> {
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+80 |     ) -> vec::Drain<'_, Value<'gc>, MetricsAlloc<'gc>> {
+   |                     +++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> vendor/piccolo/src/thread/thread.rs:206:9
+    |
+206 |         &self,
+    |         ^^^^^ the lifetime is elided here
+...
+209 |     ) -> Result<RefMut<ThreadState<'gc>>, BadThreadMode> {
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+209 |     ) -> Result<RefMut<'_, ThreadState<'gc>>, BadThreadMode> {
+    |                        +++
+
+warning: `piccolo` (lib) generated 14 warnings (run `cargo fix --lib -p piccolo` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running unittests src/lib.rs (target/debug/deps/mod_host-06943d9d8c62d5e7)
+
+running 2 tests
+test piccolo_host::containment::state_ticks_is_the_sim_tick_on_every_step ... ok
+test piccolo_host::containment::a_panicking_native_is_a_hook_failure_and_the_host_keeps_advancing ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.82s
+
+     Running unittests src/bin/mod_check.rs (target/debug/deps/mod_check-84942b5bc6961e19)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ability_bar.rs (target/debug/deps/ability_bar-573539f41e515140)
+
+running 1 test
+test the_ability_bar_has_one_cell_per_key_with_its_slots_ability ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.89s
+
+     Running tests/aegis.rs (target/debug/deps/aegis-a636cf2d15a8f0e4)
+
+running 2 tests
+test a_hero_dying_with_the_aegis_returns_where_it_fell_at_full_health_and_the_charge_is_spent ... ok
+test a_hero_without_the_aegis_goes_to_the_respawn_timer_and_returns_home ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.65s
+
+     Running tests/bots.rs (target/debug/deps/bots-9b38e05f4bb370bb)
+
+running 1 test
+test bot_seats_drive_their_heroes_and_no_hook_is_disabled ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.81s
+
+     Running tests/controls_route.rs (target/debug/deps/controls_route-f4cbe2d380e68b16)
+
+running 1 test
+test click_selects_and_right_click_orders_the_selection ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.01s
+
+     Running tests/creep_kill.rs (target/debug/deps/creep_kill-fe592c1308283603)
+
+running 6 tests
+test a_hero_kill_keeps_the_team_share ... ok
+test a_creep_kill_damaged_by_two_heroes_splits_among_them ... ok
+test a_denied_creep_kill_pays_no_hero_gold ... ok
+test a_creep_kill_with_no_hero_damage_splits_among_the_living_enemy_heroes ... ok
+test a_creep_kill_damaged_by_one_hero_pays_that_hero_all_of_it ... ok
+test a_neutral_kill_pays_no_hero_gold ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.31s
+
+     Running tests/dead_killer.rs (target/debug/deps/dead_killer-a79b93c5b31581d8)
+
+running 1 test
+test a_death_whose_killer_is_already_dead_switches_no_hook_off ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.96s
+
+     Running tests/duel_routes_ticks.rs (target/debug/deps/duel_routes_ticks-1cbe39c39dc37473)
+
+running 1 test
+test the_duel_routes_pack_plays_without_a_hook_switched_off ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running tests/lane_route.rs (target/debug/deps/lane_route-61c8953971dc5cda)
+
+running 1 test
+test the_lane_routes_are_readable_and_start_at_the_side_base ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.73s
+
+     Running tests/lobby_claim.rs (target/debug/deps/lobby_claim-c18a39ed19d9e168)
+
+running 2 tests
+test a_claim_from_the_host_page_takes_the_first_open_seat ... ok
+test a_claim_from_a_joined_page_takes_the_seat_under_the_senders_key ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+     Running tests/moba_pack_loads.rs (target/debug/deps/moba_pack_loads-1e6f0e021940150d)
+
+running 1 test
+test every_module_loads_and_runs_300_ticks ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.01s
+
+     Running tests/moba_ticks.rs (target/debug/deps/moba_ticks-3a1dad94f2235400)
+
+running 1 test
+test the_moba_pack_plays_without_a_hook_switched_off ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.67s
+
+     Running tests/mod_containment.rs (target/debug/deps/mod_containment-fe216788318c61f2)
+
+running 4 tests
+test a_bad_native_argument_is_a_lua_error_the_mod_sees ... ok
+test an_infinite_loop_in_on_tick_is_bounded ... ok
+test an_infinite_loop_in_each_other_hook_is_bounded ... ok
+test a_module_over_the_memory_cap_is_retired_and_the_rest_run ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.47s
+
+     Running tests/modules.rs (target/debug/deps/modules-3e45e35638052d2b)
+
+running 5 tests
+test a_require_cycle_is_reported_by_name ... ok
+test an_erroring_hook_does_not_stop_the_same_hook_of_another_module ... ok
+test a_failed_load_keeps_the_last_known_good_module ... ok
+test a_module_requires_another_and_calls_its_function ... ok
+test an_old_style_global_hook_file_still_works ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.33s
+
+     Running tests/opening_gold.rs (target/debug/deps/opening_gold-ad8e9af5898fe61a)
+
+running 1 test
+test a_seat_opens_on_the_economy_s_opening_gold ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.99s
+
+     Running tests/panels_route.rs (target/debug/deps/panels_route-84591b53b58297e0)
+
+running 6 tests
+test hud_and_lobby_are_sent_on_the_first_refresh ... ok
+test a_hero_draws_the_skill_inventory_team_and_scoreboard_panels ... ok
+test a_selection_opens_the_selection_panel ... ok
+test an_unchanged_panel_is_not_sent_again ... ok
+test a_claim_takes_a_lobby_seat ... ok
+test the_shop_key_opens_the_shop_panel_and_its_key_closes_it ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.51s
+
+     Running tests/payout_parity.rs (target/debug/deps/payout_parity-9684f617187837cc)
+
+running 2 tests
+test on_died_receives_five_arguments_with_bounty ... ok
+test moba_match_pays_the_same_for_fixed_kills ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.90s
+
+     Running tests/roster.rs (target/debug/deps/roster-8884188de202872a)
+
+running 1 test
+test only_heroes_with_a_model_are_offered ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.92s
+
+     Running tests/seat_pick.rs (target/debug/deps/seat_pick-f324275924731369)
+
+running 2 tests
+test a_seat_pick_spawns_the_picked_hero_as_its_own_unit ... ok
+test a_repeated_seat_pick_does_not_spawn_a_second_hero ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.76s
+
+     Running tests/sim_reads.rs (target/debug/deps/sim_reads-a6614df404b2dc9c)
+
+running 1 test
+test a_loop_over_the_sim_can_read_it_again_in_its_body ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.92s
+
+     Running tests/unit_rules.rs (target/debug/deps/unit_rules-8fa78f61497b6f04)
+
+running 5 tests
+test the_pack_sets_each_units_magic_keep_from_its_magic_resistance ... ok
+test the_pack_sets_each_units_damage_keep_and_response_keep ... ok
+test the_pack_sets_each_units_armour_scale_from_its_armour ... ok
+test the_pack_sets_a_shots_miss_chance_to_its_data_chance_when_it_is_ranged ... ok
+test the_pack_holds_each_units_speed_between_the_reference_limits ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.31s
+
+     Running tests/vm_assignment.rs (target/debug/deps/vm_assignment-22d5dea83a9f6b6b)
+
+running 6 tests
+test a_swap_of_two_targets_reads_both_values_first ... ok
+test a_single_assignment_and_call_results_are_unchanged ... ok
+test a_rotation_of_three_targets_reads_all_values_first ... ok
+test a_single_field_target_evaluates_its_table_and_key_before_the_value ... ok
+test an_indexed_swap_reads_both_slots_first ... ok
+test a_target_reads_what_the_statement_has_not_stored_yet ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.29s
+
+   Doc-tests mod_host
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,6 @@
+id: store-lane-starved-by-browser-verb
+subject: prd-add and unknown-add are starved for minutes on the shared store lane by a browser verb
+description: 'Executor drain-gm-4 saw prd-add and unknown-add refused dispatch_starved_waiting_for_serial_lane five times in a row (1792907168849-5139-cc0ed97ce62e3bf7, 1792907415773-5197-2b0434e13123e908, 1792907663207-5294-77d67e46e912b822, 1792907911807-5330-7ab8589544f2de4e, 1792906844234-5009-5c6e83933d0e69d). The holder was a browser verb (verify-MILNER-trav-minimap-camera holding the lane 400-540 s). The lane reply says the holder is not stuck, so the queue cannot drain for a store write. Expected: browser verbs do not hold the store/state lane, or store writes get a bounded wait with a clear refusal.'
+status: pending
+owner: drain-gm-4
+session_id: drain-gm-4

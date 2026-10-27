@@ -1,0 +1,25 @@
+id: ui-team-and-winner-naming-inconsistent
+subject: Team is Team A/B in the lobby, Team 0/1 on the scoreboard and 'side N wins' at the end; win panel has no action
+description: 'scenarios/moba/panels.lua:269 win_tree (prefix side + raw index), :1023,1074 lobby teamNames, scoreboard teamLabel + side; moba_ui.json text.winner/teamLabel. Symptom: one team has three names; end screen is text rows only with no leave/back-to-lobby control and raw P0 ids. Acceptance: one team-name source (UI.text) used by all three; win panel names the team and offers a return/leave button via a ui call. Witness: finish match, #win shows the lobby team name and a button.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T09:01:05.716Z
+  session_id: drain-ui-panels-9
+  note: 'claimed by drain-ui-panels-9. Pushed ae39ed17: scoreboard and end screen use the lobby team name (team_name). Open: the win panel still has no return/leave button (no existing return-to-lobby call) and the witness needs a finished match in a browser.'
+- ts: 2026-10-25T09:20:55.625Z
+  session_id: drain-panels-10
+  note: claimed by drain-panels-10
+- ts: 2026-10-25T09:42:42.686Z
+  session_id: drain-panels-10
+  note: 'win panel still lacks a return/leave button: no return-to-lobby call exists in controls/panels; open'
+- ts: 2026-10-25T20:48:41.091Z
+  session_id: hud-match-1
+  note: 'Lobby witnessed: after-item4 shots show The Sentinel / The Scourge (verify-ui-team-and-winner-naming-inconsistent, dispatch 1792958961921-5284-488fc090c6dcd07f). Done in scratch: one name source (moba_ui.json lobby.teamNames from 6.88g wts 17/18), win panel Close button (win_close). Open: win and scoreboard witness. Blocker: no live match is reachable in a browser without Claim, Fill, Start or a room join, all forbidden by the owner. Owner to approve a local route (fixture or bot seating that clicks none of those) to witness the in-match behaviour.'
+- ts: 2026-10-25T21:14:47.128Z
+  session_id: hud-match-1
+  note: 'Published b2682bdd on origin/main (scenarios/moba/panels.lua, scenarios/moba/moba_ui.json). CI on that sha: static client checks success; build the page wasm and maps and built page smoke fail the same way as the parent 1d7f2547 (pre-existing, row ci-red-mapexport-lycan-wolf-1-on-main). Row stays open until its in-match witness.'
+- ts: 2026-10-26T05:26:55.004Z
+  session_id: hud-match-witness
+  note: 'The lobby names read The Sentinel and The Scourge (earlier witness 1792958961921-5284-488fc090c6dcd07f). Open: the win panel was not reached in the hud-match-witness run.'

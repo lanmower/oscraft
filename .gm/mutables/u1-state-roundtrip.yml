@@ -1,0 +1,5 @@
+id: u1-state-roundtrip
+value: 'U1: does encodeFrame(STATE) then decodeFrame round-trip unit x,y,hp,player exactly (live node run)?'
+status: unknown
+row: net-e2e-two-peers-blocker-gm-oscraft-sc2-alt-1-e2e1
+session_id: gm-orch-2-13

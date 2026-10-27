@@ -1,0 +1,379 @@
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	﻿2026-10-21T09:45:19.7303968Z Current runner version: '2.338.0'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7324804Z ##[group]Runner Image Provisioner
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7325457Z Hosted Compute Agent
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7326187Z Version: 20261015.610
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7326690Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7327218Z Build Date: 2026-10-14T17:06:54Z
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7327753Z Worker ID: {579ad500-d680-49d6-b5ce-4b6cf5e68f34}
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7328232Z Region: centralus
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7328615Z Cloud: Azure
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7329014Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7330364Z ##[group]Operating System
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7330857Z Ubuntu
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7331262Z 24.04.5
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7331623Z LTS
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7332016Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7332412Z ##[group]Runner Image
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7332851Z Image: ubuntu-24.04
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7333713Z Version: 20261018.339.1
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7334694Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7335734Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261018.339
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7336415Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7337169Z ##[group]GITHUB_TOKEN Permissions
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7339266Z Contents: read
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7339681Z Metadata: read
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7340079Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7341751Z Secret source: Actions
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7342436Z Cache mode: write
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7343409Z Prepare workflow directory
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7639838Z Prepare all required actions
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.7677745Z Getting action download info
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:19.9903774Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.0761841Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.5563728Z Complete job name: server unit kinds, carry, protocol and log schema probes
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6109089Z ##[group]Run actions/checkout@v4
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6109740Z with:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6110299Z   submodules: recursive
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6110739Z   repository: lanmower/oscraft
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6113846Z   token: ***
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6114191Z   ssh-strict: true
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6114623Z   ssh-user: git
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6114992Z   persist-credentials: true
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6115383Z   clean: true
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6115801Z   sparse-checkout-cone-mode: true
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6116199Z   fetch-depth: 1
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6116575Z   fetch-tags: false
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6116933Z   show-progress: true
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6117291Z   lfs: false
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6117668Z   set-safe-directory: true
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6118072Z   allow-unsafe-pr-checkout: false
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6118600Z env:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6118935Z   CARGO_TERM_COLOR: always
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6119310Z   CARGO_INCREMENTAL: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6119758Z   CARGO_PROFILE_DEV_DEBUG: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6120212Z   CARGO_NET_RETRY: 3
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6120620Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6887099Z Syncing repository: lanmower/oscraft
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6888527Z ##[group]Getting Git version info
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6889034Z Working directory is '/home/runner/work/oscraft/oscraft'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6889889Z [command]/usr/bin/git version
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6954859Z git version 2.55.0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6968964Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6996451Z Temporarily overriding HOME='/home/runner/work/_temp/b0aed2b3-5f7d-4491-b6f5-7cd69d773578' before making global git config changes
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.6998114Z Adding repository directory to the temporary git global config as a safe directory
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7016177Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/oscraft/oscraft
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7057923Z Deleting the contents of '/home/runner/work/oscraft/oscraft'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7068008Z ##[group]Initializing the repository
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7071133Z [command]/usr/bin/git init /home/runner/work/oscraft/oscraft
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7170691Z hint: Using 'master' as the name for the initial branch. This default branch name
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7171873Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7172829Z hint: to use in all of your new repositories, which will suppress this warning,
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7173764Z hint: call:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7174306Z hint:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7174919Z hint: 	git config --global init.defaultBranch <name>
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7175519Z hint:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7176187Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7177109Z hint: 'development'. The just-created branch can be renamed via this command:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7177885Z hint:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7178458Z hint: 	git branch -m <name>
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7179014Z hint:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7179726Z hint: Disable this message with "git config set advice.defaultBranchName false"
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7180843Z Initialized empty Git repository in /home/runner/work/oscraft/oscraft/.git/
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7182819Z [command]/usr/bin/git remote add origin https://github.com/lanmower/oscraft
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7230843Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7231419Z ##[group]Disabling automatic garbage collection
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7235308Z [command]/usr/bin/git config --local gc.auto 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7262439Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7262994Z ##[group]Setting up auth
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7268914Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7299114Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7572454Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7597377Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7755099Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7783859Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7944592Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7975484Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7976946Z ##[group]Fetching the repository
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:20.7984591Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ad8c8261db636455608c90ef14586c9860be219c:refs/remotes/origin/main
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5880134Z From https://github.com/lanmower/oscraft
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5881425Z  * [new ref]         ad8c8261db636455608c90ef14586c9860be219c -> origin/main
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5884493Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5885743Z ##[group]Determining the checkout info
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5886906Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5892729Z [command]/usr/bin/git sparse-checkout disable
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5944644Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5975295Z ##[group]Checking out the ref
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.5978969Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7530672Z Switched to a new branch 'main'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7534381Z branch 'main' set up to track 'origin/main'.
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7545112Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7546759Z ##[group]Setting up auth for fetching submodules
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7551229Z [command]/usr/bin/git config --global http.https://github.com/.extraheader AUTHORIZATION: basic ***
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7589080Z [command]/usr/bin/git config --global --unset-all url.https://github.com/.insteadOf
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7614233Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf git@github.com:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7640063Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf org-657315@github.com:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7664200Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7665560Z ##[group]Fetching submodules
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7666726Z [command]/usr/bin/git submodule sync --recursive
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7828316Z [command]/usr/bin/git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.7997023Z Submodule 'js/client/vendor/wireweave' (https://github.com/AnEntrypoint/wireweave.git) registered for path 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:21.8014681Z Cloning into '/home/runner/work/oscraft/oscraft/js/client/vendor/wireweave'...
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.4765272Z Submodule path 'js/client/vendor/wireweave': checked out 'a71f179cc5352964bc014deea166969938705e61'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.4791581Z [command]/usr/bin/git submodule foreach --recursive git config --local gc.auto 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.4962791Z Entering 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5012290Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5012914Z ##[group]Persisting credentials for submodules
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5018937Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'url\.https\:\/\/github\.com\/\.insteadOf' && git config --local --unset-all 'url.https://github.com/.insteadOf' || :"
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5178734Z Entering 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5221863Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local 'http.https://github.com/.extraheader' 'AUTHORIZATION: basic ***' && git config --local --show-origin --name-only --get-regexp remote.origin.url"
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5376859Z Entering 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5411924Z file:/home/runner/work/oscraft/oscraft/.git/modules/js/client/vendor/wireweave/config	remote.origin.url
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5446174Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'git@github.com:'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5605844Z Entering 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5647002Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'org-657315@github.com:'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5817056Z Entering 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5860797Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5907754Z [command]/usr/bin/git log -1 --format=%H
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.5933625Z ad8c8261db636455608c90ef14586c9860be219c
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6160903Z ##[group]Run actions/download-artifact@v4
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6161298Z with:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6161613Z   name: ci-build
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6161915Z   path: rust
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6162223Z   merge-multiple: false
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6162924Z   repository: lanmower/oscraft
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6163504Z   run-id: 39579239759
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6163832Z env:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6164153Z   CARGO_TERM_COLOR: always
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6164460Z   CARGO_INCREMENTAL: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6164736Z   CARGO_PROFILE_DEV_DEBUG: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6165078Z   CARGO_NET_RETRY: 3
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.6165357Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.7341136Z Downloading single artifact
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.7451466Z (node:2315) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.7452839Z (Use `node --trace-deprecation ...` to show where the warning was created)
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.9322113Z Preparing to download the following artifacts:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:22.9322957Z - ci-build (ID: 12336245639, Size: 65491940, Expected Digest: sha256:5e66d3646be77eca46505a4aaca511dc1bb16e510e1599f5b3f36b9b41358202)
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:23.1108888Z Redirecting to blob download url: https://productionresultssa1.blob.core.windows.net/actions-results/8a623811-4b11-8074-af7e-b921f9af13da/workflow-job-run-e7221368-99c4-54a6-9f82-7080fc4c7735/artifacts/5e9862042ec05c3a9cec6358ee4e8e9738f66798384d12b68ed361d3796936f1.zip
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:23.1110277Z Starting download of artifact to: /home/runner/work/oscraft/oscraft/rust
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:23.3003210Z (node:2315) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.1878455Z SHA256 digest of downloaded artifact is 5e66d3646be77eca46505a4aaca511dc1bb16e510e1599f5b3f36b9b41358202
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.1879925Z Artifact download completed successfully.
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.1881003Z Total of 1 artifact(s) downloaded
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.1882460Z Download artifact has finished successfully
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2039250Z ##[group]Run find rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2040018Z ^[[36;1mfind rust/target/debug -maxdepth 1 -type f -exec chmod +x {} +^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2170795Z shell: /usr/bin/bash -e {0}
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2171274Z env:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2171614Z   CARGO_TERM_COLOR: always
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2171944Z   CARGO_INCREMENTAL: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2172308Z   CARGO_PROFILE_DEV_DEBUG: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2172639Z   CARGO_NET_RETRY: 3
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2172958Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2300130Z ##[group]Run set -euo pipefail
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2300651Z ^[[36;1mset -euo pipefail^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2300980Z ^[[36;1mwork="$RUNNER_TEMP/data-kind"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2301403Z ^[[36;1mrm -rf "$work"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2301729Z ^[[36;1mmkdir -p "$work"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2302063Z ^[[36;1mcp -r data "$work/base"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2302431Z ^[[36;1mcp -r data "$work/data"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2302841Z ^[[36;1mcat >> "$work/data/units.osd" <<'STAR'^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2304022Z ^[[36;1munit("zephyr", 45, 3150, 375, build_time=480, resource_a=50, capacity=1, abilities=[], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="resource_a")^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2304998Z ^[[36;1mSTAR^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2305441Z ^[[36;1mecho 'spawn("zephyr", 0, 22000, 18000)' >> "$work/data/map.osd"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2305936Z ^[[36;1mbase_addr=127.0.0.1:18442^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2306419Z ^[[36;1mkind_addr=127.0.0.1:18443^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2306982Z ^[[36;1m./target/debug/oscraftd --addr "$base_addr" --room base --data "$work/base" > "$work/base.log" 2>&1 &^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2307566Z ^[[36;1mbase_pid=$!^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2308156Z ^[[36;1m./target/debug/oscraftd --addr "$kind_addr" --room kind --data "$work/data" > "$work/kind.log" 2>&1 &^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2308703Z ^[[36;1mkind_pid=$!^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2309120Z ^[[36;1mtrap 'kill $base_pid $kind_pid 2>/dev/null || true' EXIT^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2309583Z ^[[36;1mup() {^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2309885Z ^[[36;1m  for i in $(seq 1 120); do^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2310331Z ^[[36;1m    curl -sf "http://$1/state" > /dev/null && return 0^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2310741Z ^[[36;1m    sleep 0.25^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2311109Z ^[[36;1m  done^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2311433Z ^[[36;1m  echo "server $1 did not answer /state"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2311835Z ^[[36;1m  cat "$work/kind.log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2312178Z ^[[36;1m  exit 1^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2312505Z ^[[36;1m}^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2312795Z ^[[36;1mup "$base_addr"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2313246Z ^[[36;1mup "$kind_addr"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2313726Z ^[[36;1mbase_units=$(curl -sf "http://$base_addr/state" | jq -r '.units')^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2314324Z ^[[36;1mkind_units=$(curl -sf "http://$kind_addr/state" | jq -r '.units')^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2314958Z ^[[36;1mlisted=$(curl -sf "http://$kind_addr/catalog" | jq -r '.units | index("zephyr") != null')^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2315536Z ^[[36;1mif [[ "$listed" != "true" ]]; then^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2315974Z ^[[36;1m  echo "zephyr is not in /catalog"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2316416Z ^[[36;1m  cat "$work/kind.log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2316761Z ^[[36;1m  exit 1^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2317206Z ^[[36;1mfi^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2317624Z ^[[36;1mif [[ $(( kind_units - base_units )) -ne 1 ]]; then^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2318242Z ^[[36;1m  echo "units base=$base_units with-zephyr=$kind_units: the data-spawned zephyr was not counted"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2318877Z ^[[36;1m  cat "$work/kind.log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2319214Z ^[[36;1m  exit 1^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2319565Z ^[[36;1mfi^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2319921Z ^[[36;1mecho "data-only kind ok kind=zephyr spawned=true"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2348521Z shell: /usr/bin/bash -e {0}
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2348872Z env:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2349250Z   CARGO_TERM_COLOR: always
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2349578Z   CARGO_INCREMENTAL: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2349937Z   CARGO_PROFILE_DEV_DEBUG: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2350277Z   CARGO_NET_RETRY: 3
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.2350581Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6281801Z data-only kind ok kind=zephyr spawned=true
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6326796Z ##[group]Run set -euo pipefail
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6327180Z ^[[36;1mset -euo pipefail^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6327594Z ^[[36;1mwork="$RUNNER_TEMP/handle-kind-change"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6327883Z ^[[36;1mrm -rf "$work"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6328144Z ^[[36;1mmkdir -p "$work"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6328403Z ^[[36;1mcp -r data "$work/data"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6328666Z ^[[36;1mcat > "$work/mod.lua" <<'LUA'^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6329108Z ^[[36;1m-- Spawns one skirmisher on tick 1, then orders its handle to one of two points every 40 ticks.^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6329508Z ^[[36;1mfunction on_tick(state)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6329779Z ^[[36;1m  state.ticks = (state.ticks or 0) + 1^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6330070Z ^[[36;1m  if state.ticks == 1 then^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6330428Z ^[[36;1m    state.handle = game.cmd_spawn("skirmisher", 3 * 65536, 3 * 65536)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6330797Z ^[[36;1m  elseif state.handle then^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6331307Z ^[[36;1m    local x = ((state.ticks // 40) % 2 == 0) and 4 or 8^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6331704Z ^[[36;1m    game.cmd_order_handle(state.handle, x * 65536, 4 * 65536)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6332032Z ^[[36;1m  end^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6332294Z ^[[36;1mend^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6332506Z ^[[36;1mLUA^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6332705Z ^[[36;1maddr=127.0.0.1:18445^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6332973Z ^[[36;1mlog="$work/server.log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6333668Z ^[[36;1m./target/debug/oscraftd --addr "$addr" --room kindchange --data "$work/data" --mod "$work/mod.lua" > "$log" 2>&1 &^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6334108Z ^[[36;1mpid=$!^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6334352Z ^[[36;1mtrap 'kill $pid 2>/dev/null || true' EXIT^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6334657Z ^[[36;1mwait_for() {^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6334915Z ^[[36;1m  for i in $(seq 1 $(( ${2:-60} * 4 ))); do^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6335216Z ^[[36;1m    grep -q "$1" "$log" && return 0^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6335599Z ^[[36;1m    kill -0 "$pid" 2>/dev/null || { cat "$log"; echo "server exited before: $1"; exit 1; }^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6336021Z ^[[36;1m    sleep 0.25^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6336256Z ^[[36;1m  done^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6336478Z ^[[36;1m  cat "$log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6336739Z ^[[36;1m  echo "timed out waiting for: $1"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6337037Z ^[[36;1m  exit 1^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6337244Z ^[[36;1m}^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6337460Z ^[[36;1mwait_for 'ev=mod_unit_bound'^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6337847Z ^[[36;1mbound=$(grep -o 'ev=mod_unit_bound handle=[0-9]* unit=[0-9]*' "$log" | head -n 1)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6338269Z ^[[36;1mhandle=$(echo "$bound" | sed 's/.*handle=\([0-9]*\).*/\1/')^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6338623Z ^[[36;1munit=$(echo "$bound" | sed 's/.*unit=//')^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6338985Z ^[[36;1m[[ -n "$handle" && -n "$unit" ]] || { echo "no mod unit bound"; cat "$log"; exit 1; }^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6339615Z ^[[36;1m# The map places units 0 to 7, so the mod's skirmisher holds index 8. Appending a tender places a different kind at that index.^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6340151Z ^[[36;1mprintf '\nspawn("tender", 0, 2500, 21500)\n' >> "$work/data/map.osd"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6340616Z ^[[36;1mwait_for 'ev=data_reloaded'^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6341009Z ^[[36;1mexpect="ev=mod_unit_refused handle=$handle unit=$unit reason=kind_changed"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6341415Z ^[[36;1mif [[ "$(grep -cF "$expect" "$log")" -ne 1 ]]; then^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6341733Z ^[[36;1m  cat "$log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6341987Z ^[[36;1m  echo "expected exactly one line: $expect"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6342292Z ^[[36;1m  exit 1^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6342514Z ^[[36;1mfi^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6342778Z ^[[36;1mkill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6343955Z ^[[36;1mecho "mod handle dropped on kind change ok handle=$handle unit=$unit reason=kind_changed"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6373803Z shell: /usr/bin/bash -e {0}
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6374083Z env:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6374300Z   CARGO_TERM_COLOR: always
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6374598Z   CARGO_INCREMENTAL: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6375015Z   CARGO_PROFILE_DEV_DEBUG: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6375294Z   CARGO_NET_RETRY: 3
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:25.6375518Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4344304Z mod handle dropped on kind change ok handle=1 unit=30 reason=kind_changed
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4376947Z ##[group]Run set -euo pipefail
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4377301Z ^[[36;1mset -euo pipefail^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4377583Z ^[[36;1mwork="$RUNNER_TEMP/carry-drop"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4377861Z ^[[36;1mrm -rf "$work"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4378091Z ^[[36;1mmkdir -p "$work"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4378370Z ^[[36;1mcp data/*.osd "$work/"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4378605Z ^[[36;1maddr=127.0.0.1:18446^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4378871Z ^[[36;1mlog="$work/server.log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4379273Z ^[[36;1m./target/debug/oscraftd --addr "$addr" --room drop --data "$work" > "$log" 2>&1 &^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4379612Z ^[[36;1mpid=$!^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4379879Z ^[[36;1mtrap 'kill $pid 2>/dev/null || true' EXIT^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4380204Z ^[[36;1mstate() { curl -sf "http://$addr/state"; }^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4380588Z ^[[36;1mfor i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4380937Z ^[[36;1mbefore=$(state | jq -r .units)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4381293Z ^[[36;1mtest "$before" -gt 0^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4381574Z ^[[36;1msed -i 's/"gunship"/"gunship_renamed"/g' "$work"/*.osd^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4382086Z ^[[36;1mfor i in $(seq 1 60); do grep -q '^ev=data_reloaded room=drop ' "$log" && break; sleep 0.5; done^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4382490Z ^[[36;1mgrep -q '^ev=data_reloaded room=drop ' "$log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4382830Z ^[[36;1mline=$(grep '^ev=data_reloaded room=drop ' "$log" | head -n 1)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4383425Z ^[[36;1mdropped=$(sed -n 's/.* refused=\([0-9]*\).*/\1/p' <<<"$line")^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4383827Z ^[[36;1mcarried=$(sed -n 's/.* carried=\([0-9]*\).*/\1/p' <<<"$line")^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4384176Z ^[[36;1mlive=$(sed -n 's/.* live=\([0-9]*\).*/\1/p' <<<"$line")^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4384481Z ^[[36;1mtest -n "$dropped"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4384724Z ^[[36;1mtest "$dropped" -ge 1^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4385173Z ^[[36;1m# The event counts the units alive at the swap tick: every one is either carried or refused. Creep waves keep^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4385745Z ^[[36;1m# spawning between reads, so the live count is compared against this event, never against an earlier read.^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4386671Z ^[[36;1mtest $(( carried + dropped )) -eq "$live"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4387007Z ^[[36;1mafter=$(state | jq -r .units)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4387247Z ^[[36;1mtest "$after" -gt 0^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4387555Z ^[[36;1mkill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4388040Z ^[[36;1mecho "carry drop exercised live=$live carried=$carried dropped=$dropped before=$before after=$after"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4422484Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4422888Z env:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4423261Z   CARGO_TERM_COLOR: always
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4423521Z   CARGO_INCREMENTAL: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4423955Z   CARGO_PROFILE_DEV_DEBUG: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4424227Z   CARGO_NET_RETRY: 3
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:28.4424464Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0686773Z carry drop exercised live=29 carried=28 dropped=1 before=29 after=27
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0719438Z ##[group]Run set -euo pipefail
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0719840Z ^[[36;1mset -euo pipefail^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0720141Z ^[[36;1mwork="$RUNNER_TEMP/match-carried"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0720432Z ^[[36;1mrm -rf "$work"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0720661Z ^[[36;1mmkdir -p "$work"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0720898Z ^[[36;1mcp data/*.osd "$work/"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0721197Z ^[[36;1maddr=127.0.0.1:18442^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0721469Z ^[[36;1mlog="$work/server.log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0721825Z ^[[36;1m./target/debug/oscraftd --addr "$addr" --room ci --data "$work" > "$log" 2>&1 &^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0722169Z ^[[36;1mpid=$!^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0722445Z ^[[36;1mtrap 'kill $pid 2>/dev/null || true' EXIT^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0722772Z ^[[36;1mstate() { curl -sf "http://$addr/state"; }^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0723425Z ^[[36;1mdump() { for i in $(seq 0 $(( $1 - 1 ))); do curl -sf "http://$addr/state?unit=$i" | jq -r '"\(.id) \(.x) \(.y)"'; done; }^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0724029Z ^[[36;1mfor i in $(seq 1 60); do state >/dev/null 2>&1 && break; sleep 0.5; done^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0724369Z ^[[36;1mbefore=$(state | jq -r .units)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0724655Z ^[[36;1mtest "$before" -gt 0^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0724909Z ^[[36;1mdump "$before" | sort > "$work/pre.txt"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0725217Z ^[[36;1mtest "$(wc -l < "$work/pre.txt")" -eq "$before"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0725618Z ^[[36;1msed -i '/^unit("skirmisher"/s/resource_a=50/resource_a=75/' "$work/units.osd"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0726026Z ^[[36;1mgrep -q '^unit("skirmisher".*resource_a=75' "$work/units.osd"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0726464Z ^[[36;1mfor i in $(seq 1 60); do grep -q '^ev=data_reloaded room=ci ' "$log" && break; sleep 0.5; done^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0726856Z ^[[36;1mgrep -q '^ev=data_reloaded room=ci ' "$log"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0727173Z ^[[36;1mafter=$(state | jq -r .units)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0727444Z ^[[36;1mdump "$before" | sort > "$work/post.txt"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0727766Z ^[[36;1mkept=$(comm -12 "$work/pre.txt" "$work/post.txt" | wc -l)^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0728244Z ^[[36;1mtest "$after" -le "$before" || { echo "units_after=$after exceeds units_before=$before"; exit 1; }^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0728618Z ^[[36;1mtest "$after" -eq "$before"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0728895Z ^[[36;1mtest "$kept" -eq "$before"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0729209Z ^[[36;1mkill "$pid"; wait "$pid" 2>/dev/null || true; trap - EXIT^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0729545Z ^[[36;1mgrep '^ev=data_reloaded ' "$log" | head -n 1^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0729927Z ^[[36;1mecho "match carried units_before=$before units_after=$after positions_kept=$kept"^[[0m
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0760464Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0760812Z env:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0761129Z   CARGO_TERM_COLOR: always
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0761386Z   CARGO_INCREMENTAL: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0761632Z   CARGO_PROFILE_DEV_DEBUG: 0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0761917Z   CARGO_NET_RETRY: 3
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:32.0762121Z ##[endgroup]
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.8075405Z ##[error]Process completed with exit code 1.
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9038255Z Post job cleanup.
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9699067Z [command]/usr/bin/git version
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9729448Z git version 2.55.0
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9753411Z Temporarily overriding HOME='/home/runner/work/_temp/33ff4de9-1b85-4bc1-bb0d-5f5f880ae7e7' before making global git config changes
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9754668Z Adding repository directory to the temporary git global config as a safe directory
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9756743Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/oscraft/oscraft
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9785132Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9812691Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:36.9972052Z Entering 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0011907Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0031121Z http.https://github.com/.extraheader
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0038290Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0066826Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0293923Z Entering 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0333720Z http.https://github.com/.extraheader
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0367158Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0398248Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0583042Z Entering 'js/client/vendor/wireweave'
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0596115Z file:/home/runner/work/oscraft/oscraft/.git/modules/js/client/vendor/wireweave/config	remote.origin.url
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0618552Z [command]/usr/bin/git config --file /home/runner/work/oscraft/oscraft/.git/modules/js/client/vendor/wireweave/config --name-only --get-regexp ^includeIf\.gitdir:
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0769736Z Cleaning up orphan processes
+server unit kinds, carry, protocol and log schema probes	UNKNOWN STEP	2026-10-21T09:45:37.0986977Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/download-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

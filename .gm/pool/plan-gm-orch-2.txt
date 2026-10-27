@@ -1,0 +1,9 @@
+run	gm-orch-2	2026-10-27
+unit	drain-camps	camps-gate-rect,camps-whole
+unit	drain-acronym	hero-acronym-ci-guard-max-three-letters,hero-acronym-table-misses-roster-heroes-fallback-is-full-name
+unit	drain-comment-js-client	comment-sweep-js-client
+unit	drain-comment-modhost	comment-sweep-modhost,comment-sweep-modhost-a,comment-sweep-modhost-b
+unit	gm-orch-2-5	lobby-fullscreen-seat-hero-coordination-flow
+unit	verify-2-6	camps-gate-rect,camps-whole,hero-acronym-ci-guard-max-three-letters,hero-acronym-table-misses-roster-heroes-fallback-is-full-name
+unit	verify-2-7	comment-sweep-js-client,comment-sweep-modhost,comment-sweep-modhost-a,comment-sweep-modhost-b
+unit	gm-orch-2-8	moba-damage-table-not-in-manifest,inventory-composite-ability-ids

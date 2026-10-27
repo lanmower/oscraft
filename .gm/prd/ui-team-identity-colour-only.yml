@@ -1,0 +1,13 @@
+id: ui-team-identity-colour-only
+subject: Own/ally/enemy is told by green/blue/red alone on bars and minimap
+description: 'js/client/hud.js:139 barColour (OWN green #4caf50 vs ENEMY red #e53935), ui_minimap.js ring/fill colours. Symptom: red-green colour blindness cannot separate own from enemy bars. Acceptance: a non-colour cue (outline style, notch, or shape) for own/ally/enemy, optional palette from tokens. Witness: deuteranopia-simulated screenshot still distinguishes the three.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T22:56:32.368Z
+  session_id: hud-match-2
+  note: 'Published 6cbdf7b7 (minimap ally ring and enemy cross, bar dark frame). Open: the witness needs allied and enemy units on screen under colour-vision emulation. Run at 1042x508 and 844x390 the bar canvas showed only own bars (green 479, blue 0, red 0), so the row stays open.'
+- ts: 2026-10-26T05:26:49.998Z
+  session_id: hud-match-witness
+  note: 'Not witnessed in the hud-match-witness run: the deuteranopia-emulated frame with own, allied and enemy bars is still to be taken. Open.'

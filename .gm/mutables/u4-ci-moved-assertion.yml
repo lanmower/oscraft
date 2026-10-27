@@ -1,0 +1,5 @@
+id: u4-ci-moved-assertion
+value: 'ci.yml job mod-spawn-reaches-room lines 745-800: how served room unit count and position are read - answers where the moved assertion attaches.'
+status: unknown
+row: gap-mod-unit-id-mapping
+session_id: gm-oscraft-sc2-alt-1-m11

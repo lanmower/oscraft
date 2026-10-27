@@ -1,0 +1,3 @@
+witness-first-draw.txt
+STATUS: NOT MEASURED. Stop rule: a build whose lobby never draws its roster stops. Neither build drew its roster, so no timed loads were run.
+Observed only: worldBuilt=1 and phase=lobby on both builds in a single probe each; no timing recorded.

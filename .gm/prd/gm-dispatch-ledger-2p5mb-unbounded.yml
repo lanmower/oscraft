@@ -1,0 +1,6 @@
+id: gm-dispatch-ledger-2p5mb-unbounded
+subject: The dispatch ledger is a 2.5 MB single JSON that every witness check reads whole
+description: 'Evidence: .gm/exec-spool/.dispatch-ledger.json 2518746 bytes. Confirming a witness by fs_read of the ledger is token-heavy; ask for a ledger-check verb taking dispatch ids and returning found/session only, plus rotation.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

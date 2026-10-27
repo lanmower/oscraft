@@ -1,0 +1,5 @@
+id: u-snapshot-store
+row: gap-net-host-resume
+question: Where does a browser room persist its snapshot (storage API) and is it written at all today?
+session_id: gm-orch-2-9
+status: unknown

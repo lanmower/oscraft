@@ -1,0 +1,1 @@
+{"chunks":[{"ch":2167597803,"emb":null,"key":"ci-bef0f648-3801e31d-0","kind":"function_item","le":23,"ls":11,"name":"a_loop_over_the_sim_can_read_it_again_in_its_body"}],"commit_overview":null,"digest_hash":2459019964,"hash":939647773,"mtime_ms":1792596319734.0,"path":"workspace/oscraft/rust/crates/mod-host/tests/sim_reads.rs","size":820,"skipped_no_embed":1,"v":7}

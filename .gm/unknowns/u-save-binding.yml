@@ -1,0 +1,5 @@
+row: gap-net-host-resume
+id: u-save-binding
+question: Does wasm Game (rust/crates/web/src/lib.rs) need new save_state/load_state bindings to snapshot and restore a room, since sim has them but Game does not expose them?
+session_id: mcp-codemode-1184-1792267460011
+status: unknown

@@ -1,0 +1,15 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const fs = require("fs");
+const src = fs.readFileSync("js/client/render3d.js", "utf8");
+const start = src.indexOf("const WHEEL_LINE_PX");
+const end = src.indexOf("export function zoomCamera");
+const endFn = src.indexOf("\n}\n", end) + 3;
+const code = src.slice(start, endFn).replace(/export /g, "");
+const mod = new Function(code + "\nreturn { wheelPixels, zoomCamera };")();
+const dist = (dy, mode) => { const cam = { distance: 100, minDistance: 1, maxDistance: 1e6 }; mod.zoomCamera(cam, mod.wheelPixels(dy, mode, 720)); return cam.distance; };
+const lineNotch = dist(3, 1), pixelNotch = dist(100, 0), pageNotch = dist(1, 2);
+const deltaOnly = dist(3, 0);
+const ratio = lineNotch / pixelNotch;
+const ok = Math.abs(ratio - 1) <= 0.1;
+console.log(JSON.stringify({ lineNotch, pixelNotch, pageNotch, lineVsPixelRatio: ratio, deltaYOnlyLineNotch: deltaOnly, RESULT: ok ? "PASS" : "FAIL" }));

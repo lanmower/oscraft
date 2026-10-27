@@ -1,0 +1,7 @@
+gm_session_id=verify-hud-team-strip-dota-compact
+timeoutMs=300000
+gm_session_id=verify-hud-team-strip-dota-compact
+timeoutMs=60000
+gh api /repos/lanmower/oscraft/compare/22fc7e2dcbe90a442ec7146837068690669077ca...194e15a3f98309360cece72c4f711f23aa46b14e --jq .status
+gh api /repos/lanmower/oscraft/compare/22fc7e2dcbe90a442ec7146837068690669077ca...d821e361b2f18eadcc67e4d4547444b26e68efcc --jq .status
+gh run view 40112897975 --repo lanmower/oscraft --json status,conclusion,headSha

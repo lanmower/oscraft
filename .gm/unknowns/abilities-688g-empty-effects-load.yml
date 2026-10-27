@@ -1,0 +1,4 @@
+id: abilities-688g-empty-effects-load
+value: Does osdt-data accept ability() with an empty effect list [] for a 6.88g hero ability whose effect is UNVERIFIED (content-abilities-120-heroes-missing)?
+status: unknown
+session_id: mcp-codemode-2472180-1792849480903-204

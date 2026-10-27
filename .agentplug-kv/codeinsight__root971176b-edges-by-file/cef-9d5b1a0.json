@@ -1,0 +1,1 @@
+{"edges":[["ward_left","saturating_sub",30],["ward_effect","spawn_for",37],["ward_effect","wrapping_add",41],["ward_effect","max",41],["ward_effect","inherit_ranks",42],["ward_effect","consume_charge",45],["consume_charge","touch",59],["tick_wards","touch",69]],"path":"tmp/moba-src-119f/rust/crates/sim/src/wards.rs"}

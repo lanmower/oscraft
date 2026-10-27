@@ -1,0 +1,204 @@
+name: ci
+
+# Runs on every push to main and on demand: the Rust workspace tests (sim, mod host, replay, the moba pack
+# and the example mods) and the wire codec round-trip. Pages deploys are in pages.yml.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: workspace tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust
+    # CI builds from a warm cache and never debugs: no incremental state and no debuginfo means less to write
+    # and link. Set on this job only, so a local build keeps its own profile.
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Install cargo-nextest (pinned to 0.9.149)
+        run: |
+          set -euo pipefail
+          curl -LsSf https://get.nexte.st/0.9.149/linux | tar zxf - -C "$HOME/.cargo/bin"
+          cargo nextest --version
+      # cargo test runs one test binary at a time. nextest runs every test in parallel: measured on
+      # this tree, the suite goes from about 160 s of test execution to about 60 s, because the
+      # slowest single test (mod-host moba_ticks, 57 s) is most of the serial cost. The workspace
+      # has no doctests, so nothing is lost by not running cargo test.
+      #
+      # moba_ticks is slow because an unoptimized sim is slow, so rust/Cargo.toml optimizes the four
+      # crates on that path under [profile.test]: 1200 ticks at opt-level 0 is 47 s and at 2 is 4.6 s.
+      # Optimizing the whole tree instead measured no cheaper overall (98 s against 102 s) because it
+      # doubles the build, and per-package is the only shape that wins. With it, the job is about 29 s.
+      - name: Test the workspace
+        run: cargo nextest run --workspace
+
+  # The browser build and the excluded wasip3 crate: a wasm-only break (std::time, getrandom, a panic path) otherwise first
+  # shows at deploy. The wasip3 crate is its own workspace, so the workspace job never builds it.
+  wasm:
+    name: wasm32 and wasip3 compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            rust -> target
+            rust/crates/wasip3 -> target
+          shared-key: rust-wasm
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Check the web crate for the browser target
+        run: cargo check -p web --target wasm32-unknown-unknown
+      - name: Check the wasip3 guest and its host
+        working-directory: rust/crates/wasip3
+        run: cargo check --all-targets --features fault-injection
+
+  # Players run the wasm build and replays and tests run native, so the same pack over the same ticks must hash alike on
+  # both. The native parity_hash writes the image, rules and mods it ran, and scripts/parity/wasm-hash.mjs feeds those
+  # bytes to the built wasm Game under node and fails when the final state hash differs. The wasm is built with the page's
+  # release profile (pages.yml), so the shipped configuration is the one compared.
+  parity:
+    name: native and wasm state hash agree
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-parity
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run the moba pack natively
+        run: |
+          set -euo pipefail
+          cargo run --release -p mod-host --bin parity_hash -- ../scenarios/moba 600 "$RUNNER_TEMP/parity" | tee "$RUNNER_TEMP/native.txt"
+      - name: Build the page wasm for node
+        env:
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: s
+          CARGO_PROFILE_RELEASE_LTO: true
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        run: wasm-pack build crates/web --target nodejs --out-dir "$RUNNER_TEMP/pkg"
+      - name: Compare the wasm hash with the native one
+        working-directory: .
+        run: node scripts/parity/wasm-hash.mjs "$RUNNER_TEMP/pkg" "$RUNNER_TEMP/parity" 600 "$(cat "$RUNNER_TEMP/native.txt")"
+
+  # pages.yml ships whatever mapexport writes without re-exporting it, which is only sound while two runs give the same bytes.
+  maps:
+    name: map export is deterministic
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-maps
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Export each pack twice and compare the bytes
+        run: |
+          set -euo pipefail
+          cargo build -p mapexport
+          out=$(mktemp -d)
+          for pack in moba duel-routes; do
+            target/debug/mapexport "../scenarios/$pack" "$out/$pack.1.osdt"
+            target/debug/mapexport "../scenarios/$pack" "$out/$pack.2.osdt"
+            cmp "$out/$pack.1.osdt" "$out/$pack.2.osdt"
+          done
+      - name: A bad manifest exits 1 with one line, not a panic
+        run: |
+          set -euo pipefail
+          dir=$(mktemp -d)
+          echo '{"data": 3}' > "$dir/manifest.json"
+          set +e
+          target/debug/mapexport "$dir" "$dir/out.osdt" 2> "$dir/err"
+          code=$?
+          set -e
+          cat "$dir/err"
+          test "$code" = 1
+          test "$(wc -l < "$dir/err")" = 1
+          grep -q '^mapexport: ' "$dir/err"
+
+  wire:
+    name: wire codec round-trip
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Round-trip every frame type
+        working-directory: js/wire
+        run: node test.js
+
+  # Runs beside the two-minute rust job, so it costs no wall time.
+  static:
+    name: static client checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The vendored wireweave is a submodule and part of the page's module graph, so the hint check
+      # needs it: without it the graph it walks is four files short and the committed hints look stale.
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the page's module preload hints
+        run: node scripts/check-modulepreload.mjs
+      - name: Check the effect data agree (kinds, schools, renderers)
+        run: node scenarios/moba/tools/check-fx.mjs
+      - name: Check every roster hero has a 1 to 3 letter unique acronym
+        run: node scripts/check-acronyms.mjs

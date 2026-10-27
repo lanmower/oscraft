@@ -1,0 +1,4 @@
+id: wasip2-u1-fire-trigger-idle
+value: does fire_trigger(0,"idle") return true for the test mod on remote main
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-m9

@@ -1,0 +1,13 @@
+id: gm-git-pull-blocked-by-lane-owned-dirty-files
+subject: git_pull refuses with pull_blocked_by_local_changes when other lanes own the dirty files
+description: 'Evidence: git status shows js/client/play.js, widgets.js, 50+ scenarios/moba/assets/icons/heroes/*-skinned.png, scripts/assets/prep-manifest-icons.json modified by live lanes. Ask: git_pull falls back to fetch plus the temp-index merge onto origin/main and names owners, instead of refusing.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending
+notes:
+- ts: 2026-10-25T11:49:29.290Z
+  session_id: mcp-codemode-3368056-1792928969171-60
+  note: '2026-10-25 11:49Z git_pull 6d8e7388..0533566b refused with pull_blocked_by_local_changes: js/client/render3d.js and js/client/widgets.js are modified in the shared checkout and the incoming commits touch them. Owner not identified from this session. Also blocks the parked E1 publish (first-draw-defer-assets-not-needed-for-first-frame) and the hy3d start-gate lane until the sync lands. git_status at 11:48Z: 2 modified, 1 untracked (scripts/assets/build-packs.mjs).'
+- ts: 2026-10-26T05:27:10.583Z
+  session_id: hud-match-witness
+  note: 'Seen again in hud-match-witness: git_pull on main refused with local changes to rust/crates/mod-host/src/piccolo_host.rs, rust/crates/sim/src/persist.rs and rust/crates/sim/src/rules.rs (another session''s uncommitted work) overlapping origin a0478e34. The local store keeps nine witnessed closes pending until the owning writer commits those paths.'

@@ -1,0 +1,190 @@
+workspace tests	Test the workspace	﻿2026-10-25T12:39:29.7637424Z ##[group]Run cargo nextest run --workspace
+workspace tests	Test the workspace	2026-10-25T12:39:29.7637886Z ^[[36;1mcargo nextest run --workspace^[[0m
+workspace tests	Test the workspace	2026-10-25T12:39:29.7675207Z shell: /usr/bin/bash -e {0}
+workspace tests	Test the workspace	2026-10-25T12:39:29.7675527Z env:
+workspace tests	Test the workspace	2026-10-25T12:39:29.7675828Z   CARGO_INCREMENTAL: 0
+workspace tests	Test the workspace	2026-10-25T12:39:29.7676163Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	Test the workspace	2026-10-25T12:39:29.7676447Z   CACHE_ON_FAILURE: false
+workspace tests	Test the workspace	2026-10-25T12:39:29.7676716Z ##[endgroup]
+workspace tests	Test the workspace	2026-10-25T12:39:29.8532269Z     Updating crates.io index
+workspace tests	Test the workspace	2026-10-25T12:39:30.3847183Z    Compiling sim v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/sim)
+workspace tests	Test the workspace	2026-10-25T12:39:30.3858493Z    Compiling osdt-data v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/data)
+workspace tests	Test the workspace	2026-10-25T12:39:30.3864028Z    Compiling piccolo v0.3.3 (/home/runner/work/oscraft/oscraft/rust/vendor/piccolo)
+workspace tests	Test the workspace	2026-10-25T12:39:30.3883641Z    Compiling mpq v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/mpq)
+workspace tests	Test the workspace	2026-10-25T12:39:30.5971037Z warning: use of deprecated module `std::i32`: all constants in this module replaced by associated constants on the type
+workspace tests	Test the workspace	2026-10-25T12:39:30.5994392Z  --> vendor/piccolo/src/compiler/lexer.rs:2:16
+workspace tests	Test the workspace	2026-10-25T12:39:30.5994944Z   |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6033017Z 2 |     char, fmt, i32, i64,
+workspace tests	Test the workspace	2026-10-25T12:39:30.6042914Z   |                ^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6082744Z   |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6112842Z   = note: `#[warn(deprecated)]` on by default
+workspace tests	Test the workspace	2026-10-25T12:39:30.6142743Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6173428Z warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+workspace tests	Test the workspace	2026-10-25T12:39:30.6182831Z  --> vendor/piccolo/src/compiler/lexer.rs:2:21
+workspace tests	Test the workspace	2026-10-25T12:39:30.6212752Z   |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6232956Z 2 |     char, fmt, i32, i64,
+workspace tests	Test the workspace	2026-10-25T12:39:30.6262864Z   |                     ^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6292498Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6323219Z warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+workspace tests	Test the workspace	2026-10-25T12:39:30.6332657Z    --> vendor/piccolo/src/stdlib/math.rs:120:46
+workspace tests	Test the workspace	2026-10-25T12:39:30.6362648Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6383079Z 120 |     math.set(ctx, "huge", Value::Number(f64::INFINITY)).unwrap();
+workspace tests	Test the workspace	2026-10-25T12:39:30.6412819Z     |                                              ^^^^^^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6452490Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6473082Z warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+workspace tests	Test the workspace	2026-10-25T12:39:30.6482854Z    --> vendor/piccolo/src/stdlib/math.rs:140:51
+workspace tests	Test the workspace	2026-10-25T12:39:30.6512650Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6533207Z 140 |                     .try_fold(Value::Number(-f64::INFINITY), |max, entry| {
+workspace tests	Test the workspace	2026-10-25T12:39:30.6562912Z     |                                                   ^^^^^^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6612610Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6623270Z warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+workspace tests	Test the workspace	2026-10-25T12:39:30.6652684Z    --> vendor/piccolo/src/stdlib/math.rs:163:50
+workspace tests	Test the workspace	2026-10-25T12:39:30.6653323Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6683126Z 163 |                     .try_fold(Value::Number(f64::INFINITY), |max, entry| {
+workspace tests	Test the workspace	2026-10-25T12:39:30.6698780Z     |                                                  ^^^^^^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6742390Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6773147Z warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+workspace tests	Test the workspace	2026-10-25T12:39:30.6802740Z  --> vendor/piccolo/src/table/raw.rs:1:28
+workspace tests	Test the workspace	2026-10-25T12:39:30.6832730Z   |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6862924Z 1 | use std::{fmt, hash::Hash, i64, mem};
+workspace tests	Test the workspace	2026-10-25T12:39:30.6872765Z   |                            ^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6912545Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6933053Z warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+workspace tests	Test the workspace	2026-10-25T12:39:30.6933674Z    --> vendor/piccolo/src/table/raw.rs:302:32
+workspace tests	Test the workspace	2026-10-25T12:39:30.6934125Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6934463Z 302 |                 if max == i64::MAX {
+workspace tests	Test the workspace	2026-10-25T12:39:30.6934822Z     |                                ^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6935585Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6935956Z warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+workspace tests	Test the workspace	2026-10-25T12:39:30.6936557Z    --> vendor/piccolo/src/table/raw.rs:307:33
+workspace tests	Test the workspace	2026-10-25T12:39:30.6936923Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6937290Z 307 |                     return i64::MAX;
+workspace tests	Test the workspace	2026-10-25T12:39:30.6937621Z     |                                 ^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6937885Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6938191Z warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+workspace tests	Test the workspace	2026-10-25T12:39:30.6938733Z    --> vendor/piccolo/src/table/raw.rs:311:32
+workspace tests	Test the workspace	2026-10-25T12:39:30.6939114Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6939391Z 311 |                     max = i64::MAX;
+workspace tests	Test the workspace	2026-10-25T12:39:30.6939720Z     |                                ^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6939975Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6940368Z warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+workspace tests	Test the workspace	2026-10-25T12:39:30.6940986Z  --> vendor/piccolo/src/table/table.rs:3:5
+workspace tests	Test the workspace	2026-10-25T12:39:30.6941415Z   |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6941684Z 3 |     i64, mem,
+workspace tests	Test the workspace	2026-10-25T12:39:30.6942001Z   |     ^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6962462Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.6962980Z warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+workspace tests	Test the workspace	2026-10-25T12:39:30.6963607Z  --> vendor/piccolo/src/value.rs:1:21
+workspace tests	Test the workspace	2026-10-25T12:39:30.6964004Z   |
+workspace tests	Test the workspace	2026-10-25T12:39:30.6964372Z 1 | use std::{f64, fmt, i64, io, string::String as StdString};
+workspace tests	Test the workspace	2026-10-25T12:39:30.6964805Z   |                     ^^^
+workspace tests	Test the workspace	2026-10-25T12:39:30.6965015Z 
+workspace tests	Test the workspace	2026-10-25T12:39:30.7633962Z    Compiling oscraft-relay v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/relay)
+workspace tests	Test the workspace	2026-10-25T12:39:31.2673576Z warning: irrefutable `if let` pattern
+workspace tests	Test the workspace	2026-10-25T12:39:31.2704731Z    --> vendor/piccolo/src/conversion.rs:221:28
+workspace tests	Test the workspace	2026-10-25T12:39:31.2732997Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:31.2783013Z 221 |                         if let Ok(i) = <$i>::try_from(i) {
+workspace tests	Test the workspace	2026-10-25T12:39:31.2793008Z     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+workspace tests	Test the workspace	2026-10-25T12:39:31.2822773Z ...
+workspace tests	Test the workspace	2026-10-25T12:39:31.2823225Z 240 | impl_int_from!(i64, u64, i32, u32, i16, u16, i8, u8);
+workspace tests	Test the workspace	2026-10-25T12:39:31.2823824Z     | ---------------------------------------------------- in this macro invocation
+workspace tests	Test the workspace	2026-10-25T12:39:31.2824325Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:31.2824772Z     = note: this pattern will always match, so the `if let` is useless
+workspace tests	Test the workspace	2026-10-25T12:39:31.2852918Z     = help: consider replacing the `if let` with a `let`
+workspace tests	Test the workspace	2026-10-25T12:39:31.2853472Z     = note: `#[warn(irrefutable_let_patterns)]` on by default
+workspace tests	Test the workspace	2026-10-25T12:39:31.2854224Z     = note: this warning originates in the macro `impl_int_from` (in Nightly builds, run with -Z macro-backtrace for more info)
+workspace tests	Test the workspace	2026-10-25T12:39:31.2854779Z 
+workspace tests	Test the workspace	2026-10-25T12:39:31.6425970Z warning: hiding a lifetime that's elided elsewhere is confusing
+workspace tests	Test the workspace	2026-10-25T12:39:31.6443569Z   --> vendor/piccolo/src/stack.rs:78:9
+workspace tests	Test the workspace	2026-10-25T12:39:31.6473109Z    |
+workspace tests	Test the workspace	2026-10-25T12:39:31.6503034Z 78 |         &mut self,
+workspace tests	Test the workspace	2026-10-25T12:39:31.6552926Z    |         ^^^^^^^^^ the lifetime is elided here
+workspace tests	Test the workspace	2026-10-25T12:39:31.6562967Z 79 |         range: R,
+workspace tests	Test the workspace	2026-10-25T12:39:31.6593072Z 80 |     ) -> vec::Drain<Value<'gc>, MetricsAlloc<'gc>> {
+workspace tests	Test the workspace	2026-10-25T12:39:31.6612710Z    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+workspace tests	Test the workspace	2026-10-25T12:39:31.6622657Z    |
+workspace tests	Test the workspace	2026-10-25T12:39:31.6652870Z    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+workspace tests	Test the workspace	2026-10-25T12:39:31.6682884Z    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+workspace tests	Test the workspace	2026-10-25T12:39:31.6692930Z help: use `'_` for type paths
+workspace tests	Test the workspace	2026-10-25T12:39:31.6712848Z    |
+workspace tests	Test the workspace	2026-10-25T12:39:31.6742990Z 80 |     ) -> vec::Drain<'_, Value<'gc>, MetricsAlloc<'gc>> {
+workspace tests	Test the workspace	2026-10-25T12:39:31.6772735Z    |                     +++
+workspace tests	Test the workspace	2026-10-25T12:39:31.6773131Z 
+workspace tests	Test the workspace	2026-10-25T12:39:31.6802874Z warning: hiding a lifetime that's elided elsewhere is confusing
+workspace tests	Test the workspace	2026-10-25T12:39:31.6803510Z    --> vendor/piccolo/src/thread/thread.rs:206:9
+workspace tests	Test the workspace	2026-10-25T12:39:31.6804313Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:31.6804603Z 206 |         &self,
+workspace tests	Test the workspace	2026-10-25T12:39:31.6804945Z     |         ^^^^^ the lifetime is elided here
+workspace tests	Test the workspace	2026-10-25T12:39:31.6805385Z ...
+workspace tests	Test the workspace	2026-10-25T12:39:31.6805792Z 209 |     ) -> Result<RefMut<ThreadState<'gc>>, BadThreadMode> {
+workspace tests	Test the workspace	2026-10-25T12:39:31.6806268Z     |                 ^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+workspace tests	Test the workspace	2026-10-25T12:39:31.6806664Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:31.6807154Z     = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+workspace tests	Test the workspace	2026-10-25T12:39:31.6807719Z help: use `'_` for type paths
+workspace tests	Test the workspace	2026-10-25T12:39:31.6808080Z     |
+workspace tests	Test the workspace	2026-10-25T12:39:31.6808658Z 209 |     ) -> Result<RefMut<'_, ThreadState<'gc>>, BadThreadMode> {
+workspace tests	Test the workspace	2026-10-25T12:39:31.6809081Z     |                        +++
+workspace tests	Test the workspace	2026-10-25T12:39:31.6809310Z 
+workspace tests	Test the workspace	2026-10-25T12:39:35.9438216Z    Compiling mod-host v0.0.0 (/home/runner/work/oscraft/oscraft/rust/crates/mod-host)
+workspace tests	Test the workspace	2026-10-25T12:39:38.8494059Z warning: `piccolo` (lib) generated 14 warnings (run `cargo fix --lib -p piccolo` to apply 2 suggestions)
+workspace tests	Test the workspace	2026-10-25T12:39:38.8523922Z    Compiling replay v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/replay)
+workspace tests	Test the workspace	2026-10-25T12:39:43.4353755Z    Compiling mapexport v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/mapexport)
+workspace tests	Test the workspace	2026-10-25T12:39:50.2034652Z    Compiling web v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/web)
+workspace tests	Test the workspace	2026-10-25T12:39:57.3173835Z    Compiling oscraft-lsp v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/mod-lsp)
+workspace tests	Test the workspace	2026-10-25T12:39:59.9031611Z    Compiling oscraft-gate v0.1.0 (/home/runner/work/oscraft/oscraft/rust/gate)
+workspace tests	Test the workspace	2026-10-25T12:40:00.9719554Z     Finished `test` profile [unoptimized] target(s) in 30.66s
+workspace tests	Test the workspace	2026-10-25T12:40:01.0684555Z ────────────
+workspace tests	Test the workspace	2026-10-25T12:40:01.0685303Z  Nextest run ID c888dae6-c307-448f-aa98-3dcf745506bc with nextest profile: default
+workspace tests	Test the workspace	2026-10-25T12:40:01.0685841Z     Starting 75 tests across 35 binaries
+workspace tests	Test the workspace	2026-10-25T12:40:02.4193626Z         PASS [   1.349s] ( 1/75) mod-host piccolo_host::containment::a_panicking_native_is_a_hook_failure_and_the_host_keeps_advancing
+workspace tests	Test the workspace	2026-10-25T12:40:02.4473987Z         PASS [   1.377s] ( 2/75) mod-host piccolo_host::containment::state_ticks_is_the_sim_tick_on_every_step
+workspace tests	Test the workspace	2026-10-25T12:40:02.5243947Z         FAIL [   1.453s] ( 3/75) mod-host::ability_bar the_ability_bar_has_one_cell_per_key_with_its_slots_ability
+workspace tests	Test the workspace	2026-10-25T12:40:02.5244894Z   stdout ───
+workspace tests	Test the workspace	2026-10-25T12:40:02.5245093Z 
+workspace tests	Test the workspace	2026-10-25T12:40:02.5245231Z     running 1 test
+workspace tests	Test the workspace	2026-10-25T12:40:02.5245711Z     test the_ability_bar_has_one_cell_per_key_with_its_slots_ability ... FAILED
+workspace tests	Test the workspace	2026-10-25T12:40:02.5246113Z 
+workspace tests	Test the workspace	2026-10-25T12:40:02.5246226Z     failures:
+workspace tests	Test the workspace	2026-10-25T12:40:02.5246448Z 
+workspace tests	Test the workspace	2026-10-25T12:40:02.5246553Z     failures:
+workspace tests	Test the workspace	2026-10-25T12:40:02.5246960Z         the_ability_bar_has_one_cell_per_key_with_its_slots_ability
+workspace tests	Test the workspace	2026-10-25T12:40:02.5247217Z 
+workspace tests	Test the workspace	2026-10-25T12:40:02.5247609Z     test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.45s
+workspace tests	Test the workspace	2026-10-25T12:40:02.5248061Z 
+workspace tests	Test the workspace	2026-10-25T12:40:02.5248258Z   stderr ───
+workspace tests	Test the workspace	2026-10-25T12:40:02.5248438Z 
+workspace tests	Test the workspace	2026-10-25T12:40:02.5248885Z     thread 'the_ability_bar_has_one_cell_per_key_with_its_slots_ability' (3400) panicked at crates/mod-host/tests/ability_bar.rs:100:5:
+workspace tests	Test the workspace	2026-10-25T12:40:02.5249648Z     assertion `left == right` failed: the bar reads q w e r as the hero's slots 0 to 3
+workspace tests	Test the workspace	2026-10-25T12:40:02.5250358Z       left: [Some("antimage_spell_shield"), Some("antimage_mana_break"), Some("antimage_blink"), Some("antimage_mana_void")]
+workspace tests	Test the workspace	2026-10-25T12:40:02.5251223Z      right: [Some("antimage_mana_break"), Some("antimage_blink"), Some("antimage_counterspell"), Some("antimage_talents")]
+workspace tests	Test the workspace	2026-10-25T12:40:02.5251995Z     note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+workspace tests	Test the workspace	2026-10-25T12:40:02.5252492Z 
+workspace tests	Test the workspace	2026-10-25T12:40:02.5252699Z   Cancelling due to test failure: 3 tests still running
+workspace tests	Test the workspace	2026-10-25T12:40:02.6835899Z         PASS [   1.615s] ( 4/75) mod-host::aegis a_hero_dying_with_the_aegis_returns_where_it_fell_at_full_health_and_the_charge_is_spent
+workspace tests	Test the workspace	2026-10-25T12:40:03.6006262Z         FAIL [   1.183s] ( 5/75) mod-host::aegis a_hero_without_the_aegis_goes_to_the_respawn_timer_and_returns_home
+workspace tests	Test the workspace	2026-10-25T12:40:03.6007509Z   stdout ───
+workspace tests	Test the workspace	2026-10-25T12:40:03.6007672Z 
+workspace tests	Test the workspace	2026-10-25T12:40:03.6007855Z     running 1 test
+workspace tests	Test the workspace	2026-10-25T12:40:03.6008339Z     test a_hero_without_the_aegis_goes_to_the_respawn_timer_and_returns_home ... FAILED
+workspace tests	Test the workspace	2026-10-25T12:40:03.6008739Z 
+workspace tests	Test the workspace	2026-10-25T12:40:03.6008888Z     failures:
+workspace tests	Test the workspace	2026-10-25T12:40:03.6009038Z 
+workspace tests	Test the workspace	2026-10-25T12:40:03.6009188Z     failures:
+workspace tests	Test the workspace	2026-10-25T12:40:03.6009622Z         a_hero_without_the_aegis_goes_to_the_respawn_timer_and_returns_home
+workspace tests	Test the workspace	2026-10-25T12:40:03.6009981Z 
+workspace tests	Test the workspace	2026-10-25T12:40:03.6010282Z     test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.18s
+workspace tests	Test the workspace	2026-10-25T12:40:03.6010711Z 
+workspace tests	Test the workspace	2026-10-25T12:40:03.6010909Z   stderr ───
+workspace tests	Test the workspace	2026-10-25T12:40:03.6011058Z 
+workspace tests	Test the workspace	2026-10-25T12:40:03.6011492Z     thread 'a_hero_without_the_aegis_goes_to_the_respawn_timer_and_returns_home' (3404) panicked at crates/mod-host/tests/aegis.rs:75:5:
+workspace tests	Test the workspace	2026-10-25T12:40:03.6013069Z     a hero with no aegis waits for the respawn timer
+workspace tests	Test the workspace	2026-10-25T12:40:03.6013687Z     note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+workspace tests	Test the workspace	2026-10-25T12:40:03.6014034Z 
+workspace tests	Test the workspace	2026-10-25T12:40:03.7937925Z         PASS [   1.348s] ( 6/75) mod-host::bots bot_seats_drive_their_heroes_and_no_hook_is_disabled
+workspace tests	Test the workspace	2026-10-25T12:40:03.7939421Z ────────────
+workspace tests	Test the workspace	2026-10-25T12:40:03.7939927Z      Summary [   2.725s] 6/75 tests run: 4 passed, 2 failed, 0 skipped
+workspace tests	Test the workspace	2026-10-25T12:40:03.7940608Z         FAIL [   1.453s] ( 3/75) mod-host::ability_bar the_ability_bar_has_one_cell_per_key_with_its_slots_ability
+workspace tests	Test the workspace	2026-10-25T12:40:03.7941365Z         FAIL [   1.183s] ( 5/75) mod-host::aegis a_hero_without_the_aegis_goes_to_the_respawn_timer_and_returns_home
+workspace tests	Test the workspace	2026-10-25T12:40:03.7942394Z warning: 69/75 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+workspace tests	Test the workspace	2026-10-25T12:40:03.7951449Z error: test run failed
+workspace tests	Test the workspace	2026-10-25T12:40:03.7974011Z ##[error]Process completed with exit code 100.

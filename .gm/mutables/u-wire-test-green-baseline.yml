@@ -1,0 +1,4 @@
+id: u-wire-test-green-baseline
+value: node js/wire/test.js passes on the unmodified tree
+status: unknown
+session_id: gm-orch-3-11

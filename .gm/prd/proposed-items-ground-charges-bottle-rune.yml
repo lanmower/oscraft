@@ -1,0 +1,7 @@
+id: proposed-items-ground-charges-bottle-rune
+subject: 'Proposed: ground items, bottle and rune storage, item charges setter, aegis ground item, drop rules'
+description: From hy3d's consolidated gap list (worldmech-parity.tsv, items2-parity.tsv). cmd_set_item_charges 0 empties the slot; there is no ground-item storage for bottle or runes; the aegis is not drawn as a ground item; drop rules are missing. Proposed, not approved.
+acceptance_criteria: 'Each item is implemented against its 6.88g row, with the source in the commit body, and a CI witness on the pushed sha. Owner: hy3d (proposed).'
+owner: hy3d
+session_id: mcp-codemode-1158174-1792947532444-1
+status: pending

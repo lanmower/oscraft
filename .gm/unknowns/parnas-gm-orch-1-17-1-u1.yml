@@ -1,0 +1,5 @@
+id: parnas-gm-orch-1-17-1-u1
+subject: 'Current behavior: non-VEC3 POSITION accessor is not rejected'
+body: 'parseGlb index count = positions.length/3 (glb.js:74); readAccessor uses accessor.type width (glb.js:36) without checking it equals VEC3. Unknown: does a VEC2 POSITION yield a wrong index count and no error? Eliminate by live run of parseGlb on crafted GLB.'
+session_id: gm-orch-1-19
+status: unknown

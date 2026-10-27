@@ -1,0 +1,5 @@
+id: naming-generic-resources-U6
+subject: Does the rename of supply to capacity collide with an existing capacity_cap/capacity_used or 'capacity' identifier in the same crates?
+row: naming-generic-resources
+session_id: gm-oscraft-w1-04
+status: unknown

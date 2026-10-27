@@ -1,0 +1,1 @@
+{"chunks":[{"ch":3001968917,"emb":null,"key":"ci-6a4d67c9-5598883e-0","kind":"function_item","le":32,"ls":13,"name":"bot_seats_drive_their_heroes_and_no_hook_is_disabled"}],"commit_overview":null,"digest_hash":685442972,"hash":1436059710,"mtime_ms":1792647748010.0,"path":"workspace/oscraft/rust/crates/mod-host/tests/bots.rs","size":1679,"skipped_no_embed":1,"v":7}

@@ -1,0 +1,1 @@
+{"edges":[["main","collect",6],["main","args",6],["main","as_slice",7],["main","read",9],["main","check_version",10],["main","read",14],["main","round_trip",15],["main","generate",19],["main","new",19],["main","round_trip",20],["main","write",21]],"path":"tmp/sticky-fixed/rust/crates/data/src/main.rs"}

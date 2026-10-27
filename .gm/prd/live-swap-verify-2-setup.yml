@@ -1,0 +1,12 @@
+id: live-swap-verify-2-setup
+subject: 'Live two-page swap check blocked: no match starts on the Pages build'
+description: 'Step 1 (setup) failed. Newest main 475445fd: Pages run 39594...-failure, wasm build fails in crates/sim (27 errors, e.g. spell.rs:943 no method is_hero on Sim, spell.rs:1315 no apply_hero_stats), so the site is not redeployed. The live site is still b06cbc98 (run 39594792302, success). On that build the host lobby reads start failed: pack moba: no asset grass, because tiles.js SPLAT_TEXTURES expects top-level keys grass/dirt while manifest.json nests them under assets.textures; 475445fd fixes the key names but is not deployable. Result: the match never starts, so hero dots, tick sync and the data swap steps could not run. Host page: https://lanmower.github.io/oscraft/js/client/play.html?host=1#moba. Screenshot: /tmp/live-swap-host-lobby.png.'
+acceptance_criteria: Pages run for the newest main sha succeeds; host lobby starts the moba match (no start failed); both pages show 5/5 hero dots; swap tick equal on both pages with matching getState hash and unit count.
+witness_plan: Re-run the live two-tab swap check after the Pages deploy of the newest main sha.
+session_id: live-swap-verify-2
+owner: live-swap-verify-2
+status: pending
+notes:
+- ts: 2026-10-25T04:06:09.684Z
+  session_id: drain-net-3
+  note: 'Route decision (drain-net-3): the swap is dev-only. Pages serves no /__hmr (fetch dispatch 1792901163071-5025-d226e792370fc878: GitHub Pages 404 for https://lanmower.github.io/oscraft/__hmr); announceSwap and queuePackSwaps are fed only by the oscraft:hmr event (hmr.js:23,89,110), so the live site has no swap trigger. Origin tip 77168a44 is CI success (run 40154918568) and pages success (run 40154918557). The witness runs on a dev origin (scripts/dev/serve.mjs) built from origin tip, once lobby-start-world-ready-never-fires-headful lands (a fresh host cannot start a match). Blocked; no witness.'

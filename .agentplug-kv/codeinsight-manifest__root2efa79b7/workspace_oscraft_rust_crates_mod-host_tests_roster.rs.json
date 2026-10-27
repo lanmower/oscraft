@@ -1,0 +1,1 @@
+{"chunks":[{"ch":3040625731,"emb":null,"key":"ci-63174340-9c9c6e09-0","kind":"function_item","le":38,"ls":25,"name":"only_heroes_with_a_model_are_offered"}],"commit_overview":null,"digest_hash":3971219265,"hash":2627497481,"mtime_ms":1792821676716.0,"path":"workspace/oscraft/rust/crates/mod-host/tests/roster.rs","size":1459,"skipped_no_embed":1,"v":7}

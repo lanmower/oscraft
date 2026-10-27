@@ -1,0 +1,6 @@
+id: gm-fs-read-refuses-outside-root
+subject: fs_read refuses paths outside the project root, blocking sibling-repo reads needed by content rows
+description: 'Evidence: rows gen-doodad-types-w3-hardcodes-hy3d-path and content-tree-layer-not-converged-blocker-drain-c-1 need /workspace/hy3d reads. Ask: a read-only allowlist of sibling roots in config, or a read verb with explicit root arg that stays read-only.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

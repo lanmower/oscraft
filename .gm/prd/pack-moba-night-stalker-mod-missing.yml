@@ -1,0 +1,8 @@
+id: pack-moba-night-stalker-mod-missing
+subject: 'moba pack init logs ''unknown_module: night_stalker is not a module of this pack'' on every load'
+description: 'Every local load of js/client/play.html logs console.error ''[mods] init: unknown_module: night_stalker is not a module of this pack'' (play.js logModError at the mod init). A mod entry names a module the moba pack does not ship. Owner: the moba pack manifest (scenarios/moba/manifest.json mod list).'
+acceptance_criteria: 'The moba pack loads with no [mods] init error: either the mod entry is removed or the module exists.'
+witness_plan: Headful load of play.html with console capture; no [mods] error line in 25 s.
+owner: hud-start-1
+session_id: hud-start-1
+status: pending

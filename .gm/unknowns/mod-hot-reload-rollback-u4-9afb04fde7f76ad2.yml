@@ -1,0 +1,5 @@
+id: mod-hot-reload-rollback-U4
+row: mod-hot-reload-rollback
+text: set_modified moves the mtime forward so reload() sees the edit without sleep (closed by 'reload ok' printed with no sleep in the harness)
+session_id: mcp-codemode-1132-1792148667657
+status: unknown

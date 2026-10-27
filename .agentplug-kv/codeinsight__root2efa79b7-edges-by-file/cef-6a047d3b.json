@@ -1,0 +1,1 @@
+{"edges":[["<module>","normalize",9],["<module>","vec3",9],["<module>","max",10],["<module>","dot",10],["<module>","normalize",10],["<module>","texture",11],["<module>","vec4",12],["<module>","vec4",12],["<module>","sunShadow",12]],"path":"workspace/oscraft/js/client/shaders/mesh.frag.glsl"}

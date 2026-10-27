@@ -1,0 +1,26 @@
+{
+ "node": "PARNAS",
+ "applied": true,
+ "changes": [
+  {
+   "file": "js/client/ice.js",
+   "commit": "04fb353c20",
+   "edit": "removed export from DEFAULT_ICE_SERVERS"
+  }
+ ],
+ "witness": "exec_js 1792267860135-500-43be0015f13a04ce: iceServersFrom(null) returns 2 default servers, custom TURN list returns 1, malformed input throws, module exports only iceServersFrom; codeinsight importers of ice.js = play.js only, which uses iceServersFrom",
+ "prd_ids": [],
+ "mutable_ids": [],
+ "next_choice": {
+  "to": "DEEPMOD",
+  "why": "With the list hidden, the module's interface is one function. The deep-module question is whether iceServersFrom hides enough work (parse, validate, default) to justify its surface. Its validation rules are the behavior the next hop must test."
+ },
+ "links_offered": [
+  "DEEPMOD"
+ ],
+ "link_taken": "DEEPMOD",
+ "session": "gm-orch-1-18",
+ "witness_dispatch_ids": [
+  "1792267860135-500-43be0015f13a04ce"
+ ]
+}

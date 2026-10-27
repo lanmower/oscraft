@@ -1,0 +1,6 @@
+id: gm-prd-resolve-references-body-line-undocumented
+subject: prd-resolve refuses references_required; the body line escape is not in the verb reply
+description: 'prd-resolve refused with references_required and suggested two fixes: prd-references with a url, or a row body line ''No public references: <reason>''. prd-references accepts only id, references, cwd, session_id (no none_because), so the body line is the only route for a data row with no public source. A body line added by prd-add overwrite:true satisfied the gate. Fix: accept a none_because argument on prd-references, or have prd-resolve name the exact accepted body-line form in its refusal (one line, copy-ready). Witness to prove: resolve a row whose only reference is a local data file with none_because and see the gate pass.'
+status: pending
+session_id: drain-hero688-13
+owner: drain-hero688-13

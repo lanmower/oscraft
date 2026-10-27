@@ -1,0 +1,18 @@
+const fs = require('fs');
+const root = process.argv[2];
+const u = fs.readFileSync(root + '/scenarios/moba/units.osd', 'utf8').split('\n');
+const tsv = fs.readFileSync(root + '/scenarios/moba/creeps_688g.tsv', 'utf8').split('\n').filter(l => l && !l.startsWith('#'));
+const hdr = tsv[0].split('\t');
+const rows = new Map(tsv.slice(1).map(l => { const c = l.split('\t'); return [c[0], Object.fromEntries(hdr.map((h, i) => [h, c[i]]))]; }));
+const idOf = l => (l.match(/^unit\("(\w+)"/) || [])[1];
+const cn = u.filter(l => /^unit\("(creep|neutral|roshan)/.test(l));
+const withRow = cn.filter(l => rows.has(idOf(l)));
+const noRow = cn.filter(l => !rows.has(idOf(l)));
+const unv = u.filter(l => /UNVERIFIED/.test(l));
+console.log('units.osd lines', u.length, 'creep/neutral/roshan unit lines', cn.length, 'with TSV row', withRow.length, 'no TSV row', noRow.length);
+console.log('TSV rows', rows.size, 'TSV ids', [...rows.keys()].join(' '));
+console.log('no-row ids', noRow.map(idOf).join(' '));
+console.log('UNVERIFIED lines in units.osd', unv.length);
+console.log('blank-armour TSV ids', [...rows].filter(([k, v]) => v.armor === '').map(([k]) => k).join(' '));
+console.log('cn ids with UNVERIFIED', cn.filter(l => /UNVERIFIED/.test(l)).map(idOf).join(' '));
+console.log('units.osd lines with UNVERIFIED comment, ids', unv.map(l => (l.match(/^unit\("(\w+)"/) || [])[1] || l.slice(0, 40)).join(' '));

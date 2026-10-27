@@ -1,0 +1,7 @@
+id: proposed-creep-kinds-camp-respawn-bounty
+subject: 'Proposed: respawn as a kind, separate Sentinel and Scourge creep kinds, creep bounty dice, summon unit definitions'
+description: From hy3d's consolidated gap list (creeps_688g.tsv, camps). Respawn-as-kind (camp composition re-roll and whole-camp spawn) is missing; Sentinel and Scourge creep kinds are not separate (this shifts unit indices); creep bounty is the midpoint, not a dice roll (min and max are in the unit data); summon unit definitions are missing, so many creep abilities are empty. Proposed, not approved.
+acceptance_criteria: 'Each item matches its 6.88g row, the unit index shift is covered by a state-version bump, and CI is green on the pushed sha. Owner: hy3d (proposed).'
+owner: hy3d
+session_id: mcp-codemode-1158174-1792947532444-1
+status: pending

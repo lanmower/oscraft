@@ -1,0 +1,148 @@
+warning: use of deprecated module `std::i32`: all constants in this module replaced by associated constants on the type
+ --> /workspace/oscraft/rust/vendor/piccolo/src/compiler/lexer.rs:2:16
+  |
+2 |     char, fmt, i32, i64,
+  |                ^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> /workspace/oscraft/rust/vendor/piccolo/src/compiler/lexer.rs:2:21
+  |
+2 |     char, fmt, i32, i64,
+  |                     ^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> /workspace/oscraft/rust/vendor/piccolo/src/stdlib/math.rs:120:46
+    |
+120 |     math.set(ctx, "huge", Value::Number(f64::INFINITY)).unwrap();
+    |                                              ^^^^^^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> /workspace/oscraft/rust/vendor/piccolo/src/stdlib/math.rs:140:51
+    |
+140 |                     .try_fold(Value::Number(-f64::INFINITY), |max, entry| {
+    |                                                   ^^^^^^^^
+
+warning: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`
+   --> /workspace/oscraft/rust/vendor/piccolo/src/stdlib/math.rs:163:50
+    |
+163 |                     .try_fold(Value::Number(f64::INFINITY), |max, entry| {
+    |                                                  ^^^^^^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> /workspace/oscraft/rust/vendor/piccolo/src/table/raw.rs:1:28
+  |
+1 | use std::{fmt, hash::Hash, i64, mem};
+  |                            ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> /workspace/oscraft/rust/vendor/piccolo/src/table/raw.rs:297:32
+    |
+297 |                 if max == i64::MAX {
+    |                                ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> /workspace/oscraft/rust/vendor/piccolo/src/table/raw.rs:302:33
+    |
+302 |                     return i64::MAX;
+    |                                 ^^^
+
+warning: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type
+   --> /workspace/oscraft/rust/vendor/piccolo/src/table/raw.rs:306:32
+    |
+306 |                     max = i64::MAX;
+    |                                ^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> /workspace/oscraft/rust/vendor/piccolo/src/table/table.rs:3:5
+  |
+3 |     i64, mem,
+  |     ^^^
+
+warning: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type
+ --> /workspace/oscraft/rust/vendor/piccolo/src/value.rs:1:21
+  |
+1 | use std::{f64, fmt, i64, io, string::String as StdString};
+  |                     ^^^
+
+warning: irrefutable `if let` pattern
+   --> /workspace/oscraft/rust/vendor/piccolo/src/conversion.rs:221:28
+    |
+221 |                         if let Ok(i) = <$i>::try_from(i) {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+240 | impl_int_from!(i64, u64, i32, u32, i16, u16, i8, u8);
+    | ---------------------------------------------------- in this macro invocation
+    |
+    = note: this pattern will always match, so the `if let` is useless
+    = help: consider replacing the `if let` with a `let`
+    = note: `#[warn(irrefutable_let_patterns)]` on by default
+    = note: this warning originates in the macro `impl_int_from` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> /workspace/oscraft/rust/vendor/piccolo/src/stack.rs:78:9
+   |
+78 |         &mut self,
+   |         ^^^^^^^^^ the lifetime is elided here
+79 |         range: R,
+80 |     ) -> vec::Drain<Value<'gc>, MetricsAlloc<'gc>> {
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+80 |     ) -> vec::Drain<'_, Value<'gc>, MetricsAlloc<'gc>> {
+   |                     +++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> /workspace/oscraft/rust/vendor/piccolo/src/thread/thread.rs:206:9
+    |
+206 |         &self,
+    |         ^^^^^ the lifetime is elided here
+...
+209 |     ) -> Result<RefMut<ThreadState<'gc>>, BadThreadMode> {
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+209 |     ) -> Result<RefMut<'_, ThreadState<'gc>>, BadThreadMode> {
+    |                        +++
+
+warning: `piccolo` (lib) generated 14 warnings (run `cargo fix --lib -p piccolo` to apply 2 suggestions)
+   Compiling drain-d-1-witness v0.0.0 (/workspace/oscraft/.gm/witness/drain-d-1)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.31s
+     Running `/workspace/oscraft/rust/target/debug/drain-d-1-witness`
+witness controls-shift-queue shift=false unit@(76.00,257.00) first=kind0@(78.30,257.00) after_second_click=kind0@(72.30,260.00) later=kind0@(72.30,260.00) ticks=1500 ok=true
+witness controls-shift-queue shift=true unit@(76.00,257.00) first=kind0@(78.30,257.00) after_second_click=kind0@(78.30,257.00) later=kind0@(72.30,260.00) ticks=1500 ok=true
+diag unit 0 kind=0 alive=true pos=(4980736, 16842752)
+diag unit 2 kind=0 alive=true pos=(5210112, 14712832)
+diag unit 3 kind=0 alive=true pos=(6651904, 16154624)
+diag unit 4 kind=0 alive=true pos=(6782976, 16678912)
+diag unit 5 kind=0 alive=true pos=(5472256, 15368192)
+diag unit 6 kind=0 alive=true pos=(5079040, 15499264)
+diag unit 7 kind=0 alive=true pos=(6062080, 16678912)
+diag unit 8 kind=0 alive=true pos=(3899392, 15892480)
+diag unit 9 kind=0 alive=true pos=(5472256, 16351232)
+diag unit 10 kind=0 alive=true pos=(5668864, 17072128)
+diag unit 11 kind=0 alive=true pos=(4685824, 16285696)
+diag unit 12 kind=0 alive=true pos=(6062080, 17924096)
+diag unit 24 kind=0 alive=true pos=(5701632, 15794176)
+diag unit 25 kind=0 alive=true pos=(4456448, 15269888)
+diag unit 26 kind=0 alive=true pos=(6553600, 17367040)
+diag unit 27 kind=0 alive=true pos=(6160384, 16121856)
+diag unit 28 kind=0 alive=true pos=(3866624, 15269888)
+diag unit 29 kind=0 alive=true pos=(6553600, 17891328)
+diag unit 36 kind=0 alive=true pos=(3833856, 17793024)
+diag unit 127 kind=0 alive=true pos=(4227072, 14563344)
+diag unit 128 kind=0 alive=true pos=(5931008, 15376384)
+diag unit 129 kind=0 alive=true pos=(6332416, 17227776)
+diag unit 138 kind=0 alive=true pos=(5046272, 16908288)
+diag unit 139 kind=0 alive=true pos=(4915200, 16908288)
+diag unit 140 kind=0 alive=true pos=(6946816, 16842752)
+diag ui ["\"kind\":\"feedback\",\"data\":{\"ids\":[0],\"kind\":\"selection\",\"player\":0}", "\"kind\":\"feedback\",\"data\":{\"ids\":[0],\"kind\":\"selection\",\"player\":0}"]
+witness controls-double-click-select-type double_click_ids=Some([0]) want=[0, 138, 139] off_screen_id=140 ok=false
+witness controls-double-click-select-type single_click_ids=None want=[0] ok=false
+RESULT controls-shift-queue=PASS controls-double-click-select-type=FAIL

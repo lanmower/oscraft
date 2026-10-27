@@ -1,0 +1,4 @@
+id: wasip3-nightly-std
+value: Does nightly rustc have the wasm32-wasip3 std in CI (rustup target add)? Answered by the CI job itself.
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

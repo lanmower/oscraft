@@ -1,0 +1,12 @@
+id: ui-phone-lobby-grid-hud-lobby-1
+subject: Phone lobby hero grid overflows the 390px width (panels.lua portraits, widgets portrait grid)
+description: 'scenarios/moba/panels.lua:1008 builds the hero portraits with cols=8 size=56, and js/client/widgets.js renders .w-portraits.fit with fixed 64px tracks. At 390x844 the Strength, Agility and Intelligence columns and the portrait rows run past the right edge of #ui-modal (portraits at x 355-692 inside a 374px modal), so the grid is clipped sideways. The modal sizing for phones is handled in play.html under ui-phone-lobby-overflows; the grid itself belongs to the lobby lane.'
+acceptance_criteria: 'At 390x844 every hero tile lies inside #ui-modal: the columns derive from the available width (auto-fill or minmax), and no child''s right edge exceeds the modal''s right edge.'
+witness_plan: 'Headful tab with cdp Emulation.setDeviceMetricsOverride 390x844 mobile; eval the getBoundingClientRect of each .w-portraits child against #ui-modal, plus a screenshot. Run from a session other than the resolver.'
+owner: hud-lobby-1
+session_id: hud-start-1
+status: pending
+notes:
+- ts: 2026-10-26T05:26:45.253Z
+  session_id: hud-match-witness
+  note: 'Measured at 390x844 in 1792991970899-5485-61f184c944cf5b7d: the Strength portrait grid clips at the modal''s right edge (fixed 8 columns of 56px). Still open until the columns derive from width.'

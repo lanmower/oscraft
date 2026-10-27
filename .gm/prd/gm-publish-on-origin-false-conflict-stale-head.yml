@@ -1,0 +1,6 @@
+id: gm-publish-on-origin-false-conflict-stale-head
+subject: 'publish_on_origin: false merge_conflict when local copy already equals origin upstream'
+description: 'publish_on_origin dry run on paths widgets.js and pages.yml refused with merge_conflict: the lane''s copy of widgets.js was the origin text plus the row''s edit, and its base is merge-base(HEAD, origin/main) = HEAD, which lags origin. So upstream lines already on origin appeared as this lane''s change and conflicted with origin''s own version of the same line. Fix in gm-publish: when the lane''s copy already equals origin on a hunk, drop that hunk from the diff before the three-way merge, or take publish_base as the origin tip and compare against it. Workaround used: Git API commit on origin main (blobs, tree with base_tree, commit, PATCH refs/heads/main), leaving the shared working tree untouched. Evidence: dispatch 1792928980672-3368056-8f7e0c6948254fb4.'
+session_id: drain-packs-14
+owner: drain-packs-14
+status: pending

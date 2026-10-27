@@ -1,0 +1,1 @@
+{"chunks":[{"ch":2339573317,"emb":null,"key":"ci-7e7507cb-98054fc-0","kind":"function_item","le":33,"ls":11,"name":"carry_from"}],"commit_overview":null,"digest_hash":3925902187,"hash":159405308,"mtime_ms":1792582105364.0,"path":"workspace/oscraft/rust/crates/sim/src/carry.rs","size":1426,"skipped_no_embed":1,"v":7}

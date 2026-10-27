@@ -1,0 +1,7 @@
+id: proposed-damage-type-healing-ward-mana-trickle
+subject: 'Proposed: per-ability magic damage type, Healing Ward deny XP percent, mana trickle native, damage-formula scaling, percent auras'
+description: 'From hy3d''s consolidated gap list (combat-parity.tsv, abil2-parity). One base cannot give both script spells (hero attack type) and engine spells (DamageBonusSpells, hero 0.75). Missing: Healing Ward deny_xp_pct, a set-mana native for the Bloodstone trickle, damage-formula scaling, percent auras, forced displacement, line-of-zones walls, on-cast triggers, per-enemy stack and attacker identity for Sticky Napalm, Untouchable, Corrosive Skin and Headshot, items summon effect (Necronomicon), bash damage and block stat columns, aura clauses (Ring of Aquila), barrier duration (Hood of Defiance). Proposed, not approved.'
+acceptance_criteria: 'Each item is implemented against its 6.88g row with a CI witness on the pushed sha. Owner: hy3d (proposed).'
+owner: hy3d
+session_id: mcp-codemode-1158174-1792947532444-1
+status: pending

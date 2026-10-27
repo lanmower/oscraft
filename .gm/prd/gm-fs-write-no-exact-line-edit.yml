@@ -1,0 +1,6 @@
+id: gm-fs-write-no-exact-line-edit
+subject: 'gm has no exact-line edit verb: fs_write is whole-file only'
+description: 'fs_write takes a complete file (body_schema: path, content). Editing a 3225-line file or a 1103-line Lua file means re-sending the whole file to change 4 lines. Add an exact-line edit verb (old string must match once, new string replaces it) to gm-mcp so lanes can EMIT exact-line changes as the gm-prd procedure states. Found by hero-icon-404s-missing-15-skinned-png (session drain-icon-404-7).'
+session_id: drain-icon-404-7
+owner: drain-icon-404-7
+status: pending

@@ -1,0 +1,4 @@
+id: gap-room-thread-supervisor-F2
+subject: Does a panic in Room::step (via run_ticker) get caught by supervise and resume ticking within 2 s with state restored from the last good snapshot? Snapshot-restore path is not located.
+session_id: gm-orch-1-3
+status: unknown

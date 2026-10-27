@@ -1,0 +1,8 @@
+gm-orch-16-page witness
+sha f8ab06431a6a8fdf04e4845dbc7fb79eecbce3cd
+ci run 39078459424 success (rerun)
+pages run 39078459366 success
+dump-dom moba: terrain=1 doodad=7 unit=30 quad=0 bars=30
+duel doodad=2 (verifier 1)
+screenshot /tmp/gm-final-moba.png
+verifier gm-orch-16-page-verify2 PASS steps 1-5

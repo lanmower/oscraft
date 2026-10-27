@@ -1,0 +1,26 @@
+id: ability-icons-placeholder-not-688g-art
+subject: Hero ability icons are CC0 placeholders, not 6.88g art
+description: 'Ability icons under scenarios/moba/assets/icons/abilities/ for hero skills are placeholder CC0 art (freegameassets.com Fantasy RPG Icons) picked by name, recorded in ABILITY-SOURCES.tsv and ABILITY-SOURCES-DOTA2.tsv with status PLACEHOLDER. The 6.88g source icon plan (/workspace/hy3d/output/688g-data/abil2-icons-plan.tsv) names fga sources, not 6.88g BLP art. Replacement needs 6.88g icon art extracted from the reference map, same route as content-item-icons-hy3d-replace. Acceptance: every ability icon for the 127 heroes derives from 6.88g art or a named public source, with the source tracked per file.'
+session_id: heroes-inv-1
+owner: heroes-inv-1
+status: pending
+notes:
+- ts: 2026-10-25T16:20:45.027Z
+  session_id: heroes-inv-1
+  note: 'heroes-inv-1: published the 133 Dota 2 ability icons (commit 61e09211, CC0 placeholders, ABILITY-SOURCES-DOTA2.tsv). The 6.88g icons for ids that have no ability row yet are NOT published: origin commit 7df47a60 already ships icons for all 501 live ability ids, and shipping icons without rows would add unreferenced files. These icons follow their rows in heroes-688g-ability-rows-missing.'
+- ts: 2026-10-26T21:08:33.172Z
+  session_id: drain-icons-688g-art-r2
+  note: 'drain-icons-688g-art-r2: 6.88g ability icon PIXELS are not obtainable in this workspace. Evidence: (1) no 6.88g map archive, MPQ or BLP exists under /workspace/oscraft or /workspace/hy3d; the only .w3x on disk is a 937-byte file inside hy3d/tools/w3x2lni (witness 1793048874381-3380-7e3f1ce35b70a662). The 6.88g material present is war3map.j, war3map.w3e/.doo/.wtg/.wct and the LNI text export g688-lni/ability.ini. (2) ability.ini carries icon NAME strings only (Art = ReplaceableTextures\CommandButtons\BTN...), no pixels. (3) the route this row names, content-item-icons-hy3d-replace, is itself still pending and unproven; icons/ITEM-SOURCES.tsv already records ''6.88g item art is not in the repo: UNVERIFIED''. (4) pixels would need a download of a third-party 6.88g map mirror (epicwar.com, wc3maps.com) and extraction of Blizzard-derived art: a redistribution decision for the owner, and no BLP decoder exists here. Wired what IS obtainable: icons/ABILITY-SOURCES.tsv records per icon file the shipped CC0 pack source, its status, and the exact 6.88g icon name for the 291 of 634 ids a 6.88g ability covers (619 PLACEHOLDER, 15 UNKNOWN, 0 GAP). No art invented. Row premise refuted: replacement via the hy3d item-icon route has no source art behind it.'
+references:
+- ts: 2026-10-26T21:10:06.751Z
+  session_id: drain-icons-688g-art-r2
+  note: '{"url":"https://www.epicwar.com/maps/282741/","repo":"","path":"","sha":"","why":"Public 6.88g map mirror: shows the 6.88g map with its BLP icon art is only reachable as a third-party download, not from material in this workspace.","license":"unknown"}'
+- ts: 2026-10-26T21:10:08.132Z
+  session_id: drain-icons-688g-art-r2
+  note: '{"url":"https://www.freegameassets.com/fantasy-rpg-icons","repo":"","path":"","sha":"","why":"The CC0 pack every shipped ability icon comes from; ABILITY-SOURCES.tsv records the pack file per icon.","license":"unknown"}'
+- ts: 2026-10-26T21:10:08.532Z
+  session_id: drain-icons-688g-art-r2
+  note: '{"url":"https://www.hiveworkshop.com/threads/blp-lab.276625/","repo":"","path":"","sha":"","why":"BLP is a Warcraft III texture format needing a converter; no BLP file or converter exists in this repo (0 hits for blp under scenarios).","license":"unknown"}'
+witness_request:
+  ts_ms: 1793050574276
+  requested_by: verify-ability-icons-688g-art

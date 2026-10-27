@@ -1,0 +1,7 @@
+id: proposed-destructible-trees
+subject: 'Proposed: destructible trees with alive flag and regrow tick in state and hash, kill and restore commands, temporary blockers'
+description: 'From hy3d''s consolidated gap list (pathing docs, docs/CONVERGENCE_688G.md section on trees). Trees are not destructible: no alive flag, no regrow tick in state or hash, no TREE cell bit, no kill or restore commands, no Tango, Quelling Blade, clear-under-blink, Sprout, Ironwood, Fissure or Ice Shards temporary blockers. The map holds the full-forest state. Proposed, not approved; it changes the state hash, so it needs a state version bump.'
+acceptance_criteria: 'Trees can be cut and regrow per 6.88g, the state version is bumped and recorded, and a native and wasm state-hash witness agrees. Owner: hy3d (proposed).'
+owner: hy3d
+session_id: mcp-codemode-1158174-1792947532444-1
+status: pending

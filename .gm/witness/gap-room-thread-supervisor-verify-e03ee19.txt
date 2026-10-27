@@ -1,0 +1,19 @@
+sha=e03ee19f09d61b4e74eb23295205a720a3c4746d binary=/tmp/tmp.4Ylxlw1yJY/rust/target/debug/oscraftd
+armed addr=127.0.0.1:39489 died=1 restarted=1
+A1 PASS died==1
+A2 PASS restarted==1
+A3 PASS tick before=21 after=35
+--- armed ticker lines ---
+ev=ticker_died thread=ticker reason="test-only panic armed by --test-panic-tick fired at tick 20"
+ev=ticker_restarted thread=ticker restarts=1
+--- two-sided: same poll, impossible before=10^12 ---
+NEG ok assertion refused before=1000000000000 after=116
+--- unarmed quiet run ---
+unarmed died=0
+Q1 PASS unarmed died==0
+--- panic log tail ---
+ev=order_token room=ci token=6660b29c3d7598933342249be2aff962
+ev=serving rooms=1 addr=127.0.0.1:39489 rate=8
+ev=ticker_died thread=ticker reason="test-only panic armed by --test-panic-tick fired at tick 20"
+ev=ticker_restarted thread=ticker restarts=1
+exit=0

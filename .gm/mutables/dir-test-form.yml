@@ -1,0 +1,4 @@
+status: unknown
+id: dir-test-form
+value: Does bash [ -s dir ] reject a directory, so install-check.sh needs [ -d ] for models/?
+session_id: gm-orch-1-r4

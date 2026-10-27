@@ -1,0 +1,52 @@
+{
+ "node": "DADA_CRIT_USE_NIELSEN",
+ "applied": false,
+ "changes": [],
+ "witness": "1792858265590-3943-1c7a4d9eda8d0ac0",
+ "prd_ids": [
+  "DADA_CRIT_USE_NIELSEN-trav-hud-client-DADA_CRIT_USE_NIELSEN-1"
+ ],
+ "unknown_ids": [],
+ "next_choice": {
+  "to": null,
+  "why": "depth limit: max_depth 0, no successor spawned"
+ },
+ "links_offered": [
+  "DADA_CRIT_PROV_DEBORD",
+  "DADA_CRIT_PROV_SHKLOVSKY",
+  "DADA_NIELSEN",
+  "DADA_NORMAN"
+ ],
+ "link_taken": null,
+ "session": "trav-hud-client-DADA_CRIT_USE_NIELSEN",
+ "witness_dispatch_ids": [
+  "1792858227095-3859-651c629489bce4af",
+  "1792858228254-3861-d0ac08fd22b2ac68",
+  "1792858242323-3905-6cd672b37b62f48",
+  "1792858242554-3906-c635238e497d0ae0",
+  "1792858242792-3907-2c6a8c9d615d2232",
+  "1792858243022-3908-55b93eaba84feef4",
+  "1792858265356-3942-e37b61f62b8f2cd7",
+  "1792858265590-3943-1c7a4d9eda8d0ac0",
+  "1792858265852-3944-f9fc030918b5fcf5",
+  "1792858266094-3946-71ae531799acb8da",
+  "1792858266333-3947-d7e91ca27913a60b",
+  "1792858289348-4004-54390393f72f06a6",
+  "1792858290659-4009-297631db398dcc69",
+  "1792858291097-4010-99225111a665bf72",
+  "1792858297595-4051-1c66d77b8fe3269c",
+  "1792858297993-4055-732e3292a24a181e",
+  "1792858331685-4143-5dcad64f0bd6c692",
+  "1792858332616-4146-9c51928ab1277298"
+ ],
+ "verified_by": null,
+ "verified_dispatch_ids": [],
+ "findings": [
+  {
+   "prd_id": "DADA_CRIT_USE_NIELSEN-trav-hud-client-DADA_CRIT_USE_NIELSEN-1",
+   "owner": "trav-hud-client-DADA_CRIT_USE_NIELSEN",
+   "disposition": "accept"
+  }
+ ],
+ "inspector": null
+}

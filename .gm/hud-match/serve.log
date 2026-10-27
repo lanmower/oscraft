@@ -1,0 +1,3 @@
+serving /config/tmp/hud-match/.dev-site with js/client, scenarios and mods live from /config/tmp/hud-match
+live reload: http://localhost:40207/__hmr (pushed on change; no polling)
+http://localhost:40207/js/client/play.html#moba

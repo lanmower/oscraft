@@ -1,0 +1,12 @@
+id: gm-tooling-concurrency-witness-item3-failed
+subject: 'Closed concurrency witness: item 3 fails, pool-observe reports 13 launchable so supply_exhausted is not reached'
+description: 'The gm-tooling-concurrency-witness row was closed in commit 4351c2df. Its item 3 fails: pool-observe (dispatch 1792892983067-5194-9aae90288859b245) reports launchable 13, so the supply_exhausted branch is not reached while rows are launchable. The closure cannot stand on a failed item. Reopen the substance as this row.'
+acceptance_criteria: The supply_exhausted branch is reached live with the launchable count at zero, witnessed from a separate session.
+witness_plan: Drive pool-observe to zero launchable rows on the served build and record the branch it returns.
+session_id: mcp-codemode-3835105-1792893173463-272
+owner: mcp-codemode-3835105-1792893173463-272
+status: pending
+notes:
+- ts: 2026-10-25T06:09:10.498Z
+  session_id: verify-gm-tooling-concurrency-witness-item3-failed
+  note: 'Witness (session verify-gm-tooling-concurrency-witness-item3-failed), dispatch 1792908094986-5207-cc06411dc0a9682e: held = 46 open rows, no body.live. Reply: launchable 0, route_kind blocked, count_of_record absent, no state key. supply_exhausted is not reached: rs-plugkit/crates/plugkit-core/src/orchestrator/pool_slots/observe.rs:220 requires observed.is_some(), and observed (line 61) is body.live or a fresh 5-minute count-of-record. held alone cannot set it. Needs body.live = ListAgents count from the orchestrator. Do not write a placeholder count: it lands in count-of-record and denies other lanes'' prd-resolve/transition for 5 minutes. Earlier witness 1792906906262 (held 43) returned launchable 2 (gm-witness-overwrite-1792906855297, gm-wait-verb-returns-immediately): both were written by queued prd-add calls after the held snapshot, so held must come from the same snapshot. gm.callers on handle_observe panics (gm-instruction-panics-nested-runtime); codesearch used instead: caller mod.rs:437.'

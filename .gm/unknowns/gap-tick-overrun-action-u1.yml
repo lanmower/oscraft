@@ -1,0 +1,4 @@
+id: gap-tick-overrun-action-u1
+text: 'Does a queued backlog exist during the CI 1us run? Answers: can the tick-budget job enqueue orders (HTTP order endpoint) while oscraftd runs --ticks 200, and does the order route accept them in lib.rs?'
+session_id: gm-oscraft-sc2-alt-1-o1
+status: unknown

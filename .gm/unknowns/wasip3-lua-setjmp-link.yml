@@ -1,0 +1,4 @@
+id: wasip3-lua-setjmp-link
+value: Does Lua's setjmp error path link on wasm32-wasip3 (needs wasi-libc sjlj or equivalent)? Answered only by a CI link.
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

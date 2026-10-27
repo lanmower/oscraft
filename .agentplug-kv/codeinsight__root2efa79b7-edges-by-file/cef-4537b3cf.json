@@ -1,0 +1,1 @@
+{"edges":[["timed_left","saturating_sub",30],["timed_spawn_effect","spawn_for",37],["timed_spawn_effect","saturating_add",41],["timed_spawn_effect","max",41],["tick_timed_life","touch",51]],"path":"workspace/oscraft/rust/crates/sim/src/timed_life.rs"}

@@ -1,0 +1,4 @@
+id: shed-log-line
+value: 'U3: Does the shed branch emit ev=tick_shed naming the deferred work on the first shedding tick? Answer by live run.'
+status: unknown
+session_id: gm-oscraft-w1-08

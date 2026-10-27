@@ -1,0 +1,1 @@
+{"chunks":[{"ch":4270590026,"emb":null,"key":"ci-843ef493-7f811c62-0","kind":"function_item","le":35,"ls":33,"name":"build_image"}],"commit_overview":null,"digest_hash":2688473682,"hash":2139167842,"mtime_ms":1792647748008.0,"path":"workspace/oscraft/rust/crates/mod-host/src/lib.rs","size":1843,"skipped_no_embed":1,"v":7}

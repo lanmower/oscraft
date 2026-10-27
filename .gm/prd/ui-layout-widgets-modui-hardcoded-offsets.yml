@@ -1,0 +1,8 @@
+id: ui-layout-widgets-modui-hardcoded-offsets
+subject: widgets.js and modui.js still place panels with fixed pixel offsets
+description: js/client/widgets.js lines near 95-102 use calc(100vh - 473px), top -170px and -400px, and bottom 124px; js/client/modui.js line near 9 uses bottom 180px. They should read the bar height from --bar-h and the column tokens (--side-w, --right-w, --right-top) that play.html defines. This is the rest of ui-layout-constants-hard-coded-not-bar-height.
+acceptance_criteria: No fixed bar-height pixel value in widgets.js or modui.js; a 844x390 screenshot keeps the map visible above 50 percent.
+witness_plan: Measure the panel rectangles at 390x844 and 844x390 with the eval probe.
+owner: hud-lobby-1
+session_id: hud-match-2
+status: pending

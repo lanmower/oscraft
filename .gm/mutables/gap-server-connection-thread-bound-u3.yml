@@ -1,0 +1,6 @@
+row: gap-server-connection-thread-bound
+id: gap-server-connection-thread-bound-u3
+subject: Cap value and source
+question: What fixed cap value and config source (flag/env) should bound accepted connections?
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

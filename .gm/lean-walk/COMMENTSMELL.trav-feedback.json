@@ -1,0 +1,25 @@
+{
+ "node": "COMMENTSMELL",
+ "applied": false,
+ "changes": [],
+ "witness": "Header claims hold: draw() reads no DOM and writes through put() (feedback.js:1-4, 20-27); overlays are pointer-events:none (feedback.js:15).",
+ "prd_ids": [],
+ "unknown_ids": [],
+ "next_choice": {
+  "to": "none",
+  "why": "lane order: the traversal lane walks the principle list itself"
+ },
+ "links_offered": [],
+ "link_taken": null,
+ "session": "trav-feedback",
+ "verdict": "HOLDS",
+ "witness_dispatch_ids": [
+  "1792858230149-3869-21d19524e8d35fbc",
+  "1792858261769-3931-adfb35580ef10c16",
+  "1792858289193-4003-372f9ba5e1ba248e"
+ ],
+ "verified_by": null,
+ "verified_dispatch_ids": [],
+ "findings": [],
+ "inspector": null
+}

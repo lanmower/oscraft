@@ -1,0 +1,74 @@
+# Extra fields for the moba scenario. unit_extra(name, ...) sets them for one unit.
+# Verified from the reference deny rules: a denied lane creep gives enemies 50% xp, a denied hero gives 0%,
+# and a denied unit pays no gold. Heroes are player_controlled; they share kill and assist xp.
+# Every other value below is UNVERIFIED unless its own comment cites a source.
+# Bounties from SteamDatabase tracking repo @282fad29f0f74504fad465c52d197fb61f4d612b source/scripts/npc/npc_units.txt. Creep: BountyGoldMin 34 / Max 39 -> 36, BountyXP 57. Tower: no bounty keys in badguys_tower1_mid, so gold and xp are 0. Roshan: BountyGoldMin 200 / Max 290 -> 245, BountyXP 400. Gold ranges are reduced to their midpoint because the sim takes one value.
+unit_extra("creep", reward=36, xp_reward=57, deny_xp_pct=50, assist_radius_milli=23438, acquire=500)
+unit_extra("tower", reward=0, xp_reward=0, deny_xp_pct=0)  # no bounty keys in the dump
+unit_extra("base", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
+unit_extra("objective", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
+unit_extra("tender", deny_xp_pct=0)  # UNVERIFIED: placeholder, not in the verified rules
+unit_extra("hero", player_controlled=True, deny_xp_pct=0)
+# Roshan bounty: 6.88g [n00L] bountydice 5, bountysides 51, bountyplus 145 = 5d51+145, mean 275 gold (range 150-400; the engine takes one value). 400 xp, source as above. assist_radius_milli UNVERIFIED.
+unit_extra("roshan", reward=275, xp_reward=400, assist_radius_milli=23438)
+# Wards: bounty 100 gold and 100 xp from observer_wards (sentry copies it, UNVERIFIED). Sentry detector radius 1050 x 15.625 = 16406 milli (item_ward_sentry true_sight_range).
+unit_extra("observer_ward", reward=100, xp_reward=100, deny_xp_pct=0)
+unit_extra("sentry_ward", reward=100, xp_reward=100, deny_xp_pct=0, detector_radius=16406)
+# Courier bounty 35 gold: courier BountyGoldMin/Max.
+unit_extra("courier", reward=35, xp_reward=0, deny_xp_pct=0)
+# Bounties are the midpoint of BountyGoldMin/Max and BountyXP from npc_units.txt @282fad29; assist radius 1500 reference units = 23438 milli. Structures pay no bounty in the dump (reference pays tower and barracks gold in code: not modelled).
+unit_extra("creep_ranged", reward=48, xp_reward=69, deny_xp_pct=50, assist_radius_milli=23438, acquire=600)
+unit_extra("creep_siege", reward=66, xp_reward=88, deny_xp_pct=50, assist_radius_milli=23438, acquire=800)
+unit_extra("creep_super", reward=23, xp_reward=25, deny_xp_pct=50, assist_radius_milli=23438, acquire=500)
+unit_extra("creep_ranged_super", reward=22, xp_reward=22, deny_xp_pct=50, assist_radius_milli=23438, acquire=600)
+unit_extra("creep_siege_super", reward=66, xp_reward=88, deny_xp_pct=50, assist_radius_milli=23438, acquire=800)
+unit_extra("creep_mega", reward=23, xp_reward=25, deny_xp_pct=50, assist_radius_milli=23438, acquire=500)
+unit_extra("creep_ranged_mega", reward=22, xp_reward=22, deny_xp_pct=50, assist_radius_milli=23438, acquire=600)
+unit_extra("creep_siege_mega", reward=66, xp_reward=88, deny_xp_pct=50, assist_radius_milli=23438, acquire=800)
+unit_extra("tower_t2", reward=0, xp_reward=0, deny_xp_pct=0)
+unit_extra("tower_t3", reward=0, xp_reward=0, deny_xp_pct=0)
+unit_extra("tower_t4", reward=0, xp_reward=0, deny_xp_pct=0)
+unit_extra("barracks_melee", reward=0, xp_reward=0, deny_xp_pct=0)
+unit_extra("barracks_ranged", reward=0, xp_reward=0, deny_xp_pct=0)
+unit_extra("outpost", reward=0, xp_reward=0, deny_xp_pct=0)
+unit_extra("neutral_kobold", reward=4, xp_reward=14, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_kobold_tunneler", reward=13, xp_reward=17, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_kobold_taskmaster", reward=20, xp_reward=30, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_centaur_outrunner", reward=17, xp_reward=32, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_centaur_khan", reward=57, xp_reward=90, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_fel_beast", reward=17, xp_reward=26, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_furbolg_champion", reward=34, xp_reward=66, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_furbolg_ursa_warrior", reward=64, xp_reward=90, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_warpine_raider", reward=49, xp_reward=76, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_mud_golem", reward=20, xp_reward=32, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_ogre_mauler", reward=24, xp_reward=32, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_ogre_magi", reward=30, xp_reward=48, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_giant_wolf", reward=20, xp_reward=40, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_alpha_wolf", reward=33, xp_reward=60, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_wildkin", reward=17, xp_reward=26, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_enraged_wildkin", reward=61, xp_reward=90, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_satyr_soulstealer", reward=20, xp_reward=46, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_satyr_hellcaller", reward=63, xp_reward=90, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_satyr_trickster", reward=13, xp_reward=24, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_jungle_stalker", reward=42, xp_reward=95, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_elder_jungle_stalker", reward=114, xp_reward=124, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_prowler_acolyte", reward=40, xp_reward=95, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_prowler_shaman", reward=78, xp_reward=124, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_rock_golem", reward=40, xp_reward=95, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_granite_golem", reward=78, xp_reward=124, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_ice_shaman", reward=78, xp_reward=124, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_frostbitten_golem", reward=40, xp_reward=95, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_big_thunder_lizard", reward=78, xp_reward=124, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_small_thunder_lizard", reward=46, xp_reward=95, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_gnoll_assassin", reward=17, xp_reward=30, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_ghost", reward=24, xp_reward=42, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_dark_troll", reward=18, xp_reward=42, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_dark_troll_warlord", reward=43, xp_reward=90, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_forest_troll_berserker", reward=19, xp_reward=28, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_forest_troll_high_priest", reward=19, xp_reward=28, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_harpy_scout", reward=15, xp_reward=26, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_harpy_storm", reward=26, xp_reward=42, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_black_drake", reward=40, xp_reward=95, deny_xp_pct=0, assist_radius_milli=23438)
+unit_extra("neutral_black_dragon", reward=78, xp_reward=124, deny_xp_pct=0, assist_radius_milli=23438)
+# Tormentor pays 175 gold to each team member (patch 7.38b); the sim pays the killer's side only, so the bounty here is 175 once.
+unit_extra("tormentor", reward=175, xp_reward=0, deny_xp_pct=0)

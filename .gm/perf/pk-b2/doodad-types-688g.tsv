@@ -1,0 +1,62 @@
+type	count	tree_rule	name	shipped_kind	reason
+ATtr	1567	tree		tree	script tree rule (pU)
+NTtw	1470	tree		tree	script tree rule (pU)
+ZPsh	419			rocks|debris_wood|mushrooms|cattail|flowers|grass_large	unnamed in every 6.88g table; footprint match to bench was a guess, so records spread over small prop kinds
+CTtr	400	tree		tree	script tree rule (pU)
+ZPfw	165			flowers	name from Doodads.slk + WorldEditStrings.txt (Flowers); interim kind until its own model exists
+YTpb	109			rocks|debris_wood|blocks_ruined|catwalk_junction	unnamed in every 6.88g table; guessed fountain from base-clustering, so records spread over prop kinds
+CObl	88			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Blighted Mist); interim kind until its own model exists
+APms	78			grass_large	inferred nature from tree; confidence medium
+YTlb	48			rocks|debris_wood|cattail	unnamed; spread over small prop kinds
+NTtc	38	tree		tree	script tree rule (pU)
+AOsr	36			remains_scorched	name from Doodads.slk + WorldEditStrings.txt (Remains Scorched); interim kind until its own model exists
+APtv	35			grass_large	inferred nature from tree; confidence medium
+LOth	30			torch	name from Doodads.slk + WorldEditStrings.txt (Torch); interim kind until its own model exists
+LOsk	29			skull_pile	name from Doodads.slk + WorldEditStrings.txt (Skull Pile); interim kind until its own model exists
+AOnt	26			rocks	inferred rock from lane; confidence medium
+LOtz	22			torch_glowing	name from Doodads.slk + WorldEditStrings.txt (Torch Glowing); interim kind until its own model exists
+LWw0	18			catwalk_junction	inferred prop from cluster; confidence medium
+LOic	17			debris_wood	name from Doodads.slk + WorldEditStrings.txt (Corpse Impaled); interim kind until its own model exists
+NObt	15			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Bats); interim kind until its own model exists
+ZRrk	13			campfire_stand	inferred prop from cluster; confidence medium
+LOsm	12			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Smoke Smudge); interim kind until its own model exists
+CPms	12			mushrooms	name from Doodads.slk + WorldEditStrings.txt (Mushrooms); interim kind until its own model exists
+AObd	11			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Birds); interim kind until its own model exists
+ARrk	10			rock	name from Doodads.slk + WorldEditStrings.txt (Rocks); interim kind until its own model exists
+LOfl	9			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Flies); interim kind until its own model exists
+JOgr	9			campfire_stand	inferred prop from cluster; confidence medium
+LObz	7			iron_fence_border_gate	inferred prop from cluster; confidence medium
+LPfp	7			lily_pads_floating	name from Doodads.slk + WorldEditStrings.txt (Lily Pads Floating); interim kind until its own model exists
+VOfl	6			fence|iron_fence_border_gate|debris_wood	unnamed in every 6.88g table; guessed fountain from base-clustering, so records spread over prop kinds
+LOh1	6			rocks	inferred rock from lane; confidence medium
+CPct	6			cattail	name from Doodads.slk + WorldEditStrings.txt (Cattail); interim kind until its own model exists
+LTrc	6			ltrc	name from Doodads.slk + WorldEditStrings.txt (unnamed); interim kind until its own model exists
+NOfl	6			fence	name from Doodads.slk + WorldEditStrings.txt (Fence); interim kind until its own model exists
+CRrk	6			cart_high	inferred prop from cluster; confidence medium
+LOo2	6			banner_tutorial_orc	name from Doodads.slk + WorldEditStrings.txt (Banner Tutorial Orc); interim kind until its own model exists
+ZWfs	6			fish_green	name from Doodads.slk + WorldEditStrings.txt (Fish Green); interim kind until its own model exists
+AWfs	6			fish	name from Doodads.slk + WorldEditStrings.txt (Fish); interim kind until its own model exists
+LOpg	6			grave_peasant	name from Doodads.slk + WorldEditStrings.txt (Grave Peasant); interim kind until its own model exists
+CSbl	5			blocks_ruined	name from Doodads.slk + WorldEditStrings.txt (Blocks Ruined); interim kind until its own model exists
+NOfp	4			fire_pit	name from Doodads.slk + WorldEditStrings.txt (Fire Pit); interim kind until its own model exists
+NOfg	3			fire_pit_with_pig	name from Doodads.slk + WorldEditStrings.txt (Fire Pit with Pig); interim kind until its own model exists
+LOlp	3			post_lantern	name from Doodads.slk + WorldEditStrings.txt (Post Lantern); interim kind until its own model exists
+NOtb	3			tombstone	name from Doodads.slk + WorldEditStrings.txt (Tombstone); interim kind until its own model exists
+ASbc	3			broken_column	name from Doodads.slk + WorldEditStrings.txt (Broken Column); interim kind until its own model exists
+NRfs	2			fissure	name from Doodads.slk + WorldEditStrings.txt (Fissure); interim kind until its own model exists
+IOst	2			torch|torch_glowing|brazier_skull	unnamed in every 6.88g table; guessed fountain from base-clustering, so records spread over prop kinds
+LPwh	2			grass_large	inferred nature from tree; confidence medium
+ZWbg	2			patch_dirt	name from Doodads.slk + WorldEditStrings.txt (Bubbles); interim kind until its own model exists
+LOgr	2			grave	name from Doodads.slk + WorldEditStrings.txt (Grave); interim kind until its own model exists
+CPlp	2			lily_pad	name from Doodads.slk + WorldEditStrings.txt (Lily Pad); interim kind until its own model exists
+OOsd	2			standard	name from Doodads.slk + WorldEditStrings.txt (Standard); interim kind until its own model exists
+LOsp	1			post_sign	name from Doodads.slk + WorldEditStrings.txt (Post Sign); interim kind until its own model exists
+NWrd	1			rowboat_destroyed	name from Doodads.slk + WorldEditStrings.txt (Rowboat Destroyed); interim kind until its own model exists
+NWsd	1			ship_destroyed	name from Doodads.slk + WorldEditStrings.txt (Ship Destroyed); interim kind until its own model exists
+LOca	1			cauldron_with_heads	name from Doodads.slk + WorldEditStrings.txt (Cauldron with heads); interim kind until its own model exists
+NSct	1			crypt	name from Doodads.slk + WorldEditStrings.txt (Crypt); interim kind until its own model exists
+ZWsf	1			fish_school	name from Doodads.slk + WorldEditStrings.txt (Fish School); interim kind until its own model exists
+LOsc	1			coffin	name from Doodads.slk + WorldEditStrings.txt (Corpse Sitting); interim kind until its own model exists
+ZPru	1			cattail	name from Doodads.slk + WorldEditStrings.txt (Cattail); interim kind until its own model exists
+AOgs	1			rocks|debris_wood|blocks_ruined	unnamed in every 6.88g table; guessed fountain from base-clustering, so records spread over prop kinds
+AObr	1			brazier_skull	name from Doodads.slk + WorldEditStrings.txt (Brazier Skull); interim kind until its own model exists

@@ -1,0 +1,1 @@
+{"chunks":[{"ch":279684805,"emb":null,"key":"ci-30305c31-a79cb655-0","kind":"function_item","le":16,"ls":10,"name":"inflate"}],"commit_overview":null,"digest_hash":552723911,"hash":2812065365,"mtime_ms":1792261768559.0,"path":"workspace/oscraft/rust/crates/mpq/src/bzip2.rs","size":465,"skipped_no_embed":1,"v":7}

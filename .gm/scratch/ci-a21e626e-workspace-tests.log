@@ -1,0 +1,630 @@
+workspace tests	UNKNOWN STEP	﻿2026-10-24T17:13:53.7483338Z Current runner version: '2.338.0'
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7508086Z ##[group]Runner Image Provisioner
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7509036Z Hosted Compute Agent
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7509713Z Version: 20261021.618
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7510680Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7511543Z Build Date: 2026-10-21T00:45:21Z
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7512316Z Worker ID: {8025e33d-d9a6-494d-a3c3-a0b5aa218f65}
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7513146Z Region: westcentralus
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7513784Z Cloud: Azure
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7514364Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7515906Z ##[group]Operating System
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7516644Z Ubuntu
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7517236Z 24.04.5
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7517811Z LTS
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7518371Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7519166Z ##[group]Runner Image
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7519829Z Image: ubuntu-24.04
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7520931Z Version: 20261012.334.1
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7522291Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7525096Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7526136Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7527308Z ##[group]GITHUB_TOKEN Permissions
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7529483Z Contents: read
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7530207Z Metadata: read
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7531213Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7533281Z Secret source: Actions
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7534395Z Cache mode: write
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.7535303Z Prepare workflow directory
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.8003271Z Prepare all required actions
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:53.8052563Z Getting action download info
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:54.0878374Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:54.2074544Z Download action repository 'dtolnay/rust-toolchain@stable' (SHA:b725eda525362e7cf34af9a7243cac1e3f01a7ec)
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:54.3939504Z Download action repository 'Swatinem/rust-cache@v2' (SHA:d1527c8f67ef9af357290475d4af4b0fab8f12e0)
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.2685428Z Complete job name: workspace tests
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3571918Z ##[group]Run actions/checkout@v4
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3573030Z with:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3573545Z   repository: lanmower/oscraft
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3577404Z   token: ***
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3577891Z   ssh-strict: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3578378Z   ssh-user: git
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3578866Z   persist-credentials: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3579402Z   clean: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3579894Z   sparse-checkout-cone-mode: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3580723Z   fetch-depth: 1
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3581225Z   fetch-tags: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3581713Z   show-progress: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3582209Z   lfs: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3582680Z   submodules: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3583193Z   set-safe-directory: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3583750Z   allow-unsafe-pr-checkout: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3584606Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3585066Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3585591Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.3586156Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4669438Z Syncing repository: lanmower/oscraft
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4673104Z ##[group]Getting Git version info
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4674473Z Working directory is '/home/runner/work/oscraft/oscraft'
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4676268Z [command]/usr/bin/git version
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4721198Z git version 2.55.0
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4749768Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4765734Z Temporarily overriding HOME='/home/runner/work/_temp/df065c58-cca4-4151-881b-ed6ac2703212' before making global git config changes
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4767621Z Adding repository directory to the temporary git global config as a safe directory
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4773052Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/oscraft/oscraft
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4833413Z Deleting the contents of '/home/runner/work/oscraft/oscraft'
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4837329Z ##[group]Initializing the repository
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4843954Z [command]/usr/bin/git init /home/runner/work/oscraft/oscraft
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4969044Z hint: Using 'master' as the name for the initial branch. This default branch name
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4970306Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4971961Z hint: to use in all of your new repositories, which will suppress this warning,
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4973530Z hint: call:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4974266Z hint:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4974889Z hint: 	git config --global init.defaultBranch <name>
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4975572Z hint:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4976219Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4977265Z hint: 'development'. The just-created branch can be renamed via this command:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4978083Z hint:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4978562Z hint: 	git branch -m <name>
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4979297Z hint:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4980058Z hint: Disable this message with "git config set advice.defaultBranchName false"
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4981791Z Initialized empty Git repository in /home/runner/work/oscraft/oscraft/.git/
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.4983810Z [command]/usr/bin/git remote add origin https://github.com/lanmower/oscraft
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5033736Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5034626Z ##[group]Disabling automatic garbage collection
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5038514Z [command]/usr/bin/git config --local gc.auto 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5112344Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5113972Z ##[group]Setting up auth
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5115574Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5128293Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5511879Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5548079Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5769729Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.5807189Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.6027160Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.6068714Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.6069585Z ##[group]Fetching the repository
+workspace tests	UNKNOWN STEP	2026-10-24T17:13:55.6078657Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +a21e626e5215214f4f79c881c37412ecd679346e:refs/remotes/origin/main
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7569018Z From https://github.com/lanmower/oscraft
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7571884Z  * [new ref]         a21e626e5215214f4f79c881c37412ecd679346e -> origin/main
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7576999Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7579032Z ##[group]Determining the checkout info
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7581516Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7584921Z [command]/usr/bin/git sparse-checkout disable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7638704Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7671779Z ##[group]Checking out the ref
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:02.7676675Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.6597022Z Switched to a new branch 'main'
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.6601713Z branch 'main' set up to track 'origin/main'.
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.6631841Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.6684040Z [command]/usr/bin/git log -1 --format=%H
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.6710597Z a21e626e5215214f4f79c881c37412ecd679346e
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7136145Z ##[group]Run dtolnay/rust-toolchain@stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7136505Z with:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7136713Z   toolchain: stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7137116Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7137309Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7137545Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7137799Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7201745Z ##[start-action display=Parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7260589Z ##[group]Run if [[ -z $toolchain ]]; then
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7261006Z ^[[36;1mif [[ -z $toolchain ]]; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7261565Z ^[[36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7262143Z ^[[36;1m  echo "'toolchain' is a required input" >&2^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7262463Z ^[[36;1m  exit 1^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7262804Z ^[[36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7263286Z ^[[36;1m  if [[ Linux == macOS ]]; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7263849Z ^[[36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7264407Z ^[[36;1m  else^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7264821Z ^[[36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7265285Z ^[[36;1m  fi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7265590Z ^[[36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7266147Z ^[[36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7266619Z ^[[36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7267143Z ^[[36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7267645Z ^[[36;1melse^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7267854Z ^[[36;1m  delimiter=EOF^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7268169Z ^[[36;1m  while [[ $toolchain == *$delimiter* ]]; do delimiter+=_; done^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7268689Z ^[[36;1m  printf 'toolchain<<%s\n%s\n%s\n' "$delimiter" "$toolchain" "$delimiter" >> $GITHUB_OUTPUT^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7269120Z ^[[36;1mfi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7511474Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7511879Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7512116Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7512363Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7512619Z   toolchain: stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7512838Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7654865Z ##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=45]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7659293Z ##[start-action display=Set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7694191Z ##[group]Run echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7694706Z ^[[36;1mecho CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7756647Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7756999Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7757211Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7757449Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7757705Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7851152Z ##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=19]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7853373Z ##[start-action display=Install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7880301Z ##[group]Run if ! command -v rustup &>/dev/null; then
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7880979Z ^[[36;1mif ! command -v rustup &>/dev/null; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7881761Z ^[[36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7882717Z ^[[36;1m  echo "$CARGO_HOME/bin" >> $GITHUB_PATH^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7883022Z ^[[36;1mfi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7947852Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7948208Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7948575Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7948813Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7949075Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.7949325Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8039495Z ##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=success;conclusion=success;duration_ms=18]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8042054Z ##[start-action display=Install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8048136Z ##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8063192Z ##[start-action display=rustup toolchain install stable;id=__dtolnay_rust-toolchain.__run_4]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8083571Z ##[group]Run set -f  # split targets and components on commas and whitespace, without glob expansion
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8084255Z ^[[36;1mset -f  # split targets and components on commas and whitespace, without glob expansion^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8084700Z ^[[36;1mflags=()^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8084988Z ^[[36;1mfor t in ${targets//,/ }; do flags+=(--target "$t"); done^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8085403Z ^[[36;1mfor c in ${components//,/ }; do flags+=(--component "$c"); done^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8085912Z ^[[36;1mif [[ $toolchain == nightly && -n $components ]]; then flags+=(--allow-downgrade); fi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8086350Z ^[[36;1mlog=$(mktemp)^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8086587Z ^[[36;1mtrap 'rm -f "$log"' EXIT^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8086858Z ^[[36;1mfor attempt in 1 2 3 4 5; do^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8087452Z ^[[36;1m  if rustup toolchain install "$toolchain" "${flags[@]}" --profile minimal --no-self-update --force-non-host 2>&1 | tee "$log"; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8088031Z ^[[36;1m    break^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8088234Z ^[[36;1m  else^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8088432Z ^[[36;1m    status=$?^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8088651Z ^[[36;1m  fi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8088942Z ^[[36;1m  if [[ $attempt == 5 ]] || ! grep -Fq 'checksum failed for ' "$log" \^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8089511Z ^[[36;1m      || ! grep -Fq 'this is likely due to an ongoing update of the official release server' "$log"; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8089992Z ^[[36;1m    exit "$status"^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8090216Z ^[[36;1m  fi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8090853Z ^[[36;1m  echo "Retrying rustup toolchain install in 30 seconds (retry $attempt of 4)" >&2^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8091284Z ^[[36;1m  sleep 30^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8091490Z ^[[36;1mdone^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8155659Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8156013Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8156207Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8156445Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8156696Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8156952Z   toolchain: stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8157158Z   targets: 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8157353Z   components: 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8157559Z   RUSTUP_PERMIT_COPY_RENAME: 1
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:03.8157794Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:05.4267311Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:05.8452459Z info: latest update on 2026-10-15 for version 1.99.1 (58cf8f9c3 2026-10-13)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:05.8676300Z info: removing previous version of component rustfmt
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:05.8695913Z info: removing previous version of component clippy
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:05.8707730Z info: removing previous version of component cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:05.8757340Z info: removing previous version of component rust-std
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:05.8804010Z info: removing previous version of component rustc
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:05.8854275Z info: downloading 5 components
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0669300Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0737768Z   stable-x86_64-unknown-linux-gnu updated - rustc 1.99.1 (58cf8f9c3 2026-10-13) (from rustc 1.99.0 (b940084d7 2026-09-28))
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0738680Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0823618Z ##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=10275]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0830646Z ##[start-action display=rustup default stable;id=__dtolnay_rust-toolchain.__run_5]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0848462Z ##[group]Run rustup default "$toolchain" --force-non-host
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0848859Z ^[[36;1mrustup default "$toolchain" --force-non-host^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0910101Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0910729Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0910930Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0911163Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0911416Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0911664Z   toolchain: stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.0911862Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1034800Z info: using existing install for stable-x86_64-unknown-linux-gnu
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1042282Z info: default toolchain set to stable-x86_64-unknown-linux-gnu
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1042573Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1106682Z   stable-x86_64-unknown-linux-gnu unchanged - rustc 1.99.1 (58cf8f9c3 2026-10-13)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1107061Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1124060Z ##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=29]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1127617Z ##[start-action display=Create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1145292Z ##[group]Run DATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1146188Z ^[[36;1mDATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1146911Z ^[[36;1mHASH=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-hash: //p')^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1147434Z ^[[36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1208365Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1208714Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1208906Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1209141Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1209388Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1209637Z   toolchain: stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1209837Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1534805Z ##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=40]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1537321Z ##[start-action display=Disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1555667Z ##[group]Run if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1556058Z ^[[36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1556385Z ^[[36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1556671Z ^[[36;1mfi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1618335Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1618679Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1618875Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1619123Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1619375Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1619620Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1701183Z ##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=16]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1703290Z ##[start-action display=Enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1741225Z ##[group]Run if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1741604Z ^[[36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1741950Z ^[[36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1742241Z ^[[36;1mfi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1797866Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1798199Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1798383Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1798608Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1798850Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1799251Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1881298Z ##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=15]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1884746Z ##[start-action display=Enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1902960Z ##[group]Run # implemented in 1.66, stabilized in 1.68, made default in 1.70
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1903488Z ^[[36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1904202Z ^[[36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1904949Z ^[[36;1m  if rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[89]\.'; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1905547Z ^[[36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1906094Z ^[[36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1906626Z ^[[36;1m  elif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[67]\.'; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1907214Z ^[[36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1907740Z ^[[36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1908081Z ^[[36;1m  fi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1908266Z ^[[36;1mfi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1963192Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1963615Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1963808Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1964041Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1964290Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1964548Z   CARGO_TERM_COLOR: always
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1964768Z   toolchain: stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.1964969Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2262624Z ##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=37]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2266359Z ##[start-action display=Work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2284250Z ##[group]Run # https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2285030Z ^[[36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2285670Z ^[[36;1mif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.7[01]\.'; then^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2286144Z ^[[36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2286454Z ^[[36;1mfi^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2347010Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2347353Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2347543Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2347769Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2348012Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2348271Z   CARGO_TERM_COLOR: always
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2348507Z   toolchain: stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2348707Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2539319Z ##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=27]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2544797Z ##[start-action display=rustc +stable --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2562116Z ##[group]Run rustc +"$toolchain" --version --verbose
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2562485Z ^[[36;1mrustc +"$toolchain" --version --verbose^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2623563Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2623904Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2624097Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2624326Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2624581Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2624836Z   CARGO_TERM_COLOR: always
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2625059Z   toolchain: stable
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2625258Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2803811Z rustc 1.99.1 (58cf8f9c3 2026-10-13)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2804982Z binary: rustc
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2805499Z commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2805851Z commit-date: 2026-10-13
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2806284Z host: x86_64-unknown-linux-gnu
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2806539Z release: 1.99.1
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2806742Z LLVM version: 23.1.1
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2819691Z ##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=27]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2925630Z ##[group]Run Swatinem/rust-cache@v2
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2925924Z with:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2926131Z   workspaces: rust -> target
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2926382Z   shared-key: rust-workspace
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2926614Z   save-if: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2926811Z   prefix-key: v0-rust
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2927021Z   add-job-id-key: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2927257Z   add-rust-environment-hash-key: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2927523Z   cache-targets: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2927742Z   cache-all-crates: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2927975Z   cache-workspace-crates: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2928220Z   cache-provider: github
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2928436Z   cache-bin: true
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2928635Z   lookup-only: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2928850Z   cmd-format: {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2929033Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2929211Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2929426Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2929664Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2929944Z   CARGO_TERM_COLOR: always
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.2930161Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5599242Z ##[group]Cache Configuration
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5599585Z Cache Provider:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5599785Z     github
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5600212Z Workspaces:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5600941Z     /home/runner/work/oscraft/oscraft/rust
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5601543Z Cache Paths:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5602027Z     /home/runner/.cargo/bin
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5602518Z     /home/runner/.cargo/.crates.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5603126Z     /home/runner/.cargo/.crates2.json
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5603720Z     /home/runner/.cargo/registry
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5604289Z     /home/runner/.cargo/git
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5604886Z     /home/runner/work/oscraft/oscraft/rust/target
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5605487Z Restore Key:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5605982Z     v0-rust-rust-workspace-Linux-x64-dd06de2d
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5606545Z Cache Key:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5607036Z     v0-rust-rust-workspace-Linux-x64-dd06de2d-5e070c87
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5607441Z .. Prefix:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5607664Z   - v0-rust-rust-workspace-Linux-x64
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5608137Z .. Environment considered:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5608608Z   - Rust Versions:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5609247Z     - 1.99.1 x86_64-unknown-linux-gnu 58cf8f9c35b355199727627d07ae34a4e2846d67
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5609862Z   - CARGO_HOME
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5610470Z   - CARGO_INCREMENTAL
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5611018Z   - CARGO_PROFILE_TEST_DEBUG
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5611567Z   - CARGO_TERM_COLOR
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5612006Z .. Lockfiles considered:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5612617Z   - /home/runner/work/oscraft/oscraft/rust/Cargo.lock
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5613353Z   - /home/runner/work/oscraft/oscraft/rust/crates/data/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5614142Z   - /home/runner/work/oscraft/oscraft/rust/crates/mapexport/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5614943Z   - /home/runner/work/oscraft/oscraft/rust/crates/mod-host/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5615723Z   - /home/runner/work/oscraft/oscraft/rust/crates/mod-lsp/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5616485Z   - /home/runner/work/oscraft/oscraft/rust/crates/mpq/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5617245Z   - /home/runner/work/oscraft/oscraft/rust/crates/relay/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5618041Z   - /home/runner/work/oscraft/oscraft/rust/crates/replay/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5618843Z   - /home/runner/work/oscraft/oscraft/rust/crates/sim/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5619748Z   - /home/runner/work/oscraft/oscraft/rust/crates/wasip3/.cargo/config.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5621034Z   - /home/runner/work/oscraft/oscraft/rust/crates/web/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5621749Z   - /home/runner/work/oscraft/oscraft/rust/gate/Cargo.toml
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5631652Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5631863Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.5632327Z ... Restoring cache ...
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:14.7301207Z Cache hit for: v0-rust-rust-workspace-Linux-x64-dd06de2d-5e070c87
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:15.9284033Z Received 33554432 of 213080163 (15.7%), 31.9 MBs/sec
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:16.9312558Z Received 125829120 of 213080163 (59.1%), 59.9 MBs/sec
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:17.9294514Z Received 130023424 of 213080163 (61.0%), 41.3 MBs/sec
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:18.9408456Z Received 134217728 of 213080163 (63.0%), 31.9 MBs/sec
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:19.9402159Z Received 204691555 of 213080163 (96.1%), 38.9 MBs/sec
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:20.8852074Z Received 213080163 of 213080163 (100.0%), 34.1 MBs/sec
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:20.8853156Z Cache Size: ~203 MB (213080163 B)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:20.8973441Z [command]/usr/bin/tar -xf /home/runner/work/_temp/0512d862-a068-4fbe-b12d-92b69cffcfa1/cache.tzst -P -C /home/runner/work/oscraft/oscraft --use-compress-program unzstd
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.1877360Z Cache restored successfully
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.1971082Z Restored from cache key "v0-rust-rust-workspace-Linux-x64-dd06de2d-5e070c87" full match: true.
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2901096Z ##[group]Run set -euo pipefail
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2901449Z ^[[36;1mset -euo pipefail^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2901888Z ^[[36;1mcurl -LsSf https://get.nexte.st/0.9.149/linux | tar zxf - -C "$HOME/.cargo/bin"^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2902370Z ^[[36;1mcargo nextest --version^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2962774Z shell: /usr/bin/bash -e {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2963020Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2963218Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2963454Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2963707Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2963965Z   CARGO_TERM_COLOR: always
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2964197Z   CACHE_ON_FAILURE: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:22.2964427Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5783029Z cargo-nextest 0.9.149 (3fe4ef319 2026-10-20)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5783414Z release: 0.9.149
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5783707Z commit-hash: 3fe4ef31972f24e0c94cfe291718eab0fe678260
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5784072Z commit-date: 2026-10-20
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5784401Z host: x86_64-unknown-linux-gnu
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5878674Z ##[group]Run cargo nextest run --workspace
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5879043Z ^[[36;1mcargo nextest run --workspace^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5939969Z shell: /usr/bin/bash -e {0}
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5940228Z env:
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5940660Z   CARGO_INCREMENTAL: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5940905Z   CARGO_PROFILE_TEST_DEBUG: 0
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5941164Z   CARGO_HOME: /home/runner/.cargo
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5941427Z   CARGO_TERM_COLOR: always
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5941660Z   CACHE_ON_FAILURE: false
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.5941892Z ##[endgroup]
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:23.6751582Z ^[[1m^[[92m    Updating^[[0m crates.io index
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.5912490Z ^[[1m^[[92m   Compiling^[[0m sim v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/sim)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.5913634Z ^[[1m^[[92m   Compiling^[[0m osdt-data v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/data)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.5947817Z ^[[1m^[[92m   Compiling^[[0m piccolo v0.3.3 (/home/runner/work/oscraft/oscraft/rust/vendor/piccolo)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.5991719Z ^[[1m^[[92m   Compiling^[[0m mpq v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/mpq)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8748210Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated module `std::i32`: all constants in this module replaced by associated constants on the type^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8751833Z  ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/compiler/lexer.rs:2:16
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8752439Z   ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8752939Z ^[[1m^[[94m2^[[0m ^[[1m^[[94m|^[[0m     char, fmt, i32, i64,
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8753582Z   ^[[1m^[[94m|^[[0m                ^[[1m^[[33m^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8754100Z   ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8754611Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: `#[warn(deprecated)]` on by default
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8755007Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8756002Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8761722Z  ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/compiler/lexer.rs:2:21
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8763012Z   ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8763676Z ^[[1m^[[94m2^[[0m ^[[1m^[[94m|^[[0m     char, fmt, i32, i64,
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8764446Z   ^[[1m^[[94m|^[[0m                     ^[[1m^[[33m^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8764935Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8811840Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8851307Z    ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/stdlib/math.rs:120:46
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8880937Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8911499Z ^[[1m^[[94m120^[[0m ^[[1m^[[94m|^[[0m     math.set(ctx, "huge", Value::Number(f64::INFINITY)).unwrap();
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8931298Z     ^[[1m^[[94m|^[[0m                                              ^[[1m^[[33m^^^^^^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8950745Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.8971730Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9001128Z    ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/stdlib/math.rs:140:51
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9011074Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9041557Z ^[[1m^[[94m140^[[0m ^[[1m^[[94m|^[[0m                     .try_fold(Value::Number(-f64::INFINITY), |max, entry| {
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9061123Z     ^[[1m^[[94m|^[[0m                                                   ^[[1m^[[33m^^^^^^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9090696Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9102556Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated constant `std::f64::INFINITY`: replaced by the `INFINITY` associated constant on `f64`^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9131224Z    ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/stdlib/math.rs:163:50
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9140961Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9161627Z ^[[1m^[[94m163^[[0m ^[[1m^[[94m|^[[0m                     .try_fold(Value::Number(f64::INFINITY), |max, entry| {
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9181867Z     ^[[1m^[[94m|^[[0m                                                  ^[[1m^[[33m^^^^^^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9182638Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9184305Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9185784Z  ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/table/raw.rs:1:28
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9186556Z   ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9187492Z ^[[1m^[[94m1^[[0m ^[[1m^[[94m|^[[0m use std::{fmt, hash::Hash, i64, mem};
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9188510Z   ^[[1m^[[94m|^[[0m                            ^[[1m^[[33m^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9189147Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9190166Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9191878Z    ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/table/raw.rs:297:32
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9192645Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9193476Z ^[[1m^[[94m297^[[0m ^[[1m^[[94m|^[[0m                 if max == i64::MAX {
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9194389Z     ^[[1m^[[94m|^[[0m                                ^[[1m^[[33m^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9194925Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9195943Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9197232Z    ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/table/raw.rs:302:33
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9197979Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9198831Z ^[[1m^[[94m302^[[0m ^[[1m^[[94m|^[[0m                     return i64::MAX;
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9199753Z     ^[[1m^[[94m|^[[0m                                 ^[[1m^[[33m^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9200297Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9201692Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated constant `std::i64::MAX`: replaced by the `MAX` associated constant on this type^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9202992Z    ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/table/raw.rs:306:32
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9203827Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9204643Z ^[[1m^[[94m306^[[0m ^[[1m^[[94m|^[[0m                     max = i64::MAX;
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9205583Z     ^[[1m^[[94m|^[[0m                                ^[[1m^[[33m^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9206111Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9207597Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9208932Z  ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/table/table.rs:3:5
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9209683Z   ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9210274Z ^[[1m^[[94m3^[[0m ^[[1m^[[94m|^[[0m     i64, mem,
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9211265Z   ^[[1m^[[94m|^[[0m     ^[[1m^[[33m^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9211724Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9212809Z ^[[1m^[[33mwarning^[[0m^[[1m: use of deprecated module `std::i64`: all constants in this module replaced by associated constants on the type^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9214179Z  ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/value.rs:1:21
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9214917Z   ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9215867Z ^[[1m^[[94m1^[[0m ^[[1m^[[94m|^[[0m use std::{f64, fmt, i64, io, string::String as StdString};
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9216869Z   ^[[1m^[[94m|^[[0m                     ^[[1m^[[33m^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:24.9217310Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.0723206Z ^[[1m^[[92m   Compiling^[[0m oscraft-relay v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/relay)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.7801862Z ^[[1m^[[33mwarning^[[0m^[[1m: irrefutable `if let` pattern^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.7841285Z    ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/conversion.rs:221:28
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.7861232Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.7901519Z ^[[1m^[[94m221^[[0m ^[[1m^[[94m|^[[0m                         if let Ok(i) = <$i>::try_from(i) {
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.7931335Z     ^[[1m^[[94m|^[[0m                            ^[[1m^[[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.7951056Z ^[[1m^[[94m...^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.7952228Z ^[[1m^[[94m240^[[0m ^[[1m^[[94m|^[[0m impl_int_from!(i64, u64, i32, u32, i16, u16, i8, u8);
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.7981994Z     ^[[1m^[[94m|^[[0m ^[[1m^[[94m----------------------------------------------------^[[0m ^[[1m^[[94min this macro invocation^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.8011102Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.8046605Z     ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: this pattern will always match, so the `if let` is useless
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.8071612Z     ^[[1m^[[94m= ^[[0m^[[1mhelp^[[0m: consider replacing the `if let` with a `let`
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.8101230Z     ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: `#[warn(irrefutable_let_patterns)]` on by default
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.8131827Z     ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: this warning originates in the macro `impl_int_from` (in Nightly builds, run with -Z macro-backtrace for more info)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:25.8160750Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2482071Z ^[[1m^[[33mwarning^[[0m^[[1m: hiding a lifetime that's elided elsewhere is confusing^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2521196Z   ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/stack.rs:78:9
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2550963Z    ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2581068Z ^[[1m^[[94m78^[[0m ^[[1m^[[94m|^[[0m         &mut self,
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2611248Z    ^[[1m^[[94m|^[[0m         ^[[1m^[[33m^^^^^^^^^^[[0m ^[[1m^[[33mthe lifetime is elided here^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2641050Z ^[[1m^[[94m79^[[0m ^[[1m^[[94m|^[[0m         range: R,
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2671466Z ^[[1m^[[94m80^[[0m ^[[1m^[[94m|^[[0m     ) -> vec::Drain<Value<'gc>, MetricsAlloc<'gc>> {
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2701585Z    ^[[1m^[[94m|^[[0m          ^[[1m^[[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[[0m ^[[1m^[[33mthe same lifetime is hidden here^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2730997Z    ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2761533Z    ^[[1m^[[94m= ^[[0m^[[1mhelp^[[0m: the same lifetime is referred to in inconsistent ways, making the signature confusing
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2791276Z    ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2821053Z ^[[1m^[[96mhelp^[[0m: use `'_` for type paths
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2850938Z    ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2881482Z ^[[1m^[[94m80^[[0m ^[[1m^[[94m| ^[[0m    ) -> vec::Drain<^[[92m'_, ^[[0mValue<'gc>, MetricsAlloc<'gc>> {
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2911050Z    ^[[1m^[[94m|^[[0m                     ^[[92m+++^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2940683Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.2971567Z ^[[1m^[[33mwarning^[[0m^[[1m: hiding a lifetime that's elided elsewhere is confusing^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3001163Z    ^[[1m^[[94m--> ^[[0mvendor/piccolo/src/thread/thread.rs:206:9
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3030974Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3064845Z ^[[1m^[[94m206^[[0m ^[[1m^[[94m|^[[0m         &self,
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3091217Z     ^[[1m^[[94m|^[[0m         ^[[1m^[[33m^^^^^^[[0m ^[[1m^[[33mthe lifetime is elided here^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3101096Z ^[[1m^[[94m...^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3151289Z ^[[1m^[[94m209^[[0m ^[[1m^[[94m|^[[0m     ) -> Result<RefMut<ThreadState<'gc>>, BadThreadMode> {
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3181331Z     ^[[1m^[[94m|^[[0m                 ^[[1m^[[33m^^^^^^^^^^^^^^^^^^^^^^^^^[[0m ^[[1m^[[33mthe same lifetime is hidden here^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3210922Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3241516Z     ^[[1m^[[94m= ^[[0m^[[1mhelp^[[0m: the same lifetime is referred to in inconsistent ways, making the signature confusing
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3261345Z ^[[1m^[[96mhelp^[[0m: use `'_` for type paths
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3280971Z     ^[[1m^[[94m|^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3281870Z ^[[1m^[[94m209^[[0m ^[[1m^[[94m| ^[[0m    ) -> Result<RefMut<^[[92m'_, ^[[0mThreadState<'gc>>, BadThreadMode> {
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3282859Z     ^[[1m^[[94m|^[[0m                        ^[[92m+++^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:26.3283247Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:32.0582079Z ^[[1m^[[92m   Compiling^[[0m mod-host v0.0.0 (/home/runner/work/oscraft/oscraft/rust/crates/mod-host)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:35.5042447Z ^[[1m^[[33mwarning^[[0m: `piccolo` (lib) generated 14 warnings (run `cargo fix --lib -p piccolo` to apply 2 suggestions)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:35.5081921Z ^[[1m^[[92m   Compiling^[[0m replay v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/replay)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:38.4613355Z ^[[1m^[[92m   Compiling^[[0m mapexport v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/mapexport)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:45.6791936Z ^[[1m^[[92m   Compiling^[[0m web v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/web)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:52.6824938Z ^[[1m^[[92m   Compiling^[[0m oscraft-lsp v0.1.0 (/home/runner/work/oscraft/oscraft/rust/crates/mod-lsp)
+workspace tests	UNKNOWN STEP	2026-10-24T17:14:56.7832270Z ^[[1m^[[92m   Compiling^[[0m oscraft-gate v0.1.0 (/home/runner/work/oscraft/oscraft/rust/gate)
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:02.9139011Z ^[[1m^[[92m    Finished^[[0m `test` profile [unoptimized] target(s) in 38.42s
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:03.0450210Z ────────────
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:03.0451756Z ^[[32;1m Nextest run^[[0m ID ^[[1m8c04fd69-e4b5-4e64-ac21-0ff190b815fc^[[0m with nextest profile: ^[[1mdefault^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:03.0453306Z ^[[32;1m    Starting^[[0m ^[[1m75^[[0m tests across ^[[1m34^[[0m binaries
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:06.0732865Z ^[[32;1m        PASS^[[0m [   3.025s] ( 1/75) ^[[35;1mmod-host^[[0m ^[[36mpiccolo_host::containment^[[0m^[[36m::^[[0m^[[34;1ma_panicking_native_is_a_hook_failure_and_the_host_keeps_advancing^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:06.1172648Z ^[[32;1m        PASS^[[0m [   3.071s] ( 2/75) ^[[35;1mmod-host^[[0m ^[[36mpiccolo_host::containment^[[0m^[[36m::^[[0m^[[34;1mstate_ticks_is_the_sim_tick_on_every_step^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:06.3043562Z ^[[32;1m        PASS^[[0m [   3.259s] ( 3/75) ^[[35;1mmod-host::ability_bar^[[0m ^[[34;1mthe_ability_bar_has_one_cell_per_key_with_its_slots_ability^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:06.6855068Z ^[[32;1m        PASS^[[0m [   3.639s] ( 4/75) ^[[35;1mmod-host::aegis^[[0m ^[[34;1ma_hero_dying_with_the_aegis_returns_where_it_fell_at_full_health_and_the_charge_is_spent^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:09.6162498Z ^[[32;1m        PASS^[[0m [   3.310s] ( 5/75) ^[[35;1mmod-host::controls_route^[[0m ^[[34;1mclick_selects_and_right_click_orders_the_selection^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:10.4742782Z ^[[32;1m        PASS^[[0m [   3.786s] ( 6/75) ^[[35;1mmod-host::creep_kill^[[0m ^[[34;1ma_creep_kill_damaged_by_one_hero_pays_that_hero_all_of_it^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:10.5632416Z ^[[32;1m        PASS^[[0m [   4.445s] ( 7/75) ^[[35;1mmod-host::bots^[[0m ^[[34;1mbot_seats_drive_their_heroes_and_no_hook_is_disabled^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:10.6344358Z ^[[32;1m        PASS^[[0m [   4.564s] ( 8/75) ^[[35;1mmod-host::aegis^[[0m ^[[34;1ma_hero_without_the_aegis_goes_to_the_respawn_timer_and_returns_home^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:12.4622631Z ^[[32;1m        PASS^[[0m [   2.848s] ( 9/75) ^[[35;1mmod-host::creep_kill^[[0m ^[[34;1ma_creep_kill_damaged_by_two_heroes_splits_among_them^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:13.5852266Z ^[[32;1m        PASS^[[0m [   2.951s] (10/75) ^[[35;1mmod-host::creep_kill^[[0m ^[[34;1ma_hero_kill_keeps_the_team_share^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:13.5924555Z ^[[32;1m        PASS^[[0m [   3.030s] (11/75) ^[[35;1mmod-host::creep_kill^[[0m ^[[34;1ma_denied_creep_kill_pays_no_hero_gold^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:13.6278309Z ^[[32;1m        PASS^[[0m [   3.156s] (12/75) ^[[35;1mmod-host::creep_kill^[[0m ^[[34;1ma_creep_kill_with_no_hero_damage_splits_among_the_living_enemy_heroes^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:14.2886512Z ^[[32;1m        PASS^[[0m [   0.696s] (13/75) ^[[35;1mmod-host::duel_routes_ticks^[[0m ^[[34;1mthe_duel_routes_pack_plays_without_a_hook_switched_off^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:15.3592432Z ^[[32;1m        PASS^[[0m [   2.896s] (14/75) ^[[35;1mmod-host::creep_kill^[[0m ^[[34;1ma_neutral_kill_pays_no_hero_gold^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:16.6494838Z ^[[32;1m        PASS^[[0m [   3.021s] (15/75) ^[[35;1mmod-host::lane_route^[[0m ^[[34;1mthe_lane_routes_are_readable_and_start_at_the_side_base^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:16.6712225Z ^[[32;1m        PASS^[[0m [   3.082s] (16/75) ^[[35;1mmod-host::dead_killer^[[0m ^[[34;1ma_death_whose_killer_is_already_dead_switches_no_hook_off^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:17.5512710Z ^[[32;1m        PASS^[[0m [   3.260s] (17/75) ^[[35;1mmod-host::lobby_claim^[[0m ^[[34;1ma_claim_from_a_joined_page_takes_the_seat_under_the_senders_key^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:18.5022979Z ^[[32;1m        PASS^[[0m [   3.144s] (18/75) ^[[35;1mmod-host::lobby_claim^[[0m ^[[34;1ma_claim_from_the_host_page_takes_the_first_open_seat^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:20.4812415Z ^[[32;1m        PASS^[[0m [   2.928s] (19/75) ^[[35;1mmod-host::mod_containment^[[0m ^[[34;1ma_bad_native_argument_is_a_lua_error_the_mod_sees^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:21.2182323Z ^[[32;1m        PASS^[[0m [   4.566s] (20/75) ^[[35;1mmod-host::moba_pack_loads^[[0m ^[[34;1mevery_module_loads_and_runs_300_ticks^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:21.4011762Z ^[[32;1m        PASS^[[0m [   2.899s] (21/75) ^[[35;1mmod-host::mod_containment^[[0m ^[[34;1ma_module_over_the_memory_cap_is_retired_and_the_rest_run^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:23.8313227Z ^[[32;1m        PASS^[[0m [   3.353s] (22/75) ^[[35;1mmod-host::mod_containment^[[0m ^[[34;1man_infinite_loop_in_each_other_hook_is_bounded^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:24.4660029Z ^[[32;1m        PASS^[[0m [   3.249s] (23/75) ^[[35;1mmod-host::mod_containment^[[0m ^[[34;1man_infinite_loop_in_on_tick_is_bounded^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:24.4742228Z ^[[32;1m        PASS^[[0m [   3.071s] (24/75) ^[[35;1mmod-host::modules^[[0m ^[[34;1ma_failed_load_keeps_the_last_known_good_module^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:26.3811678Z ^[[32;1m        PASS^[[0m [   2.550s] (25/75) ^[[35;1mmod-host::modules^[[0m ^[[34;1ma_module_requires_another_and_calls_its_function^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:27.3616745Z ^[[32;1m        PASS^[[0m [   2.889s] (26/75) ^[[35;1mmod-host::modules^[[0m ^[[34;1man_erroring_hook_does_not_stop_the_same_hook_of_another_module^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:27.3671965Z ^[[32;1m        PASS^[[0m [   2.899s] (27/75) ^[[35;1mmod-host::modules^[[0m ^[[34;1ma_require_cycle_is_reported_by_name^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:28.8292397Z ^[[32;1m        PASS^[[0m [   2.446s] (28/75) ^[[35;1mmod-host::modules^[[0m ^[[34;1man_old_style_global_hook_file_still_works^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:29.3136398Z ^[[32;1m        PASS^[[0m [  12.646s] (29/75) ^[[35;1mmod-host::moba_ticks^[[0m ^[[34;1mthe_moba_pack_plays_without_a_hook_switched_off^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:30.4462348Z ^[[32;1m        PASS^[[0m [   3.084s] (30/75) ^[[35;1mmod-host::opening_gold^[[0m ^[[34;1ma_seat_opens_on_the_economy_s_opening_gold^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:30.6072181Z ^[[32;1m        PASS^[[0m [   3.241s] (31/75) ^[[35;1mmod-host::panels_route^[[0m ^[[34;1ma_claim_takes_a_lobby_seat^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:31.7682330Z ^[[32;1m        PASS^[[0m [   2.940s] (32/75) ^[[35;1mmod-host::panels_route^[[0m ^[[34;1ma_hero_draws_the_skill_inventory_team_and_scoreboard_panels^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:32.3542701Z ^[[32;1m        PASS^[[0m [   3.040s] (33/75) ^[[35;1mmod-host::panels_route^[[0m ^[[34;1ma_selection_opens_the_selection_panel^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.5243747Z ^[[32;1m        PASS^[[0m [   3.079s] (34/75) ^[[35;1mmod-host::panels_route^[[0m ^[[34;1man_unchanged_panel_is_not_sent_again^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6442354Z ^[[31;1m        FAIL^[[0m [   3.037s] (35/75) ^[[35;1mmod-host::panels_route^[[0m ^[[34;1mhud_and_lobby_are_sent_on_the_first_refresh^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6445559Z ^[[31;1m ^[[0m ^[[31;1mstdout^[[0m ^[[31;1m───^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6446227Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6446842Z     running 1 test
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6447620Z     test hud_and_lobby_are_sent_on_the_first_refresh ... FAILED
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6448318Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6448649Z     failures:
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6449082Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6449406Z     failures:
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6450044Z         hud_and_lobby_are_sent_on_the_first_refresh
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6451061Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6451750Z     test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 3.03s
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6452892Z     ^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6453640Z ^[[31;1m ^[[0m ^[[31;1mstderr^[[0m ^[[31;1m───^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6454236Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6455322Z     ^[[0m^[[31;1mthread 'hud_and_lobby_are_sent_on_the_first_refresh' (3715) panicked at crates/mod-host/tests/panels_route.rs:54:5:^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6457834Z     ^[[31;1mhud shows gold and the pre-match clock: "kind":"widget","data":{"id":"hud","player":0,"slot":"hud","tree":{"dir":"row","kids":[{"t":"label","text":"hp -","tone":"hp"},{"t":"label","text":"gold 625","tone":"gold"}],"t":"box"}}^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6460754Z     note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6461604Z 
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:33.6462340Z ^[[31;1m  Cancelling^[[0m due to ^[[31;1mtest failure^[[0m: ^[[1m3^[[0m tests still running
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:34.5605300Z ^[[32;1m        PASS^[[0m [   2.792s] (36/75) ^[[35;1mmod-host::panels_route^[[0m ^[[34;1mthe_shop_key_opens_the_shop_panel_and_its_key_closes_it^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.1379111Z ^[[32;1m        PASS^[[0m [   2.784s] (37/75) ^[[35;1mmod-host::payout_parity^[[0m ^[[34;1mmoba_match_pays_the_same_for_fixed_kills^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.9378910Z ^[[32;1m        PASS^[[0m [   2.413s] (38/75) ^[[35;1mmod-host::payout_parity^[[0m ^[[34;1mon_died_receives_five_arguments_with_bounty^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.9379974Z ────────────
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.9381112Z ^[[31;1m     Summary^[[0m [  32.893s] ^[[1m38^[[0m/^[[1m75^[[0m tests run: ^[[1m37^[[0m ^[[32;1mpassed^[[0m, ^[[1m1^[[0m ^[[31;1mfailed^[[0m, ^[[1m0^[[0m ^[[33;1mskipped^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.9382604Z ^[[31;1m        FAIL^[[0m [   3.037s] (35/75) ^[[35;1mmod-host::panels_route^[[0m ^[[34;1mhud_and_lobby_are_sent_on_the_first_refresh^[[0m
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.9384117Z ^[[33;1mwarning^[[0m: ^[[1m37^[[0m/^[[1m75^[[0m tests were not run due to ^[[33;1mtest failure^[[0m (run with ^[[1m--no-fail-fast^[[0m to run all tests, or run with ^[[1m--max-fail^[[0m)
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.9395195Z ^[[31;1merror^[[0m: test run failed
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.9420187Z ##[error]Process completed with exit code 100.
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:35.9539293Z Post job cleanup.
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0377167Z [command]/usr/bin/git version
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0423557Z git version 2.55.0
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0466594Z Temporarily overriding HOME='/home/runner/work/_temp/55dbb461-1022-4bf2-9cd1-c629e1e257f0' before making global git config changes
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0468104Z Adding repository directory to the temporary git global config as a safe directory
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0473018Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/oscraft/oscraft
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0514620Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0549631Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0808961Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0856199Z http.https://github.com/.extraheader
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0876356Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.0910190Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.1187775Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.1243920Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.1642383Z Cleaning up orphan processes
+workspace tests	UNKNOWN STEP	2026-10-24T17:15:36.1994887Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

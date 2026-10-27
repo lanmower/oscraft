@@ -1,0 +1,11 @@
+id: swap-deferred-reannounce-diverges
+subject: 'correctness: a deferred swap re-announce is refused by a peer that still holds the first tick, so the peer applies the old tick while the host keeps its data'
+status: pending
+blockedBy: live-swap-verify-2-setup
+description: 'js/client/play.js. Follow-up to swap-announce-overwrites-pending, which was closed as resolved on witness 1792849692634-2630-7b0033f27f6344b7. That witness refutes only the silent overwrite: every pendingSwap write is guarded. The consequence is still reachable through the deferred re-announce. hostSwapGate re-announces the same swap at tick+32 when a peer is not ready. The peer SWAP handler refuses it while the peer still holds the first tick, and sends SWAP_NOT_READY for the new tick. failSwapNotReady cancels only the re-announced tick, so SWAP_CANCEL does not match the peer''s record. A peer whose image lands before the first tick then applies the old swap while the host keeps its data. Reasoned from the code, not yet executed. Fix: accept a same-file, same-hash re-announce with a later tick in place of the pending record. Write is queued (write_queue oscraft): play.js carries another lane''s uncommitted hunks, so a publish would carry them. Witness: two-tab run, blocked by live-swap-verify-2-setup.'
+session_id: drain-j-1
+owner: drain-j-1
+notes:
+- ts: 2026-10-25T04:06:10.610Z
+  session_id: drain-net-3
+  note: 'Origin tip 77168a44 contains the fix from 495d440a (ancestor: gh compare ahead 45, behind 0). play.js:1969 accepts a same-file same-hash re-announce with a later tick and reuses the in-flight fetch via prefetchSwapImage (play.js:1981, 2589). Code re-check only; no live two-peer run exists. Witness blocked on live-swap-verify-2-setup (dev-only swap channel) and on lobby-start-world-ready-never-fires-headful. CI at 77168a44: success, run 40154918568. No edit made; no publish.'

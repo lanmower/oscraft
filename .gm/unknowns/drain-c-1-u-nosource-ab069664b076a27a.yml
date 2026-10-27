@@ -1,0 +1,5 @@
+id: drain-c-1-u-noSource
+row: content-doodad-codes-unresolved
+description: Are B00H, B00D, B008, B00B, B00C, B00E named in any public doodad or destructable table (sumneko/w3x2lni enUS/zhCN prebuilt doodad.ini, destructable.ini, Doodads.slk, WorldEditStrings in Crainax/War3Lib and tdauth/wowr)? Local and GitHub ini/slk lookups returned none; GitHub [CODE] ini search running.
+session_id: drain-c-1
+status: unknown

@@ -1,0 +1,28 @@
+id: lobby-hero-groups-panels-three-columns
+subject: 'Lobby grid: one column per attribute group (Strength, Agility, Intelligence), tiles auto-sized, no scrolling'
+description: 'From the user (see lobby-hero-groups-widgets-columns-and-swipe): build the hero grid in scenarios/moba/panels.lua as a regions container with three kids, one per attribute group, each a labelled column holding that group''s portraits with the auto-fit size from the widget row, so no group needs scrolling. Group by the existing 6.88g-derived attribute data (do not invent). The right hero card and bottom bar stay reachable on screen. Keep badge, text and tone fields. Ownership: scenarios/moba/panels.lua (and its moba_ui.json keys). Acceptance: CI green on ci and pages; Lua error free (main went red twice from panels.lua before); screenshot shows three columns.'
+session_id: mcp-codemode-3036736-1792921179759-4
+owner: mcp-codemode-3036736-1792921179759-4
+status: pending
+notes:
+- ts: 2026-10-25T09:42:29.809Z
+  session_id: drain-closer-10
+  note: claimed by drain-closer-10; waiting on widget lane regions/auto-fit fields
+- ts: 2026-10-25T09:44:12.190Z
+  session_id: drain-panels-11
+  note: claimed by drain-panels-11
+- ts: 2026-10-25T09:45:14.506Z
+  session_id: drain-closer-10
+  note: 'drain-closer-10 releases its claim (coordinator correction: row belongs to the panels lane). For the acronym row, 1f82aa06 on origin main caps KOTL to KL; ci green, pages pending when read.'
+- ts: 2026-10-25T09:53:15.792Z
+  session_id: drain-panels-11
+  note: 'pushed 31eb6795: regions(row,swipe) 3 labelled columns, portraits fit; ci+pages green; screenshot acceptance unwitnessed (no browser verbs)'
+- ts: 2026-10-25T19:23:17.692Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open.'
+- ts: 2026-10-25T19:54:07.002Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1: staged (uncommitted, scratch /config/tmp/hud-lobby, base b56fa72f): column titles are buttons (widgets.js regions titles/aria-pressed; panels.lua attribute_rows passes titles with id attrs) and HERO_PRIMARY gets the owner''s placements for marci, pangolier, snapfire, void_spirit. Harness witness (not the lobby; the lobby does not mount locally): desktop title buttons PASS (names, aria-pressed, focus); phone click to Intelligence lands at max scroll 677 with the group pressed and survives a rebuild. Publish blocked: publish_on_origin dry_run failed fetch_failed twice (dispatches 1792957604507-2356218-d725bd4d1810971b, 1792957797172-2356218-98683453ea98cca6); nothing pushed. Row stays open.'
+- ts: 2026-10-25T20:05:11.812Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1: staged (uncommitted, /config/tmp/hud-lobby, base b56fa72f): the group-0 (UNVERIFIED) section is removed from attribute_rows in scenarios/moba/panels.lua; heroes with no group are drawn nowhere; widgets.js has no group-0 path, so it is unchanged. Waiting on the hy3d group file to check every roster hero has group 1-3 before publishing (publishing now would hide the heroes with no group). Publish still fails: dry run fetch_failed, dispatch 1792958520912-2611251-4b6a5820fafa9e2d; nothing pushed.'

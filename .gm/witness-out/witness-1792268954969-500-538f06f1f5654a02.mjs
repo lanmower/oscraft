@@ -1,0 +1,11 @@
+import { createRequire as __gmCreateRequire } from 'node:module';
+const require = __gmCreateRequire(process.cwd() + '/');
+const fs=require('fs');const cp=require('child_process');
+const ts=new Date().toISOString();
+const present=fs.existsSync('js/host/server.js');
+const r=cp.spawnSync('node',['js/host/server.js','--help'],{encoding:'utf8'});
+const exit=r.status===null?'signal':r.status;
+const result = (!present && exit!==0) ? 'RESULT: REFUTED' : 'RESULT: FAIL';
+const line='witness=net-node-host-wireweave-refutation; exit='+exit+'; js_host_server_present='+present+'; '+result+'; utc='+ts+'; retired_by=68a30ade; doc=docs/HOST.md:62';
+fs.appendFileSync('.gm/witness-log.md', line+'\n');
+console.log(line);

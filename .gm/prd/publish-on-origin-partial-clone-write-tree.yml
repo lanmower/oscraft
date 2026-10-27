@@ -1,0 +1,6 @@
+id: publish-on-origin-partial-clone-write-tree
+subject: publish_on_origin write_tree_failed in a blob:none partial sparse clone
+description: 'publish_on_origin returns write_tree_failed in /workspace/oscraft-fx-scratch (remote.origin.promisor, partialclonefilter blob:none, sparse checkout): write-tree without --missing-ok lazy-fetches every missing blob of origin/main (4475 files) and times out or fails. Fix: build the temp-index tree with git write-tree --missing-ok and GIT_NO_LAZY_FETCH=1. Workaround used for fx-cast-rules: read-tree origin/main, update-index --cacheinfo, write-tree --missing-ok, commit-tree, push sha.'
+session_id: mcp-codemode-2799623-1792918995254-37
+owner: mcp-codemode-2799623-1792918995254-37
+status: pending

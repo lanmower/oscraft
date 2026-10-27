@@ -1,0 +1,17 @@
+id: content-ytpb-pathblocker-placed-as-props
+subject: YTpb is a pathblocker destructable, but its 109 placements ship as prop doodads
+description: 'w3x2lni (sumneko/w3x2lni enUS-1.27.1/prebuilt/Melee/destructable.ini:12153) defines [YTpb] with _type=destructable and name WESTRING_DEST_PATHBLOCKER, so it is not a doodad. scenarios/moba/doodad-types-688g.tsv still ships YTpb (109 placements) as rocks, debris_wood, blocks_ruined and catwalk_junction, a guess from base clustering, and doodads-688g.tsv carries those 109 records into map.osd as props. Clearing action: place no pathblocker records as doodads (exclude the type in the placer or the 6.88g table, with its citation), then witness the placed count of the 6.88g pair with place-doodads-688g.mjs --dry-run before and after. Found by content-doodad-codes-unresolved (drain-c-1).'
+session_id: drain-c-1
+owner: drain-c-1
+status: pending
+notes:
+- ts: 2026-10-24T17:21:30.233Z
+  session_id: drain-ytpb-1
+  note: 'Published a8e293e808c3136a9ed5482d3d46bd0b08fec8e0 (tsv YTpb UNVERIFIED, map.osd 109 doodad lines withheld, docs row). Blocking fact: origin workspace tests CI job red at both f9cb36ce and a8e293e8 from another lane''s hud/lobby commit (row ci-workspace-tests-hud-lobby-red-since-f9cb36ce). Pathblocker classification unresolved: 6.88g tables silent, no engine doodad blocking, w3x2lni is base-game data not 6.88g.'
+- ts: 2026-10-25T10:09:11.048Z
+  session_id: mcp-codemode-3115989-1792922950003-5
+  note: 'Owner decision (user): maximise parity with the 6.88g reference map. Keep the YTpb placements as props.'
+witness_request:
+  ts_ms: 1792893535591
+  requested_by: drain-doodad-shard-2
+  note: 'drain-doodad-shard-2 (live, origin 6339aaeab): all 109 YTpb placements from doodads-688g.tsv are present as mapped lines in map.osd (109/109 exact position match). 6.88g table ships YTpb as rocks|debris_wood|blocks_ruined|catwalk_junction. Decision for the user: keep the 109 as props (default taken, row stays pending) or exclude pathblocker-type destructables from doodad placement.'

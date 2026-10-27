@@ -1,0 +1,4 @@
+id: gap-tick-overrun-action-u-paths-share
+value: Paths system share of a full Sim::tick cost is large enough that skipping it on a cadence makes shed ticks cheaper than full ticks (measure per-system via tick_cost_bucket or timed run)
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

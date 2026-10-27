@@ -1,0 +1,5 @@
+id: gap-tick-overrun-action-U1
+row: gap-tick-overrun-action
+question: U1 Does shedding (SHED_ORDER_CAP=0 order drain, room.rs:294) change sim.tick() cost enough to reduce the overrun rate at a budget where full cost overruns?
+session_id: gm-orch-2-7-r3
+status: unknown

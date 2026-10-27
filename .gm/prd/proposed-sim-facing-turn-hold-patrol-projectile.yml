@@ -1,0 +1,7 @@
+id: proposed-sim-facing-turn-hold-patrol-projectile
+subject: 'Proposed: sim gaps for facing, turn rate, hold fire, patrol, attack backswing cancel, projectile arc and homing, hero idle chase'
+description: 'From hy3d''s consolidated gap list (6.88g sources in /workspace/hy3d/output/688g-data/combat-parity.tsv and docs/CONVERGENCE_688G.md). Not expressible in the sim today: no heading (heroes_688g.tsv turn column unused), no patrol order, no hold-fire beyond the flag, no backswing cancel during the attack point, no projectile arc or homing, no hero idle chase to acquire range 600 or 800. Proposed, not approved: the user has not yet confirmed ''implement everything'' in this session.'
+acceptance_criteria: 'Each item is implemented against its 6.88g row, with the source line in the commit body, and a CI witness on the pushed sha. Owner: hy3d (proposed).'
+owner: hy3d
+session_id: mcp-codemode-1158174-1792947532444-1
+status: pending

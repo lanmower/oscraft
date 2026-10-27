@@ -1,0 +1,23 @@
+id: ui-lobby-cannot-remove-bot
+subject: Host cannot remove a bot or kick a seat once filled
+description: 'scenarios/moba/panels.lua:705 release requires s.owner == owner; bot owner is ''bot:N''; lobby_seat (:~960) draws no button for others'' seats. Symptom: Fill with bots is irreversible, a stuck or absent human seat cannot be freed. Acceptance: host-only ''remove'' on a bot/other seat, with not-host refusal for others. Witness: fill, remove one bot, seat shows open.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T09:01:08.195Z
+  session_id: drain-ui-panels-9
+  note: 'claimed by drain-ui-panels-9. Pushed ae39ed17: host-only remove call and Remove button. Open pending ci-status green and a browser witness (fill, remove one bot).'
+- ts: 2026-10-25T09:20:52.396Z
+  session_id: drain-panels-10
+  note: claimed by drain-panels-10
+- ts: 2026-10-25T09:42:51.048Z
+  session_id: drain-panels-10
+  note: remove call and button on origin (panels.lua:778,1109); ci green; browser witness remains
+- ts: 2026-10-25T19:23:35.679Z
+  session_id: hud-lobby-1
+  note: 'hud-lobby-1 blocker: witness needs a mounted lobby. The local dev loop (scratch /config/tmp/hud-lobby at b56fa72f, dev server http://localhost:45591) does not mount #ui-modal on load within 40 s; the owner rules forbid the only routes (join, pack buttons, Claim, Fill, Start). Browser lane dispatches 1792955959231-44 and 1792956064072-54: 0 .w-portrait, 0 .w-region, 0 .w-model. Row stays open.'
+references:
+- ts: 2026-10-26T05:23:29.486Z
+  session_id: hud-match-witness
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/scenarios/moba/panels.lua","repo":"","path":"","sha":"","why":"The lobby remove call and its Remove button, the fix this row witnesses.","license":"unknown"}'

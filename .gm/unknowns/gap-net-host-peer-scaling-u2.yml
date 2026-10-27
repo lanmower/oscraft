@@ -1,0 +1,4 @@
+id: gap-net-host-peer-scaling-u2
+subject: Does the native wasmtime host on the committed tree give a per-tick cost that is stable enough across repeated runs to form a ratio?
+session_id: gm-oscraft-w1-14
+status: unknown

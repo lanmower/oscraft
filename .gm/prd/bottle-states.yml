@@ -1,0 +1,10 @@
+id: bottle-states
+subject: Magical Bottle states and rune storage
+description: war3map.j QKV 18568-18627, QDV 18519-18529, UBV 20465-20522, YCR 94077-94095
+session_id: drain-camps
+owner: drain-camps
+status: pending
+references:
+- ts: 2026-10-25T17:35:55.012Z
+  session_id: drain-camps
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/15741221237a9785eca951f36b4e204b8c750413/docs/SCRIPTING.md","repo":"lanmower/oscraft","path":"docs/SCRIPTING.md","sha":"15741221237a9785eca951f36b4e204b8c750413","why":"cmd_set_item_charges, cmd_give_item and unit_items rows the bottle uses; the 6.88g map script is private","license":"own"}'

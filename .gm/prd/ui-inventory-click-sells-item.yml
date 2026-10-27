@@ -1,0 +1,22 @@
+id: ui-inventory-click-sells-item
+subject: One left click on an inventory item sells it, with no confirm and no label
+description: 'scenarios/moba/panels.lua:522 inventory_tree cell call=sell, tip=name only; ui_call sell at :1129. Symptom: a stray tap destroys an item for gold; the tip does not say it sells. Acceptance: the action is labelled (tip or text names Sell and the refund), and sell needs a second press or a modifier; refund value shown from the sim, UNVERIFIED if unknown. Witness: click item, item still held after one press.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T08:58:24.746Z
+  session_id: mcp-codemode-2804130-1792918693644-26
+  note: claimed by drain-ui-panels-9
+- ts: 2026-10-25T09:03:06.449Z
+  session_id: mcp-codemode-2804130-1792918976120-132
+  note: 'drain-ui-panels-9: edit published d3a560d0a6377a0214b7e3eea3b4296e7aa53162 (menu buttons toggle shop/scoreboard/controls; controls panel from UI.keys, key f1/?; sell needs 2nd press, tip names refund UNVERIFIED). Row witness needs a browser look (390x844 tap / click item); left open, no browser verbs allowed.'
+- ts: 2026-10-25T09:21:05.609Z
+  session_id: drain-panels-10
+  note: claimed by drain-panels-10
+- ts: 2026-10-25T09:42:44.415Z
+  session_id: drain-panels-10
+  note: d3a560d0 edits are on origin (armed sell in inventory_tree, TEXT.menu buttons); ci green at bed7addd; only the browser click witness remains
+- ts: 2026-10-26T05:26:57.005Z
+  session_id: hud-match-witness
+  note: 'Not witnessed: needs an item in the inventory. Open.'

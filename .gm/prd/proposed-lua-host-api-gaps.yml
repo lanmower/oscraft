@@ -1,0 +1,7 @@
+id: proposed-lua-host-api-gaps
+subject: 'Proposed: Lua and host API gaps: string and table library, deterministic random, pack hook, message colours, player names and colours, player-left event, camera calls, local settings, secret-shop query, XP handicap, bot flag, multiboard panel, sound consumer'
+description: 'From hy3d''s consolidated gap list (interaction-parity.tsv). Missing for mods: a Lua string and table library and a random-number call (hy3d''s host lane is adding a deterministic rand), a per-frame pack hook, colour codes and an ally-only filter in game.message, per-seat player names and colours, a player-left event, camera-distance-only and rotation-lock calls, a per-player local-setting API, a depot and secret-shop position query, XP handicap and unit scale calls, a bot-versus-human flag, a matrix or multiboard panel type, a sound consumer and shipped announcer audio (13 mp3s, licence unverified). Proposed, not approved.'
+acceptance_criteria: 'Each API is callable from the pack Lua, with a gate check that calls it, and CI green on the pushed sha. The announcer audio stays out until its licence is confirmed. Owner: hy3d (proposed).'
+owner: hy3d
+session_id: mcp-codemode-1158174-1792947532444-1
+status: pending

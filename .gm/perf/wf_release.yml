@@ -1,0 +1,93 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: package ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: linux, os: ubuntu-latest }
+          - { target: macos, os: macos-latest }
+          - { target: windows, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        working-directory: rust
+        run: |
+          rustup toolchain install
+          rustc --version
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: release-${{ matrix.target }}
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.15.0
+
+      - name: Build the archive
+        run: bash scripts/package/build.sh "$RUNNER_TEMP/pkg"
+
+      - name: Install-check the archive
+        run: bash scripts/package/install-check.sh "$RUNNER_TEMP"/pkg/oscraft-*.tar.gz "$RUNNER_TEMP/pkg-check"
+
+      - name: Name and checksum the archive
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          src=$(ls "$RUNNER_TEMP"/pkg/oscraft-*.tar.gz)
+          # A tag names the archive by the tag; a workflow_dispatch run (no tag) names it by the short commit SHA.
+          label="$GITHUB_REF_NAME"
+          case "$GITHUB_REF" in refs/tags/*) ;; *) label="${GITHUB_SHA:0:7}" ;; esac
+          out="dist/oscraft-${label}-${{ matrix.target }}.tar.gz"
+          cp "$src" "$out"
+          (cd dist && if command -v sha256sum >/dev/null; then sha256sum "$(basename "$out")"; else shasum -a 256 "$(basename "$out")"; fi > "$(basename "$out").sha256")
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oscraft-${{ matrix.target }}
+          path: dist/*
+
+  publish:
+    name: attach to the GitHub release
+    needs: package
+    # Only a pushed tag publishes; a workflow_dispatch run stops at the workflow artifacts.
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Combine checksums
+        run: cd dist && cat oscraft-*.sha256 > SHA256SUMS
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber

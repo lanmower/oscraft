@@ -1,0 +1,12 @@
+id: ci-first-draw-red-31ee27f3
+subject: CI first draw over the ceiling on 31ee27f3 (median 10644 ms vs 10000 ms)
+description: pages.yml 'first draw of the built page' on 31ee27f3 measured loads 10644, 11182 and 10357 ms with about 20 MB transferred per load (roshan-skinned.glb 3.5 MB and web_bg.wasm 1.8 to 2.8 MB among the largest). The previous pages run on 0999c478 was green. The commits between 0999c478 and 31ee27f3 are other lanes' commits, not the message-line change alone. The ceiling is the owner's and is not changed here.
+acceptance_criteria: The first-draw job passes on main at a sha with the owner's ceiling unchanged, or the extra transfer is explained and reduced.
+witness_plan: ci-status on the pages run for the tip, and the first-draw log median.
+owner: hud-match-2
+session_id: hud-match-2
+status: pending
+notes:
+- ts: 2026-10-25T23:00:50.113Z
+  session_id: hud-match-2
+  note: 'Flake evidence: first draw failed on 31ee27f3 (10644 ms median), 6cbdf7b7 and 27300de8 at the same ceiling; 297e9c5c''s pages run passed its first draw. Median varies run to run, so the ceiling is compared on repeated runs by the owner.'

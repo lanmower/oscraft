@@ -1,0 +1,4 @@
+id: gap-room-thread-supervisor-F5
+subject: Does the committed tree behave as the row premise states (JoinHandle dropped, no catch_unwind) in any other ticker entry point, e.g. replay.rs or budget.rs spawn_reporter?
+session_id: gm-orch-1-3
+status: unknown

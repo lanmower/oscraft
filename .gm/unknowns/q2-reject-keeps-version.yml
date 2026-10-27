@@ -1,0 +1,4 @@
+id: q2-reject-keeps-version
+value: Does a rejected mod reload leave the mod version unchanged? mod-host lib.rs version increments only on live reload.
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-b1
