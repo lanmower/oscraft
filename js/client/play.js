@@ -340,7 +340,12 @@ function routeUi(ev) {
     return;
   }
   if (ev.kind === "lobby") {
-    if (!data.started) { preloadPickedModels(data.slots); return; }
+    if (!data.started) {
+      flowLobbySlots = Array.isArray(data.slots) ? data.slots : [];
+      preloadPickedModels(data.slots);
+      guiFlow?.refreshLobby?.();
+      return;
+    }
     if (data.player === myPlayer && !netState) onLobbyStart({ slots: data.slots });
     return;
   }
@@ -1306,10 +1311,10 @@ function endLobby() {
 const FLOW_OFF = () => params.get("flow") === "0";
 
 function startFlowMatch(hero) {
-  if (!localGame || gate.phase !== PHASE.LOBBY || guiFlow?.team?.() == null) return;
+  if (!localGame || gate.phase !== PHASE.LOBBY || guiFlow?.team?.() == null) return false;
   const team = guiFlow.team();
   const roster = flowRoster;
-  if (typeof hero.type !== "number" || !localGame.unit_type_names()[hero.type]) return;
+  if (typeof hero?.type !== "number" || !localGame.unit_type_names()[hero.type]) return false;
   const pickName = (type) => localGame.unit_type_names()[type];
   const mine = hero.type;
   const botPool = roster.filter((h) => h.name !== hero.name);
@@ -1343,9 +1348,49 @@ function startFlowMatch(hero) {
     yaw: renderer3d.camera.yaw,
     pitch: renderer3d.camera.pitch,
   };
+  return true;
 }
 
 let flowRoster = [];
+// The lobby's own seat list (arrives before the match starts): it is what the
+// hero grid filters by team, so a hero a seat already holds leaves the free
+// pool and appears under that team's filter.
+let flowLobbySlots = [];
+
+const flowTypeNames = () => (typeof localGame?.unit_type_names === "function" ? localGame.unit_type_names() : []);
+
+// The primary attribute per hero id (heroes_688g.tsv `primary`, 0 strength
+// 1 agility 2 intelligence, +1 for the group number the mod's lobby grid
+// uses). A hero the table has no row for falls back to strength, which is
+// what panels.lua does for one.
+async function heroPrimaries() {
+  const groups = new Map();
+  try {
+    for (const line of (await packText("heroes_688g.tsv")).split("\n").slice(1)) {
+      const cols = line.split("\t");
+      const primary = Number(cols[3]);
+      if (cols[0] && Number.isInteger(primary) && primary >= 0 && primary <= 2) groups.set(cols[0], primary + 1);
+    }
+  } catch (err) {
+    console.warn(`[flow] hero primaries unavailable: ${err?.message ?? err}`);
+  }
+  return groups;
+}
+
+// Both teams' heroes as the roster names the flow renders (the lobby speaks
+// unit type ids and model names; the roster is keyed by model).
+function flowTeamPicks() {
+  const out = [[], []];
+  const names = flowTypeNames();
+  const byId = new Map(flowRoster.map((hero) => [names[hero.type], hero.name]));
+  const byModel = new Map(flowRoster.map((hero) => [hero.name, hero.name]));
+  for (const seat of flowLobbySlots) {
+    const team = (Number.isInteger(seat.slot) ? seat.slot : 0) < TEAM_SIZE ? 0 : 1;
+    const name = byId.get(seat.pick) ?? byModel.get(seat.model) ?? null;
+    if (name) out[team].push(name);
+  }
+  return out;
+}
 
 function heroRosterNames(heroIconNames) {
   const models = typeof localGame?.unit_model_names === "function" ? localGame.unit_model_names() : [];
@@ -1372,13 +1417,17 @@ async function mountGuiFlow() {
     ? Object.keys(index.atlases.heroes.icons).map((rel) => rel.replace(/^icons\//, "").replace(/\.png$/, "")).filter(Boolean)
     : [];
   flowRoster = heroRosterNames(iconNames);
-  const byName = new Map(flowRoster.map((name) => [name, null]));
+  const primaries = await heroPrimaries();
+  const names = flowTypeNames();
+  const byName = new Map(flowRoster.map((hero) => [hero.name, null]));
   guiFlow = createGuiFlow({
     root: document.body,
     teamNames: ["The Sentinel", "The Scourge"],
     rosterHeroes: () => flowRoster.map((hero) => ({ name: hero.name, type: hero.type })),
+    primaryOf: (hero) => primaries.get(names[hero.type]) ?? 1,
+    teamPicks: () => flowTeamPicks(),
     iconUrl: (hero) => byName.get(hero.name) ?? null,
-    onHero: (hero) => startFlowMatch(hero.name),
+    onHero: (hero) => startFlowMatch(hero),
   });
   (async () => {
     const atlas = (await pIndex())?.atlases?.heroes ?? null;
@@ -1386,15 +1435,17 @@ async function mountGuiFlow() {
       const rel = `icons/heroes/${name}.png`;
       if (atlas?.icons[rel]) byName.set(name, await loadImage(rel).then((url) => {
         console.log(`[flow] icon ${rel} -> ${url ? "ok" : "null"}`);
-        // The hero grid may already be rendered: fill its img in place.
-        const img = document.querySelector(`#gui-flow .flow-hero[data-hero="${CSS.escape(name)}"] img`);
-        if (url && img) { img.hidden = false; img.src = url; }
+        // The grid and the orientation stands are rebuilt on every filter and
+        // stage change, so a late icon is applied to the portraits on screen
+        // now and to each later rebuild at render time.
+        guiFlow?.refreshIcons?.();
         return url;
       }).catch((err) => {
         console.warn(`[flow] hero icon ${rel} failed: ${err?.message ?? err}`);
         return null;
       }));
     }
+    guiFlow?.refreshIcons?.();
   })();
   window.__oscraftFlow = guiFlow;
 }
