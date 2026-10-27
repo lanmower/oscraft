@@ -1,0 +1,305 @@
+# Death, buyback and gold rules read through game.rule (hero.lua, kill_gold.lua). The attr lines set per-unit attributes.
+# Respawn: floor(3.8 * level + 5) s, in tenths of a second, no cap (6.88g war3map.j F_V 14613; the table is core/respawn.lua, read by heroes.lua).
+# Buyback: the shop unit of 6.88g war3map.j q2 8036-8047, cost 50 * (1 + clamp(floor((100 + 1.5 * level^2 + 15 * minutes) / 50), 0, 59))
+# (buyback_base 100, buyback_level_sq_x10 15, buyback_per_minute 15, buyback_index_div 50, the heroes.lua buyback_cost); cooldown
+# 420 s (w2 8139).
+# Passive gold: 1 gold every 0.6 s per hero from the start (war3map.j CXV 11688-11707, the 0.6 s timer KD of main 101484 enabled
+# at JAE 26256), here 5 gold every 3 s paid one gold at a time to every seat, dead or alive (kill_gold.lua).
+respawn_base_x10=50
+respawn_per_level_x10=38
+buyback_base=100
+buyback_level_sq_x10=15
+buyback_per_minute=15
+buyback_index_div=50
+buyback_index_max=59
+buyback_step_gold=50
+buyback_cooldown_s=420
+passive_gold_per_period=5
+passive_gold_period_s=3
+# A hero killed by enemy creeps or an enemy tower: the enemy heroes that damaged it within this many seconds share the kill
+# gold (war3map.j CGV 13335-13353 with QD = 18, CPV 13425-13444, CSV 13474-13494); kill_gold.lua and heroes.lua read it.
+kill_window_s=18
+# The first hero death by an enemy pays 200 with 150 of it reliable, or 150 split among the damagers of a creep kill (GTV 14697-14721).
+# A hero death costs min(30 * level, unreliable gold) (F_V 14556-14574). Assist gold is read from the 1325 unit radius (D9V,
+# xx 0x52D) = 20703 milli, its table is in kill_gold.lua. Structure team gold: towers 120 + 40 * tier, halved on a denial (gU
+# 3753-3756), barracks 275 melee and 225 ranged (dU 3704-3710).
+first_blood_gold=200
+first_blood_reliable_gold=150
+first_blood_split_gold=150
+death_gold_loss_per_level=30
+assist_gold_radius_milli=20703
+tower_team_gold_base=120
+tower_team_gold_per_tier=40
+barracks_melee_team_gold=275
+barracks_ranged_team_gold=225
+# Targeting rules (scenarios/moba/targeting.lua). aggro_priority turns the class order and the hero-hit redirect on.
+# aggro_hold_s is the redirect window of 6.88g war3map.j SSE: TimerStart 2 s (31432). 6.88g has no backdoor protection
+# (no script, ability or buff applies it; the lone b04n text string is unused).
+aggro_priority=1
+# reference ends a channel or a cast point by stun, silence or hex, not by damage taken.
+channel_damage_interrupt=0
+aggro_hold_s=2
+# Engine balance values moved out of sim/src (same numbers, read by the attribute rules text parser). Hero kill gold
+# (6.88g war3map.j F_V 14451 and 14505): 100 + 9 * victim level, plus 60 per kill of the victim's streak past 2 (streak of 3
+# or more, at most 8 kills of bonus). Gold is the player's bank (core/bounty.lua), all of a hero kill to the killer.
+hero_kill_gold_base=100
+hero_kill_gold_per_level=9
+kill_streak_min=3
+kill_streak_offset=2
+kill_streak_cap=8
+kill_streak_gold=60
+# Base magic resistance percent of every hero (combat.rs magic_reduced). 6.88g's hero armour type takes 0.75 of Magic damage (misc.ini
+# DamageBonusMagic, line 25); UNVERIFIED that every spell uses the Magic attack type.
+base_magic_resist_pct=25
+# Movement speed limits in reference speed points (1 point = speed_point_q16 Q16.16 per tick). The pack holds each unit
+# between them (scenarios/moba/unit_rules.lua). 6.88g misc.ini MaxUnitSpeed 522.0 (line 89) and MinUnitSpeed 100.0 (line 91).
+move_speed_max=522
+move_speed_min=100
+# Cast and attack caps, held by spells.lua on the sim's stats: the cooldown reduction cap in percent, and the total attack
+# speed range in percent (100 plus the attack speed bonus). UNVERIFIED: the 6.88g data holds none of the three caps.
+cdr_cap_pct=90
+attack_speed_min_pct=20
+attack_speed_max_pct=700
+# Armour reduction per armour point, Q16.16 (0.06; scenarios/moba/unit_rules.lua), and the percent of a hit a `reduced`
+# damage response keeps (half; combat.rs inflict, UNVERIFIED). The map's misc.ini lists overrides only and has no DefenseArmor, so the
+# custom-game default holds: DefenseArmor=0.06 (tools/w3x2lni/data/enUS-1.27.1/mpq/Custom_V1/Units/MiscGame.txt:180).
+armour_per_point_q16=3932
+reduced_response_pct=50
+# Distance at which a unit moves on to its next waypoint (milli-units); the reference speed point in Q16.16; the melee
+# range (Q16.16, half a tile): a melee shot never misses (unit_rules.lua).
+waypoint_reach_milli=3000
+speed_point_q16=64
+melee_range_q16=32768
+# Attribute coefficients (the attribute rules), 6.88g misc.ini: health per strength (StrHitPointBonus 19.0, line 113), health regeneration
+# per strength (StrRegenBonus 0.03, 115), mana per intelligence (IntManaBonus 13.0, 79), mana regeneration per intelligence (IntRegenBonus
+# 0.04, 81), armour per agility (AgiDefenseBonus 0.14, 15) less the agility armour base (AgiDefenseBase -1.0, 13); regeneration and armour
+# in hundredths per point. Attack speed per agility is 0.01 (AgiAttackSpeedBonus, 11), heroes.lua. Damage per primary point is 1: misc.ini does
+# not override StrAttackBonus, so the custom-game default holds (MiscGame.txt:135, 1.0). UNVERIFIED: the universal damage percent (70): 6.88g
+# heroes are strength, agility or intelligence, none universal.
+hp_per_attr_a=19
+armour_per_attr_b_x100=14
+armour_base_penalty_x100=100
+hp_regen_per_attr_a_x100=3
+mana_per_attr_c=13
+mana_regen_per_attr_c_x100=4
+universal_damage_pct=70
+# Base mana of a unit with no attr line (heroes.lua adds it to the mana bonus; a hero line sets its own mana).
+mana_base_default=75
+# Camp, boss and rune numbers read by scenarios/moba/camps.lua through game.rule. Leash and clear are milli-units. The leash is
+# 6.88g misc.ini MaxGuardDistance 600 units (GuardReturnTime 3 s); the clear box (about 300 units) is UNVERIFIED.
+# Roshan (6.88g war3map.j HXV 14927-14939, HIV 14971-15009, HOV 14940-14960, GZV 14764-14795, G4V 14825-14831): one pit, back
+# 480..660 s after his death (YD = GetRandomInt(480,660)), 200 gold to every hero of the killing side, the aegis for 300 s with a
+# warning at 240 s (HOV eval counts 240 and 300), a cheese from his third death on (the second spawn adds ZD>1 two-slot
+# inventory A0Q6), growth every 240 s of game time (500 hp each, armour 0.7 each for 20 steps: abilities A3BA to A3BE), and the
+# pit leash: checked every 10 s inside rect 3008..4448 x -2784..-2016 (milli centre 221250,200500, half sides 11250,6000).
+# 6.88g has no Tormentor, no outposts and no pit swap, so those rules are gone.
+# Runes (H7V 15459-15506, QIV 18458-18480): a round every 120 s; the first bounty at 0:00 (flat 100 gold, no xp), then one
+# bounty rune at a random one of the two spots (gold 50 + 2 * minute, xp 50 + 5 * minute); the other spot holds a power rune
+# of a random kind other than the last (scenarios/moba/runes.lua: illusion, haste, double damage, regeneration, invisibility).
+# The pickup radius is UNVERIFIED.
+# Power runes (item.ini I006 I007 I00K I008 I00J texts, QKV 18568-18657): haste holds the speed at 522 for 25 s; double damage
+# adds the base damage for 45 s (QHV 18556-18559); regeneration gives 3000 hp and 2000 mana over 30 s (QEV 18401-18412,
+# QOV 18432-18441), ended by damage; illusion makes two images for 75 s dealing 35 percent (A0GR ability.ini:29531) and
+# taking 300 percent (A0GR DataB 3.0, QRV 18443-18457); invisibility 45 s (QKV 18630-18650) has no script command here.
+camp_leash_milli=9375
+camp_clear_milli=4688
+camp_first_spawn_s=30
+camp_respawn_s=60
+rune_period_s=120
+rune_pickup_milli=1500
+rune_haste_s=25
+rune_haste_speed=522
+rune_double_damage_s=45
+rune_regeneration_s=30
+rune_regeneration_hp=3000
+rune_regeneration_mana=2000
+rune_illusion_s=75
+rune_illusion_count=2
+rune_illusion_out_pct=35
+rune_illusion_in_pct=300
+rune_invisibility_s=45
+bottle_sip_hp=110
+bottle_sip_mana=70
+bottle_sip_s=3
+bottle_warn_s=20
+bottle_slow_pct=30
+bottle_capture_reach_milli=2344
+bottle_share_reach_milli=3125
+rune_first_gold=100
+rune_gold_base=50
+rune_gold_per_min=2
+rune_xp_base=50
+rune_xp_per_min=5
+roshan_respawn_min_s=480
+roshan_respawn_spread_s=180
+roshan_growth_s=240
+roshan_hp_per_growth=500
+roshan_armour_x100_per_growth=70
+roshan_armour_growth_cap=20
+roshan_team_gold=200
+roshan_cheese_from_kill=3
+roshan_leash_check_s=10
+roshan_leash_cx_milli=221250
+roshan_leash_cy_milli=200500
+roshan_leash_hx_milli=11250
+roshan_leash_hy_milli=6000
+aegis_warn_s=240
+aegis_expire_s=300
+aegis_reincarnate_s=5
+# Kelen's Dagger lock (6.88g war3map.j S_V 19465-19467): a hit of more than 2 damage after armour and shields stamps the target, and S1V 19489-19495 keeps the dagger disabled for 3 s from the stamp.
+heavy_hit_min=2
+# Respawn terms of items and spells (scenarios/moba/respawn_terms.lua), 6.88g war3map.j: Bloodstone cuts a holder's respawn by 3 s a
+# charge (F_V 14564), starts at 8 charges (J2V 16112-16113), keeps 0.67 of them at a revive (x5 10707, one charge goes to none), and an
+# enemy hero dying within 1625 units (1625 * 15.625 = 25391 milli, DNV 13767) gives a holder a charge (DOV 13732). Reaper's Scythe adds
+# 10 s per spell level to a hero killed within 1.51 s of the cast (F_V 14618-14619, WJO 70985 and 71001).
+bloodstone_start_charges=8
+bloodstone_cut_s_per_charge=3
+bloodstone_decay_pct=67
+bloodstone_gain_radius_milli=25391
+# A dying holder heals its living allies within 1700 units (26563 milli) by 500 + 30 per charge (GMV 18978-18982, range 0x6A4).
+bloodstone_heal=500
+bloodstone_heal_per_charge=30
+bloodstone_heal_radius_milli=26563
+scythe_respawn_s_per_level=10
+tome_xp_base=700
+tome_xp_per_team_tome=135
+# The day and night clock (scenarios/moba/clock.lua, read through game.rule). 6.88g misc.ini DayLength 300 s for the 24 game hours,
+# war3map.j PRE 30066-30068 sets 6:00 and a time scale of 0.625: the cycle is 300 / 0.625 = 480 s, day (6:00 to 18:00) first,
+# 240 s of day then 240 s of night.
+day_s=240
+night_s=240
+# A unit's sight at night is divided by this (sim fog.rs). UNVERIFIED: the 6.88g map script and ini files hold no night sight value
+# (the engine's own night sight is not stored in the map), so 2 is kept as the recalled rule.
+night_sight_divisor=2
+# BEGIN generated by scenarios/moba/tools/gen-heroes.mjs from npc_heroes @282fad29f0f74504fad465c52d197fb61f4d612b
+# attr <unit> primary(0 str,1 agi,2 int,3 universal) str/agi/int + *_gain (hundredths), mana, mana_regen and hp_regen (hundredths per s),
+# armor (hundredths), mr (percent), bat (hundredths of a second), damage (hundredths, min/max midpoint).
+attr antimage primary=1 str=2200 str_gain=160 agi=2200 agi_gain=280 int=1500 int_gain=180 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=145 damage=2900
+attr axe primary=0 str=2500 str_gain=250 agi=2000 agi_gain=220 int=1800 int_gain=160 mana=100 mana_regen=1 hp_regen=300 armor=0 mr=25 bat=170 damage=2600
+attr bane primary=2 str=2200 str_gain=210 agi=2200 agi_gain=210 int=2200 int_gain=210 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=3600
+attr bloodseeker primary=1 str=2300 str_gain=200 agi=2400 agi_gain=300 int=1800 int_gain=170 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=3200
+attr crystal_maiden primary=2 str=1600 str_gain=170 agi=1600 agi_gain=160 int=1600 int_gain=290 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2200
+attr drow_ranger primary=1 str=1700 str_gain=190 agi=2600 agi_gain=190 int=1500 int_gain=140 mana=100 mana_regen=1 hp_regen=25 armor=-200 mr=25 bat=170 damage=2350
+attr earthshaker primary=0 str=2200 str_gain=290 agi=1200 agi_gain=140 int=1600 int_gain=180 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2900
+attr juggernaut primary=1 str=2000 str_gain=190 agi=2600 agi_gain=240 int=1400 int_gain=140 mana=100 mana_regen=1 hp_regen=75 armor=100 mr=25 bat=140 damage=2600
+attr mirana primary=1 str=1700 str_gain=185 agi=2000 agi_gain=330 int=1700 int_gain=165 mana=100 mana_regen=40 hp_regen=25 armor=-200 mr=25 bat=170 damage=2350
+attr nevermore primary=1 str=1500 str_gain=200 agi=2000 agi_gain=290 int=1800 int_gain=200 mana=75 mana_regen=30 hp_regen=25 armor=0 mr=25 bat=170 damage=1900
+attr morphling primary=1 str=2100 str_gain=210 agi=2400 agi_gain=340 int=1700 int_gain=150 mana=100 mana_regen=1 hp_regen=75 armor=-100 mr=25 bat=160 damage=1750
+attr phantom_lancer primary=1 str=2100 str_gain=210 agi=2900 agi_gain=260 int=2100 int_gain=200 mana=100 mana_regen=1 hp_regen=75 armor=100 mr=25 bat=170 damage=3300
+attr puck primary=2 str=1500 str_gain=170 agi=2200 agi_gain=170 int=2500 int_gain=240 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2600
+attr pudge primary=0 str=2500 str_gain=320 agi=1400 agi_gain=150 int=1400 int_gain=150 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=4800
+attr razor primary=1 str=2100 str_gain=230 agi=2200 agi_gain=200 int=1900 int_gain=180 mana=200 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2400
+attr sand_king primary=0 str=1800 str_gain=260 agi=1900 agi_gain=210 int=1600 int_gain=180 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=3300
+attr storm_spirit primary=2 str=2100 str_gain=150 agi=2200 agi_gain=180 int=2400 int_gain=310 mana=100 mana_regen=1 hp_regen=75 armor=300 mr=25 bat=170 damage=2700
+attr sven primary=0 str=2300 str_gain=270 agi=2100 agi_gain=200 int=1600 int_gain=130 mana=75 mana_regen=0 hp_regen=75 armor=300 mr=25 bat=170 damage=3800
+attr tiny primary=0 str=2600 str_gain=250 agi=900 agi_gain=90 int=1700 int_gain=100 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=4000
+attr vengefulspirit primary=1 str=1800 str_gain=260 agi=2700 agi_gain=330 int=1500 int_gain=175 mana=200 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=1900
+attr windrunner primary=2 str=1500 str_gain=250 agi=1700 agi_gain=140 int=2200 int_gain=260 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=150 damage=2800
+attr zuus primary=2 str=1900 str_gain=230 agi=1100 agi_gain=120 int=2000 int_gain=270 mana=100 mana_regen=0 hp_regen=25 armor=100 mr=25 bat=170 damage=2500
+attr kunkka primary=0 str=2400 str_gain=300 agi=1400 agi_gain=130 int=1800 int_gain=150 mana=75 mana_regen=0 hp_regen=75 armor=100 mr=25 bat=170 damage=3100
+attr lina primary=2 str=1800 str_gain=150 agi=1600 agi_gain=150 int=2700 int_gain=290 mana=100 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=2500
+attr lich primary=2 str=1800 str_gain=155 agi=1500 agi_gain=200 int=1800 int_gain=325 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2850
+attr lion primary=2 str=1600 str_gain=170 agi=1500 agi_gain=150 int=2200 int_gain=300 mana=200 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=3200
+attr shadow_shaman primary=2 str=2100 str_gain=180 agi=1600 agi_gain=160 int=2100 int_gain=300 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2950
+attr slardar primary=0 str=2100 str_gain=280 agi=1700 agi_gain=240 int=1500 int_gain=150 mana=200 mana_regen=1 hp_regen=25 armor=400 mr=25 bat=170 damage=3400
+attr tidehunter primary=0 str=2200 str_gain=300 agi=1500 agi_gain=150 int=1600 int_gain=170 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=2800
+attr witch_doctor primary=2 str=1600 str_gain=180 agi=1300 agi_gain=140 int=2400 int_gain=290 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=3200
+attr riki primary=1 str=1700 str_gain=200 agi=3400 agi_gain=290 int=1400 int_gain=130 mana=200 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=2400
+attr enigma primary=2 str=1700 str_gain=210 agi=1400 agi_gain=100 int=2000 int_gain=340 mana=200 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=2500
+attr tinker primary=2 str=1700 str_gain=200 agi=1300 agi_gain=120 int=2700 int_gain=220 mana=100 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=2500
+attr sniper primary=1 str=1600 str_gain=170 agi=2100 agi_gain=250 int=1500 int_gain=260 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=1600
+attr necrolyte primary=2 str=1600 str_gain=200 agi=1500 agi_gain=170 int=2200 int_gain=250 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=2400
+attr warlock primary=2 str=1800 str_gain=250 agi=1000 agi_gain=100 int=2400 int_gain=270 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=2700
+attr beastmaster primary=0 str=2300 str_gain=220 agi=1800 agi_gain=160 int=1600 int_gain=190 mana=200 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=4300
+attr queenofpain primary=2 str=1600 str_gain=170 agi=1800 agi_gain=200 int=2400 int_gain=250 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=160 damage=2900
+attr venomancer primary=1 str=1800 str_gain=185 agi=2200 agi_gain=260 int=1500 int_gain=175 mana=200 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=2000
+attr faceless_void primary=1 str=2300 str_gain=160 agi=2300 agi_gain=265 int=1500 int_gain=150 mana=200 mana_regen=1 hp_regen=75 armor=200 mr=25 bat=170 damage=4000
+attr skeleton_king primary=0 str=2200 str_gain=290 agi=1800 agi_gain=170 int=1800 int_gain=160 mana=200 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=4000
+attr death_prophet primary=2 str=1900 str_gain=190 agi=1400 agi_gain=140 int=2000 int_gain=300 mana=200 mana_regen=1 hp_regen=75 armor=200 mr=25 bat=170 damage=3000
+attr phantom_assassin primary=1 str=2000 str_gain=185 agi=2300 agi_gain=315 int=1300 int_gain=100 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=2400
+attr pugna primary=2 str=1700 str_gain=120 agi=1600 agi_gain=160 int=2600 int_gain=400 mana=100 mana_regen=75 hp_regen=25 armor=0 mr=25 bat=170 damage=2300
+attr templar_assassin primary=1 str=1800 str_gain=210 agi=2300 agi_gain=270 int=2000 int_gain=200 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=3300
+attr viper primary=1 str=2000 str_gain=190 agi=2100 agi_gain=290 int=1500 int_gain=180 mana=200 mana_regen=1 hp_regen=25 armor=-200 mr=25 bat=170 damage=2800
+attr luna primary=1 str=1500 str_gain=220 agi=1800 agi_gain=330 int=1600 int_gain=185 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=2900
+attr dragon_knight primary=0 str=1900 str_gain=280 agi=1900 agi_gain=220 int=1500 int_gain=170 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=3000
+attr dazzle primary=2 str=1600 str_gain=185 agi=2100 agi_gain=170 int=2700 int_gain=340 mana=200 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2300
+attr rattletrap primary=0 str=2400 str_gain=270 agi=1300 agi_gain=230 int=1700 int_gain=130 mana=200 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=2500
+attr leshrac primary=2 str=1600 str_gain=150 agi=2300 agi_gain=170 int=2600 int_gain=300 mana=75 mana_regen=0 hp_regen=25 armor=100 mr=25 bat=170 damage=1700
+attr furion primary=2 str=1900 str_gain=180 agi=1800 agi_gain=190 int=2100 int_gain=290 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=2300
+attr life_stealer primary=0 str=2500 str_gain=240 agi=1800 agi_gain=190 int=1500 int_gain=175 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=3700
+attr dark_seer primary=2 str=2200 str_gain=230 agi=1200 agi_gain=120 int=2700 int_gain=270 mana=100 mana_regen=1 hp_regen=25 armor=600 mr=25 bat=170 damage=3400
+attr clinkz primary=1 str=1500 str_gain=160 agi=2200 agi_gain=300 int=1600 int_gain=155 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2200
+attr omniknight primary=0 str=2000 str_gain=265 agi=1500 agi_gain=175 int=1700 int_gain=180 mana=100 mana_regen=1 hp_regen=25 armor=400 mr=25 bat=170 damage=3600
+attr enchantress primary=2 str=1600 str_gain=100 agi=1900 agi_gain=180 int=1600 int_gain=280 mana=100 mana_regen=1 hp_regen=25 armor=-100 mr=25 bat=170 damage=3600
+attr huskar primary=0 str=2100 str_gain=240 agi=1500 agi_gain=140 int=1800 int_gain=150 mana=0 mana_regen=0 hp_regen=0 armor=100 mr=25 bat=160 damage=2350
+attr night_stalker primary=0 str=2300 str_gain=280 agi=1800 agi_gain=225 int=1600 int_gain=160 mana=100 mana_regen=1 hp_regen=200 armor=400 mr=25 bat=170 damage=4000
+attr broodmother primary=1 str=1700 str_gain=250 agi=1800 agi_gain=220 int=1800 int_gain=200 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=2900
+attr bounty_hunter primary=1 str=1700 str_gain=180 agi=2100 agi_gain=300 int=1900 int_gain=200 mana=100 mana_regen=1 hp_regen=75 armor=400 mr=25 bat=170 damage=3100
+attr weaver primary=1 str=1500 str_gain=150 agi=1400 agi_gain=250 int=1500 int_gain=180 mana=100 mana_regen=50 hp_regen=125 armor=100 mr=25 bat=180 damage=4000
+attr jakiro primary=2 str=2500 str_gain=230 agi=1000 agi_gain=120 int=2800 int_gain=280 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=2200
+attr batrider primary=2 str=2300 str_gain=240 agi=1500 agi_gain=150 int=2400 int_gain=250 mana=100 mana_regen=1 hp_regen=200 armor=100 mr=25 bat=170 damage=1600
+attr chen primary=2 str=2000 str_gain=150 agi=1500 agi_gain=210 int=2100 int_gain=280 mana=100 mana_regen=50 hp_regen=75 armor=100 mr=25 bat=170 damage=3400
+attr spectre primary=1 str=1900 str_gain=200 agi=2300 agi_gain=180 int=1600 int_gain=190 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=2500
+attr doom_bringer primary=0 str=2600 str_gain=320 agi=1100 agi_gain=90 int=1300 int_gain=210 mana=350 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=3500
+attr ancient_apparition primary=2 str=1800 str_gain=140 agi=2000 agi_gain=220 int=2500 int_gain=260 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2350
+attr ursa primary=1 str=2300 str_gain=270 agi=1800 agi_gain=210 int=1600 int_gain=150 mana=100 mana_regen=1 hp_regen=25 armor=400 mr=25 bat=170 damage=2600
+attr spirit_breaker primary=0 str=2900 str_gain=240 agi=1700 agi_gain=170 int=1400 int_gain=180 mana=100 mana_regen=1 hp_regen=75 armor=400 mr=25 bat=190 damage=3600
+attr gyrocopter primary=1 str=1800 str_gain=180 agi=2400 agi_gain=280 int=1900 int_gain=210 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=2200
+attr alchemist primary=0 str=2500 str_gain=180 agi=1100 agi_gain=120 int=2500 int_gain=180 mana=200 mana_regen=1 hp_regen=25 armor=-100 mr=25 bat=170 damage=2850
+attr invoker primary=2 str=1900 str_gain=170 agi=2000 agi_gain=190 int=1800 int_gain=300 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2200
+attr silencer primary=2 str=1700 str_gain=220 agi=1600 agi_gain=300 int=2700 int_gain=250 mana=100 mana_regen=1 hp_regen=75 armor=100 mr=25 bat=170 damage=2300
+attr obsidian_destroyer primary=2 str=1900 str_gain=230 agi=2400 agi_gain=200 int=2600 int_gain=330 mana=200 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=2750
+attr lycan primary=0 str=2200 str_gain=300 agi=1600 agi_gain=190 int=1700 int_gain=155 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=2650
+attr brewmaster primary=0 str=2300 str_gain=290 agi=2200 agi_gain=195 int=1400 int_gain=125 mana=100 mana_regen=1 hp_regen=75 armor=0 mr=25 bat=170 damage=3250
+attr shadow_demon primary=2 str=1700 str_gain=190 agi=1800 agi_gain=220 int=2300 int_gain=270 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=2900
+attr lone_druid primary=1 str=1700 str_gain=210 agi=2400 agi_gain=270 int=1300 int_gain=140 mana=130 mana_regen=1 hp_regen=50 armor=100 mr=25 bat=170 damage=2400
+attr chaos_knight primary=0 str=2000 str_gain=290 agi=1400 agi_gain=210 int=1600 int_gain=160 mana=100 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=4400
+attr meepo primary=1 str=2300 str_gain=160 agi=2300 agi_gain=190 int=2000 int_gain=160 mana=200 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=3200
+attr treant primary=0 str=2500 str_gain=330 agi=1500 agi_gain=200 int=1700 int_gain=180 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=190 damage=6400
+attr ogre_magi primary=2 str=2300 str_gain=320 agi=1400 agi_gain=155 int=1700 int_gain=240 mana=100 mana_regen=1 hp_regen=250 armor=700 mr=25 bat=170 damage=4400
+attr undying primary=0 str=2200 str_gain=210 agi=1000 agi_gain=80 int=2700 int_gain=250 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=3600
+attr rubick primary=2 str=1900 str_gain=150 agi=1400 agi_gain=160 int=2700 int_gain=240 mana=75 mana_regen=50 hp_regen=25 armor=0 mr=25 bat=170 damage=2200
+attr disruptor primary=2 str=1900 str_gain=190 agi=1500 agi_gain=140 int=2200 int_gain=250 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2900
+attr nyx_assassin primary=1 str=1800 str_gain=200 agi=1900 agi_gain=220 int=1800 int_gain=210 mana=200 mana_regen=0 hp_regen=250 armor=200 mr=25 bat=170 damage=3200
+attr naga_siren primary=1 str=2100 str_gain=230 agi=2100 agi_gain=275 int=1800 int_gain=195 mana=200 mana_regen=1 hp_regen=75 armor=400 mr=25 bat=170 damage=2400
+attr keeper_of_the_light primary=2 str=1400 str_gain=180 agi=1500 agi_gain=160 int=2200 int_gain=280 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=2400
+attr wisp primary=0 str=1700 str_gain=190 agi=1400 agi_gain=160 int=2300 int_gain=170 mana=200 mana_regen=1 hp_regen=25 armor=-100 mr=25 bat=170 damage=2400
+attr visage primary=2 str=2200 str_gain=240 agi=1100 agi_gain=130 int=2400 int_gain=250 mana=75 mana_regen=0 hp_regen=25 armor=-100 mr=25 bat=170 damage=2900
+attr slark primary=1 str=2100 str_gain=180 agi=2100 agi_gain=150 int=1600 int_gain=190 mana=200 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=4000
+attr medusa primary=1 str=1400 str_gain=165 agi=2000 agi_gain=250 int=1900 int_gain=185 mana=75 mana_regen=0 hp_regen=25 armor=-100 mr=25 bat=170 damage=2900
+attr troll_warlord primary=1 str=1700 str_gain=220 agi=2100 agi_gain=275 int=1300 int_gain=100 mana=100 mana_regen=1 hp_regen=75 armor=100 mr=25 bat=170 damage=2050
+attr centaur primary=0 str=2300 str_gain=380 agi=1500 agi_gain=200 int=1500 int_gain=160 mana=200 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=3300
+attr magnataur primary=0 str=2100 str_gain=275 agi=1500 agi_gain=250 int=1900 int_gain=165 mana=200 mana_regen=1 hp_regen=25 armor=300 mr=25 bat=170 damage=3400
+attr shredder primary=0 str=2200 str_gain=210 agi=1600 agi_gain=130 int=2100 int_gain=240 mana=100 mana_regen=1 hp_regen=25 armor=-100 mr=25 bat=170 damage=3000
+attr bristleback primary=0 str=2200 str_gain=220 agi=1700 agi_gain=180 int=1400 int_gain=280 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=180 damage=3100
+attr tusk primary=0 str=2300 str_gain=230 agi=2300 agi_gain=210 int=1800 int_gain=170 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=3100
+attr skywrath_mage primary=2 str=1900 str_gain=150 agi=1300 agi_gain=80 int=2700 int_gain=360 mana=200 mana_regen=1 hp_regen=25 armor=-100 mr=25 bat=170 damage=1700
+attr abaddon primary=0 str=2300 str_gain=270 agi=1700 agi_gain=150 int=2100 int_gain=200 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=2700
+attr elder_titan primary=0 str=2400 str_gain=230 agi=1400 agi_gain=150 int=2300 int_gain=160 mana=75 mana_regen=25 hp_regen=75 armor=200 mr=25 bat=170 damage=2800
+attr legion_commander primary=0 str=2600 str_gain=260 agi=1800 agi_gain=170 int=2000 int_gain=220 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=170 damage=3700
+attr ember_spirit primary=1 str=1900 str_gain=200 agi=2200 agi_gain=180 int=2000 int_gain=180 mana=100 mana_regen=1 hp_regen=75 armor=-100 mr=25 bat=170 damage=3200
+attr earth_spirit primary=0 str=2100 str_gain=290 agi=1700 agi_gain=150 int=1800 int_gain=210 mana=100 mana_regen=1 hp_regen=25 armor=200 mr=25 bat=170 damage=3000
+attr terrorblade primary=1 str=1500 str_gain=140 agi=2200 agi_gain=320 int=1900 int_gain=175 mana=75 mana_regen=0 hp_regen=200 armor=500 mr=25 bat=150 damage=2900
+attr phoenix primary=0 str=1700 str_gain=290 agi=1200 agi_gain=130 int=1800 int_gain=180 mana=100 mana_regen=1 hp_regen=25 armor=-100 mr=25 bat=170 damage=3100
+attr oracle primary=2 str=1800 str_gain=190 agi=1500 agi_gain=170 int=2300 int_gain=290 mana=100 mana_regen=1 hp_regen=25 armor=100 mr=25 bat=140 damage=2500
+attr techies primary=2 str=1700 str_gain=200 agi=1400 agi_gain=130 int=2200 int_gain=290 mana=100 mana_regen=2 hp_regen=25 armor=600 mr=25 bat=170 damage=2100
+attr winter_wyvern primary=2 str=2400 str_gain=210 agi=1600 agi_gain=190 int=2500 int_gain=310 mana=100 mana_regen=1 hp_regen=25 armor=0 mr=25 bat=170 damage=1650
+attr arc_warden primary=1 str=2400 str_gain=190 agi=1500 agi_gain=180 int=2400 int_gain=210 mana=100 mana_regen=1 hp_regen=25 armor=-100 mr=25 bat=170 damage=3000
+attr abyssal_underlord primary=0 str=2500 str_gain=260 agi=1200 agi_gain=130 int=1700 int_gain=260 mana=75 mana_regen=0 hp_regen=25 armor=300 mr=25 bat=170 damage=4000
+attr monkey_king primary=1 str=1900 str_gain=280 agi=2400 agi_gain=370 int=2000 int_gain=180 mana=75 mana_regen=0 hp_regen=100 armor=100 mr=25 bat=160 damage=3100
+attr pangolier primary=1 str=2000 str_gain=270 agi=1800 agi_gain=320 int=1600 int_gain=250 mana=75 mana_regen=0 hp_regen=125 armor=200 mr=25 bat=170 damage=2900
+attr dark_willow primary=2 str=2000 str_gain=200 agi=1800 agi_gain=160 int=2100 int_gain=350 mana=75 mana_regen=0 hp_regen=75 armor=0 mr=25 bat=150 damage=3100
+attr grimstroke primary=2 str=2100 str_gain=240 agi=1800 agi_gain=190 int=2500 int_gain=380 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=2400
+attr mars primary=0 str=2300 str_gain=370 agi=1800 agi_gain=170 int=2100 int_gain=220 mana=75 mana_regen=50 hp_regen=25 armor=-100 mr=25 bat=180 damage=3000
+attr void_spirit primary=2 str=2200 str_gain=260 agi=2100 agi_gain=220 int=2400 int_gain=310 mana=75 mana_regen=60 hp_regen=25 armor=-100 mr=25 bat=170 damage=2000
+attr snapfire primary=0 str=2100 str_gain=350 agi=1600 agi_gain=190 int=2100 int_gain=220 mana=75 mana_regen=0 hp_regen=75 armor=100 mr=25 bat=180 damage=2800
+attr hoodwink primary=1 str=1700 str_gain=200 agi=2500 agi_gain=360 int=2100 int_gain=290 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=200 damage=2550
+attr dawnbreaker primary=0 str=2500 str_gain=340 agi=1400 agi_gain=170 int=2000 int_gain=200 mana=75 mana_regen=0 hp_regen=50 armor=200 mr=25 bat=170 damage=3300
+attr marci primary=0 str=2300 str_gain=320 agi=2000 agi_gain=220 int=1900 int_gain=190 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=3100
+attr primal_beast primary=0 str=2600 str_gain=430 agi=1500 agi_gain=100 int=1600 int_gain=170 mana=75 mana_regen=0 hp_regen=25 armor=200 mr=25 bat=180 damage=3700
+attr muerta primary=2 str=1900 str_gain=200 agi=2100 agi_gain=270 int=2300 int_gain=360 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=170 damage=2800
+attr ringmaster primary=2 str=2100 str_gain=210 agi=1100 agi_gain=160 int=2500 int_gain=300 mana=75 mana_regen=0 hp_regen=25 armor=100 mr=25 bat=170 damage=2800
+attr kez primary=1 str=2000 str_gain=280 agi=2700 agi_gain=350 int=2000 int_gain=170 mana=75 mana_regen=25 hp_regen=150 armor=100 mr=25 bat=190 damage=2600
+attr largo primary=0 str=2400 str_gain=360 agi=1400 agi_gain=130 int=2100 int_gain=260 mana=75 mana_regen=0 hp_regen=25 armor=200 mr=25 bat=170 damage=4200
+attr hero primary=0 str=2100 str_gain=320 agi=1400 agi_gain=200 int=1800 int_gain=170 mana=75 mana_regen=0 hp_regen=25 armor=0 mr=25 bat=160 damage=3700
+# END generated by scenarios/moba/tools/gen-heroes.mjs

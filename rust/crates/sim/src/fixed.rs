@@ -1,6 +1,3 @@
-//! Q16.16 fixed point in i32. Products widen to i64; nothing here touches a float
-//! except the host-side conversions.
-
 pub const SHIFT: u32 = 16;
 pub const ONE: i32 = 1 << SHIFT;
 pub const HALF: i32 = ONE >> 1;
@@ -25,7 +22,6 @@ pub fn to_float(v: i32) -> f64 {
     v as f64 / ONE as f64
 }
 
-/// Converts a milli-unit integer (the OSDT unit record unit) to Q16.16.
 pub fn from_milli(m: i32) -> i32 {
     ((m as i64 * ONE as i64) / 1000) as i32
 }
@@ -34,7 +30,6 @@ fn bits(v: u64) -> u32 {
     64 - v.leading_zeros()
 }
 
-/// Square root of a Q16.16 value by integer Newton iteration; 0 for a non-positive input.
 pub fn sqrt(a: i32) -> i32 {
     if a <= 0 {
         return 0;
@@ -55,7 +50,6 @@ pub fn sqrt(a: i32) -> i32 {
     g as i32
 }
 
-/// Integer square root, exact.
 pub fn isqrt(n: i32) -> i32 {
     if n <= 1 {
         return n;

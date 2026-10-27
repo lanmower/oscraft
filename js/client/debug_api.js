@@ -1,0 +1,182 @@
+
+const HELP = [
+  "oscraft.help()                          print this list",
+  "oscraft.getCamera()                     {x, y, distance, yaw, pitch, minDistance, maxDistance, bounds} or null (flat view)",
+  "oscraft.setCamera({x, y, distance, yaw, pitch})  set fields, then clamp with the mouse's limits; returns getCamera()",
+  "oscraft.centreOn(unitId)                move the camera target onto a unit (distance and angles kept)",
+  "oscraft.getState()                      tick, localPlayer, hero, units, selected, renderer, frame counters, terrain mode, fog, shadows",
+  "oscraft.selectUnit(id)                  select one of the visible units through the input layer",
+  "oscraft.issueOrder(id, kind, x, y)      kind 'move' to (x, y); 'stop' in place; 'attack' an enemy unit picked at (x, y). Returns the sim's accept",
+  "oscraft.getOverrides(unitId)            {classOverride: 0..3 | null, holdOverride: true | false | null}: the mod-set target class and attack-move hold; null without a local sim",
+  "oscraft.setClassOverride(unitId, cls)   cls 0..3 sets the unit's target class, null clears it; a guest sends it to the host. Returns the accept",
+  "oscraft.setAttackHold(unitId, hold)     true always holds on attack-move, false never holds, null restores the Rust rule. Returns the accept",
+  "oscraft.setShadows(bool)                sun shadow pass on or off (renderer setShadows)",
+  "oscraft.setFog(bool)                    fog-of-war overlay and fog unit filter on or off (render side only; the sim's fog rule is unchanged)",
+  "oscraft.debug.actions()         the pack's controls.lua actions (asked through debug_actions); null without a local sim",
+  "oscraft.debug.effects()         the last 64 display effects the page drained from the sim (read-only copy)",
+  "oscraft.debug.fx()              live pool counts per effect kind (instances, pool sizes, cost); read-only copy",
+  "oscraft.debug.modErrors()       the mod error log of this page, newest last: [{tick, text}] (read-only copy)",
+  "oscraft.debug.swap()            {applied, pending, rejections}: the last data swap, the pending one and refused announcements",
+  "oscraft.debug.run(action, args) dispatch a pack action as the page does (a guest sends it to the host); false without a sim",
+  "oscraft.lobby(call, args)       localhost only: one lobby ui call (claim {slot}, pick {slot, hero}, fill, start) as its button sends it; false elsewhere",
+  "oscraft.statusLog()             the last 200 telemetry lines (status, boot stages, orders, peers, relays): [{at, line}] (read-only copy)",
+];
+
+const LOCAL_HOSTS = ["localhost", "127.0.0.1"];
+
+export function createDebugApi(hooks) {
+  const renderer = () => hooks.renderer();
+  const unitById = (id) => hooks.units().find((u) => u.id === id) || null;
+
+  function cameraView(r) {
+    const c = r.camera;
+    return {
+      x: c.target[0], y: c.target[2], distance: c.distance, yaw: c.yaw, pitch: c.pitch,
+      minDistance: c.minDistance, maxDistance: c.maxDistance, bounds: c.bounds ? [...c.bounds] : null,
+    };
+  }
+
+  function clampCamera(r) {
+    r.orbit(0, 0);
+    r.zoom(0);
+    r.pan(0, 0);
+  }
+
+  const debug = Object.freeze({
+    actions: () => hooks.debugActions(),
+    effects: () => hooks.effects(),
+    fx: () => hooks.fxCounts(),
+    modErrors: () => hooks.modErrors(),
+    swap: () => hooks.swap(),
+    run: (action, args = null) => (typeof action === "string" && action !== "" ? hooks.run(action, args) : false),
+  });
+
+  const api = {
+    debug,
+
+    help() {
+      console.log(HELP.join("\n"));
+      return HELP;
+    },
+
+    getCamera() {
+      const r = renderer();
+      return r ? cameraView(r) : null;
+    },
+
+    setCamera(opts = {}) {
+      const r = renderer();
+      if (!r) return null;
+      const cur = r.camera.target;
+      const patch = { target: [opts.x ?? cur[0], 0, opts.y ?? cur[2]] };
+      for (const key of ["distance", "yaw", "pitch"]) if (opts[key] !== undefined) patch[key] = opts[key];
+      r.setCamera(patch);
+      clampCamera(r);
+      return cameraView(r);
+    },
+
+    centreOn(unitId) {
+      const r = renderer();
+      const u = unitById(unitId);
+      if (!r || !u) return false;
+      r.setCamera({ target: [u.x, 0, u.z] });
+      clampCamera(r);
+      return true;
+    },
+
+    getState() {
+      const game = hooks.game();
+      const me = hooks.localPlayer();
+      const units = hooks.units();
+      const heroUnit = units.find((u) => u.player === me && hooks.isHero(u.id)) || null;
+      const hero = heroUnit && game ? {
+        id: heroUnit.id,
+        x: heroUnit.x,
+        z: heroUnit.z,
+        hp: heroUnit.hp ?? null,
+        mana: typeof game.max_mana === "function" ? game.max_mana(heroUnit.id) : null,
+        xp: typeof game.xp === "function" ? game.xp(heroUnit.id) : null,
+      } : null;
+      const r = renderer();
+      const selection = hooks.selected();
+      return {
+        tick: game ? game.ticks() : hooks.netTick(),
+        localPlayer: me,
+        hero,
+        units: units.map((u) => ({ id: u.id, type: u.type, owner: u.player, x: u.x, z: u.z, hp: u.hp ?? null, hero: hooks.isHero(u.id), attributes: hooks.isHero(u.id) ? hooks.attributes?.(u.id) ?? null : null })),
+        selected: selection.length ? selection[0] : -1,
+        selection,
+        renderer: r ? hooks.rendererKind() : "flat",
+        frame: r ? { drawCalls: r.stats.drawCalls, instances: r.stats.instances, cpuMs: r.stats.frameCpuMs, ...hooks.drawCounts() } : null,
+        terrainMode: hooks.terrainMode(),
+        fog: hooks.fogOn(),
+        shadows: Boolean(r && hooks.shadowsOn()),
+        lastSwap: hooks.lastSwap ? hooks.lastSwap() : null,
+      };
+    },
+
+    selectUnit(id) {
+      if (!unitById(id)) return false;
+      hooks.select([id]);
+      return true;
+    },
+
+    issueOrder(id, kind, x, y) {
+      const u = unitById(id);
+      if (!u) return false;
+      if (kind === "move") return hooks.order(id, x, y);
+      if (kind === "stop") return hooks.order(id, u.x, u.z);
+      if (kind === "attack") {
+        const target = hooks.pick({ x, z: y });
+        if (!target || target.player === hooks.localPlayer()) return false;
+        return hooks.attack(id, target.id);
+      }
+      return false;
+    },
+
+    getOverrides(unitId) {
+      const o = hooks.overrides(unitId);
+      if (!o) return null;
+      return {
+        classOverride: o.classOverride < 0 ? null : o.classOverride,
+        holdOverride: o.holdOverride < 0 ? null : o.holdOverride === 1,
+      };
+    },
+
+    setClassOverride(unitId, cls) {
+      if (!unitById(unitId)) return false;
+      if (cls !== null && !(Number.isInteger(cls) && cls >= 0 && cls <= 3)) return false;
+      return Boolean(hooks.setClassOverride(unitId, cls === null ? -1 : cls));
+    },
+
+    setAttackHold(unitId, hold) {
+      if (!unitById(unitId)) return false;
+      if (hold !== null && typeof hold !== "boolean") return false;
+      return Boolean(hooks.setAttackHold(unitId, hold === null ? -1 : hold ? 1 : 0));
+    },
+
+    setShadows(on) {
+      return hooks.setShadows(Boolean(on));
+    },
+
+    setFog(on) {
+      return hooks.setFog(Boolean(on));
+    },
+
+    lobby(call, args = {}) {
+      if (!LOCAL_HOSTS.includes(location.hostname) || typeof call !== "string" || call === "") return false;
+      return Boolean(hooks.lobby(call, args));
+    },
+
+    statusLog() {
+      return hooks.statusLog();
+    },
+  };
+
+  return api;
+}
+
+export function installDebugApi(hooks) {
+  window.oscraft = createDebugApi(hooks);
+  return window.oscraft;
+}

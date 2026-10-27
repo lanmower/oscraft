@@ -1,6 +1,3 @@
-//! zlib sector codec (mask 0x02), delegated to flate2. flate2 verifies the zlib
-//! header and Adler-32 trailer itself.
-
 use std::io::Read;
 
 use flate2::read::ZlibDecoder;

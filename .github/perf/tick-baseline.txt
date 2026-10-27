@@ -1,0 +1,4 @@
+# Tick latency baseline for the tick-latency-regression CI job.
+# Measured on CI run 38901769230 (sha 68f84eb): ticks=2000, p99_us=1000 (max_us=19), so the ceiling is 3x the measured p99.
+ticks=2000
+p99_ceiling_us=3000

@@ -1,0 +1,59 @@
+anchor	kind	note
+file	rationale	6.88g hero abilities, batch 05: arc_warden, clinkz, ember_spirit, medusa, ogre_magi, riki, spectre, ursa (kez below).
+file	rationale	Applied from ability.ini and war3map.j (parity rows: hy3d output/688g-data/parity/b05.tsv): skill rows, cost, cooldown, cast range, per-rank values and
+file	rationale	every effect the engine models; each ability comment names its 6.88g source and the mechanic the effect model lacks ("missing:").
+file	rationale	Slot order is the 6.88g heroAbilList without A0NR; clinkz, medusa, riki and ursa are attached here with hero_abilities, the others on their unit() line.
+file	rationale	*_pulse abilities are the zone/aura helpers of their parent.
+file	rationale	kez: UNVERIFIED, identity pending content-hero-conversions-unresolved (hero-identity.tsv has no 6.88g row): no abilities applied.
+clinkz (E004; heroAbilList order Death Pact, Skeleton Walk, Strafe, Searing Arrows)	rationale	---- clinkz (E004; heroAbilList order Death Pact, Skeleton Walk, Strafe, Searing Arrows) ----
+clinkz_strafe	provenance	Strafe, Skeleton Walk (clinkz_wind_walk) and Death Pact rows are in abilities.osd; their per-rank values are here.
+clinkz_searing_arrows	missing	Death Pact: eaten unit's life -> caster hp bonus (35+15*rank)% and damage bonus (3.5+1.5*rank)%, 35 s (war3map.j:63803-63816). missing: gain computed from the target's current life
+clinkz_searing_arrows	provenance	Searing Arrows A2UO (level carrier of stock AHfa, ability.ini:1537): DataA bonus damage 30/40/50/60, Cost 10 per shot, Rng 600; autocast orb.
+riki (HC92; Backstab, Blink Strike, Permanent Invisibility, Smoke Screen)	rationale	---- riki (HC92; Backstab, Blink Strike, Permanent Invisibility, Smoke Screen) ----
+riki_backstab	missing	riki_backstab A0DZ: bonus damage agility x (0.25 x rank + 0.25) when hitting from behind (war3map.j:55327-55343). missing: agility-scaled damage, facing condition
+riki_blink_strike	provenance	riki_blink_strike A0K9 (ability.ini:32558): Rng 800, Cost 40, ranks 3 at reqLevel 6 levelSkip 5, damage 40/70/100 (tooltip), charges 4+rank-1 restore 35 s (war3map.j:55213-55221,55204)
+riki_permanent_invisibility	missing	riki_permanent_invisibility A0MB: invisible while not attacking, re-cloak 8/6/4/2 s, 6/8/10/12 hp/s regen while cloaked (tooltip; war3map.j:55074-55099). missing: permanent invisibility that breaks on attack, conditional regeneration
+riki_smoke_screen	provenance	riki_smoke_screen A0RG (ability.ini:40703): Rng 550, Area 250/275/300/325, Cool 11, Cost 75/80/85/90, 6 s (war3map.j:55040-55073 spawns e003, aura A019 ini:9544: silence, miss 40/50/60/70%, speed -25%; turn rate x0.7 war3map.j:55018)
+riki_smoke_screen	missing	missing: miss chance on affected enemies, turn-rate slow; the aura is a pulse that re-applies silence and slow every 16 ticks for 32
+ursa (UAG1; Overpower, Enrage, Earthshock, Fury Swipes)	rationale	---- ursa (UAG1; Overpower, Enrage, Earthshock, Fury Swipes) ----
+ursa_overpower	missing	ursa_overpower A1P9 (ability.ini:67504): Cool 10, Cost 45/55/65/75; attack speed +400% (A1N3 ini:65362 DataA 4.0) for 15 s (war3map.j:58731) or rank+2 attacks (war3map.j:58739). missing: end after N attacks
+ursa_enrage	missing	ursa_enrage A0LC (ability.ini:33704): ranks 3 reqLevel 6 levelSkip 5 (gates 6/11/16), Cool 50/40/30, 4 s, damage taken -80% (war3map.j:93781-93783), debuffs removed (tooltip). Fury Swipes multiplier 1.25+0.15 x rank (war3map.j:58809): missing
+ursa_earthshock	provenance	ursa_earthshock A03Y: dummy A3A0 (ability.ini:114454, parent AHtc) Area 385, DataA damage 90/140/190/240, DataC slow 25/35/45/55%, Dur 4 s; Cool 5, Cost 75
+ursa_fury_swipes	missing	ursa_fury_swipes A2X2: each hit on the same target adds 10 + 5 x rank damage, stacks last 12 s (war3map.j:58859-58863). missing: per-target stacking damage
+arc_warden (N0MK; unit line order Spark Wraith, Magnetic Field, Tempest Double, Flux)	rationale	---- arc_warden (N0MK; unit line order Spark Wraith, Magnetic Field, Tempest Double, Flux) ----
+arc_warden_spark_wraith	provenance	arc_warden_spark_wraith A2LL (ability.ini:91692): Rng 2000, Cool 4, Cost 100/110/120/130, point. Wraith h0EG spawns, 3 s delay, waits up to 50 s, seeks an enemy within 400 and deals 100+50 x rank magical (war3map.j:89774-89778,89728,89735,89697) Applied by trigger_spells_a_b.lua: a wraith waits 3 s then strikes the first enemy within 400 for 100+50*rank magical (GUESS: no flight).
+arc_warden_magnetic_field	unverified	arc_warden_magnetic_field A2LM (ability.ini:91777): Rng 900, Cool 50, Cost 110, point; lasts 3+0.5 x rank s (war3map.j:89882); radius 300 heroes / 419 buildings (war3map.j:89852-89853, tooltip says 275); +50/60/70/80 attack speed (A2M4 ini:92209 0.5) and 100% evasion (tooltip; stock ACes value UNVERIFIED)
+arc_warden_tempest_double	provenance	arc_warden_tempest_double A2M0 (ability.ini:92037): ranks 3 reqLevel 6 levelSkip 5 (gates 6/11/16), Cool 65/60/55, no cost; copy lives 20 s (war3map.j:90072,90175), caster loses (0.45-0.15 x rank) = 30/15/0 % of life and mana (war3map.j:90186-90187) Applied by trigger_spells_a_b.lua: the caster keeps 70/85/100 percent of its mana. Applied by trigger_spells_a_b.lua: a 20 s copy through spawn_image holds the caster skill ranks and items.
+arc_warden_tempest_double	missing	missing: the bounty paid when the copy dies
+arc_warden_flux	provenance	arc_warden_flux A2M1 (ability.ini:92096): Rng 600/700/800/900, Cool 20, Cost 75, unit; 6 s (war3map.j:89902), 15 x rank magical per second while no other enemy within 250 (war3map.j:89916,89929; tooltip says 225), slow 50% (A2LU ini:91968) Applied by trigger_spells_a_b.lua: 7.5*rank magical every 0.5 s and a 50 percent slow only while no other enemy is within 250 (war3map.j:89905-89960).
+ember_spirit (N0M0; unit line order Sleight of Fist, Searing Chains, Flame Guard, Fire Remnant Learning)	rationale	---- ember_spirit (N0M0; unit line order Sleight of Fist, Searing Chains, Flame Guard, Fire Remnant Learning) ----
+ember_spirit_sleight_of_fist	provenance	ember_spirit_sleight_of_fist A2H0 (ability.ini:87284): Rng 700, Area 250/350/450/550, Cool 30/22/14/6, Cost 50, point; hero bonus damage 20/40/60/80 (A2JH A2JG A2JJ A2JI ini:89547-89582 AIat DataA)
+ember_spirit_sleight_of_fist	missing	missing: dash movement with return, invulnerability during the dash, 50% damage reduction against creeps
+ember_spirit_searing_chains	provenance	ember_spirit_searing_chains A2H3 (ability.ini:87456): Cool 14/12/10/8, Cost 110; up to 2 random enemies within 425 (war3map.j:87029-87050), root 1/2/2/3 s (A2H4 ini:87546), damage per second 80/60/120/100 for 1/2/2/3 ticks (war3map.j:86972-86990)
+ember_spirit_flame_guard	provenance	ember_spirit_flame_guard A2HS (ability.ini:88221): Cool 35, Cost 80/90/100/110; 8/12/16/20 s and 50/200/350/500 magic barrier (A2H5 ini:87601-87603); (20+10 x rank)/5 per 0.2 s = 30/40/50/60 per second within 425 (war3map.j:86652,86674)
+ember_spirit_flame_guard	missing	missing: magic-damage-absorbing barrier; ini Rng 1200 is not applied (self cast)
+ember_spirit_fire_remnant_learning	provenance	ember_spirit_fire_remnant_learning A2JK (ability.ini:89592): ranks 3 reqLevel 6 levelSkip 5 (gates 6/11/16), Rng 1500, point; charges 3 restore 35 s, remnant lives 45 s (war3map.j:87271), damage 100/150/200 (tooltip)
+ember_spirit_fire_remnant_learning	missing	missing: remnant unit that runs at 2.5x speed, the activate-dash ability, detonation damage
+ogre_magi (UIN4; unit line order Ignite, Fireblast, Bloodlust, Multi Cast)	rationale	---- ogre_magi (UIN4; unit line order Ignite, Fireblast, Bloodlust, Multi Cast) ----
+ogre_magi_ignite	provenance	ogre_magi_ignite A011 (ability.ini:9235): Rng 700, Cool 15, Cost 95/105/115/125, unit; damage 26/34/42/50 per second for 5/6/7/8 s, slow 20/22/24/26% (tooltip; ini DataA is 0 and no trigger carries the numbers)
+ogre_magi_fireblast	provenance	ogre_magi_fireblast A04W (ability.ini:14261): Rng 475, Cool 12, Cost 75/85/95/105, stun Dur 1.5 s; damage 55/110/165/220 magical (tooltip; DataA is 0)
+ogre_magi_bloodlust	provenance	ogre_magi_bloodlust A083 (ability.ini:18377): Rng 600, Cool 20, Cost 75, Dur 30 s, DataA attack speed +0.3/0.4/0.5/0.6 (x100 = 30..60), DataB speed +10/12/14/16% (DataC model scale not modelled)
+ogre_magi_multi_cast	provenance	ogre_magi_multi_cast A088 (ability.ini:18803): ranks 3 reqLevel 6 levelSkip 5 (gates 6/11/16); multi-cast of Fireblast and Ignite and Bloodlust: x2 40% / x3 20% x2 30% / x4 12.5% x3 12.5% x2 35% (war3map.j:52945-52963)
+ogre_magi_multi_cast	missing	missing: repeat cast of the three spells; chance holds the x2-or-more total
+spectre (E01B; unit line order Desolate, Dispersion, Spectral Dagger, Haunt)	rationale	---- spectre (E01B; unit line order Desolate, Dispersion, Spectral Dagger, Haunt) ----
+spectre_desolate	missing	spectre_desolate A0FX (ability.ini:28822): bonus pure damage 15 x rank on each attack when no other unit within 275 of the target (war3map.j:74944-74953). missing: isolation condition
+spectre_dispersion	provenance	spectre_dispersion A0NA (ability.ini:36029): returns (0.10+0.02 x rank) = 12/14/16/18% of damage taken as pure damage to enemies within 1025 (war3map.j:75043,75046,93770; tooltip says 1000)
+spectre_dispersion	missing	missing: damage reflected as a fraction of damage taken, scaled by distance
+spectre_spectral_dagger	provenance	spectre_spectral_dagger A0HW (ability.ini:30565): Rng 2000, Cool 16, Cost 130/140/150/160, unit or point (DataB 3); contact damage 50 x rank within 150 (war3map.j:74729-74730); Shadow Path (A0I2 ini:30843, A0HY ini:30727) speed +8/12/16/20% for Spectre, -8/-12/-16/-20% for enemies, area 150, path lives 7 s (hero hit) or 12 s (war3map.j:74648,74720; tooltip says 9 for rank 2)
+spectre_spectral_dagger	missing	missing: Shadow Path that persists on the ground, its speed aura and collision removal; the dagger is an instant line
+spectre_haunt	provenance	spectre_haunt A0H9 (ability.ini:30058): ranks 3 reqLevel 6 levelSkip 5 (gates 6/11/16), Cool 140/130/120, Cost 150; image helper A0N9 (ini:35986) deals 30%, takes 200%, Dur 5/6/7 s (1 s inactive delay inside it)
+spectre_haunt	missing	missing: one image placed beside each enemy hero attacking only its pair, uncontrollable, 1 s activation delay; the illusion here is Spectre's own copy per enemy hero
+medusa (H00V; heroAbilList order Stone Gaze, Mystic Snake, Mana Shield, Splitshot)	rationale	---- medusa (H00V; heroAbilList order Stone Gaze, Mystic Snake, Mana Shield, Splitshot) ----
+medusa_stone_gaze	provenance	medusa_stone_gaze A1AT (ability.ini:55125): ranks 3 reqLevel 6 levelSkip 5 (gates 6/11/16), Cool 90, Cost 200, 6 s, enemies within 1025 (war3map.j:70060,70068), +(20+10 x rank)% physical damage taken while stoned (war3map.j:69938)
+medusa_stone_gaze	missing	missing: facing-based -50% attack/move/turn rate, 2 s stare then 3 s stone with magic immunity, physical damage amplification
+medusa_mystic_snake	provenance	medusa_mystic_snake A0G2 (ability.ini:28913): Rng 800, Cool 11, Cost 140/150/160/170, unit; damage 40+40 x rank (+35% per jump), hits 2+rank, search radius 500, mana steal 5+15 x rank (war3map.j:70145,70154,70173,70175)
+medusa_mystic_snake	missing	missing: +35% per hit, mana steal and return to Medusa, pure damage to stoned units; chain jumps = hits - 1
+medusa_mana_shield	provenance	medusa_mana_shield A0MP (ability.ini:35279, parent ANms): DataA 1.6/1.9/2.2/2.5 damage per mana (war3map.j:4518 1.3+0.3 x rank), DataB 0.6 absorbed
+medusa_mana_shield	missing	missing: toggled damage absorption paid in mana
+medusa_splitshot	provenance	medusa_splitshot A1C0 (ability.ini:56786, parent Abrf form swap): 2/3/4/5 arrows at 80% damage (tooltip), Cost 0
+medusa_splitshot	missing	missing: toggled multi-arrow attack

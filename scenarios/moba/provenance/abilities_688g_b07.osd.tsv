@@ -1,0 +1,38 @@
+anchor	kind	note
+file	rationale	6.88g hero abilities, batch 07 of 12 (parity lane b07). Heroes: batrider, dark_willow, enigma, largo, mirana, pangolier, rubick, storm_spirit, viper.
+file	rationale	Applied from 6.88g ability.ini and war3map.j: cooldown, mana, cast range, cast point, target, gates, and every effect the engine can carry. What it cannot carry is
+file	rationale	named in each ability comment ("missing") and in output/688g-data/parity/b07.tsv. Values 6.88g does not state stay unset and are marked UNVERIFIED.
+file	rationale	Skipped (identity UNVERIFIED in hero-identity.tsv, no 6.88g row found): dark_willow, largo, pangolier.
+batrider	rationale	---- batrider ----
+batrider_sticky_napalm	missing	batrider 6.88g A1EL Sticky Napalm: one stack of the slow (3/5/7/9%, 8 s debuff, JASS 61744); stacking and fire amplification missing
+batrider_flamebreak	missing	the napalm bonus and the burn that skips the primary target
+batrider_firefly	missing	the flight morph O017
+enigma	rationale	---- enigma ----
+enigma_malefice	provenance	enigma 6.88g A0I7 Malefice: pulses at 0, 2 and 4 s (JASS 48781-48801) = one immediate hit plus a dot of two 2 s periods; the stun is applied once
+enigma_demonic_conversion	provenance	enigma 6.88g A180 Demonic Conversion: header only; the eidolon unit and its splitting are out of this file
+enigma_midnight_pulse	provenance	enigma 6.88g A0B1 Midnight Pulse: a 11 s zone pulsing once a second (JASS timer, dummy A0B2)
+enigma_midnight_pulse_pulse	provenance	enigma_midnight_pulse_pulse: A0B2 DataA per-second share of maximum life (divine, drains life)
+enigma_black_hole	missing	enigma 6.88g A1BX Black Hole: 4 s channel pulsing at the cast point every second (JASS 48976: evals 20/40/60/80 at .05 s); damage and radius from the applied ability A0C0; the pull is missing
+mirana	rationale	---- mirana ----
+mirana_elune_s_arrow	missing	mirana 6.88g A0L8 Elune's Arrow: header only; first-hit line projectile with distance-scaled damage and stun missing
+mirana_leap	provenance	mirana 6.88g A0LN Leap: 500+100*lvl along the facing (JASS 51874); the sim has no facing so the leap goes toward the cast point (zuus_heavenly_jump precedent)
+mirana_starfall	provenance	mirana 6.88g A0KV Starfall: every enemy within 450 takes lvl*75; the nearest within 400 is hit again for 75% (JASS 51632: .75*lvl*75)
+mirana_moonlight_shadow	missing	mirana 6.88g A0KU Moonlight Shadow: every allied hero for 15 s (JASS 51760, 51770); fade time 2.5/2/1.5 s is missing
+rubick	rationale	---- rubick ----
+rubick_telekinesis	missing	rubick 6.88g A27F Telekinesis: header only; the two-step lift and throw is missing
+rubick_fade_bolt	unverified	rubick 6.88g A27G Fade Bolt: chain lightning dummy A284 (damage, 26 targets, radius 440); jump delay UNVERIFIED; per-bounce decay and creep halving missing
+rubick_spell_steal	missing	rubick 6.88g A27H Spell Steal: header only; stealing an enemy hero's last spell is missing
+rubick_null_field	provenance	rubick 6.88g A27V Null Field: aura on allies within 900 (ini:81709), magic damage reduction from the tooltip; ini DataA/DataB are placeholders
+storm_spirit	rationale	---- storm_spirit ----
+storm_spirit_electric_vortex	missing	storm_spirit 6.88g A14R Electric Vortex: the self slow is A14S (ini:51864, 51868); the pull is missing
+storm_spirit_static_remnant	missing	storm_spirit 6.88g A14P Static Remnant: header only; remnant unit + proximity trigger missing
+storm_spirit_ball_lightning	missing	storm_spirit 6.88g A14O Ball Lightning: header only; travel, per-distance damage and mana drain missing
+storm_spirit_overload	missing	storm_spirit 6.88g A0QW Overload: passive flag only; the cast-charged attack burst is missing
+viper	rationale	---- viper ----
+viper_nethertoxin	missing	viper 6.88g A1A3 Nethertoxin: passive flag only; the missing-health scaled bonus damage is missing
+viper_viper_strike	unverified	viper 6.88g A080 Viper Strike: damage and slows from the applied ability A3A2; cast range UNVERIFIED (A080 has no Rng)
+viper_poison_attack	provenance	viper 6.88g A09V Poison Attack: autocast orb always on; one-second ticks of 4+6*lvl while the debuff lasts (JASS 77486)
+viper_corrosive_skin	provenance	viper 6.88g A0MM Corrosive Skin: magic reduction from DataE; the attacker burns 5+5*lvl per second (JASS 77416) and is slowed for 4 s (tooltip); weapon hits only
+batrider_flamebreak	provenance	Applied: knockback away from the impact by 400 minus the distance over 8 ticks (war3map.j:61918; total and timing are GUESS).
+batrider_firefly	provenance	Applied by trigger_spells_a_b.lua: for 18 s every 0.5 s each enemy within 225 of any trail point takes 10*rank-5 magical (war3map.j:62048-62134).
+batrider_flaming_lasso	provenance	Applied by trigger_spells_a_b.lua: the target is disarmed and dragged inside a 500 leash for 3/3.5/4 s (GUESS: teleport back each 4 ticks).

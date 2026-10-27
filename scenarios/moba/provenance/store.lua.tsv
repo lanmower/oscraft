@@ -1,0 +1,3 @@
+anchor	kind	note
+REFUND_WINDOW_S	provenance	A sale of the item a player bought last, within this many seconds, refunds its full cost (6.88g war3map.j PHV 17899, PCV 17868-17871: the
+REFUND_WINDOW_S	unverified	shop's own half price plus a scripted half). UNVERIFIED: the shop's own sell ratio is not in the 6.88g data (half is assumed).

@@ -1,7 +1,3 @@
-//! Reader for MPQ (Mo'PaQ) archives: header and table parsing, the
-//! classic hash and block tables, HET/BET lookup (format 3 and later), and the
-//! sector codecs Storm writes. Port of internal/mpq; standard library only.
-
 #![forbid(unsafe_code)]
 
 mod bzip2;
@@ -55,18 +51,12 @@ const COMP_ADPCM_M: u8 = 0x40;
 const COMP_ADPCM_S: u8 = 0x80;
 const COMP_LZMA: u8 = 0x12;
 
-/// Errors name what failed. Structural problems carry the offset or field.
 #[derive(Debug)]
 pub enum Error {
-    /// No MPQ header at any 512-byte boundary.
     Magic,
-    /// The name is not in the archive.
     NoFile(String),
-    /// A structure is inconsistent. The message names the offset or field.
     Corrupt(String),
-    /// A feature this reader does not implement.
     Unsupported(String),
-    /// Underlying read failure.
     Io(io::Error),
 }
 
@@ -91,15 +81,12 @@ impl From<io::Error> for Error {
     }
 }
 
-/// One block-table entry. `name` is empty for entries reached only through the
-/// block table; it is filled in when a lookup resolves a name to the entry.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Entry {
     pub name: String,
     pub file_size: u32,
     pub comp_size: u32,
     pub flags: u32,
-    /// Absolute position of the entry's data in the archive.
     pub offset: u64,
 }
 
@@ -135,7 +122,6 @@ pub struct Archive {
     bytes_read: Cell<u64>,
 }
 
-/// Opens the archive at `path` and parses its header and tables.
 pub fn open(path: impl AsRef<Path>) -> Result<Archive> {
     let file = fs::File::open(path)?;
     let len = file.metadata()?.len();
@@ -173,7 +159,6 @@ impl Archive {
                     found = true;
                 }
                 MAGIC_MPQ_USER_DATA => {
-                    // The user-data header names the real header's offset at +8.
                     let next = le_u32(&hdr, 8) as i64;
                     if next > 0 {
                         off += next - 512;
@@ -233,8 +218,6 @@ impl Archive {
             het_pos = le_u64(buf, 0x3c);
         }
 
-        // The block table is read first: its entry count is what makes a
-        // decrypted hash-table entry recognisable as plausible.
         if block_size != 0 && block_pos != 0 && block_size < (1 << 24) {
             if let Err(e) = self.read_block_table(block_pos, block_size) {
                 self.warn.push(e.to_string());
@@ -361,13 +344,10 @@ impl Archive {
         Ok(())
     }
 
-    /// Reports whether `name` resolves to an entry.
     pub fn has(&self, name: &str) -> bool {
         self.lookup(name).is_ok()
     }
 
-    /// Resolves a name to its entry. Names use backslashes as Storm does; forward
-    /// slashes are accepted. Matching is ASCII-only case-insensitive.
     pub fn lookup(&self, name: &str) -> Result<Entry> {
         let key = norm_name(name);
         if let (Some(het), Some(bet)) = (&self.het, &self.bet) {
@@ -416,13 +396,11 @@ impl Archive {
         Err(Error::NoFile(key.to_string()))
     }
 
-    /// Reads and decompresses the named file.
     pub fn read(&self, name: &str) -> Result<Vec<u8>> {
         let f = self.lookup(name)?;
         self.read_entry(&f)
     }
 
-    /// Reads a file already resolved by `lookup`.
     pub fn read_entry(&self, f: &Entry) -> Result<Vec<u8>> {
         if f.file_size == 0 {
             return Ok(Vec::new());
@@ -460,9 +438,6 @@ impl Archive {
             return Ok(out);
         }
 
-        // The sector offset table sits at the head of the block and its offsets
-        // are relative to the block. A file with sector checksums carries one
-        // extra table entry for the checksum region.
         let sector_count =
             ((f.file_size as u64 + self.sector_size as u64 - 1) / self.sector_size as u64) as usize;
         let mut table_entries = sector_count + 1;
@@ -538,8 +513,6 @@ impl Archive {
     }
 
     fn inflate_unit(&self, raw: Vec<u8>, f: &Entry, want: u32) -> Result<Vec<u8>> {
-        // A writer that kept the compress flag without compressing leaves no mask
-        // byte, so the unit is exactly the plaintext length.
         if !f.is_compressed() || raw.is_empty() || raw.len() as u64 == want as u64 {
             return Ok(raw);
         }
@@ -553,8 +526,6 @@ impl Archive {
                 "mpq: compression mask {mask:02x} (ADPCM) not implemented"
             )));
         }
-        // LZMA's mask is 0x12, which contains the zlib|bzip2 bits, so it is tested
-        // before them.
         if mask == COMP_LZMA {
             return lzma::inflate_lzma(body, want);
         }
@@ -576,8 +547,6 @@ impl Archive {
         Err(Error::Unsupported(format!("mpq: compression mask {mask:02x}")))
     }
 
-    /// Every block-table entry, in table order. Names are empty unless a lookup
-    /// has resolved them.
     pub fn list(&self) -> &[Entry] {
         &self.block
     }
@@ -590,19 +559,15 @@ impl Archive {
         self.het.is_some()
     }
 
-    /// Non-fatal notes recorded while parsing the tables.
     pub fn warnings(&self) -> &[String] {
         &self.warn
     }
 
-    /// Bytes pulled from the underlying file so far.
     pub fn bytes_read(&self) -> u64 {
         self.bytes_read.get()
     }
 }
 
-/// Tries each decrypt key type in order and keeps the first whose output is a
-/// plausible table. Returns the score; zero means no key fit and `raw` is untouched.
 fn pick_key(raw: &mut [u8], name: &str, score: impl Fn(&[u8]) -> usize) -> usize {
     let mut buf = vec![0u8; raw.len()];
     for typ in [FILE_KEY, HASH_NAME_IDX, HASH_NAME_A, HASH_NAME_B, 4] {
@@ -617,8 +582,6 @@ fn pick_key(raw: &mut [u8], name: &str, score: impl Fn(&[u8]) -> usize) -> usize
     0
 }
 
-/// Storm's classic name form: ASCII upper-cased, slashes as backslashes. Non-ASCII
-/// bytes pass through unchanged.
 fn norm_name(name: &str) -> String {
     let bytes: Vec<u8> = name
         .bytes()
@@ -631,7 +594,6 @@ fn norm_name(name: &str) -> String {
     String::from_utf8(bytes).expect("ASCII-only substitution keeps UTF-8 valid")
 }
 
-/// HET/BET name form: ASCII lower-cased, slashes as backslashes.
 fn het_key(name: &str) -> Vec<u8> {
     name.bytes()
         .map(|b| match b {

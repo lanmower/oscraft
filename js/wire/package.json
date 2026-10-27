@@ -1,0 +1,12 @@
+{
+  "name": "@oscraft/wire",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Versioned binary wire frames shared by the Node host and the browser client",
+  "type": "module",
+  "main": "frame.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "license": "UNLICENSED"
+}

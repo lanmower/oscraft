@@ -1,7 +1,3 @@
-//! HET/BET tables (format 3 and later). Both open with a 12-byte clear prefix;
-//! Storm encrypts the rest with the classic hash-table key (HET) or the
-//! block-table key (BET). dwTableSize counts the bytes after that prefix.
-
 use crate::crypt::{decrypt_block, hash_string};
 use crate::jenkins::hash_jenkins;
 use crate::source::Source;
@@ -52,7 +48,6 @@ pub(crate) fn read_het(src: &Source, pos: u64, limit: u64) -> Result<HetTable> {
     if sig != MAGIC_HET {
         return Err(Error::Corrupt(format!("mpq: HET signature {sig:08x}")));
     }
-    // The geometry is itself encrypted, so it is decrypted from a probe first.
     decrypt_block(&mut probe[TABLE_EXT_HEADER..], hash_string(b"(hash table)", FILE_KEY));
     let table_size = le_u32(&probe, 12) as u64;
     let hash_table_size = le_u32(&probe, 20);
@@ -223,7 +218,6 @@ pub(crate) fn read_bet(src: &Source, pos: u64, limit: u64) -> Result<BetTable> {
     })
 }
 
-/// Resolves `key` (already HET-normalised) to its BET entry.
 pub(crate) fn lookup(het: &HetTable, bet: &BetTable, key: &[u8]) -> Option<Entry> {
     let nbs = het.hash_entry_size;
     let and_mask: u64 = if nbs < 64 { (1u64 << nbs) - 1 } else { u64::MAX };
@@ -296,8 +290,6 @@ impl BetTable {
     }
 }
 
-/// Bit-packed array, least significant bit first. Bits past the end read as one,
-/// matching Storm's saturating reader.
 struct BitIndex<'a> {
     raw: &'a [u8],
     base: usize,

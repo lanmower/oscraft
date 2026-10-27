@@ -1,0 +1,77 @@
+anchor	kind	note
+file	rationale	6.88g hero abilities, batch 02. Heroes: abyssal_underlord, centaur, earth_spirit, invoker, magnataur, night_stalker, queenofpain, skywrath_mage, troll_warlord, wisp.
+file	rationale	Applied: cooldown, mana, target, cast range, gates and every effect the engine can carry, from g688-lni/ability.ini, g688-map/war3map.j and the 6.88g tooltip (cited per ability). abyssal_underlord, centaur and wisp are attached here with hero_abilities; the other seven are attached on their unit() lines.
+file	rationale	Each ability's comment names what the effect model cannot carry ("Missing:") and values 6.88g is silent on ("UNVERIFIED"). Ultimates gate at 6, 11 and 16 (6.88g reqLevel 6, levelSkip 5); ranks above 4 are cut (invoker orbs have 7).
+file	rationale	abyssal_underlord (unit N00R), 6.88g heroAbilList order without A0NR
+abyssal_underlord_pit_of_malice	provenance	A0RA Pit of Malice (ability.ini:40573; war3map.j:72290-72303, 72336-72368). Pit lasts about 7 s and hits each unit once on entering: only the cast-time hit is modelled. Applied by trigger_spells_a_b.lua: a 7 s zone of radius 300 hits each enemy once for 100 magical and cages it 1/1.5/2/2.5 s (war3map.j:72283-72332).
+abyssal_underlord_firestorm	provenance	A01I Firestorm (ability.ini:9777; dummy A262 ability.ini:80204 DataA 6 waves, DataB 40/50/60/70 per wave, DataE 10/20/30/40 dps, Dur 2 s, Area 400).
+abyssal_underlord_firestorm	unverified	UNVERIFIED: wave interval 1 s (6.88g states no interval); 6 waves = 96 ticks.
+abyssal_underlord_dark_rift	provenance	A0R0 Dark Rift (ability.ini:40275). Teleports the caster to the target; arrival offset is the engine value item_tpscroll uses. Cast delay 6/5/4 s: rank 1 only (channel is one value). Applied by trigger_spells_a_b.lua: the delay is the cast point 6/5/4 s by rank (ability_scaled effect 251) and allied heroes within 475 travel with the caster (war3map.j:72348-72440); point targeting is the unit_or_point target.
+centaur	provenance	centaur (unit H000), 6.88g heroAbilList order without A0NR
+centaur_double_edge	provenance	A2ON Double Edge (ability.ini:94258; war3map.j:46351-46385): 100 + 75 x level to enemies within 215 around the target and the same to the caster. Tooltip says magical.
+centaur_double_edge	unverified	UNVERIFIED: mana cost (6.88g gives none; kept 0).
+centaur_retaliation	provenance	A00V Retaliation (ability.ini:8996; war3map.j:46343-46350): (14 + 2 x level) + (0.18 + 0.12 x level) x STR to the attacker. The STR part is damage_by 30/42/54/66 percent of strength.
+centaur_retaliation	missing	Missing: the STR share 30/42/54/66 percent of the hero's strength.
+centaur_hoof_stomp	missing	A00S Hoof Stomp (ability.ini:8831; dummy A39V ability.ini:114201 Area 315, DataA damage, Dur stun; war3map.j:92837-92843). Tooltip says magical. Missing: land-units-only filter.
+centaur_stampede	unverified	A2O6 Stampede (ability.ini:93793; war3map.j:46419-46476: 3.75 s, collision radius 130). UNVERIFIED: mana cost (none given; kept 0).
+earth_spirit_rolling_boulder	provenance	earth_spirit (unit N0MU): already attached on its unit() line in units_heroes.osd
+earth_spirit_rolling_boulder	missing	A2TJ Rolling Boulder (ability.ini:97098; tooltip: rolls 800 distance, 100 magical damage, 0.6 s wind-up). Missing: damage along the path, stop on hero hit, rock momentum, wind-up.
+earth_spirit_geomagnetic_grip	provenance	A2QI Geomagnetic Grip (ability.ini:95192; tooltip: pulls an ally or rock, silences struck enemies 2.5/3/3.5/4 s, rock hit 50/100/150/200 magical).
+earth_spirit_geomagnetic_grip	missing	Missing: pulling the target to the caster, silence and damage on enemies it strikes (no radius stated), point targeting (DataB 3).
+earth_spirit_boulder_smash	provenance	A2UU Boulder Smash (ability.ini:98400; tooltip: knocks a unit 500/600/700/800 or a rock 2000, collided enemies take 50/100/150/200 magical, rock stuns 0.75/1.25/1.75/2.25 s).
+earth_spirit_boulder_smash	missing	Missing: knock-back of the target, damage and stun on collided enemies, point targeting (DataB 3).
+earth_spirit_magnetize	missing	A2TI Magnetize (ability.ini:97013; tooltip: 50/75/100 magical damage per second for 6 s in Area 180). Missing: rock explosions that refresh it, scepter Enchant Remnant.
+invoker_invoke	provenance	invoker (unit H00U): already attached on its unit() line in units_heroes.osd
+invoker_invoke	missing	A21Y Invoke (ability.ini:77729; reqLevel 2, levelSkip 5 = gates 2,7,12,17). Missing: invoking the spell named by the Quas/Wex/Exort orb combination (10 spells in the tooltip).
+invoker_wex	provenance	A21X Wex (ability.ini:77640; 7 levels, engine max 4 ranks). Bonus is 2 percent attack speed and 1 percent move speed per level per orb instance (war3map.j:66608-66632).
+invoker_wex	missing	Missing: orb instances (up to 3 active orbs), ranks 5 to 7, +2 Agility per upgrade.
+invoker_quas	missing	A21W Quas (ability.ini:77561; 7 levels, engine max 4 ranks): 1 HP regen per level per orb instance. Missing: orb instances, ranks 5 to 7, +2 Strength per upgrade.
+invoker_exort	missing	A21V Exort (ability.ini:77486; 7 levels, engine max 4 ranks): 2 damage per level per orb instance. Missing: orb instances, ranks 5 to 7, +2 Intelligence per upgrade.
+magnataur_shockwave	provenance	magnataur (unit UC11): already attached on its unit() line in units_heroes.osd
+magnataur_shockwave	provenance	A02S Shockwave (ability.ini:11574; dummy A39Y ability.ini:114345 Area 150, DataA 75/150/225/300, DataC distance 1000; war3map.j:92863-92876). Tooltip says magical.
+magnataur_empower	provenance	A037 Empower (ability.ini:12094; war3map.j:69720-69752: buff lasts 40 s; dummies A1PZ.. cleave 20/30/40/50 percent in Area 200, A3IP.. damage +20/30/40/50 percent).
+magnataur_skewer	provenance	A1RD Skewer (ability.ini:68960; war3map.j:69874-69898: rush limit 600 + 150 x level + 25; T4O j:69764-69769: 70 x level damage to dragged heroes, slow A1Q5 -40 percent for 2.5 s).
+magnataur_skewer	missing	Missing: dragging enemy heroes along, 70/140/210/280 magical damage to them, 40 percent slow for 2.5 s at the end.
+magnataur_reverse_polarity	unverified	A29L Reverse Polarity (ability.ini:83431; dummy A06F ability.ini:16017 Area 410, DataA 50/125/200, Dur 2.25/3/3.75; war3map.j:69708-69718 pull radius 434). The pull lands on the caster at once; 6.88g lands units 100 map units ahead of the caster facing, over a timer not read here (UNVERIFIED).
+night_stalker_hunter_in_the_night	provenance	night_stalker (unit Udre): already attached on its unit() line in units_heroes.osd
+night_stalker_hunter_in_the_night	provenance	A086 Hunter in the Night (ability.ini:18557; dummy S00A ability.ini:133590 DataA move speed 20/25/30/35 percent, DataB attack speed 45/60/75/90 percent; war3map.j:71891-71933).
+night_stalker_hunter_in_the_night	provenance	Night-only self bonus (S00A targs self; war3map.j:71912-71935 sets level 5, targs none, by day) applied by night_stalker.lua.
+night_stalker_crippling_fear	provenance	A08E Crippling Fear (ability.ini:19160; cast form A08C ability.ini:19020: Cost 50, Rng 500, Dur 5/6/7/7, DataB miss 50 percent). Cooldown 12 s from the tooltip.
+night_stalker_crippling_fear	missing	Dur level 4 is 7 s in ability.ini and 8 s in the tooltip; ability.ini applied. Missing: 50 percent miss chance on the target's attacks, night-only condition.
+night_stalker_darkness	unverified	A03K Darkness (ability.ini:12558). UNVERIFIED: mana cost (6.88g gives none; kept 0). Day turned to night for 50 s (war3map.j:71866-71875) by night_stalker.lua. Missing: enemy vision radius 625.
+night_stalker_void	provenance	A02H Void (ability.ini:11195; war3map.j:71714-71733: damage 90/160/255/335, slow dummies A02R night 4 s and A1H1 day 2 s, each 50 percent move and 50 percent attack speed).
+night_stalker_void	missing	Applied the day duration 2 s; missing: the night duration 4 s (no day/night condition in the effect model).
+queenofpain_shadow_strike_qop	provenance	queenofpain (unit UC01): already attached on its unit() line in units_heroes.osd
+queenofpain_shadow_strike_qop	provenance	A0Q7 Shadow Strike QoP (ability.ini:39294; DataE initial 50/75/100/125 universal, DataA 30/40/50/60 every 3 s for 15 s per tooltip, DataB slow 20/30/40/50 percent, Rng 450/475/500/525).
+queenofpain_shadow_strike_qop	missing	Initial hit applied as pure (tooltip "universal"). Missing: the slow (6.88g gives its duration only as "short").
+queenofpain_blink	provenance	A0ME Blink (ability.ini:34872; DataA max range 1300 = 20313 milli, DataB min range 200 not enforced; tooltip level 4 prints 130 and cooldown 12/10/8/6, ability.ini wins).
+queenofpain_scream_of_pain	provenance	A04A Scream of Pain (ability.ini:13478 Area 500; war3map.j:80568-80587 damage 85/165/225/300 to units within 500). Tooltip says magical.
+queenofpain_sonic_wave	provenance	A28R Sonic Wave (ability.ini:82579; war3map.j:80702-80709, 80661-80693: damage 200 + 90 x level, wave travels 800 at 800 per second, half-width grows 100 to 450). Cooldown from ability.ini (tooltip says 135).
+queenofpain_sonic_wave	missing	Damage is DAMAGE_TYPE_UNIVERSAL (tooltip "divine"), applied as pure. Line length 800 is cast range 700 plus line_extra. Missing: travel time, width growth: the hit is an instant line of half-width 450.
+skywrath_mage_arcane_bolt	provenance	skywrath_mage (unit H0DO): already attached on its unit() line in units_heroes.osd
+skywrath_mage_arcane_bolt	missing	A2BE Arcane Bolt (ability.ini:84366; war3map.j:87994: 40 + 20 x level + 1.6 x INT, projectile Missilespeed 800 = 781 milli per tick). Tooltip says magical. The INT part is damage_by 160 percent of intelligence. Missing: vision around the bolt.
+skywrath_mage_ancient_seal	provenance	A2HN Ancient Seal (ability.ini:88031 Dur 3/4/5/6; war3map.j:88027-88049; dummies A2HV.. ability.ini:88351 DataE magic damage taken x1.30/1.35/1.40/1.45).
+skywrath_mage_ancient_seal	provenance	Amplify applied as negative magic_resist (the engine's magic-damage-taken stat, assumed additive percent) to heroes only (j:88051): an aoe of radius 1 on the target filtered to attributed units gates it.
+skywrath_mage_ancient_seal	unverified	UNVERIFIED: cast range (6.88g gives none; unset).
+skywrath_mage_mystic_flare	provenance	A2BG Mystic Flare (ability.ini:84421; war3map.j:87936-87983: 24 pulses at 0.1 s over 2.4 s at radius 195, total 600/1000/1400 split among heroes in the area).
+skywrath_mage_mystic_flare	missing	Missing: damage divided evenly among the heroes inside (engine damage is not divided by target count); no damage effect applied.
+skywrath_mage_concussive_shot	provenance	A2IT Concussive Shot (ability.ini:88857; war3map.j:88098-88111, dummy A2IU ability.ini:88929: Area 200, DataA 60/120/180/240, DataC slow 30/35/40/45 percent, Dur 4 s; seeks the closest visible hero within 1625).
+skywrath_mage_concussive_shot	missing	The closest hero within 1625 is picked by an aoe capped at one attributed unit; damage bursts in 200 around it. Missing: visibility test, slow on bystanders in the burst.
+troll_warlord_berserker_rage	provenance	troll_warlord (unit N016): already attached on its unit() line in units_heroes.osd
+troll_warlord_berserker_rage	provenance	A0BE Berserker Rage (ability.ini:23621; war3map.j:58270-58279; dummy A09E ability.ini:20918 Dur stun 0.8/1.2/1.6/2). Form switch to melee: 10 percent chance for 20/30/40/50 damage and a stun, melee move speed +10/20/30/40.
+troll_warlord_berserker_rage	missing	Missing: the ranged-to-melee form transform, the form-gated proc and move speed bonus.
+troll_warlord_whirling_axes	provenance	A21L Whirling Axes (ability.ini:77056). Form-dependent casts: melee A21N (ability.ini:77197: Cool 12, Cost 50, 75/125/175/225 damage, 60 percent miss 4 to 7 s), ranged A21M (ability.ini:77110: Cool 20/19/18/17, Cost 50, Rng 900, 75 damage, slow 30 percent).
+troll_warlord_whirling_axes	missing	Missing: both cast forms and the form switch; this slot carries no effect.
+troll_warlord_fervor	missing	A0O0 Fervor (ability.ini:36876; war3map.j:58307-58331: attack speed +(15 + 5 x level) per stack, 4 stacks, reset on a new target). Missing: stacking per consecutive attack on one target.
+troll_warlord_battle_trance	provenance	A1EJ Battle Trance (ability.ini:59709; war3map.j:58228-58246: every allied hero on the map for 5 s; attack speed 60/120/180 from the tooltip, dummy A0XE holds only a spell list).
+wisp	provenance	wisp (unit O01F), 6.88g heroAbilList order without A0NR
+wisp_spirits	provenance	A1T8 Spirits (ability.ini:70601; tooltip: 5 spirits over 4 s orbit the caster, an enemy hero touching one triggers a burst of 25/50/75/100 magical in a 300 area).
+wisp_spirits	missing	Missing: summoned spirit units, orbit, touch trigger.
+wisp_tether_learn	provenance	A35G Tether learn (ability.ini:108995; research tip: cooldown 12, mana 40, move speed +14/15/16/17 percent to both units for 12 s, enemies touching the tether slowed 0.75/1.25/1.75/2.25 s, breaks beyond 900).
+wisp_tether_learn	unverified	UNVERIFIED: cast range (6.88g gives none). Missing: the tether link (break distance, enemy contact slow).
+wisp_relocate	provenance	A1TB Relocate (ability.ini:70745; tooltip: caster and tethered hero relocate to the target location for 12 s then return, cast delay 2.5/2.25/2 s).
+wisp_relocate	missing	Missing: point teleport (the engine teleport effect takes a unit target), return after 12 s, tethered hero, per-rank cast delay.
+wisp_overcharge	provenance	A28Q Overcharge (ability.ini:82496; tooltip: attack speed +40/50/60/70, damage prevention 5/10/15/20 percent, drains 4.5 percent of current HP and MP per second, shared with the tethered ally).
+wisp_overcharge	missing	Missing: a toggle with no duration, the HP and MP drain, tether sharing.
+abyssal_underlord_atrophy_aura	provenance	Applied by trigger_spells_a_b.lua: each enemy death under the aura adds +5 damage for 30/35/40/45 s (30 s for heroes), uncapped (GUESS).
+centaur_stampede	provenance	Applied by trigger_spells_c_d.lua: allied heroes run at maximum speed 3.75 s and trample enemies within 130 once for rank x strength magical and a 1.5 s slow (GUESS: heroes only, hook budget).

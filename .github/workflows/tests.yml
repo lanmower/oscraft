@@ -1,0 +1,184 @@
+name: tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: workspace tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Install cargo-nextest (pinned to 0.9.149)
+        run: |
+          set -euo pipefail
+          curl -LsSf https://get.nexte.st/0.9.149/linux | tar zxf - -C "$HOME/.cargo/bin"
+          cargo nextest --version
+      - name: Test the workspace
+        run: cargo nextest run --workspace --no-fail-fast
+
+  gate:
+    name: oscraft-gate checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-gate
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Run the gate checks
+        run: cargo run --release -p oscraft-gate
+
+  wasm:
+    name: wasm32 and wasip3 compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            rust -> target
+            rust/crates/wasip3 -> target
+          shared-key: rust-wasm
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Check the web crate for the browser target
+        run: cargo check -p web --target wasm32-unknown-unknown
+      - name: Check the wasip3 guest and its host
+        working-directory: rust/crates/wasip3
+        run: cargo check --all-targets --features fault-injection
+
+  parity:
+    name: native and wasm state hash agree
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-parity
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run the moba pack natively
+        run: |
+          set -euo pipefail
+          cargo run --release -p mod-host --bin parity_hash -- ../scenarios/moba 600 "$RUNNER_TEMP/parity" | tee "$RUNNER_TEMP/native.txt"
+      - name: Build the page wasm for node
+        env:
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: s
+          CARGO_PROFILE_RELEASE_LTO: true
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        run: wasm-pack build crates/web --target nodejs --out-dir "$RUNNER_TEMP/pkg"
+      - name: Compare the wasm hash with the native one
+        working-directory: .
+        run: node scripts/parity/wasm-hash.mjs "$RUNNER_TEMP/pkg" "$RUNNER_TEMP/parity" 600 "$(cat "$RUNNER_TEMP/native.txt")"
+
+  maps:
+    name: map export is deterministic
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-maps
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Export each pack twice and compare the bytes
+        run: |
+          set -euo pipefail
+          cargo build -p mapexport
+          out=$(mktemp -d)
+          for pack in moba duel-routes; do
+            target/debug/mapexport "../scenarios/$pack" "$out/$pack.1.osdt"
+            target/debug/mapexport "../scenarios/$pack" "$out/$pack.2.osdt"
+            cmp "$out/$pack.1.osdt" "$out/$pack.2.osdt"
+          done
+      - name: A bad manifest exits 1 with one line, not a panic
+        run: |
+          set -euo pipefail
+          dir=$(mktemp -d)
+          echo '{"data": 3}' > "$dir/manifest.json"
+          set +e
+          target/debug/mapexport "$dir" "$dir/out.osdt" 2> "$dir/err"
+          code=$?
+          set -e
+          cat "$dir/err"
+          test "$code" = 1
+          test "$(wc -l < "$dir/err")" = 1
+          grep -q '^mapexport: ' "$dir/err"
+
+  wire:
+    name: wire codec round-trip
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Round-trip every frame type
+        working-directory: js/wire
+        run: node test.js

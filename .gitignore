@@ -81,3 +81,17 @@ __pycache__/
 *.wasm
 build/
 *.exe
+# Page build output: CI and Pages rebuild these from source.
+/js/client/pkg/
+/js/client/map.bin
+/js/client/moba.bin
+/rust/crates/web/site/pkg/
+/rust/crates/web/site/map.bin
+/rust/crates/web/site/moba.bin
+/.dev-site/
+
+# Asset prep dependencies (npm ci in scripts/assets, see docs/ASSET_PIPELINE.md)
+scripts/assets/node_modules
+# The first-draw witness's pinned Playwright (npm install in scripts/perf).
+scripts/perf/node_modules
+scenarios/*/*.osdt

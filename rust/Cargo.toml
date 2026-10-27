@@ -1,3 +1,16 @@
 [workspace]
 resolver = "2"
-members = ["crates/*"]
+members = ["crates/*", "gate"]
+exclude = ["crates/wasip3"]
+
+[patch.crates-io]
+piccolo = { path = "vendor/piccolo" }
+
+[profile.test.package.sim]
+opt-level = 2
+[profile.test.package.piccolo]
+opt-level = 2
+[profile.test.package.mod-host]
+opt-level = 2
+[profile.test.package.osdt-data]
+opt-level = 2

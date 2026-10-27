@@ -1,0 +1,20 @@
+[package]
+name = "oscraft-gate"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "oscraft-gate"
+path = "src/main.rs"
+
+[dependencies]
+osdt-data = { path = "../crates/data" }
+sim = { path = "../crates/sim" }
+mod-host = { path = "../crates/mod-host" }
+mpq = { path = "../crates/mpq" }
+replay = { path = "../crates/replay" }
+serde_json = "1"
+flate2 = "=1.1.9"
+bzip2 = "=0.6.0"
+lzma-rs = "=0.3.0"

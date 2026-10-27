@@ -1,0 +1,7 @@
+tuning(
+    structure_scan_cells=3,
+    teleport_ring_points=8,
+    teleport_ring_steps=6,
+    best_only=["scepter", "shard", "crit_chance", "crit_multiplier", "cleave", "cleave_distance", "cleave_start_width", "cleave_end_width", "bash_chance", "bash_duration", "night_vision", "bash_damage", "bash_chance_ranged", "bash_cooldown", "block_chance", "block_amount", "spell_block", "true_strike", "block_chance_nonhero", "creep_damage_pct", "true_sight"],
+    xp_curve=[200, 500, 900, 1400, 2000, 2600, 3200, 4400, 5400, 6000, 8200, 9000, 10400, 11900, 13500, 15200, 17000, 18900, 20900, 23000, 25200, 27500, 29900, 32400],
+)

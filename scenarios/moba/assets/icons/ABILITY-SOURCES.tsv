@@ -1,0 +1,640 @@
+# Per-icon source record for scenarios/moba/assets/icons/abilities/<file>.
+# status PLACEHOLDER: the shipped icon is freegameassets.com Fantasy RPG Icons art, chosen by ability-name theme. It is NOT 6.88g art.
+# source_pack_file is the pack icon the shipped file comes from; empty when no source table names it (status UNKNOWN).
+# code_688g and art_688g come from 6.88g ability.ini Art (ReplaceableTextures\CommandButtons or PassiveButtons), joined by hy3d ability-match.tsv. They name the 6.88g icon this placeholder stands in for. Empty means no 6.88g ability carries this id (heroes absent from 6.88g, or helper/pulse abilities).
+# 6.88g icon PIXELS are not obtainable in this workspace: no 6.88g map archive, MPQ or BLP exists under /workspace/oscraft or /workspace/hy3d (only war3map.j, war3map.w3e and the LNI text exports). Art strings are the whole 6.88g icon record available.
+ability	icon	source_pack_file	status	code_688g	art_688g
+dark_willow_bramble_maze	abilities/dark_willow_bramble_maze.png	vine-snare.png	PLACEHOLDER		
+dark_willow_shadow_realm	abilities/dark_willow_shadow_realm.png	shadow-realm.png	PLACEHOLDER		
+dark_willow_cursed_crown	abilities/dark_willow_cursed_crown.png	curse-mark.png	PLACEHOLDER		
+dark_willow_terrorize	abilities/dark_willow_terrorize.png	fear-gaze.png	PLACEHOLDER		
+dark_willow_pixie_dust	abilities/dark_willow_pixie_dust.png	glittering-pollen.png	PLACEHOLDER		
+dark_willow_bedlam	abilities/dark_willow_bedlam.png	chaos-essence.png	PLACEHOLDER		
+dawnbreaker_fire_wreath	abilities/dawnbreaker_fire_wreath.png	flame-wave.png	PLACEHOLDER		
+dawnbreaker_celestial_hammer	abilities/dawnbreaker_celestial_hammer.png	blessed-hammer.png	PLACEHOLDER		
+dawnbreaker_luminosity	abilities/dawnbreaker_luminosity.png	holy-light.png	PLACEHOLDER		
+dawnbreaker_solar_guardian	abilities/dawnbreaker_solar_guardian.png	sun-ray.png	PLACEHOLDER		
+dawnbreaker_break_of_dawn	abilities/dawnbreaker_break_of_dawn.png	light-burst.png	PLACEHOLDER		
+dawnbreaker_land	abilities/dawnbreaker_land.png	charge.png	PLACEHOLDER		
+dawnbreaker_converge	abilities/dawnbreaker_converge.png	arcane-missile.png	PLACEHOLDER		
+dawnbreaker_unbreakable	abilities/dawnbreaker_unbreakable.png	iron-will.png	PLACEHOLDER		
+grimstroke_dark_artistry	abilities/grimstroke_dark_artistry.png	dark-pact.png	PLACEHOLDER		
+grimstroke_ink_creature	abilities/grimstroke_ink_creature.png	shadow-elemental.png	PLACEHOLDER		
+grimstroke_spirit_walk	abilities/grimstroke_spirit_walk.png	shade-form.png	PLACEHOLDER		
+grimstroke_soul_chain	abilities/grimstroke_soul_chain.png	crimson-chains.png	PLACEHOLDER		
+grimstroke_ink_trail	abilities/grimstroke_ink_trail.png	blazing-trail.png	PLACEHOLDER		
+grimstroke_dark_portrait	abilities/grimstroke_dark_portrait.png	ghost-face.png	PLACEHOLDER		
+grimstroke_ink_over	abilities/grimstroke_ink_over.png	shadow-mark.png	PLACEHOLDER		
+grimstroke_return	abilities/grimstroke_return.png	rewind.png	PLACEHOLDER		
+hoodwink_acorn_shot	abilities/hoodwink_acorn_shot.png	quick-shot.png	PLACEHOLDER		
+hoodwink_bushwhack	abilities/hoodwink_bushwhack.png	ambush.png	PLACEHOLDER		
+hoodwink_scurry	abilities/hoodwink_scurry.png	speed-aura.png	PLACEHOLDER		
+hoodwink_sharpshooter	abilities/hoodwink_sharpshooter.png	precision-aim.png	PLACEHOLDER		
+hoodwink_hunters_boomerang	abilities/hoodwink_hunters_boomerang.png	boomerang.png	PLACEHOLDER		
+hoodwink_sharpshooter_release	abilities/hoodwink_sharpshooter_release.png	power-shot.png	PLACEHOLDER		
+hoodwink_mistwoods_wayfarer	abilities/hoodwink_mistwoods_wayfarer.png	dream-fog.png	PLACEHOLDER		
+hoodwink_decoy	abilities/hoodwink_decoy.png	decoy-image.png	PLACEHOLDER		
+hoodwink_tomokan_tracker	abilities/hoodwink_tomokan_tracker.png	hawk-familiar.png	PLACEHOLDER		
+hoodwink_forager	abilities/hoodwink_forager.png	herb-satchel.png	PLACEHOLDER		
+kez_echo_slash	abilities/kez_echo_slash.png	echo-second.png	PLACEHOLDER		
+kez_falcon_rush_ad	abilities/kez_falcon_rush_ad.png	falcon.png	PLACEHOLDER		
+kez_grappling_claw	abilities/kez_grappling_claw.png	hay-hook.png	PLACEHOLDER		
+kez_talon_toss_ad	abilities/kez_talon_toss_ad.png	boulder-toss.png	PLACEHOLDER		
+kez_kazurai_katana	abilities/kez_kazurai_katana.png	katana.png	PLACEHOLDER		
+kez_shodo_sai_ad	abilities/kez_shodo_sai_ad.png	dual-wield.png	PLACEHOLDER		
+kez_switch_weapons	abilities/kez_switch_weapons.png	weapon-swap.png	PLACEHOLDER		
+kez_raptor_dance	abilities/kez_raptor_dance.png	cyclone.png	PLACEHOLDER		
+kez_ravens_veil_ad	abilities/kez_ravens_veil_ad.png	dark-veil.png	PLACEHOLDER		
+kez_falcon_rush	abilities/kez_falcon_rush.png	falcon.png	PLACEHOLDER		
+kez_talon_toss	abilities/kez_talon_toss.png	boulder-toss.png	PLACEHOLDER		
+kez_shodo_sai	abilities/kez_shodo_sai.png	dual-wield.png	PLACEHOLDER		
+kez_ravens_veil	abilities/kez_ravens_veil.png	dark-veil.png	PLACEHOLDER		
+kez_shodo_sai_parry_cancel	abilities/kez_shodo_sai_parry_cancel.png	riposte.png	PLACEHOLDER		
+kez_shadowhawk_passive	abilities/kez_shadowhawk_passive.png	shadow-cloak.png	PLACEHOLDER		
+largo_catchy_lick	abilities/largo_catchy_lick.png	corrosive-touch.png	PLACEHOLDER		
+largo_frogstomp	abilities/largo_frogstomp.png	shockwave.png	PLACEHOLDER		
+largo_croak_of_genius	abilities/largo_croak_of_genius.png	arcane-insight.png	PLACEHOLDER		
+largo_amphibian_rhapsody	abilities/largo_amphibian_rhapsody.png	song-of-air.png	PLACEHOLDER		
+largo_song_fight_song	abilities/largo_song_fight_song.png	battle-meditation.png	PLACEHOLDER		
+largo_song_double_time	abilities/largo_song_double_time.png	time-slow.png	PLACEHOLDER		
+largo_song_good_vibrations	abilities/largo_song_good_vibrations.png	healing-rain.png	PLACEHOLDER		
+largo_encore	abilities/largo_encore.png	wind-scroll.png	PLACEHOLDER		
+marci_grapple	abilities/marci_grapple.png	hay-hook.png	PLACEHOLDER		
+marci_companion_run	abilities/marci_companion_run.png	sprint-action.png	PLACEHOLDER		
+marci_bodyguard	abilities/marci_bodyguard.png	shield-aura.png	PLACEHOLDER		
+marci_special_delivery	abilities/marci_special_delivery.png	courier-satchel.png	PLACEHOLDER		
+marci_unleash	abilities/marci_unleash.png	blinded-rage.png	PLACEHOLDER		
+marci_guardian	abilities/marci_guardian.png	guardian-class.png	PLACEHOLDER		
+mars_spear	abilities/mars_spear.png	iron-spear.png	PLACEHOLDER		
+mars_gods_rebuke	abilities/mars_gods_rebuke.png	holy-blessing.png	PLACEHOLDER		
+mars_bulwark	abilities/mars_bulwark.png	rock-wall.png	PLACEHOLDER		
+mars_arena_of_blood	abilities/mars_arena_of_blood.png	blood-pact.png	PLACEHOLDER		
+mars_dauntless	abilities/mars_dauntless.png	battle-axe.png	PLACEHOLDER		
+mars_immovable	abilities/mars_immovable.png	earth-armor.png	PLACEHOLDER		
+monkey_king_boundless_strike	abilities/monkey_king_boundless_strike.png	heavy-strike.png	PLACEHOLDER		
+monkey_king_tree_dance	abilities/monkey_king_tree_dance.png	heartwood-core.png	PLACEHOLDER		
+monkey_king_jingu_mastery	abilities/monkey_king_jingu_mastery.png	greatsword.png	PLACEHOLDER		
+monkey_king_wukongs_command	abilities/monkey_king_wukongs_command.png	totem-call.png	PLACEHOLDER		
+monkey_king_mischief	abilities/monkey_king_mischief.png	decoy-image.png	PLACEHOLDER		
+monkey_king_primal_spring_early	abilities/monkey_king_primal_spring_early.png	healing-spring.png	PLACEHOLDER		
+monkey_king_untransform	abilities/monkey_king_untransform.png	rewind.png	PLACEHOLDER		
+monkey_king_transfiguration	abilities/monkey_king_transfiguration.png	nature-magic.png	PLACEHOLDER		
+monkey_king_primal_spring	abilities/monkey_king_primal_spring.png	nature-orb.png	PLACEHOLDER		
+muerta_dead_shot	abilities/muerta_dead_shot.png	hand-cannon.png	PLACEHOLDER		
+muerta_the_calling	abilities/muerta_the_calling.png	death-mark.png	PLACEHOLDER		
+muerta_gunslinger	abilities/muerta_gunslinger.png	alchemist-pistol.png	PLACEHOLDER		
+muerta_pierce_the_veil	abilities/muerta_pierce_the_veil.png	void-cloak.png	PLACEHOLDER		
+muerta_supernatural	abilities/muerta_supernatural.png	ghost-hand.png	PLACEHOLDER		
+muerta_ofrenda	abilities/muerta_ofrenda.png	grave-call.png	PLACEHOLDER		
+muerta_spectral_slug	abilities/muerta_spectral_slug.png	phantom-blade.png	PLACEHOLDER		
+muerta_ofrenda_destroy	abilities/muerta_ofrenda_destroy.png	grave-hand.png	PLACEHOLDER		
+muerta_grave_tracker	abilities/muerta_grave_tracker.png	skull-ward.png	PLACEHOLDER		
+muerta_grave_visitation	abilities/muerta_grave_visitation.png	grave-wraith.png	PLACEHOLDER		
+muerta_parting_shot	abilities/muerta_parting_shot.png	shadow-bolt.png	PLACEHOLDER		
+pangolier_swashbuckle	abilities/pangolier_swashbuckle.png	rapier.png	PLACEHOLDER		
+pangolier_shield_crash	abilities/pangolier_shield_crash.png	shield-bash.png	PLACEHOLDER		
+pangolier_lucky_shot	abilities/pangolier_lucky_shot.png	precision-aim.png	PLACEHOLDER		
+pangolier_gyroshell	abilities/pangolier_gyroshell.png	swinging-blade-trap.png	PLACEHOLDER		
+pangolier_rollup	abilities/pangolier_rollup.png	boulder-shield.png	PLACEHOLDER		
+pangolier_gyroshell_stop	abilities/pangolier_gyroshell_stop.png	time-orb.png	PLACEHOLDER		
+pangolier_rollup_stop	abilities/pangolier_rollup_stop.png	stone-fist.png	PLACEHOLDER		
+pangolier_fortune_favors_the_bold	abilities/pangolier_fortune_favors_the_bold.png	golden-idol.png	PLACEHOLDER		
+pangolier_heartpiercer	abilities/pangolier_heartpiercer.png	heart-seal.png	PLACEHOLDER		
+primal_beast_onslaught	abilities/primal_beast_onslaught.png	charged-blade.png	PLACEHOLDER		
+primal_beast_trample	abilities/primal_beast_trample.png	thunder-clap.png	PLACEHOLDER		
+primal_beast_uproar	abilities/primal_beast_uproar.png	ancestors-roar.png	PLACEHOLDER		
+primal_beast_rock_throw	abilities/primal_beast_rock_throw.png	boulder-toss.png	PLACEHOLDER		
+primal_beast_onslaught_release	abilities/primal_beast_onslaught_release.png	charged-blade.png	PLACEHOLDER		
+primal_beast_pulverize	abilities/primal_beast_pulverize.png	mace-smash.png	PLACEHOLDER		
+primal_beast_colossal	abilities/primal_beast_colossal.png	stone-titan-face.png	PLACEHOLDER		
+primal_beast_innate_slow_resistance_per_time	abilities/primal_beast_innate_slow_resistance_per_time.png	poison-resistance.png	PLACEHOLDER		
+primal_beast_innate_status_resistance_per_time	abilities/primal_beast_innate_status_resistance_per_time.png	ice-resistance.png	PLACEHOLDER		
+ringmaster_tame_the_beasts	abilities/ringmaster_tame_the_beasts.png	animal-bond.png	PLACEHOLDER		
+ringmaster_the_box	abilities/ringmaster_the_box.png	ancient-relic-box.png	PLACEHOLDER		
+ringmaster_impalement	abilities/ringmaster_impalement.png	spike-field.png	PLACEHOLDER		
+ringmaster_wheel	abilities/ringmaster_wheel.png	energy-spiral.png	PLACEHOLDER		
+ringmaster_spotlight	abilities/ringmaster_spotlight.png	light-elemental.png	PLACEHOLDER		
+ringmaster_tame_the_beasts_crack	abilities/ringmaster_tame_the_beasts_crack.png	animal-bond.png	PLACEHOLDER		
+ringmaster_dark_carnival_souvenirs	abilities/ringmaster_dark_carnival_souvenirs.png	golden-idol.png	PLACEHOLDER		
+ringmaster_funhouse_mirror	abilities/ringmaster_funhouse_mirror.png	black-mirror.png	PLACEHOLDER		
+ringmaster_strongman_tonic	abilities/ringmaster_strongman_tonic.png	berserker-brew.png	PLACEHOLDER		
+ringmaster_whoopee_cushion	abilities/ringmaster_whoopee_cushion.png	smoke-bomb.png	PLACEHOLDER		
+ringmaster_summon_unicycle	abilities/ringmaster_summon_unicycle.png	summon-familiar.png	PLACEHOLDER		
+ringmaster_empty_souvenir	abilities/ringmaster_empty_souvenir.png	gem-pouch.png	PLACEHOLDER		
+ringmaster_weighted_pie	abilities/ringmaster_weighted_pie.png	cheese-wedge.png	PLACEHOLDER		
+ringmaster_crystal_ball	abilities/ringmaster_crystal_ball.png	crystal-shard.png	PLACEHOLDER		
+snapfire_scatterblast	abilities/snapfire_scatterblast.png	repeating-crossbow.png	PLACEHOLDER		
+snapfire_firesnap_cookie	abilities/snapfire_firesnap_cookie.png	fire-bomb.png	PLACEHOLDER		
+snapfire_lil_shredder	abilities/snapfire_lil_shredder.png	warhammer.png	PLACEHOLDER		
+snapfire_mortimer_kisses	abilities/snapfire_mortimer_kisses.png	fire-orb.png	PLACEHOLDER		
+snapfire_spit_creep	abilities/snapfire_spit_creep.png	toxic-cloud.png	PLACEHOLDER		
+snapfire_boomstick	abilities/snapfire_boomstick.png	shadow-blunderbuss.png	PLACEHOLDER		
+snapfire_gobble_up	abilities/snapfire_gobble_up.png	cooked-fish.png	PLACEHOLDER		
+snapfire_buckshot	abilities/snapfire_buckshot.png	siege-bow.png	PLACEHOLDER		
+void_spirit_aether_remnant	abilities/void_spirit_aether_remnant.png	void-pocket.png	PLACEHOLDER		
+void_spirit_dissimilate	abilities/void_spirit_dissimilate.png	phantom-fear.png	PLACEHOLDER		
+void_spirit_resonant_pulse	abilities/void_spirit_resonant_pulse.png	rune-pulse.png	PLACEHOLDER		
+void_spirit_astral_step	abilities/void_spirit_astral_step.png	teleportation-skill.png	PLACEHOLDER		
+void_spirit_symmetry	abilities/void_spirit_symmetry.png	void-crystal.png	PLACEHOLDER		
+void_spirit_intrinsic_edge	abilities/void_spirit_intrinsic_edge.png	shadow-spear.png	PLACEHOLDER		
+pulse_shot	abilities/pulse_shot.png		UNKNOWN		
+mend_field	abilities/mend_field.png		UNKNOWN		
+creep_wave	abilities/creep_wave.png		UNKNOWN		
+cleave_strike	abilities/cleave_strike.png		UNKNOWN		
+dash_step	abilities/dash_step.png		UNKNOWN		
+ward_shield	abilities/ward_shield.png		UNKNOWN		
+stun_bolt	abilities/stun_bolt.png		UNKNOWN		
+frost_slow	abilities/frost_slow.png		UNKNOWN		
+hex_silence	abilities/hex_silence.png		UNKNOWN		
+entangle	abilities/entangle.png		UNKNOWN		
+smoke_veil	abilities/smoke_veil.png		UNKNOWN		
+place_observer	abilities/place_observer.png		UNKNOWN		
+place_sentry	abilities/place_sentry.png		UNKNOWN		
+glyph_of_fortification	abilities/glyph_of_fortification.png		UNKNOWN		
+courier_deliver	abilities/courier_deliver.png		UNKNOWN		
+courier_burst	abilities/courier_burst.png	rune-burst.png	PLACEHOLDER		
+clinkz_strafe	abilities/clinkz_strafe.png	overcharge.png	PLACEHOLDER		
+clinkz_wind_walk	abilities/clinkz_wind_walk.png	wind-snare.png	PLACEHOLDER		
+clinkz_death_pact	abilities/clinkz_death_pact.png	rib-bone.png	PLACEHOLDER		
+abaddon_borrowed_time	abilities/abaddon_borrowed_time.png	time-chain.png	PLACEHOLDER		
+abaddon_frostmourne	abilities/abaddon_frostmourne.png	ice-sword.png	PLACEHOLDER		
+abaddon_death_coil	abilities/abaddon_death_coil.png	distillation-coil.png	PLACEHOLDER		
+abaddon_aphotic_shield	abilities/abaddon_aphotic_shield.png	shield-bash.png	PLACEHOLDER		
+broodmother_insatiable_hunger	abilities/broodmother_insatiable_hunger.png	starved.png	PLACEHOLDER	A0WQ	ReplaceableTextures\\CommandButtons\\BTNspiderling
+broodmother_incapacitating_bite	abilities/broodmother_incapacitating_bite.png	giant-spider.png	PLACEHOLDER	A0BK	ReplaceableTextures\\CommandButtons\\BTNRedDragonDevour
+broodmother_spawn_spiderlings	abilities/broodmother_spawn_spiderlings.png	vampire-spawn.png	PLACEHOLDER	A0BH	ReplaceableTextures\\CommandButtons\\BTNSpiderGreen
+broodmother_spin_web	abilities/broodmother_spin_web.png	enchanted-thread.png	PLACEHOLDER	A0BG	ReplaceableTextures\\CommandButtons\\BTNSpinWeb
+drow_ranger_gust	abilities/drow_ranger_gust.png	silencing-gust.png	PLACEHOLDER	A2WF	ReplaceableTextures\\CommandButtons\\BTNDrowSilence
+drow_ranger_trueshot_aura	abilities/drow_ranger_trueshot_aura.png	ranger-leggings.png	PLACEHOLDER	A2O2	ReplaceableTextures\\CommandButtons\\BTNTrueShot
+drow_ranger_frost_arrows	abilities/drow_ranger_frost_arrows.png	frost-boots.png	PLACEHOLDER	A026	ReplaceableTextures\\CommandButtons\\BTNColdArrowsOn
+drow_ranger_marksmanship	abilities/drow_ranger_marksmanship.png	ranger-tunic.png	PLACEHOLDER	A0VC	ReplaceableTextures\\PassiveButtons\\BTNMarksmanship
+huskar_life_break	abilities/huskar_life_break.png	guard-break.png	PLACEHOLDER		
+huskar_berserker_s_blood	abilities/huskar_berserker_s_blood.png	blood-staff.png	PLACEHOLDER		
+huskar_burning_spear	abilities/huskar_burning_spear.png	silver-spear.png	PLACEHOLDER		
+huskar_inner_vitality	abilities/huskar_inner_vitality.png	vital-surge.png	PLACEHOLDER		
+lycan_feral_impulse	abilities/lycan_feral_impulse.png	fur-pelt.png	PLACEHOLDER		
+lycan_howl	abilities/lycan_howl.png	challenge-totem.png	PLACEHOLDER		
+lycan_shapeshift	abilities/lycan_shapeshift.png	dire-wolf.png	PLACEHOLDER		
+lycan_summon_wolves	abilities/lycan_summon_wolves.png	summon-imp.png	PLACEHOLDER		
+nevermore_presence_of_the_dark_lord	abilities/nevermore_presence_of_the_dark_lord.png	demon-lord-mask.png	PLACEHOLDER		
+nevermore_necromastery	abilities/nevermore_necromastery.png	necromancer-grimoire.png	PLACEHOLDER		
+nevermore_requiem_of_souls	abilities/nevermore_requiem_of_souls.png	grave-wraith.png	PLACEHOLDER		
+nevermore_shadowraze	abilities/nevermore_shadowraze.png	shadow-elemental.png	PLACEHOLDER		
+pugna_nether_ward	abilities/pugna_nether_ward.png	hourglass-ward.png	PLACEHOLDER		
+pugna_nether_blast	abilities/pugna_nether_blast.png	energy-spiral.png	PLACEHOLDER		
+pugna_decrepify	abilities/pugna_decrepify.png	shadow-robe.png	PLACEHOLDER		
+pugna_life_drain	abilities/pugna_life_drain.png	life-drain.png	PLACEHOLDER		
+skeleton_king_hellfire_blast	abilities/skeleton_king_hellfire_blast.png	armored-skeleton.png	PLACEHOLDER	XX04	ReplaceableTextures\\CommandButtons\\BTNAdvancedUnholyStrength
+skeleton_king_mortal_strike	abilities/skeleton_king_mortal_strike.png	heavy-strike.png	PLACEHOLDER	XX09	ReplaceableTextures\\PassiveButtons\\BTNSkeletonCriticalStrike
+skeleton_king_vampiric_aura	abilities/skeleton_king_vampiric_aura.png	antidote-aura.png	PLACEHOLDER	AUav	ReplaceableTextures\\PassiveButtons\\PASBTNVampiricAura
+skeleton_king_reincarnation_leoric	abilities/skeleton_king_reincarnation_leoric.png	skeleton-head.png	PLACEHOLDER	A01Y	ReplaceableTextures\\PassiveButtons\\BTNRe
+treant_overgrowth	abilities/treant_overgrowth.png	forest-spirit.png	PLACEHOLDER		
+treant_living_armor	abilities/treant_living_armor.png	holy-shield-armor.png	PLACEHOLDER		
+treant_leech_seed	abilities/treant_leech_seed.png	seed-pouch.png	PLACEHOLDER		
+treant_nature_s_guise	abilities/treant_nature_s_guise.png	nature-magic.png	PLACEHOLDER		
+winter_wyvern_splinter_blast	abilities/winter_wyvern_splinter_blast.png	wyvern-head.png	PLACEHOLDER	A2LA	ReplaceableTextures\\CommandButtons\\BTNSplinterBlast
+winter_wyvern_cold_embrace	abilities/winter_wyvern_cold_embrace.png	winter-grasp.png	PLACEHOLDER	A2LB	ReplaceableTextures\\CommandButtons\\BTNColdEmbrace
+winter_wyvern_winter_s_curse	abilities/winter_wyvern_winter_s_curse.png	wyvern-hide.png	PLACEHOLDER	A0Z0	ReplaceableTextures\\CommandButtons\\BTNWintersCurse
+winter_wyvern_arctic_siege	abilities/winter_wyvern_arctic_siege.png	siege-bow.png	PLACEHOLDER	A2NE	ReplaceableTextures\\CommandButtons\\BTNArcticSiege
+abyssal_underlord_pit_of_malice	abilities/abyssal_underlord_pit_of_malice.png	pit-chamber.png	PLACEHOLDER		
+abyssal_underlord_firestorm	abilities/abyssal_underlord_firestorm.png	abyssal-hound.png	PLACEHOLDER		
+abyssal_underlord_firestorm_pulse	abilities/abyssal_underlord_firestorm_pulse.png	abyssal-eye.png	PLACEHOLDER		
+abyssal_underlord_dark_rift	abilities/abyssal_underlord_dark_rift.png	void-rift-location.png	PLACEHOLDER		
+abyssal_underlord_atrophy_aura	abilities/abyssal_underlord_atrophy_aura.png	dread-aura.png	PLACEHOLDER		
+centaur_double_edge	abilities/centaur_double_edge.png	double-axe.png	PLACEHOLDER		
+centaur_retaliation	abilities/centaur_retaliation.png	riposte.png	PLACEHOLDER		
+centaur_hoof_stomp	abilities/centaur_hoof_stomp.png	falling-rock-trap.png	PLACEHOLDER		
+centaur_stampede	abilities/centaur_stampede.png	minotaur.png	PLACEHOLDER		
+earth_spirit_rolling_boulder	abilities/earth_spirit_rolling_boulder.png	earth-essence.png	PLACEHOLDER	A2TJ	ReplaceableTextures\\CommandButtons\\BTNRollingBoulder
+earth_spirit_geomagnetic_grip	abilities/earth_spirit_geomagnetic_grip.png	earth-mote.png	PLACEHOLDER	A2QI	ReplaceableTextures\\CommandButtons\\BTNScourgeBuild
+earth_spirit_boulder_smash	abilities/earth_spirit_boulder_smash.png	mace-smash.png	PLACEHOLDER	A2UU	ReplaceableTextures\\CommandButtons\\BTNBoulderSmash
+earth_spirit_magnetize	abilities/earth_spirit_magnetize.png	spirit-wolf.png	PLACEHOLDER	A2TI	ReplaceableTextures\\CommandButtons\\BTNMagnetize
+invoker_invoke	abilities/invoker_invoke.png	spellbook.png	PLACEHOLDER	A21Y	ReplaceableTextures\\CommandButtons\\BTNSorceressMaster
+invoker_wex	abilities/invoker_wex.png	air-essence.png	PLACEHOLDER	A21X	ReplaceableTextures\\CommandButtons\\BTNOrbOfLightning
+invoker_quas	abilities/invoker_quas.png	ice-orb.png	PLACEHOLDER	A21W	ReplaceableTextures\\CommandButtons\\BTNOrbOfFrost
+invoker_exort	abilities/invoker_exort.png	fire-essence.png	PLACEHOLDER	A21V	ReplaceableTextures\\CommandButtons\\BTNOrbOfFire
+magnataur_shockwave	abilities/magnataur_shockwave.png	shockwave.png	PLACEHOLDER	A02S	ReplaceableTextures\\CommandButtons\\BTNShockWave
+magnataur_empower	abilities/magnataur_empower.png	blessed-hammer.png	PLACEHOLDER	A037	ReplaceableTextures\\CommandButtons\\BTNEmpower
+magnataur_skewer	abilities/magnataur_skewer.png	mushroom-skewer.png	PLACEHOLDER	A1RD	ReplaceableTextures\\CommandButtons\\BTNSkewer
+magnataur_reverse_polarity	abilities/magnataur_reverse_polarity.png	lightning-rod.png	PLACEHOLDER	A29L	ReplaceableTextures\\CommandButtons\\BTNReversePolarity
+night_stalker_hunter_in_the_night	abilities/night_stalker_hunter_in_the_night.png	witch-hunter.png	PLACEHOLDER	A086	ReplaceableTextures\\PassiveButtons\\BTNHeroDreadLord
+night_stalker_crippling_fear	abilities/night_stalker_crippling_fear.png	fear-tonic.png	PLACEHOLDER	A08E	ReplaceableTextures\\CommandButtons\\BTNPossession
+night_stalker_darkness	abilities/night_stalker_darkness.png	night-vision-potion.png	PLACEHOLDER	A03K	ReplaceableTextures\\CommandButtons\\BTNDarkness
+night_stalker_void	abilities/night_stalker_void.png	night-bolt.png	PLACEHOLDER	A02H	ReplaceableTextures\\CommandButtons\\BTNVoid
+queenofpain_shadow_strike_qop	abilities/queenofpain_shadow_strike_qop.png	shadow-dagger.png	PLACEHOLDER	A0Q7	ReplaceableTextures\\CommandButtons\\BTNShadowStrike
+queenofpain_blink	abilities/queenofpain_blink.png	blink.png	PLACEHOLDER	A0ME	ReplaceableTextures\\CommandButtons\\BTNBlink
+queenofpain_scream_of_pain	abilities/queenofpain_scream_of_pain.png	succubus-mask.png	PLACEHOLDER	A04A	ReplaceableTextures\\CommandButtons\\BTNPossession
+queenofpain_sonic_wave	abilities/queenofpain_sonic_wave.png	tidal-wave.png	PLACEHOLDER	A28R	ReplaceableTextures\\CommandButtons\\BTNTornado
+skywrath_mage_arcane_bolt	abilities/skywrath_mage_arcane_bolt.png	static-orb.png	PLACEHOLDER	A2BE	ReplaceableTextures\\CommandButtons\\BTNArcaneBolt
+skywrath_mage_ancient_seal	abilities/skywrath_mage_ancient_seal.png	seal.png	PLACEHOLDER	A2HN	ReplaceableTextures\\CommandButtons\\BTNAncientSeal
+skywrath_mage_mystic_flare	abilities/skywrath_mage_mystic_flare.png	mage-armor-set.png	PLACEHOLDER	A2BG	ReplaceableTextures\\CommandButtons\\BTNMysticFlare
+skywrath_mage_concussive_shot	abilities/skywrath_mage_concussive_shot.png	power-shot.png	PLACEHOLDER	A2IT	ReplaceableTextures\\CommandButtons\\BTNConcussiveShot
+troll_warlord_berserker_rage	abilities/troll_warlord_berserker_rage.png	berserker.png	PLACEHOLDER	A0BE	ReplaceableTextures\\CommandButtons\\BTNOrcMeleeUpThree
+troll_warlord_whirling_axes	abilities/troll_warlord_whirling_axes.png	bearded-axe.png	PLACEHOLDER	A21L	ReplaceableTextures\\CommandButtons\\BTNWhirlingAxesRanged
+troll_warlord_fervor	abilities/troll_warlord_fervor.png	troll-head.png	PLACEHOLDER	A0O0	ReplaceableTextures\\PassiveButtons\\PASBTNCommand
+troll_warlord_battle_trance	abilities/troll_warlord_battle_trance.png	battle-meditation.png	PLACEHOLDER	A1EJ	ReplaceableTextures\\CommandButtons\\BTNBerserkForTrolls
+wisp_spirits	abilities/wisp_spirits.png	frost-wisp.png	PLACEHOLDER		
+wisp_tether_learn	abilities/wisp_tether_learn.png	cameo-brooch.png	PLACEHOLDER		
+wisp_relocate	abilities/wisp_relocate.png	celestial-gate.png	PLACEHOLDER		
+wisp_overcharge	abilities/wisp_overcharge.png	summon-wisp.png	PLACEHOLDER		
+alchemist_unstable_concoction	abilities/alchemist_unstable_concoction.png	alchemist-codex.png	PLACEHOLDER	A1NI	ReplaceableTextures\\CommandButtons\\BTNUnstableConcoction
+alchemist_acid_spray	abilities/alchemist_acid_spray.png	alchemist-pistol.png	PLACEHOLDER	A0IL	ReplaceableTextures\\CommandButtons\\BTNHealingSpray
+alchemist_acid_spray_pulse	abilities/alchemist_acid_spray_pulse.png	acid-rain.png	PLACEHOLDER		
+alchemist_goblin_s_greed	abilities/alchemist_goblin_s_greed.png	goblin-ear.png	PLACEHOLDER	A0O3	ReplaceableTextures\\PassiveButtons\\BTNMGExchange
+alchemist_chemical_rage	abilities/alchemist_chemical_rage.png	alchemist-shop-building.png	PLACEHOLDER	ANcr	ReplaceableTextures\\CommandButtons\\BTNChemicalRage
+chaos_knight_phantasm	abilities/chaos_knight_phantasm.png	knight-armor-set.png	PLACEHOLDER	A03O	ReplaceableTextures\\CommandButtons\\BTNPhantasm
+chaos_knight_chaos_strike	abilities/chaos_knight_chaos_strike.png	knight-oath-ribbon.png	PLACEHOLDER	A03N	ReplaceableTextures\\PassiveButtons\\BTNCriticalStrikeCK
+chaos_knight_reality_rift	abilities/chaos_knight_reality_rift.png	chaos-essence.png	PLACEHOLDER	A0RW	ReplaceableTextures\\CommandButtons\\BTNRealityRift
+chaos_knight_chaos_bolt	abilities/chaos_knight_chaos_bolt.png	water-bolt.png	PLACEHOLDER	A055	ReplaceableTextures\\CommandButtons\\BTNChaosBolt
+earthshaker_echo_slam	abilities/earthshaker_echo_slam.png	spell-echo.png	PLACEHOLDER	A0DH	ReplaceableTextures\\CommandButtons\\BTNEarthquake
+earthshaker_enchant_totem	abilities/earthshaker_enchant_totem.png	warding-totem.png	PLACEHOLDER	A0DL	ReplaceableTextures\\CommandButtons\\BTNSmash
+earthshaker_fissure	abilities/earthshaker_fissure.png	quake.png	PLACEHOLDER	A0SK	ReplaceableTextures\\CommandButtons\\BTNShockWave
+earthshaker_aftershock	abilities/earthshaker_aftershock.png	cracked-stone-rest-point.png	PLACEHOLDER	A0DJ	ReplaceableTextures\\PassiveButtons\\BTNAftershock
+jakiro_dual_breath	abilities/jakiro_dual_breath.png	dual-wield.png	PLACEHOLDER		
+jakiro_ice_path	abilities/jakiro_ice_path.png	ice-magic.png	PLACEHOLDER		
+jakiro_liquid_fire_research	abilities/jakiro_liquid_fire_research.png	fire-orb.png	PLACEHOLDER		
+jakiro_macropyre	abilities/jakiro_macropyre.png	fire-staff.png	PLACEHOLDER		
+nyx_assassin_impale_nyx	abilities/nyx_assassin_impale_nyx.png	iron-pike.png	PLACEHOLDER		
+nyx_assassin_vendetta	abilities/nyx_assassin_vendetta.png	assassin-stiletto.png	PLACEHOLDER		
+nyx_assassin_mana_burn_nyx	abilities/nyx_assassin_mana_burn_nyx.png	mana-burn.png	PLACEHOLDER		
+nyx_assassin_spiked_carapace	abilities/nyx_assassin_spiked_carapace.png	spiked-pauldrons.png	PLACEHOLDER		
+rattletrap_hookshot	abilities/rattletrap_hookshot.png	hay-hook.png	PLACEHOLDER		
+rattletrap_rocket_flare	abilities/rattletrap_rocket_flare.png	flare-torch.png	PLACEHOLDER		
+rattletrap_power_cog	abilities/rattletrap_power_cog.png	magic-power.png	PLACEHOLDER		
+rattletrap_battery_assault	abilities/rattletrap_battery_assault.png	engineering.png	PLACEHOLDER		
+rattletrap_battery_assault_pulse	abilities/rattletrap_battery_assault_pulse.png	rune-pulse.png	PLACEHOLDER		
+slark_dark_pact	abilities/slark_dark_pact.png	dark-pact.png	PLACEHOLDER		
+slark_dark_pact_pulse	abilities/slark_dark_pact_pulse.png	grave-pact-faction.png	PLACEHOLDER		
+slark_essence_shift	abilities/slark_essence_shift.png	water-essence.png	PLACEHOLDER		
+slark_shadow_dance	abilities/slark_shadow_dance.png	shadow-veil.png	PLACEHOLDER		
+slark_pounce	abilities/slark_pounce.png	crude-dagger.png	PLACEHOLDER		
+tusk_ice_shards	abilities/tusk_ice_shards.png	ice-shard-throwing.png	PLACEHOLDER	A1YO	ReplaceableTextures\\CommandButtons\\BTNIceShards
+tusk_walrus_punch	abilities/tusk_walrus_punch.png	walrus.png	PLACEHOLDER	A1YQ	ReplaceableTextures\\CommandButtons\\BTNChillingTouch
+tusk_snowball	abilities/tusk_snowball.png	troll-tusk.png	PLACEHOLDER	A1S7	ReplaceableTextures\\CommandButtons\\BTNSnowball2
+tusk_frozen_sigil	abilities/tusk_frozen_sigil.png	frozen-ground.png	PLACEHOLDER	A1YR	ReplaceableTextures\\CommandButtons\\BTNFrozenSigil
+witch_doctor_maledict	abilities/witch_doctor_maledict.png	cursed-doll.png	PLACEHOLDER	A0NO	ReplaceableTextures\\CommandButtons\\BTNShadowPact
+witch_doctor_paralyzing_cask	abilities/witch_doctor_paralyzing_cask.png	ale-mug.png	PLACEHOLDER	A0NM	ReplaceableTextures\\CommandButtons\\BTNAcidBomb
+witch_doctor_death_ward	abilities/witch_doctor_death_ward.png	skull-ward.png	PLACEHOLDER	A0NT	ReplaceableTextures\\CommandButtons\\BTNDeathWard
+witch_doctor_voodoo_restoration	abilities/witch_doctor_voodoo_restoration.png	healing-spring.png	PLACEHOLDER	A0NE	ReplaceableTextures\\CommandButtons\\BTNBigBadVoodooSpell
+ancient_apparition_ice_vortex	abilities/ancient_apparition_ice_vortex.png	ice-resistance.png	PLACEHOLDER	A1HS	ReplaceableTextures\\CommandButtons\\BTNIceVortex
+ancient_apparition_ice_vortex_pulse	abilities/ancient_apparition_ice_vortex_pulse.png	ancient-gear-fragment.png	PLACEHOLDER		
+ancient_apparition_cold_feet	abilities/ancient_apparition_cold_feet.png	ancient-treant-face.png	PLACEHOLDER	A1MG	ReplaceableTextures\\CommandButtons\\BTNColdFeet
+ancient_apparition_ice_blast	abilities/ancient_apparition_ice_blast.png	ice-water-blade.png	PLACEHOLDER	A1MI	ReplaceableTextures\\CommandButtons\\BTNIceBlast
+ancient_apparition_chilling_touch	abilities/ancient_apparition_chilling_touch.png	ancient-sphinx.png	PLACEHOLDER	A1HQ	ReplaceableTextures\\CommandButtons\\BTNChillingTouch
+elder_titan_natural_order	abilities/elder_titan_natural_order.png	elder-lich-skull.png	PLACEHOLDER		
+elder_titan_echo_stomp	abilities/elder_titan_echo_stomp.png	rune-stomp.png	PLACEHOLDER		
+elder_titan_ancestral_spirit	abilities/elder_titan_ancestral_spirit.png	spirit-brazier.png	PLACEHOLDER		
+elder_titan_earth_splitter	abilities/elder_titan_earth_splitter.png	stone-titan-face.png	PLACEHOLDER		
+keeper_of_the_light_illuminate	abilities/keeper_of_the_light_illuminate.png	light-burst.png	PLACEHOLDER	A085	ReplaceableTextures\\CommandButtons\\BTNOrbOfLightning
+keeper_of_the_light_mana_leak	abilities/keeper_of_the_light_mana_leak.png	mana-flower.png	PLACEHOLDER	A10X	ReplaceableTextures\\CommandButtons\\BTNCharm
+keeper_of_the_light_spirit_form	abilities/keeper_of_the_light_spirit_form.png	holy-light.png	PLACEHOLDER	A2XQ	ReplaceableTextures\\CommandButtons\\BTNGhostMage
+keeper_of_the_light_chakra_magic	abilities/keeper_of_the_light_chakra_magic.png	lightning-magic.png	PLACEHOLDER	A112	ReplaceableTextures\\CommandButtons\\BTNPriestAdept
+obsidian_destroyer_sanity_s_eclipse	abilities/obsidian_destroyer_sanity_s_eclipse.png	obsidian-ore.png	PLACEHOLDER	A0OK	ReplaceableTextures\\CommandButtons\\BTNSpell_Shadow_ImpPhaseShift
+obsidian_destroyer_astral_imprisonment	abilities/obsidian_destroyer_astral_imprisonment.png	obsidian-ring.png	PLACEHOLDER	A0OJ	ReplaceableTextures\\CommandButtons\\BTNSpell_Shadow_AntiShadow
+obsidian_destroyer_arcane_orb	abilities/obsidian_destroyer_arcane_orb.png	arcane-orb.png	PLACEHOLDER	A0OI	ReplaceableTextures\\CommandButtons\\BTNOrbOfDeathOn
+obsidian_destroyer_essence_aura	abilities/obsidian_destroyer_essence_aura.png	arcane-essence.png	PLACEHOLDER	A0IF	ReplaceableTextures\\PassiveButtons\\BTNEssenceAura
+undying_decay	abilities/undying_decay.png	bone-dust.png	PLACEHOLDER	A15S	ReplaceableTextures\\CommandButtons\\BTNDecay
+undying_soul_rip	abilities/undying_soul_rip.png	soul-lantern.png	PLACEHOLDER	A0R5	ReplaceableTextures\\CommandButtons\\BTNHeartStopper
+undying_tombstone	abilities/undying_tombstone.png	clay-urn.png	PLACEHOLDER	A15V	ReplaceableTextures\\CommandButtons\\BTNTombstone
+undying_flesh_golem	abilities/undying_flesh_golem.png	clay-golem.png	PLACEHOLDER	A15J	ReplaceableTextures\\CommandButtons\\BTNFleshGolem
+razor_plasma_field	abilities/razor_plasma_field.png	lava-field.png	PLACEHOLDER		
+razor_static_link	abilities/razor_static_link.png	razor-gale.png	PLACEHOLDER		
+razor_unstable_current	abilities/razor_unstable_current.png	chain-lightning.png	PLACEHOLDER		
+razor_eye_of_the_storm	abilities/razor_eye_of_the_storm.png	storm-eye.png	PLACEHOLDER		
+chen_test_of_faith	abilities/chen_test_of_faith.png	test.png	PLACEHOLDER		
+chen_holy_persuasion	abilities/chen_holy_persuasion.png	holy-magic.png	PLACEHOLDER		
+chen_hand_of_god	abilities/chen_hand_of_god.png	hand-axe.png	PLACEHOLDER		
+chen_penitence	abilities/chen_penitence.png	judgement.png	PLACEHOLDER		
+clinkz_searing_arrows	abilities/clinkz_searing_arrows.png	bone-bow.png	PLACEHOLDER		
+riki_backstab	abilities/riki_backstab.png	backstab.png	PLACEHOLDER		
+riki_blink_strike	abilities/riki_blink_strike.png	blink-strike.png	PLACEHOLDER		
+riki_permanent_invisibility	abilities/riki_permanent_invisibility.png	invisibility.png	PLACEHOLDER		
+riki_smoke_screen	abilities/riki_smoke_screen.png	smoke-elemental.png	PLACEHOLDER		
+riki_smoke_screen_pulse	abilities/riki_smoke_screen_pulse.png	smoke-step.png	PLACEHOLDER		
+ursa_overpower	abilities/ursa_overpower.png	clouded-leopard.png	PLACEHOLDER		
+ursa_enrage	abilities/ursa_enrage.png	barbarian-helmet.png	PLACEHOLDER		
+ursa_earthshock	abilities/ursa_earthshock.png	iron-gauntlets.png	PLACEHOLDER		
+ursa_fury_swipes	abilities/ursa_fury_swipes.png	rage-brew.png	PLACEHOLDER		
+arc_warden_spark_wraith	abilities/arc_warden_spark_wraith.png	wraith-step.png	PLACEHOLDER	A2LL	ReplaceableTextures\\CommandButtons\\BTNSparkWraith
+arc_warden_magnetic_field	abilities/arc_warden_magnetic_field.png	field-medic.png	PLACEHOLDER	A2LM	ReplaceableTextures\\CommandButtons\\BTNMagneticField
+arc_warden_magnetic_field_pulse	abilities/arc_warden_magnetic_field_pulse.png	spike-field.png	PLACEHOLDER		
+arc_warden_tempest_double	abilities/arc_warden_tempest_double.png	tempest.png	PLACEHOLDER	A2M0	ReplaceableTextures\\CommandButtons\\BTNTempestDouble
+arc_warden_flux	abilities/arc_warden_flux.png	arc-flash.png	PLACEHOLDER	A2M1	ReplaceableTextures\\CommandButtons\\BTNPurge
+ember_spirit_sleight_of_fist	abilities/ember_spirit_sleight_of_fist.png	stone-fist.png	PLACEHOLDER	A2H0	ReplaceableTextures\\CommandButtons\\BTNSleightOfFist
+ember_spirit_searing_chains	abilities/ember_spirit_searing_chains.png	spirit-chain.png	PLACEHOLDER	A2H3	ReplaceableTextures\\CommandButtons\\BTNSearingChains
+ember_spirit_flame_guard	abilities/ember_spirit_flame_guard.png	fire-shield-armor.png	PLACEHOLDER	A2HS	ReplaceableTextures\\CommandButtons\\BTNFlameGuard
+ember_spirit_flame_guard_pulse	abilities/ember_spirit_flame_guard_pulse.png	flame-shield.png	PLACEHOLDER		
+ember_spirit_fire_remnant_learning	abilities/ember_spirit_fire_remnant_learning.png	fire-totem.png	PLACEHOLDER	A2JK	(ResearchArt) ReplaceableTextures\\CommandButtons\\BTNFireRemnant
+ogre_magi_ignite	abilities/ogre_magi_ignite.png	fire-wand.png	PLACEHOLDER	A011	ReplaceableTextures\\CommandButtons\\BTNLiquidFire
+ogre_magi_fireblast	abilities/ogre_magi_fireblast.png	fire-magic.png	PLACEHOLDER	A04W	ReplaceableTextures\\CommandButtons\\BTNFireBolt
+ogre_magi_bloodlust	abilities/ogre_magi_bloodlust.png	blood-magic.png	PLACEHOLDER	A083	ReplaceableTextures\\CommandButtons\\BTNBloodLustOn
+ogre_magi_multi_cast	abilities/ogre_magi_multi_cast.png	cast-spell-action.png	PLACEHOLDER	A088	ReplaceableTextures\\PassiveButtons\\BTNWitchDoctorMaster
+spectre_desolate	abilities/spectre_desolate.png	runed-sword.png	PLACEHOLDER	A0FX	ReplaceableTextures\\PassiveButtons\\BTNCripplingFear
+spectre_dispersion	abilities/spectre_dispersion.png	mage-mantle.png	PLACEHOLDER	A0NA	ReplaceableTextures\\PassiveButtons\\PASBTNThickFur
+spectre_spectral_dagger	abilities/spectre_spectral_dagger.png	poison-dagger.png	PLACEHOLDER	A0HW	ReplaceableTextures\\CommandButtons\\BTNAbility_Spectral_Dagger
+spectre_haunt	abilities/spectre_haunt.png	haunted-woods-biome.png	PLACEHOLDER	A0H9	ReplaceableTextures\\CommandButtons\\BTNHaunt
+medusa_stone_gaze	abilities/medusa_stone_gaze.png	fear-gaze.png	PLACEHOLDER		
+medusa_mystic_snake	abilities/medusa_mystic_snake.png	mystic-bolt.png	PLACEHOLDER		
+medusa_mana_shield	abilities/medusa_mana_shield.png	mana-shield.png	PLACEHOLDER		
+medusa_splitshot	abilities/medusa_splitshot.png	medusa-mask.png	PLACEHOLDER		
+bane_fiend_s_grip	abilities/bane_fiend_s_grip.png	nightmare-fiend.png	PLACEHOLDER	A02Q	ReplaceableTextures\\CommandButtons\\BTNAmuletOftheWild
+bane_brain_sap	abilities/bane_brain_sap.png	arcane-eye.png	PLACEHOLDER	A0GK	ReplaceableTextures\\CommandButtons\\BTNDevourMagic
+bane_enfeeble	abilities/bane_enfeeble.png	cursed-cloak.png	PLACEHOLDER	A2OI	ReplaceableTextures\\CommandButtons\\BTNCurse
+bane_nightmare	abilities/bane_nightmare.png	nightmare.png	PLACEHOLDER	A04Y	ReplaceableTextures\\CommandButtons\\BTNWandOfShadowSight
+dark_seer_wall_of_replica	abilities/dark_seer_wall_of_replica.png	dark-acolyte.png	PLACEHOLDER	A0QK	ReplaceableTextures\\CommandButtons\\BTNWallRep
+dark_seer_surge	abilities/dark_seer_surge.png	mana-surge.png	PLACEHOLDER	A0R7	ReplaceableTextures\\CommandButtons\\BTNSpell_Nature_AstralRecal
+dark_seer_ion_shell	abilities/dark_seer_ion_shell.png	turtle-shell.png	PLACEHOLDER	A0QG	ReplaceableTextures\\CommandButtons\\BTNSpell_Shadow_Haunting
+dark_seer_vacuum	abilities/dark_seer_vacuum.png	dark-veil.png	PLACEHOLDER	A0QE	ReplaceableTextures\\CommandButtons\\BTNSpell_Shadow_Teleport
+enchantress_enchant	abilities/enchantress_enchant.png	enchanting-craft.png	PLACEHOLDER	A0DX	ReplaceableTextures\\CommandButtons\\BTNSlowOn
+enchantress_nature_s_attendants	abilities/enchantress_nature_s_attendants.png	nature-charm.png	PLACEHOLDER	A01B	ReplaceableTextures\\CommandButtons\\BTNNaturesAttendants
+enchantress_untouchable	abilities/enchantress_untouchable.png	iron-will.png	PLACEHOLDER	A0DW	ReplaceableTextures\\PassiveButtons\\PASBTNMagicImmunity
+enchantress_impetus	abilities/enchantress_impetus.png	javelin.png	PLACEHOLDER	A0DY	ReplaceableTextures\\CommandButtons\\BTNDryadDispelMagicOn
+kunkka_torrent	abilities/kunkka_torrent.png	water-magic.png	PLACEHOLDER		
+kunkka_torrent_pulse	abilities/kunkka_torrent_pulse.png	air-bubble.png	PLACEHOLDER		
+kunkka_tidebringer	abilities/kunkka_tidebringer.png	claymore.png	PLACEHOLDER		
+kunkka_x_marks_the_spot	abilities/kunkka_x_marks_the_spot.png	treasure-marker.png	PLACEHOLDER		
+kunkka_ghost_ship	abilities/kunkka_ghost_ship.png	sunken-ship-landmark.png	PLACEHOLDER		
+oracle_false_promise	abilities/oracle_false_promise.png	false-wall.png	PLACEHOLDER	A2TF	ReplaceableTextures\\CommandButtons\\BTNFalsePromise
+oracle_fortune_s_end	abilities/oracle_fortune_s_end.png	holy-crystal.png	PLACEHOLDER	A2QT	ReplaceableTextures\\CommandButtons\\BTNFortunesEnd
+oracle_fate_s_edict	abilities/oracle_fate_s_edict.png	wax-seal-stamp.png	PLACEHOLDER	A2T5	ReplaceableTextures\\CommandButtons\\BTNFatesEdict
+oracle_purifying_flames	abilities/oracle_purifying_flames.png	cleansing-flame.png	PLACEHOLDER	A2SG	ReplaceableTextures\\CommandButtons\\BTNPurifyingFlames
+spirit_breaker_charge_of_darkness	abilities/spirit_breaker_charge_of_darkness.png	charge.png	PLACEHOLDER	A1P8	ReplaceableTextures\\CommandButtons\\BTNSpell_Shadow_GatherShadows
+spirit_breaker_nether_strike	abilities/spirit_breaker_nether_strike.png	true-strike.png	PLACEHOLDER	A0G4	ReplaceableTextures\\CommandButtons\\BTNNetherStrike
+spirit_breaker_greater_bash	abilities/spirit_breaker_greater_bash.png	spirit-wax.png	PLACEHOLDER	A0G5	ReplaceableTextures\\PassiveButtons\\BTNGreaterBash
+spirit_breaker_empowering_haste	abilities/spirit_breaker_empowering_haste.png	haste-field.png	PLACEHOLDER	A0ES	ReplaceableTextures\\CommandButtons\\BTNEtherealFormOn
+venomancer_venomous_gale	abilities/venomancer_venomous_gale.png	gale-ward.png	PLACEHOLDER	A173	ReplaceableTextures\\CommandButtons\\BTNOrbOfVenom
+venomancer_poison_sting	abilities/venomancer_poison_sting.png	poison-dart.png	PLACEHOLDER	A0MY	ReplaceableTextures\\PassiveButtons\\PASBTNEnvenomedSpear
+venomancer_plague_ward	abilities/venomancer_plague_ward.png	poison-ward.png	PLACEHOLDER	A0MS	ReplaceableTextures\\CommandButtons\\BTNVenomWards
+venomancer_poison_nova	abilities/venomancer_poison_nova.png	poison-resistance.png	PLACEHOLDER	A013	ReplaceableTextures\\CommandButtons\\BTNCorrosiveBreath
+meepo_poof	abilities/meepo_poof.png	smoke-bomb.png	PLACEHOLDER		
+meepo_earthbind	abilities/meepo_earthbind.png	earthbind.png	PLACEHOLDER		
+meepo_geostrike	abilities/meepo_geostrike.png	stone-chisel.png	PLACEHOLDER		
+meepo_divided_we_stand	abilities/meepo_divided_we_stand.png	standing-stones-landmark.png	PLACEHOLDER		
+batrider_sticky_napalm	abilities/batrider_sticky_napalm.png	fire-crystal.png	PLACEHOLDER	A1EL	ReplaceableTextures\\CommandButtons\\BTNLocustSwarm
+batrider_flamebreak	abilities/batrider_flamebreak.png	fire-bomb.png	PLACEHOLDER	A19V	ReplaceableTextures\\CommandButtons\\BTNFlamebreak
+batrider_firefly	abilities/batrider_firefly.png	blazing-trail.png	PLACEHOLDER	A19Z	ReplaceableTextures\\CommandButtons\\BTNFirefly
+batrider_flaming_lasso	abilities/batrider_flaming_lasso.png	flaming-skull.png	PLACEHOLDER	A19O	ReplaceableTextures\\CommandButtons\\BTNMagicLariet
+enigma_malefice	abilities/enigma_malefice.png	corrosion.png	PLACEHOLDER	A0I7	ReplaceableTextures\\CommandButtons\\BTNMalefice
+enigma_demonic_conversion	abilities/enigma_demonic_conversion.png	lesser-imp.png	PLACEHOLDER	A180	ReplaceableTextures\\CommandButtons\\BTN_Conversion
+enigma_midnight_pulse	abilities/enigma_midnight_pulse.png	void-pocket.png	PLACEHOLDER	A0B1	ReplaceableTextures\\CommandButtons\\BTNDeathAndDecay
+enigma_midnight_pulse_pulse	abilities/enigma_midnight_pulse_pulse.png	arcane-charge-status.png	PLACEHOLDER		
+enigma_black_hole	abilities/enigma_black_hole.png	black-swan.png	PLACEHOLDER	A1BX	ReplaceableTextures\\CommandButtons\\BTNGenericSpellImmunity
+mirana_elune_s_arrow	abilities/mirana_elune_s_arrow.png	fire-bow.png	PLACEHOLDER		
+mirana_leap	abilities/mirana_leap.png	fast-travel-action.png	PLACEHOLDER		
+mirana_starfall	abilities/mirana_starfall.png	star-amulet.png	PLACEHOLDER		
+mirana_moonlight_shadow	abilities/mirana_moonlight_shadow.png	shadow-realm.png	PLACEHOLDER		
+rubick_telekinesis	abilities/rubick_telekinesis.png	glass-orb.png	PLACEHOLDER		
+rubick_fade_bolt	abilities/rubick_fade_bolt.png	venom-bolt.png	PLACEHOLDER		
+rubick_spell_steal	abilities/rubick_spell_steal.png	spell-lock.png	PLACEHOLDER		
+rubick_null_field	abilities/rubick_null_field.png	pause-field.png	PLACEHOLDER		
+storm_spirit_electric_vortex	abilities/storm_spirit_electric_vortex.png	storm-heralds-faction.png	PLACEHOLDER	A14R	ReplaceableTextures\\CommandButtons\\BTNManaFlare
+storm_spirit_static_remnant	abilities/storm_spirit_static_remnant.png	spirit-gate.png	PLACEHOLDER	A14P	ReplaceableTextures\\CommandButtons\\BTNAbility_Druid_CatForm
+storm_spirit_ball_lightning	abilities/storm_spirit_ball_lightning.png	ball-lightning.png	PLACEHOLDER	A14O	ReplaceableTextures\\CommandButtons\\BTNStormReach
+storm_spirit_overload	abilities/storm_spirit_overload.png	storm-call.png	PLACEHOLDER	A0QW	ReplaceableTextures\\PassiveButtons\\BTNOverload
+viper_nethertoxin	abilities/viper_nethertoxin.png	viper.png	PLACEHOLDER		
+viper_viper_strike	abilities/viper_viper_strike.png	copper-sword.png	PLACEHOLDER		
+viper_poison_attack	abilities/viper_poison_attack.png	poison-dart-trap.png	PLACEHOLDER		
+viper_corrosive_skin	abilities/viper_corrosive_skin.png	serpent-skin.png	PLACEHOLDER		
+beastmaster_call_of_the_wild	abilities/beastmaster_call_of_the_wild.png	wild-growth.png	PLACEHOLDER	A0OO	ReplaceableTextures\\CommandButtons\\BTNWarEagle
+beastmaster_wild_axes	abilities/beastmaster_wild_axes.png	vine-snare.png	PLACEHOLDER	A0O1	ReplaceableTextures\\CommandButtons\\BTNAbility_Warrior_SavageBlow
+beastmaster_inner_beast	abilities/beastmaster_inner_beast.png	beast-tribe-faction.png	PLACEHOLDER	A0BD	ReplaceableTextures\\PassiveButtons\\BTNEnchantedBears
+beastmaster_primal_roar	abilities/beastmaster_primal_roar.png	ancestors-roar.png	PLACEHOLDER	A0O2	ReplaceableTextures\\CommandButtons\\BTNBattleRoar
+faceless_void_time_lock	abilities/faceless_void_time_lock.png	void-ichor.png	PLACEHOLDER	A081	ReplaceableTextures\\PassiveButtons\\BTNTimelock
+faceless_void_backtrack	abilities/faceless_void_backtrack.png	void-cloak.png	PLACEHOLDER	A0CZ	ReplaceableTextures\\PassiveButtons\\BTNBacktrack
+faceless_void_time_walk	abilities/faceless_void_time_walk.png	time-orb.png	PLACEHOLDER	A0LK	ReplaceableTextures\\CommandButtons\\BTNTimewalk
+faceless_void_chronosphere	abilities/faceless_void_chronosphere.png	void-salt.png	PLACEHOLDER	A0J1	ReplaceableTextures\\CommandButtons\\BTNChronosphere
+legion_commander_duel	abilities/legion_commander_duel.png	duelist-class.png	PLACEHOLDER	A2CI	ReplaceableTextures\\CommandButtons\\BTNDuel
+legion_commander_moment_of_courage	abilities/legion_commander_moment_of_courage.png	lifesteal-buff.png	PLACEHOLDER	A2EY	ReplaceableTextures\\PassiveButtons\\BTNMomentOfCourage
+legion_commander_press_the_attack	abilities/legion_commander_press_the_attack.png	imperial-legion-faction.png	PLACEHOLDER	A2J2	ReplaceableTextures\\CommandButtons\\BTNPressTheAttack
+legion_commander_overwhelming_odds	abilities/legion_commander_overwhelming_odds.png	free-company-faction.png	PLACEHOLDER	A2JB	ReplaceableTextures\\CommandButtons\\BTNAnimalWarTraining
+phantom_assassin_stifling_dagger	abilities/phantom_assassin_stifling_dagger.png	phantom-fear.png	PLACEHOLDER	A0YM	ReplaceableTextures\\CommandButtons\\BTNThoriumRanged
+phantom_assassin_phantom_strike	abilities/phantom_assassin_phantom_strike.png	phantom-blade.png	PLACEHOLDER	A0PL	ReplaceableTextures\\CommandButtons\\BTNBearBlink
+phantom_assassin_blur	abilities/phantom_assassin_blur.png	blur.png	PLACEHOLDER	A03P	ReplaceableTextures\\PassiveButtons\\BTNPABlur
+phantom_assassin_coup_de_grace	abilities/phantom_assassin_coup_de_grace.png	blackened-iron-sword.png	PLACEHOLDER	A03Q	ReplaceableTextures\\PassiveButtons\\BTNCoupDeGrace
+sand_king_epicenter	abilities/sand_king_epicenter.png	sand-blast.png	PLACEHOLDER	A06R	ReplaceableTextures\\CommandButtons\\BTNEarthquake
+sand_king_epicenter_pulse	abilities/sand_king_epicenter_pulse.png	rock-wall.png	PLACEHOLDER		
+sand_king_sand_storm	abilities/sand_king_sand_storm.png	storm-rune-ring.png	PLACEHOLDER	A0H0	ReplaceableTextures\\CommandButtons\\BTNSandStorm
+sand_king_sand_storm_pulse	abilities/sand_king_sand_storm_pulse.png	leaf-storm.png	PLACEHOLDER		
+sand_king_burrowstrike	abilities/sand_king_burrowstrike.png	boulder-shield.png	PLACEHOLDER	A06O	ReplaceableTextures\\CommandButtons\\BTNImpale
+sand_king_caustic_finale	abilities/sand_king_caustic_finale.png	sand-elemental.png	PLACEHOLDER	A0FA	ReplaceableTextures\\PassiveButtons\\PASBTNPoisonSting
+techies_stasis_trap	abilities/techies_stasis_trap.png	fire-rune-trap.png	PLACEHOLDER		
+techies_land_mines	abilities/techies_land_mines.png	mine-marker.png	PLACEHOLDER		
+techies_suicide_squad_attack	abilities/techies_suicide_squad_attack.png	sneak-attack.png	PLACEHOLDER		
+techies_remote_mines	abilities/techies_remote_mines.png	alarm-bell-trap.png	PLACEHOLDER		
+visage_grave_chill	abilities/visage_grave_chill.png	grave-hand.png	PLACEHOLDER		
+visage_summon_familiars	abilities/visage_summon_familiars.png	summon-familiar.png	PLACEHOLDER		
+visage_gravekeeper_s_cloak	abilities/visage_gravekeeper_s_cloak.png	fireproof-cloak.png	PLACEHOLDER		
+visage_soul_assumption	abilities/visage_soul_assumption.png	soul-anchor.png	PLACEHOLDER		
+bloodseeker_rupture	abilities/bloodseeker_rupture.png	blood-oath-cracks.png	PLACEHOLDER	A0LH	ReplaceableTextures\\CommandButtons\\BTNMortalWounds
+bloodseeker_strygwyr_s_thirst	abilities/bloodseeker_strygwyr_s_thirst.png	blood-draught.png	PLACEHOLDER	A0I8	ReplaceableTextures\\CommandButtons\\BTNStrygwyrsThirst
+bloodseeker_bloodrage	abilities/bloodseeker_bloodrage.png	blood-shield.png	PLACEHOLDER	A2X9	ReplaceableTextures\\CommandButtons\\BTNBloodrage
+bloodseeker_blood_rite	abilities/bloodseeker_blood_rite.png	blood-pact.png	PLACEHOLDER	A2X8	ReplaceableTextures\\CommandButtons\\BTNBloodRite
+bloodseeker_blood_rite_pulse	abilities/bloodseeker_blood_rite_pulse.png	blood-orb.png	PLACEHOLDER		
+death_prophet_witchcraft	abilities/death_prophet_witchcraft.png	shadow-mace.png	PLACEHOLDER	A02C	ReplaceableTextures\\PassiveButtons\\BTNKrobWitchcraft
+death_prophet_carrion_swarm	abilities/death_prophet_carrion_swarm.png	bone-spear-spell.png	PLACEHOLDER	A02M	ReplaceableTextures\\CommandButtons\\BTNCarrionSwarm
+death_prophet_silence_0	abilities/death_prophet_silence_0.png	death-knight.png	PLACEHOLDER	A0P6	ReplaceableTextures\\CommandButtons\\BTNSilence
+death_prophet_exorcism	abilities/death_prophet_exorcism.png	bone-club.png	PLACEHOLDER	A073	ReplaceableTextures\\CommandButtons\\BTNExorcism
+furion_sprout	abilities/furion_sprout.png	heartwood-core.png	PLACEHOLDER		
+furion_teleportation	abilities/furion_teleportation.png	teleportation-skill.png	PLACEHOLDER		
+furion_force_of_nature	abilities/furion_force_of_nature.png	nature-staff.png	PLACEHOLDER		
+furion_wrath_of_nature	abilities/furion_wrath_of_nature.png	nature-orb.png	PLACEHOLDER		
+leshrac_diabolic_edict	abilities/leshrac_diabolic_edict.png	demon-ash.png	PLACEHOLDER		
+leshrac_diabolic_edict_pulse	abilities/leshrac_diabolic_edict_pulse.png	ash-cloud.png	PLACEHOLDER		
+leshrac_split_earth	abilities/leshrac_split_earth.png	earth-crystal.png	PLACEHOLDER		
+leshrac_split_earth_pulse	abilities/leshrac_split_earth_pulse.png	split-rune-lock.png	PLACEHOLDER		
+leshrac_lightning_storm	abilities/leshrac_lightning_storm.png	lightning-damage.png	PLACEHOLDER		
+leshrac_pulse_nova	abilities/leshrac_pulse_nova.png	thorn-burst.png	PLACEHOLDER		
+morphling_adaptive_strike	abilities/morphling_adaptive_strike.png	jeweled-dagger-sheath.png	PLACEHOLDER	A0G6	ReplaceableTextures\\CommandButtons\\BTNShimmerWeed
+morphling_replicate	abilities/morphling_replicate.png	blood-mirror.png	PLACEHOLDER	A0G8	ReplaceableTextures\\CommandButtons\\BTNForceofNature
+morphling_morph	abilities/morphling_morph.png	chimera.png	PLACEHOLDER	A0KX	ReplaceableTextures\\CommandButtons\\BTNMorphAgiUp
+morphling_waveform	abilities/morphling_waveform.png	rewind.png	PLACEHOLDER	A0FN	ReplaceableTextures\\CommandButtons\\BTNCrushingWave
+phoenix_fire_spirits_learn	abilities/phoenix_fire_spirits_learn.png	fire-dagger.png	PLACEHOLDER	A35E	(ResearchArt) ReplaceableTextures\\CommandButtons\\BTNFireSpirits
+phoenix_supernova	abilities/phoenix_supernova.png	phoenix-down.png	PLACEHOLDER	A1RK	ReplaceableTextures\\CommandButtons\\BTNPhoenix2
+phoenix_supernova_pulse	abilities/phoenix_supernova_pulse.png	phoenix-elixir.png	PLACEHOLDER		
+phoenix_supernova_stun	abilities/phoenix_supernova_stun.png	phoenix-head.png	PLACEHOLDER		
+phoenix_sun_ray	abilities/phoenix_sun_ray.png	sun-ray.png	PLACEHOLDER	A1YY	ReplaceableTextures\\CommandButtons\\BTNSunray
+phoenix_icarus_dive	abilities/phoenix_icarus_dive.png	phoenix-spark.png	PLACEHOLDER	A1RJ	ReplaceableTextures\\CommandButtons\\BTNDash
+shadow_demon_shadow_poison	abilities/shadow_demon_shadow_poison.png	horned-demon.png	PLACEHOLDER	A1S4	ReplaceableTextures\\CommandButtons\\BTNShadowPoison
+shadow_demon_disruption	abilities/shadow_demon_disruption.png	shadow-staff.png	PLACEHOLDER	A1S8	ReplaceableTextures\\CommandButtons\\BTNPicture12
+shadow_demon_demonic_purge	abilities/shadow_demon_demonic_purge.png	void-demon.png	PLACEHOLDER	A31F	ReplaceableTextures\\CommandButtons\\BTNDemonicPurge
+shadow_demon_soul_catcher	abilities/shadow_demon_soul_catcher.png	shadow-mark.png	PLACEHOLDER	A1SB	ReplaceableTextures\\CommandButtons\\BTNSoulCatcher
+templar_assassin_psionic_trap	abilities/templar_assassin_psionic_trap.png	swinging-blade-trap.png	PLACEHOLDER	A0RP	ReplaceableTextures\\CommandButtons\\BTNTrap
+templar_assassin_psi_blades	abilities/templar_assassin_psi_blades.png	assassin.png	PLACEHOLDER	A0RO	ReplaceableTextures\\PassiveButtons\\BTNPsiBlades
+templar_assassin_refraction	abilities/templar_assassin_refraction.png	arcane-shield.png	PLACEHOLDER	A1EA	ReplaceableTextures\\CommandButtons\\BTNRefraction
+templar_assassin_meld	abilities/templar_assassin_meld.png	royal-cape.png	PLACEHOLDER	A0RV	ReplaceableTextures\\CommandButtons\\BTNWardenHide
+bounty_hunter_jinada	abilities/bounty_hunter_jinada.png	bounty-hunter-class.png	PLACEHOLDER	A1IQ	ReplaceableTextures\\PassiveButtons\\BTNJinada
+bounty_hunter_wind_walk	abilities/bounty_hunter_wind_walk.png	wind-wall.png	PLACEHOLDER	A07A	ReplaceableTextures\\CommandButtons\\BTNWindWalkOn
+bounty_hunter_shuriken_toss	abilities/bounty_hunter_shuriken_toss.png	hunter-bow.png	PLACEHOLDER	A004	ReplaceableTextures\\CommandButtons\\BTNUpgradeMoonGlaive
+bounty_hunter_track	abilities/bounty_hunter_track.png	beast-tracking.png	PLACEHOLDER	A0B4	ReplaceableTextures\\CommandButtons\\BTNTrack
+disruptor_kinetic_field	abilities/disruptor_kinetic_field.png	thin-ice-field.png	PLACEHOLDER	A1SU	ReplaceableTextures\\CommandButtons\\BTNThrallIcon1
+disruptor_thunder_strike	abilities/disruptor_thunder_strike.png	storm-sword.png	PLACEHOLDER	A1TV	ReplaceableTextures\\CommandButtons\\BTNThrallIcon4
+disruptor_glimpse	abilities/disruptor_glimpse.png	echo-second.png	PLACEHOLDER	A1SW	ReplaceableTextures\\CommandButtons\\BTNThrallIcon3
+disruptor_static_storm	abilities/disruptor_static_storm.png	storm-shield.png	PLACEHOLDER	A1U6	ReplaceableTextures\\CommandButtons\\BTNStaticField
+life_stealer_infest	abilities/life_stealer_infest.png	health-potion.png	PLACEHOLDER	A0SW	ReplaceableTextures\\CommandButtons\\BTNOrbOfCorruption
+life_stealer_feast	abilities/life_stealer_feast.png	life-tether.png	PLACEHOLDER	A0SS	PassiveButtons\\BTNCannibalize
+life_stealer_rage	abilities/life_stealer_rage.png	rage-potion.png	PLACEHOLDER	A2TT	ReplaceableTextures\\CommandButtons\\BTNUnholyFrenzy
+life_stealer_open_wounds	abilities/life_stealer_open_wounds.png	life-essence.png	PLACEHOLDER	A194	ReplaceableTextures\\CommandButtons\\BTNGhoulFrenzy
+shadow_shaman_shackles	abilities/shadow_shaman_shackles.png	shadow-orb.png	PLACEHOLDER	A00P	ReplaceableTextures\\CommandButtons\\BTNMagicLariet
+shadow_shaman_voodoo	abilities/shadow_shaman_voodoo.png	shadow-cloak.png	PLACEHOLDER	A0RX	ReplaceableTextures\\CommandButtons\\BTNHex
+shadow_shaman_ether_shock	abilities/shadow_shaman_ether_shock.png	shadow-bolt.png	PLACEHOLDER	A010	ReplaceableTextures\\CommandButtons\\BTNRhastaForkedLightning
+shadow_shaman_mass_serpent_ward	abilities/shadow_shaman_mass_serpent_ward.png	bone-ward.png	PLACEHOLDER	A00H	ReplaceableTextures\\CommandButtons\\BTNSerpentWard
+terrorblade_sunder	abilities/terrorblade_sunder.png	sundered-armor.png	PLACEHOLDER		
+terrorblade_metamorphosis	abilities/terrorblade_metamorphosis.png	winged-demon.png	PLACEHOLDER		
+terrorblade_reflection	abilities/terrorblade_reflection.png	black-mirror.png	PLACEHOLDER		
+terrorblade_conjure_image	abilities/terrorblade_conjure_image.png	decoy-image.png	PLACEHOLDER		
+warlock_fatal_bonds	abilities/warlock_fatal_bonds.png	animal-bond.png	PLACEHOLDER	A0J5	ReplaceableTextures\\CommandButtons\\BTNFatalBonds
+warlock_shadow_word	abilities/warlock_shadow_word.png	shadow-spear.png	PLACEHOLDER	A0AS	ReplaceableTextures\\CommandButtons\\BTNSpell_Shadow_ShadowWordPain
+warlock_upheaval	abilities/warlock_upheaval.png	warlock-class.png	PLACEHOLDER	A06P	ReplaceableTextures\\CommandButtons\\BTNUnsummonBuilding
+warlock_rain_of_chaos	abilities/warlock_rain_of_chaos.png	rain-call.png	PLACEHOLDER	S008	ReplaceableTextures\\CommandButtons\\BTNInfernal
+warlock_rain_of_chaos_pulse	abilities/warlock_rain_of_chaos_pulse.png	healing-rain.png	PLACEHOLDER		
+brewmaster_thunder_clap	abilities/brewmaster_thunder_clap.png	thunder-clap.png	PLACEHOLDER	A06M	ReplaceableTextures\\CommandButtons\\BTNThunderClapPanda
+brewmaster_drunken_haze	abilities/brewmaster_drunken_haze.png	heat-haze.png	PLACEHOLDER	Acdh	ReplaceableTextures\\CommandButtons\\BTNStrongDrink
+brewmaster_drunken_brawler	abilities/brewmaster_drunken_brawler.png	berserker-brew.png	PLACEHOLDER	A0MX	ReplaceableTextures\\PassiveButtons\\PASBTNDrunkenDodge
+brewmaster_primal_split	abilities/brewmaster_primal_split.png	split-oak-log.png	PLACEHOLDER	A0MQ	ReplaceableTextures\\CommandButtons\\BTNStormEarth&Fire
+doom_bringer_lvl_death	abilities/doom_bringer_lvl_death.png	death-essence.png	PLACEHOLDER	A094	ReplaceableTextures\\CommandButtons\\BTNSoulBurn
+doom_bringer_devour	abilities/doom_bringer_devour.png	bone-recurve-bow.png	PLACEHOLDER	A35D	(ResearchArt) ReplaceableTextures\\CommandButtons\\BTNRedDragonDevour
+doom_bringer_scorched_earth	abilities/doom_bringer_scorched_earth.png	earth-magic.png	PLACEHOLDER	A1OP	ReplaceableTextures\\CommandButtons\\BTNWallOfFire
+doom_bringer_scorched_earth_pulse	abilities/doom_bringer_scorched_earth_pulse.png	earth-armor.png	PLACEHOLDER		
+doom_bringer_doom_basic	abilities/doom_bringer_doom_basic.png	doom.png	PLACEHOLDER	A0MU	ReplaceableTextures\\CommandButtons\\BTNDoom
+gyrocopter_rocket_barrage	abilities/gyrocopter_rocket_barrage.png	repeating-crossbow.png	PLACEHOLDER	A1SO	ReplaceableTextures\\CommandButtons\\BTNFlakCannons
+gyrocopter_rocket_barrage_pulse	abilities/gyrocopter_rocket_barrage_pulse.png	hailstorm.png	PLACEHOLDER		
+gyrocopter_homing_missile	abilities/gyrocopter_homing_missile.png	meteor.png	PLACEHOLDER	A1SQ	ReplaceableTextures\\CommandButtons\\BTNHumanArtilleryUpOne
+gyrocopter_flak_cannon	abilities/gyrocopter_flak_cannon.png	hand-cannon.png	PLACEHOLDER	A229	ReplaceableTextures\\CommandButtons\\BTNFragmentationBombs
+gyrocopter_call_down	abilities/gyrocopter_call_down.png	totem-call.png	PLACEHOLDER	A1T5	ReplaceableTextures\\CommandButtons\\BTNCalldown
+gyrocopter_call_down_first	abilities/gyrocopter_call_down_first.png	first-aid.png	PLACEHOLDER		
+gyrocopter_call_down_second	abilities/gyrocopter_call_down_second.png	grave-call.png	PLACEHOLDER		
+lone_druid_summon_spirit_bear	abilities/lone_druid_summon_spirit_bear.png	summon-spirit-scroll.png	PLACEHOLDER	A0A5	ReplaceableTextures\\CommandButtons\\BTNGrizzlyBear
+lone_druid_synergy	abilities/lone_druid_synergy.png	druid-circlet.png	PLACEHOLDER	A0A8	ReplaceableTextures\\PassiveButtons\\BTN_SyllaSynergy
+lone_druid_rabid	abilities/lone_druid_rabid.png	druid-herbal.png	PLACEHOLDER	A1EF	ReplaceableTextures\\CommandButtons\\BTNDOCMasterTraining
+lone_druid_true_form	abilities/lone_druid_true_form.png	shade-form.png	PLACEHOLDER	A0AG	ReplaceableTextures\\CommandButtons\\BTNBearForm
+naga_siren_rip_tide	abilities/naga_siren_rip_tide.png	water-elemental.png	PLACEHOLDER	A2KU	ReplaceableTextures\\CommandButtons\\BTNRipTide
+naga_siren_ensnare	abilities/naga_siren_ensnare.png	divine-chain.png	PLACEHOLDER	A24D	ReplaceableTextures\\CommandButtons\\BTNEnsnare
+naga_siren_mirror_image	abilities/naga_siren_mirror_image.png	mirror-image.png	PLACEHOLDER	A063	ReplaceableTextures\\CommandButtons\\BTNSirenMirrorImage
+naga_siren_song_of_the_siren	abilities/naga_siren_song_of_the_siren.png	song-of-air.png	PLACEHOLDER	A07U	ReplaceableTextures\\CommandButtons\\BTNPenguin
+puck_dream_coil	abilities/puck_dream_coil.png	dream-fog.png	PLACEHOLDER		
+puck_waning_rift	abilities/puck_waning_rift.png	rift-cut.png	PLACEHOLDER		
+puck_phase_shift	abilities/puck_phase_shift.png	aurora-veil.png	PLACEHOLDER		
+puck_illusory_orb	abilities/puck_illusory_orb.png	gravity-orb.png	PLACEHOLDER		
+shredder_whirling_death	abilities/shredder_whirling_death.png	shadow-blunderbuss.png	PLACEHOLDER		
+shredder_timber_chain	abilities/shredder_timber_chain.png	tusk-chain-shrine.png	PLACEHOLDER		
+shredder_reactive_armor	abilities/shredder_reactive_armor.png	cursed-shield-armor.png	PLACEHOLDER		
+shredder_chakram	abilities/shredder_chakram.png	chakram.png	PLACEHOLDER		
+tinker_rearm	abilities/tinker_rearm.png	quick-hour.png	PLACEHOLDER	A065	ReplaceableTextures\\CommandButtons\\BTNEngineeringUpgrade
+tinker_laser	abilities/tinker_laser.png	blue-crystal.png	PLACEHOLDER	A049	ReplaceableTextures\\CommandButtons\\BTNTinkerLaser
+tinker_heat_seeking_missile	abilities/tinker_heat_seeking_missile.png	ember-bolt.png	PLACEHOLDER	A05E	ReplaceableTextures\\CommandButtons\\BTNClusterRockets
+tinker_march_of_the_machines	abilities/tinker_march_of_the_machines.png	blacksmith-hammer.png	PLACEHOLDER	A0BQ	ReplaceableTextures\\CommandButtons\\BTNMarchOfTheMachines
+weaver_the_swarm	abilities/weaver_the_swarm.png	giant-ant.png	PLACEHOLDER		
+weaver_shukuchi	abilities/weaver_shukuchi.png	evasion.png	PLACEHOLDER		
+weaver_geminate_attack	abilities/weaver_geminate_attack.png	attack-action.png	PLACEHOLDER		
+weaver_time_lapse	abilities/weaver_time_lapse.png	time-slow.png	PLACEHOLDER		
+bristleback_warpath	abilities/bristleback_warpath.png	rune-stitched-banner.png	PLACEHOLDER	A0FV	ReplaceableTextures\\PassiveButtons\\BTNHire
+bristleback_bristleback	abilities/bristleback_bristleback.png	battered-shield-block.png	PLACEHOLDER	A0M3	ReplaceableTextures\\PassiveButtons\\BTNQuillSprayOff
+bristleback_quill_spray	abilities/bristleback_quill_spray.png	quill-knife.png	PLACEHOLDER	A0GP	ReplaceableTextures\\CommandButtons\\BTNFanOfKnives
+bristleback_viscous_nasal_goo	abilities/bristleback_viscous_nasal_goo.png	small-glue-pot.png	PLACEHOLDER	A0FW	ReplaceableTextures\\CommandButtons\\BTNBristleGoo
+dragon_knight_elder_dragon_form	abilities/dragon_knight_elder_dragon_form.png	frost-dragon-head.png	PLACEHOLDER	A03G	ReplaceableTextures\\CommandButtons\\BTNAzureDragon
+dragon_knight_breathe_fire	abilities/dragon_knight_breathe_fire.png	dragon-scale-armor-set.png	PLACEHOLDER	A03F	ReplaceableTextures\\CommandButtons\\BTNDKBreatheFire
+dragon_knight_dragon_tail	abilities/dragon_knight_dragon_tail.png	dragon-scale-armor.png	PLACEHOLDER	A2AI	ReplaceableTextures\\CommandButtons\\BTNHumanArmorUpThree
+dragon_knight_dragon_blood	abilities/dragon_knight_dragon_blood.png	dragon-knight-class.png	PLACEHOLDER	A0CL	ReplaceableTextures\\PassiveButtons\\PASBTNIncinerate
+necrolyte_reaper_s_scythe	abilities/necrolyte_reaper_s_scythe.png	grain-scythe.png	PLACEHOLDER	A067	ReplaceableTextures\\CommandButtons\\BTNReapersScythe
+necrolyte_death_pulse	abilities/necrolyte_death_pulse.png	curse-mark.png	PLACEHOLDER	A05V	ReplaceableTextures\\CommandButtons\\BTNDeathNova
+necrolyte_sadist	abilities/necrolyte_sadist.png	regeneration-buff.png	PLACEHOLDER	A060	ReplaceableTextures\\PassiveButtons\\BTNOrbOfCorruption
+necrolyte_heartstopper_aura	abilities/necrolyte_heartstopper_aura.png	speed-aura.png	PLACEHOLDER	A01N	ReplaceableTextures\\PassiveButtons\\BTNSpell_Holy_SealOfRighteousness
+pudge_meat_hook	abilities/pudge_meat_hook.png	dried-meat-strips.png	PLACEHOLDER		
+pudge_flesh_heap	abilities/pudge_flesh_heap.png	heart-seal.png	PLACEHOLDER		
+pudge_dismember	abilities/pudge_dismember.png	crude-axe.png	PLACEHOLDER		
+pudge_rot	abilities/pudge_rot.png	toxic-cloud.png	PLACEHOLDER		
+silencer_glaives_of_wisdom	abilities/silencer_glaives_of_wisdom.png	wizard-hat.png	PLACEHOLDER	A0LZ	ReplaceableTextures\\CommandButtons\\BTN_GlaviesOfWisdom
+silencer_last_word	abilities/silencer_last_word.png	silence-glyph-trap.png	PLACEHOLDER	A2NT	ReplaceableTextures\\CommandButtons\\BTNBansheeMaster
+silencer_curse_of_the_silent	abilities/silencer_curse_of_the_silent.png	drowning-curse.png	PLACEHOLDER	A14L	ReplaceableTextures\\CommandButtons\\BTNControlMagic
+silencer_global_silence	abilities/silencer_global_silence.png	silence-debuff.png	PLACEHOLDER	A0L3	ReplaceableTextures\\CommandButtons\\BTNGlobalSilence
+tiny_craggy_exterior	abilities/tiny_craggy_exterior.png	crystal-pauldrons.png	PLACEHOLDER		
+tiny_grow	abilities/tiny_grow.png	spinach-bundle.png	PLACEHOLDER		
+tiny_avalanche	abilities/tiny_avalanche.png	snowball.png	PLACEHOLDER		
+tiny_toss	abilities/tiny_toss.png	boulder-toss.png	PLACEHOLDER		
+windrunner_focus_fire	abilities/windrunner_focus_fire.png	fire-elemental.png	PLACEHOLDER	A12P	ReplaceableTextures\\CommandButtons\\BTNFocusFire
+windrunner_powershot	abilities/windrunner_powershot.png	holy-crossbow.png	PLACEHOLDER	A12K	ReplaceableTextures\\CommandButtons\\BTNPowerShot
+windrunner_windrunner	abilities/windrunner_windrunner.png	wind-magic.png	PLACEHOLDER	A14I	ReplaceableTextures\\CommandButtons\\BTNCyclone
+windrunner_windrunner_pulse	abilities/windrunner_windrunner_pulse.png	cyclone.png	PLACEHOLDER		
+windrunner_shackleshot	abilities/windrunner_shackleshot.png	crimson-chains.png	PLACEHOLDER	A12J	ReplaceableTextures\\CommandButtons\\BTNShackleShot
+luna_lunar_blessing	abilities/luna_lunar_blessing.png	holy-blessing.png	PLACEHOLDER		
+luna_lucent_beam	abilities/luna_lucent_beam.png	mana-beam.png	PLACEHOLDER		
+luna_eclipse	abilities/luna_eclipse.png	moon-pendant.png	PLACEHOLDER		
+luna_moon_glaive	abilities/luna_moon_glaive.png	moon-crystal.png	PLACEHOLDER		
+axe_berserkers_call	abilities/axe_berserkers_call.png	rusty-axe.png	PLACEHOLDER	A0I6	ReplaceableTextures\\CommandButtons\\BTN_BerserkerCall
+axe_battle_hunger	abilities/axe_battle_hunger.png	battle-axe.png	PLACEHOLDER	A0S1	ReplaceableTextures\\CommandButtons\\BTNIncinerate
+axe_counter_helix	abilities/axe_counter_helix.png	axe-cleave.png	PLACEHOLDER	A0C6	ReplaceableTextures\\PassiveButtons\\BTNStaffOfSanctuary
+axe_culling_blade	abilities/axe_culling_blade.png	ice-axe.png	PLACEHOLDER	A0E2	ReplaceableTextures\\CommandButtons\\BTNOrcMeleeUpThree
+axe_talents	abilities/axe_talents.png	iron-axe.png	PLACEHOLDER		
+crystal_maiden_crystal_nova	abilities/crystal_maiden_crystal_nova.png	crystal-rifle.png	PLACEHOLDER	A1E9	ReplaceableTextures\\CommandButtons\\BTNCrystalNova
+crystal_maiden_frostbite	abilities/crystal_maiden_frostbite.png	crystal-staff.png	PLACEHOLDER	A04C	ReplaceableTextures\\CommandButtons\\BTNFrost
+crystal_maiden_brilliance_aura	abilities/crystal_maiden_brilliance_aura.png	crystal-council-faction.png	PLACEHOLDER	AHab	ReplaceableTextures\\PassiveButtons\\PASBTNBrilliance
+crystal_maiden_freezing_field	abilities/crystal_maiden_freezing_field.png	arcane-crystal.png	PLACEHOLDER	A03R	ReplaceableTextures\\CommandButtons\\BTN_CMFF
+crystal_maiden_talents	abilities/crystal_maiden_talents.png	crystal-sword.png	PLACEHOLDER		
+sven_storm_bolt	abilities/sven_storm_bolt.png	storm-thistle.png	PLACEHOLDER	A190	ReplaceableTextures\\CommandButtons\\BTNStormBolt
+sven_great_cleave	abilities/sven_great_cleave.png	ancestral-heavy-cleave.png	PLACEHOLDER	A01K	ReplaceableTextures\\PassiveButtons\\PASBTNCleavingAttack
+sven_warcry	abilities/sven_warcry.png	blinded-rage.png	PLACEHOLDER	A2IS	ReplaceableTextures\\CommandButtons\\BTNAncestralSpirit
+sven_gods_strength	abilities/sven_gods_strength.png	strength-buff.png	PLACEHOLDER	A1WH	ReplaceableTextures\\CommandButtons\\BTNSvenGS
+juggernaut_healing_ward	abilities/juggernaut_healing_ward.png	nature-ward.png	PLACEHOLDER	A338	ReplaceableTextures\\CommandButtons\\BTNHealingWard
+juggernaut_healing_ward_aura	abilities/juggernaut_healing_ward_aura.png	armor-aura.png	PLACEHOLDER		
+juggernaut_blade_fury	abilities/juggernaut_blade_fury.png	frozen-blade.png	PLACEHOLDER	A05G	ReplaceableTextures\\CommandButtons\\BTNWhirlwind
+juggernaut_blade_fury_pulse	abilities/juggernaut_blade_fury_pulse.png	charged-blade.png	PLACEHOLDER		
+juggernaut_blade_dance	abilities/juggernaut_blade_dance.png	toxin-blade.png	PLACEHOLDER	A00K	ReplaceableTextures\\PassiveButtons\\BTNBladeDance
+juggernaut_omni_slash	abilities/juggernaut_omni_slash.png	iron-dagger.png	PLACEHOLDER	A0M1	ReplaceableTextures\\CommandButtons\\BTNOmnislash
+juggernaut_omni_slash_pulse	abilities/juggernaut_omni_slash_pulse.png	wind-slash.png	PLACEHOLDER		
+zuus_arc_lightning	abilities/zuus_arc_lightning.png	lightning-resistance-potion.png	PLACEHOLDER	A020	ReplaceableTextures\\CommandButtons\\BTNChainLightning
+zuus_static_field	abilities/zuus_static_field.png	static-field.png	PLACEHOLDER		
+zuus_lightning_bolt	abilities/zuus_lightning_bolt.png	lightning-bolt.png	PLACEHOLDER	A2WQ	ReplaceableTextures\\CommandButtons\\BTNBlue_Lightning
+zuus_thundergods_wrath	abilities/zuus_thundergods_wrath.png	thunder-hammer.png	PLACEHOLDER	A29G	ReplaceableTextures\\CommandButtons\\BTNSpell_Holy_SealOfMight
+zuus_talents	abilities/zuus_talents.png	arcane-staff.png	PLACEHOLDER		
+sniper_assassinate	abilities/sniper_assassinate.png	crossbow-training.png	PLACEHOLDER	A04P	ReplaceableTextures\\CommandButtons\\BTNDwarvenLongRifle
+sniper_take_aim	abilities/sniper_take_aim.png	precision-aim.png	PLACEHOLDER	A03U	ReplaceableTextures\\PassiveButtons\\BTNHumanMissileUpTwo
+sniper_headshot	abilities/sniper_headshot.png	ranger-hood.png	PLACEHOLDER	A03S	ReplaceableTextures\\PassiveButtons\\BTNHumanMissileUpOne
+sniper_shrapnel	abilities/sniper_shrapnel.png	quick-shot.png	PLACEHOLDER	A064	ReplaceableTextures\\CommandButtons\\BTNFragmentationBombs
+sniper_shrapnel_pulse	abilities/sniper_shrapnel_pulse.png	yumi-bow.png	PLACEHOLDER		
+lion_impale	abilities/lion_impale.png	mountain-lion.png	PLACEHOLDER	A0X5	ReplaceableTextures\\CommandButtons\\BTNImpale
+lion_voodoo	abilities/lion_voodoo.png	gecko.png	PLACEHOLDER	A0MN	ReplaceableTextures\\CommandButtons\\BTNHex
+lion_mana_drain	abilities/lion_mana_drain.png	mana-drain.png	PLACEHOLDER	A02N	ReplaceableTextures\\CommandButtons\\BTNManaDrain
+lion_finger_of_death	abilities/lion_finger_of_death.png	death-mark.png	PLACEHOLDER	A095	ReplaceableTextures\\CommandButtons\\BTNCorpseExplode
+lion_talents	abilities/lion_talents.png	lion.png	PLACEHOLDER		
+phantom_lancer_phantom_rush	abilities/phantom_lancer_phantom_rush.png	iron-spear.png	PLACEHOLDER		
+phantom_lancer_spirit_lance	abilities/phantom_lancer_spirit_lance.png	steel-lance.png	PLACEHOLDER	A10D	ReplaceableTextures\\CommandButtons\\BTNWindsArrows
+phantom_lancer_doppelganger	abilities/phantom_lancer_doppelganger.png	ghost-face.png	PLACEHOLDER		
+phantom_lancer_juxtapose	abilities/phantom_lancer_juxtapose.png	ghost-hand.png	PLACEHOLDER	A0DB	ReplaceableTextures\\PassiveButtons\\BTNJuxtapose
+dazzle_shallow_grave	abilities/dazzle_shallow_grave.png	grave-armor.png	PLACEHOLDER	A10L	ReplaceableTextures\\CommandButtons\\BTNAnkh
+dazzle_shadow_wave	abilities/dazzle_shadow_wave.png	flame-wave.png	PLACEHOLDER		
+dazzle_weave	abilities/dazzle_weave.png	spell-weave.png	PLACEHOLDER		
+dazzle_poison_touch	abilities/dazzle_poison_touch.png	corrosive-touch.png	PLACEHOLDER	A2X6	ReplaceableTextures\\CommandButtons\\BTNINV_Wand_12
+dazzle_talents	abilities/dazzle_talents.png	arcane-insight.png	PLACEHOLDER		
+antimage_spell_shield	abilities/antimage_spell_shield.png	bone-shield-spell.png	PLACEHOLDER		
+antimage_mana_break	abilities/antimage_mana_break.png	rune-guard-break.png	PLACEHOLDER	A022	ReplaceableTextures\\PassiveButtons\\PASBTNFeedBack
+antimage_blink	abilities/antimage_blink.png	portal-slice.png	PLACEHOLDER	AEbl	ReplaceableTextures\\CommandButtons\\BTNBlink
+antimage_mana_void	abilities/antimage_mana_void.png	void-crystal.png	PLACEHOLDER		
+antimage_talents	abilities/antimage_talents.png	branching-rune-upgrade.png	PLACEHOLDER		
+lina_dragon_slave	abilities/lina_dragon_slave.png	dragon-scale-greaves.png	PLACEHOLDER	A01F	ReplaceableTextures\\CommandButtons\\BTNSearingArrows
+lina_light_strike_array	abilities/lina_light_strike_array.png	light-elemental.png	PLACEHOLDER	A027	ReplaceableTextures\\CommandButtons\\BTN_LightStrikeArray
+lina_light_strike_array_pulse	abilities/lina_light_strike_array_pulse.png	bronze-sword.png	PLACEHOLDER		
+lina_fiery_soul	abilities/lina_fiery_soul.png	soul-harvest.png	PLACEHOLDER		
+lina_laguna_blade	abilities/lina_laguna_blade.png	shadow-blade.png	PLACEHOLDER	A01P	ReplaceableTextures\\CommandButtons\\BTNManaFlare
+lina_talents	abilities/lina_talents.png	runed-tome.png	PLACEHOLDER		
+lich_dark_ritual	abilities/lich_dark_ritual.png	lich-skull.png	PLACEHOLDER		
+lich_frost_nova	abilities/lich_frost_nova.png	frost-nova.png	PLACEHOLDER	A07F	ReplaceableTextures\\CommandButtons\\BTNGlacier
+lich_frost_armor_lich	abilities/lich_frost_armor_lich.png	frost-shield-armor.png	PLACEHOLDER		
+lich_chain_frost	abilities/lich_chain_frost.png	frost-armor.png	PLACEHOLDER	A05T	ReplaceableTextures\\CommandButtons\\BTNBreathOfFrost
+tidehunter_ravage	abilities/tidehunter_ravage.png	kraken-eye.png	PLACEHOLDER	A29I	ReplaceableTextures\\CommandButtons\\BTNSeaGiantWarStomp
+tidehunter_anchor_smash	abilities/tidehunter_anchor_smash.png	rift-anchor.png	PLACEHOLDER		
+tidehunter_gush	abilities/tidehunter_gush.png	clam-shell.png	PLACEHOLDER	A046	ReplaceableTextures\\CommandButtons\\BTNSummonWaterElemental
+tidehunter_kraken_shell	abilities/tidehunter_kraken_shell.png	kraken-sucker.png	PLACEHOLDER	A04E	ReplaceableTextures\\PassiveButtons\\BTNNagaArmorUp3
+slardar_sprint	abilities/slardar_sprint.png	sprint-action.png	PLACEHOLDER	A05C	ReplaceableTextures\\CommandButtons\\BTNSirenMaster
+slardar_slithereen_crush	abilities/slardar_slithereen_crush.png	throwing-hammer.png	PLACEHOLDER	A29K	ReplaceableTextures\\CommandButtons\\BTNHydraWarStomp
+slardar_bash	abilities/slardar_bash.png	shield-bash-impact.png	PLACEHOLDER	A0JJ	ReplaceableTextures\\PassiveButtons\\BTNSlardarBash
+slardar_amplify_damage	abilities/slardar_amplify_damage.png	piercing-damage.png	PLACEHOLDER	A034	ReplaceableTextures\\CommandButtonsAuto\\BTNAmplifyDamage
+slardar_talents	abilities/slardar_talents.png	arcane-library.png	PLACEHOLDER		
+vengefulspirit_magic_missile	abilities/vengefulspirit_magic_missile.png	arcane-missile.png	PLACEHOLDER	A02A	ReplaceableTextures\\CommandButtons\\BTNFrostBolt
+vengefulspirit_command_aura	abilities/vengefulspirit_command_aura.png	stoneskin-aura.png	PLACEHOLDER	ACac	ReplaceableTextures\\PassiveButtons\\PASBTNGnollCommandAura
+vengefulspirit_wave_of_terror	abilities/vengefulspirit_wave_of_terror.png	cleansing-wave.png	PLACEHOLDER	A17O	ReplaceableTextures\\CommandButtons\\BTNHowlOfTerror
+vengefulspirit_nether_swap	abilities/vengefulspirit_nether_swap.png	weapon-swap.png	PLACEHOLDER		
+omniknight_purification	abilities/omniknight_purification.png	holy-orb.png	PLACEHOLDER	A08N	ReplaceableTextures\\CommandButtons\\BTNResurrection
+omniknight_repel	abilities/omniknight_repel.png	angelic-ward.png	PLACEHOLDER		
+omniknight_guardian_angel	abilities/omniknight_guardian_angel.png	angel-ring.png	PLACEHOLDER	A0ER	ReplaceableTextures\\CommandButtons\\BTNDivineIntervention
+omniknight_degen_aura	abilities/omniknight_degen_aura.png	shield-aura.png	PLACEHOLDER	A06A	ReplaceableTextures\\PassiveButtons\\BTNSpiritLink
+omniknight_talents	abilities/omniknight_talents.png	arcane-scroll.png	PLACEHOLDER		

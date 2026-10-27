@@ -1,0 +1,5 @@
+[target.wasm32-wasip2]
+rustflags = ["--cfg", "getrandom_backend=\"custom\""]
+
+[target.wasm32-wasip3]
+rustflags = ["--cfg", "getrandom_backend=\"custom\""]

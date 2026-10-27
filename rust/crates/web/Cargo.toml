@@ -1,0 +1,26 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2021"
+description = "Browser build of the deterministic sim: a wasm-bindgen Game over sim::load"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+fault-injection = ["mod-host/fault-injection"]
+
+[dependencies]
+sim = { path = "../sim" }
+replay = { path = "../replay" }
+mod-host = { path = "../mod-host", default-features = false, features = ["piccolo"] }
+serde_json = "1"
+wasm-bindgen = "0.2"
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
+getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O", "--enable-bulk-memory", "--enable-sign-ext", "--enable-mutable-globals", "--enable-nontrapping-float-to-int"]
+

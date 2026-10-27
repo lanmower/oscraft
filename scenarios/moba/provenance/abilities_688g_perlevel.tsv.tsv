@@ -1,0 +1,15 @@
+anchor	kind	note
+file	provenance	6.88g hero abilities, per level. Source: reference map 6.88g.w3x units/AbilityData.slk, extracted by
+file	rationale	scripts/extract-688g-abilities.mjs from the LNI tables (hy3d). cool_s/cost/dur_s are pipe-separated per-level
+file	rationale	arrays from the archive's own Cool, Cost and HeroDur (falling back to Dur) fields. Each Data field carries the
+file	rationale	editor label the archive keeps above it, as DataB[1.3/1.3/1.3/1.3]=<label>; labels are in the archive's own
+file	rationale	language. recurring ones: attack speed, move speed, damage taken, bonus damage/attack, defence, duration,
+file	rationale	auto-cast range, animation duration. cool_ticks_l1 is level-1 seconds x 16.
+file	rationale	NOT APPLIED. abilities.osd holds 15 generic ability() rows and none of the 569 hero-ability ids derived here,
+file	rationale	so there is nothing to write to yet; applying one also needs its effect encoding.
+file	rationale	The label names the TEMPLATE's field, so on a customised ability it can be wrong. Read label and value
+file	rationale	together: an implausible value under a plausible label means the map repurposed the field. clinkz_death_pact
+file	rationale	A04Q is exactly that - DataC[50/50/50] is labelled auto-cast range, which is implausible for a targeted
+file	rationale	ability, and 50 matches the reported HP gain. That is an inference from Dota 2, not something the archive
+file	unverified	states, so it is left UNVERIFIED and unwritten rather than filled in. Same for clinkz_searing_arrows A2UO,
+file	rationale	whose own row carries no usable data and whose numbers come only from the generic Searing Arrows row.

@@ -1,15 +1,10 @@
-//! Bob Jenkins' lookup3 (hashlittle2, byte-at-a-time), the name hash HET/BET use.
-
 use crate::le_u32;
 
-/// The 64-bit HET/BET name hash: lookup3 seeded pc=2, pb=1, returned as b<<32|c.
 pub(crate) fn hash_jenkins(key: &[u8]) -> u64 {
     let (c, b) = lookup3(key, 2, 1);
     ((b as u64) << 32) | c as u64
 }
 
-/// Returns (c, b). The main loop stops at length > 12, so a 12-byte multiple key
-/// leaves a whole block for the tail, and the tail cascade runs 12 down to 1.
 fn lookup3(key: &[u8], pc: u32, pb: u32) -> (u32, u32) {
     let mut length = key.len();
     let a0 = 0xdead_beefu32

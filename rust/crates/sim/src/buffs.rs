@@ -1,21 +1,16 @@
-//! Per-unit buff table: BUFF_SLOTS behaviours per unit, each dealing damage once
-//! per period until its applications run out. A behaviour already held is refreshed.
 
 use crate::arrays::Sim;
 use crate::*;
 
 impl Sim {
-    /// Gives unit `j` behaviour `kind`. Returns false (and counts a drop) with no free slot.
-    pub(crate) fn apply_buff(&mut self, j: usize, kind: i32, dmg: i32, period: i32, left: i32) -> bool {
+    pub fn apply_buff(&mut self, j: usize, kind: i32, ticks: i32) -> bool {
+        self.touch(j);
         let base = j * BUFF_SLOTS;
         let mut free = None;
         for k in 0..BUFF_SLOTS {
             let slot = base + k;
             if self.buff_kind[slot] == kind {
-                self.buff_left[slot] = left;
-                self.buff_timer[slot] = period;
-                self.buff_period[slot] = period;
-                self.buff_dmg[slot] = dmg;
+                self.buff_left[slot] = ticks;
                 return true;
             }
             if self.buff_kind[slot] < 0 && free.is_none() {
@@ -25,10 +20,7 @@ impl Sim {
         match free {
             Some(slot) => {
                 self.buff_kind[slot] = kind;
-                self.buff_left[slot] = left;
-                self.buff_timer[slot] = period;
-                self.buff_period[slot] = period;
-                self.buff_dmg[slot] = dmg;
+                self.buff_left[slot] = ticks;
                 true
             }
             None => {
@@ -38,7 +30,20 @@ impl Sim {
         }
     }
 
-    pub(crate) fn clear_buff(&mut self, j: usize, kind: i32) {
+    pub fn buffs(&self, j: usize) -> impl Iterator<Item = (i32, i32)> + '_ {
+        let base = j * BUFF_SLOTS;
+        let slots = if j < self.n { BUFF_SLOTS } else { 0 };
+        (0..slots).filter_map(move |k| {
+            let kind = self.buff_kind[base + k];
+            (kind >= 0).then(|| (kind, self.buff_left[base + k]))
+        })
+    }
+
+    pub fn clear_buff(&mut self, j: usize, kind: i32) {
+        if j >= self.n {
+            return;
+        }
+        self.touch(j);
         for k in 0..BUFF_SLOTS {
             if self.buff_kind[j * BUFF_SLOTS + k] == kind {
                 self.buff_kind[j * BUFF_SLOTS + k] = -1;
@@ -46,8 +51,26 @@ impl Sim {
         }
     }
 
-    /// Applies or removes a behaviour on one unit, from an ability's buff effect.
-    pub(crate) fn buff_unit(&mut self, caster: i32, p: u8, j: usize, kind: i32, dmg: i32, period: i32, remove: bool) {
+    pub fn remove_behaviour(&mut self, caster: usize, kind: i32, rad: i32, x: i32, y: i32, cost: i32) -> Result<(), Refusal> {
+        if caster >= self.n || self.alive[caster] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        if cost > 0 {
+            self.spend_energy(caster, cost)?;
+        }
+        let mut buf = std::mem::take(&mut self.scratch);
+        let n = self.gather(x, y, rad, &mut buf);
+        for k in 0..n {
+            let j = buf[k] as usize;
+            if self.alive[j] != 0 {
+                self.clear_buff(j, kind);
+            }
+        }
+        self.scratch = buf;
+        Ok(())
+    }
+
+    pub(crate) fn buff_unit(&mut self, caster: i32, p: u8, j: usize, kind: i32, ticks: i32, remove: bool) {
         if j >= self.n || self.alive[j] == 0 || kind < 0 {
             return;
         }
@@ -55,13 +78,12 @@ impl Sim {
             self.clear_buff(j, kind);
             return;
         }
-        if j as i32 == caster || self.player[j] == p {
+        if j as i32 == caster || !self.hostile(p, self.player[j]) {
             return;
         }
-        self.apply_buff(j, kind, dmg, period.max(1), 1);
+        self.apply_buff(j, kind, ticks);
     }
 
-    /// Ticks every held behaviour: damage on each period, slot freed after the last application.
     pub(crate) fn tick_buffs(&mut self) {
         for i in 0..self.n {
             for k in 0..BUFF_SLOTS {
@@ -73,18 +95,11 @@ impl Sim {
                     self.buff_kind[slot] = -1;
                     continue;
                 }
-                self.buff_timer[slot] -= 1;
-                if self.buff_timer[slot] > 0 {
-                    continue;
-                }
-                let d = self.buff_dmg[slot];
-                self.hurt(i, d);
                 self.buff_left[slot] -= 1;
                 if self.buff_left[slot] <= 0 {
                     self.buff_kind[slot] = -1;
-                    continue;
+                    self.touch(i);
                 }
-                self.buff_timer[slot] = self.buff_period[slot];
             }
         }
     }

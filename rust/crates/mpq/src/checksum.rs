@@ -1,5 +1,3 @@
-//! CRC-32 (IEEE, reflected) for sector checksums.
-
 const fn crc32_table() -> [u32; 256] {
     let mut table = [0u32; 256];
     let mut i = 0;

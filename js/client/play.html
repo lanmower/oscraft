@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>oscraft net client</title>
+  <script type="importmap">
+{
+    "imports": {
+      "wireweave": "./vendor/wireweave/src/index.js",
+      "wireweave/": "./vendor/wireweave/src/",
+      "nostr-tools": "./vendor/nostr-tools/index.js",
+      "xstate": "./vendor/xstate/index.js"
+    }
+  }
+  </script>
+  <link rel="modulepreload" href="./ambient_fx.js">
+  <link rel="modulepreload" href="./anim.js">
+  <link rel="modulepreload" href="./audio.js">
+  <link rel="modulepreload" href="./camera_rules.js">
+  <link rel="modulepreload" href="./chat.js">
+  <link rel="modulepreload" href="./debug_api.js">
+  <link rel="modulepreload" href="./decoders.js">
+  <link rel="modulepreload" href="./delta.js">
+  <link rel="modulepreload" href="./draft_clock.js">
+  <link rel="modulepreload" href="./feedback.js">
+  <link rel="modulepreload" href="./fogview.js">
+  <link rel="modulepreload" href="./fx.js">
+  <link rel="modulepreload" href="./fx_shapes.js">
+  <link rel="modulepreload" href="./glb.js">
+  <link rel="modulepreload" href="./glb_resolve.js">
+  <link rel="modulepreload" href="./hud.js">
+  <link rel="modulepreload" href="./ice.js">
+  <link rel="modulepreload" href="./load_gate.js">
+  <link rel="modulepreload" href="./matrix_panel.js">
+  <link rel="modulepreload" href="./moba_input.js">
+  <link rel="modulepreload" href="./moba_select.js">
+  <link rel="modulepreload" href="./modui.js">
+  <link rel="modulepreload" href="./pack.js">
+  <link rel="modulepreload" href="./pack_editor.js">
+  <link rel="modulepreload" href="./pack_load.js">
+  <link rel="modulepreload" href="./pack_sync.js">
+  <link rel="modulepreload" href="./render3d.js">
+  <link rel="modulepreload" href="./swap_protocol.js">
+  <link rel="modulepreload" href="./terrain.js">
+  <link rel="modulepreload" href="./texture.js">
+  <link rel="modulepreload" href="./tiles.js">
+  <link rel="modulepreload" href="./ui_minimap.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/index.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-ciphers-0.5.3-aes.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-ciphers-0.5.3-chacha.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-ciphers-0.5.3-utils.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-curves-1.2.0-secp256k1.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-crypto.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-hkdf.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-hmac.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-sha256.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.1-utils.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.2-crypto.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.2-hmac.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.2-sha256.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/noble-hashes-1.3.2-utils.js">
+  <link rel="modulepreload" href="./vendor/nostr-tools/scure-base-1.1.1.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/auth.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/data.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/debug.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/dtag.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/frame.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/fsm.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/relay-pool.js">
+  <link rel="modulepreload" href="./vendor/wireweave/src/safe-storage.js">
+  <link rel="modulepreload" href="./vendor/xstate/index.js">
+  <link rel="modulepreload" href="./warmup.js">
+  <link rel="modulepreload" href="./widgets.js">
+  <link rel="modulepreload" href="./wire/frame.js">
+  <link rel="modulepreload" href="./zoom_keys.js">
+  <link rel="preload" href="./pkg/web_bg.wasm" as="fetch" crossorigin>
+  <style>
+    :root {
+      --bar-h: 160px;
+      --side-w: 240px;
+      --right-w: 360px;
+      --right-top: 8px;
+      --min-target: 24px;
+      --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --t-label: 11px;
+      --t-body: 12px;
+      --t-title: 14px;
+      --t-head: 18px;
+      --panel: rgba(14, 18, 23, 0.92);
+      --panel-strong: rgba(12, 15, 19, 0.96);
+      --well: #1b222a;
+      --well-hi: #242e38;
+      --well-dim: #161c22;
+      --edge: #33404b;
+      --line: #252e37;
+      --hover-edge: #6b7d8c;
+      --sel: #ffffff;
+      --shade: rgba(6, 8, 10, 0.68);
+      --text: #e6ecf1;
+      --muted: #9aa7b2;
+      --faint: #8a96a2;
+      --accent: #f2c14e;
+      --gold: #f2c14e;
+      --hp: #4caf50;
+      --mp: #3d7bff;
+      --ok: #3f7d4a;
+      --ok-bg: #22392a;
+      --bad: #ff7a6b;
+      --warn: #ff9b7a;
+      --team0: #6aa6ff;
+      --team1: #ff7566;
+      --me-bg: rgba(242, 193, 78, 0.12);
+    }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; height: 100%; background: #1d252c; color: var(--text); font: var(--t-body) / 1.3 var(--font); overflow: hidden; }
+    canvas#view { display: block; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; }
+    #lobby { position: fixed; z-index: 4; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(960px, 96vw); max-height: 96vh; max-height: 96dvh; overflow: auto; box-sizing: border-box; padding: 12px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 6px; }
+    #ui-left { position: fixed; z-index: 2; left: 8px; top: 8px; width: var(--side-w); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+    #ui-left > * { pointer-events: auto; }
+    #status { padding: 5px 8px; background: var(--panel); border: 1px solid var(--edge); border-radius: 4px; white-space: pre; font-size: var(--t-label); color: var(--muted); }
+    #hud { padding: 5px 8px; background: var(--panel); border: 1px solid var(--edge); border-radius: 4px; font-variant-numeric: tabular-nums; color: var(--text); font-size: var(--t-body); }
+    #ui-left a { color: #8fc4ff; font-size: var(--t-label); padding: 0 2px; }
+    #ui-right { position: fixed; z-index: 2; right: 8px; top: var(--right-top); width: var(--right-w); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+    #ui-right > * { pointer-events: auto; }
+    #rooms { box-sizing: border-box; width: 200px; padding: 6px 8px; background: var(--panel); border: 1px solid var(--edge); border-radius: 4px; font-size: var(--t-body); }
+    #rooms ul { list-style: none; margin: 4px 0; padding: 0; max-height: 96px; overflow: auto; }
+    #rooms button { width: 100%; text-align: left; margin: 2px 0; background: var(--well); color: var(--text); border: 1px solid var(--edge); border-radius: 3px; padding: 3px 6px; font: var(--t-label) var(--font); cursor: pointer; }
+    #rooms input { box-sizing: border-box; width: 100%; background: var(--well); border: 1px solid var(--edge); border-radius: 3px; color: var(--text); font: var(--t-label) var(--font); padding: 3px 6px; }
+    #rooms #room-join { margin-top: 4px; }
+    #ui-bar { position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; height: var(--bar-h); box-sizing: border-box; padding: 8px 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto 200px; gap: 12px; align-items: stretch; background: var(--panel-strong); border-top: 1px solid var(--edge); }
+    #ui-bar-left, #ui-bar-mid, #ui-bar-right { min-width: 0; min-height: 0; }
+    #ui-bar-right { display: flex; align-items: flex-start; justify-content: flex-end; }
+    @media (max-width: 600px), (max-height: 500px) and (orientation: landscape) {
+      :root { --bar-h: 120px; --side-w: 150px; --right-w: 150px; --right-top: 246px; }
+      #ui-left #hud, #ui-left #status { font-size: var(--t-body); }
+      body #ui-top { top: 8px; right: 4px; left: auto; transform: none; width: var(--right-w); font-size: var(--t-label); }
+      #ui-right { right: 4px; }
+      #ui-bar { padding-bottom: calc(8px + env(safe-area-inset-bottom)); grid-template-columns: minmax(0, 1fr) auto 0; gap: 6px; }
+      #ui-bar-right { display: none; }
+      #rooms { width: var(--right-w); }
+      #rooms ul { max-height: 48px; }
+      .pack-start { display: flex; gap: 4px; margin-top: 6px; }
+      #rooms button, #rooms input, #centre-hero, #ui-left button, #ui-right button, #ui-bar button, #ui-bar .w-button, #ui-bar .w-cell { min-width: var(--min-target); min-height: var(--min-target); }
+    }
+    @media (max-height: 500px) and (orientation: landscape) {
+      :root { --bar-h: 96px; --side-w: 200px; --right-w: 220px; --right-top: 35px; }
+    }
+    @media (max-width: 600px) {
+      body #ui-modal { top: 8px; transform: translateX(-50%); max-height: calc(100vh - var(--bar-h) - 24px); max-height: calc(100dvh - var(--bar-h) - 24px); }
+    }
+    #minimap { display: block; touch-action: none; border-radius: 3px; cursor: crosshair; background: #1a2129; }
+    #centre-hero { width: 100%; margin-top: 4px; font: var(--t-label) var(--font); }
+    #boot { position: fixed; z-index: 5; left: 50%; bottom: calc(var(--bar-h) + 12px); transform: translateX(-50%); width: min(420px, 92vw); box-sizing: border-box; padding: 12px 14px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 6px; color: var(--muted); font-size: var(--t-body); pointer-events: none; }
+    #boot[data-failed] { border-color: var(--bad); }
+    #boot .boot-head { display: flex; justify-content: space-between; align-items: baseline; color: var(--text); font-size: var(--t-title); }
+    #boot progress { display: block; width: 100%; height: 8px; margin: 8px 0 4px; accent-color: var(--accent); }
+    #boot #boot-count { font-size: var(--t-label); }
+    #boot .boot-stages { list-style: none; margin: 6px 0 0; padding: 0; display: flex; gap: 10px; font-size: var(--t-label); }
+    #boot .boot-stages li[data-state="done"] { color: var(--ok); }
+    #boot .boot-stages li[data-state="current"] { color: var(--accent); }
+    #boot .boot-stages li[data-state="pending"] { color: var(--faint); }
+    #boot .boot-heroes { display: flex; gap: 4px; margin-top: 8px; min-height: 40px; }
+    #boot .boot-heroes img { width: 40px; height: 40px; object-fit: cover; border-radius: 3px; border: 1px solid var(--edge); opacity: 0.3; }
+    #boot .boot-heroes img[data-ready] { opacity: 1; }
+    #world-spin { position: fixed; z-index: 3; top: 8px; right: 8px; display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 4px; color: var(--muted); font-size: var(--t-label); pointer-events: none; }
+    #world-spin[hidden] { display: none; }
+    #world-spin i { width: 12px; height: 12px; border: 2px solid var(--edge); border-top-color: var(--accent); border-radius: 50%; animation: world-spin 0.8s linear infinite; }
+    @keyframes world-spin { to { transform: rotate(360deg); } }
+    #win { position: fixed; z-index: 3; left: 50%; top: 40%; transform: translate(-50%, -50%); padding: 16px 24px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 6px; font-size: var(--t-head); font-weight: 700; color: var(--accent); }
+  </style>
+</head>
+<body data-pkg="pkg/web.js">
+  <canvas id="view"></canvas>
+  <div id="boot" role="status" aria-live="polite">
+    <div class="boot-head"><span id="boot-title">Loading the match</span><span id="boot-elapsed">0.0 s</span></div>
+    <progress id="boot-progress" max="1"></progress>
+    <div id="boot-count">loading modules</div>
+    <ul class="boot-stages" id="boot-stages"><li>modules</li><li>game</li><li>world</li><li>lobby</li></ul>
+    <div class="boot-heroes" id="boot-heroes"></div>
+  </div>
+  <div id="world-spin" hidden><i></i><span>world</span></div>
+  <div id="ui-left">
+    <div id="status" role="status" aria-live="polite">connecting</div>
+    <div id="hud"></div>
+    <button id="centre-hero" type="button">Centre on hero</button>
+    <a href="editor.html">map editor</a>
+  </div>
+  <div id="ui-right">
+    <form id="rooms" data-ready="0" autocomplete="off">
+      <div>room <span id="room-current"></span></div>
+      <ul id="room-list"></ul>
+      <input id="room-name" maxlength="64" placeholder="room name">
+      <button id="room-join" type="submit">join</button>
+    </form>
+  </div>
+  <div id="win" role="status" aria-live="polite" hidden></div>
+  <div id="ui-bar">
+    <div id="ui-bar-left"></div>
+    <div id="ui-bar-mid"></div>
+    <div id="ui-bar-right"><canvas id="minimap" width="192" height="144"></canvas></div>
+  </div>
+  <script type="module" src="rooms.js"></script>
+  <script type="module" src="play.js"></script>
+  <script type="module">if (new URLSearchParams(location.search).has("hmr") || ["localhost", "127.0.0.1"].includes(location.hostname)) import("./hmr.js");</script>
+</body>
+</html>

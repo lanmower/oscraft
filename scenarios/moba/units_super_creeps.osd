@@ -1,0 +1,6 @@
+unit("super_creep_golem", 2000, 264, 375, filters=["ground", "armored", "army"], weapon_damage=62, weapon_range_milli=1562, weapon_period=22, sight_milli=13281, defense=9, model="neutral-granite-golem-skinned", deny_pct=0)
+unit("super_creep_fish", 5500, 264, 375, filters=["ground", "armored", "army"], weapon_damage=125, weapon_range_milli=1562, weapon_period=23, sight_milli=13281, defense=8, model="fish-green-skinned", deny_pct=0)
+unit("super_creep_hydra", 5800, 303, 375, filters=["ground", "armored", "army"], weapon_damage=118, weapon_range_milli=7812, weapon_period=24, sight_milli=13281, defense=10, model="neutral-big-thunder-lizard-skinned", deny_pct=0)
+unit_extra("super_creep_golem", reward=303, reward_min=6, reward_max=600, xp_reward=150, deny_xp_pct=0, assist_radius_milli=20703, acquire=500, damage_type="chaos", size="fort", attack_point_ms=300, backswing_ms=300)
+unit_extra("super_creep_fish", reward=554, reward_min=158, reward_max=950, xp_reward=175, deny_xp_pct=0, assist_radius_milli=20703, acquire=300, damage_type="normal", size="large", attack_point_ms=600, backswing_ms=700)
+unit_extra("super_creep_hydra", reward=656, reward_min=111, reward_max=1200, xp_reward=200, deny_xp_pct=0, assist_radius_milli=20703, acquire=500, damage_type="chaos", size="hero", attack_point_ms=700, backswing_ms=300)

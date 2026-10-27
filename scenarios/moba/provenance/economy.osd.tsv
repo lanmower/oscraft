@@ -1,0 +1,6 @@
+anchor	kind	note
+file	rationale	Economy for the moba scenario. economy(...) runs once. Saturation counts must be at least 1.
+file	rationale	resource_a is the gold of this match.
+opening_resource_a	rationale	The gold a seat opens with, so the shop is usable before the first last hit. 6.88g sets every playing seat to 4375 divided by
+opening_resource_a	provenance	the players on its side (war3map.j L3 8861-8873): 875 with five. The script also takes 1 gold a second from a seat that has
+opening_resource_a	rationale	not picked in the 75 s pick phase (PRE 30134); this pack starts after every seat has picked, so that is not applied.

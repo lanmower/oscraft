@@ -1,0 +1,7 @@
+ability	field	level	reason	evidence
+doom_bringer_devour	range	*	ini Rng is 0 (template default, no cast range stated); oscraft keeps a 300 unit touch range	GUESS
+lycan_shapeshift	duration	*	wolf form lasts Dur 1.5 + HeroDur 16.5 = 18 s (tooltip, ability.ini:20502,20504); the check compares single fields	6.88g ability.ini:20502
+nyx_assassin_impale_nyx	range	*	cast range 1000 is set by the script (BlzSetAbilityRealLevelField war3map.j:71280); ini Rng 750 is overridden	6.88g war3map.j:71280
+nyx_assassin_mana_burn_nyx	range	*	cast range 850 is set by the script (war3map.j:71282); ini Rng 600 is overridden	6.88g war3map.j:71282
+puck_illusory_orb	range	*	the orb stops at 1950 (tooltip, ability.ini:41761); ini Rng 3000 is not reachable	6.88g ability.ini:41761
+rattletrap_rocket_flare	range	*	ini Rng 99999 means the whole map; oscraft uses a map-wide 400000 milli cast range	6.88g ability.ini:46108

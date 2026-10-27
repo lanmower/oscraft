@@ -1,0 +1,44 @@
+anchor	kind	note
+file	rationale	6.88g hero abilities, batch 08. Heroes: beastmaster, faceless_void, legion_commander, phantom_assassin, sand_king, techies, visage.
+file	source	Source: g688-lni ability.ini and war3map.j (cited in output/688g-data/parity/b08.tsv). Attribute Bonus (A0NR) is skipped (attr_rules.txt).
+file	rationale	Applied: cooldown, mana, target, gates, cast range/point and the effects the engine models (rank values via ability_scaled). Helper rows *_pulse run zones.
+file	rationale	monkey_king and dawnbreaker: UNVERIFIED, no 6.88g identity row (hero-identity.tsv), nothing applied.
+file	rationale	techies and visage: abilities defined here and attached with hero_abilities (slot order = 6.88g heroAbilList without A0NR).
+file	rationale	Mechanics the effect model lacks are listed per ability in the parity file as "missing:"; no value is taken from Dota 2.
+beastmaster_call_of_the_wild	provenance	beastmaster 6.88g A0OO Call of the Wild Applied by trigger_spells_a_b.lua: a Hawk of the rank (units_688g_summons.osd) for 60 s (war3map.j:45255-45290); the boar of the other ability A2U5 is not in this ability list.
+beastmaster_wild_axes	provenance	beastmaster 6.88g A0O1 Wild Axes Applied by trigger_spells_a_b.lua: two axes fly out and back along curves 300 to either side, each unit within 150 of one is hit once for 40+30*rank physical (GUESS timing 24 ticks out and 24 back).
+beastmaster_inner_beast	provenance	beastmaster 6.88g A0BD Inner Beast
+beastmaster_primal_roar	provenance	beastmaster 6.88g A0O2 Primal Roar
+faceless_void_time_lock	unverified	dawnbreaker: UNVERIFIED (hero-identity.tsv no_6.88g_row_found), no 6.88g ability applied.
+faceless_void_time_lock	provenance	faceless_void 6.88g A081 Time Lock
+faceless_void_backtrack	provenance	faceless_void 6.88g A0CZ Backtrack
+faceless_void_time_walk	provenance	faceless_void 6.88g A0LK Time Walk
+faceless_void_chronosphere	provenance	faceless_void 6.88g A0J1 Chronosphere
+legion_commander_duel	provenance	legion_commander 6.88g A2CI Duel
+legion_commander_moment_of_courage	provenance	legion_commander 6.88g A2EY Moment of Courage
+legion_commander_press_the_attack	provenance	legion_commander 6.88g A2J2 Press The Attack
+legion_commander_overwhelming_odds	provenance	legion_commander 6.88g A2JB Overwhelming Odds
+phantom_assassin_stifling_dagger	unverified	monkey_king: UNVERIFIED (hero-identity.tsv no_6.88g_row_found), no 6.88g ability applied.
+phantom_assassin_stifling_dagger	provenance	phantom_assassin 6.88g A0YM Stifling Dagger
+phantom_assassin_phantom_strike	provenance	phantom_assassin 6.88g A0PL Phantom Strike
+phantom_assassin_blur	provenance	phantom_assassin 6.88g A03P Blur
+phantom_assassin_coup_de_grace	provenance	phantom_assassin 6.88g A03Q Coup de grace
+sand_king_epicenter	provenance	sand_king 6.88g A06R Epicenter
+sand_king_sand_storm	provenance	sand_king 6.88g A0H0 Sand Storm
+sand_king_burrowstrike	provenance	sand_king 6.88g A06O Burrowstrike
+sand_king_caustic_finale	provenance	sand_king 6.88g A0FA Caustic Finale
+techies_stasis_trap	missing	techies 6.88g A06H Stasis Trap; missing: trap ward unit otot with proximity trigger (stun 2.5/3/3.5/4s radius 450)
+techies_land_mines	missing	techies 6.88g A05J Land Mines; missing: mine ward unit (damage 150/190/225/260, radius 200)
+techies_suicide_squad_attack	missing	techies 6.88g A06B Suicide Squad, Attack! (war3map.j:56997-57019); missing: the caster dies
+techies_remote_mines	missing	techies 6.88g A0AK Remote Mines; missing: mine ward units o018 o002 o00B (damage 300/450/600 magical, detonated by trigger, 10 minute life)
+visage_grave_chill	provenance	visage 6.88g A08X Grave Chill (ability.ini:20177, war3map.j:77530 caster buff A3JN 2+level seconds)
+visage_summon_familiars	missing	visage 6.88g A1NE Summon Familiars; missing: Familiar summon units (two, 7 attack charges, stone form stun 1s)
+visage_gravekeeper_s_cloak	missing	visage 6.88g A0VX Gravekeeper's Cloak (tooltip, ability.ini:44419; layers per war3map.j:77543-77601); missing: layer loss on damage and 4s recovery, values here are full strength (4 layers)
+visage_soul_assumption	missing	visage 6.88g A1NA Soul Assumption; missing: soul charges from nearby hero damage and charge-scaled damage 20+65 per charge (max 3/4/5/6 per tooltip)
+faceless_void_time_lock	rationale	A081 stun A364 (ability.ini:109974): Dur 1.0 non-hero, HeroDur 2.0 (stun p0 1 s, p2 2 s for heroes); damage 30 + 10 x level (war3map.j UZR:92269). damage doubled in Chronosphere (tooltip ability.ini:18327; war3map.j silent): GUESS, trigger_spells_hero.lua TIME_LOCK deals the proc damage a second time to units struck inside the caster's sphere
+faceless_void_backtrack	rationale	A0CZ (war3map.j J3O:65214): a damage event on the holder is healed back with chance 5 + 5 x level percent; trigger_spells_hero.lua BACKTRACK
+faceless_void_time_walk	rationale	A0LK (war3map.j J1O:65094-65132): enemies within 325 of the path are slowed 20/30/40/50 percent for 3 s (A294-A297); trigger_spells_hero.lua TIME_WALK
+legion_commander_duel	rationale	A2CI (ability.ini:84731): forced attack 4/4.75/5.5 s, the winner gains +10/14/18 damage; trigger_spells_hero.lua DUEL
+legion_commander_moment_of_courage	rationale	A2EY (war3map.j MCR:87577): 25 percent when attacked, an instant counter attack (attack effect) with lifesteal 55/65/75/85 percent (attack p1)
+legion_commander_press_the_attack	rationale	A2J2 (ability.ini:89244): dispels debuffs and disables on the target; trigger_spells_hero.lua PRESS_THE_ATTACK
+legion_commander_overwhelming_odds	rationale	A2JB (war3map.j DWE:87894): 40 x level + (12 + 2 x level) per non-hero + (5 + 15 x level) per hero counted within 355, move speed 9 per hero + 3 per unit for 7 s; trigger_spells_hero.lua ODDS. missing: 25 percent of maximum life to summons and illusions (no max hit points read)

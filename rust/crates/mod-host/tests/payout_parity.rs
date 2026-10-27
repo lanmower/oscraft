@@ -1,0 +1,85 @@
+
+#![cfg(feature = "build")]
+
+use std::path::Path;
+
+use mod_host::{Cmd, ModHost};
+use mod_host::Death;
+
+mod common;
+
+fn image() -> Vec<u8> {
+    let scenario = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
+    mod_host::build_image(&scenario).expect("moba scenario builds an image")
+}
+
+fn show(c: &Cmd) -> String {
+    match c {
+        Cmd::AddGold { player, amount } => format!("gold player={player} amount={amount}"),
+        Cmd::AddUnitGold { unit, amount } => format!("unit_gold unit={unit} amount={amount}"),
+        _ => "other".to_owned(),
+    }
+}
+
+fn payout(victim: u32, victim_player: u8, killer: Option<u32>, killer_player: Option<u8>, bounty: i32) -> Death {
+    Death { victim, victim_player, killer, killer_player, bounty }
+}
+
+const PROBE: &str = r#"
+function on_tick(state) end
+function on_died(unit, killer, killer_player, bounty, victim_player)
+  game.cmd_add_unit_gold(unit, bounty)
+  game.cmd_add_gold(victim_player, (killer ~= nil and game.is_attributed(killer)) and 1 or 0)
+  game.cmd_add_gold(killer_player or 0, killer or -1)
+end
+"#;
+
+#[test]
+fn on_died_receives_five_arguments_with_bounty() {
+    let mut host = ModHost::new(&image()).expect("host");
+    host.sim_mut().enroll_attributed(3, 1, 0);
+    host.load_source("probe", PROBE).expect("probe loads");
+    let fed = host.feed_death(&payout(7, 2, Some(3), Some(1), 55)).expect("fed");
+    let lines: Vec<String> = fed.iter().map(show).collect();
+    println!("PARITY probe attributed-kill {lines:?}");
+    assert_eq!(lines, ["unit_gold unit=7 amount=55", "gold player=2 amount=1", "gold player=1 amount=3"]);
+    let fed = host.feed_death(&payout(7, 2, None, None, 9)).expect("fed");
+    let lines: Vec<String> = fed.iter().map(show).collect();
+    println!("PARITY probe attackerless {lines:?}");
+    assert_eq!(lines, ["unit_gold unit=7 amount=9", "gold player=2 amount=0", "gold player=0 amount=-1"]);
+}
+
+#[test]
+fn moba_match_pays_the_same_for_fixed_kills() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
+    let mods = common::pack_mods(&dir, &["kill_gold.lua".to_owned(), "effects.lua".to_owned()]);
+    let mut host = ModHost::new(&image()).expect("host");
+    let rules = std::fs::read_to_string(dir.join("attr_rules.txt")).expect("rules");
+    assert!(host.sim_mut().set_attr_rules_text(&rules), "the pack's rules file loads");
+    host.sim_mut().enroll_attributed(20, 0, 0);
+    for p in 0..4u8 {
+        host.sim_mut().set_team(p, p).expect("team");
+    }
+    host.load_mods(&mods).expect("moba_match loads");
+    let kills = [
+        ("attributed kill", payout(10, 2, Some(20), Some(0), 40)),
+        ("denied creep kill", payout(21, 1, Some(22), Some(1), 17)),
+        ("attackerless", payout(30, 2, None, None, 30)),
+        ("self kill", payout(31, 3, Some(31), Some(3), 12)),
+        ("no bounty", payout(32, 0, Some(20), Some(0), 0)),
+    ];
+    let want: [&[&str]; 5] = [
+        &["gold player=0 amount=40"],
+        &[],
+        &[],
+        &[],
+        &[],
+    ];
+    for ((name, p), want) in kills.iter().zip(want) {
+        let fed = host.feed_death(p).expect("fed");
+        let mut lines: Vec<String> = fed.iter().map(show).collect();
+        lines.retain(|l| l != "other");
+        println!("PARITY payout {name} {lines:?}");
+        assert_eq!(lines, want, "{name}");
+    }
+}

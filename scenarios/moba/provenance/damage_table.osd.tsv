@@ -1,0 +1,16 @@
+anchor	kind	note
+file	rationale	Attack type against armour type: the final damage factor of a weapon hit, after the armour curve (combat.rs scale_hit). The
+file	provenance	armour types are small, medium, large, fort, normal, hero, divine and unarmored (6.88g unit.ini defType none), in the order of
+file	rationale	misc.ini's DamageBonus lists; a unit(...) line names its weapon's attack type (damage_type) and its armour (size). Factors are
+file	rationale	Q16 (65536 = 1.0); a pair that is 1.0 has no row.
+file	provenance	Sources: 6.88g misc.ini:23-31 sets Chaos, Magic, Normal, Pierce and Siege. The hero attack row is the Warcraft III custom-game
+file	rationale	default (tools/w3x2lni/data/enUS-1.27.1/mpq/Custom_V1/Units/MiscGame.txt DamageBonusHero), which the map does not override.
+file	rationale	Not carried: DamageBonusSpells (hero 0.75, same default) is the damage of engine-run abilities, which the pack's ability
+file	provenance	damage does not route through an attack type; the script's own spell damage uses the Hero attack type (war3map.j tw 4235-4279).
+file	rationale	Normal: 1.00, 1.50, 1.25, 0.70, 1.00, 0.75, 0.05, 1.00
+pierce	rationale	Pierce: 2.00, 0.75, 0.75, 0.35, 1.00, 0.50, 0.05, 1.50
+siege	rationale	Siege: 1.00, 0.50, 1.25, 1.50, 1.00, 0.75, 0.05, 1.00
+magic	rationale	Magic: 1.25, 0.75, 2.00, 0.35, 1.00, 0.75, 0.05, 1.00
+chaos	rationale	Chaos: 1.00, 1.00, 1.00, 0.40, 1.00, 1.00, 1.00, 1.00
+hero	rationale	Hero (engine default): 1.00, 1.00, 1.00, 0.50, 1.00, 1.00, 0.05, 1.00
+spells	unverified	Spells: the damage of engine-run abilities (DamageBonusSpells, hero 0.75; the other columns are UNVERIFIED and left at 1.0).

@@ -1,8 +1,3 @@
-//! Projectiles: a projectile ability flies from its caster at its declared speed and
-//! applies its effects where it lands. Travel is the Manhattan distance over the
-//! per-tick step, rounded up, and at least one tick. A projectile whose caster has
-//! died when it lands is counted as lost and applies nothing.
-
 use crate::arrays::Sim;
 use crate::fixed;
 use crate::*;
@@ -12,7 +7,6 @@ impl Sim {
         self.m_alive.iter().position(|&a| a == 0)
     }
 
-    /// Launches a projectile. The caller has checked that a slot is free.
     pub(crate) fn launch_missile(&mut self, caster: usize, ai: usize, tx: i32, ty: i32, target: i32) -> bool {
         let Some(k) = self.free_missile() else {
             return false;
@@ -32,7 +26,6 @@ impl Sim {
         true
     }
 
-    /// Advances every projectile one tick and lands those whose travel is over.
     pub(crate) fn tick_projectiles(&mut self) {
         for k in 0..MISSILE_CAP {
             if self.m_alive[k] == 0 {

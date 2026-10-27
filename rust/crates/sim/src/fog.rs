@@ -1,30 +1,38 @@
-//! Per-player fog on a grid of VIS_SCALE-wide cells, rebuilt every VIS_PERIOD
-//! ticks, plus script reveal rectangles stamped on top of every rebuild.
-
-use crate::arrays::{cell_of, Reveal, Sim};
+use crate::arrays::{cell_of, Sim};
 use crate::fixed;
 use crate::*;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static VISION_GENERATION: AtomicU32 = AtomicU32::new(0);
+
+pub(crate) fn bump_vision_generation() {
+    VISION_GENERATION.fetch_add(1, Ordering::Relaxed);
+}
 
 impl Sim {
-    pub fn reveal_area(&mut self, p: u8, x0: i32, y0: i32, x1: i32, y1: i32, until: i32) {
-        if (p as usize) >= MAX_PLAYERS {
-            return;
+    pub fn vision_generation(&self) -> u32 {
+        VISION_GENERATION.load(Ordering::Relaxed)
+    }
+
+    fn night_sight_divisor(&self) -> i32 {
+        self.rule("night_sight_divisor").unwrap_or(1).max(1)
+    }
+
+    fn night_sight_cells(&self, i: usize) -> Option<i32> {
+        let kind = usize::try_from(self.type_of[i]).ok()?;
+        let milli = self.cat.unit_ext.get(kind)?.night_sight;
+        if milli <= 0 {
+            return None;
         }
-        let (x0, x1) = if x1 < x0 { (x1, x0) } else { (x0, x1) };
-        let (y0, y1) = if y1 < y0 { (y1, y0) } else { (y0, y1) };
-        for k in 0..REVEAL_CAP {
-            if !self.reveals[k].live {
-                self.reveals[k] = Reveal { p, x0, y0, x1, y1, until, live: true };
-                self.has_seer[p as usize] = true;
-                return;
-            }
-        }
-        self.stats.reveals_dropped += 1;
+        Some(fixed::round(fixed::from_milli(milli)).max(0))
     }
 
     pub(crate) fn refresh_vision(&mut self) {
         self.stats.vision_refreshes += 1;
+        bump_vision_generation();
         let vc = self.vcells;
+        let night = self.is_night();
+        let night_div = self.night_sight_divisor();
         for p in 0..MAX_PLAYERS {
             if self.has_seer[p] {
                 self.vis[p * vc..(p + 1) * vc].fill(0);
@@ -38,13 +46,18 @@ impl Sim {
             if p >= MAX_PLAYERS {
                 continue;
             }
-            let r = self.sight_cells[i];
+            let r = if !night {
+                self.sight_cells[i]
+            } else {
+                self.night_sight_cells(i).unwrap_or(self.sight_cells[i] / night_div)
+            };
             if r <= 0 {
                 continue;
             }
             let rc = ((r + VIS_SCALE - 1) / VIS_SCALE).max(1);
             let ccx = cell_of(self.pos_x[i]) / VIS_SCALE;
             let ccy = cell_of(self.pos_y[i]) / VIS_SCALE;
+            let unit_elev = self.grid.elevation_milli(cell_of(self.pos_x[i]), cell_of(self.pos_y[i]));
             let base = p * vc;
             for dy in -rc..=rc {
                 let y = ccy + dy;
@@ -59,51 +72,70 @@ impl Sim {
                 }
                 let row = base + (y * self.vw) as usize;
                 for x in x0..=x1 {
-                    self.vis[row + x as usize] = 1;
+                    if self.grid.elevation_milli(x * VIS_SCALE, y * VIS_SCALE) <= unit_elev {
+                        self.vis[row + x as usize] = 1;
+                    }
                 }
             }
         }
-        self.stamp_reveals();
+        self.remember_seen();
     }
 
-    fn stamp_reveals(&mut self) {
-        for k in 0..REVEAL_CAP {
-            let r = self.reveals[k];
-            if !r.live {
+    fn remember_seen(&mut self) {
+        let cap = self.cap;
+        for i in 0..self.n {
+            if self.alive[i] == 0 {
                 continue;
             }
-            if r.until != 0 && self.ticks as i32 >= r.until {
-                self.reveals[k].live = false;
-                continue;
-            }
-            let p = r.p as usize;
-            if p >= MAX_PLAYERS {
-                self.reveals[k].live = false;
-                continue;
-            }
-            let base = p * self.vcells;
-            let cx0 = clamp_cell(fixed::to_int(r.x0) / VIS_SCALE, self.vw);
-            let cx1 = clamp_cell(fixed::to_int(r.x1) / VIS_SCALE, self.vw);
-            let cy0 = clamp_cell(fixed::to_int(r.y0) / VIS_SCALE, self.vh);
-            let cy1 = clamp_cell(fixed::to_int(r.y1) / VIS_SCALE, self.vh);
-            for y in cy0..=cy1 {
-                let row = base + (y * self.vw) as usize;
-                for x in cx0..=cx1 {
-                    self.vis[row + x as usize] = 1;
+            for p in 0..MAX_PLAYERS {
+                if !self.has_seer[p] || !self.hostile(p as u8, self.player[i]) || !self.sees(p as u8, i) {
+                    continue;
                 }
+                let k = p * cap + i;
+                self.seen[k] = 1;
+                self.seen_x[k] = self.pos_x[i];
+                self.seen_y[k] = self.pos_y[i];
             }
         }
     }
 
-    /// True when the player can see unit `i`. A player always sees its own units.
+    pub fn last_seen(&self, p: u8, i: usize) -> Option<(i32, i32)> {
+        if (p as usize) >= MAX_PLAYERS || i >= self.cap {
+            return None;
+        }
+        let k = p as usize * self.cap + i;
+        (self.seen[k] != 0).then(|| (self.seen_x[k], self.seen_y[k]))
+    }
+
+    pub fn vision_plane(&self, p: u8) -> Vec<u8> {
+        if !self.fog || (p as usize) >= MAX_PLAYERS {
+            return vec![1; self.vcells];
+        }
+        let shared = self.vision[p as usize];
+        (0..self.vcells)
+            .map(|at| {
+                let on = self.vis[p as usize * self.vcells + at] != 0
+                    || (0..MAX_PLAYERS).any(|q| shared & (1 << q) != 0 && self.vis[q * self.vcells + at] != 0);
+                on as u8
+            })
+            .collect()
+    }
+
+    pub fn vision_dims(&self) -> (i32, i32, i32) {
+        (self.vw, self.vh, VIS_SCALE)
+    }
+
     pub fn visible(&self, p: u8, i: usize) -> bool {
         if i >= self.n {
             return false;
         }
-        if !self.fog || self.player[i] == p {
+        if self.player[i] == p {
             return true;
         }
-        self.sees(p, i)
+        if self.hidden_by_invisibility(p, i) {
+            return false;
+        }
+        !self.fog || self.sees(p, i)
     }
 
     fn sees(&self, p: u8, i: usize) -> bool {
@@ -115,10 +147,9 @@ impl Sim {
         if cx < 0 || cy < 0 || cx >= self.vw || cy >= self.vh {
             return false;
         }
-        self.vis[p as usize * self.vcells + (cy * self.vw + cx) as usize] != 0
+        let at = (cy * self.vw + cx) as usize;
+        let shared = self.vision[p as usize];
+        self.vis[p as usize * self.vcells + at] != 0
+            || (0..MAX_PLAYERS).any(|q| shared & (1 << q) != 0 && self.vis[q * self.vcells + at] != 0)
     }
-}
-
-fn clamp_cell(v: i32, n: i32) -> i32 {
-    v.clamp(0, n - 1)
 }

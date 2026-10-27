@@ -1,38 +1,173 @@
 name: ci
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# One run per sha, and no run cancels another, so every sha gets a verdict.
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.sha }}
-  cancel-in-progress: false
-
 jobs:
-  build:
-    name: build and spike (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+  static:
+    name: static client checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the page's module preload hints
+        run: node scripts/check-modulepreload.mjs
+      - name: Check the effect data agree (kinds, schools, renderers)
+        run: node scenarios/moba/tools/check-fx.mjs
+      - name: Check every roster hero has a 1 to 3 letter unique acronym
+        run: node scripts/check-acronyms.mjs
+      - name: debug api hooks gated on the start gate
+        run: node scripts/check-debug-gate.mjs
+      - name: Check every pack require resolves to a manifest module that exists and every pack Lua file is listed
+        run: node scenarios/moba/tools/check-modules.mjs
+      - name: Check the map's pathing is the derived 6.88g pathing, every anchor is open and each lane connects the bases
+        run: node scenarios/moba/tools/check-pathing.mjs
+      - name: Check the 6.88g shop tables map to items, shops_688g.lua is the generator output and the store reads it
+        run: node scenarios/moba/tools/check-shops-688g.mjs
+      - name: Check shops_688g.lua is the generated form of shops_688g.tsv and items_688g.tsv
+        run: node scenarios/moba/tools/gen-shops-688g.mjs --check
+      - name: Check every 6.88g ability's cooldown, mana, cast range, duration, damage per level and level gates against the committed reference
+        run: node scenarios/moba/tools/check-ability-balance.mjs
+
+  # Every player-controlled hero kind has a HERO_PRIMARY row of 1, 2 or 3 (rust/gate, the attribute-hero-primary-rows
+  # check). Runs on every push; the full gate suite stays on demand in tests.yml.
+  hero-primary:
+    name: gate - every hero kind has a HERO_PRIMARY row of 1 to 3
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: rust
+    env:
+      CARGO_INCREMENTAL: "0"
+      GATE_ONLY: attribute-hero-primary-rows
     steps:
       - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-gate
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Check every hero kind has a HERO_PRIMARY row of 1 to 3
+        run: cargo run --release -p oscraft-gate
 
-      - uses: dtolnay/rust-toolchain@stable
+  sale-gate:
+    name: gate - a sale pays half the cost with no refund window, the chargeable refund is cost times charges
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_INCREMENTAL: "0"
+      GATE_ONLY: item-sale
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (rust/rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+          shared-key: rust-gate
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Check the sale refund and the sale refusal
+        run: cargo run --release -p oscraft-gate
 
-      - name: Build workspace
-        run: cargo build --workspace
-
-      - name: Run Lua mod spike
-        run: cargo run -p oscraft-spike
+  browser-smoke:
+    name: built page smoke - lobby mounts, no console errors, hero icons load
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - id: pkg
+        uses: actions/cache@v4
+        with:
+          path: rust/crates/web/site/pkg
+          key: page-pkg-v2-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/rust-toolchain.toml', 'rust/crates/**', '.github/workflows/pages.yml') }}
+      - id: maps
+        uses: actions/cache@v4
+        with:
+          path: |
+            scenarios/moba/moba.osdt
+            scenarios/duel-routes/duel-routes.osdt
+          key: page-maps-v2-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/rust-toolchain.toml', 'rust/crates/**', 'scenarios/**') }}
+      - name: Install the pinned Rust toolchain
+        if: steps.pkg.outputs.cache-hit != 'true' || steps.maps.outputs.cache-hit != 'true'
+        working-directory: rust
+        run: |
+          rustup toolchain install
+          rustc --version
+      - uses: Swatinem/rust-cache@v2
+        if: steps.pkg.outputs.cache-hit != 'true' || steps.maps.outputs.cache-hit != 'true'
+        with:
+          workspaces: rust -> target
+          shared-key: rust-workspace
+      - uses: jetli/wasm-pack-action@v0.4.0
+        if: steps.pkg.outputs.cache-hit != 'true'
+        with:
+          version: v0.15.0
+      - name: Build the page wasm
+        if: steps.pkg.outputs.cache-hit != 'true'
+        working-directory: rust
+        env:
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: s
+          CARGO_PROFILE_RELEASE_LTO: true
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        run: wasm-pack build crates/web --target web --out-dir site/pkg
+      - name: Export the maps
+        if: steps.maps.outputs.cache-hit != 'true'
+        working-directory: rust
+        run: |
+          set -euo pipefail
+          cargo build -p mapexport
+          target/debug/mapexport ../scenarios/moba ../scenarios/moba/moba.osdt
+          target/debug/mapexport ../scenarios/duel-routes ../scenarios/duel-routes/duel-routes.osdt
+      - name: Install the pinned toktx and Pillow
+        run: |
+          set -euo pipefail
+          ktx_dir="$RUNNER_TEMP/ktx"
+          mkdir -p "$ktx_dir"
+          curl -fsSL -o "$ktx_dir/ktx.tar.bz2" https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.tar.bz2
+          echo "c6b08c817f8c8dd299deccae4f2fbb8d55e9acd2  $ktx_dir/ktx.tar.bz2" | sha1sum -c -
+          tar -xjf "$ktx_dir/ktx.tar.bz2" -C "$ktx_dir"
+          echo "$ktx_dir/KTX-Software-4.4.2-Linux-x86_64/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/atlas-python"
+          "$RUNNER_TEMP/atlas-python/bin/pip" install --quiet pillow==13.0.0
+          echo "PYTHON=$RUNNER_TEMP/atlas-python/bin/python" >> "$GITHUB_ENV"
+      - name: Lay out the site
+        run: bash scripts/layout-site.sh _site "$GITHUB_REF_NAME" "$GITHUB_RUN_ID"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: playwright
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            scripts/perf/node_modules
+          key: playwright-v1-${{ runner.os }}-1.47.2
+      - name: Install the pinned Playwright and Chromium
+        if: steps.playwright.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          npm install --prefix scripts/perf --no-save playwright@1.47.2
+          npx --yes playwright@1.47.2 install --with-deps chromium
+      - name: Smoke the built page
+        run: node scripts/perf/page-smoke.mjs _site

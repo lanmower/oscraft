@@ -1,0 +1,2 @@
+anchor	kind	note
+file	rationale	One row per initial 6.88g tree: {cx, cy, w, h, prop} = the grid cell rectangle its footprint blocks and the map prop id that draws it (-1: none).

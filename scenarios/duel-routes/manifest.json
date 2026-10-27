@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "name": "duel-routes",
+  "version": "1.0.0",
+  "map": "map.osd",
+  "data": [
+    "0_names.osd", "abilities.osd", "behaviours.osd", "economy.osd", "map.osd", "tuning.osd", "units.osd", "units_extra.osd"
+  ],
+  "image": "duel-routes.osdt",
+  "mods": ["clock.lua", "harvest.lua", "economy_start.lua", "production.lua", "transport.lua", "unit_rules.lua"],
+  "rules": "attr_rules.txt",
+  "tables": [],
+  "fixtures": [],
+  "ui": "ui.json",
+  "effects": "ui.json",
+  "assets": {
+    "root": "assets",
+    "textures": {
+      "ground": "textures/ground.jpg",
+      "lane": "textures/lane.jpg",
+      "cliff": "textures/cliff.jpg",
+      "water": "textures/water.jpg",
+      "grass": "textures/grass.jpg",
+      "grassDisp": "textures/grass_disp.jpg",
+      "dirt": "textures/grass_b_256.jpg",
+      "dirtDisp": "textures/grass_b_256_disp.jpg",
+      "laneEarth": "textures/lane_earth_256.jpg",
+      "laneDisp": "textures/lane_disp.jpg",
+      "rock": "textures/rock024_color.jpg",
+      "rockDisp": "textures/rock024_disp.jpg"
+    },
+    "catalogue": "assets.json",
+    "props": "props.json",
+    "propSizes": "prop_sizes.json"
+  }
+}

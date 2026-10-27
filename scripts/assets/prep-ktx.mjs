@@ -1,0 +1,258 @@
+#!/usr/bin/env node
+
+import { readFile, writeFile, readdir, mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { tmpdir, cpus } from 'node:os';
+import { join, extname, basename, dirname, resolve } from 'node:path';
+import { promisify } from 'node:util';
+import { NodeIO } from '@gltf-transform/core';
+import { EXTMeshoptCompression, KHRTextureBasisu, KHRTextureTransform, KHRMeshQuantization, KHRMaterialsUnlit } from '@gltf-transform/extensions';
+import { MeshoptEncoder, MeshoptDecoder } from 'meshoptimizer';
+
+const run = promisify(execFile);
+const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg']);
+const HEIGHT_MAP_NAME = /_(disp|displacement|height)$/i;
+const DATA_MAP_NAME = /_(normal|normals|rough|metal|occlusion|ao)$/i;
+const LINEAR_SLOTS = ['normalTexture', 'occlusionTexture', 'metallicRoughnessTexture'];
+const ETC1S_QLEVEL = 192;
+const ETC1S_CLEVEL = 2;
+const UASTC_LEVEL = 2;
+const ZCMP_LEVEL = 18;
+
+function parseArgs(argv) {
+  const positional = [];
+  const flags = {};
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i].startsWith('--')) flags[argv[i].slice(2)] = argv[++i];
+    else positional.push(argv[i]);
+  }
+  return { positional, flags };
+}
+
+async function encodeKtx2(toktx, inputPath, outputPath, { linear, uastc }) {
+  const args = ['--t2', '--genmipmap', '--assign_oetf', linear ? 'linear' : 'srgb'];
+  if (uastc) args.push('--encode', 'uastc', '--uastc', String(UASTC_LEVEL), '--zcmp', String(ZCMP_LEVEL));
+  else args.push('--encode', 'etc1s', '--qlevel', String(ETC1S_QLEVEL), '--clevel', String(ETC1S_CLEVEL));
+  await run(toktx, [...args, outputPath, inputPath], { maxBuffer: 1 << 26 });
+  return readFile(outputPath);
+}
+
+async function encodeImage(toktx, workDir, bytes, mime, settings) {
+  const unique = randomUUID();
+  const input = join(workDir, `${unique}${mime === 'image/png' ? '.png' : '.jpg'}`);
+  await writeFile(input, bytes);
+  const out = await encodeKtx2(toktx, input, join(workDir, `${unique}.ktx2`), settings);
+  return { bytes: out };
+}
+
+function linearTextureSet(doc) {
+  const linear = new Set();
+  for (const material of doc.getRoot().listMaterials()) {
+    for (const slot of LINEAR_SLOTS) {
+      const texture = material[`get${slot[0].toUpperCase()}${slot.slice(1)}`]();
+      if (texture) linear.add(texture);
+    }
+  }
+  return linear;
+}
+
+function geometryView(doc) {
+  const root = doc.getRoot();
+  const primitives = root.listMeshes().flatMap((mesh) => mesh.listPrimitives());
+  const triangles = [];
+  const bounds = [];
+  const indexCounts = [];
+  for (const prim of primitives) {
+    const position = prim.getAttribute('POSITION');
+    const uv = prim.getAttribute('TEXCOORD_0');
+    const indices = prim.getIndices();
+    if (indices) indexCounts.push(indices.getCount());
+    if (!position || (prim.getMode() !== 4)) continue;
+    const pos = position.getArray();
+    const extent = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+    const tex = uv?.getArray();
+    const corner = (i) => `${pos[3 * i]},${pos[3 * i + 1]},${pos[3 * i + 2]}|${tex ? `${tex[2 * i]},${tex[2 * i + 1]}` : ''}`;
+    const count = indices ? indices.getCount() : position.getCount();
+    const at = (k) => (indices ? indices.getScalar(k) : k);
+    const reach = (i) => { for (let c = 0; c < 3; c++) { extent.min[c] = Math.min(extent.min[c], pos[3 * i + c]); extent.max[c] = Math.max(extent.max[c], pos[3 * i + c]); } };
+    for (let t = 0; t + 2 < count; t += 3) {
+      reach(at(t)); reach(at(t + 1)); reach(at(t + 2));
+      triangles.push([corner(at(t)), corner(at(t + 1)), corner(at(t + 2))].sort().join('#'));
+    }
+    bounds.push(JSON.stringify(extent));
+  }
+  return {
+    meshes: root.listMeshes().length,
+    primitives: primitives.length,
+    textures: root.listTextures().length,
+    triangles: triangles.sort(),
+    bounds: bounds.sort(),
+    indexCounts: indexCounts.sort((a, b) => a - b),
+    vertexCounts: primitives.map((prim) => prim.getAttribute('POSITION')?.getCount() ?? 0).sort((a, b) => a - b),
+  };
+}
+
+function compareViews(before, after) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const checks = {
+    meshesMatch: before.meshes === after.meshes && before.primitives === after.primitives,
+    indexCountsMatch: same(before.indexCounts, after.indexCounts),
+    trianglesMatch: same(before.triangles, after.triangles),
+    boundsMatch: same(before.bounds, after.bounds),
+    texturesMatch: before.textures === after.textures,
+  };
+  checks.pass = Object.values(checks).every(Boolean);
+  return checks;
+}
+
+async function prepGlb(io, toktx, workDir, inputPath, outDir, name) {
+  const doc = await io.read(inputPath);
+  const before = geometryView(doc);
+  const linear = linearTextureSet(doc);
+  const images = [];
+  const encodedByKey = new Map();
+  const externalWritten = new Map();
+  const externalUris = new Map();
+  for (const texture of doc.getRoot().listTextures()) {
+    const mime = texture.getMimeType();
+    if (mime === 'image/ktx2') continue;
+    const source = Buffer.from(texture.getImage());
+    const isLinear = linear.has(texture);
+    const key = createHash('sha1').update(source).update(isLinear ? 'L' : 'S').digest('hex');
+    if (!encodedByKey.has(key)) encodedByKey.set(key, encodeImage(toktx, workDir, source, mime, { linear: isLinear, uastc: isLinear }));
+    const encoded = await encodedByKey.get(key);
+    const uri = texture.getURI();
+    if (uri) {
+      const ktxUri = join(dirname(uri), basename(uri, extname(uri)) + '.ktx2').split('\\').join('/');
+      if (externalWritten.has(ktxUri) && externalWritten.get(ktxUri) !== key) throw new Error(`${name}: ${ktxUri} collides with another texture`);
+      if (!externalWritten.has(ktxUri)) {
+        await mkdir(dirname(join(outDir, ktxUri)), { recursive: true });
+        await writeFile(join(outDir, ktxUri), encoded.bytes);
+        externalWritten.set(ktxUri, key);
+      }
+      texture.setImage(null).setMimeType('image/ktx2');
+      externalUris.set(images.length, ktxUri);
+    } else {
+      texture.setImage(encoded.bytes).setMimeType('image/ktx2');
+    }
+    images.push({ name: texture.getName(), uri: uri ?? null, mime, inBytes: source.byteLength, outBytes: encoded.bytes.byteLength });
+  }
+  if (images.length) doc.createExtension(KHRTextureBasisu).setRequired(true);
+  for (const prim of doc.getRoot().listMeshes().flatMap((mesh) => mesh.listPrimitives())) {
+    const indices = prim.getIndices();
+    if (indices && indices.getComponentType() === 5121) indices.setArray(Uint16Array.from(indices.getArray()));
+  }
+  doc.createExtension(EXTMeshoptCompression).setRequired(true).setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE, level: 'medium' });
+  const glb = withImageUris(Buffer.from(await io.writeBinary(doc)), externalUris);
+  await writeFile(join(outDir, name), glb);
+  const reread = await io.read(join(outDir, name));
+  const checks = compareViews(before, geometryView(reread));
+  return { file: name, inBytes: (await stat(inputPath)).size, outBytes: glb.byteLength, meshes: before.meshes, primitives: before.primitives, images, checks };
+}
+
+function withImageUris(glb, uris) {
+  if (uris.size === 0) return glb;
+  const jsonLength = glb.readUInt32LE(12);
+  const json = JSON.parse(glb.subarray(20, 20 + jsonLength).toString('utf8'));
+  for (const [index, uri] of uris) json.images[index].uri = uri;
+  const jsonBytes = Buffer.from(JSON.stringify(json), 'utf8');
+  const padded = Buffer.concat([jsonBytes, Buffer.alloc((4 - (jsonBytes.length % 4)) % 4, 0x20)]);
+  const rest = glb.subarray(20 + jsonLength);
+  const header = Buffer.alloc(20);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(20 + padded.length + rest.length, 8);
+  header.writeUInt32LE(padded.length, 12);
+  header.writeUInt32LE(0x4e4f534a, 16);
+  return Buffer.concat([header, padded, rest]);
+}
+
+async function pool(items, limit, fn) {
+  const results = [];
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await fn(items[index]);
+    }
+  }));
+  return results;
+}
+
+async function prepDir(inDir, outDir, toktx, jobs) {
+  await mkdir(outDir, { recursive: true });
+  const workDir = await mkdtemp(join(tmpdir(), 'prep-ktx-'));
+  const io = new NodeIO()
+    .registerExtensions([EXTMeshoptCompression, KHRTextureBasisu, KHRTextureTransform, KHRMeshQuantization, KHRMaterialsUnlit])
+    .registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
+  await Promise.all([MeshoptEncoder.ready, MeshoptDecoder.ready]);
+  const names = (await readdir(inDir)).filter((name) => extname(name).toLowerCase() === '.glb' || IMAGE_EXT.has(extname(name).toLowerCase())).sort();
+  const entries = await pool(names, jobs, async (name) => {
+    const ext = extname(name).toLowerCase();
+    if (ext === '.glb') return prepGlb(io, toktx, workDir, join(inDir, name), outDir, name);
+    const bytes = await readFile(join(inDir, name));
+    const stem = basename(name, ext);
+    const linear = HEIGHT_MAP_NAME.test(stem) || DATA_MAP_NAME.test(stem);
+    const encoded = await encodeImage(toktx, workDir, bytes, ext === '.png' ? 'image/png' : 'image/jpeg', { linear, uastc: DATA_MAP_NAME.test(stem) });
+    const outName = stem + '.ktx2';
+    if (encoded.bytes.byteLength >= bytes.byteLength) return { file: name, kept: true, inBytes: bytes.byteLength, outBytes: bytes.byteLength, note: 'KTX2 not smaller than source; source kept', checks: { pass: true } };
+    await writeFile(join(outDir, outName), encoded.bytes);
+    return { file: outName, inBytes: bytes.byteLength, outBytes: encoded.bytes.byteLength, checks: { pass: true } };
+  });
+  await rm(workDir, { recursive: true, force: true });
+  const manifest = {
+    toktx,
+    etc1s: { qlevel: ETC1S_QLEVEL, clevel: ETC1S_CLEVEL, mipmaps: true, colour: 'srgb' },
+    uastc: { level: UASTC_LEVEL, zcmp: ZCMP_LEVEL, mipmaps: true, used_for: 'normal, occlusion, metallicRoughness (linear)' },
+    entries,
+  };
+  await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  const failed = entries.filter((entry) => entry.checks && entry.checks.pass === false);
+  console.log(`prep: ${entries.length} files, ${failed.length} failed checks, manifest ${resolve(outDir, 'manifest.json')}`);
+  if (failed.length) process.exitCode = 1;
+}
+
+async function inventory(dir, out) {
+  const names = (await readdir(dir)).filter((name) => extname(name).toLowerCase() === '.glb').sort();
+  const entries = [];
+  for (const name of names) {
+    const buffer = await readFile(join(dir, name));
+    const json = JSON.parse(buffer.subarray(20, 20 + buffer.readUInt32LE(12)).toString('utf8'));
+    const views = json.bufferViews ?? [];
+    const images = (json.images ?? []).map((image) => ({
+      mime: image.mimeType ?? (image.uri ? 'external' : 'unknown'),
+      uri: image.uri ?? null,
+      bytes: image.bufferView !== undefined ? views[image.bufferView].byteLength : 0,
+    }));
+    const primitives = (json.meshes ?? []).reduce((n, mesh) => n + mesh.primitives.length, 0);
+    entries.push({ file: name, bytes: buffer.byteLength, meshes: json.meshes?.length ?? 0, primitives, images, extensionsUsed: json.extensionsUsed ?? [] });
+  }
+  await writeFile(out, JSON.stringify({ dir, count: entries.length, totalBytes: entries.reduce((n, entry) => n + entry.bytes, 0), entries }, null, 2) + '\n');
+  console.log(`inventory: ${entries.length} GLBs written to ${out}`);
+}
+
+async function syncManifest(manifestPath, root) {
+  const raw = await readFile(manifestPath, 'utf8');
+  const indent = raw.match(/^ +(?=")/m)?.[0].length ?? 2;
+  const manifest = JSON.parse(raw);
+  for (const item of manifest.items) item.bytes = (await stat(join(root, item.path))).size;
+  manifest.count = manifest.items.length;
+  manifest.total_bytes = manifest.items.reduce((n, item) => n + item.bytes, 0);
+  await writeFile(manifestPath, JSON.stringify(manifest, null, indent) + '\n');
+  console.log(`sync: ${manifest.count} items, total_bytes ${manifest.total_bytes}`);
+  const ktx2 = [...new Set(manifest.items.map((item) => item.path).filter((p) => typeof p === 'string' && p.endsWith('.ktx2')))].sort();
+  const ktx2Path = join(dirname(manifestPath), 'ktx2.json');
+  await writeFile(ktx2Path, JSON.stringify(ktx2, null, indent) + '\n');
+  console.log(`sync: ${ktx2.length} ktx2 paths written to ${ktx2Path}`);
+}
+
+const { positional, flags } = parseArgs(process.argv.slice(2));
+const [command, ...rest] = positional;
+if (command === 'sync') await syncManifest(rest[0], flags.root ?? process.cwd());
+else if (command === 'inventory') await inventory(rest[0], rest[1]);
+else if (command === 'prep') await prepDir(rest[0], rest[1], flags.toktx ?? (process.platform === 'win32' ? 'toktx.exe' : 'toktx'), Number(flags.jobs ?? cpus().length));
+else {
+  console.error('usage: prep-ktx.mjs inventory <dir> <out.json> | prep <inDir> <outDir> [--toktx <path>] [--jobs <n>] | sync <assets.json> [--root <dir>]');
+  process.exitCode = 2;
+}

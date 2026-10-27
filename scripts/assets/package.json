@@ -1,0 +1,13 @@
+{
+  "name": "oscraft-asset-prep",
+  "private": true,
+  "type": "module",
+  "description": "Offline GLB/texture prep for scripts/assets/prep-ktx.mjs. Run npm ci here once; nothing is fetched at run time.",
+  "dependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "meshoptimizer": "0.22.0",
+    "sharp": "^0.35.5"
+  }
+}

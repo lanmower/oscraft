@@ -1,0 +1,3 @@
+anchor	kind	note
+file	rationale	One row per camp: id = the script's camp id (the key of its last-option memory uJ), size, check = the rect {x1, y1, x2, y2} that must hold no unit for a spawn
+file	rationale	(KKE 26817-26821), centre = the spawn rect centre {x, y}, options = the unit kinds each option creates (KBE 26738-26805). Milli coordinates.

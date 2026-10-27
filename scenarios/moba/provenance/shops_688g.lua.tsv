@@ -1,0 +1,2 @@
+anchor	kind	note
+file	rationale	One entry per shop prop: x and y in milli, tag the depot tag bit it stocks under (items.osd item_tags order), items the oscraft item ids it sells.

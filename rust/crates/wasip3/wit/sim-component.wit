@@ -1,0 +1,26 @@
+package oscraft:wasip3@0.1.0;
+
+/// The deterministic sim as a WASIp3 component. One instance holds one sim, run by a mod host.
+/// The sim is synchronous, so no export is async; the guest reaches the sim through stdin and stdout.
+world sim-component {
+    export load: func(image: list<u8>, max-units: u32) -> result<_, string>;
+    export mod-load: func(name: string, src: string) -> result<_, string>;
+    export mod-version: func() -> u64;
+    export tick: func();
+    export ticks: func() -> u32;
+    export unit-count: func() -> u32;
+    export alive-count: func() -> u32;
+    export state-hash: func() -> u64;
+    export unit-position: func(unit: u32) -> tuple<s32, s32>;
+    export unit-player: func(unit: u32) -> u8;
+    export unit-kind: func(unit: u32) -> s32;
+    export unit-hp: func(unit: u32) -> s32;
+    export order: func(unit: u32, x: s32, y: s32);
+    export order-all: func(player: u8, x: s32, y: s32);
+    export fire-trigger: func(unit: u32, name: string) -> bool;
+    export catalog-unit-name: func(kind: u32) -> option<string>;
+    export mod-source: func(name: string, hex-src: string) -> result<_, string>;
+    export mod-kill: func(kind: string) -> result<u32, string>;
+    export mod-step: func(count: u32) -> tuple<u64, u64>;
+    export mod-state: func() -> string;
+}

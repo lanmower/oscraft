@@ -1,0 +1,2 @@
+anchor	kind	note
+file	unverified	Kind -> degrees per second (6.88g turnRate * 57.2958 / 0.03; UNVERIFIED: the radians-per-0.03-s convention is not in the script data).

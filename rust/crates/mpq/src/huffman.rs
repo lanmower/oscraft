@@ -1,8 +1,3 @@
-//! Storm's adaptive Huffman (sector mask 0x01). The stream carries no tree: a
-//! data-type byte selects a weight table, and every decoded symbol rebalances
-//! the tree (FGK-style). The rebalancing must match exactly or decoding
-//! desynchronises from the second symbol on.
-
 use crate::huffman_tables::HUFFMAN_WEIGHTS;
 use crate::{Error, Result};
 
@@ -70,7 +65,6 @@ impl Tree {
         self.nd_mut(i).prev = -1;
     }
 
-    /// Splices `i2` immediately after `i1` in the weight-sorted ring.
     fn link_two_items(&mut self, i1: i32, i2: i32) {
         let after = self.nd(i1).next;
         self.nd_mut(i2).next = after;
@@ -261,7 +255,6 @@ impl Tree {
     }
 }
 
-/// LSB-first bit reader.
 struct Bits<'a> {
     data: &'a [u8],
     pos: usize,

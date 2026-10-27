@@ -1,0 +1,69 @@
+anchor	kind	note
+file	rationale	6.88g hero abilities, batch 06 of 12. Heroes: bane, dark_seer, enchantress, kunkka, meepo, oracle, spirit_breaker, venomancer (ringmaster skipped).
+file	rationale	Applied (content-688g-ability-effect-mapping, lane b06): target, cooldown and mana per rank, cast range, cast point, gates, channel, passive/proc flags and every
+file	rationale	effect the engine can carry, from ability.ini, war3map.j and 6.88g tooltips; kunkka and meepo are attached with hero_abilities, the others by their unit() lines.
+file	rationale	A "# missing:" line names what the effect model cannot express; an "UNVERIFIED" tag marks a value 6.88g does not state.
+file	rationale	Field-level facts: hy3d output/688g-data/parity/b06.tsv. Ultimate gates are 6, 11 and 16 (6.88g reqLevel 6, levelSkip 5).
+file	rationale	ringmaster: hero-identity.tsv row UNVERIFIED, no ability applied.
+bane_fiend_s_grip	provenance	bane 6.88g A02Q Fiend's Grip Applied by trigger_spells_a_b.lua: 5 percent of the target max mana moves to the caster each second. Applied by trigger_spells_a_b.lua: the target is revealed (status 15) for the 5 s of the grip. Applied by trigger_spells_a_b.lua: with the scepter the grip deals 55/60/55 more a second.
+bane_fiend_s_grip	missing	missing: the scepter sleep of attackers
+bane_brain_sap	provenance	bane 6.88g A0GK Brain Sap
+bane_brain_sap	provenance	ability.ini:29353; damage and self heal 20+70*lvl pure, war3map.j:61283-61285.
+bane_enfeeble	provenance	bane 6.88g A2OI Enfeeble
+bane_enfeeble	provenance	ability.ini:94116; flat damage reduction A2OD/A2OE/A2OC/A2OB, 20 s, war3map.j:61586 DXO.
+bane_nightmare	provenance	bane 6.88g A04Y Nightmare Applied by trigger_spells_a_b.lua: sleep (stun) 4/5/6/7 s with 20 pure a second, wakes on damage (hits by its caster ignored, GUESS) and gives the attacker the same sleep (war3map.j:61290-61336).
+dark_seer_wall_of_replica	provenance	dark_seer 6.88g A0QK Wall of Replica Applied by trigger_spells_c_d.lua: a 1000 long line across the caster facing for 45 s; each enemy hero within 17 of it is hit once for 150 magical and an image fights for the caster (60/75/90 percent dealt, 300 taken, 30 s life is GUESS).
+dark_seer_surge	provenance	dark_seer 6.88g A0R7 Surge Applied by trigger_spells_c_d.lua: a +1000 percent speed stat the speed cap clamps for 3/4.5/6/7.5 s (war3map.j:64323).
+dark_seer_ion_shell	provenance	dark_seer 6.88g A0QG Ion Shell Applied by trigger_spells_c_d.lua: 25 s, 15/25/35/45 magical every 8 ticks within 275 of the target (war3map.j:64164-64197).
+dark_seer_vacuum	provenance	dark_seer 6.88g A0QE Vacuum
+dark_seer_vacuum	unverified	Pull toward the centre over 8 ticks (war3map.j:64229-64237, 20 steps of 0.025 s; 6.88g overshoots the centre by a third, the engine stops at it). Radius war3map.j:64281 (150+100*lvl+25) over ini Area. UNVERIFIED: damage 40/80/120/160 from tooltip only (ability.ini:39413).
+enchantress_enchant	provenance	enchantress 6.88g A0DX Enchant
+enchantress_enchant	missing	missing: convert creep for 80 s (war3map.j:48730, tooltip ability.ini:26997). ability.ini:26997 slow 5.5 s.
+enchantress_nature_s_attendants	provenance	enchantress 6.88g A01B Nature's Attendants
+enchantress_nature_s_attendants	missing	missing: 2+2*lvl wisps each healing one random ally within 300 for 10 hp per second (war3map.j:48619-48600). ability.ini:9606.
+enchantress_untouchable	provenance	enchantress 6.88g A0DW Untouchable
+enchantress_untouchable	missing	missing: attacker target for proc_attacked; effect is -40/-70/-100/-130% attack speed for 4 s on the attacker (war3map.j:48562, ability.ini:119732).
+enchantress_impetus	provenance	enchantress 6.88g A0DY Impetus
+enchantress_impetus	missing	missing: damage = (0.1+0.05*lvl) x min(distance, 2500) (war3map.j:48645-48647). ability.ini:27100. Ult gates gates 6/11/16.
+kunkka_torrent	provenance	kunkka 6.88g A136 Torrent
+kunkka_torrent	missing	missing: 1.5 s airborne launch, slow starts on landing. Delay war3map.j:43753 (1.6 s), radius war3map.j:43711 (250) over ini Area 225, damage 30+30*lvl at once war3map.j:43680 plus 3+3*lvl every 0.15 s for 1.5 s war3map.j:43634 (total 120/180/240/300). ability.ini:50454.
+kunkka_torrent_pulse	provenance	kunkka_torrent_pulse: helper of kunkka_torrent (the eruption)
+kunkka_tidebringer	provenance	kunkka 6.88g A13T Tidebringer
+kunkka_tidebringer	missing	missing: 100% cleave in radius 500/500/500/600 for the single strike (A146 A145 A11S A144 ability.ini:50994,50971,49137,50948). Interval 16-3*lvl s war3map.j:43899 is the skill cooldown; +20/35/50/65 damage ability.ini:49099. ability.ini:50733.
+kunkka_x_marks_the_spot	provenance	kunkka 6.88g Z009 X Marks The Spot (cast ability A11N via spellbook A34T, war3map.j:102162)
+kunkka_x_marks_the_spot	missing	missing: mark the target's position, return it to the mark after 4 s (8 s for an ally) war3map.j:44040-44042. A11N cooldown 28/22/16/10 and range 350/550/750/1000 (ability.ini:49016,49055) differ from the tooltip (26/20/14/8, 400/600/800/1000); ini used.
+kunkka_ghost_ship	provenance	kunkka 6.88g A11K Ghost Ship
+kunkka_ghost_ship	missing	missing: ship crash 3 s after the cast at caster + 1000 along the cast direction (war3map.j:44457-44460,44350), 400/500/600 magical (300+100*lvl war3map.j:44184) and 1.4 s stun in radius 450 (war3map.j:44352), allies within 425 along the path get the rum buff (war3map.j:44338-44339). ability.ini:48869. Ult gates gates 6/11/16.
+oracle_false_promise	provenance	oracle 6.88g A2TF False Promise
+oracle_false_promise	missing	missing: delaying damage and healing for 6/7/8 s with doubled delayed healing, removal of negative statuses (war3map.j:89649-89669). ability.ini:96810. Ult gates gates 6/11/16.
+oracle_fortune_s_end	provenance	oracle 6.88g A2QT Fortune's End
+oracle_fortune_s_end	missing	missing: channel up to 2.5 s with early release, purge lasting the channelled time (war3map.j:89338-89345). Radius 325 war3map.j:89347 over tooltip 300, damage 60+30*lvl war3map.j:89358. ability.ini:95391.
+oracle_fate_s_edict	provenance	oracle 6.88g A2T5 Fate's Edict
+oracle_fate_s_edict	provenance	6.88g Edict: disarm (A3IU/A3JT) and 100% magic resist (A2T4 DataE=0, ability.ini:96574) for 2+lvl s, war3map.j:89484-89487. ability.ini:96582.
+oracle_purifying_flames	provenance	oracle 6.88g A2SG Purifying Flames
+oracle_purifying_flames	provenance	ability.ini:96200; damage 90*lvl war3map.j:89541; regen 11*lvl per second for 9 s war3map.j:89528,89515 (hundredths per timed_stat health_regen).
+spirit_breaker_charge_of_darkness	unverified	ringmaster: skipped, hero-identity.tsv row UNVERIFIED (no_6.88g_row_found, no pick-table unit); no 6.88g ability applied.
+spirit_breaker_charge_of_darkness	provenance	spirit_breaker 6.88g A1P8 Charge of Darkness
+spirit_breaker_charge_of_darkness	missing	missing: charge through all units at 600/650/700/750 speed (550+50*lvl, war3map.j:75662), bash on contact, 1.2/1.6/2.0/2.4 s immobile on arrival. Cooldown 12 s from the tooltip only (ability.ini has no Cool). ability.ini:67421.
+spirit_breaker_nether_strike	provenance	spirit_breaker 6.88g A0G4 Nether Strike
+spirit_breaker_nether_strike	missing	missing: move next to the target (war3map.j:75773), the Greater Bash hit (war3map.j:75777-75779), scepter variant. Damage 50+100*lvl war3map.j:75781. ability.ini:28981. Ult gates gates 6/11/16.
+spirit_breaker_greater_bash	provenance	spirit_breaker 6.88g A0G5 Greater Bash
+spirit_breaker_greater_bash	missing	missing: knockback 1/1.2/1.4/1.6 s, magical damage of 22/28/34/40% of movement speed (16+6*lvl %, war3map.j:75420; tooltip says 30% at rank 3), self speed buff for 3 s (war3map.j:75402,75421). Chance 17 war3map.j:75434. ability.ini:29064.
+spirit_breaker_empowering_haste	provenance	spirit_breaker 6.88g A0ES Empowering Haste
+spirit_breaker_empowering_haste	missing	missing: movement speed aura 6/10/14/18% (no radius in 6.88g data) and the 6 s +50% bonus followed by 6 s of -50% (war3map.j:75326-75327, tooltip ability.ini:27770). ability.ini:27770.
+venomancer_venomous_gale	provenance	venomancer 6.88g A173 Venomous Gale
+venomancer_venomous_gale	unverified	missing: slow of the poisoned (A17N Shadow Strike slow, UNVERIFIED: no value in ability.ini:52820), gale length 840 (war3map.j:77069,77085) against cast range 800. Initial 25*lvl war3map.j:77029, dot 10+25*(lvl-1) every 3 s x5 war3map.j:77034,77010,77014. ability.ini:52327.
+venomancer_poison_sting	provenance	venomancer 6.88g A0MY Poison Sting
+venomancer_poison_sting	missing	missing: wards share the sting (war3map.j:77233). ability.ini:35718; 6*lvl per second war3map.j:77319, duration ability.ini:35738, slow ability.ini:35734.
+venomancer_plague_ward	provenance	venomancer 6.88g A0MS Plague Ward
+venomancer_plague_ward	missing	missing: ward units o00T o00U o00V o00W (75/200/325/450 hp, damage 11/21/32/42 per tooltip), 40 s life, half the Poison Sting dps (ability.ini:35454, tooltip :35419) are units outside this file. ability.ini:35419.
+venomancer_poison_nova	provenance	venomancer 6.88g A013 Poison Nova
+venomancer_poison_nova	provenance	ring grows 25 per 0.05 s from 255 for 23 steps (war3map.j:77153,77146): radius 830 applied at once. 5+25*lvl dot over 16 s war3map.j:77189,77159. ability.ini:9387. Ult gates gates 6/11/16.
+meepo_poof	provenance	meepo 6.88g A0N8 Poof
+meepo_poof	missing	missing: teleport to the nearest Geomancer (target unit or the clone nearest the target point), 60+20*lvl magical in radius 400 at departure and arrival (war3map.j:67550-67590, ability.ini:35897). Tooltip radius 375 differs from war3map.j:67585 (400).
+meepo_earthbind	provenance	meepo 6.88g A0NB Earthbind
+meepo_earthbind	provenance	ability.ini:36074; net travels 30 per 0.035 s (war3map.j:67638,67669), radius 245 war3map.j:67616 over ini Area 220, root 2.2 s ability.ini:36175 (A0NC) over tooltip 2 s.
+meepo_geostrike	provenance	meepo 6.88g A0N7 Geostrike
+meepo_geostrike	missing	missing: damage and slow stacking per Geomancer. ability.ini:35830; 8*lvl magical per second war3map.j:67901, slow ability.ini:35846, duration ability.ini:35850.
+meepo_divided_we_stand	provenance	meepo 6.88g A0MW Divided We Stand
+meepo_divided_we_stand	missing	missing: the Geomancer clone units (spawn, shared experience, shared death), scepter extra clone. Gates reqLevel 3 levelSkip 7 ability.ini:35627.

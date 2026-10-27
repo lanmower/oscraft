@@ -1,0 +1,2 @@
+behaviour("guard_patrol", trigger="idle", action="use_ability", param=0, ability="pulse_shot")
+behaviour("recast_mend", trigger="ability_ready", action="use_ability", ability="mend_field")

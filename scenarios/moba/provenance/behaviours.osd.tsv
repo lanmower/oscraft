@@ -1,0 +1,7 @@
+anchor	kind	note
+file	rationale	Behaviour definitions for the moba scenario. behaviour(name, trigger, action, param=, ability=)
+file	rationale	answer_attack and idle_attack were attack_nearest records; that action is gone. Their Lua equivalent is
+file	rationale	scenarios/moba/targeting.lua: on_attacked strikes the nearest enemy in reach when a unit is hit; on_behaviour
+file	rationale	(fired_action) handles use_ability only, so no idle strike is wired yet.
+file	rationale	The win condition is not a behaviour: scenarios/moba/win.lua (on_check_win) declares the side that outlives the buildings.
+file	rationale	Passives: each stat ability is cast once when its hero spawns (its cooldown keeps it from being recast).

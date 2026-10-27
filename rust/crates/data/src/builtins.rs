@@ -1,21 +1,50 @@
-//! Starlark builtins: `effect`, `ability`, `unit`, `behaviour`, `grid`, `paint`.
-//! Each one validates its enum-like arguments at call time so errors carry the
-//! Starlark source location.
-
 use anyhow::{anyhow, bail, Result};
+use starlark::docs::{DocItem, DocMember, DocParams};
 use starlark::environment::{Globals, GlobalsBuilder};
 use starlark::eval::Evaluator;
 use starlark::starlark_module;
-use starlark::values::{list::UnpackList, none::NoneType};
+use starlark::values::{dict::UnpackDictEntries, list::UnpackList, none::NoneType};
 
 use crate::format::{
-    index_of, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, DAMAGE_RESPONSES, EFFECT_KINDS, FILTERS, MAX_GRID_CELLS,
-    RESOURCE_KINDS, TARGETS, TRIGGERS, WALK_FLAGS,
+    effect_params_valid, index_of, NAME_LIST_MAX, ACTIONS, ACTION_USE_ABILITY, CELL_MASK, CELL_RAMP, CLOAK_FLAGS, DAMAGE_RESPONSES,
+    DAMAGE_TYPES, MAX_GRID_CELLS, MAX_PLAYERS, RESOURCE_KINDS, REQ_KINDS, SIZE_CATEGORIES,
+    MAX_ROUTE_ID, MAX_ROUTE_POINTS, ITEM_COMPONENTS, ITEM_FLAG_CONSUMABLE, ITEM_FLAG_ENHANCEMENT, ITEM_FLAG_NEUTRAL, ITEM_FLAG_NO_BUY,
+    ITEM_FLAG_NO_DROP, ITEM_FLAG_NO_SELL, ITEM_TAG_LIMIT, ITEM_STATS, ITEM_STAT_COUNT, NEUTRAL_TIERS, TARGETS, TRIGGERS,
 };
-use crate::model::{AbilityRaw, BehaviourRaw, Collector, EffectRaw, Grid, UnitRaw, WeaponRaw};
+use crate::model::{
+    AbilityRaw, BehaviourRaw, ChannelRaw, Collector, DamageFactorRaw, EconRaw, EffectRaw, Grid, PrereqRaw, TuneRaw,
+    PropRaw, ItemRaw, ResearchRaw, RouteRaw, SkillRaw, SpawnRaw, UnitExtRaw, UnitRaw, WeaponRaw,
+};
 
 pub fn globals() -> Globals {
-    GlobalsBuilder::standard().with(osdt_builtins).build()
+    GlobalsBuilder::standard().with(osdt_builtins).with(crate::abilityext::ext_builtins).build()
+}
+
+pub fn signatures() -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = globals()
+        .documentation()
+        .members
+        .iter()
+        .filter_map(|(name, item)| match item {
+            DocItem::Member(DocMember::Function(function)) => Some((name.clone(), signature(name, &function.params))),
+            _ => None,
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+fn signature(name: &str, params: &DocParams) -> String {
+    let names: Vec<String> = params
+        .pos_only
+        .iter()
+        .chain(&params.pos_or_named)
+        .chain(&params.named_only)
+        .map(|p| p.name.clone())
+        .chain(params.args.iter().map(|p| format!("*{}", p.name)))
+        .chain(params.kwargs.iter().map(|p| format!("**{}", p.name)))
+        .collect();
+    format!("{name}({})", names.join(", "))
 }
 
 fn collector<'a>(eval: &'a Evaluator<'_, 'a, '_>) -> Result<&'a Collector> {
@@ -38,12 +67,40 @@ fn cell_value(value: i32) -> Result<u8> {
         .ok_or_else(|| anyhow!("grid cell value {value} is not a walkability bitfield (0..=3)"))
 }
 
-fn filter_mask(names: Option<UnpackList<String>>) -> Result<u32> {
+fn list_index(list: &[String], value: &str, what: &str) -> Result<usize> {
+    list.iter()
+        .position(|v| v == value)
+        .ok_or_else(|| anyhow!("unknown {what} {value:?}; no declared {what} has that name"))
+}
+
+fn filter_mask(list: &[String], names: Option<UnpackList<String>>) -> Result<u32> {
     let mut mask = 0u32;
     for name in names.map(|list| list.items).unwrap_or_default() {
-        mask |= 1u32 << index_of(FILTERS, &name, "filter")?;
+        mask |= 1u32 << list_index(list, &name, "filter")?;
     }
     Ok(mask)
+}
+
+fn declare_list(slot: &mut Vec<String>, names: Vec<String>, what: &str) -> Result<()> {
+    if !slot.is_empty() {
+        bail!("{what} is declared twice");
+    }
+    if names.is_empty() {
+        bail!("{what} names no entries");
+    }
+    if names.len() > NAME_LIST_MAX {
+        bail!("{what} names more than {NAME_LIST_MAX} entries");
+    }
+    for (i, name) in names.iter().enumerate() {
+        if name.is_empty() || name.len() > 255 {
+            bail!("{what} entry {name:?} must be 1..=255 bytes");
+        }
+        if names[..i].contains(name) {
+            bail!("{what} lists {name:?} twice");
+        }
+    }
+    *slot = names;
+    Ok(())
 }
 
 #[starlark_module]
@@ -53,16 +110,28 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] p0: Option<i32>,
         #[starlark(require = named)] p1: Option<i32>,
         #[starlark(require = named)] p2: Option<i32>,
+        #[starlark(require = named)] p3: Option<i32>,
+        #[starlark(require = named)] unit: Option<&str>,
+        #[starlark(require = named)] ability: Option<&str>,
+        #[starlark(require = named)] item: Option<&str>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<i32> {
-        let kind = index_of(EFFECT_KINDS, kind, "effect kind")?;
+        let kind_code = list_index(&collector(eval)?.names.borrow().effect_kinds, kind, "effect kind")?;
+        let params = [p0.unwrap_or(0), p1.unwrap_or(0), p2.unwrap_or(0), p3.unwrap_or(0)];
+        if !effect_params_valid(kind, params) {
+            bail!("effect {kind:?} has out-of-range parameters {params:?}; see FORMAT.md effect table");
+        }
         let pool = collector(eval)?;
         let mut effects = pool.effects.borrow_mut();
         effects.push(EffectRaw {
-            kind,
-            params: [p0.unwrap_or(0), p1.unwrap_or(0), p2.unwrap_or(0)],
+            kind: kind_code,
+            params,
         });
-        Ok(effects.len() as i32 - 1)
+        let handle = effects.len() - 1;
+        if unit.is_some() || ability.is_some() || item.is_some() {
+            pool.ext.borrow_mut().effect_refs.push((handle, unit.map(str::to_owned), ability.map(str::to_owned), item.map(str::to_owned)));
+        }
+        Ok(handle as i32)
     }
 
     fn unit(
@@ -71,9 +140,9 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         speed_milli: i32,
         radius_milli: i32,
         #[starlark(require = named)] build_time: Option<i32>,
-        #[starlark(require = named)] minerals: Option<i32>,
+        #[starlark(require = named)] resource_a: Option<i32>,
         #[starlark(require = named)] gas: Option<i32>,
-        #[starlark(require = named)] supply: Option<i32>,
+        #[starlark(require = named)] capacity: Option<i32>,
         #[starlark(require = named)] abilities: Option<UnpackList<String>>,
         #[starlark(require = named)] filters: Option<UnpackList<String>>,
         #[starlark(require = named)] product: Option<&str>,
@@ -82,14 +151,19 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         #[starlark(require = named)] weapon_period: Option<i32>,
         #[starlark(require = named)] sight_milli: Option<i32>,
         #[starlark(require = named)] shield: Option<i32>,
-        #[starlark(require = named)] armor: Option<i32>,
+        #[starlark(require = named)] defense: Option<i32>,
         #[starlark(require = named)] damage_response: Option<&str>,
         #[starlark(require = named)] resource: Option<&str>,
         #[starlark(require = named)] harvest: Option<i32>,
+        #[starlark(require = named)] shield_regen: Option<i32>,
+        #[starlark(require = named)] regen_delay: Option<i32>,
+        #[starlark(require = named)] health_regen: Option<i32>,
+        #[starlark(require = named)] model: Option<&str>,
+        #[starlark(require = named)] deny_pct: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let abilities: Vec<String> = abilities.map(|list| list.items).unwrap_or_default();
-        let filter_bits = filter_mask(filters)?;
+        let filter_bits = filter_mask(&collector(eval)?.names.borrow().filter_names, filters)?;
         let weapon = match (weapon_damage, weapon_range_milli, weapon_period) {
             (None, None, None) => None,
             (Some(damage), Some(range_milli), Some(period)) => Some(WeaponRaw {
@@ -107,19 +181,206 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             speed_milli,
             radius_milli,
             build_time: build_time.unwrap_or(0),
-            minerals: minerals.unwrap_or(0),
+            resource_a: resource_a.unwrap_or(0),
             gas: gas.unwrap_or(0),
-            supply: supply.unwrap_or(0),
+            capacity: capacity.unwrap_or(0),
             abilities,
             filters: filter_bits,
             product: product.map(str::to_owned),
             weapon,
             sight_milli: sight_milli.unwrap_or(0),
             shield: shield.unwrap_or(0),
-            armor: armor.unwrap_or(0),
+            defense: defense.unwrap_or(0),
             damage_response,
             resource_kind,
             harvest: harvest.unwrap_or(0),
+            shield_regen: shield_regen.unwrap_or(0),
+            regen_delay: regen_delay.unwrap_or(0),
+            health_regen: health_regen.unwrap_or(0),
+            model: model.unwrap_or("").to_owned(),
+            deny_pct: deny_pct.unwrap_or(50),
+        });
+        Ok(NoneType)
+    }
+
+    fn unit_extra(
+        name: &str,
+        #[starlark(require = named)] capacity_provided: Option<i32>,
+        #[starlark(require = named)] transport_capacity: Option<i32>,
+        #[starlark(require = named)] size: Option<&str>,
+        #[starlark(require = named)] damage_type: Option<&str>,
+        #[starlark(require = named)] cloak: Option<UnpackList<String>>,
+        #[starlark(require = named)] detector_radius: Option<i32>,
+        #[starlark(require = named)] ranged_miss: Option<i32>,
+        #[starlark(require = named)] burrow_ticks: Option<i32>,
+        #[starlark(require = named)] rally_dx: Option<i32>,
+        #[starlark(require = named)] rally_dy: Option<i32>,
+        #[starlark(require = named)] reward: Option<i32>,
+        #[starlark(require = named)] deny_xp_pct: Option<i32>,
+        #[starlark(require = named)] player_controlled: Option<bool>,
+        #[starlark(require = named)] melee: Option<bool>,
+        #[starlark(require = named)] xp_reward: Option<i32>,
+        #[starlark(require = named)] assist_radius_milli: Option<i32>,
+        #[starlark(require = named)] acquire: Option<i32>,
+        #[starlark(require = named)] night_sight_milli: Option<i32>,
+        #[starlark(require = named)] attack_point_ms: Option<i32>,
+        #[starlark(require = named)] missile_speed: Option<i32>,
+        #[starlark(require = named)] backswing_ms: Option<i32>,
+        #[starlark(require = named)] missile_homing: Option<bool>,
+        #[starlark(require = named)] missile_arc: Option<i32>,
+        #[starlark(require = named)] reward_min: Option<i32>,
+        #[starlark(require = named)] reward_max: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let size = index_of(SIZE_CATEGORIES, size.unwrap_or("small"), "size category")?;
+        let damage_type = index_of(DAMAGE_TYPES, damage_type.unwrap_or("normal"), "damage type")?;
+        let mut cloak_bits = 0u8;
+        for flag in cloak.map(|list| list.items).unwrap_or_default() {
+            cloak_bits |= 1u8 << index_of(CLOAK_FLAGS, &flag, "cloak flag")?;
+        }
+        collector(eval)?.unit_ext.borrow_mut().push(UnitExtRaw {
+            name: name.to_owned(),
+            capacity_provided: capacity_provided.unwrap_or(0),
+            transport_capacity: transport_capacity.unwrap_or(0),
+            size,
+            damage_type,
+            cloak: cloak_bits,
+            detector_radius: detector_radius.unwrap_or(0),
+            ranged_miss: ranged_miss.unwrap_or(0),
+            burrow_ticks: burrow_ticks.unwrap_or(0),
+            rally_dx: rally_dx.unwrap_or(0),
+            rally_dy: rally_dy.unwrap_or(0),
+            reward: reward.unwrap_or(0),
+            deny_xp_pct: deny_xp_pct.unwrap_or(0),
+            player_controlled: player_controlled.unwrap_or(false),
+            melee: melee.unwrap_or(false),
+            xp_reward: xp_reward.unwrap_or(0),
+            xp_share_radius_milli: assist_radius_milli.unwrap_or(0),
+            acquire: acquire.unwrap_or(0),
+            night_sight_milli: night_sight_milli.unwrap_or(0),
+            attack_point_ms: attack_point_ms.unwrap_or(0),
+            missile_speed: missile_speed.unwrap_or(0),
+            backswing_ms: backswing_ms.unwrap_or(0),
+            missile_homing: missile_homing.unwrap_or(false),
+            missile_arc: missile_arc.unwrap_or(0),
+            reward_min: reward_min.unwrap_or(0),
+            reward_max: reward_max.unwrap_or(0),
+        });
+        Ok(NoneType)
+    }
+
+    fn stat_names(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.stat_names, names.items, "stat_names")?;
+        Ok(NoneType)
+    }
+
+    fn effect_kinds(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.effect_kinds, names.items, "effect_kinds")?;
+        Ok(NoneType)
+    }
+
+    fn filter_names(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.filter_names, names.items, "filter_names")?;
+        Ok(NoneType)
+    }
+
+    fn mod_conds(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.mod_conds, names.items, "mod_conds")?;
+        Ok(NoneType)
+    }
+
+    fn prop_kinds(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let mut declared = collector(eval)?.names.borrow_mut();
+        declare_list(&mut declared.prop_kinds, names.items, "prop_kinds")?;
+        Ok(NoneType)
+    }
+
+    fn item_tags(names: UnpackList<String>, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        if names.items.len() > ITEM_TAG_LIMIT {
+            bail!("item_tags: at most {ITEM_TAG_LIMIT} tags");
+        }
+        *collector(eval)?.item_tags.borrow_mut() = names.items;
+        Ok(NoneType)
+    }
+
+    fn item(
+        name: &str,
+        cost: i32,
+        #[starlark(require = named)] stats: Option<UnpackDictEntries<String, i32>>,
+        #[starlark(require = named)] ability: Option<&str>,
+        #[starlark(require = named)] aura: Option<&str>,
+        #[starlark(require = named)] components: Option<UnpackList<String>>,
+        #[starlark(require = named)] consumable: Option<bool>,
+        #[starlark(require = named)] neutral_tier: Option<i32>,
+        #[starlark(require = named)] enhancement: Option<bool>,
+        #[starlark(require = named)] no_buy: Option<bool>,
+        #[starlark(require = named)] no_sell: Option<bool>,
+        #[starlark(require = named)] no_drop: Option<bool>,
+        #[starlark(require = named)] tags: Option<UnpackList<String>>,
+        #[starlark(require = named)] charges: Option<i32>,
+        #[starlark(require = named)] stack_max: Option<i32>,
+        #[starlark(require = named)] stock_max: Option<i32>,
+        #[starlark(require = named)] stock_initial: Option<i32>,
+        #[starlark(require = named)] stock_time_s: Option<i32>,
+        #[starlark(require = named)] stock_start_s: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let mut values = [0i32; ITEM_STAT_COUNT];
+        for (stat, amount) in stats.map(|d| d.entries).unwrap_or_default() {
+            values[index_of(ITEM_STATS, &stat, "item stat")?] = amount;
+        }
+        if cost < 0 {
+            bail!("item {name:?}: cost must be >= 0");
+        }
+        let components = components.map(|list| list.items).unwrap_or_default();
+        if components.len() > ITEM_COMPONENTS {
+            bail!("item {name:?}: a recipe takes at most {ITEM_COMPONENTS} components");
+        }
+        let mut flags = 0;
+        for (on, bit) in [
+            (consumable, ITEM_FLAG_CONSUMABLE),
+            (Some(neutral_tier.is_some_and(|t| t > 0)), ITEM_FLAG_NEUTRAL),
+            (no_buy, ITEM_FLAG_NO_BUY),
+            (no_sell, ITEM_FLAG_NO_SELL),
+            (no_drop, ITEM_FLAG_NO_DROP),
+            (enhancement, ITEM_FLAG_ENHANCEMENT),
+        ] {
+            if on.unwrap_or(false) {
+                flags |= bit;
+            }
+        }
+        let declared = collector(eval)?.item_tags.borrow().clone();
+        let mut tag_bits = 0;
+        for tag in tags.map(|list| list.items).unwrap_or_default() {
+            let Some(bit) = declared.iter().position(|d| *d == tag) else {
+                bail!("item {name:?}: tag {tag:?} is not declared by item_tags");
+            };
+            tag_bits |= 1 << bit;
+        }
+        let tier = neutral_tier.unwrap_or(0);
+        if !(0..=NEUTRAL_TIERS as i32).contains(&tier) {
+            bail!("item {name:?}: neutral tier {tier} is outside 0..={NEUTRAL_TIERS}");
+        }
+        collector(eval)?.items.borrow_mut().push(ItemRaw {
+            name: name.to_owned(),
+            cost,
+            stats: values,
+            ability: ability.map(str::to_owned),
+            aura: aura.map(str::to_owned),
+            components,
+            flags,
+            tier,
+            tags: tag_bits,
+            charges: charges.unwrap_or(0),
+            stack_max: stack_max.unwrap_or(0),
+            stock_max: stock_max.unwrap_or(0),
+            stock_initial: stock_initial.unwrap_or(0),
+            stock_time_s: stock_time_s.unwrap_or(0),
+            stock_start_s: stock_start_s.unwrap_or(0),
         });
         Ok(NoneType)
     }
@@ -130,12 +391,13 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         energy: i32,
         target: &str,
         effects: Option<UnpackList<i32>>,
-        #[starlark(require = named)] filter: Option<UnpackList<String>>,
+        #[starlark(require = named)] target_filters: Option<UnpackList<String>>,
         #[starlark(require = named)] projectile_speed_milli: Option<i32>,
+        #[starlark(require = named)] initial_cooldown: Option<i32>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let target = index_of(TARGETS, target, "target")?;
-        let target_filters = filter_mask(filter)?;
+        let target_filters = filter_mask(&collector(eval)?.names.borrow().filter_names, target_filters)?;
         let pool = collector(eval)?;
         let pool_len = pool.effects.borrow().len();
         let mut handles = Vec::new();
@@ -154,6 +416,35 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             target_filters,
             effects: handles,
             projectile_speed: projectile_speed_milli,
+            initial_cooldown: initial_cooldown.unwrap_or(0),
+        });
+        Ok(NoneType)
+    }
+
+    fn skill(
+        ability: &str,
+        #[starlark(require = named)] ultimate: bool,
+        #[starlark(require = named)] gates: UnpackList<i32>,
+        #[starlark(require = named)] damage: UnpackList<i32>,
+        #[starlark(require = named)] cooldown: UnpackList<i32>,
+        #[starlark(require = named)] energy: UnpackList<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        collector(eval)?.skills.borrow_mut().push(SkillRaw {
+            ability: ability.to_owned(),
+            ultimate,
+            gates: gates.items,
+            damage: damage.items,
+            cooldown: cooldown.items,
+            energy: energy.items,
+        });
+        Ok(NoneType)
+    }
+
+    fn channel(ability: &str, duration: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        collector(eval)?.channels.borrow_mut().push(ChannelRaw {
+            ability: ability.to_owned(),
+            duration,
         });
         Ok(NoneType)
     }
@@ -171,13 +462,195 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         if action == ACTION_USE_ABILITY && ability.is_none() {
             bail!("behaviour {name:?} uses use_ability and needs ability=");
         }
+        let param = param.unwrap_or(0);
+        if TRIGGERS[trigger] == "ability_ready" && ability.is_none() {
+            bail!("behaviour {name:?} fires on ability_ready and needs ability=");
+        }
         collector(eval)?.behaviours.borrow_mut().push(BehaviourRaw {
             name: name.to_owned(),
             trigger,
             action,
-            param: param.unwrap_or(0),
+            param,
             ability: ability.map(str::to_owned),
         });
+        Ok(NoneType)
+    }
+
+    fn spawn(unit: &str, player: i32, x: i32, y: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        if player != -1 && !(0..MAX_PLAYERS).contains(&player) {
+            bail!("spawn({unit:?}) player {player} is outside -1 (neutral) or 0..{MAX_PLAYERS}");
+        }
+        if x < 0 || y < 0 {
+            bail!("spawn({unit:?}) position ({x}, {y}) is negative");
+        }
+        collector(eval)?.spawns.borrow_mut().push(SpawnRaw {
+            unit: Some(unit.to_owned()),
+            start: false,
+            team: None,
+            player,
+            x,
+            y,
+        });
+        Ok(NoneType)
+    }
+
+    fn start(
+        player: i32,
+        x: i32,
+        y: i32,
+        #[starlark(require = named)] team: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        if x < 0 || y < 0 {
+            bail!("start for player {player} at ({x}, {y}) is negative");
+        }
+        if let Some(t) = team {
+            if !(0..MAX_PLAYERS).contains(&t) {
+                bail!("start for player {player} names team {t} outside 0..{MAX_PLAYERS}");
+            }
+        }
+        collector(eval)?.spawns.borrow_mut().push(SpawnRaw {
+            unit: None,
+            player,
+            x,
+            y,
+            start: true,
+            team,
+        });
+        Ok(NoneType)
+    }
+
+    fn research(
+        name: &str,
+        building: &str,
+        time: i32,
+        resource_a: i32,
+        gas: i32,
+        effect: i32,
+        #[starlark(require = named)] applies_to: Option<UnpackList<String>>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let effect = usize::try_from(effect).map_err(|_| anyhow!("research {name:?} has an invalid effect handle"))?;
+        let applies = filter_mask(&collector(eval)?.names.borrow().filter_names, applies_to)?;
+        collector(eval)?.researches.borrow_mut().push(ResearchRaw {
+            name: name.to_owned(),
+            building: building.to_owned(),
+            time,
+            resource_a,
+            gas,
+            effect,
+            applies,
+        });
+        Ok(NoneType)
+    }
+
+    fn prerequisite(
+        target_kind: &str,
+        target: &str,
+        requires_kind: &str,
+        requires: &str,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let target_kind = index_of(REQ_KINDS, target_kind, "prerequisite target kind")?;
+        let requires_kind = index_of(REQ_KINDS, requires_kind, "prerequisite requirement kind")?;
+        collector(eval)?.prerequisites.borrow_mut().push(PrereqRaw {
+            target_kind,
+            target: target.to_owned(),
+            requires_kind,
+            requires: requires.to_owned(),
+        });
+        Ok(NoneType)
+    }
+
+    fn damage_factor(damage_type: &str, size: &str, factor: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let damage_type = index_of(DAMAGE_TYPES, damage_type, "damage type")?;
+        let size = index_of(SIZE_CATEGORIES, size, "size category")?;
+        if factor < 0 {
+            bail!("damage factor {factor} is negative");
+        }
+        collector(eval)?.damage_factors.borrow_mut().push(DamageFactorRaw {
+            damage_type,
+            size,
+            factor,
+        });
+        Ok(NoneType)
+    }
+
+    fn economy(
+        #[starlark(require = named)] patch_saturation: Option<i32>,
+        #[starlark(require = named)] gas_saturation: Option<i32>,
+        #[starlark(require = named)] patches_per_base: Option<i32>,
+        #[starlark(require = named)] geysers_per_base: Option<i32>,
+        #[starlark(require = named)] extractor_yield: Option<i32>,
+        #[starlark(require = named)] opening_resource_a: Option<i32>,
+        #[starlark(require = named)] opening_gas: Option<i32>,
+        #[starlark(require = named)] opening_workers: Option<i32>,
+        #[starlark(require = named)] capacity_base: Option<i32>,
+        #[starlark(require = named)] capacity_max: Option<i32>,
+        #[starlark(require = named)] patch_yield: Option<i32>,
+        #[starlark(require = named)] geyser_yield: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.economy.borrow_mut();
+        if slot.is_some() {
+            bail!("economy() may be called once per map");
+        }
+        *slot = Some(EconRaw {
+            patch_saturation: patch_saturation.unwrap_or(0),
+            gas_saturation: gas_saturation.unwrap_or(0),
+            patches_per_base: patches_per_base.unwrap_or(0),
+            geysers_per_base: geysers_per_base.unwrap_or(0),
+            extractor_yield: extractor_yield.unwrap_or(0),
+            opening_resource_a: opening_resource_a.unwrap_or(0),
+            opening_gas: opening_gas.unwrap_or(0),
+            opening_workers: opening_workers.unwrap_or(0),
+            capacity_base: capacity_base.unwrap_or(0),
+            capacity_max: capacity_max.unwrap_or(0),
+            patch_yield: patch_yield.unwrap_or(0),
+            geyser_yield: geyser_yield.unwrap_or(0),
+        });
+        Ok(NoneType)
+    }
+
+    fn tuning(
+        #[starlark(require = named)] structure_scan_cells: i32,
+        #[starlark(require = named)] teleport_ring_points: i32,
+        #[starlark(require = named)] teleport_ring_steps: i32,
+        #[starlark(require = named)] best_only: UnpackList<String>,
+        #[starlark(require = named)] xp_curve: UnpackList<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.tuning.borrow_mut();
+        if slot.is_some() {
+            bail!("tuning() may be called once per map");
+        }
+        let mut mask = 0u64;
+        for name in &best_only.items {
+            let k = index_of(ITEM_STATS, name, "item stat")?;
+            mask |= 1u64 << k;
+        }
+        *slot = Some(TuneRaw {
+            structure_scan_cells,
+            teleport_ring_points,
+            teleport_ring_steps,
+            best_only: mask,
+            xp_curve: xp_curve.items,
+        });
+        Ok(NoneType)
+    }
+
+    fn limit(#[starlark(require = named)] per_cell: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.cell_limit.borrow_mut();
+        if slot.is_some() {
+            bail!("limit() may be called once per map");
+        }
+        if per_cell < 0 {
+            bail!("limit per_cell {per_cell} is negative");
+        }
+        *slot = Some(per_cell);
         Ok(NoneType)
     }
 
@@ -206,7 +679,137 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
             height,
             cell_milli,
             cells: vec![fill; cell_count],
+            height_step: 1000,
+            heights: vec![0; cell_count],
+            tiles: vec![0; cell_count],
         });
+        Ok(NoneType)
+    }
+
+    fn paint_ramp(
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.grid.borrow_mut();
+        let grid = slot.as_mut().ok_or_else(|| anyhow!("paint_ramp() needs grid() first"))?;
+        let (width, height) = (grid.width as i32, grid.height as i32);
+        if !(0 <= x0 && x0 <= x1 && x1 <= width && 0 <= y0 && y0 <= y1 && y1 <= height) {
+            bail!("paint_ramp({x0}, {y0}, {x1}, {y1}) is inverted or outside the {width}x{height} grid");
+        }
+        for y in y0..y1 {
+            let row = (y * width) as usize;
+            for cell in &mut grid.cells[row + x0 as usize..row + x1 as usize] {
+                *cell |= CELL_RAMP;
+            }
+        }
+        Ok(NoneType)
+    }
+
+    fn paint_tile(
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        id: i32,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.grid.borrow_mut();
+        let grid = slot.as_mut().ok_or_else(|| anyhow!("paint_tile() needs grid() first"))?;
+        let (width, height) = (grid.width as i32, grid.height as i32);
+        if !(0 <= x0 && x0 <= x1 && x1 <= width && 0 <= y0 && y0 <= y1 && y1 <= height) {
+            bail!("paint_tile({x0}, {y0}, {x1}, {y1}) is inverted or outside the {width}x{height} grid");
+        }
+        let id = u8::try_from(id).map_err(|_| anyhow!("tile id {id} must be 0..=255"))?;
+        for y in y0..y1 {
+            let row = (y * width) as usize;
+            grid.tiles[row + x0 as usize..row + x1 as usize].fill(id);
+        }
+        Ok(NoneType)
+    }
+
+    fn route(
+        player: i32,
+        route_id: i32,
+        points: UnpackList<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        if !(0..MAX_PLAYERS).contains(&player) {
+            bail!("route player {player} is outside 0..{MAX_PLAYERS}");
+        }
+        if !(1..=MAX_ROUTE_ID).contains(&route_id) {
+            bail!("route id {route_id} is outside 1..={MAX_ROUTE_ID}");
+        }
+        let flat = points.items;
+        if flat.len() % 2 != 0 || flat.is_empty() || flat.len() / 2 > MAX_ROUTE_POINTS {
+            bail!("route points must be 1..={MAX_ROUTE_POINTS} x/y pairs, got {} numbers", flat.len());
+        }
+        let points = flat.chunks(2).map(|p| (p[0], p[1])).collect();
+        collector(eval)?.routes.borrow_mut().push(RouteRaw { player, id: route_id, points });
+        Ok(NoneType)
+    }
+
+    fn prop(
+        id: i32,
+        kind: &str,
+        x: i32,
+        y: i32,
+        #[starlark(require = named)] rotation: Option<i32>,
+        #[starlark(require = named)] scale: Option<i32>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let kind = list_index(&collector(eval)?.names.borrow().prop_kinds, kind, "prop kind")?;
+        if id < 0 {
+            bail!("prop id {id} is negative");
+        }
+        let scale = scale.unwrap_or(1000);
+        if scale <= 0 || scale > 100000 {
+            bail!("prop id {id} scale {scale} is out of range: 1..100000 thousandths");
+        }
+        collector(eval)?.props.borrow_mut().push(PropRaw {
+            id,
+            kind,
+            x,
+            y,
+            rotation: rotation.unwrap_or(0),
+            scale,
+        });
+        Ok(NoneType)
+    }
+
+    fn height_step(milli: i32, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        let step = positive("height step", milli)?;
+        let pool = collector(eval)?;
+        let mut slot = pool.grid.borrow_mut();
+        let grid = slot.as_mut().ok_or_else(|| anyhow!("height_step() needs grid() first"))?;
+        grid.height_step = step;
+        Ok(NoneType)
+    }
+
+    fn paint_height(
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        level: i32,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let pool = collector(eval)?;
+        let mut slot = pool.grid.borrow_mut();
+        let grid = slot.as_mut().ok_or_else(|| anyhow!("paint_height() needs grid() first"))?;
+        let (width, height) = (grid.width as i32, grid.height as i32);
+        if !(0 <= x0 && x0 <= x1 && x1 <= width && 0 <= y0 && y0 <= y1 && y1 <= height) {
+            bail!("paint_height({x0}, {y0}, {x1}, {y1}) is inverted or outside the {width}x{height} grid");
+        }
+        let level = u8::try_from(level).map_err(|_| anyhow!("height level {level} must be 0..=255"))?;
+        for y in y0..y1 {
+            let row = (y * width) as usize;
+            grid.heights[row + x0 as usize..row + x1 as usize].fill(level);
+        }
         Ok(NoneType)
     }
 
@@ -215,7 +818,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         y0: i32,
         x1: i32,
         y1: i32,
-        #[starlark(require = named)] walk: Option<UnpackList<String>>,
+        value: i32,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let pool = collector(eval)?;
@@ -225,10 +828,7 @@ fn osdt_builtins(builder: &mut GlobalsBuilder) {
         if !(0 <= x0 && x0 <= x1 && x1 <= width && 0 <= y0 && y0 <= y1 && y1 <= height) {
             bail!("paint({x0}, {y0}, {x1}, {y1}) is inverted or outside the {width}x{height} grid");
         }
-        let mut value = 0u8;
-        for name in walk.map(|list| list.items).unwrap_or_default() {
-            value |= 1u8 << index_of(WALK_FLAGS, &name, "walk flag")?;
-        }
+        let value = cell_value(value)?;
         for y in y0..y1 {
             let row = (y * width) as usize;
             grid.cells[row + x0 as usize..row + x1 as usize].fill(value);

@@ -1,0 +1,109 @@
+anchor	kind	note
+file	rationale	Mid-lane crest (cells 90-106, 226-240) flattened to one level per cell by scenarios/moba/tools/limit-mid-lane-crest.mjs; that script edits this file's crest band.
+file	rationale	Dota 6.88g reference map, converted by scenarios/moba/tools/convert-688g-map.mjs from the extracted map members.
+file	rationale	World to grid: 1 source unit = 15.625 milli; the 16384-unit playable square sits at grid cell (35, 35) as a 256x256 sim block.
+file	rationale	Walkable: no unwalkable pathing cell in the 2x2 pathing block of the sim cell: bit 0x02 of the wpm, or a prop pathTex footprint (pathing-688g.mjs). Outside the block: blocked.
+file	rationale	Height: each sim cell bilinear over its tile's corners, z = (layer - 2) * 128 + ground offset, level = (z + 384) / 8, height_step 125 milli. Tile: ground texture of the tile's corner.
+file	rationale	Props: tree records are placed here at their original positions; the other types are placed by scenarios/moba/tools/place-props-688g.mjs from prop-types-688g.tsv (shipped_kind).
+file	rationale	Start, building and shop lines are derived from the script by scenarios/moba/tools/buildings-688g.mjs; the other spawn lines are kept as committed.
+start:0:55750:269000	source	Hero starts: every Sentinel seat (even player index) takes the centre of the script's Bn rect and every Scourge seat the centre of Xn (jU in war3map.j), spread by SLOT_OFFSET inside the rect because the script stacks all five heroes on the centre.
+spawn:base:0:76000:257000	source	Buildings from the literal CreateUnit calls of main(); lane order top, mid, bot. Do not edit by hand: scenarios/moba/tools/buildings-688g.mjs. ancient etol at -5568,-6016 from the source script
+spawn:base:1:245000:86156	source	ancient unpl at 5248,4918 from the source script
+spawn:tower:0:67500:138500	source	e00R tier 1 top at -6112,1568
+spawn:tower:0:139500:191500	source	e00R tier 1 mid at -1504,-1824
+spawn:tower:0:240500:268500	source	e00R tier 1 bot at 4960,-6752
+spawn:tower_t2:0:67500:181500	source	e011 tier 2 top at -6112,-1184
+spawn:tower_t2:0:108500:214500	source	e011 tier 2 mid at -3488,-3296
+spawn:tower_t2:0:153500:267500	source	e011 tier 2 bot at -608,-6688
+spawn:tower_t3:0:63500:229500	source	e00S tier 3 top at -6368,-4256
+spawn:tower_t3:0:93500:240500	source	e00S tier 3 mid at -4448,-4960
+spawn:tower_t3:0:104500:269500	source	e00S tier 3 bot at -3744,-6816
+spawn:tower_t4:0:76500:251500	source	e019 tier 4 no. 1 at -5536,-5664
+spawn:tower_t4:0:81500:257500	source	e019 tier 4 no. 2 at -5216,-6048
+spawn:tower:1:89500:70500	source	u00M tier 1 top at -4704,5920
+spawn:tower:1:179500:164500	source	u00M tier 1 mid at 1056,-96
+spawn:tower:1:257500:195500	source	u00M tier 1 bot at 6048,-2080
+spawn:tower_t2:1:162500:70500	source	u00D tier 2 top at -32,5920
+spawn:tower_t2:1:202500:134500	source	u00D tier 2 mid at 2528,1824
+spawn:tower_t2:1:261000:165500	source	u00D tier 2 bot at 6272,-160
+spawn:tower_t3:1:209500:72500	source	u00N tier 3 top at 2976,5792
+spawn:tower_t3:1:224500:108500	source	u00N tier 3 mid at 3936,3488
+spawn:tower_t3:1:262500:123500	source	u00N tier 3 bot at 6368,2528
+spawn:tower_t4:1:238500:87500	source	u00T tier 4 no. 1 at 4832,4832
+spawn:tower_t4:1:243500:92500	source	u00T tier 4 no. 2 at 5152,4512
+spawn:barracks_melee:0:68000:233000	source	eaom top at -6080,-4480
+spawn:barracks_ranged:0:59000:233000	source	eaoe top at -6656,-4480
+spawn:barracks_melee:0:94000:246000	source	eaom mid at -4416,-5312
+spawn:barracks_ranged:0:87000:241000	source	eaoe mid at -4864,-4992
+spawn:barracks_melee:0:100000:273000	source	eaom bot at -4032,-7040
+spawn:barracks_ranged:0:100000:265000	source	eaoe bot at -4032,-6528
+spawn:barracks_melee:1:216000:77000	source	usep top at 3392,5504
+spawn:barracks_ranged:1:216000:68000	source	utod top at 3392,6080
+spawn:barracks_melee:1:231000:107000	source	usep mid at 4352,3584
+spawn:barracks_ranged:1:224000:102000	source	utod mid at 3904,3904
+spawn:barracks_melee:1:267000:118000	source	usep bot at 6656,2880
+spawn:barracks_ranged:1:258000:117000	source	utod bot at 6080,2944
+spawn:fountain:0:51000:275000	source	fountain nfoh at -7168,-7168
+spawn:fountain:1:269000:63500	source	fountain ndfl at 6784,6368
+spawn:base_outbuilding:0:71500:248500	source	emow at -5856,-5472
+spawn:base_outbuilding:0:59500:242500	source	emow at -6624,-5088
+spawn:base_outbuilding:0:79500:224500	source	emow at -5344,-3936
+spawn:base_outbuilding:0:83500:234500	source	emow at -5088,-4576
+spawn:base_outbuilding:0:101500:246500	source	emow at -3936,-5344
+spawn:base_outbuilding:0:83500:249500	source	emow at -5088,-5536
+spawn:base_outbuilding:0:86500:260500	source	emow at -4896,-6240
+spawn:base_outbuilding:0:103500:254500	source	emow at -3808,-5856
+spawn:base_outbuilding:0:92500:273500	source	emow at -4512,-7072
+spawn:base_outbuilding:0:77500:236500	source	emow at -5472,-4704
+spawn:base_outbuilding:0:92500:254500	source	emow at -4512,-5856
+spawn:base_outbuilding_large:0:68000:243000	source	eaow at -6080,-5120
+spawn:base_outbuilding_large:0:92000:265000	source	eaow at -4544,-6528
+spawn:base_outbuilding_large:0:63000:252000	source	edob at -6400,-5696
+spawn:base_outbuilding_large:0:81000:270000	source	edob at -5248,-6848
+spawn:base_outbuilding:1:204500:89500	source	uzig at 2656,4704
+spawn:base_outbuilding:1:212500:99500	source	uzig at 3168,4064
+spawn:base_outbuilding:1:217500:87500	source	uzig at 3488,4832
+spawn:base_outbuilding:1:227500:65500	source	uzig at 4128,6240
+spawn:base_outbuilding:1:226500:80500	source	uzig at 4064,5280
+spawn:base_outbuilding:1:231500:96500	source	uzig at 4384,4256
+spawn:base_outbuilding:1:252500:100500	source	uzig at 5728,4000
+spawn:base_outbuilding:1:249500:124500	source	uzig at 5536,2464
+spawn:base_outbuilding:1:241500:104500	source	uzig at 5024,3744
+spawn:base_outbuilding:1:270500:101500	source	uzig at 6880,3936
+spawn:base_outbuilding:1:235500:118500	source	uzig at 4640,2848
+spawn:base_outbuilding_large:1:225000:71000	source	usap at 3968,5888
+spawn:base_outbuilding_large:1:263000:107000	source	usap at 6400,3584
+spawn:base_outbuilding_large:1:241000:70000	source	ubon at 4992,5952
+spawn:base_outbuilding_large:1:264000:91000	source	ubon at 6464,4608
+prop:5:depot:63625:270688	source	shop n12B at -6360,-6892
+prop:6:depot:63688:266734	source	shop n12Y at -6356,-6639
+prop:7:depot:55500:274500	source	shop hC95 at -6880,-7136
+prop:8:depot:49500:267500	source	shop n01K at -7264,-6688
+prop:9:depot:49500:270500	source	shop nC38 at -7264,-6880
+prop:10:depot:59500:274500	source	shop e025 at -6624,-7136
+prop:11:depot:55563:262500	source	shop n00V at -6876,-6368
+prop:12:depot:49500:263500	source	shop n00W at -7264,-6432
+prop:13:depot:57500:262500	source	shop n002 at -6752,-6368
+prop:14:depot:51500:262500	source	shop n00X at -7136,-6368
+prop:15:depot:59656:263500	source	shop n009 at -6614,-6432
+prop:16:depot:53500:262500	source	shop n0HE at -7008,-6368
+prop:17:depot:260781:74688	source	shop n12Z at 6258,5652
+prop:18:depot:264563:75500	source	shop n12N at 6500,5600
+prop:19:depot:269500:69500	source	shop nC35 at 6816,5984
+prop:20:depot:261500:63500	source	shop n01K at 6304,6368
+prop:21:depot:264500:63500	source	shop nC38 at 6496,6368
+prop:22:depot:268625:74500	source	shop u00Q at 6760,5664
+prop:23:depot:255500:66500	source	shop n00V at 5920,6176
+prop:24:depot:258500:62500	source	shop n00W at 6112,6432
+prop:25:depot:255500:68500	source	shop n002 at 5920,6048
+prop:26:depot:256500:62500	source	shop n00X at 5984,6432
+prop:27:depot:256500:70500	source	shop n009 at 5984,5920
+prop:28:depot:255500:64500	source	shop n0HE at 5920,6304
+prop:29:side_depot:278000:232000	source	shop u00Z at 7360,-4416
+prop:30:side_depot:49000:97000	source	shop u00Z at -7296,4224
+prop:31:side_depot:49000:94000	source	shop u010 at -7296,4416
+prop:32:side_depot:278000:229000	source	shop u010 at 7360,-4224
+prop:33:side_depot:47797:94953	source	shop n12K at -7373,4355
+prop:34:side_depot:279234:230016	source	shop n12K at 7439,-4289
+prop:35:secret_depot:213000:164000	source	shop uC74 at 3200,-64
+prop:36:secret_depot:92000:145000	source	shop uC74 at -4544,1152

@@ -1,8 +1,3 @@
-//! PKWARE implode (sector mask 0x08): literal-coding flag, dictionary-size
-//! exponent, then an LSB-first stream of literals and length/distance pairs
-//! coded with three fixed canonical tables. Follows the blast decoder's
-//! structure; a stream it cannot decode is an error.
-
 use crate::{Error, Result};
 
 const MAX_BITS: usize = 13;
@@ -34,9 +29,6 @@ impl Huff {
     }
 }
 
-/// Builds the code from run-length pairs (high nibble: repeat-1, low: length).
-/// Returns the leftover code space: zero complete, positive incomplete, negative
-/// over-subscribed.
 fn construct(h: &mut Huff, rep: &[u8]) -> i64 {
     let mut length = [0i16; 256];
     let mut n = 0usize;
@@ -97,8 +89,6 @@ fn tables() -> (Huff, Huff, Huff) {
     (lit, len, dist)
 }
 
-/// LSB-first bit reader. The decode path keeps bitbuf/bitcnt in the same
-/// arithmetic the reference decoder uses, so they are signed.
 struct PkBits<'a> {
     input: &'a [u8],
     pos: usize,
@@ -199,8 +189,6 @@ pub(crate) fn inflate(body: &[u8], want: u32) -> Result<Vec<u8>> {
         )));
     }
 
-    // The window is the dictionary: flushed every 4096 bytes, and distances wrap
-    // back into it.
     let mut win = [0u8; MAX_WIN];
     let mut next = 0usize;
     let mut first = true;
@@ -233,7 +221,6 @@ pub(crate) fn inflate(body: &[u8], want: u32) -> Result<Vec<u8>> {
             break;
         }
 
-        // A length of 2 carries its distance in two bits, not the dictionary's.
         let bits = if length == 2 { 2 } else { dict };
         let dist_sym = s.decode(&dist_code)?;
         let low = s.bits(bits)?;
@@ -244,7 +231,6 @@ pub(crate) fn inflate(body: &[u8], want: u32) -> Result<Vec<u8>> {
             )));
         }
 
-        // Overlapping copies are reproduced by copying forward one byte at a time.
         while length > 0 {
             let to = next;
             let mut from = next as i64 - dist as i64;

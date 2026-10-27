@@ -1,0 +1,505 @@
+key	value	source	citation
+lobby.role:antimage	Carry/Escape/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_antimage); 6.88g script and unit.ini carry no role text
+lobby.role:axe	Initiator/Durable/Disabler/Carry	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_axe); 6.88g script and unit.ini carry no role text
+lobby.role:bane	Support/Disabler/Nuker/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_bane); 6.88g script and unit.ini carry no role text
+lobby.role:bloodseeker	Carry/Disabler/Nuker/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_bloodseeker); 6.88g script and unit.ini carry no role text
+lobby.role:crystal_maiden	Support/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_crystal_maiden); 6.88g script and unit.ini carry no role text
+lobby.role:drow_ranger	Carry/Disabler/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_drow_ranger); 6.88g script and unit.ini carry no role text
+lobby.role:earthshaker	Support/Initiator/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_earthshaker); 6.88g script and unit.ini carry no role text
+lobby.role:juggernaut	Carry/Pusher/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_juggernaut); 6.88g script and unit.ini carry no role text
+lobby.role:mirana	Carry/Support/Escape/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_mirana); 6.88g script and unit.ini carry no role text
+lobby.role:nevermore	Carry/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_nevermore); 6.88g script and unit.ini carry no role text
+lobby.role:morphling	Carry/Escape/Durable/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_morphling); 6.88g script and unit.ini carry no role text
+lobby.role:phantom_lancer	Carry/Escape/Pusher/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_phantom_lancer); 6.88g script and unit.ini carry no role text
+lobby.role:puck	Initiator/Disabler/Escape/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_puck); 6.88g script and unit.ini carry no role text
+lobby.role:pudge	Disabler/Initiator/Durable/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_pudge); 6.88g script and unit.ini carry no role text
+lobby.role:razor	Carry/Durable/Nuker/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_razor); 6.88g script and unit.ini carry no role text
+lobby.role:sand_king	Initiator/Disabler/Support/Nuker/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_sand_king); 6.88g script and unit.ini carry no role text
+lobby.role:storm_spirit	Carry/Escape/Nuker/Initiator/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_storm_spirit); 6.88g script and unit.ini carry no role text
+lobby.role:sven	Carry/Disabler/Initiator/Durable/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_sven); 6.88g script and unit.ini carry no role text
+lobby.role:tiny	Carry/Nuker/Pusher/Initiator/Durable/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_tiny); 6.88g script and unit.ini carry no role text
+lobby.role:vengefulspirit	Support/Initiator/Disabler/Nuker/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_vengefulspirit); 6.88g script and unit.ini carry no role text
+lobby.role:windrunner	Carry/Support/Disabler/Escape/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_windrunner); 6.88g script and unit.ini carry no role text
+lobby.role:zuus	Nuker/Carry	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_zuus); 6.88g script and unit.ini carry no role text
+lobby.role:kunkka	Carry/Support/Disabler/Initiator/Durable/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_kunkka); 6.88g script and unit.ini carry no role text
+lobby.role:lina	Support/Carry/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_lina); 6.88g script and unit.ini carry no role text
+lobby.role:lich	Support/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_lich); 6.88g script and unit.ini carry no role text
+lobby.role:lion	Support/Disabler/Nuker/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_lion); 6.88g script and unit.ini carry no role text
+lobby.role:shadow_shaman	Support/Pusher/Disabler/Nuker/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_shadow_shaman); 6.88g script and unit.ini carry no role text
+lobby.role:slardar	Carry/Durable/Initiator/Disabler/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_slardar); 6.88g script and unit.ini carry no role text
+lobby.role:tidehunter	Initiator/Durable/Disabler/Nuker/Carry	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_tidehunter); 6.88g script and unit.ini carry no role text
+lobby.role:witch_doctor	Support/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_witch_doctor); 6.88g script and unit.ini carry no role text
+lobby.role:riki	Carry/Escape/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_riki); 6.88g script and unit.ini carry no role text
+lobby.role:enigma	Disabler/Initiator/Pusher/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_enigma); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Eidolons and Malefice, jungled in 6.8x); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:tinker	Carry/Nuker/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_tinker); 6.88g script and unit.ini carry no role text
+lobby.role:sniper	Carry/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_sniper); 6.88g script and unit.ini carry no role text
+lobby.role:necrolyte	Carry/Nuker/Durable/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_necrolyte); 6.88g script and unit.ini carry no role text
+lobby.role:warlock	Support/Initiator/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_warlock); 6.88g script and unit.ini carry no role text
+lobby.role:beastmaster	Initiator/Disabler/Durable/Nuker/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_beastmaster); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Call of the Wild boar and hawk, Wild Axes); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:queenofpain	Carry/Nuker/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_queenofpain); 6.88g script and unit.ini carry no role text
+lobby.role:venomancer	Support/Nuker/Initiator/Pusher/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_venomancer); 6.88g script and unit.ini carry no role text
+lobby.role:faceless_void	Carry/Initiator/Disabler/Escape/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_faceless_void); 6.88g script and unit.ini carry no role text
+lobby.role:skeleton_king	Carry/Support/Durable/Disabler/Initiator/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_skeleton_king); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Vampiric Aura lifesteal and Mortal Strike); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:death_prophet	Carry/Pusher/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_death_prophet); 6.88g script and unit.ini carry no role text
+lobby.role:phantom_assassin	Carry/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_phantom_assassin); 6.88g script and unit.ini carry no role text
+lobby.role:pugna	Nuker/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_pugna); 6.88g script and unit.ini carry no role text
+lobby.role:templar_assassin	Carry/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_templar_assassin); 6.88g script and unit.ini carry no role text
+lobby.role:viper	Carry/Durable/Initiator/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_viper); 6.88g script and unit.ini carry no role text
+lobby.role:luna	Carry/Nuker/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_luna); 6.88g script and unit.ini carry no role text
+lobby.role:dragon_knight	Carry/Pusher/Durable/Disabler/Initiator/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_dragon_knight); 6.88g script and unit.ini carry no role text
+lobby.role:dazzle	Support/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_dazzle); 6.88g script and unit.ini carry no role text
+lobby.role:rattletrap	Initiator/Disabler/Durable/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_rattletrap); 6.88g script and unit.ini carry no role text
+lobby.role:leshrac	Carry/Support/Nuker/Pusher/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_leshrac); 6.88g script and unit.ini carry no role text
+lobby.role:furion	Carry/Pusher/Escape/Nuker/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_furion); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Nature's Call treants plus Teleportation, classic early camp clear); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:life_stealer	Carry/Durable/Escape/Disabler/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_life_stealer); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Feast lifesteal and Rage, classic jungler); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:dark_seer	Initiator/Escape/Disabler/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_dark_seer); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Ion Shell and Surge clear camps); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:clinkz	Carry/Escape/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_clinkz); 6.88g script and unit.ini carry no role text
+lobby.role:omniknight	Support/Durable/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_omniknight); 6.88g script and unit.ini carry no role text
+lobby.role:enchantress	Support/Pusher/Durable/Disabler/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_enchantress); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Enchant converts a creep); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:huskar	Carry/Durable/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_huskar); 6.88g script and unit.ini carry no role text
+lobby.role:night_stalker	Carry/Initiator/Durable/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_night_stalker); 6.88g script and unit.ini carry no role text
+lobby.role:broodmother	Carry/Pusher/Escape/Nuker/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_broodmother); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Spin Web spiderlings with lifesteal Insatiable Hunger); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:bounty_hunter	Escape/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_bounty_hunter); 6.88g script and unit.ini carry no role text
+lobby.role:weaver	Carry/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_weaver); 6.88g script and unit.ini carry no role text
+lobby.role:jakiro	Support/Nuker/Pusher/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_jakiro); 6.88g script and unit.ini carry no role text
+lobby.role:batrider	Initiator/Disabler/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_batrider); 6.88g script and unit.ini carry no role text
+lobby.role:chen	Support/Pusher/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_chen); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Holy Persuasion dominates a creep); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:spectre	Carry/Durable/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_spectre); 6.88g script and unit.ini carry no role text
+lobby.role:doom_bringer	Carry/Disabler/Initiator/Durable/Nuker/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_doom_bringer); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Devour consumes a creep for gold and abilities); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:ancient_apparition	Support/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_ancient_apparition); 6.88g script and unit.ini carry no role text
+lobby.role:ursa	Carry/Durable/Disabler/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_ursa); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Fury Swipes and Earthshock, classic fast jungler); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:spirit_breaker	Carry/Initiator/Disabler/Durable/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_spirit_breaker); 6.88g script and unit.ini carry no role text
+lobby.role:gyrocopter	Carry/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_gyrocopter); 6.88g script and unit.ini carry no role text
+lobby.role:alchemist	Carry/Support/Durable/Disabler/Initiator/Nuker/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_alchemist); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Acid Spray and Greed, early camp farmer); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:invoker	Carry/Nuker/Disabler/Escape/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_invoker); 6.88g script and unit.ini carry no role text
+lobby.role:silencer	Carry/Support/Disabler/Initiator/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_silencer); 6.88g script and unit.ini carry no role text
+lobby.role:obsidian_destroyer	Carry/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_obsidian_destroyer); 6.88g script and unit.ini carry no role text
+lobby.role:lycan	Carry/Pusher/Durable/Escape/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_lycan); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Summon Wolves); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:brewmaster	Carry/Initiator/Durable/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_brewmaster); 6.88g script and unit.ini carry no role text
+lobby.role:shadow_demon	Support/Disabler/Initiator/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_shadow_demon); 6.88g script and unit.ini carry no role text
+lobby.role:lone_druid	Carry/Pusher/Durable/Jungler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_lone_druid); 6.88g script and unit.ini carry no role text; Jungler added by analysis of 6.88 ability set (Summon Spirit Bear); OpenDota lists no Jungler, web jungling pages (Liquipedia, Dota fandom) returned 403
+lobby.role:chaos_knight	Carry/Disabler/Durable/Pusher/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_chaos_knight); 6.88g script and unit.ini carry no role text
+lobby.role:meepo	Carry/Escape/Nuker/Disabler/Initiator/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_meepo); 6.88g script and unit.ini carry no role text
+lobby.role:treant	Support/Initiator/Durable/Disabler/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_treant); 6.88g script and unit.ini carry no role text
+lobby.role:ogre_magi	Support/Nuker/Disabler/Durable/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_ogre_magi); 6.88g script and unit.ini carry no role text
+lobby.role:undying	Support/Durable/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_undying); 6.88g script and unit.ini carry no role text
+lobby.role:rubick	Support/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_rubick); 6.88g script and unit.ini carry no role text
+lobby.role:disruptor	Support/Disabler/Nuker/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_disruptor); 6.88g script and unit.ini carry no role text
+lobby.role:nyx_assassin	Disabler/Nuker/Initiator/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_nyx_assassin); 6.88g script and unit.ini carry no role text
+lobby.role:naga_siren	Carry/Support/Pusher/Disabler/Initiator/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_naga_siren); 6.88g script and unit.ini carry no role text
+lobby.role:keeper_of_the_light	Support/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_keeper_of_the_light); 6.88g script and unit.ini carry no role text
+lobby.role:wisp	Support/Escape/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_wisp); 6.88g script and unit.ini carry no role text
+lobby.role:visage	Support/Nuker/Durable/Disabler/Pusher	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_visage); 6.88g script and unit.ini carry no role text
+lobby.role:slark	Carry/Escape/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_slark); 6.88g script and unit.ini carry no role text
+lobby.role:medusa	Carry/Disabler/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_medusa); 6.88g script and unit.ini carry no role text
+lobby.role:troll_warlord	Carry/Pusher/Disabler/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_troll_warlord); 6.88g script and unit.ini carry no role text
+lobby.role:centaur	Durable/Initiator/Disabler/Nuker/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_centaur); 6.88g script and unit.ini carry no role text
+lobby.role:magnataur	Initiator/Disabler/Nuker/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_magnataur); 6.88g script and unit.ini carry no role text
+lobby.role:shredder	Nuker/Durable/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_shredder); 6.88g script and unit.ini carry no role text
+lobby.role:bristleback	Carry/Durable/Initiator/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_bristleback); 6.88g script and unit.ini carry no role text
+lobby.role:tusk	Initiator/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_tusk); 6.88g script and unit.ini carry no role text
+lobby.role:skywrath_mage	Support/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_skywrath_mage); 6.88g script and unit.ini carry no role text
+lobby.role:abaddon	Support/Carry/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_abaddon); 6.88g script and unit.ini carry no role text
+lobby.role:elder_titan	Initiator/Disabler/Nuker/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_elder_titan); 6.88g script and unit.ini carry no role text
+lobby.role:legion_commander	Carry/Disabler/Initiator/Durable/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_legion_commander); 6.88g script and unit.ini carry no role text
+lobby.role:ember_spirit	Carry/Escape/Nuker/Disabler/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_ember_spirit); 6.88g script and unit.ini carry no role text
+lobby.role:earth_spirit	Nuker/Escape/Disabler/Initiator/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_earth_spirit); 6.88g script and unit.ini carry no role text
+lobby.role:terrorblade	Carry/Pusher/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_terrorblade); 6.88g script and unit.ini carry no role text
+lobby.role:phoenix	Support/Nuker/Initiator/Escape/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_phoenix); 6.88g script and unit.ini carry no role text
+lobby.role:oracle	Support/Nuker/Disabler/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_oracle); 6.88g script and unit.ini carry no role text
+lobby.role:techies	Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_techies); 6.88g script and unit.ini carry no role text
+lobby.role:winter_wyvern	Support/Disabler/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_winter_wyvern); 6.88g script and unit.ini carry no role text
+lobby.role:arc_warden	Carry/Escape/Nuker	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_arc_warden); 6.88g script and unit.ini carry no role text
+lobby.role:abyssal_underlord	Support/Nuker/Disabler/Durable/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_abyssal_underlord); 6.88g script and unit.ini carry no role text
+lobby.role:monkey_king	Carry/Escape/Disabler/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_monkey_king); 6.88g script and unit.ini carry no role text
+lobby.role:pangolier	Carry/Nuker/Disabler/Durable/Escape/Initiator	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_pangolier); 6.88g script and unit.ini carry no role text
+lobby.role:dark_willow	Support/Nuker/Disabler/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_dark_willow); 6.88g script and unit.ini carry no role text
+lobby.role:grimstroke	Support/Nuker/Disabler/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_grimstroke); 6.88g script and unit.ini carry no role text
+lobby.role:mars	Carry/Initiator/Disabler/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_mars); 6.88g script and unit.ini carry no role text
+lobby.role:void_spirit	Carry/Escape/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_void_spirit); 6.88g script and unit.ini carry no role text
+lobby.role:snapfire	Support/Nuker/Disabler/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_snapfire); 6.88g script and unit.ini carry no role text
+lobby.role:hoodwink	Support/Nuker/Escape/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_hoodwink); 6.88g script and unit.ini carry no role text
+lobby.role:dawnbreaker	Carry/Durable	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_dawnbreaker); 6.88g script and unit.ini carry no role text
+lobby.role:marci	Support/Carry/Initiator/Disabler/Escape	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_marci); 6.88g script and unit.ini carry no role text
+lobby.role:primal_beast	Initiator/Durable/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_primal_beast); 6.88g script and unit.ini carry no role text
+lobby.role:muerta	Carry/Nuker/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_muerta); 6.88g script and unit.ini carry no role text
+lobby.role:ringmaster	Support/Nuker/Escape/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_ringmaster); 6.88g script and unit.ini carry no role text
+lobby.role:kez	Carry/Escape/Disabler	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_kez); 6.88g script and unit.ini carry no role text
+lobby.role:largo	Durable/Disabler/Support	web	https://api.opendota.com/api/constants/heroes (roles of npc_dota_hero_largo); 6.88g script and unit.ini carry no role text
+lobby.base:monkey_king	Monkey King|str 1900+280|agi 2400+370|int 2000+180 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:120 (origin/main) and attr_rules.txt attr monkey_king; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:pangolier	Pangolier|str 2000+270|agi 1800+320|int 1600+250 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:121 (origin/main) and attr_rules.txt attr pangolier; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:dark_willow	Dark Willow|str 2000+200|agi 1800+160|int 2100+350 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:122 (origin/main) and attr_rules.txt attr dark_willow; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:grimstroke	Grimstroke|str 2100+240|agi 1800+190|int 2500+380 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:123 (origin/main) and attr_rules.txt attr grimstroke; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:mars	Mars|str 2300+370|agi 1800+170|int 2100+220 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:124 (origin/main) and attr_rules.txt attr mars; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:void_spirit	Void Spirit|str 2200+260|agi 2100+220|int 2400+310 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:125 (origin/main) and attr_rules.txt attr void_spirit; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:snapfire	Snapfire|str 2100+350|agi 1600+190|int 2100+220 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:126 (origin/main) and attr_rules.txt attr snapfire; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:hoodwink	Hoodwink|str 1700+200|agi 2500+360|int 2100+290 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:127 (origin/main) and attr_rules.txt attr hoodwink; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:dawnbreaker	Dawnbreaker|str 2500+340|agi 1400+170|int 2000+200 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:128 (origin/main) and attr_rules.txt attr dawnbreaker; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:marci	Marci|str 2300+320|agi 2000+220|int 1900+190 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:129 (origin/main) and attr_rules.txt attr marci; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:primal_beast	Primal Beast|str 2600+430|agi 1500+100|int 1600+170 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:130 (origin/main) and attr_rules.txt attr primal_beast; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:muerta	Muerta|str 1900+200|agi 2100+270|int 2300+360 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:131 (origin/main) and attr_rules.txt attr muerta; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:ringmaster	Ring Master|str 2100+210|agi 1100+160|int 2500+300 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:132 (origin/main) and attr_rules.txt attr ringmaster; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:kez	Kez|str 2000+280|agi 2700+350|int 2000+170 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:133 (origin/main) and attr_rules.txt attr kez; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+lobby.base:largo	Largo|str 2400+360|agi 1400+130|int 2100+260 (hundredths: base+gain per level)	web	scenarios/moba/heroes_688g.tsv:134 (origin/main) and attr_rules.txt attr largo; https://api.opendota.com/api/constants/heroes; hero not in 6.88g (output/688g-data/hero-not-in-688g.tsv)
+menu.refund	50% of the item's gold cost, rounded down (chargeable items: cost x charges first); not refunded for an item that is not pawnable	analyze	output/g688-map/war3map.j:24914-24920 (IsItemPawnable then g=R2I(g/2), w0 multiplies by GetItemCharges); no 10 s full-refund window exists in the 6.88g script
+menu.refund.format	$item has been sold for $gold gold.	analyze	wording style of output/g688-lni/txt.ini:5218 [tx1s] '$item has been sold from Circle of power for $gold gold.'; oscraft tip form: 'Sell <name> (refund <gold> gold)'
+menu.refund.denied.unpawnable	This item cannot be pawned.	analyze	output/g688-lni/txt.ini:5212 [tx1p]
+menu.refund.denied.notyours	This item doesn't belong to you.	analyze	output/g688-lni/txt.ini:5215 [tx1q]
+menu.refund.denied.dead	You cannot sell items while your hero is dead.	analyze	output/g688-lni/txt.ini:5221 [tx1t]; war3map.j:24893
+menu.refund.denied.consumable	Can't sell consumables	analyze	output/g688-lni/txt.ini:5242 [tx21]; war3map.j:24897
+skills.talentName		analyze	6.88g has no talents: zero 'talent' hits in output/g688-lni/ability.ini, txt.ini and output/g688-map/war3map.j; hide the Talents block
+menu.refund:blink	1125	analyze	floor(oscraft cost 2250/2) per output/g688-map/war3map.j:24920
+menu.refund:reaver	1500	analyze	floor(oscraft cost 3000/2) per output/g688-map/war3map.j:24920
+menu.refund:overwhelming_blink	3400	analyze	floor(oscraft cost 6800/2) per output/g688-map/war3map.j:24920
+menu.refund:eagle	1600	analyze	floor(oscraft cost 3200/2) per output/g688-map/war3map.j:24920
+menu.refund:swift_blink	3400	analyze	floor(oscraft cost 6800/2) per output/g688-map/war3map.j:24920
+menu.refund:mystic_staff	1350	analyze	floor(oscraft cost 2700/2) per output/g688-map/war3map.j:24920
+menu.refund:arcane_blink	3400	analyze	floor(oscraft cost 6800/2) per output/g688-map/war3map.j:24920
+menu.refund:blades_of_attack	210	analyze	floor(oscraft cost 420/2) per output/g688-map/war3map.j:24920
+menu.refund:broadsword	600	analyze	floor(oscraft cost 1200/2) per output/g688-map/war3map.j:24920
+menu.refund:chainmail	275	analyze	floor(oscraft cost 550/2) per output/g688-map/war3map.j:24920
+menu.refund:splintmail	475	analyze	floor(oscraft cost 950/2) per output/g688-map/war3map.j:24920
+menu.refund:claymore	700	analyze	floor(oscraft cost 1400/2) per output/g688-map/war3map.j:24920
+menu.refund:helm_of_iron_will	450	analyze	floor(oscraft cost 900/2) per output/g688-map/war3map.j:24920
+menu.refund:javelin	750	analyze	floor(oscraft cost 1500/2) per output/g688-map/war3map.j:24920
+menu.refund:mithril_hammer	800	analyze	floor(oscraft cost 1600/2) per output/g688-map/war3map.j:24920
+menu.refund:platemail	700	analyze	floor(oscraft cost 1400/2) per output/g688-map/war3map.j:24920
+menu.refund:quelling_blade	112	analyze	floor(oscraft cost 225/2) per output/g688-map/war3map.j:24920
+menu.refund:faerie_fire	37	analyze	floor(oscraft cost 75/2) per output/g688-map/war3map.j:24920
+menu.refund:infused_raindrop	112	analyze	floor(oscraft cost 225/2) per output/g688-map/war3map.j:24920
+menu.refund:wind_lace	125	analyze	floor(oscraft cost 250/2) per output/g688-map/war3map.j:24920
+menu.refund:ring_of_protection	87	analyze	floor(oscraft cost 175/2) per output/g688-map/war3map.j:24920
+menu.refund:hyperstone	1000	analyze	floor(oscraft cost 2000/2) per output/g688-map/war3map.j:24920
+menu.refund:moon_shard	2000	analyze	floor(oscraft cost 4000/2) per output/g688-map/war3map.j:24920
+menu.refund:gauntlets	75	analyze	floor(oscraft cost 150/2) per output/g688-map/war3map.j:24920
+menu.refund:slippers	75	analyze	floor(oscraft cost 150/2) per output/g688-map/war3map.j:24920
+menu.refund:mantle	75	analyze	floor(oscraft cost 150/2) per output/g688-map/war3map.j:24920
+menu.refund:branches	25	analyze	floor(oscraft cost 50/2) per output/g688-map/war3map.j:24920
+menu.refund:belt_of_strength	225	analyze	floor(oscraft cost 450/2) per output/g688-map/war3map.j:24920
+menu.refund:boots_of_elves	225	analyze	floor(oscraft cost 450/2) per output/g688-map/war3map.j:24920
+menu.refund:robe	225	analyze	floor(oscraft cost 450/2) per output/g688-map/war3map.j:24920
+menu.refund:circlet	82	analyze	floor(oscraft cost 165/2) per output/g688-map/war3map.j:24920
+menu.refund:crown	225	analyze	floor(oscraft cost 450/2) per output/g688-map/war3map.j:24920
+menu.refund:diadem	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:ogre_axe	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:blade_of_alacrity	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:staff_of_wizardry	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:ultimate_orb	1050	analyze	floor(oscraft cost 2100/2) per output/g688-map/war3map.j:24920
+menu.refund:gloves	250	analyze	floor(oscraft cost 500/2) per output/g688-map/war3map.j:24920
+menu.refund:blitz_knuckles	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:lifesteal	450	analyze	floor(oscraft cost 900/2) per output/g688-map/war3map.j:24920
+menu.refund:voodoo_mask	325	analyze	floor(oscraft cost 650/2) per output/g688-map/war3map.j:24920
+menu.refund:ring_of_regen	175	analyze	floor(oscraft cost 350/2) per output/g688-map/war3map.j:24920
+menu.refund:sobi_mask	162	analyze	floor(oscraft cost 325/2) per output/g688-map/war3map.j:24920
+menu.refund:boots	225	analyze	floor(oscraft cost 450/2) per output/g688-map/war3map.j:24920
+menu.refund:gem	450	analyze	floor(oscraft cost 900/2) per output/g688-map/war3map.j:24920
+menu.refund:shawl	225	analyze	floor(oscraft cost 450/2) per output/g688-map/war3map.j:24920
+menu.refund:cloak	275	analyze	floor(oscraft cost 550/2) per output/g688-map/war3map.j:24920
+menu.refund:talisman_of_evasion	900	analyze	floor(oscraft cost 1800/2) per output/g688-map/war3map.j:24920
+menu.refund:cheese	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:magic_stick	100	analyze	floor(oscraft cost 200/2) per output/g688-map/war3map.j:24920
+menu.refund:magic_wand	232	analyze	floor(oscraft cost 465/2) per output/g688-map/war3map.j:24920
+menu.refund:ghost	750	analyze	floor(oscraft cost 1500/2) per output/g688-map/war3map.j:24920
+menu.refund:clarity	25	analyze	floor(oscraft cost 50/2) per output/g688-map/war3map.j:24920
+menu.refund:enchanted_mango	45	analyze	floor(oscraft cost 90/2) per output/g688-map/war3map.j:24920
+menu.refund:blood_grenade	25	analyze	floor(oscraft cost 50/2) per output/g688-map/war3map.j:24920
+menu.refund:royale_with_cheese	1	analyze	floor(oscraft cost 2/2) per output/g688-map/war3map.j:24920
+menu.refund:flask	55	analyze	floor(oscraft cost 110/2) per output/g688-map/war3map.j:24920
+menu.refund:dust	40	analyze	floor(oscraft cost 80/2) per output/g688-map/war3map.j:24920
+menu.refund:bottle	350	analyze	floor(oscraft cost 700/2) per output/g688-map/war3map.j:24920
+menu.refund:ward_observer	37	analyze	floor(oscraft cost 75/2) per output/g688-map/war3map.j:24920
+menu.refund:ward_sentry	50	analyze	floor(oscraft cost 100/2) per output/g688-map/war3map.j:24920
+menu.refund:ward_dispenser	87	analyze	floor(oscraft cost 175/2) per output/g688-map/war3map.j:24920
+menu.refund:tango	62	analyze	floor(oscraft cost 125/2) per output/g688-map/war3map.j:24920
+menu.refund:tango_single	15	analyze	floor(oscraft cost 30/2) per output/g688-map/war3map.j:24920
+menu.refund:courier	60	analyze	floor(oscraft cost 120/2) per output/g688-map/war3map.j:24920
+menu.refund:flying_courier	170	analyze	floor(oscraft cost 340/2) per output/g688-map/war3map.j:24920
+menu.refund:tpscroll	37	analyze	floor(oscraft cost 75/2) per output/g688-map/war3map.j:24920
+menu.refund:travel_boots	1225	analyze	floor(oscraft cost 2450/2) per output/g688-map/war3map.j:24920
+menu.refund:travel_boots_2	2225	analyze	floor(oscraft cost 4450/2) per output/g688-map/war3map.j:24920
+menu.refund:phase_boots	645	analyze	floor(oscraft cost 1290/2) per output/g688-map/war3map.j:24920
+menu.refund:demon_edge	1200	analyze	floor(oscraft cost 2400/2) per output/g688-map/war3map.j:24920
+menu.refund:relic	1900	analyze	floor(oscraft cost 3800/2) per output/g688-map/war3map.j:24920
+menu.refund:ring_of_health	425	analyze	floor(oscraft cost 850/2) per output/g688-map/war3map.j:24920
+menu.refund:ring_of_tarrasque	850	analyze	floor(oscraft cost 1700/2) per output/g688-map/war3map.j:24920
+menu.refund:void_stone	425	analyze	floor(oscraft cost 850/2) per output/g688-map/war3map.j:24920
+menu.refund:tiara_of_selemene	850	analyze	floor(oscraft cost 1700/2) per output/g688-map/war3map.j:24920
+menu.refund:energy_booster	450	analyze	floor(oscraft cost 900/2) per output/g688-map/war3map.j:24920
+menu.refund:point_booster	600	analyze	floor(oscraft cost 1200/2) per output/g688-map/war3map.j:24920
+menu.refund:vitality_booster	550	analyze	floor(oscraft cost 1100/2) per output/g688-map/war3map.j:24920
+menu.refund:fluffy_hat	125	analyze	floor(oscraft cost 250/2) per output/g688-map/war3map.j:24920
+menu.refund:wizard_hat	125	analyze	floor(oscraft cost 250/2) per output/g688-map/war3map.j:24920
+menu.refund:power_treads	700	analyze	floor(oscraft cost 1400/2) per output/g688-map/war3map.j:24920
+menu.refund:pers	850	analyze	floor(oscraft cost 1700/2) per output/g688-map/war3map.j:24920
+menu.refund:phylactery	1350	analyze	floor(oscraft cost 2700/2) per output/g688-map/war3map.j:24920
+menu.refund:soul_booster	1600	analyze	floor(oscraft cost 3200/2) per output/g688-map/war3map.j:24920
+menu.refund:angels_demise	2950	analyze	floor(oscraft cost 5900/2) per output/g688-map/war3map.j:24920
+menu.refund:hand_of_midas	1025	analyze	floor(oscraft cost 2050/2) per output/g688-map/war3map.j:24920
+menu.refund:quarterstaff	437	analyze	floor(oscraft cost 875/2) per output/g688-map/war3map.j:24920
+menu.refund:oblivion_staff	825	analyze	floor(oscraft cost 1650/2) per output/g688-map/war3map.j:24920
+menu.refund:orb_of_venom	137	analyze	floor(oscraft cost 275/2) per output/g688-map/war3map.j:24920
+menu.refund:witch_blade	1387	analyze	floor(oscraft cost 2775/2) per output/g688-map/war3map.j:24920
+menu.refund:poor_mans_shield	250	analyze	floor(oscraft cost 500/2) per output/g688-map/war3map.j:24920
+menu.refund:bracer	262	analyze	floor(oscraft cost 525/2) per output/g688-map/war3map.j:24920
+menu.refund:wraith_band	242	analyze	floor(oscraft cost 485/2) per output/g688-map/war3map.j:24920
+menu.refund:null_talisman	235	analyze	floor(oscraft cost 470/2) per output/g688-map/war3map.j:24920
+menu.refund:headdress	300	analyze	floor(oscraft cost 600/2) per output/g688-map/war3map.j:24920
+menu.refund:buckler	400	analyze	floor(oscraft cost 800/2) per output/g688-map/war3map.j:24920
+menu.refund:mekansm	1150	analyze	floor(oscraft cost 2300/2) per output/g688-map/war3map.j:24920
+menu.refund:ring_of_basilius	262	analyze	floor(oscraft cost 525/2) per output/g688-map/war3map.j:24920
+menu.refund:vladmir	1162	analyze	floor(oscraft cost 2325/2) per output/g688-map/war3map.j:24920
+menu.refund:holy_locket	1125	analyze	floor(oscraft cost 2250/2) per output/g688-map/war3map.j:24920
+menu.refund:pipe	1750	analyze	floor(oscraft cost 3500/2) per output/g688-map/war3map.j:24920
+menu.refund:urn_of_shadows	437	analyze	floor(oscraft cost 875/2) per output/g688-map/war3map.j:24920
+menu.refund:sheepstick	2825	analyze	floor(oscraft cost 5650/2) per output/g688-map/war3map.j:24920
+menu.refund:orchid	2037	analyze	floor(oscraft cost 4075/2) per output/g688-map/war3map.j:24920
+menu.refund:lesser_crit	1060	analyze	floor(oscraft cost 2120/2) per output/g688-map/war3map.j:24920
+menu.refund:bloodthorn	3597	analyze	floor(oscraft cost 7195/2) per output/g688-map/war3map.j:24920
+menu.refund:echo_sabre	1325	analyze	floor(oscraft cost 2650/2) per output/g688-map/war3map.j:24920
+menu.refund:cyclone	1412	analyze	floor(oscraft cost 2825/2) per output/g688-map/war3map.j:24920
+menu.refund:wind_waker	3400	analyze	floor(oscraft cost 6800/2) per output/g688-map/war3map.j:24920
+menu.refund:aether_lens	1175	analyze	floor(oscraft cost 2350/2) per output/g688-map/war3map.j:24920
+menu.refund:force_staff	1125	analyze	floor(oscraft cost 2250/2) per output/g688-map/war3map.j:24920
+menu.refund:dragon_lance	950	analyze	floor(oscraft cost 1900/2) per output/g688-map/war3map.j:24920
+menu.refund:hurricane_pike	2187	analyze	floor(oscraft cost 4375/2) per output/g688-map/war3map.j:24920
+menu.refund:dagon	1360	analyze	floor(oscraft cost 2720/2) per output/g688-map/war3map.j:24920
+menu.refund:dagon_2	1985	analyze	floor(oscraft cost 3970/2) per output/g688-map/war3map.j:24920
+menu.refund:dagon_3	2610	analyze	floor(oscraft cost 5220/2) per output/g688-map/war3map.j:24920
+menu.refund:dagon_4	3235	analyze	floor(oscraft cost 6470/2) per output/g688-map/war3map.j:24920
+menu.refund:dagon_5	3860	analyze	floor(oscraft cost 7720/2) per output/g688-map/war3map.j:24920
+menu.refund:ultimate_scepter	2100	analyze	floor(oscraft cost 4200/2) per output/g688-map/war3map.j:24920
+menu.refund:ultimate_scepter_2	2900	analyze	floor(oscraft cost 5800/2) per output/g688-map/war3map.j:24920
+menu.refund:ultimate_scepter_roshan	2900	analyze	floor(oscraft cost 5800/2) per output/g688-map/war3map.j:24920
+menu.refund:aghanims_shard	700	analyze	floor(oscraft cost 1400/2) per output/g688-map/war3map.j:24920
+menu.refund:aghanims_shard_roshan	700	analyze	floor(oscraft cost 1400/2) per output/g688-map/war3map.j:24920
+menu.refund:refresher	2600	analyze	floor(oscraft cost 5200/2) per output/g688-map/war3map.j:24920
+menu.refund:assault	2625	analyze	floor(oscraft cost 5250/2) per output/g688-map/war3map.j:24920
+menu.refund:heart	2750	analyze	floor(oscraft cost 5500/2) per output/g688-map/war3map.j:24920
+menu.refund:black_king_bar	1987	analyze	floor(oscraft cost 3975/2) per output/g688-map/war3map.j:24920
+menu.refund:chasm_stone	450	analyze	floor(oscraft cost 900/2) per output/g688-map/war3map.j:24920
+menu.refund:shivas_guard	2530	analyze	floor(oscraft cost 5060/2) per output/g688-map/war3map.j:24920
+menu.refund:veil_of_discord	1135	analyze	floor(oscraft cost 2270/2) per output/g688-map/war3map.j:24920
+menu.refund:soul_ring	400	analyze	floor(oscraft cost 800/2) per output/g688-map/war3map.j:24920
+menu.refund:bloodstone	2450	analyze	floor(oscraft cost 4900/2) per output/g688-map/war3map.j:24920
+menu.refund:sphere	2562	analyze	floor(oscraft cost 5125/2) per output/g688-map/war3map.j:24920
+menu.refund:lotus_orb	2000	analyze	floor(oscraft cost 4000/2) per output/g688-map/war3map.j:24920
+menu.refund:kaya	1050	analyze	floor(oscraft cost 2100/2) per output/g688-map/war3map.j:24920
+menu.refund:meteor_hammer	1425	analyze	floor(oscraft cost 2850/2) per output/g688-map/war3map.j:24920
+menu.refund:nullifier	2375	analyze	floor(oscraft cost 4750/2) per output/g688-map/war3map.j:24920
+menu.refund:aeon_disk	1500	analyze	floor(oscraft cost 3000/2) per output/g688-map/war3map.j:24920
+menu.refund:refresher_shard	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:spirit_vessel	1487	analyze	floor(oscraft cost 2975/2) per output/g688-map/war3map.j:24920
+menu.refund:essence_distiller	887	analyze	floor(oscraft cost 1775/2) per output/g688-map/war3map.j:24920
+menu.refund:vanguard	1087	analyze	floor(oscraft cost 2175/2) per output/g688-map/war3map.j:24920
+menu.refund:crimson_guard	1775	analyze	floor(oscraft cost 3550/2) per output/g688-map/war3map.j:24920
+menu.refund:blade_mail	1100	analyze	floor(oscraft cost 2200/2) per output/g688-map/war3map.j:24920
+menu.refund:consecrated_wraps	1300	analyze	floor(oscraft cost 2600/2) per output/g688-map/war3map.j:24920
+menu.refund:crellas_crozier	2400	analyze	floor(oscraft cost 4800/2) per output/g688-map/war3map.j:24920
+menu.refund:rapier	3900	analyze	floor(oscraft cost 7800/2) per output/g688-map/war3map.j:24920
+menu.refund:monkey_king_bar	2700	analyze	floor(oscraft cost 5400/2) per output/g688-map/war3map.j:24920
+menu.refund:radiance	2575	analyze	floor(oscraft cost 5150/2) per output/g688-map/war3map.j:24920
+menu.refund:butterfly	2937	analyze	floor(oscraft cost 5875/2) per output/g688-map/war3map.j:24920
+menu.refund:greater_crit	2760	analyze	floor(oscraft cost 5520/2) per output/g688-map/war3map.j:24920
+menu.refund:basher	1437	analyze	floor(oscraft cost 2875/2) per output/g688-map/war3map.j:24920
+menu.refund:bfury	2262	analyze	floor(oscraft cost 4525/2) per output/g688-map/war3map.j:24920
+menu.refund:yasha	1025	analyze	floor(oscraft cost 2050/2) per output/g688-map/war3map.j:24920
+menu.refund:manta	2475	analyze	floor(oscraft cost 4950/2) per output/g688-map/war3map.j:24920
+menu.refund:armlet	1160	analyze	floor(oscraft cost 2320/2) per output/g688-map/war3map.j:24920
+menu.refund:shadow_amulet	700	analyze	floor(oscraft cost 1400/2) per output/g688-map/war3map.j:24920
+menu.refund:invis_sword	1400	analyze	floor(oscraft cost 2800/2) per output/g688-map/war3map.j:24920
+menu.refund:sange	1025	analyze	floor(oscraft cost 2050/2) per output/g688-map/war3map.j:24920
+menu.refund:silver_edge	2725	analyze	floor(oscraft cost 5450/2) per output/g688-map/war3map.j:24920
+menu.refund:sange_and_yasha	2050	analyze	floor(oscraft cost 4100/2) per output/g688-map/war3map.j:24920
+menu.refund:kaya_and_sange	2100	analyze	floor(oscraft cost 4200/2) per output/g688-map/war3map.j:24920
+menu.refund:yasha_and_kaya	2100	analyze	floor(oscraft cost 4200/2) per output/g688-map/war3map.j:24920
+menu.refund:satanic	2950	analyze	floor(oscraft cost 5900/2) per output/g688-map/war3map.j:24920
+menu.refund:maelstrom	1400	analyze	floor(oscraft cost 2800/2) per output/g688-map/war3map.j:24920
+menu.refund:mjollnir	2850	analyze	floor(oscraft cost 5700/2) per output/g688-map/war3map.j:24920
+menu.refund:orb_of_frost	150	analyze	floor(oscraft cost 300/2) per output/g688-map/war3map.j:24920
+menu.refund:skadi	2837	analyze	floor(oscraft cost 5675/2) per output/g688-map/war3map.j:24920
+menu.refund:helm_of_the_dominator	900	analyze	floor(oscraft cost 1800/2) per output/g688-map/war3map.j:24920
+menu.refund:helm_of_the_overlord	2825	analyze	floor(oscraft cost 5650/2) per output/g688-map/war3map.j:24920
+menu.refund:rod_of_atos	1550	analyze	floor(oscraft cost 3100/2) per output/g688-map/war3map.j:24920
+menu.refund:gungir	2600	analyze	floor(oscraft cost 5200/2) per output/g688-map/war3map.j:24920
+menu.refund:blight_stone	150	analyze	floor(oscraft cost 300/2) per output/g688-map/war3map.j:24920
+menu.refund:desolator	1750	analyze	floor(oscraft cost 3500/2) per output/g688-map/war3map.j:24920
+menu.refund:mask_of_madness	900	analyze	floor(oscraft cost 1800/2) per output/g688-map/war3map.j:24920
+menu.refund:diffusal_blade	1575	analyze	floor(oscraft cost 3150/2) per output/g688-map/war3map.j:24920
+menu.refund:disperser	3175	analyze	floor(oscraft cost 6350/2) per output/g688-map/war3map.j:24920
+menu.refund:ethereal_blade	2350	analyze	floor(oscraft cost 4700/2) per output/g688-map/war3map.j:24920
+menu.refund:arcane_boots	725	analyze	floor(oscraft cost 1450/2) per output/g688-map/war3map.j:24920
+menu.refund:octarine_core	2950	analyze	floor(oscraft cost 5900/2) per output/g688-map/war3map.j:24920
+menu.refund:orb_of_corrosion	525	analyze	floor(oscraft cost 1050/2) per output/g688-map/war3map.j:24920
+menu.refund:falcon_blade	562	analyze	floor(oscraft cost 1125/2) per output/g688-map/war3map.j:24920
+menu.refund:mage_slayer	1647	analyze	floor(oscraft cost 3295/2) per output/g688-map/war3map.j:24920
+menu.refund:ancient_janggo	812	analyze	floor(oscraft cost 1625/2) per output/g688-map/war3map.j:24920
+menu.refund:tranquil_boots	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:boots_of_bearing	2162	analyze	floor(oscraft cost 4325/2) per output/g688-map/war3map.j:24920
+menu.refund:medallion_of_courage	600	analyze	floor(oscraft cost 1200/2) per output/g688-map/war3map.j:24920
+menu.refund:pavise	675	analyze	floor(oscraft cost 1350/2) per output/g688-map/war3map.j:24920
+menu.refund:solar_crest	1500	analyze	floor(oscraft cost 3000/2) per output/g688-map/war3map.j:24920
+menu.refund:smoke_of_deceit	40	analyze	floor(oscraft cost 80/2) per output/g688-map/war3map.j:24920
+menu.refund:revenants_brooch	1650	analyze	floor(oscraft cost 3300/2) per output/g688-map/war3map.j:24920
+menu.refund:devastator	2987	analyze	floor(oscraft cost 5975/2) per output/g688-map/war3map.j:24920
+menu.refund:guardian_greaves	2650	analyze	floor(oscraft cost 5300/2) per output/g688-map/war3map.j:24920
+menu.refund:abyssal_blade	3375	analyze	floor(oscraft cost 6750/2) per output/g688-map/war3map.j:24920
+menu.refund:heavens_halberd	1925	analyze	floor(oscraft cost 3850/2) per output/g688-map/war3map.j:24920
+menu.refund:glimmer_cape	975	analyze	floor(oscraft cost 1950/2) per output/g688-map/war3map.j:24920
+menu.refund:pocket_roshan	500	analyze	floor(oscraft cost 1000/2) per output/g688-map/war3map.j:24920
+menu.refund:harpoon	2350	analyze	floor(oscraft cost 4700/2) per output/g688-map/war3map.j:24920
+menu.refund:specialists_array	1275	analyze	floor(oscraft cost 2550/2) per output/g688-map/war3map.j:24920
+menu.refund:hydras_breath	2950	analyze	floor(oscraft cost 5900/2) per output/g688-map/war3map.j:24920
+shop.heading:famango	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:great_famango	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:greater_famango	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:eldwurms_edda	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:aegis	Not sold	analyze	6.88g item I0AW Aegis of the Immortal goldcost 0 sold by no shop: output/g688-lni/item.ini:10626; output/g688-map/war3map.j:95702
+shop.heading:mutation_tombstone	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:super_blink	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:pocket_tower	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:desolator_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:spider_legs	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:essence_ring	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:demonicon	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:fallen_sky	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:minotaur_horn	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:chipped_vest	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:cloak_of_flames	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:possessed_mask	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:psychic_headband	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:stormcrafter	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:heavy_blade	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:pogo_stick	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:seeds_of_serenity	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:occult_bracelet	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:defiant_shell	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:dagger_of_ristul	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:ofrenda	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:ofrenda_shovel	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:ofrenda_pledge	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:muertas_gun	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:duelist_gloves	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:dandelion_amulet	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:rattlecage	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:roshans_banner	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:black_grimoire	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:grisgris	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_quickened_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_quickened_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_quickened_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_quickened_4	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_audacious_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_mystical_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_mystical_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_mystical_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_mystical_4	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_alert_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_alert_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_alert_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_alert_4	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_brawny_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_brawny_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_brawny_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_brawny_4	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_tough_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_tough_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_tough_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_tough_4	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_feverish_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_fleetfooted_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_crude_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_crude_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_crude_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_timeless_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_timeless_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_greedy_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_greedy_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_vampiric_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_keen_eyed_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_keen_eyed_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_keen_eyed_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_evolved_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_titanic_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_titanic_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_titanic_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:unrelenting_eye	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:mana_draught	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:crippling_crossbow	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:gunpowder_gauntlets	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:searing_signet	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:serrated_shiv	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:polliwog_charm	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:madstone_bundle	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:miniboss_minion_summoner	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:kobold_cup	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:dormant_curio	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:jidi_pollen_bag	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:dezun_bloodrite	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:giant_maul	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:divine_regalia	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:furion_gold_bag	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:weighted_dice	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:ash_legion_shield	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:riftshadow_prism	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:metamorphic_mandible	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:idol_of_screeauk	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:flayers_bota	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:spellslinger	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:prophets_pendulum	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:stonefeather_satchel	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enchanters_bauble	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:harmonizer	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:conjurers_catalyst	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_vital_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_hulking_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_manic_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:foragers_kit	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:foragers_health	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:foragers_stats	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:foragers_mana	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:partisans_brand	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_nimble_1	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_nimble_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:enhancement_nimble_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading:tidehunter_fish	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
+shop.heading.unverified	Not sold	analyze	shop_tier returns nil only for cost<=0 (panels.lua:341); 6.88g items without a goldcost are not shop stock; see shop.heading:<item_id>
+shop.heading.tier:0	Starting items	analyze	moba_ui.json shop.tiers (cost bands 500/1500/3000); 6.88g defines no tier field (output/688g-data/oscraft-residual-unverified.tsv item category row)
+shop.heading.tier:1	Early	analyze	moba_ui.json shop.tiers (cost bands 500/1500/3000); 6.88g defines no tier field (output/688g-data/oscraft-residual-unverified.tsv item category row)
+shop.heading.tier:2	Mid	analyze	moba_ui.json shop.tiers (cost bands 500/1500/3000); 6.88g defines no tier field (output/688g-data/oscraft-residual-unverified.tsv item category row)
+shop.heading.tier:3	Late	analyze	moba_ui.json shop.tiers (cost bands 500/1500/3000); 6.88g defines no tier field (output/688g-data/oscraft-residual-unverified.tsv item category row)
+shop.name:Ancient of Wonders	Ancient of Wonders	analyze	output/g688-lni/unit.ini:66116 (unit e025; 11 items)
+shop.kind:Ancient of Wonders	Home Base	guess	role by stock in output/688g-data/items-688g.tsv column sold_by=Ancient of Wonders
+shop.name:Cache of the Quel'thelan	Cache of the Quel'thelan	analyze	output/g688-lni/unit.ini:166871 (unit hC95; 12 items)
+shop.kind:Cache of the Quel'thelan	Side Shop	guess	role by stock in output/688g-data/items-688g.tsv column sold_by=Cache of the Quel'thelan
+shop.name:Supportive Vestments	Supportive Vestments	analyze	output/g688-lni/unit.ini:167363 (unit n002; 11 items)
+shop.kind:Supportive Vestments	Supportive Vestments	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Gateway Relics	Gateway Relics	analyze	output/g688-lni/unit.ini:168264 (unit n009; 12 items)
+shop.kind:Gateway Relics	Gateway Relics	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Arcane Sanctum	Arcane Sanctum	analyze	output/g688-lni/unit.ini:170634 (unit n00V; 12 items)
+shop.kind:Arcane Sanctum	Arcane Sanctum	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Ancient Weaponry	Ancient Weaponry	analyze	output/g688-lni/unit.ini:170819 (unit n00W; 8 items)
+shop.kind:Ancient Weaponry	Ancient Weaponry	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Enchanted Artifacts	Enchanted Artifacts	analyze	output/g688-lni/unit.ini:171006 (unit n00X; 11 items)
+shop.kind:Enchanted Artifacts	Enchanted Artifacts	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Weapons Dealer	Weapons Dealer	analyze	output/g688-lni/unit.ini:172334 (unit n01K; 12 items)
+shop.kind:Weapons Dealer	Weapons Dealer	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Protectorate	Protectorate	analyze	output/g688-lni/unit.ini:276702 (unit n0HE; 11 items)
+shop.kind:Protectorate	Protectorate	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Furbolg's hut	Furbolg's hut	analyze	output/g688-lni/unit.ini:317853 (unit n12K; 4 items)
+shop.kind:Furbolg's hut	Furbolg's hut	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Black Market	Black Market	analyze	output/g688-lni/unit.ini:318364 (unit n12N; 7 items)
+shop.kind:Black Market	Black Market	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Trophy Dealer	Trophy Dealer	analyze	output/g688-lni/unit.ini:320079 (unit n12Z; 3 items)
+shop.kind:Trophy Dealer	Trophy Dealer	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Demonic Artifacts	Demonic Artifacts	analyze	output/g688-lni/unit.ini:321680 (unit nC35; 12 items)
+shop.kind:Demonic Artifacts	Side Shop	guess	role by stock in output/688g-data/items-688g.tsv column sold_by=Demonic Artifacts
+shop.name:Sena The Accessorizer	Sena The Accessorizer	analyze	output/g688-lni/unit.ini:321861 (unit nC38; 12 items)
+shop.kind:Sena The Accessorizer	Sena The Accessorizer	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Tomb of Relics	Tomb of Relics	analyze	output/g688-lni/unit.ini:336843 (unit u00Q; 11 items)
+shop.kind:Tomb of Relics	Home Base	guess	role by stock in output/688g-data/items-688g.tsv column sold_by=Tomb of Relics
+shop.name:Goblin Laboratory	Goblin Laboratory	analyze	output/g688-lni/unit.ini:338340 (unit u00Z; 12 items)
+shop.kind:Goblin Laboratory	Goblin Laboratory	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Goblin Merchant	Goblin Merchant	analyze	output/g688-lni/unit.ini:338712 (unit u010; 12 items)
+shop.kind:Goblin Merchant	Goblin Merchant	analyze	shop building name is its own heading; 6.88g has no category field (items-residual.tsv)
+shop.name:Leragas The Vile	Leragas The Vile	analyze	output/g688-lni/unit.ini:345701 (unit uC74; 12 items)
+shop.kind:Leragas The Vile	Secret Shop	guess	role by stock in output/688g-data/items-688g.tsv column sold_by=Leragas The Vile

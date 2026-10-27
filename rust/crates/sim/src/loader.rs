@@ -1,35 +1,59 @@
-//! Reads the OSDT data file, format version 2, exactly as
-//! rust/crates/data/FORMAT.md states it. Every integer is little-endian;
-//! reserved bytes are skipped on read; every index is bounds-checked.
-
 use crate::arrays::Sim;
+use crate::fixed;
+use crate::inventory::{ITEM_COMPONENTS, ITEM_FLAG_MASK, ITEM_STAT_COUNT, NEUTRAL_TIERS};
 use crate::pathfinding::Grid;
 use std::fmt;
 use std::path::Path;
 
 const MAGIC: &[u8; 4] = b"OSDT";
-const VERSION: u16 = 3;
+const VERSION: u16 = 37;
+const NEUTRAL_PLAYER: u8 = 0xFF;
+const PLACE_START: u32 = 1;
+const PLACE_TEAM: u32 = 2;
+const PLACE_TEAM_SHIFT: u32 = 8;
+const PLACE_TEAM_MASK: u32 = 0xFF << PLACE_TEAM_SHIFT;
+const LIMT_COUNT: usize = 1;
+const EFFECT_MOVE: u16 = 2;
 const RESOURCE_KINDS: u8 = 3;
-const ABILITY_FILTER_BITS: u16 = 12;
-const CELL_BITS: u8 = 0b11;
+const ABILITY_FILTER_BITS: u16 = 15;
+const CELL_BITS: u8 = 0b111;
 const HEADER_LEN: usize = 16;
 const SECTION_ENTRY: usize = 16;
-const SECTION_TAGS: [&[u8; 4]; 7] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"GRID"];
-const RECORD_SIZES: [usize; 7] = [1, 16, 32, 2, 80, 16, 1];
+const SECTION_TAGS: [&[u8; 4]; 27] = [b"STRS", b"EFCT", b"ABIL", b"UABL", b"UNIT", b"BHVR", b"PLCE", b"REGN", b"LIMT", b"ECON", b"UEXT", b"ACHN", b"RSCH", b"PREQ", b"DMGF", b"DODA", b"GRID", b"ITEM", b"SKIL", b"AXTN", b"ROUT", b"TUNE", b"SNAM", b"EKND", b"FNAM", b"MCND", b"DKND"];
+const RECORD_SIZES: [usize; 27] = [1, 20, 32, 2, 86, 16, 16, 12, 4, 32, 68, 8, 32, 8, 8, 24, 1, 40 + ITEM_STAT_COUNT * 4, 72, 256, 520, 12 + XP_CURVE_LEN * 4, 1, 1, 1, 1, 1];
+const TELEPORT_RING_MAX_POINTS: u8 = 8;
+const STRUCTURE_SCAN_MAX_CELLS: u8 = 64;
+pub const XP_CURVE_LEN: usize = 24;
+const SKILL_RANKS: usize = 4;
+const ULTIMATE_RANKS: u8 = 3;
+const DAMAGE_TYPE_COUNT: u8 = 9;
+const SIZE_CATEGORY_COUNT: u8 = 8;
+const NORMAL_GATE: i32 = 1;
+const MAX_NORMAL_GATE: i32 = 30;
+const EFFECT_AMOUNT_KINDS: [u16; 2] = [0, 1];
+const EFFECT_CREATE_HEALER: u16 = 7;
+const EFFECT_VITAL_FRACTION: u16 = 9;
+const EFFECT_DAMAGE: u16 = 0;
+const EFFECT_HEAL: u16 = 1;
 
-const EFFECT_KINDS: u16 = 5;
-const TARGET_CODES: u8 = 3;
-const TRIGGER_CODES: u8 = 4;
-const ACTION_CODES: u8 = 3;
+const EFFECT_STAT: u16 = 16;
+const EFFECT_TIMED_SPAWN: u16 = 17;
+const EFFECT_SLOW: u16 = 12;
+const EFFECT_STATUS_DURATION: [u16; 4] = [11, 13, 14, 15];
+const EFFECT_ISSUE_ORDER: u16 = 5;
+const EFFECT_REMOVE_BEHAVIOUR: u16 = 6;
+const EFFECT_USE_CALLDOWN: u16 = 8;
+const EFFECT_SHIELD_BONUS: u16 = 10;
+const EFFECT_BUFF: u16 = 4;
+const TARGET_CODES: u8 = 4;
+const TRIGGER_CODES: u8 = 5;
+const ACTION_CODES: u8 = 2;
 const RESPONSE_CODES: u8 = 3;
-const FILTER_BITS: u32 = 12;
-const NO_INDEX: u16 = 0xFFFF;
-const GRID_HEADER: usize = 12;
-/// The cell size the simulation runs on: one world unit per cell. Other sizes are
-/// refused, because every position-to-cell conversion assumes this.
+const FILTER_BITS: u32 = 15;
+pub(crate) const NO_INDEX: u16 = 0xFFFF;
+const GRID_HEADER: usize = 16;
 pub const CELL_MILLI: i32 = 1000;
 
-/// A name is a (offset, length) pair into the STRS section.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Name {
     pub offset: u32,
@@ -39,28 +63,35 @@ pub struct Name {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Effect {
     pub kind: u16,
-    /// Damage and heal: amount (Q16.16). Spawn: unit index. Buff: behaviour kind.
     pub p0: i32,
-    /// Damage and heal: radius (Q16.16). Buff: damage per application (Q16.16).
     pub p1: i32,
-    /// Buff: ticks between applications.
     pub p2: i32,
+    pub p3: i32,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Ability {
     pub name: Name,
     pub flags: u16,
-    /// Game ticks.
     pub cooldown: i32,
     pub energy: i32,
     pub target: u8,
     pub effect_count: u8,
     pub effect_first: u32,
-    /// Projectile speed in milli-units per tick; 0 when the ability is not a projectile.
     pub projectile_speed: i32,
-    /// Unit filters a valid target must carry (12 bits); 0 means no filter.
+    pub initial_cooldown: i32,
     pub filter: u16,
+    pub skill: Option<Skill>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Skill {
+    pub ultimate: bool,
+    pub max_rank: u8,
+    pub gates: [i32; SKILL_RANKS],
+    pub damage: [i32; SKILL_RANKS],
+    pub cooldown: [i32; SKILL_RANKS],
+    pub energy: [i32; SKILL_RANKS],
 }
 
 impl Ability {
@@ -72,41 +103,27 @@ impl Ability {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Unit {
     pub name: Name,
+    pub model: Name,
     pub flags: u16,
-    /// Hit points, whole units.
     pub health: i32,
-    /// Milli-units per tick.
     pub speed: i32,
-    /// Milli-units.
     pub radius: i32,
-    pub minerals: i32,
+    pub resource_a: i32,
     pub gas: i32,
-    /// Game ticks.
     pub build_ticks: i32,
     pub abil_first: u32,
     pub abil_count: u16,
-    pub supply: u16,
-    /// Bit n set when the unit has the filter in FORMAT.md's FILTERS list.
+    pub capacity: u16,
     pub filter: u32,
-    /// Shield pool, whole units.
     pub shield: i32,
-    /// Flat reduction per hit, whole units.
     pub armor: i32,
-    /// Weapon damage, whole units. Valid only when the weapon flag is set.
     pub weapon_damage: i32,
-    /// Weapon range, milli-units.
     pub weapon_range: i32,
-    /// Game ticks.
     pub weapon_period: i32,
-    /// Sight radius, milli-units.
     pub sight: i32,
-    /// Index of the unit this one trains, or 0xFFFF.
     pub product: u16,
-    /// 0 normal, 1 reduced (half), 2 immune.
     pub response: u8,
-    /// 0 none, 1 minerals, 2 gas.
     pub resource_kind: u8,
-    /// Resource units a worker takes per trip from this resource; 0 when not a resource.
     pub harvest_amount: i32,
 }
 
@@ -128,19 +145,17 @@ impl Unit {
     }
 }
 
-/// Filter bit positions, from FORMAT.md.
-pub const FILTER_GROUND: u32 = 1 << 0;
 pub const FILTER_AIR: u32 = 1 << 1;
-pub const FILTER_ARMORED: u32 = 1 << 2;
-pub const FILTER_BIOLOGICAL: u32 = 1 << 3;
-pub const FILTER_MECHANICAL: u32 = 1 << 4;
-pub const FILTER_PSIONIC: u32 = 1 << 5;
 pub const FILTER_STRUCTURE: u32 = 1 << 6;
-pub const FILTER_LIGHT: u32 = 1 << 7;
-pub const FILTER_MASSIVE: u32 = 1 << 8;
 pub const FILTER_WORKER: u32 = 1 << 9;
-pub const FILTER_ARMY: u32 = 1 << 10;
-pub const FILTER_BUILDING: u32 = 1 << 11;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Placement {
+    pub unit: usize,
+    pub player: u8,
+    pub x: i32,
+    pub y: i32,
+}
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Behaviour {
@@ -151,15 +166,222 @@ pub struct Behaviour {
     pub ability: u16,
 }
 
-/// The parsed data file. Read-only after load; the tick reads only numeric fields.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Trigger {
+    Idle,
+    Attacked,
+    Spawned,
+    AbilityReady,
+    Destroyed,
+}
+
+impl Trigger {
+    pub fn from_code(code: u8) -> Option<Trigger> {
+        match code {
+            0 => Some(Trigger::Idle),
+            1 => Some(Trigger::Attacked),
+            2 => Some(Trigger::Spawned),
+            3 => Some(Trigger::AbilityReady),
+            4 => Some(Trigger::Destroyed),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Trigger::Idle => "idle",
+            Trigger::Attacked => "attacked",
+            Trigger::Spawned => "spawned",
+            Trigger::AbilityReady => "ability_ready",
+            Trigger::Destroyed => "destroyed",
+        }
+    }
+}
+
+impl Behaviour {
+    pub fn trigger_kind(&self) -> Option<Trigger> {
+        Trigger::from_code(self.trigger)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Regen {
+    pub shield_per_tick: i32,
+    pub delay: i32,
+    pub hp_per_tick: i32,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Start {
+    pub player: u8,
+    pub team: u8,
+    pub x: i32,
+    pub y: i32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Tune {
+    pub structure_scan_cells: u8,
+    pub teleport_ring_points: u8,
+    pub teleport_ring_steps: u8,
+    pub best_only: u64,
+    pub xp_curve: Vec<u32>,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Econ {
+    pub workers_per_mineral: u8,
+    pub workers_per_extractor: u8,
+    pub patches_per_base: u8,
+    pub extractors_per_base: u8,
+    pub gas_per_trip: i32,
+    pub opening_resource_a: i32,
+    pub opening_gas: i32,
+    pub opening_workers: u16,
+    pub capacity_base: u16,
+    pub capacity_max: u16,
+    pub resource_a_per_patch: i32,
+    pub gas_per_geyser: i32,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct UnitExt {
+    pub capacity_provided: u16,
+    pub transport: u16,
+    pub size: u8,
+    pub damage_type: u8,
+    pub cloak: u8,
+    pub detector_radius: i32,
+    pub miss_chance: i32,
+    pub burrow_ticks: i32,
+    pub rally_x: i32,
+    pub rally_y: i32,
+    pub bounty: i32,
+    pub deny_pct: u8,
+    pub deny_xp_pct: u8,
+    pub player_controlled: bool,
+    pub melee: bool,
+    pub xp_bounty: i32,
+    pub assist_radius: i32,
+    pub acquire: u32,
+    pub night_sight: i32,
+    pub attack_point: u16,
+    pub missile_speed: u16,
+    pub bounty_min: i32,
+    pub bounty_max: i32,
+    pub attack_backswing: u16,
+    pub missile_homing: bool,
+    pub missile_arc: u8,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Channel {
+    pub channelled: bool,
+    pub duration: i32,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Research {
+    pub name: Name,
+    pub building: u16,
+    pub time: i32,
+    pub resource_a: i32,
+    pub gas: i32,
+    pub effect: u32,
+    pub applies_mask: u32,
+    pub to_new: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Prereq {
+    pub target_kind: u8,
+    pub requirement_kind: u8,
+    pub target: u16,
+    pub requirement: u16,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DamageFactor {
+    pub damage_type: u8,
+    pub size: u8,
+    pub factor: i32,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Prop {
+    pub id: u32,
+    pub kind: u16,
+    pub x: i32,
+    pub y: i32,
+    pub rotation: i32,
+    pub scale: i32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Item {
+    pub name: Name,
+    pub cost: i32,
+    pub stats: [i32; ITEM_STAT_COUNT],
+    pub ability: u16,
+    pub aura: u16,
+    pub components: [u16; ITEM_COMPONENTS],
+    pub flags: u16,
+    pub tier: u8,
+    pub tags: u8,
+    pub charges: u16,
+    pub stack_max: u16,
+    pub stock_max: u8,
+    pub stock_initial: u8,
+    pub stock_time_s: u16,
+    pub stock_start_s: u16,
+}
+
+impl Default for Item {
+    fn default() -> Self {
+        Item {
+            name: Name::default(),
+            cost: 0,
+            stats: [0; ITEM_STAT_COUNT],
+            ability: 0,
+            aura: NO_INDEX,
+            components: [0; ITEM_COMPONENTS],
+            flags: 0,
+            tier: 0,
+            tags: 0,
+            charges: 0,
+            stack_max: 0,
+            stock_max: 0,
+            stock_initial: 0,
+            stock_time_s: 0,
+            stock_start_s: 0,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Catalog {
+    pub names: NameLists,
     pub strs: Vec<u8>,
+    pub items: Vec<Item>,
     pub effects: Vec<Effect>,
     pub abilities: Vec<Ability>,
     pub uabl: Vec<u16>,
     pub units: Vec<Unit>,
     pub behaviours: Vec<Behaviour>,
+    pub placements: Vec<Placement>,
+    pub regen: Vec<Regen>,
+    pub limit: u32,
+    pub starts: Vec<Start>,
+    pub econ: Econ,
+    pub tune: Tune,
+    pub unit_ext: Vec<UnitExt>,
+    pub channels: Vec<Channel>,
+    pub ext: Vec<crate::spell::AbilityExt>,
+    pub research: Vec<Research>,
+    pub prereqs: Vec<Prereq>,
+    pub damage_factors: Vec<DamageFactor>,
+    pub props: Vec<Prop>,
+    pub routes: Vec<crate::waypoints::Route>,
 }
 
 impl Catalog {
@@ -171,6 +393,10 @@ impl Catalog {
 
     pub fn unit_index(&self, name: &str) -> Option<usize> {
         self.units.iter().position(|u| self.name(u.name) == name)
+    }
+
+    pub fn item_index(&self, name: &str) -> Option<usize> {
+        self.items.iter().position(|i| self.name(i.name) == name)
     }
 }
 
@@ -247,6 +473,19 @@ fn valid_name(s: &[u8]) -> bool {
         && s.iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_')
 }
 
+fn check_model(strs: &[u8], n: Name) -> Result<(), LoadError> {
+    if n.len == 0 {
+        return Ok(());
+    }
+    let a = n.offset as usize;
+    let b = a + n.len as usize;
+    let ok = b <= strs.len() && strs[a..b].iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-' || c == b'_');
+    if !ok {
+        return Err(LoadError::Range("model name"));
+    }
+    Ok(())
+}
+
 fn check_name(strs: &[u8], n: Name) -> Result<(), LoadError> {
     let a = n.offset as usize;
     let b = a + n.len as usize;
@@ -256,7 +495,117 @@ fn check_name(strs: &[u8], n: Name) -> Result<(), LoadError> {
     Ok(())
 }
 
-/// Parses a version 2 OSDT image into its catalog and its grid.
+fn effect_param_error(e: &Effect) -> Option<&'static str> {
+    match e.kind {
+        EFFECT_ISSUE_ORDER if !(0..=2).contains(&e.p0) || !(0..=1).contains(&e.p1) => {
+            Some("issue_order order or point code")
+        }
+        EFFECT_REMOVE_BEHAVIOUR if e.p0 < 0 || e.p1 < 0 => Some("remove_behaviour kind or radius"),
+        EFFECT_SHIELD_BONUS if e.p0 < 0 || e.p1 < 0 || e.p2 < 0 => Some("shield_bonus amount, duration or lock"),
+        EFFECT_VITAL_FRACTION
+            if !(0..=1).contains(&e.p0)
+                || !(0..=65536).contains(&e.p1)
+                || !(0..=1).contains(&e.p2)
+                || !(0..=1).contains(&e.p3) =>
+        {
+            Some("vital_fraction vital, fraction, mode or target")
+        }
+        EFFECT_DAMAGE | EFFECT_HEAL if e.p0 < 0 || e.p1 < 0 || (e.kind == EFFECT_DAMAGE && !crate::spell::spell_type_valid(e.p2)) || (e.kind == EFFECT_HEAL && !(0..=2).contains(&e.p2)) => {
+            Some("damage or heal amount, radius or type")
+        }
+        EFFECT_BUFF if e.p0 < 0 || e.p1 < 0 => Some("buff kind or duration"),
+        EFFECT_SLOW if e.p0 < 1 || !(0..=65536).contains(&e.p1) => Some("slow duration or multiplier"),
+        k if EFFECT_STATUS_DURATION.contains(&k) && e.p0 < 1 => Some("status duration"),
+        EFFECT_STAT if !(0..crate::spell::STAT_COUNT as i32).contains(&e.p0) => Some("stat code"),
+        k if k >= crate::spell::FIRST_SPELL_KIND => crate::spell::spell_effect_error(e),
+        EFFECT_TIMED_SPAWN if e.p0 < 0 || e.p1 < 1 || e.p2 < 0 || e.p3 < 0 => Some("ward unit, lifetime, count or spacing"),
+        EFFECT_CREATE_HEALER if e.p0 < 0 || e.p1 < 0 || e.p2 < 1 || e.p3 < 1 => {
+            Some("create_healer amount, radius, period or lifetime")
+        }
+        _ => None,
+    }
+}
+
+fn read_skill(sr: &mut Reader<'_>, effects: &[Effect], first: usize, count: usize) -> Result<Option<Skill>, LoadError> {
+    let has = sr.u8("skill has")?;
+    let max_rank = sr.u8("skill max rank")?;
+    let ultimate = sr.u8("skill ultimate")?;
+    sr.skip(5, "skill reserved")?;
+    let mut skill = Skill::default();
+    for table in [&mut skill.gates, &mut skill.damage, &mut skill.cooldown, &mut skill.energy] {
+        for value in table.iter_mut() {
+            *value = sr.i32("skill value")?;
+        }
+    }
+    if has == 0 {
+        if max_rank != 0 || ultimate != 0 || skill != Skill::default() {
+            return Err(LoadError::Range("skill values without a skill tree"));
+        }
+        return Ok(None);
+    }
+    if has != 1 || max_rank == 0 || max_rank as usize > SKILL_RANKS || ultimate > 1 {
+        return Err(LoadError::Range("skill header"));
+    }
+    if ultimate == 1 && max_rank > ULTIMATE_RANKS {
+        return Err(LoadError::Range("ultimate rank count"));
+    }
+    let ranks = max_rank as usize;
+    for k in 0..SKILL_RANKS {
+        if k >= ranks {
+            if skill.gates[k] != 0 || skill.damage[k] != 0 || skill.cooldown[k] != 0 || skill.energy[k] != 0 {
+                return Err(LoadError::Range("skill entry past max rank"));
+            }
+            continue;
+        }
+        let gate_ok = (NORMAL_GATE..=MAX_NORMAL_GATE).contains(&skill.gates[k]) && (k == 0 || skill.gates[k] >= skill.gates[k - 1]);
+        if !gate_ok {
+            return Err(LoadError::Range("skill level gate"));
+        }
+        if skill.damage[k] < 0 || skill.cooldown[k] < 0 || skill.energy[k] < 0 {
+            return Err(LoadError::Range("skill value negative"));
+        }
+    }
+    let takes_amount = effects[first..first + count].iter().any(|e| EFFECT_AMOUNT_KINDS.contains(&e.kind));
+    if !takes_amount && skill.damage.iter().any(|&d| d != 0) {
+        return Err(LoadError::Range("skill damage without an amount effect"));
+    }
+    skill.ultimate = ultimate == 1;
+    skill.max_rank = max_rank;
+    Ok(Some(skill))
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct NameLists {
+    pub stat_names: Vec<String>,
+    pub effect_kinds: Vec<String>,
+    pub filter_names: Vec<String>,
+    pub mod_conds: Vec<String>,
+    pub prop_kinds: Vec<String>,
+}
+
+fn name_list(bytes: &[u8], (off, count): (usize, usize), what: &'static str) -> Result<Vec<String>, LoadError> {
+    let body = bytes.get(off..off + count).ok_or(LoadError::Section(what))?;
+    let mut names: Vec<String> = Vec::new();
+    let mut at = 0;
+    while at < body.len() {
+        let len = body[at] as usize;
+        if len == 0 {
+            return Err(LoadError::Section(what));
+        }
+        let text = body.get(at + 1..at + 1 + len).ok_or(LoadError::Section(what))?;
+        let name = std::str::from_utf8(text).map_err(|_| LoadError::Section(what))?;
+        if names.iter().any(|n| n == name) {
+            return Err(LoadError::Section(what));
+        }
+        names.push(name.to_owned());
+        at += 1 + len;
+    }
+    if names.is_empty() {
+        return Err(LoadError::Section(what));
+    }
+    Ok(names)
+}
+
 pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let mut r = Reader { buf: bytes, at: 0 };
     if r.take(4, "magic")? != &MAGIC[..] {
@@ -276,7 +625,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         return Err(LoadError::BadLength { header: total, file: bytes.len() });
     }
 
-    let mut sections = [(0usize, 0usize); 7];
+    let mut sections = [(0usize, 0usize); 27];
     let mut expect = HEADER_LEN + SECTION_TAGS.len() * SECTION_ENTRY;
     for (k, tag) in SECTION_TAGS.iter().enumerate() {
         if r.take(4, "section tag")? != &tag[..] {
@@ -297,6 +646,17 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     }
     let body = |k: usize| sections[k];
 
+    let names = NameLists {
+        stat_names: name_list(bytes, body(22), "SNAM")?,
+        effect_kinds: name_list(bytes, body(23), "EKND")?,
+        filter_names: name_list(bytes, body(24), "FNAM")?,
+        mod_conds: name_list(bytes, body(25), "MCND")?,
+        prop_kinds: name_list(bytes, body(26), "DKND")?,
+    };
+    if names.stat_names.len() != crate::spell::STAT_COUNT {
+        return Err(LoadError::Section("SNAM count differs from the engine's stat slots"));
+    }
+
     let (so, sl) = body(0);
     let strs = bytes[so..so + sl].to_vec();
 
@@ -305,15 +665,30 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let mut effects = Vec::with_capacity(ec);
     for _ in 0..ec {
         let kind = er.u16("effect kind")?;
-        if kind >= EFFECT_KINDS {
+        if kind as usize >= names.effect_kinds.len() {
             return Err(LoadError::Range("effect kind"));
         }
         er.skip(2, "effect reserved")?;
-        effects.push(Effect { kind, p0: er.i32("p0")?, p1: er.i32("p1")?, p2: er.i32("p2")? });
+        let eff = Effect {
+            kind,
+            p0: er.i32("p0")?,
+            p1: er.i32("p1")?,
+            p2: er.i32("p2")?,
+            p3: er.i32("p3")?,
+        };
+        if let Some(why) = effect_param_error(&eff) {
+            return Err(LoadError::Range(why));
+        }
+        effects.push(eff);
     }
 
     let (ao, ac) = body(2);
     let mut ar = Reader { buf: bytes, at: ao };
+    let (so, sc) = body(18);
+    if sc != ac {
+        return Err(LoadError::Section("skill count"));
+    }
+    let mut sr = Reader { buf: bytes, at: so };
     let mut abilities = Vec::with_capacity(ac);
     for _ in 0..ac {
         let name = ar.name("ability name")?;
@@ -325,7 +700,10 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let filter = ar.u16("target filter")?;
         let effect_first = ar.u32("effect first")?;
         let projectile_speed = ar.i32("projectile speed")?;
-        ar.skip(4, "ability reserved")?;
+        let initial_cooldown = ar.i32("initial cooldown")?;
+        if initial_cooldown < 0 {
+            return Err(LoadError::Range("ability initial cooldown"));
+        }
         check_name(&strs, name)?;
         if flags & !1 != 0 {
             return Err(LoadError::Range("ability flags reserved bit"));
@@ -342,7 +720,12 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if effect_first as usize + effect_count as usize > ec {
             return Err(LoadError::Range("effect run"));
         }
-        abilities.push(Ability { name, flags, cooldown, energy, target, effect_count, effect_first, projectile_speed, filter });
+        let skill = read_skill(&mut sr, &effects, effect_first as usize, effect_count as usize)?;
+        abilities.push(Ability { name, flags, cooldown, energy, target, effect_count, effect_first, projectile_speed, initial_cooldown, filter, skill });
+    }
+
+    if effects.iter().any(|e| e.kind == EFFECT_USE_CALLDOWN && (e.p0 < 0 || e.p0 as usize >= abilities.len())) {
+        return Err(LoadError::Range("use_calldown ability index"));
     }
 
     let (uo, uc) = body(3);
@@ -365,12 +748,12 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let health = nr.i32("health")?;
         let speed = nr.i32("speed")?;
         let radius = nr.i32("radius")?;
-        let minerals = nr.i32("minerals")?;
+        let resource_a = nr.i32("resource_a")?;
         let gas = nr.i32("gas")?;
         let build_ticks = nr.i32("build time")?;
         let abil_first = nr.u32("first ability")?;
         let abil_count = nr.u16("ability count")?;
-        let supply = nr.u16("supply")?;
+        let capacity = nr.u16("capacity")?;
         let filter = nr.u32("filter mask")?;
         let shield = nr.i32("shield")?;
         let armor = nr.i32("armor")?;
@@ -382,6 +765,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         let response = nr.u8("damage response")?;
         let resource_kind = nr.u8("resource kind")?;
         let harvest_amount = nr.i32("harvest amount")?;
+        let model = nr.name("unit model")?;
         nr.skip(4, "unit reserved")?;
         if resource_kind >= RESOURCE_KINDS {
             return Err(LoadError::Range("resource kind code"));
@@ -390,6 +774,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
             return Err(LoadError::Range("harvest amount must be >= 0"));
         }
         check_name(&strs, name)?;
+        check_model(&strs, model)?;
         if health <= 0 {
             return Err(LoadError::Range("health must be > 0"));
         }
@@ -419,16 +804,17 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         }
         units.push(Unit {
             name,
+            model,
             flags,
             health,
             speed,
             radius,
-            minerals,
+            resource_a,
             gas,
             build_ticks,
             abil_first,
             abil_count,
-            supply,
+            capacity,
             filter,
             shield,
             armor,
@@ -457,6 +843,9 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if trigger >= TRIGGER_CODES || action >= ACTION_CODES {
             return Err(LoadError::Range("trigger or action code"));
         }
+        if action == crate::ACTION_FLEE {
+            return Err(LoadError::Range("behaviour action flee is not implemented"));
+        }
         if action == 2 && ability == NO_INDEX {
             return Err(LoadError::Range("use_ability needs an ability"));
         }
@@ -466,7 +855,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         behaviours.push(Behaviour { name, trigger, action, param, ability });
     }
 
-    let (go, gl) = body(6);
+    let (go, gl) = body(16);
     if gl < GRID_HEADER {
         return Err(LoadError::Truncated("GRID header"));
     }
@@ -474,28 +863,472 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
     let w = gr.u32("grid width")? as usize;
     let h = gr.u32("grid height")? as usize;
     let cell_milli = gr.i32("cell size")?;
+    let height_step = gr.i32("height step")?;
+    if height_step < 1 {
+        return Err(LoadError::Range("height step must be >= 1"));
+    }
     if w < 1 || h < 1 {
         return Err(LoadError::Range("grid size must be >= 1"));
     }
     if cell_milli != CELL_MILLI {
         return Err(LoadError::Range("cell size must be 1000 milli-units"));
     }
-    if GRID_HEADER.checked_add(w.checked_mul(h).ok_or(LoadError::Range("grid size"))?) != Some(gl) {
-        return Err(LoadError::Range("GRID body length is not 12 + w*h"));
+    let cells = w.checked_mul(h).ok_or(LoadError::Range("grid size"))?;
+    if cells.checked_mul(3).and_then(|n| n.checked_add(GRID_HEADER)) != Some(gl) {
+        return Err(LoadError::Range("GRID body length is not 16 + 3*w*h"));
     }
     let flags = gr.take(w * h, "grid cells")?.to_vec();
     if flags.iter().any(|&c| c & !CELL_BITS != 0) {
-        return Err(LoadError::Range("grid cell bits outside 0b11"));
+        return Err(LoadError::Range("grid cell bits outside 0b111 (blocked, cliff, ramp)"));
     }
-    let grid = Grid { w, h, flags };
+    let heights = gr.take(w * h, "grid heights")?.to_vec();
+    let tiles = gr.take(w * h, "grid tiles")?.to_vec();
+    let grid = Grid { w, h, flags, heights, tiles, height_step };
 
-    Ok((Catalog { strs, effects, abilities, uabl, units, behaviours }, grid))
+    let diagonal2 = (w as i64 * CELL_MILLI as i64).pow(2) + (h as i64 * CELL_MILLI as i64).pow(2);
+    if effects.iter().any(|e| e.kind == EFFECT_MOVE && (e.p0 <= 0 || (e.p0 as i64).pow(2) > diagonal2)) {
+        return Err(LoadError::Range("move cap outside 1..=grid diagonal"));
+    }
+
+    let (po, pc) = body(6);
+    let mut pr = Reader { buf: bytes, at: po };
+    let mut placements = Vec::with_capacity(pc);
+    let mut starts: Vec<Start> = Vec::new();
+    for _ in 0..pc {
+        let unit = pr.u16("placement unit")? as usize;
+        let player = pr.u16("placement player")?;
+        let x = pr.i32("placement x")?;
+        let y = pr.i32("placement y")?;
+        let flags = pr.u32("placement flags")?;
+        if flags & !(PLACE_START | PLACE_TEAM | PLACE_TEAM_MASK) != 0 {
+            return Err(LoadError::Range("placement flags outside the start and team bits"));
+        }
+        if x < 0 || y < 0 || x as i64 >= w as i64 * CELL_MILLI as i64 || y as i64 >= h as i64 * CELL_MILLI as i64 {
+            return Err(LoadError::Range("placement outside the grid"));
+        }
+        let (x, y) = (fixed::from_milli(x), fixed::from_milli(y));
+        if flags & PLACE_START != 0 {
+            if unit != NO_INDEX as usize || player > 15 {
+                return Err(LoadError::Range("start record needs unit 0xFFFF and player 0..=15"));
+            }
+            if starts.iter().any(|s| s.player == player as u8) {
+                return Err(LoadError::Range("two start records for one player"));
+            }
+            let team = if flags & PLACE_TEAM != 0 { ((flags & PLACE_TEAM_MASK) >> PLACE_TEAM_SHIFT) as usize } else { player as usize };
+            if team >= crate::MAX_PLAYERS {
+                return Err(LoadError::Range("start team outside 0..MAX_PLAYERS"));
+            }
+            starts.push(Start { player: player as u8, team: team as u8, x, y });
+            continue;
+        }
+        if unit >= units.len() || (player > 15 && player != NO_INDEX) {
+            return Err(LoadError::Range("placement unit or player"));
+        }
+        let owner = if player == NO_INDEX { NEUTRAL_PLAYER } else { player as u8 };
+        placements.push(Placement { unit, player: owner, x, y });
+    }
+
+    let (ro, rc) = body(7);
+    if rc != units.len() {
+        return Err(LoadError::Range("REGN count is not the UNIT count"));
+    }
+    let mut rr = Reader { buf: bytes, at: ro };
+    let mut regen = Vec::with_capacity(rc);
+    for _ in 0..rc {
+        let shield_per_tick = rr.i32("regen shield")?;
+        let delay = rr.i32("regen delay")?;
+        let hp_per_tick = rr.i32("regen health")?;
+        if shield_per_tick < 0 || delay < 0 || hp_per_tick < 0 {
+            return Err(LoadError::Range("regeneration below zero"));
+        }
+        regen.push(Regen { shield_per_tick, delay, hp_per_tick });
+    }
+
+    let (lo, lc) = body(8);
+    if lc != LIMT_COUNT {
+        return Err(LoadError::Range("LIMT count is not 1"));
+    }
+    let limit = Reader { buf: bytes, at: lo }.u32("cell unit limit")?;
+
+    let (eco, ecn) = body(9);
+    if ecn != 1 {
+        return Err(LoadError::Range("ECON count is not 1"));
+    }
+    let econ = {
+        let mut er = Reader { buf: bytes, at: eco };
+        let workers_per_mineral = er.u8("econ mineral saturation")?;
+        let workers_per_extractor = er.u8("econ gas saturation")?;
+        let patches_per_base = er.u8("econ mineral patches")?;
+        let extractors_per_base = er.u8("econ extractors")?;
+        let gas_per_trip = er.i32("econ gas per trip")?;
+        let opening_resource_a = er.i32("econ opening resource_a")?;
+        let opening_gas = er.i32("econ opening gas")?;
+        let opening_workers = er.u16("econ opening workers")?;
+        let capacity_base = er.u16("econ capacity base")?;
+        let capacity_max = er.u16("econ capacity max")?;
+        er.skip(2, "econ reserved")?;
+        let resource_a_per_patch = er.i32("econ resource_a per patch")?;
+        let gas_per_geyser = er.i32("econ gas per geyser")?;
+        if workers_per_mineral < 1 || workers_per_extractor < 1 || gas_per_trip < 0 || opening_resource_a < 0
+            || opening_gas < 0 || resource_a_per_patch < 0 || gas_per_geyser < 0
+        {
+            return Err(LoadError::Range("economy value outside its table"));
+        }
+        Econ {
+            workers_per_mineral,
+            workers_per_extractor,
+            patches_per_base,
+            extractors_per_base,
+            gas_per_trip,
+            opening_resource_a,
+            opening_gas,
+            opening_workers,
+            capacity_base,
+            capacity_max,
+            resource_a_per_patch,
+            gas_per_geyser,
+        }
+    };
+
+    let (to, tc) = body(21);
+    if tc != 1 {
+        return Err(LoadError::Range("TUNE count is not 1"));
+    }
+    let tune = {
+        let mut tr = Reader { buf: bytes, at: to };
+        let structure_scan_cells = tr.u8("tune structure scan cells")?;
+        let teleport_ring_points = tr.u8("tune teleport ring points")?;
+        let teleport_ring_steps = tr.u8("tune teleport ring steps")?;
+        tr.skip(1, "tune reserved")?;
+        let mut mask = [0u8; 8];
+        mask.copy_from_slice(tr.take(8, "tune best only")?);
+        let best_only = u64::from_le_bytes(mask);
+        let mut xp_curve = Vec::with_capacity(XP_CURVE_LEN);
+        for _ in 0..XP_CURVE_LEN {
+            xp_curve.push(tr.u32("tune xp threshold")?);
+        }
+        if structure_scan_cells > STRUCTURE_SCAN_MAX_CELLS {
+            return Err(LoadError::Range("tune structure scan cells above its maximum"));
+        }
+        if teleport_ring_points == 0 || teleport_ring_points > TELEPORT_RING_MAX_POINTS {
+            return Err(LoadError::Range("tune teleport ring points outside 1..=8"));
+        }
+        if teleport_ring_steps == 0 {
+            return Err(LoadError::Range("tune teleport ring steps is 0"));
+        }
+        if best_only >> ITEM_STAT_COUNT != 0 {
+            return Err(LoadError::Range("tune best-only mask names a stat past the item stats"));
+        }
+        if !xp_curve.windows(2).all(|w| w[0] <= w[1]) {
+            return Err(LoadError::Range("tune xp curve is not nondecreasing"));
+        }
+        Tune { structure_scan_cells, teleport_ring_points, teleport_ring_steps, best_only, xp_curve }
+    };
+
+    let (xo, xc) = body(10);
+    if xc != units.len() {
+        return Err(LoadError::Range("UEXT count is not the UNIT count"));
+    }
+    let mut xr = Reader { buf: bytes, at: xo };
+    let mut unit_ext = Vec::with_capacity(xc);
+    for _ in 0..xc {
+        let capacity_provided = xr.u16("ext capacity")?;
+        let transport = xr.u16("ext transport")?;
+        let size = xr.u8("ext size")?;
+        let damage_type = xr.u8("ext damage type")?;
+        let cloak = xr.u8("ext cloak")?;
+        xr.skip(1, "ext reserved")?;
+        let detector_radius = xr.i32("ext detector radius")?;
+        let miss_chance = xr.i32("ext miss chance")?;
+        let burrow_ticks = xr.i32("ext burrow time")?;
+        let rally_x = xr.i32("ext rally x")?;
+        let rally_y = xr.i32("ext rally y")?;
+        let bounty = xr.i32("ext bounty")?;
+        let deny_pct = xr.u8("ext deny pct")?;
+        let deny_xp_pct = xr.u8("ext deny xp pct")?;
+        let flags = xr.u8("ext flags")?;
+        xr.skip(1, "ext reserved 2")?;
+        let xp_bounty = xr.i32("ext xp bounty")?;
+        let assist_radius = xr.i32("ext assist radius")?;
+        let acquire = xr.u32("ext acquire")?;
+        let night_sight = xr.i32("ext night sight")?;
+        let attack_point = xr.u16("ext attack point")?;
+        let missile_speed = xr.u16("ext missile speed")?;
+        let bounty_min = xr.i32("ext bounty min")?;
+        let bounty_max = xr.i32("ext bounty max")?;
+        let attack_backswing = xr.u16("ext attack backswing")?;
+        let missile_flags = xr.u8("ext missile flags")?;
+        let missile_arc = xr.u8("ext missile arc")?;
+        if missile_flags > 1 {
+            return Err(LoadError::Range("unit extension missile flags"));
+        }
+        if bounty_min < 0 || bounty_max < bounty_min {
+            return Err(LoadError::Range("unit bounty range is negative or inverted"));
+        }
+        if size >= SIZE_CATEGORY_COUNT || damage_type >= DAMAGE_TYPE_COUNT || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 || bounty < 0 {
+            return Err(LoadError::Range("unit extension outside its table"));
+        }
+        if deny_pct > 100 || deny_xp_pct > 100 || flags > 3 || xp_bounty < 0 || assist_radius < 0 || night_sight < 0 {
+            return Err(LoadError::Range("unit extension deny or xp outside its table"));
+        }
+        unit_ext.push(UnitExt {
+            capacity_provided,
+            transport,
+            size,
+            damage_type,
+            cloak,
+            detector_radius,
+            miss_chance,
+            burrow_ticks,
+            rally_x,
+            rally_y,
+            bounty,
+            deny_pct,
+            deny_xp_pct,
+            player_controlled: flags & 1 != 0,
+            melee: flags & 2 != 0,
+            xp_bounty,
+            assist_radius,
+            acquire,
+            night_sight,
+            attack_point,
+            missile_speed,
+            bounty_min,
+            bounty_max,
+            attack_backswing,
+            missile_homing: missile_flags & 1 != 0,
+            missile_arc,
+        });
+    }
+
+    let (ach, achn) = body(11);
+    if achn != abilities.len() {
+        return Err(LoadError::Range("ACHN count is not the ABIL count"));
+    }
+    let mut cr = Reader { buf: bytes, at: ach };
+    let mut channels = Vec::with_capacity(achn);
+    for _ in 0..achn {
+        let flags = cr.u16("channel flags")?;
+        cr.skip(2, "channel reserved")?;
+        let duration = cr.i32("channel duration")?;
+        let channelled = flags & 1 == 1;
+        if flags & !1 != 0 || duration < 0 || (channelled && duration < 1) || (!channelled && duration != 0) {
+            return Err(LoadError::Range("channel record outside its table"));
+        }
+        channels.push(Channel { channelled, duration });
+    }
+
+    let routes = crate::waypoints::parse_waypoints(bytes, body(20), w, h, &grid.flags)?;
+    let ext = crate::spell::parse_ext(bytes, body(19), &abilities, &effects)?;
+
+    let (rso, rsc) = body(12);
+    let mut rsr = Reader { buf: bytes, at: rso };
+    let mut research = Vec::with_capacity(rsc);
+    for _ in 0..rsc {
+        let name = rsr.name("research name")?;
+        let building = rsr.u16("research building")?;
+        let time = rsr.i32("research time")?;
+        let resource_a = rsr.i32("research resource_a")?;
+        let gas = rsr.i32("research gas")?;
+        let effect = rsr.u32("research effect")?;
+        let applies_mask = rsr.u32("research applies-to")?;
+        rsr.skip(4, "research reserved")?;
+        if name.offset as usize + name.len as usize > strs.len()
+            || building as usize >= units.len()
+            || effect as usize >= effects.len()
+        {
+            return Err(LoadError::Range("research name, building or effect index"));
+        }
+        research.push(Research { name, building, time, resource_a, gas, effect, applies_mask, to_new: false });
+    }
+
+    let (pqo, pqc) = body(13);
+    let mut pqr = Reader { buf: bytes, at: pqo };
+    let mut prereqs = Vec::with_capacity(pqc);
+    for _ in 0..pqc {
+        let target_kind = pqr.u8("prereq target kind")?;
+        let requirement_kind = pqr.u8("prereq requirement kind")?;
+        let target = pqr.u16("prereq target")?;
+        let requirement = pqr.u16("prereq requirement")?;
+        pqr.skip(2, "prereq reserved")?;
+        if target_kind > 1 || requirement_kind > 1 {
+            return Err(LoadError::Range("prerequisite kind above 1"));
+        }
+        let target_ok = if target_kind == 0 { (target as usize) < units.len() } else { (target as usize) < research.len() };
+        let req_ok = if requirement_kind == 0 {
+            (requirement as usize) < units.len()
+        } else {
+            (requirement as usize) < research.len()
+        };
+        if !target_ok || !req_ok {
+            return Err(LoadError::Range("prerequisite index past its section"));
+        }
+        prereqs.push(Prereq { target_kind, requirement_kind, target, requirement });
+    }
+
+    let (dmo, dmc) = body(14);
+    let mut dmr = Reader { buf: bytes, at: dmo };
+    let mut damage_factors = Vec::with_capacity(dmc);
+    for _ in 0..dmc {
+        let damage_type = dmr.u8("factor damage type")?;
+        let size = dmr.u8("factor size")?;
+        dmr.skip(2, "factor reserved")?;
+        let factor = dmr.i32("factor")?;
+        if damage_type >= DAMAGE_TYPE_COUNT || size >= SIZE_CATEGORY_COUNT || factor < 0 {
+            return Err(LoadError::Range("damage factor outside its table"));
+        }
+        damage_factors.push(DamageFactor { damage_type, size, factor });
+    }
+
+    let (dd, ddc) = body(15);
+    let mut ddr = Reader { buf: bytes, at: dd };
+    let mut props: Vec<Prop> = Vec::with_capacity(ddc);
+    for _ in 0..ddc {
+        let id = ddr.u32("prop id")?;
+        let kind = ddr.u16("prop kind")?;
+        ddr.skip(2, "prop reserved")?;
+        let x = ddr.i32("prop x")?;
+        let y = ddr.i32("prop y")?;
+        let rotation = ddr.i32("prop rotation")?;
+        let scale = ddr.i32("prop scale")?;
+        if kind as usize >= names.prop_kinds.len()
+            || !(0..1000).contains(&rotation)
+            || !(1..=100000).contains(&scale)
+            || x < 0
+            || y < 0
+            || x as i64 >= w as i64 * CELL_MILLI as i64
+            || y as i64 >= h as i64 * CELL_MILLI as i64
+        {
+            return Err(LoadError::Range("prop outside its table"));
+        }
+        if props.iter().any(|d| d.id == id) {
+            return Err(LoadError::Range("prop id repeats"));
+        }
+        props.push(Prop { id, kind, x, y, rotation, scale });
+    }
+
+    let (io, ic) = body(17);
+    let mut ir = Reader { buf: bytes, at: io };
+    let mut items: Vec<Item> = Vec::with_capacity(ic);
+    for _ in 0..ic {
+        let name = ir.name("item name")?;
+        let flags = ir.u16("item flags")?;
+        let cost = ir.i32("item cost")?;
+        let ability = ir.u16("item ability")?;
+        let tier = ir.u8("item tier")?;
+        let tags = ir.u8("item tags")?;
+        let mut components = [NO_INDEX; ITEM_COMPONENTS];
+        for c in components.iter_mut() {
+            *c = ir.u16("item component")?;
+        }
+        let charges = ir.u16("item charges")?;
+        let stack_max = ir.u16("item stack")?;
+        let stock_max = ir.u8("item stock max")?;
+        let stock_initial = ir.u8("item stock initial")?;
+        let stock_time_s = ir.u16("item stock time")?;
+        let stock_start_s = ir.u16("item stock start")?;
+        let aura = ir.u16("item aura")?;
+        let mut stats = [0i32; ITEM_STAT_COUNT];
+        for v in stats.iter_mut() {
+            *v = ir.i32("item stat")?;
+        }
+        let item = Item {
+            name,
+            cost,
+            stats,
+            ability,
+            aura,
+            components,
+            flags,
+            tier,
+            tags,
+            charges,
+            stack_max,
+            stock_max,
+            stock_initial,
+            stock_time_s,
+            stock_start_s,
+        };
+        let ability_ok = item.ability == NO_INDEX || (item.ability as usize) < abilities.len();
+        let aura_ok = item.aura == NO_INDEX || (item.aura as usize) < abilities.len();
+        let mut component_cost = 0i64;
+        let components_ok = item.components.iter().all(|&c| {
+            if c == NO_INDEX {
+                return true;
+            }
+            match items.get(c as usize) {
+                Some(part) => {
+                    component_cost += i64::from(part.cost);
+                    true
+                }
+                None => false,
+            }
+        });
+        if item.cost < 0
+            || item.flags & !ITEM_FLAG_MASK != 0
+            || item.tier > NEUTRAL_TIERS
+            || item.stock_initial > item.stock_max
+            || !ability_ok
+            || !aura_ok
+            || !components_ok
+            || component_cost > i64::from(item.cost)
+        {
+            return Err(LoadError::Range("item outside its table"));
+        }
+        items.push(item);
+    }
+
+    Ok((
+        Catalog {
+            names,
+            strs,
+            items,
+            effects,
+            abilities,
+            uabl,
+            units,
+            behaviours,
+            placements,
+            regen,
+            limit,
+            starts,
+            econ,
+            tune,
+            unit_ext,
+            channels,
+            ext,
+            research,
+            prereqs,
+            damage_factors,
+            props,
+            routes,
+        },
+        grid,
+    ))
 }
 
-/// Loads a version 2 image into a simulation on the map's own grid.
 pub fn load(bytes: &[u8], max_units: usize) -> Result<Sim, LoadError> {
     let (cat, grid) = parse(bytes)?;
-    Ok(Sim::with_catalog(max_units, grid, cat))
+    let mut sim = Sim::with_catalog(max_units, grid, cat);
+    for k in 0..sim.cat.placements.len() {
+        let p = sim.cat.placements[k];
+        let Some(i) = sim.spawn_for(p.player, p.unit as u32, p.x, p.y) else {
+            return Err(LoadError::Range("placement refused: no slot, unknown unit or blocked cell"));
+        };
+        if p.player == NEUTRAL_PLAYER {
+            sim.mark_group(i);
+        }
+        if sim.cat.unit_ext.get(p.unit as usize).is_some_and(|e| e.player_controlled) {
+            sim.enroll_attributed(i, p.x, p.y);
+        }
+    }
+    for k in 0..sim.cat.starts.len() {
+        let s = sim.cat.starts[k];
+        if sim.set_team(s.player, s.team).is_err() {
+            return Err(LoadError::Range("start team refused"));
+        }
+    }
+    Ok(sim)
 }
 
 pub fn load_file(path: &Path, max_units: usize) -> Result<Sim, LoadError> {
