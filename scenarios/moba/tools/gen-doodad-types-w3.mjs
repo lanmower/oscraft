@@ -1,30 +1,10 @@
 #!/usr/bin/env node
-// Builds the 6.88w3 doodad type table: every type code of the target map with the doodad kind it
-// becomes, for place-doodads-688g.mjs to place.
-//
-// Usage: node scenarios/moba/tools/gen-doodad-types-w3.mjs [--dir scenarios/moba]
-//        --types <doodad-types-w3.tsv produced by the hy3d map-diff pass>  (required: it lives outside this repo)
-//
-// The target map's placements name 100 type codes. A code becomes a doodad line only when the table
-// says what it is, so the whole job here is identification:
-//   - a code 6.88g also has keeps that map's answer, including its tree rule;
-//   - the D00x custom block resolves to a parent kind read from the map's own doodad table, so a
-//     lantern variant ships as a lantern rather than as nothing;
-//   - a code a public table names is cited in its reason (see IDENTIFIED): it ships only when a
-//     declared kind means the same object, and a destructable is never placed as a doodad;
-//   - a code no source names is marked UNVERIFIED in its reason, and its placements are dropped rather
-//     than shipped as a guess.
-//
-// Trees are marked as trees so the placer skips them: the tree layer carries the terrain's blocked
-// cells, and moving it means regenerating pathability too, which is a separate pass.
 import fs from "node:fs";
 import path from "node:path";
 
 const args = process.argv.slice(2);
 const KNOWN = new Set(["dir", "types"]);
 for (const a of args) if (a.startsWith("--") && !KNOWN.has(a.slice(2).split("=")[0])) throw new Error(`unknown argument ${a}; use --dir <dir> and --types <file>`);
-// Each option takes its value as `--name value` or `--name=value`; a bare `--name` is refused rather than
-// falling back to the default path.
 const flag = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   if (i >= 0) {
@@ -37,37 +17,25 @@ const flag = (name, fallback) => {
 const dir = flag("dir", "scenarios/moba");
 const typesPath = flag("types");
 if (!typesPath) throw new Error("--types <file> is required: the w3 type table is produced outside this repo");
-// Public identities. A WESTRING key is the doodad.ini `name`; its English text is the WorldEditStrings line of
-// the cited copy. Line numbers are of the sumneko/w3x2lni enUS-1.27.1 prebuilt/Melee tables (blob c695b3af).
 const INI = "sumneko/w3x2lni data/enUS-1.27.1/prebuilt/Melee";
 const WES = "Crainax/War3Lib fdf/WorldEditStrings.txt";
 const cite = (key, text, textLine, iniLine) => `${text} (WESTRING_DOOD_${key}, ${WES}:${textLine}; ${INI}/doodad.ini:${iniLine})`;
 const destructable = (key, iniLine) => `destructable, not a doodad (WESTRING_DEST_${key}, ${INI}/destructable.ini:${iniLine}); its placements are dropped`;
 
-// Codes the target map has and 6.88g never did, identified by name rather than by a 6.88g row. Each
-// ships as the declared kind that already means the same thing, so nothing new is invented: a bundle
-// of wheat is a hay bale.
 const NAMED = {
   LPwb: { kind: "hay_bale", why: "a bundle of wheat, read from the editor strings" },
   AWlp: { kind: "lily_pad", why: `same object as 6.88g CPlp (Lily Pad): ${cite("APLP", "Lily Pads", 2799, 1401)}` },
   APct: { kind: "cattail", why: `same object as 6.88g CPct (Cattail): ${cite("APCT", "Cattail", 2798, 521)}` },
 };
-// Codes 6.88g mapped by inference from where they clustered, where the editor strings give a
-// different answer. Direct evidence beats a guess: a glowing brazier is not a gate, and a long fence
-// is not a fountain. A code with no declared kind for its meaning is dropped instead of stretched.
 const OVERRIDE = {
   APms: { kind: "mushrooms", why: "mushrooms from the English editor strings; 6.88g inferred grass_large" },
   AOnt: { kind: "lantern", why: "totem lantern from the English editor strings; 6.88g inferred rocks" },
   APtv: { kind: "hedge", why: "thorny vines from the English editor strings; no vine kind is declared, so hedge is the nearest declared kind (6.88g inferred grass_large)" },
   AOgs: { kind: "", why: "statue from the English editor strings, but no statue kind is declared; dropped rather than shipped as the fountain 6.88g inferred" },
-
   LObz: { kind: "torch_glowing", why: "glowing brazier (\u70bd\u70ed\u7684\u706b\u76c6) from the editor strings; 6.88g inferred iron_fence_border_gate" },
   VOfl: { kind: "fence", why: "long fence (\u957f\u7bf1\u7b06) from the editor strings; 6.88g inferred fountain" },
   LWw0: { kind: "", why: "waterfall (\u7011\u5e03) from the editor strings, but no declared kind is a waterfall; dropped rather than shipped as the catwalk 6.88g inferred" },
 };
-// The custom block, as the map's doodad table resolves it: each is a variant of another code. The
-// value is a rawcode, not a kind name, so it is looked up in the kinds below and ships as whatever
-// that code already ships as -- D00B is a ZPsh variant and ships as bench, because ZPsh ships as bench.
 const PARENT = {
   D00B: "ZPsh", D003: "ZPsh", D000: "NOfl", D001: "AObr", D002: "VOfl", D009: "AObd", D00C: "LPwb",
   D004: "LOlp", D005: "LOlp", D006: "LOlp", D007: "LOlp", D008: "LOlp",
@@ -75,8 +43,6 @@ const PARENT = {
   D00A: "DOtb", D00I: "DOtb", D00J: "DOtb", D00K: "DOtb", D00L: "DOtb", D00M: "DOtb",
   D00N: "DOtb", D00O: "DOtb", D00P: "DOtb", D00Q: "DOtb",
 };
-
-// Codes a public table names but no declared kind means: identified and dropped, with the source in the reason.
 const IDENTIFIED = {
   CSbr: cite("ASBR", "Rubble", 2819, 2881),
   ASbr: cite("ASBR", "Rubble", 2819, 761),
@@ -111,13 +77,11 @@ const rows = (p) => {
 
 const w3 = rows(typesPath);
 const g = new Map(rows(path.join(dir, "doodad-types-688g.tsv")).map((r) => [r.type, r]));
-// What each code ships as: the 6.88g answer where there is one, plus the codes identified by name.
 const kindOf = new Map([...g].map(([t, r]) => [t, r.tree_rule === "tree" ? "" : r.shipped_kind]));
 for (const [code, named] of Object.entries(NAMED)) kindOf.set(code, named.kind);
-// An override also changes what a variant of that code ships as, so it goes into the lookup too.
 for (const [code, o] of Object.entries(OVERRIDE)) kindOf.set(code, o.kind);
 
-const out = ["type\tcount\ttree_rule\tname\tshipped_kind\treason"];
+const out = ["type\count\ttree_rule\tname\tshipped_kind\treason"];
 let reused = 0;
 let fromParent = 0;
 let namedCount = 0;
@@ -125,7 +89,6 @@ let overridden = 0;
 let identifiedOnly = 0;
 let unverified = 0;
 let trees = 0;
-// A code 6.88g names keeps its own reason. A code it does not name, or whose 6.88g row is an inference the editor strings correct, keeps its kind but its reason is marked UNVERIFIED (6.88g silent).
 const markSilent = (code, why) => (why.startsWith("UNVERIFIED") || (g.has(code) && !OVERRIDE[code]) ? why : `UNVERIFIED (6.88g silent): ${why}`);
 for (const r of w3) {
   const override = OVERRIDE[r.type];

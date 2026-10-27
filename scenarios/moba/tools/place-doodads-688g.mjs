@@ -1,6 +1,3 @@
-// Re-places the mapped (non-tree) doodad types into scenarios/moba/map.osd from the decoded placements
-// (doodads-688g.tsv) and the type table (doodad-types-688g.tsv). Tree lines are left as gen-w3-map.mjs wrote them.
-// Usage: node scenarios/moba/tools/place-doodads-688g.mjs [--dir scenarios/moba] [--dry-run]
 import fs from "node:fs";
 import path from "node:path";
 import { MAPPED_ID_BASE, parseRoutes, parseBases, parseTypeTable, mappedDoodadLines } from "./doodad-kinds.mjs";
@@ -8,8 +5,6 @@ import { MAPPED_ID_BASE, parseRoutes, parseBases, parseTypeTable, mappedDoodadLi
 const args = process.argv.slice(2);
 const KNOWN = new Set(["dir", "types", "placements", "dry-run"]);
 for (const a of args) if (a.startsWith("--") && !KNOWN.has(a.slice(2).split("=")[0])) throw new Error(`unknown argument ${a}; use --dir <dir>, --types=<file>, --placements=<file>, --dry-run`);
-// Each option takes its value as `--name value` or `--name=value`; a bare `--name` is refused rather than
-// falling back to the default map, which the run would otherwise overwrite.
 const opt = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   if (i >= 0) {
@@ -20,11 +15,7 @@ const opt = (name, fallback) => {
   return hit ? hit.slice(name.length + 3) : fallback;
 };
 const dir = opt("dir", "scenarios/moba");
-// --dry-run prints the placement counts and writes nothing: a witness runs this form.
 const dryRun = args.includes("--dry-run");
-// Which map's decoded placements to place, and which type table identifies them: the defaults are the
-// 6.88g pair the map was built from, and --types=doodad-types-w3.tsv with --placements=doodads-w3.tsv
-// places the 6.88w3 target instead.
 const placementsName = opt("placements", "doodads-688g.tsv");
 const typeTableName = opt("types", "doodad-types-688g.tsv");
 const GX = 35, GY = 35, UNIT_MILLI = 1000 / 64;
@@ -34,9 +25,6 @@ const kinds = parseTypeTable(fs.readFileSync(path.join(dir, typeTableName), "utf
 const records = fs.readFileSync(path.join(dir, placementsName), "utf8").trim().split("\n").slice(1).map((l) => {
   const c = l.split("\t");
   const [x, y] = toMilli(Number(c[2]), Number(c[3]));
-  // Column 6 is the 6.88g per-instance scale (scale_x; all three axes are uniform). The builtin
-  // takes thousandths, so 1.10 -> 1100. A missing or non-positive value leaves the record
-  // scaleless and the line omits scale, which the loader reads as 1000.
   const rawScale = Math.round(Number(c[6]) * 1000);
   const scale = Number.isFinite(rawScale) && rawScale > 0 && rawScale <= 100000 ? rawScale : undefined;
   return { type: c[0], x, y, scale };

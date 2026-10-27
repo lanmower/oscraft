@@ -36,7 +36,8 @@
     "waves.osd",
     "abilities_688g_creeps.osd",
     "units_super_creeps.osd",
-    "units_courier_skins.osd"
+    "units_courier_skins.osd",
+    "scripts/gamesparks-bootstrap.mjs"
   ],
   "image": "moba.osdt",
   "mods": [
@@ -102,7 +103,7 @@
     "super_creeps": "super_creeps.lua",
     "store": "store.lua",
     "talents": "talents.lua",
-        "tome": "tome.lua",
+    "tome": "tome.lua",
     "targeting": "targeting.lua",
     "taunt": "taunt.lua",
     "trees": "trees.lua",

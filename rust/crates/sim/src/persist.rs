@@ -4,8 +4,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-// Version 55 renames the catalog types and fields that the catalog digest hashes through their Debug form. Behaviour is unchanged. Version 54 saves are refused.
-const STATE_VERSION: u16 = 63;
+const STATE_VERSION: u16 = 63; // v63: catalog digest now hashes through Debug form (renamed types/fields); v54 saves refused.
 
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::Unset,
