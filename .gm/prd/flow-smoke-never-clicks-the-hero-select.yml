@@ -1,29 +1,9 @@
 id: flow-smoke-never-clicks-the-hero-select
 subject: the CI page smoke never reaches the hero grid, so a broken lock-in ships green
-description: >-
-  scripts/perf/page-smoke.mjs waits for the lobby, for no console errors and
-  for the hero icon atlas, but it never drives the fullscreen flow: team card,
-  hero grid, lock-in, team orientation. The lock-in shipped dead (onHero
-  passed startFlowMatch a name where the function reads hero.type, so the type
-  guard dropped every click) while every gate stayed green, and the grid's
-  three attribute columns, the team filter and the five-stands-a-side
-  orientation view are likewise only covered by a local DOM run. Give the
-  smoke a flow pass against the built page.
-acceptance_criteria: >-
-  The smoke clicks a team card, asserts the hero stage shows three labelled
-  attribute columns whose counts sum to the roster, presses one hero and
-  asserts the orientation stage presents two sides of five stands with the
-  local pick marked; the run fails when the lock-in does not start the match.
-  A green run cites the run id for its full 40-character sha.
-witness_plan: >-
-  Separate-session witness dispatches ci.yml on main and reads the page-smoke
-  job result from the Actions API with the full sha.
+description: 'scripts/perf/page-smoke.mjs waits for the lobby, for no console errors and for the hero icon atlas, but it never drives the fullscreen flow: team card, hero grid, lock-in, team orientation. The lock-in shipped dead (onHero passed startFlowMatch a name where the function reads hero.type, so the type guard dropped every click) while every gate stayed green, and the grid''s three attribute columns, the team filter and the five-stands-a-side orientation view are likewise only covered by a local DOM run. Give the smoke a flow pass against the built page.'
+acceptance_criteria: The smoke clicks a team card, asserts the hero stage shows three labelled attribute columns whose counts sum to the roster, presses one hero and asserts the orientation stage presents two sides of five stands with the local pick marked; the run fails when the lock-in does not start the match. A green run cites the run id for its full 40-character sha.
+witness_plan: Separate-session witness dispatches ci.yml on main and reads the page-smoke job result from the Actions API with the full sha.
 session_id: drain-pages
 owner: drain-pages
 status: pending
-note: >-
-  Filed by hand during the 2026-10-27 drain: this session has no gm-mcp
-  transport, so prd-add was unavailable; the schema mirrors the open row
-  beside it. The feature itself is shipped and covered by a local DOM run
-  (three-column split, team filter, lock-in, five stands a side) plus the
-  CI smoke's lobby, console and icon checks.
+note: 'Filed by hand during the 2026-10-27 drain: this session has no gm-mcp transport, so prd-add was unavailable; the schema mirrors the open row beside it. The feature itself is shipped and covered by a local DOM run (three-column split, team filter, lock-in, five stands a side) plus the CI smoke''s lobby, console and icon checks.'

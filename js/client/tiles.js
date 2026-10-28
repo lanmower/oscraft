@@ -10,7 +10,7 @@ export const TILE_MODELS = Object.freeze({
   ramp: Object.freeze(["tile-slant"]),
 });
 export const TILE_TINTS = Object.freeze({
-  grass: [1, 1, 1], dirt: [1.92, 1.36, 1.35], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55],
+  grass: [0.5, 0.5, 0.5], dirt: [1.92, 1.36, 1.35], lane: [0.78, 0.68, 0.48], water: [0.2, 0.45, 0.7], cliff: [0.6, 0.58, 0.55],
   meadow: [0.94, 1.05, 0.9], litter: [1.08, 1, 0.7], vine: [0.74, 0.95, 0.78],
   cracked: [0.88, 0.86, 0.82], track: [0.88, 0.82, 0.7], cobble: [0.8, 0.79, 0.76],
 });

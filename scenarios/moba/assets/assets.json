@@ -1,6 +1,6 @@
 {
- "count": 3110,
- "total_bytes": 79890932,
+ "count": 3124,
+ "total_bytes": 82765628,
  "items": [
   {
    "id": "rock",
@@ -32227,6 +32227,118 @@
    "path": "models/corpse-impaled.glb",
    "placed_by": "props.json",
    "bytes": 123688,
+   "role": "prop"
+  },
+  {
+   "id": "ancient-of-lore-lowpoly",
+   "kind": "model",
+   "path": "models/ancient-of-lore-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 118476,
+   "role": "prop"
+  },
+  {
+   "id": "ancient-of-war-lowpoly",
+   "kind": "model",
+   "path": "models/ancient-of-war-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 262568,
+   "role": "prop"
+  },
+  {
+   "id": "ancient-of-wonders-lowpoly",
+   "kind": "model",
+   "path": "models/ancient-of-wonders-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 215936,
+   "role": "prop"
+  },
+  {
+   "id": "ancient-protector-lowpoly",
+   "kind": "model",
+   "path": "models/ancient-protector-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 296944,
+   "role": "prop"
+  },
+  {
+   "id": "crypt-lowpoly",
+   "kind": "model",
+   "path": "models/crypt-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 119828,
+   "role": "prop"
+  },
+  {
+   "id": "fountain-of-health-lowpoly",
+   "kind": "model",
+   "path": "models/fountain-of-health-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 145960,
+   "role": "prop"
+  },
+  {
+   "id": "frozen-throne-lowpoly",
+   "kind": "model",
+   "path": "models/frozen-throne-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 174040,
+   "role": "prop"
+  },
+  {
+   "id": "goblin-merchant-lowpoly",
+   "kind": "model",
+   "path": "models/goblin-merchant-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 256816,
+   "role": "prop"
+  },
+  {
+   "id": "moon-well-lowpoly",
+   "kind": "model",
+   "path": "models/moon-well-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 202888,
+   "role": "prop"
+  },
+  {
+   "id": "orc-voodoo-lounge-lowpoly",
+   "kind": "model",
+   "path": "models/orc-voodoo-lounge-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 310968,
+   "role": "prop"
+  },
+  {
+   "id": "spirit-tower-lowpoly",
+   "kind": "model",
+   "path": "models/spirit-tower-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 72632,
+   "role": "prop"
+  },
+  {
+   "id": "temple-of-the-damned-lowpoly",
+   "kind": "model",
+   "path": "models/temple-of-the-damned-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 173360,
+   "role": "prop"
+  },
+  {
+   "id": "tree-of-life-lowpoly",
+   "kind": "model",
+   "path": "models/tree-of-life-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 465584,
+   "role": "prop"
+  },
+  {
+   "id": "ziggurat-lowpoly",
+   "kind": "model",
+   "path": "models/ziggurat-lowpoly.glb",
+   "placed_by": "props.json",
+   "bytes": 58696,
    "role": "prop"
   }
  ],

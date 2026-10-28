@@ -38,7 +38,8 @@ vec3 bedAt(vec2 xz, float y, vec3 n0) {
     grassAlb = mix(grassAlb, texture(uAlb0, uvV).rgb, vv);
     grassDisp = mix(grassDisp, texture(uDisp0, uvV).r, vv);
   }
-  vec3 c0 = grassAlb * uLayerTint[0]; vec3 c1 = texture(uAlb1, uv1).rgb * uLayerTint[1];
+  vec3 grassTint = grassAlb * uLayerTint[0];
+  vec3 c0 = mix(vec3(dot(grassTint, vec3(0.2126, 0.7152, 0.0722))), grassTint, 1.3); vec3 c1 = texture(uAlb1, uv1).rgb * uLayerTint[1];
   vec3 c2 = texture(uAlb2, uv2).rgb * uLayerTint[2];
   vec3 c3 = texture(uAlb3, uv3).rgb * uLayerTint[3] * 0.7;
   vec4 d = vec4(grassDisp, texture(uDisp1, uv1).r, texture(uDisp2, uv2).r, texture(uDisp3, uv3).r);

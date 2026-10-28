@@ -1,1 +1,0 @@
-{"data":{"branch":"main","remotes":[{"fetch_url":"https://github.com/lanmower/oscraft","name":"origin","push_url":"https://github.com/lanmower/oscraft"}],"upstream":"origin/main"},"dispatch_id":"1793136549106-4338-77d610fad0416a8e","duration_ms":11,"gm_session_header_version":1,"ok":true,"request_fingerprint":"62dce4621fc07e7e","verb":"git_remote"}

@@ -6069,6 +6069,104 @@
       "afterBytes": 123688,
       "source": "52ea63ba74e44f6d0ded72b066ad2ff67f72b7ba91df8c7ac0e27f7db5052619",
       "at": "2026-10-27T21:17:00.543Z"
+    },
+    "scenarios/moba/assets/models/ancient-of-lore-lowpoly.glb": {
+      "sha256": "d2197af7b36fb63fbf9dd4d24ee70615ad84f6ab4b181e8d31a5793c7a1686d0",
+      "bytes": 118476,
+      "afterBytes": 118476,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:22.907Z"
+    },
+    "scenarios/moba/assets/models/ancient-of-war-lowpoly.glb": {
+      "sha256": "8e9036ac64bb3e090b71754d968877ed35437f277ca817328f115abf0d7687c2",
+      "bytes": 262568,
+      "afterBytes": 262568,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:23.120Z"
+    },
+    "scenarios/moba/assets/models/ancient-of-wonders-lowpoly.glb": {
+      "sha256": "61ced2d46ec23db9585a3c01ea4cbee4a0cbad422a8cc3e71003dce7386c111e",
+      "bytes": 215936,
+      "afterBytes": 215936,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:23.333Z"
+    },
+    "scenarios/moba/assets/models/ancient-protector-lowpoly.glb": {
+      "sha256": "a72bef77c8e60e284ca2fc53e83e615bae5699f887e0c2d534c1b8aae8ba4011",
+      "bytes": 296944,
+      "afterBytes": 296944,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:23.557Z"
+    },
+    "scenarios/moba/assets/models/crypt-lowpoly.glb": {
+      "sha256": "b19f64dcc566077e6e7062daf9257bf7c5363725315db197b133fb434ab2e411",
+      "bytes": 119828,
+      "afterBytes": 119828,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:23.755Z"
+    },
+    "scenarios/moba/assets/models/fountain-of-health-lowpoly.glb": {
+      "sha256": "f3ef377af2730cd473e5beadc72804f25b370227a644845432eb1f92151079e4",
+      "bytes": 145960,
+      "afterBytes": 145960,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:23.955Z"
+    },
+    "scenarios/moba/assets/models/frozen-throne-lowpoly.glb": {
+      "sha256": "7ddabff0d4d27f0df88562716d0c950ad63a73101a2a1820b626e32b8f7be783",
+      "bytes": 174040,
+      "afterBytes": 174040,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:24.157Z"
+    },
+    "scenarios/moba/assets/models/goblin-merchant-lowpoly.glb": {
+      "sha256": "533d495b353e2472db3f1bd1816d5476eb465b58f711e08a93d99755e122b5b0",
+      "bytes": 256816,
+      "afterBytes": 256816,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:24.370Z"
+    },
+    "scenarios/moba/assets/models/moon-well-lowpoly.glb": {
+      "sha256": "a2ae3b315740c88f5ac8b13abedfeac3d7e5dbe24e98dd2c5e3a4b03c17e6bb6",
+      "bytes": 202888,
+      "afterBytes": 202888,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:24.580Z"
+    },
+    "scenarios/moba/assets/models/orc-voodoo-lounge-lowpoly.glb": {
+      "sha256": "ce3e5e76a6944673f39f5975d6fb9352708d211f295a354650d1014429e6fcdd",
+      "bytes": 310968,
+      "afterBytes": 310968,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:24.796Z"
+    },
+    "scenarios/moba/assets/models/spirit-tower-lowpoly.glb": {
+      "sha256": "8cb8f1dc2cb75631f343d412f4196acc4773d418d99c8ea2edd82ed047222b20",
+      "bytes": 72632,
+      "afterBytes": 72632,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:24.977Z"
+    },
+    "scenarios/moba/assets/models/temple-of-the-damned-lowpoly.glb": {
+      "sha256": "402cab6423c60b1839b938be87914409b2d03428aa71491d15c5094eeeb71e36",
+      "bytes": 173360,
+      "afterBytes": 173360,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:25.177Z"
+    },
+    "scenarios/moba/assets/models/tree-of-life-lowpoly.glb": {
+      "sha256": "f8010d58134f8ae2daa732cc7797fb0ad433e8fb6aa4053ee6c78ea9d68b8f61",
+      "bytes": 465584,
+      "afterBytes": 465584,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:25.414Z"
+    },
+    "scenarios/moba/assets/models/ziggurat-lowpoly.glb": {
+      "sha256": "d64d4d23dee3f136f350bd322042ab5e777e40c59d37ed8323e8a3a927f4e3c9",
+      "bytes": 58696,
+      "afterBytes": 58696,
+      "unchanged": true,
+      "at": "2026-10-27T22:58:25.585Z"
     }
   }
 }
