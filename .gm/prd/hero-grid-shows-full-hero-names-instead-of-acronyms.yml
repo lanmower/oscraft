@@ -1,0 +1,8 @@
+id: hero-grid-shows-full-hero-names-instead-of-acronyms
+subject: The fullscreen hero selection shows full hero names and its icons have no acronym backing
+description: The new fullscreen hero selection (js/client/gui_flow.js) renders each hero's full name and a bare portrait. The old hero selection gives every icon the same background acronym block, and the roster should be identified by that acronym everywhere, including the model file names. Full hero names must not appear anywhere in the selection UI or in model names.
+acceptance_criteria: Hero cards in the fullscreen selection show the same acronym-backed portrait treatment as the old hero selection, models are named by acronym, and no full hero name appears in the selection UI or model names.
+witness_plan: Load the local mirror of the page, open the hero selection, and read the card text and icon elements; then list the model directory for full-name files.
+session_id: mcp-codemode-56806-1793170367691-23
+owner: mcp-codemode-56806-1793170367691-23
+status: pending
