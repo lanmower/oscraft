@@ -15,7 +15,7 @@ local FOUNTAIN_RECT = {
   [1] = { x0 = config.milli(254500), y0 = config.milli(49000), x1 = config.milli(283500), y1 = config.milli(77500) },
 }
 local TOWER_TIER = { tower = 1, tower_t2 = 2, tower_t3 = 3, tower_t4 = 4 }
-local BARRACKS_GOLD = { barracks_melee = "barracks_melee_team_gold", barracks_ranged = "barracks_ranged_team_gold" }
+local BARRACKS_GOLD = { barracks_melee = "barracks_melee_team_gold", barracks_ranged = "barracks_ranged_team_gold", barracks_melee_scourge = "barracks_melee_team_gold", barracks_ranged_scourge = "barracks_ranged_team_gold" }
 
 local glyph = reduction.window({ span = GLYPH_SPAN, cooldown = GLYPH_COOLDOWN, need = STRUCTURE_BIT, skip = 0, pct = 100 })
 
@@ -59,7 +59,11 @@ end
 local function build_gates()
   for _, kinds in pairs(by_owner_and_kind()) do
     local t1, t2, t3, t4 = kinds.tower or {}, kinds.tower_t2 or {}, kinds.tower_t3 or {}, kinds.tower_t4 or {}
-    local melee, ranged = kinds.barracks_melee or {}, kinds.barracks_ranged or {}
+    local melee, ranged = {}, {}
+    for _, id in ipairs(kinds.barracks_melee or {}) do melee[#melee + 1] = id end
+    for _, id in ipairs(kinds.barracks_melee_scourge or {}) do melee[#melee + 1] = id end
+    for _, id in ipairs(kinds.barracks_ranged or {}) do ranged[#ranged + 1] = id end
+    for _, id in ipairs(kinds.barracks_ranged_scourge or {}) do ranged[#ranged + 1] = id end
     for lane = 1, 3 do
       if t1[lane] and t2[lane] then gate(t2[lane], "any_alive", { t1[lane] }) end
       if t2[lane] and t3[lane] then gate(t3[lane], "any_alive", { t2[lane] }) end
@@ -67,10 +71,12 @@ local function build_gates()
       if t3[lane] and ranged[lane] then gate(ranged[lane], "any_alive", { t3[lane] }) end
     end
     for _, id in ipairs(t4) do gate(id, "all_alive", t3) end
-    for _, kind in ipairs({ "base_outbuilding", "base_outbuilding_large" }) do
+    for _, kind in ipairs({ "base_outbuilding", "base_outbuilding_large", "base_outbuilding_moon_well", "base_outbuilding_ziggurat" }) do
       for _, id in ipairs(kinds[kind] or {}) do gate(id, "all_alive", t3) end
     end
-    for _, id in ipairs(kinds.base or {}) do gate(id, "any_alive", t4) end
+    for _, kind in ipairs({ "base", "base_sentinel_tree", "base_scourge_throne" }) do
+      for _, id in ipairs(kinds[kind] or {}) do gate(id, "any_alive", t4) end
+    end
   end
 end
 build_gates()

@@ -7,7 +7,7 @@ return {
   on_check_win = function()
     local standing = {}
     for k = 0, get_unit_count() - 1 do
-      if unit_alive(k) and game.unit_kind(k) == "base" then
+      if unit_alive(k) and units.is_building(k) then
         standing[unit_player(k)] = true
       end
     end
