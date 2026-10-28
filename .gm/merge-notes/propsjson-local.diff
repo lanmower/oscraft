@@ -1,0 +1,25 @@
+diff --git a/scenarios/moba/assets/props.json b/scenarios/moba/assets/props.json
+index e0b057ca..fd39c659 100644
+--- a/scenarios/moba/assets/props.json
++++ b/scenarios/moba/assets/props.json
+@@ -1066,5 +1066,19 @@
+   "pillar-rock-5-skinned": "models/pillar-rock-5-skinned.glb",
+   "pillar-rock-6-skinned": "models/pillar-rock-6-skinned.glb",
+   "tender_skinned": "models/tender-skinned.glb",
+-  "corpse_impaled": "models/corpse-impaled.glb"
++  "corpse_impaled": "models/corpse-impaled.glb",
++  "ancient_of_lore_lowpoly": "models/ancient-of-lore-lowpoly.glb",
++  "ancient_of_war_lowpoly": "models/ancient-of-war-lowpoly.glb",
++  "ancient_of_wonders_lowpoly": "models/ancient-of-wonders-lowpoly.glb",
++  "ancient_protector_lowpoly": "models/ancient-protector-lowpoly.glb",
++  "crypt_lowpoly": "models/crypt-lowpoly.glb",
++  "fountain_of_health_lowpoly": "models/fountain-of-health-lowpoly.glb",
++  "frozen_throne_lowpoly": "models/frozen-throne-lowpoly.glb",
++  "goblin_merchant_lowpoly": "models/goblin-merchant-lowpoly.glb",
++  "moon_well_lowpoly": "models/moon-well-lowpoly.glb",
++  "orc_voodoo_lounge_lowpoly": "models/orc-voodoo-lounge-lowpoly.glb",
++  "spirit_tower_lowpoly": "models/spirit-tower-lowpoly.glb",
++  "temple_of_the_damned_lowpoly": "models/temple-of-the-damned-lowpoly.glb",
++  "tree_of_life_lowpoly": "models/tree-of-life-lowpoly.glb",
++  "ziggurat_lowpoly": "models/ziggurat-lowpoly.glb"
+ }

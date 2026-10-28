@@ -1,0 +1,22 @@
+diff --git a/.github/workflows/pages.yml b/.github/workflows/pages.yml
+index 65d81384..4392f5ab 100644
+--- a/.github/workflows/pages.yml
++++ b/.github/workflows/pages.yml
+@@ -96,6 +96,17 @@ jobs:
+           du -sk _site
+           cat _site/packs/latest.json
+ 
++      - name: Bundle the client JS into one file
++        run: |
++          set -euo pipefail
++          npx --yes esbuild@0.25.0 _site/js/client/play.js --bundle --format=esm --splitting --outdir=_site/js/client --entry-names=play.bundle --chunk-names=chunk-[hash] --external:./pkg/* --external:./vendor/* --external:wireweave --external:wireweave/* --external:nostr-tools --external:xstate
++          du -sk _site/js/client/play.bundle.js
++
++      - name: Bundle the moba Lua modules into one file
++        run: |
++          set -euo pipefail
++          node scripts/bundle-lua.mjs scenarios/moba _site/scenarios/moba/bundle/moba.modules.lua
++
+       - uses: actions/upload-pages-artifact@v3
+         with:
+           path: _site

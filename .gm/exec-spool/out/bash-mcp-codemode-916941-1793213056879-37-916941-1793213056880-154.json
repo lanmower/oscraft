@@ -1,0 +1,1 @@
+{"data":"{\"duration_ms\":30,\"exit_code\":0,\"ok\":true,\"stderr\":\"\",\"stdout\":\"total 92\\n-rw-r--r-- 1 abc abc 30768 Oct 28 20:44 editor.js\\n-rw-r--r-- 1 abc abc 57594 Oct 28 20:44 props.json\\n\",\"timed_out\":false}","dispatch_id":"1793213057290-1036-812be89e72b0bcff","gm_session_header_version":1,"ok":true,"request_fingerprint":"e855b837b41c6ec0","verb":"bash"}
