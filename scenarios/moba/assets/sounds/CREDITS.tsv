@@ -22,3 +22,10 @@ barracks_destroyed	barracks_destroyed.ogg	100 CC0 metal and wood SFX	rubberduck	
 roshan_slain	roshan_slain.wav	Monster Sound Effects Pack	Ogrebane	https://opengameart.org/content/monster-sound-effects-pack	CC0
 aegis_acquired	aegis_acquired.wav	Pleasing Bell Sound Effect	Spring Spring	https://opengameart.org/content/pleasing-bell-sound-effect	CC0
 respawn	respawn.wav	Teleport Spell	Ogrebane	https://opengameart.org/content/teleport-spell	CC0
+
+creature_hits	creature_hits.ogg	80 CC0 creature SFX	Impyrean	https://opengameart.org/content/80-cc0-creature-sfx	CC0
+creature_deaths	creature_deaths.ogg	80 CC0 creature SFX #2	Impyrean	https://opengameart.org/content/80-cc0-creature-sfx-2	CC0
+spell_casts	spell_casts.ogg	63 Digital sound effects	nphill85	https://opengameart.org/content/library-of-game-sounds	CC0
+ui_sounds	ui_sounds.ogg	51 UI sound effects (buttons, switches and clicks)	nphill85	https://opengameart.org/content/library-of-game-sounds	CC0
+ambient_sounds	ambient.ogg	13 Ambient Machine Sounds	nphill85	https://opengameart.org/content/library-of-game-sounds	CC0
+spell_hits	spell_hits.ogg	35 wooden cracks/hits/destructions	nphill85	https://opengameart.org/content/library-of-game-sounds	CC0
