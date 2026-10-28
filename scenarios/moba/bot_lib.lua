@@ -244,7 +244,7 @@ end
 
 local function base_of(player)
   for _, unit in ipairs(game.units(player)) do
-    if game.unit_kind(unit) == "base" then return unit_position(unit) end
+    if (game.filter_bits(unit) & 2048) ~= 0 then return unit_position(unit) end
   end
   return nil
 end

@@ -1,0 +1,15 @@
+data:
+  duration_ms: 20
+  exit_code: 0
+  ok: true
+  stdout: |-
+    30256 AGENTS.md
+    123 AGENTS.md
+    # Agent instructions for oscraft
+
+    No com
+  timed_out: false
+dispatch_id: 1793135508773-4283-36a7a02dbbf28175
+gm_session_header_version: 1
+ok: true
+verb: bash

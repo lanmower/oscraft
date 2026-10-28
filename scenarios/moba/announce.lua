@@ -44,7 +44,7 @@ local MULTI = {
 }
 
 local TOWERS = { tower = true, tower_t2 = true, tower_t3 = true, tower_t4 = true }
-local BARRACKS = { barracks_melee = true, barracks_ranged = true }
+local BARRACKS = { barracks_melee = true, barracks_ranged = true, barracks_melee_scourge = true, barracks_ranged_scourge = true }
 local COURIERS = require("courier_kinds").set
 
 local announce = {}

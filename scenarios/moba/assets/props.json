@@ -883,6 +883,7 @@
   "neutral_elder_jungle_stalker_skinned": "models/neutral-elder-jungle-stalker-skinned.glb",
   "neutral_enraged_wildkin_skinned": "models/neutral-enraged-wildkin-skinned.glb",
   "depot": "models/depot-skinned.glb",
+  "side_depot": "models/depot-skinned.glb",
   "secret_depot": "models/secret-depot-skinned.glb",
   "shadow_shaman_skinned": "models/shadow-shaman-skinned.glb",
   "skywrath_mage_skinned": "models/skywrath-mage-skinned.glb",

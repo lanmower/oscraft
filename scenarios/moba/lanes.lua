@@ -16,7 +16,7 @@ local SPAWNER_LANE = {
   lane_spawner_mid = "mid",
   lane_spawner_bot = "bot",
 }
-local RAX_TYPE = { barracks_melee = "melee", barracks_ranged = "ranged" }
+local RAX_TYPE = { barracks_melee = "melee", barracks_ranged = "ranged", barracks_melee_scourge = "melee", barracks_ranged_scourge = "ranged" }
 
 local SPAWN = {
   [0] = {
