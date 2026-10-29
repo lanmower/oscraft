@@ -89,8 +89,8 @@ end
 
 return {
   on_spawned = function(unit)
-    local rec = applied[unit]
-    if not rec then rec = {}; applied[unit] = rec end
+    local rec = {}
+    applied[unit] = rec
     apply_turn_rate(unit, rec)
   end,
 
