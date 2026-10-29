@@ -13533,3 +13533,202 @@ evt: {"event":"dispatch.end","ms":198,"sess":"mcp-server-925141","ts":1793213719
 evt: {"event":"dispatch.end","ms":183,"sess":"mcp-server-925141","ts":1793213734183,"verb":"prd-list"}
 evt: {"event":"dispatch.end","ms":9,"sess":"mcp-codemode-1024646-orch","ts":1793214898847,"verb":"capture-screenshot"}
 evt: {"event":"dispatch.end","ms":101,"sess":"mcp-codemode-1024646-orch","ts":1793214899311,"verb":"git_finalize"}
+evt: {"event":"dispatch.end","ms":1194,"sess":"gm-cli-1343312-1793246805996","ts":1793246809745,"verb":"health"}
+evt: {"event":"dispatch.end","ms":15,"sess":"gm-cli-1343998-1793246816846","ts":1793246816928,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":160,"sess":"gm-cli-1344105-1793246817683","ts":1793246817912,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":175,"sess":"gm-cli-1344105-1793246817683","ts":1793246818386,"verb":"prd-list"}
+evt: {"complete":true,"edges_written":251,"elapsed_ms":562,"event":"codeinsight_symbols_synced","files_deferred":0,"files_oversized":0,"files_removed":3,"files_synced":7,"files_unchanged":476,"files_unreadable":0,"files_without_symbol_support":27,"ok":true,"sess":"gm-cli-1344961-1793246838914","store_busy":false,"store_failures":0,"symbols_written":169,"treesitter_failures":0,"ts":1793246839945}
+evt: {"event":"instruction.served","mutables_pending_count":221,"phase":"THINSLICE","prd_pending_count":181,"sess":"gm-cli-1344961-1793246838914","ts":1793246840277}
+evt: {"event":"dispatch.end","ms":1293,"sess":"gm-cli-1344961-1793246838914","ts":1793246840279,"verb":"instruction"}
+evt: {"event":"dispatch.end","ms":172,"sess":"gm-cli-1344961-1793246838914","ts":1793246840775,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":177,"sess":"gm-cli-1346095-1793246866101","ts":1793246866335,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":171,"sess":"gm-cli-1346095-1793246866101","ts":1793246866819,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":2324,"sess":"gm-cli-1346647-1793246877503","ts":1793246879896,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":182,"sess":"gm-cli-1346647-1793246877503","ts":1793246880394,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":1232,"sess":"gm-cli-1354394-1793247088886","ts":1793247090193,"verb":"describe"}
+evt: {"event":"dispatch.end","ms":19,"sess":"gm-cli-1354616-1793247090919","ts":1793247091009,"verb":"describe"}
+evt: {"event":"dispatch.end","ms":23,"sess":"gm-cli-1356493-1793247135302","ts":1793247135379,"verb":"phase-status"}
+evt: {"detail":"verb=bash cmd=timeoutMs=300000\nT=$(mktemp -d)\nmkdir -p \"$T/scenarios/moba\"\ncp scenarios/moba/p","event":"deviation.native-search-bypass","kind":"native-search-bypass","severity":"deny","source":"rs-plugkit/gates","sub":"hook","ts":1793247135673}
+evt: {"event":"dispatch.end","ms":23,"sess":"gm-cli-1356838-1793247141447","ts":1793247141535,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":191,"sess":"verify-acronyms-1","ts":1793247141998,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":1194,"sess":"gm-cli-1357751-1793247161917","ts":1793247163179,"verb":"prd-references"}
+evt: {"event":"dispatch.end","ms":1343,"sess":"gm-cli-1360442-1793247230774","ts":1793247232188,"verb":"publish_on_origin"}
+evt: {"event":"dispatch.end","ms":9,"sess":"gm-cli-1361133-1793247246713","ts":1793247246779,"verb":"health"}
+evt: {"event":"dispatch.end","ms":8,"sess":"gm-cli-1361388-1793247251303","ts":1793247251376,"verb":"health"}
+evt: {"event":"dispatch.end","ms":67,"sess":"gm-cli-1362042-1793247268221","ts":1793247268366,"verb":"git_status"}
+evt: {"event":"dispatch.end","ms":18,"sess":"gm-cli-1362172-1793247268905","ts":1793247268999,"verb":"git_commit"}
+evt: {"event":"dispatch.end","ms":8432,"sess":"gm-cli-1362271-1793247269519","ts":1793247278019,"verb":"git_push"}
+evt: {"event":"dispatch.end","ms":143,"sess":"gm-cli-1365041-1793247278540","ts":1793247278741,"verb":"git_finalize"}
+evt: {"event":"dispatch.end","ms":167,"sess":"gm-cli-1365172-1793247279266","ts":1793247279517,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":12,"sess":"gm-cli-1365268-1793247280043","ts":1793247280121,"verb":"prd-note"}
+evt: {"event":"dispatch.end","ms":6167,"sess":"gm-cli-1365357-1793247280654","ts":1793247286893,"verb":"ci-status"}
+evt: {"event":"codesearch_dispatch_start","mode":"dual","query":"","sess":"gm-cli-1365746-1793247287452","ts":1793247287542}
+evt: {"event":"dispatch.end","ms":23,"sess":"gm-cli-1365746-1793247287452","ts":1793247287545,"verb":"codesearch"}
+evt: {"event":"dispatch.end","ms":20,"sess":"gm-cli-1365842-1793247288077","ts":1793247288174,"verb":"fs_write"}
+evt: {"event":"dispatch.end","ms":13,"sess":"gm-cli-1365935-1793247288698","ts":1793247288790,"verb":"status"}
+evt: {"event":"dispatch.end","ms":1192,"sess":"gm-cli-1368465-1793247357923","ts":1793247359184,"verb":"git_commit"}
+evt: {"event":"dispatch.end","ms":19,"sess":"gm-cli-1368844-1793247364624","ts":1793247364697,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"gm-cli-1369125-1793247370045","sha":"c4c4c12675","sha_full":"c4c4c12675666867f30941355de3297b2e7aac9b","sub":"git","summary":"chore: close the acronym guard row as stale","ts":1793247375644}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"gm-cli-1369125-1793247370045","sha_full":"c4c4c12675666867f30941355de3297b2e7aac9b","ts":1793247376042}
+evt: {"event":"dispatch.end","ms":9595,"sess":"gm-cli-1369125-1793247370045","ts":1793247379717,"verb":"git_commit"}
+evt: {"event":"prd.resolved","id":"hero-acronym-ci-guard-max-three-letters","sess":"gm-cli-1370620-1793247385565","ts":1793247386153}
+evt: {"event":"dispatch.end","ms":506,"sess":"gm-cli-1370620-1793247385565","ts":1793247386154,"verb":"prd-resolve"}
+evt: {"event":"dispatch.end","ms":166,"sess":"gm-cli-1370620-1793247385565","ts":1793247386587,"verb":"prd-list"}
+evt: {"event":"git_commit","sess":"gm-cli-1371783-1793247415461","sha":"7583124b01","sha_full":"7583124b01d2db53ed5cdef84abbc0bf039145f1","sub":"git","summary":"chore: close the acronym guard row as stale","ts":1793247424114}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"gm-cli-1371783-1793247415461","sha_full":"7583124b01d2db53ed5cdef84abbc0bf039145f1","ts":1793247424115}
+evt: {"event":"dispatch.end","ms":12359,"sess":"gm-cli-1371783-1793247415461","ts":1793247427879,"verb":"git_commit"}
+evt: {"event":"dispatch.end","ms":24,"sess":"gm-cli-1374671-1793247463444","ts":1793247463534,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":122,"sess":"verify-acronym-table-1","ts":1793247463964,"verb":"bash"}
+evt: {"event":"git_commit","sess":"gm-cli-1375338-1793247478380","sha":"72af40a5f4","sha_full":"72af40a5f4eea95b8dd7fce5b4a6cf37d498329e","sub":"git","summary":"chore: close the roster acronym table row as stale","ts":1793247486372}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"gm-cli-1375338-1793247478380","sha_full":"72af40a5f4eea95b8dd7fce5b4a6cf37d498329e","ts":1793247486514}
+evt: {"event":"dispatch.end","ms":11887,"sess":"gm-cli-1375338-1793247478380","ts":1793247490335,"verb":"git_commit"}
+evt: {"event":"prd.resolved","id":"hero-acronym-table-misses-roster-heroes-fallback-is-full-name","sess":"gm-cli-1377111-1793247497252","ts":1793247497862}
+evt: {"event":"dispatch.end","ms":510,"sess":"gm-cli-1377111-1793247497252","ts":1793247497863,"verb":"prd-resolve"}
+evt: {"event":"dispatch.end","ms":165,"sess":"gm-cli-1377111-1793247497252","ts":1793247498328,"verb":"prd-list"}
+evt: {"event":"git_commit","sess":"gm-cli-1377664-1793247509362","sha":"7ac748a11d","sha_full":"7ac748a11d778134a4c5f7dc613b573d8d61adc8","sub":"git","summary":"chore: close the roster acronym table row as stale","ts":1793247515595}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"gm-cli-1377664-1793247509362","sha_full":"7ac748a11d778134a4c5f7dc613b573d8d61adc8","ts":1793247515597}
+evt: {"event":"dispatch.end","ms":10138,"sess":"gm-cli-1377664-1793247509362","ts":1793247519570,"verb":"git_commit"}
+evt: {"branch":"main","event":"git_push_explicit_ref","repo":"/workspace/oscraft","sess":"gm-cli-1379362-1793247526051","source_ref":"7ac748a11d778134a4c5f7dc613b573d8d61adc8","source_sha":"7ac748a11d778134a4c5f7dc613b573d8d61adc8","ts":1793247529139}
+evt: {"event":"dispatch.end","ms":14896,"sess":"gm-cli-1379362-1793247526051","ts":1793247541019,"verb":"git_push"}
+evt: {"event":"dispatch.end","ms":7802,"sess":"gm-cli-1380954-1793247555151","ts":1793247563030,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":1285,"sess":"gm-cli-1389176-1793247699327","ts":1793247700702,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":7909,"sess":"verify-encode-checks-1","ts":1793247708920,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":13,"sess":"gm-cli-1390173-1793247721238","ts":1793247721332,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":7783,"sess":"verify-encode-checks-1","ts":1793247729424,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":14,"sess":"gm-cli-1390937-1793247738776","ts":1793247738872,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":8625,"sess":"verify-encode-checks-2","ts":1793247747845,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":13,"sess":"gm-cli-1391904-1793247759060","ts":1793247759150,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":3185,"sess":"verify-encode-checks-3","ts":1793247762613,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":14,"sess":"gm-cli-1393628-1793247794738","ts":1793247794827,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":6371,"sess":"verify-encode-checks-4","ts":1793247801517,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":3355,"sess":"gm-cli-1395207-1793247826283","ts":1793247829718,"verb":"git_commit"}
+evt: {"event":"dispatch.end","ms":8,"sess":"gm-cli-1395724-1793247836947","ts":1793247837042,"verb":"git_commit"}
+evt: {"event":"dispatch.end","ms":8,"sess":"gm-cli-1396066-1793247844675","ts":1793247844763,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"gm-cli-1396386-1793247851492","sha":"098413f813","sha_full":"098413f813d30aeef1b82b8c3c9699c7c21d7a8b","sub":"git","summary":"data: refuse a model path too long to encode","ts":1793247859101}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"gm-cli-1396386-1793247851492","sha_full":"098413f813d30aeef1b82b8c3c9699c7c21d7a8b","ts":1793247859246}
+evt: {"event":"dispatch.end","ms":11874,"sess":"gm-cli-1396386-1793247851492","ts":1793247863436,"verb":"git_commit"}
+evt: {"event":"prd.resolved","id":"data-encode-name-len-narrowing-unchecked","sess":"gm-cli-1400649-1793247930439","ts":1793247932253}
+evt: {"event":"dispatch.end","ms":1701,"sess":"gm-cli-1400649-1793247930439","ts":1793247932253,"verb":"prd-resolve"}
+evt: {"event":"dispatch.end","ms":172,"sess":"gm-cli-1400649-1793247930439","ts":1793247932703,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":13,"sess":"gm-cli-1401224-1793247941033","ts":1793247941101,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"gm-cli-1401501-1793247946885","sha":"7fb788ed62","sha_full":"7fb788ed62d21787c26c542d0d955f9324a3a438","sub":"git","summary":"data: refuse a model path too long to encode","ts":1793247954544}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"gm-cli-1401501-1793247946885","sha_full":"7fb788ed62d21787c26c542d0d955f9324a3a438","ts":1793247954546}
+evt: {"event":"dispatch.end","ms":11971,"sess":"gm-cli-1401501-1793247946885","ts":1793247958913,"verb":"git_commit"}
+evt: {"branch":"main","event":"git_push_explicit_ref","repo":"/workspace/oscraft","sess":"gm-cli-1403615-1793247964153","source_ref":"7fb788ed62d21787c26c542d0d955f9324a3a438","source_sha":"7fb788ed62d21787c26c542d0d955f9324a3a438","ts":1793247968107}
+evt: {"event":"dispatch.end","ms":7841,"sess":"gm-cli-1403615-1793247964153","ts":1793247972055,"verb":"git_push"}
+evt: {"event":"dispatch.end","ms":2234,"sess":"gm-cli-1405107-1793247985020","ts":1793247987318,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":10403,"sess":"gm-cli-1406521-1793248021130","ts":1793248031621,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":3776,"sess":"gm-cli-1407848-1793248052174","ts":1793248056044,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":2667,"sess":"gm-cli-1408823-1793248076597","ts":1793248079342,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":5764,"sess":"gm-cli-1409774-1793248099908","ts":1793248105755,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":2647,"sess":"gm-cli-1410897-1793248126305","ts":1793248129033,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":7935,"sess":"gm-cli-1411830-1793248149588","ts":1793248157602,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":3837,"sess":"gm-cli-1412966-1793248178144","ts":1793248182060,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":3901,"sess":"gm-cli-1414024-1793248202604","ts":1793248206580,"verb":"ci-status"}
+evt: {"event":"git_commit","sess":"gm-cli-1414862-1793248222157","sha":"72cb558d8f","sha_full":"72cb558d8f5919f504194fc52362f537784fd513","sub":"git","summary":"chore: log three closed rows in the witness log","ts":1793248230410}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"gm-cli-1414862-1793248222157","sha_full":"72cb558d8f5919f504194fc52362f537784fd513","ts":1793248230550}
+evt: {"event":"dispatch.end","ms":12682,"sess":"gm-cli-1414862-1793248222157","ts":1793248234898,"verb":"git_commit"}
+evt: {"branch":"main","event":"git_push_explicit_ref","repo":"/workspace/oscraft","sess":"gm-cli-1417184-1793248240439","source_ref":"72cb558d8f5919f504194fc52362f537784fd513","source_sha":"72cb558d8f5919f504194fc52362f537784fd513","ts":1793248245639}
+evt: {"event":"dispatch.end","ms":9622,"sess":"gm-cli-1417184-1793248240439","ts":1793248250135,"verb":"git_push"}
+evt: {"event":"dispatch.end","ms":160,"sess":"gm-cli-1418474-1793248250676","ts":1793248250902,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":168,"sess":"gm-cli-1418474-1793248250676","ts":1793248251365,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":3849,"sess":"gm-cli-1419106-1793248261969","ts":1793248265891,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":4293,"sess":"gm-cli-1420347-1793248286437","ts":1793248290828,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":9412,"sess":"gm-cli-1421341-1793248311367","ts":1793248320862,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":5360,"sess":"gm-cli-1422586-1793248341392","ts":1793248346842,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":4475,"sess":"gm-cli-1423619-1793248367387","ts":1793248371931,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":7894,"sess":"gm-cli-1424948-1793248398925","ts":1793248406909,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":8601,"sess":"gm-cli-1426075-1793248427456","ts":1793248436148,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":1048,"sess":"gm-cli-1439097-1793249890622","ts":1793249894126,"verb":"health"}
+evt: {"event":"dispatch.end","ms":165,"sess":"drain-full-29a","ts":1793249901433,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":157,"sess":"gm-cli-1439627-1793249901204","ts":1793249901906,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":159,"sess":"drain-full-29a","ts":1793249911141,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":163,"sess":"gm-cli-1440103-1793249910903","ts":1793249911638,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":175,"sess":"drain-full-29a","ts":1793249919541,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":164,"sess":"gm-cli-1440515-1793249919290","ts":1793249920041,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":170,"sess":"drain-full-29a","ts":1793249928271,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":161,"sess":"gm-cli-1440938-1793249928032","ts":1793249928753,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":165,"sess":"drain-full-29a","ts":1793249929544,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":161,"sess":"gm-cli-1441097-1793249929309","ts":1793249930023,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":1330,"sess":"gm-cli-1454389-1793250276134","ts":1793250277545,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":61,"sess":"verify-widgets-badge-comment","ts":1793250277931,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":1100,"sess":"gm-cli-1457321-1793250342360","ts":1793250343540,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":30962,"sess":"verify-mods-init-unknown-module","ts":1793250374814,"verb":"chrome"}
+evt: {"event":"dispatch.end","ms":1728,"sess":"gm-cli-1460627-1793250425747","ts":1793250427583,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":51,"sess":"verify-ui-select-mana-shows-max-only","ts":1793250428035,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":2866,"sess":"gm-cli-1474846-1793250835808","ts":1793250838775,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":60,"sess":"verify-inventory-composite-ability-ids","ts":1793250839147,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":71,"sess":"drain-full-29a","ts":1793250855770,"verb":"git_status"}
+evt: {"event":"dispatch.end","ms":2584,"sess":"drain-full-29a","ts":1793250914861,"verb":"git_commit"}
+evt: {"event":"dispatch.end","ms":9,"sess":"drain-full-29a","ts":1793250925674,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"2b690156d2","sha_full":"2b690156d2ba6c041199a3e2ecd4d432448505ff","sub":"git","summary":"chore: close the widgets badge comment row stale","ts":1793250948223}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"2b690156d2ba6c041199a3e2ecd4d432448505ff","ts":1793250948633}
+evt: {"event":"dispatch.end","ms":14854,"sess":"drain-full-29a","ts":1793250953651,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"3c4585063c","sha_full":"3c4585063c6528360ac6306cff2f0233f2402d4e","sub":"git","summary":"chore: close the selection mana line row stale","ts":1793250976655}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"3c4585063c6528360ac6306cff2f0233f2402d4e","ts":1793250976796}
+evt: {"event":"dispatch.end","ms":16022,"sess":"drain-full-29a","ts":1793250981700,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"431709e499","sha_full":"431709e4996f6ed7f276e2fad45adf9f61dd4dc0","sub":"git","summary":"chore: close the night_stalker mod row stale","ts":1793251002332}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"431709e4996f6ed7f276e2fad45adf9f61dd4dc0","ts":1793251002474}
+evt: {"event":"dispatch.end","ms":14470,"sess":"drain-full-29a","ts":1793251007437,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"d153142019","sha_full":"d153142019972624f3e4a64d1ac60eb862d78c8c","sub":"git","summary":"chore: close the buff_fx mod row stale","ts":1793251027459}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"d153142019972624f3e4a64d1ac60eb862d78c8c","ts":1793251027598}
+evt: {"event":"dispatch.end","ms":14239,"sess":"drain-full-29a","ts":1793251032506,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"420a0124fc","sha_full":"420a0124fcd21249a93358a3506441629c3f90e1","sub":"git","summary":"data: split composite ability ids in the inventory","ts":1793251056227}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"420a0124fcd21249a93358a3506441629c3f90e1","ts":1793251056369}
+evt: {"event":"dispatch.end","ms":16803,"sess":"drain-full-29a","ts":1793251061305,"verb":"git_commit"}
+evt: {"branch":"main","event":"git_push_explicit_ref","repo":"/workspace/oscraft","sess":"drain-full-29a","source_ref":"420a0124fcd21249a93358a3506441629c3f90e1","source_sha":"420a0124fcd21249a93358a3506441629c3f90e1","ts":1793251077581}
+evt: {"event":"dispatch.end","ms":8870,"sess":"drain-full-29a","ts":1793251081902,"verb":"git_push"}
+evt: {"event":"dispatch.end","ms":2377,"sess":"drain-full-29a","ts":1793251095036,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":1772,"sess":"gm-cli-1498067-1793251168506","ts":1793251170341,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":61,"sess":"verify-ui-widget-button-label","ts":1793251170699,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":3234,"sess":"drain-full-29a","ts":1793251174523,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":3817,"sess":"gm-cli-1502170-1793251276426","ts":1793251280332,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":60,"sess":"verify-ui-canvas-and-minimap","ts":1793251280678,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":13,"sess":"gm-cli-1503654-1793251308786","ts":1793251308884,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":59,"sess":"verify-ui-canvas-and-minimap","ts":1793251309213,"verb":"bash"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"5c08741c5b","sha_full":"5c08741c5bb31a6c8b535bc95ebccd6ed85df405","sub":"git","summary":"chore: close the button aria-label row stale","ts":1793251330062}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"5c08741c5bb31a6c8b535bc95ebccd6ed85df405","ts":1793251330203}
+evt: {"event":"dispatch.end","ms":14208,"sess":"drain-full-29a","ts":1793251334999,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"4cf83510ba","sha_full":"4cf83510ba0e42f823dc34ff0360b7e73ffc47c8","sub":"git","summary":"chore: close the canvas touch-action row stale","ts":1793251359593}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"4cf83510ba0e42f823dc34ff0360b7e73ffc47c8","ts":1793251359741}
+evt: {"event":"dispatch.end","ms":16272,"sess":"drain-full-29a","ts":1793251364731,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"a842be2666","sha_full":"a842be26660d53b93f26fcc294d2d24d8aeef270","sub":"git","summary":"chore: close the minimap button row stale","ts":1793251388274}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"a842be26660d53b93f26fcc294d2d24d8aeef270","ts":1793251388417}
+evt: {"event":"dispatch.end","ms":14195,"sess":"drain-full-29a","ts":1793251393265,"verb":"git_commit"}
+evt: {"branch":"main","event":"git_push_explicit_ref","repo":"/workspace/oscraft","sess":"drain-full-29a","source_ref":"a842be26660d53b93f26fcc294d2d24d8aeef270","source_sha":"a842be26660d53b93f26fcc294d2d24d8aeef270","ts":1793251398480}
+evt: {"event":"dispatch.end","ms":9867,"sess":"drain-full-29a","ts":1793251403803,"verb":"git_push"}
+evt: {"event":"dispatch.end","ms":3435,"sess":"drain-full-29a","ts":1793251467427,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":2799,"sess":"drain-full-29a","ts":1793251470873,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":1194,"sess":"gm-cli-1533264-1793251620545","ts":1793251621822,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":49,"sess":"verify-modui-and-portrait-tone","ts":1793251622163,"verb":"bash"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"9f28778b30","sha_full":"9f28778b30a04accf2595f0a29887ef537dfe175","sub":"git","summary":"chore: close the modui poll row stale","ts":1793251651406}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"9f28778b30a04accf2595f0a29887ef537dfe175","ts":1793251651557}
+evt: {"event":"dispatch.end","ms":24709,"sess":"drain-full-29a","ts":1793251661661,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"e439fc3ef4","sha_full":"e439fc3ef48050b4b25687a45a7f10e1e5c3986f","sub":"git","summary":"chore: close the portrait tone row stale","ts":1793251676898}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"e439fc3ef48050b4b25687a45a7f10e1e5c3986f","ts":1793251677043}
+evt: {"event":"dispatch.end","ms":24659,"sess":"drain-full-29a","ts":1793251687007,"verb":"git_commit"}
+evt: {"branch":"main","event":"git_push_explicit_ref","repo":"/workspace/oscraft","sess":"drain-full-29a","source_ref":"e439fc3ef48050b4b25687a45a7f10e1e5c3986f","source_sha":"e439fc3ef48050b4b25687a45a7f10e1e5c3986f","ts":1793251713204}
+evt: {"event":"dispatch.end","ms":13107,"sess":"drain-full-29a","ts":1793251719093,"verb":"git_push"}
+evt: {"event":"dispatch.end","ms":1986,"sess":"gm-cli-1543047-1793251824720","ts":1793251826777,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":72,"sess":"verify-ui-panels-reachability","ts":1793251827136,"verb":"bash"}
+evt: {"event":"dispatch.end","ms":13,"sess":"gm-cli-1543640-1793251845441","ts":1793251845515,"verb":"phase-status"}
+evt: {"event":"dispatch.end","ms":70,"sess":"verify-ui-panels-reachability","ts":1793251845902,"verb":"bash"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"2acfb48c8a","sha_full":"2acfb48c8a723165bddc3f8f19f62cfc70db4cbe","sub":"git","summary":"chore: close the ability cell row stale","ts":1793251881471}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"2acfb48c8a723165bddc3f8f19f62cfc70db4cbe","ts":1793251881614}
+evt: {"event":"dispatch.end","ms":24629,"sess":"drain-full-29a","ts":1793251891642,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"7561784620","sha_full":"7561784620dff26aed3a968adf62b5bb7233aee3","sub":"git","summary":"chore: close the shop keyboard-only row stale","ts":1793251908390}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"7561784620dff26aed3a968adf62b5bb7233aee3","ts":1793251908532}
+evt: {"event":"dispatch.end","ms":24565,"sess":"drain-full-29a","ts":1793251918832,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"6243a7500b","sha_full":"6243a7500bb7f62356bbb52c7bb246e3243a43f5","sub":"git","summary":"chore: close the controls help row stale","ts":1793251933835}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"6243a7500bb7f62356bbb52c7bb246e3243a43f5","ts":1793251933979}
+evt: {"event":"dispatch.end","ms":24647,"sess":"drain-full-29a","ts":1793251944162,"verb":"git_commit"}
+evt: {"event":"git_commit","sess":"drain-full-29a","sha":"1411197bbb","sha_full":"1411197bbb4447e4b089979772607b14349d32d4","sub":"git","summary":"chore: close the inventory sell row stale","ts":1793251960765}
+evt: {"event":"liqology_record_skipped","reason":"plugin_error","sess":"drain-full-29a","sha_full":"1411197bbb4447e4b089979772607b14349d32d4","ts":1793251960904}
+evt: {"event":"dispatch.end","ms":26044,"sess":"drain-full-29a","ts":1793251971000,"verb":"git_commit"}
+evt: {"branch":"main","event":"git_push_explicit_ref","repo":"/workspace/oscraft","sess":"drain-full-29a","source_ref":"1411197bbb4447e4b089979772607b14349d32d4","source_sha":"1411197bbb4447e4b089979772607b14349d32d4","ts":1793251991216}
+evt: {"event":"dispatch.end","ms":11710,"sess":"drain-full-29a","ts":1793251996047,"verb":"git_push"}
+evt: {"event":"dispatch.end","ms":162,"sess":"drain-full-29a","ts":1793251996817,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":140,"sess":"gm-cli-1554533-1793251996580","ts":1793251997274,"verb":"prd-list"}
+evt: {"event":"dispatch.end","ms":4341,"sess":"drain-full-29a","ts":1793252015899,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":5249,"sess":"drain-full-29a","ts":1793252021753,"verb":"ci-status"}
+evt: {"event":"dispatch.end","ms":2839,"sess":"drain-full-29a","ts":1793252026601,"verb":"ci-status"}
