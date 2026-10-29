@@ -195,6 +195,21 @@ impl Game {
             .collect()
     }
 
+    pub fn unit_columns(&self) -> Vec<i32> {
+        let sim = self.host.sim();
+        let mut cols: [Vec<i32>; 7] = Default::default();
+        for i in (0..sim.count()).filter(|&i| sim.alive(i)) {
+            cols[0].push(i as i32);
+            cols[1].push(i32::from(sim.weapon_cooldown(i) > 0));
+            cols[2].push(sim.commanded_strike_index(i));
+            cols[3].push(sim.period_of(i));
+            cols[4].push(sim::fixed::to_int(sim.hp(i)));
+            cols[5].push(sim::fixed::to_int(sim.hp_max(i)));
+            cols[6].push(sim.item_generation(i) as i32);
+        }
+        cols.concat()
+    }
+
     pub fn ground_items(&self) -> Vec<f32> {
         self.host
             .sim()
