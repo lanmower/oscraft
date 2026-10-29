@@ -1,6 +1,6 @@
 id: writer-lock-check-not-clean-on-clean-checkout
 subject: writer_lock check reports not_clean (fetch failed, ahead empty) on a clean, in-sync checkout while take succeeds
-description: 'On 2026-10-25 writer_lock check returned error_code not_clean with ''oscraft: dirty=0 ahead= fetch: failed'' twice, while git_pull (fetch ok, already up to date) and branch_status (ahead 0, behind 0) succeeded and writer_lock take then succeeded. The check''s own fetch probe fails and is reported as dirty. Fix: report the fetch error apart from dirty, retry the fetch once, and never return not_clean when dirty=0.'
+description: 'On 2026-10-25 writer_lock check returned error_code not_clean with ''oscraft: dirty=0 ahead= fetch: failed'' twice, while git_pull (fetch ok, already up to date) and branch_status (ahead 0, behind 0) succeeded and writer_lock take then succeeded. The check''s own fetch probe fails and is reported as dirty. Fix: report the fetch error apart from dirty, retry the fetch once, and never return not_clean when dirty=0. No public references: the row concerns gm-mcp writer_lock source in /workspace/gm, not a public library.'
 session_id: drain-preload-13
 owner: drain-preload-13
 status: pending
