@@ -246,7 +246,9 @@ function portraitGrid(n, send) {
   const fit = n.fit === true;
   const e = el("div", fit ? "w-portraits fit" : "w-portraits");
   const px = Math.max(16, Math.min(256, n.size || 56));
-  e.style.gridTemplateColumns = "repeat(" + Math.max(1, n.cols || 1) + ", minmax(0, " + px + "px))";
+  e.style.gridTemplateColumns = fit
+    ? "repeat(auto-fill, minmax(min(100%, " + px + "px), 1fr))"
+    : "repeat(" + Math.max(1, n.cols || 1) + ", minmax(0, " + px + "px))";
   for (const item of n.items ?? []) {
     const cell = el("div", item.call ? "w-cell w-portrait clickable" : "w-cell w-portrait");
     cell.style.aspectRatio = "1";
