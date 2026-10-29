@@ -1,6 +1,0 @@
-id: mods-init-buff-fx-unknown-module
-subject: 'Live Pages: [mods] init: unknown_module: buff_fx is not a module of this pack'
-description: 'Witness 1792921949025-7099-d01463a9e43c404 at https://lanmower.github.io/oscraft/js/client/play.html#moba: console error at play.js:253 on mount.'
-session_id: verify-lobby-probe
-owner: verify-lobby-probe
-status: pending
