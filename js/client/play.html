@@ -152,7 +152,7 @@
     @media (max-width: 600px) {
       body #ui-modal { top: 8px; transform: translateX(-50%); max-height: calc(100vh - var(--bar-h) - 24px); max-height: calc(100dvh - var(--bar-h) - 24px); }
     }
-    #minimap { display: block; touch-action: none; border-radius: 3px; cursor: crosshair; background: #1a2129; }
+    #minimap { display: block; touch-action: none; border-radius: 3px; cursor: crosshair; background: #1a2129; user-select: none; -webkit-user-select: none; }
     #centre-hero { width: 100%; margin-top: 4px; font: var(--t-label) var(--font); }
     #boot { position: fixed; z-index: 5; left: 50%; bottom: calc(var(--bar-h) + 12px); transform: translateX(-50%); width: min(420px, 92vw); box-sizing: border-box; padding: 12px 14px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 6px; color: var(--muted); font-size: var(--t-body); pointer-events: none; }
     #boot[data-failed] { border-color: var(--bad); }

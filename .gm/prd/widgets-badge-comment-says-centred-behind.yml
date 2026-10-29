@@ -1,6 +1,0 @@
-id: widgets-badge-comment-says-centred-behind
-subject: widgets.js badge doc comment still says centred behind; a correction line sits under it
-description: 'The portraits badge doc comment in js/client/widgets.js was written for the centred-behind design (159d02fd); c9896529 snapped the badge to the top strip and added a correction line below instead of rewriting, to avoid a merge conflict. Rewrite the comment to describe only the current behaviour (comment sweep invariant: comments must be self-explanatory or move to AGENTS.md). Part of comment-sweep-js-client; take it there.'
-session_id: mcp-codemode-3036736-1792921514978-24
-owner: mcp-codemode-3036736-1792921514978-24
-status: pending

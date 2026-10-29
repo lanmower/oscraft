@@ -1,1 +1,0 @@
-{"dispatch_id":"1793136593847-4351-ea9f98e7e93a721c","verb":"git_diff","fingerprint":"3045db11da32091e","exit_code":0,"gate_drift":false,"gate_id":null,"predicate":null,"prd_open_count":174,"mutable_open_count":221,"quality":0.5,"ts":1793136593934,"reply_sha256":"18197b3ea1c166a26d7b7b124a2eee7b7d66481fb697bcb86f5f215c354a3059","failure_class":"ok","policy_id":"pi0-default"}

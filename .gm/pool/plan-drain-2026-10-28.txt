@@ -1,0 +1,8 @@
+run=drain-2026-10-28
+pending_total=181
+cap=4
+unit mapexport row=ci-red-mapexport-lycan-wolf-1-on-main
+unit smoke row=flow-smoke-never-clicks-the-hero-select
+unit encode row=data-encode-name-len-narrowing-unchecked
+unit camps row=camps-whole
+queued=remaining pending after these four

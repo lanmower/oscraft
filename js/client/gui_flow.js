@@ -1,7 +1,7 @@
 // Fullscreen pre-match flow: fullscreen team selection, then fullscreen hero
-// selection split into the three primary-attribute columns and filterable by
-// team, then the team orientation view where both teams' five heroes stand on
-// podiums while the 3D scene (podium.js) streams their models underneath.
+// selection split into the three primary-attribute columns, then the team
+// orientation view where both teams' five heroes stand on podiums while the
+// 3D scene (podium.js) streams their models underneath.
 // This module owns only the overlay DOM and the stage state.
 
 const TEAM_SIZE = 5;
@@ -41,13 +41,6 @@ export function createGuiFlow({ root, iconUrl, rosterHeroes, onHero, teamNames =
 .flow-team-chip { padding: 5px 14px; border: 1px solid #2f5da8; border-radius: 999px; font-size: 13px;
   color: #cfe0ff; background: rgba(20,32,58,.8); }
 .flow-team-chip[data-team="1"] { border-color: #a8422f; color: #ffd9cd; background: rgba(58,26,20,.8); }
-.flow-filters { display: flex; gap: 8px; }
-.flow-filter { padding: 5px 14px; border: 1px solid #2c3648; border-radius: 999px; background: rgba(18,24,34,.8);
-  color: #aebbd2; font: 13px system-ui, sans-serif; cursor: pointer; }
-.flow-filter:hover, .flow-filter:focus { border-color: #6f92d8; outline: none; color: #e8ecf4; }
-.flow-filter[data-active="true"] { border-color: #6f92d8; color: #fff; background: rgba(30,44,74,.9); }
-.flow-filter[data-team="0"][data-active="true"] { border-color: #2f5da8; background: rgba(23,40,76,.9); }
-.flow-filter[data-team="1"][data-active="true"] { border-color: #a8422f; background: rgba(76,32,23,.9); }
 .flow-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;
   width: min(94vw, 1240px); max-height: 66vh; }
 .flow-group { display: flex; flex-direction: column; min-height: 0; padding: 10px;
@@ -93,7 +86,6 @@ export function createGuiFlow({ root, iconUrl, rosterHeroes, onHero, teamNames =
   let team = null;
   let pick = null;
   let picks = null;
-  let filter = "all";
 
   const h = () => document.createElement("h1");
   const roster = () => rosterHeroes() ?? [];
@@ -102,8 +94,8 @@ export function createGuiFlow({ root, iconUrl, rosterHeroes, onHero, teamNames =
     return GROUPS.some((g) => g.id === group) ? group : 1;
   };
   // Hero name -> the team whose seats already hold it. The lobby reports both
-  // teams' seats before the match starts, so the grid can drop what a team
-  // already has and show each team's roster under its own filter.
+  // teams' seats before the match starts, so a hero either team already holds
+  // is not the chosen team's to pick.
   const takenBy = () => {
     const map = new Map();
     const lists = teamPicks?.() ?? [];
@@ -112,7 +104,7 @@ export function createGuiFlow({ root, iconUrl, rosterHeroes, onHero, teamNames =
     });
     return map;
   };
-  const passesFilter = (hero, taken) => (filter === "all" ? !taken.has(hero.name) : taken.get(hero.name) === filter);
+  const passesFilter = (hero, taken) => !taken.has(hero.name);
   // The orientation view renders before the start frame fills `picks` on a
   // fast lock-in, so the local pick stands alone until then.
   const podiumColumns = () => {
@@ -235,29 +227,6 @@ export function createGuiFlow({ root, iconUrl, rosterHeroes, onHero, teamNames =
       chip.dataset.team = String(team ?? 0);
       chip.textContent = `Locking in for ${teamNames[team ?? 0] ?? ""}`;
       bar.append(chip);
-      const filters = document.createElement("div");
-      filters.className = "flow-filters";
-      const taken = takenBy();
-      const all = roster().filter((hero) => !taken.has(hero.name)).length;
-      const options = [["all", "All heroes", all],
-        [0, teamNames[0] ?? "Team 1", roster().filter((hero) => taken.get(hero.name) === 0).length],
-        [1, teamNames[1] ?? "Team 2", roster().filter((hero) => taken.get(hero.name) === 1).length]];
-      for (const [value, label, count] of options) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "flow-filter";
-        button.dataset.filter = String(value);
-        if (value !== "all") button.dataset.team = String(value);
-        button.dataset.active = String(filter === value);
-        button.textContent = `${label} (${count})`;
-        button.addEventListener("click", () => {
-          if (filter === value) return;
-          filter = value;
-          setStage("hero");
-        });
-        filters.append(button);
-      }
-      bar.append(filters);
       const board = document.createElement("div");
       board.className = "flow-board";
       el.append(bar, board);
@@ -313,8 +282,8 @@ export function createGuiFlow({ root, iconUrl, rosterHeroes, onHero, teamNames =
     setStage,
     hide: () => setStage(null),
     setPicks: (byTeam) => { picks = byTeam; setStage("podium"); },
-    // The lobby's seat list moves while the grid is up: the free pool and the
-    // per-team counts are rebuilt from it, so the stage redraws.
+    // The lobby's seat list moves while the grid is up: the free pool is
+    // rebuilt from it, so the stage redraws.
     refreshLobby: () => { if (stage === "hero") setStage("hero"); },
     refreshIcons,
     teams: () => teamNames,

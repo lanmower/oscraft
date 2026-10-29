@@ -1,1 +1,0 @@
-{"dispatch_id":"1793105592301-3864-23a67c198e3e88cf","verb":"ci-status","fingerprint":"f2dd59eda2192135","exit_code":0,"gate_drift":false,"gate_id":null,"predicate":null,"prd_open_count":172,"mutable_open_count":221,"quality":0.5,"ts":1793105592388,"reply_sha256":"2a01d1144dab0bcad63d6d4b2a7704d7f245bf4c8436f63247913639364f4d58","failure_class":"ok","policy_id":"pi0-default"}

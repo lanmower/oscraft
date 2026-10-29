@@ -7,3 +7,7 @@
 2026-10-27T12:55:00Z	launch	verify-2-6	0	4	4
 2026-10-27T12:55:00Z	launch	verify-2-7	0	4	4
 2026-10-27T12:55:00Z	launch	gm-orch-2-8	0	4	4
+2026-10-28T18:53:33.107Z	launch	ci-red-mapexport-lycan-wolf-1-on-main	0	4	4
+2026-10-28T18:53:33.107Z	launch	flow-smoke-never-clicks-the-hero-select	0	4	4
+2026-10-28T18:53:33.107Z	launch	data-encode-name-len-narrowing-unchecked	0	4	4
+2026-10-28T18:53:33.107Z	launch	camps-whole	0	4	4

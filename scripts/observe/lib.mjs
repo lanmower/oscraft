@@ -19,6 +19,8 @@ export async function discover(readText, page = "js/client/play.html") {
     if (/^(https?:|data:)/.test(v)) continue;
     queue.push(resolveFrom(page, v));
   }
+  const pkgSpec = html.match(/\bdata-pkg="([^"]+)"/)?.[1];
+  const pkgDir = pkgSpec ? resolveFrom(page, pkgSpec).replace(/[^/]*$/, "") : null;
   while (queue.length) {
     const rel = queue.shift();
     if (found.has(rel)) continue;
@@ -27,7 +29,10 @@ export async function discover(readText, page = "js/client/play.html") {
     const text = await readText(rel);
     if (text == null) continue;
     for (const m of text.matchAll(/(?:from\s+|import\s*\(\s*)["'](\.{1,2}\/[^"']+)["']/g)) queue.push(resolveFrom(rel, m[1]));
-    for (const m of text.matchAll(/["'`]([^"'`\s]+\.wasm)["'`]/g)) queue.push(resolveFrom(rel, m[1]));
+    for (const m of text.matchAll(/["'`]([^"'`\s]+\.wasm)["'`]/g)) {
+      const spec = m[1];
+      queue.push(pkgDir && !spec.includes("/") ? pkgDir + spec : resolveFrom(rel, spec));
+    }
   }
   return [...found].sort();
 }

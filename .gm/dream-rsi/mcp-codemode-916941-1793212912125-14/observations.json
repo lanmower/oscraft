@@ -1,0 +1,1 @@
+{"dispatch_id":"1793212913811-4962-a3af8e674ed78f4e","verb":"callers","fingerprint":"2208d0ccff96a59c","exit_code":0,"gate_drift":false,"gate_id":null,"predicate":null,"prd_open_count":181,"mutable_open_count":221,"quality":0.5,"ts":1793212913889,"reply_sha256":"ed3c0f9b70dde9f6bae500f339afa4d90cc2b472a86d6bd36d4b3516c763a2cf","failure_class":"ok","policy_id":"pi0-default"}

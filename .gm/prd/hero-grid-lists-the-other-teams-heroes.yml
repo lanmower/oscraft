@@ -1,0 +1,8 @@
+id: hero-grid-lists-the-other-teams-heroes
+subject: The hero grid offers the opposing team's heroes in a normal match
+description: After a team is chosen, the fullscreen hero grid still lists heroes the other team holds, so heroes that are not pickable in a normal match can be selected. The grid must offer only what the chosen team may pick.
+acceptance_criteria: With a team chosen, the grid contains no hero held by the other team, and picking a hero not available to the team is impossible.
+witness_plan: Open the hero selection on the local mirror, read the card list with both teams holding heroes, and confirm no opposing hero is present.
+session_id: mcp-codemode-56806-1793170367691-23
+owner: mcp-codemode-56806-1793170367691-23
+status: pending
