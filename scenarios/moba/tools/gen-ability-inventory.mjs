@@ -38,7 +38,9 @@ async function abilityNames(hero) {
   const text = fs.readFileSync(file, "utf8");
   const slots = new Map();
   for (const m of text.matchAll(/^\s*"(Ability\d+)"\s+"([^"]+)"/gm)) slots.set(Number(m[1].slice(7)), m[2]);
-  return [...slots.entries()].sort((a, b) => a[0] - b[0]).map(([, name]) => name);
+  return [...slots.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .flatMap(([, names]) => names.split(",").map((name) => name.trim()).filter(Boolean));
 }
 
 const rows = ["hero\tslot\tability\tkind\trecipe"];
