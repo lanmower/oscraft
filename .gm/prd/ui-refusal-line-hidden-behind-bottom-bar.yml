@@ -14,6 +14,9 @@ notes:
 - ts: 2026-10-26T05:26:58.012Z
   session_id: hud-match-witness
   note: Not witnessed in this run. Open.
+- ts: 2026-10-29T19:44:00.000Z
+  session_id: drain-full-29a-12
+  note: 'Premise absent: no refusal.node.style.bottom in the tree (codesearch dispatch 1793303021307 matches only this row file). The refusal line is js/client/hud.js:32 (role=status messages line) with bottom:calc(var(--bar-h, 160px) + 12px) and z-index:5; #ui-bar is z-index:2 (play.html:134). Witness dispatch 1793303031250 (fs_read hud.js:28-35, session verify-ui-refusal-line-hidden-behind-bottom-bar). Closed stale.'
 references:
 - ts: 2026-10-25T19:02:42.426Z
   session_id: hud-match-2
