@@ -354,6 +354,13 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             health_regen: unsigned("health_regen", raw.health_regen)?,
             model: raw.model.clone(),
         });
+        if raw.model.len() > u16::MAX as usize {
+            bail!(
+                "unit {:?} model path is {} bytes; the string table stores a string length in two bytes",
+                raw.name,
+                raw.model.len()
+            );
+        }
     }
 
     let mut unit_ext = vec![UnitExt::default(); units_raw.len()];
