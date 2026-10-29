@@ -88,6 +88,7 @@ const params = new URLSearchParams(location.search);
 const noMods = params.get("nomods") === "1";
 const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
 const namespace = params.get("ns") || "oscraft";
+const debugOn = params.has("debug");
 const statusEl = document.getElementById("status");
 const canvas = document.getElementById("view");
 const room = location.hash.slice(1) || "lobby";
@@ -222,7 +223,7 @@ function renderFatal() {
 }
 function renderStatus() {
   const mode = netState ? "net" : "local";
-  statusEl.textContent = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${statusLine ? `\n${statusLine}` : ""}`;
+  statusEl.textContent = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${debugOn && statusLine ? `\n${statusLine}` : ""}`;
 }
 function telemetry(text, level = "log") {
   const line = String(text);
