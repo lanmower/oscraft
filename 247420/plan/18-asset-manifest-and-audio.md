@@ -102,12 +102,12 @@ Item icon style: one object, ¾ top-down view, three value groups, warm key ligh
 
 | Category | Count | Direction |
 | --- | --- | --- |
-| Announcer stingers | 40 | Deadpan, calm, corporate |
+| Announcer stingers | 40 | Meme-forward, reactive, expressive |
 | Clout SFX | 8 | Gain tick, Go Viral start and end, Ratio scratch, LIVE on and off, Repost link, Rebrand |
 | Trend SFX | 10 | Spawn, modifier reveal, attacks, death, Screenshot pickup and revive |
 | UI SFX | 40 | Click, hover, purchase, error, pick, ban, ready |
 | Ambient beds | 5 | Two bases, river, jungle, pit. Sound only, no music. |
-| Hero voice | About 60 per hero | Deadpan and under-acted |
+| Hero voice | About 60 per hero | Expressive and reactive. Hot Take screams; everyone else reacts. |
 
 ### Totals (launch)
 

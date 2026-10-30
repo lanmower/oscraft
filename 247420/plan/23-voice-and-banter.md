@@ -1,20 +1,19 @@
 # 23. Voice and banter
-Voice for the twelve archetypes, the 24 launch heroes, hero pairs, the formerly tag and item flavor. Calm by default, loud only for Hot Take. Every number here is UNVERIFIED until the balance pass.
+Voice for the twelve archetypes, the 24 launch heroes, hero pairs, the formerly tag and item flavor. Expressive by default, loud only for Hot Take. Every number here is UNVERIFIED until the balance pass.
 
 ### Rules
-
-1. Voice follows the archetype in section 15. The Hot Take archetype is the only one that shouts.
+1. Voice follows the archetype in section 15. The Hot Take archetype is the only one that screams.
 2. Loaded tier: lines may use the rule 6 vocabulary from file 16 (cope, skill issue, L + ratio and similar). A loaded line aims at the play it follows, a kill, a death or a lane, and never at a person, group, creator or real event.
 3. Read path: LIVE, Stan, Go Viral, Ratio and Repost are readable from the HUD alone. No line is the only copy of a signal, and no line claims a state the portrait, top bar or minimap does not show.
 4. Hero and pair lines stay under twelve words (cap UNVERIFIED). They carry no stats.
-5. No line names a real person, real event, brand, creator or franchise, and no line borrows another game's names. Generic internet vocabulary only.
+5. No line names a real person, real event, brand, creator or franchise, and no line borrows another game's names. Generic internet vocabulary only. Brand names and owned catchphrases are allowed in the Brainrot tier and rotate per patch.
 6. Hero lines: kill plays on a kill, death on the hero's death, idle after the hero stands still outside a fight for a pause (length UNVERIFIED). Each line plays once per trigger. Per-line cooldowns are set in the balance pass.
 7. Item flavor is the second, italic line of a tooltip. Mechanics come first. Compact tooltips hide flavor (file 16, gag 09).
 
 ### Voice by archetype
 
 | Archetype | Voice in one line | Verbal habit | What this archetype never says |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | The Influencer | Composed and camera-aware; every line sounds captioned. | Opens with "Okay, so." | Never admits the frame is wrong. |
 | The Lurker | Hushed and smug about not being seen. | Announces what it is not: "Not here." | Never admits being seen or LIVE. |
 | The Reply Guy | Corrects everything, its own abilities included. | Corrects, then cites. | Never says "you're right." |
@@ -31,7 +30,7 @@ Voice for the twelve archetypes, the 24 launch heroes, hero pairs, the formerly 
 ### Hero lines
 
 | Hero (archetype) | Kill | Death | Idle |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | Based Fiend (Influencer) | Quote post. Clip is already up, obviously. | Quick note: this death is also content. | Okay, so. Lighting check first. Always. |
 | Long-Form Creator (Influencer) | Thread update: that one needed four more paragraphs. | Part one of this death. Part two tomorrow. | Still rendering the intro. Give me a minute. |
 | Lurk Mode (Lurker) | I did not see that. I was not there. | Seen by nobody. I am fine with that. | Not LIVE. Not here. Suspiciously proud of it. |
@@ -62,7 +61,7 @@ Voice for the twelve archetypes, the 24 launch heroes, hero pairs, the formerly 
 Each pair plays once per match, on the first moment both heroes see each other. One line per hero.
 
 | Pair | Hero | Line | Hero | Line |
-| --- | --- | --- | --- | --- |
+|---|---|---|---|---|
 | 1 | Who Asked (Reply Guy) | I have a correction for this ruling. | Ban Hammer (Moderator) | Your objection is noted and rejected. |
 | 2 | Hot Take (Hot Take) | THIS THREAD NEEDS MY OPINION, IMMEDIATELY. | Moderator (Moderator) | Please lower your volume. Thank you. |
 | 3 | Lurk Mode (Lurker) | I was not here. You saw nothing. | Read Receipt (Notification Support) | Seen. Lurking is also a read. |
@@ -93,12 +92,12 @@ Two example lines:
 
 ### Item flavor
 
-Flavor lines are one deadpan sentence each. They carry no numbers. Any number a tooltip adds is UNVERIFIED until the balance pass.
+Flavor lines are meme-forward one-liners that carry the joke. They carry no numbers. Any number a tooltip adds is UNVERIFIED until the balance pass.
 
 #### Components (section 11)
 
 | Component | Flavor |
-| --- | --- |
+|---|---|
 | Cheap Dagger | Bought cheap and used without a receipt. |
 | Drafted Note | An idea written down and never posted. |
 | Sticky Note | A reminder to look over there. |
@@ -115,7 +114,7 @@ Flavor lines are one deadpan sentence each. They carry no numbers. Any number a 
 #### Neutral items (section 21)
 
 | Neutral item | Flavor |
-| --- | --- |
+|---|---|
 | Thread Pin | Pinned to the top, where nobody reads it. |
 | Crumb Pouch | Crumbs from a long thread, technically a snack. |
 | NPC Badge | Issued to creeps who have not been asked. |
@@ -132,7 +131,7 @@ Flavor lines are one deadpan sentence each. They carry no numbers. Any number a 
 #### New items
 
 | Item | Flavor |
-| --- | --- |
+|---|---|
 | Confident Answer | Delivered with total certainty and no sources. |
 | Prompt Injection | Adds one line to the instructions, and the instructions obey. |
 | Sycophant | Agrees with everyone nearby, which everyone mistakes for friendship. |
