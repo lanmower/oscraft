@@ -1,7 +1,0 @@
-id: writer-lock-check-counts-tracked-gm-runtime-as-dirty
-subject: writer_lock check counts tracked .gm/ runtime files as dirty, so a checkout with only runtime state refuses not_clean
-description: 'Live witness 1793301779807-55024-cdefec463c75ef43 (session verify-writer-lock-check-not-clean-on-clean-checkout) on /workspace/oscraft: writer_lock check returned not_clean with dirty=27, fetch ok, ahead=0 behind=0. Its dirty_paths include tracked .gm/ files (.gm/gm.db, .gm/turn-state.json, .gm/exec-spool/.status.json, .gm/prd/*.yml) and .agentplug-kv/ files. File to fix: /workspace/gm/gm-mcp/src/triage-verbs.js writerLock check branch. The GM_RUNTIME_UNTRACKED regex only drops untracked ?? lines under .gm/ .agentplug/ .agentplug-kv/, and runtimeIgnored only applies to submodule '' M'' lines, so tracked parent .gm/ changes count as dirty. Fix: treat tracked modifications under .gm/ and .agentplug-kv/ as runtime, reported in runtime_ignored, not dirty.'
-acceptance_criteria: 'On a checkout whose only changes are under .gm/ or .agentplug-kv/ (tracked or untracked), writer_lock check returns ok with dirty=0 and those paths in runtime_ignored. A source file change still returns not_clean with dirty>0. Live witness: writer_lock check dispatch on /workspace/oscraft read from a session other than the resolver.'
-owner: drain-full-29a-1
-session_id: drain-full-29a-1
-status: pending
