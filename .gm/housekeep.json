@@ -1,14 +1,14 @@
 {
-  "last_run_ms": 1793250040987,
-  "last_run": "2026-10-29T05:00:40.987Z",
+  "last_run_ms": 1793336465981,
+  "last_run": "2026-10-30T05:01:05.981Z",
   "state": "done",
-  "before_bytes": 772864579,
-  "after_bytes": 772797500,
+  "before_bytes": 222521691,
+  "after_bytes": 222521530,
   "pruned": {
     "a": 0,
     "b": 0,
     "c": 0,
-    "d": 1,
+    "d": 0,
     "e": 0,
     "f": 0,
     "failed": 0

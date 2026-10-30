@@ -88,6 +88,7 @@ const params = new URLSearchParams(location.search);
 const noMods = params.get("nomods") === "1";
 const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
 const namespace = params.get("ns") || "oscraft";
+const debugOn = params.has("debug");
 const statusEl = document.getElementById("status");
 const canvas = document.getElementById("view");
 const room = location.hash.slice(1) || "lobby";
@@ -222,7 +223,7 @@ function renderFatal() {
 }
 function renderStatus() {
   const mode = netState ? "net" : "local";
-  statusEl.textContent = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${statusLine ? `\n${statusLine}` : ""}`;
+  statusEl.textContent = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${debugOn && statusLine ? `\n${statusLine}` : ""}`;
 }
 function telemetry(text, level = "log") {
   const line = String(text);
@@ -741,12 +742,15 @@ function currentUnits() {
 function simUnits() {
   if (!localGame) return [];
   const flat = localGame.units();
-  const ids = localGame.unit_ids();
+  const packed = typeof localGame.unit_columns === "function" ? localGame.unit_columns() : null;
+  const live = packed ? packed.length / 7 : 0;
+  const column = (k) => packed.subarray(k * live, (k + 1) * live);
+  const ids = packed ? column(0) : localGame.unit_ids();
   const types = typeof localGame.unit_types === "function" ? localGame.unit_types() : null;
-  const hps = typeof localGame.unit_hps === "function" ? localGame.unit_hps() : null;
-  const attacking = typeof localGame.unit_attacking === "function" ? localGame.unit_attacking() : null;
-  const periods = typeof localGame.unit_periods === "function" ? localGame.unit_periods() : null;
-  const strikes = typeof localGame.unit_strike_target === "function" ? localGame.unit_strike_target() : null;
+  const hps = packed ? column(4) : typeof localGame.unit_hps === "function" ? localGame.unit_hps() : null;
+  const attacking = packed ? column(1) : typeof localGame.unit_attacking === "function" ? localGame.unit_attacking() : null;
+  const periods = packed ? column(3) : typeof localGame.unit_periods === "function" ? localGame.unit_periods() : null;
+  const strikes = packed ? column(2) : typeof localGame.unit_strike_target === "function" ? localGame.unit_strike_target() : null;
   const headings = typeof localGame.unit_headings === "function" ? localGame.unit_headings() : null;
   const scales = typeof localGame.unit_scales === "function" ? localGame.unit_scales() : null;
   const out = [];

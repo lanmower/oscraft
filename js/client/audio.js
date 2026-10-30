@@ -176,11 +176,16 @@ export function createSfx({ url, audioContext = null }) {
     if (buffers.has(name)) return buffers.get(name);
     if (failed.has(name)) return null;
     try {
-      const res = await fetch(url(`${name}.mp3`));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
-      buffers.set(name, buffer);
-      return buffer;
+      // Try .ogg first, then .mp3
+      for (const ext of [".ogg", ".mp3"]) {
+        const res = await fetch(url(`${name}${ext}`));
+        if (res.ok) {
+          const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
+          buffers.set(name, buffer);
+          return buffer;
+        }
+      }
+      throw new Error(`Could not load ${name} as .ogg or .mp3`);
     } catch {
       failed.add(name);
       return null;

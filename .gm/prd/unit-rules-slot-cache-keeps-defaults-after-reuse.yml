@@ -1,7 +1,0 @@
-id: unit-rules-slot-cache-keeps-defaults-after-reuse
-subject: unit_rules.lua caches applied values per unit slot, so a reused slot can keep the defaults
-description: scenarios/moba/unit_rules.lua caches the values it applied per unit slot. When a slot is reused for a new unit, the cache can keep the previous unit's defaults, so the new unit runs with the wrong rules. Reported by hy3d; not fixed in its commits.
-acceptance_criteria: 'A test or witness reuses a unit slot with a different unit type and reads the rule values from the new unit, matching the 6.88g source for that type. Witness: a gate or workspace test that fails before the fix and passes after, read on the pushed sha.'
-owner: rules-lane
-session_id: mcp-codemode-45985-1792935863171-1
-status: pending
