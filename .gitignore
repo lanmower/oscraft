@@ -23,3 +23,22 @@ target/
 /.gm/browser-cdp-capture/
 /.gm/crawl-cdp-sessions/
 /.inspect/
+
+# agent-host MCP registrations written by the gm installer: one local file per host, never tracked,
+# and they made every writer_lock check report not_clean
+/.codex/
+/.cursor/
+/.factory/
+/.gemini/
+/.grok/
+/.junie/
+/.kimi-code/
+/.kiro/
+/.mastracode/
+/.pi/
+/.vscode/
+/.zed/
+/.mcp.json
+/config/
+kilo.json
+opencode.jsonc
