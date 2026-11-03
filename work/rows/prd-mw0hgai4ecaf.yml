@@ -1,0 +1,9 @@
+id: "prd-mw0hgai4ecaf"
+kind: "prd"
+title: "Gold and XP are bare numbers with no XP bar"
+body: "scenarios/moba/panels.lua ~235-249, 522-530: gold is a number and XP shows only level and points. Acceptance: an XP bar shows progress to the next level, and gold has a labelled counter."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.444Z"
+witnessEvent: 3149
+witnessCommit: "2b7b8b50"
+resolvedAt: "2026-11-03T09:47:41.075Z"

@@ -1,0 +1,9 @@
+id: "prd-mw0hgai563a8"
+kind: "prd"
+title: "Scoreboard shows current gold but no net worth, and two scoreboards can open together"
+body: "panels.lua ~1522 and ~1523 both open a scoreboard; stats.lua ~16 has no cumulative gold. Acceptance: one scoreboard opens, and it shows net worth."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.445Z"
+witnessEvent: 3895
+witnessCommit: "52e2d3ad"
+resolvedAt: "2026-11-03T10:16:45.607Z"

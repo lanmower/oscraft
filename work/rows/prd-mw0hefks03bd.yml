@@ -1,0 +1,9 @@
+id: "prd-mw0hefks03bd"
+kind: "prd"
+title: "Edge-pan speed and margin are hard-coded in play.js, outside the UI config, and edge pan fires over HUD bars"
+body: "play.js ~65, 73, 1107-1111: 500 px/s and 16 px are constants. Acceptance: values come from UI config, and edge pan does not start over HUD elements."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.708Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.801Z"

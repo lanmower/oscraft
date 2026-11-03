@@ -1,0 +1,9 @@
+id: "prd-mw0hgai45dfe"
+kind: "prd"
+title: "Phones lose the minimap entirely"
+body: "play.html ~144 hides the minimap on phones. Acceptance: a phone shows a usable minimap or a minimap toggle."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.444Z"
+witnessEvent: 3149
+witnessCommit: "2b7b8b50"
+resolvedAt: "2026-11-03T09:47:41.247Z"

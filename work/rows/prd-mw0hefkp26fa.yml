@@ -1,0 +1,9 @@
+id: "prd-mw0hefkp26fa"
+kind: "prd"
+title: "Space centres on the hero only when a unit is selected"
+body: "controls.lua ~260-269 centres the selection and does nothing when nothing is selected. Acceptance: with no selection, Space centres the camera on the local hero."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.705Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.220Z"

@@ -1,0 +1,9 @@
+id: "prd-mw0hgai156f0"
+kind: "prd"
+title: "Minimap never classifies heroes or buildings: createMinimap gets no isHero or isBuilding"
+body: "js/client/hud.js:117 calls createMinimap without isHero or isBuilding, so both default to false (ui_minimap.js ~34, 84) and buildings draw as 3 px dots. Acceptance: heroes and buildings draw with their own marks, using the same classification as play.js."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.441Z"
+witnessEvent: 3149
+witnessCommit: "2b7b8b50"
+resolvedAt: "2026-11-03T09:47:40.813Z"

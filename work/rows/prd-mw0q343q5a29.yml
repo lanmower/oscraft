@@ -1,0 +1,9 @@
+id: "prd-mw0q343q5a29"
+kind: "prd"
+title: "Teams share visibility: a unit sees what its teammates see"
+body: "Requested by the user: teams must share visibility. A player sees everything within the sight of any living unit or building owned by a teammate, as in Dota 2 and 6.88g allied vision. Acceptance: a unit that stands on one side of the map reveals enemies inside a teammate's sight to the player, both for the client fog or visibility state and for the lua visibility check (targeting, cast range checks that use visibility). Witness: two players on one team, one unit of player A at a point, player B's unit at a point inside A's sight but outside B's own sight; B sees it. Enemies outside every teammate's sight stay hidden."
+status: "resolved"
+createdAt: "2026-11-03T13:27:40.166Z"
+witnessEvent: 5678
+witnessCommit: "d3c842fc"
+resolvedAt: "2026-11-03T13:35:21.541Z"

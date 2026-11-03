@@ -1,0 +1,9 @@
+id: "prd-mw0hgai257c4"
+kind: "prd"
+title: "Courier status missing from the HUD: no courier state or revive timer"
+body: "scenarios/moba/announce.lua ~236-240 gives only chat lines; courier.lua revive timer is not shown. Acceptance: a courier row shows its state and its revive countdown."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.442Z"
+witnessEvent: 3149
+witnessCommit: "2b7b8b50"
+resolvedAt: "2026-11-03T09:47:40.902Z"

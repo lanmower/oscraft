@@ -1,0 +1,9 @@
+id: "prd-mw0hefko63b2"
+kind: "prd"
+title: "Browser shortcuts fire during a match: Ctrl+letter and Ctrl+digit are not prevented, so Ctrl+R reloads a live match"
+body: "play.js ~1256-1258 prevents default only for unmodified bound keys. Acceptance: a bound key with Ctrl or Meta held has preventDefault called, and Ctrl+R does not reload the page during a match."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.704Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.062Z"

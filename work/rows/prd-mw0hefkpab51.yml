@@ -1,0 +1,9 @@
+id: "prd-mw0hefkpab51"
+kind: "prd"
+title: "Tab scoreboard toggles on each keydown and ignores keyup, so it cannot be held"
+body: "panels.lua ~1660-1663 toggles on every keydown; play.js ~1265-1267 forwards keyup but the binding ignores it. Acceptance: holding Tab shows the scoreboard and releasing hides it."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.705Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.307Z"

@@ -1,0 +1,9 @@
+id: "prd-mw0hefkr4f86"
+kind: "prd"
+title: "No player pings: alt-click and chat-wheel pings are missing; only the courier W ping and game events exist"
+body: "courier.lua ~153-163, 199-202 and announce.lua ~109-114 are the only ping sources; chat.js ~50-76 has no ping path. Acceptance: alt-click on the map shows a ping visible to the team."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.707Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.635Z"

@@ -1,0 +1,9 @@
+id: "prd-mw0hefkqaaed"
+kind: "prd"
+title: "Shop, scoreboard and controls actions dispatch moba:action with no listener in js/client"
+body: "play.js ~361-362 and controls.lua ~545-547 dispatch moba:action; no js/client listener exists. Acceptance: each action is handled or its dispatch is removed."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.706Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.547Z"

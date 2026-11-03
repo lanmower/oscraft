@@ -1,0 +1,9 @@
+id: "prd-mw0hefku2d64"
+kind: "prd"
+title: "Assist definitions differ: heroes.lua credit_assists uses 18 s, kill_gold.lua pay_assists uses radius 1325"
+body: "The A column and assist gold can disagree. Acceptance: one assist definition is used for both the stat and the gold."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.710Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:37.995Z"

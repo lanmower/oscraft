@@ -1,0 +1,9 @@
+id: "prd-mw0hefkv721c"
+kind: "prd"
+title: "docs/GAME.md is stale: secret shops, win condition and hero count are wrong"
+body: "GAME.md lines 35, 49, 63 say secret shops are absent, the win is last building, and 16 heroes have abilities. Acceptance: each line matches the code and 6.88g."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.711Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:38.168Z"

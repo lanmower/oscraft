@@ -1,0 +1,9 @@
+id: "prd-mw0hgai239f4"
+kind: "prd"
+title: "No floating damage or gold numbers: fx.js addFloat has no damage or gold source"
+body: "js/client/fx.js ~311-314 and ~390 have a float helper that no damage or gold event feeds. Acceptance: damage and gold events show floating numbers over the unit."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.442Z"
+witnessEvent: 3149
+witnessCommit: "2b7b8b50"
+resolvedAt: "2026-11-03T09:47:40.986Z"

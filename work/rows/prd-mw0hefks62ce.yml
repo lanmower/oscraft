@@ -1,0 +1,9 @@
+id: "prd-mw0hefks62ce"
+kind: "prd"
+title: "Siege cadence and count disagree with 6.88g and docs/GAME.md"
+body: "lanes.lua SIEGE_EVERY_WAVES=7 and count = ranged; GAME.md says 5:00 every 5:00 and 2 per lane from 30:00. Acceptance: cadence and counts match the 6.88g source, or the difference is recorded as GUESS with its reason."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.708Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:37.449Z"

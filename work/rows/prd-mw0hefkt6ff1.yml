@@ -1,0 +1,9 @@
+id: "prd-mw0hefkt6ff1"
+kind: "prd"
+title: "Roshan 200 gold reaches dead heroes on the killing team"
+body: "camps.lua roshan_reward has no alive check; GAME.md says living heroes. Acceptance: only living heroes on the killing team receive it."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.709Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:37.813Z"

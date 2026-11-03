@@ -1,0 +1,9 @@
+id: "prd-mw0hefkqb209"
+kind: "prd"
+title: "Targeted items cannot be armed: item keys cast at the hero position and resolve_armed item branch has no caller"
+body: "controls.lua ~368-379 casts items at the hero position with no targeting; no caller passes item=true to arm, so resolve_armed ~381-400 item branch is dead. Acceptance: a targeted item key arms the cursor and casts at the clicked point or unit."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.706Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.386Z"

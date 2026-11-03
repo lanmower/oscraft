@@ -1,0 +1,9 @@
+id: "prd-mw0hefkm7841"
+kind: "prd"
+title: "Auto-repeat re-fires held keys: cast, skill-up, hold and hero select repeat while a key is held"
+body: "forwardKey (js/client/play.js ~296-308) never sends e.repeat, and scenarios/moba/controls.lua on_key does not filter repeats. Holding Q toggles an armed cast off, holding Ctrl+Q repeats skill-ups, holding Tab flickers the scoreboard. Acceptance: a held key fires its binding once per press."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.702Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:34.972Z"

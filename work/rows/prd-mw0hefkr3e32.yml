@@ -1,0 +1,9 @@
+id: "prd-mw0hefkr3e32"
+kind: "prd"
+title: "Rotation lock cannot be toggled: rotationLockKeys is empty and chat has no -w command"
+body: "moba_ui.json ~448-462 rotationLockKeys is empty; zoom-check.mjs ~28 notes that 6.88g uses -w. Acceptance: a key or chat command toggles the rotation lock."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.707Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.717Z"

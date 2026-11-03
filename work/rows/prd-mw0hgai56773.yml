@@ -1,0 +1,9 @@
+id: "prd-mw0hgai56773"
+kind: "prd"
+title: "No respawn countdown and no buyback button, cost or cooldown on the HUD"
+body: "A dead hero shows no selection (panels.lua ~611-614); the buyback action exists (controls.lua ~652-653, heroes.lua ~163-170) with no HUD button. Acceptance: a dead hero shows a respawn countdown and a buyback button with cost and cooldown."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.445Z"
+witnessEvent: 3895
+witnessCommit: "52e2d3ad"
+resolvedAt: "2026-11-03T10:16:45.715Z"

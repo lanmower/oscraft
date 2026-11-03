@@ -1,0 +1,9 @@
+id: "prd-mw0hefkq2124"
+kind: "prd"
+title: "Casts beyond range are refused instead of walking the hero into range"
+body: "controls.lua ~330-340, 364, 398 return range and never move the hero into range. Acceptance: a cast out of range queues a move to within range, then casts."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.706Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.470Z"

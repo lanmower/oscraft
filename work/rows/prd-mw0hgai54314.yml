@@ -1,0 +1,9 @@
+id: "prd-mw0hgai54314"
+kind: "prd"
+title: "Shop has no categories and no search"
+body: "scenarios/moba/panels.lua ~421, 431-520, 461 has a grid, recipes and pins only. Acceptance: categories filter the grid and a search box finds items by name."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.445Z"
+witnessEvent: 3895
+witnessCommit: "52e2d3ad"
+resolvedAt: "2026-11-03T10:16:45.391Z"

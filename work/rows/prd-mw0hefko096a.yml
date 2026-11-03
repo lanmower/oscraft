@@ -1,0 +1,9 @@
+id: "prd-mw0hefko096a"
+kind: "prd"
+title: "A-click attack-move on an allied unit does nothing"
+body: "controls.lua ~598-601 passes any hit into cmd_attack with no is_enemy check (unlike ~574), and the sim refuses friendly targets (movement.rs ~435-441). Acceptance: A then click on an ally issues attack-move to the point."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.704Z"
+witnessEvent: 2758
+witnessCommit: "d1df7e15"
+resolvedAt: "2026-11-03T09:40:35.142Z"

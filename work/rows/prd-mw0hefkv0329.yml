@@ -1,0 +1,9 @@
+id: "prd-mw0hefkv0329"
+kind: "prd"
+title: "Quick-buy is missing: no build-list purchase path or panel button"
+body: "No quick-buy match in scenarios, js or rust. Acceptance: a build list buys items through store.lua acquire and a panel button triggers it."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.711Z"
+witnessEvent: 3895
+witnessCommit: "52e2d3ad"
+resolvedAt: "2026-11-03T10:16:45.507Z"

@@ -1,0 +1,9 @@
+id: "prd-mw0hefkt0222"
+kind: "prd"
+title: "Hero XP uses unsourced constants and a catch-up deficit term"
+body: "heroes.lua share_hero_xp and XP_MAX_LEVEL have no 6.88g source. Acceptance: constants are sourced to 6.88g or labelled GUESS with a reason, and the deficit term is removed or sourced."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.709Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:37.630Z"

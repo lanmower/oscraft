@@ -1,0 +1,9 @@
+id: "prd-mw0hefks1d28"
+kind: "prd"
+title: "Tower aggro redirects only on hero-hits-hero within 500 units"
+body: "targeting.lua aggro_redirect ignores creep hits and allied hero hits. Acceptance: aggro behaviour matches 6.88g for creep and allied hits, with its source recorded."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.708Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:37.545Z"

@@ -1,0 +1,9 @@
+id: "prd-mw0hefkt6363"
+kind: "prd"
+title: "Forfeit ends the match without publishing match stats"
+body: "leave.lua on_check_win returns the winner and never calls match_stats.publish. Acceptance: a forfeit publishes the win screen stats."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.709Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:37.720Z"

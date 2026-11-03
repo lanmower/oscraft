@@ -1,0 +1,9 @@
+id: "prd-mw0hefkua876"
+kind: "prd"
+title: "Deterministic walks: pairs() in trees.lua heal_step and lanes.lua sync_upgrades breaks the ascending_keys rule"
+body: "AGENTS.md requires ordered walks through ascending_keys. Acceptance: both walks use ascending_keys and the Lua fixture passes."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.710Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:37.901Z"

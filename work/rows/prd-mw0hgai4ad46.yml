@@ -1,0 +1,9 @@
+id: "prd-mw0hgai4ad46"
+kind: "prd"
+title: "moba:message listener in hud.js has no dispatcher; the refusal path is moba:feedback"
+body: "js/client/hud.js ~50 listens for moba:message and nothing dispatches it. Acceptance: the dead listener is removed or wired to a real dispatch, with a grep of its callers showing which."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.444Z"
+witnessEvent: 3149
+witnessCommit: "2b7b8b50"
+resolvedAt: "2026-11-03T09:47:41.158Z"

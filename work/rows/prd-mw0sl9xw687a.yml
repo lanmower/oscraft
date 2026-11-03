@@ -1,0 +1,9 @@
+id: "prd-mw0sl9xw687a"
+kind: "prd"
+title: "When the match starts, the player hero is selected and the camera focuses on it"
+body: "Requested by the user: when the game starts, your hero must be selected and the camera must focus on it. Acceptance: at match start (world ready and the first tick), the local player's hero is the selected unit, and the camera centres on the hero's position, so the player does not have to click or press a key first. Witness: the probe after world_ready shows selection holds the hero id for the local player and the camera target equals the hero position within one cell. Other players in the same match are not affected."
+status: "resolved"
+createdAt: "2026-11-03T14:37:46.772Z"
+witnessEvent: 5885
+witnessCommit: "1f89e749"
+resolvedAt: "2026-11-03T15:03:27.252Z"

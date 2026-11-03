@@ -1,0 +1,9 @@
+id: "prd-mw0hgai3960a"
+kind: "prd"
+title: "Ability cells are text-only: no icon, linear cooldown, and name-only tooltip"
+body: "scenarios/moba/panels.lua ~583-607 renders text cells. moba_input.js cooldownLeft and cooldownTotal are unused. Acceptance: each cell shows its icon, a radial cooldown sweep, and a tooltip with cost, cooldown and description."
+status: "resolved"
+createdAt: "2026-11-03T09:25:58.443Z"
+witnessEvent: 3895
+witnessCommit: "bb88a476"
+resolvedAt: "2026-11-03T10:16:45.285Z"

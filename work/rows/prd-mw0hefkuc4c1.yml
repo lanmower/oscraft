@@ -1,0 +1,9 @@
+id: "prd-mw0hefkuc4c1"
+kind: "prd"
+title: "Win screen shows the winner as team N and the gold column as the end bank"
+body: "match_stats.lua and win.lua publish these. Acceptance: the winner shows the team name and gold shows the match total."
+status: "resolved"
+createdAt: "2026-11-03T09:24:31.710Z"
+witnessEvent: 3336
+witnessCommit: "f153d894"
+resolvedAt: "2026-11-03T09:59:38.078Z"
