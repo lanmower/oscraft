@@ -294,150 +294,7 @@ function ATTENDANTS.tick()
   end
 end
 
-local EIDOLONS = {
-  source = "war3map.j ILE 48844-48861, QOX 48823-48838 (A180 and its spawn A17Z, ability.ini:52994-53060); unit stats unit.ini:8390-8614, 71248",
-  ability = "enigma_demonic_conversion",
-  casts = { "enigma_demonic_conversion" },
-  kind_prefix = "enigma_eidolon_",
-  count = 3,
-  life = 35 * TICKS,
-  hits_to_split = 6,
-  generations = 2,
-  spread = config.milli(1500),
-  offsets = { { 0, -1000 }, { -866, 500 }, { 866, 500 } },
-  kill = 32767,
-  pure = 3,
-}
-
-local eidolon_kind_index = {}
-
-local function eidolon_kind(rank)
-  local name = EIDOLONS.kind_prefix .. rank
-  if eidolon_kind_index[name] == nil then
-    for position, row in ipairs(game.unit_kinds()) do
-      if row.name == name then eidolon_kind_index[name] = position - 1 end
-    end
-  end
-  return eidolon_kind_index[name]
-end
-
-local function eidolon_rank(unit)
-  local kind = game.unit_kind(unit)
-  if string.find(kind, EIDOLONS.kind_prefix, 1, true) ~= 1 then return nil end
-  return string.byte(kind, #kind) - string.byte("0")
-end
-
-local function spawn_eidolon(owner, rank, x, y, life, generation)
-  local kind = eidolon_kind(rank)
-  if kind == nil then return end
-  local unit = game.timed_spawn(owner, kind, life, x, y)
-  if unit == nil then return end
-  game.set_counter(unit, "eidolon_due", game.ticks() + life)
-  game.set_counter(unit, "eidolon_gen", generation)
-  game.set_counter(unit, "eidolon_hits", 0)
-end
-
-function EIDOLONS.run(caster)
-  local rank = math.min(rank_of(caster, EIDOLONS.ability), 4)
-  local target = game.cast_target(caster)
-  if rank == 0 or target == nil or not game.alive(target) or not convertible(target) then return end
-  local x, y = unit_position(target)
-  game.spell_damage(caster, target, EIDOLONS.kill, EIDOLONS.pure)
-  for _, offset in ipairs(EIDOLONS.offsets) do
-    spawn_eidolon(caster, rank, x + math.floor(offset[1] * EIDOLONS.spread / 1000), y + math.floor(offset[2] * EIDOLONS.spread / 1000), EIDOLONS.life, 0)
-  end
-end
-
-function EIDOLONS.hit(attacker)
-  local rank = attacker >= 0 and eidolon_rank(attacker) or nil
-  if rank == nil or not game.alive(attacker) then return end
-  local hits = game.counter(attacker, "eidolon_hits") + 1
-  game.set_counter(attacker, "eidolon_hits", hits)
-  local generation = game.counter(attacker, "eidolon_gen")
-  local left = game.counter(attacker, "eidolon_due") - game.ticks()
-  if hits < EIDOLONS.hits_to_split or generation >= EIDOLONS.generations or left <= 0 then return end
-  game.set_counter(attacker, "eidolon_hits", 0)
-  local x, y = unit_position(attacker)
-  spawn_eidolon(attacker, rank, x + EIDOLONS.spread, y, left, generation + 1)
-end
-
-local REMNANT = {
-  source = "war3map.j L3R 87245-87290 (A2JK), L2R 87203-87244; tooltip ability.ini:89635 (100/150/200 magical per remnant, activation 150 mana)",
-  ability = "ember_spirit_fire_remnant_learning",
-  activation = "ember_spirit_fire_remnant_activate",
-  casts = { "ember_spirit_fire_remnant_learning" },
-  unit = "ember_spirit_remnant",
-  life = 45 * TICKS,
-  damage = { 100, 150, 200 },
-  radius = 450,
-  order_move = 0,
-}
-
-local remnant_kind_index
-
-local function remnant_kind()
-  if remnant_kind_index == nil then
-    for position, row in ipairs(game.unit_kinds()) do
-      if row.name == REMNANT.unit then remnant_kind_index = position - 1 end
-    end
-  end
-  return remnant_kind_index
-end
-
-local function holds_ability(unit, name)
-  local used = {}
-  for _, row in ipairs(game.unit_abilities(unit)) do
-    if row.name == name then return true end
-    used[row.slot] = true
-  end
-  return false, used
-end
-
-local function grant_activation(caster)
-  local has, used = holds_ability(caster, REMNANT.activation)
-  if has then return end
-  for slot = 0, 7 do
-    if not used[slot] then
-      game.cmd_give_ability(caster, slot, REMNANT.activation)
-      return
-    end
-  end
-end
-
-function REMNANT.run(caster)
-  local kind = remnant_kind()
-  if kind == nil then return end
-  local x, y = unit_position(caster)
-  local tx, ty = game.cast_point(caster)
-  local unit = game.timed_spawn(caster, kind, REMNANT.life, x, y)
-  if unit == nil then return end
-  game.apply_status(unit, "invulnerable", REMNANT.life)
-  game.set_counter(unit, "remnant_owner", caster + 1)
-  game.issue_order(unit, REMNANT.order_move, tx, ty)
-  grant_activation(caster)
-end
-
-function REMNANT.activate(caster)
-  local rank = math.min(rank_of(caster, REMNANT.ability), #REMNANT.damage)
-  local target = game.cast_target(caster)
-  if rank == 0 then return end
-  local owner = unit_player(caster)
-  local landing_x, landing_y
-  for unit = 0, get_unit_count() - 1 do
-    if game.alive(unit) and game.counter(unit, "remnant_owner") == caster + 1 then
-      local x, y = unit_position(unit)
-      if unit == target then landing_x, landing_y = x, y end
-      local enemies = others_near(x, y, config.milli(REMNANT.radius * 15.625), function(other)
-        return game.hostile(owner, unit_player(other)) and not held(other, "spell_immunity")
-      end)
-      for _, enemy in ipairs(enemies) do game.spell_damage(caster, enemy, REMNANT.damage[rank], MAGICAL) end
-      game.cmd_remove(unit)
-    end
-  end
-  if landing_x ~= nil then game.teleport(caster, landing_x, landing_y) end
-end
-
-local SPECS = { X_MARKS, GHOST_SHIP, ENCHANT, ATTENDANTS, EIDOLONS, REMNANT }
+local SPECS = { X_MARKS, GHOST_SHIP, ENCHANT, ATTENDANTS }
 
 local ON_CAST = {}
 for _, spec in ipairs(SPECS) do
@@ -450,11 +307,9 @@ end
 return {
   on_cast = function(caster, ability_name)
     for _, run in ipairs(ON_CAST[ability_name] or {}) do run(caster) end
-    if ability_name == REMNANT.activation then REMNANT.activate(caster) end
   end,
   on_hit = function(attacker, victim, dealt)
     GHOST_SHIP.hit(attacker, victim, dealt)
-    EIDOLONS.hit(attacker)
   end,
   on_tick = function()
     X_MARKS.tick()
