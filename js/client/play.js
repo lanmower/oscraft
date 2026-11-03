@@ -13,6 +13,7 @@ import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor 
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
+import { createHeroViewLock, findHeroOf, followTarget, heroDirection, heroOrderPoint, stepHeroOrderClock } from "./hero_view_lock.js";
 import { createMinimap } from "./ui_minimap.js";
 import { createWidgets, setImageSrcResolver, setPreviewRig } from "./widgets.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
@@ -462,6 +463,7 @@ function pumpUi() {
     setupSeat = myPlayer;
     logModError(localGame.dispatch_action("setup", JSON.stringify({ ui: UI, player: myPlayer, pubkey: auth.pubkey || LOCAL_OWNER_ID })));
   }
+  announceWorldReady();
   for (const ev of JSON.parse(localGame.drain_ui())) {
     routeUi(ev);
     if (peers.size > 0) session.broadcast(encodeFrame({ type: FRAME.UI, body: JSON.stringify(ev) }));
@@ -1706,8 +1708,10 @@ let sceneryReady = Promise.resolve();
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isPeerPage = () => !hosting && peers.size > 0;
 let worldBuiltForLobby = false;
+let worldAnnouncedTo = null;
 function announceWorldReady() {
-  if (!worldBuiltForLobby || isPeerPage()) return;
+  if (!worldBuiltForLobby || isPeerPage() || !localGame || gate.phase !== PHASE.LOBBY || worldAnnouncedTo === localGame) return;
+  worldAnnouncedTo = localGame;
   sendInput("ui", { call: "world_ready", args: {} });
 }
 const gateCtx = {

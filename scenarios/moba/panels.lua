@@ -1623,7 +1623,6 @@ end
 
 local function emit_all()
   update_heroes()
-  emit("lobby", "modal", lobby_tree())
   emit("hud", "hud", hud_tree())
   emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   emit("team", "top", team_tree())
@@ -1763,6 +1762,7 @@ local function ui_call(who, call, a)
     end
   elseif call == "draft_clock" then
     LOBBY.error = draft.clock(a.pubkey or OWNER, a.ticks) or ""
+    pcall(refresh_lobby)
   elseif call == "claim" or call == "release" or call == "remove" or call == "pick" or call == "ready" or call == "fill" or call == "start" or call == "world_ready" or call == "mode" or call == "seat" then
     lobby_act(call, a)
     if call ~= "start" then lobby_seats_event() end
