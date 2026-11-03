@@ -129,6 +129,10 @@ local function cell(kids, opts)
   local f = {}
   if opts.tone then f[#f + 1] = S("tone", opts.tone) end
   if opts.tip then f[#f + 1] = S("tip", opts.tip) end
+  if opts.icon then f[#f + 1] = S("icon", opts.icon) end
+  if opts.alt then f[#f + 1] = S("alt", opts.alt) end
+  if opts.unit then f[#f + 1] = I("unit", opts.unit) end
+  if opts.slot then f[#f + 1] = I("slot", opts.slot) end
   if opts.call then
     f[#f + 1] = S("call", opts.call)
     f[#f + 1] = R("args", opts.args or "{}")
@@ -690,8 +694,11 @@ local function ability_cell(hero, key, abilities)
   elseif rank == 0 then
     tone = "faint"
   end
-  if a.cooldown > 0 or rank == 0 then return cell(kids, { tone = tone, tip = a.name }) end
-  return cell(kids, { tone = tone, tip = a.name, call = "cast", args = obj({ I("slot", key.slot) }) })
+  local art = { tone = tone, tip = a.name, icon = "icons/abilities/" .. a.name .. ".png", alt = a.name, unit = hero, slot = key.slot }
+  if a.cooldown > 0 or rank == 0 then return cell(kids, art) end
+  art.call = "cast"
+  art.args = obj({ I("slot", key.slot) })
+  return cell(kids, art)
 end
 
 local function respawn_tree(hero)
