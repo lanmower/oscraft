@@ -328,7 +328,9 @@ local function eidolon_rank(unit)
 end
 
 local function spawn_eidolon(owner, rank, x, y, life, generation)
-  local unit = game.timed_spawn(owner, eidolon_kind(rank), life, x, y)
+  local kind = eidolon_kind(rank)
+  if kind == nil then return end
+  local unit = game.timed_spawn(owner, kind, life, x, y)
   if unit == nil then return end
   game.set_counter(unit, "eidolon_due", game.ticks() + life)
   game.set_counter(unit, "eidolon_gen", generation)
@@ -403,9 +405,11 @@ local function grant_activation(caster)
 end
 
 function REMNANT.run(caster)
+  local kind = remnant_kind()
+  if kind == nil then return end
   local x, y = unit_position(caster)
   local tx, ty = game.cast_point(caster)
-  local unit = game.timed_spawn(caster, remnant_kind(), REMNANT.life, x, y)
+  local unit = game.timed_spawn(caster, kind, REMNANT.life, x, y)
   if unit == nil then return end
   game.apply_status(unit, "invulnerable", REMNANT.life)
   game.set_counter(unit, "remnant_owner", caster + 1)
