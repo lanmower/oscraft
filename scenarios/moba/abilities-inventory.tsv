@@ -434,9 +434,7 @@ elder_titan	15	special_bonus_cleave_100	talent	no
 ember_spirit	1	ember_spirit_searing_chains	ability	no
 ember_spirit	2	ember_spirit_sleight_of_fist	ability	no
 ember_spirit	3	ember_spirit_flame_guard	ability	no
-ember_spirit	4	ember_spirit_activate_fire_remnant	ability	no
 ember_spirit	5	ember_spirit_immolation	ability	no
-ember_spirit	6	ember_spirit_fire_remnant	ability	no
 ember_spirit	7	special_bonus_attack_damage_12	talent	no
 ember_spirit	8	special_bonus_unique_ember_spirit_1	talent	no
 ember_spirit	9	special_bonus_unique_ember_spirit_3	talent	no
@@ -460,7 +458,6 @@ enchantress	13	special_bonus_unique_enchantress_enchant_health_damage	talent	no
 enchantress	14	special_bonus_unique_enchantress_4	talent	no
 enchantress	15	special_bonus_unique_enchantress_3	talent	no
 enigma	1	enigma_malefice	ability	no
-enigma	2	enigma_demonic_conversion	ability	no
 enigma	3	enigma_midnight_pulse	ability	no
 enigma	4	enigma_black_hole	ability	no
 enigma	5	generic_hidden	ability	no

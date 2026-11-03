@@ -75,9 +75,6 @@ skill("ember_spirit_flame_guard", ultimate=False, gates=[1,3,5,7], damage=[0,0,0
 ability_scaled("ember_spirit_flame_guard", 0, 2, [128,192,256,320])
 ability("ember_spirit_flame_guard_pulse", 0, 0, "none", [effect("aoe", p0=6641, p1=0, p2=1, p3=0), effect("damage", p0=30, p1=0, p2=2, p3=0)])
 ability_scaled("ember_spirit_flame_guard_pulse", 1, 0, [30,40,50,60])
-ability("ember_spirit_fire_remnant_learning", 0, 0, "point", [])
-skill("ember_spirit_fire_remnant_learning", ultimate=True, gates=[6,11,16], damage=[0,0,0], cooldown=[0,0,0], energy=[0,0,0])
-ability_ext("ember_spirit_fire_remnant_learning", cast_range=23438, charges=3, charge_restore=560)
 
 ability("ogre_magi_ignite", 240, 95, "unit", [effect("dot", p0=26, p1=16, p2=80, p3=38), effect("slow", p0=80, p1=52429, p2=0, p3=0)])
 skill("ogre_magi_ignite", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[240,240,240,240], energy=[95,105,115,125])

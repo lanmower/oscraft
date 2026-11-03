@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { HEROES } from "./ability-recipes.mjs";
+import { RETIRED_ABILITIES } from "./retired-abilities.mjs";
 
 const COMMIT = "282fad29f0f74504fad465c52d197fb61f4d612b";
 const RAW = `https://raw.githubusercontent.com/SteamDatabase/GameTracking-Dota2/${COMMIT}/game/dota/pak01_dir/scripts/npc/`;
@@ -56,7 +57,7 @@ for (const hero of heroes) {
   }
   const namesAlreadyListed = new Set();
   names.forEach((name, i) => {
-    if (namesAlreadyListed.has(name)) return;
+    if (namesAlreadyListed.has(name) || RETIRED_ABILITIES.has(name)) return;
     namesAlreadyListed.add(name);
     const kind = name.startsWith("special_bonus_") ? "talent" : "ability";
     const has = covered.has(name);
