@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { notesByAnchor } from "./provenance.mjs";
+import { loadIds } from "./emit.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -9,6 +9,7 @@ const opt = (name, dflt) => (args.includes(name) ? args[args.indexOf(name) + 1] 
 const outDir = path.resolve(opt("--out", path.join(here, "..")));
 const check = args.includes("--check");
 const read = (file) => fs.readFileSync(path.join(outDir, file), "utf8");
+const ids = loadIds(outDir);
 
 export const SCHOOLS = ["fire", "frost", "lightning", "nature", "shadow", "holy", "arcane", "poison", "blood", "earth", "wind", "physical"];
 export const FORMS = ["bolt", "beam", "chain", "nova", "zone", "column", "aura", "cone", "summon", "blink", "orbit", "spiral"];
@@ -76,10 +77,9 @@ function loadAbilities() {
   const files = fs.readdirSync(outDir).filter((f) => /^(abilities.*|items)\.osd$/.test(f)).sort();
   for (const file of files) {
     let code = null;
-    const notes = notesByAnchor(outDir, file);
     for (const line of read(file).split("\n")) {
       const named = /^ability\("([^"]+)"/.exec(line);
-      const sidecarCode = named && (notes.get(named[1]) ?? []).map((n) => /^\S+ 6\.88g (\S+) /.exec(n)).filter(Boolean).at(-1)?.[1];
+      const sidecarCode = named && ids.get(`${file}\t${named[1]}`)?.code;
       if (sidecarCode) code = sidecarCode;
       const c = /^# \S+ 6\.88g (\S+) /.exec(line);
       if (c) code = c[1];

@@ -57,7 +57,7 @@ The purchase path is not located. `PB7` (6555) is blink, not shopping. The gold 
 | 30 s wave handler, first run at game start. | 30050-30051 `JAE` at 26200-26423 | timer |
 | 450 s tech swap, 240 s guard swap, 600 s random spawn. | 30052-30063 | timer |
 
-These are already matched by `scenarios/moba/waves.osd` (see `docs/MAP_SCRIPT_688G.md`, section 3). The AI does not own them.
+These are already matched by `scenarios/moba/waves.osd`. The AI does not own them.
 
 ## 6. Not read
 

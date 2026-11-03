@@ -121,7 +121,7 @@ Three backpack slots, indexed 7 to 9. Backpack items give their passive stats. A
 
 ### Signature mechanics
 
-Each of these heroes has one rule that makes its kit read differently on the map. Each rule uses only Reach, reveal, Stan, Repost, Clout, the scoreboard or vision, never a stat. Numbers are UNVERIFIED.
+Each of these heroes has one rule that makes its kit read differently on the map. Each rule uses only Reach, reveal, Stan, Repost, Clout, the scoreboard or vision, never a stat. Numbers are unchecked.
 
 | Hero | Signature mechanic | Clout tie |
 | --- | --- | --- |

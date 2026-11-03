@@ -154,9 +154,9 @@ Design notes:
 | Monetized | 3,500 | Creep kills give +25% gold |
 | Sheep Check | 3,000 | Polymorph 3 s, 15 s cooldown |
 | Lite Plan | 1,400 | Adds one second effect to a basic ability (section 21). Standalone; not built from Pro Plan |
-| Confident Answer | 650 | Attacks reveal the target's last position for 2 s, 20% chance. UNVERIFIED |
-| Prompt Injection | 700 | The next ability the target casts hits its nearest ally, 4 s, 30 s cooldown. UNVERIFIED |
-| Sycophant | 800 | Aura 500 radius: allies inside gain Reach +100. UNVERIFIED |
-| Drain Blade | 1,600 | 12% attack lifesteal for 6 s after an attack lands. UNVERIFIED |
+| Confident Answer | 650 | Attacks reveal the target's last position for 2 s, 20% chance. |
+| Prompt Injection | 700 | The next ability the target casts hits its nearest ally, 4 s, 30 s cooldown. |
+| Sycophant | 800 | Aura 500 radius: allies inside gain Reach +100. |
+| Drain Blade | 1,600 | 12% attack lifesteal for 6 s after an attack lands. |
 
 Costs set the tier bands in the component tree. Costs are final for v1 and change only in the balance pass.

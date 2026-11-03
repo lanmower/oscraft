@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { emitSplit } from "./provenance.mjs";
+import { emitSplit } from "./emit.mjs";
 import { loadFootprints, readPropRecords, simCellsOf, TREE_TYPES, GX, GY } from "./pathing-688g.mjs";
 
 const args = process.argv.slice(2);
@@ -61,7 +61,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
   const next = treesLua(rows);
   const withProp = rows.filter((r) => r[4] >= 0).length;
   if (check) {
-    if (emitSplit(dir, "trees_688g.lua", next, true).length) { console.error("trees_688g.lua or its provenance differs from the derived trees; run gen-trees-688g.mjs"); process.exit(1); }
+    if (emitSplit(dir, "trees_688g.lua", next, true).length) { console.error("trees_688g.lua differs from the derived trees; run gen-trees-688g.mjs"); process.exit(1); }
     console.log(`trees in sync: ${rows.length} trees, ${withProp} with a prop`);
   } else {
     emitSplit(dir, "trees_688g.lua", next, false);

@@ -2,8 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { buildingPlan, buildingLines, shopLines, provenanceRows, sidecarText } from "./buildings-688g.mjs";
-import { classify, provenanceFile } from "./provenance.mjs";
+import { buildingPlan, buildingLines, shopLines } from "./buildings-688g.mjs";
 import { wpmBlockedGrid, writeWpmTsv, loadFootprints, deriveBlocked, openPaintLines } from "./pathing-688g.mjs";
 
 const args = process.argv.slice(2);
@@ -180,15 +179,6 @@ const treeLines = props.filter((d) => treeCodes.has(d.type)).map((d, k) => {
   return `prop(${k + 100}, "tree", ${x}, ${y})`;
 });
 
-const headerNotes = [
-  `${opt("--label", "Dota 6.88g reference map")}, converted by scenarios/moba/tools/convert-688g-map.mjs from the extracted map members.`,
-  "World to grid: 1 source unit = 15.625 milli; the 16384-unit playable square sits at grid cell (35, 35) as a 256x256 sim block.",
-  "Walkable: no unwalkable pathing cell in the 2x2 pathing block of the sim cell: bit 0x02 of the wpm, or a prop pathTex footprint (pathing-688g.mjs). Outside the block: blocked.",
-  `Height: each sim cell bilinear over its tile's corners, z = (layer - 2) * 128 + ground offset, level = (z + 384) / 8, height_step ${HEIGHT_STEP_MILLI} milli. Tile: ground texture of the tile's corner.`,
-  "Props: tree records are placed here at their original positions; the other types are placed by scenarios/moba/tools/place-props-688g.mjs from prop-types-688g.tsv (shipped_kind).",
-  "Start, building and shop lines are derived from the script by scenarios/moba/tools/buildings-688g.mjs; the other spawn lines are kept as committed.",
-];
-const provenance = [...headerNotes.map((note) => ({ anchor: "file", kind: classify(note), note })), ...provenanceRows(plan)];
 const body = [
   `grid(${GRID}, ${GRID}, cell_milli=1000, fill=1)`,
   `height_step(${HEIGHT_STEP_MILLI})`,
@@ -202,8 +192,6 @@ const body = [
   ...treeLines,
 ];
 fs.writeFileSync(path.join(outDir, "map.osd"), [...body, ""].join("\n"));
-fs.mkdirSync(path.dirname(provenanceFile(outDir, "map.osd")), { recursive: true });
-fs.writeFileSync(provenanceFile(outDir, "map.osd"), sidecarText(provenance));
 
 fs.writeFileSync(path.join(outDir, "starts-688g.tsv"), ["player_index\tid\tkey\tx\ty", ...plan.starts.map((s) => { const id = (s.side === 0 ? 1 : 7) + s.slot; return [s.k, id, `slot${id}`, s.wx, s.wy].join("\t"); })].join("\n") + "\n");
 

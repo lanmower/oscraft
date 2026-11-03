@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { splitComments, loadProvenance, emitParts, emitSplit } from "./provenance.mjs";
+import { stripComments, emitCode, emitSplit } from "./emit.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => (args.includes(name) ? args[args.indexOf(name) + 1] : dflt);
@@ -97,19 +97,17 @@ luaLines.push("}", "");
 const luaText = luaLines.join("\n");
 
 const file = path.join(outDir, "neutral.osd");
-const head = splitComments(lines.join("\n") + "\n", "neutral.osd");
+const headCode = stripComments(lines.join("\n") + "\n", "neutral.osd");
 const oldCode = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
-const oldRows = loadProvenance(outDir, "neutral.osd").map((r) => [r.anchor, r.kind, r.note]);
-const headKept = oldCode.startsWith(head.code);
-const tail = headKept ? oldCode.slice(head.code.length) : "";
-const rows = [...head.rows, ...oldRows.slice(head.rows.length)];
+const headKept = oldCode.startsWith(headCode);
+const tail = headKept ? oldCode.slice(headCode.length) : "";
 if (check) {
-  if (!headKept || emitParts(outDir, "neutral.osd", head.code + tail, rows, true).length) { console.error("neutral.osd or its provenance is out of date with the script"); process.exit(1); }
-  if (emitSplit(outDir, "camps_688g.lua", luaText, true).length) { console.error("camps_688g.lua or its provenance is out of date with the script"); process.exit(1); }
+  if (!headKept || emitCode(outDir, "neutral.osd", headCode + tail, true).length) { console.error("neutral.osd is out of date with the script"); process.exit(1); }
+  if (emitSplit(outDir, "camps_688g.lua", luaText, true).length) { console.error("camps_688g.lua is out of date with the script"); process.exit(1); }
   console.error("neutral.osd and camps_688g.lua are up to date");
 } else {
   if (!headKept) throw new Error("neutral.osd does not start with the generated camp block; the lines after it are kept, so reconcile by hand");
-  emitParts(outDir, "neutral.osd", head.code + tail, rows, false);
+  emitCode(outDir, "neutral.osd", headCode + tail, false);
   emitSplit(outDir, "camps_688g.lua", luaText, false);
 console.error(`neutral.osd: ${byId.size} camps, ${lines.filter((l) => l.startsWith("spawn(")).length} members`);
 }

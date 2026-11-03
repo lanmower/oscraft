@@ -7,7 +7,7 @@ There are three currencies: gold (spent), XP (levels), and Clout (section 6, a B
 | --- | --- | --- |
 | Starting gold | 600 | Fixed value |
 | Passive income | 1 gold per second | Gold each second alive |
-| Lane creep last hit | Melee 38-48, ranged 43-53, siege 66-80 | Unreliable. Wave composition in section 3 (UNVERIFIED) |
+| Lane creep last hit | Melee 38-48, ranged 43-53, siege 66-80 | Unreliable. Wave composition in section 3 |
 | Hero kill | 110 + streak bounty + level × 9.9 | Reliable |
 | Assist, AoE share | 1 hero: 150 + 6L · 2: 100 + 5L · 3: 40 + 4L · 4: 25 + 3L · 5: 20 + 3L | L is the victim's level. Shared across heroes in range. |
 | Streak bounty | 60 up to 480 at a long streak | Ends on death |

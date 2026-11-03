@@ -10,7 +10,7 @@ The draft is the first decision of the match. It sets the hero pool, the lane pl
 | Algorithm Draft | Casual | Heroes drawn from a 50-hero pool. |
 | Shuffle Draft | Casual | Each player picks from a random 10-hero set. |
 | Ranked Open Feed | Ranked | Each player nominates a hero, then half the nominated heroes are banned at random. |
-| Short Form | Casual or ranked, 25 minute target | Two lanes per side, mid removed. Trend opens at 5:00. Original Post falls once both T2s on a lane are down. Surrender vote at 15 min. Details in the Short Form section below. UNVERIFIED |
+| Short Form | Casual or ranked, 25 minute target | Two lanes per side, mid removed. Trend opens at 5:00. Original Post falls once both T2s on a lane are down. Surrender vote at 15 min. Details in the Short Form section below. |
 
 ### Showrunner Draft order
 
@@ -25,7 +25,7 @@ Ten bans and ten picks, alternating by team. The order (final order):
 
 ### Short Form
 
-Short Form is the same game on a smaller map. All numbers are UNVERIFIED.
+Short Form is the same game on a smaller map. All numbers are unchecked.
 
 - Two lanes per side (top and bottom). Mid lane and its tower and Content Mill rows are removed.
 - The Trend opens at 5:00 and respawns in 4 to 6 min.

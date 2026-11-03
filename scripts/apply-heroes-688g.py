@@ -7,11 +7,9 @@ rows = [r for r in csv.reader(
     (ROOT / "heroes_688g.tsv").read_text().splitlines(), delimiter="\t")]
 hdr, data = rows[0], rows[1:]
 by_id = {r[0]: dict(zip(hdr, r)) for r in data}
-FLAG = "UNVERIFIED "
-PROVENANCE = ROOT / "provenance" / "units_heroes.osd.tsv"
 
 def kept(v):
-    flag = v["unverified"].strip()
+    flag = v["keep_ref"].strip()
     return None if flag == "all" else set(filter(None, flag.split(",")))
 
 def unit_line(line):
@@ -57,47 +55,9 @@ def hero_line(line):
                ("damage", old["damage"] if "damage" in keep else v["damage"])]
     return f"attr {m.group(1)} " + " ".join(f"{k}={x}" for k, x in fields)
 
-def flag_comment(hero):
-    v = by_id[hero]
-    if kept(v) is None:
-        return f"{FLAG}{hero}: not in 6.88g (no hero unit, ability set or pick-table entry); every stat keeps its reference ruleset value"
-    if not kept(v):
-        return None
-    return f"{FLAG}{hero}: {v['note']}"
-
 units = ROOT / "units_heroes.osd"
-out = []
-flags = {}
-for line in units.read_text().split("\n"):
-    new = unit_line(line)
-    m = re.match(r'unit\("(\w+)"', line)
-    if m and m.group(1) in by_id:
-        comment = flag_comment(m.group(1))
-        if comment:
-            flags[m.group(1)] = comment
-    out.append(new)
+out = [unit_line(line) for line in units.read_text().split("\n")]
 units.write_text("\n".join(out))
-
-def sidecar_rows():
-    lines = PROVENANCE.read_text().split("\n")
-    return lines[0], [l for l in lines[1:] if l]
-
-def is_flag_row(row):
-    anchor, kind, note = row.split("\t", 2)
-    return kind == "unverified" and note.startswith(f"{FLAG}{anchor}: ") and anchor in by_id
-
-header, existing = sidecar_rows()
-carried = {r.split("\t", 1)[0]: r for r in existing if is_flag_row(r)}
-retained = [r for r in existing if not is_flag_row(r)]
-order = {}
-for line in out:
-    m = re.match(r'unit\("(\w+)"', line)
-    if m and m.group(1) not in order:
-        order[m.group(1)] = len(order)
-merged = [(order.get(r.split("\t", 1)[0], -1), 0, r) for r in retained]
-merged += [(order[h], 1, carried.get(h, f"{h}\tunverified\t{c}")) for h, c in flags.items()]
-merged.sort(key=lambda t: (t[0], t[1]))
-PROVENANCE.write_text(header + "\n" + "\n".join(t[2] for t in merged) + "\n")
 rules = ROOT / "attr_rules.txt"
 rules.write_text("\n".join(hero_line(l) for l in rules.read_text().split("\n")))
 print(f"applied {len(by_id)} heroes", file=sys.stderr)

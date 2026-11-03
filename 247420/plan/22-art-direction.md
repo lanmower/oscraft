@@ -4,8 +4,8 @@ Visual direction for the 112 heroes (roster 001 to 111 plus Pit Boss 112), the 9
 
 ## Rules used in every table
 
-- **Body codes.** P1 taller (+10% height). P2 broader (+15% width). P3 compact (-10% height). P4 longer (+15% length). P5 short legs (-20% leg length). P6 big head (+20% head size). All percentages are design targets, UNVERIFIED.
-- **Value groups.** Written as body / head / prop, using L (light), M (mid) and D (dark). Head and prop each differ from body by the 30% luminance delta in section 17. Mapping: L about 85%, M about 55%, D about 25% luminance, all UNVERIFIED.
+- **Body codes.** P1 taller (+10% height). P2 broader (+15% width). P3 compact (-10% height). P4 longer (+15% length). P5 short legs (-20% leg length). P6 big head (+20% head size). All percentages are design targets.
+- **Value groups.** Written as body / head / prop, using L (light), M (mid) and D (dark). Head and prop each differ from body by the 30% luminance delta in section 17. Mapping: L about 85%, M about 55%, D about 25% luminance, all unchecked.
 - **Primary value group** is the body value.
 - **Sibling rule.** Within an archetype, take the hero's 0-based index k in roster order. Body code is P(k mod 6 + 1). Body value is L, M, D for floor(k/6) = 0, 1, 2. Every prop in an archetype is unique. Any two siblings therefore differ in prop silhouette and in at least one of body code or body value, which meets the two-of-three rule in section 15.
 - **Accent shifts** are named steps from the archetype accent. No hex is set here.
@@ -320,4 +320,4 @@ Constant form, shared by all eight costumes: four tapered slabs stacked narrow t
 
 - Turf Warden's A1 is Bark Camouflage. The earlier name came from a franchise and was renamed.
 - Item classes (consumable, active, passive) are inferred from effect text. Section 11 does not state them.
-- Body percentages and luminance mapping in the rules are design targets, UNVERIFIED, until the palette pass.
+- Body percentages and luminance mapping in the rules are design targets, unchecked, until the palette pass.

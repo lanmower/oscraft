@@ -462,7 +462,7 @@ shop.heading:enhancement_nimble_1	Not sold	analyze	no 6.88g item matches (/works
 shop.heading:enhancement_nimble_2	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
 shop.heading:enhancement_nimble_3	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
 shop.heading:tidehunter_fish	Not sold	analyze	no 6.88g item matches (/workspace/hy3d/output/688g-data/items-oscraft-match-v2.tsv method none)
-shop.heading.unverified	Not sold	analyze	shop_tier returns nil only for cost<=0 (panels.lua:341); 6.88g items without a goldcost are not shop stock; see shop.heading:<item_id>
+shop.heading.unsold	Not sold	analyze	shop_tier returns nil only for cost<=0 (panels.lua:341); 6.88g items without a goldcost are not shop stock; see shop.heading:<item_id>
 shop.heading.tier:0	Starting items	analyze	moba_ui.json shop.tiers (cost bands 500/1500/3000); 6.88g defines no tier field (output/688g-data/oscraft-residual-unverified.tsv item category row)
 shop.heading.tier:1	Early	analyze	moba_ui.json shop.tiers (cost bands 500/1500/3000); 6.88g defines no tier field (output/688g-data/oscraft-residual-unverified.tsv item category row)
 shop.heading.tier:2	Mid	analyze	moba_ui.json shop.tiers (cost bands 500/1500/3000); 6.88g defines no tier field (output/688g-data/oscraft-residual-unverified.tsv item category row)

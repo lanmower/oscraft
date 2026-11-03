@@ -46,7 +46,7 @@ Rebrand resets a hero to Quiet at 0 Clout.
 
 ### Algorithm mood
 
-Each team has one mood, set by the gap between the two teams' total Clout. Mood changes Reach and minimap reveal only. It is not a stat and never adds damage or armor. Numbers are UNVERIFIED.
+Each team has one mood, set by the gap between the two teams' total Clout. Mood changes Reach and minimap reveal only. It is not a stat and never adds damage or armor. Numbers are unchecked.
 
 | Mood | Entered when | Effect |
 | --- | --- | --- |

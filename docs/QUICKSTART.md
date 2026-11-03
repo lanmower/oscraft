@@ -42,13 +42,3 @@ cargo run -p mod-host --bin mod_check -- ../scenarios/moba ../mods/ui_demo.lua 2
 `mod_check` builds the pack's image, loads one mod into it and runs the ticks. See [MODDING.md](MODDING.md) and [SCRIPTING.md](SCRIPTING.md) for the API.
 
 `oscraft-lsp` (the `mod-lsp` crate) gives editors diagnostics for `.osd` and `.lua` files over stdio.
-
-## Regenerate the reference
-
-From the repo root:
-
-```
-node scenarios/moba/tools/gen-reference.mjs
-```
-
-This rewrites `docs/REFERENCE.md` from the `.osd` text of `scenarios/moba`.

@@ -24,7 +24,7 @@ An objective is a unit with hit points and no weapon. `duel-routes` declares one
 
 ## The moba pack
 
-`scenarios/moba` is a match: two sides, lanes (the routes in `routes.osd`), towers, a base per side, heroes and creep waves (`waves.osd`). Its `.osd` files hold the data. Its rules are Lua modules: `init.lua` is the manifest's root and requires the rest, which the manifest's `modules` table lists (`lanes`, `kill_gold`, `heroes`, `store`, `win`, `controls` and others). Each rule uses the `game` table, so the engine has no match code. [REFERENCE.md](REFERENCE.md) tabulates the pack's data.
+`scenarios/moba` is a match: two sides, lanes (the routes in `routes.osd`), towers, a base per side, heroes and creep waves (`waves.osd`). Its `.osd` files hold the data. Its rules are Lua modules: `init.lua` is the manifest's root and requires the rest, which the manifest's `modules` table lists (`lanes`, `kill_gold`, `heroes`, `store`, `win`, `controls` and others). Each rule uses the `game` table, so the engine has no match code.
 
 A side loses when its last living building falls. `win.lua` defines `on_check_win`, which returns the side that outlives it.
 

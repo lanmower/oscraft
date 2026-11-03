@@ -1,13 +1,13 @@
 # 23. Voice and banter
-Voice for the twelve archetypes, the 24 launch heroes, hero pairs, the formerly tag and item flavor. Expressive by default, loud only for Hot Take. Every number here is UNVERIFIED until the balance pass.
+Voice for the twelve archetypes, the 24 launch heroes, hero pairs, the formerly tag and item flavor. Expressive by default, loud only for Hot Take. Every number here is unchecked until the balance pass.
 
 ### Rules
 1. Voice follows the archetype in section 15. The Hot Take archetype is the only one that screams.
 2. Loaded tier: lines may use the rule 6 vocabulary from file 16 (cope, skill issue, L + ratio and similar). A loaded line aims at the play it follows, a kill, a death or a lane, and never at a person, group, creator or real event.
 3. Read path: LIVE, Stan, Go Viral, Ratio and Repost are readable from the HUD alone. No line is the only copy of a signal, and no line claims a state the portrait, top bar or minimap does not show.
-4. Hero and pair lines stay under twelve words (cap UNVERIFIED). They carry no stats.
+4. Hero and pair lines stay under twelve words (cap unchecked). They carry no stats.
 5. No line names a real person, real event, brand, creator or franchise, and no line borrows another game's names. Generic internet vocabulary only. Brand names and owned catchphrases are allowed in the Brainrot tier and rotate per patch.
-6. Hero lines: kill plays on a kill, death on the hero's death, idle after the hero stands still outside a fight for a pause (length UNVERIFIED). Each line plays once per trigger. Per-line cooldowns are set in the balance pass.
+6. Hero lines: kill plays on a kill, death on the hero's death, idle after the hero stands still outside a fight for a pause (length unchecked). Each line plays once per trigger. Per-line cooldowns are set in the balance pass.
 7. Item flavor is the second, italic line of a tooltip. Mechanics come first. Compact tooltips hide flavor (file 16, gag 09).
 
 ### Voice by archetype
@@ -92,7 +92,7 @@ Two example lines:
 
 ### Item flavor
 
-Flavor lines are meme-forward one-liners that carry the joke. They carry no numbers. Any number a tooltip adds is UNVERIFIED until the balance pass.
+Flavor lines are meme-forward one-liners that carry the joke. They carry no numbers. Any number a tooltip adds is unchecked until the balance pass.
 
 #### Components (section 11)
 

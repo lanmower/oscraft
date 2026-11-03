@@ -16,7 +16,7 @@ rm -rf "$vendor/wireweave/node_modules" "$vendor/wireweave/site" "$vendor/wirewe
 rm -f "$vendor/wireweave"/*.md "$vendor/wireweave"/package*.json "$vendor/wireweave/flatspace.config.mjs"
 rm -f "$vendor"/three/three.*.js
 cp -r scenarios "$out/scenarios"
-rm -rf "$out"/scenarios/*/tools "$out"/scenarios/*/provenance
+rm -rf "$out"/scenarios/*/tools
 mkdir -p "$out/scenarios/moba/assets/models"
 cp rust/crates/web/site/assets/units/*.glb "$out/scenarios/moba/assets/models/"
 if [ "${SKIP_PACKS:-0}" != 1 ]; then

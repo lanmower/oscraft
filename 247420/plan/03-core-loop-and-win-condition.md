@@ -9,7 +9,7 @@ Two teams of five. Each team defends a base, a set of lanes, and an Original Pos
 | Tier 2 tower | 3 | Armor aura: +3. Invulnerable until its T1 falls. |
 | Tier 3 tower | 3 | Armor aura: +3. Damage equal to T2. |
 | Tier 4 towers | 2 (at the Original Post) | Invulnerable until a T3 falls in any lane |
-| Content Mills | 6 (two per lane, melee and ranged) | A lane with both its Content Mills down spawns Super creeps; a destroyed mill respawns after 5 min (UNVERIFIED) |
+| Content Mills | 6 (two per lane, melee and ranged) | A lane with both its Content Mills down spawns Super creeps; a destroyed mill respawns after 5 min |
 | All six Content Mills down | n/a | Mega creeps spawn in all three lanes until a mill respawns |
 | Original Post | 1 | Invulnerable until both T4s fall. Destroying it wins. |
 

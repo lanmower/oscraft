@@ -3,7 +3,7 @@ import { propSizes, SCATTER_ROLES } from "./prop-sizes.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { emitSplit } from "./provenance.mjs";
+import { emitSplit } from "./emit.mjs";
 
 const args = process.argv.slice(2);
 if (!args.includes("--legacy-dota2")) throw new Error("gen-reference-map.mjs writes the legacy reference layout over map.osd; pass --legacy-dota2 to do that, or run convert-688g-map.mjs for the 6.88g map");
@@ -127,7 +127,6 @@ const compose = {
 };
 const campLines = [];
 for (const c of camps.sort((a, b) => a.side - b.side || a.t - b.t || a.x - b.x)) {
-  campLines.push(`# camp ${c.triggerName} type ${c.t} pull ${c.pullType} composition UNVERIFIED`);
   const taken = [];
   compose[c.t].forEach((u, k) => {
     const a = (k / 3) * Math.PI * 2 + 0.5;

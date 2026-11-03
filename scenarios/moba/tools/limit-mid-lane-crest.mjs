@@ -1,7 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { provenanceFile } from "./provenance.mjs";
-import { parseSidecar, sidecarText } from "./buildings-688g.mjs";
 
 const args = process.argv.slice(2);
 const mapPath = args.includes("--map") ? args[args.indexOf("--map") + 1] : new URL("../map.osd", import.meta.url).pathname;
@@ -9,13 +7,9 @@ const SCRIPT = "scenarios/moba/tools/limit-mid-lane-crest.mjs";
 const N = 327;
 const WINDOW = { x0: 90, x1: 106, y0: 226, y1: 240 };
 const FIXED = new Set([32, 48]);
-const CREST_NOTE = `Mid-lane crest (cells ${WINDOW.x0}-${WINDOW.x1}, ${WINDOW.y0}-${WINDOW.y1}) flattened to one level per cell by ${SCRIPT}; that script edits this file's crest band.`;
 const RE = /^paint_height\((\d+), (\d+), (\d+), (\d+), (-?\d+)\)$/;
 
 const lines = fs.readFileSync(mapPath, "utf8").split("\n");
-const sidecarPath = provenanceFile(path.dirname(mapPath), path.basename(mapPath));
-const sidecarRows = fs.existsSync(sidecarPath) ? parseSidecar(fs.readFileSync(sidecarPath, "utf8")) : [];
-const hasHeader = sidecarRows.some((r) => r.note === CREST_NOTE);
 
 function paintGrid(src) {
   const h = new Int32Array(N * N).fill(-1);
@@ -96,16 +90,12 @@ for (let y = WINDOW.y0; y < WINDOW.y1; y++) {
 const stats = (src) => ({ window: steep(src, true), map: steep(src, false) });
 const report = { window: WINDOW, mutableCells: cells.length, changedCells: changed.length, appendedLines: appended.length, before: stats(before), after: stats(h) };
 
-if (changed.length === 0 && hasHeader) {
+if (changed.length === 0) {
   console.log(JSON.stringify({ ...report, note: "already flattened; nothing to write" }));
 } else {
   let lastPaint = -1;
   lines.forEach((l, i) => { if (RE.test(l)) lastPaint = i; });
   const merged = [...lines.slice(0, lastPaint + 1), ...appended, ...lines.slice(lastPaint + 1)];
-  if (!hasHeader) {
-    fs.mkdirSync(path.dirname(sidecarPath), { recursive: true });
-    fs.writeFileSync(sidecarPath, sidecarText([{ anchor: "file", kind: "rationale", note: CREST_NOTE }, ...sidecarRows]));
-  }
   fs.writeFileSync(mapPath, merged.join("\n"));
   console.log(JSON.stringify(report));
 }

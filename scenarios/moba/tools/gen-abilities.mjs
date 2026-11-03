@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { emitSplit } from "./provenance.mjs";
+import { emitSplit } from "./emit.mjs";
 import os from "node:os";
 import path from "node:path";
 import { HEROES, HELPERS, RECIPES, SUMMON_UNITS, H } from "./ability-recipes.mjs";

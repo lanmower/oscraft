@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { provenanceFile, rowsToTsv } from "./provenance.mjs";
 
 const GX = 35;
 const GY = 35;
@@ -179,21 +178,6 @@ export function shopEntries(plan) {
 }
 export const shopLines = (plan) => shopEntries(plan).map((e) => e.line);
 
-export const parseSidecar = (text) => text.split("\n").slice(1).filter(Boolean).map((line) => {
-  const [anchor, kind, ...note] = line.split("\t");
-  return { anchor, kind, note: note.join("\t") };
-});
-export const sidecarText = (rows) => rowsToTsv(rows.map((r) => [r.anchor, r.kind, r.note]));
-const anchorOfLine = (line) => {
-  const call = /^(\w+)\((.*)\)$/.exec(line);
-  const positional = call[2].split(", ").filter((a) => !/^\w+=/.test(a)).map((a) => a.replace(/^"|"$/g, ""));
-  return [call[1], ...positional.slice(0, 4)].join(":");
-};
-export const provenanceRows = (plan) => [...buildingEntries(plan), ...shopEntries(plan)].filter((e) => e.note).map((e) => ({ anchor: anchorOfLine(e.line), kind: "source", note: e.note }));
-
-const OWNED_ANCHOR = /^start:|^spawn:(base|tower|tower_t2|tower_t3|tower_t4|barracks_melee|barracks_ranged|fountain|base_outbuilding|base_outbuilding_large):|^prop:\d+:(depot|side_depot|secret_depot):/;
-export const applyToSidecar = (rows, plan) => [...rows.filter((r) => !OWNED_ANCHOR.test(r.anchor)), ...provenanceRows(plan)];
-
 const isBuildingLine = (l) => /^start\(|^spawn\("(base|tower|tower_t2|tower_t3|tower_t4|barracks_melee|barracks_ranged|fountain|base_outbuilding|base_outbuilding_large)"/.test(l);
 const isShopLine = (l) => /^prop\((\d+), "(depot|side_depot|secret_depot)"/.test(l) && Number(l.match(/^prop\((\d+)/)[1]) < 100;
 
@@ -219,16 +203,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const plan = buildingPlan(fs.readFileSync(scriptPath, "latin1"));
   const current = fs.readFileSync(mapPath, "utf8");
   const next = applyToMap(current, plan);
-  const sidecarPath = provenanceFile(path.dirname(mapPath), path.basename(mapPath));
-  const sidecarNow = fs.existsSync(sidecarPath) ? fs.readFileSync(sidecarPath, "utf8") : null;
-  const sidecarNext = sidecarText(applyToSidecar(sidecarNow === null ? [] : parseSidecar(sidecarNow), plan));
   if (args.includes("--write")) {
-    fs.mkdirSync(path.dirname(sidecarPath), { recursive: true });
     fs.writeFileSync(mapPath, next);
-    fs.writeFileSync(sidecarPath, sidecarNext);
     console.log(JSON.stringify({ wrote: mapPath, towers: plan.towers.length, rax: plan.rax.length, outbuildings: plan.outbuildings.length, shops: Object.fromEntries(Object.entries(plan.shops).map(([k, v]) => [k, v.length])) }));
-  } else if (next !== current || sidecarNext !== sidecarNow) {
-    console.error(`${mapPath} or ${sidecarPath} differs from the building lines and rows derived from ${scriptPath}; run with --write`);
+  } else if (next !== current) {
+    console.error(`${mapPath} differs from the building lines derived from ${scriptPath}; run with --write`);
     process.exit(1);
   } else console.log("buildings-688g: map.osd matches the script");
 }

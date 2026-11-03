@@ -1,6 +1,6 @@
 # 26. First playable, cut list and checks
 
-The first playable tests what is unique before it tests the classic MOBA basics. Every number here is UNVERIFIED until a build runs the checks below.
+The first playable tests what is unique before it tests the classic MOBA basics. Every number here is unchecked until a build runs the checks below.
 
 ## First playable slice
 
@@ -19,7 +19,7 @@ The first playable tests what is unique before it tests the classic MOBA basics.
 
 **Not in the slice:** Showrunner Draft (draft is a fixed pick order for the slice), the full talent trees, neutral items, Decoy Posts, Safe Spots, Stat Boost, Chat Check, Go Private, Pit Boss, Seasons, spectator reactions, the other 18 heroes.
 
-**Exit criteria:** the runnable checks below pass across at least 200 matches (UNVERIFIED), and the eight playtest scenarios each record a result.
+**Exit criteria:** the runnable checks below pass across at least 200 matches, and the eight playtest scenarios each record a result.
 
 ## Cut list
 

@@ -17,7 +17,7 @@ Stacking:
 - A camp respawns on the minute if its spawn box is empty.
 - Pulling a camp out at about :53 to :55 stacks an extra camp for the next minute.
 - Pulling a camp into the lane resets the lane's creep equilibrium.
-- Camp stat budgets: Small 300 HP, Medium 550, Hard 950, Elder 1,600, with damage rising one step per tier (UNVERIFIED; section 19 budgets cover heroes, not neutrals).
+- Camp stat budgets: Small 300 HP, Medium 550, Hard 950, Elder 1,600, with damage rising one step per tier (section 19 budgets cover heroes, not neutrals).
 - Stage camps: the camps beside the river's shallow crossings. A pull made while an enemy hero can see the camp gives +1 Clout per creature killed. Unwatched pulls give normal gold only.
 
 ### Boosts
@@ -66,7 +66,7 @@ The modifier shows on the minimap timer and as a team-colored HUD filter for its
 
 ### Trend modifier check
 
-Written before any match exists. Each row names who a modifier favors, where it is most likely to dominate, and the cheapest answer. Every row is UNVERIFIED until the checks in section 26 run.
+Written before any match exists. Each row names who a modifier favors, where it is most likely to dominate, and the cheapest answer. Every row is unchecked until the checks in section 26 run.
 
 | Modifier | Likely favors | Dominance risk | Answer |
 | --- | --- | --- | --- |
@@ -81,7 +81,7 @@ Written before any match exists. Each row names who a modifier favors, where it 
 
 ### Breaking News (event)
 
-Two events per match, at 18:00 and 30:00 (UNVERIFIED). A banner slides in using the Trend banner effect, and a 60 s capture zone opens at the river center.
+Two events per match, at 18:00 and 30:00. A banner slides in using the Trend banner effect, and a 60 s capture zone opens at the river center.
 
 - **Capture:** a team with heroes inside and no enemy hero inside holds the zone. After 20 s held, its heroes get Front Page for 40 s: Reach +100.
 - **Contest:** if both teams have heroes inside, no progress is made.

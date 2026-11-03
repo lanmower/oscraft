@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { emitSplit } from "./provenance.mjs";
+import { emitSplit } from "./emit.mjs";
 
 const moba = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const table = (f) => {
