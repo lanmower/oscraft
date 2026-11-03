@@ -371,6 +371,10 @@ impl Game {
         self.host.sim().deaths_of(unit as usize)
     }
 
+    pub fn counter(&self, unit: u32, name: &str) -> f64 {
+        self.host.sim().counter(unit as usize, name) as f64
+    }
+
     pub fn spawn_attributed(&mut self, player: u8, kind: u32, x: f32, y: f32) -> i32 {
         let fx = (x as f64 * 65536.0) as i32;
         let fy = (y as f64 * 65536.0) as i32;
