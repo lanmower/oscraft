@@ -11,7 +11,7 @@ local DIRECTION_SCALE = 1000000
 local RETIRED_CASTS = {
   enigma_demonic_conversion = true,
   ember_spirit_fire_remnant_learning = true,
-  ember_spirit_fire_remnant_activate = true,
+  ember_spirit_activate_fire_remnant = true,
 }
 
 local function rank_of(unit, ability)
