@@ -16,6 +16,10 @@ local CARRY_BITS = { SCEPTER_BIT }
 local carried_bits_of_unit = {}
 local item_generation_scanned_of_unit = {}
 
+local function unit_key(unit)
+  return "u" .. unit
+end
+
 local function carried_bits(unit)
   local bits = {}
   for _, item in ipairs(game.unit_items(unit)) do
@@ -38,23 +42,24 @@ return {
   on_tick = function(state)
     local live = {}
     for _, unit in ipairs(game.units()) do
-      live[unit] = true
+      local key = unit_key(unit)
+      live[key] = true
       local gen = game.unit_item_gen(unit)
-      if carried_bits_of_unit[unit] == nil or item_generation_scanned_of_unit[unit] ~= gen then
+      if not carried_bits_of_unit[key] or item_generation_scanned_of_unit[key] ~= gen then
         local now = carried_bits(unit)
-        local before = carried_bits_of_unit[unit] or {}
+        local before = carried_bits_of_unit[key] or {}
         for _, bit in ipairs(CARRY_BITS) do
           local has, had = now[bit] == true, before[bit] == true
           if has ~= had then game.set_upgrade_bit(unit, bit, has or game.counter(unit, "scepter_blessed") == 1) end
         end
-        carried_bits_of_unit[unit] = now
-        item_generation_scanned_of_unit[unit] = gen
+        carried_bits_of_unit[key] = now
+        item_generation_scanned_of_unit[key] = gen
       end
     end
-    for unit in pairs(carried_bits_of_unit) do
-      if not live[unit] then
-        carried_bits_of_unit[unit] = nil
-        item_generation_scanned_of_unit[unit] = nil
+    for key, bits in pairs(carried_bits_of_unit) do
+      if bits and not live[key] then
+        carried_bits_of_unit[key] = false
+        item_generation_scanned_of_unit[key] = false
       end
     end
   end,
