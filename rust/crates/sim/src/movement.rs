@@ -167,6 +167,12 @@ impl Sim {
             }
         }
 
+        if self.blocked[i] != 0 {
+            let (mid_x, mid_y) = (fixed::from_int(cx) + fixed::HALF, fixed::from_int(cy) + fixed::HALF);
+            vx = vx.wrapping_add(mid_x.wrapping_sub(self.pos_x[i]));
+            vy = vy.wrapping_add(mid_y.wrapping_sub(self.pos_y[i]));
+        }
+
         let (sx, sy) = self.separation(i);
         vx = vx.wrapping_add(sx);
         vy = vy.wrapping_add(sy);
@@ -483,6 +489,11 @@ impl Sim {
         }
     }
 
+    pub(crate) fn needs_route(&self, i: usize, x: i32, y: i32) -> bool {
+        self.flying[i] == 0
+            && !astar::line_clear(&self.grid, (cell_of(self.pos_x[i]), cell_of(self.pos_y[i])), (cell_of(x), cell_of(y)))
+    }
+
     pub fn issue_order_kind(&mut self, i: usize, kind: u8, x: i32, y: i32) -> Result<(), Refusal> {
         if kind > ORDER_HOLD {
             return Err(self.reject(Refusal::InvalidOrderKind));
@@ -510,10 +521,7 @@ impl Sim {
                 }
                 self.tgt_x[i] = x;
                 self.tgt_y[i] = y;
-                if self.flying[i] == 0 {
-                    let from = (cell_of(self.pos_x[i]), cell_of(self.pos_y[i]));
-                    rewarm = !astar::line_clear(&self.grid, from, (cell_of(x), cell_of(y)));
-                }
+                rewarm = self.needs_route(i, x, y);
             }
         }
         self.order_kind[i] = kind;

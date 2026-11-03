@@ -907,6 +907,8 @@ impl Sim {
             self.tgt_x[i] = x;
             self.tgt_y[i] = y;
             self.order_kind[i] = ORDER_MOVE;
+            self.attack_order[i] = -1;
+            self.routed[i] = u8::from(self.needs_route(i, x, y));
             self.touch(i);
             self.record_order(i);
         }
