@@ -1,5 +1,6 @@
 local data = require("draft_data")
 local modes = require("modes")
+local sounds = require("announce_sounds")
 
 local TPS = 16
 local HALF = 5
@@ -991,6 +992,11 @@ function draft.press(owner, i, hero)
   if hero == nil or hero == "" then return "unknown-hero" end
   local err = KINDS[D.mode].press(i, hero)
   publish()
+  if err == nil then
+    sounds.sound("ui_confirm", owner)
+  else
+    sounds.sound("ui_error", owner)
+  end
   return err
 end
 

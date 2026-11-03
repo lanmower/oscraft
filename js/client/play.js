@@ -113,9 +113,11 @@ function toggleAmbient() {
   writeStoredFlag(AMBIENT_OFF_KEY, ambientOff);
   if (ambientFx) ambientFx.setEnabled(!ambientOff);
   document.body.dataset.ambient = ambientOff ? "off" : "on";
+  syncAmbientSounds();
 }
 function toggleMute() {
   document.body.dataset.muted = voices && voices.toggleMute() ? "1" : "0";
+  syncAmbientSounds();
 }
 const SPLAT_SHADE = [0.42, 0.68, 1.3];
 const SPLAT_TINTS = SPLAT_LAYERS.map((name) => (name === "dirt" ? TILE_TINTS.dirt : name === "grass" ? TILE_TINTS.grass : [1, 1, 1]));
@@ -132,6 +134,9 @@ let propBatches = [];
 let placedProps = [];
 let ambientFx = null;
 let voices = null;
+let sfx = null;
+const AMBIENT_LOOPS = [["ambient_forest", 0.5], ["ambient_wind", 0.35]];
+let ambientLoops = [];
 let ambientSeeded = false;
 let propByKindState = [];
 const propModelNames = [];
@@ -1714,6 +1719,18 @@ function syncPhase() {
   uiBarEl.hidden = !gate.live;
   if (gate.loading) cover.show();
   else cover.hide();
+  syncAmbientSounds();
+}
+
+function syncAmbientSounds() {
+  if (gate.live && sfx && ambientLoops.length === 0) {
+    ambientLoops = AMBIENT_LOOPS.map(([name, volume]) => sfx.loop(name, { volume }));
+  } else if (!gate.live && ambientLoops.length > 0) {
+    for (const loop of ambientLoops) loop.stop();
+    ambientLoops = [];
+  }
+  const silent = ambientOff || voices?.isMuted() === true;
+  for (const loop of ambientLoops) loop.setMuted(silent);
 }
 
 function heroTypeOf(pick) {
@@ -3208,7 +3225,13 @@ async function main() {
   flowAssets = { packIndex, loadPackImage };
   mountGuiFlow();
   renderBootHeroes(manifest.assets?.icons ?? "icons", packImageUrl);
-  const sfx = manifest.assets?.sounds ? createSfx({ url: (rel) => assetUrl("sounds", rel) }) : null;
+  sfx = manifest.assets?.sounds ? createSfx({ url: (rel) => assetUrl("sounds", rel) }) : null;
+  if (sfx) {
+    document.addEventListener("click", (e) => {
+      if (e.target instanceof Element && e.target.closest("button")) sfx.play("ui_click");
+    }, true);
+  }
+  syncAmbientSounds();
   const eventsBase = params.get("events");
   const modUi = createModUi({
     root: document.body,

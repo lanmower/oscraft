@@ -172,9 +172,23 @@ export function createSfx({ url, audioContext = null }) {
   const buffers = new Map();
   const failed = new Set();
 
+  function context() {
+    if (!ctx) {
+      const Ctor = globalThis.AudioContext || globalThis.webkitAudioContext;
+      if (!Ctor) return null;
+      try {
+        ctx = new Ctor();
+      } catch {
+        return null;
+      }
+    }
+    return ctx;
+  }
+
   async function load(name) {
     if (buffers.has(name)) return buffers.get(name);
     if (failed.has(name)) return null;
+    if (!context()) return null;
     try {
       for (const ext of [".ogg", ".mp3"]) {
         const res = await fetch(url(`${name}${ext}`));
@@ -193,13 +207,10 @@ export function createSfx({ url, audioContext = null }) {
 
   async function play(name) {
     if (readMuted()) return false;
-    if (!ctx) {
-      const Ctor = globalThis.AudioContext || globalThis.webkitAudioContext;
-      if (!Ctor) return false;
-      try { ctx = new Ctor(); } catch { return false; }
-    }
+    if (!context()) return false;
     const buffer = await load(String(name));
     if (!buffer) return false;
+    if (ctx.state === "suspended") await ctx.resume().catch(() => {});
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
@@ -207,7 +218,44 @@ export function createSfx({ url, audioContext = null }) {
     return true;
   }
 
-  return { play };
+  function loop(name, { volume = 1 } = {}) {
+    let muted = readMuted();
+    let gain = null;
+    let source = null;
+    let stopped = false;
+    const level = () => (muted ? 0 : volume);
+    const ready = (async () => {
+      if (!context()) return false;
+      const buffer = await load(String(name));
+      if (!buffer || stopped) return false;
+      if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+      gain = ctx.createGain();
+      gain.gain.value = level();
+      gain.connect(ctx.destination);
+      source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(gain);
+      source.start();
+      return true;
+    })().catch(() => false);
+    return {
+      ready,
+      setMuted(on) {
+        muted = Boolean(on);
+        if (gain) gain.gain.setTargetAtTime(level(), ctx.currentTime, LEVEL_FADE_S);
+      },
+      stop() {
+        stopped = true;
+        try { source?.stop(); } catch {
+        }
+        source?.disconnect();
+        gain?.disconnect();
+      },
+    };
+  }
+
+  return { play, loop };
 }
 
 export function createOrderCues({ audioContext = null, volume = 0.22 } = {}) {

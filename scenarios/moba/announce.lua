@@ -273,9 +273,10 @@ local PURCHASES = {
 
 function announce.purchase(hero, item_name)
   stats.purchased(hero, item_name)
+  local p = unit_player(hero)
+  sounds.sound("ui_buy", p)
   local row = PURCHASES[item_name]
   if row == nil then return end
-  local p = unit_player(hero)
   local text = tag(p) .. " |c00ffff00" .. row[1] .. "|r"
   say(text, row[2], p)
   say_allies(p, text, row[2])
@@ -338,9 +339,16 @@ end
 
 return {
   on_died = function(unit, killer, killer_player, _, victim_player)
-    if units.is_hero(unit) then return end
+    if units.is_hero(unit) then
+      sounds.death()
+      return
+    end
     local kind = game.unit_kind(unit)
     if kind ~= nil then structure_died(unit, kind, killer, killer_player, victim_player) end
+  end,
+
+  on_hit = function(attacker, victim)
+    sounds.hit(attacker, victim)
   end,
 
   on_spawned = function(unit)
@@ -353,6 +361,7 @@ return {
 
   on_cast = function(unit, ability)
     if ability == "buyback" then bought_at[unit] = game.ticks() end
+    sounds.cast(unit, ability)
   end,
 
   on_tick = function()

@@ -1,5 +1,6 @@
 local units = require("units")
 local xp = require("xp")
+local sounds = require("announce_sounds")
 
 local seen_level = {}
 
@@ -11,6 +12,7 @@ return {
         local before = seen_level[i]
         if before ~= nil and level > before then
           game.refresh_attr_stats(i)
+          sounds.sound("ui_levelup", unit_player(i))
         end
         seen_level[i] = level
       end
