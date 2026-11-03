@@ -14,6 +14,7 @@ import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
 import { createHeroViewLock, findHeroOf, followTarget, heroDirection, heroOrderPoint, stepHeroOrderClock } from "./hero_view_lock.js";
+import { cameraDragAction, MIDDLE_BUTTON } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
 import { createWidgets, setImageSrcResolver, setPreviewRig } from "./widgets.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
@@ -1294,7 +1295,7 @@ const commands = {
 
 function bindInput() {
   canvas.addEventListener("pointerdown", (e) => {
-    drag = e.button === 0 ? null : { x: e.clientX, y: e.clientY, moved: false };
+    drag = e.button === 0 ? null : { button: e.button, x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
     forwardPointer(e.altKey && e.button === 0 ? "ping" : "down", e);
   });
@@ -1304,16 +1305,20 @@ function bindInput() {
     const dy = e.clientY - drag.y;
     if (Math.hypot(dx, dy) > DRAG_SLOP_PX) drag.moved = true;
     if (!drag.moved) return;
-    if (renderer3d) {
-      if (e.shiftKey || e.buttons === 2) renderer3d.orbit(dx, dy);
-      else {
-        renderer3d.pan(dx, dy);
-        heroViewLock.release();
-      }
+    const action = cameraDragAction(drag.button, drag.moved);
+    if (renderer3d && action === "rotate") renderer3d.orbit(dx, dy);
+    else if (renderer3d && action === "pan") {
+      renderer3d.pan(dx, dy);
+      heroViewLock.release();
     }
     drag.x = e.clientX;
     drag.y = e.clientY;
   });
+  const suppressMiddleButtonDefault = (e) => {
+    if (e.button === MIDDLE_BUTTON) e.preventDefault();
+  };
+  canvas.addEventListener("mousedown", suppressMiddleButtonDefault);
+  canvas.addEventListener("auxclick", suppressMiddleButtonDefault);
   canvas.addEventListener("pointerup", (e) => {
     const wasDrag = drag && drag.moved;
     drag = null;
