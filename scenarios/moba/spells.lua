@@ -303,10 +303,12 @@ local function walk_parked_casts()
       parked_casts[caster] = nil
     else
       local tx, ty = p.x, p.y
-      if aims_at_unit(p.kind, p.target) then tx, ty = unit_position(p.target) end
+      local target = p.target
+      if target >= 0 and not unit_alive(target) then target = -1 end
+      if aims_at_unit(p.kind, target) then tx, ty = unit_position(target) end
       if game.cast_in_range(caster, p.index, tx, ty) then
         parked_casts[caster] = nil
-        game.cmd_cast(caster, p.slot, p.target, tx, ty)
+        game.cmd_cast(caster, p.slot, target, tx, ty)
       else
         game.cmd_order(caster, tx, ty)
       end
