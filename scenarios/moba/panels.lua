@@ -1026,7 +1026,7 @@ end
 local function lobby_started_event()
   local items = {}
   for _, s in ipairs(LOBBY.slots) do
-    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or "") })
+    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true) })
   end
   game.ui_event("lobby", obj({ I("player", LOCAL), B("started", true), R("slots", arr(items)) }))
 end
