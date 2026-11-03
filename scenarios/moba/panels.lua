@@ -167,7 +167,7 @@ local function sides()
 end
 
 local function team_name(side)
-  return TEXT.lobby.teamNames[side + 1] or (TEXT.teamLabel .. " " .. tostring(side))
+  return TEXT.lobby.teamNames[side + 1] or (TEXT.teamLabel .. " " .. tostring(side + 1))
 end
 
 local function alive_selection()
@@ -1003,10 +1003,14 @@ local function held(hero)
   return false
 end
 
+local function pickable_now(name, group)
+  return modes.allows(name, group, modes.melee(name)) and (modes.duplicates() or not held(name))
+end
+
 local function random_free()
   local free = {}
   for _, h in ipairs(ROSTER) do
-    if (modes.duplicates() or not held(h)) and modes.allows(h, LATE.group(h), modes.melee(h)) then free[#free + 1] = h end
+    if pickable_now(h, LATE.group(h)) then free[#free + 1] = h end
   end
   if #free == 0 then return nil end
   return free[modes.rand(#free) + 1]
@@ -1014,7 +1018,7 @@ end
 
 local function any_free()
   for _, h in ipairs(ROSTER) do
-    if (modes.duplicates() or not held(h)) and modes.allows(h, LATE.group(h), modes.melee(h)) then return true end
+    if pickable_now(h, LATE.group(h)) then return true end
   end
   return false
 end
@@ -1040,7 +1044,7 @@ local function lobby_seats_event()
   local hero_items = {}
   for _, name in ipairs(ROSTER or {}) do
     local group = LATE.group(name)
-    hero_items[#hero_items + 1] = obj({ S("unit", name), S("model", hero_model(name) or ""), S("acronym", LATE.acronym(name)), I("group", group), B("allowed", modes.allows(name, group, modes.melee(name))) })
+    hero_items[#hero_items + 1] = obj({ S("unit", name), S("model", hero_model(name) or ""), S("acronym", LATE.acronym(name)), I("group", group), B("allowed", pickable_now(name, group)) })
   end
   local refusal = LOBBY.error or ""
   local refusals = (TEXT.lobby.refusals or {})
@@ -1105,7 +1109,7 @@ local function lobby_act(call, a)
       if s.owner == nil then
         local hero = ROSTER[1]
         for _, h in ipairs(ROSTER) do
-          if (modes.duplicates() or not held(h)) and modes.allows(h, LATE.group(h), modes.melee(h)) then
+          if pickable_now(h, LATE.group(h)) then
             hero = h
             break
           end
@@ -1477,8 +1481,7 @@ end
 local function hero_tile(name, mine)
   local shown = hero_name(name)
   local own = mine ~= nil and LOBBY.slots[mine].hero == name
-  local allowed = modes.allows(name, hero_group(name), modes.melee(name))
-  local faint = not own and ((held(name) and not modes.duplicates()) or not allowed)
+  local faint = not own and not pickable_now(name, hero_group(name))
   local f = { S("alt", shown), S("badge", acronym(shown)), S("text", ""), S("tip", shown) }
   local model = hero_model(name)
   if model then f[#f + 1] = S("src", "icons/heroes/" .. model .. ".png") end
