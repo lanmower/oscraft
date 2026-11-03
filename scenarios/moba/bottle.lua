@@ -145,8 +145,14 @@ local function drink_rune(caster, now)
   swap(caster, row, full_form(row), FULL_CHARGES)
 end
 
-local function emptiest(unit)
-  local best, rank = nil, nil
+local function store_rank(row, drinks, forced)
+  local loaned = is_loan(row.name) and 1 or 0
+  if forced then return drinks * 2 + loaned end
+  return loaned * 4 + drinks
+end
+
+local function emptiest(unit, forced)
+  local best, best_rank = nil, nil
   for _, row in ipairs(game.unit_items(unit)) do
     local drinks = nil
     if row.name == EMPTY or row.name == LOAN_EMPTY then
@@ -154,13 +160,16 @@ local function emptiest(unit)
     elseif row.name == FULL or row.name == LOAN_FULL then
       drinks = row.count
     end
-    if drinks ~= nil and (best == nil or drinks < rank) then best, rank = row, drinks end
+    if drinks ~= nil then
+      local rank = store_rank(row, drinks, forced)
+      if best == nil or rank < best_rank then best, best_rank = row, rank end
+    end
   end
   return best
 end
 
 function bottle.store(unit, power, first, now, forced)
-  local best = emptiest(unit)
+  local best = emptiest(unit, forced)
   if best == nil then return false end
   if not forced and game.counter(unit, AUTOPICKUP_OFF) ~= 0 then
     swap(unit, best, full_form(best), FULL_CHARGES)
