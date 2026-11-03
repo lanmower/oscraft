@@ -1,6 +1,17 @@
 
 const MUTE_KEY = "oscraft.voicesMuted";
 const LEVEL_FADE_S = 0.015;
+const AMBIENCE_GAIN = 0.1;
+const AMBIENCE_EXCERPT_S = 6;
+const AMBIENCE_GAP_MIN_S = 7;
+const AMBIENCE_GAP_MAX_S = 21;
+const AMBIENCE_RATE_MIN = 0.85;
+const AMBIENCE_RATE_MAX = 1.15;
+const AMBIENCE_PAN_MAX = 0.6;
+
+function between(lo, hi) {
+  return lo + (hi - lo) * Math.random();
+}
 
 function lineFor(hero, event) {
   const direct = hero[event];
@@ -218,44 +229,73 @@ export function createSfx({ url, audioContext = null }) {
     return true;
   }
 
-  function loop(name, { volume = 1 } = {}) {
+  function ambience(names, { volume = 1 } = {}) {
     let muted = readMuted();
-    let gain = null;
-    let source = null;
     let stopped = false;
-    const level = () => (muted ? 0 : volume);
+    let timer = null;
+    let master = null;
+    let current = null;
+    const level = () => (muted ? 0 : volume * AMBIENCE_GAIN);
+
+    function scheduleNext(delayS) {
+      timer = setTimeout(playExcerpt, delayS * 1000);
+    }
+
+    async function playExcerpt() {
+      timer = null;
+      const name = String(names[Math.floor(Math.random() * names.length)]);
+      const buffer = await load(name);
+      if (stopped) return;
+      if (!buffer || muted || !context()) {
+        scheduleNext(between(AMBIENCE_GAP_MIN_S, AMBIENCE_GAP_MAX_S));
+        return;
+      }
+      if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+      if (stopped) return;
+      const length = Math.min(AMBIENCE_EXCERPT_S, buffer.duration);
+      const offset = Math.random() * (buffer.duration - length);
+      const rate = between(AMBIENCE_RATE_MIN, AMBIENCE_RATE_MAX);
+      const source = ctx.createBufferSource();
+      const pan = ctx.createStereoPanner();
+      source.buffer = buffer;
+      source.playbackRate.value = rate;
+      pan.pan.value = between(-AMBIENCE_PAN_MAX, AMBIENCE_PAN_MAX);
+      source.connect(pan);
+      pan.connect(master);
+      source.onended = () => {
+        source.disconnect();
+        pan.disconnect();
+      };
+      source.start(0, offset, length);
+      current = source;
+      scheduleNext(length / rate + between(AMBIENCE_GAP_MIN_S, AMBIENCE_GAP_MAX_S));
+    }
+
     const ready = (async () => {
       if (!context()) return false;
-      const buffer = await load(String(name));
-      if (!buffer || stopped) return false;
-      if (ctx.state === "suspended") await ctx.resume().catch(() => {});
-      gain = ctx.createGain();
-      gain.gain.value = level();
-      gain.connect(ctx.destination);
-      source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      source.connect(gain);
-      source.start();
+      master = ctx.createGain();
+      master.gain.value = level();
+      master.connect(ctx.destination);
+      await playExcerpt();
       return true;
     })().catch(() => false);
     return {
       ready,
       setMuted(on) {
         muted = Boolean(on);
-        if (gain) gain.gain.setTargetAtTime(level(), ctx.currentTime, LEVEL_FADE_S);
+        if (master) master.gain.setTargetAtTime(level(), ctx.currentTime, LEVEL_FADE_S);
       },
       stop() {
         stopped = true;
-        try { source?.stop(); } catch {
+        clearTimeout(timer);
+        try { current?.stop(); } catch {
         }
-        source?.disconnect();
-        gain?.disconnect();
+        master?.disconnect();
       },
     };
   }
 
-  return { play, loop };
+  return { play, ambience };
 }
 
 export function createOrderCues({ audioContext = null, volume = 0.22 } = {}) {

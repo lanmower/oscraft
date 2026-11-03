@@ -135,8 +135,9 @@ let placedProps = [];
 let ambientFx = null;
 let voices = null;
 let sfx = null;
-const AMBIENT_LOOPS = [["ambient_forest", 0.5], ["ambient_wind", 0.35]];
-let ambientLoops = [];
+const AMBIENT_FOLIAGE_BEDS = Array.from({ length: 10 }, (_, i) => `foliage_bed_${String(i + 1).padStart(2, "0")}`);
+const AMBIENT_BEDS = [[AMBIENT_FOLIAGE_BEDS, 0.5]];
+let ambientBeds = [];
 let ambientSeeded = false;
 let propByKindState = [];
 const propModelNames = [];
@@ -1723,14 +1724,14 @@ function syncPhase() {
 }
 
 function syncAmbientSounds() {
-  if (gate.live && sfx && ambientLoops.length === 0) {
-    ambientLoops = AMBIENT_LOOPS.map(([name, volume]) => sfx.loop(name, { volume }));
-  } else if (!gate.live && ambientLoops.length > 0) {
-    for (const loop of ambientLoops) loop.stop();
-    ambientLoops = [];
+  if (gate.live && sfx && ambientBeds.length === 0) {
+    ambientBeds = AMBIENT_BEDS.map(([names, volume]) => sfx.ambience(names, { volume }));
+  } else if (!gate.live && ambientBeds.length > 0) {
+    for (const bed of ambientBeds) bed.stop();
+    ambientBeds = [];
   }
   const silent = ambientOff || voices?.isMuted() === true;
-  for (const loop of ambientLoops) loop.setMuted(silent);
+  for (const bed of ambientBeds) bed.setMuted(silent);
 }
 
 function heroTypeOf(pick) {
