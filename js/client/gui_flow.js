@@ -162,13 +162,15 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     return row;
   };
 
+  const claimable = (seat) => !seat.owner || seat.owner.startsWith("bot:");
+  const canJoin = (state) => !state.host || state.negotiated === true;
   const claimTeam = (state, team) => {
-    const open = seatsOf(state).findIndex((seat, i) => teamOf(i) === team && !seat.owner);
-    if (open >= 0) act("claim", { slot: open });
+    const at = seatsOf(state).findIndex((seat, i) => teamOf(i) === team && claimable(seat));
+    if (canJoin(state) && at >= 0) act("claim", { slot: at });
   };
 
   const joinButton = (state, team) => {
-    const open = seatsOf(state).some((seat, i) => teamOf(i) === team && !seat.owner);
+    const open = canJoin(state) && seatsOf(state).some((seat, i) => teamOf(i) === team && claimable(seat));
     const join = node("button", "flow-action", `Join ${teamNames[team] ?? `Team ${team + 1}`}`);
     join.type = "button";
     join.disabled = !open;
@@ -324,7 +326,8 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     });
     el.append(board, actionBar(state, seat, seats), errorLine(state));
     const allReady = seats.every((s) => s.owner && s.ready);
-    el.append(node("div", "flow-wait", allReady ? "Every seat is ready." : "Standing by for the match…"));
+    const note = joining && !canJoin(state) ? "Negotiate the lobby first." : allReady ? "Every seat is ready." : "Standing by for the match…";
+    el.append(node("div", "flow-wait", note));
   };
 
   const render = () => {

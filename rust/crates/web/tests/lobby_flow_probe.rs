@@ -146,6 +146,27 @@ fn report(label: &str, lines: &[Value]) {
     }
 }
 
+fn ui_as(game: &mut Game, pubkey: &str, command: &str, args: Value) -> Vec<Value> {
+    call(game, "ui", json!({ "call": command, "args": args, "player": 1, "pubkey": pubkey }))
+}
+
+fn seat_owners(lines: &[Value]) -> Vec<String> {
+    lobby_data(lines)
+        .map(|data| {
+            data["slots"]
+                .as_array()
+                .expect("slots")
+                .iter()
+                .map(|slot| slot["owner"].as_str().unwrap_or_default().to_owned())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn negotiated(lines: &[Value]) -> bool {
+    lobby_data(lines).map(|data| data["negotiated"] == true).unwrap_or(false)
+}
+
 fn index_of(kids: &[String], needle: &str) -> Option<usize> {
     kids.iter().position(|kid| kid.contains(needle))
 }
@@ -235,4 +256,47 @@ fn probe_lobby_order_and_hide_on_start() {
         problems.push(format!("{shown_again} lobby widgets shown after start"));
     }
     assert!(problems.is_empty(), "lobby flow problems: {problems:#?}");
+}
+
+#[test]
+fn probe_join_refused_before_negotiation_then_accepted() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let mut game = Game::new(&image).expect("game");
+    game.set_fog(false);
+    load_pack(&mut game, &dir);
+    let ui_file = read_ui(&dir);
+    let refusal_text = ui_file["text"]["lobby"]["refusals"]["negotiate-first"].as_str().expect("refusal text").to_owned();
+    call(&mut game, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": OWNER }));
+    advance(&mut game, 60);
+    let joiner = "probe-joiner";
+
+    let creation = ui_as(&mut game, OWNER, "claim", json!({ "slot": 0 }));
+    println!("probe creation claim slot=0 error=\"{}\" owner={:?}", lobby_error(&creation), seat_owners(&creation)[0]);
+    assert!(lobby_error(&creation).is_empty(), "the creator takes a seat on creation");
+    let before = seat_owners(&creation);
+
+    let refused = ui_as(&mut game, joiner, "claim", json!({ "slot": 5 }));
+    let shown: Vec<String> = lobby_widgets(&refused)
+        .iter()
+        .flat_map(|widget| kid_labels(&widget["tree"]))
+        .filter(|kid| kid.contains(&refusal_text))
+        .collect();
+    println!("probe join before negotiation slot=5 error=\"{}\" negotiated={}", lobby_error(&refused), negotiated(&refused));
+    println!("probe join before negotiation lobby_shows={shown:?}");
+    println!("probe join before negotiation seat_owners_unchanged={}", seat_owners(&refused) == before);
+    assert_eq!(lobby_error(&refused), refusal_text, "a join before negotiation is refused");
+    assert!(!shown.is_empty(), "the refusal reason is shown in the lobby");
+    assert_eq!(seat_owners(&refused), before, "a refused join changes no seat");
+
+    let mode = ui_as(&mut game, OWNER, "mode", json!({ "code": "ai" }));
+    assert!(lobby_error(&mode).is_empty(), "the host chooses a mode");
+    let filled = ui_as(&mut game, OWNER, "fill", json!({}));
+    println!("probe negotiation complete mode=ai fill error=\"{}\" negotiated={}", lobby_error(&filled), negotiated(&filled));
+    assert!(negotiated(&filled), "a mode and filled-or-bot seats complete the negotiation");
+
+    let joined = ui_as(&mut game, joiner, "claim", json!({ "slot": 5 }));
+    println!("probe join after negotiation slot=5 error=\"{}\" owner={:?}", lobby_error(&joined), seat_owners(&joined)[5]);
+    assert!(lobby_error(&joined).is_empty(), "a join after negotiation is accepted");
+    assert_eq!(seat_owners(&joined)[5], joiner, "the joiner holds the seat on the chosen side");
 }

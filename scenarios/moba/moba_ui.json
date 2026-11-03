@@ -354,7 +354,8 @@
         "bad-slot": "that seat does not exist",
         "match-started": "the match has already started",
         "nothing-to-fill": "every seat already has a player or a bot",
-        "no-roster": "no heroes are available to fill the seats"
+        "no-roster": "no heroes are available to fill the seats",
+        "negotiate-first": "negotiate the lobby first"
       }
     },
     "refusals": {

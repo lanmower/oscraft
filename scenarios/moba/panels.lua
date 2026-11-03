@@ -1034,6 +1034,14 @@ local function any_free()
   return false
 end
 
+local function negotiated()
+  if #modes.codes() == 0 then return false end
+  for _, s in ipairs(LOBBY.slots) do
+    if s.owner == nil then return false end
+  end
+  return true
+end
+
 local function lobby_started_event()
   local items = {}
   for _, s in ipairs(LOBBY.slots) do
@@ -1063,7 +1071,7 @@ local function lobby_seats_event()
   game.ui_event("lobby", obj({
     I("player", LOCAL), B("started", false), R("slots", arr(items)),
     S("host", LOBBY.host or ""), S("error", refusals[refusal] or refusal), B("worldReady", LOBBY.worldReady == true),
-    B("duplicates", modes.duplicates()), B("draft", draft.active() or draft.pending()),
+    B("duplicates", modes.duplicates()), B("negotiated", negotiated()), B("draft", draft.active() or draft.pending()),
     R("modes", arr(mode_items)), R("heroes", arr(hero_items)),
   }))
 end
@@ -1152,10 +1160,12 @@ local function lobby_act(call, a)
   if i < 1 or i > SLOT_COUNT then L.error = "bad-slot" return end
   local s = L.slots[i]
   if call == "claim" then
-    if s.owner ~= nil then L.error = "slot-taken" return end
+    if L.host ~= nil and not negotiated() then L.error = "negotiate-first" return end
+    if s.owner ~= nil and not s.bot then L.error = "slot-taken" return end
     if seated(owner) then L.error = "already-seated" return end
     s.owner = owner
     s.bot = false
+    s.hero, s.ready = nil, false
     if L.host == nil then L.host = owner end
   elseif call == "release" then
     if s.owner ~= owner then L.error = "not-owner" return end

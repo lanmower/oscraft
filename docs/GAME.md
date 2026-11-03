@@ -18,7 +18,7 @@ The map is the reference ruleset map (patch 7.41 data) at its real GridNav size,
 
 Ten players, two teams of five: the `start(...)` lines of `map.osd` give each player a start point and a team, and the even players are on team 0, the odd on team 1. A seat's hero spawns at its start point when the lobby picks it (`seat_pick` in `heroes.lua`). The lobby pool holds the ten hero types, five per side.
 
-The lobby's negotiation (game mode, filling open seats with bots, every seat readying up) sits above the two sides. The team is chosen at join: the Join button on a side claims that side's first open seat. Once the match starts the lobby and hero selection panels close and stay closed for that match; a new lobby is the only way they come back.
+The lobby's negotiation (game mode, filling open seats with bots, every seat readying up) sits above the two sides. The creator takes a seat, and so a team, on creation. A joiner's Join is refused until the negotiation is complete: a mode is chosen and every seat holds a player or a bot. After that, Join takes a bot seat on the chosen side. Once the match starts the lobby and hero selection panels close and stay closed for that match; a new lobby is the only way they come back.
 
 ## Lanes and creeps
 
