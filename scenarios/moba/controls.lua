@@ -3,6 +3,7 @@ local units = require("units")
 local heroes = require("heroes")
 local bots = require("bots")
 local hotkeys = require("hotkeys")
+local bounty = require("bounty")
 local courier = require("courier")
 local glyph = require("glyph")
 local patrol = require("patrol")
@@ -13,8 +14,9 @@ local TARGET_POINT = 2
 local TARGET_UNIT_OR_POINT = 3
 local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 
+local DEFAULT_FOCUS_KEYS = { "1" }
 local CFG = {
-  keys = {},
+  keys = { focusHero = DEFAULT_FOCUS_KEYS },
   custom = {},
   refusals = {},
   doubleTapTicks = 5,
@@ -446,7 +448,21 @@ local function ping_point(who, x, y)
   end
 end
 
+local fallen_hero = nil
+
+local function follow_local_respawn()
+  local hero = bounty.hero_of(LOCAL)
+  if hero == nil then return end
+  if not unit_alive(hero) then
+    fallen_hero = hero
+  elseif fallen_hero == hero then
+    fallen_hero = nil
+    focus_hero(LOCAL)
+  end
+end
+
 local function on_tick()
+  follow_local_respawn()
   for who = 0, config.PLAYERS - 1 do
     local s = STATE[who]
     local p = s and s.pending
@@ -497,6 +513,15 @@ end
 
 local function contains(list, key) return index_of(list, key) ~= nil end
 
+local function with_keys(list, extra)
+  local out = {}
+  for _, key in ipairs(list or {}) do out[#out + 1] = key end
+  for _, key in ipairs(extra) do
+    if not contains(out, key) then out[#out + 1] = key end
+  end
+  return out
+end
+
 local function resolve_key(key, mods, hero)
   local custom = CFG.custom[key]
   if custom ~= nil then return "custom", custom end
@@ -510,10 +535,9 @@ local function resolve_key(key, mods, hero)
   local keys = CFG.keys
   local group = keys.group or {}
   local slot = index_of(group.keys, key)
-  if slot ~= nil then
-    if mods[group.modifier] then return "setGroup", slot end
-    return "recallGroup", slot
-  end
+  if slot ~= nil and mods[group.modifier] then return "setGroup", slot end
+  if contains(keys.focusHero, key) then return "focusHero" end
+  if slot ~= nil then return "recallGroup", slot end
   if contains(keys.attackMove, key) then return "attackMove" end
   if contains(keys.stop, key) then return "stop" end
   if contains(keys.hold, key) then return "hold" end
@@ -585,6 +609,8 @@ local function on_key(who, a)
     s.move_next = true
   elseif action == "patrol" then
     s.patrol_next = true
+  elseif action == "focusHero" then
+    if own_hero(who) == nil then refuse(who, "noHero") else focus_hero(who) end
   elseif action == "selectHero" then
     select_hero(who)
   elseif action == "selectCourier" then
@@ -674,6 +700,7 @@ end
 local function setup(args)
   local ui = args.ui or {}
   CFG.keys = ui.keys or CFG.keys
+  CFG.keys.focusHero = with_keys(CFG.keys.focusHero, DEFAULT_FOCUS_KEYS)
   CFG.refusals = (ui.text or {}).refusals or CFG.refusals
   CFG.doubleTapTicks = math.floor((ui.doubleTapMs or 350) * TICKS_PER_SECOND / 1000)
   CFG.dragSlop = ui.dragSlopTiles or CFG.dragSlop
