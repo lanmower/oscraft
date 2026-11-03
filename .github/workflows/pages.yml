@@ -94,7 +94,6 @@ jobs:
           set -euo pipefail
           bash scripts/layout-site.sh _site "$GITHUB_REF_NAME" "$GITHUB_RUN_ID"
           du -sk _site
-          cat _site/packs/latest.json
 
       - name: Bundle the client JS into one file
         working-directory: ${{ github.workspace }}

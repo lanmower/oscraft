@@ -699,6 +699,22 @@ function queueUnitModelBacklog() {
   for (let type = 0; type < names.length; type += 1) if (names[type]) queueUnitModel(type);
 }
 
+const PROP_MODEL_CONCURRENCY = 6;
+let propModelSlots = PROP_MODEL_CONCURRENCY;
+const propModelWaiting = [];
+
+async function withPropModelSlot(work) {
+  if (propModelSlots === 0) await new Promise((resolve) => propModelWaiting.push(resolve));
+  else propModelSlots -= 1;
+  try {
+    return await work();
+  } finally {
+    const next = propModelWaiting.shift();
+    if (next) next();
+    else propModelSlots += 1;
+  }
+}
+
 async function loadPropModels(usedKinds) {
   const [paths, footprints] = await Promise.all([assetNow("props"), assetNow("propSizes")]);
   const toStem = (file) => file.replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "");
@@ -718,7 +734,8 @@ async function loadPropModels(usedKinds) {
         recordAssetError(model, new Error("no footprint in prop_sizes.json"));
         return null;
       }
-      return modelOrRecord(model, fetchModel(model, sizeOf(model)));
+      const once = () => fetchModel(model, sizeOf(model));
+      return modelOrRecord(model, withPropModelSlot(() => once().catch(once)));
     };
     const [high, low] = await Promise.all([load(name), lowName ? load(lowName) : null]);
     return { high, low };

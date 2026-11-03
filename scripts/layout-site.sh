@@ -21,9 +21,6 @@ mkdir -p "$out/scenarios/moba/assets/models"
 cp rust/crates/web/site/assets/units/*.glb "$out/scenarios/moba/assets/models/"
 if [ "${SKIP_PACKS:-0}" != 1 ]; then
   node scripts/assets/build-packs.mjs scenarios/moba/assets "$out/scenarios/moba/assets/packs"
-  node scripts/pack-package.mjs scenarios/moba "$out/packs"
-  node scripts/pack-latest.mjs "$out/packs"
-  test -f "$out/packs/latest.json" || { echo "layout-site: missing packs/latest.json" >&2; exit 1; }
 fi
 cp -r mods "$out/mods"
 printf '{"sha":"%s","ref":"%s","run":"%s","built":"%s"}\n' "$sha" "$ref" "$run" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$out/version.json"
