@@ -132,6 +132,7 @@
     #rooms button { width: 100%; text-align: left; margin: 2px 0; background: var(--well); color: var(--text); border: 1px solid var(--edge); border-radius: 3px; padding: 3px 6px; font: var(--t-label) var(--font); cursor: pointer; }
     #rooms input { box-sizing: border-box; width: 100%; background: var(--well); border: 1px solid var(--edge); border-radius: 3px; color: var(--text); font: var(--t-label) var(--font); padding: 3px 6px; }
     #rooms #room-join { margin-top: 4px; }
+    body:has(#ui-modal > .w-root) #rooms { display: none; }
     #ui-bar { position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; height: var(--bar-h); box-sizing: border-box; padding: 8px 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto 200px; gap: 12px; align-items: stretch; background: var(--panel-strong); border-top: 1px solid var(--edge); }
     #ui-bar-left, #ui-bar-mid, #ui-bar-right { min-width: 0; min-height: 0; }
     #ui-bar-right { display: flex; align-items: flex-start; justify-content: flex-end; }
