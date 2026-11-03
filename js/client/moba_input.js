@@ -4,6 +4,12 @@ function isGround(target) {
   return target instanceof HTMLCanvasElement && !target.closest("[data-ui]");
 }
 
+export function pingKindOf(e) {
+  if (e.ctrlKey) return "danger";
+  if (e.shiftKey) return "on_my_way";
+  return "ping";
+}
+
 export function createMobaInput({ game, toWorld, toScreen, send, dragSlopPx }) {
   let selection = [];
   let press = null;

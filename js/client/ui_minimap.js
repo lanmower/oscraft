@@ -1,4 +1,5 @@
 import { teamOf } from "./moba_select.js";
+import { pingKindOf } from "./moba_input.js";
 
 const SIZE = { hero: 8, own: 5, creep: 3, building: 7 };
 const NEUTRAL_PLAYER = 255;
@@ -16,6 +17,9 @@ const REDRAW_MS = 1000 / 30;
 const DRAG_SLOP_PX = 4;
 const PING_RING_PX = 16;
 const PING_RING_MS = 700;
+const PING_LABEL_FONT = "9px sans-serif";
+const ROUTE_DASH = [3, 3];
+const SOLID = [];
 const HERO_BIT = 1;
 const BUILDING_BIT = 2;
 
@@ -54,7 +58,15 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
   const onPing = (e) => {
     const d = e.detail || {};
     if (!Number.isFinite(d.x) || !Number.isFinite(d.z)) return;
-    pings.push({ x: d.x, z: d.z, until: performance.now() + (d.seconds > 0 ? d.seconds : 3) * 1000, colour: typeof d.colour === "string" ? d.colour : "#ffffff" });
+    const from = d.from && Number.isFinite(d.from.x) && Number.isFinite(d.from.z) ? d.from : null;
+    pings.push({
+      x: d.x,
+      z: d.z,
+      from,
+      text: typeof d.text === "string" ? d.text : "",
+      until: performance.now() + (d.seconds > 0 ? d.seconds : 3) * 1000,
+      colour: typeof d.colour === "string" ? d.colour : "#ffffff",
+    });
   };
   window.addEventListener("moba:ping", onPing);
 
@@ -64,11 +76,26 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
     }
     for (const p of pings) {
       const phase = (now % PING_RING_MS) / PING_RING_MS;
+      const x = p.x * sx;
+      const y = p.z * sy;
       ctx.strokeStyle = p.colour;
+      ctx.fillStyle = p.colour;
       ctx.lineWidth = 2;
+      if (p.from) {
+        ctx.setLineDash(ROUTE_DASH);
+        ctx.beginPath();
+        ctx.moveTo(p.from.x * sx, p.from.z * sy);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.setLineDash(SOLID);
+      }
       ctx.beginPath();
-      ctx.arc(p.x * sx, p.z * sy, 2 + phase * PING_RING_PX, 0, Math.PI * 2);
+      ctx.arc(x, y, 2 + phase * PING_RING_PX, 0, Math.PI * 2);
       ctx.stroke();
+      if (p.text) {
+        ctx.font = PING_LABEL_FONT;
+        ctx.fillText(p.text, x + 5, y - 5);
+      }
     }
   }
 
@@ -234,6 +261,11 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
     order("up", p.x, p.z);
   }
 
+  function pingAt(e) {
+    const p = mapPointAt(e);
+    if (p) order(pingKindOf(e), p.x, p.z);
+  }
+
   let press = null;
   const onPointerDown = (e) => {
     e.stopPropagation();
@@ -242,6 +274,10 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
       return;
     }
     if (e.button !== 0) return;
+    if (e.altKey) {
+      pingAt(e);
+      return;
+    }
     press = { x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
   };

@@ -16,6 +16,7 @@ import { createHud } from "./hud.js";
 import { createHeroViewLock, findHeroOf, followTarget, heroDirection, heroOrderPoint, stepHeroOrderClock } from "./hero_view_lock.js";
 import { cameraDragAction, MIDDLE_BUTTON } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
+import { pingKindOf } from "./moba_input.js";
 import { createWidgets, setImageSrcResolver, setPreviewRig } from "./widgets.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readProps, readGrid, vertexNormals } from "./terrain.js";
@@ -1297,7 +1298,7 @@ function bindInput() {
   canvas.addEventListener("pointerdown", (e) => {
     drag = e.button === 0 ? null : { button: e.button, x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
-    forwardPointer(e.altKey && e.button === 0 ? "ping" : "down", e);
+    forwardPointer(e.altKey && e.button === 0 ? pingKindOf(e) : "down", e);
   });
   canvas.addEventListener("pointermove", (e) => {
     if (!drag) return;

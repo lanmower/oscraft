@@ -5,6 +5,8 @@ const MARKER_MS = 500;
 const RING_MS = 2500;
 const MARKER_PX = 28;
 const RING_PX = 40;
+const PING_POOL = 6;
+const PING_PX = 30;
 const COLOUR = { move: "#4caf50", attackMove: "#e53935", attack: "#e53935", reticle: "#ffeb3b" };
 
 const OVERLAY_CSS = "position:fixed;left:0;top:0;display:none;pointer-events:none;box-sizing:border-box;transform:translate(-50%,-50%);";
@@ -31,6 +33,15 @@ function ringCss(px, colour) {
   return `width:${px}px;height:${px}px;border:2px solid ${colour};border-radius:50%;`;
 }
 
+function pingMarker() {
+  const item = overlay("ping", ringCss(PING_PX, COLOUR.reticle) + "background:transparent;");
+  item.label = document.createElement("span");
+  item.label.style.cssText = "position:absolute;left:50%;top:100%;transform:translateX(-50%);white-space:nowrap;font:600 11px sans-serif;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.6);display:none;";
+  item.node.appendChild(item.label);
+  item.ms = 0;
+  return item;
+}
+
 export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   const now = () => performance.now();
   const markers = Array.from({ length: MARKER_POOL }, () => overlay("fx", ringCss(MARKER_PX, COLOUR.move) + "background:transparent;"));
@@ -38,8 +49,11 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   const reticle = overlay("reticle", `width:24px;height:24px;border:2px dashed ${COLOUR.reticle};border-radius:4px;color:${COLOUR.reticle};font:700 12px sans-serif;`);
   const area = overlay("area-ring", `border:2px solid ${COLOUR.reticle};border-radius:50%;background:rgba(255,235,59,0.08);`);
 
+  const pings = Array.from({ length: PING_POOL }, pingMarker);
+
   let nextMarker = 0;
   let nextRing = 0;
+  let nextPing = 0;
   let wasOn = false;
   const armed = { on: false, slot: -1, radius: 0, targetKind: "", client: null, world: null };
 
@@ -90,6 +104,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   }
 
   window.addEventListener("moba:feedback", (e) => onEvent(e.detail));
+  window.addEventListener("moba:ping", (e) => onPing(e.detail));
   window.addEventListener("pointermove", (e) => {
     armed.client = { x: e.clientX, y: e.clientY };
   });
@@ -100,8 +115,36 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
     return window.__mobaFeedback.enabled !== false && window.__fxOff !== true;
   }
 
+  function onPing(d) {
+    if (!d || !Number.isFinite(d.x) || !Number.isFinite(d.z)) return;
+    const p = pings[nextPing];
+    nextPing = (nextPing + 1) % PING_POOL;
+    p.t0 = now();
+    p.wx = d.x;
+    p.wz = d.z;
+    p.ms = (d.seconds > 0 ? d.seconds : 3) * 1000;
+    const colour = typeof d.colour === "string" ? d.colour : COLOUR.reticle;
+    p.node.style.borderColor = colour;
+    p.label.textContent = typeof d.text === "string" ? d.text : "";
+    p.label.style.color = colour;
+    p.label.style.display = p.label.textContent ? "block" : "none";
+  }
+
+  function drawPings(t) {
+    for (const p of pings) {
+      const age = t - p.t0;
+      if (p.t0 < 0 || age >= p.ms) {
+        put(p, "display", "none");
+        continue;
+      }
+      put(p, "display", "block");
+      put(p, "opacity", String(1 - age / p.ms));
+      place(p, toScreen(p.wx, p.wz, 0));
+    }
+  }
+
   function hideAll() {
-    for (const item of [...markers, ...rings, reticle, area]) put(item, "display", "none");
+    for (const item of [...markers, ...rings, reticle, area, ...pings]) put(item, "display", "none");
   }
 
   function pinDone(m) {
@@ -180,11 +223,12 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
     const t = now();
     drawMarkers(t);
     drawRings(t);
+    drawPings(t);
     drawTargeting();
   }
 
   function destroy() {
-    for (const item of [...markers, ...rings, reticle, area]) item.node.remove();
+    for (const item of [...markers, ...rings, reticle, area, ...pings]) item.node.remove();
   }
 
   function setEnabled(value) {

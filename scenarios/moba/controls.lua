@@ -7,6 +7,7 @@ local bounty = require("bounty")
 local courier = require("courier")
 local glyph = require("glyph")
 local patrol = require("patrol")
+local pings = require("pings")
 
 local FIX = config.FIX
 local TARGET_UNIT = 1
@@ -24,7 +25,6 @@ local CFG = {
   pickRadius = 1.2,
   formationSpacing = 0.7,
   centreSeconds = 0.4,
-  pingSeconds = 4,
   walkSeconds = 10,
   doubleHoldTicks = math.floor(0.2 * TICKS_PER_SECOND),
 }
@@ -436,15 +436,6 @@ local function resolve_armed(who, x, z)
   return walk_then_fire(who, hero, { item = false, slot = a.slot, name = a.name, unit = unit, px = fx(x), pz = fx(z) })
 end
 
-local function ping_point(who, x, y)
-  local at = '"x":' .. tostring(x) .. ',"z":' .. tostring(y) .. ',"seconds":' .. tostring(CFG.pingSeconds) .. ',"colour":"#ffffff"'
-  for p = 0, config.PLAYERS - 1 do
-    if game.seat_start(p) ~= nil and not units.hostile(p, who) then
-      game.ui_event("ping", '{"player":' .. tostring(p) .. "," .. at .. "}")
-    end
-  end
-end
-
 local fallen_hero = nil
 
 local function follow_local_respawn()
@@ -641,7 +632,7 @@ end
 
 local function on_ground(who, kind, x, y, button)
   local s = st(who)
-  if kind == "ping" then return ping_point(who, x, y) end
+  if pings.known(kind) then return pings.at(who, kind, x, y, own_hero(who)) end
   if kind == "down" then
     s.press = { x = x, z = y, button = button, shift = s.held.shift }
     return

@@ -10,6 +10,7 @@ local ui_fill = require("ui_fill")
 local store = require("store")
 local heroes = require("heroes")
 local match_stats = require("match_stats")
+local pings = require("pings")
 local HERO_ACRONYM = require("hero_acronyms")
 
 local TICKS_PER_SECOND = config.TICKS_PER_SECOND
@@ -1677,6 +1678,10 @@ local function ui_call(who, call, a)
   elseif call == "sell" then
     local hero = hero_of(who)
     if hero == nil then return end
+    if a.alt then
+      pings.item(who, hero, a.slot)
+      return
+    end
     if SELL_ARMED ~= nil and SELL_ARMED ~= a.slot then
       game.cmd_move_item(hero, SELL_ARMED, a.slot)
       SELL_ARMED = nil

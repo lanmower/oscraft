@@ -89,6 +89,7 @@
     "treant": "treant.lua",
     "panels": "panels.lua",
     "patrol": "patrol.lua",
+    "pings": "pings.lua",
     "protection": "protection.lua",
     "questlog": "questlog.lua",
     "reduction": "core/reduction.lua",

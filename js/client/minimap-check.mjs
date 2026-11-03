@@ -11,6 +11,9 @@ class FakeEvent {
     this.clientY = init.clientY ?? 0;
     this.pointerId = init.pointerId ?? 1;
     this.detail = init.detail;
+    this.altKey = init.altKey === true;
+    this.ctrlKey = init.ctrlKey === true;
+    this.shiftKey = init.shiftKey === true;
     this.target = null;
     this.stopped = false;
     this.defaultPrevented = false;
@@ -69,8 +72,9 @@ class FakeCanvas extends FakeNode {
     super();
     this.width = 192;
     this.height = 144;
+    this.calls = [];
     this.context = new Proxy({}, {
-      get: (target, key) => (key in target ? target[key] : (target[key] = () => {})),
+      get: (target, key) => (key in target ? target[key] : (target[key] = (...args) => { this.calls.push([key, ...args]); })),
       set: (target, key, value) => { target[key] = value; return true; },
     });
   }
@@ -116,7 +120,7 @@ const input = createMobaInput({
   send: (name) => sends.push(name),
   dragSlopPx: 4,
 });
-createMinimap({
+const minimapView = createMinimap({
   canvas: minimap,
   mapSize: { w: 6400, h: 6400 },
   lanes: null,
@@ -131,7 +135,7 @@ createMinimap({
 });
 windowNode.dispatchEvent(new CustomEvent("moba:feedback", { detail: { kind: "selection", ids: [42] } }));
 
-const press = (target, button, x, y) => target.dispatchEvent(new FakeEvent("pointerdown", { button, clientX: x, clientY: y }));
+const press = (target, button, x, y, keys = {}) => target.dispatchEvent(new FakeEvent("pointerdown", { button, clientX: x, clientY: y, ...keys }));
 const move = (target, x, y) => target.dispatchEvent(new FakeEvent("pointermove", { clientX: x, clientY: y }));
 const release = (target, button, x, y) => target.dispatchEvent(new FakeEvent("pointerup", { button, clientX: x, clientY: y }));
 const boxShown = () => {
@@ -178,6 +182,30 @@ if (centres.length !== 0 || boxShown() || input.selection().join() !== selection
 const rightLog = `right click orders=${orders.map((o) => o[0]).join(",")}`;
 
 reset();
+press(minimap, 0, centre.x, centre.y, { altKey: true });
+release(minimap, 0, centre.x, centre.y);
+press(minimap, 0, centre.x, centre.y, { altKey: true, ctrlKey: true });
+release(minimap, 0, centre.x, centre.y);
+press(minimap, 0, centre.x, centre.y, { altKey: true, shiftKey: true });
+release(minimap, 0, centre.x, centre.y);
+const kinds = orders.map((o) => o[0]).join(",");
+if (kinds !== "ping,danger,on_my_way") fail(`alt clicks on the minimap sent kinds ${kinds}`);
+if (centres.length !== 0 || drags.length !== 0 || boxShown() || input.selection().join() !== selectionBefore.join()) fail("alt click on the minimap moved the camera or changed the selection");
+const pingLog = `minimap alt clicks kinds=${kinds} at=${orders.map((o) => `${o[1].toFixed(1)},${o[2].toFixed(1)}`).join(" ")}`;
+
+minimap.calls.length = 0;
+windowNode.dispatchEvent(new CustomEvent("moba:ping", { detail: { kind: "on_my_way", x: 3200, z: 3200, from: { x: 1000, z: 1000 }, seconds: 4, colour: "#7cc7ff", text: "" } }));
+windowNode.dispatchEvent(new CustomEvent("moba:ping", { detail: { kind: "item", x: 1200, z: 900, seconds: 4, colour: "#ffd54f", text: "cheese: ready" } }));
+minimapView.draw([]);
+const routeDash = minimap.calls.some((c) => c[0] === "setLineDash" && c[1] !== undefined && c[1].length === 2);
+const routeLine = minimap.calls.find((c) => c[0] === "moveTo");
+const routeEnd = minimap.calls.find((c) => c[0] === "lineTo");
+const label = minimap.calls.find((c) => c[0] === "fillText");
+if (!routeDash || !routeLine || !routeEnd || Math.abs(routeLine[1] - 1000 * 192 / 6400) > 0.01 || Math.abs(routeEnd[1] - 3200 * 192 / 6400) > 0.01) fail(`route ping did not draw a route: ${JSON.stringify(minimap.calls.slice(0, 12))}`);
+if (!label || label[1] !== "cheese: ready") fail(`item ping did not draw its text: ${JSON.stringify(label)}`);
+const drawLog = `minimap route from=${routeLine[1].toFixed(1)},${routeLine[2].toFixed(1)} to=${routeEnd[1].toFixed(1)},${routeEnd[2].toFixed(1)} label=${JSON.stringify(label[1])}`;
+
+reset();
 press(world, 0, 300, 300);
 move(world, 400, 400);
 const groundBoxShown = boxShown();
@@ -188,4 +216,6 @@ input.destroy();
 console.log(clickLog);
 console.log(dragLog);
 console.log(rightLog);
+console.log(pingLog);
+console.log(drawLog);
 console.log("minimap selection ok");
