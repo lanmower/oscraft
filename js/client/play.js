@@ -220,7 +220,7 @@ function renderFatal() {
   fatalBox.hidden = fatalLines.size === 0;
 }
 function renderStatus() {
-  const mode = netState ? "net" : "local";
+  const mode = netState ? (peers.size > 0 ? "net" : `net lost at tick ${netState.tick}, reconnecting`) : "local";
   statusEl.textContent = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${debugOn && statusLine ? `\n${statusLine}` : ""}`;
 }
 function telemetry(text, level = "log") {
@@ -1998,7 +1998,7 @@ function scheduleReconnect() {
   const delay = Math.round(Math.random() * Math.min(RECONNECT_CAP_MS, RECONNECT_BASE_MS * 2 ** Math.min(reconnectAttempt, 16)));
   reconnectAttempt += 1;
   telemetry(`reconnecting in ${delay} ms (attempt ${reconnectAttempt})`);
-  setStatus("reconnecting");
+  setStatus(`reconnecting in ${Math.ceil(delay / 1000)} s (attempt ${reconnectAttempt})`);
   clearTimeout(reconnectTimer);
   reconnectTimer = setTimeout(() => joinRoom(), delay);
 }
