@@ -279,8 +279,7 @@ local function mode_text()
 end
 
 local function win_table()
-  local seconds = math.floor(game.ticks() / TICKS_PER_SECOND)
-  local ranked = match_stats.evaluate(match_stats.collect(match_stats.roster()), seconds).ranked
+  local ranked = match_stats.final_ranked() or {}
   local cells = {}
   for _, title in ipairs(TEXT.winColumns) do cells[#cells + 1] = label(title, "muted") end
   for _, e in ipairs(ranked) do

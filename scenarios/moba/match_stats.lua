@@ -26,8 +26,13 @@ end
 local TOP_POINTS = top_points()
 
 local published = false
+local final_ranked = nil
 
 local match_stats = {}
+
+function match_stats.final_ranked()
+  return final_ranked
+end
 
 local function shown(value)
   if value == nil then return "-" end
@@ -144,6 +149,7 @@ function match_stats.publish(heroes)
   published = true
   local seconds = math.floor(game.ticks() / 16)
   local result = match_stats.evaluate(match_stats.collect(heroes), seconds)
+  final_ranked = result.ranked
   local rows = {}
   for _, entry in ipairs(result.ranked) do
     rows[#rows + 1] = match_stats.cells(entry)

@@ -123,6 +123,18 @@ fn label_texts(node: &Value, out: &mut Vec<String>) {
     }
 }
 
+fn win_widget(lines: &[Value]) -> Option<String> {
+    lines
+        .iter()
+        .rev()
+        .find(|value| value["kind"] == "widget" && value["data"]["id"] == "win")
+        .map(|value| {
+            let mut texts = Vec::new();
+            label_texts(&value["data"]["tree"], &mut texts);
+            texts.join(" | ")
+        })
+}
+
 fn print_win(label: &str, lines: &[Value]) {
     println!("probe {label}: ui_lines={}", lines.len());
     for value in lines {
@@ -213,8 +225,17 @@ fn probe_win_screen() {
         game.remove_unit(*unit);
     }
     advance(&mut game, 30);
-    print_win("match_end", &drain(&mut game));
+    let match_end = drain(&mut game);
+    print_win("match_end", &match_end);
     println!("probe winner {}", game.winner());
+    let frozen = win_widget(&match_end).expect("win widget at match end");
+    advance(&mut game, 200);
+    let later = drain(&mut game);
+    print_win("after_200", &later);
+    let after = win_widget(&later);
+    let unchanged = after.as_ref().is_none_or(|text| *text == frozen);
+    println!("probe after_200 widget_unchanged={unchanged}");
+    assert!(unchanged, "win widget changed after match end");
     print_win("refresh", &ui(&mut game, "win_refresh", json!({})));
     print_win("save_replay", &ui(&mut game, "win_save_replay", json!({})));
     let replay = game.replay_text();
