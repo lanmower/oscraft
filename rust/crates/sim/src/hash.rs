@@ -219,6 +219,7 @@ impl Sim {
         h.i32s(&self.aura_x);
         h.i32s(&self.aura_y);
         h.i32s(&self.aura_target);
+        h.i32s(&self.aura_caster);
         h.bytes(&self.m_alive);
         h.i32s(&self.m_timer);
         h.i32s(&self.m_caster);

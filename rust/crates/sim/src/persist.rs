@@ -4,7 +4,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 66;
+const STATE_VERSION: u16 = 67;
 
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::Unset,
@@ -373,6 +373,7 @@ impl Sim {
         put_i32s(&mut w, &self.aura_x);
         put_i32s(&mut w, &self.aura_y);
         put_i32s(&mut w, &self.aura_target);
+        put_i32s(&mut w, &self.aura_caster);
         w.extend_from_slice(&self.m_alive);
         put_i32s(&mut w, &self.m_timer);
         put_i32s(&mut w, &self.m_caster);
@@ -640,6 +641,7 @@ impl Sim {
         r.i32s_into(&mut next.aura_x)?;
         r.i32s_into(&mut next.aura_y)?;
         r.i32s_into(&mut next.aura_target)?;
+        r.i32s_into(&mut next.aura_caster)?;
         r.bytes_into(&mut next.m_alive)?;
         r.i32s_into(&mut next.m_timer)?;
         r.i32s_into(&mut next.m_caster)?;

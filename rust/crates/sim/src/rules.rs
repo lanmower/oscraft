@@ -472,9 +472,9 @@ impl Sim {
                     _ => eff.p0,
                 };
                 if eff.p1 == 0 {
-                    self.heal_target(p, amount, target);
+                    self.heal_target(c, p, amount, target);
                 } else {
-                    self.heal_area(p, amount, fixed::from_milli(eff.p1), tx, ty);
+                    self.heal_area(c, p, amount, fixed::from_milli(eff.p1), tx, ty);
                 }
             }
             EFFECT_MOVE => self.move_caster(caster, eff.p0, [eff.p1, eff.p2, eff.p3], tx, ty),
@@ -515,7 +515,7 @@ impl Sim {
             EFFECT_VITAL_FRACTION => self.vital_fraction(caster, target, eff.p0, eff.p1, eff.p2, eff.p3),
             EFFECT_CREATE_HEALER => {
                 let rad = fixed::from_milli(eff.p1);
-                if !self.create_healer(p, eff.p0, rad, eff.p2, eff.p3, tx, ty, target) {
+                if !self.create_healer(c, p, eff.p0, rad, eff.p2, eff.p3, tx, ty, target) {
                     self.refuse(Refusal::NoHealerSlot);
                 }
             }

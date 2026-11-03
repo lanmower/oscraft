@@ -2,7 +2,13 @@ use crate::arrays::Sim;
 use crate::*;
 
 impl Sim {
-    pub(crate) fn heal_area(&mut self, p: u8, amt: i32, rad: i32, x: i32, y: i32) {
+    pub(crate) fn credit_healing(&mut self, caster: i32, gained: i32) {
+        if caster >= 0 && (caster as usize) < self.n {
+            self.tally_attributed(caster as usize, crate::combat::COUNTER_HEALING, gained);
+        }
+    }
+
+    pub(crate) fn heal_area(&mut self, caster: i32, p: u8, amt: i32, rad: i32, x: i32, y: i32) {
         if amt <= 0 {
             return;
         }
@@ -13,16 +19,18 @@ impl Sim {
             if self.alive[j] == 0 || self.hostile(p, self.player[j]) {
                 continue;
             }
+            let before = self.hp[j];
             self.hp[j] = self.hp[j].wrapping_add(amt);
             if self.hp[j] > self.hp_max[j] {
                 self.hp[j] = self.hp_max[j];
             }
+            self.credit_healing(caster, self.hp[j] - before);
             self.touch(j);
         }
         self.scratch = buf;
     }
 
-    pub(crate) fn heal_target(&mut self, p: u8, amt: i32, target: i32) {
+    pub(crate) fn heal_target(&mut self, caster: i32, p: u8, amt: i32, target: i32) {
         if amt <= 0 || target < 0 || target as usize >= self.n {
             return;
         }
@@ -30,7 +38,9 @@ impl Sim {
         if self.alive[j] == 0 || self.hostile(p, self.player[j]) {
             return;
         }
+        let before = self.hp[j];
         self.hp[j] = self.hp[j].wrapping_add(amt).min(self.hp_max[j]);
+        self.credit_healing(caster, self.hp[j] - before);
         self.touch(j);
     }
 
@@ -41,6 +51,7 @@ impl Sim {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_healer(
         &mut self,
+        caster: i32,
         p: u8,
         amt: i32,
         rad: i32,
@@ -54,6 +65,7 @@ impl Sim {
             return false;
         };
         self.aura_target[k] = receiver;
+        self.aura_caster[k] = caster;
         self.aura_player[k] = p;
         self.aura_amt[k] = amt;
         self.aura_rad[k] = rad;
@@ -72,13 +84,13 @@ impl Sim {
             }
             self.aura_timer[k] -= 1;
             if self.aura_timer[k] <= 0 {
-                let (p, amt, rad) = (self.aura_player[k], self.aura_amt[k], self.aura_rad[k]);
+                let (caster, p, amt, rad) = (self.aura_caster[k], self.aura_player[k], self.aura_amt[k], self.aura_rad[k]);
                 let (x, y) = (self.aura_x[k], self.aura_y[k]);
                 if rad == 0 {
                     let receiver = self.aura_target[k];
-                    self.heal_target(p, amt, receiver);
+                    self.heal_target(caster, p, amt, receiver);
                 } else {
-                    self.heal_area(p, amt, rad, x, y);
+                    self.heal_area(caster, p, amt, rad, x, y);
                 }
                 self.aura_timer[k] = self.aura_period[k];
             }
