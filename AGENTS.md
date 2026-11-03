@@ -51,7 +51,7 @@ No comments in source: durable facts live here, names carry intent.
 - Not expressible with `damage_by` (kind 35): counts of units hit (Overwhelming Odds), Dissipate's level-multiple condition.
 - Ability generators (`scenarios/moba/tools`) take numbers from SteamDatabase at `282fad29f0f74504fad465c52d197fb61f4d612b`.
 - `ability_text_688g.lua` (hover text only, never read by the sim's rules) comes from `tools/gen-ability-text-688g.mjs <6.88g ability.ini>`: Name and Ubertip per level, colour codes and cooldown/mana tails stripped; a level list shares one template with per-level numbers when the wording matches.
-- The `moba.osdt` in git is a stale snapshot: Pages CI rebuilds it from source with `mapexport`, so a Lua change needs no committed image.
+- The `moba.osdt` in git is a stale snapshot: Pages CI rebuilds it from source with `mapexport`, so a Lua change needs no committed image. A local live witness builds it with `cargo run -p mapexport -- scenarios/moba scenarios/moba/moba.osdt` in a lane-private `CARGO_TARGET_DIR` and does not commit it.
 
 ## Neutral abilities
 
