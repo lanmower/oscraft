@@ -6,8 +6,27 @@ local PENALTY = "buyback_penalty_until"
 local EARNED = "st_gold_earned"
 
 local hero_ids, hero_by_player, hero_count = {}, {}, -1
+local window = nil
 
 function bounty.forget() hero_count = -1 end
+
+local function tally(player, field, gold)
+  if window == nil then return end
+  local row = window[player]
+  if row == nil then
+    row = { gained = 0, lost = 0 }
+    window[player] = row
+  end
+  row[field] = row[field] + gold
+end
+
+function bounty.open_window() window = {} end
+
+function bounty.close_window()
+  local out = window or {}
+  window = nil
+  return out
+end
 
 local function refresh()
   local count = get_unit_count()
@@ -68,6 +87,7 @@ function bounty.credit(p)
   if gold <= 0 then return 0 end
   game.cmd_add_gold(p.player, gold)
   bounty.record_earned(hero, gold)
+  tally(p.player, "gained", gold)
   local reliable = p.reliable
   if reliable == true then reliable = gold end
   if hero ~= nil and reliable ~= nil and reliable ~= false and reliable > 0 then
@@ -89,6 +109,7 @@ end
 function bounty.debit(player, gold, at)
   if gold <= 0 then return 0 end
   game.cmd_add_gold(player, -gold)
+  tally(player, "lost", gold)
   if at ~= nil then
     game.effect("gold_text", 0, 0, { target = at, text = "-" .. tostring(gold), colour = "gold" })
   end

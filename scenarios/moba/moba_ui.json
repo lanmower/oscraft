@@ -149,6 +149,33 @@
     },
     "teamLabel": "Team",
     "killsLabel": "kills",
+    "recap": {
+      "fight": "Teamfight",
+      "deathsIn": "$count deaths in $seconds s",
+      "columns": ["Time", "Died", "Killed by"],
+      "sideLine": "$team: gained $gained, lost $lost, net $net",
+      "swing": "Gold swing: $team +$gold",
+      "goldEven": "Gold swing: even",
+      "close": "Close",
+      "killer": {
+        "unknown": "unknown",
+        "roshan": "Roshan",
+        "neutral": "a neutral creep",
+        "structure": "a building",
+        "summon": "a summon",
+        "creep": "a creep"
+      },
+      "death": {
+        "title": "You died",
+        "killedBy": "Killed by",
+        "source": "Damage by source",
+        "sourceUnknown": "not recorded: the sim keeps no per-source totals",
+        "hitBy": "Hit by",
+        "hitByNone": "nobody",
+        "goldLost": "Gold lost",
+        "diedAt": "Died at"
+      }
+    },
     "shop": {
       "title": "Shop",
       "tiers": ["Starting items", "Early", "Mid", "Late"],

@@ -9,6 +9,7 @@ local modes = require("modes")
 local bounty = require("bounty")
 local terms = require("respawn_terms")
 local stats = require("stats")
+local recap = require("recap")
 
 local TICKS = config.TICKS_PER_SECOND
 local NEUTRAL = 255
@@ -238,7 +239,12 @@ local function attribute_bonuses(unit)
 end
 
 local function pay_kill(unit, killer, killer_player, victim_player)
-  if units.is_hero(unit) then kill_gold.hero_died(unit, killer, killer_player, victim_player) end
+  if units.is_hero(unit) then
+    bounty.open_window()
+    kill_gold.hero_died(unit, killer, killer_player, victim_player)
+    local flow = bounty.close_window()
+    if not aegis.reincarnating(unit) then recap.hero_died(unit, killer, killer_player, victim_player, flow) end
+  end
   if killer == nil or killer == unit or aegis.reincarnating(unit) then return end
   local credit = units.is_hero(unit) and kill_gold.owner_hero(killer, killer_player) or killer
   if not game.alive(credit) then

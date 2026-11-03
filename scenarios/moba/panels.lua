@@ -11,6 +11,7 @@ local ability_text = require("ability_text_688g")
 local store = require("store")
 local heroes = require("heroes")
 local match_stats = require("match_stats")
+local recap = require("recap")
 local pings = require("pings")
 local HERO_ACRONYM = require("hero_acronyms")
 
@@ -783,6 +784,40 @@ local function ability_cell(hero, key, abilities)
   return cell(kids, art)
 end
 
+local function recap_clock(tick)
+  local total = math.max(0, math.floor((tick - (HORN or 0)) / TICKS_PER_SECOND))
+  local minutes = math.floor(total / 60)
+  local secs = total - minutes * 60
+  if secs < 10 then secs = "0" .. tostring(secs) end
+  return tostring(minutes) .. ":" .. tostring(secs)
+end
+
+local function killer_text(who)
+  if who.class == "hero" then return who.name end
+  return TEXT.recap.killer[who.class]
+end
+
+local function hitters_text(death)
+  if #death.hitters == 0 then return TEXT.recap.death.hitByNone end
+  local names = {}
+  for _, who in ipairs(death.hitters) do names[#names + 1] = killer_text(who) end
+  return join(names, ", ")
+end
+
+local function death_recap(hero)
+  local death = recap.last_death(hero)
+  if death == nil then return {} end
+  local T = TEXT.recap.death
+  return {
+    label(T.title, "accent"),
+    label(T.killedBy .. " " .. killer_text(death.killer), "warn"),
+    label(T.source .. ": " .. T.sourceUnknown, "muted"),
+    label(T.hitBy .. " " .. hitters_text(death), "muted"),
+    label(T.goldLost .. " " .. tostring(death.lost) .. TEXT.costSuffix, "warn"),
+    label(T.diedAt .. " " .. recap_clock(death.tick), "muted"),
+  }
+end
+
 local function respawn_tree(hero)
   local seconds = math.ceil(heroes.respawn_left(hero) / TICKS_PER_SECOND)
   local cost, cooldown = heroes.buyback_quote(hero)
@@ -791,10 +826,12 @@ local function respawn_tree(hero)
     text = text .. "  " .. TEXT.menu.buybackCooldown .. " " .. tostring(math.ceil(cooldown / TICKS_PER_SECOND)) .. TEXT.cooldownSuffix
   end
   local affordable = cooldown == 0 and game.gold(LOCAL) >= cost
-  return box({
+  local kids = {
     label(TEXT.menu.respawnIn .. " " .. tostring(seconds) .. TEXT.cooldownSuffix, "warn"),
     button(text, "buyback", "{}", not affordable, TEXT.menu.buybackTip),
-  }, "col")
+  }
+  for _, row in ipairs(death_recap(hero)) do kids[#kids + 1] = row end
+  return box(kids, "col")
 end
 
 local function select_tree()
@@ -873,6 +910,32 @@ local function fill(text, vars)
     end
   end
   return out
+end
+
+local function recap_tree()
+  local f = recap.teamfight()
+  if f == nil then return nil end
+  local T = TEXT.recap
+  local cells = {}
+  for _, title in ipairs(T.columns) do cells[#cells + 1] = label(title, "muted") end
+  for _, death in ipairs(f.deaths) do
+    cells[#cells + 1] = label(recap_clock(death.tick), "muted")
+    cells[#cells + 1] = label(killer_text(death.victim), "team" .. tostring(death.side))
+    cells[#cells + 1] = label(killer_text(death.killer))
+  end
+  local kids = { label(fill(T.deathsIn, { count = tostring(#f.deaths), seconds = tostring(recap.FIGHT_SECONDS) }), "accent"), grid(3, cells) }
+  for _, s in ipairs(recap.sides(f)) do
+    local line = fill(T.sideLine, { team = team_name(s.side), gained = tostring(s.gained), lost = tostring(s.lost), net = tostring(s.net) })
+    kids[#kids + 1] = label(line, "team" .. tostring(s.side))
+  end
+  local swing = recap.swing(f)
+  if swing == nil then
+    kids[#kids + 1] = label(T.goldEven, "muted")
+  else
+    kids[#kids + 1] = label(fill(T.swing, { team = team_name(swing.side), gold = tostring(swing.amount) }), "accent")
+  end
+  kids[#kids + 1] = button(T.close, "recap_close", obj({ I("fight", f.id) }))
+  return panel(T.fight, kids)
 end
 
 local function refund_text(item, name)
@@ -1737,6 +1800,7 @@ local function emit_all()
   emit("hud", "hud", hud_tree())
   emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   emit("team", "top", team_tree())
+  emit("recap", "centre", recap_tree())
   emit("networth", "top", OPEN.networth and networth_tree() or nil)
   emit("scoreboard", "centre", OPEN.scoreboard and scoreboard_tree() or nil)
   emit("shop", "right", OPEN.shop and shop_tree() or nil)
@@ -1832,6 +1896,9 @@ local function ui_call(who, call, a)
     GROUP_PAGE = math.max(0, GROUP_PAGE + (a.dir or 0))
   elseif call == "win_close" then
     WIN_CLOSED = true
+  elseif call == "recap_close" then
+    recap.close(a.fight)
+    emit("recap", "centre", recap_tree())
   elseif call == "win_refresh" then
     emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   elseif call == "win_save_replay" or call == "win_play_again" or call == "win_new_game" then

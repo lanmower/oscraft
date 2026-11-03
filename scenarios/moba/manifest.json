@@ -103,6 +103,7 @@
     "item_forms": "item_forms.lua",
     "stats": "stats.lua",
     "match_stats": "match_stats.lua",
+    "recap": "recap.lua",
     "spells": "spells.lua",
     "super_creeps": "super_creeps.lua",
     "store": "store.lua",
