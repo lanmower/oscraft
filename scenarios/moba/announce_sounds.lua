@@ -61,7 +61,7 @@ local function hit(attacker, victim)
   local previous = last_hit[attacker]
   if previous ~= nil and now - previous < HIT_GAP then return end
   last_hit[attacker] = now
-  local family = units.is_building(victim) and HIT_METAL or HIT_FLESH
+  local family = units.is_structure(victim) and HIT_METAL or HIT_FLESH
   game.sound(family[(now + attacker) % #family + 1], unit_player(attacker))
 end
 

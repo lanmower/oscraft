@@ -993,9 +993,9 @@ function draft.press(owner, i, hero)
   local err = KINDS[D.mode].press(i, hero)
   publish()
   if err == nil then
-    sounds.sound("ui_confirm", owner)
+    sounds.sound("ui_confirm", i - 1)
   else
-    sounds.sound("ui_error", owner)
+    sounds.sound("ui_error", i - 1)
   end
   return err
 end

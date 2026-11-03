@@ -30,7 +30,7 @@ import { createDraftClock } from "./draft_clock.js";
 import { createGuiFlow } from "./gui_flow.js";
 import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
 import { saveReplayFile } from "./replay_save.js";
-import { createSfx, createVoices } from "./audio.js";
+import { attachButtonClicks, createSfx, createVoices } from "./audio.js";
 import { installDebugApi } from "./debug_api.js";
 import { createFx } from "./fx.js";
 import { createChat } from "./chat.js";
@@ -3227,11 +3227,7 @@ async function main() {
   mountGuiFlow();
   renderBootHeroes(manifest.assets?.icons ?? "icons", packImageUrl);
   sfx = manifest.assets?.sounds ? createSfx({ url: (rel) => assetUrl("sounds", rel) }) : null;
-  if (sfx) {
-    document.addEventListener("click", (e) => {
-      if (e.target instanceof Element && e.target.closest("button")) sfx.play("ui_click");
-    }, true);
-  }
+  if (sfx) attachButtonClicks(document, sfx);
   syncAmbientSounds();
   const eventsBase = params.get("events");
   const modUi = createModUi({

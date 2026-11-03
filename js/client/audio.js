@@ -298,6 +298,12 @@ export function createSfx({ url, audioContext = null }) {
   return { play, ambience };
 }
 
+export function attachButtonClicks(target, sfx) {
+  target.addEventListener("click", (e) => {
+    if (e.target instanceof Element && e.target.closest("button")) sfx.play("ui_click");
+  }, true);
+}
+
 export function createOrderCues({ audioContext = null, volume = 0.22 } = {}) {
   let ctx = audioContext;
   let node = null;
