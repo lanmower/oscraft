@@ -9,6 +9,9 @@ const opt = (name, dflt) => (args.includes(name) ? args[args.indexOf(name) + 1] 
 const outDir = opt("--out", "scenarios/moba");
 const MILLI = 15.625;
 const TPS = 16;
+const HERO_BODY_MILLI = 281;
+const HERO_BODY_MILLI_OVERRIDES = { phantom_lancer: 94, rattletrap: 94, naga_siren: 94, slark: 94 };
+const heroBodyMilli = (id) => HERO_BODY_MILLI_OVERRIDES[id] ?? HERO_BODY_MILLI;
 
 const STANDINS = {
   hero: "dragon_knight",
@@ -227,7 +230,7 @@ const osd = [
   ...heroes.flatMap((h) => {
     const model = HY3D_MODEL[h.id] ?? "";
     return [
-      `unit("${h.id}", ${h.health}, ${h.speed}, 375, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=${Math.round(h.stats.damage / 100)}, weapon_range_milli=${h.range}, weapon_period=${h.period}, sight_milli=${h.sight}, defense=${Math.round(h.stats.armor / 100)}, model="${model}", deny_pct=0)`,
+      `unit("${h.id}", ${h.health}, ${h.speed}, ${heroBodyMilli(h.id)}, build_time=480, resource_a=0, capacity=1, filters=["ground", "armored", "army"], weapon_damage=${Math.round(h.stats.damage / 100)}, weapon_range_milli=${h.range}, weapon_period=${h.period}, sight_milli=${h.sight}, defense=${Math.round(h.stats.armor / 100)}, model="${model}", deny_pct=0)`,
       `unit_extra("${h.id}", player_controlled=True, deny_xp_pct=0)`,
     ];
   }),
@@ -275,7 +278,7 @@ if (args.includes("--standins")) {
     if (!id) return line;
     const h = byId[id];
     const set = (l, k, v) => l.replace(new RegExp(`(\\b${k}=)-?\\d+`), `$1${v}`);
-    let l = line.replace(/^unit\("(\w+)", \d+, \d+, \d+/, `unit("$1", ${h.health}, ${h.speed}, 375`);
+    let l = line.replace(/^unit\("(\w+)", \d+, \d+, \d+/, `unit("$1", ${h.health}, ${h.speed}, ${heroBodyMilli(id)}`);
     l = set(l, "weapon_damage", Math.round(h.stats.damage / 100));
     l = set(l, "weapon_range_milli", h.range);
     l = set(l, "weapon_period", h.period);

@@ -26,6 +26,7 @@ const FOOTPRINT_MAX = 4;
 const MAX_NATIVE = 100;
 const UNIT_ONLY = /-(skinned|lowpoly)$/;
 export const UNIT_HEIGHT_IN_HEROES = { "roshan-skinned": 2.5 };
+export const UNIT_FOOTPRINT_TIMES_DEFAULT = { "tower-skinned": 2, "tower-t2-skinned": 2, "tower-t3-skinned": 2 };
 const FOOTPRINT_OVERRIDES = Object.freeze({ "moon-well-lowpoly": 2.4255 });
 const DIVISOR = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 };
 const IDENTITY = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
@@ -130,6 +131,7 @@ export async function propSizes(modelsDir, propStems = null, nativeStems = new S
     sizes[stem] = round3(Math.min(FOOTPRINT_MAX, Math.max(FOOTPRINT_MIN, footprint, ROLE_FOOTPRINT_MIN[role] ?? 0)));
   }
   const units = {};
+  for (const [stem, times] of Object.entries(UNIT_FOOTPRINT_TIMES_DEFAULT)) units[stem] = round3(times * 2 * UNIT_HALF);
   for (const [stem, heroes] of Object.entries(UNIT_HEIGHT_IN_HEROES)) {
     const m = await modelBounds(new URL(stem + ".glb", modelsDir), false);
     if (!m || m.raw.h <= 0) throw new Error("unit model missing or flat: " + stem);

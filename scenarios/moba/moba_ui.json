@@ -485,7 +485,7 @@
     },
     "rotationLockKeys": ["y"]
   },
-  "heroDrawScale": 2,
+  "heroDrawScale": 1.5,
   "propKinds": [
     "rock",
     "tree",
