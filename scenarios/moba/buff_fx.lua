@@ -34,7 +34,6 @@ local buff_fx = {
     ["crystal_maiden_crystal_nova"] = { kind = "slow", ticks = 72 },
     ["crystal_maiden_freezing_field"] = { kind = "slow", ticks = 16 },
     ["crystal_maiden_frostbite"] = { kind = "root", ticks = 24 },
-    ["dazzle_poison_touch"] = { kind = "dot", ticks = 96 },
     ["dazzle_shallow_grave"] = { kind = "death_prevention", ticks = 80 },
     ["entangle"] = { kind = "root", ticks = 40 },
     ["frost_slow"] = { kind = "slow", ticks = 48 },

@@ -704,7 +704,9 @@ impl Sim {
 
     pub(crate) fn heal_unit(&mut self, i: usize, amount: i32) {
         if amount > 0 && self.alive[i] != 0 {
+            let before = self.hp[i];
             self.hp[i] = self.hp[i].wrapping_add(amount).min(self.hp_max[i]);
+            self.tally_attributed(i, crate::combat::COUNTER_HEALING, self.hp[i] - before);
             self.touch(i);
         }
     }

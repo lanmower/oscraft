@@ -19,6 +19,21 @@ local function load_cast_signatures()
 end
 local SIGNATURES = load_cast_signatures()
 
+local function load_buff_looks()
+  local loaded, looks = pcall(require, "buff_fx")
+  if loaded and type(looks) == "table" then return looks end
+  return nil
+end
+local BUFF_LOOKS = load_buff_looks()
+
+local function buff_aura(caster, ability_name)
+  if BUFF_LOOKS == nil then return end
+  local kind, school, ms = BUFF_LOOKS.aura_for(ability_name)
+  if kind == nil then return end
+  local holder = game.cast_target(caster) or caster
+  game.effect("fx_aura", 0, 0, { target = holder, colour = school, duration = ms, name = kind })
+end
+
 local SCHOOLS = { "fire", "frost", "lightning", "nature", "shadow", "holy", "arcane", "poison", "blood", "earth", "wind", "physical" }
 local KNOWN_SCHOOL, BOLT, HIT = {}, {}, {}
 for _, school in ipairs(SCHOOLS) do
@@ -130,6 +145,7 @@ return {
   end,
 
   on_cast = function(caster, ability_name)
+    buff_aura(caster, ability_name)
     local sig = SIGNATURES and SIGNATURES[ability_name]
     if sig == nil then
       generic_cast(caster)

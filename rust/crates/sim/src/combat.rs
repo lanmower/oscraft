@@ -4,6 +4,9 @@ use crate::*;
 
 pub(crate) const KILL_QUEUE_CAP: usize = 256;
 pub(crate) const HITTER_SLOTS: usize = 4;
+pub const COUNTER_DAMAGE_DEALT: &str = "sim_damage_dealt";
+pub const COUNTER_DAMAGE_TAKEN: &str = "sim_damage_taken";
+pub const COUNTER_HEALING: &str = "sim_healing";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct KillEvent {
@@ -345,6 +348,10 @@ impl Sim {
         let dealt = dmg.min(self.hp[j]).max(0);
         self.hp[j] = self.hp[j].wrapping_sub(dmg);
         self.log_hit(attacker, j, dealt);
+        self.tally_attributed(j, COUNTER_DAMAGE_TAKEN, dealt);
+        if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
+            self.tally_attributed(attacker as usize, COUNTER_DAMAGE_DEALT, dealt);
+        }
         if self.hp[j] <= 0 {
             let fell = self.alive[j] != 0;
             self.hp[j] = 0;
@@ -425,6 +432,13 @@ impl Sim {
 
     pub fn hit_by(&mut self, j: usize, dmg: i32, attacker: i32) {
         self.inflict(j, dmg, attacker);
+    }
+
+    pub(crate) fn tally_attributed(&mut self, i: usize, name: &str, amount: i32) {
+        if amount > 0 && self.attr_def(i).is_some() {
+            let total = self.counter(i, name).saturating_add(i64::from(amount));
+            self.set_counter(i, name, total);
+        }
     }
 
     pub fn add_kill(&mut self, i: usize, n: u32) {

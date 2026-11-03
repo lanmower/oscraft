@@ -7,6 +7,7 @@ local WEIGHTS = {
 }
 local KEYS = { "kills", "deaths", "assists", "last_hits", "denies", "gold", "experience", "damage_dealt", "damage_taken", "healing", "items" }
 local MINUTE_MILLI = 60000
+local FIXED_POINT_UNIT = 65536
 local SCALE = 1000
 local RATING_STEPS = 9
 
@@ -101,13 +102,22 @@ local function podium_cells(place, entry)
   return { place, entry.name, tostring(entry.team), tostring(entry.rating), entry.grade }
 end
 
+local function whole_units(fixed)
+  return math.floor(fixed / FIXED_POINT_UNIT)
+end
+
 function match_stats.collect(heroes)
   local entries = {}
   for _, h in ipairs(heroes) do
     entries[#entries + 1] = {
       player = h.player, team = h.team, name = h.name,
-      kills = game.kills_of(h.hero), deaths = game.deaths_of(h.hero),
+      kills = game.kills_of(h.hero), deaths = game.deaths_of(h.hero), assists = game.credits_of(h.hero),
       last_hits = game.counter(h.hero, "st_creep"), denies = game.counter(h.hero, "st_deny"),
+      gold = game.gold(h.player), experience = game.xp(h.hero),
+      damage_dealt = whole_units(game.counter(h.hero, "sim_damage_dealt")),
+      damage_taken = whole_units(game.counter(h.hero, "sim_damage_taken")),
+      healing = whole_units(game.counter(h.hero, "sim_healing")),
+      items = #game.unit_items(h.hero),
     }
   end
   return entries
