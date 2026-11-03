@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { HEROES } from "./ability-recipes.mjs";
+import { classify, definedAbilityNames, perlevelByUnit, provenHeroes } from "./ability-688g.mjs";
 
 const COMMIT = "282fad29f0f74504fad465c52d197fb61f4d612b";
 const RAW = `https://raw.githubusercontent.com/SteamDatabase/GameTracking-Dota2/${COMMIT}/game/dota/pak01_dir/scripts/npc/`;
@@ -27,6 +28,9 @@ const heroes = [
 ].sort();
 
 const covered = new Set(Object.values(HEROES).flat().filter((a) => a !== "@talents"));
+const proven = provenHeroes(out);
+const definedNames = definedAbilityNames(out);
+const perlevel = perlevelByUnit(out);
 
 async function abilityNames(hero) {
   const file = path.join(dir, `npc_dota_hero_${hero}.txt`);
@@ -43,7 +47,7 @@ async function abilityNames(hero) {
     .flatMap(([, names]) => names.split(",").map((name) => name.trim()).filter(Boolean));
 }
 
-const rows = ["hero\tslot\tability\tkind\trecipe"];
+const rows = ["hero\tslot\tability\tkind\trecipe\tunit_688g\tabil_688g\tstatus_688g\treason"];
 let withRecipe = 0;
 let without = 0;
 const missing = [];
@@ -51,7 +55,7 @@ for (const hero of heroes) {
   const names = await abilityNames(hero);
   if (!names || names.length === 0) {
     missing.push(hero);
-    rows.push([hero, 0, "-", "-", "no reference file"].join("\t"));
+    rows.push([hero, 0, "-", "-", "no reference file", "", "", "", ""].join("\t"));
     continue;
   }
   const namesAlreadyListed = new Set();
@@ -64,7 +68,9 @@ for (const hero of heroes) {
       if (has) withRecipe += 1;
       else without += 1;
     }
-    rows.push([hero, i + 1, name, kind, has ? "yes" : "no"].join("\t"));
+    const unit = proven.get(hero) ?? "";
+    const verdict = kind === "ability" && unit ? classify(hero, unit, name, definedNames, perlevel) : { code: "", status: "", reason: "" };
+    rows.push([hero, i + 1, name, kind, has ? "yes" : "no", unit, verdict.code, verdict.status, verdict.reason].join("\t"));
   });
 }
 const outPath = path.join(out, "abilities-inventory.tsv");
