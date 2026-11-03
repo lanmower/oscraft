@@ -157,12 +157,10 @@ fn print_win(label: &str, lines: &[Value]) {
     }
 }
 
-#[test]
-fn probe_win_screen() {
-    let dir = scenario_dir();
-    let mut game = Game::new(&image_for(&dir)).expect("game");
+fn start_match(dir: &Path, image: &[u8]) -> (Game, Vec<String>) {
+    let mut game = Game::new(image).expect("game");
     game.set_fog(false);
-    load_pack(&mut game, &dir);
+    load_pack(&mut game, dir);
     let ui_file: Value = serde_json::from_slice(&std::fs::read(dir.join("moba_ui.json")).expect("read moba_ui.json")).expect("moba_ui.json");
     call(&mut game, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": OWNER }));
     advance(&mut game, 60);
@@ -204,15 +202,82 @@ fn probe_win_screen() {
         call(&mut game, "seat_pick", json!({ "player": player, "hero": hero }));
     }
     advance(&mut game, 200);
+    (game, heroes)
+}
+
+fn hero_of(units: &[Unit], heroes: &[String], player: u8) -> u32 {
+    units
+        .iter()
+        .find(|unit| unit.player == player && heroes.contains(&unit.kind))
+        .map(|unit| unit.id)
+        .expect("hero of player")
+}
+
+fn lifesteal_item(game: &Game) -> u32 {
+    let catalog: Value = serde_json::from_str(&game.item_catalog_json()).expect("item catalog json");
+    catalog
+        .as_array()
+        .expect("item catalog array")
+        .iter()
+        .find(|item| item["name"] == "lifesteal")
+        .and_then(|item| item["id"].as_u64())
+        .expect("lifesteal item") as u32
+}
+
+fn match_stats_rows(lines: &[Value]) -> Vec<Vec<String>> {
+    lines
+        .iter()
+        .rev()
+        .find(|value| value["kind"] == "panel" && value["id"] == "match_stats")
+        .map(|value| {
+            value["rows"]
+                .as_array()
+                .expect("match_stats rows")
+                .iter()
+                .map(|row| row.as_array().expect("cells").iter().map(|cell| cell.as_str().unwrap_or_default().to_owned()).collect())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn stat_cell(row: &[String], column: usize) -> i64 {
+    row.get(column).and_then(|cell| cell.parse().ok()).unwrap_or(0)
+}
+
+#[test]
+fn probe_win_screen() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, heroes) = start_match(&dir, &image);
     let units = alive_units(&game);
-    for player in 0..10u8 {
-        let hero = units.iter().find(|u| u.player == player && heroes.contains(&u.kind)).map(|u| u.id);
-        let enemy = units.iter().find(|u| u.player == (player + 1) % 2 && u.kind.contains("creep")).map(|u| u.id);
-        if let (Some(hero), Some(enemy)) = (hero, enemy) {
-            game.attack(hero, enemy);
+    let killer = hero_of(&units, &heroes, 0);
+    let victim = hero_of(&units, &heroes, 1);
+    let ally = units
+        .iter()
+        .find(|unit| unit.player != 0 && heroes.contains(&unit.kind) && !game.hostile(0, u32::from(unit.player)))
+        .map(|unit| unit.id)
+        .expect("allied hero");
+    let lifesteal = lifesteal_item(&game);
+    game.give_item(killer, lifesteal, 1);
+    game.hurt(killer, 100);
+    game.attack(killer, victim);
+    game.attack(ally, victim);
+    for _ in 0..800 {
+        for unit in alive_units(&game) {
+            if (unit.kind.contains("creep") || unit.kind.contains("tower")) && unit.id != killer && unit.id != ally && unit.id != victim {
+                game.remove_unit(unit.id);
+            }
+        }
+        advance(&mut game, 2);
+        let victim_hp = game.unit_hp(victim);
+        if victim_hp > 40 {
+            game.hurt(victim, victim_hp - 30);
+        }
+        if game.kills_of(killer) > 0 {
+            break;
         }
     }
-    advance(&mut game, 600);
+    println!("probe hero_kill killer={killer} victim={victim} ally={ally} kills={}", game.kills_of(killer));
     let units = alive_units(&game);
     let count = |p: u8| units.iter().filter(|u| u.player == p).count();
     println!("probe units={} p0={} p1={}", units.len(), count(0), count(1));
@@ -227,6 +292,9 @@ fn probe_win_screen() {
     advance(&mut game, 30);
     let match_end = drain(&mut game);
     print_win("match_end", &match_end);
+    let stats_rows = match_stats_rows(&match_end);
+    assert!(stats_rows.iter().any(|row| stat_cell(row, 2) >= 1), "a kill shows in the K column");
+    assert!(stats_rows.iter().any(|row| stat_cell(row, 4) >= 1), "an assist shows in the A column");
     println!("probe winner {}", game.winner());
     let frozen = win_widget(&match_end).expect("win widget at match end");
     advance(&mut game, 200);
