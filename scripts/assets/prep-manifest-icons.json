@@ -2382,13 +2382,6 @@
       "source": "56c62320c960d8fbb62c48e8f561ba2e925797706ce3cd63ce4fc9b2e91c7b51",
       "at": "2026-10-25T15:36:06.758Z"
     },
-    "scenarios/moba/assets/icons/abilities/ember_spirit_fire_remnant_learning.png": {
-      "sha256": "3a396718bc6405ed58c296673ad280b7692ce7ee94edf20275d355d9c49d9c35",
-      "bytes": 210050,
-      "afterBytes": 31845,
-      "source": "5d13f605480b0858bb17091aa2d3e288e93294f680c48b4c1cb1a7c8c71ddef8",
-      "at": "2026-10-25T15:36:06.769Z"
-    },
     "scenarios/moba/assets/icons/abilities/ember_spirit_flame_guard.png": {
       "sha256": "44253b439718422b5f8a0881130ed73a9e03496f7cac03fee69590216528a40e",
       "bytes": 68136,
@@ -4328,13 +4321,6 @@
       "unchanged": true,
       "at": "2026-10-25T19:01:12.294Z"
     },
-    "scenarios/moba/assets/icons/abilities/enigma_demonic_conversion.png": {
-      "sha256": "324e25e32aa690004145ac65f8b95e703cb9a55f42ae499ff590e9fa2d18cfd9",
-      "bytes": 32624,
-      "afterBytes": 32624,
-      "unchanged": true,
-      "at": "2026-10-25T19:01:12.295Z"
-    },
     "scenarios/moba/assets/icons/abilities/enigma_malefice.png": {
       "sha256": "8d105f8264861307bcc09408167aa347ecf89894c5448466065c0c00a59cd849",
       "bytes": 30936,
@@ -5125,13 +5111,6 @@
       "afterBytes": 37025,
       "unchanged": true,
       "at": "2026-11-03T05:21:26.580Z"
-    },
-    "scenarios/moba/assets/icons/abilities/ember_spirit_fire_remnant_activate.png": {
-      "sha256": "3a396718bc6405ed58c296673ad280b7692ce7ee94edf20275d355d9c49d9c35",
-      "bytes": 31845,
-      "afterBytes": 31845,
-      "unchanged": true,
-      "at": "2026-11-03T05:21:26.581Z"
     },
     "scenarios/moba/assets/icons/abilities/enigma_malefice_pulse.png": {
       "sha256": "8d105f8264861307bcc09408167aa347ecf89894c5448466065c0c00a59cd849",

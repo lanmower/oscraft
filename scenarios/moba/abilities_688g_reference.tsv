@@ -119,7 +119,6 @@ elder_titan_ancestral_spirit	A1A8	54572	4			16|16|16|16	54587	80|90|100|110	5458
 elder_titan_earth_splitter	A1A1	54376		6	5	100|100|100	54391	175|175|175	54393	2400|2400|2400	54429					54453		
 elder_titan_echo_stomp	A1AA	54707	4			14|13|12|11	54722	100|100|100|100	54724									
 elder_titan_natural_order	A1CD	57063	4	1												57108		
-ember_spirit_fire_remnant_learning	A2JK	89592		6	5					1500|1500|1500	89637					89649		
 ember_spirit_flame_guard	A2HS	88221	4			35|35|35|35	88234	80|90|100|110	88236	1200|1200|1200|1200	88271							
 ember_spirit_searing_chains	A2H3	87456	4			14|12|10|8	87463	110|110|110|110	87465									
 ember_spirit_sleight_of_fist	A2H0	87284	4	1	2	30|22|14|6	87304	50|50|50|50	87306	700|700|700|700	87345					87369		
@@ -128,7 +127,6 @@ enchantress_impetus	A0DY	27100		6	5			55|60|65	27113	550|550|550	27149	1|1|1	271
 enchantress_nature_s_attendants	A01B	9606	4	1		45|45|45|45	9615	125|140|155|170	9617			12|12|12|12	9629	12|12|12|12	9633	9678		
 enchantress_untouchable	A0DW	26950	4	1	2											26995		
 enigma_black_hole	A1BX	56661		6	5	200|180|160	56680	275|325|375	56682	275|275|275	56718					56742		
-enigma_demonic_conversion	A180	53061	4		2	35|35|35|35	53078	170|170|170|170	53080	700|700|700|700	53115							
 enigma_malefice	A0I7	31063	4			15|15|15|15	31080	110|130|150|160	31082	600|600|600|600	31117							
 enigma_midnight_pulse	A0B1	23162	4			35|35|35|35	23177	95|110|125|140	23179	700|700|700|700	23216							
 faceless_void_backtrack	A0CZ	26390	4															

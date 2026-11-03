@@ -9,9 +9,15 @@ const opt = (name, dflt) => (args.includes(name) ? args[args.indexOf(name) + 1] 
 const outDir = opt("--out", "scenarios/moba");
 const MILLI = 15.625;
 const TPS = 16;
-const HERO_BODY_MILLI = 281;
-const HERO_BODY_MILLI_OVERRIDES = { phantom_lancer: 94, rattletrap: 94, naga_siren: 94, slark: 94 };
-const heroBodyMilli = (id) => HERO_BODY_MILLI_OVERRIDES[id] ?? HERO_BODY_MILLI;
+const HERO_BODY_BASE_MILLI = 376;
+const HERO_BODY_BASE_MILLI_OVERRIDES = { phantom_lancer: 124, rattletrap: 124, naga_siren: 124, slark: 124 };
+const HERO_BODY_SCALE = { num: 3, den: 4 };
+const scaledBodyMilli = (base) => {
+  const scaled = (base * HERO_BODY_SCALE.num) / HERO_BODY_SCALE.den;
+  if (!Number.isInteger(scaled)) throw new Error(`hero body base ${base} milli does not scale to an integer at ${HERO_BODY_SCALE.num}/${HERO_BODY_SCALE.den}`);
+  return scaled;
+};
+const heroBodyMilli = (id) => scaledBodyMilli(HERO_BODY_BASE_MILLI_OVERRIDES[id] ?? HERO_BODY_BASE_MILLI);
 
 const STANDINS = {
   hero: "dragon_knight",
@@ -236,17 +242,36 @@ const osd = [
   }),
   "",
 ];
-if (args.includes("--check")) {
-  const osdPath = path.join(outDir, "units_heroes.osd");
-  const onDisk = fs.readFileSync(osdPath, "utf8");
-  const problems = [];
-  const diskIds = [...onDisk.matchAll(/^unit\("(\w+)"/gm)].map((m) => m[1]);
-  if (diskIds.join() !== heroes.map((h) => h.id).join()) problems.push("units_heroes.osd unit ids differ from the enabled reference heroes");
-  if (problems.length > 0) {
-    console.error(problems.join("\n"));
+const BODY_FILES = [
+  ["units_heroes.osd", () => true],
+  ["units.osd", (name) => Object.hasOwn(STANDINS, name)],
+];
+const retargetBodies = (text, selects) =>
+  text
+    .split("\n")
+    .map((line) => {
+      const m = /^unit\("(\w+)", \d+, \d+, \d+/.exec(line);
+      if (!m || !selects(m[1])) return line;
+      return line.replace(/^(unit\("\w+", \d+, \d+, )\d+/, `$1${heroBodyMilli(STANDINS[m[1]] ?? m[1])}`);
+    })
+    .join("\n");
+if (args.includes("--check") || args.includes("--bodies")) {
+  const stale = [];
+  for (const [name, selects] of BODY_FILES) {
+    const file = path.join(outDir, name);
+    const before = fs.readFileSync(file, "utf8");
+    const after = retargetBodies(before, selects);
+    if (after === before) continue;
+    if (args.includes("--check")) stale.push(name);
+    else fs.writeFileSync(file, after);
+  }
+  const diskIds = [...fs.readFileSync(path.join(outDir, "units_heroes.osd"), "utf8").matchAll(/^unit\("(\w+)"/gm)].map((m) => m[1]);
+  if (diskIds.join() !== heroes.map((h) => h.id).join()) stale.push("units_heroes.osd unit ids");
+  if (stale.length > 0) {
+    console.error(`hero bodies stale in: ${stale.join(", ")}`);
     process.exit(1);
   }
-  console.log(`${heroes.length} heroes: units_heroes.osd is current`);
+  console.log(args.includes("--check") ? `${heroes.length} heroes: hero bodies in units_heroes.osd and units.osd are current` : `${heroes.length} heroes: hero bodies written`);
   process.exit(0);
 }
 fs.writeFileSync(path.join(outDir, "units_heroes.osd"), osd.join("\n"));
