@@ -151,6 +151,20 @@
       "tiers": ["Starting items", "Early", "Mid", "Late"],
       "tierCosts": [500, 1500, 3000],
       "notSold": "Not sold",
+      "search": "Search items",
+      "build": "Build",
+      "quickBuy": "Quick buy",
+      "buildNone": "no items in the build yet",
+      "addBuild": "Add to build",
+      "removeBuild": "Remove from build",
+      "categories": {
+        "all": "All",
+        "consumables": "Consumables",
+        "attributes": "Attributes",
+        "offence": "Offence",
+        "defence": "Defence",
+        "utility": "Utility"
+      },
     "kinds": {
       "home": "Home Base",
       "side": "Side Shop",
@@ -182,6 +196,7 @@
     "neutralLabel": "neutral",
     "stashLabel": "stash",
     "scoreboardTitle": "Scoreboard",
+    "winColumns": ["Hero", "K", "D", "A", "LH", "Gold", "XP", "DMG", "Heal", "Items"],
     "menu": {
       "shop": "Shop",
       "scoreboard": "Scoreboard",
@@ -189,6 +204,12 @@
       "controlsTitle": "Controls",
       "close": "Close",
       "saveReplay": "Save Replay",
+      "respawnIn": "Respawn in",
+      "buyback": "Buyback",
+      "buybackCooldown": "cooldown",
+      "buybackTip": "Pay the buyback cost to respawn at your base now",
+      "replaySaved": "Replay saved:",
+      "replayFailed": "The replay could not be saved.",
       "playAgain": "Play Again",
       "newGame": "New Game",
       "clickTitle": "Mouse",
@@ -201,7 +222,8 @@
         "Click an inventory item: arm it; click it again to sell it, or click another slot to move it there",
         "With an item armed, press Stash: put it into the stash (within reach of a depot)",
         "Click a stash item: take it out (within reach of a depot)",
-        "Click a hero tile in the hero select: pick it (lobby only)"
+        "Click a hero tile in the hero select: pick it (lobby only)",
+        "Click Add to build on a shop card, then Quick buy: buy the build list in order"
       ],
       "sell": "Sell",
       "sellConfirm": "Press again to sell",
@@ -228,7 +250,8 @@
       "K",
       "D",
       "A",
-      "gold"
+      "gold",
+      "net worth"
     ],
     "skills": {
       "title": "Skills",

@@ -103,6 +103,7 @@ const STYLE = `
 .w-row-value{flex:0 0 auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .w-statbar{display:grid;grid-template-columns:auto minmax(40px,1fr) auto;align-items:center;gap:6px;min-width:0}
 .w-statbar-value{font-variant-numeric:tabular-nums;white-space:nowrap}
+.w-input{min-width:0;width:100%;font:inherit;padding:4px 6px;color:inherit;background:var(--well);border:1px solid var(--muted);border-radius:3px}
 .w-model{position:relative;flex:0 0 auto;overflow:hidden;border-radius:3px;background:var(--well)}
 .w-model img,.w-model canvas{display:block;width:100%;height:100%;object-fit:contain}
 @media (max-width: 600px), (max-height: 500px) and (orientation: landscape){
@@ -497,6 +498,14 @@ export function buildNode(n, send, panel = null) {
         e.dataset.key = keyOf(n.call, n.args);
         e.onclick = () => send(n.call, n.args ?? {});
       }
+      break;
+    case "input":
+      e = el("input", "w-input");
+      e.type = "search";
+      e.placeholder = n.placeholder ?? "";
+      e.value = n.value ?? "";
+      e.dataset.key = keyOf(n.call, {});
+      e.onchange = () => send(n.call, { text: e.value });
       break;
     case "grid":
       e = el("div", "w-grid");

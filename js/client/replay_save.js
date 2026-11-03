@@ -63,4 +63,5 @@ export async function saveReplayFile(text, meta) {
     namespace: meta.namespace,
     room: meta.room,
   });
+  return name;
 }

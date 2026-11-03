@@ -390,14 +390,35 @@ function routeUi(ev) {
   if (window.__modUi) window.__modUi.push(ev);
 }
 
+let lastModsJson = "[]";
+
 function winAction(data) {
   if (data.action === "win_save_replay") {
     saveWinReplay();
     return;
   }
+  if (data.action === "win_new_game" && restartInPage()) return;
   if (data.action === "win_play_again") writeRematch(data.modes);
   else localStorage.removeItem(snapshotKey());
   location.reload();
+}
+
+function restartInPage() {
+  if (!wasmModule || netState || hosting) return false;
+  let next;
+  try {
+    next = finishGame(newGame(), lastModsJson);
+  } catch (err) {
+    logModError(`new game: ${err.message || err}`);
+    return false;
+  }
+  localStorage.removeItem(snapshotKey());
+  if (typeof localGame?.free === "function") localGame.free();
+  localGame = next;
+  lastGoodSnapshot = captureSnapshot(localGame);
+  decisionAnnounced = false;
+  restartsInARow = 0;
+  return true;
 }
 
 function writeRematch(modesText) {
@@ -411,9 +432,20 @@ function writeRematch(modesText) {
 function saveWinReplay() {
   if (!localGame || typeof localGame.replay_text !== "function") {
     logModError("replay: this build cannot export a replay");
+    reportReplay("replay_failed", "");
     return;
   }
-  saveReplayFile(localGame.replay_text(), { tick: localGame.ticks(), namespace, room }).catch((err) => logModError(`replay: not indexed (${err.message || err})`));
+  saveReplayFile(localGame.replay_text(), { tick: localGame.ticks(), namespace, room })
+    .then((name) => reportReplay("replay_saved", name))
+    .catch((err) => {
+      logModError(`replay: not indexed (${err.message || err})`);
+      reportReplay("replay_failed", "");
+    });
+}
+
+function reportReplay(call, name) {
+  if (!localGame) return;
+  logModError(localGame.dispatch_action("ui", JSON.stringify({ call, args: { name }, player: myPlayer, pubkey: auth.pubkey || LOCAL_OWNER_ID })));
 }
 
 const LOCAL_OWNER_ID = "local-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(36);
@@ -456,7 +488,8 @@ async function loadSim() {
   setMapSize(readGrid(image));
   rulesText = await rulesFetch;
   const mods = await modsFetch;
-  const game = finishGame(newGame(), JSON.stringify(mods));
+  lastModsJson = JSON.stringify(mods);
+  const game = finishGame(newGame(), lastModsJson);
   lastGoodSnapshot = captureSnapshot(game);
   if (noMods) document.body.dataset.nomods = "1";
   return game;

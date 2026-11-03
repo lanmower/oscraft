@@ -307,6 +307,14 @@ return {
     if unit ~= nil then buyback(unit, game.ticks()) end
   end,
 
+  respawn_left = function(unit)
+    return math.max(0, respawn_due.get(unit) - game.ticks())
+  end,
+
+  buyback_quote = function(unit)
+    return buyback_cost(unit), math.max(0, buyback_ready.get(unit) - game.ticks())
+  end,
+
   on_tick = function()
     for _, i in ipairs(heroes()) do
       if game.alive(i) then

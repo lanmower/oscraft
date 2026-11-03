@@ -6,9 +6,11 @@ local xp = require("xp")
 local stats = require("stats")
 local modes = require("modes")
 local shops = require("shops")
-local scoreboard_688g = require("scoreboard")
 local ui_fill = require("ui_fill")
 local store = require("store")
+local heroes = require("heroes")
+local match_stats = require("match_stats")
+local HERO_ACRONYM = require("hero_acronyms")
 
 local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 local REFRESH_TICKS = 4
@@ -32,6 +34,10 @@ local GROUP_PAGE = 0
 local WIN_CLOSED = false
 local PINS = {}
 local SHOP_PICK = {}
+local SHOP_CATEGORY = "all"
+local SHOP_SEARCH = ""
+local BUILDS = {}
+local REPLAY_NOTE = nil
 local OPEN = { shop = false, scoreboard = false, controls = false }
 local SELL_ARMED = nil
 local SELECTED_SHOP = nil
@@ -44,7 +50,6 @@ local COOLDOWN_FULL = {}
 local HEROES = {}
 local ROSTER = nil
 local LAST = {}
-local hero_title
 
 local function new_lobby()
   local slots = {}
@@ -184,13 +189,6 @@ local function slot_label(p)
   return TEXT.lobby.slotWord .. " " .. tostring(p + 1)
 end
 
-local function player_label(p)
-  local hero = hero_unit(p)
-  local kind = hero ~= nil and game.unit_kind(hero) or nil
-  if kind == nil or hero_title == nil then return slot_label(p) end
-  return slot_label(p) .. " " .. hero_title(kind)
-end
-
 local function update_heroes()
   local living = {}
   for _, id in ipairs(game.units()) do
@@ -250,11 +248,11 @@ local function hud_tree()
   return box(kids, "row")
 end
 
-local function post_game_rows(with_items)
+local function post_game_rows()
   local rows, by_player = {}, {}
   for p = 0, config.PLAYERS - 1 do
     if game.seat_start(p) ~= nil then
-      local row = { player = p, kills = 0, deaths = 0, assists = 0, gold = game.gold(p), xp = 0, items = {} }
+      local row = { player = p, kills = 0, deaths = 0, assists = 0, gold = game.gold(p) }
       rows[#rows + 1] = row
       by_player[p] = row
     end
@@ -265,10 +263,6 @@ local function post_game_rows(with_items)
       row.kills = row.kills + game.kills_of(u)
       row.deaths = row.deaths + game.deaths_of(u)
       row.assists = row.assists + game.credits_of(u)
-      row.xp = row.xp + game.xp(u)
-      if with_items then
-        for _, it in ipairs(game.unit_items(u)) do row.items[#row.items + 1] = it.item end
-      end
     end
   end
   return rows
@@ -280,17 +274,36 @@ local function mode_text()
   return out
 end
 
+local function win_heroes()
+  local list = {}
+  for p = 0, config.PLAYERS - 1 do
+    local hero = hero_unit(p)
+    if game.seat_start(p) ~= nil and hero ~= nil then
+      local kind = game.unit_kind(hero) or TEXT.unitUnknown
+      list[#list + 1] = { player = p, hero = hero, team = game.team(p), name = HERO_ACRONYM[kind] or kind }
+    end
+  end
+  return list
+end
+
+local function win_table()
+  local seconds = math.floor(game.ticks() / TICKS_PER_SECOND)
+  local ranked = match_stats.evaluate(match_stats.collect(win_heroes()), seconds).ranked
+  local cells = {}
+  for _, title in ipairs(TEXT.winColumns) do cells[#cells + 1] = label(title, "muted") end
+  for _, e in ipairs(ranked) do
+    local tone = e.player == LOCAL and "me" or nil
+    local values = { e.name, e.kills, e.deaths, e.assists, e.last_hits, e.gold, e.experience, e.damage_dealt, e.healing, e.items }
+    for _, value in ipairs(values) do cells[#cells + 1] = label(tostring(value), tone) end
+  end
+  return grid(#TEXT.winColumns, cells)
+end
+
 local function win_tree()
   local side = game.winner()
   if side == nil or side < 0 then return nil end
-  local kids = { label(team_name(side) .. " " .. TEXT.winner.suffix, "accent") }
-  for _, row in ipairs(post_game_rows(true)) do
-    local items = #row.items
-    kids[#kids + 1] = label(player_label(row.player) .. "  " .. TEXT.post.kills .. " " .. tostring(row.kills) ..
-      "  " .. TEXT.post.deaths .. " " .. tostring(row.deaths) .. "  " .. TEXT.post.assists .. " " .. tostring(row.assists) ..
-      "  " .. TEXT.post.gold .. " " .. tostring(row.gold) .. "  " .. TEXT.post.xp .. " " .. tostring(row.xp) ..
-      "  " .. TEXT.post.items .. " " .. tostring(items))
-  end
+  local kids = { label(team_name(side) .. " " .. TEXT.winner.suffix, "accent"), win_table() }
+  if REPLAY_NOTE ~= nil then kids[#kids + 1] = label(REPLAY_NOTE, "ok") end
   kids[#kids + 1] = button(TEXT.menu.saveReplay, "win_save_replay", "{}")
   kids[#kids + 1] = button(TEXT.menu.playAgain, "win_play_again", "{}")
   kids[#kids + 1] = button(TEXT.menu.newGame, "win_new_game", "{}")
@@ -300,7 +313,7 @@ end
 
 local function team_tree()
   local kills = {}
-  for _, row in ipairs(post_game_rows(false)) do
+  for _, row in ipairs(post_game_rows()) do
     local side = team_of(row.player)
     kills[side] = (kills[side] or 0) + row.kills
   end
@@ -428,6 +441,76 @@ local function recipe_lines(item, depth, out)
   return out
 end
 
+local CATEGORY_STATS = {
+  attributes = { "strength", "agility", "intelligence" },
+  offence = { "damage", "attack_speed", "lifesteal" },
+  defence = { "armor", "health", "health_regen", "magic_resist", "evasion", "block_chance", "block_chance_nonhero", "block_amount" },
+}
+local CATEGORY_ORDER = { "attributes", "offence", "defence" }
+local SHOP_CATEGORIES = { "all", "consumables", "attributes", "offence", "defence", "utility" }
+
+local function item_category(def)
+  if def.charges > 0 then return "consumables" end
+  for _, category in ipairs(CATEGORY_ORDER) do
+    for _, stat in ipairs(CATEGORY_STATS[category]) do
+      if def.stats[stat] ~= nil then return category end
+    end
+  end
+  return "utility"
+end
+
+local function contains_text(text, needle)
+  return string.find(string.lower(text), string.lower(needle), 1, true) ~= nil
+end
+
+local function shop_match(def)
+  if SHOP_CATEGORY ~= "all" and item_category(def) ~= SHOP_CATEGORY then return false end
+  return SHOP_SEARCH == "" or contains_text(def.name, SHOP_SEARCH)
+end
+
+local function in_build(kind, item)
+  for _, listed in ipairs(kind and BUILDS[kind] or {}) do
+    if listed == item then return true end
+  end
+  return false
+end
+
+local function toggle_build(kind, item)
+  local kept, found = {}, false
+  for _, listed in ipairs(BUILDS[kind] or {}) do
+    if listed == item then found = true else kept[#kept + 1] = listed end
+  end
+  if not found then kept[#kept + 1] = item end
+  BUILDS[kind] = kept
+end
+
+local function shop_filters()
+  local tabs = {}
+  for _, key in ipairs(SHOP_CATEGORIES) do
+    local text = TEXT.shop.categories[key] or key
+    if key == SHOP_CATEGORY then text = "[" .. text .. "]" end
+    tabs[#tabs + 1] = button(text, "shop_category", obj({ S("category", key) }))
+  end
+  return box({
+    node("input", { S("call", "shop_search"), S("value", SHOP_SEARCH), S("placeholder", TEXT.shop.search) }),
+    box(tabs, "row"),
+  }, "col")
+end
+
+local function build_section(kind, hero)
+  local list = kind and BUILDS[kind] or {}
+  local rows = {}
+  for _, item in ipairs(list) do
+    local def = game.item_info(item)
+    if def ~= nil then rows[#rows + 1] = label(def.name .. "  " .. tostring(def.cost) .. TEXT.costSuffix, "muted") end
+  end
+  local body = #rows > 0 and box(rows, "col") or label(TEXT.shop.buildNone, "faint")
+  return box({
+    box({ label(TEXT.shop.build, "faint"), button(TEXT.shop.quickBuy, "quick_buy", "{}", hero == nil or #list == 0) }, "row"),
+    body,
+  }, "col")
+end
+
 local function shop_tree()
   local hero = hero_of(LOCAL)
   local gold = game.gold(LOCAL)
@@ -453,6 +536,7 @@ local function shop_tree()
     kids[#kids + 1] = box({
       button(TEXT.buy, "buy", obj({ I("item", i) }), hero == nil or not afford or not reachable, buy_tip),
       button(pins[i] and TEXT.shop.unpin or TEXT.shop.pin, "pin", obj({ I("item", i) }), kind == nil),
+      button(in_build(kind, i) and TEXT.shop.removeBuild or TEXT.shop.addBuild, "build_toggle", obj({ I("item", i) }), kind == nil),
       button(TEXT.shop.recipeTree, "shop_pick", obj({ I("item", i) }), kind == nil),
     }, "row")
     return cell(kids, { tip = def.name })
@@ -465,7 +549,7 @@ local function shop_tree()
   while true do
     local def = game.item_info(i)
     if def == nil then break end
-    if shops.listed(def.name) then
+    if shops.listed(def.name) and shop_match(def) then
       local reachable = hero ~= nil and shops.sold_in_reach(hero, def.name)
       local band = shop_tier(def.cost) or #tiers + 1
       bands[band][#bands[band] + 1] = card(i, def, reachable)
@@ -474,6 +558,8 @@ local function shop_tree()
     i = i + 1
   end
   local sections = {}
+  sections[#sections + 1] = shop_filters()
+  sections[#sections + 1] = build_section(kind, hero)
   if SELECTED_SHOP ~= nil then
     local place = SELECTED_SHOP
     local tag_name = shops.TAG_NAME[place.tag] or "home"
@@ -483,7 +569,7 @@ local function shop_tree()
     while true do
       local def = game.item_info(j)
       if def == nil then break end
-      if place.set[def.name] then stock[#stock + 1] = card(j, def, here) end
+      if place.set[def.name] and shop_match(def) then stock[#stock + 1] = card(j, def, here) end
       j = j + 1
     end
     sections[#sections + 1] = box({
@@ -608,9 +694,25 @@ local function ability_cell(hero, key, abilities)
   return cell(kids, { tone = tone, tip = a.name, call = "cast", args = obj({ I("slot", key.slot) }) })
 end
 
+local function respawn_tree(hero)
+  local seconds = math.ceil(heroes.respawn_left(hero) / TICKS_PER_SECOND)
+  local cost, cooldown = heroes.buyback_quote(hero)
+  local text = TEXT.menu.buyback .. " " .. tostring(cost) .. TEXT.costSuffix
+  if cooldown > 0 then
+    text = text .. "  " .. TEXT.menu.buybackCooldown .. " " .. tostring(math.ceil(cooldown / TICKS_PER_SECOND)) .. TEXT.cooldownSuffix
+  end
+  local affordable = cooldown == 0 and game.gold(LOCAL) >= cost
+  return box({
+    label(TEXT.menu.respawnIn .. " " .. tostring(seconds) .. TEXT.cooldownSuffix, "warn"),
+    button(text, "buyback", "{}", not affordable, TEXT.menu.buybackTip),
+  }, "col")
+end
+
 local function select_tree()
   local sel = alive_selection()
   if #sel == 0 then
+    local own = HEROES[LOCAL]
+    if own ~= nil and own.state == "dead" then return respawn_tree(own.id) end
     return box({ cell({ label(TEXT.noValue, "faint") }, { tone = "empty" }), label(TEXT.noSelection, "muted") }, "row")
   end
   local primary = sel[1]
@@ -828,7 +930,7 @@ local function controls_tree()
 end
 
 local function scoreboard_tree()
-  local rows = post_game_rows(false)
+  local rows = post_game_rows()
   local kids = {}
   for _, side in ipairs(sides()) do
     local cells = {}
@@ -852,6 +954,7 @@ local function scoreboard_tree()
         cells[#cells + 1] = label(tostring(row.deaths), tone)
         cells[#cells + 1] = label(tostring(row.assists), tone)
         cells[#cells + 1] = label(tostring(row.gold), tone)
+        cells[#cells + 1] = label(hero ~= nil and tostring(store.net_worth(hero)) or TEXT.noValue, tone)
         for _, text in ipairs(stats.cells(hero)) do cells[#cells + 1] = label(text, tone) end
       end
     end
@@ -1324,9 +1427,6 @@ local function hero_name(name)
   if e == nil then return name end
   return e[1]
 end
-hero_title = hero_name
-
-local HERO_ACRONYM = require("hero_acronyms")
 
 local function acronym(name)
   return UI.heroAcronyms[name] or HERO_ACRONYM[name] or "?"
@@ -1520,7 +1620,6 @@ local function emit_all()
   emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   emit("team", "top", team_tree())
   emit("scoreboard", "centre", OPEN.scoreboard and scoreboard_tree() or nil)
-  scoreboard_688g.refresh(OPEN.scoreboard, LOCAL)
   emit("shop", "right", OPEN.shop and shop_tree() or nil)
   emit("controls", "centre", OPEN.controls and TEXT.menu ~= nil and controls_tree() or nil)
   local hero = hero_of(LOCAL)
@@ -1613,7 +1712,29 @@ local function ui_call(who, call, a)
   elseif call == "win_refresh" then
     emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   elseif call == "win_save_replay" or call == "win_play_again" or call == "win_new_game" then
+    if call == "win_new_game" then emit("win", "win", nil) end
     game.ui_event("win", obj({ I("player", who), S("action", call), S("modes", mode_text()) }))
+  elseif call == "shop_category" then
+    SHOP_CATEGORY = a.category or "all"
+  elseif call == "shop_search" then
+    SHOP_SEARCH = a.text or ""
+  elseif call == "build_toggle" then
+    local kind = shop_kind(who)
+    if kind ~= nil then toggle_build(kind, a.item) end
+  elseif call == "quick_buy" then
+    local hero = hero_of(who)
+    local kind = shop_kind(who)
+    if hero ~= nil and kind ~= nil then
+      for _, item in ipairs(BUILDS[kind] or {}) do game.cmd_buy(hero, item) end
+    end
+  elseif call == "buyback" then
+    heroes.buyback(who)
+  elseif call == "replay_saved" then
+    REPLAY_NOTE = TEXT.menu.replaySaved .. " " .. tostring(a.name)
+    emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
+  elseif call == "replay_failed" then
+    REPLAY_NOTE = TEXT.menu.replayFailed
+    emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   elseif call == "shop_pick" then
     local kind = shop_kind(who)
     if kind ~= nil then SHOP_PICK[kind] = a.item end
