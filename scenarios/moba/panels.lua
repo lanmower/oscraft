@@ -339,15 +339,6 @@ local function stats_text(stats)
   return join(parts, " ")
 end
 
-local function recipe_text(components)
-  local names = {}
-  for _, c in ipairs(components) do
-    local part = game.item_info(c)
-    names[#names + 1] = part and part.name or ("#" .. tostring(c))
-  end
-  return join(names, " + ")
-end
-
 local function net_price(unit, item, def)
   local pool = {}
   for _, row in ipairs(game.unit_items(unit)) do
@@ -439,6 +430,7 @@ local CATEGORY_STATS = {
 }
 local CATEGORY_ORDER = { "attributes", "offence", "defence" }
 local SHOP_CATEGORIES = { "all", "consumables", "attributes", "offence", "defence", "utility" }
+local SHOP_COLUMNS = 6
 
 local function item_category(def)
   if def.charges > 0 then return "consumables" end
@@ -508,11 +500,26 @@ local function shop_tree()
   local kind = shop_kind(LOCAL)
   local pins = (kind and PINS[kind]) or {}
   local pick = kind and SHOP_PICK[kind]
+  local pick_def = pick ~= nil and game.item_info(pick) or nil
   local tiers = TEXT.shop.tiers
 
-  local function card(i, def, reachable)
-    local price = hero ~= nil and net_price(hero, i, def) or def.cost
-    local afford = gold >= price
+  local function price_of(i, def)
+    if hero ~= nil then return net_price(hero, i, def) end
+    return def.cost
+  end
+
+  local function item_cell(i, def)
+    local tone = gold >= price_of(i, def) and "gold" or "bad"
+    local name_tone = i == pick and "accent" or "strong"
+    return cell({
+      label(def.name, name_tone),
+      label(tostring(def.cost) .. TEXT.costSuffix, tone),
+    }, { tip = def.name, call = "shop_pick", args = obj({ I("item", i) }) })
+  end
+
+  local function pick_detail(i, def)
+    local reachable = hero ~= nil and shops.sold_in_reach(hero, def.name)
+    local afford = gold >= price_of(i, def)
     local buy_tip = nil
     if hero == nil then buy_tip = TEXT.refusals.noHero
     elseif not reachable then buy_tip = TEXT.shop.outOfReach end
@@ -523,14 +530,14 @@ local function shop_tree()
     }
     local stats = stats_text(def.stats)
     if stats ~= "" then kids[#kids + 1] = label(stats, "muted") end
-    if #def.components > 0 then kids[#kids + 1] = label(TEXT.recipePrefix .. recipe_text(def.components), "faint") end
     kids[#kids + 1] = box({
       button(TEXT.buy, "buy", obj({ I("item", i) }), hero == nil or not afford or not reachable, buy_tip),
       button(pins[i] and TEXT.shop.unpin or TEXT.shop.pin, "pin", obj({ I("item", i) }), kind == nil),
       button(in_build(kind, i) and TEXT.shop.removeBuild or TEXT.shop.addBuild, "build_toggle", obj({ I("item", i) }), kind == nil),
-      button(TEXT.shop.recipeTree, "shop_pick", obj({ I("item", i) }), kind == nil),
     }, "row")
-    return cell(kids, { tip = def.name })
+    kids[#kids + 1] = label(TEXT.shop.recipeTree, "faint")
+    kids[#kids + 1] = box(recipe_lines(i, 0, {}), "col")
+    return box(kids, "col")
   end
 
   local pinned_cells = {}
@@ -540,17 +547,17 @@ local function shop_tree()
   while true do
     local def = game.item_info(i)
     if def == nil then break end
-    if shops.listed(def.name) and shop_match(def) then
-      local reachable = hero ~= nil and shops.sold_in_reach(hero, def.name)
-      local band = shop_tier(def.cost) or #tiers + 1
-      bands[band][#bands[band] + 1] = card(i, def, reachable)
-      if pins[i] then pinned_cells[#pinned_cells + 1] = card(i, def, reachable) end
+    if shops.listed(def.name) then
+      if pins[i] then pinned_cells[#pinned_cells + 1] = item_cell(i, def) end
+      if shop_match(def) then
+        local band = shop_tier(def.cost) or #tiers + 1
+        bands[band][#bands[band] + 1] = item_cell(i, def)
+      end
     end
     i = i + 1
   end
-  local sections = {}
-  sections[#sections + 1] = shop_filters()
-  sections[#sections + 1] = build_section(kind, hero)
+
+  local sections = { shop_filters() }
   if SELECTED_SHOP ~= nil then
     local place = SELECTED_SHOP
     local tag_name = shops.TAG_NAME[place.tag] or "home"
@@ -560,7 +567,7 @@ local function shop_tree()
     while true do
       local def = game.item_info(j)
       if def == nil then break end
-      if place.set[def.name] and shop_match(def) then stock[#stock + 1] = card(j, def, here) end
+      if place.set[def.name] and shop_match(def) then stock[#stock + 1] = item_cell(j, def) end
       j = j + 1
     end
     sections[#sections + 1] = box({
@@ -569,29 +576,33 @@ local function shop_tree()
         label(here and TEXT.shop.inReach or TEXT.shop.outOfReach, here and "ok" or "warn"),
       }, "row"),
       label(TEXT.shop.stock .. "  " .. tostring(#stock), "faint"),
-      grid(3, stock),
+      grid(SHOP_COLUMNS, stock),
       button(TEXT.menu.close, "shop_deselect", "{}"),
     }, "col")
-  end
-  if pick ~= nil then
-    sections[#sections + 1] = box({ label(TEXT.shop.recipeTree, "faint"), box(recipe_lines(pick, 0, {}), "col") }, "col")
-  else
-    sections[#sections + 1] = label(TEXT.shop.pickNone, "muted")
   end
   for t = 1, #bands do
     if #bands[t] > 0 then
       local heading = tiers[t] or TEXT.shop.notSold
-      sections[#sections + 1] = box({ label(heading .. "  " .. tostring(#bands[t]), "faint"), grid(3, bands[t]) }, "col")
+      sections[#sections + 1] = box({
+        box({ label(heading, "faint"), label(tostring(#bands[t]), "muted") }, "col"),
+        grid(SHOP_COLUMNS, bands[t]),
+      }, "row")
     end
   end
   sections[#sections + 1] = box({
     label(TEXT.shop.pinned, "faint"),
-    #pinned_cells > 0 and grid(3, pinned_cells) or label(TEXT.shop.pinnedNone, "muted"),
+    #pinned_cells > 0 and grid(SHOP_COLUMNS, pinned_cells) or label(TEXT.shop.pinnedNone, "muted"),
   }, "col")
+  if pick_def ~= nil then
+    sections[#sections + 1] = pick_detail(pick, pick_def)
+  else
+    sections[#sections + 1] = label(TEXT.shop.pickNone, "muted")
+  end
+  sections[#sections + 1] = build_section(kind, hero)
   local stash_count = hero ~= nil and #game.unit_stash(hero) or 0
   sections[#sections + 1] = box({
     box({ label(TEXT.stashLabel, "faint"), button(TEXT.shop.grabAll, "grab_all", "{}", stash_count == 0 or hero == nil) }, "row"),
-    grid(3, stash_cells(hero)),
+    grid(STASH_SLOTS, stash_cells(hero)),
   }, "col")
   return panel(TEXT.shop.title .. "  " .. TEXT.goldLabel .. " " .. tostring(gold), sections)
 end
