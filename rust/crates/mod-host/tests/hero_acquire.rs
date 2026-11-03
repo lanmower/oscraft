@@ -10,6 +10,8 @@ const ENEMY: &str = "axe";
 const ACQUIRE_GAME_UNITS: u32 = 640;
 const GAP_CELLS: i32 = 5;
 const SEARCH_TICKS: u32 = 400;
+const DESTINATION_CELLS: i32 = 25;
+const RESUME_TICKS: u32 = 1000;
 
 fn pack_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba")
@@ -133,4 +135,40 @@ fn a_stopped_hero_chases_an_enemy_hero_inside_acquire_range_and_attacks() {
         let (x, y) = host.sim().position_fixed(attacker);
         host.sim_mut().issue_order_kind(attacker, ORDER_STOP, x, y).expect("the stop order is accepted");
     });
+}
+
+#[test]
+fn an_attack_moving_hero_chases_past_an_enemy_and_resumes_its_destination() {
+    let mut host = pack_host();
+    let (ax, ay) = (92, 240);
+    let attacker = hero(&mut host, ATTACKER, 0, ax, ay);
+    let enemy = hero(&mut host, ENEMY, 1, ax + GAP_CELLS, ay);
+    host.sim_mut().set_acquire(ENEMY, 0).expect("the enemy kind takes no acquire range");
+    host.sim_mut().set_acquire(ATTACKER, ACQUIRE_GAME_UNITS).expect("the attacker kind takes an acquire range");
+
+    let (dest_x, dest_y) = (fixed::from_int(ax + DESTINATION_CELLS) + HALF, fixed::from_int(ay) + HALF);
+    host.sim_mut()
+        .issue_order_kind(attacker, ORDER_ATTACK_MOVE, dest_x, dest_y)
+        .expect("the attack-move order is accepted");
+    let enemy_hp = host.sim().hp(enemy);
+    let mut distance_at_strike = None;
+    for _ in 0..RESUME_TICKS {
+        host.advance().expect("advance the match");
+        if distance_at_strike.is_none() && host.sim().hp(enemy) < enemy_hp {
+            distance_at_strike = Some(distance_to_point(&host, attacker, dest_x, dest_y));
+        }
+    }
+
+    let strike_gap = distance_at_strike.expect("the hero chased the enemy and struck it");
+    assert!(strike_gap > 1.0, "the strike came before the destination ({strike_gap} cells short)");
+    assert!(host.sim().alive(attacker), "the hero is alive after the engagement");
+    let left = distance_to_point(&host, attacker, dest_x, dest_y);
+    assert!(left <= 1.0, "the hero resumed its attack-move and reached its destination ({left} cells away)");
+}
+
+fn distance_to_point(host: &ModHost, unit: usize, x: i32, y: i32) -> f64 {
+    let (ux, uy) = host.sim().position_fixed(unit);
+    let dx = f64::from(ux - x) / f64::from(fixed::ONE);
+    let dy = f64::from(uy - y) / f64::from(fixed::ONE);
+    (dx * dx + dy * dy).sqrt()
 }

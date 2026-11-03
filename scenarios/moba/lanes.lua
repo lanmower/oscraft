@@ -332,6 +332,8 @@ local function hero_idle(u, kind, dx, dy)
   return ex * ex + ey * ey <= ARRIVED * ARRIVED
 end
 
+local hero_resume = {}
+
 local function hero_chase(u, target)
   local tx, ty = unit_position(target)
   game.attack_move(u, tx, ty)
@@ -339,8 +341,17 @@ local function hero_chase(u, target)
   game.chase_set(u, target, 0, ox, oy)
 end
 
+local function hero_engage(u, target, kind, dx, dy)
+  hero_resume[u] = kind == ORDER_ATTACK_MOVE and { x = dx, y = dy, engaged = false } or nil
+  hero_chase(u, target)
+end
+
 local function hero_step(u, range, now)
-  if game.attack_order(u) >= 0 then return end
+  if game.attack_order(u) >= 0 then
+    local resume = hero_resume[u]
+    if resume ~= nil then resume.engaged = true end
+    return
+  end
   local kind, dx, dy = game.order_of(u)
   local target, _, last_x, last_y = game.chase_get(u)
   if target >= 0 then
@@ -351,7 +362,12 @@ local function hero_step(u, range, now)
       return
     end
     game.chase_set(u, -1, 0, 0, 0)
-    if ours then
+    local resume = hero_resume[u]
+    hero_resume[u] = nil
+    local struck_back = resume ~= nil and resume.engaged and kind == ORDER_MOVE and hero_idle(u, kind, dx, dy)
+    if resume ~= nil and (ours or struck_back) then
+      game.attack_move(u, resume.x, resume.y)
+    elseif ours then
       local ux, uy = unit_position(u)
       game.issue_order(u, ORDER_STOP, ux, uy)
     end
@@ -359,7 +375,7 @@ local function hero_step(u, range, now)
   end
   if (now + u) % ACQUIRE_PERIOD ~= 0 or not hero_idle(u, kind, dx, dy) then return end
   local t = nearest_creep_target(u, range)
-  if t ~= nil then hero_chase(u, t) end
+  if t ~= nil then hero_engage(u, t, kind, dx, dy) end
 end
 
 local function wave_creep_acquire(now)
@@ -376,6 +392,7 @@ return {
 
   on_state_replaced = function()
     upgraded = {}
+    hero_resume = {}
     next_unit = 0
     adopt_existing = true
   end,
