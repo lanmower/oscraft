@@ -2039,9 +2039,9 @@ How the plan's tables become engine data, and how the plan's markdown tables are
 - **Items.** `scenarios/moba/items.osd`, with the call `item(name, cost, stats={}, ability=, components=, consumable=, ...)` documented in the file header. Engine form: ITEM record, 192 bytes, 38 fixed stat slots, stock and restock fields (FORMAT.md).
 - **Rules.** Lua modules in `scenarios/moba/`: camps, clock, kill_gold, lanes, levelup, store, talents, skills, win, respawn (core/), protection, taunt, upgrades, targeting, unit_rules, panels, controls, effects. Behaviours in `behaviours.osd`. Engine calls a modifier a status effect and an upgrade a tech level (both renames pending in docs/NAMING.md).
 - **Economy and tuning.** `economy.osd` (one `economy(...)` call), `tuning.osd` (one `tuning(...)` call, including an `xp_curve`).
-- **Map.** `map.osd` (grid, paint, start, spawn), `routes.osd`, `doodads-688g.tsv`, `starts-688g.tsv`.
-- **Derived tables.** `heroes_688g.tsv`, `creeps_688g.tsv`, `doodad-types-688g.tsv`, `slot-models.tsv`, `attr_rules.txt` (key=value, read by `game.rule`), `moba_ui.json` (controls and effect kinds).
-- **Generators.** `scenarios/moba/tools/*.mjs`: gen-heroes, gen-items, gen-abilities, gen-ability-fx, gen-buff-fx, gen-reference, convert-688g-map, place-doodads-688g and others. `scripts/apply-heroes-688g.py`, `apply-abilities-688g.py`, `apply-creeps-688g.py`. The established pattern is TSV to `.osd`.
+- **Map.** `map.osd` (grid, paint, start, spawn), `routes.osd`, `props-688g.tsv`, `starts-688g.tsv`.
+- **Derived tables.** `heroes_688g.tsv`, `creeps_688g.tsv`, `prop-types-688g.tsv`, `slot-models.tsv`, `attr_rules.txt` (key=value, read by `game.rule`), `moba_ui.json` (controls and effect kinds).
+- **Generators.** `scenarios/moba/tools/*.mjs`: gen-heroes, gen-items, gen-abilities, gen-ability-fx, gen-buff-fx, gen-reference, convert-688g-map, place-props-688g and others. `scripts/apply-heroes-688g.py`, `apply-abilities-688g.py`, `apply-creeps-688g.py`. The established pattern is TSV to `.osd`.
 - **Name rule.** Engine names match `[a-z][a-z0-9_]*`, at most 255 bytes (FORMAT.md, Names).
 - **Absent.** No Clout, Trend, boost, Ratio, Repost, Stan, draft-mode or archetype data exists in the engine or the packs. Literal search for "clout" and "trend" in rust/, mods/, scenarios/, scripts/ and docs/ returned zero hits.
 
@@ -2060,7 +2060,7 @@ Consequence: a second pack needs edits in `stage.sh`, `pages.yml` and `ci.yml`. 
 ### A3. Is there a 6.88g data source, and where (question c)
 
 - The 6.88g archive is external. Its name is `reference map 6.88g.w3x`, 41,467,779 bytes. A listing of `/workspace/oscraft` and `/workspace` shows no such file, and a filename search for "w3x" in the repo returns nothing.
-- What the repo holds is derived data only: `scenarios/moba/heroes_688g.tsv`, `creeps_688g.tsv`, `starts-688g.tsv`, `doodad-types-688g.tsv`, `doodads-688g.tsv`, `abilities_688g*.osd` and `.tsv`. The extractor is `scenarios/moba/tools/convert-688g-map.mjs`, which takes arguments and needs the archive.
+- What the repo holds is derived data only: `scenarios/moba/heroes_688g.tsv`, `creeps_688g.tsv`, `starts-688g.tsv`, `prop-types-688g.tsv`, `props-688g.tsv`, `abilities_688g*.osd` and `.tsv`. The extractor is `scenarios/moba/tools/convert-688g-map.mjs`, which takes arguments and needs the archive.
 - Two other archives are also external: a 6.88w3 archive (docs/RESEARCH_688W3.md) and a 6.88f proxy (docs/RESEARCH_688F.md, historical). Neither is 6.88g and neither is used here.
 - The scenario stats come from a third-party dump, not from 6.88g. Its name-paired comparison has 714 field comparisons: 323 match, 366 differ, 25 are missing. Applied so far: 69 matched heroes, 32 neutral rows and one boss row.
 
