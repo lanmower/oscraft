@@ -35,7 +35,7 @@ const sizes = JSON.parse(rawSizes);
 const missing = KINDS.filter((k) => !(k in sizes));
 let footprintsAdded = 0;
 if (missing.length) {
-  const computed = propSizes(modelsDir, new Set(missing)).sizes;
+  const computed = (await propSizes(modelsDir, new Set(missing))).sizes;
   const addable = missing.filter((k) => computed[k] !== undefined);
   const absent = missing.filter((k) => computed[k] === undefined);
   if (absent.length) throw new Error("no computed footprint for " + absent.join(", "));

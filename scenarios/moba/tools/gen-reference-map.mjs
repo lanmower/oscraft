@@ -261,10 +261,11 @@ const tileCount = (id) => tiles.reduce((a, v) => a + (v === id ? 1 : 0), 0);
 
 const modelsDir = new URL("../assets/models/", import.meta.url);
 const unitModelsNamed = new Set();
+const lowpolyStructureModels = new Set();
 for (const file of fs.readdirSync(new URL("../", import.meta.url)).filter((f) => f.endsWith(".osd"))) {
-  for (const m of fs.readFileSync(new URL("../" + file, import.meta.url), "utf8").matchAll(/^unit\("[^"]+"[^\n]*model="([^"]+)"/gm)) {
-    unitModelsNamed.add(m[1]);
-  }
+  const text = fs.readFileSync(new URL("../" + file, import.meta.url), "utf8");
+  for (const m of text.matchAll(/^unit\("[^"]+"[^\n]*model="([^"]+)"/gm)) unitModelsNamed.add(m[1]);
+  for (const m of text.matchAll(/^unit\("[^"]+"[^\n]*filters=\[[^\]]*"structure"[^\]]*\][^\n]*model="([^"]+-lowpoly)"/gm)) lowpolyStructureModels.add(m[1]);
 }
 const placedPropStems = new Set(
   Object.values(JSON.parse(fs.readFileSync(new URL("../assets/props.json", import.meta.url), "utf8")))
@@ -272,7 +273,7 @@ const placedPropStems = new Set(
     .map((v) => v.slice(v.lastIndexOf("/") + 1, -4))
     .filter((stem) => !(stem.endsWith("-skinned") && unitModelsNamed.has(stem))),
 );
-const { sizes: propFootprints, units: unitFootprints } = propSizes(modelsDir, placedPropStems);
+const { sizes: propFootprints, units: unitFootprints } = await propSizes(modelsDir, placedPropStems, lowpolyStructureModels);
 const shippedStems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort().filter((stem) => propFootprints[stem] !== undefined);
 const ROLE_KINDS = {};
 for (const stem of shippedStems) (ROLE_KINDS[roleOf(stem)] ??= []).push(kindOf(stem));
