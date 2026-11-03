@@ -1,6 +1,7 @@
 
 const MUTE_KEY = "oscraft.voicesMuted";
 const LEVEL_FADE_S = 0.015;
+const SFX_LEVEL = 0.3;
 const AMBIENCE_GAIN = 0.1;
 const AMBIENCE_EXCERPT_S = 6;
 const AMBIENCE_GAP_MIN_S = 7;
@@ -196,6 +197,17 @@ export function createSfx({ url, audioContext = null }) {
     return ctx;
   }
 
+  let output = null;
+
+  function outputNode() {
+    if (!output) {
+      output = ctx.createGain();
+      output.gain.value = SFX_LEVEL;
+      output.connect(ctx.destination);
+    }
+    return output;
+  }
+
   async function load(name) {
     if (buffers.has(name)) return buffers.get(name);
     if (failed.has(name)) return null;
@@ -224,7 +236,7 @@ export function createSfx({ url, audioContext = null }) {
     if (ctx.state === "suspended") await ctx.resume().catch(() => {});
     const source = ctx.createBufferSource();
     source.buffer = buffer;
-    source.connect(ctx.destination);
+    source.connect(outputNode());
     source.start();
     return true;
   }
@@ -275,7 +287,7 @@ export function createSfx({ url, audioContext = null }) {
       if (!context()) return false;
       master = ctx.createGain();
       master.gain.value = level();
-      master.connect(ctx.destination);
+      master.connect(outputNode());
       await playExcerpt();
       return true;
     })().catch(() => false);
@@ -335,7 +347,7 @@ export function createOrderCues({ audioContext = null, volume = 0.22 } = {}) {
     }
     try {
       node = ac.createGain();
-      node.gain.setValueAtTime(volume, now);
+      node.gain.setValueAtTime(volume * SFX_LEVEL, now);
       node.gain.setTargetAtTime(0, now + duration * 0.35, duration * 0.2);
       node.connect(ac.destination);
       const osc = ac.createOscillator();
