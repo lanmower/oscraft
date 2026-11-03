@@ -278,21 +278,9 @@ local function mode_text()
   return out
 end
 
-local function win_heroes()
-  local list = {}
-  for p = 0, config.PLAYERS - 1 do
-    local hero = hero_unit(p)
-    if game.seat_start(p) ~= nil and hero ~= nil then
-      local kind = game.unit_kind(hero) or TEXT.unitUnknown
-      list[#list + 1] = { player = p, hero = hero, team = game.team(p), name = HERO_ACRONYM[kind] or kind }
-    end
-  end
-  return list
-end
-
 local function win_table()
   local seconds = math.floor(game.ticks() / TICKS_PER_SECOND)
-  local ranked = match_stats.evaluate(match_stats.collect(win_heroes()), seconds).ranked
+  local ranked = match_stats.evaluate(match_stats.collect(match_stats.roster()), seconds).ranked
   local cells = {}
   for _, title in ipairs(TEXT.winColumns) do cells[#cells + 1] = label(title, "muted") end
   for _, e in ipairs(ranked) do
