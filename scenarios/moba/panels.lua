@@ -44,6 +44,7 @@ local COOLDOWN_FULL = {}
 local HEROES = {}
 local ROSTER = nil
 local LAST = {}
+local hero_title
 
 local function new_lobby()
   local slots = {}
@@ -179,6 +180,17 @@ local function hero_unit(p)
   return nil
 end
 
+local function slot_label(p)
+  return TEXT.lobby.slotWord .. " " .. tostring(p + 1)
+end
+
+local function player_label(p)
+  local hero = hero_unit(p)
+  local kind = hero ~= nil and game.unit_kind(hero) or nil
+  if kind == nil or hero_title == nil then return slot_label(p) end
+  return slot_label(p) .. " " .. hero_title(kind)
+end
+
 local function update_heroes()
   local living = {}
   for _, id in ipairs(game.units()) do
@@ -274,7 +286,7 @@ local function win_tree()
   local kids = { label(team_name(side) .. " " .. TEXT.winner.suffix, "accent") }
   for _, row in ipairs(post_game_rows(true)) do
     local items = #row.items
-    kids[#kids + 1] = label("P" .. tostring(row.player) .. "  " .. TEXT.post.kills .. " " .. tostring(row.kills) ..
+    kids[#kids + 1] = label(player_label(row.player) .. "  " .. TEXT.post.kills .. " " .. tostring(row.kills) ..
       "  " .. TEXT.post.deaths .. " " .. tostring(row.deaths) .. "  " .. TEXT.post.assists .. " " .. tostring(row.assists) ..
       "  " .. TEXT.post.gold .. " " .. tostring(row.gold) .. "  " .. TEXT.post.xp .. " " .. tostring(row.xp) ..
       "  " .. TEXT.post.items .. " " .. tostring(items))
@@ -833,7 +845,7 @@ local function scoreboard_tree()
           level = tostring(xp.character_level(hero))
         end
         local tone = me and "me" or nil
-        cells[#cells + 1] = label("P" .. tostring(row.player) .. (me and " *" or ""), tone)
+        cells[#cells + 1] = label(slot_label(row.player) .. (me and " *" or ""), tone)
         cells[#cells + 1] = label(name, tone)
         cells[#cells + 1] = label(level, tone)
         cells[#cells + 1] = label(tostring(row.kills), tone)
@@ -1312,6 +1324,7 @@ local function hero_name(name)
   if e == nil then return name end
   return e[1]
 end
+hero_title = hero_name
 
 local HERO_ACRONYM = require("hero_acronyms")
 

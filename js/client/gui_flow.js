@@ -47,20 +47,24 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
   color: #cfe0ff; background: rgba(20,32,58,.8); }
 .flow-team-chip[data-team="1"] { border-color: #a8422f; color: #ffd9cd; background: rgba(58,26,20,.8); }
 .flow-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;
-  width: min(94vw, 1240px); max-height: 66vh; }
+  width: min(94vw, 1240px); height: 66vh; }
 .flow-group { display: flex; flex-direction: column; min-height: 0; padding: 10px;
   border: 1px solid #2c3648; border-radius: 14px; background: rgba(13,17,26,.72); }
 .flow-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
   margin-bottom: 8px; color: #8fa4c4; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
 .flow-group-head b { color: #e8ecf4; font-size: 15px; letter-spacing: .02em; text-transform: none; }
-.flow-group .flow-heroes { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
-  gap: 8px; width: auto; max-height: 54vh; overflow: auto; padding: 2px; }
+.flow-group .flow-heroes { --tile: 76px; display: grid; grid-auto-rows: var(--tile); gap: 6px; flex: 1 1 0;
+  min-height: 0; overflow: hidden; align-content: start; justify-content: center; padding: 2px; }
+.flow-dots { display: none; justify-content: center; gap: 8px; }
+.flow-dot { width: 8px; height: 8px; border-radius: 50%; background: #8fa4c4; opacity: .35; }
+.flow-dot[data-on="true"] { opacity: 1; background: #e8ecf4; }
 .flow-empty { padding: 20px 6px; color: #7d8ba3; font-size: 13px; text-align: center; }
-.flow-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px;
+.flow-hero { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 2px;
+  width: var(--tile); height: var(--tile); box-sizing: border-box; overflow: hidden;
   border: 1px solid #2c3648; border-radius: 10px; background: rgba(18,24,34,.8); cursor: pointer; color: #e8ecf4; font: inherit; }
 .flow-hero:hover, .flow-hero:focus { border-color: #6f92d8; outline: none; transform: translateY(-1px); }
-.flow-hero img { width: 64px; height: 64px; object-fit: contain; }
-.flow-acro { font-size: 11px; letter-spacing: .08em; font-weight: 600; }
+.flow-hero img { width: calc(var(--tile) * .64); height: calc(var(--tile) * .64); object-fit: contain; }
+.flow-acro { font-size: max(8px, calc(var(--tile) * .16)); letter-spacing: .08em; font-weight: 600; }
 .flow-orient { display: flex; align-items: flex-start; justify-content: space-between; gap: 2vw;
   width: min(96vw, 1560px); }
 .flow-side { display: flex; flex-direction: column; gap: 8px; width: clamp(140px, 15vw, 210px);
@@ -92,8 +96,10 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
 @media (max-width: 600px) {
   .flow-teams { flex-direction: column; gap: 3vh; align-items: stretch; }
   .flow-team { padding: 4vh 6vw; }
-  .flow-board { grid-template-columns: minmax(0, 1fr); max-height: 70vh; }
-  .flow-group .flow-heroes { max-height: 30vh; }
+  .flow-board { display: flex; gap: 0; height: 64vh; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory; touch-action: pan-x; }
+  .flow-board > .flow-group { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always; }
+  .flow-dots { display: flex; }
   .flow-orient { flex-direction: column; align-items: center; }
   .flow-side { width: min(90vw, 340px); max-height: none; flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .flow-stand { width: 26vw; max-width: 110px; }
@@ -222,6 +228,39 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     }
   };
 
+  const TILE_GAP = 6;
+  const TILE_MIN = 28;
+  const TILE_MAX = 96;
+  const fitTiles = (grid) => {
+    const count = grid.children.length;
+    const w = grid.clientWidth - 4, h = grid.clientHeight - 4;
+    if (!count || w <= 0 || h <= 0) return;
+    let best = { size: 0, cols: 1 };
+    for (let cols = 1; cols <= count; cols++) {
+      const rows = Math.ceil(count / cols);
+      const size = Math.min((w - TILE_GAP * (cols - 1)) / cols, (h - TILE_GAP * (rows - 1)) / rows);
+      if (size > best.size) best = { size, cols };
+    }
+    const size = Math.max(TILE_MIN, Math.min(TILE_MAX, Math.floor(best.size)));
+    grid.style.gridTemplateColumns = `repeat(${best.cols}, ${size}px)`;
+    grid.style.setProperty("--tile", `${size}px`);
+  };
+  const tileFitter = typeof ResizeObserver === "function"
+    ? new ResizeObserver((entries) => { for (const entry of entries) fitTiles(entry.target); })
+    : null;
+  let boardLeft = 0;
+
+  const swipeDots = (board) => {
+    const dots = node("div", "flow-dots");
+    const marks = GROUPS.map(() => dots.appendChild(node("span", "flow-dot")));
+    const show = () => {
+      const at = Math.round(board.scrollLeft / Math.max(1, board.clientWidth));
+      marks.forEach((mark, i) => { mark.dataset.on = String(i === at); });
+    };
+    board.addEventListener("scroll", () => { boardLeft = board.scrollLeft; show(); }, { passive: true });
+    return { dots, show };
+  };
+
   const heroStage = (state) => {
     const team = teamOf(mySeat(state));
     const chip = node("span", "flow-team-chip", `Locking in for ${teamNames[team] ?? ""}`);
@@ -230,7 +269,14 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     bar.append(chip, modeChips(state, false));
     const board = node("div", "flow-board");
     renderBoard(board, state);
-    el.append(node("h1", "", "Choose your hero"), bar, board, errorLine(state));
+    const swipe = swipeDots(board);
+    el.append(node("h1", "", "Choose your hero"), bar, board, swipe.dots, errorLine(state));
+    board.scrollLeft = boardLeft;
+    swipe.show();
+    for (const grid of board.querySelectorAll(".flow-heroes")) {
+      fitTiles(grid);
+      tileFitter?.observe(grid);
+    }
   };
 
   const stand = (seat, mine, heroes, removeSlot = -1) => {
@@ -303,6 +349,7 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
   const render = () => {
     const state = lobby() ?? {};
     const wasPodium = podiumShown;
+    tileFitter?.disconnect();
     stage = stageOf(state);
     el.dataset.stage = stage ?? "";
     el.hidden = stage == null;

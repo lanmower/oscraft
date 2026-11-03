@@ -1423,7 +1423,7 @@ function mountGuiFlow() {
   if (FLOW_OFF() || isPeerPage() || !flowAssets) return;
   guiFlow = createGuiFlow({
     root: document.body,
-    teamNames: ["The Sentinel", "The Scourge"],
+    teamNames: UI.text?.lobby?.teamNames,
     lobby: () => flowLobby,
     me: () => auth.pubkey || LOCAL_OWNER_ID,
     act: (call, args) => sendInput("ui", { call, args }),
