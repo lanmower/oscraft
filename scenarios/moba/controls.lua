@@ -274,6 +274,13 @@ local function centre_on(who, id)
   game.camera(who, ux, uz, 1, CFG.centreSeconds)
 end
 
+local function focus_hero(who)
+  local hero = own_hero(who)
+  if hero == nil then return end
+  set_selection(who, { hero })
+  centre_on(who, hero)
+end
+
 local function centre_selected(who)
   local id = hero_selected(who) or my_selected(who)[1] or own_hero(who)
   if id ~= nil then centre_on(who, id) end
@@ -706,6 +713,7 @@ local function on_action(name, args)
   elseif name == "seat_pick" then
     heroes.seat_pick(args.player, args.hero)
     if args.bot then bots.seat(args.player) end
+    if args.player == LOCAL then focus_hero(LOCAL) end
   elseif name == "buyback" then
     heroes.buyback(args.player)
   elseif name == "bind" then

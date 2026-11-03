@@ -47,8 +47,6 @@ const CAMERA_DISTANCE_PER_TILE = 40 / 32;
 const CAMERA_MAX_PER_TILE = 1.6;
 const CAMERA_MAX_FLOOR = 120;
 const CAMERA_PLAY_DISTANCE = 70;
-const CAMERA_START_DISTANCE = 40;
-let pendingStartCentre = false;
 const CAMERA_FAR_PER_MAX = 2;
 const BACKGROUND = [0.114, 0.145, 0.173];
 const MAP_COLOR = [0.2, 0.28, 0.22];
@@ -1682,7 +1680,6 @@ function onLobbyStart(state) {
   setStatus("match starting");
   if (!isGuest()) applyStart(frame);
   endLobby();
-  pendingStartCentre = true;
   loadStartFrame = frame;
   try { session.broadcast(encodeFrame(frame)); } catch { }
   beginLoadGate(frame.seats);
@@ -3239,14 +3236,6 @@ async function main() {
     lastFrameMs = now;
     panByKeys(dtS);
     modUi.step(dtS);
-    if (pendingStartCentre && renderer3d) {
-      const own = simUnits().find((u) => u.player === localPlayerId() && isHeroUnit(u.id));
-      if (own) {
-        renderer3d.setCamera({ target: [own.x, groundAt(own.x, own.z), own.z], distance: Math.min(packCameraRules(UI)?.distance ?? CAMERA_START_DISTANCE, cameraMaxDistance) });
-        if (hud) hud.input.setSelection([own.id]); else selectedId = own.id;
-        pendingStartCentre = false;
-      }
-    }
     if (!netState && localGame && !hosting && gate.live && !decided()) {
       localTickAcc += dtS;
       while (localTickAcc >= SIM_TICK_S && localGame && !decided()) {
