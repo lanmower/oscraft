@@ -94,6 +94,7 @@ pub struct Sim {
     pub(crate) order_kind: Vec<u8>,
     pub(crate) patrol_x: Vec<i32>,
     pub(crate) patrol_y: Vec<i32>,
+    pub(crate) follow_target: Vec<i32>,
     pub(crate) heading: Vec<i32>,
     pub(crate) turn_step: Vec<i32>,
     pub(crate) hold_fire: Vec<u8>,
@@ -309,6 +310,7 @@ impl Sim {
             order_kind: vec![ORDER_MOVE; cap],
             patrol_x: vec![0; cap],
             patrol_y: vec![0; cap],
+            follow_target: vec![-1; cap],
             heading: vec![0; cap],
             turn_step: vec![0; cap],
             hold_fire: vec![0; cap],
@@ -736,6 +738,7 @@ impl Sim {
         self.order_kind[i] = ORDER_MOVE;
         self.patrol_x[i] = x;
         self.patrol_y[i] = y;
+        self.follow_target[i] = -1;
         self.heading[i] = 0;
         self.turn_step[i] = 0;
         self.hold_fire[i] = 0;
@@ -907,6 +910,7 @@ impl Sim {
             self.tgt_x[i] = x;
             self.tgt_y[i] = y;
             self.order_kind[i] = ORDER_MOVE;
+            self.follow_target[i] = -1;
             self.attack_order[i] = -1;
             self.routed[i] = u8::from(self.needs_route(i, x, y));
             self.interrupt_for_move(i);

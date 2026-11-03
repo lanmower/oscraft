@@ -130,6 +130,7 @@ impl Sim {
                 if !self.chasing(i) {
                     self.walk_waypoint(i);
                 }
+                self.advance_follow(i);
                 self.route_for(i);
                 self.steer(i);
                 self.integrate(i);

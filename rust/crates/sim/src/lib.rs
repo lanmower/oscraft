@@ -94,6 +94,7 @@ pub(crate) const ORDER_STOP: u8 = 1;
 pub const ORDER_ATTACK_MOVE: u8 = 2;
 pub(crate) const ORDER_PATROL: u8 = 3;
 pub const ORDER_HOLD: u8 = 4;
+pub const ORDER_FOLLOW: u8 = 5;
 
 pub(crate) const TRIGGER_IDLE: u8 = 0;
 pub(crate) const TRIGGER_ATTACKED: u8 = 1;

@@ -3,6 +3,8 @@ use crate::astar::{self, APPROACH_LOOKAHEAD};
 use crate::fixed::{self, ONE, SHIFT};
 use crate::*;
 
+const FOLLOW_STATION_MILLI: i32 = 2000;
+
 pub(crate) fn isqrt(n: i64) -> i64 {
     let mut x = n;
     let mut r = 0i64;
@@ -528,12 +530,58 @@ impl Sim {
             self.interrupt_for_move(i);
         }
         self.order_kind[i] = kind;
+        self.follow_target[i] = -1;
         self.attack_order[i] = -1;
         self.routed[i] = u8::from(rewarm);
         self.interrupt_channel(i);
         self.touch(i);
         self.record_order(i);
         Ok(())
+    }
+
+    pub fn issue_follow(&mut self, i: usize, leader: usize) -> Result<(), Refusal> {
+        if i >= self.n || self.alive[i] == 0 || leader >= self.n || leader == i || self.alive[leader] == 0 {
+            return Err(self.reject(Refusal::NoTarget));
+        }
+        if self.stunned(i) {
+            return Err(self.reject(Refusal::Stunned));
+        }
+        self.follow_target[i] = leader as i32;
+        self.tgt_x[i] = self.pos_x[leader];
+        self.tgt_y[i] = self.pos_y[leader];
+        self.order_kind[i] = ORDER_FOLLOW;
+        self.attack_order[i] = -1;
+        self.routed[i] = 0;
+        self.interrupt_for_move(i);
+        self.interrupt_channel(i);
+        self.touch(i);
+        self.record_order(i);
+        Ok(())
+    }
+
+    pub(crate) fn advance_follow(&mut self, i: usize) {
+        if self.order_kind[i] != ORDER_FOLLOW {
+            return;
+        }
+        let leader = self.follow_target[i];
+        let live = leader >= 0 && (leader as usize) < self.n && self.alive[leader as usize] != 0;
+        if !live {
+            self.follow_target[i] = -1;
+            self.order_kind[i] = ORDER_STOP;
+            self.tgt_x[i] = self.pos_x[i];
+            self.tgt_y[i] = self.pos_y[i];
+            self.routed[i] = 0;
+            self.touch(i);
+            return;
+        }
+        let (lx, ly) = (self.pos_x[leader as usize], self.pos_y[leader as usize]);
+        if self.within_reach(i, lx, ly, FOLLOW_STATION_MILLI) {
+            self.tgt_x[i] = self.pos_x[i];
+            self.tgt_y[i] = self.pos_y[i];
+            self.routed[i] = 0;
+        } else {
+            self.approach_to(i, lx, ly);
+        }
     }
 
     pub(crate) fn advance_patrol(&mut self, i: usize) {

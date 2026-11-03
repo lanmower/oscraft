@@ -1,6 +1,6 @@
 use crate::arrays::Sim;
 use crate::rules::Refusal;
-use crate::{ORDER_ATTACK_MOVE, ORDER_MOVE, ORDER_STOP};
+use crate::{ORDER_ATTACK_MOVE, ORDER_FOLLOW, ORDER_MOVE, ORDER_STOP};
 
 pub const QUEUE_MAX: usize = 8;
 pub const QUEUE_ATTACK: u8 = 0xFF;
@@ -108,6 +108,9 @@ impl Sim {
             }
             if self.alive[i] == 0 {
                 self.order_queue.clear(i);
+                continue;
+            }
+            if self.order_kind[i] == ORDER_FOLLOW {
                 continue;
             }
             let attack_order = self.attack_order[i];

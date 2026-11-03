@@ -89,6 +89,7 @@ pub enum Cmd {
     MoveItem { unit: usize, from: usize, to: usize },
     StashItem { unit: usize, slot: usize },
     Attack { unit: usize, target: usize },
+    Follow { unit: usize, target: usize },
     SetOwner { unit: usize, player: u8 },
     SetFog { on: bool },
     GiveAbility { unit: usize, slot: usize, name: String },
@@ -2897,6 +2898,13 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         sh.cmds.push(Cmd::Attack { unit: u, target: t });
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, game, "cmd_follow", [sh], |c, s| {
+        let (follower, leader) = (a(c, &s, 0)?, a(c, &s, 1)?);
+        let mut sh = sh.borrow_mut();
+        let (u, t) = (live_unit(&sh.sim, follower).map_err(|m| fail(c, m))?, live_unit(&sh.sim, leader).map_err(|m| fail(c, m))?);
+        sh.cmds.push(Cmd::Follow { unit: u, target: t });
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "cmd_set_owner", [sh], |c, s| {
         let (unit, player) = (a(c, &s, 0)?, a(c, &s, 1)?);
         let mut sh = sh.borrow_mut();
@@ -4954,6 +4962,9 @@ impl ModHost {
                 }
                 Cmd::Attack { unit, target } if sim.alive(unit) => {
                     let _ = sim.order_attack_or_approach(unit, target);
+                }
+                Cmd::Follow { unit, target } if sim.alive(unit) => {
+                    let _ = sim.issue_follow(unit, target);
                 }
                 Cmd::UseItem { unit, slot, target, x, y } if sim.alive(unit) => {
                     let _ = sim.use_item(unit, slot, target, x, y);

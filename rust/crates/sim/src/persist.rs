@@ -4,7 +4,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 65;
+const STATE_VERSION: u16 = 66;
 
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::Unset,
@@ -347,6 +347,7 @@ impl Sim {
         put_i32s(&mut w, &self.groups.heading);
         put_i32s(&mut w, &self.patrol_x);
         put_i32s(&mut w, &self.patrol_y);
+        put_i32s(&mut w, &self.follow_target);
         put_i32s(&mut w, &self.amount);
         put_i32s(&mut w, &self.resource_a);
         put_i32s(&mut w, &self.resource_b);
@@ -613,6 +614,7 @@ impl Sim {
         r.i32s_into(&mut next.groups.heading)?;
         r.i32s_into(&mut next.patrol_x)?;
         r.i32s_into(&mut next.patrol_y)?;
+        r.i32s_into(&mut next.follow_target)?;
         r.i32s_into(&mut next.amount)?;
         r.i32s_into(&mut next.resource_a)?;
         r.i32s_into(&mut next.resource_b)?;

@@ -193,6 +193,7 @@ impl Sim {
         h.bytes(&self.order_kind);
         h.i32s(&self.patrol_x);
         h.i32s(&self.patrol_y);
+        h.i32s(&self.follow_target);
         h.i32s(&self.amount);
         h.i32s(&self.resource_a);
         h.i32s(&self.resource_b);
