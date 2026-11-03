@@ -166,6 +166,7 @@ let fx = null;
 let selectedId = -1;
 let reconnectAttempt = 0;
 let reconnectTimer = 0;
+let reconnectNote = "";
 let drag = null;
 let hosting = false;
 let orders = 0;
@@ -219,7 +220,8 @@ function renderFatal() {
 }
 function renderStatus() {
   const mode = netState ? (peers.size > 0 ? "net" : `net lost at tick ${netState.tick}, reconnecting`) : "local";
-  statusEl.textContent = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${debugOn && statusLine ? `\n${statusLine}` : ""}`;
+  const detail = reconnectNote || (debugOn ? statusLine : "");
+  statusEl.textContent = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${detail ? `\n${detail}` : ""}`;
 }
 function telemetry(text, level = "log") {
   const line = String(text);
@@ -2061,7 +2063,8 @@ function scheduleReconnect() {
   const delay = Math.round(Math.random() * Math.min(RECONNECT_CAP_MS, RECONNECT_BASE_MS * 2 ** Math.min(reconnectAttempt, 16)));
   reconnectAttempt += 1;
   telemetry(`reconnecting in ${delay} ms (attempt ${reconnectAttempt})`);
-  setStatus(`reconnecting in ${Math.ceil(delay / 1000)} s (attempt ${reconnectAttempt})`);
+  reconnectNote = `reconnecting in ${Math.ceil(delay / 1000)} s (attempt ${reconnectAttempt})`;
+  setStatus(reconnectNote);
   clearTimeout(reconnectTimer);
   reconnectTimer = setTimeout(() => joinRoom(), delay);
 }
@@ -2075,9 +2078,12 @@ window.addEventListener("online", retryReconnectNow);
 document.addEventListener("visibilitychange", retryReconnectNow);
 
 async function joinRoom() {
+  reconnectNote = "";
+  renderStatus();
   try {
     await session.connect(room);
     setStatus("joined");
+    if (reconnectAttempt > 0 && peers.size === 0) scheduleReconnect();
   } catch (err) {
     setStatus(`join failed: ${err && err.message ? err.message : err}`);
     scheduleReconnect();
@@ -2262,6 +2268,9 @@ session.addEventListener("peer-open", (e) => {
     sendJoin(e.detail.peerPubkey);
   }
   reconnectAttempt = 0;
+  clearTimeout(reconnectTimer);
+  reconnectNote = "";
+  renderStatus();
   telemetry(`peer-open ${String(e.detail.peerPubkey).slice(0, 8)}`);
 });
 session.addEventListener("peer-close", (e) => {
