@@ -321,6 +321,7 @@ local function wave_creep_step(u, range, now)
 end
 
 local function hero_idle(u, kind, dx, dy)
+  if kind == ORDER_ATTACK_MOVE then return true end
   if kind == ORDER_STOP then
     local ux, uy = unit_position(u)
     return ux == dx and uy == dy
