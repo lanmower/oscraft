@@ -23,7 +23,7 @@ export function createGuiFlow({ root, iconUrl, lobby, me, act, onPodium, teamNam
 #gui-flow[data-stage="podium"] .flow-hero-bar, #gui-flow[data-stage="podium"] .flow-board,
 #gui-flow[data-stage="wait"] .flow-hero-bar, #gui-flow[data-stage="wait"] .flow-board { display: none; }
 body[data-flow] #rooms, body[data-flow] #ui-modal, body[data-flow] #ui-left, body[data-flow] #ui-right,
-body[data-flow] #ui-bar, body[data-flow] #centre-hero { display: none !important; }
+body[data-flow] #ui-bar, body[data-flow] #centre-hero, body[data-flow] #hero-lock { display: none !important; }
 .flow-modes-label { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #8fa4c4; }
 .flow-modes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: min(94vw, 1100px); }
 .flow-mode { padding: 5px 12px; border: 1px solid #2c3648; border-radius: 999px; background: rgba(18,24,34,.8);

@@ -131,9 +131,9 @@ function walkableLayer(grid) {
   return layer;
 }
 
-export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor }) {
+export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor, heroViewLock }) {
   hot.get("hud-teardown")?.();
-  hot.set("hud", { game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor });
+  hot.set("hud", { game, minimapEl, barCanvas, mapSize, grid, units, selected, localPlayer, send, toWorld, toScreen, playerColor, heroViewLock });
   const undo = [];
   const listen = (type, fn) => {
     window.addEventListener(type, fn);
@@ -157,13 +157,28 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     courierState = e.detail ?? null;
   });
 
+  const sendCameraTo = (x, z) => {
+    heroViewLock.release();
+    send("camera_to", { x, z });
+  };
+
   const centreButton = document.getElementById("centre-hero");
   if (centreButton) {
     centreButton.onclick = () => {
       const flags = typeof game.unit_flags === "function" ? game.unit_flags() : null;
       const hero = flags && units().find((u) => u.player === localPlayer() && flags[u.type] === 1);
-      if (hero) send("camera_to", { x: hero.x, z: hero.z });
+      if (hero) sendCameraTo(hero.x, hero.z);
     };
+  }
+
+  const heroLockButton = document.getElementById("hero-lock");
+  if (heroLockButton) {
+    const showLockState = () => heroLockButton.setAttribute("aria-pressed", String(heroViewLock.isLocked()));
+    heroLockButton.onclick = () => {
+      heroViewLock.toggle();
+      showLockState();
+    };
+    showLockState();
   }
 
   const mapToggle = document.getElementById("map-toggle");
@@ -209,8 +224,11 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     playerColor,
     teams: UI.teams,
     viewRect,
-    centre: (x, z) => send("camera_to", { x, z }),
-    drag: (x, z) => window.dispatchEvent(new CustomEvent("moba:minimap-drag", { detail: { x, z } })),
+    centre: sendCameraTo,
+    drag: (x, z) => {
+      heroViewLock.release();
+      window.dispatchEvent(new CustomEvent("moba:minimap-drag", { detail: { x, z } }));
+    },
     order: (kind, x, z) => send("pointer", { kind, x, y: z, button: 2 }),
     isHero: isHeroRecord,
     isBuilding: isBuildingRecord,

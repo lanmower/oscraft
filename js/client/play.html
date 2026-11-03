@@ -148,7 +148,7 @@
       #rooms { width: var(--right-w); }
       #rooms ul { max-height: 48px; }
       .pack-start { display: flex; gap: 4px; margin-top: 6px; }
-      #rooms button, #rooms input, #centre-hero, #ui-left button, #ui-right button, #ui-bar button, #ui-bar .w-button, #ui-bar .w-cell { min-width: var(--min-target); min-height: var(--min-target); }
+      #rooms button, #rooms input, #centre-hero, #hero-lock, #ui-left button, #ui-right button, #ui-bar button, #ui-bar .w-button, #ui-bar .w-cell { min-width: var(--min-target); min-height: var(--min-target); }
     }
     @media (max-height: 500px) and (orientation: landscape) {
       :root { --bar-h: 96px; --side-w: 200px; --right-w: 220px; --right-top: 35px; }
@@ -158,7 +158,8 @@
       #ui-right > * { max-width: 100%; }
     }
     #minimap { display: block; touch-action: none; border-radius: 3px; cursor: crosshair; background: #1a2129; user-select: none; -webkit-user-select: none; }
-    #centre-hero { width: 100%; margin-top: 4px; font: var(--t-label) var(--font); }
+    #centre-hero, #hero-lock { width: 100%; margin-top: 4px; font: var(--t-label) var(--font); }
+    #hero-lock[aria-pressed="true"] { border-color: var(--sel); color: var(--sel); }
     #map-toggle { display: none; position: fixed; right: 8px; top: 8px; z-index: 4; }
     #boot { position: fixed; z-index: 5; left: 50%; bottom: calc(var(--bar-h) + 12px); transform: translateX(-50%); width: min(420px, 92vw); box-sizing: border-box; padding: 12px 14px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 6px; color: var(--muted); font-size: var(--t-body); pointer-events: none; }
     #boot[data-failed] { border-color: var(--bad); }
@@ -193,6 +194,7 @@
     <div id="status">connecting</div>
     <div id="hud"></div>
     <button id="centre-hero" type="button">Centre on hero</button>
+    <button id="hero-lock" type="button" aria-pressed="false">Lock on hero</button>
     <a href="editor.html">map editor</a>
   </div>
   <div id="ui-right">

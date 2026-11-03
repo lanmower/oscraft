@@ -181,6 +181,8 @@ let pointer = null;
 let lastFrameMs = 0;
 let localTickAcc = 0;
 const keysDown = new Set();
+const heroViewLock = createHeroViewLock();
+let heroOrderClockS = 0;
 const seating = createSeating();
 const autoSeats = [];
 let seatsExplicit = false;
@@ -1152,8 +1154,25 @@ function drawWorld3d() {
   renderer3d.endFrame();
 }
 
+function driveLockedHero(dtS) {
+  const flags = localGame && typeof localGame.unit_flags === "function" ? localGame.unit_flags() : [];
+  const hero = findHeroOf(currentUnits(), flags, myPlayer);
+  if (!hero) return;
+  renderer3d.setCamera({ target: followTarget(hero, groundAt) });
+  const direction = heroDirection(keysDown, renderer3d.camera.yaw);
+  const clock = stepHeroOrderClock(heroOrderClockS, dtS, direction !== null);
+  heroOrderClockS = clock.clockS;
+  if (!clock.due) return;
+  const point = heroOrderPoint(hero, direction);
+  commands.order(hero.id, point.x, point.z);
+}
+
 function panByKeys(dtS) {
   if (!renderer3d || !PAN_RULES) return;
+  if (heroViewLock.isLocked()) {
+    driveLockedHero(dtS);
+    return;
+  }
   let dx = 0;
   let dz = 0;
   if (keysDown.has("ArrowLeft")) dx -= 1;
@@ -1287,7 +1306,10 @@ function bindInput() {
     if (!drag.moved) return;
     if (renderer3d) {
       if (e.shiftKey || e.buttons === 2) renderer3d.orbit(dx, dy);
-      else renderer3d.pan(dx, dy);
+      else {
+        renderer3d.pan(dx, dy);
+        heroViewLock.release();
+      }
     }
     drag.x = e.clientX;
     drag.y = e.clientY;
@@ -3163,6 +3185,7 @@ async function main() {
     toWorld: screenToWorld,
     toScreen: worldToScreen,
     playerColor,
+    heroViewLock,
   });
   installBuildingMinimap();
   if (renderer3d) ambientFx = createAmbientFx({ renderer: renderer3d, groundAt, enabled: !ambientOff });
@@ -3450,7 +3473,10 @@ if (params.get("ci") === "1") {
   window.__ciFx = () => (fx ? fx.counts() : null);
   window.oscraft = Object.assign(window.oscraft || {}, {
     setCamera: (opts = {}) => (renderer3d ? renderer3d.setCamera(opts) : null),
-    centreOn: (x, z) => (renderer3d ? renderer3d.setCamera({ target: [x, groundAt(x, z), z] }) : null),
+    centreOn: (x, z) => {
+      heroViewLock.release();
+      return renderer3d ? renderer3d.setCamera({ target: [x, groundAt(x, z), z] }) : null;
+    },
     fx: () => (fx ? fx.counts() : null),
     swapRejections: () => swapRejections.slice(),
     lastSwap: () => (lastSwapResult ? { ...lastSwapResult } : null),
