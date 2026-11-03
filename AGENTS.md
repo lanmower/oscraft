@@ -107,7 +107,7 @@ No comments in source: durable facts live here, names carry intent.
 - Generators rewrite whole files. `gen-heroes.mjs` takes a per-hero model only via `HY3D_MODEL`: an unlisted hero gets an empty model and the page refuses to start a match. `--check` variants (all `-688g`) exit 1 when the committed file differs. `gen-reference-map.mjs` overwrites map.osd with the older reference ruleset: run only on purpose.
 - Map conversion: z-offset 384 is the 6.88g calibration; water = W3E corner flag 0x40; tile id from ground tileset name; teams alternate by seat (even Sentinel, odd Scourge) while player 0/1 own buildings, couriers, spawners.
 - `pathing-688g.mjs`: pathTex pixel = one 32-unit cell, red > 127 unwalkable, authored at facing 270 and turned counter-clockwise; doo flag bit 0x2 clear = non-solid. Tree destructables form the sim tree layer (trees_688g.lua).
-- Props: a `-skinned` model is a unit unless props.json references it. Id bands are disjoint (mapped 10000..19999, pillars 20000+), so each generator deletes only its own lines.
+- Props: a `-skinned` model is a unit unless props.json references it, except the explicit exemption in `gen-reference-map.mjs` (fish-green-skinned, used by super_creep_fish). Id bands are disjoint (mapped 10000..19999, pillars 20000+), so each generator deletes only its own lines.
 - Asset prep: prep-ktx never calls `reorder()` (the client fits over every POSITION vertex). `pack-package.mjs` splits packs over 25 MiB; its extension allow-list must match `js/client/pack_load.js`. `vendor-cdn.mjs` re-fetches from the `// Vendored from <url> by ` header: keep that text. `atlas.py` output must stay deterministic (fixed LANCZOS resample, WebP quality and method 6, no time or random input).
 
 ## Area notes: crates

@@ -267,11 +267,12 @@ for (const file of fs.readdirSync(new URL("../", import.meta.url)).filter((f) =>
   for (const m of text.matchAll(/^unit\("[^"]+"[^\n]*model="([^"]+)"/gm)) unitModelsNamed.add(m[1]);
   for (const m of text.matchAll(/^unit\("[^"]+"[^\n]*filters=\[[^\]]*"structure"[^\]]*\][^\n]*model="([^"]+-lowpoly)"/gm)) lowpolyStructureModels.add(m[1]);
 }
+const PROP_EXEMPT_UNIT_MODELS = new Set(["fish-green-skinned"]);
 const placedPropStems = new Set(
   Object.values(JSON.parse(fs.readFileSync(new URL("../assets/props.json", import.meta.url), "utf8")))
     .filter((v) => typeof v === "string" && v.endsWith(".glb"))
     .map((v) => v.slice(v.lastIndexOf("/") + 1, -4))
-    .filter((stem) => !(stem.endsWith("-skinned") && unitModelsNamed.has(stem))),
+    .filter((stem) => !(stem.endsWith("-skinned") && unitModelsNamed.has(stem) && !PROP_EXEMPT_UNIT_MODELS.has(stem))),
 );
 const { sizes: propFootprints, units: unitFootprints } = await propSizes(modelsDir, placedPropStems, lowpolyStructureModels);
 const shippedStems = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".glb")).map((f) => f.slice(0, -4)).sort().filter((stem) => propFootprints[stem] !== undefined);
