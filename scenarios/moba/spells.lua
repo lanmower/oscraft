@@ -274,40 +274,40 @@ local function allow_cast(caster, slot, name, index, target, x, y, is_item)
     game.cmd_order(caster, tx, ty)
     return false
   end
-  parked_casts[caster] = nil
+  parked_casts[caster] = false
   last_cast_slot[caster] = slot
   return true
 end
 
-local function ascending_keys(set)
+local function ascending_live_keys(set)
   local keys = {}
-  for key in pairs(set) do
-    local j = #keys + 1
-    while j > 1 and keys[j - 1] > key do
-      keys[j] = keys[j - 1]
-      j = j - 1
+  for key, value in pairs(set) do
+    if value then
+      local j = #keys + 1
+      while j > 1 and keys[j - 1] > key do
+        keys[j] = keys[j - 1]
+        j = j - 1
+      end
+      keys[j] = key
     end
-    keys[j] = key
   end
   return keys
 end
 
 local function walk_parked_casts()
-  for _, caster in ipairs(ascending_keys(parked_casts)) do
+  for _, caster in ipairs(ascending_live_keys(parked_casts)) do
     local p = parked_casts[caster]
-    if p == nil then
-      parked_casts[caster] = nil
-    elseif not unit_alive(caster) or held(caster, "stun") or held(caster, "hex") then
-      parked_casts[caster] = nil
+    if not unit_alive(caster) or held(caster, "stun") or held(caster, "hex") then
+      parked_casts[caster] = false
     elseif p.kind == TARGET_UNIT and not unit_alive(p.target) then
-      parked_casts[caster] = nil
+      parked_casts[caster] = false
     else
       local tx, ty = p.x, p.y
       local target = p.target
       if target >= 0 and not unit_alive(target) then target = -1 end
       if aims_at_unit(p.kind, target) then tx, ty = unit_position(target) end
       if game.cast_in_range(caster, p.index, tx, ty) then
-        parked_casts[caster] = nil
+        parked_casts[caster] = false
         game.cmd_cast(caster, p.slot, target, tx, ty)
       else
         game.cmd_order(caster, tx, ty)
@@ -320,12 +320,14 @@ local COMPLETED_CHANNEL_TICKS_LEFT_MAX = 2
 
 local function land_finished_channels()
   for caster, p in pairs(teleports_awaiting_channel_end) do
-    p.channel_ticks_left = p.channel_ticks_left - 1
-    if not unit_alive(caster) then
-      teleports_awaiting_channel_end[caster] = nil
-    elseif game.channel_left(caster) <= 0 then
-      teleports_awaiting_channel_end[caster] = nil
-      if p.channel_ticks_left <= COMPLETED_CHANNEL_TICKS_LEFT_MAX and unit_alive(p.receiver) then land_beside(caster, p.receiver) end
+    if p then
+      p.channel_ticks_left = p.channel_ticks_left - 1
+      if not unit_alive(caster) then
+        teleports_awaiting_channel_end[caster] = false
+      elseif game.channel_left(caster) <= 0 then
+        teleports_awaiting_channel_end[caster] = false
+        if p.channel_ticks_left <= COMPLETED_CHANNEL_TICKS_LEFT_MAX and unit_alive(p.receiver) then land_beside(caster, p.receiver) end
+      end
     end
   end
 end
