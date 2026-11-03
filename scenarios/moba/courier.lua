@@ -10,6 +10,7 @@ local REVIVE_S = { [COURIER] = 140, [FLYING] = 180 }
 local FLYING_UNLOCK_S = 180
 local PRICE = { courier = 120, flying_courier = 340 }
 local revive = {}
+local reported = {}
 local TPS = config.TICKS_PER_SECOND
 local SPAWN_AFTER_TICK = 2
 local spawned = false
@@ -264,6 +265,23 @@ local function revive_due(now)
   revive = left
 end
 
+local function report_couriers(now)
+  for _, hero in ipairs(bounty.heroes()) do
+    local player = unit_player(hero)
+    local remaining = 0
+    for _, r in ipairs(revive) do
+      if r.player == player and r.at - now > remaining then remaining = r.at - now end
+    end
+    local seconds = math.ceil(remaining / TPS)
+    local alive = courier_count(player)
+    local key = tostring(alive) .. ":" .. tostring(seconds)
+    if reported[player] ~= key then
+      reported[player] = key
+      game.ui_event("courier", '{"player":' .. tostring(player) .. ',"alive":' .. tostring(alive) .. ',"revive":' .. tostring(seconds) .. ',"limit":' .. tostring(LIMIT) .. "}")
+    end
+  end
+end
+
 return {
   shared = M.shared,
   first = M.first,
@@ -283,6 +301,7 @@ return {
       spawn_couriers()
     end
     revive_due(now)
+    if now % TPS == 0 then report_couriers(now) end
     collect_pickups(now)
     use_items(now)
   end,

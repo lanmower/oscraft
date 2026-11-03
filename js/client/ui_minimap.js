@@ -13,6 +13,7 @@ const CAMERA_FILL = "#ffd54f";
 const FRAME = "#3b4752";
 const BACKGROUND = "#1a2129";
 const REDRAW_MS = 1000 / 30;
+const DRAG_SLOP_PX = 4;
 const PING_RING_PX = 16;
 const PING_RING_MS = 700;
 const HERO_BIT = 1;
@@ -31,8 +32,8 @@ function mix(h, v) {
   return Math.imul(h ^ (v | 0), 16777619);
 }
 
-export function createMinimap({ canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, order = () => {}, isHero = () => false, isBuilding = () => false }) {
-  hot.set("ui-minimap", { canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, order, isHero, isBuilding });
+function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, drag = () => {}, order = () => {}, isHero = () => false, isBuilding = () => false }) {
+  hot.set("ui-minimap", { canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, drag, order, isHero, isBuilding });
   canvas.dataset.ui = "minimap";
   LIVE_CANVAS_DISPOSERS.get(canvas)?.();
   let fittedWidth = -1;
@@ -84,7 +85,7 @@ export function createMinimap({ canvas, mapSize, lanes, selected, localPlayer, p
   function kindOf(u) {
     const known = u.type === undefined ? undefined : kindByType.get(u.type);
     if (known !== undefined) return known;
-    const flags = (isHero(u.id) ? HERO_BIT : 0) | (isBuilding(u.id) ? BUILDING_BIT : 0);
+    const flags = (isHero(u) ? HERO_BIT : 0) | (isBuilding(u) ? BUILDING_BIT : 0);
     if (u.type !== undefined) kindByType.set(u.type, flags);
     return flags;
   }
@@ -226,11 +227,6 @@ export function createMinimap({ canvas, mapSize, lanes, selected, localPlayer, p
     return { x: fx * mapSize.w, z: fz * mapSize.h };
   }
 
-  function centreAt(e) {
-    const p = mapPointAt(e);
-    if (p) centre(p.x, p.z);
-  }
-
   function orderAt(e) {
     const p = mapPointAt(e);
     if (!p) return;
@@ -238,19 +234,7 @@ export function createMinimap({ canvas, mapSize, lanes, selected, localPlayer, p
     order("up", p.x, p.z);
   }
 
-  let pressed = false;
-  let lastCentreAt = -Infinity;
-  let pendingAt = null;
-  let flushTimer = 0;
-  const sendCentre = (e) => {
-    lastCentreAt = performance.now();
-    pendingAt = null;
-    centreAt(e);
-  };
-  const flushPending = () => {
-    flushTimer = 0;
-    if (pendingAt) sendCentre(pendingAt);
-  };
+  let press = null;
   const onPointerDown = (e) => {
     e.stopPropagation();
     if (e.button === 2) {
@@ -258,9 +242,8 @@ export function createMinimap({ canvas, mapSize, lanes, selected, localPlayer, p
       return;
     }
     if (e.button !== 0) return;
-    pressed = true;
+    press = { x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
-    sendCentre(e);
   };
   const KEY_STEP_FRACTION = 0.05;
   const KEY_DELTA = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
@@ -280,32 +263,34 @@ export function createMinimap({ canvas, mapSize, lanes, selected, localPlayer, p
   canvas.addEventListener("keydown", onKeyDown);
   canvas.addEventListener("contextmenu", onContextMenu);
   const onPointerMove = (e) => {
-    if (!pressed) return;
-    const wait = REDRAW_MS - (performance.now() - lastCentreAt);
-    if (wait <= 0) { sendCentre(e); return; }
-    pendingAt = { clientX: e.clientX, clientY: e.clientY };
-    if (!flushTimer) flushTimer = setTimeout(flushPending, wait);
+    if (!press) return;
+    if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) <= DRAG_SLOP_PX) return;
+    press.moved = true;
+    const p = mapPointAt(e);
+    if (p) drag(p.x, p.z);
   };
   const onPointerEnd = (e) => {
-    pressed = false;
-    if (pendingAt) {
-      clearTimeout(flushTimer);
-      flushTimer = 0;
-      sendCentre(pendingAt);
-    }
+    if (!press) return;
+    const click = !press.moved;
+    press = null;
+    const p = click ? mapPointAt(e) : null;
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+    if (p) centre(p.x, p.z);
+  };
+  const onPointerCancel = () => {
+    press = null;
   };
   canvas.addEventListener("pointerdown", onPointerDown);
   canvas.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerEnd);
-  window.addEventListener("pointercancel", onPointerEnd);
+  window.addEventListener("pointercancel", onPointerCancel);
   LIVE_CANVAS_DISPOSERS.set(canvas, () => {
     canvas.removeEventListener("pointerdown", onPointerDown);
     canvas.removeEventListener("pointermove", onPointerMove);
     canvas.removeEventListener("keydown", onKeyDown);
     canvas.removeEventListener("contextmenu", onContextMenu);
     window.removeEventListener("pointerup", onPointerEnd);
-    window.removeEventListener("pointercancel", onPointerEnd);
+    window.removeEventListener("pointercancel", onPointerCancel);
     window.removeEventListener("moba:ping", onPing);
   });
 
@@ -314,6 +299,10 @@ export function createMinimap({ canvas, mapSize, lanes, selected, localPlayer, p
 
 const hot = (globalThis.__oscraftHot ??= new Map());
 const LIVE_CANVAS_DISPOSERS = (globalThis.__oscraftMinimapDisposers ??= new WeakMap());
+hot.set("ui-minimap-impl", createMinimapImpl);
+export function createMinimap(options) {
+  return hot.get("ui-minimap-impl")(options);
+}
 export function hmrReload() {
   const args = hot.get("ui-minimap");
   return args ? createMinimap(args) : null;

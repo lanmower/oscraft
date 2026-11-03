@@ -309,6 +309,10 @@ impl Game {
         self.host.sim().xp(unit as usize)
     }
 
+    pub fn xp_curve(&self) -> Vec<u32> {
+        self.host.sim().xp_curve().to_vec()
+    }
+
     pub fn gold(&self, player: u8) -> i32 {
         self.host.sim().resource_a(player)
     }

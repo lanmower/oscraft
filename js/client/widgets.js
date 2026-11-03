@@ -71,6 +71,8 @@ const STYLE = `
 .w-portrait{padding:2px;align-items:center;justify-content:flex-start;overflow:hidden}
 .w-portrait img{display:block;flex:1 1 auto;min-height:0;width:100%;height:auto;object-fit:contain}
 .w-portrait-badge{flex:0 0 auto;align-self:stretch;text-align:center;overflow:hidden;pointer-events:none;user-select:none;color:var(--text);opacity:.7;font-weight:700;line-height:1.1;letter-spacing:.04em;white-space:nowrap}
+.w-cell[data-cd-slot]::after{content:"";position:absolute;inset:0;pointer-events:none;background:conic-gradient(rgba(0,0,0,.6) calc(var(--cd,0) * 360deg),transparent 0)}
+.w-cell>img.w-cell-icon{display:block;flex:0 0 auto;width:100%;height:auto;max-height:40px;object-fit:contain}
 .w-portraits.fit{width:100%;height:100%;flex:1 1 0;min-height:0}
 .w-swipe{display:flex;flex-direction:column;width:100%;height:100%;min-height:0}
 .w-swipe>.w-regions{flex:1 1 auto;height:auto}
@@ -454,6 +456,17 @@ function nodeFor(root, id) {
   return n ?? null;
 }
 
+function iconNode(src, alt) {
+  const img = document.createElement("img");
+  setImageSrc(img, src);
+  img.alt = alt;
+  img.className = "w-cell-icon";
+  img.loading = "lazy";
+  img.draggable = false;
+  img.onerror = () => { img.remove(); };
+  return img;
+}
+
 export function buildNode(n, send, panel = null) {
   if (n.t === "panel" && panel && n.title && PHONE?.matches && FOLDABLE_SLOTS.has(panel.slot)) return foldablePanel(n, send, panel);
   let e;
@@ -509,6 +522,11 @@ export function buildNode(n, send, panel = null) {
     }
     case "cell":
       e = el("div", n.call ? "w-cell clickable" : "w-cell");
+      if (n.unit !== undefined && n.slot !== undefined) {
+        e.dataset.cdUnit = String(n.unit);
+        e.dataset.cdSlot = String(n.slot);
+      }
+      if (n.icon) e.append(iconNode(n.icon, n.alt ?? ""));
       if (n.call) {
         e.dataset.key = keyOf(n.call, n.args);
         e.tabIndex = 0;

@@ -119,6 +119,14 @@ export function createModUi(opts) {
     later(() => { node.style.opacity = "0"; later(() => node.remove(), 0.4); }, seconds);
   }
 
+  const onMinimapDrag = (e) => {
+    const r = renderer();
+    if (!r || !e.detail) return;
+    move = null;
+    r.setCamera({ target: [e.detail.x, r.camera.target[1], e.detail.z], distance: r.camera.distance });
+  };
+  doc.defaultView.addEventListener("moba:minimap-drag", onMinimapDrag);
+
   const handlers = {
     message(ev) {
       const line = doc.createElement("div");
@@ -180,6 +188,9 @@ export function createModUi(opts) {
       const r = renderer();
       if (r) r.setCamera({ yawLocked: ev.locked === true });
     },
+    courier(ev) {
+      doc.defaultView.dispatchEvent(new CustomEvent("moba:courier", { detail: ev }));
+    },
     sound(ev) { if (onSound) onSound(ev.name); },
     ping(ev) {
       const d = ev.data || {};
@@ -238,6 +249,7 @@ export function createModUi(opts) {
 
   function dispose() {
     stopMatchWatch();
+    doc.defaultView.removeEventListener("moba:minimap-drag", onMinimapDrag);
     if (poller) clearTimeout(poller);
     poller = null;
     for (const h of timers) clearTimeout(h);
