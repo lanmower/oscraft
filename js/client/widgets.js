@@ -39,6 +39,8 @@ const STYLE = `
 .w-panel-body{display:flex;flex-direction:column;gap:4px;min-width:0}
 .w-panel-body[hidden]{display:none}
 .w-cell.t-empty{background:var(--well-dim);border-style:dashed;opacity:.55}
+.w-cell.t-dim{opacity:.4}
+.w-cell.t-hidden{visibility:hidden}
 .w-cell.t-active{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
 .w-cell.t-face{width:56px;min-height:56px;align-items:center}
 .t-strong{font-weight:700}
@@ -106,10 +108,6 @@ const STYLE = `
 .w-input{min-width:0;width:100%;font:inherit;padding:4px 6px;color:inherit;background:var(--well);border:1px solid var(--muted);border-radius:3px}
 .w-model{position:relative;flex:0 0 auto;overflow:hidden;border-radius:3px;background:var(--well)}
 .w-model img,.w-model canvas{display:block;width:100%;height:100%;object-fit:contain}
-@media (max-width: 600px), (max-height: 500px) and (orientation: landscape){
-#ui-left{max-height:calc(100vh - var(--bar-h) - 10px);max-height:calc(100dvh - var(--bar-h) - 10px);overflow-y:auto}
-#ui-right{max-height:calc(100vh - var(--right-top) - var(--bar-h) - 10px);max-height:calc(100dvh - var(--right-top) - var(--bar-h) - 10px);overflow-y:auto}
-}
 @media (max-width: 600px){
 #ui-bar-mid .w-cell{min-height:32px}
 .w-panel-toggle{min-height:32px}
