@@ -130,6 +130,7 @@ Commands queue during a step and apply in step 5. Unit arguments must be living 
 | `game.cmd_order(unit, x, y)` | moves a unit |
 | `game.cmd_attack(attacker, target)` | attacks. The sim never chases: the attacker moves toward the target and strikes once in reach, so a mod keeps a target engaged by queueing the attack again each step |
 | `game.attack_move(unit, x, y)` | queues an attack-move to the Q16.16 point |
+| `game.cmd_follow(unit, leader)` | keeps `unit` within 2 cells of the living `leader`, walking after it; a move, stop or hold order ends the follow, and the unit stops when the leader dies |
 | `game.cmd_strike(unit, target)` | the enemy `unit` strikes `target` each tick, a unit index or -1 for none |
 | `game.cmd_hold(unit)`, `game.cmd_remove(unit)` | holds a unit in place; removes it |
 | `game.cmd_damage(caster, target, dmg)` | damage from the caster's player |
