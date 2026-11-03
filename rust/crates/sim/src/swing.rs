@@ -96,6 +96,13 @@ impl Sim {
         self.swing.point[i] = 0;
     }
 
+    pub(crate) fn interrupt_for_move(&mut self, i: usize) {
+        if self.swing.point[i] > 0 {
+            self.cancel_swing(i);
+        }
+        self.swing.recover[i] = 0;
+    }
+
     fn release_swing(&mut self, i: usize) {
         let Some(b) = self.swing_victim(i) else {
             self.cancel_swing(i);

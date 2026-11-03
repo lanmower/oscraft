@@ -219,6 +219,9 @@ impl Sim {
         if self.cooldown[i] > 1 {
             return Err(self.reject(Refusal::Cooldown));
         }
+        if self.hold_fire[i] != 0 || !self.face_target(i, target) {
+            return Ok(());
+        }
         self.cooldown[i] = self.attack_period(i);
         self.launch_strike(i, target, true);
         Ok(())

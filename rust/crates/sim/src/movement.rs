@@ -524,6 +524,9 @@ impl Sim {
                 rewarm = self.needs_route(i, x, y);
             }
         }
+        if matches!(kind, ORDER_MOVE | ORDER_STOP | ORDER_PATROL) {
+            self.interrupt_for_move(i);
+        }
         self.order_kind[i] = kind;
         self.attack_order[i] = -1;
         self.routed[i] = u8::from(rewarm);

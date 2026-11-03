@@ -1,0 +1,155 @@
+mod common;
+
+use common::*;
+use sim::{angle_diff, FACE_TOLERANCE, FULL_TURN};
+
+const WEST: i32 = FULL_TURN / 2;
+const TURN_STEP_90_DEG_PER_S: i32 = FULL_TURN / 4 / 16;
+const ORDER_PATROL: u8 = 3;
+
+#[test]
+fn heading_turns_no_faster_than_the_turn_rate() {
+    let mut sim = open_field();
+    let unit = spawn(&mut sim, PLAYER, 25, 5);
+    assert!(sim.set_turn_rate(unit, 90));
+    assert!(sim.set_heading(unit, 0));
+    sim.order(unit, centre(2), centre(5));
+
+    let mut previous = sim.heading_of(unit);
+    let mut turned = false;
+    for _ in 0..40 {
+        sim.tick();
+        let now = sim.heading_of(unit);
+        let step = angle_diff(now, previous).abs();
+        assert!(step <= TURN_STEP_90_DEG_PER_S, "heading moved {step} in one tick");
+        turned |= step > 0;
+        previous = now;
+    }
+    assert!(turned, "the unit turned toward its direction of travel");
+    assert!(
+        angle_diff(sim.heading_of(unit), WEST).abs() <= FACE_TOLERANCE,
+        "after 40 ticks the unit faces west"
+    );
+}
+
+#[test]
+fn an_ordered_strike_waits_until_the_unit_faces_its_target() {
+    let mut sim = open_field();
+    let attacker = spawn(&mut sim, PLAYER, 10, 5);
+    let target = spawn(&mut sim, FOE, 9, 5);
+    assert!(sim.set_turn_rate(attacker, 90));
+    assert!(sim.set_heading(attacker, 0));
+    let hp_before = sim.hp(target);
+
+    assert_eq!(sim.order_attack_or_approach(attacker, target), Ok(true));
+    assert!(!sim.hit_in_flight(attacker), "no strike launches while the unit still faces east");
+
+    let mut struck_at = None;
+    for t in 0..MAX_TICKS {
+        drive_targeting(&mut sim, attacker);
+        sim.tick();
+        if sim.hp(target) < hp_before {
+            struck_at = Some(t);
+            break;
+        }
+    }
+    let t = struck_at.expect("the ordered strike lands once the unit faces its target");
+    assert!(t >= 20, "the strike waited for the half turn (landed at tick {t})");
+    assert!(angle_diff(sim.heading_of(attacker), WEST).abs() <= FACE_TOLERANCE);
+}
+
+#[test]
+fn a_move_order_during_the_backswing_moves_the_unit_at_once() {
+    let mut sim = open_field();
+    let attacker = spawn(&mut sim, PLAYER, 4, 5);
+    let target = spawn(&mut sim, FOE, 5, 5);
+    let hp_before = sim.hp(target);
+    assert_eq!(sim.order_attack_or_approach(attacker, target), Ok(true));
+    for _ in 0..40 {
+        sim.tick();
+        if sim.hp(target) < hp_before {
+            break;
+        }
+    }
+    assert!(sim.hp(target) < hp_before, "the strike landed");
+    assert!(sim.backswing_left(attacker) > 0, "the unit is in its backswing");
+
+    let before = sim.position_fixed(attacker);
+    sim.order(attacker, centre(4), centre(20));
+    sim.tick();
+    sim.tick();
+    assert_ne!(sim.position_fixed(attacker), before, "a move order during the backswing moves the unit at once");
+}
+
+#[test]
+fn a_patrol_walks_between_its_two_points() {
+    let mut sim = open_field();
+    let unit = spawn(&mut sim, PLAYER, 4, 5);
+    assert!(sim.issue_order_kind(unit, ORDER_PATROL, centre(12), centre(5)).is_ok());
+
+    let (mut far, mut back) = (false, false);
+    for _ in 0..MAX_TICKS {
+        sim.tick();
+        far |= distance_milli(&sim, unit, centre(12), centre(5)) <= 1000.0;
+        if far && distance_milli(&sim, unit, centre(4), centre(5)) <= 1000.0 {
+            back = true;
+            break;
+        }
+    }
+    assert!(far && back, "the patrol reached its far point and came back to its start");
+}
+
+#[test]
+fn a_hold_position_order_stays_put_and_strikes_only_what_is_in_reach() {
+    let mut sim = open_field();
+    let holder = spawn(&mut sim, PLAYER, 4, 5);
+    let near = spawn(&mut sim, FOE, 5, 5);
+    let far = spawn(&mut sim, FOE, 12, 5);
+    assert!(sim.issue_order_kind(holder, sim::ORDER_HOLD, 0, 0).is_ok());
+    let (near_hp, far_hp) = (sim.hp(near), sim.hp(far));
+    let start = sim.position_fixed(holder);
+
+    for _ in 0..60 {
+        drive_targeting(&mut sim, holder);
+        sim.tick();
+    }
+
+    assert!(sim.hp(near) < near_hp, "the holder strikes the foe in reach");
+    assert_eq!(sim.hp(far), far_hp, "the holder does not strike out of reach");
+    assert_eq!(sim.position_fixed(holder), start, "the holder does not move");
+}
+
+#[test]
+fn hold_fire_strikes_nothing_even_when_attacked_explicitly() {
+    let mut sim = open_field();
+    let attacker = spawn(&mut sim, PLAYER, 4, 5);
+    let target = spawn(&mut sim, FOE, 5, 5);
+    let hp = sim.hp(target);
+    assert!(sim.set_hold_fire(attacker, true));
+
+    let _ = sim.order_attack_or_approach(attacker, target);
+    for _ in 0..60 {
+        drive_targeting(&mut sim, attacker);
+        sim.tick();
+    }
+
+    assert_eq!(sim.hp(target), hp, "a unit on hold fire strikes nothing");
+}
+
+#[test]
+fn a_homing_missile_follows_its_target_and_a_plain_one_misses_a_target_that_moved() {
+    for (kind, homing) in [("sentinel_creep_ranged", false), ("sentinel_creep_siege", true)] {
+        let mut sim = open_field();
+        let attacker = spawn_kind(&mut sim, PLAYER, kind, 4, 5);
+        let target = spawn(&mut sim, FOE, 11, 5);
+        let hp = sim.hp(target);
+
+        assert_eq!(sim.order_attack_or_approach(attacker, target), Ok(true), "{kind} is in reach");
+        sim.order(target, centre(11), centre(14));
+        for _ in 0..60 {
+            sim.tick();
+        }
+
+        assert_eq!(sim.hp(target) < hp, homing, "{kind}: the shot hits a target that moved away only when homing");
+    }
+}
