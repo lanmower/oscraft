@@ -16,6 +16,14 @@ local SPAWN_AFTER_TICK = 2
 local spawned = false
 local seed = 40503
 local PICKUP_REACH_MILLI = 20312
+local FOLLOW_MILLI = 46875
+local FOLLOW_BREAK_MILLI = 93750
+local ARRIVE_MILLI = 1000
+local TEND_EVERY = TPS // 4
+local INVENTORY_SLOTS = 6
+local ORDER_MOVE = 0
+local ORDER_STOP = 1
+local ORDER_FOLLOW = 5
 local COOLDOWN_S = { drop = 3, pickup = 6, ping = 5, secretShop = 1, skin = 0.125 }
 local BURST = "courier_burst"
 local SECRET_DEPOT = "secret_depot"
@@ -72,14 +80,18 @@ function M.first(ids)
   return nil
 end
 
+local function go_home(id)
+  local rect = rect_of(unit_player(id))
+  game.queue_clear(id)
+  game.cmd_order(id, config.milli((rect.x0 + rect.x1) // 2), config.milli((rect.y0 + rect.y1) // 2))
+end
+
 function M.send_home(ids, hero)
   if hero ~= nil then return false end
   local sent = false
   for _, id in ipairs(ids) do
     if is_courier(id) then
-      local rect = rect_of(unit_player(id))
-      game.queue_clear(id)
-      game.cmd_order(id, config.milli((rect.x0 + rect.x1) // 2), config.milli((rect.y0 + rect.y1) // 2))
+      go_home(id)
       sent = true
     end
   end
@@ -101,6 +113,7 @@ local DROP_EXEMPT = {
 }
 local PICKUP_DELAY_TICKS = 2
 local pending_pickups = {}
+local stop_visit = {}
 
 local function in_base(id)
   local rect = BASES[game.team(unit_player(id)) == 0 and 0 or 1]
@@ -121,21 +134,32 @@ local function drop_items(id)
   return true
 end
 
+local function drop_rows(courier, rows, x, y)
+  local ids = {}
+  for _, row in ipairs(rows) do ids[#ids + 1] = game.cmd_drop_item(courier, row.slot, x, y) end
+  return ids
+end
+
+local function schedule_pickup(hero, ids)
+  if #ids > 0 then pending_pickups[#pending_pickups + 1] = { hero = hero, ids = ids, at = game.ticks() + PICKUP_DELAY_TICKS } end
+end
+
 local function pickup_items(id, who)
   local hero = bounty.hero_of(who)
   local start = game.seat_start(who)
   if hero == nil or not unit_alive(hero) or start == nil then return false, "noHero" end
-  local reach = config.milli(PICKUP_REACH_MILLI)
   local hx, hy = unit_position(hero)
   local dropped = {}
   for _, courier in ipairs(game.units(nil)) do
-    if is_courier(courier) and game.within(courier, hx, hy, reach) then
+    if is_courier(courier) and game.within(courier, hx, hy, PICKUP_REACH_MILLI) then
+      local rows = {}
       for _, row in ipairs(game.unit_items(courier)) do
-        if row.owner == who then dropped[#dropped + 1] = game.cmd_drop_item(courier, row.slot, start.x, start.y) end
+        if row.owner == who then rows[#rows + 1] = row end
       end
+      for _, gid in ipairs(drop_rows(courier, rows, start.x, start.y)) do dropped[#dropped + 1] = gid end
     end
   end
-  pending_pickups[#pending_pickups + 1] = { hero = hero, ids = dropped, at = game.ticks() + PICKUP_DELAY_TICKS }
+  schedule_pickup(hero, dropped)
   return true
 end
 
@@ -151,16 +175,16 @@ local function collect_pickups(now)
   pending_pickups = left
 end
 
-local function ping_courier(who)
-  for _, id in ipairs(game.units(nil)) do
-    if M.shared(id, who) then
-      local x, y = unit_position(id)
-      game.ui_event("ping", '{"player":' .. tostring(who) .. ',"x":' .. tostring(x / config.FIX) .. ',"z":' .. tostring(y / config.FIX)
-        .. ',"seconds":' .. tostring(PING_SECONDS) .. ',"colour":"#ffffff"}')
-      return true
-    end
-  end
-  return false, "noCourier"
+local function live_hero_of(player)
+  local hero = bounty.hero_of(player)
+  if hero ~= nil and unit_alive(hero) then return hero end
+  return nil
+end
+
+local function idle(id)
+  local kind, x, y = game.order_of(id)
+  if kind == ORDER_STOP then return true end
+  return kind == ORDER_MOVE and game.within(id, x, y, ARRIVE_MILLI)
 end
 
 local function secret_depot_for(player)
@@ -173,6 +197,105 @@ local function secret_depot_for(player)
     if best_d == nil or d < best_d then best, best_d = row, d end
   end
   return best
+end
+
+local function auto_delivery_on(owner)
+  return game.setting(owner, "autodeliver") ~= 0
+end
+
+local function secret_stop_on(owner)
+  return game.setting(owner, "secretstop") == 1
+end
+
+local function near_point(x, y, px, py, reach)
+  local dx, dy = x - px, y - py
+  return dx * dx + dy * dy <= reach * reach
+end
+
+local function visit_secret_depot(id, owner)
+  if stop_visit[id] == owner then return false end
+  local depot = secret_depot_for(owner)
+  if depot == nil then return false end
+  if game.within(id, depot.x, depot.y, PICKUP_REACH_MILLI) then
+    stop_visit[id] = owner
+    return false
+  end
+  local kind, x, y = game.order_of(id)
+  if not (kind == ORDER_MOVE and near_point(x, y, depot.x, depot.y, config.milli(ARRIVE_MILLI))) then
+    game.queue_clear(id)
+    game.cmd_order(id, depot.x, depot.y)
+  end
+  return true
+end
+
+local function deliver(id)
+  local cx, cy = unit_position(id)
+  local batches, by_owner = {}, {}
+  for _, row in ipairs(game.unit_items(id)) do
+    if not DROP_EXEMPT[row.name] then
+      local batch = by_owner[row.owner]
+      if batch == nil then
+        batch = { owner = row.owner, hero = live_hero_of(row.owner), rows = {} }
+        by_owner[row.owner] = batch
+        batches[#batches + 1] = batch
+      end
+      batch.rows[#batch.rows + 1] = row
+    end
+  end
+  if stop_visit[id] ~= nil and by_owner[stop_visit[id]] == nil then stop_visit[id] = nil end
+  local routed = false
+  for _, batch in ipairs(batches) do
+    local room = batch.hero ~= nil and INVENTORY_SLOTS - #game.unit_items(batch.hero) or 0
+    if room > 0 and auto_delivery_on(batch.owner) then
+      if secret_stop_on(batch.owner) and visit_secret_depot(id, batch.owner) then
+        routed = true
+      elseif game.within(batch.hero, cx, cy, PICKUP_REACH_MILLI) then
+        local take = {}
+        for i = 1, math.min(room, #batch.rows) do take[i] = batch.rows[i] end
+        schedule_pickup(batch.hero, drop_rows(id, take, cx, cy))
+        stop_visit[id] = nil
+      elseif secret_stop_on(batch.owner) and stop_visit[id] == batch.owner then
+        if game.order_of(id) ~= ORDER_FOLLOW then game.cmd_follow(id, batch.hero) end
+        routed = true
+      end
+    end
+  end
+  return routed
+end
+
+local function tend(id)
+  local cx, cy = unit_position(id)
+  local hero = live_hero_of(unit_player(id))
+  if game.order_of(id) == ORDER_FOLLOW then
+    if hero == nil or not game.within(hero, cx, cy, FOLLOW_BREAK_MILLI) then go_home(id) end
+    return
+  end
+  if not idle(id) then return end
+  if hero ~= nil and game.within(hero, cx, cy, FOLLOW_MILLI) then
+    game.cmd_follow(id, hero)
+  elseif not in_base(id) then
+    go_home(id)
+  end
+end
+
+local function tend_couriers()
+  for _, id in ipairs(game.units(nil)) do
+    if is_courier(id) and not deliver(id) then
+      tend(id)
+    end
+  end
+end
+
+local function ping_courier(who)
+  for _, id in ipairs(game.units(nil)) do
+    if M.shared(id, who) then
+      local x, y = unit_position(id)
+      game.ui_event("ping", '{"player":' .. tostring(who) .. ',"x":' .. tostring(x / config.FIX) .. ',"z":' .. tostring(y / config.FIX)
+        .. ',"seconds":' .. tostring(PING_SECONDS) .. ',"colour":"#ffffff"}')
+      return true
+    end
+  end
+  return false, "noCourier"
 end
 
 local function find_secret_shop(id)
@@ -302,6 +425,7 @@ return {
     end
     revive_due(now)
     if now % TPS == 0 then report_couriers(now) end
+    if now % TEND_EVERY == 0 then tend_couriers() end
     collect_pickups(now)
     use_items(now)
   end,

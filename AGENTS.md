@@ -71,6 +71,7 @@ No comments in source: durable facts live here, names carry intent.
 - Damage path: armour, damage response, shield, life; ability damage skips armour and applies the magic keep percent. Shields absorb before life. Roles come from unit filters, never names.
 - The healing ward pays 0; every allied kill halves table xp (W_R), so `deny_xp_pct` is 50.
 - Goblin's Greed (`kill_gold.lua`): stack counted before the kill (order unchecked).
+- Courier automation (`courier.lua` tend, every 4 ticks, GP-CTL-10/11): an idle courier follows its owner's hero within 3000 units and returns to its team rect otherwise; carried items go to a reachable owner hero within 1300 units. Per-owner settings `autodeliver` (on unless 0) and `secretstop` (off unless 1) are chat toggles. `game.within` takes its reach in milli-cells (not Q16.16): pass the milli constant.
 - Area and delayed casts mark deny through a `timed_stat` of `S_DENY_MARK` (stat 30); unit-target casts go through `deny_mark.lua`.
 - Hero acquire range: `unit_extra(<hero>, acquire=)` from unit.ini (`work/combat/timing.tsv`, hy3d project); non-6.88g heroes carry none.
 - Item value sources: a value 6.88g lacks is labelled `web` (dotaconstants items.json, Dota 2 modern) or `GUESS` with its reason in items_688g.tsv stat_note.

@@ -125,6 +125,14 @@ local function denyinfo(player)
   core.refuse(player, text.denyInfo)
 end
 
+local function autodeliver_switch(on)
+  return function(player) set_flag(player, "autodeliver", on) end
+end
+
+local function secret_stop_switch(on)
+  return function(player) set_flag(player, "secretstop", on) end
+end
+
 local function double_hold(player)
   local on = game.setting(player, "doublehold") ~= 1
   set_flag(player, "doublehold", on)
@@ -358,6 +366,10 @@ local EXACT = {
   ["-denyinfo"] = denyinfo,
   ["-di"] = denyinfo,
   ["-courier"] = courier_has_no_effect,
+  ["-autodeliver"] = autodeliver_switch(true),
+  ["-noautodeliver"] = autodeliver_switch(false),
+  ["-secretstop"] = secret_stop_switch(true),
+  ["-nosecretstop"] = secret_stop_switch(false),
   ["-hold"] = double_hold,
   ["-ms"] = movespeed,
   ["-movespeed"] = movespeed,
