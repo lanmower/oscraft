@@ -130,10 +130,7 @@ local function box_ids(who, x0, z0, x1, z1, additive)
 end
 
 local function click_ids(who, hit, additive)
-  if hit == nil then
-    if additive then return st(who).sel end
-    return {}
-  end
+  if hit == nil then return st(who).sel end
   if not additive then return { hit.id } end
   local out, found = {}, false
   for _, id in ipairs(st(who).sel) do

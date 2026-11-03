@@ -370,3 +370,49 @@ fn probe_win_screen() {
     print_win("new_game", &ui(&mut game, "win_new_game", json!({})));
     println!("probe removed_units={}", player0.len());
 }
+
+fn selection_ids(lines: &[Value]) -> Option<Vec<Value>> {
+    lines
+        .iter()
+        .rev()
+        .filter(|line| line.to_string().contains("\"selection\""))
+        .find_map(find_ids_array)
+}
+
+fn find_ids_array(value: &Value) -> Option<Vec<Value>> {
+    match value {
+        Value::Object(map) => match map.get("ids") {
+            Some(Value::Array(ids)) => Some(ids.clone()),
+            _ => map.values().find_map(find_ids_array),
+        },
+        Value::Array(items) => items.iter().find_map(find_ids_array),
+        _ => None,
+    }
+}
+
+#[test]
+fn probe_ground_click_keeps_selection() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, heroes) = start_match(&dir, &image);
+    let hero = hero_of(&alive_units(&game), &heroes, 1);
+    let selected = call(&mut game, "select", json!({ "ids": [hero], "player": 1, "pubkey": OWNER }));
+    assert_eq!(selection_ids(&selected), Some(vec![json!(hero)]), "hero selected before the ground click");
+    let ids = game.unit_ids();
+    let spots = game.units();
+    let index = ids.iter().position(|&id| id == hero).expect("hero index");
+    let (hx, hz) = (f64::from(spots[index * 3]), f64::from(spots[index * 3 + 1]));
+    let ground = [(600.0, 0.0), (-600.0, 0.0), (0.0, 600.0), (0.0, -600.0), (900.0, 900.0), (-900.0, -900.0)]
+        .iter()
+        .map(|(dx, dz)| (hx + dx, hz + dz))
+        .find(|&(x, z)| spots.chunks(3).all(|spot| (f64::from(spot[0]) - x).hypot(f64::from(spot[1]) - z) > 300.0))
+        .expect("an empty ground point");
+    let down = game.pointer("down", ground.0, ground.1, 0);
+    assert!(down.is_empty(), "pointer down: {down}");
+    let up = game.pointer("up", ground.0, ground.1, 0);
+    assert!(up.is_empty(), "pointer up: {up}");
+    advance(&mut game, 1);
+    let after = selection_ids(&drain(&mut game));
+    println!("probe ground_click selection_after={after:?}");
+    assert_eq!(after, Some(vec![json!(hero)]), "a ground click keeps the selection");
+}
