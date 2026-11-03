@@ -50,7 +50,7 @@ local RD_ROUNDS = {
 
 local TEXT = {
   names = { cm = "Captains Mode", cd = "Captains Draft", rd = "Random Draft", sd = "Single Draft", rv = "Reverse" },
-  sides = { [0] = "Sentinel", [1] = "Scourge" },
+  sides = { [0] = "The Sentinel", [1] = "The Scourge" },
   begin = "will now begin the 1-2-2-2-2-1 draft",
   captain = "has been randomly selected to begin the draft",
   banTurn = "Your turn to ban 1 hero",
