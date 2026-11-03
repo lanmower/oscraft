@@ -53,11 +53,16 @@ local AGGRO_KINDS = {
 }
 local aggro_holds = {}
 
+local LANE_OWNER_COUNT = 2
+
+local function creep_owned(u)
+  return not units.is_hero(u) and unit_player(u) < LANE_OWNER_COUNT
+end
+
 function targeting.aggro_redirect(attacker, victim)
   if attacker < 0 or config.rule("aggro_priority") ~= 1 or attacker == victim then return end
-  if not units.is_hero(victim) or not units.is_hero(attacker) then return end
+  if not units.is_hero(victim) or creep_owned(attacker) then return end
   local attacker_side = unit_player(attacker)
-  if not units.hostile(unit_player(victim), attacker_side) then return end
   local now = game.ticks()
   local current_hold = aggro_holds[victim]
   if current_hold ~= nil and now < current_hold.until_tick and unit_alive(current_hold.attacker) then return end

@@ -394,7 +394,7 @@ local function roshan_reward(unit, killer, killer_player, now)
   local side = game.team(killer_player)
   for _, hero in ipairs(bounty.heroes()) do
     local player = unit_player(hero)
-    if game.team(player) == side then bounty.credit({ player = player, gold = cfg.roshan_team_gold }) end
+    if game.team(player) == side and unit_alive(hero) then bounty.credit({ player = player, gold = cfg.roshan_team_gold }) end
   end
   local x, y = unit_position(unit)
   game.cmd_drop_ground("aegis", 1, x, y)

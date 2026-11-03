@@ -166,8 +166,22 @@ function trees.cut(caster, ability)
   return true
 end
 
+local function ascending_keys(set)
+  local keys = {}
+  for key in pairs(set) do
+    local j = #keys + 1
+    while j > 1 and keys[j - 1] > key do
+      keys[j] = keys[j - 1]
+      j = j - 1
+    end
+    keys[j] = key
+  end
+  return keys
+end
+
 local function heal_step(now)
-  for unit, h in pairs(healing) do
+  for _, unit in ipairs(ascending_keys(healing)) do
+    local h = healing[unit]
     if now >= h.until_tick or not unit_alive(unit) then
       healing[unit] = nil
     else

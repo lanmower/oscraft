@@ -1,6 +1,7 @@
 local config = require("config")
 local units = require("units")
 local bots = require("bots")
+local match_stats = require("match_stats")
 
 local TPS = config.TICKS_PER_SECOND
 local SHARE_PERIOD = 2 * TPS
@@ -69,6 +70,7 @@ local function on_left(p)
     for q = 0, config.PLAYERS - 1 do
       if q ~= p and game.seat_start(q) ~= nil and team(q) ~= side then
         winner = team(q)
+        match_stats.publish(match_stats.roster())
         break
       end
     end

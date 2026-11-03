@@ -233,10 +233,13 @@ local function sync_upgrades()
     adopt_existing = false
     return
   end
-  for u in pairs(upgraded) do
-    if upgraded[u] < level and unit_alive(u) then
-      apply_upgrades(u, level - upgraded[u])
-      upgraded[u] = level
+  if level ~= upgraded_level then
+    upgraded_level = level
+    for _, u in ipairs(ascending_keys(upgraded)) do
+      if upgraded[u] < level and unit_alive(u) then
+        apply_upgrades(u, level - upgraded[u])
+        upgraded[u] = level
+      end
     end
   end
   for u = next_unit, count - 1 do

@@ -42,7 +42,7 @@ No comments in source: durable facts live here, names carry intent.
 - Lanes sharing a cargo target dir across sources get stale artifacts by mtime (stale `osdt_data` loaded as version 27): build in a lane-private `CARGO_TARGET_DIR`.
 - `attack_spells.lua`: blind miss percent is in `status` p2, where 0 means 100; blind and revealed are status codes 14 and 15.
 - A2ML structures from the `xZ` list are unresolved in ground-cast retargeting (`GROUND_RETARGET`, spells.lua).
-- Aggro redirect not ported: right-click order (SUE), attack-move back, visibility (yU), non-hero aggressors. `died_at_tick`/`picked_at_tick` reject stale slot reuse.
+- Aggro redirect (targeting.lua) ports 6.88g SWE and SSE (war3map.j 31413-31463): a hero hit by a unit that no lane player owns (players 0 and 1 own the lane creeps and towers; neutrals and allied heroes count) hands the lane creeps and towers within 500 units of the attacker to it for `aggro_hold_s` (2 s). Only heroes are registered (S4E and SYE, 31477-31482, 31591). Not ported: right-click order (SUE 31437), attack-move back, visibility (yU). `died_at_tick`/`picked_at_tick` reject stale slot reuse.
 - Missing engine slots: unit facing (Reverse Polarity), setting cooldown from Lua (Reincarnation), aoe excluded-filter mask (Hoof Stomp).
 - Not modelled: regeneration ending at full health and mana (QXV). The `mods/upgrades.lua` ledger is a hashed sim counter: two same-tick requests can both pass.
 - Effect kind 28 (`K_RESOURCE`, once mana) keeps its number so old replays decode; kinds 24 (dispel) and 27 (illusion) are retired and refused.
@@ -71,6 +71,16 @@ No comments in source: durable facts live here, names carry intent.
 - Area and delayed casts mark deny through a `timed_stat` of `S_DENY_MARK` (stat 30); unit-target casts go through `deny_mark.lua`.
 - Hero acquire range: `unit_extra(<hero>, acquire=)` from unit.ini (`work/combat/timing.tsv`, hy3d project); non-6.88g heroes carry none.
 - Item value sources: a value 6.88g lacks is labelled `web` (dotaconstants items.json, Dota 2 modern) or `GUESS` with its reason in items_688g.tsv stat_note.
+
+## Waves, heroes and gold (6.88g sources)
+
+- Lane waves: war3map.j JAE (lines 26233-26456) runs on the 30 s trigger xR. Melee per lane is 3 plus one at 849, 1759 and 2669 s (eR); ranged is 1 plus one at 2669 s (vR); siege is the ranged count per lane per side on every seventh run of xR, first at 3:00. lanes.lua matches. The 5:00 siege cadence in docs/GAME.md is reference (patches 7.06, 7.41), not 6.88g.
+- Hero XP (heroes.lua): the base xp of a hero kill is wU (war3map.j, 100, 120, 140, 160, 180, then 100 x level - 320), split across the recipients. Each recipient adds 20, 15, 10, 7 or 5 (for 1 to 5+ recipients) times the victim level, plus deficit x victim xp x .23, .23, .20, .15 or .12 x .6, where deficit = max(0, victim-team xp - killer-team xp) / max(sum, 1) (D9V 14187-14200). Recipients: living allied heroes within 1325 units (0x52D) and the killer; the killer is added when alive or more than 1300 units away (0x514), and a far owner hero gets the base alone (heroes.lua share_hero_xp). Max level 25: misc.ini NeedHeroXP (xp_curve in tuning.osd).
+- Assists: one definition, kill_gold.assist_group: living allied heroes within 1325 units of a hero death, plus the killer (6.88g D9V group assi, 14158-14238). It drives the A stat (heroes.lua credit_assists) and the assist gold. Creep and tower kills give no assist. The 18 s window (kill_window_s) is the damagers window for a hero killed by creeps or towers (war3map.j CGV and GDV, 13335-13353, 14515-14527).
+- Roshan: the 200 team gold goes only to living heroes of the killing side (camps.lua, roshan_team_gold).
+- Win: the base is the only unit with the `building` filter; when a side's base dies the rival wins (win.lua). A forfeit that ends the match publishes the win stats at once (leave.lua calls match_stats.publish(match_stats.roster())).
+- Win screen gold is bounty.earned (counter st_gold_earned, added by bounty.credit and by kill_gold passive and carried-gold payouts); the reliable bank is separate.
+- lanes.lua sync_upgrades and trees.lua heal_step walk their tables with a local ascending_keys. sync_upgrades walks only when the upgrade level changes.
 
 ## Sim core (rust/crates/sim)
 

@@ -3,6 +3,7 @@ local bounty = {}
 local PENALTY_PCT = 40
 local RELIABLE = "reliable_gold"
 local PENALTY = "buyback_penalty_until"
+local EARNED = "st_gold_earned"
 
 local hero_ids, hero_by_player, hero_count = {}, {}, -1
 
@@ -32,6 +33,14 @@ function bounty.hero_of(player)
   return hero_by_player[player]
 end
 
+function bounty.record_earned(hero, gold)
+  if hero ~= nil then game.set_counter(hero, EARNED, game.counter(hero, EARNED) + gold) end
+end
+
+function bounty.earned(hero)
+  return game.counter(hero, EARNED)
+end
+
 function bounty.reliable_gold(player)
   local hero = bounty.hero_of(player)
   if hero == nil then return 0 end
@@ -58,6 +67,7 @@ function bounty.credit(p)
   if hero ~= nil and game.counter(hero, PENALTY) > game.ticks() then gold = math.floor(gold * PENALTY_PCT / 100) end
   if gold <= 0 then return 0 end
   game.cmd_add_gold(p.player, gold)
+  bounty.record_earned(hero, gold)
   local reliable = p.reliable
   if reliable == true then reliable = gold end
   if hero ~= nil and reliable ~= nil and reliable ~= false and reliable > 0 then

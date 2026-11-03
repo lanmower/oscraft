@@ -1,3 +1,7 @@
+local config = require("config")
+local bounty = require("bounty")
+local acronyms = require("hero_acronyms")
+
 local COLUMNS = { "Hero", "Team", "K", "D", "A", "LH", "DN", "Gold", "XP", "DMG", "Taken", "Heal", "Items", "Rating", "Grade" }
 local PODIUM_COLUMNS = { "Place", "Hero", "Team", "Rating", "Grade" }
 
@@ -113,7 +117,7 @@ function match_stats.collect(heroes)
       player = h.player, team = h.team, name = h.name,
       kills = game.kills_of(h.hero), deaths = game.deaths_of(h.hero), assists = game.credits_of(h.hero),
       last_hits = game.counter(h.hero, "st_creep"), denies = game.counter(h.hero, "st_deny"),
-      gold = game.gold(h.player), experience = game.xp(h.hero),
+      gold = bounty.earned(h.hero), experience = game.xp(h.hero),
       damage_dealt = whole_units(game.counter(h.hero, "sim_damage_dealt")),
       damage_taken = whole_units(game.counter(h.hero, "sim_damage_taken")),
       healing = whole_units(game.counter(h.hero, "sim_healing")),
@@ -123,7 +127,19 @@ function match_stats.collect(heroes)
   return entries
 end
 
-function match_stats.publish(side, heroes)
+function match_stats.roster()
+  local list = {}
+  for p = 0, config.PLAYERS - 1 do
+    local hero = bounty.hero_of(p)
+    if hero ~= nil and game.seat_start(p) ~= nil then
+      local kind = game.unit_kind(hero) or "?"
+      list[#list + 1] = { player = p, hero = hero, team = game.team(p), name = acronyms[kind] or kind }
+    end
+  end
+  return list
+end
+
+function match_stats.publish(heroes)
   if published then return end
   published = true
   local seconds = math.floor(game.ticks() / 16)
@@ -134,7 +150,7 @@ function match_stats.publish(side, heroes)
   end
   game.panel("match_stats", {
     title = "Match statistics",
-    text = "Winner: team " .. tostring(side) .. "  " .. tostring(seconds) .. " s",
+    text = tostring(seconds) .. " s",
     columns = COLUMNS,
     rows = rows,
   })

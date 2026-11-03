@@ -119,7 +119,7 @@ local function contains(list, unit)
   return false
 end
 
-local function sharers(victim, killer, side)
+local function assist_group(victim, killer, side)
   local out = {}
   local x, y = unit_position(victim)
   for _, u in ipairs(units.units_near(x, y, ASSIST_RADIUS)) do
@@ -134,7 +134,7 @@ local function sharers(victim, killer, side)
 end
 
 local function pay_assists(victim, victim_player, killer, side)
-  local group = sharers(victim, killer, side)
+  local group = assist_group(victim, killer, side)
   local n = #group
   if n == 0 then return end
   local row = ASSIST[math.min(n, #ASSIST)]
@@ -272,7 +272,10 @@ return {
       local passive = modes.has("em") and PASSIVE_GOLD * EASY_PASSIVE_FACTOR or PASSIVE_GOLD
       local due = math.floor(now * passive / PASSIVE_PERIOD_TICKS) - math.floor((now - 1) * passive / PASSIVE_PERIOD_TICKS)
       if due > 0 then
-        for _, hero in ipairs(bounty.heroes()) do game.cmd_add_gold(unit_player(hero), due) end
+        for _, hero in ipairs(bounty.heroes()) do
+          game.cmd_add_gold(unit_player(hero), due)
+          bounty.record_earned(hero, due)
+        end
       end
     end
     for _, hero in ipairs(bounty.heroes()) do
@@ -280,6 +283,7 @@ return {
       if wallet > 0 and game.alive(hero) then
         game.cmd_add_unit_gold(hero, -wallet)
         game.cmd_add_gold(unit_player(hero), wallet)
+        bounty.record_earned(hero, wallet)
       end
     end
     if now % CLAMP_EVERY == 0 then bounty.clamp_reliable() end
@@ -287,4 +291,5 @@ return {
 
   hero_died = kill_gold.hero_died,
   owner_hero = kill_gold.owner_hero,
+  assist_group = assist_group,
 }

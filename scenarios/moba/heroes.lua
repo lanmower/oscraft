@@ -16,7 +16,6 @@ local NEUTRAL = 255
 local S_DAMAGE, S_HEALTH, S_ATTACK_SPEED = 0, 2, 12
 local S_MANA_REGEN, S_HEALTH_REGEN, S_MAX_MANA, S_ARMOR_X100 = 13, 14, 15, 26
 
-local ASSIST_WINDOW_TICKS = config.rule("kill_window_s") * TICKS
 local buyback_ready = counter.sim("buyback_ready")
 local respawn_due = counter.sim("respawn_due")
 local respawn_extra = counter.sim("respawn_extra")
@@ -115,7 +114,7 @@ local function share_hero_xp(victim, killer, victim_player, killer_player)
   local recipients = xp_heroes(victim, function(side) return not units.hostile(side, killer_player) end)
   local present = false
   for _, u in ipairs(recipients) do present = present or u == killer end
-  if units.is_hero(killer) and not present then recipients[#recipients + 1] = killer end
+  if units.is_hero(killer) and not present and (game.alive(killer) or distance_fix(killer, victim) > config.milli(XP_FAR_KILLER_MILLI)) then recipients[#recipients + 1] = killer end
   local n = #recipients
   if n == 0 then return end
   local row = PARTICIPANT_XP[math.min(n, 5)]
@@ -153,10 +152,10 @@ local function share_xp(victim, killer, victim_player, killer_player)
 end
 
 local function credit_assists(victim, killer, killer_player)
-  for _, h in ipairs(game.take_recent_hitters(victim, ASSIST_WINDOW_TICKS)) do
-    if h ~= killer and unit_player(h) == killer_player then
-      game.add_credit(h, 1)
-    end
+  game.take_recent_hitters(victim, 0)
+  if killer_player == nil then return end
+  for _, h in ipairs(kill_gold.assist_group(victim, killer, killer_player)) do
+    if h ~= killer then game.add_credit(h, 1) end
   end
 end
 
@@ -247,7 +246,7 @@ local function pay_kill(unit, killer, killer_player, victim_player)
     return
   end
   if units.is_hero(credit) and units.hostile(killer_player, victim_player) then game.add_kill(credit, 1) end
-  credit_assists(unit, credit, killer_player)
+  if units.is_hero(unit) then credit_assists(unit, killer, killer_player) end
   share_xp(unit, credit, victim_player, killer_player)
 end
 
