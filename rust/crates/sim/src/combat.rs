@@ -83,7 +83,7 @@ impl Sim {
 
     pub fn detected(&self, p: u8, j: usize) -> bool {
         self.status_left(j, crate::status::REVEALED) > 0 || (0..self.n).any(|k| {
-            if self.alive[k] == 0 || (self.player[k] != p && self.vision[p as usize % MAX_PLAYERS] & (1 << self.player[k] as usize % MAX_PLAYERS) == 0) {
+            if self.alive[k] == 0 || !self.shares_sight(p, self.player[k]) {
                 return false;
             }
             let radius = self.cat.unit_ext.get(self.type_of[k] as usize).map_or(0, |e| e.detector_radius).max(self.item_stat(k, crate::inventory::STAT_TRUE_SIGHT));

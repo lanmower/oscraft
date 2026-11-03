@@ -111,14 +111,19 @@ impl Sim {
         if !self.fog || (p as usize) >= MAX_PLAYERS {
             return vec![1; self.vcells];
         }
-        let shared = self.vision[p as usize];
-        (0..self.vcells)
-            .map(|at| {
-                let on = self.vis[p as usize * self.vcells + at] != 0
-                    || (0..MAX_PLAYERS).any(|q| shared & (1 << q) != 0 && self.vis[q * self.vcells + at] != 0);
-                on as u8
-            })
-            .collect()
+        (0..self.vcells).map(|at| self.plane_seen_at(p, at) as u8).collect()
+    }
+
+    pub(crate) fn shares_sight(&self, p: u8, q: u8) -> bool {
+        let (pi, qi) = (p as usize, q as usize);
+        if pi >= MAX_PLAYERS || qi >= MAX_PLAYERS {
+            return p == q;
+        }
+        pi == qi || self.team[pi] == self.team[qi] || self.vision[pi] & (1 << qi) != 0
+    }
+
+    fn plane_seen_at(&self, p: u8, at: usize) -> bool {
+        (0..MAX_PLAYERS as u8).any(|q| self.shares_sight(p, q) && self.vis[q as usize * self.vcells + at] != 0)
     }
 
     pub fn vision_dims(&self) -> (i32, i32, i32) {
@@ -147,9 +152,6 @@ impl Sim {
         if cx < 0 || cy < 0 || cx >= self.vw || cy >= self.vh {
             return false;
         }
-        let at = (cy * self.vw + cx) as usize;
-        let shared = self.vision[p as usize];
-        self.vis[p as usize * self.vcells + at] != 0
-            || (0..MAX_PLAYERS).any(|q| shared & (1 << q) != 0 && self.vis[q * self.vcells + at] != 0)
+        self.plane_seen_at(p, (cy * self.vw + cx) as usize)
     }
 }
