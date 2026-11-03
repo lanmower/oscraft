@@ -628,6 +628,7 @@ impl Sim {
         self.order_kind[i] == ORDER_MOVE
             && self.attack_order[i] < 0
             && (self.vel_x[i] != 0 || self.vel_y[i] != 0)
+            && self.effective_speed(i) > 0
             && dist2(self.pos_x[i], self.pos_y[i], self.tgt_x[i], self.tgt_y[i]) > (ONE as i64) * (ONE as i64)
     }
 
