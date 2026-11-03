@@ -39,6 +39,8 @@ const STYLE = `
 .w-panel-body{display:flex;flex-direction:column;gap:4px;min-width:0}
 .w-panel-body[hidden]{display:none}
 .w-cell.t-empty{background:var(--well-dim);border-style:dashed;opacity:.55}
+.w-cell.t-dim{opacity:.4}
+.w-cell.t-hidden{visibility:hidden}
 .w-cell.t-active{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
 .w-cell.t-face{width:56px;min-height:56px;align-items:center}
 .t-strong{font-weight:700}

@@ -50,6 +50,8 @@ No comments in source: durable facts live here, names carry intent.
 - Spell damage kind: `damage` p2; `dot`/`chain` p3 = kind (0 legacy, 1 physical, 2 magical, 3 pure) + 4 * (1 + attack type index of `DAMAGE_TYPES`). Magical takes only bonus magic resistance (Hero base 25% = Hero armour column). 6.88g spell damage is `tw` (war3map.j), dt 1..11 (7 = pure, 6/11 set life). `impl-damage-attack.tsv` (hy3d project, not in this repo) tags abilities; no-script-damage ones carry attack type `spells` (hero 0.75). Other columns and `universal_damage_pct` unchecked.
 - Not expressible with `damage_by` (kind 35): counts of units hit (Overwhelming Odds), Dissipate's level-multiple condition.
 - Ability generators (`scenarios/moba/tools`) take numbers from SteamDatabase at `282fad29f0f74504fad465c52d197fb61f4d612b`.
+- `ability_text_688g.lua` (hover text only, never read by the sim's rules) comes from `tools/gen-ability-text-688g.mjs <6.88g ability.ini>`: Name and Ubertip per level, colour codes and cooldown/mana tails stripped; a level list shares one template with per-level numbers when the wording matches.
+- The `moba.osdt` in git is a stale snapshot: Pages CI rebuilds it from source with `mapexport`, so a Lua change needs no committed image.
 
 ## Neutral abilities
 

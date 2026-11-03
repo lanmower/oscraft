@@ -216,7 +216,7 @@
       "newGame": "New Game",
       "clickTitle": "Mouse",
       "clicks": [
-        "Click an ability cell: cast it (ready cells only; a cooldown cell is shown, not cast)",
+        "Click an ability cell: cast it (ready cells only; a dimmed cell is shown, not cast)",
         "Click a selection tile: select that unit alone; the arrows page through a group of more than 12",
         "Click a shop building in the world: select it and open its stock in the Shop panel",
         "Click Buy on a shop card: buy the item (enabled within reach of a shop that sells it); Pin keeps it in the pinned strip; Recipe shows its components",
@@ -275,7 +275,23 @@
       "gate": "next rank needs level",
       "maxed": "maxed",
       "none": "no skill tree",
-      "needLevel": "level"
+      "needLevel": "level",
+      "tip": {
+        "hotkey": "Hotkey",
+        "levelUp": "level up",
+        "mana": "Mana",
+        "cooldown": "Cooldown",
+        "learn": "Learn at level",
+        "damage": "Damage",
+        "rank": "Rank",
+        "of": "of",
+        "range": "Range",
+        "whatItDoes": "What it does",
+        "noSkill": "no skill data",
+        "noRange": "no range in 6.88g data",
+        "noDescription": "no description in 6.88g data",
+        "none": "none"
+      }
     },
     "lobby": {
       "title": "Hero select",

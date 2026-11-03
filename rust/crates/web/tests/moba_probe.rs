@@ -416,3 +416,71 @@ fn probe_ground_click_keeps_selection() {
     println!("probe ground_click selection_after={after:?}");
     assert_eq!(after, Some(vec![json!(hero)]), "a ground click keeps the selection");
 }
+
+fn nodes_of_kind<'a>(node: &'a Value, kind: &str, out: &mut Vec<&'a Value>) {
+    if node.get("t").and_then(Value::as_str) == Some(kind) {
+        out.push(node);
+    }
+    if let Some(kids) = node.get("kids").and_then(Value::as_array) {
+        for kid in kids {
+            nodes_of_kind(kid, kind, out);
+        }
+    }
+}
+
+fn widget_tree_of(lines: &[Value], id: &str) -> Value {
+    lines
+        .iter()
+        .rev()
+        .find(|value| value["kind"] == "widget" && value["data"]["id"] == id)
+        .map(|value| value["data"]["tree"].clone())
+        .unwrap_or(Value::Null)
+}
+
+fn ability_cells(lines: &[Value]) -> Vec<Value> {
+    let tree = widget_tree_of(lines, "select");
+    let mut cells = Vec::new();
+    nodes_of_kind(&tree, "cell", &mut cells);
+    cells.into_iter().filter(|cell| cell.get("unit").is_some() && cell.get("slot").is_some()).cloned().collect()
+}
+
+fn upgrade_buttons(lines: &[Value]) -> usize {
+    let tree = widget_tree_of(lines, "skills");
+    let mut buttons = Vec::new();
+    nodes_of_kind(&tree, "button", &mut buttons);
+    buttons.into_iter().filter(|button| button["call"] == "skill_up").count()
+}
+
+#[test]
+fn probe_skill_bar_states() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, heroes) = start_match(&dir, &image);
+    let hero = hero_of(&alive_units(&game), &heroes, 1);
+    let mut lines = call(&mut game, "select", json!({ "ids": [hero], "player": 1, "pubkey": OWNER }));
+    lines.extend(call(&mut game, "selection", json!({ "ids": [hero], "player": 1, "pubkey": OWNER })));
+    advance(&mut game, 8);
+    lines.extend(drain(&mut game));
+    let before = ability_cells(&lines);
+    println!("probe skill_bar_before cells={} hidden={} plus={}", before.len(), before.iter().filter(|cell| cell["tone"] == "hidden").count(), upgrade_buttons(&lines));
+    assert!(!before.is_empty(), "the selected hero shows its ability bar");
+    assert!(before.iter().all(|cell| cell["tone"] == "hidden"), "no ability is learned yet, so every cell is hidden");
+    assert!(upgrade_buttons(&lines) > 0, "a level-one hero with a point shows an upgrade button");
+    let mut learned = call(&mut game, "skill_up", json!({ "slot": 0, "player": 1, "pubkey": OWNER }));
+    advance(&mut game, 8);
+    learned.extend(drain(&mut game));
+    let after = ability_cells(&learned);
+    let slot0 = after.iter().find(|cell| cell["slot"] == 0).expect("slot 0 cell");
+    let tip = slot0["tip"].as_str().expect("slot 0 tip").to_owned();
+    println!("probe skill_bar_after shown={} plus={}", after.iter().filter(|cell| cell["tone"] != "hidden").count(), upgrade_buttons(&learned));
+    println!("probe skill_tip_slot0=\"{}\"", tip.replace("\\n", " | "));
+    assert_eq!(after.iter().filter(|cell| cell["tone"] != "hidden").count(), 1, "only the learned ability is shown");
+    assert_eq!(upgrade_buttons(&learned), 0, "no skill point is left, so no upgrade button shows");
+    for needle in ["Hotkey: Q", "Mana:", "Cooldown:", "Range:", "What it does:"] {
+        assert!(tip.contains(needle), "tip has {needle}: {tip}");
+    }
+    for cell in &after {
+        let unavailable = cell["tone"] == "dim" || cell["tone"] == "hidden";
+        assert_eq!(cell.get("call").is_none(), unavailable, "a dimmed or hidden cell is not cast: {cell}");
+    }
+}

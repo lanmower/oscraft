@@ -47,6 +47,7 @@
   "modules": {
     "ability_fx": "ability_fx.lua",
     "ability_keys": "ability_keys.lua",
+    "ability_text_688g": "ability_text_688g.lua",
     "aegis": "aegis.lua",
     "area_spells": "area_spells.lua",
     "attack_spells": "attack_spells.lua",

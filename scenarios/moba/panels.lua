@@ -7,6 +7,7 @@ local stats = require("stats")
 local modes = require("modes")
 local shops = require("shops")
 local ui_fill = require("ui_fill")
+local ability_text = require("ability_text_688g")
 local store = require("store")
 local heroes = require("heroes")
 local match_stats = require("match_stats")
@@ -615,6 +616,92 @@ local function is_targeted(name)
   return info ~= nil and TARGETED_KINDS[info.target] == true
 end
 
+local CAST_KEY_NAME = { q = "Q", w = "W", e = "E", r = "R" }
+
+local function key_name(key)
+  return CAST_KEY_NAME[key] or key
+end
+
+local function cast_keys()
+  local list = {}
+  for key, slot in pairs(KEYS.cast or {}) do list[#list + 1] = { key = key, slot = slot } end
+  for i = 2, #list do
+    local j = i
+    while j > 1 and list[j - 1].slot > list[j].slot do
+      local held = list[j - 1]
+      list[j - 1] = list[j]
+      list[j] = held
+      j = j - 1
+    end
+  end
+  return list
+end
+
+local function key_for_slot(slot)
+  for _, key in ipairs(cast_keys()) do
+    if key.slot == slot then return key.key end
+  end
+  return nil
+end
+
+local function secs_text(ticks)
+  local tenths = math.floor(ticks * 10 / TICKS_PER_SECOND + 0.5)
+  local whole = math.floor(tenths / 10)
+  local part = tenths - 10 * whole
+  if part == 0 then return tostring(whole) end
+  return tostring(whole) .. "." .. tostring(part)
+end
+
+local function all_zero(values)
+  for _, v in ipairs(values) do
+    if v ~= 0 then return false end
+  end
+  return true
+end
+
+local function per_level(values, fmt)
+  local parts = {}
+  for i, v in ipairs(values) do parts[i] = fmt(v) end
+  return join(parts, " / ")
+end
+
+local function skill_description(name, rank)
+  local entry = ability_text[name]
+  if entry == nil then return nil end
+  if entry.nums == nil then
+    if entry.tips == nil then return nil end
+    return entry.tips[math.min(math.max(rank, 1), #entry.tips)]
+  end
+  local nums = entry.nums[math.min(math.max(rank, 1), #entry.nums)]
+  local out = entry.tpl[1]
+  for j = 1, #nums do out = out .. nums[j] .. entry.tpl[j + 1] end
+  return out
+end
+
+local function ability_tip(name, info, rank, key)
+  local t = TEXT.skills.tip
+  local entry = ability_text[name] or {}
+  local lines = { entry.name or name }
+  if key ~= nil then
+    local skill = KEYS.skillUp or {}
+    local line = t.hotkey .. ": " .. key_name(key)
+    if skill.modifier ~= nil then line = line .. "  " .. t.levelUp .. ": " .. skill.modifier .. "+" .. key_name(key) end
+    lines[#lines + 1] = line
+  end
+  if info ~= nil and info.max_rank > 0 then
+    lines[#lines + 1] = t.mana .. ": " .. (all_zero(info.energies) and t.none or per_level(info.energies, tostring))
+    lines[#lines + 1] = t.cooldown .. ": " .. (all_zero(info.cooldowns) and t.none or (per_level(info.cooldowns, secs_text) .. " " .. TEXT.cooldownSuffix))
+    lines[#lines + 1] = t.learn .. ": " .. per_level(info.gates, tostring)
+    if not all_zero(info.damage) then lines[#lines + 1] = t.damage .. ": " .. per_level(info.damage, tostring) end
+    lines[#lines + 1] = t.rank .. " " .. tostring(rank) .. " " .. t.of .. " " .. tostring(info.max_rank)
+  else
+    lines[#lines + 1] = t.noSkill
+  end
+  lines[#lines + 1] = t.range .. ": " .. (entry.range ~= nil and per_level(entry.range, tostring) or t.noRange)
+  lines[#lines + 1] = t.whatItDoes .. ": " .. (skill_description(name, rank) or t.noDescription)
+  return join(lines, "\\n")
+end
+
 local function skills_tree(hero)
   local level = xp.character_level(hero)
   local spent = 0
@@ -636,15 +723,13 @@ local function skills_tree(hero)
         ready = points > 0 and level >= gate
       end
     end
-    local row = {
-      box({ label(a.name, "strong"), label(row_pips, "accent"), label(gate_text, "muted") }, "col"),
-      button("+", "skill_up", obj({ I("slot", a.slot) }), not ready, TEXT.skills.up),
-    }
+    local row = { box({ label(a.name, "strong"), label(row_pips, "accent"), label(gate_text, "muted") }, "col") }
+    if ready then row[#row + 1] = button("+", "skill_up", obj({ I("slot", a.slot) }), false, TEXT.skills.up) end
     if is_targeted(a.name) then
       local quick = game.setting(LOCAL, "quickcast_" .. tostring(a.slot)) == 1
       row[#row + 1] = button(quick and TEXT.skills.quickCastOn or TEXT.skills.quickCast, "quickcast", obj({ I("slot", a.slot) }), false, TEXT.skills.quickCastTip)
     end
-    kids[#kids + 1] = box(row, "row")
+    kids[#kids + 1] = node("box", { S("dir", "row"), R("kids", arr(row)), S("tip", ability_tip(a.name, info, rank, key_for_slot(a.slot))) })
   end
   if TEXT.skills.talentName ~= "" then
     kids[#kids + 1] = label(TEXT.skills.talents, "faint")
@@ -666,33 +751,21 @@ local function skills_tree(hero)
   return panel(TEXT.skills.title, kids)
 end
 
-local function cast_keys()
-  local list = {}
-  for key, slot in pairs(KEYS.cast or {}) do list[#list + 1] = { key = key, slot = slot } end
-  for i = 2, #list do
-    local j = i
-    while j > 1 and list[j - 1].slot > list[j].slot do
-      local held = list[j - 1]
-      list[j - 1] = list[j]
-      list[j] = held
-      j = j - 1
-    end
-  end
-  return list
-end
-
 local function ability_cell(hero, key, abilities)
   local a = abilities[key.slot]
   if a == nil then return cell({ label(key.key, "faint") }, { tone = "empty" }) end
   local rank = game.skill_rank(hero, key.slot)
+  if rank == 0 then return cell({}, { tone = "hidden", unit = hero, slot = key.slot }) end
   local info = game.skill_info(hero, key.slot)
   local ranked = info ~= nil and info.max_rank > 0
-  local kids = { label(key.key, "accent"), label(a.name, "strong") }
+  local kids = { label(key_name(key.key), "accent"), label(a.name, "strong") }
+  local dim = false
   if ranked then
-    kids[#kids + 1] = label(tostring(info.energies[math.max(rank, 1)]), "mp")
+    local cost = info.energies[math.max(rank, 1)] or 0
+    kids[#kids + 1] = label(tostring(cost), "mp")
     kids[#kids + 1] = label(pips(rank, info.max_rank), "muted")
+    dim = cost > game.mana(hero)
   end
-  local tone = nil
   if a.cooldown > 0 then
     local tenths = math.floor(a.cooldown * 10 / TICKS_PER_SECOND)
     kids[#kids + 1] = label(tostring(math.floor(tenths / 10)) .. "." .. tostring(tenths - 10 * math.floor(tenths / 10)) .. TEXT.cooldownSuffix, "warn")
@@ -701,12 +774,10 @@ local function ability_cell(hero, key, abilities)
     local full = COOLDOWN_FULL[k]
     if ranked and info.cooldowns[math.max(rank, 1)] ~= nil and info.cooldowns[math.max(rank, 1)] > 0 then full = info.cooldowns[math.max(rank, 1)] end
     kids[#kids + 1] = bar(math.min(a.cooldown, full), full)
-    tone = "muted"
-  elseif rank == 0 then
-    tone = "faint"
+    dim = true
   end
-  local art = { tone = tone, tip = a.name, icon = "icons/abilities/" .. a.name .. ".png", alt = a.name, unit = hero, slot = key.slot }
-  if a.cooldown > 0 or rank == 0 then return cell(kids, art) end
+  local art = { tone = dim and "dim" or nil, tip = ability_tip(a.name, info, rank, key.key), icon = "icons/abilities/" .. a.name .. ".png", alt = a.name, unit = hero, slot = key.slot }
+  if dim then return cell(kids, art) end
   art.call = "cast"
   art.args = obj({ I("slot", key.slot) })
   return cell(kids, art)
