@@ -244,6 +244,62 @@ fn stat_cell(row: &[String], column: usize) -> i64 {
     row.get(column).and_then(|cell| cell.parse().ok()).unwrap_or(0)
 }
 
+fn right_click(game: &mut Game, at: (f64, f64)) {
+    let down = game.pointer("down", at.0, at.1, 2);
+    assert!(down.is_empty(), "pointer down: {down}");
+    let up = game.pointer("up", at.0, at.1, 2);
+    assert!(up.is_empty(), "pointer up: {up}");
+}
+
+fn set_shift(game: &mut Game, down: bool) {
+    let phase = if down { "down" } else { "up" };
+    call(game, "key", json!({ "key": "shift", "phase": phase, "shift": down, "player": 1, "pubkey": OWNER }));
+}
+
+#[test]
+fn probe_queued_order_resync_two_tabs() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut tab_a, heroes) = start_match(&dir, &image);
+    let units = alive_units(&tab_a);
+    let hero = hero_of(&units, &heroes, 1);
+    let ids = tab_a.unit_ids();
+    let spots = tab_a.units();
+    let index = ids.iter().position(|&id| id == hero).expect("hero index");
+    let (hx, hz) = (f64::from(spots[index * 3]), f64::from(spots[index * 3 + 1]));
+    call(&mut tab_a, "select", json!({ "ids": [hero], "player": 1, "pubkey": OWNER }));
+    let plain = (hx + 16.0, hz);
+    let queued = (hx - 16.0, hz + 16.0);
+    right_click(&mut tab_a, plain);
+    advance(&mut tab_a, 2);
+    println!("probe plain_order={:?}", tab_a.current_order(hero));
+    set_shift(&mut tab_a, true);
+    right_click(&mut tab_a, queued);
+    set_shift(&mut tab_a, false);
+    let queue_len = tab_a.order_queue_len(hero);
+    println!("probe queued_shift_len={queue_len} current={:?} queued_target={queued:?}", tab_a.current_order(hero));
+    assert!(queue_len > 0, "a shift-queued move enters the per-unit order queue");
+
+    let bytes = tab_a.save_state();
+    let mut tab_b = Game::new(&image).expect("second tab");
+    load_pack(&mut tab_b, &dir);
+    tab_b.set_fog(false);
+    tab_b.load_state(&bytes).expect("resync from keyframe");
+    println!("probe keyframe bytes={} reserialised_equal={} ticks={}", bytes.len(), tab_b.save_state() == bytes, tab_b.ticks());
+    let (len_a, len_b) = (tab_a.order_queue_len(hero), tab_b.order_queue_len(hero));
+    let (order_a, order_b) = (tab_a.current_order(hero), tab_b.current_order(hero));
+    println!("probe resync_queue_len a={len_a} b={len_b} current_a={order_a:?} current_b={order_b:?}");
+    assert_eq!(len_a, len_b, "the queue survives the keyframe");
+    assert_eq!(order_a, order_b, "the issued order matches after resync");
+    advance(&mut tab_a, 40);
+    advance(&mut tab_b, 40);
+    let (after_a, after_b) = (tab_a.current_order(hero), tab_b.current_order(hero));
+    let (queue_after_a, queue_after_b) = (tab_a.order_queue_len(hero), tab_b.order_queue_len(hero));
+    println!("probe after_40 queue_a={queue_after_a} queue_b={queue_after_b} current_a={after_a:?} current_b={after_b:?}");
+    assert_eq!(queue_after_a, queue_after_b, "the queue drains the same on both tabs");
+    assert_eq!(after_a, after_b, "the issued order matches on both tabs after 40 ticks");
+}
+
 #[test]
 fn probe_win_screen() {
     let dir = scenario_dir();

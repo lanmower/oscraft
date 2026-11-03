@@ -271,6 +271,15 @@ impl Game {
         self.host.sim_mut().queue_clear(unit as usize)
     }
 
+    pub fn order_queue_len(&self, unit: u32) -> u32 {
+        self.host.sim().queue_len(unit as usize) as u32
+    }
+
+    pub fn current_order(&self, unit: u32) -> Vec<i32> {
+        let (kind, x, y) = self.host.sim().order_of(unit as usize);
+        vec![i32::from(kind), x, y]
+    }
+
     pub fn class_override(&self, unit: u32) -> i32 {
         self.host.sim().class_override_of(unit as usize).map_or(-1, i32::from)
     }
