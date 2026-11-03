@@ -8,6 +8,7 @@ local DEPOTS = {
 local NEUTRAL_SLOT = 9
 local config = require("config")
 local announce = require("announce")
+local courier = require("courier")
 local item_forms = require("item_forms")
 local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 
@@ -160,6 +161,9 @@ local function take_out(unit, slot, state)
 end
 
 local couriers = {}
+local deliveries = {}
+local delivery_notes = {}
+local DELIVERY_SETTLE_TICKS = 2
 
 local function courier_name(u)
   return "courier:" .. u
@@ -197,6 +201,7 @@ end
 
 local function carry(caster, target, reach, state)
   if target == caster or not unit_alive(target) or game.hostile(unit_player(caster), unit_player(target)) then return end
+  if deliveries[caster] ~= nil then return end
   local c = couriers[caster]
   if c == nil then
     local hx, hy = unit_position(caster)
@@ -210,6 +215,113 @@ local function carry(caster, target, reach, state)
   local tx, ty = unit_position(target)
   game.cmd_order(caster, tx, ty)
   game.timer(courier_name(caster), 1, function() courier_step(caster) end, 1)
+end
+
+local function delivery_name(c)
+  return "delivery:" .. c
+end
+
+local function finish_delivery(c)
+  deliveries[c] = nil
+  courier.errand[c] = nil
+  game.cancel_timer(delivery_name(c))
+end
+
+local function courier_of(hero)
+  return courier.first(game.units(unit_player(hero)))
+end
+
+local function delivery_step(c)
+  local job = deliveries[c]
+  if job == nil or not unit_alive(c) or not unit_alive(job.hero) then
+    finish_delivery(c)
+    return
+  end
+  local reroute = game.time() % REROUTE_TICKS == 0
+  if job.phase == "fetch" then
+    local place = job.place
+    if game.within(c, place.x, place.y, place.reach) then
+      game.cmd_buy(c, job.item)
+      job.phase = "deliver"
+      job.bought_at = game.ticks()
+    elseif reroute then
+      game.cmd_order(c, place.x, place.y)
+    end
+  elseif job.phase == "deliver" then
+    if game.ticks() < job.bought_at + DELIVERY_SETTLE_TICKS then return end
+    local hx, hy = unit_position(job.hero)
+    if game.within(c, hx, hy, COURIER_REACH_MILLI) then
+      job.drops = {}
+      for _, row in ipairs(game.unit_items(c)) do
+        job.drops[#job.drops + 1] = game.cmd_drop_item(c, row.slot, hx, hy)
+      end
+      if #job.drops == 0 then delivery_notes[unit_player(job.hero)] = "shopRefused" end
+      job.phase = "pickup"
+      job.dropped_at = game.ticks()
+    elseif reroute then
+      game.cmd_order(c, hx, hy)
+    end
+  elseif job.phase == "pickup" then
+    if game.ticks() < job.dropped_at + DELIVERY_SETTLE_TICKS then return end
+    for _, gid in ipairs(job.drops) do game.cmd_pickup_item(job.hero, gid) end
+    finish_delivery(c)
+    courier.send_home({ c }, nil)
+  end
+end
+
+local function courier_state(hero)
+  if not unit_alive(hero) then return nil, "dead" end
+  local c = courier_of(hero)
+  if c == nil then return nil, "noCourier" end
+  if deliveries[c] ~= nil or couriers[c] ~= nil then return nil, "busy" end
+  return c
+end
+
+local function route_context(hero)
+  local c, reason = courier_state(hero)
+  return { hero = hero, courier = c, reason = reason, here = shops.reachable_items(hero) }
+end
+
+local function route_in(ctx, item)
+  local def = game.item_info(item)
+  if def == nil or def.no_buy or not shops.listed(def.name) then return nil, "no-item" end
+  if not unit_alive(ctx.hero) then return nil, "dead" end
+  if ctx.here[def.name] then return "direct" end
+  if ctx.courier == nil then return nil, ctx.reason end
+  return "courier", ctx.courier
+end
+
+local function delivery_route(hero, item)
+  return route_in(route_context(hero), item)
+end
+
+local function buy(hero, item)
+  local route, c = delivery_route(hero, item)
+  if route == "direct" then
+    game.cmd_buy(hero, item)
+    return true
+  end
+  if route == nil then return false, c end
+  delivery_notes[unit_player(hero)] = nil
+  deliveries[c] = { hero = hero, item = item, place = shops.nearest_seller(c, game.item_info(item).name), phase = "fetch" }
+  courier.errand[c] = true
+  game.timer(delivery_name(c), 1, function() delivery_step(c) end, 1)
+  delivery_step(c)
+  return true
+end
+
+local function stock_status(player, item)
+  local def = game.item_info(item)
+  if def == nil or def.stock_max <= 0 then return nil end
+  local s = stock_of(game.team(player), item, def, game.time())
+  local seconds = 0
+  if s.next_at ~= 0 then seconds = math.ceil((s.next_at - game.time()) / TICKS_PER_SECOND) end
+  return s.count, seconds
+end
+
+local function courier_at_shop(hero)
+  local c = courier_of(hero)
+  return c ~= nil and shops.at_any(c)
 end
 
 local function net_worth(unit)
@@ -237,4 +349,10 @@ return {
   sale_refund = sale_refund,
   sale_refusal = sale_refusal,
   in_reach = function(unit) return depot_tags_in_reach(unit) ~= 0 end,
+  buy = buy,
+  route_context = route_context,
+  route_in = route_in,
+  courier_at_shop = courier_at_shop,
+  stock_status = stock_status,
+  delivery_note = function(player) return delivery_notes[player] end,
 }

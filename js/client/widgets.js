@@ -329,11 +329,18 @@ function observeFit(grid, maxCols) {
   new ResizeObserver(lay).observe(grid);
 }
 
+function withModifiers(args, ev) {
+  const extra = {};
+  if (ev?.altKey) extra.alt = true;
+  if (ev?.ctrlKey) extra.ctrl = true;
+  return Object.keys(extra).length ? { ...(args ?? {}), ...extra } : args ?? {};
+}
+
 function actionable(e, send, call, args) {
   e.dataset.key = keyOf(call, args);
   e.tabIndex = 0;
   e.setAttribute("role", "button");
-  e.onclick = () => send(call, args);
+  e.onclick = (ev) => send(call, withModifiers(args, ev));
   e.onkeydown = (ev) => {
     if (ev.key !== "Enter" && ev.key !== " ") return;
     ev.preventDefault();
@@ -512,7 +519,7 @@ export function buildNode(n, send, panel = null) {
       e.disabled = n.disabled === true;
       if (n.call) {
         e.dataset.key = keyOf(n.call, n.args);
-        e.onclick = () => send(n.call, n.args ?? {});
+        e.onclick = (ev) => send(n.call, withModifiers(n.args, ev));
       }
       break;
     case "input":
@@ -556,7 +563,7 @@ export function buildNode(n, send, panel = null) {
         e.dataset.key = keyOf(n.call, n.args);
         e.tabIndex = 0;
         e.setAttribute("role", "button");
-        e.onclick = () => send(n.call, n.args ?? {});
+        e.onclick = (ev) => send(n.call, withModifiers(n.args, ev));
         e.onkeydown = (ev) => {
           if (ev.key !== "Enter" && ev.key !== " ") return;
           ev.preventDefault();

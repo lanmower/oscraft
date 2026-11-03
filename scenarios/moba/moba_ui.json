@@ -210,7 +210,41 @@
       "selected": "Selected shop",
       "stock": "This shop sells",
       "inReach": "your hero is in reach",
-      "outOfReach": "move your hero closer to buy"
+      "outOfReach": "move your hero closer to buy",
+      "tip": {
+        "cost": "Costs",
+        "charges": "Consumable with",
+        "chargesEnd": "charges.",
+        "noEffect": "No passive stats; it works through its ability or as a recipe part.",
+        "builds": "Builds from",
+        "noTree": "No build tree.",
+        "stockLeft": "Stock left:",
+        "stockOut": "Out of stock.",
+        "restockIn": "Restocks in",
+        "partOf": "Part of",
+        "partOfNone": "Not a part of any item.",
+        "buy": "Buying pays the cost less the value of owned parts, which are used up; the item goes to the first free inventory slot, else the stash.",
+        "from": {
+          "direct": "Buy from here: yes, your hero is in reach of a seller.",
+          "courier": "Buy from here: yes, your courier fetches it from the nearest seller.",
+          "none": "Buy from here: no."
+        }
+      },
+      "shortfall": "Needs $gold gold more for this item.",
+      "shortfallBuyback": "Needs $gold gold more for this item, buyback ($buyback gold) included.",
+      "affordable": "You can afford this item now.",
+      "offHand": {
+        "menu": "Off-hand: no shop is in reach of your hero or courier. Buy sends your courier to the nearest shop that sells the item.",
+        "buy": "Buy through your courier: it fetches the item from the nearest shop and brings it to your hero.",
+        "denied": {
+          "no-item": "No shop sells this item.",
+          "noCourier": "You have no courier to send.",
+          "busy": "Your courier is already on an errand.",
+          "dead": "Your hero is dead.",
+          "shopRefused": "Your courier came back empty: the shop refused the purchase.",
+          "noHero": "Select a hero first."
+        }
+      }
     },
     "group": {
       "selected": "selected",

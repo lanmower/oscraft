@@ -44,6 +44,7 @@ local REPLAY_NOTE = nil
 local OPEN = { shop = false, scoreboard = false, controls = false, networth = false }
 local SELL_ARMED = nil
 local SELECTED_SHOP = nil
+local SHORTFALL_NOTE = nil
 local SHOP_PRESS = nil
 local PICK_MILLI = 1800
 local SLOP_CELLS = 0.25
@@ -483,18 +484,101 @@ local function shop_filters()
   }, "col")
 end
 
+local function stock_sentence(i)
+  local count, seconds = store.stock_status(LOCAL, i)
+  if count == nil then return nil end
+  if count > 0 then return TEXT.shop.tip.stockLeft .. " " .. tostring(count) .. "." end
+  return TEXT.shop.tip.stockOut .. " " .. TEXT.shop.tip.restockIn .. " " .. tostring(seconds) .. "s."
+end
+
 local function build_section(kind, hero)
   local list = kind and BUILDS[kind] or {}
   local rows = {}
   for _, item in ipairs(list) do
     local def = game.item_info(item)
-    if def ~= nil then rows[#rows + 1] = label(def.name .. "  " .. tostring(def.cost) .. TEXT.costSuffix, "muted") end
+    if def ~= nil then
+      local text = def.name .. "  " .. tostring(def.cost) .. TEXT.costSuffix
+      local stock = stock_sentence(item)
+      if stock ~= nil then text = text .. "  " .. stock end
+      rows[#rows + 1] = label(text, "muted")
+    end
   end
   local body = #rows > 0 and box(rows, "col") or label(TEXT.shop.buildNone, "faint")
   return box({
     box({ label(TEXT.shop.build, "faint"), button(TEXT.shop.quickBuy, "quick_buy", "{}", hero == nil or #list == 0) }, "row"),
     body,
   }, "col")
+end
+
+local parents_by_item = nil
+
+local function parents_of(name)
+  if parents_by_item == nil then
+    parents_by_item = {}
+    local i = 0
+    while true do
+      local def = game.item_info(i)
+      if def == nil then break end
+      for _, c in ipairs(def.components) do
+        local part = game.item_info(c).name
+        local list = parents_by_item[part] or {}
+        if list[#list] ~= i then list[#list + 1] = i end
+        parents_by_item[part] = list
+      end
+      i = i + 1
+    end
+  end
+  return parents_by_item[name] or {}
+end
+
+local function priced(def)
+  return def.name .. " " .. tostring(def.cost) .. TEXT.costSuffix
+end
+
+local function component_text(c)
+  local def = game.item_info(c)
+  local subs = {}
+  for _, s in ipairs(def.components) do subs[#subs + 1] = priced(game.item_info(s)) end
+  if #subs == 0 then return priced(def) end
+  return priced(def) .. " (" .. join(subs, ", ") .. ")"
+end
+
+local function effect_sentence(def)
+  local stats = stats_text(def.stats)
+  if stats ~= "" then return stats .. "." end
+  if def.charges > 0 then return TEXT.shop.tip.charges .. " " .. tostring(def.charges) .. " " .. TEXT.shop.tip.chargesEnd end
+  return TEXT.shop.tip.noEffect
+end
+
+local function tree_sentences(def)
+  local out = {}
+  if #def.components > 0 then
+    local parts = {}
+    for _, c in ipairs(def.components) do parts[#parts + 1] = component_text(c) end
+    out[#out + 1] = TEXT.shop.tip.builds .. " " .. join(parts, " + ") .. "."
+  else
+    out[#out + 1] = TEXT.shop.tip.noTree
+  end
+  local owners = {}
+  for _, p in ipairs(parents_of(def.name)) do owners[#owners + 1] = priced(game.item_info(p)) end
+  if #owners > 0 then out[#out + 1] = TEXT.shop.tip.partOf .. " " .. join(owners, ", ") .. "." end
+  return out
+end
+
+local function reach_sentence(hero, route, reason)
+  if hero == nil then return TEXT.shop.tip.from.none .. " " .. TEXT.refusals.noHero end
+  if route == "direct" then return TEXT.shop.tip.from.direct end
+  if route == "courier" then return TEXT.shop.tip.from.courier end
+  return TEXT.shop.tip.from.none .. " " .. (TEXT.shop.offHand.denied[reason] or reason)
+end
+
+local function item_tip(def, hero, route, reason, stock)
+  local out = { effect_sentence(def), TEXT.shop.tip.cost .. " " .. tostring(def.cost) .. TEXT.costSuffix .. "." }
+  if stock ~= nil then out[#out + 1] = stock end
+  for _, s in ipairs(tree_sentences(def)) do out[#out + 1] = s end
+  out[#out + 1] = TEXT.shop.tip.buy
+  out[#out + 1] = reach_sentence(hero, route, reason)
+  return join(out, " ")
 end
 
 local function shop_tree()
@@ -511,35 +595,56 @@ local function shop_tree()
     return def.cost
   end
 
+  local route_ctx = hero ~= nil and store.route_context(hero) or nil
+
+  local function route_of(i)
+    if route_ctx == nil then return nil, "noHero" end
+    return store.route_in(route_ctx, i)
+  end
+
   local function item_cell(i, def)
     local tone = gold >= price_of(i, def) and "gold" or "bad"
     local name_tone = i == pick and "accent" or "strong"
-    return cell({
-      label(def.name, name_tone),
-      label(tostring(def.cost) .. TEXT.costSuffix, tone),
-    }, { tip = def.name, call = "shop_pick", args = obj({ I("item", i) }) })
+    local route, reason = route_of(i)
+    local stock = stock_sentence(i)
+    local kids = { label(def.name, name_tone), label(tostring(def.cost) .. TEXT.costSuffix, tone) }
+    if stock ~= nil then kids[#kids + 1] = label(stock, "faint") end
+    return cell(kids, { tip = item_tip(def, hero, route, reason, stock), call = "shop_pick", args = obj({ I("item", i) }) })
   end
 
   local function pick_detail(i, def)
-    local reachable = hero ~= nil and shops.sold_in_reach(hero, def.name)
+    local route, reason = route_of(i)
     local afford = gold >= price_of(i, def)
     local buy_tip = nil
     if hero == nil then buy_tip = TEXT.refusals.noHero
-    elseif not reachable then buy_tip = TEXT.shop.outOfReach end
+    elseif route == nil then buy_tip = TEXT.shop.offHand.denied[reason] or reason
+    elseif route == "courier" then buy_tip = TEXT.shop.offHand.buy end
+    local owners = {}
+    for _, p in ipairs(parents_of(def.name)) do owners[#owners + 1] = label(priced(game.item_info(p)), "muted") end
     local kids = {
       label(def.name, "strong"),
       label(tostring(def.cost) .. TEXT.costSuffix, afford and "gold" or "bad"),
       label("[" .. shop_names(def.name) .. "]", "faint"),
+      label(effect_sentence(def), "muted"),
+      label(TEXT.shop.tip.buy, "faint"),
+      label(reach_sentence(hero, route, reason), route == nil and "warn" or "ok"),
     }
-    local stats = stats_text(def.stats)
-    if stats ~= "" then kids[#kids + 1] = label(stats, "muted") end
+    local stock = stock_sentence(i)
+    if stock ~= nil then kids[#kids + 1] = label(stock, "faint") end
+    if SHORTFALL_NOTE ~= nil and SHORTFALL_NOTE.item == i then kids[#kids + 1] = label(SHORTFALL_NOTE.text, "warn") end
     kids[#kids + 1] = box({
-      button(TEXT.buy, "buy", obj({ I("item", i) }), hero == nil or not afford or not reachable, buy_tip),
+      button(TEXT.buy, "buy", obj({ I("item", i) }), hero == nil or not afford or route == nil, buy_tip),
       button(pins[i] and TEXT.shop.unpin or TEXT.shop.pin, "pin", obj({ I("item", i) }), kind == nil),
       button(in_build(kind, i) and TEXT.shop.removeBuild or TEXT.shop.addBuild, "build_toggle", obj({ I("item", i) }), kind == nil),
     }, "row")
     kids[#kids + 1] = label(TEXT.shop.recipeTree, "faint")
-    kids[#kids + 1] = box(recipe_lines(i, 0, {}), "col")
+    if #def.components > 0 then
+      kids[#kids + 1] = box(recipe_lines(i, 0, {}), "col")
+    else
+      kids[#kids + 1] = label(TEXT.shop.tip.noTree, "muted")
+    end
+    kids[#kids + 1] = label(#owners > 0 and TEXT.shop.tip.partOf or TEXT.shop.tip.partOfNone, "faint")
+    if #owners > 0 then kids[#kids + 1] = box(owners, "col") end
     return box(kids, "col")
   end
 
@@ -561,6 +666,11 @@ local function shop_tree()
   end
 
   local sections = { shop_filters() }
+  if hero ~= nil and not shops.at_any(hero) and not store.courier_at_shop(hero) then
+    sections[#sections + 1] = label(TEXT.shop.offHand.menu, "warn")
+  end
+  local note = store.delivery_note(LOCAL)
+  if note ~= nil then sections[#sections + 1] = label(TEXT.shop.offHand.denied[note] or note, "warn") end
   if SELECTED_SHOP ~= nil then
     local place = SELECTED_SHOP
     local tag_name = shops.TAG_NAME[place.tag] or "home"
@@ -1833,10 +1943,29 @@ local function refresh_lobby()
   emit("lobby", "modal", lobby_tree())
 end
 
+local function shortfall_note(who, item, with_buyback)
+  local hero = hero_of(who)
+  local def = game.item_info(item)
+  if hero == nil or def == nil then return nil end
+  local short = net_price(hero, item, def) - game.gold(who)
+  if short < 0 then short = 0 end
+  if not with_buyback then
+    if short == 0 then return TEXT.shop.affordable end
+    return fill(TEXT.shop.shortfall, { gold = tostring(short) })
+  end
+  local buyback = heroes.buyback_quote(hero)
+  return fill(TEXT.shop.shortfallBuyback, { gold = tostring(short + buyback), buyback = tostring(buyback) })
+end
+
 local function ui_call(who, call, a)
   if call == "buy" then
     local hero = hero_of(who)
-    if hero ~= nil then game.cmd_buy(hero, a.item) end
+    if hero ~= nil then
+      local ok, reason = store.buy(hero, a.item)
+      if not ok then
+        game.ui_event("feedback", obj({ I("player", who), S("kind", "refusal"), S("reason", reason), S("text", TEXT.shop.offHand.denied[reason] or reason) }))
+      end
+    end
   elseif call == "toggle" then
     if OPEN[a.panel] ~= nil then OPEN[a.panel] = not OPEN[a.panel] end
   elseif call == "sell" then
@@ -1928,6 +2057,10 @@ local function ui_call(who, call, a)
   elseif call == "shop_pick" then
     local kind = shop_kind(who)
     if kind ~= nil then SHOP_PICK[kind] = a.item end
+    SHORTFALL_NOTE = nil
+    if kind ~= nil and a.alt == true then
+      SHORTFALL_NOTE = { item = a.item, text = shortfall_note(who, a.item, a.ctrl == true) }
+    end
   elseif call == "pin" then
     local kind = shop_kind(who)
     if kind ~= nil then

@@ -114,6 +114,7 @@ local DROP_EXEMPT = {
 local PICKUP_DELAY_TICKS = 2
 local pending_pickups = {}
 local stop_visit = {}
+local errand = {}
 
 local function in_base(id)
   local rect = BASES[game.team(unit_player(id)) == 0 and 0 or 1]
@@ -280,7 +281,7 @@ end
 
 local function tend_couriers()
   for _, id in ipairs(game.units(nil)) do
-    if is_courier(id) and not deliver(id) then
+    if is_courier(id) and errand[id] == nil and not deliver(id) then
       tend(id)
     end
   end
@@ -409,6 +410,7 @@ return {
   shared = M.shared,
   first = M.first,
   send_home = M.send_home,
+  errand = errand,
   command = M.command,
   on_died = function(unit, killer, killer_player, amount, victim_player)
     local kind = game.unit_kind(unit)
