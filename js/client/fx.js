@@ -323,7 +323,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     f.x = at.x; f.y = at.top * 0.5; f.z = at.z; f.t = 0; f.dur = kind.seconds ?? DEFAULT_FLASH_S; f.color = color;
   }
 
-  function launch(from, to, targetId, colourName, kind, arc = 0) {
+  function launch(from, to, targetId, colourName, kind, arc, sc) {
     const p = spawn(projectiles);
     if (!p) return;
     p.from.x = from.x; p.from.y = from.top * 0.6; p.from.z = from.z;
@@ -335,7 +335,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     p.arrow = kind.model === "arrow";
     p.speed = kind.speed > 0 ? kind.speed : DEFAULT_PROJECTILE_SPEED;
     p.arrive = kind.arrive ?? [];
-    p.size = kind.size > 0 ? kind.size : DEFAULT_PROJECTILE_SIZE;
+    p.size = (kind.size > 0 ? kind.size : DEFAULT_PROJECTILE_SIZE) * sc;
     const trail = kind.trail;
     p.trailCount = trail && trail.count > 0 && trail.seconds > 0 ? Math.min(MAX_TRAIL, trail.count | 0) : 0;
     p.trailSeconds = p.trailCount > 0 ? trail.seconds : 0;
@@ -376,6 +376,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   }
 
   const num = (v, fallback, sc = 1) => (v ?? fallback) * sc;
+  const scaleOf = (e) => (e.scale > 0 ? e.scale / 1000 : 1);
 
   function show(kind, colourName, at, e) {
     const c = colourOf(colourName);
@@ -408,7 +409,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
   }
 
   function showShape(kind, c, at, e) {
-    const sc = e.scale > 0 ? e.scale / 1000 : 1;
+    const sc = scaleOf(e);
     const dur = e.duration > 0 ? e.duration / 1000 : kind.seconds;
     const color = rgbOf(c);
     const anchor = e.target >= 0 ? e.target : (e.source ?? -1);
@@ -508,7 +509,7 @@ export function createFx({ renderer, game, toScreen, groundAt, playerColor, sele
     const colourName = e.colour || kind.colour || "";
     if (kind.renderer === "projectile") {
       const arc = kind.unit_arc ? missileArcFraction(e.source) : 0;
-      launch(anchorOf(e.source, e.x, e.y), anchorOf(e.target, e.x, e.y), e.target, colourName, kind, arc);
+      launch(anchorOf(e.source, e.x, e.y), anchorOf(e.target, e.x, e.y), e.target, colourName, kind, arc, scaleOf(e));
       return;
     }
     show(kind, colourName, anchorOf(e.target >= 0 ? e.target : e.source, e.x, e.y), e);

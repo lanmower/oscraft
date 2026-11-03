@@ -26,12 +26,63 @@ local function load_buff_looks()
 end
 local BUFF_LOOKS = load_buff_looks()
 
+local BUFF_TICKS_PER_SECOND = 16
+local BUFF_AURA_BASE_RADIUS = 1.2
+local BUFF_SWEEP_UNITS = 16
+local buff_seen, buff_cursor = {}, 0
+
+local function buff_look(name)
+  local look = BUFF_LOOKS and BUFF_LOOKS.kinds[name]
+  if look == nil then return "spell", BUFF_AURA_BASE_RADIUS end
+  return look.school, look.r
+end
+
+local function emit_buff_aura(holder, name, school, radius, ms)
+  game.effect("fx_aura", 0, 0, {
+    target = holder,
+    colour = school,
+    duration = ms,
+    name = name,
+    scale = math.floor(radius * 1000 / BUFF_AURA_BASE_RADIUS + 0.5),
+  })
+end
+
 local function buff_aura(caster, ability_name)
   if BUFF_LOOKS == nil then return end
   local kind, school, ms = BUFF_LOOKS.aura_for(ability_name)
   if kind == nil then return end
   local holder = game.cast_target(caster) or caster
-  game.effect("fx_aura", 0, 0, { target = holder, colour = school, duration = ms, name = kind })
+  emit_buff_aura(holder, kind, school, BUFF_LOOKS.kinds[kind].r, ms)
+end
+
+local function scan_buffs(unit)
+  local list = game.unit_buffs(unit)
+  if #list == 0 then
+    buff_seen[unit] = nil
+    return
+  end
+  local before = buff_seen[unit]
+  local now = {}
+  for _, b in ipairs(list) do
+    local name = "behaviour_" .. b.kind
+    local left = b.left
+    now[name] = left
+    local was = before and before[name]
+    if left > 0 and (was == nil or left > was) then
+      local school, radius = buff_look(name)
+      emit_buff_aura(unit, name, school, radius, math.floor(left * 1000 / BUFF_TICKS_PER_SECOND))
+    end
+  end
+  buff_seen[unit] = now
+end
+
+local function sweep_buffs()
+  local count = get_unit_count()
+  if buff_cursor >= count then buff_cursor = 0 end
+  local stop = buff_cursor + BUFF_SWEEP_UNITS
+  if stop > count then stop = count end
+  for unit = buff_cursor, stop - 1 do scan_buffs(unit) end
+  buff_cursor = stop
 end
 
 local SCHOOLS = { "fire", "frost", "lightning", "nature", "shadow", "holy", "arcane", "poison", "blood", "earth", "wind", "physical" }
@@ -122,6 +173,7 @@ end
 local function forget_all_cached_state()
   level_at_last_tick, alive_at_last_tick, xp_level_was_read_from = {}, {}, {}
   hero_ids, unit_count_at_last_scan = {}, -1
+  buff_seen, buff_cursor = {}, 0
 end
 
 game.trigger("on_died", {
@@ -183,6 +235,7 @@ return {
   end,
 
   on_tick = function()
+    sweep_buffs()
     for _, i in ipairs(heroes()) do
       local level = level_recomputed_only_when_xp_moves(i)
       local alive = game.alive(i)
