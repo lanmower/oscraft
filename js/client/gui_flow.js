@@ -32,15 +32,6 @@ button.flow-mode { cursor: pointer; }
 button.flow-mode:hover, button.flow-mode:focus { border-color: #6f92d8; outline: none; }
 .flow-mode[data-on="true"] { border-color: #6f92d8; color: #e8ecf4; background: rgba(30,44,74,.9); }
 button.flow-mode:disabled { cursor: default; opacity: .6; }
-.flow-teams { display: flex; gap: 4vw; }
-.flow-team { padding: 7vh 8vh; border: 2px solid #2c3648; border-radius: 18px; background: rgba(18,24,34,.8);
-  cursor: pointer; text-align: center; color: #e8ecf4; font: inherit; }
-.flow-team:hover, .flow-team:focus { border-color: #6f92d8; outline: none; }
-.flow-team:disabled { opacity: .45; cursor: default; }
-.flow-team[data-team="0"] { border-color: #2f5da8; }
-.flow-team[data-team="1"] { border-color: #a8422f; }
-.flow-team h2 { margin: 0 0 6px; font-size: 26px; }
-.flow-team-count { font-size: 13px; color: #8fa4c4; }
 .flow-hero-bar { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap;
   width: min(94vw, 1240px); }
 .flow-team-chip { padding: 5px 14px; border: 1px solid #2f5da8; border-radius: 999px; font-size: 13px;
@@ -94,8 +85,6 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
 .flow-error { min-height: 1.2em; font-size: 13px; color: #ffab8f; text-align: center; }
 .flow-wait { font-size: 14px; color: #93a3bd; }
 @media (max-width: 600px) {
-  .flow-teams { flex-direction: column; gap: 3vh; align-items: stretch; }
-  .flow-team { padding: 4vh 6vw; }
   .flow-board { display: flex; gap: 0; height: 64vh; overflow-x: auto; overflow-y: hidden;
     scroll-snap-type: x mandatory; touch-action: pan-x; }
   .flow-board > .flow-group { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always; }
@@ -124,10 +113,10 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
   const groupOf = (hero) => (GROUPS.some((g) => g.id === hero.group) ? hero.group : 1);
 
   const stageOf = (state) => {
-    if (hidden || state.draft === true) return null;
+    if (hidden || state.draft === true || !state.slots?.length) return null;
     if (state.started === true) return "wait";
     const seat = mySeat(state);
-    if (seat < 0) return "team";
+    if (seat < 0) return "join";
     return seatsOf(state)[seat].hero ? "podium" : "hero";
   };
 
@@ -178,20 +167,13 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     if (open >= 0) act("claim", { slot: open });
   };
 
-  const teamStage = (state) => {
-    const row = node("div", "flow-teams");
-    const seats = seatsOf(state);
-    teamNames.forEach((name, team) => {
-      const filled = seats.filter((seat, i) => teamOf(i) === team && seat.owner).length;
-      const card = node("button", "flow-team");
-      card.type = "button";
-      card.dataset.team = String(team);
-      card.disabled = filled >= TEAM_SIZE;
-      card.append(node("h2", "", name), node("span", "flow-team-count", `${filled}/${TEAM_SIZE} seated`));
-      card.addEventListener("click", () => claimTeam(state, team));
-      row.append(card);
-    });
-    el.append(node("h1", "", "Choose your team"), node("div", "flow-modes-label", "Game mode"), modeChips(state, true), row, errorLine(state));
+  const joinButton = (state, team) => {
+    const open = seatsOf(state).some((seat, i) => teamOf(i) === team && !seat.owner);
+    const join = node("button", "flow-action", `Join ${teamNames[team] ?? `Team ${team + 1}`}`);
+    join.type = "button";
+    join.disabled = !open;
+    join.addEventListener("click", () => claimTeam(state, team));
+    return join;
   };
 
   const pickHero = (hero) => {
@@ -322,12 +304,12 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     return bar;
   };
 
-  const podiumStage = (state) => {
+  const lobbyBoard = (state, joining) => {
     const seats = seatsOf(state);
     const seat = mySeat(state);
     const heroes = heroesOf(state);
-    const waiting = stage === "wait";
-    el.append(node("h1", "", waiting ? "Loading the match" : "Teams ready to fight"));
+    el.append(node("h1", "", joining ? "Lobby" : "Teams ready to fight"));
+    el.append(node("div", "flow-modes-label", "Game mode"), modeChips(state, true));
     const board = node("div", "flow-orient");
     [0, 1].forEach((team) => {
       const side = node("div", "flow-side");
@@ -335,15 +317,14 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
       const ready = seats.filter((s, i) => teamOf(i) === team && s.owner && s.ready).length;
       const head = node("div", "flow-side-head");
       head.append(node("b", "", teamNames[team] ?? `Team ${team + 1}`), node("span", "", `${ready}/${TEAM_SIZE} ready`));
+      if (joining) head.append(joinButton(state, team));
       side.append(head);
-      for (let i = team * TEAM_SIZE; i < (team + 1) * TEAM_SIZE; i += 1) side.append(stand(seats[i], i === seat, heroes, !waiting && state.host === me() ? i : -1));
+      for (let i = team * TEAM_SIZE; i < (team + 1) * TEAM_SIZE; i += 1) side.append(stand(seats[i], i === seat, heroes, state.host === me() ? i : -1));
       board.append(side);
     });
-    el.append(board);
-    if (!waiting) el.append(actionBar(state, seat, seats));
-    el.append(errorLine(state));
+    el.append(board, actionBar(state, seat, seats), errorLine(state));
     const allReady = seats.every((s) => s.owner && s.ready);
-    el.append(node("div", "flow-wait", waiting ? "Starting the match…" : allReady ? "Every seat is ready." : "Standing by for the match…"));
+    el.append(node("div", "flow-wait", allReady ? "Every seat is ready." : "Standing by for the match…"));
   };
 
   const render = () => {
@@ -352,13 +333,13 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     tileFitter?.disconnect();
     stage = stageOf(state);
     el.dataset.stage = stage ?? "";
-    el.hidden = stage == null;
+    el.hidden = stage == null || stage === "wait";
     if (stage == null) delete document.body.dataset.flow;
     else document.body.dataset.flow = stage;
     el.replaceChildren(style);
-    if (stage === "team") teamStage(state);
+    if (stage === "join") lobbyBoard(state, true);
+    else if (stage === "podium") lobbyBoard(state, false);
     else if (stage === "hero") heroStage(state);
-    else if (stage === "podium" || stage === "wait") podiumStage(state);
     refreshIcons();
     podiumShown = stage === "podium" || stage === "wait";
     if (podiumShown) onPodium?.(seatsOf(state));
@@ -380,6 +361,10 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     },
     refreshLobby: render,
     refreshIcons,
+    show: () => {
+      hidden = false;
+      render();
+    },
     hide: () => {
       hidden = true;
       render();

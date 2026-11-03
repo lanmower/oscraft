@@ -370,7 +370,7 @@ function routeUi(ev) {
       flowLobby = { ...flowLobby, ...data, started: false };
       preloadPickedModels(data.slots);
       flowLoadIcons(data.heroes);
-      guiFlow?.refreshLobby?.();
+      guiFlow?.show?.();
       return;
     }
     flowLobby = { ...flowLobby, slots: data.slots, started: true };

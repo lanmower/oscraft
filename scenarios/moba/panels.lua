@@ -1043,6 +1043,7 @@ local function lobby_started_event()
 end
 
 local function lobby_seats_event()
+  if LOBBY.started then return end
   local items = {}
   for _, s in ipairs(LOBBY.slots) do
     items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true), S("model", s.hero and hero_model(s.hero) or "") })
@@ -1609,8 +1610,6 @@ local function lobby_tree()
   end
   local host = LOBBY.host == OWNER
   return panel(TEXT.lobby.title, {
-    box({ team_strip(0), team_strip(1) }, "row"),
-    box({ box(attribute_rows(mine), "col"), hero_card(mine) }, "row"),
     mode_row(host),
     box({
       label(composition(), "muted"),
@@ -1618,6 +1617,8 @@ local function lobby_tree()
       button(TEXT.lobby.fillBots, "fill", "{}", not (host and any_open())),
       button(LOBBY.worldReady and TEXT.lobby.startMatch or TEXT.lobby.loadingWorld, "start", "{}", not (host and all_ready() and LOBBY.worldReady)),
     }, "row"),
+    box({ team_strip(0), team_strip(1) }, "row"),
+    box({ box(attribute_rows(mine), "col"), hero_card(mine) }, "row"),
   })
 end
 
