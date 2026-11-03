@@ -6,9 +6,9 @@ creep	melee-creep-skinned	lane creep: skinned build (units.osd model)	character-
 tender	character-female-a	support hero, female build	character-female-b	character-female-a
 objective	pillar-obelisk	objective pillar (kept)	column	pillar-obelisk
 roshan	roshan-skinned	Roshan: rigged hy3d build (28 joints, KTX2 base colour, 256 px)	roshan-lowpoly	character-orc
-bounty_rune	coin	bounty rune: coin pickup (PLACEHOLDER prop; hy3d request row content-model-request-bounty-rune)	key	pillar-obelisk
-observer_ward	candle	observer ward: small light (PLACEHOLDER prop; hy3d request row content-model-request-observer-ward)	candle-multiple	pillar-obelisk
-sentry_ward	candle-multiple	sentry ward: group of lights (PLACEHOLDER prop; hy3d request row content-model-request-sentry-ward)	lantern	pillar-obelisk
+bounty_rune	bounty-rune	bounty rune: hy3d bounty_rune GLB	coin	coin
+observer_ward	observer-ward	observer ward: hy3d observer_ward GLB	candle	candle
+sentry_ward	sentry-ward	sentry ward: hy3d sentry_ward GLB	candle-multiple	candle-multiple
 courier	courier-skinned	courier: skinned build (units.osd model)	character-keeper	character-skeleton
 creep_ranged	ranged-creep-skinned	lane creep: skinned build (units.osd model)	character-human	character-skeleton
 creep_siege	siege-creep-skinned	lane creep: skinned build (units.osd model)	character-zombie	character-skeleton
