@@ -182,18 +182,37 @@ function foldablePanel(n, send, panel) {
 }
 
 const SWIPE_PHONE = typeof matchMedia === "function" ? matchMedia("(max-width: 640px)") : null;
-const regionPicksByPanelId = new Map();
+const shownGroupByPanel = new Map();
+
+function rememberShown(e, at) {
+  const panelId = e.closest(".w-root")?.dataset.id;
+  if (panelId === undefined || !e.dataset.region) return;
+  if (!shownGroupByPanel.has(panelId)) shownGroupByPanel.set(panelId, new Map());
+  shownGroupByPanel.get(panelId).set(e.dataset.region, at);
+}
+
+function restoreShown(root, panelId) {
+  const shown = shownGroupByPanel.get(panelId);
+  if (!shown) return;
+  for (const e of root.querySelectorAll(".w-regions[data-region]")) {
+    if (!shown.has(e.dataset.region)) continue;
+    const at = shown.get(e.dataset.region);
+    e.querySelectorAll(":scope > .w-region > .w-region-title").forEach((b, k) => b.setAttribute("aria-pressed", String(k === at)));
+    if (e.classList.contains("swipe") && e.clientWidth) e.scrollLeft = at * e.clientWidth;
+  }
+}
 
 function regionsOf(n, send) {
   const swipe = n.swipe === true && n.dir !== "column";
   const e = el("div", n.dir === "column" ? "w-regions col" : swipe ? "w-regions swipe" : "w-regions");
+  if (n.id) e.dataset.region = n.id;
   const titles = Array.isArray(n.titles) ? n.titles : [];
   const buttons = [];
   let picked = -1;
   const setPicked = (i) => {
     picked = i;
     buttons.forEach((b, k) => b.setAttribute("aria-pressed", String(k === i)));
-    if (n.id) regionPicksByPanelId.set(n.id, i);
+    rememberShown(e, i);
   };
   const pick = (i) => {
     if (swipe && SWIPE_PHONE?.matches) e.scrollTo({ left: i * e.clientWidth, behavior: "smooth" });
@@ -218,7 +237,6 @@ function regionsOf(n, send) {
     if (n.kids && n.kids[i]) region.append(buildNode(n.kids[i], send));
     e.append(region);
   }
-  if (n.id && regionPicksByPanelId.has(n.id)) setPicked(regionPicksByPanelId.get(n.id));
   if (!swipe) return e;
   const wrap = el("div", "w-swipe");
   const dots = el("div", "w-dots");
@@ -622,6 +640,7 @@ export function createWidgets({ send }) {
       const n = nodeFor(root, s.id);
       if (n && s.left) n.scrollLeft = s.left;
     }
+    restoreShown(root, entry.panel?.id);
     entry.host.scrollTop = hostTop;
     const n = focused && nodeFor(root, focused);
     if (n && n !== root && n.focus) n.focus({ preventScroll: true });
@@ -654,6 +673,7 @@ export function createWidgets({ send }) {
     }
     const opening = !entry.root.isConnected;
     if (opening) entry.host.appendChild(entry.root);
+    restoreShown(entry.root, id);
     if (entry.host.id === "ui-modal") labelModal(entry.host, entry.root, opening);
     if (HIDE_WHEN_EMPTY.has(entry.host.id)) entry.host.hidden = false;
     roots.set(id, entry);
