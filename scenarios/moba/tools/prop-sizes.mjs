@@ -14,6 +14,7 @@ const FOOTPRINT_MAX = 4;
 const MAX_NATIVE = 100;
 const UNIT_ONLY = /-(skinned|lowpoly)$/;
 export const UNIT_HEIGHT_IN_HEROES = { "roshan-skinned": 2.5 };
+const FOOTPRINT_OVERRIDES = Object.freeze({ "moon-well-lowpoly": 2.4255 });
 
 export function firstPrimitiveBounds(file) {
   const buf = fs.readFileSync(file);
@@ -44,7 +45,7 @@ export function propSizes(modelsDir, propStems = null) {
     const targetHeight = (ROLE_HEIGHT_IN_HEROES[role] ?? ROLE_HEIGHT_IN_HEROES.decoration) * heroHeight;
     const flat = b.h / b.foot < FLAT_RATIO;
     const footprint = (flat ? FLAT_FOOTPRINT_PER_TARGET * targetHeight : targetHeight * b.foot / b.h) * (stem.startsWith("fountain-") ? FOUNTAIN_FOOTPRINT_SCALE : 1);
-    sizes[stem] = Math.round(Math.min(FOOTPRINT_MAX, Math.max(FOOTPRINT_MIN, footprint, ROLE_FOOTPRINT_MIN[role] ?? 0)) * 1000) / 1000;
+    sizes[stem] = FOOTPRINT_OVERRIDES[stem] ?? Math.round(Math.min(FOOTPRINT_MAX, Math.max(FOOTPRINT_MIN, footprint, ROLE_FOOTPRINT_MIN[role] ?? 0)) * 1000) / 1000;
   }
   const units = {};
   for (const [stem, heroes] of Object.entries(UNIT_HEIGHT_IN_HEROES)) {

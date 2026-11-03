@@ -259,15 +259,15 @@ for (let i = 0; i < N * N; i++) if (!blocked[i] && dirtZone[i] && tiles[i] === 0
 const tileRects = rects((x, y) => tiles[y * N + x], (v) => v !== 0).map((r) => `paint_tile(${r[0]}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]})`);
 const tileCount = (id) => tiles.reduce((a, v) => a + (v === id ? 1 : 0), 0);
 
-const modelsDir = new URL("../../assets/models/", import.meta.url);
+const modelsDir = new URL("../assets/models/", import.meta.url);
 const unitModelsNamed = new Set();
 for (const file of fs.readdirSync(new URL("../", import.meta.url)).filter((f) => f.endsWith(".osd"))) {
-  for (const m of fs.readFileSync(new URL(file, import.meta.url), "utf8").matchAll(/^unit\("[^"]+"[^\n]*model="([^"]+)"/gm)) {
+  for (const m of fs.readFileSync(new URL("../" + file, import.meta.url), "utf8").matchAll(/^unit\("[^"]+"[^\n]*model="([^"]+)"/gm)) {
     unitModelsNamed.add(m[1]);
   }
 }
 const placedPropStems = new Set(
-  Object.values(JSON.parse(fs.readFileSync(new URL("../../assets/props.json", import.meta.url), "utf8")))
+  Object.values(JSON.parse(fs.readFileSync(new URL("../assets/props.json", import.meta.url), "utf8")))
     .filter((v) => typeof v === "string" && v.endsWith(".glb"))
     .map((v) => v.slice(v.lastIndexOf("/") + 1, -4))
     .filter((stem) => !(stem.endsWith("-skinned") && unitModelsNamed.has(stem))),
@@ -312,7 +312,7 @@ const castleRing = (cellX, cellY, r) => {
 };
 for (const b of bases) castleRing(cx(b.wx), cy(b.wy), footprintRadius(b.b) + BASE_DIRT_MARGIN + CASTLE_RING_EXTRA);
 for (const t of towerRows) castleRing(cx(t.x), cy(t.y), footprintRadius(t.bounds[0]) + TOWER_DIRT_MARGIN + CASTLE_RING_EXTRA);
-const KIND_MODEL = JSON.parse(fs.readFileSync(new URL("../../assets/props.json", import.meta.url), "utf8"));
+const KIND_MODEL = JSON.parse(fs.readFileSync(new URL("../assets/props.json", import.meta.url), "utf8"));
 const sizeOfKind = (kind) => propFootprints[(KIND_MODEL[kind] ?? "").replace(/^(js\/client\/)?models\//, "").replace(/\.glb$/, "") || kind.replace(/_/g, "-")] ?? 2 * 0.5;
 const footprintClear = (i, kind) => {
   const half = sizeOfKind(kind) / 2, x = i % N + 0.5, y = ((i / N) | 0) + 0.5;
@@ -329,7 +329,7 @@ if (fieldCells.length < scatterKinds.length) throw new Error(`field cells ${fiel
 scatterKinds.forEach((kind, k) => { const c = fieldCells[k * scatterStep]; if ((roleOf(kind.replace(/_/g, "-")) === "tree" || /stump|trunk|log/.test(kind)) && !footprintClear(c, kind)) return; cellDd(kind, [c % N, (c / N) | 0]); });
 treeCells.forEach((i) => { if (!clear(i)) return; const kind = pick("tree"); if (footprintClear(i, kind)) cellDd(kind, [i % N, (i / N) | 0]); });
 
-fs.writeFileSync(new URL("../../assets/prop_sizes.json", import.meta.url), JSON.stringify({ ...propFootprints, ...unitFootprints }, null, 1) + "\n");
+fs.writeFileSync(new URL("../assets/prop_sizes.json", import.meta.url), JSON.stringify({ ...propFootprints, ...unitFootprints }, null, 1) + "\n");
 
 const thingLine = (t) => `spawn("${t.unit}", ${t.player}, ${mx(t.wx)}, ${my(t.wy)})`;
 const header = [
