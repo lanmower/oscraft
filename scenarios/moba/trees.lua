@@ -8,12 +8,15 @@ local MOVE_CLEAR_MIN_UNITS = 75
 local REGROW_S, REGROW_FIRST_S, REGROW_FIRST_DEATHS = 300, 450, 20
 local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 local PICK_UNITS = 48
+local WARD_PICK_UNITS = 64
+local WARD_KINDS = { observer_ward = true, sentry_ward = true }
+local WARD_DAMAGE, DAMAGE_PHYSICAL = 500, 1
 
 local trees = {
   TELEPORT_CLEAR_UNITS = 240,
   SWAP_CLEAR_UNITS = 300,
   CUTTERS = {
-    item_tango = { heal = 115, heal_seconds = 16 },
+    item_tango = { heal = 115, ward_heal = 230, heal_seconds = 16 },
     item_quelling_blade = {},
   },
 }
@@ -124,11 +127,40 @@ function trees.ice_shards(caster, x, y)
 end
 
 local CHAIN_BASE, CHAIN_PER_LEVEL, CHAIN_LINK, CHAIN_REACH = 600, 200, 50, 90
+local CHAIN_HIT_UNITS, CHAIN_DAMAGE_BASE, CHAIN_DAMAGE_PER_LEVEL = 250, 60, 40
+local LENS_ITEM, LENS_CHAIN_BONUS = "aether_lens", 250
+local DAMAGE_MAGICAL = 2
+
+local function holds_item(unit, name)
+  for _, row in ipairs(game.unit_items(unit)) do
+    if row.name == name then return true end
+  end
+  return false
+end
+
+local function chain_hits(caster, cx, cy, dx, dy, found, rank)
+  local owner = unit_player(caster)
+  local link, radius = units_q16(CHAIN_LINK), units_q16(CHAIN_HIT_UNITS)
+  local amount = CHAIN_DAMAGE_BASE + CHAIN_DAMAGE_PER_LEVEL * rank
+  local hit = {}
+  for k = 0, found do
+    local px, py = math.floor(cx + dx * link * k), math.floor(cy + dy * link * k)
+    for _, unit in ipairs(game.units_near(px, py, radius)) do
+      if not hit[unit] and game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
+        hit[unit] = true
+        game.spell_damage(caster, unit, amount, DAMAGE_MAGICAL)
+      end
+    end
+  end
+end
+
 function trees.chain(caster, x, y, rank)
   local cx, cy = unit_position(caster)
   local dx, dy = direction(cx, cy, x, y)
   local link = units_q16(CHAIN_LINK)
-  local last = math.floor((CHAIN_BASE + CHAIN_PER_LEVEL * rank) / CHAIN_LINK)
+  local range = CHAIN_BASE + CHAIN_PER_LEVEL * rank
+  if holds_item(caster, LENS_ITEM) then range = range + LENS_CHAIN_BONUS end
+  local last = math.floor(range / CHAIN_LINK)
   local reach = units_q16(CHAIN_REACH)
   local found
   for k = 1, last do
@@ -139,6 +171,7 @@ function trees.chain(caster, x, y, rank)
     if found then break end
   end
   if not found then return false end
+  chain_hits(caster, cx, cy, dx, dy, found, rank)
   for k = found, 1, -1 do
     local px, py = math.floor(cx + dx * link * k), math.floor(cy + dy * link * k)
     trees.clear_square(px, py, CHAIN_REACH)
@@ -147,22 +180,44 @@ function trees.chain(caster, x, y, rank)
   return false
 end
 
+local function ward_within(x, y, owner)
+  local best, best_d = nil, nil
+  for _, u in ipairs(game.units_near(x, y, units_q16(WARD_PICK_UNITS))) do
+    if WARD_KINDS[game.unit_kind(u)] and game.alive(u) and (owner == nil or game.hostile(owner, unit_player(u))) then
+      local ux, uy = unit_position(u)
+      local dx, dy = ux - x, uy - y
+      local d = dx * dx + dy * dy
+      if best_d == nil or d < best_d then best, best_d = u, d end
+    end
+  end
+  return best
+end
+
 function trees.can_cut(ability, x, y)
   if trees.CUTTERS[ability] == nil then return true end
-  return trees.nearest(x, y, PICK_UNITS) ~= nil
+  return trees.nearest(x, y, PICK_UNITS) ~= nil or ward_within(x, y, nil) ~= nil
 end
 
 local healing = {}
 
+local function start_healing(caster, amount, seconds)
+  local ticks = seconds * TICKS_PER_SECOND
+  healing[caster] = { per_tick = math.floor(amount * config.FIX / ticks), until_tick = game.ticks() + ticks }
+end
+
 function trees.cut(caster, ability)
   local cutter = trees.CUTTERS[ability]
   local x, y = game.cast_point(caster)
+  local ward = ward_within(x, y, unit_player(caster))
+  if ward ~= nil then
+    if game.spell_damage(caster, ward, WARD_DAMAGE, DAMAGE_PHYSICAL) and cutter.ward_heal ~= nil then
+      start_healing(caster, cutter.ward_heal, cutter.heal_seconds)
+    end
+    return true
+  end
   local id = trees.nearest(x, y, PICK_UNITS)
   if id == nil or not trees.kill(id) then return false end
-  if cutter.heal ~= nil then
-    local ticks = cutter.heal_seconds * TICKS_PER_SECOND
-    healing[caster] = { per_tick = math.floor(cutter.heal * config.FIX / ticks), until_tick = game.ticks() + ticks }
-  end
+  if cutter.heal ~= nil then start_healing(caster, cutter.heal, cutter.heal_seconds) end
   return true
 end
 

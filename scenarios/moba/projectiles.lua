@@ -128,15 +128,6 @@ local HOOKSHOT = {
   stun_ticks = { 16, 24, 32 },
 }
 
-local TIMBER_CHAIN = {
-  source = "war3map.j:88205 and tooltip ability.ini:85653 (Timber Chain): the chain flies to the target point or the first tree on the way, pulls Shredder to it and deals 60 + 40 x rank magical damage to enemies within 150 of the end; the 3000 a second flight speed is GUESS",
-  ability = "shredder_timber_chain",
-  speed = 187.5,
-  damage_base = 60,
-  damage_per_rank = 40,
-  end_radius = 2344,
-}
-
 local function beside(caster, x, y, dx, dy)
   game.teleport(caster, math.floor(x - dx * WHOLE), math.floor(y - dy * WHOLE))
 end
@@ -154,24 +145,6 @@ local function start_hookshot(caster)
   if rank == 0 or x == nil then return end
   launch({ kind = "line", caster = caster, rank = rank, x = x, y = y, dx = dx, dy = dy, flown = 0, reach = reach,
     step = unit_fixed(HOOKSHOT.speed), radius = config.milli(HOOKSHOT.radius_milli), first_only = true, hit = {}, on_hit = hookshot_hit })
-end
-
-local function chain_end(flight, x, y)
-  local owner = unit_player(flight.caster)
-  for _, unit in ipairs(game.units_near(math.floor(x), math.floor(y), config.milli(TIMBER_CHAIN.end_radius))) do
-    if game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
-      game.spell_damage(flight.caster, unit, TIMBER_CHAIN.damage_base + TIMBER_CHAIN.damage_per_rank * flight.rank, MAGICAL)
-    end
-  end
-  beside(flight.caster, x, y, flight.dx, flight.dy)
-end
-
-local function start_timber_chain(caster)
-  local rank = lib.rank_of(caster, TIMBER_CHAIN.ability)
-  local x, y, dx, dy, reach = from_caster_to_point(caster)
-  if rank == 0 or x == nil then return end
-  launch({ kind = "line", caster = caster, rank = rank, x = x, y = y, dx = dx, dy = dy, flown = 0, reach = reach,
-    step = unit_fixed(TIMBER_CHAIN.speed), radius = 0, first_only = false, hit = {}, on_hit = function() end, stop_at_tree = true, on_end = chain_end })
 end
 
 local ILLUSORY_ORB = {
@@ -222,7 +195,6 @@ local STARTS = {
   [SONIC_WAVE.ability] = start_sonic_wave,
   [DEATH_PULSE.ability] = start_death_pulse,
   [HOOKSHOT.ability] = start_hookshot,
-  [TIMBER_CHAIN.ability] = start_timber_chain,
   [ILLUSORY_ORB.ability] = start_orb,
 }
 
@@ -250,8 +222,6 @@ local function tick_flights()
       local x, y = flight.x + flight.dx * flight.flown, flight.y + flight.dy * flight.flown
       local radius = flight.radius + (flight.grow or 0) * flight.flown
       if flight.radius > 0 and sweep(flight, math.floor(x), math.floor(y), radius) > 0 and flight.first_only then done = true end
-      if flight.stop_at_tree and not done and #game.trees_near(math.floor(x), math.floor(y), WHOLE) > 0 then done = true end
-      if done and flight.on_end ~= nil and game.alive(flight.caster) then flight.on_end(flight, x, y) end
     else
       sweep(flight, math.floor(flight.x), math.floor(flight.y), flight.flown)
     end
