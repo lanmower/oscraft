@@ -48,6 +48,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   const rings = Array.from({ length: RING_POOL }, () => overlay("fx", ringCss(RING_PX, COLOUR.attack)));
   const reticle = overlay("reticle", `width:24px;height:24px;border:2px dashed ${COLOUR.reticle};border-radius:4px;color:${COLOUR.reticle};font:700 12px sans-serif;`);
   const area = overlay("area-ring", `border:2px solid ${COLOUR.reticle};border-radius:50%;background:rgba(255,235,59,0.08);`);
+  const rangeRing = overlay("range-ring", `border:2px dashed ${COLOUR.reticle};border-radius:50%;`);
 
   const pings = Array.from({ length: PING_POOL }, pingMarker);
 
@@ -55,7 +56,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   let nextRing = 0;
   let nextPing = 0;
   let wasOn = false;
-  const armed = { on: false, slot: -1, radius: 0, targetKind: "", client: null, world: null };
+  const armed = { on: false, slot: -1, radius: 0, range: 0, caster: -1, targetKind: "", client: null, world: null };
 
   let frameUnits = null;
 
@@ -94,6 +95,8 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
       armed.on = true;
       armed.slot = d.slot;
       armed.radius = d.radius > 0 ? d.radius : 0;
+      armed.range = d.range > 0 ? d.range : 0;
+      armed.caster = d.caster ?? -1;
       armed.targetKind = d.targetKind || "";
       if (!armed.client) armed.client = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       reticle.node.textContent = String(d.slot);
@@ -144,7 +147,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   }
 
   function hideAll() {
-    for (const item of [...markers, ...rings, reticle, area, ...pings]) put(item, "display", "none");
+    for (const item of [...markers, ...rings, reticle, area, rangeRing, ...pings]) put(item, "display", "none");
   }
 
   function pinDone(m) {
@@ -185,30 +188,45 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
     }
   }
 
+  function sizeRing(item, wx, wz, radius) {
+    const c = toScreen(wx, wz, 0);
+    const e = toScreen(wx + radius, wz, 0);
+    const px = Math.hypot(e.x - c.x, e.y - c.y);
+    if (!Number.isFinite(px)) {
+      put(item, "display", "none");
+      return;
+    }
+    put(item, "display", "block");
+    put(item, "width", `${(2 * px).toFixed(2)}px`);
+    put(item, "height", `${(2 * px).toFixed(2)}px`);
+    place(item, c);
+  }
+
+  function drawRange() {
+    const caster = armed.range > 0 ? unitAt(armed.caster) : null;
+    if (!caster) {
+      put(rangeRing, "display", "none");
+      return;
+    }
+    sizeRing(rangeRing, caster.x, caster.z, armed.range);
+  }
+
   function drawTargeting() {
     if (!armed.on || !armed.client) {
       put(reticle, "display", "none");
       put(area, "display", "none");
+      put(rangeRing, "display", "none");
       return;
     }
     put(reticle, "display", "block");
     place(reticle, { x: armed.client.x + 16, y: armed.client.y + 16 });
+    drawRange();
     if (armed.radius <= 0) {
       put(area, "display", "none");
       return;
     }
     const w = toWorld(armed.client.x, armed.client.y);
-    const c = toScreen(w.x, w.z, 0);
-    const e = toScreen(w.x + armed.radius, w.z, 0);
-    const px = Math.hypot(e.x - c.x, e.y - c.y);
-    if (!Number.isFinite(px)) {
-      put(area, "display", "none");
-      return;
-    }
-    put(area, "display", "block");
-    put(area, "width", `${(2 * px).toFixed(2)}px`);
-    put(area, "height", `${(2 * px).toFixed(2)}px`);
-    place(area, c);
+    sizeRing(area, w.x, w.z, armed.radius);
   }
 
   function draw() {
@@ -228,7 +246,7 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
   }
 
   function destroy() {
-    for (const item of [...markers, ...rings, reticle, area, ...pings]) item.node.remove();
+    for (const item of [...markers, ...rings, reticle, area, rangeRing, ...pings]) item.node.remove();
   }
 
   function setEnabled(value) {

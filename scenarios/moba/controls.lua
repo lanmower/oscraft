@@ -179,8 +179,10 @@ end
 local function arm(who, state)
   st(who).armed = state
   local item = state.item and "true" or "false"
+  local reach = ""
+  if state.range ~= nil then reach = ',"range":' .. tostring(state.range) .. ',"caster":' .. tostring(state.caster) end
   feedback(who, '"kind":"targetArm","slot":' .. tostring(state.slot) .. ',"item":' .. item ..
-    ',"radius":' .. tostring(state.radius) .. ',"targetKind":' .. json_str(state.kind))
+    ',"radius":' .. tostring(state.radius) .. ',"targetKind":' .. json_str(state.kind) .. reach)
 end
 
 local function disarm(who)
@@ -386,14 +388,32 @@ local function walk_then_fire(who, hero, p)
   move_into_reach(hero, p)
 end
 
-local function cast_key(who, slot, wx, wz)
+local function quick_cast_setting(slot)
+  return "quickcast_" .. tostring(slot)
+end
+
+local function quick_cast_on(who, slot)
+  return game.setting(who, quick_cast_setting(slot)) == 1
+end
+
+local function toggle_quick_cast(who, slot)
+  local key = quick_cast_setting(slot)
+  game.setting(who, key, game.setting(who, key) == 1 and 0 or 1)
+end
+
+local function cast_key(who, slot, wx, wz, key)
   local hero = caster_of(who)
   if hero == nil then return refuse(who, "noHero") end
   local a = ability_of(hero, slot)
   if a == nil then return refuse(who, "noAbility") end
   if game.unit_cooldown(hero, slot) > 0 then return refuse(who, "cooldown") end
   local kind = target_kind(ability_info(a.name))
-  if kind ~= nil then return arm(who, { item = false, slot = slot, kind = kind, radius = 0, name = a.name }) end
+  if kind ~= nil then
+    local quick = key ~= nil and quick_cast_on(who, slot)
+    local ext = quick and ability_ext(a.name) or nil
+    return arm(who, { item = false, slot = slot, kind = kind, radius = 0, name = a.name,
+      quick = quick, key = key, range = ext and (ext.cast_range or 0) / 1000, caster = hero })
+  end
   if wx == nil then
     local ux, uz = unit_position(hero)
     return walk_then_fire(who, hero, { item = false, slot = slot, name = a.name, unit = -1, px = ux, pz = uz })
@@ -434,6 +454,20 @@ local function resolve_armed(who, x, z)
   end
   if ability_of(hero, a.slot) == nil then return refuse(who, "noAbility") end
   return walk_then_fire(who, hero, { item = false, slot = a.slot, name = a.name, unit = unit, px = fx(x), pz = fx(z) })
+end
+
+local function release_quick_cast(who, a)
+  local armed = st(who).armed
+  if armed == nil or not armed.quick or armed.key ~= a.key then return end
+  if a.world == nil then
+    disarm(who)
+    return refuse(who, "noTarget")
+  end
+  if armed.kind == "unit" and pick(a.world.x, a.world.z) == nil then
+    disarm(who)
+    return refuse(who, "noTarget")
+  end
+  resolve_armed(who, a.world.x, a.world.z)
 end
 
 local fallen_hero = nil
@@ -573,7 +607,10 @@ end
 local function on_key(who, a)
   local s = st(who)
   s.held.shift, s.held.ctrl, s.held.alt = a.shift, a.ctrl or a.meta, a.alt
-  if a.phase == "up" then return end
+  if a.phase == "up" then
+    release_quick_cast(who, a)
+    return
+  end
   if a.key == "escape" then
     s.attack_next, s.move_next, s.patrol_next = false, false, false
   end
@@ -613,7 +650,7 @@ local function on_key(who, a)
   elseif action == "centre" then
     centre_selected(who)
   elseif action == "cast" then
-    cast_key(who, arg, wx, wz)
+    cast_key(who, arg, wx, wz, a.key)
   elseif action == "item" then
     item_key(who, arg)
   elseif action == "skillUp" then
@@ -719,6 +756,7 @@ local function on_action(name, args)
   elseif name == "ui" then
     if args.call == "select" and args.args ~= nil then set_selection(args.player or LOCAL, args.args.ids or {}) end
     if args.call == "cast" and args.args ~= nil and args.args.slot ~= nil then cast_key(args.player or LOCAL, args.args.slot) end
+    if args.call == "quickcast" and args.args ~= nil and args.args.slot ~= nil then toggle_quick_cast(args.player or LOCAL, args.args.slot) end
   elseif name == "viewport" then
     if args.x0 and args.z0 and args.x1 and args.z1 then
       st(args.player or LOCAL).view = { x0 = args.x0, z0 = args.z0, x1 = args.x1, z1 = args.z1 }

@@ -39,7 +39,7 @@ local SHOP_CATEGORY = "all"
 local SHOP_SEARCH = ""
 local BUILDS = {}
 local REPLAY_NOTE = nil
-local OPEN = { shop = false, scoreboard = false, controls = false }
+local OPEN = { shop = false, scoreboard = false, controls = false, networth = false }
 local SELL_ARMED = nil
 local SELECTED_SHOP = nil
 local SHOP_PRESS = nil
@@ -608,6 +608,13 @@ local function shop_tree()
   return panel(TEXT.shop.title .. "  " .. TEXT.goldLabel .. " " .. tostring(gold), sections)
 end
 
+local TARGETED_KINDS = { [1] = true, [2] = true, [3] = true }
+
+local function is_targeted(name)
+  local info = ability_info(name)
+  return info ~= nil and TARGETED_KINDS[info.target] == true
+end
+
 local function skills_tree(hero)
   local level = xp.character_level(hero)
   local spent = 0
@@ -629,10 +636,15 @@ local function skills_tree(hero)
         ready = points > 0 and level >= gate
       end
     end
-    kids[#kids + 1] = box({
+    local row = {
       box({ label(a.name, "strong"), label(row_pips, "accent"), label(gate_text, "muted") }, "col"),
       button("+", "skill_up", obj({ I("slot", a.slot) }), not ready, TEXT.skills.up),
-    }, "row")
+    }
+    if is_targeted(a.name) then
+      local quick = game.setting(LOCAL, "quickcast_" .. tostring(a.slot)) == 1
+      row[#row + 1] = button(quick and TEXT.skills.quickCastOn or TEXT.skills.quickCast, "quickcast", obj({ I("slot", a.slot) }), false, TEXT.skills.quickCastTip)
+    end
+    kids[#kids + 1] = box(row, "row")
   end
   if TEXT.skills.talentName ~= "" then
     kids[#kids + 1] = label(TEXT.skills.talents, "faint")
@@ -968,6 +980,22 @@ local function scoreboard_tree()
     kids[#kids + 1] = grid(#TEXT.scoreboardHeaders + #stats.headers, cells)
   end
   return panel(TEXT.scoreboardTitle, kids)
+end
+
+local function networth_tree()
+  local totals = {}
+  for p = 0, config.PLAYERS - 1 do
+    local hero = hero_unit(p)
+    if hero ~= nil then
+      local side = team_of(p)
+      totals[side] = (totals[side] or 0) + store.net_worth(hero)
+    end
+  end
+  local kids = {}
+  for _, side in ipairs(sides()) do
+    kids[#kids + 1] = label(team_name(side) .. "  " .. tostring(totals[side] or 0), "team" .. tostring(side))
+  end
+  return panel(TEXT.netWorth.title, kids)
 end
 
 local function roster_names()
@@ -1638,6 +1666,7 @@ local function emit_all()
   emit("hud", "hud", hud_tree())
   emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   emit("team", "top", team_tree())
+  emit("networth", "top", OPEN.networth and networth_tree() or nil)
   emit("scoreboard", "centre", OPEN.scoreboard and scoreboard_tree() or nil)
   emit("shop", "right", OPEN.shop and shop_tree() or nil)
   emit("controls", "centre", OPEN.controls and TEXT.menu ~= nil and controls_tree() or nil)
@@ -1809,6 +1838,7 @@ local function panels_on_action(name, args)
         if key_in(KEYS.controls, args.key) then OPEN.controls = not OPEN.controls end
       end
       if key_in(KEYS.scoreboard, args.key) then OPEN.scoreboard = args.phase == "down" end
+      if key_in(KEYS.networth, args.key) then OPEN.networth = args.phase == "down" end
     end
   elseif name == "peer_left" then
     if not LOBBY.started then

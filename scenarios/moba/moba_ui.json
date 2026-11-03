@@ -37,6 +37,9 @@
     "scoreboard": [
       "tab"
     ],
+    "networth": [
+      "k"
+    ],
     "shop": [
       "f4"
     ],
@@ -242,6 +245,9 @@
         }
       }
     },
+    "netWorth": {
+      "title": "Net worth"
+    },
     "scoreboardHeaders": [
       "player",
       "hero",
@@ -261,6 +267,9 @@
       "talentRight": "Right",
       "talentName": "",
       "up": "level up this ability",
+      "quickCast": "Quick cast off",
+      "quickCastOn": "Quick cast on",
+      "quickCastTip": "On: press and release this skill's key to cast at the cursor; hold the key to show its range.",
       "talents": "Talents",
       "talent": "choose this talent",
       "gate": "next rank needs level",
