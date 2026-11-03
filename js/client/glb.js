@@ -1,3 +1,4 @@
+import { MODEL_ORIENTATION } from './model_orientation.js';
 
 const MAGIC = 0x46546c67;
 const CHUNK_JSON = 0x4e4f534a;
@@ -156,13 +157,13 @@ function turnVectors(values, [qx, qy, qz, qw]) {
   return out;
 }
 
-export function parseGlb(buffer) {
+export function parseGlb(buffer, name) {
   const { json: gltf, bin } = readChunks(buffer);
   if (!bin) throw new Error('glb: no BIN chunk');
   const primitive = gltf.meshes?.[0]?.primitives?.[0];
   if (!primitive || primitive.attributes?.POSITION === undefined) throw new Error('glb: no POSITION attribute');
   if (primitive.mode !== undefined && primitive.mode !== 4) throw new Error('glb: only triangle primitives');
-  const turn = staticMeshRotation(gltf, 0);
+  const turn = quatMul(MODEL_ORIENTATION[name] ?? IDENTITY_QUAT, staticMeshRotation(gltf, 0));
   const positions = turnVectors(readFloats(gltf, bin, primitive.attributes.POSITION, VERTEX_TYPE), turn);
   const normals = primitive.attributes.NORMAL === undefined ? null : turnVectors(readFloats(gltf, bin, primitive.attributes.NORMAL, VERTEX_TYPE), turn);
   const texcoords = primitive.attributes.TEXCOORD_0 === undefined ? null : readFloats(gltf, bin, primitive.attributes.TEXCOORD_0, 'VEC2');

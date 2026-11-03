@@ -631,7 +631,7 @@ function parsedModel(name) {
       const res = await fetchRetrying(url);
       if (!res.ok) throw new Error(`models/${name}.glb HTTP ${res.status}`);
       const bytes = await resolveGlbExtensions(await res.arrayBuffer());
-      const glb = parseGlb(bytes);
+      const glb = parseGlb(bytes, name);
       const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
       if (animations && animations.clips.length === 0) {
         animations.clips = await libraryClips(name, animations.nodes);
