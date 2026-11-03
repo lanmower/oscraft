@@ -22,6 +22,8 @@ local CFG = {
   pickRadius = 1.2,
   formationSpacing = 0.7,
   centreSeconds = 0.4,
+  pingSeconds = 4,
+  walkSeconds = 10,
   doubleHoldTicks = math.floor(0.2 * TICKS_PER_SECOND),
 }
 local LOCAL = 0
@@ -67,6 +69,13 @@ end
 
 local function hero_selected(who)
   return units.hero_of(st(who).sel, who)
+end
+
+local function own_hero(who)
+  for _, id in ipairs(game.units(who)) do
+    if game.is_attributed(id) and not game.is_summoned(id) then return id end
+  end
+  return nil
 end
 
 local function set_selection(who, ids)
@@ -201,6 +210,7 @@ local function issue(id, o)
 end
 
 local function order_selected(who, x, z, enemy, attack, queued)
+  st(who).pending = nil
   local ids = my_selected(who)
   if #ids == 0 then return false end
   if enemy ~= nil then
@@ -229,6 +239,7 @@ local function order_selected(who, x, z, enemy, attack, queued)
 end
 
 local function stop_selected(who)
+  st(who).pending = nil
   for _, id in ipairs(my_selected(who)) do
     clear_hold_fire(id)
     game.queue_clear(id)
@@ -243,6 +254,7 @@ end
 
 local function hold_selected(who)
   local s = st(who)
+  s.pending = nil
   local now = game.time()
   local again = double_hold_on(who) and s.holdKey ~= nil and now - s.holdKey <= CFG.doubleHoldTicks
   s.holdKey = now
@@ -263,8 +275,7 @@ local function centre_on(who, id)
 end
 
 local function centre_selected(who)
-  local id = hero_selected(who)
-  if id == nil then id = my_selected(who)[1] end
+  local id = hero_selected(who) or my_selected(who)[1] or own_hero(who)
   if id ~= nil then centre_on(who, id) end
 end
 
@@ -280,13 +291,7 @@ end
 
 local function select_hero(who)
   local s = st(who)
-  local hero = nil
-  for _, id in ipairs(game.units(who)) do
-    if game.is_attributed(id) and not game.is_summoned(id) then
-      hero = id
-      break
-    end
-  end
+  local hero = own_hero(who)
   if hero == nil then return refuse(who, "noHero") end
   local now = game.time()
   local again = s.heroKey ~= nil and now - s.heroKey <= CFG.doubleTapTicks
@@ -323,20 +328,56 @@ local function ability_of(hero, slot)
   return nil
 end
 
-local function cast_now(hero, slot, target, x, z)
-  game.cmd_cast(hero, slot, target, fx(x), fx(z))
+local function target_kind(info)
+  if info == nil then return nil end
+  if info.target == TARGET_UNIT then return "unit" end
+  if info.target == TARGET_POINT then return "point" end
+  if info.target == TARGET_UNIT_OR_POINT then return "unit_or_point" end
+  return nil
 end
 
-local function out_of_range(hero, name, x, z, target)
+local function fire(hero, p)
+  if p.item then
+    game.cmd_use_item(hero, p.slot, p.unit, p.px, p.pz)
+  else
+    game.cmd_cast(hero, p.slot, p.unit, p.px, p.pz)
+  end
+end
+
+local function out_of_range(hero, name, px, pz, target)
   local ext = ability_ext(name)
   local reach = ext and ext.cast_range or 0
   if reach <= 0 then return false end
   local hx, hz = unit_position(hero)
-  local tx, tz = fx(x), fx(z)
+  local tx, tz = px, pz
   if target ~= nil and target >= 0 then tx, tz = unit_position(target) end
   local dx, dz = tx - hx, tz - hz
   local limit = config.milli(reach)
   return dx * dx + dz * dz > limit * limit
+end
+
+local function move_into_reach(hero, p)
+  local tx, tz = p.px, p.pz
+  if p.unit >= 0 then tx, tz = unit_position(p.unit) end
+  local hx, hz = unit_position(hero)
+  local dx, dz = hx - tx, hz - tz
+  local d = math.sqrt(dx * dx + dz * dz)
+  local limit = config.milli(ability_ext(p.name).cast_range)
+  if d <= limit then return end
+  local k = (limit * 9 // 10) / d
+  game.cmd_order(hero, math.floor(tx + dx * k), math.floor(tz + dz * k))
+end
+
+local function walk_then_fire(who, hero, p)
+  local s = st(who)
+  s.pending = nil
+  if not out_of_range(hero, p.name, p.px, p.pz, p.unit) then
+    return fire(hero, p)
+  end
+  p.hero = hero
+  p.expires = game.time() + CFG.walkSeconds * TICKS_PER_SECOND
+  s.pending = p
+  move_into_reach(hero, p)
 end
 
 local function cast_key(who, slot, wx, wz)
@@ -345,24 +386,14 @@ local function cast_key(who, slot, wx, wz)
   local a = ability_of(hero, slot)
   if a == nil then return refuse(who, "noAbility") end
   if game.unit_cooldown(hero, slot) > 0 then return refuse(who, "cooldown") end
-  local info = ability_info(a.name)
-  if info.target == TARGET_UNIT then
-    return arm(who, { item = false, slot = slot, kind = "unit", radius = 0 })
-  end
-  if info.target == TARGET_POINT then
-    return arm(who, { item = false, slot = slot, kind = "point", radius = 0 })
-  end
-  if info.target == TARGET_UNIT_OR_POINT then
-    return arm(who, { item = false, slot = slot, kind = "unit_or_point", radius = 0 })
-  end
+  local kind = target_kind(ability_info(a.name))
+  if kind ~= nil then return arm(who, { item = false, slot = slot, kind = kind, radius = 0, name = a.name }) end
   if wx == nil then
     local ux, uz = unit_position(hero)
-    cast_now(hero, slot, -1, ux, uz)
-    return
+    return walk_then_fire(who, hero, { item = false, slot = slot, name = a.name, unit = -1, px = ux, pz = uz })
   end
   local hit = pick(wx, wz)
-  if out_of_range(hero, a.name, wx, wz, hit and hit.id or -1) then return refuse(who, "range") end
-  cast_now(hero, slot, hit and hit.id or -1, wx, wz)
+  return walk_then_fire(who, hero, { item = false, slot = slot, name = a.name, unit = hit and hit.id or -1, px = fx(wx), pz = fx(wz) })
 end
 
 local function item_key(who, slot)
@@ -370,6 +401,8 @@ local function item_key(who, slot)
   if hero == nil then return refuse(who, "noHero") end
   for _, it in ipairs(game.unit_items(hero)) do
     if it.slot == slot then
+      local kind = target_kind(it.ability)
+      if kind ~= nil then return arm(who, { item = true, slot = slot, kind = kind, radius = 0, name = it.ability.name }) end
       local ux, uz = unit_position(hero)
       game.cmd_use_item(hero, slot, -1, ux, uz)
       return
@@ -389,14 +422,41 @@ local function resolve_armed(who, x, z)
   if s.armed.kind == "unit" and hit == nil then return refuse(who, "noTarget") end
   local a = s.armed
   disarm(who)
+  local unit = hit and hit.id or -1
   if a.item then
-    game.cmd_use_item(hero, a.slot, hit and hit.id or -1, fx(x), fx(z))
-    return
+    return walk_then_fire(who, hero, { item = true, slot = a.slot, name = a.name, unit = unit, px = fx(x), pz = fx(z) })
   end
   if ability_of(hero, a.slot) == nil then return refuse(who, "noAbility") end
-  local named = ability_of(hero, a.slot)
-  if out_of_range(hero, named.name, x, z, hit and hit.id or -1) then return refuse(who, "range") end
-  cast_now(hero, a.slot, hit and hit.id or -1, x, z)
+  return walk_then_fire(who, hero, { item = false, slot = a.slot, name = a.name, unit = unit, px = fx(x), pz = fx(z) })
+end
+
+local function ping_point(who, x, y)
+  local at = '"x":' .. tostring(x) .. ',"z":' .. tostring(y) .. ',"seconds":' .. tostring(CFG.pingSeconds) .. ',"colour":"#ffffff"'
+  for p = 0, config.PLAYERS - 1 do
+    if game.seat_start(p) ~= nil and not units.hostile(p, who) then
+      game.ui_event("ping", '{"player":' .. tostring(p) .. "," .. at .. "}")
+    end
+  end
+end
+
+local function on_tick()
+  for who = 0, config.PLAYERS - 1 do
+    local s = STATE[who]
+    local p = s and s.pending
+    if p ~= nil then
+      if not unit_alive(p.hero) or (p.unit >= 0 and not unit_alive(p.unit)) then
+        s.pending = nil
+      elseif game.time() > p.expires then
+        s.pending = nil
+        refuse(who, "range")
+      elseif not out_of_range(p.hero, p.name, p.px, p.pz, p.unit) then
+        s.pending = nil
+        fire(p.hero, p)
+      elseif game.order_of(p.hero) ~= ORDER_MOVE then
+        move_into_reach(p.hero, p)
+      end
+    end
+  end
 end
 
 local function skill_up(who, slot)
@@ -541,10 +601,6 @@ local function on_key(who, a)
     s.groups[arg] = my_selected(who)
   elseif action == "recallGroup" then
     recall(who, arg)
-  elseif action == "custom" then
-    game.ui_event("action", '{"player":' .. tostring(who) .. ',"action":"custom","name":' .. json_str(arg) .. "}")
-  else
-    game.ui_event("action", '{"player":' .. tostring(who) .. ',"action":' .. json_str(action) .. "}")
   end
 end
 
@@ -555,6 +611,7 @@ end
 
 local function on_ground(who, kind, x, y, button)
   local s = st(who)
+  if kind == "ping" then return ping_point(who, x, y) end
   if kind == "down" then
     s.press = { x = x, z = y, button = button, shift = s.held.shift }
     return
@@ -597,7 +654,7 @@ local function on_ground(who, kind, x, y, button)
   end
   if s.attack_next then
     s.attack_next = false
-    order_selected(who, x, y, hit, true, p.shift)
+    order_selected(who, x, y, is_enemy(who, hit) and hit or nil, true, p.shift)
     return
   end
   if double and not p.shift then
@@ -667,4 +724,4 @@ local function on_pointer(kind, x, y, button)
   on_ground(LOCAL, kind, x, y, button)
 end
 
-return { on_action = on_action, on_pointer = on_pointer }
+return { on_action = on_action, on_pointer = on_pointer, on_tick = on_tick }

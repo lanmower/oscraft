@@ -3395,6 +3395,9 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             row.put(c, "slot", slot as i64);
             row.put(c, "item", i64::from(kind) - 1);
             row.put(c, "name", cat.name(item.name).to_owned());
+            if cat.abilities.get(usize::from(item.ability)).is_some() {
+                row.put(c, "ability", ability_row(c, cat, usize::from(item.ability)));
+            }
             row.put(c, "count", i64::from(count));
             row.put(c, "cooldown", i64::from(sh.sim.item_cooldown(u, slot)));
             if let Some(owner) = sh.sim.item_owner(u, slot) {

@@ -1658,10 +1658,12 @@ local function panels_on_action(name, args)
     SLOP_CELLS = UI.dragSlopTiles or 0.25
     pcall(refresh_lobby)
   elseif name == "key" then
-    if args.phase == "down" and (args.player == nil or args.player == LOCAL) then
-      if key_in(KEYS.shop, args.key) then OPEN.shop = not OPEN.shop end
-      if key_in(KEYS.scoreboard, args.key) then OPEN.scoreboard = not OPEN.scoreboard end
-      if key_in(KEYS.controls, args.key) then OPEN.controls = not OPEN.controls end
+    if args.player == nil or args.player == LOCAL then
+      if args.phase == "down" then
+        if key_in(KEYS.shop, args.key) then OPEN.shop = not OPEN.shop end
+        if key_in(KEYS.controls, args.key) then OPEN.controls = not OPEN.controls end
+      end
+      if key_in(KEYS.scoreboard, args.key) then OPEN.scoreboard = args.phase == "down" end
     end
   elseif name == "peer_left" then
     if not LOBBY.started then

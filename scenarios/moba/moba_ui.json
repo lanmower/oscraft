@@ -454,12 +454,14 @@
     "angleOfAttack": 304,
     "fovDegrees": 70,
     "farTiles": 800,
+    "panPxPerS": 500,
+    "edgePx": 16,
     "rotationLock": true,
     "zoomKeys": {
       "increase": ["pagedown"],
       "decrease": ["pageup"]
     },
-    "rotationLockKeys": []
+    "rotationLockKeys": ["y"]
   },
   "heroDrawScale": 2,
   "propKinds": [

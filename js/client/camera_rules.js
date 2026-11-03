@@ -15,5 +15,7 @@ export function packCameraRules(ui) {
     rotationLock: c.rotationLock === true,
     zoomKeys: { increase: c.zoomKeys?.increase ?? [], decrease: c.zoomKeys?.decrease ?? [] },
     rotationLockKeys: c.rotationLockKeys ?? [],
+    panPxPerS: c.panPxPerS,
+    edgePx: c.edgePx,
   };
 }

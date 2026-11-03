@@ -62,7 +62,6 @@ let HERO_DRAW_SCALE = UI.heroDrawScale ?? 1;
 const PROP_HALF = 0.5;
 const PICK_RADIUS = 1.2;
 const DRAG_SLOP_PX = 4;
-const PAN_PX_PER_S = 500;
 let orbitOrigin = [W / 2, 0, H / 2];
 let cameraBounds = null;
 let cameraYawLocked = false;
@@ -70,7 +69,8 @@ let zoomKeys = null;
 let cameraDistance = Math.min(CAMERA_PLAY_DISTANCE, CAMERA_DISTANCE_PER_TILE * Math.max(W, H));
 let cameraMaxDistance = Math.max(CAMERA_MAX_FLOOR, CAMERA_MAX_PER_TILE * Math.max(W, H));
 let PROP_KINDS = UI.propKinds ?? [];
-const EDGE_PX = 16;
+const PAN_RULES = packCameraRules(UI);
+const BOUND_KEYS = collectKeyNames(UI.keys ?? {}, new Set());
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_CAP_MS = 30000;
 const RECONNECT_GIVE_UP_MS = 30 * 60 * 1000;
@@ -293,11 +293,28 @@ function numpadKey(e) {
   return pad ? `num${pad[1]}` : null;
 }
 
+function keyNameOf(e) {
+  return numpadKey(e) ?? (e.key === " " ? "space" : e.key.toLowerCase());
+}
+
+function collectKeyNames(node, out) {
+  if (typeof node === "string") out.add(node.toLowerCase());
+  else if (Array.isArray(node)) for (const item of node) collectKeyNames(item, out);
+  else if (node && typeof node === "object") {
+    for (const [name, value] of Object.entries(node)) {
+      out.add(name.toLowerCase());
+      collectKeyNames(value, out);
+    }
+  }
+  return out;
+}
+
 function forwardKey(phase, e) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+  if (phase === "down" && e.repeat) return;
   const at = pointer && renderer3d ? screenToWorld(pointer.x, pointer.y) : null;
   sendInput("key", {
-    key: numpadKey(e) ?? (e.key === " " ? "space" : e.key.toLowerCase()),
+    key: keyNameOf(e),
     phase,
     shift: e.shiftKey,
     ctrl: e.ctrlKey,
@@ -351,15 +368,13 @@ function routeUi(ev) {
     if (data.player === myPlayer && !netState) onLobbyStart({ slots: data.slots });
     return;
   }
-  if (ev.kind === "feedback" || ev.kind === "action" || ev.kind === "view") {
+  if (ev.kind === "feedback" || ev.kind === "view") {
     if (data.player !== undefined && data.player !== uiPlayerId()) return;
     if (ev.kind === "feedback") {
       if (data.kind === "selection") selectedId = data.ids[0] ?? -1;
       if (data.kind === "selection" && localGame && !netState) logModError(localGame.dispatch_action("selection", JSON.stringify({ player: data.player, ids: data.ids })));
       if (data.kind === "refusal") document.body.dataset.lastRefusal = `cast_dropped ${data.reason}`;
       window.dispatchEvent(new CustomEvent("moba:feedback", { detail: data }));
-    } else if (ev.kind === "action") {
-      window.dispatchEvent(new CustomEvent("moba:action", { detail: data }));
     } else if (fogview) {
       fogview.setEnabled(data.fog === true);
     }
@@ -1097,21 +1112,22 @@ function drawWorld3d() {
 }
 
 function panByKeys(dtS) {
-  if (!renderer3d) return;
+  if (!renderer3d || !PAN_RULES) return;
   let dx = 0;
   let dz = 0;
   if (keysDown.has("ArrowLeft")) dx -= 1;
   if (keysDown.has("ArrowRight")) dx += 1;
   if (keysDown.has("ArrowUp")) dz -= 1;
   if (keysDown.has("ArrowDown")) dz += 1;
-  if (pointer && !drag) {
-    if (pointer.x < EDGE_PX) dx -= 1;
-    else if (pointer.x > window.innerWidth - EDGE_PX) dx += 1;
-    if (pointer.y < EDGE_PX) dz -= 1;
-    else if (pointer.y > window.innerHeight - EDGE_PX) dz += 1;
+  if (pointer && !drag && pointer.over === canvas) {
+    const edge = PAN_RULES.edgePx;
+    if (pointer.x < edge) dx -= 1;
+    else if (pointer.x > window.innerWidth - edge) dx += 1;
+    if (pointer.y < edge) dz -= 1;
+    else if (pointer.y > window.innerHeight - edge) dz += 1;
   }
   if (dx === 0 && dz === 0) return;
-  renderer3d.pan(-dx * PAN_PX_PER_S * dtS, -dz * PAN_PX_PER_S * dtS);
+  renderer3d.pan(-dx * PAN_RULES.panPxPerS * dtS, -dz * PAN_RULES.panPxPerS * dtS);
 }
 
 function resize() {
@@ -1220,7 +1236,7 @@ function bindInput() {
   canvas.addEventListener("pointerdown", (e) => {
     drag = e.button === 0 ? null : { x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
-    forwardPointer("down", e);
+    forwardPointer(e.altKey && e.button === 0 ? "ping" : "down", e);
   });
   canvas.addEventListener("pointermove", (e) => {
     if (!drag) return;
@@ -1254,7 +1270,7 @@ function bindInput() {
       return;
     }
     if (e.key.length === 1 || e.key === " " || e.key === "Tab" || e.key === "Escape") {
-      if (!e.ctrlKey && !e.metaKey) e.preventDefault();
+      if ((!e.ctrlKey && !e.metaKey) || BOUND_KEYS.has(keyNameOf(e))) e.preventDefault();
     }
     if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
       if (e.key === "M") toggleMute();
@@ -1270,7 +1286,7 @@ function bindInput() {
     keysDown.clear();
     forwardKey("up", { key: "Shift", shiftKey: false, ctrlKey: false, altKey: false, metaKey: false });
   });
-  window.addEventListener("pointermove", (e) => { pointer = { x: e.clientX, y: e.clientY }; });
+  window.addEventListener("pointermove", (e) => { pointer = { x: e.clientX, y: e.clientY, over: e.target }; });
   document.documentElement.addEventListener("pointerleave", () => { pointer = null; });
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
