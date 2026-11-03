@@ -36,7 +36,14 @@ impl Sim {
             if dx * dx + dy * dy < (ONE as i64) * (ONE as i64) {
                 self.routed[i] = 0;
             } else {
-                self.cur_field = Some(self.route_slot(i));
+                let slot = self.route_slot(i);
+                let wanted = (fixed::round(self.tgt_x[i]), fixed::round(self.tgt_y[i]));
+                let served_elsewhere = (self.paths.want_x[slot], self.paths.want_y[slot]) != wanted;
+                if served_elsewhere && self.blocked[i] == 0 && !self.needs_route(i, self.tgt_x[i], self.tgt_y[i]) {
+                    self.routed[i] = 0;
+                } else {
+                    self.cur_field = Some(slot);
+                }
             }
         } else if self.blocked[i] != 0 {
             self.routed[i] = 1;
@@ -615,6 +622,10 @@ impl Sim {
 
     pub fn attack_order_of(&self, i: usize) -> i32 {
         self.attack_order.get(i).copied().unwrap_or(-1)
+    }
+
+    pub(crate) fn walking(&self, i: usize) -> bool {
+        self.order_kind[i] == ORDER_MOVE && self.attack_order[i] < 0 && dist2(self.pos_x[i], self.pos_y[i], self.tgt_x[i], self.tgt_y[i]) > (ONE as i64) * (ONE as i64)
     }
 
     pub(crate) fn attack_chase(&mut self, i: usize) {

@@ -112,6 +112,9 @@ impl Sim {
         let Some(b) = self.commanded_strike(i) else {
             return;
         };
+        if self.walking(i) {
+            return;
+        }
         if !self.face_target(i, b) {
             return;
         }
