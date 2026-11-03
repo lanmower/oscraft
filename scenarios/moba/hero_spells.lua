@@ -1,4 +1,5 @@
 local config = require("config")
+local spells = require("spells")
 
 local TICKS = config.TICKS_PER_SECOND
 local WHOLE = config.FIX
@@ -6,6 +7,12 @@ local MAGICAL = 2
 local S_SPEED_PCT = 19
 local RAW_PER_REFERENCE_UNIT = 1024
 local DIRECTION_SCALE = 1000000
+
+local RETIRED_CASTS = {
+  enigma_demonic_conversion = true,
+  ember_spirit_fire_remnant_learning = true,
+  ember_spirit_fire_remnant_activate = true,
+}
 
 local function rank_of(unit, ability)
   for _, row in ipairs(game.unit_abilities(unit)) do
@@ -307,6 +314,10 @@ end
 return {
   on_cast = function(caster, ability_name)
     for _, run in ipairs(ON_CAST[ability_name] or {}) do run(caster) end
+  end,
+  on_cast_request = function(caster, slot, ability_name, ...)
+    if RETIRED_CASTS[ability_name] then return false end
+    return spells.on_cast_request(caster, slot, ability_name, ...)
   end,
   on_hit = function(attacker, victim, dealt)
     GHOST_SHIP.hit(attacker, victim, dealt)
