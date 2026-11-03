@@ -431,7 +431,7 @@ impl Sim {
     pub fn revive_at_point(&mut self, i: usize, x: i32, y: i32) -> bool {
         let kind = self.type_of[i] as u32;
         let player = self.player[i];
-        let (xp, kills, deaths) = (self.xp_total[i], self.unit_kills[i], self.unit_deaths[i]);
+        let (xp, kills, deaths, credits) = (self.xp_total[i], self.unit_kills[i], self.unit_deaths[i], self.unit_credits[i]);
         let ranks: Vec<u8> = self.abil_rank[i * ABILITY_SLOTS..(i + 1) * ABILITY_SLOTS].to_vec();
         let upgrades = self.spell.upg[i];
         let items = self.snapshot_items(i);
@@ -445,6 +445,7 @@ impl Sim {
         self.xp_total[i] = xp;
         self.unit_kills[i] = kills;
         self.unit_deaths[i] = deaths;
+        self.unit_credits[i] = credits;
         self.attributed.mana_max[i] = 0;
         self.apply_attr_stats(i);
         self.hp[i] = self.hp_max[i];
