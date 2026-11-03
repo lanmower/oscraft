@@ -1,0 +1,4 @@
+id: witness-bot-seat-debug-api/u2-stale-pkg
+question: Does a repo-served page at HEAD 973f7372 still fail sim::load BadVersion(37)? (source STATE_VERSION 63, persist.rs:7; js/client/pkg is stale)
+session_id: gm-drain-1793526214-5
+status: unknown

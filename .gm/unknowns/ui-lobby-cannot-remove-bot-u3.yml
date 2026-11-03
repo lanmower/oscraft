@@ -1,0 +1,5 @@
+row: ui-lobby-cannot-remove-bot
+id: ui-lobby-cannot-remove-bot-u3
+question: Is CI green on origin/main for the sha that carries the fix?
+session_id: gm-drain-1793526214-9
+status: unknown

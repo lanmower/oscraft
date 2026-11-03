@@ -1,0 +1,4 @@
+id: abilities-688g-unit-abilities-kwarg
+value: Does unit(..., abilities=[...]) in units_heroes.osd resolve the named abilities at pack load with no missing-ability error (content-abilities-120-heroes-missing)?
+status: unknown
+session_id: mcp-codemode-2472180-1792849480903-204

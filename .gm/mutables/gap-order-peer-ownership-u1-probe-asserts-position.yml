@@ -1,0 +1,4 @@
+id: gap-order-peer-ownership-u1-probe-asserts-position
+value: 'U1: Does the browser-two-peers CI probe (75be2c50) assert a foreign unit''s position is unchanged after a peer order? Read the probe and run it live.'
+status: unknown
+session_id: mcp-codemode-1030-1792262103218

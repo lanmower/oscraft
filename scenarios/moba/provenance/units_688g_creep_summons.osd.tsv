@@ -1,0 +1,9 @@
+anchor	kind	note
+file	rationale	Units that neutral creep abilities summon. Stock stats the 6.88g data does not restate are GUESS and named per unit.
+creep_tornado_unit	provenance	A ntor Tornado (unit.ini:14780): flying, spd 125 = 122 milli per tick, abilities Atdg (Area 600, DataA 15 a second, DataB 150, DataC 45 a second in the medium radius, ability.ini:7497) and Aasl (-15 percent move and attack speed, ability.ini:4980).
+creep_tornado_unit	rationale	GUESS: hit points 200, damage type magical, and the 45 taken as 15 + 30 inside 150 (6.88g silent on each).
+creep_tornado_unit	rationale	GUESS: summon lifetime 160 ticks (the ward p1 of creep_tornado in abilities_688g_creeps.osd:11); 6.88g is silent on the summon duration. One tornado per cast, spawned at the caster.
+creep_raised_skeleton	provenance	uske Skeleton Warrior (unit.ini:21044): HP 250, damage 23 + 1d2 (24), period 1.0 s, range 90 = 1406 milli.
+creep_raised_skeleton	rationale	GUESS: speed 270 = 264 milli per tick, sight, hull.
+creep_shard_golem	provenance	n127 Shard Golem (unit.ini:315792): HP 240, damage 8 + 1d2 (9), range 100 = 1563 milli, spd 310 = 303 milli per tick, 50 percent spell damage reduction (A37H).
+creep_shard_golem	rationale	GUESS: attack period 27 ticks, sight, hull.

@@ -1,0 +1,4 @@
+id: web-per-frame-unit-reads-seven-scans/packed-hud-api
+question: Does the HUD Game passed into createHud expose unit_columns() as the same seven equal-length Int32 columns, with columns 0 and 5 matching unit_ids and unit_max_hps for all living units?
+session_id: mcp-codemode-257191-1793365280496-10-hud1
+status: unknown

@@ -1,0 +1,8 @@
+id: ui-controls-panel-covers-top-strip
+subject: 'Controls panel covers the top strip at 1042x508: opened from the Controls button, it sits over Shop, Scoreboard and Controls, and its Close entry is below the viewport, so the strip cannot be reached until the panel is dismissed by other means.'
+description: Witness 1792992036677-5491-f0623382ed52609e (controls-after screenshot shows the panel over the strip).
+acceptance_criteria: At 390x844 the shop panel sits inside the viewport on its left edge, with its heading and first card fully visible.
+witness_plan: Set device metrics 390x844 DPR 2 in the browser verb, open the shop with the top-strip Shop button, screenshot and check the panel rect left >= 0.
+session_id: hud-match-witness
+owner: hud-match-witness
+status: pending

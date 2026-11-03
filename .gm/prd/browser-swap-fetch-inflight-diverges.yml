@@ -1,0 +1,20 @@
+id: browser-swap-fetch-inflight-diverges
+session_id: drain-lane-f-prd
+subject: 'Browser data swap: a peer whose image fetch is in flight at the swap tick diverges'
+description: 'Commit 931fa38, js/client/play.js applyDueSwap: each peer fetches the new map image on SWAP receipt; if the fetch has not finished at the swap tick the swap fails, the old Game is kept, and the peer diverges from the host. Fix: prefetch on announce (DATA_SWAP_LEAD_TICKS = 32 ticks of lead) and hold the swap tick for a peer whose image is not ready, or fail the swap for every peer when any peer lacks the image. Needs a witness on the live two-tab check.'
+status: pending
+owner: drain-lane-f-prd
+notes:
+- ts: 2026-10-25T04:06:11.045Z
+  session_id: drain-net-3
+  note: 'Origin tip 77168a44 play.js: prefetch on announce exists (SWAP handler play.js:1965-1981, prefetchSwapImage 2589-2605). The host gate already defers a peer not ready (swap_protocol.js swapGate: defer until SWAP_MAX_DEFERS, then cancel). Not yet reproduced. The divergent path is a host that already applied (failSwapNotReady play.js:2640-2652, applied branch: no re-announce) while a peer is still in flight at applyDueSwap (play.js:2670-2677). DATA_SWAP_LEAD_TICKS does not exist on origin; the lead is SWAP_LEAD_TICKS=32. Witness: two-peer dev-origin run, blocked as above. No edit made.'
+references:
+- ts: 2026-10-26T21:16:14.934Z
+  session_id: mcp-codemode-1438428-1793049374865-90
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/js/client/swap_protocol.js","repo":"lanmower/oscraft","path":"js/client/swap_protocol.js","sha":"","why":"the module the gate fix edits; it holds swapImageState and swapGate","license":"unknown"}'
+- ts: 2026-10-26T21:16:15.313Z
+  session_id: mcp-codemode-1438428-1793049374865-90
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/js/wire/test.js","repo":"lanmower/oscraft","path":"js/wire/test.js","sha":"","why":"the existing wire test that drives swapGate with a pending shape that carries no image","license":"unknown"}'
+- ts: 2026-10-26T21:16:15.814Z
+  session_id: mcp-codemode-1438428-1793049374865-90
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/js/client/play.js","repo":"lanmower/oscraft","path":"js/client/play.js","sha":"","why":"prefetchSwapImage, hostSwapGate and applyDueSwap: the shapes the probe replays","license":"unknown"}'

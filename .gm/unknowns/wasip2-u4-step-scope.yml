@@ -1,0 +1,4 @@
+id: wasip2-u4-step-scope
+value: the mod-on step ci.yml 329-330 is the only consumer of the mod path; default step 327 stays non-mod
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-m9

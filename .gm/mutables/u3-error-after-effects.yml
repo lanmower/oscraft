@@ -1,0 +1,5 @@
+id: u3-error-after-effects
+text: Does the broken chunk reach its runtime error after spawn_unit, define_region and schedule run (code order at compile_src; live check is the harness line).
+row: gap-reload-rollback-restores-sim-state
+session_id: mcp-codemode-266435-1792153181013
+status: unknown

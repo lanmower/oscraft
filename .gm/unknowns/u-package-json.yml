@@ -1,0 +1,5 @@
+id: u-package-json
+subject: Does js/client/package.json exist and pin wireweave by sha with esbuild as a dependency?
+session_id: gm-orch-1-10
+row: net-webgl-client
+status: unknown

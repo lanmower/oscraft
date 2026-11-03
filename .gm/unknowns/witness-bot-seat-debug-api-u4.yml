@@ -1,0 +1,4 @@
+id: witness-bot-seat-debug-api-u4
+question: Can the witness reach the lobby without the browser session mutex and toktx blocker (build-packs.mjs toktx lookup)?
+session_id: gm-drain-1793526214-1
+status: unknown

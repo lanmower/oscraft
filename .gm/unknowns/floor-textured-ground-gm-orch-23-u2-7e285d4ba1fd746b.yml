@@ -1,0 +1,5 @@
+id: floor-textured-ground-gm-orch-23-U2
+subject: Is terrainMesh drawn with its texture, and do draw counts show terrain textured and quad=0? (js/client/play.js:1264, 1274)
+body: Is terrainMesh drawn with its texture, and do draw counts show terrain textured and quad=0? (js/client/play.js:1264, 1274)
+session_id: oscraft-1-1
+status: unknown

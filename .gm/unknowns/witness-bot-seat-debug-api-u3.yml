@@ -1,0 +1,4 @@
+id: witness-bot-seat-debug-api-u3
+question: Does oscraft.lobby return false on a non-local hostname (debug_api.js:167) in the live page?
+session_id: gm-drain-1793526214-1
+status: unknown

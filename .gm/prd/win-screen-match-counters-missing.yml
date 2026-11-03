@@ -1,0 +1,6 @@
+id: win-screen-match-counters-missing
+subject: 'Win screen: sim counters for assists, gold, experience, damage, healing and items'
+description: 'The win-screen match table (scenarios/moba/match_stats.lua) renders assists, gold, experience, damage dealt and taken, healing and items as "-" because the sim exposes no per-hero counter for them. Add per-hero counters at the source (kill credit for assists, total gold, total experience, damage dealt and taken, healing done, items held), expose them to Lua next to game.kills_of and game.deaths_of, then pass them into match_stats.collect. Acceptance: each column in the win-screen table shows the value the sim holds for that hero at the final tick, and the rating in match_stats.evaluate uses those counters.'
+session_id: gm-drain-1793526214-53
+owner: gm-drain-1793526214-53
+status: pending

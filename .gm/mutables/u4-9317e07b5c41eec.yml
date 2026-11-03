@@ -1,0 +1,6 @@
+id: U4
+question: Does osdt-data generate succeed on a directory of .star files (rust/data) in CI, and what does a minimal directory need?
+row: gap-mod-host-follows-data-reload
+subject: Does osdt-data generate succeed on a directory of .star files (rust/data) in CI, and what does a minimal directory need?
+session_id: gm-oscraft-sc2-alt-1-mh2
+status: unknown

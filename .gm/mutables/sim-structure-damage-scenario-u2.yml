@@ -1,0 +1,5 @@
+row: sim-structure-damage-scenario
+id: sim-structure-damage-scenario-u2
+text: Does the ground target filter or FILTER_STRUCTURE exclude the beacon from target selection?
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

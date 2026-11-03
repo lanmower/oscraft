@@ -1,0 +1,10 @@
+id: heroes-688g-ability-rows-missing
+subject: 229 hero ability rows missing for 112 roster heroes with 6.88g identity
+description: 'scenarios/moba/abilities-inventory.tsv lists 747 ability-kind rows (127 heroes). 357 have an ability() row in scenarios/moba/abilities*.osd. For the 112 heroes whose identity is PROVEN in /workspace/hy3d/output/688g-data/hero-identity.tsv, 229 non-generic ids have no ability() row (generic_hidden and rubick_hidden/empty ids excluded, 46 plus 7 rows). Exact name match against scenarios/moba/abilities_688g_perlevel.tsv abil_name covers only 14 ids; about 40 more match by name family; the rest (about 175) have no 6.88g row under that identity, so they cannot be filled from 6.88g and must stay UNVERIFIED per AGENTS.md. Acceptance: each missing id either gets an ability()/skill() row whose cooldown and cost come from its 6.88g perlevel row (effects [] and target UNVERIFIED while content-688g-ability-effect-mapping is open), or is listed UNVERIFIED with its reason. Witness: skill row count per hero from abilities-inventory.tsv and the abilities*.osd files.'
+session_id: heroes-inv-1
+owner: heroes-inv-1
+status: pending
+notes:
+- ts: 2026-10-25T16:20:45.834Z
+  session_id: heroes-inv-1
+  note: 'heroes-inv-1 state at origin d93f299a: 229 real ability ids (inventory kind=ability, 112 PROVEN heroes) still have no ability() row; 451 of 680 are defined. Exact 6.88g name match covers 14 ids; the scan lane stopped before writing rows and reported a 292-id count and a codesearch tree mismatch. Nothing was written for these ids. Their icons are not shipped either.'

@@ -1,0 +1,5 @@
+id: gap-net-host-resume-u5
+subject: Is the row's acceptance (kill and restart a host, compare hashes) runnable in CI on Linux without a browser, and which instrument would witness it?
+row: gap-net-host-resume
+session_id: gm-oscraft-w1-13
+status: unknown

@@ -1,0 +1,6 @@
+id: content-model-request-observer-ward
+subject: 'hy3d model request: observer ward'
+description: 'hy3d request: observer ward model to replace the placeholder prop ''candle'' (scenarios/moba/units.osd observer_ward, scenarios/moba/slot-models.tsv). Acceptance: models/<ward>.glb in assets.json and units.osd model= and slot-models.tsv point at it. No pack downloads; hy3d produces it.'
+session_id: mcp-codemode-2804130-1792919090730-160
+owner: mcp-codemode-2804130-1792919090730-160
+status: pending

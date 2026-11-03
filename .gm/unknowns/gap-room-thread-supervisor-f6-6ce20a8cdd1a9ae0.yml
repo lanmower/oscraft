@@ -1,0 +1,4 @@
+id: gap-room-thread-supervisor-F6
+subject: 'Row acceptance says the room resumes from the last good snapshot after a panic; no rollback or snapshot restore exists in supervise or run_ticker (the ticker reuses the same Arc<Room>). Decide: implement per-tick rollback (cost: a sim save_state per tick) or rescope the acceptance clause to tick continuity without rollback (owner decision).'
+session_id: gm-orch-1-3
+status: unknown

@@ -1,0 +1,22 @@
+id: first-draw-gate-flaky-same-tree
+subject: pages first-draw ceiling fails on an unchanged tree (5.8 s pass, 10.9 s fail)
+description: 'The pages workflow job ''first draw of the built page'' (scripts/perf/first-draw.mjs site --loads=3 --ceiling-ms=10000) measured median 5835 ms and passed on run 40169738419 (f165de9c, 06:41Z), then median 10923 ms and failed on run 40170145589 (cef86107, same tree: git diff f165de9c cef86107 is empty). Run 40174237757 (170627de) failed at median 10783 ms. The gate is wall-clock on a shared runner and cannot tell a regression from runner load. Fix in the CI lane: report counted work (requests, draws) beside the wall-clock figure and do not fail on wall-clock alone when the tree is unchanged, or pin the runner. Found by hero-icon-404s-missing-15-skinned-png (session drain-icon-404-7).'
+session_id: drain-icon-404-7
+owner: drain-icon-404-7
+status: pending
+notes:
+- ts: 2026-10-25T08:54:00.044Z
+  session_id: survey-infra-8
+  note: 'Evidence: scripts/perf/first-draw.mjs serves uncompressed (row first-draw-server-serves-uncompressed) and the page deploys 202 MB of loose assets beside the pack (row pages-site-ships-loose-assets-and-pack-archive); both add variance to the measured number.'
+- ts: 2026-10-25T08:59:21.099Z
+  session_id: drain-infra-9
+  note: claimed by drain-infra-9
+- ts: 2026-10-25T09:12:19.196Z
+  session_id: drain-infra-9
+  note: 'drain-infra-9: 9d6165006503 pages first-draw loads transfer ~30 MB per load gzipped (run 40179272563: 29.9/30.8/30.4 MB; ms 10146/9224/8532, median 9224, ceiling unchanged 10000). Cause lead: the loose scenarios/ assets and packs/ archive both load/ship; per-file attribution now printed by first-draw.mjs. Ceiling untouched (owner call).'
+- ts: 2026-10-25T09:13:20.134Z
+  session_id: drain-infra-9
+  note: 'drain-infra-9: 9d6165006503 pages first-draw loads transfer ~30 MB each gzipped (run 40179272563: 29.9/30.8/30.4 MB; ms 10146/9224/8532, median 9224; ceiling unchanged at 10000). Cause lead: both the loose scenarios/ assets and the packs/ archive ship. f11e823e prints requests and the six heaviest files per load to attribute it.'
+- ts: 2026-10-25T10:09:10.562Z
+  session_id: mcp-codemode-3115989-1792922950003-5
+  note: 'Owner decision (user): fix by measurement and bundling (see pages-first-draw-ceiling-runner-variance), not by changing the gate.'

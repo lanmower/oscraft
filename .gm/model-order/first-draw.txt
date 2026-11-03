@@ -1,0 +1,5 @@
+first draw: navigation start to document.body.dataset.worldBuilt (page performance.now() at the set time), CDP cache disabled, #moba lobby, 3 loads per build, interleaved AFTER/BASE
+AFTER run1=1188 ms run2=1696 ms run3=1119 ms median=1188 ms
+BASE  run1=1100 ms run2=1085 ms run3=1294 ms median=1100 ms
+frame draw calls not sampled: worldBuilt was set in every run.
+Caveat: the page runs a HEAD probe loop (checkModelWatch, play.js) from worldBuilt on; it does not start before worldBuilt, so it does not affect these times.

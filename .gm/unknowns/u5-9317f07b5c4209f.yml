@@ -1,0 +1,6 @@
+id: U5
+question: Does Room expose stage_data and the data path so the reload can reach the mod host, and what does the room do with --data?
+row: gap-mod-host-follows-data-reload
+subject: Does Room expose stage_data and the data path so the reload can reach the mod host, and what does the room do with --data?
+session_id: gm-oscraft-sc2-alt-1-mh2
+status: unknown

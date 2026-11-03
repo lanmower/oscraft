@@ -1,0 +1,4 @@
+anchor	kind	note
+local	provenance	Buyback (6.88g war3map.j q2 8036-8047): the gold step times one more than the index
+local	unverified	floor((base + 1.5 * level^2 + 15 * minutes) / 50), clamped to 0..59. The game clock starts at 0 here (UNVERIFIED against pr, the
+local	rationale	script's own zero, PRE 30064).

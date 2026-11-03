@@ -1,0 +1,4 @@
+id: u-unit-records-accessor
+value: how Room exposes per-unit records (kind, owner, hp, position) from the sim, and whether an accessor is usable outside the sim lock
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

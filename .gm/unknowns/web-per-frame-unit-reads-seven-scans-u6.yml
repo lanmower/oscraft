@@ -1,0 +1,6 @@
+id: web-per-frame-unit-reads-seven-scans-u6
+row: web-per-frame-unit-reads-seven-scans
+subject: 'Counted work: how many wasm export calls and element scans per frame does simUnits+gameMaxHps+isBuildingUnit make before vs after?'
+question: 'Counted work: how many wasm export calls and element scans per frame does simUnits+gameMaxHps+isBuildingUnit make before vs after?'
+session_id: gm-drain-1793526214-2
+status: unknown

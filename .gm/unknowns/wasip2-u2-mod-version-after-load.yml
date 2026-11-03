@@ -1,0 +1,4 @@
+id: wasip2-u2-mod-version-after-load
+value: what ModHost::version() returns after load_source of the test mod
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-m9

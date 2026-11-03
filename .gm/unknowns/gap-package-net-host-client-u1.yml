@@ -1,0 +1,6 @@
+id: gap-package-net-host-client-u1
+subject: 'Does any build path (scripts/package/build.sh) produce js/client/dist/play.js? Expected no: build.sh:23-28 stages js/client/* flat, no dist dir.'
+row: gap-package-net-host-client
+question: 'Does any build path (scripts/package/build.sh) produce js/client/dist/play.js? Expected no: build.sh:23-28 stages js/client/* flat, no dist dir.'
+session_id: gm-orch-1-4
+status: unknown

@@ -1,0 +1,34 @@
+anchor	kind	note
+file	rationale	6.88g hero abilities, batch 04. Heroes: ancient_apparition, chen, elder_titan, keeper_of_the_light, obsidian_destroyer, razor, undying.
+file	rationale	Applied from ability.ini (cooldown, mana, range, levels), war3map.j (areas, damage formulas, durations) and 6.88g tooltips.
+file	rationale	A mechanic the effect kinds cannot carry is left out and listed in hy3d output/688g-data/parity/b04.tsv as "missing: <mechanic>".
+file	rationale	mars and snapfire: UNVERIFIED, no 6.88g row (hero-identity.tsv); no 6.88g ability applied.
+file	rationale	Ultimates gate at 6, 11 and 16 (6.88g reqLevel 6, levelSkip 5).
+ancient_apparition_ice_vortex	provenance	ancient_apparition 6.88g A1HS Ice Vortex: war3map.j:79535 lifetime 16 s, :79514 radius 300; ability.ini:61689 cooldown, :61691 mana, :61730 range.
+ancient_apparition_cold_feet	provenance	ancient_apparition 6.88g A1MG Cold Feet: war3map.j:79561 four hits of (100+50*level)/4 over 3.4 s; ability.ini:64520 cooldown, :64555 range. Applied by trigger_spells_a_b.lua: the target is stunned 1.25/2/2.5/3.5 s after 3.9 s if it stayed within 765 of the mark (war3map.j:79550-79600).
+ancient_apparition_ice_blast	provenance	ancient_apparition 6.88g A1MI Ice Blast: ability.ini:64603 cooldown, :64605 mana, :64641 range 99999, :64609 point target.
+ancient_apparition_chilling_touch	provenance	ancient_apparition 6.88g A1HQ Chilling Touch: ability.ini:61548 cooldown, :61550 mana, :61587 range, :61554 point target. Applied by trigger_spells_a_b.lua: allied heroes within 525 get 3/4/5/6 charges of 50/60/70/80 magical for 30 s.
+elder_titan_natural_order	provenance	elder_titan 6.88g A1CD Natural Order: ability.ini:57063 four levels, reqLevel 1; war3map.j:56365 area 300 around the caster.
+elder_titan_echo_stomp	provenance	elder_titan 6.88g A1AA Echo Stomp: war3map.j:56154-56157 damage 70+10*level each physical and magical, :56177 radius 525; ability.ini:54722 cooldown, :54726 cast 1.2 s.
+elder_titan_ancestral_spirit	provenance	elder_titan 6.88g A1A8 Ancestral Spirit: ability.ini:54587 cooldown, :54589 mana, :54624 range, :54593 point target.
+elder_titan_earth_splitter	provenance	elder_titan 6.88g A1A1 Earth Splitter: ability.ini:54391 cooldown, :54393 mana, :54429 range, :54395 cast 0.9 s, :54397 point target.
+keeper_of_the_light_illuminate	provenance	keeper_of_the_light 6.88g A085 Illuminate: ability.ini:18487 cooldown, :18489 mana, :18524 range, :18493 unit-or-point (war3map.j:50996 reads the target point).
+keeper_of_the_light_mana_leak	provenance	keeper_of_the_light 6.88g A10X Mana Leak: ability.ini:48099 cooldown, :48101 mana, :48138 range.
+keeper_of_the_light_spirit_form	provenance	keeper_of_the_light 6.88g A2XQ Spirit Form: the cast is the granted A11T (war3map.j:51255, ability.ini:49168 cooldown 80/70/60, :49170 mana 100/150/200); A2XQ itself has cost 200 (ini:101341).
+keeper_of_the_light_chakra_magic	provenance	keeper_of_the_light 6.88g A112 Chakra Magic: war3map.j:51066 restores 75*level mana; ability.ini:48252 cooldown, :48254 mana, :48289 range.
+obsidian_destroyer_sanity_s_eclipse	provenance	obsidian_destroyer 6.88g A0OK Sanity's Eclipse: war3map.j:64127 radius 300+100*level, :64061 multiplier 7+level; ability.ini:38022 cooldown, :38024 mana, :38058 range.
+obsidian_destroyer_astral_imprisonment	provenance	obsidian_destroyer 6.88g A0OJ Astral Imprisonment: war3map.j:63974-63980 target is invulnerable, paused and hidden for level seconds; ability.ini:37934 cooldown, :37936 mana, :37966 range.
+obsidian_destroyer_arcane_orb	provenance	obsidian_destroyer 6.88g A0OI Arcane Orb: war3map.j:63896 pure damage (5+level)% of (mana+100); ability.ini:37844 mana, :37830 orb parent AEpa.
+obsidian_destroyer_essence_aura	provenance	obsidian_destroyer 6.88g A0IF Essence Aura: tooltip base mana pool +75 per level (ability.ini ubertip); war3map.j:63866 restore (5+5*level)% of max mana, 40% chance.
+undying_decay	provenance	undying 6.88g A15S Decay: war3map.j:64587 magical damage 40*level-20, :64569 strength steal 4 for 40 s, :64608 radius 350; ability.ini:52025 cooldown, :52064 range.
+undying_soul_rip	provenance	undying 6.88g A0R5 Soul Rip: war3map.j:64655-64677 (18+4*level) per unit within 1325, at most 2*level+8; ability.ini:40375 cooldown, :40377 mana, :40414 range.
+undying_tombstone	provenance	undying 6.88g A15V Tombstone: war3map.j:64925 lifetime 10+5*level; ability.ini:52127 cooldown, :52129 mana, :52166 range, :52133 point target.
+undying_flesh_golem	provenance	undying 6.88g A15J Flesh Golem: ability.ini:51910 cooldown, :51912 mana, :51926 duration 30 s, :51899 three levels.
+razor_plasma_field	provenance	razor 6.88g A1E7 Plasma Field: ability.ini:58998 cooldown, :59000 mana; war3map.j:73498 ring grows 36 per 0.06 s for 20 steps, then shrinks.
+razor_static_link	provenance	razor 6.88g A1DP Static Link: ability.ini:58614 cooldown, :58616 mana, :58651 range, :58620 unit target.
+razor_unstable_current	provenance	razor 6.88g A1E6 Unstable Current: ability.ini:58938 DataA move speed +4/8/12/16 percent, :58925 reqLevel 1.
+razor_eye_of_the_storm	provenance	razor 6.88g A1AO Eye of the Storm: ability.ini:54972 cooldown, :54974 mana, :54978 three levels, tooltip lasts 30 s.
+chen_test_of_faith	provenance	chen 6.88g A0LV Test of Faith: war3map.j:46604 random pure damage 50*level to 100*level, ally heroes teleport home; ability.ini:34332 cooldown 16 s (tooltip says 24), :34334 mana, :34371 range. Applied by trigger_spells_c_d.lua: random 50*rank..100*rank pure to an enemy, an allied hero goes home after 7-rank s, an own-player hero after 2 ticks, own summons gather on Chen when he targets himself.
+chen_holy_persuasion	provenance	chen 6.88g A28T Holy Persuasion: war3map.j:46712-46737 cap level units, base life raised to 600+100*level; ability.ini:82778 cooldown, :82780 mana, :82817 range. Applied by trigger_spells_c_d.lua: the target changes owner, converted units are capped at the rank (the oldest dies), base life raised to 600+100*rank.
+chen_hand_of_god	provenance	chen 6.88g A0LT Hand of God: war3map.j:46806 heals every allied hero 100+100*level (200/300/400); ability.ini:34246 cooldown, :34248 mana. Applied by trigger_spells_c_d.lua: every own non-hero unit is set to full life.
+chen_penitence	provenance	chen 6.88g A0KM Penitence: war3map.j:46673 slow 10%+5%*level; ability.ini:32680 cooldown, :32682 mana, :32688 duration 5/6/7/8 s, :32712 range. Applied: damage taken +15/20/25/30 percent for 5/6/7/8 s as the damage reduction stat (the pure type is GUESS).

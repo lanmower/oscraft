@@ -1,0 +1,19 @@
+  static:
+    name: static client checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The vendored wireweave is a submodule and part of the page's module graph, so the hint check
+      # needs it: without it the graph it walks is four files short and the committed hints look stale.
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the page's module preload hints
+        run: node scripts/check-modulepreload.mjs
+      - name: Check the effect data agree (kinds, schools, renderers)
+        run: node scenarios/moba/tools/check-fx.mjs
+      - name: Check every roster hero has a 1 to 3 letter unique acronym
+        run: node scripts/check-acronyms.mjs

@@ -1,0 +1,5 @@
+row: main-ci-red-check-pathing-and-moba-pack-side1
+id: main-ci-red-check-pathing-and-moba-pack-side1-u2-gate-side1-role
+subject: Does rust/gate scenario_units, unit-stops-to-attack and scenario_objective pass when side 1 resolves to base_scourge_throne through a per-side role?
+session_id: gm-drain-1793526214-20
+status: unknown

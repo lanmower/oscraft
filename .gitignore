@@ -1,0 +1,73 @@
+# derived config caches are nested git repos: staging one as a gitlink without
+# a .gitmodules url makes every CI checkout fail on submodule update
+/.gm/config-source-cache-default/
+
+# local site layout from scripts/layout-site.sh and scripts/dev/stage.sh
+/_site/
+
+# stray timestamp files
+2026-10-27T14:00:00Z
+2026-10-27T15:25:00Z
+2026-10-27T15:30:00Z
+2026-10-27T15:35:00Z
+2026-10-27T15:45:00Z
+
+# dependency installs and generated build output
+node_modules/
+target/
+.dev-site/
+
+# browser profiles, CDP session captures and scratch probes: local only
+/.gm/browser-lease/
+/.gm/browser-cdp-sessions/
+/.gm/browser-cdp-capture/
+/.gm/crawl-cdp-sessions/
+/.inspect/
+
+# agent-host MCP registrations written by the gm installer: one local file per host, never tracked,
+# and they made every writer_lock check report not_clean
+/.codex/
+/.cursor/
+/.factory/
+/.gemini/
+/.grok/
+/.junie/
+/.kimi-code/
+/.kiro/
+/.mastracode/
+/.pi/
+/.vscode/
+/.zed/
+/.mcp.json
+/config/
+kilo.json
+opencode.jsonc
+
+# generated caches: regenerated on demand, never versioned
+/.agentplug-kv/
+/.gm/codesearch-result-*.json
+
+# gm runtime state, databases, perf runs, screenshots and run logs: local only
+/runs/
+/.gm/perf/
+/.gm/exec-spool/
+/.gm/gm.db
+/.gm/hud-*/
+/.gm/dream-rsi/
+/.gm/terrain-check/
+/.gm/witness-*/
+/.gm/prd-stage/
+/.gm/screenshots/
+/.gm/scratch/
+/.gm/scratch-sc2/
+/.gm/shots/
+/.gm/pool/
+/.gm/src-dota/
+/.gm/witness-out/
+/.gm/witness-shots/
+/.gm/unknowns-log.d/
+/.gm/*.png
+/.gm/*.log
+/.gm/unknowns-log.jsonl
+/.gm/mutables-log.jsonl
+/scripts/perf/node_modules/

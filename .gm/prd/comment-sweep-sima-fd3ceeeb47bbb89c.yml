@@ -1,0 +1,10 @@
+id: comment-sweep-simA
+subject: Comment sweep of sim crate files a-l
+description: Remove comments from rust/crates/sim files a-l, move non-obvious facts to AGENTS.md
+session_id: drain-simA
+owner: drain-simA
+status: pending
+references:
+- ts: 2026-10-25T17:44:46.505Z
+  session_id: drain-simA
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/AGENTS.md","repo":"","path":"","sha":"","why":"No public references: mechanical deletion of this repo''s own comments; facts land in this file","license":"unknown"}'

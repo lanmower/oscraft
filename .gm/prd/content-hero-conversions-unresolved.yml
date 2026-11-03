@@ -1,0 +1,6 @@
+id: content-hero-conversions-unresolved
+subject: 58 hero rows from reference map 6.88g remain unresolved
+description: 'docs/CONVERGENCE_688G.md section 7: 127 hero rows, 69 applied, 58 unresolved, 10 dropped. Resolve each unresolved row against its reference source, or record why it cannot be resolved, then rerun scripts/apply-heroes-688g.py. Witness: the convergence table reports 0 unresolved.'
+session_id: mcp-codemode-8365-1792666780543-16
+owner: mcp-codemode-8365-1792666780543-16
+status: pending

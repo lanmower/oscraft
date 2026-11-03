@@ -1,0 +1,5 @@
+anchor	kind	note
+file	rationale	armor is in whole armour units (Roshan 6 is 6). heroes_688g.tsv armor is in hundredths, and apply-heroes-688g.py divides it by 100.
+file	rationale	Neutral creep and Roshan rows from reference map 6.88g (UnitBalance, UnitWeapons, UnitData), applied by scripts/apply-creeps-688g.py.
+file	rationale	Scale as heroes_688g.tsv: spd milli per tick, range and sight milli, period ticks (cool1 x 16), damage (dmgplus1 + dice1 x (sides1 + 1) / 2), regen_milli (regenHP x 62.5).
+file	provenance	Blank armor or radius: the 6.88g row has no value; the current unit keeps its value. Armor 0 on a neutral row is the stock WC3 value: the map SLK and unit.ini hold no def for it, so the unit keeps its stock base-object value (w3x2lni prebuilt unit.ini).

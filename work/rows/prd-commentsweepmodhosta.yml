@@ -1,0 +1,9 @@
+id: "prd-commentsweepmodhosta"
+kind: "prd"
+title: "Comment sweep modhost part a"
+body: "id: comment-sweep-modhost-a\nsubject: Comment sweep modhost part a\ndescription: 'No public references: internal comment sweep of this repository only.'\nsession_id: sweep-modhost\nowner: sweep-modhost\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-10-27T22:45:02.000Z"
+witnessEvent: 130
+witnessCommit: "8b93d41900be478425f7430b81365d180f4b5c68"
+resolvedAt: "2026-11-02T15:50:43.987Z"

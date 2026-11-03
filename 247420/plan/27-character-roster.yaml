@@ -1,0 +1,586 @@
+roster:
+  - name: "Neckbeard"
+    prompt: "stylized 3d character, heavyset biped, patchy unwashed neck curtain beard, greying threadbare t-shirt with faded cracked taco illustration and greasy food stains, sagging grey cargo shorts with bulging pockets, white crew socks pulled halfway up calves into dark velcro sandals, heavy round wire glasses, unkempt ponytail with receding hairline, slouched posture, hand-painted digital textures, clean volumetric cloth folds, warm rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/neckbeard"
+      - "https://github.com/DietrichGebert/ponytail/raw/main/assets/logo.png"
+
+  - name: "Chungus"
+    prompt: "stylized 3d character, colossal pear-shaped bipedal hare, massive double chin resting on chest, smug half-lidded eyes, tiny comical suspenders struggling across an immense soft belly, oversized flat foot pads, hand-painted stylized textures, clean silhouette, bright studio lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/big-chungus"
+
+  - name: "Chad"
+    prompt: "stylized 3d character, impossibly sharp rectangular jawline, sculpted blonde pompadour, full golden chin beard, proud forward stride, vibrant emerald trousers, bare muscular torso with sculpted anatomy, hands resting casually on hips, hand-painted stylized textures, sharp directional rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/yes-chad"
+
+  - name: "Gigachad"
+    prompt: "stylized 3d character, hyper-symmetrical chiseled facial features, dark designer stubble, monolithic anatomical musculature, wearing only dark minimalist swim briefs, greyscale monochrome shader palette, carved marble proportions, high-contrast studio rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/gigachad"
+
+  - name: "Wojak"
+    prompt: "stylized 3d character, stark white bald cranium, simple expressive ink-etched facial contours, downcast sorrowful hollow eyes, slumped defeated posture, faded matte olive turtleneck pullover, wrinkled baggy trousers, hand-painted textures, soft melancholy rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/wojak"
+
+  - name: "Soyjak"
+    prompt: "stylized 3d character, gaping unhinged oval mouth showing tongue and teeth, circular wire-rim glasses, patchy thin chin stubble, raised arched eyebrows, plain yellow crewneck shirt, enthusiastic forward lean, hand-painted stylized textures, vibrant lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/soy-boy-face-soyjak"
+
+  - name: "Doomer"
+    prompt: "stylized 3d character, heavy dark circles under hollow eyes, unwashed five-o'clock shadow, faded black rolled knit beanie, oversized frayed black zip-up hoodie over worn grey undershirt, faded black jeans with frayed hems, glowing cigarette cherry emitting thin smoke plume, desaturated cool lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/doomer"
+
+  - name: "Bloomer"
+    prompt: "stylized 3d character, wide earnest smile, bright clear eyes, healthy posture, pastel yellow windbreaker zipped to neck, pristine light-wash denim jeans, spotless white running shoes, warm golden-hour rim illumination, hand-painted stylized textures, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/bloomer"
+
+  - name: "Tradwife"
+    prompt: "stylized 3d female character, neat retro golden bob haircut, serene smile, bright sky-blue sundress with tiny daisy print, white ruffled apron tied neatly at waist, oven mitts holding steaming braided brioche loaf, soft warm domestic lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/trad-girl-tradwife"
+
+  - name: "Boomer"
+    prompt: "stylized 3d character, receding grey hairline with sunburned forehead, wrap-around blue-mirror sport sunglasses, faded heather-grey pocket tee tucked tightly into pleated khaki cargo shorts, woven brown belt, grass-stained white walking sneakers, pull-cord gas weedwhacker slung at hip, harsh midday sun, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/30-year-old-boomer"
+
+  - name: "Coomer"
+    prompt: "stylized 3d character, hollow sunken cheeks, wide bloodshot unblinking eyes, disheveled greasy hair, stretched-out grey ribbed tank top with sweat rings, faded plaid pajama pants, massive hyper-developed right arm and shoulder contrasting with thin withered left arm, dramatic rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/coomer"
+
+  - name: "Gondola"
+    prompt: "stylized 3d soft felt character, limbless brown potato trunk, two enormous thick brown walking boots directly attached to bottom of body, tiny calm dot eyes, flat resting mouth, peaceful upright posture, matte clay texture, soft ambient occlusion, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/gondola"
+
+  - name: "Spurdo"
+    prompt: "stylized 3d character, low-slung rounded slouch, oversized sagging olive-drab winter parka with faux-fur hood trim, droopy wide oval snout, asymmetric hand-drawn eyes, dented aluminum baseball bat held loosely, hand-painted textures, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/spurdo-spanke"
+
+  - name: "Karen"
+    prompt: "stylized 3d female character, razor-sharp asymmetrical blonde wedge haircut, large bug-eye designer sunglasses, fitted pastel-pink velour tracksuit, white slip-on sneakers, holding an endless accordion-folded printed receipt, aggressive forward lean, hard rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/karen"
+
+  - name: "Kyle"
+    prompt: "stylized 3d character, sideways black flat-brim motocross cap, neon-green skate shoes, sleeveless black hoodie with shredded armholes, cargo shorts, dual jagged slabs of shattered white drywall held like knuckles, airborne lunging stance, harsh saturated lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/kyle"
+
+  - name: "Harold"
+    prompt: "stylized 3d character, wispy white hair, heavy crinkled eye bags, pained forced toothy grimace, sensible beige short-sleeve office polo shirt tucked into brown trousers, white ceramic mug with bold 'WORLD'S BEST' text, hand-painted stylized textures, warm soft lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/hide-the-pain-harold"
+
+  - name: "Sanic"
+    prompt: "stylized 3d character, crudely distorted electric-blue bipedal scribble, oversized asymmetric pupils pointing in different directions, horizontal 30-degree forward running lean, flat red running shoes with white cuffs, hand-painted textures, dynamic motion lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/sanic-hegehog"
+
+  - name: "Slender"
+    prompt: "stylized 3d character, featureless blank white oval face with no eyes or mouth, ultra-tall elongated black two-piece funeral suit, narrow crimson necktie, glossy black dress shoes, writhing black tendrils emerging from upper spine, stark high-contrast rim light, neutral background"
+    aesthetic_refs:
+      - "https://en.wikipedia.org/wiki/Slender_Man"
+
+  - name: "Viking"
+    prompt: "stylized 3d character, lean defined muscular physique, tight pale skin, braided blonde beard, silver hammer pendant, bare chest, rugged dark utility pants tucked into black combat boots, pointed authoritative index finger, half-full clear plastic water bottle, rhythmic march stance, neutral background"
+    aesthetic_refs:
+      - "https://en.wikipedia.org/wiki/Techno_Viking"
+
+  - name: "Leeroy"
+    prompt: "stylized 3d character, mismatched clashing medieval plate armor pieces, golden lion crest tabard worn backwards, heavy steel broadsword held overhead, mouth agape in mid-shout, unstoppable charging stride, dramatic warm backlight, hand-painted textures, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/leeroy-jenkins"
+
+  - name: "Boxxy"
+    prompt: "stylized 3d female character, massive side-swept feathered black emo hair, heavy thick black eyeliner wings, oversized grey thrift-store knit sweater falling off one shoulder, silver ball-chain necklace, animated open-palm hand gestures, soft studio key light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/boxxy"
+
+  - name: "Rickroll"
+    prompt: "stylized 3d character, voluminous ginger pompadour with razor side-part, double-breasted beige trench coat with oversized lapels, black polo neck shirt, black dress shoes, vintage chrome broadcast microphone on stand, confident rhythmic dance bounce, stage spotlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/rickroll"
+
+  - name: "Saxguy"
+    prompt: "stylized 3d character, slicked dark hair, pure white plastic wayfarer sunglasses, fitted dark blue suit jacket over open-collar shirt, polished brass alto saxophone, energetic exaggerated pelvic-thrust performance stance, vivid neon party lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/epic-sax-guy"
+
+  - name: "Numa"
+    prompt: "stylized 3d character, round cheerful face, oversized grey over-ear studio headphones, short-sleeve light-blue casual button-up shirt, seated upper-torso posture with rhythmically pumping bent elbows, joyful head tilt, soft rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/numa-numa"
+
+  - name: "Dodson"
+    prompt: "stylized 3d character, bright crimson silk bandana tied low across brow, ribbed black athletic tank top, gold chain necklace, accusatory outstretched arm with pointed index finger, expressive sideways leaning posture, vivid broadcast lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/antoine-dodson-bed-intruder"
+
+  - name: "Sweetbrown"
+    prompt: "stylized 3d female character, colorful knotted floral headscarf, wide expressive alarmed eyes, gold hoop earrings, vibrant geometric-patterned blouse, bright red cherry fruit pop held at chin height, energetic defensive posture, warm broadcast studio lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/sweet-brown-aint-nobody-got-time-for-that"
+
+  - name: "Willie"
+    prompt: "stylized 3d anthropomorphic character, strict black-and-white monochromatic palette, round black ears, button-front white shorts, puffed whistling cheeks, hands gripping a free-floating wooden ship helm, bouncing rhythmic stance, vintage theatrical lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/steamboat-willie"
+
+  - name: "Chudjak"
+    prompt: "stylized 3d character, receding flat buzzcut, severe downturned scowl, heavy flat unibrow, olive-green army surplus jacket over faded grey t-shirt, rolled brown paper manifesto held like a club, rigid combative stance, harsh overhead rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/chudjak"
+
+  - name: "Smugjak"
+    prompt: "stylized 3d character, polished bald cranium, sharp upturned nose, half-lidded eyelids, curled asymmetrical smirk, burgundy turtleneck sweater, hands clasped behind back, self-satisfied upright stance, soft warm backlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/smug-wojak"
+
+  - name: "Rageguy"
+    prompt: "stylized 3d character, stark white head with pulsating red temple veins, gaping square howling mouth, hyper-stretched jawline, white stick-thin torso in tattered white tank top, raised clenched trembling fists, dramatic upward red underlighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/rage-guy-fffffuuuuuuuu"
+
+  - name: "Cereal"
+    prompt: "stylized 3d character, clean white porcelain cereal bowl head filled with round cereal bits and white milk, stick-thin white limbs, dark trousers, oversized stainless steel tablespoon pointed forward mid-argument, clean commercial studio lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/cereal-guy"
+
+  - name: "Yao"
+    prompt: "stylized 3d character, deeply crinkled joyful laugh lines, squeezed-shut laughing eyes, red athletic warm-up tracksuit with white piping, broad dismissive outward hand-wave gesture, bright rim lighting, hand-painted textures, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/yao-ming-face-bitch-please"
+
+  - name: "Steve"
+    prompt: "stylized 3d character, sideways brown fur-trimmed flat cap, thick fleece-lined tan shearling jacket with wide open collar, heavy gold chain over bare chest, dark sagging jeans, cheap metallic flip lighter held forward, cocky posture, saturated rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/scumbag-steve"
+
+  - name: "Greg"
+    prompt: "stylized 3d character, friendly warm grin, popped polo shirt collar on striped pastel shirt, unlit rolled cigarette resting between lips, relaxed welcoming posture with open hands, soft golden-hour backlight, hand-painted stylized textures, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/good-guy-greg"
+
+  - name: "Brian"
+    prompt: "stylized 3d character, messy blonde side-part hair, metallic wire dental braces on wide awkward grin, light-blue plaid tartan sweater vest over crisp white collared shirt, khaki trousers, clean hand-painted school photo lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/bad-luck-brian"
+
+  - name: "Disaster"
+    prompt: "stylized 3d female character, short wavy brown bob, knowing devilish sideways smirk directly at viewer, plain faded red crewneck t-shirt, blue denim shorts, warm orange-and-yellow fire glow illuminating silhouette from behind, clean volumetric shading, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/disaster-girl"
+
+  - name: "Attached"
+    prompt: "stylized 3d female character, unnervingly wide unblinking teal eyes, locked rigid white-toothed smile, smooth shoulder-length brunette hair, light-blue scoop-neck cotton shirt, hands clasped tightly under chin, soft high-key front lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/overly-attached-girlfriend"
+
+  - name: "Zyzz"
+    prompt: "stylized 3d character, deeply tanned aesthetic physique, neon-pink short-shorts, spiked highlighted hair, aviator sunglasses resting on chest, double-bicep victory flex, glowing celestial backlight, hand-painted digital textures, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/zyzz"
+
+  - name: "Noscope"
+    prompt: "stylized 3d character, floating 8-bit black pixel sunglasses, glowing green crosshair hitmarker projected over face, oversized green marijuana leaf bucket hat, bright track jacket with sponsor patches, bolt-action precision rifle, dynamic lens-flare lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/360-noscope"
+
+  - name: "Dino"
+    prompt: "stylized 3d character, stark monochromatic grey 1-bit pixel aesthetic, running bipedal tyrannosaur silhouette, stubby forearms, snapping rectangular jaw, angular pixel-stepped running posture, crisp shadow, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/the-chrome-dinosaur"
+
+  - name: "Fuuuu"
+    prompt: "stylized 3d character, smooth white cranium, eyes squeezed into tight crescents of agony, mouth open in an immense oval scream revealing two rows of square teeth, hands clutching own temples, plain grey t-shirt, high-contrast dynamic lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/rage-guy-fffffuuuuuuuu"
+
+  - name: "Jeff"
+    prompt: "stylized 3d character, bleached paper-white face, unclosing lidless black ringed eyes, carved bloody crimson smile from ear to ear, blood-flecked oversized white hoodie, black skinny jeans, steel kitchen butcher knife, harsh overhead rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/jeff-the-killer"
+
+  - name: "Jack"
+    prompt: "stylized 3d character, glossy royal-blue wooden mask with empty black sockets weeping thick black tar, oversized black zip-up hoodie with hood up, dark work boots, polished steel surgical scalpel, hunched stalking crouch, moody backlighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/eyeless-jack"
+
+  - name: "Salad"
+    prompt: "stylized 3d character, emaciated olive-green frame, bulbous bald cranium, elongated flexible rubbery fingers, threadbare moth-eaten green knit sweater, three tarnished vintage silver spoons held between knuckles, eerie gentle stance, soft ambient lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/subcultures/salad-fingers"
+
+  - name: "Weegee"
+    prompt: "stylized 3d character, emerald green flat cap, green long-sleeve undershirt, dark denim overalls with yellow brass buttons, perfectly vertical posture, arms pinned rigid to thighs, flat unblinking hypnotic stare, flat uncanny lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/weegee"
+
+  - name: "Hank"
+    prompt: "stylized 3d character, faceless slate-grey biped, crimson circular combat lenses, thick white bandages wrapped around lower face, charcoal combat trenchcoat, fingerless gloves, twin high-carbon machetes, ready low-combat stance, clean action lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/subcultures/madness-combat"
+
+  - name: "Tricky"
+    prompt: "stylized 3d character, mottled decay-green skin, wild frizzy neon-red hair curls, rusted iron hockey faceplate with vertical slits, ragged blue overalls, rusted metal octagonal stop-sign on iron pipe, frenzied hopping stance, harsh contrast lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/tricky-the-clown-tiky"
+
+  - name: "Peanut"
+    prompt: "stylized 3d concrete character, smooth pill-shaped tan concrete body, short tapered concrete legs, abstract spray-painted black and red facial markings, rigid motionless posture, heavy grounded ambient occlusion, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/scp-173"
+
+  - name: "Ecce"
+    prompt: "stylized 3d character, blurred primate-like fresco face with smudged eyes and mouth, thick crude painted halo, textured rough burlap tunic with frayed rope belt, wooden painter's palette with dried paint blobs, gallery downlight, neutral background"
+    aesthetic_refs:
+      - "https://commons.wikimedia.org/wiki/File:Elias_Garcia_Martinez_-_Ecce_Homo.jpg"
+
+  - name: "Gopnik"
+    prompt: "stylized 3d character, bright blue three-striped nylon tracksuit, wool newsboy flat cap pulled low, black dress shoes, deep flat-footed heel squat posture, steel crowbar resting across knees, harsh streetlamp lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/squatting-slavs-in-tracksuits-gopniks"
+
+  - name: "Mallcop"
+    prompt: "stylized 3d character, rotund heavyset build, dark navy short-sleeve security guard shirt with gold polyester badge, dark trousers with yellow stripe, reflective aviator shades, mounted on a two-wheeled motorized scooter, upright rigid posture, commercial studio light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/paul-blart-mall-cop"
+
+  - name: "Vapebro"
+    prompt: "stylized 3d character, sideways teal snapback cap, oversized sleeveless down puffer vest, camo cargo shorts, thick swirling white vapor plume enveloping upper body, polished brass mechanical box-mod vape, vibrant neon rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/vape-nation"
+
+  - name: "Starwarskid"
+    prompt: "stylized 3d character, grey fleece sweatpants, tucked-in plain navy tee, intense focused brow with furrowed concentration, hollow plastic golf-ball retriever pole held with two-handed grip, dynamic mid-spin martial stance, warm indoor light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/star-wars-kid"
+
+  - name: "Tay"
+    prompt: "stylized 3d character, slender frame, crisp white dress shirt, burgundy elastic suspenders, dark tailored trousers, vintage large-diaphragm chrome studio microphone, tilted head leaning sideways away from mic, warm stage spotlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/chocolate-rain"
+
+  - name: "Shoop"
+    prompt: "stylized 3d character, bright sky-blue spherical floating head, enormous thick red cartoon lips opened wide, bulging circular white eyes, spinning bright-cyan plasma sphere charging within oral cavity, high-contrast energy glow, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/shoop-da-whoop-imma-firin-mah-lazor"
+
+  - name: "Kazoo"
+    prompt: "stylized 3d child character, bright red-and-white horizontally striped t-shirt, pristine golden bowl haircut, wide infectious grin, glossy bright-red plastic kazoo held to lips, playful skipping stance, high-key bright studio light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/kazoo-kid"
+
+  - name: "Prepper"
+    prompt: "stylized 3d character, bulky olive-drab rubberized hazmat suit, twin-canister rubber gas mask with fogged round lenses, duct tape around wrists and ankles, bolted steel storm-shelter blast door held like a tower shield, industrial lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/doomsday-preppers"
+
+  - name: "Trollhunter"
+    prompt: "stylized 3d character, full white handlebar mustache and chinstrap beard, black leather dress gloves, tailored three-piece black suit, bright red necktie, heavy wooden auction gavel, authoritative upright stance, sharp debate spotlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/the-rent-is-too-damn-high"
+
+  - name: "Barista"
+    prompt: "stylized 3d character, neatly waxed handlebar mustache, dark selvedge denim bib apron, rolled chambray sleeves showing intricate tattoo sleeves, earlobe gauge tunnels, stainless steel espresso portafilter handle, confident cafe stance, warm directional rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/hipster-barista"
+
+  - name: "Hypebeast"
+    prompt: "stylized 3d character, bright crimson utility chest pack with bold white lettering, oversized designer box-logo hoodie, black drop-crotch joggers, massive chunky platform sneakers with exaggerated air bubbles, carrying stack of branded shoeboxes, trendy street posture, saturated lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/hypebeast"
+
+  - name: "Florida"
+    prompt: "stylized 3d character, deep leathery sunburn, shredded frayed denim jorts, backward neon-yellow mesh trucker cap, dirty white athletic slides, dual live green alligators tucked under arms like clubs, manic airborne leaping posture, harsh midday sunlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/florida-man"
+
+  - name: "Waffle"
+    prompt: "stylized 3d female character, crushed paper diner pillbox cap, faded brown restaurant apron, rolled short sleeves, unlit cigarette behind ear, flat heavy stainless steel food tray held like a combat buckler, grounded defensive crouch, fluorescent kitchen lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/waffle-house-wendy"
+
+  - name: "Tpose"
+    prompt: "stylized 3d character, smooth grey untextured low-poly mannequin mesh, arms locked in horizontal rigid cross, floating two inches off floor with no leg animation, glowing neon green wireframe grid lines mapped onto torso, crisp development engine lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/t-pose"
+
+  - name: "Zalgo"
+    prompt: "stylized 3d dark character, jagged pitch-black silhouette, cranial mesh violently splitting into floating corrupted Unicode characters and spikes, red glowing eyes, levitating unstable posture, ominous dark backlighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/zalgo"
+
+  - name: "Helios"
+    prompt: "stylized 3d character, floating classical Roman marble bust, iridescent mirrored sunglasses, wireframe neon-pink grid mesh radiating from neck, pastel cyan and magenta aesthetic palette, soft synthetic horizon glow, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/vaporwave"
+
+  - name: "Npc"
+    prompt: "stylized 3d character, flat slate-grey skin, sharp triangular nose, blank unblinking oval eyes with black dots, plain grey short-sleeve polo shirt, rigid upright idle posture with arms hanging straight down, flat neutral diffuse lighting, neutral background"
+    aesthetic_refs:
+      - "https://en.wikipedia.org/wiki/NPC_(meme)"
+
+  - name: "Derp"
+    prompt: "stylized 3d character, smooth white potato head, pupils pointing in completely opposite directions, wide open grin with pink tongue lolling sideways, mismatched shoes, crooked flailing limbs in a clumsy stumbling run, clean bright studio lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/derp"
+
+  - name: "Forever"
+    prompt: "stylized 3d character, misshapen lumpy cranium with deep tear crevices carved down cheeks, mouth turned down in weeping grimace, hunched crawling bipedal posture, baggy muted-grey sweat suit, cold soft downlighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/forever-alone"
+
+  - name: "Fuckyea"
+    prompt: "stylized 3d character, smooth white head tilted back, jet-black sunglasses, smug upturned chin, hands firmly jammed into pockets of sharp black trousers, pristine white button-down shirt, triumphant backward-leaning strut, bright crisp rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/fuck-yea"
+
+  - name: "Challenge"
+    prompt: "stylized 3d character, clenched squared jawline, narrow steely eyes, arms tightly folded across chest, puffed out torso, crisp white collared shirt, resolute forward stride, sharp heroic rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/challenge-accepted"
+
+  - name: "Hipster"
+    prompt: "stylized 3d character, thick black square horn-rimmed glasses, oversized mustard-yellow knitted infinity scarf, rolled red buffalo-plaid flannel shirt, raw denim jeans with thick cuffs, holding glass pour-over coffee carafe, casual intellectual posture, warm cafe lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/hipster"
+
+  - name: "Brony"
+    prompt: "stylized 3d character, dark brown fedora pinned with pastel buttons, ankle-length black microfiber trenchcoat, tie-dye pastel shirt, fingerless gloves, staff topped with a glittering plastic rainbow star, dramatic spellcasting stance, soft dynamic lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/subcultures/my-little-pony-friendship-is-magic"
+
+  - name: "Tinfoil"
+    prompt: "stylized 3d character, suit made entirely of crumpled overlapping sheets of aluminum foil, tall conical shiny foil wizard hat, twisted copper wire coat-hanger antenna held like a wand, tense defensive crouch, high metallic specular highlights, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/tinfoil-hat"
+
+  - name: "Flatearth"
+    prompt: "stylized 3d character, flat world map printed on tunic, brass carpenter's spirit level held in hand, floating glass dome encasing a flat disc-shaped earth with tiny ice walls, authoritative lecturing posture, celestial lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/flat-earth"
+
+  - name: "Deepfried"
+    prompt: "stylized 3d character, ultra-saturated yellow and red color palette, blinding red lens-flare beacons blasting from eye sockets, hyper-contrasted fabric folds on red hoodie, running combat pose, harsh blown-out rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/deep-fried-memes"
+
+  - name: "Glitch"
+    prompt: "stylized 3d character, bipedal humanoid mesh fractured into displaced red, green, and blue chromatic offset duplicate layers, jagged polygon edges, hovering unstable stance, vibrant technological neon glow, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/glitch-art"
+
+  - name: "Grey"
+    prompt: "stylized 3d alien character, large smooth teardrop grey head, enormous slanted liquid-black almond eyes, spindly thin grey limbs, unbuttoned beige trenchcoat over naked alien frame, levitating metallic silver orb, mysterious green upward backlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/greys"
+
+  - name: "Critic"
+    prompt: "stylized 3d character, plain white baseball cap worn forward, oversized black suit jacket, bright red necktie, screaming wide-open mouth showing red interior, round wire glasses, antique 35mm metal film reel canister held overhead, theatrical stage lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/the-nostalgia-critic"
+
+  - name: "Crossfit"
+    prompt: "stylized 3d character, chalk-dusted hands, black compression tights, neon sweatband across brow, massive knobby black rubber tractor tire held mid-roll, explosive athletic stride, dramatic gym spotlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/crossfit"
+
+  - name: "Acorn"
+    prompt: "stylized 3d character, full tactical desert camouflage uniform, heavy ceramic plate carrier, dark mirrored sport shades, duty belt with holsters, rapid two-handed combat pistol grip aimed at ground, evasive dive posture, bright midday sun, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/events/florida-deputy-shoots-at-acorn"
+
+  - name: "Mallarcher"
+    prompt: "stylized 3d character, fingerless black tactical gloves, matte-black compound bow equipped with six ridiculously long carbon-fiber stabilizer rods, neon-fletched target arrows, hyper-focused aiming stance, clean studio rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/mall-ninja"
+
+  - name: "Paintballer"
+    prompt: "stylized 3d character, full-coverage thermal mask with chrome mirrored lens, baggy neon-splattered tournament jersey, padded slider pants, electronic speedball marker with top-mounted round hopper, low sliding crouch, bright stadium lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/paintball"
+
+  - name: "Nerfer"
+    prompt: "stylized 3d character, crisscrossed black nylon bandoliers loaded with dozens of bright-blue foam darts, oversized neon-orange toy blaster with tactical rails, clear safety goggles, combat dash posture, high-key bright studio light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/nerf"
+
+  - name: "Spudgunner"
+    prompt: "stylized 3d character, red-and-black buffalo plaid fleece hunting jacket, industrial ear-muff protectors, shoulder-mounted heavy white PVC pipe cannon with pressure gauge, braced firing stance, natural warm outdoor lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/spud-gun"
+
+  - name: "Laserbro"
+    prompt: "stylized 3d character, dark wool overcoat, small dark sunglasses, handheld black aluminum high-powered blue laser emitter, arm extended in dead-straight pointing line, bright electric-blue straight laser beam, dark ambient lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/laser-pointer"
+
+  - name: "Slingshot"
+    prompt: "stylized 3d character, burly smiling build, short beard, dark green work tee, heavy wrist-braced slingshot equipped with triple yellow rubber tubes, shiny steel ball bearing pinched in leather pouch, broad pull-back stance, warm workshop light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/people/jorg-sprave"
+
+  - name: "Candler"
+    prompt: "stylized 3d character, singed grey zip-up hoodie with soot marks, backward clear safety goggles, dual multi-shot cardboard firework tubes held like pistols, sprinting battle stance, vibrant colored firework sparks, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/roman-candle-wars"
+
+  - name: "Airhorn"
+    prompt: "stylized 3d character, retro red nylon track jacket with white sleeve stripes, bulky over-ear soundproof earmuffs, dual handheld brass compressed-air horn canisters, celebratory jumping blast pose, bright saturated key light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/air-horn"
+
+  - name: "Ghillie"
+    prompt: "stylized 3d character, heavy suit made from thousands of shredded burlap strips and dried corn stalks, scoped hunting rifle wrapped in camouflage twine, low stalking crouch, dappled woodland rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/doomsday-preppers"
+
+  - name: "Droner"
+    prompt: "stylized 3d character, bulky white digital FPV goggles resting on forehead, neck strap holding dual-stick radio controller, hovering small black carbon-fiber quadcopter drone with blinking LED status lights, technical posture, clean studio rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/drone"
+
+  - name: "Plinker"
+    prompt: "stylized 3d character, wide frayed woven straw hat, faded denim overalls over bare chest, lever-action metal air rifle held in relaxed cross-legged seated posture, calm focused squint, golden-hour sunlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/red-ryder-bb-gun"
+
+  - name: "Frogger"
+    prompt: "stylized 3d character, mottled blue amphibious skin, vintage leather aviator flying cap with ear flaps, white round goggles, imaginary hovering motorcycle handlebars in hands, mid-air crouching leap, vibrant whimsical lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/crazy-frog"
+
+  - name: "Oiler"
+    prompt: "stylized 3d female character, pastel-purple high-waisted yoga leggings, oversized cream knit sweater, patterned canvas tote bag, handheld ultrasonic diffuser emitting thick purple lavender vapor clouds, serene peaceful pose, soft ambient glow, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/essential-oils"
+
+  - name: "Bathwater"
+    prompt: "stylized 3d female character, bright neon-pink twin pigtails, oversized pastel anime graphic t-shirt, black-and-white striped thigh-high stockings, sealed glass canning jar filled with glowing pink liquid, playful bouncy stance, soft commercial studio light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/gamer-girl-bath-water"
+
+  - name: "Driver"
+    prompt: "stylized 3d character, glowing neon-yellow paper nightclub wristband, keychain with plastic fobs spinning on index finger, detached matte-black sports car steering wheel held firmly with both hands, watchful alert stride, nighttime streetlamp rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/designated-driver"
+
+  - name: "Lifehack"
+    prompt: "stylized 3d character, canvas utility apron bursting with electric hot glue guns, industrial spools of rainbow duct tape, cluster of neon zip-ties looped to belt, eager manic problem-solving stance, bright clean studio lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/subcultures/5-minute-crafts"
+
+  - name: "Uber"
+    prompt: "stylized 3d character, car-vent dashboard mount holding smartphone with glowing GPS navigation route, woven wicker basket filled with foil-wrapped mints and chilled plastic water bottles, friendly welcoming customer-service posture, interior car dome light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/uber"
+
+  - name: "Widemouth"
+    prompt: "stylized 3d character, smooth white stylized face, eyes squeezed shut in absolute laughing glee, mouth wide in a massive smooth crescent curve showing teeth, red crewneck sweater, upright welcoming stance, warm rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/yao-ming-face-bitch-please"
+
+  - name: "Keyboarder"
+    prompt: "stylized 3d character, severely hunched spine, blue-light blocking glasses with glowing reflections, coiled black USB cable swinging a heavy mechanical keyboard like a flail, aggressive desk posture, cool monitor glow lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/keyboard-warrior"
+
+  - name: "Edgelord"
+    prompt: "stylized 3d character, floor-length black trenchcoat with torn hem, spiked leather choker, baggy black bondage pants loaded with hanging chrome chains, dual folding steel karambits, low stalking combat crouch, moody purple-tinged rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/mall-goth"
+
+  - name: "Gigaunit"
+    prompt: "stylized 3d character, colossal biped completely engulfed in four stacked layers of oversized down puffer jackets, tiny winter boots peeking from base, unstoppable waddling mass, frosty blue rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/absolute-unit"
+
+  - name: "Disheartened"
+    prompt: "stylized 3d character, smooth matte grey Wojak face, downcast heavy eyelids, hands buried deep into pockets of an oversized drab charcoal overcoat, slow defeated dragging walk, cool melancholy downlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/wojak"
+
+  - name: "Pointing"
+    prompt: "stylized 3d character, wide unhinged eyes behind square spectacles, open gaping oval mouth, long slender arm extending an impossibly long index finger pointing directly forward, plain blue t-shirt, bright directional spotlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/two-soyjaks-pointing"
+
+  - name: "Krazed"
+    prompt: "stylized 3d character, red-faced furious expression, distended howling jaw, disheveled brown hair, shredded grey crewneck shirt, shattered remnants of an ivory computer keyboard held high overhead mid-smash, violent downward motion, harsh contrast lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/angry-german-kid-keyboard-crasher"
+
+  - name: "Baconlover"
+    prompt: "stylized 3d character, neatly parted side-swept hair, thick brown handlebar mustache, leather clip suspenders over white henley shirt, heavy round cast-iron skillet sizzling with wavy bacon strips, proud presentation pose, warm culinary lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/bacon"
+
+  - name: "Gothgirl"
+    prompt: "stylized 3d female character, messy black ponytail with loose strands, heavy smudged black eyeliner, tight black velvet choker, oversized black knit cardigan hanging off shoulder, dark denim, cigarette with rising thin smoke trail, relaxed disaffected pose, cool desaturated lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/doomer-girl"
+
+  - name: "Smugcat"
+    prompt: "stylized 3d character, anthropomorphic pure white domestic cat, sitting upright behind dark restaurant table with white porcelain plate of green salad, half-closed squinting dismissive eyes, tiny curled smirk, elegant candlelit rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/smudge-the-cat"
+
+  - name: "Snackvendor"
+    prompt: "stylized 3d character, bright green dealer sun-visor, black-and-green tournament gaming headset, bright red oversized athletic tee, armful of triangular tortilla chip bags and 2-liter neon-green soda bottles, triumphant celebratory stance, vibrant saturated lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/doritos-and-mountain-dew"
+
+  - name: "Sealcommando"
+    prompt: "stylized 3d character, full digital desert camouflage battle dress, four-tube panoramic night-vision goggle mount flipped down over eyes, heavy tactical chest rig, suppressed heavy sniper rifle with bipod, low tactical combat crouch, cool moonlight rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/navy-seal-copypasta"
+
+  - name: "Scammer"
+    prompt: "stylized 3d character, oversized ill-fitting shiny grey polyester suit, bright blue blinking wireless Bluetooth headset clipped to ear, tangled coiled landline phone handset, slicked hair, rapid energetic sales stride, harsh office fluorescent lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/tech-support-scam"
+
+  - name: "Preacher"
+    prompt: "stylized 3d character, threadbare charcoal suit jacket, intense wide-eyed gaze, thick leather-bound Bible held high in right hand, white plastic battery-powered megaphone in left, zealous shouting posture, dramatic high-angle direct spotlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/street-preacher"
+
+  - name: "Scalper"
+    prompt: "stylized 3d character, dark hooded windbreaker with hood pulled tight, oversized mountaineering backpack bursting with sealed retail graphics card boxes, nervous evasive sideways stance, cool blue technological backlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/scalpers"
+
+  - name: "Wanderer"
+    prompt: "stylized 3d character, bright yellow sealed hazmat jumpsuit with crinkled folds, dark reflective helmet visor, handheld boxy vintage VHS camcorder with red recording light, cautious exploratory walk cycle, flickering dim yellow fluorescent lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/the-backrooms"
+
+  - name: "Raker"
+    prompt: "stylized 3d character, completely hairless pale grey emaciated biped, hyper-extended curved spine, elongated finger joints ending in sharp curved bone talons, low feral predatory crouch, stark direct flashlight beam cutting through darkness, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/the-rake"
+
+  - name: "Seeder"
+    prompt: "stylized 3d character, ragged long naval pirate coat with brass buttons, peg leg made from stacked bare metal hard drive platters, eye patch, lasso made of glowing cyan magnetic web links, proud outlaw swagger, oceanic digital rim light, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/sites/the-pirate-bay"
+
+  - name: "Wartrucker"
+    prompt: "stylized 3d character, massive broad-shouldered build, reflective blue sport wraparound sunglasses, torn sleeveless flannel shirt, detached shiny chrome semi-truck radiator grille held with two hands as a battering ram, furious unstoppable forward charge, high-contrast sunlight, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/truck-driver-freakout"
+
+  - name: "Bouncer"
+    prompt: "stylized 3d character, towering muscular biped, tight black compression crewneck tee stretching over broad chest, coiled clear plastic security earpiece, arms crossed impassively over torso, perfectly upright immovable stance, moody blue and purple nightclub rim lighting, neutral background"
+    aesthetic_refs:
+      - "https://knowyourmeme.com/memes/bouncer"

@@ -1,0 +1,9 @@
+id: "prd-oscraftmanualci"
+kind: "prd"
+title: "Make oscraft ci.yml and pages.yml workflow_dispatch only"
+body: "id: oscraft-manual-ci\nsubject: Make oscraft ci.yml and pages.yml workflow_dispatch only\ndescription: 'CI is manual: automated testing is a waste of time; validation is just-in-time execution during work. Replace push triggers with workflow_dispatch in ci.yml and pages.yml; tests.yml is already manual. No job changes.'\nsession_id: manual-ci\nowner: manual-ci\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-10-27T22:45:02.000Z"
+witnessEvent: 7
+witnessCommit: "752dd76c0ad6970691f5cfc5fd8a7c07c7fe68d5"
+resolvedAt: "2026-11-02T16:10:27.108Z"

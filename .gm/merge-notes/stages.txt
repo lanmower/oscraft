@@ -1,0 +1,21 @@
+c13same=335
+c13diff=0
+c12=5
+c23=0
+c1=1
+other=1
+---
+1 .github/workflows/first-draw.yml
+12 rust/crates/web/site/pkg/package.json gm=false
+12 rust/crates/web/site/pkg/web.d.ts gm=false
+12 rust/crates/web/site/pkg/web.js gm=false
+12 rust/crates/web/site/pkg/web_bg.wasm gm=false
+12 rust/crates/web/site/pkg/web_bg.wasm.d.ts gm=false
+123 scenarios/moba/assets/props.json
+--- nongm
+1 .github/workflows/first-draw.yml
+12 rust/crates/web/site/pkg/package.json
+12 rust/crates/web/site/pkg/web.d.ts
+12 rust/crates/web/site/pkg/web.js
+12 rust/crates/web/site/pkg/web_bg.wasm
+12 rust/crates/web/site/pkg/web_bg.wasm.d.ts

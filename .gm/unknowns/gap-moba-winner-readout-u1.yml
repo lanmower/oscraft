@@ -1,0 +1,5 @@
+id: gap-moba-winner-readout-u1
+subject: 'U1: does a served room''s GET /state emit the declared winner at runtime (live run, not code read)?'
+row: gap-moba-winner-readout
+session_id: gm-orch-1-6
+status: unknown

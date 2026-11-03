@@ -1,0 +1,4 @@
+id: r3d-u6-ci-baseline
+value: Do CI steps 'render3d ok' (ci.yml:104-114) and the terrain step (ci.yml:157-169) pass on current main?
+session_id: gm-orch-13-wire
+status: unknown

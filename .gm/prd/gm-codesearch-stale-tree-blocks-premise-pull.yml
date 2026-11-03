@@ -1,0 +1,10 @@
+id: gm-codesearch-stale-tree-blocks-premise-pull
+subject: codesearch and codeinsight replies carry stale_tree (gm checkout 3185 behind origin), and git_pull cannot clear it on a dirty checkout
+description: 'Seen by drain-gm-4 on 2026-10-25 at SPECIFY: every codesearch reply in /workspace/gm named stale_tree action git_pull, behind 3185 (gm-mcp/src behind 41, rs-plugkit behind 8). git_status showed dirty=37 from other lanes and writer_lock check said not_clean, so the premise-before-edit pull could not run. Make the premise check satisfiable on a dirty checkout: compare the cited paths by content hash against origin, or drop stale_tree when they match.'
+session_id: drain-gm-4
+owner: drain-gm-4
+status: pending
+notes:
+- ts: 2026-10-25T06:18:40.911Z
+  session_id: mcp-codemode-1920128-1792909118237-33
+  note: 'Premise not reproducible in the oscraft store. Step 1 git_fetch origin (no merge) succeeded. Step 2 codesearch literal on cwd /workspace/oscraft returned no stale_tree line (dispatch 1792909120078-5122-63e0b098e3091666); the store tree matches origin/main after sync-main-5 fast-forwarded local main to 053792e3, so there is no behind count to report. Step 3 prd-resolve not run: the witness rule needs stale_tree present. Gm-repo witness 1792908885245-5026-617280450b314f8b shows the warning in /workspace/gm, and the store refusal (not_recorded) is the open defect.'

@@ -1,0 +1,9 @@
+anchor	kind	note
+file	rationale	Tuning values the sim reads from the TUNE section. A change here is a data edit: the engine reloads it
+file	rationale	with the rest of the scenario. Every value must be present; a missing or out-of-range value refuses the map.
+file	rationale	structure_scan_cells: cells a unit's bucket scan reaches past its weapon range (structures are bucketed at
+file	rationale	  their centre, beyond the footprint edge).
+file	rationale	teleport_ring_points / teleport_ring_steps: landing ring for the teleport effect, directions and widening steps.
+file	rationale	best_only: item stats that take the largest value any active item gives, instead of the sum.
+file	unverified	xp_curve: cumulative xp at which character levels 2 to 25 are reached (level 1 needs none). UNVERIFIED: the
+file	rationale	  6.88g data holds no experience table; these values are recalled, not read from it.

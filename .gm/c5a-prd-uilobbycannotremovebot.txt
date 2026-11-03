@@ -1,0 +1,5 @@
+rows: close prd-uilobbycannotremovebot
+
+Row: prd-uilobbycannotremovebot
+Witness: run 57050-684029 event 91: be70da9b: fill with bots then host Remove on a bot seat: empty slots 0 to 1, remove buttons 9 to 8
+Status: resolved

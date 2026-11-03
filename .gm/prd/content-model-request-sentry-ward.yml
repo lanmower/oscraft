@@ -1,0 +1,6 @@
+id: content-model-request-sentry-ward
+subject: 'hy3d model request: sentry ward'
+description: 'hy3d request: sentry ward model to replace the placeholder prop ''candle-multiple'' (scenarios/moba/units.osd sentry_ward, scenarios/moba/slot-models.tsv). Acceptance: model in assets.json, units.osd and slot-models.tsv point at it. No pack downloads.'
+session_id: mcp-codemode-2804130-1792919090730-160
+owner: mcp-codemode-2804130-1792919090730-160
+status: pending

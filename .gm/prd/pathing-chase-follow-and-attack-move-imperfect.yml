@@ -1,0 +1,8 @@
+id: pathing-chase-follow-and-attack-move-imperfect
+subject: Pathfinding, chasing, following and attack-move are imperfect
+description: 'Unit movement is reported imperfect: path finding, chasing and following a unit, and a-click (attack-move) on both a hero and the ground, where attack-move should engage everything encountered. The behaviour should match the 6.88g reference.'
+acceptance_criteria: A unit paths around obstacles to its ordered destination, a chase follows the target until in range, a follow keeps station on the target, and an attack-move order engages every enemy it meets on the way, on both hero and ground targets.
+witness_plan: Run the moba scenario, order a move past an obstacle, a chase, a follow and an attack-move on a hero and on ground, and read the unit's path and engagement each tick.
+session_id: mcp-codemode-56806-1793170367691-23
+owner: mcp-codemode-56806-1793170367691-23
+status: pending

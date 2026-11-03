@@ -1,0 +1,5 @@
+id: floor-textured-ground-gm-orch-23-U4
+subject: Does the terrain draw use the directional + ambient lighting in render3d FRAG (must stay)?
+body: Does the terrain draw use the directional + ambient lighting in render3d FRAG (must stay)?
+session_id: oscraft-1-1
+status: unknown

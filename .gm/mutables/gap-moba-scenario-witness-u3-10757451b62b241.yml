@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-U3
+row: gap-moba-scenario-witness
+question: Is the row acceptance already witnessed on HEAD, or does the row need a new witness (row stale vs commit 31805cad)?
+session_id: gm-orch-1-7
+status: unknown

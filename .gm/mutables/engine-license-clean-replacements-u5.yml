@@ -1,0 +1,5 @@
+id: engine-license-clean-replacements-u5
+subject: 'U5 provenance: huffman_tables.rs is StormLib MIT-derived tables (permissive keep with attribution) and lib.rs port origin internal/mpq exists or not'
+row: engine-license-clean-replacements
+session_id: gm-oscraft-sc2-alt-1-p3
+status: unknown

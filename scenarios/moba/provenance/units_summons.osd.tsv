@@ -1,0 +1,4 @@
+anchor	kind	note
+file	provenance	Summoned units of the hero abilities. juggernaut_healing_ward is 6.88g o00C (unit.ini:323284, parent ohwd): spd 420 (unit.ini:323391) = 410 milli per tick.
+file	unverified	UNVERIFIED (6.88g silent on the stock ohwd stats, previous values kept): StatusHealth 1, VisionDaytimeRange 600, hull radius 250 (ENGINE_DEFAULT, hy3d hero-radius.tsv).
+file	provenance	Bounty: the script pays only its UUR table (war3map.j 91684-92300), which has no row for o00C or ohwd, so a kill pays 0 gold and 0 xp; an allied kill halves the table xp for any unit (W_R 93567), so deny_xp_pct is 50.

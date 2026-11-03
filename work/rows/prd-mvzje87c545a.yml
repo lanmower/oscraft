@@ -1,0 +1,6 @@
+id: "prd-mvzje87c545a"
+kind: "prd"
+title: "Wire the bounty rune, observer ward and sentry ward GLBs into units in place of the coin, candle and candle-multiple props"
+body: "Files: scenarios/moba/assets/models/bounty-rune.glb, observer-ward.glb, sentry-ward.glb (commit on main, local until pushed). Footprints from hy3d: bounty rune 1.89, observer ward 0.89, sentry ward 1.26; heights about 1.9 for all three. Bounty rune is a vertical disc (z thin, 0.18), which may not match the flat pickup it replaces.\nToday units.osd still uses model=\"coin\" (bounty_rune), model=\"candle\" (observer_ward) and model=\"candle-multiple\" (sentry_ward). Those names resolve through props.json and the 0_names.osd list, and slot-models.tsv names the placeholders.\nDo not overwrite coin.glb, candle.glb or candle-multiple.glb: they are used by scenery as well.\nacceptance: new prop names in props.json and 0_names.osd (appended, so existing positions do not move); units.osd model= points at them; slot-models.tsv updated; moba.osdt regenerated with the mapexport tool; the sim refuses no map.\nwitness: CI green on the pushed sha, and a browser look at a ward and a bounty rune in a match."
+status: "open"
+createdAt: "2026-11-02T17:32:35.209Z"

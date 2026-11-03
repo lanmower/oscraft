@@ -1,0 +1,6 @@
+id: proposed-creep-kinds-camp-respawn-bounty-U8
+row: proposed-creep-kinds-camp-respawn-bounty
+subject: proposed-creep-kinds-camp-respawn-bounty U8
+description: Does ability target none map to target 0 so EFFECT_TIMED_SPAWN spawns at the caster (format.rs:32 TARGETS[0]=none; rules.rs EFFECT_TIMED_SPAWN if ability.target == 0).
+session_id: gm-drain-1793526214-41
+status: unknown

@@ -1,0 +1,10 @@
+id: camps-whole
+subject: Neutral camps respawn whole with the 6.88g camp pass
+description: war3map.j KPE 26823-26845, KBE 26738-26753, KJE 26812-26816, JWE 26627-26632
+session_id: drain-camps
+owner: drain-camps
+status: pending
+references:
+- ts: 2026-10-25T16:27:05.353Z
+  session_id: drain-camps
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/d93f299a2d4445a8e69baaacf7dc0d63a36ac458/docs/SCRIPTING.md","repo":"lanmower/oscraft","path":"docs/SCRIPTING.md","sha":"d93f299a2d4445a8e69baaacf7dc0d63a36ac458","why":"engine rows for cmd_respawn_as, join_spawn_group, spawn_neutral and game.random that the camp pass uses; the 6.88g script itself is private","license":"own"}'

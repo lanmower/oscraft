@@ -1,0 +1,6 @@
+id: gm-tooling-concurrency-witness
+subject: 'gm tooling: lane-level witness and pool-supply ergonomics'
+description: 'Improve gm tooling for parallel lanes: pool-observe supply_exhausted gate, a single witness verb for a CI read plus log hash, fewer orchestrator dispatches per row.'
+acceptance_criteria: pool-observe returns supply_exhausted when only held rows remain; a row resolves with one CI read dispatch; both covered by a gm CI job.
+session_id: gm-oscraft-sc2-alt-1
+status: pending

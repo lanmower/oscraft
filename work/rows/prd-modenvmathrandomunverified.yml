@@ -1,0 +1,9 @@
+id: "prd-modenvmathrandomunverified"
+kind: "prd"
+title: "UNVERIFIED: the mod environment copies the whole math table, which may expose math.random and randomseed"
+body: "id: mod-env-math-random-unverified\nsubject: 'UNVERIFIED: the mod environment copies the whole math table, which may expose math.random and randomseed'\ndescription: rust/crates/mod-host/src/piccolo_host.rs:2963 copies ['math'] wholesale into each mod env. piccolo's stdlib math may carry random and randomseed, which would seed per process and desync peers. No scenario uses math.random today (searched scenarios/ and mods/), so this is only a hole for new mods. UNVERIFIED per AGENTS.md until a run shows math.random is or is not reachable.\nacceptance_criteria: A mod calling math.random or math.randomseed gets a Lua error naming the deterministic rule source, or the run shows they are absent and the row closes as stale with that witness.\nwitness_plan: 'Native: mod_check on a one-line mod calling math.random(1,100); print the result.'\nsession_id: survey-sim-8\nowner: survey-sim-8\nstatus: pending\nnotes:\n- ts: 2026-10-25T08:58:13.321Z\n  session_id: drain-rust-9\n  note: claimed by drain-rust-9\n"
+status: "resolved"
+createdAt: "2026-10-27T22:45:02.000Z"
+witnessEvent: 5
+witnessCommit: "b6ab3bf663d62d5648270d4d7dee3e4764fbe531"
+resolvedAt: "2026-11-02T15:39:13.945Z"

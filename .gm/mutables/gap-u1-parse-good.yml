@@ -1,0 +1,4 @@
+id: gap-u1-parse-good
+subject: Does stripping top-level import/export and compiling the body with new Function accept the current remote main.js (positive control)?
+session_id: gm-oscraft-sc2-alt-1-bp1
+status: unknown

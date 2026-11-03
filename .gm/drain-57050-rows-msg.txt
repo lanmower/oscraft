@@ -1,0 +1,3 @@
+rows: record the six PRD closes made at 752dd76c
+
+Three of these rows (prd-flowsmokeneverclickstheheroselect, prd-oscraftmanualci, prd-gateclaimedcapabilitieswithouthostapis) were witnessed as stale in 752dd76c. prd_resolve has no status argument, so their row records read "resolved".

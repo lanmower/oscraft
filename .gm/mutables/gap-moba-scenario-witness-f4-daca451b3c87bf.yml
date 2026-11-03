@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-F4
+question: Is rust/data/moba meant to sit beside or replace scenarios/moba (the CI-compiled .osd scenario)?
+row: gap-moba-scenario-witness
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

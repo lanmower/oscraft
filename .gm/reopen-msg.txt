@@ -1,0 +1,3 @@
+rows: reopen nine closes whose witness events cannot be verified
+
+The witness events cited by these closes (run 57050-684029: seq 91 and 42 for the lobby and refusal-line rows, seqs 569, 581 and 709 for the doodad, comment and forbid rows) cannot be retrieved from the gm log, so the closes are not verifiable. Row files are restored to their last open version from history; no witness fields remain.

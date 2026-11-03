@@ -1,0 +1,6 @@
+id: gm-tooling-concurrency-witness-blocker-gm-oscraft-w1-07
+subject: 'blocker: supply_exhausted branch not reachable live while 17 rows are launchable'
+description: 'U1 probe (dispatch 1792264389182-500-19d0fe9b42179d73) reached floor_gate_denied at live=1 (open_rows 17, launchable 17). The supply_exhausted branch (observe.rs:217-226) needs launchable=0 with only held rows, which this session cannot create without launching the pool. Receipts: .gm/receipts/gm-tooling-concurrency-witness/01-orient.md, 02-unknowns.md, 03-eliminate.md. Blocked by: a pool state with zero launchable rows, or a unit probe of supply_exhausted_route that gm-eliminate may run against the real function. blocked_by: gm-tooling-concurrency-witness'
+status: pending
+blockedBy: gm-tooling-concurrency-witness
+session_id: mcp-codemode-1030-1792262103218

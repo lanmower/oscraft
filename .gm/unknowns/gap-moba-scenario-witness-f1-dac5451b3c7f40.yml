@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-F1
+question: Does moba_match_end (mechanic_checks.rs:264-283) assert both sides are present at match start, or only the win state?
+row: gap-moba-scenario-witness
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

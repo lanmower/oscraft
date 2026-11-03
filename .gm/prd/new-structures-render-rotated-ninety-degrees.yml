@@ -1,0 +1,8 @@
+id: new-structures-render-rotated-ninety-degrees
+subject: The newly added hy3d structures render rotated 90 degrees on the deployed page
+description: The structures added from hy3d (ancient-of-*-lowpoly, crypt, fountain-of-health, frozen-throne, goblin-merchant, moon-well, orc-voodoo-lounge, spirit-tower, temple-of-the-damned, tree-of-life, ziggurat) are reported rotated 90 degrees on GitHub Pages. Their node rotations were changed from the pipeline +90 about X to -90 for Z-up models and identity for Y-up models, and the report persists after that change, so the correct orientation is still unestablished.
+acceptance_criteria: Each structure stands upright and sits on the ground in the deployed page, verified from the served GLB node transforms and from the page.
+witness_plan: Read the served GLB node rotation, scale and translation for each structure, compute the world bounding box, and confirm the tall axis is world Y with the base at y=0; then load the page and look at the structures.
+session_id: mcp-codemode-56806-1793170367691-23
+owner: mcp-codemode-56806-1793170367691-23
+status: pending

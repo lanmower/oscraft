@@ -1,0 +1,5 @@
+id: gap-moba-winner-readout-u3
+subject: 'U3: is the moba match ticks bound a literal (mechanic_checks.rs:281 area) or derived from the .osd files, and what is its value?'
+row: gap-moba-winner-readout
+session_id: gm-orch-1-6
+status: unknown

@@ -1,0 +1,5 @@
+id: ui-phone-lobby-grid-hud-lobby-1-u3
+subject: Does observeFit (ResizeObserver) set columns whose total width fits the grid clientWidth at 374px modal width?
+body: Answers whether the px tracks produced by observeFit (widgets.js:287-308) avoid sideways clipping, using the measured clientWidth.
+session_id: gm-drain-1793526214-15
+status: unknown

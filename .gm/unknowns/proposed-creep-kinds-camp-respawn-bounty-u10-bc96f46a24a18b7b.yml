@@ -1,0 +1,6 @@
+id: proposed-creep-kinds-camp-respawn-bounty-U10
+row: proposed-creep-kinds-camp-respawn-bounty
+subject: proposed-creep-kinds-camp-respawn-bounty U10
+description: Is the ward lifetime p1 in ticks (timed_life.rs:55 expires = ticks + life) so the observer reads 160 ticks as 10 s.
+session_id: gm-drain-1793526214-41
+status: unknown

@@ -1,0 +1,5 @@
+rows: no testing forbid remains in tracked files; nothing to remove
+
+Row: prd-forbidsremovedrecordscleanup
+Witness: run 57050-684029 event 709: case-insensitive forbid grep over tracked files lists only rust/crates/mpq/src/lib.rs (forbid(unsafe_code) attribute), this row's own file, and work/rows/prd-perfluaperticksettersblockerdrainf1.yml ('the unchanged-behaviour rule forbids', unrelated to testing)
+Status: stale

@@ -1,0 +1,5 @@
+id: u2-sim-unit-api
+value: Sim::alive, order, damage_target, apply_buff, player, count signatures - answers whether apply_mod_commands can target a mapped index.
+status: unknown
+row: gap-mod-unit-id-mapping
+session_id: gm-oscraft-sc2-alt-1-m11

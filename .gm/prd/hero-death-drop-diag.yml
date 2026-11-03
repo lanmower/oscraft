@@ -1,0 +1,10 @@
+id: hero-death-drop-diag
+subject: Gate reports why a hero death drop did not happen
+description: Gate reports why a hero death drop did not happen
+session_id: drain-camps
+owner: drain-camps
+status: pending
+references:
+- ts: 2026-10-25T17:07:03.625Z
+  session_id: drain-camps
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/df865588871cdc9ccd4dc7f248458c34338968dc/docs/SCRIPTING.md","repo":"lanmower/oscraft","path":"docs/SCRIPTING.md","sha":"df865588871cdc9ccd4dc7f248458c34338968dc","why":"engine call rows the change uses; the 6.88g map script is private","license":"own"}'

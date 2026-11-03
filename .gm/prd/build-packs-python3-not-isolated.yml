@@ -1,0 +1,6 @@
+id: build-packs-python3-not-isolated
+subject: build-packs.mjs runs python3 without -I, breaking the python3 -I rule
+description: 'scripts/assets/build-packs.mjs invokes python3 without -I, so a planted module in the working directory could be imported. Project rule: Python runs as python3 -I. Found by comment-sweep-scripts (5984b3e8). Acceptance: every python3 spawn in scripts/ uses -I; CI green on the pushed sha; no behaviour change otherwise.'
+session_id: gm-drain-1793526214
+owner: gm-drain-1793526214
+status: pending

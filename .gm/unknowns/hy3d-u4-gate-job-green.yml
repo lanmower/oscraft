@@ -1,0 +1,4 @@
+id: hy3d-u4-gate-job-green
+value: 'U4: is the tests.yml gate job (cargo run --release -p oscraft-gate) green for upstream tip 5b1d68fe33bd, and do the gate runs include slot_percent_aura and bloodstone_mana_trickle?'
+status: unknown
+session_id: gm-drain-1793526214-33

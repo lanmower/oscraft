@@ -1,0 +1,19 @@
+id: ui-layout-constants-hard-coded-not-bar-height
+subject: Panel offsets are magic numbers tied to a 160/120px bottom bar and a 246px left column; landscape phones get the desktop layout
+description: 'js/client/play.html:133,145 (bar 160px, #ui-right top 246px), widgets.js:95-102 (calc(100vh - 473px), -170px, -400px, bottom 124px), modui.js:9 (bottom 180px) and :14. Symptom: panels collide or collapse when the bar or fold state changes; at 844x390 the 160px bar plus columns cover most of the screen; negative calc heights hide ui-right. Acceptance: one --bar-h custom property drives all offsets; a max-height:480px landscape media rule shrinks the bar. Witness: 844x390 screenshot, map visible >50%.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T09:21:11.293Z
+  session_id: drain-client-10
+  note: claimed by drain-client-10
+- ts: 2026-10-25T09:28:20.652Z
+  session_id: drain-client-10
+  note: 'published b1c97739ffdba76b9a81f3b47068188c18e5ec66: --bar-h defined in play.html (160/120 phone/96 landscape max-height 480). widgets.js/modui.js offsets belong to another lane and still hard-coded. Open: 844x390 screenshot needed.'
+- ts: 2026-10-25T22:56:37.204Z
+  session_id: hud-match-2
+  note: 'Published 69278125: --side-w, --right-w, --right-top tokens; phone layout by viewport (max-width 600 or landscape under 500 px tall). Witness dispatch 1792968678163-127-7e6245c92dbf2c78. Open: widgets.js offsets calc(100vh - 473px), -170px, -400px, bottom 124px (owner hud-lobby-1) and modui.js bottom 180px. Filed as a row for hud-lobby-1.'
+- ts: 2026-10-26T05:26:55.971Z
+  session_id: hud-match-witness
+  note: 'Not witnessed in this run. Open: widgets.js and modui.js offsets were still hard-coded in the earlier note.'

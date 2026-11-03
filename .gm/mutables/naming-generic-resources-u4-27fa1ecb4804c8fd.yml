@@ -1,0 +1,5 @@
+id: naming-generic-resources-U4
+subject: Does the ci.yml gate (lines 2150-2152) exclude its own text, or will its count be nonzero by construction?
+row: naming-generic-resources
+session_id: gm-oscraft-w1-04
+status: unknown

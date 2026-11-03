@@ -1,0 +1,4 @@
+id: state-unit-field-shape
+value: /state?unit=<u> returns fixed x,y for alive unit and null otherwise; no change to existing /state output
+status: unknown
+session_id: mcp-codemode-266435-1792154934229

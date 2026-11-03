@@ -1,0 +1,13 @@
+id: win-screen-new-game-flow
+subject: 'Win screen: start a new game'
+description: 'Owner decision: after a win the player can start a new game. Architecture (orchestrator choice): two actions on the win screen: Play Again (returns to the lobby with the same roster and mode) and New Game (returns to the lobby empty). Acceptance: both buttons appear on the win screen, each returns to the lobby with the expected roster; CI green on the pushed sha.'
+session_id: gm-drain-1793526214
+owner: gm-drain-1793526214
+status: pending
+notes:
+- ts: 2026-11-01T16:06:23.617Z
+  session_id: gm-drain-1793526214-54
+  note: handoff 882dd99f3e964fd7551f92bf56a5f7748c1a6115; CI runs 41324233888, 41324248380 success (pages 3/3); one commit covers both rows; Save Replay via wasm replay_text, Play Again/New Game via tick-0 room record + reload
+- ts: 2026-11-01T17:15:58.200Z
+  session_id: gm-drain-1793526214
+  note: 'Live witness (lane -59) on 882dd99f: Play Again reloads to the lobby but drops the roster (10/10 ready before the win, lobby 1/10 after) and the mode; New Game not verified: the sim halts in 5 of 6 peer-left victories and the win buttons do not render. Likely cause (from code, not proven): panels.lua emits the win widget only from the 4-tick panels timer, and play.js stops stepping once decided(). Fix: render the win widget on the decision itself, keep the roster and mode across Play Again, and make New Game reach an empty lobby.'

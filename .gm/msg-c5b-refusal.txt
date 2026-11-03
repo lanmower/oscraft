@@ -1,0 +1,5 @@
+rows: close ui-refusal-line-hidden-behind-bottom-bar
+
+Row: ui-refusal-line-hidden-behind-bottom-bar
+Witness: run 57050-684029 event 42: hud.js message line 'bottom:calc(var(--bar-h, 160px) + 12px);transform:translateX(-50%);z-index:5' vs #ui-bar z-index 2 height var(--bar-h); browser 390x844 refusal rect [159,658,231,683] sits above the 120px bar top 724
+Status: resolved

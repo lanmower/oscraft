@@ -1,0 +1,5 @@
+row: main-ci-red-check-pathing-and-moba-pack-side1
+id: main-ci-red-check-pathing-and-moba-pack-side1-u4-generator-drift
+subject: Does buildings-688g.mjs emit the renamed base and outbuilding names, or would regenerating map.osd revert 98fa38f6 (generator drift size)?
+session_id: gm-drain-1793526214-20
+status: unknown

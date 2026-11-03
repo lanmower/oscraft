@@ -1,0 +1,14 @@
+id: moba-guest-silent-after-peer-close
+session_id: guest-stall-1
+subject: Guest stays frozen at a net tick after the data channel closes, with no keyframe recovery
+description: 'Refines live-moba-guest-stalls. Live check on Pages 20944006 (run 39579364668, success): host tab ticks 971 with 10 hud5 dots; guest tab stays peers 0 (local) and ticks locally (44 -> 206), never reaching net, because the sandbox relays refuse (offchain.pub ERR_CONNECTION_REFUSED, relay.damus.io 503). The owner reported net then peer-close with the tick frozen at 810, which the sandbox cannot reproduce. Code path: (1) js/client/play.js:1313 drops any STATE/DELTA when applyFrame returns null (js/client/delta.js:46, no baseline) with no log, so a guest that misses its keyframe ignores every delta until the next full frame (every FULL_EVERY=20 ticks, js/client/delta.js:5). (2) js/client/play.js:1237 sends JOIN inside a bare catch; a failed JOIN is only re-sent on a later peer-open. (3) js/client/play.js:1256-1259 on peer-close with no peers sets netTick=-1 and schedules reconnect while netState stays set, so status shows (net) with a frozen tick. (4) vendor js/client/vendor/wireweave/src/data.js _doIceRestart: only the offerer (auth.pubkey > peer) restarts ICE; the answerer closes the peer, so a dropped channel on one side leaves the other side with a stale peer (host shows peer-open f53db34d while the guest is gone). The unit cap is not the cause: js/client/wire/frame.js:6 and js/wire/frame.js:6 MAX_UNITS=4096 match rust/crates/server/src/lib.rs:34. Next: log the dropped-delta case at play.js:1313 and re-send JOIN on a failed send, then reproduce a net connection on a host with working relays.'
+status: pending
+owner: guest-stall-1
+witness_request:
+  ts_ms: 1792850251529
+  requested_by: drain-k-1
+  note: 'Browser two-profile witness pending. Node witness passed: exec dispatch 1792849550472-2561-ae0aabf30d21ba35 (applyFrame null without baseline, keyframe recovers) and 1792849592232-2581-26b3f0704bda9942 (play.js parses). Fix pushed 7cb3a835, ci run 40099708517 success. Blocked by open rows peer-join-connecting-no-peer and peer-join-no-effect-separate-profile; the offer-side cause is resolved by peer-offer-not-retried-join-race (wireweave pin b73c0673).'
+notes:
+- ts: 2026-10-25T04:06:11.931Z
+  session_id: drain-net-3
+  note: Waits on lobby-start-world-ready-never-fires-headful (pending). Re-check deferred per row. Blocked.

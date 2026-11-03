@@ -1,0 +1,4 @@
+id: frame-delta-ratio-200u-1pct
+value: At 200 units with 1 percent changed, are delta frame bytes at most 20 percent of full frame bytes via js/wire/frame.js encodeFrame over createStateEncoder (js/client/delta.js:11)?
+status: unknown
+session_id: gm-oscraft-w1-12

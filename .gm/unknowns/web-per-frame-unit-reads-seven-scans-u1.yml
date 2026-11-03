@@ -1,0 +1,6 @@
+id: web-per-frame-unit-reads-seven-scans-u1
+row: web-per-frame-unit-reads-seven-scans
+subject: Who wrote the uncommitted js/client/hud.js gameMaxHps hunk, and does any other lane hold hud.js? (CONC)
+question: Who wrote the uncommitted js/client/hud.js gameMaxHps hunk, and does any other lane hold hud.js? (CONC)
+session_id: gm-drain-1793526214-2
+status: unknown

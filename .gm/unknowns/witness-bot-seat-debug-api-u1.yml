@@ -1,0 +1,4 @@
+id: witness-bot-seat-debug-api-u1
+question: Does claim{slot:0} then pick, ready{slot:0,ready:true}, fill, start start a match in the live page (the acceptance sequence claim,fill,start is refused with not-ready since panels.lua all_ready needs the host ready)?
+session_id: gm-drain-1793526214-1
+status: unknown

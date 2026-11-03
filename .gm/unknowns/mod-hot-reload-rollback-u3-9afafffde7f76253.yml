@@ -1,0 +1,5 @@
+id: mod-hot-reload-rollback-U3
+row: mod-hot-reload-rollback
+text: osdt-data builds as a normal dependency of mod-host with no cycle (closed by the harness job build succeeding)
+session_id: mcp-codemode-1132-1792148667657
+status: unknown

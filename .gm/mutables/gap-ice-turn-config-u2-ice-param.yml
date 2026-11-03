@@ -1,0 +1,5 @@
+id: gap-ice-turn-config-u2-ice-param
+value: Does the browser client already pass TURN through the ?ice= param into iceServers (play.js:457-474), making the row's flag path unnecessary?
+status: unknown
+row: gap-ice-turn-config
+session_id: gm-oscraft-w1-20

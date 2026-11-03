@@ -1,0 +1,5 @@
+id: shop-tree-F3
+subject: Does shop_pick (panels.lua:1457) render the picked item's recipe_lines tree from components (panels.lua:376-384, 431-432)?
+row: shop-pins-component-tree-grab-all
+session_id: gm-drain-1793526214-18
+status: unknown

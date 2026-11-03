@@ -1,0 +1,5 @@
+id: u5-unit-position-read
+value: Sim public unit position read (x,y per unit index) - answers how the room proves moved=true.
+status: unknown
+row: gap-mod-unit-id-mapping
+session_id: gm-oscraft-sc2-alt-1-m11

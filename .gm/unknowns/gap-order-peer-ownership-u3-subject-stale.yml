@@ -1,0 +1,4 @@
+id: gap-order-peer-ownership-u3-subject-stale
+value: 'U3: Does the row''s subject (Node host js/host/server.js, wasip1 order without player) exist in the live tree, or is the row stale and to be re-scoped to the browser host?'
+status: unknown
+session_id: mcp-codemode-1030-1792262103218

@@ -1,0 +1,10 @@
+id: content-hero-conversions-unresolved-blocker-slk-values
+subject: 'Blocked: 23 identity-proven heroes need 6.88g SLK values, not the unit.ini extract'
+description: 'Blocked_by: content-hero-conversions-unresolved. Pass 2 (docs/CONVERGENCE_688G.md section 7, commit 219ede61) proved identity by ability-name agreement for 23 of the 58 unresolved heroes, calibrated 32 of 32 on the applied rows. Their values are not applied because /tmp/g688-lni2/table/unit.ini omits base fields (AGI, mana0, dice1, sides1, def, sight, turnRate, regenMana, regenHP) and 7 TSV columns disagree with applied rows on the extract. Clearing action: extract UnitBalance, UnitWeapons and UnitData from /tmp/g688.w3x (rust/crates/mpq, run in CI or on a machine allowed to build), then rerun the pass against those values and apply the rows with scripts/apply-heroes-688g.py. Owned files: scenarios/moba/heroes_688g.tsv, scenarios/moba/attr_rules.txt, scenarios/moba/units_heroes.osd, docs/CONVERGENCE_688G.md.'
+session_id: drain-heroes-shard-2
+owner: drain-heroes-shard-2
+status: pending
+notes:
+- ts: 2026-10-25T10:09:12.485Z
+  session_id: mcp-codemode-3115989-1792922950003-5
+  note: 'Owner decision (user): maximise parity. SLK base fields come from the 6.88g MPQ, which is not in the repo; still blocked on the file.'

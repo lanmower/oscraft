@@ -1,0 +1,7 @@
+witness-assets.txt
+Asset errors: none. body.dataset.assetError=null and body.dataset.error=null on AFTER (probe at 10 s) and on fresh AFTER/BASE probes at 15-20 s.
+Console errors seen (AFTER, first probe): 1 treant module error (play.js:263); WebSocket relay failures: wss://relay.damus.io 503 (relay-pool.js:299), wss://nostr-pub.wellorder.net closed before open (relay-pool.js:304). Not asset requests.
+Fresh isolated AFTER probe: wss://offchain.pub net::ERR_CONNECTION_REFUSED (relay-pool.js:299).
+Failed to fetch: 0. ERR_ codes: 1 (net::ERR_CONNECTION_REFUSED on the relay WebSocket, not an asset). CDP network failed count 0 on every call.
+BASE probe: the same treant error and the same relay failures; asset errors none.
+Post-pick (+20 s) read: not run, no pick.

@@ -1,0 +1,9 @@
+id: "prd-buildpackspython3notisolated"
+kind: "prd"
+title: "build-packs.mjs runs python3 without -I, breaking the python3 -I rule"
+body: "id: build-packs-python3-not-isolated\nsubject: build-packs.mjs runs python3 without -I, breaking the python3 -I rule\ndescription: 'scripts/assets/build-packs.mjs invokes python3 without -I, so a planted module in the working directory could be imported. Project rule: Python runs as python3 -I. Found by comment-sweep-scripts (5984b3e8). Acceptance: every python3 spawn in scripts/ uses -I; CI green on the pushed sha; no behaviour change otherwise.'\nsession_id: gm-drain-1793526214\nowner: gm-drain-1793526214\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-01T14:16:53.659Z"
+witnessEvent: 87
+witnessCommit: "abefabbd"
+resolvedAt: "2026-11-02T15:27:43.008Z"

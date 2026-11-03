@@ -1,0 +1,7 @@
+id: menu-sim-activity-must-be-zero
+subject: The sim must not tick, spawn or broadcast anything in the menu phase
+description: 'User requirement, stated directly: there should be no sim activity in the menu phase. On origin/main 5ab45d71 the sim ticks from page load, so wave 1 (pack wave timers fire at tick 1) spawns before anyone presses Start, and the lobby is drawn by a Lua timer that depends on ticks. Hy3d''s start-gate commit 546dd076 (unpublished, held for play.js) stops the sim ticking until live and moves the lobby refresh to UI events. Until that lands, the menu violates this requirement. The row covers every sim-side effect in the menu: tick advance, unit or wave spawn, state hash or state frame sent, and timers that fire on ticks.'
+acceptance_criteria: 'In the lobby with no Start pressed, the sim tick stays at 0 and no unit or wave exists, for 30 s on a live or built page. No STATE frame goes out before Start. The lobby still mounts with the sim idle (scripts/perf/page-smoke.mjs asserts it). Witness: a page-smoke or browser look reading tick 0 from the debug state, plus ci-status green on the pushed sha.'
+owner: hy3d
+session_id: mcp-codemode-3711826-1792929837031-2
+status: pending

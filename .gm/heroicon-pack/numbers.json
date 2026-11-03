@@ -1,0 +1,65 @@
+{
+  "row": "hero-icons-one-pack-loaded-at-once",
+  "commit": "337fe996d11fe9653e9887e13a192690442bf90b",
+  "ci": {
+    "ci_run": 40223943776,
+    "ci": "success (built page smoke success)",
+    "pages_run": 40223943768,
+    "pages": "success (deploy, live compare, first draw)"
+  },
+  "atlases": {
+    "heroes": {
+      "icons": 127,
+      "grid": "12x11",
+      "cell_px": 64,
+      "webp_bytes": 180832,
+      "ktx2_bytes": 145800,
+      "webp_file": "heroes.a0b48a019c44d7d5.webp",
+      "ktx2_file": "heroes.07c890845382b001.ktx2"
+    },
+    "items": {
+      "icons": 321,
+      "grid": "18x18",
+      "cell_px": 64,
+      "webp_bytes": 452200,
+      "ktx2_bytes": 359887,
+      "webp_file": "items.86e4a06e521bcaa5.webp",
+      "ktx2_file": "items.b04bacf6e063fbf5.ktx2"
+    },
+    "skills": {
+      "icons": 15,
+      "grid": "4x4",
+      "cell_px": 64,
+      "webp_bytes": 21676,
+      "ktx2_bytes": 25160,
+      "webp_file": "skills.612e1ce8eb1d1086.webp",
+      "ktx2_file": "skills.41db3bce1355ee53.ktx2"
+    }
+  },
+  "index_json_bytes": 216783,
+  "character_packs": {
+    "before": 170,
+    "after": 127
+  },
+  "hero_grid_design_counts": {
+    "before": {
+      "requests": 128,
+      "note": "127 character packs (one per hero, each with its sounds) plus index.json",
+      "pack_bytes": 12924453,
+      "index_bytes": 243240
+    },
+    "after": {
+      "requests": 2,
+      "note": "heroes WebP atlas plus index.json",
+      "pack_bytes": 180832,
+      "index_bytes": 216783
+    }
+  },
+  "live_browser": {
+    "lobby_reached": false,
+    "before_old_build_session": "heroicon-pack-before-5, 305 s after navigation: 113 requests, 1248591 bytes (112 other, 1 wasm), no pack request, phase 'starting game ... connecting'",
+    "before_old_build_session_2": "heroicon-pack-before-4, 1066 s after navigation: 126 requests, 1491589 bytes, no lobby, no pack request",
+    "after": "not measured: the Pages deploy of 337fe996 landed after the live page had stalled; no lobby observed",
+    "screenshot": ".gm/heroicon-pack/before-live-stuck.png (page at 'starting modules', not the lobby)"
+  }
+}

@@ -1,0 +1,4 @@
+id: u4-poison-resume
+value: panic inside Room::step poisons the clock Mutex, lock() recovers, restarted ticker resumes at the same tick
+status: unknown
+session_id: mcp-codemode-266435-1792156099234

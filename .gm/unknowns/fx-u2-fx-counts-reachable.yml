@@ -1,0 +1,5 @@
+row: fx-pool-counts-debug-hook
+id: fx-u2-fx-counts-reachable
+question: 'Does fx.counts() (fx.js line 981) return a JSON-able object of numbers per pool kind, reachable as fx (play.js line 2862, let fx)? Probe: JSON.stringify of a counts-shaped object; real createFx blocked in node by pack manifest fetch (pack_load.js top-level await), so the shape is read from source.'
+session_id: drain-hy3d-findings-14
+status: unknown

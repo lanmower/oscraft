@@ -1,0 +1,9 @@
+id: "prd-commentsweepsimafd3ceeeb47bbb89c"
+kind: "prd"
+title: "Comment sweep of sim crate files a-l"
+body: "id: comment-sweep-simA\nsubject: Comment sweep of sim crate files a-l\ndescription: Remove comments from rust/crates/sim files a-l, move non-obvious facts to AGENTS.md\nsession_id: drain-simA\nowner: drain-simA\nstatus: pending\nreferences:\n- ts: 2026-10-25T17:44:46.505Z\n  session_id: drain-simA\n  note: '{\"url\":\"https://github.com/lanmower/oscraft/blob/main/AGENTS.md\",\"repo\":\"\",\"path\":\"\",\"sha\":\"\",\"why\":\"No public references: mechanical deletion of this repo''s own comments; facts land in this file\",\"license\":\"unknown\"}'\n"
+status: "resolved"
+createdAt: "2026-10-27T22:45:02.000Z"
+witnessEvent: 5
+witnessCommit: "1c32941b46fd03b547b8e9cc639dd54a8faff75f"
+resolvedAt: "2026-11-02T15:39:13.921Z"

@@ -1,0 +1,5 @@
+id: gap-lobby-room-select-u2
+row: gap-lobby-room-select
+text: Does the picker path (location.hash then reload) give the same room as a URL hash for both peers?
+session_id: mcp-codemode-1184-1792267460011
+status: unknown

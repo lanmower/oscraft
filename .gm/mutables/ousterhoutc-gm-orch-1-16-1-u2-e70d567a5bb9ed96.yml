@@ -1,0 +1,5 @@
+row: OUSTERHOUTC-gm-orch-1-16-1
+id: OUSTERHOUTC-gm-orch-1-16-1-u2
+question: Which CI job runs the delta test, and is it green on the current main sha?
+session_id: gm-orch-1-20
+status: unknown

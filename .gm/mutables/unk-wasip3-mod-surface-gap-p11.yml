@@ -1,0 +1,5 @@
+id: unk-wasip3-mod-surface-gap-p11
+question: Does the wasip3 guest (rust/crates/wasip3/src/lib.rs reply handler) expose a mod load or trigger-fire surface over the Sim that its reads use?
+answer_probe: read rust/crates/wasip3/src/lib.rs and main.rs for mod/load/trigger commands
+session_id: gm-orch-3-9
+status: unknown

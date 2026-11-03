@@ -1,0 +1,6 @@
+id: web-per-frame-unit-reads-seven-scans-u3
+row: web-per-frame-unit-reads-seven-scans
+subject: Is isBuildingUnit called once per unit per minimap frame (createMinimap isBuilding callback), making it O(n^2) per frame?
+question: Is isBuildingUnit called once per unit per minimap frame (createMinimap isBuilding callback), making it O(n^2) per frame?
+session_id: gm-drain-1793526214-2
+status: unknown

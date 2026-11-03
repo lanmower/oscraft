@@ -1,0 +1,5 @@
+id: naming-generic-resources-U1
+subject: Does remote main (?ref=main) contain minerals/vespene/supply identifiers in rust/crates/{sim,data,gate,wasip1,wasip2,server}? Local tree shows none there.
+row: naming-generic-resources
+session_id: gm-oscraft-w1-04
+status: unknown

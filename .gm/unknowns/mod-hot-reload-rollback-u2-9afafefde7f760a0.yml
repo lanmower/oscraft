@@ -1,0 +1,5 @@
+id: mod-hot-reload-rollback-U2
+row: mod-hot-reload-rollback
+text: a syntax error in the edited mod makes reload() return ReloadError with file, Some(line) and message (closed by 'reload-check error-reported line=<n> ok')
+session_id: mcp-codemode-1132-1792148667657
+status: unknown

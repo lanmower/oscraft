@@ -1,0 +1,8 @@
+rename: drop the stale doodad-named twins; the prop family is the only one
+
+Row: prd-renamedoodadtoprop
+Row: prd-doodadtoproprenameishalfappliedacrosstoolsdataanddocs
+Witness: run 57050-684029 event 569: tracked-file grep for doodad outside work/rows, closes, bota, 247420 leaves only doodad.ini (54), Doodads.slk (41), doodads.slk (34), doodads.bin (1): external Warcraft III file names, kept byte for byte
+Status: resolved
+
+Removed orphan rust/crates/sim/src/doodads.rs (not in lib.rs; props.rs is live), docs/DOODAD_TYPES_688G.md, the doodad-* and doodads-* data files, the doodad tool family, and the doodad_sizes.json/doodads.json twins in moba and duel-routes assets. convert-688g-map.mjs already calls place-props-688g.mjs. No layout change: STATE_VERSION stays 64. AGENTS.md persist note now names props.rs.

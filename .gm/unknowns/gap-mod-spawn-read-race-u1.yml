@@ -1,0 +1,6 @@
+id: gap-mod-spawn-read-race-u1
+text: does the baseline server unit count change between start and the before read at ci.yml:913 (non-mod source)?
+row: gap-mod-spawn-read-race
+session: gm-oscraft-w1-15
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

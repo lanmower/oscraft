@@ -1,0 +1,4 @@
+id: mod-image-reloaded-live-emit
+value: Does a live data swap under --mod with a directory --data emit ev=mod_image_reloaded in the server log?
+status: unknown
+session_id: gm-orch-3-6-mh1

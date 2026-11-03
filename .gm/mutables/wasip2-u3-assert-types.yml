@@ -1,0 +1,4 @@
+id: wasip2-u3-assert-types
+value: fired is bool and version() is u64 so the assert compiles
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-m9

@@ -1,0 +1,4 @@
+id: wasip3-lua-wasi-cc
+value: Does the wasi arm of lua-src compile under the CI C toolchain (wasi-sdk clang, CC_wasm32_wasip3)? Answered only by a CI run.
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

@@ -1,0 +1,42 @@
+{
+ "node": "DADA_NIELSEN",
+ "applied": false,
+ "changes": [],
+ "witness": "codesearch js/client/hud.js:44-45 title/aria-label, hud.js:102-104 fillStyle, hud.js:113-136 publish; scenarios/moba/panels.lua:95-99 image() and :483 HP label",
+ "prd_ids": [],
+ "unknown_ids": [],
+ "next_choice": {
+  "to": null,
+  "why": "max_depth 0: depth limit; no successor spawned"
+ },
+ "links_offered": [
+  "DADA_CRIT_USE_KRUG",
+  "DADA_C_POKA",
+  "DADA_YABLONSKI"
+ ],
+ "link_taken": null,
+ "session": "trav-hud-client-DADA_NIELSEN",
+ "witness_dispatch_ids": [
+  "1792858275762-3975-4de245daa06bb843",
+  "1792858304398-4075-992c68dad62d942",
+  "1792858401442-4325-41c8da447e26920e",
+  "1792858403733-4336-5524364c202fa8d9",
+  "1792858409688-4358-4bd8ace286184eb3",
+  "1792858444685-4453-ad9913753f12526c"
+ ],
+ "verified_by": null,
+ "verified_dispatch_ids": [],
+ "findings": [
+  {
+   "prd_id": "DADA_CRIT_USE_NIELSEN-trav-hud-client-DADA_CRIT_USE_NIELSEN-1",
+   "owner": "trav-hud-client-DADA_CRIT_USE_NIELSEN",
+   "disposition": "accept"
+  },
+  {
+   "prd_id": "device-phone-layout-overlap-375",
+   "owner": "gm-cli-322133-1792752976929",
+   "disposition": "accept"
+  }
+ ],
+ "inspector": null
+}

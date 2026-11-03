@@ -1,0 +1,9 @@
+[package]
+name = "oscraft-relay"
+version = "0.1.0"
+edition = "2021"
+description = "Native test relay: NIP-01 EVENT, REQ and CLOSE over WebSocket for the browser CI jobs"
+
+[dependencies]
+serde_json = "1"
+tungstenite = "0.24"

@@ -1,0 +1,6 @@
+id: gap-mod-spawn-read-race-u2
+text: is the start-state unit count of room test from osdt-data deterministic across runs?
+row: gap-mod-spawn-read-race
+session: gm-oscraft-w1-15
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

@@ -1,0 +1,10 @@
+id: heroes-dota2-15-skill-rows-missing
+subject: 15 non-6.88g roster heroes had no ability rows (133 Dota 2 abilities)
+description: 'dark_willow, dawnbreaker, grimstroke, hoodwink, kez, largo, marci, mars, monkey_king, muerta, pangolier, primal_beast, ringmaster, snapfire and void_spirit have unit rows and voices but no ability() or skill() rows, and their skill icons were missing. Added scenarios/moba/abilities_dota2_15.osd (133 ability and skill rows, ability_ext and hero_abilities lines) from the SteamDatabase/GameTracking-Dota2 hero files at 282fad29f0f74504fad465c52d197fb61f4d612b, each value line with its source; zero is written only where the source has no value and the SOURCE line says so. Effects are [] and UNVERIFIED (content-688g-ability-effect-mapping). Icons: 133 CC0 placeholders in ABILITY-SOURCES-DOTA2.tsv. Witness: the osd loads in CI and the 15 heroes list their skills in the lobby.'
+session_id: heroes-inv-1
+owner: heroes-inv-1
+status: pending
+notes:
+- ts: 2026-10-25T16:20:46.700Z
+  session_id: heroes-inv-1
+  note: 'heroes-inv-1: published scenarios/moba/abilities_dota2_15.osd, the manifest entry, 133 icons and ABILITY-ICONS rows in commit 61e09211. Commit eceec096 zeroes the 43 skill damage tables, because mapexport rejects a damage table on an ability with no damage effect (rust/crates/data/src/validate.rs:85); the Dota 2 values stay in the SOURCE lines. CI on eceec096: success, 0 failing jobs. Still open: the row needs a witness from a separate session; 39 Dota 2 keys (special_bonus and attribute_bonus) are excluded by design.'

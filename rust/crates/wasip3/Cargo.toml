@@ -1,0 +1,31 @@
+[package]
+name = "wasip3-guest"
+version = "0.1.0"
+edition = "2021"
+description = "The deterministic sim as a WASIp3 guest driven over stdin and stdout, and a native host that checks the built component"
+publish = false
+
+[workspace]
+
+[lib]
+name = "wasip3_guest"
+path = "src/lib.rs"
+
+[[bin]]
+name = "oscraft_wasip3"
+path = "src/main.rs"
+
+[features]
+fault-injection = []
+
+[dependencies]
+sim = { path = "../sim" }
+mod-host = { path = "../mod-host", default-features = false, features = ["piccolo"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = "0.3"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+wasmtime = { version = "=50.0.0-rc.1", features = ["component-model", "component-model-async"] }
+wasmtime-wasi = { version = "=50.0.0-rc.1" }
+tokio = { version = "1", features = ["rt", "rt-multi-thread"] }

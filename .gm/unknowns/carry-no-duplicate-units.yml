@@ -1,0 +1,5 @@
+id: carry-no-duplicate-units
+row: gap-data-reload-keeps-match-state-blocker-gm-oscraft-sc2-alt-1-ms1
+question: After a data swap through Room::step, does carry_live_units leave each live unit of a player at one index, so player_has_units and the alive count match the pre-swap live set?
+session_id: mcp-codemode-1184-1792267460011
+status: unknown

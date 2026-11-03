@@ -1,0 +1,25 @@
+id: pages-first-draw-ceiling-runner-variance
+subject: 'Pages first-draw gate: 10000 ms wall-clock ceiling is marginal on the shared runner'
+description: 'Symptom: the ''first draw of the built page'' job fails on identical content. Sha f165de9c (lobby layout) measured median 5835 ms and passed; sha cef86107 (closing commit, no file changes vs f165de9c) measured 10205 ms and 10719 ms on two runs and failed (run 40170145589). Recent main pages medians before the lobby change: 5224, 7006, 9501, 8164, 9990, 6995 ms. The metric is wall time until frame.drawCalls > 0 (scripts/perf/first-draw.mjs), not the lobby panel. Gate:       line: 209       path: ./.github/workflows/pages.yml. Clearing action: the perf owner replaces the wall-clock ceiling with a counted unit or re-baselines it from the runner''s measured spread (memory: swings 3.6 to 4.8 s on identical pages). Not fixed by panels.lua; lobby lane untouched.'
+session_id: drain-lobby-panels-7
+owner: drain-lobby-panels-7
+status: pending
+notes:
+- ts: 2026-10-25T08:59:23.413Z
+  session_id: drain-infra-9
+  note: claimed by drain-infra-9
+- ts: 2026-10-25T09:12:20.500Z
+  session_id: drain-infra-9
+  note: 'drain-infra-9: 9d6165006503 pages first-draw loads transfer ~30 MB per load gzipped (run 40179272563: 29.9/30.8/30.4 MB; ms 10146/9224/8532, median 9224, ceiling unchanged 10000). Cause lead: the loose scenarios/ assets and packs/ archive both load/ship; per-file attribution now printed by first-draw.mjs. Ceiling untouched (owner call).'
+- ts: 2026-10-25T09:13:21.438Z
+  session_id: drain-infra-9
+  note: 'drain-infra-9: 9d6165006503 pages first-draw loads transfer ~30 MB each gzipped (run 40179272563: 29.9/30.8/30.4 MB; ms 10146/9224/8532, median 9224; ceiling unchanged at 10000). Cause lead: both the loose scenarios/ assets and the packs/ archive ship. f11e823e prints requests and the six heaviest files per load to attribute it.'
+- ts: 2026-10-25T10:09:10.077Z
+  session_id: mcp-codemode-3115989-1792922950003-5
+  note: 'Owner decision (user): do not just raise the ceiling. Measure first-draw locally for optimisation, make CI/CD pack and split everything into an efficient engine bundle, and make the asset caching strategy exact. The 10000 ms ceiling is a result of this work, not an input to it.'
+- ts: 2026-10-25T10:48:38.040Z
+  session_id: drain-ci-policy-12
+  note: 'drain-ci-policy-12: pages red on febeb25d85 (run 40185447893) at first draw: median 11034 ms (attempt 1) and 10295 ms (attempt 2 after a re-run of the failed job) against the 10000 ms ceiling. The same site passed on a090c61de (run 40185215769, pages success) and on cd85d6d7 (run 40183575740, median 9292 ms). The gate''s own inputs are unchanged by the CI moves (first-draw job needs build only). Not changed by drain-ci-policy-12: the ceiling is an owner or first-draw-lane decision.'
+- ts: 2026-10-25T11:41:42.591Z
+  session_id: drain-shop-13
+  note: 'drain-shop-13: main f356dd23 pages red (run 40189392669, first-draw median 11772 ms, 22836245 B transfer). shop-layout-match-dota-shop published 74beada7 on f356dd23 (+349 B transfer from moba_ui.json); its pages red at median 10241 ms (run 40189604297); ci green on both. The shop change does not touch the first-draw path. Ceiling unchanged.'

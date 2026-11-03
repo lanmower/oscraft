@@ -1,0 +1,5 @@
+id: U1-data-dir
+subject: Which named option or default data directory does the server use for owned files (main.rs/lib.rs opts, Room cfg)?
+row: gap-relay-log-durability
+session_id: gm-oscraft-sc2-alt-1-d1
+status: unknown

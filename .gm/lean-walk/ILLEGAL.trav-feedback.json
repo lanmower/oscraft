@@ -1,0 +1,33 @@
+{
+ "node": "ILLEGAL",
+ "applied": false,
+ "changes": [],
+ "witness": "armed.on can be true with armed.client null, so the reticle and area are silently hidden (feedback.js:108, 161).",
+ "prd_ids": [
+  "illegal-trav-feedback-1"
+ ],
+ "unknown_ids": [],
+ "next_choice": {
+  "to": "none",
+  "why": "lane order: the traversal lane walks the principle list itself"
+ },
+ "links_offered": [],
+ "link_taken": null,
+ "session": "trav-feedback",
+ "verdict": "VIOLATED",
+ "witness_dispatch_ids": [
+  "1792858230149-3869-21d19524e8d35fbc",
+  "1792858261769-3931-adfb35580ef10c16",
+  "1792858289193-4003-372f9ba5e1ba248e"
+ ],
+ "verified_by": null,
+ "verified_dispatch_ids": [],
+ "findings": [
+  {
+   "prd_id": "illegal-trav-feedback-1",
+   "owner": "trav-feedback",
+   "disposition": "accept"
+  }
+ ],
+ "inspector": null
+}

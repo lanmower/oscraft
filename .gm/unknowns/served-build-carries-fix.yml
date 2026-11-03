@@ -1,0 +1,4 @@
+status: unknown
+id: served-build-carries-fix
+value: Does the served build (rs-plugkit 8c618c8, agentplug runner) carry the fix, so the instruction dispatch no longer panics?
+session_id: drain-gm-4

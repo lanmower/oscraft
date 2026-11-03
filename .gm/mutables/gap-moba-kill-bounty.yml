@@ -1,0 +1,10 @@
+id: gap-moba-kill-bounty
+items:
+- 'U1: is check mechanic-kill-bounty green on HEAD in CI (ci.yml:2525) for the current sha?'
+- 'U2: does the scripted kill on the committed tree raise resource_a by exactly the declared bounty (25), not only in the gate?'
+- 'U3: does the row''s witness_plan (scripted creep kill via CI) differ from the existing gate check kill_bounty, so the row needs a new witness or only a resolve?'
+session_id: mcp-codemode-1030-1792262103218
+status: unknown
+blockedBy:
+- external
+deferReason: stray empty add from a malformed call; superseded by gap-moba-kill-bounty-u1..u3

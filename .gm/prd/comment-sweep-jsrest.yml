@@ -1,0 +1,6 @@
+id: comment-sweep-jsrest
+subject: Comment sweep of js/ (except play.js, vendor) and mods/
+description: Convert or move every comment into AGENTS.md; delete comments.
+session_id: mcp-codemode-1157014-1792951837604-377
+owner: mcp-codemode-1157014-1792951837604-377
+status: pending

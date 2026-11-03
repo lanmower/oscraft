@@ -1,0 +1,6 @@
+id: web-per-frame-unit-reads-seven-scans-u2
+row: web-per-frame-unit-reads-seven-scans
+subject: Do the packed unit_columns columns 0,1,2,3,4,5 equal the seven old exports element-for-element on a live Game (node parity)?
+question: Do the packed unit_columns columns 0,1,2,3,4,5 equal the seven old exports element-for-element on a live Game (node parity)?
+session_id: gm-drain-1793526214-2
+status: unknown

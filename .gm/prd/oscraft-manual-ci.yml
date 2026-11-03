@@ -1,0 +1,6 @@
+id: oscraft-manual-ci
+subject: Make oscraft ci.yml and pages.yml workflow_dispatch only
+description: 'CI is manual: automated testing is a waste of time; validation is just-in-time execution during work. Replace push triggers with workflow_dispatch in ci.yml and pages.yml; tests.yml is already manual. No job changes.'
+session_id: manual-ci
+owner: manual-ci
+status: pending

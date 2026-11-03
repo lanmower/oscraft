@@ -1,0 +1,4 @@
+id: gap-net-host-peer-scaling-u1
+subject: 'Which live surface takes N simulated peer frames per tick: does rust/crates/wasip3 run/lib expose a per-tick input hook, or must one be added?'
+session_id: gm-oscraft-w1-14
+status: unknown

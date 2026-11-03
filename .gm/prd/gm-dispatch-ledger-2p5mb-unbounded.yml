@@ -1,0 +1,10 @@
+id: gm-dispatch-ledger-2p5mb-unbounded
+subject: The dispatch ledger is a 2.5 MB single JSON that every witness check reads whole
+description: 'Evidence: .gm/exec-spool/.dispatch-ledger.json 2518746 bytes. Confirming a witness by fs_read of the ledger is token-heavy; ask for a ledger-check verb taking dispatch ids and returning found/session only, plus rotation. No public references: gm runner tooling defect, no external URL applies.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending
+notes:
+- ts: 2026-11-02T10:12:27.512Z
+  session_id: mcp-codemode-389565-1793614335960-137
+  note: 'Still open at HEAD 1ba8be5c: .gm/exec-spool/.dispatch-ledger.json is 3,188,610 bytes and grows with no rotation; gm.list has no ledger-check verb. Fix belongs to the gm-mcp runner outside /workspace/oscraft: add a ledger-check verb taking dispatch ids and returning found/session only, and rotate/prune the ledger.'

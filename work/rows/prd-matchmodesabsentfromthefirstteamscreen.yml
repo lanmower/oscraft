@@ -1,0 +1,6 @@
+id: "prd-matchmodesabsentfromthefirstteamscreen"
+kind: "prd"
+title: "Match modes are not offered on the first team selection screen when you are the host"
+body: "id: match-modes-absent-from-the-first-team-screen\nsubject: Match modes are not offered on the first team selection screen when you are the host\ndescription: 'The first (team) screen of the fullscreen flow offers only team choice. The first player, who hosts, must also be able to choose the match mode there, and the hero pool must follow the mode: some modes allow every hero, others restrict.'\nacceptance_criteria: On the first screen, the host sees every match mode and can pick one; the following hero grid offers the pool that mode allows (all heroes for the modes that allow them).\nwitness_plan: Load the local mirror as host, read the first screen's controls, choose a mode, then read the hero pool the grid offers.\nsession_id: mcp-codemode-56806-1793170367691-23\nowner: mcp-codemode-56806-1793170367691-23\nstatus: pending\n"
+status: "open"
+createdAt: "2026-10-28T18:42:02.000Z"

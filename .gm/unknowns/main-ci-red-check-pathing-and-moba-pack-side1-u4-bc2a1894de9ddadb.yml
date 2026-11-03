@@ -1,0 +1,5 @@
+id: main-ci-red-check-pathing-and-moba-pack-side1-U4
+subject: Does buildings-688g.mjs regenerate map.osd base/outbuilding names as hand-edited (generator drift size and whether a regen reverts 98fa38f6)?
+parent: main-ci-red-check-pathing-and-moba-pack-side1
+session_id: gm-drain-1793526214-20
+status: unknown

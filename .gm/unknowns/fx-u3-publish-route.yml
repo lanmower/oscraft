@@ -1,0 +1,5 @@
+row: fx-pool-counts-debug-hook
+id: fx-u3-publish-route
+question: 'play.js has another lane''s uncommitted hunks: publish_on_origin would publish them under this row. Route: build the commit on origin/main via GitHub Git Data API from origin content (no working-tree edit). Probe: gh api blob/tree/commit create dry check.'
+session_id: drain-hy3d-findings-14
+status: unknown

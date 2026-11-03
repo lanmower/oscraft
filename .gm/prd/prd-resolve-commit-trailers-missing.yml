@@ -1,0 +1,6 @@
+id: prd-resolve-commit-trailers-missing
+subject: prd-resolve closes a row with no commit-log trailer; the skill's commit record and gitignored prd-log disagree
+description: prd-resolve for lobby-preload-picked-models-and-announce (witness 1792928585219-5736-169869d76c05d4b1) returned commit_comment_attached false, commit_sha_attached false, filed_to .gm/prd-log.jsonl. gm-prd says a closed row is recorded in its closing commit body (Row, Witness, Status), and the Standing preferences say .gm/prd-log.jsonl is gitignored runtime state. No commit carries Witness or Status. Pick one durable record and have prd-resolve or publish_on_origin write it.
+session_id: drain-preload-13
+owner: drain-preload-13
+status: pending

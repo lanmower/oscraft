@@ -1,0 +1,6 @@
+id: live-swap-verify-2-setup-blocker-drain-net-shard-2-1
+subject: 'Blocked: the live Pages build has no swap channel, so no two-page data swap can run'
+description: 'Blocks live-swap-verify-2-setup, swap-deferred-reannounce-diverges and browser-swap-fetch-inflight-diverges. js/client/hmr.js:23 sets SOURCE to /__hmr and hmr.js:89 opens an EventSource on it; hot reload starts only on localhost or ?hmr (hmr.js:110). The swap queue (play.js queuePackSwaps, announceSwap) is fed only by the oscraft:hmr event, so a Pages page has no swap trigger. Witness: codesearch dispatch 1792893188720-5858-e833ef6d8b3b0949 (SOURCE line). Pages for 7f68d3bc run 40128978850 success. Clearing action: run the two-page swap check against a dev origin that serves /__hmr (scripts/dev/serve.mjs), or add a Pages-side swap trigger, then re-run these rows.'
+session_id: drain-net-shard-2
+owner: drain-net-shard-2
+status: pending

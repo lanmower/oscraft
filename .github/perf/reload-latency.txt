@@ -1,0 +1,5 @@
+# Mod reload latency baseline for the "Measure one mod reload" step in the server-mod-and-data CI job.
+# One reload per CI run, from writing a changed mod file to /mod-version reporting the new version with its tick logged.
+# Measured on five CI runs (ms): 38982221491=101, 38982638227=66, 38982908434=63, 38983178415=62, 38983479049=63.
+# The ceiling is about 4x the worst measured run (101 ms), rounded to 404 ms. The step fails above it.
+ceiling_ms=404

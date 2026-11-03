@@ -1,0 +1,4 @@
+id: witness-bot-seat-debug-api/u4-witness-surface
+question: 'Which witness surface can reach a live match: CI-built site on 127.0.0.1 via browser verb eval (toktx absent locally; browser lease)?'
+session_id: gm-drain-1793526214-5
+status: unknown

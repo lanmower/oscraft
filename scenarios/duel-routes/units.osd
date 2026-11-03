@@ -1,0 +1,5 @@
+unit("skirmisher", 45, 3150, 375, build_time=480, resource_a=50, capacity=1, abilities=["pulse_shot"], filters=["ground", "light", "army"], weapon_damage=6, weapon_range_milli=5000, weapon_period=24, sight_milli=9000, resource="resource_a", harvest=5)
+unit("warden", 120, 2250, 500, build_time=720, resource_a=100, capacity=3, abilities=["pulse_shot"], filters=["ground", "armored", "massive", "army"], weapon_damage=10, weapon_range_milli=6000, weapon_period=36, sight_milli=10000, shield=40, defense=1, damage_response="reduced")
+unit("tender", 40, 2800, 350, build_time=300, resource_a=50, capacity=1, filters=["ground", "light", "worker"], sight_milli=8000, resource="resource_a", harvest=5)
+unit("beacon", 300, 1000, 500, filters=["ground", "armored", "massive", "structure"], sight_milli=6000)
+unit("creep", 60, 1500, 300, filters=["ground", "light"], sight_milli=6000)

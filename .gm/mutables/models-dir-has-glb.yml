@@ -1,0 +1,4 @@
+status: unknown
+id: models-dir-has-glb
+value: Does js/client/models/ exist in the tree and hold at least one .glb file (play.js:107 fetches models/NAME.glb)?
+session_id: gm-orch-1-r4

@@ -1,0 +1,8 @@
+id: content-hero-conversions-unresolved-blocker-drain-b-1
+subject: 'Blocked: 58 hero rows need edits outside drain-b-1 paths'
+description: 'Blocked by ownership, not by data. The 6.88g reference is on disk: /tmp/g688.w3x and /tmp/g688-lni2/table/unit.ini (dispatch 1792849271386-2283-b8fb2bbb4aa4ac67, 1792849298315-2315-c23f5099a108e0a8). Of the 58 unresolved rows, 35 names exist on 6.88g rows with no Primary (non-hero), 23 have no 6.88g Name (dispatch 1792849298315-2315-c23f5099a108e0a8). 27 share a name token with a 6.88g hero row, with false matches (void_spirit to Faceless Void), so identity needs ability-name evidence (dispatch 1792849891611-2778-917fd59ca02d6084). Closing the row writes scenarios/moba/heroes_688g.tsv, scenarios/moba/attr_rules.txt (apply script output) and docs/CONVERGENCE_688G.md (the witness table). None of these is a path drain-b-1 owns. Clearing action: grant those three paths to a lane that derives the rows from unit.ini with ability-name identity evidence, then rerun scripts/apply-heroes-688g.py. Blocked_by: content-hero-conversions-unresolved.'
+status: pending
+blockedBy:
+- content-hero-conversions-unresolved
+session_id: mcp-codemode-2472180-1792850257503-318
+owner: mcp-codemode-2472180-1792850257503-318

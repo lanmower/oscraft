@@ -1,0 +1,6 @@
+id: local-cargo-broke-pinned-rust-toolchain
+subject: A local cargo run triggered a toolchain sync that left the pinned Rust 1.99.0 toolchain broken
+description: 'Reported by the first-draw lane (drain-firstdraw-11) during its local measurement. A cargo command run locally triggered a sync of the pinned toolchain, and the pinned Rust 1.99.0 install is broken afterwards. Fix: restore the pinned toolchain with the rust toolchain file in the repo; confirm the install with rustc --version against the pin; find which command triggered the sync and make local measurement never run cargo (the first-draw measurement needs only the built site). Acceptance: rustc --version matches the pin; the local first-draw run works without cargo. Ownership: the toolchain pin and the local measurement docs.'
+session_id: mcp-codemode-3115989-1792926433663-221
+owner: mcp-codemode-3115989-1792926433663-221
+status: pending

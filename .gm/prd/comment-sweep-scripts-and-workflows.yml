@@ -1,0 +1,6 @@
+id: comment-sweep-scripts-and-workflows
+subject: Comment sweep for scripts/, scenarios/moba/tools and .github/workflows (ci.yml and pages.yml hold paragraph comments with measurements)
+description: 'scripts/**, scenarios/moba/tools/** (about 580 comment lines), ci.yml:3-4 and 40-52, pages.yml cache and wasm size rationale. Acceptance: measurements and rationale move to AGENTS.md as one verified line each, code and step names say the rest, no workflow behaviour changes. Witness: ci-status green on the pushing sha and a comments_only count near zero.'
+session_id: survey-infra-8
+owner: survey-infra-8
+status: pending

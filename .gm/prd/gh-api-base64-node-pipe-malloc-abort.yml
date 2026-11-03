@@ -1,0 +1,6 @@
+id: gh-api-base64-node-pipe-malloc-abort
+subject: 'gm bash: gh api | base64 -d | node -e aborts with malloc(): invalid size on a play.js ref'
+description: 'Friction met in drain-lobby-close-13. The witness pipeline `gh api repos/lanmower/oscraft/contents/js/client/play.js?ref=6d8e7388... --jq .content | base64 -d | node -e ''...''` aborts (exit 134, malloc(): invalid size (unsorted)) twice, deterministically, while the same pipeline on ref 65f95e60 exits 0. Fix: reproduce on the gm bash path, find whether node stdin read or base64 is the fault, and make the witness route read content without a pipe (or cap the size); keep the two-sided negative witness working.'
+session_id: drain-lobby-close-13
+owner: drain-lobby-close-13
+status: pending

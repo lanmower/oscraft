@@ -1,0 +1,371 @@
+﻿2026-10-18T06:22:42.5029200Z ##[group]Run set -euo pipefail
+2026-10-18T06:22:42.5029706Z ^[[36;1mset -euo pipefail^[[0m
+2026-10-18T06:22:42.5030057Z ^[[36;1mwork="$RUNNER_TEMP/tick-window"^[[0m
+2026-10-18T06:22:42.5030416Z ^[[36;1mmkdir -p "$work"^[[0m
+2026-10-18T06:22:42.5030779Z ^[[36;1m./target/debug/osdt-data data "$work/catalog.osdt"^[[0m
+2026-10-18T06:22:42.5031165Z ^[[36;1mwindow=400^[[0m
+2026-10-18T06:22:42.5031441Z ^[[36;1mbudget=100^[[0m
+2026-10-18T06:22:42.5031710Z ^[[36;1marm() {^[[0m
+2026-10-18T06:22:42.5032046Z ^[[36;1m  local shed=$1 port=$2 log="$work/shed-$1-$3.log"^[[0m
+2026-10-18T06:22:42.5032456Z ^[[36;1m  local addr=127.0.0.1:$port^[[0m
+2026-10-18T06:22:42.5033518Z ^[[36;1m  target/debug/oscraftd --addr "$addr" --room ci --data "$work/catalog.osdt" --ticks "$window" --tick-budget-us "$budget" --shed "$shed" > "$log" 2>&1 &^[[0m
+2026-10-18T06:22:42.5034258Z ^[[36;1m  local pid=$!^[[0m
+2026-10-18T06:22:42.5034722Z ^[[36;1m  for i in $(seq 1 60); do curl -s -o /dev/null "http://$addr/" && break; sleep 0.5; done^[[0m
+2026-10-18T06:22:42.5035246Z ^[[36;1m  local token^[[0m
+2026-10-18T06:22:42.5035612Z ^[[36;1m  token=$(sed -n 's/^ev=order_token room=ci token=//p' "$log")^[[0m
+2026-10-18T06:22:42.5036029Z ^[[36;1m  test -n "$token"^[[0m
+2026-10-18T06:22:42.5036355Z ^[[36;1m  for i in $(seq 1 20); do^[[0m
+2026-10-18T06:22:42.5037321Z ^[[36;1m    curl -s -o /dev/null -X POST -H "Authorization: ***" "http://$addr/order?map=ci" --data "{\"player\":0,\"x\":$((i*5)),\"y\":$((i*3))}"^[[0m
+2026-10-18T06:22:42.5037981Z ^[[36;1m  done^[[0m
+2026-10-18T06:22:42.5038493Z ^[[36;1m  wait "$pid"^[[0m
+2026-10-18T06:22:42.5038798Z ^[[36;1m  local total ticks overruns^[[0m
+2026-10-18T06:22:42.5039196Z ^[[36;1m  total=$(grep '^ev=tick_time ticks=' "$log" | tail -1)^[[0m
+2026-10-18T06:22:42.5039668Z ^[[36;1m  ticks=$(echo "$total" | sed 's/.* ticks=\([0-9]*\) .*/\1/')^[[0m
+2026-10-18T06:22:42.5040197Z ^[[36;1m  overruns=$(echo "$total" | sed 's/.* overruns=\([0-9]*\)$/\1/')^[[0m
+2026-10-18T06:22:42.5040720Z ^[[36;1m  edges_on=$(grep -c 'ev=tick_shed_edge .* state=on$' "$log" || true)^[[0m
+2026-10-18T06:22:42.5041459Z ^[[36;1m  echo "shed=$shed ticks=$ticks overruns=$overruns rate=$(awk "BEGIN{printf \"%.4f\", $overruns/$ticks}") shed_on_edges=$edges_on"^[[0m
+2026-10-18T06:22:42.5042101Z ^[[36;1m  test "$ticks" -ge "$window"^[[0m
+2026-10-18T06:22:42.5042434Z ^[[36;1m  if [ "$shed" = off ]; then^[[0m
+2026-10-18T06:22:42.5042759Z ^[[36;1m    test "$edges_on" -eq 0^[[0m
+2026-10-18T06:22:42.5043405Z ^[[36;1m  else^[[0m
+2026-10-18T06:22:42.5043896Z ^[[36;1m    test "$edges_on" -ge 1^[[0m
+2026-10-18T06:22:42.5044329Z ^[[36;1m    test "$edges_on" -le $(( ticks / 48 + 1 ))^[[0m
+2026-10-18T06:22:42.5044685Z ^[[36;1m  fi^[[0m
+2026-10-18T06:22:42.5044935Z ^[[36;1m}^[[0m
+2026-10-18T06:22:42.5045189Z ^[[36;1m: > "$work/rates.txt"^[[0m
+2026-10-18T06:22:42.5045592Z ^[[36;1mfor r in 1 2 3 4 5; do^[[0m
+2026-10-18T06:22:42.5046029Z ^[[36;1m  arm off $((8100 + 2 * r)) "$r" | tee -a "$work/rates.txt"^[[0m
+2026-10-18T06:22:42.5046479Z ^[[36;1m  arm on $((8101 + 2 * r)) "$r" | tee -a "$work/rates.txt"^[[0m
+2026-10-18T06:22:42.5046864Z ^[[36;1mdone^[[0m
+2026-10-18T06:22:42.5047350Z ^[[36;1moff_avg=$(awk '/^shed=off /{sub(/.*rate=/, ""); sub(/ .*/, ""); s += $1; n++} END{printf "%.4f", s / n}' "$work/rates.txt")^[[0m
+2026-10-18T06:22:42.5048095Z ^[[36;1mon_avg=$(awk '/^shed=on /{sub(/.*rate=/, ""); sub(/ .*/, ""); s += $1; n++} END{printf "%.4f", s / n}' "$work/rates.txt")^[[0m
+2026-10-18T06:22:42.5048929Z ^[[36;1mecho "average overrun rate over 5 pairs (report only): shed=off $off_avg shed=on $on_avg"^[[0m
+2026-10-18T06:22:42.5119423Z shell: /usr/bin/bash -e {0}
+2026-10-18T06:22:42.5119748Z env:
+2026-10-18T06:22:42.5120003Z   CARGO_TERM_COLOR: always
+2026-10-18T06:22:42.5120311Z   CARGO_INCREMENTAL: 0
+2026-10-18T06:22:42.5120599Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-18T06:22:42.5120903Z   CARGO_NET_RETRY: 3
+2026-10-18T06:22:42.5121171Z ##[endgroup]
+2026-10-18T06:23:13.3422834Z ##[error]Process completed with exit code 7.
+﻿2026-10-18T06:23:07.9185170Z ##[group]Run set -euo pipefail
+2026-10-18T06:23:07.9185639Z ^[[36;1mset -euo pipefail^[[0m
+2026-10-18T06:23:07.9185954Z ^[[36;1mcat > "$RUNNER_TEMP/pw/moba-input.mjs" <<'EOF'^[[0m
+2026-10-18T06:23:07.9186310Z ^[[36;1mimport { chromium } from "playwright";^[[0m
+2026-10-18T06:23:07.9186849Z ^[[36;1mconst browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });^[[0m
+2026-10-18T06:23:07.9187511Z ^[[36;1mconst page = await browser.newPage({ viewport: { width: 1024, height: 768 } });^[[0m
+2026-10-18T06:23:07.9187920Z ^[[36;1mconst errors = [];^[[0m
+2026-10-18T06:23:07.9188233Z ^[[36;1mpage.on("pageerror", (e) => errors.push(String(e)));^[[0m
+2026-10-18T06:23:07.9188672Z ^[[36;1mpage.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });^[[0m
+2026-10-18T06:23:07.9189272Z ^[[36;1mawait page.goto("http://127.0.0.1:8093/play.html?relay=ws://127.0.0.1:7447&ns=oscraft-ci&ci=1#moba");^[[0m
+2026-10-18T06:23:07.9189930Z ^[[36;1mawait page.waitForSelector("body[data-ready='1'], body[data-error]", { timeout: 60000 });^[[0m
+2026-10-18T06:23:07.9190488Z ^[[36;1mconst error = await page.getAttribute("body", "data-error");^[[0m
+2026-10-18T06:23:07.9191160Z ^[[36;1mif (error) throw new Error("page error: " + error);^[[0m
+2026-10-18T06:23:07.9191693Z ^[[36;1mconst units = await page.evaluate(() => window.__ciUnits());^[[0m
+2026-10-18T06:23:07.9192103Z ^[[36;1mif (!units.length) throw new Error("no units to order");^[[0m
+2026-10-18T06:23:07.9192683Z ^[[36;1m// The 3D camera moves with the arrow keys and zoom, so the ground-to-pixel mapping is read from the page each time.^[[0m
+2026-10-18T06:23:07.9193345Z ^[[36;1mconst screenAt = (x, z) => page.evaluate(([px, pz]) => window.__ciToScreen(px, pz), [x, z]);^[[0m
+2026-10-18T06:23:07.9193958Z ^[[36;1m// Click the player's own unit with the most room around it, so the pick cannot land on a neighbour.^[[0m
+2026-10-18T06:23:07.9194561Z ^[[36;1m// Neutral camp units (player 255) cannot take orders, so they are never the candidate.^[[0m
+2026-10-18T06:23:07.9195189Z ^[[36;1mconst own = units.filter((u) => u.player === 0);^[[0m
+2026-10-18T06:23:07.9195619Z ^[[36;1mif (!own.length) throw new Error("player 0 has no unit to order");^[[0m
+2026-10-18T06:23:07.9196009Z ^[[36;1mconst unit = own.reduce((best, cand) => {^[[0m
+2026-10-18T06:23:07.9196497Z ^[[36;1m  const gap = Math.min(...units.filter((v) => v !== cand).map((v) => (v.x - cand.x) ** 2 + (v.z - cand.z) ** 2));^[[0m
+2026-10-18T06:23:07.9197024Z ^[[36;1m  return gap > best.gap ? { unit: cand, gap } : best;^[[0m
+2026-10-18T06:23:07.9197375Z ^[[36;1m}, { unit: own[0], gap: -1 }).unit;^[[0m
+2026-10-18T06:23:07.9197707Z ^[[36;1mconst at = await screenAt(unit.x, unit.z);^[[0m
+2026-10-18T06:23:07.9198072Z ^[[36;1mawait page.mouse.click(at.x, at.y, { button: "left" });^[[0m
+2026-10-18T06:23:07.9198518Z ^[[36;1mconst selected = await page.evaluate(() => window.__ciSelected());^[[0m
+2026-10-18T06:23:07.9199085Z ^[[36;1mif (selected !== unit.id) throw new Error("left click selected " + selected + ", expected " + unit.id);^[[0m
+2026-10-18T06:23:07.9199658Z ^[[36;1mconst target = await screenAt(Math.min(29, unit.x + 3), unit.z);^[[0m
+2026-10-18T06:23:07.9200116Z ^[[36;1mawait page.mouse.click(target.x, target.y, { button: "right" });^[[0m
+2026-10-18T06:23:07.9200598Z ^[[36;1mawait page.waitForSelector("body[data-orders='1']", { timeout: 15000 });^[[0m
+2026-10-18T06:23:07.9201212Z ^[[36;1mconst orders = await page.getAttribute("body", "data-orders");^[[0m
+2026-10-18T06:23:07.9201692Z ^[[36;1mif (errors.length) throw new Error("console errors: " + errors.join("\n"));^[[0m
+2026-10-18T06:23:07.9202276Z ^[[36;1mconst before = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];^[[0m
+2026-10-18T06:23:07.9202755Z ^[[36;1mawait page.keyboard.down("ArrowRight");^[[0m
+2026-10-18T06:23:07.9203083Z ^[[36;1mawait page.waitForTimeout(500);^[[0m
+2026-10-18T06:23:07.9203399Z ^[[36;1mawait page.keyboard.up("ArrowRight");^[[0m
+2026-10-18T06:23:07.9203864Z ^[[36;1mconst after = (await page.getAttribute("body", "data-center")).split(",").map(Number)[0];^[[0m
+2026-10-18T06:23:07.9204572Z ^[[36;1mif (!(after > before)) throw new Error("arrow right did not pan: " + before + " -> " + after);^[[0m
+2026-10-18T06:23:07.9205098Z ^[[36;1mconsole.log(`moba camera ok pan=${(after - before).toFixed(2)}`);^[[0m
+2026-10-18T06:23:07.9205519Z ^[[36;1m// Wheel up zooms in: the orbit distance shrinks.^[[0m
+2026-10-18T06:23:07.9205970Z ^[[36;1mconst zoomBefore = Number(await page.getAttribute("body", "data-distance"));^[[0m
+2026-10-18T06:23:07.9206397Z ^[[36;1mawait page.mouse.move(512, 384);^[[0m
+2026-10-18T06:23:07.9206694Z ^[[36;1mawait page.mouse.wheel(0, -300);^[[0m
+2026-10-18T06:23:07.9207200Z ^[[36;1mawait page.waitForFunction((d) => Number(document.body.dataset.distance) < d, zoomBefore, { timeout: 5000 });^[[0m
+2026-10-18T06:23:07.9207819Z ^[[36;1mconst zoomAfter = Number(await page.getAttribute("body", "data-distance"));^[[0m
+2026-10-18T06:23:07.9208362Z ^[[36;1mconsole.log(`moba zoom ok zoom=${zoomBefore.toFixed(3)}->${zoomAfter.toFixed(3)}`);^[[0m
+2026-10-18T06:23:07.9208877Z ^[[36;1mconst hp = Number(await page.getAttribute("body", "data-hp"));^[[0m
+2026-10-18T06:23:07.9209323Z ^[[36;1mconst gold = Number(await page.getAttribute("body", "data-gold"));^[[0m
+2026-10-18T06:23:07.9209797Z ^[[36;1mif (!(hp > 0) || !(gold >= 0)) throw new Error("hud reads hp=" + hp + " gold=" + gold);^[[0m
+2026-10-18T06:23:07.9210230Z ^[[36;1mconsole.log(`moba hud ok hp=${hp} gold=${gold}`);^[[0m
+2026-10-18T06:23:07.9210653Z ^[[36;1mconst dots = Number(await page.getAttribute("body", "data-minimap"));^[[0m
+2026-10-18T06:23:07.9211291Z ^[[36;1mconst drawnUnits = (await page.evaluate(() => window.__ciUnits())).length;^[[0m
+2026-10-18T06:23:07.9211909Z ^[[36;1mif (!(dots > 0) || dots !== drawnUnits) throw new Error("minimap draws " + dots + " dots for " + drawnUnits + " units");^[[0m
+2026-10-18T06:23:07.9212455Z ^[[36;1mconsole.log(`moba minimap ok dots=${dots}`);^[[0m
+2026-10-18T06:23:07.9212896Z ^[[36;1m// Not every unit can cast or attack: try the most isolated units until one does both.^[[0m
+2026-10-18T06:23:07.9213640Z ^[[36;1mconst dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;^[[0m
+2026-10-18T06:23:07.9214177Z ^[[36;1m// Neutral camp units (player 255) never cast or attack in this probe, so they are not candidates.^[[0m
+2026-10-18T06:23:07.9215063Z ^[[36;1mconst ranked = units.filter((u) => u.player !== 255).sort((a, b) => Math.min(...units.filter((v) => v !== b).map((v) => dist2(v, b))) - Math.min(...units.filter((v) => v !== a).map((v) => dist2(v, a))));^[[0m
+2026-10-18T06:23:07.9215783Z ^[[36;1mlet attacker = null;^[[0m
+2026-10-18T06:23:07.9216210Z ^[[36;1m// Allies on one team are not attack targets, so the foes are the players the sim calls hostile.^[[0m
+2026-10-18T06:23:07.9216740Z ^[[36;1mconst players = [...new Set(units.map((u) => u.player))];^[[0m
+2026-10-18T06:23:07.9217428Z ^[[36;1mconst hostilePairs = new Set(await page.evaluate((ps) => ps.flatMap((a) => ps.filter((b) => window.__ciHostile(a, b)).map((b) => `${a}:${b}`)), players));^[[0m
+2026-10-18T06:23:07.9218105Z ^[[36;1mfor (const cand of ranked.reverse().slice(0, 400)) {^[[0m
+2026-10-18T06:23:07.9218580Z ^[[36;1m  // Select through the CI hook: a click can land on another unit drawn over this one.^[[0m
+2026-10-18T06:23:07.9219254Z ^[[36;1m  // An attack needs a visible, hostile target: only enemies inside the candidate's sight (9 cells) are tried, nearest first.^[[0m
+2026-10-18T06:23:07.9220116Z ^[[36;1m  const foes = units.filter((v) => hostilePairs.has(`${cand.player}:${v.player}`) && dist2(v, cand) <= 64).sort((a, b) => dist2(a, cand) - dist2(b, cand)).slice(0, 3);^[[0m
+2026-10-18T06:23:07.9220876Z ^[[36;1m  if (!foes.length) continue;^[[0m
+2026-10-18T06:23:07.9221253Z ^[[36;1m  await page.evaluate((id) => window.__ciSelect(id), cand.id);^[[0m
+2026-10-18T06:23:07.9221861Z ^[[36;1m  // A cast needs a learned rank: spend the unit's free skill point on its first ability (refused as no-op when none is free).^[[0m
+2026-10-18T06:23:07.9222480Z ^[[36;1m  await page.evaluate((id) => window.__ciLearn(id, 0), cand.id);^[[0m
+2026-10-18T06:23:07.9223014Z ^[[36;1m  // Counters are compared before and after each step, so earlier candidates do not count.^[[0m
+2026-10-18T06:23:07.9223550Z ^[[36;1m  for (const foe of foes) {^[[0m
+2026-10-18T06:23:07.9223854Z ^[[36;1m    const fp = await screenAt(foe.x, foe.z);^[[0m
+2026-10-18T06:23:07.9224285Z ^[[36;1m    const casts0 = Number(await page.getAttribute("body", "data-casts"));^[[0m
+2026-10-18T06:23:07.9224845Z ^[[36;1m    // Hover the enemy so the cast aims at it: unit-target abilities need a unit under the pointer.^[[0m
+2026-10-18T06:23:07.9225322Z ^[[36;1m    await page.mouse.move(fp.x, fp.y);^[[0m
+2026-10-18T06:23:07.9225647Z ^[[36;1m    await page.keyboard.press("q");^[[0m
+2026-10-18T06:23:07.9225953Z ^[[36;1m    await page.waitForTimeout(150);^[[0m
+2026-10-18T06:23:07.9226338Z ^[[36;1m    const casts = Number(await page.getAttribute("body", "data-casts"));^[[0m
+2026-10-18T06:23:07.9227016Z ^[[36;1m    if (casts <= casts0) { console.log(`probe cast cand=${cand.id} foe=${foe.id} casts=${casts} at=${fp.x.toFixed(0)},${fp.y.toFixed(0)}`); continue; }^[[0m
+2026-10-18T06:23:07.9227708Z ^[[36;1m    const attacks0 = Number(await page.getAttribute("body", "data-attacks"));^[[0m
+2026-10-18T06:23:07.9228125Z ^[[36;1m    await page.keyboard.press("a");^[[0m
+2026-10-18T06:23:07.9228470Z ^[[36;1m    await page.mouse.click(fp.x, fp.y, { button: "left" });^[[0m
+2026-10-18T06:23:07.9228827Z ^[[36;1m    await page.waitForTimeout(150);^[[0m
+2026-10-18T06:23:07.9229220Z ^[[36;1m    const attacks = Number(await page.getAttribute("body", "data-attacks"));^[[0m
+2026-10-18T06:23:07.9229726Z ^[[36;1m    console.log(`probe attack cand=${cand.id} foe=${foe.id} attacks=${attacks}`);^[[0m
+2026-10-18T06:23:07.9230169Z ^[[36;1m    if (attacks > attacks0) { attacker = cand; break; }^[[0m
+2026-10-18T06:23:07.9230479Z ^[[36;1m  }^[[0m
+2026-10-18T06:23:07.9230686Z ^[[36;1m  if (attacker) break;^[[0m
+2026-10-18T06:23:07.9231071Z ^[[36;1m}^[[0m
+2026-10-18T06:23:07.9231364Z ^[[36;1mif (!attacker) throw new Error("no unit both cast and attacked");^[[0m
+2026-10-18T06:23:07.9232095Z ^[[36;1mconst counts = await page.evaluate(() => ({ casts: document.body.dataset.casts, attacks: document.body.dataset.attacks }));^[[0m
+2026-10-18T06:23:07.9232816Z ^[[36;1mconsole.log(`moba input ok orders=${orders} casts=${counts.casts} attacks=${counts.attacks}`);^[[0m
+2026-10-18T06:23:07.9233335Z ^[[36;1mawait page.evaluate(() => window.__ciKillSide(1));^[[0m
+2026-10-18T06:23:07.9233874Z ^[[36;1mawait page.waitForFunction(() => Number(document.body.dataset.winner) >= 0, null, { timeout: 15000 });^[[0m
+2026-10-18T06:23:07.9234606Z ^[[36;1mconst shown = await page.evaluate(() => { const w = document.getElementById("win"); return !w.hidden && w.textContent; });^[[0m
+2026-10-18T06:23:07.9235275Z ^[[36;1mif (!shown || !shown.includes("side 0 wins")) throw new Error("win screen shows " + shown);^[[0m
+2026-10-18T06:23:07.9235750Z ^[[36;1mconsole.log(`moba win screen ok winner=0`);^[[0m
+2026-10-18T06:23:07.9236061Z ^[[36;1mawait browser.close();^[[0m
+2026-10-18T06:23:07.9236304Z ^[[36;1mEOF^[[0m
+2026-10-18T06:23:07.9236638Z ^[[36;1mnode "$RUNNER_TEMP/pw/moba-input.mjs" | tee "$RUNNER_TEMP/moba-input.txt"^[[0m
+2026-10-18T06:23:07.9237261Z ^[[36;1mgrep -q '^moba input ok orders=[1-9][0-9]* casts=[1-9][0-9]* attacks=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"^[[0m
+2026-10-18T06:23:07.9237849Z ^[[36;1mgrep -q '^moba hud ok hp=[1-9][0-9]* gold=[0-9]*$' "$RUNNER_TEMP/moba-input.txt"^[[0m
+2026-10-18T06:23:07.9238337Z ^[[36;1mgrep -q '^moba minimap ok dots=[1-9][0-9]*$' "$RUNNER_TEMP/moba-input.txt"^[[0m
+2026-10-18T06:23:07.9238817Z ^[[36;1mgrep -q '^moba win screen ok winner=0$' "$RUNNER_TEMP/moba-input.txt"^[[0m
+2026-10-18T06:23:07.9239279Z ^[[36;1mgrep -q '^moba camera ok pan=[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"^[[0m
+2026-10-18T06:23:07.9239744Z ^[[36;1mgrep -q '^moba zoom ok zoom=[0-9.]*->[0-9.]*$' "$RUNNER_TEMP/moba-input.txt"^[[0m
+2026-10-18T06:23:07.9276457Z shell: /usr/bin/bash -e {0}
+2026-10-18T06:23:07.9276769Z env:
+2026-10-18T06:23:07.9276994Z   CARGO_TERM_COLOR: always
+2026-10-18T06:23:07.9277242Z   CARGO_INCREMENTAL: 0
+2026-10-18T06:23:07.9277493Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-18T06:23:07.9277737Z   CARGO_NET_RETRY: 3
+2026-10-18T06:23:07.9278092Z ##[endgroup]
+2026-10-18T06:23:09.8531663Z moba camera ok pan=20.04
+2026-10-18T06:23:10.4811934Z moba zoom ok zoom=80.000->59.265
+2026-10-18T06:23:10.4885150Z moba hud ok hp=1800 gold=0
+2026-10-18T06:23:10.5107420Z moba minimap ok dots=161
+2026-10-18T06:23:10.8566390Z probe cast cand=153 foe=154 casts=0 at=571,414
+2026-10-18T06:23:11.0727204Z probe cast cand=153 foe=155 casts=0 at=583,414
+2026-10-18T06:23:11.2951040Z probe cast cand=153 foe=156 casts=0 at=595,414
+2026-10-18T06:23:11.5430648Z probe cast cand=152 foe=154 casts=0 at=571,414
+2026-10-18T06:23:11.9133698Z probe cast cand=152 foe=155 casts=0 at=583,414
+2026-10-18T06:23:12.2551184Z probe cast cand=152 foe=156 casts=0 at=595,414
+2026-10-18T06:23:12.5439628Z probe cast cand=142 foe=143 casts=0 at=30,407
+2026-10-18T06:23:13.0539202Z probe cast cand=142 foe=144 casts=0 at=35,400
+2026-10-18T06:23:13.3511384Z probe cast cand=142 foe=145 casts=0 at=47,400
+2026-10-18T06:23:13.6911324Z probe cast cand=141 foe=143 casts=0 at=30,407
+2026-10-18T06:23:13.9941438Z probe cast cand=141 foe=144 casts=0 at=35,400
+2026-10-18T06:23:14.2890649Z probe cast cand=141 foe=145 casts=0 at=47,400
+2026-10-18T06:23:14.5867582Z probe cast cand=133 foe=154 casts=0 at=571,414
+2026-10-18T06:23:14.8853128Z probe cast cand=133 foe=155 casts=0 at=583,414
+2026-10-18T06:23:15.1562409Z probe cast cand=133 foe=135 casts=0 at=581,386
+2026-10-18T06:23:15.4504375Z probe cast cand=132 foe=154 casts=0 at=571,414
+2026-10-18T06:23:15.7557486Z probe cast cand=132 foe=155 casts=0 at=583,414
+2026-10-18T06:23:16.0342197Z probe cast cand=132 foe=135 casts=0 at=581,386
+2026-10-18T06:23:16.3131785Z probe cast cand=121 foe=122 casts=0 at=40,386
+2026-10-18T06:23:16.6028237Z probe cast cand=121 foe=143 casts=0 at=30,407
+2026-10-18T06:23:16.9034461Z probe cast cand=121 foe=144 casts=0 at=35,400
+2026-10-18T06:23:17.1841826Z probe cast cand=120 foe=122 casts=0 at=40,386
+2026-10-18T06:23:17.4752695Z probe cast cand=120 foe=143 casts=0 at=30,407
+2026-10-18T06:23:17.7709806Z probe cast cand=120 foe=144 casts=0 at=35,400
+2026-10-18T06:23:18.0573240Z probe cast cand=101 foe=68 casts=0 at=36,364
+2026-10-18T06:23:18.3552223Z probe cast cand=101 foe=67 casts=0 at=25,364
+2026-10-18T06:23:18.6323338Z probe cast cand=101 foe=122 casts=0 at=40,386
+2026-10-18T06:23:18.9256892Z probe cast cand=100 foe=68 casts=0 at=36,364
+2026-10-18T06:23:19.2192607Z probe cast cand=100 foe=67 casts=0 at=25,364
+2026-10-18T06:23:19.5138465Z probe cast cand=100 foe=122 casts=0 at=40,386
+2026-10-18T06:23:19.8037414Z probe cast cand=94 foe=113 casts=0 at=567,360
+2026-10-18T06:23:20.1065440Z probe cast cand=94 foe=95 casts=0 at=566,335
+2026-10-18T06:23:20.4018945Z probe cast cand=94 foe=114 casts=0 at=578,360
+2026-10-18T06:23:20.6813256Z probe cast cand=93 foe=113 casts=0 at=567,360
+2026-10-18T06:23:20.9680545Z probe cast cand=93 foe=95 casts=0 at=566,335
+2026-10-18T06:23:21.2580975Z probe cast cand=93 foe=114 casts=0 at=578,360
+2026-10-18T06:23:21.5503025Z probe cast cand=83 foe=68 casts=0 at=36,364
+2026-10-18T06:23:21.8391743Z probe cast cand=83 foe=67 casts=0 at=25,364
+2026-10-18T06:23:22.1298289Z probe cast cand=83 foe=102 casts=0 at=60,352
+2026-10-18T06:23:22.4248179Z probe cast cand=82 foe=68 casts=0 at=36,364
+2026-10-18T06:23:22.7136382Z probe cast cand=82 foe=67 casts=0 at=25,364
+2026-10-18T06:23:22.9969037Z probe cast cand=82 foe=102 casts=0 at=60,352
+2026-10-18T06:23:23.2775028Z probe cast cand=112 foe=113 casts=0 at=567,360
+2026-10-18T06:23:23.5652212Z probe cast cand=112 foe=135 casts=0 at=581,386
+2026-10-18T06:23:23.8572134Z probe cast cand=112 foe=114 casts=0 at=578,360
+2026-10-18T06:23:24.1487857Z probe cast cand=111 foe=113 casts=0 at=567,360
+2026-10-18T06:23:24.4463395Z probe cast cand=111 foe=135 casts=0 at=581,386
+2026-10-18T06:23:24.7151916Z probe cast cand=111 foe=114 casts=0 at=578,360
+2026-10-18T06:23:25.0052788Z probe cast cand=64 foe=67 casts=0 at=25,364
+2026-10-18T06:23:25.2902283Z probe cast cand=64 foe=68 casts=0 at=36,364
+2026-10-18T06:23:25.5874066Z probe cast cand=64 foe=122 casts=0 at=40,386
+2026-10-18T06:23:25.8882145Z probe cast cand=63 foe=67 casts=0 at=25,364
+2026-10-18T06:23:26.1913723Z probe cast cand=63 foe=68 casts=0 at=36,364
+2026-10-18T06:23:26.4674978Z probe cast cand=63 foe=122 casts=0 at=40,386
+2026-10-18T06:23:27.0100142Z probe cast cand=74 foe=135 casts=0 at=581,386
+2026-10-18T06:23:27.2926432Z probe cast cand=74 foe=136 casts=0 at=592,386
+2026-10-18T06:23:27.5891875Z probe cast cand=74 foe=113 casts=0 at=567,360
+2026-10-18T06:23:27.8882232Z probe cast cand=73 foe=135 casts=0 at=581,386
+2026-10-18T06:23:28.1660352Z probe cast cand=73 foe=136 casts=0 at=592,386
+2026-10-18T06:23:28.3885548Z probe cast cand=73 foe=113 casts=0 at=567,360
+2026-10-18T06:23:28.6094581Z probe cast cand=110 foe=113 casts=0 at=567,360
+2026-10-18T06:23:28.8358909Z probe cast cand=110 foe=135 casts=0 at=581,386
+2026-10-18T06:23:29.0567862Z probe cast cand=110 foe=114 casts=0 at=578,360
+2026-10-18T06:23:29.2946128Z probe cast cand=151 foe=154 casts=0 at=571,414
+2026-10-18T06:23:29.4976225Z probe cast cand=151 foe=155 casts=0 at=583,414
+2026-10-18T06:23:29.7112987Z probe cast cand=151 foe=156 casts=0 at=595,414
+2026-10-18T06:23:29.9338845Z probe cast cand=150 foe=154 casts=0 at=571,414
+2026-10-18T06:23:30.1507273Z probe cast cand=150 foe=155 casts=0 at=583,414
+2026-10-18T06:23:30.3651453Z probe cast cand=150 foe=156 casts=0 at=595,414
+2026-10-18T06:23:30.5850300Z probe cast cand=140 foe=143 casts=0 at=30,407
+2026-10-18T06:23:30.7943139Z probe cast cand=140 foe=144 casts=0 at=35,400
+2026-10-18T06:23:31.0123906Z probe cast cand=140 foe=122 casts=0 at=40,386
+2026-10-18T06:23:31.2296873Z probe cast cand=139 foe=143 casts=0 at=30,407
+2026-10-18T06:23:31.4474940Z probe cast cand=139 foe=144 casts=0 at=35,400
+2026-10-18T06:23:31.6588447Z probe cast cand=139 foe=122 casts=0 at=40,386
+2026-10-18T06:23:31.8771522Z probe cast cand=131 foe=154 casts=0 at=571,414
+2026-10-18T06:23:32.0878372Z probe cast cand=131 foe=155 casts=0 at=583,414
+2026-10-18T06:23:32.2942802Z probe cast cand=131 foe=135 casts=0 at=581,386
+2026-10-18T06:23:32.5076388Z probe cast cand=130 foe=154 casts=0 at=571,414
+2026-10-18T06:23:32.7213879Z probe cast cand=130 foe=155 casts=0 at=583,414
+2026-10-18T06:23:32.9408347Z probe cast cand=130 foe=135 casts=0 at=581,386
+2026-10-18T06:23:33.1529734Z probe cast cand=119 foe=122 casts=0 at=40,386
+2026-10-18T06:23:33.3642603Z probe cast cand=119 foe=143 casts=0 at=30,407
+2026-10-18T06:23:33.5759459Z probe cast cand=119 foe=144 casts=0 at=35,400
+2026-10-18T06:23:33.7843328Z probe cast cand=118 foe=122 casts=0 at=40,386
+2026-10-18T06:23:33.9975260Z probe cast cand=118 foe=143 casts=0 at=30,407
+2026-10-18T06:23:34.2058390Z probe cast cand=118 foe=144 casts=0 at=35,400
+2026-10-18T06:23:34.4208357Z probe cast cand=109 foe=113 casts=0 at=567,360
+2026-10-18T06:23:34.6347180Z probe cast cand=109 foe=135 casts=0 at=581,386
+2026-10-18T06:23:34.8441860Z probe cast cand=109 foe=114 casts=0 at=578,360
+2026-10-18T06:23:35.0527712Z probe cast cand=99 foe=67 casts=0 at=25,364
+2026-10-18T06:23:35.2631252Z probe cast cand=99 foe=68 casts=0 at=36,364
+2026-10-18T06:23:35.4962191Z probe cast cand=99 foe=122 casts=0 at=40,386
+2026-10-18T06:23:35.7003021Z probe cast cand=98 foe=67 casts=0 at=25,364
+2026-10-18T06:23:35.9105530Z probe cast cand=98 foe=68 casts=0 at=36,364
+2026-10-18T06:23:36.1185275Z probe cast cand=98 foe=122 casts=0 at=40,386
+2026-10-18T06:23:36.3321178Z probe cast cand=92 foe=113 casts=0 at=567,360
+2026-10-18T06:23:36.5419330Z probe cast cand=92 foe=95 casts=0 at=566,335
+2026-10-18T06:23:36.7539371Z probe cast cand=92 foe=114 casts=0 at=578,360
+2026-10-18T06:23:36.9663285Z probe cast cand=91 foe=113 casts=0 at=567,360
+2026-10-18T06:23:37.1753231Z probe cast cand=91 foe=95 casts=0 at=566,335
+2026-10-18T06:23:37.3952178Z probe cast cand=91 foe=114 casts=0 at=578,360
+2026-10-18T06:23:37.6173519Z probe cast cand=81 foe=67 casts=0 at=25,364
+2026-10-18T06:23:37.8254354Z probe cast cand=81 foe=68 casts=0 at=36,364
+2026-10-18T06:23:38.0352018Z probe cast cand=81 foe=102 casts=0 at=60,352
+2026-10-18T06:23:38.2529401Z probe cast cand=80 foe=67 casts=0 at=25,364
+2026-10-18T06:23:38.4616377Z probe cast cand=80 foe=68 casts=0 at=36,364
+2026-10-18T06:23:38.6766676Z probe cast cand=80 foe=102 casts=0 at=60,352
+2026-10-18T06:23:38.9012996Z probe cast cand=76 foe=135 casts=0 at=581,386
+2026-10-18T06:23:39.1162688Z probe cast cand=76 foe=136 casts=0 at=592,386
+2026-10-18T06:23:39.3280630Z probe cast cand=76 foe=114 casts=0 at=578,360
+2026-10-18T06:23:39.5408634Z probe cast cand=75 foe=135 casts=0 at=581,386
+2026-10-18T06:23:39.7521940Z probe cast cand=75 foe=136 casts=0 at=592,386
+2026-10-18T06:23:39.9552308Z probe cast cand=75 foe=137 casts=0 at=603,386
+2026-10-18T06:23:40.1779493Z probe cast cand=11 foe=154 casts=0 at=571,414
+2026-10-18T06:23:40.5622024Z probe attack cand=11 foe=155 attacks=0
+2026-10-18T06:23:40.8628078Z probe cast cand=11 foe=156 casts=1 at=595,414
+2026-10-18T06:23:41.0975749Z probe cast cand=10 foe=143 casts=1 at=30,407
+2026-10-18T06:23:41.4656527Z probe attack cand=10 foe=144 attacks=0
+2026-10-18T06:23:41.7188812Z probe cast cand=10 foe=122 casts=2 at=40,386
+2026-10-18T06:23:41.9179501Z probe cast cand=9 foe=154 casts=2 at=571,414
+2026-10-18T06:23:42.3021739Z probe attack cand=9 foe=155 attacks=0
+2026-10-18T06:23:42.5449681Z probe cast cand=9 foe=135 casts=3 at=581,386
+2026-10-18T06:23:42.7468840Z probe cast cand=8 foe=122 casts=3 at=40,386
+2026-10-18T06:23:43.1168485Z probe attack cand=8 foe=143 attacks=0
+2026-10-18T06:23:43.3753230Z probe cast cand=8 foe=67 casts=4 at=25,364
+2026-10-18T06:23:43.5818111Z probe cast cand=7 foe=113 casts=4 at=567,360
+2026-10-18T06:23:43.9408818Z probe attack cand=7 foe=135 attacks=0
+2026-10-18T06:23:44.1961156Z probe cast cand=7 foe=114 casts=5 at=578,360
+2026-10-18T06:23:44.4069025Z probe cast cand=6 foe=67 casts=5 at=25,364
+2026-10-18T06:23:44.7729857Z probe attack cand=6 foe=68 attacks=0
+2026-10-18T06:23:45.0249078Z probe cast cand=6 foe=122 casts=6 at=40,386
+2026-10-18T06:23:45.2373792Z probe cast cand=5 foe=113 casts=6 at=567,360
+2026-10-18T06:23:45.6039464Z probe attack cand=5 foe=95 attacks=0
+2026-10-18T06:23:45.8634127Z probe cast cand=5 foe=114 casts=7 at=578,360
+2026-10-18T06:23:46.0681648Z probe cast cand=4 foe=67 casts=7 at=25,364
+2026-10-18T06:23:46.4364243Z probe attack cand=4 foe=68 attacks=0
+2026-10-18T06:23:46.7417340Z probe cast cand=4 foe=102 casts=8 at=60,352
+2026-10-18T06:23:46.9462633Z probe cast cand=66 foe=67 casts=8 at=25,364
+2026-10-18T06:23:47.1535433Z probe cast cand=66 foe=68 casts=8 at=36,364
+2026-10-18T06:23:47.3620002Z probe cast cand=66 foe=122 casts=8 at=40,386
+2026-10-18T06:23:47.5824565Z probe cast cand=160 foe=67 casts=8 at=25,364
+2026-10-18T06:23:47.7874590Z probe cast cand=160 foe=68 casts=8 at=36,364
+2026-10-18T06:23:47.9989815Z probe cast cand=160 foe=122 casts=8 at=40,386
+2026-10-18T06:23:48.4070691Z probe cast cand=65 foe=122 casts=8 at=40,386
+2026-10-18T06:23:48.6148112Z probe cast cand=65 foe=68 casts=8 at=36,364
+2026-10-18T06:23:48.8207131Z probe cast cand=65 foe=67 casts=8 at=25,364
+2026-10-18T06:23:49.0259205Z probe cast cand=163 foe=135 casts=8 at=581,386
+2026-10-18T06:23:49.2293990Z probe cast cand=163 foe=113 casts=8 at=567,360
+2026-10-18T06:23:49.4402613Z probe cast cand=163 foe=136 casts=8 at=592,386
+2026-10-18T06:23:49.6519396Z probe cast cand=36 foe=125 casts=8 at=74,386
+2026-10-18T06:23:49.8928460Z probe cast cand=36 foe=124 casts=8 at=63,386
+2026-10-18T06:23:50.2787134Z probe cast cand=36 foe=126 casts=8 at=86,386
+2026-10-18T06:23:50.4845295Z probe cast cand=0 foe=67 casts=8 at=25,364
+2026-10-18T06:23:50.6869526Z probe cast cand=0 foe=68 casts=8 at=36,364
+2026-10-18T06:23:50.8921256Z probe cast cand=0 foe=122 casts=8 at=40,386
+2026-10-18T06:23:51.0957457Z probe cast cand=1 foe=135 casts=8 at=581,386
+2026-10-18T06:23:51.2961204Z probe cast cand=1 foe=113 casts=8 at=567,360
+2026-10-18T06:23:51.4971897Z probe cast cand=1 foe=136 casts=8 at=592,386
+2026-10-18T06:23:51.6950707Z probe cast cand=31 foe=126 casts=8 at=86,386
+2026-10-18T06:23:51.9474038Z probe cast cand=31 foe=128 casts=8 at=109,386
+2026-10-18T06:23:52.3180009Z probe cast cand=31 foe=72 casts=8 at=97,357
+2026-10-18T06:23:52.5249222Z probe cast cand=30 foe=122 casts=8 at=40,386
+2026-10-18T06:23:52.7338410Z probe cast cand=30 foe=124 casts=8 at=63,386
+2026-10-18T06:23:52.9329466Z probe cast cand=30 foe=69 casts=8 at=63,357
+2026-10-18T06:23:53.1719765Z probe cast cand=37 foe=113 casts=8 at=567,360
+2026-10-18T06:23:53.5401691Z probe cast cand=37 foe=154 casts=8 at=571,414
+2026-10-18T06:23:53.7858217Z probe cast cand=33 foe=113 casts=8 at=567,360
+2026-10-18T06:23:54.1484799Z probe cast cand=33 foe=135 casts=8 at=581,386
+2026-10-18T06:23:54.3527156Z probe cast cand=33 foe=154 casts=8 at=571,414
+2026-10-18T06:23:54.5593416Z probe cast cand=3 foe=95 casts=8 at=566,335
+2026-10-18T06:23:54.7574634Z probe cast cand=3 foe=96 casts=8 at=576,335
+2026-10-18T06:23:55.1228637Z probe attack cand=3 foe=97 attacks=0
+2026-10-18T06:23:55.3672235Z probe cast cand=2 foe=84 casts=9 at=74,328
+2026-10-18T06:23:55.5720488Z probe cast cand=2 foe=85 casts=9 at=79,320
+2026-10-18T06:23:55.7715956Z probe cast cand=2 foe=67 casts=9 at=25,364
+2026-10-18T06:23:56.1409485Z probe attack cand=47 foe=60 attacks=0
+2026-10-18T06:23:56.3795661Z probe cast cand=47 foe=61 casts=10 at=296,350
+2026-10-18T06:23:56.5856442Z probe cast cand=46 foe=60 casts=10 at=282,402
+2026-10-18T06:23:56.7868232Z probe cast cand=46 foe=61 casts=10 at=296,350
+2026-10-18T06:23:56.9909958Z probe cast cand=32 foe=108 casts=10 at=123,345
+2026-10-18T06:23:57.1926344Z probe cast cand=32 foe=128 casts=10 at=109,386
+2026-10-18T06:23:57.3918527Z probe cast cand=32 foe=149 casts=10 at=96,400
+2026-10-18T06:23:57.5917247Z probe cast cand=15 foe=154 casts=10 at=571,414
+2026-10-18T06:23:57.7921440Z probe cast cand=15 foe=155 casts=10 at=583,414
+2026-10-18T06:23:58.1976864Z probe cast cand=15 foe=156 casts=10 at=595,414
+2026-10-18T06:23:58.4029166Z probe cast cand=14 foe=143 casts=10 at=30,407
+2026-10-18T06:23:58.6037341Z probe cast cand=13 foe=95 casts=10 at=566,335
+2026-10-18T06:23:58.8080613Z probe cast cand=13 foe=96 casts=10 at=576,335
+2026-10-18T06:23:59.0432985Z probe cast cand=13 foe=97 casts=10 at=587,335
+2026-10-18T06:23:59.2485230Z probe cast cand=12 foe=84 casts=10 at=74,328
+2026-10-18T06:23:59.4986516Z probe cast cand=12 foe=85 casts=10 at=79,320
+2026-10-18T06:23:59.5033869Z file:///home/runner/work/_temp/pw/moba-input.mjs:90
+2026-10-18T06:23:59.5045353Z if (!attacker) throw new Error("no unit both cast and attacked");
+2026-10-18T06:23:59.5046286Z                      ^
+2026-10-18T06:23:59.5046527Z 
+2026-10-18T06:23:59.5046711Z Error: no unit both cast and attacked
+2026-10-18T06:23:59.5047222Z     at file:///home/runner/work/_temp/pw/moba-input.mjs:90:22
+2026-10-18T06:23:59.5047519Z 
+2026-10-18T06:23:59.5047607Z Node.js v22.23.3
+2026-10-18T06:23:59.5121202Z ##[error]Process completed with exit code 1.

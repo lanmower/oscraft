@@ -1,0 +1,12 @@
+anchor	kind	note
+file	rationale	The on-screen announcements of 6.88g, as mod code: the hero kill lines, first blood, kill streaks, multi kills, suicides and
+file	rationale	teamkills, tower and barracks falls, Roshan and the Aegis, courier kills, buyback and respawn. Every string is a unit-name entry
+file	provenance	of the map's string table (output/g688-lni/unit.ini n03N-n0HK, read by GetObjectName in war3map.j) and every colour a |c code of
+file	rationale	the script; the page draws the codes (js/client/modui.js). A seat is named "P<seat>" in its slot colour (Tr, f3 8514-8525): the
+file	unverified	host has no player names, so the script's Sd[] name is UNVERIFIED here. The sound names are the map's sound files (main
+file	rationale	99997-100109); the page plays a pack sound of that name when the pack ships one.
+file	rationale	  F_V 14297-14675 hero death: kill line, streak ended, streak announce, multi kill, suicide, teamkill, neutral kill
+file	rationale	  GTV 14697-14721 first blood      W6R 93636-93657 tower fall       dU 3704-3732 barracks, mega creeps
+file	rationale	  HIV 14971-15009 Roshan slain     WNV 21383 Aegis acquired         HBV 15031-15048 courier killed
+file	rationale	  JYV 16004-16016 buyback          y4 10538-10544 respawn           HOV 14952-14957 Aegis reminder (allies only)
+file	rationale	The messages are queued by the death hooks and shown on the next tick, so a hook's step budget never pays for the text.

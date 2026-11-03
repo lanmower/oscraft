@@ -1,0 +1,10 @@
+id: hero-death-drop
+subject: Rapier and Gem drop where their hero dies
+description: item.ini drop=1 on the Rapier and Gem items; F_V 14297-14675 has no other death drop
+session_id: drain-camps
+owner: drain-camps
+status: pending
+references:
+- ts: 2026-10-25T16:56:11.462Z
+  session_id: drain-camps
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/fe4f533fbc7ec61b93445fc46f40d48a2c534a0d/docs/SCRIPTING.md","repo":"lanmower/oscraft","path":"docs/SCRIPTING.md","sha":"fe4f533fbc7ec61b93445fc46f40d48a2c534a0d","why":"cmd_drop_ground and ground_items rows the death drop uses; the 6.88g item.ini is private","license":"own"}'

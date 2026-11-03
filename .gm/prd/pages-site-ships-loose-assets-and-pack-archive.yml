@@ -1,0 +1,22 @@
+id: pages-site-ships-loose-assets-and-pack-archive
+subject: Pages ships scenarios/ whole (202 MB assets) and also the same game as packs/ archive parts
+description: 'pages.yml: cp -r scenarios _site/scenarios, then pack-package.mjs scenarios/moba _site/packs. Symptom: two copies of the moba assets in one deploy, ~200 MB upload per push, slower Pages propagation before compare.mjs can pass. Acceptance: identify which path the loader actually fetches (pack_load.js vs per-file), ship only that for assets, keep manifest and lua loose. Witness: network trace of a first load listing requested asset paths, then deploy size drop.'
+session_id: survey-infra-8
+owner: survey-infra-8
+status: pending
+notes:
+- ts: 2026-10-25T08:58:57.639Z
+  session_id: drain-infra-9
+  note: claimed by drain-infra-9
+- ts: 2026-10-25T09:12:24.557Z
+  session_id: drain-infra-9
+  note: 'drain-infra-9: needs a browser network trace (no browser verbs this lane) to say which path the loader fetches; first-draw per-file output may answer it from CI.'
+- ts: 2026-10-25T09:13:27.010Z
+  session_id: drain-infra-9
+  note: 'drain-infra-9: needs to know which path the loader fetches; no browser verbs in this lane. Per-file bytes from first-draw.mjs in CI (f11e823e) should answer it.'
+- ts: 2026-10-25T09:21:16.669Z
+  session_id: drain-client-10
+  note: claimed by drain-client-10
+- ts: 2026-10-25T09:28:56.563Z
+  session_id: drain-client-10
+  note: 'drain-client-10 static trace: js/client/pack_load.js:10,330-333 default pack is ''scenarios/moba'' (a directory) so play.js fetches loose files via openDirectory (fetchRetrying per file under scenarios/moba/); the archive path (openArchive, .parts.json) runs only for ?pack=*.tar.gz|zip or the stash. So the pages packs/ archive is not used by the default load; loose scenarios/moba assets are. Dropping the archive is not decided: acceptance does not say whether other consumers (packs/latest.json, compare.mjs) need it. Left unchanged.'

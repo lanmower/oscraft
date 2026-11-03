@@ -1,0 +1,4 @@
+id: u-client-late-join
+value: what js/client/play.js and delta.js consume to rebuild unit state, and which new field or route name avoids renaming /state.units
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

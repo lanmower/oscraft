@@ -1,0 +1,4 @@
+id: witness-bot-seat-debug-api/u3-host-gate
+question: Does oscraft.lobby return false on a non-local hostname and true on localhost/127.0.0.1 at the pushed sha (debug_api.js:167)?
+session_id: gm-drain-1793526214-5
+status: unknown

@@ -1,0 +1,6 @@
+id: ud-per-site-move-clear
+subject: ud-per-site-move-clear
+description: Do the 57 hy .osd move effects reach any tree hook, or only the global set_move_tree_rule at trees.lua:34 (75 units)? Answers convergence Missing item 1.
+row: proposed-destructible-trees
+session_id: gm-drain-1793526214-32
+status: unknown

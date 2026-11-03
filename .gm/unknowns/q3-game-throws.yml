@@ -1,0 +1,4 @@
+id: q3-game-throws
+value: Does new Game(bytes) throw on bad bytes so the client keeps the old game? web/src/lib.rs:17 returns Result, yes.
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-b1

@@ -1,0 +1,5 @@
+id: moba-glb-units-u4
+subject: Does the package/install-check path still require glb.js and models/ after a row change (commits 7e0c33bb, 1c2f58b7)?
+row: moba-glb-units
+session_id: gm-orch-2-2
+status: unknown

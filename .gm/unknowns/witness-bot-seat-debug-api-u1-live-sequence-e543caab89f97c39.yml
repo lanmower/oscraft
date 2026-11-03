@@ -1,0 +1,4 @@
+id: witness-bot-seat-debug-api/u1-live-sequence
+question: Does claim{slot:0}, pick{slot:0,hero}, ready{slot:0,ready:true}, fill, start start a match on a live localhost ?host=1 page?
+session_id: gm-drain-1793526214-5
+status: unknown

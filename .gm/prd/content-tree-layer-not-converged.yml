@@ -1,0 +1,17 @@
+id: content-tree-layer-not-converged
+subject: The tree layer is still 6.88g, so the doodad convergence is incomplete and pathability is unchanged
+description: 'The 6.88w3 doodad layer was applied for props only. Three tree codes (ATtr, NTtw, CTtr) cover 2,392 of the target''s placements, and the 3,475 tree lines in map.osd still come from 6.88g because they carry the terrain''s blocked cells: moving them means regenerating pathability. hy3d has an adapter that emits the 2,392 records in the 54-byte form the converter reads, which is the missing piece. Blocking fact: needs that adapter output plus a converter run, and the converter now preserves the shop lines so it is safe to run. Witness: the tree count in map.osd and the placed count from place-doodads-688g.mjs with the w3 pair. blocked_by: content-tree-layer-not-converged-blocker-drain-c-1. The adapter output is not on disk in this checkout (searched in drain-c-1: no 54-byte doodads.bin under hy3d, no adapter script, 0 matches for the 54-byte literal). Witness now: map.osd tree lines 3479 at HEAD 828edc06; w3 tree records 2392 (ATtr 1141, NTtw 756, CTtr 495). Row stays pending until that blocker closes.'
+owner: drain-c-1
+session_id: drain-c-1
+status: pending
+witness_request:
+  ts_ms: 1792893532203
+  requested_by: drain-doodad-shard-2
+  note: 'drain-doodad-shard-2 (live, origin 6339aaeab / 9502c2ee): map.osd tree lines 3479 (id<10000), w3 tree records 2392 (ATtr 1141, NTtw 756, CTtr 495) from doodads-w3.tsv. No 54-byte hy3d adapter output on disk, so the tree layer cannot be converted. Nothing in the doodad data is changeable without it. Status: blocked by content-tree-layer-not-converged-blocker-drain-c-1.'
+notes:
+- ts: 2026-10-25T10:22:04.089Z
+  session_id: mcp-codemode-3115989-1792923697633-90
+  note: 'Finding (hy3d tree-compare, dispatch 1792923688527-5372-dba10649479a8d75): against 6.88g the tree layer is exact (3475 trees one-to-one, delta 0 per type, all 659 buckets). Only 6.88w3 differs (265 matched, 2127 w3 records unplaced, 3210 lines without w3 record). Still open: the w3 convergence decision (replacing trees needs pathability regenerated) and pathability, which is UNVERIFIED. Caveats: type per line is inherited from the coordinate match; w3 offset not checked.'
+- ts: 2026-10-25T10:23:53.489Z
+  session_id: mcp-codemode-3115989-1792923786993-98
+  note: 'Re-run on the current scenarios/moba/map.osd (hy3d tree-compare.mjs, this session): 6.88g 3475 of 3475 matched, 0 unmatched either way, 0 type mismatch. The 6.88w3 side is out of scope: AGENTS.md invariant puts 6.88g over 6.88w3 and the w3 side is not a goal. Still open on this row: pathability (blocked cells) against 6.88g, which hy3d offers to compare from war3map.wpm. Dead w3 artefacts (doodads-w3.tsv, the --types=doodad-types-w3 and --placements=doodads-w3 options in place-doodads-688g.mjs, the w3 generator rows) are noted for deletion, not deleted here.'

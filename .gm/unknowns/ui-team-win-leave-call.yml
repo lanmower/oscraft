@@ -1,0 +1,5 @@
+id: ui-team-win-leave-call
+value: Which existing ui call returns a seat or the page to lobby (lobby release at panels.lua:1256, leave.lua on_action at :81), and is it valid after game end?
+row: ui-team-and-winner-naming-inconsistent
+status: unknown
+session_id: gm-drain-1793526214-7

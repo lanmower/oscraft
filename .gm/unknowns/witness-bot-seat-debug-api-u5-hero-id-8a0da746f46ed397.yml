@@ -1,0 +1,4 @@
+id: witness-bot-seat-debug-api/u5-hero-id
+question: Which hero id is a valid pick{slot:0,hero} argument (panels.lua pick handler; draft_data.lua index order)?
+session_id: gm-drain-1793526214-5
+status: unknown

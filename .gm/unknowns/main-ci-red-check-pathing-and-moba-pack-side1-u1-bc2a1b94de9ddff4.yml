@@ -1,0 +1,5 @@
+id: main-ci-red-check-pathing-and-moba-pack-side1-U1
+subject: Does check-pathing.mjs pass when the base anchor filter accepts base_sentinel_tree and base_scourge_throne (2 anchors), and which of its remaining failures survive?
+parent: main-ci-red-check-pathing-and-moba-pack-side1
+session_id: gm-drain-1793526214-20
+status: unknown

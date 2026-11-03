@@ -1,0 +1,6 @@
+anchor	kind	note
+EARLY_LANE_S	provenance	Early lane speed balance (war3map.j H3E-H4E 26081-26090, JAE 26268-26455): a creep created in the first 420 s gets Creep
+EARLY_LANE_S	rationale	Speed (A2V1, +25 percent) or Creep Slow (A2V0, -25 percent) for 15 s (vz duration 0xF) by side and lane. Scourge: lane 2 fast, lane 4 slow; Sentinel:
+EARLY_LANE_S	rationale	lane 2 slow, lane 4 fast; lane 3 (mid) neither. Lanes 2, 3 and 4 are top, mid and bot. The script's timer Ge starts at map init
+EARLY_LANE_S	provenance	(war3map.j main, TimerStart(Ge,99999.)) and the window is Ge < 420, while GameStart (PRE, fT==0) is the countdown TA+1 = 91 s
+EARLY_LANE_S	rationale	later (RZX TimerStart(SA,TA+1); TA = 90 default): 420 - 91 = 329 s of game time (GUESS: the lobby delay before the countdown is 0).

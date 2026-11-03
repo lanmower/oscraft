@@ -1,0 +1,7 @@
+id: phone-shop-clip-rect-left-baseline
+status: unknown
+value: On the committed tree at 390x844 DPR 2 with the shop opened by the top-strip Shop button, is the shop panel getBoundingClientRect().left < 0? Baseline for the witness. (row ui-phone-shop-panel-clipped-left-edge)
+session_id: gm-drain-1793526214-16
+blockedBy:
+- external
+deferReason: needs an in-match top-strip Shop at 390x844 on the real Lua shop tree; the verifier lane runs it as the witness on the pushed sha. Not run in the executor (match flow not driven; synthetic tree does not reproduce the clip). Receipt 03-eliminate.md.

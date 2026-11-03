@@ -1,0 +1,5 @@
+id: gap-net-host-resume-u4
+subject: Does a restarted host reproduce the pre-kill state_hash (mod-host lib.rs:1317 and server room.rs:209 Snapshot) for a reconnecting peer's state frame?
+row: gap-net-host-resume
+session_id: gm-oscraft-w1-13
+status: unknown

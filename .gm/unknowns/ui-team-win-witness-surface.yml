@@ -1,0 +1,5 @@
+id: ui-team-win-witness-surface
+value: Can a finished match (#win with team name and button) be reached gpu-free through the module harness, or does it need a browser arm (and which fact only a browser supplies)?
+row: ui-team-and-winner-naming-inconsistent
+status: unknown
+session_id: gm-drain-1793526214-7

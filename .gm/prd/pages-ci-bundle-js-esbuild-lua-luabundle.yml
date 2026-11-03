@@ -1,0 +1,17 @@
+id: pages-ci-bundle-js-esbuild-lua-luabundle
+subject: Pages CI bundles deployed JS with esbuild and Lua packs with luabundle, deploy-only
+description: 'User request: during gh pages CI, pack js with a bundler and pack the lua with luabundle (or preferred). Decisions: JS tool esbuild (ES modules across js/client; browserify is CommonJS-first and would need babelify), pinned version. Lua tool luabundle only if the loader''s module names survive the bundle; otherwise Lua stays unbundled and this is reported. Source stays buildless; bundling runs only in pages.yml deploy build. AGENTS.md Build/CI/Pages section updated to say source is buildless and deployed site is bundled in CI. Dev loop (scripts/dev/stage.sh SKIP_PACKS=1, scripts/dev/serve.mjs) unchanged, no bundling there. check-modulepreload.mjs, perf/first-draw.mjs (ceiling 10000 ms, never changed) and perf/page-smoke.mjs keep working on source and on a local built site. Measure request count and transferred bytes locally before and after. Do not bundle or change wasm. Debug locally with a headful browser, console on, CDP cache disabled; CI is only the witness for the final sha. Scratch clone /config/tmp/bundle-ci; publish with publish_on_origin.'
+acceptance_criteria: 1) pages.yml has a deploy-only bundling step (esbuild pinned, luabundle pinned if viable) and layout-site.sh output is bundled; 2) source tree buildless, dev loop unchanged; 3) check-modulepreload, first-draw and page-smoke pass on source and on built site; 4) local request count and transferred bytes before/after reported; 5) ci-status green on the pushed full sha; 6) AGENTS.md Build, CI and Pages section updated with the source-buildless / deploy-bundled decision.
+witness_plan: 'Local: scripts/dev/stage.sh SKIP_PACKS=1, node scripts/dev/serve.mjs, headful browser with console and CDP cache disabled, first-draw and page-smoke on the local built site. CI: ci-status on the final full sha.'
+owner: bundle-ci-2
+origin: user request bundle-ci-1 relaunch
+session_id: bundle-ci-2
+status: pending
+notes:
+- ts: 2026-10-25T18:45:53.935Z
+  session_id: bundle-ci-2
+  note: |-
+    bundle-ci-2 blocker: scratch clone not made. gh repo clone lanmower/oscraft failed 5 times (GraphQL TLS handshake timeout, early EOF / invalid index-pack output). gm git-clone (mode full x3, shallow x1) failed 4 times (Connection reset by peer / clone_failed). The repo .git is about 424 MB. Retry bound reached; GitHub transport is unreachable from this lane.
+    No code changed, nothing published. Lane is blocked on the GitHub network only. A local clone of /workspace/oscraft is not used: the shared checkout is 244 commits behind origin and carries other lanes' uncommitted work, and raw git in the host shell is gated.
+    Public references not yet run for this row (prd-add public_search block still open).
+    Decisions recorded for the next lane: JS bundler esbuild pinned 0.28.2 (npm registry latest), bundled deploy-only in pages.yml build job after layout-site.sh, entries play.js, rooms.js, editor.js, replay.js with one output per page, pkg/ kept external (wasm glue loads its own wasm via import.meta.url), bare specifiers resolved from play.html importmap. Lua bundling not viable as specified: piccolo_host.rs names each module by file stem and isolates hook errors per module, and pack_load.js moduleClosure resolves require stems through manifest.modules; a single luabundle file would change those names, so Lua stays unbundled.

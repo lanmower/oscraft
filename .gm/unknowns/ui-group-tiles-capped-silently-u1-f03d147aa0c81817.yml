@@ -1,0 +1,5 @@
+row: ui-group-tiles-capped-silently
+id: ui-group-tiles-capped-silently-U1
+question: Does the current pager (count label 'N selected' plus page buttons, panels.lua:587-593) satisfy the row acceptance "a '+N' label when truncated, or the grid grows", or must a literal '+N' label be added?
+session_id: gm-drain-1793526214-11
+status: unknown

@@ -1,0 +1,10 @@
+id: content-sfx-set-missing
+subject: No hit/cast/death/ui/ambient sound effects ship
+description: 'No non-voice sound effects ship in scenarios/moba/assets (only voices ogg; js/client/audio.js plays voices only). Source needed from the owner or hy3d audio; no pack downloads. Acceptance: sfx set for hit, cast, death, ui in assets plus manifest, or owner source named here. Missing input: audio source.'
+session_id: mcp-codemode-2804130-1792919090730-160
+owner: mcp-codemode-2804130-1792919090730-160
+status: pending
+notes:
+- ts: 2026-10-25T16:00:20.290Z
+  session_id: heroes-inv-1
+  note: 'heroes-inv-1: voices exist for all 127 roster heroes (16 .ogg each, scenarios/moba/assets/voices/<id>/, checked on origin main f51c2f9a). The non-voice gap is unchanged: no hit, cast, death, ui or ambient sfx ship. The 15 non-6.88g heroes need no voice work.'

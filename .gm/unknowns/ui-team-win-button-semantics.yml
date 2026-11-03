@@ -1,0 +1,5 @@
+id: ui-team-win-button-semantics
+value: Should the win panel button be the existing win_close (dismiss, panels.lua:272/1455) or a return/leave action? Acceptance says return/leave.
+row: ui-team-and-winner-naming-inconsistent
+status: unknown
+session_id: gm-drain-1793526214-7

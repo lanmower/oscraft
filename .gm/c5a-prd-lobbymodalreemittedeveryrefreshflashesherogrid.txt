@@ -1,0 +1,5 @@
+rows: close prd-lobbymodalreemittedeveryrefreshflashesherogrid
+
+Row: prd-lobbymodalreemittedeveryrefreshflashesherogrid
+Witness: run 57050-684029 event 91: premise refuted: emit sends only on tree change; idle lobby DOM mutations 0 in 6 s
+Status: stale

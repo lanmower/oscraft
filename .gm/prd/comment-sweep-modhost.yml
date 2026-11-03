@@ -1,0 +1,10 @@
+id: comment-sweep-modhost
+subject: Comment sweep rust/crates/mod-host and mod-lsp
+description: 'Comments to code or AGENTS.md Area notes: modhost'
+session_id: sweep-modhost
+owner: sweep-modhost
+status: pending
+references:
+- ts: 2026-10-25T17:58:30.201Z
+  session_id: sweep-modhost
+  note: '{"url":"https://github.com/lanmower/oscraft","repo":"","path":"","sha":"","why":"internal repository sweep, no external reference","license":"unknown"}'

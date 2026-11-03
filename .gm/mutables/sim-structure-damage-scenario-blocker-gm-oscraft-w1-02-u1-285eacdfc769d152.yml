@@ -1,0 +1,5 @@
+id: sim-structure-damage-scenario-blocker-gm-oscraft-w1-02:U1
+text: Does oscraftd serving scenarios/duel-routes via osdt-data start with units, and what is the beacon hp at tick 0 on /state?map=ci?
+row: sim-structure-damage-scenario-blocker-gm-oscraft-w1-02
+session_id: gm-orch-2-12
+status: unknown

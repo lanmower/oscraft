@@ -1,0 +1,5 @@
+id: carry-hp-survives-swap
+row: gap-data-reload-keeps-match-state-blocker-gm-oscraft-sc2-alt-1-ms1
+question: After a data swap, does a carried unit keep its pre-swap hp (not reset to spawn hp), and is there a sim hp setter the carry can use?
+session_id: mcp-codemode-1184-1792267460011
+status: unknown

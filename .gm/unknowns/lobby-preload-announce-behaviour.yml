@@ -1,0 +1,4 @@
+id: lobby-preload-announce-behaviour
+status: unknown
+value: Does the edited preloadPickedModels in js/client/play.js preload each picked seat model once, announce each once as oscraft:model-loaded with detail.model, and retry a failed parse exactly once? Answer by a live node run of the real edited text.
+session_id: drain-preload-13

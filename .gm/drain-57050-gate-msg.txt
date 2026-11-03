@@ -1,0 +1,9 @@
+rows: close two death-drop gate rows as stale
+
+Row: prd-herodeathdropgate
+Witness: run 57050-684029 event 172: rust/crates lists data, mapexport, mod-host, mod-lsp, mpq, relay, replay, sim, wasip3, web (no gate crate); git log shows 442172aa "rust: remove the gate crate and the test suites"
+Status: stale
+
+Row: prd-herodeathdropdiag
+Witness: run 57050-684029 event 172: same evidence as prd-herodeathdropgate: the gate crate is removed in 442172aa, so the gate that would report the drain cannot exist
+Status: stale

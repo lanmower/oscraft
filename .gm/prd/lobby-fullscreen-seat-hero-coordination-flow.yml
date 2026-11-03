@@ -1,0 +1,8 @@
+id: lobby-fullscreen-seat-hero-coordination-flow
+subject: 'Lobby: fullscreen seat claim, then fullscreen hero list, then fullscreen post-lockin team coordination view'
+description: 'User request (verbatim): ''we want fullscreen seat claim laid out into two teams, followed by full screen hero list selection, followed by full screen post-lockin team coordingation view''. Replace the current pre-match flow with three fullscreen stages: (1) seat claim laid out as two teams, each seat claimable with ready state; (2) fullscreen hero list selection once seats are ready; (3) fullscreen team coordination view after every pick locks in, showing both teams and their heroes. Each stage is fullscreen and replaces the previous one (no old room panel or lobby modal showing behind).'
+acceptance_criteria: 'On a fresh local load: the pre-match UI opens as a fullscreen seat-claim screen with the seats split into two teams; claiming seats advances to a fullscreen hero list; after all picks lock in, a fullscreen team coordination view shows both teams and their heroes. No previous-stage panel or room picker is visible behind any stage. Works at desktop and 390px phone widths.'
+witness_plan: 'Live browser run on the staged page: screenshot each of the three stages in order and assert the previous stage is gone.'
+session_id: gm-orch-2
+owner: gm-orch-2
+status: pending

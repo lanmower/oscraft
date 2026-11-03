@@ -1,0 +1,51 @@
+anchor	kind	note
+file	rationale	Ability definitions for the moba scenario. Indices follow declaration order:
+file	rationale	pulse_shot 0, mend_field 1, creep_wave 2. The hero abilities are the engine's own definitions.
+creep_wave	rationale	Creep wave: three melee creeps (unit 3) and one ranged creep (creep_ranged) per lane, every 30 s (480 ticks, reference wave interval) at the base, offset to the lane's row (p2, milli
+creep_wave	rationale	from the base; top -22000, middle 0, bottom +22000). Each creep then marches to the nearest
+creep_wave	rationale	enemy building along its lane. Cooldown 480 ticks is the spawn timer.
+cleave_strike	rationale	Hero abilities appended after creep_wave: cleave_strike 3, dash_step 4, ward_shield 5.
+pulse_shot	rationale	reference-style roster (four abilities, then the ultimate, per hero; heroes reference them by name). Mechanics: nuke, projectile,
+pulse_shot	rationale	AoE, blink, heal-over-time, aura, passive, summon, channel, and the status effects stun, slow, silence, root, invisibility.
+pulse_shot	unverified	UNVERIFIED: every value below. These heroes are original, and SteamDatabase tracking repo @282fad29f0f74504fad465c52d197fb61f4d612b
+pulse_shot	provenance	source/scripts/npc/npc_abilities.txt (664 entries) holds no hero ability to copy, so no figure is sourced.
+pulse_shot	rationale	A passive is a stat ability with cooldown 100000 (never recast) that a spawned behaviour casts once (behaviours.osd). The stat effect is NEW (code 16).
+pulse_shot	rationale	Ironhide: AoE, passive armor, blink, silence, summon (two creeps).
+pulse_shot	rationale	Swiftbow: projectile nuke, blink, AoE volley, passive range, channelled AoE ultimate.
+pulse_shot	rationale	Stormcaller: projectile nuke, AoE, ally shield, stun nuke, AoE ultimate.
+pulse_shot	rationale	Bulwark: self shield, stun nuke, blink strike, AoE heal, full-life restore ultimate.
+pulse_shot	rationale	Shadeblade: nuke, blink with invisibility, AoE, silence, blink-strike ultimate.
+pulse_shot	rationale	Emberlord: projectile, AoE, blink, aura (pulsing heal for 1600 ticks), channelled AoE ultimate.
+pulse_shot	rationale	Gale archer: projectile nuke, blink, passive damage, slow, AoE ultimate.
+pulse_shot	rationale	Frostmage: projectile with slow, AoE, ally shield, blink, channelled AoE ultimate.
+pulse_shot	rationale	Tidecaller: AoE, heal over time (a 160 tick field), ally shield, slow nuke, AoE ultimate.
+pulse_shot	rationale	Thornwarden: passive health, root nuke, blink, self heal over time, aura ultimate.
+pulse_shot	rationale	Skill trees for the three character types in declaration order: hero, ironhide, swiftbow.
+pulse_shot	rationale	Each hero spends one skill point per character level. Four abilities learn up to rank 4; the
+pulse_shot	rationale	ultimate (slot R, the fifth ability) learns up to rank 3 at levels 6, 12 and 18. Rank 1 of
+pulse_shot	rationale	damage, cooldown and energy equals the base values above; ranks 2 and up are scaling.
+pulse_shot	unverified	UNVERIFIED: every rank value below is a design placeholder, not sourced from any game. The
+pulse_shot	rationale	engine has no passive energy regeneration, so energy costs only matter where the caller grants
+pulse_shot	rationale	energy (mend_field's base cost is 50; the other abilities cost nothing).
+pulse_shot	rationale	iron_guard and hawk_eye are passives and carry no skill tree: they cast at spawn, unlearned.
+pulse_shot	rationale	Damage applies to the ability's first damage or heal effect; ability damage tables for
+pulse_shot	rationale	abilities without one are 0.
+clinkz_strafe	rationale	CLI per-level cooldowns, in ticks (seconds x 16): Strafe 40/35/30/25, Skeleton Walk 20/19/18/17.
+stun_bolt	rationale	Status abilities: stun, slow (half speed), silence, root and invisibility, durations in ticks (16 per second).
+place_observer	rationale	Wards and courier. The cast cooldown is 1 s = 16 ticks (AbilityCooldown 1.0). The ward placement, its unit and lifetime
+place_observer	provenance	(observer 5760 ticks, sentry 6720 ticks: item_ward_observer / item_ward_sentry "lifetime", items.txt
+place_observer	rationale	@282fad29f0f74504fad465c52d197fb61f4d612b) and the charge it spends are the pack's (spells.lua WARDS). The cast has no
+place_observer	rationale	data effect, so it takes hold, and on_cast places the ward.
+glyph_of_fortification	rationale	Glyph of fortification: for 80 ticks (5 s) every friendly structure that is not a building (the towers) takes no damage;
+glyph_of_fortification	rationale	the team then waits 4800 ticks (300 s). The engine has no glyph effect: protection.lua runs the rule on the cast (on_cast)
+glyph_of_fortification	unverified	through set_damage_reduction and filter_bits. UNVERIFIED: both numbers are recalled reference ruleset values.
+glyph_of_fortification	rationale	Filter bits: 64 structure, 2048 building.
+courier_deliver	rationale	Courier: walks to a friendly army unit (a hero), moves its stash into its inventory within 1000 milli, walks back.
+courier_burst	provenance	Courier Burst A0JZ (flying courier only): cooldown 90 s ability.ini:32353, 4 s (STV 19377-19384 sets d3(unit, 999, 800) and a 4 s timer back to 0): move speed 800 from the flying 430, +86 percent.
+clinkz_strafe	provenance	CLI (6.88g E004). Strafe A030 ability.ini:11886 DataB 1.3 -> attack_speed +130 (tooltip "130% faster" agrees), Dur 4/6/8/10 s, Cost 90.
+clinkz_strafe	rationale	Per-rank duration, speed and the Searing Arrows / Death Pact rows: abilities_688g_b05.osd.
+clinkz_wind_walk	provenance	Skeleton Walk A025 (oscraft clinkz_wind_walk) ability.ini:10638: Dur 20/25/30/35 s invisible, DataB 0.055/0.165/0.275/0.385 -> speed_pct 5.5/16.5/27.5/38.5 rounded 6/17/28/39.
+clinkz_wind_walk	unverified	UNVERIFIED: 6.88g tooltip says 11/22/33/44 (data + 5.5); no trigger states the extra 5.5, so the ini value is applied.
+clinkz_death_pact	provenance	Death Pact A04Q ability.ini:14071: Cool 45/35/25 s, Cost 100, Rng 400, ultimate ranks. Eaten-unit life gains: war3map.j:63803-63804 (abilities_688g_b05.osd).
+file	rationale	6.88g learnable names for the stub heroes live in abilities_688g_b01.osd .. abilities_688g_b12.osd (batch files, load order
+file	rationale	after this file). The 6.88g per-level source is abilities_688g_perlevel.tsv.

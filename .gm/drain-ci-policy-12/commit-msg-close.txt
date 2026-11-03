@@ -1,0 +1,9 @@
+Close the CI decision and browser smoke rows
+
+Row: ci-browser-probe-steps-absent-blocker-drain-g-1
+Witness: 1792925237318-5230-2dbc6a251926c5c9
+Status: resolved
+
+Row: ci-tests-on-demand-speed-decision
+Witness: 1792925268598-5236-545276088cc3887
+Status: resolved

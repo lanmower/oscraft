@@ -1,0 +1,13 @@
+id: win-screen-replay-save
+subject: 'Win screen: save the match replay'
+description: 'Owner decision: the win screen lets the player save the replay (like Dota). Architecture (orchestrator choice): the sim already records replay format 3; the win screen offers a Save Replay button that downloads the recorded replay bytes as a file and keeps an index in IndexedDB. Acceptance: after a match ends the win screen shows Save Replay; pressing it produces a non-empty replay file; CI green on the pushed sha.'
+session_id: gm-drain-1793526214
+owner: gm-drain-1793526214
+status: pending
+notes:
+- ts: 2026-11-01T16:06:21.681Z
+  session_id: gm-drain-1793526214-54
+  note: handoff 882dd99f3e964fd7551f92bf56a5f7748c1a6115; CI runs 41324233888, 41324248380 success (pages 3/3); one commit covers both rows; Save Replay via wasm replay_text, Play Again/New Game via tick-0 room record + reload
+- ts: 2026-11-01T17:16:01.325Z
+  session_id: gm-drain-1793526214
+  note: 'Live witness (lane -59) on 882dd99f: Save Replay produced a file and an IndexedDB entry. The file is 107 bytes for a 69-tick match; verify it holds the full recorded match, not a header only, before this row closes.'

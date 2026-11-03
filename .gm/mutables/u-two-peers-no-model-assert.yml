@@ -1,0 +1,4 @@
+id: u-two-peers-no-model-assert
+value: browser-two-peers script (ci.yml:2851-2911) asserts no remote unit model name
+status: unknown
+session_id: gm-orch-3-11

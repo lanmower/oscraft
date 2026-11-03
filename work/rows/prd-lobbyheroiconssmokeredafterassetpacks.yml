@@ -1,0 +1,9 @@
+id: "prd-lobbyheroiconssmokeredafterassetpacks"
+kind: "prd"
+title: "Built-page smoke fails on main: no hero icon loads in the lobby (after the asset-packs commits)"
+body: "id: lobby-hero-icons-smoke-red-after-asset-packs\nsubject: 'Built-page smoke fails on main: no hero icon loads in the lobby (after the asset-packs commits)'\ndescription: 'Run 40191027590 on sha 873d9b8 (ci job ''built page smoke - lobby mounts, no console errors, hero icons load'' step ''Smoke the built page''): RESULT: FAIL built page smoke, 1 problem(s): ''no hero icon loaded in the lobby''. The same job passed on 0533566 (run 40190444406 ci success; pages run 40190444436 success on attempt 2). The 4 commits between them are other lanes'' work, including ''Asset packs: hero and item images read from packs''. Not a fix from the fx-pool-counts-debug-hook row (that row touches only debug_api.js and one play.js hook line). Owner: the asset-packs lane. Acceptance: smoke passes on main; ci and pages green on the head sha. Witness: ci-status on the head sha.'\nsession_id: drain-hy3d-findings-14\nowner: drain-hy3d-findings-14\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-10-27T22:45:02.000Z"
+witnessEvent: 128
+witnessCommit: "8b93d41900be478425f7430b81365d180f4b5c68"
+resolvedAt: "2026-11-02T15:50:43.986Z"

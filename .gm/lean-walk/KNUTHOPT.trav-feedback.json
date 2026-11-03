@@ -1,0 +1,25 @@
+{
+ "node": "KNUTHOPT",
+ "applied": false,
+ "changes": [],
+ "witness": "The optimisations (put cache, pools, frameUnits) carry no measurement on this surface; no row without a measured cost.",
+ "prd_ids": [],
+ "unknown_ids": [],
+ "next_choice": {
+  "to": "none",
+  "why": "lane order: the traversal lane walks the principle list itself"
+ },
+ "links_offered": [],
+ "link_taken": null,
+ "session": "trav-feedback",
+ "verdict": "NOT-APPLICABLE",
+ "witness_dispatch_ids": [
+  "1792858230149-3869-21d19524e8d35fbc",
+  "1792858261769-3931-adfb35580ef10c16",
+  "1792858289193-4003-372f9ba5e1ba248e"
+ ],
+ "verified_by": null,
+ "verified_dispatch_ids": [],
+ "findings": [],
+ "inspector": null
+}

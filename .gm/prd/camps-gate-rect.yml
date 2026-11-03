@@ -1,0 +1,17 @@
+id: camps-gate-rect
+subject: group-minute-refill reads the camp check rect
+description: '6.88g KJE 26812-26816: the stacking rule counts units in the check rect; members placed by JWE 26627-26632 can stand outside it'
+session_id: drain-camps
+owner: drain-camps
+status: pending
+references:
+- ts: 2026-10-25T16:39:12.057Z
+  session_id: drain-camps
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/95f6a74b3d21ccd3ec40ff82ae40ba457991c16b/scenarios/moba/camps.lua","repo":"lanmower/oscraft","path":"scenarios/moba/camps.lua","sha":"95f6a74b3d21ccd3ec40ff82ae40ba457991c16b","why":"camp_blocked counts units in the check rect; the gate must read the same rect","license":"own"}'
+notes:
+- ts: 2026-10-25T23:00:47.190Z
+  session_id: hud-match-2
+  note: 'CI gate on 6cbdf7b7 (tests run 40242015501, oscraft-gate checks): check group-minute-refill FAIL, a cleared camp holds 1 units in its rect after the next minute mark, want at least 2. Not from the HUD commits; recorded for the camp owner.'
+- ts: 2026-10-26T20:13:04.962Z
+  session_id: mcp-codemode-1212261-1793045584885-12
+  note: 'Fixed and pushed: 14534a3437f4b74f2d42f2a6c8e0615dbd260ef4. Live run GATE_ONLY=group-minute-refill (dispatch 1793045413423-4753) prints ''camp minute refill ok camp=8 members=3 refilled=3 blocked_tick=967 refill_tick=1927'' PASS. Probe: camp 1 has 3 members but only 2 inside its check rect, confirming the rect is not the camp''s membership. Old form passes at this tip only by luck (it picks camp 8, whose members all land inside).'

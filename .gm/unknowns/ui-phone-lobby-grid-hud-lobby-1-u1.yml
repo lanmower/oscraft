@@ -1,0 +1,5 @@
+id: ui-phone-lobby-grid-hud-lobby-1-u1
+subject: Is a830d270 an ancestor of origin/main and is the fit path in the tree the remote tip uses?
+body: Answers whether the grid code fix is already on origin/main (widgets.js:246-308 fit auto-fill + observeFit; panels.lua:1294 fit=true).
+session_id: gm-drain-1793526214-15
+status: unknown

@@ -1,0 +1,5 @@
+id: shop-grab-F4b
+subject: When the inventory has fewer free slots than stash items, does grab_all still unstash every slot or refuse the rest (sim unstash rule)?
+row: shop-pins-component-tree-grab-all
+session_id: gm-drain-1793526214-18
+status: unknown

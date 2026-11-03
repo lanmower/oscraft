@@ -1,0 +1,5 @@
+id: ui-team-win-lobby-after-end-started
+value: after game end, is LOBBY.started still true so every lobby_act (release/claim/start/...) refuses match-started (panels.lua:858-861)? If so no existing ui call returns to lobby post-game and the win button needs a new reset path.
+row: ui-team-and-winner-naming-inconsistent
+status: unknown
+session_id: gm-drain-1793526214-7

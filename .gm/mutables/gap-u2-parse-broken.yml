@@ -1,0 +1,4 @@
+id: gap-u2-parse-broken
+subject: Does the same compile check reject a deliberately broken main.js with a SyntaxError (negative control), without running side effects?
+session_id: gm-oscraft-sc2-alt-1-bp1
+status: unknown

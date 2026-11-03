@@ -1,0 +1,9 @@
+anchor	kind	note
+jakiro_liquid_fire	unverified	Dota 2 reference name; 6.88g defines the same slot as jakiro_liquid_fire_research, so no ability() row carries this id. Source: SteamDatabase npc_dota_hero_jakiro.txt at 282fad2 (Ability3).
+jakiro_liquid_ice	unverified	Dota 2 reference name with no 6.88g ability; the map has one Liquid Fire. Source: SteamDatabase npc_dota_hero_jakiro.txt at 282fad2 (Ability4 and the ability-draft line for Ability3).
+troll_warlord_whirling_axes_ranged	unverified	Dota 2 reference name; 6.88g defines a single troll_warlord_whirling_axes row for both stances. Source: SteamDatabase npc_dota_hero_troll_warlord.txt at 282fad2 (ability-draft line for Ability2).
+troll_warlord_whirling_axes_melee	unverified	Dota 2 reference name; the melee stance shares the 6.88g troll_warlord_whirling_axes row with the ranged stance. Source: SteamDatabase npc_dota_hero_troll_warlord.txt at 282fad2 (ability-draft line for Ability2).
+kez_falcon_rush_ad	unverified	Ability-draft variant of kez_falcon_rush, which the inventory lists separately; 6.88g has no Kez and no ability() row for either name.
+kez_talon_toss_ad	unverified	Ability-draft variant of kez_talon_toss, which the inventory lists separately; 6.88g has no Kez and no ability() row for either name.
+kez_shodo_sai_ad	unverified	Ability-draft variant of kez_shodo_sai, which the inventory lists separately; 6.88g has no Kez and no ability() row for either name.
+kez_ravens_veil_ad	unverified	Ability-draft variant of kez_ravens_veil, which the inventory lists separately; 6.88g has no Kez and no ability() row for either name.

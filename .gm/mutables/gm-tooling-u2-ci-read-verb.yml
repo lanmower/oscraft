@@ -1,0 +1,4 @@
+id: gm-tooling-u2-ci-read-verb
+value: 'U2: which gm verb reads ci-status and ci-log for a sha and records log_sha256 (single CI read dispatch)'
+status: unknown
+session_id: mcp-codemode-1030-1792262103218

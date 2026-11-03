@@ -1,0 +1,6 @@
+row: gap-server-connection-thread-bound
+id: gap-server-connection-thread-bound-u1
+subject: Is there an existing connection cap or counter in server?
+question: grep server crate for a cap constant, semaphore, or live-connection counter other than the unbounded thread::spawn at lib.rs:108
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

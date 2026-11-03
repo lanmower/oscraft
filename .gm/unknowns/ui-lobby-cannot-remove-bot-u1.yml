@@ -1,0 +1,5 @@
+row: ui-lobby-cannot-remove-bot
+id: ui-lobby-cannot-remove-bot-u1
+question: Does origin/main carry the host-only remove call and Remove button (panels.lua remove branch and lobby_seat button)?
+session_id: gm-drain-1793526214-9
+status: unknown

@@ -1,0 +1,6 @@
+id: proposed-creep-kinds-camp-respawn-bounty-U9
+row: proposed-creep-kinds-camp-respawn-bounty
+subject: proposed-creep-kinds-camp-respawn-bounty U9
+description: Does spawn_for accept player 255 (neutral) at cell (10,10) for the caster neutral_enraged_wildkin? Runtime only; CI witness decides.
+session_id: gm-drain-1793526214-41
+status: unknown

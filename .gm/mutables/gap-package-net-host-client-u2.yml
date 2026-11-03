@@ -1,0 +1,6 @@
+id: gap-package-net-host-client-u2
+subject: Does install-check.sh:30 list only files that build.sh:23-28 stages (play.html, play.js, rooms.js, ice.js, delta.js, wire/frame.js, map.bin, pkg/web.js, pkg/web_bg.wasm)? pkg/web.js and map.bin come from wasm-pack and mapexport.
+row: gap-package-net-host-client
+question: Does install-check.sh:30 list only files that build.sh:23-28 stages (play.html, play.js, rooms.js, ice.js, delta.js, wire/frame.js, map.bin, pkg/web.js, pkg/web_bg.wasm)? pkg/web.js and map.bin come from wasm-pack and mapexport.
+session_id: gm-orch-1-4
+status: unknown

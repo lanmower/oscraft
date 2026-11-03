@@ -1,0 +1,28 @@
+id: LAMPORT-trav-hud-client-LAMPORT-2
+subject: Health bar fill is scaled by the highest hp this HUD instance has seen, so a damaged unit reads as full after a hot reload or late first sight
+description: Fact. js/client/hud.js:40 keeps maxHp per createHud instance. trackedMaxHp (hud.js:79-83) stores max(seen, hp), and drawBars (hud.js:97-101) divides hp by that value. hud.js:146-149 hmrReload calls createHud, which resets the Map. A unit at 40 of 100 hp when the HUD rebuilds draws at 100 percent and shows loss only below 40. A unit first observed already damaged draws the same way. The denominator depends on observation order, not on the game's max hp. The sim keeps hp_max (rust/crates/sim/src/arrays.rs:63, :894) but codesearch of rust/crates/mod-host/src found no hp-max export (unproven zero, stale tree). Not the same as DADA_VH-trav-hud-client-DADA_VH-1 (selection) or DADA_CRIT_USE_KRUG (colour).
+acceptance_criteria: After a hud.js hot reload with a unit at 40 percent hp, its bar fill is 40 percent of bar width. The bar denominator comes from the game's max hp, not from the HUD's observation history, and trackedMaxHp is removed or unused.
+witness_plan: 'Live localhost page with ?hmr: damage a unit below half hp, save hud.js, and read that unit''s bar width on the canvas; it must match hp/max. Codesearch js/client/hud.js for trackedMaxHp to show it is gone, with the dispatch id. If the fix needs a max-hp export, that export is a separate row.'
+lean_node: LAMPORT
+session_id: trav-hud-client-LAMPORT
+owner: trav-hud-client-LAMPORT
+status: pending
+notes:
+- ts: 2026-10-24T16:40:34.150Z
+  session_id: triage-hud-client-1
+  note: 'Verified at origin/main d821e361 (hud.js blob f77feb76, unchanged): hud.js:40 maxHp Map, :79-83 trackedMaxHp, :97 max = trackedMaxHp(u.id, u.hp), :105 bar fill = hp/max, :146-149 hmrReload calls createHud which resets the Map. Observable: a unit first seen already damaged draws a full bar, and after a hud.js hot reload every damaged unit does. Merged evidence from candidate maxhp-inferred (not filed as a row): rust/crates/web/src/lib.rs:293 unit_hp returns hit points only (blob 9a7d960a); the game exposes no max-hp accessor to the HUD.'
+- ts: 2026-10-24T16:41:35.195Z
+  session_id: triage-hud-client-1
+  note: 'Kept. Verified at origin/main d821e361: hud.js:40 per-instance maxHp Map; :79-83 trackedMaxHp; :97 max = trackedMaxHp(u.id, u.hp); :105 fill = hp / max; :146-149 hmrReload rebuilds the instance and resets the Map. Observable: a unit first seen already damaged draws a full bar. Also see the note added above from candidate maxhp-inferred.'
+- ts: 2026-10-24T17:22:53.359Z
+  session_id: drain-gui-hud-client-1
+  note: 'Published 7a061871 (maxHp Map persists in hot store across rebuilds). Partial: a unit first seen damaged still draws full. Blocker row LAMPORT-trav-hud-client-LAMPORT-2-blocker-drain-gui-hud-client-1 filed (no wasm max-hp export; rust/crates/web/src/lib.rs is another lane''s). Witness not taken: blocked_by lobby-disabled-when-one-relay-503 and the blocker.'
+- ts: 2026-10-25T02:17:40.937Z
+  session_id: drain-hud-shard-2
+  note: 'Stays pending. Partial fix 7a061871 is on origin tip (hud.js:53-54 maxHp Map on hot hud-maxhp; trackedMaxHp at :109-112 still sets the denominator). The acceptance needs a game max-hp value: rust/crates/web/src/lib.rs exports unit_hp (:293) and unit_hps (:216) only, and the sim keeps hp_max with no export. Blocker row LAMPORT-trav-hud-client-LAMPORT-2-blocker-drain-gui-hud-client-1 is open for the wasm export.'
+- ts: 2026-10-25T06:09:35.510Z
+  session_id: drain-browser-4
+  note: 'hud.js does not read game.unit_max_hps() yet (only rust/crates/web/src/lib.rs defines it); edit not made. Live witness blocked: gm browser verb claims the dispatch and never writes its out-file (5 tries, gm-mcp 0.2.302 and 0.2.305, bodies with and without gm_session_id, about:blank included); each holds the state lane until the 600 s watchdog. Clearing action: fix the browser executor in the agentplug runner.'
+- ts: 2026-10-25T08:55:02.678Z
+  session_id: survey-ui-8
+  note: 'Same symptom in the pack panel: scenarios/moba/panels.lua:473-474 select_tree scales the hp bar and group tiles by PEAK[id], the highest hp seen, so a unit first seen damaged (or after setup resets) reads full. Fix both by reading max hp from the sim if an accessor exists, else mark the bar UNVERIFIED. Surveyed by survey-ui-8.'

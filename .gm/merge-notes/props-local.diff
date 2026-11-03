@@ -1,0 +1,25 @@
+diff --git a/scenarios/moba/assets/prop_sizes.json b/scenarios/moba/assets/prop_sizes.json
+index 2cd9ca33..4f89ada2 100644
+--- a/scenarios/moba/assets/prop_sizes.json
++++ b/scenarios/moba/assets/prop_sizes.json
+@@ -861,5 +861,19 @@
+  "pillar-rock-4-skinned": 2.222,
+  "pillar-rock-5-skinned": 2.328,
+  "pillar-rock-6-skinned": 1.5,
+- "corpse-impaled": 0.35
++ "corpse-impaled": 0.35,
++ "ancient-of-lore-lowpoly": 6.912,
++ "ancient-of-war-lowpoly": 6.454,
++ "ancient-of-wonders-lowpoly": 6.912,
++ "ancient-protector-lowpoly": 5.142,
++ "crypt-lowpoly": 4.117,
++ "fountain-of-health-lowpoly": 3.545,
++ "frozen-throne-lowpoly": 5.67,
++ "goblin-merchant-lowpoly": 4.32,
++ "moon-well-lowpoly": 4.32,
++ "orc-voodoo-lounge-lowpoly": 3.839,
++ "spirit-tower-lowpoly": 4.32,
++ "temple-of-the-damned-lowpoly": 2.962,
++ "tree-of-life-lowpoly": 5.184,
++ "ziggurat-lowpoly": 4.32
+ }

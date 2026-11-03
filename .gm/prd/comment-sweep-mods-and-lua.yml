@@ -1,0 +1,6 @@
+id: comment-sweep-mods-and-lua
+subject: Comment sweep for mods/*.lua and scenarios/moba Lua packs
+description: 'mods/*.lua and scenarios/moba/**.lua. Acceptance: comments become self-explanatory names or move to AGENTS.md, mod-host tests green. Witness: ci-status.'
+session_id: survey-infra-8
+owner: survey-infra-8
+status: pending

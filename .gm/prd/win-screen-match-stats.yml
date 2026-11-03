@@ -1,0 +1,17 @@
+id: win-screen-match-stats
+subject: 'Win screen: match statistics'
+description: 'Owner decision: the win screen shows statistics about the game. Architecture (orchestrator choice): per-hero counters from the sim (kills, deaths, assists, last hits, denies, gold, experience, damage dealt, damage taken, healing, items) and match duration; one table per team. Acceptance: the win screen shows the table for each team with the counters for each hero; the values match the sim counters at the final tick; CI green on the pushed sha.'
+session_id: gm-drain-1793526214
+owner: gm-drain-1793526214
+status: pending
+references:
+- ts: 2026-11-01T15:57:37.550Z
+  session_id: gm-drain-1793526214-53
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/scenarios/moba/scoreboard.lua","repo":"lanmower/oscraft","path":"scenarios/moba/scoreboard.lua","sha":"","why":"Existing per-hero counter panel (game.counter, game.kills_of, game.deaths_of via stats.lua) that the win-screen match table extends.","license":"unknown"}'
+notes:
+- ts: 2026-11-01T16:08:29.994Z
+  session_id: gm-drain-1793526214-53
+  note: 'Stage 0 REFERENCES: scoreboard.lua reference recorded. Stage 1 SPECIFY: scoreboard.lua, stats.lua, win.lua read; per-hero natives kills_of and deaths_of exist, other counters do not. Stage 1b ELIMINATE by reading: math.floor returns integers, state_int needs integers, require resolves through manifest.json. Stage 1c EDIT: match_stats.lua, win.lua hook, manifest.json entry. Published 8595be67 on origin/main, three files, 65 insertions.'
+- ts: 2026-11-01T16:48:47.303Z
+  session_id: gm-drain-1793526214-v22
+  note: 'Partial: gate check win-match-stats-rank (score_checks.rs) and the panel are on main, but assists, gold, experience, damage, healing and items have no sim counters and render as ''-''. Acceptance requires the table values to match the sim counters, so the row stays pending. Gap tracked as win-screen-match-counters-missing.'

@@ -1,0 +1,4 @@
+status: unknown
+id: nested-runtime-fixed-upstream
+value: Does upstream agentplug main already contain the block_on_component fix (085771db) that the gm pin uses?
+session_id: drain-gm-4

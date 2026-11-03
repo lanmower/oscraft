@@ -1,0 +1,25 @@
+rows: close six PRD rows on evidence from run 57050-684029
+
+Row: prd-flowsmokeneverclickstheheroselect
+Witness: run 57050-684029 event 7: test -e .github/workflows/ci.yml ABSENT; test -e scripts/perf/page-smoke.mjs ABSENT; git ls-files .github/workflows lists pages.yml and release.yml
+Status: stale
+
+Row: prd-oscraftmanualci
+Witness: run 57050-684029 event 7: test -e .github/workflows/ci.yml ABSENT; git ls-files .github/workflows lists pages.yml and release.yml
+Status: stale
+
+Row: prd-gateclaimedcapabilitieswithouthostapis
+Witness: run 57050-684029 event 7: test -e rust/gate ABSENT; grep -c edit_terrain|set_tile|list_abilities|list_events in rust/crates/mod-host/src/piccolo_host/editor.rs = 4
+Status: stale
+
+Row: prd-lunahudnoabilities
+Witness: run 57050-684029 event 7: grep -c hero_abilities("luna" in scenarios/moba/abilities_688g_b12.osd = 1
+Status: resolved
+
+Row: prd-heroesdota215skillrowsmissing
+Witness: run 57050-684029 event 7: grep -c ^hero_abilities in scenarios/moba/abilities_dota2_15.osd = 15; manifest.json lists abilities_dota2_15.osd; node scenarios/moba/tools/gen-abilities.mjs --check: ok (441 lines)
+Status: resolved
+
+Row: prd-localcargobrokepinnedrusttoolchain
+Witness: run 57050-684029 event 7: rust/rust-toolchain.toml channel = "1.99.0"; cd rust && cargo --version: cargo 1.99.0 (5f94df478 2026-08-27)
+Status: resolved

@@ -1,0 +1,6 @@
+id: gm-browser-no-viewport-or-shot-size-step
+subject: Browser verb has no viewport-size or screenshot clip/scale step
+description: 'Evidence: .gm/aclick-*.png are ~440 KB full-window shots; lobby-visual-gaps-seen-in-screenshot needs fixed viewport and downscaled captures. Ask: steps viewport {w,h,dpr} and screenshot {clip,scale,quality,format:jpeg}.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

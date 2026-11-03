@@ -1,0 +1,9 @@
+id: "prd-commentsweepjsrest"
+kind: "prd"
+title: "Comment sweep of js/ (except play.js, vendor) and mods/"
+body: "id: comment-sweep-jsrest\nsubject: Comment sweep of js/ (except play.js, vendor) and mods/\ndescription: Convert or move every comment into AGENTS.md; delete comments.\nsession_id: mcp-codemode-1157014-1792951837604-377\nowner: mcp-codemode-1157014-1792951837604-377\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-10-27T22:45:02.000Z"
+witnessEvent: 5
+witnessCommit: "1c32941b46fd03b547b8e9cc639dd54a8faff75f"
+resolvedAt: "2026-11-02T15:39:13.930Z"

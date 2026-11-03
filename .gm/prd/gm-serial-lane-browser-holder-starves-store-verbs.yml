@@ -1,0 +1,8 @@
+id: gm-serial-lane-browser-holder-starves-store-verbs
+subject: A browser verb holding the serial lane starves store verbs for minutes
+description: Store verbs prd-add and prd-resolve were answered dispatch_starved_waiting_for_serial_lane for over ten minutes while another lane browser verb held the lane, so no row could be filed or closed. The starved calls were not executed and the lane queue showed 10 to 16 waiters.
+acceptance_criteria: A browser verb in one lane does not hold the serial store lane past the stuck bound while prd-add and prd-resolve from other lanes wait.
+witness_plan: With a browser verb running in one session, issue prd-list and prd-add from another session and confirm both return before the lane watchdog releases the browser holder.
+session_id: drain-gm-4
+owner: drain-gm-4
+status: pending

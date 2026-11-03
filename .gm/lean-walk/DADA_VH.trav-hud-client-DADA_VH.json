@@ -1,0 +1,36 @@
+{
+  "node": "DADA_VH",
+  "applied": false,
+  "changes": [],
+  "witness": "1792858875486-5931-39161b463b9c31dd",
+  "prd_ids": [
+    "DADA_VH-trav-hud-client-DADA_VH-1"
+  ],
+  "unknown_ids": [],
+  "next_choice": {
+    "to": "none",
+    "why": "depth limit: max_depth 0"
+  },
+  "links_offered": [
+    "DADA_SCHER",
+    "DADA_VENTURI1",
+    "INVPYRAMID"
+  ],
+  "link_taken": null,
+  "session": "trav-hud-client-DADA_VH",
+  "witness_dispatch_ids": [
+    "1792858875486-5931-39161b463b9c31dd",
+    "1792858819513-5882-a8ce751cded65f4c",
+    "1792858865225-5920-5e62fc6e7bc5588e"
+  ],
+  "verified_by": null,
+  "verified_dispatch_ids": [],
+  "findings": [
+    {
+      "prd_id": "DADA_VH-trav-hud-client-DADA_VH-1",
+      "owner": "trav-hud-client-DADA_VH",
+      "disposition": "accept"
+    }
+  ],
+  "inspector": null
+}

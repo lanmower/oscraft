@@ -1,0 +1,4 @@
+# Browser load baseline for the browser perf step in the browser job.
+# Measured on CI run 38905727183 (sha 7009add): browser load ms=884 frame_p99_ms=178.30 (swiftshader, one run).
+# The ceiling is 3x the measured load, the same margin as tick-baseline.txt.
+load_ms_ceiling=2652

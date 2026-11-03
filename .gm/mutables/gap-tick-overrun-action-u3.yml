@@ -1,0 +1,4 @@
+id: gap-tick-overrun-action-u3
+text: 'Is a consecutive-overrun counter feasible in Clock without changing Stats/Timing consumers? Answers: which fields read Clock.overruns (budget.rs Timing, lib.rs stats).'
+session_id: gm-oscraft-sc2-alt-1-o1
+status: unknown

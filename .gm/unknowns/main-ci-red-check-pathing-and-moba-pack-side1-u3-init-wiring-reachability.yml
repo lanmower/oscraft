@@ -1,0 +1,5 @@
+row: main-ci-red-check-pathing-and-moba-pack-side1
+id: main-ci-red-check-pathing-and-moba-pack-side1-u3-init-wiring-reachability
+subject: Does wiring forms, hero_spells, projectiles and toggle_spells into init.lua clear the moba_pack_loads reachability assert (88 vs 92) and load and run 300 ticks without error?
+session_id: gm-drain-1793526214-20
+status: unknown

@@ -1,0 +1,38 @@
+id	src	name	hp	spd	armor	damage	range_milli	period	sight_milli	regen_milli	radius	abilities
+roshan	n00L	roshan	7500	264	6	75	3125	16	21875	1250		creep_roshan_spell_damage_reduction,creep_roshan_bash,creep_roshan_slam,creep_roshan_ghost
+neutral_kobold	nkob	kobold	240	264	0	10	1562	22	21875	31	250	
+neutral_kobold_tunneler	nkot	kobold tunneler	325	264	1	14	1562	22	12500	31	250	
+neutral_kobold_taskmaster	nkol	kobold taskmaster	400	322	0	26	1562	22	12500	31	250	creep_speed_aura
+neutral_centaur_outrunner	ncen	centaur outrunner	550	342	2	20	1562	21	12500	31	250	
+neutral_centaur_khan	ncnk	centaur khan	1100	312	4	52	1562	24	12500	62	250	creep_war_stomp
+neutral_fel_beast	npfl	fel beast	400	342	1	14	1562	24	12500	31	250	
+neutral_furbolg_champion	nfpc	polar furbolg champion	700	312	3	42	1562	24	12500	31	250	
+neutral_furbolg_ursa_warrior	nfpu	polar furbolg ursa warrior	950	312	4	52	1562	25	12500	62	250	creep_thunder_clap_furbolg,creep_endurance_aura
+neutral_mud_golem	n026	mud golem	800	303	0	31	1562	22	12500	31	250	creep_mud_golem_spell_damage_reduction,creep_mud_golem_spawn
+neutral_ogre_mauler	nogm	ogre mauler	850	264	1	26	1562	22	12500	31	250	
+neutral_ogre_magi	nomg	ogre magi	600	264	0	26	1562	22	12500	31	250	
+neutral_giant_wolf	nwlg	giant wolf	500	342	1	22	1406	23	12500	31	250	
+neutral_alpha_wolf	n00S	alpha wolf	600	342	3	32	1406	22	12500	31	250	creep_packleader_aura,creep_critical_strike
+neutral_wildkin	nowb	wildkin	350	293	2	22	2000	22	12500	31	250	
+neutral_enraged_wildkin	nowe	enraged wildkin	950	312	4	53	2000	22	12500	31	250	creep_toughness_aura,creep_tornado
+neutral_satyr_soulstealer	nstl	satyr soulstealer	600	264	1	26	1562	22	12500	31	250	
+neutral_satyr_hellcaller	nsth	satyr hellcaller	1100	283	0	52	1562	22	12500	62	250	creep_shockwave,creep_unholy_aura
+neutral_satyr_trickster	nsat	satyr trickster	300	322	0	8	4688	27	12500	31	250	
+neutral_jungle_stalker	njg1	jungle stalker	1300	312	2	55	2000	22	12500	31	250	
+neutral_elder_jungle_stalker	njga	elder jungle stalker	2000	312	4	67	2000	22	12500	31	250	creep_spell_immunity
+neutral_rock_golem	ngst	rock golem	800	264	4	31	1562	22	12500	31	250	creep_spell_immunity
+neutral_gnoll_assassin	ngns	gnoll assassin	370	264	1	32	7031	26	6250	31	250	
+neutral_ghost	ngh1	ghost	500	312	1	32	6250	16	12500	31	250	creep_frost_attack
+neutral_dark_troll	ndtr	dark troll	500	264	0	26	7812	22	12500	31	250	
+neutral_dark_troll_warlord	ndtw	dark troll warlord	1100	312	1	52	7812	22	12500	31	250	creep_raise_dead
+neutral_forest_troll_berserker	nftb	forest troll berserker	500	264	1	32	7812	26	12500	31	250	
+neutral_forest_troll_high_priest	nfsh	forest troll high priest	450	283	0	28	9375	29	21875	31	250	creep_brilliance_aura
+neutral_harpy_scout	n0HW	harpy scout	400	273	1	32	4688	26	28125	31	250	
+neutral_harpy_storm	n0HX	harpy storm	550	303	2	34	7812	26	28125	31	250	
+neutral_black_drake	nbdk	black drake	950	342	0	40	7812	29	12500	31	250	
+neutral_black_dragon	nbwm	black dragon	2000	293	4	64	7812	24	12500	125	250	creep_spell_immunity,creep_dragonhide_aura
+neutral_blue_dragonspawn_overseer	nbdo	blue dragonspawn overseer	1200	293	1	62	1562	22	12500	31	250	creep_evasion,creep_overseer_aura
+neutral_blue_dragonspawn_sorcerer	nbds	blue dragonspawn sorcerer	675	264	0	36	1562	22	12500	31	250	creep_evasion
+neutral_emerald_golem	nggr	emerald golem	1700	264	8	82	2000	22	12500	94	250	creep_spell_immunity,creep_solid_granite_aura
+neutral_big_thunder_lizard	n0LC	thunder lizard	1400	264	2	74	7812	29	21875	31	250	creep_frenzy,creep_lightning_attack,creep_spell_immunity,creep_war_drums_damage,creep_war_drums_speed
+neutral_small_thunder_lizard	n0LD	thunder lizard	800	264	2	44	7812	29	21875	31	250	creep_lightning_attack,creep_spell_immunity

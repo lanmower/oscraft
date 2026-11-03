@@ -1,0 +1,5 @@
+row: main-ci-red-check-pathing-and-moba-pack-side1
+id: main-ci-red-check-pathing-and-moba-pack-side1-u5-double-handling
+subject: Do the four newly wired modules double-handle an ability already owned by an existing module (on_cast or on_hit overlap)?
+session_id: gm-drain-1793526214-20
+status: unknown

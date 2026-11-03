@@ -1,0 +1,7 @@
+id: gate-claimed-capabilities-without-host-apis
+subject: Three gate rows test capabilities the piccolo host never had; docs/CAPABILITIES.md claims them
+description: 'tests.yml oscraft-gate, run 40198562451 at 234650bb: editor-terrain-tiles, editor-abilities and editor-triggers fail. They test CAP-MAP-10, CAP-ABIL-6 and CAP-EVT-4 (provider none), which call host globals the piccolo host never had: edit_terrain, set_tile, list_abilities and list_events. CAP-MAP-3 in docs/CAPABILITIES.md still says implemented, though the mod API has no terrain editing. Default taken pending the user: correct docs/CAPABILITIES.md so these capabilities are not claimed (no feature is removed, none existed), and do not add host APIs. Implementing the host APIs is a feature decision for the user and is recorded as a separate open question.'
+acceptance_criteria: 'docs/CAPABILITIES.md no longer claims CAP-MAP-10, CAP-ABIL-6, CAP-EVT-4 or CAP-MAP-3 as implemented, and the three gate rows pass or are removed with the claim. Witness: tests.yml run on the pushed sha with the oscraft-gate checks green, read with gh run view.'
+owner: hy3d
+session_id: mcp-codemode-45985-1792935863171-1
+status: pending

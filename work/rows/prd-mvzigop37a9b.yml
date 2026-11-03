@@ -1,0 +1,6 @@
+id: "prd-mvzigop37a9b"
+kind: "prd"
+title: "Import the web-1.27.1 SLK base TSV into heroes_688g.tsv for the proven 6.88g heroes, reconciled to the 23 identity-proven heroes"
+body: "source: /workspace/hy3d/output/688g-data/slk-base-web-1.27.1.tsv (hy3d, 73 base rows, columns base_id STR AGI INT regenHP mana0 manaN regenMana def sight turnRate dice1 sides1 heroes label source; label web-1.27.1-slk, generator output/688g-data/build-slk-base-web.mjs in hy3d).\ncaveat from hy3d: the 1.27.1 set is not checked against 6.88g or 1.24.4. A \"-\" is the literal SLK cell; an empty cell means the row did not set the field. Label every imported value web-1.27.1-slk, never 6.88g.\nThe count does not match the 23 identity-proven heroes or the 58 unresolved rows. Reconcile against the deleted row text in runs/79788-955320/blocked-snapshot/prd-contentheroconversionsunresolvedblockerslkvalues.yml before import.\nImport goes through scripts/apply-heroes-688g.py, not a hand edit of scenarios/moba/heroes_688g.tsv. docs/CONVERGENCE_688G.md is not in this repo.\nacceptance: every proven hero in heroes_688g.tsv carries the base values from its TSV base row, with the label; the sim loads the moba map.\nwitness: a sim load of the moba map after the import (no sim::load error), and CI green on the pushed sha."
+status: "open"
+createdAt: "2026-11-02T17:06:30.279Z"

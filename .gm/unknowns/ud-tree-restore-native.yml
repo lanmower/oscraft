@@ -1,0 +1,6 @@
+id: ud-tree-restore-native
+subject: ud-tree-restore-native
+description: Is tree_restore registered as a native in rust/crates/mod-host/src/piccolo_host.rs (the row says no restore command)? Answers the restore claim.
+row: proposed-destructible-trees
+session_id: gm-drain-1793526214-32
+status: unknown

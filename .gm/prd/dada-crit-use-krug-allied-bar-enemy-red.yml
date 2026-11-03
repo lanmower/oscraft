@@ -1,0 +1,19 @@
+id: dada-crit-use-krug-allied-bar-enemy-red
+subject: Allied units draw the enemy-red health bar
+description: hud.js barColour compares the unit's owner (u.player) with the local seat and its team from the pack's teams list (UI.teams via teamOf). Allied bars should draw blue and enemy bars red. Live witness on 844x390 DPR 2 (dispatch 1792968879187-131-4af147eadb106422) shows green 479, blue 0, red 0, but no allied unit is on screen, so the premise is not yet tested either way.
+acceptance_criteria: A witness with an allied owner on screen shows that unit's bar blue (ALLY_BAR_RGB) and not red, and an enemy owner's bar red.
+witness_plan: Set the camera to an allied creep group with the minimap left press, then count bar-canvas pixels of blue and red at DPR 2.
+owner: hud-match-2
+session_id: hud-match-2
+status: pending
+references:
+- ts: 2026-10-25T22:56:17.819Z
+  session_id: hud-match-2
+  note: '{"url":"https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillStyle","repo":"mdn/content","path":"","sha":"","why":"The bar colour is a fillStyle set per unit from the owner''s team, so the test is the owner-to-team comparison.","license":"unknown"}'
+notes:
+- ts: 2026-10-25T22:56:25.292Z
+  session_id: hud-match-2
+  note: 'Open. Premise not reproduced in the live lobby: allied bars are blue on origin (ALLY_BAR_RGB from the teamOf test). No witness yet with an ally on screen, so this row cannot close as stale or resolved on the current evidence.'
+- ts: 2026-10-26T05:26:49.037Z
+  session_id: hud-match-witness
+  note: 'Attempt 1792992349806-5545-5981a14630c62c84 at 844x390 DPR 2: the ally (owner 2) and the foe (owner 8) resolved to the same map point, so no frame showed an allied and an enemy bar side by side. Open until both are on screen together.'

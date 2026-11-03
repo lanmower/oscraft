@@ -1,0 +1,6 @@
+id: pages-moba-glb-http2-protocol-error
+subject: 'Live Pages: moba .glb models fail with net::ERR_HTTP2_PROTOCOL_ERROR (neutral-rock-golem-skinned, tall-tree-skinned)'
+description: 'Witness 1792921949025-7099-d01463a9e43c404 at https://lanmower.github.io/oscraft/js/client/play.html#moba: console error Failed to load resource ERR_HTTP2_PROTOCOL_ERROR on scenarios/moba/assets/models/*.glb, then [asset] Failed to fetch; status line shows assets failed to load.'
+session_id: verify-lobby-probe
+owner: verify-lobby-probe
+status: pending

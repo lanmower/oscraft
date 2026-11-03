@@ -1,0 +1,4 @@
+id: docs-query-params-ci-check
+value: Does any CI job already check doc query parameters against play.js/rooms.js/ice.js?
+status: unknown
+session_id: mcp-codemode-1184-1792267460011

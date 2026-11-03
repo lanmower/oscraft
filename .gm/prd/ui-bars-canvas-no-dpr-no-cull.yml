@@ -1,0 +1,17 @@
+id: ui-bars-canvas-no-dpr-no-cull
+subject: Health-bar canvas is innerWidth x innerHeight with no devicePixelRatio and draws every unit each frame
+description: 'js/client/hud.js:119 barCanvas.width = w (CSS px), :127 loop over every unit with no off-screen skip. Symptom: bars blurry on hi-DPI/phones; cost scales with all units. Acceptance: canvas sized by devicePixelRatio with ctx.scale, units projected off-screen skipped. Witness: bar canvas width equals innerWidth*dpr; bars count equals visible units.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+references:
+- ts: 2026-10-25T22:55:20.428Z
+  session_id: hud-match-2
+  note: '{"url":"https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio","repo":"mdn/content","path":"","sha":"","why":"The bar canvas backing store is innerWidth x devicePixelRatio, so bars stay sharp on hi-DPI screens.","license":"unknown"}'
+notes:
+- ts: 2026-10-25T23:00:41.272Z
+  session_id: hud-match-2
+  note: Close commit on origin/main (see ids below); prd-resolve refused with close_commit_required because the shared checkout /workspace/oscraft main is 1 commit ahead (66aca026, unpushed) and 398 behind origin, with another lane's uncommitted edits in render3d.js, widgets.js and scripts/dev/stage.sh. The store reads the close from that checkout's history, so the close lands when that lane consolidates. Witness is in the commit trailers and the dispatch id given here. Close commit ca6889a5 on origin/main.
+- ts: 2026-10-26T05:26:48.049Z
+  session_id: hud-match-witness
+  note: 'Witness 1792992151884-5502-719e8e07d1c6f456 at 390x844 DPR 2: canvases sized 780x1688 (innerWidth x dpr, innerHeight x dpr). Open: the cull of off-screen units is not witnessed.'

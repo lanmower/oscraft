@@ -1,0 +1,6 @@
+id: proposed-creep-kinds-camp-respawn-bounty-U7
+row: proposed-creep-kinds-camp-respawn-bounty
+subject: proposed-creep-kinds-camp-respawn-bounty U7
+description: Does a gate check land in a witness? CHECKS run only in tests.yml gate job (dispatch-only, no GATE_ONLY) and ci.yml subsets via GATE_ONLY, so a witness needs a dispatched tests.yml on the pushed sha (tests.yml:39-60).
+session_id: gm-drain-1793526214-41
+status: unknown

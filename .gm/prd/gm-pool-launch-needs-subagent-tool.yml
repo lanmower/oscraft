@@ -1,0 +1,8 @@
+id: gm-pool-launch-needs-subagent-tool
+subject: The orchestrator slot launch has no subagent transport in a CLI-only harness
+description: instruction slots.action=launch advertised 4 slots (witness-bot-seat-debug-api, web-per-frame-unit-reads-seven-scans, unlearned-ability-castable-skill-up-gate, ui-widget-rebuild-drops-focus-and-scroll) with launch_count 4 and spawn_ceiling 4, but the session has no Agent or Task tool, so the pool cannot fan out and the drain runs on one thread. 147 rows stayed pending across the run.
+acceptance_criteria: Either the harness exposes a subagent dispatch so min(free, launchable) agents start, or the orchestrator records a degraded single-thread mode in the instruction reply and drains node-first rows itself without advertising slots it cannot fill.
+note: 'Filed by orch-main-r1 after the 2026-10-31 drain: the slot advertisement said launch 4 while no Agent/Task tool existed.'
+session_id: orch-main-r1
+owner: orch-main-r1
+status: pending

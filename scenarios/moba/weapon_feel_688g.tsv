@@ -1,0 +1,85 @@
+# 6.88g attack feel from unit.ini: backSw1 (backswing_ms), MissileHoming_1 (missile_homing), Missilearc_1 (missile_arc, hundredths). Blank: unit.ini stores no value (the stock object has it). The lane creep kinds (creep*, sentinel_creep*) take a blank from their role family record (esen, edry, ebal), named in the evidence column.
+id	src	backswing_ms	homing	arc	evidence
+neutral_ghost	ngh1	300			
+bane	UIN6		0		
+bloodseeker	UAG7	740			
+crystal_maiden	Hjai	0		0	
+drow_ranger	Nbrn		1	5	
+earthshaker	UST1	863			
+pudge	U00F	1170			
+razor	E002	700	1	5	
+sand_king	U00K	470			
+storm_spirit	H00S	300			
+sven	H001	300			
+tiny	UST4	1000			
+windrunner	N0EG	500	1	5	
+zuus	UIN3		1		
+kunkka	H06S	300			
+lina	H004	780			
+lion	UC18	740			
+slardar	UC91	640			
+witch_doctor	E01A	500		15	
+enigma	UIN5	770			
+tinker	Ntin			0	
+sniper	UAG6		1		
+warlock	E01C			15	
+faceless_void	EC45	560			
+death_prophet	UC76	510			
+pugna	H00H	500			
+templar_assassin	E01Y			0	
+viper	EC77	1000	1		
+luna	E005	540	1		
+dazzle	N01W			0	
+dark_seer	H00N	580			
+clinkz	E004		1		
+enchantress	UIN1		1		
+huskar	H00Q	500			
+broodmother	U006	500			
+weaver	UAG5	360		0	
+jakiro	E00P	500	1		
+spectre	E01B	700			
+doom_bringer	UC42	700			
+ancient_apparition	N0HP	300		5	
+ursa	UAG1	300			
+spirit_breaker	O00J	300			
+gyrocopter	E02N	970	1		
+alchemist	N01I	650			
+invoker	H00U	700			
+obsidian_destroyer	U00P	540	1	0	
+lycan	U008	550			
+shadow_demon	E02H	500		0	
+lone_druid	N01O	530	1		
+meepo	H00I	600			
+treant	UST2	400			
+disruptor	E02J			0	
+naga_siren	HC49	500			
+wisp	O01F	400		15	
+medusa	H00V	600			
+troll_warlord	N016	300			
+magnataur	UC11	840			
+shredder	E032	640			
+tusk	E02I	640			
+skywrath_mage	H0DO	780			
+legion_commander	E02K	640			
+earth_spirit	N0MU			0	
+techies	H00K	500	1	35	
+winter_wyvern	N0M7			10	
+arc_warden	N0MK	700		10	
+creep	ugho	533			
+sentinel_creep	esen	533			
+creep_super	u001	533			
+sentinel_creep_super	e00V	533			backSw1 from esen
+creep_mega	n12Q	533			
+sentinel_creep_mega	n12S	533			backSw1 from esen
+creep_ranged	unec	670			backSw1 from edry
+sentinel_creep_ranged	edry	670			
+creep_ranged_super	u002	670			backSw1 from edry
+sentinel_creep_ranged_super	e00W	670			backSw1 from edry
+creep_ranged_mega	n12R	670			backSw1 from edry
+sentinel_creep_ranged_mega	n12T	670			backSw1 from edry
+creep_siege	umtw	1300	1		backSw1 from ebal
+sentinel_creep_siege	ebal	1300	1		
+creep_siege_super	u00R	1300	1		backSw1 from ebal
+sentinel_creep_siege_super	e026	1300	1		
+creep_siege_mega	u00R	1300	1		backSw1 from ebal
+sentinel_creep_siege_mega	e026	1300	1		

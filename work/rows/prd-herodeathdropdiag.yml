@@ -1,0 +1,6 @@
+id: "prd-herodeathdropdiag"
+kind: "prd"
+title: "Gate reports why a hero death drop did not happen"
+body: "id: hero-death-drop-diag\nsubject: Gate reports why a hero death drop did not happen\ndescription: Gate reports why a hero death drop did not happen\nsession_id: drain-camps\nowner: drain-camps\nstatus: pending\nreferences:\n- ts: 2026-10-25T17:07:03.625Z\n  session_id: drain-camps\n  note: '{\"url\":\"https://github.com/lanmower/oscraft/blob/df865588871cdc9ccd4dc7f248458c34338968dc/docs/SCRIPTING.md\",\"repo\":\"lanmower/oscraft\",\"path\":\"docs/SCRIPTING.md\",\"sha\":\"df865588871cdc9ccd4dc7f248458c34338968dc\",\"why\":\"engine call rows the change uses; the 6.88g map script is private\",\"license\":\"own\"}'\n"
+status: "open"
+createdAt: "2026-10-27T22:45:02.000Z"

@@ -1,0 +1,5 @@
+row: ui-group-tiles-capped-silently
+id: ui-group-tiles-capped-silently-U2
+question: Does a selection of 15 own units through panels.lua's selection branch (panels.lua:574-595) render 12 tiles on page 1, the label '15 selected', and an enabled next button?
+session_id: gm-drain-1793526214-11
+status: unknown

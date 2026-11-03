@@ -1,0 +1,5 @@
+id: gap-moba-winner-readout-u5
+subject: 'U5: does the gate''s moba-match-end check currently pass on the committed tree (live gate run)?'
+row: gap-moba-winner-readout
+session_id: gm-orch-1-6
+status: unknown

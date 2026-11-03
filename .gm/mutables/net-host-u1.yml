@@ -1,0 +1,5 @@
+row: net-node-host-wireweave
+id: net-host-u1
+question: Does commit 68a30ade delete js/host and the wasip1/wasip2 guests from history (git show --stat 68a30ade)?
+session_id: gm-oscraft-w1-03
+status: unknown

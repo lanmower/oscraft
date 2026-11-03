@@ -1,0 +1,60 @@
+{
+  "node": "DADA_GESTALT",
+  "applied": false,
+  "changes": [],
+  "witness": "1792858699612-5752-e124b9eba92ffcb6",
+  "prd_ids": [
+    "DADA_GESTALT-trav-hud-client-DADA_GESTALT-1"
+  ],
+  "unknown_ids": [],
+  "next_choice": {
+    "to": null,
+    "why": "depth limit: max_depth 0"
+  },
+  "links_offered": [
+    "DADA_ARNHEIM",
+    "DADA_BANG",
+    "DADA_CRAP",
+    "DADA_CRIT_APOLLO_GOMBRICH",
+    "DADA_CRIT_PERC_JOHNSON",
+    "DADA_GOMBRICH",
+    "DADA_MOHOLY",
+    "DADA_NORMAN",
+    "DADA_SAMDE"
+  ],
+  "link_taken": null,
+  "session": "trav-hud-client-DADA_GESTALT",
+  "witness_dispatch_ids": [
+    "1792858601652-4866-89a068c962dc13c8",
+    "1792858695239-5747-897a9da6c5498192",
+    "1792858699612-5752-e124b9eba92ffcb6",
+    "1792858709086-5764-50e9080ae36b834a"
+  ],
+  "verified_by": null,
+  "verified_dispatch_ids": [],
+  "findings": [
+    {
+      "prd_id": "DADA_GESTALT-trav-hud-client-DADA_GESTALT-1",
+      "owner": "trav-hud-client-DADA_GESTALT",
+      "disposition": "accept"
+    },
+    {
+      "prd_id": "DADA_CRIT_USE_KRUG-trav-hud-client-DADA_CRIT_USE_KRUG-1",
+      "owner": "trav-hud-client-DADA_CRIT_USE_KRUG",
+      "disposition": "accept"
+    },
+    {
+      "prd_id": "device-phone-layout-overlap-375",
+      "owner": "gm-cli-322133-1792752976929",
+      "disposition": "accept"
+    }
+  ],
+  "inspector": null,
+  "verdict": "VIOLATED",
+  "cycle": {
+    "dispatch_id": "1792858891755-5942-6ab57fe3faea02e9",
+    "status": "replayed"
+  },
+  "stale_tree": "local checkout 4 ahead / 9 behind upstream 2d3cc5769e9c; results cover local tree, not upstream",
+  "lean_node": "DADA_GESTALT"
+}

@@ -1,0 +1,25 @@
+id: ui-phone-lobby-overflows
+subject: Phone lobby forces 8 fixed 56px columns and a 267px-tall modal, so the hero grid overflows sideways
+description: 'scenarios/moba/panels.lua:1008 portraits cols=8 size=56; js/client/widgets.js:102 phone #ui-modal max-height calc(100vh - 400px); portraits grid uses fixed px tracks (widgets.js portraitGrid). Symptom: at 390px wide the grid is ~480px and clips; top strip, card and bottom bar share a ~270px scroller. Acceptance: columns derive from available width (auto-fill) and the modal uses the free viewport on phones. Witness: 390x844 screenshot, no horizontal scroll in #ui-modal.'
+session_id: survey-ui-8
+owner: survey-ui-8
+status: pending
+notes:
+- ts: 2026-10-25T08:59:17.239Z
+  session_id: drain-ui-widgets-9
+  note: claimed by drain-ui-widgets-9
+- ts: 2026-10-25T09:01:00.515Z
+  session_id: drain-ui-widgets-9
+  note: edit published; witness needs a browser look (a11y tree / focus / 390px screenshot), left open
+- ts: 2026-10-25T20:33:25.319Z
+  session_id: hud-start-1
+  note: 'hud-start-1: phone modal sizing shipped in play.html (body #ui-modal at max-width 600px: top 8px, max-height above the bottom bar). Witness at 390x844: modal 8..708 px, clientWidth = scrollWidth (no horizontal scroll in #ui-modal). The grid itself (cols=8, 64px tracks, columns clipped at x 355-692) is filed as ui-phone-lobby-grid-hud-lobby-1 for hud-lobby-1; this row stays open until that grid row closes.'
+- ts: 2026-10-25T20:36:34.687Z
+  session_id: hud-start-1
+  note: 'hud-start-1: phone modal sizing in play.html; witness dispatch 1792959376619-207-357ffcd5157588e8 (390x844, modal 8..708, no horizontal scroll in #ui-modal). Grid overflow filed as ui-phone-lobby-grid-hud-lobby-1.'
+- ts: 2026-10-25T20:55:33.925Z
+  session_id: hud-start-1
+  note: 'hud-start-1 BLOCKER (publish): publish_on_origin fails at its origin-main fetch (fetch_failed, ''terminated by SIGTERM'' at the 300 s deadline); 4 publish attempts and 4 plain git fetch origin runs hang on this host (github.com smart-HTTP fetch stalls; gh api and git ls-remote succeed). Local work is complete and witnessed; nothing is pushed. Clearing action: a git fetch of origin main that completes from this host. Commit plan waits on it: play.js world_ready (row lobby-start-world-ready-never-fires-headful), play.js+play.html boot card (ui-loading-experience-text-only), play.js+debug_api.js status (ui-status-line-mixes-debug-and-fatal-text), play.js relay retry (relay-drop-retry-backoff), modui.js guard (ui-modui-poll-overlaps-duplicates-events), play.html phone modal (ui-phone-lobby-overflows).'
+- ts: 2026-10-26T05:26:44.258Z
+  session_id: hud-match-witness
+  note: 'Witness 1792991970899-5485-61f184c944cf5b7d at 390x844: #ui-modal width 374, scrollWidth 374 = clientWidth (no horizontal scroll). Open: the portrait grid is still fixed (cols=8, size 56) and clips the Agility and Intelligence columns at the right edge, so the auto-fill columns are not built.'

@@ -1,0 +1,6 @@
+id: forbids-removed-records-cleanup
+subject: Remove every testing forbid and the records that mention it
+description: 'Owner decision: all testing forbids are removed. Find every AGENTS.md line, PRD row note, provenance note and memory file that states an owner forbid on witness routes (Claim, Fill, Start, room join, pack buttons, the localhost debug seat), and delete those records. Acceptance: no tracked file or PRD row note states a testing forbid; the gate of a live witness route is documented as allowed; CI green on the pushed sha.'
+session_id: gm-drain-1793526214
+owner: gm-drain-1793526214
+status: pending

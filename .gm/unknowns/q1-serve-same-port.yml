@@ -1,0 +1,4 @@
+id: q1-serve-same-port
+value: 'Does oscraftd --data --mod --site serve /site/ and /mod-version on one port? Answered yes: ci.yml serve pattern and server lib.rs routes.'
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-b1

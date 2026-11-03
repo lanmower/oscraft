@@ -1,0 +1,13 @@
+ours first-draw: absent
+theirs first-draw: absent
+base first-draw: present
+log ours:
+b1b69644 done
+9c273b06 ci: move the first-draw gate out of the pages run
+log theirs:
+998d5298 Remove the first-draw CI workflow
+9c273b06 ci: move the first-draw gate out of the pages run
+props local stat: scenarios/moba/assets/props.json | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+props remote stat: scenarios/moba/assets/props.json | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)

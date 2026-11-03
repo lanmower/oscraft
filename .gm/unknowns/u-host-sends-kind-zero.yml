@@ -1,0 +1,4 @@
+id: u-host-sends-kind-zero
+value: host sends kind 0 for every unit at js/client/play.js:444; confirm the STATE bytes carry 0 for every unit
+status: unknown
+session_id: gm-orch-3-11

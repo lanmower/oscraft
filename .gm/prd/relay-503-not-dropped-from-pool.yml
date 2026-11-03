@@ -1,0 +1,19 @@
+id: relay-503-not-dropped-from-pool
+subject: A Nostr relay returning 503 stays in the pool, retried on every load, instead of being dropped and logged
+description: 'The live page logs `WebSocket wss://relay.damus.io/ failed ... Unexpected response code: 503` on loads and keeps the relay in the pool. Separate from the loading stall: timing (note on lobby-disabled-when-one-relay-503, dispatch 1792871329132-5152-edc260b58d28747a) shows the stall is texture loading in buildSplat, not the relay. Make a relay that fails its handshake drop out of the pool with one log line, so one failed relay never blocks the page. Related row: lobby-disabled-when-one-relay-503.'
+acceptance_criteria: With relay.damus.io returning 503, the pool drops it, logs one line naming the relay and the failure, and the page boot path does not wait on it.
+witness_plan: Load the page with one relay failing; confirm one drop log line and that boot proceeds. Run from a session other than the resolver.
+session_id: drain-lobby-relay-1
+owner: drain-lobby-relay-1
+status: pending
+witness_request:
+  ts_ms: 1792895147621
+  requested_by: drain-panels-shard-2
+  note: 'Fix published as c2c3e355 (js/client/play.js: drop a relay after its first failed handshake, one log line). Live witness pending: c2c3e355''s CI and Pages runs failed on upstream 903238cb (row ci-red-at-903238cb-688g-ability-rows: workspace tests and the Pages map export). Clearing action: origin turns green, then load the Pages page with relay.damus.io/offchain.pub failing and count one drop line per failing relay.'
+notes:
+- ts: 2026-10-25T04:26:52.349Z
+  session_id: drain-lobby-3
+  note: 'drain-lobby-3: fix present on origin 77168a44 (js/client/play.js ~1801-1823 dropRelay on first failed handshake). Witness not run: browser lane saturated; needs a relay-failure injection on the live page. Status: pending.'
+- ts: 2026-10-25T06:09:33.619Z
+  session_id: drain-browser-4
+  note: 'Not driven this run. Live witness blocked: gm browser verb claims the dispatch and never writes its out-file (5 tries, gm-mcp 0.2.302 and 0.2.305, bodies with and without gm_session_id, about:blank included); each holds the state lane until the 600 s watchdog. Clearing action: fix the browser executor in the agentplug runner.'

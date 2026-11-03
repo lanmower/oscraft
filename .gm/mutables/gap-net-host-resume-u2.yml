@@ -1,0 +1,5 @@
+id: gap-net-host-resume-u2
+subject: Does any snapshot-to-disk or restore-from-file path exist for a restarted host? Search for write/read of a snapshot file, and the persistence CI job named in 701f3241.
+row: gap-net-host-resume
+session_id: gm-oscraft-w1-13
+status: unknown

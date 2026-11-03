@@ -1,0 +1,4 @@
+id: unit-rules-slot-cache-keeps-defaults-after-reuse
+unknown: Does on_spawned on a reused slot leave the previous unit's applied record in place, so on_tick skips re-sending armour/magic/damage/response/speed/miss values (rec.x == new value)?
+session_id: drain-full-29a-7
+status: unknown

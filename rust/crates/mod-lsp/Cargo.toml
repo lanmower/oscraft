@@ -1,0 +1,15 @@
+[package]
+name = "oscraft-lsp"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "oscraft-lsp"
+path = "src/main.rs"
+
+[dependencies]
+osdt-data = { path = "../data" }
+mod-host = { path = "../mod-host" }
+anyhow = "=1.0.104"
+serde_json = "1"

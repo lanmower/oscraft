@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-U2
+row: gap-moba-scenario-witness
+question: Does the moba start state hold both teams present (hero, base, objective per side), and does the sides count match the file counts (live gate and mapexport/server run)?
+session_id: gm-orch-1-7
+status: unknown

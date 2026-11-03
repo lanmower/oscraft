@@ -1,0 +1,5 @@
+id: u-esbuild-bundle
+subject: Does esbuild bundle js/client/play.js into dist/play.js, and what is the byte count?
+session_id: gm-orch-1-10
+row: net-webgl-client
+status: unknown

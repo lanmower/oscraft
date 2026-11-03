@@ -1,0 +1,7 @@
+anchor	kind	note
+file	rationale	6.88g hero rows for scenarios/moba units_heroes.osd and hero_rules.txt. Source: reference map 6.88g.w3x SLK tables
+file	rationale	UnitBalance (attributes, mana, regen, def, spd, sight, collision), UnitWeapons (range, cool1 period, damage), UnitData (turnRate).
+file	rationale	Units: attributes/gains are the base and per-level values; mana/regen are per s (hundredths for regen); armor, bat and damage in hundredths.
+file	rationale	spd is reference units per second; sight, collision and range are reference units. Canonical row per hero name: most common stat tuple, then non-TX id.
+file	unverified	UNVERIFIED turn: turnRate to degrees per second (turn_rates.lua, game.set_turn_rate) assumes radians per 0.03 s (deg/s = turn * 57.2958 / 0.03); the conversion is an engine constant absent from the script data.
+file	unverified	UNVERIFIED: the `unverified` column lists the columns whose 6.88g value is the engine default only (ENGINE_DEFAULT, hy3d hero-base.sources.tsv); the applied value is kept and the `note` column names both. `unverified` = all: the hero is not in 6.88g.

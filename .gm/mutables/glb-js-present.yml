@@ -1,0 +1,4 @@
+status: unknown
+id: glb-js-present
+value: Does js/client/glb.js exist and is it non-empty?
+session_id: gm-orch-1-r4

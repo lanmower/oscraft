@@ -1,0 +1,5 @@
+id: gap-ice-turn-config-u3-ci-assert
+value: Can ci.yml's ICE block (line ~2161) assert the RTCPeerConnection config carries a TURN url by a jit run?
+status: unknown
+row: gap-ice-turn-config
+session_id: gm-oscraft-w1-20

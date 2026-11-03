@@ -1,0 +1,4 @@
+id: u-unit-type-index-matches-catalog
+value: sim.unit_type(i) index equals the catalog.units index used by unit_model_names (rust/crates/web/src/lib.rs:117-128)
+status: unknown
+session_id: gm-orch-3-11

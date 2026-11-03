@@ -1,0 +1,6 @@
+id: web-per-frame-unit-reads-seven-scans-u5
+row: web-per-frame-unit-reads-seven-scans
+subject: Does a stage refresh (SKIP_PACKS=1 scripts/dev/stage.sh) copy unit_columns into js/client/pkg, so the packed path is exercised locally?
+question: Does a stage refresh (SKIP_PACKS=1 scripts/dev/stage.sh) copy unit_columns into js/client/pkg, so the packed path is exercised locally?
+session_id: gm-drain-1793526214-2
+status: unknown

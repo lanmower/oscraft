@@ -1,0 +1,25 @@
+id: lobby-start-world-ready-never-fires-headful
+subject: Start match stays disabled when worldReady never fires in headful Chrome
+description: 'The panels drain could not start a match with Start enabled: worldReady never fired in headful Chrome, so Start stayed disabled. The lobby gates Start on the world-ready promise, and that promise may depend on requestAnimationFrame, which background or hidden tabs throttle. If so, a player on a hidden tab is stuck the same way. Hypothesis to verify, not a confirmed cause. Located in js/client/play.js near main''s build3d await and the world-ready promise, and the Start gate in scenarios/moba/panels.lua.'
+acceptance_criteria: Start enables once the world is ready in both a foreground and a background headful tab, with no dependency on frame callbacks alone.
+witness_plan: Open two headful tabs, put one in the background, and confirm Start enables in both once the world is ready. Run from a session other than the resolver.
+session_id: mcp-codemode-3835105-1792895206926-554
+owner: mcp-codemode-3835105-1792895206926-554
+status: pending
+notes:
+- ts: 2026-10-25T04:26:47.232Z
+  session_id: drain-lobby-3
+  note: 'drain-lobby-3: origin 77168a44 CI success (run 40154918568). Code read: build3d (play.js ~2197) awaits only splat textures, unit fits and deferred pass; no rAF in its chain, so the rAF hypothesis is unproven. Live probe, visible lobby-probe tab on play.html, dispatch 1792901774205-5202-9a233dc7417f4160: status ''connecting'', worldBuilt unset after about 10 min, so the stall is before main() reaches build. Browser lane saturated (queue of 9+, 600 s polls timed out: 1792901782596-1182). Status: pending, not closed.'
+- ts: 2026-10-25T06:09:34.003Z
+  session_id: drain-browser-4
+  note: 'Not driven this run. Live witness blocked: gm browser verb claims the dispatch and never writes its out-file (5 tries, gm-mcp 0.2.302 and 0.2.305, bodies with and without gm_session_id, about:blank included); each holds the state lane until the 600 s watchdog. Clearing action: fix the browser executor in the agentplug runner.'
+- ts: 2026-10-25T20:36:22.356Z
+  session_id: hud-start-1
+  note: 'hud-start-1: worldReady DID fire headful (worldBuilt=1 after 25 s, foreground and background tabs, no room joined). The cause was world_ready sent once at build time, only while hosting, so Start stayed at ''loading world assets''. Fixed in play.js (announceWorldReady). Witness: verify-lobby-start-world-ready-never-fires-headful dispatches 1792954737091-157-c9e646ae5136cf20 (fg) and 1792954756226-158-293effb238bfbe7d (bg eval): label now ''Start match''.'
+- ts: 2026-10-25T20:55:26.433Z
+  session_id: hud-start-1
+  note: 'hud-start-1 BLOCKER (publish): publish_on_origin fails at its origin-main fetch (fetch_failed, ''terminated by SIGTERM'' at the 300 s deadline); 4 publish attempts and 4 plain git fetch origin runs hang on this host (github.com smart-HTTP fetch stalls; gh api and git ls-remote succeed). Local work is complete and witnessed; nothing is pushed. Clearing action: a git fetch of origin main that completes from this host. Commit plan waits on it: play.js world_ready (row lobby-start-world-ready-never-fires-headful), play.js+play.html boot card (ui-loading-experience-text-only), play.js+debug_api.js status (ui-status-line-mixes-debug-and-fatal-text), play.js relay retry (relay-drop-retry-backoff), modui.js guard (ui-modui-poll-overlaps-duplicates-events), play.html phone modal (ui-phone-lobby-overflows).'
+references:
+- ts: 2026-10-25T19:00:47.924Z
+  session_id: hud-start-1
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/main/js/client/play.js","repo":"lanmower/oscraft","path":"js/client/play.js","sha":"","why":"the worldReady then() that sends world_ready to the lobby Lua (panels.lua world_ready handler)","license":"unknown"}'

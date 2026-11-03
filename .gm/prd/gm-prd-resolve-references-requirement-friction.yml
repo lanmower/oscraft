@@ -1,0 +1,6 @@
+id: gm-prd-resolve-references-requirement-friction
+subject: prd-resolve demands references for rows with no public implementation
+description: 'Evidence: content-* rows (6.88g data) and perf/net rows hit the stage-0 references requirement. Ask: references optional with reason code no_public_reference recorded once, instead of a fabricated github-search note.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

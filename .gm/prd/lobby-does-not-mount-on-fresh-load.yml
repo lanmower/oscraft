@@ -1,0 +1,8 @@
+id: lobby-does-not-mount-on-fresh-load
+subject: Lobby modal never mounts on a fresh local load, so every lobby UI row lacks a witness
+description: 'From hud-lobby-1. On the local dev loop (play.html#moba, staged from b56fa72f) the lobby modal #ui-modal is absent after 40 s with no input. The panels.lua refresh path emits the modal only once UI.teams and TEXT.lobby are set, and refresh runs from a game.timer, which may not tick before Start (commit 2710bf81 says no sim ticking before Start). An older witness (lobby-visual-gaps note) recorded a mount after 25 s; that does not reproduce. Also 1592 localhost requests failed during the load, mostly scenarios/moba/assets/models/*.glb. Cause not established.'
+acceptance_criteria: 'On a fresh load with no join, pack, Claim or Start click, the lobby modal mounts and its panels exist; a witness dispatch shows #ui-modal and at least one .w-portrait.'
+witness_plan: 'A verify session loads the local dev page, waits 40 s, and counts #ui-modal, .w-portrait and .w-model with console errors captured.'
+owner: hud-lobby-1
+session_id: hud-lobby-1
+status: pending

@@ -1,0 +1,5 @@
+row: net-node-host-wireweave
+id: net-host-u3
+question: Would the row's CI job (node js/host/server.js --help) run against a tree with no js/host, i.e. what does the new job fail on today?
+session_id: gm-oscraft-w1-03
+status: unknown

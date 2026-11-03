@@ -1,0 +1,6 @@
+id: first-draw-ci-variance-crosses-ceiling
+subject: pages first-draw median crossed the 10000 ms ceiling on one sha (10701 ms) and was 6.3-6.7 s on the next; measure the band before reading one run as a regression
+description: 'Pages run 40186311039 (sha 53eecaea): loads 10621, 8863, 9532, median 9532, ok. Run for 6d8e7388 (picked-model fetches started before the first frame): loads 10415, 10701, 10955, median 10701, over. Run 40189655805 (sha d36cb5d0, picked-model fetches after the first frame): loads 6667, 6273 ms, transferred 21.8 MB, 281 requests. The ceiling was not changed. Need a repeated-run band on identical pages before any single run is treated as a regression.'
+session_id: drain-preload-13
+owner: drain-preload-13
+status: pending

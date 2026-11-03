@@ -1,0 +1,6 @@
+id: proposed-creep-kinds-camp-respawn-bounty-U12
+row: proposed-creep-kinds-camp-respawn-bounty
+subject: proposed-creep-kinds-camp-respawn-bounty U12
+description: Does the append of units_688g_creep_summons.osd at the end of manifest data move any unit or ability index, and does it need a STATE_VERSION bump? Append moves no earlier index; persist.rs layout untouched (STATE_VERSION 64 stays); catalog digest hash moves.
+session_id: gm-drain-1793526214-41
+status: unknown

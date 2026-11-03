@@ -1,0 +1,14 @@
+id: publish-on-origin-partial-clone-write-tree
+subject: publish_on_origin write_tree_failed in a blob:none partial sparse clone
+description: 'publish_on_origin returns write_tree_failed in /workspace/oscraft-fx-scratch (remote.origin.promisor, partialclonefilter blob:none, sparse checkout): write-tree without --missing-ok lazy-fetches every missing blob of origin/main (4475 files) and times out or fails. Fix: build the temp-index tree with git write-tree --missing-ok and GIT_NO_LAZY_FETCH=1. Workaround used for fx-cast-rules: read-tree origin/main, update-index --cacheinfo, write-tree --missing-ok, commit-tree, push sha.'
+session_id: mcp-codemode-2799623-1792918995254-37
+owner: mcp-codemode-2799623-1792918995254-37
+status: pending
+references:
+- ts: 2026-11-01T10:18:58.161Z
+  session_id: gm-drain-1793526214-19
+  note: '{"url":"https://github.com/AnEntrypoint/gm-mcp/commit/3df5e2237d991656697621efaf7669836fa1b24b","repo":"","path":"","sha":"","why":"gm-mcp commit that adds write-tree --missing-ok to publish_on_origin, the fix this row names","license":"unknown"}'
+notes:
+- ts: 2026-11-01T10:19:40.293Z
+  session_id: gm-drain-1793526214-19
+  note: 'blocked_by: gate bash-git-bypass denied the verification lane''s write-tree plumbing probe (dispatch 1793528335722-4293-9004a5450e85d22e); no sanctioned gm verb runs read-tree/write-tree with a GIT_INDEX_FILE override, so no gm-dispatched witness can be produced. Fix already on gm-mcp origin/main at 3df5e2237d991656697621efaf7669836fa1b24b. Needed: a sanctioned read-only tree probe verb, then a gm-dispatched witness and the closing publish. Served gm MCP bundle 0.2.372 lags installed 0.2.373: restart the gm MCP client.'

@@ -1,0 +1,12 @@
+anchor	kind	note
+file	provenance	6.88g effect area radius per hero ability code, in map units. Source: reference map 6.88g.w3x ability.ini Area (level 1) via
+file	provenance	scripts/extract-688g-area.mjs (hy3d), replaced by the radius literal in war3map.j where that script settles the effect.
+file	rationale	Omitted: Area 0, negative or 9999+ placeholders, and the codes the label review could not settle:
+file	unverified	  A14L UNVERIFIED: ability.ini Area 350 judged wrong in the label review; the cast function war3map.j:54581 carries no radius
+file	unverified	  A05V UNVERIFIED: ability.ini Area 400/450/475/500 judged wrong; the radius is a script variable (war3map.j:70953) not settled by 6.88g text
+file	unverified	  A01N UNVERIFIED: ability.ini Area 1200 judged wrong; war3map.j:70838 enumerates 1025 for a purpose the text does not state
+file	unverified	  A06P UNVERIFIED: script radius grows per timer tick (war3map.j:78280), not the ini Area 650
+file	unverified	  A1U6 UNVERIFIED: cast function war3map.j:83386 spawns dummy units; radius is owned by their unit data
+file	unverified	  A2LA UNVERIFIED: ability.ini Area 500 is the AIcl template value; the script war3map.j:88782 carries no radius
+file	unverified	  A0CC UNVERIFIED: ability.ini Area 900/1050/1200 is the ACdr template value, not an effect radius
+file	unverified	  A1SU UNVERIFIED: ability.ini Area 325; the script war3map.j:83048 enumerates 75 per segment, so the field role is not settled

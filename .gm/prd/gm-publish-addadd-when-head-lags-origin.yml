@@ -1,0 +1,6 @@
+id: gm-publish-addadd-when-head-lags-origin
+subject: publish_on_origin refuses a file origin added after local HEAD (merge_conflict add/add)
+description: 'Observed on content-hero-688g-corrections-apply: local main was 39 commits behind origin and scripts/perf/page-smoke.mjs existed on origin but not in the merge-base. publish_on_origin (base = merge-base(HEAD, origin/main) = HEAD) reported merge_conflict at lines 65-70 and pushed nothing, because the lane''s copy is an add against a base without the file. Workaround used: Git Data API (blob, tree, commit, fast-forward ref) on the current origin head, which left the checkout untouched. Fix: when the base lacks a path that origin/main has, use publish_base as the three-way base for that path, or treat the lane change as an edit of origin''s blob. Witness to prove: publish a one-line edit to a file added upstream after HEAD and confirm the push.'
+status: pending
+session_id: drain-hero688-13
+owner: drain-hero688-13

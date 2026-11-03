@@ -1,0 +1,4 @@
+anchor	kind	note
+file	rationale	Lane routes: the 6.88g creep paths of both sides (player 0 Sentinel, player 1 Scourge; 1 top, 2 mid, 3 bot), written by scenarios/moba/tools/gen-lane-routes-688g.mjs.
+file	rationale	6.88g sends each wave unit from its melee spawn rect to the lane waypoint unit (top gR, mid JR, bot hR), then to the enemy base target (FR for the Sentinel, GR for the Scourge), and the pathfinder chooses the way.
+file	rationale	Points are the shortest walkable path on this grid between those same points, one every 40 cells, then the waypoint cell and the base cell. Lane creeps then march on the nearest enemy building.

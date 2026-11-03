@@ -1,0 +1,15 @@
+id: hero-full-names-to-acronyms
+subject: Replace hero full names with their acronyms everywhere in the repository on origin main
+description: Hero full names (the keys of scenarios/moba/hero_acronyms.lua, 127 heroes; overrides in scenarios/moba/moba_ui.json heroAcronyms) must not appear in user-visible text (UI, panels, lobby, scoreboard, messages, tooltips, mod text, wts/text tables), in documentation and prose (docs/*.md, AGENTS.md, README, code and data header comments, commit templates, tool help text). Internal ids (antimage, skeleton_king, ...) that parsers read are NOT renamed; 6.88g provenance text keeps the 6.88g source name in the provenance column only. Scope order 1 to 4 is reported with counts before and after.
+acceptance_criteria: 'Counts of each full name (literal, whole word, case variants) in user-visible text and documentation are zero after the rename, except 6.88g provenance citations listed with path:line. check-acronyms (scripts/check-acronyms.mjs) passes: each acronym 1 to 3 letters and unique. CI green on each pushed full sha.'
+witness_plan: codesearch counts per scope over the published tree, ci-status on each pushed full sha, and the check-acronyms run in CI.
+session_id: acro-rename-1
+owner: acro-rename-1
+status: pending
+notes:
+- ts: 2026-10-25T19:35:29.094Z
+  session_id: acro-rename-1
+  note: 'Left open: CI is not green. Renames are on origin main: docs 110514123d, comments c866f6d3, perlevel unit_name and COVERAGE 06f54c9e, heroes_688g name column 006e93e7 and 760a7bbb. static client checks (includes check-acronyms) is green on each. The red job is built page smoke (lobby mounts, hero icons load), which is already red on the parent 2696a34f with the same play.js error sim::load Section(body offset or record size), so the rename did not cause it. Owned by row ci-red-9eef7de9-lobby-hero-icon-and-armour-rule. Publish path: fetch from GitHub failed (pack reset), so commits were built through the Git API with the same transform on current upstream text.'
+- ts: 2026-10-25T19:37:37.564Z
+  session_id: acro-rename-1
+  note: 'Second blocker, not from this rename: the pages job build the page wasm and maps from main fails on origin 55a34dac (another lane, parent of heroes commit 760a7bbb) with error[E0425] cannot find value NO_ABILITY in crates/data/src/model.rs:520 (osdt-data). This rename touches no file under rust/crates/data. Row stays open until both upstream reds clear and the static client checks stay green.'

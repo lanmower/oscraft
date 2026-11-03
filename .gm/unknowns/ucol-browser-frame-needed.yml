@@ -1,0 +1,7 @@
+id: ucol-browser-frame-needed
+value: Can allied and enemy units be placed on screen at the witness viewport in a browser so a real rendered frame exists? Previously only own bars showed at 1042x508 and 844x390 (row notes hud-match-2). Browser-only fact; decide whether a gpu-free instrument suffices before booting a page.
+status: unknown
+session_id: gm-drain-1793526214-6
+blockedBy:
+- external
+deferReason: 'witness-stage fact: the edit does not depend on it; the closing screenshot witness (deuteranopia frame with allied and enemy bars in view) is verifier-lane work under the browser lease. Gpu-free probes answered cue emission (1793527491193-2177-a6dc48e7ab1cf702, 1793527567304-2191-4003a6416c7c947).'

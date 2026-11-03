@@ -1,0 +1,9 @@
+id: "prd-commentsweepmodsandlua"
+kind: "prd"
+title: "Comment sweep for mods/*.lua and scenarios/moba Lua packs"
+body: "id: comment-sweep-mods-and-lua\nsubject: Comment sweep for mods/*.lua and scenarios/moba Lua packs\ndescription: 'mods/*.lua and scenarios/moba/**.lua. Acceptance: comments become self-explanatory names or move to AGENTS.md, mod-host tests green. Witness: ci-status.'\nsession_id: survey-infra-8\nowner: survey-infra-8\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-10-27T22:45:02.000Z"
+witnessEvent: 113
+witnessCommit: "d09c5e14"
+resolvedAt: "2026-11-02T17:00:09.077Z"

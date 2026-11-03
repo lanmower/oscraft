@@ -1,0 +1,9 @@
+id: "prd-layoutsiteskippacksguardbeforebuild"
+kind: "prd"
+title: "scripts/layout-site.sh runs build-packs before the SKIP_PACKS guard, so a skipped-pack stage still needs toktx"
+body: "id: layout-site-skip-packs-guard-before-build\nsubject: scripts/layout-site.sh runs build-packs before the SKIP_PACKS guard, so a skipped-pack stage still needs toktx\ndescription: 'scripts/layout-site.sh calls build-packs.mjs before checking SKIP_PACKS, so `SKIP_PACKS=1 scripts/dev/stage.sh` exits 1 when toktx (KTX-Software) is absent. Fix: move the SKIP_PACKS guard ahead of the build-packs call so a skipped-pack stage never needs toktx. Acceptance: SKIP_PACKS=1 stage completes on a host without toktx; the full stage path is unchanged; CI green on the pushed sha.'\nsession_id: gm-drain-1793526214\nowner: gm-drain-1793526214\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-01T15:56:30.118Z"
+witnessEvent: 87
+witnessCommit: "9f7c1519"
+resolvedAt: "2026-11-02T15:27:43.008Z"

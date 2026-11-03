@@ -1,0 +1,10 @@
+id: hero-death-drop-gate
+subject: The death drop gate lets the pack see the hero alive before it dies
+description: The death drop gate lets the pack see the hero alive before it dies
+session_id: drain-camps
+owner: drain-camps
+status: pending
+references:
+- ts: 2026-10-25T17:19:19.733Z
+  session_id: drain-camps
+  note: '{"url":"https://github.com/lanmower/oscraft/blob/46a1576cb940dbc44c24f53b74c1c3051c29cefc/docs/SCRIPTING.md","repo":"lanmower/oscraft","path":"docs/SCRIPTING.md","sha":"46a1576cb940dbc44c24f53b74c1c3051c29cefc","why":"engine call rows the change uses; the 6.88g map script is private","license":"own"}'

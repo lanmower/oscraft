@@ -1,0 +1,5 @@
+id: shop-pins-F1
+subject: Does pin toggle PINS[kind][item] and make the shop panel read Unpin for that item (ui_call pin, panels.lua:1460)?
+row: shop-pins-component-tree-grab-all
+session_id: gm-drain-1793526214-18
+status: unknown

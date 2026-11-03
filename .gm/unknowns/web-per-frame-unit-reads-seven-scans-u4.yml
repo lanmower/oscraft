@@ -1,0 +1,6 @@
+id: web-per-frame-unit-reads-seven-scans-u4
+row: web-per-frame-unit-reads-seven-scans
+subject: Is replay.js draw on a live per-frame path, or only reached from the replay viewer (scope of its seven-scan reads)?
+question: Is replay.js draw on a live per-frame path, or only reached from the replay viewer (scope of its seven-scan reads)?
+session_id: gm-drain-1793526214-2
+status: unknown

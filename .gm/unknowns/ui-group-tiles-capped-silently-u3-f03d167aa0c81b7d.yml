@@ -1,0 +1,5 @@
+row: ui-group-tiles-capped-silently
+id: ui-group-tiles-capped-silently-U3
+question: Does group_page dir +1 (panels.lua:1453-1454) then render page 2/2 with tiles 13-15 and a disabled next button?
+session_id: gm-drain-1793526214-11
+status: unknown

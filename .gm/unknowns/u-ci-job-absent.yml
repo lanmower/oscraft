@@ -1,0 +1,5 @@
+id: u-ci-job-absent
+subject: Is there any existing CI job in .github/workflows/ci.yml that builds js/client modules, so the new job can follow its shape?
+session_id: gm-orch-1-10
+row: net-webgl-client
+status: unknown

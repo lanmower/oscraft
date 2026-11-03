@@ -1,0 +1,5 @@
+id: gap-moba-scenario-witness-F2
+question: Does any existing gate check assert an objective state change after a scripted order? (expected none; confirm by live run)
+row: gap-moba-scenario-witness
+session_id: mcp-codemode-1030-1792262103218
+status: unknown

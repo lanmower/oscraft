@@ -1,0 +1,5 @@
+id: shop-grab-F4
+subject: Does grab_all (panels.lua:1466-1474) queue one cmd_unstash per stash slot, and does the sim empty the stash in the next tick (piccolo_host.rs:2838)?
+row: shop-pins-component-tree-grab-all
+session_id: gm-drain-1793526214-18
+status: unknown

@@ -1,0 +1,4 @@
+id: gap-room-thread-supervisor-F4
+subject: Does Room state survive a ticker restart (supervise re-enters run_ticker with the same Arc<Room>), i.e. is the snapshot the room state or lost on panic?
+session_id: gm-orch-1-3
+status: unknown

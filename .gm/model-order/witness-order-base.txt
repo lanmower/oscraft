@@ -1,0 +1,6 @@
+witness-order-base.txt (BASE, /config/tmp/mo-base, stage /config/tmp/mo-stage-base2, host pages.oscraft.localhost:37641)
+STATUS: NOT MEASURED. Stopped before the pick: the lobby roster never drew.
+Console (1 error): [mods] init: unknown_module: treant is not a module of this pack (js/client/play.js:261).
+Probe (isolated context, 20 s): phase=lobby, ready=1, worldBuilt=1, no .w-root widget elements, #ui-right 10 descendants (room bar only).
+Manifest patch applied: night_stalker added as first modules entry. Same missing treant entry as AFTER.
+No request-order data: no pick was made. Staging exit 0.

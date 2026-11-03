@@ -1,0 +1,6 @@
+id: gm-browser-console-network-summaries
+subject: Browser console and network replies are raw lists with no grouped summary
+description: 'Evidence: first-draw rows (first-draw-gate-flaky-same-tree, pages-first-draw-ceiling-runner-variance) and localhost hmr.js (~80 fetches per module). Ask: console_summary and network_summary steps returning top-N groups, totals, failures, timing percentiles.'
+session_id: survey-gm-8
+owner: survey-gm-8
+status: pending

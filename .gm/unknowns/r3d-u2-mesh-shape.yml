@@ -1,0 +1,4 @@
+id: r3d-u2-mesh-shape
+value: 'What shape does drawMesh/upload (render3d.js:222,278) expect for a mesh: positions, indices, normals, uv, texture handle?'
+session_id: gm-orch-13-wire
+status: unknown

@@ -1,0 +1,4 @@
+id: gap-pkg-u1-same-job-archive
+value: CI install step (ci.yml:2464-2465) consumes the archive built in the same job (ci.yml:2459), not a cached artifact
+status: unknown
+session_id: gm-orch-3-8

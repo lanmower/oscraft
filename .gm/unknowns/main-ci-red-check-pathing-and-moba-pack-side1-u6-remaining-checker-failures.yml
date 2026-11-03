@@ -1,0 +1,5 @@
+row: main-ci-red-check-pathing-and-moba-pack-side1
+id: main-ci-red-check-pathing-and-moba-pack-side1-u6-remaining-checker-failures
+subject: After base anchors are counted, does check-pathing still report river, lane or start connectivity failures on the committed pathing?
+session_id: gm-drain-1793526214-20
+status: unknown

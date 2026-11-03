@@ -1,0 +1,6 @@
+id: ud-state-version-record
+subject: ud-state-version-record
+description: 'Where is the bump to STATE_VERSION 64 for the obstacle layout recorded (commit body unavailable: obstacles.rs history is one squashed commit)? Answers acceptance clause 2 (bumped and recorded).'
+row: proposed-destructible-trees
+session_id: gm-drain-1793526214-32
+status: unknown

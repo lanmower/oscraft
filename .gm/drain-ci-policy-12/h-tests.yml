@@ -1,0 +1,14 @@
+name: tests
+
+# On demand only (workflow_dispatch). The Rust workspace tests, the wasm32 and wasip3 compile, the native and wasm
+# state-hash parity, the map export determinism check and the wire codec round-trip run here, out of push CI.
+# Push CI is ci.yml (static checks and the browser smoke); the Pages build, deploy and first-draw gate are pages.yml.
+# Test sources stay in git.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:

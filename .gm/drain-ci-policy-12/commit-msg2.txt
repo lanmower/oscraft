@@ -1,0 +1,8 @@
+Add the built page smoke to push CI
+
+ci.yml gains browser-smoke: it builds the site from the Pages cache keys (restoring them when warm), lays it out,
+and runs scripts/perf/page-smoke.mjs headless with the Playwright cache the first-draw gate uses. The smoke checks that
+the lobby mounts, that the page raises no uncaught or console error (external relay failures excluded), and that every
+hero icon the lobby requests loads.
+
+Row: ci-browser-probe-steps-absent-blocker-drain-g-1

@@ -1,0 +1,4 @@
+id: client-apply-throw
+value: 'Client: can new Game(bytes) throw on a mod the server accepted?'
+status: unknown
+session_id: gm-oscraft-sc2-alt-1-b2

@@ -1,0 +1,5 @@
+id: ui-phone-lobby-grid-hud-lobby-1-u2
+subject: 'At 390x844 does every .w-portrait child''s right edge stay within #ui-modal''s right edge in the live fit layout?'
+body: 'Answers acceptance clause 2 by getBoundingClientRect on each child vs #ui-modal, from a headful/emulated page at 390x844.'
+session_id: gm-drain-1793526214-15
+status: unknown

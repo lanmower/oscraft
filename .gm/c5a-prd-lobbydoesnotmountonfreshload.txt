@@ -1,0 +1,5 @@
+rows: close prd-lobbydoesnotmountonfreshload
+
+Row: prd-lobbydoesnotmountonfreshload
+Witness: run 57050-684029 event 91: fresh load at fbd1770a: #ui-modal count 1, .w-portrait 127, flow screen Choose your team mounted after ~14 s
+Status: resolved

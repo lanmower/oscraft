@@ -1,0 +1,12 @@
+id: gm-prd-close-names-verbs-the-build-lacks
+subject: prd-close demands publish_on_origin, which this runner build does not register
+description: 'prd-close on moba-damage-table-not-in-manifest refused with error_code close_commit_required and told this session to commit the close with publish_on_origin, a verb this build answers with unknown_verb. The same is true for prd-reference and prd-references, which prd-close itself names as the way to fill the references gate. Three unknown_verb answers in one row: the served gate names verbs the running build does not register, so no row can be closed through the gate on this machine.'
+acceptance_criteria: Either the build registers publish_on_origin and prd-references so prd-close accepts a close, or the gate falls back to a pushed commit whose body carries Row, Witness and Status, and prd-close documents that fallback.
+note: 'Filed by orch-main-r1: row moba-damage-table-not-in-manifest is witnessed, published as 662afbee and recorded in a closure commit a6e4810c, and still cannot close.'
+session_id: orch-main-r1
+owner: orch-main-r1
+status: pending
+notes:
+- ts: 2026-10-31T20:05:57.422Z
+  session_id: orch-main-r1
+  note: 'Correction after the fact: prd-close does work on this build once three things are in place, none of which is publish_on_origin. (1) the row file carries a references entry, (2) a commit made with git_commit {message: <Row/Witness/Status trailers>, paths:[row file]} and then git_push {rev} is in the store''s log, (3) prd-close is called with status: resolved alongside resolution, witness_evidence, witness_dispatch_id. prd-reference/prd-references are still unknown_verb, so the references entry was written into the row file directly. Row moba-damage-table-not-in-manifest closed at 2026-10-31T20:04:46.144Z by that path.'

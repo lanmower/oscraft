@@ -1,0 +1,4 @@
+id: gap-u4-log-line
+subject: Does POST /client-error with a message containing quotes and colons produce exactly one ev=client_error line with message="..." in the server log?
+session_id: gm-oscraft-sc2-alt-1-bp1
+status: unknown

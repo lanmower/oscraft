@@ -1,0 +1,5 @@
+id: main-ci-red-check-pathing-and-moba-pack-side1-U3
+subject: Does wiring forms, hero_spells, projectiles and toggle_spells into init.lua clear the moba_pack_loads reachability assert, and does the 300-tick run load without error?
+parent: main-ci-red-check-pathing-and-moba-pack-side1
+session_id: gm-drain-1793526214-20
+status: unknown

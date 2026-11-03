@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+exclude = ["crates/wasip3"]
+
+[patch.crates-io]
+piccolo = { path = "vendor/piccolo" }

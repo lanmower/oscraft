@@ -1,0 +1,4 @@
+id: gm-tooling-u1-observe-path
+value: 'U1: does pool-observe in /workspace/gm reach supply_exhausted_route when only held rows remain (call path from observe.rs)'
+status: unknown
+session_id: mcp-codemode-1030-1792262103218

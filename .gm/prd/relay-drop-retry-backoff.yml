@@ -1,0 +1,12 @@
+id: relay-drop-retry-backoff
+subject: Nostr relays dropped on a failed handshake are never retried
+description: 'js/client/play.js dropped six relays with ''its handshake failed'' (console warnings: relay wss://... dropped from the pool) and the page kept none of them for the rest of the session. The drop stays; a dropped relay is now retried with backoff (5 s doubling to 120 s, 6 attempts) and rejoins the pool when it connects. After the first load the page reports how many relays are connected (body.dataset.relaysAlive and the statusLog). No relay list was added.'
+acceptance_criteria: A relay that fails its handshake is retried with growing delay; a connected relay rejoins; after load the page reports the connected count.
+witness_plan: Headful load with console on; read the retry lines and body.dataset.relaysAlive after 40 s. Run from a session other than the resolver.
+owner: hud-start-1
+session_id: hud-start-1
+status: pending
+notes:
+- ts: 2026-10-25T20:55:34.983Z
+  session_id: hud-start-1
+  note: 'hud-start-1 BLOCKER (publish): publish_on_origin fails at its origin-main fetch (fetch_failed, ''terminated by SIGTERM'' at the 300 s deadline); 4 publish attempts and 4 plain git fetch origin runs hang on this host (github.com smart-HTTP fetch stalls; gh api and git ls-remote succeed). Local work is complete and witnessed; nothing is pushed. Clearing action: a git fetch of origin main that completes from this host. Commit plan waits on it: play.js world_ready (row lobby-start-world-ready-never-fires-headful), play.js+play.html boot card (ui-loading-experience-text-only), play.js+debug_api.js status (ui-status-line-mixes-debug-and-fatal-text), play.js relay retry (relay-drop-retry-backoff), modui.js guard (ui-modui-poll-overlaps-duplicates-events), play.html phone modal (ui-phone-lobby-overflows).'
