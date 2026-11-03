@@ -13,7 +13,7 @@ const STYLE = `
 .w-overlay{position:fixed;z-index:2;pointer-events:none;color:var(--text);font:var(--t-label)/1.25 var(--font)}
 .w-overlay>.w-root{pointer-events:auto}
 #ui-top{top:8px;left:50%;transform:translateX(-50%)}
-#ui-centre{left:50%;top:50%;transform:translate(-50%,-50%)}
+#ui-centre{left:50%;top:calc(60px + (100vh - var(--bar-h) - 68px) / 2);top:calc(60px + (100dvh - var(--bar-h) - 68px) / 2);transform:translate(-50%,-50%);max-height:calc(100vh - var(--bar-h) - 68px);max-height:calc(100dvh - var(--bar-h) - 68px);overflow-y:auto}
 #ui-banner{top:14%;left:50%;transform:translateX(-50%)}
 #ui-modal{left:50%;top:50%;transform:translate(-50%,-50%);width:min(960px,96vw);max-height:96vh;max-height:96dvh;overflow:auto;box-sizing:border-box;pointer-events:auto}
 .w-root{display:flex;flex-direction:column;gap:6px;min-width:0;box-sizing:border-box;color:var(--text);font:var(--t-label)/1.25 var(--font)}
