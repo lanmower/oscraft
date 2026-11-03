@@ -77,8 +77,22 @@ local barracks = {}
 local lane_spawners = {}
 local spawned = {}
 local upgraded = {}
+local upgraded_level
 local next_unit = 0
 local adopt_existing = false
+
+local function ascending_keys(set)
+  local keys = {}
+  for key in pairs(set) do
+    local j = #keys + 1
+    while j > 1 and keys[j - 1] > key do
+      keys[j] = keys[j - 1]
+      j = j - 1
+    end
+    keys[j] = key
+  end
+  return keys
+end
 
 local function distance2(ax, ay, bx, by)
   local dx, dy = ax - bx, ay - by
