@@ -244,6 +244,8 @@ local function delivery_step(c)
       game.cmd_buy(c, job.item)
       job.phase = "deliver"
       job.bought_at = game.ticks()
+    elseif courier.stalled(c) then
+      finish_delivery(c)
     elseif reroute then
       game.cmd_order(c, place.x, place.y)
     end
@@ -258,6 +260,8 @@ local function delivery_step(c)
       if #job.drops == 0 then delivery_notes[unit_player(job.hero)] = "shopRefused" end
       job.phase = "pickup"
       job.dropped_at = game.ticks()
+    elseif courier.stalled(c) then
+      finish_delivery(c)
     elseif reroute then
       game.cmd_order(c, hx, hy)
     end

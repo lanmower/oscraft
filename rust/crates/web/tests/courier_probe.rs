@@ -643,3 +643,77 @@ fn courier_of_team0_follows_still_hero_from_thirty_cells() {
 fn courier_of_team1_follows_still_hero_from_thirty_cells() {
     follows_still_hero_from_a_point_thirty_cells_away(1);
 }
+
+const POCKET_RING: [(i32, i32); 8] = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
+const POCKET_OFFSETS: [(f64, f64); 8] = [(14.0, 0.0), (-14.0, 0.0), (0.0, 14.0), (0.0, -14.0), (10.0, 10.0), (-10.0, -10.0), (10.0, -10.0), (-10.0, 10.0)];
+
+fn wall_pocket(game: &mut Game, courier_at: (f64, f64)) -> (f64, f64) {
+    let map = game.map_size();
+    let (width, height) = (f64::from(map[0]), f64::from(map[1]));
+    let centre = POCKET_OFFSETS
+        .iter()
+        .map(|(dx, dy)| (courier_at.0 + dx, courier_at.1 + dy))
+        .find(|&(x, y)| x > 2.0 && y > 2.0 && x < width - 2.0 && y < height - 2.0)
+        .map(|(x, y)| (x.floor() as i32, y.floor() as i32))
+        .expect("a pocket fits on the map");
+    for (dx, dy) in POCKET_RING {
+        assert!(game.set_cell_blocked(centre.0 + dx, centre.1 + dy, true), "the pocket cell is on the map");
+    }
+    (f64::from(centre.0) + 0.5, f64::from(centre.1) + 0.5)
+}
+
+fn order_into_pocket(game: &mut Game, courier: u32) -> (f64, f64) {
+    let courier_at = place_of(&units_of(game), courier);
+    let pocket = wall_pocket(game, courier_at);
+    assert!(game.order_move(courier, pocket.0 as f32, pocket.1 as f32), "the order point is accepted");
+    println!("probe pocket ordered courier=({:.2},{:.2}) pocket=({:.2},{:.2})", courier_at.0, courier_at.1, pocket.0, pocket.1);
+    pocket
+}
+
+fn hero_walks_thirty_cells_from(game: &mut Game, hero: u32, courier: u32) -> (f64, f64) {
+    let map = game.map_size();
+    let (width, height) = (f64::from(map[0]), f64::from(map[1]));
+    let from = place_of(&units_of(game), courier);
+    let spot = (0..16)
+        .map(|k| {
+            let angle = k as f64 * std::f64::consts::TAU / 16.0;
+            (from.0 + 30.0 * angle.cos(), from.1 + 30.0 * angle.sin())
+        })
+        .filter(|&(x, y)| x > 0.0 && y > 0.0 && x < width && y < height)
+        .find(|&spot| walk_to(game, hero, spot, 900));
+    let spot = spot.expect("the hero walks to a point 30 cells from its courier");
+    let gap = distance(place_of(&units_of(game), courier), place_of(&units_of(game), hero));
+    println!("probe pocket hero_at=({:.2},{:.2}) gap={gap:.2}", spot.0, spot.1);
+    spot
+}
+
+#[test]
+fn courier_held_by_an_unreachable_order_point_follows_its_hero_thirty_cells_away() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, hero, _) = start_match(&dir, &image);
+    let courier = *couriers_of(&units_of(&game), 1).first().expect("the owner's courier");
+
+    order_into_pocket(&mut game, courier);
+    hero_walks_thirty_cells_from(&mut game, hero, courier);
+    let follow = follow_tick_within(&mut game, courier, 300);
+    println!("probe pocket follow_tick={follow:?} order={}", order_of(&game, courier).0);
+    assert!(follow.is_some(), "a courier held by an unreachable order point follows its hero 30 cells away");
+}
+
+#[test]
+fn courier_held_by_an_unreachable_order_point_follows_after_a_stop() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, hero, _) = start_match(&dir, &image);
+    let courier = *couriers_of(&units_of(&game), 1).first().expect("the owner's courier");
+
+    order_into_pocket(&mut game, courier);
+    hero_walks_thirty_cells_from(&mut game, hero, courier);
+    call(&mut game, "select", json!({ "ids": [courier], "player": LOCAL, "pubkey": OWNER }));
+    call(&mut game, "selection", json!({ "ids": [courier], "player": LOCAL, "pubkey": OWNER }));
+    call(&mut game, "key", json!({ "key": "s", "phase": "down", "player": LOCAL, "pubkey": OWNER }));
+    let follow = follow_tick_within(&mut game, courier, 300);
+    println!("probe pocket_stop follow_tick={follow:?} order={}", order_of(&game, courier).0);
+    assert!(follow.is_some(), "a courier stopped after an unreachable order point follows its hero 30 cells away");
+}

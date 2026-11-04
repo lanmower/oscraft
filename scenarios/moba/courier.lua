@@ -20,6 +20,8 @@ local FOLLOW_MILLI = 46875
 local FOLLOW_BREAK_MILLI = 93750
 local ARRIVE_MILLI = 1000
 local TEND_EVERY = TPS // 4
+local MOVE_STALL_S = 3
+local STALL_TICKS = MOVE_STALL_S * TPS
 local INVENTORY_SLOTS = 6
 local ORDER_MOVE = 0
 local ORDER_STOP = 1
@@ -115,6 +117,7 @@ local PICKUP_DELAY_TICKS = 2
 local pending_pickups = {}
 local stop_visit = {}
 local errand = {}
+local move_marks = {}
 
 local function in_base(id)
   local rect = BASES[game.team(unit_player(id)) == 0 and 0 or 1]
@@ -182,6 +185,21 @@ local function live_hero_of(player)
   return nil
 end
 
+local function stalled(id)
+  local kind, tx, ty = game.order_of(id)
+  if kind ~= ORDER_MOVE then
+    move_marks[id] = nil
+    return false
+  end
+  local mark = move_marks[id]
+  if mark == nil or mark.tx ~= tx or mark.ty ~= ty or not game.within(id, mark.x, mark.y, ARRIVE_MILLI) then
+    local x, y = unit_position(id)
+    move_marks[id] = { tx = tx, ty = ty, x = x, y = y, at = game.ticks() }
+    return false
+  end
+  return game.ticks() - mark.at >= STALL_TICKS
+end
+
 local function idle(id)
   local kind, x, y = game.order_of(id)
   if kind == ORDER_STOP then return true end
@@ -217,7 +235,7 @@ local function visit_secret_depot(id, owner)
   if stop_visit[id] == owner then return false end
   local depot = secret_depot_for(owner)
   if depot == nil then return false end
-  if game.within(id, depot.x, depot.y, PICKUP_REACH_MILLI) then
+  if game.within(id, depot.x, depot.y, PICKUP_REACH_MILLI) or stalled(id) then
     stop_visit[id] = owner
     return false
   end
@@ -267,11 +285,12 @@ end
 local function tend(id)
   local cx, cy = unit_position(id)
   local hero = live_hero_of(unit_player(id))
+  local stuck = stalled(id)
   if game.order_of(id) == ORDER_FOLLOW then
     if hero == nil or not game.within(hero, cx, cy, FOLLOW_BREAK_MILLI) then go_home(id) end
     return
   end
-  if not idle(id) then return end
+  if not (stuck or idle(id)) then return end
   if hero ~= nil and game.within(hero, cx, cy, FOLLOW_MILLI) then
     game.cmd_follow(id, hero)
   elseif not in_base(id) then
@@ -410,6 +429,7 @@ return {
   shared = M.shared,
   first = M.first,
   send_home = M.send_home,
+  stalled = stalled,
   errand = errand,
   command = M.command,
   on_died = function(unit, killer, killer_player, amount, victim_player)

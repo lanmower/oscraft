@@ -640,6 +640,14 @@ impl Game {
     }
 }
 
+impl Game {
+    pub fn set_cell_blocked(&mut self, x: i32, y: i32, blocked: bool) -> bool {
+        let refused = self.host.sim_mut().set_cell_blocked(x, y, blocked).is_err();
+        self.rec.mark_incomplete(self.host.sim().ticks());
+        !refused
+    }
+}
+
 fn tile_fixed(tile: f32) -> Option<i32> {
     let scaled = f64::from(tile) * 65536.0;
     (scaled.is_finite() && scaled >= f64::from(i32::MIN) && scaled <= f64::from(i32::MAX)).then(|| scaled as i32)
