@@ -633,16 +633,13 @@ local function shop_tree()
   local function item_cell(i, def)
     local tone = gold >= price_of(i, def) and "gold" or "bad"
     local name_tone = i == pick and "accent" or "strong"
-    local route, reason = route_of(i)
-    local stock = stock_sentence(i)
-    local kids = { label(def.name, name_tone), label(tostring(def.cost) .. TEXT.costSuffix, tone) }
-    if stock ~= nil then kids[#kids + 1] = label(stock, "faint") end
-    return cell(kids, { tip = item_tip(def, hero, route, reason, stock), call = "shop_pick", args = obj({ I("item", i) }) })
+    return cell({ label(def.name, name_tone), label(tostring(def.cost) .. TEXT.costSuffix, tone) }, { call = "shop_pick", args = obj({ I("item", i) }) })
   end
 
   local function pick_detail(i, def)
     local route, reason = route_of(i)
     local afford = gold >= price_of(i, def)
+    local stock = stock_sentence(i)
     local buy_tip = nil
     if hero == nil then buy_tip = TEXT.refusals.noHero
     elseif route == nil then buy_tip = TEXT.shop.offHand.denied[reason] or reason
@@ -652,13 +649,9 @@ local function shop_tree()
     local kids = {
       label(def.name, "strong"),
       label(tostring(def.cost) .. TEXT.costSuffix, afford and "gold" or "bad"),
+      label(item_tip(def, hero, route, reason, stock), "muted"),
       label("[" .. shop_names(def.name) .. "]", "faint"),
-      label(effect_sentence(def), "muted"),
-      label(TEXT.shop.tip.buy, "faint"),
-      label(reach_sentence(hero, route, reason), route == nil and "warn" or "ok"),
     }
-    local stock = stock_sentence(i)
-    if stock ~= nil then kids[#kids + 1] = label(stock, "faint") end
     if SHORTFALL_NOTE ~= nil and SHORTFALL_NOTE.item == i then kids[#kids + 1] = label(SHORTFALL_NOTE.text, "warn") end
     kids[#kids + 1] = box({
       button(TEXT.buy, "buy", obj({ I("item", i) }), hero == nil or not afford or route == nil, buy_tip),

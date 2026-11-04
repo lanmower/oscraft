@@ -205,12 +205,17 @@ fn kids_of(node: &Value) -> Vec<Value> {
     node.get("kids").and_then(Value::as_array).cloned().unwrap_or_default()
 }
 
-fn tip_of(tree: &Value, name: &str) -> String {
-    nodes_of(tree)
+fn tip_of(shop: &mut Shop, name: &str) -> String {
+    let item = nodes_of(&shop.tree)
         .into_iter()
         .find(|node| node["t"] == "cell" && node["call"] == "shop_pick" && kids_of(node).first().and_then(|kid| kid["text"].as_str()) == Some(name))
-        .and_then(|node| node["tip"].as_str().map(str::to_owned))
-        .unwrap_or_else(|| panic!("the shop lists {name} with a tooltip"))
+        .and_then(|node| node["args"]["item"].as_u64())
+        .unwrap_or_else(|| panic!("the shop lists {name}"));
+    shop.act_ui("shop_pick", json!({ "item": item }));
+    texts_of(&shop.tree)
+        .into_iter()
+        .find(|text| text.contains("Buy from here:"))
+        .unwrap_or_else(|| panic!("the selected {name} shows its tip"))
 }
 
 fn texts_of(tree: &Value) -> Vec<String> {
@@ -425,7 +430,7 @@ fn off_hand_buy_routes_by_reach_and_courier() {
 
     let rows = tsv_rows(&dir);
     for name in ["branches", "magic_wand", "tango"] {
-        let tip = tip_of(&shop.tree, name);
+        let tip = tip_of(&mut shop, name);
         println!("shop_tree first_line item={name} \"{}\"", first_sentence(&tip));
         println!("shop_tree tree item={name} {}", check_tree(&rows, &tip, name));
     }
@@ -438,7 +443,7 @@ fn off_hand_buy_routes_by_reach_and_courier() {
     listed.dedup();
     let (mut web_only, mut no_tree, mut kept) = (0, 0, 0);
     for name in &listed {
-        let line = check_tree(&rows, &tip_of(&shop.tree, name), name);
+        let line = check_tree(&rows, &tip_of(&mut shop, name), name);
         if line.starts_with("components=[] ") {
             no_tree += 1;
         }
@@ -454,7 +459,7 @@ fn off_hand_buy_routes_by_reach_and_courier() {
 
     assert!(walk_to(&mut shop, hero, SHOP_HOME, 2000, |d| d < SHOP_REACH - 2.0) < 2000, "the hero reaches the home shop");
     shop.pump(8);
-    let tip = tip_of(&shop.tree, "tango");
+    let tip = tip_of(&mut shop, "tango");
     println!("shop_offhand case=1 hero=in-reach courier=present tip_reach=\"{}\"", after(&tip, "Buy from here: ").unwrap_or_default());
     let (gold0, held0) = (shop.game.gold(1), held(&shop.game, hero, tango));
     shop.act_ui("buy", json!({ "item": tango }));
@@ -467,7 +472,7 @@ fn off_hand_buy_routes_by_reach_and_courier() {
     let courier_stop = walk_to(&mut shop, courier, FAR_COURIER, 1500, |d| d < 0.5);
     println!("shop_offhand case=2 walk hero_ticks={hero_stop} courier_ticks={courier_stop}");
     shop.pump(8);
-    let tip = tip_of(&shop.tree, "branches");
+    let tip = tip_of(&mut shop, "branches");
     println!("shop_offhand case=2 hero=out-of-reach courier=present tip_reach=\"{}\"", after(&tip, "Buy from here: ").unwrap_or_default());
     assert!(after(&tip, "Buy from here: ").is_some_and(|reach| reach.contains("courier")), "out of reach, the tooltip routes the buy through the courier");
     let (gold0, hero0, courier0) = (shop.game.gold(1), held(&shop.game, hero, branches), held(&shop.game, courier, branches));
@@ -525,7 +530,7 @@ fn off_hand_buy_routes_by_reach_and_courier() {
     shop.act_ui("build_toggle", json!({ "item": gem }));
     let out_of_stock = texts_of(&shop.tree).into_iter().find(|text| text.starts_with("gem ") && text.contains("Restocks in")).expect("the quick buy entry for gem");
     println!("shop_stock case=7 quick buy entry=\"{out_of_stock}\"");
-    let left = tip_of(&shop.tree, "blood_grenade");
+    let left = tip_of(&mut shop, "blood_grenade");
 
     println!("shop_stock case=8 blood_grenade tooltip has \"{}\"", after(&left, "Stock left:").map(|rest| format!("Stock left:{rest}")).unwrap_or_default());
     assert!(left.contains("Stock left: 2."), "limited stock shows the remaining quantity: {left}");

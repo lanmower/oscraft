@@ -1,20 +1,20 @@
 # Shop
 
-Bottom line: a hero buys a listed item for gold from a shop within that shop's reach, or the player's courier fetches it from the nearest seller and delivers it to the hero, and every item shows its build tree and what a buy does.
+Bottom line: a hero buys a listed item for gold from a shop within that shop's reach, or the player's courier fetches it from the nearest seller and delivers it to the hero, and the selected item shows its build tree and what a buy does.
 
 Source tags: `6.88g` is the map data (`items_688g.tsv`, `shops_688g.tsv`); `web` is a Dota 2 reference (`items.osd` reference dump, Dota 2 wiki); `design` is an oscraft choice; `GUESS` means the value is not confirmed and the reason is given.
 
 ## What can be bought
 
 - **SHOP-LIST.** A shop sells the items its row lists. `6.88g` `scenarios/moba/shops_688g.tsv` (generated into `shops_688g.lua`); 24 home shops, 6 side shops, 2 secret shops.
-- **SHOP-STOCK-LEFT.** A limited-stock item shows its remaining quantity in its tooltip and cell (`Stock left: N.`). An out-of-stock item shows `Out of stock. Restocks in Ns.`, both in the shop and in its Quick Buy entry. Source: `store.lua` `stock_status`; the seconds come from the same timer as SHOP-STOCK.
+- **SHOP-STOCK-LEFT.** A limited-stock item shows its remaining quantity in the selected item's detail (`Stock left: N.`). An out-of-stock item shows `Out of stock. Restocks in Ns.`, both in the selected item's detail and in its Quick Buy entry. Source: `store.lua` `stock_status`; the seconds come from the same timer as SHOP-STOCK.
 - **SHOP-STOCK.** Items with a stock limit restock on a timer per team. `web`: the limits come from the Dota 2 reference dump (`ItemStockMax`, `ItemStockInitial`, `ItemStockTime` in `items.osd`), not from 6.88g; 6.88g stock is not in the repo.
 - **SHOP-NOBUY.** Items marked `no_buy` (states, proxies, placeholders) cannot be bought. `6.88g` `items_688g_na.tsv` (not_applicable rows).
 
 ## What can be built (build tree)
 
 - **SHOP-SHORTFALL.** Alt-click on a shop item shows the gold it still needs (`Needs N gold more for this item.`, or `You can afford this item now.`). Ctrl+Alt adds the buyback cost to that figure. The click carries `alt` and `ctrl` flags from `js/client/widgets.js` (`withModifiers`). Source: `design`.
-- **SHOP-TREE.** Every item shows its build tree in the tooltip and in the panel: the components it is built from, each with its own cost and its own components one level at a time, and the items it is a part of. An item with no recipe shows `No build tree.` `6.88g` recipe rows, `items_688g.tsv` column `components`: a list is the 6.88g recipe and the tree matches it exactly. `KEEP` means 6.88g is silent, so the catalog keeps its reference recipe from `items.osd` (`web`; Abyssal Blade builds from Basher and Sange this way), or no recipe when the reference has none (`apply-items-688g.mjs`). A `not_in_688g` row (Holy Locket, parent of Magic Wand) has only a `web` recipe. `shop_offhand_probe` checks every listed item against this column.
+- **SHOP-TREE.** The selected item shows its build tree in the shop's detail panel: the components it is built from, each with its own cost and its own components one level at a time, and the items it is a part of. An item with no recipe shows `No build tree.` `6.88g` recipe rows, `items_688g.tsv` column `components`: a list is the 6.88g recipe and the tree matches it exactly. `KEEP` means 6.88g is silent, so the catalog keeps its reference recipe from `items.osd` (`web`; Abyssal Blade builds from Basher and Sange this way), or no recipe when the reference has none (`apply-items-688g.mjs`). A `not_in_688g` row (Holy Locket, parent of Magic Wand) has only a `web` recipe. `shop_offhand_probe` checks every listed item against this column.
 - **SHOP-RECIPE-ORDER.** A recipe component is declared before its item and costs no more than the item. `6.88g` items_688g.tsv order; AGENTS.md Items and economy.
 
 ## What happens on buy
@@ -40,4 +40,4 @@ Source tags: `6.88g` is the map data (`items_688g.tsv`, `shops_688g.tsv`); `web`
 
 ## Item text
 
-- **SHOP-TEXT.** The tooltip (and the detail panel) reads in this order: the effect (stats, charges, or no passive stats), the cost, the build tree and what a buy does, then whether the buyer can buy from here (`yes, your hero is in reach`, `yes, your courier fetches it`, or `no` with the reason). Source: `moba_ui.json` `shop.tip` and `shop.offHand`.
+- **SHOP-TEXT.** The selected item's detail panel reads in this order: the effect (stats, charges, or no passive stats), the cost, the build tree and what a buy does, then whether the buyer can buy from here (`yes, your hero is in reach`, `yes, your courier fetches it`, or `no` with the reason). Source: `moba_ui.json` `shop.tip` and `shop.offHand`.
