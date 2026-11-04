@@ -114,7 +114,7 @@ fn selection_of(lines: &[Value]) -> Option<Vec<u64>> {
         .map(|line| line["data"]["ids"].as_array().expect("selection ids").iter().map(|id| id.as_u64().expect("unit id")).collect())
 }
 
-fn start_match(dir: &Path, image: &[u8]) -> (Game, u32) {
+fn start_match(dir: &Path, image: &[u8]) -> (Game, u32, Vec<String>) {
     let mut game = Game::new(image).expect("game");
     game.set_fog(false);
     load_pack(&mut game, dir);
@@ -155,7 +155,7 @@ fn start_match(dir: &Path, image: &[u8]) -> (Game, u32) {
     }
     advance(&mut game, 200);
     let hero = local_hero.expect("the local seat's hero is selected at match start") as u32;
-    (game, hero)
+    (game, hero, heroes)
 }
 
 struct Unit {
@@ -230,7 +230,7 @@ fn holds(game: &Game, unit: u32, item: u32) -> bool {
 fn courier_follows_returns_delivers_and_revives_without_commands() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let (mut game, hero) = start_match(&dir, &image);
+    let (mut game, hero, _) = start_match(&dir, &image);
     let owner = 1u8;
 
     let units = units_of(&game);
@@ -382,7 +382,7 @@ fn carry_trace(game: &mut Game, courier: u32, hero: u32, item: u32, window: usiz
 fn courier_route_visits_secret_depot_before_owner_only_when_stop_is_set() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let (mut game, hero) = start_match(&dir, &image);
+    let (mut game, hero, _) = start_match(&dir, &image);
     let owner = 1u8;
     let courier = *couriers_of(&units_of(&game), owner).first().expect("the owner's courier");
     let lifesteal = lifesteal_item(&game);
@@ -421,4 +421,79 @@ fn courier_route_visits_secret_depot_before_owner_only_when_stop_is_set() {
     }
     println!("probe autodeliver_on resumed={resumed:?} hero_gained={}", held(&game, hero, lifesteal) - before);
     assert!(resumed.is_some(), "with auto-delivery back on the item reaches the owner");
+}
+
+fn seat_hero(game: &Game, heroes: &[String], player: usize) -> u32 {
+    let name = &heroes[(20 + player) % heroes.len()];
+    units_of(game)
+        .iter()
+        .find(|unit| usize::from(unit.player) == player && &unit.kind == name)
+        .map(|unit| unit.id)
+        .expect("the seat's hero is on the map")
+}
+
+fn walk_to(game: &mut Game, unit: u32, target: (f64, f64), ticks: usize) -> bool {
+    if !game.order_move(unit, target.0 as f32, target.1 as f32) {
+        return false;
+    }
+    for _ in 0..ticks {
+        advance(game, 1);
+        if distance(place_of(&units_of(game), unit), target) <= 1.0 {
+            return true;
+        }
+    }
+    false
+}
+
+fn follows_still_hero_from_a_point_thirty_cells_away(owner: u8) {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, _, heroes) = start_match(&dir, &image);
+    let courier = *couriers_of(&units_of(&game), owner).first().expect("the owner's courier spawns at match start");
+    let hero = seat_hero(&game, &heroes, owner as usize);
+    let hero_start = place_of(&units_of(&game), hero);
+    assert!(game.order_move(hero, hero_start.0 as f32, hero_start.1 as f32), "the hero holds still");
+    advance(&mut game, 4);
+    let hero_at = place_of(&units_of(&game), hero);
+
+    let map = game.map_size();
+    let (width, height) = (f64::from(map[0]), f64::from(map[1]));
+    let spots: Vec<(f64, f64)> = (0..16)
+        .map(|k| {
+            let angle = k as f64 * std::f64::consts::TAU / 16.0;
+            (hero_at.0 + 28.0 * angle.cos(), hero_at.1 + 28.0 * angle.sin())
+        })
+        .filter(|&(x, y)| x > 0.0 && y > 0.0 && x < width && y < height)
+        .collect();
+    let arrived_at = spots.into_iter().find(|&spot| walk_to(&mut game, courier, spot, 600));
+    let spot = arrived_at.expect("the courier reaches a point 28 cells from its hero");
+    advance(&mut game, 16);
+    let courier_at = place_of(&units_of(&game), courier);
+    let gap = distance(courier_at, hero_at);
+    let (kind, _) = order_of(&game, courier);
+    println!(
+        "probe still_hero owner={owner} courier={courier} hero={hero} spot=({:.2},{:.2}) courier=({:.2},{:.2}) gap={gap:.2} order_after_arrival={kind}",
+        spot.0, spot.1, courier_at.0, courier_at.1
+    );
+
+    let mut follow_tick = None;
+    for tick in 1..=128 {
+        advance(&mut game, 1);
+        if order_of(&game, courier).0 == ORDER_FOLLOW {
+            follow_tick = Some(tick);
+            break;
+        }
+    }
+    println!("probe still_hero follow_tick={follow_tick:?}");
+    assert!(follow_tick.is_some(), "an idle courier follows its still hero when the hero is 28 cells away");
+}
+
+#[test]
+fn courier_of_team0_follows_still_hero_from_thirty_cells() {
+    follows_still_hero_from_a_point_thirty_cells_away(0);
+}
+
+#[test]
+fn courier_of_team1_follows_still_hero_from_thirty_cells() {
+    follows_still_hero_from_a_point_thirty_cells_away(1);
 }
