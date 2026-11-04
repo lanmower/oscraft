@@ -8,63 +8,38 @@ const BODY_RADIUS_MILLI = Object.freeze({
   "naga-siren-skinned": 93,
   "slark-skinned": 93,
 });
-const BODY_GAP = 0.04;
+const BODY_GAP = 0.16;
 const BUNDLE_GAP = 0.3;
-const RING_STEP = 0.01;
-const ANGLE_STEPS = 72;
-const MAX_RING = 2;
+const ARC_DEPTH = 0.12;
 
 export function sceneBodyRadius(model) {
   const milli = BODY_RADIUS_MILLI[model] ?? DEFAULT_BODY_RADIUS_MILLI;
   return milli / CELL_MILLI / REFERENCE_HERO_HEIGHT_CELLS;
 }
 
-function compactSpot(placed, r) {
-  const fits = (x, z) => placed.every((p) => Math.hypot(x - p.x, z - p.z) >= r + p.r + BODY_GAP);
-  let best = null;
-  let bestReach = Infinity;
-  for (let ring = 0; ring <= MAX_RING; ring += RING_STEP) {
-    const steps = ring === 0 ? 1 : ANGLE_STEPS;
-    for (let k = 0; k < steps; k += 1) {
-      const angle = (2 * Math.PI * k) / steps;
-      const x = ring * Math.cos(angle);
-      const z = ring * Math.sin(angle);
-      if (!fits(x, z)) continue;
-      const reach = Math.max(Math.hypot(x, z) + r, ...placed.map((p) => Math.hypot(p.x, p.z) + p.r));
-      if (reach < bestReach - 1e-9) {
-        bestReach = reach;
-        best = { x, z };
-      }
-    }
-    if (best && ring > bestReach) break;
-  }
-  return best;
-}
-
-function packTeam(radii) {
-  const placed = [];
-  for (const r of radii) placed.push({ ...compactSpot(placed, r), r });
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minZ = Infinity;
-  let maxZ = -Infinity;
-  for (const p of placed) {
-    minX = Math.min(minX, p.x - p.r);
-    maxX = Math.max(maxX, p.x + p.r);
-    minZ = Math.min(minZ, p.z - p.r);
-    maxZ = Math.max(maxZ, p.z + p.r);
-  }
+function rowTeam(radii) {
+  const xs = [];
+  let x = 0;
+  radii.forEach((r, i) => {
+    if (i > 0) x += radii[i - 1] + r + BODY_GAP;
+    xs.push(x);
+  });
+  const minX = Math.min(...xs.map((v, i) => v - radii[i]));
+  const maxX = Math.max(...xs.map((v, i) => v + radii[i]));
   const cx = (minX + maxX) / 2;
-  const cz = (minZ + maxZ) / 2;
-  return { bodies: placed.map((p) => ({ x: p.x - cx, z: p.z - cz, r: p.r })), half: (maxX - minX) / 2 };
+  const half = (maxX - minX) / 2;
+  const bodies = xs.map((v, i) => {
+    const u = half > 0 ? (v - cx) / half : 0;
+    return { x: v - cx, z: -ARC_DEPTH * (1 - u * u), r: radii[i] };
+  });
+  return { bodies, half };
 }
 
 export function sceneBundleLayout(radii) {
-  const teams = [radii.slice(0, SCENE_TEAM_SIZE), radii.slice(SCENE_TEAM_SIZE)].map(packTeam);
+  const teams = [radii.slice(0, SCENE_TEAM_SIZE), radii.slice(SCENE_TEAM_SIZE)].map(rowTeam);
   const bundleHalf = Math.max(...teams.map((t) => t.half));
   const centerOffset = bundleHalf + BUNDLE_GAP / 2;
-  const sides = [-1, 1];
-  const centers = sides.map((side) => side * centerOffset);
+  const centers = [-centerOffset, centerOffset];
   const seats = [];
   teams.forEach((team, t) => {
     team.bodies.forEach((body, place) => {

@@ -105,6 +105,57 @@ export function samplePose(clip, time, loop = true, into = null) {
   return pose;
 }
 
+function fadeWeight(remaining, total) {
+  if (!(total > 0)) return 1;
+  const t = Math.min(1, Math.max(0, 1 - remaining / total));
+  return t * t * (3 - 2 * t);
+}
+
+function copyPose(pose) {
+  const out = new Map();
+  for (const [node, entry] of pose) {
+    const copy = {};
+    for (const path of Object.keys(entry)) copy[path] = Float32Array.from(entry[path]);
+    out.set(node, copy);
+  }
+  return out;
+}
+
+function blendEntry(a, b, w, path) {
+  const out = new Float32Array(b.length);
+  if (path !== 'rotation') {
+    for (let c = 0; c < b.length; c++) out[c] = (1 - w) * a[c] + w * b[c];
+    return out;
+  }
+  let dot = 0;
+  for (let c = 0; c < 4; c++) dot += a[c] * b[c];
+  const sign = dot < 0 ? -1 : 1;
+  let len = 0;
+  for (let c = 0; c < 4; c++) {
+    out[c] = (1 - w) * a[c] + w * sign * b[c];
+    len += out[c] * out[c];
+  }
+  const inv = 1 / Math.sqrt(len || 1);
+  for (let c = 0; c < 4; c++) out[c] *= inv;
+  return out;
+}
+
+function blendPose(from, to, w, out) {
+  out.clear();
+  for (const node of new Set([...from.keys(), ...to.keys()])) {
+    const a = from.get(node) ?? {};
+    const b = to.get(node) ?? {};
+    const entry = {};
+    for (const path of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (!a[path]) entry[path] = Float32Array.from(b[path]);
+      else if (!b[path]) entry[path] = Float32Array.from(a[path]);
+      else entry[path] = blendEntry(a[path], b[path], w, path);
+    }
+    out.set(node, entry);
+  }
+  return out;
+}
+
 export class AnimationPlayer {
   constructor(clips) {
     this.clips = clips;
@@ -114,12 +165,20 @@ export class AnimationPlayer {
     this.poseCache = new Map();
     this.poseClip = null;
     this.rate = 1;
+    this.fadeFrom = null;
+    this.fadeTotal = 0;
+    this.fadeLeft = 0;
+    this.blended = new Map();
   }
 
-  play(name, { loop = true } = {}) {
+  play(name, { loop = true, fade = 0 } = {}) {
     const clip = findClip(this.clips, name);
     if (!clip) return null;
     if (clip !== this.clip) {
+      const previous = this.clip ? this.pose() : null;
+      this.fadeFrom = fade > 0 && previous ? copyPose(previous) : null;
+      this.fadeTotal = this.fadeFrom ? fade : 0;
+      this.fadeLeft = this.fadeTotal;
       this.clip = clip;
       this.time = 0;
     }
@@ -127,18 +186,23 @@ export class AnimationPlayer {
     return clip.name;
   }
 
-  playState(state) {
+  playState(state, options) {
     const wanted = STATE_CLIPS[chooseState(state)];
     for (const name of wanted) {
-      const played = this.play(name, { loop: true });
+      const played = this.play(name, { loop: true, ...options });
       if (played) return played;
     }
-    return this.play('idle');
+    return this.play('idle', { loop: true, ...options });
   }
 
   update(dt) {
     if (this.clip) this.time += dt * this.rate;
     if (this.clip && !this.loop && this.time >= this.clip.duration) this.time = this.clip.duration;
+    if (this.fadeLeft > 0) this.fadeLeft = Math.max(0, this.fadeLeft - dt);
+  }
+
+  blendWeight() {
+    return this.fadeFrom ? fadeWeight(this.fadeLeft, this.fadeTotal) : 1;
   }
 
   pose() {
@@ -147,7 +211,12 @@ export class AnimationPlayer {
       this.poseCache.clear();
       this.poseClip = this.clip;
     }
-    return samplePose(this.clip, this.time, this.loop, this.poseCache);
+    const current = samplePose(this.clip, this.time, this.loop, this.poseCache);
+    if (this.fadeLeft <= 0 || !this.fadeFrom) {
+      this.fadeFrom = null;
+      return current;
+    }
+    return blendPose(this.fadeFrom, current, fadeWeight(this.fadeLeft, this.fadeTotal), this.blended);
   }
 }
 

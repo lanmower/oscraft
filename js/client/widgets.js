@@ -728,6 +728,12 @@ export function sceneWidget() {
       cell.dataset.bodyX = seats[k].x.toFixed(4);
       cell.dataset.bodyZ = seats[k].z.toFixed(4);
       cell.dataset.bodyR = seats[k].r.toFixed(4);
+      cell.dataset.sx = seats[k].sx.toFixed(2);
+      cell.dataset.st = seats[k].st.toFixed(2);
+      cell.dataset.sb = seats[k].sb.toFixed(2);
+      cell.dataset.sr = seats[k].sr.toFixed(2);
+      cell.dataset.depth = seats[k].depth.toFixed(4);
+      cell.dataset.blend = seats[k].blend.toFixed(3);
     });
     if (element.dataset.draws !== String(draws)) element.dataset.draws = String(draws);
   };

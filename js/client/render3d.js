@@ -1,5 +1,5 @@
 import { AnimationPlayer, jointMatrices } from "./anim.js";
-import { SCENE_TEAM_SIZE, sceneBodyRadius, sceneBundleLayout } from "./scene_layout.js";
+import { sceneBodyRadius, sceneBundleLayout } from "./scene_layout.js";
 const PITCH_LIMIT = Math.PI / 2 - 0.01;
 const DEFAULT_FOV_Y = (70 * Math.PI) / 180;
 const PITCH_MIN = DEFAULT_FOV_Y / 2 + 0.01;
@@ -1088,7 +1088,6 @@ export async function drawModelPreview(canvas, prepare) {
 
 const SCENE_SLOTS = 10;
 const SCENE_HERO_HEIGHT = 1;
-const SCENE_PLATE_SPACING = 0.36;
 const SCENE_PLATE_STAGGER = 0.14;
 const SCENE_PITCH = 0.12;
 const SCENE_HALF_DEPTH = 0.5;
@@ -1098,9 +1097,10 @@ const SCENE_NAME_HEIGHT = SCENE_HERO_HEIGHT + 0.12;
 const SCENE_MARGIN = 1.12;
 const SCENE_CLEAR = [0, 0, 0, 0];
 const SCENE_IDLE = "idle";
-const SCENE_SWITCHES = ["static", "emote-yes", "emote-no", "idle-alt", "holding-both"];
+const SCENE_SWITCHES = ["static", "emote-yes", "emote-no", "idle-alt"];
 const SCENE_SWITCH_GAP_S = [6, 14];
 const SCENE_SWITCH_HOLD_S = [3, 6];
+const SCENE_FADE_S = 0.4;
 const SCENE_EMPTY_POSE = new Map();
 
 function figureOf(rig) {
@@ -1137,6 +1137,17 @@ function screenPoint(vp, x, y, z, width, height) {
   return [((sx / w) + 1) * 0.5 * width, (1 - sy / w) * 0.5 * height];
 }
 
+function bodyScreen(vp, seat, width, height) {
+  const mid = SCENE_HERO_HEIGHT / 2;
+  const center = screenPoint(vp, seat.x, mid, seat.z, width, height);
+  const top = screenPoint(vp, seat.x, SCENE_HERO_HEIGHT, seat.z, width, height);
+  const bottom = screenPoint(vp, seat.x, 0, seat.z, width, height);
+  const rim = screenPoint(vp, seat.x + seat.r, 0, seat.z, width, height);
+  const depth = vp[3] * seat.x + vp[7] * mid + vp[11] * seat.z + vp[15];
+  if (!center || !top || !bottom || !rim) return { sx: NaN, st: NaN, sb: NaN, sr: NaN, depth };
+  return { sx: center[0], st: top[1], sb: bottom[1], sr: Math.abs(rim[0] - center[0]), depth };
+}
+
 function gapBetween(range, random) {
   return range[0] + random() * (range[1] - range[0]);
 }
@@ -1157,14 +1168,14 @@ function stepSeat(state, figure, clock, random) {
   if (state.clip === SCENE_IDLE) {
     if (clock < state.nextAt) return;
     const name = figure.stands[Math.floor(random() * figure.stands.length)];
-    state.player.play(name, { loop: true });
+    state.player.play(name, { loop: true, fade: SCENE_FADE_S });
     state.clip = name;
     state.switches += 1;
     state.backAt = clock + gapBetween(SCENE_SWITCH_HOLD_S, random);
     return;
   }
   if (clock < state.backAt) return;
-  state.player.playState({});
+  state.player.playState({}, { fade: SCENE_FADE_S });
   state.clip = SCENE_IDLE;
   state.nextAt = clock + gapBetween(SCENE_SWITCH_GAP_S, random);
 }
@@ -1217,6 +1228,7 @@ export function createFigureScene(canvas, { prepare, onFrame, random = Math.rand
     const info = [];
     layout.seats.forEach((seat, k) => {
       const state = seats[k];
+      const body = bodyScreen(viewProj, seat, cssWidth, cssHeight);
       const model = models[k];
       const figure = model ? figures.get(model)?.figure ?? null : null;
       if (figure) {
@@ -1230,13 +1242,12 @@ export function createFigureScene(canvas, { prepare, onFrame, random = Math.rand
         } else {
           renderer.drawMesh(figure.mesh, transform);
         }
-        info.push({ clip: state.clip, switches: state.switches, stands: figure.stands.join(","), x: seat.x, z: seat.z, r: seat.r });
+        info.push({ clip: state.clip, switches: state.switches, stands: figure.stands.join(","), x: seat.x, z: seat.z, r: seat.r, ...body, blend: state.player ? state.player.blendWeight() : 1 });
       } else {
-        info.push({ clip: "", switches: 0, stands: "", x: seat.x, z: seat.z, r: seat.r });
+        info.push({ clip: "", switches: 0, stands: "", x: seat.x, z: seat.z, r: seat.r, ...body, blend: 1 });
       }
-      const plateX = layout.centers[seat.team] + (seat.place - (SCENE_TEAM_SIZE - 1) / 2) * SCENE_PLATE_SPACING;
       const plateY = SCENE_NAME_HEIGHT + (seat.place % 2) * SCENE_PLATE_STAGGER;
-      points.push(screenPoint(viewProj, plateX, plateY, 0, cssWidth, cssHeight));
+      points.push(screenPoint(viewProj, seat.x, plateY, seat.z, cssWidth, cssHeight));
     });
     renderer.endFrame();
     onFrame?.({ points, seats: info, draws: renderer.stats.drawCalls });

@@ -13,7 +13,6 @@ const STAND_CLIPS = [
   { name: 'emote-yes', source: 'emote-yes', bones: TORSO_HEAD },
   { name: 'emote-no', source: 'emote-no', bones: TORSO_HEAD },
   { name: 'idle-alt', source: 'idle', bones: WITH_ARMS },
-  { name: 'holding-both', source: 'holding-both', bones: WITH_ARMS },
 ];
 const IDENTITY = [0, 0, 0, 1];
 const FLOAT32 = 5126;
