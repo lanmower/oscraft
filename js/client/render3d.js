@@ -1,5 +1,5 @@
 import { AnimationPlayer, jointMatrices } from "./anim.js";
-import { sceneBodyRadius, sceneBundleLayout } from "./scene_layout.js";
+import { sceneBodyRadius, sceneBundleLayout, sceneFrame, SCENE_VIEW_PITCH } from "./scene_layout.js";
 const PITCH_LIMIT = Math.PI / 2 - 0.01;
 const DEFAULT_FOV_Y = (70 * Math.PI) / 180;
 const PITCH_MIN = DEFAULT_FOV_Y / 2 + 0.01;
@@ -1087,17 +1087,15 @@ export async function drawModelPreview(canvas, prepare) {
 }
 
 const SCENE_SLOTS = 10;
+const SCENE_FOV_Y = 0.3;
+const SCENE_PLATE_ROOM = 0.25;
 const SCENE_HERO_HEIGHT = 1;
 const SCENE_PLATE_STAGGER = 0.14;
-const SCENE_PITCH = 0.12;
-const SCENE_HALF_DEPTH = 0.5;
-const SCENE_TOP = 1.4;
-const SCENE_TARGET_Y = 0.6;
-const SCENE_NAME_HEIGHT = SCENE_HERO_HEIGHT + 0.12;
+const SCENE_NAME_HEIGHT = SCENE_HERO_HEIGHT + 0.02;
 const SCENE_MARGIN = 1.12;
 const SCENE_CLEAR = [0, 0, 0, 0];
 const SCENE_IDLE = "idle";
-const SCENE_SWITCHES = ["static", "emote-yes", "emote-no", "idle-alt"];
+const SCENE_SWITCHES = ["static", "idle-alt"];
 const SCENE_SWITCH_GAP_S = [6, 14];
 const SCENE_SWITCH_HOLD_S = [3, 6];
 const SCENE_FADE_S = 0.4;
@@ -1120,13 +1118,6 @@ function figureOf(rig) {
 
 function slotTransform(seat, figure, out) {
   return multiply(multiply(translation(seat.x, figure.lift, seat.z), rotationY(seat.yaw)), scaling(figure.scale, figure.scale, figure.scale), out);
-}
-
-function sceneDistance(aspect, halfWidth) {
-  const tanV = Math.tan(PREVIEW_FOV_Y / 2);
-  const byWidth = halfWidth / (tanV * aspect);
-  const byHeight = (SCENE_TOP / 2 + SCENE_HALF_DEPTH * Math.sin(SCENE_PITCH)) / tanV;
-  return SCENE_MARGIN * Math.max(byWidth, byHeight);
 }
 
 function screenPoint(vp, x, y, z, width, height) {
@@ -1184,12 +1175,14 @@ export function createFigureScene(canvas, { prepare, onFrame, random = Math.rand
   const gl = canvas.getContext("webgl2", { antialias: true, alpha: true, premultipliedAlpha: true });
   if (!gl) return null;
   const renderer = createRenderer(gl);
-  const cam = createCamera({ fovY: PREVIEW_FOV_Y, pitch: SCENE_PITCH });
+  const cam = createCamera({ fovY: SCENE_FOV_Y, pitch: SCENE_VIEW_PITCH });
   const figures = new Map();
   const seats = Array.from({ length: SCENE_SLOTS }, () => ({ model: null, player: null, joints: null, clip: SCENE_IDLE, switches: 0, nextAt: 0, backAt: 0, transform: new Float32Array(16) }));
   const viewProj = new Float32Array(16);
   let models = new Array(SCENE_SLOTS).fill(null);
   let layout = sceneBundleLayout(Array.from({ length: SCENE_SLOTS }, () => sceneBodyRadius(null)));
+  let frameAspect = 0;
+  let fitted = null;
   let running = false;
   let raf = 0;
   let clock = 0;
@@ -1217,16 +1210,19 @@ export function createFigureScene(canvas, { prepare, onFrame, random = Math.rand
     if (canvas.width !== width) canvas.width = width;
     if (canvas.height !== height) canvas.height = height;
     const aspect = width / height;
-    const distance = sceneDistance(aspect, layout.halfWidth);
-    cam.target = [0, SCENE_TARGET_Y, 0];
+    if (aspect !== frameAspect) {
+      frameAspect = aspect;
+      fitted = sceneFrame(layout, { aspect, pitch: SCENE_VIEW_PITCH, fovY: SCENE_FOV_Y, heights: [0, SCENE_HERO_HEIGHT, SCENE_NAME_HEIGHT, SCENE_NAME_HEIGHT + SCENE_PLATE_ROOM], fill: 1 / SCENE_MARGIN });
+    }
+    cam.target = [0, fitted.targetY, 0];
     cam.yaw = 0;
-    cam.distance = distance;
-    renderer.setCamera({ target: cam.target, yaw: 0, pitch: SCENE_PITCH, distance, fovY: PREVIEW_FOV_Y, aspect });
+    cam.distance = fitted.distance;
+    renderer.setCamera({ target: cam.target, yaw: 0, pitch: SCENE_VIEW_PITCH, distance: fitted.distance, fovY: SCENE_FOV_Y, aspect });
     viewProjection(cam, aspect, viewProj);
     renderer.beginFrame(SCENE_CLEAR);
     const points = [];
     const info = [];
-    layout.seats.forEach((seat, k) => {
+    layout.forEach((seat, k) => {
       const state = seats[k];
       const body = bodyScreen(viewProj, seat, cssWidth, cssHeight);
       const model = models[k];
@@ -1257,6 +1253,7 @@ export function createFigureScene(canvas, { prepare, onFrame, random = Math.rand
     setModels(next) {
       models = next;
       layout = sceneBundleLayout(Array.from({ length: SCENE_SLOTS }, (_, k) => sceneBodyRadius(next[k] ?? null)));
+      frameAspect = 0;
       for (const model of next) if (model && !figures.has(model)) load(model);
     },
     start() {
