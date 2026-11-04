@@ -240,7 +240,11 @@ function renderFatal() {
 function renderStatus() {
   const mode = netState ? (peers.size > 0 ? "net" : `net lost at tick ${netState.tick}, reconnecting`) : "local";
   const detail = reconnectNote || (debugOn ? statusLine : "");
-  statusEl.textContent = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${detail ? `\n${detail}` : ""}`;
+  const sentence = `room ${room} · ${peers.size} ${peers.size === 1 ? "peer" : "peers"} · ${mode}${detail ? `\n${detail}` : ""}`;
+  statusEl.textContent = "";
+  statusEl.title = sentence;
+  statusEl.setAttribute("aria-label", sentence);
+  statusEl.dataset.net = netState ? (peers.size > 0 ? "peers" : "lost") : "local";
 }
 function telemetry(text, level = "log") {
   const line = String(text);

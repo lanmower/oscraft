@@ -121,7 +121,10 @@
     #lobby { position: fixed; z-index: 4; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(960px, 96vw); max-height: 96vh; max-height: 96dvh; overflow: auto; box-sizing: border-box; padding: 12px; background: var(--panel-strong); border: 1px solid var(--edge); border-radius: 6px; }
     #ui-left { position: fixed; z-index: 2; left: 8px; top: 8px; width: var(--side-w); max-height: calc(100vh - var(--bar-h) - 16px); max-height: calc(100dvh - var(--bar-h) - 16px); overflow: hidden auto; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
     #ui-left > * { pointer-events: auto; }
-    #status { padding: 5px 8px; background: var(--panel); border: 1px solid var(--edge); border-radius: 4px; white-space: pre; font-size: var(--t-label); color: var(--muted); }
+    #status { padding: 5px 8px; background: var(--panel); border: 1px solid var(--edge); border-radius: 4px; white-space: pre; font-size: var(--t-label); color: var(--muted); display: flex; align-items: center; min-height: 1em; }
+    #status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    #status[data-net="peers"]::before { background: #6fcf7f; }
+    #status[data-net="lost"]::before { background: #e6b450; }
     #hud { padding: 5px 8px; background: var(--panel); border: 1px solid var(--edge); border-radius: 4px; font-variant-numeric: tabular-nums; color: var(--text); font-size: var(--t-body); }
     #ui-left a { color: #8fc4ff; font-size: var(--t-label); padding: 0 2px; }
     #ui-right { position: fixed; z-index: 2; right: 8px; top: var(--right-top); width: var(--right-w); max-height: calc(100vh - var(--right-top) - var(--bar-h) - 8px); max-height: calc(100dvh - var(--right-top) - var(--bar-h) - 8px); overflow: hidden auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
@@ -200,7 +203,7 @@
   </div>
   <div id="world-spin" hidden><i></i><span>world</span></div>
   <div id="ui-left">
-    <div id="status">connecting</div>
+    <div id="status" role="img" aria-label="connecting" title="connecting" data-net="connecting"></div>
     <div id="hud"></div>
     <button id="centre-hero" type="button" aria-label="Centre on hero" title="Centre on hero"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="4.5"/><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3"/></svg></button>
     <button id="hero-lock" type="button" aria-pressed="false" aria-label="Lock on hero" title="Lock on hero"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3.5" y="7.5" width="9" height="6" rx="1.2"/><path d="M5.5 7.5V5.5a2.5 2.5 0 0 1 5 0v2"/></svg></button>
