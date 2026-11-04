@@ -38,7 +38,7 @@ The 87 heroes outside the launch set. Each has three abilities and an ultimate, 
 | Captain Obvious | Reply Guy | Flood of Replies: water wave that stuns | Tide Post: strikes and slows | Mark Spot: marks a target | Haunted Cruise: sails through enemies, damaging them |
 | Team Lead | Moderator | Strength in Numbers: damage that grows with nearby allies | Follow Up: dashes and damages | Leadership Moment: lifesteal and damage reduction | 1v1 Me: one-on-one with a target |
 | Lag Spike | Doomscroller | Packet Split: stuns and damages | Server Edict: damages a zone | Ping Storm: bounces damage | Rubberband Pulse: silences and damages nearby |
-| Tenured Lich | Archivist | Cold Memo: damages and slows | Ice Cold Office: armor and slow aura | Chain Email: bounces between enemies | Mandatory Meeting: takes control of a creep |
+| Tenured LIC | Archivist | Cold Memo: damages and slows | Ice Cold Office: armor and slow aura | Chain Email: bounces between enemies | Mandatory Meeting: takes control of a creep |
 | Comment Leech | Parasocial | Engagement Rage: fast attacks with lifesteal | Parasitic Feast: lifesteal per attack | Open Comments: slows and damages | Cling On: hides in an enemy and heals from it |
 | Off-Grid Forester | Hermit | Call Bear: bear attacks alongside | Zoomies: bear gains attack speed | Offline Bear: regen and spells | Natural Form: transforms into a stronger form |
 | Moonlight Creator | Influencer | Moonbeam Post: stuns and damages | Reshare Blade: bounces between enemies | Moonlit Aura: damages nearby enemies | Eclipse Stream: repeated light rays over a window |
@@ -55,7 +55,7 @@ The 87 heroes outside the launch set. Each has three abilities and an ultimate, 
 | Forecaster | Archivist | Empty Promise: delays damage | Fact Check Flames: heals an ally, damages an enemy | Fate Notice: blocks damage | Final Forecast: damages and stuns |
 | Hype Engine | Hot Take | Hype Orb: projectile that gains damage | Astral Cage: holds an enemy | Hype Aura: mana regen | Sanity Check: damage scales with enemy mana |
 | Multi-Accounter | Ghost | Alt Lance: slows and damages | Twin Account: creates illusions | Ghost Edge: blinks to a target | More Alts: creates more illusions |
-| Comeback Story | Parasocial | Redemption Dive: dashes and burns | Phoenix Orbs: orbs that damage | Healing Stream: channeled beam that heals an ally | Rebirth Special: revives on death |
+| Comeback Story | Parasocial | Redemption Dive: dashes and burns | PHO Orbs: orbs that damage | Healing Stream: channeled beam that heals an ally | Rebirth Special: revives on death |
 | Late Night Poster | Doomscroller | 3AM Blast: area damage | Lurk Cloak: ghosts an ally, untargetable | Spell Ward: magic damage on spells | Energy Drain: drains an enemy into an ally |
 | Screamer | Hot Take | Scream Strike: damage and damage over time | Hard Cut: teleports to a point | Voice Crack: damages in a cone | Scream: damages and pushes all in range |
 | Static Account | Hot Take | Link Share: lightning chains to an enemy | Surge Mode: speed boost | Eye Contact: damage aura with armor | Charge Field: damages enemies in an area |

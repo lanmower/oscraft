@@ -57,7 +57,7 @@ No simulation exists. Flags are read from the kit text (sections 9, 10, 21). Thi
 | 041 | Captain Obvious | Reply Guy | - | Stun wave, strike and slow, marking; ult sails through enemies. |
 | 042 | Team Lead | Moderator | - | Damage scales with nearby allies; dash, lifesteal; ult one-on-one. |
 | 043 | Lag Spike | Doomscroller | - | Stun and damage, zone, bounce; ult nearby silence. |
-| 044 | Tenured Lich | Archivist | - | Damage and slow, armor-slow aura, chain bounce; ult takes a creep. |
+| 044 | Tenured LIC | Archivist | - | Damage and slow, armor-slow aura, chain bounce; ult takes a creep. |
 | 045 | Comment Leech | Parasocial | - | Ult hides inside an enemy and heals from it; lifesteal attacks. |
 | 046 | Dragon Scroll | Doomscroller | - | Hype Meter stacks, capped (talent raises cap); line; delayed area stun. |
 | 047 | Well Actually | Reply Guy | FLAG | Sheep transform has no stated timer; slow, drain, source ult. |

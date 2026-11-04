@@ -41,6 +41,11 @@ for (const line of fs.readFileSync(iniPath, "utf8").split("\n")) {
   }
 }
 
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const acronymByName = new Map([...fs.readFileSync(path.join(moba, "hero_acronyms.lua"), "utf8").matchAll(/^\s*\["([^"]+)"\] = "([^"]+)",/gm)].map((m) => [m[1], m[2]]));
+const displayNames = [...acronymByName.keys()].filter((name) => /[A-Z \-]/.test(name)).sort((a, b) => b.length - a.length);
+const displayNamePattern = new RegExp(`\\b(${displayNames.map(escapeRegExp).join("|")})\\b`, "g");
+
 const TAG = /\|c[0-9a-fA-F]{8}|\|r/g;
 const TAIL = /\s*(Cooldown|Mana per second|Mana cost):\s*[\d.]+(\s+seconds?)?/g;
 function plain(raw) {
@@ -52,7 +57,8 @@ function plain(raw) {
     .trim()
     .replace(/[^\x20-\x7e]/g, "?")
     .replace(/"/g, "'")
-    .replace(/\\/g, "/");
+    .replace(/\\/g, "/")
+    .replace(displayNamePattern, (name) => acronymByName.get(name));
 }
 
 const rows = fs.readFileSync(path.join(moba, "abilities_688g_reference.tsv"), "utf8").trim().split("\n");

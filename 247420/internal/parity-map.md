@@ -9,21 +9,21 @@ Original names for parity work only. The plan and all shipped data use the Brain
 | Based Fiend | Shadow Fiend |
 | Long-Form Creator | Sniper |
 | Lurk Mode | Riki |
-| Retargeting | Bounty Hunter |
-| Who Asked | Invoker |
+| Retargeting | BH |
+| Who Asked | INV |
 | Well Actually | Lion |
-| Debate Bro | Anti-Mage |
-| Sigma Wanderer | Juggernaut |
-| Frost Feed | Crystal Maiden |
+| Debate Bro | AM |
+| Sigma Wanderer | JUG |
+| Frost Feed | CM |
 | Dragon Scroll | Lina |
 | Read Receipt | Dazzle |
-| Mentions | Omniknight |
-| Moderator | Tidehunter |
+| Mentions | OMN |
+| Moderator | TID |
 | Ban Hammer | Sven |
-| Anonymous Poster | Phantom Assassin |
+| Anonymous Poster | PA |
 | Ban Evader | Meepo |
-| Hot Take | Earthshaker |
-| Yell at Clouds | Axe |
+| Hot Take | EAR |
+| Yell at Clouds | AXE |
 | Mods | Techies |
 | Hook Guy | Pudge |
 | Looping Clip | Puck |
@@ -31,91 +31,91 @@ Original names for parity work only. The plan and all shipped data use the Brain
 | Touch Grass | Nature's Prophet |
 | Turf Warden | Treant Protector |
 | Appeals Court | Abaddon |
-| Growth Hacker | Alchemist |
-| Old Forum Poster | Ancient Apparition |
+| Growth Hacker | ALC |
+| Old Forum Poster | AA |
 | Bad Night | Bane |
-| Rideshare Guy | Batrider |
-| Community Manager | Beastmaster |
-| Bleeding Heart | Bloodseeker |
+| Rideshare Guy | BAT |
+| Community Manager | BEA |
+| Bleeding Heart | BLO |
 | Cold Brew Account | Brewmaster |
-| Angry Reply | Bristleback |
-| Spawn Farm | Broodmother |
+| Angry Reply | BRI |
+| Spawn Farm | BRO |
 | Free Range | Centaur Warrunner |
-| Unhinged Knight | Chaos Knight |
+| Unhinged Knight | CK |
 | Hall Monitor | Chen |
 | Skeleton Account | Clinkz |
 | Deadline Bot | Clockwerk |
-| Night Owl | Dark Seer |
-| Doomer | Death Prophet |
-| Parental Controls | Disruptor |
+| Night Owl | DS |
+| Doomer | DP |
+| Parental Controls | DIS |
 | Doom Thread | Doom |
-| Dragon Admin | Dragon Knight |
-| Golden Hour | Drow Ranger |
-| Rock Star | Earth Spirit |
+| Dragon Admin | DK |
+| Golden Hour | DR |
+| Rock Star | ESP |
 | Lore Keeper | Elder Titan |
-| Spicy Take | Ember Spirit |
-| Sweet Talker | Enchantress |
-| Conspiracy Theorist | Enigma |
-| Unskippable Ad | Faceless Void |
-| Drone Footage | Gyrocopter |
+| Spicy Take | ES |
+| Sweet Talker | ENC |
+| Conspiracy Theorist | ENI |
+| Unskippable Ad | FV |
+| Drone Footage | GYR |
 | Burnout | Huskar |
 | Wisp Ghostwriter | Io |
 | Dual Monitor | Jakiro |
-| Lighting Director | Keeper of the Light |
+| Lighting Director | KL |
 | Captain Obvious | Kunkka |
-| Team Lead | Legion Commander |
+| Team Lead | LC |
 | Lag Spike | Leshrac |
-| Tenured Lich | Lich |
-| Comment Leech | Lifestealer |
-| Off-Grid Forester | Lone Druid |
+| Tenured LIC | LIC |
+| Comment Leech | LIF |
+| Off-Grid Forester | LD |
 | Moonlight Creator | Luna |
 | Pack Account | Lycan |
 | Strong Opinion | Magnus |
 | Ghoster | Medusa |
 | Moonlight Fan | Mirana |
-| Glow-Up | Morphling |
-| Sea Siren | Naga Siren |
+| Glow-Up | MOR |
+| Sea Siren | NAG |
 | Old Thread Revival | Necrophos |
-| Night Shift | Night Stalker |
+| Night Shift | NS |
 | Stealth Spam | Nyx Assassin |
-| Dual Management | Ogre Magi |
-| Forecaster | Oracle |
+| Dual Management | OM |
+| Forecaster | ORA |
 | Hype Engine | Outworld Destroyer |
-| Multi-Accounter | Phantom Lancer |
-| Comeback Story | Phoenix |
+| Multi-Accounter | PL |
+| Comeback Story | PHO |
 | Late Night Poster | Pugna |
-| Screamer | Queen of Pain |
+| Screamer | QOP |
 | Static Account | Razor |
 | Plagiarist | Rubick |
-| Desert Mod | Sand King |
-| Shadow Admin | Shadow Demon |
-| Shadow Agent | Shadow Shaman |
-| Shh | Silencer |
-| Undead Brand | Skeleton King |
-| Storm Ad | Skywrath Mage |
+| Desert Mod | SK |
+| Shadow Admin | SD |
+| Shadow Agent | SHS |
+| Shh | SIL |
+| Undead Brand | WK |
+| Storm Ad | SM |
 | Gacha Whale | Slardar |
 | Dropped Connection | Slark |
-| Haunted Profile | Spectre |
+| Haunted Profile | SPE |
 | Content Cop | Spirit Breaker |
-| Storm Chaser | Storm Spirit |
-| Refined Reply | Templar Assassin |
+| Storm Chaser | SS |
+| Refined Reply | TA |
 | Hot Mess | Terrorblade |
 | Lumberjack Take | Timbersaw |
-| Gadget Guy | Tinker |
+| Gadget Guy | TIK |
 | Small Creator | Tiny |
-| Bait Lord | Troll Warlord |
+| Bait Lord | TW |
 | Ice Cream Truck | Tusk |
-| Unkillable Thread | Undying |
+| Unkillable Thread | UND |
 | Teddy Bear Mode | Ursa |
-| Grudge Holder | Vengeful Spirit |
-| Toxic Positivity | Venomancer |
+| Grudge Holder | VS |
+| Toxic Positivity | VEN |
 | Reviewer Two | Viper |
 | Mood Board | Visage |
-| Ritual Scheduler | Warlock |
+| Ritual Scheduler | WAR |
 | Doomlooper | Weaver |
 | Wind Vlog | Windranger |
-| Snow Day | Winter Wyvern |
-| Vibe Coach | Witch Doctor |
+| Snow Day | WW |
+| Vibe Coach | WD |
 | Thunder Reply | Zeus |
 
 ## Launch ability originals
@@ -408,7 +408,7 @@ Original names for parity work only. The plan and all shipped data use the Brain
 | Phantom Edge | Ghost Edge |
 | Juxtapose | More Alts |
 | Icarus Dive | Redemption Dive |
-| Fire Spirits | Phoenix Orbs |
+| Fire Spirits | PHO Orbs |
 | Sun Ray | Healing Stream |
 | Supernova | Rebirth Special |
 | Nether Blast | 3AM Blast |

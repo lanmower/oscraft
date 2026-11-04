@@ -773,7 +773,7 @@ function PHANTASM.run(caster)
 end
 
 local WALL_OF_REPLICA = {
-  source = "war3map.j N1E 64469-64520 (A0QK): a 1000 long line of 40 pieces centred on the point, across the caster's facing, for 45 s; each enemy hero that comes within 17 of a piece is hit once for 150 magical and an image of it fights for Dark Seer (60/75/90 percent dealt, 300 percent taken; GUESS: it lasts 30 s)",
+  source = "war3map.j N1E 64469-64520 (A0QK): a 1000 long line of 40 pieces centred on the point, across the caster's facing, for 45 s; each enemy hero that comes within 17 of a piece is hit once for 150 magical and an image of it fights for DS (60/75/90 percent dealt, 300 percent taken; GUESS: it lasts 30 s)",
   ability = "dark_seer_wall_of_replica",
   casts = { "dark_seer_wall_of_replica" },
   half_milli = 7813,

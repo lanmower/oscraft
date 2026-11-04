@@ -1757,7 +1757,7 @@ local function lobby_seat(i)
   if s.ready then tail = TEXT.lobby.readySuffix end
   local name = TEXT.lobby.noHero
   if s.hero then
-    name = hero_name(s.hero)
+    name = LATE.acronym(s.hero)
   elseif s.owner == OWNER then
     name = TEXT.lobby.pickHero
   end
@@ -1774,10 +1774,10 @@ local function lobby_seat(i)
 end
 
 local function hero_tile(name, mine)
-  local shown = hero_name(name)
+  local shown = LATE.acronym(name)
   local own = mine ~= nil and LOBBY.slots[mine].hero == name
   local faint = not own and not pickable_now(name, hero_group(name))
-  local f = { S("alt", shown), S("badge", acronym(shown)), S("text", ""), S("tip", shown) }
+  local f = { S("alt", shown), S("badge", shown), S("text", ""), S("tip", shown) }
   local model = hero_model(name)
   if model then f[#f + 1] = S("src", "icons/heroes/" .. model .. ".png") end
   if own then f[#f + 1] = B("selected", true) end
@@ -1834,7 +1834,7 @@ local function hero_card(mine)
   else
     local icon = hero_picture(s.hero, 128)
     if icon ~= nil then kids[#kids + 1] = icon end
-    kids[#kids + 1] = label(hero_name(s.hero), nil)
+    kids[#kids + 1] = label(LATE.acronym(s.hero), nil)
     local base = HERO_BASE[s.hero]
     if base == nil then
       local fill = ui_fill.base[s.hero]
@@ -1862,7 +1862,7 @@ local function composition()
     local names = {}
     for i = 1, TEAM_SIZE do
       local s = LOBBY.slots[t * TEAM_SIZE + i]
-      if s.hero then names[#names + 1] = hero_name(s.hero) end
+      if s.hero then names[#names + 1] = LATE.acronym(s.hero) end
     end
     parts[#parts + 1] = TEXT.lobby.teamNames[t + 1] .. ": " .. join(names, ", ")
   end

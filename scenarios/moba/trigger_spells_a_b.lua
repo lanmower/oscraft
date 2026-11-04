@@ -830,7 +830,7 @@ local function pulse_flux()
 end
 
 local FIREFLY = {
-  source = "war3map.j DPO 62118-62134, DMO 62066-62117, DLO 62048-62064 (A19Z): for 18 s a trail point is left each time Batrider has moved 125 from the last, and every 0.5 s each enemy within 225 of any trail point takes 10*rank-5 magical damage (the flight is not modelled)",
+  source = "war3map.j DPO 62118-62134, DMO 62066-62117, DLO 62048-62064 (A19Z): for 18 s a trail point is left each time BAT has moved 125 from the last, and every 0.5 s each enemy within 225 of any trail point takes 10*rank-5 magical damage (the flight is not modelled)",
   ability = "batrider_firefly",
   casts = { "batrider_firefly" },
   ticks = 288,
@@ -1123,7 +1123,7 @@ local function chill_hit(attacker, victim)
 end
 
 local LASSO = {
-  source = "tooltip of A19O (ability.ini:54019, Area 500): the target is tied to Batrider for 3/3.5/4 s and cannot leave 500 of him, being dragged along (GUESS: the drag teleports it back inside the leash each 4 ticks)",
+  source = "tooltip of A19O (ability.ini:54019, Area 500): the target is tied to BAT for 3/3.5/4 s and cannot leave 500 of him, being dragged along (GUESS: the drag teleports it back inside the leash each 4 ticks)",
   ability = "batrider_flaming_lasso",
   casts = { "batrider_flaming_lasso" },
   ticks = { 48, 56, 64 },

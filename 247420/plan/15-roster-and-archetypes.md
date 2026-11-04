@@ -67,7 +67,7 @@ Each variant differs from the others in at least two of: body proportion, prop s
 | 041 | Captain Obvious | Reply Guy | Str | Melee | States the obvious at full volume. |
 | 042 | Team Lead | Moderator | Str | Melee | Sends per my last message. |
 | 043 | Lag Spike | Doomscroller | Int | Ranged | Arrives mid-fight, unannounced. |
-| 044 | Tenured Lich | Archivist | Int | Ranged | Refuses to leave the department. |
+| 044 | Tenured LIC | Archivist | Int | Ranged | Refuses to leave the department. |
 | 045 | Comment Leech | Parasocial | Agi | Melee | Lives off your engagement. |
 | 046 | Dragon Scroll | Doomscroller | Int | Ranged | Refreshes until the feed goes quiet. |
 | 047 | Well Actually | Reply Guy | Int | Ranged | Corrects its own abilities. |

@@ -58,7 +58,7 @@ Visual direction for the 112 heroes (roster 001 to 111 plus Pit Boss 112), the 9
 | 041 | Captain Obvious (P3) | Reply Guy | Billboard sign with one bar | Mustard, warm | L / D / M |
 | 042 | Team Lead (P3) | Moderator | Clipboard with a checklist at the hip | Warm grey | M / L / L |
 | 043 | Lag Spike (P3) | Doomscroller | Desk lamp on a stalk, one flickering head | Night blue, desaturated | L / D / D |
-| 044 | Tenured Lich (P5) | Archivist | Brass name plate on a chain | Sepia, dark | L / D / M |
+| 044 | Tenured LIC (P5) | Archivist | Brass name plate on a chain | Sepia, dark | L / D / M |
 | 045 | Comment Leech (P1) | Parasocial | Suction-cup plunger on a stick | Rose, dusty | L / D / M |
 | 046 | Dragon Scroll (P4) | Doomscroller | Paper kite in the off-hand, string trailing | Night blue, deep | L / D / M |
 | 047 | Well Actually (P4) | Reply Guy | Reading glasses on a chain | Mustard, light | L / D / D |
