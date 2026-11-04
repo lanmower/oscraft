@@ -27,6 +27,7 @@ import { loadBasis, loadMeshopt } from "./decoders.js";
 
 const decodersReady = Promise.all([loadBasis(), loadMeshopt()]);
 import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, hostSwapStep, packSwapKind, swapAdmitPeer, swapGate, swapIsNew } from "./swap_protocol.js";
+import { createModelOrder } from "./model_order.js";
 import { createFogView } from "./fogview.js";
 import { packCameraRules } from "./camera_rules.js";
 import { installGameFocusGuard } from "./game_focus.js";
@@ -683,44 +684,37 @@ async function humanoidBoneMap(name, nodes) {
 const libraryRigs = new Set();
 
 const parsedModels = new Map();
-let selectedModelLoads = 0;
-let selectedModelsIdle = Promise.resolve();
-let markSelectedModelsIdle = () => {};
+const modelOrder = createModelOrder();
 
 function parsedModel(name, selected = false) {
   let entry = parsedModels.get(name);
   if (!entry) {
-    entry = selected ? selectedModelLoad(name) : speculativeModelLoad(name);
+    entry = selected
+      ? modelOrder.selected((signal) => readParsedModel(name, signal))
+      : modelOrder.speculative(decodersReady, (signal) => readParsedModel(name, signal));
     parsedModels.set(name, entry);
     entry.catch(() => parsedModels.delete(name));
   }
   return entry;
 }
 
-function selectedModelLoad(name) {
-  if (selectedModelLoads === 0) selectedModelsIdle = new Promise((resolve) => { markSelectedModelsIdle = resolve; });
-  selectedModelLoads += 1;
-  return readParsedModel(name).finally(() => {
-    selectedModelLoads -= 1;
-    if (selectedModelLoads === 0) markSelectedModelsIdle();
-  });
+function throwIfYielded(signal) {
+  if (signal && signal.aborted) throw new DOMException("yielded to a selected model", "AbortError");
 }
 
-async function speculativeModelLoad(name) {
+async function readParsedModel(name, signal = null) {
   await decodersReady;
-  while (selectedModelLoads > 0) await selectedModelsIdle;
-  return readParsedModel(name);
-}
-
-async function readParsedModel(name) {
-  await decodersReady;
+  throwIfYielded(signal);
   const url = new URL(assetUrl("models", `${name}.glb`), location.href);
-  const res = await fetchRetrying(url);
+  const res = await fetchRetrying(url, signal ? { signal } : undefined);
+  throwIfYielded(signal);
   if (!res.ok) throw new Error(`models/${name}.glb HTTP ${res.status}`);
   const bytes = await resolveGlbExtensions(await res.arrayBuffer());
+  throwIfYielded(signal);
   const glb = parseGlb(bytes, name);
   const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
   if (animations && animations.clips.length === 0) {
+    throwIfYielded(signal);
     animations.clips = await libraryClips(name, animations.nodes);
     libraryRigs.add(name);
   }
