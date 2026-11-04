@@ -163,6 +163,16 @@ fn networth_removed(lines: &[Value]) -> bool {
     lines.iter().any(|line| line["kind"] == "widget" && line["data"]["id"] == "networth" && line["data"]["remove"] == true)
 }
 
+fn bank_value(cells: &Value, costs: &[i64]) -> i64 {
+    cells
+        .as_array()
+        .expect("bank cells")
+        .iter()
+        .filter(|cell| cell[0].as_u64().unwrap_or(0) > 0)
+        .map(|cell| costs[cell[0].as_u64().expect("kind") as usize - 1] * cell[1].as_i64().expect("count"))
+        .sum()
+}
+
 fn strings_of(value: &Value, out: &mut Vec<String>) {
     match value {
         Value::String(text) => out.push(text.clone()),
@@ -172,7 +182,7 @@ fn strings_of(value: &Value, out: &mut Vec<String>) {
     }
 }
 
-fn start_match(dir: &Path, image: &[u8]) -> (Game, u32) {
+fn start_match(dir: &Path, image: &[u8]) -> (Game, u32, Vec<String>) {
     let mut game = fresh_game(dir, image);
     call(&mut game, "setup", json!({ "ui": read_ui(dir), "player": LOCAL, "pubkey": OWNER }));
     advance(&mut game, 60);
@@ -202,16 +212,18 @@ fn start_match(dir: &Path, image: &[u8]) -> (Game, u32) {
     }
     started.expect("the match starts");
     let mut local_hero = None;
+    let mut seated = Vec::new();
     for player in 0..10usize {
         let hero = heroes[(20 + player) % heroes.len()].clone();
         let lines = call(&mut game, "seat_pick", json!({ "player": player, "hero": hero, "bot": player != LOCAL as usize }));
         if player == LOCAL as usize {
             local_hero = selection_of(&lines).and_then(|ids| ids.first().copied());
         }
+        seated.push(hero);
     }
     advance(&mut game, 200);
     let hero = local_hero.expect("the local seat's hero is selected at match start") as u32;
-    (game, hero)
+    (game, hero, seated)
 }
 
 fn press(game: &mut Game, key: &str) -> Vec<Value> {
@@ -272,7 +284,7 @@ fn targeted_slot(game: &mut Game, dir: &Path, hero: u32) -> Option<(String, u64)
 fn quick_cast_press_and_release_casts_at_the_cursor() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let (mut game, hero) = start_match(&dir, &image);
+    let (mut game, hero, _) = start_match(&dir, &image);
     let (key, slot) = targeted_slot(&mut game, &dir, hero).expect("the hero has a targeted skill");
     assert!(game.skill_up(hero, slot as u32), "the hero learns the targeted skill");
     advance(&mut game, 1);
@@ -302,7 +314,7 @@ fn quick_cast_press_and_release_casts_at_the_cursor() {
 fn normal_press_arms_and_waits_for_a_click() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let (mut game, hero) = start_match(&dir, &image);
+    let (mut game, hero, _) = start_match(&dir, &image);
     let (key, slot) = targeted_slot(&mut game, &dir, hero).expect("the hero has a targeted skill");
     assert!(game.skill_up(hero, slot as u32), "the hero learns the targeted skill");
     advance(&mut game, 1);
@@ -333,16 +345,36 @@ fn normal_press_arms_and_waits_for_a_click() {
 fn net_worth_shows_both_teams_while_k_is_held() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let (mut game, _hero) = start_match(&dir, &image);
+    let (mut game, _hero, seated) = start_match(&dir, &image);
     let teams: Vec<u64> = read_ui(&dir)["teams"].as_array().expect("teams").iter().map(|t| t.as_u64().expect("team")).collect();
+    let catalog: Value = serde_json::from_str(&game.item_catalog_json()).expect("catalog json");
+    let costs: Vec<i64> = catalog.as_array().expect("catalog rows").iter().map(|row| row["cost"].as_i64().expect("cost")).collect();
     let mut gold = [0i64; 2];
-    for player in 0..10usize {
-        gold[teams[player] as usize] += i64::from(game.gold(player as u8));
-    }
+    let mut worth = [0i64; 2];
 
     let mut down = press(&mut game, "k");
     advance(&mut game, PANEL_REFRESH_TICKS);
     down.extend(drain(&mut game));
+    let unit_ids = game.unit_ids();
+    let unit_types = game.unit_types();
+    let type_names = game.unit_type_names();
+    for player in 0..10usize {
+        let hero = unit_ids
+            .iter()
+            .zip(&unit_types)
+            .find(|(_, kind)| type_names[**kind as usize] == seated[player])
+            .map(|(id, _)| *id)
+            .expect("the seated hero is alive");
+        let inventory: Value = serde_json::from_str(&game.inventory_json(hero)).expect("inventory json");
+        let items = bank_value(&inventory["slots"], &costs);
+        let stash = bank_value(&inventory["stash"], &costs);
+        let cash = i64::from(game.gold(player as u8));
+        let side = teams[player] as usize;
+        gold[side] += cash;
+        worth[side] += cash + items + stash;
+        println!("net_worth player={player} team={side} hero={} gold={cash} items={items} stash={stash} worth={}", seated[player], cash + items + stash);
+    }
+    println!("net_worth per-team gold={gold:?} worth={worth:?}");
     let tree = networth_widget(&down).expect("holding k shows the net worth widget");
     let mut texts = Vec::new();
     strings_of(tree, &mut texts);
@@ -353,7 +385,7 @@ fn net_worth_shows_both_teams_while_k_is_held() {
             .find(|text| text.contains(name))
             .and_then(|text| text.rsplit_once("  ").and_then(|(_, n)| n.parse().ok()))
             .unwrap_or_else(|| panic!("side {side} shows a net worth"));
-        assert!(shown > gold[side], "side {side} net worth {shown} counts items on top of gold {}", gold[side]);
+        assert_eq!(shown, worth[side], "side {side} widget net worth is its players' gold plus items plus stash");
     }
 
     let mut up = call(&mut game, "key", json!({ "key": "k", "phase": "up", "player": LOCAL, "pubkey": OWNER }));
