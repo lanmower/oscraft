@@ -197,3 +197,70 @@ fn probe_refreshed_joiner_claims_seat_and_new_peer_gets_snapshot() {
     }
     assert!(problems.is_empty(), "refresh problems: {problems:#?}");
 }
+
+fn widget_tree(lines: &[Value]) -> Option<&Value> {
+    lines
+        .iter()
+        .rev()
+        .find(|line| line["kind"] == "widget" && line["data"]["id"] == "lobby" && line["data"]["remove"] != true)
+        .map(|line| &line["data"]["tree"])
+}
+
+fn nodes_of<'a>(value: &'a Value, kind: &str, found: &mut Vec<&'a Value>) {
+    match value {
+        Value::Object(map) => {
+            if map.get("t").and_then(Value::as_str) == Some(kind) {
+                found.push(value);
+            }
+            for child in map.values() {
+                nodes_of(child, kind, found);
+            }
+        }
+        Value::Array(items) => {
+            for child in items {
+                nodes_of(child, kind, found);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn fill_entry(lines: &[Value], reason: &str) -> Option<(bool, bool)> {
+    let tree = widget_tree(lines)?;
+    let mut buttons = Vec::new();
+    nodes_of(tree, "button", &mut buttons);
+    let fill = buttons.into_iter().find(|button| button["call"] == "fill")?;
+    let mut labels = Vec::new();
+    nodes_of(tree, "label", &mut labels);
+    Some((fill["disabled"] == true, labels.iter().any(|label| label["text"] == reason)))
+}
+
+#[test]
+fn probe_fill_entry_explains_a_full_table() {
+    let dir = scenario_dir();
+    let mut game = fresh_game(&dir);
+    let ui_file = read_ui(&dir);
+    let reason = ui_file["text"]["lobby"]["refusals"]["nothing-to-fill"].as_str().expect("nothing-to-fill text").to_owned();
+    start_host(&mut game, &ui_file);
+    let mut problems = Vec::new();
+
+    let claimed = ui_as(&mut game, HOST, "claim", json!({ "slot": 0 }));
+    check("full_table host_claim", &claimed, &mut problems);
+    let filled = ui_as(&mut game, HOST, "fill", json!({}));
+    check("full_table fill", &filled, &mut problems);
+    let owned = seat_owners(&filled).iter().filter(|owner| !owner.is_empty()).count();
+    let full = fill_entry(&filled, &reason);
+    println!("probe full_table owned={owned} fill(disabled, reason shown)={full:?} reason=\"{reason}\"");
+    if full != Some((true, true)) {
+        problems.push(format!("all seats owned: fill entry is {full:?}, want disabled with the reason"));
+    }
+
+    let freed = ui_as(&mut game, HOST, "remove", json!({ "slot": SEAT }));
+    check("freed_seat remove", &freed, &mut problems);
+    let open = fill_entry(&freed, &reason);
+    println!("probe freed_seat seat{SEAT}=\"{}\" fill(disabled, reason shown)={open:?}", seat_owner(&freed, SEAT));
+    if open != Some((false, false)) {
+        problems.push(format!("one seat free: fill entry is {open:?}, want enabled with no reason"));
+    }
+    assert!(problems.is_empty(), "full table problems: {problems:#?}");
+}

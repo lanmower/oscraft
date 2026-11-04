@@ -1915,14 +1915,16 @@ local function lobby_tree()
     status = status .. " (" .. TEXT.lobby.refusedWord .. ": " .. why .. ")"
   end
   local host = LOBBY.host == OWNER
+  local actions = {
+    label(composition(), "muted"),
+    label(status, "muted"),
+    button(TEXT.lobby.fillBots, "fill", "{}", not (host and any_open())),
+  }
+  if not any_open() then actions[#actions + 1] = label(TEXT.lobby.refusals["nothing-to-fill"], "muted") end
+  actions[#actions + 1] = button(LOBBY.worldReady and TEXT.lobby.startMatch or TEXT.lobby.loadingWorld, "start", "{}", not (host and all_ready() and LOBBY.worldReady))
   return panel(TEXT.lobby.title, {
     mode_row(host),
-    box({
-      label(composition(), "muted"),
-      label(status, "muted"),
-      button(TEXT.lobby.fillBots, "fill", "{}", not (host and any_open())),
-      button(LOBBY.worldReady and TEXT.lobby.startMatch or TEXT.lobby.loadingWorld, "start", "{}", not (host and all_ready() and LOBBY.worldReady)),
-    }, "row"),
+    box(actions, "row"),
     box({ team_strip(0), team_strip(1) }, "row"),
     box({ box(attribute_rows(mine), "col"), hero_card(mine) }, "row"),
   })
