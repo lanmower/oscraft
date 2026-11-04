@@ -1,0 +1,9 @@
+id: "prd-mw2epu2nec2f"
+kind: "prd"
+title: "Post-game: the Graphs tab scales the final partial minute to its real length"
+body: "Gap class: history. match_stats.lua scales the last sample to its real length, so a kill in a one-second tail shows as 60 per minute in the Graphs tab. Found by the post-game child on commit 3ac44a2d (win_counters_probe graphs witness). Fix: show the partial minute unscaled, or fold it into the last full minute, and keep the per-minute bars honest."
+status: "resolved"
+createdAt: "2026-11-04T17:44:57.215Z"
+witnessEvent: 1720
+witnessCommit: "45798731"
+resolvedAt: "2026-11-04T18:04:59.843Z"

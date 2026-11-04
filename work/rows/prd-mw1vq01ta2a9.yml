@@ -1,6 +1,0 @@
-id: "prd-mw1vq01ta2a9"
-kind: "prd"
-title: "HUD canvas: portraits"
-body: "widgets.js portraitGrid and the hero picture. Route: draw the icon images on the canvas; a click sends the portrait's own call and args."
-status: "open"
-createdAt: "2026-11-04T08:53:12.257Z"

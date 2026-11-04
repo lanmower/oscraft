@@ -1,8 +1,0 @@
-id: "prd-contenthullradiusengineconstantsunverified"
-kind: "prd"
-title: "Hull radii (hero 375, summon 125) are engine constants not in the dump"
-body: "id: content-hull-radius-engine-constants-unverified\nsubject: Hull radii (hero 375, summon 125) are engine constants not in the dump\ndescription: |-\n  scenarios/moba/units_heroes.osd:4 radius 375 'UNVERIFIED'; scenarios/moba/units_summons.osd:3 hull 125 UNVERIFIED; scenarios/moba/units.osd:14 roshan radius not 6.88g sourced (creeps_688g.tsv blank).\n  Acceptance: Radius values trace to 6.88g SLK collision where present (heroes_688g.tsv has collision) or stay flagged; roshan radius from the map data.\n  Witness route: heroes_688g.tsv collision matches units_heroes radius for all identity-proven heroes.\nsession_id: survey-content-8\nowner: survey-content-8\nstatus: pending\nnotes:\n- ts: 2026-10-25T08:58:56.582Z\n  session_id: mcp-codemode-2804130-1792918713620-37\n  note: claimed by drain-content-9\n- ts: 2026-10-25T09:06:28.591Z\n  session_id: mcp-codemode-2804130-1792919184598-172\n  note: 'drain-content-9: edits pushed in a43fbc94748105b18307f284874738c5e40023e1 (units-extra: stale, already per-line UNVERIFIED, no edit); witness 1792918983817-6290-a26afd1f7f3f8626 (session verify-content-hull-radius-engine-constants-unverified); CI red on that sha from pre-existing failures (moba_pack_loads lua reach, static client checks; parent 16a238e6 also red); resolve once CI is green; prd-resolve also needs references/none_because'\n"
-status: "open"
-fact: "Hull radii 375 (hero) and 125 (summon) are engine constants that are not in the dump."
-trigger: "A source for the engine constants is supplied."
-createdAt: "2026-10-27T22:45:02.000Z"

@@ -1,6 +1,0 @@
-id: "prd-mw1vq01vb103"
-kind: "prd"
-title: "HUD canvas: menus, shop and lobby forms"
-body: "DOM buttons, inputs and widgets from panels.lua. Route: keep DOM until a per-panel hit layer exists; text inputs stay DOM for good."
-status: "open"
-createdAt: "2026-11-04T08:53:12.259Z"

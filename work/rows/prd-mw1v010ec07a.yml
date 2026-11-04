@@ -1,6 +1,0 @@
-id: "prd-mw1v010ec07a"
-kind: "prd"
-title: "Post-game: a hero averages comparison needs a cross-match history"
-body: "Gap class: history. The Overview block \"Vs their averages for this hero\" (gold per minute, XP per minute, kills, deaths, assists) is shown as not tracked on both sides. The sim keeps no per-hero record across matches. Needs a history store (where it lives, how long it is kept, which heroes it covers). Owner decision required. Witness of the present state: rust/crates/web/tests/win_counters_probe.rs the_post_game_overview_compares_two_heroes_and_derives_the_bars (12 not-tracked labels)."
-status: "open"
-createdAt: "2026-11-04T08:33:00.446Z"
