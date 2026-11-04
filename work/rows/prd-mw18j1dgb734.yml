@@ -1,0 +1,9 @@
+id: "prd-mw18j1dgb734"
+kind: "prd"
+title: "Net worth indicator on the HUD while a key is held"
+body: "id: net-worth-hold-indicator\nsubject: Net worth indicator while held\ndescription: 'Holding a key shows the net worth of both teams on the HUD, so a player can read the economy without opening the scoreboard.'\nacceptance_criteria: While the key is held the HUD shows each team net worth; releasing the key hides it.\nwitness_plan: Probe the indicator state with the key down and up, and the net worth values, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:03:56.212Z"
+witnessEvent: 571
+witnessCommit: "8159cdbb2ed7b1a51471dd9e78c44c2e51446c7d"
+resolvedAt: "2026-11-04T07:41:54.598Z"

@@ -1,0 +1,9 @@
+id: "prd-mw180k893602"
+kind: "prd"
+title: "Every aspect of the shop, what can be built and what happens is clarified in the game and in the docs"
+body: "id: shop-clarification-docs\nsubject: Shop and build clarification\ndescription: 'Every shop aspect is spelled out: what can be bought, what can be built (recipes), what happens on purchase, sale, stash, and delivery. The explanations are shown in the shop and written up in docs.'\nacceptance_criteria: docs/SHOP.md lists every shop rule with its source; every shop item tooltip states what it builds and what happens on purchase.\nwitness_plan: Check the docs file against the shop rules by reading both, and quote the matching lines.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.185Z"
+witnessEvent: 1684
+witnessCommit: "64c65b26"
+resolvedAt: "2026-11-03T23:40:54.728Z"

@@ -1,0 +1,9 @@
+id: "prd-mw18j1dfdcdd"
+kind: "prd"
+title: "Danger ping and on-my-way ping on the minimap and ground"
+body: "id: danger-and-on-my-way-ping\nsubject: Danger and on-my-way pings\ndescription: 'Ctrl+Alt click sends a danger ping, and an on-my-way ping draws the route to the point on the minimap. Both are visible to allies and sound once.'\nacceptance_criteria: Ctrl+Alt click on the ground or minimap sends a danger ping; the on-my-way ping draws a route line from the sender to the point for allies.\nwitness_plan: Probe the ping kinds sent for each click and the route data, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:03:56.211Z"
+witnessEvent: 571
+witnessCommit: "8159cdbb2ed7b1a51471dd9e78c44c2e51446c7d"
+resolvedAt: "2026-11-04T07:41:54.629Z"

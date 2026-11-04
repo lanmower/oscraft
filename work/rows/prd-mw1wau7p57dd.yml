@@ -1,0 +1,9 @@
+id: "prd-mw1wau7p57dd"
+kind: "prd"
+title: "Ping kinds drawn as glyphs (ping, danger, on my way, item ready); words move to title and aria label"
+body: ""
+status: "resolved"
+createdAt: "2026-11-04T09:09:24.469Z"
+witnessEvent: 5227
+witnessCommit: "4ee2b96822a87c300876e456901a3fa95c41822e"
+resolvedAt: "2026-11-04T09:10:17.981Z"

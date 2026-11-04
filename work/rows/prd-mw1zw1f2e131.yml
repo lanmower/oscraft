@@ -1,0 +1,9 @@
+id: "prd-mw1zw1f2e131"
+kind: "prd"
+title: "Ready screen: every hero faces the viewer; placed heading measured from each rig"
+body: "Owner rule: heroes face the user like a GUI would have them. Measured per hero from the idle base pose: the model's forward (cross of the upper-arm lateral and the head-to-hips up, in fitted model space) sits 11.7 to 13.6 degrees off the camera axis for all ten heroes; root channel is zero in every clip, so the offset is the idle base hips yaw (-13.3 degrees, constant in idle, static and idle-alt), not root motion; placement yaw was 0. Correction applied at the placement: heading = seat yaw + model offset (render3d placedHeading), computed per rig in play.js previewRig (rigFacing). Witness: per-hero table, facing offset 0.00 and lateral offset at most 0.42 degrees against the camera axis, 1280x720 screenshot, 30 s switch log with only idle, static, idle-alt."
+status: "resolved"
+createdAt: "2026-11-04T10:49:52.430Z"
+witnessEvent: 5450
+witnessCommit: "02b2852728ebf2a0735874f3a5176a2f6ed45ed0"
+resolvedAt: "2026-11-04T10:52:18.265Z"

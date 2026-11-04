@@ -1,0 +1,9 @@
+id: "prd-mw173gyz471b"
+kind: "prd"
+title: "Remove Enigma's Eidolons and Ember Spirit's Remnant from the generated 6.88g data"
+body: "Owner decision: remove these two features from the game. The code is removed (68eabbff); casts of enigma_demonic_conversion and ember_spirit_fire_remnant_learning are refused in hero_spells.lua (2af581a3, 7de738c0). Still in the generated data: abilities_688g_b05.osd and abilities_688g_b07.osd (ember_spirit_fire_remnant_learning, enigma_demonic_conversion, and their rows in ability-688g-ids.tsv), the enigma_eidolon_1..3 and ember_spirit_remnant unit rows, the ability lists on the enigma and ember_spirit hero rows in units_heroes.osd, and the ability_fx.lua and ABILITY-ICONS.tsv entries. Blocker: gen-heroes.mjs output differs from the committed units_heroes.osd on all 127 hero rows, and abilities_688g_b05/b07 have no generator in the repo. Acceptance: none of those names appears in the generated files; the regeneration diff touches only those entries; the match_coverage scratch match still runs with no mod_hook_failed line."
+status: "resolved"
+createdAt: "2026-11-03T21:23:50.315Z"
+witnessEvent: 1932
+witnessCommit: "a066e930"
+resolvedAt: "2026-11-03T23:41:17.659Z"

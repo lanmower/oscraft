@@ -1,0 +1,6 @@
+id: "prd-mw1v8t9ffe3b"
+kind: "prd"
+title: "Post-game: browser read of the Overview at 1280x720"
+body: "Open witness. The probe rust/crates/web/tests/win_counters_probe.rs the_post_game_overview_compares_two_heroes_and_derives_the_bars reads the win widget tree in the sim. A browser read at 1280x720 (layout of tabs, portraits, comparison grid and play-style bars) is not done: it needs a finished match in a served page and a playwriter page within the shared-browser rules (own context, two pages at most, closed in finally)."
+status: "open"
+createdAt: "2026-11-04T08:39:50.308Z"

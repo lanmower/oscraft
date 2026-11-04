@@ -1,0 +1,9 @@
+id: "prd-mw180k8a1b0a"
+kind: "prd"
+title: "Hotkey skill buttons hide or dim when the skill is not available"
+body: "id: skill-buttons-dim-when-unavailable\nsubject: Hotkey skills hide or dim when unavailable\ndescription: 'The Q W E R skill buttons hide or dim when a skill is not available: not yet learned, on cooldown, or not enough mana. The state is shown on the button itself.'\nacceptance_criteria: A skill button whose skill is unavailable has a dimmed or hidden state; an available one does not.\nwitness_plan: Probe the button state for a learned, cooling and unlearned skill, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.186Z"
+witnessEvent: 2308
+witnessCommit: "dfc34f76"
+resolvedAt: "2026-11-04T00:09:58.969Z"

@@ -1,0 +1,9 @@
+id: "prd-mw18j1dgba12"
+kind: "prd"
+title: "Alt-click a shop item shows the gold it still needs; Ctrl+Alt adds the buyback cost"
+body: "id: shop-alt-click-gold-needed\nsubject: Shop Alt-click gold needed\ndescription: 'Modern shops tell the player how much gold an item still needs. Alt-click on a shop item shows the gold short; Ctrl+Alt adds the buyback cost.'\nacceptance_criteria: Alt-click on a shop item shows the gold still needed; Ctrl+Alt shows the same with the buyback cost added.\nwitness_plan: Probe the shortfall text for an item the buyer cannot afford, with and without Ctrl, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:03:56.212Z"
+witnessEvent: 2308
+witnessCommit: "5c391790"
+resolvedAt: "2026-11-04T00:09:58.919Z"

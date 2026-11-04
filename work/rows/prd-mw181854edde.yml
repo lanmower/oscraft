@@ -1,0 +1,9 @@
+id: "prd-mw181854edde"
+kind: "prd"
+title: "The lobby selection stops showing once the game is in progress"
+body: "id: lobby-hidden-in-game\nsubject: Lobby selection hidden in game\ndescription: 'The lobby and hero selection panel stops showing once the match is in game. It shows only before the match starts.'\nacceptance_criteria: Once the match has started the lobby panel is not drawn or offered; before start it is.\nwitness_plan: Probe the lobby panel state before and after the match starts, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:50:05.176Z"
+witnessEvent: 826
+witnessCommit: "7e3fac2833c654e921ac883a90a54c9c2995c31d"
+resolvedAt: "2026-11-04T07:47:10.349Z"

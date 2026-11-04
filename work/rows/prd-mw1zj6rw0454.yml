@@ -1,0 +1,9 @@
+id: "prd-mw1zj6rw0454"
+kind: "prd"
+title: "Ready screen: team as one bundle in depth, drop emote-yes and emote-no from the switch set"
+body: "Owner rule: each team is a bundle, not a row or a line, and no hero hides another. (1) emote-yes and emote-no removed from scripts/anim-stands.mjs, library.json and SCENE_SWITCHES; the switch set is static and idle-alt. (2) Each team is two rows in depth: three heroes at the back, two in front, staggered so the front pair sits between the back three; row depth 2.0 scene units with a 0.3 rad lens and 0.6 rad pitch so the back row's feet clear the front row's heads. (3) The scene camera is fitted to the real bundle by sceneFrame (scene_layout.js): distance and target from projected corners of every body and name plate, cached per canvas aspect. (4) Name plates sit at the head top so they fall in the row gap. Witness: 1280x720 screenshot, 30 s switch log with only idle, static and idle-alt, per-hero stands static,idle-alt for all ten heroes, 10 of 10 heroes visible at 1280x720 and 390x844, no overlapping screen rectangles."
+status: "resolved"
+createdAt: "2026-11-04T10:39:52.844Z"
+witnessEvent: 5408
+witnessCommit: "86a3ce5a2d1a1bb753255d0c039ad01db66e3b82"
+resolvedAt: "2026-11-04T10:40:37.225Z"

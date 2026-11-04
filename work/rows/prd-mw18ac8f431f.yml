@@ -1,0 +1,9 @@
+id: "prd-mw18ac8f431f"
+kind: "prd"
+title: "Shop interfaces express build trees: each item shows what it builds from and what it builds into"
+body: "id: shop-express-build-trees\nsubject: Shop interfaces express build trees\ndescription: 'Every shop item shows its build tree: the components it is built from (with their own costs and their own trees, one level at a time) and the items it is a component of. The tree follows the recipe order in items_688g.tsv and the 6.88g rules, and it is shown in the item tooltip and in the shop panel.'\nacceptance_criteria: For a component, a recipe and a consumable the shop shows the components and the parent items, and each recipe tree matches the recipe rows in items_688g.tsv; a missing or unrecipe item shows that it has no tree.\nwitness_plan: Probe the build tree text for one item of each kind and quote it, then check each listed component and parent against items_688g.tsv.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:57:10.383Z"
+witnessEvent: 1684
+witnessCommit: "64c65b26"
+resolvedAt: "2026-11-03T23:40:54.809Z"

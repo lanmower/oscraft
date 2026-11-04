@@ -1,0 +1,9 @@
+id: "prd-mw1vq01sfa32"
+kind: "prd"
+title: "HUD canvas prototype: ability bar drawn on a canvas behind ?hud=canvas"
+body: "Ability bar on a 2D canvas behind ?hud=canvas. It draws the select tree's ability cells (icon, cooldown shade, dim tone, cooldown text) over the DOM row and hit-tests a click into the same ui call and args as the DOM cell. The DOM bar stays the default. Probe: node js/client/hud-canvas-check.mjs."
+status: "resolved"
+createdAt: "2026-11-04T08:53:12.256Z"
+witnessEvent: 4918
+witnessCommit: "1351f0bdaf5ef2448a566e8bf77faa4fa1f69afd"
+resolvedAt: "2026-11-04T08:55:36.378Z"

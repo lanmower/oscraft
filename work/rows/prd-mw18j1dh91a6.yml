@@ -1,0 +1,9 @@
+id: "prd-mw18j1dh91a6"
+kind: "prd"
+title: "Courier auto-delivery can be set, including a Secret Shop stop"
+body: "id: courier-auto-delivery-settings\nsubject: Courier auto-delivery settings\ndescription: 'The courier delivers items on its own. The player can set the auto-delivery route, including a stop at the Secret Shop when a secret item is bought.'\nacceptance_criteria: Auto-delivery is set per player; with a Secret Shop stop set, the courier visits the Secret Shop before the hero.\nwitness_plan: Probe the courier route with the setting on and off, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:03:56.213Z"
+witnessEvent: 787
+witnessCommit: "eb48648199ee1648ae8d82517c35ef2557d4c91d"
+resolvedAt: "2026-11-04T07:43:51.924Z"

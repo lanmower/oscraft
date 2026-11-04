@@ -1,0 +1,9 @@
+id: "prd-mw1v0mrfa40f"
+kind: "prd"
+title: "Post-game: Overview compares two heroes with tabs, portraits and derived play-style bars"
+body: "The win screen gains the reference Overview: a tab strip (Overview, Scoreboard, Graphs, MVP), team portrait rows that set the comparison, a two-hero comparison (level, K / D / A, gold and XP per minute from tracked totals over match length, last hits, denies, damage, healing, items), play-style bars for supporting, fighting and farming (percent of the best hero this match, formula labelled), pushing marked not tracked, a Back to team view control and a timeline with the match length. Source: scenarios/moba/post_view.lua, scenarios/moba/match_stats.lua (play_style, per_minute), scenarios/moba/panels.lua win_tree. Witness: rust/crates/web/tests/win_counters_probe.rs the_post_game_overview_compares_two_heroes_and_derives_the_bars. Open after the commit: a 1280x720 browser read of the widget."
+status: "resolved"
+createdAt: "2026-11-04T08:33:28.635Z"
+witnessEvent: 5161
+witnessCommit: "140b0b0a8501f76eca5ed420d3a9507515742ef3"
+resolvedAt: "2026-11-04T09:05:23.520Z"

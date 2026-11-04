@@ -1,0 +1,9 @@
+id: "prd-mw1uuk5yb18a"
+kind: "prd"
+title: "Mode setting gap: em implies weaker towers and nothing applies it"
+body: "chat_text.lua gameInfo em row says Towers are weaker. modes.has('em') is read only by kill_gold.lua (passive gold, line 272) and mode_rules.lua (XP rate, line 50). No tower code reads it. Fix: apply a tower setting from mode_rules.lua via the existing per-unit damage keep (unit_rules.lua damage_keep, set_damage_keep in piccolo_host.rs 2450) for tower kinds, or correct the text. Witness: a node check of the setting value per mode."
+status: "resolved"
+createdAt: "2026-11-04T08:28:45.334Z"
+witnessEvent: 4010
+witnessCommit: "d96ad2d5977a5ab9a434ead6e54a61a9717fd756"
+resolvedAt: "2026-11-04T08:38:41.465Z"

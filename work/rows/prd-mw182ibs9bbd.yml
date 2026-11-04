@@ -1,0 +1,9 @@
+id: "prd-mw182ibs9bbd"
+kind: "prd"
+title: "Centre on hero button is styled and uses an icon from freegameassets.com"
+body: "id: centre-hero-button-icon\nsubject: Centre on hero button icon\ndescription: 'The Centre on hero button (#centre-hero in play.html) is ugly and unstyled. Replace its plain text with a styled icon taken from https://www.freegameassets.com/, with its licence checked and recorded. The button keeps its hover and accessible name (aria-label).'\nacceptance_criteria: The button shows the chosen freegameassets.com icon with consistent styling against the other HUD buttons; its licence permits this use and is recorded in the commit body; the button still centres the camera on the local hero.\nwitness_plan: Quote the downloaded file's licence line from the site, the file path in the repo, and a node check that the button element has the icon and aria-label; the camera call is unchanged.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:51:05.032Z"
+witnessEvent: 1097
+witnessCommit: "03793eb30158dfc774bf9f3c61d79ac935eac744"
+resolvedAt: "2026-11-04T07:50:01.415Z"

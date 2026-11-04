@@ -1,0 +1,6 @@
+id: "prd-mw1v010fd0ea"
+kind: "prd"
+title: "Post-game: the pushing play-style bar needs a building or lane-push counter"
+body: "Gap class: counter. The play-style bar \"Pushing\" is not tracked: the sim has no per-hero counter of building damage or lane pushes (denies are own-creep kills, not pushes). Needs a sim counter at the source (damage to structures per hero) before the bar can be derived. Shown as not tracked in scenarios/moba/post_view.lua."
+status: "open"
+createdAt: "2026-11-04T08:33:00.447Z"

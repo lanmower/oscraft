@@ -1,0 +1,9 @@
+id: "prd-mw1wau7nf948"
+kind: "prd"
+title: "Language is the last channel: state reads from icon, colour, shape, position or motion; words sit in title or aria label"
+body: ""
+status: "resolved"
+createdAt: "2026-11-04T09:09:24.467Z"
+witnessEvent: 5232
+witnessCommit: "4625a74b200562bb225692ede1302cc5d5609b56"
+resolvedAt: "2026-11-04T09:10:17.902Z"

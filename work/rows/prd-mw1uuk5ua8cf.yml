@@ -1,0 +1,9 @@
+id: "prd-mw1uuk5ua8cf"
+kind: "prd"
+title: "HUD mode gap: in-game HUD, scoreboard and win screen show no game mode name"
+body: "panels.lua hud_tree (line 241), scoreboard_tree (about line 1194) and win_tree (line 297) show no mode. The only mode line is scoreboard.lua mode_text (line 86), which prints raw concatenated codes and is never called (scoreboard.refresh has no caller). Fix: a mode summary of TEXT.lobby.modes names in the HUD, the scoreboard and the win screen, with a default label when no mode is set. Witness: a node check of the summary for sample code lists."
+status: "resolved"
+createdAt: "2026-11-04T08:28:45.330Z"
+witnessEvent: 4010
+witnessCommit: "d96ad2d5977a5ab9a434ead6e54a61a9717fd756"
+resolvedAt: "2026-11-04T08:38:41.290Z"

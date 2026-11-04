@@ -1,0 +1,6 @@
+id: "prd-mw1vq01v8990"
+kind: "prd"
+title: "HUD canvas: ability bar keyboard parity"
+body: "Canvas cells take no focus or Enter, where the DOM cell had tabIndex and keydown. Route: decide between a focusable mirror and the sim's cast keys before the DOM cell is hidden for good."
+status: "open"
+createdAt: "2026-11-04T08:53:12.259Z"

@@ -1,0 +1,9 @@
+id: "prd-mw180k897b9d"
+kind: "prd"
+title: "Field towers are doubled in size"
+body: "id: field-towers-double-size\nsubject: Field towers doubled\ndescription: 'The lane field towers render and collide at twice their current size. The size lives in the generator that writes it, not in the generated output.'\nacceptance_criteria: The tower size in the generated data is exactly double the old size; the generator --check exits 0.\nwitness_plan: Run the generator check and quote the output; show the size before and after.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.185Z"
+witnessEvent: 2722
+witnessCommit: "4b62e87b2bfdf0fe01fbbb1e653eda07087d423a"
+resolvedAt: "2026-11-04T01:45:53.038Z"

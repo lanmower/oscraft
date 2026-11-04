@@ -1,0 +1,6 @@
+id: "prd-mw1bzqqz7f60"
+kind: "prd"
+title: "Drift-reuse pool can stop a unit short when a shared field's goal drifted and the straight line is blocked"
+body: "id: drift-reuse-stops-short\nsubject: A reused path field stops a unit short when its goal drifted\ndescription: 'Commit dee66169 leaves open that the drift-reuse pool can stop a unit short when a shared field goal drifted and the straight line to the target is blocked. No probe reproduces it yet.'\nacceptance_criteria: A probe reproduces the drift-reuse stop, and a unit whose goal drifted reaches its target within tolerance.\nwitness_plan: Quote the probe output before and after the fix, with the arrival ticks from pathing_probe.\nstatus: pending\n"
+status: "open"
+createdAt: "2026-11-03T23:40:54.443Z"

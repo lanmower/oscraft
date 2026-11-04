@@ -1,0 +1,9 @@
+id: "prd-mw18j1dg0a4b"
+kind: "prd"
+title: "Quick cast: a skill can cast at the cursor on release, and its range shows while held"
+body: "id: quick-cast-with-range\nsubject: Quick cast with range preview\ndescription: 'Modern MOBAs offer quick cast: pressing a skill key and releasing casts at the cursor, while holding the key shows the range and direction. The setting is per skill and off by default.'\nacceptance_criteria: With quick cast on, a press and release of a skill key casts at the cursor with no second click, and holding the key shows the range indicator; with quick cast off, the current armed-cast behaviour is unchanged.\nwitness_plan: Probe a quick-cast press and release for a targeted skill and a normal press, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:03:56.212Z"
+witnessEvent: 571
+witnessCommit: "8159cdbb2ed7b1a51471dd9e78c44c2e51446c7d"
+resolvedAt: "2026-11-04T07:41:54.581Z"

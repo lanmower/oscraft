@@ -1,0 +1,9 @@
+id: "prd-mw1aoodrc8a9"
+kind: "prd"
+title: "Auto-courier verified in a live match: follow, return, carry and autodeliver defaults"
+body: "id: auto-courier-live-verified\nsubject: Auto-courier verified in a live match\ndescription: 'The owner confirmed the auto-courier defaults (autodeliver on, Secret Shop stop off, follow within 3000 and keep following until 6000, carry within 1300) and said auto-courier is important. The courier work (e6ce18cb) was witnessed only by cargo probes. Verify the behaviour in a live match in a browser, then keep or fix the defaults.'\nacceptance_criteria: In a live match an idle courier follows its hero, returns to its team area when idle, delivers carried items within 1300 units, revives after 140 s, and the -autodeliver and -secretstop chat toggles work.\nwitness_plan: Play or script a live match in the browser, record the courier state each second, and quote the transitions for each behaviour.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T23:04:18.543Z"
+witnessEvent: 4582
+witnessCommit: "eb7aded37db39e07d2f42a1ef7fe3ff0cfbe575f"
+resolvedAt: "2026-11-04T08:49:47.734Z"

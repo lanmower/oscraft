@@ -1,0 +1,9 @@
+id: "prd-mw17g9bl6fe4"
+kind: "prd"
+title: "Lock view on the local hero: toggle button, and arrow keys move the hero while locked"
+body: "id: lock-view-to-hero-arrows\nsubject: Lock view on the local hero, arrow keys move the hero\ndescription: 'Add a lock toggle next to Centre on hero (#centre-hero, play.html). While locked the camera target follows the local hero every frame. In locked view the arrow keys move the local hero: the direction is camera-relative and issues a move order that repeats while the key is held. Pan (minimap click, drag-pan, camera_to) releases the lock; yaw, pitch and zoom keep it.'\nacceptance_criteria: The lock button toggles a visible pressed state. While locked, the camera stays on the hero across ticks. Each arrow key sends the local hero a move in the camera-relative direction. Unlocked, arrow keys keep their current meaning.\nwitness_plan: Probe the lock state and the arrow-to-move mapping with a node test on the input module, and read the emitted commands.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:33:46.929Z"
+witnessEvent: 480
+witnessCommit: "8159cdbb2ed7b1a51471dd9e78c44c2e51446c7d"
+resolvedAt: "2026-11-04T07:41:54.645Z"

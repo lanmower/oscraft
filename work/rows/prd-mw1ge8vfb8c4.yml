@@ -1,0 +1,9 @@
+id: "prd-mw1ge8vfb8c4"
+kind: "prd"
+title: "Pathing regressed: attack-move and enemy creep crowd fail on HEAD"
+body: "id: pathing-regressed-attack-move-and-creep-crowd\nsubject: Attack-move and the enemy creep crowd fail on HEAD\ndescription: 'Bisect (worker, clean builds, PROBE_DIR per copy) on HEAD f1c3a9eb: pathing_probe 12 passed, 4 failed. Failing: a_hero_routes_past_an_enemy_creep_crowd_on_its_direct_route (pathing_probe.rs:517, arrived=None), an_attack_move_engages_a_ground_enemy_on_the_way, an_attack_move_engages_a_hero_enemy_on_the_way, an_attack_move_engages_every_hero_and_ground_enemy_on_the_way (all :587, arrived=None). Attack-move first fails at 80d092c3 (walking() needs nonzero velocity; a test on e6ce18cb data plus only 80d092c3 movement.rs gives 12/4, so the code change, not data, causes it). The enemy creep crowd fails in every copy tested from 64c65b26 to HEAD. Witnesses in 80d092c3 and dba92250 (attack-move 132/140/277, creep crowd arrived=70) do not reproduce in any copy; row prd-mw1afy5ee4dd is therefore not a valid resolution.'\nacceptance_criteria: pathing_probe passes all 16 tests on a clean build of the committed tree, including attack-move arrival and the enemy creep crowd. The sim tests and the state_hash parity check still pass, or a parity change is named and justified in the commit. The creep-crowd and walks-away chase fixes stay in place. No assertion in pathing_probe.rs is weakened.\nwitness_plan: Clean build (cargo clean -p sim -p mod-host -p web -p osdt-data -p replay, then run) of pathing_probe with --nocapture, quoted per test. Plus cargo test -p sim and the parity line.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-04T01:44:09.580Z"
+witnessEvent: 3406
+witnessCommit: "9cea7dc037fd6e8f45d5a3f59f334bcc21d8d7bd"
+resolvedAt: "2026-11-04T08:36:37.996Z"

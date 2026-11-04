@@ -1,0 +1,9 @@
+id: "prd-mw1us1ge9f07"
+kind: "prd"
+title: "Default mode: pick only your side's heroes (side-tagged pools)"
+body: "Default mode (no mode flags): a player picks only heroes of their own side when the hero carries a side tag.\nTags live in scenarios/moba/hero_sides.tsv (blank = open to everyone) and are generated to scenarios/moba/hero_sides.lua by scenarios/moba/tools/gen-hero-sides.mjs.\nSide = lobby half: seats 1-5 The Sentinel, seats 6-10 The Scourge (draft.lua side_of).\nLobby grid marks other-side tagged heroes allowed=false; the server refuses such a pick with mode-pool; empty-hero random pick (panels.lua random_free) and chat -random (chat_lobby.lua candidates) respect the tag.\nModes with any flag keep their current rules and ignore tags.\nWitness: rust/crates/web/tests/hero_side_probe.rs tags a fixture hero per side and shows allowed/refused/untagged results."
+status: "resolved"
+createdAt: "2026-11-04T08:26:47.775Z"
+witnessEvent: 4342
+witnessCommit: "9576ce8eed702b6f1926a4986ffe3ba86a8c371e"
+resolvedAt: "2026-11-04T08:46:24.902Z"

@@ -1,0 +1,9 @@
+id: "prd-mw1z2al3d252"
+kind: "prd"
+title: "Ready screen: drop the T-pose stand clip, cross-fade every switch, spread each team in one row so every hero is visible"
+body: "Scene on the ready screen (js/client/render3d.js, scene_layout.js, anim.js, widgets.js). (1) holding-both is a T-pose (both arms straight out at the sides, 1.45 rad hard-cut jump from idle); it is removed from scripts/anim-stands.mjs, library.json and SCENE_SWITCHES. static, emote-yes, emote-no and idle-alt pass the visual check and the blend check. (2) AnimationPlayer gained a fade option (play/playState) with copied pose blending, smoothstep weight and blendWeight(); the scene fades in and out of each switch over 0.4 s with idle as base; before this change there was no cross-fade, play() was a hard cut. (3) Each team is one row on a shallow arc with BODY_GAP 0.16 so screen rectangles do not overlap; name plates sit over each body. Witness: 1280x720 and 390x844 per-hero visibility, 30 s switch log with only allowed names, blend transition log, screenshots in /tmp/oscraft-mw/shots."
+status: "resolved"
+createdAt: "2026-11-04T10:26:44.631Z"
+witnessEvent: 5381
+witnessCommit: "7cac09831e0db66591a35d07a7dfc479bd0efd26"
+resolvedAt: "2026-11-04T10:27:34.203Z"

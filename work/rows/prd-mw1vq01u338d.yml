@@ -1,0 +1,6 @@
+id: "prd-mw1vq01u338d"
+kind: "prd"
+title: "HUD canvas: scoreboard"
+body: "panels.lua scoreboard rows. Route: canvas table with a hit layer issuing the rows' own calls."
+status: "open"
+createdAt: "2026-11-04T08:53:12.258Z"

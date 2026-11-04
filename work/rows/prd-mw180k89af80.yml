@@ -1,0 +1,9 @@
+id: "prd-mw180k89af80"
+kind: "prd"
+title: "Courier behaviour is automated to its ideal form"
+body: "id: courier-automation-ideal\nsubject: Courier automation\ndescription: 'The courier acts on its own to the ideal behaviour: it follows its owner when idle, carries items the owner needs to the owner, returns to base when idle, and revives on its own. 6.88g courier behaviour is the reference where it is stated.'\nacceptance_criteria: Each courier behaviour is triggered without a player command and the probe reads the courier state change for each.\nwitness_plan: Probe courier state transitions per tick, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.185Z"
+witnessEvent: 787
+witnessCommit: "eb48648199ee1648ae8d82517c35ef2557d4c91d"
+resolvedAt: "2026-11-04T07:43:51.924Z"

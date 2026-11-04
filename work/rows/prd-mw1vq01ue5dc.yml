@@ -1,0 +1,6 @@
+id: "prd-mw1vq01ue5dc"
+kind: "prd"
+title: "HUD canvas: status, messages and recap text"
+body: "hud.js createMessageLine and createStatusPanel, and recap.lua text. Route: canvas text layout with wrapping; the text stops being selectable as DOM."
+status: "open"
+createdAt: "2026-11-04T08:53:12.258Z"

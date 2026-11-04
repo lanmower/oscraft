@@ -1,0 +1,9 @@
+id: "prd-mw1bf4tj27b1"
+kind: "prd"
+title: "Friendly unit 9 stands still on a move order and does not reach its target"
+body: "id: friendly-unit-9-stalls-on-move\nsubject: A friendly unit on a move order stands still short of its target\ndescription: 'The pathing worker found that friendly unit 9 is on a move order, stands about 1.4 cells from its target, and does not move for 12+ ticks while blocked stays 0. The walking gate fixed in 80d092c3 hides the symptom from attack-move; the cause is not isolated. Find why the order is not fulfilled (order state, arrival tolerance, or a stop from another system) and fix it without changing the attack-move timings.'\nacceptance_criteria: A friendly unit given a move order reaches its target within the tolerance in a probe that reproduces unit 9, and attack-move arrival stays at 132 ground, 140 hero, 277 both.\nwitness_plan: Quote the probe output for unit 9 before and after, with the arrival ticks from pathing_probe.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T23:24:52.903Z"
+witnessEvent: 1876
+witnessCommit: "6179cc0d"
+resolvedAt: "2026-11-03T23:40:54.603Z"

@@ -1,0 +1,9 @@
+id: "prd-mw17ng4p16f6"
+kind: "prd"
+title: "Ground click keeps the selection: a left click on empty ground no longer deselects the hero"
+body: "id: ground-click-keeps-selection\nsubject: Ground click keeps the selection\ndescription: 'A plain left click on empty ground cleared the selection, so the selected hero was dropped by an accidental click. A ground click with no unit under it keeps the current selection. Box select and shift-click are unchanged. Change: scenarios/moba/controls.lua click_ids.'\nacceptance_criteria: With a hero selected, a left press and release on empty ground leaves the selection as the hero alone. The probe reads the selection feedback before and after the click.\nwitness_plan: probe_ground_click_keeps_selection in rust/crates/web/tests/moba_probe.rs run on HEAD (fails, selection empty) and on the working tree (passes).\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:39:22.346Z"
+witnessEvent: 812
+witnessCommit: "906cb0b2"
+resolvedAt: "2026-11-03T21:53:05.481Z"

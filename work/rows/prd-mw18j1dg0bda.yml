@@ -1,0 +1,9 @@
+id: "prd-mw18j1dg0bda"
+kind: "prd"
+title: "Quick Buy and the shop show remaining stock, and out-of-stock items show when they return"
+body: "id: shop-stock-and-return-time\nsubject: Shop stock and return time\ndescription: 'Limited-stock items show the remaining quantity in the shop, and an out-of-stock Quick Buy entry shows how long until it returns.'\nacceptance_criteria: A limited-stock item shows its remaining quantity; an out-of-stock Quick Buy entry shows the seconds until restock.\nwitness_plan: Probe the stock text for a limited item and an out-of-stock item, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:03:56.212Z"
+witnessEvent: 1684
+witnessCommit: "64c65b26"
+resolvedAt: "2026-11-03T23:40:54.852Z"

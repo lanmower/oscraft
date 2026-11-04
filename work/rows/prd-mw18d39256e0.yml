@@ -1,0 +1,9 @@
+id: "prd-mw18d39256e0"
+kind: "prd"
+title: "Confirm the licence of the freegameassets.com centre icon: the site Terms forbid modification and mirroring"
+body: "id: freegameassets-icon-licence-conflict\nsubject: Confirm the freegameassets.com icon licence\ndescription: 'The centre-on-hero icon (js/client/icons/hud/waypoint-marker-symbol.png, commit fa6a2236) comes from freegameassets.com. The site footer says Free CC0 game assets, but its Terms (https://www.freegameassets.com/legal/terms) say intellectual property is owned by or licensed to Surge Studio, forbid modifying, deriving from, and mirroring materials on any other server, and do not mention CC0. The game is published on GitHub Pages, so the file is hosted on another server. The licence has to be settled by the owner: keep with written permission, or replace the file with an icon whose licence is clear.'\nacceptance_criteria: The owner decides keep or replace; if kept, the licence is confirmed in writing and recorded in the commit body; if replaced, the file and its markup are swapped and the old file removed.\nwitness_plan: Quote the licence confirmation from the site or the replacement's licence page, and the file path in the repo.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:59:18.710Z"
+witnessEvent: 1932
+witnessCommit: "078173bc"
+resolvedAt: "2026-11-03T23:41:17.575Z"

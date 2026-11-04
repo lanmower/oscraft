@@ -1,0 +1,9 @@
+id: "prd-mw180k8afff8"
+kind: "prd"
+title: "Heroes are one quarter smaller"
+body: "id: heroes-quarter-smaller\nsubject: Heroes one quarter smaller\ndescription: 'Hero models render and collide at three quarters of their current size. The size lives in the generator that writes it, not in the generated output.'\nacceptance_criteria: The hero size in the generated data is exactly three quarters of the old size; the generator --check exits 0.\nwitness_plan: Run the generator check and quote the output; show the size before and after.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.186Z"
+witnessEvent: 2722
+witnessCommit: "4b62e87b2bfdf0fe01fbbb1e653eda07087d423a"
+resolvedAt: "2026-11-04T01:45:53.135Z"

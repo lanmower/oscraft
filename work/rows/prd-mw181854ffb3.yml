@@ -1,0 +1,9 @@
+id: "prd-mw181854ffb3"
+kind: "prd"
+title: "Skill upgrade buttons show only when a skill can be upgraded"
+body: "id: skill-upgrades-only-when-available\nsubject: Skill upgrades only when available\ndescription: 'The skill-up (+) buttons show only when the hero has a skill point to spend and the skill can take a rank. They are hidden otherwise.'\nacceptance_criteria: A skill-up button is shown only when a point is available and the skill is below its maximum rank.\nwitness_plan: Probe the skill-up button visibility with no point, with a point, and at max rank, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:50:05.176Z"
+witnessEvent: 2025
+witnessCommit: "2e80ad2b3d28d56a55ae9878c7800768c1936c73"
+resolvedAt: "2026-11-04T08:02:39.554Z"

@@ -1,0 +1,9 @@
+id: "prd-mw18d39332c3"
+kind: "prd"
+title: "The #hero-lock button is styled like the centre button"
+body: "id: hero-lock-button-styled\nsubject: Hero lock button styled\ndescription: 'The hero view lock button (#hero-lock, js/client/play.html) is still plain unstyled text, the same problem the centre-on-hero button had. Give it the same styling and an icon in the same style, with aria-label and title set.'\nacceptance_criteria: The lock button has a styled look that matches the centre button and shows its pressed state visually.\nwitness_plan: A node check that the button markup has the icon, aria-label and a pressed style rule, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:59:18.711Z"
+witnessEvent: 1932
+witnessCommit: "078173bc"
+resolvedAt: "2026-11-03T23:41:17.615Z"

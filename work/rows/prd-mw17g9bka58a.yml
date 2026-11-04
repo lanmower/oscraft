@@ -1,0 +1,9 @@
+id: "prd-mw17g9bka58a"
+kind: "prd"
+title: "Minimap is not selectable: clicks on it select the world element beneath"
+body: "id: minimap-not-selectable\nsubject: Minimap is not selectable\ndescription: 'Left-clicking or dragging the minimap selects the unit or element under the pointer in the world view. The minimap only moves the camera (click, drag to pan) and keeps its right-click order. Its clicks must not reach the selection path (moba_input.js onDown, ui_minimap.js pointerdown, hud.js).'\nacceptance_criteria: A pointerdown and pointerup on #minimap leave the selection unchanged, start no box select, and move only the camera. Right-click on the minimap still issues its order.\nwitness_plan: Probe the minimap event path in a node or cargo probe, select a unit, click the minimap, read the selection before and after.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:33:46.928Z"
+witnessEvent: 2308
+witnessCommit: "c360556b"
+resolvedAt: "2026-11-04T00:09:59.017Z"

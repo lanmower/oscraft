@@ -1,0 +1,9 @@
+id: "prd-mw18j1df973c"
+kind: "prd"
+title: "Alt-click an item pings allies with its state: usable now, or the cooldown or mana still missing"
+body: "id: item-status-ping\nsubject: Item status ping\ndescription: 'Modern MOBAs let a player Alt-click an item to tell the team whether it can be used now, and how much cooldown or mana remains. The ping is sent to allies as a short message on the map.'\nacceptance_criteria: Alt-clicking an item sends one ping to allies with its usable state and the remaining cooldown or mana; a usable item says so.\nwitness_plan: Probe the item ping text for a usable item and for one on cooldown, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:03:56.211Z"
+witnessEvent: 571
+witnessCommit: "8159cdbb2ed7b1a51471dd9e78c44c2e51446c7d"
+resolvedAt: "2026-11-04T07:41:54.613Z"

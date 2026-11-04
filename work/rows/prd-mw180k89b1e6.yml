@@ -1,0 +1,9 @@
+id: "prd-mw180k89b1e6"
+kind: "prd"
+title: "Off-hand shop menus and shop distance controls work when the player and the courier are not at the shop"
+body: "id: off-hand-shop-and-distance\nsubject: Off-hand shop menus and distance controls\ndescription: 'When neither the player nor the courier is at a shop, an off-hand shop menu is available, and shop distance controls decide what the player can buy from where they stand, with the courier doing the delivery.'\nacceptance_criteria: Buying from a distance is refused or accepted according to the distance rule, and the off-hand menu lists the same items as the shop.\nwitness_plan: Probe the buy command at and away from the shop with the courier present and absent, quoted from the probe output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.185Z"
+witnessEvent: 1684
+witnessCommit: "64c65b26"
+resolvedAt: "2026-11-03T23:40:54.685Z"

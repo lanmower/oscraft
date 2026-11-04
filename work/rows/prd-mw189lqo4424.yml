@@ -1,0 +1,9 @@
+id: "prd-mw189lqo4424"
+kind: "prd"
+title: "Shop interfaces are ultra BLUF and self-explanatory"
+body: "id: shop-ultra-bluf-self-explanatory\nsubject: Shop interfaces are ultra BLUF and self-explanatory\ndescription: 'BLUF means bottom line up front. Every shop surface states its bottom line first: what the item does, what it costs, what buying it does, and whether the buyer can buy it from here. Each explanation is short and self-explanatory, and the shop interface shows the same wording as docs/SHOP.md. The earlier reading of bluf as build out was wrong.'\nacceptance_criteria: Each shop item tooltip and each shop panel line leads with its bottom line in one sentence, with cost, effect, buy result and reach stated in that order; no shop surface needs a second read to know what a click does.\nwitness_plan: Probe the shop item text for three item kinds (component, recipe, consumable) and read the first line of each against the rule, quoted from the probe output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:56:36.048Z"
+witnessEvent: 1684
+witnessCommit: "64c65b26"
+resolvedAt: "2026-11-03T23:40:54.768Z"

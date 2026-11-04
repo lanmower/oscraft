@@ -1,0 +1,9 @@
+id: "prd-mw1vktn99cd9"
+kind: "prd"
+title: "Lock view: arrow keys move the local character while the centre lock is on"
+body: "Owner report, verbatim: \"when the center lock is on, the arrow keys must control the character\". Cause: driveLockedHero ordered the hero to a point HERO_STEP_WORLD = 300 ahead, but sim positions are cells (units() and order_move use cells), so the sim refused every order with InvalidOrderTarget near the base and the hero stood still; far from the base the target clamped to the map edge. Fix: HERO_STEP_CELLS = 4 (hero_view_lock.js, check updated). Acceptance: with the lock on, holding each arrow moves the local hero along its camera-relative direction in the sim over 48 ticks, with no refused orders, witnessed by lock_view_arrows_probe (along >= 0.9, travel >= 8 cells). Live browser run not done here; the owner confirms on the page."
+status: "resolved"
+createdAt: "2026-11-04T08:49:10.677Z"
+witnessEvent: 4594
+witnessCommit: "9d3df85f9415cae249bf864c741fb43b71a5b819"
+resolvedAt: "2026-11-04T08:50:10.580Z"

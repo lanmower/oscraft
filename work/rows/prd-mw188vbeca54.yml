@@ -1,0 +1,9 @@
+id: "prd-mw188vbeca54"
+kind: "prd"
+title: "Pathing is not constantly blocked by creeps: units route around or push through creep crowds"
+body: "id: pathing-not-blocked-by-creeps\nsubject: Pathing is not constantly blocked by creeps\ndescription: 'Units keep getting blocked by creeps while they path: a crowd of creeps on the route stops the unit, which then stalls or re-plans every tick. A unit ordered to a destination through a creep crowd must reach it, by re-planning around the crowd or by a bounded push, without stalling on the same spot. Fix the cause in the sim movement or path code (rust/crates/sim movement.rs, pathfinding.rs, astar.rs, and the crowding code).'\nacceptance_criteria: A unit ordered through a crowd of creeps reaches its destination within a bounded number of ticks, and no unit reports blocked for more than a bounded run of consecutive ticks while a free route exists.\nwitness_plan: A cargo probe that places a creep crowd on the direct route, orders a move past it, and counts the blocked ticks per unit and the arrival tick, before and after the fix; quote the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:56:01.802Z"
+witnessEvent: 1869
+witnessCommit: "dee66169"
+resolvedAt: "2026-11-03T23:40:54.556Z"

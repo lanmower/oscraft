@@ -1,0 +1,9 @@
+id: "prd-mw1afy5ee4dd"
+kind: "prd"
+title: "Attack-move arrives later after the pathing fix: restore arrival time without undoing the creep fix"
+body: "id: attack-move-arrival-regression\nsubject: Attack-move arrival regressed after the creep and chase fix\ndescription: 'Commit dba92250 fixed creep stalls and chase oscillation, but attack-move now arrives later: ground 132 to 188 ticks, hero 140 to 189, both 277 to 480 (probe in rust/crates/web/tests/pathing_probe.rs). The cause is not isolated. Find it, restore arrival to about the HEAD times, and keep the creep crowd fix (arrived 70, stalls 0) and the chase fix (strike at tick 277).'\nacceptance_criteria: Attack-move arrival for ground and hero is within 10 percent of the pre-dba92250 times, and the creep crowd and chase probes still pass.\nwitness_plan: Run pathing_probe on the commit before dba92250 and on the fixed commit; quote the arrival ticks for ground, hero and both, and the creep and chase results.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:57:31.298Z"
+witnessEvent: 1890
+witnessCommit: "80d092c3"
+resolvedAt: "2026-11-03T23:40:54.516Z"

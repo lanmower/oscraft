@@ -1,0 +1,9 @@
+id: "prd-mw17ksoffca1"
+kind: "prd"
+title: "Bots jitter on one spot: units alternate between two positions instead of settling"
+body: "id: bot-jitter-on-spot\nsubject: Bots jitter on one spot\ndescription: 'Bots often get stuck jittering on a spot. A unit whose order target is unreachable, or that sits in a crowd or against an obstacle, alternates between two positions tick after tick instead of settling. Fix the cause in the sim movement or path code (rust/crates/sim movement.rs, pathfinding.rs, astar.rs).'\nacceptance_criteria: Over 300 ticks after a unit settles, its position stays within a small radius and its direction does not reverse every tick. Checked on an unreachable order target and on a unit pressed against an obstacle.\nwitness_plan: A cargo probe that counts direction reversals per unit over 300 ticks, before and after the fix, quoted from its output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:37:18.639Z"
+witnessEvent: 2803
+witnessCommit: "dfb01195114a9e9e590a617208c2aeea56c21cf3"
+resolvedAt: "2026-11-04T01:47:34.448Z"

@@ -1,0 +1,9 @@
+id: "prd-mw17g9bl2012"
+kind: "prd"
+title: "Pathfinding perfection pass: obstacle paths, chase, follow and attack-move match 6.88g"
+body: "id: pathfinding-perfection-pass\nsubject: Pathfinding perfection pass\ndescription: 'The owner asked to perfect the pathfinding implementation. The earlier row prd-pathingchasefollowandattackmoveimperfect is resolved, so this pass re-audits the sim (rust/crates/sim/src pathfinding.rs, astar.rs, movement.rs, arrays.rs paths) against 6.88g behaviour: path around obstacles to the ordered destination, chase until in range, follow keeps station, attack-move engages every enemy met on hero and ground targets. Gaps found by probe are fixed; the rest are listed as rows.'\nacceptance_criteria: A cargo probe test covers each of the four behaviours. Each gap the probe finds is fixed or has its own row. The state hash of the existing parity test is unchanged unless the change is a deliberate, versioned layout change.\nwitness_plan: Run the new probe test and the existing sim parity test, and quote their output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:33:46.929Z"
+witnessEvent: 1869
+witnessCommit: "dee66169"
+resolvedAt: "2026-11-03T23:40:54.645Z"

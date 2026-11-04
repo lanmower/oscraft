@@ -1,0 +1,9 @@
+id: "prd-mw1uuk5xf3e7"
+kind: "prd"
+title: "Mode rules gap: no rules text for so and x; HUD shows no rules line"
+body: "chat_text.lua text.gameInfo (lines 96-136) has no row for so (switchon) or x (extended). Rules reach players only through the chat command (chat_cmds.lua gameinfo, line 65), never on the HUD. Fix: add so and x rows to gameInfo; add a short per-code rule text in moba_ui.json and show the active rules on the in-game HUD. Witness: a node check that every SUPPORTED code has a rule string and the HUD rule lines for a sample set."
+status: "resolved"
+createdAt: "2026-11-04T08:28:45.333Z"
+witnessEvent: 4010
+witnessCommit: "d96ad2d5977a5ab9a434ead6e54a61a9717fd756"
+resolvedAt: "2026-11-04T08:38:41.407Z"

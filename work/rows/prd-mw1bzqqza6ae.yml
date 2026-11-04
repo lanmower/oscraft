@@ -1,0 +1,9 @@
+id: "prd-mw1bzqqza6ae"
+kind: "prd"
+title: "Separation moves structures: a hero's separation pushes a tower off its spot"
+body: "id: separation-moves-structures\nsubject: Separation pushes a structure off its spot\ndescription: 'Commit 6179cc0d found that tower_t3 (player 0, base speed 0, structure) was moved about 1.1 cells by a hero separation at tick 11, and the move order back to its spawn point never completes because its speed is 0. Separation should not move structures.'\nacceptance_criteria: A structure with speed 0 keeps its position when a hero stands within one cell of it for 30 ticks, and the pathing_probe and sim tests still pass.\nwitness_plan: Quote the tower position before and after the hero is placed, and the pathing_probe result.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T23:40:54.443Z"
+witnessEvent: 3406
+witnessCommit: "9cea7dc037fd6e8f45d5a3f59f334bcc21d8d7bd"
+resolvedAt: "2026-11-04T08:36:38.057Z"

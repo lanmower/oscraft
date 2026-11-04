@@ -1,0 +1,9 @@
+id: "prd-mw180k8b4818"
+kind: "prd"
+title: "Game elements no longer extend past the bottom of the screen"
+body: "id: elements-past-screen-bottom\nsubject: Elements extend past the bottom of the screen\ndescription: 'Some game elements extend past the bottom edge of the screen. The layout keeps every element inside the viewport.'\nacceptance_criteria: No HUD element lies outside the viewport bottom at common sizes; the layout check shows no overflow.\nwitness_plan: Measure the element bottoms against the viewport height at the stated sizes, quoted from the check output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.187Z"
+witnessEvent: 4106
+witnessCommit: "5c48a5f28d6ac860926bad3dd47e560a1959527c"
+resolvedAt: "2026-11-04T08:40:38.584Z"

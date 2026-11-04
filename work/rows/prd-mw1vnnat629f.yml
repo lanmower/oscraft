@@ -1,0 +1,9 @@
+id: "prd-mw1vnnat629f"
+kind: "prd"
+title: "Game phase: arrow keys always reach the game and game UI is not HTML-selectable or keyboard-focusable"
+body: "In body[data-phase=live] an arrow key goes to the hero input (play.js keysDown via game_focus.js capture handler) whatever element has focus, unless the target is a text entry; it never moves focus, scrolls a panel or activates a control. Every game UI root has computed user-select none (play.html); no text selection on click or drag in the game; no focus ring on game controls; every focusable element except the chat input has tabindex -1 so Tab cannot land on it. Witness: a playwriter page on a local live match focuses each HUD control, presses ArrowLeft and ArrowDown, the hero sim position changes and document.activeElement does not; computed user-select of each root is none; the focusable list is only the chat input; node static check of play.html passes."
+status: "resolved"
+createdAt: "2026-11-04T08:51:22.421Z"
+witnessEvent: 5310
+witnessCommit: "f37efa73eaafba828ea550a855bd0b6bf299d30f"
+resolvedAt: "2026-11-04T09:13:59.071Z"

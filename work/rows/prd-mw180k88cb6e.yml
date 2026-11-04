@@ -1,0 +1,9 @@
+id: "prd-mw180k88cb6e"
+kind: "prd"
+title: "Lobby negotiation happens before team selection; teams are chosen on game creation or join"
+body: "id: lobby-negotiation-before-teams\nsubject: Lobby negotiation before team selection\ndescription: 'Before a team is selected, the lobby negotiation (mode, slots, ready state) has to happen. Team selection belongs to game creation or join, not to a step before the lobby is agreed.'\nacceptance_criteria: A new or joined lobby negotiates mode and slots first; the team picker only appears in the creation or join step; no team is chosen before the lobby negotiation completes.\nwitness_plan: Probe the lobby ui calls in order and read the emitted lobby states, quoted from the probe output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.184Z"
+witnessEvent: 1088
+witnessCommit: "3baac636b00158a902ed5a5eaf33d63eebd95705"
+resolvedAt: "2026-11-04T07:50:17.752Z"

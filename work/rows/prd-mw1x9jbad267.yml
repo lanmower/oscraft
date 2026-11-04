@@ -1,0 +1,6 @@
+id: "prd-mw1x9jbad267"
+kind: "prd"
+title: "Ready-screen switch set uses every usable character clip: idle variant and ready pose join the stands and emotes"
+body: "Follow-up to 3303442e. Enumerated every clip in the 20 character GLBs under scenarios/moba/assets/models/ (identical lists), library.json, and the prop packs (doors, levers, pistons, buttons, chest, trap; none are hero clips). Added idle-alt (character idle) and holding-both (ready pose) to SCENE_SWITCHES with static, emote-yes and emote-no. Excluded walk, sprint, jump, fall, drive, wheelchair-move-*, die, attack-*, holding-*-shoot, cast, crouch, sit, wheelchair-sit/look (posture), pick-up and interact-* (reach to the ground or an object), holding-right and holding-left (one-hand carry, not a ready pose). Frozen-body rule kept: a bone the clip does not drive holds the idle first frame. Witness: per-hero clip list and a 30 s switch log at 1280x720 with only allowed names."
+status: "open"
+createdAt: "2026-11-04T09:36:23.302Z"

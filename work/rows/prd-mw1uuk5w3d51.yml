@@ -1,0 +1,9 @@
+id: "prd-mw1uuk5w3d51"
+kind: "prd"
+title: "Mode label gap: TEXT.lobby.modes has no label for oi, so, x, ap"
+body: "SUPPORTED in modes.lua lists oi, so, x and ap, but moba_ui.json text.lobby.modes (line ~394) has no entry for them. The HUD falls back to the raw code. Fix: add the four labels in moba_ui.json. Witness: a node check that every SUPPORTED code has a label."
+status: "resolved"
+createdAt: "2026-11-04T08:28:45.332Z"
+witnessEvent: 4010
+witnessCommit: "d96ad2d5977a5ab9a434ead6e54a61a9717fd756"
+resolvedAt: "2026-11-04T08:38:41.353Z"

@@ -1,0 +1,9 @@
+id: "prd-mw18j1dg7926"
+kind: "prd"
+title: "Teamfight recap and death recap panels"
+body: "id: teamfight-and-death-recap\nsubject: Teamfight and death recap\ndescription: 'After a team fight a recap panel shows the deaths, kills and gold swing; when the local hero dies, a death recap shows who killed it and the damage it took.'\nacceptance_criteria: A fight with two or more deaths produces a recap with each death and the gold swing; a hero death produces a death recap naming the killer.\nwitness_plan: Probe the recap rows for a two-death fight and a single death, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T22:03:56.212Z"
+witnessEvent: 1932
+witnessCommit: "48511363"
+resolvedAt: "2026-11-03T23:41:17.536Z"

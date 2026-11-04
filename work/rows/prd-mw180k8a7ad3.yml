@@ -1,0 +1,9 @@
+id: "prd-mw180k8a7ad3"
+kind: "prd"
+title: "Every skill has an extensive hover explanation"
+body: "id: skill-hover-explanations\nsubject: Extensive skill hover explanations\ndescription: 'Every skill button shows an extensive hover explanation: name, hotkey, mana cost, cooldown, range, what it does, and its levels.'\nacceptance_criteria: Hovering any skill shows a tooltip with the listed fields filled from the ability data.\nwitness_plan: Probe the tooltip text for one skill of each kind, quoted from the output.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:49:34.186Z"
+witnessEvent: 953
+witnessCommit: "7e3fac2833c654e921ac883a90a54c9c2995c31d"
+resolvedAt: "2026-11-04T07:47:10.374Z"

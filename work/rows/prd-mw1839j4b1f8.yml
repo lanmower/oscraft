@@ -1,0 +1,9 @@
+id: "prd-mw1839j4b1f8"
+kind: "prd"
+title: "Mouse camera: middle drag rotates the view, right drag pans it"
+body: "id: camera-middle-rotate-right-pan\nsubject: Camera mouse mapping: middle rotates, right pans\ndescription: 'Holding right click rotates the view by accident. Middle-button drag rotates the view (yaw and pitch). Right-button drag pans the view. A short right click without movement still issues the right-click order. Panning releases the hero lock (see the lock row f29843f0).'\nacceptance_criteria: Middle drag changes yaw and pitch and leaves the target; right drag moves the target and leaves yaw and pitch; a right click without movement still issues its order; the hero lock releases on right drag pan.\nwitness_plan: A node check on the pure drag mapping (button to rotate or pan) and a read of the pointer wiring in render3d.js or modui.js showing which button drives which action.\nstatus: pending\n"
+status: "resolved"
+createdAt: "2026-11-03T21:51:40.288Z"
+witnessEvent: 480
+witnessCommit: "8159cdbb2ed7b1a51471dd9e78c44c2e51446c7d"
+resolvedAt: "2026-11-04T07:41:54.563Z"
