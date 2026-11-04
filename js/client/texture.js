@@ -35,8 +35,8 @@ async function fetchImageBlob(uri, glbUrl, signal = null) {
 }
 
 async function loadKtx2Image(ref, glbUrl, signal = null) {
-  const bytes = ref.bytes ?? new Uint8Array(await (await fetchImageBlob(ref.uri, glbUrl, signal)).arrayBuffer());
   const basis = await loadBasis();
+  const bytes = ref.bytes ?? new Uint8Array(await (await fetchImageBlob(ref.uri, glbUrl, signal)).arrayBuffer());
   const { width, height } = ktx2Size(basis, bytes);
   let source = null;
   return {
