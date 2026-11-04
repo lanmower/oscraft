@@ -169,6 +169,10 @@ fn acquire_range(host: &mut ModHost, kind: &str) {
     host.sim_mut().set_acquire(kind, ACQUIRE_GAME_UNITS).expect("the kind takes an acquire range");
 }
 
+fn struck_by(host: &ModHost, attacker: usize, target: usize) -> bool {
+    host.sim().recent_hitters(target, 1).contains(&(attacker as u32))
+}
+
 fn weapon_cells(host: &ModHost, unit: usize) -> f64 {
     f64::from(host.sim().weapon(unit).1) / f64::from(ONE)
 }
@@ -245,7 +249,6 @@ fn chase_around_wall(kind: &str, foe_hero: bool, foe_walks: bool) {
     let accepted = host.sim_mut().order_attack_or_approach(attacker, target).expect("the attack order is accepted");
     assert!(!accepted || range > 0.0, "the attack order is queued");
 
-    let hp = host.sim().hp(target);
     let mut length = 0.0;
     let mut prev = at(&host, attacker);
     let mut struck = None;
@@ -268,7 +271,7 @@ fn chase_around_wall(kind: &str, foe_hero: bool, foe_walks: bool) {
                 host.sim().commanded_strike_index(attacker),
             ));
         }
-        if host.sim().hp(target) < hp {
+        if struck_by(&host, attacker, target) {
             let gap = dist(at(&host, attacker), at(&host, target));
             struck = Some((t, gap, length));
             break;
@@ -470,6 +473,66 @@ fn a_crowd_ordered_to_one_point_settles_instead_of_jittering() {
     }
 }
 
+const TOWER_KIND: &str = "tower_t3";
+const TOWER_CELL: (i32, i32) = (110, 240);
+const HERO_BESIDE_TOWER: (i32, i32) = (111, 240);
+const STRUCTURE_TICKS: u32 = 30;
+const DRIFT_HOLDER_CELL: (i32, i32) = (100, 236);
+const DRIFT_HOLDER_GOAL: (i32, i32) = (97, 240);
+const DRIFT_HOLDER_AWAY: (i32, i32) = (84, 236);
+const DRIFT_HOLDER_TICKS: u32 = 150;
+const DRIFT_HOLDER_AWAY_TICKS: u32 = 120;
+const DRIFT_GOAL: (i32, i32) = (99, 240);
+const DRIFT_MOVE_TICKS: u32 = 600;
+
+#[test]
+fn a_structure_keeps_its_spot_when_a_hero_stands_beside_it() {
+    let mut host = pack_host();
+    let tower = spawn(&mut host, PLAYER, TOWER_KIND, false, TOWER_CELL);
+    spawn(&mut host, PLAYER, HERO, true, HERO_BESIDE_TOWER);
+    let before = host.sim().position_fixed(tower);
+    for t in 1..=STRUCTURE_TICKS {
+        host.advance().expect("advance the match");
+        assert_eq!(host.sim().position_fixed(tower), before, "the {TOWER_KIND} moved by tick {t}");
+    }
+    println!("probe structure kind={TOWER_KIND} before={before:?} after={:?}", host.sim().position_fixed(tower));
+}
+
+#[test]
+#[ignore = "prd-mw1bzqqz7f60 open: reproduces the drift-reuse stop (unit ends 7.6 cells short on HEAD)"]
+fn a_unit_whose_goal_drifted_reaches_its_target_past_a_wall() {
+    let mut host = pack_host();
+    let holder = spawn(&mut host, PLAYER, GROUND, false, DRIFT_HOLDER_CELL);
+    raise_wall(&mut host);
+    let (hx, hy) = fixed_point(DRIFT_HOLDER_GOAL);
+    host.sim_mut().issue_order_kind(holder, ORDER_MOVE, hx, hy).expect("the move order is accepted");
+    for _ in 0..DRIFT_HOLDER_TICKS {
+        host.advance().expect("advance the match");
+    }
+    let (ax, ay) = fixed_point(DRIFT_HOLDER_AWAY);
+    host.sim_mut().issue_order_kind(holder, ORDER_MOVE, ax, ay).expect("the move order is accepted");
+    for _ in 0..DRIFT_HOLDER_AWAY_TICKS {
+        host.advance().expect("advance the match");
+    }
+
+    let unit = spawn(&mut host, PLAYER, GROUND, false, START);
+    let (gx, gy) = fixed_point(DRIFT_GOAL);
+    host.sim_mut().issue_order_kind(unit, ORDER_MOVE, gx, gy).expect("the move order is accepted");
+    let destination = cell_point(DRIFT_GOAL);
+    let mut arrived = None;
+    for t in 1..=DRIFT_MOVE_TICKS {
+        host.advance().expect("advance the match");
+        assert_on_open_cell(&host, unit, t);
+        if dist(at(&host, unit), destination) <= ARRIVE_CELLS {
+            arrived = Some(t);
+            break;
+        }
+    }
+    let end = at(&host, unit);
+    println!("probe drift_goal unit={unit} arrived={arrived:?} end={end:?} short={:.2}", dist(end, destination));
+    assert!(arrived.is_some(), "the unit stopped {:.2} cells short of its drifted goal (ended at {end:?})", dist(end, destination));
+}
+
 const CREEP_MOVE_FROM: (i32, i32) = (90, 232);
 const CREEP_MOVE_TO: (i32, i32) = (112, 232);
 const CREEP_CROWD_CENTRE: (i32, i32) = (100, 232);
@@ -563,41 +626,34 @@ fn attack_move_engages(enemies: &[(&str, bool, i32, i32)]) {
     for &(kind, hero, dx, dy) in enemies {
         no_acquire(&mut host, kind);
         let foe = spawn(&mut host, FOE, kind, hero, (START.0 + dx, START.1 + dy));
-        foes.push((kind, foe, host.sim().hp(foe), None::<(u32, f64)>));
+        foes.push((kind, foe, None::<(u32, f64)>));
     }
     let destination = (START.0 + 25, START.1);
     let (dx, dy) = fixed_point(destination);
     host.sim_mut().issue_order_kind(attacker, ORDER_ATTACK_MOVE, dx, dy).expect("the attack-move order is accepted");
-    host.advance().expect("advance the match");
-    for entry in foes.iter_mut() {
-        entry.2 = host.sim().hp(entry.1);
-    }
-
     let mut arrived = None;
-    for t in 2..=MOVE_TICKS {
+    for t in 1..=MOVE_TICKS {
         host.advance().expect("advance the match");
         assert_on_open_cell(&host, attacker, t);
         let to_destination = dist(at(&host, attacker), cell_point(destination));
         for entry in foes.iter_mut() {
-            let now_hp = host.sim().hp(entry.1);
-            if entry.3.is_none() && now_hp < entry.2 {
-                entry.3 = Some((t, to_destination));
+            if entry.2.is_none() && struck_by(&host, attacker, entry.1) {
+                entry.2 = Some((t, to_destination));
             }
-            entry.2 = now_hp;
         }
         if arrived.is_none() && to_destination <= ARRIVE_CELLS {
             arrived = Some(t);
         }
-        if arrived.is_some() && foes.iter().all(|entry| entry.3.is_some()) {
+        if arrived.is_some() && foes.iter().all(|entry| entry.2.is_some()) {
             break;
         }
     }
-    for (kind, foe, _, struck) in &foes {
+    for (kind, foe, struck) in &foes {
         println!("probe attack_move enemy={kind} foe={foe} struck={struck:?} arrived={arrived:?}");
     }
     assert!(host.sim().alive(attacker), "the attacker is alive after the engagement");
     assert!(arrived.is_some(), "the attack-move resumed and reached its destination");
-    for (kind, _, _, struck) in &foes {
+    for (kind, _, struck) in &foes {
         let (tick, to_destination) = struck.unwrap_or_else(|| panic!("the attack-move never engaged the {kind} enemy"));
         assert!(
             to_destination > ARRIVE_CELLS,
