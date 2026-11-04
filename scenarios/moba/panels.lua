@@ -1949,8 +1949,27 @@ local function lobby_tree()
 end
 
 local tree_ui_generation = 0
-local tree_key_seen = nil
+local tree_dirty = { all = 0, shop = 0, skills = 0, select = 0 }
+local tree_key_seen = {}
 local hud_key_seen = nil
+
+local SHOP_CALLS = {
+  buy = true, sell = true, stash_item = true, unstash = true, shop_deselect = true, shop_category = true,
+  shop_search = true, build_toggle = true, quick_buy = true, shop_pick = true, pin = true, grab_all = true,
+}
+
+local function touch(group)
+  tree_ui_generation = tree_ui_generation + 1
+  if group ~= nil then tree_dirty[group] = tree_dirty[group] + 1 end
+end
+
+local function ui_group(call)
+  if SHOP_CALLS[call] then return "shop" end
+  if call == "skill_up" then return "skills" end
+  if call == "group_page" then return "select" end
+  if call == "toggle" then return nil end
+  return "all"
+end
 
 local function emit_hud(generation)
   local key = generation .. ":" .. tree_ui_generation .. ":" .. math.floor(game.time() / TICKS_PER_SECOND)
@@ -1971,25 +1990,35 @@ local function reach_key(hero)
   }, ",")
 end
 
+local function has_winner()
+  local side = game.winner()
+  return side ~= nil and side >= 0
+end
+
+local function emit_panel(id, slot, open, key, build)
+  local seen = open and key or "closed"
+  if tree_key_seen[id] == seen then return end
+  tree_key_seen[id] = seen
+  game.count_panel_rebuild()
+  emit(id, slot, open and build() or nil)
+end
+
 local function emit_all()
   update_heroes()
   local generation = game.panel_generation()
   local hero = hero_of(LOCAL)
   emit_hud(generation)
-  local key = generation .. ":" .. tree_ui_generation .. ":" .. reach_key(hero)
-  if key ~= tree_key_seen then
-    tree_key_seen = key
-    game.count_panel_rebuild()
-    emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
-    emit("team", "top", team_tree())
-    emit("recap", "centre", recap_tree())
-    emit("networth", "top", OPEN.networth and networth_tree() or nil)
-    emit("scoreboard", "centre", OPEN.scoreboard and scoreboard_tree() or nil)
-    emit("shop", "right", OPEN.shop and shop_tree() or nil)
-    emit("controls", "centre", OPEN.controls and TEXT.menu ~= nil and controls_tree() or nil)
-    emit("skills", "left", hero ~= nil and skills_tree(hero) or nil)
-    emit("select", "bar-left", select_tree())
-  end
+  local world = generation .. ":" .. tree_dirty.all
+  local fight = recap.teamfight()
+  emit_panel("win", "win", not WIN_CLOSED and has_winner(), world, win_tree)
+  emit_panel("team", "top", true, world .. ":" .. clock_text(), team_tree)
+  emit_panel("recap", "centre", fight ~= nil, world .. ":" .. (fight and fight.id or ""), recap_tree)
+  emit_panel("networth", "top", OPEN.networth, world, networth_tree)
+  emit_panel("scoreboard", "centre", OPEN.scoreboard, world, scoreboard_tree)
+  emit_panel("shop", "right", OPEN.shop, world .. ":" .. tree_dirty.shop .. ":" .. tostring(hero) .. ":" .. reach_key(hero), shop_tree)
+  emit_panel("controls", "centre", OPEN.controls and TEXT.menu ~= nil, tostring(tree_dirty.all), controls_tree)
+  emit_panel("skills", "left", hero ~= nil, world .. ":" .. tree_dirty.skills .. ":" .. tostring(hero), function() return skills_tree(hero) end)
+  emit_panel("select", "bar-left", true, world .. ":" .. tree_dirty.select, select_tree)
   emit("inventory", "bar-mid", inventory_tree_cached())
 end
 
@@ -2169,7 +2198,17 @@ local function ui_call(who, call, a)
 end
 
 local function panels_on_action(name, args)
-  tree_ui_generation = tree_ui_generation + 1
+  local group = "all"
+  if name == "key" then
+    group = nil
+  elseif name == "selection" then
+    group = "select"
+  elseif name == "pointer" then
+    group = "shop"
+  elseif name == "ui" then
+    group = ui_group(args.call)
+  end
+  touch(group)
   if name == "setup" then
     UI = args.ui or {}
     TEXT = UI.text or {}
@@ -2177,6 +2216,7 @@ local function panels_on_action(name, args)
     LOCAL = args.player or LOCAL
     OWNER = args.pubkey or OWNER
     LAST = {}
+    tree_key_seen = {}
     require("post_view").reset()
     inventory_cache = {}
     SELECTED_SHOP = nil
@@ -2251,7 +2291,7 @@ local lobby_api = {
   group = hero_group,
   hero_name = hero_name,
   changed = function()
-    tree_ui_generation = tree_ui_generation + 1
+    touch("all")
     lobby_seats_event()
     pcall(refresh_lobby)
   end,
@@ -2265,7 +2305,7 @@ game.timer("panels", 1, refresh, REFRESH_TICKS)
 return {
   on_action = panels_on_action,
   on_pointer = function(kind, x, y, button)
-    tree_ui_generation = tree_ui_generation + 1
+    touch("shop")
     shop_prop_click({ kind = kind, x = x, y = y, button = button, player = LOCAL })
   end,
 }

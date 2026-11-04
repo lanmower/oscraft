@@ -59,12 +59,13 @@ fn pack_host() -> ModHost {
     host
 }
 
+fn ui_file() -> serde_json::Value {
+    serde_json::from_str(&std::fs::read_to_string(pack_dir().join("moba_ui.json")).expect("the moba ui file"))
+        .expect("a valid moba ui file")
+}
+
 fn setup_panels(host: &mut ModHost) {
-    let ui: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(pack_dir().join("moba_ui.json")).expect("the moba ui file"),
-    )
-    .expect("a valid moba ui file");
-    host.dispatch_action("setup", &json!({ "ui": ui, "player": 0, "pubkey": "owner" }))
+    host.dispatch_action("setup", &json!({ "ui": ui_file(), "player": 0, "pubkey": "owner" }))
         .expect("the panels accept the setup");
 }
 
@@ -96,6 +97,10 @@ fn start_quiet_window(host: &mut ModHost) {
     panic!("the player's income never ticked, so no quiet window can be found");
 }
 
+fn key_name(ui: &serde_json::Value, group: &str) -> String {
+    ui["keys"][group][0].as_str().expect("a key binding for the panel").to_string()
+}
+
 #[test]
 fn idle_panel_trees_are_not_rebuilt_while_the_state_counter_holds() {
     let mut host = pack_host();
@@ -109,7 +114,7 @@ fn idle_panel_trees_are_not_rebuilt_while_the_state_counter_holds() {
 }
 
 #[test]
-fn a_changed_state_counter_rebuilds_the_panel_trees_once() {
+fn a_changed_state_counter_rebuilds_only_the_trees_that_read_it() {
     let mut host = pack_host();
     setup_panels(&mut host);
     spawn_hero(&mut host, "antimage", 0, 92, 240);
@@ -124,5 +129,41 @@ fn a_changed_state_counter_rebuilds_the_panel_trees_once() {
     advance(&mut host, 4);
     let rebuilt = host.sim().panel_rebuilds() - before_change;
     eprintln!("panel-probe counter=unchanged rebuilds={idle} ticks=8; counter=changed rebuilds={rebuilt} ticks=4");
-    assert_eq!(rebuilt, 1, "the panel trees were rebuilt {rebuilt} times after the counter changed");
+    assert_eq!(rebuilt, 2, "the open sim-reading trees (team, select) rebuild once each, got {rebuilt}");
+}
+
+#[test]
+fn a_scoreboard_toggle_rebuilds_only_the_scoreboard_tree() {
+    let mut host = pack_host();
+    setup_panels(&mut host);
+    spawn_hero(&mut host, "antimage", 0, 92, 240);
+    advance(&mut host, 240);
+    start_quiet_window(&mut host);
+    let settled = host.sim().panel_rebuilds();
+    host.dispatch_action("key", &json!({ "phase": "down", "key": key_name(&ui_file(), "scoreboard"), "player": 0 }))
+        .expect("the panels accept the scoreboard key");
+    advance(&mut host, 4);
+    let rebuilt = host.sim().panel_rebuilds() - settled;
+    eprintln!("panel-probe scoreboard-open rebuilds={rebuilt} ticks=4");
+    assert_eq!(rebuilt, 1, "the scoreboard toggle rebuilt {rebuilt} trees, expected only the scoreboard");
+}
+
+#[test]
+fn a_selection_change_rebuilds_only_the_select_tree() {
+    let mut host = pack_host();
+    setup_panels(&mut host);
+    let hero = spawn_hero(&mut host, "antimage", 0, 92, 240);
+    advance(&mut host, 240);
+    start_quiet_window(&mut host);
+    let settled = host.sim().panel_rebuilds();
+    host.dispatch_action("key", &json!({ "phase": "down", "key": key_name(&ui_file(), "scoreboard"), "player": 0 }))
+        .expect("the panels accept the scoreboard key");
+    advance(&mut host, 4);
+    let after_scoreboard = host.sim().panel_rebuilds();
+    host.dispatch_action("selection", &json!({ "player": 0, "ids": [hero] }))
+        .expect("the panels accept the selection");
+    advance(&mut host, 4);
+    let rebuilt = host.sim().panel_rebuilds() - after_scoreboard;
+    eprintln!("panel-probe scoreboard-open rebuilds={} ticks=4; selection rebuilds={rebuilt} ticks=4", after_scoreboard - settled);
+    assert_eq!(rebuilt, 2, "the selection rebuilt {rebuilt} trees, expected the select tree and the skills tree it now shows");
 }
