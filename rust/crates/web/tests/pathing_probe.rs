@@ -346,6 +346,7 @@ const SAMPLE_TICKS: u32 = 300;
 const JITTER_RADIUS_CELLS: f64 = 1.5;
 const REVERSAL_LIMIT: u32 = 30;
 const POCKET_RING: [(i32, i32); 8] = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
+const PRESSED_START: (i32, i32) = (POCKET.0 - 2, POCKET.1);
 
 fn wall_pocket(host: &mut ModHost, centre: (i32, i32)) {
     let mut sim = host.sim_mut();
@@ -409,6 +410,17 @@ fn a_hero_with_an_unreachable_order_target_settles_instead_of_jittering() {
 fn a_ground_unit_with_an_unreachable_order_target_settles_instead_of_jittering() {
     let mut host = pack_host();
     let unit = spawn(&mut host, PLAYER, GROUND, false, START);
+    wall_pocket(&mut host, POCKET);
+    let (gx, gy) = fixed_point(POCKET);
+    host.sim_mut().issue_order_kind(unit, ORDER_MOVE, gx, gy).expect("the move order is accepted");
+    let (radius, reversals) = settle_and_measure(&mut host, unit);
+    assert_settles(GROUND, unit, radius, reversals);
+}
+
+#[test]
+fn a_ground_unit_pressed_against_an_obstacle_settles_instead_of_jittering() {
+    let mut host = pack_host();
+    let unit = spawn(&mut host, PLAYER, GROUND, false, PRESSED_START);
     wall_pocket(&mut host, POCKET);
     let (gx, gy) = fixed_point(POCKET);
     host.sim_mut().issue_order_kind(unit, ORDER_MOVE, gx, gy).expect("the move order is accepted");
