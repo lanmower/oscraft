@@ -646,6 +646,11 @@ impl Game {
         self.rec.mark_incomplete(self.host.sim().ticks());
         !refused
     }
+
+    pub fn grant_xp_for_test(&mut self, unit: u32, amount: u32) {
+        self.host.sim_mut().add_xp(unit as usize, amount);
+        self.rec.mark_incomplete(self.host.sim().ticks());
+    }
 }
 
 fn tile_fixed(tile: f32) -> Option<i32> {
