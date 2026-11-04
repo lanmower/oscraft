@@ -29,6 +29,7 @@ const decodersReady = Promise.all([loadBasis(), loadMeshopt()]);
 import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, packSwapKind, swapGate, swapIsNew } from "./swap_protocol.js";
 import { createFogView } from "./fogview.js";
 import { packCameraRules } from "./camera_rules.js";
+import { installGameFocusGuard } from "./game_focus.js";
 import { createZoomKeys } from "./zoom_keys.js";
 import { createDraftClock } from "./draft_clock.js";
 import { createGuiFlow } from "./gui_flow.js";
@@ -1379,6 +1380,7 @@ function bindInput() {
     keysDown.clear();
     forwardKey("up", { key: "Shift", shiftKey: false, ctrlKey: false, altKey: false, metaKey: false });
   });
+  installGameFocusGuard({ onArrow: (key) => keysDown.add(key) });
   window.addEventListener("pointermove", (e) => { pointer = { x: e.clientX, y: e.clientY, over: e.target }; });
   document.documentElement.addEventListener("pointerleave", () => { pointer = null; });
   canvas.addEventListener("wheel", (e) => {

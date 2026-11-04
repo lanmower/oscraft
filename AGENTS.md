@@ -113,6 +113,7 @@ No comments in source: durable facts live here, names carry intent.
 - mods/: one chunk per mod; bot_lib cannot require shared/xp.lua.
 - `scripts/gamesparks-bootstrap.mjs` may rewrite the moba manifest's `gamesparks` block when run; manifest `data[]` stays OSDT-only.
 - `rust/crates/web/site/main.js`: unit meshes are swapped for bind-pose plain meshes (`replaceSkinnedMeshes`) because SkinnedMesh vertices follow their bones, not the holder transform; without the swap every unit collapses to the origin.
+- Live phase (`body[data-phase="live"]`): `game_focus.js` sends arrows to the hero keys whatever has focus (text entry excepted), sets tabindex -1 on every focusable but the chat input, and blurs on pointer down; play.html user-selects nothing in the game.
 - HUD route: render3d.js has no 2D or text path (beginFrame, drawMesh, endFrame over WebGL2 mesh and splat programs), so HUD content is drawn on a 2D canvas over the game canvas, the route hud.js barCanvas, fx.js text and ui_minimap.js already use.
 - The ability bar is the select panel tree (panels.lua select_tree, emitted to bar-left): a cell with unit and slot is an ability; its call is cast with args {slot}, and it has no call when dim.
 - A DOM cell sends send(call, withModifiers(args, ev)) (widgets.js buildNode); play.js sendInput("ui", {call, args}) hands it to controls.lua's ui handler, which runs cast_key(slot).
