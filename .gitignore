@@ -71,3 +71,4 @@ opencode.jsonc
 /.gm/unknowns-log.jsonl
 /.gm/mutables-log.jsonl
 /scripts/perf/node_modules/
+.playwriter/
