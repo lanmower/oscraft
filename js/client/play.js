@@ -9,7 +9,7 @@ import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, TEAM_SIZE,
 import { iceServersFrom } from "./ice.js";
 import { assetJson, assetRel, assetUrl, fetchRetrying, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
-import { AnimationPlayer, cycleSpeed, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
+import { AnimationPlayer, cycleSpeed, globalMatrices, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
@@ -856,10 +856,31 @@ function restJoints(mesh) {
   return jointMatrices(nodes, skin, player.pose() ?? EMPTY_POSE, fit, new Float32Array(16 * skin.joints.length));
 }
 
+async function rigFacing(model, animation) {
+  const map = await humanoidBoneMap(model, animation.nodes);
+  const byName = new Map();
+  animation.nodes.forEach((node, i) => { if (node.name) byName.set(node.name, i); });
+  const player = new AnimationPlayer(animation.clips);
+  player.playState({});
+  const globals = globalMatrices(animation.nodes, player.pose() ?? EMPTY_POSE);
+  const fit = animation.fit;
+  const at = (bone) => {
+    const g = byName.get(map.bones[bone]) * 16;
+    const x = globals[g + 12], y = globals[g + 13], z = globals[g + 14];
+    return [fit[0] * x + fit[4] * y + fit[8] * z + fit[12], fit[1] * x + fit[5] * y + fit[9] * z + fit[13], fit[2] * x + fit[6] * y + fit[10] * z + fit[14]];
+  };
+  const left = at("leftUpperArm"), right = at("rightUpperArm"), head = at("head"), hips = at("hips");
+  const lateral = [left[0] - right[0], left[1] - right[1], left[2] - right[2]];
+  const up = [head[0] - hips[0], head[1] - hips[1], head[2] - hips[2]];
+  const forward = [lateral[1] * up[2] - lateral[2] * up[1], lateral[2] * up[0] - lateral[0] * up[2], lateral[0] * up[1] - lateral[1] * up[0]];
+  return { lateral, forward };
+}
+
 async function previewRig(model, gl) {
   const fitted = await fetchModel(model, 2);
   const mesh = await toMesh(gl, fitted, [1, 1, 1], { animated: true });
-  return { mesh, joints: restJoints(mesh), positions: fitted.positions };
+  const facing = fitted.animation ? await rigFacing(model, fitted.animation) : null;
+  return { mesh, joints: restJoints(mesh), positions: fitted.positions, facing };
 }
 
 function maxY(positions) {

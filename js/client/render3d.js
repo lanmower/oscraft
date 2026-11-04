@@ -1113,11 +1113,30 @@ function figureOf(rig) {
   const scale = SCENE_HERO_HEIGHT / Math.max(1e-6, maxY - minY);
   const names = animation ? new Set(animation.clips.map((clip) => clip.name)) : new Set();
   const stands = SCENE_SWITCHES.filter((name) => names.has(name));
-  return { mesh, animation, scale, lift: -minY * scale, stands };
+  return { mesh, animation, scale, lift: -minY * scale, stands, facing: rig.facing ?? null };
+}
+
+function placedHeading(seat, figure) {
+  return seat.yaw + (figure.facing ? Math.atan2(-figure.facing.forward[0], figure.facing.forward[2]) : 0);
+}
+
+function facingReport(seat, figure) {
+  if (!figure.facing) return { heading: NaN, facingOff: NaN, lateralOff: NaN };
+  const heading = placedHeading(seat, figure);
+  const c = Math.cos(heading), s = Math.sin(heading);
+  const [fx, , fz] = figure.facing.forward;
+  const [lx, , lz] = figure.facing.lateral;
+  const forwardX = c * fx + s * fz, forwardZ = -s * fx + c * fz;
+  const lateralX = c * lx + s * lz, lateralZ = -s * lx + c * lz;
+  return {
+    heading: (heading * 180) / Math.PI,
+    facingOff: (Math.atan2(Math.abs(forwardX), forwardZ) * 180) / Math.PI,
+    lateralOff: (Math.atan2(Math.abs(lateralZ), Math.abs(lateralX)) * 180) / Math.PI,
+  };
 }
 
 function slotTransform(seat, figure, out) {
-  return multiply(multiply(translation(seat.x, figure.lift, seat.z), rotationY(seat.yaw)), scaling(figure.scale, figure.scale, figure.scale), out);
+  return multiply(multiply(translation(seat.x, figure.lift, seat.z), rotationY(placedHeading(seat, figure))), scaling(figure.scale, figure.scale, figure.scale), out);
 }
 
 function screenPoint(vp, x, y, z, width, height) {
@@ -1238,9 +1257,9 @@ export function createFigureScene(canvas, { prepare, onFrame, random = Math.rand
         } else {
           renderer.drawMesh(figure.mesh, transform);
         }
-        info.push({ clip: state.clip, switches: state.switches, stands: figure.stands.join(","), x: seat.x, z: seat.z, r: seat.r, ...body, blend: state.player ? state.player.blendWeight() : 1 });
+        info.push({ clip: state.clip, switches: state.switches, stands: figure.stands.join(","), x: seat.x, z: seat.z, r: seat.r, ...body, ...facingReport(seat, figure), blend: state.player ? state.player.blendWeight() : 1 });
       } else {
-        info.push({ clip: "", switches: 0, stands: "", x: seat.x, z: seat.z, r: seat.r, ...body, blend: 1 });
+        info.push({ clip: "", switches: 0, stands: "", x: seat.x, z: seat.z, r: seat.r, ...body, heading: NaN, facingOff: NaN, lateralOff: NaN, blend: 1 });
       }
       const plateY = SCENE_NAME_HEIGHT + (seat.place % 2) * SCENE_PLATE_STAGGER;
       points.push(screenPoint(viewProj, seat.x, plateY, seat.z, cssWidth, cssHeight));

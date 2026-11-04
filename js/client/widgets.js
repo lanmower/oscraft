@@ -734,6 +734,9 @@ export function sceneWidget() {
       cell.dataset.sr = seats[k].sr.toFixed(2);
       cell.dataset.depth = seats[k].depth.toFixed(4);
       cell.dataset.blend = seats[k].blend.toFixed(3);
+      cell.dataset.heading = seats[k].heading.toFixed(2);
+      cell.dataset.facingOff = seats[k].facingOff.toFixed(2);
+      cell.dataset.lateralOff = seats[k].lateralOff.toFixed(2);
     });
     if (element.dataset.draws !== String(draws)) element.dataset.draws = String(draws);
   };
