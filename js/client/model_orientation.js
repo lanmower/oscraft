@@ -12,4 +12,5 @@ export const MODEL_ORIENTATION = Object.freeze({
   "orc-voodoo-lounge-lowpoly": HALF_TURN_X,
   "temple-of-the-damned-lowpoly": HALF_TURN_X,
   "ancient-protector-lowpoly": HALF_TURN_X,
+  "ancient-of-war-lowpoly": HALF_TURN_X,
 });
