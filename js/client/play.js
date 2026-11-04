@@ -2599,9 +2599,13 @@ function publishCommandCounts() {
   setBodyData("attacks", attacks);
 }
 
+function clockTick() {
+  return netState ? netState.tick : localGame ? localGame.ticks() : 0;
+}
+
 function publishWitness() {
   setBodyData("units", currentUnits().length);
-  setBodyData("ticks", localGame ? localGame.ticks() : netState ? netState.tick : 0);
+  setBodyData("ticks", clockTick());
   setBodyData("mode", "3d");
   setBodyData("center", renderer3d.camera.target.map((v) => v.toFixed(2)).join(","));
   setBodyData("distance", renderer3d.camera.distance.toFixed(3));
@@ -3510,7 +3514,7 @@ installDebugApi({
   rendererKind: () => "webgl",
   game: () => localGame,
   localPlayer: () => myPlayer,
-  netTick: () => (netState ? netState.tick : 0),
+  clockTick,
   units: currentUnits,
   lastSwap: () => (lastSwapResult ? { ...lastSwapResult } : null),
   debugActions: () => {

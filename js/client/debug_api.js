@@ -108,7 +108,7 @@ export function createDebugApi(hooks) {
       const r = renderer();
       const selection = hooks.selected();
       return {
-        tick: game ? game.ticks() : hooks.netTick(),
+        tick: hooks.clockTick(),
         localPlayer: me,
         hero,
         units: units.map((u) => ({ id: u.id, type: u.type, owner: u.player, x: u.x, z: u.z, hp: u.hp ?? null, hero: hooks.isHero(u.id), attributes: hooks.isHero(u.id) ? hooks.attributes?.(u.id) ?? null : null })),
