@@ -689,9 +689,7 @@ const modelOrder = createModelOrder();
 function parsedModel(name, selected = false) {
   let entry = parsedModels.get(name);
   if (!entry) {
-    entry = selected
-      ? modelOrder.selected((signal) => readParsedModel(name, signal))
-      : modelOrder.speculative(decodersReady, (signal) => readParsedModel(name, signal));
+    entry = modelOrder.ordered(selected, decodersReady, (signal) => readParsedModel(name, signal));
     parsedModels.set(name, entry);
     entry.catch(() => parsedModels.delete(name));
   }
@@ -751,7 +749,7 @@ async function buildUnitMesh(type, selected = false) {
   const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
   const fitted = hero ? await fetchModel(name, size, selected) : await modelOrRecord(name, fetchModel(name, size, selected));
   if (!fitted) return null;
-  const mesh = toMesh(renderGl, fitted, [1, 1, 1], { animated: true });
+  const mesh = toMesh(renderGl, fitted, [1, 1, 1], { animated: true, selected });
   return hero ? await mesh : await modelOrRecord(fitted.glbUrl, mesh);
 }
 
@@ -873,14 +871,14 @@ function modelOrRecord(name, promise) {
   });
 }
 
-async function toMesh(gl, fitted, fallbackColor, { animated = false } = {}) {
+async function toMesh(gl, fitted, fallbackColor, { animated = false, selected = false } = {}) {
   if (!fitted) return null;
   const rig = animated ? fitted.animation : null;
   const mesh = rig
     ? { positions: rig.positions, normals: rig.normals, uvs: fitted.uvs, indices: fitted.indices, joints: rig.joints, weights: rig.weights, animation: rig, color: fallbackColor, height: maxY(fitted.positions) }
     : { positions: fitted.positions, normals: fitted.normals, uvs: fitted.uvs, indices: fitted.indices, color: fallbackColor, height: maxY(fitted.positions) };
   if (fitted.baseColorTexture) {
-    const image = await loadBaseColorImage(fitted.baseColorTexture, fitted.glbUrl);
+    const image = await modelOrder.ordered(selected, decodersReady, (signal) => loadBaseColorImage(fitted.baseColorTexture, fitted.glbUrl, signal));
     if (!image) throw new Error(`base colour texture of ${fitted.glbUrl} did not load`);
     mesh.texture = uploadTexture(gl, image);
   }

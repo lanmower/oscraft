@@ -10,32 +10,32 @@ function shippedKtx2Paths() {
   return shippedKtx2;
 }
 
-export async function loadBaseColorImage(ref, glbUrl) {
+export async function loadBaseColorImage(ref, glbUrl, signal = null) {
   if (!ref) return null;
-  if (ref.mimeType === 'image/ktx2') return loadKtx2Image(ref, glbUrl);
+  if (ref.mimeType === 'image/ktx2') return loadKtx2Image(ref, glbUrl, signal);
   if (!ref.bytes && ref.uri && RASTER_URI.test(ref.uri)) {
     const siblingPath = new URL(ref.uri.replace(RASTER_URI, '.ktx2'), glbUrl ?? location.href).pathname;
     if ((await shippedKtx2Paths()).some((path) => siblingPath.endsWith('/' + path))) {
-      const sibling = await loadKtx2Image({ uri: ref.uri.replace(RASTER_URI, '.ktx2'), texCoord: ref.texCoord }, glbUrl).catch(() => null);
+      const sibling = await loadKtx2Image({ uri: ref.uri.replace(RASTER_URI, '.ktx2'), texCoord: ref.texCoord }, glbUrl, signal).catch(() => null);
       if (sibling) return sibling;
     }
   }
   const blob = ref.bytes
     ? new Blob([ref.bytes], { type: ref.mimeType ?? 'image/png' })
-    : await fetchImageBlob(ref.uri, glbUrl);
+    : await fetchImageBlob(ref.uri, glbUrl, signal);
   const bitmap = await createImageBitmap(blob);
   return { source: bitmap, width: bitmap.width, height: bitmap.height, texCoord: ref.texCoord ?? 0 };
 }
 
-async function fetchImageBlob(uri, glbUrl) {
+async function fetchImageBlob(uri, glbUrl, signal = null) {
   const url = glbUrl ? new URL(uri, glbUrl).href : uri;
-  const response = await fetch(url);
+  const response = await fetch(url, signal ? { signal } : undefined);
   if (!response.ok) throw new Error(`texture: ${url} answered ${response.status}`);
   return response.blob();
 }
 
-async function loadKtx2Image(ref, glbUrl) {
-  const bytes = ref.bytes ?? new Uint8Array(await (await fetchImageBlob(ref.uri, glbUrl)).arrayBuffer());
+async function loadKtx2Image(ref, glbUrl, signal = null) {
+  const bytes = ref.bytes ?? new Uint8Array(await (await fetchImageBlob(ref.uri, glbUrl, signal)).arrayBuffer());
   const basis = await loadBasis();
   const { width, height } = ktx2Size(basis, bytes);
   let source = null;

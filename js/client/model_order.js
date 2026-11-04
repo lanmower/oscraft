@@ -1,18 +1,28 @@
 export function createModelOrder() {
   let selectedPending = 0;
+  let idle = true;
   let selectedIdle = Promise.resolve();
   let markSelectedIdle = () => {};
   const speculativeFetches = new Set();
 
+  function markIdle() {
+    if (selectedPending > 0 || idle) return;
+    idle = true;
+    markSelectedIdle();
+  }
+
   function selected(load) {
     if (selectedPending === 0) {
-      selectedIdle = new Promise((resolve) => { markSelectedIdle = resolve; });
+      if (idle) {
+        idle = false;
+        selectedIdle = new Promise((resolve) => { markSelectedIdle = resolve; });
+      }
       for (const controller of speculativeFetches) controller.abort();
     }
     selectedPending += 1;
     return load(null).finally(() => {
       selectedPending -= 1;
-      if (selectedPending === 0) markSelectedIdle();
+      if (selectedPending === 0) setTimeout(markIdle, 0);
     });
   }
 
@@ -32,7 +42,11 @@ export function createModelOrder() {
     }
   }
 
-  return { selected, speculative };
+  function ordered(isSelected, ready, load) {
+    return isSelected ? selected(load) : speculative(ready, load);
+  }
+
+  return { selected, speculative, ordered };
 }
 
 function untilYielded(loading, signal) {
