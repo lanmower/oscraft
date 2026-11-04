@@ -108,6 +108,13 @@ impl Sim {
             .collect()
     }
 
+    pub(crate) fn adopt_order_queue(&mut self, old: &Sim, i: usize) {
+        self.order_queue.clear(i);
+        for (kind, x, y, target) in old.queued_orders(i) {
+            self.order_queue.push(i, kind, x, y, target);
+        }
+    }
+
     pub(crate) fn advance_order_queue(&mut self) {
         for i in 0..self.n {
             if self.order_queue.len[i] == 0 {

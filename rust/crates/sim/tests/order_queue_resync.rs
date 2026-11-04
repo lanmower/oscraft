@@ -60,3 +60,31 @@ fn queued_orders_survive_a_keyframe_resync() {
         original.hp(foe)
     );
 }
+
+#[test]
+fn queued_orders_survive_a_data_swap() {
+    let mut old = open_field();
+    let unit = spawn(&mut old, PLAYER, 4, 5);
+    let foe = spawn(&mut old, FOE, 24, 5);
+    assert!(old.queue_order(unit, ORDER_MOVE, centre(10), centre(5), -1).is_ok());
+    assert!(old.queue_order(unit, ORDER_ATTACK_MOVE, centre(16), centre(5), -1).is_ok());
+    assert!(old.queue_order(unit, QUEUED_ATTACK, 0, 0, foe as i32).is_ok());
+    old.tick();
+    let queued_at_swap = old.queued_orders(unit);
+    assert_eq!(queued_at_swap.len(), 2, "the first queued move is issued on the first tick");
+
+    let mut fresh = open_field();
+    assert_eq!(spawn(&mut fresh, PLAYER, 4, 5), unit, "the fresh sim keeps the unit slot");
+    assert_eq!(spawn(&mut fresh, FOE, 24, 5), foe, "the fresh sim keeps the foe slot");
+    let (carried, refused) = sim::carry_from(&old, &mut fresh);
+    assert_eq!((carried, refused), (2, 0), "both units survive the data swap");
+
+    assert_eq!(fresh.queued_orders(unit), queued_at_swap, "the swapped sim keeps every queued order of a surviving unit");
+
+    issued_orders(&mut fresh, unit, RESYNC_CHECK_TICKS);
+    assert_eq!(fresh.queued_orders(unit).len(), 0, "the swapped sim drained its queue");
+    assert!(
+        !fresh.alive(foe) || fresh.hp(foe) < fresh.hp_max(foe),
+        "the queued attack reached the foe after the data swap"
+    );
+}

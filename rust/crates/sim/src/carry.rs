@@ -19,6 +19,7 @@ pub fn carry_from(old: &Sim, new: &mut Sim) -> (usize, usize) {
             let (x, y) = old.position_fixed(i);
             new.set_position(i, x, y);
             new.set_health(i, old.hp(i), old.hp_max(i));
+            new.adopt_order_queue(old, i);
             carried += 1;
         } else {
             new.remove_unit(i);
