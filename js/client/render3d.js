@@ -1101,7 +1101,7 @@ const SCENE_NAME_HEIGHT = SCENE_HERO_HEIGHT + 0.12;
 const SCENE_MARGIN = 1.12;
 const SCENE_CLEAR = [0.04, 0.05, 0.07];
 const SCENE_IDLE = "idle";
-const SCENE_STAND = /^(idle|stand|static)/;
+const SCENE_SWITCHES = ["static", "emote-yes", "emote-no"];
 const SCENE_SWITCH_GAP_S = [6, 14];
 const SCENE_SWITCH_HOLD_S = [3, 6];
 const SCENE_EMPTY_POSE = new Map();
@@ -1124,7 +1124,8 @@ function figureOf(rig) {
   }
   const animation = mesh.animation ?? null;
   const scale = SCENE_HERO_HEIGHT / Math.max(1e-6, maxY - minY);
-  const stands = animation ? animation.clips.map((clip) => clip.name).filter((name) => SCENE_STAND.test(name)) : [];
+  const names = animation ? new Set(animation.clips.map((clip) => clip.name)) : new Set();
+  const stands = SCENE_SWITCHES.filter((name) => names.has(name));
   return { mesh, animation, scale, lift: -minY * scale, stands };
 }
 
@@ -1163,11 +1164,10 @@ function resetSeat(state, model, figure, clock, random) {
 }
 
 function stepSeat(state, figure, clock, random) {
-  if (!state.player || figure.stands.length < 2) return;
+  if (!state.player || figure.stands.length === 0) return;
   if (state.clip === SCENE_IDLE) {
     if (clock < state.nextAt) return;
-    const options = figure.stands.filter((name) => name !== SCENE_IDLE);
-    const name = options[Math.floor(random() * options.length)];
+    const name = figure.stands[Math.floor(random() * figure.stands.length)];
     state.player.play(name, { loop: true });
     state.clip = name;
     state.switches += 1;
