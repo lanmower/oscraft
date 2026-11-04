@@ -1,0 +1,7 @@
+Row prd-assetbundlescharacteranditempackscached: cache witness on the local build (fork F2, 2026-11-04)
+Served: tar copy of origin 3baac636 working tree built by scripts/layout-site.sh; 127.0.0.1, Cache-Control max-age=600; fresh browser context; CDP network cache enabled.
+first load: 2 pack requests, 442207 B (index.json 261156 B, heroes.a0b48a019c44d7d5.webp 181051 B).
+second load (same context): index.json and heroes webp from disk cache, 0 body bytes.
+Not witnessed: character packs are never requested by the lobby (0 requests), so per-hero pack caching is not measured.
+Open: voices and skills entries in character packs have no reader (no js/client literal for skills/ or voices/ pack paths; voices use assetUrl('voices') in play.js createVoices).
+Open: the ci workflow named in the row no longer exists (gh workflow list: pages, release); pages is the only CI.

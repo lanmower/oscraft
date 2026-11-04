@@ -1,0 +1,7 @@
+Row prd-heroiconsonepackloadedatonce: lobby pack requests and bytes (fork F2, 2026-11-04)
+Method: tar copy of origin 3baac636 working tree built by scripts/layout-site.sh (TOKTX from KTX-Software 4.4.2), served on 127.0.0.1 with Cache-Control max-age=600; fresh browser context per load; CDP network cache enabled; counts from Network.responseReceived and loadingFinished encodedDataLength.
+before: per-hero character packs (tar copy of 6b185f62 with its layout-site.sh): 128 pack requests (127 character packs + index.json), 13196832 pack body bytes, 0 failed requests, lobby renders.
+after: heroes atlas (working tree 3baac636): 2 pack requests (index.json 261156 B, heroes.a0b48a019c44d7d5.webp 181051 B), 442207 B; lobby shows 8 boot hero icons loaded.
+after, second load in the same context: index.json and heroes webp from disk cache, 0 body bytes.
+index check (build of working tree): atlas heroes 127 icons; hero icon entries outside the atlas 0; icon entries inside character packs 0; character packs 127, 11081945 B.
+Screenshots: f2-after-lobby.png and f2-before-lobby.png in this folder.
