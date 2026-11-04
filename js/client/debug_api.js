@@ -18,6 +18,10 @@ const HELP = [
   "oscraft.debug.modErrors()       the mod error log of this page, newest last: [{tick, text}] (read-only copy)",
   "oscraft.debug.swap()            {applied, pending, rejections}: the last data swap, the pending one and refused announcements",
   "oscraft.debug.run(action, args) dispatch a pack action as the page does (a guest sends it to the host); false without a sim",
+  "oscraft.debug.queueMove(id, x, y) queue a move behind the unit's current order (sim order queue); returns the accept, false without a sim",
+  "oscraft.debug.queueState(id)    {len, order: [kind, x, y]}: the unit's queued order count and current order; null without a sim",
+  "oscraft.debug.keyframe()        the local sim's keyframe (save_state) as an array of bytes; null without a sim",
+  "oscraft.debug.resync(bytes)     load a keyframe array into the local sim (load_state); returns the tick, false without a sim",
   "oscraft.lobby(call, args)       localhost only: one lobby ui call (claim {slot}, pick {slot, hero}, fill, start) as its button sends it; false elsewhere",
   "oscraft.statusLog()             the last 200 telemetry lines (status, boot stages, orders, peers, relays): [{at, line}] (read-only copy)",
 ];
@@ -49,6 +53,10 @@ export function createDebugApi(hooks) {
     modErrors: () => hooks.modErrors(),
     swap: () => hooks.swap(),
     run: (action, args = null) => (typeof action === "string" && action !== "" ? hooks.run(action, args) : false),
+    queueMove: (id, x, y) => hooks.queueMove(id, x, y),
+    queueState: (id) => hooks.queueState(id),
+    keyframe: () => hooks.keyframe(),
+    resync: (bytes) => hooks.resync(bytes),
   });
 
   const api = {

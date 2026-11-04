@@ -3478,6 +3478,7 @@ async function main() {
 }
 
 let shadowsEnabled = SHADOW_ON;
+const MOVE_ORDER_KIND = 0;
 installDebugApi({
   renderer: () => renderer3d,
   rendererKind: () => "webgl",
@@ -3508,6 +3509,10 @@ installDebugApi({
     sendInput(name, args);
     return true;
   },
+  queueMove: (id, x, y) => (localGame ? localGame.order_queue_push(id, MOVE_ORDER_KIND, x, y, -1) : false),
+  queueState: (id) => (localGame ? { len: localGame.order_queue_len(id), order: Array.from(localGame.current_order(id)) } : null),
+  keyframe: () => (localGame ? Array.from(localGame.save_state()) : null),
+  resync: (bytes) => (localGame ? (localGame.load_state(Uint8Array.from(bytes)), localGame.ticks()) : false),
   lobby: (call, args) => {
     if (!localGame && !netState) return false;
     sendInput("ui", { call, args });
