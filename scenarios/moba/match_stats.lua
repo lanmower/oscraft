@@ -234,8 +234,7 @@ function match_stats.minute_rates(player, key)
   for m = 1, math.min(final_minutes, SAMPLE_CAP) do
     local before = last
     if samples[m] ~= nil then last = samples[m][key] end
-    local span = math.min(MINUTE_SECONDS, final_seconds - (m - 1) * MINUTE_SECONDS)
-    rates[m] = math.max(0, math.floor((last - before) * MINUTE_SECONDS / math.max(span, 1)))
+    rates[m] = math.max(0, math.floor(last - before))
   end
   return rates
 end
