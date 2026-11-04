@@ -10,6 +10,7 @@ const REVIVE_TICKS: usize = 140 * TPS;
 const FOLLOW_CELLS: f64 = 46.875;
 const ORDER_MOVE: i32 = 0;
 const ORDER_FOLLOW: i32 = 5;
+const FAR_HERO: (f64, f64) = (257.0, 100.0);
 
 fn scenario_dir() -> PathBuf {
     match std::env::var_os("PROBE_DIR") {
@@ -486,6 +487,151 @@ fn follows_still_hero_from_a_point_thirty_cells_away(owner: u8) {
     }
     println!("probe still_hero follow_tick={follow_tick:?}");
     assert!(follow_tick.is_some(), "an idle courier follows its still hero when the hero is 28 cells away");
+
+    let mut closed = f64::MAX;
+    for step in 1..=30 {
+        for _ in 0..10 {
+            game.order_move(hero, hero_at.0 as f32, hero_at.1 as f32);
+            advance(&mut game, 1);
+        }
+        let now = units_of(&game);
+        let (courier_now, hero_now) = (place_of(&now, courier), place_of(&now, hero));
+        closed = distance(courier_now, hero_now);
+        let (kind, target) = order_of(&game, courier);
+        println!(
+            "probe still_hero owner={owner} trace tick={} courier=({:.2},{:.2}) order={kind} target=({:.2},{:.2}) hero=({:.2},{:.2}) gap={closed:.2}",
+            step * 10,
+            courier_now.0,
+            courier_now.1,
+            target.0,
+            target.1,
+            hero_now.0,
+            hero_now.1
+        );
+        if step == 10 {
+            for unit in now.iter().filter(|unit| unit.id != courier && distance((unit.x, unit.y), courier_now) <= 4.0) {
+                println!(
+                    "probe still_hero near id={} player={} kind={} at=({:.2},{:.2}) dist={:.2}",
+                    unit.id,
+                    unit.player,
+                    unit.kind,
+                    unit.x,
+                    unit.y,
+                    distance((unit.x, unit.y), courier_now)
+                );
+            }
+        }
+    }
+    assert!(closed <= 3.0, "a courier that follows its hero walks up to it");
+}
+
+fn item_id(game: &Game, name: &str) -> u32 {
+    let catalog: Value = serde_json::from_str(&game.item_catalog_json()).expect("item catalog json");
+    catalog
+        .as_array()
+        .expect("item catalog array")
+        .iter()
+        .find(|item| item["name"] == name)
+        .and_then(|item| item["id"].as_u64())
+        .unwrap_or_else(|| panic!("item {name}")) as u32
+}
+
+fn follow_tick_within(game: &mut Game, courier: u32, ticks: usize) -> Option<usize> {
+    (1..=ticks).find(|_| {
+        advance(game, 1);
+        order_of(game, courier).0 == ORDER_FOLLOW
+    })
+}
+
+#[test]
+fn courier_follows_its_hero_again_after_an_off_hand_errand() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, hero, _) = start_match(&dir, &image);
+    let owner = 1u8;
+    let courier = *couriers_of(&units_of(&game), owner).first().expect("the owner's courier spawns at match start");
+    let branches = item_id(&game, "branches");
+
+    assert!(walk_to(&mut game, hero, FAR_HERO, 1500), "the hero walks out of the home shop's reach");
+    call(&mut game, "select", json!({ "ids": [hero], "player": LOCAL, "pubkey": OWNER }));
+    call(&mut game, "selection", json!({ "ids": [hero], "player": LOCAL, "pubkey": OWNER }));
+    let (gold_before, held_before) = (game.gold(owner), held(&game, hero, branches));
+    let lines = ui(&mut game, "buy", json!({ "item": branches }));
+    println!(
+        "probe errand buy gold {gold_before} -> {} feedback={:?}",
+        game.gold(owner),
+        lines.iter().filter(|line| line["kind"] == "feedback").map(|line| line["data"].to_string()).collect::<Vec<_>>()
+    );
+
+    let mut delivered = None;
+    for tick in 1..=4000 {
+        advance(&mut game, 1);
+        if held(&game, hero, branches) > held_before {
+            delivered = Some(tick);
+            break;
+        }
+    }
+    let courier_at = place_of(&units_of(&game), courier);
+    let hero_at = place_of(&units_of(&game), hero);
+    println!(
+        "probe errand delivered={delivered:?} courier_order={} courier=({:.2},{:.2}) hero_gap={:.2}",
+        order_of(&game, courier).0,
+        courier_at.0,
+        courier_at.1,
+        distance(courier_at, hero_at)
+    );
+    assert!(delivered.is_some(), "the courier fetches and delivers the off-hand purchase");
+
+    let follow = follow_tick_within(&mut game, courier, 2000);
+    println!("probe errand follow_tick={follow:?}");
+    assert!(follow.is_some(), "after the errand the courier follows its hero again");
+}
+
+#[test]
+fn courier_stopped_mid_walk_at_thirty_cells_follows_its_hero() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, hero, _) = start_match(&dir, &image);
+    let owner = 1u8;
+    let courier = *couriers_of(&units_of(&game), owner).first().expect("the owner's courier spawns at match start");
+    let hero_at = place_of(&units_of(&game), hero);
+
+    let map = game.map_size();
+    let (width, height) = (f64::from(map[0]), f64::from(map[1]));
+    let courier_at = place_of(&units_of(&game), courier);
+    let far = [(70.0, 0.0), (-70.0, 0.0), (0.0, 70.0), (0.0, -70.0), (50.0, 50.0), (-50.0, -50.0), (50.0, -50.0), (-50.0, 50.0)]
+        .iter()
+        .map(|(dx, dy)| (courier_at.0 + dx, courier_at.1 + dy))
+        .find(|&(x, y)| x > 0.0 && y > 0.0 && x < width && y < height && distance((x, y), hero_at) > 60.0 && game.order_move(courier, x as f32, y as f32))
+        .expect("a point 60 cells from the hero is accepted as the order point");
+    call(&mut game, "select", json!({ "ids": [courier], "player": LOCAL, "pubkey": OWNER }));
+    call(&mut game, "selection", json!({ "ids": [courier], "player": LOCAL, "pubkey": OWNER }));
+
+    let mut stop_at = None;
+    for tick in 1..=900 {
+        advance(&mut game, 1);
+        let now = units_of(&game);
+        let (courier_now, hero_now) = (place_of(&now, courier), place_of(&now, hero));
+        let gap = distance(courier_now, hero_now);
+        if (28.0..=33.0).contains(&gap) && order_of(&game, courier).0 == ORDER_MOVE && distance(courier_now, far) > 1.0 {
+            stop_at = Some((tick, gap));
+            break;
+        }
+    }
+    let (tick, gap) = stop_at.expect("the courier walks through a point 28 to 33 cells from its hero");
+    println!("probe mid_walk stop_tick={tick} gap={gap:.2} order={} hero_moved={:.2}", order_of(&game, courier).0, distance(hero_at, place_of(&units_of(&game), hero)));
+
+    call(&mut game, "key", json!({ "key": "s", "phase": "down", "player": LOCAL, "pubkey": OWNER }));
+    let follow = follow_tick_within(&mut game, courier, 300);
+    let after = place_of(&units_of(&game), courier);
+    println!(
+        "probe mid_walk follow_tick={follow:?} order_after_stop={} courier=({:.2},{:.2}) gap={:.2}",
+        order_of(&game, courier).0,
+        after.0,
+        after.1,
+        distance(after, place_of(&units_of(&game), hero))
+    );
+    assert!(follow.is_some(), "a courier stopped at 28 to 33 cells from its hero follows it");
 }
 
 #[test]
