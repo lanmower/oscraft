@@ -27,6 +27,55 @@ impl Fnv {
     }
 }
 
+impl Sim {
+    pub(crate) fn panel_fingerprint(&self) -> u64 {
+        let mut h = Fnv(0xcbf2_9ce4_8422_2325);
+        h.u64s(&[self.n as u64]);
+        h.i32s(&self.hp);
+        h.i32s(&self.hp_max);
+        h.i32s(&self.shield);
+        h.i32s(&self.energy);
+        h.bytes(&self.alive);
+        h.bytes(&self.player);
+        h.i32s(&self.type_of);
+        h.i32s(&self.abil_idx);
+        h.i32s(&self.abil_cd);
+        h.bytes(&self.abil_rank);
+        h.i32s(&self.item_cd);
+        h.u32s(&self.inv_kind);
+        h.u32s(&self.inv_count);
+        h.u32s(&self.stash_kind);
+        h.u32s(&self.stash_count);
+        h.u32s(&self.xp_total);
+        h.u32s(&self.unit_kills);
+        h.u32s(&self.unit_deaths);
+        h.u32s(&self.unit_credits);
+        h.i32s(&self.buff_kind);
+        h.i32s(&self.buff_left);
+        h.i32s(&self.resource_a);
+        h.i32s(&self.resource_b);
+        h.i32s(&[self.winner]);
+        h.0
+    }
+
+    pub fn panel_generation(&mut self) -> u32 {
+        let fingerprint = self.panel_fingerprint();
+        if fingerprint != self.panel_seen {
+            self.panel_seen = fingerprint;
+            self.panel_gen = self.panel_gen.wrapping_add(1);
+        }
+        self.panel_gen
+    }
+
+    pub fn count_panel_rebuild(&mut self) {
+        self.panel_rebuilds += 1;
+    }
+
+    pub fn panel_rebuilds(&self) -> u64 {
+        self.panel_rebuilds
+    }
+}
+
 pub(crate) fn catalog_digest(cat: &Catalog, grid: &Grid) -> u64 {
     let mut h = Fnv(0xcbf2_9ce4_8422_2325);
     h.bytes(format!("{:?}", cat).as_bytes());

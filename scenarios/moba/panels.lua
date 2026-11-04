@@ -1948,20 +1948,49 @@ local function lobby_tree()
   })
 end
 
+local tree_ui_generation = 0
+local tree_key_seen = nil
+local hud_key_seen = nil
+
+local function emit_hud(generation)
+  local key = generation .. ":" .. tree_ui_generation .. ":" .. math.floor(game.time() / TICKS_PER_SECOND)
+  if key == hud_key_seen then return end
+  hud_key_seen = key
+  emit("hud", "hud", hud_tree())
+end
+
+local function reach_key(hero)
+  if hero == nil then return "none" end
+  local shop = SELECTED_SHOP
+  return table.concat({
+    tostring(store.in_reach(hero)),
+    tostring(shops.at_any(hero)),
+    tostring(store.courier_at_shop(hero)),
+    tostring(store.delivery_note(LOCAL)),
+    tostring(shop ~= nil and shops.hero_reach(shop, hero) or false),
+  }, ",")
+end
+
 local function emit_all()
   update_heroes()
-  emit("hud", "hud", hud_tree())
-  emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
-  emit("team", "top", team_tree())
-  emit("recap", "centre", recap_tree())
-  emit("networth", "top", OPEN.networth and networth_tree() or nil)
-  emit("scoreboard", "centre", OPEN.scoreboard and scoreboard_tree() or nil)
-  emit("shop", "right", OPEN.shop and shop_tree() or nil)
-  emit("controls", "centre", OPEN.controls and TEXT.menu ~= nil and controls_tree() or nil)
+  local generation = game.panel_generation()
   local hero = hero_of(LOCAL)
-  emit("skills", "left", hero ~= nil and skills_tree(hero) or nil)
+  emit_hud(generation)
+  local key = generation .. ":" .. tree_ui_generation .. ":" .. reach_key(hero)
+  if key ~= tree_key_seen then
+    tree_key_seen = key
+    game.count_panel_rebuild()
+    emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
+    emit("team", "top", team_tree())
+    emit("recap", "centre", recap_tree())
+    emit("networth", "top", OPEN.networth and networth_tree() or nil)
+    emit("scoreboard", "centre", OPEN.scoreboard and scoreboard_tree() or nil)
+    emit("shop", "right", OPEN.shop and shop_tree() or nil)
+    emit("controls", "centre", OPEN.controls and TEXT.menu ~= nil and controls_tree() or nil)
+    emit("skills", "left", hero ~= nil and skills_tree(hero) or nil)
+    emit("select", "bar-left", select_tree())
+  end
   emit("inventory", "bar-mid", inventory_tree_cached())
-  emit("select", "bar-left", select_tree())
 end
 
 local function key_in(list, key)
@@ -2140,6 +2169,7 @@ local function ui_call(who, call, a)
 end
 
 local function panels_on_action(name, args)
+  tree_ui_generation = tree_ui_generation + 1
   if name == "setup" then
     UI = args.ui or {}
     TEXT = UI.text or {}
@@ -2221,6 +2251,7 @@ local lobby_api = {
   group = hero_group,
   hero_name = hero_name,
   changed = function()
+    tree_ui_generation = tree_ui_generation + 1
     lobby_seats_event()
     pcall(refresh_lobby)
   end,
@@ -2234,6 +2265,7 @@ game.timer("panels", 1, refresh, REFRESH_TICKS)
 return {
   on_action = panels_on_action,
   on_pointer = function(kind, x, y, button)
+    tree_ui_generation = tree_ui_generation + 1
     shop_prop_click({ kind = kind, x = x, y = y, button = button, player = LOCAL })
   end,
 }

@@ -3473,6 +3473,15 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, i64::from(sh.sim.item_generation(u)));
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, game, "panel_generation", [sh], |c, s| {
+        let generation = sh.borrow_mut().sim.panel_generation();
+        s.replace(c, i64::from(generation));
+        Ok(CallbackReturn::Return)
+    });
+    native!(ctx, game, "count_panel_rebuild", [sh], |_c, _s| {
+        sh.borrow_mut().sim.count_panel_rebuild();
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "item_gen_total", [sh], |c, s| {
         let sh = sh.borrow();
         s.replace(c, i64::from(sh.sim.item_generation_total()));
