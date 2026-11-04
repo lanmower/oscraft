@@ -49,6 +49,10 @@ export function followTarget(hero, groundAt) {
   return [hero.x, groundAt(hero.x, hero.z), hero.z];
 }
 
+export function centredOnHero(view, hero, groundAt) {
+  return hero ? { ...view, target: followTarget(hero, groundAt) } : view;
+}
+
 export function heroOrderPoint(hero, direction, distance = HERO_STEP_CELLS) {
   return { x: hero.x + direction.x * distance, z: hero.z + direction.z * distance };
 }

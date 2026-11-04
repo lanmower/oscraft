@@ -144,7 +144,7 @@ fn same_place(a: (f64, f64), b: (f64, f64)) -> bool {
     (a.0 - b.0).abs() < 0.01 && (a.1 - b.1).abs() < 0.01
 }
 
-fn start_match(dir: &Path, image: &[u8]) -> (Game, u32) {
+fn start_match(dir: &Path, image: &[u8]) -> (Game, u32, Option<(f64, f64)>, (f64, f64)) {
     let mut game = fresh_game(dir, image);
     call(&mut game, "setup", json!({ "ui": read_ui(dir), "player": LOCAL, "pubkey": OWNER }));
     advance(&mut game, 60);
@@ -174,16 +174,20 @@ fn start_match(dir: &Path, image: &[u8]) -> (Game, u32) {
     }
     started.expect("the match starts");
     let mut local_hero = None;
+    let mut start_camera = None;
+    let mut start_at = None;
     for player in 0..10usize {
         let hero = heroes[(20 + player) % heroes.len()].clone();
         let lines = call(&mut game, "seat_pick", json!({ "player": player, "hero": hero, "bot": player != LOCAL as usize }));
         if player == LOCAL as usize {
             local_hero = selection_of(&lines).and_then(|ids| ids.first().copied());
+            start_camera = camera_of(&lines);
+            start_at = local_hero.map(|id| position_of(&game, id as u32));
         }
     }
     advance(&mut game, 200);
     let hero = local_hero.expect("the local seat's hero is selected at match start") as u32;
-    (game, hero)
+    (game, hero, start_camera, start_at.expect("the local hero is placed at match start"))
 }
 
 fn press(game: &mut Game, key: &str) -> Vec<Value> {
@@ -219,7 +223,7 @@ fn advance_until_alive(game: &mut Game, hero: u32) -> Vec<Value> {
 fn hotkey_one_selects_and_centres_the_local_hero() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let (mut game, hero) = start_match(&dir, &image);
+    let (mut game, hero, _, _) = start_match(&dir, &image);
     call(&mut game, "select", json!({ "player": LOCAL, "ids": [] }));
 
     let first = press(&mut game, "1");
@@ -239,7 +243,7 @@ fn hotkey_one_selects_and_centres_the_local_hero() {
 fn hotkey_one_is_quiet_when_the_hero_is_dead_or_absent() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let (mut game, hero) = start_match(&dir, &image);
+    let (mut game, hero, _, _) = start_match(&dir, &image);
     call(&mut game, "select", json!({ "player": LOCAL, "ids": [] }));
 
     kill_hero(&mut game, hero);
@@ -259,7 +263,7 @@ fn hotkey_one_is_quiet_when_the_hero_is_dead_or_absent() {
 fn respawned_local_hero_is_selected_and_centred() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let (mut game, hero) = start_match(&dir, &image);
+    let (mut game, hero, _, _) = start_match(&dir, &image);
     call(&mut game, "select", json!({ "player": LOCAL, "ids": [] }));
 
     kill_hero(&mut game, hero);
@@ -273,4 +277,14 @@ fn respawned_local_hero_is_selected_and_centred() {
         respawn.iter().all(|line| line["kind"] != "camera" || line["player"] == LOCAL),
         "only the local seat's camera moves on respawn"
     );
+}
+
+#[test]
+fn match_start_centres_the_local_camera_on_the_hero() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (_game, _hero, start_camera, placed_at) = start_match(&dir, &image);
+    let camera = start_camera.expect("the match start centres the local camera");
+    println!("hero_hotkey start camera={camera:?} hero_placed_at={placed_at:?}");
+    assert!(same_place(camera, placed_at), "the start camera {camera:?} is on the hero at {placed_at:?}");
 }

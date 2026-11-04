@@ -1,4 +1,5 @@
 import {
+  centredOnHero,
   createHeroViewLock,
   findHeroOf,
   followTarget,
@@ -37,6 +38,12 @@ const groundAt = () => 7;
 const hero = { id: 3, x: 100, z: 200 };
 const target = followTarget(hero, groundAt);
 if (target[0] !== 100 || target[1] !== 7 || target[2] !== 200) fail(`follow target ${JSON.stringify(target)}`);
+const lobbyView = { target: [32, 0, 24], distance: 40, yaw: 0.5, pitch: 0.9 };
+const centred = centredOnHero(lobbyView, hero, groundAt);
+if (centred.target[0] !== 100 || centred.target[1] !== 7 || centred.target[2] !== 200) fail(`centred target ${JSON.stringify(centred.target)}`);
+if (centred.distance !== 40 || centred.yaw !== 0.5 || centred.pitch !== 0.9) fail("centring changed the saved distance, yaw or pitch");
+if (lobbyView.target[0] !== 32) fail("centring changed the saved view");
+if (centredOnHero(lobbyView, null, groundAt) !== lobbyView) fail("no hero did not keep the saved view");
 same(heroOrderPoint(hero, { x: 0, z: -1 }), { x: 100, z: 200 - HERO_STEP_CELLS }, "order point ahead of the hero");
 same(heroOrderPoint(hero, { x: SQRT_HALF, z: SQRT_HALF }), { x: 100 + SQRT_HALF * HERO_STEP_CELLS, z: 200 + SQRT_HALF * HERO_STEP_CELLS }, "diagonal order point");
 

@@ -13,7 +13,7 @@ import { AnimationPlayer, cycleSpeed, globalMatrices, jointMatrices, retargetLib
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
-import { createHeroViewLock, findHeroOf, followTarget, heroDirection, heroOrderPoint, stepHeroOrderClock } from "./hero_view_lock.js";
+import { centredOnHero, createHeroViewLock, findHeroOf, followTarget, heroDirection, heroOrderPoint, stepHeroOrderClock } from "./hero_view_lock.js";
 import { cameraDragAction, MIDDLE_BUTTON } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
 import { pingKindOf } from "./moba_input.js";
@@ -1202,9 +1202,13 @@ function drawWorld3d() {
   renderer3d.endFrame();
 }
 
-function driveLockedHero(dtS) {
+function localHeroUnit() {
   const flags = localGame && typeof localGame.unit_flags === "function" ? localGame.unit_flags() : [];
-  const hero = findHeroOf(currentUnits(), flags, myPlayer);
+  return findHeroOf(currentUnits(), flags, myPlayer);
+}
+
+function driveLockedHero(dtS) {
+  const hero = localHeroUnit();
   if (!hero) return;
   renderer3d.setCamera({ target: followTarget(hero, groundAt) });
   const direction = heroDirection(keysDown, renderer3d.camera.yaw);
@@ -1532,10 +1536,14 @@ async function flowLoadIcons(heroes) {
   }
 }
 
+function flowCameraRestore() {
+  return centredOnHero(flowCameraSaved, spectating ? null : localHeroUnit(), groundAt);
+}
+
 function flowPodium(seats) {
   if (seats === null) {
     podium.active = false;
-    if (flowCameraSaved) renderer3d.setCamera(flowCameraSaved);
+    if (flowCameraSaved) renderer3d.setCamera(flowCameraRestore());
     flowCameraSaved = null;
     return;
   }
@@ -1953,7 +1961,7 @@ function goLive(why) {
   if (!gate.open()) return;
   if (podium.active) {
     podium.active = false;
-    if (flowCameraSaved) renderer3d.setCamera(flowCameraSaved);
+    if (flowCameraSaved) renderer3d.setCamera(flowCameraRestore());
     flowCameraSaved = null;
   }
   guiFlow?.hide();
