@@ -268,45 +268,11 @@ fn a_kill_and_an_assist_bank_their_gold_and_show_in_the_win_table() {
     let dir = scenario_dir();
     let image = image_for(&dir);
     let (mut game, heroes) = start_match(&dir, &image);
-    let units = alive_units(&game);
-    let killer = hero_of(&units, &heroes, KILLER);
-    let far_victim = units.iter().find(|unit| unit.player == VICTIM && heroes.contains(&unit.kind)).expect("victim hero");
-    let (victim_kind, far_victim_id) = (far_victim.kind_index, far_victim.id);
-    let ally = units
-        .iter()
-        .find(|unit| unit.player != KILLER && heroes.contains(&unit.kind) && !game.hostile(u32::from(KILLER), u32::from(unit.player)))
-        .expect("allied hero");
-    let (ally_id, ally_player) = (ally.id, ally.player);
-
-    let (killer_x, killer_z) = spot_of(&game, killer);
-    game.remove_unit(far_victim_id);
-    let victim_index = game.spawn_attributed(VICTIM, victim_kind, killer_x + BESIDE_KILLER, killer_z);
-    assert!(victim_index >= 0, "the victim hero spawns beside the killer");
-    let victim = victim_index as u32;
-
+    let (killer, victim, ally_id, ally_player) = prepare_kill(&mut game, &heroes);
     let tracked = [(killer, KILLER), (ally_id, ally_player)];
     let before = settled_gold(&mut game, &tracked);
 
-    let lifesteal = lifesteal_item(&game);
-    game.give_item(killer, lifesteal, 1);
-    game.hurt(killer, 100);
-    game.attack(killer, victim);
-    game.attack(ally_id, victim);
-    for _ in 0..KILL_STEPS {
-        for unit in alive_units(&game) {
-            if (unit.kind.contains("creep") || unit.kind.contains("tower")) && unit.id != killer && unit.id != ally_id && unit.id != victim {
-                game.remove_unit(unit.id);
-            }
-        }
-        advance(&mut game, 2);
-        let victim_hp = game.unit_hp(victim);
-        if victim_hp > KILL_CEILING {
-            game.hurt(victim, victim_hp - KILL_FLOOR);
-        }
-        if game.kills_of(killer) > 0 {
-            break;
-        }
-    }
+    kill_victim(&mut game, killer, ally_id, victim);
     assert!(game.kills_of(killer) >= 1, "the killer scores the kill");
     let after = settled_gold(&mut game, &tracked);
 
@@ -322,20 +288,7 @@ fn a_kill_and_an_assist_bank_their_gold_and_show_in_the_win_table() {
     assert_eq!(killer_earned, f64::from(killer_banked), "the killer's earned gold is the gold banked");
     assert_eq!(ally_earned, f64::from(ally_banked), "the assister's earned gold is the gold banked");
 
-    let player0: Vec<u32> = alive_units(&game).iter().filter(|unit| unit.player == KILLER).map(|unit| unit.id).collect();
-    for unit in &player0 {
-        game.remove_unit(*unit);
-    }
-    let mut lines = drain(&mut game);
-    for _ in 0..END_TICKS {
-        if game.winner() >= 0 {
-            break;
-        }
-        let outcome = game.tick();
-        assert!(outcome.is_empty(), "tick: {outcome}");
-        lines.extend(drain(&mut game));
-    }
-    assert!(game.winner() >= 0, "the base kill ends the match");
+    let lines = end_match(&mut game);
 
     let rows = match_stats_rows(&lines);
     let kill_rows: Vec<&Vec<String>> = rows.iter().filter(|row| stat_cell(row, COL_KILLS) >= 1).collect();
@@ -379,6 +332,250 @@ fn a_kill_and_an_assist_bank_their_gold_and_show_in_the_win_table() {
         stat_cell(kill_row, COL_HEALING),
         stat_cell(kill_row, COL_ITEMS)
     );
+}
+
+fn prepare_kill(game: &mut Game, heroes: &[String]) -> (u32, u32, u32, u8) {
+    let units = alive_units(game);
+    let killer = hero_of(&units, heroes, KILLER);
+    let far_victim = units.iter().find(|unit| unit.player == VICTIM && heroes.contains(&unit.kind)).expect("victim hero");
+    let (victim_kind, far_victim_id) = (far_victim.kind_index, far_victim.id);
+    let ally = units
+        .iter()
+        .find(|unit| unit.player != KILLER && heroes.contains(&unit.kind) && !game.hostile(u32::from(KILLER), u32::from(unit.player)))
+        .expect("allied hero");
+    let (ally_id, ally_player) = (ally.id, ally.player);
+    let (killer_x, killer_z) = spot_of(game, killer);
+    game.remove_unit(far_victim_id);
+    let victim_index = game.spawn_attributed(VICTIM, victim_kind, killer_x + BESIDE_KILLER, killer_z);
+    assert!(victim_index >= 0, "the victim hero spawns beside the killer");
+    (killer, victim_index as u32, ally_id, ally_player)
+}
+
+fn kill_victim(game: &mut Game, killer: u32, ally_id: u32, victim: u32) {
+    let lifesteal = lifesteal_item(game);
+    game.give_item(killer, lifesteal, 1);
+    game.hurt(killer, 100);
+    game.attack(killer, victim);
+    game.attack(ally_id, victim);
+    for _ in 0..KILL_STEPS {
+        for unit in alive_units(game) {
+            if (unit.kind.contains("creep") || unit.kind.contains("tower")) && unit.id != killer && unit.id != ally_id && unit.id != victim {
+                game.remove_unit(unit.id);
+            }
+        }
+        advance(game, 2);
+        let victim_hp = game.unit_hp(victim);
+        if victim_hp > KILL_CEILING {
+            game.hurt(victim, victim_hp - KILL_FLOOR);
+        }
+        if game.kills_of(killer) > 0 {
+            break;
+        }
+    }
+}
+
+fn end_match(game: &mut Game) -> Vec<Value> {
+    let player0: Vec<u32> = alive_units(game).iter().filter(|unit| unit.player == KILLER).map(|unit| unit.id).collect();
+    for unit in &player0 {
+        game.remove_unit(*unit);
+    }
+    let mut lines = drain(game);
+    for _ in 0..END_TICKS {
+        if game.winner() >= 0 {
+            break;
+        }
+        let outcome = game.tick();
+        assert!(outcome.is_empty(), "tick: {outcome}");
+        lines.extend(drain(game));
+    }
+    assert!(game.winner() >= 0, "the base kill ends the match");
+    lines
+}
+
+fn match_stats_seconds(lines: &[Value]) -> i64 {
+    lines
+        .iter()
+        .rev()
+        .find(|value| value["kind"] == "panel" && value["id"] == "match_stats")
+        .and_then(|value| value["text"].as_str())
+        .and_then(|text| text.split_whitespace().next())
+        .and_then(|number| number.parse().ok())
+        .expect("match_stats seconds")
+}
+
+fn win_tree(lines: &[Value]) -> &Value {
+    lines
+        .iter()
+        .rev()
+        .find(|line| line["kind"] == "widget" && line["data"]["id"] == "win")
+        .map(|line| &line["data"]["tree"])
+        .expect("the win widget is shown")
+}
+
+fn tree_nodes<'a>(node: &'a Value, out: &mut Vec<&'a Value>) {
+    out.push(node);
+    for kid in node["kids"].as_array().into_iter().flatten() {
+        tree_nodes(kid, out);
+    }
+}
+
+fn labels_of(nodes: &[&Value]) -> Vec<String> {
+    nodes
+        .iter()
+        .filter(|node| node["t"] == "label")
+        .map(|node| node["text"].as_str().unwrap_or_default().to_owned())
+        .collect()
+}
+
+fn portrait_names(nodes: &[&Value]) -> Vec<(u64, String)> {
+    nodes
+        .iter()
+        .filter(|node| node["call"] == "post_pick")
+        .map(|node| {
+            let player = node["args"]["player"].as_u64().expect("portrait player");
+            let name = node["kids"]
+                .as_array()
+                .expect("portrait kids")
+                .iter()
+                .filter(|kid| kid["t"] == "label")
+                .last()
+                .and_then(|kid| kid["text"].as_str())
+                .expect("portrait name")
+                .to_owned();
+            (player, name)
+        })
+        .collect()
+}
+
+fn row_values(labels: &[String], name: &str) -> (String, String) {
+    let at = labels.iter().position(|label| label == name).expect("comparison row");
+    (labels[at - 1].clone(), labels[at + 1].clone())
+}
+
+fn row_named<'a>(rows: &'a [Vec<String>], name: &str) -> &'a [String] {
+    rows.iter().find(|row| row[0] == name).expect("win row for the hero")
+}
+
+#[test]
+fn the_post_game_overview_compares_two_heroes_and_derives_the_bars() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, heroes) = start_match(&dir, &image);
+    let (killer, victim, ally_id, _) = prepare_kill(&mut game, &heroes);
+    kill_victim(&mut game, killer, ally_id, victim);
+    assert!(game.kills_of(killer) >= 1, "the killer scores the kill");
+    let lines = end_match(&mut game);
+
+    let seconds = match_stats_seconds(&lines).max(1);
+    let rows = match_stats_rows(&lines);
+    assert_eq!(rows.len(), 10, "the post-game table has ten rows");
+    let mut picked = ui(&mut game, "post_pick", json!({ "player": 0 }));
+    picked.extend(ui(&mut game, "post_pick", json!({ "player": 5 })));
+    let overview = win_tree(&picked).clone();
+    let mut nodes = Vec::new();
+    tree_nodes(&overview, &mut nodes);
+    let labels = labels_of(&nodes);
+    let portraits = portrait_names(&nodes);
+    let portrait_of = |player: u64| portraits.iter().find(|(p, _)| *p == player).map(|(_, name)| name.clone()).expect("portrait");
+    let left_name = portrait_of(0);
+    let right_name = portrait_of(5);
+    let left = row_named(&rows, &left_name);
+    let right = row_named(&rows, &right_name);
+    let vs_at = labels.iter().position(|label| label == "vs").expect("comparison heads");
+    assert_eq!(labels[vs_at - 1], left_name, "the left column is player 0's hero");
+    assert_eq!(labels[vs_at + 1], right_name, "the right column is player 5's hero");
+
+    let (level_left, level_right) = row_values(&labels, "Level");
+    assert!(level_left.parse::<i64>().expect("left level") >= 1 && level_right.parse::<i64>().expect("right level") >= 1);
+    let kda = |row: &[String]| format!("{} / {} / {}", row[COL_KILLS], row[COL_DEATHS], row[COL_ASSISTS]);
+    assert_eq!(row_values(&labels, "K / D / A"), (kda(left), kda(right)), "the K / D / A line is the win table's kills, deaths and assists");
+    let per_minute = |value: i64| (value * 60 / seconds).to_string();
+    assert_eq!(row_values(&labels, "Gold per minute"), (per_minute(stat_cell(left, COL_GOLD)), per_minute(stat_cell(right, COL_GOLD))));
+    assert_eq!(row_values(&labels, "XP per minute"), (per_minute(stat_cell(left, COL_XP)), per_minute(stat_cell(right, COL_XP))));
+    let totals = [
+        ("Gold", COL_GOLD),
+        ("Experience", COL_XP),
+        ("Last hits", COL_LAST_HITS),
+        ("Denies", COL_DENIES),
+        ("Damage dealt", COL_DAMAGE_DEALT),
+        ("Healing", COL_HEALING),
+    ];
+    for (name, column) in totals {
+        assert_eq!(
+            row_values(&labels, name),
+            (stat_cell(left, column).to_string(), stat_cell(right, column).to_string()),
+            "{name} is the win table's value"
+        );
+    }
+    let items_of = |row: &[String], text: &str| {
+        if stat_cell(row, COL_ITEMS) == 0 {
+            text == "none"
+        } else {
+            text.split(", ").count() as i64 == stat_cell(row, COL_ITEMS)
+        }
+    };
+    let (items_left, items_right) = row_values(&labels, "Items");
+    assert!(items_of(left, &items_left) && items_of(right, &items_right), "the items text names the held items");
+
+    let percent = |row: &[String], column: usize| {
+        let rate = |r: &[String]| stat_cell(r, column) * MINUTE_MILLI / seconds;
+        let peak = rows.iter().map(|r| rate(r.as_slice())).max().unwrap_or(0);
+        if peak > 0 {
+            rate(row) * 100 / peak
+        } else {
+            0
+        }
+    };
+    let expected_bars = vec![
+        percent(left, COL_ASSISTS),
+        percent(right, COL_ASSISTS),
+        percent(left, COL_DAMAGE_DEALT),
+        percent(right, COL_DAMAGE_DEALT),
+        percent(left, COL_LAST_HITS),
+        percent(right, COL_LAST_HITS),
+    ];
+    let bars: Vec<i64> = nodes.iter().filter(|node| node["t"] == "bar").map(|node| node["value"].as_i64().expect("bar value")).collect();
+    assert_eq!(bars, expected_bars, "supporting, fighting and farming are percent of the best hero");
+    let not_tracked = labels.iter().filter(|label| label.as_str() == "not tracked").count();
+    assert_eq!(not_tracked, 12, "pushing has no bar on either side and the five averages are not tracked for both heroes");
+    assert!(labels.iter().any(|label| label.starts_with("Match length")), "the timeline shows the match length");
+    assert!(nodes.iter().any(|node| node["call"] == "post_team_view"), "the comparison offers Back to team view");
+
+    println!(
+        "probe overview left={left_name} right={right_name} seconds={seconds} kda=[{}] [{}] gpm=[{}] [{}] xpm=[{}] [{}] bars={bars:?} not_tracked={not_tracked}",
+        kda(left),
+        kda(right),
+        per_minute(stat_cell(left, COL_GOLD)),
+        per_minute(stat_cell(right, COL_GOLD)),
+        per_minute(stat_cell(left, COL_XP)),
+        per_minute(stat_cell(right, COL_XP))
+    );
+    println!("probe overview items left=[{items_left}] right=[{items_right}] levels=[{level_left}] [{level_right}]");
+
+    let team = ui(&mut game, "post_team_view", json!({}));
+    let mut team_nodes = Vec::new();
+    tree_nodes(win_tree(&team), &mut team_nodes);
+    let team_labels = labels_of(&team_nodes);
+    assert!(team_labels.iter().any(|label| label.contains("Team totals")), "the team view shows the team totals");
+    assert!(!team_labels.iter().any(|label| label.as_str() == "vs"), "the team view hides the comparison");
+    println!("probe team_view totals={:?}", team_labels.iter().filter(|label| label.contains("Team totals")).collect::<Vec<_>>());
+
+    for tab in ["mvp", "graphs", "scoreboard"] {
+        let shown = ui(&mut game, "post_tab", json!({ "tab": tab }));
+        let mut tab_nodes = Vec::new();
+        tree_nodes(win_tree(&shown), &mut tab_nodes);
+        let tab_labels = labels_of(&tab_nodes);
+        let active = tab_nodes.iter().any(|node| node["call"] == "post_tab" && node["args"]["tab"] == tab && node["disabled"] == true);
+        assert!(active, "the {tab} tab button is the active one");
+        match tab {
+            "mvp" => {
+                let top = tab_labels.iter().find(|label| label.starts_with("1 ")).expect("the top rated hero");
+                println!("probe mvp top={top}");
+            }
+            "graphs" => assert!(tab_labels.iter().any(|label| label.starts_with("Not tracked: graphs")), "the graphs tab says it is not tracked"),
+            _ => assert!(tab_labels.iter().any(|label| label == "LH"), "the scoreboard tab shows the win table"),
+        }
+    }
 }
 
 fn whole_units(fixed: f64) -> i64 {

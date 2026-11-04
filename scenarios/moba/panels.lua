@@ -315,12 +315,22 @@ end
 local function win_tree()
   local side = game.winner()
   if side == nil or side < 0 then return nil end
-  local kids = { label(team_name(side) .. " " .. TEXT.winner.suffix, "accent"), mode_rules_box(), win_table() }
-  if REPLAY_NOTE ~= nil then kids[#kids + 1] = label(REPLAY_NOTE, "ok") end
-  kids[#kids + 1] = button(TEXT.menu.saveReplay, "win_save_replay", "{}")
-  kids[#kids + 1] = button(TEXT.menu.playAgain, "win_play_again", "{}")
-  kids[#kids + 1] = button(TEXT.menu.newGame, "win_new_game", "{}")
-  kids[#kids + 1] = button(TEXT.menu.close, "win_close", "{}")
+  local kids = { label(team_name(side) .. " " .. TEXT.winner.suffix, "accent") }
+  kids[#kids + 1] = mode_rules_box()
+  local body = require("post_view").kids({
+    w = { label = label, box = box, grid = grid, bar = bar, button = button, cell = cell, obj = obj, S = S, I = I, hero_picture = hero_picture },
+    ranked = match_stats.final_ranked() or {},
+    seconds = match_stats.match_seconds() or 0,
+    local_player = LOCAL,
+    side_of = team_of,
+    sides = sides(),
+    team_name = team_name,
+    texts = TEXT.postGame,
+    menu = TEXT.menu,
+    note = REPLAY_NOTE,
+    scoreboard = win_table,
+  })
+  for _, node in ipairs(body) do kids[#kids + 1] = node end
   return box(kids, "col")
 end
 
@@ -2046,6 +2056,15 @@ local function ui_call(who, call, a)
   elseif call == "recap_close" then
     recap.close(a.fight)
     emit("recap", "centre", recap_tree())
+  elseif call == "post_tab" then
+    require("post_view").choose_tab(a.tab)
+    emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
+  elseif call == "post_pick" then
+    require("post_view").pick_hero(team_of(a.player), a.player)
+    emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
+  elseif call == "post_team_view" then
+    require("post_view").team_view()
+    emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   elseif call == "win_refresh" then
     emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   elseif call == "win_save_replay" or call == "win_play_again" or call == "win_new_game" then
@@ -2113,6 +2132,7 @@ local function panels_on_action(name, args)
     LOCAL = args.player or LOCAL
     OWNER = args.pubkey or OWNER
     LAST = {}
+    require("post_view").reset()
     inventory_cache = {}
     SELECTED_SHOP = nil
     SHOP_PRESS = nil

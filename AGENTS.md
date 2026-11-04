@@ -88,6 +88,7 @@ No comments in source: durable facts live here, names carry intent.
 - Roshan: the 200 team gold goes only to living heroes of the killing side (camps.lua, roshan_team_gold).
 - Win: the base is the only unit with the `building` filter; when a side's base dies the rival wins (win.lua). A forfeit that ends the match publishes the win stats at once (leave.lua calls match_stats.publish(match_stats.roster())).
 - Win screen gold is bounty.earned (counter st_gold_earned, added by bounty.credit and by kill_gold passive and carried-gold payouts); the reliable bank is separate.
+- Post-game overview (`post_view.lua`): play-style bars are percent of the best hero this match (supporting = assists per minute, fighting = damage dealt per minute, farming = last hits per minute); pushing, per-hero averages and graphs are not tracked. The overview groups heroes by UI team (moba_ui.json teams); the win header names the sim winner (game.team), and the two can differ.
 - Teamfight recap (`recap.lua`): two or more hero deaths within 15 s form one fight, shown for 8 s or until closed. Each side's gold swing is gained minus lost in the bounty window opened around `kill_gold.hero_died` (`bounty.open_window`/`close_window`). The death recap reports damage by source as unknown: the sim keeps no per-source totals.
 - `game.remove_unit` fires `on_died` with no killer, so removing a hero mid-fight records an unknown death.
 - lanes.lua sync_upgrades and trees.lua heal_step walk their tables with a local ascending_keys. sync_upgrades walks only when the upgrade level changes.

@@ -1,6 +1,7 @@
 local config = require("config")
 local bounty = require("bounty")
 local acronyms = require("hero_acronyms")
+local xp = require("xp")
 
 local COLUMNS = { "Hero", "Team", "K", "D", "A", "LH", "DN", "Gold", "XP", "DMG", "Taken", "Heal", "Items", "Rating", "Grade" }
 local PODIUM_COLUMNS = { "Place", "Hero", "Team", "Rating", "Grade" }
@@ -14,6 +15,13 @@ local MINUTE_MILLI = 60000
 local FIXED_POINT_UNIT = 65536
 local SCALE = 1000
 local RATING_STEPS = 9
+local PERCENT = 100
+local PLAY_STYLE = {
+  { key = "supporting", stat = "assists" },
+  { key = "pushing", stat = nil },
+  { key = "fighting", stat = "damage_dealt" },
+  { key = "farming", stat = "last_hits" },
+}
 
 local function top_points()
   local total = 0
@@ -27,11 +35,20 @@ local TOP_POINTS = top_points()
 
 local published = false
 local final_ranked = nil
+local final_seconds = nil
 
 local match_stats = {}
 
 function match_stats.final_ranked()
   return final_ranked
+end
+
+function match_stats.match_seconds()
+  return final_seconds
+end
+
+function match_stats.per_minute(value, seconds)
+  return math.floor((value or 0) * 60 / math.max(seconds, 1))
 end
 
 local function shown(value)
@@ -71,8 +88,7 @@ local function ranked(entries)
   return out
 end
 
-function match_stats.evaluate(entries, seconds)
-  local span = math.max(seconds, 1)
+local function peak_rates(entries, span)
   local peak = {}
   for _, key in ipairs(KEYS) do
     local top = 0
@@ -82,6 +98,30 @@ function match_stats.evaluate(entries, seconds)
     end
     peak[key] = top
   end
+  return peak
+end
+
+function match_stats.play_style(entries, seconds)
+  local span = math.max(seconds, 1)
+  local peak = peak_rates(entries, span)
+  for _, entry in ipairs(entries) do
+    local bars = {}
+    for _, lane in ipairs(PLAY_STYLE) do
+      local percent = false
+      if lane.stat ~= nil and peak[lane.stat] > 0 then
+        percent = math.floor(rate(entry, lane.stat, span) * PERCENT / peak[lane.stat])
+      elseif lane.stat ~= nil then
+        percent = 0
+      end
+      bars[#bars + 1] = { key = lane.key, percent = percent }
+    end
+    entry.style = bars
+  end
+end
+
+function match_stats.evaluate(entries, seconds)
+  local span = math.max(seconds, 1)
+  local peak = peak_rates(entries, span)
   for _, entry in ipairs(entries) do
     local points = 0
     for _, key in ipairs(KEYS) do
@@ -115,9 +155,16 @@ local function whole_units(fixed)
   return math.floor(fixed / FIXED_POINT_UNIT)
 end
 
+local function item_names(held)
+  local names = {}
+  for _, row in ipairs(held) do names[#names + 1] = row.name end
+  return names
+end
+
 function match_stats.collect(heroes)
   local entries = {}
   for _, h in ipairs(heroes) do
+    local held = game.unit_items(h.hero)
     entries[#entries + 1] = {
       player = h.player, team = h.team, name = h.name,
       kills = game.kills_of(h.hero), deaths = game.deaths_of(h.hero), assists = game.credits_of(h.hero),
@@ -126,7 +173,7 @@ function match_stats.collect(heroes)
       damage_dealt = whole_units(game.counter(h.hero, "sim_damage_dealt")),
       damage_taken = whole_units(game.counter(h.hero, "sim_damage_taken")),
       healing = whole_units(game.counter(h.hero, "sim_healing")),
-      items = #game.unit_items(h.hero),
+      items = #held, item_names = item_names(held), level = xp.character_level(h.hero),
     }
   end
   return entries
@@ -147,8 +194,10 @@ end
 function match_stats.publish(heroes)
   if published then return end
   published = true
-  local seconds = math.floor(game.ticks() / 16)
+  local seconds = math.floor(game.ticks() / config.TICKS_PER_SECOND)
+  final_seconds = seconds
   local result = match_stats.evaluate(match_stats.collect(heroes), seconds)
+  match_stats.play_style(result.ranked, seconds)
   final_ranked = result.ranked
   local rows = {}
   for _, entry in ipairs(result.ranked) do
