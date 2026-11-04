@@ -200,6 +200,11 @@ export function createModUi(opts) {
     bind(ev) { if (onBind) onBind({ key: ev.key, action: ev.action }); },
     unbind(ev) { if (onBind) onBind({ key: ev.key, remove: true }); },
   };
+  const onMinimapCentre = (e) => {
+    if (!e.detail) return;
+    handlers.camera({ x: e.detail.x, y: e.detail.z, zoom: 1, seconds: e.detail.seconds });
+  };
+  doc.defaultView.addEventListener("moba:minimap-centre", onMinimapCentre);
 
   function step(dtS) {
     if (!move) return;
@@ -250,6 +255,7 @@ export function createModUi(opts) {
   function dispose() {
     stopMatchWatch();
     doc.defaultView.removeEventListener("moba:minimap-drag", onMinimapDrag);
+    doc.defaultView.removeEventListener("moba:minimap-centre", onMinimapCentre);
     if (poller) clearTimeout(poller);
     poller = null;
     for (const h of timers) clearTimeout(h);

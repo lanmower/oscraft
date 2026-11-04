@@ -161,6 +161,10 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     heroViewLock.release();
     send("camera_to", { x, z });
   };
+  const centreMinimap = (x, z) => {
+    window.dispatchEvent(new CustomEvent("moba:minimap-centre", { detail: { x, z, seconds: UI.centreSeconds } }));
+    sendCameraTo(x, z);
+  };
 
   const centreButton = document.getElementById("centre-hero");
   if (centreButton) {
@@ -224,7 +228,7 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     playerColor,
     teams: UI.teams,
     viewRect,
-    centre: sendCameraTo,
+    centre: centreMinimap,
     drag: (x, z) => {
       heroViewLock.release();
       window.dispatchEvent(new CustomEvent("moba:minimap-drag", { detail: { x, z } }));
