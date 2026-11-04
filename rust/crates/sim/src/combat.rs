@@ -7,6 +7,7 @@ pub(crate) const HITTER_SLOTS: usize = 4;
 pub const COUNTER_DAMAGE_DEALT: &str = "sim_damage_dealt";
 pub const COUNTER_DAMAGE_TAKEN: &str = "sim_damage_taken";
 pub const COUNTER_HEALING: &str = "sim_healing";
+pub const COUNTER_STRUCTURE_DAMAGE: &str = "sim_structure_damage";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct KillEvent {
@@ -356,7 +357,11 @@ impl Sim {
         self.log_hit(attacker, j, dealt);
         self.tally_attributed(j, COUNTER_DAMAGE_TAKEN, dealt);
         if attacker >= 0 && (attacker as usize) < self.n && attacker as usize != j {
-            self.tally_attributed(attacker as usize, COUNTER_DAMAGE_DEALT, dealt);
+            let a = attacker as usize;
+            self.tally_attributed(a, COUNTER_DAMAGE_DEALT, dealt);
+            if self.is_structure(j) && self.hostile(self.player[a], self.player[j]) {
+                self.tally_attributed(a, COUNTER_STRUCTURE_DAMAGE, dealt);
+            }
         }
         if self.hp[j] <= 0 {
             let fell = self.alive[j] != 0;

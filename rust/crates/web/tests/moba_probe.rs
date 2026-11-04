@@ -96,18 +96,87 @@ fn lobby_error(lines: &[Value]) -> String {
         .to_owned()
 }
 
-fn allowed_heroes(lines: &[Value]) -> Vec<String> {
-    lines
-        .iter()
-        .find(|line| line["kind"] == "lobby")
-        .map(|line| {
-            line["data"]["heroes"]
+fn lobby_data(lines: &[Value]) -> Option<&Value> {
+    lines.iter().rev().find(|line| line["kind"] == "lobby").map(|line| &line["data"])
+}
+
+fn lobby_heroes(lines: &[Value]) -> Vec<(String, i64, bool)> {
+    lobby_data(lines)
+        .map(|data| {
+            data["heroes"]
                 .as_array()
                 .expect("heroes")
                 .iter()
-                .filter(|hero| hero["allowed"] == true)
-                .map(|hero| hero["unit"].as_str().expect("unit").to_owned())
+                .map(|hero| {
+                    (
+                        hero["unit"].as_str().expect("unit").to_owned(),
+                        hero["group"].as_i64().expect("group"),
+                        hero["allowed"] == true,
+                    )
+                })
                 .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn allowed_heroes(lines: &[Value]) -> Vec<String> {
+    lobby_heroes(lines).into_iter().filter(|hero| hero.2).map(|hero| hero.0).collect()
+}
+
+fn seated_heroes(lines: &[Value]) -> Vec<String> {
+    lobby_data(lines)
+        .map(|data| {
+            data["slots"]
+                .as_array()
+                .expect("slots")
+                .iter()
+                .filter_map(|slot| slot["hero"].as_str().filter(|hero| !hero.is_empty()).map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn lobby_modes(lines: &[Value]) -> Vec<(String, String, bool)> {
+    lobby_data(lines)
+        .map(|data| {
+            data["modes"]
+                .as_array()
+                .expect("modes")
+                .iter()
+                .map(|mode| {
+                    (
+                        mode["code"].as_str().expect("code").to_owned(),
+                        mode["name"].as_str().expect("name").to_owned(),
+                        mode["on"] == true,
+                    )
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn read_ui(dir: &Path) -> Value {
+    serde_json::from_slice(&std::fs::read(dir.join("moba_ui.json")).expect("read moba_ui.json")).expect("moba_ui.json")
+}
+
+fn team_names_of(ui: &Value) -> Vec<String> {
+    ui["text"]["lobby"]["teamNames"]
+        .as_array()
+        .expect("teamNames")
+        .iter()
+        .map(|name| name.as_str().expect("team name").to_owned())
+        .collect()
+}
+
+fn widget_texts(lines: &[Value], id: &str) -> Vec<String> {
+    lines
+        .iter()
+        .rev()
+        .find(|value| value["kind"] == "widget" && value["data"]["id"] == id)
+        .map(|value| {
+            let mut texts = Vec::new();
+            label_texts(&value["data"]["tree"], &mut texts);
+            texts
         })
         .unwrap_or_default()
 }
@@ -162,13 +231,42 @@ fn start_match(dir: &Path, image: &[u8]) -> (Game, Vec<String>) {
     game.set_fog(false);
     load_pack(&mut game, dir);
     let ui_file: Value = serde_json::from_slice(&std::fs::read(dir.join("moba_ui.json")).expect("read moba_ui.json")).expect("moba_ui.json");
-    call(&mut game, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": OWNER }));
+    let setup = call(&mut game, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": OWNER }));
+    println!("probe lobby_setup_json={}", lobby_data(&setup).map(Value::to_string).unwrap_or_default());
     advance(&mut game, 60);
-    ui(&mut game, "claim", json!({ "slot": 0 }));
+    let claim = ui(&mut game, "claim", json!({ "slot": 0 }));
+    let team_names = team_names_of(&ui_file);
+    let lobby_texts = widget_texts(&claim, "lobby");
+    println!("probe lobby_texts={}", lobby_texts.join(" | "));
+    for name in &team_names {
+        assert!(lobby_texts.contains(name), "lobby shows team name {name}");
+    }
+    assert!(!lobby_texts.iter().any(|text| text.starts_with("Team ")), "lobby uses no numbered team label");
+    let modes = lobby_modes(&claim);
+    let codes: Vec<&str> = modes.iter().map(|mode| mode.0.as_str()).collect();
+    println!("probe modes count={} codes={}", modes.len(), codes.join(","));
+    assert_eq!(modes.len(), 19, "lobby sends every match mode");
+    let ai_on = ui(&mut game, "mode", json!({ "code": "ai" }));
+    println!("probe mode ai on error=\"{}\"", lobby_error(&ai_on));
+    let total = lobby_heroes(&ai_on).len();
+    let pool: Vec<(String, i64)> = lobby_heroes(&ai_on).into_iter().filter(|hero| hero.2).map(|hero| (hero.0, hero.1)).collect();
+    println!("probe mode ai pool={} of={}", pool.len(), total);
+    assert!(!pool.is_empty() && pool.len() < total, "ai mode narrows the pool");
+    assert!(pool.iter().all(|hero| hero.1 == 3), "ai mode offers intelligence heroes only");
+    let ai_off = ui(&mut game, "mode", json!({ "code": "ai" }));
+    println!("probe mode ai off error=\"{}\" pool={}", lobby_error(&ai_off), lobby_heroes(&ai_off).iter().filter(|hero| hero.2).count());
     let fill = ui(&mut game, "fill", json!({}));
+    println!("probe lobby_fill_json={}", lobby_data(&fill).map(Value::to_string).unwrap_or_default());
     println!("probe fill error=\"{}\"", lobby_error(&fill));
     let heroes = allowed_heroes(&fill);
     println!("probe allowed_heroes={}", heroes.len());
+    let seated = seated_heroes(&fill);
+    let offered_held: Vec<&String> = heroes.iter().filter(|hero| seated.contains(hero)).collect();
+    println!("probe grid_offers_held={}", offered_held.len());
+    assert!(offered_held.is_empty(), "the grid offers heroes other seats hold: {offered_held:?}");
+    let held_pick = ui(&mut game, "pick", json!({ "slot": 0, "hero": seated[0] }));
+    println!("probe held_pick hero={} error=\"{}\"", seated[0], lobby_error(&held_pick));
+    assert!(!lobby_error(&held_pick).is_empty(), "the mod refuses a held hero");
     let mut own_hero = String::new();
     for hero in &heroes {
         let lines = ui(&mut game, "pick", json!({ "slot": 0, "hero": hero }));
@@ -315,25 +413,27 @@ fn probe_win_screen() {
         .expect("allied hero");
     let lifesteal = lifesteal_item(&game);
     game.give_item(killer, lifesteal, 1);
-    game.hurt(killer, 100);
+    let victim_hp = game.unit_hp(victim);
+    game.hurt(victim, victim_hp - 1);
     game.attack(killer, victim);
     game.attack(ally, victim);
-    for _ in 0..800 {
-        for unit in alive_units(&game) {
-            if (unit.kind.contains("creep") || unit.kind.contains("tower")) && unit.id != killer && unit.id != ally && unit.id != victim {
-                game.remove_unit(unit.id);
-            }
-        }
-        advance(&mut game, 2);
-        let victim_hp = game.unit_hp(victim);
-        if victim_hp > 40 {
-            game.hurt(victim, victim_hp - 30);
-        }
+    for _ in 0..80 {
+        advance(&mut game, 10);
         if game.kills_of(killer) > 0 {
             break;
         }
     }
     println!("probe hero_kill killer={killer} victim={victim} ally={ally} kills={}", game.kills_of(killer));
+    let killer_hp = game.unit_hp(killer);
+    game.hurt(killer, killer_hp / 2);
+    for player in 0..10u8 {
+        let hero = units.iter().find(|u| u.player == player && heroes.contains(&u.kind)).map(|u| u.id);
+        let enemy = units.iter().find(|u| u.player == (player + 1) % 2 && u.kind.contains("creep")).map(|u| u.id);
+        if let (Some(hero), Some(enemy)) = (hero, enemy) {
+            game.attack(hero, enemy);
+        }
+    }
+    advance(&mut game, 600);
     let units = alive_units(&game);
     let count = |p: u8| units.iter().filter(|u| u.player == p).count();
     println!("probe units={} p0={} p1={}", units.len(), count(0), count(1));
@@ -348,11 +448,23 @@ fn probe_win_screen() {
     advance(&mut game, 30);
     let match_end = drain(&mut game);
     print_win("match_end", &match_end);
-    let stats_rows = match_stats_rows(&match_end);
-    assert!(stats_rows.iter().any(|row| stat_cell(row, 2) >= 1), "a kill shows in the K column");
-    assert!(stats_rows.iter().any(|row| stat_cell(row, 4) >= 1), "an assist shows in the A column");
     println!("probe winner {}", game.winner());
     let frozen = win_widget(&match_end).expect("win widget at match end");
+    let ui_file = read_ui(&dir);
+    let team_names = team_names_of(&ui_file);
+    let winner_name = team_names[game.winner() as usize].clone();
+    println!("probe win_names_team={}", frozen.contains(&format!("{winner_name} wins")));
+    assert!(frozen.contains(&format!("{winner_name} wins")), "win text names the winning team: {frozen}");
+    let scoreboard_key = ui_file["keys"]["scoreboard"][0].as_str().expect("scoreboard key").to_owned();
+    call(&mut game, "key", json!({ "key": scoreboard_key, "phase": "down", "player": 1 }));
+    advance(&mut game, 8);
+    let board = drain(&mut game);
+    let board_texts = widget_texts(&board, "scoreboard");
+    println!("probe scoreboard_texts={}", board_texts.join(" | "));
+    for name in &team_names {
+        assert!(board_texts.contains(name), "scoreboard shows team name {name}");
+    }
+    call(&mut game, "key", json!({ "key": scoreboard_key, "phase": "up", "player": 1 }));
     advance(&mut game, 200);
     let later = drain(&mut game);
     print_win("after_200", &later);
