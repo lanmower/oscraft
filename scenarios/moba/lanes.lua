@@ -333,10 +333,12 @@ local function hero_idle(u, kind, dx, dy)
 end
 
 local hero_resume = {}
+local hero_aim = {}
 
 local function hero_chase(u, target)
   local tx, ty = unit_position(target)
   game.attack_move(u, tx, ty)
+  hero_aim[u] = { x = tx, y = ty }
   local _, ox, oy = game.order_of(u)
   game.chase_set(u, target, 0, ox, oy)
 end
@@ -356,12 +358,14 @@ local function hero_step(u, range, now)
   local target, _, last_x, last_y = game.chase_get(u)
   if target >= 0 then
     local tx, ty = unit_position(target)
-    local ours = kind == ORDER_ATTACK_MOVE and ((dx == last_x and dy == last_y) or (dx == tx and dy == ty))
+    local aim = hero_aim[u]
+    local ours = kind == ORDER_ATTACK_MOVE and ((dx == last_x and dy == last_y) or (aim and dx == aim.x and dy == aim.y))
     if ours and unit_alive(target) and units.hostile(unit_player(u), unit_player(target)) and within(u, target, config.milli(range)) then
       if dx ~= tx or dy ~= ty then hero_chase(u, target) end
       return
     end
     game.chase_set(u, -1, 0, 0, 0)
+    hero_aim[u] = false
     local resume = hero_resume[u]
     hero_resume[u] = nil
     local struck_back = resume ~= nil and resume.engaged and kind == ORDER_MOVE and hero_idle(u, kind, dx, dy)
@@ -393,6 +397,7 @@ return {
   on_state_replaced = function()
     upgraded = {}
     hero_resume = {}
+    hero_aim = {}
     next_unit = 0
     adopt_existing = true
   end,

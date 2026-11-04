@@ -6,7 +6,7 @@ local targeting = {}
 local NO_UNIT = -1
 local TARGET_UNIT = 1
 local TARGET_UNIT_OR_POINT = 3
-local ORDER_ATTACK_MOVE, ORDER_PATROL = 2, 3
+local ORDER_MOVE, ORDER_ATTACK_MOVE, ORDER_PATROL = 0, 2, 3
 
 local function within(a, b, range)
   local ax, ay = unit_position(a)
@@ -172,6 +172,10 @@ function targeting.on_hit(attacker, victim)
 end
 
 function targeting.on_attacked(unit)
+  local kind, tx, ty = game.order_of(unit)
+  local ux, uy = unit_position(unit)
+  local dx, dy = tx - ux, ty - uy
+  if kind == ORDER_MOVE and dx * dx + dy * dy > config.FIX * config.FIX then return end
   local target = targeting.nearest_enemy(unit)
   if target ~= nil then game.cmd_attack(unit, target) end
 end
