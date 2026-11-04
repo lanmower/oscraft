@@ -5,9 +5,6 @@ import {
   followTarget,
   heroDirection,
   heroOrderPoint,
-  HERO_ORDER_INTERVAL_S,
-  HERO_STEP_CELLS,
-  stepHeroOrderClock,
 } from "./hero_view_lock.js";
 
 const fail = (what) => { throw new Error(what); };
@@ -18,6 +15,7 @@ const same = (got, want, what) => {
 };
 const keys = (...names) => new Set(names);
 const SQRT_HALF = Math.SQRT1_2;
+const STEP_CELLS = 4;
 
 same(heroDirection(keys("ArrowUp"), 0), { x: 0, z: -1 }, "up at yaw 0 is forward");
 same(heroDirection(keys("ArrowDown"), 0), { x: 0, z: 1 }, "down at yaw 0 is back");
@@ -44,8 +42,8 @@ if (centred.target[0] !== 100 || centred.target[1] !== 7 || centred.target[2] !=
 if (centred.distance !== 40 || centred.yaw !== 0.5 || centred.pitch !== 0.9) fail("centring changed the saved distance, yaw or pitch");
 if (lobbyView.target[0] !== 32) fail("centring changed the saved view");
 if (centredOnHero(lobbyView, null, groundAt) !== lobbyView) fail("no hero did not keep the saved view");
-same(heroOrderPoint(hero, { x: 0, z: -1 }), { x: 100, z: 200 - HERO_STEP_CELLS }, "order point ahead of the hero");
-same(heroOrderPoint(hero, { x: SQRT_HALF, z: SQRT_HALF }), { x: 100 + SQRT_HALF * HERO_STEP_CELLS, z: 200 + SQRT_HALF * HERO_STEP_CELLS }, "diagonal order point");
+same(heroOrderPoint(hero, { x: 0, z: -1 }, STEP_CELLS), { x: 100, z: 200 - STEP_CELLS }, "order point ahead of the hero");
+same(heroOrderPoint(hero, { x: SQRT_HALF, z: SQRT_HALF }, STEP_CELLS), { x: 100 + SQRT_HALF * STEP_CELLS, z: 200 + SQRT_HALF * STEP_CELLS }, "diagonal order point");
 
 const units = [
   { id: 1, player: 0, type: 5, x: 0, z: 0 },
@@ -59,15 +57,6 @@ if (findHeroOf(units, flags, 0)?.id !== 1) fail("local hero not found");
 if (findHeroOf(units, flags, 1)?.id !== 2) fail("other player's hero not found");
 if (findHeroOf(units, flags, 2) !== null) fail("a player without a hero found one");
 if (findHeroOf(units, [], 0) !== null) fail("no flags still found a hero");
-
-const idle = stepHeroOrderClock(0.4, 0.1, false);
-if (idle.due || idle.clockS !== 0) fail("idle clock is not reset");
-const first = stepHeroOrderClock(0, 0.016, true);
-if (!first.due || first.clockS !== HERO_ORDER_INTERVAL_S) fail("first held frame does not send at once");
-const waiting = stepHeroOrderClock(HERO_ORDER_INTERVAL_S, 0.1, true);
-if (waiting.due || !near(waiting.clockS, HERO_ORDER_INTERVAL_S - 0.1)) fail("held key sends before the interval");
-const again = stepHeroOrderClock(0.05, 0.06, true);
-if (!again.due || again.clockS !== HERO_ORDER_INTERVAL_S) fail("held key does not resend after the interval");
 
 const lock = createHeroViewLock();
 if (lock.isLocked()) fail("lock starts on");

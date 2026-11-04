@@ -13,7 +13,8 @@ import { AnimationPlayer, cycleSpeed, globalMatrices, jointMatrices, retargetLib
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
-import { centredOnHero, createHeroViewLock, findHeroOf, followTarget, heroDirection, heroOrderPoint, stepHeroOrderClock } from "./hero_view_lock.js";
+import { centredOnHero, createHeroViewLock, findHeroOf, followTarget, heroDirection } from "./hero_view_lock.js";
+import { createHeroRun, stepHeroRun } from "./hero_run.js";
 import { cameraDragAction, MIDDLE_BUTTON } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
 import { pingKindOf } from "./moba_input.js";
@@ -188,7 +189,7 @@ let lastFrameMs = 0;
 let localTickAcc = 0;
 const keysDown = new Set();
 const heroViewLock = createHeroViewLock();
-let heroOrderClockS = 0;
+let heroRun = createHeroRun();
 const seating = createSeating();
 const autoSeats = createAutoSeats(seating, MAX_PLAYERS);
 let seatsExplicit = false;
@@ -1239,21 +1240,33 @@ function drawWorld3d() {
   renderer3d.endFrame();
 }
 
-function localHeroUnit() {
+function localHeroUnit(units = currentUnits()) {
   const flags = localGame && typeof localGame.unit_flags === "function" ? localGame.unit_flags() : [];
-  return findHeroOf(currentUnits(), flags, myPlayer);
+  return findHeroOf(units, flags, myPlayer);
+}
+
+function visibleEnemyIds(units) {
+  if (!localGame || typeof localGame.hostile !== "function") return [];
+  return units.filter((u) => localGame.hostile(myPlayer, u.player)).map((u) => u.id);
 }
 
 function driveLockedHero(dtS) {
-  const hero = localHeroUnit();
-  if (!hero) return;
-  renderer3d.setCamera({ target: followTarget(hero, groundAt) });
-  const direction = heroDirection(keysDown, renderer3d.camera.yaw);
-  const clock = stepHeroOrderClock(heroOrderClockS, dtS, direction !== null);
-  heroOrderClockS = clock.clockS;
-  if (!clock.due) return;
-  const point = heroOrderPoint(hero, direction);
-  commands.order(hero.id, point.x, point.z);
+  const units = currentUnits();
+  const hero = localHeroUnit(units);
+  if (hero) renderer3d.setCamera({ target: followTarget(hero, groundAt) });
+  const step = stepHeroRun(heroRun, {
+    hero: hero ? { id: hero.id, x: hero.x, z: hero.z } : null,
+    direction: heroDirection(keysDown, renderer3d.camera.yaw),
+    held: keysDown.size > 0,
+    dtS,
+    enemyIds: visibleEnemyIds(units),
+    bounds: { w: W, h: H },
+  });
+  heroRun = step.state;
+  for (const command of step.commands) {
+    if (command.kind === "hold") commands.hold(hero.id);
+    else commands.order(hero.id, command.x, command.z);
+  }
 }
 
 function panByKeys(dtS) {
@@ -1262,6 +1275,7 @@ function panByKeys(dtS) {
     driveLockedHero(dtS);
     return;
   }
+  heroRun = createHeroRun();
   let dx = 0;
   let dz = 0;
   if (keysDown.has("ArrowLeft")) dx -= 1;

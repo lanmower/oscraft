@@ -1,6 +1,3 @@
-export const HERO_STEP_CELLS = 4;
-export const HERO_ORDER_INTERVAL_S = 0.25;
-
 const HERO_FLAG = 1;
 
 const ARROW_AXES = new Map([
@@ -53,17 +50,10 @@ export function centredOnHero(view, hero, groundAt) {
   return hero ? { ...view, target: followTarget(hero, groundAt) } : view;
 }
 
-export function heroOrderPoint(hero, direction, distance = HERO_STEP_CELLS) {
+export function heroOrderPoint(hero, direction, distance) {
   return { x: hero.x + direction.x * distance, z: hero.z + direction.z * distance };
 }
 
 export function findHeroOf(units, flags, player) {
   return units.find((u) => u.player === player && flags[u.type] === HERO_FLAG) ?? null;
-}
-
-export function stepHeroOrderClock(clockS, dtS, moving) {
-  if (!moving) return { due: false, clockS: 0 };
-  const left = clockS - dtS;
-  if (left > 0) return { due: false, clockS: left };
-  return { due: true, clockS: HERO_ORDER_INTERVAL_S };
 }
