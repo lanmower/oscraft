@@ -6,8 +6,15 @@ import { MeshoptDecoder } from '../js/client/vendor/three/libs/meshopt_decoder.m
 const [libraryPath, source] = process.argv.slice(2);
 if (!libraryPath || !source) throw new Error('usage: node scripts/anim-stands.mjs <library.json> <character.glb>');
 
-const STAND_CLIPS = ['static', 'emote-yes', 'emote-no'];
-const CHARACTER_TO_LIBRARY = { torso: 'spine', head: 'head' };
+const TORSO_HEAD = { torso: 'spine', head: 'head' };
+const WITH_ARMS = { ...TORSO_HEAD, 'arm-left': 'leftUpperArm', 'arm-right': 'rightUpperArm' };
+const STAND_CLIPS = [
+  { name: 'static', source: 'static', bones: TORSO_HEAD },
+  { name: 'emote-yes', source: 'emote-yes', bones: TORSO_HEAD },
+  { name: 'emote-no', source: 'emote-no', bones: TORSO_HEAD },
+  { name: 'idle-alt', source: 'idle', bones: WITH_ARMS },
+  { name: 'holding-both', source: 'holding-both', bones: WITH_ARMS },
+];
 const IDENTITY = [0, 0, 0, 1];
 const FLOAT32 = 5126;
 const WIDTH = { SCALAR: 1, VEC3: 3, VEC4: 4 };
@@ -65,15 +72,15 @@ function readFloats(index) {
   return out;
 }
 
-function standClip(name) {
-  const animation = gltf.animations.find((a) => a.name === name);
-  if (!animation) throw new Error(`clip ${name} missing from ${source}`);
+function standClip({ name, source: sourceName, bones }) {
+  const animation = gltf.animations.find((a) => a.name === sourceName);
+  if (!animation) throw new Error(`clip ${sourceName} missing from ${source}`);
   const channels = [];
   let duration = 0;
   for (const channel of animation.channels) {
     if (channel.target.path !== 'rotation') continue;
     const node = gltf.nodes[channel.target.node];
-    const bone = CHARACTER_TO_LIBRARY[node.name];
+    const bone = bones[node.name];
     if (!bone) continue;
     const times = readFloats(animation.samplers[channel.sampler].input);
     const values = readFloats(animation.samplers[channel.sampler].output);
@@ -97,12 +104,12 @@ function standClip(name) {
     const first = frozen.values.slice(0, frozen.width).map(round);
     channels.push({ bone: frozen.bone, path: frozen.path, times: [0, round(duration)], values: [...first, ...first], width: frozen.width });
   }
-  return { name, source: `${path.basename(source)}:${name}`, duration: round(duration), channels };
+  return { name, source: `${path.basename(source)}:${sourceName}`, duration: round(duration), channels };
 }
 
-for (const name of STAND_CLIPS) {
-  const clip = standClip(name);
-  const at = library.clips.findIndex((c) => c.name === name);
+for (const entry of STAND_CLIPS) {
+  const clip = standClip(entry);
+  const at = library.clips.findIndex((c) => c.name === entry.name);
   if (at >= 0) library.clips[at] = clip;
   else library.clips.push(clip);
 }

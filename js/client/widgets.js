@@ -108,7 +108,7 @@ const STYLE = `
 .w-input{min-width:0;width:100%;font:inherit;padding:4px 6px;color:inherit;background:var(--well);border:1px solid var(--muted);border-radius:3px}
 .w-model{position:relative;flex:0 0 auto;overflow:hidden;border-radius:3px;background:var(--well)}
 .w-model img,.w-model canvas{display:block;width:100%;height:100%;object-fit:contain}
-.w-scene{position:relative;width:min(96vw,1040px);height:min(60vh,560px);min-width:0;border:1px solid #2c3648;border-radius:12px;overflow:hidden;background:#0a0c12}
+.w-scene{position:relative;width:min(96vw,1040px);height:min(60vh,560px);min-width:0;overflow:hidden}
 .w-scene-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .w-scene-plates{position:absolute;inset:0;pointer-events:none}
 .w-scene-plate{position:absolute;left:0;top:0;display:flex;align-items:center;gap:6px;padding:2px 8px;border:1px solid var(--edge);border-radius:4px;background:rgba(10,14,22,.9);font-size:12px;letter-spacing:.08em;white-space:nowrap}
@@ -725,6 +725,9 @@ export function sceneWidget() {
       if (cell.dataset.switches !== switches) cell.dataset.switches = switches;
       const stands = seats[k].stands;
       if (cell.dataset.stands !== stands) cell.dataset.stands = stands;
+      cell.dataset.bodyX = seats[k].x.toFixed(4);
+      cell.dataset.bodyZ = seats[k].z.toFixed(4);
+      cell.dataset.bodyR = seats[k].r.toFixed(4);
     });
     if (element.dataset.draws !== String(draws)) element.dataset.draws = String(draws);
   };
