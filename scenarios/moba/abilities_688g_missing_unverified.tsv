@@ -2,6 +2,7 @@ id	hero	unit_code	reason
 antimage_counterspell	antimage	Edem	Dota 2 id; no 6.88g perlevel row under Edem named counterspell
 antimage_persectur	antimage	Edem	Dota 2 id; no 6.88g perlevel row under Edem named persectur
 axe_one_man_army	axe	Opgh	Dota 2 id; no 6.88g perlevel row under Opgh named one_man_army
+bane_fiends_grip	bane	UIN6	每秒伤害 has no value in perlevel
 bane_nightmare_end	bane	UIN6	Dota 2 id; no 6.88g perlevel row under UIN6 named nightmare_end
 bane_ichor_of_nyctasha	bane	UIN6	Dota 2 id; no 6.88g perlevel row under UIN6 named ichor_of_nyctasha
 bloodseeker_blood_bath	bloodseeker	UAG7	Dota 2 id; no 6.88g perlevel row under UAG7 named blood_bath
@@ -64,6 +65,7 @@ tinker_keen_teleport	tinker	Ntin	Dota 2 id; no 6.88g perlevel row under Ntin nam
 tinker_eureka	tinker	Ntin	Dota 2 id; no 6.88g perlevel row under Ntin named eureka
 sniper_keen_scope	sniper	UAG6	Dota 2 id; no 6.88g perlevel row under UAG6 named keen_scope
 necrolyte_ghost_shroud	necrolyte	U00E	Dota 2 id; no 6.88g perlevel row under U00E named ghost_shroud
+necrolyte_reapers_scythe	necrolyte	U00E	伤害 has no value in perlevel
 beastmaster_summon_razorback	beastmaster	H00D	Dota 2 id; no 6.88g perlevel row under H00D named summon_razorback
 beastmaster_summon_raptor	beastmaster	H00D	Dota 2 id; no 6.88g perlevel row under H00D named summon_raptor
 beastmaster_drums_of_slom	beastmaster	H00D	Dota 2 id; no 6.88g perlevel row under H00D named drums_of_slom
@@ -96,9 +98,11 @@ clinkz_burning_army	clinkz	E004	Dota 2 id; no 6.88g perlevel row under E004 name
 clinkz_infernal_shred	clinkz	E004	Dota 2 id; no 6.88g perlevel row under E004 named infernal_shred
 omniknight_martyr	omniknight	Harf	Dota 2 id; no 6.88g perlevel row under Harf named martyr
 omniknight_hammer_of_purity	omniknight	Harf	Dota 2 id; no 6.88g perlevel row under Harf named hammer_of_purity
+enchantress_natures_attendants	enchantress	UIN1	蝗虫群数量 (spawn) has no role binding; 每个目标最大蝗虫数量 has no value in perlevel; 生命偷取参数 (stat) has no role binding; 生命偷取极限 (stat) has no role binding
 enchantress_little_friends	enchantress	UIN1	Dota 2 id; no 6.88g perlevel row under UIN1 named little_friends
 enchantress_rabblerouser	enchantress	UIN1	Dota 2 id; no 6.88g perlevel row under UIN1 named rabblerouser
 huskar_inner_fire	huskar	H00Q	Dota 2 id; no 6.88g perlevel row under H00Q named inner_fire
+huskar_berserkers_blood	huskar	H00Q	粉碎几率 has no value in perlevel; 伤害倍乘(建筑物) has no value in perlevel
 night_stalker_midnight_feast	night_stalker	Udre	Dota 2 id; no 6.88g perlevel row under Udre named midnight_feast
 broodmother_spiders_milk	broodmother	U006	Dota 2 id; no 6.88g perlevel row under U006 named spiders_milk
 bounty_hunter_big_game_hunter	bounty_hunter	UAG3	Dota 2 id; no 6.88g perlevel row under UAG3 named big_game_hunter
@@ -118,6 +122,7 @@ spirit_breaker_bulldoze	spirit_breaker	O00J	Dota 2 id; no 6.88g perlevel row und
 spirit_breaker_bull_rush	spirit_breaker	O00J	Dota 2 id; no 6.88g perlevel row under O00J named bull_rush
 gyrocopter_side_gunner_spawn_ability	gyrocopter	E02N	Dota 2 id; no 6.88g perlevel row under E02N named side_gunner_spawn_ability
 alchemist_corrosive_weaponry	alchemist	N01I	Dota 2 id; no 6.88g perlevel row under N01I named corrosive_weaponry
+alchemist_goblins_greed	alchemist	N01I	魔法回复加快 has no value in perlevel
 alchemist_unstable_concoction_throw	alchemist	N01I	Dota 2 id; no 6.88g perlevel row under N01I named unstable_concoction_throw
 invoker_chaos_meteor_ad	invoker	H00U	Dota 2 id; no 6.88g perlevel row under H00U named chaos_meteor_ad
 invoker_deafening_blast_ad	invoker	H00U	Dota 2 id; no 6.88g perlevel row under H00U named deafening_blast_ad
@@ -154,6 +159,7 @@ meepo_megameepo	meepo	H00I	Dota 2 id; no 6.88g perlevel row under H00I named meg
 meepo_geomancy	meepo	H00I	Dota 2 id; no 6.88g perlevel row under H00I named geomancy
 meepo_megameepo_fling	meepo	H00I	Dota 2 id; no 6.88g perlevel row under H00I named megameepo_fling
 treant_natures_grasp	treant	UST2	Dota 2 id; no 6.88g perlevel row under UST2 named natures_grasp
+treant_natures_guise	treant	UST2	no effect label with a value in the 6.88g perlevel row
 ogre_magi_unrefined_fireblast	ogre_magi	UIN4	Dota 2 id; no 6.88g perlevel row under UIN4 named unrefined_fireblast
 ogre_magi_smash	ogre_magi	UIN4	Dota 2 id; no 6.88g perlevel row under UIN4 named smash
 ogre_magi_dumb_luck	ogre_magi	UIN4	Dota 2 id; no 6.88g perlevel row under UIN4 named dumb_luck
@@ -184,6 +190,7 @@ wisp_tether	wisp	O01F	Dota 2 id; no 6.88g perlevel row under O01F named tether
 wisp_spirits_out	wisp	O01F	Dota 2 id; no 6.88g perlevel row under O01F named spirits_out
 wisp_tether_break	wisp	O01F	Dota 2 id; no 6.88g perlevel row under O01F named tether_break
 wisp_equilibrium	wisp	O01F	Dota 2 id; no 6.88g perlevel row under O01F named equilibrium
+visage_gravekeepers_cloak	visage	UC60	闪避几率 has no value in perlevel
 visage_silent_as_the_grave	visage	UC60	Dota 2 id; no 6.88g perlevel row under UC60 named silent_as_the_grave
 visage_summon_familiars_stone_form	visage	UC60	Dota 2 id; no 6.88g perlevel row under UC60 named summon_familiars_stone_form
 slark_saltwater_shiv	slark	H071	Dota 2 id; no 6.88g perlevel row under H071 named saltwater_shiv
@@ -216,6 +223,8 @@ phoenix_dying_light	phoenix	E02F	Dota 2 id; no 6.88g perlevel row under E02F nam
 phoenix_launch_fire_spirit	phoenix	E02F	Dota 2 id; no 6.88g perlevel row under E02F named launch_fire_spirit
 phoenix_icarus_dive_stop	phoenix	E02F	Dota 2 id; no 6.88g perlevel row under E02F named icarus_dive_stop
 phoenix_sun_ray_stop	phoenix	E02F	Dota 2 id; no 6.88g perlevel row under E02F named sun_ray_stop
+oracle_fortunes_end	oracle	N0MD	no effect label with a value in the 6.88g perlevel row
+oracle_fates_edict	oracle	N0MD	伤害 has no value in perlevel; 目标伤害衰减 has no value in perlevel
 oracle_diviners_deck	oracle	N0MD	Dota 2 id; no 6.88g perlevel row under N0MD named diviners_deck
 oracle_prognosticate	oracle	N0MD	Dota 2 id; no 6.88g perlevel row under N0MD named prognosticate
 techies_sticky_bomb	techies	H00K	Dota 2 id; no 6.88g perlevel row under H00K named sticky_bomb
@@ -225,5 +234,6 @@ techies_minefield_sign	techies	H00K	Dota 2 id; no 6.88g perlevel row under H00K 
 techies_reactive_tazer_stop	techies	H00K	Dota 2 id; no 6.88g perlevel row under H00K named reactive_tazer_stop
 techies_focused_detonate	techies	H00K	Dota 2 id; no 6.88g perlevel row under H00K named focused_detonate
 winter_wyvern_arctic_burn	winter_wyvern	N0M7	Dota 2 id; no 6.88g perlevel row under N0M7 named arctic_burn
+winter_wyvern_winters_curse	winter_wyvern	N0M7	no effect label with a value in the 6.88g perlevel row
 arc_warden_runic_infusion	arc_warden	N0MK	Dota 2 id; no 6.88g perlevel row under N0MK named runic_infusion
 abyssal_underlord_dark_portal	abyssal_underlord	N00R	Dota 2 id; no 6.88g perlevel row under N00R named dark_portal
