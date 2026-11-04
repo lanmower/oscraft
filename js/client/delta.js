@@ -73,6 +73,30 @@ export function createSeating() {
   };
 }
 
+export function createAutoSeats(seating, maxPlayers = MAX_PLAYERS) {
+  const seats = [];
+  return {
+    join(owner) {
+      if (seating.seat(owner).you !== SPECTATOR) return;
+      const taken = new Set(seats.map((s) => s.slot));
+      for (let slot = 0; slot < maxPlayers; slot++) {
+        if (!taken.has(slot)) {
+          seats.push({ slot, owner, pick: "" });
+          seating.start(seats);
+          return;
+        }
+      }
+    },
+    leave(owner) {
+      const at = seats.findIndex((s) => s.owner === owner);
+      if (at < 0) return;
+      seats.splice(at, 1);
+      seating.start(seats);
+    },
+    size: () => seats.length,
+  };
+}
+
 export function startFrame(lobby) {
   const seats = [];
   lobby.slots.forEach((s, slot) => { if (s.owner) seats.push({ slot, owner: s.owner, pick: s.hero || '' }); });

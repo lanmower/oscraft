@@ -8,7 +8,7 @@ import { createAmbientFx, AMBIENT_KINDS } from "./ambient_fx.js";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, TEAM_SIZE, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { assetJson, assetRel, assetUrl, fetchRetrying, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
-import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
+import { applyFrame, createAutoSeats, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { AnimationPlayer, cycleSpeed, globalMatrices, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
@@ -189,7 +189,7 @@ const keysDown = new Set();
 const heroViewLock = createHeroViewLock();
 let heroOrderClockS = 0;
 const seating = createSeating();
-const autoSeats = [];
+const autoSeats = createAutoSeats(seating, MAX_PLAYERS);
 let seatsExplicit = false;
 let encoder = createStateEncoder();
 let myPlayer = 0;
@@ -1461,15 +1461,8 @@ function bindInput() {
 }
 
 function autoSeat(peerPubkey) {
-  if (seatsExplicit || seating.seat(peerPubkey).you !== SPECTATOR) return;
-  const taken = new Set(autoSeats.map((s) => s.slot));
-  for (let slot = 0; slot < MAX_PLAYERS; slot++) {
-    if (!taken.has(slot)) {
-      autoSeats.push({ slot, owner: peerPubkey, pick: "" });
-      seating.start(autoSeats);
-      return;
-    }
-  }
+  if (seatsExplicit) return;
+  autoSeats.join(peerPubkey);
 }
 
 function sendTo(peerPubkey, bytes) {
@@ -2436,6 +2429,7 @@ session.addEventListener("peer-close", (e) => {
     const seat = seating.seat(e.detail.peerPubkey).you;
     seating.leave(e.detail.peerPubkey);
     reportSeat("peer_left", e.detail.peerPubkey, seat);
+    if (!seatsExplicit) autoSeats.leave(e.detail.peerPubkey);
   }
   telemetry(`peer-close ${String(e.detail.peerPubkey).slice(0, 8)}`);
   if (peers.size === 0) {
