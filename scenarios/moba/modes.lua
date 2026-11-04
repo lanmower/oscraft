@@ -1,5 +1,9 @@
 local modes = {}
 
+local HERO_SIDES = require("hero_sides")
+local SIDE_BY_TAG = { sentinel = 0, scourge = 1 }
+local SEATS_PER_SIDE = 5
+
 local NAMES = {
   ap = "allpick", ar = "allrandom", lm = "leaguemode", mm = "mirrormatch", tr = "teamrandom", dm = "deathmatch",
   mr = "moderandom", sp = "shuffleplayers", aa = "allagility", ai = "allintelligence", as = "allstrength",
@@ -106,8 +110,33 @@ function modes.toggle(code)
   return modes.set_codes(codes)
 end
 
-function modes.allows(hero, group, melee)
+function modes.side_of_seat(index)
+  if index == nil or index < 1 or index > 2 * SEATS_PER_SIDE then return nil end
+  if index <= SEATS_PER_SIDE then return 0 end
+  return 1
+end
+
+function modes.side_of_player(player)
+  if player == nil then return nil end
+  return modes.side_of_seat(player + 1)
+end
+
+local function side_permits(hero, side)
+  local tag = HERO_SIDES[hero]
+  if tag == nil then return true end
+  return side ~= nil and SIDE_BY_TAG[tag] == side
+end
+
+local function default_pool_only()
+  for _, code in ipairs(LIST) do
+    if code ~= "ap" then return false end
+  end
+  return true
+end
+
+function modes.allows(hero, group, melee, side)
   if restriction ~= nil and hero ~= nil and not restriction(hero) then return false end
+  if default_pool_only() and hero ~= nil and not side_permits(hero, side) then return false end
   if FLAGS.aa and group ~= 2 then return false end
   if FLAGS.ai and group ~= 3 then return false end
   if FLAGS.as and group ~= 1 then return false end
@@ -157,13 +186,14 @@ function modes.assign(slots, host, roster, group_of, melee_of)
 end
 
 local DISPLAY = {
+  ap = "All Pick", oi = "Observer Info", so = "Switch On", x = "Extended",
   ar = "All Random", aa = "All Agility", ai = "All Intelligence", as = "All Strength", ro = "Range Only", mo = "Melee Only",
   du = "Duplicate Mode", sh = "Same Hero", sc = "Super Creeps", fr = "Fast Respawn", np = "No Powerups", em = "Easy Mode", mi = "Mini Heroes", id = "Item Drop",
   cm = "Captains Mode", cd = "Captains Draft", rd = "Random Draft", sd = "Single Draft", rv = "Reverse",
 }
 local announced = false
 
-modes.BUTTONS = { "ar", "aa", "ai", "as", "ro", "mo", "du", "sh", "sc", "fr", "np", "em", "mi", "id", "cm", "cd", "rd", "sd", "rv" }
+modes.BUTTONS = { "ap", "ar", "aa", "ai", "as", "ro", "mo", "du", "sh", "sc", "fr", "np", "em", "mi", "id", "cm", "cd", "rd", "sd", "rv", "oi", "so", "x" }
 
 function modes.on_tick()
   if announced or game.ticks() < 1 then return end

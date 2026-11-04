@@ -75,6 +75,7 @@
     "glyph": "glyph.lua",
     "hero_acronyms": "hero_acronyms.lua",
     "hero_scale_688g": "hero_scale_688g.lua",
+    "hero_sides": "hero_sides.lua",
     "heroes": "heroes.lua",
     "hotkeys": "hotkeys.lua",
     "init": "init.lua",

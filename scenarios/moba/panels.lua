@@ -1305,22 +1305,22 @@ local function held(hero)
   return false
 end
 
-local function pickable_now(name, group)
-  return modes.allows(name, group, modes.melee(name)) and (modes.duplicates() or not held(name))
+local function pickable_now(name, group, side)
+  return modes.allows(name, group, modes.melee(name), side) and (modes.duplicates() or not held(name))
 end
 
-local function random_free()
+local function random_free(side)
   local free = {}
   for _, h in ipairs(ROSTER) do
-    if pickable_now(h, LATE.group(h)) then free[#free + 1] = h end
+    if pickable_now(h, LATE.group(h), side) then free[#free + 1] = h end
   end
   if #free == 0 then return nil end
   return free[modes.rand(#free) + 1]
 end
 
-local function any_free()
+local function any_free(side)
   for _, h in ipairs(ROSTER) do
-    if pickable_now(h, LATE.group(h)) then return true end
+    if pickable_now(h, LATE.group(h), side) then return true end
   end
   return false
 end
@@ -1355,7 +1355,7 @@ local function lobby_seats_event()
   local hero_items = {}
   for _, name in ipairs(ROSTER or {}) do
     local group = LATE.group(name)
-    hero_items[#hero_items + 1] = obj({ S("unit", name), S("model", hero_model(name) or ""), S("acronym", LATE.acronym(name)), I("group", group), B("allowed", pickable_now(name, group)) })
+    hero_items[#hero_items + 1] = obj({ S("unit", name), S("model", hero_model(name) or ""), S("acronym", LATE.acronym(name)), I("group", group), B("allowed", pickable_now(name, group, modes.side_of_player(LOCAL))) })
   end
   local refusal = LOBBY.error or ""
   local refusals = (TEXT.lobby.refusals or {})
@@ -1382,8 +1382,8 @@ local function lobby_act(call, a)
     local ok, why = modes.toggle(a.code)
     if not ok then L.error = "mode-" .. why return end
     draft.reset()
-    for _, s in ipairs(L.slots) do
-      if s.hero ~= nil and not modes.allows(s.hero, LATE.group(s.hero), modes.melee(s.hero)) then s.hero, s.ready = nil, false end
+    for index, s in ipairs(L.slots) do
+      if s.hero ~= nil and not modes.allows(s.hero, LATE.group(s.hero), modes.melee(s.hero), modes.side_of_seat(index)) then s.hero, s.ready = nil, false end
     end
     return
   end
@@ -1420,7 +1420,7 @@ local function lobby_act(call, a)
       if s.owner == nil then
         local hero = ROSTER[1]
         for _, h in ipairs(ROSTER) do
-          if pickable_now(h, LATE.group(h)) then
+          if pickable_now(h, LATE.group(h), modes.side_of_seat(i)) then
             hero = h
             break
           end
@@ -1489,14 +1489,14 @@ local function lobby_act(call, a)
     if s.owner ~= owner then L.error = "not-owner" return end
     if s.ready then L.error = "ready-locked" return end
     local hero = a.hero
-    if hero == nil or hero == "" then hero = random_free() end
+    if hero == nil or hero == "" then hero = random_free(modes.side_of_seat(i)) end
     if hero == nil then L.error = "unknown-hero" return end
     local known = false
     for _, h in ipairs(ROSTER) do
       if h == hero then known = true end
     end
     if not known then L.error = "unknown-hero" return end
-    if not modes.allows(hero, LATE.group(hero), modes.melee(hero)) then L.error = "mode-pool" return end
+    if not modes.allows(hero, LATE.group(hero), modes.melee(hero), modes.side_of_seat(i)) then L.error = "mode-pool" return end
     for j, other in ipairs(L.slots) do
       if j ~= i and other.hero == hero and not modes.duplicates() then L.error = "hero-held" return end
     end
@@ -1794,7 +1794,7 @@ end
 local function hero_tile(name, mine)
   local shown = LATE.acronym(name)
   local own = mine ~= nil and LOBBY.slots[mine].hero == name
-  local faint = not own and not pickable_now(name, hero_group(name))
+  local faint = not own and not pickable_now(name, hero_group(name), modes.side_of_player(LOCAL))
   local f = { S("alt", shown), S("badge", shown), S("text", ""), S("tip", shown) }
   local model = hero_model(name)
   if model then f[#f + 1] = S("src", "icons/heroes/" .. model .. ".png") end
@@ -1870,7 +1870,7 @@ local function hero_card(mine)
   local lock_text = TEXT.lobby.lockIn
   if s.ready then lock_text = TEXT.lobby.unready end
   kids[#kids + 1] = button(lock_text, "ready", obj({ I("slot", mine - 1), B("ready", not s.ready) }), not s.ready and s.hero == nil and not modes.picks_free())
-  kids[#kids + 1] = button(TEXT.lobby.random, "pick", obj({ I("slot", mine - 1), S("hero", "") }), s.ready or not any_free())
+  kids[#kids + 1] = button(TEXT.lobby.random, "pick", obj({ I("slot", mine - 1), S("hero", "") }), s.ready or not any_free(modes.side_of_seat(mine)))
   return box(kids, "col")
 end
 

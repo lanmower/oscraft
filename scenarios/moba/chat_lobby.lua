@@ -62,7 +62,7 @@ local function add_cost(owner, gold)
   costs[owner] = (costs[owner] or 0) + gold
 end
 
-local function candidates(group)
+local function candidates(group, side)
   local out = {}
   local held = {}
   for _, s in ipairs(slots()) do
@@ -71,7 +71,7 @@ local function candidates(group)
   for _, h in ipairs(api.roster()) do
     local free = modes.duplicates() or not held[h]
     local fits = group == nil or api.group(h) == group
-    if free and fits and modes.allows(h, api.group(h), modes.melee(h)) then out[#out + 1] = h end
+    if free and fits and modes.allows(h, api.group(h), modes.melee(h), side) then out[#out + 1] = h end
   end
   return out
 end
@@ -80,7 +80,7 @@ local function random_pick(player, args, low)
   local i = seat_index(args)
   local group = ATTRIBUTES[low]
   local pool = {}
-  if i ~= nil and not started() then pool = candidates(group) end
+  if i ~= nil and not started() then pool = candidates(group, modes.side_of_seat(i)) end
   local s = i ~= nil and slots()[i] or nil
   if s == nil or started() or s.hero ~= nil or s.ready or modes.picks_free() or costs[s.owner] ~= nil or #pool == 0 then
     core.say(player, text.randomRefused, 10)
