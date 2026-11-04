@@ -1,0 +1,95 @@
+== BASE 804ae02b (pre-e1050556) pass 1
+load 1: no first frame (startError=null) errors=
+first-draw load=2 ms=1772 transferred-bytes=3092973 requests=208 game=222 world=1091 preview=1722
+  load=2 944796 scenarios/moba/moba.osdt
+  load=2 601672 js/client/pkg/web_bg.wasm
+  load=2 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+  load=2 96838 scenarios/moba/ability_text_688g.lua
+  load=2 83992 scenarios/moba/assets/textures/grass.ktx2
+  load=2 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+first-draw load=3 ms=1782 transferred-bytes=3092973 requests=208 game=245 world=1131 preview=1726
+  load=3 944796 scenarios/moba/moba.osdt
+  load=3 601672 js/client/pkg/web_bg.wasm
+  load=3 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+  load=3 96838 scenarios/moba/ability_text_688g.lua
+  load=3 83992 scenarios/moba/assets/textures/grass.ktx2
+  load=3 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+first-draw median-ms=1782 loads=2
+== HEAD 6b442e3a (e1050556 included) pass 1
+load 1: no first frame (startError=null) errors=
+first-draw load=2 ms=2219 transferred-bytes=3093220 requests=208 game=305 world=1375 preview=2156
+  load=2 944796 scenarios/moba/moba.osdt
+  load=2 601672 js/client/pkg/web_bg.wasm
+  load=2 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+  load=2 96838 scenarios/moba/ability_text_688g.lua
+  load=2 83992 scenarios/moba/assets/textures/grass.ktx2
+  load=2 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+first-draw load=3 ms=2060 transferred-bytes=3093220 requests=208 game=263 world=1425 preview=2014
+  load=3 944796 scenarios/moba/moba.osdt
+  load=3 601672 js/client/pkg/web_bg.wasm
+  load=3 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+  load=3 96838 scenarios/moba/ability_text_688g.lua
+  load=3 83992 scenarios/moba/assets/textures/grass.ktx2
+  load=3 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+first-draw median-ms=2219 loads=2
+== BASE 804ae02b (pre-e1050556) pass 2
+load 1: no first frame (startError=page closed) errors=
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+browser.newContext: Target page, context or browser has been closed
+Browser logs:
+
+<launching> /usr/bin/chromium --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,AvoidCorsURLLoaderRestartOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist --user-data-dir=/tmp/playwright_chromiumdev_profile-aXxfso --remote-debugging-pipe --no-startup-window
+<launched> pid=96602
+[pid=96602][err] [96605:96605:1105/012921.773842:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.Properties.GetAll: object_path= /org/freedesktop/UPower/devices/DisplayDevice: org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.UPower was not provided by any .service files
+[pid=96602][err] [96648:96648:1105/012922.769559:ERROR:components/viz/service/display_embedder/skia_output_device_vulkan.cc:307] Failed to initialize vulkan surface.
+[pid=96602][err] [96605:96637:1105/012937.212461:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[pid=96602][err] [96605:96637:1105/012937.392105:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[pid=96602][err] [96605:96637:1105/012937.392775:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[pid=96602][err] [96605:96637:1105/012937.595289:ERROR:google_apis/gcm/engine/mcs_client.cc:702]   Error code: 401  Error message: Authentication Failed: wrong_secret
+[pid=96602][err] [96605:96637:1105/012937.595308:ERROR:google_apis/gcm/engine/mcs_client.cc:704] Failed to log in to GCM, resetting connection.
+[pid=96602][err] [96605:96637:1105/013005.681262:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[pid=96602] <gracefully close start>
+    at async file:///config/tmp/fd-1793834369439/scripts/perf/first-draw.mjs:57:21 {
+  log: []
+}
+
+Node.js v24.22.0
+== HEAD 6b442e3a pass 2
+load 1: no first frame (startError=null) errors=
+first-draw load=2 ms=1210 transferred-bytes=3042289 requests=208 game=162 world=753 preview=1169
+  load=2 944796 scenarios/moba/moba.osdt
+  load=2 601672 js/client/pkg/web_bg.wasm
+  load=2 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+  load=2 83992 scenarios/moba/assets/textures/grass.ktx2
+  load=2 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+  load=2 63182 scenarios/moba/assets/textures/rock024_disp.ktx2
+first-draw load=3 ms=1260 transferred-bytes=3042289 requests=208 game=173 world=794 preview=1225
+  load=3 944796 scenarios/moba/moba.osdt
+  load=3 601672 js/client/pkg/web_bg.wasm
+  load=3 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+  load=3 83992 scenarios/moba/assets/textures/grass.ktx2
+  load=3 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+  load=3 63182 scenarios/moba/assets/textures/rock024_disp.ktx2
+first-draw median-ms=1260 loads=2
+HEAD-2-exit=1
+== BASE 804ae02b pass 2 (rerun)
+load 1: no first frame (startError=null) errors=
+first-draw load=2 ms=1247 transferred-bytes=3042042 requests=208 game=170 world=776 preview=1212
+  load=2 944796 scenarios/moba/moba.osdt
+  load=2 601672 js/client/pkg/web_bg.wasm
+  load=2 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+  load=2 83992 scenarios/moba/assets/textures/grass.ktx2
+  load=2 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+  load=2 63182 scenarios/moba/assets/textures/rock024_disp.ktx2
+first-draw load=3 ms=1220 transferred-bytes=3042042 requests=208 game=169 world=782 preview=1183
+  load=3 944796 scenarios/moba/moba.osdt
+  load=3 601672 js/client/pkg/web_bg.wasm
+  load=3 247619 js/client/vendor/three/libs/basis/basis_transcoder.wasm
+  load=3 83992 scenarios/moba/assets/textures/grass.ktx2
+  load=3 77744 scenarios/moba/assets/textures/rock024_color.ktx2
+  load=3 63182 scenarios/moba/assets/textures/rock024_disp.ktx2
+first-draw median-ms=1247 loads=2
+BASE-2-exit=1
