@@ -3,6 +3,38 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "scenarios" / "moba"
 MILLI, TPS = 15.625, 16
+SLK_FIELDS = ("STR", "AGI", "INT", "regenHP", "mana0", "manaN", "regenMana", "def", "sight", "turnRate", "dice1", "sides1")
+WEB_LABEL = "web-1.27.1-slk"
+
+def read_tsv(path):
+    lines = path.read_text().splitlines()
+    hdr = lines[0].split("\t")
+    return hdr, [dict(zip(hdr, l.split("\t"))) for l in lines[1:]]
+
+def import_slk(slk_path):
+    slk_hdr, slk_rows = read_tsv(slk_path)
+    by_base = {r["base_id"]: r for r in slk_rows}
+    target = ROOT / "heroes_688g.tsv"
+    hdr = target.read_text().splitlines()[0].split("\t")
+    keep_cols = [i for i, c in enumerate(hdr) if not c.startswith("web_")]
+    new_hdr = [hdr[i] for i in keep_cols] + ["web_source"] + [f"web_{f}" for f in SLK_FIELDS]
+    out = ["\t".join(new_hdr)]
+    imported = 0
+    for line in target.read_text().splitlines()[1:]:
+        cells = line.split("\t")
+        assert len(cells) == len(hdr), line[:40]
+        src = cells[hdr.index("src")]
+        match = by_base.get(src) or next((r for r in slk_rows if src in r["heroes"].split(",")), None)
+        web = [WEB_LABEL] + [match[f] for f in SLK_FIELDS] if match else [""] * (1 + len(SLK_FIELDS))
+        imported += bool(match)
+        out.append("\t".join([cells[i] for i in keep_cols] + web))
+    target.write_text("\n".join(out) + "\n")
+    print(f"imported {imported} heroes from {slk_path.name}", file=sys.stderr)
+
+if "--import-slk" in sys.argv:
+    import_slk(Path(sys.argv[sys.argv.index("--import-slk") + 1]))
+    sys.exit(0)
+
 rows = [r for r in csv.reader(
     (ROOT / "heroes_688g.tsv").read_text().splitlines(), delimiter="\t")]
 hdr, data = rows[0], rows[1:]
