@@ -171,8 +171,8 @@ end
 
 local function courier_step(u)
   local c = couriers[u]
-  if c == nil or not unit_alive(u) then
-    couriers[u] = nil
+  if not c or not unit_alive(u) then
+    couriers[u] = false
     game.cancel_timer(courier_name(u))
     return
   end
@@ -192,7 +192,7 @@ local function courier_step(u)
       game.cmd_order(u, tx, ty)
     end
   elseif game.within(u, c.home_x, c.home_y, HOME_REACH_MILLI) then
-    couriers[u] = nil
+    couriers[u] = false
     game.cancel_timer(courier_name(u))
   elseif reroute then
     game.cmd_restore_order(u)
@@ -201,9 +201,9 @@ end
 
 local function carry(caster, target, reach, state)
   if target == caster or not unit_alive(target) or game.hostile(unit_player(caster), unit_player(target)) then return end
-  if deliveries[caster] ~= nil then return end
+  if deliveries[caster] then return end
   local c = couriers[caster]
-  if c == nil then
+  if not c then
     local hx, hy = unit_position(caster)
     c = { home_x = hx, home_y = hy }
     couriers[caster] = c
@@ -222,8 +222,8 @@ local function delivery_name(c)
 end
 
 local function finish_delivery(c)
-  deliveries[c] = nil
-  courier.errand[c] = nil
+  deliveries[c] = false
+  courier.errand[c] = false
   game.cancel_timer(delivery_name(c))
 end
 
@@ -233,7 +233,7 @@ end
 
 local function delivery_step(c)
   local job = deliveries[c]
-  if job == nil or not unit_alive(c) or not unit_alive(job.hero) then
+  if not job or not unit_alive(c) or not unit_alive(job.hero) then
     finish_delivery(c)
     return
   end
@@ -277,7 +277,7 @@ local function courier_state(hero)
   if not unit_alive(hero) then return nil, "dead" end
   local c = courier_of(hero)
   if c == nil then return nil, "noCourier" end
-  if deliveries[c] ~= nil or couriers[c] ~= nil then return nil, "busy" end
+  if deliveries[c] or couriers[c] then return nil, "busy" end
   return c
 end
 
@@ -306,7 +306,7 @@ local function buy(hero, item)
     return true
   end
   if route == nil then return false, c end
-  delivery_notes[unit_player(hero)] = nil
+  delivery_notes[unit_player(hero)] = false
   deliveries[c] = { hero = hero, item = item, place = shops.nearest_seller(c, game.item_info(item).name), phase = "fetch" }
   courier.errand[c] = true
   game.timer(delivery_name(c), 1, function() delivery_step(c) end, 1)
@@ -358,5 +358,5 @@ return {
   route_in = route_in,
   courier_at_shop = courier_at_shop,
   stock_status = stock_status,
-  delivery_note = function(player) return delivery_notes[player] end,
+  delivery_note = function(player) return delivery_notes[player] or nil end,
 }

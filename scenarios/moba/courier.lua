@@ -188,11 +188,11 @@ end
 local function stalled(id)
   local kind, tx, ty = game.order_of(id)
   if kind ~= ORDER_MOVE then
-    move_marks[id] = nil
+    move_marks[id] = false
     return false
   end
   local mark = move_marks[id]
-  if mark == nil or mark.tx ~= tx or mark.ty ~= ty or not game.within(id, mark.x, mark.y, ARRIVE_MILLI) then
+  if not mark or mark.tx ~= tx or mark.ty ~= ty or not game.within(id, mark.x, mark.y, ARRIVE_MILLI) then
     local x, y = unit_position(id)
     move_marks[id] = { tx = tx, ty = ty, x = x, y = y, at = game.ticks() }
     return false
@@ -261,7 +261,7 @@ local function deliver(id)
       batch.rows[#batch.rows + 1] = row
     end
   end
-  if stop_visit[id] ~= nil and by_owner[stop_visit[id]] == nil then stop_visit[id] = nil end
+  if stop_visit[id] and by_owner[stop_visit[id]] == nil then stop_visit[id] = false end
   local routed = false
   for _, batch in ipairs(batches) do
     local room = batch.hero ~= nil and INVENTORY_SLOTS - #game.unit_items(batch.hero) or 0
@@ -272,7 +272,7 @@ local function deliver(id)
         local take = {}
         for i = 1, math.min(room, #batch.rows) do take[i] = batch.rows[i] end
         schedule_pickup(batch.hero, drop_rows(id, take, cx, cy))
-        stop_visit[id] = nil
+        stop_visit[id] = false
       elseif secret_stop_on(batch.owner) and stop_visit[id] == batch.owner then
         if game.order_of(id) ~= ORDER_FOLLOW then game.cmd_follow(id, batch.hero) end
         routed = true
@@ -300,7 +300,7 @@ end
 
 local function tend_couriers()
   for _, id in ipairs(game.units(nil)) do
-    if is_courier(id) and errand[id] == nil and not deliver(id) then
+    if is_courier(id) and not errand[id] and not deliver(id) then
       tend(id)
     end
   end
