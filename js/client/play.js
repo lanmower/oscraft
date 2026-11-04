@@ -464,6 +464,20 @@ function reportReplay(call, name) {
 
 const LOCAL_OWNER_ID = "local-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(36);
 let setupSeat = null;
+const publishFailures = new Set();
+function reportPublishFailure(where, err) {
+  const key = `${where}:${err && err.code ? err.code : err}`;
+  if (publishFailures.has(key)) return;
+  publishFailures.add(key);
+  logModError(`${where} not sent to peers (${err && err.message ? err.message : err}); the frame loop continues`);
+}
+function relayUi(ev) {
+  try {
+    session.broadcast(encodeFrame({ type: FRAME.UI, body: JSON.stringify(ev) }));
+  } catch (err) {
+    reportPublishFailure(`ui ${ev.kind}`, err);
+  }
+}
 function pumpUi() {
   if (!localGame || netState) return;
   if (setupSeat !== myPlayer) {
@@ -473,7 +487,7 @@ function pumpUi() {
   announceWorldReady();
   for (const ev of JSON.parse(localGame.drain_ui())) {
     routeUi(ev);
-    if (peers.size > 0) session.broadcast(encodeFrame({ type: FRAME.UI, body: JSON.stringify(ev) }));
+    if (peers.size > 0) relayUi(ev);
   }
 }
 
@@ -3392,7 +3406,11 @@ async function main() {
       ambientFx.draw();
     }
     if (worldBuilt) frameSim(dtS);
-    publishWitness();
+    try {
+      publishWitness();
+    } catch (err) {
+      reportPublishFailure("witness", err);
+    }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
