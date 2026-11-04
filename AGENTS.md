@@ -111,6 +111,15 @@ No comments in source: durable facts live here, names carry intent.
 - mods/: one chunk per mod; bot_lib cannot require shared/xp.lua.
 - `scripts/gamesparks-bootstrap.mjs` may rewrite the moba manifest's `gamesparks` block when run; manifest `data[]` stays OSDT-only.
 - `rust/crates/web/site/main.js`: unit meshes are swapped for bind-pose plain meshes (`replaceSkinnedMeshes`) because SkinnedMesh vertices follow their bones, not the holder transform; without the swap every unit collapses to the origin.
+- HUD route: render3d.js has no 2D or text path (beginFrame, drawMesh, endFrame over WebGL2 mesh and splat programs), so HUD content is drawn on a 2D canvas over the game canvas, the route hud.js barCanvas, fx.js text and ui_minimap.js already use.
+- The ability bar is the select panel tree (panels.lua select_tree, emitted to bar-left): a cell with unit and slot is an ability; its call is cast with args {slot}, and it has no call when dim.
+- A DOM cell sends send(call, withModifiers(args, ev)) (widgets.js buildNode); play.js sendInput("ui", {call, args}) hands it to controls.lua's ui handler, which runs cast_key(slot).
+- js/client/hud_canvas.js (flag ?hud=canvas) draws those cells on a canvas over the DOM row's bounding box, hides the DOM cells with a body[data-hud] rule, and sends the same call and args from its click; js/client/hud-canvas-check.mjs is the probe.
+- Canvas cells take no focus or Enter (the DOM cell's tabIndex and keydown go with visibility:hidden); the sim's cast keys still cast.
+- The chat text input stays a DOM element: typing needs the caret, selection and IME.
+- Remaining HUD pieces: minimap (ui_minimap.js is a canvas; move its pointer handling off DOM events; commands camera_to, pointer, moba:minimap-drag); portraits (widgets.js portraitGrid; draw icons, send each portrait's call); status, messages and recap text (canvas text layout); scoreboard (panels.lua rows); menus, shop and lobby forms (DOM; need a per-panel hit layer first).
+- DOM HUD commands (ui calls): cast, quickcast, skill_up, select, group_page, buyback, recap_close, toggle, talent, shop_category, quick_buy, buy, pin, build_toggle, shop_deselect, grab_all, stash_item, claim, release, remove, ready, pick, mode, fill, start; direct sends by name: camera_to (centre, minimap), pointer (minimap order), viewport and select and skill_up (moba_input).
+- Local-only HUD controls send nothing: #hero-lock (heroViewLock), #map-toggle (body data-map), minimap drag (window moba:minimap-drag).
 
 ## Scripts, generators, assets
 

@@ -18,6 +18,7 @@ import { cameraDragAction, MIDDLE_BUTTON } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
 import { pingKindOf } from "./moba_input.js";
 import { createWidgets, setImageSrcResolver, setPreviewRig } from "./widgets.js";
+import { createHudCanvas, hudCanvasRequested } from "./hud_canvas.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readProps, readGrid, vertexNormals } from "./terrain.js";
 import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
@@ -167,6 +168,7 @@ let rulesText = "";
 let lastGoodSnapshot = null;
 let hud = null;
 let widgets = null;
+let hudCanvas = null;
 let packStartMounted = false;
 let menuHeld = true;
 const heldWidgets = new Map();
@@ -1672,6 +1674,7 @@ function startFromLoadedPack(hostRoom) {
 
 function applyWidget(data) {
   if (widgets) widgets.apply(data);
+  if (hudCanvas) hudCanvas.apply(data);
   if (data.id === "lobby" && !data.remove && !packStartMounted) { packStartMounted = true; mountPackStart(); }
 }
 
@@ -3226,6 +3229,7 @@ async function main() {
   if (renderer3d && manifest.assets?.voices) voices = createVoices({ url: (rel) => assetUrl("voices", rel) });
   if (renderer3d) fx = createFx({ renderer: renderer3d, game: () => localGame, toScreen: worldToScreen, groundAt, playerColor, selected: () => selectedId, arrow: () => arrowMesh, localPlayer: localPlayerId });
   widgets = createWidgets({ send: (call, args) => sendInput("ui", { call, args }) });
+  if (hudCanvasRequested(location.search)) hudCanvas = createHudCanvas({ send: (call, args) => sendInput("ui", { call, args }) });
   draftClock = createDraftClock({ send: (ticks) => sendInput("ui", { call: "draft_clock", args: { ticks } }), allowed: () => !netState || hosting });
   const packsDir = `${manifest.assets?.root ?? "."}/packs`;
   const packIndex = (() => {
