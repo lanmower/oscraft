@@ -19,6 +19,7 @@ const COL_DAMAGE_TAKEN: usize = 10;
 const COL_HEALING: usize = 11;
 const COL_ITEMS: usize = 12;
 const COL_RATING: usize = 13;
+const FRAME_LIMIT: usize = 65_535;
 const FIXED_POINT_UNIT: i64 = 65536;
 const TICKS_PER_SECOND: i64 = 16;
 const MINUTE_MILLI: i64 = 60_000;
@@ -45,6 +46,8 @@ const KILL_CEILING: i32 = 40;
 const END_TICKS: usize = 400;
 const SETTLE_TICKS: usize = 400;
 const BESIDE_KILLER: f32 = 128.0;
+const FILTER_BUILDING: u32 = 1 << 11;
+const HIT_STEPS: usize = 4000;
 
 struct Unit {
     id: u32,
@@ -412,6 +415,15 @@ fn win_tree(lines: &[Value]) -> &Value {
         .expect("the win widget is shown")
 }
 
+fn win_widget_bytes(lines: &[Value]) -> usize {
+    lines
+        .iter()
+        .rev()
+        .find(|line| line["kind"] == "widget" && line["data"]["id"] == "win" && line["data"]["remove"] != true)
+        .map(|line| line.to_string().len())
+        .expect("the win widget is shown")
+}
+
 fn tree_nodes<'a>(node: &'a Value, out: &mut Vec<&'a Value>) {
     out.push(node);
     for kid in node["kids"].as_array().into_iter().flatten() {
@@ -456,6 +468,10 @@ fn row_named<'a>(rows: &'a [Vec<String>], name: &str) -> &'a [String] {
     rows.iter().find(|row| row[0] == name).expect("win row for the hero")
 }
 
+fn block_count(sparkline: &str) -> usize {
+    sparkline.split("  ").next().unwrap_or_default().chars().count()
+}
+
 #[test]
 fn the_post_game_overview_compares_two_heroes_and_derives_the_bars() {
     let dir = scenario_dir();
@@ -472,6 +488,9 @@ fn the_post_game_overview_compares_two_heroes_and_derives_the_bars() {
     let mut picked = ui(&mut game, "post_pick", json!({ "player": 0 }));
     picked.extend(ui(&mut game, "post_pick", json!({ "player": 5 })));
     let overview = win_tree(&picked).clone();
+    let overview_bytes = win_widget_bytes(&picked);
+    println!("probe win_widget tab=overview bytes={overview_bytes} limit={FRAME_LIMIT}");
+    assert!(overview_bytes <= FRAME_LIMIT, "the overview widget is {overview_bytes} bytes, over the {FRAME_LIMIT}-byte frame limit");
     let mut nodes = Vec::new();
     tree_nodes(&overview, &mut nodes);
     let labels = labels_of(&nodes);
@@ -526,18 +545,21 @@ fn the_post_game_overview_compares_two_heroes_and_derives_the_bars() {
             0
         }
     };
+    let no_pushes = [0, 0];
     let expected_bars = vec![
         percent(left, COL_ASSISTS),
         percent(right, COL_ASSISTS),
+        no_pushes[0],
+        no_pushes[1],
         percent(left, COL_DAMAGE_DEALT),
         percent(right, COL_DAMAGE_DEALT),
         percent(left, COL_LAST_HITS),
         percent(right, COL_LAST_HITS),
     ];
     let bars: Vec<i64> = nodes.iter().filter(|node| node["t"] == "bar").map(|node| node["value"].as_i64().expect("bar value")).collect();
-    assert_eq!(bars, expected_bars, "supporting, fighting and farming are percent of the best hero");
+    assert_eq!(bars, expected_bars, "supporting, pushing, fighting and farming are percent of the best hero");
     let not_tracked = labels.iter().filter(|label| label.as_str() == "not tracked").count();
-    assert_eq!(not_tracked, 12, "pushing has no bar on either side and the five averages are not tracked for both heroes");
+    assert_eq!(not_tracked, 10, "the five averages are not tracked for both heroes");
     assert!(labels.iter().any(|label| label.starts_with("Match length")), "the timeline shows the match length");
     assert!(nodes.iter().any(|node| node["call"] == "post_team_view"), "the comparison offers Back to team view");
 
@@ -562,6 +584,9 @@ fn the_post_game_overview_compares_two_heroes_and_derives_the_bars() {
 
     for tab in ["mvp", "graphs", "scoreboard"] {
         let shown = ui(&mut game, "post_tab", json!({ "tab": tab }));
+        let bytes = win_widget_bytes(&shown);
+        println!("probe win_widget tab={tab} bytes={bytes} limit={FRAME_LIMIT}");
+        assert!(bytes <= FRAME_LIMIT, "the {tab} widget is {bytes} bytes, over the {FRAME_LIMIT}-byte frame limit");
         let mut tab_nodes = Vec::new();
         tree_nodes(win_tree(&shown), &mut tab_nodes);
         let tab_labels = labels_of(&tab_nodes);
@@ -572,10 +597,68 @@ fn the_post_game_overview_compares_two_heroes_and_derives_the_bars() {
                 let top = tab_labels.iter().find(|label| label.starts_with("1 ")).expect("the top rated hero");
                 println!("probe mvp top={top}");
             }
-            "graphs" => assert!(tab_labels.iter().any(|label| label.starts_with("Not tracked: graphs")), "the graphs tab says it is not tracked"),
+            "graphs" => {
+                assert!(tab_labels.iter().any(|label| label.starts_with("One block per match minute")), "the graphs tab explains its blocks");
+                let minutes = ((seconds + 59) / 60).min(60) as usize;
+                for title in ["Gold per minute", "XP per minute", "Kills per minute"] {
+                    let at = tab_labels.iter().position(|label| label == title).expect("graph title");
+                    assert_eq!(tab_labels[at + 1], left_name, "{title}: the left row is player 0's hero");
+                    assert_eq!(tab_labels[at + 3], right_name, "{title}: the right row is player 5's hero");
+                    assert_eq!(block_count(&tab_labels[at + 2]), minutes, "{title}: one block per match minute");
+                    assert_eq!(block_count(&tab_labels[at + 4]), minutes, "{title}: one block per match minute");
+                }
+                let at = tab_labels.iter().position(|label| label == "Kills per minute").expect("kills graph");
+                assert!(tab_labels[at + 2].contains('█'), "the killer's kill is the tallest block");
+                println!("probe graphs minutes={minutes} kills_left=[{}] kills_right=[{}]", tab_labels[at + 2], tab_labels[at + 4]);
+            }
             _ => assert!(tab_labels.iter().any(|label| label == "LH"), "the scoreboard tab shows the win table"),
         }
     }
+}
+
+#[test]
+fn a_hero_that_hits_an_enemy_base_gets_the_pushing_bar() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, heroes) = start_match(&dir, &image);
+    let units = alive_units(&game);
+    let bits = game.unit_filter_bits();
+    let base = units
+        .iter()
+        .enumerate()
+        .find(|(i, unit)| unit.player == VICTIM && bits[*i] & FILTER_BUILDING != 0)
+        .map(|(_, unit)| unit.id)
+        .expect("the enemy base");
+    let attacker = hero_of(&units, &heroes, KILLER);
+    game.attack(attacker, base);
+    for _ in 0..HIT_STEPS {
+        for unit in alive_units(&game) {
+            if (unit.kind.contains("creep") || unit.kind.contains("tower")) && unit.id != attacker {
+                game.remove_unit(unit.id);
+            }
+        }
+        advance(&mut game, 1);
+        if game.counter(attacker, "sim_structure_damage") > 0.0 {
+            break;
+        }
+    }
+    let structure_damage = game.counter(attacker, "sim_structure_damage");
+    assert!(structure_damage > 0.0, "the hero's hits on the enemy base count as structure damage");
+    end_match(&mut game);
+
+    let mut picked = ui(&mut game, "post_pick", json!({ "player": 0 }));
+    picked.extend(ui(&mut game, "post_pick", json!({ "player": 5 })));
+    let bytes = win_widget_bytes(&picked);
+    let mut nodes = Vec::new();
+    tree_nodes(win_tree(&picked), &mut nodes);
+    let bars: Vec<i64> = nodes.iter().filter(|node| node["t"] == "bar").map(|node| node["value"].as_i64().expect("bar value")).collect();
+    let labels = labels_of(&nodes);
+    println!("probe pushing structure_damage={structure_damage} bars={bars:?} bytes={bytes} limit={FRAME_LIMIT}");
+    assert!(bytes <= FRAME_LIMIT, "the overview widget is {bytes} bytes, over the {FRAME_LIMIT}-byte frame limit");
+    assert_eq!(bars[2], 100, "the hero that hit the enemy base has the full pushing bar");
+    assert_eq!(bars[3], 0, "the other hero has no pushing");
+    assert!(labels.iter().any(|label| label.starts_with("Damage dealt to enemy structures")), "the pushing formula names its counter");
+    assert_eq!(labels.iter().filter(|label| label.as_str() == "not tracked").count(), 10, "only the five averages stay not tracked");
 }
 
 fn whole_units(fixed: f64) -> i64 {

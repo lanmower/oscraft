@@ -308,7 +308,7 @@
       "style": { "supporting": "Supporting", "pushing": "Pushing", "fighting": "Fighting", "farming": "Farming" },
       "formula": {
         "supporting": "Assists per minute, % of the best hero this match",
-        "pushing": "Not tracked: the sim keeps no building or lane-push counter",
+        "pushing": "Damage dealt to enemy structures per minute, % of the best hero this match",
         "fighting": "Damage dealt per minute, % of the best hero this match",
         "farming": "Last hits per minute, % of the best hero this match"
       },
@@ -316,7 +316,9 @@
       "averagesNote": "Not tracked: a hero's average needs a history across matches",
       "average": { "gold_per_minute": "Gold per minute", "xp_per_minute": "XP per minute", "kills": "Kills", "deaths": "Deaths", "assists": "Assists" },
       "notTracked": "not tracked",
-      "graphs": "Not tracked: graphs need a per-minute history, which the match does not keep.",
+      "killsPerMinute": "Kills per minute",
+      "graphsNote": "One block per match minute, each row scaled to its highest minute. The history keeps the first 60 minutes.",
+      "noSamples": "No full minute yet.",
       "mvpFormula": "MVP is the highest match rating: weighted counters, each scaled to the best hero this match.",
       "matchLength": "Match length",
       "teamTotals": "Team totals",

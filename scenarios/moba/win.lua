@@ -5,6 +5,9 @@ local match_stats = require("match_stats")
 local had_ancient = {}
 
 return {
+  on_tick = function()
+    match_stats.sample_clock()
+  end,
   on_check_win = function()
     local standing = {}
     for k = 0, get_unit_count() - 1 do

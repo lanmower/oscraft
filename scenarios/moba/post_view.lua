@@ -7,6 +7,12 @@ local STYLES = { "supporting", "pushing", "fighting", "farming" }
 local AVERAGES = { "gold_per_minute", "xp_per_minute", "kills", "deaths", "assists" }
 local PERCENT_MAX = 100
 local MVP_ROWS = 3
+local GRAPH_ROWS = {
+  { key = "gold", title = "goldPerMinute" },
+  { key = "experience", title = "xpPerMinute" },
+  { key = "kills", title = "killsPerMinute" },
+}
+local BLOCKS = { "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█" }
 
 local state = { tab = "overview", view = "comparison", picks = {} }
 
@@ -231,13 +237,56 @@ local function timeline(c)
   return w.box(kids, "row")
 end
 
+local function peak_of(rates)
+  local top = 0
+  for _, value in ipairs(rates) do
+    if value > top then top = value end
+  end
+  return top
+end
+
+local function sparkline(rates, peak)
+  local out = ""
+  for _, value in ipairs(rates) do
+    local level = 1
+    if peak > 0 then level = 1 + math.min(#BLOCKS - 1, math.floor(value * #BLOCKS / peak)) end
+    out = out .. BLOCKS[level]
+  end
+  return out
+end
+
+local function trace(c, rates, peak, tone)
+  if #rates == 0 then return c.w.label(c.texts.noSamples, "muted") end
+  return c.w.label(sparkline(rates, peak) .. "  " .. tostring(peak_of(rates)), tone)
+end
+
+local function graphs(c)
+  local w = c.w
+  local texts = c.texts
+  local left_side, right_side = c.sides[1], c.sides[2]
+  local a = right_side ~= nil and compared(c, left_side) or nil
+  local b = a ~= nil and compared(c, right_side) or nil
+  if a == nil or b == nil then return w.label(texts.noPick, "muted") end
+  local ta, tb = "team" .. tostring(left_side), "team" .. tostring(right_side)
+  local kids = { w.label(texts.graphsNote, "muted") }
+  for _, row in ipairs(GRAPH_ROWS) do
+    local left = match_stats.minute_rates(a.player, row.key)
+    local right = match_stats.minute_rates(b.player, row.key)
+    local peak = math.max(peak_of(left), peak_of(right))
+    kids[#kids + 1] = w.label(texts[row.title], "accent")
+    kids[#kids + 1] = w.box({ w.label(a.name, ta), trace(c, left, peak, ta) }, "row")
+    kids[#kids + 1] = w.box({ w.label(b.name, tb), trace(c, right, peak, tb) }, "row")
+  end
+  return w.box(kids, "col")
+end
+
 function post_view.kids(c)
   local w = c.w
   local body
   if state.tab == "scoreboard" then
     body = c.scoreboard()
   elseif state.tab == "graphs" then
-    body = w.label(c.texts.graphs, "muted")
+    body = graphs(c)
   elseif state.tab == "mvp" then
     body = mvp(c)
   else
