@@ -200,10 +200,11 @@ minimapView.draw([]);
 const routeDash = minimap.calls.some((c) => c[0] === "setLineDash" && c[1] !== undefined && c[1].length === 2);
 const routeLine = minimap.calls.find((c) => c[0] === "moveTo");
 const routeEnd = minimap.calls.find((c) => c[0] === "lineTo");
-const label = minimap.calls.find((c) => c[0] === "fillText");
+const glyphFilled = minimap.calls.some((c) => c[0] === "fill");
+const textDrawn = minimap.calls.some((c) => c[0] === "fillText");
 if (!routeDash || !routeLine || !routeEnd || Math.abs(routeLine[1] - 1000 * 192 / 6400) > 0.01 || Math.abs(routeEnd[1] - 3200 * 192 / 6400) > 0.01) fail(`route ping did not draw a route: ${JSON.stringify(minimap.calls.slice(0, 12))}`);
-if (!label || label[1] !== "cheese: ready") fail(`item ping did not draw its text: ${JSON.stringify(label)}`);
-const drawLog = `minimap route from=${routeLine[1].toFixed(1)},${routeLine[2].toFixed(1)} to=${routeEnd[1].toFixed(1)},${routeEnd[2].toFixed(1)} label=${JSON.stringify(label[1])}`;
+if (!glyphFilled || textDrawn) fail(`ping must draw a glyph and no words: glyph=${glyphFilled} text=${textDrawn}`);
+const drawLog = `minimap route from=${routeLine[1].toFixed(1)},${routeLine[2].toFixed(1)} to=${routeEnd[1].toFixed(1)},${routeEnd[2].toFixed(1)} glyph=${glyphFilled} text=${textDrawn}`;
 
 reset();
 press(world, 0, 300, 300);

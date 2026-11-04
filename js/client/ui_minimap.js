@@ -1,5 +1,6 @@
 import { teamOf } from "./moba_select.js";
 import { pingKindOf } from "./moba_input.js";
+import { pingGlyph } from "./ping_glyphs.js";
 
 const SIZE = { hero: 8, own: 5, creep: 3, building: 7 };
 const NEUTRAL_PLAYER = 255;
@@ -17,7 +18,6 @@ const REDRAW_MS = 1000 / 30;
 const DRAG_SLOP_PX = 4;
 const PING_RING_PX = 16;
 const PING_RING_MS = 700;
-const PING_LABEL_FONT = "9px sans-serif";
 const ROUTE_DASH = [3, 3];
 const SOLID = [];
 const HERO_BIT = 1;
@@ -63,12 +63,26 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
       x: d.x,
       z: d.z,
       from,
-      text: typeof d.text === "string" ? d.text : "",
+      kind: typeof d.kind === "string" ? d.kind : "ping",
       until: performance.now() + (d.seconds > 0 ? d.seconds : 3) * 1000,
       colour: typeof d.colour === "string" ? d.colour : "#ffffff",
     });
   };
   window.addEventListener("moba:ping", onPing);
+
+  function paintPingGlyph(glyph, x, y) {
+    ctx.beginPath();
+    if (glyph.points) {
+      glyph.points.forEach(([gx, gy], i) => {
+        if (i === 0) ctx.moveTo(x + gx - 8, y + gy - 8);
+        else ctx.lineTo(x + gx - 8, y + gy - 8);
+      });
+      ctx.closePath();
+    } else {
+      ctx.arc(x, y, glyph.circle, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
 
   function paintPings(now, sx, sy) {
     for (let i = pings.length - 1; i >= 0; i--) {
@@ -92,10 +106,7 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
       ctx.beginPath();
       ctx.arc(x, y, 2 + phase * PING_RING_PX, 0, Math.PI * 2);
       ctx.stroke();
-      if (p.text) {
-        ctx.font = PING_LABEL_FONT;
-        ctx.fillText(p.text, x + 5, y - 5);
-      }
+      paintPingGlyph(pingGlyph(p.kind), x, y);
     }
   }
 
@@ -281,22 +292,8 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
     press = { x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
   };
-  const KEY_STEP_FRACTION = 0.05;
-  const KEY_DELTA = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-  const onKeyDown = (e) => {
-    const delta = KEY_DELTA[e.key];
-    const view = viewRect();
-    if (!delta || !view) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const cx = (view.x0 + view.x1) / 2 + delta[0] * KEY_STEP_FRACTION * mapSize.w;
-    const cz = (view.z0 + view.z1) / 2 + delta[1] * KEY_STEP_FRACTION * mapSize.h;
-    centre(Math.min(mapSize.w, Math.max(0, cx)), Math.min(mapSize.h, Math.max(0, cz)));
-  };
   const onContextMenu = (e) => e.preventDefault();
   canvas.style.touchAction = "none";
-  if (!canvas.hasAttribute("tabindex")) canvas.tabIndex = 0;
-  canvas.addEventListener("keydown", onKeyDown);
   canvas.addEventListener("contextmenu", onContextMenu);
   const onPointerMove = (e) => {
     if (!press) return;
@@ -323,7 +320,6 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
   LIVE_CANVAS_DISPOSERS.set(canvas, () => {
     canvas.removeEventListener("pointerdown", onPointerDown);
     canvas.removeEventListener("pointermove", onPointerMove);
-    canvas.removeEventListener("keydown", onKeyDown);
     canvas.removeEventListener("contextmenu", onContextMenu);
     window.removeEventListener("pointerup", onPointerEnd);
     window.removeEventListener("pointercancel", onPointerCancel);

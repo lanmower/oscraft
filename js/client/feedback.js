@@ -1,4 +1,6 @@
 
+import { pingGlyph, pingGlyphSvg } from "./ping_glyphs.js";
+
 const MARKER_POOL = 12;
 const RING_POOL = 4;
 const MARKER_MS = 500;
@@ -35,9 +37,9 @@ function ringCss(px, colour) {
 
 function pingMarker() {
   const item = overlay("ping", ringCss(PING_PX, COLOUR.reticle) + "background:transparent;");
-  item.label = document.createElement("span");
-  item.label.style.cssText = "position:absolute;left:50%;top:100%;transform:translateX(-50%);white-space:nowrap;font:600 11px sans-serif;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.6);display:none;";
-  item.node.appendChild(item.label);
+  item.glyph = document.createElement("span");
+  item.glyph.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;line-height:0;";
+  item.node.appendChild(item.glyph);
   item.ms = 0;
   return item;
 }
@@ -127,10 +129,14 @@ export function createFeedback({ toScreen, toWorld, units, heroOf }) {
     p.wz = d.z;
     p.ms = (d.seconds > 0 ? d.seconds : 3) * 1000;
     const colour = typeof d.colour === "string" ? d.colour : COLOUR.reticle;
+    const glyph = pingGlyph(d.kind);
+    const words = typeof d.text === "string" && d.text ? d.text : glyph.name;
     p.node.style.borderColor = colour;
-    p.label.textContent = typeof d.text === "string" ? d.text : "";
-    p.label.style.color = colour;
-    p.label.style.display = p.label.textContent ? "block" : "none";
+    p.node.title = words;
+    p.node.setAttribute("role", "img");
+    p.node.setAttribute("aria-label", words);
+    p.glyph.innerHTML = pingGlyphSvg(d.kind);
+    p.glyph.style.color = colour;
   }
 
   function drawPings(t) {
