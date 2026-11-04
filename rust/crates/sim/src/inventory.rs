@@ -6,6 +6,13 @@ use crate::spell::{
     S_CLEAVE_RADIUS, S_CLEAVE_W0, S_CLEAVE_W1, S_BASH_CHANCE, S_BASH_TICKS, S_SPEED_PCT,
 };
 use crate::rules::{catalog_index, Refusal};
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static ITEM_GENERATION_TOTAL: AtomicU32 = AtomicU32::new(0);
+
+pub(crate) fn bump_item_generation_total() {
+    ITEM_GENERATION_TOTAL.fetch_add(1, Ordering::Relaxed);
+}
 
 pub(crate) const MAIN_SLOTS: usize = 6;
 pub(crate) const BACKPACK_SLOTS: usize = 3;
@@ -276,10 +283,15 @@ impl Sim {
         self.item_gen.get(unit).copied().unwrap_or(0)
     }
 
+    pub fn item_generation_total(&self) -> u32 {
+        ITEM_GENERATION_TOTAL.load(Ordering::Relaxed)
+    }
+
     pub(crate) fn bump_item_gen(&mut self, unit: usize) {
         if let Some(g) = self.item_gen.get_mut(unit) {
             *g = g.wrapping_add(1);
         }
+        bump_item_generation_total();
     }
 
     pub(crate) fn inventory_clear(&mut self, unit: usize) {

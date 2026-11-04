@@ -3473,6 +3473,11 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, i64::from(sh.sim.item_generation(u)));
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, game, "item_gen_total", [sh], |c, s| {
+        let sh = sh.borrow();
+        s.replace(c, i64::from(sh.sim.item_generation_total()));
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "skill_info", [sh], |c, s| {
         let (i, slot) = (a(c, &s, 0)?, a(c, &s, 1)?);
         let sh = sh.borrow();

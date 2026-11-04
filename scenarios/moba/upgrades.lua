@@ -15,6 +15,8 @@ local CARRY_BITS = { SCEPTER_BIT }
 
 local carried_bits_of_unit = {}
 local item_generation_scanned_of_unit = {}
+local walk_due = true
+local item_gen_total_seen = nil
 
 local function unit_key(unit)
   return "u" .. unit
@@ -32,7 +34,11 @@ end
 return {
   on_state_replaced = function()
     carried_bits_of_unit, item_generation_scanned_of_unit = {}, {}
+    walk_due = true
   end,
+
+  on_spawned = function() walk_due = true end,
+  on_died = function() walk_due = true end,
 
   on_cast = function(caster, ability)
     local bit = BIT_SET_ON_USE_OF_ITEM[ability]
@@ -40,6 +46,10 @@ return {
   end,
 
   on_tick = function(state)
+    local total = game.item_gen_total()
+    if not walk_due and total == item_gen_total_seen then return end
+    walk_due = false
+    item_gen_total_seen = total
     local live = {}
     for _, unit in ipairs(game.units()) do
       local key = unit_key(unit)
