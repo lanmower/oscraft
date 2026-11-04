@@ -101,6 +101,13 @@ impl Sim {
         self.order_queue.len.get(i).map_or(0, |&n| usize::from(n))
     }
 
+    pub fn queued_orders(&self, i: usize) -> Vec<(u8, i32, i32, i32)> {
+        let base = i * QUEUE_MAX;
+        (base..base + self.queue_len(i))
+            .map(|s| (self.order_queue.kind[s], self.order_queue.x[s], self.order_queue.y[s], self.order_queue.target[s]))
+            .collect()
+    }
+
     pub(crate) fn advance_order_queue(&mut self) {
         for i in 0..self.n {
             if self.order_queue.len[i] == 0 {
