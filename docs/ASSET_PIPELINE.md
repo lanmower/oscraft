@@ -22,9 +22,10 @@ KTX-Software is not stored in this repository. Download the release archive that
 (macOS, Windows, Linux; x64 or arm64). Unpack it anywhere, then either put its `bin` folder on `PATH` or pass
 the full path with `--toktx`. On Windows the script looks for `toktx.exe` on `PATH`.
 
-`scripts/assets/build-packs.mjs` builds the icon atlases the page reads (heroes, items, skills: 64 px cells, WebP q80 and
-KTX2 each, content-hashed). It uses the same `toktx` (`--toktx` or `TOKTX`) and Pillow (`--python` or `PYTHON`, the
-interpreter that runs `scripts/assets/atlas.py`). `pages.yml` and `ci.yml` install both at the pinned versions before
+`scripts/assets/build-packs.mjs` writes one content-hashed character pack per hero (`character/<key>.<hash>.bin`: its
+voices, its skill rows, its hero icon and its skill icons as 64 px WebP cells) and one item atlas (`items.<hash>.webp`
+and `.ktx2`, 64 px cells, WebP q80). It uses the same `toktx` (`--toktx` or `TOKTX`) and Pillow (`--python` or
+`PYTHON`, the interpreter that runs `scripts/assets/atlas.py`). `pages.yml` and `ci.yml` install both at the pinned versions before
 they lay out the site.
 
 Install the script's npm dependencies once:
