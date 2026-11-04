@@ -103,6 +103,7 @@ No comments in source: durable facts live here, names carry intent.
 
 ## Client JS
 
+- Language is the last channel: a state has an icon, colour or shape, and its words sit in the title or aria label (ping kinds: `js/client/ping_glyphs.js`; the minimap draws the glyph, not the text).
 - The sim never reads display data (terrain heights, weight maps). Load gate (load_gate.js) never opens on a timeout. Older wasm lacks some exports (page degrades, never guesses). props.json alone names prop models.
 - `recoverGame`: all tick-path Game calls stay inside the try or the rAF chain dies.
 - `js/client/play.js`: the splat KTX2 path relies on `decoders.loadBasis()` warmed at module init.
