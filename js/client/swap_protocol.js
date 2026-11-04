@@ -17,12 +17,30 @@ export function swapImageState(swap) {
 
 export function swapGate(ticks, pending, peers) {
   if (ticks < pending.tick - SWAP_GATE_TICKS) return "wait";
-  const held = swapImageState(pending);
-  if (held === "failed") return "cancel";
-  if (held === "in-flight" && pending.image === null) return pending.deferrals < SWAP_MAX_DEFERS ? "defer" : "cancel";
-  for (const key of peers) if (!pending.readyPeers.has(key)) return pending.deferrals < SWAP_MAX_DEFERS ? "defer" : "cancel";
-  if (held === "in-flight" && pending.ready) return pending.deferrals < SWAP_MAX_DEFERS ? "defer" : "cancel";
-  return "commit";
+  const state = swapImageState(pending);
+  if (state === "failed") return "cancel";
+  const unready = state === "in-flight" || [...peers].some((key) => !pending.readyPeers.has(key));
+  if (!unready) return "commit";
+  return pending.deferrals < SWAP_MAX_DEFERS ? "defer" : "cancel";
+}
+
+export function hostSwapStep(pending, ticks, peers) {
+  const action = swapGate(ticks, pending, peers);
+  if (action === "wait") return { action, pending };
+  if (action === "commit") return { action, pending: { ...pending, decided: true } };
+  if (action === "defer") {
+    return {
+      action,
+      pending: { ...pending, tick: pending.tick + SWAP_DEFER_TICKS, deferrals: pending.deferrals + 1, error: null, readyPeers: new Set(), decided: false },
+    };
+  }
+  return { action, pending: null };
+}
+
+export function swapAdmitPeer(pending, key) {
+  const readyPeers = new Set(pending.readyPeers);
+  readyPeers.delete(key);
+  return { ...pending, readyPeers, decided: false };
 }
 
 export function packSwapKind(file, image = null) {

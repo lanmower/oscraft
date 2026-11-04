@@ -26,7 +26,7 @@ import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { loadBasis, loadMeshopt } from "./decoders.js";
 
 const decodersReady = Promise.all([loadBasis(), loadMeshopt()]);
-import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, packSwapKind, swapGate, swapIsNew } from "./swap_protocol.js";
+import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, hostSwapStep, packSwapKind, swapAdmitPeer, swapGate, swapIsNew } from "./swap_protocol.js";
 import { createFogView } from "./fogview.js";
 import { packCameraRules } from "./camera_rules.js";
 import { installGameFocusGuard } from "./game_focus.js";
@@ -2414,6 +2414,7 @@ session.addEventListener("peer-open", (e) => {
     sendLobbySnapshot();
     if (gate.loading && loadStartFrame) sendTo(key, encodeFrame(loadStartFrame));
     for (const frame of packStateFrames(pack, packBlobs)) sendTo(key, encodeFrame(frame));
+    admitPeerToPendingSwap(key);
   } else {
     sendJoin(e.detail.peerPubkey);
   }
@@ -2485,6 +2486,12 @@ session.addEventListener("data", (e) => {
     const refusal = swapRefusal(e.detail.peerPubkey, frame.file);
     if (refusal) { refuseSwap(refusal, e.detail.peerPubkey, frame.file); return; }
     if (!swapIsNew(lastApplied ? lastApplied.tick : null, frame.tick)) { refuseSwap(`tick ${frame.tick} is not after the applied tick ${lastApplied.tick}`, e.detail.peerPubkey, frame.file); return; }
+    if (pendingSwap && pendingSwap.file === frame.file && pendingSwap.hash === frame.hash && pendingSwap.tick === frame.tick) {
+      if (pendingSwap.image) {
+        try { sendTo(hostKey, encodeFrame({ type: FRAME.SWAP_READY, tick: frame.tick, hash: frame.hash })); } catch (err) { console.warn(`[swap] ${frame.file}: ready report not sent: ${err.message}`); }
+      }
+      return;
+    }
     const kind = packKindOf(frame.file);
     const swap = { tick: frame.tick, hash: frame.hash, file: frame.file, kind, url: new URL(`./${frame.file}`, import.meta.url).href, value: null, image: null, error: null, ready: null, deferrals: 0 };
     const reannounce = pendingSwap !== null && pendingSwap.file === frame.file && pendingSwap.hash === frame.hash && frame.tick > pendingSwap.tick;
@@ -3062,22 +3069,35 @@ function noteSwapReady(report, sender) {
 
 function hostSwapGate() {
   const p = pendingSwap;
-  if (!hosting || !p || p.decided || !localGame) return;
-  const action = swapGate(localGame.ticks(), p, peers);
-  if (action === "wait") return;
-  if (action === "commit") { p.decided = true; return; }
-  if (action === "defer") {
-    const tick = p.tick + SWAP_DEFER_TICKS;
-    pendingSwap = { ...p, tick, deferrals: p.deferrals + 1, error: null, readyPeers: new Set(), decided: false };
+  if (!hosting || !p || !localGame) return;
+  const step = hostSwapStep(p, localGame.ticks(), peers);
+  if (step.action === "wait") return;
+  if (step.action === "commit") {
+    pendingSwap = step.pending;
+    if (!p.decided) console.log(`[swap] ${p.file}: committed for tick ${p.tick}, every peer (${peers.size}) has the image`);
+    return;
+  }
+  if (step.action === "defer") {
+    pendingSwap = step.pending;
+    const tick = pendingSwap.tick;
     session.broadcast(encodeFrame({ type: FRAME.SWAP, tick, hash: p.hash, file: p.file }));
     lastSwapResult = { tick: localGame.ticks(), file: p.file, ok: false, carried: null, refused: null, error: "a peer was not ready at the gate; re-announced", readiness: "in-flight", deferred: true, deferrals: pendingSwap.deferrals };
-    console.log(`[swap] ${p.file}: re-announced from tick ${p.tick} to ${tick} (a peer not ready by tick ${p.tick - SWAP_GATE_TICKS})`);
+    console.log(`[swap] ${p.file}: re-announced from tick ${p.tick} to ${tick} (a peer was not ready)`);
     return;
   }
   pendingSwap = null;
   session.broadcast(encodeFrame({ type: FRAME.SWAP_CANCEL, tick: p.tick, hash: p.hash }));
   lastSwapResult = { tick: localGame.ticks(), file: p.file, ok: false, carried: null, refused: null, error: `a peer was still not ready after ${p.deferrals} re-announces`, readiness: "failed", deferred: true, deferrals: p.deferrals };
   console.warn(`[swap] ${p.file}: cancelled at tick ${p.tick}, a peer was never ready (${p.deferrals} re-announces)`);
+}
+
+function admitPeerToPendingSwap(key) {
+  const p = pendingSwap;
+  if (!hosting || !p || !localGame) return;
+  pendingSwap = swapAdmitPeer(p, key);
+  const short = String(key).slice(0, 8);
+  try { sendTo(key, encodeFrame({ type: FRAME.SWAP, tick: p.tick, hash: p.hash, file: p.file })); } catch (err) { console.warn(`[swap] ${p.file}: swap frame to ${short} not sent: ${err.message}`); }
+  console.log(`[swap] ${p.file}: peer ${short} joined before tick ${p.tick}; the swap waits for its image`);
 }
 
 function failSwapNotReady(report, sender) {
