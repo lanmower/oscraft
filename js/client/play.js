@@ -14,7 +14,8 @@ import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
 import { centredOnHero, createHeroViewLock, findHeroOf, followTarget, heroDirection } from "./hero_view_lock.js";
-import { createHeroRun, stepHeroRun } from "./hero_run.js";
+import { createHeroRun, enemiesInSight, stepHeroRun } from "./hero_run.js";
+import { teamOf } from "./moba_select.js";
 import { cameraDragAction, MIDDLE_BUTTON } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
 import { pingKindOf } from "./moba_input.js";
@@ -1245,9 +1246,12 @@ function localHeroUnit(units = currentUnits()) {
   return findHeroOf(units, flags, myPlayer);
 }
 
-function visibleEnemyIds(units) {
-  if (!localGame || typeof localGame.hostile !== "function") return [];
-  return units.filter((u) => localGame.hostile(myPlayer, u.player)).map((u) => u.id);
+function isHostile(player) {
+  if (localGame && typeof localGame.hostile === "function") return localGame.hostile(myPlayer, player);
+  if (player === 255) return true;
+  if (player === myPlayer) return false;
+  const myTeam = teamOf(UI.teams, myPlayer);
+  return !(myTeam >= 0 && teamOf(UI.teams, player) === myTeam);
 }
 
 function driveLockedHero(dtS) {
@@ -1259,7 +1263,7 @@ function driveLockedHero(dtS) {
     direction: heroDirection(keysDown, renderer3d.camera.yaw),
     held: keysDown.size > 0,
     dtS,
-    enemyIds: visibleEnemyIds(units),
+    enemyIds: enemiesInSight(hero, units, isHostile),
     bounds: { w: W, h: H },
   });
   heroRun = step.state;

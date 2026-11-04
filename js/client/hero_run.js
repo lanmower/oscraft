@@ -2,10 +2,16 @@ import { heroOrderPoint } from "./hero_view_lock.js";
 
 export const RUN_CELLS = 64;
 export const TAP_MAX_S = 0.2;
+export const HERO_SIGHT_CELLS = 28.125;
 const ARRIVE_CELLS = 1;
 
 export function createHeroRun() {
   return { pressing: false, pressedS: 0, heading: null, target: null, ordered: false, seenEnemies: null, run: null };
+}
+
+export function enemiesInSight(hero, units, isHostile) {
+  if (!hero) return [];
+  return units.filter((u) => isHostile(u.player) && distance(hero, u) <= HERO_SIGHT_CELLS).map((u) => u.id);
 }
 
 export function stepHeroRun(state, input) {

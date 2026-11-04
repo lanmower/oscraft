@@ -1,4 +1,4 @@
-import { createHeroRun, RUN_CELLS, stepHeroRun, TAP_MAX_S } from "./hero_run.js";
+import { createHeroRun, enemiesInSight, RUN_CELLS, stepHeroRun, TAP_MAX_S } from "./hero_run.js";
 
 const fail = (what) => { throw new Error(what); };
 const expectCommands = (result, want, what) => {
@@ -153,5 +153,22 @@ if (r.state.run !== null) fail("arrival did not end the run");
 r = frame(tapped, { held: true, direction: EAST, enemyIds: [ENEMY] });
 expectCommands(r, orderTo(100 + RUN_CELLS, 100), "a new press during a tap run did not issue its order alone");
 if (r.state.run !== null) fail("a new press did not end the tap run");
+
+const isEnemy = (player) => player === 1;
+const enemyAt = (id, cells) => ({ id, player: 1, x: hero.x + cells, z: hero.z });
+state = createHeroRun();
+r = frame(state, { held: true, direction: NORTH, dtS: 0.05 });
+r = frame(r.state, { held: false, dtS: 0.05 });
+const sightRun = r.state;
+if (sightRun.run === null) fail("sight case did not start a tap run");
+const at27 = enemiesInSight(hero, [enemyAt(11, 27)], isEnemy);
+if (JSON.stringify(at27) !== "[11]") fail(`a hostile at 27 cells was not in sight: ${JSON.stringify(at27)}`);
+r = frame(sightRun, { held: false, enemyIds: at27 });
+expectCommands(r, HOLD, "a hostile entering 27 cells did not stop the tap run");
+const at30 = enemiesInSight(hero, [enemyAt(12, 30)], isEnemy);
+if (at30.length !== 0) fail(`a hostile at 30 cells was in sight: ${JSON.stringify(at30)}`);
+r = frame(sightRun, { held: false, enemyIds: at30 });
+expectCommands(r, NONE, "a hostile entering 30 cells stopped the tap run");
+if (r.state.run === null) fail("a hostile entering 30 cells ended the tap run");
 
 console.log("hero run ok");
