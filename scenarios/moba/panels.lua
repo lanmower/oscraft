@@ -58,7 +58,7 @@ local LAST = {}
 local function new_lobby()
   local slots = {}
   for i = 1, SLOT_COUNT do slots[i] = { owner = nil, hero = nil, ready = false, bot = false } end
-  return { host = nil, started = false, worldReady = false, slots = slots, error = "" }
+  return { host = nil, pinned = false, filled = false, started = false, worldReady = false, slots = slots, error = "" }
 end
 local LOBBY = new_lobby()
 
@@ -1337,6 +1337,7 @@ end
 
 local function negotiated()
   if #modes.codes() == 0 then return false end
+  if LOBBY.filled then return true end
   for _, s in ipairs(LOBBY.slots) do
     if s.owner == nil then return false end
   end
@@ -1423,6 +1424,7 @@ local function lobby_act(call, a)
   end
   if call == "fill" then
     if L.host ~= owner then L.error = "not-host" return end
+    L.filled = true
     if not any_open() then L.error = "nothing-to-fill" return end
     if #ROSTER == 0 then L.error = "no-roster" return end
     for i = 1, SLOT_COUNT do
@@ -1461,7 +1463,7 @@ local function lobby_act(call, a)
   if i < 1 or i > SLOT_COUNT then L.error = "bad-slot" return end
   local s = L.slots[i]
   if call == "claim" then
-    if L.host ~= nil and not negotiated() then L.error = "negotiate-first" return end
+    if L.host ~= nil and L.host ~= owner and not negotiated() then L.error = "negotiate-first" return end
     if s.owner ~= nil and not s.bot then L.error = "slot-taken" return end
     if seated(owner) then L.error = "already-seated" return end
     s.owner = owner
@@ -1471,7 +1473,7 @@ local function lobby_act(call, a)
   elseif call == "release" then
     if s.owner ~= owner then L.error = "not-owner" return end
     s.owner, s.hero, s.ready, s.bot = nil, nil, false, false
-    if L.host == owner then
+    if L.host == owner and not L.pinned then
       L.host = nil
       for _, other in ipairs(L.slots) do
         if other.owner ~= nil and not other.bot then
@@ -1485,7 +1487,7 @@ local function lobby_act(call, a)
     if s.owner == nil then L.error = "slot-empty" return end
     local removed = s.owner
     s.owner, s.hero, s.ready, s.bot = nil, nil, false, false
-    if L.host == removed then
+    if L.host == removed and not L.pinned then
       L.host = nil
       for _, other in ipairs(L.slots) do
         if other.owner ~= nil and not other.bot then
@@ -2158,6 +2160,19 @@ local function panels_on_action(name, args)
           pcall(refresh_lobby)
         end
       end
+    end
+  elseif name == "lobby_host" then
+    if not LOBBY.started and args.pubkey ~= nil then
+      LOBBY.host = args.pubkey
+      LOBBY.pinned = true
+      lobby_seats_event()
+      pcall(refresh_lobby)
+    end
+  elseif name == "lobby_sync" then
+    if not LOBBY.started then
+      LAST.lobby = false
+      lobby_seats_event()
+      pcall(refresh_lobby)
     end
   elseif name == "selection" then
     if args.player == nil or args.player == LOCAL then

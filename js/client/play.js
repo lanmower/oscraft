@@ -199,6 +199,8 @@ let pendingSwap = null;
 let lastApplied = null;
 let peerFetch = null;
 let hostKey = null;
+let heldLobbyCalls = [];
+let lobbyLinkSettled = false;
 const swapRejections = [];
 let rosterView = null;
 let spawnedSeats = [];
@@ -287,7 +289,36 @@ function sendInput(name, args) {
     if (session) session.broadcast(encodeFrame({ type: FRAME.ACTION, name, body: JSON.stringify(args) }));
     return;
   }
+  if (holdsForHost(name, args)) {
+    heldLobbyCalls.push({ name, args });
+    return;
+  }
+  applyLocalInput(name, args);
+}
+
+function holdsForHost(name, args) {
+  return !hosting && !lobbyLinkSettled && name === "ui" && args.call !== "world_ready" && gate.phase === PHASE.LOBBY;
+}
+
+function applyLocalInput(name, args) {
   if (localGame) logModError(localGame.dispatch_action(name, JSON.stringify(args)));
+}
+
+function flushHeldLobbyCalls() {
+  if (hostKey === null || !peers.has(hostKey)) return;
+  for (const call of heldLobbyCalls.splice(0)) sendTo(hostKey, encodeFrame({ type: FRAME.ACTION, name: call.name, body: JSON.stringify(call.args) }));
+}
+
+function settleLobbyLink() {
+  lobbyLinkSettled = true;
+  if (peers.size > 0) return;
+  for (const call of heldLobbyCalls.splice(0)) applyLocalInput(call.name, call.args);
+}
+
+function sendLobbySnapshot() {
+  if (!localGame || gate.phase !== PHASE.LOBBY) return;
+  logModError(localGame.dispatch_action("lobby_sync", "{}"));
+  pumpUi();
 }
 
 function reportSeat(name, key, player) {
@@ -2132,6 +2163,8 @@ function startHost() {
   announceWorldReady();
   encoder = createStateEncoder();
   const restoredAt = restoreSnapshot();
+  restoreLobbyRematch();
+  applyLocalInput("lobby_host", { pubkey: auth.pubkey || LOCAL_OWNER_ID });
   lastGoodSnapshot = captureSnapshot(localGame);
   if (restoredAt > 0) goLive("restored room");
   let hostTick = restoredAt > 0 ? restoredAt : 0;
@@ -2200,12 +2233,15 @@ document.addEventListener("visibilitychange", retryReconnectNow);
 async function joinRoom() {
   reconnectNote = "";
   renderStatus();
+  lobbyLinkSettled = false;
   try {
     await session.connect(room);
     setStatus("joined");
     if (reconnectAttempt > 0 && peers.size === 0) scheduleReconnect();
+    setTimeout(settleLobbyLink, HOST_LINK_WAIT_MS);
   } catch (err) {
     setStatus(`join failed: ${err && err.message ? err.message : err}`);
+    settleLobbyLink();
     scheduleReconnect();
   }
 }
@@ -2382,6 +2418,7 @@ session.addEventListener("peer-open", (e) => {
     reportSeat("peer_back", key, seating.seat(key).you);
     encoder.keyframe();
     sendRoster(key);
+    sendLobbySnapshot();
     if (gate.loading && loadStartFrame) sendTo(key, encodeFrame(loadStartFrame));
     for (const frame of packStateFrames(pack, packBlobs)) sendTo(key, encodeFrame(frame));
   } else {
@@ -2412,6 +2449,7 @@ let netTick = -1;
 const JOIN_RETRIES = 4;
 const JOIN_RETRY_MS = 250;
 const KEYFRAME_ASK_MS = 1000;
+const HOST_LINK_WAIT_MS = 8000;
 let keyframeAskedAt = 0;
 let awaitingKeyframe = false;
 session.addEventListener("data", (e) => {
@@ -2499,6 +2537,7 @@ session.addEventListener("data", (e) => {
   if (frame.type === FRAME.ROSTER) {
     if (hosting) return;
     hostKey = e.detail.peerPubkey;
+    flushHeldLobbyCalls();
     rosterView = frame;
     spectating = frame.you === SPECTATOR;
     if (frame.you !== SPECTATOR) myPlayer = frame.you;
@@ -3240,7 +3279,6 @@ async function main() {
   if (!gl) throw new Error("WebGL2 is required: this browser gave no WebGL2 context for the game canvas");
   bootAt("game");
   localGame = await loadSim();
-  restoreLobbyRematch();
   bootAt("world");
   if (worldSpin) worldSpin.hidden = false;
   renderer3d = createRenderer3d(gl);
