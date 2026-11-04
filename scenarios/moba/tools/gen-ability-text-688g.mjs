@@ -64,6 +64,10 @@ function plain(raw) {
 const rows = fs.readFileSync(path.join(moba, "abilities_688g_reference.tsv"), "utf8").trim().split("\n");
 const header = rows.shift().split("\t");
 const [nameCol, codeCol, rangeCol] = ["oscraft_ability", "code", "range"].map((col) => header.indexOf(col));
+const overrides = fs.readFileSync(path.join(moba, "ability_text_688g_overrides.tsv"), "utf8").trim().split("\n").slice(1).map((line) => {
+  const [ability, , name, range = "", ...tips] = line.split("\t");
+  return { ability, name, range, tips: tips.filter(Boolean) };
+});
 
 const osdNames = new Set();
 for (const file of fs.readdirSync(moba)) {
@@ -94,16 +98,21 @@ function descriptionFields(tips) {
   return [`tips = ${list(tips.map(long))}`];
 }
 
+const records = rows.map((row) => {
+  const cells = row.split("\t");
+  return { name: cells[nameCol], section: sections.get(cells[codeCol]), range: cells[rangeCol] ?? "" };
+});
+const referenced = new Set(records.map((record) => record.name));
+for (const override of overrides) {
+  if (!referenced.has(override.ability)) records.push({ name: override.ability, section: { name: override.name, ubertip: override.tips }, range: override.range });
+}
+
 const entries = [];
 const unmatched = [];
-for (const row of rows.sort((a, b) => a.split("\t")[nameCol].localeCompare(b.split("\t")[nameCol]))) {
-  const cells = row.split("\t");
-  const name = cells[nameCol];
-  const section = sections.get(cells[codeCol]);
+for (const { name, section, range } of records.sort((a, b) => a.name.localeCompare(b.name))) {
   const fields = [];
   if (!osdNames.has(name)) unmatched.push(name);
   if (section && section.name) fields.push(`name = "${plain(section.name)}"`);
-  const range = cells[rangeCol] ?? "";
   if (/^\d+(\|\d+)*$/.test(range)) fields.push(`range = {${range.split("|").join(", ")}}`);
   if (section && section.ubertip.length > 0) fields.push(...descriptionFields(section.ubertip.map(plain)));
   if (fields.length > 0) entries.push(`  ["${name}"] = { ${fields.join(", ")} },`);
