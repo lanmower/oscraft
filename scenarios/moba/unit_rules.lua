@@ -3,6 +3,7 @@ local runes = require("runes")
 local turn_rates = require("turn_rates")
 local item_forms = require("item_forms")
 local speed_lock = require("speed_lock")
+local modes = require("modes")
 
 local ONE = 65536
 local MAX = 2147483647
@@ -45,10 +46,15 @@ local function magic_keep(u)
   return tdiv((100 - base) * (100 - bonus), 100)
 end
 
+local TOWER_KINDS = { tower = true, tower_t2 = true, tower_t3 = true, tower_t4 = true }
+local EASY_TOWER_TAKES_PCT = 150
+
 local function damage_keep(u)
   local reduction = game.stat_value(u, DAMAGE_REDUCTION)
   if reduction > 100 then reduction = 100 elseif reduction < -100 then reduction = -100 end
-  return 100 - reduction
+  local keep = 100 - reduction
+  if modes.has("em") and TOWER_KINDS[game.unit_kind(u)] then keep = keep * EASY_TOWER_TAKES_PCT // 100 end
+  return keep
 end
 
 local function response_keep(u)

@@ -238,6 +238,23 @@ local function clock_text()
   return tostring(minutes) .. ":" .. tostring(secs)
 end
 
+local function mode_summary()
+  local names = TEXT.lobby.modes or {}
+  local shown = {}
+  for _, code in ipairs(modes.codes()) do shown[#shown + 1] = names[code] or code end
+  if #shown == 0 then return TEXT.hud.mode .. " " .. TEXT.hud.defaultMode end
+  return TEXT.hud.mode .. " " .. join(shown, ", ")
+end
+
+local function mode_rules_box()
+  local rules = TEXT.modeRules or {}
+  local kids = { label(mode_summary(), "accent") }
+  for _, code in ipairs(modes.codes()) do
+    if rules[code] ~= nil then kids[#kids + 1] = label(rules[code], "muted") end
+  end
+  return box(kids, "col")
+end
+
 local function hud_tree()
   local primary = alive_selection()[1]
   local hp = nil
@@ -253,6 +270,7 @@ local function hud_tree()
     local minutes = math.floor(total / 60)
     kids[#kids + 1] = label(TEXT.hud.minutes .. " " .. tostring(minutes) .. "  " .. TEXT.hud.seconds .. " " .. tostring(total - minutes * 60))
   end
+  kids[#kids + 1] = mode_rules_box()
   return box(kids, "row")
 end
 
@@ -297,7 +315,7 @@ end
 local function win_tree()
   local side = game.winner()
   if side == nil or side < 0 then return nil end
-  local kids = { label(team_name(side) .. " " .. TEXT.winner.suffix, "accent"), win_table() }
+  local kids = { label(team_name(side) .. " " .. TEXT.winner.suffix, "accent"), mode_rules_box(), win_table() }
   if REPLAY_NOTE ~= nil then kids[#kids + 1] = label(REPLAY_NOTE, "ok") end
   kids[#kids + 1] = button(TEXT.menu.saveReplay, "win_save_replay", "{}")
   kids[#kids + 1] = button(TEXT.menu.playAgain, "win_play_again", "{}")
@@ -1193,7 +1211,7 @@ end
 
 local function scoreboard_tree()
   local rows = post_game_rows()
-  local kids = {}
+  local kids = { mode_rules_box() }
   for _, side in ipairs(sides()) do
     local cells = {}
     for _, h in ipairs(TEXT.scoreboardHeaders) do cells[#cells + 1] = label(h, "muted") end

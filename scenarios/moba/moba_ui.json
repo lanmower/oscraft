@@ -125,7 +125,34 @@
       "hp": "hp",
       "gold": "gold",
       "minutes": "Minutes:",
-      "seconds": "Seconds:"
+      "seconds": "Seconds:",
+      "mode": "Mode:",
+      "defaultMode": "All Pick"
+    },
+    "modeRules": {
+      "ap": "Pick a hero from any tavern.",
+      "ar": "Every seat gets a random hero from any tavern.",
+      "aa": "Only Agility heroes are allowed.",
+      "ai": "Only Intelligence heroes are allowed.",
+      "as": "Only Strength heroes are allowed.",
+      "ro": "Only range heroes are allowed.",
+      "mo": "Only melee heroes are allowed.",
+      "du": "The same hero may be picked more than once.",
+      "sh": "Every seat plays the same hero as the host.",
+      "sc": "Siege Golems, Scary Fish and Ancient Hydras join the creep waves.",
+      "fr": "Respawn times are halved.",
+      "np": "Powerups are disabled.",
+      "so": "Players may swap heroes by chat request.",
+      "em": "Passive gold is doubled, XP is 150%, and towers take 50% more damage.",
+      "mi": "Heroes are drawn at half size.",
+      "id": "A random inventory slot drops its item on death.",
+      "cm": "A captain from each side bans and picks heroes.",
+      "cd": "Captains draft heroes from a limited pool.",
+      "rd": "Heroes come from a random draft pool.",
+      "sd": "Each pick chooses one hero from three options.",
+      "rv": "Each player picks a hero for the opponent.",
+      "oi": "Observers get no extra information.",
+      "x": "Captains Draft uses a 42 hero pool and 6 bans."
     },
     "preMatch": "pre-match",
     "noValue": "-",
@@ -411,7 +438,11 @@
         "cd": "Captains Draft",
         "rd": "Random Draft",
         "sd": "Single Draft",
-        "rv": "Reverse"
+        "rv": "Reverse",
+        "ap": "All Pick",
+        "oi": "Observer Info",
+        "so": "Switch On",
+        "x": "Extended"
       },
       "refusals": {
         "mode-pool": "that hero is outside the pool of the chosen game mode",

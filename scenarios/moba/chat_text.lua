@@ -132,6 +132,8 @@ text.gameInfo = {
   { "cd", { "|c006699CCCaptains Draft|r:\t\t\t\t\tCaptains draft heroes from a limited pool" } },
   { "cp", { "|c006699CCCapture Point|r:\t\t\t\t\tCapture Points will appear at the 10 minute mark. The more heroes the faster the capture rate." } },
   { "zm", { "|c006699CCZoom Mode|r:\t\t\t\t\tObservers will view the game from a zoomed out state." } },
+  { "so", { "|c006699CCSwitch On|r:\t\t\t\t\t\t\t\tPlayers may swap heroes by chat request." } },
+  { "x", { "|c006699CCExtended|r:\t\t\t\t\t\t\t\tCaptains Draft uses a 42 hero pool and 6 bans." } },
   { "normal", { "|c006699CCNormal Mode|r:\t\t\t\tNo mode has been specified" } },
 }
 
