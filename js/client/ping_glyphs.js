@@ -5,8 +5,12 @@ const PING_GLYPHS = Object.freeze({
   item: Object.freeze({ name: "Item ready", points: Object.freeze([[8, 1], [15, 8], [8, 15], [1, 8]]) }),
 });
 
+export function hasPingGlyph(kind) {
+  return Object.hasOwn(PING_GLYPHS, kind);
+}
+
 export function pingGlyph(kind) {
-  return Object.hasOwn(PING_GLYPHS, kind) ? PING_GLYPHS[kind] : PING_GLYPHS.ping;
+  return hasPingGlyph(kind) ? PING_GLYPHS[kind] : PING_GLYPHS.ping;
 }
 
 export function pingGlyphSvg(kind) {

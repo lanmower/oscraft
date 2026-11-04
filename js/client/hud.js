@@ -2,6 +2,7 @@
 import { cellKind, voidMask } from "./tiles.js";
 import { createMobaInput } from "./moba_input.js";
 import { createFeedback } from "./feedback.js";
+import { NOTICE_KINDS, renderToast } from "./notice_kinds.js";
 import { createMinimap } from "./ui_minimap.js";
 import { UI } from "./pack_load.js";
 import { teamOf } from "./moba_select.js";
@@ -52,16 +53,16 @@ function createMessageLine() {
   line.style.cssText = "position:fixed;left:50%;bottom:calc(var(--bar-h) + 12px);transform:translateX(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:4px;max-width:92vw;pointer-events:none;";
   document.body.appendChild(line);
   function add(text, kind) {
-    const item = document.createElement("div");
-    item.textContent = text;
-    item.style.cssText = `background:rgba(0,0,0,0.78);color:${kind === "refusal" ? "#ffb4a8" : "#e6ecf1"};font:600 var(--t-body, 13px) var(--font, sans-serif);padding:4px 10px;border-radius:4px;white-space:nowrap;transition:opacity ${MESSAGE_FADE_MS}ms ease;`;
+    const item = renderToast(document, kind, text);
+    item.style.transition = `opacity ${MESSAGE_FADE_MS}ms ease`;
     line.appendChild(item);
     while (line.childElementCount > MESSAGE_LIMIT) line.firstElementChild.remove();
     setTimeout(() => { item.style.opacity = "0"; }, MESSAGE_HOLD_MS);
     setTimeout(() => item.remove(), MESSAGE_HOLD_MS + MESSAGE_FADE_MS);
   }
   const onFeedback = (e) => {
-    if (e.detail && e.detail.kind === "refusal") add(String(e.detail.text), "refusal");
+    const kind = e.detail?.kind;
+    if (Object.hasOwn(NOTICE_KINDS, kind)) add(String(e.detail.text), kind);
   };
   window.addEventListener("moba:feedback", onFeedback);
   return {
