@@ -80,7 +80,7 @@ impl Sim {
     fn route_slot(&mut self, i: usize) -> usize {
         let gx = fixed::round(self.tgt_x[i]);
         let gy = fixed::round(self.tgt_y[i]);
-        self.paths.request(self.player[i] as i32, gx, gy)
+        self.paths.request(&self.grid, self.player[i] as i32, gx, gy)
     }
 
     fn separation(&self, i: usize) -> (i32, i32) {

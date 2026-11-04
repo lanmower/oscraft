@@ -1,3 +1,4 @@
+use crate::astar;
 use crate::fixed::ONE;
 
 pub const COST_STRAIGHT: i32 = ONE;
@@ -212,16 +213,9 @@ impl Field {
         if g.w != self.w as usize || g.h != self.h as usize || g.flags.len() < self.cells {
             return false;
         }
-        let (mut gx, mut gy) = (gx, gy);
-        if !g.walkable(gx, gy) {
-            match g.nearest_walkable(gx, gy, 8) {
-                Some((nx, ny)) => {
-                    gx = nx;
-                    gy = ny;
-                }
-                None => return false,
-            }
-        }
+        let Some((gx, gy)) = destination(g, (gx, gy)) else {
+            return false;
+        };
         self.dist.fill(-1);
         self.settled.fill(0);
         self.dir_next.fill(NO_DIR);
@@ -356,8 +350,9 @@ impl Pool {
         }
     }
 
-    pub fn request(&mut self, id: i32, gx: i32, gy: i32) -> usize {
-        let held = (0..self.owner.len()).find(|&i| self.owner[i] >= 0 && !drifted(self.want_x[i], self.want_y[i], gx, gy));
+    pub fn request(&mut self, g: &Grid, id: i32, gx: i32, gy: i32) -> usize {
+        let to = destination(g, (gx, gy));
+        let held = (0..self.owner.len()).find(|&i| self.owner[i] >= 0 && self.can_serve(g, i, (gx, gy), to));
         if let Some(i) = held {
             self.seen[i] = self.tick_no;
             let stale = match &self.fields[i] {
@@ -387,6 +382,17 @@ impl Pool {
 
     pub fn field(&self, slot: usize) -> &Field {
         self.fields[slot].as_ref().expect("a claimed slot always holds a field")
+    }
+
+    fn can_serve(&self, g: &Grid, slot: usize, goal: (i32, i32), to: Option<(i32, i32)>) -> bool {
+        let want = (self.want_x[slot], self.want_y[slot]);
+        if drifted(want.0, want.1, goal.0, goal.1) {
+            return false;
+        }
+        match (destination(g, want), to) {
+            (Some(from), Some(to)) => astar::line_clear(g, from, to),
+            _ => false,
+        }
     }
 
     fn claim(&mut self, id: i32) -> (usize, bool) {
@@ -478,4 +484,12 @@ impl Pool {
 
 fn drifted(ox: i32, oy: i32, nx: i32, ny: i32) -> bool {
     (ox - nx).abs() > MOVE_THRESHOLD || (oy - ny).abs() > MOVE_THRESHOLD
+}
+
+fn destination(g: &Grid, cell: (i32, i32)) -> Option<(i32, i32)> {
+    if g.walkable(cell.0, cell.1) {
+        Some(cell)
+    } else {
+        g.nearest_walkable(cell.0, cell.1, 8)
+    }
 }

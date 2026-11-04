@@ -499,7 +499,6 @@ fn a_structure_keeps_its_spot_when_a_hero_stands_beside_it() {
 }
 
 #[test]
-#[ignore = "prd-mw1bzqqz7f60 open: reproduces the drift-reuse stop (unit ends 7.6 cells short on HEAD)"]
 fn a_unit_whose_goal_drifted_reaches_its_target_past_a_wall() {
     let mut host = pack_host();
     let holder = spawn(&mut host, PLAYER, GROUND, false, DRIFT_HOLDER_CELL);
