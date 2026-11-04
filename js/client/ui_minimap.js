@@ -36,6 +36,42 @@ function mix(h, v) {
   return Math.imul(h ^ (v | 0), 16777619);
 }
 
+function createHitLayer(win) {
+  const regions = new WeakMap();
+  let active = null;
+  win.addEventListener("pointerdown", (e) => {
+    const region = regions.get(e.target);
+    if (region === undefined) return;
+    e.stopPropagation();
+    active = region;
+    region.down(e);
+  }, true);
+  win.addEventListener("pointermove", (e) => {
+    if (active !== null) active.move(e);
+  }, true);
+  win.addEventListener("pointerup", (e) => {
+    const region = active;
+    active = null;
+    if (region !== null) region.up(e);
+  }, true);
+  win.addEventListener("pointercancel", () => {
+    const region = active;
+    active = null;
+    if (region !== null) region.cancel();
+  }, true);
+  win.addEventListener("contextmenu", (e) => {
+    if (regions.has(e.target)) e.preventDefault();
+  }, true);
+  return {
+    add(canvas, region) {
+      regions.set(canvas, region);
+    },
+    remove(canvas, region) {
+      if (regions.get(canvas) === region) regions.delete(canvas);
+    },
+  };
+}
+
 function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, drag = () => {}, order = () => {}, isHero = () => false, isBuilding = () => false }) {
   hot.set("ui-minimap", { canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, drag, order, isHero, isBuilding });
   canvas.dataset.ui = "minimap";
@@ -278,51 +314,44 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
   }
 
   let press = null;
-  const onPointerDown = (e) => {
-    e.stopPropagation();
-    if (e.button === 2) {
-      orderAt(e);
-      return;
-    }
-    if (e.button !== 0) return;
-    if (e.altKey) {
-      pingAt(e);
-      return;
-    }
-    press = { x: e.clientX, y: e.clientY, moved: false };
-    canvas.setPointerCapture(e.pointerId);
+  const hits = (globalThis.__oscraftHitLayer ??= createHitLayer(window));
+  const region = {
+    down(e) {
+      if (e.button === 2) {
+        orderAt(e);
+        return;
+      }
+      if (e.button !== 0) return;
+      if (e.altKey) {
+        pingAt(e);
+        return;
+      }
+      press = { x: e.clientX, y: e.clientY, moved: false };
+      canvas.setPointerCapture(e.pointerId);
+    },
+    move(e) {
+      if (!press) return;
+      if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) <= DRAG_SLOP_PX) return;
+      press.moved = true;
+      const p = mapPointAt(e);
+      if (p) drag(p.x, p.z);
+    },
+    up(e) {
+      if (!press) return;
+      const click = !press.moved;
+      press = null;
+      const p = click ? mapPointAt(e) : null;
+      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      if (p) centre(p.x, p.z);
+    },
+    cancel() {
+      press = null;
+    },
   };
-  const onContextMenu = (e) => e.preventDefault();
   canvas.style.touchAction = "none";
-  canvas.addEventListener("contextmenu", onContextMenu);
-  const onPointerMove = (e) => {
-    if (!press) return;
-    if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) <= DRAG_SLOP_PX) return;
-    press.moved = true;
-    const p = mapPointAt(e);
-    if (p) drag(p.x, p.z);
-  };
-  const onPointerEnd = (e) => {
-    if (!press) return;
-    const click = !press.moved;
-    press = null;
-    const p = click ? mapPointAt(e) : null;
-    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    if (p) centre(p.x, p.z);
-  };
-  const onPointerCancel = () => {
-    press = null;
-  };
-  canvas.addEventListener("pointerdown", onPointerDown);
-  canvas.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerEnd);
-  window.addEventListener("pointercancel", onPointerCancel);
+  hits.add(canvas, region);
   LIVE_CANVAS_DISPOSERS.set(canvas, () => {
-    canvas.removeEventListener("pointerdown", onPointerDown);
-    canvas.removeEventListener("pointermove", onPointerMove);
-    canvas.removeEventListener("contextmenu", onContextMenu);
-    window.removeEventListener("pointerup", onPointerEnd);
-    window.removeEventListener("pointercancel", onPointerCancel);
+    hits.remove(canvas, region);
     window.removeEventListener("moba:ping", onPing);
   });
 

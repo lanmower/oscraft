@@ -44,7 +44,7 @@ class FakeNode {
     if (this.parent) this.parent.children = this.parent.children.filter((c) => c !== this);
     this.parent = null;
   }
-  addEventListener(type, fn) { this.listeners.push({ type, fn }); }
+  addEventListener(type, fn, options) { this.listeners.push({ type, fn, capture: options === true || options?.capture === true }); }
   removeEventListener(type, fn) { this.listeners = this.listeners.filter((l) => l.type !== type || l.fn !== fn); }
   setAttribute(name, value) { this.attributes.set(name, String(value)); }
   hasAttribute(name) { return this.attributes.has(name); }
@@ -59,10 +59,15 @@ class FakeNode {
   }
   dispatchEvent(event) {
     event.target = this;
-    for (let node = this; node && !event.stopped; node = node.parent) {
+    const path = [];
+    for (let node = this; node; node = node.parent) path.push(node);
+    const fire = (node, pick) => {
       event.currentTarget = node;
-      for (const l of node.listeners) if (l.type === event.type) l.fn(event);
-    }
+      for (const l of node.listeners) if (l.type === event.type && pick(l)) l.fn(event);
+    };
+    for (let i = path.length - 1; i > 0 && !event.stopped; i--) fire(path[i], (l) => l.capture);
+    if (!event.stopped) fire(path[0], () => true);
+    for (let i = 1; i < path.length && !event.stopped; i++) fire(path[i], (l) => !l.capture);
     return !event.defaultPrevented;
   }
 }
@@ -134,6 +139,8 @@ const minimapView = createMinimap({
   order: (kind, x, z) => orders.push([kind, x, z]),
 });
 windowNode.dispatchEvent(new CustomEvent("moba:feedback", { detail: { kind: "selection", ids: [42] } }));
+const canvasPointerListeners = minimap.listeners.filter((l) => /^(pointer|contextmenu)/.test(l.type)).length;
+if (canvasPointerListeners !== 0) fail(`minimap canvas still holds ${canvasPointerListeners} pointer listeners`);
 
 const press = (target, button, x, y, keys = {}) => target.dispatchEvent(new FakeEvent("pointerdown", { button, clientX: x, clientY: y, ...keys }));
 const move = (target, x, y) => target.dispatchEvent(new FakeEvent("pointermove", { clientX: x, clientY: y }));
@@ -213,10 +220,41 @@ const groundBoxShown = boxShown();
 release(world, 0, 400, 400);
 if (!sends.includes("viewport") || !groundBoxShown || worldEvents.join() !== "down:0,up:0") fail(`control: a world press did not reach the world path: sends=${sends} box=${groundBoxShown} world=${worldEvents}`);
 
+reset();
+const cover = uiBarRight.appendChild(new FakeNode());
+cover.dataset.ui = "panel";
+press(cover, 0, centre.x, centre.y);
+release(cover, 0, centre.x, centre.y);
+press(cover, 2, centre.x, centre.y);
+release(cover, 2, centre.x, centre.y);
+const stackedCentres = centres.length;
+const stackedOrders = orders.length;
+if (stackedCentres !== 0 || drags.length !== 0 || stackedOrders !== 0) fail(`a press on another element reached the minimap: centres=${stackedCentres} drags=${drags.length} orders=${stackedOrders}`);
+
+reset();
+createMinimap({
+  canvas: minimap,
+  mapSize: { w: 6400, h: 6400 },
+  lanes: null,
+  selected: () => -1,
+  localPlayer: () => 0,
+  playerColor: () => [1, 0, 0],
+  teams: [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+  viewRect: () => ({ x0: 0, z0: 0, x1: 800, z1: 600 }),
+  centre: (x, z) => centres.push([x, z]),
+  drag: () => {},
+  order: () => {},
+});
+press(minimap, 0, centre.x, centre.y);
+release(minimap, 0, centre.x, centre.y);
+if (centres.length !== 1) fail(`a second minimap on one canvas kept the first one's region: centres=${centres.length}`);
+const hitLog = `hit layer canvas listeners=${canvasPointerListeners} other-element centres=${stackedCentres} orders=${stackedOrders} second-minimap centres=${centres.length}`;
+
 input.destroy();
 console.log(clickLog);
 console.log(dragLog);
 console.log(rightLog);
 console.log(pingLog);
 console.log(drawLog);
+console.log(hitLog);
 console.log("minimap selection ok");
