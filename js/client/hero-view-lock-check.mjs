@@ -5,7 +5,7 @@ import {
   heroDirection,
   heroOrderPoint,
   HERO_ORDER_INTERVAL_S,
-  HERO_STEP_WORLD,
+  HERO_STEP_CELLS,
   stepHeroOrderClock,
 } from "./hero_view_lock.js";
 
@@ -37,8 +37,8 @@ const groundAt = () => 7;
 const hero = { id: 3, x: 100, z: 200 };
 const target = followTarget(hero, groundAt);
 if (target[0] !== 100 || target[1] !== 7 || target[2] !== 200) fail(`follow target ${JSON.stringify(target)}`);
-same(heroOrderPoint(hero, { x: 0, z: -1 }), { x: 100, z: 200 - HERO_STEP_WORLD }, "order point ahead of the hero");
-same(heroOrderPoint(hero, { x: SQRT_HALF, z: SQRT_HALF }), { x: 100 + SQRT_HALF * HERO_STEP_WORLD, z: 200 + SQRT_HALF * HERO_STEP_WORLD }, "diagonal order point");
+same(heroOrderPoint(hero, { x: 0, z: -1 }), { x: 100, z: 200 - HERO_STEP_CELLS }, "order point ahead of the hero");
+same(heroOrderPoint(hero, { x: SQRT_HALF, z: SQRT_HALF }), { x: 100 + SQRT_HALF * HERO_STEP_CELLS, z: 200 + SQRT_HALF * HERO_STEP_CELLS }, "diagonal order point");
 
 const units = [
   { id: 1, player: 0, type: 5, x: 0, z: 0 },

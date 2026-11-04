@@ -1,4 +1,4 @@
-export const HERO_STEP_WORLD = 300;
+export const HERO_STEP_CELLS = 4;
 export const HERO_ORDER_INTERVAL_S = 0.25;
 
 const HERO_FLAG = 1;
@@ -49,7 +49,7 @@ export function followTarget(hero, groundAt) {
   return [hero.x, groundAt(hero.x, hero.z), hero.z];
 }
 
-export function heroOrderPoint(hero, direction, distance = HERO_STEP_WORLD) {
+export function heroOrderPoint(hero, direction, distance = HERO_STEP_CELLS) {
   return { x: hero.x + direction.x * distance, z: hero.z + direction.z * distance };
 }
 
