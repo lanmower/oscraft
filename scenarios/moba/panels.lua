@@ -246,13 +246,31 @@ local function mode_summary()
   return TEXT.hud.mode .. " " .. join(shown, ", ")
 end
 
+local MODE_BADGE = {
+  kind = {
+    ap = "hero", ar = "hero", aa = "hero", ai = "hero", as = "hero", ro = "hero", mo = "hero", du = "hero", sh = "hero",
+    sc = "rules", np = "rules", fr = "rules", em = "rules", mi = "rules", id = "rules", so = "rules", oi = "rules",
+    cm = "draft", cd = "draft", rd = "draft", sd = "draft", rv = "draft", x = "draft",
+  },
+  look = {
+    hero = { glyph = "item", tone = "ok" },
+    rules = { glyph = "ping", tone = "warn" },
+    draft = { glyph = "on_my_way", tone = "accent" },
+  },
+}
+
 local function mode_rules_box()
   local rules = TEXT.modeRules or {}
-  local kids = { label(mode_summary(), "accent") }
+  local names = TEXT.lobby.modes or {}
+  local badges = {}
   for _, code in ipairs(modes.codes()) do
-    if rules[code] ~= nil then kids[#kids + 1] = label(rules[code], "muted") end
+    if rules[code] ~= nil then
+      local look = MODE_BADGE.look[MODE_BADGE.kind[code] or "rules"]
+      local words = (names[code] or code) .. ": " .. rules[code]
+      badges[#badges + 1] = node("badge", { S("glyph", look.glyph), S("tone", look.tone), S("tip", words), S("alt", words) })
+    end
   end
-  return box(kids, "col")
+  return box({ label(mode_summary(), "accent"), box(badges, "row") }, "col")
 end
 
 local function hud_tree()

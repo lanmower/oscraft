@@ -1,4 +1,6 @@
 
+import { pingGlyphSvg } from "./ping_glyphs.js";
+
 const SLOT_HOSTS = {
   left: "ui-left",
   hud: "hud",
@@ -99,6 +101,7 @@ const STYLE = `
 .w-regions.swipe>.w-region{flex:0 0 100%;box-sizing:border-box;scroll-snap-align:start;scroll-snap-stop:always}
 .w-swipe>.w-dots{display:flex}
 }
+.w-badge{display:inline-flex;flex:0 0 auto;width:16px;height:16px;line-height:0}
 .w-rows{display:flex;flex-direction:column;gap:2px;min-width:0}
 .w-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}
 .w-row-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
@@ -583,6 +586,12 @@ export function buildNode(n, send, panel = null) {
           e.click();
         };
       }
+      break;
+    case "badge":
+      e = el("span", "w-badge");
+      e.setAttribute("role", "img");
+      e.setAttribute("aria-label", n.alt ?? n.tip ?? "");
+      e.innerHTML = pingGlyphSvg(n.glyph ?? "ping");
       break;
     case "regions":
       return regionsOf(n, send);

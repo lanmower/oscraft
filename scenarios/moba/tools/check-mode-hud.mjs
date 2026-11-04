@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { hasPingGlyph } from "../../../js/client/ping_glyphs.js";
 
 const moba = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (name) => fs.readFileSync(path.join(moba, name), "utf8");
@@ -8,6 +9,10 @@ const external = fs.readdirSync(moba).filter((f) => f.endsWith(".lua") && f !== 
 const modesLua = read("modes.lua");
 const draftLua = read("draft.lua");
 const ui = JSON.parse(read("moba_ui.json")).text;
+const badgeBlock = read("panels.lua").match(/local MODE_BADGE = \{([\s\S]*?)\n\}/)[1];
+const badgeKind = Object.fromEntries([...badgeBlock.match(/kind = \{([^}]*)\}/)[1].matchAll(/(\w+) = "(\w+)"/g)].map((m) => [m[1], m[2]]));
+const badgeLook = Object.fromEntries([...badgeBlock.matchAll(/(\w+) = \{ glyph = "(\w+)", tone = "(\w+)" \}/g)].map((m) => [m[1], { glyph: m[2], tone: m[3] }]));
+const widgetsJs = fs.readFileSync(path.resolve(moba, "../../js/client/widgets.js"), "utf8");
 const supported = [...modesLua.match(/local SUPPORTED = \{([^}]*)\}/)[1].matchAll(/(\w+) = true/g)].map((m) => m[1]);
 const lobbyButtons = modesLua.match(/modes\.BUTTONS = \{([^}]*)\}/)[1].match(/"(\w+)"/g).map((s) => s.slice(1, -1));
 const chatInfo = new Set([...read("chat_text.lua").matchAll(/\{ "(\w+)", \{ "\|c/g)].map((m) => m[1]));
@@ -53,8 +58,16 @@ const table = supported.map((code) => {
   if (!rule) failures.push(`${code}: no HUD rule`);
   if (!chatInfo.has(code)) failures.push(`${code}: no chat gameInfo row`);
   if (gate === "missing") failures.push(`${code}: gameplay setting not applied`);
-  return { code, name: name ?? "MISSING", lobby: lobbyButtons.includes(code) ? "yes" : "no", hudName: name && rule ? "yes" : "no", chatRule: chatInfo.has(code) ? "yes" : "no", applied: gate, setting: settingOf(code) };
+  const look = badgeLook[badgeKind[code]];
+  if (!badgeKind[code]) failures.push(`${code}: no badge kind in MODE_BADGE`);
+  else if (!look) failures.push(`${code}: badge kind ${badgeKind[code]} has no glyph and tone`);
+  else {
+    if (!hasPingGlyph(look.glyph)) failures.push(`${code}: badge glyph ${look.glyph} is not in the shared glyph set`);
+    if (!widgetsJs.includes(`.t-${look.tone}{`)) failures.push(`${code}: badge tone ${look.tone} has no palette class`);
+  }
+  return { code, name: name ?? "MISSING", lobby: lobbyButtons.includes(code) ? "yes" : "no", hudName: name && rule ? "yes" : "no", chatRule: chatInfo.has(code) ? "yes" : "no", applied: gate, badge: badgeKind[code] ?? "MISSING", setting: settingOf(code) };
 });
+if (!external.includes('node("badge"')) failures.push("mode rules box draws no badge node");
 console.table(table);
 
 for (const codes of [[], ["ar", "fr"], ["em", "mi", "id"], ["cd", "x"], ["aa", "du", "sc"]]) {
