@@ -22,9 +22,9 @@ import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, me
 import { buildTerrain, GROUND_UV_PER_CELL, readProps, readGrid, vertexNormals } from "./terrain.js";
 import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
-import { loadBasis } from "./decoders.js";
+import { loadBasis, loadMeshopt } from "./decoders.js";
 
-const basisWarm = loadBasis();
+const decodersReady = Promise.all([loadBasis(), loadMeshopt()]);
 import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, packSwapKind, swapGate, swapIsNew } from "./swap_protocol.js";
 import { createFogView } from "./fogview.js";
 import { packCameraRules } from "./camera_rules.js";
@@ -635,31 +635,53 @@ async function humanoidBoneMap(name, nodes) {
 const libraryRigs = new Set();
 
 const parsedModels = new Map();
-function parsedModel(name) {
+let selectedModelLoads = 0;
+let selectedModelsIdle = Promise.resolve();
+let markSelectedModelsIdle = () => {};
+
+function parsedModel(name, selected = false) {
   let entry = parsedModels.get(name);
   if (!entry) {
-    entry = (async () => {
-      const url = new URL(assetUrl("models", `${name}.glb`), location.href);
-      const res = await fetchRetrying(url);
-      if (!res.ok) throw new Error(`models/${name}.glb HTTP ${res.status}`);
-      const bytes = await resolveGlbExtensions(await res.arrayBuffer());
-      const glb = parseGlb(bytes, name);
-      const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
-      if (animations && animations.clips.length === 0) {
-        animations.clips = await libraryClips(name, animations.nodes);
-        libraryRigs.add(name);
-      }
-      return { url: url.href, glb, animations };
-    })();
+    entry = selected ? selectedModelLoad(name) : speculativeModelLoad(name);
     parsedModels.set(name, entry);
     entry.catch(() => parsedModels.delete(name));
   }
   return entry;
 }
 
-async function fetchModel(name, size) {
+function selectedModelLoad(name) {
+  if (selectedModelLoads === 0) selectedModelsIdle = new Promise((resolve) => { markSelectedModelsIdle = resolve; });
+  selectedModelLoads += 1;
+  return readParsedModel(name).finally(() => {
+    selectedModelLoads -= 1;
+    if (selectedModelLoads === 0) markSelectedModelsIdle();
+  });
+}
+
+async function speculativeModelLoad(name) {
+  await decodersReady;
+  while (selectedModelLoads > 0) await selectedModelsIdle;
+  return readParsedModel(name);
+}
+
+async function readParsedModel(name) {
+  await decodersReady;
+  const url = new URL(assetUrl("models", `${name}.glb`), location.href);
+  const res = await fetchRetrying(url);
+  if (!res.ok) throw new Error(`models/${name}.glb HTTP ${res.status}`);
+  const bytes = await resolveGlbExtensions(await res.arrayBuffer());
+  const glb = parseGlb(bytes, name);
+  const animations = glb.joints && glb.weights ? parseGlbAnimations(bytes) : null;
+  if (animations && animations.clips.length === 0) {
+    animations.clips = await libraryClips(name, animations.nodes);
+    libraryRigs.add(name);
+  }
+  return { url: url.href, glb, animations };
+}
+
+async function fetchModel(name, size, selected = false) {
   try {
-    const { url, glb, animations } = await parsedModel(name);
+    const { url, glb, animations } = await parsedModel(name, selected);
     const fitted = fitModel(glb, size);
     const animation = animations ? skinnedRig(animations, glb, fitted.fit) : null;
     if (animations && !animation) throw new Error("rig has no clips or more joints than the shader palette");
@@ -674,7 +696,7 @@ const hotAssets = new Map();
 const assetNow = (key) => (hotAssets.has(key) ? Promise.resolve(hotAssets.get(key)) : assetJson(key));
 const propSizes = () => (propSizesReady ??= assetNow("propSizes"));
 
-async function buildUnitMesh(type) {
+async function buildUnitMesh(type, selected = false) {
   const names = localGame.unit_model_names();
   const name = names[type];
   const hero = (typeof localGame.unit_flags === "function" ? localGame.unit_flags() : [])[type] === 1;
@@ -685,7 +707,7 @@ async function buildUnitMesh(type) {
   }
   const sizes = await propSizes();
   const size = (sizes[name] ?? 2 * UNIT_HALF) * (hero ? HERO_DRAW_SCALE : 1);
-  const fitted = hero ? await fetchModel(name, size) : await modelOrRecord(name, fetchModel(name, size));
+  const fitted = hero ? await fetchModel(name, size, selected) : await modelOrRecord(name, fetchModel(name, size, selected));
   if (!fitted) return null;
   const mesh = toMesh(renderGl, fitted, [1, 1, 1], { animated: true });
   return hero ? await mesh : await modelOrRecord(fitted.glbUrl, mesh);
@@ -696,10 +718,10 @@ const unitModelJobs = new Map();
 let unitModelQueue = [];
 let unitModelRunning = 0;
 
-function requestUnitModel(type) {
+function requestUnitModel(type, selected = false) {
   let job = unitModelJobs.get(type);
   if (!job) {
-    job = buildUnitMesh(type).then(
+    job = buildUnitMesh(type, selected).then(
       (mesh) => {
         setUnitMesh(type, mesh);
         return mesh;
@@ -1704,7 +1726,7 @@ function preloadPickedModels(slots) {
 }
 
 function preloadModel(name, retriesLeft) {
-  parsedModel(name).then(
+  parsedModel(name, true).then(
     () => window.dispatchEvent(new CustomEvent("oscraft:model-loaded", { detail: { model: name } })),
     (err) => {
       if (retriesLeft > 0) return preloadModel(name, retriesLeft - 1);
@@ -1821,7 +1843,7 @@ async function runLoadGate() {
       }
     }
     gate.setLocal("loading");
-    await Promise.all(seatHeroTypes().map((type) => requestUnitModel(type)));
+    await Promise.all(seatHeroTypes().map((type) => requestUnitModel(type, true)));
     const heroesMs = performance.now() - t0;
     await settleScenery();
     if (stale()) return;
