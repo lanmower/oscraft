@@ -821,15 +821,6 @@ function runDeferredUntilDrawn() {
   deferredUntilDrawn = null;
   if (work) work();
 }
-let packLoadTail = Promise.resolve();
-function queuePackLoad(load) {
-  const next = packLoadTail.then(async () => {
-    while (!firstFrameUp) await delay(GATE_POLL_MS);
-    return load();
-  });
-  packLoadTail = next.catch(() => {});
-  return next;
-}
 
 function queueUnitModelBacklog() {
   const names = localGame.unit_model_names();
@@ -1585,10 +1576,10 @@ function flowIconUrl(model) {
 async function flowLoadIcons(heroes) {
   if (!flowAssets || !Array.isArray(heroes)) return;
   const { packIndex: pIndex, loadPackImage: loadImage } = flowAssets;
-  const entries = (await pIndex())?.entries ?? {};
+  const icons = (await pIndex())?.atlases?.heroes?.icons ?? {};
   for (const hero of heroes) {
     const rel = `icons/heroes/${hero.model}.png`;
-    if (!hero.model || flowIconsAsked.has(hero.model) || !entries[rel]) continue;
+    if (!hero.model || flowIconsAsked.has(hero.model) || !icons[rel]) continue;
     flowIconsAsked.add(hero.model);
     loadImage(rel).then((url) => {
       if (url) flowIcons.set(hero.model, url);
@@ -3363,7 +3354,7 @@ async function main() {
   const packFiles = new Map();
   const packImages = new Map();
   const packFile = (file) => {
-    if (!packFiles.has(file)) packFiles.set(file, queuePackLoad(() => packBytes(`${packsDir}/${file}`)));
+    if (!packFiles.has(file)) packFiles.set(file, packBytes(`${packsDir}/${file}`));
     return packFiles.get(file);
   };
   const atlasImagesByCategory = new Map();
@@ -3375,6 +3366,7 @@ async function main() {
   };
   const atlasOf = (index, rel) => Object.entries(index?.atlases ?? {}).find(([, atlas]) => atlas.icons[rel]);
   packIndex()
+    .then((index) => (index?.atlases?.heroes ? atlasImageOnce("heroes", index.atlases.heroes) : null))
     .catch(() => null)
     .then(releaseWidgets);
   const cellUrl = (bitmap, [x, y, size]) => {
@@ -3396,7 +3388,7 @@ async function main() {
     const [file, offset, length] = entry;
     const data = await packFile(file);
     const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
-    return URL.createObjectURL(new Blob([bytes.subarray(offset, offset + length)], { type: "image/webp" }));
+    return URL.createObjectURL(new Blob([bytes.subarray(offset, offset + length)], { type: "image/png" }));
   };
   const packImageUrl = (rel) => {
     if (!packImages.has(rel)) packImages.set(rel, loadPackImage(rel).catch(() => null));

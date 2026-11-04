@@ -51,34 +51,25 @@ const abilityRows = readAsset("icons/ABILITY-ICONS.tsv").toString("utf8").split(
   .map((line) => line.split("\t"))
   .filter(([ability]) => ability !== "ability");
 const skillDefs = new Map();
+const skillIcons = new Map();
 for (const [ability, osd, icon] of abilityRows) {
   const owner = heroKeys.filter((key) => ability.startsWith(`${key}_`)).sort((a, b) => b.length - a.length)[0];
+  const shipped = icon && icon !== "GAP" ? `icons/${icon}` : null;
+  if (shipped) skillIcons.set(shipped, path.join(assets, shipped));
   if (owner === undefined) continue;
   if (!skillDefs.has(owner)) skillDefs.set(owner, []);
-  skillDefs.get(owner).push({ ability, osd, icon: icon && icon !== "GAP" ? `icons/${icon}` : null });
+  skillDefs.get(owner).push({ ability, osd, icon: shipped });
 }
 for (const [owner, rows] of skillDefs) {
   entriesOf(owner).set(`skills/${owner}.json`, Buffer.from(`${JSON.stringify(rows)}\n`));
 }
 
-const heroModels = new Map([...fs.readFileSync(path.join(assets, "..", "units_heroes.osd"), "utf8").matchAll(/^unit\("([^"]+)".*?\bmodel="([^"]+)"/gm)].map((m) => [m[1], m[2]]));
-const cellSources = new Map();
-for (const key of heroKeys) {
-  const model = heroModels.get(key);
-  if (model === undefined) throw new Error(`hero ${key} has no model in units_heroes.osd`);
-  const rel = `icons/heroes/${model}.png`;
-  if (!fs.existsSync(path.join(assets, rel))) throw new Error(`hero ${key} icon ${rel} is missing`);
-  cellSources.set(rel, path.join(assets, rel));
-}
-for (const rows of skillDefs.values()) {
-  for (const { icon } of rows) {
-    if (icon) cellSources.set(icon, path.join(assets, icon));
-  }
-}
+const rosterModels = [...new Set([...fs.readFileSync(path.join(assets, "..", "units_heroes.osd"), "utf8").matchAll(/^unit\(.*?\bmodel="([^"]+)"/gm)].map((m) => m[1]))].sort();
+const heroIcons = new Map(rosterModels.map((model) => [`icons/heroes/${model}.png`, path.join(assets, "icons/heroes", `${model}.png`)]));
 const itemIcons = new Map(pngsIn("icons/items").map((file) => [`icons/items/${file}`, path.join(assets, "icons/items", file)]));
 
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "oscraft-atlas-"));
-const index = { schema: 3, atlases: {}, packs: {}, entries: {} };
+const index = { schema: 2, atlases: {}, packs: {}, entries: {} };
 const placed = [];
 
 function hashedName(stem, ext, bytes) {
@@ -89,12 +80,6 @@ function writeOut(file, bytes) {
   fs.writeFileSync(path.join(out, file), bytes);
   index.packs[file] = { sha256: sha256(bytes), bytes: bytes.length };
   placed.push(file);
-}
-
-function encodeCells(sources) {
-  const spec = { mode: "cells", cell: CELL, quality: WEBP_QUALITY, icons: [...sources].map(([rel, file]) => ({ name: rel, path: file })) };
-  const { cells } = JSON.parse(execFileSync(python, ["-I", atlasScript], { input: JSON.stringify(spec), maxBuffer: 256 * 1024 * 1024 }).toString("utf8"));
-  return new Map(Object.entries(cells).map(([rel, base64]) => [rel, Buffer.from(base64, "base64")]));
 }
 
 function buildAtlas(name, icons) {
@@ -157,13 +142,10 @@ function placeProps() {
 }
 
 fs.mkdirSync(path.join(out, "character"), { recursive: true });
-const cells = encodeCells(cellSources);
-for (const key of heroKeys) {
-  const ownedIcons = [`icons/heroes/${heroModels.get(key)}.png`, ...(skillDefs.get(key) ?? []).map((row) => row.icon)].filter(Boolean);
-  for (const rel of ownedIcons) if (cells.has(rel)) entriesOf(key).set(rel, cells.get(rel));
-}
 const atlases = {
+  heroes: buildAtlas("heroes", heroIcons),
   items: buildAtlas("items", itemIcons),
+  skills: buildAtlas("skills", skillIcons),
 };
 for (const key of [...heroPacks.keys()].sort()) {
   if (heroPacks.get(key).size > 0) placeCharacter(key, heroPacks.get(key));
@@ -175,4 +157,4 @@ fs.rmSync(scratch, { recursive: true, force: true });
 const characters = placed.filter((file) => file.startsWith("character/")).length;
 const bytes = placed.reduce((sum, file) => sum + index.packs[file].bytes, 0);
 const atlasLine = Object.entries(atlases).map(([name, a]) => `${name} ${a.icons} icons (webp ${a.webp} B, ktx2 ${a.ktx2} B)`).join(", ");
-console.log(`asset packs: atlases ${atlasLine}; ${characters} character packs with ${cells.size} cell icons; ${propVariants} prop entries; ${bytes} bytes -> ${out}`);
+console.log(`asset packs: atlases ${atlasLine}; ${characters} character packs; ${propVariants} prop entries; ${bytes} bytes -> ${out}`);
