@@ -1,4 +1,4 @@
-
+import { AnimationPlayer, jointMatrices } from "./anim.js";
 const PITCH_LIMIT = Math.PI / 2 - 0.01;
 const DEFAULT_FOV_Y = (70 * Math.PI) / 180;
 const PITCH_MIN = DEFAULT_FOV_Y / 2 + 0.01;
@@ -1083,4 +1083,187 @@ export async function drawModelPreview(canvas, prepare) {
   else renderer.drawMesh(mesh);
   renderer.endFrame();
   return true;
+}
+
+const SCENE_SLOTS = 10;
+const SCENE_TEAM_SIZE = 5;
+const SCENE_HERO_HEIGHT = 1;
+const SCENE_TEAM_CENTER = 0.9;
+const SCENE_OFFSETS = [[-0.26, -0.1], [-0.1, 0.12], [0.1, -0.12], [0.27, 0.08], [0, -0.28]];
+const SCENE_PLATE_SPACING = 0.36;
+const SCENE_PLATE_STAGGER = 0.14;
+const SCENE_PITCH = 0.12;
+const SCENE_HALF_WIDTH = 1.9;
+const SCENE_HALF_DEPTH = 0.5;
+const SCENE_TOP = 1.4;
+const SCENE_TARGET_Y = 0.6;
+const SCENE_NAME_HEIGHT = SCENE_HERO_HEIGHT + 0.12;
+const SCENE_MARGIN = 1.12;
+const SCENE_CLEAR = [0.04, 0.05, 0.07];
+const SCENE_IDLE = "idle";
+const SCENE_STAND = /^(idle|stand|static)/;
+const SCENE_SWITCH_GAP_S = [6, 14];
+const SCENE_SWITCH_HOLD_S = [3, 6];
+const SCENE_EMPTY_POSE = new Map();
+const SCENE_SEATS = Array.from({ length: SCENE_SLOTS }, (_, index) => {
+  const team = index < SCENE_TEAM_SIZE ? 0 : 1;
+  const place = index % SCENE_TEAM_SIZE;
+  const side = team === 0 ? -1 : 1;
+  const [dx, dz] = SCENE_OFFSETS[place];
+  const plateX = side * SCENE_TEAM_CENTER + (place - (SCENE_TEAM_SIZE - 1) / 2) * SCENE_PLATE_SPACING;
+  return { team, place, x: side * SCENE_TEAM_CENTER + dx, z: dz, yaw: 0, plateX, plateY: SCENE_NAME_HEIGHT + (place % 2) * SCENE_PLATE_STAGGER };
+});
+
+function figureOf(rig) {
+  const { mesh, positions } = rig;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let v = 1; v < positions.length; v += 3) {
+    minY = Math.min(minY, positions[v]);
+    maxY = Math.max(maxY, positions[v]);
+  }
+  const animation = mesh.animation ?? null;
+  const scale = SCENE_HERO_HEIGHT / Math.max(1e-6, maxY - minY);
+  const stands = animation ? animation.clips.map((clip) => clip.name).filter((name) => SCENE_STAND.test(name)) : [];
+  return { mesh, animation, scale, lift: -minY * scale, stands };
+}
+
+function slotTransform(seat, figure, out) {
+  return multiply(multiply(translation(seat.x, figure.lift, seat.z), rotationY(seat.yaw)), scaling(figure.scale, figure.scale, figure.scale), out);
+}
+
+function sceneDistance(aspect) {
+  const tanV = Math.tan(PREVIEW_FOV_Y / 2);
+  const byWidth = SCENE_HALF_WIDTH / (tanV * aspect);
+  const byHeight = (SCENE_TOP / 2 + SCENE_HALF_DEPTH * Math.sin(SCENE_PITCH)) / tanV;
+  return SCENE_MARGIN * Math.max(byWidth, byHeight);
+}
+
+function screenPoint(vp, x, y, z, width, height) {
+  const w = vp[3] * x + vp[7] * y + vp[11] * z + vp[15];
+  if (w <= 0) return null;
+  const sx = vp[0] * x + vp[4] * y + vp[8] * z + vp[12];
+  const sy = vp[1] * x + vp[5] * y + vp[9] * z + vp[13];
+  return [((sx / w) + 1) * 0.5 * width, (1 - sy / w) * 0.5 * height];
+}
+
+function gapBetween(range, random) {
+  return range[0] + random() * (range[1] - range[0]);
+}
+
+function resetSeat(state, model, figure, clock, random) {
+  state.model = model;
+  state.player = figure.animation ? new AnimationPlayer(figure.animation.clips) : null;
+  if (state.player) state.player.playState({});
+  state.joints = figure.animation ? new Float32Array(16 * figure.animation.skin.joints.length) : null;
+  state.clip = SCENE_IDLE;
+  state.switches = 0;
+  state.nextAt = clock + gapBetween(SCENE_SWITCH_GAP_S, random);
+  state.backAt = 0;
+}
+
+function stepSeat(state, figure, clock, random) {
+  if (!state.player || figure.stands.length < 2) return;
+  if (state.clip === SCENE_IDLE) {
+    if (clock < state.nextAt) return;
+    const options = figure.stands.filter((name) => name !== SCENE_IDLE);
+    const name = options[Math.floor(random() * options.length)];
+    state.player.play(name, { loop: true });
+    state.clip = name;
+    state.switches += 1;
+    state.backAt = clock + gapBetween(SCENE_SWITCH_HOLD_S, random);
+    return;
+  }
+  if (clock < state.backAt) return;
+  state.player.playState({});
+  state.clip = SCENE_IDLE;
+  state.nextAt = clock + gapBetween(SCENE_SWITCH_GAP_S, random);
+}
+
+export function createFigureScene(canvas, { prepare, onFrame, random = Math.random }) {
+  const gl = canvas.getContext("webgl2", { antialias: true, alpha: false });
+  if (!gl) return null;
+  const renderer = createRenderer(gl);
+  const cam = createCamera({ fovY: PREVIEW_FOV_Y, pitch: SCENE_PITCH });
+  const figures = new Map();
+  const seats = SCENE_SEATS.map(() => ({ model: null, player: null, joints: null, clip: SCENE_IDLE, switches: 0, nextAt: 0, backAt: 0, transform: new Float32Array(16) }));
+  const viewProj = new Float32Array(16);
+  let models = new Array(SCENE_SLOTS).fill(null);
+  let running = false;
+  let raf = 0;
+  let clock = 0;
+  let previous = 0;
+
+  const load = (model) => {
+    const entry = { figure: null };
+    figures.set(model, entry);
+    prepare(model, gl)
+      .then((rig) => { entry.figure = figureOf(rig); })
+      .catch((err) => console.warn(`[lobby] scene ${model}: ${err && err.message ? err.message : err}`));
+  };
+
+  const frame = (now) => {
+    if (!running) return;
+    raf = requestAnimationFrame(frame);
+    const dt = previous ? Math.min(0.1, (now - previous) / 1000) : 0;
+    previous = now;
+    clock += dt;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const cssWidth = canvas.clientWidth || 1;
+    const cssHeight = canvas.clientHeight || 1;
+    const width = Math.round(cssWidth * dpr);
+    const height = Math.round(cssHeight * dpr);
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
+    const aspect = width / height;
+    const distance = sceneDistance(aspect);
+    cam.target = [0, SCENE_TARGET_Y, 0];
+    cam.yaw = 0;
+    cam.distance = distance;
+    renderer.setCamera({ target: cam.target, yaw: 0, pitch: SCENE_PITCH, distance, fovY: PREVIEW_FOV_Y, aspect });
+    viewProjection(cam, aspect, viewProj);
+    renderer.beginFrame(SCENE_CLEAR);
+    const points = [];
+    const info = [];
+    SCENE_SEATS.forEach((seat, k) => {
+      const state = seats[k];
+      const model = models[k];
+      const figure = model ? figures.get(model)?.figure ?? null : null;
+      if (figure) {
+        if (state.model !== model) resetSeat(state, model, figure, clock, random);
+        stepSeat(state, figure, clock, random);
+        const transform = slotTransform(seat, figure, state.transform);
+        if (state.player) {
+          state.player.update(dt);
+          jointMatrices(figure.animation.nodes, figure.animation.skin, state.player.pose() ?? SCENE_EMPTY_POSE, figure.animation.fit, state.joints);
+          renderer.drawSkinned(figure.mesh, transform, state.joints);
+        } else {
+          renderer.drawMesh(figure.mesh, transform);
+        }
+        info.push({ clip: state.clip, switches: state.switches, stands: figure.stands.join(",") });
+      } else {
+        info.push({ clip: "", switches: 0, stands: "" });
+      }
+      points.push(screenPoint(viewProj, seat.plateX, seat.plateY, 0, cssWidth, cssHeight));
+    });
+    renderer.endFrame();
+    onFrame?.({ points, seats: info, draws: renderer.stats.drawCalls });
+  };
+
+  return {
+    setModels(next) {
+      models = next;
+      for (const model of next) if (model && !figures.has(model)) load(model);
+    },
+    start() {
+      if (running) return;
+      running = true;
+      previous = 0;
+      raf = requestAnimationFrame(frame);
+    },
+    stop() {
+      running = false;
+      cancelAnimationFrame(raf);
+    },
+  };
 }

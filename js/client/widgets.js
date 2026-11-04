@@ -108,6 +108,17 @@ const STYLE = `
 .w-input{min-width:0;width:100%;font:inherit;padding:4px 6px;color:inherit;background:var(--well);border:1px solid var(--muted);border-radius:3px}
 .w-model{position:relative;flex:0 0 auto;overflow:hidden;border-radius:3px;background:var(--well)}
 .w-model img,.w-model canvas{display:block;width:100%;height:100%;object-fit:contain}
+.w-scene{position:relative;width:min(96vw,1040px);height:min(60vh,560px);min-width:0;border:1px solid #2c3648;border-radius:12px;overflow:hidden;background:#0a0c12}
+.w-scene-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.w-scene-plates{position:absolute;inset:0;pointer-events:none}
+.w-scene-plate{position:absolute;left:0;top:0;display:flex;align-items:center;gap:6px;padding:2px 8px;border:1px solid var(--edge);border-radius:4px;background:rgba(10,14,22,.9);font-size:12px;letter-spacing:.08em;white-space:nowrap}
+.w-scene-plate[hidden]{display:none}
+.w-scene-plate[data-team="0"] .w-scene-name{color:#8fb6ff}
+.w-scene-plate[data-team="1"] .w-scene-name{color:#ffab8f}
+.w-scene-plate[data-mine="true"]{border-color:#6f92d8}
+.w-scene-plate[data-ready="true"] .w-scene-name{color:#9fe0a8}
+.w-scene-plate[data-cached="empty"]{opacity:.45}
+.w-scene-plate button{pointer-events:auto;font:inherit;font-size:11px}
 @media (max-width: 600px){
 #ui-bar-mid .w-cell{min-height:32px}
 .w-panel-toggle{min-height:32px}
@@ -375,6 +386,7 @@ function statBar(n) {
 }
 
 const loadedModels = new Set();
+const sceneWidgets = new Set();
 const previews = new Map();
 const PREVIEW_PX = 256;
 
@@ -386,6 +398,7 @@ if (typeof window !== "undefined") {
     for (const node of document.querySelectorAll(".w-model")) {
       if (node.dataset.model === model) showPreview(node);
     }
+    for (const widget of sceneWidgets) widget.refresh();
   });
 }
 
@@ -685,4 +698,74 @@ export function createWidgets({ send }) {
   }
 
   return { apply };
+}
+
+const SCENE_SEATS = 10;
+const SCENE_TEAM_SIZE = 5;
+
+export function sceneWidget() {
+  const element = el("div", "w-scene");
+  const canvas = el("canvas", "w-scene-canvas");
+  const plates = el("div", "w-scene-plates");
+  const cells = Array.from({ length: SCENE_SEATS }, () => plates.appendChild(el("div", "w-scene-plate")));
+  element.append(canvas, plates);
+  let models = new Array(SCENE_SEATS).fill(null);
+  let scene = null;
+  let loading = null;
+  let active = false;
+
+  const place = ({ points, seats, draws }) => {
+    points.forEach((p, k) => {
+      const cell = cells[k];
+      cell.hidden = !p;
+      if (p) cell.style.transform = `translate(${p[0]}px, ${p[1]}px) translate(-50%, -100%)`;
+      const clip = seats[k].clip;
+      if (cell.dataset.clip !== clip) cell.dataset.clip = clip;
+      const switches = String(seats[k].switches);
+      if (cell.dataset.switches !== switches) cell.dataset.switches = switches;
+      const stands = seats[k].stands;
+      if (cell.dataset.stands !== stands) cell.dataset.stands = stands;
+    });
+    if (element.dataset.draws !== String(draws)) element.dataset.draws = String(draws);
+  };
+
+  const ensure = () => {
+    if (!loading) {
+      loading = import("./render3d.js").then((render3d) => {
+        scene = render3d.createFigureScene(canvas, { prepare: (model, gl) => previewRigSource(model, gl), onFrame: place });
+        scene?.setModels(models);
+        if (active) scene?.start();
+      });
+    }
+    return loading;
+  };
+
+  const widget = {
+    element,
+    update(list) {
+      models = list.map((s) => s.model || null);
+      list.forEach((s, k) => {
+        const cell = cells[k];
+        cell.dataset.team = k < SCENE_TEAM_SIZE ? "0" : "1";
+        cell.dataset.model = s.model ?? "";
+        cell.dataset.cached = s.model ? String(loadedModels.has(s.model)) : "empty";
+        Object.assign(cell.dataset, s.data ?? {});
+        cell.replaceChildren(el("span", "w-scene-name", s.label ?? ""), ...(s.extra ?? []));
+      });
+      scene?.setModels(models);
+    },
+    refresh() {
+      for (const cell of cells) if (cell.dataset.model) cell.dataset.cached = String(loadedModels.has(cell.dataset.model));
+    },
+    setActive(on) {
+      active = on;
+      if (!on) {
+        scene?.stop();
+        return;
+      }
+      ensure().then(() => { if (active) scene?.start(); });
+    },
+  };
+  sceneWidgets.add(widget);
+  return widget;
 }

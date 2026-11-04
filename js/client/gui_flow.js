@@ -1,4 +1,4 @@
-import { modelNode } from "./widgets.js";
+import { sceneWidget } from "./widgets.js";
 const TEAM_SIZE = 5;
 const GROUPS = [
   { id: 1, name: "Strength" },
@@ -57,28 +57,14 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
 .flow-hero:hover, .flow-hero:focus { border-color: #6f92d8; outline: none; transform: translateY(-1px); }
 .flow-hero img { width: calc(var(--tile) * .64); height: calc(var(--tile) * .64); object-fit: contain; }
 .flow-acro { font-size: max(8px, calc(var(--tile) * .16)); letter-spacing: .08em; font-weight: 600; }
-.flow-orient { display: flex; align-items: flex-start; justify-content: space-between; gap: 2vw;
-  width: min(96vw, 1560px); }
-.flow-side { display: flex; flex-direction: column; gap: 8px; width: clamp(140px, 15vw, 210px);
-  max-height: 74vh; overflow: auto; padding-bottom: 6px; }
-.flow-side-head { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-bottom: 4px; }
-.flow-side-head b { font-size: 16px; letter-spacing: .05em; }
-.flow-side-head span { font-size: 11px; color: #8fa4c4; letter-spacing: .1em; text-transform: uppercase; }
-.flow-side[data-team="0"] .flow-side-head b { color: #8fb6ff; }
-.flow-side[data-team="1"] .flow-side-head b { color: #ffab8f; }
-.flow-stand { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 8px 6px 10px; border: 1px solid #2c3648; border-radius: 12px 12px 6px 6px;
-  background: linear-gradient(180deg, rgba(24,30,44,.94), rgba(12,16,24,.8)); }
-.flow-stand::after { content: ""; position: absolute; left: 6%; right: 6%; bottom: -5px; height: 5px;
-  border-radius: 3px; background: linear-gradient(180deg, #47536b, #1b2130); box-shadow: 0 6px 10px rgba(0,0,0,.5); }
-.flow-stand img { width: 60px; height: 60px; object-fit: contain; }
-.flow-stand .flow-stand-name { font-size: 12px; text-align: center; }
-.flow-stand button { pointer-events: auto; font-size: 11px; }
-.flow-stand .flow-stand-me { font-size: 9px; letter-spacing: .16em; color: #9fd0ff; }
-.flow-stand[data-mine="true"] { border-color: #6f92d8;
-  box-shadow: 0 0 0 1px rgba(111,146,216,.4), 0 0 18px rgba(111,146,216,.22); }
-.flow-stand[data-empty="true"] { border-style: dashed; opacity: .5; }
-.flow-stand[data-ready="true"] .flow-stand-name { color: #9fe0a8; }
+.flow-heads { display: flex; align-items: flex-start; justify-content: space-between; gap: 4vw; width: min(96vw, 1040px); }
+.flow-head { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.flow-head b { font-size: 16px; letter-spacing: .05em; }
+.flow-head span { font-size: 11px; color: #8fa4c4; letter-spacing: .1em; text-transform: uppercase; }
+.flow-head[data-team="0"] b { color: #8fb6ff; }
+.flow-head[data-team="1"] b { color: #ffab8f; }
+.flow-remove { margin-left: 4px; padding: 0 4px; border: 0; background: transparent; color: #9fb0cc; font: inherit; font-size: 13px; cursor: pointer; pointer-events: auto; }
+.flow-remove:hover, .flow-remove:focus { color: #ffab8f; outline: none; }
 .flow-bar { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; pointer-events: auto; }
 .flow-action { padding: 10px 20px; border: 1px solid #3d5f96; border-radius: 10px; background: rgba(20,32,58,.9);
   color: #e8ecf4; font: inherit; cursor: pointer; }
@@ -90,9 +76,6 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     scroll-snap-type: x mandatory; touch-action: pan-x; }
   .flow-board > .flow-group { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always; }
   .flow-dots { display: flex; }
-  .flow-orient { flex-direction: column; align-items: center; }
-  .flow-side { width: min(90vw, 340px); max-height: none; flex-direction: row; flex-wrap: wrap; justify-content: center; }
-  .flow-stand { width: 26vw; max-width: 110px; }
 }
 `;
   el.append(style);
@@ -100,6 +83,7 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
   let stage = null;
   let hidden = false;
   let podiumShown = false;
+  const scene = sceneWidget();
 
   const node = (tag, className, text) => {
     const n = document.createElement(tag);
@@ -130,12 +114,6 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     img.hidden = true;
     img.addEventListener("error", () => { img.hidden = true; });
     return img;
-  };
-
-  const modelPortrait = (model, alt) => {
-    const holder = modelNode({ model, size: 60, alt });
-    holder.append(portrait(model, alt));
-    return holder;
   };
 
   function refreshIcons() {
@@ -241,14 +219,17 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     : null;
   let boardLeft = 0;
 
-  const swipeDots = (board) => {
+  const swipeDots = (board, count, remember = false) => {
     const dots = node("div", "flow-dots");
-    const marks = GROUPS.map(() => dots.appendChild(node("span", "flow-dot")));
+    const marks = Array.from({ length: count }, () => dots.appendChild(node("span", "flow-dot")));
     const show = () => {
       const at = Math.round(board.scrollLeft / Math.max(1, board.clientWidth));
       marks.forEach((mark, i) => { mark.dataset.on = String(i === at); });
     };
-    board.addEventListener("scroll", () => { boardLeft = board.scrollLeft; show(); }, { passive: true });
+    board.addEventListener("scroll", () => {
+      if (remember) boardLeft = board.scrollLeft;
+      show();
+    }, { passive: true });
     return { dots, show };
   };
 
@@ -260,7 +241,7 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     bar.append(chip, modeChips(state, false));
     const board = node("div", "flow-board");
     renderBoard(board, state);
-    const swipe = swipeDots(board);
+    const swipe = swipeDots(board, GROUPS.length, true);
     el.append(node("h1", "", "Choose your hero"), bar, board, swipe.dots, errorLine(state));
     board.scrollLeft = boardLeft;
     swipe.show();
@@ -270,27 +251,24 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     }
   };
 
-  const stand = (seat, mine, heroes, removeSlot = -1) => {
-    const slot = node("div", "flow-stand");
-    if (!seat.owner) {
-      slot.dataset.empty = "true";
-      slot.append(node("span", "flow-stand-name", "open slot"));
-      return slot;
-    }
-    slot.dataset.mine = mine ? "true" : "false";
-    if (seat.ready) slot.dataset.ready = "true";
+  const seatPlate = (seat, mine, heroes, removeSlot = -1) => {
+    if (!seat.owner) return { label: "open", data: { mine: "false", ready: "false" } };
     const hero = seat.hero ? heroes.get(seat.hero) : null;
-    const model = hero?.model ?? seat.model;
-    const picture = model ? modelPortrait(model, hero?.acronym ?? "") : portrait(model, hero?.acronym ?? "");
-    slot.append(picture, node("span", "flow-stand-name", hero?.acronym ?? "picking"));
-    slot.append(node("span", "flow-stand-me", mine ? "YOU" : seat.owner.startsWith("bot:") ? "BOT" : "PLAYER"));
+    const extra = [];
     if (removeSlot >= 0 && !mine) {
-      const remove = node("button", "flow-action", "Remove");
+      const remove = node("button", "flow-remove", "×");
       remove.type = "button";
+      remove.title = "Remove";
+      remove.setAttribute("aria-label", "Remove");
       remove.addEventListener("click", () => act("remove", { slot: removeSlot }));
-      slot.append(remove);
+      extra.push(remove);
     }
-    return slot;
+    return {
+      model: hero?.model ?? seat.model ?? null,
+      label: hero?.acronym || "picking",
+      data: { mine: String(mine), ready: seat.ready ? "true" : "false" },
+      extra,
+    };
   };
 
   const actionBar = (state, seat, seats) => {
@@ -321,19 +299,17 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     const heroes = heroesOf(state);
     el.append(node("h1", "", joining ? "Lobby" : "Teams ready to fight"));
     el.append(node("div", "flow-modes-label", "Game mode"), modeChips(state, true));
-    const board = node("div", "flow-orient");
+    const heads = node("div", "flow-heads");
     [0, 1].forEach((team) => {
-      const side = node("div", "flow-side");
-      side.dataset.team = String(team);
       const ready = seats.filter((s, i) => teamOf(i) === team && s.owner && s.ready).length;
-      const head = node("div", "flow-side-head");
+      const head = node("div", "flow-head");
+      head.dataset.team = String(team);
       head.append(node("b", "", teamNames[team] ?? `Team ${team + 1}`), node("span", "", `${ready}/${TEAM_SIZE} ready`));
       if (joining) head.append(joinButton(state, team));
-      side.append(head);
-      for (let i = team * TEAM_SIZE; i < (team + 1) * TEAM_SIZE; i += 1) side.append(stand(seats[i], i === seat, heroes, state.host === me() ? i : -1));
-      board.append(side);
+      heads.append(head);
     });
-    el.append(board, actionBar(state, seat, seats), errorLine(state));
+    scene.update(seats.map((s, i) => seatPlate(s, i === seat, heroes, state.host === me() ? i : -1)));
+    el.append(heads, scene.element, actionBar(state, seat, seats), errorLine(state));
     const allReady = seats.every((s) => s.owner && s.ready);
     const note = joining && !canJoin(state) ? "Negotiate the lobby first." : allReady ? "Every seat is ready." : "Standing by for the match…";
     el.append(node("div", "flow-wait", note));
@@ -349,6 +325,7 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     if (stage == null) delete document.body.dataset.flow;
     else document.body.dataset.flow = stage;
     el.replaceChildren(style);
+    scene.setActive(stage === "join" || stage === "podium");
     if (stage === "join") lobbyBoard(state, true);
     else if (stage === "podium") lobbyBoard(state, false);
     else if (stage === "hero") heroStage(state);
