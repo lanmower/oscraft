@@ -389,7 +389,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-function modelNode(n) {
+export function modelNode(n) {
   const px = Math.max(16, Math.min(256, n.size || 56));
   const e = el("div", "w-model");
   e.dataset.model = String(n.model);

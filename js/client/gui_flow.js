@@ -1,3 +1,4 @@
+import { modelNode } from "./widgets.js";
 const TEAM_SIZE = 5;
 const GROUPS = [
   { id: 1, name: "Strength" },
@@ -129,6 +130,12 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     img.hidden = true;
     img.addEventListener("error", () => { img.hidden = true; });
     return img;
+  };
+
+  const modelPortrait = (model, alt) => {
+    const holder = modelNode({ model, size: 60, alt });
+    holder.append(portrait(model, alt));
+    return holder;
   };
 
   function refreshIcons() {
@@ -273,7 +280,9 @@ button.flow-mode:disabled { cursor: default; opacity: .6; }
     slot.dataset.mine = mine ? "true" : "false";
     if (seat.ready) slot.dataset.ready = "true";
     const hero = seat.hero ? heroes.get(seat.hero) : null;
-    slot.append(portrait(hero?.model ?? seat.model, hero?.acronym ?? ""), node("span", "flow-stand-name", hero?.acronym ?? "picking"));
+    const model = hero?.model ?? seat.model;
+    const picture = model ? modelPortrait(model, hero?.acronym ?? "") : portrait(model, hero?.acronym ?? "");
+    slot.append(picture, node("span", "flow-stand-name", hero?.acronym ?? "picking"));
     slot.append(node("span", "flow-stand-me", mine ? "YOU" : seat.owner.startsWith("bot:") ? "BOT" : "PLAYER"));
     if (removeSlot >= 0 && !mine) {
       const remove = node("button", "flow-action", "Remove");

@@ -2459,33 +2459,38 @@ function recordTick(log, tick, units) {
   if (log.size > CI_TICK_LOG) log.delete(log.keys().next().value);
 }
 
+function setBodyData(name, value) {
+  const text = String(value);
+  if (document.body.dataset[name] !== text) document.body.dataset[name] = text;
+}
+
 function publishCommandCounts() {
-  document.body.dataset.orders = String(orders);
-  document.body.dataset.casts = String(casts);
-  document.body.dataset.attacks = String(attacks);
+  setBodyData("orders", orders);
+  setBodyData("casts", casts);
+  setBodyData("attacks", attacks);
 }
 
 function publishWitness() {
-  document.body.dataset.units = String(currentUnits().length);
-  document.body.dataset.ticks = String(localGame ? localGame.ticks() : netState ? netState.tick : 0);
-  document.body.dataset.mode = "3d";
-  document.body.dataset.center = renderer3d.camera.target.map((v) => v.toFixed(2)).join(",");
-  document.body.dataset.distance = renderer3d.camera.distance.toFixed(3);
-  document.body.dataset.drawTerrain = String(drawCounts.terrain);
-  document.body.dataset.drawQuad = "0";
-  document.body.dataset.drawSplat = String(drawCounts.splat);
-  document.body.dataset.splatGround = splat ? "1" : "0";
-  document.body.dataset.shadow = SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0";
-  document.body.dataset.shadowUnits = String(shadowUnitCount);
-  document.body.dataset.texelUploads = String(renderer3d.stats.texelUploads || 0);
-  document.body.dataset.terrainMode = "heightfield";
-  document.body.dataset.drawProp = String(drawCounts.prop);
-  document.body.dataset.drawUnit = String(drawCounts.unit);
-  document.body.dataset.drawAnimated = String(drawCounts.animated);
-  document.body.dataset.drawCalls = String(renderer3d ? renderer3d.stats.drawCalls : 0);
-  document.body.dataset.drawInstances = String(renderer3d ? renderer3d.stats.instances : 0);
-  document.body.dataset.drawCulled = String(renderer3d ? renderer3d.stats.culled : 0);
-  document.body.dataset.drawCpuMs = renderer3d ? renderer3d.stats.frameCpuMs.toFixed(3) : "0";
+  setBodyData("units", currentUnits().length);
+  setBodyData("ticks", localGame ? localGame.ticks() : netState ? netState.tick : 0);
+  setBodyData("mode", "3d");
+  setBodyData("center", renderer3d.camera.target.map((v) => v.toFixed(2)).join(","));
+  setBodyData("distance", renderer3d.camera.distance.toFixed(3));
+  setBodyData("drawTerrain", drawCounts.terrain);
+  setBodyData("drawQuad", "0");
+  setBodyData("drawSplat", drawCounts.splat);
+  setBodyData("splatGround", splat ? "1" : "0");
+  setBodyData("shadow", SHADOW_ON && renderer3d && renderer3d.setShadows ? "1" : "0");
+  setBodyData("shadowUnits", shadowUnitCount);
+  setBodyData("texelUploads", renderer3d.stats.texelUploads || 0);
+  setBodyData("terrainMode", "heightfield");
+  setBodyData("drawProp", drawCounts.prop);
+  setBodyData("drawUnit", drawCounts.unit);
+  setBodyData("drawAnimated", drawCounts.animated);
+  setBodyData("drawCalls", renderer3d ? renderer3d.stats.drawCalls : 0);
+  setBodyData("drawInstances", renderer3d ? renderer3d.stats.instances : 0);
+  setBodyData("drawCulled", renderer3d ? renderer3d.stats.culled : 0);
+  setBodyData("drawCpuMs", renderer3d ? renderer3d.stats.frameCpuMs.toFixed(3) : "0");
   publishCommandCounts();
   pumpUi();
   if (hud && gate.live) hud.update();
