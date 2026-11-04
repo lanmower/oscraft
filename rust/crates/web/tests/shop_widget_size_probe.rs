@@ -193,6 +193,10 @@ fn tips_of(tree: &Value) -> usize {
     nodes_of(tree).iter().filter(|node| node.get("tip").is_some()).count()
 }
 
+fn cell_tips(tree: &Value) -> Vec<String> {
+    nodes_of(tree).iter().filter(|node| node["t"] == "cell").filter_map(|node| node.get("tip").and_then(Value::as_str).map(str::to_owned)).collect()
+}
+
 struct Shop {
     game: Game,
     tree: Option<Value>,
@@ -281,8 +285,11 @@ fn shop_widget_stays_under_the_frame_limit_and_the_pick_detail_keeps_the_recipe(
             assert!(*bytes <= FRAME_LIMIT, "{step}: widget:shop is {bytes} bytes, over the {FRAME_LIMIT}-byte frame limit");
         }
     }
-    assert_eq!(first_tips, 0, "no shop cell carries a tooltip tip");
-    assert_eq!(second_tips, 0, "no shop cell carries a tooltip tip after the second pick");
+    let hovers = cell_tips(shop.tree());
+    let longest = hovers.iter().map(String::len).max().unwrap_or(0);
+    println!("shop_widget_hover cells={} longest={longest} sample=\"{}\"", hovers.len(), hovers.first().cloned().unwrap_or_default());
+    assert!(first_tips > 0 && second_tips > 0, "shop cells carry a short hover tip");
+    assert!(hovers.iter().all(|tip| !tip.contains(builds)), "a cell hover leaves the build tree to the selected item's detail");
     assert!(first_detail.as_ref().is_some_and(|text| text.contains("magic_stick") && text.contains("circlet")), "the selected item's detail carries its recipe");
     assert!(second_detail, "the second selected item's detail carries the buy sentence");
 }

@@ -40,4 +40,4 @@ Source tags: `6.88g` is the map data (`items_688g.tsv`, `shops_688g.tsv`); `web`
 
 ## Item text
 
-- **SHOP-TEXT.** The selected item's detail panel reads in this order: the effect (stats, charges, or no passive stats), the cost, the build tree and what a buy does, then whether the buyer can buy from here (`yes, your hero is in reach`, `yes, your courier fetches it`, or `no` with the reason). Source: `moba_ui.json` `shop.tip` and `shop.offHand`.
+- **SHOP-TEXT.** Each grid cell shows the item name and cost, and its hover tip is the name, cost and one effect line (`priced` and `effect_sentence` in `panels.lua`). The selected item's detail panel reads in this order: the effect (stats, charges, or no passive stats), the cost, the build tree and what a buy does, then whether the buyer can buy from here (`yes, your hero is in reach`, `yes, your courier fetches it`, or `no` with the reason). Source: `moba_ui.json` `shop.tip` and `shop.offHand`.

@@ -633,7 +633,7 @@ local function shop_tree()
   local function item_cell(i, def)
     local tone = gold >= price_of(i, def) and "gold" or "bad"
     local name_tone = i == pick and "accent" or "strong"
-    return cell({ label(def.name, name_tone), label(tostring(def.cost) .. TEXT.costSuffix, tone) }, { call = "shop_pick", args = obj({ I("item", i) }) })
+    return cell({ label(def.name, name_tone), label(tostring(def.cost) .. TEXT.costSuffix, tone) }, { tip = priced(def) .. ". " .. effect_sentence(def), call = "shop_pick", args = obj({ I("item", i) }) })
   end
 
   local function pick_detail(i, def)
