@@ -1,0 +1,52 @@
+{
+  "generatedBy": "bounded browser row witnesses subagent",
+  "livePages": "f51d495c3458e188eac628f08d5d8a0151f899b0 / run 42083278620",
+  "rows": [
+    {
+      "id": "prd-assetbundlescharacteranditempackscached",
+      "outcome": "stale",
+      "evidence": "gm.fetch version.json 200 and packs/index.json 200 260931 bytes; content-hashed names live; scripts/perf/asset-packs-cache-check.mjs serves immutable and 304; two-load browser summary not run; .dev-site packs/index.json ENOENT"
+    },
+    {
+      "id": "prd-livemobagueststalls",
+      "outcome": "stale",
+      "evidence": "gm.playwriter_execute relay-witness-ctx returned both wss://relay.damus.io and wss://offchain.pub open readyState=1, errors=[]; no two-tab tick sample; live /__hmr 404"
+    },
+    {
+      "id": "prd-liveswapverify2setup",
+      "outcome": "stale",
+      "evidence": "live Pages f51d495c supersedes historical build failures; /__hmr 404; hmr.js gates start to ?hmr/localhost; no two-page swap run; .dev-site packs/index.json ENOENT"
+    },
+    {
+      "id": "prd-queuedorderstwotabwitness",
+      "outcome": "stale",
+      "evidence": "play.js:3606-3609 exposes queueState, keyframe, resync and queueMove; no two-tab match, no separate-session dispatch"
+    },
+    {
+      "id": "prd-mw1v8t9ffe3b",
+      "outcome": "stale",
+      "evidence": "sim win_counters_probe covers Overview tree; no served finished match or browser-accessible forced win screen; no 1280x720 screenshot"
+    },
+    {
+      "id": "prd-mw3z6vzlbf58",
+      "outcome": "resolved",
+      "evidence": "five prd_reopen calls each returned reopened; setup 201 rows 6 open 0 defects; parent processes the five children with this commit"
+    }
+  ],
+  "cleanup": {
+    "pagesOpened": [
+      "relay-witness-page-2026-11-05"
+    ],
+    "pagesClosed": [
+      "relay-witness-page-2026-11-05"
+    ],
+    "contextsOpened": [
+      "relay-witness-ctx-2026-11-05"
+    ],
+    "contextsClosed": [
+      "relay-witness-ctx-2026-11-05"
+    ],
+    "serversStarted": [],
+    "serversClosed": []
+  }
+}
