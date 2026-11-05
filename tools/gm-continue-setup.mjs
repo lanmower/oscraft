@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rowsDir = join(repoRoot, "work", "rows");
 const ACTIONABLE_STATUS = "open";
-const SETTLED_STATUS = "resolved";
+const SETTLED_STATUSES = new Set(["resolved", "parked"]);
 
 function parseRow(text) {
   const row = {};
@@ -41,26 +41,30 @@ function loadRows() {
 
 function classify(rows) {
   const plan = rows.filter((row) => row.status === ACTIONABLE_STATUS);
-  const defects = rows.filter(
-    (row) => row.status !== ACTIONABLE_STATUS && row.status !== SETTLED_STATUS,
-  );
-  return { plan, defects };
+  const parked = rows.filter((row) => row.status === "parked");
+  const defects = rows.filter((row) => !SETTLED_STATUSES.has(row.status) && row.status !== ACTIONABLE_STATUS);
+  return { plan, parked, defects };
 }
 
 function planLine(row) {
   return `PLAN ${row.id ?? row.file} [${row.kind ?? "?"}] ${row.title ?? ""}`.trimEnd();
 }
 
+function parkedLine(row) {
+  return `PARKED ${row.id ?? row.file} ${row.reason ?? ""}`.trimEnd();
+}
+
 function defectLine(row) {
-  return `DEFECT ${row.id ?? row.file} status=${JSON.stringify(row.status ?? "")} (neither open nor resolved)`;
+  return `DEFECT ${row.id ?? row.file} status=${JSON.stringify(row.status ?? "")} (neither open, parked nor resolved)`;
 }
 
 function main() {
   const rows = loadRows();
-  const { plan, defects } = classify(rows);
+  const { plan, parked, defects } = classify(rows);
   const lines = [
-    `gm-continue setup: ${rows.length} rows, ${plan.length} open, ${defects.length} defects`,
+    `gm-continue setup: ${rows.length} rows, ${plan.length} open, ${parked.length} parked, ${defects.length} defects`,
     ...plan.map(planLine),
+    ...parked.map(parkedLine),
     ...defects.map(defectLine),
   ];
   process.stdout.write(lines.join("\n") + "\n");
