@@ -9,6 +9,11 @@ local KINDS = {
   danger = { colour = "#ff4d4d", seconds = 4 },
   on_my_way = { colour = "#7cc7ff", seconds = 4, route = true },
   item = { colour = "#ffd54f", seconds = 4 },
+  attack = { colour = "#ff9800", seconds = 4 },
+  help = { colour = "#66bb6a", seconds = 4 },
+  retreat = { colour = "#ba68c8", seconds = 4 },
+  vision = { colour = "#4dd0e1", seconds = 4 },
+  missing = { colour = "#bdbdbd", seconds = 4 },
 }
 
 local pings = {}

@@ -18,7 +18,9 @@ import { createHeroRun, enemiesInSight, stepHeroRun } from "./hero_run.js";
 import { teamOf } from "./moba_select.js";
 import { cameraDragAction, MIDDLE_BUTTON } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
+import { activePalette, rgbOfHex, seatRampHex } from "./colour_vision.js";
 import { pingKindOf } from "./moba_input.js";
+import { createPingWheel, WHEEL_KEYS } from "./ping_wheel.js";
 import { createWidgets, setImageSrcResolver, setPreviewRig } from "./widgets.js";
 import { createHudCanvas, hudCanvasRequested } from "./hud_canvas.js";
 import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
@@ -63,7 +65,12 @@ const MAP_COLOR = [0.2, 0.28, 0.22];
 const PLAYER_COLORS = [[0.227, 0.482, 0.835], [0.835, 0.329, 0.227]];
 const SELECT_COLOR = [0.95, 0.85, 0.3];
 const seatColours = new Map();
-const playerColor = (player) => seatColours.get(player) || PLAYER_COLORS[player] || PLAYER_COLORS[0];
+const PALETTE = activePalette(UI);
+const playerColor = (player) => {
+  const ramp = seatRampHex(PALETTE, player);
+  if (ramp) return rgbOfHex(ramp);
+  return seatColours.get(player) || PLAYER_COLORS[player] || PLAYER_COLORS[0];
+};
 const rgbFloats = (rgb) => [((rgb >> 16) & 255) / 255, ((rgb >> 8) & 255) / 255, (rgb & 255) / 255];
 const UNIT_HALF = 0.9;
 let HERO_DRAW_SCALE = UI.heroDrawScale ?? 1;
@@ -1406,10 +1413,22 @@ const commands = {
 };
 
 function bindInput() {
+  const pingWheel = createPingWheel();
+  let pingPress = null;
+  let wheelKey = null;
+  const openWheelAtPointer = () => pingWheel.open(pointer ? pointer.x : window.innerWidth / 2, pointer ? pointer.y : window.innerHeight / 2);
+
   canvas.addEventListener("pointerdown", (e) => {
+    if (e.button === 0 && (e.altKey || e.ctrlKey)) {
+      drag = null;
+      pingPress = e;
+      canvas.setPointerCapture(e.pointerId);
+      pingWheel.open(e.clientX, e.clientY);
+      return;
+    }
     drag = e.button === 0 ? null : { button: e.button, x: e.clientX, y: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
-    forwardPointer(e.altKey && e.button === 0 ? pingKindOf(e) : "down", e);
+    forwardPointer("down", e);
   });
   canvas.addEventListener("pointermove", (e) => {
     if (!drag) return;
@@ -1432,6 +1451,14 @@ function bindInput() {
   canvas.addEventListener("mousedown", suppressMiddleButtonDefault);
   canvas.addEventListener("auxclick", suppressMiddleButtonDefault);
   canvas.addEventListener("pointerup", (e) => {
+    if (pingPress) {
+      const press = pingPress;
+      pingPress = null;
+      const kind = pingWheel.pickAt(e.clientX, e.clientY) ?? pingKindOf(press);
+      pingWheel.close();
+      forwardPointer(kind, press);
+      return;
+    }
     const wasDrag = drag && drag.moved;
     drag = null;
     if (!wasDrag) forwardPointer("up", e);
@@ -1454,20 +1481,38 @@ function bindInput() {
       e.preventDefault();
       return;
     }
+    if (WHEEL_KEYS.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (!e.repeat && wheelKey === null) {
+        wheelKey = e.key;
+        openWheelAtPointer();
+      }
+      return;
+    }
     if (e.key.length === 1 || e.key === " " || e.key === "Tab" || e.key === "Escape") {
       if ((!e.ctrlKey && !e.metaKey) || BOUND_KEYS.has(keyNameOf(e))) e.preventDefault();
     }
-    if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (e.key === "M") toggleMute();
-      else if (e.key === "g") toggleAmbient();
-    }
+    if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && e.key === "M") toggleMute();
     forwardKey("down", e);
   });
   window.addEventListener("keyup", (e) => {
     keysDown.delete(e.key);
+    if (e.key === wheelKey) {
+      wheelKey = null;
+      const kind = pointer ? pingWheel.pickAt(pointer.x, pointer.y) : null;
+      pingWheel.close();
+      if (kind && pointer) {
+        forwardPointer(kind, { clientX: pointer.x, clientY: pointer.y, button: 0 });
+        return;
+      }
+      if (e.key === "g") toggleAmbient();
+      forwardKey("down", e);
+    }
     forwardKey("up", e);
   });
   window.addEventListener("blur", () => {
+    pingWheel.close();
+    pingPress = null;
+    wheelKey = null;
     keysDown.clear();
     forwardKey("up", { key: "Shift", shiftKey: false, ctrlKey: false, altKey: false, metaKey: false });
   });
