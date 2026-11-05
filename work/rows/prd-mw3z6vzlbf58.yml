@@ -1,0 +1,9 @@
+id: "prd-mw3z6vzlbf58"
+kind: "prd"
+title: "Open all the rows and process them"
+body: "Reopen the five parked browser/relay witness rows, run bounded witnesses or record exact blockers, then resolve each with a commit carrying Row, Witness and Status."
+status: "resolved"
+createdAt: "2026-11-05T20:05:51.345Z"
+witnessEvent: 865
+witnessCommit: "f8d28dd79b6b62fe2ef2f8eaf4863280cd0de4ac"
+resolvedAt: "2026-11-05T20:48:31.432Z"
