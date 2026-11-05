@@ -88,7 +88,7 @@ No comments in source: durable facts live here, names carry intent.
 - Roshan: the 200 team gold goes only to living heroes of the killing side (camps.lua, roshan_team_gold).
 - Win: the base is the only unit with the `building` filter; when a side's base dies the rival wins (win.lua). A forfeit that ends the match publishes the win stats at once (leave.lua calls match_stats.publish(match_stats.roster())).
 - Win screen gold is bounty.earned (counter st_gold_earned, added by bounty.credit and by kill_gold passive and carried-gold payouts); the reliable bank is separate.
-- Post-game overview (`post_view.lua`): play-style bars are percent of the best hero this match (supporting = assists per minute, fighting = damage dealt per minute, farming = last hits per minute); pushing, per-hero averages and graphs are not tracked. The overview groups heroes by UI team (moba_ui.json teams); the win header names the sim winner (game.team), and the two can differ.
+- Post-game overview (`post_view.lua`): play-style bars are percent of the best hero this match (supporting = assists per minute, fighting = damage dealt per minute, farming = last hits per minute); pushing and per-hero averages are not tracked. The graphs tab draws line charts from one sample per full match minute (`match_stats.sample_clock`, first 60 minutes): cumulative gold, active buff count (`game.unit_buffs`), XP and kills per minute. The overview groups heroes by UI team (moba_ui.json teams); the win header names the sim winner (game.team), and the two can differ.
 - Teamfight recap (`recap.lua`): two or more hero deaths within 15 s form one fight, shown for 8 s or until closed. Each side's gold swing is gained minus lost in the bounty window opened around `kill_gold.hero_died` (`bounty.open_window`/`close_window`). The death recap reports damage by source as unknown: the sim keeps no per-source totals.
 - `game.remove_unit` fires `on_died` with no killer, so removing a hero mid-fight records an unknown death.
 - lanes.lua sync_upgrades and trees.lua heal_step walk their tables with a local ascending_keys. sync_upgrades walks only when the upgrade level changes.
@@ -141,3 +141,8 @@ No comments in source: durable facts live here, names carry intent.
 - Replay format 3: `chk` at tick t precedes the `segment` at t, which precedes t's commands; hashes are taken after orders, before the step. v1/v2 still parse; retired fields are written 0. Refused commands are recorded (they feed the hash).
 - wasip3 (own workspace, excluded from `rust/Cargo.toml`): `COMMANDS` and `wit/sim-component.wit` synced by hand; fixed-seed getrandom; one instance holds one sim, every export is synchronous, and the guest reads commands from stdin and writes replies to stdout.
 - Crowding tests place no tower (its 2.25-tile body moved units out of reach); pack commands apply two ticks late.
+
+## Facts found by troubleshooting
+
+- `tools/gm-continue-setup.mjs` was absent, so the gm-continue setup command failed before any row could be worked; DESIGN.md 2026-11-05 records the read-only restoration.
+- A 19-agent gm.search fan-out crashed the gm worker with exit 139 through an unguarded Searcher cache data race; DESIGN.md 2026-11-05 records the root cause and the narrow-verb mitigation.
